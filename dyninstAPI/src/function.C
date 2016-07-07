@@ -1307,43 +1307,21 @@ bool func_instance::createOffsetVector_Analysis(ParseAPI::Function* func,
     if (::getAccesses(func, block, addr, insn, accesses)) {
         _accessMap->insert(make_pair(addr, accesses));
 
-        for (auto accessIter = accesses->begin(); accessIter != accesses->end(); ++accessIter) {
+        for (auto accessIter = accesses->begin(); accessIter != accesses->end();
+            ++accessIter) {
             StackAccess* access = (*accessIter).second;
 
-            stackmods_printf("\t\t Processing %s, size %d\n", access->format().c_str(), accessSize);
+            stackmods_printf("\t\t Processing %s, size %d\n",
+                access->format().c_str(), accessSize);
 
-            if (access->disp()) {
-                if (access->skipReg()) {
-                    stackmods_printf("\t\t\t Skipping (1).\n");
-                    _offVec->addSkip(access->reg(), access->regHeight(), block->start(), addr);
-                    // Skip
-                    if (!addToOffsetVector(access->regHeight(), 1, StackAccess::REGHEIGHT, true, NULL, access->reg())) {
-                        stackmods_printf("\t\t\t INVALID: addToOffsetVector failed (1)\n");
-                        return false;
-                    }
-                } else {
-                    if (!addToOffsetVector(access->regHeight(), 1, StackAccess::REGHEIGHT, true, NULL, access->reg())) {
-                        stackmods_printf("\t\t\t INVALID: addToOffsetVector failed (2)\n");
-                        return false;
-                    }
-                }
-                _tmpObjects->insert(tmpObject(access->readHeight().height(), accessSize, access->type()));
-            } else {
-                if (access->skipReg()) {
-                    _offVec->addSkip(access->reg(), access->regHeight(), block->start(), addr);
-                    stackmods_printf("\t\t\t Skipping (2).\n");
-                    if (!addToOffsetVector(access->regHeight(), 1, StackAccess::REGHEIGHT, true, NULL, access->reg())) {
-                        stackmods_printf("\t\t\t INVALID: addToOffsetVector failed (3)\n");
-                        return false;
-                    }
-                } else {
-                    if (!addToOffsetVector(access->regHeight(), 1, StackAccess::REGHEIGHT, true, NULL, access->reg())) {
-                        stackmods_printf("\t\t\t INVALID: addToOffsetVector failed (4)\n");
-                        return false;
-                    }
-                }
-                _tmpObjects->insert(tmpObject(access->readHeight().height(), accessSize, access->type()));
+            assert(!access->skipReg());
+            if (!addToOffsetVector(access->regHeight(), 1,
+                StackAccess::REGHEIGHT, true, NULL, access->reg())) {
+                stackmods_printf("\t\t\t INVALID: addToOffsetVector failed\n");
+                return false;
             }
+            _tmpObjects->insert(tmpObject(access->readHeight().height(),
+                accessSize, access->type()));
         }
     } else {
         stackmods_printf("\t\t\t INVALID: getAccesses failed\n");

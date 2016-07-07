@@ -419,9 +419,11 @@ class zeroAllGPRegisters : public InstructionAPI::Visitor
 
             if (!zero) {
                 if (func) {
-                    StackAnalysis::Height height = sa.find(block, m_ip, r->getID());
+                    StackAnalysis::Height height = sa.find(block, m_ip,
+                        Absloc(r->getID()));
                     if (!height.isBottom() && !height.isTop()) {
-                        stackmods_printf("\t\t\t found %s height = %ld\n", r->getID().name().c_str(), height.height());
+                        stackmods_printf("\t\t\t found %s height = %ld\n",
+                            r->getID().name().c_str(), height.height());
                         results.push_back(height.height());
                         return;
                     }
@@ -446,11 +448,8 @@ bool getMemoryOffset(ParseAPI::Function* func,
         StackAccess*& ret,
         Architecture arch)
 {
-
-    stackmods_printf("\t\t\t getMemoryOffset for %s; checking reg %s = %s\n", insn->format().c_str(), reg.name().c_str(), height.format().c_str());
-
-    bool skipReg = false;
-    bool multChildrenInDeref = false;
+    stackmods_printf("\t\t\t getMemoryOffset for %s; checking reg %s = %s\n",
+        insn->format().c_str(), reg.name().c_str(), height.format().c_str());
 
     InstructionAPI::RegisterAST* regAST = new InstructionAPI::RegisterAST(reg);
     InstructionAPI::RegisterAST::Ptr regASTPtr = InstructionAPI::RegisterAST::Ptr(regAST);
@@ -458,8 +457,8 @@ bool getMemoryOffset(ParseAPI::Function* func,
     std::vector<InstructionAPI::Operand> operands;
     insn->getOperands(operands);
 
-    signed long disp = 0;
-    signed long offset = 0;
+    signed long disp = 0;  // Stack height of access
+    signed long offset = 0;  // Offset from the base register used in the access
     bool isOffsetSet = false;
 
     // Determine how memory is accessed
@@ -478,10 +477,10 @@ bool getMemoryOffset(ParseAPI::Function* func,
     }
 
     for (unsigned i = 0; i < operands.size(); i++) {
+        stackmods_printf("\t\t\t\t operand[%d] = %s\n", i,
+            operands[i].getValue()->format().c_str());
 
-        stackmods_printf("\t\t\t\t operand[%d] = %s\n", i, operands[i].getValue()->format().c_str());
-
-        // Get the read/written register sets
+        // Set match if reg is read or written
         bool match = false;
         if (reg.isValid()) {
             std::set<InstructionAPI::RegisterAST::Ptr> regsRead;
@@ -495,7 +494,8 @@ bool getMemoryOffset(ParseAPI::Function* func,
             }
             std::set<InstructionAPI::RegisterAST::Ptr> regsWrite;
             operands[i].getWriteSet(regsWrite);
-            for (auto iter = regsWrite.begin(); iter != regsWrite.end(); ++iter) {
+            for (auto iter = regsWrite.begin(); iter != regsWrite.end();
+                ++iter) {
                 InstructionAPI::RegisterAST::Ptr cur = *iter;
                 if (*cur == *regASTPtr) {
                     stackmods_printf("\t\t\t\t\t writes reg\n");
@@ -514,12 +514,11 @@ bool getMemoryOffset(ParseAPI::Function* func,
                 continue;
             }
 
-            // Won't find an offset for a registerAST
-            // However, we do want to record a push (e.g., callee-saved registers)
-            if (!(insn->getOperation().getID() == e_push)) {
-                if (typeid(*val) == typeid(InstructionAPI::RegisterAST)) {
-                    continue;
-                }
+            // Won't find an offset for a registerAST.  However, we do want to
+            // record a push (e.g., callee-saved registers).
+            if (typeid(*val) == typeid(InstructionAPI::RegisterAST) &&
+                insn->getOperation().getID() != e_push) {
+                continue;
             }
 
             // If we have a dereference, extract the child
@@ -527,174 +526,50 @@ bool getMemoryOffset(ParseAPI::Function* func,
                 vector<InstructionAPI::InstructionAST::Ptr> children;
                 val->getChildren(children);
                 if (children.size() == 1) {
-                    InstructionAPI::InstructionAST::Ptr child = children.front();
-                    val = boost::dynamic_pointer_cast<InstructionAPI::Expression>(child);
+                    InstructionAPI::InstructionAST::Ptr child =
+                        children.front();
+                    val = boost::dynamic_pointer_cast<InstructionAPI::
+                        Expression>(child);
                 }
             }
 
-            // Copied from parseAPI/src/IA_x86Details.C IA_x86Details::findTableInsn()
+            // Copied from parseAPI/src/IA_x86Details.C
+            // IA_x86Details::findTableInsn()
             zeroAllGPRegisters z(addr, func, block, insn, false);
             val->apply(&z);
             if (z.isDefined()) {
+                // At this point, z.getResult() contains the exact stack height
+                // being accessed.
                 zeroAllGPRegisters z2(addr, func, block, insn, true);
                 val->apply(&z2);
 
                 isOffsetSet = true;
                 offset = z.getResult();
 
-                if ( (z2.isDefined()) &&
-                     ( (z2.getResult()) ||
-                       (z.getResult() == z2.getResult()))) {
+                if (z2.isDefined()) {
+                    // At this point, z2.getResult() contains the difference
+                    // between the stack height being accessed and the height of
+                    // the base register used in the address calculation.
                     disp = z2.getResult();
                 } else {
                     disp = 0;
                 }
 
-                stackmods_printf("\t\t\t\t found offset %ld, disp = %ld, type = %d\n", offset, disp, type);
-
-                // Weird check: is there more than one child in the dereference? If not, we may want to skip
-                vector<InstructionAPI::InstructionAST::Ptr> children2;
-                val->getChildren(children2);
-                if (children2.size() > 1) {
-                    stackmods_printf("\t\t\t\t\t Found >1 child in dereference.\n");
-                    multChildrenInDeref = true;
-                }
+                stackmods_printf("\t\t\t\t found offset %ld, disp = %ld, "
+                    "type = %d\n", offset, disp, type);
             }
         }
     }
 
     std::stringstream msg;
     if (isOffsetSet) {
-
-        // Question: Where did this stack height come from?
-        if (reg.isValid() &&
-                /*!multChildrenInDeref && */
-                (reg != MachRegister::getStackPointer(arch))) {
-
-
-            bool performSlice = true;
-            if (multChildrenInDeref && (disp==0)) {
-                // We will never mark this as a skipReg, so avoid slicing
-                performSlice = false;
-            }
-
-            if (multChildrenInDeref && (type==StackAccess::UNKNOWN)) {
-                // We will never mark this as a skipReg, so avoid slicing
-                performSlice = false;
-            }
-
-            if ((insn->getOperation().getID() == e_push)) {
-                performSlice = false;
-            }
-
-            if (height.isBottom()) {
-                performSlice = false;
-            }
-
-            if (performSlice) {
-                std::vector<AbsRegion> ins;
-                ins.push_back(AbsRegion(Absloc(reg)));
-                Assignment::Ptr assign = Assignment::Ptr(new Assignment(insn,
-                            addr,
-                            func,
-                            block,
-                            ins,
-                            AbsRegion(Absloc(reg))));
-                Slicer slicer(assign, block, func);
-                Slicer::Predicates defaultPredicates;
-                stackmods_printf("\t\t\t\t Using slicing @ 0x%lx for %s\n", addr, reg.name().c_str());
-                Graph::Ptr graph = slicer.backwardSlice(defaultPredicates);
-
-                stackmods_printf("\t\t\t\t\t Slicing complete, graph size = %d\n", graph->size());
-
-                // Graph must have single entry
-                NodeIterator exitBegin, exitEnd;
-                graph->exitNodes(exitBegin, exitEnd);
-
-                if (*exitBegin == NULL) {
-                    assert(0 && "Could not find exit node for backward slice");
-                }
-
-                std::set<Address> visited;
-
-                // Graph must have straight-line path
-                NodeIterator inBegin, inEnd;
-                (*exitBegin)->ins(inBegin, inEnd);
-                NodeIterator prev = inBegin;
-                while ((*prev)->hasInEdges()) {
-                    NodeIterator tmp = inBegin;
-
-                    if (tmp != inEnd) {
-                        stackmods_printf("\t\t\t\t\t Next level\n");
-                        stackmods_printf("\t\t\t\t\t\t tmp: %s\n", (*tmp)->format().c_str());
-                    }
-
-                    // Check for cycles
-                    if (visited.find((*tmp)->addr()) != visited.end()) {
-                        skipReg = true;
-                        break;
-                    }
-                    visited.insert((*tmp)->addr());
-
-                    while (tmp != inEnd) {
-                        NodeIterator next = tmp;
-                        next++;
-
-                        if (next == inEnd) {
-                            break;
-                        }
-                        stackmods_printf("\t\t\t\t\t\t next: %s\n", (*next)->format().c_str());
-                        if ((*next)->DOTname().compare("<NULL>") == 0) {
-                            tmp++;
-                            continue;
-                        }
-
-                        // Check for cycles
-                        if (visited.find((*next)->addr()) != visited.end()) {
-                            skipReg = true;
-                            break;
-                        }
-                        visited.insert((*next)->addr());
-
-                        if ((*tmp)->addr() != (*next)->addr()) {
-                            skipReg = true;
-                            break;
-                        }
-                        tmp++;
-                    }
-
-                    if (skipReg) break;
-
-                    if (!(*inBegin)->hasInEdges()) {
-                        break;
-                    }
-                    prev = inBegin;
-                    (*inBegin)->ins(inBegin, inEnd);
-                }
-
-                stackmods_printf("\t\t\t\t Finished using backward slice to check for skipReg\n");
-
-            }
-        }
-
-        if (skipReg && multChildrenInDeref && disp==0) {
-            stackmods_printf("\t\t\t\t\t\t unset skipReg (multchildren && disp==0)\n");
-            skipReg = false;
-        }
-
-        if (skipReg && multChildrenInDeref && type==StackAccess::UNKNOWN) {
-            stackmods_printf("\t\t\t\t\t\t unset skipReg (multchildren && StackAccess::UNKNOWN\n");
-            skipReg = false;
-        }
-
         ret = new StackAccess();
         ret->setRegHeight(height);
         ret->setReg(reg);
         ret->setType(type);
         ret->setDisp(disp);
-        ret->setSkipReg(skipReg);
 
-        if (ret->disp() && arch == Arch_x86) {
+        if (ret->disp() != 0 && arch == Arch_x86) {
             // Fix the signed issue
             signed long fixedOffset;
             Offset MAX = 0xffffffff;
