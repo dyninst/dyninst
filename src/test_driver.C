@@ -876,7 +876,13 @@ int main(int argc, char *argv[]) {
    try {
       startAllTests(groups, params);
    } catch(...) {
-      // just gracefully exit either way...
+      // flush output before crashing
+      setOutput(NULL); // run logger dtors
+      if ((outlog != NULL) && (outlog != stdout)) {
+         fclose(outlog);
+      }
+      fflush(stdout);
+      throw;
    }
 
    setOutput(NULL); // run logger dtors
