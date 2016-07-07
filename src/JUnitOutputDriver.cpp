@@ -9,6 +9,7 @@ JUnitOutputDriver::JUnitOutputDriver(void *data) : StdOutputDriver(data),
                                                    group_skips(0),
                                                    group_errors(0),
                                                    group_tests(0) {
+    streams[HUMAN] = "test_results.xml";
 
         log(HUMAN, "<testsuites>\n");
 }
