@@ -17,6 +17,7 @@ namespace rose {
                 /***************************************************************************************************/
                 /*                                              SValue                                             */
                 /***************************************************************************************************/
+
                 typedef Sawyer::SharedPointer<class SValue> SValuePtr;
 
                 class SValue : public BaseSemantics::SValue {
@@ -374,10 +375,72 @@ namespace rose {
                     virtual BaseSemantics::SValuePtr ite(const BaseSemantics::SValuePtr &sel_,
                                                          const BaseSemantics::SValuePtr &a_,
                                                          const BaseSemantics::SValuePtr &b_);
+                    virtual BaseSemantics::SValuePtr concat(const BaseSemantics::SValuePtr &a_,
+                                                            const BaseSemantics::SValuePtr &b_);
+                    virtual BaseSemantics::SValuePtr leastSignificantBit(const BaseSemantics::SValuePtr &a_);
+                    virtual BaseSemantics::SValuePtr mostSignificantBit(const BaseSemantics::SValuePtr &a_);
+                    virtual BaseSemantics::SValuePtr rotateLeft(const BaseSemantics::SValuePtr &a_,
+                                                                const BaseSemantics::SValuePtr &b_);
+                    virtual BaseSemantics::SValuePtr rotateRight(const BaseSemantics::SValuePtr &a_,
+                                                                const BaseSemantics::SValuePtr &b_);
+                    virtual BaseSemantics::SValuePtr shiftLeft(const BaseSemantics::SValuePtr &a_,
+                                                                const BaseSemantics::SValuePtr &b_);
+                    virtual BaseSemantics::SValuePtr shiftRight(const BaseSemantics::SValuePtr &a_,
+                                                                const BaseSemantics::SValuePtr &b_);
+                    virtual BaseSemantics::SValuePtr shiftRightArithmetic(const BaseSemantics::SValuePtr &a_,
+                                                                const BaseSemantics::SValuePtr &b_);
+                    virtual BaseSemantics::SValuePtr equalToZero(const BaseSemantics::SValuePtr &a_);
+                    virtual BaseSemantics::SValuePtr signExtend(const BaseSemantics::SValuePtr &a_, size_t newwidth = 0);
 
+                public:
                     virtual BaseSemantics::SValuePtr readRegister(const RegisterDescriptor &reg,
                                                                   const BaseSemantics::SValuePtr &dflt);
                     virtual void writeRegister(const RegisterDescriptor &reg, const BaseSemantics::SValuePtr &a_);
+
+                private:
+                    Dyninst::AST::Ptr getUnaryAST(Dyninst::DataflowAPI::ROSEOperation::Op op,
+                                         AST::Ptr a,
+                                         size_t s = 0) {
+                        return Dyninst::DataflowAPI::RoseAST::create(Dyninst::DataflowAPI::ROSEOperation(op, s), a);
+                    }
+
+                    Dyninst::AST::Ptr getBinaryAST(Dyninst::DataflowAPI::ROSEOperation::Op op,
+                                          AST::Ptr a,
+                                          AST::Ptr b,
+                                          size_t s = 0) {
+                        return Dyninst::DataflowAPI::RoseAST::create(Dyninst::DataflowAPI::ROSEOperation(op, s), a, b);
+                    }
+
+                    Dyninst::AST::Ptr getTernaryAST(Dyninst::DataflowAPI::ROSEOperation::Op op,
+                                           AST::Ptr a,
+                                           AST::Ptr b,
+                                           AST::Ptr c,
+                                           size_t s = 0) {
+                        return Dyninst::DataflowAPI::RoseAST::create(Dyninst::DataflowAPI::ROSEOperation(op, s), a, b, c);
+                    }
+
+                    SValuePtr createUnaryAST(Dyninst::DataflowAPI::ROSEOperation::Op op, const BaseSemantics::SValuePtr &a_) {
+                        Dyninst::AST::Ptr a = SValue::promote(a_)->get_expression();
+                        Dyninst::AST::Ptr ast = getUnaryAST(op, a);
+                        return ast;
+                    }
+
+                    SValuePtr createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::Op op, const BaseSemantics::SValuePtr &a_, const BaseSemantics::SValuePtr &b_) {
+                        Dyninst::AST::Ptr a = SValue::promote(a_)->get_expression();
+                        Dyninst::AST::Ptr b = SValue::promote(b_)->get_expression();
+                        Dyninst::AST::Ptr ast = getBinaryAST(op, a, b);
+                        return SValue::instance(ast);
+                    }
+
+                    SValuePtr createTernaryAST(Dyninst::DataflowAPI::ROSEOperation::Op op, const BaseSemantics::SValuePtr &a_,
+                                               const BaseSemantics::SValuePtr &b_, const BaseSemantics::SValuePtr &c_, size_t s = 0) {
+                        Dyninst::AST::Ptr a = SValue::promote(a_)->get_expression();
+                        Dyninst::AST::Ptr b = SValue::promote(b_)->get_expression();
+                        Dyninst::AST::Ptr c = SValue::promote(c_)->get_expression();
+                        Dyninst::AST::Ptr ast = getTernaryAST(op, a, b, c, s);
+                        return SValue::instance(ast);
+                    }
+
                 };
             }
         }

@@ -122,3 +122,86 @@ void SymEvalSemantics::MemoryStateARM64::writeMemory(const BaseSemantics::SValue
 ///////////////////////////////////////////////////////
 //                                        RiscOperators
 ///////////////////////////////////////////////////////
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::and_(const BaseSemantics::SValuePtr &a_,
+                                                               const BaseSemantics::SValuePtr &b_) {
+    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::andOp, a_, b_);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::or_(const BaseSemantics::SValuePtr &a_,
+                                                              const BaseSemantics::SValuePtr &b_) {
+    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::orOp, a_, b_);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::xor_(const BaseSemantics::SValuePtr &a_,
+                                                               const BaseSemantics::SValuePtr &b_) {
+    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::xorOp, a_, b_);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::invert(const BaseSemantics::SValuePtr &a_) {
+    return createUnaryAST(Dyninst::DataflowAPI::ROSEOperation::invertOp, a_);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::extract(const BaseSemantics::SValuePtr &a_, size_t begin,
+                                                                  size_t end) {
+    BaseSemantics::SValuePtr begin_ = SymEvalSemantics::SValue::instance(64, begin);
+    BaseSemantics::SValue end_ = SymEvalSemantics::SValue::instance(64, end);
+
+    return createTernaryAST(Dyninst::DataflowAPI::ROSEOperation::extractOp, a_, begin_, end_, end - begin);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::ite(const BaseSemantics::SValuePtr &sel_,
+                                                              const BaseSemantics::SValuePtr &a_,
+                                                              const BaseSemantics::SValuePtr &b_) {
+    return createTernaryAST(Dyninst::DataflowAPI::ROSEOperation::ifOp, sel_, a_, b_);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::concat(const BaseSemantics::SValuePtr &a_,
+                                                                 const BaseSemantics::SValuePtr &b_) {
+    //TODO: should be able to specify number of bits to concat for each expression
+    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::concatOp, a_, b_);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::leastSignificantBit(const BaseSemantics::SValuePtr &a_) {
+    return createUnaryAST(Dyninst::DataflowAPI::ROSEOperation::LSBSetOp, a_);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::mostSignificantBit(const BaseSemantics::SValuePtr &a_) {
+    return createUnaryAST(Dyninst::DataflowAPI::ROSEOperation::MSBSetOp, a_);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::rotateLeft(const BaseSemantics::SValuePtr &a_,
+                                                                     const BaseSemantics::SValuePtr &b_) {
+    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::rotateLOp, a_, b_);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::rotateRight(const BaseSemantics::SValuePtr &a_,
+                                                                      const BaseSemantics::SValuePtr &b_) {
+    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::rotateROp, a_, b_);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::shiftLeft(const BaseSemantics::SValuePtr &a_,
+                                                                    const BaseSemantics::SValuePtr &b_) {
+    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::shiftLOp, a_, b_);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::shiftRight(const BaseSemantics::SValuePtr &a_,
+                                                                     const BaseSemantics::SValuePtr &b_) {
+    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::shiftROp, a_, b_);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::shiftRightArithmetic(const BaseSemantics::SValuePtr &a_,
+                                                                               const BaseSemantics::SValuePtr &b_) {
+    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::shiftRArithOp, a_, b_);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::equalToZero(const BaseSemantics::SValuePtr &a_) {
+    return createUnaryAST(Dyninst::DataflowAPI::ROSEOperation::equalToZeroOp, a_);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::signExtend(const BaseSemantics::SValuePtr &a_,
+                                                                     size_t newwidth) {
+    BaseSemantics::SValuePtr width_ = SymEvalSemantics::SValue::instance(64, newwidth);
+
+    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::signExtendOp, a_, width_);
+}
