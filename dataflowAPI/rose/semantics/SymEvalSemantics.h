@@ -390,12 +390,33 @@ namespace rose {
                     virtual BaseSemantics::SValuePtr shiftRightArithmetic(const BaseSemantics::SValuePtr &a_,
                                                                 const BaseSemantics::SValuePtr &b_);
                     virtual BaseSemantics::SValuePtr equalToZero(const BaseSemantics::SValuePtr &a_);
-                    virtual BaseSemantics::SValuePtr signExtend(const BaseSemantics::SValuePtr &a_, size_t newwidth = 0);
+                    virtual BaseSemantics::SValuePtr signExtend(const BaseSemantics::SValuePtr &a_,
+                                                                size_t newwidth = 0);
+                    virtual BaseSemantics::SValuePtr add(const BaseSemantics::SValuePtr &a_,
+                                                         const BaseSemantics::SValuePtr &b_);
+                    virtual BaseSemantics::SValuePtr addWithCarries(const BaseSemantics::SValuePtr &a_,
+                                                                    const BaseSemantics::SValuePtr &b_,
+                                                                    const BaseSemantics::SValuePtr &c_,
+                                                                    BaseSemantics::SValuePtr &carry_out);
+                    virtual BaseSemantics::SValuePtr negate(const BaseSemantics::SValuePtr &a_);
+                    virtual BaseSemantics::SValuePtr signedDivide(const BaseSemantics::SValuePtr &a_,
+                                                                  const BaseSemantics::SValuePtr &b_);
+                    virtual BaseSemantics::SValuePtr signedModulo(const BaseSemantics::SValuePtr &a_,
+                                                                  const BaseSemantics::SValuePtr &b_);
+                    virtual BaseSemantics::SValuePtr signedMultiply(const BaseSemantics::SValuePtr &a_,
+                                                                  const BaseSemantics::SValuePtr &b_);
+                    virtual BaseSemantics::SValuePtr unsignedDivide(const BaseSemantics::SValuePtr &a_,
+                                                                  const BaseSemantics::SValuePtr &b_);
+                    virtual BaseSemantics::SValuePtr unsignedModulo(const BaseSemantics::SValuePtr &a_,
+                                                                  const BaseSemantics::SValuePtr &b_);
+                    virtual BaseSemantics::SValuePtr unsignedMultiply(const BaseSemantics::SValuePtr &a_,
+                                                                    const BaseSemantics::SValuePtr &b_);
 
                 public:
-                    virtual BaseSemantics::SValuePtr readRegister(const RegisterDescriptor &reg,
-                                                                  const BaseSemantics::SValuePtr &dflt);
-                    virtual void writeRegister(const RegisterDescriptor &reg, const BaseSemantics::SValuePtr &a_);
+                    virtual BaseSemantics::SValuePtr readMemory(const RegisterDescriptor &segreg, const BaseSemantics::SValuePtr &addr, const BaseSemantics::SValuePtr &dflt,
+                                                 const BaseSemantics::SValuePtr &cond);
+                    virtual void writeMemory(const RegisterDescriptor &segreg, const BaseSemantics::SValuePtr &addr, const BaseSemantics::SValuePtr &data,
+                                             const BaseSemantics::SValuePtr &cond);
 
                 private:
                     Dyninst::AST::Ptr getUnaryAST(Dyninst::DataflowAPI::ROSEOperation::Op op,

@@ -205,3 +205,64 @@ BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::signExtend(const BaseS
 
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::signExtendOp, a_, width_);
 }
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::add(const BaseSemantics::SValuePtr &a_,
+                                                              const BaseSemantics::SValuePtr &b_) {
+    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::addOp, a_, b_);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::addWithCarries(const BaseSemantics::SValuePtr &a_,
+                                                                         const BaseSemantics::SValuePtr &b_,
+                                                                         const BaseSemantics::SValuePtr &c_,
+                                                                         BaseSemantics::SValuePtr &carry_out) {
+
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::negate(const BaseSemantics::SValuePtr &a_) {
+    return createUnaryAST(Dyninst::DataflowAPI::ROSEOperation::negateOp, a_);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::signedDivide(const BaseSemantics::SValuePtr &a_,
+                                                                       const BaseSemantics::SValuePtr &b_) {
+    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::sDivOp, a_, b_);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::signedModulo(const BaseSemantics::SValuePtr &a_,
+                                                                       const BaseSemantics::SValuePtr &b_) {
+    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::sModOp, a_, b_);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::signedMultiply(const BaseSemantics::SValuePtr &a_,
+                                                                         const BaseSemantics::SValuePtr &b_) {
+    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::sMultOp, a_, b_);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::unsignedDivide(const BaseSemantics::SValuePtr &a_,
+                                                                       const BaseSemantics::SValuePtr &b_) {
+    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::uDivOp, a_, b_);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::unsignedModulo(const BaseSemantics::SValuePtr &a_,
+                                                                       const BaseSemantics::SValuePtr &b_) {
+    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::uModOp, a_, b_);
+}
+
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::unsignedMultiply(const BaseSemantics::SValuePtr &a_,
+                                                                         const BaseSemantics::SValuePtr &b_) {
+    return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::uMultOp, a_, b_);
+}
+
+//TODO: do we deal with byte ordering?
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperators::readMemory(const RegisterDescriptor /*&segreg*/,
+                                                                     const BaseSemantics::SValuePtr &addr,
+                                                                     const BaseSemantics::SValuePtr &dflt,
+                                                                     const BaseSemantics::SValuePtr /*&cond*/) {
+    return currentState()->readMemory(address, dflt, this, this);
+}
+
+void SymEvalSemantics::RiscOperators::writeMemory(const RegisterDescriptor /*&segreg*/,
+                                                  const BaseSemantics::SValuePtr &addr,
+                                                  const BaseSemantics::SValuePtr &data,
+                                                  const BaseSemantics::SValuePtr /*&cond*/) {
+    currentState()->writeMemory(addr, data, this);
+}
