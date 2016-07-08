@@ -3,3 +3,122 @@
 //
 
 #include "SymEvalSemantics.h"
+
+using namespace rose::BinaryAnalysis::InstructionSemantics2;
+
+///////////////////////////////////////////////////////
+//                                           StateARM64
+///////////////////////////////////////////////////////
+
+void SymEvalSemantics::StateARM64::writeRegister(const RegisterDescriptor &reg, const BaseSemantics::SValuePtr &value,
+                                                 BaseSemantics::RiscOperators /**ops*/) {
+    ASSERT_require(reg.is_valid());
+    ASSERT_not_null(value);
+    SymEvalSemantics::RegisterStateARM64Ptr registers = SymEvalSemantics::RegisterStateARM64::promote(value);
+    registers->writeRegister(reg, value, res, aaMap);
+}
+
+void SymEvalSemantics::StateARM64::writeMemory(const BaseSemantics::SValuePtr &addr,
+                                               const BaseSemantics::SValuePtr &value,
+                                               BaseSemantics::RiscOperators /**addrOps*/,
+                                               BaseSemantics::RiscOperators /**valOps*/) {
+    ASSERT_not_null(addr);
+    ASSERT_not_null(value);
+    SymEvalSemantics::MemoryStateARM64Ptr memory = SymEvalSemantics::MemoryStateARM64::promote(value);
+    memory->writeMemory(addr, value, res, aaMap);
+}
+
+///////////////////////////////////////////////////////
+//                                   RegisterStateARM64
+///////////////////////////////////////////////////////
+
+BaseSemantics::SValuePtr SymEvalSemantics::RegisterStateARM64::readRegister(const RegisterDescriptor &reg,
+                                                                            const BaseSemantics::SValuePtr &dflt,
+                                                                            BaseSemantics::RiscOperators */*ops*/) {
+    if(reg.get_major() == armv8_regclass_gpr) {
+        ARMv8GeneralPurposeRegister r = reg.get_minor();
+        unsigned int size = reg.get_nbits();
+        return SValuePtr(wrap(convert(r, size)));
+    } else {
+        ASSERT_not_implemented("readRegister not yet implemented for categories other than GPR");
+    }
+}
+
+void SymEvalSemantics::RegisterStateARM64::writeRegister(const RegisterDescriptor &reg,
+                                                         const BaseSematics::SValuePtr &value,
+                                                         Dyninst::DataflowAPI::Result_t &res,
+                                                         std::map<Dyninst::Absloc, Dyninst::Assignment::Ptr> &aaMap) {
+    if(reg.get_major() == armv8_regclass_gpr) {
+        ARMv8GeneralPurposeRegister r = reg.get_minor();
+
+        std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(convert(r));
+        if (i != aaMap.end()) {
+            SymEvalSemantics::SValuePtr value_ = SymEvalSemantics::SValue::promote(value);
+            res[i->second] = value_->get_expression();
+        }
+    } else {
+        ASSERT_not_implemented("writeRegister not yet implemented for categories other than GPR");
+    }
+}
+
+void SymEvalSemantics::RegisterStateARM64::writeRegister(const RegisterDescriptor /*&reg*/,
+                                                         const BaseSemantics::SValuePtr /*&value*/,
+                                                         BaseSemantics::RiscOperators */*ops*/) {
+    ASSERT_always_forbid("overridden RegisterState::writeRegister() should never be called for ARM64, always use the non-virtual writeRegister that also takes additional parameters.");
+}
+
+Dyninst::Absloc SymEvalSemantics::RegisterStateARM64::convert(ARMv8GeneralPurposeRegister r, unsigned int size) {
+    Dyninst::MachRegister mreg;
+
+    if(r != armv8_gpr_zr) {
+        mreg = (size == 32)?Dyninst::aarch64::wzr:Dyninst::aarch64::zr;
+    } else {
+        mreg = (size == 32)?Dyninst::aarch64::w0:Dyninst::aarch64::x0;
+        mreg += (r - armv8_gpr_r0);
+    }
+
+    return Dyninst::Absloc(mreg);
+}
+
+///////////////////////////////////////////////////////
+//                                     MemoryStateARM64
+///////////////////////////////////////////////////////
+
+//TODO: what is Len?
+
+BaseSemantics::SValuePtr SymEvalSemantics::MemoryStateARM64::readMemory(const BaseSemantics::SValuePtr &address,
+                                                                        const BaseSemantics::SValuePtr &/*dflt*/,
+                                                                        BaseSemantics::RiscOperators */*addrOps*/,
+                                                                        BaseSemantics::RiscOperators */*valOps*/) {
+    SymEvalSemantics::SValuePtr addr = SymEvalSemantics::SValue::promote(address);
+    return Dyninst::DataflowAPI::RoseAST::create(Dyninst::DataflowAPI::ROSEOperation(Dyninst::DataflowAPI::ROSEOperation::derefOp),
+                                                 addr->get_expression(),
+                                                 Dyninst::DataflowAPI::ConstantAST::create(Dyninst::DataflowAPI::Constant(1, 1)));
+}
+
+void SymEvalSemantics::MemoryStateARM64::writeMemory(const BaseSemantics::SValuePtr &address,
+                                                     const BaseSematics::SValuePtr &value,
+                                                     Dyninst::DataflowAPI::Result_t &res,
+                                                     std::map<Dyninst::Absloc, Dyninst::Assignment::Ptr> &aaMap) {
+    std::map<Dyninst::Absloc, Dyninst::Assignment::Ptr>::iterator i = aaMap.find(Dyninst::Absloc(0));
+    SymEvalSemantics::SValuePtr addr = SymEvalSemantics::SValue::promote(address);
+
+    if (i != aaMap.end()) {
+        i->second->out().setGenerator(addr->get_expression());
+        //i->second->out().setSize(Len);
+
+        SymEvalSemantics::SValuePtr data = SymEvalSemantics::SValue::promote(value);
+        res[i->second] = data->get_expression();
+    }
+}
+
+void SymEvalSemantics::MemoryStateARM64::writeMemory(const BaseSemantics::SValuePtr /*&addr*/,
+                                                     const BaseSemantics::SValuePtr /*&value*/,
+                                                     BaseSemantics::RiscOperators /**addrOps*/,
+                                                     BaseSemantics::RiscOperators /**valOps*/) {
+    ASSERT_always_forbid("overridden MemoryState::writeMemory() should never be called for ARM64, always use the non-virtual writeRegister that also takes additional parameters.");
+}
+
+///////////////////////////////////////////////////////
+//                                        RiscOperators
+///////////////////////////////////////////////////////

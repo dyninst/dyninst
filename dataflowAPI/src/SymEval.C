@@ -61,7 +61,7 @@ using namespace std;
 using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace DataflowAPI;
-using namespace rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics;
+using namespace rose::BinaryAnalysis::InstructionSemantics2;
 
 
 std::pair<AST::Ptr, bool> SymEval::expand(const Assignment::Ptr &assignment, bool applyVisitors) {
@@ -496,13 +496,11 @@ bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
             SymbolicExpansion exp;
             const RegisterDictionary *reg_dict = RegisterDictionary::dictionary_armv8();
 
-            /* FIXME
-             * This part should be redefined to be specific to our policy. For now, it uses the default register and memory states and value type. */
-            SValuePtr protoval = new SValue(64);
-            RegisterStatePtr registerStatePtr = new RegisterState(protoval, reg_dict);
-            MemoryStatePtr memoryStatePtr = new MemoryState(protoval, protoval);
-            StatePtr statePtr = new State(registerStatePtr, memoryStatePtr);
-            RiscOperatorsPtr ops = new RiscOperators(statePtr);
+            BaseSemantics::SValuePtr protoval = SymEvalSemantics::SValue::instance(1, 0);
+            BaseSemantics::RegisterStatePtr registerState = SymEvalSemantics::RegisterStateARM64::instance(protoval, reg_dict);
+            BaseSemantics::MemoryStatePtr memoryState = SymEvalSemantics::MemoryStateARM64::instance(protoval, protoval);
+            BaseSemantics::StatePtr state = SymEvalSemantics::StateARM64::instance(res, addr, insn->getArch(), insn, registerState, memoryState);
+            BaseSemantics::RiscOperatorsPtr ops = SymEvalSemantics::RiscOperators::instance(state);
 
             exp.expandAarch64(roseInsn, ops, insn->format());
         }

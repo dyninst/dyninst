@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include <dataflowAPI/rose/SgAsmInstruction.h>
-#include "../rose/semantics/BaseSemantics2.h"
+#include "../rose/semantics/SymEvalSemantics.h"
 
 #if !defined(_SYMBOLIC_EXPANSION_H_)
 #define _SYMBOLIC_EXPANSION_H_
