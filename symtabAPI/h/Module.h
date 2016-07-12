@@ -53,22 +53,24 @@ class SYMTAB_EXPORT Statement : public AnnotatableSparse, public Serializable
 
 	Statement(const char *file, unsigned int line, unsigned int col = 0,
              Offset start_addr = (Offset) -1L, Offset end_addr = (Offset) -1L) :
-      file_(file ? std::string(file) : std::string()),
+      file_(file),
       line_(line),
       start_addr_(start_addr),
       end_addr_(end_addr),
-      first(file_.c_str()),
+      first(file_),
       second(line_),
       column(col)
       {
       }
 	
-	std::string file_; // Maybe this should be module?
+	const char* file_; // Maybe this should be module?
 	unsigned int line_;
 	Offset start_addr_;
 	Offset end_addr_;
 
 	public:
+	// DEPRECATED. First and second need to die, and column should become an accessor.
+	// Duplication of data is both bad and stupid, okay?
 	const char *first;
 	unsigned int second;
 	unsigned int column;
@@ -85,7 +87,7 @@ class SYMTAB_EXPORT Statement : public AnnotatableSparse, public Serializable
 
 	Offset startAddr() { return start_addr_;}
 	Offset endAddr() {return end_addr_;}
-	const std::string &getFile() { return file_;}
+	std::string getFile() { return file_;}
 	unsigned int getLine() {return line_;}
 	unsigned int getColumn() {return column;}
 
@@ -94,7 +96,7 @@ class SYMTAB_EXPORT Statement : public AnnotatableSparse, public Serializable
 	//  Does dyninst really need these?
 	void setLine(unsigned int l) {line_ = l;}
 	void setColumn(unsigned int l) {column = l;}
-	void setFile(const char * l) {file_ = std::string(l); first = file_.c_str();}
+	void setFile(const char * l) {file_ = l; first = file_;}
 	void setStartAddr(Offset l) {start_addr_ = l;}
 	void setEndAddr(Offset l) {end_addr_ = l;}
 };

@@ -73,7 +73,7 @@ void LineInformation::addLineInfo(LineInformation *lineInfo)
 
    for (; iter != lineInfo->end(); iter++)
    {
-      addLine(iter->second.file_.c_str(), iter->second.line_, iter->second.column, 
+      addLine(iter->second.file_, iter->second.line_, iter->second.column,
             iter->first.first, iter->first.second);
    }
 }
@@ -135,7 +135,7 @@ bool Statement::StatementLess::operator () ( const Statement &lhs, const Stateme
 {
 	//  dont bother with ordering by column information yet.
 
-	int strcmp_res = strcmp( lhs.file_.c_str(), rhs.file_.c_str());
+	int strcmp_res = strcmp( lhs.file_, rhs.file_);
 
 	if (strcmp_res < 0 )
 		return true;
