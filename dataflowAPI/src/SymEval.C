@@ -500,7 +500,7 @@ bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
             BaseSemantics::RegisterStatePtr registerState = SymEvalSemantics::RegisterStateARM64::instance(protoval, reg_dict);
             BaseSemantics::MemoryStatePtr memoryState = SymEvalSemantics::MemoryStateARM64::instance(protoval, protoval);
             BaseSemantics::StatePtr state = SymEvalSemantics::StateARM64::instance(res, addr, insn->getArch(), insn, registerState, memoryState);
-            BaseSemantics::RiscOperatorsPtr ops = SymEvalSemantics::RiscOperators::instance(state);
+            BaseSemantics::RiscOperatorsPtr ops = SymEvalSemantics::RiscOperatorsARM64::instance(state);
 
             exp.expandAarch64(roseInsn, ops, insn->format());
         }

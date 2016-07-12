@@ -69,6 +69,7 @@ set (SRC_LIST
 		../dataflowAPI/rose/semantics/SMTSolver.C
 		../dataflowAPI/rose/semantics/BinarySymbolicExpr.C
 		../dataflowAPI/rose/semantics/RegisterStateGeneric.C
+		../dataflowAPI/rose/semantics/SymEvalSemantics.C
         ../dataflowAPI/src/RoseInsnFactory.C 
         ../dataflowAPI/src/slicing.C 
         ../dataflowAPI/src/stackanalysis.C 

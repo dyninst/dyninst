@@ -85,8 +85,9 @@ namespace rose {
                                                             size_t addrWidth = 0,
                                                             const RegisterDictionary *regs = NULL) const {
                     if (0 == addrWidth) {
-                        addressWidth(64);
-                        addrWidth = addressWidth();
+			//TODO
+                        //addressWidth(64);
+                        addrWidth = 64;//addressWidth();
                     }
 
                     return instance(ops, addrWidth, regs);

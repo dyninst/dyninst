@@ -25,7 +25,7 @@ namespace rose {
                     Dyninst::AST::Ptr expr;
 
                     SValue(Dyninst::Absloc r, Dyninst::Address addr): BaseSemantics::SValue(64) {
-                        expr = Dyninst::DataflowAPI::VariableAST::create(Variable(Dyninst::AbsRegion(r), addr));
+                        expr = Dyninst::DataflowAPI::VariableAST::create(Dyninst::DataflowAPI::Variable(Dyninst::AbsRegion(r), addr));
                     }
 
                     SValue(size_t nbits, uint64_t num): BaseSemantics::SValue(nbits) {
@@ -72,14 +72,16 @@ namespace rose {
                     }
 
                     virtual BaseSemantics::SValuePtr copy(size_t new_width = 0) const {
-                        SValuePtr retval(new SValue(this->get_expression()));
+                        SValuePtr retval(new SValue(get_expression()));
                         if (new_width!=0 && new_width!=retval->get_width())
                             retval->set_width(new_width);
                         return retval;
                     }
 
                     virtual Sawyer::Optional<BaseSemantics::SValuePtr>
-                            createOptionalMerge(const BaseSemantics::SValuePtr &other, const BaseSemantics::MergerPtr&, SMTSolver*) const;
+                            createOptionalMerge(const BaseSemantics::SValuePtr &other, const BaseSemantics::MergerPtr&, SMTSolver*) const {
+                        ASSERT_not_implemented("SValue::createOptionalMerge not implemented for use in dyninst");
+                    }
 
                 public:
                     static SValuePtr promote(const BaseSemantics::SValuePtr &v) {
@@ -89,22 +91,22 @@ namespace rose {
                     }
 
                 public:
-                    virtual Dyninst::AST::Ptr get_expression() {
+                    virtual Dyninst::AST::Ptr get_expression() const {
                         return expr;
                     }
 
                     virtual bool isBottom() const {
-                        return expr->getID() == Dyninst::DataflowAPI::V_BottomAST;
+                        return expr->getID() == Dyninst::AST::V_BottomAST;
                     }
 
                     virtual bool is_number() const {
-                        return expr->getID() == Dyninst::DataflowAPI::V_ConstantAST;
+                        return expr->getID() == Dyninst::AST::V_ConstantAST;
                     }
 
                     virtual uint64_t get_number() const {
-                        assert(expr->getID() == Dyninst::DataflowAPI::V_ConstantAST);
-                        Dyninst::DataflowAPI::Constant constant = expr->val();
-                        ASSERT_not_null(constant);
+                        assert(expr->getID() == Dyninst::AST::V_ConstantAST);
+                        //TODO
+                        Dyninst::DataflowAPI::Constant constant = boost::dynamic_pointer_cast<Dyninst::DataflowAPI::ConstantAST>(expr)->val();
                         return constant.val;
                     }
 
@@ -159,15 +161,16 @@ namespace rose {
 
                     virtual void print(std::ostream &, BaseSemantics::Formatter &) const {}
 
-                    virtual bool merge(const RegisterDescriptor &other, BaseSemantics::RiscOperators *ops) {
+                    virtual bool merge(const BaseSemantics::RegisterStatePtr &other, BaseSemantics::RiscOperators *ops) {
                         return true;
                     }
 
-                    void writeRegister(const RegisterDescriptor &reg, const BaseSematics::SValuePtr &value,
+                    BaseSemantics::SValuePtr readRegister(const RegisterDescriptor &reg, Dyninst::Address addr);
+                    void writeRegister(const RegisterDescriptor &reg, const BaseSemantics::SValuePtr &value,
                                        Dyninst::DataflowAPI::Result_t &res, std::map<Dyninst::Absloc, Dyninst::Assignment::Ptr> &aaMap);
 
                 private:
-                    Dyninst::AST::Ptr wrap(Dyninst::Absloc r) {
+                    Dyninst::AST::Ptr wrap(Dyninst::Absloc r, Dyninst::Address addr) {
                         return Dyninst::DataflowAPI::VariableAST::create(Dyninst::DataflowAPI::Variable(Dyninst::AbsRegion(r), addr));
                     }
 
@@ -210,6 +213,10 @@ namespace rose {
                         ASSERT_not_implemented("MemoryState::clear() should not be called with Dyninst's SymEval policy");
                     }
 
+                    virtual void print(std::ostream&, BaseSemantics::Formatter&) const {
+                        //
+                    }
+
                     virtual bool merge(const BaseSemantics::MemoryStatePtr &other, BaseSemantics::RiscOperators *addrOps, BaseSemantics::RiscOperators *valOps) {
                         return true;
                     }
@@ -221,7 +228,7 @@ namespace rose {
                     virtual void writeMemory(const BaseSemantics::SValuePtr &addr, const BaseSemantics::SValuePtr &value,
                                              BaseSemantics::RiscOperators *addrOps, BaseSemantics::RiscOperators *valOps);
 
-                    void writeMemory(const BaseSemantics::SValuePtr &addr, const BaseSematics::SValuePtr &value,
+                    void writeMemory(const BaseSemantics::SValuePtr &addr, const BaseSemantics::SValuePtr &value,
                                        Dyninst::DataflowAPI::Result_t &res, std::map<Dyninst::Absloc, Dyninst::Assignment::Ptr> &aaMap);
                 };
 
@@ -239,7 +246,7 @@ namespace rose {
                                Dyninst::Architecture ac,
                                Dyninst::InstructionAPI::Instruction::Ptr insn_,
                                const BaseSemantics::RegisterStatePtr &registers,
-                               const BaseSemantics::MemoryStatePtr &memory): BaseSemantics::State(registers, memory) {
+                               const BaseSemantics::MemoryStatePtr &memory): BaseSemantics::State(registers, memory), res(r), addr(a), arch(ac), insn(insn_) {
                         for (Dyninst::DataflowAPI::Result_t::iterator iter = r.begin();
                              iter != r.end(); ++iter) {
                             Dyninst::Assignment::Ptr a = iter->first;
@@ -256,7 +263,7 @@ namespace rose {
                             else {
                                 // Use sufficiently-unique (Heap,0) Absloc
                                 // to represent a definition to a memory absloc
-                                aaMap[Absloc(0)] = a;
+                                aaMap[Dyninst::Absloc(0)] = a;
                             }
                         }
                     }
@@ -287,6 +294,7 @@ namespace rose {
                     }
 
                 public:
+                    virtual BaseSemantics::SValuePtr readRegister(const RegisterDescriptor &reg, const BaseSemantics::SValuePtr &dflt, BaseSemantics::RiscOperators *ops);
                     virtual void writeRegister(const RegisterDescriptor &reg, const BaseSemantics::SValuePtr &value, BaseSemantics::RiscOperators *ops);
                     virtual void writeMemory(const BaseSemantics::SValuePtr &addr, const BaseSemantics::SValuePtr &value, BaseSemantics::RiscOperators *addrOps,
                                              BaseSemantics::RiscOperators *valOps);
@@ -304,56 +312,56 @@ namespace rose {
                 /***************************************************************************************************/
                 /*                                          RiscOperators                                          */
                 /***************************************************************************************************/
-                typedef boost::shared_ptr<class RiscOperators> RiscOperatorsPtr;
+                typedef boost::shared_ptr<class RiscOperatorsARM64> RiscOperatorsARM64Ptr;
 
                 /** RISC operators for use by the Symbolic Semantics Domain of Dyninst.
                  *
                  */
-                class RiscOperators : public BaseSemantics::RiscOperators {
+                class RiscOperatorsARM64 : public BaseSemantics::RiscOperators {
                 protected:
-                    RiscOperators(const BaseSemantics::SValuePtr &protoval, SMTSolver *solver = NULL)
+                    RiscOperatorsARM64(const BaseSemantics::SValuePtr &protoval, SMTSolver *solver = NULL)
                             : BaseSemantics::RiscOperators(protoval, solver) {
                         (void)SValue::promote(protoval);
                     }
 
-                    RiscOperators(const BaseSemantics::StatePtr &state, SMTSolver *solver = NULL)
+                    RiscOperatorsARM64(const BaseSemantics::StatePtr &state, SMTSolver *solver = NULL)
                             : BaseSemantics::RiscOperators(state, solver) {
                         (void)SValue::promote(state->protoval());
                     }
 
                 public:
-                    static RiscOperatorsPtr instance(const BaseSemantics::SValuePtr &protoval,
+                    static RiscOperatorsARM64Ptr instance(const BaseSemantics::SValuePtr &protoval,
                                                      SMTSolver *solver = NULL) {
-                        return RiscOperatorsPtr(new RiscOperators(protoval, solver));
+                        return RiscOperatorsARM64Ptr(new RiscOperatorsARM64(protoval, solver));
                     }
 
-                    static RiscOperatorsPtr instance(const BaseSemantics::StatePtr &state, SMTSolver *solver = NULL) {
-                        return RiscOperatorsPtr(new RiscOperators(state, solver));
+                    static RiscOperatorsARM64Ptr instance(const BaseSemantics::StatePtr &state, SMTSolver *solver = NULL) {
+                        return RiscOperatorsARM64Ptr(new RiscOperatorsARM64(state, solver));
                     }
 
                 public:
                     virtual BaseSemantics::RiscOperatorsPtr create(const BaseSemantics::SValuePtr &protoval,
-                                                                   SMTSolver *solver = NULL) {
+                                                                   SMTSolver *solver = NULL) const {
                         return instance(protoval, solver);
                     }
 
                     virtual BaseSemantics::RiscOperatorsPtr create(const BaseSemantics::StatePtr &state,
-                                                                   SMTSolver *solver = NULL) {
+                                                                   SMTSolver *solver = NULL) const {
                         return instance(state, solver);
                     }
 
                 public:
                     /** Run-time promotion of a base RiscOperators pointer to symbolic operators. This is a checked conversion--it
                     *  will fail if @p x does not point to a SymbolicSemantics::RiscOperators object. */
-                    static RiscOperatorsPtr promote(const BaseSemantics::RiscOperatorsPtr &x) {
-                        RiscOperatorsPtr retval = boost::dynamic_pointer_cast<RiscOperators>(x);
+                    static RiscOperatorsARM64Ptr promote(const BaseSemantics::RiscOperatorsPtr &x) {
+                        RiscOperatorsARM64Ptr retval = boost::dynamic_pointer_cast<RiscOperatorsARM64>(x);
                         ASSERT_not_null(retval);
                         return retval;
                     }
 
                 public:
                     virtual BaseSemantics::SValuePtr boolean_(bool b) {
-                        SValuePtr retVal = SValue::promote(BaseSemantics::RiscOperators::boolean_(b));
+                        SValuePtr retval = SValue::promote(BaseSemantics::RiscOperators::boolean_(b));
                         return retval;
                     }
 
@@ -377,8 +385,8 @@ namespace rose {
                                                          const BaseSemantics::SValuePtr &b_);
                     virtual BaseSemantics::SValuePtr concat(const BaseSemantics::SValuePtr &a_,
                                                             const BaseSemantics::SValuePtr &b_);
-                    virtual BaseSemantics::SValuePtr leastSignificantBit(const BaseSemantics::SValuePtr &a_);
-                    virtual BaseSemantics::SValuePtr mostSignificantBit(const BaseSemantics::SValuePtr &a_);
+                    virtual BaseSemantics::SValuePtr leastSignificantSetBit(const BaseSemantics::SValuePtr &a_);
+                    virtual BaseSemantics::SValuePtr mostSignificantSetBit(const BaseSemantics::SValuePtr &a_);
                     virtual BaseSemantics::SValuePtr rotateLeft(const BaseSemantics::SValuePtr &a_,
                                                                 const BaseSemantics::SValuePtr &b_);
                     virtual BaseSemantics::SValuePtr rotateRight(const BaseSemantics::SValuePtr &a_,
@@ -420,22 +428,22 @@ namespace rose {
 
                 private:
                     Dyninst::AST::Ptr getUnaryAST(Dyninst::DataflowAPI::ROSEOperation::Op op,
-                                         AST::Ptr a,
+                                         Dyninst::AST::Ptr a,
                                          size_t s = 0) {
                         return Dyninst::DataflowAPI::RoseAST::create(Dyninst::DataflowAPI::ROSEOperation(op, s), a);
                     }
 
                     Dyninst::AST::Ptr getBinaryAST(Dyninst::DataflowAPI::ROSEOperation::Op op,
-                                          AST::Ptr a,
-                                          AST::Ptr b,
+                                                   Dyninst::AST::Ptr a,
+                                                   Dyninst::AST::Ptr b,
                                           size_t s = 0) {
                         return Dyninst::DataflowAPI::RoseAST::create(Dyninst::DataflowAPI::ROSEOperation(op, s), a, b);
                     }
 
                     Dyninst::AST::Ptr getTernaryAST(Dyninst::DataflowAPI::ROSEOperation::Op op,
-                                           AST::Ptr a,
-                                           AST::Ptr b,
-                                           AST::Ptr c,
+                                                    Dyninst::AST::Ptr a,
+                                                    Dyninst::AST::Ptr b,
+                                                    Dyninst::AST::Ptr c,
                                            size_t s = 0) {
                         return Dyninst::DataflowAPI::RoseAST::create(Dyninst::DataflowAPI::ROSEOperation(op, s), a, b, c);
                     }
@@ -443,7 +451,7 @@ namespace rose {
                     SValuePtr createUnaryAST(Dyninst::DataflowAPI::ROSEOperation::Op op, const BaseSemantics::SValuePtr &a_) {
                         Dyninst::AST::Ptr a = SValue::promote(a_)->get_expression();
                         Dyninst::AST::Ptr ast = getUnaryAST(op, a);
-                        return ast;
+                        return SValue::instance(ast);
                     }
 
                     SValuePtr createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::Op op, const BaseSemantics::SValuePtr &a_, const BaseSemantics::SValuePtr &b_) {
