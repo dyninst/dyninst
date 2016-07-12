@@ -4439,10 +4439,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
     } /* end iteration over source line entries. */
 
 /* Free this CU's source lines. */
-    for ( int i = 0; i < lineCount; i++ ) {
-        dwarf_dealloc( dbg, lineBuffer[i], DW_DLA_LINE );
-    }
-    dwarf_dealloc( dbg, lineBuffer, DW_DLA_LIST );
+    dwarf_srclines_dealloc(dbg, lineBuffer, lineCount);
 }
 
 
