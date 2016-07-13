@@ -177,6 +177,8 @@ namespace Dyninst {
 
             virtual void massageOperands(const InstructionPtr &insn, std::vector<InstructionAPI::Operand> &operands);
 
+            virtual void setSizes(SgAsmInstruction *insn);
+
             ARMv8InstructionKind convertKind(entryID opcode);
 
             virtual Architecture arch() { return a; };

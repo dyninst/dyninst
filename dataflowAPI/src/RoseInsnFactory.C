@@ -375,6 +375,10 @@ void RoseInsnPPCFactory::massageOperands(const InstructionAPI::Instruction::Ptr 
   return;
 }
 
+void RoseInsnArmv8Factory::setSizes(SgAsmInstruction */*insn*/) {
+
+}
+
 SgAsmInstruction *RoseInsnArmv8Factory::createInsn() {
   return new SgAsmArmv8Instruction;
 }

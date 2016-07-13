@@ -1,12 +1,13 @@
 #ifndef Rose_SMTSolver_H
 #define Rose_SMTSolver_H
 
+#include "BinarySymbolicExpr.h"
+#include <boost/thread/mutex.hpp>
+
+/* Enable type formatting macros, not enabled by default in C++ */
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
 #endif
-
-#include "BinarySymbolicExpr.h"
-#include <boost/thread/mutex.hpp>
 #include <inttypes.h>
 
 namespace rose {
@@ -73,8 +74,8 @@ namespace rose {
              * @{ */
             virtual SymbolicExpr::Ptr evidence_for_variable(uint64_t varno) {
                 char buf[64];
-                snprintf(buf, sizeof buf, "v%"
-                PRIu64, varno);
+                //FIXME
+                snprintf(buf, sizeof(buf), "v%llu"/*PRIu64*/, varno);
                 return evidence_for_name(buf);
             }
 
