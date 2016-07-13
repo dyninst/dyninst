@@ -228,7 +228,16 @@ BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::addWithCarries(co
                                                                          const BaseSemantics::SValuePtr &b_,
                                                                          const BaseSemantics::SValuePtr &c_,
                                                                          BaseSemantics::SValuePtr &carry_out) {
+    BaseSemantics::SValuePtr aa_ = unsignedExtend(a_, a_->get_width() + 1);
+    BaseSemantics::SValuePtr bb_ = unsignedExtend(a_, b_->get_width() + 1);
+    BaseSemantics::SValuePtr sum_ = createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::addOp, aa_,
+                                                    createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::addOp, bb_, c_));
 
+    BaseSemantics::SValuePtr cc_ = createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::xorOp, aa_,
+                                                   createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::xorOp, bb_, sum_));
+    carry_out = extract(cc_, 1, a_->get_width() + 1);
+
+    return extract(sum_, 0, a_->get_width());
 }
 
 BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::negate(const BaseSemantics::SValuePtr &a_) {

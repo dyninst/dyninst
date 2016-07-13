@@ -32,6 +32,7 @@ namespace rose {
                         expr = Dyninst::DataflowAPI::ConstantAST::create(Dyninst::DataflowAPI::Constant(num, nbits));
                     }
 
+                    //TODO possibly set width differently for register types
                     SValue(Dyninst::AST::Ptr expr): BaseSemantics::SValue(64) {
                         this->expr = expr;
                     }
@@ -68,7 +69,7 @@ namespace rose {
                     }
 
                     virtual BaseSemantics::SValuePtr boolean_(bool value) const {
-                        return SValuePtr(new SValue(Dyninst::DataflowAPI::ConstantAST::create(Dyninst::DataflowAPI::Constant(value?1:0, 1))));
+                        return SValuePtr(new SValue(value?1:0, 1));
                     }
 
                     virtual BaseSemantics::SValuePtr copy(size_t new_width = 0) const {
