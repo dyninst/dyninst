@@ -35,7 +35,7 @@
 
 class SgAsmInstruction;
 
-using namespace rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics;
+using namespace rose::BinaryAnalysis::InstructionSemantics2;
 
 namespace Dyninst {
     namespace DataflowAPI {
@@ -46,12 +46,6 @@ namespace Dyninst {
 
         class SymbolicExpansion {
         public:
-            SymbolicExpansion():
-                    roseSetupDone(false){ };
-
-            ~SymbolicExpansion():
-                    roseSetupDone(false){ };
-
             static bool expandX86(SgAsmInstruction *rose_insn,
                                   SymEvalPolicy &policy);
 
@@ -66,12 +60,8 @@ namespace Dyninst {
                                     SymEvalPolicy_64 &policy);
 
             static bool expandAarch64(SgAsmInstruction *rose_insn,
-                                      RiscOperatorsPtr ops,
+                                      BaseSemantics::RiscOperatorsPtr ops,
                                       const std::string &insn_dump);
-
-        private:
-            static DispatcherPtr cpu;
-
         };
 
     };

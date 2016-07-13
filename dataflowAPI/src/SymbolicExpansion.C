@@ -39,11 +39,11 @@
 #include "../rose/x86_64InstructionSemantics.h"
 #include "../rose/powerpcInstructionSemantics.h"
 
+#include "../rose/semantics/DispatcherARM64.h"
+
 
 using namespace Dyninst;
 using namespace DataflowAPI;
-
-DispatcherPtr SymbolicExpansion::cpu = NULL;
 
 bool SymbolicExpansion::expandX86(SgAsmInstruction *rose_insn,
                                   SymEvalPolicy &policy) {
@@ -81,15 +81,13 @@ bool SymbolicExpansion::expandPPC64(SgAsmInstruction *rose_insn,
     return true;
 }
 
-bool SymbolicExpansion::expandAarch64(SgAsmInstruction *rose_insn, RiscOperatorsPtr ops, const std::string &insn_dump) {
+bool SymbolicExpansion::expandAarch64(SgAsmInstruction *rose_insn, BaseSemantics::RiscOperatorsPtr ops, const std::string &insn_dump) {
     SgAsmArmv8Instruction *insn = static_cast<SgAsmArmv8Instruction *>(rose_insn);
 
-    if(cpu == NULL) {
-        cpu = Dispatcher::create(ops);
-    }
+    BaseSemantics::DispatcherPtr cpu = DispatcherARM64::instance(ops, 64);
 
     try {
-        cpu->processInstruction(rose_insn);
+        cpu->processInstruction(insn);
     } catch (rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception &e) {
         fprintf(stderr, "Instruction processing threw exception for instruction: %s", insn_dump.c_str());
     }
