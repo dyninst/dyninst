@@ -825,7 +825,7 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
 			    n = 0;
 			    if(baseID == aarch64::pstate) {
 				c = armv8_regclass_pstate;
-				n = armv8_pstatefield_nzcv;
+				p = armv8_pstatefield_nzcv;
 			    } else if(baseID == aarch64::pc) {
 				c = armv8_regclass_pc;
 			    } else if(baseID == aarch64::sp || baseID == aarch64::wsp) {

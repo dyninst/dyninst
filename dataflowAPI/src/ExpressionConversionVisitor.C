@@ -295,7 +295,9 @@ SgAsmExpression *ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
 
             machReg.getROSERegister(regClass, regNum, regPos);
 
-            return new SgAsmDirectRegisterExpression(RegisterDescriptor(regClass, regNum, regPos, machReg.size() * 8));
+            SgAsmDirectRegisterExpression *dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(regClass, regNum, regPos, machReg.size() * 8));
+            dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
+            return dre;
         }
         default:
             return NULL;

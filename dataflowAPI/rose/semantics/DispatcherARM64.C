@@ -13,7 +13,7 @@ namespace rose {
     namespace BinaryAnalysis {
         namespace InstructionSemantics2 {
 
-#define EXTR(lo, hi)    IntegerOps::extract2<B>(raw, lo, hi)
+#define EXTR(lo, hi)    IntegerOps::extract2<B>(lo, hi, raw)
 
 /*******************************************************************************************************************************
  *                                      Support functions
@@ -42,7 +42,7 @@ namespace rose {
                     uint32_t raw = 0;
                     std::vector<unsigned char> rawBytes = insn->get_raw_bytes();
                     for (int idx = 0; idx < rawBytes.size(); idx++) {
-                        raw |= (rawBytes[idx] >> (8 * idx));
+                        raw |= (rawBytes[idx] << (8 * idx));
                     }
                     p(dispatcher.get(), operators.get(), insn, operands, raw);
                 }

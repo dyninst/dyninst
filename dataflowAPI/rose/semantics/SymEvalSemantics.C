@@ -42,7 +42,7 @@ void SymEvalSemantics::StateARM64::writeMemory(const BaseSemantics::SValuePtr &a
 
 BaseSemantics::SValuePtr SymEvalSemantics::RegisterStateARM64::readRegister(const RegisterDescriptor &reg,
                                                                             Dyninst::Address addr) {
-    if(reg.get_major() == armv8_regclass_gpr) {
+    if(reg.get_major() != armv8_regclass_simd_fpr) {
         ARMv8GeneralPurposeRegister r = static_cast<ARMv8GeneralPurposeRegister>(reg.get_minor());
         unsigned int size = reg.get_nbits();
         return SymEvalSemantics::SValue::instance(wrap(convert(r, size), addr));
@@ -61,7 +61,7 @@ void SymEvalSemantics::RegisterStateARM64::writeRegister(const RegisterDescripto
                                                          const BaseSemantics::SValuePtr &value,
                                                          Dyninst::DataflowAPI::Result_t &res,
                                                          std::map<Dyninst::Absloc, Dyninst::Assignment::Ptr> &aaMap) {
-    if(reg.get_major() == armv8_regclass_gpr) {
+    if(reg.get_major() != armv8_regclass_simd_fpr) {
         ARMv8GeneralPurposeRegister r = static_cast<ARMv8GeneralPurposeRegister>(reg.get_minor());
 
         std::map<Dyninst::Absloc, Dyninst::Assignment::Ptr>::iterator i = aaMap.find(convert(r, reg.get_nbits()));
