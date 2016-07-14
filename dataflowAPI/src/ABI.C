@@ -182,7 +182,6 @@ void ABI::initialize32(){
 
    returnRegs_ = getBitArray(machRegIndex_x86().size());
    returnRegs_[machRegIndex_x86()[x86::eax]] = true;
-   returnRegs_[machRegIndex_x86()[x86::edx]] = true;
 
 
    returnRead_ = getBitArray(machRegIndex_x86().size());
