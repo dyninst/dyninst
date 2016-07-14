@@ -205,11 +205,11 @@ void StackAnalysis::summarizeBlocks() {
    }
 }
 
-struct intra_nosink : public ParseAPI::EdgePredicate {
+struct intra_nosink_nocatch : public ParseAPI::EdgePredicate {
    virtual bool operator()(Edge* e) {
       static Intraproc i;
       static NoSinkPredicate n;
-      return i(e) && n(e);
+      return i(e) && n(e) && e->type() != CATCH;
    }
 };
 
@@ -218,7 +218,7 @@ void add_target(std::queue<Block*>& worklist, Edge* e) {
 }
 
 void StackAnalysis::fixpoint() {
-   intra_nosink epred2;
+   intra_nosink_nocatch epred2;
 
    std::queue<Block *> worklist;
    worklist.push(func->entry());
@@ -307,7 +307,7 @@ bool StackAnalysis::getFunctionSummary(TransferSet &summary) {
 
 
 void StackAnalysis::summaryFixpoint() {
-   intra_nosink epred2;
+   intra_nosink_nocatch epred2;
 
    std::queue<Block *> worklist;
    worklist.push(func->entry());
@@ -367,10 +367,9 @@ void StackAnalysis::summarize() {
    if (intervals_ != NULL) delete intervals_;
    intervals_ = new Intervals();
 
-   Function::blocklist bs = func->blocks();
-   for (auto bit = bs.begin(); bit != bs.end(); ++bit) {
-      Block *block = *bit;
-      AbslocState input = blockInputs[block];
+   for (auto bit = blockInputs.begin(); bit != blockInputs.end(); ++bit) {
+      Block *block = bit->first;
+      AbslocState input = bit->second;
 
       std::map<Offset, TransferFuncs>::iterator iter;
       for (iter = (*insnEffects)[block].begin();
@@ -2278,7 +2277,7 @@ void StackAnalysis::meetInputs(Block *block, AbslocState& blockInput,
 
    //Intraproc epred; // ignore calls, returns in edge iteration
    //NoSinkPredicate epred2(&epred); // ignore sink node (unresolvable)
-   intra_nosink epred2;
+   intra_nosink_nocatch epred2;
 
    stackanalysis_printf("\t ... In edges: ");
    const Block::edgelist & inEdges = block->sources();
@@ -2301,7 +2300,7 @@ void StackAnalysis::meetSummaryInputs(Block *block, TransferSet &blockInput,
 
    //Intraproc epred; // ignore calls, returns in edge iteration
    //NoSinkPredicate epred2(&epred); // ignore sink node (unresolvable)
-   intra_nosink epred2;
+   intra_nosink_nocatch epred2;
 
    stackanalysis_printf("\t ... In edges: ");
    const Block::edgelist & inEdges = block->sources();
