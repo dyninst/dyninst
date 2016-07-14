@@ -1242,12 +1242,20 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
       if (readSet.size() > 0) {
          // Case 3a
          assert(readSet.size() == 1);
-         std::map<Absloc, std::pair<long, bool>> terms;
-         Absloc src((*readSet.begin())->getID());
-         Absloc &dest = writtenLoc;
-         terms[src] = make_pair(sign, false);
-         terms[dest] = make_pair(1, false);
-         xferFuncs.push_back(TransferFunc::sibFunc(terms, 0, dest));
+         const MachRegister &srcReg = (*readSet.begin())->getID();
+         if ((signed int) srcReg.regClass() == x86::XMM ||
+            (signed int) srcReg.regClass() == x86_64::XMM) {
+            // Assume XMM registers only contain FP values, not pointers
+            xferFuncs.push_back(TransferFunc::copyFunc(writtenLoc, writtenLoc,
+               true));
+         } else {
+            std::map<Absloc, std::pair<long, bool>> terms;
+            Absloc src(srcReg);
+            Absloc &dest = writtenLoc;
+            terms[src] = make_pair(sign, false);
+            terms[dest] = make_pair(1, false);
+            xferFuncs.push_back(TransferFunc::sibFunc(terms, 0, dest));
+         }
       } else {
          // Case 5a
          Expression::Ptr immExpr = operands[1].getValue();
@@ -1261,8 +1269,15 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
 
    // Cases 1, 2, and 4
    assert(writeSet.size() == 1);
-   MachRegister written = (*writeSet.begin())->getID();
+   const MachRegister &written = (*writeSet.begin())->getID();
    Absloc writtenLoc(written);
+
+   if ((signed int) written.regClass() == x86::XMM ||
+      (signed int) written.regClass() == x86_64::XMM) {
+      // Assume XMM registers only contain FP values, not pointers
+      xferFuncs.push_back(TransferFunc::retopFunc(writtenLoc));
+      return;
+   }
 
    if (insn->readsMemory()) {
       // Case 2
@@ -1319,12 +1334,20 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
       copyBaseSubReg(written, xferFuncs);
    } else {
       // Case 1
-      std::map<Absloc, std::pair<long, bool>> terms;
-      Absloc src((*readSet.begin())->getID());
-      Absloc &dest = writtenLoc;
-      terms[src] = make_pair(sign, false);
-      terms[dest] = make_pair(1, false);
-      xferFuncs.push_back(TransferFunc::sibFunc(terms, 0, dest));
+      const MachRegister &srcReg = (*readSet.begin())->getID();
+      if ((signed int) srcReg.regClass() == x86::XMM ||
+         (signed int) srcReg.regClass() == x86_64::XMM) {
+         // Assume XMM registers only contain FP values, not pointers
+         xferFuncs.push_back(TransferFunc::copyFunc(writtenLoc, writtenLoc,
+            true));
+      } else {
+         std::map<Absloc, std::pair<long, bool>> terms;
+         Absloc src(srcReg);
+         Absloc &dest = writtenLoc;
+         terms[src] = make_pair(sign, false);
+         terms[dest] = make_pair(1, false);
+         xferFuncs.push_back(TransferFunc::sibFunc(terms, 0, dest));
+      }
       copyBaseSubReg(written, xferFuncs);
    }
 }
@@ -1703,8 +1726,15 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
       if (readRegs.size() > 0) {
          // Case 4a
          assert(readRegs.size() == 1);
-         Absloc from((*readRegs.begin())->getID());
-         xferFuncs.push_back(TransferFunc::copyFunc(from, writtenLoc));
+         const MachRegister &reg = (*readRegs.begin())->getID();
+         if ((signed int) reg.regClass() == x86::XMM ||
+            (signed int) reg.regClass() == x86_64::XMM) {
+            // Assume XMM registers only contain FP values, not pointers
+            xferFuncs.push_back(TransferFunc::retopFunc(writtenLoc));
+         } else {
+            Absloc from(reg);
+            xferFuncs.push_back(TransferFunc::copyFunc(from, writtenLoc));
+         }
       } else {
          // Case 5a
          Expression::Ptr immExpr = operands[1].getValue();
@@ -1719,8 +1749,15 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
    // Only Cases 1, 2, and 3 can reach this point.
    // As a result, we know there's exactly one written register.
    assert(writtenRegs.size() == 1);
-   MachRegister written = (*writtenRegs.begin())->getID();
+   const MachRegister &written = (*writtenRegs.begin())->getID();
    Absloc writtenLoc(written);
+
+   if ((signed int) written.regClass() == x86::XMM ||
+      (signed int) written.regClass() == x86_64::XMM) {
+      // Assume XMM registers only contain FP values, not pointers
+      xferFuncs.push_back(TransferFunc::retopFunc(writtenLoc));
+      return;
+   }
 
    if (insn->readsMemory()) {
       stackanalysis_printf("\t\t\tMemory read from: %s\n",
@@ -1778,7 +1815,13 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
       // Case 1
       stackanalysis_printf("\t\t\tCopy detected: %s -> %s\n",
          read.name().c_str(), written.name().c_str());
-      xferFuncs.push_back(TransferFunc::copyFunc(readLoc, writtenLoc));
+      if ((signed int) read.regClass() == x86::XMM ||
+         (signed int) read.regClass() == x86_64::XMM) {
+         // Assume XMM registers only contain FP values, not pointers
+         xferFuncs.push_back(TransferFunc::retopFunc(writtenLoc));
+      } else {
+         xferFuncs.push_back(TransferFunc::copyFunc(readLoc, writtenLoc));
+      }
       copyBaseSubReg(written, xferFuncs);
    } else {
       // Case 2
