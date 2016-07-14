@@ -422,7 +422,7 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
    if (isCall(insn)) {
       if (handleNormalCall(insn, block, off, xferFuncs)) return;
       else if (handleThunkCall(insn, xferFuncs)) return;
-      else return handleDefault(insn, xferFuncs);
+      else return handleDefault(insn, block, off, xferFuncs);
    }
 
    int sign = 1;
@@ -462,14 +462,14 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
          break;
       case e_popad:
          // This nukes all registers
-         handleDefault(insn, xferFuncs);
+         handleDefault(insn, block, off, xferFuncs);
          break;
       case power_op_addi:
       case power_op_addic:
-         handlePowerAddSub(insn, sign, xferFuncs);
+         handlePowerAddSub(insn, block, off, sign, xferFuncs);
          break;
       case power_op_stwu:
-         handlePowerStoreUpdate(insn, xferFuncs);
+         handlePowerStoreUpdate(insn, block, off, xferFuncs);
          break;
       case e_mov:
       case e_movsd_sse:
@@ -498,7 +498,7 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
          handleMul(insn, xferFuncs);
          break;
       default:
-         handleDefault(insn, xferFuncs);
+         handleDefault(insn, block, off, xferFuncs);
    }
 }
 
@@ -1567,13 +1567,12 @@ void StackAnalysis::handlePushPopRegs(int sign, TransferFuncs &xferFuncs) {
    copyBaseSubReg(sp(), xferFuncs);
 }
 
-void StackAnalysis::handlePowerAddSub(Instruction::Ptr insn, int sign,
-   TransferFuncs &xferFuncs) {
-
+void StackAnalysis::handlePowerAddSub(Instruction::Ptr insn, Block *block,
+   const Offset off, int sign, TransferFuncs &xferFuncs) {
    // Add/subtract are op0 = op1 +/- op2; we'd better read the stack pointer as
    // well as writing it
    if (!insn->isRead(theStackPtr) || !insn->isWritten(theStackPtr)) {
-      return handleDefault(insn, xferFuncs);
+      return handleDefault(insn, block, off, xferFuncs);
    }
    
    Operand arg = insn->getOperand(2);
@@ -1594,11 +1593,10 @@ void StackAnalysis::handlePowerAddSub(Instruction::Ptr insn, int sign,
    }
 }
 
-void StackAnalysis::handlePowerStoreUpdate(Instruction::Ptr insn,
-   TransferFuncs &xferFuncs) {
-
+void StackAnalysis::handlePowerStoreUpdate(Instruction::Ptr insn, Block *block,
+   const Offset off, TransferFuncs &xferFuncs) {
    if (!insn->isWritten(theStackPtr)) {
-      return handleDefault(insn, xferFuncs);
+      return handleDefault(insn, block, off, xferFuncs);
    }
    
    std::set<Expression::Ptr> memWriteAddrs;
@@ -1976,22 +1974,111 @@ void StackAnalysis::handleSpecialSignExtend(Instruction::Ptr insn,
    copyBaseSubReg(writtenReg, xferFuncs);
 }
 
-void StackAnalysis::handleDefault(Instruction::Ptr insn,
-   TransferFuncs &xferFuncs) {
-   std::set<RegisterAST::Ptr> written;
-   insn->getWriteSet(written);
-   for (auto iter = written.begin(); iter != written.end(); ++iter) {
+// Handle instructions for which we have no special handling implemented.  Be
+// conservative for safety.
+void StackAnalysis::handleDefault(Instruction::Ptr insn, Block *block,
+   const Offset off, TransferFuncs &xferFuncs) {
+   // Form sets of read/written Abslocs
+   std::set<RegisterAST::Ptr> writtenRegs;
+   std::set<RegisterAST::Ptr> readRegs;
+   insn->getWriteSet(writtenRegs);
+   insn->getReadSet(readRegs);
+   std::set<Absloc> writtenLocs;
+   std::set<Absloc> readLocs;
+   for (auto iter = writtenRegs.begin(); iter != writtenRegs.end(); iter++) {
       const MachRegister &reg = (*iter)->getID();
-      if ((signed int) reg.regClass() == x86::FLAG ||
-         (signed int) reg.regClass() == x86_64::FLAG) {
+      if ((signed int) reg.regClass() == x86::GPR ||
+         (signed int) reg.regClass() ==  x86_64::GPR) {
+         writtenLocs.insert(Absloc(reg));
+      }
+   }
+   for (auto iter = readRegs.begin(); iter != readRegs.end(); iter++) {
+      const MachRegister &reg = (*iter)->getID();
+      if ((signed int) reg.regClass() == x86::GPR ||
+         (signed int) reg.regClass() ==  x86_64::GPR) {
+         readLocs.insert(Absloc(reg));
+      }
+   }
+   if (insn->readsMemory()) {
+      // Add any determinable read locations to readLocs
+      std::set<Expression::Ptr> memExprs;
+      insn->getMemoryReadOperands(memExprs);
+      for (auto iter = memExprs.begin(); iter != memExprs.end(); iter++) {
+         const Expression::Ptr &memExpr = *iter;
+         StateEvalVisitor visitor;
+         if (intervals_ == NULL) {
+            visitor = StateEvalVisitor(off, insn, NULL);
+         } else {
+            visitor = StateEvalVisitor(off, insn, &(*intervals_)[block][off]);
+         }
+         memExpr->apply(&visitor);
+         if (visitor.isDefined()) {
+            // Read location is determinable
+            std::pair<Address, bool> resultPair = visitor.getResult();
+            Absloc readLoc;
+            if (resultPair.second) {
+               // Read from stack slot
+               readLoc = Absloc(resultPair.first, 0, NULL);
+            } else {
+               // Read from static address
+               readLoc = Absloc(resultPair.first);
+            }
+            readLocs.insert(readLoc);
+         }
+      }
+   }
+   if (insn->writesMemory()) {
+      // Add any determinable written locations to writtenLocs
+      std::set<Expression::Ptr> memExprs;
+      insn->getMemoryWriteOperands(memExprs);
+      for (auto iter = memExprs.begin(); iter != memExprs.end(); iter++) {
+         const Expression::Ptr &memExpr = *iter;
+         StateEvalVisitor visitor;
+         if (intervals_ == NULL) {
+            visitor = StateEvalVisitor(off, insn, NULL);
+         } else {
+            visitor = StateEvalVisitor(off, insn, &(*intervals_)[block][off]);
+         }
+         memExpr->apply(&visitor);
+         if (visitor.isDefined()) {
+            // Written location is determinable
+            std::pair<Address, bool> resultPair = visitor.getResult();
+            Absloc writtenLoc;
+            if (resultPair.second) {
+               // Write to stack slot
+               writtenLoc = Absloc(resultPair.first, 0, NULL);
+            } else {
+               // Write to static address
+               writtenLoc = Absloc(resultPair.first);
+            }
+            writtenLocs.insert(writtenLoc);
+         }
+      }
+   }
+
+   // Now that we have a complete set of read/written Abslocs, we assign the
+   // written Abslocs to be a conservative combination of the read Abslocs.
+   for (auto wIter = writtenLocs.begin(); wIter != writtenLocs.end(); wIter++) {
+      const Absloc &writtenLoc = *wIter;
+      if (readLocs.empty()) {
+         // We can get here in two situations: (1) no locations are read, or (2)
+         // only non-GPRs and undeterminable memory locations are read.  In
+         // either case, we assume the written value is not a stack height.
+         xferFuncs.push_back(TransferFunc::retopFunc(writtenLoc));
+         if (writtenLoc.type() == Absloc::Register) {
+            retopBaseSubReg(writtenLoc.reg(), xferFuncs);
+         }
          continue;
       }
-      Absloc loc(reg);
-      xferFuncs.push_back(TransferFunc::copyFunc(loc, loc, true));
-      copyBaseSubReg(reg, xferFuncs);
-      stackanalysis_printf(
-         "\t\t\t Unhandled insn %s detected: %s set to topBottom\n",
-         insn->format().c_str(), (*iter)->getID().name().c_str());
+      std::map<Absloc, std::pair<long, bool>> fromRegs;
+      for (auto rIter = readLocs.begin(); rIter != readLocs.end(); rIter++) {
+         const Absloc &readLoc = *rIter;
+         fromRegs[readLoc] = std::make_pair(1, true);
+      }
+      xferFuncs.push_back(TransferFunc::sibFunc(fromRegs, 0, writtenLoc));
+      if (writtenLoc.type() == Absloc::Register) {
+         copyBaseSubReg(writtenLoc.reg(), xferFuncs);
+      }
    }
 }
 
@@ -2032,7 +2119,7 @@ bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block,
             gpr = ppc64::GPR;
             break;
          default:
-            handleDefault(insn, xferFuncs);
+            handleDefault(insn, block, off, xferFuncs);
             return true;
       }
       if ((*iter).first.regClass() == gpr) {
@@ -2761,8 +2848,6 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::summaryAccumulate(
       return input;
    }
 
-   // Copies can be tricky
-   // apply copy logic only if registers are different
    if (isCopy()) {
       // We need to record that we want to take the inflow height
       // of a different register. 

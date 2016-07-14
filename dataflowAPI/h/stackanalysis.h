@@ -61,17 +61,17 @@
 
 // These are _NOT_ in the Dyninst namespace...
 namespace Dyninst {
-  namespace ParseAPI {
-    class Function;
-    class Block;
-	class Edge;
-  };
-  namespace InstructionAPI {
-    class Instruction;
-    class Expression;
-  };
+   namespace ParseAPI {
+      class Function;
+      class Block;
+      class Edge;
+   };
+   namespace InstructionAPI {
+      class Instruction;
+      class Expression;
+   };
 
- 
+
 class StackAnalysis {
 public:
    typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
@@ -392,9 +392,10 @@ private:
       TransferFuncs &xferFuncs);
    void handlePushPopFlags(int sign, TransferFuncs &xferFuncs);
    void handlePushPopRegs(int sign, TransferFuncs &xferFuncs);
-   void handlePowerAddSub(InstructionPtr insn, int sign,
-      TransferFuncs &xferFuncs);
-   void handlePowerStoreUpdate(InstructionPtr insn, TransferFuncs &xferFuncs);
+   void handlePowerAddSub(InstructionPtr insn, ParseAPI::Block *block,
+      const Offset off, int sign, TransferFuncs &xferFuncs);
+   void handlePowerStoreUpdate(InstructionPtr insn, ParseAPI::Block *block,
+      const Offset off, TransferFuncs &xferFuncs);
    void handleMov(InstructionPtr insn, ParseAPI::Block *block,
       const Offset off, TransferFuncs &xferFuncs);
    void handleZeroExtend(InstructionPtr insn, ParseAPI::Block *block,
@@ -406,7 +407,8 @@ private:
       TransferFuncs &xferFuncs);
    void handleDiv(InstructionPtr insn, TransferFuncs &xferFuncs);
    void handleMul(InstructionPtr insn, TransferFuncs &xferFuncs);
-   void handleDefault(InstructionPtr insn, TransferFuncs &xferFuncs);
+   void handleDefault(InstructionPtr insn, ParseAPI::Block *block,
+      const Offset off, TransferFuncs &xferFuncs);
 
    long extractDelta(InstructionAPI::Result deltaRes);
    bool getSubReg(const MachRegister &reg, MachRegister &subreg);
