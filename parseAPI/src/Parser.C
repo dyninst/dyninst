@@ -1178,6 +1178,11 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                   func->set_retstatus(UNKNOWN);
                 }
             }
+	    // The edge to this shared block is changed from 
+	    // "going to sink" to going to this shared block.
+	    // This changes the function boundary, so we need to
+	    // invalidate the cache.
+	    func->_cache_valid = false;
             continue;
         }
 
