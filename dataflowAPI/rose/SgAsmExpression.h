@@ -23,7 +23,7 @@ class SgAsmExpression : public SgAsmNode {
 public:
     virtual SgAsmType *get_type() const;
 
-    void set_type(SgAsmType *type);
+    virtual void set_type(SgAsmType *type);
 
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
