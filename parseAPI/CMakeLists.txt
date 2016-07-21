@@ -38,6 +38,9 @@ set (SRC_LIST
 	src/LoopTreeNode.C
 	src/IdiomModelDesc.C
 	src/ProbabilisticParser.C
+    )
+
+set(ROSE_SRC
 	../dataflowAPI/src/ABI.C 
         ../dataflowAPI/src/Absloc.C 
         ../dataflowAPI/src/AbslocInterface.C 
@@ -47,38 +50,44 @@ set (SRC_LIST
         ../dataflowAPI/src/InstructionCache.C 
         ../dataflowAPI/src/liveness.C 
         ../dataflowAPI/src/RegisterMap.C
-		../dataflowAPI/src/RoseImpl.C
-		../dataflowAPI/rose/ExtentMap.C
-		../dataflowAPI/rose/rangemap.C
-		../dataflowAPI/rose/util/Assert.C
-		../dataflowAPI/rose/util/Message.C
-		../dataflowAPI/rose/util/Sawyer.C
-		../dataflowAPI/rose/util/Synchronization.C
-		../dataflowAPI/rose/util/rose_getline.C
-		../dataflowAPI/rose/util/SmallObject.C
-		../dataflowAPI/rose/util/Stopwatch.C
-		../dataflowAPI/rose/util/StringUtility.C
-		../dataflowAPI/rose/util/Attribute.C
-		../dataflowAPI/rose/util/Combinatorics.C
-		../dataflowAPI/rose/util/LinearCongruentialGenerator.C
-		../dataflowAPI/rose/semantics/BaseSemantics2.C
-		#../dataflowAPI/rose/semantics/ConcreteSemantics2.C
-		../dataflowAPI/rose/semantics/DispatcherARM64.C
-		../dataflowAPI/rose/semantics/RegisterParts.C
-		../dataflowAPI/rose/semantics/Registers.C
-		../dataflowAPI/rose/semantics/SMTSolver.C
-		../dataflowAPI/rose/semantics/BinarySymbolicExpr.C
-		../dataflowAPI/rose/semantics/RegisterStateGeneric.C
-		../dataflowAPI/rose/semantics/SymEvalSemantics.C
-        ../dataflowAPI/src/RoseInsnFactory.C 
-        ../dataflowAPI/src/slicing.C 
-        ../dataflowAPI/src/stackanalysis.C 
-        ../dataflowAPI/src/SymbolicExpansion.C 
-        ../dataflowAPI/src/SymEval.C 
-        ../dataflowAPI/src/SymEvalPolicy.C 
-        ../dataflowAPI/src/templates.C 
-        ../dataflowAPI/src/Visitors.C 
-    )
+	../dataflowAPI/src/RoseImpl.C
+        ../dataflowAPI/src/RoseInsnFactory.C
+        ../dataflowAPI/src/slicing.C
+        ../dataflowAPI/src/stackanalysis.C
+        ../dataflowAPI/src/SymbolicExpansion.C
+        ../dataflowAPI/src/SymEval.C
+        ../dataflowAPI/src/SymEvalPolicy.C
+        ../dataflowAPI/src/templates.C
+        ../dataflowAPI/src/Visitors.C
+        ../dataflowAPI/rose/ExtentMap.C
+        ../dataflowAPI/rose/rangemap.C
+        ../dataflowAPI/rose/util/Assert.C
+        ../dataflowAPI/rose/util/Message.C
+        ../dataflowAPI/rose/util/Sawyer.C
+        ../dataflowAPI/rose/util/Synchronization.C
+        ../dataflowAPI/rose/util/rose_getline.C
+        ../dataflowAPI/rose/util/SmallObject.C
+        ../dataflowAPI/rose/util/Stopwatch.C
+        ../dataflowAPI/rose/util/StringUtility.C
+        ../dataflowAPI/rose/util/Attribute.C
+        ../dataflowAPI/rose/util/Combinatorics.C
+        ../dataflowAPI/rose/util/LinearCongruentialGenerator.C
+        ../dataflowAPI/rose/semantics/BaseSemantics2.C
+        #../dataflowAPI/rose/semantics/ConcreteSemantics2.C
+        ../dataflowAPI/rose/semantics/DispatcherARM64.C
+        ../dataflowAPI/rose/semantics/RegisterParts.C
+        ../dataflowAPI/rose/semantics/Registers.C
+        #../dataflowAPI/rose/semantics/SMTSolver.C
+        ../dataflowAPI/rose/semantics/BinarySymbolicExpr.C
+        ../dataflowAPI/rose/semantics/RegisterStateGeneric.C
+        ../dataflowAPI/rose/semantics/SymEvalSemantics.C
+)
+
+# FIXME: Rose needs a bunch of warning cleanup
+SET_SOURCE_FILES_PROPERTIES(${ROSE_SRC} PROPERTIES LANGUAGE CXX COMPILE_FLAGS -w)
+set (SRC_LIST ${SRC_LIST}
+	${ROSE_SRC}
+)
 
 if (LIGHTWEIGHT_SYMTAB)
 set (SRC_LIST ${SRC_LIST}
@@ -114,7 +123,6 @@ set (SRC_LIST ${SRC_LIST}
     )
 endif()
 
-SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX COMPILE_FLAGS -w)
 
 ADD_DEFINITIONS(-DPARSER_LIB)
 ADD_DEFINITIONS(-DDATAFLOW_LIB)
