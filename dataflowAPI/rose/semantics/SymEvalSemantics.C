@@ -2,7 +2,7 @@
 // Created by ssunny on 7/1/16.
 //
 
-#include <libtasn1.h>
+#include <Register.h>
 #include "SymEvalSemantics.h"
 
 using namespace rose::BinaryAnalysis::InstructionSemantics2;
@@ -45,7 +45,7 @@ BaseSemantics::SValuePtr SymEvalSemantics::RegisterStateARM64::readRegister(cons
     if(reg.get_major() != armv8_regclass_simd_fpr) {
         ARMv8GeneralPurposeRegister r = static_cast<ARMv8GeneralPurposeRegister>(reg.get_minor());
         unsigned int size = reg.get_nbits();
-        return SymEvalSemantics::SValue::instance(wrap(convert(r, size), addr));
+        return SymEvalSemantics::SValue::instance(wrap(convert(reg), addr));
     } else {
         ASSERT_not_implemented("readRegister not yet implemented for categories other than GPR");
     }
@@ -62,9 +62,7 @@ void SymEvalSemantics::RegisterStateARM64::writeRegister(const RegisterDescripto
                                                          Dyninst::DataflowAPI::Result_t &res,
                                                          std::map<Dyninst::Absloc, Dyninst::Assignment::Ptr> &aaMap) {
     if(reg.get_major() != armv8_regclass_simd_fpr) {
-        ARMv8GeneralPurposeRegister r = static_cast<ARMv8GeneralPurposeRegister>(reg.get_minor());
-
-        std::map<Dyninst::Absloc, Dyninst::Assignment::Ptr>::iterator i = aaMap.find(convert(r, reg.get_nbits()));
+        std::map<Dyninst::Absloc, Dyninst::Assignment::Ptr>::iterator i = aaMap.find(convert(reg));
         if (i != aaMap.end()) {
             SymEvalSemantics::SValuePtr value_ = SymEvalSemantics::SValue::promote(value);
             res[i->second] = value_->get_expression();
@@ -80,14 +78,41 @@ void SymEvalSemantics::RegisterStateARM64::writeRegister(const RegisterDescripto
     ASSERT_always_forbid("overridden RegisterState::writeRegister() should never be called for ARM64, always use the non-virtual writeRegister that also takes additional parameters.");
 }
 
-Dyninst::Absloc SymEvalSemantics::RegisterStateARM64::convert(ARMv8GeneralPurposeRegister r, unsigned int size) {
+Dyninst::Absloc SymEvalSemantics::RegisterStateARM64::convert(const RegisterDescriptor &reg) {
     Dyninst::MachRegister mreg;
 
-    if(r != armv8_gpr_zr) {
-        mreg = (size == 32)?Dyninst::aarch64::wzr:Dyninst::aarch64::zr;
-    } else {
-        mreg = (size == 32)?Dyninst::aarch64::w0:Dyninst::aarch64::x0;
-        mreg = Dyninst::MachRegister(mreg.val() + (r - armv8_gpr_r0));
+    unsigned int major = reg.get_major();
+    unsigned int size = reg.get_nbits();
+
+    switch (major) {
+        case armv8_regclass_gpr: {
+            unsigned int minor = reg.get_minor();
+
+            if (minor == armv8_gpr_zr) {
+                mreg = Dyninst::MachRegister((size == 32) ? Dyninst::aarch64::wzr : Dyninst::aarch64::zr);
+            } else {
+                Dyninst::MachRegister base = (size == 32) ? Dyninst::aarch64::w0 : Dyninst::aarch64::x0;
+                mreg = Dyninst::MachRegister(base.val() + (minor - armv8_gpr_r0));
+            }
+        }
+            break;
+        case armv8_regclass_pc:
+            mreg = Dyninst::MachRegister(Dyninst::aarch64::pc);
+            break;
+        case armv8_regclass_sp:
+            mreg = Dyninst::MachRegister((size == 32) ? Dyninst::aarch64::wsp : Dyninst::aarch64::sp);
+            break;
+        case armv8_regclass_pstate: {
+            unsigned int offset = reg.get_offset();
+            if (offset == armv8_pstatefield_nzcv) {
+                mreg = Dyninst::MachRegister(Dyninst::aarch64::pstate);
+            } else {
+                ASSERT_always_forbid("No part of the PSTATE register other than NZCV should be used.");
+            }
+        }
+            break;
+        default:
+            ASSERT_always_forbid("Unexpected register major type.");
     }
 
     return Dyninst::Absloc(mreg);

@@ -175,7 +175,7 @@ namespace rose {
                         return Dyninst::DataflowAPI::VariableAST::create(Dyninst::DataflowAPI::Variable(Dyninst::AbsRegion(r), addr));
                     }
 
-                    Dyninst::Absloc convert(ARMv8GeneralPurposeRegister r, unsigned int size);
+                    Dyninst::Absloc convert(const RegisterDescriptor &reg);
                 };
 
 

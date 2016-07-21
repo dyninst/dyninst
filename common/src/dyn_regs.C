@@ -816,7 +816,7 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
 			  if(baseID == aarch64::zr || baseID == aarch64::wzr)
 			      n = armv8_gpr_zr;
 			  else {
-			      int regnum = baseID - aarch64::x0;
+			      int regnum = baseID - (aarch64::x0 & 0xFF);
 			      n = armv8_gpr_r0 + regnum;
 			  }
 		      } 
