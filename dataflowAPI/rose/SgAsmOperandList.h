@@ -2,10 +2,10 @@
 #if !defined(SG_ASM_OPERAND_LIST_H)
 #define SG_ASM_OPERAND_LIST_H
 
-#include "SgNode.h"
+#include "SgAsmType.h"
 #include "typedefs.h"
 
-class SgAsmOperandList : public SgNode {
+class SgAsmOperandList : public SgAsmNode {
  public:
 
     void append_operand( SgAsmExpression* operand );
@@ -25,7 +25,7 @@ class SgAsmOperandList : public SgNode {
     virtual VariantT variantT() const; // MS: new variant used in tree traversal
     
     /*! \brief static variant value */
-    static const VariantT static_variant = V_SgAsmOperandList;
+    enum { static_variant = V_SgAsmOperandList };
     
     /* the generated cast function */
     /*! \brief Casts pointer from base class to derived class */

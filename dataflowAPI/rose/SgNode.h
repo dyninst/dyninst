@@ -1,6 +1,8 @@
 #if !defined(SG_NODE_H)
 #define SG_NODE_H
 
+#include <string>
+
 class SgNode {
  public:
     virtual std::string class_name() const = 0;
