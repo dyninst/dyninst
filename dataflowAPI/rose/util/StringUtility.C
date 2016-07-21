@@ -58,9 +58,10 @@
 
 // tps (11/10/2009): This include is needed in windows to find the realpath
 #if ROSE_MICROSOFT_OS
-#include <unistd.h>
-// DQ (11/27/2009): this is required for use of GetFullPathName() (below).
 #include <windows.h>
+// DQ (11/27/2009): this is required for use of GetFullPathName() (below).
+#else
+#include <unistd.h>
 #endif
 // DQ (12/31/2005): This is allowed in C files where it can not 
 // effect the users applcation (just not in header files).
