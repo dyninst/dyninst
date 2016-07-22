@@ -58,6 +58,8 @@
 #include "parseAPI/h/CodeObject.h"
 #include "parseAPI/h/CFG.h"
 
+#include "dataflowAPI/h/AbslocInterface.h"
+
 #if defined(TIMED_PARSE)
 #include <sys/time.h>
 #endif
@@ -409,21 +411,21 @@ void image::findMain()
     // (Some strange DSOs also have INTERP, but this is rare.)
     if(!desc_.isSharedObject() || linkedFile->getInterpreterName() != NULL)
     {
-    	bool foundMain = false;
-    	bool foundStart = false;
-    	bool foundFini = false;
-    	//check if 'main' is in allsymbols
+        bool foundMain = false;
+        bool foundStart = false;
+        bool foundFini = false;
+        //check if 'main' is in allsymbols
         vector <SymtabAPI::Function *> funcs;
         if (linkedFile->findFunctionsByName(funcs, "main") ||
-            linkedFile->findFunctionsByName(funcs, "_main"))
+                linkedFile->findFunctionsByName(funcs, "_main"))
             foundMain = true;
         else if (linkedFile->findFunctionsByName(funcs, "_start"))
             foundStart = true;
         else if (linkedFile->findFunctionsByName(funcs, "_fini"))
             foundFini = true;
-    
-    	Region *eReg = NULL;
-    	bool foundText = linkedFile->findRegion(eReg, ".text");
+
+        Region *eReg = NULL;
+        bool foundText = linkedFile->findRegion(eReg, ".text");
         if (foundText == false) {
             return;
         }
@@ -435,8 +437,8 @@ void image::findMain()
             Address eAddr = linkedFile->getEntryOffset();
             eAddr = deref_opd(linkedFile, eAddr);
 
-	        bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
-	        SymtabCodeSource scs(linkedFile, filt, parseInAllLoadableRegions);
+            bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
+            SymtabCodeSource scs(linkedFile, filt, parseInAllLoadableRegions);
             CodeObject tco(&scs,NULL,NULL,false);
 
             tco.parse(eAddr,false);
@@ -465,8 +467,8 @@ void image::findMain()
                 b = (*cit)->src();
             } else {
                 startup_printf("%s[%d] _start has unexpected number (%d) of"
-                               " call edges, bailing on findMain()\n",
-                    FILE__,__LINE__,calls.size());
+                        " call edges, bailing on findMain()\n",
+                        FILE__,__LINE__,calls.size());
                 return;
             }
             if (!b) return;
@@ -479,37 +481,37 @@ void image::findMain()
                 return;
             } else {
                 startup_printf("%s[%d] found main at %lx\n",
-                    FILE__,__LINE__,mainAddress);
+                        FILE__,__LINE__,mainAddress);
             }
-           	Symbol *newSym= new Symbol( "main", 
-                                            Symbol::ST_FUNCTION,
-                                            Symbol::SL_LOCAL,
-                                            Symbol::SV_INTERNAL,
-                                            mainAddress,
-                                            linkedFile->getDefaultModule(),
-                                            eReg, 
-                                            0 );
-	        linkedFile->addSymbol(newSym);		
+            Symbol *newSym= new Symbol( "main", 
+                    Symbol::ST_FUNCTION,
+                    Symbol::SL_LOCAL,
+                    Symbol::SV_INTERNAL,
+                    mainAddress,
+                    linkedFile->getDefaultModule(),
+                    eReg, 
+                    0 );
+            linkedFile->addSymbol(newSym);		
         }
     }
 #elif defined(i386_unknown_linux2_0) \
-|| defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
-|| (defined(os_freebsd) \
-    && (defined(arch_x86) || defined(arch_x86_64)))
+    || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+    || (defined(os_freebsd) \
+            && (defined(arch_x86) || defined(arch_x86_64)))
     // Only look for main in executables, but do allow position-independent
     // executables (PIE) which look like shared objects with an INTERP.
     // (Some strange DSOs also have INTERP, but this is rare.)
     if(!desc_.isSharedObject() || linkedFile->getInterpreterName() != NULL)
     {
-    	bool foundMain = false;
-    	bool foundStart = false;
-    	bool foundFini = false;
+        bool foundMain = false;
+        bool foundStart = false;
+        bool foundFini = false;
 
-    	//check if 'main' is in allsymbols
+        //check if 'main' is in allsymbols
         vector <SymtabAPI::Function *> funcs;
         if (linkedFile->findFunctionsByName(funcs, "main") ||
-            linkedFile->findFunctionsByName(funcs, "_main")) {
-           foundMain = true;
+                linkedFile->findFunctionsByName(funcs, "_main")) {
+            foundMain = true;
         }
 
         if (linkedFile->findFunctionsByName(funcs, "_start")) {
@@ -523,68 +525,150 @@ void image::findMain()
         Address eAddr = linkedFile->getEntryOffset();
         Region *eReg = linkedFile->findEnclosingRegion(eAddr);
         if (!eReg) {
-           return;
+            return;
         }
         Address eStart = eReg->getMemOffset();
 
-    	if( !foundMain )
-    	{
+        if( !foundMain )
+        {
             logLine( "No main symbol found: creating symbol for main\n" );
 
-    	    //find and add main to allsymbols
+            //find and add main to allsymbols
             const unsigned char* p;
-		                   
+
             p = (( const unsigned char * ) eReg->getPtrToRawData());
 
             if (eAddr > eStart) {
-               p += (eAddr - eStart);
+                p += (eAddr - eStart);
             }
 
+            bool mode_64 = false;
             switch(linkedFile->getAddressWidth()) {
-       	    	case 4:
-            	    // 32-bit...
+                case 4:
+                    // 32-bit...
                     startup_printf("%s[%u]:  setting 32-bit mode\n",
-                        FILE__,__LINE__);
-            	    ia32_set_mode_64(false);
+                            FILE__,__LINE__);
+                    ia32_set_mode_64(false);
                     break;
-         	case 8:
+                case 8:
+                    mode_64 = true;
                     startup_printf("%s[%u]:  setting 64-bit mode\n",
-                        FILE__,__LINE__);
-            	    ia32_set_mode_64(true);
-            	    break;
-        	default:
-            	    assert(0 && "Illegal address width");
-            	    break;
+                            FILE__,__LINE__);
+                    ia32_set_mode_64(true);
+                    break;
+                default:
+                    assert(0 && "Illegal address width");
+                    break;
             }
 
-            instruction insn;
-            insn.setInstruction( p );
+            // instruction insn;
+            // insn.setInstruction( p );
             Address mainAddress = 0;
+            cout << "Guess main:" << endl;
 
-	    // Create a temporary SymtabCodeSource that we can use for parsing. 
-	    // We're going to throw it away when we're done so that we can re-sync
-	    // with the new symbols we're going to add shortly. 
-	    bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
-	    SymtabCodeSource scs(linkedFile, filt, parseInAllLoadableRegions);
+            // Create a temporary SymtabCodeSource that we can use for parsing. 
+            // We're going to throw it away when we're done so that we can re-sync
+            // with the new symbols we're going to add shortly. 
+            bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
+            SymtabCodeSource scs(linkedFile, filt, parseInAllLoadableRegions);
+            CodeObject co(&scs);
 
 #if !defined(os_freebsd)
-            const unsigned char *lastP = 0;
-            while( !insn.isCall() )
+
+            Address entry_point = (Address)linkedFile->getEntryOffset();
+
+            /* Get the code regions we are looking at */
+            std::set<CodeRegion*> regions;
+            scs.findRegions(entry_point, regions);
+            cout << "\t" << regions.size() << " regions were found" << endl;
+
+            /* We should only get one region */
+            if(regions.size() != 1)
+                assert(!"Overlapping or non existant regions!");
+            CodeRegion* region = *regions.begin();
+            assert(region);
+
+            /* Parse the function we're looking at */
+            co.parse(region, entry_point, true);
+            cout << "\tParsing the region..." << endl;
+
+            /* Get the parsed Function */
+            vector<ParseAPI::Function*> funcs;
+            Function* func = co.findFuncByEntry(region, entry_point);
+            assert(func); /* This should really exist now */
+            cout << "\tGot function " << func->name() << endl;
+
+            /* Use dataflow analysis here to determine the value of EDI */
+            const unsigned char* raw = p;
+            instruction insn;
+            insn.setInstruction(raw);
+            Address insn_addr = entry_point;
+            cout << "\tStarting address: " << insn_addr << endl;
+            cout << "\tInstructions:" << endl;
+
+            const unsigned char *last_insn = NULL;
+            while(!insn.isCall())
             {
-            	lastP = p;
-            	p += insn.size();
-            	insn.setInstruction( p );
+                last_insn = raw;
+                raw += insn.size();
+                insn.setInstruction(raw);
             }
 
+            if(!last_insn) /* We cannot do analysis on this */
+            {
+                assert(!"findMain analysis has failed");
+                return;
+            }
+
+            /* Calculate the address of the instruction */
+            insn_addr += last_insn - p;
+            cout << "\tAddr difference: " << (last_insn - p) << endl;
+            cout << "\tFinal address: " << insn_addr << endl;
+
+            /* Decode the instruction */
+            InstructionAPI::InstructionDecoder* decoder = NULL;
+            if(mode_64)
+            {
+                decoder = new InstructionAPI::InstructionDecoder(
+                        last_insn, insn.size(), Dyninst::Arch_x86_64);
+            } else {
+                decoder = new InstructionAPI::InstructionDecoder(
+                        last_insn, insn.size(), Dyninst::Arch_x86);
+            }
+            InstructionAPI::Instruction::Ptr insn_ptr = decoder->decode(last_insn);
+
+            /* Get the block for this instruction */
+            assert(region->contains(insn_addr));
+            std::set<Block*> blocks;
+            co.findBlocks(region, insn_addr, blocks);
+            assert(blocks.size() == 1);
+            Block* b = *blocks.begin();
+            assert(b);
+
+            /* Let's get the assignment for this instruction. */
+            std::vector<Assignment::Ptr> assignments;
+            Dyninst::AssignmentConverter assign_convert(true, true);
+            assign_convert.convert(insn_ptr, insn_addr, func, b, assignments);
+            cout << "\t" << assignments.size() << " assignments were returned." << endl;
+
+
+
+            // while( !insn.isCall() )
+            // {
+                // lastP = p;
+                // p += insn.size();
+                // insn.setInstruction( p );
+            // }
+
             // We _really_ can't handle a call with nothing before it....
-            assert(lastP);
+            // assert(lastP);
 
             // FIXME: this assumes that the instruction immediately before the call sets
             // the main address - this may not be true.
-            instruction preCall;
-            preCall.setInstruction(lastP);
+            // instruction preCall;
+            // preCall.setInstruction(lastP);
 
-            mainAddress = get_immediate_operand(&preCall);
+            // mainAddress = get_immediate_operand(&preCall);
 #else
             // Heuristic: main is the target of the 4th call in the text section
             using namespace Dyninst::InstructionAPI;
@@ -594,7 +678,7 @@ void image::findMain()
 
             Instruction::Ptr curInsn = decoder.decode();
             while( numCalls < 4 && curInsn && curInsn->isValid() &&
-                   bytesSeen < eReg->getMemSize())
+                    bytesSeen < eReg->getMemSize())
             {
                 InsnCategory category = curInsn->getCategory();
                 if( category == c_CallInsn ) {
@@ -627,10 +711,10 @@ void image::findMain()
 
             if(!mainAddress || !scs.isValidAddress(mainAddress)) {
                 startup_printf("%s[%u]:  invalid main address 0x%lx\n",
-                    FILE__, __LINE__, mainAddress);   
+                        FILE__, __LINE__, mainAddress);   
             } else {
                 startup_printf("%s[%u]:  set main address to 0x%lx\n",
-                    FILE__,__LINE__,mainAddress);
+                        FILE__,__LINE__,mainAddress);
             }
 
             /* Note: creating a symbol for main at the invalid address 
@@ -641,64 +725,64 @@ void image::findMain()
                findMain, like all important utility functions, should have
                a way of gracefully indicating that it has failed. It should
                not return void. NR
-            */
+               */
 
-    	    Region *pltsec;
+            Region *pltsec;
             if((linkedFile->findRegion(pltsec, ".plt")) && pltsec->isOffsetInRegion(mainAddress))
             {
-            	//logLine( "No static symbol for function main\n" );
+                //logLine( "No static symbol for function main\n" );
                 Symbol *newSym = new Symbol("DYNINST_pltMain", 
-                                            Symbol::ST_FUNCTION, 
-                                            Symbol::SL_LOCAL,
-                                            Symbol::SV_INTERNAL,
-                                            mainAddress,
-                                            linkedFile->getDefaultModule(),
-                                            eReg, 
-                                            0 );
+                        Symbol::ST_FUNCTION, 
+                        Symbol::SL_LOCAL,
+                        Symbol::SV_INTERNAL,
+                        mainAddress,
+                        linkedFile->getDefaultModule(),
+                        eReg, 
+                        0 );
                 linkedFile->addSymbol( newSym );
-           }
-           else
-           {
-           	Symbol *newSym= new Symbol( "main", 
-                                            Symbol::ST_FUNCTION,
-                                            Symbol::SL_LOCAL,
-                                            Symbol::SV_INTERNAL,
-                                            mainAddress,
-                                            linkedFile->getDefaultModule(),
-                                            eReg, 
-                                            0 );
-	        linkedFile->addSymbol(newSym);		
+            }
+            else
+            {
+                Symbol *newSym= new Symbol( "main", 
+                        Symbol::ST_FUNCTION,
+                        Symbol::SL_LOCAL,
+                        Symbol::SV_INTERNAL,
+                        mainAddress,
+                        linkedFile->getDefaultModule(),
+                        eReg, 
+                        0 );
+                linkedFile->addSymbol(newSym);		
             }
         }
-    	if( !foundStart )
-    	{
+        if( !foundStart )
+        {
             Symbol *startSym = new Symbol( "_start",
-                                           Symbol::ST_FUNCTION,
-                                           Symbol::SL_LOCAL,
-                                           Symbol::SV_INTERNAL,
-                                           eReg->getMemOffset(),
-                                           linkedFile->getDefaultModule(),
-                                           eReg,
-                                           0 );
+                    Symbol::ST_FUNCTION,
+                    Symbol::SL_LOCAL,
+                    Symbol::SV_INTERNAL,
+                    eReg->getMemOffset(),
+                    linkedFile->getDefaultModule(),
+                    eReg,
+                    0 );
             //cout << "sim for start!" << endl;
-        
-	    linkedFile->addSymbol(startSym);		
-    	}
-    	if( !foundFini )
-    	{
-	  Region *finisec = NULL;
-	  if (linkedFile->findRegion(finisec,".fini")) {
-	    Symbol *finiSym = new Symbol( "_fini",
-					  Symbol::ST_FUNCTION,
-					  Symbol::SL_LOCAL,
-					  Symbol::SV_INTERNAL,
-					  finisec->getMemOffset(),
-					  linkedFile->getDefaultModule(),
-					  finisec, 
-					  0 );
-	    linkedFile->addSymbol(finiSym);	
-	  }	
-    	}
+
+            linkedFile->addSymbol(startSym);		
+        }
+        if( !foundFini )
+        {
+            Region *finisec = NULL;
+            if (linkedFile->findRegion(finisec,".fini")) {
+                Symbol *finiSym = new Symbol( "_fini",
+                        Symbol::ST_FUNCTION,
+                        Symbol::SL_LOCAL,
+                        Symbol::SV_INTERNAL,
+                        finisec->getMemOffset(),
+                        linkedFile->getDefaultModule(),
+                        finisec, 
+                        0 );
+                linkedFile->addSymbol(finiSym);	
+            }	
+        }
     }
 
     Region *dynamicsec;
@@ -706,66 +790,66 @@ void image::findMain()
     if(linkedFile->findRegion(dynamicsec, ".dynamic")==true)
     {
         if(linkedFile->findSymbol(syms,
-                                  "_DYNAMIC",
-                                  Symbol::ST_UNKNOWN,
-                                  SymtabAPI::mangledName)==false)
+                    "_DYNAMIC",
+                    Symbol::ST_UNKNOWN,
+                    SymtabAPI::mangledName)==false)
         {
-	    Symbol *newSym = new Symbol( "_DYNAMIC", 
-					Symbol::ST_OBJECT, 
-                                         Symbol::SL_LOCAL,
-                                         Symbol::SV_INTERNAL,
-                                         dynamicsec->getMemOffset(), 
-                                         linkedFile->getDefaultModule(),
-                                         dynamicsec, 
-                                         0 );
-	    linkedFile->addSymbol(newSym);
-	}
+            Symbol *newSym = new Symbol( "_DYNAMIC", 
+                    Symbol::ST_OBJECT, 
+                    Symbol::SL_LOCAL,
+                    Symbol::SV_INTERNAL,
+                    dynamicsec->getMemOffset(), 
+                    linkedFile->getDefaultModule(),
+                    dynamicsec, 
+                    0 );
+            linkedFile->addSymbol(newSym);
+        }
     }
-    
+
 #elif defined(i386_unknown_nt4_0)
 
-   if(linkedFile->isExec()) {
-       vector <Symbol *>syms;
-       vector<SymtabAPI::Function *> funcs;
-       Address eAddr = linkedFile->getEntryOffset();
-       Region *eReg = linkedFile->findEnclosingRegion(eAddr);
-       
-       bool found_main = false;
-       for (unsigned i=0; i<NUMBER_OF_MAIN_POSSIBILITIES; i++) {
-           if(linkedFile->findFunctionsByName(funcs, main_function_names[i])) {
-               found_main = true;
-               break;
-           }
-       }
-       if (found_main) {
-           if(!linkedFile->findSymbol(syms,"start",Symbol::ST_UNKNOWN, SymtabAPI::mangledName)) {
-               //use 'start' for mainCRTStartup.
-               Symbol *startSym = new Symbol( "start", 
-                                              Symbol::ST_FUNCTION,
-                                              Symbol::SL_GLOBAL, 
-                                              Symbol::SV_DEFAULT, 
-                                              eAddr ,
-                                              linkedFile->getDefaultModule(),
-                                              eReg,
-                                              UINT_MAX );
-               linkedFile->addSymbol(startSym);
-           }
-           syms.clear();
-       } 
-       else {
-           // add entry point as main given that nothing else was found
-           startup_printf("[%s:%u] - findmain could not find symbol "
-                          "for main, using binary entry point %x\n",
-                          __FILE__, __LINE__, eAddr);
-           linkedFile->addSymbol(new Symbol("main",
-                                            Symbol::ST_FUNCTION, 
-                                            Symbol::SL_GLOBAL, 
-                                            Symbol::SV_DEFAULT,
-                                            eAddr,
-                                            linkedFile->getDefaultModule(),
-                                            eReg));
-       }
-   }
+    if(linkedFile->isExec()) {
+        vector <Symbol *>syms;
+        vector<SymtabAPI::Function *> funcs;
+        Address eAddr = linkedFile->getEntryOffset();
+        Region *eReg = linkedFile->findEnclosingRegion(eAddr);
+
+        bool found_main = false;
+        for (unsigned i=0; i<NUMBER_OF_MAIN_POSSIBILITIES; i++) {
+            if(linkedFile->findFunctionsByName(funcs, main_function_names[i])) {
+                found_main = true;
+                break;
+            }
+        }
+        if (found_main) {
+            if(!linkedFile->findSymbol(syms,"start",Symbol::ST_UNKNOWN, SymtabAPI::mangledName)) {
+                //use 'start' for mainCRTStartup.
+                Symbol *startSym = new Symbol( "start", 
+                        Symbol::ST_FUNCTION,
+                        Symbol::SL_GLOBAL, 
+                        Symbol::SV_DEFAULT, 
+                        eAddr ,
+                        linkedFile->getDefaultModule(),
+                        eReg,
+                        UINT_MAX );
+                linkedFile->addSymbol(startSym);
+            }
+            syms.clear();
+        } 
+        else {
+            // add entry point as main given that nothing else was found
+            startup_printf("[%s:%u] - findmain could not find symbol "
+                    "for main, using binary entry point %x\n",
+                    __FILE__, __LINE__, eAddr);
+            linkedFile->addSymbol(new Symbol("main",
+                        Symbol::ST_FUNCTION, 
+                        Symbol::SL_GLOBAL, 
+                        Symbol::SV_DEFAULT,
+                        eAddr,
+                        linkedFile->getDefaultModule(),
+                        eReg));
+        }
+    }
 #endif
 }
 
