@@ -2,7 +2,6 @@
 // Created by ssunny on 7/1/16.
 //
 
-#include <libtasn1.h>
 #include "SymEvalSemantics.h"
 
 using namespace rose::BinaryAnalysis::InstructionSemantics2;
