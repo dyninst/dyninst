@@ -59,6 +59,7 @@
 #include "parseAPI/h/CFG.h"
 
 #include "dataflowAPI/h/AbslocInterface.h"
+#include "dataflowAPI/h/SymEval.h"
 
 #if defined(TIMED_PARSE)
 #include <sys/time.h>
@@ -226,7 +227,7 @@ namespace {
         virtual ASTPtr visit(DataflowAPI::ConstantAST *c) {return c->ptr();};
         virtual ASTPtr visit(DataflowAPI::VariableAST *v) {return v->ptr();};
 
-        virtual AST::Ptr visit(DataflowAPI::RoseAST * r) {
+        virtual ASTPtr visit(DataflowAPI::RoseAST * r) {
             using namespace DataflowAPI;
 
             AST::Children newKids;
@@ -396,6 +397,73 @@ namespace {
 }
 #endif
 
+#include <Graph.h>
+#include <Node.h>
+#include <DynAST.h>
+#include <dyntypes.h>
+#include <SymEval.h>
+#include <slicing.h>
+
+class FindMainVisitor : public ASTVisitor
+{
+    using ASTVisitor::visit;
+
+    public:
+    bool resolved;
+    Address target;
+    FindMainVisitor() : resolved(true), target(0){}
+
+    virtual AST::Ptr visit(DataflowAPI::ConstantAST ast)
+    {
+        cout << "\t\t\tCONST AST" << endl;
+        target = ast.val().val;
+        return AST::Ptr();
+    };
+
+    virtual AST::Ptr visit(DataflowAPI::VariableAST)
+    {
+        cout << "\t\t\tVARIABLE AST" << endl;
+        resolved = false;
+        return AST::Ptr();
+    };
+
+    virtual AST::Ptr visit(DataflowAPI::RoseAST * r) 
+    {
+        using namespace DataflowAPI;
+
+        AST::Children newKids;
+        for(unsigned i=0;i<r->numChildren();++i) 
+            newKids.push_back(r->child(i)->accept(this));
+
+        switch(r->val().op) 
+        {
+            case ROSEOperation::addOp:
+
+                assert(newKids.size() == 2);
+                if(newKids[0]->getID() == AST::V_ConstantAST &&
+                        newKids[1]->getID() == AST::V_ConstantAST)
+                {
+                    ConstantAST::Ptr c1 = ConstantAST::convert(newKids[0]);
+                    ConstantAST::Ptr c2 = ConstantAST::convert(newKids[1]);
+                    target = c1->val().val + c2->val().val;
+                    return ConstantAST::create(
+                            Constant(c1->val().val+c2->val().val));
+                }
+                break;
+            default:
+                startup_printf("%s[%d] unhandled FindMainVisitor operation\n",
+                        FILE__,__LINE__);
+        }
+
+        return RoseAST::create(r->val(), newKids);
+    }
+
+    virtual ASTPtr visit(DataflowAPI::ConstantAST * c)
+    {
+        return c->ptr();
+    };
+};
+
 /* 
  * Search for the Main Symbols in the list of symbols, Only in case
  * if the file is a shared object. If not present add them to the
@@ -564,7 +632,6 @@ void image::findMain()
             // instruction insn;
             // insn.setInstruction( p );
             Address mainAddress = 0;
-            cout << "Guess main:" << endl;
 
             // Create a temporary SymtabCodeSource that we can use for parsing. 
             // We're going to throw it away when we're done so that we can re-sync
@@ -580,7 +647,6 @@ void image::findMain()
             /* Get the code regions we are looking at */
             std::set<CodeRegion*> regions;
             scs.findRegions(entry_point, regions);
-            cout << "\t" << regions.size() << " regions were found" << endl;
 
             /* We should only get one region */
             if(regions.size() != 1)
@@ -590,21 +656,17 @@ void image::findMain()
 
             /* Parse the function we're looking at */
             co.parse(region, entry_point, true);
-            cout << "\tParsing the region..." << endl;
 
             /* Get the parsed Function */
             vector<ParseAPI::Function*> funcs;
             Function* func = co.findFuncByEntry(region, entry_point);
             assert(func); /* This should really exist now */
-            cout << "\tGot function " << func->name() << endl;
 
             /* Use dataflow analysis here to determine the value of EDI */
             const unsigned char* raw = p;
             instruction insn;
             insn.setInstruction(raw);
             Address insn_addr = entry_point;
-            cout << "\tStarting address: " << insn_addr << endl;
-            cout << "\tInstructions:" << endl;
 
             const unsigned char *last_insn = NULL;
             while(!insn.isCall())
@@ -622,8 +684,6 @@ void image::findMain()
 
             /* Calculate the address of the instruction */
             insn_addr += last_insn - p;
-            cout << "\tAddr difference: " << (last_insn - p) << endl;
-            cout << "\tFinal address: " << insn_addr << endl;
 
             /* Decode the instruction */
             InstructionAPI::InstructionDecoder* decoder = NULL;
@@ -649,26 +709,22 @@ void image::findMain()
             std::vector<Assignment::Ptr> assignments;
             Dyninst::AssignmentConverter assign_convert(true, true);
             assign_convert.convert(insn_ptr, insn_addr, func, b, assignments);
-            cout << "\t" << assignments.size() << " assignments were returned." << endl;
+            if(assignments.size() >= 1)
+            {
+                Assignment::Ptr assignment = *assignments.begin();
 
-
-
-            // while( !insn.isCall() )
-            // {
-                // lastP = p;
-                // p += insn.size();
-                // insn.setInstruction( p );
-            // }
-
-            // We _really_ can't handle a call with nothing before it....
-            // assert(lastP);
-
-            // FIXME: this assumes that the instruction immediately before the call sets
-            // the main address - this may not be true.
-            // instruction preCall;
-            // preCall.setInstruction(lastP);
-
-            // mainAddress = get_immediate_operand(&preCall);
+                std::pair<AST::Ptr, bool> res = DataflowAPI::SymEval::expand(assignment, false);
+                AST::Ptr ast = res.first;
+                // VariableAST::Ptr v = boost::static_pointer_cast<VariableAST::Ptr>(ast);
+                FindMainVisitor fmv;
+                ast->accept(&fmv);
+                if(fmv.resolved)
+                {
+                    mainAddress = fmv.target;
+                } else {
+                    mainAddress = 0x0;
+                }
+            }
 #else
             // Heuristic: main is the target of the 4th call in the text section
             using namespace Dyninst::InstructionAPI;
