@@ -411,28 +411,14 @@ class FindMainVisitor : public ASTVisitor
     public:
     bool resolved;
     Address target;
-    FindMainVisitor() : resolved(true), target(0){}
-
-    virtual AST::Ptr visit(DataflowAPI::ConstantAST ast)
-    {
-        cout << "\t\t\tCONST AST" << endl;
-        target = ast.val().val;
-        return AST::Ptr();
-    };
-
-    virtual AST::Ptr visit(DataflowAPI::VariableAST)
-    {
-        cout << "\t\t\tVARIABLE AST" << endl;
-        resolved = false;
-        return AST::Ptr();
-    };
+    FindMainVisitor() : resolved(false), target(0){}
 
     virtual AST::Ptr visit(DataflowAPI::RoseAST * r) 
     {
         using namespace DataflowAPI;
 
         AST::Children newKids;
-        for(unsigned i=0;i<r->numChildren();++i) 
+        for(unsigned i = 0; i < r->numChildren(); i++) 
             newKids.push_back(r->child(i)->accept(this));
 
         switch(r->val().op) 
@@ -446,8 +432,9 @@ class FindMainVisitor : public ASTVisitor
                     ConstantAST::Ptr c1 = ConstantAST::convert(newKids[0]);
                     ConstantAST::Ptr c2 = ConstantAST::convert(newKids[1]);
                     target = c1->val().val + c2->val().val;
+                    resolved = true;
                     return ConstantAST::create(
-                            Constant(c1->val().val+c2->val().val));
+                            Constant(c1->val().val + c2->val().val));
                 }
                 break;
             default:
@@ -460,6 +447,12 @@ class FindMainVisitor : public ASTVisitor
 
     virtual ASTPtr visit(DataflowAPI::ConstantAST * c)
     {
+        if(!target) 
+        {
+            resolved = true;
+            target = c->val().val;
+        }
+
         return c->ptr();
     };
 };
@@ -715,12 +708,14 @@ void image::findMain()
 
                 std::pair<AST::Ptr, bool> res = DataflowAPI::SymEval::expand(assignment, false);
                 AST::Ptr ast = res.first;
+                cout << "AST: " << ast->format() << endl;
                 // VariableAST::Ptr v = boost::static_pointer_cast<VariableAST::Ptr>(ast);
                 FindMainVisitor fmv;
                 ast->accept(&fmv);
                 if(fmv.resolved)
                 {
                     mainAddress = fmv.target;
+                    cout << "\tResolved main: " << mainAddress << endl;
                 } else {
                     mainAddress = 0x0;
                 }
