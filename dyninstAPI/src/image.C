@@ -700,7 +700,7 @@ void image::findMain()
 
             /* Let's get the assignment for this instruction. */
             std::vector<Assignment::Ptr> assignments;
-            Dyninst::AssignmentConverter assign_convert(true, true);
+            Dyninst::AssignmentConverter assign_convert(true, false);
             assign_convert.convert(insn_ptr, insn_addr, func, b, assignments);
             if(assignments.size() >= 1)
             {
@@ -708,14 +708,14 @@ void image::findMain()
 
                 std::pair<AST::Ptr, bool> res = DataflowAPI::SymEval::expand(assignment, false);
                 AST::Ptr ast = res.first;
-                cout << "AST: " << ast->format() << endl;
+                // cout << "AST: " << ast->format() << endl;
                 // VariableAST::Ptr v = boost::static_pointer_cast<VariableAST::Ptr>(ast);
                 FindMainVisitor fmv;
                 ast->accept(&fmv);
                 if(fmv.resolved)
                 {
                     mainAddress = fmv.target;
-                    cout << "\tResolved main: " << mainAddress << endl;
+                    // cout << "\tResolved main: " << mainAddress << endl;
                 } else {
                     mainAddress = 0x0;
                 }
