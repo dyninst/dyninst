@@ -12,7 +12,7 @@
 #include <sys/time.h>
 
 #else
-#include "timing.h"
+#include "common/src/timing.h"
 #endif
 
 #ifndef _MSC_VER
