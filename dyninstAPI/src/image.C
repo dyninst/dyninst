@@ -708,14 +708,11 @@ void image::findMain()
 
                 std::pair<AST::Ptr, bool> res = DataflowAPI::SymEval::expand(assignment, false);
                 AST::Ptr ast = res.first;
-                // cout << "AST: " << ast->format() << endl;
-                // VariableAST::Ptr v = boost::static_pointer_cast<VariableAST::Ptr>(ast);
                 FindMainVisitor fmv;
                 ast->accept(&fmv);
                 if(fmv.resolved)
                 {
                     mainAddress = fmv.target;
-                    // cout << "\tResolved main: " << mainAddress << endl;
                 } else {
                     mainAddress = 0x0;
                 }
