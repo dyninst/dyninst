@@ -331,7 +331,7 @@ public:
 
    // To build intervals, we must replay the effect of each instruction.
    // To avoid sucking enormous time, we keep those transfer functions around...
-   typedef std::map<ParseAPI::Block *, std::map<Offset, TransferFuncs>>
+   typedef std::map<ParseAPI::Block *, std::map<Offset, TransferFuncs> >
       InstructionEffects;
 
    DATAFLOW_EXPORT StackAnalysis();
