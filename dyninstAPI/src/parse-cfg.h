@@ -79,6 +79,7 @@ class parse_block : public codeRange, public ParseAPI::Block  {
     bool isShared() const { return containingFuncs() > 1; }
     bool isExitBlock();
     bool isCallBlock();
+    bool isIndirectTailCallBlock();
     bool isEntryBlock(parse_func * f) const;
     parse_func *getEntryFunc() const;  // func starting with this bock
 

@@ -59,7 +59,8 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
 
    RelocBlock::WidgetList &elements = cur->elements();
 
-  relocation_cerr << "PCRelTrans: processing block " 
+  relocation_cerr << "PCRelTrans: processing block (ID= "
+                  << cur->id() << ") " 
 		  << cur << " with "
 		  << elements.size() << " elements." << endl;
 
@@ -93,7 +94,6 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
 
     // Cache this so we don't re-decode...
     InsnPtr insn = (*iter)->insn();
-
     if (!insn) continue;
 
     Address target = 0;

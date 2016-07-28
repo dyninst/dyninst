@@ -275,7 +275,9 @@ bool CFWidget::generate(const codeGen &templ,
          // this for the memory emulation effort. Huzzah!
          if (!generateAddressTranslator(buffer, templ, reg, trace))
             return false;
-         if (isCall_) {
+	 // If this is an indirect tail call, we still treat it
+	 // as an indirect call
+         if (isCall_ || trace->block()->llb()->isIndirectTailCallBlock()) {
             if (!generateIndirectCall(buffer, 
                                       reg, 
                                       insn_, 
