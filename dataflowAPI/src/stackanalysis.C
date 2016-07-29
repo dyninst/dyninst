@@ -1338,7 +1338,8 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn,
    //   op1: reg + imm
    //            or
    //   op1: reg
-   //
+   //            or
+   //   op1: imm
 
    stackanalysis_printf("\t\t\t handleLEA, insn = %s\n",
       insn->format().c_str());
@@ -1348,7 +1349,7 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn,
    insn->getOperand(0).getWriteSet(writtenSet);
    insn->getOperand(1).getReadSet(readSet);
    assert(writtenSet.size() == 1);
-   assert(readSet.size() == 1 || readSet.size() == 2);
+   assert(readSet.size() == 0 || readSet.size() == 1 || readSet.size() == 2);
    MachRegister written = (*writtenSet.begin())->getID();
    Absloc writeloc(written);
 
@@ -1360,7 +1361,13 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn,
    stackanalysis_printf("\t\t\t\t srcOperand = %s\n",
       srcExpr->format().c_str());
 
-   if (readSet.size() == 1) {
+   if (readSet.size() == 0) {
+      // op1: imm
+      assert(typeid(*srcExpr) == typeid(Immediate));
+      long immVal = srcExpr->eval().convert<long>();
+      xferFuncs.push_back(TransferFunc::absFunc(writeloc, immVal));
+      retopBaseSubReg(written, xferFuncs);
+   } else if (readSet.size() == 1) {
       InstructionAPI::Expression::Ptr regExpr, scaleExpr, deltaExpr;
       bool foundScale = false;
       bool foundDelta = false;
