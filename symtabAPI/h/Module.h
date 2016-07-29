@@ -36,6 +36,10 @@
 
 #include "Annotatable.h"
 #include "Serialization.h"
+#include "IBSTree.h"
+#if defined(cap_dwarf)
+#include "libdwarf.h"
+#endif
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -106,6 +110,11 @@ typedef Statement LineNoTuple;
 
  class SYMTAB_EXPORT Module : public LookupInterface
 {
+#if defined(cap_dwarf)
+			typedef Dwarf_Die DebugInfoT;
+#else
+			typedef void* DebugInfoT;
+#endif
 	friend class Symtab;
 
 	public:
@@ -193,9 +202,16 @@ typedef Statement LineNoTuple;
    }
    
    bool setLineInfo(Dyninst::SymtabAPI::LineInformation *lineInfo);
+	 void addRange(Dyninst::Address low, Dyninst::Address high);
+	 bool containsOffset(Dyninst::Offset offset) const;
+	 void setDebugInfo(Module::DebugInfoT info) {info_is_valid_ = true; info_ = info; }
+	 Module::DebugInfoT getDebugInfo();
    private:
    Dyninst::SymtabAPI::LineInformation* lineInfo_;
    typeCollection* typeInfo_;
+	 IBSTree<SimpleInterval> ranges;
+			bool info_is_valid_;
+	 Module::DebugInfoT info_;
    
 
    std::string fileName_;                   // short file 

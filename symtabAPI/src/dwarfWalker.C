@@ -237,6 +237,7 @@ bool DwarfWalker::parseModule(Dwarf_Bool is_info, Module *&fixUnknownMod) {
 
 
    if (!parse_int(moduleDIE, true)) return false;
+   if(mod()) mod()->setDebugInfo(moduleDIE);
 
    return true;
 
@@ -649,6 +650,7 @@ void DwarfWalker::setFuncRanges() {
 	       last_high = high;
 
 	       curFunc()->ranges.push_back(FuncRange(low, high - low, curFunc()));
+           if(mod()) mod()->addRange(low, high);
 	   }
     }
 }
@@ -676,6 +678,7 @@ bool DwarfWalker::parseHighPCLowPC(Dwarf_Die entry)
    }
    dwarf_printf("(0x%lx) Lexical block from 0x%lx to 0x%lx\n", id(), low, high);
    setRange(make_pair(low, high));
+   if(mod()) mod()->addRange(low, high);
    return true;
 
 }
@@ -709,6 +712,7 @@ bool DwarfWalker::parseRangeTypes() {
                Address high = cur->dwr_addr2 + cur_base;
                dwarf_printf("(0x%lx) Lexical block from 0x%lx to 0x%lx\n", id(), low, high);
                setRange(make_pair(low, high));
+               mod()->addRange(low, high);
                break;
             }
             case DW_RANGES_ADDRESS_SELECTION:
@@ -1021,8 +1025,11 @@ bool DwarfWalker::parseTypedef() {
       if (!fixName(curName(), referencedType)) return false;
    }
 
-   typeTypedef * typedefType = new typeTypedef( type_id(), referencedType, curName());
-   typedefType = tc()->addOrUpdateType( typedefType );
+    if(tc())
+    {
+        typeTypedef * typedefType = new typeTypedef( type_id(), referencedType, curName());
+        typedefType = tc()->addOrUpdateType( typedefType );
+    }
 
    return true;
 }
@@ -1233,16 +1240,20 @@ bool DwarfWalker::parseConstPackedVolatile() {
 
    if (!findName(curName())) return false;
 
-   Type *type = NULL;
-   if (!findType(type, true)) return false;
 
-   if (!nameDefined()) {
-      if (!fixName(curName(), type)) return false;
-   }
+    if(tc())
+    {
+        Type *type = NULL;
+        if (!findType(type, true)) return false;
 
-   typeTypedef * modifierType = new typeTypedef(type_id(), type, curName());
-   assert( modifierType != NULL );
-   modifierType = tc()->addOrUpdateType( modifierType );
+        if (!nameDefined()) {
+            if (!fixName(curName(), type)) return false;
+        }
+        typeTypedef * modifierType = new typeTypedef(type_id(), type, curName());
+        assert( modifierType != NULL );
+        modifierType = tc()->addOrUpdateType( modifierType );
+
+    }
    return true;
 }
 
@@ -1273,7 +1284,8 @@ bool DwarfWalker::parseTypeReferences() {
          return false;
    }
 
-   assert( indirectType != NULL );
+       assert( indirectType != NULL );
+   }
    return true;
 }
 

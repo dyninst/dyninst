@@ -303,7 +303,8 @@ Module::Module() :
    fullName_(""),
    language_(lang_Unknown),
    addr_(0),
-   exec_(NULL)
+   exec_(NULL),
+   info_is_valid_(false)
 {
 }
 
@@ -315,7 +316,9 @@ Module::Module(const Module &mod) :
    fullName_(mod.fullName_),
    language_(mod.language_),
    addr_(mod.addr_),
-   exec_(mod.exec_)
+   exec_(mod.exec_),
+   info_is_valid_(false),
+   info_(mod.info_)
 {
 }
 
@@ -419,3 +422,17 @@ bool Module::findVariablesByName(std::vector<Variable *> &ret, const std::string
   return succ;
 }
 
+void Module::addRange(Dyninst::Address low, Dyninst::Address high)
+{
+    ranges.insert(new SimpleInterval(low, high, this));
+}
+
+bool Module::containsOffset(Dyninst::Offset offset) const {
+    std::set<SimpleInterval*> found_entries;
+    return ranges.find(offset, found_entries) > 0;
+}
+
+Module::DebugInfoT Module::getDebugInfo()
+{
+    if(!info_is_valid_) exec_->parseTypesNow(); return info_;
+}

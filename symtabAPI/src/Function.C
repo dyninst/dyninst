@@ -475,3 +475,7 @@ unsigned InlinedFunction::getSize() const
 {
     return functionSize_;//inline_parent->getSize();
 }
+
+Module* Function::getModule() const {
+    return module_;
+}

@@ -4188,7 +4188,8 @@ void Object::parseStabFileLineInfo(Symtab *st)
     //  haveParsedFileMap[ key ] = true;
 } /* end parseStabFileLineInfo() */
 
-bool Object::addrInCU(Dwarf_Debug dbg, Dwarf_Die cu, Address to_check)
+
+bool Object::addrInCU(Dwarf_Debug dbg, Dwarf_Die cu, Address to_check, Module *mod_for_cu)
 {
     Dwarf_Addr tempLow = 0, tempHigh = -1;
     Address low = 0, high = -1;
@@ -4307,11 +4308,13 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
     Dwarf_Debug *dbg_ptr = dwarf->line_dbg();
     if (!dbg_ptr)
         return;
-    Dwarf_Debug &dbg = *dbg_ptr;
+    if(!cuDIE) return;
+    Dwarf_Debug dbg = *dbg_ptr;
     /* Acquire this CU's source lines. */
     Dwarf_Line * lineBuffer;
     Dwarf_Signed lineCount;
-    int status = dwarf_srclines( cuDIE, & lineBuffer, & lineCount, NULL );
+    Dwarf_Error ignored;
+    int status = dwarf_srclines( cuDIE, & lineBuffer, & lineCount, &ignored );
 
     /* See if we can get anything useful out of the next CU
      if this one is corrupt. */
@@ -4424,11 +4427,9 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         /* If the current line ends the sequence, invalidate previous; otherwise, update. */
         if ( isEndOfSequence )
         {
-            dwarf_dealloc( dbg, lineSource, DW_DLA_STRING );
             isPreviousValid = false;
         }
         else {
-            if( isPreviousValid ) { dwarf_dealloc( dbg, previousLineSource, DW_DLA_STRING ); }
             previousLineNo = lineNo;
             previousLineSource = lineSource;
             previousLineAddr = lineAddr;
@@ -4451,105 +4452,23 @@ void Object::parseLineInfoForAddr(Symtab* obj, Offset addr_to_find)
         return;
     Module* mod_for_offset = NULL;
     obj->findModuleByOffset(mod_for_offset, addr_to_find);
-    std::string mod_to_check;
     if(mod_for_offset)
-
     {
         if(mod_for_offset->hasLineInformation())      // already parsed
         {
             return;
         }
-        mod_to_check = mod_for_offset->fileName();
-    }
-
-    Dwarf_Debug &dbg = *dbg_ptr;
-
-    /* Only .debug_info for now, not .debug_types */
-    Dwarf_Bool is_info = 1;
-
-    /* Itereate over the CU headers. */
-    Dwarf_Unsigned header;
-    while ( dwarf_next_cu_header_c( dbg, is_info,
-                                    NULL, NULL, NULL, // len, stamp, abbrev
-                                    NULL, NULL, NULL, // address, offset, extension
-                                    NULL, NULL, // signature, typeoffset
-                                    & header, NULL ) == DW_DLV_OK )
-    {
-        /* Acquire the CU DIE. */
-        Dwarf_Die cuDIE;
-        int status = dwarf_siblingof_b( dbg, NULL, is_info, & cuDIE, NULL);
-        if ( status != DW_DLV_OK ) {
-            /* If we can get no (more) CUs, we're done. */
-            break;
-        }
-
-        char * cuName;
-        const char *moduleName;
-        status = dwarf_diename( cuDIE, &cuName, NULL );
-        if ( status == DW_DLV_NO_ENTRY ) {
-            cuName = NULL;
-            moduleName = "DEFAULT_MODULE";
-        }
-        else {
-            moduleName = strrchr(cuName, '/');
-            if (!moduleName)
-                moduleName = strrchr(cuName, '\\');
-            if (moduleName)
-                moduleName++;
-            else
-                moduleName = cuName;
-        }
-        if(cuName && modules_parsed_for_line_info.find(cuName) != modules_parsed_for_line_info.end())
-        {
-            dwarf_dealloc(dbg, cuDIE, DW_DLA_DIE);
-            continue;
-        }
-        if(mod_to_check != "" && strcmp(moduleName, mod_to_check.c_str()) != 0)
-        {
-            dwarf_dealloc(dbg, cuDIE, DW_DLA_DIE);
-            continue;
-        }
-        // Parse line info for each CU once, completely, if a user has asked for something within
-        // that CU
-        if(!addrInCU(dbg, cuDIE, addr_to_find))
-        {
-            dwarf_dealloc(dbg, cuDIE, DW_DLA_DIE);
-            continue;
-        }
-        Module* mod = NULL;
-        for(auto found_mod = modules_.begin();
-            found_mod != modules_.end();
-            ++found_mod)
-        {
-            if(found_mod->first == moduleName) {
-                obj->getOrCreateModule(found_mod->first, found_mod->second);
-                break;
-            }
-        }
-
-        if(!obj->findModuleByName(mod, moduleName))
-        {
-            mod = obj->getDefaultModule();
-//            cout << "Default module filename is " << mod->fileName() << endl;
-        }
-        LineInformation* li_for_module = mod->getLineInformation();
+        Dwarf_Die cuDIE = mod_for_offset->getDebugInfo();
+        LineInformation* li_for_module = mod_for_offset->getLineInformation();
         if(!li_for_module)
         {
             li_for_module = new LineInformation;
-            mod->setLineInfo(li_for_module);
-        }
-//        cout << "Parsing line info for " << mod->fileName() << endl;
-        parseLineInfoForCU(cuDIE, li_for_module);
-        if (cuName)
-        {
-            modules_parsed_for_line_info.insert(cuName);
-            dwarf_dealloc( dbg, cuName, DW_DLA_STRING );
+            mod_for_offset->setLineInfo(li_for_module);
         }
 
-        /* Free this CU's DIE. */
-        dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
-    } /* end CU header iteration */
-    /* Note that we've parsed this file. */
+        parseLineInfoForCU(cuDIE, li_for_module);
+    }
+    // no mod for offset means no line info for sure if we've parsed all ranges...
 }
 
 
@@ -4561,7 +4480,7 @@ void Object::parseDwarfFileLineInfo(Symtab* st)
     Dwarf_Debug *dbg_ptr = dwarf->line_dbg();
     if (!dbg_ptr)
         return;
-    Dwarf_Debug &dbg = *dbg_ptr;
+    Dwarf_Debug dbg = *dbg_ptr;
 
     /* Only .debug_info for now, not .debug_types */
     Dwarf_Bool is_info = 1;

@@ -389,14 +389,10 @@ bool module_less(Module* lhs, Module* rhs)
 
 bool Symtab::findModuleByOffset(Module *&ret, Offset off)
 {
-    std::sort(_mods.begin(), _mods.end(), module_less);
     //  this should be a hash, really
     for(size_t i = 0; i < _mods.size(); i++)
     {
-//        cout << *(_mods[i]) << endl;
-        if(_mods[i]->addr() == off)
-        //&& i < _mods.size() - 1 &&
-        //        off < _mods[i+1]->addr())
+        if(_mods[i]->containsOffset(off))
         {
             ret = _mods[i];
             return true;

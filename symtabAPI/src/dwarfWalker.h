@@ -401,7 +401,7 @@ namespace Dyninst {
 
         virtual void setFuncFromLowest(Address lowest) {
             m_obj->setModuleForOffset(lowest, modname);
-            setParseChild(false);
+            //setParseChild(false);
         }
 
 
@@ -418,7 +418,7 @@ namespace Dyninst {
         }
 
 
-        virtual bool addStaticClassVariable(const std::vector<VariableLocation> & /*locs*/, Type * /*type*/) {
+        virtual bool addStaticClassVariable(const std::vector<VariableLocation> &locs, Type *type) {
             return false;
         }
 
@@ -435,7 +435,7 @@ namespace Dyninst {
             return NULL;
         }
         virtual bool parseVariable() {
-            return false;
+            return true;
         }
     private:
         Object *m_obj;

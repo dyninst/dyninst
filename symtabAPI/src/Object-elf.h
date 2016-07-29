@@ -522,11 +522,9 @@ class Object;
   void parseLineInfoForAddr(Symtab* obj, Offset addr_to_find);
   
  private:
-            bool addrInCU(Dwarf_Debug dbg, Dwarf_Die cu, Address to_find);
+    bool addrInCU(Dwarf_Debug dbg, Dwarf_Die cu, Address to_find, Module *mod_for_cu);
   void parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li);
-  
-  
-  void createLineInfoForModules(dyn_hash_map<std::string, LineInformation> &li);
+
   void parseDwarfTypes(Symtab *obj);
   void parseStabTypes(Symtab *obj);
 

@@ -177,8 +177,9 @@ class SYMTAB_EXPORT FunctionBase
    {return Aggregate::addMangledName(name, isPrimary, isDebug);}
    virtual bool addPrettyName(std::string name, bool isPrimary, bool isDebug=false)
    {return Aggregate::addPrettyName(name, isPrimary, isDebug);}
-   virtual Module* getModule() const { return module_; }
-};
+
+     virtual Module * getModule() const;
+ };
 
 class SYMTAB_EXPORT InlinedFunction : public FunctionBase
 {
