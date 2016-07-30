@@ -126,7 +126,27 @@ if(DEFINED PATH_BOOST OR
   set(Boost_NO_SYSTEM_PATHS ON)
 endif()
 
-find_package (Boost ${BOOST_MIN_VERSION} REQUIRED COMPONENTS thread system)
+
+find_package (Boost ${BOOST_MIN_VERSION} COMPONENTS thread system date_time)
+
+if(WIN32 AND NOT Boost_FOUND)
+    message(STATUS "No boost found, attempting to build as external project")
+    cmake_minimum_required (VERSION 2.8.11)
+    include(ExternalProject)
+    ExternalProject_Add(boost
+      PREFIX ${CMAKE_BINARY_DIR}/boost
+      URL http://downloads.sourceforge.net/project/boost/boost/1.61.0/boost_1_61_0.7z
+	  URL_MD5 bb1dad35ad069e8d7c8516209a51053c
+	  BUILD_IN_SOURCE 1
+	  CONFIGURE_COMMAND call bootstrap.bat
+	  BUILD_COMMAND b2.exe --with-system --with-thread --with-date_time
+	  INSTALL_COMMAND ""
+      )
+    set(Boost_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/boost/src/Boost)
+    set(Boost_LIBRARY_DIRS ${CMAKE_BINARY_DIR}/boost/src/Boost/stage/lib)
+elseif(NOT Boost_FOUND)
+    message(FATAL_ERROR "Could not find boost.")
+endif()
 
 link_directories ( ${Boost_LIBRARY_DIRS} )
 
