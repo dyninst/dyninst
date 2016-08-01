@@ -754,13 +754,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_addss, "addss")
   (e_addsubpd, "addsubpd")
   (e_addsubps, "addsubps")
-  (e_aesenc, "aesenc")
-  (e_aesenclast, "aesenclast")
-  (e_aesdec, "aesdec")
-  (e_aesdeclast, "aesdeclast")
-  (e_aeskeygenassist, "aeskeygenassist")
-  (e_aesimc, "aesimc")
-  (e_pclmullqlqdq, "pclmullqlqdq")
   (e_and, "and")
   (e_andnpd, "andnpd")
   (e_andnps, "andnps")
@@ -1299,13 +1292,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_xor, "xor")
   (e_xorpd, "xorpd")
   (e_xorps, "xorps")
-  (e_vaesenc, "vaesenc")
-  (e_vaesenclast, "vaesenclast")
-  (e_vaesdec, "vaesdec")
-  (e_vaesdeclast, "vaesdeclast")
-  (e_vaeskeygenassist, "vaeskeygenassist")
-  (e_vaesimc, "vaesimc")
-  (e_vpclmullqlqdq, "vpclmullqlqdq")
   (e_vmpsadbw, "vmpsadbw") 
   (e_vmwrite, "vmwrite") 
   (e_vmread, "vmread") 
@@ -5547,31 +5533,31 @@ static ia32_entry sseMapBis[][5] = {
     }, { /* SSEBDB */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_aesimc, t_sse_bis_mult, SSEBDB_66, true, { Vps, Wps, Zz }, 0, s1W2R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     }, { /* SSEBDC */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_aesenc, t_sse_bis_mult, SSEBDC_66, true, { Vps, Wps, Zz }, 0, s1RW2R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     }, { /* SSEBDD */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_aesenclast, t_sse_bis_mult, SSEBDD_66, true, { Vps, Wps, Zz }, 0, s1RW2R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     }, { /* SSEBDE */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_aesdec, t_sse_bis_mult, SSEBDE_66, true, { Vps, Wps, Zz }, 0, s1RW2R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     }, { /* SSEBDF */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_aesdeclast, t_sse_bis_mult, SSEBDF_66, true, { Vps, Wps, Zz }, 0, s1RW2R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     }, { /* SSEBF0 */
@@ -5804,7 +5790,7 @@ static ia32_entry sseMapTer[][3] =
         { e_mpsadbw, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1RW2R3R }, 
     }, { /* SSET44 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_pclmullqlqdq, t_sse_ter_mult, SSET44_66, true, { Vps, Wps, Ib }, 0, s1RW2R3R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     }, { /* SSET46 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -5876,7 +5862,7 @@ static ia32_entry sseMapTer[][3] =
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     }, { /* SSETDF */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_aeskeygenassist, t_sse_ter_mult, SSETDF_66, true, { Vps, Wps, Ib }, 0, s1W2R3R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     }, { /* SSETF0 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -7302,23 +7288,23 @@ ia32_entry sseMapBisMult[][3] =
     { e_No_Entry, t_vexw, VEXW90, false, { Zz, Zz, Zz }, 0, 0 }
   }, { /* SSEBDB_66 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { e_vaesimc, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   }, { /* SSEBDC_66 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { e_vaesenc, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   }, { /* SSEBDD_66 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { e_vaesenclast, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   }, { /* SSEBDE_66 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { e_vaesdec, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   }, { /* SSEBDF_66 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { e_aesdeclast, t_done, 0, true, { Vps, Hps, Wps }, 0, s1R2R3R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   }, { /* SSEBF2_NO */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -7527,7 +7513,7 @@ ia32_entry sseMapTerMult[][3] =
         { e_vdbpsadbw, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R4R }
     }, { /* SSET44_66 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_vpclmullqlqdq, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R4R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     }, { /* SSET4A_66 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -7579,7 +7565,7 @@ ia32_entry sseMapTerMult[][3] =
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     }, { /* SSETDF_66 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-        { e_vaeskeygenassist, t_done, 0, true, { Vps, Wps, Ib }, 0, s1W2R3R },
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
     }, { /* SSETF0_F2 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
