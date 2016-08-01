@@ -33,6 +33,12 @@
 #error "Use this header only with Microsoft Visual C++ compilers!"
 #endif // _MSC_VER ]
 
+// Modern Visual Studio has sane inttypes.h
+#if _MSC_VER >= 1900
+#include <inttypes.h>
+#define _MSC_INTTYPES_H_
+#endif
+
 #ifndef _MSC_INTTYPES_H_ // [
 #define _MSC_INTTYPES_H_
 
