@@ -1513,7 +1513,14 @@ image::image(fileDescriptor &desc,
 
    //Now add Main and Dynamic Symbols if they are not present
    startup_printf("%s[%d]:  before findMain\n", FILE__, __LINE__);
-   findMain();
+   if(findMain())
+   {
+        startup_printf("%s[%d]: ERROR: findMain analysis has failed!\n",
+                FILE__, __LINE__);
+   } else {
+        startup_printf("%s[%d]: findMain analysis succeeded.\n",
+                FILE__, __LINE__);
+   }
 
    // Initialize ParseAPI 
    filt = NULL;
