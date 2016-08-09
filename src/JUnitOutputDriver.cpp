@@ -4,6 +4,11 @@
 
 #include "JUnitOutputDriver.h"
 
+#if !defined(os_windows_test)
+#include <sys/types.h>
+#include <unistd.h>
+#endif
+
 JUnitOutputDriver::JUnitOutputDriver(void *data) : StdOutputDriver(data),
                                                    group_failures(0),
                                                    group_skips(0),
