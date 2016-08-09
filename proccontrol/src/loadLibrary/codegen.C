@@ -33,9 +33,11 @@ bool Codegen::generate() {
 
    buffer_.initialize(codeStart_, size);
 
-   SymReader *objSymReader = proc_->llproc()->getSymReader()->openSymbolReader(proc_->llproc()->getExecutable());
    abimajversion_ = abiminversion_ = 0;
-   objSymReader->getABIVersion(abimajversion_, abiminversion_);
+   auto exe = proc_->libraries().getExecutable();
+   SymReader *objSymReader = proc_->llproc()->getSymReader()->openSymbolReader(exe->getName());
+   if (objSymReader)
+      objSymReader->getABIVersion(abimajversion_, abiminversion_);
 
    if (!generateInt()) return false;
 
