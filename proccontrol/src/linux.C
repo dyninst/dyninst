@@ -884,8 +884,9 @@ int linux_process::computeAddrWidth()
     * of name word will be 0x0 on 64 bit processes.  On 32-bit process this
     * word will contain a value, of which some should be non-zero.
     *
-    * We'll thus check every word that is 1 mod 4.  If all are 0x0 we assume we're
-    * looking at a 64-bit process.
+    * We'll thus check every word that is 1 mod 4 for little-endian machines,
+    * or 0 mod 4 for big-endian.  If all words of either stripe are 0x0, we
+    * assume we're looking at a 64-bit process.
     **/
    uint32_t buffer[256];
    char auxv_name[64];
@@ -898,25 +899,21 @@ int linux_process::computeAddrWidth()
       return -1;
    }
 
-   long int result = read(fd, buffer, sizeof(buffer));
-   long int words_read = result / sizeof(uint32_t);
-   int word_size = 8;
+   ssize_t result = read(fd, buffer, sizeof(buffer));
+   ssize_t words_read = (result / sizeof(uint32_t)) & ~3;
+   close(fd);
 
    // We want to check the highest 4 bytes of each integer
    // On big-endian systems, these come first in memory
-   SymReader *objSymReader = getSymReader()->openSymbolReader(getExecutable());
-   int start_index = objSymReader->isBigEndianDataEncoding() ? 0 : 1;
-
-   for (long int i=start_index; i<words_read; i+= 4)
+   bool be_zero = true, le_zero = true;
+   for (ssize_t i=0; i<words_read; i+= 4)
    {
-      if (buffer[i] != 0) {
-         word_size = 4;
-         break;
-      }
+     be_zero &= buffer[i] == 0;
+     le_zero &= buffer[i+1] == 0;
    }
-   close(fd);
 
-   pthrd_printf("computeAddrWidth: Offset set to %d, word size is %d\n", start_index, word_size);
+   int word_size = (be_zero || le_zero) ? 8 : 4;
+   pthrd_printf("computeAddrWidth: word size is %d\n", word_size);
    return word_size;
 }
 
