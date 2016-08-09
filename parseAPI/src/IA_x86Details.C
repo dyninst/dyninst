@@ -39,6 +39,7 @@
 
 #include <deque>
 #include <boost/bind.hpp>
+#include "IndirectAnalyzer.h"
 
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -595,7 +596,7 @@ void IA_x86Details::findThunkInBlock(Block* curBlock)
     return;
 }
 
-void processPredecessor(Edge* e, std::set<Block*>& visited, std::deque<Block*>& worklist)
+void processPredecessor(ParseAPI::Edge* e, std::set<Block*>& visited, std::deque<Block*>& worklist)
 {
   parsing_printf("\t\tblock %x, edge type %s\n",
 		 e->src()->start(),
@@ -991,4 +992,22 @@ bool IA_x86Details::computeTableBounds(Instruction::Ptr maxSwitchInsn,
     }
     return true;
 }
+
+bool IA_x86Details::parseJumpTable(Dyninst::ParseAPI::Function * currFunc,
+                                   Dyninst::ParseAPI::Block* currBlk,
+				   std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges)
+{
+
+    IndirectControlFlowAnalyzer icfa(currFunc, currBlk);
+    bool ret = icfa.NewJumpTableAnalysis(outEdges);
+
+    parsing_printf("Jump table parser returned %d, %d edges\n", ret, outEdges.size());
+    for (auto oit = outEdges.begin(); oit != outEdges.end(); ++oit) parsing_printf("edge target at %lx\n", oit->first);
+    // Update statistics 
+    currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_COUNT);
+    if (!ret) currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_FAIL);
+
+    return ret;
+}
+
 

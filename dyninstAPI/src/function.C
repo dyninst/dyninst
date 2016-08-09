@@ -1307,43 +1307,21 @@ bool func_instance::createOffsetVector_Analysis(ParseAPI::Function* func,
     if (::getAccesses(func, block, addr, insn, accesses)) {
         _accessMap->insert(make_pair(addr, accesses));
 
-        for (auto accessIter = accesses->begin(); accessIter != accesses->end(); ++accessIter) {
+        for (auto accessIter = accesses->begin(); accessIter != accesses->end();
+            ++accessIter) {
             StackAccess* access = (*accessIter).second;
 
-            stackmods_printf("\t\t Processing %s, size %d\n", access->format().c_str(), accessSize);
+            stackmods_printf("\t\t Processing %s, size %d\n",
+                access->format().c_str(), accessSize);
 
-            if (access->disp()) {
-                if (access->skipReg()) {
-                    stackmods_printf("\t\t\t Skipping (1).\n");
-                    _offVec->addSkip(access->reg(), access->regHeight(), block->start(), addr);
-                    // Skip
-                    if (!addToOffsetVector(access->regHeight(), 1, StackAccess::REGHEIGHT, true, NULL, access->reg())) {
-                        stackmods_printf("\t\t\t INVALID: addToOffsetVector failed (1)\n");
-                        return false;
-                    }
-                } else {
-                    if (!addToOffsetVector(access->regHeight(), 1, StackAccess::REGHEIGHT, true, NULL, access->reg())) {
-                        stackmods_printf("\t\t\t INVALID: addToOffsetVector failed (2)\n");
-                        return false;
-                    }
-                }
-                _tmpObjects->insert(tmpObject(access->readHeight().height(), accessSize, access->type()));
-            } else {
-                if (access->skipReg()) {
-                    _offVec->addSkip(access->reg(), access->regHeight(), block->start(), addr);
-                    stackmods_printf("\t\t\t Skipping (2).\n");
-                    if (!addToOffsetVector(access->regHeight(), 1, StackAccess::REGHEIGHT, true, NULL, access->reg())) {
-                        stackmods_printf("\t\t\t INVALID: addToOffsetVector failed (3)\n");
-                        return false;
-                    }
-                } else {
-                    if (!addToOffsetVector(access->regHeight(), 1, StackAccess::REGHEIGHT, true, NULL, access->reg())) {
-                        stackmods_printf("\t\t\t INVALID: addToOffsetVector failed (4)\n");
-                        return false;
-                    }
-                }
-                _tmpObjects->insert(tmpObject(access->readHeight().height(), accessSize, access->type()));
+            assert(!access->skipReg());
+            if (!addToOffsetVector(access->regHeight(), 1,
+                StackAccess::REGHEIGHT, true, NULL, access->reg())) {
+                stackmods_printf("\t\t\t INVALID: addToOffsetVector failed\n");
+                return false;
             }
+            _tmpObjects->insert(tmpObject(access->readHeight().height(),
+                accessSize, access->type()));
         }
     } else {
         stackmods_printf("\t\t\t INVALID: getAccesses failed\n");
@@ -1662,14 +1640,29 @@ void func_instance::createTMap_internal(StackMod* mod, TMap* tMap)
     }
 }
 
-AnnotationClass <StackAnalysis::Intervals> Stack_Anno(std::string("Stack_Anno"));
+AnnotationClass<StackAnalysis::Intervals>
+    Stack_Anno_Intervals(std::string("Stack_Anno_Intervals"));
+AnnotationClass<StackAnalysis::BlockEffects>
+    Stack_Anno_Block_Effects(std::string("Stack_Anno_Block_Effects"));
+AnnotationClass<StackAnalysis::InstructionEffects>
+    Stack_Anno_Insn_Effects(std::string("Stack_Anno_Insn_Effects"));
 void func_instance::freeStackMod() {
     // Free stack analysis intervals
-    StackAnalysis::Intervals *tmp = NULL;
-    ifunc()->getAnnotation(tmp, Stack_Anno);
-    ifunc()->removeAnnotation(Stack_Anno);
-    if (tmp != NULL) {
-        delete tmp;
-    }
+    StackAnalysis::Intervals *i = NULL;
+    ifunc()->getAnnotation(i, Stack_Anno_Intervals);
+    ifunc()->removeAnnotation(Stack_Anno_Intervals);
+    if (i != NULL) delete i;
+
+    // Free stack analysis block effects
+    StackAnalysis::BlockEffects *be = NULL;
+    ifunc()->getAnnotation(be, Stack_Anno_Block_Effects);
+    ifunc()->removeAnnotation(Stack_Anno_Block_Effects);
+    if (be != NULL) delete be;
+
+    // Free stack analysis instruction effects
+    StackAnalysis::InstructionEffects *ie = NULL;
+    ifunc()->getAnnotation(ie, Stack_Anno_Insn_Effects);
+    ifunc()->removeAnnotation(Stack_Anno_Insn_Effects);
+    if (ie != NULL) delete ie;
 }
 #endif

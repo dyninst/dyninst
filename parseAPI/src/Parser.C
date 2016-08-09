@@ -31,6 +31,9 @@
 #include <vector>
 #include <limits>
 
+// For Mutex
+#define PROCCONTROL_EXPORTS
+
 #include "dyntypes.h"
 
 #include "CodeObject.h"
@@ -1175,6 +1178,11 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                   func->set_retstatus(UNKNOWN);
                 }
             }
+	    // The edge to this shared block is changed from 
+	    // "going to sink" to going to this shared block.
+	    // This changes the function boundary, so we need to
+	    // invalidate the cache.
+	    func->_cache_valid = false;
             continue;
         }
 
@@ -1270,8 +1278,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             ParseCallback::insn_details insn_det;
             insn_det.insn = &ah;
 	     
-                parsing_printf("[%s:%d] curAddr 0x%lx \n",
-                    FILE__,__LINE__,curAddr);
+                parsing_printf("[%s:%d] curAddr 0x%lx: %s \n",
+                    FILE__,__LINE__,curAddr, insn_det.insn->getInstruction()->format().c_str() );
 
             if (func->_is_leaf_function) {
                 Address ret_addr;

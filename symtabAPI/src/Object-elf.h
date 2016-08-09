@@ -404,8 +404,8 @@ class Object;
 
     SYMTAB_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &segs); 
 
-  private:
-            std::vector<boost::shared_ptr<void> > freeList;
+    private:
+    std::vector<std::vector<boost::shared_ptr<void> > > freeList;
   static void log_elferror (void (*)(const char *), const char *);
     
   Elf_X *elfHdr;
@@ -574,9 +574,7 @@ class Object;
   // Line info: CUs to skip
   std::set<std::string> modules_parsed_for_line_info;
 #if defined(cap_dwarf)
-  std::string find_symbol(std::string name); 
-  bool fixSymbolsInModule(Dwarf_Debug dbg, std::string & moduleName, Dwarf_Die dieEntry);
-  unsigned fixSymbolsInModuleByRange(IntervalTree<Dwarf_Addr, std::string> &module_ranges);
+  std::string find_symbol(std::string name);
 
 #endif
 

@@ -354,7 +354,7 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	    prevFact = new BoundFact(*prevFact);
 	    newCopy = true;
 	    parsing_printf("\t\tThe predecessor node is the virtual entry ndoe\n");
-	    if (firstBlock) {
+	    if (firstBlock && handleOneByteRead) {
 	        // If the indirect jump is in the entry block
 	        // of the function, we assume that rax is in
 	        // range [0,8] for analyzing the movaps table.
@@ -430,7 +430,22 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     }
 
     AST::Ptr calculation = expandRet.first;
-    BoundCalcVisitor bcv(*newFact, node->block(), handleOneByteRead);
+    int derefSize = 0;
+    if (node->assign() && node->assign()->insn() && node->assign()->insn()->readsMemory()) {
+        Instruction::Ptr i = node->assign()->insn();
+	std::vector<Operand> ops;
+	i->getOperands(ops);
+	for (auto oit = ops.begin(); oit != ops.end(); ++oit) {
+	    Operand o = *oit;
+	    if (o.readsMemory()) {
+	        Expression::Ptr exp = o.getValue();
+		derefSize = exp->size();
+		break;
+	    }
+	}
+
+    }
+    BoundCalcVisitor bcv(*newFact, node->block(), handleOneByteRead, derefSize);
     calculation->accept(&bcv);
     AST::Ptr outAST;
     // If the instruction writes memory,
@@ -499,8 +514,9 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 	return;
     }
 
-
+    bool findBound = false;
     if (bcv.IsResultBounded(calculation)) {
+        findBound = true;
         parsing_printf("\t\t\tGenerate bound fact for %s\n", outAST->format().c_str());
 	newFact->GenFact(outAST, new BoundValue(*bcv.GetResultBound(calculation)), false);
     }
@@ -513,17 +529,27 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 	parsing_printf("\t\t\t%s and %s are equal\n", calculation->format().c_str(), outAST->format().c_str());
 	newFact->InsertRelation(calculation, outAST, BoundFact::Equal);
     }
+    if (id == e_movzx)
+        newFact->CheckZeroExtend(outAST);
     newFact->AdjustPredicate(outAST, calculation);
 
     // Now try to track all aliasing.
     // Currently, all variables in the slice are presented as an AST
     // consists of input variables to the slice (the variables that
     // we do not the sources of their values).
-    newFact->TrackAlias(DeepCopyAnAST(calculation), outAST);
+    newFact->TrackAlias(DeepCopyAnAST(calculation), outAST, findBound);
 
     // Apply tracking relations to the calculation to generate a
     // potentially stricter bound
     BoundValue *strictValue = newFact->ApplyRelations(outAST);
+    if (strictValue != NULL) {
+        parsing_printf("\t\t\tGenerate stricter bound fact for %s\n", outAST->format().c_str());
+	newFact->GenFact(outAST, strictValue, false);
+    }
+    // Apply tracking relations to the calculation for expression like
+    // r8 - ((r8 >> 4) << 4), which guarantees that 
+    // r8 is in [0, 2^4-1]
+    strictValue = newFact->ApplyRelations2(outAST);
     if (strictValue != NULL) {
         parsing_printf("\t\t\tGenerate stricter bound fact for %s\n", outAST->format().c_str());
 	newFact->GenFact(outAST, strictValue, false);

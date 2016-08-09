@@ -10,8 +10,8 @@
 using namespace Dyninst;
 
 class JumpTablePred : public Slicer::Predicates {
- 
-    std::set<Assignment::Ptr> currentAssigns;
+
+    bool firstMemoryRead;
     ParseAPI::Function *func;
     ParseAPI::Block *block;
     ReachFact &rf;
@@ -24,6 +24,9 @@ class JumpTablePred : public Slicer::Predicates {
         std::pair<AST::Ptr, bool> ExpandAssignment(Assignment::Ptr);
 
 public:
+    bool jumpTableFormat;
+    std::set<Assignment::Ptr> currentAssigns;
+
 std::unordered_map<Assignment::Ptr, AST::Ptr, Assignment::AssignmentPtrHasher> expandCache;
 
     virtual bool addNodeCallback(AssignmentPtr ap, std::set<ParseAPI::Edge*> &visitedEdges);
@@ -37,7 +40,8 @@ GraphPtr BuildAnalysisGraph(std::set<ParseAPI::Edge*> &visitedEdges);
 		  ReachFact &r,
 		  ThunkData &t,
 		  std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& out):
-            func(f), block(b), rf(r), thunks(t), outEdges(out) {}
+            firstMemoryRead(true),  func(f), 
+	    block(b), rf(r), thunks(t), outEdges(out),jumpTableFormat(true) {}
 };
 
 

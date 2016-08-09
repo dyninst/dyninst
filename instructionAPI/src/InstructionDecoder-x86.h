@@ -96,10 +96,10 @@ namespace Dyninst
                 void doIA32Decode(InstructionDecoder::buffer& b);
 		bool isDefault64Insn();
 		
-                static __thread ia32_locations* locs;
-                static __thread NS_x86::ia32_instruction* decodedInstruction;
-                static __thread bool sizePrefixPresent;
-                static __thread bool addrSizePrefixPresent;
+                static TLS_VAR ia32_locations* locs;
+                static TLS_VAR NS_x86::ia32_instruction* decodedInstruction;
+                static TLS_VAR bool sizePrefixPresent;
+                static TLS_VAR bool addrSizePrefixPresent;
         };
     };
 };

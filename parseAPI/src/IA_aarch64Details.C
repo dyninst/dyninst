@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "IndirectAnalyzer.h"
 #include "IA_aarch64Details.h"
 #include "Visitor.h"
 #include "Register.h"
@@ -133,7 +134,7 @@ namespace detail_aarch64
         Block* src = e->src();
         return visited.find(src) != visited.end();
     }
-  void processPredecessor(Edge* /*e*/, std::set<Block*>& /*visited*/, std::deque<Block*>& /*worklist*/)
+  void processPredecessor(Dyninst::ParseAPI::Edge* /*e*/, std::set<Block*>& /*visited*/, std::deque<Block*>& /*worklist*/)
   {
 		assert(0);
   }
@@ -162,3 +163,20 @@ bool IA_aarch64Details::parseJumpTable(Block* /*currBlk*/,
 	assert(0);
   return true;
 }
+
+bool IA_aarch64Details::parseJumpTable(Dyninst::ParseAPI::Function* currFunc,
+                                       Dyninst::ParseAPI::Block* currBlk,
+				       std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) 
+{
+	IndirectControlFlowAnalyzer icfa(currFunc, currBlk);
+	bool ret = icfa.NewJumpTableAnalysis(outEdges);
+
+	parsing_printf("Jump table parser returned %d, %d edges\n", ret, outEdges.size());
+	for (auto oit = outEdges.begin(); oit != outEdges.end(); ++oit) parsing_printf("edge target at %lx\n", oit->first);
+	// Update statistics
+	currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_COUNT);
+	if (!ret) currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_FAIL);
+
+	return ret;
+}
+

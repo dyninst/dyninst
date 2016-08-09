@@ -82,7 +82,10 @@ namespace Dyninst
                 case s1RW2R3R4R:
                     return i == 0 || i == 1 || i == 2 || i == 3;
                 case sNONE:
+                    return false;
                 default:
+                    printf("OPSEMA: %d\n", opsema);
+                    assert(!"Unknown opsema!");
                     return false;
             }
       
@@ -116,15 +119,18 @@ namespace Dyninst
                   return i == 0 || i == 2;
                 case sNONE:
                 default:
-                    return false;
+                  return false;
+                    printf("OPSEMA: %d\n", opsema);
+                  assert(!"Unknown opsema!");
+                  return false;
             }
         }
 
 
-    __thread NS_x86::ia32_instruction* InstructionDecoder_x86::decodedInstruction = NULL;
-    __thread ia32_locations* InstructionDecoder_x86::locs = NULL;
-    __thread bool InstructionDecoder_x86::sizePrefixPresent = false;
-    __thread bool InstructionDecoder_x86::addrSizePrefixPresent = false;
+    TLS_VAR NS_x86::ia32_instruction* InstructionDecoder_x86::decodedInstruction = NULL;
+    TLS_VAR ia32_locations* InstructionDecoder_x86::locs = NULL;
+    TLS_VAR bool InstructionDecoder_x86::sizePrefixPresent = false;
+    TLS_VAR bool InstructionDecoder_x86::addrSizePrefixPresent = false;
     INSTRUCTION_EXPORT InstructionDecoder_x86::InstructionDecoder_x86(Architecture a) :
       InstructionDecoderImpl(a)
     {
@@ -782,6 +788,10 @@ namespace Dyninst
                         regnum |= pref.vex_R << 4;
                         regnum |= pref.vex_r << 3;
                         break;
+                    case VEX_TYPE_VEX2:
+                    case VEX_TYPE_VEX3:
+                        regnum |= pref.vex_r << 3;
+                        break;
                     default:break;
                 }
                 break;
@@ -791,6 +801,10 @@ namespace Dyninst
                 switch(pref.vex_type)
                 {
                     case VEX_TYPE_EVEX:
+                        regnum |= pref.vex_x << 4;
+                        regnum |= pref.vex_b << 3;
+                        break;
+                    case VEX_TYPE_VEX3:
                         regnum |= pref.vex_x << 4;
                         regnum |= pref.vex_b << 3;
                         break;
@@ -806,9 +820,24 @@ namespace Dyninst
 			    else if(*bank_index < 0)
 				    *bank_index = 0;
                 return false; /* Return success */
+            case am_B:
+                bank = b_64bit;
+                if(regnum > 7)
+                {
+                    regnum -= 8;
+                    bank = b_amd64ext;
+                }
 
+                if(regnum < 0)
+                    regnum = 0;
+                if(regnum > 7)
+                    regnum = 7;
+
+                *bank_index = regnum;
+                break;
             default:  break;/** SSE instruction */
         }
+
 #ifdef VEX_DEBUG
         printf("VEX OPERAND:  REGNUM: %d  ", regnum);
 #endif
@@ -984,9 +1013,19 @@ namespace Dyninst
                         return false;
                     }
 
-                    Expression::Ptr op(makeRegisterExpression(
-                        makeRegisterID(pref.vex_vvvv_reg, optype, locs->rex_r)));
-                        insn_to_complete->appendOperand(op, isRead, isWritten);
+					/* Grab the correct bank and bank index for this type of register */
+                	if(decodeAVX(bank, &bank_index, pref.vex_vvvv_reg, 
+							avx_type, pref, operand.admet))
+                    	return false;
+
+                /* Append the operand */
+                insn_to_complete->appendOperand(makeRegisterExpression(
+                        IntelRegTable(m_Arch, bank, bank_index)),
+                        isRead, isWritten);
+
+                    // Expression::Ptr op(makeRegisterExpression(
+                        // makeRegisterID(pref.vex_vvvv_reg, optype, locs->rex_r)));
+                        // insn_to_complete->appendOperand(op, isRead, isWritten);
                 }
                 break;
 
@@ -1178,6 +1217,13 @@ namespace Dyninst
 					IntelRegTable(m_Arch,b_segment,locs->modrm_reg)),
 					isRead, isWritten);
 				break;
+			case am_T:
+				// test register in modrm reg; should only be tr6/tr7, but we'll decode any of them
+				// NOTE: this only appears in deprecated opcodes
+				insn_to_complete->appendOperand(makeRegisterExpression(
+					IntelRegTable(m_Arch,b_tr,locs->modrm_reg)), 
+					isRead, isWritten);
+				break;
 
 			case am_UM:
 				switch(locs->modrm_mod)
@@ -1362,14 +1408,19 @@ namespace Dyninst
                 /* Append the operand */
                 insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch, bank, bank_index)), isRead, isWritten);
                 break;
+            case am_WK: /* Could be a K mask register or memory address*/
             case am_W: /* Could be XMM, YMM, or ZMM (or possibly not VEX) */
 
 				if(pref.vex_present)
 				{
 					if(!AVX_TYPE_OKAY(avx_type))
-					return false;
+					    return false;
 				}
-				
+
+                // if(operand.admet == am_WK)
+                // printf("modrm_mod: %d modrm_reg: %d  modrm_rm: %d\n", 
+                        // locs->modrm_mod, locs->modrm_reg, locs->modrm_rm);
+
 				switch(locs->modrm_mod)
 				{
 					/* Direct dereference */
@@ -1453,37 +1504,6 @@ namespace Dyninst
                                 break;
                 }
 				break;
-			case am_WK: /* Must be either YMM or XMM (must be VEX) */
-
-                /* Make sure the register class is okay and we have a vex prefix */
-                if(!AVX_TYPE_OKAY(avx_type) || !pref.vex_present)
-                    return false;
-
-                /* Constrain to either XMM or YMM registers */
-                if(avx_type != AVX_XMM && avx_type != AVX_YMM)
-                    avx_type = AVX_YMM;
-
-                switch(locs->modrm_mod)
-                {
-                    /* Direct dereference */
-                    case 0x00:
-                    case 0x01:
-                    case 0x02:
-                        insn_to_complete->appendOperand(makeModRMExpression(b, makeSizeType(optype)), isRead, isWritten);
-                        break;
-                    case 0x03:
-                        /* Just the register is used */
-                        if(decodeAVX(bank, &bank_index, locs->modrm_rm, avx_type, pref, operand.admet))
-                            return false;
-
-                        /* Append the operand */
-                        insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch, bank, bank_index)), isRead, isWritten);
-                        break;
-                            default:
-                                assert(!"2-bit value modrm_mod out of range");
-                                break;
-                }
-                break;
 			case am_X:
 				{
 					MachRegister si_reg;

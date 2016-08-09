@@ -449,13 +449,13 @@ bool InlinedFunction::removeSymbol(Symbol *)
    return false;
 }
 
-bool InlinedFunction::addMangledName(std::string name, bool /*isPrimary*/)
+bool InlinedFunction::addMangledName(std::string name, bool /*isPrimary*/, bool /*isDebug*/)
 {
     name_ = name;
     return true;
 }
 
-bool InlinedFunction::addPrettyName(std::string name, bool /*isPrimary*/)
+bool InlinedFunction::addPrettyName(std::string name, bool /*isPrimary*/, bool /*isDebug*/)
 {
     name_ = name;
     return true;

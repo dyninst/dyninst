@@ -561,9 +561,9 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       // Okay, that does it for the old stuff.
 
       // Now we need to get the new stuff. That's all the allocated memory. First, big
-      // buffer to hold it.
+      // buffer to hold it.  Use calloc so gaps from inferiorFree/Realloc are just zero.
 
-      void *newSectionPtr = malloc(highWaterMark_ - lowWaterMark_);
+      void *newSectionPtr = calloc(highWaterMark_ - lowWaterMark_, 1);
 
       pdvector<codeRange *> writes;
       memoryTracker_->elements(writes);

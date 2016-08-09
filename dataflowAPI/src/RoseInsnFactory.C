@@ -37,10 +37,17 @@
 
 #include "../rose/SgAsmInstruction.h"
 #include "../rose/SgAsmPowerpcInstruction.h"
+#include "../rose/SgAsmArmv8Instruction.h"
 #include "../rose/SgAsmx86Instruction.h"
 #include "../rose/SgAsmExpression.h"
 
 #include "ExpressionConversionVisitor.h"
+
+// Assume Windows/MSVC is little-endian
+
+#if defined(_MSC_VER)
+#define htobe _byteswap_ulong
+#endif
 
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -273,7 +280,12 @@ bool RoseInsnPPCFactory::handleSpecialCases(entryID iapi_opcode,
       raw = raw << 8;
       raw |= bytes[i];
     }
+#ifdef os_windows
+    // Visual Studio doensn't define htobe32, so we assume that Windows is always little endian.
+    raw = _byteswap_ulong(raw);
+#else
     raw = htobe32(raw);
+#endif
     bool isAbsolute = (bool)(raw & 0x00000002);
     bool isLink = (bool)(raw & 0x00000001);
     rose_insn->set_kind(makeRoseBranchOpcode(iapi_opcode, isAbsolute, isLink));
@@ -363,3 +375,24 @@ void RoseInsnPPCFactory::massageOperands(const InstructionAPI::Instruction::Ptr 
   return;
 }
 
+void RoseInsnArmv8Factory::setSizes(SgAsmInstruction */*insn*/) {
+
+}
+
+SgAsmInstruction *RoseInsnArmv8Factory::createInsn() {
+  return new SgAsmArmv8Instruction;
+}
+
+void RoseInsnArmv8Factory::setOpcode(SgAsmInstruction *insn, entryID opcode, prefixEntryID, std::string) {
+  SgAsmArmv8Instruction *tmp = static_cast<SgAsmArmv8Instruction *>(insn);
+  tmp->set_kind(convertKind(opcode));
+}
+
+bool RoseInsnArmv8Factory::handleSpecialCases(entryID, SgAsmInstruction *, SgAsmOperandList *) {
+  return false;
+}
+
+void RoseInsnArmv8Factory::massageOperands(const InstructionAPI::Instruction::Ptr &,
+                                           std::vector <InstructionAPI::Operand> &) {
+  return;
+}

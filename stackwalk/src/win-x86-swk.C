@@ -108,6 +108,7 @@ ProcSelf::ProcSelf(std::string exe_path) :
 
 void ProcSelf::initialize()
 {
+    setDefaultLibraryTracker();
 }
 
 bool LibraryState::updateLibsArch(std::vector<std::pair<LibAddrPair, unsigned int> > &alibs)

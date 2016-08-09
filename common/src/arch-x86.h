@@ -266,9 +266,11 @@ enum AMD64_REG_NUMBERS {
 #define PREFIX_ADDR   (1<<23) /* address size override */
 #define PREFIX_REX    (1<<24) /* AMD64 REX prefix */
 #define PREFIX_OPCODE (1<<25) /* prefix is part of opcode (SSE) */
+#define PREFIX_AVX    (1<<26) /* VEX2 prefix (two byte) */
+#define PREFIX_AVX2   (1<<27) /* VEX3 prefix (three byte) */
+#define PREFIX_AVX512 (1<<28) /* EVEX prefix (four byte) */
 
 /* end of instruction type descriptor values */
-
 
 /* opcodes of some one byte opcode instructions */
 /* ADD */
@@ -407,12 +409,8 @@ enum AMD64_REG_NUMBERS {
 #define POP_EBI  (0x5e)
 #define POP_EDI  (0x5f)
 
-
 #define PUSHAD   (0x60)
 #define POPAD    (0x61)
-
-
-
 
 #define JE_R8    (0x74)
 #define JNE_R8   (0x75)
@@ -420,7 +418,6 @@ enum AMD64_REG_NUMBERS {
 #define JLE_R8   (0x7E)
 #define JG_R8    (0x7F)
 #define JGE_R8   (0x7D)
-
 
 #define MOVREGMEM_REG (0x8b) 
 #define MOV_R8_TO_RM8 (0x88)     //move r8 to r/m8
@@ -430,19 +427,11 @@ enum AMD64_REG_NUMBERS {
 #define MOV_RM16_TO_R16 (0x8b)
 #define MOV_RM32_TO_R32 (0x8b)
 
-
-
 #define NOP      (0x90)
 #define PUSHFD   (0x9C)
 #define POPFD    (0x9D)
 
-
 #define JCXZ     (0xE3)
-
-
-
-
-
 
 #define FSAVE    (0x9BDD)
 #define FSAVE_OP (6)
@@ -465,7 +454,6 @@ const unsigned char SYSCALL[] = {0x0F, 0x05};
 enum {
   RepGroup = 0
 };
-
 
 #ifndef VEX_PREFIX_MASKS
 #define VEX_PREFIX_MASKS
@@ -501,13 +489,13 @@ enum VEX_TYPE
             ((b & VEX_VVVV) >> 3))) & 0xF)
 
 #define VEXGET_L(b)     (char)((b & VEX_L) >> 2)
-#define VEXGET_R(b)     (char)((b & (1 << 7)) >> 7)
+#define VEXGET_R(b)     (((unsigned char)((~b & (1 << 7)) >> 7)) & 0x01)
 #define VEXGET_PP(b)    (char)(b & VEX_PP)
 
 #define VEX3GET_W(b)    (char)((b & VEX3_W) >> 7)
 #define VEX3GET_M(b)    (b & VEX3_M)
-#define VEX3GET_X(b)    (((unsigned char)(b) & (1 << 6)) >> 6)
-#define VEX3GET_B(b)    (((unsigned char)(b) & (1 << 5)) >> 5)
+#define VEX3GET_X(b)    (((unsigned char)(~b) & (unsigned char)(1 << 6)) >> 6)
+#define VEX3GET_B(b)    (((unsigned char)(~b) & (unsigned char)(1 << 5)) >> 5)
 #define VEX3GET_M(b)    (b & VEX3_M)
 
 /** EVEX masks */
@@ -585,10 +573,11 @@ COMMON_EXPORT bool ia32_is_mode_64();
 // added: am_reg, am_stack, am_allgprs
 // ADDED: am_ImplImm for implicit immediates
 // ADDED: am_RM, am_UM,
-enum { am_A=1, am_B, am_C, am_D, am_E, am_F, am_G, am_H, am_I, am_J, am_M, //10 
-    am_N, am_O, am_P, am_Q, am_R, am_S, am_T, am_XU, am_YU, am_U, am_UM, am_V, am_W, am_X, // 20
-    am_Y, am_reg, am_stackH, am_stackP, am_allgprs, am_tworeghack, am_ImplImm, am_RM,
-    am_HK, am_VK, am_WK, am_XH, am_XV, am_XW, am_YH, am_YV, am_YW }; // pusH and poP produce different addresses
+enum { am_A=1, am_B, am_C, am_D, am_E, am_F, am_G, am_H, am_I, am_J, // 1 -> 10
+	am_M, am_N, am_O, am_P, am_Q, am_R, am_S, am_T, am_XU, am_YU,  // 11 -> 20
+	am_U, am_UM, am_V, am_W, am_X, am_Y, am_reg, am_stackH, am_stackP, am_allgprs,
+	am_tworeghack, am_ImplImm, am_RM, am_HK, am_VK, am_WK, am_XH, am_XV, am_XW, am_YH, 
+	am_YV, am_YW }; // pusH and poP produce different addresses
 
 // operand types - idem, but I invented quite a few to make implicit operands explicit.
 // ADDED: op_y
@@ -601,7 +590,8 @@ enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, op_q, // 10
 enum {
   t_ill=0, t_oneB, t_twoB, t_threeB, t_threeB2, t_prefixedSSE, t_coprocEsc, 
   t_grp, t_sse, t_sse_mult, t_sse_bis, t_sse_bis_mult, 
-  t_sse_ter, t_sse_ter_mult, t_grpsse, t_3dnow, t_vexl, t_vexw, t_sse_vex_mult, t_done=99
+  t_sse_ter, t_sse_ter_mult, t_grpsse, t_3dnow, t_vexl, t_vexw, t_sse_vex_mult, 
+  t_done=99
 };
 
 // registers used for memory access
@@ -663,11 +653,11 @@ struct sIBByte {
   unsigned base  : 3;
 };
 
+class ia32_instruction;
 
 class ia32_prefixes
 {
-  friend bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes&,
-                                   ia32_locations *loc);
+  friend COMMON_EXPORT bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& insn);
   friend bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes&,
                               ia32_locations *loc);
  private:
@@ -692,6 +682,7 @@ class ia32_prefixes
   unsigned char getAddrSzPrefix() const { return prfx[3]; }
   unsigned char getOperSzPrefix() const { return prfx[2]; }
 
+  /* Because VEX fields are based on the VEX type, they are decoded immediately. */
   bool vex_present; /* Does this instruction have a vex prefix?  */
   VEX_TYPE vex_type; /* If there is a vex prefix present, what type is it? */
   unsigned char vex_prefix[5]; /* Support up to EVEX (VEX-512) */
@@ -795,7 +786,6 @@ enum sizehacks {
   shREPNESCAS
 };
 
-
 struct ia32_condition
 {
   bool is;
@@ -805,10 +795,6 @@ struct ia32_condition
   ia32_condition() : is(false), tttn(-1) {}
   void set(int _tttn) { is = true; tttn = _tttn; }
 };
-
-bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes&,
-                          ia32_locations *loc = NULL);
-
 
 struct ia32_operand {  // operand as given in Intel book tables
   unsigned int admet;  // addressing method
@@ -854,8 +840,12 @@ class ia32_instruction
                                             const ia32_entry& gotit, 
                                             const char* addr, 
                                             ia32_instruction& instruct);
+  friend COMMON_EXPORT bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& insn);
   friend COMMON_EXPORT ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr,
 		  		       ia32_instruction& instruct);
+  friend COMMON_EXPORT int ia32_decode_opcode(unsigned int capa,
+                        const unsigned char* addr, ia32_instruction& instruct, 
+                        ia32_entry** gotit_ret);
   friend unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& gotit, 
                                             const unsigned char* addr, ia32_instruction& instruct,
                                             ia32_memacc *mac);
@@ -911,14 +901,41 @@ class ia32_instruction
 #define IA32_DECODE_PREFIXES	(1<<0)
 #define IA32_DECODE_MNEMONICS	(1<<1)
 #define IA32_DECODE_OPERANDS	(1<<2)
-#define IA32_DECODE_JMPS	(1<<3)
+#define IA32_DECODE_JMPS	    (1<<3)
 #define IA32_DECODE_MEMACCESS	(1<<4)
 #define IA32_DECODE_CONDITION 	(1<<5)
 
-#define IA32_FULL_DECODER (IA32_DECODE_PREFIXES | IA32_DECODE_MNEMONICS | IA32_DECODE_OPERANDS | IA32_DECODE_JMPS | IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION)
+#define IA32_FULL_DECODER (IA32_DECODE_PREFIXES \
+        | IA32_DECODE_MNEMONICS \
+        | IA32_DECODE_OPERANDS \
+        | IA32_DECODE_JMPS \
+        | IA32_DECODE_MEMACCESS \
+        | IA32_DECODE_CONDITION)
 #define IA32_SIZE_DECODER 0
 
-COMMON_EXPORT ia32_instruction& ia32_decode(unsigned int capabilities, const unsigned char* addr, ia32_instruction&);
+/* TODO: documentation*/
+COMMON_EXPORT bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& insn);
+
+/**
+ * Decode just the opcode of the given instruction. This implies that
+ * ia32_decode_prefixes has already been called on the given instruction
+ * and addr has been moved past the prefix bytes. Returns zero on success,
+ * non zero otherwise.
+ */
+COMMON_EXPORT int ia32_decode_opcode(unsigned int capa, 
+        const unsigned char* addr, ia32_instruction& instruct, 
+        ia32_entry** gotit_ret);
+
+/**
+ * Do a complete decoding of the instruction at the given address. This
+ * function calls ia32_decode_prefixes, ia32_decode_opcode and
+ * ia32_decode_operands. Returns zero on success, non zero otherwise.
+ * When there is a decoding failure, the state of the given instruction
+ * is not defined. capabilities is a mask of the above flags (IA32_DECODE_*).
+ * The mask determines what part of the instruction should be decoded.
+ */
+COMMON_EXPORT ia32_instruction& ia32_decode(unsigned int capabilities,
+        const unsigned char* addr, ia32_instruction&);
 
 
 enum dynamic_call_address_mode {
@@ -1121,8 +1138,10 @@ inline bool is_addr32(Address addr) {
     return (addr < UI32_MAX);
 }
 
-COMMON_EXPORT void decode_SIB(unsigned sib, unsigned& scale, Register& index_reg, Register& base_reg);
-COMMON_EXPORT const unsigned char* skip_headers(const unsigned char*, ia32_prefixes* = NULL);
+COMMON_EXPORT void decode_SIB(unsigned sib, unsigned& scale, 
+        Register& index_reg, Register& base_reg);
+COMMON_EXPORT const unsigned char* skip_headers(const unsigned char*, 
+        ia32_instruction* = NULL);
 
 /* addresses on x86 don't have to be aligned */
 /* Address bounds of new dynamic heap segments.  On x86 we don't try

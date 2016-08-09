@@ -133,7 +133,7 @@ class StackLocation {
 };
 
 struct less_StackLocation: public std::binary_function<StackLocation*, StackLocation*, bool> {
-    bool operator()(StackLocation* a, StackLocation* b) {
+    bool operator()(StackLocation* a, StackLocation* b) const {
         if (a->isStackMemory() && b->isStackMemory()) {
             if (a->off().height() == b->off().height()) {
                 if (a->isRegisterHeight() && b->isRegisterHeight()) {

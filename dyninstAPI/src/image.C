@@ -67,11 +67,8 @@
 #include "libdwarf.h"
 #endif
 
-#if (defined(_MSC_VER) && _MSC_VER < 1900)
-#define snprintf _snprintf
-#elif defined(_MSC_VER)
+#if defined(_MSC_VER)
 #include <dbghelp.h>
-//#include <cvconst.h>
 #endif
 
 #if defined(os_vxworks)

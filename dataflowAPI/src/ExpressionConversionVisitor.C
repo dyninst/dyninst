@@ -47,200 +47,307 @@ using namespace Dyninst::InstructionAPI;
 using namespace Dyninst;
 using namespace DataflowAPI;
 
-void ExpressionConversionVisitor::visit(InstructionAPI::Immediate* immed) {
-  // no children
-  
-  const Result &value = immed->eval();
-  
-  // TODO rose doesn't distinguish signed/unsigned within the value itself,
-  // only at operations?
-  
-  // TODO rose doesn't handle large values (XMM?)
-  
-  // build different kind of rose value object based on type
-  switch (value.type) {
-  case s8:
-  case u8:
-    roseExpression = new SgAsmByteValueExpression(value.val.u8val);
-    break;
-  case s16:
-  case u16:
-    roseExpression = new SgAsmWordValueExpression(value.val.u16val);
-    break;
-  case s32:
-  case u32:
-    roseExpression = new SgAsmDoubleWordValueExpression(value.val.u32val);
-    break;
-  case s48:
-  case u48:
-	  // This only happens with far calls. ROSE appears to be set up to
-	  // expect a 32-bit absolute destination (or doesn't handle far call at 
-	  // all), so give it what it wants. 
-	roseExpression = new SgAsmDoubleWordValueExpression(value.val.u32val);
-	break;
-  case s64:
-  case u64:
-    roseExpression = new SgAsmQuadWordValueExpression(value.val.u64val);
-    break;
-  case sp_float:
-    roseExpression = new SgAsmSingleFloatValueExpression(value.val.floatval);
-    break;
-  case dp_float:
-    roseExpression = new SgAsmDoubleFloatValueExpression(value.val.dblval);
-    break;
-  default:
-    roseExpression = NULL;
-	assert(0);
-    // error!
-  }
-  m_stack.push_front(roseExpression);
+void ExpressionConversionVisitor::visit(InstructionAPI::Immediate *immed) {
+    // no children
+
+    const Result &value = immed->eval();
+
+    // TODO rose doesn't distinguish signed/unsigned within the value itself,
+    // only at operations?
+
+    // TODO rose doesn't handle large values (XMM?)
+
+    // build different kind of rose value object based on type
+    if(arch == Arch_aarch64) {
+        bool isSigned = false;
+        switch (value.type) {
+            case s8:
+                isSigned = true;
+            case u8:
+                roseExpression = new SgAsmIntegerValueExpression(value.val.u8val,
+                                                                 new SgAsmIntegerType(ByteOrder::ORDER_UNSPECIFIED, 8,
+                                                                                      isSigned));
+                break;
+            case s16:
+                isSigned = true;
+            case u16:
+                roseExpression = new SgAsmIntegerValueExpression(value.val.u16val,
+                                                                 new SgAsmIntegerType(ByteOrder::ORDER_LSB, 16,
+                                                                                      isSigned));
+                break;
+            case s32:
+                isSigned = true;
+            case u32:
+                roseExpression = new SgAsmIntegerValueExpression(value.val.u32val,
+                                                                 new SgAsmIntegerType(ByteOrder::ORDER_LSB, 32,
+                                                                                      isSigned));
+                break;
+            case s48:
+                isSigned = true;
+            case u48:
+                roseExpression = new SgAsmIntegerValueExpression(value.val.u32val,
+                                                                 new SgAsmIntegerType(ByteOrder::ORDER_LSB, 32,
+                                                                                      isSigned));
+                break;
+            case s64:
+                isSigned = true;
+            case u64:
+                roseExpression = new SgAsmIntegerValueExpression(value.val.u64val,
+                                                                 new SgAsmIntegerType(ByteOrder::ORDER_LSB, 64,
+                                                                                      isSigned));
+                break;
+            case sp_float:
+                roseExpression = new SgAsmSingleFloatValueExpression(value.val.floatval);
+                break;
+            case dp_float:
+                roseExpression = new SgAsmDoubleFloatValueExpression(value.val.dblval);
+                break;
+            default:
+                roseExpression = NULL;
+                assert(0);
+        }
+    } else {
+        switch (value.type) {
+            case s8:
+            case u8:
+                roseExpression = new SgAsmByteValueExpression(value.val.u8val);
+                break;
+            case s16:
+            case u16:
+                roseExpression = new SgAsmWordValueExpression(value.val.u16val);
+                break;
+            case s32:
+            case u32:
+                roseExpression = new SgAsmDoubleWordValueExpression(value.val.u32val);
+                break;
+            case s48:
+            case u48:
+                // This only happens with far calls. ROSE appears to be set up to
+                // expect a 32-bit absolute destination (or doesn't handle far call at
+                // all), so give it what it wants.
+                roseExpression = new SgAsmDoubleWordValueExpression(value.val.u32val);
+                break;
+            case s64:
+            case u64:
+                roseExpression = new SgAsmQuadWordValueExpression(value.val.u64val);
+                break;
+            case sp_float:
+                roseExpression = new SgAsmSingleFloatValueExpression(value.val.floatval);
+                break;
+            case dp_float:
+                roseExpression = new SgAsmDoubleFloatValueExpression(value.val.dblval);
+                break;
+            default:
+                roseExpression = NULL;
+                assert(0);
+                // error!
+        }
+    }
+    m_stack.push_front(roseExpression);
 }
 
 
-void ExpressionConversionVisitor::visit(RegisterAST* regast) {
-  // has no children
-  
-  m_stack.push_front(archSpecificRegisterProc(regast, addr, size));
-  roseExpression = m_stack.front();
-  return;
-}
+void ExpressionConversionVisitor::visit(RegisterAST *regast) {
+    // has no children
 
-void ExpressionConversionVisitor::visit(Dereference* deref) {
-  // get child
-  assert(m_stack.size());
-  SgAsmExpression *toderef = m_stack.front();
-  m_stack.pop_front();
-  if(toderef == NULL) {
-    roseExpression = NULL;
+    m_stack.push_front(archSpecificRegisterProc(regast, addr, size));
+    roseExpression = m_stack.front();
     return;
-  }
-  SgAsmType *type;
+}
 
-  // TODO fix some mismatched types?
-  // pick correct type
-  switch (deref->eval().type)
-    {
-    case s8:
-    case u8:
-      type = new SgAsmTypeByte();
-      break;
-    case s16:
-    case u16:
-      type = new SgAsmTypeWord();
-      break;
-    case s32:
-    case u32:
-      type = new SgAsmTypeDoubleWord();
-      break;
-    case s64:
-    case u64:
-      type = new SgAsmTypeQuadWord();
-      break;
-    case sp_float:
-      type = new SgAsmTypeSingleFloat();
-      break;
-    case dp_float:
-      type = new SgAsmTypeDoubleFloat();
-      break;
-    default:
-      type = NULL;
-      // error
+void ExpressionConversionVisitor::visit(Dereference *deref) {
+    // get child
+    assert(m_stack.size());
+    SgAsmExpression *toderef = m_stack.front();
+    m_stack.pop_front();
+    if (toderef == NULL) {
+        roseExpression = NULL;
+        return;
+    }
+    SgAsmType *type;
+
+    // TODO fix some mismatched types?
+    // pick correct type
+    if(arch == Arch_aarch64) {
+        bool isSigned = false;
+        switch (deref->eval().type) {
+            case s8:
+                isSigned = true;
+            case u8:
+                type = new SgAsmIntegerType(ByteOrder::ORDER_LSB, 8, isSigned);
+                break;
+            case s16:
+                isSigned = true;
+            case u16:
+                type = new SgAsmIntegerType(ByteOrder::ORDER_LSB, 16, isSigned);
+                break;
+            case s32:
+                isSigned = true;
+            case u32:
+                type = new SgAsmIntegerType(ByteOrder::ORDER_LSB, 32, isSigned);
+                break;
+            case s64:
+                isSigned = true;
+            case u64:
+                type = new SgAsmIntegerType(ByteOrder::ORDER_LSB, 64, isSigned);
+                break;
+            case sp_float:
+                type = new SgAsmFloatType(ByteOrder::ORDER_LSB, 64,
+                                          SgAsmFloatType::BitRange::baseSize(0, 52),  // significand
+                                          SgAsmFloatType::BitRange::baseSize(52, 11), // exponent
+                                          63,                                         // sign bit
+                                          1023,                                       // exponent bias
+                                          SgAsmFloatType::NORMALIZED_SIGNIFICAND | SgAsmFloatType::GRADUAL_UNDERFLOW);
+                break;
+            case dp_float:
+                type = new SgAsmFloatType(ByteOrder::ORDER_LSB, 80,
+                                          SgAsmFloatType::BitRange::baseSize(0, 64),  // significand
+                                          SgAsmFloatType::BitRange::baseSize(64, 15), // exponent
+                                          79,                                         // sign bit
+                                          16383,                                      // exponent bias
+                                          SgAsmFloatType::NORMALIZED_SIGNIFICAND | SgAsmFloatType::GRADUAL_UNDERFLOW);
+                break;
+            default:
+                type = NULL;
+        }
+    } else {
+        switch (deref->eval().type) {
+            case s8:
+            case u8:
+                type = new SgAsmTypeByte();
+                break;
+            case s16:
+            case u16:
+                type = new SgAsmTypeWord();
+                break;
+            case s32:
+            case u32:
+                type = new SgAsmTypeDoubleWord();
+                break;
+            case s64:
+            case u64:
+                type = new SgAsmTypeQuadWord();
+                break;
+            case sp_float:
+                type = new SgAsmTypeSingleFloat();
+                break;
+            case dp_float:
+                type = new SgAsmTypeDoubleFloat();
+                break;
+            default:
+                type = NULL;
+                // error
+        }
     }
 
-
-  SgAsmExpression *segReg = makeSegRegExpr();
-  SgAsmMemoryReferenceExpression* result = new SgAsmMemoryReferenceExpression(toderef, segReg);
-  result->set_type(type);
-  roseExpression = result;
+    SgAsmExpression *segReg = makeSegRegExpr();
+    SgAsmMemoryReferenceExpression *result = new SgAsmMemoryReferenceExpression(toderef, segReg);
+    result->set_type(type);
+    roseExpression = result;
 }
 
-SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(InstructionAPI::RegisterAST* regast, uint64_t addr, uint64_t size)
-{
+SgAsmExpression *ExpressionConversionVisitor::archSpecificRegisterProc(InstructionAPI::RegisterAST *regast,
+                                                                       uint64_t addr, uint64_t size) {
 
-  MachRegister machReg = regast->getID();  
-
-  switch(arch) {
-  case Arch_x86:
-  case Arch_x86_64: {
-    int regClass;
-    int regNum;
-    int regPos;
-   
     MachRegister machReg = regast->getID();
-    if(machReg.isPC()) {
-      // ideally this would be symbolic
-      // When ip is read, the value read is not the address of the current instruction,
-      // but the address of the next instruction.
-      SgAsmExpression *constAddrExpr;
-      if (arch == Arch_x86) 
-          constAddrExpr = new SgAsmDoubleWordValueExpression(addr + size);
-      else
-          constAddrExpr = new SgAsmQuadWordValueExpression(addr + size);
 
-      return constAddrExpr;
-    } 
-    machReg.getROSERegister(regClass, regNum, regPos);
-    
-    return new SgAsmx86RegisterReferenceExpression((X86RegisterClass) regClass,
-						   regNum, 
-						   (X86PositionInRegister) regPos);
-    break;
-  }
-  case Arch_ppc32: {
-    int regClass;
-    int regNum;
-    int regGran = powerpc_condreggranularity_whole;
+    switch (arch) {
+        case Arch_x86:
+        case Arch_x86_64: {
+            int regClass;
+            int regNum;
+            int regPos;
 
-    machReg.getROSERegister(regClass, regNum, regGran);
+            MachRegister machReg = regast->getID();
+            if (machReg.isPC()) {
+                // ideally this would be symbolic
+                // When ip is read, the value read is not the address of the current instruction,
+                // but the address of the next instruction.
+                SgAsmExpression *constAddrExpr;
+                if (arch == Arch_x86)
+                    constAddrExpr = new SgAsmDoubleWordValueExpression(addr + size);
+                else
+                    constAddrExpr = new SgAsmQuadWordValueExpression(addr + size);
 
-    return new SgAsmPowerpcRegisterReferenceExpression((PowerpcRegisterClass) regClass, 
-						       regNum, 
-						       (PowerpcConditionRegisterAccessGranularity) regGran);
-    break;
-  }
-  default:
-    return NULL;
-    break;
-  }
+                return constAddrExpr;
+            }
+            machReg.getROSERegister(regClass, regNum, regPos);
+
+            return new SgAsmx86RegisterReferenceExpression((X86RegisterClass) regClass,
+                                                           regNum,
+                                                           (X86PositionInRegister) regPos);
+        }
+        case Arch_ppc32: {
+            int regClass;
+            int regNum;
+            int regGran = powerpc_condreggranularity_whole;
+
+            machReg.getROSERegister(regClass, regNum, regGran);
+
+            return new SgAsmPowerpcRegisterReferenceExpression((PowerpcRegisterClass) regClass,
+                                                               regNum,
+                                                               (PowerpcConditionRegisterAccessGranularity) regGran);
+        }
+        case Arch_aarch64: {
+            int regClass;
+            int regNum;
+            int regPos;
+
+            machReg.getROSERegister(regClass, regNum, regPos);
+
+            SgAsmDirectRegisterExpression *dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(regClass, regNum, regPos, machReg.size() * 8));
+            dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
+            return dre;
+        }
+        default:
+            return NULL;
+    }
 }
 
-SgAsmExpression* ExpressionConversionVisitor::makeSegRegExpr()
-{
-  if (arch == Arch_x86 || arch == Arch_x86_64) {
-    return new SgAsmx86RegisterReferenceExpression(x86_regclass_segment,
-						   x86_segreg_none, x86_regpos_all);
-  }
-  else {
-    return NULL;
-  }
+SgAsmExpression *ExpressionConversionVisitor::makeSegRegExpr() {
+    if (arch == Arch_x86 || arch == Arch_x86_64) {
+        return new SgAsmx86RegisterReferenceExpression(x86_regclass_segment,
+                                                       x86_segreg_none, x86_regpos_all);
+    }
+    else {
+        return NULL;
+    }
 }
 
 /////////////// Visitor class /////////////////
 
-void ExpressionConversionVisitor::visit(BinaryFunction* binfunc) {
-  assert(m_stack.size() >= 2);
-  SgAsmExpression *rhs = m_stack.front();
-  m_stack.pop_front();
-  SgAsmExpression *lhs = m_stack.front();
-  m_stack.pop_front();
-  // If the RHS didn't convert, that means it should disappear
-  // And we are just left with the LHS
-  if(!rhs && !lhs) {
-    roseExpression = NULL;
-  }
-  else if (!rhs) {
-    roseExpression = lhs;
-  }
-  else if(!lhs) {
-    roseExpression = rhs;
-  }
-  else {
-    // now build either add or multiply
-    if (binfunc->isAdd())
-      roseExpression = new SgAsmBinaryAdd(lhs, rhs);
-    else if (binfunc->isMultiply())
-      roseExpression = new SgAsmBinaryMultiply(lhs, rhs);
-    else roseExpression = NULL; // error
-  }
-  m_stack.push_front(roseExpression);
+void ExpressionConversionVisitor::visit(BinaryFunction *binfunc) {
+    assert(m_stack.size() >= 2);
+    SgAsmExpression *rhs = m_stack.front();
+    m_stack.pop_front();
+    SgAsmExpression *lhs = m_stack.front();
+    m_stack.pop_front();
+    // If the RHS didn't convert, that means it should disappear
+    // And we are just left with the LHS
+    if (!rhs && !lhs) {
+        roseExpression = NULL;
+    }
+    else if (!rhs) {
+        roseExpression = lhs;
+    }
+    else if (!lhs) {
+        roseExpression = rhs;
+    }
+    else {
+        // now build either add or multiply
+        if (binfunc->isAdd())
+            roseExpression = new SgAsmBinaryAdd(lhs, rhs);
+        else if (binfunc->isMultiply())
+            roseExpression = new SgAsmBinaryMultiply(lhs, rhs);
+        else if (binfunc->isLeftShift())
+            roseExpression = new SgAsmBinaryLsl(lhs, rhs);
+        else if (binfunc->isRightArithmeticShift())
+            roseExpression = new SgAsmBinaryAsr(lhs, rhs);
+        else if (binfunc->isRightLogicalShift())
+            roseExpression = new SgAsmBinaryLsr(lhs, rhs);
+        else if (binfunc->isRightRotate())
+            roseExpression = new SgAsmBinaryRor(lhs, rhs);
+        else roseExpression = NULL; // error
+    }
+    m_stack.push_front(roseExpression);
 }

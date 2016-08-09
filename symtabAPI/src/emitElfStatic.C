@@ -53,6 +53,12 @@
 #if defined(os_freebsd)
 #define R_X86_64_JUMP_SLOT R_X86_64_JMP_SLOT
 #endif
+#if !defined(R_X86_64_IRELATIVE)
+#define R_X86_64_IRELATIVE 37
+#endif
+#if !defined(R_386_IRELATIVE)
+#define R_386_IRELATIVE 42
+#endif
 
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -1629,6 +1635,7 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
     unsigned addressWidth = obj->getAddressWidth();
     if( addressWidth == 8 ) {
         switch(rel.getRelType()) {
+            case R_X86_64_IRELATIVE:
             case R_X86_64_RELATIVE:
                 rel.setAddend(rel.addend() + library_adjust);
                 break;
@@ -1647,6 +1654,7 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
         }
     }else{
         switch(rel.getRelType()) {
+            case R_386_IRELATIVE:
             case R_386_RELATIVE:
                 // On x86, addends are stored in their target location
                 if( !adjustValInRegion(targetRegion,
@@ -1844,13 +1852,6 @@ Offset emitElfStatic::allocateRelGOTSection(const std::map<Symbol *, std::pair<O
   return relocOffset + size;
 }
 
-
-#if !defined(R_X86_64_IRELATIVE)
-#define R_X86_64_IRELATIVE 37
-#endif
-#if !defined(R_386_IRELATIVE)
-#define R_386_IRELATIVE 42
-#endif
 
 bool emitElfStatic::buildRela(Symtab *target, Offset globalOffset,
 			     LinkMap &lmap, StaticLinkError &err,

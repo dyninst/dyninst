@@ -63,6 +63,7 @@ if(NOT ${PLATFORM} MATCHES nt)
   add_subdirectory (elf)
   add_subdirectory (dwarf)
   add_subdirectory (symlite)
+  add_subdirectory (parseThat)
 # DynC is not compatible with Windows when
 # we use bison on linux to generate source
 # TODO: generate with bison configured for
@@ -80,7 +81,6 @@ add_subdirectory (patchAPI)
 if(${SYMREADER} MATCHES symtabAPI)
   add_subdirectory (dyninstAPI)
 endif()
-add_subdirectory (parseThat)
 
 # Build the RT library as a seperate project so we can change compilers
 message(STATUS "Configuring DyninstAPI_RT")
@@ -120,19 +120,22 @@ if(BUILD_RTLIB)
     -G ${CMAKE_GENERATOR}
     ${RT_SOURCE_DIR})
 
-  add_custom_target(DyninstRT
-    ALL
-    #  COMMAND ${CMAKE_COMMAND} -E chdir ${RT_BINARY_DIR} ${ACTUAL_BUILD}
-    $(MAKE)
-    WORKING_DIRECTORY ${RT_BINARY_DIR}
-    COMMENT "Building DyninstRT")
+  if(MSVC)
+      include_external_msproject(DyninstAPI_RT dyninstAPI_RT/dyninstAPI_RT.vcxproj)
+  else()
+    add_custom_target(DyninstRT
+      ALL
+      $(MAKE)
+      WORKING_DIRECTORY ${RT_BINARY_DIR}
+      COMMENT "Building DyninstRT")
+    add_dependencies(dyninstAPI DyninstRT)
+    if(TARGET dyninstAPI-static)
+      add_dependencies(dyninstAPI-static DyninstRT)
+    endif()
+  endif()
 
   install(SCRIPT "${RT_BINARY_DIR}/cmake_install.cmake")
 
-  add_dependencies(dyninstAPI DyninstRT)
-  if(TARGET dyninstAPI-static)
-      add_dependencies(dyninstAPI-static DyninstRT)
-  endif()
 else()
   message(STATUS "Skipping DyninstAPI_RT. Be sure to build this library if you're using instrumentation.")
 endif()
@@ -154,7 +157,7 @@ if(BUILD_TARBALLS)
 endif()
 if(BUILD_DOCS)
   add_custom_target(doc)
-  set(LATEX_DOCS dynC_API instructionAPI parseAPI patchAPI symtabAPI stackwalk)
+  set(LATEX_DOCS dynC_API dataflowAPI instructionAPI parseAPI patchAPI symtabAPI stackwalk)
   set(WORD_DOCS proccontrol dyninstAPI)
   add_custom_target(proccontrol-doc
     DEPENDS ${CMAKE_SOURCE_DIR}/proccontrol/doc/proccontrol.pdf)
@@ -162,6 +165,7 @@ if(BUILD_DOCS)
     DEPENDS ${CMAKE_SOURCE_DIR}/dyninstAPI/doc/dyninstAPI.pdf)
   foreach(COMPONENT ${WORD_DOCS})
     add_dependencies(doc ${COMPONENT}-doc)
+    set_target_properties(${COMPONENT}-doc PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD 1)
     install(FILES ${CMAKE_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.pdf
       DESTINATION ${INSTALL_DOC_DIR}
       RENAME ${COMPONENT}-${VERSION_STRING}.pdf
@@ -204,6 +208,7 @@ if(BUILD_DOCS)
         DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.log
         )
       add_dependencies(doc ${COMPONENT}-doc)
+      set_target_properties(${COMPONENT}-doc PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD 1)
       #add_dependencies(${COMPONENT} ${COMPONENT}-doc)
       install(FILES  ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.pdf
         DESTINATION ${INSTALL_DOC_DIR}

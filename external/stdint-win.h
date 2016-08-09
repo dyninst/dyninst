@@ -33,6 +33,12 @@
 #error "Use this header only with Microsoft Visual C++ compilers!"
 #endif // _MSC_VER ]
 
+// Modern Visual Studio has sane stdint.h
+#if _MSC_VER >= 1900
+#include <stdint.h>
+#define _MSC_STDINT_H_
+#endif
+
 #ifndef _MSC_STDINT_H_ // [
 #define _MSC_STDINT_H_
 

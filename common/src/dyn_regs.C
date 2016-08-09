@@ -33,6 +33,7 @@
 
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
+#include "external/rose/armv8InstructionEnum.h"
 
 #include <iostream>
 
@@ -809,9 +810,35 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
        break;
       case Arch_aarch64:
       {
-        assert(0);
-        return;
+	switch(category) {
+	    case aarch64::GPR: {
+			  c = armv8_regclass_gpr;
+			  if(baseID == aarch64::zr || baseID == aarch64::wzr)
+			      n = armv8_gpr_zr;
+			  else {
+			      int regnum = baseID - aarch64::x0;
+			      n = armv8_gpr_r0 + regnum;
+			  }
+		      } 
+		      break;
+	    case aarch64::SPR: {
+			    n = 0;
+			    if(baseID == aarch64::pstate) {
+				c = armv8_regclass_pstate;
+				p = armv8_pstatefield_nzcv;
+			    } else if(baseID == aarch64::pc) {
+				c = armv8_regclass_pc;
+			    } else if(baseID == aarch64::sp || baseID == aarch64::wsp) {
+				c = armv8_regclass_sp;
+			    }
+			  }
+			  break; 
+	    default:assert(!"unknown register type!");
+		    break;
+	}
+	return;
       }
+      break;
       default:
          c = x86_regclass_unknown;
          n = 0;

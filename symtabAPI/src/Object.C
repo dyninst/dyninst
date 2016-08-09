@@ -114,6 +114,8 @@ void print_symbols( std::vector< Symbol *>& allsymbols ) {
                 fprintf(fd, " DYN");
             if (sym->isAbsolute())
                 fprintf(fd, " ABS");
+            if (sym->isDebug())
+                fprintf(fd, " DBG");
             std::string fileName;
             std::vector<std::string> *vers;
             if (sym->getVersionFileName(fileName))
@@ -550,3 +552,16 @@ bool AObject::getTruncateLinePaths()
 {
    return false;
 }
+
+void AObject::setModuleForOffset(Offset sym_off, std::string module) {
+    auto found_syms = symsByOffset_.find(sym_off);
+    if(found_syms == symsByOffset_.end()) return;
+
+    for(auto s = found_syms->second.begin();
+            s != found_syms->second.end();
+            ++s)
+    {
+        symsToModules_[*s] = module;
+    }
+}
+
