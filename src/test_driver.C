@@ -873,8 +873,19 @@ int main(int argc, char *argv[]) {
    if ( getenv("RESUMELOG") ) {
       set_resumelog_name(getenv("RESUMELOG"));
    }
-   startAllTests(groups, params);
+   try {
+      startAllTests(groups, params);
+   } catch(...) {
+      // flush output before crashing
+      setOutput(NULL); // run logger dtors
+      if ((outlog != NULL) && (outlog != stdout)) {
+         fclose(outlog);
+      }
+      fflush(stdout);
+      throw;
+   }
 
+   setOutput(NULL); // run logger dtors
    if ((outlog != NULL) && (outlog != stdout)) {
       fclose(outlog);
    }

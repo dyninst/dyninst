@@ -9,9 +9,11 @@ JUnitOutputDriver::JUnitOutputDriver(void *data) : StdOutputDriver(data),
                                                    group_skips(0),
                                                    group_errors(0),
                                                    group_tests(0) {
-    streams[HUMAN] = "test_results.xml";
+    std::stringstream results_log_name;
+    results_log_name << "test_results" << getpid() << ".xml";
+    streams[HUMAN] = results_log_name.str();
 
-        log(HUMAN, "<testsuites>\n");
+    log(HUMAN, "<testsuites>\n");
 }
 
 JUnitOutputDriver::~JUnitOutputDriver() {
@@ -25,20 +27,23 @@ JUnitOutputDriver::~JUnitOutputDriver() {
 // associated with the test passed in through the attributes parameter
 void JUnitOutputDriver::startNewTest(std::map <std::string, std::string> &attributes, TestInfo *test, RunGroup *group) {
     if (group != last_group) {
+        if(last_group)
+        {
+            std::stringstream suitename;
+            suitename << last_group->modname;
+            if(last_group->mutatee != '\0') suitename << "." << last_group->mutatee;
+            log(HUMAN, "<testsuite name=\"%s\" errors=\"%d\" skipped=\"%d\" tests=\"%d\" failures=\"%d\">\n",
+                suitename.str().c_str(), group_errors, group_skips, group_tests, group_failures);
+            log(HUMAN, group_output.str().c_str());
+            log(HUMAN, "</testsuite>\n");
+            FILE* human = getHumanFile();
+            fflush(human);
+            if(human != stdout) fclose(human);
+        }
         group_failures = 0;
         group_skips = 0;
         group_errors= 0;
         group_tests = 0;
-        std::stringstream suitename;
-        suitename << last_group->modname;
-        if(last_group->mutatee != '\0') suitename << "." << last_group->mutatee;
-        log(HUMAN, "<testsuite name=\"%s\" errors=\"%d\" skipped=\"%d\" tests=\"%d\" failures=\"%d\">\n",
-            suitename.str().c_str(), group_errors, group_skips, group_tests, group_failures);
-        log(HUMAN, group_output.str().c_str());
-        log(HUMAN, "</testsuite>\n");
-        FILE* human = getHumanFile();
-        fflush(human);
-        if(human != stdout) fclose(human);
     }
     StdOutputDriver::startNewTest(attributes, test, group);
 }
