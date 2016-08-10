@@ -304,7 +304,8 @@ Module::Module() :
    language_(lang_Unknown),
    addr_(0),
    exec_(NULL),
-   info_is_valid_(false)
+   info_is_valid_(false),
+   info_(NULL) // not a default constructed whatever!
 {
 }
 
@@ -434,5 +435,8 @@ bool Module::containsOffset(Dyninst::Offset offset) const {
 
 Module::DebugInfoT Module::getDebugInfo()
 {
-    if(!info_is_valid_) exec_->parseTypesNow(); return info_;
+    if(!info_is_valid_) {
+        exec_->parseTypesNow();
+    }
+    return info_;
 }
