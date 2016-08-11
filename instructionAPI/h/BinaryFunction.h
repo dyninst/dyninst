@@ -69,6 +69,7 @@ namespace Dyninst
 					
 					std::string format() const 
 					{
+#if 0
                         char* exp = strdup(m_name.c_str());
 
                         char* imm = NULL;
@@ -86,17 +87,20 @@ namespace Dyninst
                             *reg_pos = 0;
 
                             snprintf(out_buffer, 128, "%s(%s)", imm, reg);
-                            printf("Contents of buffer: %s\n", out_buffer);
+                            printf("Contents of buffer: exp: |%s| converted: |%s|\n", 
+                                    exp, out_buffer);
                             free(reg);
                             free(exp);
 
                             std::string str(out_buffer);
-                            std::cout << std::endl << str << std::endl << std::endl;
                             return str;
                         }
 
                         free(exp);
-						return m_name;
+#endif
+                        std::stringstream ss;
+                        ss << "^^BF^^" << m_name;
+						return ss.str();
 					}
 					
 					typedef boost::shared_ptr<funcT> Ptr;
@@ -373,17 +377,22 @@ namespace Dyninst
 			
 			virtual std::string format(formatStyle how) const
 			{
-				std::stringstream retVal;
-				if(how == memoryAccessStyle)
-				{
-					retVal << m_arg2->format() << "(" << m_arg1->format() << ")";
-				}
-				else
-				{
-					retVal << m_arg1->format() << " " << m_funcPtr->format() << " " << m_arg2->format();
-				}
-				
-				return retVal.str();
+                std::stringstream retVal;
+                if(how == memoryAccessStyle)
+                {
+                    retVal << m_arg2->format() << "(" << m_arg1->format() << ")";
+                }
+                else
+                {
+                    // if(isAdd())
+                    // {
+                    retVal << m_arg1->format() 
+                        << " " << m_funcPtr->format() 
+                        << " " << m_arg2->format();
+                    // } else retVal << "NOT VALID FOR AT&T";
+                }
+
+                return retVal.str();
 			}
    		    
    		    virtual bool bind(Expression* expr, const Result& value);

@@ -36,6 +36,12 @@
 #include <sstream>
 #include "Visitor.h"
 
+inline void print_tabs(int depth)
+{
+    for(int x = 0;x < depth;x++)
+        std::cout << "\t";
+}
+
 namespace Dyninst
 {
   namespace InstructionAPI
@@ -109,51 +115,70 @@ namespace Dyninst
             char* scale;
         };
 
+        /**
+         * Create the AT&T syntax for the instruction operand AST.
+         */
 		void analyze_ast_tree(const Expression::Ptr& ptr, 
                 struct dereference_options_list* options, int depth) const
     	{
-        	std::vector<Expression::Ptr> children;
-        	ptr->getChildren(children);
 
-        	auto it = std::begin(children);
-        	for(;it != std::end(children);++it)
-        	{
-            	Expression::Ptr child = *it;
-                std::vector<Expression::Ptr> childs_children;
-                child->getChildren(childs_children);
-                bool leaf = childs_children.size() == 0;
-                const char* str = child->format().c_str();
+            /* The children of the current node we are analyzing */
+            std::vector<Expression::Ptr> children;
+            ptr->getChildren(children);
+            bool leaf = children.size() == 0;
 
-                if(!strstr(str, "+") && !strstr(str, "*"))
-                    leaf = true;
+             std::string sstr = ptr->format();
 
-                if(leaf)
+            // if(depth == 0) std::cout << std::endl << std::endl;
+            // print_tabs(depth);
+            // std::cout << "Analying node: " << sstr
+                // << " Children count: " << children.size() << std::endl;
+
+            auto it = std::begin(children);
+            for(;it != std::end(children);++it)
+            {
+                Expression::Ptr child = *it;
+
+                /* Analyze this child */
+                analyze_ast_tree(child, options, depth + 1);
+            }
+
+            const char* str = sstr.c_str();
+
+            /* Analyze this node */
+            if(leaf)
+            {
+                if(str[0] == '%')
                 {
-                    if(str[0] == '%')
+                    // print_tabs(depth);
+                    // std::cout << "Found register: " << str << std::endl;
+                    if(!options->base)
+                        options->base = strdup(str);
+                    else if(!options->offset)
+                        options->offset = strdup(str);
+                    else assert(!"Too many registers in operand list!");
+                } else if(str[0] == '$')
+                {
+                    // print_tabs(depth);
+                    // std::cout << "Found immediate: " << str << std::endl;
+                    if(!options->displacement)
+                        options->displacement = strdup(str + 1);
+                    else if(!options->scale)
                     {
-                        if(!options->base)
-                            options->base = strdup(str);
-                        else if(!options->offset)
-                            options->offset = strdup(str);
-                        else assert(!"Too many registers in operand list!");
-                    } else if(str[0] == '$')
-                    {
-			            if(!options->displacement)
-                            options->displacement = strdup(str + 1);
-                        else if(!options->scale)
-                        {
-                            options->scale = strdup(str);
-                        } else assert(!"Too many Immediates in operand list!");
-                    }
-                } 
+                        options->scale = strdup(str);
+                    } else assert(!"Too many Immediates in operand list!");
+                } else {
+                    // print_tabs(depth);
+                    // std::cout << "What the fuck is this: " << str << std::endl;
+                }
+            } 
 
-            	analyze_ast_tree(child, options, depth + 1);
-        	}
     	}
 
         virtual std::string format(formatStyle) const
         {
 	        std::stringstream retVal;
+            // retVal << "^^DEREF^^";
 #if defined(DEBUG_MEMORY_ACCESS_WIDTH)
             switch(Expression::userSetValue.type)
             {
@@ -214,14 +239,29 @@ namespace Dyninst
                     << list.scale << ")";
             else if(list.displacement && list.base)
                 retVal << list.displacement << "(" << list.base << ")";
-            // fprintf(stderr, "return value: %s\n", retVal.str().c_str());
-            if(retVal.str().size() == 0)
+            else if(list.base)
+                retVal << list.base;
+            else {
+                std::cout << std::endl << std::endl;
+                if(list.displacement)
+                    std::cout << "\tDisplacement: " << list.displacement << std::endl;
+                if(list.base)
+                    std::cout << "\tBase:         " << list.base << std::endl;
+                if(list.offset)
+                    std::cout << "\tOffset:       " << list.offset << std::endl;
+                if(list.scale)
+                    std::cout << "\tScale:        " << list.scale << std::endl << std::endl;;
+            }
+            
+            if(!retVal.str().compare("^^DEREF^^"))
             {
                 free(list.scale);
                 free(list.offset);
                 free(list.base);
                 free(list.displacement);
-                return addressToDereference->format();
+                std::stringstream ss;
+                ss << "^^BSS^^" << addressToDereference->format();
+                return ss.str();
             }
 
             free(list.scale);

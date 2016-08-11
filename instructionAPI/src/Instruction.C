@@ -437,7 +437,7 @@ memAccessors.begin()));
         }
         return m_Successors.front().target;
     }
-    
+
     INSTRUCTION_EXPORT std::string Instruction::format(Address addr) const
     {
       if(m_Operands.empty())
