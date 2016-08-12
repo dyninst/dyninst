@@ -98,7 +98,7 @@ namespace Dyninst
         }
         std::transform(name.begin(), name.end(), name.begin(), ::tolower);
         std::stringstream stream;
-        stream << "%^^REG^^%" << name;
+        stream << "%" << name;
         return stream.str();
     }
 
@@ -114,8 +114,7 @@ namespace Dyninst
         /* The syntax for a masking register is {kX} in AT&T syntax. */
         std::transform(name.begin(), name.end(), name.begin(), ::tolower);
         std::stringstream ss;
-        ss << "^^MREG^^{" << name << "}";
-
+        ss << "%" << name;
         return ss.str();
     }
 

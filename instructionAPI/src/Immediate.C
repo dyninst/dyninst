@@ -79,7 +79,7 @@ namespace Dyninst {
 
         std::string Immediate::format(formatStyle) const {
             std::stringstream ss;
-            ss << "$^^IMM^^$0x" << eval().format();
+            ss << "$0x" << eval().format();
             return ss.str();
         }
 

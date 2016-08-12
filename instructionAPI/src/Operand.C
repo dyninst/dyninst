@@ -31,6 +31,7 @@
 #include "../h/Operand.h"
 #include "../h/Dereference.h"
 #include "../h/Register.h"
+#include "../h/Immediate.h"
 #include "../h/Expression.h"
 #include "../h/BinaryFunction.h"
 #include <iostream>
@@ -113,6 +114,95 @@ namespace Dyninst
       }
     }
 
+    static std::string binary_function_att(const Expression* exp, std::string curr, 
+            bool& imm, bool& reg)
+    {
+        std::stringstream retval;
+        /* Append our previous work */
+        retval << curr;
+
+        /* Is this a binary function? */
+        const BinaryFunction* root = dynamic_cast<const BinaryFunction*>(exp);
+
+        if(root)
+        {
+            /* This is a sub binary function */
+            std::vector<Expression::Ptr> children;
+            /* Get the children for this function */
+            root->getChildren(children);
+
+            /* There must be two children here */
+            if(!children.size())
+                return retval.str();
+
+            /* Analyze the children */
+            for(unsigned int x = 0;x < children.size();x++)
+            {
+                Expression* expression = &(*children[x]);
+
+                /* Is this child somehow also a binary function? */
+                BinaryFunction* child = dynamic_cast<BinaryFunction*>(expression);
+
+                if(child)
+                {
+                    /* This child is a binary function, analyze this node seperately */
+                    std::vector<Expression::Ptr> arg_children;
+                    child->getChildren(arg_children);
+
+                    if(arg_children.size() > 0)
+                    {
+                        std::string tmp = binary_function_att(child, retval.str(), imm, reg);
+                        retval.clear();
+                        retval.str(std::string());
+                        retval << tmp;
+                    }
+                } else {
+                    /* This is a leaf, so it should be an imm or register */
+                    Immediate* i = dynamic_cast<Immediate*>(expression);
+                    RegisterAST* r = dynamic_cast<RegisterAST*>(expression);
+
+                    /* It cannot be both an imm and a register. */
+                    assert(i != nullptr || r != nullptr);
+                    assert(!(i && r));
+
+                    if(i)
+                    {
+                        /* We have not seen an immediate yet, use this one. */
+                        if(!imm)
+                        {
+                            if(reg)
+                            {
+                                /* This is probably an IP relative load/store */
+                                std::string tmp = retval.str();
+                                retval.clear();
+                                retval.str(std::string());
+                                retval << i->format(memoryAccessStyle);
+                            } else {
+                                /* Just use the immediate value */
+                                retval << i->format(memoryAccessStyle);
+                            }
+
+                            /* We have now seen an immediate value */
+                            imm = true;
+                        }
+                    } else if(r)
+                    {
+                        /* This leaf is a register */
+                        if(!reg)
+                        {
+                            /* This is probably an IP relative load/store */
+                            retval << "(" << r->format(memoryAccessStyle) << ")";
+                            reg = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        /* Return our work */
+        return retval.str();
+    }
+
     INSTRUCTION_EXPORT std::string Operand::format(Architecture arch, Address addr) const
     {
       if(!op_value) return "ERROR: format() called on empty operand!";
@@ -130,6 +220,13 @@ namespace Dyninst
               return ret.str();
           }
       }
+
+      bool imm, reg;
+      std::stringstream ss;
+      ss << binary_function_att(&(*op_value), "", imm, reg);
+      if(ss.str().compare(""))
+        return ss.str();
+
 
       return op_value->format();
     }

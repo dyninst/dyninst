@@ -241,26 +241,16 @@ namespace Dyninst
                 retVal << list.displacement << "(" << list.base << ")";
             else if(list.base)
                 retVal << list.base;
-            else {
-                std::cout << std::endl << std::endl;
-                if(list.displacement)
-                    std::cout << "\tDisplacement: " << list.displacement << std::endl;
-                if(list.base)
-                    std::cout << "\tBase:         " << list.base << std::endl;
-                if(list.offset)
-                    std::cout << "\tOffset:       " << list.offset << std::endl;
-                if(list.scale)
-                    std::cout << "\tScale:        " << list.scale << std::endl << std::endl;;
-            }
             
-            if(!retVal.str().compare("^^DEREF^^"))
+            if(!retVal.str().compare(""))
             {
                 free(list.scale);
                 free(list.offset);
                 free(list.base);
                 free(list.displacement);
                 std::stringstream ss;
-                ss << "^^BSS^^" << addressToDereference->format();
+                // ss << "^^BSS^^" << addressToDereference->format();
+                ss << addressToDereference->format();
                 return ss.str();
             }
 
