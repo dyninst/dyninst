@@ -428,7 +428,10 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
       DWARF_CHECK_RET(status == DW_DLV_ERROR);
 
       /* Deallocate the entry we just parsed. */
-      dwarf_dealloc( dbg(), entry(), DW_DLA_DIE );
+      if(tag() != DW_TAG_compile_unit)
+      {
+         dwarf_dealloc( dbg(), entry(), DW_DLA_DIE );
+      }
 
       if (status != DW_DLV_OK) {
          break;

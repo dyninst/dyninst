@@ -391,6 +391,7 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
    hasReladyn_(false), hasRelplt_(false), hasRelaplt_(false),
    isStaticBinary_(false), isDefensiveBinary_(false),
    func_lookup(NULL),
+   mod_lookup_(NULL),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -434,6 +435,7 @@ SYMTAB_EXPORT Symtab::Symtab() :
    hasReladyn_(false), hasRelplt_(false), hasRelaplt_(false),
    isStaticBinary_(false), isDefensiveBinary_(false),
    func_lookup(NULL),
+   mod_lookup_(NULL),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -1277,6 +1279,7 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
    hasReladyn_(false), hasRelplt_(false), hasRelaplt_(false),
    isStaticBinary_(false), isDefensiveBinary_(defensive_bin),
    func_lookup(NULL),
+   mod_lookup_(NULL),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -1350,6 +1353,7 @@ Symtab::Symtab(unsigned char *mem_image, size_t image_size,
    isStaticBinary_(false),
    isDefensiveBinary_(defensive_bin),
    func_lookup(NULL),
+   mod_lookup_(NULL),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -1665,6 +1669,7 @@ Symtab::Symtab(const Symtab& obj) :
    hasReladyn_(false), hasRelplt_(false), hasRelaplt_(false),
    isStaticBinary_(false), isDefensiveBinary_(obj.isDefensiveBinary_),
    func_lookup(NULL),
+   mod_lookup_(NULL),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -1862,15 +1867,7 @@ Symtab::~Symtab()
    // Symbols are copied from linkedFile, and NOT deleted
    everyDefinedSymbol.clear();
    undefDynSyms.clear();
-   //undefDynSymsByMangledName.clear();
-   //undefDynSymsByPrettyName.clear();
-   //undefDynSymsByTypedName.clear();
 
-   // TODO make annotation
-   //symsByOffset.clear();
-   //symsByMangledName.clear();
-   //symsByPrettyName.clear();
-   //symsByTypedName.clear();
 
    for (unsigned i = 0; i < everyFunction.size(); i++) 
    {
@@ -1910,12 +1907,12 @@ Symtab::~Symtab()
          allSymtabs.erase(allSymtabs.begin()+i);
    }
 
-   if (func_lookup)
-      delete func_lookup;
+    delete func_lookup;
+    delete mod_lookup_;
 
    // Make sure to free the underlying Object as it doesn't have a factory
    // open method
-   if( obj_private ) delete obj_private;
+   delete obj_private;
 
    if (mf) MappedFile::closeMappedFile(mf);
 
@@ -3802,4 +3799,10 @@ void Symtab::rebase(Offset loadOff)
 {
 	getObject()->rebase(loadOff);
 	load_address_ = loadOff;
+}
+
+ModRangeLookup *Symtab::mod_lookup() {
+    if(!mod_lookup_) mod_lookup_ = new ModRangeLookup;
+    return mod_lookup_;
+
 }

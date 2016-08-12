@@ -4450,20 +4450,23 @@ void Object::parseLineInfoForAddr(Symtab* obj, Offset addr_to_find)
     Dwarf_Debug *dbg_ptr = dwarf->line_dbg();
     if (!dbg_ptr)
         return;
-    Module* mod_for_offset = NULL;
+    std::set<Module*> mod_for_offset;
     obj->findModuleByOffset(mod_for_offset, addr_to_find);
-    if(mod_for_offset)
+    for(auto mod = mod_for_offset.begin();
+            mod != mod_for_offset.end();
+            ++mod)
     {
-        if(mod_for_offset->hasLineInformation())      // already parsed
+        if((*mod)->hasLineInformation())      // already parsed
         {
-            return;
+            continue;
         }
-        Dwarf_Die cuDIE = mod_for_offset->getDebugInfo();
-        LineInformation* li_for_module = mod_for_offset->getLineInformation();
+        Dwarf_Die cuDIE = ((*mod)->getDebugInfo());
+        if(!cuDIE) return; // stashed DIE was null, so we never set it...
+        LineInformation* li_for_module = ((*mod)->getLineInformation());
         if(!li_for_module)
         {
             li_for_module = new LineInformation;
-            mod_for_offset->setLineInfo(li_for_module);
+            ((*mod)->setLineInfo(li_for_module));
         }
 
         parseLineInfoForCU(cuDIE, li_for_module);

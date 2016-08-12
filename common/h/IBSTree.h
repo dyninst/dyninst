@@ -110,7 +110,7 @@ class SimpleInterval : public interval<int> {
     virtual int low() const { return low_; }
     virtual int high() const { return high_; }
 
-  private:
+  protected:
     int low_;
     int high_;
     void * id_; // some arbitrary unique identifier

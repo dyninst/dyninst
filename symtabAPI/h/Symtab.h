@@ -84,7 +84,9 @@ class relocationEntry;
 class Type;
 class FunctionBase;
 class FuncRange;
+class ModRange;
 
+typedef IBSTree_fast<ModRange> ModRangeLookup;
 typedef IBSTree<FuncRange> FuncRangeLookup;
 typedef Dyninst::ProcessReader MemRegReader;
 
@@ -198,7 +200,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    // Module
 
    bool getAllModules(std::vector<Module *>&ret);
-   bool findModuleByOffset(Module *&ret, Offset off);
+   bool findModuleByOffset(std::set<Module *>& ret, Offset off);
    bool findModuleByName(Module *&ret, const std::string name);
    Module *getDefaultModule();
 
@@ -593,10 +595,12 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool isDefensiveBinary_;
 
    FuncRangeLookup *func_lookup;
+    ModRangeLookup *mod_lookup_;
 
    //Don't use obj_private, use getObject() instead.
  public:
    Object *getObject();
+    ModRangeLookup* mod_lookup();
  private:
    Object *obj_private;
 

@@ -425,12 +425,8 @@ bool Module::findVariablesByName(std::vector<Variable *> &ret, const std::string
 
 void Module::addRange(Dyninst::Address low, Dyninst::Address high)
 {
-    ranges.insert(new SimpleInterval(low, high, this));
-}
 
-bool Module::containsOffset(Dyninst::Offset offset) const {
-    std::set<SimpleInterval*> found_entries;
-    return ranges.find(offset, found_entries) > 0;
+    exec_->mod_lookup()->insert(new ModRange(low, high, this));
 }
 
 Module::DebugInfoT Module::getDebugInfo()

@@ -387,19 +387,29 @@ bool module_less(Module* lhs, Module* rhs)
 }
 
 
-bool Symtab::findModuleByOffset(Module *&ret, Offset off)
+bool Symtab::findModuleByOffset(std::set<Module *>&ret, Offset off)
 {
-    //  this should be a hash, really
-    for(size_t i = 0; i < _mods.size(); i++)
+    std::set<ModRange*> mods;
+    ret.clear();
+    mod_lookup()->find(off, mods);
+    for(auto i = mods.begin();
+            i != mods.end();
+            ++i)
     {
-        if(_mods[i]->containsOffset(off))
-        {
-            ret = _mods[i];
-            return true;
-        }
+        ret.insert((*i)->mod());
     }
-    ret = NULL;
-    return false;
+    return ret.empty();
+//    //  this should be a hash, really
+//    for(int i = 0; i < _mods.size(); i++)
+//    {
+//        if(_mods[i]->containsOffset(off))
+//        {
+//            ret = _mods[i];
+//            return true;
+//        }
+//    }
+//    ret = NULL;
+//    return false;
 }
 
 bool Symtab::findModuleByName(Module *&ret, const std::string name)

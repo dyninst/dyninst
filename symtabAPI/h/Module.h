@@ -37,6 +37,7 @@
 #include "Annotatable.h"
 #include "Serialization.h"
 #include "IBSTree.h"
+#include "IBSTree-fast.h"
 #if defined(cap_dwarf)
 #include "libdwarf.h"
 #endif
@@ -203,13 +204,12 @@ typedef Statement LineNoTuple;
    
    bool setLineInfo(Dyninst::SymtabAPI::LineInformation *lineInfo);
 	 void addRange(Dyninst::Address low, Dyninst::Address high);
-	 bool containsOffset(Dyninst::Offset offset) const;
-	 void setDebugInfo(Module::DebugInfoT info) {info_is_valid_ = true; info_ = info; }
+
+            void setDebugInfo(Module::DebugInfoT info) {info_is_valid_ = true; info_ = info; }
 	 Module::DebugInfoT getDebugInfo();
    private:
    Dyninst::SymtabAPI::LineInformation* lineInfo_;
    typeCollection* typeInfo_;
-	 IBSTree<SimpleInterval> ranges;
 			bool info_is_valid_;
 	 Module::DebugInfoT info_;
    
@@ -228,7 +228,18 @@ typedef Statement LineNoTuple;
 		}
 
 
-
+struct ModRange : public interval<Offset>
+{
+    ModRange(Offset l, Offset h, Module* m) :
+           low_(l), high_(h), mod_(m)
+    {}
+    Offset low() const { return low_; }
+    Offset high() const { return high_; }
+    Module* mod() const { return mod_;}
+    Offset low_;
+    Offset high_;
+    Module* mod_;
+};
 
 
 }//namespace SymtabAPI

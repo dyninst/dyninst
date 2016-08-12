@@ -1,22 +1,53 @@
+/*
+ * See the dyninst/COPYRIGHT file for copyright information.
+ *
+ * We provide the Paradyn Tools (below described as "Paradyn")
+ * on an AS IS basis, and do not warrant its validity or performance.
+ * We reserve the right to update, modify, or discontinue this
+ * software at any time.  We shall have no obligation to supply such
+ * updates or modifications or any other form of support to you.
+ *
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 
+#if !defined(IBSTREE_FAST_H)
+#define IBSTREE_FAST_H
 #include "IBSTree.h"
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/mem_fun.hpp>
 #include <boost/multi_index/identity.hpp>
 
-namespace Dyninst 
+namespace Dyninst
 {
   template <typename ITYPE = interval<> >
   class IBSTree_fast 
   {
     typedef typename ITYPE::type interval_type;
-    
-    
+
     IBSTree<ITYPE> overlapping_intervals;
-    typedef boost::multi_index_container<ITYPE*, 
-    indexed_by<
-    ordered_unique<const_mem_fun<ITYPE, interval_type, &ITYPE::high> >
+    typedef boost::multi_index_container<ITYPE*,
+            boost::multi_index::indexed_by<
+                    boost::multi_index::ordered_unique<
+                            boost::multi_index::const_mem_fun<ITYPE, interval_type, &ITYPE::high> >
     > > interval_set;
       
     //typedef std::set<ITYPE*, order_by_lower<ITYPE> > interval_set;
@@ -153,3 +184,4 @@ namespace Dyninst
     
     
 }
+#endif
