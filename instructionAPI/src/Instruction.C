@@ -481,14 +481,14 @@ memAccessors.begin()));
                 break;
             }
 
-            // if(op > 1)
-            // retVal += ", ";
+            if(op > 1)
+                retVal += ",";
 
             retVal += format;
         }
 
-        // if(op > 1)
-        // retVal += ", ";
+        if(op > 1)
+            retVal += ",";
 
         /* AT&T Syntax puts dst at end */
         retVal += dst_operand;
@@ -541,6 +541,10 @@ memAccessors.begin()));
         }
         cout << endl;
 #endif // defined(DEBUG_READ_WRITE)
+
+        /* We convert No_Entry to (bad) */
+        if(!retVal.compare("No_Entry"))
+            retVal = "(bad)";
 
         return retVal;
     }

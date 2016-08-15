@@ -34,6 +34,7 @@
 #include "../h/Immediate.h"
 #include "../h/Expression.h"
 #include "../h/BinaryFunction.h"
+#include "../h/Result.h"
 #include <iostream>
 
 using namespace std;
@@ -114,12 +115,10 @@ namespace Dyninst
       }
     }
 
-    static std::string binary_function_att(const Expression* exp, std::string curr, 
-            bool& imm, bool& reg)
+    static int binary_function_att(const Expression* exp, uint64_t* imm_val)
     {
-        std::stringstream retval;
-        /* Append our previous work */
-        retval << curr;
+        /* 0 = no failure, -1 = failure */
+        int success = 0;
 
         /* Is this a binary function? */
         const BinaryFunction* root = dynamic_cast<const BinaryFunction*>(exp);
@@ -132,8 +131,8 @@ namespace Dyninst
             root->getChildren(children);
 
             /* There must be two children here */
-            if(!children.size())
-                return retval.str();
+            if(children.size() != 2)
+                return -1;
 
             /* Analyze the children */
             for(unsigned int x = 0;x < children.size();x++)
@@ -149,12 +148,17 @@ namespace Dyninst
                     std::vector<Expression::Ptr> arg_children;
                     child->getChildren(arg_children);
 
-                    if(arg_children.size() > 0)
+                    if(arg_children.size() == 2)
                     {
-                        std::string tmp = binary_function_att(child, retval.str(), imm, reg);
-                        retval.clear();
-                        retval.str(std::string());
-                        retval << tmp;
+                        success |= binary_function_att(child, imm_val);
+
+                        /* Did this operation fail? */
+                        if(success)
+                            return success;
+
+                    } else {
+                        /* Invalid configuration */
+                        return -1;
                     }
                 } else {
                     /* This is a leaf, so it should be an imm or register */
@@ -167,68 +171,52 @@ namespace Dyninst
 
                     if(i)
                     {
-                        /* We have not seen an immediate yet, use this one. */
-                        if(!imm)
-                        {
-                            if(reg)
-                            {
-                                /* This is probably an IP relative load/store */
-                                std::string tmp = retval.str();
-                                retval.clear();
-                                retval.str(std::string());
-                                retval << i->format(memoryAccessStyle);
-                            } else {
-                                /* Just use the immediate value */
-                                retval << i->format(memoryAccessStyle);
-                            }
-
-                            /* We have now seen an immediate value */
-                            imm = true;
-                        }
-                    } else if(r)
-                    {
-                        /* This leaf is a register */
-                        if(!reg)
-                        {
-                            /* This is probably an IP relative load/store */
-                            retval << "(" << r->format(memoryAccessStyle) << ")";
-                            reg = true;
-                        }
+                        // std::cout << "IMM VAL WAS " << *imm_val;
+                        const InstructionAPI::Result current(u64, *imm_val);
+                        const InstructionAPI::Result ret = i->eval() + current;
+                        *imm_val = ret.convert<uint64_t>();
+                        // std::cout << "IMM VAL IS NOW " << *imm_val << std::endl;
                     }
                 }
             }
+        } else {
+            success = -1;
         }
 
-        /* Return our work */
-        return retval.str();
+        return success;
     }
 
     INSTRUCTION_EXPORT std::string Operand::format(Architecture arch, Address addr) const
     {
-      if(!op_value) return "ERROR: format() called on empty operand!";
+        if(!op_value) return "ERROR: format() called on empty operand!";
 
-      if (addr) {
+        if (addr) {
 
-          Expression::Ptr thePC = Expression::Ptr(
-                  new RegisterAST(MachRegister::getPC(arch)));
+            Expression::Ptr thePC = Expression::Ptr(
+                    new RegisterAST(MachRegister::getPC(arch)));
 
-          op_value->bind(thePC.get(), Result(u32, addr));
-          Result res = op_value->eval();
-          if (res.defined) {
-              stringstream ret;
-              ret << hex << res.convert<unsigned>() << dec;
-              return ret.str();
-          }
-      }
+            op_value->bind(thePC.get(), Result(u32, addr));
+            Result res = op_value->eval();
+            if (res.defined) {
+                stringstream ret;
+                ret << hex << res.convert<unsigned>() << dec;
+                return ret.str();
+            }
+        }
 
-      bool imm, reg;
-      std::stringstream ss;
-      ss << binary_function_att(&(*op_value), "", imm, reg);
-      if(ss.str().compare(""))
-        return ss.str();
+        /**
+         * If this is a jump or IP relative load/store, this will be a 
+         * binary function, so we have to parse the AST from hand
+         */
+        unsigned long imm_val = 0x0;
+        if(!binary_function_att(&(*op_value), &imm_val))
+        {
+            std::stringstream ss;
+            ss << "0x" << hex << imm_val;
+            return ss.str();
+        }
 
-
-      return op_value->format();
+        return op_value->format();
     }
     INSTRUCTION_EXPORT Expression::Ptr Operand::getValue() const
     {
