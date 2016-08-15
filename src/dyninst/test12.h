@@ -57,6 +57,7 @@
 #define MUTEX_LOCK_FUNC "pthread_mutex_lock"
 #define MUTEX_UNLOCK_FUNC "pthread_mutex_unlock"
 #define MUTEX_DESTROY_FUNC "pthread_mutex_destroy"
+#include <stdint.h>
 #endif
 typedef enum {
    null_event = 3,
@@ -73,9 +74,10 @@ typedef enum {
 } user_event_t;
 
 typedef struct {
-  unsigned int id;
-  user_event_t what; 
-  unsigned long tid;
+
+  uint32_t id;
+  user_event_t what;
+  uint64_t tid;
 } user_msg_t;
 
 #endif
