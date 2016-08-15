@@ -385,6 +385,16 @@ bool module_less(Module* lhs, Module* rhs)
     if(rhs == NULL) return true;
     return lhs->addr() < rhs->addr();
 }
+bool Symtab::findModuleByOffset(Module *&ret, Offset off)
+{
+    std::set<ModRange*> mods;
+    mod_lookup()->find(off, mods);
+    if(!mods.empty())
+    {
+        ret = (*mods.begin())->mod();
+    }
+    return mods.empty();
+}
 
 
 bool Symtab::findModuleByOffset(std::set<Module *>&ret, Offset off)
