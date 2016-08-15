@@ -440,72 +440,72 @@ memAccessors.begin()));
 
     INSTRUCTION_EXPORT std::string Instruction::format(Address addr) const
     {
-      if(m_Operands.empty())
-      {
-	       decodeOperands();
-      }
+        if(m_Operands.empty())
+        {
+            decodeOperands();
+        }
 
-      std::string dst_operand; /* Goes at the end after src operands */
-	  bool has_mask = false;
-      std::string mask_operand; /* Goes after the dst operand (if it exists) */
+        std::string dst_operand; /* Goes at the end after src operands */
+        bool has_mask = false;
+        std::string mask_operand; /* Goes after the dst operand (if it exists) */
 
-      std::string retVal = m_InsnOp->format();
-      retVal += " ";
-      std::list<Operand>::const_iterator currOperand;
-      int op = 0;
-      for(currOperand = m_Operands.begin();
-	    currOperand != m_Operands.end();
-        op++, ++currOperand)
-      {
-			std::string format = currOperand->format(getArch(), addr);
+        std::string retVal = m_InsnOp->format();
+        retVal += " ";
+        std::list<Operand>::const_iterator currOperand;
+        int op = 0;
+        for(currOperand = m_Operands.begin();
+                currOperand != m_Operands.end();
+                op++, ++currOperand)
+        {
+            std::string format = currOperand->format(getArch(), addr);
 
-			if(format.size() < 1)
-			{
-				assert(!"Null operand in operands list!");
-				continue;
-			}
+            if(format.size() < 1)
+            {
+                assert(!"Null operand in operands list!");
+                continue;
+            }
 
-			/* Is this the first operand? */
+            /* Is this the first operand? */
             if(op == 0)
             {
                 dst_operand = format;
                 continue;
             }
 
-			/* Is this a mask operand? */
-			if(format.at(0) == '{')
-			{
-				/* Mask register */
-				mask_operand = format;
-				has_mask = true;
-				break;
-			}
+            /* Is this a mask operand? */
+            if(format.at(0) == '{')
+            {
+                /* Mask register */
+                mask_operand = format;
+                has_mask = true;
+                break;
+            }
 
-            if(op > 1)
-	            retVal += ", ";
+            // if(op > 1)
+            // retVal += ", ";
 
             retVal += format;
-      }
+        }
 
-      if(op > 1)
-          retVal += ", ";
+        // if(op > 1)
+        // retVal += ", ";
 
-      /* AT&T Syntax puts dst at end */
-      retVal += dst_operand;
+        /* AT&T Syntax puts dst at end */
+        retVal += dst_operand;
 
-	  if(has_mask)
-	  {
-		  retVal += " ";
-	      retVal += mask_operand;
-	  }
+        if(has_mask)
+        {
+            retVal += " ";
+            retVal += mask_operand;
+        }
 
 #if defined(DEBUG_READ_WRITE)      
         std::set<RegisterAST::Ptr> tmp;
         getReadSet(tmp);
         cout << "Read set:" << endl;
         for(std::set<RegisterAST::Ptr>::iterator i = tmp.begin();
-            i != tmp.end();
-            ++i)
+                i != tmp.end();
+                ++i)
         {
             cout << (*i)->format() << " ";
         }
@@ -514,8 +514,8 @@ memAccessors.begin()));
         getWriteSet(tmp);
         cout << "Write set:" << endl;
         for(std::set<RegisterAST::Ptr>::iterator i = tmp.begin();
-            i != tmp.end();
-            ++i)
+                i != tmp.end();
+                ++i)
         {
             cout << (*i)->format() << " ";
         }
@@ -524,8 +524,8 @@ memAccessors.begin()));
         getMemoryReadOperands(mem);
         cout << "Read mem:" << endl;
         for(std::set<Expression::Ptr>::iterator i = mem.begin();
-            i != mem.end();
-            ++i)
+                i != mem.end();
+                ++i)
         {
             cout << (*i)->format() << " ";
         }
@@ -534,8 +534,8 @@ memAccessors.begin()));
         getMemoryWriteOperands(mem);
         cout << "Write mem:" << endl;
         for(std::set<Expression::Ptr>::iterator i = mem.begin();
-            i != mem.end();
-            ++i)
+                i != mem.end();
+                ++i)
         {
             cout << (*i)->format() << " ";
         }
