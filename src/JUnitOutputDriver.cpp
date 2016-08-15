@@ -17,8 +17,7 @@ JUnitOutputDriver::JUnitOutputDriver(void *data) : StdOutputDriver(data),
     std::stringstream results_log_name;
     results_log_name << "test_results" << getpid() << ".xml";
     streams[HUMAN] = results_log_name.str();
-
-    log(HUMAN, "<testsuites>\n");
+   log(HUMAN, "<testsuites>\n");
 }
 
 JUnitOutputDriver::~JUnitOutputDriver() {
@@ -50,6 +49,7 @@ void JUnitOutputDriver::startNewTest(std::map <std::string, std::string> &attrib
         group_errors= 0;
         group_tests = 0;
     }
+    failure_log.clear();
     StdOutputDriver::startNewTest(attributes, test, group);
 }
 
@@ -77,7 +77,7 @@ void JUnitOutputDriver::logResult(test_results_t result, int stage)
             break;
 
         case FAILED:
-            group_output << ">\n<failure>Test failed</failure>\n";
+            group_output << ">\n<failure>" << failure_log.str() << "</failure>\n";
             group_failures++;
             group_output << "</testcase>";
             break;
@@ -102,6 +102,20 @@ void JUnitOutputDriver::logResult(test_results_t result, int stage)
             // do nothing
     }
 
+}
+
+void JUnitOutputDriver::vlog(TestOutputStream stream, const char *fmt, va_list args)
+{
+    if(stream == LOGERR)
+    {
+        char tmp[256];
+        vsnprintf(tmp, 256, fmt, args );
+        failure_log << tmp;
+    }
+    else
+    {
+        StdOutputDriver::vlog(stream, fmt, args);
+    }
 }
 void JUnitOutputDriver::finalizeOutput()
 {

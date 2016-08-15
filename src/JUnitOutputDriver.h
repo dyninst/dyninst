@@ -24,13 +24,15 @@ public:
 
     virtual void logResult(test_results_t result, int stage=-1);
     virtual void finalizeOutput();
+    virtual void vlog(TestOutputStream stream, const char *fmt, va_list args);
 
- private:
+private:
     int group_failures;
     int group_skips;
     int group_errors;
     int group_tests;
     std::stringstream group_output;
+    std::stringstream failure_log;
 };
 
 
