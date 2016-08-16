@@ -102,10 +102,12 @@ class SYMTAB_EXPORT RangeLookup
 		bool getValues( Offset addressInRange, std::vector< Value *> & values );
 		bool getAddressRanges( Value v, std::vector< AddressRange > & ranges );
 
-		const_iterator begin() const;
-		const_iterator end() const;
+		virtual const_iterator begin() const;
+		virtual const_iterator end() const;
+		virtual const_iterator find(const AddressRange& ar) const;
+    	virtual const_iterator lower_bound(Offset addr) const;
 
-		~RangeLookup();
+		virtual ~RangeLookup();
 
 		// /* DEBUG */ void dump( FILE * stream );
 		// /* DEBUG */ static void testInsertionSpeed();
@@ -474,6 +476,17 @@ RangeLookup< Value, ValueRange >::~RangeLookup()
 {
 } /* end RangeLookup destructor */
 
+template< class Value, class ValueRange >
+typename RangeLookup< Value, ValueRange >::const_iterator RangeLookup< Value, ValueRange >::find(const AddressRange& ar) const
+{
+	return valuesByAddressRangeMap.find(ar);
+} /* end find() */
+
+template< class Value, class ValueRange >
+typename RangeLookup< Value, ValueRange >::const_iterator RangeLookup< Value, ValueRange >::lower_bound(Offset addr) const
+{
+	return valuesByAddressRangeMap.lower_bound(AddressRange(addr, addr));
+} /* end lower_bound() */
 
 } //  namespace SymtabAPI
 } // namespace Dyninst

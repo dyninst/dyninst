@@ -73,11 +73,11 @@ class SYMTAB_EXPORT LineInformation :
 
       bool getAddressRanges( const char * lineSource, unsigned int LineNo, std::vector< AddressRange > & ranges );
 
-      const_iterator begin() const;
-      const_iterator end() const;
+      virtual const_iterator begin() const;
+      virtual const_iterator end() const;
       unsigned getSize() const;
 
-      ~LineInformation();
+      virtual ~LineInformation();
 
    protected:
       /* We maintain internal copies of all the source file names.  Because
