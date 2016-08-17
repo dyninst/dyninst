@@ -786,7 +786,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_bts, "bts")
   (e_call, "call")
   (e_cbw, "cbw")
-  (e_cdq, "cdq")
+  (e_cdq, "cltd")
   (e_clc, "clc")
   (e_cld, "cld")
   (e_clflush, "clflush")
@@ -1195,7 +1195,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_pusha, "pusha")
   (e_pushad, "pushad")
   (e_pushf, "pushf")
-  (e_pushfd, "pushfd")
+  (e_pushfd, "pushfq")
   (e_pxor, "pxor")
   (e_rcl, "rcl")
   (e_rcpps, "rcpps")
@@ -1206,7 +1206,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_rdtsc, "rdtsc")
   (e_rdrand, "rdrand")
   (e_ret_far, "ret far")
-  (e_ret_near, "ret near")
+  (e_ret_near, "retq")
   (e_rol, "rol")
   (e_ror, "ror")
   (e_roundpd, "roundpd")
@@ -1904,12 +1904,12 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
 
  (e_fp_generic, "[FIXME: GENERIC FPU INSN]")
  (e_3dnow_generic, "[FIXME: GENERIC 3DNow INSN]")
- (e_No_Entry, "No_Entry")
+ (e_No_Entry, "(bad)")
         ;
 
 dyn_hash_map<prefixEntryID, std::string> prefixEntryNames_IAPI = map_list_of
-  (prefix_rep, "REP")
-  (prefix_repnz, "REPNZ")
+  (prefix_rep, "repz")
+  (prefix_repnz, "repnz")
         ;
 
 COMMON_EXPORT dyn_hash_map<entryID, flagInfo> const& ia32_instruction::getFlagTable()
@@ -2111,7 +2111,7 @@ static ia32_entry oneByteMap[256] = {
   { e_add,  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
   { e_add,  t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
   { e_push, t_done, 0, false, { ES, eSP, Zz }, 0, s1R2RW | s2I }, // Semantics rewritten to ignore stack "operand"
-  { e_pop,  t_done, 0, false, { ES, eSP, Zz }, 0, s1W2RW },
+  { e_pop,  t_done, 0, false, { ES, eSP, Zz }, 0, s1W2RW | s2I },
   /* 08 */
   { e_or,   t_done, 0, 
 true, { Eb, Gb, Zz }, 0, s1RW2R },
@@ -2130,7 +2130,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_adc,  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
   { e_adc,  t_done, 0, false, { rAX, Iz, Zz }, 0, s1RW2R },
   { e_push, t_done, 0, false, { SS, eSP, Zz }, 0, s1R2RW | s2I },
-  { e_pop,  t_done, 0, false, { SS, eSP, Zz }, 0, s1W2RW },
+  { e_pop,  t_done, 0, false, { SS, eSP, Zz }, 0, s1W2RW | s2I },
   /* 18 */
   { e_sbb,  t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_sbb,  t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
@@ -2139,7 +2139,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_sbb,  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
   { e_sbb,  t_done, 0, false, { rAX, Iz, Zz }, 0, s1RW2R },
   { e_push, t_done, 0, false, { DS, eSP, Zz }, 0, s1R2RW | s2I },
-  { e_pop , t_done, 0, false, { DS, eSP, Zz }, 0, s1W2RW },
+  { e_pop , t_done, 0, false, { DS, eSP, Zz }, 0, s1W2RW | s2I },
   /* 20 */
   { e_and, t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_and, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
@@ -2204,17 +2204,17 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_push, t_done, 0, false, { rSI, eSP, Zz }, 0, s1R2RW | s2I },
   { e_push, t_done, 0, false, { rDI, eSP, Zz }, 0, s1R2RW | s2I },
   /* 58 */
-  { e_pop, t_done, 0, false, { rAX, eSP, Zz }, 0, s1W2RW },
-  { e_pop, t_done, 0, false, { rCX, eSP, Zz }, 0, s1W2RW },
-  { e_pop, t_done, 0, false, { rDX, eSP, Zz }, 0, s1W2RW },
-  { e_pop, t_done, 0, false, { rBX, eSP, Zz }, 0, s1W2RW },
-  { e_pop, t_done, 0, false, { rSP, eSP, Zz }, 0, s1W2RW },
-  { e_pop, t_done, 0, false, { rBP, eSP, Zz }, 0, s1W2RW },
-  { e_pop, t_done, 0, false, { rSI, eSP, Zz }, 0, s1W2RW },
-  { e_pop, t_done, 0, false, { rDI, eSP, Zz }, 0, s1W2RW },
+  { e_pop, t_done, 0, false, { rAX, eSP, Zz }, 0, s1W2RW | s2I },
+  { e_pop, t_done, 0, false, { rCX, eSP, Zz }, 0, s1W2RW | s2I },
+  { e_pop, t_done, 0, false, { rDX, eSP, Zz }, 0, s1W2RW | s2I },
+  { e_pop, t_done, 0, false, { rBX, eSP, Zz }, 0, s1W2RW | s2I },
+  { e_pop, t_done, 0, false, { rSP, eSP, Zz }, 0, s1W2RW | s2I },
+  { e_pop, t_done, 0, false, { rBP, eSP, Zz }, 0, s1W2RW | s2I },
+  { e_pop, t_done, 0, false, { rSI, eSP, Zz }, 0, s1W2RW | s2I },
+  { e_pop, t_done, 0, false, { rDI, eSP, Zz }, 0, s1W2RW | s2I },
   /* 60 */
   { e_pushad, t_done, 0, false, { GPRS, eSP, Zz }, 0, s1R2RW | s2I },
-  { e_popad,  t_done, 0, false, { GPRS, eSP, Zz }, 0, s1W2RW },
+  { e_popad,  t_done, 0, false, { GPRS, eSP, Zz }, 0, s1W2RW | s2I },
   { e_bound, t_done, 0, true, { Gv, Ma, Zz }, 0, s1R2R }, // or VEX
   { e_arpl, t_done, 0, true, { Ew, Gw, Zz }, 0, s1R2R }, /* No REX */
   { e_No_Entry,          t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
@@ -2266,7 +2266,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_lea, t_done, 0, true, { Gv, Mlea, Zz }, IS_NOP, s1W2R }, // this is just M in the book
                                                         // AFAICT the 2nd operand is not accessed
   { e_mov, t_done, 0, true, { Sw, Ew, Zz }, 0, s1W2R },
-  { e_pop, t_done, 0, true, { Ev, eSP, Zz }, 0, s1W2RW }, // or VEX XOP
+  { e_pop, t_done, 0, true, { Ev, eSP, Zz }, 0, s1W2RW | s2I }, // or VEX XOP
   /* 90 */
   { e_nop,  t_done, 0, false, { Zz, Zz, Zz }, IS_NOP, sNONE }, // actually xchg eax,eax
   { e_xchg, t_done, 0, false, { rCX, rAX, Zz }, 0, s1RW2RW },
@@ -2278,11 +2278,11 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_xchg, t_done, 0, false, { rDI, rAX, Zz }, 0, s1RW2RW },
   /* 98 */
   { e_cwde, t_done, 0, false, { eAX, Zz, Zz }, 0, s1RW },
-  { e_cdq,  t_done, 0, false, { eDX, eAX, Zz }, 0, s1W2R },
+  { e_cdq,  t_done, 0, false, { eDX, eAX, Zz }, 0, s1W2R | s1I | s2I },
   { e_call,     t_done, 0, false, { Ap, Zz, Zz }, IS_CALL | PTR_WX, s1R },
   { e_wait,     t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { e_pushfd, t_done, 0, false, { Fv, rSP, Zz }, 0, s1R2RW | s2I },
-  { e_popfd,  t_done, 0, false, { Fv, rSP, Zz }, 0, s1W2RW },
+  { e_pushfd, t_done, 0, false, { Fv, rSP, Zz }, 0, s1R2RW | s1I | s2I },
+  { e_popfd,  t_done, 0, false, { Fv, rSP, Zz }, 0, s1W2RW | s1I | s2I },
   { e_sahf,     t_done, 0, false, { Zz, Zz, Zz }, 0, 0 }, // FIXME Intel
   { e_lahf,     t_done, 0, false, { Zz, Zz, Zz }, 0, 0 }, // FIXME Intel
   /* A0 */
@@ -2325,8 +2325,8 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   /* C0 */
   { e_No_Entry, t_grp, Grp2, true, { Eb, Ib, Zz }, 0, s1RW2R },
   { e_No_Entry, t_grp, Grp2, true, { Ev, Ib, Zz }, 0, s1RW2R },
-  { e_ret_near, t_done, 0, false, { Iw, Zz, Zz }, (IS_RET | IS_RETC), s1R | (fNEARRET << FPOS) },
-  { e_ret_near, t_done, 0, false, { Zz, Zz, Zz }, (IS_RET), fNEARRET << FPOS },
+  { e_ret_near, t_done, 0, false, { Iw, Zz, Zz }, (IS_RET | IS_RETC), s1R | (fNEARRET << FPOS)  | s1I},
+  { e_ret_near, t_done, 0, false, { Zz, Zz, Zz }, (IS_RET), fNEARRET << FPOS | s1I},
   { e_les,      t_done, 0, true, { ES, Gv, Mp }, 0, s1W2W3R }, // or VEX
   { e_lds,      t_done, 0, true, { DS, Gv, Mp }, 0, s1W2W3R }, // or VEX
   { e_No_Entry, t_grp, Grp11, true, { Eb, Ib, Zz }, 0, s1W2R },
@@ -2359,9 +2359,9 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_No_Entry, t_coprocEsc, GrpDE, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_coprocEsc, GrpDF, true, { Zz, Zz, Zz }, 0, 0 },
   /* E0 */
-  { e_loopn,    t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R }, 
-  { e_loope,    t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R },
-  { e_loop,     t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R },
+  { e_loopn,    t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R | s2I },
+  { e_loope,    t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R | s2I },
+  { e_loop,     t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R | s2I },
   { e_jcxz_jec, t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R },
   { e_in,       t_done, 0, false, { AL, Ib, Zz }, 0, s1W2R | (fIO << FPOS) },
   { e_in,       t_done, 0, false, { eAX, Ib, Zz }, 0, s1W2R | (fIO << FPOS) },
@@ -2586,7 +2586,7 @@ static ia32_entry twoByteMap[256] = {
   { e_setnle, t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
   /* A0 */
   { e_push,   t_done, 0, false, { FS, eSP, Zz }, 0, s1R2RW | s2I },
-  { e_pop,    t_done, 0, false, { FS, eSP, Zz }, 0, s1W2RW },
+  { e_pop,    t_done, 0, false, { FS, eSP, Zz }, 0, s1W2RW | s2I },
   { e_cpuid,  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
   { e_bt,     t_done, 0, true, { Ev, Gv, Zz }, 0, s1R2R },
   { e_shld,   t_done, 0, true, { Ev, Gv, Ib }, 0, s1RW2R3R },
@@ -2595,7 +2595,7 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
   /* A8 */
   { e_push, t_done, 0, false, { GS, eSP, Zz }, 0, s1R2RW | s2I },
-  { e_pop,  t_done, 0, false, { GS, eSP, Zz }, 0, s1W2RW },
+  { e_pop,  t_done, 0, false, { GS, eSP, Zz }, 0, s1W2RW | s2I },
   { e_rsm,  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
   { e_bts,  t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
   { e_shrd, t_done, 0, true, { Ev, Gv, Ib }, 0, s1RW2R3R },

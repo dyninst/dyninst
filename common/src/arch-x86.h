@@ -641,15 +641,15 @@ enum { sNONE=0, // the instruction does something that cannot be classified as r
 #define s4OP s1W2R3R4R
 
 /* Implicit operand specifier */
-#define s1I (1 << 18)
-#define s2I (1 << 19)
-#define s3I (1 << 20)
-#define s4I (1 << 21)
+#define s1I (1 << 28)
+#define s2I (1 << 29)
+#define s3I (1 << 30)
+#define s4I (1 << 31)
 
 /* Masks */
 #define FPOS 17
 #define sGETHACK(i) (((i) >> FPOS) & 0xFF)
-#define sGETIMPL(i) (((i) >> 29) & 0x7)
+#define sGETIMPL(i) (((i) >> 28) & 0xF)
 #define sGETSEM(i) ((i) & ((1 << FPOS) - 1))
 
 

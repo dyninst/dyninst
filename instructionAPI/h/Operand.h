@@ -65,23 +65,28 @@ namespace Dyninst
       /// \param val Reference-counted pointer to the %Expression that will be contained in the %Operand being constructed
       /// \param read True if this operand is read
       /// \param written True if this operand is written
-      Operand(Expression::Ptr val, bool read, bool written) : op_value(val), m_isRead(read), m_isWritten(written), m_isImplicit(false)
-      {
-      }
+      Operand(Expression::Ptr val, bool read, bool written) : 
+          op_value(val), m_isRead(read), m_isWritten(written), m_isImplicit(false) {}
+      Operand(Expression::Ptr val, bool read, bool written, bool implicit) : 
+          op_value(val), m_isRead(read), m_isWritten(written), m_isImplicit(implicit) {}
       virtual ~Operand()
       {
-	op_value.reset();
+	    op_value.reset();
       }
+
       Operand(const Operand& o) :
-      op_value(o.op_value), m_isRead(o.m_isRead), m_isWritten(o.m_isWritten)
+        op_value(o.op_value), m_isRead(o.m_isRead), 
+        m_isWritten(o.m_isWritten), m_isImplicit(o.m_isImplicit)
       {
       }
+
       const Operand& operator=(const Operand& rhs)
       {
-	op_value = rhs.op_value;
-	m_isRead = rhs.m_isRead;
-	m_isWritten = rhs.m_isWritten;
-	return *this;
+          op_value = rhs.op_value;
+          m_isRead = rhs.m_isRead;
+          m_isWritten = rhs.m_isWritten;
+          m_isImplicit = rhs.m_isImplicit;
+          return *this;
       }
       
 

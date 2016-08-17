@@ -1028,7 +1028,7 @@ namespace Dyninst
                     /* Append the operand */
                     insn_to_complete->appendOperand(makeRegisterExpression(
                                 IntelRegTable(m_Arch, bank, bank_index)),
-                            isRead, isWritten);
+                            isRead, isWritten, isImplicit);
 
                     // Expression::Ptr op(makeRegisterExpression(
                     // makeRegisterID(pref.vex_vvvv_reg, optype, locs->rex_r)));
@@ -1040,7 +1040,7 @@ namespace Dyninst
                 {
                     Expression::Ptr op(makeRegisterExpression(
                                 IntelRegTable(m_Arch,b_cr,locs->modrm_reg)));
-                    insn_to_complete->appendOperand(op, isRead, isWritten);
+                    insn_to_complete->appendOperand(op, isRead, isWritten, isImplicit);
                 }
                 break;
 
@@ -1048,7 +1048,7 @@ namespace Dyninst
                 {
                     Expression::Ptr op(makeRegisterExpression(
                                 IntelRegTable(m_Arch,b_dr,locs->modrm_reg)));
-                    insn_to_complete->appendOperand(op, isRead, isWritten);
+                    insn_to_complete->appendOperand(op, isRead, isWritten, isImplicit);
                 }
                 break;
 
@@ -1069,14 +1069,14 @@ namespace Dyninst
                 } else {
                     insn_to_complete->appendOperand(
                             makeModRMExpression(b, optype), 
-                            isRead, isWritten);
+                            isRead, isWritten, isImplicit);
                 }
                 break;
 
             case am_F:
                 {
                     Expression::Ptr op(makeRegisterExpression(x86::flags));
-                    insn_to_complete->appendOperand(op, isRead, isWritten);
+                    insn_to_complete->appendOperand(op, isRead, isWritten, isImplicit);
                 }
                 break;
 
@@ -1084,7 +1084,7 @@ namespace Dyninst
                 {
                     Expression::Ptr op(makeRegisterExpression(
                                 makeRegisterID(locs->modrm_reg, optype, locs->rex_r)));
-                    insn_to_complete->appendOperand(op, isRead, isWritten);
+                    insn_to_complete->appendOperand(op, isRead, isWritten, isImplicit);
                 }
                 break;
 
@@ -1100,7 +1100,7 @@ namespace Dyninst
                 /* Append the operand */
                 insn_to_complete->appendOperand(makeRegisterExpression(
                             IntelRegTable(m_Arch, bank, bank_index)), 
-                        isRead, isWritten);
+                        isRead, isWritten, isImplicit);
                 break;
 
             case am_HK: /* Could be XMM, YMM or ZMM */
@@ -1115,13 +1115,13 @@ namespace Dyninst
                 /* Append the operand */
                 insn_to_complete->appendOperand(makeRegisterExpression(
                             IntelRegTable(m_Arch, bank, bank_index)),
-                        isRead, isWritten);
+                        isRead, isWritten, isImplicit);
                 break;
 
             case am_I:
                 insn_to_complete->appendOperand(decodeImmediate(optype, b.start +
                             locs->imm_position[imm_index++]),
-                        isRead, isWritten);
+                        isRead, isWritten, isImplicit);
                 break;
             case am_J:
                 {
@@ -1186,14 +1186,14 @@ namespace Dyninst
                     offset_position++;
                     insn_to_complete->appendOperand(makeDereferenceExpression(
                                 decodeImmediate(pseudoOpType, b.start + offset_position), 
-                                makeSizeType(optype)), isRead, isWritten);
+                                makeSizeType(optype)), isRead, isWritten, isImplicit);
                 }
                 break;
 
             case am_P:
                 insn_to_complete->appendOperand(makeRegisterExpression(
                             IntelRegTable(m_Arch,b_mm,locs->modrm_reg)),
-                        isRead, isWritten);
+                        isRead, isWritten, isImplicit);
                 break;
 
             case am_Q:
@@ -1204,13 +1204,13 @@ namespace Dyninst
                     case 0x01:
                     case 0x02:
                         insn_to_complete->appendOperand(makeModRMExpression(b, optype), 
-                                isRead, isWritten);
+                                isRead, isWritten, isImplicit);
                         break;
                     case 0x03:
                         // use of actual register
                         insn_to_complete->appendOperand(makeRegisterExpression(
                                     IntelRegTable(m_Arch,b_mm,locs->modrm_rm)),
-                                isRead, isWritten);
+                                isRead, isWritten, isImplicit);
                         break;
                     default:
                         assert(!"2-bit value modrm_mod out of range");
@@ -1222,14 +1222,14 @@ namespace Dyninst
                 // Segment register in modrm reg field.
                 insn_to_complete->appendOperand(makeRegisterExpression(
                             IntelRegTable(m_Arch,b_segment,locs->modrm_reg)),
-                        isRead, isWritten);
+                        isRead, isWritten, isImplicit);
                 break;
             case am_T:
                 // test register in modrm reg; should only be tr6/tr7, but we'll decode any of them
                 // NOTE: this only appears in deprecated opcodes
                 insn_to_complete->appendOperand(makeRegisterExpression(
                             IntelRegTable(m_Arch,b_tr,locs->modrm_reg)), 
-                        isRead, isWritten);
+                        isRead, isWritten, isImplicit);
                 break;
 
             case am_UM:
@@ -1241,7 +1241,7 @@ namespace Dyninst
                     case 0x02:
                         insn_to_complete->appendOperand(
                                 makeModRMExpression(b, makeSizeType(optype)),
-                                isRead, isWritten);
+                                isRead, isWritten, isImplicit);
                         break;
                     case 0x03:
                         // use of actual register (am_U)
@@ -1261,7 +1261,7 @@ namespace Dyninst
                             /* Append the operand */
                             insn_to_complete->appendOperand(makeRegisterExpression(
                                         IntelRegTable(m_Arch, bank, bank_index)), 
-                                    isRead, isWritten);	
+                                    isRead, isWritten, isImplicit);	
                             break;
                         }
                     default:
@@ -1284,7 +1284,7 @@ namespace Dyninst
 
                 insn_to_complete->appendOperand(makeRegisterExpression(
                             IntelRegTable(m_Arch, bank, bank_index)), 
-                        isRead, isWritten);
+                        isRead, isWritten, isImplicit);
                 break;
 
             case am_YH: /* Could be XMM or YMM */
@@ -1303,7 +1303,7 @@ namespace Dyninst
                 /* Append the operand */
                 insn_to_complete->appendOperand(makeRegisterExpression(
                             IntelRegTable(m_Arch, bank, bank_index)), 
-                        isRead, isWritten);
+                        isRead, isWritten, isImplicit);
                 break;
 
             case am_U: /* Could be XMM, YMM, or ZMM (or possibly non VEX)*/
@@ -1320,7 +1320,9 @@ namespace Dyninst
                     return false;
 
                 /* Append the operand */
-                insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch, bank, bank_index)), isRead, isWritten);
+                insn_to_complete->appendOperand(makeRegisterExpression(
+                            IntelRegTable(m_Arch, bank, bank_index)), 
+                        isRead, isWritten, isImplicit);
                 break;
             case am_XU: /* Must be XMM (must be VEX) */
                 /* Make sure this register class is valid */
@@ -1335,7 +1337,9 @@ namespace Dyninst
                     return false;
 
                 /* Append the operand */
-                insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch, bank, bank_index)), isRead, isWritten);
+                insn_to_complete->appendOperand(makeRegisterExpression(
+                            IntelRegTable(m_Arch, bank, bank_index)), 
+                        isRead, isWritten, isImplicit);
                 break;
             case am_YU: /* Must be XMM or YMM (must be VEX) */
                 /* Make sure this register class is valid */
@@ -1351,7 +1355,9 @@ namespace Dyninst
                     return false;
 
                 /* Append the operand */
-                insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch, bank, bank_index)), isRead, isWritten);
+                insn_to_complete->appendOperand(makeRegisterExpression(
+                            IntelRegTable(m_Arch, bank, bank_index)), 
+                        isRead, isWritten, isImplicit);
                 break;
             case am_V: /* Could be XMM, YMM or ZMM (possibly non VEX)*/
                 /* Is this a vex prefixed instruction? */
@@ -1366,7 +1372,9 @@ namespace Dyninst
                     return false;
 
                 /* Append the operand */
-                insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch, bank, bank_index)), isRead, isWritten);
+                insn_to_complete->appendOperand(makeRegisterExpression(
+                            IntelRegTable(m_Arch, bank, bank_index)), 
+                        isRead, isWritten, isImplicit);
                 break;
             case am_XV: /* Must be XMM (must be VEX) */
 
@@ -1380,7 +1388,8 @@ namespace Dyninst
                     return false;
 
                 /* Append the operand */
-                insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch, bank, bank_index)), isRead, isWritten);
+                insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(
+                                m_Arch, bank, bank_index)), isRead, isWritten, isImplicit);
                 break;
             case am_YV: /* Must be XMM or YMM (must be VEX) */
                 /* Make sure this register class is valid */
@@ -1398,7 +1407,9 @@ namespace Dyninst
                     return false;
 
                 /* Append the operand */
-                insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch, bank, bank_index)), isRead, isWritten);
+                insn_to_complete->appendOperand(makeRegisterExpression(
+                            IntelRegTable(m_Arch, bank, bank_index)), 
+                        isRead, isWritten, isImplicit);
                 break;
             case am_VK: /* A KMasking register defined in the reg of a Mod/RM*/
                 /* Is this a vex prefixed instruction? */
@@ -1413,7 +1424,9 @@ namespace Dyninst
                     return false;
 
                 /* Append the operand */
-                insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch, bank, bank_index)), isRead, isWritten);
+                insn_to_complete->appendOperand(makeRegisterExpression(
+                            IntelRegTable(m_Arch, bank, bank_index)), 
+                        isRead, isWritten, isImplicit);
                 break;
             case am_WK: /* Could be a K mask register or memory address*/
             case am_W: /* Could be XMM, YMM, or ZMM (or possibly not VEX) */
@@ -1435,7 +1448,8 @@ namespace Dyninst
                     case 0x01:
                     case 0x02:
                         insn_to_complete->appendOperand(
-                                makeModRMExpression(b, makeSizeType(optype)), isRead, isWritten);
+                                makeModRMExpression(b, makeSizeType(optype)), 
+                                isRead, isWritten, isImplicit);
                         break;
                     case 0x03:
                         /* Just the register is used */
@@ -1445,7 +1459,8 @@ namespace Dyninst
 
                         insn_to_complete->appendOperand(
                                 makeRegisterExpression(IntelRegTable(
-                                        m_Arch, bank, bank_index)), isRead, isWritten);
+                                        m_Arch, bank, bank_index)), 
+                                isRead, isWritten, isImplicit);
                         break;
                     default:
                         assert(!"2-bit value modrm_mod out of range");
@@ -1467,13 +1482,18 @@ namespace Dyninst
                     case 0x00:
                     case 0x01:
                     case 0x02:
-                        insn_to_complete->appendOperand(makeModRMExpression(b, makeSizeType(optype)), isRead, isWritten);
+                        insn_to_complete->appendOperand(makeModRMExpression(b, 
+                                    makeSizeType(optype)), 
+                                isRead, isWritten, isImplicit);
                         break;
                     case 0x03:
                         /* Just the register is used */
                         if(decodeAVX(bank, &bank_index, locs->modrm_rm, avx_type, pref, operand.admet))
                             return false;
-                        insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch, bank, bank_index)), isRead, isWritten);
+                        insn_to_complete->appendOperand(
+                                makeRegisterExpression(IntelRegTable
+                                    (m_Arch, bank, bank_index)), 
+                                isRead, isWritten, isImplicit);
                         break;
                     default:
                         assert(!"2-bit value modrm_mod out of range");
@@ -1496,7 +1516,9 @@ namespace Dyninst
                     case 0x00:
                     case 0x01:
                     case 0x02:
-                        insn_to_complete->appendOperand(makeModRMExpression(b, makeSizeType(optype)), isRead, isWritten);
+                        insn_to_complete->appendOperand(makeModRMExpression(
+                                    b, makeSizeType(optype)), 
+                                isRead, isWritten, isImplicit);
                         break;
                     case 0x03:
                         /* Just the register is used */
@@ -1504,7 +1526,9 @@ namespace Dyninst
                             return false;
 
                         /* Append the operand */
-                        insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch, bank, bank_index)), isRead, isWritten);
+                        insn_to_complete->appendOperand(makeRegisterExpression(
+                                    IntelRegTable(m_Arch, bank, bank_index)), 
+                                isRead, isWritten, isImplicit);
                         break;
                     default:
                         assert(!"2-bit value modrm_mod out of range");
@@ -1541,7 +1565,7 @@ namespace Dyninst
                     Expression::Ptr ds_si = makeAddExpression(ds_segment, si, u32);
                     insn_to_complete->appendOperand(
                             makeDereferenceExpression(ds_si, makeSizeType(optype)), 
-                            isRead, isWritten);
+                            isRead, isWritten, isImplicit);
                 }
                 break;
             case am_Y:
@@ -1575,7 +1599,7 @@ namespace Dyninst
                     Expression::Ptr es_di(makeAddExpression(es_segment, di, u32));
                     insn_to_complete->appendOperand(
                             makeDereferenceExpression(es_di, makeSizeType(optype)),
-                            isRead, isWritten);
+                            isRead, isWritten, isImplicit);
 
                 }
                 break;
@@ -1587,7 +1611,7 @@ namespace Dyninst
                     Expression::Ptr highAddr = makeMultiplyExpression(edx, Immediate::makeImmediate(Result(u64, 2^32)), u64);
                     Expression::Ptr addr = makeAddExpression(highAddr, eax, u64);
                     Expression::Ptr op = makeDereferenceExpression(addr, u64);
-                    insn_to_complete->appendOperand(op, isRead, isWritten);
+                    insn_to_complete->appendOperand(op, isRead, isWritten, isImplicit);
                 } else if (optype == op_ecxebx)
                 {
                     Expression::Ptr ecx(makeRegisterExpression(m_Arch == Arch_x86 ? x86::ecx : x86_64::ecx));
@@ -1596,7 +1620,7 @@ namespace Dyninst
                             Immediate::makeImmediate(Result(u64, 2^32)), u64);
                     Expression::Ptr addr = makeAddExpression(highAddr, ebx, u64);
                     Expression::Ptr op = makeDereferenceExpression(addr, u64);
-                    insn_to_complete->appendOperand(op, isRead, isWritten);
+                    insn_to_complete->appendOperand(op, isRead, isWritten, isImplicit);
                 }
                 break;
 
@@ -1667,7 +1691,7 @@ namespace Dyninst
                         }
                     }
                     Expression::Ptr op(makeRegisterExpression(r));
-                    insn_to_complete->appendOperand(op, isRead, isWritten);
+                    insn_to_complete->appendOperand(op, isRead, isWritten, isImplicit);
                 }
                 break;
             case am_stackH:
@@ -1677,44 +1701,32 @@ namespace Dyninst
             case am_allgprs:
                 if(m_Arch == Arch_x86)
                 {
-                    insn_to_complete->appendOperand(makeRegisterExpression(x86::eax), isRead, isWritten);
-                    insn_to_complete->appendOperand(makeRegisterExpression(x86::ecx), isRead, isWritten);
-                    insn_to_complete->appendOperand(makeRegisterExpression(x86::edx), isRead, isWritten);
-                    insn_to_complete->appendOperand(makeRegisterExpression(x86::ebx), isRead, isWritten);
-                    insn_to_complete->appendOperand(makeRegisterExpression(x86::esp), isRead, isWritten);
-                    insn_to_complete->appendOperand(makeRegisterExpression(x86::ebp), isRead, isWritten);
-                    insn_to_complete->appendOperand(makeRegisterExpression(x86::esi), isRead, isWritten);
-                    insn_to_complete->appendOperand(makeRegisterExpression(x86::edi), isRead, isWritten);
+                    insn_to_complete->appendOperand(makeRegisterExpression(x86::eax), isRead, isWritten, isImplicit);
+                    insn_to_complete->appendOperand(makeRegisterExpression(x86::ecx), isRead, isWritten, isImplicit);
+                    insn_to_complete->appendOperand(makeRegisterExpression(x86::edx), isRead, isWritten, isImplicit);
+                    insn_to_complete->appendOperand(makeRegisterExpression(x86::ebx), isRead, isWritten, isImplicit);
+                    insn_to_complete->appendOperand(makeRegisterExpression(x86::esp), isRead, isWritten, isImplicit);
+                    insn_to_complete->appendOperand(makeRegisterExpression(x86::ebp), isRead, isWritten, isImplicit);
+                    insn_to_complete->appendOperand(makeRegisterExpression(x86::esi), isRead, isWritten, isImplicit);
+                    insn_to_complete->appendOperand(makeRegisterExpression(x86::edi), isRead, isWritten, isImplicit);
                 } else {
-                    insn_to_complete->appendOperand(makeRegisterExpression(x86_64::eax), isRead, isWritten);
-                    insn_to_complete->appendOperand(makeRegisterExpression(x86_64::ecx), isRead, isWritten);
-                    insn_to_complete->appendOperand(makeRegisterExpression(x86_64::edx), isRead, isWritten);
-                    insn_to_complete->appendOperand(makeRegisterExpression(x86_64::ebx), isRead, isWritten);
-                    insn_to_complete->appendOperand(makeRegisterExpression(x86_64::esp), isRead, isWritten);
-                    insn_to_complete->appendOperand(makeRegisterExpression(x86_64::ebp), isRead, isWritten);
-                    insn_to_complete->appendOperand(makeRegisterExpression(x86_64::esi), isRead, isWritten);
-                    insn_to_complete->appendOperand(makeRegisterExpression(x86_64::edi), isRead, isWritten);
+                    insn_to_complete->appendOperand(makeRegisterExpression(x86_64::eax), isRead, isWritten, isImplicit);
+                    insn_to_complete->appendOperand(makeRegisterExpression(x86_64::ecx), isRead, isWritten, isImplicit);
+                    insn_to_complete->appendOperand(makeRegisterExpression(x86_64::edx), isRead, isWritten, isImplicit);
+                    insn_to_complete->appendOperand(makeRegisterExpression(x86_64::ebx), isRead, isWritten, isImplicit);
+                    insn_to_complete->appendOperand(makeRegisterExpression(x86_64::esp), isRead, isWritten, isImplicit);
+                    insn_to_complete->appendOperand(makeRegisterExpression(x86_64::ebp), isRead, isWritten, isImplicit);
+                    insn_to_complete->appendOperand(makeRegisterExpression(x86_64::esi), isRead, isWritten, isImplicit);
+                    insn_to_complete->appendOperand(makeRegisterExpression(x86_64::edi), isRead, isWritten, isImplicit);
                 }
                 break;
             case am_ImplImm:
-                insn_to_complete->appendOperand(Immediate::makeImmediate(Result(makeSizeType(optype), 1)), isRead, isWritten);
+                insn_to_complete->appendOperand(Immediate::makeImmediate(Result(makeSizeType(optype), 1)), isRead, isWritten, isImplicit);
                 break;
             default:
                 printf("decodeOneOperand() called with unknown addressing method %d\n", operand.admet);
                 // assert(0);
                 return false;
-        }
-
-        if(isImplicit)
-        {
-            std::vector<Operand> operands;
-            insn_to_complete->getOperands(operands);
-            if(operands.size() != 0)
-            {
-                Operand o = *operands.end();
-                o.setImplicit(true);
-                fprintf(stderr, "SET IMPLICIT OPERAND");
-            }
         }
 
         return true;
@@ -1802,7 +1814,8 @@ namespace Dyninst
     {
         int imm_index = 0; // handle multiple immediate operands
         if(!decodedInstruction || !decodedInstruction->getEntry()) return false;
-        unsigned int opsema = sGETSEM(decodedInstruction->getEntry()->opsema);
+        unsigned int opsema = decodedInstruction->getEntry()->opsema;
+        unsigned int semantics = sGETSEM(decodedInstruction->getEntry()->opsema);
         InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
 
         if (decodedInstruction->getEntry()->getID() == e_ret_near ||
@@ -1822,8 +1835,8 @@ namespace Dyninst
                         decodedInstruction->getEntry()->operands[i], 
                         imm_index, 
                         insn_to_complete, 
-                        readsOperand(opsema, i),
-                        writesOperand(opsema, i),
+                        readsOperand(semantics, i),
+                        writesOperand(semantics, i),
                         implicitOperand(opsema, i)))
             {
                 return false;
@@ -1831,14 +1844,14 @@ namespace Dyninst
         }
 
         /* Does this instruction have a 4th operand? */
-        if(sGETSEM(decodedInstruction->getEntry()->opsema) >= s4OP)
+        if(semantics >= s4OP)
         {
             if(!decodeOneOperand(b,
                         {am_I, op_b}, /* This is always an IMM8 */
                         imm_index,
                         insn_to_complete,
-                        readsOperand(opsema, 3),
-                        writesOperand(opsema, 3),
+                        readsOperand(semantics, 3),
+                        writesOperand(semantics, 3),
                         implicitOperand(opsema, 3)))
             {
                 return false;

@@ -459,6 +459,13 @@ memAccessors.begin()));
         {
             std::string format = currOperand->format(getArch(), addr);
 
+            if(currOperand->isImplicit())
+            {
+                op--;
+                continue;
+            }
+
+
             if(format.size() < 1)
             {
                 assert(!"Null operand in operands list!");
@@ -541,10 +548,6 @@ memAccessors.begin()));
         }
         cout << endl;
 #endif // defined(DEBUG_READ_WRITE)
-
-        /* We convert No_Entry to (bad) */
-        if(!retVal.compare("No_Entry"))
-            retVal = "(bad)";
 
         return retVal;
     }
@@ -648,6 +651,12 @@ memAccessors.begin()));
     void Instruction::appendOperand(Expression::Ptr e, bool isRead, bool isWritten) const
     {
         m_Operands.push_back(Operand(e, isRead, isWritten));
+    }
+
+    void Instruction::appendOperand(Expression::Ptr e, 
+		bool isRead, bool isWritten, bool isImplicit) const
+    {
+        m_Operands.push_back(Operand(e, isRead, isWritten, isImplicit));
     }
   
 
