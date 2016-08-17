@@ -59,13 +59,13 @@ namespace Dyninst
     {
     public:
         typedef boost::shared_ptr<Operand> Ptr;
-    Operand() : m_isRead(false), m_isWritten(false) {}
+    Operand() : m_isRead(false), m_isWritten(false), m_isImplicit(false) {}
       /// \brief Create an operand from a %Expression and flags describing whether the %ValueComputation
       /// is read, written or both.
       /// \param val Reference-counted pointer to the %Expression that will be contained in the %Operand being constructed
       /// \param read True if this operand is read
       /// \param written True if this operand is written
-      Operand(Expression::Ptr val, bool read, bool written) : op_value(val), m_isRead(read), m_isWritten(written) 
+      Operand(Expression::Ptr val, bool read, bool written) : op_value(val), m_isRead(read), m_isWritten(written), m_isImplicit(false)
       {
       }
       virtual ~Operand()
@@ -101,6 +101,9 @@ namespace Dyninst
 	return m_isRead; }
       INSTRUCTION_EXPORT bool isWritten() const {
 	return m_isWritten; }
+
+      INSTRUCTION_EXPORT bool isImplicit() const { return m_isImplicit; }
+      INSTRUCTION_EXPORT void setImplicit(bool i) { m_isImplicit = i; }
       
       /// Returns true if this operand reads memory
       INSTRUCTION_EXPORT bool readsMemory() const;
@@ -124,6 +127,7 @@ namespace Dyninst
       Expression::Ptr op_value;
       bool m_isRead;
       bool m_isWritten;
+      bool m_isImplicit;
     };
   };
 };
