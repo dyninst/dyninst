@@ -35,6 +35,7 @@
 #include <string>
 #include "dyntypes.h"
 #include "BPatch_dll.h"
+#include "StackMod.h"
 
 class mapped_object;
 class BPatch_addressSpace;
@@ -147,6 +148,27 @@ class BPATCH_DLL_EXPORT BPatch_object {
     //  if there is not overlapping code. 
     bool findPoints(Dyninst::Address addr, std::vector<BPatch_point *> &points);
 
+    // BPatch_object::addModsAllProcs
+    // Apply stack modifications in mods to all functions in the current
+    // object.  Perform error checking, handle stack alignment requirements, and
+    // generate any modifications required for cleanup at function exit.
+    // Atomically adds all modifications in mods; if any mod is found to be
+    // unsafe, none of the modifications are applied.  If interproc is true,
+    // interprocedural analysis is used for more precise evaluation of
+    // modification safety (i.e. modifications that are actually safe are more
+    // likely to be correctly identified as safe, but analysis will take
+    // longer).  depthLimit specifies the maximum depth allowed for
+    // interprocedural analysis, and is only used if interproc is true.  Note
+    // that depthLimit 0 will still analyze interprocedural edges within the
+    // current object; it just won't analyze edges between this object and
+    // another object.
+    //
+    // Returns in modResults a vector of (function, instrumented) pairs where
+    // instrumented is true if stack modifications were successfully added.
+    void addModsAllFuncs(const std::set<StackMod *> &mods, bool interproc,
+        std::vector<std::pair<BPatch_function *, bool>> &modResults,
+        unsigned depthLimit = 0);
+
     BPatchSnippetHandle*  insertInitCallback(BPatch_snippet& callback);
 
     BPatchSnippetHandle*  insertFiniCallback(BPatch_snippet& callback);
@@ -154,8 +176,3 @@ class BPATCH_DLL_EXPORT BPatch_object {
 };
 
 #endif
-
-
-               
-    
-    
