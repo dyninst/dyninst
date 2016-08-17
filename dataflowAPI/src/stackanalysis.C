@@ -1077,14 +1077,20 @@ void StackAnalysis::handlePushPop(Instruction::Ptr insn, Block *block,
             long writtenSlotHeight = spHeight.height() - word_size;
             Absloc writtenLoc(writtenSlotHeight, 0, NULL);
 
-            // Get copied register
             Expression::Ptr readExpr = insn->getOperand(0).getValue();
-            assert(typeid(*readExpr) == typeid(RegisterAST));
-            MachRegister readReg = boost::dynamic_pointer_cast<RegisterAST>(
-               readExpr)->getID();
-            Absloc readLoc(readReg);
-
-            xferFuncs.push_back(TransferFunc::copyFunc(readLoc, writtenLoc));
+            if (typeid(*readExpr) == typeid(RegisterAST)) {
+               // Get copied register
+               MachRegister readReg = boost::dynamic_pointer_cast<RegisterAST>(
+                  readExpr)->getID();
+               Absloc readLoc(readReg);
+               xferFuncs.push_back(TransferFunc::copyFunc(readLoc, writtenLoc));
+            } else if (typeid(*readExpr) == typeid(Immediate)) {
+               // Get pushed immediate
+               long immVal = readExpr->eval().convert<long>();
+               xferFuncs.push_back(TransferFunc::absFunc(writtenLoc, immVal));
+            } else {
+               assert(false);
+            }
          }
       }
    } else if (insn->getOperation().getID() == e_pop && !insn->writesMemory()) {

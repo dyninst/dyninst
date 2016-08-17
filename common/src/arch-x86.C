@@ -709,7 +709,11 @@ static int vex3_simdop_convert[3][4] = {
 #define ST5  { am_reg, x86::ist5 }
 #define ST6  { am_reg, x86::ist6 }
 #define ST7  { am_reg, x86::ist7 }
-#define FPOS 17
+
+/**
+ * NOTE: if more than 256 hacks are needed here, then the bit fields in arch-x86.h need
+ * to be adjusted.
+ */
 
 enum {
   fNT=1,   // non-temporal
@@ -722,7 +726,7 @@ enum {
   fCALL,
   fNEARRET,
   fFARRET,
-  fIRET,
+  fIRET, /* 10 */
   fENTER,
   fLEAVE,
   fXLAT,
@@ -732,7 +736,7 @@ enum {
   fCMPXCH,
   fCMPXCH8,
   fINDIRCALL,
-  fINDIRJUMP,
+  fINDIRJUMP, /* 20*/
   fFXSAVE,
   fFXRSTOR,
   fCLFLUSH,
@@ -740,6 +744,7 @@ enum {
   fSCAS,
   fCMPS
 };
+
 
 COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_aaa, "aaa")
@@ -2105,7 +2110,7 @@ static ia32_entry oneByteMap[256] = {
   { e_add,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { e_add,  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
   { e_add,  t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
-  { e_push, t_done, 0, false, { ES, eSP, Zz }, 0, s1R2RW }, // Semantics rewritten to ignore stack "operand"
+  { e_push, t_done, 0, false, { ES, eSP, Zz }, 0, s1R2RW | s2I }, // Semantics rewritten to ignore stack "operand"
   { e_pop,  t_done, 0, false, { ES, eSP, Zz }, 0, s1W2RW },
   /* 08 */
   { e_or,   t_done, 0, 
@@ -2115,7 +2120,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_or,   t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { e_or,   t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
   { e_or,   t_done, 0, false, { rAX, Iz, Zz }, 0, s1RW2R },
-  { e_push, t_done, 0, false, { CS, eSP, Zz }, 0, s1R2RW },
+  { e_push, t_done, 0, false, { CS, eSP, Zz }, 0, s1R2RW | s2I },
   { e_No_Entry,      t_twoB, 0, false, { Zz, Zz, Zz }, 0, 0 },
   /* 10 */
   { e_adc,  t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
@@ -2124,7 +2129,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_adc,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { e_adc,  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
   { e_adc,  t_done, 0, false, { rAX, Iz, Zz }, 0, s1RW2R },
-  { e_push, t_done, 0, false, { SS, eSP, Zz }, 0, s1R2RW },
+  { e_push, t_done, 0, false, { SS, eSP, Zz }, 0, s1R2RW | s2I },
   { e_pop,  t_done, 0, false, { SS, eSP, Zz }, 0, s1W2RW },
   /* 18 */
   { e_sbb,  t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
@@ -2133,7 +2138,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_sbb,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { e_sbb,  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
   { e_sbb,  t_done, 0, false, { rAX, Iz, Zz }, 0, s1RW2R },
-  { e_push, t_done, 0, false, { DS, eSP, Zz }, 0, s1R2RW },
+  { e_push, t_done, 0, false, { DS, eSP, Zz }, 0, s1R2RW | s2I },
   { e_pop , t_done, 0, false, { DS, eSP, Zz }, 0, s1W2RW },
   /* 20 */
   { e_and, t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
@@ -2190,14 +2195,14 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_dec, t_done, 0, false, { eSI, Zz, Zz }, 0, s1RW },
   { e_dec, t_done, 0, false, { eDI, Zz, Zz }, 0, s1RW },
   /* 50 */
-  { e_push, t_done, 0, false, { rAX, eSP, Zz }, 0, s1R2RW },
-  { e_push, t_done, 0, false, { rCX, eSP, Zz }, 0, s1R2RW },
-  { e_push, t_done, 0, false, { rDX, eSP, Zz }, 0, s1R2RW },
-  { e_push, t_done, 0, false, { rBX, eSP, Zz }, 0, s1R2RW },
-  { e_push, t_done, 0, false, { rSP, eSP, Zz }, 0, s1R2RW },
-  { e_push, t_done, 0, false, { rBP, eSP, Zz }, 0, s1R2RW },
-  { e_push, t_done, 0, false, { rSI, eSP, Zz }, 0, s1R2RW },
-  { e_push, t_done, 0, false, { rDI, eSP, Zz }, 0, s1R2RW },
+  { e_push, t_done, 0, false, { rAX, eSP, Zz }, 0, s1R2RW | s2I },
+  { e_push, t_done, 0, false, { rCX, eSP, Zz }, 0, s1R2RW | s2I },
+  { e_push, t_done, 0, false, { rDX, eSP, Zz }, 0, s1R2RW | s2I },
+  { e_push, t_done, 0, false, { rBX, eSP, Zz }, 0, s1R2RW | s2I },
+  { e_push, t_done, 0, false, { rSP, eSP, Zz }, 0, s1R2RW | s2I },
+  { e_push, t_done, 0, false, { rBP, eSP, Zz }, 0, s1R2RW | s2I },
+  { e_push, t_done, 0, false, { rSI, eSP, Zz }, 0, s1R2RW | s2I },
+  { e_push, t_done, 0, false, { rDI, eSP, Zz }, 0, s1R2RW | s2I },
   /* 58 */
   { e_pop, t_done, 0, false, { rAX, eSP, Zz }, 0, s1W2RW },
   { e_pop, t_done, 0, false, { rCX, eSP, Zz }, 0, s1W2RW },
@@ -2208,7 +2213,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_pop, t_done, 0, false, { rSI, eSP, Zz }, 0, s1W2RW },
   { e_pop, t_done, 0, false, { rDI, eSP, Zz }, 0, s1W2RW },
   /* 60 */
-  { e_pushad, t_done, 0, false, { GPRS, eSP, Zz }, 0, s1R2RW },
+  { e_pushad, t_done, 0, false, { GPRS, eSP, Zz }, 0, s1R2RW | s2I },
   { e_popad,  t_done, 0, false, { GPRS, eSP, Zz }, 0, s1W2RW },
   { e_bound, t_done, 0, true, { Gv, Ma, Zz }, 0, s1R2R }, // or VEX
   { e_arpl, t_done, 0, true, { Ew, Gw, Zz }, 0, s1R2R }, /* No REX */
@@ -2217,9 +2222,9 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_No_Entry,          t_ill,  2, false, { Zz, Zz, Zz }, 0, 0 }, /* operand size prefix (PREFIX_OPR_SZ) (depricated: prefixedSSE)*/
   { e_No_Entry,          t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, /* address size prefix (PREFIX_ADDR_SZ)*/
   /* 68 */
-  { e_push,    t_done, 0, false, { Iz, eSP, Zz }, 0, s1R2RW },
+  { e_push,    t_done, 0, false, { Iz, eSP, Zz }, 0, s1R2RW | s2I },
   { e_imul,    t_done, 0, true, { Gv, Ev, Iz }, 0, s1W2R3R },
-  { e_push,    t_done, 0, false, { Ib, eSP, Zz }, 0, s1R2RW },
+  { e_push,    t_done, 0, false, { Ib, eSP, Zz }, 0, s1R2RW | s2I },
   { e_imul,    t_done, 0, true, { Gv, Ev, Ib }, 0, s1W2R3R },
   { e_insb,    t_done, 0, false, { Yb, DX, Zz }, 0, s1W2R | (fREP << FPOS) }, // (e)SI/DI changed
   { e_insd,  t_done, 0, false, { Yv, DX, Zz }, 0, s1W2R | (fREP << FPOS) },
@@ -2276,7 +2281,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_cdq,  t_done, 0, false, { eDX, eAX, Zz }, 0, s1W2R },
   { e_call,     t_done, 0, false, { Ap, Zz, Zz }, IS_CALL | PTR_WX, s1R },
   { e_wait,     t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { e_pushfd, t_done, 0, false, { Fv, rSP, Zz }, 0, s1R2RW },
+  { e_pushfd, t_done, 0, false, { Fv, rSP, Zz }, 0, s1R2RW | s2I },
   { e_popfd,  t_done, 0, false, { Fv, rSP, Zz }, 0, s1W2RW },
   { e_sahf,     t_done, 0, false, { Zz, Zz, Zz }, 0, 0 }, // FIXME Intel
   { e_lahf,     t_done, 0, false, { Zz, Zz, Zz }, 0, 0 }, // FIXME Intel
@@ -2580,7 +2585,7 @@ static ia32_entry twoByteMap[256] = {
   { e_setle,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
   { e_setnle, t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
   /* A0 */
-  { e_push,   t_done, 0, false, { FS, eSP, Zz }, 0, s1R2RW },
+  { e_push,   t_done, 0, false, { FS, eSP, Zz }, 0, s1R2RW | s2I },
   { e_pop,    t_done, 0, false, { FS, eSP, Zz }, 0, s1W2RW },
   { e_cpuid,  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
   { e_bt,     t_done, 0, true, { Ev, Gv, Zz }, 0, s1R2R },
@@ -2589,7 +2594,7 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 }, 
   { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
   /* A8 */
-  { e_push, t_done, 0, false, { GS, eSP, Zz }, 0, s1R2RW },
+  { e_push, t_done, 0, false, { GS, eSP, Zz }, 0, s1R2RW | s2I },
   { e_pop,  t_done, 0, false, { GS, eSP, Zz }, 0, s1W2RW },
   { e_rsm,  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
   { e_bts,  t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
@@ -3555,7 +3560,7 @@ static ia32_entry groupMap[][8] = {
   { e_call, t_done, 0, true, { Ep, Zz, Zz }, (IS_CALL | INDIR), s1R | (fINDIRCALL << FPOS) },
   { e_jmp,  t_done, 0, true, { Ev, Zz, Zz }, (IS_JUMP | INDIR), s1R | (fINDIRJUMP << FPOS) },
   { e_jmp,  t_done, 0, true, { Ep, Zz, Zz }, (IS_JUMP | INDIR), s1R | (fINDIRJUMP << FPOS) },
-  { e_push, t_done, 0, true, { Ev, eSP, Zz }, 0, s1R2RW },
+  { e_push, t_done, 0, true, { Ev, eSP, Zz }, 0, s1R2RW | s2I },
   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
  },
 
@@ -8344,8 +8349,8 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
     /* Decode the memory accesses if requested */
     if(capa & IA32_DECODE_MEMACCESS) 
     {
-        int sema = gotit->opsema & ((1<<FPOS)-1);
-        int hack = gotit->opsema >> FPOS;
+        int sema = sGETSEM(gotit->opsema);
+        int hack = sGETHACK(gotit->opsema);
 
         switch(sema) 
         {
@@ -9034,7 +9039,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char* addr,
     /* Set the condition bits if we need to */
     if(capa & IA32_DECODE_CONDITION)
     {
-        int hack = gotit->opsema >> FPOS;
+        int hack = sGETHACK(gotit->opsema);
         if(hack == fCOND)
             instruct.cond->set(condbits);
     }
@@ -9789,7 +9794,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
     }
             
     /* Are there 4 operands? */
-    if((gotit.opsema &  0xffff) >= s4OP)
+    if((sGETSEM(gotit.opsema)) >= s4OP)
     {
         /* This last one is always Ib */
         int imm_size = type2size(op_b, operSzAttr);
