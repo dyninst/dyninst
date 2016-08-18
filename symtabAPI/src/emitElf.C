@@ -2121,10 +2121,10 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
             rels[j].r_offset = newRels[i].rel_addr() + library_adjust;
             if (dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
                 rels[j].r_info = ElfTypes::makeRelocInfo(dynSymNameMapping[newRels[i].name()],
-                                                         relocationEntry::getGlobalRelType(obj->getAddressWidth()));
+                                                         newRels[i].getRelType());
             } else {
                 rels[j].r_info = ElfTypes::makeRelocInfo((unsigned long) (STN_UNDEF),
-                                                         relocationEntry::getGlobalRelType(obj->getAddressWidth()));
+                                                         newRels[i].getRelType());
             }
             j++;
             l++;
@@ -2134,10 +2134,10 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
             //if( relas[k].r_addend ) relas[k].r_addend += library_adjust;
             if (dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
                 relas[k].r_info = ElfTypes::makeRelocInfo(dynSymNameMapping[newRels[i].name()],
-                                                          relocationEntry::getGlobalRelType(obj->getAddressWidth()));
+                                                          newRels[i].getRelType());
             } else {
                 relas[k].r_info = ElfTypes::makeRelocInfo((unsigned long) (STN_UNDEF),
-                                                          relocationEntry::getGlobalRelType(obj->getAddressWidth()));
+                                                          newRels[i].getRelType());
             }
             k++;
             m++;
