@@ -36,9 +36,9 @@
 
 using namespace Dyninst;
 
-BPatch_stackInsertExpr::BPatch_stackInsertExpr(int size, int dispFromRSP)
+BPatch_stackInsertExpr::BPatch_stackInsertExpr(int size)
 {
-    ast_wrapper = AstNodePtr(AstNode::stackInsertNode(size, dispFromRSP, AstNode::GENERIC_AST));
+    ast_wrapper = AstNodePtr(AstNode::stackInsertNode(size, AstNode::GENERIC_AST));
     assert(BPatch::bpatch != NULL);
 }
 
@@ -56,7 +56,7 @@ BPatch_stackMoveExpr::BPatch_stackMoveExpr()
 
 BPatch_canaryExpr::BPatch_canaryExpr()
 {
-    ast_wrapper = AstNodePtr(AstNode::stackInsertNode(0, 0, AstNode::CANARY_AST));
+    ast_wrapper = AstNodePtr(AstNode::stackInsertNode(0, AstNode::CANARY_AST));
 
     assert(BPatch::bpatch != NULL);
 }

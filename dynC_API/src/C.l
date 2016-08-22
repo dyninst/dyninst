@@ -3,6 +3,8 @@
 %x comment
 %x stringmode
 %option yylineno
+%option outfile="lex.dynC.C"
+%option prefix="dynC"
 
 D[0-9]
 L[a-zA-Z_]

@@ -413,44 +413,44 @@ namespace Dyninst
     
     bool BinaryFunction::isAdd() const
     {
-        return typeid(*m_funcPtr) == typeid(addResult);
+        return dynamic_cast<addResult*>(m_funcPtr.get()) != nullptr;
     }
     
     bool BinaryFunction::isMultiply() const
     {
-        return typeid(*m_funcPtr) == typeid(multResult);
+        return dynamic_cast<multResult*>(m_funcPtr.get()) != nullptr;
 
     }
     
     bool BinaryFunction::isLeftShift() const
     {
-		return typeid(*m_funcPtr) == typeid(leftShiftResult);
-	}
+	return dynamic_cast<leftShiftResult*>(m_funcPtr.get()) != nullptr;
+    }
 	
-	bool BinaryFunction::isRightArithmeticShift() const
+    bool BinaryFunction::isRightArithmeticShift() const
     {
-		return typeid(*m_funcPtr) == typeid(rightArithmeticShiftResult);
-	}
-	
-	bool BinaryFunction::isAndResult() const
-	{
-		return typeid(*m_funcPtr) == typeid(andResult);
-	}
-	
-	bool BinaryFunction::isOrResult() const
-	{
-		return typeid(*m_funcPtr) == typeid(orResult);
-	}
-	
-	bool BinaryFunction::isRightLogicalShift() const
-	{
-		return typeid(*m_funcPtr) == typeid(rightLogicalShiftResult);
-	}
-	
-	bool BinaryFunction::isRightRotate() const
-	{
-		return typeid(*m_funcPtr) == typeid(rightRotateResult);
-	}
+	return dynamic_cast<rightArithmeticShiftResult*>(m_funcPtr.get()) != nullptr;
+    }
+
+    bool BinaryFunction::isAndResult() const
+    {
+        return dynamic_cast<andResult*>(m_funcPtr.get()) != nullptr;
+    }
+
+    bool BinaryFunction::isOrResult() const
+    {
+        return dynamic_cast<orResult*>(m_funcPtr.get()) != nullptr;
+    }
+
+    bool BinaryFunction::isRightLogicalShift() const
+    {
+        return dynamic_cast<rightLogicalShiftResult*>(m_funcPtr.get()) != nullptr;
+    }
+
+    bool BinaryFunction::isRightRotate() const
+    {
+        return dynamic_cast<rightRotateResult*>(m_funcPtr.get()) != nullptr;
+    }
   };
 };
 

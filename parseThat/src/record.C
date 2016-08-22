@@ -266,7 +266,7 @@ bool record_search(record_t *newRecord)
 
     char raw_filename[ PATH_MAX ];
     strncpy(raw_filename, newRecord->filename, sizeof(raw_filename));
-    strncat(raw_filename, ".raw", sizeof(raw_filename) - strlen(raw_filename));
+    strncat(raw_filename, ".raw", sizeof(raw_filename) - strlen(raw_filename) - 1);
     newRecord->raw_fd = fopen(raw_filename, "a");
 
     fprintf(newRecord->raw_fd, "Raw transcript log start: %s\n", timestr);
@@ -283,8 +283,8 @@ void record_update(record_t *newRecord)
     char new_index_filename[PATH_MAX];
 
     strncpy(index_filename, config.record_dir, sizeof(index_filename));
-    strncat(index_filename, "/", sizeof(index_filename) - strlen(index_filename));
-    strncat(index_filename, HISTORY_RECORD_INDEX_FILE, sizeof(index_filename) - strlen(index_filename));
+    strncat(index_filename, "/", sizeof(index_filename) - strlen(index_filename) - 1);
+    strncat(index_filename, HISTORY_RECORD_INDEX_FILE, sizeof(index_filename) - strlen(index_filename) - 1);
     errno = 0;
     index_fd = fopen(index_filename, "r");
     if (!index_fd) {
@@ -293,7 +293,7 @@ void record_update(record_t *newRecord)
     }
 
     strncpy(new_index_filename, index_filename, sizeof(new_index_filename));
-    strncat(new_index_filename, ".update", sizeof(new_index_filename) - strlen(new_index_filename));
+    strncat(new_index_filename, ".update", sizeof(new_index_filename) - strlen(new_index_filename) - 1);
     new_fd = fopen(new_index_filename, "w");
     if (!new_fd) {
 	fprintf(stderr, "Could not open %s\n", new_index_filename);

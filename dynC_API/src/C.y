@@ -1,3 +1,7 @@
+%output "dynC.tab.C"
+%defines "dynC.tab.h"
+%name-prefix "dynC"
+
 %{
 /*                                                                                 
  * Yacc will define token IF, conflicting with dyn_regs.h                          
@@ -6,6 +10,7 @@
  */
 #undef IF
 #undef RETURN
+
 
 
 #include <stdio.h>

@@ -166,7 +166,7 @@ bool IA_aarch64Details::parseJumpTable(Block* /*currBlk*/,
 
 bool IA_aarch64Details::parseJumpTable(Dyninst::ParseAPI::Function* currFunc,
                                        Dyninst::ParseAPI::Block* currBlk,
-				       std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) 
+				       std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges)
 {
 	IndirectControlFlowAnalyzer icfa(currFunc, currBlk);
 	bool ret = icfa.NewJumpTableAnalysis(outEdges);

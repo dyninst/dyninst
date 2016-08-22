@@ -2428,7 +2428,6 @@ char ** declFileNoToName = NULL;
 
 bool Object::fix_global_symbol_modules_static_dwarf()
 {
-    int status;
     /* Initialize libdwarf. */
     Dwarf_Debug *dbg_ptr = dwarf->type_dbg();
     if (!dbg_ptr)
