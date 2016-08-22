@@ -35,11 +35,11 @@
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "RTcommon.h"
 #include <windows.h>
+#include <WinSock2.h>
 #include <Dbghelp.h>
 #include <Psapi.h>
 #include <stdio.h>
 #include <stdlib.h>
-//#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <mmsystem.h>
 #include <errno.h>
@@ -51,7 +51,6 @@
 #include <io.h>
 #include <stdio.h>
 #include <assert.h>
-//#include <winsock2.h>
 
 extern unsigned long dyninstTrapTableUsed;
 extern unsigned long dyninstTrapTableVersion;

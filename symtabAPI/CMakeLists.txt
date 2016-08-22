@@ -109,4 +109,4 @@ else()
 endif()
 
 dyninst_library(symtabAPI ${DEPS})
-
+cotire(symtabAPI)

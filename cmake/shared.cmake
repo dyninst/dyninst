@@ -9,6 +9,12 @@ set (SOVERSION "${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}")
 set (LIBVERSION "${SOVERSION}.${DYNINST_PATCH_VERSION}")
 set (DYNINST_VERSION "${LIBVERSION}")
 
+if(CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_CONFIGURATION_TYPES Debug Release)
+  set(CMAKE_CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES}" CACHE STRING
+  "Reset the available configurations to exclude MinSizeRel and RelWithDebugInfo" FORCE)
+endif()
+
 if (LIGHTWEIGHT_SYMTAB)
   set(SYMREADER symLite)
 else()
@@ -88,6 +94,9 @@ include (${DYNINST_ROOT}/cmake/visibility.cmake)
 include (${DYNINST_ROOT}/cmake/warnings.cmake)
 include (${DYNINST_ROOT}/cmake/options.cmake)
 include (${DYNINST_ROOT}/cmake/optimization.cmake)
+include (${DYNINST_ROOT}/cmake/cotire.cmake)
+
+set_directory_properties(PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
 
 set (BUILD_SHARED_LIBS ON)
 
@@ -105,6 +114,7 @@ foreach (p LIB INCLUDE CMAKE)
 endforeach()
 
 if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
+  add_definitions(-DWIN32_LEAN_AND_MEAN)
   if (CMAKE_C_COMPILER_VERSION VERSION_GREATER 19)
     add_definitions(-D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS=1)
   else()

@@ -10,7 +10,7 @@ env:
 addons:
     apt:
         sources:
-            - kalakris-cmake
+            - kubuntu-backports
             - ubuntu-toolchain-r-test
             - boost-latest
         packages:

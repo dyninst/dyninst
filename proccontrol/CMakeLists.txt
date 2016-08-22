@@ -101,4 +101,5 @@ if (UNIX)
 target_link_private_libraries(pcontrol ${Boost_LIBRARIES})
 target_link_private_libraries(pcontrol pthread)
 endif()
+cotire(pcontrol)
 

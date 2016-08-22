@@ -92,6 +92,7 @@ CMakeFiles
 CMakeCache.txt
 cmake_install.cmake
 */cmake_install.cmake
+*/*_CXX_cotire.cmake
 Makefile
 */Makefile
 *.eps
@@ -112,3 +113,6 @@ DyninstAPI*.tgz
 common/h/version.h
 Doxyfile
 doxyfiles/*
+*/*.dir/
+*/Debug/
+*/Release/
