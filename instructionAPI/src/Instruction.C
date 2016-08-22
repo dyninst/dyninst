@@ -438,7 +438,7 @@ memAccessors.begin()));
         return m_Successors.front().target;
     }
 
-    INSTRUCTION_EXPORT std::string Instruction::format(Address addr) const
+    INSTRUCTION_EXPORT std::string Instruction::format(Address) const
     {
         if(m_Operands.empty())
         {
@@ -457,7 +457,8 @@ memAccessors.begin()));
                 currOperand != m_Operands.end();
                 op++, ++currOperand)
         {
-            std::string format = currOperand->format(getArch(), addr);
+            bool isCallJump = getControlFlowTarget() != nullptr;
+            std::string format = currOperand->format(getArch(), isCallJump);
 
             if(currOperand->isImplicit())
             {

@@ -33,6 +33,8 @@
 
 #include "Expression.h"
 #include "Register.h"
+#include "BinaryFunction.h"
+#include "Immediate.h"
 #include <set>
 #include <string>
 
@@ -42,7 +44,6 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
-
     /// An %Operand object contains an AST built from %RegisterAST and %Immediate leaves,
     /// and information about whether the %Operand
     /// is read, written, or both. This allows us to determine which of the registers
@@ -102,10 +103,8 @@ namespace Dyninst
       /// Returns true if this operand is written
       INSTRUCTION_EXPORT bool isWritten(Expression::Ptr candidate) const;
 
-      INSTRUCTION_EXPORT bool isRead() const {
-	return m_isRead; }
-      INSTRUCTION_EXPORT bool isWritten() const {
-	return m_isWritten; }
+      INSTRUCTION_EXPORT bool isRead() const { return m_isRead; }
+      INSTRUCTION_EXPORT bool isWritten() const { return m_isWritten; }
 
       INSTRUCTION_EXPORT bool isImplicit() const { return m_isImplicit; }
       INSTRUCTION_EXPORT void setImplicit(bool i) { m_isImplicit = i; }
@@ -122,9 +121,16 @@ namespace Dyninst
       /// \param memAccessors If this is a memory write operand, insert the \c %Expression::Ptr representing
       /// the address being written into \c memAccessors.
       INSTRUCTION_EXPORT void addEffectiveWriteAddresses(std::set<Expression::Ptr>& memAccessors) const;
-      /// \brief Return a printable string representation of the operand
+      /// \brief Return a printable string representation of the operand.
       /// \return The operand in a disassembly format
       INSTRUCTION_EXPORT std::string format(Architecture arch, Address addr = 0) const;
+
+      /// Returns a string representation of the Operand in AT&T syntax. The format of 
+      /// the operand depends on whether or not this operand is a call or jump instruction.
+      /// \param arch The architecture to format for.
+      /// \param isCallJump whether or no this is a call or jump instruction
+      /// \return The std::string representation of the instruction in AT&T syntax.
+      INSTRUCTION_EXPORT std::string format(Architecture arch, bool isCallJump) const;
       /// The \c getValue method returns an %Expression::Ptr to the AST contained by the operand.
       INSTRUCTION_EXPORT Expression::Ptr getValue() const;
       
@@ -134,6 +140,36 @@ namespace Dyninst
       bool m_isWritten;
       bool m_isImplicit;
     };
+
+#if 0
+    static inline void print_tabs(int depth)
+    {
+		for(int x = 0;x < depth;x++)
+			std::cout << "\t";
+    }
+#endif
+
+    struct att_operand_arglist
+    {
+        char* base;
+        char* scale;
+        char* segment;
+        char* offset;
+        char* displacement;
+    };
+
+	/**
+     * Create the AT&T syntax for the instruction operand AST (not call or jump).
+     */
+    INSTRUCTION_EXPORT int binary_function_att_jump(const Expression* exp, 
+            uint64_t* imm_val);
+
+	/**
+     * Convert the given instruction AST into the address of the target of
+     * the jump/call.
+     */
+    INSTRUCTION_EXPORT int binary_function_att(const Expression* exp,
+            struct att_operand_arglist* options, int depth);
   };
 };
 

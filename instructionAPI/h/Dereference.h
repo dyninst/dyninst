@@ -31,16 +31,14 @@
 #if !defined(DEREFERENCE_H)
 #define DEREFERENCE_H
 
+#include "Operand.h"
 #include "Expression.h"
+#include "BinaryFunction.h"
+#include "Immediate.h"
 #include "Register.h"
-#include <sstream>
 #include "Visitor.h"
 
-inline void print_tabs(int depth)
-{
-    for(int x = 0;x < depth;x++)
-        std::cout << "\t";
-}
+#include <sstream>
 
 namespace Dyninst
 {
@@ -107,78 +105,9 @@ namespace Dyninst
             return addressToDereference->isUsed(findMe) || *findMe == *this;
         }
 
-        struct dereference_options_list
-        {
-            char* displacement;
-            char* offset;
-            char* base;
-            char* scale;
-        };
-
-        /**
-         * Create the AT&T syntax for the instruction operand AST.
-         */
-		void analyze_ast_tree(const Expression::Ptr& ptr, 
-                struct dereference_options_list* options, int depth) const
-    	{
-
-            /* The children of the current node we are analyzing */
-            std::vector<Expression::Ptr> children;
-            ptr->getChildren(children);
-            bool leaf = children.size() == 0;
-
-             std::string sstr = ptr->format();
-
-            // if(depth == 0) std::cout << std::endl << std::endl;
-            // print_tabs(depth);
-            // std::cout << "Analying node: " << sstr
-                // << " Children count: " << children.size() << std::endl;
-
-            auto it = std::begin(children);
-            for(;it != std::end(children);++it)
-            {
-                Expression::Ptr child = *it;
-
-                /* Analyze this child */
-                analyze_ast_tree(child, options, depth + 1);
-            }
-
-            const char* str = sstr.c_str();
-
-            /* Analyze this node */
-            if(leaf)
-            {
-                if(str[0] == '%')
-                {
-                    // print_tabs(depth);
-                    // std::cout << "Found register: " << str << std::endl;
-                    if(!options->base)
-                        options->base = strdup(str);
-                    else if(!options->offset)
-                        options->offset = strdup(str);
-                    else assert(!"Too many registers in operand list!");
-                } else if(str[0] == '$')
-                {
-                    // print_tabs(depth);
-                    // std::cout << "Found immediate: " << str << std::endl;
-                    if(!options->displacement)
-                        options->displacement = strdup(str + 1);
-                    else if(!options->scale)
-                    {
-                        options->scale = strdup(str);
-                    } else assert(!"Too many Immediates in operand list!");
-                } else {
-                    // print_tabs(depth);
-                    // std::cout << "What the fuck is this: " << str << std::endl;
-                }
-            } 
-
-    	}
-
         virtual std::string format(formatStyle) const
         {
 	        std::stringstream retVal;
-            // retVal << "^^DEREF^^";
 #if defined(DEBUG_MEMORY_ACCESS_WIDTH)
             switch(Expression::userSetValue.type)
             {
@@ -221,26 +150,39 @@ namespace Dyninst
             }
 #endif
 
-            struct dereference_options_list list;
-            memset(&list, 0, 
-                    sizeof(struct dereference_options_list));
-			analyze_ast_tree(addressToDereference, &list, 0);
+            struct att_operand_arglist list;
+            memset(&list, 0,  sizeof(struct att_operand_arglist));
+			binary_function_att(&(*addressToDereference), &list, 0);
 
-            if(list.displacement && list.base && list.offset && list.scale)
-            {
-                /**
-                 * When there's all 4 operands, dyninst gets the immediates
-                 * flipped.
-                 */
+#if 0 /* Which parts of the operand are available? */
+            if(list.base)
+                std::cout << "\tBase:         " << list.base << std::endl;
+            if(list.offset)
+                std::cout << "\tOffset:       " << list.offset << std::endl;
+            if(list.segment)
+                std::cout << "\tSegment:      " << list.segment << std::endl;
+            if(list.scale)
+                std::cout << "\tScale:        " << list.scale << std::endl;
+            if(list.displacement)
+                std::cout << "\tDisplacement: " << list.displacement << std::endl;
+#endif
+
+            /* Convert this to AT&T syntax */
+			if(list.segment && list.base)
+				retVal << list.segment << ":(" << list.base << ")";
+            else if(list.displacement && list.base && list.offset && list.scale)
                 retVal << (list.scale + 1) << "(" << list.offset << ", " 
                     << list.base << ", " << "$" << list.displacement << ")";
-            } else if(list.displacement && list.base && list.scale)
+            else if(list.displacement && list.base && list.scale)
                 retVal << list.displacement << "( ," << list.base << ", "
                     << list.scale << ")";
+            else if(list.base && list.offset && list.displacement)
+                retVal << "(" << list.base << "," << list.offset << "," 
+                    << list.displacement + 2 <<")";
             else if(list.displacement && list.base)
                 retVal << list.displacement << "(" << list.base << ")";
             else if(list.base)
-                retVal << list.base;
+                retVal << "(" << list.base << ")";
             
             if(!retVal.str().compare(""))
             {
@@ -248,8 +190,8 @@ namespace Dyninst
                 free(list.offset);
                 free(list.base);
                 free(list.displacement);
+                free(list.segment);
                 std::stringstream ss;
-                // ss << "^^BSS^^" << addressToDereference->format();
                 ss << addressToDereference->format();
                 return ss.str();
             }
@@ -258,6 +200,7 @@ namespace Dyninst
             free(list.offset);
             free(list.base);
             free(list.displacement);
+            free(list.segment);
 
             return retVal.str();
         }

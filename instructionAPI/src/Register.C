@@ -98,7 +98,10 @@ namespace Dyninst
         }
         std::transform(name.begin(), name.end(), name.begin(), ::tolower);
         std::stringstream stream;
-        stream << "%" << name;
+        if(!name.compare("<invalid_reg>"))
+            stream << "%?";
+        else stream << "%" << name;
+
         return stream.str();
     }
 

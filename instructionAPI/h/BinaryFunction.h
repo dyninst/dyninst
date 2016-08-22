@@ -99,7 +99,8 @@ namespace Dyninst
                         free(exp);
 #endif
                         std::stringstream ss;
-                        ss << "^^BF^^" << m_name;
+                        // ss << "^^BF^^" << m_name;
+                        ss << m_name;
 						return ss.str();
 					}
 					
