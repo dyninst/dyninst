@@ -220,6 +220,7 @@ enum entryID {
   e_fcomi,
   e_fcomip,
   e_fcomp,
+  e_fcomps,
   e_fcompp,
   e_fdiv,
   e_fdivp,

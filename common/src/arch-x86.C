@@ -883,6 +883,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_fcomi, "fcomi")
   (e_fcomip, "fcomip")
   (e_fcomp, "fcomp")
+  (e_fcomps, "fcomps")
   (e_fcompp, "fcompp")
   (e_fdiv, "fdiv")
   (e_fdivp, "fdivp")
@@ -3312,26 +3313,26 @@ static ia32_entry threeByteMap2[256] = {
 static ia32_entry fpuMap[][2][8] = {
 {
     { // D8
-        { e_fadd,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fmul,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fcom,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fcomp, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R }, // stack pop
-        { e_fsub,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fsubr, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fdiv,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fdivr, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R }
+        { e_fadd,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
+        { e_fmul,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
+        { e_fcom,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
+        { e_fcomps, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I }, // stack pop
+        { e_fsub,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
+        { e_fsubr, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
+        { e_fdiv,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
+        { e_fdivr, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I }
     },
     { // D8 -- IMPORTANT NOTE: the C0-FF tables in the book are interleaved from how they
         // need to appear here (and for all FPU insns).  i.e. book rows 0, 4, 1, 5, 2, 6, 3, 7 are table rows
         // 0, 1, 2, 3, 4, 5, 6, 7.
-        { e_fadd,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fmul,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fcom,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fcomp, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R }, // stack pop
-        { e_fsub,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fsubr, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fdiv,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fdivr, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R }
+        { e_fadd,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
+        { e_fmul,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
+        { e_fcom,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
+        { e_fcomp, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I }, // stack pop
+        { e_fsub,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
+        { e_fsubr, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
+        { e_fdiv,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
+        { e_fdivr, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I }
     },
 },
 {
@@ -3358,22 +3359,22 @@ static ia32_entry fpuMap[][2][8] = {
 },
 {
     { // DA 
-        { e_fiadd,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
-        { e_fimul,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
-        { e_ficom,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
-        { e_ficomp, t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R }, // stack pop
-        { e_fisub,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
-        { e_fisubr, t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
-        { e_fidiv,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
-        { e_fidivr, t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R }
+        { e_fiadd,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R | s1I },
+        { e_fimul,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R | s1I },
+        { e_ficom,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R | s1I },
+        { e_ficomp, t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R | s1I }, // stack pop
+        { e_fisub,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R | s1I },
+        { e_fisubr, t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R | s1I },
+        { e_fidiv,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R | s1I },
+        { e_fidivr, t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R | s1I }
     },
     { // DA
-        { e_fcmovb,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fcmove,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fcmovbe, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fcmovu, t_done, 0, true,  { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
-        { e_fucompp,  t_done, 0, true, { ST0, ST1, Zz }, 0, s1RW2RW }, // double pop
+        { e_fcmovb,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
+        { e_fcmove,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
+        { e_fcmovbe, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
+        { e_fcmovu, t_done, 0, true,  { ST0, Ef, Zz }, 0, s1RW2R | s1I },
+        { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE},
+        { e_fucompp,  t_done, 0, true, { ST0, ST1, Zz }, 0, s1RW2RW | s1I }, // double pop
         { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
         { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
     },
@@ -3381,45 +3382,45 @@ static ia32_entry fpuMap[][2][8] = {
 {
     { // DB 
       { e_fild,   t_done, 0, true, { ST0, Ev, Zz }, 0, s1W2R },
-      { e_fisttp, t_done, 0, true, { Ev, ST0, Zz }, 0, s1W2R }, //stack pop
-      { e_fist,   t_done, 0, true, { Ev, ST0, Zz }, 0, s1W2R },
-      { e_fistp,  t_done, 0, true, { Ev, ST0, Zz }, 0, s1W2R }, // stack pop
+      { e_fisttp, t_done, 0, true, { Ev, ST0, Zz }, 0, s1W2R | s2I }, //stack pop
+      { e_fist,   t_done, 0, true, { Ev, ST0, Zz }, 0, s1W2R | s2I },
+      { e_fistp,  t_done, 0, true, { Ev, ST0, Zz }, 0, s1W2R | s2I }, // stack pop
       { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
       { e_fld,    t_done, 0, true, { ST0, Ef, Zz }, 0, s1W2R },
       { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
-      { e_fstp,   t_done, 0, true, { Ef, ST0, Zz }, 0, s1W2R }
+      { e_fstp,   t_done, 0, true, { Ef, ST0, Zz }, 0, s1W2R | s2I }
     },
     { // DB
-        { e_fcmovnb,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fcmovne,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fcmovnbe, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fcmovnu,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
+        { e_fcmovnb,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
+        { e_fcmovne,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
+        { e_fcmovnbe, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
+        { e_fcmovnu,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
         { e_fp_generic,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE }, // FIXME: needs FCLEX and FINIT in group
-        { e_fucomi,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fcomi,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
+        { e_fucomi,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
+        { e_fcomi,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
         { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
     },
 },
 {
     { // DC
-        { e_fadd,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
-        { e_fmul,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
-        { e_fcom,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
-        { e_fcomp, t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R }, // stack pop
+        { e_fadd,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R | s1I },
+        { e_fmul,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R | s1I },
+        { e_fcom,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R | s1I },
+        { e_fcomp, t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R | s1I }, // stack pop
         { e_fsubl,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R | s1I },
         { e_fsubr, t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R | s1I },
-        { e_fdiv,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
-        { e_fdivr, t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R }
+        { e_fdiv,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R | s1I },
+        { e_fdivr, t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R | s1I }
     },
     { // DC
-        { e_fadd,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R },
-        { e_fmul,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R },
-        { e_fcom,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R },
-        { e_fcomp,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
-        { e_fsubr,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R | s1I },
-        { e_fsub,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R | s1I },
-        { e_fdivr,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R },
-        { e_fdiv,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R },
+        { e_fadd,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R | s2I },
+        { e_fmul,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R | s2I },
+        { e_fcom,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R | s2I },
+        { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
+        { e_fsubr,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R | s2I },
+        { e_fsub,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R | s2I },
+        { e_fdivr,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R | s2I },
+        { e_fdiv,  t_done, 0, true, { Efd, ST0, Zz }, 0, s1RW2R | s2I },
     },
 },
 {
@@ -3446,24 +3447,24 @@ static ia32_entry fpuMap[][2][8] = {
 },
 {    
     { // DE 
-        { e_fiadd,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
-        { e_fimul,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
-        { e_ficom,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
-        { e_ficomp, t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R }, // stack pop
+        { e_fiadd,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R | s1I },
+        { e_fimul,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R | s1I },
+        { e_ficom,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R | s1I },
+        { e_ficomp, t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R | s1I }, // stack pop
         { e_fisub,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R | s1I },
-        { e_fisubr, t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
-        { e_fidiv,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
-        { e_fidivr, t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R }
+        { e_fisubr, t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R | s1I },
+        { e_fidiv,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R | s1I },
+        { e_fidivr, t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R| s1I },
     },
     { // DE
-        { e_faddp,  t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R },
-        { e_fmulp,  t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R },
-        { e_fcomp,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fcompp, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_fsubrp,  t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R },
-        { e_fsubp,  t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R },
-        { e_fdivrp, t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R }, // stack pop
-        { e_fdivp, t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R }
+        { e_faddp,  t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R | s2I },
+        { e_fmulp,  t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R | s2I },
+        { e_fcomp,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
+        { e_fcompp, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R | s1I },
+        { e_fsubrp,  t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R | s2I },
+        { e_fsubp,  t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R | s2I },
+        { e_fdivrp, t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R | s2I }, // stack pop
+        { e_fdivp, t_done, 0, true, { Ef, ST0, Zz }, 0, s1RW2R| s2I }
     },
 },
 {
