@@ -116,3 +116,4 @@ doxyfiles/*
 */*.dir/
 */Debug/
 */Release/
+cotire/
