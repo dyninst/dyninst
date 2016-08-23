@@ -2374,7 +2374,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_aam,  t_done, 0, false, { AX, Ib, Zz }, 0, s1RW2R },
   { e_aad,  t_done, 0, false, { AX, Ib, Zz }, 0, s1RW2R },
   { e_salc, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // undocumeted
-  { e_xlat, t_done, 0, false, { Zz, Zz, Zz }, 0, fXLAT << FPOS | s1I }, // scream
+  { e_xlat, t_done, 0, false, { Zz, Zz, Zz }, 0, fXLAT << FPOS }, // scream
   /* D8 */
   { e_No_Entry, t_coprocEsc, GrpD8, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_coprocEsc, GrpD9, true, { Zz, Zz, Zz }, 0, 0 },
@@ -3503,7 +3503,7 @@ static ia32_entry groupMap[][8] = {
     { e_cmp, t_done, 0, true, { Eb, Ib, Zz }, 0, s1R2R },
   },
   { /* group 1b */
-    { e_add, t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
     { e_or,  t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
     { e_adc, t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
     { e_sbb, t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
