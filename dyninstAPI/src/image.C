@@ -410,8 +410,9 @@ class FindMainVisitor : public ASTVisitor
 
     public:
     bool resolved;
+    bool hardFault;
     Address target;
-    FindMainVisitor() : resolved(false), target(0){}
+    FindMainVisitor() : resolved(false), hardFault(false), target(0) {}
 
     virtual AST::Ptr visit(DataflowAPI::RoseAST * r) 
     {
@@ -431,8 +432,11 @@ class FindMainVisitor : public ASTVisitor
                 {
                     ConstantAST::Ptr c1 = ConstantAST::convert(newKids[0]);
                     ConstantAST::Ptr c2 = ConstantAST::convert(newKids[1]);
-                    target = c1->val().val + c2->val().val;
-                    resolved = true;
+                    if(!hardFault)
+                    {
+                        target = c1->val().val + c2->val().val;
+                        resolved = true;
+                    }
                     return ConstantAST::create(
                             Constant(c1->val().val + c2->val().val));
                 }
@@ -447,7 +451,8 @@ class FindMainVisitor : public ASTVisitor
 
     virtual ASTPtr visit(DataflowAPI::ConstantAST * c)
     {
-        if(!target) 
+        /* We can only handle constant values */
+        if(!target && !hardFault) 
         {
             resolved = true;
             target = c->val().val;
@@ -455,14 +460,24 @@ class FindMainVisitor : public ASTVisitor
 
         return c->ptr();
     };
+
+    virtual ASTPtr visit(DataflowAPI::VariableAST* v)
+    {
+        /* If we visit a variable node, we can't do any analysis */
+        hardFault = true;
+        resolved = false;
+        target = 0;
+
+        return v->ptr();
+    }
 };
 
-/* 
+/**
  * Search for the Main Symbols in the list of symbols, Only in case
  * if the file is a shared object. If not present add them to the
- * list
+ * list. Returns zero on success, nonzero otherwise.
  */
-void image::findMain()
+int image::findMain()
 {
 #if defined(ppc32_linux) || defined(ppc32_bgp) || defined(ppc64_linux)
     using namespace Dyninst::InstructionAPI;
@@ -475,7 +490,7 @@ void image::findMain()
         bool foundMain = false;
         bool foundStart = false;
         bool foundFini = false;
-        //check if 'main' is in allsymbols
+        // check if 'main' is in allsymbols
         vector <SymtabAPI::Function *> funcs;
         if (linkedFile->findFunctionsByName(funcs, "main") ||
                 linkedFile->findFunctionsByName(funcs, "_main"))
@@ -487,11 +502,11 @@ void image::findMain()
 
         Region *eReg = NULL;
         bool foundText = linkedFile->findRegion(eReg, ".text");
-        if (foundText == false) {
-            return;
-        }
 
-        if( !foundMain )
+        if (!foundText)
+            return -1;
+
+        if(!foundMain)
         {
             logLine("No main symbol found: attempting to create symbol for main\n");
 
@@ -507,7 +522,7 @@ void image::findMain()
             scs.findRegions(eAddr,regions);
             if(regions.empty()) {
                 // express puzzlement
-                return;
+                return -1;
             }
             SymtabCodeRegion * reg = 
                 static_cast<SymtabCodeRegion*>(*regions.begin());
@@ -515,7 +530,7 @@ void image::findMain()
                 tco.findFuncByEntry(reg,eAddr);
             if(!func) {
                 // again, puzzlement
-                return;
+                return -1;
             }
 
             Block * b = NULL;
@@ -530,16 +545,16 @@ void image::findMain()
                 startup_printf("%s[%d] _start has unexpected number (%d) of"
                         " call edges, bailing on findMain()\n",
                         FILE__,__LINE__,calls.size());
-                return;
+                return -1;
             }
-            if (!b) return;
+            if (!b) return -1;
 
             Address mainAddress = evaluate_main_address(linkedFile,func,b);
             mainAddress = deref_opd(linkedFile, mainAddress);
 
             if(0 == mainAddress || !scs.isValidAddress(mainAddress)) {
                 startup_printf("%s[%d] failed to find main\n",FILE__,__LINE__);
-                return;
+                return -1;
             } else {
                 startup_printf("%s[%d] found main at %lx\n",
                         FILE__,__LINE__,mainAddress);
@@ -555,6 +570,7 @@ void image::findMain()
             linkedFile->addSymbol(newSym);		
         }
     }
+
 #elif defined(i386_unknown_linux2_0) \
     || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
     || (defined(os_freebsd) \
@@ -585,12 +601,13 @@ void image::findMain()
 
         Address eAddr = linkedFile->getEntryOffset();
         Region *eReg = linkedFile->findEnclosingRegion(eAddr);
-        if (!eReg) {
-            return;
-        }
+
+        if (!eReg)
+            return -1;
+         
         Address eStart = eReg->getMemOffset();
 
-        if( !foundMain )
+        if(!foundMain)
         {
             logLine( "No main symbol found: creating symbol for main\n" );
 
@@ -622,8 +639,6 @@ void image::findMain()
                     break;
             }
 
-            // instruction insn;
-            // insn.setInstruction( p );
             Address mainAddress = 0;
 
             // Create a temporary SymtabCodeSource that we can use for parsing. 
@@ -634,7 +649,7 @@ void image::findMain()
             CodeObject co(&scs);
 
 #if !defined(os_freebsd)
-
+            /* Find the entry point, where we start our analysis */
             Address entry_point = (Address)linkedFile->getEntryOffset();
 
             /* Get the code regions we are looking at */
@@ -643,7 +658,11 @@ void image::findMain()
 
             /* We should only get one region */
             if(regions.size() != 1)
-                assert(!"Overlapping or non existant regions!");
+            {
+                startup_printf("%s[%u]: Overlapping or non existant regions!\n",
+                        FILE__, __LINE__);
+                return -1;
+            }
             CodeRegion* region = *regions.begin();
             assert(region);
 
@@ -653,7 +672,12 @@ void image::findMain()
             /* Get the parsed Function */
             vector<ParseAPI::Function*> funcs;
             Function* func = co.findFuncByEntry(region, entry_point);
-            assert(func); /* This should really exist now */
+            if(!func)
+            {
+                startup_printf("%s[%u]: No functions found in our region.\n",
+                        FILE__, __LINE__);
+                return -1;
+            }
 
             /* Use dataflow analysis here to determine the value of EDI */
             const unsigned char* raw = p;
@@ -671,8 +695,10 @@ void image::findMain()
 
             if(!last_insn) /* We cannot do analysis on this */
             {
-                assert(!"findMain analysis has failed");
-                return;
+                startup_printf("%s[%u]: Our main analysis doesn't apply to "
+                        "this compiler.\n",
+                        FILE__, __LINE__);
+                return -1;
             }
 
             /* Calculate the address of the instruction */
@@ -694,7 +720,11 @@ void image::findMain()
             assert(region->contains(insn_addr));
             std::set<Block*> blocks;
             co.findBlocks(region, insn_addr, blocks);
-            assert(blocks.size() == 1);
+            if(blocks.size() == 1)
+            {
+                startup_printf("%s[%u]: WARNING: overlapping blocks.\n",
+                        FILE__, __LINE__);
+            }
             Block* b = *blocks.begin();
             assert(b);
 
@@ -899,6 +929,8 @@ void image::findMain()
         }
     }
 #endif
+
+    return 0; /* Success */
 }
 
 /*
@@ -1481,7 +1513,14 @@ image::image(fileDescriptor &desc,
 
    //Now add Main and Dynamic Symbols if they are not present
    startup_printf("%s[%d]:  before findMain\n", FILE__, __LINE__);
-   findMain();
+   if(findMain())
+   {
+        startup_printf("%s[%d]: ERROR: findMain analysis has failed!\n",
+                FILE__, __LINE__);
+   } else {
+        startup_printf("%s[%d]: findMain analysis succeeded.\n",
+                FILE__, __LINE__);
+   }
 
    // Initialize ParseAPI 
    filt = NULL;
