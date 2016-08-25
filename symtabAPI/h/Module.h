@@ -41,6 +41,8 @@
 #if defined(cap_dwarf)
 #include "libdwarf.h"
 #endif
+#include <boost/shared_ptr.hpp>
+#include "RangeLookup.h"
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -50,12 +52,12 @@ class LineInformation;
 class localVar;
 class Symtab;
 
+
 class SYMTAB_EXPORT Statement : public AnnotatableSparse, public Serializable
 {
 	friend class Module;
 	friend class std::vector<Statement>;
 	friend class LineInformation;
-
 	Statement(const char *file, unsigned int line, unsigned int col = 0,
              Offset start_addr = (Offset) -1L, Offset end_addr = (Offset) -1L) :
       file_(file),
@@ -88,14 +90,17 @@ class SYMTAB_EXPORT Statement : public AnnotatableSparse, public Serializable
 	typedef StatementLess LineNoTupleLess;
 
 	bool operator==(const Statement &cmp) const;
+    bool operator==(const char* file) const {return strcmp(file, first) == 0; }
+    bool operator==(Offset addr) const {return startAddr() <= addr && addr < endAddr(); }
 	~Statement() {}
 
-	Offset startAddr() { return start_addr_;}
-	Offset endAddr() {return end_addr_;}
-	std::string getFile() { return file_;}
-	unsigned int getLine() {return line_;}
-	unsigned int getColumn() {return column;}
-
+	Offset startAddr() const { return start_addr_;}
+	Offset endAddr() const {return end_addr_;}
+	std::string getFile() const { return file_;}
+	unsigned int getLine()const {return line_;}
+	unsigned int getColumn() const{return column;}
+    AddressRange addressRange( ) const { return AddressRange(*this); }
+    bool contains(Offset addr) const { return addressRange().contains(addr); }
 	Serializable *serialize_impl(SerializerBase *sb, const char *tag = "Statement") THROW_SPEC (SerializerError);
 
 	//  Does dyninst really need these?
@@ -104,6 +109,8 @@ class SYMTAB_EXPORT Statement : public AnnotatableSparse, public Serializable
 	void setFile(const char * l) {file_ = l; first = file_;}
 	void setStartAddr(Offset l) {start_addr_ = l;}
 	void setEndAddr(Offset l) {end_addr_ = l;}
+    typedef boost::shared_ptr<Statement> Ptr;
+    typedef boost::shared_ptr<const Statement> ConstPtr;
 };
 
 typedef Statement LineNoTuple;
@@ -182,15 +189,15 @@ typedef Statement LineNoTuple;
    bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
 
    /***** Line Number Information *****/
-   bool getAddressRanges(std::vector<std::pair<Offset, Offset> >&ranges,
+   bool getAddressRanges(std::vector<AddressRange >&ranges,
          std::string lineSource, unsigned int LineNo);
-   bool getSourceLines(std::vector<Statement *> &lines,
+   bool getSourceLines(std::vector<Statement::ConstPtr> &lines,
          Offset addressInRange);
    bool getSourceLines(std::vector<LineNoTuple> &lines,
          Offset addressInRange);
-   bool getStatements(std::vector<Statement *> &statements);
+   bool getStatements(std::vector<Statement::ConstPtr> &statements);
    LineInformation *getLineInformation();
-
+    LineInformation* parseLineInformation();
    bool hasLineInformation();
    bool setDefaultNamespacePrefix(std::string str);
 

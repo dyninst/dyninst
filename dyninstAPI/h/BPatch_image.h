@@ -65,6 +65,9 @@ class BPatch_image;
 class BPatch_object_getMod;
 
 namespace Dyninst {
+	namespace SymtabAPI {
+		class AddressRange;
+	}
   namespace PatchAPI {
     class PatchMgr;
     typedef boost::shared_ptr<PatchMgr> PatchMgrPtr;
@@ -242,7 +245,7 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj {
   //  method to retrieve addresses corresponding to a line in a file
 
   bool getAddressRanges( const char * fileName, unsigned int lineNo, 
-			 std::vector<std::pair<unsigned long, unsigned long> > & ranges );
+			 std::vector<Dyninst::SymtabAPI::AddressRange > & ranges );
     
   bool getSourceLines( unsigned long addr, BPatch_Vector<BPatch_statement> & lines );
 

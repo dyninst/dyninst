@@ -538,7 +538,7 @@ bool BPatch_addressSpace::revertWrapFunction(BPatch_function *original)
 
 bool BPatch_addressSpace::getAddressRanges( const char * fileName,
       unsigned int lineNo,
-      std::vector< std::pair< unsigned long, unsigned long > > & ranges )
+      std::vector< SymtabAPI::AddressRange > & ranges )
 {
    unsigned int originalSize = ranges.size();
    image->getAddressRanges(fileName, lineNo, ranges);

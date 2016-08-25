@@ -678,7 +678,7 @@ bool BPatch_module::getSourceLines(unsigned long addr,
    }
 
    unsigned int originalSize = lines.size();
-   std::vector<Statement *> lines_ll;
+   std::vector<Statement::ConstPtr> lines_ll;
 
    Module *stmod = mod->pmod()->mod();
    assert(stmod);
@@ -690,7 +690,7 @@ bool BPatch_module::getSourceLines(unsigned long addr,
 
    for (unsigned int j = 0; j < lines_ll.size(); ++j)
    {
-	   Statement *t = lines_ll[j];
+      Statement::ConstPtr t = lines_ll[j];
 	   lines.push_back(BPatch_statement(this, t));
    }
 
@@ -702,7 +702,7 @@ bool BPatch_module::getStatements(BPatch_Vector<BPatch_statement> &statements)
 	// Iterate over each address range in the line information
 	SymtabAPI::Module *stmod = mod->pmod()->mod();
 	assert(stmod);
-	std::vector<SymtabAPI::Statement *> statements_ll;
+	std::vector<SymtabAPI::Statement::ConstPtr> statements_ll;
 
 	if (!stmod->getStatements(statements_ll))
 	{
@@ -714,7 +714,7 @@ bool BPatch_module::getStatements(BPatch_Vector<BPatch_statement> &statements)
 		// Form a BPatch_statement object for this entry
 		// Note:  Line information stores offsets, so we need to adjust to
 		//  addresses
-		SymtabAPI::Statement *stm = statements_ll[i];
+		SymtabAPI::Statement::ConstPtr stm = statements_ll[i];
 		BPatch_statement statement(this, stm);
 
 		// Add this statement
@@ -725,8 +725,8 @@ bool BPatch_module::getStatements(BPatch_Vector<BPatch_statement> &statements)
 
 }
 
-bool BPatch_module::getAddressRanges( const char * fileName, 
-		unsigned int lineNo, std::vector< std::pair< Address, Address > > & ranges ) 
+bool BPatch_module::getAddressRanges(const char *fileName,
+                                     unsigned int lineNo, std::vector<SymtabAPI::AddressRange > &ranges)
 {
 	unsigned int starting_size = ranges.size();
 

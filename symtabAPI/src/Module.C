@@ -123,12 +123,12 @@ bool Module::hasLineInformation()
   return lineInfo_ && lineInfo_->getSize();
 }
 
-bool Module::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
+bool Module::getAddressRanges(std::vector<AddressRange >&ranges,
       std::string lineSource, unsigned int lineNo)
 {
    unsigned int originalSize = ranges.size();
 
-   LineInformation *lineInformation = getLineInformation();
+   LineInformation *lineInformation = parseLineInformation();
    if (lineInformation)
       lineInformation->getAddressRanges( lineSource.c_str(), lineNo, ranges );
 
@@ -138,15 +138,11 @@ bool Module::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
    return false;
 }
 
-bool Module::getSourceLines(std::vector<Statement *> &lines, Offset addressInRange)
+bool Module::getSourceLines(std::vector<Statement::ConstPtr> &lines, Offset addressInRange)
 {
    unsigned int originalSize = lines.size();
 
-   LineInformation *lineInformation = getLineInformation();
-   if(!lineInformation) {
-     exec_->parseLineInformation();
-     lineInformation = getLineInformation();
-   }
+   LineInformation *lineInformation = parseLineInformation();
 //    cout << "Module " << fileName() << " searching for line info in " << lineInformation << endl;
    if (lineInformation)
       lineInformation->getSourceLines( addressInRange, lines );
@@ -161,11 +157,7 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
 {
    unsigned int originalSize = lines.size();
 
-   LineInformation *lineInformation = getLineInformation();
-   if(!lineInformation) {
-     exec_->parseLineInformation();
-     lineInformation = getLineInformation();
-   }
+    LineInformation *lineInformation = parseLineInformation();
 
 //    cout << "Module " << fileName() << " searching for line info in " << lineInformation << endl;
    if (lineInformation)
@@ -177,23 +169,23 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
    return false;
 }
 
-bool Module::getStatements(std::vector<Statement *> &statements)
+LineInformation *Module::parseLineInformation() {
+    LineInformation *lineInformation = getLineInformation();
+    if (!lineInformation)
+    {
+        exec_->parseLineInformation();
+        lineInformation = getLineInformation();
+        return lineInformation;
+    }
+}
+
+bool Module::getStatements(std::vector<LineInformation::Statement_t> &statements)
 {
 	unsigned initial_size = statements.size();
-	LineInformation *li = getLineInformation();
-	if (!li)
-	{
-	  exec_->parseLineInformation();
-	  li = getLineInformation();
-	  if(!li) return false;
-	}
+	LineInformation *li = parseLineInformation();
+    if(!li) return false;
 
-	for (LineInformation::const_iterator i = li->begin();
-			i != li->end();
-			++i)
-	{
-	  statements.push_back(const_cast<Statement *>(&(i->second)));
-	}
+    std::copy(li->begin(), li->end(), std::back_inserter(statements));
 
 	return (statements.size() > initial_size);
 }

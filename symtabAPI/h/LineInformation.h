@@ -43,13 +43,15 @@ namespace Dyninst{
 namespace SymtabAPI{
 
 class SYMTAB_EXPORT LineInformation : 
-                        private RangeLookup< Statement, Statement::StatementLess > 
+                        private RangeLookupTypes< Statement >::type
 {
 	bool addItem_impl(Statement);
    public:
-      typedef RangeLookup< Statement, Statement::StatementLess >::const_iterator const_iterator;
-      typedef RangeLookup< Statement, Statement::StatementLess >::AddressRange AddressRange;
-
+    typedef RangeLookupTypes< Statement> traits;
+    typedef RangeLookupTypes< Statement >::type impl_t;
+      typedef traits::addr_range_index::const_iterator const_iterator;
+    typedef traits::line_info_index::const_iterator const_line_info_iterator;
+    typedef traits::value_type Statement_t;
       LineInformation();
 
       /* You MAY freely deallocate the lineSource strings you pass in. */
@@ -68,13 +70,19 @@ class SYMTAB_EXPORT LineInformation :
             unsigned int lineOffset = 0 );
 
       /* You MUST NOT deallocate the strings returned. */
-      bool getSourceLines( Offset addressInRange, std::vector< Statement *> & lines );
-      bool getSourceLines( Offset addressInRange, std::vector< LineNoTuple > & lines);
+      bool getSourceLines(Offset addressInRange, std::vector<Statement_t> &lines);
+    bool getSourceLines(Offset addressInRange, std::vector<Statement> &lines);
 
       bool getAddressRanges( const char * lineSource, unsigned int LineNo, std::vector< AddressRange > & ranges );
+      const_line_info_iterator begin_by_source() const;
+      const_line_info_iterator end_by_source() const;
+      std::pair<const_line_info_iterator, const_line_info_iterator> equal_range(std::string file,
+                                                                                const unsigned int lineNo) const;
+      std::pair<const_line_info_iterator, const_line_info_iterator> equal_range(std::string file) const;
+      const_iterator begin() const;
+      const_iterator end() const;
+      const_iterator find(Offset addressInRange) const;
 
-      virtual const_iterator begin() const;
-      virtual const_iterator end() const;
       unsigned getSize() const;
 
       virtual ~LineInformation();

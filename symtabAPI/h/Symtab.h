@@ -253,11 +253,11 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool getMappedRegions(std::vector<Region *> &mappedRegs) const;
 
    /***** Line Number Information *****/
-   bool getAddressRanges(std::vector<std::pair<Offset, Offset> >&ranges,
-         std::string lineSource, unsigned int LineNo);
-   bool getSourceLines(std::vector<Statement *> &lines, 
-         Offset addressInRange);
-   bool getSourceLines(std::vector<LineNoTuple> &lines, 
+   bool getAddressRanges(std::vector<AddressRange> &ranges,
+                         std::string lineSource, unsigned int LineNo);
+   bool getSourceLines(std::vector<Statement::ConstPtr> &lines,
+                       Offset addressInRange);
+   bool getSourceLines(std::vector<LineNoTuple> &lines,
                                      Offset addressInRange);
    bool addLine(std::string lineSource, unsigned int lineNo,
          unsigned int lineOffset, Offset lowInclAddr,

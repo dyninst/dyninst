@@ -32,12 +32,14 @@
 #define _BPATCH_STATEMENT_H_
 
 #include "BPatch_dll.h"
+#include <boost/shared_ptr.hpp>
 
 class BPatch_module;
 
 namespace Dyninst {
 namespace SymtabAPI {
 	class Statement;
+    typedef boost::shared_ptr<const Statement> StatementConstPtr;
 }
 }
 
@@ -79,10 +81,10 @@ class BPATCH_DLL_EXPORT BPatch_statement
   private:
 
     //  Full parameter ctor -- can only built by friend classes
-    BPatch_statement(BPatch_module *mod,  Dyninst::SymtabAPI::Statement *s);
+    BPatch_statement(BPatch_module *mod,  Dyninst::SymtabAPI::StatementConstPtr s);
 
     BPatch_module *module_;
-	Dyninst::SymtabAPI::Statement *statement;
+	Dyninst::SymtabAPI::StatementConstPtr statement;
 };
 
 #endif 

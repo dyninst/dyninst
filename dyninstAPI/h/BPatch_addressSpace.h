@@ -63,6 +63,7 @@ namespace Dyninst {
   };
   namespace SymtabAPI {
     class Symbol;
+    class AddressRange;
   };
 }
 
@@ -318,7 +319,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace {
   //
   // Method that retrieves address range(s) for a given filename and line number.
     
-  bool getAddressRanges(const char * fileName, unsigned int lineNo, std::vector< std::pair< unsigned long, unsigned long > > & ranges );
+  bool getAddressRanges(const char * fileName, unsigned int lineNo, std::vector< Dyninst::SymtabAPI::AddressRange> & ranges );
 
   typedef std::vector<std::pair<unsigned long, unsigned long> >::const_iterator arange_iter;
   statement_iter getAddressRanges_begin(const char* file, unsigned long line);

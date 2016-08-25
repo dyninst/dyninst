@@ -28,7 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "LineInformation.h"
 #include <assert.h>
 #include <list>
 #include <cstring>
@@ -37,22 +36,23 @@
 #include "Module.h"
 #include "Serialization.h"
 
+#include <functional>
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
-using namespace std;
+using std::vector;
 
-LineInformation::LineInformation() : 
-    Dyninst::SymtabAPI::RangeLookup< Statement, Statement::StatementLess >()
+#include "LineInformation.h"
+
+LineInformation::LineInformation()
 {
-   size_ = 0;
 } /* end LineInformation constructor */
 
 bool LineInformation::addItem_impl(Statement s)
 {
-   size_++;
-
-   bool ret = addValue( s, s.startAddr(), s.endAddr() );
-	return ret;
+    insert(Statement::ConstPtr(new Statement(s)));
+//    insert(s);
+	return true;
 }
 bool LineInformation::addLine( const char * lineSource, 
       unsigned int lineNo, 
@@ -60,6 +60,7 @@ bool LineInformation::addLine( const char * lineSource,
       Offset lowInclusiveAddr, 
       Offset highExclusiveAddr ) 
 {
+
 
    bool ret = addItem_impl( Statement(lineSource, lineNo, lineOffset, 
                                       lowInclusiveAddr, highExclusiveAddr)); 
@@ -69,13 +70,9 @@ bool LineInformation::addLine( const char * lineSource,
 
 void LineInformation::addLineInfo(LineInformation *lineInfo)
 {
-   const_iterator iter = lineInfo->begin();
-
-   for (; iter != lineInfo->end(); iter++)
-   {
-      addLine(iter->second.file_, iter->second.line_, iter->second.column,
-            iter->first.first, iter->first.second);
-   }
+    if(!lineInfo)
+        return;
+    insert(lineInfo->begin(), lineInfo->end());
 }
 
 bool LineInformation::addAddressRange( Offset lowInclusiveAddr, 
@@ -87,84 +84,93 @@ bool LineInformation::addAddressRange( Offset lowInclusiveAddr,
    return addLine( lineSource, lineNo, lineOffset, lowInclusiveAddr, highExclusiveAddr );
 } /* end setAddressRangeToLineMapping() */
 
-bool LineInformation::getSourceLines( Offset addressInRange, 
-      vector< Statement *> & lines ) 
+bool LineInformation::getSourceLines(Offset addressInRange,
+                                     vector<Statement_t> &lines)
 {
-   return getValues( addressInRange, lines );
+    using namespace std::placeholders;
+    auto start_addr_valid = lower_bound(addressInRange + 1);
+    std::copy_if(begin(),
+                 start_addr_valid,
+                 std::back_inserter(lines),
+                 std::bind(&Statement::contains, std::placeholders::_1, addressInRange));
+    return start_addr_valid != begin();
 } /* end getLinesFromAddress() */
 
-bool LineInformation::getSourceLines( Offset addressInRange, 
-                                      vector<LineNoTuple> &lines) 
+bool LineInformation::getSourceLines( Offset addressInRange,
+                                      vector<LineNoTuple> &lines)
 {
-   vector<Statement *> plines;
-   bool result = getValues(addressInRange, plines);
-   if (!result) {
-      return false;
-   }
-   for (vector<Statement *>::iterator i = plines.begin(); i != plines.end(); i++) {
-      LineNoTuple lnt = **i;
-      lines.push_back(lnt);
-   }
-   return true;
+    vector<Statement_t> tmp;
+    if(!getSourceLines(addressInRange, tmp)) return false;
+    for(auto i = tmp.begin(); i != tmp.end(); ++i)
+    {
+        lines.push_back(**i);
+    }
+    return true;
 } /* end getLinesFromAddress() */
+
+
 
 bool LineInformation::getAddressRanges( const char * lineSource, 
       unsigned int lineNo, vector< AddressRange > & ranges ) 
 {
-   bool ret = Dyninst::SymtabAPI::RangeLookup< Statement, Statement::StatementLess >::getAddressRanges( Statement( lineSource, lineNo ), ranges );
-
-   return ret;
+    auto found_statements = equal_range(lineSource, lineNo);
+    std::transform(found_statements.first, found_statements.second,
+                   std::back_inserter(ranges),
+    std::mem_fn(&Statement::addressRange));
+    return found_statements.first != found_statements.second;
 } /* end getAddressRangesFromLine() */
 
 LineInformation::const_iterator LineInformation::begin() const 
 {
-   return Dyninst::SymtabAPI::RangeLookup< Statement, Statement::StatementLess >::begin();
+   return impl_t::begin();
 } /* end begin() */
 
 LineInformation::const_iterator LineInformation::end() const 
 {
-   return Dyninst::SymtabAPI::RangeLookup< Statement, Statement::StatementLess >::end();
-} /* end begin() */
+   return impl_t::end();
+} /* end end() */
+
+LineInformation::const_iterator LineInformation::find(Offset addressInRange) const
+{
+    return impl_t::find(addressInRange);
+} /* end find() */
+
+
 
 unsigned LineInformation::getSize() const
 {
-   return size_;
+   return impl_t::size();
 }
 
-bool Statement::StatementLess::operator () ( const Statement &lhs, const Statement &rhs ) const
-{
-	//  dont bother with ordering by column information yet.
 
-	int strcmp_res = strcmp( lhs.file_, rhs.file_);
-
-	if (strcmp_res < 0 )
-		return true;
-
-	if ( strcmp_res == 0 )
-	{
-		if ( lhs.line_ < rhs.line_ )
-			return true;
-	}
-
-	return false;
-} /* end StatementLess() */
-
-bool Statement::operator==(const Statement &cmp) const 
-{
-	if (line_ != cmp.line_) return false;
-	if (column != cmp.column) return false;
-
-	//  is compare-by-pointer OK here, or do we really have to really strcmp?
-	return (file_ == cmp.file_);
-}
-
-/* We free the strings we allocated, and let the compiler clean up everything else:
-
-   Section 10.4.6 [Stroustroup's C++]: "When a class object containing class
-   objects is destroyed, the body of that object's own destructor is executed first,
-   and then the members' destructors are executed in the reverse order of declaration." */
 
 LineInformation::~LineInformation() 
 {
-} /* end LineInformation destructor */
+}
+
+LineInformation::const_line_info_iterator LineInformation::begin_by_source() const {
+    const traits::line_info_index& i = get<traits::line_info>();
+    return i.begin();
+}
+
+LineInformation::const_line_info_iterator LineInformation::end_by_source() const {
+    const traits::line_info_index& i = get<traits::line_info>();
+    return i.end();
+}
+
+std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line_info_iterator>
+LineInformation::equal_range(std::string file, const unsigned int lineNo) const {
+    return get<traits::line_info>().equal_range(std::make_tuple(file, lineNo));
+
+}
+
+std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line_info_iterator>
+LineInformation::equal_range(std::string file) const {
+    return get<traits::line_info>().equal_range(file);
+//    const traits::line_info_index& by_line_info = impl_t::get<traits::line_info>();
+//    return by_line_info.equal_range(file);
+
+}
+
+/* end LineInformation destructor */
 

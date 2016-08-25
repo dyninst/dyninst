@@ -2307,8 +2307,8 @@ void Symtab::parseLineInformation()
    linkedFile->parseFileLineInfo(this);
 }
 
-SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
-      std::string lineSource, unsigned int lineNo)
+SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<AddressRange > &ranges,
+                                            std::string lineSource, unsigned int lineNo)
 {
    unsigned int originalSize = ranges.size();
    parseLineInformation();
@@ -2329,7 +2329,7 @@ SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<pair<Offset, Offset> >&r
    return false;
 }
 
-SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement *> &lines, Offset addressInRange)
+SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement::ConstPtr> &lines, Offset addressInRange)
 {
    unsigned int originalSize = lines.size();
 
@@ -2354,24 +2354,14 @@ SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement *> &lines, Offse
 
 SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
 {
-   unsigned int originalSize = lines.size();
-
-   getObject()->parseLineInfoForAddr(this, addressInRange);
-
-   /* Iteratate over the modules, looking for ranges in each. */
-   for ( unsigned int i = 0; i < _mods.size(); i++ ) 
-   {
-      LineInformation *lineInformation = _mods[i]->getLineInformation();
-      
-      if (lineInformation)
-         lineInformation->getSourceLines( addressInRange, lines );
-      
-   } /* end iteration over modules */
-   
-   if ( lines.size() != originalSize )
-      return true;
-   
-   return false;
+    std::vector<Statement::ConstPtr> tmp;
+    getSourceLines(tmp, addressInRange);
+    if(tmp.empty()) return false;
+    for(auto i = tmp.begin(); i != tmp.end(); ++i)
+    {
+        lines.push_back(**i);
+    }
+    return true;
 }
 
 SYMTAB_EXPORT bool Symtab::addLine(std::string lineSource, unsigned int lineNo,
