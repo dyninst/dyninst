@@ -142,6 +142,7 @@ class IBSNode {
     ~IBSNode() { }
 
     interval_type value() const { return val_; };
+    interval_type operator*() const { return value; }
 
   private: 
     /* The endpoint of an interval range */
@@ -161,7 +162,15 @@ class IBSNode {
 
 template<class ITYPE = interval<> >
 class IBSTree {
+public:
     typedef typename ITYPE::type interval_type;
+    typedef IBSNode<ITYPE>* iterator;
+    typedef const IBSNode<ITYPE>* const_iterator;
+    typedef ITYPE value_type;
+    typedef value_type& reference;
+    typedef const value_type& const_reference;
+    typedef size_t difference_type;
+    typedef size_t size_type;
 
     IBSNode<ITYPE> *nil;
 
@@ -235,7 +244,18 @@ class IBSTree {
         delete nil;
     }
 
-    int size() const { return treeSize; }
+    size_type size() const { return treeSize; }
+    const_iterator begin() const {
+        iterator b = root;
+        while(root->left) b = root->left;
+        return b;
+    }
+    const_iterator end() const {
+        iterator e = root;
+        while(root->right) e = root->right;
+        return e;
+
+    }
     int CountMarks() const;
     
     bool empty() const { return (root == nil); }
