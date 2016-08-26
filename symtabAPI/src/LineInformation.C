@@ -37,6 +37,7 @@
 #include "Serialization.h"
 
 #include <functional>
+#include <iostream>
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -44,7 +45,7 @@ using std::vector;
 
 #include "LineInformation.h"
 
-LineInformation::LineInformation()
+LineInformation::LineInformation() : wasted_compares(0), num_queries(0)
 {
 } /* end LineInformation constructor */
 
@@ -84,16 +85,35 @@ bool LineInformation::addAddressRange( Offset lowInclusiveAddr,
    return addLine( lineSource, lineNo, lineOffset, lowInclusiveAddr, highExclusiveAddr );
 } /* end setAddressRangeToLineMapping() */
 
+
+std::string print(const Dyninst::SymtabAPI::Statement& stmt)
+{
+    std::stringstream stream;
+    stream << "Statement: < [" << stmt.startAddr() << ", " << stmt.endAddr() << "): " << stmt.getFile() << ":" << stmt.getLine() << " >";
+    return stream.str();
+}
+
+
 bool LineInformation::getSourceLines(Offset addressInRange,
                                      vector<Statement_t> &lines)
 {
-    using namespace std::placeholders;
-    auto start_addr_valid = lower_bound(addressInRange + 1);
-    std::copy_if(begin(),
-                 start_addr_valid,
-                 std::back_inserter(lines),
-                 std::bind(&Statement::contains, std::placeholders::_1, addressInRange));
-    return start_addr_valid != begin();
+    ++num_queries;
+    const_iterator start_addr_valid = project<traits::addr_range>(get<traits::upper_bound>().upper_bound(addressInRange ));
+    const_iterator end_addr_valid = impl_t::upper_bound(addressInRange + 1);
+    while(start_addr_valid != end_addr_valid)
+    {
+        if((*start_addr_valid)->contains(addressInRange))
+        {
+            lines.push_back(*start_addr_valid);
+        }
+        else
+        {
+            std::cout << print(**start_addr_valid) << " does not contain " << addressInRange << std::endl;
+            ++wasted_compares;
+        }
+        ++start_addr_valid;
+    }
+    return true;
 } /* end getLinesFromAddress() */
 
 bool LineInformation::getSourceLines( Offset addressInRange,
@@ -146,6 +166,11 @@ unsigned LineInformation::getSize() const
 
 LineInformation::~LineInformation() 
 {
+    if(num_queries)
+    {
+        std::cout << "Line information with " << getSize() << " entries queried " << num_queries << " times with "
+                << wasted_compares << " extra compares (" << (float)(wasted_compares) / (num_queries) << " per query)" << std::endl;
+    }
 }
 
 LineInformation::const_line_info_iterator LineInformation::begin_by_source() const {

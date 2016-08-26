@@ -53,7 +53,7 @@ class localVar;
 class Symtab;
 
 
-class SYMTAB_EXPORT Statement : public AnnotatableSparse, public Serializable
+class SYMTAB_EXPORT Statement// : public AnnotatableSparse, public Serializable
 {
 	friend class Module;
 	friend class std::vector<Statement>;
@@ -101,7 +101,6 @@ class SYMTAB_EXPORT Statement : public AnnotatableSparse, public Serializable
 	unsigned int getColumn() const{return column;}
     AddressRange addressRange( ) const { return AddressRange(*this); }
     bool contains(Offset addr) const { return addressRange().contains(addr); }
-	Serializable *serialize_impl(SerializerBase *sb, const char *tag = "Statement") THROW_SPEC (SerializerError);
 
 	//  Does dyninst really need these?
 	void setLine(unsigned int l) {line_ = l;}
@@ -118,14 +117,14 @@ typedef Statement LineNoTuple;
 
  class SYMTAB_EXPORT Module : public LookupInterface
 {
+	friend class Symtab;
+
+	public:
 #if defined(cap_dwarf)
 			typedef Dwarf_Die DebugInfoT;
 #else
 			typedef void* DebugInfoT;
 #endif
-	friend class Symtab;
-
-	public:
 
 	Module();
 	Module(supportedLanguages lang, Offset adr, std::string fullNm,
@@ -198,8 +197,8 @@ typedef Statement LineNoTuple;
    bool getStatements(std::vector<Statement::ConstPtr> &statements);
    LineInformation *getLineInformation();
     LineInformation* parseLineInformation();
-   bool hasLineInformation();
-   bool setDefaultNamespacePrefix(std::string str);
+
+			bool setDefaultNamespacePrefix(std::string str);
 
 
    //  Super secret private methods that aren't really private
@@ -212,13 +211,12 @@ typedef Statement LineNoTuple;
    bool setLineInfo(Dyninst::SymtabAPI::LineInformation *lineInfo);
 	 void addRange(Dyninst::Address low, Dyninst::Address high);
 
-            void setDebugInfo(Module::DebugInfoT info) {info_is_valid_ = true; info_ = info; }
-	 Module::DebugInfoT getDebugInfo();
-   private:
+	void setDebugInfo(Module::DebugInfoT info);
+
+		private:
    Dyninst::SymtabAPI::LineInformation* lineInfo_;
    typeCollection* typeInfo_;
-			bool info_is_valid_;
-	 Module::DebugInfoT info_;
+	std::vector<Module::DebugInfoT> info_;
    
 
    std::string fileName_;                   // short file 
@@ -231,6 +229,12 @@ typedef Statement LineNoTuple;
 		OS& operator<<(OS& os, const Module& m)
 		{
 			os << m.fileName() << ": " << m.addr();
+			return os;
+		}
+		template <typename OS>
+		OS& operator<<(OS& os, Module* m)
+		{
+			os << m->fileName() << ": " << m->addr();
 			return os;
 		}
 

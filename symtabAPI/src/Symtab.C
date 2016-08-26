@@ -2333,21 +2333,33 @@ SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement::ConstPtr> &line
 {
    unsigned int originalSize = lines.size();
 
-   getObject()->parseLineInfoForAddr(this, addressInRange);
 
-   /* Iteratate over the modules, looking for ranges in each. */
-   for ( unsigned int i = 0; i < _mods.size(); i++ ) 
-   {
-      LineInformation *lineInformation = _mods[i]->getLineInformation();
-
-      if (lineInformation)
-         lineInformation->getSourceLines( addressInRange, lines );
-
-   } /* end iteration over modules */
+    std::set<Module*> mods_for_offset;
+    findModuleByOffset(mods_for_offset, addressInRange);
+    for(auto i = mods_for_offset.begin();
+            i != mods_for_offset.end();
+            ++i)
+    {
+        std::cout << "Checking module " << (*(*i)) << " for " << addressInRange << endl;
+        (*i)->getSourceLines(lines, addressInRange);
+    }
+//   /* Iteratate over the modules, looking for ranges in each. */
+//   for ( unsigned int i = 0; i < _mods.size(); i++ )
+//   {
+//      LineInformation *lineInformation = _mods[i]->getLineInformation();
+//
+//      if (lineInformation)
+//         lineInformation->getSourceLines( addressInRange, lines );
+//
+//   } /* end iteration over modules */
 
    if ( lines.size() != originalSize )
       return true;
 
+    if(!mods_for_offset.empty()) {
+        std::cout << "WARNING: Modules have ranges for 0x" << std::hex << addressInRange << " but lack line info"<< std::endl;
+        std::copy(mods_for_offset.begin(), mods_for_offset.end(), std::ostream_iterator<Module*>(std::cout, "\n"));
+    }
    return false;
 
 }

@@ -29,6 +29,8 @@
  */
 
 #include <string.h>
+#include <common/src/debug_common.h>
+#include "debug.h"
 
 #include "Annotatable.h"
 #include "Module.h"
@@ -42,6 +44,7 @@
 
 #include "common/src/pathName.h"
 #include "common/src/serialize.h"
+#include "Object.h"
 
 #if defined(cap_dwarf)
 #include "dwarfWalker.h"
@@ -118,11 +121,6 @@ supportedLanguages Module::language() const
    return language_;
 }
 
-bool Module::hasLineInformation()
-{
-  return lineInfo_ && lineInfo_->getSize();
-}
-
 bool Module::getAddressRanges(std::vector<AddressRange >&ranges,
       std::string lineSource, unsigned int lineNo)
 {
@@ -143,7 +141,6 @@ bool Module::getSourceLines(std::vector<Statement::ConstPtr> &lines, Offset addr
    unsigned int originalSize = lines.size();
 
    LineInformation *lineInformation = parseLineInformation();
-//    cout << "Module " << fileName() << " searching for line info in " << lineInformation << endl;
    if (lineInformation)
       lineInformation->getSourceLines( addressInRange, lines );
 
@@ -170,13 +167,20 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
 }
 
 LineInformation *Module::parseLineInformation() {
-    LineInformation *lineInformation = getLineInformation();
-    if (!lineInformation)
+    // if non-null, we're fine
+    if (!lineInfo_)
     {
-        exec_->parseLineInformation();
-        lineInformation = getLineInformation();
-        return lineInformation;
+        lineInfo_ = new LineInformation;
     }
+//    cout << "Parsing line info for module:" << *this << " with " << info_.size() << " CU entries set" << endl;
+    for(auto cu = info_.begin();
+            cu != info_.end();
+            ++cu)
+    {
+        exec()->getObject()->parseLineInfoForCU(*cu, lineInfo_);
+    }
+    info_.clear();
+    return lineInfo_;
 }
 
 bool Module::getStatements(std::vector<LineInformation::Statement_t> &statements)
@@ -245,8 +249,10 @@ bool Module::findVariableType(Type *&type, std::string name)
 
 bool Module::setLineInfo(LineInformation *lineInfo)
 {
-  lineInfo_ = lineInfo;
-  return true;
+    assert(!lineInfo_);
+    //delete lineInfo_;
+    lineInfo_ = lineInfo;
+    return true;
 }
 
 LineInformation *Module::getLineInformation()
@@ -295,9 +301,7 @@ Module::Module() :
    fullName_(""),
    language_(lang_Unknown),
    addr_(0),
-   exec_(NULL),
-   info_is_valid_(false),
-   info_(NULL) // not a default constructed whatever!
+   exec_(NULL)
 {
 }
 
@@ -310,7 +314,6 @@ Module::Module(const Module &mod) :
    language_(mod.language_),
    addr_(mod.addr_),
    exec_(mod.exec_),
-   info_is_valid_(false),
    info_(mod.info_)
 {
 }
@@ -417,14 +420,10 @@ bool Module::findVariablesByName(std::vector<Variable *> &ret, const std::string
 
 void Module::addRange(Dyninst::Address low, Dyninst::Address high)
 {
-
     exec_->mod_lookup()->insert(new ModRange(low, high, this));
 }
 
-Module::DebugInfoT Module::getDebugInfo()
-{
-    if(!info_is_valid_) {
-        exec_->parseTypesNow();
-    }
-    return info_;
+void Module::setDebugInfo(Module::DebugInfoT info) {
+//    cout << "Adding DIE to module:" << *this << endl;
+    info_.push_back(info);
 }

@@ -4189,119 +4189,6 @@ void Object::parseStabFileLineInfo(Symtab *st)
 } /* end parseStabFileLineInfo() */
 
 
-bool Object::addrInCU(Dwarf_Debug dbg, Dwarf_Die cu, Address to_check, Module *mod_for_cu)
-{
-    Dwarf_Addr tempLow = 0, tempHigh = -1;
-    Address low = 0, high = -1;
-    Dwarf_Bool has_attr;
-    Dwarf_Error please_ignore; // malformed dwarf can spew errors on lowpc and highpc; we'll use this to swallow those (as they're handled safely)
-    // and not leak memory with a bad error handler.
-    if(dwarf_hasattr(cu, DW_AT_low_pc, &has_attr, NULL) != DW_DLV_OK) return false;
-    if(has_attr)
-    {
-        if(dwarf_hasattr(cu, DW_AT_high_pc, &has_attr, NULL) != DW_DLV_OK) return false;
-        if(has_attr)
-        {
-            int status = dwarf_lowpc(cu, &tempLow, &please_ignore);
-            if(status == DW_DLV_OK)
-            {
-                low = (Address) tempLow;
-                //cerr << "lowpc/highpc, low is " << hex << low << ", addr is " << to_check << endl;
-                if(low > to_check) return false;
-                status = dwarf_highpc(cu, &tempHigh, NULL);//&please_ignore);
-                if(status == DW_DLV_OK)
-                {
-                    high = (Address) tempHigh;
-                    //cerr << "lowpc/highpc, high is " << hex << high << ", addr is " << to_check << endl;
-
-                    if(to_check < high) return true;
-                }
-                else if(status == DW_DLV_ERROR)
-                {
-                    // this is most likely a case where libdwarf doesn't handle dwarf4.
-                    // claim the address is in this CU; better to overparse.
-                    return true;
-                    //cerr << "lowpc/highpc, high threw error" << endl;
-                    //		  dwarf_dealloc(dbg, please_ignore, DW_DLA_ERROR);
-                }
-            }
-        }
-    }
-
-    Dwarf_Bool hasRanges = false;
-    if(dwarf_hasattr(cu, DW_AT_ranges, &hasRanges, NULL) != DW_DLV_OK) {
-        //cerr << "no lowpc/highpc, error getting ranges\n";
-        return false;
-    }
-
-    if (hasRanges) {
-        Address range_offset = 0;
-        Dwarf_Attribute off_attr;
-        Dwarf_Half off_form;
-
-        if(dwarf_attr(cu, DW_AT_ranges, &off_attr, NULL) != DW_DLV_OK) return false;
-        if(dwarf_whatform(off_attr, &off_form, NULL) != DW_DLV_OK) return false;
-        switch(off_form)
-        {
-            case DW_FORM_addr:
-                Dwarf_Addr a;
-                if(dwarf_formaddr(off_attr, &a, NULL) != DW_DLV_OK) return false;
-                range_offset = Address(a);
-                break;
-            case DW_FORM_sdata:
-                Dwarf_Signed sd;
-                if(dwarf_formsdata(off_attr, &sd, NULL) != DW_DLV_OK) return false;
-                range_offset = Address(sd);
-                break;
-            case DW_FORM_data1:
-            case DW_FORM_data2:
-            case DW_FORM_data4:
-            case DW_FORM_data8:
-            case DW_FORM_udata:
-                Dwarf_Unsigned u;
-                if(dwarf_formudata(off_attr, &u, NULL) != DW_DLV_OK) return false;
-                range_offset = Address(u);
-                break;
-            case DW_FORM_sec_offset:
-                if(dwarf_global_formref(off_attr, &u, NULL) != DW_DLV_OK) return false;
-                range_offset = Address(u);
-                break;
-        }
-
-        Dwarf_Ranges *ranges = NULL;
-        Dwarf_Signed ranges_length = 0;
-        if(dwarf_get_ranges_a(dbg, (Dwarf_Off) range_offset, cu,
-                              &ranges, &ranges_length, NULL, NULL) != DW_DLV_OK) return false;
-
-
-        bool done = false;
-        Address cur_base = low;
-        for (unsigned i = 0; i < ranges_length && !done; i++) {
-            Dwarf_Ranges *cur = ranges + i;
-            switch (cur->dwr_type) {
-                case DW_RANGES_ENTRY: {
-                    Address curlow = cur->dwr_addr1 + cur_base;
-                    Address curhigh = cur->dwr_addr2 + cur_base;
-
-                    if(curlow <= to_check && to_check < curhigh) return true;
-
-                    break;
-                }
-                case DW_RANGES_ADDRESS_SELECTION:
-                    cur_base = cur->dwr_addr2;
-                    break;
-                case DW_RANGES_END:
-                    done = true;
-                    break;
-            }
-        }
-        dwarf_dealloc(dbg, off_attr, DW_DLA_ATTR);
-        dwarf_ranges_dealloc(dbg, ranges, ranges_length);
-    }
-    return false;
-}
-
-
 
 void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 {
@@ -4456,20 +4343,7 @@ void Object::parseLineInfoForAddr(Symtab* obj, Offset addr_to_find)
             mod != mod_for_offset.end();
             ++mod)
     {
-        if((*mod)->hasLineInformation())      // already parsed
-        {
-            continue;
-        }
-        Dwarf_Die cuDIE = ((*mod)->getDebugInfo());
-        if(!cuDIE) return; // stashed DIE was null, so we never set it...
-        LineInformation* li_for_module = ((*mod)->getLineInformation());
-        if(!li_for_module)
-        {
-            li_for_module = new LineInformation;
-            ((*mod)->setLineInfo(li_for_module));
-        }
-
-        parseLineInfoForCU(cuDIE, li_for_module);
+        (*mod)->parseLineInformation();
     }
     // no mod for offset means no line info for sure if we've parsed all ranges...
 }
@@ -4480,77 +4354,14 @@ void Object::parseLineInfoForAddr(Symtab* obj, Offset addr_to_find)
 // Dwarf Debug Format parsing
 void Object::parseDwarfFileLineInfo(Symtab* st)
 {
-    Dwarf_Debug *dbg_ptr = dwarf->line_dbg();
-    if (!dbg_ptr)
-        return;
-    Dwarf_Debug dbg = *dbg_ptr;
-
-    /* Only .debug_info for now, not .debug_types */
-    Dwarf_Bool is_info = 1;
-
-    /* Itereate over the CU headers. */
-    Dwarf_Unsigned header;
-    while ( dwarf_next_cu_header_c( dbg, is_info,
-                                    NULL, NULL, NULL, // len, stamp, abbrev
-                                    NULL, NULL, NULL, // address, offset, extension
-                                    NULL, NULL, // signature, typeoffset
-                                    & header, NULL ) == DW_DLV_OK )
+    vector<Module*> mods;
+    st->getAllModules(mods);
+    for(auto mod = mods.begin();
+            mod != mods.end();
+            ++mod)
     {
-        /* Acquire the CU DIE. */
-        Dwarf_Die cuDIE;
-        int status = dwarf_siblingof_b( dbg, NULL, is_info, & cuDIE, NULL);
-        if ( status != DW_DLV_OK ) {
-            /* If we can get no (more) CUs, we're done. */
-            break;
-        }
-
-        char * cuName;
-        const char *moduleName;
-        status = dwarf_diename( cuDIE, &cuName, NULL );
-        if ( status == DW_DLV_NO_ENTRY ) {
-            cuName = NULL;
-            moduleName = "DEFAULT_MODULE";
-        }
-        else {
-            moduleName = strrchr(cuName, '/');
-            if (!moduleName)
-                moduleName = strrchr(cuName, '\\');
-            if (moduleName)
-                moduleName++;
-            else
-                moduleName = cuName;
-        }
-        Module* mod = NULL;
-//        for(auto found_mod = modules_.begin();
-//            found_mod != modules_.end();
-//            ++found_mod)
-//        {
-//            if(found_mod->first == moduleName) {
-//                mod = st->getOrCreateModule(found_mod->first, found_mod->second);
-//                break;
-//            }
-//        }
-        if(!st->findModuleByName(mod, moduleName)) {
-            mod = st->getDefaultModule();
-//            cout << "Default module is " << mod->fileName() <<endl;
-        }
-//        if(!mod) mod = st->getDefaultModule();
-        LineInformation* li_for_module = mod->getLineInformation();
-        if(!li_for_module)
-        {
-            li_for_module = new LineInformation;
-            mod->setLineInfo(li_for_module);
-        }
-//        cout << "Parsing line info for " <<mod->fileName() <<endl;
-        parseLineInfoForCU(cuDIE, li_for_module);
-
-        if (cuName)
-            dwarf_dealloc( dbg, cuName, DW_DLA_STRING );
-
-        /* Free this CU's DIE. */
-        dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
-    } /* end CU header iteration */
-    /* Note that we've parsed this file. */
+        (*mod)->parseLineInformation();
+    }
 } /* end parseDwarfFileLineInfo() */
 
 void Object::parseFileLineInfo(Symtab *st)

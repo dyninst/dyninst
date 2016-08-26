@@ -94,7 +94,8 @@ class SYMTAB_EXPORT LineInformation :
          (in the destructor).  Note that it speeds and simplifies things
          to have the string pointers be the same. */
 
-      unsigned size_;
+      int wasted_compares;
+      int num_queries;
 }; /* end class LineInformation */
 
 }//namespace SymtabAPI

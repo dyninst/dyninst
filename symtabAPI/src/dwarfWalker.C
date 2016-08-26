@@ -225,8 +225,14 @@ bool DwarfWalker::parseModule(Dwarf_Bool is_info, Module *&fixUnknownMod) {
    if (findConstant(DW_AT_high_pc, tempModHigh, entry(), dbg())) {
       modHigh = convertDebugOffset(tempModHigh);
    }
-
-   setModuleFromName(moduleName);
+    // We have enough info to make a new module if we have a low address.
+    if(modLow && symtab())
+    {
+        mod() = symtab()->getOrCreateModule(moduleName, modLow);
+    } else
+    {
+        setModuleFromName(moduleName);
+    }
 
    //dwarf_printf("Mapped to Symtab module %s\n", mod()->fileName().c_str());
 
@@ -234,10 +240,16 @@ bool DwarfWalker::parseModule(Dwarf_Bool is_info, Module *&fixUnknownMod) {
       fixUnknownMod = mod();
 
    if (!buildSrcFiles(moduleDIE)) return false;
+    if(mod()) {
+        mod()->setDebugInfo(moduleDIE);
+        if(modLow && modHigh)
+        {
+            mod()->addRange(modLow, modHigh);
+        }
+    }
 
 
    if (!parse_int(moduleDIE, true)) return false;
-   if(mod()) mod()->setDebugInfo(moduleDIE);
 
    return true;
 
@@ -428,7 +440,9 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
       DWARF_CHECK_RET(status == DW_DLV_ERROR);
 
       /* Deallocate the entry we just parsed. */
-      if(tag() != DW_TAG_compile_unit)
+      if(tag() != DW_TAG_compile_unit &&
+              tag() != DW_TAG_partial_unit &&
+              tag() != DW_TAG_type_unit)
       {
          dwarf_dealloc( dbg(), entry(), DW_DLA_DIE );
       }

@@ -262,12 +262,14 @@ class Region;
 class Object;
 
         class Object : public AObject {
+            friend class Module;
 
   // declared but not implemented; no copying allowed
   Object(const Object &);
   const Object& operator=(const Object &);
 
  public:
+
   Object(MappedFile *, bool, void (*)(const char *) = log_msg, bool alloc_syms = true);
   virtual ~Object();
 
@@ -522,8 +524,7 @@ class Object;
   void parseLineInfoForAddr(Symtab* obj, Offset addr_to_find);
   
  private:
-    bool addrInCU(Dwarf_Debug dbg, Dwarf_Die cu, Address to_find, Module *mod_for_cu);
-  void parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li);
+            void parseLineInfoForCU(Module::DebugInfoT cuDIE, LineInformation* li);
 
   void parseDwarfTypes(Symtab *obj);
   void parseStabTypes(Symtab *obj);

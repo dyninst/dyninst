@@ -135,7 +135,8 @@ public:
     SYMTAB_EXPORT bool hasError() const;
     SYMTAB_EXPORT virtual bool isBigEndianDataEncoding() const { return false; }
     SYMTAB_EXPORT virtual bool getABIVersion(int & /*major*/, int & /*minor*/) const { return false; }
-    
+
+
     virtual void setTruncateLinePaths(bool value);
     virtual bool getTruncateLinePaths();
     virtual Region::RegionType getRelType() const { return Region::RT_INVALID; }
@@ -147,6 +148,7 @@ protected:
     SYMTAB_EXPORT virtual ~AObject();
     // explicitly protected
     SYMTAB_EXPORT AObject(MappedFile *, void (*err_func)(const char *));
+    virtual void parseLineInfoForCU(Module::DebugInfoT module_debug_info, LineInformation* li) { }
 
     MappedFile *mf;
 
