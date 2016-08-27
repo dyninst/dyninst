@@ -413,43 +413,43 @@ namespace Dyninst
     
     bool BinaryFunction::isAdd() const
     {
-        return dynamic_cast<addResult*>(m_funcPtr.get()) != nullptr;
+        return dynamic_cast<addResult*>(m_funcPtr.get()) != NULL;
     }
     
     bool BinaryFunction::isMultiply() const
     {
-        return dynamic_cast<multResult*>(m_funcPtr.get()) != nullptr;
+        return dynamic_cast<multResult*>(m_funcPtr.get()) != NULL;
 
     }
     
     bool BinaryFunction::isLeftShift() const
     {
-	return dynamic_cast<leftShiftResult*>(m_funcPtr.get()) != nullptr;
+	return dynamic_cast<leftShiftResult*>(m_funcPtr.get()) != NULL;
     }
 	
     bool BinaryFunction::isRightArithmeticShift() const
     {
-	return dynamic_cast<rightArithmeticShiftResult*>(m_funcPtr.get()) != nullptr;
+	return dynamic_cast<rightArithmeticShiftResult*>(m_funcPtr.get()) != NULL;
     }
 
     bool BinaryFunction::isAndResult() const
     {
-        return dynamic_cast<andResult*>(m_funcPtr.get()) != nullptr;
+        return dynamic_cast<andResult*>(m_funcPtr.get()) != NULL;
     }
 
     bool BinaryFunction::isOrResult() const
     {
-        return dynamic_cast<orResult*>(m_funcPtr.get()) != nullptr;
+        return dynamic_cast<orResult*>(m_funcPtr.get()) != NULL;
     }
 
     bool BinaryFunction::isRightLogicalShift() const
     {
-        return dynamic_cast<rightLogicalShiftResult*>(m_funcPtr.get()) != nullptr;
+        return dynamic_cast<rightLogicalShiftResult*>(m_funcPtr.get()) != NULL;
     }
 
     bool BinaryFunction::isRightRotate() const
     {
-        return dynamic_cast<rightRotateResult*>(m_funcPtr.get()) != nullptr;
+        return dynamic_cast<rightRotateResult*>(m_funcPtr.get()) != NULL;
     }
   };
 };
