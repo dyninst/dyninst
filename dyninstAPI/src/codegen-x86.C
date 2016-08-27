@@ -1196,10 +1196,6 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
 
     /* get the prefix count */
     size_t pref_count = instruct.getSize();
-
-    /* copy the prefix */
-    memcpy(newInsn, origInsn, pref_count);
-    newInsn += pref_count;
     origInsn += pref_count;
 
     /* Decode the opcode */
@@ -1208,27 +1204,31 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
 
     /* Calculate the amount of opcode bytes */
     size_t opcode_len = instruct.getSize() - pref_count;
-
-    /* Copy the opcode bytes */
-    memcpy(newInsn, origInsn, opcode_len);
-    newInsn += opcode_len;
     origInsn += opcode_len;
 
     /* Get the value of the Mod/RM byte */
-    unsigned char mod_rm = *origInsn;
-    origInsn++;
+    unsigned char mod_rm = *origInsn++;
 
+#if defined(arch_x86_64)
     if (!is_disp32(newDisp+insnSz) && !is_addr32(targetAddr)) 
     {
         // Case C: replace with 64-bit.
+        // This preamble must come before any writes to newInsn!
         is_data_abs64 = true;
-#if defined(arch_x86_64)
         pointer_reg = (mod_rm & 0x38) != 0 ? 0 : 3;
         SET_PTR(newInsn, gen);
         emitPushReg64(pointer_reg, gen);
         emitMovImmToReg64(pointer_reg, targetAddr, true, gen);
         REGET_PTR(newInsn, gen);
+    }
+#endif
 
+    /* copy the prefix and opcode bytes */
+    memcpy(newInsn, origInsnStart, pref_count + opcode_len);
+    newInsn += pref_count + opcode_len;
+
+    if (is_data_abs64)
+    {
         // change ModRM byte to use [pointer_reg]: requires
         // us to change last three bits (the r/m field)
         // to the value of pointer_reg
@@ -1236,7 +1236,6 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
         mod_rm = (mod_rm & 0xf8) | pointer_reg;
         /* Set the new ModR/M byte of the new instruction */
         *newInsn++ = mod_rm;
-#endif
     } else if (is_disp32(newDisp + insnSz)) 
     {
         /* Instruction can remain a 32 bit instruction */
