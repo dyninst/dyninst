@@ -85,7 +85,7 @@ endif()
 if(BUILD_RTLIB)
   # Build the RT library as a separate project so we can change compilers
   message(STATUS "Configuring DyninstAPI_RT")
-  file(REMOVE_RECURSE ${RT_BINARY_DIR}/CMakeCache.txt ${RT_BINARY_DIR}/Makefile)
+  file(REMOVE_RECURSE ${RT_BINARY_DIR}/CMakeCache.txt ${RT_BINARY_DIR}/CMakeFiles ${RT_BINARY_DIR}/Makefile)
   file(MAKE_DIRECTORY ${RT_BINARY_DIR})
   if (PLATFORM MATCHES bgq)
     set (RT_C_COMPILER mpicc CACHE STRING "Compiler for runtime library")
