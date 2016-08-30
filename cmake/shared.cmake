@@ -95,6 +95,21 @@ include (${DYNINST_ROOT}/cmake/warnings.cmake)
 include (${DYNINST_ROOT}/cmake/options.cmake)
 include (${DYNINST_ROOT}/cmake/optimization.cmake)
 
+# Check for cotire-gcc compatibility
+set(USE_COTIRE true)
+IF(CMAKE_COMPILER_IS_GNUCC)
+    execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
+    string(REGEX MATCHALL "[0-9]+" GCC_VERSION_COMPONENTS ${GCC_VERSION})
+    IF(GCC_VERSION VERSION_LESS 4.5)
+        SET(USE_COTIRE false)
+    ENDIF()
+ENDIF(CMAKE_COMPILER_IS_GNUCC)
+
+# Make sure our CMake version is actually supported by cotire
+IF(CMAKE_VERSION VERSION_LESS 2.8.12)
+    SET(USE_COTIRE false)
+ENDIF()
+
 if (USE_COTIRE)
     include (${DYNINST_ROOT}/cmake/cotire.cmake)
 endif()

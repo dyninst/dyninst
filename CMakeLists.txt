@@ -14,21 +14,6 @@ ENDIF()
 set(RT_SOURCE_DIR ${DYNINST_ROOT}/dyninstAPI_RT)
 set(RT_BINARY_DIR ${PROJECT_BINARY_DIR}/dyninstAPI_RT)
 
-# Check for cotire-gcc compatibility
-set(USE_COTIRE true)
-IF(CMAKE_COMPILER_IS_GNUCC)
-    execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
-    string(REGEX MATCHALL "[0-9]+" GCC_VERSION_COMPONENTS ${GCC_VERSION})
-    IF(GCC_VERSION VERSION_LESS 4.5)
-        SET(USE_COTIRE false)
-    ENDIF()
-ENDIF(CMAKE_COMPILER_IS_GNUCC)
-
-# Make sure our CMake version is actually supported by cotire
-IF(CMAKE_VERSION VERSION_LESS 2.8.12)
-    SET(USE_COTIRE false)
-ENDIF()
-
 include (${DYNINST_ROOT}/cmake/shared.cmake)
 
 configure_file(cmake/version.h.in common/h/version.h)
