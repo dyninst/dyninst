@@ -94,7 +94,10 @@ include (${DYNINST_ROOT}/cmake/visibility.cmake)
 include (${DYNINST_ROOT}/cmake/warnings.cmake)
 include (${DYNINST_ROOT}/cmake/options.cmake)
 include (${DYNINST_ROOT}/cmake/optimization.cmake)
-include (${DYNINST_ROOT}/cmake/cotire.cmake)
+
+if (USE_COTIRE EQUAL true)
+    include (${DYNINST_ROOT}/cmake/cotire.cmake)
+endif()
 
 set_directory_properties(PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
 

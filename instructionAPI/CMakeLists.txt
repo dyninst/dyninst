@@ -39,5 +39,6 @@ if(UNIX)
   target_link_private_libraries(instructionAPI ${Boost_LIBRARIES})
 endif()
 
-set_target_properties(instructionAPI PROPERTIES COTIRE_ENABLE_PRECOMPILED_HEADER FALSE)
-cotire(instructionAPI)
+if (USE_COTIRE EQUAL true)
+    cotire(instructionAPI)
+endif()

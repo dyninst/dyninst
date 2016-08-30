@@ -120,5 +120,8 @@ endif()
 if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
   target_link_private_libraries(common Psapi WS2_32 dbghelp)
 endif()
-cotire(common)
+
+IF (USE_COTIRE EQUAL true)
+    cotire(common)
+ENDIF()
 

@@ -11,4 +11,6 @@ set_source_files_properties(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 add_definitions(-DDYNC_EXPORTS)
 
 dyninst_library(dynC_API dyninstAPI)
-cotire(dynC_API)
+if (USE_COTIRE EQUAL true)
+    cotire(dynC_API)
+endif()
