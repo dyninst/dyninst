@@ -201,7 +201,7 @@ if (UNIX)
 else()
   target_link_private_libraries(dyninstAPI dbghelp WS2_32 imagehlp)
 endif()
-if (USE_COTIRE EQUAL true)
+if (USE_COTIRE)
     cotire(dyninstAPI)
 endif()
 

@@ -110,6 +110,6 @@ endif()
 
 dyninst_library(symtabAPI ${DEPS})
 
-if (USE_COTIRE EQUAL true)
+if (USE_COTIRE)
     cotire(symtabAPI)
 endif()

@@ -28,6 +28,6 @@ SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 ADD_DEFINITIONS(-DPATCHAPI_LIB)
 
 dyninst_library(patchAPI common instructionAPI parseAPI)
-if (USE_COTIRE EQUAL true)
+if (USE_COTIRE)
     cotire(patchAPI)
 endif()

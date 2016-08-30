@@ -108,6 +108,6 @@ endif()
 
 
 dyninst_library(stackwalk ${DEPS})
-if (USE_COTIRE EQUAL true)
+if (USE_COTIRE)
     cotire(stackwalk)
 endif()

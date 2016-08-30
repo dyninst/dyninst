@@ -39,6 +39,6 @@ if(UNIX)
   target_link_private_libraries(instructionAPI ${Boost_LIBRARIES})
 endif()
 
-if (USE_COTIRE EQUAL true)
+if (USE_COTIRE)
     cotire(instructionAPI)
 endif()

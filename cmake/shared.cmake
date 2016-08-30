@@ -95,7 +95,7 @@ include (${DYNINST_ROOT}/cmake/warnings.cmake)
 include (${DYNINST_ROOT}/cmake/options.cmake)
 include (${DYNINST_ROOT}/cmake/optimization.cmake)
 
-if (USE_COTIRE EQUAL true)
+if (USE_COTIRE)
     include (${DYNINST_ROOT}/cmake/cotire.cmake)
 endif()
 

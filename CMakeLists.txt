@@ -24,6 +24,11 @@ IF(CMAKE_COMPILER_IS_GNUCC)
     ENDIF()
 ENDIF(CMAKE_COMPILER_IS_GNUCC)
 
+# Make sure our CMake version is actually supported by cotire
+IF(CMAKE_VERSION VERSION_LESS 2.8.12)
+    SET(USE_COTIRE false)
+ENDIF()
+
 include (${DYNINST_ROOT}/cmake/shared.cmake)
 
 configure_file(cmake/version.h.in common/h/version.h)

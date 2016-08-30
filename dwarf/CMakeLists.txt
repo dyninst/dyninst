@@ -21,6 +21,6 @@ set (SRC_LIST
 
 
 dyninst_library(dynDwarf dynElf common ${LIBDWARF_LIBRARIES})
-if (USE_COTIRE EQUAL true)
+if (USE_COTIRE)
     cotire(dynDwarf)
 endif()
