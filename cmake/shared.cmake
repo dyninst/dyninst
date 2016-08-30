@@ -106,9 +106,9 @@ IF(CMAKE_COMPILER_IS_GNUCC)
 ENDIF(CMAKE_COMPILER_IS_GNUCC)
 
 # If we're compiling for unix, cotire only supports Intel, GCC and Clang.
-IF (UNIX && NOT ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel"))
+IF (UNIX AND NOT (("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang") OR ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU") OR ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")))
 	set(USE_COTIRE false)
-ENDIF
+ENDIF()
 
 # Make sure our CMake version is actually supported by cotire
 IF(CMAKE_VERSION VERSION_LESS 2.8.12)
