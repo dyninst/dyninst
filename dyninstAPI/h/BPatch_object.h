@@ -166,7 +166,7 @@ class BPATCH_DLL_EXPORT BPatch_object {
     // Returns in modResults a vector of (function, instrumented) pairs where
     // instrumented is true if stack modifications were successfully added.
     void addModsAllFuncs(const std::set<StackMod *> &mods, bool interproc,
-        std::vector<std::pair<BPatch_function *, bool>> &modResults,
+        std::vector<std::pair<BPatch_function *, bool> > &modResults,
         unsigned depthLimit = 0);
 
     BPatchSnippetHandle*  insertInitCallback(BPatch_snippet& callback);

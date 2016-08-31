@@ -332,7 +332,7 @@ public:
    // To avoid sucking enormous time, we keep those transfer functions around...
    typedef std::map<ParseAPI::Block *, std::map<Offset, TransferFuncs> >
       InstructionEffects;
-   typedef std::map<ParseAPI::Block *, std::map<Offset, TransferSet>>
+   typedef std::map<ParseAPI::Block *, std::map<Offset, TransferSet> >
       CallEffects;
 
    DATAFLOW_EXPORT StackAnalysis();
