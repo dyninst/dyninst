@@ -31,7 +31,9 @@
 #include <string>
 #include <vector>
 
+#if defined(cap_stack_mods)
 #include "stackanalysis.h"
+#endif
 
 #include "BPatch_object.h"
 #include "BPatch_image.h"
@@ -230,6 +232,7 @@ BPatchSnippetHandle* BPatch_object::insertFiniCallback(BPatch_snippet& callback)
 }
 
 
+#if defined(cap_stack_mods)
 namespace {
 void getCalledFuncs(BPatch_function *func,
     std::set<BPatch_function *> &callSet) {
@@ -578,11 +581,13 @@ void addModsFuncSet(const std::set<StackMod *> &mods,
 }
 
 }  // namespace
+#endif
 
 void BPatch_object::addModsAllFuncs(const std::set<StackMod *> &mods,
     bool interproc,
     std::vector<std::pair<BPatch_function *, bool> > &modResults,
     unsigned depthLimit) {
+#if defined(cap_stack_mods)
     // Get list of functions in this object
     std::set<BPatch_function *> allModFuncs;
     std::vector<BPatch_module *> objModules;
@@ -655,4 +660,5 @@ void BPatch_object::addModsAllFuncs(const std::set<StackMod *> &mods,
             modResults.push_back(std::make_pair(func, func->addMods(mods)));
         }
     }
+#endif
 }
