@@ -391,7 +391,7 @@ SYMTAB_EXPORT AObject::~AObject()
 }
 
 // explicitly protected
-SYMTAB_EXPORT AObject::AObject(MappedFile *mf_, void (*err_func)(const char *)) 
+SYMTAB_EXPORT AObject::AObject(MappedFile *mf_, void (*err_func)(const char *), Symtab* st)
 : mf(mf_),
    code_ptr_(0), code_off_(0), code_len_(0),
    data_ptr_(0), data_off_(0), data_len_(0),
@@ -401,7 +401,8 @@ SYMTAB_EXPORT AObject::AObject(MappedFile *mf_, void (*err_func)(const char *))
    is_aout_(false), is_dynamic_(false),
    has_error(false), is_static_binary_(false),
    no_of_sections_(0), no_of_symbols_(0),
-  deferredParse(false), parsedAllLineInfo(false), err_func_(err_func), addressWidth_nbytes(4)
+  deferredParse(false), parsedAllLineInfo(false), err_func_(err_func), addressWidth_nbytes(4),
+  associated_symtab(st)
 {
 }
 

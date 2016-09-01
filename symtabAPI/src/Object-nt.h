@@ -176,7 +176,7 @@ class Object : public AObject
 
  public:
     SYMTAB_EXPORT Object(MappedFile *, bool defensive, 
-                         void (*)(const char *) = log_msg, bool alloc_syms = true);
+                         void (*)(const char *) = log_msg, bool alloc_syms = true, Symtab*);
   
     SYMTAB_EXPORT virtual ~Object( void );
 	SYMTAB_EXPORT std::string getFileName() const { return mf->filename(); }
@@ -201,13 +201,12 @@ class Object : public AObject
     SYMTAB_EXPORT ObjectType objType() const;
     SYMTAB_EXPORT const char *interpreter_name() const { return NULL; }
     SYMTAB_EXPORT dyn_hash_map <std::string, LineInformation> &getLineInfo();
-    SYMTAB_EXPORT void parseTypeInfo(Symtab *obj);
+    SYMTAB_EXPORT void parseTypeInfo();
     SYMTAB_EXPORT virtual Dyninst::Architecture getArch();   
     SYMTAB_EXPORT void    ParseGlobalSymbol(PSYMBOL_INFO pSymInfo);
     SYMTAB_EXPORT const std::vector<Offset> &getPossibleMains() const   { return possible_mains; }
     SYMTAB_EXPORT void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
-    SYMTAB_EXPORT bool emitDriver(Symtab *obj, std::string fName, 
-		                            std::vector<Symbol *>&allSymbols, unsigned flag);
+    SYMTAB_EXPORT bool emitDriver(std::string fName, std::vector<Symbol *> &allSymbols, unsigned flag);
     SYMTAB_EXPORT unsigned int getSecAlign() const {return SecAlignment;}
     SYMTAB_EXPORT void insertPrereqLibrary(std::string lib);
     virtual char *mem_image() const 
@@ -238,10 +237,10 @@ class Object : public AObject
 
 private:
     SYMTAB_EXPORT void    ParseSymbolInfo( bool );
-    SYMTAB_EXPORT void    parseFileLineInfo(Symtab * st);
-    SYMTAB_EXPORT void parseLineInfoForAddr(Symtab* st, Offset) 
+    SYMTAB_EXPORT void parseFileLineInfo();
+    SYMTAB_EXPORT void parseLineInfoForAddr(Offset)
     {
-      parseFileLineInfo(st);
+      parseFileLineInfo(associatedSymtab);
     }
     
     SYMTAB_EXPORT void    FindInterestingSections( bool, bool );

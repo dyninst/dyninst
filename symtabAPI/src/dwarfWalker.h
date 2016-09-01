@@ -1,6 +1,9 @@
 
+#include <common/src/debug_common.h>
+
 #if !defined(_dwarf_walker_h_)
 #define _dwarf_walker_h_
+
 
 #include "elf.h"
 #include "libelf.h"
@@ -186,6 +189,8 @@ namespace Dyninst {
             // A Context must be provided as an _input_ to this function,
             // whereas parse creates a context.
             bool parse_int(Dwarf_Die entry, bool parseSiblings);
+            static std::pair<std::vector<Dyninst::SymtabAPI::AddressRange>::iterator, std::vector<Dyninst::SymtabAPI::AddressRange>::iterator>
+            parseRangeList(Dwarf_Ranges *ranges, Dwarf_Signed num_ranges, Offset initial_base);
         private:
             enum inline_t {
                 NormalFunc,
@@ -194,7 +199,7 @@ namespace Dyninst {
 
             bool parseSubprogram(inline_t func_type);
             bool parseLexicalBlock();
-            bool parseRangeTypes();
+            bool parseRangeTypes(Dwarf_Debug dbg, Dwarf_Die die);
             bool parseCommonBlock();
             bool parseConstant();
             virtual bool parseVariable();
@@ -210,7 +215,7 @@ namespace Dyninst {
             bool parseMember();
             bool parseConstPackedVolatile();
             bool parseTypeReferences();
-            bool parseHighPCLowPC(Dwarf_Die entry);
+            static std::pair<AddressRange, bool> parseHighPCLowPC(Dwarf_Debug dbg, Dwarf_Die entry);
 
 
             // These vary as we parse the tree
@@ -258,7 +263,9 @@ namespace Dyninst {
             bool getLineInformation(Dwarf_Unsigned &variableLineNo,
                                     bool &hasLineNumber,
                                     std::string &filename);
-            bool findDieName(Dwarf_Die die, std::string &);
+        public:
+            static bool findDieName(Dwarf_Debug dbg, Dwarf_Die die, std::string &);
+        private:
             bool findName(std::string &);
             void removeFortranUnderscore(std::string &);
             bool findSize(unsigned &size);
@@ -284,6 +291,7 @@ namespace Dyninst {
             static bool findConstantWithForm(Dwarf_Attribute &attr,
                                              Dwarf_Half form,
                                              Address &value);
+            static std::vector<AddressRange> getDieRanges(Dwarf_Debug dbg, Dwarf_Die die, Offset base);
         private:
             bool decodeConstantLocation(Dwarf_Attribute &attr, Dwarf_Half form,
                                         std::vector<VariableLocation> &locs);

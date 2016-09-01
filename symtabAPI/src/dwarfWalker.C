@@ -194,7 +194,7 @@ bool DwarfWalker::parseModule(Dwarf_Bool is_info, Module *&fixUnknownMod) {
 
    /* Extract the name of this module. */
    std::string moduleName;
-   if (!findDieName( moduleDIE, moduleName )) return false;
+   if (!findDieName(dbg(), moduleDIE, moduleName)) return false;
 
    if (moduleName.empty() && moduleTag == DW_TAG_type_unit) {
       uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
@@ -242,10 +242,6 @@ bool DwarfWalker::parseModule(Dwarf_Bool is_info, Module *&fixUnknownMod) {
    if (!buildSrcFiles(moduleDIE)) return false;
     if(mod()) {
         mod()->setDebugInfo(moduleDIE);
-        if(modLow && modHigh)
-        {
-            mod()->addRange(modLow, modHigh);
-        }
     }
 
 
@@ -559,7 +555,7 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
 
    dwarf_printf("(0x%lx) parseSubprogram entry\n", id());
 
-   parseRangeTypes();
+    parseRangeTypes(nullptr, entry());
    setFunctionFromRange(func_type);
 
    // Name first
@@ -667,25 +663,22 @@ void DwarfWalker::setFuncRanges() {
 	       last_high = high;
 
 	       curFunc()->ranges.push_back(FuncRange(low, high - low, curFunc()));
-           if(mod()) mod()->addRange(low, high);
 	   }
     }
 }
 
-bool DwarfWalker::parseHighPCLowPC(Dwarf_Die entry)
+pair<AddressRange, bool> DwarfWalker::parseHighPCLowPC(Dwarf_Debug dbg, Dwarf_Die entry)
 {
    Dwarf_Attribute hasLow;
 
    Dwarf_Attribute hasHigh;
-   if(dwarf_attr(entry, DW_AT_low_pc, &hasLow, NULL) != DW_DLV_OK) return false;
-   if(dwarf_attr(entry, DW_AT_high_pc, &hasHigh, NULL) != DW_DLV_OK) return false;
+    std::pair<AddressRange, bool> result = make_pair(AddressRange(0,0), false);
+   if(dwarf_attr(entry, DW_AT_low_pc, &hasLow, NULL) != DW_DLV_OK) return result;
+   if(dwarf_attr(entry, DW_AT_high_pc, &hasHigh, NULL) != DW_DLV_OK) return result;
 
    Address low, high;
-   Address tempLow, tempHigh;
-   if (!findConstant(DW_AT_low_pc, tempLow, entry, dbg())) return false;
-   if (!findConstant(DW_AT_high_pc, tempHigh, entry, dbg())) return false;
-   low = convertDebugOffset(tempLow);
-   high = convertDebugOffset(tempHigh);
+   if (!findConstant(DW_AT_low_pc, low, entry, dbg)) return result;
+   if (!findConstant(DW_AT_high_pc, high, entry, dbg)) return result;
    Dwarf_Half form;
    DWARF_FAIL_RET(dwarf_whatform(hasHigh, &form, NULL));
 
@@ -693,69 +686,78 @@ bool DwarfWalker::parseHighPCLowPC(Dwarf_Die entry)
    {
      high += low;
    }
-   dwarf_printf("(0x%lx) Lexical block from 0x%lx to 0x%lx\n", id(), low, high);
-   setRange(make_pair(low, high));
-   if(mod()) mod()->addRange(low, high);
-   return true;
-
+   dwarf_printf("Lexical block from 0x%lx to 0x%lx\n", low, high);
+    result = make_pair(AddressRange(low, high), true);
+    return result;
 }
 
-
-bool DwarfWalker::parseRangeTypes() {
+bool DwarfWalker::parseRangeTypes(Dwarf_Debug dbg, Dwarf_Die die) {
    dwarf_printf("(0x%lx) Parsing ranges\n", id());
 
    clearRanges();
-   parseHighPCLowPC(entry());
+    std::vector<AddressRange> newRanges = getDieRanges(dbg, die, modLow);
+    for(auto r = newRanges.begin();
+        r != newRanges.end();
+        ++r)
+    {
+        setRange(*r);
+    }
+   return !newRanges.empty();
+}
 
+vector<AddressRange> DwarfWalker::getDieRanges(Dwarf_Debug dbg, Dwarf_Die die, Offset range_base) {
+    std::vector<AddressRange> newRanges;
+    auto highlow = parseHighPCLowPC(dbg, die);
+    if(highlow.second) newRanges.push_back(highlow.first);
 
-   Dwarf_Bool hasRanges = false;
-   DWARF_FAIL_RET(dwarf_hasattr(entry(), DW_AT_ranges, &hasRanges, NULL));
-   if (hasRanges) {
+    Dwarf_Bool hasRanges = false;
+    int status = (dwarf_hasattr(die, DW_AT_ranges, &hasRanges, NULL));
+    if ((status == DW_DLV_OK) && hasRanges) {
       Address range_offset;
-      if (!findConstant(DW_AT_ranges, range_offset, entry(), dbg())) return false;
-
-      Dwarf_Ranges *ranges = NULL;
-      Dwarf_Signed ranges_length = 0;
-      DWARF_FAIL_RET(dwarf_get_ranges_a(dbg(), (Dwarf_Off) range_offset, entry(),
-                                        &ranges, &ranges_length, NULL, NULL));
-
-      bool done = false;
-      for (unsigned i = 0; i < ranges_length && !done; i++) {
-         Dwarf_Ranges *cur = ranges + i;
-         Address cur_base = modLow;
-         switch (cur->dwr_type) {
-            case DW_RANGES_ENTRY: {
-               Address low = cur->dwr_addr1 + cur_base;
-               Address high = cur->dwr_addr2 + cur_base;
-               dwarf_printf("(0x%lx) Lexical block from 0x%lx to 0x%lx\n", id(), low, high);
-               setRange(make_pair(low, high));
-               mod()->addRange(low, high);
-               break;
-            }
-            case DW_RANGES_ADDRESS_SELECTION:
-               cur_base = cur->dwr_addr2;
-               break;
-            case DW_RANGES_END:
-               done = true;
-               break;
-         }
+      if (findConstant(DW_AT_ranges, range_offset, die, dbg))
+      {
+          Dwarf_Ranges *ranges = NULL;
+          Dwarf_Signed ranges_length = 0;
+          status = (dwarf_get_ranges_a(dbg, (Dwarf_Off) range_offset, die,
+                                       &ranges, &ranges_length, NULL, NULL));
+          bool done = (status != DW_DLV_OK);
+          for (unsigned i = 0; i < ranges_length && !done; i++) {
+              Dwarf_Ranges cur = ranges[i];
+              Address cur_base = range_base;
+              switch (cur.dwr_type) {
+                  case DW_RANGES_ENTRY: {
+                      Address low = cur.dwr_addr1 + cur_base;
+                      Address high = cur.dwr_addr2 + cur_base;
+                      dwarf_printf("Lexical block from 0x%lx to 0x%lx\n", low, high);
+                      newRanges.push_back(AddressRange(low, high));
+                      // mod()->addRange(low, high);
+                      break;
+                  }
+                  case DW_RANGES_ADDRESS_SELECTION:
+                      cur_base = cur.dwr_addr2;
+                      break;
+                  case DW_RANGES_END:
+                      done = true;
+                      break;
+              }
+          }
+          dwarf_ranges_dealloc(dbg, ranges, ranges_length);
       }
-      dwarf_ranges_dealloc(dbg(), ranges, ranges_length);
 
    }
-   return true;
+    return newRanges;
 }
 
 bool DwarfWalker::parseLexicalBlock() {
    dwarf_printf("(0x%lx) Parsing lexical block\n", id());
-   return parseRangeTypes();
+   return parseRangeTypes(nullptr, entry());
 }
 
 bool DwarfWalker::parseCommonBlock() {
    dwarf_printf("(0x%lx) Parsing common block\n", id());
 
    std::string commonBlockName;
-   if (!findDieName( entry(), commonBlockName )) return false;
+   if (!findDieName(dbg(), entry(), commonBlockName)) return false;
    Symbol* commonBlockVar = findSymbolForCommonBlock(commonBlockName);
    if(!commonBlockVar)
    {
@@ -1395,7 +1397,7 @@ bool DwarfWalker::handleSpecification(bool &hasSpec) {
    return true;
 }
 
-bool DwarfWalker::findDieName(Dwarf_Die die, std::string &name) {
+bool DwarfWalker::findDieName(Dwarf_Debug dbg, Dwarf_Die die, std::string &name) {
    char *cname = NULL;
 
    Dwarf_Error error;
@@ -1406,7 +1408,7 @@ bool DwarfWalker::findDieName(Dwarf_Die die, std::string &name) {
       if (dwarf_errno(error) == DW_DLE_ATTR_FORM_BAD) {
          status = DW_DLV_NO_ENTRY;
       }
-      dwarf_dealloc( dbg(), error, DW_DLA_ERROR );
+      dwarf_dealloc( dbg, error, DW_DLA_ERROR );
    }
 
    DWARF_CHECK_RET(status == DW_DLV_ERROR);
@@ -1416,12 +1418,12 @@ bool DwarfWalker::findDieName(Dwarf_Die die, std::string &name) {
    }
 
    name = cname;
-   dwarf_dealloc( dbg(), cname, DW_DLA_STRING );
+   dwarf_dealloc( dbg, cname, DW_DLA_STRING );
    return true;
 }
 
 bool DwarfWalker::findName(std::string &name) {
-   if (!findDieName( specEntry(), name)) return false;
+   if (!findDieName(dbg(), specEntry(), name)) return false;
    dwarf_printf("(0x%lx) Found name %s\n", id(), name.c_str());
    return true;
 }
@@ -1447,7 +1449,7 @@ bool DwarfWalker::findFuncName() {
       return true;
    }
 
-   findDieName( entry(), curName() );
+    findDieName(dbg(), entry(), curName());
    setMangledName(false);
    return true;
 }
@@ -2201,7 +2203,7 @@ bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, Dwarf_Bool is_in
          DWARF_FAIL_RET(dwarf_offdie_b( dbg(), boundOffset, is_info, & boundEntry, NULL ));
 
          /* Does it have a name? */
-         if (findDieName( boundEntry, boundString )
+         if (findDieName(dbg(), boundEntry, boundString)
                && !boundString.empty())
             return true;
 
@@ -2540,3 +2542,4 @@ void DwarfWalker::setFuncReturnType() {
          curFunc()->setReturnType(returnType);
    }
 }
+

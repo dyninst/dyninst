@@ -45,8 +45,7 @@ namespace SymtabAPI{
 class SYMTAB_EXPORT LineInformation : 
                         private RangeLookupTypes< Statement >::type
 {
-	bool addItem_impl(Statement);
-   public:
+public:
     typedef RangeLookupTypes< Statement> traits;
     typedef RangeLookupTypes< Statement >::type impl_t;
       typedef traits::addr_range_index::const_iterator const_iterator;
@@ -55,11 +54,16 @@ class SYMTAB_EXPORT LineInformation :
       LineInformation();
 
       /* You MAY freely deallocate the lineSource strings you pass in. */
-      bool addLine( const char * lineSource, 
+      bool addLine( std::string lineSource,
             unsigned int lineNo, 
             unsigned int lineOffset, 
             Offset lowInclusiveAddr, 
             Offset highExclusiveAddr );
+    bool addLine( unsigned int fileIndex,
+                  unsigned int lineNo,
+                  unsigned int lineOffset,
+                  Offset lowInclusiveAddr,
+                  Offset highExclusiveAddr );
 
       void addLineInfo(LineInformation *lineInfo);	      
 
@@ -94,9 +98,19 @@ class SYMTAB_EXPORT LineInformation :
          (in the destructor).  Note that it speeds and simplifies things
          to have the string pointers be the same. */
 
-      int wasted_compares;
+      StringTablePtr strings_;
+public:
+    StringTablePtr getStrings() ;
+
+    void setStrings(StringTablePtr strings_);
+
+protected:
+    int wasted_compares;
       int num_queries;
-}; /* end class LineInformation */
+};
+
+
+    /* end class LineInformation */
 
 }//namespace SymtabAPI
 }//namespace Dyninst

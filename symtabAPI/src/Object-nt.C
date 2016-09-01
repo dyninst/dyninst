@@ -1211,7 +1211,7 @@ static bool store_line_info(Symtab* st,	info_for_all_files_t *baseInfo)
    return true;
 }
 
-void Object::parseFileLineInfo(Symtab *st)
+void Object::parseFileLineInfo()
 {   
   if(parsedAllLineInfo) return;
   
@@ -1238,7 +1238,7 @@ void Object::parseFileLineInfo(Symtab *st)
 	//	   __FILE__, __LINE__, src_file_name, libname);
     return;
   }
-  store_line_info(st, &inf);
+  store_line_info(associated_symtab, &inf);
   
 }
 
@@ -2170,7 +2170,7 @@ BOOL CALLBACK add_type_info(PSYMBOL_INFO pSymInfo, ULONG SymbolSize, void *info)
    return TRUE;
 }
 
-void Object::parseTypeInfo(Symtab *obj) {
+void Object::parseTypeInfo() {
     proc_mod_pair pair;
     BOOL result;
     //
@@ -2178,7 +2178,7 @@ void Object::parseTypeInfo(Symtab *obj) {
     //
 
     pair.handle = hProc;
-    pair.obj = obj;
+    pair.obj = associated_symtab;
     pair.base_addr = getBaseAddress();
     
     if (!pair.base_addr) {
@@ -2197,7 +2197,7 @@ void Object::parseTypeInfo(Symtab *obj) {
     // Parse local variables and local type information
     //
     std::vector<Function *> funcs;
-	obj->getAllFunctions(funcs);
+	associated_symtab->getAllFunctions(funcs);
     for (unsigned i=0; i < funcs.size(); i++) {
         findLocalVars(funcs[i], pair);
     }
@@ -2218,11 +2218,10 @@ bool AObject::getSegments(vector<Segment> &segs) const
     return true;
 }
 
-bool Object::emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&allSymbols, 
-						unsigned flag) 
+bool Object::emitDriver(string fName, std::vector<Symbol *> &allSymbols, unsigned flag)
 {
 	emitWin *em = new emitWin((PCHAR)GetMapAddr(), this, err_func_);
-	return em -> driver(obj, fName);
+	return em -> driver(associated_symtab, fName);
 }
 
 // automatically discards duplicates

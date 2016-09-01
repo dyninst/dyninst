@@ -678,7 +678,7 @@ bool BPatch_module::getSourceLines(unsigned long addr,
    }
 
    unsigned int originalSize = lines.size();
-   std::vector<Statement::ConstPtr> lines_ll;
+   std::vector<Statement::Ptr> lines_ll;
 
    Module *stmod = mod->pmod()->mod();
    assert(stmod);
@@ -702,7 +702,7 @@ bool BPatch_module::getStatements(BPatch_Vector<BPatch_statement> &statements)
 	// Iterate over each address range in the line information
 	SymtabAPI::Module *stmod = mod->pmod()->mod();
 	assert(stmod);
-	std::vector<SymtabAPI::Statement::ConstPtr> statements_ll;
+	std::vector<SymtabAPI::Statement::Ptr> statements_ll;
 
 	if (!stmod->getStatements(statements_ll))
 	{

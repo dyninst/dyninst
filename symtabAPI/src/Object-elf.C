@@ -2430,10 +2430,86 @@ bool Object::fix_global_symbol_modules_static_dwarf()
     if (!dbg_ptr)
         return false;
     Dwarf_Debug dbg = *dbg_ptr;
-    ModuleFixer m(dbg, this);
-    bool result = m.parse();
-    freeList.push_back(m.getFreeList());
-    return result;
+    Dwarf_Arange* ranges;
+    Dwarf_Signed num_ranges;
+    status = dwarf_get_aranges(dbg, &ranges, &num_ranges, NULL);
+    if(status != DW_DLV_OK) return false;
+    std::set<Dwarf_Off> dies_seen;
+    Dwarf_Off cu_die_off;
+    Dwarf_Die cu_die;
+    for(int i = 0; i < num_ranges; i++)
+    {
+        Dwarf_Addr start;
+        Dwarf_Unsigned len, segment, segment_size;
+        // TODO: info_b has segment info from DWARF4
+        status = dwarf_get_arange_info_b(ranges[i], &segment, &segment_size, &start, &len, &cu_die_off, NULL);
+        assert(status == DW_DLV_OK);
+        if(segment_size > 0)
+        {
+            cout << "WARNING: ignoring segment info" << endl;
+        }
+        if(dies_seen.find(cu_die_off) != dies_seen.end()) continue;
+        if(len == 0) continue;
+        status = dwarf_offdie_b(dbg, cu_die_off, Dwarf_Bool(true), &cu_die, NULL);
+        assert(status == DW_DLV_OK);
+        std::string modname;
+        if(!DwarfWalker::findDieName(dbg, cu_die, modname))
+        {
+            modname = associated_symtab->file(); // default module
+        }
+        Offset actual_start, actual_end;
+        convertDebugOffset(start, actual_start);
+        convertDebugOffset(start + len, actual_end);
+        Module* m = associated_symtab->getOrCreateModule(modname, actual_start);
+        m->addRange(actual_start, actual_end);
+        cout << hex << "Set range from dw_aranges: " << modname << ": [" << actual_start << ", " << actual_end << ")" << endl;
+        m->setDebugInfo(cu_die);
+        dies_seen.insert(cu_die_off);
+        dwarf_dealloc(dbg, ranges[i], DW_DLA_ARANGE);
+    }
+    /* Iterate over the compilation-unit headers. */
+    while (dwarf_next_cu_header_c(dbg, Dwarf_Bool(true),
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  &cu_die_off, NULL) == DW_DLV_OK )
+    {
+        status = dwarf_siblingof_b(dbg, NULL, Dwarf_Bool(true), &cu_die, NULL);
+        assert(status == DW_DLV_OK);
+        if(dies_seen.find(cu_die_off) != dies_seen.end()) continue;
+        std::string modname;
+        if(!DwarfWalker::findDieName(dbg, cu_die, modname))
+        {
+            modname = associated_symtab->file(); // default module
+        }
+        Address tempModLow;
+        Address modLow = 0;
+        if (DwarfWalker::findConstant(DW_AT_low_pc, tempModLow, cu_die, dbg)) {
+            convertDebugOffset(tempModLow, modLow);
+        }
+        std::vector<AddressRange> mod_ranges = DwarfWalker::getDieRanges(dbg, cu_die, modLow);
+        Module* m = associated_symtab->getOrCreateModule(modname, modLow);
+        for(auto r = mod_ranges.begin();
+                r != mod_ranges.end();
+                ++r)
+        {
+            m->addRange(r->first, r->second);
+        }
+        m->setDebugInfo(cu_die);
+        dies_seen.insert(cu_die_off);
+
+    }
+    dwarf_dealloc(dbg, ranges, DW_DLA_LIST);
+
+//    ModuleFixer m(dbg, this);
+//    bool result = m.parse();
+//    freeList.push_back(m.getFreeList());
+//    return result;
 
 }
 
@@ -2767,8 +2843,8 @@ stab_entry *Object::get_stab_info() const
 }
 
 Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
-               bool alloc_syms) :
-        AObject(mf_, err_func),
+               bool alloc_syms, Symtab* st) :
+        AObject(mf_, err_func, st),
         elfHdr(NULL),
         hasReldyn_(false),
         hasReladyn_(false),
@@ -3950,9 +4026,7 @@ bool AObject::getSegments(vector<Segment> &segs) const
 }
 
 
-bool Object::emitDriver(Symtab *obj, string fName,
-                        std::vector<Symbol *>&allSymbols,
-                        unsigned /*flag*/)
+bool Object::emitDriver(string fName, std::vector<Symbol *> &allSymbols, unsigned)
 {
 #ifdef BINEDIT_DEBUG
     printf("emitting...\n");
@@ -3963,14 +4037,14 @@ bool Object::emitDriver(Symtab *obj, string fName,
     if (elfHdr->e_ident()[EI_CLASS] == ELFCLASS32)
     {
         Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes32> *em =
-                new Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes32>(elfHdr, isStripped, this, err_func_, obj);
+                new Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes32>(elfHdr, isStripped, this, err_func_, associated_symtab);
         if( !em->createSymbolTables(allSymbols) ) return false;
         return em->driver(fName);
     }
     else if (elfHdr->e_ident()[EI_CLASS] == ELFCLASS64)
     {
         Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes64> *em =
-                new Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes64>(elfHdr, isStripped, this, err_func_, obj);
+                new Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes64>(elfHdr, isStripped, this, err_func_, associated_symtab);
         if( !em->createSymbolTables(allSymbols) ) return false;
         return em->driver(fName);
     }
@@ -3984,7 +4058,7 @@ const char *Object::interpreter_name() const
 
 /* Parse everything in the file on disk, and cache that we've done so,
    because our modules may not bear any relation to the name source files. */
-void Object::parseStabFileLineInfo(Symtab *st)
+void Object::parseStabFileLineInfo()
 {
     static dyn_hash_map< string, bool > haveParsedFileMap;
 
@@ -4033,7 +4107,9 @@ void Object::parseStabFileLineInfo(Symtab *st)
                 Module* mod;
 
                 moduleName = currentSourceFile;
-                if(!st->findModuleByName(mod, moduleName)) mod = st->getDefaultModule();
+                if(!associated_symtab->findModuleByName(mod, moduleName)) {
+                    mod = associated_symtab->getDefaultModule();
+                }
                 li_for_module = mod->getLineInformation();
                 if(!li_for_module)
                 {
@@ -4114,7 +4190,7 @@ void Object::parseStabFileLineInfo(Symtab *st)
                     };
                 }
 
-                if (! st->findFunctionsByName(funcs, std::string(stringbuf))
+                if (! associated_symtab->findFunctionsByName(funcs, std::string(stringbuf))
                     || !funcs.size())
                 {
                     continue;
@@ -4212,8 +4288,35 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
     {
         return;
     }
-
     assert( status == DW_DLV_OK );
+
+
+    StringTablePtr strings(li_for_module->getStrings());
+    char** files;
+    size_t offset = strings->size();
+    Dwarf_Signed filecount;
+    status = dwarf_srcfiles(cuDIE, &files, &filecount, &ignored);
+    assert( status == DW_DLV_OK );
+    // dwarf_line_srcfileno == 0 means unknown; 1...n means files[0...n-1]
+    // so we ensure that we're adding a block of unknown, 1...n to the string table
+    // and that offset + dwarf_line_srcfileno points to the correct string
+    strings->push_back("<Unknown file>");
+    for(int i = 0; i < filecount; i++)
+    {
+        char* tmp = NULL;
+        if(truncateLineFilenames && (tmp = strrchr(files[i], '/')))
+        {
+            strings->push_back(tmp);
+        }
+        else
+        {
+            strings->push_back(files[i]);
+        }
+        dwarf_dealloc(dbg, files[i], DW_DLA_STRING);
+    }
+    dwarf_dealloc(dbg, files, DW_DLA_LIST);
+    li_for_module->setStrings(strings);
+
     /* The 'lines' returned are actually interval markers; the code
      generated from lineNo runs from lineAddr up to but not including
      the lineAddr of the next line. */
@@ -4221,17 +4324,23 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
     Dwarf_Unsigned previousLineNo = 0;
     Dwarf_Signed previousLineColumn = 0;
     Dwarf_Addr previousLineAddr = 0x0;
-    char * previousLineSource = NULL;
+    Dwarf_Unsigned previousLineSource = 0;
 
     Offset baseAddr = getBaseAddress();
 
+    Dwarf_Addr cu_high_pc = 0;
+    dwarf_highpc(cuDIE, &cu_high_pc, NULL);
+    bool needs_followup = false;
     /* Iterate over this CU's source lines. */
     for ( int i = 0; i < lineCount; i++ )
     {
         /* Acquire the line number, address, source, and end of sequence flag. */
         Dwarf_Unsigned lineNo;
         status = dwarf_lineno( lineBuffer[i], & lineNo, NULL );
-        if ( status != DW_DLV_OK ) { continue; }
+        if ( status != DW_DLV_OK ) {
+            if(needs_followup) cout << "dwarf_lineno failed" << endl;
+            continue;
+        }
 
         Dwarf_Signed lineOff;
         status = dwarf_lineoff( lineBuffer[i], & lineOff, NULL );
@@ -4241,6 +4350,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         status = dwarf_lineaddr( lineBuffer[i], & lineAddr, NULL );
         if ( status != DW_DLV_OK )
         {
+            if(needs_followup) cout << "dwarf_lineaddr failed" << endl;
             continue;
 
         }
@@ -4254,26 +4364,30 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
             if (result)
                 lineAddr = new_lineAddr;
         }
-        if(!isText(lineAddr))
-        {
+//        if(!associated_symtab->isCode(lineAddr))
+//        {
+//            cout << hex << "WARNING: Discarding line info for non-text addr " << hex << lineAddr << endl;
+//            continue;
+//        }
+
+
+        Dwarf_Unsigned lineSource;
+        status = dwarf_line_srcfileno( lineBuffer[i], & lineSource, NULL );
+        if ( status != DW_DLV_OK ) {
             continue;
         }
 
-
-        char * lineSource;
-        status = dwarf_linesrc( lineBuffer[i], & lineSource, NULL );
-        if ( status != DW_DLV_OK ) { continue; }
-
         Dwarf_Bool isEndOfSequence;
         status = dwarf_lineendsequence( lineBuffer[i], & isEndOfSequence, NULL );
-        if ( status != DW_DLV_OK ) { continue; }
-
+        if ( status != DW_DLV_OK ) {
+            continue;
+        }
         if ( isPreviousValid )
         {
             /* If we're talking about the same (source file, line number) tuple,
 	 and it isn't the end of the sequence, we can coalesce the range.
 	 (The end of sequence marker marks discontinuities in the ranges.) */
-            if ( lineNo == previousLineNo && strcmp( lineSource, previousLineSource ) == 0
+            if ( (lineNo == previousLineNo) && (lineSource == previousLineSource)
                  && ! isEndOfSequence )
             {
                 /* Don't update the prev* values; just keep going until we hit the end of
@@ -4281,27 +4395,13 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
                 continue;
             } /* end if we can coalesce this range */
 
-            char *canonicalLineSource;
-            if (truncateLineFilenames) {
-                canonicalLineSource = strrchr( previousLineSource, '/' );
-                if( canonicalLineSource == NULL ) { canonicalLineSource = previousLineSource; }
-                else { ++canonicalLineSource; }
-            }
-            else {
-                canonicalLineSource = previousLineSource;
-            }
-
-
-
-
             Dyninst::Offset startAddrToUse = previousLineAddr;
             Dyninst::Offset endAddrToUse = lineAddr;
 
-
-            if (startAddrToUse && endAddrToUse)
+            if (startAddrToUse && endAddrToUse && (startAddrToUse != endAddrToUse))
             {
-//                cout << "\tAdding line from " << canonicalLineSource << " to " << std::hex << li_for_module <<endl;
-                li_for_module->addLine(canonicalLineSource,
+                // string table entry.
+                li_for_module->addLine((unsigned int)(previousLineSource + offset),
                                        (unsigned int) previousLineNo,
                                        (unsigned int) previousLineColumn,
                                        startAddrToUse,
@@ -4312,9 +4412,11 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         } /* end if the previous* variables are valid */
 
         /* If the current line ends the sequence, invalidate previous; otherwise, update. */
+        // We've seen a pattern where there are multiple lines for a given address and
+        // only one has an end marker. Carry through in that case.
         if ( isEndOfSequence )
         {
-            isPreviousValid = false;
+            isPreviousValid = (lineAddr == previousLineAddr) ;
         }
         else {
             previousLineNo = lineNo;
@@ -4332,13 +4434,13 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 
 
 
-void Object::parseLineInfoForAddr(Symtab* obj, Offset addr_to_find)
+void Object::parseLineInfoForAddr(Offset addr_to_find)
 {
     Dwarf_Debug *dbg_ptr = dwarf->line_dbg();
     if (!dbg_ptr)
         return;
     std::set<Module*> mod_for_offset;
-    obj->findModuleByOffset(mod_for_offset, addr_to_find);
+    associated_symtab->findModuleByOffset(mod_for_offset, addr_to_find);
     for(auto mod = mod_for_offset.begin();
             mod != mod_for_offset.end();
             ++mod)
@@ -4352,10 +4454,10 @@ void Object::parseLineInfoForAddr(Symtab* obj, Offset addr_to_find)
 
 
 // Dwarf Debug Format parsing
-void Object::parseDwarfFileLineInfo(Symtab* st)
+void Object::parseDwarfFileLineInfo()
 {
     vector<Module*> mods;
-    st->getAllModules(mods);
+    associated_symtab->getAllModules(mods);
     for(auto mod = mods.begin();
             mod != mods.end();
             ++mod)
@@ -4364,27 +4466,27 @@ void Object::parseDwarfFileLineInfo(Symtab* st)
     }
 } /* end parseDwarfFileLineInfo() */
 
-void Object::parseFileLineInfo(Symtab *st)
+void Object::parseFileLineInfo()
 {
     if(parsedAllLineInfo) return;
 
-    parseStabFileLineInfo(st);
-    parseDwarfFileLineInfo(st);
+    parseStabFileLineInfo();
+    parseDwarfFileLineInfo();
     parsedAllLineInfo = true;
 
 }
 
-void Object::parseTypeInfo(Symtab *obj)
+void Object::parseTypeInfo()
 {
 #if defined(TIMED_PARSE)
     struct timeval starttime;
   gettimeofday(&starttime, NULL);
 #endif
 
-    parseStabTypes(obj);
+    parseStabTypes();
     Dwarf_Debug* typeInfo = dwarf->type_dbg();
     if(!typeInfo) return;
-    DwarfWalker walker(obj, *typeInfo);
+    DwarfWalker walker(associated_symtab, *typeInfo);
     walker.parse();
     freeList.push_back(walker.getFreeList());
 //    freeList = walker.getFreeList();
@@ -4400,9 +4502,9 @@ void Object::parseTypeInfo(Symtab *obj)
 #endif
 }
 
-void Object::parseStabTypes(Symtab *obj)
+void Object::parseStabTypes()
 {
-    types_printf("Entry to parseStabTypes for %s\n", obj->name().c_str());
+    types_printf("Entry to parseStabTypes for %s\n", associated_symtab->name().c_str());
     stab_entry *stabptr = NULL;
     const char *next_stabstr = NULL;
 
@@ -4489,7 +4591,7 @@ void Object::parseStabTypes(Symtab *obj)
                     ptr++;
                     modName = ptr;
                 }
-                if (obj->findModuleByName(mod, modName)) {
+                if (associated_symtab->findModuleByName(mod, modName)) {
                     tc = typeCollection::getModTypeCollection(mod);
                     parseActive = true;
                     if (!mod) {
@@ -4504,7 +4606,7 @@ void Object::parseStabTypes(Symtab *obj)
                 }
                 else {
                     //parseActive = false;
-                    mod = obj->getDefaultModule();
+                    mod = associated_symtab->getDefaultModule();
                     tc = typeCollection::getModTypeCollection(mod);
                     types_printf("\t Warning: failed to find module name matching %s, using %s\n", modName, mod->fileName().c_str());
                 }
@@ -4552,16 +4654,16 @@ void Object::parseStabTypes(Symtab *obj)
                         currentFunctionName = new string(tmp);
                         // Shouldn't this be a function name lookup?
                         std::vector<Symbol *>syms;
-                        if(!obj->findSymbol(syms,
+                        if(!associated_symtab->findSymbol(syms,
                                             *currentFunctionName,
                                             Symbol::ST_FUNCTION,
                                             mangledName)) {
-                            if(!obj->findSymbol(syms,
+                            if(!associated_symtab->findSymbol(syms,
                                                 "_"+*currentFunctionName,
                                                 Symbol::ST_FUNCTION,
                                                 mangledName)) {
                                 string fortranName = *currentFunctionName + string("_");
-                                if (obj->findSymbol(syms,
+                                if (associated_symtab->findSymbol(syms,
                                                     fortranName,
                                                     Symbol::ST_FUNCTION,
                                                     mangledName)) {
@@ -4591,11 +4693,11 @@ void Object::parseStabTypes(Symtab *obj)
 
                     //TODO? change this. findLocalVar will cause an infinite loop
                     std::vector<Symbol *>vars;
-                    if(!obj->findSymbol(vars,
+                    if(!associated_symtab->findSymbol(vars,
                                         *commonBlockName,
                                         Symbol::ST_OBJECT,
                                         mangledName)) {
-                        if(!obj->findSymbol(vars,
+                        if(!associated_symtab->findSymbol(vars,
                                             *commonBlockName,
                                             Symbol::ST_OBJECT,
                                             mangledName,
@@ -4623,11 +4725,11 @@ void Object::parseStabTypes(Symtab *obj)
                 case N_ECOMM: {
                     //copy this set of fields
                     assert(currentFunctionName);
-                    if(!obj->findSymbol(bpfv,
+                    if(!associated_symtab->findSymbol(bpfv,
                                         *currentFunctionName,
                                         Symbol::ST_FUNCTION,
                                         mangledName)) {
-                        if(!obj->findSymbol(bpfv,
+                        if(!associated_symtab->findSymbol(bpfv,
                                             *currentFunctionName,
                                             Symbol::ST_FUNCTION,
                                             mangledName,

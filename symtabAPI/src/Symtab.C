@@ -725,10 +725,15 @@ bool Symtab::fixSymModules(std::vector<Symbol *> &raw_syms)
     if (!obj) {
        return false;
     }
-    const std::vector<std::pair<std::string, Offset> > &mods = obj->modules_;
-    for (unsigned i=0; i< mods.size(); i++) {
-       getOrCreateModule(mods[i].first, mods[i].second);
+    for (unsigned int i = 0; i < _mods.size(); ++i)
+    {
+        _mods[i]->finalizeRanges();
     }
+
+//    const std::vector<std::pair<std::string, Offset> > &mods = obj->modules_;
+//    for (unsigned i=0; i< mods.size(); i++) {
+//       getOrCreateModule(mods[i].first, mods[i].second);
+//    }
     for (unsigned i = 0; i < raw_syms.size(); i++) {
         fixSymModule(raw_syms[i]);
     }
@@ -792,39 +797,9 @@ bool Symtab::createAggregates()
  
 bool Symtab::fixSymModule(Symbol *&sym) 
 {
-    //////////
-    //////////
-    //////////
-    //
-    // It has been decided that all libraries shall have only one
-    // module named after the library. The a.out has one module
-    // per (reported) source file, plus DEFAULT_MODULE for everything
-    // else. This is enforced here, although the Object-* files might
-    // do it as well.
-    Module *mod = NULL;
-    //if (0 && (getObjectType() == obj_SharedLib)) {
-    //   mod = getDefaultModule();
-    //}
-    //else {
-       Object *obj = getObject();
-       if (!obj)
-       {
-	   assert(0);
-          return false;
-       }
-       std::string modName = obj->findModuleForSym(sym);
-       if (modName.length() == 0) {
-          mod = getDefaultModule();
-       }
-       else {
-          mod = getOrCreateModule(modName, sym->getOffset());
-       }
-       //}
-
-
-    if (!mod)
-       return false;
-    
+    Module* mod = NULL;
+    findModuleByOffset(mod, sym->getOffset());
+    if(!mod) mod = getDefaultModule();
     sym->setModule(mod);
     return true;
 }
@@ -1188,6 +1163,10 @@ Module *Symtab::getOrCreateModule(const std::string &modName,
    Module *fm = NULL;
    if (findModuleByName(fm, nameToUse)) 
    {
+       if(modAddr && (modAddr < fm->addr()))
+       {
+           fm->addr_ = modAddr;
+       }
       return fm;
    }
 
@@ -1305,7 +1284,7 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
    }
 
    obj_private = new Object(mf, defensive_bin, 
-                            symtab_log_perror, true);
+                            symtab_log_perror, true, this);
    if (obj_private->hasError()) {
      err = true;
      return;
@@ -1374,7 +1353,7 @@ Symtab::Symtab(unsigned char *mem_image, size_t image_size,
    }
 
    obj_private = new Object(mf, defensive_bin, 
-                            symtab_log_perror, true);
+                            symtab_log_perror, true, this);
    if (obj_private->hasError()) {
      err = true;
      return;
@@ -2304,7 +2283,7 @@ void Symtab::parseLineInformation()
    {
      return;
    }
-   linkedFile->parseFileLineInfo(this);
+    linkedFile->parseFileLineInfo();
 }
 
 SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<AddressRange > &ranges,
@@ -2329,7 +2308,7 @@ SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<AddressRange > &ranges,
    return false;
 }
 
-SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement::ConstPtr> &lines, Offset addressInRange)
+SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressInRange)
 {
    unsigned int originalSize = lines.size();
 
@@ -2366,7 +2345,7 @@ SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement::ConstPtr> &line
 
 SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
 {
-    std::vector<Statement::ConstPtr> tmp;
+    std::vector<Statement::Ptr> tmp;
     getSourceLines(tmp, addressInRange);
     if(tmp.empty()) return false;
     for(auto i = tmp.begin(); i != tmp.end(); ++i)
@@ -2442,11 +2421,12 @@ void Symtab::parseTypes()
 	{
 		return;
 	}
-   linkedFile->parseTypeInfo(this);
+    linkedFile->parseTypeInfo();
 
    for (unsigned int i = 0; i < _mods.size(); ++i)
    {
      _mods[i]->setModuleTypes(typeCollection::getModTypeCollection(_mods[i]));
+       _mods[i]->finalizeRanges();
    }
 
    //  optionally we might want to clear the static data struct in typeCollection
@@ -2625,7 +2605,7 @@ SYMTAB_EXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, 
     allSyms.insert(allSyms.end(), undefDynSyms.begin(), undefDynSyms.end());
 
     // Write the new file
-    return linkedFile->emitDriver(this, filename, allSyms, flag);
+    return linkedFile->emitDriver(filename, allSyms, flag);
 }
 
 SYMTAB_EXPORT bool Symtab::emit(std::string filename, unsigned flag)

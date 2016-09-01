@@ -56,6 +56,25 @@ using namespace std;
 
 static SymtabError serr;
 
+StringTablePtr Statement::getStrings_() const {
+    return strings_;
+}
+
+void Statement::setStrings_(StringTablePtr strings) {
+    Statement::strings_ = strings;
+}
+std::string Statement::getFile() const {
+    if(strings_) {
+        if(file_index_ < strings_->size()) {
+            // can't be ->[] on shared pointer to multi_index container or compiler gets confused
+            return (*strings_)[file_index_].str;
+
+        }
+
+    }
+    return "";
+}
+
 
 bool Module::findSymbol(std::vector<Symbol *> &found, 
                         const std::string& name,
@@ -136,7 +155,7 @@ bool Module::getAddressRanges(std::vector<AddressRange >&ranges,
    return false;
 }
 
-bool Module::getSourceLines(std::vector<Statement::ConstPtr> &lines, Offset addressInRange)
+bool Module::getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressInRange)
 {
    unsigned int originalSize = lines.size();
 
@@ -167,18 +186,27 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
 }
 
 LineInformation *Module::parseLineInformation() {
-    // if non-null, we're fine
+    // Allocate if none
     if (!lineInfo_)
     {
         lineInfo_ = new LineInformation;
     }
-//    cout << "Parsing line info for module:" << *this << " with " << info_.size() << " CU entries set" << endl;
-    for(auto cu = info_.begin();
-            cu != info_.end();
-            ++cu)
-    {
-        exec()->getObject()->parseLineInfoForCU(*cu, lineInfo_);
+    // Parse any CUs that have been added to our list
+    if(!info_.empty()) {
+        for(auto cu = info_.begin();
+                cu != info_.end();
+                ++cu)
+        {
+            exec()->getObject()->parseLineInfoForCU(*cu, lineInfo_);
+        }
+        // Add ranges corresponding to each statement
+        std::transform(lineInfo_->begin(), lineInfo_->end(),
+            std::back_inserter(ranges), std::bind(&Statement::addressRange, std::placeholders::_1));
+
+        // Update in symtab: this module covers all ranges in its line info
+        finalizeRanges();
     }
+    // Clear list of work to do
     info_.clear();
     return lineInfo_;
 }
@@ -289,7 +317,8 @@ Module::Module(supportedLanguages lang, Offset adr,
    fullName_(fullNm),
    language_(lang),
    addr_(adr),
-   exec_(img)
+   exec_(img),
+   ranges_finalized(false)
 {
    fileName_ = extract_pathname_tail(fullNm);
 }
@@ -301,7 +330,8 @@ Module::Module() :
    fullName_(""),
    language_(lang_Unknown),
    addr_(0),
-   exec_(NULL)
+   exec_(NULL),
+    ranges_finalized(false)
 {
 }
 
@@ -314,7 +344,9 @@ Module::Module(const Module &mod) :
    language_(mod.language_),
    addr_(mod.addr_),
    exec_(mod.exec_),
-   info_(mod.info_)
+   info_(mod.info_),
+   ranges_finalized(mod.ranges_finalized)
+
 {
 }
 
@@ -420,10 +452,35 @@ bool Module::findVariablesByName(std::vector<Variable *> &ret, const std::string
 
 void Module::addRange(Dyninst::Address low, Dyninst::Address high)
 {
-    exec_->mod_lookup()->insert(new ModRange(low, high, this));
+    printf("Adding range [%lx, %lx) to %s\n", low, high, fileName().c_str());
+    ranges.push_back(std::make_pair(low, high));
+//    exec_->mod_lookup()->insert(new ModRange(low, high, this));
+}
+
+void Module::finalizeRanges()
+{
+    if(ranges.empty()) {
+        return;
+    }
+    std::sort(ranges.begin(), ranges.end());
+    auto bit = ranges.begin();
+    ModRange * ext = NULL;
+    Address ext_s = bit->first;
+    Address ext_e = ext_s;
+
+    for( ; bit != ranges.end(); ++bit) {
+        if(bit->first > ext_e) {
+            ext = new ModRange(ext_s,ext_e, this);
+            exec_->mod_lookup()->insert(ext);
+            ext_s = bit->first;
+        }
+        ext_e = bit->second;
+    }
+    ext = new ModRange(ext_s, ext_e, this);
+    exec_->mod_lookup()->insert(ext);
+    ranges.clear();
 }
 
 void Module::setDebugInfo(Module::DebugInfoT info) {
-//    cout << "Adding DIE to module:" << *this << endl;
     info_.push_back(info);
 }

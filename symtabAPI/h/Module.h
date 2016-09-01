@@ -44,6 +44,8 @@
 #include <boost/shared_ptr.hpp>
 #include "RangeLookup.h"
 
+#include "StringTable.h"
+
 namespace Dyninst{
 namespace SymtabAPI{
 
@@ -53,36 +55,34 @@ class localVar;
 class Symtab;
 
 
-class SYMTAB_EXPORT Statement// : public AnnotatableSparse, public Serializable
+class SYMTAB_EXPORT Statement
 {
 	friend class Module;
-	friend class std::vector<Statement>;
 	friend class LineInformation;
-	Statement(const char *file, unsigned int line, unsigned int col = 0,
+	Statement(int file_index, unsigned int line, unsigned int col = 0,
              Offset start_addr = (Offset) -1L, Offset end_addr = (Offset) -1L) :
-      file_(file),
+			file_index_(file_index),
       line_(line),
+            column_(col),
       start_addr_(start_addr),
-      end_addr_(end_addr),
-      first(file_),
-      second(line_),
-      column(col)
+      end_addr_(end_addr)
       {
       }
 	
-	const char* file_; // Maybe this should be module?
+	unsigned int file_index_; // Maybe this should be module?
 	unsigned int line_;
+    unsigned int column_;
 	Offset start_addr_;
 	Offset end_addr_;
+	StringTablePtr strings_;
+public:
+    StringTablePtr getStrings_() const;
 
-	public:
-	// DEPRECATED. First and second need to die, and column should become an accessor.
-	// Duplication of data is both bad and stupid, okay?
-	const char *first;
-	unsigned int second;
-	unsigned int column;
+    void setStrings_(StringTablePtr strings_);
 
-	Statement() : first(NULL), second(0) {}
+public:
+
+	Statement() : file_index_(0), line_(0), column_(0), start_addr_(0), end_addr_(0) {}
 	struct StatementLess {
 		bool operator () ( const Statement &lhs, const Statement &rhs ) const;
 	};
@@ -90,27 +90,43 @@ class SYMTAB_EXPORT Statement// : public AnnotatableSparse, public Serializable
 	typedef StatementLess LineNoTupleLess;
 
 	bool operator==(const Statement &cmp) const;
-    bool operator==(const char* file) const {return strcmp(file, first) == 0; }
-    bool operator==(Offset addr) const {return startAddr() <= addr && addr < endAddr(); }
+//    bool operator==(const char* file) const {return strcmp(file, first) == 0; }
+    bool operator==(Offset addr) const {
+        if(startAddr() == endAddr()) {
+            return addr == startAddr();
+        }
+        return (startAddr() <= addr) && (addr < endAddr());
+    }
 	~Statement() {}
 
 	Offset startAddr() const { return start_addr_;}
 	Offset endAddr() const {return end_addr_;}
-	std::string getFile() const { return file_;}
+	std::string getFile() const;
+    unsigned int getFileIndex() const { return file_index_; }
 	unsigned int getLine()const {return line_;}
-	unsigned int getColumn() const{return column;}
+    unsigned int getColumn() const { return column_; }
     AddressRange addressRange( ) const { return AddressRange(*this); }
     bool contains(Offset addr) const { return addressRange().contains(addr); }
 
-	//  Does dyninst really need these?
-	void setLine(unsigned int l) {line_ = l;}
-	void setColumn(unsigned int l) {column = l;}
-	void setFile(const char * l) {file_ = l; first = file_;}
-	void setStartAddr(Offset l) {start_addr_ = l;}
-	void setEndAddr(Offset l) {end_addr_ = l;}
     typedef boost::shared_ptr<Statement> Ptr;
     typedef boost::shared_ptr<const Statement> ConstPtr;
+
 };
+template <typename OS>
+OS& operator<<(OS& os, const Statement& s)
+{
+    os << "<statement>: [" << s.startAddr() << ", " << s.endAddr() << ") @ " << s.getFile()
+       << " (" << s.getFileIndex() << "): " << s.getLine();
+    return os;
+}
+template <typename OS>
+OS& operator<<(OS& os, Statement* s)
+{
+    os << "<statement>: [" << s->startAddr() << ", " << s->endAddr() << ") @ " << s->getFile()
+       << " (" << s->getFileIndex() << "): " << s->getLine();
+    return os;
+}
+
 
 typedef Statement LineNoTuple;
 #define MODULE_ANNOTATABLE_CLASS AnnotatableSparse
@@ -190,11 +206,11 @@ typedef Statement LineNoTuple;
    /***** Line Number Information *****/
    bool getAddressRanges(std::vector<AddressRange >&ranges,
          std::string lineSource, unsigned int LineNo);
-   bool getSourceLines(std::vector<Statement::ConstPtr> &lines,
+   bool getSourceLines(std::vector<Statement::Ptr> &lines,
          Offset addressInRange);
    bool getSourceLines(std::vector<LineNoTuple> &lines,
          Offset addressInRange);
-   bool getStatements(std::vector<Statement::ConstPtr> &statements);
+   bool getStatements(std::vector<Statement::Ptr> &statements);
    LineInformation *getLineInformation();
     LineInformation* parseLineInformation();
 
@@ -212,7 +228,7 @@ typedef Statement LineNoTuple;
 	 void addRange(Dyninst::Address low, Dyninst::Address high);
 
 	void setDebugInfo(Module::DebugInfoT info);
-
+    void finalizeRanges();
 		private:
    Dyninst::SymtabAPI::LineInformation* lineInfo_;
    typeCollection* typeInfo_;
@@ -224,6 +240,8 @@ typedef Statement LineNoTuple;
    supportedLanguages language_;
    Offset addr_;                      // starting address of module
    Symtab *exec_;
+    std::vector<std::pair< Dyninst::Address, Dyninst::Address> > ranges;
+            bool ranges_finalized;
 };
 		template <typename OS>
 		OS& operator<<(OS& os, const Module& m)
@@ -252,6 +270,18 @@ struct ModRange : public interval<Offset>
     Module* mod_;
 };
 
+        template <typename OS>
+        OS& operator<<(OS& os, const ModRange& m)
+        {
+            os << m.mod() << ": [" << m.low() << ", " << m.high() << ")";
+            return os;
+        }
+        template <typename OS>
+        OS& operator<<(OS& os, ModRange* m)
+        {
+            os << *m;
+            return os;
+        }
 
 }//namespace SymtabAPI
 

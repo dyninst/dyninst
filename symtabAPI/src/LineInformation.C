@@ -45,29 +45,33 @@ using std::vector;
 
 #include "LineInformation.h"
 
-LineInformation::LineInformation() : wasted_compares(0), num_queries(0)
+LineInformation::LineInformation() : wasted_compares(0), num_queries(0), strings_(new StringTable)
 {
 } /* end LineInformation constructor */
 
-bool LineInformation::addItem_impl(Statement s)
-{
-    insert(Statement::ConstPtr(new Statement(s)));
-//    insert(s);
-	return true;
-}
-bool LineInformation::addLine( const char * lineSource, 
+bool LineInformation::addLine( unsigned int lineSource,
       unsigned int lineNo, 
       unsigned int lineOffset, 
       Offset lowInclusiveAddr, 
       Offset highExclusiveAddr ) 
 {
+    Statement* the_stmt = new Statement(lineSource, lineNo, lineOffset,
+                                        lowInclusiveAddr, highExclusiveAddr);
+    Statement::Ptr insert_me(the_stmt);
+    insert_me->setStrings_(strings_);
+   return insert( insert_me).second;
 
-
-   bool ret = addItem_impl( Statement(lineSource, lineNo, lineOffset, 
-                                      lowInclusiveAddr, highExclusiveAddr)); 
-
-   return ret;
 } /* end setLineToAddressRangeMapping() */
+bool LineInformation::addLine( std::string lineSource,
+                               unsigned int lineNo,
+                               unsigned int lineOffset,
+                               Offset lowInclusiveAddr,
+                               Offset highExclusiveAddr )
+{
+    auto index = strings_->get<1>().insert(lineSource).first;
+
+    return addLine(index->str, lineNo, lineOffset, lowInclusiveAddr, highExclusiveAddr);
+}
 
 void LineInformation::addLineInfo(LineInformation *lineInfo)
 {
@@ -89,7 +93,8 @@ bool LineInformation::addAddressRange( Offset lowInclusiveAddr,
 std::string print(const Dyninst::SymtabAPI::Statement& stmt)
 {
     std::stringstream stream;
-    stream << "Statement: < [" << stmt.startAddr() << ", " << stmt.endAddr() << "): " << stmt.getFile() << ":" << stmt.getLine() << " >";
+    stream << std::hex << "Statement: < [" << stmt.startAddr() << ", " << stmt.endAddr() << "): "
+           << std::dec << stmt.getFile() << ":" << stmt.getLine() << " >";
     return stream.str();
 }
 
@@ -98,17 +103,16 @@ bool LineInformation::getSourceLines(Offset addressInRange,
                                      vector<Statement_t> &lines)
 {
     ++num_queries;
-    const_iterator start_addr_valid = project<traits::addr_range>(get<traits::upper_bound>().upper_bound(addressInRange ));
+    const_iterator start_addr_valid = project<traits::addr_range>(get<traits::upper_bound>().lower_bound(addressInRange ));
     const_iterator end_addr_valid = impl_t::upper_bound(addressInRange + 1);
     while(start_addr_valid != end_addr_valid)
     {
-        if((*start_addr_valid)->contains(addressInRange))
+        if(*(*start_addr_valid) == addressInRange)
         {
             lines.push_back(*start_addr_valid);
         }
         else
         {
-            std::cout << print(**start_addr_valid) << " does not contain " << addressInRange << std::endl;
             ++wasted_compares;
         }
         ++start_addr_valid;
@@ -185,16 +189,28 @@ LineInformation::const_line_info_iterator LineInformation::end_by_source() const
 
 std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line_info_iterator>
 LineInformation::equal_range(std::string file, const unsigned int lineNo) const {
-    return get<traits::line_info>().equal_range(std::make_tuple(file, lineNo));
+    auto found = strings_->get<1>().find(file);
+    unsigned index = strings_->project<0>(found) - strings_->begin();
+    return get<traits::line_info>().equal_range(std::make_tuple(index, lineNo));
 
 }
 
 std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line_info_iterator>
 LineInformation::equal_range(std::string file) const {
-    return get<traits::line_info>().equal_range(file);
+    auto found = strings_->get<1>().find(file);
+    unsigned index = strings_->project<0>(found) - strings_->begin();
+    return get<traits::line_info>().equal_range(index);
 //    const traits::line_info_index& by_line_info = impl_t::get<traits::line_info>();
 //    return by_line_info.equal_range(file);
 
+}
+
+StringTablePtr LineInformation::getStrings()  {
+    return strings_;
+}
+
+void LineInformation::setStrings(StringTablePtr strings_) {
+    LineInformation::strings_ = strings_;
 }
 
 /* end LineInformation destructor */

@@ -90,12 +90,12 @@ namespace Dyninst {
                     boost::multi_index::const_mem_fun<Value, Offset, &Value::startAddr> >
             upper_bound_key;
             typedef typename boost::multi_index::composite_key<Value,
-                    boost::multi_index::const_mem_fun<Value, std::string, &Value::getFile>,
+                    boost::multi_index::const_mem_fun<Value, unsigned int, &Value::getFileIndex>,
                     boost::multi_index::const_mem_fun<Value, unsigned int, &Value::getLine> >
                     line_info_key;
             typedef typename boost::multi_index_container
                     <
-                            typename Value::ConstPtr,
+                            typename Value::Ptr,
                             boost::multi_index::indexed_by<
                                     boost::multi_index::ordered_unique< boost::multi_index::tag<addr_range>, addr_range_key>,
                                     boost::multi_index::ordered_non_unique< boost::multi_index::tag<upper_bound>, upper_bound_key>,

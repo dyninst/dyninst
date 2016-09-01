@@ -147,7 +147,7 @@ public:
 protected:
     SYMTAB_EXPORT virtual ~AObject();
     // explicitly protected
-    SYMTAB_EXPORT AObject(MappedFile *, void (*err_func)(const char *));
+    SYMTAB_EXPORT AObject(MappedFile *, void (*err_func)(const char *), Symtab*);
     virtual void parseLineInfoForCU(Module::DebugInfoT module_debug_info, LineInformation* li) { }
 
     MappedFile *mf;
@@ -198,7 +198,8 @@ protected:
     int addressWidth_nbytes;
 
     std::vector<ExceptionBlock> catch_addrs_; //Addresses of C++ try/catch blocks;
-    
+    Symtab* associated_symtab;
+
 private:
     friend class SymbolIter;
     friend class Symtab;

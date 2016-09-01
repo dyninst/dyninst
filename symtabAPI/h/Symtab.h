@@ -255,7 +255,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    /***** Line Number Information *****/
    bool getAddressRanges(std::vector<AddressRange> &ranges,
                          std::string lineSource, unsigned int LineNo);
-   bool getSourceLines(std::vector<Statement::ConstPtr> &lines,
+   bool getSourceLines(std::vector<Statement::Ptr> &lines,
                        Offset addressInRange);
    bool getSourceLines(std::vector<LineNoTuple> &lines,
                                      Offset addressInRange);
