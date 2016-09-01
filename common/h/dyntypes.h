@@ -55,71 +55,33 @@
 
 #if defined (_MSC_VER)
   //**************** Windows ********************
-  #include <hash_map>
-  #include <hash_set>
-  #define dyn_hash_map stdext::hash_map
-  #define dyn_hash_set stdext::hash_set
   #define DECLTHROW(x)
 #elif defined(__GNUC__)
   #include <functional>
   #define DECLTHROW(x) throw(x)
-  //*****************libcxx**********************
-  #if defined(_LIBCPP_VERSION)
-      #include <unordered_set>
-      #include <unordered_map>
-      #define dyn_hash_set std::unordered_set
-      #define dyn_hash_map std::unordered_map
-  //***************** GCC ***********************
-   #elif defined (__GLIBCXX__) && (__GLIBCXX__ >= 20080306)
-      //**************** GCC >= 4.3.0 ***********
-      #include <tr1/unordered_set>
-      #include <tr1/unordered_map>
-      #define cap_tr1
-      #define dyn_hash_set std::tr1::unordered_set
-      #define dyn_hash_map std::tr1::unordered_map
-   #else
-      //**************** GCC < 4.3.0 ************
-      #include <ext/hash_map>
-      #include <ext/hash_set>
-      #include <string>
-      #define dyn_hash_set __gnu_cxx::hash_set
-      #define dyn_hash_map __gnu_cxx::hash_map    
-      namespace Dyninst {
-	     unsigned ptrHash(void * addr);
-      }
-      using namespace __gnu_cxx;
-      namespace __gnu_cxx {
-
-		  template<> struct hash<std::string> {
-			  hash<char*> h;
-			  unsigned operator()(const std::string &s) const 
-			  {
-				  const char *cstr = s.c_str();
-				  return h(cstr);
-			  };
-		  };
-
-		  template<> struct hash<void *> {
-			  unsigned operator()(void *v) const 
-			  {
-				  return Dyninst::ptrHash(v);
-			  };
-		  };
-
-	  }
-   #endif
 #elif defined(XLC)
-  #define __IBMCPP_TR1__ 1
-
   #include <functional>
-  #include <unordered_set>
-  #include <unordered_map>
-  #define dyn_hash_set std::tr1::unordered_set
-  #define dyn_hash_map std::tr1::unordered_map
   #define DECLTHROW(x)
 #else
    #error Unknown compiler
 #endif
+
+
+#include <unordered_set>
+#include <unordered_map>
+#define dyn_hash_set std::unordered_set
+#define dyn_hash_map std::unordered_map
+
+// NB: generic enum hashes aren't standard until C++14
+#define _DYN_IMPL_ENUM_HASH(ENUM)       \
+  namespace std {                       \
+    template<> struct hash<ENUM> {      \
+      inline size_t                     \
+      operator()(ENUM e) const {        \
+        return hash<size_t>()(e);       \
+      }                                 \
+    };                                  \
+  }
 
 
 namespace Dyninst

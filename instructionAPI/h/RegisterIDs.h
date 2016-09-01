@@ -98,38 +98,9 @@ namespace Dyninst
     };
   };
 };
-	  
-#if defined(__GNUC__)
-#if !defined(cap_tr1)
-namespace __gnu_cxx 
-{
-  template<> struct hash<Dyninst::InstructionAPI::IA32Regs> {
-    hash<unsigned int> h;
-    unsigned operator()(const Dyninst::InstructionAPI::IA32Regs &e) const 
-    {
-      return h(static_cast<unsigned int>(e));
-    };
-  };
-}
-#else
-namespace std 
-{
-  namespace tr1
-  {
-    template <>
-    struct hash<Dyninst::InstructionAPI::IA32Regs>
-    {
-      size_t operator()(const Dyninst::InstructionAPI::IA32Regs &e) const
-      {
-	return static_cast<size_t>(e);
-      };
-    };
-  }   
-}
-#endif
-#endif
-	  
-	  
+
+_DYN_IMPL_ENUM_HASH(Dyninst::InstructionAPI::IA32Regs);
+
 namespace Dyninst
 {
   namespace InstructionAPI
