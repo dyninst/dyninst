@@ -29,4 +29,6 @@ add_definitions(-DSYMLITE_LIB)
 #        ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
 #        PUBLIC_HEADER DESTINATION ${INSTALL_INCLUDE_DIR})
 dyninst_library(symLite common dynElf)
-cotire(symLite)
+if (USE_COTIRE)
+    cotire(symLite)
+endif()

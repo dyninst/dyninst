@@ -38,4 +38,7 @@ dyninst_library(instructionAPI common)
 if(UNIX)
   target_link_private_libraries(instructionAPI ${Boost_LIBRARIES})
 endif()
-cotire(instructionAPI)
+
+if (USE_COTIRE)
+    cotire(instructionAPI)
+endif()

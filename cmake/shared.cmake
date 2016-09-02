@@ -94,7 +94,30 @@ include (${DYNINST_ROOT}/cmake/visibility.cmake)
 include (${DYNINST_ROOT}/cmake/warnings.cmake)
 include (${DYNINST_ROOT}/cmake/options.cmake)
 include (${DYNINST_ROOT}/cmake/optimization.cmake)
-include (${DYNINST_ROOT}/cmake/cotire.cmake)
+
+# Check for cotire-gcc compatibility
+set(USE_COTIRE true)
+IF(CMAKE_COMPILER_IS_GNUCC)
+    execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
+    string(REGEX MATCHALL "[0-9]+" GCC_VERSION_COMPONENTS ${GCC_VERSION})
+    IF(GCC_VERSION VERSION_LESS 4.5)
+        SET(USE_COTIRE false)
+    ENDIF()
+ENDIF(CMAKE_COMPILER_IS_GNUCC)
+
+# If we're compiling for unix, cotire only supports Intel, GCC and Clang.
+IF (UNIX AND NOT (("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang") OR ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU") OR ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")))
+	set(USE_COTIRE false)
+ENDIF()
+
+# Make sure our CMake version is actually supported by cotire
+IF(CMAKE_VERSION VERSION_LESS 2.8.12)
+    SET(USE_COTIRE false)
+ENDIF()
+
+if (USE_COTIRE)
+    include (${DYNINST_ROOT}/cmake/cotire.cmake)
+endif()
 
 set_directory_properties(PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
 
