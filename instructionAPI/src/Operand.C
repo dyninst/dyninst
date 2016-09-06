@@ -198,7 +198,7 @@ namespace Dyninst
 					RegisterAST* r = dynamic_cast<RegisterAST*>(expression);
 
 					/* It cannot be both an imm and a register. */
-					assert(i != nullptr || r != nullptr);
+					assert(i != NULL || r != NULL);
 					assert(!(i && r));
 
 					if(i)
@@ -328,7 +328,7 @@ namespace Dyninst
 					RegisterAST* r = dynamic_cast<RegisterAST*>(expression);
 
 					/* It cannot be both an imm and a register. */
-					assert(i != nullptr || r != nullptr);
+					assert(i != NULL || r != NULL);
 					assert(!(i && r));
 
 					if(i)
