@@ -342,8 +342,12 @@ class PARSER_EXPORT Block : public Dyninst::interval<Address>,
     };
 
     static void destroy(Block *b);
-  
- private:
+
+    bool operator==(const Block &rhs) const;
+
+    bool operator!=(const Block &rhs) const;
+
+private:
     void addSource(Edge * e);
     void addTarget(Edge * e);
     void removeTarget(Edge * e);
@@ -674,7 +678,17 @@ class PARSER_EXPORT FuncExtent : public Dyninst::interval<Address> {
 
     /* interval implementation */
     Address low() const { return _start; }
-    Address high() const { return _end; } 
+    Address high() const { return _end; }
+
+    bool operator==(const FuncExtent &rhs) const {
+        return _func == rhs._func &&
+               _start == rhs._start &&
+               _end == rhs._end;
+    }
+
+    bool operator!=(const FuncExtent &rhs) const {
+        return !(rhs == *this);
+    }
 };
 
 /** Natural loops

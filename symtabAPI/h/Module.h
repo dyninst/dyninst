@@ -240,9 +240,11 @@ typedef Statement LineNoTuple;
    supportedLanguages language_;
    Offset addr_;                      // starting address of module
    Symtab *exec_;
-    std::vector<std::pair< Dyninst::Address, Dyninst::Address> > ranges;
+    std::set<AddressRange > ranges;
             bool ranges_finalized;
-};
+
+            void finalizeOneRange(Address ext_s, Address ext_e) const;
+        };
 		template <typename OS>
 		OS& operator<<(OS& os, const Module& m)
 		{
@@ -262,6 +264,22 @@ struct ModRange : public interval<Offset>
     ModRange(Offset l, Offset h, Module* m) :
            low_(l), high_(h), mod_(m)
     {}
+
+    bool operator==(const ModRange &rhs) const {
+        return low_ == rhs.low_ &&
+               high_ == rhs.high_ &&
+               mod_ == rhs.mod_;
+    }
+
+    bool operator!=(const ModRange &rhs) const {
+        return !(rhs == *this);
+    }
+    bool contains(const ModRange& rhs) const {
+        return (rhs.low() >= low()) &&
+                (rhs.high() <= high()) &&
+                (rhs.mod() == mod() );
+    }
+
     Offset low() const { return low_; }
     Offset high() const { return high_; }
     Module* mod() const { return mod_;}

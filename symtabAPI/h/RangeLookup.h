@@ -66,6 +66,10 @@ namespace Dyninst {
                 first = start;
                 second = end;
             }
+            AddressRange merge(const AddressRange& other)
+            {
+                return AddressRange(std::min(first, other.first), std::max(second, other.second));
+            }
             bool operator==(const AddressRange& rhs) const {
                 return (first == rhs.first) && (second == rhs.second);
             }

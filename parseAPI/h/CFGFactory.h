@@ -159,7 +159,8 @@ class PARSER_EXPORT CFGFactory {
 };
 
 
-}
+
+    }
 }
 
 #endif

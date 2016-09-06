@@ -187,6 +187,9 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
 
 LineInformation *Module::parseLineInformation() {
     // Allocate if none
+    using std::placeholders::_1;
+    using std::bind;
+    using std::for_each;
     if (!lineInfo_)
     {
         lineInfo_ = new LineInformation;
@@ -200,8 +203,8 @@ LineInformation *Module::parseLineInformation() {
             exec()->getObject()->parseLineInfoForCU(*cu, lineInfo_);
         }
         // Add ranges corresponding to each statement
-        std::transform(lineInfo_->begin(), lineInfo_->end(),
-            std::back_inserter(ranges), std::bind(&Statement::addressRange, std::placeholders::_1));
+        for_each(lineInfo_->begin(), lineInfo_->end(),
+            bind(&Module::addRange, this, bind(&Statement::startAddr, _1), bind(&Statement::endAddr, _1)));
 
         // Update in symtab: this module covers all ranges in its line info
         finalizeRanges();
@@ -452,8 +455,24 @@ bool Module::findVariablesByName(std::vector<Variable *> &ret, const std::string
 
 void Module::addRange(Dyninst::Address low, Dyninst::Address high)
 {
-    printf("Adding range [%lx, %lx) to %s\n", low, high, fileName().c_str());
-    ranges.push_back(std::make_pair(low, high));
+//    printf("Adding range [%lx, %lx) to %s\n", low, high, fileName().c_str());
+    std::set<AddressRange>::iterator lb = ranges.lower_bound(AddressRange(low, high));
+    if(lb != ranges.end() && lb->first <= low)
+    {
+        if(lb->second >= high)
+        {
+            return;
+        }
+        ranges.insert(AddressRange(lb->first, high));
+//        printf("Actual is [%lx, %lx) due to overlap with [%lx, %lx)\n", lb->first, high, lb->first, lb->second);
+        ranges.erase(lb);
+    }
+    else
+    {
+        ranges.insert(AddressRange(low, high));
+    }
+
+//    ranges.push_back(std::make_pair(low, high));
 //    exec_->mod_lookup()->insert(new ModRange(low, high, this));
 }
 
@@ -462,23 +481,44 @@ void Module::finalizeRanges()
     if(ranges.empty()) {
         return;
     }
-    std::sort(ranges.begin(), ranges.end());
     auto bit = ranges.begin();
-    ModRange * ext = NULL;
     Address ext_s = bit->first;
     Address ext_e = ext_s;
 
     for( ; bit != ranges.end(); ++bit) {
         if(bit->first > ext_e) {
-            ext = new ModRange(ext_s,ext_e, this);
-            exec_->mod_lookup()->insert(ext);
+            finalizeOneRange(ext_s, ext_e);
             ext_s = bit->first;
         }
         ext_e = bit->second;
     }
-    ext = new ModRange(ext_s, ext_e, this);
-    exec_->mod_lookup()->insert(ext);
+    finalizeOneRange(ext_s, ext_e);
     ranges.clear();
+}
+
+void Module::finalizeOneRange(Address ext_s, Address ext_e) const {
+    ModRange* r = new ModRange(ext_s, ext_e, const_cast<Module*>(this));
+    ModRangeLookup* lookup = exec_->mod_lookup();
+    std::set<ModRange*> existing;
+    lookup->find(r, existing);
+//    cerr << "Found " << existing.size() << " overlapping intervals at insert time" << endl;
+    for(auto i = existing.begin();
+        i != existing.end();
+        ++i)
+    {
+        if((*i) && (*i)->contains(*r))
+        {
+//            cerr << "Skipping duplicate ModRange " << r << endl;
+            delete r;
+            return;
+        }
+        if(r->contains(**i))
+        {
+//            cerr << "Removing duplicate ModRange " << (*i) << endl;
+            lookup->remove(*i);
+        }
+    }
+    exec_->mod_lookup()->insert(r);
 }
 
 void Module::setDebugInfo(Module::DebugInfoT info) {

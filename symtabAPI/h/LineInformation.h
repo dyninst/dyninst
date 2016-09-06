@@ -105,8 +105,8 @@ public:
     void setStrings(StringTablePtr strings_);
 
 protected:
-    int wasted_compares;
-      int num_queries;
+    mutable int wasted_compares;
+    mutable int num_queries;
 };
 
 

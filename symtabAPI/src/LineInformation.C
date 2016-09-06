@@ -156,7 +156,10 @@ LineInformation::const_iterator LineInformation::end() const
 
 LineInformation::const_iterator LineInformation::find(Offset addressInRange) const
 {
-    return impl_t::find(addressInRange);
+    ++num_queries;
+    const_iterator start_addr_valid = project<traits::addr_range>(get<traits::upper_bound>().lower_bound(addressInRange ));
+    if(start_addr_valid == end()) return end();
+    return (*start_addr_valid)->contains(addressInRange) ? start_addr_valid : end();
 } /* end find() */
 
 
@@ -170,11 +173,12 @@ unsigned LineInformation::getSize() const
 
 LineInformation::~LineInformation() 
 {
-    if(num_queries)
-    {
-        std::cout << "Line information with " << getSize() << " entries queried " << num_queries << " times with "
-                << wasted_compares << " extra compares (" << (float)(wasted_compares) / (num_queries) << " per query)" << std::endl;
-    }
+//    std::cerr << "Line information with " << getSize() << " entries queried " << num_queries << " times";
+//    if(num_queries)
+//    {
+//        std::cerr << " with " << wasted_compares << " extra compares (" << (float)(wasted_compares) / (num_queries) << " per query)";
+//    }
+//    std::cerr << std::endl;
 }
 
 LineInformation::const_line_info_iterator LineInformation::begin_by_source() const {
