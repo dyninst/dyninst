@@ -457,7 +457,7 @@ memAccessors.begin()));
                 currOperand != m_Operands.end();
                 op++, ++currOperand)
         {
-            bool isCallJump = getControlFlowTarget() != nullptr;
+            bool isCallJump = getControlFlowTarget() != NULL;
             std::string format = currOperand->format(getArch(), isCallJump);
 
             if(currOperand->isImplicit())
