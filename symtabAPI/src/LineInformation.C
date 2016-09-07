@@ -217,5 +217,15 @@ void LineInformation::setStrings(StringTablePtr strings_) {
     LineInformation::strings_ = strings_;
 }
 
+LineInformation::const_iterator LineInformation::find(Offset addressInRange, const_iterator hint) const {
+    while(hint != end())
+    {
+        if((**hint) == addressInRange) return hint;
+        if((**hint) > addressInRange) break;
+        ++hint;
+    }
+    return find(addressInRange);
+}
+
 /* end LineInformation destructor */
 

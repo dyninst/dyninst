@@ -209,10 +209,11 @@ bool FunctionBase::setFramePtr(vector<VariableLocation> *locs)
 
 std::pair<std::string, Dyninst::Offset> InlinedFunction::getCallsite()
 {
-    if(callsite_file) {
-        return make_pair(callsite_file, callsite_line);
+    std::string callsite_file = "<unknown>";
+    if(callsite_file_number > 0 && callsite_file_number < module_->getStrings()->size()) {
+        callsite_file = (*module_->getStrings())[callsite_file_number].str;
     }
-    return make_pair("<UNKNOWN FILE>", callsite_line);
+    return make_pair(callsite_file, callsite_line);
 }
 
 void FunctionBase::expandLocation(const VariableLocation &loc,
@@ -431,7 +432,7 @@ bool FunctionBase::operator==(const FunctionBase &f)
 
 InlinedFunction::InlinedFunction(FunctionBase *parent) :
     FunctionBase(),
-    callsite_file(NULL),
+    callsite_file_number(0),
     callsite_line(0),
     module_(parent->getModule())
 {
@@ -474,6 +475,15 @@ Offset InlinedFunction::getOffset() const
 unsigned InlinedFunction::getSize() const
 {
     return functionSize_;//inline_parent->getSize();
+}
+
+void InlinedFunction::setFile(string filename) {
+    StringTablePtr strs = module_->getStrings();
+    // This looks gross, but here's what it does:
+    // Get index 1 (unique by name). Insert the filename on that index (which defaults to push_back if empty).
+    // Returns an <iterator, bool>; get the iterator (we don't care if it's new). Project to random access (index 0).
+    // Difference from begin == array index in string table.
+    callsite_file_number = strs->project<0>(strs->get<1>().insert(filename).first) - strs->begin();
 }
 
 Module* Function::getModule() const {

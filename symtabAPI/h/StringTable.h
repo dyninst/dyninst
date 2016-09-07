@@ -32,6 +32,24 @@ namespace Dyninst {
                 > StringTable;
 
         typedef boost::shared_ptr<StringTable> StringTablePtr;
+        template <typename os>
+        os& operator<<(os& s, StringTableEntry e)
+        {
+            s << e.str;
+            return s;
+        }
+
+        template <typename os>
+        os& operator<<(os& stream, const StringTable& tbl)
+        {
+            for(int i = 0; i < tbl.size(); ++i)
+            {
+                stream << tbl[i] << " @ " << i << std::endl;
+            }
+            return stream;
+        }
+
+
 
     }
 }

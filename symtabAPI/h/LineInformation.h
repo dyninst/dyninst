@@ -86,19 +86,13 @@ public:
       const_iterator begin() const;
       const_iterator end() const;
       const_iterator find(Offset addressInRange) const;
+      const_iterator find(Offset addressInRange, const_iterator hint) const;
 
       unsigned getSize() const;
 
       virtual ~LineInformation();
-
+        StringTablePtr strings_;
    protected:
-      /* We maintain internal copies of all the source file names.  Because
-         both directions of the mapping include pointers to these names,
-         maintain a separate list of them, and only ever deallocate those
-         (in the destructor).  Note that it speeds and simplifies things
-         to have the string pointers be the same. */
-
-      StringTablePtr strings_;
 public:
     StringTablePtr getStrings() ;
 

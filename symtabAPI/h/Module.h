@@ -97,6 +97,12 @@ public:
         }
         return (startAddr() <= addr) && (addr < endAddr());
     }
+    bool operator<(Offset addr) const {
+        return startAddr() <= addr;
+    }
+    bool operator>(Offset addr) const {
+        return !((*this) < addr || (*this == addr));
+    }
 	~Statement() {}
 
 	Offset startAddr() const { return start_addr_;}
@@ -229,7 +235,7 @@ typedef Statement LineNoTuple;
 
 	void setDebugInfo(Module::DebugInfoT info);
     void finalizeRanges();
-		private:
+    private:
    Dyninst::SymtabAPI::LineInformation* lineInfo_;
    typeCollection* typeInfo_;
 	std::vector<Module::DebugInfoT> info_;
@@ -241,6 +247,12 @@ typedef Statement LineNoTuple;
    Offset addr_;                      // starting address of module
    Symtab *exec_;
     std::set<AddressRange > ranges;
+
+    StringTablePtr strings_;
+        public:
+            StringTablePtr & getStrings() ;
+
+        private:
             bool ranges_finalized;
 
             void finalizeOneRange(Address ext_s, Address ext_e) const;

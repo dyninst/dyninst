@@ -34,7 +34,7 @@
 #include <string>
 #include "util.h"
 
-extern int common_debug_dwarf;
+COMMON_EXPORT extern int common_debug_dwarf;
 extern int common_debug_addrtranslate;
 
 #if defined(__GNUC__)

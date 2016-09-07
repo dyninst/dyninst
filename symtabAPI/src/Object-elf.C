@@ -4488,8 +4488,6 @@ void Object::parseTypeInfo()
     if(!typeInfo) return;
     DwarfWalker walker(associated_symtab, *typeInfo);
     walker.parse();
-    freeList.push_back(walker.getFreeList());
-//    freeList = walker.getFreeList();
 #if defined(TIMED_PARSE)
     struct timeval endtime;
   gettimeofday(&endtime, NULL);

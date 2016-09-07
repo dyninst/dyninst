@@ -193,6 +193,8 @@ LineInformation *Module::parseLineInformation() {
     if (!lineInfo_)
     {
         lineInfo_ = new LineInformation;
+        // share our string table
+        lineInfo_->setStrings(strings_);
     }
     // Parse any CUs that have been added to our list
     if(!info_.empty()) {
@@ -321,7 +323,8 @@ Module::Module(supportedLanguages lang, Offset adr,
    language_(lang),
    addr_(adr),
    exec_(img),
-   ranges_finalized(false)
+   ranges_finalized(false),
+   strings_(new StringTable)
 {
    fileName_ = extract_pathname_tail(fullNm);
 }
@@ -334,7 +337,8 @@ Module::Module() :
    language_(lang_Unknown),
    addr_(0),
    exec_(NULL),
-    ranges_finalized(false)
+    ranges_finalized(false),
+   strings_(new StringTable)
 {
 }
 
@@ -348,7 +352,8 @@ Module::Module(const Module &mod) :
    addr_(mod.addr_),
    exec_(mod.exec_),
    info_(mod.info_),
-   ranges_finalized(mod.ranges_finalized)
+   ranges_finalized(mod.ranges_finalized),
+   strings_(mod.strings_)
 
 {
 }
@@ -524,3 +529,8 @@ void Module::finalizeOneRange(Address ext_s, Address ext_e) const {
 void Module::setDebugInfo(Module::DebugInfoT info) {
     info_.push_back(info);
 }
+
+StringTablePtr & Module::getStrings() {
+    return strings_;
+}
+

@@ -177,9 +177,7 @@ namespace Dyninst {
             DwarfWalker(Symtab *symtab, Dwarf_Debug dbg);
 
             virtual ~DwarfWalker();
-            typedef
-            std::vector<boost::shared_ptr<void> > FreeListT;
-            FreeListT getFreeList();
+
             bool parse();
 
             // Takes current debug state as represented by dbg_;
@@ -228,7 +226,7 @@ namespace Dyninst {
             bool nameDefined() { return name_ != ""; }
             // These are invariant across a parse
 
-            std::vector<const char*> &srcFiles() { return srcFiles_; }
+            StringTablePtr srcFiles() { return mod()->getStrings(); }
 
             // For functions and variables with a separate specification, a
             // pointer to that spec. For everyone else, this points to entry
@@ -285,7 +283,7 @@ namespace Dyninst {
                                         bool &constant,
                                         bool &expr,
                                         Dwarf_Half &form);
-            bool findString(Dwarf_Half attr, const char* &str);
+            bool findString(Dwarf_Half attr, std::string &str);
         public:
             static bool findConstant(Dwarf_Half attr, Address &value, Dwarf_Die entry, Dwarf_Debug dbg);
             static bool findConstantWithForm(Dwarf_Attribute &attr,
@@ -318,9 +316,6 @@ namespace Dyninst {
         private:
             std::vector<const char*> srcFiles_;
             char** srcFileList_;
-
-            FreeListT freeList;
-
             std::string name_;
             bool is_mangled_name_;
 
@@ -361,14 +356,14 @@ namespace Dyninst {
                                      Dwarf_Unsigned variableLineNo,
                                      const std::string &fileName);
 
-            virtual void createInlineFunc();
+            virtual bool createInlineFunc();
 
             virtual void setFuncFromLowest(Address lowest);
 
             virtual void createParameter(const std::vector<VariableLocation> &locs, Type *paramType, Dwarf_Unsigned lineNo,
                          const std::string &fileName);
 
-            virtual void setFuncRanges();
+            virtual void setRanges(FunctionBase *func);
 
             virtual void createGlobalVariable(const std::vector<VariableLocation> &locs, Type *type);
 
@@ -405,7 +400,7 @@ namespace Dyninst {
         }
 
 
-        virtual void createInlineFunc() {}
+        virtual bool createInlineFunc() {}
 
         virtual void setFuncFromLowest(Address lowest) {
             m_obj->setModuleForOffset(lowest, modname);
@@ -418,7 +413,7 @@ namespace Dyninst {
         }
 
 
-        virtual void setFuncRanges() {
+        virtual void setRanges(FunctionBase *func) {
         }
 
 
