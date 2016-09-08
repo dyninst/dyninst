@@ -45,6 +45,7 @@
 #include "common/src/pathName.h"
 #include "common/src/serialize.h"
 #include "Object.h"
+#include <boost/foreach.hpp>
 
 #if defined(cap_dwarf)
 #include "dwarfWalker.h"
@@ -187,9 +188,7 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
 
 LineInformation *Module::parseLineInformation() {
     // Allocate if none
-    using std::placeholders::_1;
-    using std::bind;
-    using std::for_each;
+    using boost::bind;
     if (!lineInfo_)
     {
         lineInfo_ = new LineInformation;
@@ -205,8 +204,8 @@ LineInformation *Module::parseLineInformation() {
             exec()->getObject()->parseLineInfoForCU(*cu, lineInfo_);
         }
         // Add ranges corresponding to each statement
-        for_each(lineInfo_->begin(), lineInfo_->end(),
-            bind(&Module::addRange, this, bind(&Statement::startAddr, _1), bind(&Statement::endAddr, _1)));
+        std::for_each(lineInfo_->begin(), lineInfo_->end(),
+            boost::bind(&Module::addRange, this, boost::bind(&Statement::startAddr, _1), boost::bind(&Statement::endAddr, _1)));
 
         // Update in symtab: this module covers all ranges in its line info
         finalizeRanges();
@@ -323,8 +322,8 @@ Module::Module(supportedLanguages lang, Offset adr,
    language_(lang),
    addr_(adr),
    exec_(img),
-   ranges_finalized(false),
-   strings_(new StringTable)
+   strings_(new StringTable),
+   ranges_finalized(false)
 {
    fileName_ = extract_pathname_tail(fullNm);
 }
@@ -337,8 +336,8 @@ Module::Module() :
    language_(lang_Unknown),
    addr_(0),
    exec_(NULL),
-    ranges_finalized(false),
-   strings_(new StringTable)
+   strings_(new StringTable),
+    ranges_finalized(false)
 {
 }
 
@@ -350,10 +349,10 @@ Module::Module(const Module &mod) :
    fullName_(mod.fullName_),
    language_(mod.language_),
    addr_(mod.addr_),
-   exec_(mod.exec_),
    info_(mod.info_),
-   ranges_finalized(mod.ranges_finalized),
-   strings_(mod.strings_)
+   exec_(mod.exec_),
+   strings_(mod.strings_),
+    ranges_finalized(mod.ranges_finalized)
 
 {
 }

@@ -44,6 +44,7 @@ using namespace Dyninst::SymtabAPI;
 using std::vector;
 
 #include "LineInformation.h"
+#include <sstream>
 
 LineInformation::LineInformation() : wasted_compares(0), num_queries(0), strings_(new StringTable)
 {
@@ -195,7 +196,18 @@ std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line
 LineInformation::equal_range(std::string file, const unsigned int lineNo) const {
     auto found = strings_->get<1>().find(file);
     unsigned index = strings_->project<0>(found) - strings_->begin();
-    return get<traits::line_info>().equal_range(std::make_tuple(index, lineNo));
+//    auto search_info = std::make_tuple(index, lineNo);
+    std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line_info_iterator > bounds;
+    bounds =  get<traits::line_info>().equal_range(index);
+    while((*bounds.first)->getLine() < lineNo && bounds.first != bounds.second) {
+        ++bounds.first;
+    }
+    while((*bounds.second)->getLine() > lineNo && bounds.second != bounds.first) {
+        --bounds.second;
+    }
+    if(bounds.second != get<traits::line_info>().end()) ++bounds.second;
+    return bounds;
+//    return get<traits::line_info>().equal_range(boost::cref<std::tuple<unsigned int, unsigned int> >(search_info));
 
 }
 
