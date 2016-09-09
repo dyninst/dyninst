@@ -185,6 +185,22 @@ namespace rose {
                 /** Returns a value that equals 0. nbits specifies what should be the bit-length of the value,
                  * but is irrelevant in practice as a 64-bit zero is returned anyway. */
                 virtual BaseSemantics::SValuePtr Zeros(const unsigned int nbits);
+
+                /** Returns the input value sign extended to the provided length. */
+                virtual BaseSemantics::SValuePtr SignExtend(const BaseSemantics::SValuePtr &expr, size_t newsize);
+
+                /** Returns the input value zero extended to the provided length. */
+                virtual BaseSemantics::SValuePtr ZeroExtend(const BaseSemantics::SValuePtr &expr, size_t newsize);
+
+                size_t getRegSize(uint32_t raw);
+
+                size_t ldStrLiteralAccessSize(uint32_t raw);
+
+                /** */
+                BaseSemantics::SValuePtr readMemory(const BaseSemantics::SValuePtr &addr, size_t readSize);
+
+                /** */
+                void writeMemory(const BaseSemantics::SValuePtr &addr, size_t writeSize, const BaseSemantics::SValuePtr &data);
             };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -213,6 +229,12 @@ namespace rose {
 
                     virtual void assert_args(I insn, A args, size_t nargs);
                     //void check_arg_width(D d, I insn, A args);
+
+                public:
+                    enum MemOp {
+                        MemOp_STORE,
+                        MemOp_LOAD
+                    };
                 };
 
             } // namespace

@@ -226,11 +226,13 @@ namespace rose {
                     virtual BaseSemantics::SValuePtr readMemory(const BaseSemantics::SValuePtr &address, const BaseSemantics::SValuePtr &dflt,
                                                                 BaseSemantics::RiscOperators *addrOps, BaseSemantics::RiscOperators *valOps);
 
+                    BaseSemantics::SValuePtr readMemory(const BaseSemantics::SValuePtr &address, size_t readSize);
+
                     virtual void writeMemory(const BaseSemantics::SValuePtr &addr, const BaseSemantics::SValuePtr &value,
                                              BaseSemantics::RiscOperators *addrOps, BaseSemantics::RiscOperators *valOps);
 
                     void writeMemory(const BaseSemantics::SValuePtr &addr, const BaseSemantics::SValuePtr &value,
-                                       Dyninst::DataflowAPI::Result_t &res, std::map<Dyninst::Absloc, Dyninst::Assignment::Ptr> &aaMap);
+                                       Dyninst::DataflowAPI::Result_t &res, std::map<Dyninst::Absloc, Dyninst::Assignment::Ptr> &aaMap, size_t writeSize);
                 };
 
 
@@ -297,8 +299,10 @@ namespace rose {
                 public:
                     virtual BaseSemantics::SValuePtr readRegister(const RegisterDescriptor &reg, const BaseSemantics::SValuePtr &dflt, BaseSemantics::RiscOperators *ops);
                     virtual void writeRegister(const RegisterDescriptor &reg, const BaseSemantics::SValuePtr &value, BaseSemantics::RiscOperators *ops);
+                    virtual BaseSemantics::SValuePtr readMemory(const BaseSemantics::SValuePtr &address, const BaseSemantics::SValuePtr &dflt,
+                                                                BaseSemantics::RiscOperators *addrOps, BaseSemantics::RiscOperators *valOps, size_t readSize = 0);
                     virtual void writeMemory(const BaseSemantics::SValuePtr &addr, const BaseSemantics::SValuePtr &value, BaseSemantics::RiscOperators *addrOps,
-                                             BaseSemantics::RiscOperators *valOps);
+                                             BaseSemantics::RiscOperators *valOps, size_t writeSize = 0);
 
                 protected:
                     Dyninst::DataflowAPI::Result_t &res;

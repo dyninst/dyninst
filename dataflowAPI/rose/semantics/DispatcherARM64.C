@@ -4,6 +4,7 @@
 //#include "Diagnostics.h"
 #include "DispatcherARM64.h"
 #include "../integerOps.h"
+#include "SymEvalSemantics.h"
 
 #undef si_value                                         // name pollution from siginfo.h
 
@@ -941,6 +942,1085 @@ namespace rose {
                     }
                 };
 
+                struct IP_ldr_imm_gen_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }
+
+                        switch (EXTR(22, 22) ^ EXTR(23, 23)) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                }
+                                else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                }
+                                else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if ((EXTR(24, 24) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            }
+
+                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            }
+                            else {
+                                d->write(args[1], address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_str_imm_gen_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }
+
+                        switch (EXTR(22, 22) ^ EXTR(23, 23)) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                }
+                                else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                }
+                                else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if ((EXTR(24, 24) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            }
+
+                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            }
+                            else {
+                                d->write(args[1], address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_ldrb_imm_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }
+
+                        switch (EXTR(22, 22) ^ EXTR(23, 23)) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                }
+                                else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                }
+                                else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if ((EXTR(24, 24) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            }
+
+                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            }
+                            else {
+                                d->write(args[1], address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_strb_imm_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }
+
+                        switch (EXTR(22, 22) ^ EXTR(23, 23)) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                }
+                                else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                }
+                                else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if ((EXTR(24, 24) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            }
+
+                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            }
+                            else {
+                                d->write(args[1], address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_ldrh_imm_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }
+
+                        switch (EXTR(22, 22) ^ EXTR(23, 23)) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                }
+                                else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                }
+                                else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if ((EXTR(24, 24) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            }
+
+                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            }
+                            else {
+                                d->write(args[1], address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_ldrsb_imm_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }
+
+                        switch (EXTR(22, 22) ^ EXTR(23, 23)) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                }
+                                else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                }
+                                else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if ((EXTR(24, 24) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            }
+
+                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            }
+                            else {
+                                d->write(args[1], address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_ldrsh_imm_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }
+
+                        switch (EXTR(22, 22) ^ EXTR(23, 23)) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                }
+                                else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                }
+                                else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if ((EXTR(24, 24) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            }
+
+                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            }
+                            else {
+                                d->write(args[1], address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_ldrsw_imm_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }
+
+                        switch (EXTR(22, 22) ^ EXTR(23, 23)) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                }
+                                else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                }
+                                else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if ((EXTR(24, 24) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            }
+
+                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            }
+                            else {
+                                d->write(args[1], address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_strh_imm_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }
+
+                        switch (EXTR(22, 22) ^ EXTR(23, 23)) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                }
+                                else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                }
+                                else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if ((EXTR(24, 24) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            }
+
+                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            }
+                            else {
+                                d->write(args[1], address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_ldr_reg_gen_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr offset = d->read(args[2]);
+                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                }
+                                else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                }
+                                else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if ((EXTR(24, 24) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            }
+
+                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            }
+                            else {
+                                d->write(args[1], address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_ldrb_reg_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr offset = d->read(args[2]);
+                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                }
+                                else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                }
+                                else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if ((EXTR(24, 24) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            }
+
+                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            }
+                            else {
+                                d->write(args[1], address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_ldrh_reg_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr offset = d->read(args[2]);
+                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                }
+                                else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                }
+                                else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if ((EXTR(24, 24) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            }
+
+                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            }
+                            else {
+                                d->write(args[1], address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_ldrsb_reg_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr offset = d->read(args[2]);
+                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                }
+                                else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                }
+                                else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if ((EXTR(24, 24) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            }
+
+                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            }
+                            else {
+                                d->write(args[1], address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_ldrsh_reg_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr offset = d->read(args[2]);
+                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                }
+                                else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                }
+                                else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if ((EXTR(24, 24) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            }
+
+                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            }
+                            else {
+                                d->write(args[1], address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_ldrsw_reg_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr offset = d->read(args[2]);
+                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                }
+                                else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                }
+                                else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if ((EXTR(24, 24) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            }
+
+                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            }
+                            else {
+                                d->write(args[1], address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_str_reg_gen_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr offset = d->read(args[2]);
+                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                }
+                                else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                }
+                                else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if ((EXTR(24, 24) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            }
+
+                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            }
+                            else {
+                                d->write(args[1], address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_strb_reg_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr offset = d->read(args[2]);
+                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                }
+                                else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                }
+                                else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if ((EXTR(24, 24) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            }
+
+                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            }
+                            else {
+                                d->write(args[1], address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_strh_reg_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr offset = d->read(args[2]);
+                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                }
+                                else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, 0x8 << EXTR(30, 31), data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, 0x8 << EXTR(30, 31));
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                }
+                                else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if ((EXTR(24, 24) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            }
+
+                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            }
+                            else {
+                                d->write(args[1], address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_ldr_lit_gen_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr data;
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, d->ldStrLiteralAccessSize(raw));
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, 64));
+                                }
+                                else {
+                                    d->write(args[0], data);
+                                }
+                            }
+                                break;
+                        }
+
+                    }
+                };
+
+                struct IP_ldrsw_lit_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr data;
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, d->ldStrLiteralAccessSize(raw));
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, 64));
+                                }
+                                else {
+                                    d->write(args[0], data);
+                                }
+                            }
+                                break;
+                        }
+
+                    }
+                };
+
 
             } // namespace
 
@@ -983,7 +2063,26 @@ namespace rose {
                 iproc_set (rose_aarch64_op_cmn_adds_addsub_shift, new ARM64::IP_cmn_adds_addsub_shift_execute);
                 iproc_set (rose_aarch64_op_ccmn_reg, new ARM64::IP_ccmn_reg_execute);
                 iproc_set (rose_aarch64_op_ccmn_imm, new ARM64::IP_ccmn_imm_execute);
-
+                iproc_set (rose_aarch64_op_ldr_imm_gen, new ARM64::IP_ldr_imm_gen_execute);
+                iproc_set (rose_aarch64_op_str_imm_gen, new ARM64::IP_str_imm_gen_execute);
+                iproc_set (rose_aarch64_op_ldrb_imm, new ARM64::IP_ldrb_imm_execute);
+                iproc_set (rose_aarch64_op_strb_imm, new ARM64::IP_strb_imm_execute);
+                iproc_set (rose_aarch64_op_ldrh_imm, new ARM64::IP_ldrh_imm_execute);
+                iproc_set (rose_aarch64_op_ldrsb_imm, new ARM64::IP_ldrsb_imm_execute);
+                iproc_set (rose_aarch64_op_ldrsh_imm, new ARM64::IP_ldrsh_imm_execute);
+                iproc_set (rose_aarch64_op_ldrsw_imm, new ARM64::IP_ldrsw_imm_execute);
+                iproc_set (rose_aarch64_op_strh_imm, new ARM64::IP_strh_imm_execute);
+                iproc_set (rose_aarch64_op_ldr_reg_gen, new ARM64::IP_ldr_reg_gen_execute);
+                iproc_set (rose_aarch64_op_ldrb_reg, new ARM64::IP_ldrb_reg_execute);
+                iproc_set (rose_aarch64_op_ldrh_reg, new ARM64::IP_ldrh_reg_execute);
+                iproc_set (rose_aarch64_op_ldrsb_reg, new ARM64::IP_ldrsb_reg_execute);
+                iproc_set (rose_aarch64_op_ldrsh_reg, new ARM64::IP_ldrsh_reg_execute);
+                iproc_set (rose_aarch64_op_ldrsw_reg, new ARM64::IP_ldrsw_reg_execute);
+                iproc_set (rose_aarch64_op_str_reg_gen, new ARM64::IP_str_reg_gen_execute);
+                iproc_set (rose_aarch64_op_strb_reg, new ARM64::IP_strb_reg_execute);
+                iproc_set (rose_aarch64_op_strh_reg, new ARM64::IP_strh_reg_execute);
+                iproc_set (rose_aarch64_op_ldr_lit_gen, new ARM64::IP_ldr_lit_gen_execute);
+                iproc_set (rose_aarch64_op_ldrsw_lit, new ARM64::IP_ldrsw_lit_execute);
             }
 
             void
@@ -991,7 +2090,7 @@ namespace rose {
                 if (regdict) {
                     REG_PC = findRegister("pc", 64);
                     REG_NZCV = findRegister("nzcv", 4);
-                    REG_SP = findRegister("pc", 64);
+                    REG_SP = findRegister("sp", 64);
                 }
             }
 
@@ -1156,6 +2255,38 @@ namespace rose {
             }
 
             BaseSemantics::SValuePtr
+            DispatcherARM64::SignExtend(const BaseSemantics::SValuePtr &expr, size_t newsize) {
+                ASSERT_require(newsize > 0);
+                return operators->signExtend(expr, newsize);
+            }
+
+            BaseSemantics::SValuePtr
+            DispatcherARM64::ZeroExtend(const BaseSemantics::SValuePtr &expr, size_t newsize) {
+                ASSERT_require(newsize > 0);
+                return operators->unsignedExtend(expr, newsize);
+            }
+
+            size_t
+            DispatcherARM64::getRegSize(uint32_t raw) {
+                if(IntegerOps::extract2<uint32_t>(23, 23, raw) == 0) {
+                    if(IntegerOps::extract2<uint32_t>(30, 31, raw) == 0x3)
+                        return 64;
+                    else
+                        return 32;
+                } else {
+                    if(IntegerOps::extract2<uint32_t>(122, 22, raw) == 1)
+                        return 32;
+                    else
+                        return 64;
+                }
+            }
+
+            size_t
+            DispatcherARM64::ldStrLiteralAccessSize(uint32_t raw) {
+                return 0;
+            }
+
+            BaseSemantics::SValuePtr
             DispatcherARM64::doAddOperation(BaseSemantics::SValuePtr a, BaseSemantics::SValuePtr b,
                                             bool invertCarries, const BaseSemantics::SValuePtr &carryIn,
                                             BaseSemantics::SValuePtr &nzcv) {
@@ -1221,6 +2352,22 @@ namespace rose {
                         return operators->unsignedExtend(addr, addrWidth);
                 }
                 return addr;
+            }
+
+            BaseSemantics::SValuePtr
+            DispatcherARM64::readMemory(const BaseSemantics::SValuePtr &addr, size_t readSize) {
+                SymEvalSemantics::StateARM64Ptr state = SymEvalSemantics::StateARM64::promote(operators->currentState());
+
+                //The second, third and fourth arguments will remain and unused and hence these values are used
+                return state->readMemory(addr, operators->unspecified_(1), NULL, NULL, readSize);
+            }
+
+            void
+            DispatcherARM64::writeMemory(const BaseSemantics::SValuePtr &addr, size_t writeSize, const BaseSemantics::SValuePtr &data) {
+                SymEvalSemantics::StateARM64Ptr state = SymEvalSemantics::StateARM64::promote(operators->currentState());
+
+                //The third and fourth arguments will remain and unused and hence these values are used
+                state->writeMemory(addr, data, NULL, NULL, writeSize);
             }
         } // namespace
     } // namespace
