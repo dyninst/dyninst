@@ -69,7 +69,7 @@ namespace rose {
                     }
 
                     virtual BaseSemantics::SValuePtr boolean_(bool value) const {
-                        return SValuePtr(new SValue(value?1:0, 1));
+                        return SValuePtr(new SValue(1, value?1:0));
                     }
 
                     virtual BaseSemantics::SValuePtr copy(size_t new_width = 0) const {
