@@ -6,9 +6,10 @@
 #include "../integerOps.h"
 #include "SymEvalSemantics.h"
 
-#undef si_value                                         // name pollution from siginfo.h
+#include "../SgAsmExpression.h"
+#include "../conversions.h"
 
-//using namespace rose::Diagnostics;
+#undef si_value                                         // name pollution from siginfo.h
 
 namespace rose {
     namespace BinaryAnalysis {
@@ -944,16 +945,16 @@ namespace rose {
 
                 struct IP_ldr_imm_gen_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
                         bool rt_unknown = false;
 
-                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
-                        }
+                        }*/
 
-                        switch (EXTR(22, 22) ^ EXTR(23, 23)) {
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
                             case MemOp_STORE: {
 
                                 if (rt_unknown) {
@@ -978,7 +979,7 @@ namespace rose {
                                 break;
                         }
 
-                        if ((EXTR(24, 24) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1001,16 +1002,16 @@ namespace rose {
 
                 struct IP_str_imm_gen_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
                         bool rt_unknown = false;
 
-                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
-                        }
+                        }*/
 
-                        switch (EXTR(22, 22) ^ EXTR(23, 23)) {
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
                             case MemOp_STORE: {
 
                                 if (rt_unknown) {
@@ -1035,7 +1036,7 @@ namespace rose {
                                 break;
                         }
 
-                        if ((EXTR(24, 24) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1058,16 +1059,16 @@ namespace rose {
 
                 struct IP_ldrb_imm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
                         bool rt_unknown = false;
 
-                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
-                        }
+                        }*/
 
-                        switch (EXTR(22, 22) ^ EXTR(23, 23)) {
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
                             case MemOp_STORE: {
 
                                 if (rt_unknown) {
@@ -1092,7 +1093,7 @@ namespace rose {
                                 break;
                         }
 
-                        if ((EXTR(24, 24) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1115,16 +1116,16 @@ namespace rose {
 
                 struct IP_strb_imm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
                         bool rt_unknown = false;
 
-                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
-                        }
+                        }*/
 
-                        switch (EXTR(22, 22) ^ EXTR(23, 23)) {
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
                             case MemOp_STORE: {
 
                                 if (rt_unknown) {
@@ -1149,7 +1150,7 @@ namespace rose {
                                 break;
                         }
 
-                        if ((EXTR(24, 24) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1172,16 +1173,16 @@ namespace rose {
 
                 struct IP_ldrh_imm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
                         bool rt_unknown = false;
 
-                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
-                        }
+                        }*/
 
-                        switch (EXTR(22, 22) ^ EXTR(23, 23)) {
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
                             case MemOp_STORE: {
 
                                 if (rt_unknown) {
@@ -1206,7 +1207,7 @@ namespace rose {
                                 break;
                         }
 
-                        if ((EXTR(24, 24) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1229,16 +1230,16 @@ namespace rose {
 
                 struct IP_ldrsb_imm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
                         bool rt_unknown = false;
 
-                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
-                        }
+                        }*/
 
-                        switch (EXTR(22, 22) ^ EXTR(23, 23)) {
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
                             case MemOp_STORE: {
 
                                 if (rt_unknown) {
@@ -1263,7 +1264,7 @@ namespace rose {
                                 break;
                         }
 
-                        if ((EXTR(24, 24) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1286,16 +1287,16 @@ namespace rose {
 
                 struct IP_ldrsh_imm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
                         bool rt_unknown = false;
 
-                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
-                        }
+                        }*/
 
-                        switch (EXTR(22, 22) ^ EXTR(23, 23)) {
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
                             case MemOp_STORE: {
 
                                 if (rt_unknown) {
@@ -1320,7 +1321,7 @@ namespace rose {
                                 break;
                         }
 
-                        if ((EXTR(24, 24) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1343,16 +1344,16 @@ namespace rose {
 
                 struct IP_ldrsw_imm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
                         bool rt_unknown = false;
 
-                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
-                        }
+                        }*/
 
-                        switch (EXTR(22, 22) ^ EXTR(23, 23)) {
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
                             case MemOp_STORE: {
 
                                 if (rt_unknown) {
@@ -1377,7 +1378,7 @@ namespace rose {
                                 break;
                         }
 
-                        if ((EXTR(24, 24) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1400,16 +1401,16 @@ namespace rose {
 
                 struct IP_strh_imm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
                         bool rt_unknown = false;
 
-                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
-                        }
+                        }*/
 
-                        switch (EXTR(22, 22) ^ EXTR(23, 23)) {
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
                             case MemOp_STORE: {
 
                                 if (rt_unknown) {
@@ -1434,7 +1435,7 @@ namespace rose {
                                 break;
                         }
 
-                        if ((EXTR(24, 24) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1457,15 +1458,14 @@ namespace rose {
 
                 struct IP_ldr_reg_gen_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr offset = d->read(args[2]);
-                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
                         bool rt_unknown = false;
 
-                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
-                        }
+                        }*/
 
                         switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
                             case MemOp_STORE: {
@@ -1492,7 +1492,7 @@ namespace rose {
                                 break;
                         }
 
-                        if ((EXTR(24, 24) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1515,15 +1515,14 @@ namespace rose {
 
                 struct IP_ldrb_reg_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr offset = d->read(args[2]);
-                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
                         bool rt_unknown = false;
 
-                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
-                        }
+                        }*/
 
                         switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
                             case MemOp_STORE: {
@@ -1550,7 +1549,7 @@ namespace rose {
                                 break;
                         }
 
-                        if ((EXTR(24, 24) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1573,15 +1572,14 @@ namespace rose {
 
                 struct IP_ldrh_reg_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr offset = d->read(args[2]);
-                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
                         bool rt_unknown = false;
 
-                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
-                        }
+                        }*/
 
                         switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
                             case MemOp_STORE: {
@@ -1608,7 +1606,7 @@ namespace rose {
                                 break;
                         }
 
-                        if ((EXTR(24, 24) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1631,15 +1629,14 @@ namespace rose {
 
                 struct IP_ldrsb_reg_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr offset = d->read(args[2]);
-                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
                         bool rt_unknown = false;
 
-                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
-                        }
+                        }*/
 
                         switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
                             case MemOp_STORE: {
@@ -1666,7 +1663,7 @@ namespace rose {
                                 break;
                         }
 
-                        if ((EXTR(24, 24) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1689,15 +1686,14 @@ namespace rose {
 
                 struct IP_ldrsh_reg_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr offset = d->read(args[2]);
-                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
                         bool rt_unknown = false;
 
-                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
-                        }
+                        }*/
 
                         switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
                             case MemOp_STORE: {
@@ -1724,7 +1720,7 @@ namespace rose {
                                 break;
                         }
 
-                        if ((EXTR(24, 24) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1747,15 +1743,14 @@ namespace rose {
 
                 struct IP_ldrsw_reg_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr offset = d->read(args[2]);
-                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
                         bool rt_unknown = false;
 
-                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
-                        }
+                        }*/
 
                         switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
                             case MemOp_STORE: {
@@ -1782,7 +1777,7 @@ namespace rose {
                                 break;
                         }
 
-                        if ((EXTR(24, 24) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1805,15 +1800,14 @@ namespace rose {
 
                 struct IP_str_reg_gen_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr offset = d->read(args[2]);
-                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
                         bool rt_unknown = false;
 
-                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
-                        }
+                        }*/
 
                         switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
                             case MemOp_STORE: {
@@ -1840,7 +1834,7 @@ namespace rose {
                                 break;
                         }
 
-                        if ((EXTR(24, 24) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1863,15 +1857,14 @@ namespace rose {
 
                 struct IP_strb_reg_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr offset = d->read(args[2]);
-                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
                         bool rt_unknown = false;
 
-                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
-                        }
+                        }*/
 
                         switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
                             case MemOp_STORE: {
@@ -1898,7 +1891,7 @@ namespace rose {
                                 break;
                         }
 
-                        if ((EXTR(24, 24) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1921,15 +1914,14 @@ namespace rose {
 
                 struct IP_strh_reg_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr offset = d->read(args[2]);
-                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
                         bool wb_unknown = false;
                         bool rt_unknown = false;
 
-                        if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
-                        }
+                        }*/
 
                         switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
                             case MemOp_STORE: {
@@ -1956,7 +1948,7 @@ namespace rose {
                                 break;
                         }
 
-                        if ((EXTR(24, 24) == 0)) {
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
@@ -1979,7 +1971,7 @@ namespace rose {
 
                 struct IP_ldr_lit_gen_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
 
                         switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
@@ -2001,7 +1993,7 @@ namespace rose {
 
                 struct IP_ldrsw_lit_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr address = d->read(args[1]);
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
                         BaseSemantics::SValuePtr data;
 
                         switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
@@ -2283,7 +2275,15 @@ namespace rose {
 
             size_t
             DispatcherARM64::ldStrLiteralAccessSize(uint32_t raw) {
-                return 0;
+                int opc = IntegerOps::extract2<uint32_t>(30, 31, raw);
+
+                switch(opc) {
+                    case 2:
+                    case 0: return 32;
+                    case 1: return 64;
+                    default:    assert("Memory prefetch instruction not implemented yet!");
+                        return 0;
+                }
             }
 
             BaseSemantics::SValuePtr
@@ -2304,6 +2304,46 @@ namespace rose {
                                                                             carries/*out*/);
                 setFlagsForResult(result, carries, invertCarries, a->get_width(), nzcv);
                 return result;
+            }
+
+            BaseSemantics::SValuePtr
+            DispatcherARM64::effectiveAddress(SgAsmExpression *e, size_t nbits) {
+                SgAsmExpression *addressExpression;
+                if(SgAsmMemoryReferenceExpression *memoryReferenceExpression = isSgAsmMemoryReferenceExpression(e))
+                    addressExpression = memoryReferenceExpression->get_address();
+                else
+                    addressExpression = e;
+
+                BaseSemantics::SValuePtr retval;
+
+                if (SgAsmRegisterReferenceExpression *rre = isSgAsmRegisterReferenceExpression(addressExpression)) {
+                    const RegisterDescriptor &reg = rre->get_descriptor();
+                    retval = operators->readRegister(reg);
+                } else if (SgAsmBinaryAdd *op = isSgAsmBinaryAdd(addressExpression)) {
+                    BaseSemantics::SValuePtr lhs = effectiveAddress(op->get_lhs(), nbits);
+                    BaseSemantics::SValuePtr rhs = effectiveAddress(op->get_rhs(), nbits);
+                    retval = operators->add(lhs, rhs);
+                } else if (SgAsmBinaryMultiply *op = isSgAsmBinaryMultiply(addressExpression)) {
+                    BaseSemantics::SValuePtr lhs = effectiveAddress(op->get_lhs(), nbits);
+                    BaseSemantics::SValuePtr rhs = effectiveAddress(op->get_rhs(), nbits);
+                    retval = operators->unsignedMultiply(lhs, rhs);
+                } else if (SgAsmBinaryLsl *lshift = isSgAsmBinaryLsl(addressExpression)) {
+                    SgAsmExpression *lhs = lshift->get_lhs();
+                    SgAsmExpression *rhs = lshift->get_rhs();
+                    size_t nbits = std::max(lhs->get_nBits(), rhs->get_nBits());
+                    retval = operators->shiftLeft(read(lhs, lhs->get_nBits()), read(rhs, rhs->get_nBits()));
+                } else if (SgAsmIntegerValueExpression *ival = isSgAsmIntegerValueExpression(addressExpression)) {
+                    retval = operators->number_(ival->get_significantBits(), ival->get_value());
+                }
+
+                ASSERT_not_null(retval);
+                if (retval->get_width() < nbits) {
+                    retval = operators->signExtend(retval, nbits);
+                } else if (retval->get_width() > nbits) {
+                    retval = operators->extract(retval, 0, nbits);
+                }
+
+                return retval;
             }
 
             BaseSemantics::SValuePtr
@@ -2372,4 +2412,6 @@ namespace rose {
         } // namespace
     } // namespace
 } // namespace
+
+//using namespace rose::Diagnostics;
 

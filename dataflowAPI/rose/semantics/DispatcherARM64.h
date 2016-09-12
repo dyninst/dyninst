@@ -110,6 +110,8 @@ namespace rose {
 
                 virtual RegisterDescriptor stackPointerRegister() const;
 
+                virtual BaseSemantics::SValuePtr effectiveAddress(SgAsmExpression *, size_t nbits = 0);
+
                 virtual int iproc_key(SgAsmInstruction *insn_) const {
                     SgAsmArmv8Instruction *insn = isSgAsmArmv8Instruction(insn_);
                     assert(insn != NULL);
