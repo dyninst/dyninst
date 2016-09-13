@@ -1,3 +1,15 @@
+BRANCH: master
+STATUS:
+* Known issues should have open issues associated with them.
+* ARM64 support in Dataflow/ParseAPI is experimental and incomplete.
+* PPC64/little endian support in read-level interfaces 
+ (symtab, stackwalker, proccontrol) is experimental.
+* PPC64/little endian support in write-level interfaces is not implemented.
+
+All non-API-breaking bug fixes should land here. All non-ABI-breaking
+bug fixes should also land on v9.2.x.
+
+
 READ THIS FIRST: how to build DyninstAPI and its subcomponents
 
 1) Configuration
