@@ -114,45 +114,6 @@ namespace Dyninst {
 
         };
 
-//        template<typename Value, typename Compare>
-//        class SYMTAB_EXPORT RangeLookup : public RangeLookupIndexTypes<Value>::Values {
-//
-//        public:
-//            typedef std::pair<Offset, Offset> AddressRange;
-//            typedef typename RangeLookupIndexTypes<Value>::Values parent;
-//            RangeLookup();
-//
-//            /* Values are copied: a RangeLookup considers itself the primary repository. */
-//            bool addValue(Value v) {
-//                parent::insert(v);
-//                return true;
-//            }
-//
-//            /* Likewise, copies of the values are returned. */
-//            bool getValues(Offset addressInRange, std::vector<Value> &values) {
-//                auto by_addr_range = parent::get<0>();
-//                auto found = by_addr_range.equal_range(addressInRange);
-//                std::copy(found.first, found.second, std::back_inserter(values));
-//                return found.first != found.second;
-//            }
-//            template <typename _OI>
-//            bool getAddressRanges(const char* lineSource, int lineNo, _OI out_iter) const {
-//                auto &by_line_info = parent::get<1>();
-//                if(lineNo <= 0) // wildcard it
-//                {
-//                    auto lines = by_line_info.equal_range(lineSource);
-//                    std::copy(lines.first, lines.second, out_iter);
-//                    return lines.first != lines.second;
-//                }
-//                auto lines = by_line_info.equal_range(lineSource, lineNo);
-//                std::copy(lines.first, lines.second, out_iter);
-//                return lines.first != lines.second;
-//
-//            }
-//            virtual ~RangeLookup();
-//
-//
-//        }; /* end class RangeLookup */
 
     }
 }
