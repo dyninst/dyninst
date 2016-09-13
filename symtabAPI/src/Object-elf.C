@@ -2423,20 +2423,15 @@ void pd_dwarf_handler(Dwarf_Error error, Dwarf_Ptr /*userData*/)
 Dwarf_Signed declFileNo = 0;
 char ** declFileNoToName = NULL;
 
-bool Object::fix_global_symbol_modules_static_dwarf()
+bool Object::dwarf_parse_aranges(Dwarf_Debug dbg, std::set<Dwarf_Off>& dies_seen)
 {
-    /* Initialize libdwarf. */
-    Dwarf_Debug *dbg_ptr = dwarf->type_dbg();
-    if (!dbg_ptr)
-        return false;
-    Dwarf_Debug dbg = *dbg_ptr;
     Dwarf_Arange* ranges;
     Dwarf_Signed num_ranges;
-    status = dwarf_get_aranges(dbg, &ranges, &num_ranges, NULL);
+    int status = dwarf_get_aranges(dbg, &ranges, &num_ranges, NULL);
     if(status != DW_DLV_OK) return false;
-    std::set<Dwarf_Off> dies_seen;
     Dwarf_Off cu_die_off;
     Dwarf_Die cu_die;
+//    cout << "Processing " << num_ranges << "DWARF ranges" << endl;
     for(int i = 0; i < num_ranges; i++)
     {
         Dwarf_Addr start;
@@ -2466,6 +2461,21 @@ bool Object::fix_global_symbol_modules_static_dwarf()
         dies_seen.insert(cu_die_off);
         dwarf_dealloc(dbg, ranges[i], DW_DLA_ARANGE);
     }
+    dwarf_dealloc(dbg, ranges, DW_DLA_LIST);
+    return true;
+}
+
+bool Object::fix_global_symbol_modules_static_dwarf()
+{
+    /* Initialize libdwarf. */
+    Dwarf_Debug *dbg_ptr = dwarf->type_dbg();
+    if (!dbg_ptr)
+        return false;
+    Dwarf_Debug dbg = *dbg_ptr;
+    std::set<Dwarf_Off> dies_seen;
+    Dwarf_Off cu_die_off;
+    Dwarf_Die cu_die;
+    dwarf_parse_aranges(dbg, dies_seen);
     /* Iterate over the compilation-unit headers. */
     while (dwarf_next_cu_header_c(dbg, Dwarf_Bool(true),
                                   NULL,
@@ -2478,7 +2488,7 @@ bool Object::fix_global_symbol_modules_static_dwarf()
                                   NULL,
                                   &cu_die_off, NULL) == DW_DLV_OK )
     {
-        status = dwarf_siblingof_b(dbg, NULL, Dwarf_Bool(true), &cu_die, NULL);
+        int status = dwarf_siblingof_b(dbg, NULL, Dwarf_Bool(true), &cu_die, NULL);
         assert(status == DW_DLV_OK);
         if(dies_seen.find(cu_die_off) != dies_seen.end()) continue;
         std::string modname;
@@ -2486,6 +2496,7 @@ bool Object::fix_global_symbol_modules_static_dwarf()
         {
             modname = associated_symtab->file(); // default module
         }
+//        cout << "Processing CU DIE for " << modname << endl;
         Address tempModLow;
         Address modLow = 0;
         if (DwarfWalker::findConstant(DW_AT_low_pc, tempModLow, cu_die, dbg)) {

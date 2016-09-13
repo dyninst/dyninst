@@ -525,6 +525,7 @@ class Object;
   
  private:
             void parseLineInfoForCU(Module::DebugInfoT cuDIE, LineInformation* li);
+            bool dwarf_parse_aranges(Dwarf_Debug dbg, std::set<Dwarf_Off>& dies_seen);
 
   void parseDwarfTypes(Symtab *obj);
   void parseStabTypes();
