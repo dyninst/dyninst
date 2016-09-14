@@ -1,41 +1,29 @@
+# ParseAPI
 
-This is the version 9.1 release of the Dyninst API.  Currently, the API
-library is available for the POWER/Linux, x86/Linux, x86_64/Linux, and
-x86/Windows XP/2000/2003/Windows 7 platforms.
+This is release 9.1 of the ParseAPI. Currently, this library is
+available for the x86[_64]/Linux, x86/Windows, and
+POWER/Linux platforms.
 
-Documentation for the API can be found at:
+Documentation for the API can be found at
 
     http://www.dyninst.org/
 
-The dyninst/dyninstAPI/tests directory contains the source code for programs
-that test the API functions.  These programs are useful as examples of how
-to use the API.  See the README file in that directory for how to run or
-rebuild them.
+as well as in the doc/ subdirectory.
 
-Setting up the environment
---------------------------
 
-DYNINSTAPI_RT_LIB should be set to the full pathname of the file
-libdyninstAPI_RT.so (on Windows, libdyninstAPI_RT.dll). 
+## Prerequisites
 
-On Unix-based systems, you will also need to add $CMAKE_INSTALL_PREFIX/lib
-to your LD_LIBRARY_PATH environment variable.  On Windows, you will instead
-need to add %CMAKE_INSTALL_PREFIX%/lib to your PATH environment
-variable.  This is so that mutator applications can be linked dynamically with
-the Dyninst library.
+The ParseAPI is a component of the Dyninst system, and depends on two other
+components: the SymtabAPI binary format library and the InstructionAPI
+disassembly library. Both of these components should have been included in the
+package containing the ParseAPI; if not, they can be obtained from the
+dyninst.org website.
 
-Notes on Using Dyninst with Linux
----------------------------------
+The SymtabAPI has further dependencies depending on the platform, including
+libelf and libdwarf. See the SymtabAPI documentation for details.
 
-On Linux, Dyninst requires some libraries that are not installed by default
-in most distributions.  The first is libelf, which is included with most
-distributions and can be installed using the distribution's package manager.
-The second is libdwarf.  You can get the latest source code distribution
-of libdwarf from http://sourceforge.net/projects/libdwarf/.  RPM files for libdwarf
-are also available from various sites.
 
-Building the Dyninst API from source
-------------------------------------
+## Compiling the library
 
 See the top-level INSTALL file for build information.
 
@@ -56,7 +44,7 @@ on an AS IS basis, and do not warrant its validity or performance.
 We reserve the right to update, modify, or discontinue this
 software at any time.  We shall have no obligation to supply such
 updates or modifications or any other form of support to you.
-
+ 
 By your use of Paradyn, you understand and agree that we (or any
 other person or entity with proprietary rights in Paradyn) are
 under no obligation to provide either maintenance services,
