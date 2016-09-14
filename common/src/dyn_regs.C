@@ -813,7 +813,7 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
 	switch(category) {
 	    case aarch64::GPR: {
 			  c = armv8_regclass_gpr;
-			  if(baseID == aarch64::zr || baseID == aarch64::wzr)
+			  if(baseID == (aarch64::zr & 0xFF) || baseID == (aarch64::wzr & 0xFF))
 			      n = armv8_gpr_zr;
 			  else {
 			      int regnum = baseID - (aarch64::x0 & 0xFF);
@@ -823,12 +823,12 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
 		      break;
 	    case aarch64::SPR: {
 			    n = 0;
-			    if(baseID == aarch64::pstate) {
+			    if(baseID == (aarch64::pstate & 0xFF)) {
 				c = armv8_regclass_pstate;
 				p = armv8_pstatefield_nzcv;
-			    } else if(baseID == aarch64::pc) {
+			    } else if(baseID == (aarch64::pc & 0xFF)) {
 				c = armv8_regclass_pc;
-			    } else if(baseID == aarch64::sp || baseID == aarch64::wsp) {
+			    } else if(baseID == (aarch64::sp & 0xFF) || baseID == (aarch64::wsp & 0xFF)) {
 				c = armv8_regclass_sp;
 			    }
 			  }
