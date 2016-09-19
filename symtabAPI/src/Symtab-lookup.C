@@ -896,16 +896,8 @@ bool Symtab::getContainingInlinedFunction(Offset offset, FunctionBase* &func)
 }
 
 Module *Symtab::getDefaultModule() {
-    Module *mod = NULL;
-    // TODO: automatically pick the module that contains this address?
-    // For now, DEFAULT_MODULE or (if we have only one) that one.
-    if (_mods.size() == 1)
-        return _mods[0];
-    else {
-        if (!findModuleByName(mod, name()))
-            return NULL;
-    }
-    return mod;
+    if(_mods.empty()) createDefaultModule();
+    return _mods[0];
 }
 
 unsigned Function::getSize() const {

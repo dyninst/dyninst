@@ -1125,25 +1125,11 @@ void Symtab::setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *m
 }
 
 void Symtab::createDefaultModule() {
-    Module *mod = NULL;
-    //    if (1 || getObjectType() == obj_SharedLib) {
-        mod = new Module(lang_Unknown, 
-                         imageOffset_,
-                         name(),
-                         this);
-	//    }
-	//    else {
-        //mod = new Module(lang_Unknown, 
-	//                imageOffset_,
-			 //#if defined(os_vxworks)
-                         // VxWorks' kernel objects should
-                         // have their own module.
-			 //                         name(),
-			 //#else
-			 //                         "DEFAULT_MODULE",
-			 //#endif
-			 //                         this);
-			 //    }
+    assert(_mods.empty());
+    Module *mod = new Module(lang_Unknown,
+                     imageOffset_,
+                     name(),
+                     this);
     modsByFileName[mod->fileName()] = mod;
     modsByFullName[mod->fullName()] = mod;
     _mods.push_back(mod);
@@ -1534,11 +1520,6 @@ bool Symtab::extractInfo(Object *linkedFile)
         serr = Syms_To_Functions;
         return false;
     }
-
-    // don't sort the symbols--preserve the original ordering
-    //sort(raw_syms.begin(),raw_syms.end(),symbol_compare);
-
-    createDefaultModule();
 
     if (!fixSymModules(raw_syms)) 
     {
