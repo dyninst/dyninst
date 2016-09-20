@@ -1,5 +1,13 @@
-BRANCH: master
-STATUS:
+# Dyninst
+
+## Branch states
+
+| Branch                                  | Status        |
+| --------------------------------------- |:-------------:|
+| master                                  | stable        |
+
+## Notes
+
 * Known issues should have open issues associated with them.
 * ARM64 support in Dataflow/ParseAPI is experimental and incomplete.
 * PPC64/little endian support in read-level interfaces 
@@ -9,10 +17,9 @@ STATUS:
 All non-API-breaking bug fixes should land here. All non-ABI-breaking
 bug fixes should also land on v9.2.x.
 
+## Build DyninstAPI and its subcomponents
 
-READ THIS FIRST: how to build DyninstAPI and its subcomponents
-
-1) Configuration
+### Configuration
 
 Dyninst is now built via CMake. We recommend performing an interactive
 configuration with "ccmake ." first, in order to see which options are
@@ -46,7 +53,7 @@ manually define the appropriate compiler, library locations, include
 locations, and the CROSS_COMPILING flag so that the build system will
 properly evaluate what can be built and linked in your environment.
 
-2) Building and installation
+### Building and installing
 
 To build Dyninst and all its components, "make && make install" from
 the top-level directory of the source tree. To build and install a
@@ -62,7 +69,7 @@ them. Components may be built and installed individually: "make
 $COMPONENT" and "make $COMPONENT-install" respectively; this will
 appropriately respect inter-component dependencies.
 
-3) What's new
+## What's new
 
 NEW FEATURES:
 
@@ -75,7 +82,7 @@ NEW FEATURES:
 * Initial ppc64/little endian support in Symtab, InstructionAPI, ProcControl, and Stackwalker. Add
 -Darch_ppc64_little_endian to your CMake command line when building on little-endian ppc64 systems.
 
-BUG FIXES
+## Bug fixes
 
 * PIE binaries should now be rewritten correctly, even if they have a zero base address
 
@@ -96,7 +103,7 @@ BUG FIXES
 
 * ppc64 bit rot for create/attach modes is fixed
 
-KNOWN ISSUES
+## Known Issues
 
 * ppc64 rewriter mode does not handle any code that does not conform to the "caller sets up TOC" model for intermodule
 calls
