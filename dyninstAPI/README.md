@@ -1,5 +1,11 @@
 # DyninstAPI
 
+## Branch states
+
+| Branch                                  | Status        | Notes                                              |
+| --------------------------------------- |:-------------:|:--------------------------------------------------:|
+| master                                  | stable        | No open issues                                     |
+
 This is the version 9.1 release of the Dyninst API.  Currently, the API
 library is available for the POWER/Linux, x86/Linux, x86_64/Linux, and
 x86/Windows XP/2000/2003/Windows 7 platforms.
