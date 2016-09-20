@@ -49,7 +49,7 @@ commands to the platform specific Makefile in the $PLATFORM directory.
 Once successfully built, invoking GNU make with the "install" target will
 copy the binary to its final destination.
 
-## RUNNING
+## Running
 
 Documentation on running parseThat is encoded within the binary itself.
 It can be viewed by simply running parseThat with the --help flag.
