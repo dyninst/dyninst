@@ -20,6 +20,7 @@ See the top-level INSTALL file for how to build.
 - Fixes for bugs reading exception information
 
 -----------------------------------------------------------------------------
+
 This software is derived from the Paradyn system and therefore subject to
 the same copyright.  A copy of the Paradyn copyright appears at the end of
 this file.
@@ -28,6 +29,7 @@ this file.
    12/9/2015
 
 ----------------------- Start of Paradyn Copyright --------------------------
+
 See the dyninst/COPYRIGHT file for copyright information.
  
 We provide the Paradyn Tools (below described as "Paradyn")
