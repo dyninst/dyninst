@@ -1,5 +1,11 @@
 # SymtabAPI        
 
+## Branch states
+
+| Branch                                  | Status        | Notes                                              |
+| --------------------------------------- |:-------------:|:--------------------------------------------------:|
+| master                                  | stable        | No open issues                                     |
+
 ## Prerequisites
 
 On Linux, Symtab requires some libraries that are not installed by default
