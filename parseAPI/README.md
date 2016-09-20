@@ -1,5 +1,11 @@
 # ParseAPI
 
+## Branch states
+
+| Branch                                  | Status        | Notes                                              |
+| --------------------------------------- |:-------------:|:--------------------------------------------------:|
+| master                                  | stable        | No open issues                                     |
+
 This is release 9.1 of the ParseAPI. Currently, this library is
 available for the x86[_64]/Linux, x86/Windows, and
 POWER/Linux platforms.
