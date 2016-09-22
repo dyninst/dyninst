@@ -2458,6 +2458,7 @@ bool Object::dwarf_parse_aranges(Dwarf_Debug dbg, std::set<Dwarf_Off>& dies_seen
         Module* m = associated_symtab->getOrCreateModule(modname, actual_start);
         m->addRange(actual_start, actual_end);
         m->setDebugInfo(cu_die);
+        DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
         dies_seen.insert(cu_die_off);
         dwarf_dealloc(dbg, ranges[i], DW_DLA_ARANGE);
     }
@@ -2511,6 +2512,7 @@ bool Object::fix_global_symbol_modules_static_dwarf()
             m->addRange(r->first, r->second);
         }
         m->setDebugInfo(cu_die);
+        DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
         dies_seen.insert(cu_die_off);
 
     }

@@ -527,6 +527,8 @@ void Module::finalizeOneRange(Address ext_s, Address ext_e) const {
 
 void Module::setDebugInfo(Module::DebugInfoT info) {
     info_.push_back(info);
+#if defined(cap_dwarf)
+#endif
 }
 
 StringTablePtr & Module::getStrings() {

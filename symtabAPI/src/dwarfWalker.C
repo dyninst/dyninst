@@ -226,8 +226,6 @@ bool DwarfWalker::parseModule(Dwarf_Bool is_info, Module *&fixUnknownMod) {
    if (!fixUnknownMod)
       fixUnknownMod = mod();
 
-   if (!buildSrcFiles(moduleDIE)) return false;
-
 
    if (!parse_int(moduleDIE, true)) return false;
 
@@ -249,19 +247,20 @@ void DwarfParseActions::setModuleFromName(std::string moduleName)
    }
 }
 
-bool DwarfWalker::buildSrcFiles(Dwarf_Die entry) {
+bool DwarfWalker::buildSrcFiles(Dwarf_Debug dbg, Dwarf_Die entry, StringTablePtr srcFiles) {
    Dwarf_Signed cnt = 0;
     char** srcFileList;
    DWARF_ERROR_RET(dwarf_srcfiles(entry, &srcFileList, &cnt, NULL));
 
-   if(!srcFiles()->empty()) return true; // already parsed, the module had better be right.
-   srcFiles()->push_back("Unknown file");
+   if(!srcFiles->empty()) {
+        return true;
+   } // already parsed, the module had better be right.
+   srcFiles->push_back("Unknown file");
    for (unsigned i = 0; i < cnt; ++i) {
-      srcFiles()->push_back(srcFileList[i]);
-      dwarf_dealloc(dbg(), srcFileList[i], DW_DLA_STRING);
+      srcFiles->push_back(srcFileList[i]);
+      dwarf_dealloc(dbg, srcFileList[i], DW_DLA_STRING);
    }
-//    cout << "Module " << mod()->fileName() << " srcfiles: " << endl << *srcFiles() << endl;
-    dwarf_dealloc(dbg(), srcFileList, DW_DLA_LIST);
+    dwarf_dealloc(dbg, srcFileList, DW_DLA_LIST);
    return true;
 }
 

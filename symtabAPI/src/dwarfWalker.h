@@ -239,10 +239,11 @@ namespace Dyninst {
 
             // A printable ID for a particular entry
             unsigned long id() { return (unsigned long) (offset() - compile_offset); }
+        public:
+            static bool buildSrcFiles(Dwarf_Debug dbg, Dwarf_Die entry, StringTablePtr strings);
         private:
 
             bool parseCallsite();
-            virtual bool buildSrcFiles(Dwarf_Die entry);
             bool hasDeclaration(bool &decl);
             bool findTag();
             bool findOffset();
