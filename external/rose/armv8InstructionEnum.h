@@ -53,9 +53,11 @@ enum ARMv8GeneralPurposeRegister {
 /** ARMv8-A fields of the Pstate register */
 enum ARMv8PstateFields {
     armv8_pstatefield_pstate        =   0,      /* The entire 32-bit pstate register */
-    armv8_pstatefield_nzcv          =   28      /* The upper four bits, representing the
- *                                                 negative (bit 31), zero (bit 30), carry (bit 29) and overflow (bit 28) flags.
- *                                                 These are not added are distinct flags because the four bits are almost always accessed together. */
+    /* Values for each enum member below match the position of the bit in the pstate register */
+    armv8_pstatefield_n             =   31,     /* The negative flag */
+    armv8_pstatefield_z             =   30,     /* The zero flag */
+    armv8_pstatefield_c             =   29,     /* The carry flag */
+    armv8_pstatefield_v             =   28      /* The overflow flag */
 };
 
 /** ARMv8-A instructions for the AArch64 processor mode

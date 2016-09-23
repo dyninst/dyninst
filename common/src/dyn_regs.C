@@ -202,11 +202,13 @@ unsigned int MachRegister::size() const {
 			    return 0;
 		    }
 		}
-		else if((reg & 0x00ff0000) == aarch64::GPR || (reg & 0x00ff0000) == aarch64::SPR || (reg & 0x00ff0000) == aarch64::SYSREG)
+		else if((reg & 0x00ff0000) == aarch64::GPR || (reg & 0x00ff0000) == aarch64::SPR ||
+                (reg & 0x00ff0000) == aarch64::SYSREG || (reg & 0x00ff0000) == aarch64::FLAG)
 			switch(reg & 0x0000ff00)
 			{
 				case aarch64::FULL : return 8;
 				case aarch64::D_REG: return 4;
+                case aarch64::BIT:   return 0;
 				default: return 0;
 			}
 		else
@@ -808,36 +810,58 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
            return;
        }
        break;
-      case Arch_aarch64:
-      {
-	switch(category) {
-	    case aarch64::GPR: {
-			  c = armv8_regclass_gpr;
-			  if(baseID == (aarch64::zr & 0xFF) || baseID == (aarch64::wzr & 0xFF))
-			      n = armv8_gpr_zr;
-			  else {
-			      int regnum = baseID - (aarch64::x0 & 0xFF);
-			      n = armv8_gpr_r0 + regnum;
-			  }
-		      } 
-		      break;
-	    case aarch64::SPR: {
-			    n = 0;
-			    if(baseID == (aarch64::pstate & 0xFF)) {
-				c = armv8_regclass_pstate;
-				p = armv8_pstatefield_nzcv;
-			    } else if(baseID == (aarch64::pc & 0xFF)) {
-				c = armv8_regclass_pc;
-			    } else if(baseID == (aarch64::sp & 0xFF) || baseID == (aarch64::wsp & 0xFF)) {
-				c = armv8_regclass_sp;
-			    }
-			  }
-			  break; 
-	    default:assert(!"unknown register type!");
-		    break;
-	}
-	return;
-      }
+       case Arch_aarch64: {
+           p = 0;
+           switch (category) {
+               case aarch64::GPR: {
+                   c = armv8_regclass_gpr;
+                   if (baseID == (aarch64::zr & 0xFF) || baseID == (aarch64::wzr & 0xFF))
+                       n = armv8_gpr_zr;
+                   else {
+                       int regnum = baseID - (aarch64::x0 & 0xFF);
+                       n = armv8_gpr_r0 + regnum;
+                   }
+               }
+                   break;
+               case aarch64::SPR: {
+                   n = 0;
+                   if (baseID == (aarch64::pstate & 0xFF)) {
+                       c = armv8_regclass_pstate;
+                   } else if (baseID == (aarch64::pc & 0xFF)) {
+                       c = armv8_regclass_pc;
+                   } else if (baseID == (aarch64::sp & 0xFF) || baseID == (aarch64::wsp & 0xFF)) {
+                       c = armv8_regclass_sp;
+                   }
+               }
+                   break;
+               case aarch64::FLAG: {
+                   c = armv8_regclass_pstate;
+                   n = 0;
+                   switch (baseID) {
+                       case aarch64::N_FLAG:
+                           p = armv8_pstatefield_n;
+                           break;
+                       case aarch64::Z_FLAG:
+                           p = armv8_pstatefield_z;
+                           break;
+                       case aarch64::V_FLAG:
+                           p = armv8_pstatefield_v;
+                           break;
+                       case aarch64::C_FLAG:
+                           p = armv8_pstatefield_c;
+                           break;
+                       default:
+                           assert(!"unknown flag type!");
+                           break;
+                   }
+               }
+                   break;
+               default:
+                   assert(!"unknown register type!");
+                   break;
+           }
+           return;
+       }
       break;
       default:
          c = x86_regclass_unknown;
