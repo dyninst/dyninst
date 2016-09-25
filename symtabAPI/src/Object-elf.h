@@ -349,7 +349,7 @@ class Object;
 	    return false;
 	}
 
-   Dyninst::Architecture getArch();
+   Dyninst::Architecture getArch() const;
    bool isBigEndianDataEncoding() const;
    bool getABIVersion(int &major, int &minor) const;
 	bool is_offset_in_plt(Offset offset) const;

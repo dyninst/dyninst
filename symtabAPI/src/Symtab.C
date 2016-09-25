@@ -2847,7 +2847,7 @@ SYMTAB_EXPORT ObjectType Symtab::getObjectType() const
    return object_type_;
 }
 
-SYMTAB_EXPORT Dyninst::Architecture Symtab::getArchitecture()
+SYMTAB_EXPORT Dyninst::Architecture Symtab::getArchitecture() const
 {
    return getObject()->getArch();
 }
@@ -3298,6 +3298,11 @@ Object *Symtab::getObject()
    return NULL;
    //obj_private = new Object();
    //return obj_private;
+}
+
+const Object *Symtab::getObject() const
+{
+    return obj_private;
 }
 
 void Symtab::parseTypesNow()
