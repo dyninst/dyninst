@@ -2351,7 +2351,7 @@ void Object::insertPrereqLibrary(std::string lib)
            getRegionPermissions() == RP_RWX);
 }
 
-Dyninst::Architecture Object::getArch()
+Dyninst::Architecture Object::getArch() const
 {
    return Dyninst::Arch_x86;
 }
