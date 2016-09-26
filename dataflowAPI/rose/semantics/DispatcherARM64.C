@@ -2081,7 +2081,10 @@ namespace rose {
             DispatcherARM64::regcache_init() {
                 if (regdict) {
                     REG_PC = findRegister("pc", 64);
-                    REG_NZCV = findRegister("nzcv", 4);
+                    REG_N = findRegister("n", 1);
+		            REG_Z = findRegister("z", 1);
+		            REG_C = findRegister("c", 1);
+		            REG_V = findRegister("v", 1);
                     REG_SP = findRegister("sp", 64);
                 }
             }
@@ -2115,7 +2118,7 @@ namespace rose {
 
             static bool
             isStatusRegister(const RegisterDescriptor &reg) {
-                return reg.get_major() == armv8_regclass_pstate && reg.get_minor() == armv8_pstatefield_nzcv;
+                return reg.get_major() == armv8_regclass_pstate && reg.get_minor() == 0;
             }
 
             RegisterDictionary::RegisterDescriptors
@@ -2141,23 +2144,17 @@ namespace rose {
             DispatcherARM64::setFlagsForResult(const BaseSemantics::SValuePtr &result,
                                                const BaseSemantics::SValuePtr &carries,
                                                bool invertCarries, size_t nbits,
-                                               BaseSemantics::SValuePtr &nzcv) {
+                                               BaseSemantics::SValuePtr &n, BaseSemantics::SValuePtr &z,
+                                               BaseSemantics::SValuePtr &c, BaseSemantics::SValuePtr &v) {
                 size_t width = result->get_width();
 
-                BaseSemantics::SValuePtr n = operators->extract(result, width - 1, width);
-                BaseSemantics::SValuePtr z = operators->equalToZero(result);
+                n = operators->extract(result, width - 1, width);
+                z = operators->equalToZero(result);
 
                 BaseSemantics::SValuePtr sign = operators->extract(carries, nbits - 1, nbits);
                 BaseSemantics::SValuePtr ofbit = operators->extract(carries, nbits - 2, nbits - 1);
-                BaseSemantics::SValuePtr c = invertMaybe(sign, invertCarries);
-                BaseSemantics::SValuePtr v = operators->xor_(sign, ofbit);
-
-                BaseSemantics::SValuePtr nz = operators->shiftLeft(
-                        operators->or_(operators->shiftLeft(n, operators->number_(1, 1)), z),
-                        operators->number_(8, 2));
-                BaseSemantics::SValuePtr cv = operators->or_(operators->shiftLeft(c, operators->number_(1, 1)), v);
-
-                nzcv = operators->extract(operators->or_(nz, cv), 0, 4);
+                c = invertMaybe(sign, invertCarries);
+                v = operators->xor_(sign, ofbit);
             }
 
             BaseSemantics::SValuePtr
@@ -2190,31 +2187,32 @@ namespace rose {
             BaseSemantics::SValuePtr
             DispatcherARM64::ConditionHolds(const BaseSemantics::SValuePtr &cond) {
                 BaseSemantics::SValuePtr baseCond = operators->extract(cond, 1, 4);
-                BaseSemantics::SValuePtr nzcvVal = readRegister(REG_NZCV);
+                BaseSemantics::SValuePtr nVal = readRegister(REG_N);
+                BaseSemantics::SValuePtr zVal = readRegister(REG_Z);
+                BaseSemantics::SValuePtr cVal = readRegister(REG_C);
+                BaseSemantics::SValuePtr vVal = readRegister(REG_V);
                 BaseSemantics::SValuePtr result;
 
                 if (operators->isEqual(baseCond, operators->number_(3, 0)))
-                    result = operators->isEqual(operators->extract(nzcvVal, 2, 3), operators->number_(1, 1));
+                    result = operators->isEqual(zVal, operators->number_(1, 1));
                 if (operators->isEqual(baseCond, operators->number_(3, 1)))
-                    result = operators->isEqual(operators->extract(nzcvVal, 1, 2), operators->number_(1, 1));
+                    result = operators->isEqual(cVal, operators->number_(1, 1));
                 if (operators->isEqual(baseCond, operators->number_(3, 2)))
-                    result = operators->isEqual(operators->extract(nzcvVal, 3, 4), operators->number_(1, 1));
+                    result = operators->isEqual(nVal, operators->number_(1, 1));
                 if (operators->isEqual(baseCond, operators->number_(3, 3)))
-                    result = operators->isEqual(operators->extract(nzcvVal, 0, 1), operators->number_(1, 1));
+                    result = operators->isEqual(vVal, operators->number_(1, 1));
                 if (operators->isEqual(baseCond, operators->number_(3, 4)))
                     result = operators->ite(
-                            operators->isEqual(operators->extract(nzcvVal, 1, 2), operators->number_(1, 1)),
+                            operators->isEqual(cVal, operators->number_(1, 1)),
                             operators->ite(
-                                    operators->isEqual(operators->extract(nzcvVal, 2, 3), operators->number_(1, 0)),
+                                    operators->isEqual(zVal, operators->number_(1, 0)),
                                     operators->boolean_(true), operators->boolean_(false)),
                             operators->boolean_(false));
                 if (operators->isEqual(baseCond, operators->number_(3, 5)))
-                    result = operators->isEqual(operators->extract(nzcvVal, 3, 4),
-                                                operators->extract(nzcvVal, 0, 1));
+                    result = operators->isEqual(nVal, vVal);
                 if (operators->isEqual(baseCond, operators->number_(3, 6)))
-                    result = operators->ite(operators->isEqual(operators->extract(nzcvVal, 3, 4),
-                                                               operators->extract(nzcvVal, 0, 1)),
-                                            operators->ite(operators->isEqual(operators->extract(nzcvVal, 2, 3),
+                    result = operators->ite(operators->isEqual(nVal, vVal),
+                                            operators->ite(operators->isEqual(zVal,
                                                                               operators->number_(1, 0)),
                                                            operators->boolean_(true), operators->boolean_(false)),
                                             operators->boolean_(false));
@@ -2289,7 +2287,8 @@ namespace rose {
             BaseSemantics::SValuePtr
             DispatcherARM64::doAddOperation(BaseSemantics::SValuePtr a, BaseSemantics::SValuePtr b,
                                             bool invertCarries, const BaseSemantics::SValuePtr &carryIn,
-                                            BaseSemantics::SValuePtr &nzcv) {
+                                            BaseSemantics::SValuePtr &n, BaseSemantics::SValuePtr &z,
+                                            BaseSemantics::SValuePtr &c, BaseSemantics::SValuePtr &v) {
                 if (a->get_width() > b->get_width()) {
                     b = operators->signExtend(b, a->get_width());
                 } else if (a->get_width() < b->get_width()) {
@@ -2302,7 +2301,7 @@ namespace rose {
                 BaseSemantics::SValuePtr result = operators->addWithCarries(a, b,
                                                                             invertMaybe(carryIn, invertCarries),
                                                                             carries/*out*/);
-                setFlagsForResult(result, carries, invertCarries, a->get_width(), nzcv);
+                setFlagsForResult(result, carries, invertCarries, a->get_width(), n, z, c, v);
                 return result;
             }
 

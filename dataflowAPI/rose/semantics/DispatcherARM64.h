@@ -58,7 +58,7 @@ namespace rose {
                  *
                  * @{ */
 
-                RegisterDescriptor REG_PC, REG_NZCV, REG_SP;
+                RegisterDescriptor REG_PC, REG_N, REG_Z, REG_C, REG_V, REG_SP;
 
                 /** @}*/
 
@@ -134,7 +134,11 @@ namespace rose {
                 /** Set parity, sign, and zero flags appropriate for result value. */
                 virtual void setFlagsForResult(const BaseSemantics::SValuePtr &result,
                                                const BaseSemantics::SValuePtr &carries,
-                                               bool invertCarries, size_t nbits, BaseSemantics::SValuePtr &nzcv);
+                                               bool invertCarries, size_t nbits,
+                                               BaseSemantics::SValuePtr &n,
+                                               BaseSemantics::SValuePtr &z,
+                                               BaseSemantics::SValuePtr &c,
+                                               BaseSemantics::SValuePtr &v);
 
                 /** Returns true if byte @p v has an even number of bits set; false for an odd number */
                 virtual BaseSemantics::SValuePtr parity(const BaseSemantics::SValuePtr &v);
@@ -147,7 +151,11 @@ namespace rose {
                  * @{ */
                 virtual BaseSemantics::SValuePtr doAddOperation(BaseSemantics::SValuePtr a, BaseSemantics::SValuePtr b,
                                                                 bool invertCarries,
-                                                                const BaseSemantics::SValuePtr &carryIn, BaseSemantics::SValuePtr &nzcv);
+                                                                const BaseSemantics::SValuePtr &carryIn,
+                                                                BaseSemantics::SValuePtr &n,
+                                                                BaseSemantics::SValuePtr &z,
+                                                                BaseSemantics::SValuePtr &c,
+                                                                BaseSemantics::SValuePtr &v);
 
                 //FIXME
                 /** Implements the RCL, RCR, ROL, and ROR instructions for various operand sizes.  The rotate amount is always 8 bits wide

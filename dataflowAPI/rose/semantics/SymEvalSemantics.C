@@ -54,8 +54,6 @@ void SymEvalSemantics::StateARM64::writeMemory(const BaseSemantics::SValuePtr &a
 BaseSemantics::SValuePtr SymEvalSemantics::RegisterStateARM64::readRegister(const RegisterDescriptor &reg,
                                                                             Dyninst::Address addr) {
     if(reg.get_major() != armv8_regclass_simd_fpr) {
-        ARMv8GeneralPurposeRegister r = static_cast<ARMv8GeneralPurposeRegister>(reg.get_minor());
-        unsigned int size = reg.get_nbits();
         return SymEvalSemantics::SValue::instance(wrap(convert(reg), addr));
     } else {
         ASSERT_not_implemented("readRegister not yet implemented for categories other than GPR");
@@ -115,10 +113,22 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateARM64::convert(const RegisterDesc
             break;
         case armv8_regclass_pstate: {
             unsigned int offset = reg.get_offset();
-            if (offset == armv8_pstatefield_nzcv) {
-                mreg = Dyninst::MachRegister(Dyninst::aarch64::pstate);
-            } else {
-                ASSERT_always_forbid("No part of the PSTATE register other than NZCV should be used.");
+            switch (offset) {
+                case armv8_pstatefield_n:
+                    mreg = Dyninst::MachRegister(Dyninst::aarch64::n);
+                    break;
+                case armv8_pstatefield_z:
+                    mreg = Dyninst::MachRegister(Dyninst::aarch64::z);
+                    break;
+                case armv8_pstatefield_c:
+                    mreg = Dyninst::MachRegister(Dyninst::aarch64::c);
+                    break;
+                case armv8_pstatefield_v:
+                    mreg = Dyninst::MachRegister(Dyninst::aarch64::v);
+                    break;
+                default:
+                    ASSERT_always_forbid("No part of the PSTATE register other than NZCV should be used.");
+                    break;
             }
         }
             break;
