@@ -596,14 +596,6 @@ bool PCSensitiveTransformer::exceptionSensitive(Address a, const block_instance 
    // Amusingly, existence is sufficient for us.
    bool result =  symtab->findException(eBlock, o);      
 
-   // fprintf(stderr, "Offset: 0x%x  Address: 0x%x\n", o, a);
-   if(result)
-   {
-       // fprintf(stderr, ">>>>>> Sensitive\n");
-   } else {
-       // fprintf(stderr, "\tNot sensitive\n");
-   }
-
    return result;
 }
 
