@@ -500,6 +500,9 @@ bool Symtab::findException(ExceptionBlock &excp, Offset addr)
 {
    for (unsigned i=0; i<excpBlocks.size(); i++)
    {
+        // fprintf(stderr, "Checking exception block: 0x%lx 0x%lx\n", 
+                // excpBlocks[i]->tryStart(), excpBlocks[i]->tryEnd());
+
       if (excpBlocks[i]->contains(addr))
       {
          excp = *(excpBlocks[i]);

@@ -70,15 +70,19 @@ bool PCSensitiveTransformer::analysisRequired(RelocBlock *blk) {
 }
 
 bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
-   if (!analysisRequired(reloc)) {
-      return adhoc.process(reloc, g);
-   }
+   // if (!analysisRequired(reloc)) {
+      // return adhoc.process(reloc, g);
+   // }
 
    const block_instance *block = reloc->block();
    const func_instance *func = reloc->func();
 
   // Can be true if we see an instrumentation block...
-  if (!block) return true;
+  if (!block) 
+  {
+      fprintf(stderr, "BLOCK IS NULL\n");
+      return true;
+  }
   
   RelocBlock::WidgetList &elements = reloc->elements();
   for (RelocBlock::WidgetList::iterator iter = elements.begin();
@@ -218,8 +222,7 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
 			  iter, 
 			  destination);
 	  continue;
-	}
-	else {
+	} else {
 	  // Not a thunk call, and both externally and internally sensitive. Ugh. 
 	  // Well, because of the external sensitivity we're going to emulate the
 	  // original instruction, which means the internally sensitive target will
@@ -237,7 +240,9 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
     }
     cacheAnalysis(block, addr, intSens, extSens);
   }
-  return true;
+
+
+  return adhoc.process(reloc, g);
 }
 
 bool PCSensitiveTransformer::isPCSensitive(Instruction::Ptr insn,
@@ -589,7 +594,17 @@ bool PCSensitiveTransformer::exceptionSensitive(Address a, const block_instance 
    
    ExceptionBlock eBlock;
    // Amusingly, existence is sufficient for us.
-   return symtab->findException(eBlock, o);      
+   bool result =  symtab->findException(eBlock, o);      
+
+   // fprintf(stderr, "Offset: 0x%x  Address: 0x%x\n", o, a);
+   if(result)
+   {
+       // fprintf(stderr, ">>>>>> Sensitive\n");
+   } else {
+       // fprintf(stderr, "\tNot sensitive\n");
+   }
+
+   return result;
 }
 
 void PCSensitiveTransformer::cacheAnalysis(const block_instance *bbl, Address addr, bool intSens, bool extSens) {
