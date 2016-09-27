@@ -64,477 +64,433 @@ namespace rose {
 
                 struct IP_add_addsub_imm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-
                         BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-                        BaseSemantics::SValuePtr nzcv;
-
+                        BaseSemantics::SValuePtr n, z, c, v;
                         bool carry_in;
 
-                        if ((EXTR (30, 30) == 1)) {
+                        if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
-
                             carry_in = true;
-
                         }
                         else {
                             carry_in = false;
                         }
+                        result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
 
-                        result =
-                                d->doAddOperation(operand1, operand2, carry_in,
-                                                  ops->boolean_(false), nzcv);
-
-                        if ((EXTR (29, 29) == 1)) {
-                            d->writeRegister(d->REG_NZCV, nzcv);
+                        if ((EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_N, n);
+                            d->writeRegister(d->REG_Z, z);
+                            d->writeRegister(d->REG_C, c);
+                            d->writeRegister(d->REG_V, v);
                         }
 
-                        if (EXTR (0, 4) == 31 && !(EXTR (29, 29) == 1)) {
-                            d->write(args[0], result);
+                        if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_SP, result);
                         }
                         else {
                             d->write(args[0], result);
                         }
+
                     }
                 };
 
                 struct IP_adds_addsub_imm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-
                         BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-                        BaseSemantics::SValuePtr nzcv;
-
+                        BaseSemantics::SValuePtr n, z, c, v;
                         bool carry_in;
 
-                        if ((EXTR (30, 30) == 1)) {
+                        if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
-
                             carry_in = true;
-
                         }
                         else {
                             carry_in = false;
                         }
+                        result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
 
-                        result =
-                                d->doAddOperation(operand1, operand2, carry_in,
-                                                  ops->boolean_(false), nzcv);
-
-                        if ((EXTR (29, 29) == 1)) {
-                            d->writeRegister(d->REG_NZCV, nzcv);
+                        if ((EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_N, n);
+                            d->writeRegister(d->REG_Z, z);
+                            d->writeRegister(d->REG_C, c);
+                            d->writeRegister(d->REG_V, v);
                         }
 
-                        if (EXTR (0, 4) == 31 && !(EXTR (29, 29) == 1)) {
-                            d->write(args[0], result);
+                        if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_SP, result);
                         }
                         else {
                             d->write(args[0], result);
                         }
+
                     }
                 };
 
                 struct IP_sub_addsub_imm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-
                         BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-                        BaseSemantics::SValuePtr nzcv;
-
+                        BaseSemantics::SValuePtr n, z, c, v;
                         bool carry_in;
 
-                        if ((EXTR (30, 30) == 1)) {
+                        if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
-
                             carry_in = true;
-
                         }
                         else {
                             carry_in = false;
                         }
+                        result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
 
-                        result =
-                                d->doAddOperation(operand1, operand2, carry_in,
-                                                  ops->boolean_(false), nzcv);
-
-                        if ((EXTR (29, 29) == 1)) {
-                            d->writeRegister(d->REG_NZCV, nzcv);
+                        if ((EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_N, n);
+                            d->writeRegister(d->REG_Z, z);
+                            d->writeRegister(d->REG_C, c);
+                            d->writeRegister(d->REG_V, v);
                         }
 
-                        if (EXTR (0, 4) == 31 && !(EXTR (29, 29) == 1)) {
-                            d->write(args[0], result);
+                        if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_SP, result);
                         }
                         else {
                             d->write(args[0], result);
                         }
+
                     }
                 };
 
                 struct IP_subs_addsub_imm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-
                         BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-                        BaseSemantics::SValuePtr nzcv;
-
+                        BaseSemantics::SValuePtr n, z, c, v;
                         bool carry_in;
 
-                        if ((EXTR (30, 30) == 1)) {
+                        if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
-
                             carry_in = true;
-
                         }
                         else {
                             carry_in = false;
                         }
+                        result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
 
-                        result =
-                                d->doAddOperation(operand1, operand2, carry_in,
-                                                  ops->boolean_(false), nzcv);
-
-                        if ((EXTR (29, 29) == 1)) {
-                            d->writeRegister(d->REG_NZCV, nzcv);
+                        if ((EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_N, n);
+                            d->writeRegister(d->REG_Z, z);
+                            d->writeRegister(d->REG_C, c);
+                            d->writeRegister(d->REG_V, v);
                         }
 
-                        if (EXTR (0, 4) == 31 && !(EXTR (29, 29) == 1)) {
-                            d->write(args[0], result);
+                        if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_SP, result);
                         }
                         else {
                             d->write(args[0], result);
                         }
+
                     }
                 };
 
                 struct IP_add_addsub_ext_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-
                         BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-                        BaseSemantics::SValuePtr nzcv;
-
+                        BaseSemantics::SValuePtr n, z, c, v;
                         bool carry_in;
 
-                        if ((EXTR (30, 30) == 1)) {
+                        if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
-
                             carry_in = true;
-
                         }
                         else {
                             carry_in = false;
                         }
+                        result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
 
-                        result =
-                                d->doAddOperation(operand1, operand2, carry_in,
-                                                  ops->boolean_(false), nzcv);
-
-                        if ((EXTR (29, 29) == 1)) {
-                            d->writeRegister(d->REG_NZCV, nzcv);
+                        if ((EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_N, n);
+                            d->writeRegister(d->REG_Z, z);
+                            d->writeRegister(d->REG_C, c);
+                            d->writeRegister(d->REG_V, v);
                         }
 
-                        if (EXTR (0, 4) == 31 && !(EXTR (29, 29) == 1)) {
-                            d->write(args[0], result);
+                        if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_SP, result);
                         }
                         else {
                             d->write(args[0], result);
                         }
+
                     }
                 };
 
                 struct IP_adds_addsub_ext_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-
                         BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-                        BaseSemantics::SValuePtr nzcv;
-
+                        BaseSemantics::SValuePtr n, z, c, v;
                         bool carry_in;
 
-                        if ((EXTR (30, 30) == 1)) {
+                        if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
-
                             carry_in = true;
-
                         }
                         else {
                             carry_in = false;
                         }
+                        result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
 
-                        result =
-                                d->doAddOperation(operand1, operand2, carry_in,
-                                                  ops->boolean_(false), nzcv);
-
-                        if ((EXTR (29, 29) == 1)) {
-                            d->writeRegister(d->REG_NZCV, nzcv);
+                        if ((EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_N, n);
+                            d->writeRegister(d->REG_Z, z);
+                            d->writeRegister(d->REG_C, c);
+                            d->writeRegister(d->REG_V, v);
                         }
 
-                        if (EXTR (0, 4) == 31 && !(EXTR (29, 29) == 1)) {
-                            d->write(args[0], result);
+                        if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_SP, result);
                         }
                         else {
                             d->write(args[0], result);
                         }
+
                     }
                 };
 
                 struct IP_sub_addsub_ext_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-
                         BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-                        BaseSemantics::SValuePtr nzcv;
-
+                        BaseSemantics::SValuePtr n, z, c, v;
                         bool carry_in;
 
-                        if ((EXTR (30, 30) == 1)) {
+                        if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
-
                             carry_in = true;
-
                         }
                         else {
                             carry_in = false;
                         }
+                        result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
 
-                        result =
-                                d->doAddOperation(operand1, operand2, carry_in,
-                                                  ops->boolean_(false), nzcv);
-
-                        if ((EXTR (29, 29) == 1)) {
-                            d->writeRegister(d->REG_NZCV, nzcv);
+                        if ((EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_N, n);
+                            d->writeRegister(d->REG_Z, z);
+                            d->writeRegister(d->REG_C, c);
+                            d->writeRegister(d->REG_V, v);
                         }
 
-                        if (EXTR (0, 4) == 31 && !(EXTR (29, 29) == 1)) {
-                            d->write(args[0], result);
+                        if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_SP, result);
                         }
                         else {
                             d->write(args[0], result);
                         }
+
                     }
                 };
 
                 struct IP_subs_addsub_ext_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-
                         BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-                        BaseSemantics::SValuePtr nzcv;
-
+                        BaseSemantics::SValuePtr n, z, c, v;
                         bool carry_in;
 
-                        if ((EXTR (30, 30) == 1)) {
+                        if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
-
                             carry_in = true;
-
                         }
                         else {
                             carry_in = false;
                         }
+                        result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
 
-                        result =
-                                d->doAddOperation(operand1, operand2, carry_in,
-                                                  ops->boolean_(false), nzcv);
-
-                        if ((EXTR (29, 29) == 1)) {
-                            d->writeRegister(d->REG_NZCV, nzcv);
+                        if ((EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_N, n);
+                            d->writeRegister(d->REG_Z, z);
+                            d->writeRegister(d->REG_C, c);
+                            d->writeRegister(d->REG_V, v);
                         }
 
-                        if (EXTR (0, 4) == 31 && !(EXTR (29, 29) == 1)) {
-                            d->write(args[0], result);
+                        if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_SP, result);
                         }
                         else {
                             d->write(args[0], result);
                         }
+
                     }
                 };
 
                 struct IP_add_addsub_shift_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-
                         BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-                        BaseSemantics::SValuePtr nzcv;
-
+                        BaseSemantics::SValuePtr n, z, c, v;
                         bool carry_in;
 
-                        if ((EXTR (30, 30) == 1)) {
+                        if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
-
                             carry_in = true;
-
                         }
                         else {
                             carry_in = false;
                         }
+                        result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
 
-                        result =
-                                d->doAddOperation(operand1, operand2, carry_in,
-                                                  ops->boolean_(false), nzcv);
-
-                        if ((EXTR (29, 29) == 1)) {
-                            d->writeRegister(d->REG_NZCV, nzcv);
+                        if ((EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_N, n);
+                            d->writeRegister(d->REG_Z, z);
+                            d->writeRegister(d->REG_C, c);
+                            d->writeRegister(d->REG_V, v);
                         }
-
                         d->write(args[0], result);
+
                     }
                 };
 
                 struct IP_adds_addsub_shift_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-
                         BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-                        BaseSemantics::SValuePtr nzcv;
-
+                        BaseSemantics::SValuePtr n, z, c, v;
                         bool carry_in;
 
-                        if ((EXTR (30, 30) == 1)) {
+                        if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
-
                             carry_in = true;
-
                         }
                         else {
                             carry_in = false;
                         }
+                        result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
 
-                        result =
-                                d->doAddOperation(operand1, operand2, carry_in,
-                                                  ops->boolean_(false), nzcv);
-
-                        if ((EXTR (29, 29) == 1)) {
-                            d->writeRegister(d->REG_NZCV, nzcv);
+                        if ((EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_N, n);
+                            d->writeRegister(d->REG_Z, z);
+                            d->writeRegister(d->REG_C, c);
+                            d->writeRegister(d->REG_V, v);
                         }
-
                         d->write(args[0], result);
+
                     }
                 };
 
                 struct IP_sub_addsub_shift_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-
                         BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-                        BaseSemantics::SValuePtr nzcv;
-
+                        BaseSemantics::SValuePtr n, z, c, v;
                         bool carry_in;
 
-                        if ((EXTR (30, 30) == 1)) {
+                        if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
-
                             carry_in = true;
-
                         }
                         else {
                             carry_in = false;
                         }
+                        result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
 
-                        result =
-                                d->doAddOperation(operand1, operand2, carry_in,
-                                                  ops->boolean_(false), nzcv);
-
-                        if ((EXTR (29, 29) == 1)) {
-                            d->writeRegister(d->REG_NZCV, nzcv);
+                        if ((EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_N, n);
+                            d->writeRegister(d->REG_Z, z);
+                            d->writeRegister(d->REG_C, c);
+                            d->writeRegister(d->REG_V, v);
                         }
-
                         d->write(args[0], result);
+
                     }
                 };
 
                 struct IP_subs_addsub_shift_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-
                         BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-                        BaseSemantics::SValuePtr nzcv;
-
+                        BaseSemantics::SValuePtr n, z, c, v;
                         bool carry_in;
 
-                        if ((EXTR (30, 30) == 1)) {
+                        if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
-
                             carry_in = true;
-
                         }
                         else {
                             carry_in = false;
                         }
+                        result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
 
-                        result =
-                                d->doAddOperation(operand1, operand2, carry_in,
-                                                  ops->boolean_(false), nzcv);
-
-                        if ((EXTR (29, 29) == 1)) {
-                            d->writeRegister(d->REG_NZCV, nzcv);
+                        if ((EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_N, n);
+                            d->writeRegister(d->REG_Z, z);
+                            d->writeRegister(d->REG_C, c);
+                            d->writeRegister(d->REG_V, v);
                         }
-
                         d->write(args[0], result);
+
                     }
                 };
 
-                struct IP_adc_execute : P {
+                struct IP_adc_execute : P {                                    //
                     void p(D d, Ops ops, I insn, A args, B raw) {
-
                         BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-                        BaseSemantics::SValuePtr nzcv;
+                        BaseSemantics::SValuePtr n, z, c, v;
 
-                        if ((EXTR (30, 30) == 1)) {
+                        if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
                         }
+                        result = d->doAddOperation(operand1, operand2, false, d->readRegister(d->REG_C)/*, ops->boolean_(false)*/,
+                                                   n, z, c, v);
 
-                        result =
-                                d->doAddOperation(operand1, operand2,
-                                                  ops->and_(d->readRegister(d->REG_NZCV),
-                                                            ops->number_(32, 0x2)),
-                                                  ops->boolean_(false), nzcv);
-
-                        if ((EXTR (29, 29) == 1)) {
-                            d->writeRegister(d->REG_NZCV, nzcv);
+                        if ((EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_N, n);
+                            d->writeRegister(d->REG_Z, z);
+                            d->writeRegister(d->REG_C, c);
+                            d->writeRegister(d->REG_V, v);
                         }
-
                         d->write(args[0], result);
+
                     }
                 };
 
-                struct IP_adcs_execute : P {
+                struct IP_adcs_execute : P {                                    //
                     void p(D d, Ops ops, I insn, A args, B raw) {
-
                         BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-                        BaseSemantics::SValuePtr nzcv;
+                        BaseSemantics::SValuePtr n, z, c, v;
 
-                        if ((EXTR (30, 30) == 1)) {
+                        if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
                         }
+                        result = d->doAddOperation(operand1, operand2, false, d->readRegister(d->REG_C)/*, ops->boolean_(false)*/,
+                                                   n, z, c, v);
 
-                        result =
-                                d->doAddOperation(operand1, operand2,
-                                                  ops->and_(d->readRegister(d->REG_NZCV),
-                                                            ops->number_(32, 0x2)),
-                                                  ops->boolean_(false), nzcv);
-
-                        if ((EXTR (29, 29) == 1)) {
-                            d->writeRegister(d->REG_NZCV, nzcv);
+                        if ((EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_N, n);
+                            d->writeRegister(d->REG_Z, z);
+                            d->writeRegister(d->REG_C, c);
+                            d->writeRegister(d->REG_V, v);
                         }
-
                         d->write(args[0], result);
+
                     }
                 };
 
@@ -669,213 +625,193 @@ namespace rose {
 
                 struct IP_cmp_subs_addsub_imm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-
                         BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-                        BaseSemantics::SValuePtr nzcv;
-
+                        BaseSemantics::SValuePtr n, z, c, v;
                         bool carry_in;
 
-                        if ((EXTR (30, 30) == 1)) {
+                        if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
-
                             carry_in = true;
-
                         }
                         else {
                             carry_in = false;
                         }
+                        result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
 
-                        result =
-                                d->doAddOperation(operand1, operand2, carry_in,
-                                                  ops->boolean_(false), nzcv);
-
-                        if ((EXTR (29, 29) == 1)) {
-                            d->writeRegister(d->REG_NZCV, nzcv);
+                        if ((EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_N, n);
+                            d->writeRegister(d->REG_Z, z);
+                            d->writeRegister(d->REG_C, c);
+                            d->writeRegister(d->REG_V, v);
                         }
 
-                        if (EXTR (0, 4) == 31 && !(EXTR (29, 29) == 1)) {
-                            d->write(args[0], result);
+                        if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_SP, result);
                         }
                         else {
                             d->write(args[0], result);
                         }
+
                     }
                 };
 
                 struct IP_cmp_subs_addsub_ext_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-
                         BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-                        BaseSemantics::SValuePtr nzcv;
-
+                        BaseSemantics::SValuePtr n, z, c, v;
                         bool carry_in;
 
-                        if ((EXTR (30, 30) == 1)) {
+                        if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
-
                             carry_in = true;
-
                         }
                         else {
                             carry_in = false;
                         }
+                        result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
 
-                        result =
-                                d->doAddOperation(operand1, operand2, carry_in,
-                                                  ops->boolean_(false), nzcv);
-
-                        if ((EXTR (29, 29) == 1)) {
-                            d->writeRegister(d->REG_NZCV, nzcv);
+                        if ((EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_N, n);
+                            d->writeRegister(d->REG_Z, z);
+                            d->writeRegister(d->REG_C, c);
+                            d->writeRegister(d->REG_V, v);
                         }
 
-                        if (EXTR (0, 4) == 31 && !(EXTR (29, 29) == 1)) {
-                            d->write(args[0], result);
+                        if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_SP, result);
                         }
                         else {
                             d->write(args[0], result);
                         }
+
                     }
                 };
 
                 struct IP_cmp_subs_addsub_shift_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-
                         BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-                        BaseSemantics::SValuePtr nzcv;
-
+                        BaseSemantics::SValuePtr n, z, c, v;
                         bool carry_in;
 
-                        if ((EXTR (30, 30) == 1)) {
+                        if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
-
                             carry_in = true;
-
                         }
                         else {
                             carry_in = false;
                         }
+                        result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
 
-                        result =
-                                d->doAddOperation(operand1, operand2, carry_in,
-                                                  ops->boolean_(false), nzcv);
-
-                        if ((EXTR (29, 29) == 1)) {
-                            d->writeRegister(d->REG_NZCV, nzcv);
+                        if ((EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_N, n);
+                            d->writeRegister(d->REG_Z, z);
+                            d->writeRegister(d->REG_C, c);
+                            d->writeRegister(d->REG_V, v);
                         }
-
                         d->write(args[0], result);
+
                     }
                 };
 
                 struct IP_cmn_adds_addsub_imm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-
                         BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-                        BaseSemantics::SValuePtr nzcv;
-
+                        BaseSemantics::SValuePtr n, z, c, v;
                         bool carry_in;
 
-                        if ((EXTR (30, 30) == 1)) {
+                        if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
-
                             carry_in = true;
-
                         }
                         else {
                             carry_in = false;
                         }
+                        result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
 
-                        result =
-                                d->doAddOperation(operand1, operand2, carry_in,
-                                                  ops->boolean_(false), nzcv);
-
-                        if ((EXTR (29, 29) == 1)) {
-                            d->writeRegister(d->REG_NZCV, nzcv);
+                        if ((EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_N, n);
+                            d->writeRegister(d->REG_Z, z);
+                            d->writeRegister(d->REG_C, c);
+                            d->writeRegister(d->REG_V, v);
                         }
 
-                        if (EXTR (0, 4) == 31 && !(EXTR (29, 29) == 1)) {
-                            d->write(args[0], result);
+                        if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_SP, result);
                         }
                         else {
                             d->write(args[0], result);
                         }
+
                     }
                 };
 
                 struct IP_cmn_adds_addsub_ext_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-
                         BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-                        BaseSemantics::SValuePtr nzcv;
-
+                        BaseSemantics::SValuePtr n, z, c, v;
                         bool carry_in;
 
-                        if ((EXTR (30, 30) == 1)) {
+                        if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
-
                             carry_in = true;
-
                         }
                         else {
                             carry_in = false;
                         }
+                        result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
 
-                        result =
-                                d->doAddOperation(operand1, operand2, carry_in,
-                                                  ops->boolean_(false), nzcv);
-
-                        if ((EXTR (29, 29) == 1)) {
-                            d->writeRegister(d->REG_NZCV, nzcv);
+                        if ((EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_N, n);
+                            d->writeRegister(d->REG_Z, z);
+                            d->writeRegister(d->REG_C, c);
+                            d->writeRegister(d->REG_V, v);
                         }
 
-                        if (EXTR (0, 4) == 31 && !(EXTR (29, 29) == 1)) {
-                            d->write(args[0], result);
+                        if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_SP, result);
                         }
                         else {
                             d->write(args[0], result);
                         }
+
                     }
                 };
 
                 struct IP_cmn_adds_addsub_shift_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-
                         BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-                        BaseSemantics::SValuePtr nzcv;
-
+                        BaseSemantics::SValuePtr n, z, c, v;
                         bool carry_in;
 
-                        if ((EXTR (30, 30) == 1)) {
+                        if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
-
                             carry_in = true;
-
                         }
                         else {
                             carry_in = false;
                         }
+                        result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
 
-                        result =
-                                d->doAddOperation(operand1, operand2, carry_in,
-                                                  ops->boolean_(false), nzcv);
-
-                        if ((EXTR (29, 29) == 1)) {
-                            d->writeRegister(d->REG_NZCV, nzcv);
+                        if ((EXTR(29, 29) == 1)) {
+                            d->writeRegister(d->REG_N, n);
+                            d->writeRegister(d->REG_Z, z);
+                            d->writeRegister(d->REG_C, c);
+                            d->writeRegister(d->REG_V, v);
                         }
-
                         d->write(args[0], result);
+
                     }
                 };
 
@@ -887,6 +823,11 @@ namespace rose {
                         BaseSemantics::SValuePtr nzcv = d->read(args[2]);
                         bool carry_in = false;
 
+                        BaseSemantics::SValuePtr n = ops->extract(nzcv, 3, 4);
+                        BaseSemantics::SValuePtr z = ops->extract(nzcv, 2, 3);
+                        BaseSemantics::SValuePtr c = ops->extract(nzcv, 1, 2);
+                        BaseSemantics::SValuePtr v = ops->extract(nzcv, 0, 1);
+
                         /*if (d->read(args[3])) {
                             if ((EXTR (30, 30) == 1)) {
                                 operand2 = d->NOT(operand2);
@@ -904,10 +845,13 @@ namespace rose {
                                             (EXTR (30, 30) == 1 ? (carry_in = true, d->NOT(operand2)) : operand2),
                                             operand2);
                         ops->ite(ops->isEqual(d->ConditionHolds(d->read(args[3])), ops->boolean_(true)),
-                                 d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), nzcv),
+                                 d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v),
                                  ops->unspecified_(1));
 
-                        d->writeRegister(d->REG_NZCV, nzcv);
+                        d->writeRegister(d->REG_N, n);
+                        d->writeRegister(d->REG_Z, z);
+                        d->writeRegister(d->REG_C, c);
+                        d->writeRegister(d->REG_V, v);
                     }
                 };
 
@@ -919,6 +863,11 @@ namespace rose {
                         BaseSemantics::SValuePtr nzcv = d->read(args[2]);
                         bool carry_in = false;
 
+                        BaseSemantics::SValuePtr n = ops->extract(nzcv, 3, 4);
+                        BaseSemantics::SValuePtr z = ops->extract(nzcv, 2, 3);
+                        BaseSemantics::SValuePtr c = ops->extract(nzcv, 1, 2);
+                        BaseSemantics::SValuePtr v = ops->extract(nzcv, 0, 1);
+
                         /*if (d->read(args[3])) {
                             if ((EXTR (30, 30) == 1)) {
                                 operand2 = d->NOT(operand2);
@@ -936,10 +885,13 @@ namespace rose {
                                             (EXTR (30, 30) == 1 ? (carry_in = true, d->NOT(operand2)) : operand2),
                                             operand2);
                         ops->ite(ops->isEqual(d->ConditionHolds(d->read(args[3])), ops->boolean_(true)),
-                                 d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), nzcv),
+                                 d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v),
                                  ops->unspecified_(1));
 
-                        d->writeRegister(d->REG_NZCV, nzcv);
+                        d->writeRegister(d->REG_N, n);
+                        d->writeRegister(d->REG_Z, z);
+                        d->writeRegister(d->REG_C, c);
+                        d->writeRegister(d->REG_V, v);
                     }
                 };
 
