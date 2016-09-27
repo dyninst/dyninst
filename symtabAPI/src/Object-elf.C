@@ -1538,12 +1538,6 @@ void Object::load_object(bool alloc_syms)
                 //bpfatal( "no text segment\n");
                 goto cleanup;
             }
-
-            if (!data_ptr_ || !data_len_)
-            {
-                //bpfatal( "no data segment\n");
-                goto cleanup;
-            }
         }
         get_valid_memory_areas(*elfHdr);
 
@@ -5288,9 +5282,6 @@ Dyninst::Architecture Object::getArch()
         default:
             return Dyninst::Arch_none;
     }
-    assert (0 && "default not taken!");
-    return Dyninst::Arch_none;
-
 }
 
 bool Object::getABIVersion(int &major, int &minor) const
