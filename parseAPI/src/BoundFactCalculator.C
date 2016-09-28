@@ -401,8 +401,9 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *newFact){
     SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(curNode);
     if (!node->assign()) return;
-    if (node->assign() && node->assign()->out().absloc().type() == Absloc::Register &&
-	    (node->assign()->out().absloc().reg() == x86::zf || node->assign()->out().absloc().reg() == x86_64::zf)) {
+    if (node->assign() && 
+        node->assign()->out().absloc().type() == Absloc::Register &&
+	node->assign()->out().absloc().reg() == MachRegister::getZeroFlag(func->obj()->cs()->getArch())) {
 	    // zf should be only predecessor of this node
         parsing_printf("\t\tThe predecessor node is zf assignment!\n");
 	newFact->SetPredicate(node->assign(), ExpandAssignment(node->assign()) );

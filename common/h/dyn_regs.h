@@ -99,6 +99,8 @@ namespace Dyninst
         static MachRegister getSyscallNumberReg(Dyninst::Architecture arch);
         static MachRegister getSyscallNumberOReg(Dyninst::Architecture arch);
         static MachRegister getSyscallReturnValueReg(Dyninst::Architecture arch);
+	static MachRegister getZeroFlag(Dyninst::Architecture arch);
+
         bool isPC() const;
         bool isFramePointer() const;
         bool isStackPointer() const;
@@ -274,8 +276,8 @@ namespace Dyninst
       DEF_REGISTER(k5,    0x05    | OCT   | KMASK| Arch_x86, "x86");
       DEF_REGISTER(k6,    0x06    | OCT   | KMASK| Arch_x86, "x86");
       DEF_REGISTER(k7,    0x07    | OCT   | KMASK| Arch_x86, "x86");
-
-	  DEF_REGISTER(xmm0,  0x00    | OCT   | XMM  | Arch_x86, "x86");
+      
+      DEF_REGISTER(xmm0,  0x00    | OCT   | XMM  | Arch_x86, "x86");
       DEF_REGISTER(xmm1,  0x01    | OCT   | XMM  | Arch_x86, "x86");
       DEF_REGISTER(xmm2,  0x02    | OCT   | XMM  | Arch_x86, "x86");
       DEF_REGISTER(xmm3,  0x03    | OCT   | XMM  | Arch_x86, "x86");

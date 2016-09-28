@@ -420,6 +420,25 @@ MachRegister MachRegister::getArchRegFromAbstractReg(MachRegister abstract,
     return Dyninst::InvalidReg;
 }
 
+MachRegister MachRegister::getZeroFlag(Dyninst::Architecture arch)
+{
+   switch (arch)
+   {
+      case Arch_x86:
+         return x86::zf;
+      case Arch_x86_64:
+         return x86_64::zf;
+      case Arch_aarch64: 
+         return aarch64::z;
+      case Arch_aarch32:
+         assert(0);
+      case Arch_none:
+         return InvalidReg;
+   }
+   return InvalidReg;
+}
+
+
 bool MachRegister::isPC() const
 {
    return (*this == x86_64::rip || *this == x86::eip ||
