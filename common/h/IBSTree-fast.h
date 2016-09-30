@@ -35,13 +35,115 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/mem_fun.hpp>
 #include <boost/multi_index/identity.hpp>
+#include <boost/multi_index/member.hpp>
+#include <boost/multi_index/composite_key.hpp>
+#include <boost/mpl/insert_range.hpp>
+#include <boost/mpl/inherit_linearly.hpp>
+#include <boost/mpl/inherit.hpp>
 #include <iostream>
+
+
 
 namespace Dyninst
 {
-    template <typename ITYPE = interval<> >
+    template <typename RangeType>
+    struct Interval
+    {
+        typedef RangeType range_type;
+        RangeType first;
+        RangeType second;
+        template <typename T>
+        Interval(T t) {
+            first = t.startAddr();
+            second = t.endAddr();
+        }
+        Interval(RangeType t)
+        {
+            first = t;
+            second = t;
+        }
+        Interval(RangeType start, RangeType end)
+        {
+            first = start;
+            second = end;
+        }
+        Interval<RangeType> merge(const Interval<RangeType>& other)
+        {
+            return Interval<RangeType>(std::min(first, other.first), std::max(second, other.second));
+        }
+        bool operator==(const Interval<RangeType>& rhs) const {
+            return (first == rhs.first) && (second == rhs.second);
+        }
+        bool operator<(const Interval<RangeType>& rhs) const {
+            return (first < rhs.first) || ((first == rhs.first) && (second < rhs.second));
+        }
+        bool operator==(RangeType off) const {
+            return ((first <= off) && (off < second)) ||
+                    ((first == off) && (off == second));
+        }
+        struct by_low{};
+        struct by_high{};
+
+    };
+    template <typename Value>
+    struct IntervalLookupTraits
+    {
+        typedef typename Value::range_type RangeType;
+        typedef typename Dyninst::Interval<RangeType> IntervalType;
+        typedef boost::multi_index::composite_key<Value,
+                        boost::multi_index::member<IntervalType, RangeType, &Value::first>,
+                        boost::multi_index::member<IntervalType, RangeType, &Value::second> > low_key;
+        typedef boost::multi_index::composite_key<Value,
+                boost::multi_index::member<IntervalType, RangeType, &Value::second>,
+                boost::multi_index::member<IntervalType, RangeType, &Value::first> > high_key;
+        typedef typename boost::multi_index_container
+                <
+                        typename Value::Ptr, boost::multi_index::indexed_by<
+                                boost::multi_index::ordered_unique<boost::multi_index::tag<typename Value::by_low>, low_key>,
+                                        boost::multi_index::ordered_non_unique<boost::multi_index::tag<typename Value::by_high>, high_key> >
+                > type;
+        typedef typename type::value_type value_type;
+    };
+    template <typename Value>
+    struct IntervalLookup : public IntervalLookupTraits<Value>::type
+    {
+        typedef IntervalLookupTraits<Value> traits;
+        typedef typename traits::type parent;
+        typedef typename traits::RangeType RangeType;
+
+
+        typedef typename parent::template index<typename Value::by_low>::type low_index;
+        typedef typename parent::template index<typename Value::by_high>::type high_index;
+        typedef typename low_index::const_iterator const_iterator;
+        typedef typename high_index::const_iterator const_iterator_by_high;
+
+        // First interval overlapping with v
+        template <typename T>
+        const_iterator find(const T& t) const {
+            auto lower = parent::template get<typename Value::by_high>().lower_bound(t);
+            auto upper = parent::template get<typename Value::by_high>().upper_bound(t);
+            while(lower != upper && lower != parent::end())
+            {
+                if(lower == t) return lower;
+                ++lower;
+            }
+        }
+
+
+        template <typename T, typename OI>
+        void copy_equal_range(const T& t, OI iter) const {
+            auto lower = parent::template get<typename Value::by_high>().lower_bound(t);
+            auto upper = parent::template get<typename Value::by_high>().upper_bound(t);
+            parent candidates_by_high(lower, upper);
+            auto rng = candidates_by_high.equal_range(t);
+            std::copy(rng.first, rng.second, iter);
+        }
+    };
+
+    template <typename ITYPE >
     class IBSTree_fast
     {
+    public:
         typedef typename ITYPE::type interval_type;
 
         IBSTree<ITYPE> overlapping_intervals;
@@ -54,13 +156,12 @@ namespace Dyninst
         //typedef std::set<ITYPE*, order_by_lower<ITYPE> > interval_set;
         interval_set unique_intervals;
 
-    public:
         IBSTree_fast()
         {
         }
         ~IBSTree_fast()
         {
-            std::cerr << "Fast interval tree had " << unique_intervals.size() << " unique intervals and " << overlapping_intervals.size() << " overlapping" << std::endl;
+            //std::cerr << "Fast interval tree had " << unique_intervals.size() << " unique intervals and " << overlapping_intervals.size() << " overlapping" << std::endl;
         }
         int size() const
         {
@@ -185,6 +286,7 @@ namespace Dyninst
         unique_intervals.clear();
     }
 
-
 }
+
+
 #endif
