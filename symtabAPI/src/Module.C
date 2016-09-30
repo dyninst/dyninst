@@ -197,6 +197,7 @@ LineInformation *Module::parseLineInformation() {
     }
     // Parse any CUs that have been added to our list
     if(!info_.empty()) {
+//        cout << "Parsing line info for module " << fileName() << ", have " << info_.size() << " CU DIEs to parse" << endl;
         for(auto cu = info_.begin();
                 cu != info_.end();
                 ++cu)
@@ -497,38 +498,21 @@ void Module::finalizeRanges()
         ext_e = bit->second;
     }
     finalizeOneRange(ext_s, ext_e);
+    ranges_finalized = true;
     ranges.clear();
 }
 
 void Module::finalizeOneRange(Address ext_s, Address ext_e) const {
     ModRange* r = new ModRange(ext_s, ext_e, const_cast<Module*>(this));
     ModRangeLookup* lookup = exec_->mod_lookup();
-    std::set<ModRange*> existing;
-    lookup->find(r, existing);
-//    cerr << "Found " << existing.size() << " overlapping intervals at insert time" << endl;
-    for(auto i = existing.begin();
-        i != existing.end();
-        ++i)
-    {
-        if((*i) && (*i)->contains(*r))
-        {
-//            cerr << "Skipping duplicate ModRange " << r << endl;
-            delete r;
-            return;
-        }
-        if(r->contains(**i))
-        {
-//            cerr << "Removing duplicate ModRange " << (*i) << endl;
-            lookup->remove(*i);
-        }
-    }
-    exec_->mod_lookup()->insert(r);
+//    cout << "Inserting range " << std::hex << (*r) << std::dec << endl;
+    lookup->insert(r);
 }
 
-void Module::setDebugInfo(Module::DebugInfoT info) {
+void Module::addDebugInfo(Module::DebugInfoT info) {
+//    cout << "Adding CU DIE to " << fileName() << endl;
     info_.push_back(info);
-#if defined(cap_dwarf)
-#endif
+
 }
 
 StringTablePtr & Module::getStrings() {

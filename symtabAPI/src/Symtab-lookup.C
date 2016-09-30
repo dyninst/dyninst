@@ -55,6 +55,9 @@
 
 #include "symtabAPI/src/Object.h"
 
+#include <boost/function_output_iterator.hpp>
+#include <boost/foreach.hpp>
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
@@ -369,9 +372,9 @@ bool Symtab::getAllVariables(std::vector<Variable *> &ret)
 
 bool Symtab::getAllModules(std::vector<Module *> &ret)
 {
-    if (_mods.size() >0 )
+    if (indexed_modules.size() >0 )
     {
-        ret = _mods;
+        std::copy(indexed_modules.begin(), indexed_modules.end(), std::back_inserter(ret));
         return true;
     }	
 
@@ -379,36 +382,128 @@ bool Symtab::getAllModules(std::vector<Module *> &ret)
     return false;
 }
 
-bool module_less(Module* lhs, Module* rhs)
-{
-    if(lhs == NULL) return false;
-    if(rhs == NULL) return true;
-    return lhs->addr() < rhs->addr();
-}
+
 bool Symtab::findModuleByOffset(Module *&ret, Offset off)
 {
-    std::set<ModRange*> mods;
-    mod_lookup()->find(off, mods);
-    if(!mods.empty())
+
+    auto start_addr_valid = mod_lookup()->project<ModRange::by_low>(
+            mod_lookup()->get<ModRange::by_high>().lower_bound(off));
+    auto end_addr_valid = mod_lookup()->upper_bound(off + 1);
+    Module* default_mod = getDefaultModule();
+    while((start_addr_valid != end_addr_valid) && (start_addr_valid != mod_lookup_->end()))
     {
-        ret = (*mods.begin())->mod();
+        if(*(*start_addr_valid) == off)
+        {
+            ret = (*start_addr_valid)->mod();
+            if(ret != default_mod) return true;
+        }
+        ++start_addr_valid;
     }
-    return mods.empty();
+    ret = getDefaultModule();
+    return true;
+
+//
+//    auto eq = mod_lookup()->equal_range(off);
+//    if(eq.first != eq.second)
+//    {
+//        ret = (*(eq.first))->mod();
+//        return true;
+//    }
+//    return false;
+//    mod_lookup()->find(off, mods);
+//    if(!mods.empty())
+//    {
+//        ret = (*mods.begin())->mod();
+//    }
+//    return mods.empty();
 }
 
+template <typename T, typename F>
+struct set_inserter
+{
+    set_inserter(std::set<T>& t, const F& f) : m_set(t),func(f) {}
+    std::set<T>& m_set;
+    const F& func;
+    template <typename U>
+    void operator()(U elem) {
+        m_set.insert(func(elem));
+    }
+};
+
+template <typename T, typename F>
+set_inserter<T,F> make_set_inserter(std::set<T>& t, const F& f)
+{
+    return set_inserter<T,F>(t,f);
+};
 
 bool Symtab::findModuleByOffset(std::set<Module *>&ret, Offset off)
 {
-    std::set<ModRange*> mods;
     ret.clear();
-    mod_lookup()->find(off, mods);
-    for(auto i = mods.begin();
-            i != mods.end();
-            ++i)
+//    auto mod_extractor = boost::bind(&ModRange::mod, _1);
+//    mod_lookup_->copy_equal_range(off,
+//                                  boost::make_function_output_iterator(make_set_inserter(ret, mod_extractor)));
+    auto start_addr_valid = mod_lookup()->project<ModRange::by_low>(
+            mod_lookup()->get<ModRange::by_high>().lower_bound(off));
+    auto end_addr_valid = mod_lookup()->upper_bound(off + 1);
+    while(start_addr_valid != end_addr_valid && start_addr_valid != mod_lookup()->end())
     {
-        ret.insert((*i)->mod());
+        ModRange* tmp = *start_addr_valid;
+        if(!tmp) continue;
+        if(*tmp == off)
+        {
+            ret.insert(tmp->mod());
+        }
+        ++start_addr_valid;
     }
+//    if(ret.empty()) {
+//        for(auto i = indexed_modules.begin();
+//            i != indexed_modules.end();
+//            ++i)
+//        {
+//            (void) (*i)->parseLineInformation();
+//        }
+//        auto start_addr_valid = mod_lookup()->project<ModRange::by_low>(
+//                mod_lookup()->get<ModRange::by_high>().lower_bound(off));
+//        auto end_addr_valid = mod_lookup()->upper_bound(off + 1);
+//        while(start_addr_valid != end_addr_valid && start_addr_valid != mod_lookup()->end())
+//        {
+//            ModRange* tmp = *start_addr_valid;
+//            if(!tmp) continue;
+//            if(*tmp == off)
+//            {
+//                ret.insert(tmp->mod());
+//            }
+//            ++start_addr_valid;
+//        }
+////        Module::DebugInfoT info = getObject()->findDebugInfoForAddr(off);
+////        auto found = indexed_modules.get<4>().find(info);
+////        if(found != indexed_modules.get<4>().end())
+////        {
+////            ret.insert(*found);
+////        }
+//    }
     return ret.empty();
+
+
+//    auto eq = mod_lookup()->equal_range(off);
+//    if(eq.first != eq.second)
+//    {
+//        std::transform(eq.first, eq.second, std::inserter(ret, ret.begin()),
+//            boost::bind(&ModRange::mod, _1));
+//        return true;
+//    }
+//    return false;
+
+//    std::set<ModRange*> mods;
+//    ret.clear();
+//    mod_lookup()->find(off, mods);
+//    for(auto i = mods.begin();
+//            i != mods.end();
+//            ++i)
+//    {
+//        ret.insert((*i)->mod());
+//    }
+//    return ret.empty();
 //    //  this should be a hash, really
 //    for(int i = 0; i < _mods.size(); i++)
 //    {
@@ -424,22 +519,21 @@ bool Symtab::findModuleByOffset(std::set<Module *>&ret, Offset off)
 
 bool Symtab::findModuleByName(Module *&ret, const std::string name)
 {
-   dyn_hash_map<std::string, Module *>::iterator loc;
-   loc = modsByFullName.find(name);
+   auto loc = indexed_modules.get<3>().find(name);
 
-   if (loc != modsByFullName.end()) 
+   if (loc != indexed_modules.get<3>().end())
    {
-      ret = loc->second;
+      ret = *(loc);
       return true;
    }
 
    std::string tmp = extract_pathname_tail(name);
 
-   loc = modsByFileName.find(tmp);
+   auto loc2 = indexed_modules.get<2>().find(tmp);
 
-   if (loc != modsByFileName.end()) 
+   if (loc2 != indexed_modules.get<2>().end())
    {
-      ret = loc->second;
+      ret = *loc2;
       return true;
    }
 
@@ -896,8 +990,8 @@ bool Symtab::getContainingInlinedFunction(Offset offset, FunctionBase* &func)
 }
 
 Module *Symtab::getDefaultModule() {
-    if(_mods.empty()) createDefaultModule();
-    return _mods[0];
+    if(indexed_modules.empty()) createDefaultModule();
+    return indexed_modules[0];
 }
 
 unsigned Function::getSize() const {

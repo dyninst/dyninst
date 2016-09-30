@@ -2026,10 +2026,10 @@ Symbol *Object::handle_opd_symbol(Region *opd, Symbol *sym)
     if (!sym) return NULL;
 
     Offset soffset = sym->getOffset();
-    Offset *opd_entry = (Offset *)(((char *)opd->getPtrToRawData()) +
-                                   (soffset - opd->getDiskOffset()));
     assert(opd->isOffsetInRegion(soffset));  // Symbol must be in .opd section.
 
+    Offset* opd_entry = (Offset*)opd->getPtrToRawData();
+    opd_entry += (soffset - opd->getDiskOffset()) / sizeof(Offset); // table of offsets;
     Symbol *retval = new Symbol(*sym); // Copy the .opd symbol.
     retval->setOffset(opd_entry[0]);   // Store code address for the function.
     retval->setLocalTOC(opd_entry[1]); // Store TOC address for this function.
@@ -2460,7 +2460,7 @@ bool Object::dwarf_parse_aranges(Dwarf_Debug dbg, std::set<Dwarf_Off>& dies_seen
         convertDebugOffset(start + len, actual_end);
         Module* m = associated_symtab->getOrCreateModule(modname, actual_start);
         m->addRange(actual_start, actual_end);
-        m->setDebugInfo(cu_die);
+        m->addDebugInfo(cu_die);
         DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
         dies_seen.insert(cu_die_off);
         dwarf_dealloc(dbg, ranges[i], DW_DLA_ARANGE);
@@ -2514,11 +2514,12 @@ bool Object::fix_global_symbol_modules_static_dwarf()
         {
             m->addRange(r->first, r->second);
         }
-        m->setDebugInfo(cu_die);
+        m->addDebugInfo(cu_die);
         DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
         dies_seen.insert(cu_die_off);
 
     }
+
     return true;
 }
 
@@ -4407,14 +4408,23 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
             Dyninst::Offset startAddrToUse = previousLineAddr;
             Dyninst::Offset endAddrToUse = lineAddr;
 
-            if (startAddrToUse && endAddrToUse && (startAddrToUse != endAddrToUse))
+            if (startAddrToUse && endAddrToUse)
             {
-                // string table entry.
-                li_for_module->addLine((unsigned int)(previousLineSource + offset),
-                                       (unsigned int) previousLineNo,
-                                       (unsigned int) previousLineColumn,
-                                       startAddrToUse,
-                                       endAddrToUse );
+                if(startAddrToUse != endAddrToUse)
+                {
+                    // string table entry.
+                    li_for_module->addLine((unsigned int)(previousLineSource + offset),
+                                           (unsigned int) previousLineNo,
+                                           (unsigned int) previousLineColumn,
+                                           startAddrToUse,
+                                           endAddrToUse );
+                }
+//                else
+//                {
+////                    cout << dec << "Skipping entry for " << (*strings)[previousLineSource+offset]
+////                         << ":" << previousLineNo
+////                         << " at " << hex << startAddrToUse << dec << endl;
+//                }
 
                 /* The line 'canonicalLineSource:previousLineNo' has an address range of [previousLineAddr, lineAddr). */
             }

@@ -51,6 +51,7 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/identity.hpp>
+#include <boost/multi_index/random_access_index.hpp>
 using boost::multi_index_container;
 using boost::multi_index::indexed_by;
 using boost::multi_index::ordered_unique;
@@ -86,7 +87,7 @@ class FunctionBase;
 class FuncRange;
 class ModRange;
 
-typedef IBSTree_fast<ModRange> ModRangeLookup;
+typedef IntervalLookup< ModRange > ModRangeLookup;
 typedef IBSTree<FuncRange> FuncRangeLookup;
 typedef Dyninst::ProcessReader MemRegReader;
 
@@ -130,16 +131,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    static Symtab *findOpenSymtab(std::string filename);
    static bool closeSymtab(Symtab *);
 
-   Serializable * serialize_impl(SerializerBase *sb, 
-		   const char *tag = "Symtab") THROW_SPEC (SerializerError);
-   void rebuild_symbol_hashes(SerializerBase *);
-   void rebuild_funcvar_hashes(SerializerBase *);
-   void rebuild_module_hashes(SerializerBase *);
-   void rebuild_region_indexes(SerializerBase *) THROW_SPEC(SerializerError);
-   static bool setup_module_up_ptrs(SerializerBase *,Symtab *st);
-   static bool fixup_relocation_symbols(SerializerBase *,Symtab *st);
-
-   bool exportXML(std::string filename);
+    bool exportXML(std::string filename);
    bool exportBin(std::string filename);
    static Symtab *importBin(std::string filename);
    bool getRegValueAtFrame(Address pc, 
@@ -557,9 +549,21 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    std::vector<Variable *> everyVariable;
    dyn_hash_map <Offset, Variable *> varsByOffset;
 
-   dyn_hash_map <std::string, Module *> modsByFileName;
-   dyn_hash_map <std::string, Module *> modsByFullName;
-   std::vector<Module *> _mods;
+
+    boost::multi_index_container<Module*,
+            boost::multi_index::indexed_by<
+                    boost::multi_index::random_access<>,
+                    boost::multi_index::ordered_unique<boost::multi_index::identity<Module*> >,
+                    boost::multi_index::ordered_non_unique<
+                            boost::multi_index::const_mem_fun<Module, const std::string&, &Module::fileName> >,
+                    boost::multi_index::ordered_non_unique<
+                            boost::multi_index::const_mem_fun<Module, const std::string&, &Module::fullName> >
+//                    boost::multi_index::ordered_non_unique<
+//                            boost::multi_index::const_mem_fun<Module, Module::DebugInfoT, &Module::getDebugInfo> >
+                    >
+            >
+            indexed_modules;
+
 
    std::vector<relocationEntry > relocation_table_;
    std::vector<ExceptionBlock *> excpBlocks;

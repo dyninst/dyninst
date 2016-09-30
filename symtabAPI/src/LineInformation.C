@@ -46,7 +46,7 @@ using std::vector;
 #include "LineInformation.h"
 #include <sstream>
 
-LineInformation::LineInformation() : wasted_compares(0), num_queries(0), strings_(new StringTable)
+LineInformation::LineInformation() :strings_(new StringTable), wasted_compares(0), num_queries(0)
 {
 } /* end LineInformation constructor */
 
@@ -104,8 +104,8 @@ bool LineInformation::getSourceLines(Offset addressInRange,
                                      vector<Statement_t> &lines)
 {
     ++num_queries;
-    const_iterator start_addr_valid = project<traits::addr_range>(get<traits::upper_bound>().lower_bound(addressInRange ));
-    const_iterator end_addr_valid = impl_t::upper_bound(addressInRange + 1);
+    const_iterator start_addr_valid = project<Statement::addr_range>(get<Statement::upper_bound>().lower_bound(addressInRange ));
+    const_iterator end_addr_valid = impl_t::upper_bound(addressInRange );
     while(start_addr_valid != end_addr_valid)
     {
         if(*(*start_addr_valid) == addressInRange)
@@ -136,12 +136,11 @@ bool LineInformation::getSourceLines( Offset addressInRange,
 
 
 bool LineInformation::getAddressRanges( const char * lineSource, 
-      unsigned int lineNo, vector< AddressRange > & ranges ) 
+      unsigned int lineNo, vector< AddressRange > & ranges )
 {
     auto found_statements = equal_range(lineSource, lineNo);
-    std::transform(found_statements.first, found_statements.second,
-                   std::back_inserter(ranges),
-    std::mem_fn(&Statement::addressRange));
+    std::copy(found_statements.first, found_statements.second,
+                   std::back_inserter(ranges));
     return found_statements.first != found_statements.second;
 } /* end getAddressRangesFromLine() */
 
@@ -158,9 +157,22 @@ LineInformation::const_iterator LineInformation::end() const
 LineInformation::const_iterator LineInformation::find(Offset addressInRange) const
 {
     ++num_queries;
-    const_iterator start_addr_valid = project<traits::addr_range>(get<traits::upper_bound>().lower_bound(addressInRange ));
+    const_iterator start_addr_valid = project<Statement::addr_range>(get<Statement::upper_bound>().lower_bound(addressInRange ));
     if(start_addr_valid == end()) return end();
-    return (*start_addr_valid)->contains(addressInRange) ? start_addr_valid : end();
+    const_iterator end_addr_valid = impl_t::upper_bound(addressInRange + 1);
+    while(start_addr_valid != end_addr_valid && start_addr_valid != end())
+    {
+        if(*(*start_addr_valid) == addressInRange)
+        {
+            return start_addr_valid;
+        }
+        else
+        {
+            ++wasted_compares;
+        }
+        ++start_addr_valid;
+    }
+    return end();
 } /* end find() */
 
 
@@ -183,12 +195,12 @@ LineInformation::~LineInformation()
 }
 
 LineInformation::const_line_info_iterator LineInformation::begin_by_source() const {
-    const traits::line_info_index& i = get<traits::line_info>();
+    const traits::line_info_index& i = impl_t::get<Statement::line_info>();
     return i.begin();
 }
 
 LineInformation::const_line_info_iterator LineInformation::end_by_source() const {
-    const traits::line_info_index& i = get<traits::line_info>();
+    const traits::line_info_index& i = impl_t::get<Statement::line_info>();
     return i.end();
 }
 
@@ -198,14 +210,14 @@ LineInformation::equal_range(std::string file, const unsigned int lineNo) const 
     unsigned index = strings_->project<0>(found) - strings_->begin();
 //    auto search_info = std::make_tuple(index, lineNo);
     std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line_info_iterator > bounds;
-    bounds =  get<traits::line_info>().equal_range(index);
+    bounds =  get<Statement::line_info>().equal_range(index);
     while((*bounds.first)->getLine() < lineNo && bounds.first != bounds.second) {
         ++bounds.first;
     }
     while((*bounds.second)->getLine() > lineNo && bounds.second != bounds.first) {
         --bounds.second;
     }
-    if(bounds.second != get<traits::line_info>().end()) ++bounds.second;
+    if(bounds.second != get<Statement::line_info>().end()) ++bounds.second;
     return bounds;
 //    return get<traits::line_info>().equal_range(boost::cref<std::tuple<unsigned int, unsigned int> >(search_info));
 
@@ -215,7 +227,7 @@ std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line
 LineInformation::equal_range(std::string file) const {
     auto found = strings_->get<1>().find(file);
     unsigned index = strings_->project<0>(found) - strings_->begin();
-    return get<traits::line_info>().equal_range(index);
+    return get<Statement::line_info>().equal_range(index);
 //    const traits::line_info_index& by_line_info = impl_t::get<traits::line_info>();
 //    return by_line_info.equal_range(file);
 

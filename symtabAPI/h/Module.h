@@ -55,25 +55,22 @@ class localVar;
 class Symtab;
 
 
-class SYMTAB_EXPORT Statement
+class SYMTAB_EXPORT Statement : public AddressRange
 {
 	friend class Module;
 	friend class LineInformation;
 	Statement(int file_index, unsigned int line, unsigned int col = 0,
              Offset start_addr = (Offset) -1L, Offset end_addr = (Offset) -1L) :
+    AddressRange(start_addr, end_addr),
 			file_index_(file_index),
       line_(line),
-            column_(col),
-      start_addr_(start_addr),
-      end_addr_(end_addr)
+            column_(col)
       {
       }
 	
 	unsigned int file_index_; // Maybe this should be module?
 	unsigned int line_;
     unsigned int column_;
-	Offset start_addr_;
-	Offset end_addr_;
 	StringTablePtr strings_;
 public:
     StringTablePtr getStrings_() const;
@@ -82,7 +79,7 @@ public:
 
 public:
 
-	Statement() : file_index_(0), line_(0), column_(0), start_addr_(0), end_addr_(0) {}
+	Statement() : AddressRange(0,0), file_index_(0), line_(0), column_(0)  {}
 	struct StatementLess {
 		bool operator () ( const Statement &lhs, const Statement &rhs ) const;
 	};
@@ -92,10 +89,7 @@ public:
 	bool operator==(const Statement &cmp) const;
 //    bool operator==(const char* file) const {return strcmp(file, first) == 0; }
     bool operator==(Offset addr) const {
-        if(startAddr() == endAddr()) {
-            return addr == startAddr();
-        }
-        return (startAddr() <= addr) && (addr < endAddr());
+        return AddressRange::contains(addr);
     }
     bool operator<(Offset addr) const {
         return startAddr() <= addr;
@@ -105,14 +99,15 @@ public:
     }
 	~Statement() {}
 
-	Offset startAddr() const { return start_addr_;}
-	Offset endAddr() const {return end_addr_;}
+	Offset startAddr() const { return first;}
+	Offset endAddr() const {return second;}
 	std::string getFile() const;
     unsigned int getFileIndex() const { return file_index_; }
 	unsigned int getLine()const {return line_;}
     unsigned int getColumn() const { return column_; }
-    AddressRange addressRange( ) const { return AddressRange(*this); }
-    bool contains(Offset addr) const { return addressRange().contains(addr); }
+    struct addr_range {};
+    struct line_info {};
+    struct upper_bound {};
 
     typedef boost::shared_ptr<Statement> Ptr;
     typedef boost::shared_ptr<const Statement> ConstPtr;
@@ -233,9 +228,11 @@ typedef Statement LineNoTuple;
    bool setLineInfo(Dyninst::SymtabAPI::LineInformation *lineInfo);
 	 void addRange(Dyninst::Address low, Dyninst::Address high);
 
-	void setDebugInfo(Module::DebugInfoT info);
-    void finalizeRanges();
-    private:
+	void addDebugInfo(Module::DebugInfoT info);
+
+	void finalizeRanges();
+
+        private:
    Dyninst::SymtabAPI::LineInformation* lineInfo_;
    typeCollection* typeInfo_;
 	std::vector<Module::DebugInfoT> info_;
@@ -271,49 +268,43 @@ typedef Statement LineNoTuple;
 		}
 
 
-struct ModRange : public interval<Offset>
+struct ModRange : public Dyninst::Interval<Offset>
 {
+    typedef Dyninst::Interval<Offset> parent;
     ModRange(Offset l, Offset h, Module* m) :
-           low_(l), high_(h), mod_(m)
+           Dyninst::Interval<Offset>(l, h), mod_(m)
     {}
 
     bool operator==(const ModRange &rhs) const {
-        return low_ == rhs.low_ &&
-               high_ == rhs.high_ &&
-               mod_ == rhs.mod_;
+        return (parent::operator==(rhs)) && (mod_ == rhs.mod_);
     }
 
     bool operator!=(const ModRange &rhs) const {
         return !(rhs == *this);
     }
     bool contains(const ModRange& rhs) const {
-        return (rhs.low() >= low()) &&
-                (rhs.high() <= high()) &&
-                (rhs.mod() == mod() );
+        return (rhs.first >= first) &&
+                (rhs.second <= second) &&
+                (rhs.mod() == mod());
     }
-
-    Offset low() const { return low_; }
-    Offset high() const { return high_; }
+    bool operator==(Offset off) const {
+        return parent::operator==(off);
+    }
     Module* mod() const { return mod_;}
-    Offset low_;
-    Offset high_;
     Module* mod_;
+    typedef ModRange* Ptr;
 };
-
-        template <typename OS>
+        template<typename OS>
         OS& operator<<(OS& os, const ModRange& m)
         {
-            os << m.mod() << ": [" << m.low() << ", " << m.high() << ")";
+            os << m.mod() << ": [" << m.first << ", " << m.second << ")";
             return os;
         }
-        template <typename OS>
-        OS& operator<<(OS& os, ModRange* m)
-        {
-            os << *m;
-            return os;
-        }
+
 
 }//namespace SymtabAPI
 
 }//namespace Dyninst
+
+
 #endif

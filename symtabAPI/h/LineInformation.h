@@ -48,8 +48,8 @@ class SYMTAB_EXPORT LineInformation :
 public:
     typedef RangeLookupTypes< Statement> traits;
     typedef RangeLookupTypes< Statement >::type impl_t;
-      typedef traits::addr_range_index::const_iterator const_iterator;
-    typedef traits::line_info_index::const_iterator const_line_info_iterator;
+    typedef impl_t::index<Statement::addr_range>::type::const_iterator const_iterator;
+    typedef impl_t::index<Statement::line_info>::type::const_iterator const_line_info_iterator;
     typedef traits::value_type Statement_t;
       LineInformation();
 
