@@ -389,7 +389,7 @@ AST::Ptr DeepCopyAnAST(AST::Ptr ast) {
     }
     fprintf(stderr, "ast type %d, %s\n", ast->getID(), ast->format().c_str());
     assert(0);
-	return nullptr;
+	return AST::Ptr();
 }
 
 AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {

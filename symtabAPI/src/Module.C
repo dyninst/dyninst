@@ -43,6 +43,10 @@
 #include "common/src/pathName.h"
 #include "common/src/serialize.h"
 
+#if defined(cap_dwarf)
+#include "dwarfWalker.h"
+#endif
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
@@ -156,7 +160,7 @@ bool Module::getSourceLines(std::vector<Statement *> &lines, Offset addressInRan
 bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
 {
    unsigned int originalSize = lines.size();
-   
+
    LineInformation *lineInformation = getLineInformation();
    if(!lineInformation) {
      exec_->parseLineInformation();
@@ -177,7 +181,7 @@ bool Module::getStatements(std::vector<Statement *> &statements)
 {
 	unsigned initial_size = statements.size();
 	LineInformation *li = getLineInformation();
-	if (!li) 
+	if (!li)
 	{
 	  exec_->parseLineInformation();
 	  li = getLineInformation();
