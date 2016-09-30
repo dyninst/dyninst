@@ -707,16 +707,13 @@ vector<AddressRange> DwarfWalker::getDieRanges(Dwarf_Debug dbg, Dwarf_Die die, O
     auto highlow = parseHighPCLowPC(dbg, die);
     if(highlow.second) newRanges.push_back(highlow.first);
 
-    Dwarf_Bool hasRanges = false;
-    int status = (dwarf_hasattr(die, DW_AT_ranges, &hasRanges, NULL));
-    if ((status == DW_DLV_OK) && hasRanges) {
       Address range_offset;
       if (findConstant(DW_AT_ranges, range_offset, die, dbg))
       {
           Dwarf_Ranges *ranges = NULL;
           Dwarf_Signed ranges_length = 0;
           dwarf_printf("calling ranges_a, offset 0x%lx, die %p\n", range_offset, die);
-          status = (dwarf_get_ranges_a(dbg, (Dwarf_Off) range_offset, die,
+          int status = (dwarf_get_ranges_a(dbg, (Dwarf_Off) range_offset, die,
                                        &ranges, &ranges_length, NULL, NULL));
           bool done = (status != DW_DLV_OK);
           for (unsigned i = 0; i < ranges_length && !done; i++) {
