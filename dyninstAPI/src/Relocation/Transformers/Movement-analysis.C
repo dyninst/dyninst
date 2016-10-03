@@ -70,179 +70,204 @@ bool PCSensitiveTransformer::analysisRequired(RelocBlock *blk) {
 }
 
 bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
-   // if (!analysisRequired(reloc)) {
-      // return adhoc.process(reloc, g);
-   // }
 
-   const block_instance *block = reloc->block();
-   const func_instance *func = reloc->func();
+    /* Should we run the adhoc analysis before we return? */
+    bool adhoc_required = !analysisRequired(reloc);
 
-  // Can be true if we see an instrumentation block...
-  if (!block) 
-  {
-      fprintf(stderr, "BLOCK IS NULL\n");
-      return true;
-  }
-  
-  RelocBlock::WidgetList &elements = reloc->elements();
-  for (RelocBlock::WidgetList::iterator iter = elements.begin();
-       iter != elements.end(); ++iter) {
+    const block_instance *block = reloc->block();
+    const func_instance *func = reloc->func();
 
-    // Get the instruction contained by this element; might be from
-    // an original instruction (RelocInsn) or the CF wrapper (CFWidget)
-    Instruction::Ptr insn = (*iter)->insn();
-    if (!insn) continue;
-    Address addr = (*iter)->addr();
-
-    // We want to identify all PC-sensitive instructions and 
-    // determine whether they are externally sensitive; that is, 
-    // whether they will misbehave (heh) given the new structure
-    // of the binary. 
-    //
-    // An instruction is PC sensitive if it is moved and uses the 
-    // PC. We further subdivide PCsens instructions into two categories:
-    // trivially PC sensitive instructions that use the PC to define the
-    // PC and non-trivial PC sensitive instructions (all others). 
-    // 
-    // Since our CF localization will entirely handle the trivial category
-    // we focus here on the non-trivial category. Thus we're looking for 
-    // two things:
-    // 1) Is this instruction PC sensitive - does it use the PC and define
-    // a non-PC location.
-    // 2) Is it externally sensitive... will this instruction cause the program
-    // to produce a different result.
-
-    if (isSyscall(insn, addr)) {
-      continue;
-    }
-    
-    AssignList sensitiveAssignments;
-    // This function also returns the sensitive assignments
-    if (!isPCSensitive(insn,
-		       addr,
-                       func,
-                       block,
-		       sensitiveAssignments)) {
-      //cerr << "Instruction " << insn->format() << " not PC sensitive, skipping" << endl;
-      continue;
+    /* We need a block in order to do exception sensitive analysis */
+    if(!block)
+    {
+        if(adhoc_required)
+        {
+            bool adhoc_result = adhoc.process(reloc, g);
+            sensitivity_cerr << "Warning: No block, running adhoc: " << adhoc_result << endl;
+            return adhoc_result;
+        }
+        else return true;
     }
 
-    Sens_++;
+    RelocBlock::WidgetList &elements = reloc->elements();
+    for (RelocBlock::WidgetList::iterator iter = elements.begin();
+            iter != elements.end(); ++iter) {
 
-    sensitivity_cerr << "Instruction is sensitive @ " << hex << addr << dec << endl;
+        // Get the instruction contained by this element; might be from
+        // an original instruction (RelocInsn) or the CF wrapper (CFWidget)
+        Instruction::Ptr insn = (*iter)->insn();
+        if (!insn) continue;
+        Address addr = (*iter)->addr();
 
-    // Optimization: before we do some heavyweight analysis, see if we can shortcut
-    bool intSens = false;
-    bool extSens = false;
-    bool approx = false;
-    Absloc dest;
+        // We want to identify all PC-sensitive instructions and 
+        // determine whether they are externally sensitive; that is, 
+        // whether they will misbehave (heh) given the new structure
+        // of the binary. 
+        //
+        // An instruction is PC sensitive if it is moved and uses the 
+        // PC. We further subdivide PCsens instructions into two categories:
+        // trivially PC sensitive instructions that use the PC to define the
+        // PC and non-trivial PC sensitive instructions (all others). 
+        // 
+        // Since our CF localization will entirely handle the trivial category
+        // we focus here on the non-trivial category. Thus we're looking for 
+        // two things:
+        // 1) Is this instruction PC sensitive - does it use the PC and define
+        // a non-PC location.
+        // 2) Is it externally sensitive... will this instruction cause the program
+        // to produce a different result.
 
-    if (insnIsThunkCall(insn, addr, dest)) {
-      //relocation_cerr << "Thunk @ " << hex << addr << dec << endl;
-       handleThunkCall(reloc, g, iter, dest);
-       intSens_++;
-       extSens_++;
-       thunk_++;
-       continue;
+        if (isSyscall(insn, addr)) {
+            continue;
+        }
+
+        AssignList sensitiveAssignments;
+        // This function also returns the sensitive assignments
+        if (!isPCSensitive(insn,
+                    addr,
+                    func,
+                    block,
+                    sensitiveAssignments)) {
+            //cerr << "Instruction " << insn->format() << " not PC sensitive, skipping" << endl;
+            continue;
+        }
+
+        Sens_++;
+
+        sensitivity_cerr << "Instruction is sensitive @ " << hex << addr << dec << endl;
+
+        // Optimization: before we do some heavyweight analysis, see if we can shortcut
+        bool intSens = false;
+        bool extSens = false;
+        bool approx = false;
+        Absloc dest;
+
+        if (insnIsThunkCall(insn, addr, dest)) {
+            relocation_cerr << "\tThunk @ " << hex << addr << dec << endl;
+            handleThunkCall(reloc, g, iter, dest);
+            intSens_++;
+            extSens_++;
+            thunk_++;
+            continue;
+        }
+
+        if (exceptionSensitive(addr+insn->size(), block)) {
+            extSens = true;
+            sensitivity_cerr << "\tException sensitive @ " << hex << addr << dec << endl;
+        }
+
+        if (!queryCache(block, addr, intSens, extSens)) {
+            for (AssignList::iterator a_iter = sensitiveAssignments.begin();
+                    a_iter != sensitiveAssignments.end(); ++a_iter) {
+
+                //cerr << "Forward slice from " << (*a_iter)->format() << hex << " @ " << addr << " (parse of " << (*a_iter)->addr() << dec << ") in func " << block->func()->prettyName() << endl;
+
+                Graph::Ptr slice = forwardSlice(*a_iter,
+                        block->llb(),
+                        func->ifunc());
+
+                if (!slice) {
+                    // Safe assumption, as always
+                    sensitivity_cerr << "\t slice failed!" << endl;
+                    approx = true;
+                }
+                else {
+                    if (slice->size() > 10) {
+                        // HACK around a problem with slice sizes
+                        approx = true;
+                    }
+                    else if (!determineSensitivity(slice, intSens, extSens)) {
+                        // Analysis failed for some reason... go conservative
+                        sensitivity_cerr << "\t Warning: sensitivity analysis failed!" << endl;
+                        approx = true;
+                    }
+                    else {
+                        sensitivity_cerr << "\t sens analysis returned " << (intSens ? "intSens" : "") << " / " 
+                            << (extSens ? "extSens" : "") << endl;
+                    }
+                }
+
+                if (approx || (intSens && extSens)) {
+                    break; 
+                }
+            }
+        }
+
+        if (approx) {
+            overApprox_++;
+            intSens = true;
+            extSens = true;
+        }
+        else {
+            if (extSens) {
+                extSens_++;
+            }
+            if (intSens) {
+                intSens_++;
+            }
+        }
+
+
+        if (extSens) {
+            sensitivity_cerr << "\tExtSens @ " << std::hex << addr << std::dec << endl;
+            // Okay, someone wants the original version. That means, for now, we're emulating.
+            if (intSens) {
+                // Fun for the whole family! We have one instruction that wants the changed
+                // version (likely a load or equivalent) and one instruction that wants the
+                // original value (that would be a return). Let's see if we can match a 
+                // thunk call...
+                Absloc destination;
+                if (insnIsThunkCall(insn, addr, destination)) {
+                    // A first example of a group transformation. The "internal" piece comes from
+                    // calling a 2-instruction function that copies the return address elsewhere
+                    // and returns. So we can remove the internal sensitivity by inlining the 
+                    // call.
+                    handleThunkCall(reloc,
+                            g,
+                            iter, 
+                            destination);
+                    continue;
+                } else {
+                    sensitivity_cerr << "\trecording int sensitive @ " 
+                        << std::hex << (addr + insn->size()) << std::dec << endl;
+                    // Not a thunk call, and both externally and internally sensitive. Ugh. 
+                    // Well, because of the external sensitivity we're going to emulate the
+                    // original instruction, which means the internally sensitive target will
+                    // be transferring back to the original instruction address. Go ahead and
+                    // record this...
+                    recordIntSensitive(addr+insn->size());
+                }
+            }
+
+            sensitivity_cerr << "\tEmulating instruction..." << endl; 
+            // And now to the real work. Replace this instruction with an emulation sequence
+            if(!adhoc_required)
+            {
+            emulateInsn(reloc,
+                    g,
+                    iter, 
+                    insn, 
+                    addr);
+            }
+        }
+        
+        if(!adhoc_required)
+        {
+            sensitivity_cerr << "\tRunning cache analysis..." << endl; 
+            cacheAnalysis(block, addr, intSens, extSens);
+        }
     }
 
-    if (exceptionSensitive(addr+insn->size(), block)) {
-      extSens = true;
-      sensitivity_cerr << "Sensitive by exception @ " << hex << addr << dec << endl;
+    /* do we still have to run the adhoc analysis? */
+    if(adhoc_required)
+    {
+        bool adhoc_result = adhoc.process(reloc, g);
+        sensitivity_cerr << "Completing analysis with adhoc process: " << adhoc_result << endl;
+        return adhoc_result;
     }
 
-    if (!queryCache(block, addr, intSens, extSens)) {
-       for (AssignList::iterator a_iter = sensitiveAssignments.begin();
-            a_iter != sensitiveAssignments.end(); ++a_iter) {
-          
-		//cerr << "Forward slice from " << (*a_iter)->format() << hex << " @ " << addr << " (parse of " << (*a_iter)->addr() << dec << ") in func " << block->func()->prettyName() << endl;
-          
-          Graph::Ptr slice = forwardSlice(*a_iter,
-                                          block->llb(),
-                                          func->ifunc());
-          
-          if (!slice) {
-             // Safe assumption, as always
-             sensitivity_cerr << "\t slice failed!" << endl;
-             approx = true;
-          }
-          else {
-             if (slice->size() > 10) {
-// HACK around a problem with slice sizes
-                approx = true;
-             }
-             else if (!determineSensitivity(slice, intSens, extSens)) {
-                // Analysis failed for some reason... go conservative
-                sensitivity_cerr << "\t sensitivity analysis failed!" << endl;
-                approx = true;
-             }
-             else {
-                sensitivity_cerr << "\t sens analysis returned " << (intSens ? "intSens" : "") << " / " 
-                                 << (extSens ? "extSens" : "") << endl;
-             }
-          }
-          
-          if (approx || (intSens && extSens)) {
-             break; 
-          }
-       }
-    }
-
-    if (approx) {
-       overApprox_++;
-       intSens = true;
-       extSens = true;
-    }
-    else {
-       if (extSens) {
-          extSens_++;
-       }
-       if (intSens) {
-          intSens_++;
-       }
-    }
-  
-
-    if (extSens) {
-      //cerr << "ExtSens @ " << std::hex << addr << std::dec << endl;
-      // Okay, someone wants the original version. That means, for now, we're emulating.
-      if (intSens) {
-	// Fun for the whole family! We have one instruction that wants the changed
-	// version (likely a load or equivalent) and one instruction that wants the
-	// original value (that would be a return). Let's see if we can match a 
-	// thunk call...
-	Absloc destination;
-	if (insnIsThunkCall(insn, addr, destination)) {
-	  // A first example of a group transformation. The "internal" piece comes from
-	  // calling a 2-instruction function that copies the return address elsewhere
-	  // and returns. So we can remove the internal sensitivity by inlining the 
-	  // call.
-	  handleThunkCall(reloc,
-                          g,
-			  iter, 
-			  destination);
-	  continue;
-	} else {
-	  // Not a thunk call, and both externally and internally sensitive. Ugh. 
-	  // Well, because of the external sensitivity we're going to emulate the
-	  // original instruction, which means the internally sensitive target will
-	  // be transferring back to the original instruction address. Go ahead and
-	  // record this...
-	  recordIntSensitive(addr+insn->size());
-	}
-      }
-      // And now to the real work. Replace this instruction with an emulation sequence
-      emulateInsn(reloc,
-                  g,
-		  iter, 
-		  insn, 
-		  addr);
-    }
-    cacheAnalysis(block, addr, intSens, extSens);
-  }
-
-
-  return adhoc.process(reloc, g);
+    /* return success */
+    return true;
 }
 
 bool PCSensitiveTransformer::isPCSensitive(Instruction::Ptr insn,
@@ -377,12 +402,13 @@ bool PCSensitiveTransformer::determineSensitivity(Graph::Ptr slice,
 
     // By definition, a widen point is potentially behavior changing.
     if (Slicer::isWidenNode(*exitBegin)) {
+      // cerr << "\t\t isWidenNode!" << endl;
       return false;
     }
     
     AST::Ptr ast = results[aNode->assign()];
     if (ast == AST::Ptr()) {
-      //cerr << "\t\t Symbolic expansion failed" << endl;
+      // cerr << "\t\t Symbolic expansion failed" << endl;
       return false;
     }
 
@@ -586,17 +612,63 @@ void PCSensitiveTransformer::emulateInsn(RelocBlock *reloc,
 
 // TODO: fix this
 bool PCSensitiveTransformer::exceptionSensitive(Address a, const block_instance *bbl) {
-   // If we're within the try section of an exception, return true.
-   // Otherwise return false.
+    // If we're within the try section of an exception, return true.
+    // Otherwise return false.
 
-   Symtab *symtab = bbl->obj()->parse_img()->getObject();
-   Offset o = a - (bbl->start() - bbl->llb()->start());
-   
-   ExceptionBlock eBlock;
-   // Amusingly, existence is sufficient for us.
-   bool result =  symtab->findException(eBlock, o);      
+    Symtab *symtab = bbl->obj()->parse_img()->getObject();
+    Offset off = a - (bbl->start() - bbl->llb()->start());
 
-   return result;
+    std::vector<Function*> functions;
+    if(!symtab->getAllFunctions(functions))
+    {
+        sensitivity_cerr << "\tWarning: This symbol table has no functions!" << endl;
+        return false;
+    }
+
+    std::vector<ExceptionBlock*> exceptions;
+    if(!symtab->getAllExceptions(exceptions))
+    {
+        sensitivity_cerr << "\tWarning: There aren't any exceptions in this symtab!" << endl;
+        return false;
+    }
+
+    for(auto iter = functions.begin();iter != functions.end();++iter)
+    {
+        /* Find all functions for this address */
+        Function* f = *iter;
+        Offset start = f->getOffset();
+        Offset end = start + f->getSize();
+        if(off >= start && off < end)
+        {
+            sensitivity_cerr << "\tAddress in function " << f->getName() << endl;
+
+            /**
+             * The address we're looking for is in this function. Does this
+             * function also have a catch block?
+             */
+
+            for(auto catch_iter = exceptions.begin();catch_iter != exceptions.end();++catch_iter)
+            {
+                ExceptionBlock* b = *catch_iter;
+
+                /* Is the catch start inside of the function we're looking at? */
+                if(b->catchStart() >= start && b->catchStart() < end)
+                {
+                    /* This address is exception sensitive */
+                    sensitivity_cerr << "\tThis function has a catch block." << endl;
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+
+    // ExceptionBlock eBlock;
+    // Amusingly, existence is sufficient for us.
+    // bool result =  symtab->findException(eBlock, o);      
+
+    // return result;
 }
 
 void PCSensitiveTransformer::cacheAnalysis(const block_instance *bbl, Address addr, bool intSens, bool extSens) {

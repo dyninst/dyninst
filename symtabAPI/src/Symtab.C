@@ -3178,7 +3178,7 @@ SYMTAB_EXPORT Offset ExceptionBlock::trySize() const
 
 SYMTAB_EXPORT bool ExceptionBlock::contains(Offset a) const
 { 
-   return (a >= tryStart_ && a <= tryStart_ + trySize_); 
+   return (a >= tryStart_ && a < tryStart_ + trySize_); 
 }
 
 #if !defined(SERIALIZATION_DISABLED)
