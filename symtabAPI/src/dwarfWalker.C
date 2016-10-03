@@ -259,11 +259,16 @@ void DwarfParseActions::setModuleFromName(std::string moduleName)
 bool DwarfWalker::buildSrcFiles(Dwarf_Die entry) {
    Dwarf_Signed cnt = 0;
    DWARF_ERROR_RET(dwarf_srcfiles(entry, &srcFileList_, &cnt, NULL));
+    srcFiles_.clear();
    srcFiles_.push_back("<unknown file>");
    for (unsigned i = 0; i < cnt; ++i) {
       srcFiles_.push_back(srcFileList_[i]);
       freeList.push_back(boost::shared_ptr<void>(const_cast<char*>(srcFiles_[i]), boost::bind<void>(dwarf_dealloc, dbg(), _1, DW_DLA_STRING)));
    }
+    for(int i = 0; i < srcFiles_.size(); ++i)
+    {
+        printf("srcfiles[%d] = %s\n", i, srcFiles_[i]);
+    }
    freeList.push_back(boost::shared_ptr<void>(srcFileList_, boost::bind<void>(dwarf_dealloc, dbg(), _1, DW_DLA_LIST)));
    return true;
 }
@@ -1600,7 +1605,7 @@ bool DwarfWalker::getLineInformation(Dwarf_Unsigned &variableLineNo,
       Dwarf_Unsigned fileNameDeclVal;
       DWARF_FAIL_RET(dwarf_formudata(fileDeclAttribute, &fileNameDeclVal, NULL));
       dwarf_dealloc( dbg(), fileDeclAttribute, DW_DLA_ATTR );
-      if (fileNameDeclVal >= srcFiles().size() || fileNameDeclVal < 0) {
+      if (fileNameDeclVal >= srcFiles().size()) {
          dwarf_printf("Dwarf error reading line index %d from srcFiles of size %lu\n",
                       fileNameDeclVal, srcFiles().size());
          return false;
@@ -1723,7 +1728,7 @@ bool DwarfWalker::findString(Dwarf_Half attr,
       bool result = findConstant(attr, line_index, entry(), dbg());
       if (!result)
          return false;
-      if (line_index > srcFiles().size()) {
+      if (line_index >= srcFiles().size()) {
          dwarf_printf("Dwarf error reading line index %d from srcFiles of size %lu\n",
                       line_index, srcFiles().size());
          return false;
