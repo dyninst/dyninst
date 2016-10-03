@@ -83,7 +83,7 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
         if(adhoc_required)
         {
             bool adhoc_result = adhoc.process(reloc, g);
-            sensitivity_cerr << "Warning: No block, running adhoc: " << adhoc_result << endl;
+            // sensitivity_cerr << "Warning: No block, running adhoc: " << adhoc_result << endl;
             return adhoc_result;
         }
         else return true;
@@ -134,7 +134,7 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
 
         Sens_++;
 
-        sensitivity_cerr << "Instruction is sensitive @ " << hex << addr << dec << endl;
+        // sensitivity_cerr << "Instruction is sensitive @ " << hex << addr << dec << endl;
 
         // Optimization: before we do some heavyweight analysis, see if we can shortcut
         bool intSens = false;
@@ -168,7 +168,7 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
 
                 if (!slice) {
                     // Safe assumption, as always
-                    sensitivity_cerr << "\t slice failed!" << endl;
+                    // sensitivity_cerr << "\t slice failed!" << endl;
                     approx = true;
                 }
                 else {
@@ -178,12 +178,12 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
                     }
                     else if (!determineSensitivity(slice, intSens, extSens)) {
                         // Analysis failed for some reason... go conservative
-                        sensitivity_cerr << "\t Warning: sensitivity analysis failed!" << endl;
+                        // cerr << "\t Warning: sensitivity analysis failed!" << endl;
                         approx = true;
                     }
                     else {
-                        sensitivity_cerr << "\t sens analysis returned " << (intSens ? "intSens" : "") << " / " 
-                            << (extSens ? "extSens" : "") << endl;
+                        //sensitivity_cerr << "\t sens analysis returned " << (intSens ? "intSens" : "") << " / " 
+                            //<< (extSens ? "extSens" : "") << endl;
                     }
                 }
 
@@ -193,7 +193,7 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
             }
         }
 
-        if (approx) {
+        if (approx && !adhoc_required) {
             overApprox_++;
             intSens = true;
             extSens = true;
@@ -209,7 +209,8 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
 
 
         if (extSens) {
-            sensitivity_cerr << "\tExtSens @ " << std::hex << addr << std::dec << endl;
+            // sensitivity_cerr << "\tExtSens @ " << std::hex << addr << std::dec << endl;
+
             // Okay, someone wants the original version. That means, for now, we're emulating.
             if (intSens) {
                 // Fun for the whole family! We have one instruction that wants the changed
@@ -228,8 +229,9 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
                             destination);
                     continue;
                 } else {
-                    sensitivity_cerr << "\trecording int sensitive @ " 
-                        << std::hex << (addr + insn->size()) << std::dec << endl;
+                    //sensitivity_cerr << "\trecording int sensitive @ " 
+                        //<< std::hex << (addr + insn->size()) << std::dec << endl;
+
                     // Not a thunk call, and both externally and internally sensitive. Ugh. 
                     // Well, because of the external sensitivity we're going to emulate the
                     // original instruction, which means the internally sensitive target will
@@ -239,21 +241,19 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
                 }
             }
 
-            sensitivity_cerr << "\tEmulating instruction..." << endl; 
+            // cerr << "\tEmulating instruction..." << endl; 
             // And now to the real work. Replace this instruction with an emulation sequence
-            if(!adhoc_required)
-            {
+
             emulateInsn(reloc,
                     g,
                     iter, 
                     insn, 
                     addr);
-            }
         }
         
         if(!adhoc_required)
         {
-            sensitivity_cerr << "\tRunning cache analysis..." << endl; 
+            // sensitivity_cerr << "\tRunning cache analysis..." << endl; 
             cacheAnalysis(block, addr, intSens, extSens);
         }
     }
@@ -262,7 +262,7 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
     if(adhoc_required)
     {
         bool adhoc_result = adhoc.process(reloc, g);
-        sensitivity_cerr << "Completing analysis with adhoc process: " << adhoc_result << endl;
+        // sensitivity_cerr << "Completing analysis with adhoc process: " << adhoc_result << endl;
         return adhoc_result;
     }
 
@@ -618,6 +618,13 @@ bool PCSensitiveTransformer::exceptionSensitive(Address a, const block_instance 
     Symtab *symtab = bbl->obj()->parse_img()->getObject();
     Offset off = a - (bbl->start() - bbl->llb()->start());
 
+    // ExceptionBlock block;
+    // if(symtab->findException(block, a - 1))
+    // {
+        // cerr << "\tFOUND ACTUAL EXCEPTION" << endl;
+        // return true;
+    // } else return false;
+
     std::vector<Function*> functions;
     if(!symtab->getAllFunctions(functions))
     {
@@ -640,7 +647,7 @@ bool PCSensitiveTransformer::exceptionSensitive(Address a, const block_instance 
         Offset end = start + f->getSize();
         if(off >= start && off < end)
         {
-            sensitivity_cerr << "\tAddress in function " << f->getName() << endl;
+            // sensitivity_cerr << "\tAddress in function " << f->getName() << endl;
 
             /**
              * The address we're looking for is in this function. Does this
@@ -655,7 +662,7 @@ bool PCSensitiveTransformer::exceptionSensitive(Address a, const block_instance 
                 if(b->catchStart() >= start && b->catchStart() < end)
                 {
                     /* This address is exception sensitive */
-                    sensitivity_cerr << "\tThis function has a catch block." << endl;
+                    // sensitivity_cerr << "\tThis function has a catch block." << endl;
                     return true;
                 }
             }
@@ -663,12 +670,6 @@ bool PCSensitiveTransformer::exceptionSensitive(Address a, const block_instance 
     }
 
     return false;
-
-    // ExceptionBlock eBlock;
-    // Amusingly, existence is sufficient for us.
-    // bool result =  symtab->findException(eBlock, o);      
-
-    // return result;
 }
 
 void PCSensitiveTransformer::cacheAnalysis(const block_instance *bbl, Address addr, bool intSens, bool extSens) {
