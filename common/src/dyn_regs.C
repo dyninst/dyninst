@@ -478,6 +478,23 @@ bool MachRegister::isSyscallReturnValueReg() const
             );
 }
 
+bool MachRegister::isFlag() const
+{
+    int regC = regClass();
+    switch (getArchitecture())
+    {
+      case Arch_x86:
+         return regC == x86::FLAG;
+      case Arch_x86_64:
+         return regC == x86_64::FLAG;
+      case Arch_aarch64:
+         return regC == aarch64::FLAG;
+      default:
+         assert(!"Not implemented!");
+   }
+   return false;
+}
+
 COMMON_EXPORT bool Dyninst::isSegmentRegister(int regClass)
 {
    return 0 != (regClass & x86::SEG);

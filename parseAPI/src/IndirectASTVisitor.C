@@ -113,6 +113,14 @@ AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t insnSize) {
 		else
 		    return RoseAST::create(ROSEOperation(ROSEOperation::derefOp), ast->child(0));
 		break;
+	    case ROSEOperation::shiftLOp:
+	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    return ConstantAST::create(Constant(child0->val().val << child1->val().val, 64));
+		}
+		break;
+
 	    default:
 	        break;
 

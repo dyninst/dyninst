@@ -91,7 +91,7 @@ static void BuildEdges(SliceNode::Ptr curNode,
 
 static bool AssignIsZF(Assignment::Ptr a) {
     return a->out().absloc().type() == Absloc::Register &&
-	   (a->out().absloc().reg() == x86::zf || a->out().absloc().reg() == x86_64::zf);
+	   (a->out().absloc().reg() == MachRegister::getZeroFlag(a->out().absloc().reg().getArchitecture()));
 }
 
 static bool IsPushAndChangeSP(Assignment::Ptr a) {
@@ -184,11 +184,12 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
     if (currentAssigns.find(ap) != currentAssigns.end()) return true;
     if (currentAssigns.size() > 50) return false; 
     // For flags, we only analyze zf
-    if (ap->out().absloc().type() == Absloc::Register && ap->out().absloc().reg().regClass() == (unsigned int)x86::FLAG &&
-       ap->out().absloc().reg() != x86::zf && ap->out().absloc().reg() != x86_64::zf) {
-	return true;
+    if (ap->out().absloc().type() == Absloc::Register) {
+        MachRegister reg = ap->out().absloc().reg();
+	if (reg.isFlag() && reg != MachRegister::getZeroFlag(reg.getArchitecture())) {
+	    return true;
+	}
     }
-
     pair<AST::Ptr, bool> expandRet = ExpandAssignment(ap);
 
     currentAssigns.insert(ap);

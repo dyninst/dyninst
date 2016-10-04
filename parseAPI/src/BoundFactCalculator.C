@@ -320,6 +320,7 @@ static bool IsConditionalJump(Instruction::Ptr insn) {
 	id == e_jb_jnaej_j || id == e_jnb_jae_j ||
 	id == e_jle || id == e_jl ||
 	id == e_jnl || id == e_jnle) return true;
+    if (id == aarch64_op_b_cond) return true;
     return false;
 }
 

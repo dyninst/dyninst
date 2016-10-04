@@ -1146,6 +1146,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		}
 		break;
 	    }
+	    case aarch64_op_b_cond:
 	    case e_jnbe: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
@@ -1315,14 +1316,19 @@ void BoundFact::SetPredicate(Assignment::Ptr assign,std::pair<AST::Ptr, bool> ex
     }
     AST::Ptr simplifiedAST = expandRet.first;
     parsing_printf("\t\t semanic expansions: %s\n", simplifiedAST->format().c_str());
+    
+    ComparisonVisitor cv;
+    expandRet.first->accept(&cv);
+    pred.e1 = cv.subtrahend;
+    pred.e2 = cv.minuend; 
+    pred.id = id;
+    if (pred.e1 != AST::Ptr() && pred.e2 != AST::Ptr()) {
+        return;
+    }
+
     switch (id) {
         case e_cmp:
 	case e_sub: {	
-	    ComparisonVisitor cv;
-	    expandRet.first->accept(&cv);
-	    pred.e1 = cv.subtrahend;
-	    pred.e2 = cv.minuend; 
-	    pred.id = id;
 	    // The effect of the subtraction can only
 	    // be evaluated when there is a conditional jump
 	    // after it. Currently, we do not know anything.

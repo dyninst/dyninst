@@ -106,6 +106,7 @@ namespace Dyninst
         bool isStackPointer() const;
         bool isSyscallNumberReg() const;
         bool isSyscallReturnValueReg() const;
+	bool isFlag() const;
 
         void getROSERegister(int &c, int &n, int &p);
 
