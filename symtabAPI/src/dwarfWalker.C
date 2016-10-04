@@ -265,10 +265,6 @@ bool DwarfWalker::buildSrcFiles(Dwarf_Die entry) {
       srcFiles_.push_back(srcFileList_[i]);
       freeList.push_back(boost::shared_ptr<void>(const_cast<char*>(srcFiles_[i]), boost::bind<void>(dwarf_dealloc, dbg(), _1, DW_DLA_STRING)));
    }
-    for(int i = 0; i < srcFiles_.size(); ++i)
-    {
-        printf("srcfiles[%d] = %s\n", i, srcFiles_[i]);
-    }
    freeList.push_back(boost::shared_ptr<void>(srcFileList_, boost::bind<void>(dwarf_dealloc, dbg(), _1, DW_DLA_LIST)));
    return true;
 }
