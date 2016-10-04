@@ -605,20 +605,20 @@ int image::findMain()
         if (!eReg)
             return -1;
          
-        Address eStart = eReg->getMemOffset();
+        // Address eStart = eReg->getMemOffset();
 
         if(!foundMain)
         {
             logLine( "No main symbol found: creating symbol for main\n" );
 
             //find and add main to allsymbols
-            const unsigned char* p;
+            // const unsigned char* p;
 
-            p = (( const unsigned char * ) eReg->getPtrToRawData());
+            // p = (( const unsigned char * ) eReg->getPtrToRawData());
 
-            if (eAddr > eStart) {
-                p += (eAddr - eStart);
-            }
+            // if (eAddr > eStart) {
+                // p += (eAddr - eStart);
+            // }
 
             bool mode_64 = false;
             switch(linkedFile->getAddressWidth()) {
@@ -663,6 +663,7 @@ int image::findMain()
                         FILE__, __LINE__);
                 return -1;
             }
+
             CodeRegion* region = *regions.begin();
             assert(region);
 
@@ -672,6 +673,7 @@ int image::findMain()
             /* Get the parsed Function */
             vector<ParseAPI::Function*> funcs;
             Function* func = co.findFuncByEntry(region, entry_point);
+
             if(!func)
             {
                 startup_printf("%s[%u]: No functions found in our region.\n",
@@ -679,54 +681,108 @@ int image::findMain()
                 return -1;
             }
 
-            /* Use dataflow analysis here to determine the value of EDI */
-            const unsigned char* raw = p;
-            instruction insn;
-            insn.setInstruction(raw);
-            Address insn_addr = entry_point;
+            /* Get the call edges for this function */
+            Function::edgelist list = func->callEdges();
+            
+            /* There should be at least one edge */
+            ParseAPI::Edge* e = *list.begin();
 
-            const unsigned char *last_insn = NULL;
-            while(!insn.isCall())
+            if(!e)
             {
-                last_insn = raw;
-                raw += insn.size();
-                insn.setInstruction(raw);
-            }
-
-            if(!last_insn) /* We cannot do analysis on this */
-            {
-                startup_printf("%s[%u]: Our main analysis doesn't apply to "
-                        "this compiler.\n",
+                startup_printf("%s[%u]: Error: no call edges found for this function.\n",
                         FILE__, __LINE__);
                 return -1;
             }
 
-            /* Calculate the address of the instruction */
-            insn_addr += last_insn - p;
+            /* get the block for this call edge (source) */
+            Block* b = e->src();
+            assert(b);
 
-            /* Decode the instruction */
+            /* Get the address of the last instruction in the block (the call) */
+            Address insn_addr = b->lastInsnAddr();
+            void* insn_raw = region->getPtrToInstruction(insn_addr);
+
+            /* Make sure insn_raw is valid */
+            if(!insn_raw)
+            {
+                startup_printf("%s[%u]: Error: no instruction pointer in region.\n",
+                        FILE__, __LINE__);
+                return -1;
+            }
+
+            /* Needed to get the size of the call instruction */
+            instruction insn;
+            insn.setInstruction((const unsigned char*)insn_raw);
+
+            /* We also need the instructionAPI representation of the call instruction */
             InstructionAPI::InstructionDecoder* decoder = NULL;
             if(mode_64)
             {
                 decoder = new InstructionAPI::InstructionDecoder(
-                        last_insn, insn.size(), Dyninst::Arch_x86_64);
+                        insn_raw, insn.size(), Dyninst::Arch_x86_64);
             } else {
                 decoder = new InstructionAPI::InstructionDecoder(
-                        last_insn, insn.size(), Dyninst::Arch_x86);
+                        insn_raw, insn.size(), Dyninst::Arch_x86);
             }
-            InstructionAPI::Instruction::Ptr insn_ptr = decoder->decode(last_insn);
+
+            /* Decode just the call instruction */
+            InstructionAPI::Instruction::Ptr insn_ptr = decoder->decode(
+                    (const unsigned char*)insn_raw);
+
+            /* Use dataflow analysis here to determine the value of EDI */
+            // const unsigned char* raw = p;
+            // instruction insn;
+            // // insn.setInstruction(raw);
+            // Address insn_addr = entry_point;
+
+            // const unsigned char *last_insn = NULL;
+            // while(!insn.isCall())
+            // {
+                // last_insn = raw;
+                // raw += insn.size();
+                // insn.setInstruction(raw);
+            // }
+
+            // if(!last_insn) /* We cannot do analysis on this */
+            // {
+                // startup_printf("%s[%u]: Our main analysis doesn't apply to "
+                        // "this compiler.\n",
+                        // FILE__, __LINE__);
+                // return -1;
+            // }
+
+            /* Calculate the address of the instruction */
+            // insn_addr += last_insn - p;
+
+            /* Decode the instruction */
+            // InstructionAPI::InstructionDecoder* decoder = NULL;
+            // if(mode_64)
+            // {
+                // decoder = new InstructionAPI::InstructionDecoder(
+                        // last_insn, insn.size(), Dyninst::Arch_x86_64);
+            // } else {
+                // decoder = new InstructionAPI::InstructionDecoder(
+                        // last_insn, insn.size(), Dyninst::Arch_x86);
+            // }
+            // InstructionAPI::Instruction::Ptr insn_ptr = decoder->decode(last_insn);
 
             /* Get the block for this instruction */
-            assert(region->contains(insn_addr));
-            std::set<Block*> blocks;
-            co.findBlocks(region, insn_addr, blocks);
-            if(blocks.size() == 1)
-            {
-                startup_printf("%s[%u]: WARNING: overlapping blocks.\n",
-                        FILE__, __LINE__);
-            }
-            Block* b = *blocks.begin();
-            assert(b);
+            // assert(region->contains(insn_addr));
+            // std::set<Block*> blocks;
+            // co.findBlocks(region, insn_addr, blocks);
+            // if(blocks.size() != 1)
+            // {
+                // startup_printf("%s[%u]: WARNING: overlapping blocks.\n",
+                        // FILE__, __LINE__);
+            // }
+
+            // Block* b = *blocks.begin();
+
+            // if(!b)
+            // {
+                // startup_printf("%s[%u]: Error: no block for this code region?");
+                // return -1;
+            // }
 
             /* Let's get the assignment for this instruction. */
             std::vector<Assignment::Ptr> assignments;
@@ -738,13 +794,19 @@ int image::findMain()
 
                 std::pair<AST::Ptr, bool> res = DataflowAPI::SymEval::expand(assignment, false);
                 AST::Ptr ast = res.first;
-                FindMainVisitor fmv;
-                ast->accept(&fmv);
-                if(fmv.resolved)
+                if(!ast)
                 {
-                    mainAddress = fmv.target;
-                } else {
+                    /* expand failed */
                     mainAddress = 0x0;
+                } else { 
+                    FindMainVisitor fmv;
+                    ast->accept(&fmv);
+                    if(fmv.resolved)
+                    {
+                        mainAddress = fmv.target;
+                    } else {
+                        mainAddress = 0x0;
+                    }
                 }
             }
 #else
