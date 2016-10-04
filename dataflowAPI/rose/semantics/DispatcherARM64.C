@@ -501,11 +501,11 @@ namespace rose {
 
                         if ((EXTR (31, 31) == 1)) {
                             base =
-                                    ops->or_(ops->and_(base, ops->number_(12, 0xfff)),
+                                    ops->or_(ops->and_(base, ops->number_(64, 0xfffffffffffff000)),
                                              d->Zeros(12));
                         }
 
-                        d->write(args[0], ops->add(base, d->read(args[0])));
+                        d->write(args[0], ops->add(base, d->read(args[1])));
                     }
                 };
 
@@ -516,11 +516,11 @@ namespace rose {
 
                         if ((EXTR (31, 31) == 1)) {
                             base =
-                                    ops->or_(ops->and_(base, ops->number_(12, 0xfff)),
+                                    ops->or_(ops->and_(base, ops->number_(64, 0xfffffffffffff000)),
                                              d->Zeros(12));
                         }
 
-                        d->write(args[0], ops->add(base, d->read(args[0])));
+                        d->write(args[0], ops->add(base, d->read(args[1])));
                     }
                 };
 
@@ -606,7 +606,7 @@ namespace rose {
 
                         BaseSemantics::SValuePtr operand = d->read(args[0]);
                         d->BranchTo(ops->ite(ops->isEqual(
-                                ops->and_(ops->shiftRight(operand, d->read(args[0])), ops->number_(1, 1)),
+                                ops->and_(ops->shiftRight(operand, d->read(args[1])), ops->number_(1, 1)),
                                 ops->number_(1, EXTR (24, 24))),
                                              d->read(args[2]), d->readRegister(d->REG_PC)));
                     }
@@ -617,7 +617,7 @@ namespace rose {
 
                         BaseSemantics::SValuePtr operand = d->read(args[0]);
                         d->BranchTo(ops->ite(ops->isEqual(
-                                ops->and_(ops->shiftRight(operand, d->read(args[0])), ops->number_(1, 1)),
+                                ops->and_(ops->shiftRight(operand, d->read(args[1])), ops->number_(1, 1)),
                                 ops->number_(1, EXTR (24, 24))),
                                              d->read(args[2]), d->readRegister(d->REG_PC)));
                     }
