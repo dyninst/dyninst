@@ -729,61 +729,6 @@ int image::findMain()
             InstructionAPI::Instruction::Ptr insn_ptr = decoder->decode(
                     (const unsigned char*)insn_raw);
 
-            /* Use dataflow analysis here to determine the value of EDI */
-            // const unsigned char* raw = p;
-            // instruction insn;
-            // // insn.setInstruction(raw);
-            // Address insn_addr = entry_point;
-
-            // const unsigned char *last_insn = NULL;
-            // while(!insn.isCall())
-            // {
-                // last_insn = raw;
-                // raw += insn.size();
-                // insn.setInstruction(raw);
-            // }
-
-            // if(!last_insn) /* We cannot do analysis on this */
-            // {
-                // startup_printf("%s[%u]: Our main analysis doesn't apply to "
-                        // "this compiler.\n",
-                        // FILE__, __LINE__);
-                // return -1;
-            // }
-
-            /* Calculate the address of the instruction */
-            // insn_addr += last_insn - p;
-
-            /* Decode the instruction */
-            // InstructionAPI::InstructionDecoder* decoder = NULL;
-            // if(mode_64)
-            // {
-                // decoder = new InstructionAPI::InstructionDecoder(
-                        // last_insn, insn.size(), Dyninst::Arch_x86_64);
-            // } else {
-                // decoder = new InstructionAPI::InstructionDecoder(
-                        // last_insn, insn.size(), Dyninst::Arch_x86);
-            // }
-            // InstructionAPI::Instruction::Ptr insn_ptr = decoder->decode(last_insn);
-
-            /* Get the block for this instruction */
-            // assert(region->contains(insn_addr));
-            // std::set<Block*> blocks;
-            // co.findBlocks(region, insn_addr, blocks);
-            // if(blocks.size() != 1)
-            // {
-                // startup_printf("%s[%u]: WARNING: overlapping blocks.\n",
-                        // FILE__, __LINE__);
-            // }
-
-            // Block* b = *blocks.begin();
-
-            // if(!b)
-            // {
-                // startup_printf("%s[%u]: Error: no block for this code region?");
-                // return -1;
-            // }
-
             /* Let's get the assignment for this instruction. */
             std::vector<Assignment::Ptr> assignments;
             Dyninst::AssignmentConverter assign_convert(true, false);
