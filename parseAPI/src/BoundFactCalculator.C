@@ -458,7 +458,11 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     // In other cases, if the AbsRegion represents a register,
     // the generator is not set.
     if (ar.generator() != NULL)
-        outAST = SimplifyAnAST(RoseAST::create(ROSEOperation(ROSEOperation::derefOp, ar.size()), ar.generator()), node->assign()->insn()->size());
+        outAST = SimplifyAnAST(RoseAST::create(ROSEOperation(ROSEOperation::derefOp, ar.size()), ar.generator()), 
+	                       PCValue(node->assign()->addr(), 
+			               insn->size(), 
+				       node->assign()->block()->obj()->cs()->getArch()));
+
     else
         outAST = VariableAST::create(Variable(ar));
 /*
@@ -597,7 +601,10 @@ pair<AST::Ptr, bool> BoundFactsCalculator::ExpandAssignment(Assignment::Ptr assi
         pair<AST::Ptr, bool> expandRet = SymEval::expand(assign, false);
 	if (expandRet.second && expandRet.first) {
 	    parsing_printf("Original expand: %s\n", expandRet.first->format().c_str());
-	    AST::Ptr calculation = SimplifyAnAST(expandRet.first, assign->insn()->size());
+	    AST::Ptr calculation = SimplifyAnAST(expandRet.first, 
+	                                         PCValue(assign->addr(), 
+						         assign->insn()->size(), 
+							 assign->block()->obj()->cs()->getArch()));
 	    expandCache[assign] = calculation;
 	} else {
 	    expandCache[assign] = AST::Ptr();

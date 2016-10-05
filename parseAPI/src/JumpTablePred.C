@@ -322,6 +322,7 @@ bool JumpTablePred::FillInOutEdges(BoundValue &target,
 		    parsing_printf("Invalid memory read size %d\n", target.tableReadSize);
 		    return false;
 	    }
+	    targetAddress *= target.multiply;
 	    if (target.targetBase != 0) {
 	        if (target.isSubReadContent) 
 		    targetAddress = target.targetBase - targetAddress;
@@ -384,7 +385,10 @@ bool JumpTablePred::MatchReadAST(Assignment::Ptr a) {
     pair<AST::Ptr, bool> expandRet = ExpandAssignment(a);
     if (!expandRet.second || expandRet.first == NULL) return false;
     if (a->out().generator() == NULL) return false;
-    AST::Ptr write = SimplifyAnAST(RoseAST::create(ROSEOperation(ROSEOperation::derefOp, a->out().size()), a->out().generator()), a->insn()->size());
+    AST::Ptr write = SimplifyAnAST(RoseAST::create(ROSEOperation(ROSEOperation::derefOp, a->out().size()), a->out().generator()), 
+                                   PCValue(a->addr(),
+				           a->insn()->size(),
+					   a->block()->obj()->cs()->getArch()));
 
     if (write == NULL) return false;
     for (auto ait = readAST.begin(); ait != readAST.end(); ++ait) 
@@ -403,7 +407,10 @@ pair<AST::Ptr, bool> JumpTablePred::ExpandAssignment(Assignment::Ptr assign) {
 	if (expandRet.second && expandRet.first) {
 parsing_printf("Original expand: %s\n", expandRet.first->format().c_str());
 
-	    AST::Ptr calculation = SimplifyAnAST(expandRet.first, assign->insn()->size());
+	    AST::Ptr calculation = SimplifyAnAST(expandRet.first, 
+	                                         PCValue(assign->addr(),
+						         assign->insn()->size(),
+							 assign->block()->obj()->cs()->getArch()));
 	    expandCache[assign] = calculation;
 	} else {
 	    expandCache[assign] = AST::Ptr();

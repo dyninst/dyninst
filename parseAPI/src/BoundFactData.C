@@ -359,6 +359,7 @@ BoundValue::BoundValue(int64_t val):
         interval(val), 
 	targetBase(0), 
 	tableReadSize(0),
+	multiply(1),
 	isInverted(false),
 	isSubReadContent(false),
 	isZeroExtend(false) {}
@@ -367,6 +368,7 @@ BoundValue::BoundValue(const StridedInterval &si):
         interval(si), 
 	targetBase(0), 
 	tableReadSize(0),
+	multiply(1),
 	isInverted(false),
 	isSubReadContent(false),
 	isZeroExtend(false){}
@@ -375,6 +377,7 @@ BoundValue::BoundValue():
         interval(),
 	targetBase(0),
 	tableReadSize(0),
+	multiply(1),
 	isInverted(false),
 	isSubReadContent(false),
 	isZeroExtend(false) {}
@@ -383,6 +386,7 @@ BoundValue::BoundValue(const BoundValue & bv):
         interval(bv.interval),
 	targetBase(bv.targetBase),
 	tableReadSize(bv.tableReadSize),
+	multiply(bv.multiply),
 	isInverted(bv.isInverted),
 	isSubReadContent(bv.isSubReadContent),
 	isZeroExtend(bv.isZeroExtend)
@@ -394,6 +398,7 @@ bool BoundValue::operator == (const BoundValue &bv) const {
     return (interval == bv.interval) &&
 	   (targetBase == bv.targetBase) &&
 	   (tableReadSize == bv.tableReadSize) &&
+	   (multiply == bv.multiply) &&
 	   (isInverted == bv.isInverted) &&
 	   (isSubReadContent == bv.isSubReadContent) &&
 	   (isZeroExtend == bv.isZeroExtend);
@@ -408,6 +413,7 @@ BoundValue & BoundValue::operator = (const BoundValue &bv) {
     interval = bv.interval;
     targetBase = bv.targetBase;
     tableReadSize = bv.tableReadSize;
+    multiply = bv.multiply;
     isInverted = bv.isInverted;
     isSubReadContent = bv.isSubReadContent;
     isZeroExtend = bv.isZeroExtend;
@@ -419,6 +425,7 @@ void BoundValue::Print() {
     parsing_printf("Interval %s, ", interval.format().c_str() );
     parsing_printf("targetBase %lx, ",targetBase);
     parsing_printf("tableReadSize %d, ", tableReadSize);
+    parsing_printf("multiply %d, ", multiply);
     parsing_printf("isInverted %d, ", isInverted);
     parsing_printf("isSubReadContent %d, ", isSubReadContent);
     parsing_printf("isZeroExtend %d\n", isZeroExtend);
@@ -483,6 +490,7 @@ void BoundValue::Join(BoundValue &bv) {
     } else {
         interval.Join(bv.interval);
 	if (targetBase != bv.targetBase) targetBase = 0;
+	if (multiply != bv.multiply) multiply = 1;
 	if (isInverted != bv.isInverted) isInverted = false;
 	if (isSubReadContent != bv.isSubReadContent) isSubReadContent = false;
 	if (isZeroExtend != bv.isZeroExtend) isZeroExtend = false;
@@ -492,6 +500,7 @@ void BoundValue::Join(BoundValue &bv) {
 void BoundValue::ClearTableCheck(){
     tableReadSize = 0;
     targetBase = 0;
+    multiply = 1;
     isInverted = false;
     isSubReadContent = false;
     isZeroExtend = false;
@@ -544,6 +553,10 @@ void BoundValue::And(const BoundValue &rhs) {
 }
 
 void BoundValue::Mul(const BoundValue &rhs) { 
+    if (tableReadSize && rhs.interval.IsConst()) {    
+        multiply *= rhs.interval.low;
+	return;
+    }
     if (tableReadSize) {        
         // The memory read content can be anything
         *this = top;
@@ -558,6 +571,10 @@ void BoundValue::Mul(const BoundValue &rhs) {
 }
 
 void BoundValue::ShiftLeft(const BoundValue &rhs) {
+    if (tableReadSize && rhs.interval.IsConst()) {
+        multiply *= (1 << rhs.interval.low);
+	return;
+    }
     if (tableReadSize) {        
         // The memory read content can be anything
         *this = top;

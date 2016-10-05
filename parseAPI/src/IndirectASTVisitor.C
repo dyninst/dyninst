@@ -6,16 +6,28 @@
 
 using namespace Dyninst::ParseAPI;
 
+Address PCValue(Address cur, size_t insnSize, Architecture a) {
+    switch (a) {
+        case Arch_x86:
+	case Arch_x86_64:
+	    return cur + insnSize;
+	case Arch_aarch64:{
+	    return cur;
+	}
+    }    
+    return cur + insnSize;
+}
+
 AST::Ptr SimplifyVisitor::visit(DataflowAPI::RoseAST *ast) {
         unsigned totalChildren = ast->numChildren();
 	for (unsigned i = 0 ; i < totalChildren; ++i) {
 	    ast->child(i)->accept(this);
-	    ast->setChild(i, SimplifyRoot(ast->child(i), size));
+	    ast->setChild(i, SimplifyRoot(ast->child(i), addr));
 	}
 	return AST::Ptr();
 }
 
-AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t insnSize) {
+AST::Ptr SimplifyRoot(AST::Ptr ast, Address addr) {
     if (ast->getID() == AST::V_RoseAST) {
         RoseAST::Ptr roseAST = boost::static_pointer_cast<RoseAST>(ast); 
 	
@@ -120,6 +132,20 @@ AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t insnSize) {
 		    return ConstantAST::create(Constant(child0->val().val << child1->val().val, 64));
 		}
 		break;
+	    case ROSEOperation::andOp:
+	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    return ConstantAST::create(Constant(child0->val().val & child1->val().val, 64));
+		}
+		break;
+	    case ROSEOperation::orOp:
+	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    return ConstantAST::create(Constant(child0->val().val | child1->val().val, 64));
+		}
+		break;
 
 	    default:
 	        break;
@@ -128,8 +154,8 @@ AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t insnSize) {
     } else if (ast->getID() == AST::V_VariableAST) {
         VariableAST::Ptr varAST = boost::static_pointer_cast<VariableAST>(ast);
 	if (varAST->val().reg.absloc().isPC()) {
-	    MachRegister pc = varAST->val().reg.absloc().reg();
-	    return ConstantAST::create(Constant(varAST->val().addr + insnSize, getArchAddressWidth(pc.getArchitecture()) * 8));
+	    MachRegister pc = varAST->val().reg.absloc().reg();	    
+	    return ConstantAST::create(Constant(addr, getArchAddressWidth(pc.getArchitecture()) * 8));
 	}
 	// We do not care about the address of the a-loc
 	// because we will keep tracking the changes of 
@@ -150,10 +176,10 @@ AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t insnSize) {
 }
 
 
-AST::Ptr SimplifyAnAST(AST::Ptr ast, uint64_t size) {
-    SimplifyVisitor sv(size);
+AST::Ptr SimplifyAnAST(AST::Ptr ast, Address addr) {
+    SimplifyVisitor sv(addr);
     ast->accept(&sv);
-    return SimplifyRoot(ast, size);
+    return SimplifyRoot(ast, addr);
 }
 
 AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {

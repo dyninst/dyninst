@@ -80,6 +80,7 @@ struct BoundValue {
     // If tableReadSize == 0, this does not represent a memory access
     // Otherwise, tableReadSize reprenents the number bytes of the access
     int tableReadSize;
+    int multiply;
     bool isInverted;
     bool isSubReadContent;
     bool isZeroExtend;
