@@ -870,6 +870,30 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                    }
                }
                    break;
+               case aarch64::FPR: {
+                   c = armv8_regclass_simd_fpr;
+
+                   int firstRegId;
+                   switch(reg & 0xFF00) {
+                       case aarch64::Q_REG: firstRegId = (aarch64::q0 & 0xFF);
+                           break;
+                       case aarch64::HQ_REG: firstRegId = (aarch64::hq0 & 0xFF);
+                           p = 64;
+                           break;
+                       case aarch64::FULL: firstRegId = (aarch64::d0 & 0xFF);
+                           break;
+                       case aarch64::D_REG: firstRegId = (aarch64::s0 & 0xFF);
+                           break;
+                       case aarch64::W_REG: firstRegId = (aarch64::h0 & 0xFF);
+                           break;
+                       case aarch64::B_REG: firstRegId = (aarch64::b0 & 0xFF);
+                           break;
+                       default:assert(!"invalid register subcategory for ARM64!");
+                           break;
+                   }
+                   n = armv8_simdfpr_v0 + (baseID - firstRegId);
+               }
+                   break;
                case aarch64::FLAG: {
                    c = armv8_regclass_pstate;
                    n = 0;
