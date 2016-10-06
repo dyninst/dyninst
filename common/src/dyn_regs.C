@@ -851,23 +851,46 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
            switch (category) {
                case aarch64::GPR: {
                    c = armv8_regclass_gpr;
-                   if (baseID == (aarch64::zr & 0xFF) || baseID == (aarch64::wzr & 0xFF))
-                       n = armv8_gpr_zr;
-                   else {
-                       int regnum = baseID - (aarch64::x0 & 0xFF);
-                       n = armv8_gpr_r0 + regnum;
-                   }
+                   int regnum = baseID - (aarch64::x0 & 0xFF);
+                   n = armv8_gpr_r0 + regnum;
                }
                    break;
                case aarch64::SPR: {
                    n = 0;
                    if (baseID == (aarch64::pstate & 0xFF)) {
                        c = armv8_regclass_pstate;
+                   } else if(baseID == (aarch64::zr & 0xFF) || baseID == (aarch64::wzr & 0xFF)) {
+                       c = armv8_regclass_gpr;
+                       n = armv8_gpr_zr;
                    } else if (baseID == (aarch64::pc & 0xFF)) {
                        c = armv8_regclass_pc;
                    } else if (baseID == (aarch64::sp & 0xFF) || baseID == (aarch64::wsp & 0xFF)) {
                        c = armv8_regclass_sp;
                    }
+               }
+                   break;
+               case aarch64::FPR: {
+                   c = armv8_regclass_simd_fpr;
+
+                   int firstRegId;
+                   switch(reg & 0xFF00) {
+                       case aarch64::Q_REG: firstRegId = (aarch64::q0 & 0xFF);
+                           break;
+                       case aarch64::HQ_REG: firstRegId = (aarch64::hq0 & 0xFF);
+                           p = 64;
+                           break;
+                       case aarch64::FULL: firstRegId = (aarch64::d0 & 0xFF);
+                           break;
+                       case aarch64::D_REG: firstRegId = (aarch64::s0 & 0xFF);
+                           break;
+                       case aarch64::W_REG: firstRegId = (aarch64::h0 & 0xFF);
+                           break;
+                       case aarch64::B_REG: firstRegId = (aarch64::b0 & 0xFF);
+                           break;
+                       default:assert(!"invalid register subcategory for ARM64!");
+                           break;
+                   }
+                   n = armv8_simdfpr_v0 + (baseID - firstRegId);
                }
                    break;
                case aarch64::FLAG: {

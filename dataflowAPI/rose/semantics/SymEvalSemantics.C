@@ -53,11 +53,7 @@ void SymEvalSemantics::StateARM64::writeMemory(const BaseSemantics::SValuePtr &a
 
 BaseSemantics::SValuePtr SymEvalSemantics::RegisterStateARM64::readRegister(const RegisterDescriptor &reg,
                                                                             Dyninst::Address addr) {
-    if(reg.get_major() != armv8_regclass_simd_fpr) {
-        return SymEvalSemantics::SValue::instance(wrap(convert(reg), addr));
-    } else {
-        ASSERT_not_implemented("readRegister not yet implemented for categories other than GPR");
-    }
+    return SymEvalSemantics::SValue::instance(wrap(convert(reg), addr));
 }
 
 BaseSemantics::SValuePtr SymEvalSemantics::RegisterStateARM64::readRegister(const RegisterDescriptor &reg,
@@ -70,14 +66,10 @@ void SymEvalSemantics::RegisterStateARM64::writeRegister(const RegisterDescripto
                                                          const BaseSemantics::SValuePtr &value,
                                                          Dyninst::DataflowAPI::Result_t &res,
                                                          std::map<Dyninst::Absloc, Dyninst::Assignment::Ptr> &aaMap) {
-    if(reg.get_major() != armv8_regclass_simd_fpr) {
-        std::map<Dyninst::Absloc, Dyninst::Assignment::Ptr>::iterator i = aaMap.find(convert(reg));
-        if (i != aaMap.end()) {
-            SymEvalSemantics::SValuePtr value_ = SymEvalSemantics::SValue::promote(value);
-            res[i->second] = value_->get_expression();
-        }
-    } else {
-        ASSERT_not_implemented("writeRegister not yet implemented for categories other than GPR");
+    std::map<Dyninst::Absloc, Dyninst::Assignment::Ptr>::iterator i = aaMap.find(convert(reg));
+    if (i != aaMap.end()) {
+        SymEvalSemantics::SValuePtr value_ = SymEvalSemantics::SValue::promote(value);
+        res[i->second] = value_->get_expression();
     }
 }
 
@@ -103,6 +95,32 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateARM64::convert(const RegisterDesc
                 Dyninst::MachRegister base = (size == 32) ? Dyninst::aarch64::w0 : Dyninst::aarch64::x0;
                 mreg = Dyninst::MachRegister(base.val() + (minor - armv8_gpr_r0));
             }
+        }
+            break;
+        case armv8_regclass_simd_fpr: {
+            Dyninst::MachRegister base;
+            unsigned int minor = reg.get_minor();
+
+            switch(size) {
+                case 8: base = Dyninst::aarch64::b0;
+                    break;
+                case 16: base = Dyninst::aarch64::h0;
+                    break;
+                case 32: base = Dyninst::aarch64::s0;
+                    break;
+                case 64:
+                    if (reg.get_offset() == 64) {
+                        base = Dyninst::aarch64::hq0;
+                    } else {
+                        base = Dyninst::aarch64::d0;
+                    }
+                    break;
+                case 128: base = Dyninst::aarch64::q0;
+                    break;
+                default:assert(!"invalid size of RegisterDescriptor!");
+                    break;
+            }
+            mreg = Dyninst::MachRegister(base.val() + (minor - armv8_simdfpr_v0));
         }
             break;
         case armv8_regclass_pc:

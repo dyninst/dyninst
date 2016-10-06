@@ -648,31 +648,58 @@ RegisterDictionary::print(std::ostream &o) const {
 const RegisterDictionary *
 RegisterDictionary::dictionary_armv8() {
     static RegisterDictionary *regs = NULL;
-    if(!regs) {
+    if (!regs) {
         regs = new RegisterDictionary("armv8");
 
-	/* All 60 variations (32- and 64-bit) of the 32 general purpose registers  */
-        for(unsigned idx = 0; idx < 31; idx++) {
-            regs->insert("x"+StringUtility::numberToString(idx), armv8_regclass_gpr, armv8_gpr_r0 + idx, 0, 64);
-            regs->insert("w"+StringUtility::numberToString(idx), armv8_regclass_gpr, armv8_gpr_r0 + idx, 0, 32);
+        /* All 60 variations (32- and 64-bit) of the 32 general purpose registers  */
+        for (unsigned idx = 0; idx < 31; idx++) {
+            regs->insert("x" + StringUtility::numberToString(idx), armv8_regclass_gpr, armv8_gpr_r0 + idx, 0, 64);
+            regs->insert("w" + StringUtility::numberToString(idx), armv8_regclass_gpr, armv8_gpr_r0 + idx, 0, 32);
         }
 
-    /* 32-bit section of the stack pointer register */
-    regs->insert("wsp", armv8_regclass_sp, 0, 0, 32);
-    /* Complete stack pointer regiser */
-    regs->insert("sp", armv8_regclass_sp, 0, 0, 64);
+        /* We have 32 SIMD/FP registers V0 - V31. In ARMv8-A, all of these are 128 bits wide.
+         * Not considering those instructions that treat each of these registers as an array of fixed-length units,
+         * each SIMD/FP register is divided can be accessed as the following:
+         * - A 128-bit register (Q0 - Q31)
+         * - A 64-bit register with its LSB being bit 0 of the register (D0 - D31)
+         * - A 64-bit register with its LDB being bit 64 of the register (HQ0 - HQ31)
+         * - A 32-bit register (S0 - S31)
+         * - A 16-bit register (H0 - H31)
+         * - An 8-bit register (B0 - B31) */
+        for(unsigned idx = 0; idx < 32; idx++) {
+            /* 128-bit parts of V0 - V31 */
+            regs->insert("q" + StringUtility::numberToString(idx), armv8_regclass_simd_fpr, armv8_simdfpr_v0 + idx, 0, 128);
 
-	/* 64-bit program counter register */
-    regs->insert("pc", armv8_regclass_pc, 0, 0, 64);
+            /* 64-bit parts of V0 - V31 */
+            regs->insert("d" + StringUtility::numberToString(idx), armv8_regclass_simd_fpr, armv8_simdfpr_v0 + idx, 0, 64);
+            regs->insert("hq" + StringUtility::numberToString(idx), armv8_regclass_simd_fpr, armv8_simdfpr_v0 + idx, 64, 64);
 
-	/* 32-bit pstate register and the four relevant flags.*/
-    /* Each flag is added as a separate register for individual access. Only allowed minor is 0 (since there is only one pstate register);
-     * the different offsets indicate the positions of the flags within the pstate register. */
-    regs->insert("pstate", armv8_regclass_pstate, 0, armv8_pstatefield_pstate, 32);
-    regs->insert("n", armv8_regclass_pstate, 0, armv8_pstatefield_n, 1);
-    regs->insert("z", armv8_regclass_pstate, 0, armv8_pstatefield_z, 1);
-    regs->insert("c", armv8_regclass_pstate, 0, armv8_pstatefield_c, 1);
-    regs->insert("v", armv8_regclass_pstate, 0, armv8_pstatefield_v, 1);
+            /* 32-bit parts of V0 - V31 */
+            regs->insert("s" + StringUtility::numberToString(idx), armv8_regclass_simd_fpr, armv8_simdfpr_v0 + idx, 0, 32);
+
+            /* 16-bit parts of V0 - V31 */
+            regs->insert("h" + StringUtility::numberToString(idx), armv8_regclass_simd_fpr, armv8_simdfpr_v0 + idx, 0, 16);
+
+            /* 8-bit parts of V0 - V31 */
+            regs->insert("b" + StringUtility::numberToString(idx), armv8_regclass_simd_fpr, armv8_simdfpr_v0 + idx, 0, 8);
+        }
+
+        /* 32-bit section of the stack pointer register */
+        regs->insert("wsp", armv8_regclass_sp, 0, 0, 32);
+        /* Complete stack pointer regiser */
+        regs->insert("sp", armv8_regclass_sp, 0, 0, 64);
+
+        /* 64-bit program counter register */
+        regs->insert("pc", armv8_regclass_pc, 0, 0, 64);
+
+        /* 32-bit pstate register and the four relevant flags.*/
+        /* Each flag is added as a separate register for individual access. Only allowed minor is 0 (since there is only one pstate register);
+         * the different offsets indicate the positions of the flags within the pstate register. */
+        regs->insert("pstate", armv8_regclass_pstate, 0, armv8_pstatefield_pstate, 32);
+        regs->insert("n", armv8_regclass_pstate, 0, armv8_pstatefield_n, 1);
+        regs->insert("z", armv8_regclass_pstate, 0, armv8_pstatefield_z, 1);
+        regs->insert("c", armv8_regclass_pstate, 0, armv8_pstatefield_c, 1);
+        regs->insert("v", armv8_regclass_pstate, 0, armv8_pstatefield_v, 1);
     }
     return regs;
 }

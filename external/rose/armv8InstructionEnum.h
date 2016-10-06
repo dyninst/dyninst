@@ -50,6 +50,42 @@ enum ARMv8GeneralPurposeRegister {
     armv8_gpr_zr
 };
 
+/** ARMv8-A SIMD & FP registers */
+enum ARMv8SimdFpRegister {
+    armv8_simdfpr_v0,
+    armv8_simdfpr_v1,
+    armv8_simdfpr_v2,
+    armv8_simdfpr_v3,
+    armv8_simdfpr_v4,
+    armv8_simdfpr_v5,
+    armv8_simdfpr_v6,
+    armv8_simdfpr_v7,
+    armv8_simdfpr_v8,
+    armv8_simdfpr_v9,
+    armv8_simdfpr_v10,
+    armv8_simdfpr_v11,
+    armv8_simdfpr_v12,
+    armv8_simdfpr_v13,
+    armv8_simdfpr_v14,
+    armv8_simdfpr_v15,
+    armv8_simdfpr_v16,
+    armv8_simdfpr_v17,
+    armv8_simdfpr_v18,
+    armv8_simdfpr_v19,
+    armv8_simdfpr_v20,
+    armv8_simdfpr_v21,
+    armv8_simdfpr_v22,
+    armv8_simdfpr_v23,
+    armv8_simdfpr_v24,
+    armv8_simdfpr_v25,
+    armv8_simdfpr_v26,
+    armv8_simdfpr_v27,
+    armv8_simdfpr_v28,
+    armv8_simdfpr_v29,
+    armv8_simdfpr_v30,
+    armv8_simdfpr_v31
+};
+
 /** ARMv8-A fields of the Pstate register */
 enum ARMv8PstateFields {
     armv8_pstatefield_pstate        =   0,      /* The entire 32-bit pstate register */
