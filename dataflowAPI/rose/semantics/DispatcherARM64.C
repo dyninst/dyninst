@@ -1965,6 +1965,13 @@ namespace rose {
                     }
                 };
 
+		struct IP_fmov_float_gen_execute : P {
+		    void p(D d, Ops ops, I insn, A args, B raw) {
+			BaseSemantics::SValuePtr srcVal = d->read(args[1]);
+			d->write(args[0], srcVal);
+		    }
+		};
+
 
             } // namespace
 
@@ -2027,6 +2034,8 @@ namespace rose {
                 iproc_set (rose_aarch64_op_strh_reg, new ARM64::IP_strh_reg_execute);
                 iproc_set (rose_aarch64_op_ldr_lit_gen, new ARM64::IP_ldr_lit_gen_execute);
                 iproc_set (rose_aarch64_op_ldrsw_lit, new ARM64::IP_ldrsw_lit_execute);
+
+		iproc_set (rose_aarch64_op_fmov_float_gen, new ARM64::IP_fmov_float_gen_execute);
             }
 
             void
