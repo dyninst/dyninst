@@ -2295,12 +2295,6 @@ SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement::Ptr> &lines, Of
             LineInformation* li = (*i)->parseLineInformation();
         }
         did_full_parse = true;
-        for(auto j = mod_lookup()->begin();
-                j != mod_lookup()->end();
-                ++j)
-        {
-            cout << (**j) << endl;
-        }
     }
 
 

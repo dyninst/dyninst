@@ -677,7 +677,7 @@ pair<AddressRange, bool> DwarfWalker::parseHighPCLowPC(Dwarf_Debug dbg, Dwarf_Di
    if (!findConstant(DW_AT_low_pc, low, entry, dbg)) return result;
    if (!findConstant(DW_AT_high_pc, high, entry, dbg)) return result;
    Dwarf_Half form;
-   DWARF_FAIL_RET(dwarf_whatform(hasHigh, &form, NULL));
+   if(dwarf_whatform(hasHigh, &form, NULL) != DW_DLV_OK) return result;
 
    if(form != DW_FORM_addr)
    {
@@ -738,8 +738,6 @@ vector<AddressRange> DwarfWalker::getDieRanges(Dwarf_Debug dbg, Dwarf_Die die, O
           }
           dwarf_ranges_dealloc(dbg, ranges, ranges_length);
       }
-
-   }
     return newRanges;
 }
 
@@ -1298,8 +1296,7 @@ bool DwarfWalker::parseTypeReferences() {
          return false;
    }
 
-       assert( indirectType != NULL );
-   }
+   assert( indirectType != NULL );
    return true;
 }
 

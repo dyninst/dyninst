@@ -91,6 +91,11 @@ namespace Dyninst {
             }
 
         };
+        inline std::ostream& operator<<(std::ostream& os, AddressRange ar)
+        {
+            os << std::hex << "[" << ar.first << ", " << ar.second << ")";
+            return os;
+        }
         template <typename Value>
         struct RangeLookupTypes
         {
