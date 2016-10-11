@@ -252,8 +252,8 @@ bool JumpTablePred::FillInOutEdges(BoundValue &target,
     outEdges.clear();
     Address tableBase = target.interval.low;
     Address tableLastEntry = target.interval.high;
-    Architecture arch = block->obj()->cs()->getArch();
-    if (arch == Arch_x86) {
+    int addressWidth = block->obj()->cs()->getAddressWidth();
+    if (addressWidth == 4) {
         tableBase &= 0xffffffff;
 	tableLastEntry &= 0xffffffff;
     }
@@ -291,17 +291,17 @@ bool JumpTablePred::FillInOutEdges(BoundValue &target,
 		case 4:
 		    targetAddress = *(const uint32_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
 		    if (target.isZeroExtend) break;
-		    if ((arch == Arch_x86_64) && (targetAddress & 0x80000000)) {
+		    if ((addressWidth == 8) && (targetAddress & 0x80000000)) {
 		        targetAddress |= SIGNEX_64_32;
 		    }
 		    break;
 		case 2:
 		    targetAddress = *(const uint16_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
 		    if (target.isZeroExtend) break;
-		    if ((arch == Arch_x86_64) && (targetAddress & 0x8000)) {
+		    if ((addressWidth == 8) && (targetAddress & 0x8000)) {
 		        targetAddress |= SIGNEX_64_16;
 		    }
-		    if ((arch == Arch_x86) && (targetAddress & 0x8000)) {
+		    if ((addressWidth == 4) && (targetAddress & 0x8000)) {
 		        targetAddress |= SIGNEX_32_16;
 		    }
 
@@ -309,10 +309,10 @@ bool JumpTablePred::FillInOutEdges(BoundValue &target,
 		case 1:
 		    targetAddress = *(const uint8_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
 		    if (target.isZeroExtend) break;
-		    if ((arch == Arch_x86_64) && (targetAddress & 0x80)) {
+		    if ((addressWidth == 8) && (targetAddress & 0x80)) {
 		        targetAddress |= SIGNEX_64_8;
 		    }
-		    if ((arch == Arch_x86) && (targetAddress & 0x80)) {
+		    if ((addressWidth == 4) && (targetAddress & 0x80)) {
 		        targetAddress |= SIGNEX_32_8;
 		    }
 
@@ -335,7 +335,7 @@ bool JumpTablePred::FillInOutEdges(BoundValue &target,
 #endif
 	} else targetAddress = tableEntry;
 
-	if (block->obj()->cs()->getArch() == Arch_x86) targetAddress &= 0xffffffff;
+	if (addressWidth == 4) targetAddress &= 0xffffffff;
 	parsing_printf("Jumping to target %lx,", targetAddress);
 	if (block->obj()->cs()->isCode(targetAddress)) {
 	    outEdges.push_back(make_pair(targetAddress, INDIRECT));

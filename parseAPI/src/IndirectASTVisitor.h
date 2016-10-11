@@ -16,6 +16,7 @@ AST::Ptr SimplifyRoot(AST::Ptr ast, Address addr);
 AST::Ptr SimplifyAnAST(AST::Ptr ast, Address addr);
 AST::Ptr SubstituteAnAST(AST::Ptr ast, const BoundFact::AliasMap &aliasMap);
 AST::Ptr DeepCopyAnAST(AST::Ptr ast);
+bool ContainAnAST(AST::Ptr root, AST::Ptr check);
 
 // On x86 and x86-64, the value of PC is post-instruction, 
 // which is the current address plus the length of the instruction.

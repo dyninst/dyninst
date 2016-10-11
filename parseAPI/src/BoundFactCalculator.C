@@ -542,7 +542,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     // Now try to track all aliasing.
     // Currently, all variables in the slice are presented as an AST
     // consists of input variables to the slice (the variables that
-    // we do not the sources of their values).
+    // we do not know the sources of their values).
     newFact->TrackAlias(DeepCopyAnAST(calculation), outAST, findBound);
 
     // Apply tracking relations to the calculation to generate a

@@ -401,6 +401,16 @@ AST::Ptr SubstituteAnAST(AST::Ptr ast, const BoundFact::AliasMap &aliasMap) {
 
 }
 
+bool ContainAnAST(AST::Ptr root, AST::Ptr check) {
+    if (*root == *check) return true;
+    bool ret = false;
+    unsigned totalChildren = root->numChildren();
+    for (unsigned i = 0 ; i < totalChildren && !ret; ++i) {
+        ret |= ContainAnAST(root->child(i), check);
+    }
+    return ret;
+}
+
 
 AST::Ptr DeepCopyAnAST(AST::Ptr ast) {
     if (ast->getID() == AST::V_RoseAST) {

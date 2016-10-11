@@ -975,6 +975,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		}
 		break;
 	    }
+	    case aarch64_op_b_cond:
 	    case e_jbe: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
@@ -1539,8 +1540,19 @@ AST::Ptr BoundFact::GetAlias(const AST::Ptr ast) {
 }
 
 void BoundFact::TrackAlias(AST::Ptr expr, AST::Ptr outAST, bool findBound) {
+    // This definition should kill all existing aliases
+    // involving outAST, as outAST is assigned to a new value
+    parsing_printf("\tTracking alias for %s = %s\n", outAST->format().c_str(), expr->format().c_str());
+    for (auto ait = aliasMap.begin(); ait != aliasMap.end(); ) {
+        if (ContainAnAST(ait->second , outAST)) {
+	    auto e = ait;
+	    ++ait;
+	    aliasMap.erase(e);
+	} else ++ait;
+    }
+
     expr = SubstituteAnAST(expr, aliasMap);
-    bool find = false;
+    bool find = false;    
     for (auto ait = aliasMap.begin(); ait != aliasMap.end(); ++ait) {
         if (*(ait->first) == *outAST) {
 	    ait->second = expr;
