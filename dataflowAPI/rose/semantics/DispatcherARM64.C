@@ -1966,11 +1966,11 @@ namespace rose {
                 };
 
 		struct IP_fmov_float_gen_execute : P {
-		    void p(D d, Ops ops, I insn, A args, B raw) {
+                   void p(D d, Ops ops, I insn, A args, B raw) {
 			BaseSemantics::SValuePtr srcVal = d->read(args[1]);
 			d->write(args[0], srcVal);
-		    }
-		};
+	            }
+	        };
 
 
             } // namespace
@@ -2034,7 +2034,6 @@ namespace rose {
                 iproc_set (rose_aarch64_op_strh_reg, new ARM64::IP_strh_reg_execute);
                 iproc_set (rose_aarch64_op_ldr_lit_gen, new ARM64::IP_ldr_lit_gen_execute);
                 iproc_set (rose_aarch64_op_ldrsw_lit, new ARM64::IP_ldrsw_lit_execute);
-
 		iproc_set (rose_aarch64_op_fmov_float_gen, new ARM64::IP_fmov_float_gen_execute);
             }
 
@@ -2147,43 +2146,48 @@ namespace rose {
 
             BaseSemantics::SValuePtr
             DispatcherARM64::ConditionHolds(const BaseSemantics::SValuePtr &cond) {
-                BaseSemantics::SValuePtr baseCond = operators->extract(cond, 1, 4);
+                Dyninst::AST::Ptr condExpr = SymEvalSemantics::SValue::promote(cond)->get_expression();
+                Dyninst::DataflowAPI::ConstantAST *constAST = dynamic_cast<Dyninst::DataflowAPI::ConstantAST *>(condExpr.get());
+                Dyninst::DataflowAPI::Constant constVal = constAST->val();
+                uint64_t condVal = constVal.val;
+
                 BaseSemantics::SValuePtr nVal = readRegister(REG_N);
                 BaseSemantics::SValuePtr zVal = readRegister(REG_Z);
                 BaseSemantics::SValuePtr cVal = readRegister(REG_C);
                 BaseSemantics::SValuePtr vVal = readRegister(REG_V);
-                BaseSemantics::SValuePtr result;
+                BaseSemantics::SValuePtr result = operators->unspecified_(1);
 
-                if (operators->isEqual(baseCond, operators->number_(3, 0)))
-                    result = operators->isEqual(zVal, operators->number_(1, 1));
-                if (operators->isEqual(baseCond, operators->number_(3, 1)))
-                    result = operators->isEqual(cVal, operators->number_(1, 1));
-                if (operators->isEqual(baseCond, operators->number_(3, 2)))
-                    result = operators->isEqual(nVal, operators->number_(1, 1));
-                if (operators->isEqual(baseCond, operators->number_(3, 3)))
-                    result = operators->isEqual(vVal, operators->number_(1, 1));
-                if (operators->isEqual(baseCond, operators->number_(3, 4)))
-                    result = operators->ite(
-                            operators->isEqual(cVal, operators->number_(1, 1)),
-                            operators->ite(
-                                    operators->isEqual(zVal, operators->number_(1, 0)),
-                                    operators->boolean_(true), operators->boolean_(false)),
-                            operators->boolean_(false));
-                if (operators->isEqual(baseCond, operators->number_(3, 5)))
-                    result = operators->isEqual(nVal, vVal);
-                if (operators->isEqual(baseCond, operators->number_(3, 6)))
-                    result = operators->ite(operators->isEqual(nVal, vVal),
-                                            operators->ite(operators->isEqual(zVal,
-                                                                              operators->number_(1, 0)),
-                                                           operators->boolean_(true), operators->boolean_(false)),
-                                            operators->boolean_(false));
-                if (operators->isEqual(baseCond, operators->number_(3, 7)))
-                    result = operators->boolean_(true);
+                switch(((condVal & 0xF) >> 1)) {
+                    case 0: result = operators->isEqual(zVal, operators->number_(1, 1));
+                        break;
+                    case 1: result = operators->isEqual(cVal, operators->number_(1, 1));
+                        break;
+                    case 2: result = operators->isEqual(nVal, operators->number_(1, 1));
+                        break;
+                    case 3: result = operators->isEqual(vVal, operators->number_(1, 1));
+                        break;
+                    case 4: result = operators->ite(operators->isEqual(cVal, operators->number_(1, 1)),
+                                                    operators->ite(
+                                                            operators->isEqual(zVal, operators->number_(1, 0)),
+                                                            operators->boolean_(true), operators->boolean_(false)),
+                                                    operators->boolean_(false));
+                    case 5: result = operators->isEqual(nVal, vVal);
+                        break;
+                    case 6: result = operators->ite(operators->isEqual(nVal, vVal),
+                                                    operators->ite(operators->isEqual(zVal,
+                                                                                      operators->number_(1, 0)),
+                                                                   operators->boolean_(true),
+                                                                   operators->boolean_(false)),
+                                                    operators->boolean_(false));
+                        break;
+                    case 7: result = operators->boolean_(true);
+                        break;
+                    default: assert(!"invalid 3-bit value!");
+                        break;
+                }
 
-                result = operators->ite(
-                        operators->isEqual(operators->extract(baseCond, 0, 1), operators->number_(1, 1)),
-                        operators->ite(operators->isNotEqual(baseCond, operators->number_(4, 0xF)),
-                                       operators->invert(result), result), result);
+                if((condVal & 0x1) == 1 && (condVal & 0xF) != 0xF)
+                    result = operators->invert(result);
 
                 return result;
             }
