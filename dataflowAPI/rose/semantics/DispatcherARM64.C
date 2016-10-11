@@ -1318,6 +1318,7 @@ namespace rose {
                             }
                                 break;
                             case MemOp_LOAD: {
+						 fprintf(stderr, "xxx %d %d\n", 0x8 << EXTR(30, 31), EXTR(30, 31));
                                 data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
                                 if ((EXTR(23, 23) == 1)) {
@@ -2148,6 +2149,8 @@ namespace rose {
             DispatcherARM64::ConditionHolds(const BaseSemantics::SValuePtr &cond) {
                 Dyninst::AST::Ptr condExpr = SymEvalSemantics::SValue::promote(cond)->get_expression();
                 Dyninst::DataflowAPI::ConstantAST *constAST = dynamic_cast<Dyninst::DataflowAPI::ConstantAST *>(condExpr.get());
+
+		ASSERT_not_null(constAST);
                 Dyninst::DataflowAPI::Constant constVal = constAST->val();
                 uint64_t condVal = constVal.val;
 
@@ -2229,7 +2232,7 @@ namespace rose {
                     else
                         return 32;
                 } else {
-                    if(IntegerOps::extract2<uint32_t>(122, 22, raw) == 1)
+                    if(IntegerOps::extract2<uint32_t>(22, 22, raw) == 1)
                         return 32;
                     else
                         return 64;
