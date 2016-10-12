@@ -259,6 +259,8 @@ class DYNELF_EXPORT Elf_X_Data {
     size_t d_size() const;
     off_t d_off() const;
     size_t d_align() const;
+    void xlatetom(unsigned int encode);
+    void xlatetof(unsigned int encode);
 
     // Write Interface
     void d_buf(void *input);
