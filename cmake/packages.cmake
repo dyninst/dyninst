@@ -136,7 +136,7 @@ if(NOT Boost_FOUND)
     set(BOOST_BUILD b2.exe)
   else()
     set(BOOST_BOOTSTRAP "./bootstrap.sh")
-    set(BOOST_BUILD b2)
+    set(BOOST_BUILD "./b2")
   endif()
 
   message(STATUS "No boost found, attempting to build as external project")
