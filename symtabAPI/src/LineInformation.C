@@ -104,7 +104,8 @@ bool LineInformation::getSourceLines(Offset addressInRange,
                                      vector<Statement_t> &lines)
 {
     ++num_queries;
-    const_iterator start_addr_valid = project<Statement::addr_range>(get<Statement::upper_bound>().lower_bound(addressInRange ));
+//    const_iterator start_addr_valid = project<Statement::addr_range>(get<Statement::upper_bound>().lower_bound(addressInRange ));
+    const_iterator start_addr_valid = impl_t::lower_bound(std::make_tuple(0, addressInRange));
     const_iterator end_addr_valid = impl_t::upper_bound(addressInRange );
     while(start_addr_valid != end_addr_valid)
     {

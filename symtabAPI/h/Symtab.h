@@ -85,9 +85,8 @@ class relocationEntry;
 class Type;
 class FunctionBase;
 class FuncRange;
-class ModRange;
 
-typedef IntervalLookup< ModRange > ModRangeLookup;
+typedef IBSTree< ModRange > ModRangeLookup;
 typedef IBSTree<FuncRange> FuncRangeLookup;
 typedef Dyninst::ProcessReader MemRegReader;
 

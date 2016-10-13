@@ -4392,6 +4392,12 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         if ( status != DW_DLV_OK ) {
             continue;
         }
+        Dwarf_Bool isStatement;
+        status = dwarf_linebeginstatement(lineBuffer[i], &isStatement, NULL);
+        if(status != DW_DLV_OK) {
+            continue;
+        }
+
         if ( isPreviousValid )
         {
             /* If we're talking about the same (source file, line number) tuple,
@@ -4410,6 +4416,12 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 
             if (startAddrToUse && endAddrToUse)
             {
+                if(startAddrToUse ==  (Dyninst::Offset)(-1) || endAddrToUse == (Dyninst::Offset)(-1)) {
+                    cout << "Suspicious line info range: [" << hex << startAddrToUse << ", " << endAddrToUse << ")\n";
+                }
+                if(startAddrToUse ==  (Dyninst::Offset)(1) || endAddrToUse == (Dyninst::Offset)(1)) {
+                    cout << "Suspicious line info range: [" << hex << startAddrToUse << ", " << endAddrToUse << ")\n";
+                }
                 if(startAddrToUse != endAddrToUse)
                 {
                     // string table entry.
@@ -4435,15 +4447,18 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         // only one has an end marker. Carry through in that case.
         if ( isEndOfSequence )
         {
-            isPreviousValid = (lineAddr == previousLineAddr) ;
+            isPreviousValid = false; //(lineAddr == previousLineAddr) ;
         }
         else {
-            previousLineNo = lineNo;
-            previousLineSource = lineSource;
-            previousLineAddr = lineAddr;
-            previousLineColumn = lineOff;
+            if(isStatement)
+            {
+                isPreviousValid = true; //((previousLineNo != lineNo) && (previousLineSource != lineSource));
+                previousLineNo = lineNo;
+                previousLineSource = lineSource;
+                previousLineAddr = lineAddr;
+                previousLineColumn = lineOff;
+            }
 
-            isPreviousValid = true;
         } /* end if line was not the end of a sequence */
     } /* end iteration over source line entries. */
 

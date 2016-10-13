@@ -82,44 +82,33 @@ namespace IBS {
 typedef enum { TREE_RED, TREE_BLACK } color_t;
 };
 
-template<class T = unsigned long>
-class interval {
+
+template <typename T = int, typename U = void*>
+class SimpleInterval
+{
   public:
-    interval() { }
-    virtual ~interval() { }
-
-    virtual T low() const = 0;
-    virtual T high() const = 0;
-
     typedef T type;
-};
-
-class SimpleInterval : public interval<int> {
-  public:
-    SimpleInterval( interval<int> & i, void * id ) {
-        low_ = i.low();
-        high_ = i.high();
-        id_ = id;
-    }
-    SimpleInterval(int low, int high, void * id) {
+    SimpleInterval(T low, T high, U id) {
         low_ = low;
         high_ = high;
         id_ = id;
     }
+    SimpleInterval() {}
+    virtual ~SimpleInterval() {}
 
-    virtual int low() const { return low_; }
-    virtual int high() const { return high_; }
-
+    virtual T low() const { return low_; }
+    virtual T high() const { return high_; }
+    virtual U id() const { return id_; }
   protected:
-    int low_;
-    int high_;
-    void * id_; // some arbitrary unique identifier
+    T low_;
+    T high_;
+    U id_; // some arbitrary unique identifier
 };
 
 template<class ITYPE>
 class IBSTree;
 
-template<class ITYPE = interval<> >
+template<class ITYPE = SimpleInterval<> >
 class IBSNode {
     friend class IBSTree<ITYPE>;
     typedef typename ITYPE::type interval_type;
@@ -160,7 +149,7 @@ class IBSNode {
     IBSNode<ITYPE> *parent;
 };
 
-template<class ITYPE = interval<> >
+template<class ITYPE = SimpleInterval<> >
 class IBSTree {
 public:
     typedef typename ITYPE::type interval_type;

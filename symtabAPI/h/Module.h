@@ -116,14 +116,14 @@ public:
 template <typename OS>
 OS& operator<<(OS& os, const Statement& s)
 {
-    os << "<statement>: [" << s.startAddr() << ", " << s.endAddr() << ") @ " << s.getFile()
+    os << "<statement>: [" << std::hex << s.startAddr() << ", " << s.endAddr() << std::dec << ") @ " << s.getFile()
        << " (" << s.getFileIndex() << "): " << s.getLine();
     return os;
 }
 template <typename OS>
 OS& operator<<(OS& os, Statement* s)
 {
-    os << "<statement>: [" << s->startAddr() << ", " << s->endAddr() << ") @ " << s->getFile()
+    os << "<statement>: [" << std::hex << s->startAddr() << ", " << s->endAddr() << std::dec << ") @ " << s->getFile()
        << " (" << s->getFileIndex() << "): " << s->getLine();
     return os;
 }
@@ -267,39 +267,20 @@ typedef Statement LineNoTuple;
 			return os;
 		}
 
+typedef Dyninst::SimpleInterval<Offset, Module*> ModRange;
 
-struct ModRange : public Dyninst::Interval<Offset>
+inline bool operator==(Offset off, const ModRange& r) {
+    return (r.low() <= off) && (off < r.high());
+}
+inline bool operator==(const ModRange& r, Offset off) {
+    return off == r;
+}
+template<typename OS>
+OS& operator<<(OS& os, const ModRange& m)
 {
-    typedef Dyninst::Interval<Offset> parent;
-    ModRange(Offset l, Offset h, Module* m) :
-           Dyninst::Interval<Offset>(l, h), mod_(m)
-    {}
-
-    bool operator==(const ModRange &rhs) const {
-        return (parent::operator==(rhs)) && (mod_ == rhs.mod_);
-    }
-
-    bool operator!=(const ModRange &rhs) const {
-        return !(rhs == *this);
-    }
-    bool contains(const ModRange& rhs) const {
-        return (rhs.first >= first) &&
-                (rhs.second <= second) &&
-                (rhs.mod() == mod());
-    }
-    bool operator==(Offset off) const {
-        return parent::operator==(off);
-    }
-    Module* mod() const { return mod_;}
-    Module* mod_;
-    typedef ModRange* Ptr;
-};
-        template<typename OS>
-        OS& operator<<(OS& os, const ModRange& m)
-        {
-            os << m.mod() << ": [" << m.first << ", " << m.second << ")";
-            return os;
-        }
+    os << m.id() << ": [" << m.low << ", " << m.high << ")";
+    return os;
+}
 
 
 }//namespace SymtabAPI

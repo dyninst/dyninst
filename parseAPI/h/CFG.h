@@ -284,7 +284,7 @@ class Function;
 };
 
 class CodeRegion;
-class PARSER_EXPORT Block : public Dyninst::interval<Address>, 
+class PARSER_EXPORT Block : public Dyninst::SimpleInterval<Address, int>,
               public allocatable {
     friend class CFGModifier;
  public:
@@ -655,7 +655,7 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
 };
 
 /* Describes a contiguous extent of a Function object */
-class PARSER_EXPORT FuncExtent : public Dyninst::interval<Address> {
+class PARSER_EXPORT FuncExtent : public Dyninst::SimpleInterval<Address, Function* > {
  private:
     Function * _func;
     Address _start;
@@ -667,7 +667,7 @@ class PARSER_EXPORT FuncExtent : public Dyninst::interval<Address> {
         _start(start),
         _end(end) { }
 
-    ~FuncExtent() {
+    virtual ~FuncExtent() {
         _func = NULL;
     }
 
@@ -679,6 +679,7 @@ class PARSER_EXPORT FuncExtent : public Dyninst::interval<Address> {
     /* interval implementation */
     Address low() const { return _start; }
     Address high() const { return _end; }
+    Function* id() const { return _func; }
 
     bool operator==(const FuncExtent &rhs) const {
         return _func == rhs._func &&

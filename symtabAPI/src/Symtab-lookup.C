@@ -386,135 +386,27 @@ bool Symtab::getAllModules(std::vector<Module *> &ret)
 bool Symtab::findModuleByOffset(Module *&ret, Offset off)
 {
 
-    auto start_addr_valid = mod_lookup()->project<ModRange::by_low>(
-            mod_lookup()->get<ModRange::by_high>().lower_bound(off));
-    auto end_addr_valid = mod_lookup()->upper_bound(off + 1);
-    Module* default_mod = getDefaultModule();
-    while((start_addr_valid != end_addr_valid) && (start_addr_valid != mod_lookup_->end()))
+    std::set<ModRange*> mods;
+    mod_lookup()->find(off, mods);
+    if(!mods.empty())
     {
-        if(*(*start_addr_valid) == off)
-        {
-            ret = (*start_addr_valid)->mod();
-            if(ret != default_mod) return true;
-        }
-        ++start_addr_valid;
+        ret = (*mods.begin())->id();
     }
-    ret = getDefaultModule();
-    return true;
-
-//
-//    auto eq = mod_lookup()->equal_range(off);
-//    if(eq.first != eq.second)
-//    {
-//        ret = (*(eq.first))->mod();
-//        return true;
-//    }
-//    return false;
-//    mod_lookup()->find(off, mods);
-//    if(!mods.empty())
-//    {
-//        ret = (*mods.begin())->mod();
-//    }
-//    return mods.empty();
+    return mods.empty();
 }
-
-template <typename T, typename F>
-struct set_inserter
-{
-    set_inserter(std::set<T>& t, const F& f) : m_set(t),func(f) {}
-    std::set<T>& m_set;
-    const F& func;
-    template <typename U>
-    void operator()(U elem) {
-        m_set.insert(func(elem));
-    }
-};
-
-template <typename T, typename F>
-set_inserter<T,F> make_set_inserter(std::set<T>& t, const F& f)
-{
-    return set_inserter<T,F>(t,f);
-};
 
 bool Symtab::findModuleByOffset(std::set<Module *>&ret, Offset off)
 {
+    std::set<ModRange*> mods;
     ret.clear();
-//    auto mod_extractor = boost::bind(&ModRange::mod, _1);
-//    mod_lookup_->copy_equal_range(off,
-//                                  boost::make_function_output_iterator(make_set_inserter(ret, mod_extractor)));
-    auto start_addr_valid = mod_lookup()->project<ModRange::by_low>(
-            mod_lookup()->get<ModRange::by_high>().lower_bound(off));
-    auto end_addr_valid = mod_lookup()->upper_bound(off + 1);
-    while(start_addr_valid != end_addr_valid && start_addr_valid != mod_lookup()->end())
+    mod_lookup()->find(off, mods);
+    for(auto i = mods.begin();
+            i != mods.end();
+            ++i)
     {
-        ModRange* tmp = *start_addr_valid;
-        if(!tmp) continue;
-        if(*tmp == off)
-        {
-            ret.insert(tmp->mod());
-        }
-        ++start_addr_valid;
+        ret.insert((*i)->id());
     }
-//    if(ret.empty()) {
-//        for(auto i = indexed_modules.begin();
-//            i != indexed_modules.end();
-//            ++i)
-//        {
-//            (void) (*i)->parseLineInformation();
-//        }
-//        auto start_addr_valid = mod_lookup()->project<ModRange::by_low>(
-//                mod_lookup()->get<ModRange::by_high>().lower_bound(off));
-//        auto end_addr_valid = mod_lookup()->upper_bound(off + 1);
-//        while(start_addr_valid != end_addr_valid && start_addr_valid != mod_lookup()->end())
-//        {
-//            ModRange* tmp = *start_addr_valid;
-//            if(!tmp) continue;
-//            if(*tmp == off)
-//            {
-//                ret.insert(tmp->mod());
-//            }
-//            ++start_addr_valid;
-//        }
-////        Module::DebugInfoT info = getObject()->findDebugInfoForAddr(off);
-////        auto found = indexed_modules.get<4>().find(info);
-////        if(found != indexed_modules.get<4>().end())
-////        {
-////            ret.insert(*found);
-////        }
-//    }
     return ret.empty();
-
-
-//    auto eq = mod_lookup()->equal_range(off);
-//    if(eq.first != eq.second)
-//    {
-//        std::transform(eq.first, eq.second, std::inserter(ret, ret.begin()),
-//            boost::bind(&ModRange::mod, _1));
-//        return true;
-//    }
-//    return false;
-
-//    std::set<ModRange*> mods;
-//    ret.clear();
-//    mod_lookup()->find(off, mods);
-//    for(auto i = mods.begin();
-//            i != mods.end();
-//            ++i)
-//    {
-//        ret.insert((*i)->mod());
-//    }
-//    return ret.empty();
-//    //  this should be a hash, really
-//    for(int i = 0; i < _mods.size(); i++)
-//    {
-//        if(_mods[i]->containsOffset(off))
-//        {
-//            ret = _mods[i];
-//            return true;
-//        }
-//    }
-//    ret = NULL;
-//    return false;
 }
 
 bool Symtab::findModuleByName(Module *&ret, const std::string name)
