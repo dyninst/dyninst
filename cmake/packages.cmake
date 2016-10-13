@@ -135,7 +135,7 @@ if(NOT Boost_FOUND)
     set(BOOST_BOOTSTRAP call bootstrap.bat)
     set(BOOST_BUILD b2.exe)
   else()
-    set(BOOST_BOOTSTRAP bootstrap.sh)
+    set(BOOST_BOOTSTRAP "./bootstrap.sh")
     set(BOOST_BUILD b2)
   endif()
 
