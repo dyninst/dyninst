@@ -148,7 +148,7 @@ if(NOT Boost_FOUND)
     URL_MD5 bb1dad35ad069e8d7c8516209a51053c
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ${BOOST_BOOTSTRAP}
-    BUILD_COMMAND ${BOOST_BUILD} --with-system --with-thread --with-date_time --build-type=complete
+    BUILD_COMMAND ${BOOST_BUILD} --with-system --with-thread --with-date_time --build-type=complete --layout=tagged
     INSTALL_COMMAND ""
     )
   set(Boost_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/boost/src/Boost)
