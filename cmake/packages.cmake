@@ -151,8 +151,8 @@ if(NOT Boost_FOUND)
     BUILD_COMMAND ${BOOST_BUILD} --with-system --with-thread --with-date_time --build-type=complete --layout=tagged
     INSTALL_COMMAND ""
     )
-  set(Boost_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/boost/src/Boost)
-  set(Boost_LIBRARY_DIRS ${CMAKE_BINARY_DIR}/boost/src/Boost/stage/lib)
+  set(Boost_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/boost/src/boost)
+  set(Boost_LIBRARY_DIRS ${CMAKE_BINARY_DIR}/boost/src/boost/stage/lib)
 endif()
 
 link_directories ( ${Boost_LIBRARY_DIRS} )
