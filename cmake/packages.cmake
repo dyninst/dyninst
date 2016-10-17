@@ -149,8 +149,8 @@ if(NOT Boost_FOUND)
     URL_MD5 bb1dad35ad069e8d7c8516209a51053c
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${CMAKE_INSTALL_PREFIX}
-    BUILD_COMMAND ${BOOST_BUILD} --with-system --with-thread --with-date_time --layout=tagged --ignore-site-config
-    INSTALL_COMMAND ${BOOST_BUILD} install
+    BUILD_COMMAND ${BOOST_BUILD} --with-system --with-thread --with-date_time --layout=tagged --ignore-site-config install
+    INSTALL_COMMAND ""
     )
   set(Boost_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/boost/src/boost)
   set(Boost_LIBRARY_DIRS ${CMAKE_BINARY_DIR}/boost/src/boost/stage/lib)
