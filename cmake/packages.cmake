@@ -150,7 +150,7 @@ if(NOT Boost_FOUND)
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${CMAKE_INSTALL_PREFIX}
     BUILD_COMMAND ${BOOST_BUILD} --with-system --with-thread --with-date_time --build-type=complete --layout=tagged --ignore-site-config
-    INSTALL_COMMAND ""
+    INSTALL_COMMAND ${BOOST_BUILD} install
     )
   set(Boost_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/boost/src/boost)
   set(Boost_LIBRARY_DIRS ${CMAKE_BINARY_DIR}/boost/src/boost/stage/lib)
