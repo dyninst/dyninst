@@ -51,7 +51,7 @@ extern int dynCdebug;
     STRING = 261,
     TYPE = 262,
     NUMBER = 263,
-    ERROR = 264,
+    D_ERROR = 264,
     EOL = 265,
     SIZEOF = 266,
     D_TRUE = 267,
@@ -70,16 +70,16 @@ extern int dynCdebug;
     TYPEDEF = 280,
     EXTERN = 281,
     STATIC = 282,
-    CHAR = 283,
-    SHORT = 284,
-    INT = 285,
-    LONG = 286,
+    D_CHAR = 283,
+    D_SHORT = 284,
+    D_INT = 285,
+    D_LONG = 286,
     SIGNED = 287,
     UNSIGNED = 288,
-    FLOAT = 289,
+    D_FLOAT = 289,
     DOUBLE = 290,
-    CONST = 291,
-    VOID = 292,
+    D_CONST = 291,
+    D_VOID = 292,
     STRUCT = 293,
     UNION = 294,
     ENUM = 295,
@@ -137,7 +137,7 @@ extern int dynCdebug;
 
 union YYSTYPE
 {
-#line 71 "C.y" /* yacc.c:1909  */
+#line 68 "C.y" /* yacc.c:1909  */
 
    int   ival;
    long  lval;
