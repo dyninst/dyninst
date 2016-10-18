@@ -88,24 +88,12 @@ namespace Dyninst
       return m_Reg;
     }
 
-    std::string RegisterAST::format(formatStyle) const
+    std::string RegisterAST::format(ArchSpecificFormatter *formatter, formatStyle) const
     {
-        std::string name = m_Reg.name();
-        std::string::size_type substr = name.rfind(':');
-        if(substr != std::string::npos)
-        {
-            name = name.substr(substr+1, name.length());
-        }
-        std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-        std::stringstream stream;
-        if(!name.compare("<invalid_reg>"))
-            stream << "%?";
-        else stream << "%" << name;
-
-        return stream.str();
+        return formatter->formatRegister(m_Reg.name());
     }
 
-    std::string MaskRegisterAST::format(formatStyle) const
+    std::string MaskRegisterAST::format(ArchSpecificFormatter */*formatter*/, formatStyle) const
     {
 		std::string name = m_Reg.name();
 		std::string::size_type substr = name.rfind(':');

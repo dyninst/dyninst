@@ -376,20 +376,20 @@ namespace Dyninst
 									|| (*m_arg1 == *findMe) || (*m_arg2 == *findMe) || (*findMe == *this);
 			}
 			
-			virtual std::string format(formatStyle how) const
+			virtual std::string format(ArchSpecificFormatter *formatter, formatStyle how) const
 			{
                 std::stringstream retVal;
                 if(how == memoryAccessStyle)
                 {
-                    retVal << m_arg2->format() << "(" << m_arg1->format() << ")";
+                    retVal << m_arg2->format(formatter) << "(" << m_arg1->format(formatter) << ")";
                 }
                 else
                 {
                     // if(isAdd())
                     // {
-                    retVal << m_arg1->format() 
+                    retVal << m_arg1->format(formatter)
                         << " " << m_funcPtr->format() 
-                        << " " << m_arg2->format();
+                        << " " << m_arg2->format(formatter);
                     // } else retVal << "NOT VALID FOR AT&T";
                 }
 

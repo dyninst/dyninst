@@ -77,10 +77,8 @@ namespace Dyninst {
             return;
         }
 
-        std::string Immediate::format(formatStyle) const {
-            std::stringstream ss;
-            ss << "$0x" << eval().format();
-            return ss.str();
+        std::string Immediate::format(ArchSpecificFormatter *formatter, formatStyle) const {
+            return formatter->formatImmediate(eval().format());
         }
 
         bool Immediate::isStrictEqual(const InstructionAST &rhs) const {
@@ -102,7 +100,7 @@ namespace Dyninst {
             return ret;
         }
 
-        std::string ArmConditionImmediate::format(formatStyle) const {
+        std::string ArmConditionImmediate::format(ArchSpecificFormatter *, formatStyle) const {
             unsigned int cond_val = eval().convert<unsigned int>();
             if(m_condLookupMap.count(cond_val) > 0)
 		return m_condLookupMap.find(cond_val)->second;
@@ -119,7 +117,7 @@ namespace Dyninst {
 	    return ret;
 	}
 
-	std::string ArmPrfmTypeImmediate::format(formatStyle) const {
+	std::string ArmPrfmTypeImmediate::format(ArchSpecificFormatter *, formatStyle) const {
 	    unsigned prfm_type = eval().convert<unsigned int>();
 	    if(m_prfmTypeLookupMap.count(prfm_type) > 0)
 		return m_prfmTypeLookupMap.find(prfm_type)->second;

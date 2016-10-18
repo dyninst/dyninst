@@ -20,6 +20,8 @@ namespace Dyninst {
             virtual std::string formatDeref(std::string) = 0;
 
             virtual std::string formatRegister(std::string) = 0;
+
+            virtual ~ArchSpecificFormatter() {}
         };
 
         class ArmFormatter : public ArchSpecificFormatter {
@@ -31,6 +33,8 @@ namespace Dyninst {
             virtual std::string formatDeref(std::string);
 
             virtual std::string formatRegister(std::string);
+
+            virtual ~ArmFormatter() {}
         };
     };
 };

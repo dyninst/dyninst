@@ -42,6 +42,7 @@
 #include <set>
 #include <iostream>
 #include "Result.h"
+#include "ArchSpecificFormatters.h"
 #include "boost/enable_shared_from_this.hpp"
 
 namespace Dyninst
@@ -109,7 +110,7 @@ namespace Dyninst
 
       /// The \c format interface returns the contents of an %InstructionAST
       /// object as a string.  By default, \c format() produces assembly language.
-      virtual std::string format(formatStyle how = defaultStyle) const = 0;
+      virtual std::string format(ArchSpecificFormatter *, formatStyle how = defaultStyle) const = 0;
   
     protected:
       friend class RegisterAST;

@@ -75,7 +75,7 @@ namespace Dyninst
       virtual bool isUsed(InstructionAST::Ptr findMe) const;
 
       /// The \c format method on a %RegisterAST object returns the name associated with its ID.
-      virtual std::string format(formatStyle how = defaultStyle) const;
+      virtual std::string format(ArchSpecificFormatter *, formatStyle how = defaultStyle) const;
 
       /// Utility function to get a Register object that represents the program counter.
       ///
@@ -127,7 +127,7 @@ namespace Dyninst
             MaskRegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit, Result_Type regType)
                 : RegisterAST(r, lowbit, highbit, regType) {}
 
-            virtual std::string format(formatStyle how = defaultStyle) const;
+            virtual std::string format(ArchSpecificFormatter *formatter, formatStyle how = defaultStyle) const;
     };
   };
 };

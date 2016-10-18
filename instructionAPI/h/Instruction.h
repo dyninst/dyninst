@@ -39,6 +39,7 @@
 #include "Operation.h"
 #include "Operand.h"
 #include "InstructionCategories.h"
+#include "ArchSpecificFormatters.h"
 
 #include "util.h"
 
@@ -197,6 +198,8 @@ namespace Dyninst
       /// \c readsMemory will return true for a pop operation.
       INSTRUCTION_EXPORT bool readsMemory() const;
 
+      INSTRUCTION_EXPORT ArchSpecificFormatter *getFormatter() const;
+
       /// \return Returns true if the instruction writes at least one memory address.
       ///
       /// If any operand containing a  %Dereference object is written, the instruction
@@ -292,7 +295,7 @@ namespace Dyninst
       Architecture arch_decoded_from;
       mutable std::list<CFT> m_Successors;
       static int numInsnsAllocated;
-
+      ArchSpecificFormatter *formatter;
     };
   };
 };

@@ -77,7 +77,12 @@ namespace Dyninst
                              Dyninst::Architecture arch)
       : m_InsnOp(what), m_Valid(true), arch_decoded_from(arch)
     {
-
+        switch(arch_decoded_from) {
+            case Arch_aarch64: formatter = new ArmFormatter();
+                break;
+            default:formatter = NULL;
+                break;
+        }
         copyRaw(size, raw);
 
 #if defined(DEBUG_INSN_ALLOCATIONS)
@@ -121,9 +126,8 @@ namespace Dyninst
     }
     
     INSTRUCTION_EXPORT Instruction::Instruction() :
-      m_Valid(false), m_size(0), arch_decoded_from(Arch_none)
+      m_Valid(false), m_size(0), arch_decoded_from(Arch_none), formatter(NULL)
     {
-
 #if defined(DEBUG_INSN_ALLOCATIONS)
         numInsnsAllocated++;
         if((numInsnsAllocated % 1000) == 0)
@@ -140,6 +144,9 @@ namespace Dyninst
       {
 	delete[] m_RawInsn.large_insn;
       }
+
+        if(formatter)
+            delete formatter;
 #if defined(DEBUG_INSN_ALLOCATIONS)
       numInsnsAllocated--;
       if((numInsnsAllocated % 1000) == 0)
@@ -166,6 +173,8 @@ namespace Dyninst
 
       m_InsnOp = o.m_InsnOp;
       m_Valid = o.m_Valid;
+        formatter = o.formatter;
+
 #if defined(DEBUG_INSN_ALLOCATIONS)
       numInsnsAllocated++;
       if((numInsnsAllocated % 1000) == 0)
@@ -199,6 +208,7 @@ namespace Dyninst
 
       m_InsnOp = rhs.m_InsnOp;
       m_Valid = rhs.m_Valid;
+        formatter = rhs.formatter;
       arch_decoded_from = rhs.arch_decoded_from;
       return *this;
     }    
@@ -438,73 +448,31 @@ memAccessors.begin()));
         return m_Successors.front().target;
     }
 
-    INSTRUCTION_EXPORT std::string Instruction::format(Address) const
+    INSTRUCTION_EXPORT ArchSpecificFormatter *Instruction::getFormatter() const {
+        return formatter;
+    }
+
+    INSTRUCTION_EXPORT std::string Instruction::format(Address addr) const
     {
         if(m_Operands.empty())
         {
             decodeOperands();
         }
 
-        std::string dst_operand; /* Goes at the end after src operands */
-        bool has_mask = false;
-        std::string mask_operand; /* Goes after the dst operand (if it exists) */
+	//remove this once ArchSpecificFormatter is extended for all architectures
+	if(formatter == NULL)
+	    return "";
 
-        std::string retVal = m_InsnOp->format();
-        retVal += " ";
+        std::string opstr = m_InsnOp->format();
+        opstr += " ";
         std::list<Operand>::const_iterator currOperand;
+        std::vector<std::string> formattedOperands;
         int op = 0;
         for(currOperand = m_Operands.begin();
                 currOperand != m_Operands.end();
                 op++, ++currOperand)
         {
-            bool isCallJump = getControlFlowTarget() != NULL;
-            std::string format = currOperand->format(getArch(), isCallJump);
-
-            if(currOperand->isImplicit())
-            {
-                op--;
-                continue;
-            }
-
-
-            if(format.size() < 1)
-            {
-                assert(!"Null operand in operands list!");
-                continue;
-            }
-
-            /* Is this the first operand? */
-            if(op == 0)
-            {
-                dst_operand = format;
-                continue;
-            }
-
-            /* Is this a mask operand? */
-            if(format.at(0) == '{')
-            {
-                /* Mask register */
-                mask_operand = format;
-                has_mask = true;
-                break;
-            }
-
-            if(op > 1)
-                retVal += ",";
-
-            retVal += format;
-        }
-
-        if(op > 1)
-            retVal += ",";
-
-        /* AT&T Syntax puts dst at end */
-        retVal += dst_operand;
-
-        if(has_mask)
-        {
-            retVal += " ";
-            retVal += mask_operand;
+            formattedOperands.push_back(currOperand->format(formatter, getArch(), addr));
         }
 
 #if defined(DEBUG_READ_WRITE)      
@@ -550,7 +518,7 @@ memAccessors.begin()));
         cout << endl;
 #endif // defined(DEBUG_READ_WRITE)
 
-        return retVal;
+        return opstr + formatter->getInstructionString(formattedOperands);
     }
 
     INSTRUCTION_EXPORT bool Instruction::allowsFallThrough() const

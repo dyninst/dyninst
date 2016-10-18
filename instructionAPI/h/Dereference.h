@@ -105,9 +105,8 @@ namespace Dyninst
             return addressToDereference->isUsed(findMe) || *findMe == *this;
         }
 
-        virtual std::string format(formatStyle) const
+        virtual std::string format(ArchSpecificFormatter *formatter, formatStyle) const
         {
-	        std::stringstream retVal;
 #if defined(DEBUG_MEMORY_ACCESS_WIDTH)
             switch(Expression::userSetValue.type)
             {
@@ -150,10 +149,6 @@ namespace Dyninst
             }
 #endif
 
-            struct att_operand_arglist list;
-            memset(&list, 0,  sizeof(struct att_operand_arglist));
-			binary_function_att(&(*addressToDereference), &list, 0);
-
 #if 0 /* Which parts of the operand are available? */
             if(list.base)
                 std::cout << "\tBase:         " << list.base << std::endl;
@@ -167,42 +162,7 @@ namespace Dyninst
                 std::cout << "\tDisplacement: " << list.displacement << std::endl;
 #endif
 
-            /* Convert this to AT&T syntax */
-			if(list.segment && list.base)
-				retVal << list.segment << ":(" << list.base << ")";
-            else if(list.displacement && list.base && list.offset && list.scale)
-                retVal << (list.scale + 1) << "(" << list.offset << ", " 
-                    << list.base << ", " << "$" << list.displacement << ")";
-            else if(list.displacement && list.base && list.scale)
-                retVal << list.displacement << "( ," << list.base << ", "
-                    << list.scale << ")";
-            else if(list.base && list.offset && list.displacement)
-                retVal << "(" << list.base << "," << list.offset << "," 
-                    << list.displacement + 2 <<")";
-            else if(list.displacement && list.base)
-                retVal << list.displacement << "(" << list.base << ")";
-            else if(list.base)
-                retVal << "(" << list.base << ")";
-            
-            if(!retVal.str().compare(""))
-            {
-                free(list.scale);
-                free(list.offset);
-                free(list.base);
-                free(list.displacement);
-                free(list.segment);
-                std::stringstream ss;
-                ss << addressToDereference->format();
-                return ss.str();
-            }
-
-            free(list.scale);
-            free(list.offset);
-            free(list.base);
-            free(list.displacement);
-            free(list.segment);
-
-            return retVal.str();
+            return formatter->formatDeref(addressToDereference->format(formatter));
         }
 
       virtual bool bind(Expression* expr, const Result& value)

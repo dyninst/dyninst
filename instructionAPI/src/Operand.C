@@ -114,7 +114,7 @@ namespace Dyninst
       }
     }
 
-    INSTRUCTION_EXPORT std::string Operand::format(Architecture arch, Address addr) const
+    INSTRUCTION_EXPORT std::string Operand::format(ArchSpecificFormatter *formatter, Architecture arch, Address addr) const
     {
         if(!op_value) return "ERROR: format() called on empty operand!";
 
@@ -136,15 +136,7 @@ namespace Dyninst
          * If this is a jump or IP relative load/store, this will be a 
          * binary function, so we have to parse the AST from hand
          */
-        unsigned long imm_val = 0x0;
-        if(!binary_function_att_jump(&(*op_value), &imm_val))
-        {
-            std::stringstream ss;
-            ss << "0x" << hex << imm_val;
-            return ss.str();
-        }
-
-        return op_value->format();
+        return op_value->format(formatter);
     }
 
     INSTRUCTION_EXPORT int binary_function_att_jump(const Expression* exp, uint64_t* imm_val)
@@ -228,7 +220,7 @@ namespace Dyninst
 #endif
 
     INSTRUCTION_EXPORT int binary_function_att(const Expression* exp,
-            struct att_operand_arglist* options, int depth)
+            struct att_operand_arglist* options, int depth, ArchSpecificFormatter *formatter)
     {
 		/* 0 = no failure, -1 = failure */
 		int success = 0;
@@ -251,7 +243,7 @@ namespace Dyninst
 				return -1;
 
 			Expression* child = &(*children[0]);
-			return binary_function_att(child, options, depth + 1);
+			return binary_function_att(child, options, depth + 1, formatter);
 		}
 
 		/* Is this a binary function? */
@@ -305,7 +297,7 @@ namespace Dyninst
 
 					if(arg_children.size() == 2)
 					{
-						success |= binary_function_att(child, options, depth + 1);
+						success |= binary_function_att(child, options, depth + 1, formatter);
 
 						/* Did this operation fail? */
 						if(success)
@@ -333,7 +325,7 @@ namespace Dyninst
 
 					if(i)
 					{
-                        std::string format = i->format(defaultStyle);
+                        std::string format = i->format(formatter, defaultStyle);
                         const char* str = format.c_str();
 
                         /* Make sure this string is valid */
@@ -364,7 +356,7 @@ namespace Dyninst
 
 					if(r)
 					{
-                        std::string format = r->format(defaultStyle);
+                        std::string format = r->format(formatter, defaultStyle);
                         const char* str = format.c_str();
 #ifdef ATT_DEBUG
 						print_tabs(depth); std::cout << "Child is a register: "
@@ -389,7 +381,7 @@ namespace Dyninst
             const RegisterAST* r = dynamic_cast<const RegisterAST*>(exp);
             if(r)
             {
-                std::string format = r->format();
+                std::string format = r->format(formatter);
                 options->base = strdup(format.c_str());
                 return 0;
             }  
@@ -401,18 +393,18 @@ namespace Dyninst
       }
 
 
-    INSTRUCTION_EXPORT std::string Operand::format(Architecture arch, bool isCallJump) const
+    INSTRUCTION_EXPORT std::string Operand::format(Architecture arch, bool isCallJump, ArchSpecificFormatter *formatter) const
     {
         stringstream retVal;
 
         if(isCallJump)
-            return this->format(arch);
+            return this->format(formatter, arch);
 
         struct att_operand_arglist list;
         memset(&list, 0, sizeof(struct att_operand_arglist));
-        if(binary_function_att(&(*op_value), &list, 0))
+        if(binary_function_att(&(*op_value), &list, 0, formatter))
         {
-            return op_value->format();
+            return op_value->format(formatter);
         }
 
 #if 0 /* Which parts of the operand are available? */
@@ -466,7 +458,7 @@ namespace Dyninst
             free(list.displacement);
             free(list.segment);
             std::stringstream ss;
-            ss << op_value->format();
+            ss << op_value->format(formatter);
             return ss.str();
         }
 
