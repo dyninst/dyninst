@@ -177,7 +177,7 @@ bool IA_x86Details::isMovAPSTable(std::vector<std::pair< Address, EdgeTypeEnum >
 bool IA_x86Details::isTableInsn(Instruction::Ptr i) 
 {
   Expression::Ptr jumpExpr = currentBlock->curInsn()->getControlFlowTarget();
-  parsing_printf("jumpExpr for table insn is %s\n", jumpExpr->format().c_str());
+  parsing_printf("jumpExpr for table insn is %s\n", jumpExpr->format(currentBlock->curInsn()->getFormatter()).c_str());
   if(i->getOperation().getID() == e_mov && i->readsMemory() && i->isWritten(jumpExpr))
   {
     return true;
@@ -192,7 +192,8 @@ bool IA_x86Details::isTableInsn(Instruction::Ptr i)
 IA_IAPI::allInsns_t::const_iterator IA_x86Details::findTableInsn() 
 {
     // Check whether the jump is our table insn!
-    Expression::Ptr cft = currentBlock->curInsn()->getControlFlowTarget();
+    Instruction::Ptr curinsn = currentBlock->curInsn();
+    Expression::Ptr cft = curinsn->getControlFlowTarget();
     if(cft)
     {
         std::vector<Expression::Ptr> tmp;
@@ -202,7 +203,7 @@ IA_IAPI::allInsns_t::const_iterator IA_x86Details::findTableInsn()
             Expression::Ptr cftAddr = tmp[0];
             zeroAllGPRegisters z(currentBlock->current);
             cftAddr->apply(&z);
-            parsing_printf("\tChecking indirect jump %s for table insn\n", currentBlock->curInsn()->format().c_str());
+            parsing_printf("\tChecking indirect jump %s for table insn\n", curinsn->format().c_str());
             if(z.isDefined() && z.getResult())
             {
                 parsing_printf("\tAddress in jump\n");
@@ -274,6 +275,7 @@ bool IA_x86Details::parseJumpTable(Block* currBlk,
         return false;
     }
     computeTableAddress();
+    ArchSpecificFormatter *insnFormatter = tableInsn.insn->getFormatter();
     
     findThunkAndOffset(currBlk);
     if(thunkInsn.addrOfInsn != 0)
@@ -392,9 +394,9 @@ bool IA_x86Details::parseJumpTable(Block* currBlk,
                     else
                     {
                         parsing_printf("\tFound sign-extending mov insn %s, readExp %s\n",
-                                       tableLoc->second->format().c_str(), (*readExp)->format().c_str());
+                                       tableLoc->second->format().c_str(), (*readExp)->format(insnFormatter).c_str());
                         parsing_printf("\tcouldn't match stride expression %s or %s--HELP!\n",
-                                       scaleCheck2->format().c_str(), scaleCheck4->format().c_str());
+                                       scaleCheck2->format(insnFormatter).c_str(), scaleCheck4->format(insnFormatter).c_str());
                     }
                 }
                 break;
@@ -813,7 +815,7 @@ void IA_x86Details::computeTableAddress()
     if(!z.isDefined())
     {
       parsing_printf("\ttable insn: %s, displacement %s, bind of all GPRs FAILED\n",
-		     tableInsn.insn->format().c_str(), displacementSrc->format().c_str());
+		     tableInsn.insn->format().c_str(), displacementSrc->format(tableInsn.insn->getFormatter()).c_str());
       return;
     }
     else

@@ -418,7 +418,7 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
        && secondInsn && secondInsn->getCategory() == c_ReturnInsn) {
 
       thunkVisitor visitor;
-      relocation_cerr << "Checking operand " << firstInsn->getOperand(1).format(firstInsn->getArch()) << endl;
+      relocation_cerr << "Checking operand " << firstInsn->getOperand(1).format(firstInsn->getFormatter(), firstInsn->getArch()) << endl;
       firstInsn->getOperand(1).getValue()->apply(&visitor);
       if (!visitor.isThunk) return false;
 

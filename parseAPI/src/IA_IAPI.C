@@ -468,7 +468,7 @@ bool IA_IAPI::isSyscall() const
 
     return (((ci->getOperation().getID() == e_call) &&
                 (curInsn()->getOperation().isRead(gs)) &&
-                (ci->getOperand(0).format(ci->getArch()) == "16")) ||
+                (ci->getOperand(0).format(ci->getFormatter(), ci->getArch()) == "16")) ||
             (ci->getOperation().getID() == e_syscall) || 
             (ci->getOperation().getID() == e_int) || 
             (ci->getOperation().getID() == power_op_sc));
@@ -765,7 +765,7 @@ bool IA_IAPI::isIPRelativeBranch() const
        if(cft->isUsed(thePC[_isrc->getArch()]))
        {
           parsing_printf("\tIP-relative indirect jump to %s at 0x%lx\n",
-                         cft->format().c_str(), current);
+                         cft->format(ci->getFormatter()).c_str(), current);
           return true;
        }
     }
@@ -844,7 +844,7 @@ std::pair<bool, Address> IA_IAPI::getCFT() const
        // FIXME: templated bind(),dammit!
     callTarget->bind(thePC[_isrc->getArch()].get(), Result(s64, current));
     parsing_printf("%s[%d]: binding PC %s in %s to 0x%x...", FILE__, __LINE__,
-                   thePC[_isrc->getArch()]->format().c_str(), curInsn()->format().c_str(), current);
+                   thePC[_isrc->getArch()]->format(curInsn()->getFormatter()).c_str(), curInsn()->format().c_str(), current);
 
     Result actualTarget = callTarget->eval();
 #if defined(os_vxworks)
@@ -911,7 +911,7 @@ std::pair<bool, Address> IA_IAPI::getCFT() const
     {
        cachedCFT = std::make_pair(false, 0); 
         parsing_printf("FAIL (CFT=0x%x), callTarget exp: %s\n",
-                       cachedCFT.second,callTarget->format().c_str());
+                       cachedCFT.second,callTarget->format(curInsn()->getFormatter()).c_str());
     }
     validCFT = true;
 

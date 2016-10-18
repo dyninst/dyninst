@@ -1203,11 +1203,12 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
    operands[1].getReadSet(readSet);
    operands[0].getWriteSet(writeSet);
 
+   ArchSpecificFormatter *insnFormatter = insn->getFormatter();
    if (insn->writesMemory()) {
       // Cases 3 and 5
       assert(writeSet.size() == 0);
       stackanalysis_printf("\t\t\tMemory add/sub to: %s\n",
-         operands[0].format(arch).c_str());
+         operands[0].format(insnFormatter, arch).c_str());
 
       // Extract the expression inside the dereference
       std::vector<Expression::Ptr> addrExpr;
@@ -1268,7 +1269,7 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
    if (insn->readsMemory()) {
       // Case 2
       stackanalysis_printf("\t\t\tAdd/sub from: %s\n",
-         operands[1].format(arch).c_str());
+         operands[1].format(insnFormatter, arch).c_str());
 
       // Extract the expression inside the dereference
       std::vector<Expression::Ptr> addrExpr;
@@ -1364,8 +1365,10 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn,
    std::vector<InstructionAPI::Expression::Ptr> children;
    srcExpr->getChildren(children);
 
+   ArchSpecificFormatter *insnFormatter = insn->getFormatter();
+
    stackanalysis_printf("\t\t\t\t srcOperand = %s\n",
-      srcExpr->format().c_str());
+      srcExpr->format(insnFormatter).c_str());
 
    if (readSet.size() == 0) {
       // op1: imm
@@ -1398,9 +1401,9 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn,
             regExpr = children[0];
             deltaExpr = children[1];
             stackanalysis_printf("\t\t\t\t reg: %s\n",
-               regExpr->format().c_str());
+               regExpr->format(insnFormatter).c_str());
             stackanalysis_printf("\t\t\t\t delta: %s\n",
-               deltaExpr->format().c_str());
+               deltaExpr->format(insnFormatter).c_str());
             assert(typeid(*regExpr) == typeid(RegisterAST));
             assert(typeid(*deltaExpr) == typeid(Immediate));
             foundDelta = true;
@@ -1450,7 +1453,7 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn,
          // Extract the delta and continue on to get base, index, and scale
          deltaExpr = children[1];
          stackanalysis_printf("\t\t\t\t delta: %s\n",
-            deltaExpr->format().c_str());
+            deltaExpr->format(insnFormatter).c_str());
          Expression::Ptr sibExpr = children[0];
          assert(typeid(*sibExpr) == typeid(BinaryFunction));
          children.clear();
@@ -1462,7 +1465,7 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn,
       // op1: reg + reg * imm
       baseExpr = children[0];
       Expression::Ptr scaleIndexExpr = children[1];
-      stackanalysis_printf("\t\t\t\t base: %s\n", baseExpr->format().c_str());
+      stackanalysis_printf("\t\t\t\t base: %s\n", baseExpr->format(insnFormatter).c_str());
       assert(typeid(*scaleIndexExpr) == typeid(BinaryFunction));
 
       // Extract the index and scale
@@ -1472,9 +1475,9 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn,
       indexExpr = children[0];
       scaleExpr = children[1];
       stackanalysis_printf("\t\t\t\t index: %s\n",
-         indexExpr->format().c_str());
+         indexExpr->format(insnFormatter).c_str());
       stackanalysis_printf("\t\t\t\t scale: %s\n",
-         scaleExpr->format().c_str());
+         scaleExpr->format(insnFormatter).c_str());
 
       assert(typeid(*baseExpr) == typeid(RegisterAST));
       assert(typeid(*indexExpr) == typeid(RegisterAST));
@@ -1605,9 +1608,9 @@ void StackAnalysis::handlePowerStoreUpdate(Instruction::Ptr insn,
    insn->getMemoryWriteOperands(memWriteAddrs);
    Expression::Ptr stackWrite = *(memWriteAddrs.begin());
    stackanalysis_printf("\t\t\t ...checking operand %s\n",
-      stackWrite->format().c_str());
+      stackWrite->format(insn->getFormatter()).c_str());
    stackanalysis_printf("\t\t\t ...binding %s to 0\n",
-      theStackPtr->format().c_str());
+      theStackPtr->format(insn->getFormatter()).c_str());
    stackWrite->bind(theStackPtr.get(), Result(u32, 0));
    Result res = stackWrite->eval();
    Absloc sploc(sp());
@@ -1670,7 +1673,7 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
    if (insn->writesMemory()) {
       assert(writtenRegs.size() == 0);
       stackanalysis_printf("\t\t\tMemory write to: %s\n",
-         operands[0].format(arch).c_str());
+         operands[0].format(insn->getFormatter(), arch).c_str());
 
       // Extract the expression inside the dereference
       std::vector<Expression::Ptr> addrExpr;
@@ -1727,7 +1730,7 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
 
    if (insn->readsMemory()) {
       stackanalysis_printf("\t\t\tMemory read from: %s\n",
-         operands[1].format(arch).c_str());
+         operands[1].format(insn->getFormatter(), arch).c_str());
 
       // Extract the expression inside the dereference
       std::vector<Expression::Ptr> addrExpr;
@@ -1820,7 +1823,7 @@ void StackAnalysis::handleZeroExtend(Instruction::Ptr insn, Block *block,
    // Handle memory loads
    if (insn->readsMemory()) {
       stackanalysis_printf("\t\t\tMemory read from: %s\n",
-         operands[1].format(arch).c_str());
+         operands[1].format(insn->getFormatter(), arch).c_str());
 
       // Extract the expression inside the dereference
       std::vector<Expression::Ptr> addrExpr;
@@ -1897,7 +1900,7 @@ void StackAnalysis::handleSignExtend(Instruction::Ptr insn, Block *block,
    // Handle memory loads
    if (insn->readsMemory()) {
       stackanalysis_printf("\t\t\tMemory read from: %s\n",
-         operands[1].format(arch).c_str());
+         operands[1].format(insn->getFormatter(), arch).c_str());
 
       // Extract the expression inside the dereference
       std::vector<Expression::Ptr> addrExpr;

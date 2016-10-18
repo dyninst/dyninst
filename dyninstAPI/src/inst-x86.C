@@ -2269,7 +2269,7 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction::Ptr insn,
    args.push_back(AstNode::operandNode(AstNode::Constant,
                                        (void *) addr));
    inst_printf("%s[%d]:  Inserting dynamic call site instrumentation for %s\n",
-               FILE__, __LINE__, cft->format().c_str());
+               FILE__, __LINE__, cft->format(insn->getFormatter()).c_str());
    return true;
 }
 
