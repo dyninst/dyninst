@@ -1,7 +1,7 @@
 build:
     parallel: true
     project: Dyninst.sln
-    verbosity: normal
+    verbosity: detailed
 
 clone_depth: 5
 
