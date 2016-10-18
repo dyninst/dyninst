@@ -98,9 +98,10 @@ endif()
 # an older CMake and it complains that it can't find Boost
 set(Boost_ADDITIONAL_VERSIONS "1.47" "1.47.0" "1.48" "1.48.0" "1.49" "1.49.0"
   "1.50" "1.50.0" "1.51" "1.51.0" "1.52" "1.52.0"
-  "1.53" "1.53.0" "1.54" "1.54.0" "1.55" "1.55.0" "1.56" "1.56.0" "1.57" "1.57.0" "1.58" "1.58.0" "1.59" "1.59.0")
+  "1.53" "1.53.0" "1.54" "1.54.0" "1.55" "1.55.0" "1.56" "1.56.0" "1.57" "1.57.0" "1.58" "1.58.0" "1.59" "1.59.0"
+        "1.60" "1.60.0" "1.61" "1.61.0" "1.62" "1.62.0")
 
-# set (Boost_DEBUG ON)
+set (Boost_DEBUG ON)
 set (PATH_BOOST "/usr" CACHE STRING "Path to boost")
 
 set(Boost_USE_MULTITHREADED ON)
@@ -126,7 +127,37 @@ if(DEFINED PATH_BOOST OR
   set(Boost_NO_SYSTEM_PATHS ON)
 endif()
 
-find_package (Boost ${BOOST_MIN_VERSION} REQUIRED COMPONENTS thread system)
+
+find_package (Boost ${BOOST_MIN_VERSION} COMPONENTS thread system date_time)
+
+
+if(NOT Boost_FOUND)
+  if(WIN32)
+    set(BOOST_BOOTSTRAP call bootstrap.bat)
+    set(BOOST_BUILD b2.exe)
+    set(BOOST_BASE boost/src/Boost)
+  else()
+    set(BOOST_BOOTSTRAP "./bootstrap.sh")
+    set(BOOST_BUILD "./b2")
+    set(BOOST_BASE boost/src/boost)
+  endif()
+
+  message(STATUS "No boost found, attempting to build as external project")
+  cmake_minimum_required (VERSION 2.8.11)
+  include(ExternalProject)
+  ExternalProject_Add(boost
+    PREFIX ${CMAKE_BINARY_DIR}/boost
+    URL http://downloads.sourceforge.net/project/boost/boost/1.61.0/boost_1_61_0.7z
+    URL_MD5 bb1dad35ad069e8d7c8516209a51053c
+    BUILD_IN_SOURCE 1
+    CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${CMAKE_INSTALL_PREFIX}
+    BUILD_COMMAND ${BOOST_BUILD} --with-system --with-thread --with-date_time --layout=versioned --ignore-site-config stage
+    INSTALL_COMMAND ${BOOST_BUILD} --with-system --with-thread --with-date_time --layout=versioned --ignore-site-config install
+    )
+  set(Boost_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/${BOOST_BASE})
+  set(Boost_LIBRARY_DIRS ${CMAKE_BINARY_DIR}/${BOOST_BASE}/stage/lib)
+  set(Boost_LIBRARIES -lboost_system -lboost_thread)
+endif()
 
 link_directories ( ${Boost_LIBRARY_DIRS} )
 

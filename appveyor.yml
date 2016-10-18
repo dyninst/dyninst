@@ -1,7 +1,7 @@
 build:
     parallel: true
     project: Dyninst.sln
-    verbosity: normal
+    verbosity: detailed
 
 clone_depth: 5
 
@@ -10,10 +10,6 @@ platform:
 
 configuration:
     - Release
-
-environment:
-  BOOST_ROOT: C:\Libraries\boost_1_60_0
-  BOOST_LIBRARYDIR: C:\Libraries\boost_1_60_0\lib32-msvc-14.0
 
 before_build:
     - cmake .
