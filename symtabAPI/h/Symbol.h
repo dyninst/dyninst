@@ -130,7 +130,8 @@ class SYMTAB_EXPORT Symbol : public Serializable,
       SL_UNKNOWN,
       SL_GLOBAL,
       SL_LOCAL,
-      SL_WEAK
+      SL_WEAK,
+      SL_UNIQUE
    };
 
    static const char *symbolLinkage2Str(SymbolLinkage t);

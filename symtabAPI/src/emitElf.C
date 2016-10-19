@@ -225,6 +225,7 @@ static int elfSymBind(Symbol::SymbolLinkage sLinkage)
   case Symbol::SL_LOCAL: return STB_LOCAL;
   case Symbol::SL_WEAK: return STB_WEAK;
   case Symbol::SL_GLOBAL: return STB_GLOBAL;
+  case Symbol::SL_UNIQUE: return STB_GNU_UNIQUE;
   default: return STB_LOPROC;
   }
 }
