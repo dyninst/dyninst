@@ -856,24 +856,6 @@ size_t Elf_X_Data::d_align() const
 {
     return data->d_align;
 }
-void Elf_X_Data::xlatetom(unsigned int encode)
-{
-    if(is64)
-    {
-        elf64_xlatetom(data, data, encode);
-    } else {
-        elf32_xlatetom(data, data, encode);
-    }
-}
-void Elf_X_Data::xlatetof(unsigned int encode)
-{
-    if(is64)
-    {
-        elf64_xlatetof(data, data, encode);
-    } else {
-        elf32_xlatetof(data, data, encode);
-    }
-}
 
 // Write Interface
 void Elf_X_Data::d_buf(void *input)

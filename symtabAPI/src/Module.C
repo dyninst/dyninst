@@ -188,7 +188,6 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
 
 LineInformation *Module::parseLineInformation() {
     // Allocate if none
-    using boost::bind;
     if (!lineInfo_)
     {
         lineInfo_ = new LineInformation;
@@ -197,19 +196,12 @@ LineInformation *Module::parseLineInformation() {
     }
     // Parse any CUs that have been added to our list
     if(!info_.empty()) {
-//        cout << "Parsing line info for module " << fileName() << ", have " << info_.size() << " CU DIEs to parse" << endl;
         for(auto cu = info_.begin();
                 cu != info_.end();
                 ++cu)
         {
             exec()->getObject()->parseLineInfoForCU(*cu, lineInfo_);
         }
-        // Add ranges corresponding to each statement
-        std::for_each(lineInfo_->begin(), lineInfo_->end(),
-            boost::bind(&Module::addRange, this, boost::bind(&Statement::startAddr, _1), boost::bind(&Statement::endAddr, _1)));
-
-        // Update in symtab: this module covers all ranges in its line info
-        finalizeRanges();
     }
     // Clear list of work to do
     info_.clear();

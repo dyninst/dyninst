@@ -2269,10 +2269,12 @@ SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<AddressRange > &ranges,
    /* Iteratate over the modules, looking for ranges in each. */
     for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
    {
-      LineInformation *lineInformation = (*i)->getLineInformation();
-
-      if (lineInformation)
-         lineInformation->getAddressRanges( lineSource.c_str(), lineNo, ranges );
+       StringTablePtr s = (*i)->getStrings();
+       // Only check modules that have this filename present
+       if(s->get<1>().find(lineSource) == s->get<1>().end()) continue;
+       LineInformation *lineInformation = (*i)->parseLineInformation();
+       if (lineInformation)
+           lineInformation->getAddressRanges( lineSource.c_str(), lineNo, ranges );
 
    } /* end iteration over modules */
 
@@ -2285,45 +2287,18 @@ SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<AddressRange > &ranges,
 SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressInRange)
 {
    unsigned int originalSize = lines.size();
-    static bool did_full_parse = false;
-    if(!did_full_parse)
-    {
-        for(auto i = indexed_modules.begin();
-            i != indexed_modules.end();
-            ++i)
-        {
-            LineInformation* li = (*i)->parseLineInformation();
-        }
-        did_full_parse = true;
-    }
-
-
     std::set<Module*> mods_for_offset;
     findModuleByOffset(mods_for_offset, addressInRange);
     for(auto i = mods_for_offset.begin();
             i != mods_for_offset.end();
             ++i)
     {
-//        std::cout << std::hex << "Checking module " << (*(*i)) << " for " << addressInRange << std::dec << endl;
         (*i)->getSourceLines(lines, addressInRange);
     }
-//   /* Iteratate over the modules, looking for ranges in each. */
-//   for ( unsigned int i = 0; i < _mods.size(); i++ )
-//   {
-//      LineInformation *lineInformation = _mods[i]->getLineInformation();
-//
-//      if (lineInformation)
-//         lineInformation->getSourceLines( addressInRange, lines );
-//
-//   } /* end iteration over modules */
 
    if ( lines.size() != originalSize )
       return true;
 
-    if(!mods_for_offset.empty()) {
-        std::cout << "WARNING: Modules have ranges for 0x" << std::hex << addressInRange << " but lack line info"<< std::endl;
-        std::copy(mods_for_offset.begin(), mods_for_offset.end(), std::ostream_iterator<Module*>(std::cout, "\n"));
-    }
    return false;
 
 }
