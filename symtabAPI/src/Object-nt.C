@@ -1116,8 +1116,8 @@ void fixup_filename(std::string &filename)
 
 Object::Object(MappedFile *mf_,
                bool defensive, 
-               void (*err_func)(const char *), bool alloc_syms) :
-    AObject(mf_, err_func),
+               void (*err_func)(const char *), bool alloc_syms, Symtab *st) :
+    AObject(mf_, err_func, st),
     curModule( NULL ),
     baseAddr( 0 ),
     imageBase( 0 ),

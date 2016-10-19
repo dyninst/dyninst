@@ -176,7 +176,7 @@ class Object : public AObject
 
  public:
     SYMTAB_EXPORT Object(MappedFile *, bool defensive, 
-                         void (*)(const char *) = log_msg, bool alloc_syms = true, Symtab*);
+                         void (*)(const char *) = log_msg, bool alloc_syms = true, Symtab* st = NULL);
   
     SYMTAB_EXPORT virtual ~Object( void );
 	SYMTAB_EXPORT std::string getFileName() const { return mf->filename(); }
@@ -240,7 +240,7 @@ private:
     SYMTAB_EXPORT void parseFileLineInfo();
     SYMTAB_EXPORT void parseLineInfoForAddr(Offset)
     {
-      parseFileLineInfo(associated_symtab);
+      parseFileLineInfo();
     }
     
     SYMTAB_EXPORT void    FindInterestingSections( bool, bool );
