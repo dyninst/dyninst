@@ -1861,6 +1861,9 @@ static Symbol::SymbolLinkage pdelf_linkage(int elf_binding)
         case STB_LOCAL:  return Symbol::SL_LOCAL;
         case STB_WEAK:   return Symbol::SL_WEAK;
         case STB_GLOBAL: return Symbol::SL_GLOBAL;
+#if defined(STB_GNU_UNIQUE)        
+        case STB_GNU_UNIQUE: return Symbol::SL_UNIQUE;
+#endif
     }
     return Symbol::SL_UNKNOWN;
 }
