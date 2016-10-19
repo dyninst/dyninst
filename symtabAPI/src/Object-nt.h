@@ -240,7 +240,7 @@ private:
     SYMTAB_EXPORT void parseFileLineInfo();
     SYMTAB_EXPORT void parseLineInfoForAddr(Offset)
     {
-      parseFileLineInfo(associatedSymtab);
+      parseFileLineInfo(associated_symtab);
     }
     
     SYMTAB_EXPORT void    FindInterestingSections( bool, bool );
