@@ -278,7 +278,7 @@ inline bool operator==(const ModRange& r, Offset off) {
 template<typename OS>
 OS& operator<<(OS& os, const ModRange& m)
 {
-    os << m.id() << ": [" << m.low << ", " << m.high << ")";
+    os << m.id() << ": [" << m.low() << ", " << m.high() << ")";
     return os;
 }
 
