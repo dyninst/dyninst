@@ -202,9 +202,22 @@ namespace rose {
                 /** Returns the input value zero extended to the provided length. */
                 virtual BaseSemantics::SValuePtr ZeroExtend(const BaseSemantics::SValuePtr &expr, size_t newsize);
 
+                /** Returns the input value right rotated by the provided amount. */
+                virtual BaseSemantics::SValuePtr ROR(const BaseSemantics::SValuePtr &expr, const BaseSemantics::SValuePtr &amt);
+
+                /** */
+                virtual BaseSemantics::SValuePtr Replicate(const BaseSemantics::SValuePtr &expr);
+
+                /** */
+                virtual BaseSemantics::SValuePtr getBitfieldMask(const BaseSemantics::SValuePtr &immr, const BaseSemantics::SValuePtr &imms, int N, bool iswmask);
+
                 size_t getRegSize(uint32_t raw);
 
                 size_t ldStrLiteralAccessSize(uint32_t raw);
+
+                bool inzero(uint32_t raw);
+
+                bool extend(uint32_t raw);
 
                 /** */
                 BaseSemantics::SValuePtr readMemory(const BaseSemantics::SValuePtr &addr, size_t readSize);
