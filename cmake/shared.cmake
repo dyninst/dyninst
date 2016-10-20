@@ -106,7 +106,7 @@ IF(CMAKE_COMPILER_IS_GNUCC)
 ENDIF(CMAKE_COMPILER_IS_GNUCC)
 
 # If we're compiling for unix, cotire only supports Intel, GCC and Clang.
-IF (UNIX AND NOT (("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang") OR ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU") OR ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")))
+IF (UNIX AND NOT ((${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang") OR (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU") OR (${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel")))
 	set(USE_COTIRE false)
 ENDIF()
 
@@ -167,4 +167,10 @@ set (CONF_INCLUDE_DIRS "\${DYNINST_CMAKE_DIR}/${REL_INCLUDE_DIR}")
 if (NOT CMAKE_BUILD_TYPE)
    set (CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING 
        "Choose the build type (None, Debug, Release, RelWithDebInfo, MinSizeRel)" FORCE)
+endif()
+
+# There are broken versions of MSVC that won't handle variadic templates correctly (despite the C++11 test case passing).
+# Just build vanilla versions, boost can handle it.
+if (MSVC)
+  add_definitions(-DBOOST_NO_CXX11_VARIADIC_TEMPLATES)
 endif()
