@@ -11,7 +11,7 @@ using namespace Dyninst::InstructionAPI;
 ///////// Formatter for ARMv-8A
 
 std::string ArmFormatter::formatImmediate(std::string evalString) {
-    return evalString;
+    return "0x" + evalString;
 }
 
 std::string ArmFormatter::formatRegister(std::string regName) {
@@ -27,16 +27,14 @@ std::string ArmFormatter::formatRegister(std::string regName) {
 
 std::string ArmFormatter::formatDeref(std::string addrString) {
     std::stringstream out;
-    size_t pluspos;
+    size_t pluspos = addrString.find("+");
 
-    if((pluspos = addrString.find("+")) != std::string::npos) {
-        std::string lhs = addrString.substr(0, pluspos - 1);
-        if(lhs == "PC")
-            out<<addrString.substr(pluspos + 2);
-        else
-            out<<"["<<addrString<<"]";
+    if(pluspos != std::string::npos && addrString.substr(0, pluspos - 1) == "PC") {
+        out<<addrString.substr(pluspos + 2);
     } else {
-        out<<"["<<addrString<<"]";
+        std::string left = addrString.substr(0, pluspos - 1);
+        std::string right = addrString.substr(pluspos + 2);
+        out<<"["<<left<<", "<<right<<"]";
     }
 
     return out.str();
