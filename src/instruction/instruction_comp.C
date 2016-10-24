@@ -131,6 +131,7 @@ test_results_t InstructionMutator::verify_read_write_sets(Instruction::Ptr i, co
     registerSet actualRead, actualWritten;
     copy(actualRead_uo.begin(), actualRead_uo.end(), inserter(actualRead, actualRead.begin()));
     copy(actualWritten_uo.begin(), actualWritten_uo.end(), inserter(actualWritten, actualWritten.begin()));
+    ArchSpecificFormatter *insnFormatter = i->getFormatter();
   
     if(actualRead.size() != expectedRead.size() ||
        actualWritten.size() != expectedWritten.size())
@@ -139,19 +140,19 @@ test_results_t InstructionMutator::verify_read_write_sets(Instruction::Ptr i, co
                  i->format().c_str(), expectedRead.size(), expectedWritten.size(), actualRead.size(), actualWritten.size());
         logerror("Expected read:\n");
         for (registerSet::const_iterator iter = expectedRead.begin(); iter != expectedRead.end(); iter++) {
-            logerror("\t%s\n", (*iter)->format().c_str());
+            logerror("\t%s\n", (*iter)->format(insnFormatter).c_str());
         }
         logerror("Expected written:\n");
         for (registerSet::const_iterator iter = expectedWritten.begin(); iter != expectedWritten.end(); iter++) {
-            logerror("\t%s\n", (*iter)->format().c_str());
+            logerror("\t%s\n", (*iter)->format(insnFormatter).c_str());
         }
         logerror("Actual read:\n");
         for (registerSet::iterator iter = actualRead.begin(); iter != actualRead.end(); iter++) {
-            logerror("\t%s\n", (*iter)->format().c_str());
+            logerror("\t%s\n", (*iter)->format(insnFormatter).c_str());
         }
         logerror("Actual written:\n");
         for (registerSet::iterator iter = actualWritten.begin(); iter != actualWritten.end(); iter++) {
-            logerror("\t%s\n", (*iter)->format().c_str());
+            logerror("\t%s\n", (*iter)->format(insnFormatter).c_str());
         }
 
         return FAILED;
@@ -191,7 +192,7 @@ test_results_t InstructionMutator::verify_read_write_sets(Instruction::Ptr i, co
         {
             if(!i->isRead(*it))
             {
-                logerror("%s was in read set, but isRead(%s) was false\n", (*it)->format().c_str(), (*it)->format().c_str());
+                logerror("%s was in read set, but isRead(%s) was false\n", (*it)->format(insnFormatter).c_str(), (*it)->format(insnFormatter).c_str());
                 return FAILED;
             }
         }
@@ -203,19 +204,19 @@ test_results_t InstructionMutator::verify_read_write_sets(Instruction::Ptr i, co
         logerror("Read set for instruction %s not as expected\n", i->format().c_str());
         logerror("Expected read:\n");
         for (registerSet::const_iterator iter = expectedRead.begin(); iter != expectedRead.end(); iter++) {
-            logerror("\t%s\n", (*iter)->format().c_str());
+            logerror("\t%s\n", (*iter)->format(insnFormatter).c_str());
         }
         logerror("Expected written:\n");
         for (registerSet::const_iterator iter = expectedWritten.begin(); iter != expectedWritten.end(); iter++) {
-            logerror("\t%s\n", (*iter)->format().c_str());
+            logerror("\t%s\n", (*iter)->format(insnFormatter).c_str());
         }
         logerror("Actual read:\n");
         for (registerSet::iterator iter = actualRead.begin(); iter != actualRead.end(); iter++) {
-            logerror("\t%s\n", (*iter)->format().c_str());
+            logerror("\t%s\n", (*iter)->format(insnFormatter).c_str());
         }
         logerror("Actual written:\n");
         for (registerSet::iterator iter = actualWritten.begin(); iter != actualWritten.end(); iter++) {
-            logerror("\t%s\n", (*iter)->format().c_str());
+            logerror("\t%s\n", (*iter)->format(insnFormatter).c_str());
         }
         
         return FAILED;
@@ -253,7 +254,7 @@ test_results_t InstructionMutator::verify_read_write_sets(Instruction::Ptr i, co
         {
             if(!i->isWritten(*it))
             {
-                logerror("%s was in write set, but isWritten(%s) was false\n", (*it)->format().c_str(), (*it)->format().c_str());
+                logerror("%s was in write set, but isWritten(%s) was false\n", (*it)->format(insnFormatter).c_str(), (*it)->format(insnFormatter).c_str());
                 return FAILED;
             }
         }
@@ -263,19 +264,19 @@ test_results_t InstructionMutator::verify_read_write_sets(Instruction::Ptr i, co
         logerror("Write set for instruction %s not as expected\n", i->format().c_str());
         logerror("Expected read:\n");
         for (registerSet::const_iterator iter = expectedRead.begin(); iter != expectedRead.end(); iter++) {
-            logerror("\t%s\n", (*iter)->format().c_str());
+            logerror("\t%s\n", (*iter)->format(insnFormatter).c_str());
         }
         logerror("Expected written:\n");
         for (registerSet::const_iterator iter = expectedWritten.begin(); iter != expectedWritten.end(); iter++) {
-            logerror("\t%s\n", (*iter)->format().c_str());
+            logerror("\t%s\n", (*iter)->format(insnFormatter).c_str());
         }
         logerror("Actual read:\n");
         for (registerSet::iterator iter = actualRead.begin(); iter != actualRead.end(); iter++) {
-            logerror("\t%s\n", (*iter)->format().c_str());
+            logerror("\t%s\n", (*iter)->format(insnFormatter).c_str());
         }
         logerror("Actual written:\n");
         for (registerSet::iterator iter = actualWritten.begin(); iter != actualWritten.end(); iter++) {
-            logerror("\t%s\n", (*iter)->format().c_str());
+            logerror("\t%s\n", (*iter)->format(insnFormatter).c_str());
         }
         return FAILED;
     }
@@ -284,27 +285,36 @@ test_results_t InstructionMutator::verify_read_write_sets(Instruction::Ptr i, co
 }
 
 test_results_t InstructionMutator::verifyCFT(Expression::Ptr cft, bool expectedDefined, unsigned long expectedValue,
-                                             Result_Type expectedType)
+                                             Result_Type expectedType, ArchSpecificFormatter *insnFormatter)
 {
     Result cftResult = cft->eval();
     if(cftResult.defined != expectedDefined) {
-        logerror("FAILED: CFT %s, expected result defined %s, actual %s\n", cft->format().c_str(),
+	if(insnFormatter != NULL)
+	    logerror("FAILED: CFT %s, expected result defined %s, actual %s\n", cft->format(insnFormatter).c_str(),
             expectedDefined ? "true" : "false",
             cftResult.defined ? "true" : "false");
+	else
+	    logerror("FAILED. Unable to format CFT as formatter is not available.\n");
         return FAILED;
     }
     if(expectedDefined)
     {
         if(cftResult.type != expectedType)
         {
-            logerror("FAILED: CFT %s, expected result type %d, actual %d\n", cft->format().c_str(),
+	    if(insnFormatter != NULL)
+		logerror("FAILED: CFT %s, expected result type %d, actual %d\n", cft->format(insnFormatter).c_str(),
                      expectedType, cftResult.type);
+	    else
+		logerror("FAILED. Unable to format CFT as formatter is not available.\n");
             return FAILED;
         }
         if(cftResult.convert<unsigned long long int>() != expectedValue)
         {
-            logerror("FAILED: CFT %s, expected result value 0x%x, actual 0x%x\n", cft->format().c_str(),
+	    if(insnFormatter != NULL)
+		logerror("FAILED: CFT %s, expected result value 0x%x, actual 0x%x\n", cft->format(insnFormatter).c_str(),
                     expectedValue, cftResult.convert<unsigned long>());
+	    else
+		logerror("FAILED. Unable to format CFT as formatter is not available.\n");
             return FAILED;
         }
     }
