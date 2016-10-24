@@ -8,7 +8,22 @@
 
 using namespace Dyninst::InstructionAPI;
 
+///////// Base Formatter
+
+std::string ArchSpecificFormatter::formatBinaryFunc(std::string left, std::string func, std::string right) {
+    // if(isAdd())
+    // {
+    return left + " " + func + " " + right;
+    // } else retVal << "NOT VALID FOR AT&T";
+}
+
+///////////////////////////
+
 ///////// Formatter for ARMv-8A
+
+ArmFormatter::ArmFormatter() {
+    binaryFuncModifier["<<"] = "lsl";
+}
 
 std::string ArmFormatter::formatImmediate(std::string evalString) {
     return "0x" + evalString;
@@ -50,6 +65,15 @@ std::string ArmFormatter::getInstructionString(std::vector<std::string> operands
     }
 
     return out.str();
+}
+
+std::string ArmFormatter::formatBinaryFunc(std::string left, std::string func, std::string right) {
+    if(binaryFuncModifier.count(func) > 0)
+	    return left + ", " + binaryFuncModifier[func] + " " + right;
+    else if(left == "PC")
+	    return right;
+    else
+        return left + " " + func + " " + right;
 }
 
 ///////////////////////////
