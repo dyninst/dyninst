@@ -2218,6 +2218,22 @@ bool AObject::getSegments(vector<Segment> &segs) const
     return true;
 }
 
+void Object::getSegmentsSymReader(std::vector<SymSegment> & sym_segs)
+{
+	for(auto i = regions_.begin();
+			i != regions_.end();
+			++i)
+	{
+		SymSegment s;
+		s.file_offset = (*i)->getDiskOffset();
+		s.file_size = (*i)->getDiskSize();
+		s.mem_addr = (*i)->getMemOffset();
+		s.mem_size = (*i)->getMemSize();
+		s.perms = (*i)->getRegionPermissions();
+		s.type = (*i)->getRegionType();
+	}
+}
+
 bool Object::emitDriver(string fName, std::vector<Symbol *> &allSymbols, unsigned flag)
 {
 	emitWin *em = new emitWin((PCHAR)GetMapAddr(), this, err_func_);

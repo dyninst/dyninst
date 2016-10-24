@@ -234,6 +234,7 @@ class Object : public AObject
 	SYMTAB_EXPORT void rebase(Offset off);
 	SYMTAB_EXPORT Region* findRegionByName(const std::string& name) const;
 	SYMTAB_EXPORT void applyRelocs(Region* relocs, Offset delta);
+	SYMTAB_EXPORT virtual void getSegmentsSymReader(std::vector<SymSegment> &);
 
 private:
     SYMTAB_EXPORT void    ParseSymbolInfo( bool );
