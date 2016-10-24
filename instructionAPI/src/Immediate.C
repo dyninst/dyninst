@@ -40,17 +40,7 @@
 namespace Dyninst {
     namespace InstructionAPI {
         Immediate::Ptr Immediate::makeImmediate(const Result &val) {
-            //static std::map<Result, Immediate::Ptr> builtImmediates;
-            //static int cache_hits = 0;
-            //std::map<Result, Immediate::Ptr>::const_iterator foundIt = builtImmediates.find(val);
-
-            //if(foundIt == builtImmediates.end())
-            //{
-            Immediate::Ptr ret = make_shared(singleton_object_pool<Immediate>::construct(val));
-            //builtImmediates[val] = ret;
-            return ret;
-            //}
-            //return foundIt->second;
+            return make_shared(singleton_object_pool<Immediate>::construct(val));
         }
 
 

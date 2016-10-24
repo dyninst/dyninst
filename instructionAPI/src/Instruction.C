@@ -78,7 +78,12 @@ namespace Dyninst
       : m_InsnOp(what), m_Valid(true), arch_decoded_from(arch)
     {
         switch(arch_decoded_from) {
-            case Arch_aarch64: formatter = new ArmFormatter();
+            case Arch_aarch64: 
+                formatter = new ArmFormatter();
+                break;
+            case Arch_x86_64:
+            case Arch_x86:
+                formatter = new x86Formatter();
                 break;
             default:formatter = NULL;
                 break;
@@ -459,9 +464,9 @@ memAccessors.begin()));
             decodeOperands();
         }
 
-	//remove this once ArchSpecificFormatter is extended for all architectures
-	if(formatter == NULL)
-	    return "";
+        //remove this once ArchSpecificFormatter is extended for all architectures
+        if(formatter == NULL)
+            return "";
 
         std::string opstr = m_InsnOp->format();
         opstr += " ";

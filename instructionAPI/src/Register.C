@@ -93,20 +93,9 @@ namespace Dyninst
         return formatter->formatRegister(m_Reg.name());
     }
 
-    std::string MaskRegisterAST::format(ArchSpecificFormatter */*formatter*/, formatStyle) const
+    std::string MaskRegisterAST::format(ArchSpecificFormatter* formatter, formatStyle) const
     {
-		std::string name = m_Reg.name();
-		std::string::size_type substr = name.rfind(':');
-        if(substr != std::string::npos)
-        {
-            name = name.substr(substr + 1, name.length());
-        }
-
-        /* The syntax for a masking register is {kX} in AT&T syntax. */
-        std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-        std::stringstream ss;
-        ss << "%" << name;
-        return ss.str();
+        return formatter->formatRegister(m_Reg.name());
     }
 
     RegisterAST RegisterAST::makePC(Dyninst::Architecture arch)
