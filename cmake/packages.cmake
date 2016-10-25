@@ -132,14 +132,28 @@ find_package (Boost ${BOOST_MIN_VERSION} COMPONENTS thread system date_time)
 
 
 if(NOT Boost_FOUND)
+  set (BOOST_ARGS
+          --with-system
+          --with-thread
+          --with-date_time
+          --ignore-site-config
+          --link=static
+          --runtime-link=shared
+          --threading=multi)
+  set(BOOST_BUILD "./b2")
   if(WIN32)
     set(BOOST_BOOTSTRAP call bootstrap.bat)
-    set(BOOST_BUILD b2.exe)
     set(BOOST_BASE boost/src/Boost)
+    list(APPEND BOOST_ARGS --layout=versioned)
   else()
     set(BOOST_BOOTSTRAP "./bootstrap.sh")
-    set(BOOST_BUILD "./b2")
     set(BOOST_BASE boost/src/boost)
+    list(APPEND BOOST_ARGS --layout=tagged)
+  endif()
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    list(APPEND BOOST_ARGS variant=debug)
+  else()
+    list(APPEND BOOST_ARGS variant=release)
   endif()
 
   message(STATUS "No boost found, attempting to build as external project")
@@ -151,8 +165,8 @@ if(NOT Boost_FOUND)
     URL_MD5 bb1dad35ad069e8d7c8516209a51053c
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${CMAKE_INSTALL_PREFIX}
-    BUILD_COMMAND ${BOOST_BUILD} --with-system --with-thread --with-date_time --layout=versioned --ignore-site-config stage
-    INSTALL_COMMAND ${BOOST_BUILD} --with-system --with-thread --with-date_time --layout=versioned --ignore-site-config install
+    BUILD_COMMAND ${BOOST_BUILD} ${BOOST_ARGS} stage
+    INSTALL_COMMAND ${BOOST_BUILD} ${BOOST_ARGS} install
     )
   set(Boost_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/${BOOST_BASE})
   set(Boost_LIBRARY_DIRS ${CMAKE_BINARY_DIR}/${BOOST_BASE}/stage/lib)
