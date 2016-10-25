@@ -385,12 +385,7 @@ namespace Dyninst
                 }
                 else
                 {
-                    // if(isAdd())
-                    // {
-                    retVal << m_arg1->format(formatter)
-                        << " " << m_funcPtr->format() 
-                        << " " << m_arg2->format(formatter);
-                    // } else retVal << "NOT VALID FOR AT&T";
+                    return formatter->formatBinaryFunc(m_arg1->format(formatter), m_funcPtr->format(), m_arg2->format(formatter));
                 }
 
                 return retVal.str();

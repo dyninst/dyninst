@@ -477,6 +477,8 @@ memAccessors.begin()));
                 currOperand != m_Operands.end();
                 op++, ++currOperand)
         {
+            if(currOperand->isImplicit())
+                continue;
             formattedOperands.push_back(currOperand->format(formatter, getArch(), addr));
         }
 
