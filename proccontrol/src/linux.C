@@ -1009,17 +1009,28 @@ bool linux_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runnin
         snprintf(proc_stat_name, 128, "/proc/%d/stat", *i);
         FILE *sfile = fopen(proc_stat_name, "r");
 
-        if (sfile == NULL) {
+        if (*i == getPid() && sfile == NULL) {
             pthrd_printf("Failed to open /proc/%d/stat file\n", *i);
             setLastError(err_noproc, "Failed to find /proc files for debuggee");
             return false;
         }
-        if( fread(sstat, 1, 256, sfile) == 0 ) {
+        else if (sfile == NULL) {
+           //thread died between the above getThreadLWPs and the /proc/pid/stat open
+           // just drop it from the to-attach list.
+           continue;
+        }
+        size_t result = fread(sstat, 1, 256, sfile);
+        if (*i == getPid() && result == 0) {
             pthrd_printf("Failed to read /proc/%d/stat file \n", *i);
             setLastError(err_noproc, "Failed to find /proc files for debuggee");
             fclose(sfile);
             return false;
         }
+        else if (result == 0) {
+           fclose(sfile);
+           continue;
+        }
+        
         fclose(sfile);
 
         sstat[255] = '\0';
