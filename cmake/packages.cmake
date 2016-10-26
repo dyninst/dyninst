@@ -166,11 +166,11 @@ if(NOT Boost_FOUND)
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${CMAKE_INSTALL_PREFIX}
     BUILD_COMMAND ${BOOST_BUILD} ${BOOST_ARGS} stage
-    INSTALL_COMMAND ${BOOST_BUILD} ${BOOST_ARGS} install
+    INSTALL_COMMAND ""
     )
   set(Boost_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/${BOOST_BASE})
   set(Boost_LIBRARY_DIRS ${CMAKE_BINARY_DIR}/${BOOST_BASE}/stage/lib)
-  set(Boost_LIBRARIES -lboost_system -lboost_thread)
+  set(Boost_LIBRARIES boost_thread boost_system)
 endif()
 
 link_directories ( ${Boost_LIBRARY_DIRS} )

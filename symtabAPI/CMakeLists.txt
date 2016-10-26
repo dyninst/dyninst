@@ -100,15 +100,16 @@ ADD_DEFINITIONS(-DSYMTAB_LIB)
 set (DEPS common)
 
 if(UNIX)
-  set (DEPS ${DEPS}
+  list (APPEND DEPS
     dynElf ${LIBELF_LIBRARIES}
     dynDwarf ${LIBDWARF_LIBRARIES}
     )
 else()
-  set (DEPS ${DEPS} dbghelp)
+  list (APPEND DEPS dbghelp)
 endif()
 
 dyninst_library(symtabAPI ${DEPS})
+target_link_private_libraries(symtabAPI ${Boost_LIBRARIES})
 
 if (USE_COTIRE)
     cotire(symtabAPI)
