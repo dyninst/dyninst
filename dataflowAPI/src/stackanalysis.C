@@ -1277,9 +1277,10 @@ void StackAnalysis::handleReturn(Instruction::Ptr insn,
    if (operands.size() < 2) {
       delta = word_size;
    } else {
-      fprintf(stderr, "Unhandled RET instruction: %s\n",
-         insn->format().c_str());
-      assert(false);
+      assert(operands.size() == 2);
+      Result imm = operands[1].getValue()->eval();
+      assert(imm.defined);
+      delta = word_size + imm.convert<long>();
    }
 /*   else if (operands.size() == 1) {
       // Ret immediate
