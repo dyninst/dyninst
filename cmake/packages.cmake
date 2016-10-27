@@ -179,7 +179,7 @@ link_directories ( ${Boost_LIBRARY_DIRS} )
 include_directories (
   ${Boost_INCLUDE_DIRS}
   )
-
+add_definitions(-DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION)
 message(STATUS "Boost includes: ${Boost_INCLUDE_DIRS}")
 message(STATUS "Boost library dirs: ${Boost_LIBRARY_DIRS}")
 message(STATUS "Boost thread library: ${Boost_THREAD_LIBRARY}")
