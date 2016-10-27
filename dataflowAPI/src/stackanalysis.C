@@ -629,6 +629,9 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
       case e_imul:
          handleMul(insn, xferFuncs);
          break;
+      case e_syscall:
+         handleSyscall(insn, block, off, xferFuncs);
+         break;
       default:
          handleDefault(insn, block, off, xferFuncs);
    }
@@ -2068,6 +2071,25 @@ void StackAnalysis::handleSpecialSignExtend(Instruction::Ptr insn,
    copyBaseSubReg(writtenReg, xferFuncs);
 }
 
+void StackAnalysis::handleSyscall(Instruction::Ptr insn, Block *block,
+   const Offset off, TransferFuncs &xferFuncs) {
+   Architecture arch = insn->getArch();
+   if (arch == Arch_x86) {
+      // x86 returns an error code in EAX
+      xferFuncs.push_back(TransferFunc::retopFunc(Absloc(x86::eax)));
+   } else if (arch == Arch_x86_64) {
+      // x86_64 returns an error code in RAX and destroys RCX and R11
+      xferFuncs.push_back(TransferFunc::retopFunc(Absloc(x86_64::rax)));
+      retopBaseSubReg(x86_64::rax, xferFuncs);
+      xferFuncs.push_back(TransferFunc::retopFunc(Absloc(x86_64::rcx)));
+      retopBaseSubReg(x86_64::rcx, xferFuncs);
+      xferFuncs.push_back(TransferFunc::retopFunc(Absloc(x86_64::r11)));
+      retopBaseSubReg(x86_64::r11, xferFuncs);
+   } else {
+      handleDefault(insn, block, off, xferFuncs);
+   }
+}
+
 // Handle instructions for which we have no special handling implemented.  Be
 // conservative for safety.
 void StackAnalysis::handleDefault(Instruction::Ptr insn, Block *block,
@@ -2192,6 +2214,20 @@ bool StackAnalysis::isJump(Instruction::Ptr insn) {
 
 bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block,
    Offset off, TransferFuncs &xferFuncs, TransferSet &funcSummary) {
+
+   // Identify syscalls of the form: call *%gs:0x10
+   Expression::Ptr callAddrExpr = insn->getOperand(0).getValue();
+   if (dynamic_cast<Dereference *>(callAddrExpr.get())) {
+      std::vector<Expression::Ptr> children;
+      callAddrExpr->getChildren(children);
+      if (children.size() == 1 &&
+         dynamic_cast<Immediate *>(children[0].get()) &&
+         children[0]->eval().convert<long>() == 16) {
+         // We have a syscall
+         handleSyscall(insn, block, off, xferFuncs);
+         return true;
+      }
+   }
 
    if (!insn->getControlFlowTarget()) return false;
 

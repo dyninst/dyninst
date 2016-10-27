@@ -417,6 +417,8 @@ private:
       TransferFuncs &xferFuncs);
    void handleDiv(InstructionPtr insn, TransferFuncs &xferFuncs);
    void handleMul(InstructionPtr insn, TransferFuncs &xferFuncs);
+   void handleSyscall(InstructionPtr insn, ParseAPI::Block *block,
+      const Offset off, TransferFuncs &xferFuncs);
    void handleDefault(InstructionPtr insn, ParseAPI::Block *block,
       const Offset off, TransferFuncs &xferFuncs);
 
