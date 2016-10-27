@@ -109,8 +109,10 @@ public:
     struct line_info {};
     struct upper_bound {};
 
-    typedef boost::shared_ptr<Statement> Ptr;
-    typedef boost::shared_ptr<const Statement> ConstPtr;
+    typedef Statement* Ptr;
+    typedef const Statement* ConstPtr;
+//    typedef boost::shared_ptr<Statement> Ptr;
+//    typedef boost::shared_ptr<const Statement> ConstPtr;
 
 };
 template <typename OS>
