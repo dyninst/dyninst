@@ -71,7 +71,6 @@ namespace Dyninst {
       class Expression;
    };
 
-
 class StackAnalysis {
 public:
    typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
@@ -389,7 +388,8 @@ private:
    bool isJump(InstructionPtr insn);
    bool handleNormalCall(InstructionPtr insn, ParseAPI::Block *block,
       Offset off, TransferFuncs &xferFuncs, TransferSet &funcSummary);
-   bool handleThunkCall(InstructionPtr insn, TransferFuncs &xferFuncs);
+   bool handleThunkCall(InstructionPtr insn, ParseAPI::Block *block,
+      const Offset off, TransferFuncs &xferFuncs);
    bool handleJump(InstructionPtr insn, ParseAPI::Block *block,
       Offset off, TransferFuncs &xferFuncs, TransferSet &funcSummary);
    void handlePushPop(InstructionPtr insn, ParseAPI::Block *block,

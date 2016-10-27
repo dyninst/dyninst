@@ -548,7 +548,7 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
    // Cases we handle
    if (isCall(insn)) {
       if (handleNormalCall(insn, block, off, xferFuncs, funcSummary)) return;
-      else if (handleThunkCall(insn, xferFuncs)) return;
+      else if (handleThunkCall(insn, block, off, xferFuncs)) return;
       else return handleDefault(insn, block, off, xferFuncs);
    }
 
@@ -2511,8 +2511,8 @@ bool StackAnalysis::handleJump(Instruction::Ptr insn, Block *block, Offset off,
    return true;
 }
 
-bool StackAnalysis::handleThunkCall(Instruction::Ptr insn,
-   TransferFuncs &xferFuncs) {
+bool StackAnalysis::handleThunkCall(Instruction::Ptr insn, Block *block,
+   const Offset off, TransferFuncs &xferFuncs) {
 
    // We know that we're not a normal call, so it depends on whether the CFT is
    // "next instruction" or not.
@@ -2529,10 +2529,23 @@ bool StackAnalysis::handleThunkCall(Instruction::Ptr insn,
       Absloc sploc(sp());
       xferFuncs.push_back(TransferFunc::deltaFunc(sploc, -1 * word_size));
       copyBaseSubReg(sp(), xferFuncs);
-      return true;
    }
    // Else we're calling a mov, ret thunk that has no effect on the stack
    // pointer
+
+   // Check the next instruction to see which register is holding the PC.
+   // Assumes next instruction is add thunk_reg, offset.
+   const Address pc = off + insn->size();
+   Instruction::Ptr thunkAddInsn = block->getInsn(pc);
+   if (thunkAddInsn == Instruction::Ptr()) return true;
+   if (thunkAddInsn->getOperation().getID() != e_add) return true;
+   std::set<RegisterAST::Ptr> writtenRegs;
+   thunkAddInsn->getOperand(0).getWriteSet(writtenRegs);
+   if (writtenRegs.size() != 1) return true;
+   const MachRegister &thunkTarget = (*writtenRegs.begin())->getID();
+
+   xferFuncs.push_back(TransferFunc::absFunc(Absloc(thunkTarget), pc));
+   copyBaseSubReg(thunkTarget, xferFuncs);
    return true;
 }
 
