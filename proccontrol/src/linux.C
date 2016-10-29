@@ -40,6 +40,7 @@
 #include <assert.h>
 #include <time.h>
 #include <iostream>
+#include <fstream>
 
 #include "common/h/dyn_regs.h"
 #include "common/h/dyntypes.h"
@@ -1001,51 +1002,38 @@ bool linux_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runnin
     for(vector<Dyninst::LWP>::iterator i = lwps.begin();
             i != lwps.end(); ++i)
     {
+        const auto ignore_max = std::numeric_limits<std::streamsize>::max();
         char proc_stat_name[128];
-        char sstat[256];
-        char *status;
-        int paren_level = 1;
 
         snprintf(proc_stat_name, 128, "/proc/%d/stat", *i);
-        FILE *sfile = fopen(proc_stat_name, "r");
+        ifstream sfile(proc_stat_name);
 
-        if (*i == getPid() && sfile == NULL) {
-            pthrd_printf("Failed to open /proc/%d/stat file\n", *i);
+        while (sfile.good()) {
+
+            // The stat looks something like: 123 (command) R 456...
+            // We'll just look for the ") R " part.
+            if (sfile.ignore(ignore_max, ')').peek() == ' ') {
+                char space, state;
+
+                // Eat the space we peeked and grab the state char.
+                if (sfile.get(space).get(state).peek() == ' ') {
+                    // Found the state char -- 'T' means it's already stopped.
+                    runningStates.insert(make_pair(*i, (state != 'T')));
+                    break;
+                }
+
+                // Restore the state char and try again
+                sfile.unget();
+            }
+        }
+
+        if (!sfile.good() && (*i == getPid())) {
+            // Only the main thread is treated as an error.  Other threads may
+            // have exited between getThreadLWPs and /proc/pid/stat open or read.
+            pthrd_printf("Failed to read /proc/%d/stat file\n", *i);
             setLastError(err_noproc, "Failed to find /proc files for debuggee");
             return false;
         }
-        else if (sfile == NULL) {
-           //thread died between the above getThreadLWPs and the /proc/pid/stat open
-           // just drop it from the to-attach list.
-           continue;
-        }
-        size_t result = fread(sstat, 1, 256, sfile);
-        if (*i == getPid() && result == 0) {
-            pthrd_printf("Failed to read /proc/%d/stat file \n", *i);
-            setLastError(err_noproc, "Failed to find /proc files for debuggee");
-            fclose(sfile);
-            return false;
-        }
-        else if (result == 0) {
-           fclose(sfile);
-           continue;
-        }
-        
-        fclose(sfile);
-
-        sstat[255] = '\0';
-        status = sstat;
-
-        while (*status != '\0' && *(status++) != '(') ;
-        while (*status != '\0' && paren_level != 0) {
-            if (*status == '(') paren_level++;
-            if (*status == ')') paren_level--;
-            status++;
-        }
-
-        while (*status == ' ') status++;
-
-        runningStates.insert(make_pair(*i, (*status != 'T')));
     }
 
     return true;
