@@ -220,6 +220,6 @@ if(UNIX)
   endif()
 endif()
 
-if(NOT BOOST_FOUND)
+if(NOT Boost_FOUND)
     add_dependencies(common boost)
 endif()
