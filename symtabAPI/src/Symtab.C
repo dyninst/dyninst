@@ -3468,6 +3468,7 @@ const char *Symbol::symbolLinkage2Str(SymbolLinkage t)
       CASE_RETURN_STR(SL_GLOBAL);
       CASE_RETURN_STR(SL_LOCAL);
       CASE_RETURN_STR(SL_WEAK);
+      CASE_RETURN_STR(SL_UNIQUE);
    };
 
    return "invalid symbol linkage";

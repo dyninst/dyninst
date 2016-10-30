@@ -99,6 +99,7 @@ void print_symbols( std::vector< Symbol *>& allsymbols ) {
                 case Symbol::SL_GLOBAL:  fprintf(fd, "  GL"); break;
                 case Symbol::SL_LOCAL:   fprintf(fd, "  LO"); break;
                 case Symbol::SL_WEAK:    fprintf(fd, "  WK"); break;
+                case Symbol::SL_UNIQUE:  fprintf(fd, "  UQ"); break;
             }
             switch (sym->getVisibility()) {
                 case Symbol::SV_UNKNOWN:   fprintf(fd, "  ???"); break;
