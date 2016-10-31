@@ -2277,6 +2277,116 @@ namespace rose {
                     }
                 };
 
+                struct IP_movz_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+
+                        if (EXTR(29, 30) == MoveWideOp_K) {
+                            result = d->read(args[0]);
+                        } else {
+                            result = d->Zeros(64);
+                        }
+                        result = ops->or_(ops->extract(result, 0, (EXTR(21, 22) << 4)), ops->or_(
+                                ops->shiftLeft(d->read(args[1]), ops->number_(32, (EXTR(21, 22) << 4))),
+                                ops->shiftLeft(ops->extract(result, (EXTR(21, 22) << 4) + 15 + 1, result->get_width()),
+                                               ops->number_(32, (EXTR(21, 22) << 4) + 15 + 1))));
+
+                        if (EXTR(29, 30) == MoveWideOp_N) {
+                            result = d->NOT(result);
+                        }
+                        d->write(args[0], result);
+
+                    }
+                };
+
+                struct IP_mov_movz_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+
+                        if (EXTR(29, 30) == MoveWideOp_K) {
+                            result = d->read(args[0]);
+                        } else {
+                            result = d->Zeros(64);
+                        }
+                        result = ops->or_(ops->extract(result, 0, (EXTR(21, 22) << 4)), ops->or_(
+                                ops->shiftLeft(d->read(args[1]), ops->number_(32, (EXTR(21, 22) << 4))),
+                                ops->shiftLeft(ops->extract(result, (EXTR(21, 22) << 4) + 15 + 1, result->get_width()),
+                                               ops->number_(32, (EXTR(21, 22) << 4) + 15 + 1))));
+
+                        if (EXTR(29, 30) == MoveWideOp_N) {
+                            result = d->NOT(result);
+                        }
+                        d->write(args[0], result);
+
+                    }
+                };
+
+                struct IP_movn_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+
+                        if (EXTR(29, 30) == MoveWideOp_K) {
+                            result = d->read(args[0]);
+                        } else {
+                            result = d->Zeros(64);
+                        }
+                        result = ops->or_(ops->extract(result, 0, (EXTR(21, 22) << 4)), ops->or_(
+                                ops->shiftLeft(d->read(args[1]), ops->number_(32, (EXTR(21, 22) << 4))),
+                                ops->shiftLeft(ops->extract(result, (EXTR(21, 22) << 4) + 15 + 1, result->get_width()),
+                                               ops->number_(32, (EXTR(21, 22) << 4) + 15 + 1))));
+
+                        if (EXTR(29, 30) == MoveWideOp_N) {
+                            result = d->NOT(result);
+                        }
+                        d->write(args[0], result);
+
+                    }
+                };
+
+                struct IP_mov_movn_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+
+                        if (EXTR(29, 30) == MoveWideOp_K) {
+                            result = d->read(args[0]);
+                        } else {
+                            result = d->Zeros(64);
+                        }
+                        result = ops->or_(ops->extract(result, 0, (EXTR(21, 22) << 4)), ops->or_(
+                                ops->shiftLeft(d->read(args[1]), ops->number_(32, (EXTR(21, 22) << 4))),
+                                ops->shiftLeft(ops->extract(result, (EXTR(21, 22) << 4) + 15 + 1, result->get_width()),
+                                               ops->number_(32, (EXTR(21, 22) << 4) + 15 + 1))));
+
+                        if (EXTR(29, 30) == MoveWideOp_N) {
+                            result = d->NOT(result);
+                        }
+                        d->write(args[0], result);
+
+                    }
+                };
+
+                struct IP_movk_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+
+                        if (EXTR(29, 30) == MoveWideOp_K) {
+                            result = d->read(args[0]);
+                        } else {
+                            result = d->Zeros(64);
+                        }
+                        result = ops->or_(ops->extract(result, 0, (EXTR(21, 22) << 4)), ops->or_(
+                                ops->shiftLeft(d->read(args[1]), ops->number_(32, (EXTR(21, 22) << 4))),
+                                ops->shiftLeft(ops->extract(result, (EXTR(21, 22) << 4) + 15 + 1, result->get_width()),
+                                               ops->number_(32, (EXTR(21, 22) << 4) + 15 + 1))));
+
+                        if (EXTR(29, 30) == MoveWideOp_N) {
+                            result = d->NOT(result);
+                        }
+                        d->write(args[0], result);
+
+                    }
+                };
+
                 struct IP_fmov_float_gen_execute : P {
                    void p(D d, Ops ops, I insn, A args, B raw) {
 			            BaseSemantics::SValuePtr srcVal = d->read(args[1]);
@@ -2357,6 +2467,11 @@ namespace rose {
                 iproc_set (rose_aarch64_op_sbfiz_sbfm, new ARM64::IP_sbfiz_sbfm_execute);
                 iproc_set (rose_aarch64_op_sbfx_sbfm, new ARM64::IP_sbfx_sbfm_execute);
                 iproc_set (rose_aarch64_op_fmov_float_gen, new ARM64::IP_fmov_float_gen_execute);
+                iproc_set (rose_aarch64_op_movz, new ARM64::IP_movz_execute);
+                iproc_set (rose_aarch64_op_mov_movz, new ARM64::IP_mov_movz_execute);
+                iproc_set (rose_aarch64_op_movn, new ARM64::IP_movn_execute);
+                iproc_set (rose_aarch64_op_mov_movn, new ARM64::IP_mov_movn_execute);
+                iproc_set (rose_aarch64_op_movk, new ARM64::IP_movk_execute);
             }
 
             void

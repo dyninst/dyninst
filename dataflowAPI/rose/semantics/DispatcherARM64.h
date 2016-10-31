@@ -261,6 +261,12 @@ namespace rose {
                         MemOp_STORE,
                         MemOp_LOAD
                     };
+
+                    enum MoveWideOp {
+                        MoveWideOp_N,
+                        MoveWideOp_Z,
+                        MoveWideOp_K
+                    };
                 };
 
             } // namespace
