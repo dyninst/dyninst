@@ -224,6 +224,9 @@ namespace rose {
 
                 /** */
                 void writeMemory(const BaseSemantics::SValuePtr &addr, size_t writeSize, const BaseSemantics::SValuePtr &data);
+
+                /** */
+                SgAsmExpression *getWriteBackTarget(SgAsmExpression *expr);
             };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

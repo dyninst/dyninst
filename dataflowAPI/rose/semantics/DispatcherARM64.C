@@ -945,7 +945,7 @@ namespace rose {
                                 d->writeRegister(d->REG_SP, address);
                             }
                             else {
-                                d->write(args[1], address);
+                                d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
 
@@ -1002,7 +1002,7 @@ namespace rose {
                                 d->writeRegister(d->REG_SP, address);
                             }
                             else {
-                                d->write(args[1], address);
+                                d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
 
@@ -1059,7 +1059,7 @@ namespace rose {
                                 d->writeRegister(d->REG_SP, address);
                             }
                             else {
-                                d->write(args[1], address);
+                                d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
 
@@ -1116,7 +1116,7 @@ namespace rose {
                                 d->writeRegister(d->REG_SP, address);
                             }
                             else {
-                                d->write(args[1], address);
+                                d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
 
@@ -1173,7 +1173,7 @@ namespace rose {
                                 d->writeRegister(d->REG_SP, address);
                             }
                             else {
-                                d->write(args[1], address);
+                                d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
 
@@ -1230,7 +1230,7 @@ namespace rose {
                                 d->writeRegister(d->REG_SP, address);
                             }
                             else {
-                                d->write(args[1], address);
+                                d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
 
@@ -1287,7 +1287,7 @@ namespace rose {
                                 d->writeRegister(d->REG_SP, address);
                             }
                             else {
-                                d->write(args[1], address);
+                                d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
 
@@ -1345,7 +1345,7 @@ namespace rose {
                                 d->writeRegister(d->REG_SP, address);
                             }
                             else {
-                                d->write(args[1], address);
+                                d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
 
@@ -1402,7 +1402,7 @@ namespace rose {
                                 d->writeRegister(d->REG_SP, address);
                             }
                             else {
-                                d->write(args[1], address);
+                                d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
 
@@ -1459,7 +1459,7 @@ namespace rose {
                                 d->writeRegister(d->REG_SP, address);
                             }
                             else {
-                                d->write(args[1], address);
+                                d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
 
@@ -1516,7 +1516,7 @@ namespace rose {
                                 d->writeRegister(d->REG_SP, address);
                             }
                             else {
-                                d->write(args[1], address);
+                                d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
 
@@ -1573,7 +1573,7 @@ namespace rose {
                                 d->writeRegister(d->REG_SP, address);
                             }
                             else {
-                                d->write(args[1], address);
+                                d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
 
@@ -1630,7 +1630,7 @@ namespace rose {
                                 d->writeRegister(d->REG_SP, address);
                             }
                             else {
-                                d->write(args[1], address);
+                                d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
 
@@ -1687,7 +1687,7 @@ namespace rose {
                                 d->writeRegister(d->REG_SP, address);
                             }
                             else {
-                                d->write(args[1], address);
+                                d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
 
@@ -1744,7 +1744,7 @@ namespace rose {
                                 d->writeRegister(d->REG_SP, address);
                             }
                             else {
-                                d->write(args[1], address);
+                                d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
 
@@ -1801,7 +1801,7 @@ namespace rose {
                                 d->writeRegister(d->REG_SP, address);
                             }
                             else {
-                                d->write(args[1], address);
+                                d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
 
@@ -1858,7 +1858,7 @@ namespace rose {
                                 d->writeRegister(d->REG_SP, address);
                             }
                             else {
-                                d->write(args[1], address);
+                                d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
 
@@ -1915,7 +1915,7 @@ namespace rose {
                                 d->writeRegister(d->REG_SP, address);
                             }
                             else {
-                                d->write(args[1], address);
+                                d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
 
@@ -2495,6 +2495,7 @@ namespace rose {
                                                             operators->isEqual(zVal, operators->number_(1, 0)),
                                                             operators->boolean_(true), operators->boolean_(false)),
                                                     operators->boolean_(false));
+                        break;
                     case 5: result = operators->isEqual(nVal, vVal);
                         break;
                     case 6: result = operators->ite(operators->isEqual(nVal, vVal),
@@ -2754,6 +2755,24 @@ namespace rose {
 
                 //The third and fourth arguments will remain unused
                 state->writeMemory(addr, data, NULL, NULL, writeSize);
+            }
+
+            SgAsmExpression *
+            DispatcherARM64::getWriteBackTarget(SgAsmExpression *expr) {
+                SgAsmMemoryReferenceExpression *memoryExpression = isSgAsmMemoryReferenceExpression(expr);
+                ASSERT_not_null(memoryExpression);
+
+                SgAsmExpression *address = memoryExpression->get_address();
+                ASSERT_not_null(address);
+
+                if(isSgAsmBinaryAdd(address)) {
+                    return isSgAsmBinaryAdd(address)->get_lhs();
+                } else {
+                    SgAsmRegisterReferenceExpression *retval = isSgAsmRegisterReferenceExpression(address);
+                    ASSERT_not_null(retval);
+
+                    return retval;
+                }
             }
         } // namespace
     } // namespace
