@@ -73,16 +73,20 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
 
     /* Should we run the adhoc analysis before we return? */
     bool adhoc_required = !analysisRequired(reloc);
+    bool adhoc_result = false;
+
+    /* If we need to run the adhoc analysis then run it first */
+    if(adhoc_required)
+        adhoc_result = adhoc.process(reloc, g);
 
     const block_instance *block = reloc->block();
     const func_instance *func = reloc->func();
 
-    /* We need a block in order to do exception sensitive analysis */
+    /* We need a block in order to do sensitivity analysis */
     if(!block)
     {
         if(adhoc_required)
         {
-            bool adhoc_result = adhoc.process(reloc, g);
             // sensitivity_cerr << "Warning: No block, running adhoc: " << adhoc_result << endl;
             return adhoc_result;
         }
@@ -197,8 +201,7 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
             overApprox_++;
             intSens = true;
             extSens = true;
-        }
-        else {
+        } else {
             if (extSens) {
                 extSens_++;
             }
@@ -209,7 +212,7 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
 
 
         if (extSens) {
-            // sensitivity_cerr << "\tExtSens @ " << std::hex << addr << std::dec << endl;
+            sensitivity_cerr << "\tExtSens @ " << std::hex << addr << std::dec << endl;
 
             // Okay, someone wants the original version. That means, for now, we're emulating.
             if (intSens) {
@@ -261,7 +264,7 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
     /* do we still have to run the adhoc analysis? */
     if(adhoc_required)
     {
-        bool adhoc_result = adhoc.process(reloc, g);
+        // bool adhoc_result = adhoc.process(reloc, g);
         // sensitivity_cerr << "Completing analysis with adhoc process: " << adhoc_result << endl;
         return adhoc_result;
     }
@@ -610,28 +613,24 @@ void PCSensitiveTransformer::emulateInsn(RelocBlock *reloc,
   }
 }
 
-// TODO: fix this
+/**
+ * Check to see if the given address is exception sensitive. If the address is
+ * in a function that contains a catch block, true is returned. Otherwise false
+ * is returned.
+ * @return Whether or not the given address is exception senstive.
+ */
 bool PCSensitiveTransformer::exceptionSensitive(Address a, const block_instance *bbl) {
-    // If we're within the try section of an exception, return true.
-    // Otherwise return false.
+    sensitivity_cerr << "Checking address 0x" << std::hex << a << std::dec 
+        << " for exception sensitivity" << endl;
 
     Symtab *symtab = bbl->obj()->parse_img()->getObject();
     Offset off = a - (bbl->start() - bbl->llb()->start());
 
-    // ExceptionBlock block;
-    // if(symtab->findException(block, a - 1))
-    // {
-        // cerr << "\tFOUND ACTUAL EXCEPTION" << endl;
-        // return true;
-    // } else return false;
+    sensitivity_cerr << "Address: 0x" << hex << a << " Offset: 0x" << hex << a << dec << endl;
 
-    std::vector<Function*> functions;
-    if(!symtab->getAllFunctions(functions))
-    {
-        sensitivity_cerr << "\tWarning: This symbol table has no functions!" << endl;
-        return false;
-    }
+    sensitivity_cerr << "Checking offset 0x" << hex << off << dec << endl;
 
+    /* Get all of the exceptions in this symbol table */
     std::vector<ExceptionBlock*> exceptions;
     if(!symtab->getAllExceptions(exceptions))
     {
@@ -639,34 +638,51 @@ bool PCSensitiveTransformer::exceptionSensitive(Address a, const block_instance 
         return false;
     }
 
-    for(auto iter = functions.begin();iter != functions.end();++iter)
+    /* Get the function that owns this address */
+    Function* function = NULL;
+    if(!symtab->getContainingFunction(off, function))
+        return false;
+
+    /* If there is no function for this instruction, we can't do analysis */
+    if(!function)
     {
-        /* Find all functions for this address */
-        Function* f = *iter;
-        Offset start = f->getOffset();
-        Offset end = start + f->getSize();
-        if(off >= start && off < end)
+        sensitivity_cerr << "\tERROR: Cannot do sensitivity analysis " << 
+           "on instruction not in function." << endl;
+        return false;
+    }
+
+    /* Get the ranges for the function*/
+    const FuncRangeCollection& ranges = function->getRanges();
+
+    /* See if any try block intersect this function */
+    for(auto e_iter = exceptions.begin();e_iter != exceptions.end();e_iter++)
+    {
+        ExceptionBlock* exception = *e_iter;
+
+        Offset ts = exception->tryStart();
+        Offset te = exception->tryEnd();
+
+        sensitivity_cerr << "\tts: 0x" << hex << ts << "  te: 0x" << te << dec << endl;
+
+        /* Check to see if any of the ranges overlap with the try region */
+        for(auto r_iter = ranges.begin();r_iter != ranges.end();r_iter++)
         {
-            // sensitivity_cerr << "\tAddress in function " << f->getName() << endl;
+            const FuncRange& r = *r_iter;
 
-            /**
-             * The address we're looking for is in this function. Does this
-             * function also have a catch block?
-             */
+            sensitivity_cerr << "\t\tstart: 0x" << hex << r.low() 
+                << " end: 0x" << r.high() << dec << endl;
 
-            for(auto catch_iter = exceptions.begin();catch_iter != exceptions.end();++catch_iter)
+            if((r.low() <= ts && r.high() > ts)
+                    || (r.low() < te && r.high() >= te))
             {
-                ExceptionBlock* b = *catch_iter;
-
-                /* Is the catch start inside of the function we're looking at? */
-                if(b->catchStart() >= start && b->catchStart() < end)
-                {
-                    /* This address is exception sensitive */
-                    // sensitivity_cerr << "\tThis function has a catch block." << endl;
-                    return true;
-                }
+                sensitivity_cerr << "\t\t\tWithin range <<<<<<<<<<<<<<" << endl;
+                return true;
+            } else {
+                sensitivity_cerr << "\t\t\tNot Within range." << endl;
             }
         }
+
+
     }
 
     return false;
