@@ -125,7 +125,6 @@ namespace Dyninst
       /// \return The operand in a disassembly format
       INSTRUCTION_EXPORT std::string format(ArchSpecificFormatter *formatter, Architecture arch, Address addr = 0) const;
 
-
       /// \brief Return a printable string representation of the operand. Please use the updated function instead.
       /// \return The operand in a dissassembly format.
       INSTRUCTION_EXPORT std::string format(Architecture arch, Address addr = 0) const;
