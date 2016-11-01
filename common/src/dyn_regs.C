@@ -85,10 +85,11 @@ MachRegister MachRegister::getBaseRegister() const {
       case Arch_ppc64:
       case Arch_none:
          return *this;
-		case Arch_aarch32:
-		case Arch_aarch64:
-				  //not verified
-		   return *this;
+      case Arch_aarch32:
+      case Arch_ARMv6M:
+      case Arch_aarch64:
+        //not verified
+        return *this;
    }
    return InvalidReg;
 }
@@ -186,6 +187,8 @@ unsigned int MachRegister::size() const {
         return 8;
       case Arch_aarch32:
         assert(0);
+      case Arch_ARMv6M:
+        return reg & 0x0000ff00;
       case Arch_aarch64:
 		if((reg & 0x00ff0000) == aarch64::FPR)
 		{
@@ -248,6 +251,8 @@ MachRegister MachRegister::getPC(Dyninst::Architecture arch)
          return ppc64::pc;
       case Arch_aarch64:  //aarch64: pc is not writable
          return aarch64::pc;
+      case Arch_ARMv6M:
+         return ARMv6M::PC;
       case Arch_aarch32:
          assert(0);
       case Arch_none:
@@ -275,6 +280,8 @@ MachRegister MachRegister::getReturnAddress(Dyninst::Architecture arch)
          assert(0);
       case Arch_none:
          return InvalidReg;
+      default:
+         assert(0);
    }
    return InvalidReg;
 }
@@ -316,6 +323,8 @@ MachRegister MachRegister::getStackPointer(Dyninst::Architecture arch)
          return ppc64::r1;
       case Arch_aarch64:
          return aarch64::sp; //aarch64: stack pointer is an independent register
+      case Arch_ARMv6M:
+         return ARMv6M::SP;
       case Arch_aarch32:
          assert(0);
       case Arch_none:
@@ -389,6 +398,8 @@ MachRegister MachRegister::getSyscallReturnValueReg(Dyninst::Architecture arch)
             return ppc64::r3;
         case Arch_aarch64:
             return aarch64::x0; //returned value is save in x0
+        case Arch_ARMv6M:
+            return ARMv6M::R0;
         case Arch_none:
             return InvalidReg;
       default:
@@ -422,7 +433,7 @@ bool MachRegister::isPC() const
 {
    return (*this == x86_64::rip || *this == x86::eip ||
            *this == ppc32::pc || *this == ppc64::pc ||
-           *this == aarch64::pc );
+           *this == aarch64::pc || *this == ARMv6M::PC);
 }
 
 bool MachRegister::isFramePointer() const
@@ -436,7 +447,7 @@ bool MachRegister::isStackPointer() const
 {
    return (*this == x86_64::rsp || *this == x86::esp ||
            *this == ppc32::r1   || *this == ppc64::r1 ||
-           *this == aarch64::sp);
+           *this == aarch64::sp || *this == ARMv6M::SP);
 }
 
 bool MachRegister::isSyscallNumberReg() const
@@ -453,7 +464,7 @@ bool MachRegister::isSyscallReturnValueReg() const
       assert(0);
     return (*this == x86_64::rax || *this == x86::eax ||
             *this == ppc32::r1   || *this == ppc64::r1 ||
-            *this == aarch64::x0
+            *this == aarch64::x0 || *this == ARMv6M::R0
             );
 }
 
@@ -1822,6 +1833,17 @@ unsigned Dyninst::getArchAddressWidth(Dyninst::Architecture arch)
          return InvalidReg;
    }
    return 0;
+}
+
+COMMON_EXPORT Address Dyninst::stripAddrEncoding(Address addr, Dyninst::Architecture arch)
+{
+    switch (arch) {
+    case Arch_aarch32:
+    case Arch_ARMv6M:
+        return addr & 0xfffffffe;
+    default:
+        return addr;
+    }
 }
 
 MachRegister MachRegister::getArchReg(unsigned int regNum, Dyninst::Architecture arch){

@@ -293,6 +293,51 @@ namespace Dyninst
       }
     }
     
+    Result doBitwiseXor(Result arg1, Result arg2, Result_Type ResultT)
+    {
+      switch(ResultT)
+      {
+		  case s8:
+				return Result(ResultT, arg1.convert<Result_type2type<s8>::type >() ^ arg2.convert<
+				  Result_type2type<s8>::type >());
+		  case u8:
+				return Result(ResultT, arg1.convert<Result_type2type<u8>::type >() ^ arg2.convert<
+				  Result_type2type<u8>::type >());
+		  case s16:
+				return Result(ResultT, arg1.convert<Result_type2type<s16>::type >() ^ arg2.convert<
+				  Result_type2type<s16>::type >());
+		  case u16:
+				return Result(ResultT, arg1.convert<Result_type2type<u16>::type >() ^ arg2.convert<
+				  Result_type2type<u16>::type >());
+		  case s32:
+				return Result(ResultT, arg1.convert<Result_type2type<s32>::type >() ^ arg2.convert<
+				  Result_type2type<s32>::type >());
+		  case u32:
+				return Result(ResultT, arg1.convert<Result_type2type<u32>::type >() ^ arg2.convert<
+				  Result_type2type<u32>::type >());
+		  case s48:
+				return Result(ResultT, arg1.convert<Result_type2type<s48>::type >() ^ arg2.convert<
+				  Result_type2type<s48>::type >());
+		  case u48:
+				return Result(ResultT, arg1.convert<Result_type2type<u48>::type >() ^ arg2.convert<
+				  Result_type2type<u48>::type >());
+		  case s64:
+				return Result(ResultT, arg1.convert<Result_type2type<s64>::type >() ^ arg2.convert<
+				  Result_type2type<s64>::type >());
+		  case u64:
+				return Result(ResultT, arg1.convert<Result_type2type<u64>::type >() ^ arg2.convert<
+				  Result_type2type<u64>::type >());
+		  case bit_flag:
+				return Result(ResultT, arg1.convert<Result_type2type<bit_flag>::type >() ^ arg2.convert<
+				  Result_type2type<bit_flag>::type >());
+          case sp_float:
+          case dp_float:
+		  default:
+		// m512 and dbl128 not implemented yet...
+				return Result(ResultT);
+      }
+    }
+    
     Result operator+(const Result& arg1, const Result& arg2)
     {
 	  Result_Type ResultT = arg1.type > arg2.type ? arg1.type : arg2.type;
@@ -364,7 +409,19 @@ namespace Dyninst
 		
 		return doOr(arg1, arg2, ResultT);
 	}
-	 
+
+	Result operator^(const Result& arg1, const Result& arg2)
+	{
+		Result_Type ResultT = arg1.type < arg2.type ? arg1.type : arg2.type;
+		
+		if(!arg1.defined || !arg2.defined)
+		{
+			return Result(ResultT);
+		}
+		
+		return doBitwiseXor(arg1, arg2, ResultT);
+	}
+
     const Result& BinaryFunction::eval() const
     {
         Expression::Ptr arg1 = boost::dynamic_pointer_cast<Expression>(m_arg1);
@@ -450,6 +507,11 @@ namespace Dyninst
     bool BinaryFunction::isRightRotate() const
     {
         return dynamic_cast<rightRotateResult*>(m_funcPtr.get()) != NULL;
+    }
+    
+    bool BinaryFunction::isBitwiseXor() const
+    {
+        return dynamic_cast<bitwiseXorResult*>(m_funcPtr.get()) != NULL;
     }
   };
 };

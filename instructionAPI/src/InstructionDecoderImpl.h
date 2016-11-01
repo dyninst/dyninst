@@ -66,6 +66,7 @@ class InstructionDecoderImpl
         virtual Expression::Ptr makeRightArithmeticShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
         virtual Expression::Ptr makeRightLogicalShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
 		virtual Expression::Ptr makeRightRotateExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
+        virtual Expression::Ptr makeBitwiseXorExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
         virtual Expression::Ptr makeDereferenceExpression(Expression::Ptr addrToDereference, Result_Type resultType);
         virtual Expression::Ptr makeRegisterExpression(MachRegister reg);
         virtual Expression::Ptr makeMaskRegisterExpression(MachRegister reg);

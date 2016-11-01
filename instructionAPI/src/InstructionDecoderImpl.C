@@ -33,6 +33,7 @@
 #include "InstructionDecoder-x86.h"
 #include "InstructionDecoder-power.h"
 #include "InstructionDecoder-aarch64.h"
+#include "InstructionDecoder-ARMv6M.h"
 #include "BinaryFunction.h"
 #include "Dereference.h"
 
@@ -70,6 +71,7 @@ namespace Dyninst
                 impls[Arch_ppc32] = Ptr(new InstructionDecoder_power(Arch_ppc32));
                 impls[Arch_ppc64] = Ptr(new InstructionDecoder_power(Arch_ppc64));
                 impls[Arch_aarch64] = Ptr(new InstructionDecoder_aarch64(Arch_aarch64));
+                impls[Arch_ARMv6M] = Ptr(new InstructionDecoder_ARMv6M(Arch_ARMv6M));
             }
             std::map<Architecture, Ptr>::const_iterator foundImpl = impls.find(a);
             if(foundImpl == impls.end())
@@ -114,6 +116,12 @@ namespace Dyninst
         {
             BinaryFunction::funcT::Ptr rightRotator(new BinaryFunction::rightRotateResult());
             return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, rightRotator));
+        }
+        Expression::Ptr InstructionDecoderImpl::makeBitwiseXorExpression(Expression::Ptr lhs, Expression::Ptr rhs,
+                Result_Type resultType)
+        {
+            BinaryFunction::funcT::Ptr xorer(new BinaryFunction::bitwiseXorResult());
+            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, xorer));
         }
         Expression::Ptr InstructionDecoderImpl::makeDereferenceExpression(Expression::Ptr addrToDereference,
                 Result_Type resultType)

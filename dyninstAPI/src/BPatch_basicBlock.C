@@ -620,14 +620,16 @@ bool BPatch_basicBlock::getInstructions(std::vector<InstructionAPI::Instruction:
 
 bool BPatch_basicBlock::getInstructions(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Address> >& insnInstances) {
   using namespace InstructionAPI;
-  Address addr = getStartAddress();
-  const unsigned char *ptr = (const unsigned char *)iblock->proc()->getPtrToInstruction(addr);
+  Architecture arch = iblock->llb()->obj()->cs()->getArch();
+  Address cleanAddr = stripAddrEncoding(getStartAddress(), arch);
+  const unsigned char *ptr = (const unsigned char *)iblock->proc()->getPtrToInstruction(cleanAddr);
   if (ptr == NULL) return false;
-  InstructionDecoder d(ptr, size(), iblock->llb()->obj()->cs()->getArch());
+  InstructionDecoder d(ptr, size(), arch);
 
-  while (addr < getEndAddress()) {
-    insnInstances.push_back(std::make_pair(d.decode(), addr));
-    addr += insnInstances.back().first->size();
+  Address cleanAddrEnd = stripAddrEncoding(getEndAddress(), arch);
+  while (cleanAddr < cleanAddrEnd) {
+    insnInstances.push_back(std::make_pair(d.decode(), cleanAddr));
+    cleanAddr += insnInstances.back().first->size();
   }
 
   return !insnInstances.empty();

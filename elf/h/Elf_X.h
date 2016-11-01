@@ -134,6 +134,7 @@ class DYNELF_EXPORT Elf_X {
     std::vector<Elf_X_Phdr> phdrs;
     unsigned int ref_count;
     std::string filename;
+    Dyninst::Architecture arch;
 
     char *cached_debug_buffer;
     unsigned long cached_debug_size;
@@ -144,6 +145,7 @@ class DYNELF_EXPORT Elf_X {
     Elf_X(int input, Elf_Cmd cmd, Elf_X *ref = NULL);
     Elf_X(char *mem_image, size_t mem_size);
     ~Elf_X();
+    void load();
 
     // Two maps:
     // One name/FD for Elf_Xs created that way
