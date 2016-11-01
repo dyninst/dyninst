@@ -392,7 +392,7 @@ bool Symtab::findModuleByOffset(Module *&ret, Offset off)
     {
         ret = (*mods.begin())->id();
     }
-    return mods.empty();
+    return !mods.empty();
 }
 
 bool Symtab::findModuleByOffset(std::set<Module *>&ret, Offset off)
@@ -406,7 +406,7 @@ bool Symtab::findModuleByOffset(std::set<Module *>&ret, Offset off)
     {
         ret.insert((*i)->id());
     }
-    return ret.empty();
+    return !ret.empty();
 }
 
 bool Symtab::findModuleByName(Module *&ret, const std::string name)

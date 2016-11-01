@@ -94,6 +94,11 @@ struct Variable {
     ret << ")";
     return ret.str();
   }
+    friend std::ostream& operator<<(std::ostream& stream, const Variable& c)
+    {
+        stream << c.format() << std::endl;
+        return stream;
+    }
 
    AbsRegion reg;
    Address addr;
@@ -122,6 +127,11 @@ struct Constant {
     }
     return ret.str();
   }
+friend std::ostream& operator<<(std::ostream& stream, const Constant& c)
+{
+    stream << c.format() << std::endl;
+    return stream;
+}
   
    uint64_t val;
    size_t size;
@@ -278,6 +288,11 @@ DATAFLOW_EXPORT const std::string format() const {
     ret << ">";
     return ret.str();
 };
+    friend std::ostream& operator<<(std::ostream& stream, const ROSEOperation& c)
+    {
+        stream << c.format() << std::endl;
+        return stream;
+    }
 
 Op op;
 size_t size;

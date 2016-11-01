@@ -132,6 +132,15 @@ class IBSNode {
 
     interval_type value() const { return val_; };
     interval_type operator*() const { return value; }
+    friend std::ostream& operator<<(std::ostream& stream, const IBSNode<ITYPE>& node)
+    {
+        if(node.left) stream << *(node.left);
+        stream << node.val_ << std::endl;
+        if(node.right) stream << *(node.right);
+        return stream;
+
+    }
+
 
   private: 
     /* The endpoint of an interval range */
@@ -215,6 +224,10 @@ public:
     int CountMarks(IBSNode<ITYPE> *R) const;
 
     unsigned MemUse() const;
+    friend std::ostream& operator<<(std::ostream& stream, const IBSTree<ITYPE>& tree)
+    {
+        return stream << *(tree.root);
+    };
 
   public:
 
@@ -888,11 +901,15 @@ void IBSTree<ITYPE>::PrintPreorder(IBSNode<ITYPE> *n)
     }
 }
 
+
+
 template<class ITYPE>
 int IBSTree<ITYPE>::CountMarks() const
 {
     return CountMarks(root);
 }
-} /* Dyninst */
+}/* Dyninst */
+
+
 #endif
 

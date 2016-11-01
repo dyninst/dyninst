@@ -52,19 +52,9 @@ namespace Dyninst {
         struct SYMTAB_EXPORT AddressRange : std::pair<Offset, Offset>
         {
             template <typename T>
-            AddressRange(T t) {
-                first = t.startAddr();
-                second = t.endAddr();
-            }
-            template <typename T>
-            AddressRange(typename boost::shared_ptr<T> t) {
-                first = t->startAddr();
-                second = t->endAddr();
-            }
-            template <typename T>
-            AddressRange(T* t) {
-                first = t->startAddr();
-                second = t->endAddr();
+            AddressRange(Dyninst::SimpleInterval<T> i) {
+                first = i.low();
+                second = i.high();
             }
             AddressRange(Offset t)
             {
@@ -75,6 +65,15 @@ namespace Dyninst {
             {
                 first = start;
                 second = end;
+            }
+            AddressRange(const AddressRange& other) : std::pair<Offset, Offset>(other)
+            {
+            }
+            AddressRange& operator=(const AddressRange& other)
+            {
+                first = other.first;
+                second = other.second;
+                return *this;
             }
             AddressRange merge(const AddressRange& other)
             {

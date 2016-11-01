@@ -178,6 +178,13 @@ namespace Dyninst
         void successor(interval_type X, std::set<ITYPE*>& ) const;
         ITYPE* successor(interval_type X) const;
         void clear();
+        friend std::ostream& operator<<(std::ostream& stream, const IBSTree_fast<ITYPE>& tree)
+        {
+            std::copy(tree.unique_intervals.begin(), tree.unique_intervals.end(),
+                      std::ostream_iterator<typename Dyninst::IBSTree_fast<ITYPE>::interval_set::value_type>(stream, "\n"));
+            stream << tree.overlapping_intervals;
+            return stream;
+        }
 
     };
 

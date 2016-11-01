@@ -139,8 +139,12 @@ bool LineInformation::getAddressRanges( const char * lineSource,
       unsigned int lineNo, vector< AddressRange > & ranges )
 {
     auto found_statements = equal_range(lineSource, lineNo);
-    std::copy(found_statements.first, found_statements.second,
-                   std::back_inserter(ranges));
+    for(auto i = found_statements.first;
+            i != found_statements.second;
+            ++i)
+    {
+        ranges.push_back(AddressRange(**i));
+    }
     return found_statements.first != found_statements.second;
 } /* end getAddressRangesFromLine() */
 
