@@ -161,6 +161,15 @@ std::string x86Formatter::getInstructionString(std::vector<std::string> operands
     for(auto itr = operands.begin(); itr != operands.end(); itr++) 
     {
         std::string op = *itr;
+
+        /* If we still have a leading ##, it's an indirect call */
+        if(!op.compare(0, 2, "##"))
+        {
+            std::stringstream ss;
+            ss << "*(" << op.substr(2) << ")";
+            op = ss.str();
+        }
+
         if(itr == operands.begin())
         {
             dest_op = op;
@@ -219,6 +228,31 @@ std::string x86Formatter::formatBinaryFunc(std::string left, std::string func, s
         {
             /* This is when all 3 pieces have been passed */
             retval = right.substr(1) + "(" + left.substr(2) + ")";
+        } else if(!right.compare(0, 2, "0x")){
+            /* This is most likely a call or jump. */
+
+            /* We need to extract the first part of the binary function */
+            const char* orig = right.c_str();
+            char* edit = strdup(orig);
+            char* edit_f = edit;
+            while(*edit && *edit != '(')
+                edit++;
+            *edit = 0;
+
+            /* Convert edit and left hand side to numbers */
+            uintptr_t edit_l = strtoul(edit_f, NULL, 16);
+            uintptr_t offset = strtoul(left.c_str() + 1, NULL, 16);
+            uintptr_t result = edit_l + offset;
+
+            std::stringstream ss;
+            ss << "0x" << std::hex << result << "(%rip)";
+
+            /* Free allocations */
+            free(edit_f);
+
+            /* Return the processed string */
+            return ss.str();
+            
         } else {
             /* This is the simplest for of a dereference e.g. 0x1(%eax) */
             retval = right.substr(1) + "(" + left + ")";

@@ -125,12 +125,6 @@ namespace Dyninst
       /// \return The operand in a disassembly format
       INSTRUCTION_EXPORT std::string format(ArchSpecificFormatter *formatter, Architecture arch, Address addr = 0) const;
 
-      /// Returns a string representation of the Operand in AT&T syntax. The format of 
-      /// the operand depends on whether or not this operand is a call or jump instruction.
-      /// \param arch The architecture to format for.
-      /// \param isCallJump whether or no this is a call or jump instruction
-      /// \return The std::string representation of the instruction in AT&T syntax.
-      INSTRUCTION_EXPORT std::string format(Architecture arch, bool isCallJump, ArchSpecificFormatter *formatter) const;
       /// The \c getValue method returns an %Expression::Ptr to the AST contained by the operand.
       INSTRUCTION_EXPORT Expression::Ptr getValue() const;
       
