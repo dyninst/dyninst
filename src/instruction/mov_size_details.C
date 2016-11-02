@@ -98,12 +98,12 @@ test_results_t mov_size_details_Mutator::executeTest()
   
   if(lhs->size() != 2)
   {
-    logerror("LHS expected 16-bit, actual %d-bit (%s)\n", lhs->size() * 8, lhs->format(mov->getFormatter()).c_str());
+    logerror("LHS expected 16-bit, actual %d-bit (%s)\n", lhs->size() * 8, lhs->format().c_str());
     return FAILED;
   }
   if(rhs->size() != 2)
   {
-    logerror("RHS expected 16-bit, actual %d-bit (%s)\n", rhs->size() * 8, rhs->format(mov->getFormatter()).c_str());
+    logerror("RHS expected 16-bit, actual %d-bit (%s)\n", rhs->size() * 8, rhs->format().c_str());
     return FAILED;
   }
 

@@ -36,7 +36,6 @@
 #include "comptester.h"
 #include "ParameterDict.h"
 
-#include "ArchSpecificFormatters.h"
 #include "Instruction.h"
 #include "Register.h"
 class COMPLIB_DLL_EXPORT InstructionMutator : public TestMutator {
@@ -74,8 +73,7 @@ class COMPLIB_DLL_EXPORT InstructionMutator : public TestMutator {
    
    test_results_t verifyCFT(Dyninst::InstructionAPI::Expression::Ptr cft,
                             bool expectedDefined, unsigned long expectedValue,
-                            Dyninst::InstructionAPI::Result_Type expectedType,
-			    Dyninst::InstructionAPI::ArchSpecificFormatter *insnFormatter = NULL);
+                            Dyninst::InstructionAPI::Result_Type expectedType);
 };
 
 extern "C" {
