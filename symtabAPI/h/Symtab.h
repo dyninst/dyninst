@@ -51,6 +51,7 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/identity.hpp>
+#include <boost/multi_index/random_access_index.hpp>
 using boost::multi_index_container;
 using boost::multi_index::indexed_by;
 using boost::multi_index::ordered_unique;
@@ -85,6 +86,7 @@ class Type;
 class FunctionBase;
 class FuncRange;
 
+typedef IBSTree< ModRange > ModRangeLookup;
 typedef IBSTree<FuncRange> FuncRangeLookup;
 typedef Dyninst::ProcessReader MemRegReader;
 
@@ -128,16 +130,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    static Symtab *findOpenSymtab(std::string filename);
    static bool closeSymtab(Symtab *);
 
-   Serializable * serialize_impl(SerializerBase *sb, 
-		   const char *tag = "Symtab") THROW_SPEC (SerializerError);
-   void rebuild_symbol_hashes(SerializerBase *);
-   void rebuild_funcvar_hashes(SerializerBase *);
-   void rebuild_module_hashes(SerializerBase *);
-   void rebuild_region_indexes(SerializerBase *) THROW_SPEC(SerializerError);
-   static bool setup_module_up_ptrs(SerializerBase *,Symtab *st);
-   static bool fixup_relocation_symbols(SerializerBase *,Symtab *st);
-
-   bool exportXML(std::string filename);
+    bool exportXML(std::string filename);
    bool exportBin(std::string filename);
    static Symtab *importBin(std::string filename);
    bool getRegValueAtFrame(Address pc, 
@@ -198,7 +191,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    // Module
 
    bool getAllModules(std::vector<Module *>&ret);
-   bool findModuleByOffset(Module *&ret, Offset off);
+   bool findModuleByOffset(std::set<Module *>& ret, Offset off);
+   bool findModuleByOffset(Module *& ret, Offset off);
    bool findModuleByName(Module *&ret, const std::string name);
    Module *getDefaultModule();
 
@@ -250,11 +244,11 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool getMappedRegions(std::vector<Region *> &mappedRegs) const;
 
    /***** Line Number Information *****/
-   bool getAddressRanges(std::vector<std::pair<Offset, Offset> >&ranges,
-         std::string lineSource, unsigned int LineNo);
-   bool getSourceLines(std::vector<Statement *> &lines, 
-         Offset addressInRange);
-   bool getSourceLines(std::vector<LineNoTuple> &lines, 
+   bool getAddressRanges(std::vector<AddressRange> &ranges,
+                         std::string lineSource, unsigned int LineNo);
+   bool getSourceLines(std::vector<Statement::Ptr> &lines,
+                       Offset addressInRange);
+   bool getSourceLines(std::vector<LineNoTuple> &lines,
                                      Offset addressInRange);
    bool addLine(std::string lineSource, unsigned int lineNo,
          unsigned int lineOffset, Offset lowInclAddr,
@@ -554,9 +548,21 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    std::vector<Variable *> everyVariable;
    dyn_hash_map <Offset, Variable *> varsByOffset;
 
-   dyn_hash_map <std::string, Module *> modsByFileName;
-   dyn_hash_map <std::string, Module *> modsByFullName;
-   std::vector<Module *> _mods;
+
+    boost::multi_index_container<Module*,
+            boost::multi_index::indexed_by<
+                    boost::multi_index::random_access<>,
+                    boost::multi_index::ordered_unique<boost::multi_index::identity<Module*> >,
+                    boost::multi_index::ordered_non_unique<
+                            boost::multi_index::const_mem_fun<Module, const std::string&, &Module::fileName> >,
+                    boost::multi_index::ordered_non_unique<
+                            boost::multi_index::const_mem_fun<Module, const std::string&, &Module::fullName> >
+//                    boost::multi_index::ordered_non_unique<
+//                            boost::multi_index::const_mem_fun<Module, Module::DebugInfoT, &Module::getDebugInfo> >
+                    >
+            >
+            indexed_modules;
+
 
    std::vector<relocationEntry > relocation_table_;
    std::vector<ExceptionBlock *> excpBlocks;
@@ -593,10 +599,12 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool isDefensiveBinary_;
 
    FuncRangeLookup *func_lookup;
+    ModRangeLookup *mod_lookup_;
 
    //Don't use obj_private, use getObject() instead.
  public:
    Object *getObject();
+    ModRangeLookup* mod_lookup();
  private:
    Object *obj_private;
 

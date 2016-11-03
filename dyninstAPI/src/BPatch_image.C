@@ -872,7 +872,7 @@ bool BPatch_image::getSourceLines(unsigned long addr,
 
 bool BPatch_image::getAddressRanges( const char * lineSource, 
       unsigned int lineNo, 
-      std::vector< std::pair<unsigned long, unsigned long> > & ranges ) 
+      std::vector< SymtabAPI::AddressRange > & ranges )
 {
    unsigned int originalSize = ranges.size();
 

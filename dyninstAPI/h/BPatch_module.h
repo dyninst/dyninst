@@ -62,6 +62,7 @@ class BPatch_object;
 namespace Dyninst { 
    namespace SymtabAPI {
       class Module;
+       class AddressRange;
       BPATCH_DLL_EXPORT Module *convert(const BPatch_module *);
    }
    namespace PatchAPI {
@@ -230,7 +231,8 @@ public:
     // function to get addresses for a line of the module
     // if fileName is NULL, uses the name of the module
 
-    bool getAddressRanges( const char * fileName, unsigned int lineNo, std::vector< std::pair< unsigned long, unsigned long > > & ranges );
+    bool getAddressRanges(const char *fileName, unsigned int lineNo,
+                          std::vector<Dyninst::SymtabAPI::AddressRange > &ranges);
     
     // BPatch_module::getSourceLines
     //

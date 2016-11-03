@@ -32,14 +32,9 @@
 #define _BPATCH_STATEMENT_H_
 
 #include "BPatch_dll.h"
-
+#include "Module.h"
 class BPatch_module;
 
-namespace Dyninst {
-namespace SymtabAPI {
-	class Statement;
-}
-}
 
 class BPATCH_DLL_EXPORT BPatch_statement
 {
@@ -79,10 +74,10 @@ class BPATCH_DLL_EXPORT BPatch_statement
   private:
 
     //  Full parameter ctor -- can only built by friend classes
-    BPatch_statement(BPatch_module *mod,  Dyninst::SymtabAPI::Statement *s);
+    BPatch_statement(BPatch_module *mod,  Dyninst::SymtabAPI::Statement::ConstPtr s);
 
     BPatch_module *module_;
-	Dyninst::SymtabAPI::Statement *statement;
+	Dyninst::SymtabAPI::Statement::ConstPtr statement;
 };
 
 #endif 

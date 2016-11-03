@@ -106,20 +106,17 @@ SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 
 ADD_DEFINITIONS(-DCOMMON_LIB)
 
-set (DEPS "")
 if (IBERTY_FOUND)
-set(DEPS "${DEPS};${IBERTY_LIBRARIES}")
+set(DEPS ${IBERTY_LIBRARIES})
 endif()
+
 
 dyninst_library(common ${DEPS})
-if (UNIX)
-  # Boost auto-links on Windows; don't double-link
-  target_link_private_libraries(common ${Boost_LIBRARIES})
-endif()
-
 if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
   target_link_private_libraries(common Psapi WS2_32 dbghelp)
 endif()
+target_link_private_libraries(common ${Boost_LIBRARIES})
+
 
 IF (USE_COTIRE)
     cotire(common)

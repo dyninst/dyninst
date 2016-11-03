@@ -135,7 +135,8 @@ public:
     SYMTAB_EXPORT bool hasError() const;
     SYMTAB_EXPORT virtual bool isBigEndianDataEncoding() const { return false; }
     SYMTAB_EXPORT virtual bool getABIVersion(int & /*major*/, int & /*minor*/) const { return false; }
-    
+
+
     virtual void setTruncateLinePaths(bool value);
     virtual bool getTruncateLinePaths();
     virtual Region::RegionType getRelType() const { return Region::RT_INVALID; }
@@ -146,7 +147,9 @@ public:
 protected:
     SYMTAB_EXPORT virtual ~AObject();
     // explicitly protected
-    SYMTAB_EXPORT AObject(MappedFile *, void (*err_func)(const char *));
+    SYMTAB_EXPORT AObject(MappedFile *, void (*err_func)(const char *), Symtab*);
+friend class Module;
+    virtual void parseLineInfoForCU(Module::DebugInfoT , LineInformation* ) { }
 
     MappedFile *mf;
 
@@ -196,7 +199,8 @@ protected:
     int addressWidth_nbytes;
 
     std::vector<ExceptionBlock> catch_addrs_; //Addresses of C++ try/catch blocks;
-    
+    Symtab* associated_symtab;
+
 private:
     friend class SymbolIter;
     friend class Symtab;

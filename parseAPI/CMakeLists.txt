@@ -134,10 +134,9 @@ endif()
 
 dyninst_library(parseAPI common instructionAPI ${SYMREADER})
 
-if (UNIX)
-	# Boost auto-links on Windows; don't double-link
-	target_link_private_libraries(parseAPI ${Boost_LIBRARIES})
-elseif(WIN32)
+target_link_private_libraries(parseAPI ${Boost_LIBRARIES})
+
+if (WIN32)
 target_link_private_libraries(parseAPI shlwapi)
 endif()
 

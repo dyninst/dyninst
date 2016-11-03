@@ -35,9 +35,7 @@ ADD_DEFINITIONS(-DINSTRUCTION_LIB)
 
 dyninst_library(instructionAPI common)
 
-if(UNIX)
-  target_link_private_libraries(instructionAPI ${Boost_LIBRARIES})
-endif()
+target_link_private_libraries(instructionAPI ${Boost_LIBRARIES})
 
 if (USE_COTIRE)
     cotire(instructionAPI)

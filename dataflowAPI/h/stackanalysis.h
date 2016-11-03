@@ -131,6 +131,11 @@ public:
          retVal << height_;
          return retVal.str();
       }
+       friend std::ostream& operator<<(std::ostream& stream, const Height& c)
+       {
+          stream << c.format() << std::endl;
+          return stream;
+       }
 
       bool isBottom() const {
          return type_ == BOTTOM && height_ == notUnique;
@@ -466,8 +471,6 @@ private:
 
 } // namespace Dyninst
 
-DATAFLOW_EXPORT std::ostream &operator<<(std::ostream &os,
-   const Dyninst::StackAnalysis::Height &h);
 
 namespace Dyninst {
    DEF_AST_LEAF_TYPE(StackAST, Dyninst::StackAnalysis::Height);

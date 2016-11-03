@@ -621,12 +621,19 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
         // in section.
         if (!scn.isFromDebugFile()) {
             allRegionHdrs.push_back(&scn);
+            Elf_X_Data data = scn.get_data();
+            if(strcmp(name, OPD_NAME) == 0)
+            {
+                data.d_type(ELF_T_XWORD);
+                data.xlatetom(elfHdr->e_endian() ? ELFDATA2MSB : ELFDATA2LSB);
+            }
             if(scn.sh_flags() & SHF_ALLOC) {
                 // .bss, etc. have a disk size of 0
                 unsigned long diskSize  = (scn.sh_type() == SHT_NOBITS) ? 0 : scn.sh_size();
+
                 Region *reg = new Region(i, name, scn.sh_addr(), diskSize,
                                          scn.sh_addr(), scn.sh_size(),
-                                         (mem_image()+scn.sh_offset()),
+                                         ((char*)data.d_buf()),
                                          getRegionPerms(scn.sh_flags()),
                                          getRegionType(scn.sh_type(),
                                                        scn.sh_flags(),
@@ -638,7 +645,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
             }
             else {
                 Region *reg = new Region(i, name, scn.sh_addr(), scn.sh_size(), 0, 0,
-                                         (mem_image()+scn.sh_offset()),
+                                         ((char*)data.d_buf()),
                                          getRegionPerms(scn.sh_flags()),
                                          getRegionType(scn.sh_type(),
                                                        scn.sh_flags(),
@@ -762,74 +769,63 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
             plt_scnp = scnp;
             plt_addr_ = scn.sh_addr();
             plt_size_ = scn.sh_size();
-#if defined(arch_x86) || defined(arch_x86_64)
-            //
-            // On x86, the GNU linker purposefully sets the PLT
-            // table entry size to an incorrect value to be
-            // compatible with the UnixWare linker.  (See the comment
-            // in the elf_i386_finish_dynamic_sections function of
-            // the BFD library.)  The GNU linker sets this value to 4,
-            // when it should be 16.
-            //
-            // I see no good way to determine this value from the
-            // ELF section header information.  We can either (a) hard-code
-            // the value that is used in the BFD library, or (b) compute
-            // it by dividing the size of the PLT by the number of entries
-            // we think should be in the PLT.  I'm not certain, but I
-            // believe the PLT and the .rel.plt section should have the
-            // same number of "real" entries (the x86 PLT has one extra entry
-            // at the beginning).
-            //
-            // This code is applicable to any x86 system that uses the
-            // GNU linker.  We currently only support Linux on x86 - if
-            // we start supporting some other x86 OS that uses the GNU
-            // linker in the future, it should be enabled for that platform as well.
-            // Note that this problem does not affect the non-x86 platforms
-            // that might use the GNU linker.  For example, programs linked
-            // with gld on SPARC Solaris have the correct PLT entry size.
-            //
-            // Another potential headache in the future is if we support
-            // some other x86 platform that has both the GNU linker and
-            // some other linker.  (Does BSD fall into this category?)
-            // If the two linkers set the entry size differently, we may
-            // need to re-evaluate this code.
-            //
-            //plt_entry_size_ = plt_size_ / ((rel_plt_size_ / rel_plt_entry_size_) + 1);
-            plt_entry_size_ = 16;
-            assert( plt_entry_size_ == 16 );
-#else
-            plt_entry_size_ = scn.sh_entsize();
+            if(getArch() == Dyninst::Arch_x86 || getArch() == Dyninst::Arch_x86_64) {
+                //
+                // On x86, the GNU linker purposefully sets the PLT
+                // table entry size to an incorrect value to be
+                // compatible with the UnixWare linker.  (See the comment
+                // in the elf_i386_finish_dynamic_sections function of
+                // the BFD library.)  The GNU linker sets this value to 4,
+                // when it should be 16.
+                //
+                // I see no good way to determine this value from the
+                // ELF section header information.  We can either (a) hard-code
+                // the value that is used in the BFD library, or (b) compute
+                // it by dividing the size of the PLT by the number of entries
+                // we think should be in the PLT.  I'm not certain, but I
+                // believe the PLT and the .rel.plt section should have the
+                // same number of "real" entries (the x86 PLT has one extra entry
+                // at the beginning).
+                //
+                // This code is applicable to any x86 system that uses the
+                // GNU linker.  We currently only support Linux on x86 - if
+                // we start supporting some other x86 OS that uses the GNU
+                // linker in the future, it should be enabled for that platform as well.
+                // Note that this problem does not affect the non-x86 platforms
+                // that might use the GNU linker.  For example, programs linked
+                // with gld on SPARC Solaris have the correct PLT entry size.
+                //
+                // Another potential headache in the future is if we support
+                // some other x86 platform that has both the GNU linker and
+                // some other linker.  (Does BSD fall into this category?)
+                // If the two linkers set the entry size differently, we may
+                // need to re-evaluate this code.
+                //
+                //plt_entry_size_ = plt_size_ / ((rel_plt_size_ / rel_plt_entry_size_) + 1);
+                plt_entry_size_ = 16;
+                assert(plt_entry_size_ == 16);
+            }
+            else
+            {
+                plt_entry_size_ = scn.sh_entsize();
+                if(getArch() == Dyninst::Arch_ppc32)
+                {
+                    if (scn.sh_flags() & SHF_EXECINSTR) {
+                        // Old style executable PLT
+                        if (!plt_entry_size_)
+                            plt_entry_size_ = 8;
+                        else {
+                            if (plt_entry_size_ != 8)
+                                create_printf("%s[%d]:  weird plt_entry_size_ is %d, not 8\n",
+                                              FILE__, __LINE__, plt_entry_size_);
+                        }
 
-      // X86-64: if we're on a 32-bit binary then set the PLT entry size to 16
-      // as above
-#if defined(arch_x86_64)
-      if (addressWidth_nbytes == 4) {
-	plt_entry_size_ = 16;
-	assert( plt_entry_size_ == 16 );
-      }
-      else {
-	assert(addressWidth_nbytes == 8);
-      }
-#endif
-
-
-#if defined (ppc32_linux) || defined(ppc32_bgp)
-      if (scn.sh_flags() & SHF_EXECINSTR) {
-	// Old style executable PLT
-	if (!plt_entry_size_)
-	  plt_entry_size_ = 8;
-	else {
-	  if (plt_entry_size_ != 8)
-             create_printf("%s[%d]:  weird plt_entry_size_ is %d, not 8\n",
-		    FILE__, __LINE__, plt_entry_size_);
-	}
-
-      } else {
-	// New style secure PLT
-	plt_entry_size_ = 16;
-      }
-#endif
-#endif
+                    } else {
+                        // New style secure PLT
+                        plt_entry_size_ = 16;
+                    }
+                }
+            }
         } else if (strcmp(name, COMMENT_NAME) == 0) {
             /* comment section is a sequence of NULL-terminated strings.
 	 We want to concatenate them and search for BGP to determine
@@ -1089,349 +1085,352 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 
         if( reldata.isValid() && symdata.isValid() && strdata.isValid() ) {
             Offset next_plt_entry_addr = plt_addr_;
-
-#if defined(arch_x86) || defined(arch_x86_64)
+        if(getArch() == Dyninst::Arch_x86 || getArch() == Dyninst::Arch_x86_64)
+        {
             next_plt_entry_addr += plt_entry_size_;  // 1st PLT entry is special
-
-#elif defined (ppc32_linux) || defined(ppc32_bgp)
+        }
+        else if(getArch()==Dyninst::Arch_ppc32)
+        {
             bool extraStubs = false;
 
-      // Sanity check.
-      if (!plt_entry_size_) {
-         create_printf("%s[%d]:  FIXME:  plt_entry_size not established\n", FILE__, __LINE__);
-         plt_entry_size_ = 8;
-      }
+            // Sanity check.
+            if (!plt_entry_size_) {
+                create_printf("%s[%d]:  FIXME:  plt_entry_size not established\n", FILE__, __LINE__);
+                plt_entry_size_ = 8;
+            }
 
-      if (plt_entry_size_ == 8) {
-	// Old style executable PLT section
-	next_plt_entry_addr += 9*plt_entry_size_;  // 1st 9 PLT entries are special
+            if (plt_entry_size_ == 8) {
+                // Old style executable PLT section
+                next_plt_entry_addr += 9*plt_entry_size_;  // 1st 9 PLT entries are special
 
-      } else if (plt_entry_size_ == 16) {
-	// New style secure PLT
-	Region *plt = NULL, *relplt = NULL, *dynamic = NULL,
-	*got = NULL, *glink = NULL;
-	unsigned int glink_addr = 0;
-	unsigned int stub_addr = 0;
+            } else if (plt_entry_size_ == 16) {
+                // New style secure PLT
+                Region *plt = NULL, *relplt = NULL, *dynamic = NULL,
+                        *got = NULL, *glink = NULL;
+                unsigned int glink_addr = 0;
+                unsigned int stub_addr = 0;
 
-	// Find the GLINK section.  See ppc_elf_get_synthetic_symtab() in
-	// bfd/elf32-ppc.c of GNU's binutils for more information.
+                // Find the GLINK section.  See ppc_elf_get_synthetic_symtab() in
+                // bfd/elf32-ppc.c of GNU's binutils for more information.
 
-	for (unsigned iter = 0; iter < regions_.size(); ++iter) {
-	  std::string name = regions_[iter]->getRegionName();
-	  if (name == PLT_NAME) plt = regions_[iter];
-	  else if (name == REL_PLT_NAME) relplt = regions_[iter];
-	  else if (name == DYNAMIC_NAME) dynamic = regions_[iter];
-	  else if (name == GOT_NAME) got = regions_[iter];
-	}
+                for (unsigned iter = 0; iter < regions_.size(); ++iter) {
+                    std::string name = regions_[iter]->getRegionName();
+                    if (name == PLT_NAME) plt = regions_[iter];
+                    else if (name == REL_PLT_NAME) relplt = regions_[iter];
+                    else if (name == DYNAMIC_NAME) dynamic = regions_[iter];
+                    else if (name == GOT_NAME) got = regions_[iter];
+                }
 
-	// Rely on .dynamic section for prelinked binaries.
-	if (dynamic != NULL) {
-	  Elf32_Dyn *dyn = (Elf32_Dyn *)dynamic->getPtrToRawData();
-	  unsigned int count = dynamic->getMemSize() / sizeof(Elf32_Dyn);
+                // Rely on .dynamic section for prelinked binaries.
+                if (dynamic != NULL) {
+                    Elf32_Dyn *dyn = (Elf32_Dyn *)dynamic->getPtrToRawData();
+                    unsigned int count = dynamic->getMemSize() / sizeof(Elf32_Dyn);
 
-	  for (unsigned int i = 0; i < count; ++i) {
-	    // Use DT_LOPROC instead of DT_PPC_GOT to circumvent problems
-	    // caused by early versions of libelf where DT_PPC_GOT has
-	    // yet to be defined.
-	    if (dyn[i].d_tag == DT_LOPROC) {
-	      unsigned int g_o_t = dyn[i].d_un.d_val;
-	      if (got != NULL) {
-		unsigned char *data =
-		(unsigned char *)got->getPtrToRawData();
-		glink_addr = *(unsigned int *)
-		(data + (g_o_t - got->getMemOffset() + 4));
-		break;
-	      }
-	    }
-	  }
-	}
-
-	// Otherwise, first entry in .plt section holds the glink address
-	if (glink_addr == 0) {
-	  unsigned char *data = (unsigned char *)plt->getPtrToRawData();
-	  glink_addr = *(unsigned int *)(data);
-	}
-
-	// Search for region that contains glink address
-	for (unsigned iter = 0; iter < regions_.size(); ++iter) {
-	  unsigned int start = regions_[iter]->getMemOffset();
-	  unsigned int end = start + regions_[iter]->getMemSize();
-	  if (start <= glink_addr && glink_addr < end) {
-	    glink = regions_[iter];
-	    break;
-	  }
-	}
-
-	if (!glink) {
-	  return false;
-	}
-
-	// Find PLT function stubs.  They preceed the glink section.
-	stub_addr = glink_addr - (rel_plt_size_/rel_plt_entry_size_) * 16;
-
-	const unsigned int LWZ_11_30   = 0x817e0000;
-	const unsigned int ADDIS_11_30 = 0x3d7e0000;
-	const unsigned int LWZ_11_11   = 0x816b0000;
-	const unsigned int MTCTR_11    = 0x7d6903a6;
-	const unsigned int BCTR        = 0x4e800420;
-
-	unsigned char *sec_data = (unsigned char *)glink->getPtrToRawData();
-	unsigned int *insn = (unsigned int *)
-	(sec_data + (stub_addr - glink->getMemOffset()));
-
-	// Keep moving pointer back if more -fPIC stubs are found.
-	while (sec_data < (unsigned char *)insn) {
-	  unsigned int *back = insn - 4;
-
-	  if ((  (back[0] & 0xffff0000) == LWZ_11_30
-		 && back[1] == MTCTR_11
-		 && back[2] == BCTR)
-
-	      || (   (back[0] & 0xffff0000) == ADDIS_11_30
-		     && (back[1] & 0xffff0000) == LWZ_11_11
-		     &&  back[2] == MTCTR_11
-		     &&  back[3] == BCTR))
-	  {
-	    extraStubs = true;
-	    stub_addr -= 16;
-	    insn = back;
-	  } else {
-	    break;
-	  }
-	}
-
-	// Okay, this is where things get hairy.  If we have a one to one
-	// relationship between the glink stubs and plt entries (meaning
-	// extraStubs == false), then we can generate our relocationEntry
-	// objects normally below.
-
-	// However, if we have extra glink stubs, then we must generate
-	// relocations with unknown destinations for *all* stubs.  Then,
-	// we use the loop below to store additional information about
-	// the data plt entry keyed by plt entry address.
-
-	// Finally, if a symbol with any of the following forms:
-	//     [hex_addr].got2.plt_pic32.[sym_name]
-	//     [hex_addr].plt_pic32.[sym_name]
-	//
-	// matches the glink stub address, then stub symbols exist and we
-	// can rely on these tell us where the stub will eventually go.
-
-	if (extraStubs == true) {
-	  std::string name;
-	  relocationEntry re;
-
-	  while (stub_addr < glink_addr) {
-	    if (symsByOffset_.find(stub_addr) != symsByOffset_.end()) {
-	      name = (symsByOffset_[stub_addr])[0]->getMangledName();
-	      name = name.substr( name.rfind("plt_pic32.") + 10 );
-	    }
-
-	    if (!name.empty()) {
-	      re = relocationEntry( stub_addr, 0, name, NULL, 0 );
-	    } else {
-	      re = relocationEntry( stub_addr, 0, "@plt", NULL, 0 );
-	    }
-	    fbt_.push_back(re);
-	    stub_addr += 16;
-	  }
-
-	  // Now prepare to iterate over plt below.
-	  next_plt_entry_addr = plt_addr_;
-	  plt_entry_size_ = 4;
-
-	} else {
-	  next_plt_entry_addr = stub_addr;
-	}
-
-      } else {
-         create_printf("ERROR: Can't handle %d PLT entry size\n",
-		plt_entry_size_);
-	return false;
-      }
-
-      //  actually this is just fudged to make the offset value 72, which is what binutils uses
-      //  Note that binutils makes the distinction between PLT_SLOT_SIZE (8),
-      //  and PLT_ENTRY_SIZE (12).  PLT_SLOT_SIZE seems to be what we want, even though we also
-      //  have PLT_INITIAL_ENTRY_SIZE (72)
-      //  see binutils/bfd/elf32-ppc.c/h if more info is needed
-      //next_plt_entry_addr += 72;  // 1st 6 PLT entries art special
-
-#elif defined(arch_power) && defined(arch_64bit) && defined(os_linux)
-      // Unlike PPC32 Linux, we don't have a deterministic way of finding
-      // PPC64 Linux linker stubs.  So, we'll wait until the CFG is built
-      // inside Dyninst, and code read at that point.  To find them at this
-      // point would require a scan of the entire .text section.
-      //
-      // If we're lucky, symbols may exist for these linker stubs.  They will
-      // come in the following forms:
-      //     [hex_addr].plt_call.[sym_name]
-      //     [hex_addr].plt_branch.[sym_name]
-      //     [hex_addr].long_branch.[sym_name]
-      //     [hex_addr].plt_branch_r2off.[sym_name]
-      //     [hex_addr].long_branch_r2off.[sym_name]
-      //
-      // Again unlike PPC32 above, we have no glink stub address to compare
-      // against, so we must search through all symbols to find these names.
-      //
-
-      // First, build a map of the .rela.plt symbol name -> .rela.plt offset:
-      dyn_hash_map<std::string, Offset> plt_rel_map;
-
-      // I'm not a fan of code duplication, but merging this into the
-      // loop below would be ugly and difficult to maintain.
-      Elf_X_Sym  _sym  = symdata.get_sym();
-      Elf_X_Rel  _rel  = reldata.get_rel();
-      Elf_X_Rela _rela = reldata.get_rela();
-      const char *_strs = strdata.get_string();
-
-      for( u_int i = 0; i < (rel_plt_size_/rel_plt_entry_size_); ++i ) {
-	long _offset;
-	long _index;
-
-	switch (reldata.d_type()) {
-	case ELF_T_REL:
-	  _offset = _rel.r_offset(i);
-	  _index  = _rel.R_SYM(i);
-	  break;
-
-	case ELF_T_RELA:
-	  _offset = _rela.r_offset(i);
-	  _index  = _rela.R_SYM(i);
-	  break;
-
-	default:
-	  // We should never reach this case.
-	  return false;
-	};
-
-	std::string _name = &_strs[ _sym.st_name(_index) ];
-	// I'm interested to see if this assert will ever fail.
-	assert(_name.length());
-
-	plt_rel_map[_name] = _offset;
-      }
-      // End code duplication.
-
-      dyn_hash_map<std::string, std::vector<Symbol *> >::iterator iter;
-      for (iter = symbols_.begin(); iter != symbols_.end(); ++iter) {
-	std::string name = iter->first;
-	if (name.length() > 8) {
-	  if (name.substr(8, 10) == ".plt_call.")
-	    name = name.substr(8 + 10);
-	  else if (name.substr(8, 12) == ".plt_branch.")
-	    name = name.substr(8 + 12);
-	  else if (name.substr(8, 13) == ".long_branch.")
-	    name = name.substr(8 + 13);
-	  else if (name.substr(8, 18) == ".plt_branch_r2off.")
-	    name = name.substr(8 + 18);
-	  else if (name.substr(8, 19) == ".long_branch_r2off.")
-	    name = name.substr(8 + 19);
-	  else
-	    continue;
-
-	  // Remove possible trailing addend value.
-	  std::string::size_type pos = name.rfind('+');
-	  if (pos != std::string::npos) name.erase(pos);
-
-	  // Remove possible version number.
-	  pos = name.find('@');
-	  if (pos != std::string::npos) name.erase(pos);
-
-	  // Find the dynamic symbol this linker stub branches to.
-	  Symbol *targ_sym = NULL;
-	  if (symbols_.find(name) != symbols_.end())
-	    for (unsigned i = 0; i < symbols_[name].size(); ++i)
-	      if ( (symbols_[name])[i]->isInDynSymtab())
-		targ_sym = (symbols_[name])[i];
-
-	  // If a corresponding target symbol cannot be found for a
-	  // named linker stub, then ignore it.  We'll find it during
-	  // parsing.
-	  if (!targ_sym) continue;
-
-	  if (iter->second.size() != 1)
-	    continue;
-	  dyn_hash_map<string, Offset>::iterator pltrel_iter = plt_rel_map.find(name);
-	  if (pltrel_iter == plt_rel_map.end())
-	    continue;
-
-	  Symbol *stub_sym = iter->second[0];
-	  relocationEntry re(stub_sym->getOffset(),
-			     pltrel_iter->second,
-			     name,
-			     targ_sym);
-	  fbt_.push_back(re);
-	}
-      }
-
-      // 1st plt entry is special.
-      next_plt_entry_addr += plt_entry_size_;
-
-#elif defined(arch_aarch64)
-      // For ARM, the first entry should be skipped,
-      // but the first entry is in double size
-      next_plt_entry_addr += 2 * plt_entry_size_;
-#else     
-      next_plt_entry_addr += 4*(plt_entry_size_); //1st 4 entries are special
-#endif
-
-            Elf_X_Sym sym = symdata.get_sym();
-            Elf_X_Rel rel = reldata.get_rel();
-            Elf_X_Rela rela = reldata.get_rela();
-            const char *strs = strdata.get_string();
-
-            if (sym.isValid() && (rel.isValid() || rela.isValid()) && strs) {
-
-                // Sometimes, PPC32 Linux may use this loop to update fbt entries.
-                // Should stay -1 for all other platforms.  See notes above.
-                int fbt_iter = -1;
-                if (fbt_.size() > 0 && !fbt_[0].rel_addr() && fbt_[0].name() != "@plt")
-                    fbt_iter = 0;
-
-                for( u_int i = 0; i < (rel_plt_size_/rel_plt_entry_size_); ++i ) {
-                    long offset;
-                    long addend;
-                    long index;
-                    unsigned long type;
-                    Region::RegionType rtype;
-
-                    switch (reldata.d_type()) {
-                        case ELF_T_REL:
-                            offset = rel.r_offset(i);
-                            addend = 0;
-                            index = rel.R_SYM(i);
-                            type = rel.R_TYPE(i);
-                            rtype = Region::RT_REL;
-                            break;
-
-                        case ELF_T_RELA:
-                            offset = rela.r_offset(i);
-                            addend = rela.r_addend(i);
-                            index = rela.R_SYM(i);
-                            type = rela.R_TYPE(i);
-                            rtype = Region::RT_RELA;
-                            break;
-
-                        default:
-                            // We should never reach this case.
-                            return false;
-                    };
-
-                    std::string targ_name = &strs[ sym.st_name(index) ];
-                    vector<Symbol *> dynsym_list;
-                    if (symbols_.find(targ_name) != symbols_.end())
-                    {
-                        vector<Symbol *> &syms = symbols_[&strs[ sym.st_name(index)]];
-                        for (vector<Symbol *>::iterator i = syms.begin(); i != syms.end(); i++) {
-                            if (!(*i)->isInDynSymtab())
-                                continue;
-                            dynsym_list.push_back(*i);
+                    for (unsigned int i = 0; i < count; ++i) {
+                        // Use DT_LOPROC instead of DT_PPC_GOT to circumvent problems
+                        // caused by early versions of libelf where DT_PPC_GOT has
+                        // yet to be defined.
+                        if (dyn[i].d_tag == DT_LOPROC) {
+                            unsigned int g_o_t = dyn[i].d_un.d_val;
+                            if (got != NULL) {
+                                unsigned char *data =
+                                        (unsigned char *)got->getPtrToRawData();
+                                glink_addr = *(unsigned int *)
+                                        (data + (g_o_t - got->getMemOffset() + 4));
+                                break;
+                            }
                         }
                     }
-                    else {
-                        dynsym_list.clear();
+                }
+
+                // Otherwise, first entry in .plt section holds the glink address
+                if (glink_addr == 0) {
+                    unsigned char *data = (unsigned char *)plt->getPtrToRawData();
+                    glink_addr = *(unsigned int *)(data);
+                }
+
+                // Search for region that contains glink address
+                for (unsigned iter = 0; iter < regions_.size(); ++iter) {
+                    unsigned int start = regions_[iter]->getMemOffset();
+                    unsigned int end = start + regions_[iter]->getMemSize();
+                    if (start <= glink_addr && glink_addr < end) {
+                        glink = regions_[iter];
+                        break;
                     }
+                }
+
+                if (!glink) {
+                    return false;
+                }
+
+                // Find PLT function stubs.  They preceed the glink section.
+                stub_addr = glink_addr - (rel_plt_size_/rel_plt_entry_size_) * 16;
+
+                const unsigned int LWZ_11_30   = 0x817e0000;
+                const unsigned int ADDIS_11_30 = 0x3d7e0000;
+                const unsigned int LWZ_11_11   = 0x816b0000;
+                const unsigned int MTCTR_11    = 0x7d6903a6;
+                const unsigned int BCTR        = 0x4e800420;
+
+                unsigned char *sec_data = (unsigned char *)glink->getPtrToRawData();
+                unsigned int *insn = (unsigned int *)
+                        (sec_data + (stub_addr - glink->getMemOffset()));
+
+                // Keep moving pointer back if more -fPIC stubs are found.
+                while (sec_data < (unsigned char *)insn) {
+                    unsigned int *back = insn - 4;
+
+                    if ((  (back[0] & 0xffff0000) == LWZ_11_30
+                           && back[1] == MTCTR_11
+                           && back[2] == BCTR)
+
+                        || (   (back[0] & 0xffff0000) == ADDIS_11_30
+                               && (back[1] & 0xffff0000) == LWZ_11_11
+                               &&  back[2] == MTCTR_11
+                               &&  back[3] == BCTR))
+                    {
+                        extraStubs = true;
+                        stub_addr -= 16;
+                        insn = back;
+                    } else {
+                        break;
+                    }
+                }
+
+                // Okay, this is where things get hairy.  If we have a one to one
+                // relationship between the glink stubs and plt entries (meaning
+                // extraStubs == false), then we can generate our relocationEntry
+                // objects normally below.
+
+                // However, if we have extra glink stubs, then we must generate
+                // relocations with unknown destinations for *all* stubs.  Then,
+                // we use the loop below to store additional information about
+                // the data plt entry keyed by plt entry address.
+
+                // Finally, if a symbol with any of the following forms:
+                //     [hex_addr].got2.plt_pic32.[sym_name]
+                //     [hex_addr].plt_pic32.[sym_name]
+                //
+                // matches the glink stub address, then stub symbols exist and we
+                // can rely on these tell us where the stub will eventually go.
+
+                if (extraStubs == true) {
+                    std::string name;
+                    relocationEntry re;
+
+                    while (stub_addr < glink_addr) {
+                        if (symsByOffset_.find(stub_addr) != symsByOffset_.end()) {
+                            name = (symsByOffset_[stub_addr])[0]->getMangledName();
+                            name = name.substr( name.rfind("plt_pic32.") + 10 );
+                        }
+
+                        if (!name.empty()) {
+                            re = relocationEntry( stub_addr, 0, name, NULL, 0 );
+                        } else {
+                            re = relocationEntry( stub_addr, 0, "@plt", NULL, 0 );
+                        }
+                        fbt_.push_back(re);
+                        stub_addr += 16;
+                    }
+
+                    // Now prepare to iterate over plt below.
+                    next_plt_entry_addr = plt_addr_;
+                    plt_entry_size_ = 4;
+
+                } else {
+                    next_plt_entry_addr = stub_addr;
+                }
+
+            } else {
+                create_printf("ERROR: Can't handle %d PLT entry size\n",
+                              plt_entry_size_);
+                return false;
+            }
+
+            //  actually this is just fudged to make the offset value 72, which is what binutils uses
+            //  Note that binutils makes the distinction between PLT_SLOT_SIZE (8),
+            //  and PLT_ENTRY_SIZE (12).  PLT_SLOT_SIZE seems to be what we want, even though we also
+            //  have PLT_INITIAL_ENTRY_SIZE (72)
+            //  see binutils/bfd/elf32-ppc.c/h if more info is needed
+            //next_plt_entry_addr += 72;  // 1st 6 PLT entries art special
+
+
+        } else if(getArch() == Dyninst::Arch_ppc64)
+        {
+            // Unlike PPC32 Linux, we don't have a deterministic way of finding
+            // PPC64 Linux linker stubs.  So, we'll wait until the CFG is built
+            // inside Dyninst, and code read at that point.  To find them at this
+            // point would require a scan of the entire .text section.
+            //
+            // If we're lucky, symbols may exist for these linker stubs.  They will
+            // come in the following forms:
+            //     [hex_addr].plt_call.[sym_name]
+            //     [hex_addr].plt_branch.[sym_name]
+            //     [hex_addr].long_branch.[sym_name]
+            //     [hex_addr].plt_branch_r2off.[sym_name]
+            //     [hex_addr].long_branch_r2off.[sym_name]
+            //
+            // Again unlike PPC32 above, we have no glink stub address to compare
+            // against, so we must search through all symbols to find these names.
+            //
+
+            // First, build a map of the .rela.plt symbol name -> .rela.plt offset:
+            dyn_hash_map<std::string, Offset> plt_rel_map;
+
+            // I'm not a fan of code duplication, but merging this into the
+            // loop below would be ugly and difficult to maintain.
+            Elf_X_Sym  _sym  = symdata.get_sym();
+            Elf_X_Rel  _rel  = reldata.get_rel();
+            Elf_X_Rela _rela = reldata.get_rela();
+            const char *_strs = strdata.get_string();
+
+            for( u_int i = 0; i < (rel_plt_size_/rel_plt_entry_size_); ++i ) {
+                long _offset;
+                long _index;
+
+                switch (reldata.d_type()) {
+                    case ELF_T_REL:
+                        _offset = _rel.r_offset(i);
+                        _index  = _rel.R_SYM(i);
+                        break;
+
+                    case ELF_T_RELA:
+                        _offset = _rela.r_offset(i);
+                        _index  = _rela.R_SYM(i);
+                        break;
+
+                    default:
+                        // We should never reach this case.
+                        return false;
+                };
+
+                std::string _name = &_strs[ _sym.st_name(_index) ];
+                // I'm interested to see if this assert will ever fail.
+                assert(_name.length());
+
+                plt_rel_map[_name] = _offset;
+            }
+            // End code duplication.
+
+            dyn_hash_map<std::string, std::vector<Symbol *> >::iterator iter;
+            for (iter = symbols_.begin(); iter != symbols_.end(); ++iter) {
+                std::string name = iter->first;
+                if (name.length() > 8) {
+                    if (name.substr(8, 10) == ".plt_call.")
+                        name = name.substr(8 + 10);
+                    else if (name.substr(8, 12) == ".plt_branch.")
+                        name = name.substr(8 + 12);
+                    else if (name.substr(8, 13) == ".long_branch.")
+                        name = name.substr(8 + 13);
+                    else if (name.substr(8, 18) == ".plt_branch_r2off.")
+                        name = name.substr(8 + 18);
+                    else if (name.substr(8, 19) == ".long_branch_r2off.")
+                        name = name.substr(8 + 19);
+                    else
+                        continue;
+
+                    // Remove possible trailing addend value.
+                    std::string::size_type pos = name.rfind('+');
+                    if (pos != std::string::npos) name.erase(pos);
+
+                    // Remove possible version number.
+                    pos = name.find('@');
+                    if (pos != std::string::npos) name.erase(pos);
+
+                    // Find the dynamic symbol this linker stub branches to.
+                    Symbol *targ_sym = NULL;
+                    if (symbols_.find(name) != symbols_.end())
+                        for (unsigned i = 0; i < symbols_[name].size(); ++i)
+                            if ( (symbols_[name])[i]->isInDynSymtab())
+                                targ_sym = (symbols_[name])[i];
+
+                    // If a corresponding target symbol cannot be found for a
+                    // named linker stub, then ignore it.  We'll find it during
+                    // parsing.
+                    if (!targ_sym) continue;
+
+                    if (iter->second.size() != 1)
+                        continue;
+                    dyn_hash_map<string, Offset>::iterator pltrel_iter = plt_rel_map.find(name);
+                    if (pltrel_iter == plt_rel_map.end())
+                        continue;
+
+                    Symbol *stub_sym = iter->second[0];
+                    relocationEntry re(stub_sym->getOffset(),
+                                       pltrel_iter->second,
+                                       name,
+                                       targ_sym);
+                    fbt_.push_back(re);
+                }
+            }
+
+            // 1st plt entry is special.
+            next_plt_entry_addr += plt_entry_size_;
+
+        } else if (getArch() == Dyninst::Arch_aarch64)
+        {
+            next_plt_entry_addr += 2 * plt_entry_size_;
+        } else {
+            next_plt_entry_addr += 4*(plt_entry_size_); //1st 4 entries are special
+        }
+
+
+        Elf_X_Sym sym = symdata.get_sym();
+        Elf_X_Rel rel = reldata.get_rel();
+        Elf_X_Rela rela = reldata.get_rela();
+        const char *strs = strdata.get_string();
+
+        if (sym.isValid() && (rel.isValid() || rela.isValid()) && strs) {
+
+            // Sometimes, PPC32 Linux may use this loop to update fbt entries.
+            // Should stay -1 for all other platforms.  See notes above.
+            int fbt_iter = -1;
+            if (fbt_.size() > 0 && !fbt_[0].rel_addr() && fbt_[0].name() != "@plt")
+                fbt_iter = 0;
+
+            for( u_int i = 0; i < (rel_plt_size_/rel_plt_entry_size_); ++i ) {
+                long offset;
+                long addend;
+                long index;
+                unsigned long type;
+                Region::RegionType rtype;
+
+                switch (reldata.d_type()) {
+                    case ELF_T_REL:
+                        offset = rel.r_offset(i);
+                        addend = 0;
+                        index = rel.R_SYM(i);
+                        type = rel.R_TYPE(i);
+                        rtype = Region::RT_REL;
+                        break;
+
+                    case ELF_T_RELA:
+                        offset = rela.r_offset(i);
+                        addend = rela.r_addend(i);
+                        index = rela.R_SYM(i);
+                        type = rela.R_TYPE(i);
+                        rtype = Region::RT_RELA;
+                        break;
+
+                    default:
+                        // We should never reach this case.
+                        return false;
+                };
+
+                std::string targ_name = &strs[ sym.st_name(index) ];
+                vector<Symbol *> dynsym_list;
+                if (symbols_.find(targ_name) != symbols_.end())
+                {
+                    vector<Symbol *> &syms = symbols_[&strs[ sym.st_name(index)]];
+                    for (vector<Symbol *>::iterator i = syms.begin(); i != syms.end(); i++) {
+                        if (!(*i)->isInDynSymtab())
+                            continue;
+                        dynsym_list.push_back(*i);
+                    }
+                }
+                else {
+                    dynsym_list.clear();
+                }
 
 #if defined(os_vxworks)
                     // VxWorks Kernel Images don't use PLT's, but we'll use the fbt to
@@ -1541,11 +1540,14 @@ void Object::load_object(bool alloc_syms)
         }
         get_valid_memory_areas(*elfHdr);
 
-#if (defined(os_linux) || defined(os_freebsd)) && (defined(arch_x86) || defined(arch_x86_64))
-        if (eh_frame_scnp != 0 && gcc_except != 0)
+#if (defined(os_linux) || defined(os_freebsd))
+        if(getArch() == Dyninst::Arch_x86 || getArch() == Dyninst::Arch_x86_64)
         {
-            find_catch_blocks(eh_frame_scnp, gcc_except,
-                              txtaddr, dataddr, catch_addrs_);
+            if (eh_frame_scnp != 0 && gcc_except != 0)
+            {
+                find_catch_blocks(eh_frame_scnp, gcc_except,
+                                  txtaddr, dataddr, catch_addrs_);
+            }
         }
 #endif
         if (interp_scnp) {
@@ -1727,10 +1729,12 @@ void Object::load_shared_object(bool alloc_syms)
 
         get_valid_memory_areas(*elfHdr);
 
-#if (defined(os_linux) || defined(os_freebsd)) && (defined(arch_x86) || defined(arch_x86_64))
-        if (eh_frame_scnp != 0 && gcc_except != 0) {
-            find_catch_blocks(eh_frame_scnp, gcc_except,
-                              txtaddr, dataddr, catch_addrs_);
+#if (defined(os_linux) || defined(os_freebsd))
+        if(getArch() == Dyninst::Arch_x86 || getArch() == Dyninst::Arch_x86_64) {
+            if (eh_frame_scnp != 0 && gcc_except != 0) {
+                find_catch_blocks(eh_frame_scnp, gcc_except,
+                                  txtaddr, dataddr, catch_addrs_);
+            }
         }
 #endif
 
@@ -1952,7 +1956,6 @@ void Object::parse_opd(Elf_X_Shdr *opd_hdr) {
 
     // Let's read this puppy
     unsigned long *buf = (unsigned long *)data.d_buf();
-
     // In some cases, the OPD is a set of 3-tuples: <func offset, TOC, environment ptr>.
     // In others, it's a set of 2-tuples. Since we can't tell the difference, we
     // instead look for function offsets.
@@ -2023,10 +2026,10 @@ Symbol *Object::handle_opd_symbol(Region *opd, Symbol *sym)
     if (!sym) return NULL;
 
     Offset soffset = sym->getOffset();
-    Offset *opd_entry = (Offset *)(((char *)opd->getPtrToRawData()) +
-                                   (soffset - opd->getDiskOffset()));
     assert(opd->isOffsetInRegion(soffset));  // Symbol must be in .opd section.
 
+    Offset* opd_entry = (Offset*)opd->getPtrToRawData();
+    opd_entry += (soffset - opd->getDiskOffset()) / sizeof(Offset); // table of offsets;
     Symbol *retval = new Symbol(*sym); // Copy the .opd symbol.
     retval->setOffset(opd_entry[0]);   // Store code address for the function.
     retval->setLocalTOC(opd_entry[1]); // Store TOC address for this function.
@@ -2423,6 +2426,49 @@ void pd_dwarf_handler(Dwarf_Error error, Dwarf_Ptr /*userData*/)
 Dwarf_Signed declFileNo = 0;
 char ** declFileNoToName = NULL;
 
+bool Object::dwarf_parse_aranges(Dwarf_Debug dbg, std::set<Dwarf_Off>& dies_seen)
+{
+    Dwarf_Arange* ranges;
+    Dwarf_Signed num_ranges;
+    int status = dwarf_get_aranges(dbg, &ranges, &num_ranges, NULL);
+    if(status != DW_DLV_OK) return false;
+    Dwarf_Off cu_die_off;
+    Dwarf_Die cu_die;
+//    cout << "Processing " << num_ranges << "DWARF ranges" << endl;
+    for(int i = 0; i < num_ranges; i++)
+    {
+        Dwarf_Addr start;
+        Dwarf_Unsigned len, segment, segment_size;
+        // TODO: info_b has segment info from DWARF4
+        status = dwarf_get_arange_info_b(ranges[i], &segment, &segment_size, &start, &len, &cu_die_off, NULL);
+        assert(status == DW_DLV_OK);
+        if(segment_size > 0)
+        {
+            cout << "WARNING: ignoring segment info" << endl;
+        }
+        if(dies_seen.find(cu_die_off) != dies_seen.end()) continue;
+        if(len == 0) continue;
+        status = dwarf_offdie_b(dbg, cu_die_off, Dwarf_Bool(true), &cu_die, NULL);
+        assert(status == DW_DLV_OK);
+        std::string modname;
+        if(!DwarfWalker::findDieName(dbg, cu_die, modname))
+        {
+            modname = associated_symtab->file(); // default module
+        }
+        Offset actual_start, actual_end;
+        convertDebugOffset(start, actual_start);
+        convertDebugOffset(start + len, actual_end);
+        Module* m = associated_symtab->getOrCreateModule(modname, actual_start);
+        m->addRange(actual_start, actual_end);
+        m->addDebugInfo(cu_die);
+        DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
+        dies_seen.insert(cu_die_off);
+        dwarf_dealloc(dbg, ranges[i], DW_DLA_ARANGE);
+    }
+    dwarf_dealloc(dbg, ranges, DW_DLA_LIST);
+    return true;
+}
+
 bool Object::fix_global_symbol_modules_static_dwarf()
 {
     /* Initialize libdwarf. */
@@ -2430,11 +2476,51 @@ bool Object::fix_global_symbol_modules_static_dwarf()
     if (!dbg_ptr)
         return false;
     Dwarf_Debug dbg = *dbg_ptr;
-    ModuleFixer m(dbg, this);
-    bool result = m.parse();
-    freeList.push_back(m.getFreeList());
-    return result;
+    std::set<Dwarf_Off> dies_seen;
+    Dwarf_Off cu_die_off;
+    Dwarf_Die cu_die;
+    dwarf_parse_aranges(dbg, dies_seen);
+    /* Iterate over the compilation-unit headers. */
+    while (dwarf_next_cu_header_c(dbg, Dwarf_Bool(true),
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  &cu_die_off, NULL) == DW_DLV_OK )
+    {
+        int status = dwarf_siblingof_b(dbg, NULL, Dwarf_Bool(true), &cu_die, NULL);
+        assert(status == DW_DLV_OK);
+        if(dies_seen.find(cu_die_off) != dies_seen.end()) continue;
+        std::string modname;
+        if(!DwarfWalker::findDieName(dbg, cu_die, modname))
+        {
+            modname = associated_symtab->file(); // default module
+        }
+//        cout << "Processing CU DIE for " << modname << endl;
+        Address tempModLow;
+        Address modLow = 0;
+        if (DwarfWalker::findConstant(DW_AT_low_pc, tempModLow, cu_die, dbg)) {
+            convertDebugOffset(tempModLow, modLow);
+        }
+        std::vector<AddressRange> mod_ranges = DwarfWalker::getDieRanges(dbg, cu_die, modLow);
+        Module* m = associated_symtab->getOrCreateModule(modname, modLow);
+        for(auto r = mod_ranges.begin();
+                r != mod_ranges.end();
+                ++r)
+        {
+            m->addRange(r->first, r->second);
+        }
+        m->addDebugInfo(cu_die);
+        DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
+        dies_seen.insert(cu_die_off);
 
+    }
+
+    return true;
 }
 
 #else
@@ -2767,8 +2853,8 @@ stab_entry *Object::get_stab_info() const
 }
 
 Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
-               bool alloc_syms) :
-        AObject(mf_, err_func),
+               bool alloc_syms, Symtab* st) :
+        AObject(mf_, err_func, st),
         elfHdr(NULL),
         hasReldyn_(false),
         hasReladyn_(false),
@@ -3033,7 +3119,7 @@ bool parseCompilerType(Object *objPtr)
 #endif
 
 
-#if (defined(os_linux) || defined(os_freebsd)) && (defined(arch_x86) || defined(arch_x86_64))
+#if (defined(os_linux) || defined(os_freebsd))
 
 static unsigned long read_uleb128(const unsigned char *data, unsigned *bytes_read)
 {
@@ -3950,9 +4036,7 @@ bool AObject::getSegments(vector<Segment> &segs) const
 }
 
 
-bool Object::emitDriver(Symtab *obj, string fName,
-                        std::vector<Symbol *>&allSymbols,
-                        unsigned /*flag*/)
+bool Object::emitDriver(string fName, std::vector<Symbol *> &allSymbols, unsigned)
 {
 #ifdef BINEDIT_DEBUG
     printf("emitting...\n");
@@ -3963,14 +4047,14 @@ bool Object::emitDriver(Symtab *obj, string fName,
     if (elfHdr->e_ident()[EI_CLASS] == ELFCLASS32)
     {
         Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes32> *em =
-                new Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes32>(elfHdr, isStripped, this, err_func_, obj);
+                new Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes32>(elfHdr, isStripped, this, err_func_, associated_symtab);
         if( !em->createSymbolTables(allSymbols) ) return false;
         return em->driver(fName);
     }
     else if (elfHdr->e_ident()[EI_CLASS] == ELFCLASS64)
     {
         Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes64> *em =
-                new Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes64>(elfHdr, isStripped, this, err_func_, obj);
+                new Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes64>(elfHdr, isStripped, this, err_func_, associated_symtab);
         if( !em->createSymbolTables(allSymbols) ) return false;
         return em->driver(fName);
     }
@@ -3984,7 +4068,7 @@ const char *Object::interpreter_name() const
 
 /* Parse everything in the file on disk, and cache that we've done so,
    because our modules may not bear any relation to the name source files. */
-void Object::parseStabFileLineInfo(Symtab *st)
+void Object::parseStabFileLineInfo()
 {
     static dyn_hash_map< string, bool > haveParsedFileMap;
 
@@ -4033,7 +4117,9 @@ void Object::parseStabFileLineInfo(Symtab *st)
                 Module* mod;
 
                 moduleName = currentSourceFile;
-                if(!st->findModuleByName(mod, moduleName)) mod = st->getDefaultModule();
+                if(!associated_symtab->findModuleByName(mod, moduleName)) {
+                    mod = associated_symtab->getDefaultModule();
+                }
                 li_for_module = mod->getLineInformation();
                 if(!li_for_module)
                 {
@@ -4114,7 +4200,7 @@ void Object::parseStabFileLineInfo(Symtab *st)
                     };
                 }
 
-                if (! st->findFunctionsByName(funcs, std::string(stringbuf))
+                if (! associated_symtab->findFunctionsByName(funcs, std::string(stringbuf))
                     || !funcs.size())
                 {
                     continue;
@@ -4188,118 +4274,6 @@ void Object::parseStabFileLineInfo(Symtab *st)
     //  haveParsedFileMap[ key ] = true;
 } /* end parseStabFileLineInfo() */
 
-bool Object::addrInCU(Dwarf_Debug dbg, Dwarf_Die cu, Address to_check)
-{
-    Dwarf_Addr tempLow = 0, tempHigh = -1;
-    Address low = 0, high = -1;
-    Dwarf_Bool has_attr;
-    Dwarf_Error please_ignore; // malformed dwarf can spew errors on lowpc and highpc; we'll use this to swallow those (as they're handled safely)
-    // and not leak memory with a bad error handler.
-    if(dwarf_hasattr(cu, DW_AT_low_pc, &has_attr, NULL) != DW_DLV_OK) return false;
-    if(has_attr)
-    {
-        if(dwarf_hasattr(cu, DW_AT_high_pc, &has_attr, NULL) != DW_DLV_OK) return false;
-        if(has_attr)
-        {
-            int status = dwarf_lowpc(cu, &tempLow, &please_ignore);
-            if(status == DW_DLV_OK)
-            {
-                low = (Address) tempLow;
-                //cerr << "lowpc/highpc, low is " << hex << low << ", addr is " << to_check << endl;
-                if(low > to_check) return false;
-                status = dwarf_highpc(cu, &tempHigh, NULL);//&please_ignore);
-                if(status == DW_DLV_OK)
-                {
-                    high = (Address) tempHigh;
-                    //cerr << "lowpc/highpc, high is " << hex << high << ", addr is " << to_check << endl;
-
-                    if(to_check < high) return true;
-                }
-                else if(status == DW_DLV_ERROR)
-                {
-                    // this is most likely a case where libdwarf doesn't handle dwarf4.
-                    // claim the address is in this CU; better to overparse.
-                    return true;
-                    //cerr << "lowpc/highpc, high threw error" << endl;
-                    //		  dwarf_dealloc(dbg, please_ignore, DW_DLA_ERROR);
-                }
-            }
-        }
-    }
-
-    Dwarf_Bool hasRanges = false;
-    if(dwarf_hasattr(cu, DW_AT_ranges, &hasRanges, NULL) != DW_DLV_OK) {
-        //cerr << "no lowpc/highpc, error getting ranges\n";
-        return false;
-    }
-
-    if (hasRanges) {
-        Address range_offset = 0;
-        Dwarf_Attribute off_attr;
-        Dwarf_Half off_form;
-
-        if(dwarf_attr(cu, DW_AT_ranges, &off_attr, NULL) != DW_DLV_OK) return false;
-        if(dwarf_whatform(off_attr, &off_form, NULL) != DW_DLV_OK) return false;
-        switch(off_form)
-        {
-            case DW_FORM_addr:
-                Dwarf_Addr a;
-                if(dwarf_formaddr(off_attr, &a, NULL) != DW_DLV_OK) return false;
-                range_offset = Address(a);
-                break;
-            case DW_FORM_sdata:
-                Dwarf_Signed sd;
-                if(dwarf_formsdata(off_attr, &sd, NULL) != DW_DLV_OK) return false;
-                range_offset = Address(sd);
-                break;
-            case DW_FORM_data1:
-            case DW_FORM_data2:
-            case DW_FORM_data4:
-            case DW_FORM_data8:
-            case DW_FORM_udata:
-                Dwarf_Unsigned u;
-                if(dwarf_formudata(off_attr, &u, NULL) != DW_DLV_OK) return false;
-                range_offset = Address(u);
-                break;
-            case DW_FORM_sec_offset:
-                if(dwarf_global_formref(off_attr, &u, NULL) != DW_DLV_OK) return false;
-                range_offset = Address(u);
-                break;
-        }
-
-        Dwarf_Ranges *ranges = NULL;
-        Dwarf_Signed ranges_length = 0;
-        if(dwarf_get_ranges_a(dbg, (Dwarf_Off) range_offset, cu,
-                              &ranges, &ranges_length, NULL, NULL) != DW_DLV_OK) return false;
-
-
-        bool done = false;
-        Address cur_base = low;
-        for (unsigned i = 0; i < ranges_length && !done; i++) {
-            Dwarf_Ranges *cur = ranges + i;
-            switch (cur->dwr_type) {
-                case DW_RANGES_ENTRY: {
-                    Address curlow = cur->dwr_addr1 + cur_base;
-                    Address curhigh = cur->dwr_addr2 + cur_base;
-
-                    if(curlow <= to_check && to_check < curhigh) return true;
-
-                    break;
-                }
-                case DW_RANGES_ADDRESS_SELECTION:
-                    cur_base = cur->dwr_addr2;
-                    break;
-                case DW_RANGES_END:
-                    done = true;
-                    break;
-            }
-        }
-        dwarf_dealloc(dbg, off_attr, DW_DLA_ATTR);
-        dwarf_ranges_dealloc(dbg, ranges, ranges_length);
-    }
-    return false;
-}
-
 
 
 void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
@@ -4307,11 +4281,13 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
     Dwarf_Debug *dbg_ptr = dwarf->line_dbg();
     if (!dbg_ptr)
         return;
-    Dwarf_Debug &dbg = *dbg_ptr;
+    if(!cuDIE) return;
+    Dwarf_Debug dbg = *dbg_ptr;
     /* Acquire this CU's source lines. */
     Dwarf_Line * lineBuffer;
     Dwarf_Signed lineCount;
-    int status = dwarf_srclines( cuDIE, & lineBuffer, & lineCount, NULL );
+    Dwarf_Error ignored;
+    int status = dwarf_srclines( cuDIE, & lineBuffer, & lineCount, &ignored );
 
     /* See if we can get anything useful out of the next CU
      if this one is corrupt. */
@@ -4322,8 +4298,35 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
     {
         return;
     }
-
     assert( status == DW_DLV_OK );
+
+
+    StringTablePtr strings(li_for_module->getStrings());
+    char** files;
+    size_t offset = strings->size();
+    Dwarf_Signed filecount;
+    status = dwarf_srcfiles(cuDIE, &files, &filecount, &ignored);
+    assert( status == DW_DLV_OK );
+    // dwarf_line_srcfileno == 0 means unknown; 1...n means files[0...n-1]
+    // so we ensure that we're adding a block of unknown, 1...n to the string table
+    // and that offset + dwarf_line_srcfileno points to the correct string
+    strings->push_back("<Unknown file>");
+    for(int i = 0; i < filecount; i++)
+    {
+        char* tmp = NULL;
+        if(truncateLineFilenames && (tmp = strrchr(files[i], '/')))
+        {
+            strings->push_back(tmp);
+        }
+        else
+        {
+            strings->push_back(files[i]);
+        }
+        dwarf_dealloc(dbg, files[i], DW_DLA_STRING);
+    }
+    dwarf_dealloc(dbg, files, DW_DLA_LIST);
+    li_for_module->setStrings(strings);
+
     /* The 'lines' returned are actually interval markers; the code
      generated from lineNo runs from lineAddr up to but not including
      the lineAddr of the next line. */
@@ -4331,17 +4334,23 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
     Dwarf_Unsigned previousLineNo = 0;
     Dwarf_Signed previousLineColumn = 0;
     Dwarf_Addr previousLineAddr = 0x0;
-    char * previousLineSource = NULL;
+    Dwarf_Unsigned previousLineSource = 0;
 
     Offset baseAddr = getBaseAddress();
 
+    Dwarf_Addr cu_high_pc = 0;
+    dwarf_highpc(cuDIE, &cu_high_pc, NULL);
+    bool needs_followup = false;
     /* Iterate over this CU's source lines. */
     for ( int i = 0; i < lineCount; i++ )
     {
         /* Acquire the line number, address, source, and end of sequence flag. */
         Dwarf_Unsigned lineNo;
         status = dwarf_lineno( lineBuffer[i], & lineNo, NULL );
-        if ( status != DW_DLV_OK ) { continue; }
+        if ( status != DW_DLV_OK ) {
+            if(needs_followup) cout << "dwarf_lineno failed" << endl;
+            continue;
+        }
 
         Dwarf_Signed lineOff;
         status = dwarf_lineoff( lineBuffer[i], & lineOff, NULL );
@@ -4351,6 +4360,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         status = dwarf_lineaddr( lineBuffer[i], & lineAddr, NULL );
         if ( status != DW_DLV_OK )
         {
+            if(needs_followup) cout << "dwarf_lineaddr failed" << endl;
             continue;
 
         }
@@ -4364,26 +4374,36 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
             if (result)
                 lineAddr = new_lineAddr;
         }
-        if(!isText(lineAddr))
-        {
+//        if(!associated_symtab->isCode(lineAddr))
+//        {
+//            cout << hex << "WARNING: Discarding line info for non-text addr " << hex << lineAddr << endl;
+//            continue;
+//        }
+
+
+        Dwarf_Unsigned lineSource;
+        status = dwarf_line_srcfileno( lineBuffer[i], & lineSource, NULL );
+        if ( status != DW_DLV_OK ) {
             continue;
         }
 
-
-        char * lineSource;
-        status = dwarf_linesrc( lineBuffer[i], & lineSource, NULL );
-        if ( status != DW_DLV_OK ) { continue; }
-
         Dwarf_Bool isEndOfSequence;
         status = dwarf_lineendsequence( lineBuffer[i], & isEndOfSequence, NULL );
-        if ( status != DW_DLV_OK ) { continue; }
+        if ( status != DW_DLV_OK ) {
+            continue;
+        }
+        Dwarf_Bool isStatement;
+        status = dwarf_linebeginstatement(lineBuffer[i], &isStatement, NULL);
+        if(status != DW_DLV_OK) {
+            continue;
+        }
 
         if ( isPreviousValid )
         {
             /* If we're talking about the same (source file, line number) tuple,
 	 and it isn't the end of the sequence, we can coalesce the range.
 	 (The end of sequence marker marks discontinuities in the ranges.) */
-            if ( lineNo == previousLineNo && strcmp( lineSource, previousLineSource ) == 0
+            if ( (lineNo == previousLineNo) && (lineSource == previousLineSource)
                  && ! isEndOfSequence )
             {
                 /* Don't update the prev* values; just keep going until we hit the end of
@@ -4391,273 +4411,117 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
                 continue;
             } /* end if we can coalesce this range */
 
-            char *canonicalLineSource;
-            if (truncateLineFilenames) {
-                canonicalLineSource = strrchr( previousLineSource, '/' );
-                if( canonicalLineSource == NULL ) { canonicalLineSource = previousLineSource; }
-                else { ++canonicalLineSource; }
-            }
-            else {
-                canonicalLineSource = previousLineSource;
-            }
-
-
-
-
             Dyninst::Offset startAddrToUse = previousLineAddr;
             Dyninst::Offset endAddrToUse = lineAddr;
 
-
             if (startAddrToUse && endAddrToUse)
             {
-//                cout << "\tAdding line from " << canonicalLineSource << " to " << std::hex << li_for_module <<endl;
-                li_for_module->addLine(canonicalLineSource,
-                                       (unsigned int) previousLineNo,
-                                       (unsigned int) previousLineColumn,
-                                       startAddrToUse,
-                                       endAddrToUse );
+                if(startAddrToUse ==  (Dyninst::Offset)(-1) || endAddrToUse == (Dyninst::Offset)(-1)) {
+                    cout << "Suspicious line info range: [" << hex << startAddrToUse << ", " << endAddrToUse << ")\n";
+                }
+                if(startAddrToUse ==  (Dyninst::Offset)(1) || endAddrToUse == (Dyninst::Offset)(1)) {
+                    cout << "Suspicious line info range: [" << hex << startAddrToUse << ", " << endAddrToUse << ")\n";
+                }
+                if(startAddrToUse != endAddrToUse)
+                {
+                    // string table entry.
+                    li_for_module->addLine((unsigned int)(previousLineSource + offset),
+                                           (unsigned int) previousLineNo,
+                                           (unsigned int) previousLineColumn,
+                                           startAddrToUse,
+                                           endAddrToUse );
+                }
+//                else
+//                {
+////                    cout << dec << "Skipping entry for " << (*strings)[previousLineSource+offset]
+////                         << ":" << previousLineNo
+////                         << " at " << hex << startAddrToUse << dec << endl;
+//                }
 
                 /* The line 'canonicalLineSource:previousLineNo' has an address range of [previousLineAddr, lineAddr). */
             }
         } /* end if the previous* variables are valid */
 
         /* If the current line ends the sequence, invalidate previous; otherwise, update. */
+        // We've seen a pattern where there are multiple lines for a given address and
+        // only one has an end marker. Carry through in that case.
         if ( isEndOfSequence )
         {
-            dwarf_dealloc( dbg, lineSource, DW_DLA_STRING );
-            isPreviousValid = false;
+            isPreviousValid = false; //(lineAddr == previousLineAddr) ;
         }
         else {
-            if( isPreviousValid ) { dwarf_dealloc( dbg, previousLineSource, DW_DLA_STRING ); }
-            previousLineNo = lineNo;
-            previousLineSource = lineSource;
-            previousLineAddr = lineAddr;
-            previousLineColumn = lineOff;
+            if(isStatement)
+            {
+                isPreviousValid = true; //((previousLineNo != lineNo) && (previousLineSource != lineSource));
+                previousLineNo = lineNo;
+                previousLineSource = lineSource;
+                previousLineAddr = lineAddr;
+                previousLineColumn = lineOff;
+            }
 
-            isPreviousValid = true;
         } /* end if line was not the end of a sequence */
     } /* end iteration over source line entries. */
 
 /* Free this CU's source lines. */
-    for ( int i = 0; i < lineCount; i++ ) {
-        dwarf_dealloc( dbg, lineBuffer[i], DW_DLA_LINE );
-    }
-    dwarf_dealloc( dbg, lineBuffer, DW_DLA_LIST );
+    dwarf_srclines_dealloc(dbg, lineBuffer, lineCount);
 }
 
 
 
-void Object::parseLineInfoForAddr(Symtab* obj, Offset addr_to_find)
+void Object::parseLineInfoForAddr(Offset addr_to_find)
 {
     Dwarf_Debug *dbg_ptr = dwarf->line_dbg();
     if (!dbg_ptr)
         return;
-    Module* mod_for_offset = NULL;
-    obj->findModuleByOffset(mod_for_offset, addr_to_find);
-    std::string mod_to_check;
-    if(mod_for_offset)
-
+    std::set<Module*> mod_for_offset;
+    associated_symtab->findModuleByOffset(mod_for_offset, addr_to_find);
+    for(auto mod = mod_for_offset.begin();
+            mod != mod_for_offset.end();
+            ++mod)
     {
-        if(mod_for_offset->hasLineInformation())      // already parsed
-        {
-            return;
-        }
-        mod_to_check = mod_for_offset->fileName();
+        (*mod)->parseLineInformation();
     }
-
-    Dwarf_Debug &dbg = *dbg_ptr;
-
-    /* Only .debug_info for now, not .debug_types */
-    Dwarf_Bool is_info = 1;
-
-    /* Itereate over the CU headers. */
-    Dwarf_Unsigned header;
-    while ( dwarf_next_cu_header_c( dbg, is_info,
-                                    NULL, NULL, NULL, // len, stamp, abbrev
-                                    NULL, NULL, NULL, // address, offset, extension
-                                    NULL, NULL, // signature, typeoffset
-                                    & header, NULL ) == DW_DLV_OK )
-    {
-        /* Acquire the CU DIE. */
-        Dwarf_Die cuDIE;
-        int status = dwarf_siblingof_b( dbg, NULL, is_info, & cuDIE, NULL);
-        if ( status != DW_DLV_OK ) {
-            /* If we can get no (more) CUs, we're done. */
-            break;
-        }
-
-        char * cuName;
-        const char *moduleName;
-        status = dwarf_diename( cuDIE, &cuName, NULL );
-        if ( status == DW_DLV_NO_ENTRY ) {
-            cuName = NULL;
-            moduleName = "DEFAULT_MODULE";
-        }
-        else {
-            moduleName = strrchr(cuName, '/');
-            if (!moduleName)
-                moduleName = strrchr(cuName, '\\');
-            if (moduleName)
-                moduleName++;
-            else
-                moduleName = cuName;
-        }
-        if(cuName && modules_parsed_for_line_info.find(cuName) != modules_parsed_for_line_info.end())
-        {
-            dwarf_dealloc(dbg, cuDIE, DW_DLA_DIE);
-            continue;
-        }
-        if(mod_to_check != "" && strcmp(moduleName, mod_to_check.c_str()) != 0)
-        {
-            dwarf_dealloc(dbg, cuDIE, DW_DLA_DIE);
-            continue;
-        }
-        // Parse line info for each CU once, completely, if a user has asked for something within
-        // that CU
-        if(!addrInCU(dbg, cuDIE, addr_to_find))
-        {
-            dwarf_dealloc(dbg, cuDIE, DW_DLA_DIE);
-            continue;
-        }
-        Module* mod = NULL;
-        for(auto found_mod = modules_.begin();
-            found_mod != modules_.end();
-            ++found_mod)
-        {
-            if(found_mod->first == moduleName) {
-                obj->getOrCreateModule(found_mod->first, found_mod->second);
-                break;
-            }
-        }
-
-        if(!obj->findModuleByName(mod, moduleName))
-        {
-            mod = obj->getDefaultModule();
-//            cout << "Default module filename is " << mod->fileName() << endl;
-        }
-        LineInformation* li_for_module = mod->getLineInformation();
-        if(!li_for_module)
-        {
-            li_for_module = new LineInformation;
-            mod->setLineInfo(li_for_module);
-        }
-//        cout << "Parsing line info for " << mod->fileName() << endl;
-        parseLineInfoForCU(cuDIE, li_for_module);
-        if (cuName)
-        {
-            modules_parsed_for_line_info.insert(cuName);
-            dwarf_dealloc( dbg, cuName, DW_DLA_STRING );
-        }
-
-        /* Free this CU's DIE. */
-        dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
-    } /* end CU header iteration */
-    /* Note that we've parsed this file. */
+    // no mod for offset means no line info for sure if we've parsed all ranges...
 }
 
 
 
 
 // Dwarf Debug Format parsing
-void Object::parseDwarfFileLineInfo(Symtab* st)
+void Object::parseDwarfFileLineInfo()
 {
-    Dwarf_Debug *dbg_ptr = dwarf->line_dbg();
-    if (!dbg_ptr)
-        return;
-    Dwarf_Debug &dbg = *dbg_ptr;
-
-    /* Only .debug_info for now, not .debug_types */
-    Dwarf_Bool is_info = 1;
-
-    /* Itereate over the CU headers. */
-    Dwarf_Unsigned header;
-    while ( dwarf_next_cu_header_c( dbg, is_info,
-                                    NULL, NULL, NULL, // len, stamp, abbrev
-                                    NULL, NULL, NULL, // address, offset, extension
-                                    NULL, NULL, // signature, typeoffset
-                                    & header, NULL ) == DW_DLV_OK )
+    vector<Module*> mods;
+    associated_symtab->getAllModules(mods);
+    for(auto mod = mods.begin();
+            mod != mods.end();
+            ++mod)
     {
-        /* Acquire the CU DIE. */
-        Dwarf_Die cuDIE;
-        int status = dwarf_siblingof_b( dbg, NULL, is_info, & cuDIE, NULL);
-        if ( status != DW_DLV_OK ) {
-            /* If we can get no (more) CUs, we're done. */
-            break;
-        }
-
-        char * cuName;
-        const char *moduleName;
-        status = dwarf_diename( cuDIE, &cuName, NULL );
-        if ( status == DW_DLV_NO_ENTRY ) {
-            cuName = NULL;
-            moduleName = "DEFAULT_MODULE";
-        }
-        else {
-            moduleName = strrchr(cuName, '/');
-            if (!moduleName)
-                moduleName = strrchr(cuName, '\\');
-            if (moduleName)
-                moduleName++;
-            else
-                moduleName = cuName;
-        }
-        Module* mod = NULL;
-//        for(auto found_mod = modules_.begin();
-//            found_mod != modules_.end();
-//            ++found_mod)
-//        {
-//            if(found_mod->first == moduleName) {
-//                mod = st->getOrCreateModule(found_mod->first, found_mod->second);
-//                break;
-//            }
-//        }
-        if(!st->findModuleByName(mod, moduleName)) {
-            mod = st->getDefaultModule();
-//            cout << "Default module is " << mod->fileName() <<endl;
-        }
-//        if(!mod) mod = st->getDefaultModule();
-        LineInformation* li_for_module = mod->getLineInformation();
-        if(!li_for_module)
-        {
-            li_for_module = new LineInformation;
-            mod->setLineInfo(li_for_module);
-        }
-//        cout << "Parsing line info for " <<mod->fileName() <<endl;
-        parseLineInfoForCU(cuDIE, li_for_module);
-
-        if (cuName)
-            dwarf_dealloc( dbg, cuName, DW_DLA_STRING );
-
-        /* Free this CU's DIE. */
-        dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
-    } /* end CU header iteration */
-    /* Note that we've parsed this file. */
+        (*mod)->parseLineInformation();
+    }
 } /* end parseDwarfFileLineInfo() */
 
-void Object::parseFileLineInfo(Symtab *st)
+void Object::parseFileLineInfo()
 {
     if(parsedAllLineInfo) return;
 
-    parseStabFileLineInfo(st);
-    parseDwarfFileLineInfo(st);
+    parseStabFileLineInfo();
+    parseDwarfFileLineInfo();
     parsedAllLineInfo = true;
 
 }
 
-void Object::parseTypeInfo(Symtab *obj)
+void Object::parseTypeInfo()
 {
 #if defined(TIMED_PARSE)
     struct timeval starttime;
   gettimeofday(&starttime, NULL);
 #endif
 
-    parseStabTypes(obj);
+    parseStabTypes();
     Dwarf_Debug* typeInfo = dwarf->type_dbg();
     if(!typeInfo) return;
-    DwarfWalker walker(obj, *typeInfo);
+    DwarfWalker walker(associated_symtab, *typeInfo);
     walker.parse();
-    freeList.push_back(walker.getFreeList());
-//    freeList = walker.getFreeList();
 #if defined(TIMED_PARSE)
     struct timeval endtime;
   gettimeofday(&endtime, NULL);
@@ -4670,9 +4534,9 @@ void Object::parseTypeInfo(Symtab *obj)
 #endif
 }
 
-void Object::parseStabTypes(Symtab *obj)
+void Object::parseStabTypes()
 {
-    types_printf("Entry to parseStabTypes for %s\n", obj->name().c_str());
+    types_printf("Entry to parseStabTypes for %s\n", associated_symtab->name().c_str());
     stab_entry *stabptr = NULL;
     const char *next_stabstr = NULL;
 
@@ -4759,7 +4623,7 @@ void Object::parseStabTypes(Symtab *obj)
                     ptr++;
                     modName = ptr;
                 }
-                if (obj->findModuleByName(mod, modName)) {
+                if (associated_symtab->findModuleByName(mod, modName)) {
                     tc = typeCollection::getModTypeCollection(mod);
                     parseActive = true;
                     if (!mod) {
@@ -4774,7 +4638,7 @@ void Object::parseStabTypes(Symtab *obj)
                 }
                 else {
                     //parseActive = false;
-                    mod = obj->getDefaultModule();
+                    mod = associated_symtab->getDefaultModule();
                     tc = typeCollection::getModTypeCollection(mod);
                     types_printf("\t Warning: failed to find module name matching %s, using %s\n", modName, mod->fileName().c_str());
                 }
@@ -4822,16 +4686,16 @@ void Object::parseStabTypes(Symtab *obj)
                         currentFunctionName = new string(tmp);
                         // Shouldn't this be a function name lookup?
                         std::vector<Symbol *>syms;
-                        if(!obj->findSymbol(syms,
+                        if(!associated_symtab->findSymbol(syms,
                                             *currentFunctionName,
                                             Symbol::ST_FUNCTION,
                                             mangledName)) {
-                            if(!obj->findSymbol(syms,
+                            if(!associated_symtab->findSymbol(syms,
                                                 "_"+*currentFunctionName,
                                                 Symbol::ST_FUNCTION,
                                                 mangledName)) {
                                 string fortranName = *currentFunctionName + string("_");
-                                if (obj->findSymbol(syms,
+                                if (associated_symtab->findSymbol(syms,
                                                     fortranName,
                                                     Symbol::ST_FUNCTION,
                                                     mangledName)) {
@@ -4861,11 +4725,11 @@ void Object::parseStabTypes(Symtab *obj)
 
                     //TODO? change this. findLocalVar will cause an infinite loop
                     std::vector<Symbol *>vars;
-                    if(!obj->findSymbol(vars,
+                    if(!associated_symtab->findSymbol(vars,
                                         *commonBlockName,
                                         Symbol::ST_OBJECT,
                                         mangledName)) {
-                        if(!obj->findSymbol(vars,
+                        if(!associated_symtab->findSymbol(vars,
                                             *commonBlockName,
                                             Symbol::ST_OBJECT,
                                             mangledName,
@@ -4893,11 +4757,11 @@ void Object::parseStabTypes(Symtab *obj)
                 case N_ECOMM: {
                     //copy this set of fields
                     assert(currentFunctionName);
-                    if(!obj->findSymbol(bpfv,
+                    if(!associated_symtab->findSymbol(bpfv,
                                         *currentFunctionName,
                                         Symbol::ST_FUNCTION,
                                         mangledName)) {
-                        if(!obj->findSymbol(bpfv,
+                        if(!associated_symtab->findSymbol(bpfv,
                                             *currentFunctionName,
                                             Symbol::ST_FUNCTION,
                                             mangledName,
