@@ -159,7 +159,7 @@ test_results_t test1_30_Mutator::executeTest() {
     	}
 
     	
-        std::vector< std::pair< unsigned long, unsigned long > > ranges;
+        std::vector<Dyninst::SymtabAPI::AddressRange > ranges;
         if( appImage->getAddressRanges( "test1_30_mutatee.c", call30_1_line_no, ranges ) ) {
     	    n = ranges[0].first;
     	    expr30_3->writeValue( & n );

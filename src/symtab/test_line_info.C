@@ -45,7 +45,7 @@ public:
    virtual test_results_t executeTest();
    test_results_t basic_verification();
 
-   bool statement_ok(Statement *s)
+   bool statement_ok(Statement::Ptr s)
    {
 	   if (!s)
 	   {
@@ -124,7 +124,7 @@ test_results_t test_line_info_Mutator::basic_verification()
 
 		logerror("%s[%d]:  considering module %s\n", FILE__, __LINE__, modname.c_str());
 
-		std::vector<Statement *> statements;
+		std::vector<Statement::Ptr > statements;
 
 		if (!mod->getStatements(statements) || (0 == statements.size()))
 		{

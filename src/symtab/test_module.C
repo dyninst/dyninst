@@ -31,12 +31,14 @@
 #include "symtab_comp.h"
 #include "test_lib.h"
 
-#include "Symtab.h"
-#include "Module.h"
-#include "Symbol.h"
+#include "IBSTree-fast.h"
+#include <sstream>
 
 using namespace Dyninst;
 using namespace SymtabAPI;
+
+
+
 
 class test_module_Mutator : public SymtabMutator {
 public:
@@ -102,7 +104,8 @@ test_results_t test_module_Mutator::executeTest()
 		   logerror("%s[%d]: Error: NULL module returned\n", FILE__, __LINE__);
 		   return FAILED;
 	   }
-
+       std::stringstream failure_info;
+       failure_info << "Check for module " << *mod;
 	   //  Check that we have built our lookup hashes correctly
 	   //  (All modules are properly indexed by name and offset
 
@@ -114,8 +117,8 @@ test_results_t test_module_Mutator::executeTest()
 
 	   if (malformed_module(mod))
 	   {
-		   logerror("%s[%d]: bad module: %s\n", FILE__, __LINE__,
-				   modname.c_str());
+           failure_info << " was malformed" << std::endl;
+		   logerror(failure_info.str().c_str());
 		   return FAILED;
 	   }
 
@@ -124,8 +127,8 @@ test_results_t test_module_Mutator::executeTest()
 
 	   if (!result || !test_mod)
 	   {
-		   logerror("%s[%d]: Error: no module found with name %s\n", FILE__, __LINE__,
-				   modname.c_str());
+           failure_info << " could not be found by filename " << modname << std::endl;
+           logerror(failure_info.str().c_str());
 		   return FAILED;
 	   }
 
@@ -134,20 +137,26 @@ test_results_t test_module_Mutator::executeTest()
 
 	   if (!result || !test_mod)
 	   {
-		   logerror("%s[%d]: Error: no module found with name %s\n", FILE__, __LINE__,
-				   modfullname.c_str());
+           failure_info << " could not be found by full name " << modfullname << std::endl;
+           logerror(failure_info.str().c_str());
 		   return FAILED;
 	   }
 
 	   test_mod = NULL;
-	   result = symtab->findModuleByOffset(test_mod, offset);
+       result = symtab->findModuleByOffset(test_mod, offset);
 
-	   if (!result || !test_mod)
-	   {
-		   logerror("%s[%d]: Error: no module found with offset %lu\n", FILE__, __LINE__,
-				   offset);
-		   return FAILED;
-	   }
+       if (!result || !test_mod)
+       {
+           failure_info << " could not be found by offset " << offset << std::endl;
+           failure_info << "Result was " << (result ? "TRUE" : "FALSE") << ", mod was " << std::hex << test_mod << std::dec << std::endl;
+           failure_info << "Ranges in Symtab are: " << std::endl;
+           Dyninst::SymtabAPI::ModRangeLookup* symtab_ranges = symtab->mod_lookup();
+           failure_info << (*symtab_ranges);
+           failure_info << std::endl;
+           logerror(failure_info.str().c_str());
+           return FAILED;
+       }
+
    }
 
    return PASSED;
