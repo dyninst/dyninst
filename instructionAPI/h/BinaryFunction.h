@@ -91,6 +91,19 @@ namespace Dyninst
 						return arg1 + arg2;
 					}
 			};
+            
+            class INSTRUCTION_EXPORT subResult : public funcT
+			{
+				public:
+					subResult() : funcT("-") 
+					{
+					}
+					
+					Result operator()(const Result& arg1, const Result& arg2) const
+					{
+						return arg1 - arg2;
+					}
+			};
 			
 			class INSTRUCTION_EXPORT multResult : public funcT
 			{
@@ -241,7 +254,7 @@ namespace Dyninst
 			class INSTRUCTION_EXPORT bitwiseXorResult : public funcT
 			{
 				public:
-					bitwiseXorResult() : funcT("+") 
+					bitwiseXorResult() : funcT("^") 
 					{
 					}
 					
@@ -344,6 +357,7 @@ namespace Dyninst
 			virtual void apply(Visitor* v);
 			
 			bool isAdd() const;
+			bool isSubtraction() const;
 			bool isMultiply() const;
 			bool isLeftShift() const;
 			bool isRightArithmeticShift() const;

@@ -87,6 +87,12 @@ namespace Dyninst
 
             return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, adder));
         }
+        Expression::Ptr InstructionDecoderImpl::makeSubExpression(Expression::Ptr lhs,
+                Expression::Ptr rhs, Result_Type resultType)
+        {
+            BinaryFunction::funcT::Ptr suber(new BinaryFunction::subResult());
+            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, suber));
+        }
         Expression::Ptr InstructionDecoderImpl::makeMultiplyExpression(Expression::Ptr lhs, Expression::Ptr rhs,
                 Result_Type resultType)
         {
@@ -116,6 +122,16 @@ namespace Dyninst
         {
             BinaryFunction::funcT::Ptr rightRotator(new BinaryFunction::rightRotateResult());
             return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, rightRotator));
+        }
+        Expression::Ptr InstructionDecoderImpl::makeAndExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType)
+        {
+            BinaryFunction::funcT::Ptr ander(new BinaryFunction::andResult());
+            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, ander));
+        }
+        Expression::Ptr InstructionDecoderImpl::makeOrExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType)
+        {
+            BinaryFunction::funcT::Ptr orer(new BinaryFunction::orResult());
+            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, orer));
         }
         Expression::Ptr InstructionDecoderImpl::makeBitwiseXorExpression(Expression::Ptr lhs, Expression::Ptr rhs,
                 Result_Type resultType)

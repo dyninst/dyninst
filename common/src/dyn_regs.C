@@ -188,7 +188,7 @@ unsigned int MachRegister::size() const {
       case Arch_aarch32:
         assert(0);
       case Arch_ARMv6M:
-        return reg & 0x0000ff00;
+        return ((reg & 0x0000ff00) >> 8) / 4;
       case Arch_aarch64:
 		if((reg & 0x00ff0000) == aarch64::FPR)
 		{
@@ -300,6 +300,8 @@ MachRegister MachRegister::getFramePointer(Dyninst::Architecture arch)
          return ppc64::r1;
       case Arch_aarch64:
          return aarch64::x29; //aarch64: frame pointer is X29 by convention
+      case Arch_ARMv6M:
+         return ARMv6M::R7;
       case Arch_none:
          return InvalidReg;
       default:
