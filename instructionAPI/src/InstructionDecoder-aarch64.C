@@ -1492,19 +1492,12 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             int immLen = 2;
             int immVal = 0; //for amount
 
-            int S = field<12, 12>(insn);
             int size = field<30, 31>(insn);
 
-            if (size == 2) { //32bit
-                immVal = S == 0 ? 0 : (S == 1 ? 2 : -1);
-                if (immVal == -1)
-                    isValid = false;
-            }
-            else if (size == 3) { //64bit
-                immVal = S == 0 ? 0 : (S == 1 ? 3 : -1);
-                if (immVal == -1)
-                    isValid = false;
-            }
+            if(sField == 1)
+                immVal = size;
+            else
+                immVal = 0;
 
             Expression::Ptr ext = makeOptionExpression(immLen, immVal);
 
