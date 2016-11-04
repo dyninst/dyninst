@@ -1143,7 +1143,7 @@ bool DwarfWalker::parseInheritance() {
 
    dwarf_printf("(0x%lx) Found %p as superclass\n", id(), superClass);
 
-   visibility_t visibility;
+   visibility_t visibility = visUnknown;
    if (!findVisibility(visibility)) return false;
 
    /* Add a readily-recognizable 'bad' field to represent the superclass.
@@ -1201,7 +1201,7 @@ bool DwarfWalker::parseEnumEntry() {
 
    if (!findName(curName())) return false;
 
-   long value;
+   long value = 0;
    bool valid;
    if (!findValue(value, valid)) return false;
 

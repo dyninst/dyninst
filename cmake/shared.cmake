@@ -85,6 +85,8 @@ endfunction()
 #Change to switch between libiberty/libstdc++ demangler
 #set(USE_GNU_DEMANGLER 1)
 
+set (ENABLE_LTO FALSE CACHE BOOL "Enable Link-Time Optimization")
+
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${DYNINST_ROOT}/cmake/Modules")
 include (${DYNINST_ROOT}/cmake/platform.cmake)
 if (NOT ${PROJECT_NAME} MATCHES DyninstRT)
