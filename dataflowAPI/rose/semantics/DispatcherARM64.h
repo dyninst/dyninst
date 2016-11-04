@@ -209,7 +209,7 @@ namespace rose {
                 virtual BaseSemantics::SValuePtr Replicate(const BaseSemantics::SValuePtr &expr);
 
                 /** */
-                virtual BaseSemantics::SValuePtr getBitfieldMask(const BaseSemantics::SValuePtr &immr, const BaseSemantics::SValuePtr &imms, int N, bool iswmask);
+                virtual BaseSemantics::SValuePtr getBitfieldMask(int immr, int imms, int N, bool iswmask, int datasize);
 
                 size_t getRegSize(uint32_t raw);
 

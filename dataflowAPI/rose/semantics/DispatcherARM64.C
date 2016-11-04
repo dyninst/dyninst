@@ -1969,63 +1969,47 @@ namespace rose {
                 //TODO: For ubfm/sbfm based instructions, update the grammar to declare variables for imms/immr and wmask/tmask instead of reading/calculating them twice
                 struct IP_ubfm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr tmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            false, (EXTR(31, 31) + 1) * 32);
+                        BaseSemantics::SValuePtr wmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            true, (EXTR(31, 31) + 1) * 32);
                         BaseSemantics::SValuePtr dst;
                         if (d->inzero(raw))
                             dst = d->Zeros(64);
                         else
                             dst = d->read(args[0]);
                         BaseSemantics::SValuePtr src = d->read(args[1]);
-                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst,
-                                                                          d->NOT(d->getBitfieldMask(d->read(args[2]),
-                                                                                                    d->read(args[3]),
-                                                                                                    EXTR(22, 22),
-                                                                                                    true))),
-                                                                ops->and_(d->ROR(src, d->read(args[2])),
-                                                                          d->getBitfieldMask(d->read(args[2]),
-                                                                                             d->read(args[3]),
-                                                                                             EXTR(22, 22), true)));
+                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst, d->NOT(wmask)),
+                                                                ops->and_(d->ROR(src, d->read(args[2])), wmask));
                         BaseSemantics::SValuePtr top;
                         if (d->extend(raw))
                             top = d->Replicate(ops->and_(ops->shiftRight(src, d->read(args[3])), ops->number_(1, 1)));
                         else
                             top = dst;
-                        d->write(args[0], ops->or_(ops->and_(top, d->NOT(d->getBitfieldMask(d->read(args[2]),
-                                                                                            d->read(args[3]),
-                                                                                            EXTR(22, 22), false))),
-                                                   ops->and_(bot, d->getBitfieldMask(d->read(args[2]), d->read(args[3]),
-                                                                                     EXTR(22, 22), false))));
+                        d->write(args[0], ops->or_(ops->and_(top, d->NOT(tmask)), ops->and_(bot, tmask)));
 
                     }
                 };
 
+
                 struct IP_uxtb_ubfm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                        /*BaseSemantics::SValuePtr dst;
-                        if (d->inzero(raw))
+                        /*BaseSemantics::SValuePtr tmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22), false, (EXTR(31, 31) + 1) * 32);
+                            BaseSemantics::SValuePtr wmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22), true, (EXTR(31, 31) + 1) * 32);
+                            BaseSemantics::SValuePtr dst;
+                            if (d->inzero(raw))
                             dst = d->Zeros(64);
-                        else
+                            else
                             dst = d->read(args[0]);
-                        BaseSemantics::SValuePtr src = d->read(args[1]);
-                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst, d->NOT(d->getBitfieldMask(d->read(args[2]),
-                                                                                                         d->read(args[3]),
-                                                                                                         EXTR(22, 22),
-                                                                                                         true))),
-                                                                ops->and_(d->ROR(src, d->read(args[2])),
-                                                                          d->getBitfieldMask(d->read(args[2]),
-                                                                                             d->read(args[3]), EXTR(22, 22),
-                                                                                             true)));
-                        BaseSemantics::SValuePtr top;
-                        if (d->extend(raw))
-                            top = d->Replicate(ops->and_(ops->shiftRight(src, d->read(args[3])), ops->number_(1, 1)));
-                        else
+                            BaseSemantics::SValuePtr src = d->read(args[1]);
+                            BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst, d->NOT(wmask)), ops->and_(d->ROR(src, ops->number_(32, EXTR(16, 21))), wmask));
+                            BaseSemantics::SValuePtr top;
+                            if (d->extend(raw))
+                            top = d->Replicate(ops->and_(ops->shiftRight(src, ops->number_(32, EXTR(10, 15))), ops->number_(1, 1)));
+                            else
                             top = dst;
-                        d->write(args[0], ops->or_(ops->and_(top,
-                                                             d->NOT(d->getBitfieldMask(d->read(args[2]), d->read(args[3]),
-                                                                                       EXTR(22, 22), false))),
-                                                   ops->and_(bot, d->getBitfieldMask(d->read(args[2]), d->read(args[3]),
-                                                                                     EXTR(22, 22), false))));
-
-                    }*/
+                            d->write(args[0], ops->or_(ops->and_(top, d->NOT(tmask)), ops->and_(bot, tmask)));
+                            */
                         BaseSemantics::SValuePtr src = d->read(args[1]);
                         BaseSemantics::SValuePtr writeVal = ops->extract(src, 0, 8);
                         d->write(args[0], ops->unsignedExtend(writeVal, 32));
@@ -2034,245 +2018,224 @@ namespace rose {
 
                 struct IP_uxth_ubfm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr tmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            false, (EXTR(31, 31) + 1) * 32);
+                        BaseSemantics::SValuePtr wmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            true, (EXTR(31, 31) + 1) * 32);
                         BaseSemantics::SValuePtr dst;
                         if (d->inzero(raw))
                             dst = d->Zeros(64);
                         else
                             dst = d->read(args[0]);
                         BaseSemantics::SValuePtr src = d->read(args[1]);
-                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst, d->NOT(d->getBitfieldMask(d->read(args[2]),
-                                                                                                         d->read(args[3]),
-                                                                                                         EXTR(22, 22),
-                                                                                                         true))),
-                                                                ops->and_(d->ROR(src, d->read(args[2])),
-                                                                          d->getBitfieldMask(d->read(args[2]),
-                                                                                             d->read(args[3]), EXTR(22, 22),
-                                                                                             true)));
+                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst, d->NOT(wmask)),
+                                                                ops->and_(d->ROR(src, ops->number_(32, EXTR(16, 21))),
+                                                                          wmask));
                         BaseSemantics::SValuePtr top;
                         if (d->extend(raw))
-                            top = d->Replicate(ops->and_(ops->shiftRight(src, d->read(args[3])), ops->number_(1, 1)));
+                            top = d->Replicate(ops->and_(ops->shiftRight(src, ops->number_(32, EXTR(10, 15))),
+                                                         ops->number_(1, 1)));
                         else
                             top = dst;
-                        d->write(args[0], ops->or_(ops->and_(top,
-                                                             d->NOT(d->getBitfieldMask(d->read(args[2]), d->read(args[3]),
-                                                                                       EXTR(22, 22), false))),
-                                                   ops->and_(bot, d->getBitfieldMask(d->read(args[2]), d->read(args[3]),
-                                                                                     EXTR(22, 22), false))));
+                        d->write(args[0], ops->or_(ops->and_(top, d->NOT(tmask)), ops->and_(bot, tmask)));
 
                     }
                 };
 
                 struct IP_ubfiz_ubfm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr tmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            false, (EXTR(31, 31) + 1) * 32);
+                        BaseSemantics::SValuePtr wmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            true, (EXTR(31, 31) + 1) * 32);
                         BaseSemantics::SValuePtr dst;
                         if (d->inzero(raw))
                             dst = d->Zeros(64);
                         else
                             dst = d->read(args[0]);
                         BaseSemantics::SValuePtr src = d->read(args[1]);
-                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst, d->NOT(d->getBitfieldMask(d->read(args[2]),
-                                                                                                         d->read(args[3]),
-                                                                                                         EXTR(22, 22),
-                                                                                                         true))),
-                                                                ops->and_(d->ROR(src, d->read(args[2])),
-                                                                          d->getBitfieldMask(d->read(args[2]),
-                                                                                             d->read(args[3]), EXTR(22, 22),
-                                                                                             true)));
+                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst, d->NOT(wmask)),
+                                                                ops->and_(d->ROR(src, d->read(args[2])), wmask));
                         BaseSemantics::SValuePtr top;
                         if (d->extend(raw))
                             top = d->Replicate(ops->and_(ops->shiftRight(src, d->read(args[3])), ops->number_(1, 1)));
                         else
                             top = dst;
-                        d->write(args[0], ops->or_(ops->and_(top,
-                                                             d->NOT(d->getBitfieldMask(d->read(args[2]), d->read(args[3]),
-                                                                                       EXTR(22, 22), false))),
-                                                   ops->and_(bot, d->getBitfieldMask(d->read(args[2]), d->read(args[3]),
-                                                                                     EXTR(22, 22), false))));
+                        d->write(args[0], ops->or_(ops->and_(top, d->NOT(tmask)), ops->and_(bot, tmask)));
 
                     }
                 };
 
                 struct IP_ubfx_ubfm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr tmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            false, (EXTR(31, 31) + 1) * 32);
+                        BaseSemantics::SValuePtr wmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            true, (EXTR(31, 31) + 1) * 32);
                         BaseSemantics::SValuePtr dst;
                         if (d->inzero(raw))
                             dst = d->Zeros(64);
                         else
                             dst = d->read(args[0]);
                         BaseSemantics::SValuePtr src = d->read(args[1]);
-                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst, d->NOT(d->getBitfieldMask(d->read(args[2]),
-                                                                                                         d->read(args[3]),
-                                                                                                         EXTR(22, 22),
-                                                                                                         true))),
-                                                                ops->and_(d->ROR(src, d->read(args[2])),
-                                                                          d->getBitfieldMask(d->read(args[2]),
-                                                                                             d->read(args[3]), EXTR(22, 22),
-                                                                                             true)));
+                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst, d->NOT(wmask)),
+                                                                ops->and_(d->ROR(src, d->read(args[2])), wmask));
                         BaseSemantics::SValuePtr top;
                         if (d->extend(raw))
                             top = d->Replicate(ops->and_(ops->shiftRight(src, d->read(args[3])), ops->number_(1, 1)));
                         else
                             top = dst;
-                        d->write(args[0], ops->or_(ops->and_(top,
-                                                             d->NOT(d->getBitfieldMask(d->read(args[2]), d->read(args[3]),
-                                                                                       EXTR(22, 22), false))),
-                                                   ops->and_(bot, d->getBitfieldMask(d->read(args[2]), d->read(args[3]),
-                                                                                     EXTR(22, 22), false))));
+                        d->write(args[0], ops->or_(ops->and_(top, d->NOT(tmask)), ops->and_(bot, tmask)));
 
                     }
                 };
 
                 struct IP_sbfm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr tmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            false, (EXTR(31, 31) + 1) * 32);
+                        BaseSemantics::SValuePtr wmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            true, (EXTR(31, 31) + 1) * 32);
                         BaseSemantics::SValuePtr dst;
                         if (d->inzero(raw))
                             dst = d->Zeros(64);
                         else
                             dst = d->read(args[0]);
                         BaseSemantics::SValuePtr src = d->read(args[1]);
-                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst,
-                                                                          d->NOT(d->getBitfieldMask(d->read(args[2]),
-                                                                                                    d->read(args[3]),
-                                                                                                    EXTR(22, 22),
-                                                                                                    true))),
-                                                                ops->and_(d->ROR(src, d->read(args[2])),
-                                                                          d->getBitfieldMask(d->read(args[2]),
-                                                                                             d->read(args[3]),
-                                                                                             EXTR(22, 22), true)));
+                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst, d->NOT(wmask)),
+                                                                ops->and_(d->ROR(src, d->read(args[2])), wmask));
                         BaseSemantics::SValuePtr top;
                         if (d->extend(raw))
                             top = d->Replicate(ops->and_(ops->shiftRight(src, d->read(args[3])), ops->number_(1, 1)));
                         else
                             top = dst;
-                        d->write(args[0], ops->or_(ops->and_(top, d->NOT(d->getBitfieldMask(d->read(args[2]),
-                                                                                            d->read(args[3]),
-                                                                                            EXTR(22, 22), false))),
-                                                   ops->and_(bot, d->getBitfieldMask(d->read(args[2]), d->read(args[3]),
-                                                                                     EXTR(22, 22), false))));
+                        d->write(args[0], ops->or_(ops->and_(top, d->NOT(tmask)), ops->and_(bot, tmask)));
 
                     }
                 };
 
                 struct IP_sxth_sbfm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr tmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            false, (EXTR(31, 31) + 1) * 32);
+                        BaseSemantics::SValuePtr wmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            true, (EXTR(31, 31) + 1) * 32);
                         BaseSemantics::SValuePtr dst;
                         if (d->inzero(raw))
                             dst = d->Zeros(64);
                         else
                             dst = d->read(args[0]);
                         BaseSemantics::SValuePtr src = d->read(args[1]);
-                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst,
-                                                                          d->NOT(d->getBitfieldMask(d->read(args[2]),
-                                                                                                    d->read(args[3]),
-                                                                                                    EXTR(22, 22),
-                                                                                                    true))),
-                                                                ops->and_(d->ROR(src, d->read(args[2])),
-                                                                          d->getBitfieldMask(d->read(args[2]),
-                                                                                             d->read(args[3]),
-                                                                                             EXTR(22, 22), true)));
+                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst, d->NOT(wmask)),
+                                                                ops->and_(d->ROR(src, ops->number_(32, EXTR(16, 21))),
+                                                                          wmask));
                         BaseSemantics::SValuePtr top;
                         if (d->extend(raw))
-                            top = d->Replicate(ops->and_(ops->shiftRight(src, d->read(args[3])), ops->number_(1, 1)));
+                            top = d->Replicate(ops->and_(ops->shiftRight(src, ops->number_(32, EXTR(10, 15))),
+                                                         ops->number_(1, 1)));
                         else
                             top = dst;
-                        d->write(args[0], ops->or_(ops->and_(top, d->NOT(d->getBitfieldMask(d->read(args[2]),
-                                                                                            d->read(args[3]),
-                                                                                            EXTR(22, 22), false))),
-                                                   ops->and_(bot, d->getBitfieldMask(d->read(args[2]), d->read(args[3]),
-                                                                                     EXTR(22, 22), false))));
+                        d->write(args[0], ops->or_(ops->and_(top, d->NOT(tmask)), ops->and_(bot, tmask)));
 
                     }
                 };
 
                 struct IP_sxtb_sbfm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr tmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            false, (EXTR(31, 31) + 1) * 32);
+                        BaseSemantics::SValuePtr wmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            true, (EXTR(31, 31) + 1) * 32);
                         BaseSemantics::SValuePtr dst;
                         if (d->inzero(raw))
                             dst = d->Zeros(64);
                         else
                             dst = d->read(args[0]);
                         BaseSemantics::SValuePtr src = d->read(args[1]);
-                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst,
-                                                                          d->NOT(d->getBitfieldMask(d->read(args[2]),
-                                                                                                    d->read(args[3]),
-                                                                                                    EXTR(22, 22),
-                                                                                                    true))),
-                                                                ops->and_(d->ROR(src, d->read(args[2])),
-                                                                          d->getBitfieldMask(d->read(args[2]),
-                                                                                             d->read(args[3]),
-                                                                                             EXTR(22, 22), true)));
+                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst, d->NOT(wmask)),
+                                                                ops->and_(d->ROR(src, ops->number_(32, EXTR(16, 21))),
+                                                                          wmask));
                         BaseSemantics::SValuePtr top;
                         if (d->extend(raw))
-                            top = d->Replicate(ops->and_(ops->shiftRight(src, d->read(args[3])), ops->number_(1, 1)));
+                            top = d->Replicate(ops->and_(ops->shiftRight(src, ops->number_(32, EXTR(10, 15))),
+                                                         ops->number_(1, 1)));
                         else
                             top = dst;
-                        d->write(args[0], ops->or_(ops->and_(top, d->NOT(d->getBitfieldMask(d->read(args[2]),
-                                                                                            d->read(args[3]),
-                                                                                            EXTR(22, 22), false))),
-                                                   ops->and_(bot, d->getBitfieldMask(d->read(args[2]), d->read(args[3]),
-                                                                                     EXTR(22, 22), false))));
+                        d->write(args[0], ops->or_(ops->and_(top, d->NOT(tmask)), ops->and_(bot, tmask)));
+
+                    }
+                };
+
+                struct IP_sxtw_sbfm_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr tmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            false, (EXTR(31, 31) + 1) * 32);
+                        BaseSemantics::SValuePtr wmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            true, (EXTR(31, 31) + 1) * 32);
+                        BaseSemantics::SValuePtr dst;
+                        if (d->inzero(raw))
+                            dst = d->Zeros(64);
+                        else
+                            dst = d->read(args[0]);
+                        BaseSemantics::SValuePtr src = d->read(args[1]);
+                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst, d->NOT(wmask)),
+                                                                ops->and_(d->ROR(src, ops->number_(32, EXTR(16, 21))),
+                                                                          wmask));
+                        BaseSemantics::SValuePtr top;
+                        if (d->extend(raw))
+                            top = d->Replicate(ops->and_(ops->shiftRight(src, ops->number_(32, EXTR(10, 15))),
+                                                         ops->number_(1, 1)));
+                        else
+                            top = dst;
+                        d->write(args[0], ops->or_(ops->and_(top, d->NOT(tmask)), ops->and_(bot, tmask)));
 
                     }
                 };
 
                 struct IP_sbfiz_sbfm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr tmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            false, (EXTR(31, 31) + 1) * 32);
+                        BaseSemantics::SValuePtr wmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            true, (EXTR(31, 31) + 1) * 32);
                         BaseSemantics::SValuePtr dst;
                         if (d->inzero(raw))
                             dst = d->Zeros(64);
                         else
                             dst = d->read(args[0]);
                         BaseSemantics::SValuePtr src = d->read(args[1]);
-                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst,
-                                                                          d->NOT(d->getBitfieldMask(d->read(args[2]),
-                                                                                                    d->read(args[3]),
-                                                                                                    EXTR(22, 22),
-                                                                                                    true))),
-                                                                ops->and_(d->ROR(src, d->read(args[2])),
-                                                                          d->getBitfieldMask(d->read(args[2]),
-                                                                                             d->read(args[3]),
-                                                                                             EXTR(22, 22), true)));
+                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst, d->NOT(wmask)),
+                                                                ops->and_(d->ROR(src, d->read(args[2])), wmask));
                         BaseSemantics::SValuePtr top;
                         if (d->extend(raw))
                             top = d->Replicate(ops->and_(ops->shiftRight(src, d->read(args[3])), ops->number_(1, 1)));
                         else
                             top = dst;
-                        d->write(args[0], ops->or_(ops->and_(top, d->NOT(d->getBitfieldMask(d->read(args[2]),
-                                                                                            d->read(args[3]),
-                                                                                            EXTR(22, 22), false))),
-                                                   ops->and_(bot, d->getBitfieldMask(d->read(args[2]), d->read(args[3]),
-                                                                                     EXTR(22, 22), false))));
+                        d->write(args[0], ops->or_(ops->and_(top, d->NOT(tmask)), ops->and_(bot, tmask)));
 
                     }
                 };
 
                 struct IP_sbfx_sbfm_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr tmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            false, (EXTR(31, 31) + 1) * 32);
+                        BaseSemantics::SValuePtr wmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            true, (EXTR(31, 31) + 1) * 32);
                         BaseSemantics::SValuePtr dst;
                         if (d->inzero(raw))
                             dst = d->Zeros(64);
                         else
                             dst = d->read(args[0]);
                         BaseSemantics::SValuePtr src = d->read(args[1]);
-                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst,
-                                                                          d->NOT(d->getBitfieldMask(d->read(args[2]),
-                                                                                                    d->read(args[3]),
-                                                                                                    EXTR(22, 22),
-                                                                                                    true))),
-                                                                ops->and_(d->ROR(src, d->read(args[2])),
-                                                                          d->getBitfieldMask(d->read(args[2]),
-                                                                                             d->read(args[3]),
-                                                                                             EXTR(22, 22), true)));
+                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst, d->NOT(wmask)),
+                                                                ops->and_(d->ROR(src, d->read(args[2])), wmask));
                         BaseSemantics::SValuePtr top;
                         if (d->extend(raw))
                             top = d->Replicate(ops->and_(ops->shiftRight(src, d->read(args[3])), ops->number_(1, 1)));
                         else
                             top = dst;
-                        d->write(args[0], ops->or_(ops->and_(top, d->NOT(d->getBitfieldMask(d->read(args[2]),
-                                                                                            d->read(args[3]),
-                                                                                            EXTR(22, 22), false))),
-                                                   ops->and_(bot, d->getBitfieldMask(d->read(args[2]), d->read(args[3]),
-                                                                                     EXTR(22, 22), false))));
+                        d->write(args[0], ops->or_(ops->and_(top, d->NOT(tmask)), ops->and_(bot, tmask)));
 
                     }
                 };
@@ -2464,6 +2427,7 @@ namespace rose {
                 iproc_set (rose_aarch64_op_sbfm, new ARM64::IP_sbfm_execute);
                 iproc_set (rose_aarch64_op_sxth_sbfm, new ARM64::IP_sxth_sbfm_execute);
                 iproc_set (rose_aarch64_op_sxtb_sbfm, new ARM64::IP_sxtb_sbfm_execute);
+                iproc_set (rose_aarch64_op_sxtw_sbfm, new ARM64::IP_sxtw_sbfm_execute);
                 iproc_set (rose_aarch64_op_sbfiz_sbfm, new ARM64::IP_sbfiz_sbfm_execute);
                 iproc_set (rose_aarch64_op_sbfx_sbfm, new ARM64::IP_sbfx_sbfm_execute);
                 iproc_set (rose_aarch64_op_fmov_float_gen, new ARM64::IP_fmov_float_gen_execute);
@@ -2682,19 +2646,35 @@ namespace rose {
             }
 
             BaseSemantics::SValuePtr
-            DispatcherARM64::getBitfieldMask(const BaseSemantics::SValuePtr &immr, const BaseSemantics::SValuePtr &imms,
-                                             int N, bool iswmask) {
-                /*Dyninst::AST::Ptr immsExpr = SymEvalSemantics::SValue::promote(imms)->get_expression();
-                Dyninst::DataflowAPI::ConstantAST *immsConstAST = dynamic_cast<Dyninst::DataflowAPI::ConstantAST *>(immsExpr.get());
-                ASSERT_not_null(immsConstAST);
-                uint64_t immsVal = immsConstAST->val().val;
+            DispatcherARM64::getBitfieldMask(int immr, int imms,
+                                             int N, bool iswmask, int datasize) {
+                int hsbarg = (N << 6) | (~imms);
+                int len;
+                for(int idx = 0; idx < 7; idx++) {
+                    if((hsbarg & 0x1) == 1)
+                        len = idx;
+                    hsbarg >>= 1;
+                }
 
-                Dyninst::AST::Ptr immrExpr = SymEvalSemantics::SValue::promote(immr)->get_expression();
-                Dyninst::DataflowAPI::ConstantAST *immrConstAST = dynamic_cast<Dyninst::DataflowAPI::ConstantAST *>(immrExpr.get());
-                ASSERT_not_null(immrConstAST);
-                uint64_t immrVal = immrConstAST->val().val;*/
-                //yet to be implemented
-                return operators->unspecified_(1);
+                if(len < 1 || (1 << len) > 64)
+                    assert(!"Reserved value found in bitfield extract instruction!");
+
+                int levels = ((1 << len) - 1);
+                int S = imms & levels;
+                int R = immr & levels;
+                int diff = S - R;
+
+                int d = diff & levels;
+                int welem = (1 << (S + 1)) - 1, telem = (1 << (d + 1)) - 1;
+
+                if(iswmask) {
+                    BaseSemantics::SValuePtr wmask = operators->number_(datasize, welem);
+                    wmask = ROR(wmask, operators->number_(32, R));
+                    return Replicate(wmask);
+                } else {
+                    BaseSemantics::SValuePtr tmask = operators->number_(datasize, telem);
+                    return Replicate(tmask);
+                }
             }
 
             size_t
