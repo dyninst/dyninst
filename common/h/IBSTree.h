@@ -44,6 +44,7 @@
 
 #include <set>
 #include <limits>
+#include <ostream>
 
 /** Template class for Interval Binary Search Tree. The implementation is
   * based on a red-black tree (derived from our codeRange implementation)
