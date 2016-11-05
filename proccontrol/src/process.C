@@ -211,8 +211,10 @@ void int_process::plat_threadAttachDone()
 {
 }
 
-bool int_process::attachThreads()
+bool int_process::attachThreads(bool &found_new_threads)
 {
+   found_new_threads = false;
+
    if (!needIndividualThreadAttach())
       return true;
 
@@ -224,9 +226,9 @@ bool int_process::attachThreads()
     * a list of LWPs, but then new threads are created before we attach to
     * all the existing threads.
     **/
-   bool found_new_threads;
+   bool loop_new_threads;
    do {
-      found_new_threads = false;
+      loop_new_threads = false;
       vector<Dyninst::LWP> lwps;
       bool result = getThreadLWPs(lwps);
       if (!result) {
@@ -242,11 +244,54 @@ bool int_process::attachThreads()
          }
          pthrd_printf("Creating new thread for %d/%d during attach\n", pid, *i);
          thr = int_thread::createThread(this, NULL_THR_ID, *i, false, int_thread::as_needs_attach);
-         found_new_threads = true;
+         found_new_threads = loop_new_threads = true;
       }
-   } while (found_new_threads);
+   } while (loop_new_threads);
 
    return true;
+}
+
+bool int_process::attachThreads()
+{
+   bool found_new_threads = false;
+   return attachThreads(found_new_threads);
+}
+
+// Attach any new threads and synchronize, until there are no new threads
+bool int_process::attachThreadsSync()
+{
+   while (true) {
+      bool found_new_threads = false;
+
+      ProcPool()->condvar()->lock();
+      bool result = attachThreads(found_new_threads);
+      if (found_new_threads)
+         ProcPool()->condvar()->broadcast();
+      ProcPool()->condvar()->unlock();
+
+      if (!result) {
+         pthrd_printf("Failed to attach to threads in %d\n", pid);
+         setLastError(err_internal, "Could not get threads during attach\n");
+         return false;
+      }
+
+      if (!found_new_threads)
+         return true;
+
+      pthrd_printf("Wait again for attach from process %d\n", pid);
+      bool proc_exited = false;
+      result = waitAndHandleForProc(true, this, proc_exited);
+      if (!result) {
+         perr_printf("Internal error calling waitAndHandleForProc on %d\n", getPid());
+         setLastError(err_internal, "Error while calling waitAndHandleForProc for attached threads\n");
+         return false;
+      }
+      if (proc_exited) {
+         perr_printf("Process exited while waiting for user thread stop, erroring\n");
+         setLastError(err_exited, "Process exited while thread being stopped.\n");
+         return false;
+      }
+   }
 }
 
 bool int_process::attach(int_processSet *ps, bool reattach)
@@ -443,10 +488,9 @@ bool int_process::attach(int_processSet *ps, bool reattach)
       int_process *proc = *i;
       if (proc->getState() == errorstate)
          continue;
-      bool result = proc->attachThreads();
+      bool result = proc->attachThreadsSync();
       if (!result) {
          pthrd_printf("Failed to attach to threads in %d--now an error\n", proc->pid);
-         proc->setLastError(err_internal, "Could not get threads during attach\n");
          procs.erase(i++);
          had_error = true;
          continue;
