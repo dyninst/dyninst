@@ -63,7 +63,7 @@ namespace Dyninst {
   };
   namespace SymtabAPI {
     class Symbol;
-    class AddressRange;
+    struct AddressRange;
   };
 }
 

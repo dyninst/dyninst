@@ -62,7 +62,7 @@ class BPatch_object;
 namespace Dyninst { 
    namespace SymtabAPI {
       class Module;
-       class AddressRange;
+       struct AddressRange;
       BPATCH_DLL_EXPORT Module *convert(const BPatch_module *);
    }
    namespace PatchAPI {

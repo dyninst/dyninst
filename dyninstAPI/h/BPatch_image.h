@@ -66,7 +66,7 @@ class BPatch_object_getMod;
 
 namespace Dyninst {
 	namespace SymtabAPI {
-		class AddressRange;
+		struct AddressRange;
 	}
   namespace PatchAPI {
     class PatchMgr;
