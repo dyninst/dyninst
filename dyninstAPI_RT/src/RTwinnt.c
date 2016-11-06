@@ -260,19 +260,20 @@ int dyn_pid_self()
 
 int dyn_lwp_self()
 {
-	/* getCurrentThreadId() is conflicting with SD-Dyninst instrumentation. 
-	So I'm doing the massively unportable thing here and hard-coding the assembly
-	FOR GREAT JUSTICE! */
-/*    return GetCurrentThreadId(); */
-	/* This will do stack frame setup, but that seems harmless in this context... */
 #ifdef _WIN64
-	assert(0); // FIXME WIN64-PORTING: Figure out a solution without inline asm.
+    return GetCurrentThreadId();
 #else
-	__asm
+    /* return GetCurrentThreadId(); */
+    /* getCurrentThreadId() is conflicting with SD-Dyninst instrumentation.
+     *  So I'm doing the massively unportable thing here and hard-coding the assembly
+     *  FOR GREAT JUSTICE!
+     */
+    /* This will do stack frame setup, but that seems harmless in this context... */
+    __asm
     {
-        mov     EAX,FS:[0x18]
-		mov     EAX,DS:[EAX+0x24]
-	}
+      mov     EAX,FS:[0x18]
+      mov     EAX,DS:[EAX+0x24]
+    }
 #endif
 }
 

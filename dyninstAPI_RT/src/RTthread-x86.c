@@ -47,7 +47,8 @@ int atomic_set(volatile int *val)
 {
    int result;
 #ifdef _WIN64
-   assert(0); // FIXME WIN64-PORTING: Figure out a solution without inline asm.
+   result = _InterlockedCompareExchange(val, 1, 0);
+   return !result;
 #else
    __asm
    {

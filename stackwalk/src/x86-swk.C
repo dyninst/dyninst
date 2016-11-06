@@ -69,7 +69,7 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
 	  : "=r"(frame_pointer));
 #elif defined(os_windows)
 #ifdef _WIN64
-  assert(0); // FIXME WIN64-PORTING: Figure out a solution without inline asm.
+  assert(0); // FIXME WIN64-PORTING: Figure out a solution without inline asm, perhaps StackWalk64()?
 #else
    __asm
    {

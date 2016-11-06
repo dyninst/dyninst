@@ -547,20 +547,22 @@ void registerSpace::initialize()
    are saved. */
 #if defined(os_windows)
 int cpuidCall() {
-    DWORD result = 0;
-// Note: mov <target> <source>, so backwards from what gnu uses
 #ifdef _WIN64
-	assert(0); // FIXME WIN64-PORTING: Figure out a solution without inline asm.
+    int result[4];
+    __cpuid(result, 1);
+    return result[4]; // edx
 #else
-	_asm {
-		push ebx
-		mov eax, 1
-		cpuid
-		pop ebx
-		mov result, edx
+    DWORD result = 0;
+    // Note: mov <target> <source>, so backwards from what gnu uses
+    _asm {
+        push ebx
+        mov eax, 1
+        cpuid
+        pop ebx
+        mov result, edx
     }
-#endif
     return result;
+#endif
 }
 #endif
 
