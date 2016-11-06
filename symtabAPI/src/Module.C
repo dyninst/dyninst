@@ -338,11 +338,11 @@ Module::Module(const Module &mod) :
    LookupInterface(),
    lineInfo_(mod.lineInfo_),
    typeInfo_(mod.typeInfo_),
+   info_(mod.info_),
    fileName_(mod.fileName_),
    fullName_(mod.fullName_),
    language_(mod.language_),
    addr_(mod.addr_),
-   info_(mod.info_),
    exec_(mod.exec_),
    strings_(mod.strings_),
     ranges_finalized(mod.ranges_finalized)
