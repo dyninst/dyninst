@@ -8,7 +8,6 @@
 #include <stdint.h>
 #endif
 
-
 typedef std::vector<unsigned char> SgUnsignedCharList;
 typedef SgUnsignedCharList* SgUnsignedCharListPtr;
 

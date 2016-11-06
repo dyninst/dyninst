@@ -1,35 +1,35 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
 // Keeps a list of relocated Widgets (compessed where possible) for mapping
-// addresses and types between original and relocated code. 
+// addresses and types between original and relocated code.
 
 #if !defined(_R_CODE_TRACKER_H_)
 #define _R_CODE_TRACKER_H_
@@ -55,21 +55,15 @@ class CodeTracker;
 
 class TrackerElement {
   friend class CodeTracker;
- public:
-  typedef enum {
-    original,
-    emulated,
-    instrumentation,
-    padding
-  } type_t;
 
-  TrackerElement(Address o, block_instance *b, func_instance *f) 
-      : orig_(o), reloc_(0), size_(0), 
-     block_(b), func_(f) {
-     assert(b);
+ public:
+  typedef enum { original, emulated, instrumentation, padding } type_t;
+
+  TrackerElement(Address o, block_instance *b, func_instance *f)
+      : orig_(o), reloc_(0), size_(0), block_(b), func_(f) {
+    assert(b);
   };
-  virtual ~TrackerElement() {
-  };
+  virtual ~TrackerElement(){};
 
   virtual Address relocToOrig(Address reloc) const = 0;
   virtual Address origToReloc(Address orig) const = 0;
@@ -88,7 +82,7 @@ class TrackerElement {
 
  protected:
   TrackerElement() { assert(0); };
-  TrackerElement(const TrackerElement &)  { assert(0); };
+  TrackerElement(const TrackerElement &) { assert(0); };
   Address orig_;
   Address reloc_;
   unsigned size_;
@@ -98,9 +92,9 @@ class TrackerElement {
 
 class OriginalTracker : public TrackerElement {
  public:
-  OriginalTracker(Address orig, block_instance *b, func_instance *f) :
-   TrackerElement(orig, b, f) {};
-  virtual ~OriginalTracker() {};
+  OriginalTracker(Address orig, block_instance *b, func_instance *f)
+      : TrackerElement(orig, b, f){};
+  virtual ~OriginalTracker(){};
 
   virtual Address relocToOrig(Address reloc) const {
     assert(reloc >= reloc_);
@@ -116,60 +110,58 @@ class OriginalTracker : public TrackerElement {
 
   virtual type_t type() const { return TrackerElement::original; };
 
-
  private:
 };
-    std::ostream &
-    operator<<(std::ostream &os, const Dyninst::Relocation::TrackerElement &e);
+std::ostream &operator<<(std::ostream &os,
+                         const Dyninst::Relocation::TrackerElement &e);
 
 class EmulatorTracker : public TrackerElement {
  public:
-  EmulatorTracker(Address orig, block_instance *b, func_instance *f) : 
-   TrackerElement(orig, b, f) {};
-  virtual ~EmulatorTracker() {};
+  EmulatorTracker(Address orig, block_instance *b, func_instance *f)
+      : TrackerElement(orig, b, f){};
+  virtual ~EmulatorTracker(){};
 
   virtual Address relocToOrig(Address reloc) const {
-    (void)reloc; // unused
+    (void)reloc;  // unused
     assert(reloc >= reloc_);
     assert(reloc < (reloc_ + size_));
     return orig_;
   }
 
   virtual Address origToReloc(Address orig) const {
-    (void)orig; // unused
+    (void)orig;  // unused
     assert(orig == orig_);
     return reloc_;
   }
 
   virtual type_t type() const { return TrackerElement::emulated; };
 
-
-
  private:
 };
 
 class InstTracker : public TrackerElement {
  public:
-  InstTracker(Address orig, baseTramp *baseT, block_instance *b, func_instance *f) :
-   TrackerElement(orig, b, f), baseT_(baseT) {};
-  virtual ~InstTracker() {};
+  InstTracker(Address orig, baseTramp *baseT, block_instance *b,
+              func_instance *f)
+      : TrackerElement(orig, b, f), baseT_(baseT){};
+  virtual ~InstTracker(){};
 
   virtual Address relocToOrig(Address reloc) const {
-    (void)reloc; // unused
+    (void)reloc;  // unused
     assert(reloc >= reloc_);
     assert(reloc < (reloc_ + size_));
     return orig_;
   }
 
   virtual Address origToReloc(Address orig) const {
-    (void)orig; // unused
+    (void)orig;  // unused
     assert(orig == orig_);
     return reloc_;
   }
 
   virtual type_t type() const { return TrackerElement::instrumentation; };
   baseTramp *baseT() const { return baseT_; };
-  
+
   virtual bool mergeable() const { return false; };
 
  private:
@@ -178,19 +170,20 @@ class InstTracker : public TrackerElement {
 
 class PaddingTracker : public TrackerElement {
  public:
-  PaddingTracker(Address orig, unsigned pad, block_instance *b, func_instance *f) :
-   TrackerElement(orig, b, f), pad_(pad) {};
-   virtual ~PaddingTracker() {};
+  PaddingTracker(Address orig, unsigned pad, block_instance *b,
+                 func_instance *f)
+      : TrackerElement(orig, b, f), pad_(pad){};
+  virtual ~PaddingTracker(){};
 
   virtual Address relocToOrig(Address reloc) const {
-    (void)reloc; // unused
+    (void)reloc;  // unused
     assert(reloc >= reloc_);
     assert(reloc < (reloc_ + size_));
     return orig_;
   }
 
   virtual Address origToReloc(Address orig) const {
-    (void)orig; // unused
+    (void)orig;  // unused
     assert(orig == orig_);
     return reloc_;
   }
@@ -201,22 +194,22 @@ class PaddingTracker : public TrackerElement {
   virtual bool mergeable() const { return false; };
 
  private:
-  unsigned pad_; 
+  unsigned pad_;
 };
 
 class CodeTracker {
  public:
   struct RelocatedElements {
-     Address instruction;
-     std::map<instPoint *, Address> instrumentation;
-     Address pad;
-  RelocatedElements() : instruction(0), pad(0) {};
+    Address instruction;
+    std::map<instPoint *, Address> instrumentation;
+    Address pad;
+    RelocatedElements() : instruction(0), pad(0){};
   };
 
   // I'd like to use a block * as a unique key element, but
   // really can't because blocks can be deleted and recreated.
   // Instead, I'm using their entry address - that's the address
-  // in BlockForwardsMap. 
+  // in BlockForwardsMap.
   // The ForwardsMap address is a straightforward "what's the data at this
   // particular address".
 
@@ -230,7 +223,6 @@ class CodeTracker {
 
   typedef class IntervalTree<Address, TrackerElement *> ReverseMap;
 
-
   CodeTracker();
 
   ~CodeTracker();
@@ -238,16 +230,18 @@ class CodeTracker {
   static CodeTracker *fork(CodeTracker *parent, AddressSpace *child);
 
   struct RelocInfo {
-     Address orig;
-     Address reloc;
-     block_instance *block;
-     func_instance *func;
-     baseTramp *bt;
-     unsigned pad;
-  RelocInfo() : orig(0), reloc(0), block(NULL), func(NULL), bt(NULL), pad(0) {};
+    Address orig;
+    Address reloc;
+    block_instance *block;
+    func_instance *func;
+    baseTramp *bt;
+    unsigned pad;
+    RelocInfo()
+        : orig(0), reloc(0), block(NULL), func(NULL), bt(NULL), pad(0){};
   };
 
-  bool origToReloc(Address origAddr, block_instance *block, func_instance *func, RelocatedElements &relocs) const;
+  bool origToReloc(Address origAddr, block_instance *block, func_instance *func,
+                   RelocatedElements &relocs) const;
   bool relocToOrig(Address relocAddr, RelocInfo &ri) const;
 
   TrackerElement *findByReloc(Address relocAddr) const;
@@ -266,7 +260,6 @@ class CodeTracker {
   const TrackerList &trackers() { return trackers_; }
 
  private:
-
   // We make this block specific to handle shared
   // code
   ForwardMap origToReloc_;
@@ -274,9 +267,7 @@ class CodeTracker {
 
   TrackerList trackers_;
 };
-
 };
 };
-
 
 #endif

@@ -48,270 +48,272 @@ class data_response;
 class HandlerPool;
 
 class response : public boost::enable_shared_from_this<response> {
-   friend void boost::checked_delete<response>(response *);
-   friend void boost::checked_delete<const response>(const response *);
-   friend class responses_pending;
-   friend unsigned newResponseID();
-   friend unsigned newResponseID(unsigned);
-  protected:
-   Dyninst::ProcControlAPI::Event::ptr event;
+  friend void boost::checked_delete<response>(response *);
+  friend void boost::checked_delete<const response>(const response *);
+  friend class responses_pending;
+  friend unsigned newResponseID();
+  friend unsigned newResponseID(unsigned);
 
-   typedef enum {
-      unset,
-      posted,
-      ready
-   } state_t;
+ protected:
+  Dyninst::ProcControlAPI::Event::ptr event;
 
-   unsigned int id;
-   static unsigned int next_id;
-   state_t state;
-   mutable bool checked_ready;
-   bool isSyncHandled;
+  typedef enum { unset, posted, ready } state_t;
 
-   bool error;
-   int errorcode;
-   int_process *proc;
-   int_eventAsyncIO *aio;
+  unsigned int id;
+  static unsigned int next_id;
+  state_t state;
+  mutable bool checked_ready;
+  bool isSyncHandled;
 
-  protected:
-   response();
-   typedef enum {
-      rt_result,
-      rt_reg,
-      rt_allreg,
-      rt_mem,
-      rt_stack,
-      rt_data,
-      rt_set
-   } resp_type_t;
-   resp_type_t resp_type;
+  bool error;
+  int errorcode;
+  int_process *proc;
+  int_eventAsyncIO *aio;
 
-   ArchEvent *decoder_event;
+ protected:
+  response();
+  typedef enum {
+    rt_result,
+    rt_reg,
+    rt_allreg,
+    rt_mem,
+    rt_stack,
+    rt_data,
+    rt_set
+  } resp_type_t;
+  resp_type_t resp_type;
 
-   int multi_resp_size;
-   int multi_resp_recvd;
+  ArchEvent *decoder_event;
 
-  public:
-   typedef boost::shared_ptr<response> ptr;
-   typedef boost::shared_ptr<const response> const_ptr;
+  int multi_resp_size;
+  int multi_resp_recvd;
 
-   virtual ~response();
+ public:
+  typedef boost::shared_ptr<response> ptr;
+  typedef boost::shared_ptr<const response> const_ptr;
 
-   unsigned int getID() const;
+  virtual ~response();
 
-   boost::shared_ptr<result_response> getResultResponse();
-   boost::shared_ptr<mem_response> getMemResponse();
-   boost::shared_ptr<reg_response> getRegResponse();
-   boost::shared_ptr<allreg_response> getAllRegResponse();
-   boost::shared_ptr<stack_response> getStackResponse();
-   boost::shared_ptr<data_response> getDataResponse();
+  unsigned int getID() const;
 
-   bool isReady() const;
-   bool testReady() const;
-   bool isPosted() const;
-   bool hasError() const;
-   int errorCode() const;
+  boost::shared_ptr<result_response> getResultResponse();
+  boost::shared_ptr<mem_response> getMemResponse();
+  boost::shared_ptr<reg_response> getRegResponse();
+  boost::shared_ptr<allreg_response> getAllRegResponse();
+  boost::shared_ptr<stack_response> getStackResponse();
+  boost::shared_ptr<data_response> getDataResponse();
 
-   void markPosted();
-   void markReady();
-   void markError(int code = 0);
-   void markSyncHandled();
+  bool isReady() const;
+  bool testReady() const;
+  bool isPosted() const;
+  bool hasError() const;
+  int errorCode() const;
 
-   void setEvent(Event::ptr ev);
-   Event::ptr getEvent() const;
+  void markPosted();
+  void markReady();
+  void markError(int code = 0);
+  void markSyncHandled();
 
-   unsigned int markAsMultiResponse(int num_resps);
-   bool isMultiResponse();
-   unsigned int multiResponseSize();
-   bool isMultiResponseComplete();
+  void setEvent(Event::ptr ev);
+  Event::ptr getEvent() const;
 
-   void setDecoderEvent(ArchEvent *ae);
-   ArchEvent *getDecoderEvent();
+  unsigned int markAsMultiResponse(int num_resps);
+  bool isMultiResponse();
+  unsigned int multiResponseSize();
+  bool isMultiResponseComplete();
 
-   void setProcess(int_process *p);
-   int_process *getProcess() const;
+  void setDecoderEvent(ArchEvent *ae);
+  ArchEvent *getDecoderEvent();
 
-   int_eventAsyncIO *getAsyncIOEvent();
-   void setAsyncIOEvent(int_eventAsyncIO *aoi_);
+  void setProcess(int_process *p);
+  int_process *getProcess() const;
 
-   std::string name() const;
+  int_eventAsyncIO *getAsyncIOEvent();
+  void setAsyncIOEvent(int_eventAsyncIO *aoi_);
+
+  std::string name() const;
 };
 
 class responses_pending {
-  private:
-   std::map<unsigned int, response::ptr> pending;
-   CondVar<Mutex <false> > cvar;
+ private:
+  std::map<unsigned int, response::ptr> pending;
+  CondVar<Mutex<false> > cvar;
 
-  public:
-   response::ptr rmResponse(unsigned int id);
-   response::ptr getResponse(unsigned int id);
-   bool waitFor(response::ptr resp);
-   void addResponse(response::ptr r, int_process *proc);
-   void noteResponse();
-   bool hasAsyncPending(bool ev_only = true);
+ public:
+  response::ptr rmResponse(unsigned int id);
+  response::ptr getResponse(unsigned int id);
+  bool waitFor(response::ptr resp);
+  void addResponse(response::ptr r, int_process *proc);
+  void noteResponse();
+  bool hasAsyncPending(bool ev_only = true);
 
-   CondVar<Mutex <false> > &condvar();
-   void lock();
-   void unlock();
-   void signal();
+  CondVar<Mutex<false> > &condvar();
+  void lock();
+  void unlock();
+  void signal();
 };
 
 responses_pending &getResponses();
 
-class result_response : public response
-{
-   friend class linux_process;
-   friend class linux_thread;
-   friend void boost::checked_delete<result_response>(result_response *);
-   friend void boost::checked_delete<const result_response>(const result_response *);
-  private:
-   bool b;
-   result_response();
+class result_response : public response {
+  friend class linux_process;
+  friend class linux_thread;
+  friend void boost::checked_delete<result_response>(result_response *);
+  friend void boost::checked_delete<const result_response>(
+      const result_response *);
 
-  public:
-   typedef boost::shared_ptr<result_response> ptr;
-   typedef boost::shared_ptr<const result_response> const_ptr;
+ private:
+  bool b;
+  result_response();
 
-   static result_response::ptr createResultResponse();
+ public:
+  typedef boost::shared_ptr<result_response> ptr;
+  typedef boost::shared_ptr<const result_response> const_ptr;
 
-   virtual ~result_response();
+  static result_response::ptr createResultResponse();
 
-   void setResponse(bool b);
-   void postResponse(bool b);
+  virtual ~result_response();
 
-   bool getResult() const;
+  void setResponse(bool b);
+  void postResponse(bool b);
+
+  bool getResult() const;
 };
 
-class reg_response : public response
-{
-   friend class linux_thread;
-   friend void boost::checked_delete<reg_response>(reg_response *);
-   friend void boost::checked_delete<const reg_response>(const reg_response *);
-  private:
-   Dyninst::MachRegisterVal val;
-   reg_response();
+class reg_response : public response {
+  friend class linux_thread;
+  friend void boost::checked_delete<reg_response>(reg_response *);
+  friend void boost::checked_delete<const reg_response>(const reg_response *);
 
-   Dyninst::MachRegister reg;
-   int_thread *thr;
+ private:
+  Dyninst::MachRegisterVal val;
+  reg_response();
 
-  public:
-   typedef boost::shared_ptr<reg_response> ptr;
-   typedef boost::shared_ptr<const reg_response> const_ptr;
+  Dyninst::MachRegister reg;
+  int_thread *thr;
 
-   static reg_response::ptr createRegResponse();
+ public:
+  typedef boost::shared_ptr<reg_response> ptr;
+  typedef boost::shared_ptr<const reg_response> const_ptr;
 
-   virtual ~reg_response();
+  static reg_response::ptr createRegResponse();
 
-   void setRegThread(Dyninst::MachRegister r, int_thread *t);
-   void setResponse(Dyninst::MachRegisterVal v);
-   void postResponse(Dyninst::MachRegisterVal v);
-   Dyninst::MachRegisterVal getResult() const;
+  virtual ~reg_response();
+
+  void setRegThread(Dyninst::MachRegister r, int_thread *t);
+  void setResponse(Dyninst::MachRegisterVal v);
+  void postResponse(Dyninst::MachRegisterVal v);
+  Dyninst::MachRegisterVal getResult() const;
 };
 
-class allreg_response : public response
-{
-   friend void boost::checked_delete<allreg_response>(allreg_response *);
-   friend void boost::checked_delete<const allreg_response>(const allreg_response *);
-  private:
-   int_registerPool *regpool;
-   int_thread *thr;
-   reg_response::ptr indiv_access;
-   Dyninst::MachRegister indiv_reg;
-   allreg_response();
+class allreg_response : public response {
+  friend void boost::checked_delete<allreg_response>(allreg_response *);
+  friend void boost::checked_delete<const allreg_response>(
+      const allreg_response *);
 
-  public:
-   typedef boost::shared_ptr<allreg_response> ptr;
-   typedef boost::shared_ptr<const allreg_response> const_ptr;
+ private:
+  int_registerPool *regpool;
+  int_thread *thr;
+  reg_response::ptr indiv_access;
+  Dyninst::MachRegister indiv_reg;
+  allreg_response();
 
-   static allreg_response::ptr createAllRegResponse(int_registerPool *regpool);
-   static allreg_response::ptr createAllRegResponse();
+ public:
+  typedef boost::shared_ptr<allreg_response> ptr;
+  typedef boost::shared_ptr<const allreg_response> const_ptr;
 
-   virtual ~allreg_response();
+  static allreg_response::ptr createAllRegResponse(int_registerPool *regpool);
+  static allreg_response::ptr createAllRegResponse();
 
-   void setThread(int_thread *t);
-   void setRegPool(int_registerPool *p);
-   void setResponse();
-   void postResponse();
+  virtual ~allreg_response();
 
-   void setIndividualRegAccess(reg_response::ptr iacc, Dyninst::MachRegister ireg);
-   Dyninst::MachRegister getIndividualReg();
-   reg_response::ptr getIndividualAcc();
+  void setThread(int_thread *t);
+  void setRegPool(int_registerPool *p);
+  void setResponse();
+  void postResponse();
 
-   int_registerPool *getRegPool() const;
+  void setIndividualRegAccess(reg_response::ptr iacc,
+                              Dyninst::MachRegister ireg);
+  Dyninst::MachRegister getIndividualReg();
+  reg_response::ptr getIndividualAcc();
+
+  int_registerPool *getRegPool() const;
 };
 
-class mem_response : public response
-{
-   friend void boost::checked_delete<mem_response>(mem_response *);
-   friend void boost::checked_delete<const mem_response>(const mem_response *);
-  private:
-   char *buffer;
-   unsigned size;
-   bool buffer_set;
-   Address last_base;
-   mem_response();
-   mem_response(char *targ, unsigned targ_size);
+class mem_response : public response {
+  friend void boost::checked_delete<mem_response>(mem_response *);
+  friend void boost::checked_delete<const mem_response>(const mem_response *);
 
-  public:
-   typedef boost::shared_ptr<mem_response> ptr;
-   typedef boost::shared_ptr<const mem_response> const_ptr;
+ private:
+  char *buffer;
+  unsigned size;
+  bool buffer_set;
+  Address last_base;
+  mem_response();
+  mem_response(char *targ, unsigned targ_size);
 
-   static mem_response::ptr createMemResponse();
-   static mem_response::ptr createMemResponse(char *targ, unsigned targ_size);
+ public:
+  typedef boost::shared_ptr<mem_response> ptr;
+  typedef boost::shared_ptr<const mem_response> const_ptr;
 
-   virtual ~mem_response();
+  static mem_response::ptr createMemResponse();
+  static mem_response::ptr createMemResponse(char *targ, unsigned targ_size);
 
-   char *getBuffer() const;
-   unsigned getSize() const;
+  virtual ~mem_response();
 
-   void setBuffer(char *targ, unsigned targ_size);
-   void setResponse(char *src, unsigned src_size);
-   void setResponse();
-   void postResponse(char *src, unsigned src_size, Address src_addr = 0);
-   void postResponse();
-   void setLastBase(Address a);
-   Address lastBase();
+  char *getBuffer() const;
+  unsigned getSize() const;
+
+  void setBuffer(char *targ, unsigned targ_size);
+  void setResponse(char *src, unsigned src_size);
+  void setResponse();
+  void postResponse(char *src, unsigned src_size, Address src_addr = 0);
+  void postResponse();
+  void setLastBase(Address a);
+  Address lastBase();
 };
 
-class stack_response : public response
-{
-   friend void boost::checked_delete<stack_response>(stack_response *);
-   friend void boost::checked_delete<const stack_response>(const stack_response *);
-  private:
-   void *data;
-   int_thread *thr;
-   stack_response(int_thread *t);
+class stack_response : public response {
+  friend void boost::checked_delete<stack_response>(stack_response *);
+  friend void boost::checked_delete<const stack_response>(
+      const stack_response *);
 
-  public:
-   typedef boost::shared_ptr<stack_response> ptr;
-   typedef boost::shared_ptr<const stack_response> const_ptr;
+ private:
+  void *data;
+  int_thread *thr;
+  stack_response(int_thread *t);
 
-   static stack_response::ptr createStackResponse(int_thread *t);
+ public:
+  typedef boost::shared_ptr<stack_response> ptr;
+  typedef boost::shared_ptr<const stack_response> const_ptr;
 
-   virtual ~stack_response();
+  static stack_response::ptr createStackResponse(int_thread *t);
 
-   void *getData();
-   int_thread *getThread();
-   void postResponse(void *d);
+  virtual ~stack_response();
+
+  void *getData();
+  int_thread *getThread();
+  void postResponse(void *d);
 };
 
-class data_response : public response
-{
-   friend void boost::checked_delete<data_response>(data_response *);
-   friend void boost::checked_delete<const data_response>(const data_response *);
-  private:
-   void *data;
-   data_response();
-  public:
-   typedef boost::shared_ptr<data_response> ptr;
-   typedef boost::shared_ptr<const data_response> const_ptr;
+class data_response : public response {
+  friend void boost::checked_delete<data_response>(data_response *);
+  friend void boost::checked_delete<const data_response>(const data_response *);
 
-   static data_response::ptr createDataResponse();
+ private:
+  void *data;
+  data_response();
 
-   virtual ~data_response();
+ public:
+  typedef boost::shared_ptr<data_response> ptr;
+  typedef boost::shared_ptr<const data_response> const_ptr;
 
-   void *getData();
-   void postResponse(void *d);
+  static data_response::ptr createDataResponse();
+
+  virtual ~data_response();
+
+  void *getData();
+  void postResponse(void *d);
 };
 
 class ResponseSet {
@@ -321,6 +323,7 @@ class ResponseSet {
   static unsigned next_id;
   static Mutex<false> id_lock;
   static std::map<unsigned, ResponseSet *> all_respsets;
+
  public:
   ResponseSet();
   void addID(unsigned resp_id, unsigned index);

@@ -53,8 +53,7 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-bool Walker::createDefaultSteppers()
-{
+bool Walker::createDefaultSteppers() {
   FrameStepper *stepper;
   WandererHelper *whelper_x86;
   LookupFuncStart *frameFuncHelper_x86;
@@ -62,70 +61,62 @@ bool Walker::createDefaultSteppers()
 
   stepper = new DebugStepper(this);
   result = addStepper(stepper);
-  if (!result)
-     goto error;
-  sw_printf("[%s:%u] - Stepper %p is DebugStepper\n",
-            FILE__, __LINE__, stepper);
+  if (!result) goto error;
+  sw_printf("[%s:%u] - Stepper %p is DebugStepper\n", FILE__, __LINE__,
+            stepper);
 
   frameFuncHelper_x86 = LookupFuncStart::getLookupFuncStart(getProcessState());
   stepper = new FrameFuncStepper(this, frameFuncHelper_x86);
   result = addStepper(stepper);
-  if (!result)
-     goto error;
-  sw_printf("[%s:%u] - Stepper %p is FrameFuncStepper\n",
-            FILE__, __LINE__, stepper);
+  if (!result) goto error;
+  sw_printf("[%s:%u] - Stepper %p is FrameFuncStepper\n", FILE__, __LINE__,
+            stepper);
 
-  //Call getLookupFuncStart twice to get reference counts correct.
+  // Call getLookupFuncStart twice to get reference counts correct.
   frameFuncHelper_x86 = LookupFuncStart::getLookupFuncStart(getProcessState());
   whelper_x86 = new WandererHelper(getProcessState());
   stepper = new StepperWanderer(this, whelper_x86, frameFuncHelper_x86);
   result = addStepper(stepper);
-  if (!result)
-     goto error;
-  sw_printf("[%s:%u] - Stepper %p is StepperWanderer\n",
-            FILE__, __LINE__, stepper);
+  if (!result) goto error;
+  sw_printf("[%s:%u] - Stepper %p is StepperWanderer\n", FILE__, __LINE__,
+            stepper);
 
   stepper = new SigHandlerStepper(this);
   result = addStepper(stepper);
-  if (!result)
-     goto error;
-  sw_printf("[%s:%u] - Stepper %p is SigHandlerStepper\n",
-            FILE__, __LINE__, stepper);
+  if (!result) goto error;
+  sw_printf("[%s:%u] - Stepper %p is SigHandlerStepper\n", FILE__, __LINE__,
+            stepper);
 
   stepper = new BottomOfStackStepper(this);
   result = addStepper(stepper);
-  if (!result)
-     goto error;
-  sw_printf("[%s:%u] - Stepper %p is BottomOfStackStepper\n",
-            FILE__, __LINE__, stepper);
+  if (!result) goto error;
+  sw_printf("[%s:%u] - Stepper %p is BottomOfStackStepper\n", FILE__, __LINE__,
+            stepper);
 
 #ifdef USE_PARSE_API
   stepper = new AnalysisStepper(this);
   result = addStepper(stepper);
-  if (!result)
-     goto error;
-  sw_printf("[%s:%u] - Stepper %p is AnalysisStepper\n",
-            FILE__, __LINE__, stepper);
+  if (!result) goto error;
+  sw_printf("[%s:%u] - Stepper %p is AnalysisStepper\n", FILE__, __LINE__,
+            stepper);
 #endif
 
   return true;
- error:
+error:
   sw_printf("[%s:%u] - Error adding stepper %p\n", stepper);
-    return false;
+  return false;
 }
 
-bool DebugStepperImpl::isFrameRegister(MachRegister reg)
-{
-   if (getProcessState()->getAddressWidth() == 4)
-      return (reg == x86::ebp);
-   else
-      return (reg == x86_64::rbp);
+bool DebugStepperImpl::isFrameRegister(MachRegister reg) {
+  if (getProcessState()->getAddressWidth() == 4)
+    return (reg == x86::ebp);
+  else
+    return (reg == x86_64::rbp);
 }
 
-bool DebugStepperImpl::isStackRegister(MachRegister reg)
-{
-   if (getProcessState()->getAddressWidth() == 4)
-      return (reg == x86::esp);
-   else
-      return (reg == x86_64::rsp);
+bool DebugStepperImpl::isStackRegister(MachRegister reg) {
+  if (getProcessState()->getAddressWidth() == 4)
+    return (reg == x86::esp);
+  else
+    return (reg == x86_64::rsp);
 }

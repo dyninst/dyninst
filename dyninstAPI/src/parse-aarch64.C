@@ -72,41 +72,35 @@ static const std::string DYNINST_DTOR_LIST("DYNINSTdtors_addr");
 static const std::string SYMTAB_CTOR_LIST_REL("__SYMTABAPI_CTOR_LIST__");
 static const std::string SYMTAB_DTOR_LIST_REL("__SYMTABAPI_DTOR_LIST__");
 
-static bool replaceHandler(func_instance *origHandler, func_instance *newHandler,
-        int_symbol *newList, const std::string &listRelName)
-{
-	assert(0);
-    return false;
+static bool replaceHandler(func_instance *origHandler,
+                           func_instance *newHandler, int_symbol *newList,
+                           const std::string &listRelName) {
+  assert(0);
+  return false;
 }
 /*
 By parsing the function that actually sets up the parameters for the OMP
 region we discover informations such as what type of parallel region we're
 dealing with */
-bool parse_func::parseOMPParent(image_parRegion * /*iPar*/, int /*desiredNum*/, int & /*currentSectionNum*/ )
-{
-	assert(0);
+bool parse_func::parseOMPParent(image_parRegion * /*iPar*/, int /*desiredNum*/,
+                                int & /*currentSectionNum*/) {
+  assert(0);
 }
 
-
-
-
-std::string parse_func::calcParentFunc(const parse_func * imf,
-                                    pdvector<image_parRegion *> &/*pR*/)
-{
-	assert(0);
+std::string parse_func::calcParentFunc(const parse_func *imf,
+                                       pdvector<image_parRegion *> & /*pR*/) {
+  assert(0);
 }
 
-
-void parse_func::parseOMP(image_parRegion * parReg, parse_func * parentFunc, int & currentSectionNum)
-{
-	assert(0);
+void parse_func::parseOMP(image_parRegion *parReg, parse_func *parentFunc,
+                          int &currentSectionNum) {
+  assert(0);
 }
 
-void parse_func::parseOMPFunc(bool /*hasLoop*/)
-{
-	assert(0);
+void parse_func::parseOMPFunc(bool /*hasLoop*/) {
+  assert(0);
 
-#if 0//!defined(cap_instruction_api)
+#if 0  //! defined(cap_instruction_api)
    Address funcBegin = getOffset();
    InstrucIter ah(funcBegin, this);
    while (ah.hasMore())
@@ -258,10 +252,9 @@ void parse_func::parseOMPFunc(bool /*hasLoop*/)
    It returns true or false based on whether the function is a leaf function,
    since if it is not the function could call out to another function that
    clobbers more registers so more analysis would be needed */
-void parse_func::calcUsedRegs()
-{
-	assert(0);
-   return;
+void parse_func::calcUsedRegs() {
+  assert(0);
+  return;
 }
 
 #include "binaryEdit.h"
@@ -281,17 +274,18 @@ using namespace Dyninst::SymtabAPI;
  */
 
 bool BinaryEdit::doStaticBinarySpecialCases() {
-	assert(0);
-    return true;
+  assert(0);
+  return true;
 }
 
-func_instance *mapped_object::findGlobalConstructorFunc(const std::string &ctorHandler) {
-	assert(0);
-    return NULL;
+func_instance *mapped_object::findGlobalConstructorFunc(
+    const std::string &ctorHandler) {
+  assert(0);
+  return NULL;
 }
 
-func_instance *mapped_object::findGlobalDestructorFunc(const std::string &dtorHandler) {
-	assert(0);
-	return NULL;
+func_instance *mapped_object::findGlobalDestructorFunc(
+    const std::string &dtorHandler) {
+  assert(0);
+  return NULL;
 }
-

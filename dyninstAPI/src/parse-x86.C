@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -51,117 +51,100 @@
 using namespace Dyninst::ParseAPI;
 
 bool parse_func::writesFPRs(unsigned level) {
-    
-    using namespace Dyninst::InstructionAPI;
-    // Oh, we should be parsed by now...
-    if (!parsed()) image_->analyzeIfNeeded();
+  using namespace Dyninst::InstructionAPI;
+  // Oh, we should be parsed by now...
+  if (!parsed()) image_->analyzeIfNeeded();
 
-    if (containsFPRWrites_ == unknown) {
-        // Iterate down and find out...
-        // We know if we have callees because we can
-        // check the instPoints; no reason to iterate over.
-        // We also cache callee values here for speed.
+  if (containsFPRWrites_ == unknown) {
+    // Iterate down and find out...
+    // We know if we have callees because we can
+    // check the instPoints; no reason to iterate over.
+    // We also cache callee values here for speed.
 
-        if (level >= 3) {
-            return true; // Arbitrarily decided level 3 iteration.
-        }        
-        const Function::edgelist & calls = callEdges();
-        Function::edgelist::const_iterator cit = calls.begin();
-        for( ; cit != calls.end(); ++cit) {
-            image_edge * ce = static_cast<image_edge*>(*cit);
-            parse_func * ct = static_cast<parse_func*>(
-                obj()->findFuncByEntry(region(),ce->trg()->start()));
-            if(ct && ct != this) {
-                if (ct->writesFPRs(level+1)) {
-                    // One of our kids does... if we're top-level, cache it; in 
-                    // any case, return
-                    if (level == 0)
-                        containsFPRWrites_ = used;
-                    return true;
-                }
-            }
-            else if(!ct){
-                // Indirect call... oh, yeah. 
-                if (level == 0)
-                    containsFPRWrites_ = used;
-                return true;
-            }
-        }
-
-        // No kids contain writes. See if our code does.
-        static RegisterAST::Ptr st0(new RegisterAST(x86::st0));
-        static RegisterAST::Ptr st1(new RegisterAST(x86::st1));
-        static RegisterAST::Ptr st2(new RegisterAST(x86::st2));
-        static RegisterAST::Ptr st3(new RegisterAST(x86::st3));
-        static RegisterAST::Ptr st4(new RegisterAST(x86::st4));
-        static RegisterAST::Ptr st5(new RegisterAST(x86::st5));
-        static RegisterAST::Ptr st6(new RegisterAST(x86::st6));
-        static RegisterAST::Ptr st7(new RegisterAST(x86::st7));
-        static RegisterAST::Ptr xmm0(new RegisterAST(x86::xmm0));
-        static RegisterAST::Ptr xmm1(new RegisterAST(x86::xmm1));
-        static RegisterAST::Ptr xmm2(new RegisterAST(x86::xmm2));
-        static RegisterAST::Ptr xmm3(new RegisterAST(x86::xmm3));
-        static RegisterAST::Ptr xmm4(new RegisterAST(x86::xmm4));
-        static RegisterAST::Ptr xmm5(new RegisterAST(x86::xmm5));
-        static RegisterAST::Ptr xmm6(new RegisterAST(x86::xmm6));
-        static RegisterAST::Ptr xmm7(new RegisterAST(x86::xmm7));
-
-        vector<FuncExtent *>::const_iterator eit = extents().begin();
-        for( ; eit != extents().end(); ++eit) {
-            FuncExtent * fe = *eit;
-        
-            const unsigned char* buf = (const unsigned char*)
-                isrc()->getPtrToInstruction(fe->start());
-            if(!buf) {
-                parsing_printf("%s[%d]: failed to get insn ptr at %lx\n",
-                    FILE__, __LINE__,fe->start());
-                // if the function cannot be parsed, it is only safe to 
-                // assume that the FPRs are written -- mcnulty
-                return true; 
-            }
-            InstructionDecoder d(buf,fe->end()-fe->start(),isrc()->getArch());
-            Instruction::Ptr i;
-
-            while((i = d.decode())) {
-                if(i->isWritten(st0) ||
-                    i->isWritten(st1) ||
-                    i->isWritten(st2) ||
-                    i->isWritten(st3) ||
-                    i->isWritten(st4) ||
-                    i->isWritten(st5) ||
-                    i->isWritten(st6) ||
-                    i->isWritten(st7) ||
-                   i->isWritten(xmm0) ||
-                   i->isWritten(xmm1) ||
-                   i->isWritten(xmm2) ||
-                   i->isWritten(xmm3) ||
-                   i->isWritten(xmm4) ||
-                   i->isWritten(xmm5) ||
-                   i->isWritten(xmm6) ||
-                   i->isWritten(xmm7)
-                  )
-                {
-                    containsFPRWrites_ = used;
-                    return true;
-                }
-            }
-        }
-        // No kids do, and we don't. Impressive.
-        containsFPRWrites_ = unused;
-        return false;
+    if (level >= 3) {
+      return true;  // Arbitrarily decided level 3 iteration.
     }
-    else if (containsFPRWrites_ == used) {
+    const Function::edgelist &calls = callEdges();
+    Function::edgelist::const_iterator cit = calls.begin();
+    for (; cit != calls.end(); ++cit) {
+      image_edge *ce = static_cast<image_edge *>(*cit);
+      parse_func *ct = static_cast<parse_func *>(
+          obj()->findFuncByEntry(region(), ce->trg()->start()));
+      if (ct && ct != this) {
+        if (ct->writesFPRs(level + 1)) {
+          // One of our kids does... if we're top-level, cache it; in
+          // any case, return
+          if (level == 0) containsFPRWrites_ = used;
+          return true;
+        }
+      } else if (!ct) {
+        // Indirect call... oh, yeah.
+        if (level == 0) containsFPRWrites_ = used;
         return true;
-    }
-    else if (containsFPRWrites_ == unused) {
-        return false;
+      }
     }
 
-    fprintf(stderr, "ERROR: function %s, containsFPRWrites_ is %d (illegal value!)\n", 
-	    symTabName().c_str(), containsFPRWrites_);
-    
-    assert(0);
+    // No kids contain writes. See if our code does.
+    static RegisterAST::Ptr st0(new RegisterAST(x86::st0));
+    static RegisterAST::Ptr st1(new RegisterAST(x86::st1));
+    static RegisterAST::Ptr st2(new RegisterAST(x86::st2));
+    static RegisterAST::Ptr st3(new RegisterAST(x86::st3));
+    static RegisterAST::Ptr st4(new RegisterAST(x86::st4));
+    static RegisterAST::Ptr st5(new RegisterAST(x86::st5));
+    static RegisterAST::Ptr st6(new RegisterAST(x86::st6));
+    static RegisterAST::Ptr st7(new RegisterAST(x86::st7));
+    static RegisterAST::Ptr xmm0(new RegisterAST(x86::xmm0));
+    static RegisterAST::Ptr xmm1(new RegisterAST(x86::xmm1));
+    static RegisterAST::Ptr xmm2(new RegisterAST(x86::xmm2));
+    static RegisterAST::Ptr xmm3(new RegisterAST(x86::xmm3));
+    static RegisterAST::Ptr xmm4(new RegisterAST(x86::xmm4));
+    static RegisterAST::Ptr xmm5(new RegisterAST(x86::xmm5));
+    static RegisterAST::Ptr xmm6(new RegisterAST(x86::xmm6));
+    static RegisterAST::Ptr xmm7(new RegisterAST(x86::xmm7));
+
+    vector<FuncExtent *>::const_iterator eit = extents().begin();
+    for (; eit != extents().end(); ++eit) {
+      FuncExtent *fe = *eit;
+
+      const unsigned char *buf =
+          (const unsigned char *)isrc()->getPtrToInstruction(fe->start());
+      if (!buf) {
+        parsing_printf("%s[%d]: failed to get insn ptr at %lx\n", FILE__,
+                       __LINE__, fe->start());
+        // if the function cannot be parsed, it is only safe to
+        // assume that the FPRs are written -- mcnulty
+        return true;
+      }
+      InstructionDecoder d(buf, fe->end() - fe->start(), isrc()->getArch());
+      Instruction::Ptr i;
+
+      while ((i = d.decode())) {
+        if (i->isWritten(st0) || i->isWritten(st1) || i->isWritten(st2) ||
+            i->isWritten(st3) || i->isWritten(st4) || i->isWritten(st5) ||
+            i->isWritten(st6) || i->isWritten(st7) || i->isWritten(xmm0) ||
+            i->isWritten(xmm1) || i->isWritten(xmm2) || i->isWritten(xmm3) ||
+            i->isWritten(xmm4) || i->isWritten(xmm5) || i->isWritten(xmm6) ||
+            i->isWritten(xmm7)) {
+          containsFPRWrites_ = used;
+          return true;
+        }
+      }
+    }
+    // No kids do, and we don't. Impressive.
+    containsFPRWrites_ = unused;
     return false;
+  } else if (containsFPRWrites_ == used) {
+    return true;
+  } else if (containsFPRWrites_ == unused) {
+    return false;
+  }
+
+  fprintf(stderr,
+          "ERROR: function %s, containsFPRWrites_ is %d (illegal value!)\n",
+          symTabName().c_str(), containsFPRWrites_);
+
+  assert(0);
+  return false;
 }
 
 #if defined(os_linux) || defined(os_freebsd)
@@ -199,52 +182,54 @@ static const std::string DYNINST_IREL_END("DYNINSTirel_end");
 static const std::string SYMTAB_IREL_START("__SYMTABAPI_IREL_START__");
 static const std::string SYMTAB_IREL_END("__SYMTABAPI_IREL_END__");
 
+static bool replaceHandler(
+    func_instance *origHandler, func_instance *newHandler,
+    std::vector<std::pair<int_symbol *, std::string> > &reloc_replacements) {
+  // Add instrumentation to replace the function
+  // TODO: this should be a function replacement!
+  // And why the hell is it in parse-x86.C?
+  origHandler->proc()->replaceFunction(origHandler, newHandler);
+  AddressSpace::patch(origHandler->proc());
 
-static bool replaceHandler(func_instance *origHandler, func_instance *newHandler, 
-			   std::vector<std::pair<int_symbol *, std::string> > &reloc_replacements) {
-    // Add instrumentation to replace the function
-   // TODO: this should be a function replacement!
-   // And why the hell is it in parse-x86.C?
-   origHandler->proc()->replaceFunction(origHandler, newHandler);
-   AddressSpace::patch(origHandler->proc());
+  for (auto iter = reloc_replacements.begin(); iter != reloc_replacements.end();
+       ++iter) {
+    int_symbol *newList = iter->first;
+    std::string listRelName = iter->second;
 
-   for (auto iter = reloc_replacements.begin(); iter != reloc_replacements.end(); ++iter) {
-     int_symbol *newList = iter->first;
-     std::string listRelName = iter->second;
+    /* create the special relocation for the new list -- search the RT library
+     * for
+     * the symbol
+     */
+    Symbol *newListSym = const_cast<Symbol *>(newList->sym());
 
-     /* create the special relocation for the new list -- search the RT library for
-      * the symbol
-      */
-     Symbol *newListSym = const_cast<Symbol *>(newList->sym());
-     
-     std::vector<Region *> allRegions;
-     if( !newListSym->getSymtab()->getAllRegions(allRegions) ) {
-       return false;
-     }
-     
-     std::vector<Region *>::iterator reg_it;
-     bool found = false;
-     for(reg_it = allRegions.begin(); reg_it != allRegions.end(); ++reg_it) {
-       std::vector<relocationEntry> &region_rels = (*reg_it)->getRelocations();
-       vector<relocationEntry>::iterator rel_it;
-       for( rel_it = region_rels.begin(); rel_it != region_rels.end(); ++rel_it) {
-	 if( rel_it->getDynSym() == newListSym ) {
-	   relocationEntry *rel = &(*rel_it);
-	   rel->setName(listRelName);
-	   found = true;
-	 }
-       }
-     }
-     if (!found) {
-       return false;
-     }
-   }
+    std::vector<Region *> allRegions;
+    if (!newListSym->getSymtab()->getAllRegions(allRegions)) {
+      return false;
+    }
 
-   return true;
+    std::vector<Region *>::iterator reg_it;
+    bool found = false;
+    for (reg_it = allRegions.begin(); reg_it != allRegions.end(); ++reg_it) {
+      std::vector<relocationEntry> &region_rels = (*reg_it)->getRelocations();
+      vector<relocationEntry>::iterator rel_it;
+      for (rel_it = region_rels.begin(); rel_it != region_rels.end();
+           ++rel_it) {
+        if (rel_it->getDynSym() == newListSym) {
+          relocationEntry *rel = &(*rel_it);
+          rel->setName(listRelName);
+          found = true;
+        }
+      }
+    }
+    if (!found) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
-void add_handler(instPoint* pt, func_instance* add_me)
-{
+void add_handler(instPoint *pt, func_instance *add_me) {
   vector<AstNodePtr> args;
   // no args, just add
   AstNodePtr snip = AstNode::funcCallNode(add_me, args);
@@ -252,187 +237,190 @@ void add_handler(instPoint* pt, func_instance* add_me)
   instrumentation->disableRecursiveGuard();
 }
 
-
 bool BinaryEdit::doStaticBinarySpecialCases() {
-    Symtab *origBinary = mobj->parse_img()->getObject();
+  Symtab *origBinary = mobj->parse_img()->getObject();
 
-    /* Special Case 1: Handling global constructor and destructor Regions
-     *
-     * Replace global ctors function with special ctors function,
-     * and create a special relocation for the ctors list used by the special
-     * ctors function
-     *
-     * Replace global dtors function with special dtors function,
-     * and create a special relocation for the dtors list used by the special
-     * dtors function
-     */
+  /* Special Case 1: Handling global constructor and destructor Regions
+   *
+   * Replace global ctors function with special ctors function,
+   * and create a special relocation for the ctors list used by the special
+   * ctors function
+   *
+   * Replace global dtors function with special dtors function,
+   * and create a special relocation for the dtors list used by the special
+   * dtors function
+   */
 
-    // First, find all the necessary symbol info.
+  // First, find all the necessary symbol info.
 
-    func_instance *globalCtorHandler = mobj->findGlobalConstructorFunc(LIBC_CTOR_HANDLER);
-    if( !globalCtorHandler ) {
-        logLine("failed to find libc destructor handler\n");
-        return false;
+  func_instance *globalCtorHandler =
+      mobj->findGlobalConstructorFunc(LIBC_CTOR_HANDLER);
+  if (!globalCtorHandler) {
+    logLine("failed to find libc destructor handler\n");
+    return false;
+  }
+  func_instance *dyninstCtorHandler = findOnlyOneFunction(DYNINST_CTOR_HANDLER);
+  if (!dyninstCtorHandler) {
+    logLine("failed to find Dyninst constructor handler\n");
+    return false;
+  }
+
+  func_instance *globalDtorHandler =
+      mobj->findGlobalDestructorFunc(LIBC_DTOR_HANDLER);
+  if (!globalDtorHandler) {
+    logLine("failed to find libc destructor handler\n");
+    return false;
+  }
+
+  func_instance *dyninstDtorHandler = findOnlyOneFunction(DYNINST_DTOR_HANDLER);
+  if (!dyninstDtorHandler) {
+    logLine("failed to find Dyninst destructor handler\n");
+    return false;
+  }
+  // Wire in our handlers at libc ctor exit/dtor entry
+  vector<instPoint *> init_pts;
+  instPoint *fini_point;
+  globalCtorHandler->funcExitPoints(&init_pts);
+  fini_point = globalDtorHandler->funcEntryPoint(true);
+  // convert points to instpoints
+  for (auto exit_pt = init_pts.begin(); exit_pt != init_pts.end(); ++exit_pt) {
+    add_handler(*exit_pt, dyninstCtorHandler);
+  }
+  add_handler(fini_point, dyninstDtorHandler);
+  AddressSpace::patch(this);
+
+  /*
+   * Replace the irel handler with our extended version, since they
+   * hard-code ALL THE OFFSETS in the function
+   */
+  func_instance *globalIrelHandler = findOnlyOneFunction(LIBC_IREL_HANDLER);
+  func_instance *dyninstIrelHandler = findOnlyOneFunction(DYNINST_IREL_HANDLER);
+  int_symbol irelStart;
+  int_symbol irelEnd;
+  bool irs_found = false;
+  bool ire_found = false;
+  for (auto rtlib_it = rtlib.begin(); rtlib_it != rtlib.end(); ++rtlib_it) {
+    if ((*rtlib_it)->getSymbolInfo(DYNINST_IREL_START, irelStart)) {
+      irs_found = true;
     }
-    func_instance *dyninstCtorHandler = findOnlyOneFunction(DYNINST_CTOR_HANDLER);
-    if( !dyninstCtorHandler ) {
-        logLine("failed to find Dyninst constructor handler\n");
-        return false;
-    }
 
-    func_instance *globalDtorHandler = mobj->findGlobalDestructorFunc(LIBC_DTOR_HANDLER);
-    if( !globalDtorHandler ) {
-        logLine("failed to find libc destructor handler\n");
-        return false;
+    if ((*rtlib_it)->getSymbolInfo(DYNINST_IREL_END, irelEnd)) {
+      ire_found = true;
     }
+    if (irs_found && ire_found) break;
+  }
+  if (globalIrelHandler) {
+    assert(dyninstIrelHandler);
+    assert(irs_found);
+    assert(ire_found);
+    std::vector<std::pair<int_symbol *, string> > tmp;
+    tmp.push_back(make_pair(&irelStart, SYMTAB_IREL_START));
+    tmp.push_back(make_pair(&irelEnd, SYMTAB_IREL_END));
+    if (!replaceHandler(globalIrelHandler, dyninstIrelHandler, tmp)) {
+      return false;
+    }
+  }
 
-    func_instance *dyninstDtorHandler = findOnlyOneFunction(DYNINST_DTOR_HANDLER);
-    if( !dyninstDtorHandler ) {
-        logLine("failed to find Dyninst destructor handler\n");
-        return false;
-    }
-    // Wire in our handlers at libc ctor exit/dtor entry
-    vector<instPoint*> init_pts;
-    instPoint* fini_point;
-    globalCtorHandler->funcExitPoints(&init_pts);
-    fini_point = globalDtorHandler->funcEntryPoint(true);
-    // convert points to instpoints
-    for(auto exit_pt = init_pts.begin();
-	exit_pt != init_pts.end();
-	++exit_pt)
-    {
-      add_handler(*exit_pt, dyninstCtorHandler);
-    }
-    add_handler(fini_point, dyninstDtorHandler);
-    AddressSpace::patch(this);
-    
+  /*
+   * Special Case 2: Issue a warning if attempting to link pthreads into a
+   * binary
+   * that originally did not support it or into a binary that is stripped. This
+   * scenario is not supported with the initial release of the binary rewriter
+   * for
+   * static binaries.
+   *
+   * The other side of the coin, if working with a binary that does have
+   * pthreads
+   * support, pthreads needs to be loaded.
+   */
+  bool isMTCapable = isMultiThreadCapable();
+  bool foundPthreads = false;
 
-    /*
-     * Replace the irel handler with our extended version, since they
-     * hard-code ALL THE OFFSETS in the function
-     */
-    func_instance *globalIrelHandler = findOnlyOneFunction(LIBC_IREL_HANDLER);
-    func_instance *dyninstIrelHandler = findOnlyOneFunction(DYNINST_IREL_HANDLER);
-    int_symbol irelStart;
-    int_symbol irelEnd;
-    bool irs_found = false;
-    bool ire_found = false;
-    for (auto rtlib_it = rtlib.begin(); rtlib_it != rtlib.end(); ++rtlib_it) {
-      if( (*rtlib_it)->getSymbolInfo(DYNINST_IREL_START, irelStart) ) {
-	irs_found = true;
+  vector<Archive *> libs;
+  vector<Archive *>::iterator libIter;
+  if (origBinary->getLinkingResources(libs)) {
+    for (libIter = libs.begin(); libIter != libs.end(); ++libIter) {
+      if ((*libIter)->name().find("libpthread") != std::string::npos ||
+          (*libIter)->name().find("libthr") != std::string::npos) {
+        foundPthreads = true;
+        break;
       }
-      
-      if( (*rtlib_it)->getSymbolInfo(DYNINST_IREL_END, irelEnd) ) {
-	ire_found = true;
-      }
-      if (irs_found && ire_found) break;
     }
-    if (globalIrelHandler) {
-      assert(dyninstIrelHandler);
-      assert(irs_found);
-      assert(ire_found);
-      std::vector<std::pair<int_symbol *, string> > tmp;
-      tmp.push_back(make_pair(&irelStart, SYMTAB_IREL_START));
-      tmp.push_back(make_pair(&irelEnd, SYMTAB_IREL_END));
-      if (!replaceHandler(globalIrelHandler, dyninstIrelHandler, tmp)) {
-	return false;
-      }
-    }
+  }
 
-
-    /*
-     * Special Case 2: Issue a warning if attempting to link pthreads into a binary
-     * that originally did not support it or into a binary that is stripped. This
-     * scenario is not supported with the initial release of the binary rewriter for
-     * static binaries.
-     *
-     * The other side of the coin, if working with a binary that does have pthreads
-     * support, pthreads needs to be loaded.
-     */
-    bool isMTCapable = isMultiThreadCapable();
-    bool foundPthreads = false;
-
-    vector<Archive *> libs;
-    vector<Archive *>::iterator libIter;
-    if( origBinary->getLinkingResources(libs) ) {
-        for(libIter = libs.begin(); libIter != libs.end(); ++libIter) {
-            if( (*libIter)->name().find("libpthread") != std::string::npos ||
-                (*libIter)->name().find("libthr") != std::string::npos ) 
-            {
-                foundPthreads = true;
-                break;
-            }
-        }
-    }
-
-    if( foundPthreads && (!isMTCapable || origBinary->isStripped()) ) {
-        fprintf(stderr,
+  if (foundPthreads && (!isMTCapable || origBinary->isStripped())) {
+    fprintf(stderr,
             "\nWARNING: the pthreads library has been loaded and\n"
             "the original binary is not multithread-capable or\n"
             "it is stripped. Currently, the combination of these two\n"
             "scenarios is unsupported and unexpected behavior may occur.\n");
-    }else if( !foundPthreads && isMTCapable ) {
-        fprintf(stderr,
+  } else if (!foundPthreads && isMTCapable) {
+    fprintf(stderr,
             "\nWARNING: the pthreads library has not been loaded and\n"
             "the original binary is multithread-capable. Unexpected\n"
             "behavior may occur because some pthreads routines are\n"
             "unavailable in the original binary\n");
+  }
+
+  /*
+   * Special Case 3:
+   * The RT library has some dependencies -- Symtab always needs to know
+   * about these dependencies. So if the dependencies haven't already been
+   * loaded, load them.
+   */
+  bool loadLibc = true;
+
+  for (libIter = libs.begin(); libIter != libs.end(); ++libIter) {
+    if ((*libIter)->name().find("libc.a") != std::string::npos) {
+      loadLibc = false;
+    }
+  }
+
+  if (loadLibc) {
+    std::map<std::string, BinaryEdit *> res;
+    openResolvedLibraryName("libc.a", res);
+
+    if (res.empty()) {
+      cerr << "Fatal error: failed to load DyninstAPI_RT library dependency "
+              "(libc.a)"
+           << endl;
+      return false;
     }
 
-    /* 
-     * Special Case 3:
-     * The RT library has some dependencies -- Symtab always needs to know
-     * about these dependencies. So if the dependencies haven't already been
-     * loaded, load them.
-     */
-    bool loadLibc = true;
-
-    for(libIter = libs.begin(); libIter != libs.end(); ++libIter) {
-        if( (*libIter)->name().find("libc.a") != std::string::npos ) {
-            loadLibc = false;
-        }
+    std::map<std::string, BinaryEdit *>::iterator bedit_it;
+    for (bedit_it = res.begin(); bedit_it != res.end(); ++bedit_it) {
+      if (bedit_it->second == NULL) {
+        cerr << "Fatal error: failed to load DyninstAPI_RT library dependency "
+                "(libc.a)"
+             << endl;
+        return false;
+      }
     }
+  }
 
-    if( loadLibc ) {
-       std::map<std::string, BinaryEdit *> res;
-       openResolvedLibraryName("libc.a", res);
-
-       if (res.empty()) {
-	 cerr << "Fatal error: failed to load DyninstAPI_RT library dependency (libc.a)" << endl;
-	 return false;
-       }
-
-       std::map<std::string, BinaryEdit *>::iterator bedit_it;
-       for(bedit_it = res.begin(); bedit_it != res.end(); ++bedit_it) {
-          if( bedit_it->second == NULL ) {
-	    cerr << "Fatal error: failed to load DyninstAPI_RT library dependency (libc.a)" << endl;
-	    return false;
-          }
-       }
-    }
-    
-    return true;
+  return true;
 }
 
-func_instance *mapped_object::findGlobalConstructorFunc(const std::string &ctorHandler) {
-    using namespace Dyninst::InstructionAPI;
+func_instance *mapped_object::findGlobalConstructorFunc(
+    const std::string &ctorHandler) {
+  using namespace Dyninst::InstructionAPI;
 
-    const pdvector<func_instance *> *funcs = findFuncVectorByMangled(ctorHandler);
-    if( funcs != NULL ) {
-        return funcs->at(0);
-    }
-    return NULL;
+  const pdvector<func_instance *> *funcs = findFuncVectorByMangled(ctorHandler);
+  if (funcs != NULL) {
+    return funcs->at(0);
+  }
+  return NULL;
 }
 
-func_instance *mapped_object::findGlobalDestructorFunc(const std::string &dtorHandler) {
-    using namespace Dyninst::InstructionAPI;
+func_instance *mapped_object::findGlobalDestructorFunc(
+    const std::string &dtorHandler) {
+  using namespace Dyninst::InstructionAPI;
 
-    const pdvector<func_instance *> *funcs = findFuncVectorByMangled(dtorHandler);
-    if( funcs != NULL ) {
-        return funcs->at(0);
-    }
-    return NULL;
+  const pdvector<func_instance *> *funcs = findFuncVectorByMangled(dtorHandler);
+  if (funcs != NULL) {
+    return funcs->at(0);
+  }
+  return NULL;
 }
-
 
 #endif

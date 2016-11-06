@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -35,31 +35,29 @@ using namespace DebuggerInterface;
 #include <sstream>
 using namespace std;
 
-// these defines are for readability 
+// these defines are for readability
 #define AUX(msg) (msg).dataArea.GET_AUX_VECTORS
 #define ACK(msg) (msg).dataArea.GET_AUX_VECTORS_ACK
 
 BG_AuxvReader::BG_AuxvReader(int _pid)
-  : buffer_size(BG_Debugger_AUX_VECS_BUFFER), 
-    pid(_pid), 
-    fetch_offset(0), 
-    read_offset(0), 
-    ack_msg(GET_AUX_VECTORS_ACK, pid, 0, 0, 0),
-    error(NULL)
-{
+    : buffer_size(BG_Debugger_AUX_VECS_BUFFER),
+      pid(_pid),
+      fetch_offset(0),
+      read_offset(0),
+      ack_msg(GET_AUX_VECTORS_ACK, pid, 0, 0, 0),
+      error(NULL) {
   // set this up to trigger an initial fetch of some data.
   ACK(ack_msg).auxVecBufferLength = 0;
   ACK(ack_msg).endOfVecData = false;
   elt.type = AT_IGNORE;
 }
 
-
 void BG_AuxvReader::check_buffer() {
-  if (read_offset < ACK(ack_msg).auxVecBufferLength 
-      || ACK(ack_msg).endOfVecData) {
+  if (read_offset < ACK(ack_msg).auxVecBufferLength ||
+      ACK(ack_msg).endOfVecData) {
     return;
   }
-  
+
   // get a single auxv element
   BG_Debugger_Msg get_aux_msg(GET_AUX_VECTORS, pid, 0, 0, 0);
   get_aux_msg.header.dataLength = sizeof(get_aux_msg.dataArea.GET_AUX_VECTORS);
@@ -82,7 +80,8 @@ void BG_AuxvReader::check_buffer() {
 
   if (ack_msg.header.messageType != GET_AUX_VECTORS_ACK) {
     ostringstream err;
-    err << "Got invalid response from BG debug stream.  Expected GET_AUX_VECTORS_ACK, but got ";
+    err << "Got invalid response from BG debug stream.  Expected "
+           "GET_AUX_VECTORS_ACK, but got ";
     err << BG_Debugger_Msg::getMessageName(ack_msg.header.messageType);
     err << ".";
     string errstr = err.str();
@@ -91,9 +90,8 @@ void BG_AuxvReader::check_buffer() {
   }
 
   // sanity check to make sure the bounds are ok in the response.
-  if (ACK(ack_msg).auxVecBufferLength  > AUX(get_aux_msg).auxVecBufferLength ||
-      ACK(ack_msg).auxVecBufferOffset != AUX(get_aux_msg).auxVecBufferOffset) 
-  {
+  if (ACK(ack_msg).auxVecBufferLength > AUX(get_aux_msg).auxVecBufferLength ||
+      ACK(ack_msg).auxVecBufferOffset != AUX(get_aux_msg).auxVecBufferOffset) {
     error = "Sanity check on GET_AUX_VECTORS_ACK failed.";
     return;
   }
@@ -103,36 +101,30 @@ void BG_AuxvReader::check_buffer() {
   read_offset = 0;
 }
 
-
-BG_AuxvReader::~BG_AuxvReader() { }
-
+BG_AuxvReader::~BG_AuxvReader() {}
 
 bool BG_AuxvReader::good() {
-  return !error;//.length();
+  return !error;  //.length();
 }
-  
 
 const char *BG_AuxvReader::error_msg() {
-  return error;//.c_str();
+  return error;  //.c_str();
 }
-  
 
 bool BG_AuxvReader::has_next() {
   check_buffer();
-  if (error/*.length()*/) return false;
+  if (error /*.length()*/) return false;
 
-  return elt.type != AT_NULL 
-    &&   read_offset < ACK(ack_msg).auxVecBufferLength;
+  return elt.type != AT_NULL && read_offset < ACK(ack_msg).auxVecBufferLength;
 }
-  
 
 auxv_element BG_AuxvReader::next() {
-  // check here too, just in case someone decides they *know* we have a next element.
+  // check here too, just in case someone decides they *know* we have a next
+  // element.
   check_buffer();
 
-  elt.type  = ACK(ack_msg).auxVecData[read_offset++];
+  elt.type = ACK(ack_msg).auxVecData[read_offset++];
   elt.value = ACK(ack_msg).auxVecData[read_offset++];
 
   return elt;
 }
-

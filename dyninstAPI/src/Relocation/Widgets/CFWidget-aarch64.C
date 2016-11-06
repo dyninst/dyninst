@@ -43,73 +43,62 @@
 #include "dyninstAPI/src/emit-aarch64.h"
 #include "dyninstAPI/src/registerSpace.h"
 
-
 using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
 
 using namespace NS_aarch64;
 
-bool CFWidget::generateIndirect(CodeBuffer &buffer,
-                              Register,
-                              const RelocBlock *trace,
-                              Instruction::Ptr insn) {
-	assert(0);
-   return true;
+bool CFWidget::generateIndirect(CodeBuffer &buffer, Register,
+                                const RelocBlock *trace,
+                                Instruction::Ptr insn) {
+  assert(0);
+  return true;
 }
 
-
-
-bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
-                                  Register reg,
-                                  Instruction::Ptr insn,
-                                  const RelocBlock *trace,
-				  Address origAddr)
-{
-	assert(0);
-   return true;
+bool CFWidget::generateIndirectCall(CodeBuffer &buffer, Register reg,
+                                    Instruction::Ptr insn,
+                                    const RelocBlock *trace, Address origAddr) {
+  assert(0);
+  return true;
 }
 
 bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
-	assert(0);
+  assert(0);
 
-   return true;
+  return true;
 }
 
 bool CFPatch::isPLT(codeGen &gen) {
-	assert(0);
-      return false;
+  assert(0);
+  return false;
 }
 
 bool CFPatch::applyPLT(codeGen &gen, CodeBuffer *) {
-	assert(0);
-   return true;
+  assert(0);
+  return true;
 }
 
 /*
 bool CFPatch::needsTOCUpdate() {
-	assert(0);
+        assert(0);
   return true;
 }
 
 bool CFPatch::handleTOCUpdate(codeGen &gen) {
-	assert(0);
-	return false;
+        assert(0);
+        return false;
 }
 */
 
 bool CFWidget::generateAddressTranslator(CodeBuffer &buffer,
-                                       const codeGen &templ,
-                                       Register &reg,
-                                       const RelocBlock *trace)
-{
-	assert(0);
+                                         const codeGen &templ, Register &reg,
+                                         const RelocBlock *trace) {
+  assert(0);
 #if !defined(cap_mem_emulation)
-   return true;
+  return true;
 #else
-   assert(0);
-   return false;
+  assert(0);
+  return false;
 #endif
-
 }
-

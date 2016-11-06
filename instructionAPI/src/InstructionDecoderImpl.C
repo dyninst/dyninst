@@ -37,114 +37,116 @@
 #include "Dereference.h"
 
 using namespace std;
-namespace Dyninst
-{
-    namespace InstructionAPI
-    {
-        Instruction* InstructionDecoderImpl::makeInstruction(entryID opcode, const char* mnem,
-            unsigned int decodedSize, const unsigned char* raw)
-        {
-            Operation::Ptr tmp(make_shared(singleton_object_pool<Operation>::construct(opcode, mnem, m_Arch)));
-            return singleton_object_pool<Instruction>::construct(tmp, decodedSize, raw, m_Arch);
-        }
+namespace Dyninst {
+namespace InstructionAPI {
+Instruction* InstructionDecoderImpl::makeInstruction(entryID opcode,
+                                                     const char* mnem,
+                                                     unsigned int decodedSize,
+                                                     const unsigned char* raw) {
+  Operation::Ptr tmp(make_shared(
+      singleton_object_pool<Operation>::construct(opcode, mnem, m_Arch)));
+  return singleton_object_pool<Instruction>::construct(tmp, decodedSize, raw,
+                                                       m_Arch);
+}
 
+Instruction::Ptr InstructionDecoderImpl::decode(InstructionDecoder::buffer& b) {
+  // setMode(m_Arch == Arch_x86_64);
+  const unsigned char* start = b.start;
+  decodeOpcode(b);
+  unsigned int decodedSize = b.start - start;
 
-        Instruction::Ptr InstructionDecoderImpl::decode(InstructionDecoder::buffer& b)
-        {
-            //setMode(m_Arch == Arch_x86_64);
-            const unsigned char* start = b.start;
-            decodeOpcode(b);
-            unsigned int decodedSize = b.start - start;
+  return make_shared(singleton_object_pool<Instruction>::construct(
+      m_Operation, decodedSize, start, m_Arch));
+}
 
-            return make_shared(singleton_object_pool<Instruction>::construct(
-                                   m_Operation, decodedSize, start, m_Arch));
-        }
+std::map<Architecture, InstructionDecoderImpl::Ptr>
+    InstructionDecoderImpl::impls;
+InstructionDecoderImpl::Ptr InstructionDecoderImpl::makeDecoderImpl(
+    Architecture a) {
+  if (impls.empty()) {
+    impls[Arch_x86] = Ptr(new InstructionDecoder_x86(Arch_x86));
+    impls[Arch_x86_64] = Ptr(new InstructionDecoder_x86(Arch_x86_64));
+    impls[Arch_ppc32] = Ptr(new InstructionDecoder_power(Arch_ppc32));
+    impls[Arch_ppc64] = Ptr(new InstructionDecoder_power(Arch_ppc64));
+    impls[Arch_aarch64] = Ptr(new InstructionDecoder_aarch64(Arch_aarch64));
+  }
+  std::map<Architecture, Ptr>::const_iterator foundImpl = impls.find(a);
+  if (foundImpl == impls.end()) {
+    return Ptr();
+  }
+  return foundImpl->second;
+}
+Expression::Ptr InstructionDecoderImpl::makeAddExpression(
+    Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType) {
+  BinaryFunction::funcT::Ptr adder(new BinaryFunction::addResult());
 
-        std::map<Architecture, InstructionDecoderImpl::Ptr> InstructionDecoderImpl::impls;
-        InstructionDecoderImpl::Ptr InstructionDecoderImpl::makeDecoderImpl(Architecture a)
-        {
-            if(impls.empty())
-            {
-                impls[Arch_x86] = Ptr(new InstructionDecoder_x86(Arch_x86));
-                impls[Arch_x86_64] = Ptr(new InstructionDecoder_x86(Arch_x86_64));
-                impls[Arch_ppc32] = Ptr(new InstructionDecoder_power(Arch_ppc32));
-                impls[Arch_ppc64] = Ptr(new InstructionDecoder_power(Arch_ppc64));
-                impls[Arch_aarch64] = Ptr(new InstructionDecoder_aarch64(Arch_aarch64));
-            }
-            std::map<Architecture, Ptr>::const_iterator foundImpl = impls.find(a);
-            if(foundImpl == impls.end())
-            {
-                return Ptr();
-            }
-            return foundImpl->second;
-        }
-        Expression::Ptr InstructionDecoderImpl::makeAddExpression(Expression::Ptr lhs,
-                Expression::Ptr rhs, Result_Type resultType)
-        {
-            BinaryFunction::funcT::Ptr adder(new BinaryFunction::addResult());
-
-            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, adder));
-        }
-        Expression::Ptr InstructionDecoderImpl::makeMultiplyExpression(Expression::Ptr lhs, Expression::Ptr rhs,
-                Result_Type resultType)
-        {
-            BinaryFunction::funcT::Ptr multiplier(new BinaryFunction::multResult());
-            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, multiplier));
-        }
-        Expression::Ptr InstructionDecoderImpl::makeLeftShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs,
-                Result_Type resultType)
-        {
-            BinaryFunction::funcT::Ptr leftShifter(new BinaryFunction::leftShiftResult());
-            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, leftShifter));
-        }
-        Expression::Ptr InstructionDecoderImpl::makeRightArithmeticShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs,
-                Result_Type resultType)
-        {
-            BinaryFunction::funcT::Ptr rightArithmeticShifter(new BinaryFunction::rightArithmeticShiftResult());
-            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, rightArithmeticShifter));
-        }
-        Expression::Ptr InstructionDecoderImpl::makeRightLogicalShiftExpression(Expression::Ptr lhs, Expression::Ptr rhs,
-                Result_Type resultType)
-        {
-            BinaryFunction::funcT::Ptr rightLogicalShifter(new BinaryFunction::rightLogicalShiftResult());
-            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, rightLogicalShifter));
-        }
-        Expression::Ptr InstructionDecoderImpl::makeRightRotateExpression(Expression::Ptr lhs, Expression::Ptr rhs,
-                Result_Type resultType)
-        {
-            BinaryFunction::funcT::Ptr rightRotator(new BinaryFunction::rightRotateResult());
-            return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, rightRotator));
-        }
-        Expression::Ptr InstructionDecoderImpl::makeDereferenceExpression(Expression::Ptr addrToDereference,
-                Result_Type resultType)
-        {
-            return make_shared(singleton_object_pool<Dereference>::construct(addrToDereference, resultType));
-        }
-        Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(MachRegister registerID)
-        {
-            int newID = registerID.val();
-            int minusArch = newID & ~(registerID.getArchitecture());
-            int convertedID = minusArch | m_Arch;
-            MachRegister converted(convertedID);
-            return make_shared(singleton_object_pool<RegisterAST>::construct(converted, 0, registerID.size() * 8));
-        }
-        Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(MachRegister registerID, Result_Type extendFrom)
-        {
-            int newID = registerID.val();
-            int minusArch = newID & ~(registerID.getArchitecture());
-            int convertedID = minusArch | m_Arch;
-            MachRegister converted(convertedID);
-            return make_shared(singleton_object_pool<RegisterAST>::construct(converted, 0, registerID.size() * 8, extendFrom));
-        }
-		Expression::Ptr InstructionDecoderImpl::makeMaskRegisterExpression(MachRegister registerID)
-        {
-            int newID = registerID.val();
-            int minusArch = newID & ~(registerID.getArchitecture());
-            int convertedID = minusArch | m_Arch;
-            MachRegister converted(convertedID);
-            return make_shared(singleton_object_pool<MaskRegisterAST>::construct(converted, 0, registerID.size() * 8));
-        }
-
-    };
+  return make_shared(singleton_object_pool<BinaryFunction>::construct(
+      lhs, rhs, resultType, adder));
+}
+Expression::Ptr InstructionDecoderImpl::makeMultiplyExpression(
+    Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType) {
+  BinaryFunction::funcT::Ptr multiplier(new BinaryFunction::multResult());
+  return make_shared(singleton_object_pool<BinaryFunction>::construct(
+      lhs, rhs, resultType, multiplier));
+}
+Expression::Ptr InstructionDecoderImpl::makeLeftShiftExpression(
+    Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType) {
+  BinaryFunction::funcT::Ptr leftShifter(new BinaryFunction::leftShiftResult());
+  return make_shared(singleton_object_pool<BinaryFunction>::construct(
+      lhs, rhs, resultType, leftShifter));
+}
+Expression::Ptr InstructionDecoderImpl::makeRightArithmeticShiftExpression(
+    Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType) {
+  BinaryFunction::funcT::Ptr rightArithmeticShifter(
+      new BinaryFunction::rightArithmeticShiftResult());
+  return make_shared(singleton_object_pool<BinaryFunction>::construct(
+      lhs, rhs, resultType, rightArithmeticShifter));
+}
+Expression::Ptr InstructionDecoderImpl::makeRightLogicalShiftExpression(
+    Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType) {
+  BinaryFunction::funcT::Ptr rightLogicalShifter(
+      new BinaryFunction::rightLogicalShiftResult());
+  return make_shared(singleton_object_pool<BinaryFunction>::construct(
+      lhs, rhs, resultType, rightLogicalShifter));
+}
+Expression::Ptr InstructionDecoderImpl::makeRightRotateExpression(
+    Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType) {
+  BinaryFunction::funcT::Ptr rightRotator(
+      new BinaryFunction::rightRotateResult());
+  return make_shared(singleton_object_pool<BinaryFunction>::construct(
+      lhs, rhs, resultType, rightRotator));
+}
+Expression::Ptr InstructionDecoderImpl::makeDereferenceExpression(
+    Expression::Ptr addrToDereference, Result_Type resultType) {
+  return make_shared(singleton_object_pool<Dereference>::construct(
+      addrToDereference, resultType));
+}
+Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(
+    MachRegister registerID) {
+  int newID = registerID.val();
+  int minusArch = newID & ~(registerID.getArchitecture());
+  int convertedID = minusArch | m_Arch;
+  MachRegister converted(convertedID);
+  return make_shared(singleton_object_pool<RegisterAST>::construct(
+      converted, 0, registerID.size() * 8));
+}
+Expression::Ptr InstructionDecoderImpl::makeRegisterExpression(
+    MachRegister registerID, Result_Type extendFrom) {
+  int newID = registerID.val();
+  int minusArch = newID & ~(registerID.getArchitecture());
+  int convertedID = minusArch | m_Arch;
+  MachRegister converted(convertedID);
+  return make_shared(singleton_object_pool<RegisterAST>::construct(
+      converted, 0, registerID.size() * 8, extendFrom));
+}
+Expression::Ptr InstructionDecoderImpl::makeMaskRegisterExpression(
+    MachRegister registerID) {
+  int newID = registerID.val();
+  int minusArch = newID & ~(registerID.getArchitecture());
+  int convertedID = minusArch | m_Arch;
+  MachRegister converted(convertedID);
+  return make_shared(singleton_object_pool<MaskRegisterAST>::construct(
+      converted, 0, registerID.size() * 8));
+}
 };
-
+};

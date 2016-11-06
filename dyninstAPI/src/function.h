@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -78,20 +78,19 @@ typedef enum callType {
 
 using Dyninst::PatchAPI::Point;
 
-class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunction {
+class func_instance : public patchTarget,
+                      public Dyninst::PatchAPI::PatchFunction {
   friend class block_instance;
   friend class edge_instance;
   friend class instPoint;
-  public:
-    // Almost everythcing gets filled in later.
-    func_instance(parse_func *f,
-                  Address baseAddr,
-                  mapped_module *mod);
 
-    func_instance(const func_instance *parent,
-                  mapped_module *child_mod);
+ public:
+  // Almost everythcing gets filled in later.
+  func_instance(parse_func *f, Address baseAddr, mapped_module *mod);
 
-    ~func_instance();
+  func_instance(const func_instance *parent, mapped_module *child_mod);
+
+  ~func_instance();
 
   ////////////////////////////////////////////////
   // Passthrough functions.
@@ -105,33 +104,30 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   string typedName() const { return ifunc()->typedName(); };
   string name() const { return symTabName(); }
 
-  SymtabAPI::Aggregate::name_iter symtab_names_begin() const 
-   {
-     return ifunc()->symtab_names_begin();
-   }
-   SymtabAPI::Aggregate::name_iter symtab_names_end() const 
-   {
-     return ifunc()->symtab_names_end();
-   }
-   SymtabAPI::Aggregate::name_iter pretty_names_begin() const 
-   {
-     return ifunc()->pretty_names_begin();
-   }
-   SymtabAPI::Aggregate::name_iter pretty_names_end() const 
-   {
-     return ifunc()->pretty_names_end();
-   }
-   SymtabAPI::Aggregate::name_iter typed_names_begin() const 
-   {
-     return ifunc()->typed_names_begin();
-   }
-   SymtabAPI::Aggregate::name_iter typed_names_end() const 
-   {
-     return ifunc()->typed_names_end();
-   }
-   //vector<string> symTabNameVector() const { return ifunc()->symTabNameVector(); }
-   //vector<string> prettyNameVector() const { return ifunc()->prettyNameVector(); }
-   //vector<string> typedNameVector() const { return ifunc()->typedNameVector(); }
+  SymtabAPI::Aggregate::name_iter symtab_names_begin() const {
+    return ifunc()->symtab_names_begin();
+  }
+  SymtabAPI::Aggregate::name_iter symtab_names_end() const {
+    return ifunc()->symtab_names_end();
+  }
+  SymtabAPI::Aggregate::name_iter pretty_names_begin() const {
+    return ifunc()->pretty_names_begin();
+  }
+  SymtabAPI::Aggregate::name_iter pretty_names_end() const {
+    return ifunc()->pretty_names_end();
+  }
+  SymtabAPI::Aggregate::name_iter typed_names_begin() const {
+    return ifunc()->typed_names_begin();
+  }
+  SymtabAPI::Aggregate::name_iter typed_names_end() const {
+    return ifunc()->typed_names_end();
+  }
+  // vector<string> symTabNameVector() const { return
+  // ifunc()->symTabNameVector(); }
+  // vector<string> prettyNameVector() const { return
+  // ifunc()->prettyNameVector(); }
+  // vector<string> typedNameVector() const { return ifunc()->typedNameVector();
+  // }
 
   // Debuggering functions
   void debugPrint() const;
@@ -141,7 +137,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   void addSymTabName(const std::string name, bool isPrimary = false);
   void addPrettyName(const std::string name, bool isPrimary = false);
 
-  Address getPtrAddress() const {return ptrAddr_;}
+  Address getPtrAddress() const { return ptrAddr_; }
 
   // Not defined here so we don't have to play header file magic
   // Not const; we can add names via the Dyninst layer
@@ -161,29 +157,30 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 
   // Kevin's defensive mode shtuff
   // Blocks that have a sink target, essentially.
-  const BlockSet &unresolvedCF();// Blocks that have a sink target, essentially
-  const BlockSet &abruptEnds(); // Blocks where we provisionally stopped 
-                                // parsing because things looked weird.
-  block_instance * setNewEntry(block_instance *def, // if no better choice
-                               std::set<block_instance*> &deadBlocks);
+  const BlockSet &
+  unresolvedCF();                // Blocks that have a sink target, essentially
+  const BlockSet &abruptEnds();  // Blocks where we provisionally stopped
+                                 // parsing because things looked weird.
+  block_instance *setNewEntry(block_instance *def,  // if no better choice
+                              std::set<block_instance *> &deadBlocks);
   // kevin signal-handler information
-  bool isSignalHandler() {return handlerFaultAddr_ != 0;}
-  Address getHandlerFaultAddr() {return handlerFaultAddr_;}
-  Address getHandlerFaultAddrAddr() {return handlerFaultAddrAddr_;}
+  bool isSignalHandler() { return handlerFaultAddr_ != 0; }
+  Address getHandlerFaultAddr() { return handlerFaultAddr_; }
+  Address getHandlerFaultAddrAddr() { return handlerFaultAddrAddr_; }
   void setHandlerFaultAddr(Address fa);
   void setHandlerFaultAddrAddr(Address faa, bool set);
   void triggerModified();
 
   block_instance *getBlockByEntry(const Address addr);
   // get all blocks that contain the given address
-  bool getBlocks(const Address addr, std::set<block_instance*> &blks);
+  bool getBlocks(const Address addr, std::set<block_instance *> &blks);
   // Get the block with an instruction that starts at addr
   block_instance *getBlock(const Address addr);
 
   Offset addrToOffset(const Address addr) const;
 
-  bool hasNoStackFrame() const {return ifunc()->hasNoStackFrame();}
-  bool savesFramePointer() const {return ifunc()->savesFramePointer();}
+  bool hasNoStackFrame() const { return ifunc()->hasNoStackFrame(); }
+  bool savesFramePointer() const { return ifunc()->savesFramePointer(); }
 
   ////////////////////////////////////////////////
   // Legacy/inter-module calls. Arguably should be an
@@ -196,11 +193,11 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 
   Address get_address() const;
   unsigned get_size() const;
-  unsigned footprint(); // not const, calls ifunc()->extents()
+  unsigned footprint();  // not const, calls ifunc()->extents()
   std::string get_name() const;
 
 #if defined(arch_x86) || defined(arch_x86_64)
-  //Replaces the function with a 'return val' statement.
+  // Replaces the function with a 'return val' statement.
   // currently needed only on Linux/x86
   // Defined in inst-x86.C
   bool setReturnValue(int val);
@@ -216,8 +213,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   // So dodge through to the image layer and find out that info.
   // Returns true if such functions exist.
 
-  bool getSharingFuncs(block_instance *b,
-                       std::set<func_instance *> &funcs);
+  bool getSharingFuncs(block_instance *b, std::set<func_instance *> &funcs);
 
   // The same, but for any function that overlaps with any of
   // our basic blocks.
@@ -236,8 +232,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   // Misc
   ////////////////////////////////////////////////
 
-
-  const pdvector< int_parRegion* > &parRegions();
+  const pdvector<int_parRegion *> &parRegions();
 
   bool containsSharedBlocks() const { return ifunc()->containsSharedBlocks(); }
   unsigned getNumDynamicCalls();
@@ -245,60 +240,58 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   // Fill the <callers> vector with pointers to the statically-determined
   // list of functions that call this function.
   template <class OutputIterator>
-    void getCallerBlocks(OutputIterator result);
+  void getCallerBlocks(OutputIterator result);
   template <class OutputIterator>
-    void getCallerFuncs(OutputIterator result);
-  bool getLiveCallerBlocks(const std::set<block_instance*> &deadBlocks,
-                           const std::list<func_instance*> &deadFuncs,
-                           std::map<Address,vector<block_instance*> > & output_stubs);
-
-
+  void getCallerFuncs(OutputIterator result);
+  bool getLiveCallerBlocks(
+      const std::set<block_instance *> &deadBlocks,
+      const std::list<func_instance *> &deadFuncs,
+      std::map<Address, vector<block_instance *> > &output_stubs);
 
 #if defined(arch_power)
   bool savesReturnAddr() const { return ifunc()->savesReturnAddr(); }
 #endif
 
 #if defined(os_windows)
-  //Calling convention for this function
+  // Calling convention for this function
   callType func_instance::getCallingConvention();
   int getParamSize() { return paramSize; }
   void setParamSize(int s) { paramSize = s; }
 #endif
 
-  void getReachableBlocks(const std::set<block_instance*> &exceptBlocks,
-                          const std::list<block_instance*> &seedBlocks,
-                          std::set<block_instance*> &reachBlocks);//output
-
+  void getReachableBlocks(const std::set<block_instance *> &exceptBlocks,
+                          const std::list<block_instance *> &seedBlocks,
+                          std::set<block_instance *> &reachBlocks);  // output
 
   // So we can assert(consistency());
   bool consistency() const;
 
   // Wrappers for patchapi findPoints to find a single instPoint
   instPoint *funcEntryPoint(bool create);
-  instPoint *funcExitPoint(block_instance* blk, bool create);
-  instPoint *preCallPoint(block_instance* blk, bool create);
-  instPoint *postCallPoint(block_instance* blk, bool create);
-  instPoint *blockEntryPoint(block_instance* blk, bool create);
-  instPoint *blockExitPoint(block_instance* b, bool create);
-  instPoint *preInsnPoint(block_instance* b, Address a,
-                          InstructionAPI::Instruction::Ptr ptr,
-                          bool trusted, bool create);
-  instPoint *postInsnPoint(block_instance* b, Address a,
-                           InstructionAPI::Instruction::Ptr ptr,
-                           bool trusted, bool create);
-  instPoint *edgePoint(edge_instance* eg, bool create);
+  instPoint *funcExitPoint(block_instance *blk, bool create);
+  instPoint *preCallPoint(block_instance *blk, bool create);
+  instPoint *postCallPoint(block_instance *blk, bool create);
+  instPoint *blockEntryPoint(block_instance *blk, bool create);
+  instPoint *blockExitPoint(block_instance *b, bool create);
+  instPoint *preInsnPoint(block_instance *b, Address a,
+                          InstructionAPI::Instruction::Ptr ptr, bool trusted,
+                          bool create);
+  instPoint *postInsnPoint(block_instance *b, Address a,
+                           InstructionAPI::Instruction::Ptr ptr, bool trusted,
+                           bool create);
+  instPoint *edgePoint(edge_instance *eg, bool create);
 
   // Wrappers for patchapi findPoints to find all instPoints w/ certain type
-  typedef std::vector<instPoint*> Points;
-  void funcExitPoints(Points*);
-  void callPoints(Points*);
-  void blockInsnPoints(block_instance*, Points*);
-  void edgePoints(Points*);
+  typedef std::vector<instPoint *> Points;
+  void funcExitPoints(Points *);
+  void callPoints(Points *);
+  void blockInsnPoints(block_instance *, Points *);
+  void edgePoints(Points *);
 
   // Function wrapping
   bool addSymbolsForCopy();
-  bool updateRelocationsToSym(Dyninst::SymtabAPI::Symbol *oldsym, 
-			      Dyninst::SymtabAPI::Symbol *newsym);
+  bool updateRelocationsToSym(Dyninst::SymtabAPI::Symbol *oldsym,
+                              Dyninst::SymtabAPI::Symbol *newsym);
   Dyninst::SymtabAPI::Symbol *getWrapperSymbol();
   Dyninst::SymtabAPI::Symbol *getRelocSymbol();
   void createWrapperSymbol(Address entry, std::string name);
@@ -313,20 +306,20 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 
 #if defined(cap_stack_mods)
   // Stack modification
-  void addParam(Dyninst::SymtabAPI::localVar* p) { _params.insert(p); }
-  void addVar(Dyninst::SymtabAPI::localVar* v) { _vars.insert(v); }
-  std::set<Dyninst::SymtabAPI::localVar*> getParams() const { return _params; }
-  std::set<Dyninst::SymtabAPI::localVar*> getVars() const { return _vars; }
+  void addParam(Dyninst::SymtabAPI::localVar *p) { _params.insert(p); }
+  void addVar(Dyninst::SymtabAPI::localVar *v) { _vars.insert(v); }
+  std::set<Dyninst::SymtabAPI::localVar *> getParams() const { return _params; }
+  std::set<Dyninst::SymtabAPI::localVar *> getVars() const { return _vars; }
 
   void setStackMod(bool b) { _hasStackMod = b; }
   bool hasStackMod() const { return _hasStackMod; }
 
-  void addMod(StackMod* m, TMap* tMap);
-  void removeMod(StackMod* m);
-  std::set<StackMod*>* getMods() const { return _modifications; }
+  void addMod(StackMod *m, TMap *tMap);
+  void removeMod(StackMod *m);
+  std::set<StackMod *> *getMods() const { return _modifications; }
   void printMods() const;
 
-  Accesses* getAccesses(Address addr);
+  Accesses *getAccesses(Address addr);
 
   void setCanary(bool b) { _hasCanary = b; }
   bool hasCanary() { return _hasCanary; }
@@ -336,39 +329,35 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   bool hasOffsetVector() const { return _processedOffsetVector; }
   bool hasValidOffsetVector() const { return _validOffsetVector; }
   bool createOffsetVector();
-  OffsetVector* getOffsetVector() const { return _offVec; }
+  OffsetVector *getOffsetVector() const { return _offVec; }
 
-  TMap* getTMap() const { return _tMap; }
-  void replaceTMap(TMap* newTMap) { _tMap = newTMap; }
+  TMap *getTMap() const { return _tMap; }
+  void replaceTMap(TMap *newTMap) { _tMap = newTMap; }
 
-  bool randomize(TMap* tMap, bool seeded = false, int seed = -1);
+  bool randomize(TMap *tMap, bool seeded = false, int seed = -1);
   void freeStackMod();
 
 #endif
 
-  bool operator<(func_instance& rhs) {
-      return addr() < rhs.addr();
-  }
+  bool operator<(func_instance &rhs) { return addr() < rhs.addr(); }
 
  private:
-
-  // helper func for block_instance::setNotAbruptEnd(), do not call directly 
-  void removeAbruptEnd(const block_instance *); 
+  // helper func for block_instance::setNotAbruptEnd(), do not call directly
+  void removeAbruptEnd(const block_instance *);
 
   ///////////////////// Basic func info
-  //Address addr_; // Absolute address of the start of the function
-  Address ptrAddr_; // Absolute address of the function descriptor, if exists
+  // Address addr_; // Absolute address of the start of the function
+  Address ptrAddr_;  // Absolute address of the function descriptor, if exists
 
   // parse_func *ifunc_;
-  mapped_module *mod_; // This is really a dodge; translate a list of
+  mapped_module *mod_;  // This is really a dodge; translate a list of
   // parse_funcs to int_funcs
 
   ///////////////////// CFG and function body
   // Defensive mode
   BlockSet unresolvedCF_;
   BlockSet abruptEnds_;
-  size_t prevBlocksAbruptEnds_; // num func blocks when calculated
-
+  size_t prevBlocksAbruptEnds_;  // num func blocks when calculated
 
   Address handlerFaultAddr_; /* if this is a signal handler, faultAddr_ is
                                 set to -1, or to the address of the fault
@@ -376,7 +365,8 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   Address handlerFaultAddrAddr_;
 
   //////////////////////////  Parallel Regions
-  pdvector<int_parRegion*> parallelRegions_; /* pointer to the parallel regions */
+  pdvector<int_parRegion *>
+      parallelRegions_; /* pointer to the parallel regions */
 
   void addblock_instance(block_instance *instance);
 
@@ -385,33 +375,31 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   int paramSize;
 #endif
 
-   Dyninst::SymtabAPI::Symbol *wrapperSym_;
+  Dyninst::SymtabAPI::Symbol *wrapperSym_;
 
 #if defined(cap_stack_mods)
   // Stack modification
   bool createOffsetVector_Symbols();
 
-  bool createOffsetVector_Analysis(ParseAPI::Function* func,
-          ParseAPI::Block* block,
-          InstructionAPI::Instruction::Ptr insn,
-          Address addr);
+  bool createOffsetVector_Analysis(ParseAPI::Function *func,
+                                   ParseAPI::Block *block,
+                                   InstructionAPI::Instruction::Ptr insn,
+                                   Address addr);
 
-  bool addToOffsetVector(StackAnalysis::Height off,
-          int size,
-          StackAccess::StackAccessType type,
-          bool isRegisterHeight,
-          ValidPCRange* valid,
-          MachRegister reg = MachRegister());
+  bool addToOffsetVector(StackAnalysis::Height off, int size,
+                         StackAccess::StackAccessType type,
+                         bool isRegisterHeight, ValidPCRange *valid,
+                         MachRegister reg = MachRegister());
 
-  void createTMap_internal(StackMod* mod, StackLocation* loc, TMap* tMap);
-  void createTMap_internal(StackMod* mod, TMap* tMap);
+  void createTMap_internal(StackMod *mod, StackLocation *loc, TMap *tMap);
+  void createTMap_internal(StackMod *mod, TMap *tMap);
 
-  std::set<Dyninst::SymtabAPI::localVar*> _params;
-  std::set<Dyninst::SymtabAPI::localVar*> _vars;
+  std::set<Dyninst::SymtabAPI::localVar *> _params;
+  std::set<Dyninst::SymtabAPI::localVar *> _vars;
   bool _hasDebugSymbols;
 
   bool _hasStackMod;
-  std::set<StackMod*>* _modifications;
+  std::set<StackMod *> *_modifications;
 
   bool _seeded;
   int _seed;
@@ -420,19 +408,17 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 
   bool _processedOffsetVector;
   bool _validOffsetVector;
-  OffsetVector* _offVec;
-  set<tmpObject, less_tmpObject >* _tmpObjects;
+  OffsetVector *_offVec;
+  set<tmpObject, less_tmpObject> *_tmpObjects;
 
-  TMap* _tMap;
-  std::map<Address, Accesses*>* _accessMap;
+  TMap *_tMap;
+  std::map<Address, Accesses *> *_accessMap;
 #endif
 };
 
 template <class OutputIterator>
-void func_instance::getCallerBlocks(OutputIterator result)
-{
-  if(!ifunc() || !ifunc()->entryBlock())
-    return;
+void func_instance::getCallerBlocks(OutputIterator result) {
+  if (!ifunc() || !ifunc()->entryBlock()) return;
   /*
   const block_instance::edgelist &ins = entryBlock()->sources();
   for (block_instance::edgelist::const_iterator iter = ins.begin();
@@ -440,18 +426,16 @@ void func_instance::getCallerBlocks(OutputIterator result)
   */
   const PatchBlock::edgelist &ins = entryBlock()->sources();
   for (PatchBlock::edgelist::const_iterator iter = ins.begin();
-       iter != ins.end(); ++iter) 
-  {
-      if ((*iter)->type() == ParseAPI::CALL) {
-        *result = SCAST_EI(*iter)->src();
-        ++result;
-      }
+       iter != ins.end(); ++iter) {
+    if ((*iter)->type() == ParseAPI::CALL) {
+      *result = SCAST_EI(*iter)->src();
+      ++result;
+    }
   }
 }
 
 template <class OutputIterator>
-void func_instance::getCallerFuncs(OutputIterator result)
-{
+void func_instance::getCallerFuncs(OutputIterator result) {
   std::set<block_instance *> callerBlocks;
   getCallerBlocks(std::inserter(callerBlocks, callerBlocks.end()));
   for (std::set<block_instance *>::iterator iter = callerBlocks.begin();

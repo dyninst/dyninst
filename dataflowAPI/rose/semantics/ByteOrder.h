@@ -5,11 +5,12 @@
 
 namespace ByteOrder {
 
-// Caution: the symbols LITTLE_ENDIAN and BIG_ENDIAN are already defined on some systems, so we use other names in ROSE.
+// Caution: the symbols LITTLE_ENDIAN and BIG_ENDIAN are already defined on some
+// systems, so we use other names in ROSE.
 enum Endianness {
-    ORDER_UNSPECIFIED=0,                /**< Endianness is unspecified and unknown. */
-    ORDER_LSB,                          /**< Least significant byte first, i.e., little-endian. */
-    ORDER_MSB                           /**< Most significant byte first, i.e., big-endian. */
+  ORDER_UNSPECIFIED = 0, /**< Endianness is unspecified and unknown. */
+  ORDER_LSB, /**< Least significant byte first, i.e., little-endian. */
+  ORDER_MSB  /**< Most significant byte first, i.e., big-endian. */
 };
 
 /** Byte order of host machine. */
@@ -105,5 +106,5 @@ void host_to_disk(Endianness sex, int h, int32_t *np);
 void host_to_disk(Endianness sex, int64_t h, int64_t *np);
 /** @} */
 
-} // namespace
+}  // namespace
 #endif

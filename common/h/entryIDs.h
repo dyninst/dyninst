@@ -98,10 +98,10 @@ enum entryID {
   e_andpd,
   e_andps,
   e_arpl,
-  e_blendpd,  // SSE 4.1
-  e_blendps,  // SSE 4.1
-  e_blendvpd, // SSE 4.1
-  e_blendvps, // SSE 4.1
+  e_blendpd,   // SSE 4.1
+  e_blendps,   // SSE 4.1
+  e_blendvpd,  // SSE 4.1
+  e_blendvps,  // SSE 4.1
   e_bound,
   e_bsf,
   e_bsr,
@@ -136,7 +136,7 @@ enum entryID {
   e_comisd,
   e_comiss,
   e_cpuid,
-  e_crc32,		// SSE 4.2
+  e_crc32,  // SSE 4.2
   e_cvtdq2pd,
   e_cvtdq2ps,
   e_cvtpd2dq,
@@ -171,10 +171,10 @@ enum entryID {
   e_vaesdeclast,
   e_aeskeygenassist,
   e_vaeskeygenassist,
-  e_aesimc, 
-  e_vaesimc, 
-  e_pclmullqlqdq, 
-  e_vpclmullqlqdq, 
+  e_aesimc,
+  e_vaesimc,
+  e_pclmullqlqdq,
+  e_vpclmullqlqdq,
   e_daa,
   e_das,
   e_dec,
@@ -183,12 +183,12 @@ enum entryID {
   e_divps,
   e_divsd,
   e_divss,
-  e_dppd,	// SSE 4.1
-  e_vdppd,	// SSE 4.1
-  e_dpps,	// SSE 4.1
+  e_dppd,   // SSE 4.1
+  e_vdppd,  // SSE 4.1
+  e_dpps,   // SSE 4.1
   e_emms,
   e_enter,
-  e_extractps,	// SSE 4.1
+  e_extractps,  // SSE 4.1
   e_extrq,
   e_fadd,
   e_faddp,
@@ -229,7 +229,7 @@ enum entryID {
   e_fisub,
   e_fisubr,
   e_fld,
-  e_fld1, // note: numeral '1', as in load the constant
+  e_fld1,  // note: numeral '1', as in load the constant
   e_fldcw,
   e_fldenv,
   e_fmul,
@@ -268,7 +268,7 @@ enum entryID {
   e_inc,
   e_insb,
   e_insd,
-  e_insertps,	// SSE 4.1
+  e_insertps,  // SSE 4.1
   e_insertq,
   e_insw,
   e_int,
@@ -329,7 +329,7 @@ enum entryID {
   e_movmskpd,
   e_movmskps,
   e_movntdq,
-  e_movntdqa, 	// SSE 4.1
+  e_movntdqa,  // SSE 4.1
   e_movnti,
   e_movntpd,
   e_movntps,
@@ -350,7 +350,7 @@ enum entryID {
   e_movupd,
   e_movups,
   e_movzx,
-  e_mpsadbw,	// SSE 4.1
+  e_mpsadbw,  // SSE 4.1
   e_mul,
   e_mulpd,
   e_mulps,
@@ -366,12 +366,12 @@ enum entryID {
   e_outsb,
   e_outsd,
   e_outsw,
-  e_pabsb, // SSSE3
-  e_pabsd, // SSSE3
-  e_pabsw, // SSSE3
+  e_pabsb,  // SSSE3
+  e_pabsd,  // SSSE3
+  e_pabsw,  // SSSE3
   e_packssdw,
   e_packsswb,
-  e_packusdw,	// SSE 4.1
+  e_packusdw,  // SSE 4.1
   e_packuswb,
   e_paddb,
   e_paddd,
@@ -381,71 +381,71 @@ enum entryID {
   e_paddusb,
   e_paddusw,
   e_paddw,
-  e_palignr, // SSSE3
+  e_palignr,  // SSSE3
   e_pand,
   e_pandn,
   e_pavgb,
   e_pavgw,
-  e_pblendvb,	// SSE 4.1
-  e_pblendw,	// SSE 4.1
+  e_pblendvb,  // SSE 4.1
+  e_pblendw,   // SSE 4.1
   e_pcmpeqb,
   e_pcmpeqd,
-  e_pcmpeqq,	// SSE 4.1
+  e_pcmpeqq,  // SSE 4.1
   e_pcmpeqw,
-  e_pcmpestri,	// SSE 4.2
-  e_pcmpestrm,	// SSE 4.2
+  e_pcmpestri,  // SSE 4.2
+  e_pcmpestrm,  // SSE 4.2
   e_pcmpgdt,
   e_pcmpgtb,
-  e_pcmpgtq,	// SSE 4.2
+  e_pcmpgtq,  // SSE 4.2
   e_pcmpgtw,
-  e_pcmpistri,	// SSE 4.2
-  e_pcmpistrm,	// SSE 4.2
-  e_pextrb,		// SSE 4.1
-  e_pextrd_pextrq,		// SSE 4.1
-  e_pextrw,		// SSE 4.1
-  e_phaddd, // SSSE3
-  e_phaddw, // SSSE3
-  e_phaddsw, // SSSE3
-  e_phminposuw,	// SSE 4.1
-  e_phsubd, // SSSE3
-  e_phsubw, // SSSE3
-  e_phsubsw, // SSSE3
-  e_pinsrb,		// SSE 4.1
-  e_pinsrd_pinsrq,		// SSE 4.1
+  e_pcmpistri,      // SSE 4.2
+  e_pcmpistrm,      // SSE 4.2
+  e_pextrb,         // SSE 4.1
+  e_pextrd_pextrq,  // SSE 4.1
+  e_pextrw,         // SSE 4.1
+  e_phaddd,         // SSSE3
+  e_phaddw,         // SSSE3
+  e_phaddsw,        // SSSE3
+  e_phminposuw,     // SSE 4.1
+  e_phsubd,         // SSSE3
+  e_phsubw,         // SSSE3
+  e_phsubsw,        // SSSE3
+  e_pinsrb,         // SSE 4.1
+  e_pinsrd_pinsrq,  // SSE 4.1
   e_pinsrw,
   e_pmaddwd,
-  e_pmaddubsw, // SSSE3
-  e_pmaxsb,		// SSE 4.1
-  e_pmaxsd,		// SSE 4.1
-  e_pmaxud,		// SSE 4.1
-  e_pmaxuw,		// SSE 4.1
+  e_pmaddubsw,  // SSSE3
+  e_pmaxsb,     // SSE 4.1
+  e_pmaxsd,     // SSE 4.1
+  e_pmaxud,     // SSE 4.1
+  e_pmaxuw,     // SSE 4.1
   e_pmaxsw,
   e_pmaxub,
-  e_pminsb,		// SSE 4.1
-  e_pminsd,		// SSE 4.1
-  e_pminud,		// SSE 4.1
-  e_pminuw,		// SSE 4.1
+  e_pminsb,  // SSE 4.1
+  e_pminsd,  // SSE 4.1
+  e_pminud,  // SSE 4.1
+  e_pminuw,  // SSE 4.1
   e_pminsw,
   e_pminub,
   e_pmovmskb,
-  e_pmovntdqa, 	// SSE 4.1
-  e_pmovsxbd,	// SSE 4.1
-  e_pmovsxbq,	// SSE 4.1
-  e_pmovsxbw,	// SSE 4.1
-  e_pmovsxwd,	// SSE 4.1
-  e_pmovsxwq,	// SSE 4.1
-  e_pmovsxdq,	// SSE 4.1
-  e_pmovzxbd,	// SSE 4.1
-  e_pmovzxbq,	// SSE 4.1
-  e_pmovzxbw,	// SSE 4.1
-  e_pmovzxwd,	// SSE 4.1
-  e_pmovzxwq,	// SSE 4.1
-  e_pmovzxdq,	// SSE 4.1
-  e_pmuldq,		// SSE 4.1
-  e_pmulhrsw, 	// SSSE3
+  e_pmovntdqa,  // SSE 4.1
+  e_pmovsxbd,   // SSE 4.1
+  e_pmovsxbq,   // SSE 4.1
+  e_pmovsxbw,   // SSE 4.1
+  e_pmovsxwd,   // SSE 4.1
+  e_pmovsxwq,   // SSE 4.1
+  e_pmovsxdq,   // SSE 4.1
+  e_pmovzxbd,   // SSE 4.1
+  e_pmovzxbq,   // SSE 4.1
+  e_pmovzxbw,   // SSE 4.1
+  e_pmovzxwd,   // SSE 4.1
+  e_pmovzxwq,   // SSE 4.1
+  e_pmovzxdq,   // SSE 4.1
+  e_pmuldq,     // SSE 4.1
+  e_pmulhrsw,   // SSSE3
   e_pmulhuw,
   e_pmulhw,
-  e_pmulld,		// SSE 4.1
+  e_pmulld,  // SSE 4.1
   e_pmullw,
   e_pmuludq,
   e_pop,
@@ -456,14 +456,14 @@ enum entryID {
   e_popcnt,
   e_por,
   e_psadbw,
-  e_pshufb, // SSSE3
+  e_pshufb,  // SSSE3
   e_pshufd,
   e_pshufhw,
   e_pshuflw,
   e_pshufw,
-  e_psignd, // SSSE3
-  e_psignw, // SSSE3
-  e_psignb, // SSSE3
+  e_psignd,  // SSSE3
+  e_psignw,  // SSSE3
+  e_psignb,  // SSSE3
   e_pslld,
   e_pslldq,
   e_psllq,
@@ -481,7 +481,7 @@ enum entryID {
   e_psubusb,
   e_psubusw,
   e_psubw,
-  e_ptest,	// SSE 4.1
+  e_ptest,  // SSE 4.1
   e_punpckhbw,
   e_punpckhdq,
   e_punpckhqd,
@@ -506,10 +506,10 @@ enum entryID {
   e_rdrand,
   e_rol,
   e_ror,
-  e_roundpd,	// SSE 4.1
-  e_roundps,	// SSE 4.1
-  e_roundsd,	// SSE 4.1
-  e_roundss,	// SSE 4.1
+  e_roundpd,  // SSE 4.1
+  e_roundps,  // SSE 4.1
+  e_roundsd,  // SSE 4.1
+  e_roundss,  // SSE 4.1
   e_rsm,
   e_rsqrtps,
   e_rsqrtss,
@@ -667,16 +667,16 @@ enum entryID {
   e_vdivps,
   e_vdivsd,
   e_vdivss,
-  e_vextractf128, 
-  e_vextracti128, 
+  e_vextractf128,
+  e_vextracti128,
   e_vextractf32x4,
   e_vextractf64x2,
   e_vextractf32x8,
   e_vextractf64x4,
-  e_vextracti32x4, 
-  e_vextracti64x2, 
-  e_vextracti32x8, 
-  e_vextracti64x4, 
+  e_vextracti32x4,
+  e_vextracti64x2,
+  e_vextracti32x8,
+  e_vextracti64x4,
   e_vextractps,
   e_vfixupimmpd,
   e_vfixupimmps,
@@ -749,8 +749,8 @@ enum entryID {
   e_vfpclasssd,
   e_vfpclassss,
   e_vgatherpf0qps,
-  e_vgatherpf0dps, 
-  e_vgatherpf0dpd, 
+  e_vgatherpf0dps,
+  e_vgatherpf0dpd,
   e_vgatherpf1qps,
   e_vgatherpf1dpd,
   e_vscatterpf0dps,
@@ -873,14 +873,14 @@ enum entryID {
   e_vpermi2w,
   e_vpermi2d,
   e_vpermi2q,
-  e_vpermi2ps, 
-  e_vpermi2pd, 
+  e_vpermi2ps,
+  e_vpermi2pd,
   e_vpermt2b,
   e_vpermt2w,
   e_vpermt2d,
   e_vpermt2q,
-  e_vpermt2ps, 
-  e_vpermt2pd, 
+  e_vpermt2ps,
+  e_vpermt2pd,
   e_vpermb,
   e_vpermw,
   e_vpermilpd,
@@ -964,7 +964,7 @@ enum entryID {
   e_vprord,
   e_vprorq,
   e_vpscatterdd,
-  e_vpscatterdq,  
+  e_vpscatterdq,
   e_vpscatterqd,
   e_vpscatterqq,
   e_vpsadbw,
@@ -2204,64 +2204,55 @@ enum entryID {
   _entry_ids_max_
 };
 
-enum prefixEntryID {
-  prefix_none,
-  prefix_rep,
-  prefix_repnz
-};
+enum prefixEntryID { prefix_none, prefix_rep, prefix_repnz };
 
 #if defined(__GNUC__)
-  #if defined(_LIBCPP_VERSION)
+#if defined(_LIBCPP_VERSION)
 //***************** GCC ***********************
-  #elif !defined(cap_tr1)
-  //**************** GCC < 4.3.0 ************
-  namespace __gnu_cxx {
+#elif !defined(cap_tr1)
+//**************** GCC < 4.3.0 ************
+namespace __gnu_cxx {
 
-    template<> struct hash<entryID> {
-      hash<unsigned int> h;
-      unsigned operator()(const entryID &e) const
-      {
-         return h(static_cast<unsigned int>(e));
-      };
-    };
-    template<> struct hash<prefixEntryID> {
-      hash<unsigned int> h;
-      unsigned operator()(const prefixEntryID &e) const
-      {
-         return h(static_cast<unsigned int>(e));
-      };
-    };
+template <>
+struct hash<entryID> {
+  hash<unsigned int> h;
+  unsigned operator()(const entryID &e) const {
+    return h(static_cast<unsigned int>(e));
+  };
+};
+template <>
+struct hash<prefixEntryID> {
+  hash<unsigned int> h;
+  unsigned operator()(const prefixEntryID &e) const {
+    return h(static_cast<unsigned int>(e));
+  };
+};
+}
+#else
+namespace std {
+namespace tr1 {
+template <>
+struct hash<entryID> {
+  hash<size_t> h;
+  size_t operator()(const entryID &eid) const {
+    return h(static_cast<size_t>(eid));
   }
-	#else
-  namespace std
-  {
-    namespace tr1
-    {
-      template <>
-      struct hash<entryID>
-      {
-        hash<size_t> h;
-        size_t operator()(const entryID &eid) const
-        {
-           return h(static_cast<size_t>(eid));
-        }
-      };
-      template <>
-         struct hash<prefixEntryID>
-      {
-        hash<size_t> h;
-	size_t operator()(const prefixEntryID &eid) const
-	{
-	  return h(static_cast<size_t>(eid));
-	}
-      };
-    }
+};
+template <>
+struct hash<prefixEntryID> {
+  hash<size_t> h;
+  size_t operator()(const prefixEntryID &eid) const {
+    return h(static_cast<size_t>(eid));
   }
-	#endif
+};
+}
+}
+#endif
 #endif
 namespace NS_x86 {
 COMMON_EXPORT extern dyn_hash_map<entryID, std::string> entryNames_IAPI;
-COMMON_EXPORT extern dyn_hash_map<prefixEntryID, std::string> prefixEntryNames_IAPI;
+COMMON_EXPORT extern dyn_hash_map<prefixEntryID, std::string>
+    prefixEntryNames_IAPI;
 }
 
-#endif // defined(ENTRYIDS_IA32_H)
+#endif  // defined(ENTRYIDS_IA32_H)

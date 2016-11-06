@@ -42,141 +42,131 @@
 #include <iterator>
 #include <boost/iterator/indirect_iterator.hpp>
 
-
 using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace Dyninst::InsnAdapter;
 using namespace Dyninst::ParseAPI;
 
-
-namespace Dyninst
-{
-  namespace InsnAdapter
-  {
-    namespace detail
-    {
-      class TOCandOffsetExtractor : public Dyninst::InstructionAPI::Visitor
-      {
-      public:
-	TOCandOffsetExtractor(Address TOCvalue) : result(0), toc_contents(TOCvalue) {}
-	virtual ~TOCandOffsetExtractor() {}
-	virtual void visit(BinaryFunction* b) {
-	  Address arg1 = m_stack.front();
-	  m_stack.pop_front();
-	  Address arg2 = m_stack.front();
-	  m_stack.pop_front();
-	  if(b->isAdd()) {
-	    result = arg1 + arg2;
-	  } else if(b->isMultiply()) {
-	    result = arg1 * arg2;
-	  } else {
-	    assert(!"unexpected binary function!");
-	    result = 0;
-	  }
-	  parsing_printf("\tTOC visitor visiting binary function, result is 0x%lx\n",
-			 result);
-	  m_stack.push_front(result);
-	}
-	virtual void visit(Immediate* i) {
-	  Address tmp = i->eval().convert<Address>();
-	  result = tmp;
-	  parsing_printf("\tTOC visitor visiting immediate, result is 0x%lx\n",
-			 result);
-	  m_stack.push_front(tmp);
-	}
-	virtual void visit(RegisterAST* r) {
-	  if(r->getID() == toc_reg->getID()) {
-	    m_stack.push_front(toc_contents);
-	  } else {
-	    m_stack.push_front(0);
-	  }
-	  result = m_stack.front();
-	  parsing_printf("\tTOC visitor visiting register, result is 0x%lx\n",
-			 result);
-	}
-	virtual void visit(Dereference*) {}
-	void clear() {
-	  m_stack.clear();
-	  result = 0;
-	}
-	std::deque<Address> m_stack;
-	Address result;
-	Address toc_contents;
-	RegisterAST::Ptr toc_reg;
-      };
+namespace Dyninst {
+namespace InsnAdapter {
+namespace detail {
+class TOCandOffsetExtractor : public Dyninst::InstructionAPI::Visitor {
+ public:
+  TOCandOffsetExtractor(Address TOCvalue) : result(0), toc_contents(TOCvalue) {}
+  virtual ~TOCandOffsetExtractor() {}
+  virtual void visit(BinaryFunction* b) {
+    Address arg1 = m_stack.front();
+    m_stack.pop_front();
+    Address arg2 = m_stack.front();
+    m_stack.pop_front();
+    if (b->isAdd()) {
+      result = arg1 + arg2;
+    } else if (b->isMultiply()) {
+      result = arg1 * arg2;
+    } else {
+      assert(!"unexpected binary function!");
+      result = 0;
     }
+    parsing_printf("\tTOC visitor visiting binary function, result is 0x%lx\n",
+                   result);
+    m_stack.push_front(result);
   }
+  virtual void visit(Immediate* i) {
+    Address tmp = i->eval().convert<Address>();
+    result = tmp;
+    parsing_printf("\tTOC visitor visiting immediate, result is 0x%lx\n",
+                   result);
+    m_stack.push_front(tmp);
+  }
+  virtual void visit(RegisterAST* r) {
+    if (r->getID() == toc_reg->getID()) {
+      m_stack.push_front(toc_contents);
+    } else {
+      m_stack.push_front(0);
+    }
+    result = m_stack.front();
+    parsing_printf("\tTOC visitor visiting register, result is 0x%lx\n",
+                   result);
+  }
+  virtual void visit(Dereference*) {}
+  void clear() {
+    m_stack.clear();
+    result = 0;
+  }
+  std::deque<Address> m_stack;
+  Address result;
+  Address toc_contents;
+  RegisterAST::Ptr toc_reg;
+};
+}
+}
 };
 
-
-bool IA_aarch64Details::findTableAddrNoTOC(const IA_IAPI* /*blockToCheck*/)
-{
-	assert(0);
+bool IA_aarch64Details::findTableAddrNoTOC(const IA_IAPI* /*blockToCheck*/) {
+  assert(0);
   return tableStartAddress == 0;
 }
 
-bool IA_aarch64Details::parseRelativeTableIdiom()
-{
-	assert(0);
+bool IA_aarch64Details::parseRelativeTableIdiom() {
+  assert(0);
   return true;
 }
 
-namespace detail_aarch64
-{
-    bool isNonCallEdge(ParseAPI::Edge* e)
-    {
-		assert(0);
-        return e->type() != CALL;
-    }
-    bool leadsToVisitedBlock(ParseAPI::Edge* e, const std::set<Block*>& visited)
-    {
-		assert(0);
-        Block* src = e->src();
-        return visited.find(src) != visited.end();
-    }
-  void processPredecessor(Dyninst::ParseAPI::Edge* /*e*/, std::set<Block*>& /*visited*/, std::deque<Block*>& /*worklist*/)
-  {
-		assert(0);
-  }
+namespace detail_aarch64 {
+bool isNonCallEdge(ParseAPI::Edge* e) {
+  assert(0);
+  return e->type() != CALL;
+}
+bool leadsToVisitedBlock(ParseAPI::Edge* e, const std::set<Block*>& visited) {
+  assert(0);
+  Block* src = e->src();
+  return visited.find(src) != visited.end();
+}
+void processPredecessor(Dyninst::ParseAPI::Edge* /*e*/,
+                        std::set<Block*>& /*visited*/,
+                        std::deque<Block*>& /*worklist*/) {
+  assert(0);
+}
 };
 
-bool IA_aarch64Details::scanForAdjustOrBase(IA_IAPI::allInsns_t::const_iterator /*start*/,
-					  IA_IAPI::allInsns_t::const_iterator /*end*/,
-					  RegisterAST::Ptr &/*jumpAddrReg*/) {
-	assert(0);
+bool IA_aarch64Details::scanForAdjustOrBase(
+    IA_IAPI::allInsns_t::const_iterator /*start*/,
+    IA_IAPI::allInsns_t::const_iterator /*end*/,
+    RegisterAST::Ptr& /*jumpAddrReg*/) {
+  assert(0);
   return true;
 }
 
 // Like the above, but a wider net
-bool IA_aarch64Details::findTableBase(IA_IAPI::allInsns_t::const_iterator /*start*/,
-				    IA_IAPI::allInsns_t::const_iterator /*end*/) {
-	assert(0);
+bool IA_aarch64Details::findTableBase(
+    IA_IAPI::allInsns_t::const_iterator /*start*/,
+    IA_IAPI::allInsns_t::const_iterator /*end*/) {
+  assert(0);
   return true;
 }
-
-
 
 // This should only be called on a known indirect branch...
-bool IA_aarch64Details::parseJumpTable(Block* /*currBlk*/,
-				     std::vector<std::pair< Address, EdgeTypeEnum> >& /*outEdges*/)
-{
-	assert(0);
+bool IA_aarch64Details::parseJumpTable(
+    Block* /*currBlk*/,
+    std::vector<std::pair<Address, EdgeTypeEnum> >& /*outEdges*/) {
+  assert(0);
   return true;
 }
 
-bool IA_aarch64Details::parseJumpTable(Dyninst::ParseAPI::Function* currFunc,
-                                       Dyninst::ParseAPI::Block* currBlk,
-				       std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges)
-{
-	IndirectControlFlowAnalyzer icfa(currFunc, currBlk);
-	bool ret = icfa.NewJumpTableAnalysis(outEdges);
+bool IA_aarch64Details::parseJumpTable(
+    Dyninst::ParseAPI::Function* currFunc, Dyninst::ParseAPI::Block* currBlk,
+    std::vector<std::pair<Address, Dyninst::ParseAPI::EdgeTypeEnum> >&
+        outEdges) {
+  IndirectControlFlowAnalyzer icfa(currFunc, currBlk);
+  bool ret = icfa.NewJumpTableAnalysis(outEdges);
 
-	parsing_printf("Jump table parser returned %d, %d edges\n", ret, outEdges.size());
-	for (auto oit = outEdges.begin(); oit != outEdges.end(); ++oit) parsing_printf("edge target at %lx\n", oit->first);
-	// Update statistics
-	currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_COUNT);
-	if (!ret) currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_FAIL);
+  parsing_printf("Jump table parser returned %d, %d edges\n", ret,
+                 outEdges.size());
+  for (auto oit = outEdges.begin(); oit != outEdges.end(); ++oit)
+    parsing_printf("edge target at %lx\n", oit->first);
+  // Update statistics
+  currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_COUNT);
+  if (!ret) currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_FAIL);
 
-	return ret;
+  return ret;
 }
-

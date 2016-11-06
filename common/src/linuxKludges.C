@@ -47,35 +47,32 @@
 #include <dirent.h>
 #include <string.h>
 
-
 /**** process_vm_readv / process_vm_writev
  * Added in kernel 3.2 and some backports -- try it and check ENOSYS.
  * The wrappers are defined in glibc 2.15, otherwise make our own.
  */
-#if !__GLIBC_PREREQ(2,15)
+#if !__GLIBC_PREREQ(2, 15)
 
-static ssize_t process_vm_readv(pid_t pid,
-    const struct iovec *local_iov, unsigned long liovcnt,
-    const struct iovec *remote_iov, unsigned long riovcnt,
-    unsigned long flags)
-{
+static ssize_t process_vm_readv(pid_t pid, const struct iovec *local_iov,
+                                unsigned long liovcnt,
+                                const struct iovec *remote_iov,
+                                unsigned long riovcnt, unsigned long flags) {
 #ifdef SYS_process_vm_readv
-  return syscall(SYS_process_vm_readv,
-      pid, local_iov, liovcnt, remote_iov, riovcnt, flags);
+  return syscall(SYS_process_vm_readv, pid, local_iov, liovcnt, remote_iov,
+                 riovcnt, flags);
 #else
   errno = ENOSYS;
   return -1;
 #endif
 }
 
-static ssize_t process_vm_writev(pid_t pid,
-    const struct iovec *local_iov, unsigned long liovcnt,
-    const struct iovec *remote_iov, unsigned long riovcnt,
-    unsigned long flags)
-{
+static ssize_t process_vm_writev(pid_t pid, const struct iovec *local_iov,
+                                 unsigned long liovcnt,
+                                 const struct iovec *remote_iov,
+                                 unsigned long riovcnt, unsigned long flags) {
 #ifdef SYS_process_vm_writev
-  return syscall(SYS_process_vm_writev,
-      pid, local_iov, liovcnt, remote_iov, riovcnt, flags);
+  return syscall(SYS_process_vm_writev, pid, local_iov, liovcnt, remote_iov,
+                 riovcnt, flags);
 #else
   errno = ENOSYS;
   return -1;
@@ -84,119 +81,121 @@ static ssize_t process_vm_writev(pid_t pid,
 
 #endif /* !__GLIBC_PREREQ(2,15) */
 
-
 typedef int (*intKludge)();
 
-int P_getopt(int argc, char *argv[], const char *optstring)
-{
+int P_getopt(int argc, char *argv[], const char *optstring) {
   /* On linux we prepend a + character */
-  char newopt[strlen(optstring)+5];
+  char newopt[strlen(optstring) + 5];
   strcpy(newopt, "+");
   strcat(newopt, optstring);
   return getopt(argc, argv, newopt);
 }
 
 int P_copy(const char *from, const char *to) {
-    std::ifstream src(from, std::ios::binary);
-    std::ofstream dst(to, std::ios::binary | std::ios::trunc);
-    dst << src.rdbuf();
-    dst.close();
-    src.close();
-    return (src && dst) ? 0 : -1;
+  std::ifstream src(from, std::ios::binary);
+  std::ofstream dst(to, std::ios::binary | std::ios::trunc);
+  dst << src.rdbuf();
+  dst.close();
+  src.close();
+  return (src && dst) ? 0 : -1;
 }
 
-
 unsigned long long PDYN_div1000(unsigned long long in) {
-   /* Divides by 1000 without an integer division instruction or library call, both of
-    * which are slow.
-    * We do only shifts, adds, and subtracts.
-    *
-    * We divide by 1000 in this way:
-    * multiply by 1/1000, or multiply by (1/1000)*2^30 and then right-shift by 30.
-    * So what is 1/1000 * 2^30?
-    * It is 1,073,742.   (actually this is rounded)
-    * So we can multiply by 1,073,742 and then right-shift by 30 (neat, eh?)
-    *
-    * Now for multiplying by 1,073,742...
-    * 1,073,742 = (1,048,576 + 16384 + 8192 + 512 + 64 + 8 + 4 + 2)
-    * or, slightly optimized:
-    * = (1,048,576 + 16384 + 8192 + 512 + 64 + 16 - 2)
-    * for a total of 8 shifts and 6 add/subs, or 14 operations.
-    *
-    */
+  /* Divides by 1000 without an integer division instruction or library call,
+   * both of
+   * which are slow.
+   * We do only shifts, adds, and subtracts.
+   *
+   * We divide by 1000 in this way:
+   * multiply by 1/1000, or multiply by (1/1000)*2^30 and then right-shift by
+   * 30.
+   * So what is 1/1000 * 2^30?
+   * It is 1,073,742.   (actually this is rounded)
+   * So we can multiply by 1,073,742 and then right-shift by 30 (neat, eh?)
+   *
+   * Now for multiplying by 1,073,742...
+   * 1,073,742 = (1,048,576 + 16384 + 8192 + 512 + 64 + 8 + 4 + 2)
+   * or, slightly optimized:
+   * = (1,048,576 + 16384 + 8192 + 512 + 64 + 16 - 2)
+   * for a total of 8 shifts and 6 add/subs, or 14 operations.
+   *
+   */
 
-   unsigned long long temp = in << 20; // multiply by 1,048,576
-      // beware of overflow; left shift by 20 is quite a lot.
-      // If you know that the input fits in 32 bits (4 billion) then
-      // no problem.  But if it's much bigger then start worrying...
+  unsigned long long temp = in << 20;  // multiply by 1,048,576
+  // beware of overflow; left shift by 20 is quite a lot.
+  // If you know that the input fits in 32 bits (4 billion) then
+  // no problem.  But if it's much bigger then start worrying...
 
-   temp += in << 14; // 16384
-   temp += in << 13; // 8192
-   temp += in << 9;  // 512
-   temp += in << 6;  // 64
-   temp += in << 4;  // 16
-   temp -= in >> 2;  // 2
+  temp += in << 14;  // 16384
+  temp += in << 13;  // 8192
+  temp += in << 9;   // 512
+  temp += in << 6;   // 64
+  temp += in << 4;   // 16
+  temp -= in >> 2;   // 2
 
-   return (temp >> 30); // divide by 2^30
+  return (temp >> 30);  // divide by 2^30
 }
 
 unsigned long long PDYN_divMillion(unsigned long long in) {
-   /* Divides by 1,000,000 without an integer division instruction or library call,
-    * both of which are slow.
-    * We do only shifts, adds, and subtracts.
-    *
-    * We divide by 1,000,000 in this way:
-    * multiply by 1/1,000,000, or multiply by (1/1,000,000)*2^30 and then right-shift
-    * by 30.  So what is 1/1,000,000 * 2^30?
-    * It is 1,074.   (actually this is rounded)
-    * So we can multiply by 1,074 and then right-shift by 30 (neat, eh?)
-    *
-    * Now for multiplying by 1,074
-    * 1,074 = (1024 + 32 + 16 + 2)
-    * for a total of 4 shifts and 4 add/subs, or 8 operations.
-    *
-    * Note: compare with div1000 -- it's cheaper to divide by a million than
-    *       by a thousand (!)
-    *
-    */
+  /* Divides by 1,000,000 without an integer division instruction or library
+   * call,
+   * both of which are slow.
+   * We do only shifts, adds, and subtracts.
+   *
+   * We divide by 1,000,000 in this way:
+   * multiply by 1/1,000,000, or multiply by (1/1,000,000)*2^30 and then
+   * right-shift
+   * by 30.  So what is 1/1,000,000 * 2^30?
+   * It is 1,074.   (actually this is rounded)
+   * So we can multiply by 1,074 and then right-shift by 30 (neat, eh?)
+   *
+   * Now for multiplying by 1,074
+   * 1,074 = (1024 + 32 + 16 + 2)
+   * for a total of 4 shifts and 4 add/subs, or 8 operations.
+   *
+   * Note: compare with div1000 -- it's cheaper to divide by a million than
+   *       by a thousand (!)
+   *
+   */
 
-   unsigned long long temp = in << 10; // multiply by 1024
-      // beware of overflow...if the input arg uses more than 52 bits
-      // than start worrying about whether (in << 10) plus the smaller additions
-      // we're gonna do next will fit in 64...
+  unsigned long long temp = in << 10;  // multiply by 1024
+  // beware of overflow...if the input arg uses more than 52 bits
+  // than start worrying about whether (in << 10) plus the smaller additions
+  // we're gonna do next will fit in 64...
 
-   temp += in << 5; // 32
-   temp += in << 4; // 16
-   temp += in << 1; // 2
+  temp += in << 5;  // 32
+  temp += in << 4;  // 16
+  temp += in << 1;  // 2
 
-   return (temp >> 30); // divide by 2^30
+  return (temp >> 30);  // divide by 2^30
 }
 
 unsigned long long PDYN_mulMillion(unsigned long long in) {
-   unsigned long long result = in;
+  unsigned long long result = in;
 
-   /* multiply by 125 by multiplying by 128 and subtracting 3x */
-   result = (result << 7) - result - result - result;
+  /* multiply by 125 by multiplying by 128 and subtracting 3x */
+  result = (result << 7) - result - result - result;
 
-   /* multiply by 125 again, for a total of 15625x */
-   result = (result << 7) - result - result - result;
+  /* multiply by 125 again, for a total of 15625x */
+  result = (result << 7) - result - result - result;
 
-   /* multiply by 64, for a total of 1,000,000x */
-   result <<= 6;
+  /* multiply by 64, for a total of 1,000,000x */
+  result <<= 6;
 
-   /* cost was: 3 shifts and 6 subtracts
-    * cost of calling mul1000(mul1000()) would be: 6 shifts and 4 subtracts
-    *
-    * Another algorithm is to multiply by 2^6 and then 5^6.
-    * The former is super-cheap (one shift); the latter is more expensive.
-    * 5^6 = 15625 = 16384 - 512 - 256 + 8 + 1
-    * so multiplying by 5^6 means 4 shift operations and 4 add/sub ops
-    * so multiplying by 1000000 means 5 shift operations and 4 add/sub ops.
-    * That may or may not be cheaper than what we're doing (3 shifts; 6 subtracts);
-    * I'm not sure.  --ari
-    */
+  /* cost was: 3 shifts and 6 subtracts
+   * cost of calling mul1000(mul1000()) would be: 6 shifts and 4 subtracts
+   *
+   * Another algorithm is to multiply by 2^6 and then 5^6.
+   * The former is super-cheap (one shift); the latter is more expensive.
+   * 5^6 = 15625 = 16384 - 512 - 256 + 8 + 1
+   * so multiplying by 5^6 means 4 shift operations and 4 add/sub ops
+   * so multiplying by 1000000 means 5 shift operations and 4 add/sub ops.
+   * That may or may not be cheaper than what we're doing (3 shifts; 6
+   * subtracts);
+   * I'm not sure.  --ari
+   */
 
-   return result;
+  return result;
 }
 
 #if defined(cap_gnu_demangler)
@@ -204,259 +203,253 @@ unsigned long long PDYN_mulMillion(unsigned long long in) {
 using namespace abi;
 #endif
 
-char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
-				bool includeTypes )
-{
-  static char* last_symbol = NULL;
+char *P_cplus_demangle(const char *symbol, bool nativeCompiler,
+                       bool includeTypes) {
+  static char *last_symbol = NULL;
   static bool last_native = false;
   static bool last_typed = false;
-  static char* last_demangled = NULL;
+  static char *last_demangled = NULL;
 
-  if(last_symbol && last_demangled && (nativeCompiler == last_native)
-      && (includeTypes == last_typed) && (strcmp(symbol, last_symbol) == 0))
-  {
-      return strdup(last_demangled);
+  if (last_symbol && last_demangled && (nativeCompiler == last_native) &&
+      (includeTypes == last_typed) && (strcmp(symbol, last_symbol) == 0)) {
+    return strdup(last_demangled);
   }
 
 #if defined(cap_gnu_demangler)
-   int status;
-   char *demangled = __cxa_demangle(symbol, NULL, NULL, &status);
-   if (status == -1) {
-      //Memory allocation failure.
-      return NULL;
-   }
-   if (status == -2) {
-      //Not a C++ name
-      return NULL;
-   }
-   assert(status == 0); //Success
+  int status;
+  char *demangled = __cxa_demangle(symbol, NULL, NULL, &status);
+  if (status == -1) {
+    // Memory allocation failure.
+    return NULL;
+  }
+  if (status == -2) {
+    // Not a C++ name
+    return NULL;
+  }
+  assert(status == 0);  // Success
 #else
-   int opts = 0;
-   opts |= includeTypes ? DMGL_PARAMS | DMGL_ANSI : 0;
-   //   [ pgcc/CC are the "native" compilers on Linux. Go figure. ]
-   // pgCC's mangling scheme most closely resembles that of the Annotated
-   // C++ Reference Manual, only with "some exceptions" (to quote the PGI
-   // documentation). I guess we'll demangle names with "some exceptions".
-   opts |= nativeCompiler ? DMGL_ARM : 0;
-   char * demangled = cplus_demangle( const_cast< char *>(symbol), opts);
+  int opts = 0;
+  opts |= includeTypes ? DMGL_PARAMS | DMGL_ANSI : 0;
+  //   [ pgcc/CC are the "native" compilers on Linux. Go figure. ]
+  // pgCC's mangling scheme most closely resembles that of the Annotated
+  // C++ Reference Manual, only with "some exceptions" (to quote the PGI
+  // documentation). I guess we'll demangle names with "some exceptions".
+  opts |= nativeCompiler ? DMGL_ARM : 0;
+  char *demangled = cplus_demangle(const_cast<char *>(symbol), opts);
 #endif
 
-   if( demangled == NULL ) { return NULL; }
+  if (demangled == NULL) {
+    return NULL;
+  }
 
-   if( ! includeTypes ) {
-        /* de-demangling never increases the length */
-        char * dedemangled = strdup( demangled );
-        assert( dedemangled != NULL );
-        dedemangle( demangled, dedemangled );
-        assert( dedemangled != NULL );
+  if (!includeTypes) {
+    /* de-demangling never increases the length */
+    char *dedemangled = strdup(demangled);
+    assert(dedemangled != NULL);
+    dedemangle(demangled, dedemangled);
+    assert(dedemangled != NULL);
 
-        free( demangled );
-        demangled = dedemangled;
-   }
+    free(demangled);
+    demangled = dedemangled;
+  }
 
-   free(last_symbol);
-   free(last_demangled);
-   last_native = nativeCompiler;
-   last_typed = includeTypes;
-   last_symbol = strdup(symbol);
-   last_demangled = strdup(demangled);
+  free(last_symbol);
+  free(last_demangled);
+  last_native = nativeCompiler;
+  last_typed = includeTypes;
+  last_symbol = strdup(symbol);
+  last_demangled = strdup(demangled);
 
-   return demangled;
+  return demangled;
 } /* end P_cplus_demangle() */
 
-bool PtraceBulkRead(Address inTraced, unsigned size, void *inSelf, int pid)
-{
-   static bool have_process_vm_readv = true;
+bool PtraceBulkRead(Address inTraced, unsigned size, void *inSelf, int pid) {
+  static bool have_process_vm_readv = true;
 
-   const unsigned char *ap = (const unsigned char*) inTraced;
-   unsigned char *dp = (unsigned char *) inSelf;
-   Address w = 0x0;               /* ptrace I/O buffer */
-   int len = sizeof(void *);
-   unsigned cnt;
+  const unsigned char *ap = (const unsigned char *)inTraced;
+  unsigned char *dp = (unsigned char *)inSelf;
+  Address w = 0x0; /* ptrace I/O buffer */
+  int len = sizeof(void *);
+  unsigned cnt;
 
-   if (0 == size) {
-      return true;
-   }
+  if (0 == size) {
+    return true;
+  }
 
-   /* If process_vm_readv is available, we may be able to read it all in one syscall. */
-   if (have_process_vm_readv) {
-      struct iovec local_iov = { inSelf, size };
-      struct iovec remote_iov = { (void*)inTraced, size };
-      ssize_t ret = process_vm_readv(pid, &local_iov, 1, &remote_iov, 1, 0);
-      if (ret == -1) {
-         if (errno == ENOSYS) {
-            have_process_vm_readv = false;
-         } else if (errno == EFAULT) {
-            /* Could be a no-read page -- ptrace may be allowed to
-             * peek anyway, so fallthrough and let ptrace try.  */
-         } else {
-            return false;
-         }
-      } else if (ret < size) {
-         /* partial reads won't split an iovec, but we only have one... huh?! */
-         return false;
+  /* If process_vm_readv is available, we may be able to read it all in one
+   * syscall. */
+  if (have_process_vm_readv) {
+    struct iovec local_iov = {inSelf, size};
+    struct iovec remote_iov = {(void *)inTraced, size};
+    ssize_t ret = process_vm_readv(pid, &local_iov, 1, &remote_iov, 1, 0);
+    if (ret == -1) {
+      if (errno == ENOSYS) {
+        have_process_vm_readv = false;
+      } else if (errno == EFAULT) {
+        /* Could be a no-read page -- ptrace may be allowed to
+         * peek anyway, so fallthrough and let ptrace try.  */
       } else {
-         return true;
+        return false;
       }
-   }
+    } else if (ret < size) {
+      /* partial reads won't split an iovec, but we only have one... huh?! */
+      return false;
+    } else {
+      return true;
+    }
+  }
 
-   cnt = inTraced % len;
-   if (cnt) {
-      /* Start of request is not aligned. */
-      unsigned char *p = (unsigned char*) &w;
+  cnt = inTraced % len;
+  if (cnt) {
+    /* Start of request is not aligned. */
+    unsigned char *p = (unsigned char *)&w;
 
-      /* Read the segment containing the unaligned portion, and
-         copy what was requested to DP. */
-      errno = 0;
-      w = P_ptrace(PTRACE_PEEKDATA, pid, (Address) (ap-cnt), w, len);
-      if (errno) {
-         return false;
-      }
-      for (unsigned i = 0; i < len-cnt && i < size; i++)
-         dp[i] = p[cnt+i];
+    /* Read the segment containing the unaligned portion, and
+       copy what was requested to DP. */
+    errno = 0;
+    w = P_ptrace(PTRACE_PEEKDATA, pid, (Address)(ap - cnt), w, len);
+    if (errno) {
+      return false;
+    }
+    for (unsigned i = 0; i < len - cnt && i < size; i++) dp[i] = p[cnt + i];
 
-      if (len-cnt >= size) {
-         return true; /* done */
-      }
+    if (len - cnt >= size) {
+      return true; /* done */
+    }
 
-      dp += len-cnt;
-      ap += len-cnt;
-      size -= len-cnt;
-   }
-   /* Copy aligned portion */
-   while (size >= (u_int)len) {
-      errno = 0;
-      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0, len);
-      if (errno) {
-         return false;
-      }
-      memcpy(dp, &w, len);
-      dp += len;
-      ap += len;
-      size -= len;
-   }
+    dp += len - cnt;
+    ap += len - cnt;
+    size -= len - cnt;
+  }
+  /* Copy aligned portion */
+  while (size >= (u_int)len) {
+    errno = 0;
+    w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address)ap, 0, len);
+    if (errno) {
+      return false;
+    }
+    memcpy(dp, &w, len);
+    dp += len;
+    ap += len;
+    size -= len;
+  }
 
-   if (size > 0) {
-      /* Some unaligned data remains */
-      unsigned char *p = (unsigned char *) &w;
+  if (size > 0) {
+    /* Some unaligned data remains */
+    unsigned char *p = (unsigned char *)&w;
 
-      /* Read the segment containing the unaligned portion, and
-         copy what was requested to DP. */
-      errno = 0;
-      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0, len);
-      if (errno) {
-         return false;
-      }
-      for (unsigned i = 0; i < size; i++)
-         dp[i] = p[i];
-   }
-   return true;
-
+    /* Read the segment containing the unaligned portion, and
+       copy what was requested to DP. */
+    errno = 0;
+    w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address)ap, 0, len);
+    if (errno) {
+      return false;
+    }
+    for (unsigned i = 0; i < size; i++) dp[i] = p[i];
+  }
+  return true;
 }
 
 bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
-                     const void *inSelf, int pid)
-{
-   static bool have_process_vm_writev = true;
+                     const void *inSelf, int pid) {
+  static bool have_process_vm_writev = true;
 
-   unsigned char *ap = (unsigned char*) inTraced;
-   const unsigned char *dp = (const unsigned char*) inSelf;
-   Address w = 0x0;               /* ptrace I/O buffer */
-   int len = sizeof(Address); /* address alignment of ptrace I/O requests */
-   unsigned cnt;
+  unsigned char *ap = (unsigned char *)inTraced;
+  const unsigned char *dp = (const unsigned char *)inSelf;
+  Address w = 0x0;           /* ptrace I/O buffer */
+  int len = sizeof(Address); /* address alignment of ptrace I/O requests */
+  unsigned cnt;
 
-   if (0 == nbytes) {
-      return true;
-   }
+  if (0 == nbytes) {
+    return true;
+  }
 
-   /* If process_vm_writev is available, we may be able to write it all in one syscall. */
-   if (have_process_vm_writev) {
-      struct iovec local_iov = { const_cast<void*>(inSelf), nbytes };
-      struct iovec remote_iov = { (void*)inTraced, nbytes };
-      ssize_t ret = process_vm_writev(pid, &local_iov, 1, &remote_iov, 1, 0);
-      if (ret == -1) {
-         if (errno == ENOSYS) {
-            have_process_vm_writev = false;
-         } else if (errno == EFAULT) {
-            /* Could be a read-only page -- ptrace may be allowed to
-             * poke anyway, so fallthrough and let ptrace try.  */
-         } else {
-            return false;
-         }
-      } else if (ret < nbytes) {
-         /* partial writes won't split an iovec, but we only have one... huh?! */
-         return false;
+  /* If process_vm_writev is available, we may be able to write it all in one
+   * syscall. */
+  if (have_process_vm_writev) {
+    struct iovec local_iov = {const_cast<void *>(inSelf), nbytes};
+    struct iovec remote_iov = {(void *)inTraced, nbytes};
+    ssize_t ret = process_vm_writev(pid, &local_iov, 1, &remote_iov, 1, 0);
+    if (ret == -1) {
+      if (errno == ENOSYS) {
+        have_process_vm_writev = false;
+      } else if (errno == EFAULT) {
+        /* Could be a read-only page -- ptrace may be allowed to
+         * poke anyway, so fallthrough and let ptrace try.  */
       } else {
-         return true;
+        return false;
       }
-   }
+    } else if (ret < nbytes) {
+      /* partial writes won't split an iovec, but we only have one... huh?! */
+      return false;
+    } else {
+      return true;
+    }
+  }
 
-   if ((cnt = ((Address)ap) % len)) {
-      /* Start of request is not aligned. */
-      unsigned char *p = (unsigned char*) &w;
+  if ((cnt = ((Address)ap) % len)) {
+    /* Start of request is not aligned. */
+    unsigned char *p = (unsigned char *)&w;
 
-      /* Read the segment containing the unaligned portion, edit
-         in the data from DP, and write the segment back. */
-      errno = 0;
-      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) (ap-cnt), 0);
+    /* Read the segment containing the unaligned portion, edit
+       in the data from DP, and write the segment back. */
+    errno = 0;
+    w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address)(ap - cnt), 0);
 
-      if (errno) {
-         return false;
-      }
+    if (errno) {
+      return false;
+    }
 
-      for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
-         p[cnt+i] = dp[i];
+    for (unsigned i = 0; i < len - cnt && i < nbytes; i++) p[cnt + i] = dp[i];
 
-      if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address) (ap-cnt), w)) {
-         return false;
-      }
+    if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address)(ap - cnt), w)) {
+      return false;
+    }
 
-      if (len-cnt >= nbytes) {
-         return true; /* done */
-      }
+    if (len - cnt >= nbytes) {
+      return true; /* done */
+    }
 
-      dp += len-cnt;
-      ap += len-cnt;
-      nbytes -= len-cnt;
-   }
+    dp += len - cnt;
+    ap += len - cnt;
+    nbytes -= len - cnt;
+  }
 
-   /* Copy aligned portion */
-   while (nbytes >= (u_int)len) {
-      assert(0 == ((Address)ap) % len);
-      memcpy(&w, dp, len);
-      int retval =  P_ptrace(PTRACE_POKETEXT, pid, (Address) ap, w);
-      if (retval < 0) {
-         return false;
-      }
+  /* Copy aligned portion */
+  while (nbytes >= (u_int)len) {
+    assert(0 == ((Address)ap) % len);
+    memcpy(&w, dp, len);
+    int retval = P_ptrace(PTRACE_POKETEXT, pid, (Address)ap, w);
+    if (retval < 0) {
+      return false;
+    }
 
-      // Check...
-      dp += len;
-      ap += len;
-      nbytes -= len;
-   }
+    // Check...
+    dp += len;
+    ap += len;
+    nbytes -= len;
+  }
 
-   if (nbytes > 0) {
-      /* Some unaligned data remains */
-      unsigned char *p = (unsigned char *) &w;
+  if (nbytes > 0) {
+    /* Some unaligned data remains */
+    unsigned char *p = (unsigned char *)&w;
 
-      /* Read the segment containing the unaligned portion, edit
-         in the data from DP, and write it back. */
-      errno = 0;
-      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0);
+    /* Read the segment containing the unaligned portion, edit
+       in the data from DP, and write it back. */
+    errno = 0;
+    w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address)ap, 0);
 
-      if (errno) {
-         return false;
-      }
+    if (errno) {
+      return false;
+    }
 
+    for (unsigned i = 0; i < nbytes; i++) p[i] = dp[i];
 
-      for (unsigned i = 0; i < nbytes; i++)
-         p[i] = dp[i];
-
-      if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address) ap, w)) {
-         return false;
-      }
-   }
-   return true;
+    if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address)ap, w)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 // These constants are not defined in all versions of elf.h
@@ -474,24 +467,18 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
 #endif
 
 static bool couldBeVsyscallPage(map_entries *entry, bool strict, Address) {
-   if (strict) {
-       if (entry->prems != PREMS_PRIVATE)
-         return false;
-      if (entry->path[0] != '\0')
-         return false;
-   }
-   if (entry->offset != 0)
-      return false;
-   if (entry->dev_major != 0 || entry->dev_minor != 0)
-      return false;
-   if (entry->inode != 0)
-      return false;
+  if (strict) {
+    if (entry->prems != PREMS_PRIVATE) return false;
+    if (entry->path[0] != '\0') return false;
+  }
+  if (entry->offset != 0) return false;
+  if (entry->dev_major != 0 || entry->dev_minor != 0) return false;
+  if (entry->inode != 0) return false;
 
-   return true;
+  return true;
 }
 
-bool AuxvParser::readAuxvInfo()
-{
+bool AuxvParser::readAuxvInfo() {
   /**
    * The location of the vsyscall is stored in /proc/PID/auxv in Linux 2.6.
    * auxv consists of a list of name/value pairs, ending with the AT_NULL
@@ -513,61 +500,57 @@ bool AuxvParser::readAuxvInfo()
    * On latter 2.6 kernels the AT_SYSINFO field isn't present,
    * so we have to resort to more "extreme" measures.
    **/
-  buffer64 = (uint64_t *) readAuxvFromProc();
+  buffer64 = (uint64_t *)readAuxvFromProc();
   if (!buffer64) {
-     buffer64 = (uint64_t *) readAuxvFromStack();
+    buffer64 = (uint64_t *)readAuxvFromStack();
   }
   if (!buffer64) {
-     return false;
+    return false;
   }
-  buffer32 = (uint32_t *) buffer64;
+  buffer32 = (uint32_t *)buffer64;
   do {
-     /**Fill in the auxv_entry structure.  We may have to do different
-      * size reads depending on the address space.  No matter which
-      * size we read, we'll fill the data in to auxv_entry, which may
-      * involve a size shift up.
-      **/
-     if (addr_size == 4) {
-        auxv_entry.type = (unsigned long) buffer32[pos];
-        pos++;
-        auxv_entry.value = (unsigned long) buffer32[pos];
-        pos++;
-     }
-     else {
-        auxv_entry.type = (unsigned long) buffer64[pos];
-        pos++;
-        auxv_entry.value = (unsigned long) buffer64[pos];
-        pos++;
-     }
+    /**Fill in the auxv_entry structure.  We may have to do different
+     * size reads depending on the address space.  No matter which
+     * size we read, we'll fill the data in to auxv_entry, which may
+     * involve a size shift up.
+     **/
+    if (addr_size == 4) {
+      auxv_entry.type = (unsigned long)buffer32[pos];
+      pos++;
+      auxv_entry.value = (unsigned long)buffer32[pos];
+      pos++;
+    } else {
+      auxv_entry.type = (unsigned long)buffer64[pos];
+      pos++;
+      auxv_entry.value = (unsigned long)buffer64[pos];
+      pos++;
+    }
 
-     switch(auxv_entry.type) {
-        case AT_SYSINFO:
-           text_start = auxv_entry.value;
-           break;
-        case AT_SYSINFO_EHDR:
-           dso_start = auxv_entry.value;
-           break;
-        case AT_PAGESZ:
-           page_size = auxv_entry.value;
-           break;
-        case AT_BASE:
-           interpreter_base = auxv_entry.value;
-           break;
-        case AT_PHDR:
-           phdr = auxv_entry.value;
-           break;
-     }
+    switch (auxv_entry.type) {
+      case AT_SYSINFO:
+        text_start = auxv_entry.value;
+        break;
+      case AT_SYSINFO_EHDR:
+        dso_start = auxv_entry.value;
+        break;
+      case AT_PAGESZ:
+        page_size = auxv_entry.value;
+        break;
+      case AT_BASE:
+        interpreter_base = auxv_entry.value;
+        break;
+      case AT_PHDR:
+        phdr = auxv_entry.value;
+        break;
+    }
 
   } while (auxv_entry.type != AT_NULL);
 
-
-  if (buffer64)
-     free(buffer64);
-  if (!page_size)
-     page_size = getpagesize();
+  if (buffer64) free(buffer64);
+  if (!page_size) page_size = getpagesize();
 //#if !defined(arch_x86) && !defined(arch_x86_64)
 #if !defined(arch_x86) && !defined(arch_x86_64) && !defined(arch_aarch64)
-  //No vsyscall page needed or present
+  // No vsyscall page needed or present
   return true;
 #endif
 
@@ -579,19 +562,18 @@ bool AuxvParser::readAuxvInfo()
   std::vector<Address> guessed_addrs;
 
   /* The first thing to check is the auxvinfo, if we have any. */
-  if( dso_start != 0x0 )
-     guessed_addrs.push_back( dso_start );
+  if (dso_start != 0x0) guessed_addrs.push_back(dso_start);
 
-  /**
-   * We'll make several educatbed attempts at guessing an address
-   * for the vsyscall page.  After deciding on a guess, we'll try to
-   * verify that using /proc/pid/maps.
-   **/
+/**
+ * We'll make several educatbed attempts at guessing an address
+ * for the vsyscall page.  After deciding on a guess, we'll try to
+ * verify that using /proc/pid/maps.
+ **/
 
-  // Guess some constants that we've seen before.
+// Guess some constants that we've seen before.
 #if defined(arch_x86)
-  guessed_addrs.push_back(0xffffe000); //Many early 2.6 systems
-  guessed_addrs.push_back(0xffffd000); //RHEL4
+  guessed_addrs.push_back(0xffffe000);  // Many early 2.6 systems
+  guessed_addrs.push_back(0xffffd000);  // RHEL4
 #endif
 #if defined(arch_x86_64)
   guessed_addrs.push_back(0xffffffffff600000);
@@ -605,32 +587,31 @@ bool AuxvParser::readAuxvInfo()
   unsigned num_maps;
   map_entries *secondary_match = NULL;
   map_entries *maps = getVMMaps(pid, num_maps);
-  for (unsigned i=0; i<guessed_addrs.size(); i++) {
-     Address addr = guessed_addrs[i];
-     for (unsigned j=0; j<num_maps; j++) {
-        map_entries *entry = &(maps[j]);
-        if (addr < entry->start || addr >= entry->end)
-           continue;
+  for (unsigned i = 0; i < guessed_addrs.size(); i++) {
+    Address addr = guessed_addrs[i];
+    for (unsigned j = 0; j < num_maps; j++) {
+      map_entries *entry = &(maps[j]);
+      if (addr < entry->start || addr >= entry->end) continue;
 
-        if (dso_start == entry->start ||
-            couldBeVsyscallPage(entry, true, page_size)) {
-           //We found a possible page using a strict check.
-           // This is really likely to be it.
-           vsyscall_base = entry->start;
-           vsyscall_end = entry->end;
-           vsyscall_text = text_start;
-           found_vsyscall = true;
-           free(maps);
-           return true;
-        }
+      if (dso_start == entry->start ||
+          couldBeVsyscallPage(entry, true, page_size)) {
+        // We found a possible page using a strict check.
+        // This is really likely to be it.
+        vsyscall_base = entry->start;
+        vsyscall_end = entry->end;
+        vsyscall_text = text_start;
+        found_vsyscall = true;
+        free(maps);
+        return true;
+      }
 
-        if (couldBeVsyscallPage(entry, false, page_size)) {
-           //We found an entry that loosely looks like the
-           // vsyscall page.  Let's hang onto this and return
-           // it if we find nothing else.
-           secondary_match = entry;
-        }
-     }
+      if (couldBeVsyscallPage(entry, false, page_size)) {
+        // We found an entry that loosely looks like the
+        // vsyscall page.  Let's hang onto this and return
+        // it if we find nothing else.
+        secondary_match = entry;
+      }
+    }
   }
 
   /**
@@ -638,27 +619,27 @@ bool AuxvParser::readAuxvInfo()
    * try to look at every entry in the maps table (not just the
    * guessed addresses), and see if any of those look like a vsyscall page.
    **/
-  for (unsigned i=0; i<num_maps; i++) {
-     if (couldBeVsyscallPage(&(maps[i]), true, page_size)) {
-        vsyscall_base = maps[i].start;
-        vsyscall_end = maps[i].end;
-        vsyscall_text = text_start;
-        found_vsyscall = true;
-        free(maps);
-        return true;
-     }
+  for (unsigned i = 0; i < num_maps; i++) {
+    if (couldBeVsyscallPage(&(maps[i]), true, page_size)) {
+      vsyscall_base = maps[i].start;
+      vsyscall_end = maps[i].end;
+      vsyscall_text = text_start;
+      found_vsyscall = true;
+      free(maps);
+      return true;
+    }
   }
 
   /**
    * Return any secondary possiblitiy pages we found in our earlier search.
    **/
   if (secondary_match) {
-     vsyscall_base = secondary_match->start;
-     vsyscall_end = secondary_match->end;
-     vsyscall_text = text_start;
-     found_vsyscall = true;
-     free(maps);
-     return true;
+    vsyscall_base = secondary_match->start;
+    vsyscall_end = secondary_match->end;
+    vsyscall_text = text_start;
+    found_vsyscall = true;
+    free(maps);
+    return true;
   }
 
   /**
@@ -942,195 +923,181 @@ void *AuxvParser::readAuxvFromStack(process *proc) {
 #else
 
 void *AuxvParser::readAuxvFromStack() {
-   /**
-    * Disabled, for now.  Re-enable if /proc/pid/auxv doesn't exist.
-    **/
-   return NULL;
+  /**
+   * Disabled, for now.  Re-enable if /proc/pid/auxv doesn't exist.
+   **/
+  return NULL;
 }
 
 #endif
 
 #define READ_BLOCK_SIZE (1024 * 5)
 void *AuxvParser::readAuxvFromProc() {
-   char filename[64];
-   unsigned char *buffer = NULL;
-   unsigned char *temp;
-   unsigned buffer_size = READ_BLOCK_SIZE;
-   unsigned pos = 0;
-   ssize_t result = 0;
-   int fd = -1;
+  char filename[64];
+  unsigned char *buffer = NULL;
+  unsigned char *temp;
+  unsigned buffer_size = READ_BLOCK_SIZE;
+  unsigned pos = 0;
+  ssize_t result = 0;
+  int fd = -1;
 
-   sprintf(filename, "/proc/%d/auxv", pid);
-   fd = open(filename, O_RDONLY, 0);
-   if (fd == -1)
+  sprintf(filename, "/proc/%d/auxv", pid);
+  fd = open(filename, O_RDONLY, 0);
+  if (fd == -1) goto done_err;
+
+  buffer = (unsigned char *)malloc(buffer_size);
+  if (!buffer) {
+    goto done_err;
+  }
+
+  for (;;) {
+    result = read(fd, buffer + pos, READ_BLOCK_SIZE);
+    if (result == -1) {
+      perror("Couldn't read auxv entry");
       goto done_err;
-
-   buffer = (unsigned char *) malloc(buffer_size);
-   if (!buffer) {
+    } else if (!result && !pos) {
+      // Didn't find any data to read
+      perror("Could read auxv entry");
       goto done_err;
-   }
+    } else if (result < READ_BLOCK_SIZE) {
+      // Success
+      goto done;
+    } else if (result == READ_BLOCK_SIZE) {
+      // WTF... 5k wasn't enough for auxv?
+      buffer_size *= 2;
+      temp = (unsigned char *)realloc(buffer, buffer_size);
+      if (!temp) goto done_err;
+      buffer = temp;
+      pos += READ_BLOCK_SIZE;
+    } else {
+      fprintf(stderr, "[%s:%u] - Unknown error reading auxv\n", __FILE__,
+              __LINE__);
+      goto done_err;
+    }
+  }
 
-   for (;;) {
-      result = read(fd, buffer + pos, READ_BLOCK_SIZE);
-      if (result == -1) {
-         perror("Couldn't read auxv entry");
-         goto done_err;
-      }
-      else if (!result && !pos) {
-         //Didn't find any data to read
-         perror("Could read auxv entry");
-         goto done_err;
-      }
-      else if (result < READ_BLOCK_SIZE) {
-         //Success
-         goto done;
-      }
-      else if (result == READ_BLOCK_SIZE) {
-         //WTF... 5k wasn't enough for auxv?
-         buffer_size *= 2;
-         temp = (unsigned char *) realloc(buffer, buffer_size);
-         if (!temp)
-            goto done_err;
-         buffer = temp;
-         pos += READ_BLOCK_SIZE;
-      }
-      else {
-         fprintf(stderr, "[%s:%u] - Unknown error reading auxv\n",
-                 __FILE__, __LINE__);
-         goto done_err;
-      }
-   }
-
-   done_err:
-      if (buffer)
-         free(buffer);
-      buffer = NULL;
-   done:
-      if (fd != -1)
-         close(fd);
-      return buffer;
+done_err:
+  if (buffer) free(buffer);
+  buffer = NULL;
+done:
+  if (fd != -1) close(fd);
+  return buffer;
 }
-
 
 map_entries *getVMMaps(int pid, unsigned &maps_size) {
-   std::ostringstream maps_filename;
-   maps_filename << "/proc/" << pid << "/maps";
-   std::ifstream maps_file(maps_filename.str());
+  std::ostringstream maps_filename;
+  maps_filename << "/proc/" << pid << "/maps";
+  std::ifstream maps_file(maps_filename.str());
 
-   std::vector<map_entries> maps;
-   while (maps_file.good()) {
-      char delim;
-      std::string prems;
-      map_entries map;
-      memset(&map, 0, sizeof(map));
+  std::vector<map_entries> maps;
+  while (maps_file.good()) {
+    char delim;
+    std::string prems;
+    map_entries map;
+    memset(&map, 0, sizeof(map));
 
-      maps_file >> std::hex >> map.start >> delim >> map.end >> prems >> map.offset
-         >> map.dev_major >> delim >> map.dev_minor >> std::dec >> map.inode;
+    maps_file >> std::hex >> map.start >> delim >> map.end >> prems >>
+        map.offset >> map.dev_major >> delim >> map.dev_minor >> std::dec >>
+        map.inode;
 
-      for (auto i = prems.begin(); i != prems.end(); ++i)
-         switch (*i) {
-            case 'r':
-               map.prems |= PREMS_READ;
-               break;
-            case 'w':
-               map.prems |= PREMS_WRITE;
-               break;
-            case 'x':
-               map.prems |= PREMS_EXEC;
-               break;
-            case 'p':
-               map.prems |= PREMS_PRIVATE;
-               break;
-            case 's':
-               map.prems |= PREMS_EXEC;
-               break;
-         }
+    for (auto i = prems.begin(); i != prems.end(); ++i) switch (*i) {
+        case 'r':
+          map.prems |= PREMS_READ;
+          break;
+        case 'w':
+          map.prems |= PREMS_WRITE;
+          break;
+        case 'x':
+          map.prems |= PREMS_EXEC;
+          break;
+        case 'p':
+          map.prems |= PREMS_PRIVATE;
+          break;
+        case 's':
+          map.prems |= PREMS_EXEC;
+          break;
+      }
 
-      std::string path;
-      std::getline(maps_file, path);
-      path.erase(0, path.find_first_not_of(" \t"));
-      strncpy(map.path, path.c_str(), sizeof(map.path) - 1);
+    std::string path;
+    std::getline(maps_file, path);
+    path.erase(0, path.find_first_not_of(" \t"));
+    strncpy(map.path, path.c_str(), sizeof(map.path) - 1);
 
-      if (maps_file.good())
-         maps.push_back(map);
-   }
+    if (maps_file.good()) maps.push_back(map);
+  }
 
-   if (maps.empty()) {
-      maps_size = 0;
-      return NULL;
-   }
+  if (maps.empty()) {
+    maps_size = 0;
+    return NULL;
+  }
 
-   map_entries *cmaps = (map_entries *)calloc(maps.size() + 1, sizeof(map_entries));
-   if (cmaps != NULL) {
-      std::copy(maps.begin(), maps.end(), cmaps);
-      maps_size = maps.size();
-   }
-   return cmaps;
+  map_entries *cmaps =
+      (map_entries *)calloc(maps.size() + 1, sizeof(map_entries));
+  if (cmaps != NULL) {
+    std::copy(maps.begin(), maps.end(), cmaps);
+    maps_size = maps.size();
+  }
+  return cmaps;
 }
 
-bool findProcLWPs(pid_t pid, std::vector<pid_t> &lwps)
-{
-   char name[32];
-   struct dirent *direntry;
+bool findProcLWPs(pid_t pid, std::vector<pid_t> &lwps) {
+  char name[32];
+  struct dirent *direntry;
 
-   /**
-    * Linux 2.6:
-    **/
-   snprintf(name, 32, "/proc/%d/task", pid);
-   DIR *dirhandle = opendir(name);
-   if (dirhandle)
-   {
-      //Only works on Linux 2.6
-      while((direntry = readdir(dirhandle)) != NULL) {
-         unsigned lwp_id = atoi(direntry->d_name);
-         if (lwp_id)
-            lwps.push_back(lwp_id);
+  /**
+   * Linux 2.6:
+   **/
+  snprintf(name, 32, "/proc/%d/task", pid);
+  DIR *dirhandle = opendir(name);
+  if (dirhandle) {
+    // Only works on Linux 2.6
+    while ((direntry = readdir(dirhandle)) != NULL) {
+      unsigned lwp_id = atoi(direntry->d_name);
+      if (lwp_id) lwps.push_back(lwp_id);
+    }
+    closedir(dirhandle);
+    return true;
+  }
+  /**
+   * Linux 2.4:
+   *
+   * PIDs that are created by pthreads have a '.' prepending their name
+   * in /proc.  We'll check all of those for the ones that have this lwp
+   * as a parent pid.
+   **/
+  dirhandle = opendir("/proc");
+  if (!dirhandle) {
+    // No /proc directory.  I give up.  No threads for you.
+    return false;
+  }
+  while ((direntry = readdir(dirhandle)) != NULL) {
+    if (direntry->d_name[0] != '.') {
+      // fprintf(stderr, "%s[%d]: Skipping entry %s\n", FILE__, __LINE__,
+      // direntry->d_name);
+      continue;
+    }
+    unsigned lwp_id = atoi(direntry->d_name + 1);
+    int lwp_ppid = 0;
+    if (!lwp_id) continue;
+    sprintf(name, "/proc/%d/status", lwp_id);
+    FILE *fd = P_fopen(name, "r");
+    if (!fd) {
+      continue;
+    }
+    char buffer[1024];
+    while (fgets(buffer, 1024, fd)) {
+      if (strncmp(buffer, "Tgid", 4) == 0) {
+        sscanf(buffer, "%*s %d", &lwp_ppid);
+        break;
       }
-      closedir(dirhandle);
-      return true;
-   }
-   /**
-    * Linux 2.4:
-    *
-    * PIDs that are created by pthreads have a '.' prepending their name
-    * in /proc.  We'll check all of those for the ones that have this lwp
-    * as a parent pid.
-    **/
-   dirhandle = opendir("/proc");
-   if (!dirhandle)
-   {
-      //No /proc directory.  I give up.  No threads for you.
-      return false;
-   }
-   while ((direntry = readdir(dirhandle)) != NULL)
-   {
-      if (direntry->d_name[0] != '.') {
-         //fprintf(stderr, "%s[%d]: Skipping entry %s\n", FILE__, __LINE__, direntry->d_name);
-         continue;
-      }
-      unsigned lwp_id = atoi(direntry->d_name+1);
-      int lwp_ppid = 0;
-      if (!lwp_id)
-         continue;
-      sprintf(name, "/proc/%d/status", lwp_id);
-      FILE *fd = P_fopen(name, "r");
-      if (!fd) {
-         continue;
-     }
-     char buffer[1024];
-     while (fgets(buffer, 1024, fd)) {
-         if (strncmp(buffer, "Tgid", 4) == 0) {
-             sscanf(buffer, "%*s %d", &lwp_ppid);
-             break;
-         }
-     }
+    }
 
-     fclose(fd);
+    fclose(fd);
 
-     if (lwp_ppid != pid) {
-         continue;
-     }
-     lwps.push_back(lwp_id);
+    if (lwp_ppid != pid) {
+      continue;
+    }
+    lwps.push_back(lwp_id);
   }
   closedir(dirhandle);
   lwps.push_back(pid);

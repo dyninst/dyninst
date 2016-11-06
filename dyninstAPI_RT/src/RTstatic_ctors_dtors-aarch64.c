@@ -62,13 +62,13 @@ extern void DYNINSTBaseInit();
  */
 
 void DYNINSTglobal_ctors_handler() {
-//#warning "This function is not implemented yet!"
-	assert(0);
+  //#warning "This function is not implemented yet!"
+  assert(0);
 }
 
 void DYNINSTglobal_dtors_handler() {
-//#warning "This function is not implemented yet!"
-	assert(0);
+  //#warning "This function is not implemented yet!"
+  assert(0);
 }
 
 #endif

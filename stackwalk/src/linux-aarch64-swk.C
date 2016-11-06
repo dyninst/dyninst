@@ -50,8 +50,7 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-bool Walker::createDefaultSteppers()
-{
+bool Walker::createDefaultSteppers() {
   FrameStepper *stepper;
   bool result;
 
@@ -59,8 +58,7 @@ bool Walker::createDefaultSteppers()
   stepper = new FrameFuncStepper(this);
   result = addStepper(stepper);
   if (!result) {
-    sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
-	      stepper);
+    sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__, stepper);
     return false;
   }
 
@@ -68,58 +66,51 @@ bool Walker::createDefaultSteppers()
   // Need to adjust a variable that stores the length of _start
   stepper = new BottomOfStackStepper(this);
   result = addStepper(stepper);
-  if (!result){
-    sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
-	      stepper);
+  if (!result) {
+    sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__, stepper);
     return false;
-  }else{
-    sw_printf("[%s:%u] - Stepper %p is BottomOfStackStepper\n",
-            FILE__, __LINE__, stepper);
+  } else {
+    sw_printf("[%s:%u] - Stepper %p is BottomOfStackStepper\n", FILE__,
+              __LINE__, stepper);
   }
 
 #else
   stepper = new DebugStepper(this);
   result = addStepper(stepper);
-  if (!result){
-    sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
-	      stepper);
+  if (!result) {
+    sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__, stepper);
     return false;
-  }else{
-    sw_printf("[%s:%u] - Stepper %p is DebugStepper\n",
-            FILE__, __LINE__, stepper);
+  } else {
+    sw_printf("[%s:%u] - Stepper %p is DebugStepper\n", FILE__, __LINE__,
+              stepper);
   }
 #endif
 
   return true;
 }
 
-bool DebugStepperImpl::isFrameRegister(MachRegister reg)
-{
-   if (getProcessState()->getAddressWidth() == 4){
-       assert(0);
-      return (reg == aarch64::x29);
-   }
-   else
-      return (reg == aarch64::x29);
+bool DebugStepperImpl::isFrameRegister(MachRegister reg) {
+  if (getProcessState()->getAddressWidth() == 4) {
+    assert(0);
+    return (reg == aarch64::x29);
+  } else
+    return (reg == aarch64::x29);
 }
 
-bool DebugStepperImpl::isStackRegister(MachRegister reg)
-{
-   if (getProcessState()->getAddressWidth() == 4){
-       assert(0);
-      return (reg == aarch64::sp);
-   }
-   else
-      return (reg == aarch64::sp);
+bool DebugStepperImpl::isStackRegister(MachRegister reg) {
+  if (getProcessState()->getAddressWidth() == 4) {
+    assert(0);
+    return (reg == aarch64::sp);
+  } else
+    return (reg == aarch64::sp);
 }
 
-gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &/*in*/,
-                                                    Frame &/*out*/)
-{
-   /**
-    * TODO: Implement me on non-x86 platforms.
-    **/
-   return gcf_not_me;
+gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & /*in*/,
+                                                    Frame & /*out*/) {
+  /**
+   * TODO: Implement me on non-x86 platforms.
+   **/
+  return gcf_not_me;
 }
 // what the hell are these numbers?
 // could the last developers leave any comments?
@@ -167,7 +158,8 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & in,
       {
          result = getProcessState()->readMem(&sp, sp_loc.val.addr, addr_size);
          if (!result) {
-            sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
+            sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx
+for signal frame\n",
                       FILE__, __LINE__);
             return gcf_error;
          }
@@ -179,11 +171,13 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & in,
       }
 
       if (frames[i].frame_size && (sp != in.getSP() + frames[i].frame_size)) {
-         sw_printf("[%s:%u] - Signal frame candidate %d does not fit (%lx != %lx). Trying another.\n",
+         sw_printf("[%s:%u] - Signal frame candidate %d does not fit (%lx !=
+%lx). Trying another.\n",
                    FILE__, __LINE__, i, sp, in.getSP() + frames[i].frame_size);
          continue;
       }
-      sw_printf("[%s:%u] - Using signal frame candidate %d\n", FILE__, __LINE__, i);
+      sw_printf("[%s:%u] - Using signal frame candidate %d\n", FILE__, __LINE__,
+i);
 
       location_t fp_loc;
       Address fp = 0x0;
@@ -193,7 +187,8 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & in,
                 FILE__, __LINE__, fp_loc.val.addr);
       result = getProcessState()->readMem(&fp, fp_loc.val.addr, addr_size);
       if (!result) {
-         sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
+         sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for
+signal frame\n",
                    FILE__, __LINE__);
          return gcf_error;
       }
@@ -206,7 +201,8 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & in,
                 FILE__, __LINE__, pc_loc.val.addr);
       result = getProcessState()->readMem(&pc, pc_loc.val.addr, addr_size);
       if (!result) {
-         sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
+         sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for
+signal frame\n",
                    FILE__, __LINE__);
          return gcf_error;
       }
@@ -221,7 +217,8 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & in,
       return gcf_success;
    }
 
-   sw_printf("[%s:%u] - Could not find matching candidate for signal frame\n", FILE__, __LINE__);
+   sw_printf("[%s:%u] - Could not find matching candidate for signal frame\n",
+FILE__, __LINE__);
    return gcf_not_me;
    return gcf_not_me;
 }

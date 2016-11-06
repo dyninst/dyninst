@@ -38,49 +38,42 @@
 //#warning "This file is not implemented yet!"
 using namespace Dyninst;
 
-bool PCProcess::createStackwalkerSteppers()
-{
-	assert(0);
+bool PCProcess::createStackwalkerSteppers() {
+  assert(0);
   return true;
 }
 
-bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
-                                                       Dyninst::Address * /*orig_ra*/,
-                                                       unsigned * stack_height,
-                                                       bool * /* deref */,
-                                                       bool * /*entryExit*/)
-{
-	assert(0);
-	return false;
+bool StackwalkInstrumentationHelper::isInstrumentation(
+    Dyninst::Address ra, Dyninst::Address * /*orig_ra*/, unsigned *stack_height,
+    bool * /* deref */, bool * /*entryExit*/) {
+  assert(0);
+  return false;
 }
 
 using namespace Stackwalker;
 
-FrameFuncHelper::alloc_frame_t DynFrameHelper::allocatesFrame(Address addr)
-{
-	assert(0);
+FrameFuncHelper::alloc_frame_t DynFrameHelper::allocatesFrame(Address addr) {
+  assert(0);
   FrameFuncHelper::alloc_frame_t result;
   return result;
 }
 
-bool DynWandererHelper::isPrevInstrACall(Address /*addr*/, Address &/*target*/)
-{
+bool DynWandererHelper::isPrevInstrACall(Address /*addr*/,
+                                         Address & /*target*/) {
   // NOT IMPLEMENTED
   assert(0);
   return false;
 }
 
-WandererHelper::pc_state DynWandererHelper::isPCInFunc(Address /*func_entry*/, Address /*pc*/)
-{
+WandererHelper::pc_state DynWandererHelper::isPCInFunc(Address /*func_entry*/,
+                                                       Address /*pc*/) {
   // NOT IMPLEMENTED
   assert(0);
   return WandererHelper::unknown_s;
 }
 
-bool DynWandererHelper::requireExactMatch()
-{
+bool DynWandererHelper::requireExactMatch() {
   // NOT IMPLEMENTED
   assert(0);
   return false;
 }
-

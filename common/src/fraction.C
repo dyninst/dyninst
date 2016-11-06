@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -46,11 +46,17 @@ const fraction operator*(const fraction &a, const fraction &b) {
 */
 
 int64_t lcd(int64_t a, int64_t b) {
-  int64_t _gcd = gcd(a,b);
-  if(a > b) { a = a / _gcd; }
-  else      { b = b / _gcd; }
+  int64_t _gcd = gcd(a, b);
+  if (a > b) {
+    a = a / _gcd;
+  } else {
+    b = b / _gcd;
+  }
   int64_t overflowPt = I64_MAX / b;
-  if(a > overflowPt) {  cerr << "lcd: overflow\n";  return -1; }
+  if (a > overflowPt) {
+    cerr << "lcd: overflow\n";
+    return -1;
+  }
   return a * b;
 }
 
@@ -81,10 +87,10 @@ const fraction operator-(const fraction &a, const fraction &b) {
 */
 
 const fraction operator*(const fraction &a, int64_t b) {
-  if(b < a.getInterimMultOverflowPt()) {
+  if (b < a.getInterimMultOverflowPt()) {
     //   b < interimMultOverflowPt
     return fraction(b * a.getNumer(), a.getDenom());
-  } else if(b <= a.getFinalMultOverflowPt()) {
+  } else if (b <= a.getFinalMultOverflowPt()) {
     //   interimMultOverflowPt <= b <= finalMultInterimPt
     cerr << "fraction::operator*- an interim overflow has occurred\n";
     return fraction(I64_MAX);
@@ -96,28 +102,28 @@ const fraction operator*(const fraction &a, int64_t b) {
 
 int64_t fraction::multReturnInt64(int64_t b) const {
   int64_t ret = 0;
-  if(b < getInterimMultOverflowPt()) {
+  if (b < getInterimMultOverflowPt()) {
     //   b < interimMultOverflowPt
     fraction fres(b * getNumer(), getDenom());
     ret = fres.getI();
-  } else if(b <= getFinalMultOverflowPt()) {
+  } else if (b <= getFinalMultOverflowPt()) {
     //   interimMultOverflowPt <= b <= finalMultInterimPt
     ret = multNoInterimOverflow(b);
   } else {  //  finalMultInterimPt < b
-    cerr << "fraction::multReturnInt64- a final overflow has occurred\n";    
+    cerr << "fraction::multReturnInt64- a final overflow has occurred\n";
     return I64_MAX;
   }
   return ret;
 }
 
 void fraction::calcOverflowPts() const {
-  if(getNumer() == 0) 
+  if (getNumer() == 0)
     interimMultOverflowPt = I64_MAX;
-  else 
+  else
     interimMultOverflowPt = I64_MAX / getNumer();
   fraction recip;
   recip.setRaw(getDenom(), getNumer());
-  if(recip.getDenom()==0 || recip.getD() > 1.0) 
+  if (recip.getDenom() == 0 || recip.getD() > 1.0)
     finalMultOverflowPt = I64_MAX;
   else
     finalMultOverflowPt = recip.multNoInterimOverflow(I64_MAX);
@@ -130,8 +136,14 @@ void fraction::calcOverflowPts() const {
 // rsign: -1 for negative, 1 for positive result
 void getFrSpec(int64_t n, int64_t d, double *ra, double *rb, int *rsign) {
   int sign = 1;
-  if(n < 0) { n = -n;  sign = -sign; }
-  if(d < 0) { d = -d;  sign = -sign; }
+  if (n < 0) {
+    n = -n;
+    sign = -sign;
+  }
+  if (d < 0) {
+    d = -d;
+    sign = -sign;
+  }
   *rsign = sign;
   int64_t upperI = n & I64_C(0xFFFFFFFF00000000);
   *ra = static_cast<double>(upperI) / static_cast<double>(d);
@@ -145,12 +157,18 @@ bool operator>(const fraction &a, const fraction &b) {
   double ax, ay;
   int as;
   getFrSpec(a.getNumer(), a.getDenom(), &ax, &ay, &as);
-  if(as == -1) { ax = -ax; ay = -ay; }
+  if (as == -1) {
+    ax = -ax;
+    ay = -ay;
+  }
 
   double bx, by;
   int bs;
   getFrSpec(b.getNumer(), b.getDenom(), &bx, &by, &bs);
-  if(bs == -1) { bx = -bx; by = -by; }
+  if (bs == -1) {
+    bx = -bx;
+    by = -by;
+  }
   return (ax > bx || (ax == bx && ay > by));
 }
 
@@ -158,12 +176,18 @@ bool operator<(const fraction &a, const fraction &b) {
   double ax, ay;
   int as;
   getFrSpec(a.getNumer(), a.getDenom(), &ax, &ay, &as);
-  if(as == -1) { ax = -ax; ay = -ay; }
+  if (as == -1) {
+    ax = -ax;
+    ay = -ay;
+  }
 
   double bx, by;
   int bs;
   getFrSpec(b.getNumer(), b.getDenom(), &bx, &by, &bs);
-  if(bs == -1) { bx = -bx; by = -by; }
+  if (bs == -1) {
+    bx = -bx;
+    by = -by;
+  }
   return (ax < bx || (ax == bx && ay < by));
 }
 
@@ -175,20 +199,18 @@ bool operator<=(const fraction &a, const fraction &b) {
   return ((a < b) || (a == b));
 }
 
-ostream& operator<<(ostream&s, const fraction::ostream_fmt u) {
+ostream &operator<<(ostream &s, const fraction::ostream_fmt u) {
   fraction::curFmt = u;
   return s;
 }
 
-ostream& operator<<(ostream&s, const fraction &z) {
-  if(fraction::curFmt == fraction::sparse) {
+ostream &operator<<(ostream &s, const fraction &z) {
+  if (fraction::curFmt == fraction::sparse) {
     s << "(" << z.getNumer() << "/" << z.getDenom() << ")";
-  } else { // fraction::verbose
+  } else {  // fraction::verbose
     s << "(" << z.getNumer() << "/" << z.getDenom() << " - interimOvflw:";
-    s << z.getInterimMultOverflowPt() << ", finalOvflw: " 
-      << z.getFinalMultOverflowPt();
+    s << z.getInterimMultOverflowPt()
+      << ", finalOvflw: " << z.getFinalMultOverflowPt();
   }
   return s;
 }
-
-
