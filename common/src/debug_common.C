@@ -39,31 +39,28 @@ int common_debug_addrtranslate = 0;
 
 #if defined(_MSC_VER)
 #pragma warning(push)
-#pragma warning(disable:4996)
+#pragma warning(disable : 4996)
 #endif
 
 bool init_debug_common() {
-    static bool initialized = false;
-    if (initialized) return true;
-    initialized = true;
+  static bool initialized = false;
+  if (initialized) return true;
+  initialized = true;
 
-    if (getenv("COMMON_DEBUG_DWARF") ||
-        getenv("DYNINST_DEBUG_DWARF")) {
-       common_debug_dwarf = 1;
-    }
+  if (getenv("COMMON_DEBUG_DWARF") || getenv("DYNINST_DEBUG_DWARF")) {
+    common_debug_dwarf = 1;
+  }
 
-    if (getenv("DYNINST_DEBUG_ADDRTRANSLATE") ||
-        getenv("DYNINST_DEBUG_TRANSLATE")) {
-       common_debug_addrtranslate = 1;
-    }
+  if (getenv("DYNINST_DEBUG_ADDRTRANSLATE") ||
+      getenv("DYNINST_DEBUG_TRANSLATE")) {
+    common_debug_addrtranslate = 1;
+  }
 
-    return true;
+  return true;
 }
 
-
-int dwarf_printf_int(const char *format, ...)
-{
-   init_debug_common();
+int dwarf_printf_int(const char *format, ...) {
+  init_debug_common();
   if (!common_debug_dwarf) return 0;
   if (NULL == format) return -1;
 
@@ -75,9 +72,8 @@ int dwarf_printf_int(const char *format, ...)
   return ret;
 }
 
-int translate_printf_int(const char *format, ...)
-{
-   init_debug_common();
+int translate_printf_int(const char *format, ...) {
+  init_debug_common();
   if (!common_debug_addrtranslate) return 0;
   if (NULL == format) return -1;
 
@@ -89,8 +85,6 @@ int translate_printf_int(const char *format, ...)
   return ret;
 }
 
-
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
-

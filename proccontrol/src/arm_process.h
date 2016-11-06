@@ -35,13 +35,11 @@
 #include <vector>
 #include "int_process.h"
 
-
-class arm_process : virtual public int_process
-{
+class arm_process : virtual public int_process {
  public:
   arm_process(Dyninst::PID p, std::string e, std::vector<std::string> a,
               std::vector<std::string> envp, std::map<int, int> f);
-  arm_process(Dyninst::PID pid_, int_process *p) ;
+  arm_process(Dyninst::PID pid_, int_process *p);
   virtual ~arm_process();
 
   virtual unsigned plat_breakpointSize();
@@ -50,47 +48,45 @@ class arm_process : virtual public int_process
 
   virtual bool plat_convertToBreakpointAddress(Address &addr, int_thread *thr);
 
-  //for emulated SS
+  // for emulated SS
   virtual void cleanupSSOnContinue(int_thread *thr);
   virtual void registerSSClearCB();
   virtual async_ret_t readPCForSS(int_thread *thr, Address &pc);
-  virtual async_ret_t readInsnForSS(Address pc, int_thread *, unsigned int &rawInsn);
-  virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Address> &addrResult);
-  virtual void plat_getEmulatedSingleStepAsyncs(int_thread *, std::set<response::ptr> resps);
+  virtual async_ret_t readInsnForSS(Address pc, int_thread *,
+                                    unsigned int &rawInsn);
+  virtual async_ret_t plat_needsEmulatedSingleStep(
+      int_thread *thr, std::vector<Address> &addrResult);
+  virtual void plat_getEmulatedSingleStepAsyncs(int_thread *,
+                                                std::set<response::ptr> resps);
 
  private:
   std::map<int_thread *, reg_response::ptr> pcs_for_ss;
   std::map<Address, mem_response::ptr> mem_for_ss;
 };
 
-class arm_thread : virtual public int_thread
-{
-  protected:
-    bool have_cached_pc;
-    Address cached_pc;
-  public:
-    arm_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
-    virtual ~arm_thread();
+class arm_thread : virtual public int_thread {
+ protected:
+  bool have_cached_pc;
+  Address cached_pc;
 
-    virtual bool rmHWBreakpoint(hw_breakpoint *bp,
-                                bool suspend,
-                                std::set<response::ptr> &resps,
-                                bool &done);
-    virtual bool addHWBreakpoint(hw_breakpoint *bp,
-                                 bool resume,
-                                 std::set<response::ptr> &resps,
-                                 bool &done);
-    virtual unsigned hwBPAvail(unsigned mode);
+ public:
+  arm_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
+  virtual ~arm_thread();
 
-    virtual EventBreakpoint::ptr decodeHWBreakpoint(response::ptr &resp,
-                                                    bool have_reg = false,
-                                                    Dyninst::MachRegisterVal regval = 0);
-    virtual bool bpNeedsClear(hw_breakpoint *hwbp);
+  virtual bool rmHWBreakpoint(hw_breakpoint *bp, bool suspend,
+                              std::set<response::ptr> &resps, bool &done);
+  virtual bool addHWBreakpoint(hw_breakpoint *bp, bool resume,
+                               std::set<response::ptr> &resps, bool &done);
+  virtual unsigned hwBPAvail(unsigned mode);
 
-    void setCachedPC(Address pc);
-    void clearCachedPC();
-    bool haveCachedPC(Address &pc);
+  virtual EventBreakpoint::ptr decodeHWBreakpoint(
+      response::ptr &resp, bool have_reg = false,
+      Dyninst::MachRegisterVal regval = 0);
+  virtual bool bpNeedsClear(hw_breakpoint *hwbp);
+
+  void setCachedPC(Address pc);
+  void clearCachedPC();
+  bool haveCachedPC(Address &pc);
 };
 
 #endif
-

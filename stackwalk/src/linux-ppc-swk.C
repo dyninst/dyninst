@@ -44,27 +44,24 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-bool Walker::createDefaultSteppers()
-{
+bool Walker::createDefaultSteppers() {
   FrameStepper *stepper;
   bool result;
 
   stepper = new FrameFuncStepper(this);
   result = addStepper(stepper);
   if (!result) {
-    sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
-	      stepper);
+    sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__, stepper);
     return false;
   }
 
   return true;
 }
 
-gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &/*in*/,
-                                                    Frame &/*out*/)
-{
-   /**
-    * TODO: Implement me on non-x86 platforms.
-    **/
-   return gcf_not_me;
+gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & /*in*/,
+                                                    Frame & /*out*/) {
+  /**
+   * TODO: Implement me on non-x86 platforms.
+   **/
+  return gcf_not_me;
 }

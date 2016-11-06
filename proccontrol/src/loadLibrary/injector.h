@@ -9,19 +9,18 @@ namespace Dyninst {
 namespace ProcControlAPI {
 
 class Injector {
-  public:
-   Injector(ProcControlAPI::Process *proc);
-   ~Injector();
+ public:
+  Injector(ProcControlAPI::Process *proc);
+  ~Injector();
 
-   bool inject(std::string libname);
+  bool inject(std::string libname);
 
-  private:
-   bool libraryLoaded(std::string libname);
-   bool checkIfExists(std::string libname);
+ private:
+  bool libraryLoaded(std::string libname);
+  bool checkIfExists(std::string libname);
 
-   ProcControlAPI::Process *proc_;
+  ProcControlAPI::Process *proc_;
 };
-
 };
 };
 

@@ -42,21 +42,13 @@ static const char *last_msg;
 int Dyninst::Stackwalker::dyn_debug_stackwalk = 0;
 static FILE *debug_out = NULL;
 
-err_t Dyninst::Stackwalker::getLastError() {
-  return last_err;
-}
+err_t Dyninst::Stackwalker::getLastError() { return last_err; }
 
-const char *Dyninst::Stackwalker::getLastErrorMsg() {
-   return last_msg;
-}
+const char *Dyninst::Stackwalker::getLastErrorMsg() { return last_msg; }
 
-void Dyninst::Stackwalker::setDebugChannel(FILE *f)
-{
-  debug_out = f;
-}
+void Dyninst::Stackwalker::setDebugChannel(FILE *f) { debug_out = f; }
 
-void Dyninst::Stackwalker::setDebug(bool enable)
-{
+void Dyninst::Stackwalker::setDebug(bool enable) {
   dyn_debug_stackwalk = enable;
 }
 
@@ -65,26 +57,19 @@ void Dyninst::Stackwalker::setLastError(err_t err, const char *msg) {
   last_msg = msg;
 }
 
-void Dyninst::Stackwalker::clearLastError()
-{
-   last_err = 0;
-   last_msg = "";
+void Dyninst::Stackwalker::clearLastError() {
+  last_err = 0;
+  last_msg = "";
 }
 
-FILE *Dyninst::Stackwalker::getDebugChannel() {
-  return debug_out;
-}
+FILE *Dyninst::Stackwalker::getDebugChannel() { return debug_out; }
 
 #if !defined(cap_omit_sw_debug)
-int Dyninst::Stackwalker::sw_printf(const char *format, ...)
-{
+int Dyninst::Stackwalker::sw_printf(const char *format, ...) {
   static int initialized = 0;
-  if (!initialized)
-  {
-    if (getenv("DYNINST_DEBUG_STACKWALK"))
-      dyn_debug_stackwalk = 1;
-    if (!debug_out)
-      debug_out = stderr;
+  if (!initialized) {
+    if (getenv("DYNINST_DEBUG_STACKWALK")) dyn_debug_stackwalk = 1;
+    if (!debug_out) debug_out = stderr;
     initialized = 1;
   }
 

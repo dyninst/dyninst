@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -43,7 +43,7 @@
 #include "addressSpace.h"
 #include "mapped_object.h"
 
-//parse API
+// parse API
 #include <CodeObject.h>
 #include <CodeSource.h>
 
@@ -56,15 +56,13 @@
 using namespace Dyninst::PatchAPI;
 using namespace Dyninst::ParseAPI;
 
-int main(int argc, const char *argv[]) {
-
+int main(int argc, const char* argv[]) {
   // Use BPatch_* classes to initialize
   BPatch bpatch;
   BPatch_binaryEdit* app = bpatch.openBinary("mutatee/c");
   BPatch_image* image = app->getImage();
 
-
-  BPatch_Vector<BPatch_function *> found_funcs;
+  BPatch_Vector<BPatch_function*> found_funcs;
   app->loadLibrary("mutatee/liblib.so");
 
   found_funcs.clear();
@@ -87,8 +85,10 @@ int main(int argc, const char *argv[]) {
   const vector<PatchBlock*>& blks = foo3->getCallBlocks();
   for (int i = 0; i < blks.size(); i++) {
     vector<Point*> func_points;
-    mgr->findPoints(blks[i], Point::PreInsn|Point::PostInsn, inserter(func_points, func_points.begin()));
-    cerr << std::hex << blks[i]->start() << "--" << func_points.size() << " points found\n";
+    mgr->findPoints(blks[i], Point::PreInsn | Point::PostInsn,
+                    inserter(func_points, func_points.begin()));
+    cerr << std::hex << blks[i]->start() << "--" << func_points.size()
+         << " points found\n";
   }
   /*
   vector<Point*> pts;
@@ -100,13 +100,17 @@ int main(int argc, const char *argv[]) {
   // Insert snippets
   BPatch_variableExpr *intCounter = app->malloc(*image->findType("int"));
   BPatch_arithExpr addOne(BPatch_assign, *intCounter,
-                          BPatch_arithExpr(BPatch_plus, *intCounter, BPatch_constExpr(1)));
+                          BPatch_arithExpr(BPatch_plus, *intCounter,
+  BPatch_constExpr(1)));
   BPatch_arithExpr addTwo(BPatch_assign, *intCounter,
-                          BPatch_arithExpr(BPatch_plus, *intCounter, BPatch_constExpr(2)));
+                          BPatch_arithExpr(BPatch_plus, *intCounter,
+  BPatch_constExpr(2)));
   BPatch_arithExpr addThree(BPatch_assign, *intCounter,
-                            BPatch_arithExpr(BPatch_plus, *intCounter, BPatch_constExpr(3)));
+                            BPatch_arithExpr(BPatch_plus, *intCounter,
+  BPatch_constExpr(3)));
   BPatch_arithExpr addFour(BPatch_assign, *intCounter,
-                           BPatch_arithExpr(BPatch_plus, *intCounter, BPatch_constExpr(4)));
+                           BPatch_arithExpr(BPatch_plus, *intCounter,
+  BPatch_constExpr(4)));
 
   SnippetRep<AstNodePtr> one(addOne.ast_wrapper);
   SnippetRep<AstNodePtr> two(addTwo.ast_wrapper);

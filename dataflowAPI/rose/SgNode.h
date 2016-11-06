@@ -5,12 +5,12 @@
 
 class SgNode {
  public:
-    virtual std::string class_name() const = 0;
-    
-    /*! \brief returns new style SageIII enum values */
-    virtual VariantT variantT() const = 0; // MS: new variant used in tree traversal    
-    
-    virtual ~SgNode() {};
+  virtual std::string class_name() const = 0;
 
+  /*! \brief returns new style SageIII enum values */
+  virtual VariantT variantT()
+      const = 0;  // MS: new variant used in tree traversal
+
+  virtual ~SgNode(){};
 };
 #endif

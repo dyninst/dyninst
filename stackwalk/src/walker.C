@@ -45,270 +45,241 @@ using namespace std;
 
 SymbolReaderFactory *Walker::symrfact = NULL;
 
-void Walker::version(int& major, int& minor, int& maintenance)
-{
-    major = SW_MAJOR;
-    minor = SW_MINOR;
-    maintenance = SW_BETA;
+void Walker::version(int &major, int &minor, int &maintenance) {
+  major = SW_MAJOR;
+  minor = SW_MINOR;
+  maintenance = SW_BETA;
 }
 
+Walker::Walker(ProcessState *p, StepperGroup *grp, SymbolLookup *sym,
+               bool default_steppers, std::string exec_name)
+    : proc(NULL), lookup(NULL), creation_error(false), call_count(0) {
+  bool result;
+  // Always start with a process object
+  assert(p);
+  proc = p;
+  proc->walker = this;
 
-Walker::Walker(ProcessState *p,
-               StepperGroup *grp,
-               SymbolLookup *sym,
-               bool default_steppers,
-               std::string exec_name) :
-   proc(NULL),
-   lookup(NULL),
-   creation_error(false),
-   call_count(0)
-{
-   bool result;
-   //Always start with a process object
-   assert(p);
-   proc = p;
-   proc->walker = this;
+  sw_printf("[%s:%u] - Creating new Walker with proc=%p, sym=%p, step = %d\n",
+            FILE__, __LINE__, proc, sym, (int)default_steppers);
+  group = grp ? grp : createDefaultStepperGroup();
+  if (default_steppers) {
+    result = createDefaultSteppers();
+    if (!result) {
+      sw_printf("[%s:%u] - Error creating default steppers\n", FILE__,
+                __LINE__);
+      creation_error = true;
+      return;
+    }
+  }
 
-   sw_printf("[%s:%u] - Creating new Walker with proc=%p, sym=%p, step = %d\n",
-             FILE__, __LINE__, proc, sym, (int) default_steppers);
-   group = grp ? grp : createDefaultStepperGroup();
-   if (default_steppers) {
-      result = createDefaultSteppers();
-      if (!result) {
-         sw_printf("[%s:%u] - Error creating default steppers\n",
-                   FILE__, __LINE__);
-         creation_error = true;
-         return;
-      }
-   }
-
-   lookup = sym ? sym : createDefaultSymLookup(exec_name);
-   if (lookup) {
-      lookup->walker = this;
-   }
-   else {
-      sw_printf("[%s:%u] - WARNING, no symbol lookup available\n",
-                FILE__, __LINE__);
-   }
+  lookup = sym ? sym : createDefaultSymLookup(exec_name);
+  if (lookup) {
+    lookup->walker = this;
+  } else {
+    sw_printf("[%s:%u] - WARNING, no symbol lookup available\n", FILE__,
+              __LINE__);
+  }
 }
 
-Walker* Walker::newWalker(std::string exec_name)
-{
-  sw_printf("[%s:%u] - Creating new stackwalker on current process\n",
-            FILE__, __LINE__);
+Walker *Walker::newWalker(std::string exec_name) {
+  sw_printf("[%s:%u] - Creating new stackwalker on current process\n", FILE__,
+            __LINE__);
 
   ProcessState *newproc = createDefaultProcess(exec_name);
   if (!newproc) {
-    sw_printf("[%s:%u] - Error creating default process\n",
-	      FILE__, __LINE__);
+    sw_printf("[%s:%u] - Error creating default process\n", FILE__, __LINE__);
     return NULL;
   }
 
   Walker *newwalker = new Walker(newproc, NULL, NULL, true, exec_name);
   if (!newwalker || newwalker->creation_error) {
-    sw_printf("[%s:%u] - Error creating new Walker object %p\n",
-	      FILE__, __LINE__, newwalker);
+    sw_printf("[%s:%u] - Error creating new Walker object %p\n", FILE__,
+              __LINE__, newwalker);
     return NULL;
   }
 
-  sw_printf("[%s:%u] - Successfully created Walker %p\n",
-	    FILE__, __LINE__, newwalker);
+  sw_printf("[%s:%u] - Successfully created Walker %p\n", FILE__, __LINE__,
+            newwalker);
 
   return newwalker;
 }
 
-Walker *Walker::newWalker(Dyninst::PID pid,
-                          std::string executable)
-{
-  sw_printf("[%s:%u] - Creating new stackwalker for process %d on %s\n",
-            FILE__, __LINE__, (int) pid, executable.c_str());
+Walker *Walker::newWalker(Dyninst::PID pid, std::string executable) {
+  sw_printf("[%s:%u] - Creating new stackwalker for process %d on %s\n", FILE__,
+            __LINE__, (int)pid, executable.c_str());
 
   ProcessState *newproc = createDefaultProcess(pid, executable);
   if (!newproc) {
-    sw_printf("[%s:%u] - Error creating default process\n",
-	      FILE__, __LINE__);
+    sw_printf("[%s:%u] - Error creating default process\n", FILE__, __LINE__);
     return NULL;
   }
 
   Walker *newwalker = new Walker(newproc, NULL, NULL, true, executable);
   if (!newwalker || newwalker->creation_error) {
-    sw_printf("[%s:%u] - Error creating new Walker object %p\n",
-	      FILE__, __LINE__, newwalker);
+    sw_printf("[%s:%u] - Error creating new Walker object %p\n", FILE__,
+              __LINE__, newwalker);
     return NULL;
   }
 
-  sw_printf("[%s:%u] - Successfully created Walker %p\n",
-	    FILE__, __LINE__, newwalker);
+  sw_printf("[%s:%u] - Successfully created Walker %p\n", FILE__, __LINE__,
+            newwalker);
 
   return newwalker;
 }
 
 Walker *Walker::newWalker(std::string exec_name,
-                          const std::vector<std::string> &argv)
-{
-   sw_printf("[%s:%u] - Creating new stackwalker with process %s\n",
-             FILE__, __LINE__, exec_name.c_str());
+                          const std::vector<std::string> &argv) {
+  sw_printf("[%s:%u] - Creating new stackwalker with process %s\n", FILE__,
+            __LINE__, exec_name.c_str());
 
-   ProcessState *newproc = createDefaultProcess(exec_name, argv);
-   if (!newproc) {
-      sw_printf("[%s:%u] - Error creating default process\n",
-                FILE__, __LINE__);
-      return NULL;
-   }
+  ProcessState *newproc = createDefaultProcess(exec_name, argv);
+  if (!newproc) {
+    sw_printf("[%s:%u] - Error creating default process\n", FILE__, __LINE__);
+    return NULL;
+  }
 
-   Walker *newwalker = new Walker(newproc, NULL, NULL, true, exec_name);
-   if (!newwalker || newwalker->creation_error) {
-      sw_printf("[%s:%u] - Error creating new Walker object %p\n",
-                FILE__, __LINE__, newwalker);
-      return NULL;
-   }
+  Walker *newwalker = new Walker(newproc, NULL, NULL, true, exec_name);
+  if (!newwalker || newwalker->creation_error) {
+    sw_printf("[%s:%u] - Error creating new Walker object %p\n", FILE__,
+              __LINE__, newwalker);
+    return NULL;
+  }
 
-   sw_printf("[%s:%u] - Successfully created Walker %p\n",
-             FILE__, __LINE__, newwalker);
+  sw_printf("[%s:%u] - Successfully created Walker %p\n", FILE__, __LINE__,
+            newwalker);
 
-   return newwalker;
+  return newwalker;
 }
 
-Walker *Walker::newWalker(ProcessState *proc,
-                          StepperGroup *grp,
-                          SymbolLookup *lookup,
-                          bool default_steppers)
-{
-   if (!proc) {
-      sw_printf("[%s:%u] - Error proc parameter to newWalker must not be NULL\n",
-                FILE__, __LINE__);
-      setLastError(err_badparam, "Tried to create a walker with a NULL " \
-                   "ProcessState param");
-      return NULL;
-   }
-   sw_printf("[%s:%u] - Creating custom Walker with proc = %p" \
-             "lookup = %p\n", FILE__, __LINE__, proc, lookup);
+Walker *Walker::newWalker(ProcessState *proc, StepperGroup *grp,
+                          SymbolLookup *lookup, bool default_steppers) {
+  if (!proc) {
+    sw_printf("[%s:%u] - Error proc parameter to newWalker must not be NULL\n",
+              FILE__, __LINE__);
+    setLastError(err_badparam,
+                 "Tried to create a walker with a NULL "
+                 "ProcessState param");
+    return NULL;
+  }
+  sw_printf(
+      "[%s:%u] - Creating custom Walker with proc = %p"
+      "lookup = %p\n",
+      FILE__, __LINE__, proc, lookup);
 
-   Walker *newwalker = new Walker(proc, grp, lookup, default_steppers, "");
-   if (!newwalker || newwalker->creation_error) {
-      sw_printf("[%s:%u] - Error creating new Walker object %p\n",
-                FILE__, __LINE__, newwalker);
-      return NULL;
-   }
+  Walker *newwalker = new Walker(proc, grp, lookup, default_steppers, "");
+  if (!newwalker || newwalker->creation_error) {
+    sw_printf("[%s:%u] - Error creating new Walker object %p\n", FILE__,
+              __LINE__, newwalker);
+    return NULL;
+  }
 
-   sw_printf("[%s:%u] - Successfully created Walker %p\n",
-             FILE__, __LINE__, newwalker);
+  sw_printf("[%s:%u] - Successfully created Walker %p\n", FILE__, __LINE__,
+            newwalker);
 
-   return newwalker;
+  return newwalker;
 }
 
-Walker *Walker::newWalker(Dyninst::PID pid)
-{
-   return newWalker(pid, "");
-}
+Walker *Walker::newWalker(Dyninst::PID pid) { return newWalker(pid, ""); }
 
-Walker *Walker::newWalker(Dyninst::ProcControlAPI::Process::ptr proc)
-{
+Walker *Walker::newWalker(Dyninst::ProcControlAPI::Process::ptr proc) {
   sw_printf("[%s:%u] - Creating new stackwalker for ProcControl process %d\n",
-	    FILE__, __LINE__, (int) proc->getPid());
+            FILE__, __LINE__, (int)proc->getPid());
 
   ProcessState *newproc = createDefaultProcess(proc);
   if (!newproc) {
-    sw_printf("[%s:%u] - Error creating default process\n",
-	      FILE__, __LINE__);
+    sw_printf("[%s:%u] - Error creating default process\n", FILE__, __LINE__);
     return NULL;
   }
 
   Walker *newwalker = new Walker(newproc, NULL, NULL, true, string());
   if (!newwalker || newwalker->creation_error) {
-    sw_printf("[%s:%u] - Error creating new Walker object %p\n",
-	      FILE__, __LINE__, newwalker);
+    sw_printf("[%s:%u] - Error creating new Walker object %p\n", FILE__,
+              __LINE__, newwalker);
     return NULL;
   }
 
-  sw_printf("[%s:%u] - Successfully created Walker %p\n",
-	    FILE__, __LINE__, newwalker);
+  sw_printf("[%s:%u] - Successfully created Walker %p\n", FILE__, __LINE__,
+            newwalker);
 
   return newwalker;
 }
 
 bool Walker::newWalker(const std::vector<Dyninst::PID> &pids,
-                       std::vector<Walker *> &walkers_out)
-{
-   return newWalker(pids, walkers_out, "");
+                       std::vector<Walker *> &walkers_out) {
+  return newWalker(pids, walkers_out, "");
 }
 
 bool Walker::newWalker(const std::vector<Dyninst::PID> &pids,
                        std::vector<Walker *> &walkers_out,
-                       std::string executable)
-{
-  sw_printf("[%s:%u] - Creating multiple stackwalkers\n",
-	    FILE__, __LINE__);
+                       std::string executable) {
+  sw_printf("[%s:%u] - Creating multiple stackwalkers\n", FILE__, __LINE__);
   unsigned num_errors = 0;
 
   vector<ProcDebug *> new_dbs;
   bool pd_result = createDefaultProcess(pids, new_dbs);
   if (!pd_result) {
-     sw_printf("[%s:%u] - Errors attaching to some processes\n",
-               FILE__, __LINE__);
+    sw_printf("[%s:%u] - Errors attaching to some processes\n", FILE__,
+              __LINE__);
   }
 
   vector<ProcDebug *>::iterator i;
   for (i = new_dbs.begin(); i != new_dbs.end(); i++) {
-     ProcDebug *pd = *i;
-     if (!pd) {
-        assert(!pd_result);
-        walkers_out.push_back(NULL);
-        num_errors++;
-        continue;
-     }
+    ProcDebug *pd = *i;
+    if (!pd) {
+      assert(!pd_result);
+      walkers_out.push_back(NULL);
+      num_errors++;
+      continue;
+    }
 
-     Walker *newwalker = new Walker((ProcessState *) pd, NULL, NULL, true, executable);
-     if (!newwalker || newwalker->creation_error) {
-        sw_printf("[%s:%u] - Error creating new Walker object %p\n",
-                  FILE__, __LINE__, newwalker);
-        walkers_out.push_back(NULL);
-        num_errors++;
-        continue;
-     }
+    Walker *newwalker =
+        new Walker((ProcessState *)pd, NULL, NULL, true, executable);
+    if (!newwalker || newwalker->creation_error) {
+      sw_printf("[%s:%u] - Error creating new Walker object %p\n", FILE__,
+                __LINE__, newwalker);
+      walkers_out.push_back(NULL);
+      num_errors++;
+      continue;
+    }
 
-     sw_printf("[%s:%u] - Successfully created walker for %d\n",
-               FILE__, __LINE__, pd->getProcessId());
-     walkers_out.push_back(newwalker);
+    sw_printf("[%s:%u] - Successfully created walker for %d\n", FILE__,
+              __LINE__, pd->getProcessId());
+    walkers_out.push_back(newwalker);
   }
 
-  if (num_errors == pids.size())
-     return false;
+  if (num_errors == pids.size()) return false;
   return true;
 }
 
 Walker::~Walker() {
-   if (proc)
-      delete proc;
-   if (lookup)
-      delete lookup;
-   delete group;
+  if (proc) delete proc;
+  if (lookup) delete lookup;
+  delete group;
 }
 
-SymbolReaderFactory *Walker::getSymbolReader()
-{
-   if (Walker::symrfact) {
-      return Walker::symrfact;
-   }
+SymbolReaderFactory *Walker::getSymbolReader() {
+  if (Walker::symrfact) {
+    return Walker::symrfact;
+  }
 
-   SymbolReaderFactory *fact = ProcControlAPI::Process::getDefaultSymbolReader();
-   if (fact) {
-      Walker::symrfact = fact;
-      return fact;
-   }
+  SymbolReaderFactory *fact = ProcControlAPI::Process::getDefaultSymbolReader();
+  if (fact) {
+    Walker::symrfact = fact;
+    return fact;
+  }
 
-   fact = Stackwalker::getDefaultSymbolReader();
-   if (fact) {
-      Walker::symrfact = fact;
-      return fact;
-   }
-   return NULL;
+  fact = Stackwalker::getDefaultSymbolReader();
+  if (fact) {
+    Walker::symrfact = fact;
+    return fact;
+  }
+  return NULL;
 }
 
-void Walker::setSymbolReader(SymbolReaderFactory *srf)
-{
-   symrfact = srf;
-   ProcControlAPI::Process::setDefaultSymbolReader(srf);
+void Walker::setSymbolReader(SymbolReaderFactory *srf) {
+  symrfact = srf;
+  ProcControlAPI::Process::setDefaultSymbolReader(srf);
 }
 
 /**
@@ -329,495 +300,440 @@ void Walker::setSymbolReader(SymbolReaderFactory *srf)
  * #define rather than make two copies of this code.  Also, this is only
  * legal to call from a Walker object.
  **/
-#define getInitialFrameImpl(frame, thread) \
-{ \
-  result = true; \
-  Dyninst::MachRegister pc_reg, frm_reg, stk_reg; \
-  Dyninst::MachRegisterVal pc, sp, fp; \
-  location_t loc; \
-  if (thread == NULL_THR_ID) { \
-    result = proc->getDefaultThread(thread); \
-    if (!result) { \
-      sw_printf("getDefaultThread returned an error\n"); \
-      result = false; \
-      goto done_gifi; \
-    } \
-  } \
-  result = proc->getRegValue(Dyninst::ReturnAddr, thread, pc); \
-  result = result && proc->getRegValue(Dyninst::StackTop, thread, sp); \
-  result = result && proc->getRegValue(Dyninst::FrameBase, thread, fp); \
-  if (!result) { \
-    sw_printf("Failed to get registers from process\n"); \
-    result = false; \
-    goto done_gifi; \
-  } \
-  frame.setRA(pc); \
-  frame.setFP(fp); \
-  frame.setSP(sp); \
-  loc.location = loc_register; \
-  loc.val.reg = Dyninst::ReturnAddr; \
-  frame.setRALocation(loc); \
-  loc.val.reg = Dyninst::StackTop; \
-  frame.setSPLocation(loc); \
-  loc.val.reg = Dyninst::FrameBase; \
-  frame.setFPLocation(loc); \
-  frame.setThread(thread); \
-  frame.markTopFrame(); \
-  done_gifi: ; \
-}
+#define getInitialFrameImpl(frame, thread)                                \
+  {                                                                       \
+    result = true;                                                        \
+    Dyninst::MachRegister pc_reg, frm_reg, stk_reg;                       \
+    Dyninst::MachRegisterVal pc, sp, fp;                                  \
+    location_t loc;                                                       \
+    if (thread == NULL_THR_ID) {                                          \
+      result = proc->getDefaultThread(thread);                            \
+      if (!result) {                                                      \
+        sw_printf("getDefaultThread returned an error\n");                \
+        result = false;                                                   \
+        goto done_gifi;                                                   \
+      }                                                                   \
+    }                                                                     \
+    result = proc->getRegValue(Dyninst::ReturnAddr, thread, pc);          \
+    result = result && proc->getRegValue(Dyninst::StackTop, thread, sp);  \
+    result = result && proc->getRegValue(Dyninst::FrameBase, thread, fp); \
+    if (!result) {                                                        \
+      sw_printf("Failed to get registers from process\n");                \
+      result = false;                                                     \
+      goto done_gifi;                                                     \
+    }                                                                     \
+    frame.setRA(pc);                                                      \
+    frame.setFP(fp);                                                      \
+    frame.setSP(sp);                                                      \
+    loc.location = loc_register;                                          \
+    loc.val.reg = Dyninst::ReturnAddr;                                    \
+    frame.setRALocation(loc);                                             \
+    loc.val.reg = Dyninst::StackTop;                                      \
+    frame.setSPLocation(loc);                                             \
+    loc.val.reg = Dyninst::FrameBase;                                     \
+    frame.setFPLocation(loc);                                             \
+    frame.setThread(thread);                                              \
+    frame.markTopFrame();                                                 \
+  done_gifi:;                                                             \
+  }
 
-bool Walker::walkStack(std::vector<Frame> &stackwalk, THR_ID thread)
-{
-   bool result;
-   Frame initialFrame(this);
+bool Walker::walkStack(std::vector<Frame> &stackwalk, THR_ID thread) {
+  bool result;
+  Frame initialFrame(this);
 
-   if (thread == NULL_THR_ID) {
-      result = proc->getDefaultThread(thread);
-      if (!result) {
-         sw_printf("[%s:%u] - Couldn't get initial thread on %d\n",
-                   FILE__, __LINE__, proc->getProcessId());
-         return false;
-      }
-   }
-
-   result = callPreStackwalk(thread);
-   if (!result) {
-      sw_printf("[%s:%u] - Call to preStackwalk failed, exiting from stackwalk\n",
-                FILE__, __LINE__);
+  if (thread == NULL_THR_ID) {
+    result = proc->getDefaultThread(thread);
+    if (!result) {
+      sw_printf("[%s:%u] - Couldn't get initial thread on %d\n", FILE__,
+                __LINE__, proc->getProcessId());
       return false;
-   }
+    }
+  }
 
-   sw_printf("[%s:%u] - Starting stackwalk on thread %d\n",
-             FILE__, __LINE__, (int) thread);
+  result = callPreStackwalk(thread);
+  if (!result) {
+    sw_printf("[%s:%u] - Call to preStackwalk failed, exiting from stackwalk\n",
+              FILE__, __LINE__);
+    return false;
+  }
 
-   getInitialFrameImpl(initialFrame, thread);
-   if (!result) {
-      sw_printf("[%s:%u] - Failed to get registers from process\n",
-                FILE__, __LINE__, (int) thread);
-      goto done;
-   }
+  sw_printf("[%s:%u] - Starting stackwalk on thread %d\n", FILE__, __LINE__,
+            (int)thread);
 
-   result = walkStackFromFrame(stackwalk, initialFrame);
-   if (!result) {
-      sw_printf("[%s:%u] - walkStackFromFrame failed\n",
-                FILE__, __LINE__, (int) thread);
-      goto done;
-   }
+  getInitialFrameImpl(initialFrame, thread);
+  if (!result) {
+    sw_printf("[%s:%u] - Failed to get registers from process\n", FILE__,
+              __LINE__, (int)thread);
+    goto done;
+  }
 
- done:
-   bool postresult = callPostStackwalk(thread);
-   if (!postresult) {
-      sw_printf("[%s:%u] - Call to postStackwalk failed\n", FILE__, __LINE__);
-      return false;
-   }
-   return result;
+  result = walkStackFromFrame(stackwalk, initialFrame);
+  if (!result) {
+    sw_printf("[%s:%u] - walkStackFromFrame failed\n", FILE__, __LINE__,
+              (int)thread);
+    goto done;
+  }
+
+done:
+  bool postresult = callPostStackwalk(thread);
+  if (!postresult) {
+    sw_printf("[%s:%u] - Call to postStackwalk failed\n", FILE__, __LINE__);
+    return false;
+  }
+  return result;
 }
 
 bool Walker::walkStackFromFrame(std::vector<Frame> &stackwalk,
-                                const Frame &frame)
-{
-   bool result;
+                                const Frame &frame) {
+  bool result;
 
-   stackwalk.clear();
-   stackwalk.push_back(frame);
+  stackwalk.clear();
+  stackwalk.push_back(frame);
 
-   sw_printf("[%s:%u] - walkStackFromFrame called with frame at %lx\n",
-             FILE__, __LINE__, stackwalk.back().getRA());
+  sw_printf("[%s:%u] - walkStackFromFrame called with frame at %lx\n", FILE__,
+            __LINE__, stackwalk.back().getRA());
 
-   result = callPreStackwalk();
-   if (!result) {
-      sw_printf("[%s:%u] - Call to preStackwalk failed, exiting from stackwalk\n",
-                FILE__, __LINE__);
-      return false;
-   }
+  result = callPreStackwalk();
+  if (!result) {
+    sw_printf("[%s:%u] - Call to preStackwalk failed, exiting from stackwalk\n",
+              FILE__, __LINE__);
+    return false;
+  }
 
+  for (;;) {
+    Frame cur_frame(this);
+    sw_printf("[%s:%u] - Walking single frame from %lx\n", FILE__, __LINE__,
+              stackwalk.back().getRA());
 
-   for (;;) {
-     Frame cur_frame(this);
-     sw_printf("[%s:%u] - Walking single frame from %lx\n", FILE__, __LINE__,
-	       stackwalk.back().getRA());
-
-     result = walkSingleFrame(stackwalk.back(), cur_frame);
-     if (!result) {
-        if (getLastError() == err_stackbottom) {
-           sw_printf("[%s:%u] - Reached bottom of stack\n", FILE__, __LINE__);
-           clearLastError();
-           result = true;
-           goto done;
-        }
-        sw_printf("[%s:%u] - Error walking through stack frame %s\n",
-                  FILE__, __LINE__, getLastErrorMsg());
-        result = false;
+    result = walkSingleFrame(stackwalk.back(), cur_frame);
+    if (!result) {
+      if (getLastError() == err_stackbottom) {
+        sw_printf("[%s:%u] - Reached bottom of stack\n", FILE__, __LINE__);
+        clearLastError();
+        result = true;
         goto done;
-     }
-     stackwalk.back().next_stepper = cur_frame.getStepper();
-     stackwalk.push_back(cur_frame);
-   }
+      }
+      sw_printf("[%s:%u] - Error walking through stack frame %s\n", FILE__,
+                __LINE__, getLastErrorMsg());
+      result = false;
+      goto done;
+    }
+    stackwalk.back().next_stepper = cur_frame.getStepper();
+    stackwalk.push_back(cur_frame);
+  }
 
- done:
-   bool postresult = callPostStackwalk();
-   if (!postresult) {
-      sw_printf("[%s:%u] - Call to postStackwalk failed\n", FILE__, __LINE__);
-      return false;
-   }
+done:
+  bool postresult = callPostStackwalk();
+  if (!postresult) {
+    sw_printf("[%s:%u] - Call to postStackwalk failed\n", FILE__, __LINE__);
+    return false;
+  }
 
-   for (std::vector<Frame>::iterator swi = stackwalk.begin();
-        swi != stackwalk.end();
-        ++swi)
-   {
-     swi->prev_frame = NULL;
-   }
+  for (std::vector<Frame>::iterator swi = stackwalk.begin();
+       swi != stackwalk.end(); ++swi) {
+    swi->prev_frame = NULL;
+  }
 
-   sw_printf("[%s:%u] - Finished walking callstack from frame, result = %s\n",
-             FILE__, __LINE__, result ? "true" : "false");
+  sw_printf("[%s:%u] - Finished walking callstack from frame, result = %s\n",
+            FILE__, __LINE__, result ? "true" : "false");
 
-   return result;
+  return result;
 }
 
-bool Walker::walkSingleFrame(const Frame &in, Frame &out)
-{
-   gcframe_ret_t gcf_result;
-   bool result;
-   Frame last_frame = in;
+bool Walker::walkSingleFrame(const Frame &in, Frame &out) {
+  gcframe_ret_t gcf_result;
+  bool result;
+  Frame last_frame = in;
 
-   sw_printf("[%s:%u] - Attempting to walk through frame with RA 0x%lx\n",
-	     FILE__, __LINE__, last_frame.getRA());
+  sw_printf("[%s:%u] - Attempting to walk through frame with RA 0x%lx\n",
+            FILE__, __LINE__, last_frame.getRA());
 
-   result = callPreStackwalk();
-   if (!result) {
-      sw_printf("[%s:%u] - Call to preStackwalk failed, exiting from stackwalk\n",
-                FILE__, __LINE__);
-      return false;
-   }
+  result = callPreStackwalk();
+  if (!result) {
+    sw_printf("[%s:%u] - Call to preStackwalk failed, exiting from stackwalk\n",
+              FILE__, __LINE__);
+    return false;
+  }
 
-   if (!group) {
-      setLastError(err_nogroup, "Attempt to walk a stack without a StepperGroup");
-      return false;
-   }
+  if (!group) {
+    setLastError(err_nogroup, "Attempt to walk a stack without a StepperGroup");
+    return false;
+  }
 
-   out.prev_frame = &in;
+  out.prev_frame = &in;
 
-   FrameStepper *last_stepper = NULL;
-   for (;;)
-   {
-     FrameStepper *cur_stepper = NULL;
-     bool res = group->findStepperForAddr(last_frame.getRA(), cur_stepper,
-                                          last_stepper);
-     if (!res) {
-        sw_printf("[%s:%u] - Unable to find a framestepper for %lx\n",
-                  FILE__, __LINE__, last_frame.getRA());
+  FrameStepper *last_stepper = NULL;
+  for (;;) {
+    FrameStepper *cur_stepper = NULL;
+    bool res = group->findStepperForAddr(last_frame.getRA(), cur_stepper,
+                                         last_stepper);
+    if (!res) {
+      sw_printf("[%s:%u] - Unable to find a framestepper for %lx\n", FILE__,
+                __LINE__, last_frame.getRA());
+      result = false;
+      goto done;
+    }
+    sw_printf("[%s:%u] - Attempting to use stepper %s\n", FILE__, __LINE__,
+              cur_stepper->getName());
+    gcf_result = cur_stepper->getCallerFrame(in, out);
+    if (gcf_result == gcf_success) {
+      sw_printf("[%s:%u] - Success using stepper %s on 0x%lx\n", FILE__,
+                __LINE__, cur_stepper->getName(), in.getRA());
+      if (!checkValidFrame(in, out)) {
+        sw_printf("[%s:%u] - Resulting frame is not valid\n", FILE__, __LINE__);
         result = false;
         goto done;
-     }
-     sw_printf("[%s:%u] - Attempting to use stepper %s\n",
-               FILE__, __LINE__, cur_stepper->getName());
-     gcf_result = cur_stepper->getCallerFrame(in, out);
-     if (gcf_result == gcf_success) {
-       sw_printf("[%s:%u] - Success using stepper %s on 0x%lx\n",
-                 FILE__, __LINE__, cur_stepper->getName(), in.getRA());
-       if (!checkValidFrame(in, out)) {
-          sw_printf("[%s:%u] - Resulting frame is not valid\n", FILE__, __LINE__);
-          result = false;
-          goto done;
-       }
-       sw_printf("[%s:%u] - Returning frame with RA %lx, SP %lx, FP %lx\n",
-		 FILE__, __LINE__, out.getRA(), out.getSP(), out.getFP());
-       out.setStepper(cur_stepper);
-       result = true;
-       goto done;
-     }
-     else if (gcf_result == gcf_not_me) {
-       last_stepper = cur_stepper;
-       sw_printf("[%s:%u] - Stepper %s declined address 0x%lx\n",
-                 FILE__, __LINE__, cur_stepper->getName(), in.getRA());
-       continue;
-     }
-     else if (gcf_result == gcf_stackbottom) {
-        sw_printf("[%s:%u] - Stepper %s bottomed out on 0x%lx\n",
-                  FILE__, __LINE__, cur_stepper->getName(), in.getRA());
-       setLastError(err_stackbottom, "walkSingleFrame reached bottom of stack");
-       result = false;
-       goto done;
-     }
-     else if (gcf_result == gcf_error) {
-        sw_printf("[%s:%u] - A stepper reported error %d on frame at %lx\n",
-                  FILE__, __LINE__, cur_stepper, in.getRA());
-       result = false;
-       goto done;
-     }
-   }
+      }
+      sw_printf("[%s:%u] - Returning frame with RA %lx, SP %lx, FP %lx\n",
+                FILE__, __LINE__, out.getRA(), out.getSP(), out.getFP());
+      out.setStepper(cur_stepper);
+      result = true;
+      goto done;
+    } else if (gcf_result == gcf_not_me) {
+      last_stepper = cur_stepper;
+      sw_printf("[%s:%u] - Stepper %s declined address 0x%lx\n", FILE__,
+                __LINE__, cur_stepper->getName(), in.getRA());
+      continue;
+    } else if (gcf_result == gcf_stackbottom) {
+      sw_printf("[%s:%u] - Stepper %s bottomed out on 0x%lx\n", FILE__,
+                __LINE__, cur_stepper->getName(), in.getRA());
+      setLastError(err_stackbottom, "walkSingleFrame reached bottom of stack");
+      result = false;
+      goto done;
+    } else if (gcf_result == gcf_error) {
+      sw_printf("[%s:%u] - A stepper reported error %d on frame at %lx\n",
+                FILE__, __LINE__, cur_stepper, in.getRA());
+      result = false;
+      goto done;
+    }
+  }
 
- done:
-   out.setThread(in.getThread());
-   bool postresult = callPostStackwalk();
-   if (!postresult) {
-      sw_printf("[%s:%u] - Call to postStackwalk failed\n", FILE__, __LINE__);
-      return false;
-   }
+done:
+  out.setThread(in.getThread());
+  bool postresult = callPostStackwalk();
+  if (!postresult) {
+    sw_printf("[%s:%u] - Call to postStackwalk failed\n", FILE__, __LINE__);
+    return false;
+  }
 
-   return result;
+  return result;
 }
 
 bool Walker::getInitialFrame(Frame &frame, THR_ID thread) {
-   bool result;
-   frame.walker = this;
-   result = callPreStackwalk(thread);
-   if (!result) {
-      sw_printf("[%s:%u] - Call to preStackwalk failed, exiting from stackwalk\n",
-                FILE__, __LINE__);
-      return false;
-   }
+  bool result;
+  frame.walker = this;
+  result = callPreStackwalk(thread);
+  if (!result) {
+    sw_printf("[%s:%u] - Call to preStackwalk failed, exiting from stackwalk\n",
+              FILE__, __LINE__);
+    return false;
+  }
 
-   getInitialFrameImpl(frame, thread);
-   if (!result) {
-      sw_printf("[%s:%u] - getInitialFrameImpl failed\n",
-                FILE__, __LINE__, (int) thread);
-   }
-   bool postresult = callPostStackwalk(thread);
-   if (!postresult) {
-      sw_printf("[%s:%u] - Call to postStackwalk failed\n", FILE__, __LINE__);
-      return false;
-   }
+  getInitialFrameImpl(frame, thread);
+  if (!result) {
+    sw_printf("[%s:%u] - getInitialFrameImpl failed\n", FILE__, __LINE__,
+              (int)thread);
+  }
+  bool postresult = callPostStackwalk(thread);
+  if (!postresult) {
+    sw_printf("[%s:%u] - Call to postStackwalk failed\n", FILE__, __LINE__);
+    return false;
+  }
 
-   return result;
+  return result;
 }
-
 
 bool Walker::getAvailableThreads(std::vector<THR_ID> &threads) const {
-   threads.clear();
-   bool result = proc->getThreadIds(threads);
-   if (dyn_debug_stackwalk) {
-      if (!result) {
-         sw_printf("[%s:%u] - getThreadIds error\n", FILE__, __LINE__);
+  threads.clear();
+  bool result = proc->getThreadIds(threads);
+  if (dyn_debug_stackwalk) {
+    if (!result) {
+      sw_printf("[%s:%u] - getThreadIds error\n", FILE__, __LINE__);
+    } else {
+      sw_printf("[%s:%u] - getThreadIds returning %d values:\t\n", FILE__,
+                __LINE__, threads.size());
+      for (unsigned i = 0; i < threads.size(); i++) {
+        sw_printf("%d ", (int)threads[i]);
       }
-      else {
-         sw_printf("[%s:%u] - getThreadIds returning %d values:\t\n",
-                   FILE__, __LINE__, threads.size());
-         for (unsigned i=0; i<threads.size(); i++) {
-            sw_printf("%d ", (int) threads[i]);
-         }
-         sw_printf("\n ");
-      }
-   }
-   return result;
+      sw_printf("\n ");
+    }
+  }
+  return result;
 }
 
-ProcessState *Walker::getProcessState() const {
-   return proc;
+ProcessState *Walker::getProcessState() const { return proc; }
+
+SymbolLookup *Walker::getSymbolLookup() const { return lookup; }
+
+ProcessState *Walker::createDefaultProcess(std::string exec_name) {
+  ProcSelf *pself = new ProcSelf(exec_name);
+  pself->initialize();
+  return pself;
 }
 
-SymbolLookup *Walker::getSymbolLookup() const {
-   return lookup;
+ProcessState *Walker::createDefaultProcess(PID pid, std::string executable) {
+  ProcDebug *pdebug = ProcDebug::newProcDebug(pid, executable);
+  return pdebug;
 }
 
-ProcessState *Walker::createDefaultProcess(std::string exec_name)
-{
-   ProcSelf *pself = new ProcSelf(exec_name);
-   pself->initialize();
-   return pself;
-}
-
-ProcessState *Walker::createDefaultProcess(PID pid, std::string executable)
-{
-   ProcDebug *pdebug = ProcDebug::newProcDebug(pid, executable);
-   return pdebug;
-}
-
-ProcessState *Walker::createDefaultProcess(Dyninst::ProcControlAPI::Process::ptr proc)
-{
-   ProcDebug *pdebug = ProcDebug::newProcDebug(proc);
-   return pdebug;
+ProcessState *Walker::createDefaultProcess(
+    Dyninst::ProcControlAPI::Process::ptr proc) {
+  ProcDebug *pdebug = ProcDebug::newProcDebug(proc);
+  return pdebug;
 }
 
 bool Walker::createDefaultProcess(const vector<Dyninst::PID> &pids,
-                                  vector<ProcDebug *> &pds)
-{
-   return ProcDebug::newProcDebugSet(pids, pds);
+                                  vector<ProcDebug *> &pds) {
+  return ProcDebug::newProcDebugSet(pids, pds);
 }
 
-ProcessState *Walker::createDefaultProcess(std::string exec_name,
-                                           const std::vector<std::string> &argv)
-{
-   ProcDebug *pdebug = ProcDebug::newProcDebug(exec_name, argv);
-   return pdebug;
+ProcessState *Walker::createDefaultProcess(
+    std::string exec_name, const std::vector<std::string> &argv) {
+  ProcDebug *pdebug = ProcDebug::newProcDebug(exec_name, argv);
+  return pdebug;
 }
 
-bool Walker::addStepper(FrameStepper *s)
-{
-   assert(group);
-   sw_printf("[%s:%u] - Registering stepper %s with group %p\n",
-             FILE__, __LINE__, s->getName(), group);
-   group->registerStepper(s);
-   return true;
+bool Walker::addStepper(FrameStepper *s) {
+  assert(group);
+  sw_printf("[%s:%u] - Registering stepper %s with group %p\n", FILE__,
+            __LINE__, s->getName(), group);
+  group->registerStepper(s);
+  return true;
 }
 
-bool Walker::callPreStackwalk(Dyninst::THR_ID tid)
-{
-   call_count++;
-   if (call_count != 1)
-      return true;
+bool Walker::callPreStackwalk(Dyninst::THR_ID tid) {
+  call_count++;
+  if (call_count != 1) return true;
 
-   return getProcessState()->preStackwalk(tid);
+  return getProcessState()->preStackwalk(tid);
 }
 
-bool Walker::callPostStackwalk(Dyninst::THR_ID tid)
-{
-   call_count--;
+bool Walker::callPostStackwalk(Dyninst::THR_ID tid) {
+  call_count--;
 
-   if (call_count != 0)
-      return true;
+  if (call_count != 0) return true;
 
-   return getProcessState()->postStackwalk(tid);
+  return getProcessState()->postStackwalk(tid);
 }
 
-StepperGroup *Walker::createDefaultStepperGroup()
-{
-   return new AddrRangeGroup(this);
+StepperGroup *Walker::createDefaultStepperGroup() {
+  return new AddrRangeGroup(this);
 }
 
-StepperGroup *Walker::getStepperGroup() const
-{
-   return group;
+StepperGroup *Walker::getStepperGroup() const { return group; }
+
+int_walkerSet::int_walkerSet() : non_pd_walkers(0) { initProcSet(); }
+
+int_walkerSet::~int_walkerSet() { clearProcSet(); }
+
+pair<set<Walker *>::iterator, bool> int_walkerSet::insert(Walker *w) {
+  ProcDebug *pd = dynamic_cast<ProcDebug *>(w->getProcessState());
+  if (!pd) {
+    non_pd_walkers++;
+  } else {
+    addToProcSet(pd);
+  }
+
+  return walkers.insert(w);
 }
 
-int_walkerSet::int_walkerSet() :
-   non_pd_walkers(0)
-{
-   initProcSet();
+void int_walkerSet::erase(set<Walker *>::iterator i) {
+  ProcDebug *pd = dynamic_cast<ProcDebug *>((*i)->getProcessState());
+  if (!pd) {
+    non_pd_walkers--;
+  } else {
+    eraseFromProcSet(pd);
+  }
+
+  walkers.erase(i);
 }
 
-int_walkerSet::~int_walkerSet()
-{
-   clearProcSet();
-}
+WalkerSet *WalkerSet::newWalkerSet() { return new WalkerSet(); }
 
-pair<set<Walker *>::iterator, bool> int_walkerSet::insert(Walker *w)
-{
-   ProcDebug *pd = dynamic_cast<ProcDebug *>(w->getProcessState());
-   if (!pd) {
-      non_pd_walkers++;
-   }
-   else {
-      addToProcSet(pd);
-   }
+WalkerSet::WalkerSet() : iwalkerset(new int_walkerSet()) {}
 
-   return walkers.insert(w);
-}
+WalkerSet::~WalkerSet() { delete iwalkerset; }
 
-void int_walkerSet::erase(set<Walker *>::iterator i)
-{
-   ProcDebug *pd = dynamic_cast<ProcDebug *>((*i)->getProcessState());
-   if (!pd) {
-      non_pd_walkers--;
-   }
-   else {
-      eraseFromProcSet(pd);
-   }
+WalkerSet::iterator WalkerSet::begin() { return iwalkerset->walkers.begin(); }
 
-   walkers.erase(i);
-}
-
-WalkerSet *WalkerSet::newWalkerSet()
-{
-   return new WalkerSet();
-}
-
-WalkerSet::WalkerSet() :
-   iwalkerset(new int_walkerSet())
-{
-}
-
-WalkerSet::~WalkerSet()
-{
-   delete iwalkerset;
-}
-
-WalkerSet::iterator WalkerSet::begin() {
-   return iwalkerset->walkers.begin();
-}
-
-WalkerSet::iterator WalkerSet::end() {
-   return iwalkerset->walkers.end();
-}
+WalkerSet::iterator WalkerSet::end() { return iwalkerset->walkers.end(); }
 
 WalkerSet::iterator WalkerSet::find(Walker *w) {
-   return iwalkerset->walkers.find(w);
+  return iwalkerset->walkers.find(w);
 }
 
 WalkerSet::const_iterator WalkerSet::begin() const {
-   return ((const int_walkerSet *) iwalkerset)->walkers.begin();
+  return ((const int_walkerSet *)iwalkerset)->walkers.begin();
 }
 
 WalkerSet::const_iterator WalkerSet::end() const {
-   return ((const int_walkerSet *) iwalkerset)->walkers.end();
+  return ((const int_walkerSet *)iwalkerset)->walkers.end();
 }
 
 WalkerSet::const_iterator WalkerSet::find(Walker *w) const {
-   return ((const int_walkerSet *) iwalkerset)->walkers.find(w);
+  return ((const int_walkerSet *)iwalkerset)->walkers.find(w);
 }
 
 pair<WalkerSet::iterator, bool> WalkerSet::insert(Walker *walker) {
-   return iwalkerset->insert(walker);
+  return iwalkerset->insert(walker);
 }
 
-void WalkerSet::erase(WalkerSet::iterator i) {
-   iwalkerset->erase(i);
-}
+void WalkerSet::erase(WalkerSet::iterator i) { iwalkerset->erase(i); }
 
-bool WalkerSet::empty() const {
-   return iwalkerset->walkers.empty();
-}
+bool WalkerSet::empty() const { return iwalkerset->walkers.empty(); }
 
-size_t WalkerSet::size() const {
-   return iwalkerset->walkers.size();
-}
+size_t WalkerSet::size() const { return iwalkerset->walkers.size(); }
 
 bool WalkerSet::walkStacks(CallTree &tree, bool walk_initial_only) const {
-   if (empty()) {
-      sw_printf("[%s:%u] - Attempt to walk stacks of empty process set\n", FILE__, __LINE__);
+  if (empty()) {
+    sw_printf("[%s:%u] - Attempt to walk stacks of empty process set\n", FILE__,
+              __LINE__);
+    return false;
+  }
+  if (!iwalkerset->non_pd_walkers) {
+    bool bad_plat = false;
+    bool result =
+        iwalkerset->walkStacksProcSet(tree, bad_plat, walk_initial_only);
+    if (result) {
+      // Success
+      return true;
+    }
+    if (!bad_plat) {
+      // Error
       return false;
-   }
-   if (!iwalkerset->non_pd_walkers) {
-      bool bad_plat = false;
-      bool result = iwalkerset->walkStacksProcSet(tree, bad_plat, walk_initial_only);
-      if (result) {
-         //Success
-         return true;
-      }
-      if (!bad_plat) {
-         //Error
-         return false;
-      }
-      sw_printf("[%s:%u] - Platform does not have OS supported unwinding\n", FILE__, __LINE__);
-   }
+    }
+    sw_printf("[%s:%u] - Platform does not have OS supported unwinding\n",
+              FILE__, __LINE__);
+  }
 
-   bool had_error = false;
-   for (const_iterator i = begin(); i != end(); i++) {
-      vector<THR_ID> threads;
-      Walker *walker = *i;
-      bool result = walker->getAvailableThreads(threads);
-      if (!result) {
-         sw_printf("[%s:%u] - Error getting threads for process %d\n", FILE__, __LINE__,
-                   walker->getProcessState()->getProcessId());
-         had_error = true;
-         continue;
+  bool had_error = false;
+  for (const_iterator i = begin(); i != end(); i++) {
+    vector<THR_ID> threads;
+    Walker *walker = *i;
+    bool result = walker->getAvailableThreads(threads);
+    if (!result) {
+      sw_printf("[%s:%u] - Error getting threads for process %d\n", FILE__,
+                __LINE__, walker->getProcessState()->getProcessId());
+      had_error = true;
+      continue;
+    }
+
+    for (vector<THR_ID>::iterator j = threads.begin(); j != threads.end();
+         j++) {
+      std::vector<Frame> swalk;
+      THR_ID thr = *j;
+
+      bool result = walker->walkStack(swalk, thr);
+      if (!result && swalk.empty()) {
+        sw_printf("[%s:%u] - Error walking stack for %d/%d\n", FILE__, __LINE__,
+                  walker->getProcessState()->getProcessId(), thr);
+        had_error = true;
+        continue;
       }
+      tree.addCallStack(swalk, thr, walker, !result);
 
-      for (vector<THR_ID>::iterator j = threads.begin(); j != threads.end(); j++) {
-         std::vector<Frame> swalk;
-         THR_ID thr = *j;
-
-         bool result = walker->walkStack(swalk, thr);
-         if (!result && swalk.empty()) {
-            sw_printf("[%s:%u] - Error walking stack for %d/%d\n", FILE__, __LINE__,
-                      walker->getProcessState()->getProcessId(), thr);
-            had_error = true;
-            continue;
-         }
-         tree.addCallStack(swalk, thr, walker, !result);
-
-         if (walk_initial_only) break;
-      }
-   }
-   return !had_error;
+      if (walk_initial_only) break;
+    }
+  }
+  return !had_error;
 }

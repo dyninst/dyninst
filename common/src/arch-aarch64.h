@@ -56,180 +56,170 @@ namespace NS_aarch64 {
 //#define UNCOND_BR_REG       (0xd6000000)
 
 #define BREAK_POINT_INSN 0xd4200000
-#define ABS(x)      ((x) > 0 ? x : -x)
+#define ABS(x) ((x) > 0 ? x : -x)
 
-#define CHECK_INST(isInst) \
-    !((insn_.raw&isInst##_MASK)^isInst)
+#define CHECK_INST(isInst) !((insn_.raw & isInst##_MASK) ^ isInst)
 
 #define GET_OFFSET32(thisInst) \
-    (((insn_.raw&thisInst##_OFFSET_MASK)>>thisInst##_OFFSHIFT)<<2)
+  (((insn_.raw & thisInst##_OFFSET_MASK) >> thisInst##_OFFSHIFT) << 2)
 
 typedef const unsigned int insn_mask;
 class ATOMIC_t {
-public:
-    static insn_mask LD_MASK =  (0x3f400000);
-    static insn_mask ST_MASK =  (0x3f400000);
-    static insn_mask LD =    (0x08400000);
-    static insn_mask ST =    (0x08000000);
+ public:
+  static insn_mask LD_MASK = (0x3f400000);
+  static insn_mask ST_MASK = (0x3f400000);
+  static insn_mask LD = (0x08400000);
+  static insn_mask ST = (0x08000000);
 };
 
 class UNCOND_BR_t {
-public:
-    static insn_mask IMM_MASK  =(0x7c000000);
-    static insn_mask IMM       =(0x14000000);
-    static insn_mask IMM_OFFSET_MASK   =(0x03ffffff);
-    static insn_mask IMM_OFFSHIFT   = 0;
-    static insn_mask REG_MASK  =(0xfe000000);
-    static insn_mask REG       =(0xd6000000);
-    static insn_mask REG_OFFSET_MASK   =(0x000001e0);
-    static insn_mask REG_OFFSHIFT   =5;
+ public:
+  static insn_mask IMM_MASK = (0x7c000000);
+  static insn_mask IMM = (0x14000000);
+  static insn_mask IMM_OFFSET_MASK = (0x03ffffff);
+  static insn_mask IMM_OFFSHIFT = 0;
+  static insn_mask REG_MASK = (0xfe000000);
+  static insn_mask REG = (0xd6000000);
+  static insn_mask REG_OFFSET_MASK = (0x000001e0);
+  static insn_mask REG_OFFSHIFT = 5;
 };
 
-
 class COND_BR_t {
-public:
-    static insn_mask BR_MASK = 0xfe000000; // conditional br mask
-    static insn_mask CB_MASK = 0x7e000000; // comp&B
-    static insn_mask TB_MASK = 0x7e000000; // test&B
+ public:
+  static insn_mask BR_MASK = 0xfe000000;  // conditional br mask
+  static insn_mask CB_MASK = 0x7e000000;  // comp&B
+  static insn_mask TB_MASK = 0x7e000000;  // test&B
 
-    static insn_mask CB =      0x34000000; // Compare & B
-    static insn_mask TB =      0x36000000; // Test & B
-    static insn_mask BR  =     0x54000000; // Conditional B
+  static insn_mask CB = 0x34000000;  // Compare & B
+  static insn_mask TB = 0x36000000;  // Test & B
+  static insn_mask BR = 0x54000000;  // Conditional B
 
-    static insn_mask CB_OFFSET_MASK = 0x07fffff0;
-    static insn_mask TB_OFFSET_MASK = 0x0007fff0;
-    static insn_mask BR_OFFSET_MASK = 0x07fffff0;
+  static insn_mask CB_OFFSET_MASK = 0x07fffff0;
+  static insn_mask TB_OFFSET_MASK = 0x0007fff0;
+  static insn_mask BR_OFFSET_MASK = 0x07fffff0;
 
-    static insn_mask CB_OFFSHIFT = 4;
-    static insn_mask TB_OFFSHIFT = 4;
-    static insn_mask BR_OFFSHIFT = 4;
+  static insn_mask CB_OFFSHIFT = 4;
+  static insn_mask TB_OFFSHIFT = 4;
+  static insn_mask BR_OFFSHIFT = 4;
 };
 
 typedef union {
-    unsigned char byte[4];
-    unsigned int  raw;
+  unsigned char byte[4];
+  unsigned int raw;
 } instructUnion;
 
 typedef instructUnion codeBuf_t;
 typedef unsigned codeBufIndex_t;
 
-#define maxGPR 31           /* More space than is needed */
-#define maxFPR 32           /* Save FPRs 0-13 */
+#define maxGPR 31 /* More space than is needed */
+#define maxFPR 32 /* Save FPRs 0-13 */
 
 // Helps to mitigate host/target endian mismatches
 unsigned int swapBytesIfNeeded(unsigned int i);
 
 class COMMON_EXPORT instruction {
-	private:
-    instructUnion insn_;
+ private:
+  instructUnion insn_;
 
-	public:
-    instruction() { insn_.raw = 0; }
-    instruction(unsigned int raw) {
-        // Don't flip bits here.  Input is already in host byte order.
-        insn_.raw = raw;
-    }
-    // Pointer creation method
-    instruction(const void *ptr) {
-      insn_ = *((const instructUnion *)ptr);
-    }
+ public:
+  instruction() { insn_.raw = 0; }
+  instruction(unsigned int raw) {
+    // Don't flip bits here.  Input is already in host byte order.
+    insn_.raw = raw;
+  }
+  // Pointer creation method
+  instruction(const void *ptr) { insn_ = *((const instructUnion *)ptr); }
 
-    instruction(const instruction &insn) :        insn_(insn.insn_) {};
-    instruction(instructUnion &insn) :
-        insn_(insn) {};
+  instruction(const instruction &insn) : insn_(insn.insn_){};
+  instruction(instructUnion &insn) : insn_(insn){};
 
-    instruction *copy() const;
+  instruction *copy() const;
 
-    void clear() { insn_.raw = 0; }
-    void setInstruction(codeBuf_t *ptr, Address = 0);
-    void setBits(unsigned int pos, unsigned int len, unsigned int value) {
-        unsigned int mask;
+  void clear() { insn_.raw = 0; }
+  void setInstruction(codeBuf_t *ptr, Address = 0);
+  void setBits(unsigned int pos, unsigned int len, unsigned int value) {
+    unsigned int mask;
 
-        mask = ~(~0 << len);
-        value = value & mask;
+    mask = ~(~0 << len);
+    value = value & mask;
 
-        mask = ~(mask << pos);
-        value = value << pos;
+    mask = ~(mask << pos);
+    value = value << pos;
 
-        insn_.raw = insn_.raw & mask;
-        insn_.raw = insn_.raw | value;
-    }
-    unsigned int asInt() const { return insn_.raw; }
-    void setInstruction(unsigned char *ptr, Address = 0);
+    insn_.raw = insn_.raw & mask;
+    insn_.raw = insn_.raw | value;
+  }
+  unsigned int asInt() const { return insn_.raw; }
+  void setInstruction(unsigned char *ptr, Address = 0);
 
+  // To solve host/target endian mismatches
+  static int signExtend(unsigned int i, unsigned int pos);
+  static instructUnion &swapBytes(instructUnion &i);
 
-    // To solve host/target endian mismatches
-    static int signExtend(unsigned int i, unsigned int pos);
-    static instructUnion &swapBytes(instructUnion &i);
+  // We need instruction::size() all _over_ the place.
+  static unsigned size() { return sizeof(instructUnion); }
 
-    // We need instruction::size() all _over_ the place.
-    static unsigned size() { return sizeof(instructUnion); }
+  Address getBranchOffset() const;
+  Address getBranchTargetAddress() const;
+  void setBranchOffset(Address newOffset);
 
-    Address getBranchOffset() const;
-    Address getBranchTargetAddress() const;
-    void setBranchOffset(Address newOffset);
+  // And tell us how much space we'll need...
+  // Returns -1 if we can't do a branch due to architecture limitations
+  static unsigned jumpSize(Address from, Address to, unsigned addr_width);
+  static unsigned jumpSize(Address disp, unsigned addr_width);
+  static unsigned maxJumpSize(unsigned addr_width);
 
-    // And tell us how much space we'll need...
-    // Returns -1 if we can't do a branch due to architecture limitations
-    static unsigned jumpSize(Address from, Address to, unsigned addr_width);
-    static unsigned jumpSize(Address disp, unsigned addr_width);
-    static unsigned maxJumpSize(unsigned addr_width);
+  static unsigned maxInterFunctionJumpSize(unsigned addr_width);
 
-    static unsigned maxInterFunctionJumpSize(unsigned addr_width);
+  // return the type of the instruction
+  unsigned type() const;
 
-    // return the type of the instruction
-    unsigned type() const;
+  // return a pointer to the instruction
+  const unsigned char *ptr() const { return (const unsigned char *)&insn_; }
 
-    // return a pointer to the instruction
-    const unsigned char *ptr() const { return (const unsigned char *)&insn_; }
+  // For external modification
+  // Don't allow external modification anymore.  Host byte order may differ
+  // from target byte order.
+  // instructUnion &operator* () { return insn_; }
+  // const instructUnion &operator* () const { return insn_; }
+  // const unsigned int &raw() const { return insn_.raw; }
 
-    // For external modification
-    // Don't allow external modification anymore.  Host byte order may differ
-    // from target byte order.
-    //instructUnion &operator* () { return insn_; }
-    //const instructUnion &operator* () const { return insn_; }
-    //const unsigned int &raw() const { return insn_.raw; }
+  unsigned opcode() const;
 
-    unsigned opcode() const;
+  // Local version
+  bool isInsnType(const unsigned mask, const unsigned match) const {
+    return ((insn_.raw & mask) == match);
+  }
 
-    // Local version
-    bool isInsnType(const unsigned mask, const unsigned match) const {
-        return ((insn_.raw & mask) == match);
-    }
+  Address getTarget(Address insnAddr) const;
 
-    Address getTarget(Address insnAddr) const;
+  unsigned spaceToRelocate() const;
+  bool getUsedRegs(pdvector<int> &regs);
 
-    unsigned spaceToRelocate() const;
-    bool getUsedRegs(pdvector<int> &regs);
+  bool valid() const {
+    assert(0);
+    return false;
+  }
 
-    bool valid() const {
-			assert(0);
-			return false;
-		}
+  bool isCall() const;
 
-    bool isCall() const;
+  static bool isAligned(Address addr) { return !(addr & 0x3); }
 
-    static bool isAligned(Address addr) {
-        return !(addr & 0x3);
-    }
+  bool isBranchReg() const;
+  bool isCondBranch() const;
+  bool isUncondBranch() const;
+  bool isThunk() const;
 
-    bool isBranchReg() const;
-    bool isCondBranch() const;
-    bool isUncondBranch() const;
-    bool isThunk() const;
+  bool isCleaningRet() const { return false; }
 
+  bool isAtomicLoad() const;
+  bool isAtomicStore() const;
 
-  	bool isCleaningRet() const {return false; }
-
-    bool isAtomicLoad( ) const;
-    bool isAtomicStore( ) const;
-
-    // inferface for being called outside this class
-    unsigned getTargetReg()const ;
-    unsigned getBranchTargetReg() const;
+  // inferface for being called outside this class
+  unsigned getTargetReg() const;
+  unsigned getBranchTargetReg() const;
 };
-
 }
-//end of NS_aarch64
+// end of NS_aarch64
 
 #endif

@@ -1,34 +1,32 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-
-
 
 #include "Transformer.h"
 #include "Movement-analysis.h"
@@ -40,7 +38,7 @@
 #include "../Widgets/PCWidget.h"
 #include "dataflowAPI/h/stackanalysis.h"
 #include "dyninstAPI/src/addressSpace.h"
-#include "symtabAPI/h/Symtab.h" 
+#include "symtabAPI/h/Symtab.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -64,44 +62,43 @@ int DEBUG_hi = -1;
 int DEBUG_lo = -1;
 
 bool PCSensitiveTransformer::analysisRequired(RelocBlock *blk) {
-   if ( blk->func()->obj()->parse_img()->codeObject()->defensiveMode())
-      return true;
-   return false;
+  if (blk->func()->obj()->parse_img()->codeObject()->defensiveMode())
+    return true;
+  return false;
 }
 
 bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
-   if (!analysisRequired(reloc)) {
-      return adhoc.process(reloc, g);
-   }
+  if (!analysisRequired(reloc)) {
+    return adhoc.process(reloc, g);
+  }
 
-   const block_instance *block = reloc->block();
-   const func_instance *func = reloc->func();
+  const block_instance *block = reloc->block();
+  const func_instance *func = reloc->func();
 
   // Can be true if we see an instrumentation block...
   if (!block) return true;
-  
+
   RelocBlock::WidgetList &elements = reloc->elements();
   for (RelocBlock::WidgetList::iterator iter = elements.begin();
        iter != elements.end(); ++iter) {
-
     // Get the instruction contained by this element; might be from
     // an original instruction (RelocInsn) or the CF wrapper (CFWidget)
     Instruction::Ptr insn = (*iter)->insn();
     if (!insn) continue;
     Address addr = (*iter)->addr();
 
-    // We want to identify all PC-sensitive instructions and 
-    // determine whether they are externally sensitive; that is, 
+    // We want to identify all PC-sensitive instructions and
+    // determine whether they are externally sensitive; that is,
     // whether they will misbehave (heh) given the new structure
-    // of the binary. 
+    // of the binary.
     //
-    // An instruction is PC sensitive if it is moved and uses the 
+    // An instruction is PC sensitive if it is moved and uses the
     // PC. We further subdivide PCsens instructions into two categories:
     // trivially PC sensitive instructions that use the PC to define the
-    // PC and non-trivial PC sensitive instructions (all others). 
-    // 
+    // PC and non-trivial PC sensitive instructions (all others).
+    //
     // Since our CF localization will entirely handle the trivial category
-    // we focus here on the non-trivial category. Thus we're looking for 
+    // we focus here on the non-trivial category. Thus we're looking for
     // two things:
     // 1) Is this instruction PC sensitive - does it use the PC and define
     // a non-PC location.
@@ -111,164 +108,158 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
     if (isSyscall(insn, addr)) {
       continue;
     }
-    
+
     AssignList sensitiveAssignments;
     // This function also returns the sensitive assignments
-    if (!isPCSensitive(insn,
-		       addr,
-                       func,
-                       block,
-		       sensitiveAssignments)) {
-      //cerr << "Instruction " << insn->format() << " not PC sensitive, skipping" << endl;
+    if (!isPCSensitive(insn, addr, func, block, sensitiveAssignments)) {
+      // cerr << "Instruction " << insn->format() << " not PC sensitive,
+      // skipping" << endl;
       continue;
     }
 
     Sens_++;
 
-    sensitivity_cerr << "Instruction is sensitive @ " << hex << addr << dec << endl;
+    sensitivity_cerr << "Instruction is sensitive @ " << hex << addr << dec
+                     << endl;
 
-    // Optimization: before we do some heavyweight analysis, see if we can shortcut
+    // Optimization: before we do some heavyweight analysis, see if we can
+    // shortcut
     bool intSens = false;
     bool extSens = false;
     bool approx = false;
     Absloc dest;
 
     if (insnIsThunkCall(insn, addr, dest)) {
-      //relocation_cerr << "Thunk @ " << hex << addr << dec << endl;
-       handleThunkCall(reloc, g, iter, dest);
-       intSens_++;
-       extSens_++;
-       thunk_++;
-       continue;
+      // relocation_cerr << "Thunk @ " << hex << addr << dec << endl;
+      handleThunkCall(reloc, g, iter, dest);
+      intSens_++;
+      extSens_++;
+      thunk_++;
+      continue;
     }
 
-    if (exceptionSensitive(addr+insn->size(), block)) {
+    if (exceptionSensitive(addr + insn->size(), block)) {
       extSens = true;
-      sensitivity_cerr << "Sensitive by exception @ " << hex << addr << dec << endl;
+      sensitivity_cerr << "Sensitive by exception @ " << hex << addr << dec
+                       << endl;
     }
 
     if (!queryCache(block, addr, intSens, extSens)) {
-       for (AssignList::iterator a_iter = sensitiveAssignments.begin();
-            a_iter != sensitiveAssignments.end(); ++a_iter) {
-          
-		//cerr << "Forward slice from " << (*a_iter)->format() << hex << " @ " << addr << " (parse of " << (*a_iter)->addr() << dec << ") in func " << block->func()->prettyName() << endl;
-          
-          Graph::Ptr slice = forwardSlice(*a_iter,
-                                          block->llb(),
-                                          func->ifunc());
-          
-          if (!slice) {
-             // Safe assumption, as always
-             sensitivity_cerr << "\t slice failed!" << endl;
-             approx = true;
+      for (AssignList::iterator a_iter = sensitiveAssignments.begin();
+           a_iter != sensitiveAssignments.end(); ++a_iter) {
+        // cerr << "Forward slice from " << (*a_iter)->format() << hex << " @ "
+        // << addr << " (parse of " << (*a_iter)->addr() << dec << ") in func "
+        // << block->func()->prettyName() << endl;
+
+        Graph::Ptr slice = forwardSlice(*a_iter, block->llb(), func->ifunc());
+
+        if (!slice) {
+          // Safe assumption, as always
+          sensitivity_cerr << "\t slice failed!" << endl;
+          approx = true;
+        } else {
+          if (slice->size() > 10) {
+            // HACK around a problem with slice sizes
+            approx = true;
+          } else if (!determineSensitivity(slice, intSens, extSens)) {
+            // Analysis failed for some reason... go conservative
+            sensitivity_cerr << "\t sensitivity analysis failed!" << endl;
+            approx = true;
+          } else {
+            sensitivity_cerr << "\t sens analysis returned "
+                             << (intSens ? "intSens" : "") << " / "
+                             << (extSens ? "extSens" : "") << endl;
           }
-          else {
-             if (slice->size() > 10) {
-// HACK around a problem with slice sizes
-                approx = true;
-             }
-             else if (!determineSensitivity(slice, intSens, extSens)) {
-                // Analysis failed for some reason... go conservative
-                sensitivity_cerr << "\t sensitivity analysis failed!" << endl;
-                approx = true;
-             }
-             else {
-                sensitivity_cerr << "\t sens analysis returned " << (intSens ? "intSens" : "") << " / " 
-                                 << (extSens ? "extSens" : "") << endl;
-             }
-          }
-          
-          if (approx || (intSens && extSens)) {
-             break; 
-          }
-       }
+        }
+
+        if (approx || (intSens && extSens)) {
+          break;
+        }
+      }
     }
 
     if (approx) {
-       overApprox_++;
-       intSens = true;
-       extSens = true;
+      overApprox_++;
+      intSens = true;
+      extSens = true;
+    } else {
+      if (extSens) {
+        extSens_++;
+      }
+      if (intSens) {
+        intSens_++;
+      }
     }
-    else {
-       if (extSens) {
-          extSens_++;
-       }
-       if (intSens) {
-          intSens_++;
-       }
-    }
-  
 
     if (extSens) {
-      //cerr << "ExtSens @ " << std::hex << addr << std::dec << endl;
-      // Okay, someone wants the original version. That means, for now, we're emulating.
+      // cerr << "ExtSens @ " << std::hex << addr << std::dec << endl;
+      // Okay, someone wants the original version. That means, for now, we're
+      // emulating.
       if (intSens) {
-	// Fun for the whole family! We have one instruction that wants the changed
-	// version (likely a load or equivalent) and one instruction that wants the
-	// original value (that would be a return). Let's see if we can match a 
-	// thunk call...
-	Absloc destination;
-	if (insnIsThunkCall(insn, addr, destination)) {
-	  // A first example of a group transformation. The "internal" piece comes from
-	  // calling a 2-instruction function that copies the return address elsewhere
-	  // and returns. So we can remove the internal sensitivity by inlining the 
-	  // call.
-	  handleThunkCall(reloc,
-                          g,
-			  iter, 
-			  destination);
-	  continue;
-	}
-	else {
-	  // Not a thunk call, and both externally and internally sensitive. Ugh. 
-	  // Well, because of the external sensitivity we're going to emulate the
-	  // original instruction, which means the internally sensitive target will
-	  // be transferring back to the original instruction address. Go ahead and
-	  // record this...
-	  recordIntSensitive(addr+insn->size());
-	}
+        // Fun for the whole family! We have one instruction that wants the
+        // changed
+        // version (likely a load or equivalent) and one instruction that wants
+        // the
+        // original value (that would be a return). Let's see if we can match a
+        // thunk call...
+        Absloc destination;
+        if (insnIsThunkCall(insn, addr, destination)) {
+          // A first example of a group transformation. The "internal" piece
+          // comes from
+          // calling a 2-instruction function that copies the return address
+          // elsewhere
+          // and returns. So we can remove the internal sensitivity by inlining
+          // the
+          // call.
+          handleThunkCall(reloc, g, iter, destination);
+          continue;
+        } else {
+          // Not a thunk call, and both externally and internally sensitive.
+          // Ugh.
+          // Well, because of the external sensitivity we're going to emulate
+          // the
+          // original instruction, which means the internally sensitive target
+          // will
+          // be transferring back to the original instruction address. Go ahead
+          // and
+          // record this...
+          recordIntSensitive(addr + insn->size());
+        }
       }
-      // And now to the real work. Replace this instruction with an emulation sequence
-      emulateInsn(reloc,
-                  g,
-		  iter, 
-		  insn, 
-		  addr);
+      // And now to the real work. Replace this instruction with an emulation
+      // sequence
+      emulateInsn(reloc, g, iter, insn, addr);
     }
     cacheAnalysis(block, addr, intSens, extSens);
   }
   return true;
 }
 
-bool PCSensitiveTransformer::isPCSensitive(Instruction::Ptr insn,
-					   Address addr,
-					   const func_instance *func,
-					   const block_instance *block,
-					   AssignList &sensitiveAssignments) {
+bool PCSensitiveTransformer::isPCSensitive(Instruction::Ptr insn, Address addr,
+                                           const func_instance *func,
+                                           const block_instance *block,
+                                           AssignList &sensitiveAssignments) {
   if (!(insn->getOperation().getID() == e_call)) return false;
   // FIXME for loopnz instruction
   Absloc pc = Absloc::makePC(func->ifunc()->isrc()->getArch());
 
   // Crack open the instruction and see who uses PC...
   std::vector<Assignment::Ptr> assignments;
-  aConverter.convert(insn,
-		     func->addrToOffset(addr),
-		     func->ifunc(),
-			 block->llb(),
-		     assignments);
+  aConverter.convert(insn, func->addrToOffset(addr), func->ifunc(),
+                     block->llb(), assignments);
   for (std::vector<Assignment::Ptr>::iterator a_iter = assignments.begin();
        a_iter != assignments.end(); ++a_iter) {
     // Assignments that define PC are not sensitive
-    if ((*a_iter)->out().contains(pc))
-      continue;
-    
+    if ((*a_iter)->out().contains(pc)) continue;
+
     // Do you use PC?
     const std::vector<AbsRegion> &ins = (*a_iter)->inputs();
-    for (std::vector<AbsRegion>::const_iterator i = ins.begin();
-	 i != ins.end(); ++i) {
+    for (std::vector<AbsRegion>::const_iterator i = ins.begin(); i != ins.end();
+         ++i) {
       if (i->contains(pc)) {
-	//relocation_cerr << insn->format() << " @" << hex << addr << dec << " is PCsens" << endl;
-	sensitiveAssignments.push_back(*a_iter);
+        // relocation_cerr << insn->format() << " @" << hex << addr << dec << "
+        // is PCsens" << endl;
+        sensitiveAssignments.push_back(*a_iter);
       }
     }
   }
@@ -276,63 +267,64 @@ bool PCSensitiveTransformer::isPCSensitive(Instruction::Ptr insn,
 }
 
 class M_A_Predicates : public Slicer::Predicates {
-public:
+ public:
   bool haveWidened;
 
-  M_A_Predicates() : haveWidened(false) {};
-  virtual ~M_A_Predicates() {};
+  M_A_Predicates() : haveWidened(false){};
+  virtual ~M_A_Predicates(){};
 
-  virtual bool endAtPoint (Assignment::Ptr p) {
+  virtual bool endAtPoint(Assignment::Ptr p) {
     if (p->out().absloc().isPC()) return true;
-	return false;
+    return false;
   }
 
-  virtual bool widenAtPoint (Assignment::Ptr p) {
+  virtual bool widenAtPoint(Assignment::Ptr p) {
     if (p->out().type() != Absloc::Unknown) {
       haveWidened = true;
       return true;
     }
-	if (p->out().containsOfType(Absloc::Register) &&
-		!p->out().absloc().isPC()) {
-			haveWidened = true;
-			return true;
-	}
-	return false;
+    if (p->out().containsOfType(Absloc::Register) &&
+        !p->out().absloc().isPC()) {
+      haveWidened = true;
+      return true;
+    }
+    return false;
   };
 
-  virtual bool widenAtAssignment(const AbsRegion &search, const AbsRegion &found) {
+  virtual bool widenAtAssignment(const AbsRegion &search,
+                                 const AbsRegion &found) {
     if (search != found) {
       haveWidened = true;
       return true;
     }
     return false;
   }
-  
-  virtual bool followCall (ParseAPI::Function *func, 
-			   std::stack<std::pair<ParseAPI::Function *, int> > &cs,
-			   AbsRegion a) {
+
+  virtual bool followCall(ParseAPI::Function *func,
+                          std::stack<std::pair<ParseAPI::Function *, int> > &cs,
+                          AbsRegion a) {
     // If we're looking for a stack slot and entering
-    // a grand-callee, call it quits. 
-    // TODO: it'd be nice to have some way of saying 
-    // "an absloc in the grandparent's stack frame", 
+    // a grand-callee, call it quits.
+    // TODO: it'd be nice to have some way of saying
+    // "an absloc in the grandparent's stack frame",
     // rather than just "on the stack". Since what happens if
     // this is a stack-passed parameter? Ugh...
 
     if (haveWidened) {
       return false;
     }
-    
+
     parse_func *f = static_cast<parse_func *>(func);
     if (f && f->isPLTFunction()) {
       // Don't bother following
       return false;
     }
-    
+
     // Let's try to figure out some sort of reasonable way
     // to not worry about going into a grandparent stack frame...
     if (cs.size() > 1) {
       if (a.absloc().type() == Absloc::Stack) {
-         return false;
+        return false;
       }
     }
     return true;
@@ -340,15 +332,14 @@ public:
 };
 
 Graph::Ptr PCSensitiveTransformer::forwardSlice(Assignment::Ptr ptr,
-						parse_block *block,
-						parse_func *func) {
+                                                parse_block *block,
+                                                parse_func *func) {
   M_A_Predicates pred;
   Slicer slicer(ptr, block, func);
 
   Graph::Ptr g = slicer.forwardSlice(pred);
   return g;
 }
-		     
 
 // Examine a slice to determine whether any of its terminal nodes
 // will cause the program to produce a different value. As a secondary,
@@ -356,9 +347,8 @@ Graph::Ptr PCSensitiveTransformer::forwardSlice(Assignment::Ptr ptr,
 // (pos) and those that will not (neg).
 
 bool PCSensitiveTransformer::determineSensitivity(Graph::Ptr slice,
-						  bool &internal,
-						  bool &external) {
-
+                                                  bool &internal,
+                                                  bool &external) {
   // Step 1: get a symbolic expansion of each node in the slice
   DataflowAPI::Result_t results;
   DataflowAPI::SymEval::expand(slice, results);
@@ -368,32 +358,32 @@ bool PCSensitiveTransformer::determineSensitivity(Graph::Ptr slice,
   slice->exitNodes(exitBegin, exitEnd);
 
   for (; exitBegin != exitEnd; ++exitBegin) {
-     SliceNode::Ptr aNode = boost::static_pointer_cast<SliceNode>(*exitBegin);
+    SliceNode::Ptr aNode = boost::static_pointer_cast<SliceNode>(*exitBegin);
 
     // By definition, a widen point is potentially behavior changing.
     if (Slicer::isWidenNode(*exitBegin)) {
       return false;
     }
-    
+
     AST::Ptr ast = results[aNode->assign()];
     if (ast == AST::Ptr()) {
-      //cerr << "\t\t Symbolic expansion failed" << endl;
+      // cerr << "\t\t Symbolic expansion failed" << endl;
       return false;
     }
 
-    // Now for the real work - determine the difference in values produced by this
-    // tree for the changed IP. 
+    // Now for the real work - determine the difference in values produced by
+    // this
+    // tree for the changed IP.
     // TODO: we need either a symbolic "moved by" number or we need to know
     // where we're moving it. I think I prefer symbolic. For now: 42!
     ExtPCSensVisitor v(aNode->assign()->out());
 
     if (v.isExtSens(ast)) {
-      //cerr << "\t\t is externally sensitive" << endl;
-      //cerr << "\t\t\t @ " << hex << aNode->addr() << dec << endl;
+      // cerr << "\t\t is externally sensitive" << endl;
+      // cerr << "\t\t\t @ " << hex << aNode->addr() << dec << endl;
       external = true;
-    }
-    else {
-      //cerr << "\t\t is internally sensitive" <<endl;
+    } else {
+      // cerr << "\t\t is internally sensitive" <<endl;
       internal = true;
     }
   }
@@ -403,19 +393,19 @@ bool PCSensitiveTransformer::determineSensitivity(Graph::Ptr slice,
 // An example of a group transformation. If this is a call to a thunk
 // function then record both that (as in return true) and where the return
 // address gets put...
-bool PCSensitiveTransformer::insnIsThunkCall(InstructionAPI::Instruction::Ptr insn,
-					     Address addr,
-					     Absloc &destination) {
+bool PCSensitiveTransformer::insnIsThunkCall(
+    InstructionAPI::Instruction::Ptr insn, Address addr, Absloc &destination) {
   // Should be able to handle this much more efficiently by following the CFG
 
   Expression::Ptr CFT = insn->getControlFlowTarget();
   if (!CFT) {
     return false;
   }
-   
+
   // Bind current PC
   static Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(Arch_x86)));
-  static Expression::Ptr thePC64(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
+  static Expression::Ptr thePC64(
+      new RegisterAST(MachRegister::getPC(Arch_x86_64)));
 
   // Bind the IP, why not...
   CFT->bind(thePC.get(), Result(u32, addr));
@@ -424,7 +414,8 @@ bool PCSensitiveTransformer::insnIsThunkCall(InstructionAPI::Instruction::Ptr in
   Result res = CFT->eval();
 
   if (!res.defined) {
-    //relocation_cerr << "      ... CFT not evallable, ret false from isGetPC" << endl;
+    // relocation_cerr << "      ... CFT not evallable, ret false from isGetPC"
+    // << endl;
     return false;
   }
 
@@ -435,41 +426,40 @@ bool PCSensitiveTransformer::insnIsThunkCall(InstructionAPI::Instruction::Ptr in
     destination = Absloc(0, 0, NULL);
     return true;
   }
-  
+
   // This is yoinked from arch-x86.C...
   if (addrSpace->isValidAddress(target)) {
-
-    // Get us an instrucIter    
-    const unsigned char* buf = reinterpret_cast<const unsigned char*>(addrSpace->getPtrToInstruction(target));
+    // Get us an instrucIter
+    const unsigned char *buf = reinterpret_cast<const unsigned char *>(
+        addrSpace->getPtrToInstruction(target));
 
     InstructionDecoder decoder(buf,
-			       2*InstructionDecoder::maxInstructionLength,
-			       addrSpace->getArch());
+                               2 * InstructionDecoder::maxInstructionLength,
+                               addrSpace->getArch());
 
     Instruction::Ptr firstInsn = decoder.decode();
     Instruction::Ptr secondInsn = decoder.decode();
-    //relocation_cerr << "      ... decoded target insns "
-		    //<< firstInsn->format() << ", " 
-		    //<< secondInsn->format() << endl;
+    // relocation_cerr << "      ... decoded target insns "
+    //<< firstInsn->format() << ", "
+    //<< secondInsn->format() << endl;
 
-    if(firstInsn && firstInsn->getOperation().getID() == e_mov
-       && firstInsn->readsMemory() && !firstInsn->writesMemory()
-       && secondInsn && secondInsn->getCategory() == c_ReturnInsn) {
-
+    if (firstInsn && firstInsn->getOperation().getID() == e_mov &&
+        firstInsn->readsMemory() && !firstInsn->writesMemory() && secondInsn &&
+        secondInsn->getCategory() == c_ReturnInsn) {
       // Check to be sure we're reading memory
       std::set<RegisterAST::Ptr> reads;
       firstInsn->getReadSet(reads);
       bool found = false;
       for (std::set<RegisterAST::Ptr>::iterator iter = reads.begin();
-	   iter != reads.end(); ++iter) {
-	if ((*iter)->getID().isStackPointer()) {
-	  found = true;
-	  break;
-	}
+           iter != reads.end(); ++iter) {
+        if ((*iter)->getID().isStackPointer()) {
+          found = true;
+          break;
+        }
       }
 
       if (!found) return false;
-      
+
       std::set<RegisterAST::Ptr> writes;
       firstInsn->getWriteSet(writes);
       assert(writes.size() == 1);
@@ -480,14 +470,11 @@ bool PCSensitiveTransformer::insnIsThunkCall(InstructionAPI::Instruction::Ptr in
   return false;
 }
 
-void PCSensitiveTransformer::handleThunkCall(RelocBlock *reloc,
-                                             RelocGraph *cfg,
-					     RelocBlock::WidgetList::iterator &iter,
-					     Absloc &destination) {
-
-   Widget::Ptr replacement = PCWidget::create((*iter)->insn(),
-					   (*iter)->addr(),
-					   destination);
+void PCSensitiveTransformer::handleThunkCall(
+    RelocBlock *reloc, RelocGraph *cfg, RelocBlock::WidgetList::iterator &iter,
+    Absloc &destination) {
+  Widget::Ptr replacement =
+      PCWidget::create((*iter)->insn(), (*iter)->addr(), destination);
 
   // This is kind of complex. We don't want to just pull the getPC
   // because it also might end the basic block. If that happens we
@@ -496,69 +483,67 @@ void PCSensitiveTransformer::handleThunkCall(RelocBlock *reloc,
   if ((*iter) != reloc->elements().back()) {
     // Easy case; no worries.
     (*iter).swap(replacement);
-  }
-  else {
+  } else {
     // There are two types of thunks we deal with;
-    // one is a call to a thunk function (which we want to skip), 
+    // one is a call to a thunk function (which we want to skip),
     // and the second is a call forward within the same function.
     // The function call variant we want to replace with a (faked)
     // fallthrough to wherever the call returned to. The jump
     // equivalent doesn't _have_ a fallthrough, so we want to use
     // the taken edge instead.
 
-     Predicates::Interprocedural pred;
-     bool removed = cfg->removeEdge(pred, reloc->outs());
-     assert(removed);
-     (*iter).swap(replacement);
+    Predicates::Interprocedural pred;
+    bool removed = cfg->removeEdge(pred, reloc->outs());
+    assert(removed);
+    (*iter).swap(replacement);
   }
 }
 
 void PCSensitiveTransformer::recordIntSensitive(Address addr) {
   // All we have from this is a raw address. Suck...
-  // Look up the block_instances that map to this address. 
+  // Look up the block_instances that map to this address.
 
-   block_instance *block = addrSpace->findBlockByEntry(addr);
-   if (!block) return;
-   std::vector<func_instance *> funcs;
-   block->getFuncs(std::back_inserter(funcs));
-   assert(!funcs.empty());
+  block_instance *block = addrSpace->findBlockByEntry(addr);
+  if (!block) return;
+  std::vector<func_instance *> funcs;
+  block->getFuncs(std::back_inserter(funcs));
+  assert(!funcs.empty());
 
-   // We arbitrarily go to the first one...
-   priMap[std::make_pair(block, funcs[0])] = Required;
-
+  // We arbitrarily go to the first one...
+  priMap[std::make_pair(block, funcs[0])] = Required;
 }
 
-void PCSensitiveTransformer::emulateInsn(RelocBlock *reloc,
-                                         RelocGraph *cfg,
-					 RelocBlock::WidgetList::iterator &iter,
-					 InstructionAPI::Instruction::Ptr insn,
-					 Address addr) {
-  //cerr << "Emulating @" << std::hex << addr << std::dec  << endl;
-  // We emulate calls by replacing them with push/jump combinations. The jump will be handled
-  // by a CFWidget, so we just need a "push" (and then to create everything else).  
+void PCSensitiveTransformer::emulateInsn(RelocBlock *reloc, RelocGraph *cfg,
+                                         RelocBlock::WidgetList::iterator &iter,
+                                         InstructionAPI::Instruction::Ptr insn,
+                                         Address addr) {
+  // cerr << "Emulating @" << std::hex << addr << std::dec  << endl;
+  // We emulate calls by replacing them with push/jump combinations. The jump
+  // will be handled
+  // by a CFWidget, so we just need a "push" (and then to create everything
+  // else).
 
   assert(insn->getOperation().getID() == e_call);
 
-  // Construct a new Widget that will emulate the original instruction here. 
+  // Construct a new Widget that will emulate the original instruction here.
   static Absloc stack_loc(0, 0, NULL);
   Widget::Ptr replacement = PCWidget::create(insn, addr, stack_loc);
 
   // Okay, now wire this in as appropriate.
   if ((*iter) != reloc->elements().back()) {
-    //cerr << "... middle of block" << endl;
+    // cerr << "... middle of block" << endl;
     // Easy case; no worries.
     // This is the case for call+5s...
     (*iter).swap(replacement);
-  }
-  else {
-    //cerr << "... end of block" << endl;
-     CFWidget::Ptr cf = boost::dynamic_pointer_cast<CFWidget>(*iter);
-     // We don't want to be doing this pre-CF-creation...
-     assert(cf); 
-    
+  } else {
+    // cerr << "... end of block" << endl;
+    CFWidget::Ptr cf = boost::dynamic_pointer_cast<CFWidget>(*iter);
+    // We don't want to be doing this pre-CF-creation...
+    assert(cf);
+
     // Add the <push> part of this whole thing...
     (*iter).swap(replacement);
-    
+
     // And put the CF back in
     reloc->elements().push_back(cf);
     // But it's not a call anymore, it's a jump
@@ -580,65 +565,68 @@ void PCSensitiveTransformer::emulateInsn(RelocBlock *reloc,
 }
 
 // TODO: fix this
-bool PCSensitiveTransformer::exceptionSensitive(Address a, const block_instance *bbl) {
-   // If we're within the try section of an exception, return true.
-   // Otherwise return false.
+bool PCSensitiveTransformer::exceptionSensitive(Address a,
+                                                const block_instance *bbl) {
+  // If we're within the try section of an exception, return true.
+  // Otherwise return false.
 
-   Symtab *symtab = bbl->obj()->parse_img()->getObject();
-   Offset o = a - (bbl->start() - bbl->llb()->start());
-   
-   ExceptionBlock eBlock;
-   // Amusingly, existence is sufficient for us.
-   return symtab->findException(eBlock, o);      
+  Symtab *symtab = bbl->obj()->parse_img()->getObject();
+  Offset o = a - (bbl->start() - bbl->llb()->start());
+
+  ExceptionBlock eBlock;
+  // Amusingly, existence is sufficient for us.
+  return symtab->findException(eBlock, o);
 }
 
-void PCSensitiveTransformer::cacheAnalysis(const block_instance *bbl, Address addr, bool intSens, bool extSens) {
-   analysisCache_[bbl][addr] = std::make_pair(intSens, extSens);
+void PCSensitiveTransformer::cacheAnalysis(const block_instance *bbl,
+                                           Address addr, bool intSens,
+                                           bool extSens) {
+  analysisCache_[bbl][addr] = std::make_pair(intSens, extSens);
 }
 
-bool PCSensitiveTransformer::queryCache(const block_instance *bbl, Address addr, bool &intSens, bool &extSens) {
-	//intSens = true;
-	//extSens = true;
-	//return true;
-	AnalysisCache::const_iterator iter = analysisCache_.find(bbl);
-   if (iter == analysisCache_.end()) return false;
-   CacheEntry::const_iterator iter2 = iter->second.find(addr);
-   if (iter2 == iter->second.end()) return false;
-   intSens = iter2->second.first;
-   extSens = iter2->second.second;
-   return true;
+bool PCSensitiveTransformer::queryCache(const block_instance *bbl, Address addr,
+                                        bool &intSens, bool &extSens) {
+  // intSens = true;
+  // extSens = true;
+  // return true;
+  AnalysisCache::const_iterator iter = analysisCache_.find(bbl);
+  if (iter == analysisCache_.end()) return false;
+  CacheEntry::const_iterator iter2 = iter->second.find(addr);
+  if (iter2 == iter->second.end()) return false;
+  intSens = iter2->second.first;
+  extSens = iter2->second.second;
+  return true;
 }
 
 void PCSensitiveTransformer::invalidateCache(const block_instance *b) {
-   // Clear everything corresponding to an addr in the block;
-   // overapproximation for shared functions and shared blocks,
-   // but hey. 
-	analysisCache_.erase(b);
+  // Clear everything corresponding to an addr in the block;
+  // overapproximation for shared functions and shared blocks,
+  // but hey.
+  analysisCache_.erase(b);
 }
 
 void PCSensitiveTransformer::invalidateCache(func_instance *f) {
-   // We want to invalidate any cache results for f directly,
-   // as well as any for blocks that call f. 
+  // We want to invalidate any cache results for f directly,
+  // as well as any for blocks that call f.
 
-   const PatchFunction::Blockset &blocks = f->blocks();
-   for (PatchFunction::Blockset::const_iterator iter = blocks.begin();
-        iter != blocks.end(); ++iter) {
-      invalidateCache(SCAST_BI(*iter));
-   }
-   
-   // Get callers of this function
-   PatchAPI::PatchBlock::edgelist edges = f->entry()->sources();
-   for (PatchAPI::PatchBlock::edgelist::iterator iter = edges.begin(); iter != edges.end(); ++iter) {
-      invalidateCache(SCAST_BI((*iter)->src()));
-   }
+  const PatchFunction::Blockset &blocks = f->blocks();
+  for (PatchFunction::Blockset::const_iterator iter = blocks.begin();
+       iter != blocks.end(); ++iter) {
+    invalidateCache(SCAST_BI(*iter));
+  }
+
+  // Get callers of this function
+  PatchAPI::PatchBlock::edgelist edges = f->entry()->sources();
+  for (PatchAPI::PatchBlock::edgelist::iterator iter = edges.begin();
+       iter != edges.end(); ++iter) {
+    invalidateCache(SCAST_BI((*iter)->src()));
+  }
 }
 
-ExtPCSensVisitor::ExtPCSensVisitor(const AbsRegion &a) :
-  isExtSens_(false) {
+ExtPCSensVisitor::ExtPCSensVisitor(const AbsRegion &a) : isExtSens_(false) {
   if (a.absloc().isPC()) {
     assignPC_ = true;
-  }
-  else {
+  } else {
     assignPC_ = false;
   }
 }
@@ -665,20 +653,18 @@ AST::Ptr ExtPCSensVisitor::visit(VariableAST *v) {
   if (aloc.isPC()) {
     // Right on!
     diffs_.push(DiffVar(0, 1));
-  }
-  else {
+  } else {
     diffs_.push(DiffVar(v->val(), 0));
   }
   return v->ptr();
 }
 
 AST::Ptr ExtPCSensVisitor::visit(StackAST *s) {
-  // If we see one of these we're getting a weird "pc + esp", 
+  // If we see one of these we're getting a weird "pc + esp",
   // so we can consider it a constant.
   if (s->val().isBottom()) {
     isExtSens_ = true;
-  }
-  else {
+  } else {
     diffs_.push(DiffVar(s->val().height(), 0));
   }
   return s->ptr();
@@ -687,102 +673,103 @@ AST::Ptr ExtPCSensVisitor::visit(StackAST *s) {
 AST::Ptr ExtPCSensVisitor::visit(RoseAST *r) {
   // Abort (ish) if we're already sensitive
   if (isExtSens_) return r->ptr();
-  
-  // Simplify children to the stack. 
+
+  // Simplify children to the stack.
   // Discard the pointers because we really don't care.
   // Go backwards so that the stack order matches the child order.
   // (that is, child 1 on top)
   for (unsigned i = r->numChildren(); i > 0; --i) {
-    r->child(i-1)->accept(this);
+    r->child(i - 1)->accept(this);
   }
   // Again, if we've concluded we're externally sensitive
   // then return immediately.
   if (isExtSens_) return r->ptr();
 
   // Okay, let's see what's goin' on...
-  switch(r->val().op) {
-  case ROSEOperation::derefOp: {
-    // A dereference is a decision point: either we're externally
-    // sensitive (if the calculated difference depends on the PC at all)
-    // or we reset the difference to 0.
-    if (diffs_.top().b != 0) {
-      isExtSens_ = true;
-    }
-    // Ignore the other entries... might be conditional loads, etc.
-    for (unsigned i = 0; i < r->numChildren(); i++) {
-      diffs_.pop();
-    }
-    // A non-modified dereference resets our "what's the difference" to 0. 
-    diffs_.push(DiffVar(0, 0));
-    
-    break;
-  }
-  case ROSEOperation::addOp: {
-    DiffVar sum(0,0);
-    for (unsigned i = 0; i < r->numChildren(); ++i) {
-      sum += diffs_.top(); diffs_.pop();
-    }
-    diffs_.push(sum);
-    break;
-  }
-  case ROSEOperation::invertOp: {
-    diffs_.top() *= -1;
-    break;
-  }
-  case ROSEOperation::extendMSBOp:
-  case ROSEOperation::extractOp: {
-    DiffVar tmp = diffs_.top();
-    for (unsigned i = 0; i < r->numChildren(); ++i) {
-      diffs_.pop();
-    }
-    diffs_.push(tmp);
-    break;
-  }
-  case ROSEOperation::equalToZeroOp:
-    if (diffs_.top().b != 0) {
-      isExtSens_ = true;
-    }
-    for (unsigned i = 0; i < r->numChildren(); ++i) {
-      diffs_.pop();
-    }
-    diffs_.push(DiffVar(0, 0));
-    break;
-  case ROSEOperation::ifOp: {
-    DiffVar c = diffs_.top(); diffs_.pop();
-    DiffVar t = diffs_.top(); diffs_.pop();
-    DiffVar e = diffs_.top(); diffs_.pop();
-
-    if (c.b != 0) {
-      isExtSens_ = true;
-    }
-    if (assignPC_) {
-      if ((t.b != 1) ||
-	  (e.b != 1)) { 
-	isExtSens_ = true;
-      }
-    }
-    else { 
-      if ((t.b != 0) ||
-	  (e.b != 0)) {
-	isExtSens_ = true;
-      }
-    }
-    // Pick one and propagate it up
-    // Should split the analysis here... but this situation never actually
-    // appears, so it seems silly to code for it.
-    diffs_.push(t);
-
-    break;
-  }
-  default:
-    for (unsigned i = 0; i < r->numChildren(); i++) {
+  switch (r->val().op) {
+    case ROSEOperation::derefOp: {
+      // A dereference is a decision point: either we're externally
+      // sensitive (if the calculated difference depends on the PC at all)
+      // or we reset the difference to 0.
       if (diffs_.top().b != 0) {
-	isExtSens_ = true;
+        isExtSens_ = true;
       }
-      diffs_.pop();
+      // Ignore the other entries... might be conditional loads, etc.
+      for (unsigned i = 0; i < r->numChildren(); i++) {
+        diffs_.pop();
+      }
+      // A non-modified dereference resets our "what's the difference" to 0.
+      diffs_.push(DiffVar(0, 0));
+
+      break;
     }
-    diffs_.push(DiffVar(0, 0));
-    break;
+    case ROSEOperation::addOp: {
+      DiffVar sum(0, 0);
+      for (unsigned i = 0; i < r->numChildren(); ++i) {
+        sum += diffs_.top();
+        diffs_.pop();
+      }
+      diffs_.push(sum);
+      break;
+    }
+    case ROSEOperation::invertOp: {
+      diffs_.top() *= -1;
+      break;
+    }
+    case ROSEOperation::extendMSBOp:
+    case ROSEOperation::extractOp: {
+      DiffVar tmp = diffs_.top();
+      for (unsigned i = 0; i < r->numChildren(); ++i) {
+        diffs_.pop();
+      }
+      diffs_.push(tmp);
+      break;
+    }
+    case ROSEOperation::equalToZeroOp:
+      if (diffs_.top().b != 0) {
+        isExtSens_ = true;
+      }
+      for (unsigned i = 0; i < r->numChildren(); ++i) {
+        diffs_.pop();
+      }
+      diffs_.push(DiffVar(0, 0));
+      break;
+    case ROSEOperation::ifOp: {
+      DiffVar c = diffs_.top();
+      diffs_.pop();
+      DiffVar t = diffs_.top();
+      diffs_.pop();
+      DiffVar e = diffs_.top();
+      diffs_.pop();
+
+      if (c.b != 0) {
+        isExtSens_ = true;
+      }
+      if (assignPC_) {
+        if ((t.b != 1) || (e.b != 1)) {
+          isExtSens_ = true;
+        }
+      } else {
+        if ((t.b != 0) || (e.b != 0)) {
+          isExtSens_ = true;
+        }
+      }
+      // Pick one and propagate it up
+      // Should split the analysis here... but this situation never actually
+      // appears, so it seems silly to code for it.
+      diffs_.push(t);
+
+      break;
+    }
+    default:
+      for (unsigned i = 0; i < r->numChildren(); i++) {
+        if (diffs_.top().b != 0) {
+          isExtSens_ = true;
+        }
+        diffs_.pop();
+      }
+      diffs_.push(DiffVar(0, 0));
+      break;
   }
   return r->ptr();
 }
@@ -799,24 +786,25 @@ bool ExtPCSensVisitor::isExtSens(AST::Ptr a) {
   //   def defines pc: diff != delta
   //   def defines _: diff != 0
   // Since I did the visitor over a set of linear variables of the
-  // form a + b*delta, we can ignore a (as those will cancel) 
+  // form a + b*delta, we can ignore a (as those will cancel)
   // and return if b != 1.
 
   if (assignPC_) {
     return (diffs_.top().b != 1);
-  }
-  else {
+  } else {
     return (diffs_.top().b != 0);
   }
 }
 
-bool PCSensitiveTransformer::isSyscall(InstructionAPI::Instruction::Ptr insn, Address) {
+bool PCSensitiveTransformer::isSyscall(InstructionAPI::Instruction::Ptr insn,
+                                       Address) {
   // call *%gs:0x10
   // Build a GS
   static Expression::Ptr x86_gs(new RegisterAST(x86::gs));
 
   if (insn->isRead(x86_gs)) {
-    //relocation_cerr << "Skipping syscall " << insn->format() << hex << "@ " << addr << dec << endl;
+    // relocation_cerr << "Skipping syscall " << insn->format() << hex << "@ "
+    // << addr << dec << endl;
     return true;
   }
   return false;

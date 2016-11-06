@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -53,276 +53,269 @@ class CFGModifier;
     from some binary source
 **/
 
-
-class PARSER_EXPORT CodeRegion : public Dyninst::InstructionSource, public Dyninst::SimpleInterval<Address> {
+class PARSER_EXPORT CodeRegion : public Dyninst::InstructionSource,
+                                 public Dyninst::SimpleInterval<Address> {
  public:
+  /* Fills a vector with any names associated with the function at at
+     a given address in this code sources, e.g. symbol names in the
+     case of a SymtabCodeSource.
 
-    /* Fills a vector with any names associated with the function at at 
-       a given address in this code sources, e.g. symbol names in the
-       case of a SymtabCodeSource.
+     Optional
+  */
+  virtual void names(Address, std::vector<std::string> &) { return; }
 
-       Optional
-    */
-    virtual void names(Address, std::vector<std::string> &) { return; }
+  /* Finds the exception handler block for a given address
+     in the region.
 
-    /* Finds the exception handler block for a given address
-       in the region.
+     Optional
+  */
+  virtual bool findCatchBlock(Address /* addr */, Address & /* catchStart */) {
+    return false;
+  }
 
-       Optional
-    */
-    virtual bool findCatchBlock(Address /* addr */, Address & /* catchStart */) 
-    { return false; }
+  /** interval implementation **/
+  virtual Address low() const = 0;
+  virtual Address high() const = 0;
 
-    /** interval implementation **/
-    virtual Address low() const =0;
-    virtual Address high() const =0;
+  bool contains(Address) const;
 
-    bool contains(Address) const;
-
-    virtual bool wasUserAdded() const { return false; }
-
+  virtual bool wasUserAdded() const { return false; }
 };
 
 template <typename OS>
- OS& operator<< (OS& stream, const CodeRegion& cr)
- {
-     stream << "[" << cr.low() << ", " << cr.high() << ")";
-     return stream;
- }
+OS &operator<<(OS &stream, const CodeRegion &cr) {
+  stream << "[" << cr.low() << ", " << cr.high() << ")";
+  return stream;
+}
 
 /* A starting point for parsing */
 struct Hint {
-    Hint() : _addr(0), _reg(NULL), _name("") { }
-    Hint(Address a, CodeRegion * r, std::string s) :
-        _addr(a), _reg(r), _name(s) { }
+  Hint() : _addr(0), _reg(NULL), _name("") {}
+  Hint(Address a, CodeRegion *r, std::string s) : _addr(a), _reg(r), _name(s) {}
 
-    Address _addr;
-    CodeRegion * _reg;
-    std::string _name;
+  Address _addr;
+  CodeRegion *_reg;
+  std::string _name;
 
-    bool operator < (const Hint &h) const {
-        return _addr < h._addr;
-    }
+  bool operator<(const Hint &h) const { return _addr < h._addr; }
 };
 
 class PARSER_EXPORT CodeSource : public Dyninst::InstructionSource {
-   friend class CFGModifier;
+  friend class CFGModifier;
+
  private:
-    bool _regions_overlap;
-    
+  bool _regions_overlap;
+
  protected:
-    /*
-     * Implementers of CodeSource can fill the following
-     * structures with available information. Some 
-     * of this information is optional.
-     */
+  /*
+   * Implementers of CodeSource can fill the following
+   * structures with available information. Some
+   * of this information is optional.
+   */
 
-    /*
-     * Named external linkage table (e.g. PLT on ELF). Optional.
-     */
-    mutable std::map<Address, std::string> _linkage;
+  /*
+   * Named external linkage table (e.g. PLT on ELF). Optional.
+   */
+  mutable std::map<Address, std::string> _linkage;
 
-    /*
-     * Table of Contents for position independent references. Optional.
-     */
-    Address _table_of_contents;
+  /*
+   * Table of Contents for position independent references. Optional.
+   */
+  Address _table_of_contents;
 
-    /*
-     * Code regions in the binary. At least one region is
-     * required for parsing.
-     */
-    std::vector<CodeRegion *> _regions;
+  /*
+   * Code regions in the binary. At least one region is
+   * required for parsing.
+   */
+  std::vector<CodeRegion *> _regions;
 
-    /*
-     * Code region lookup. Must be consistent with
-     * the _regions vector. Mandatory.
-     */
-    Dyninst::IBSTree<CodeRegion> _region_tree;
+  /*
+   * Code region lookup. Must be consistent with
+   * the _regions vector. Mandatory.
+   */
+  Dyninst::IBSTree<CodeRegion> _region_tree;
 
-    /*
-     * Hints for where to begin parsing. Required for
-     * the default parsing mode, but usage of one of
-     * the direct parsing modes (parsing particular
-     * locations or using speculative methods) is supported
-     * without hints.
-     */
-    std::vector<Hint> _hints;
+  /*
+   * Hints for where to begin parsing. Required for
+   * the default parsing mode, but usage of one of
+   * the direct parsing modes (parsing particular
+   * locations or using speculative methods) is supported
+   * without hints.
+   */
+  std::vector<Hint> _hints;
 
-    /*
-     * Lists of known non-returning functions (by name)
-     * and syscalls (by number)
-     */
-    static dyn_hash_map<std::string, bool> non_returning_funcs;
-    static dyn_hash_map<int, bool> non_returning_syscalls_x86;
-    static dyn_hash_map<int, bool> non_returning_syscalls_x86_64;
+  /*
+   * Lists of known non-returning functions (by name)
+   * and syscalls (by number)
+   */
+  static dyn_hash_map<std::string, bool> non_returning_funcs;
+  static dyn_hash_map<int, bool> non_returning_syscalls_x86;
+  static dyn_hash_map<int, bool> non_returning_syscalls_x86_64;
 
  public:
-    /* Returns true if the function at an address is known to be
-       non returning (e.g., is named `exit' on Linux/ELF, etc.).
+  /* Returns true if the function at an address is known to be
+     non returning (e.g., is named `exit' on Linux/ELF, etc.).
 
-       Optional.
-    */
-    virtual bool nonReturning(Address /*func_entry*/) { return false; }
-    bool nonReturning(std::string func_name);
-    virtual bool nonReturningSyscall(int /*number*/) { return false; }
+     Optional.
+  */
+  virtual bool nonReturning(Address /*func_entry*/) { return false; }
+  bool nonReturning(std::string func_name);
+  virtual bool nonReturningSyscall(int /*number*/) { return false; }
 
-    /*
-     * If the binary file type supplies non-zero base
-     * or load addresses (e.g. Windows PE), override.
-     */
-    virtual Address baseAddress() const { return 0; }
-    virtual Address loadAddress() const { return 0; }
+  /*
+   * If the binary file type supplies non-zero base
+   * or load addresses (e.g. Windows PE), override.
+   */
+  virtual Address baseAddress() const { return 0; }
+  virtual Address loadAddress() const { return 0; }
 
-    std::map< Address, std::string > & linkage() const { return _linkage; }
-    std::vector< Hint > const& hints() const { return _hints; } 
-    std::vector<CodeRegion *> const& regions() const { return _regions; }
-    int findRegions(Address addr, std::set<CodeRegion *> & ret) const;
-    bool regionsOverlap() const { return _regions_overlap; }
+  std::map<Address, std::string> &linkage() const { return _linkage; }
+  std::vector<Hint> const &hints() const { return _hints; }
+  std::vector<CodeRegion *> const &regions() const { return _regions; }
+  int findRegions(Address addr, std::set<CodeRegion *> &ret) const;
+  bool regionsOverlap() const { return _regions_overlap; }
 
-    Address getTOC() const { return _table_of_contents; }
-    /* If the binary file type supplies per-function
-     * TOC's (e.g. ppc64 Linux), override.
-     */
-    virtual Address getTOC(Address) const { return _table_of_contents; }
+  Address getTOC() const { return _table_of_contents; }
+  /* If the binary file type supplies per-function
+   * TOC's (e.g. ppc64 Linux), override.
+   */
+  virtual Address getTOC(Address) const { return _table_of_contents; }
 
-    // statistics accessor
-    virtual void print_stats() const { return; }
-    virtual bool have_stats() const { return false; }
+  // statistics accessor
+  virtual void print_stats() const { return; }
+  virtual bool have_stats() const { return false; }
 
-    // manage statistics
-    virtual void incrementCounter(const std::string& /*name*/) const { return; } 
-    virtual void addCounter(const std::string& /*name*/, int /*num*/) const { return; }
-    virtual void decrementCounter(const std::string& /*name*/) const { return; }
-    
+  // manage statistics
+  virtual void incrementCounter(const std::string & /*name*/) const { return; }
+  virtual void addCounter(const std::string & /*name*/, int /*num*/) const {
+    return;
+  }
+  virtual void decrementCounter(const std::string & /*name*/) const { return; }
+
  protected:
-    CodeSource() : _regions_overlap(false),
-                   _table_of_contents(0) {}
-    virtual ~CodeSource() {}
+  CodeSource() : _regions_overlap(false), _table_of_contents(0) {}
+  virtual ~CodeSource() {}
 
-    void addRegion(CodeRegion *);
-   
- private: 
-    // statistics
-    virtual bool init_stats() { return false; }
+  void addRegion(CodeRegion *);
 
+ private:
+  // statistics
+  virtual bool init_stats() { return false; }
 };
 
 /** SymtabCodeRegion and SymtabCodeSource implement CodeSource for program
-    binaries supported by the SymtabAPI 
+    binaries supported by the SymtabAPI
 **/
 
 class PARSER_EXPORT SymtabCodeRegion : public CodeRegion {
  private:
-    SymtabAPI::Symtab * _symtab;
-    SymtabAPI::Region * _region;
-    std::map<Address, Address> knownData;
+  SymtabAPI::Symtab *_symtab;
+  SymtabAPI::Region *_region;
+  std::map<Address, Address> knownData;
+
  public:
-    SymtabCodeRegion(SymtabAPI::Symtab *, SymtabAPI::Region *);
-    ~SymtabCodeRegion();
+  SymtabCodeRegion(SymtabAPI::Symtab *, SymtabAPI::Region *);
+  ~SymtabCodeRegion();
 
-    void names(Address, std::vector<std::string> &);
-    bool findCatchBlock(Address addr, Address & catchStart);
+  void names(Address, std::vector<std::string> &);
+  bool findCatchBlock(Address addr, Address &catchStart);
 
-    /** InstructionSource implementation **/
-    bool isValidAddress(const Address) const;
-    void* getPtrToInstruction(const Address) const;
-    void* getPtrToData(const Address) const;
-    unsigned int getAddressWidth() const;
-    bool isCode(const Address) const;
-    bool isData(const Address) const;
-    bool isReadOnly(const Address) const;
-    Address offset() const;
-    Address length() const;
-    Architecture getArch() const;
+  /** InstructionSource implementation **/
+  bool isValidAddress(const Address) const;
+  void *getPtrToInstruction(const Address) const;
+  void *getPtrToData(const Address) const;
+  unsigned int getAddressWidth() const;
+  bool isCode(const Address) const;
+  bool isData(const Address) const;
+  bool isReadOnly(const Address) const;
+  Address offset() const;
+  Address length() const;
+  Architecture getArch() const;
 
-    /** interval **/
-    Address low() const { return offset(); }
-    Address high() const { return offset() + length(); }
+  /** interval **/
+  Address low() const { return offset(); }
+  Address high() const { return offset() + length(); }
 
-    SymtabAPI::Region * symRegion() const { return _region; }
+  SymtabAPI::Region *symRegion() const { return _region; }
 };
 
 class PARSER_EXPORT SymtabCodeSource : public CodeSource {
  private:
-    SymtabAPI::Symtab * _symtab;
-    bool owns_symtab;
-    mutable CodeRegion * _lookup_cache;
+  SymtabAPI::Symtab *_symtab;
+  bool owns_symtab;
+  mutable CodeRegion *_lookup_cache;
 
-    // Stats information
-    StatContainer * stats_parse;
-    bool _have_stats;
-    
+  // Stats information
+  StatContainer *stats_parse;
+  bool _have_stats;
+
  public:
-    struct hint_filt {
-        virtual ~hint_filt() { }
-        virtual bool operator()(SymtabAPI::Function * f) =0;
-    };
+  struct hint_filt {
+    virtual ~hint_filt() {}
+    virtual bool operator()(SymtabAPI::Function *f) = 0;
+  };
 
-    SymtabCodeSource(SymtabAPI::Symtab *, 
-                                   hint_filt *, 
-                                   bool allLoadedRegions=false);
-    SymtabCodeSource(SymtabAPI::Symtab *);
-    SymtabCodeSource(char *);
+  SymtabCodeSource(SymtabAPI::Symtab *, hint_filt *,
+                   bool allLoadedRegions = false);
+  SymtabCodeSource(SymtabAPI::Symtab *);
+  SymtabCodeSource(char *);
 
-    ~SymtabCodeSource();
+  ~SymtabCodeSource();
 
-    bool nonReturning(Address func_entry);
-    bool nonReturningSyscall(int num);
+  bool nonReturning(Address func_entry);
+  bool nonReturningSyscall(int num);
 
-    bool resizeRegion(SymtabAPI::Region *, Address newDiskSize);
+  bool resizeRegion(SymtabAPI::Region *, Address newDiskSize);
 
-    Address baseAddress() const;
-    Address loadAddress() const;
-    Address getTOC(Address addr) const;
-    SymtabAPI::Symtab * getSymtabObject() {return _symtab;} 
+  Address baseAddress() const;
+  Address loadAddress() const;
+  Address getTOC(Address addr) const;
+  SymtabAPI::Symtab *getSymtabObject() { return _symtab; }
 
-    /** InstructionSource implementation **/
-    bool isValidAddress(const Address) const;
-    void* getPtrToInstruction(const Address) const;
-    void* getPtrToData(const Address) const;
-    unsigned int getAddressWidth() const;
-    bool isCode(const Address) const;
-    bool isData(const Address) const;
-    bool isReadOnly(const Address) const;
-    Address offset() const;
-    Address length() const;
-    Architecture getArch() const;
+  /** InstructionSource implementation **/
+  bool isValidAddress(const Address) const;
+  void *getPtrToInstruction(const Address) const;
+  void *getPtrToData(const Address) const;
+  unsigned int getAddressWidth() const;
+  bool isCode(const Address) const;
+  bool isData(const Address) const;
+  bool isReadOnly(const Address) const;
+  Address offset() const;
+  Address length() const;
+  Architecture getArch() const;
 
-    void removeHint(Hint);
+  void removeHint(Hint);
 
-    static void addNonReturning(std::string func_name);
-    
-    // statistics accessor
-    void print_stats() const;
-    bool have_stats() const { return _have_stats; }
+  static void addNonReturning(std::string func_name);
 
-    // manage statistics
-    void incrementCounter(const std::string& name) const;
-    void addCounter(const std::string& name, int num) const; 
-    void decrementCounter(const std::string& name) const;
+  // statistics accessor
+  void print_stats() const;
+  bool have_stats() const { return _have_stats; }
+
+  // manage statistics
+  void incrementCounter(const std::string &name) const;
+  void addCounter(const std::string &name, int num) const;
+  void decrementCounter(const std::string &name) const;
 
  private:
-    void init(hint_filt *, bool);
-    void init_regions(hint_filt *, bool);
-    void init_hints(dyn_hash_map<void*, CodeRegion*> &, hint_filt*);
-    void init_linkage();
+  void init(hint_filt *, bool);
+  void init_regions(hint_filt *, bool);
+  void init_hints(dyn_hash_map<void *, CodeRegion *> &, hint_filt *);
+  void init_linkage();
 
-    CodeRegion * lookup_region(const Address addr) const;
-    void removeRegion(CodeRegion &); // removes from region tree
+  CodeRegion *lookup_region(const Address addr) const;
+  void removeRegion(CodeRegion &);  // removes from region tree
 
-    void overlapping_warn(const char * file, unsigned line) const;
-    
-    // statistics
-    bool init_stats();
- 
+  void overlapping_warn(const char *file, unsigned line) const;
+
+  // statistics
+  bool init_stats();
 };
 
-inline bool CodeRegion::contains(const Address addr) const
-{
-    return addr >= offset() && addr < (offset() + length());
+inline bool CodeRegion::contains(const Address addr) const {
+  return addr >= offset() && addr < (offset() + length());
+}
+}
 }
 
-}
-}
-
-#endif 
+#endif

@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -49,13 +49,12 @@ using namespace InstructionAPI;
 
 using namespace NS_power;
 
-bool CFWidget::generateIndirect(CodeBuffer &buffer,
-                              Register,
-                              const RelocBlock *trace,
-                              Instruction::Ptr insn) {
+bool CFWidget::generateIndirect(CodeBuffer &buffer, Register,
+                                const RelocBlock *trace,
+                                Instruction::Ptr insn) {
   // Copying an indirect jump; unlike x86 we don't do
-  // call -> indirect conversion yet. 
-  // ... though that would be really freaking easy. 
+  // call -> indirect conversion yet.
+  // ... though that would be really freaking easy.
 
   NS_power::instruction ugly_insn(insn->ptr());
   IFORM_LK_SET(ugly_insn, 0);
@@ -63,178 +62,182 @@ bool CFWidget::generateIndirect(CodeBuffer &buffer,
   insnCodeGen::generate(gen, ugly_insn);
 
   // TODO don't ignore the register parameter
-   buffer.addPIC(gen, tracker(trace));
+  buffer.addPIC(gen, tracker(trace));
 
-   return true;
+  return true;
 }
 
-
-
-bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
-                                    Register /*reg*/,
-                                  Instruction::Ptr insn,
-                                  const RelocBlock *trace,
-                                    Address /*origAddr*/) 
-{
+bool CFWidget::generateIndirectCall(CodeBuffer &buffer, Register /*reg*/,
+                                    Instruction::Ptr insn,
+                                    const RelocBlock *trace,
+                                    Address /*origAddr*/) {
   NS_power::instruction ugly_insn(insn->ptr());
   IFORM_LK_SET(ugly_insn, 1);
   codeGen gen(4);
   insnCodeGen::generate(gen, ugly_insn);
 
   // TODO don't ignore the register parameter
-   buffer.addPIC(gen, tracker(trace));
+  buffer.addPIC(gen, tracker(trace));
 
-   return true;
+  return true;
 }
 
 bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
-
   if (needsTOCUpdate()) {
-     relocation_cerr << "\t\t\t isSpecialCase..." << endl;
-     gen.setFunction(const_cast<func_instance *>(func));
-     if (!handleTOCUpdate(gen)) {
-       relocation_cerr << "TOC special case handling in PPC64 failed" << endl;
-       return false;
-     }
-     return true;
-   }
+    relocation_cerr << "\t\t\t isSpecialCase..." << endl;
+    gen.setFunction(const_cast<func_instance *>(func));
+    if (!handleTOCUpdate(gen)) {
+      relocation_cerr << "TOC special case handling in PPC64 failed" << endl;
+      return false;
+    }
+    return true;
+  }
 
-   // Question: are we doing an inter-module static control transfer?
-   // If so, things get... complicated
-   if (isPLT(gen)) {
-     relocation_cerr << "\t\t\t isPLT..." << endl;
-      if (!applyPLT(gen, buf)) {
-	relocation_cerr << "PLT special case handling in PPC64" << endl;
-         return false;
+  // Question: are we doing an inter-module static control transfer?
+  // If so, things get... complicated
+  if (isPLT(gen)) {
+    relocation_cerr << "\t\t\t isPLT..." << endl;
+    if (!applyPLT(gen, buf)) {
+      relocation_cerr << "PLT special case handling in PPC64" << endl;
+      return false;
+    }
+    return true;
+  }
+
+  // Otherwise this is a classic, and therefore easy.
+  int targetLabel = target->label(buf);
+
+  relocation_cerr << "\t\t CFPatch::apply, type " << type << ", origAddr "
+                  << hex << origAddr_ << ", and label " << dec << targetLabel
+                  << endl;
+
+  if (orig_insn) {
+    relocation_cerr << "\t\t\t Currently at " << hex << gen.currAddr()
+                    << " and targeting predicted "
+                    << buf->predictedAddr(targetLabel) << dec << endl;
+    switch (type) {
+      case CFPatch::Jump: {
+        relocation_cerr << "\t\t\t Generating CFPatch::Jump from " << hex
+                        << gen.currAddr() << " to "
+                        << buf->predictedAddr(targetLabel) << dec << endl;
+        if (!insnCodeGen::modifyJump(buf->predictedAddr(targetLabel),
+                                     *ugly_insn, gen)) {
+          relocation_cerr << "modifyJump failed, ret false" << endl;
+          return false;
+        }
+        return true;
       }
-      return true;
-   }
-
-   // Otherwise this is a classic, and therefore easy.
-   int targetLabel = target->label(buf);
-
-   relocation_cerr << "\t\t CFPatch::apply, type " << type << ", origAddr " << hex << origAddr_ 
-                   << ", and label " << dec << targetLabel << endl;
-
-   if (orig_insn) {
-      relocation_cerr << "\t\t\t Currently at " << hex << gen.currAddr() << " and targeting predicted " << buf->predictedAddr(targetLabel) << dec << endl;
-      switch(type) {
-         case CFPatch::Jump: {
-            relocation_cerr << "\t\t\t Generating CFPatch::Jump from " 
-                            << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;
-            if (!insnCodeGen::modifyJump(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
-	      relocation_cerr << "modifyJump failed, ret false" << endl;
-               return false;
-            }
-            return true;
-         }
-         case CFPatch::JCC: {
-            relocation_cerr << "\t\t\t Generating CFPatch::JCC from " 
-                            << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;            
-            if (!insnCodeGen::modifyJcc(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
-	      relocation_cerr << "modifyJcc failed, ret false" << endl;
-               return false;
-            }
-            return true;            
-         }
-         case CFPatch::Call: {
-            if (!insnCodeGen::modifyCall(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
-	      relocation_cerr << "modifyCall failed, ret false" << endl;
-               return false;
-            }
-            return true;
-         }
-         case CFPatch::Data: {
-            if (!insnCodeGen::modifyData(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
-	      relocation_cerr << "modifyData failed, ret false" << endl;
-               return false;
-            }
-            return true;
-         }
+      case CFPatch::JCC: {
+        relocation_cerr << "\t\t\t Generating CFPatch::JCC from " << hex
+                        << gen.currAddr() << " to "
+                        << buf->predictedAddr(targetLabel) << dec << endl;
+        if (!insnCodeGen::modifyJcc(buf->predictedAddr(targetLabel), *ugly_insn,
+                                    gen)) {
+          relocation_cerr << "modifyJcc failed, ret false" << endl;
+          return false;
+        }
+        return true;
       }
-   }
-   else {
-      switch(type) {
-         case CFPatch::Jump:
-            insnCodeGen::generateBranch(gen, gen.currAddr(), buf->predictedAddr(targetLabel));
-            break;
-         case CFPatch::Call:
-            insnCodeGen::generateCall(gen, gen.currAddr(), buf->predictedAddr(targetLabel));
-            break;
-         default:
-            assert(0);
+      case CFPatch::Call: {
+        if (!insnCodeGen::modifyCall(buf->predictedAddr(targetLabel),
+                                     *ugly_insn, gen)) {
+          relocation_cerr << "modifyCall failed, ret false" << endl;
+          return false;
+        }
+        return true;
       }
-   }
-   
-   return true;
+      case CFPatch::Data: {
+        if (!insnCodeGen::modifyData(buf->predictedAddr(targetLabel),
+                                     *ugly_insn, gen)) {
+          relocation_cerr << "modifyData failed, ret false" << endl;
+          return false;
+        }
+        return true;
+      }
+    }
+  } else {
+    switch (type) {
+      case CFPatch::Jump:
+        insnCodeGen::generateBranch(gen, gen.currAddr(),
+                                    buf->predictedAddr(targetLabel));
+        break;
+      case CFPatch::Call:
+        insnCodeGen::generateCall(gen, gen.currAddr(),
+                                  buf->predictedAddr(targetLabel));
+        break;
+      default:
+        assert(0);
+    }
+  }
+
+  return true;
 }
 
 bool CFPatch::isPLT(codeGen &gen) {
-   if (!gen.addrSpace()->edit()) return false;
+  if (!gen.addrSpace()->edit()) return false;
 
-   // We need to PLT if we're in two different 
-   // AddressSpaces - the current codegen and
-   // the target.
+  // We need to PLT if we're in two different
+  // AddressSpaces - the current codegen and
+  // the target.
 
-   // First check the target type.
-   if (target->type() != TargetInt::BlockTarget) {
-      // Either a RelocBlock (which _must_ be local)
-      // or an Address (which has to be local to be
-      // meaningful); neither reqs PLT
-      return false;
-   }
+  // First check the target type.
+  if (target->type() != TargetInt::BlockTarget) {
+    // Either a RelocBlock (which _must_ be local)
+    // or an Address (which has to be local to be
+    // meaningful); neither reqs PLT
+    return false;
+  }
 
-   Target<block_instance *> *t = static_cast<Target<block_instance *> *>(target);
-   block_instance *tb = t->t();
-   if (tb->proc() != gen.addrSpace())
-      return true;
-   else
-      return false;
+  Target<block_instance *> *t = static_cast<Target<block_instance *> *>(target);
+  block_instance *tb = t->t();
+  if (tb->proc() != gen.addrSpace())
+    return true;
+  else
+    return false;
 }
 
 bool CFPatch::applyPLT(codeGen &gen, CodeBuffer *) {
-   // We should try and keep any prefixes that were on the instruction. 
-   // However... yeah, right. I'm not that good with x86. So instead
-   // I'm copying the code from emitCallInstruction...
-      
-   if (target->type() != TargetInt::BlockTarget) {
-      return false;
-   }
-   // And can only handle calls right now. That's a TODO...
-   if (type != Call &&
-       type != Jump) {
-      return false;
-   }
+  // We should try and keep any prefixes that were on the instruction.
+  // However... yeah, right. I'm not that good with x86. So instead
+  // I'm copying the code from emitCallInstruction...
 
-   relocation_cerr << "\t\t\t ApplyPLT..." << endl;
+  if (target->type() != TargetInt::BlockTarget) {
+    return false;
+  }
+  // And can only handle calls right now. That's a TODO...
+  if (type != Call && type != Jump) {
+    return false;
+  }
 
-   Target<block_instance *> *t = static_cast<Target<block_instance *> *>(target);
-   block_instance *tb = t->t();
+  relocation_cerr << "\t\t\t ApplyPLT..." << endl;
 
-   // Set caller in codegen structure
-   gen.setFunction(const_cast<func_instance *>(func));
+  Target<block_instance *> *t = static_cast<Target<block_instance *> *>(target);
+  block_instance *tb = t->t();
 
-   // We can (for now) only jump to functions
-   func_instance *callee = tb->entryOfFunc();
-   if (!callee) {
-      return false;
-   }
+  // Set caller in codegen structure
+  gen.setFunction(const_cast<func_instance *>(func));
 
-   // We need a RegisterSpace for this. Amusingly,
-   // we want to use the RegisterSpace corresponding to the
-   // entry of the callee, as it doesn't matter what's live
-   // here. 
-   instPoint *calleeEntry = instPoint::funcEntry(callee);
-   gen.setRegisterSpace(registerSpace::actualRegSpace(calleeEntry));
+  // We can (for now) only jump to functions
+  func_instance *callee = tb->entryOfFunc();
+  if (!callee) {
+    return false;
+  }
 
-   if (type == Call) 
-      gen.codeEmitter()->emitPLTCall(callee, gen);
-   else if (type == Jump)
-      gen.codeEmitter()->emitPLTJump(callee, gen);
-   else
-      assert(0);
+  // We need a RegisterSpace for this. Amusingly,
+  // we want to use the RegisterSpace corresponding to the
+  // entry of the callee, as it doesn't matter what's live
+  // here.
+  instPoint *calleeEntry = instPoint::funcEntry(callee);
+  gen.setRegisterSpace(registerSpace::actualRegSpace(calleeEntry));
 
-   return true;
+  if (type == Call)
+    gen.codeEmitter()->emitPLTCall(callee, gen);
+  else if (type == Jump)
+    gen.codeEmitter()->emitPLTJump(callee, gen);
+  else
+    assert(0);
+
+  return true;
 }
 
 bool CFPatch::needsTOCUpdate() {
@@ -259,7 +262,6 @@ bool CFPatch::handleTOCUpdate(codeGen &gen) {
   assert(target->type() == TargetInt::BlockTarget);
   Target<block_instance *> *t = static_cast<Target<block_instance *> *>(target);
 
-
   if (type == Jump)
     return gen.codeEmitter()->emitTOCJump(t->t(), gen);
   else if (type == Call)
@@ -273,14 +275,11 @@ bool CFPatch::handleTOCUpdate(codeGen &gen) {
 bool CFWidget::generateAddressTranslator(CodeBuffer & /*buffer*/,
                                          const codeGen & /*templ*/,
                                          Register & /*reg*/,
-                                         const RelocBlock * /*trace*/) 
-{
+                                         const RelocBlock * /*trace*/) {
 #if !defined(cap_mem_emulation)
-   return true;
+  return true;
 #else
-   assert(0);
-   return false;
+  assert(0);
+  return false;
 #endif
-
 }
-    

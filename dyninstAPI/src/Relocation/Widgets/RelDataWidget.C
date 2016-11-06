@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -41,32 +41,30 @@ using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
 
-RelDataWidget::Ptr RelDataWidget::create(Instruction::Ptr insn,
-					   Address addr,
-					   Address target) {
+RelDataWidget::Ptr RelDataWidget::create(Instruction::Ptr insn, Address addr,
+                                         Address target) {
   assert(addr);
   return Ptr(new RelDataWidget(insn, addr, target));
 }
 
 TrackerElement *RelDataWidget::tracker(const RelocBlock *t) const {
-   EmulatorTracker *e = new EmulatorTracker(addr_, t->block(), t->func());
+  EmulatorTracker *e = new EmulatorTracker(addr_, t->block(), t->func());
   return e;
 }
 
-bool RelDataWidget::generate(const codeGen &, 
-                              const RelocBlock *t, 
-                              CodeBuffer &buffer) {
+bool RelDataWidget::generate(const codeGen &, const RelocBlock *t,
+                             CodeBuffer &buffer) {
   // We want to take the original instruction and emulate
-  // it at whatever our new address is. 
+  // it at whatever our new address is.
 
   // Fortunately, we can reuse old code to handle the
   // translation
 
-  // Find the original target of the instruction 
-   
-  relocation_cerr << "  Generating a PC-relative data access (" << insn_->format()
-		  << "," << std::hex << addr_ 
-		  <<"," << target_ << std::dec << ")" << endl;
+  // Find the original target of the instruction
+
+  relocation_cerr << "  Generating a PC-relative data access ("
+                  << insn_->format() << "," << std::hex << addr_ << ","
+                  << target_ << std::dec << ")" << endl;
 
   RelDataPatch *newPatch = new RelDataPatch(insn_, target_, addr_);
   buffer.addPatch(newPatch, tracker(t));
@@ -87,6 +85,6 @@ bool RelDataPatch::apply(codeGen &gen, CodeBuffer *) {
 }
 
 unsigned RelDataPatch::estimate(codeGen &) {
-   // Underestimate if possible
-   return orig_insn->size();
+  // Underestimate if possible
+  return orig_insn->size();
 }

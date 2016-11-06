@@ -38,46 +38,44 @@
 namespace Dyninst {
 namespace Stackwalker {
 
-  typedef unsigned err_t;
+typedef unsigned err_t;
 
-  const err_t err_badparam       = 0x10000;
-  const err_t err_nostepper      = 0x10001;
-  const err_t err_nosymlookup    = 0x10002;
-  const err_t err_procread       = 0x10003;
-  const err_t err_nosymbol       = 0x10004;
-  const err_t err_internal       = 0x10005;
-  const err_t err_prem           = 0x10006;
-  const err_t err_perm           = 0x10006;
-  const err_t err_noproc         = 0x10007;
-  const err_t err_interrupt      = 0x10008;
-  const err_t err_procexit       = 0x10009;
-  const err_t err_stackbottom    = 0x10010;
-  const err_t err_nofile         = 0x10011;
-  const err_t err_unsupported    = 0x10012;
-  const err_t err_symtab         = 0x10013;
-  const err_t err_nolibtracker   = 0x10014;
-  const err_t err_nogroup        = 0x10015;
-  const err_t err_nothrd         = 0x10016;
-  const err_t err_proccontrol    = 0x10017;
+const err_t err_badparam = 0x10000;
+const err_t err_nostepper = 0x10001;
+const err_t err_nosymlookup = 0x10002;
+const err_t err_procread = 0x10003;
+const err_t err_nosymbol = 0x10004;
+const err_t err_internal = 0x10005;
+const err_t err_prem = 0x10006;
+const err_t err_perm = 0x10006;
+const err_t err_noproc = 0x10007;
+const err_t err_interrupt = 0x10008;
+const err_t err_procexit = 0x10009;
+const err_t err_stackbottom = 0x10010;
+const err_t err_nofile = 0x10011;
+const err_t err_unsupported = 0x10012;
+const err_t err_symtab = 0x10013;
+const err_t err_nolibtracker = 0x10014;
+const err_t err_nogroup = 0x10015;
+const err_t err_nothrd = 0x10016;
+const err_t err_proccontrol = 0x10017;
 
-  SW_EXPORT err_t getLastError();
-  SW_EXPORT void clearLastError();
-  SW_EXPORT const char *getLastErrorMsg();
-  SW_EXPORT void setLastError(err_t err, const char *msg = NULL);
-  SW_EXPORT void setDebugChannel(FILE *f);
-  SW_EXPORT void setDebug(bool enable);
+SW_EXPORT err_t getLastError();
+SW_EXPORT void clearLastError();
+SW_EXPORT const char *getLastErrorMsg();
+SW_EXPORT void setLastError(err_t err, const char *msg = NULL);
+SW_EXPORT void setDebugChannel(FILE *f);
+SW_EXPORT void setDebug(bool enable);
 
-  SW_EXPORT FILE *getDebugChannel();
+SW_EXPORT FILE *getDebugChannel();
 
-  extern int sw_printf(const char *format, ...);
-  extern int dyn_debug_stackwalk;
-
+extern int sw_printf(const char *format, ...);
+extern int dyn_debug_stackwalk;
 }
 }
 
 #if defined(cap_omit_sw_debug)
 #define sw_printf(...)
 #endif
-
 
 #endif

@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -42,7 +42,8 @@
  * of "Boolean".
  *
  * Revision 1.8  1994/11/04  15:52:51  tamches
- * setValue() for boolean tc's now correctly invokes its callback function, if any.
+ * setValue() for boolean tc's now correctly invokes its callback function, if
+ * any.
  *
  * Revision 1.7  1994/11/01  16:07:35  markc
  * Added Object classes that provide os independent symbol tables.
@@ -87,54 +88,45 @@ typedef enum tunableType { tunableBoolean, tunableFloat };
 //
 class tunableConstant {
  protected:
-   char *desc;
-   char *name;
-   tunableType typeName;
-   tunableUse use;
+  char *desc;
+  char *name;
+  tunableType typeName;
+  tunableUse use;
 
-   static stringPool *pool; // made protected
+  static stringPool *pool;  // made protected
 
-   static List<tunableConstant*> *allConstants; // NEEDS TO BE MADE PROTECTED
+  static List<tunableConstant *> *allConstants;  // NEEDS TO BE MADE PROTECTED
 
  public:
-   tunableConstant() {}
-   virtual ~tunableConstant() {}
+  tunableConstant() {}
+  virtual ~tunableConstant() {}
 
-   const char *getDesc() const {
-      return desc;
-   }
-   const char *getName() const {
-      return name;
-   }
-   tunableUse getUse() const {
-      return use;
-   }
-   tunableType getType() const {
-      return typeName;
-   }
+  const char *getDesc() const { return desc; }
+  const char *getName() const { return name; }
+  tunableUse getUse() const { return use; }
+  tunableType getType() const { return typeName; }
 
-   static tunableConstant *findTunableConstant(const char *name);
-      // returns NULL if not found
+  static tunableConstant *findTunableConstant(const char *name);
+  // returns NULL if not found
 
-   static List<tunableConstant *> beginIteration() {
-      assert(allConstants);
+  static List<tunableConstant *> beginIteration() {
+    assert(allConstants);
 
-      List <tunableConstant *> iterList = *allConstants;
-         // make a copy of the list for iteration purposes
-         // (actually, it just copies the head element, which itself
-         // is merely a pointer)
+    List<tunableConstant *> iterList = *allConstants;
+    // make a copy of the list for iteration purposes
+    // (actually, it just copies the head element, which itself
+    // is merely a pointer)
 
-      return iterList;
-   }
+    return iterList;
+  }
 
-   static int numTunables() {
-      assert(allConstants);
-      return allConstants->count();
-   }
+  static int numTunables() {
+    assert(allConstants);
+    return allConstants->count();
+  }
 
-   virtual void print() = NULL;
+  virtual void print() = NULL;
 };
-
 
 // Shouldn't the string pools be made part of the base class?
 
@@ -144,73 +136,56 @@ typedef void (*floatChangeValCallBackFunc)(float value);
 
 class tunableBooleanConstant : public tunableConstant {
  private:
-   bool value;
-   booleanChangeValCallBackFunc newValueCallBack;
+  bool value;
+  booleanChangeValCallBackFunc newValueCallBack;
 
  public:
+  tunableBooleanConstant(bool initialValue, booleanChangeValCallBackFunc cb,
+                         tunableUse type, const char *name, const char *desc);
+  bool getValue() { return value; }
+  bool setValue(bool newVal) {
+    value = newVal;
+    if (newValueCallBack) newValueCallBack(newVal);
+    return true;
+  }
 
-   tunableBooleanConstant(bool initialValue, 
-			  booleanChangeValCallBackFunc cb,
-			  tunableUse type,
-			  const char *name,
-			  const char *desc);
-   bool getValue() { return value; }
-   bool setValue(bool newVal) {
-      value = newVal;
-      if (newValueCallBack)
-         newValueCallBack(newVal);
-      return true;
-   }
-
-   virtual void print();
+  virtual void print();
 };
 
 class tunableFloatConstant : public tunableConstant {
  private:
-   float value;
-   float min, max;
-   isValidFunc isValidValue;
+  float value;
+  float min, max;
+  isValidFunc isValidValue;
 
-   floatChangeValCallBackFunc newValueCallBack;
-   bool simpleRangeCheck(float val);
+  floatChangeValCallBackFunc newValueCallBack;
+  bool simpleRangeCheck(float val);
 
  public:
+  tunableFloatConstant(float initialValue, float min, float max,
+                       floatChangeValCallBackFunc cb, tunableUse type,
+                       const char *name, const char *desc);
+  tunableFloatConstant(float initialValue, isValidFunc,
+                       floatChangeValCallBackFunc cb, tunableUse type,
+                       const char *name, const char *desc);
+  float getValue() { return value; }
+  bool setValue(float newVal) {
+    if (isValidValue && isValidValue(newVal)) {
+      value = newVal;
+      if (newValueCallBack) newValueCallBack(newVal);
+      return true;
+    } else if (simpleRangeCheck(newVal)) {
+      value = newVal;
+      if (newValueCallBack) newValueCallBack(newVal);
+      return true;
+    } else
+      return false;
+  }
 
-   tunableFloatConstant(float initialValue, 
-			float min, 
-			float max, 
-			floatChangeValCallBackFunc cb,
-		        tunableUse type,
-			const char *name,
-			const char *desc);
-   tunableFloatConstant(float initialValue, 
-			isValidFunc, 
-			floatChangeValCallBackFunc cb,
-		        tunableUse type,
-			const char *name,
-			const char *desc);
-   float getValue() { return value; }
-   bool setValue(float newVal) {
-      if (isValidValue && isValidValue(newVal)) {
-	 value = newVal;
-	 if (newValueCallBack)
-            newValueCallBack(newVal);
-	 return true;
-      }
-      else if (simpleRangeCheck(newVal)) {
-         value = newVal;
-	 if (newValueCallBack)
-            newValueCallBack(newVal);
-	 return true;
-      }
-      else
-         return false;
-   }
+  float getMin() { return min; }
+  float getMax() { return max; }
 
-   float getMin() {return min;}
-   float getMax() {return max;}
-
-   virtual void print();
+  virtual void print();
 };
 
 #endif
