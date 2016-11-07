@@ -219,6 +219,10 @@ namespace rose {
 
                 bool extend(uint32_t raw);
 
+                int op(uint32_t raw);
+
+                bool setflags(uint32_t raw);
+
                 /** */
                 BaseSemantics::SValuePtr readMemory(const BaseSemantics::SValuePtr &addr, size_t readSize);
 
@@ -266,6 +270,12 @@ namespace rose {
                         MoveWideOp_N,
                         MoveWideOp_Z,
                         MoveWideOp_K
+                    };
+
+                    enum LogicalOp {
+                        LogicalOp_AND,
+                        LogicalOp_ORR,
+                        LogicalOp_EOR
                     };
                 };
 

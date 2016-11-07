@@ -2357,6 +2357,284 @@ namespace rose {
 	            }
 	        };
 
+                struct IP_orr_log_shift_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+
+                        if ((EXTR(21, 21) == 1)) {
+                            operand2 = d->NOT(operand2);
+                        }
+
+                        switch (d->op(raw)) {
+                            case LogicalOp_AND: {
+                                result = ops->and_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_ORR: {
+                                result = ops->or_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_EOR: {
+                                result = ops->xor_(operand1, operand2);
+                            }
+                                break;
+                        }
+
+                        if (d->setflags(raw)) {
+                            d->writeRegister(d->REG_N,
+                                             ops->extract(result, result->get_width() - 1, result->get_width()));
+                            d->writeRegister(d->REG_Z, d->isZero(result));
+                            d->writeRegister(d->REG_C, ops->number_(1, 0));
+                            d->writeRegister(d->REG_V, ops->number_(1, 0));
+                        }
+                        d->write(args[0], result);
+
+                    }
+                };
+
+                struct IP_orn_log_shift_execute : P {                                      //
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+
+                        if ((EXTR(21, 21) == 1)) {
+                            operand2 = d->NOT(operand2);
+                        }
+
+                        switch (d->op(raw)) {
+                            case LogicalOp_AND: {
+                                result = ops->and_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_ORR: {
+                                result = ops->or_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_EOR: {
+                                result = ops->xor_(operand1, operand2);
+                            }
+                                break;
+                        }
+
+                        if (d->setflags(raw)) {
+                            d->writeRegister(d->REG_N,
+                                             ops->extract(result, result->get_width() - 1, result->get_width()));
+                            d->writeRegister(d->REG_Z, d->isZero(result));
+                            d->writeRegister(d->REG_C, ops->number_(1, 0));
+                            d->writeRegister(d->REG_V, ops->number_(1, 0));
+                        }
+                        d->write(args[0], result);
+
+                    }
+                };
+
+                struct IP_orr_log_imm_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+
+                        switch (d->op(raw)) {
+                            case LogicalOp_AND: {
+                                result = ops->and_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_ORR: {
+                                result = ops->or_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_EOR: {
+                                result = ops->xor_(operand1, operand2);
+                            }
+                                break;
+                        }
+
+                        if (d->setflags(raw)) {
+                            d->writeRegister(d->REG_N,
+                                             ops->extract(result, result->get_width() - 1, result->get_width()));
+                            d->writeRegister(d->REG_Z, d->isZero(result));
+                            d->writeRegister(d->REG_C, ops->number_(1, 0));
+                            d->writeRegister(d->REG_V, ops->number_(1, 0));
+                        }
+
+                        if (EXTR(0, 4) == 31 && !d->setflags(raw)) {
+                            d->writeRegister(d->REG_SP, result);
+                        } else {
+                            d->write(args[0], result);
+                        }
+
+                    }
+                };
+
+                struct IP_and_log_imm_execute : P {                                        //
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+
+                        switch (d->op(raw)) {
+                            case LogicalOp_AND: {
+                                result = ops->and_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_ORR: {
+                                result = ops->or_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_EOR: {
+                                result = ops->xor_(operand1, operand2);
+                            }
+                                break;
+                        }
+
+                        if (d->setflags(raw)) {
+                            d->writeRegister(d->REG_N,
+                                             ops->extract(result, result->get_width() - 1, result->get_width()));
+                            d->writeRegister(d->REG_Z, d->isZero(result));
+                            d->writeRegister(d->REG_C, ops->number_(1, 0));
+                            d->writeRegister(d->REG_V, ops->number_(1, 0));
+                        }
+
+                        if (EXTR(0, 4) == 31 && !d->setflags(raw)) {
+                            d->writeRegister(d->REG_SP, result);
+                        } else {
+                            d->write(args[0], result);
+                        }
+
+                    }
+                };
+
+                struct IP_and_log_shift_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+
+                        if ((EXTR(21, 21) == 1)) {
+                            operand2 = d->NOT(operand2);
+                        }
+
+                        switch (d->op(raw)) {
+                            case LogicalOp_AND: {
+                                result = ops->and_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_ORR: {
+                                result = ops->or_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_EOR: {
+                                result = ops->xor_(operand1, operand2);
+                            }
+                                break;
+                        }
+
+                        if (d->setflags(raw)) {
+                            d->writeRegister(d->REG_N,
+                                             ops->extract(result, result->get_width() - 1, result->get_width()));
+                            d->writeRegister(d->REG_Z, d->isZero(result));
+                            d->writeRegister(d->REG_C, ops->number_(1, 0));
+                            d->writeRegister(d->REG_V, ops->number_(1, 0));
+                        }
+                        d->write(args[0], result);
+
+                    }
+                };
+
+                struct IP_ands_log_imm_execute : P {                                       //
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+
+                        switch (d->op(raw)) {
+                            case LogicalOp_AND: {
+                                result = ops->and_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_ORR: {
+                                result = ops->or_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_EOR: {
+                                result = ops->xor_(operand1, operand2);
+                            }
+                                break;
+                        }
+
+                        if (d->setflags(raw)) {
+                            d->writeRegister(d->REG_N,
+                                             ops->extract(result, result->get_width() - 1, result->get_width()));
+                            d->writeRegister(d->REG_Z, d->isZero(result));
+                            d->writeRegister(d->REG_C, ops->number_(1, 0));
+                            d->writeRegister(d->REG_V, ops->number_(1, 0));
+                        }
+
+                        if (EXTR(0, 4) == 31 && !d->setflags(raw)) {
+                            d->writeRegister(d->REG_SP, result);
+                        } else {
+                            d->write(args[0], result);
+                        }
+
+                    }
+                };
+
+                struct IP_ands_log_shift_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+
+                        if ((EXTR(21, 21) == 1)) {
+                            operand2 = d->NOT(operand2);
+                        }
+
+                        switch (d->op(raw)) {
+                            case LogicalOp_AND: {
+                                result = ops->and_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_ORR: {
+                                result = ops->or_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_EOR: {
+                                result = ops->xor_(operand1, operand2);
+                            }
+                                break;
+                        }
+
+                        if (d->setflags(raw)) {
+                            d->writeRegister(d->REG_N,
+                                             ops->extract(result, result->get_width() - 1, result->get_width()));
+                            d->writeRegister(d->REG_Z, d->isZero(result));
+                            d->writeRegister(d->REG_C, ops->number_(1, 0));
+                            d->writeRegister(d->REG_V, ops->number_(1, 0));
+                        }
+                        d->write(args[0], result);
+
+                    }
+                };
+
+                struct IP_mov_orr_log_shift_execute : P {                                  //
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr src = d->read(args[1]);
+                        d->write(args[0], src);
+
+                    }
+                };
+
+                struct IP_mov_orr_log_imm_execute : P {                                    //
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr src = d->read(args[1]);
+                        d->write(args[0], src);
+
+                    }
+                };
+
 
             } // namespace
 
@@ -2436,6 +2714,15 @@ namespace rose {
                 iproc_set (rose_aarch64_op_movn, new ARM64::IP_movn_execute);
                 iproc_set (rose_aarch64_op_mov_movn, new ARM64::IP_mov_movn_execute);
                 iproc_set (rose_aarch64_op_movk, new ARM64::IP_movk_execute);
+                iproc_set (rose_aarch64_op_mov_orr_log_shift, new ARM64::IP_mov_orr_log_shift_execute);
+                iproc_set (rose_aarch64_op_mov_orr_log_imm, new ARM64::IP_mov_orr_log_imm_execute);
+                iproc_set (rose_aarch64_op_orr_log_shift, new ARM64::IP_orr_log_shift_execute);
+                iproc_set (rose_aarch64_op_orn_log_shift, new ARM64::IP_orn_log_shift_execute);
+                iproc_set (rose_aarch64_op_orr_log_imm, new ARM64::IP_orr_log_imm_execute);
+                iproc_set (rose_aarch64_op_and_log_imm, new ARM64::IP_and_log_imm_execute);
+                iproc_set (rose_aarch64_op_and_log_shift, new ARM64::IP_and_log_shift_execute);
+                iproc_set (rose_aarch64_op_ands_log_imm, new ARM64::IP_ands_log_imm_execute);
+                iproc_set (rose_aarch64_op_ands_log_shift, new ARM64::IP_ands_log_shift_execute);
             }
 
             void
@@ -2724,6 +3011,34 @@ namespace rose {
                     case 0: return true;
                     default: assert(!"Bitfield extract instruction has invalid opc field for extend!");
                         break;
+                }
+            }
+
+            int
+            DispatcherARM64::op(uint32_t raw) {
+                switch(IntegerOps::extract2<uint32_t>(29, 30, raw)) {
+                    case 0:
+                    case 3: return static_cast<int>(ARM64::InsnProcessor::LogicalOp_AND);
+                    case 1: return static_cast<int>(ARM64::InsnProcessor::LogicalOp_ORR);
+                    case 2: return static_cast<int>(ARM64::InsnProcessor::LogicalOp_EOR);
+                    default: assert(!"Invalid code for opc field in logical OR instruction variant!");
+                        break;
+                }
+            }
+
+            bool
+            DispatcherARM64::setflags(uint32_t raw) {
+                if(IntegerOps::extract2(24, 28, raw) == 0x0A) {
+                    switch(IntegerOps::extract2(29, 30, raw)) {
+                        case 0:
+                        case 1:
+                        case 2: return false;
+                        case 3: return true;
+                        default: assert(!"Invalid code for opc field in logical instruction!");
+                            break;
+                    }
+                } else {
+                    return IntegerOps::extract2(29, 29, raw) == 1;
                 }
             }
 
