@@ -51,10 +51,12 @@ std::string ArmFormatter::formatDeref(std::string addrString) {
 
     if(pluspos != std::string::npos && addrString.substr(0, pluspos - 1) == "PC") {
         out<<addrString.substr(pluspos + 2);
-    } else {
+    } else if(pluspos != std::string::npos) {
         std::string left = addrString.substr(0, pluspos - 1);
         std::string right = addrString.substr(pluspos + 2);
         out<<"["<<left<<", "<<right<<"]";
+    } else {
+        out<<"["<<addrString<<"]";
     }
 
     return out.str();
@@ -75,8 +77,8 @@ std::string ArmFormatter::getInstructionString(std::vector<std::string> operands
 std::string ArmFormatter::formatBinaryFunc(std::string left, std::string func, std::string right) {
     if(binaryFuncModifier.count(func) > 0)
 	    return left + ", " + binaryFuncModifier[func] + " " + right;
-    else if(left == "PC")
-	    return right;
+    /*else if(left == "PC")
+	    return right;*/
     else
         return left + " " + func + " " + right;
 }

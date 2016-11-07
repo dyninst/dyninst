@@ -1230,16 +1230,14 @@ namespace Dyninst {
             unsigned int immVal = 0, immLen = 0;
             getMemRefPair_ImmImmlen(immVal, immLen);
 
-            Expression::Ptr lhs = Immediate::makeImmediate(Result(s64, sign_extend64(immLen, immVal)));
             int scale = 2;
             if (isSIMDInsn)
                 scale += field<30, 31>(insn);
             else
                 scale += field<31, 31>(insn);
-            Expression::Ptr rhs = Immediate::makeImmediate(Result(u8, scale));
 
             //return makeMultiplyExpression(imm7, scale, s64);
-            return makeLeftShiftExpression(lhs, rhs, s64);
+            return Immediate::makeImmediate(Result(u32, immVal << scale));
         }
 
         Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndex_addOffset9() {
@@ -1273,6 +1271,7 @@ namespace Dyninst {
         Expression::Ptr InstructionDecoder_aarch64::makeMemRefPairPost() {
             Result_Type rt;
             getMemRefPair_RT(rt);
+
             return makeDereferenceExpression(makeRnExpr(), rt);
         }
 
@@ -1563,11 +1562,11 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                 // load PAIR pre, post, offset
                 // ****************************
             else if (IS_INSN_LDST_PAIR_PRE(insn)
-                     || IS_INSN_LDST_PAIR_NOALLOC(insn)) {
+                     || IS_INSN_LDST_PAIR_NOALLOC(insn)
+                     || IS_INSN_LDST_PAIR_OFFSET(insn)) {
                 insn_in_progress->appendOperand(makeMemRefPairPre(), true, false);
             }
-            else if (IS_INSN_LDST_PAIR_POST(insn)
-                     || IS_INSN_LDST_PAIR_OFFSET(insn)) {
+            else if (IS_INSN_LDST_PAIR_POST(insn)) {
                 insn_in_progress->appendOperand(makeMemRefPairPost(), true, false);
             }
                 // ****************************
@@ -1628,11 +1627,11 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                 // ld/st PAIR pre, post, offset
                 // ****************************
             else if (IS_INSN_LDST_PAIR_PRE(insn)
-                     || IS_INSN_LDST_PAIR_NOALLOC(insn)) {
+                     || IS_INSN_LDST_PAIR_NOALLOC(insn)
+                     || IS_INSN_LDST_PAIR_OFFSET(insn)) {
                 insn_in_progress->appendOperand(makeMemRefPairPre(), false, true);
             }
-            else if (IS_INSN_LDST_PAIR_POST(insn)
-                     || IS_INSN_LDST_PAIR_OFFSET(insn)) {
+            else if (IS_INSN_LDST_PAIR_POST(insn)) {
                 insn_in_progress->appendOperand(makeMemRefPairPost(), false, true);
             }
                 // ****************************
@@ -2475,8 +2474,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                     Expression::Ptr offset = makeMemRefIndex_offset9();
                     insn_in_progress->appendOperand(offset, true, false);
                 }
-                else if (IS_INSN_LDST_PAIR_POST(insn)
-                         || IS_INSN_LDST_PAIR_OFFSET(insn)) {
+                else if (IS_INSN_LDST_PAIR_POST(insn)) {
                     Expression::Ptr offset = makeMemRefPair_offset7();
                     insn_in_progress->appendOperand(offset, true, false);
                 }
