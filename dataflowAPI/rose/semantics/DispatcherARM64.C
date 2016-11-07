@@ -2619,6 +2619,118 @@ namespace rose {
                     }
                 };
 
+                struct IP_eor_log_shift_execute : P {                                      //
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+
+                        if ((EXTR(21, 21) == 1)) {
+                            operand2 = d->NOT(operand2);
+                        }
+
+                        switch (d->op(raw)) {
+                            case LogicalOp_AND: {
+                                result = ops->and_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_ORR: {
+                                result = ops->or_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_EOR: {
+                                result = ops->xor_(operand1, operand2);
+                            }
+                                break;
+                        }
+
+                        if (d->setflags(raw)) {
+                            d->writeRegister(d->REG_N,
+                                             ops->extract(result, result->get_width() - 1, result->get_width()));
+                            d->writeRegister(d->REG_Z, d->isZero(result));
+                            d->writeRegister(d->REG_C, ops->number_(1, 0));
+                            d->writeRegister(d->REG_V, ops->number_(1, 0));
+                        }
+                        d->write(args[0], result);
+
+                    }
+                };
+
+                struct IP_eor_log_imm_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+
+                        switch (d->op(raw)) {
+                            case LogicalOp_AND: {
+                                result = ops->and_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_ORR: {
+                                result = ops->or_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_EOR: {
+                                result = ops->xor_(operand1, operand2);
+                            }
+                                break;
+                        }
+
+                        if (d->setflags(raw)) {
+                            d->writeRegister(d->REG_N,
+                                             ops->extract(result, result->get_width() - 1, result->get_width()));
+                            d->writeRegister(d->REG_Z, d->isZero(result));
+                            d->writeRegister(d->REG_C, ops->number_(1, 0));
+                            d->writeRegister(d->REG_V, ops->number_(1, 0));
+                        }
+
+                        if (EXTR(0, 4) == 31 && !d->setflags(raw)) {
+                            d->writeRegister(d->REG_SP, result);
+                        } else {
+                            d->write(args[0], result);
+                        }
+
+                    }
+                };
+
+                struct IP_eon_execute : P {                                                //
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+
+                        if ((EXTR(21, 21) == 1)) {
+                            operand2 = d->NOT(operand2);
+                        }
+
+                        switch (d->op(raw)) {
+                            case LogicalOp_AND: {
+                                result = ops->and_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_ORR: {
+                                result = ops->or_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_EOR: {
+                                result = ops->xor_(operand1, operand2);
+                            }
+                                break;
+                        }
+
+                        if (d->setflags(raw)) {
+                            d->writeRegister(d->REG_N,
+                                             ops->extract(result, result->get_width() - 1, result->get_width()));
+                            d->writeRegister(d->REG_Z, d->isZero(result));
+                            d->writeRegister(d->REG_C, ops->number_(1, 0));
+                            d->writeRegister(d->REG_V, ops->number_(1, 0));
+                        }
+                        d->write(args[0], result);
+
+                    }
+                };
+
                 struct IP_mov_orr_log_shift_execute : P {                                  //
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr src = d->read(args[1]);
@@ -2723,6 +2835,9 @@ namespace rose {
                 iproc_set (rose_aarch64_op_and_log_shift, new ARM64::IP_and_log_shift_execute);
                 iproc_set (rose_aarch64_op_ands_log_imm, new ARM64::IP_ands_log_imm_execute);
                 iproc_set (rose_aarch64_op_ands_log_shift, new ARM64::IP_ands_log_shift_execute);
+                iproc_set (rose_aarch64_op_eor_log_shift, new ARM64::IP_eor_log_shift_execute);
+                iproc_set (rose_aarch64_op_eor_log_imm, new ARM64::IP_eor_log_imm_execute);
+                iproc_set (rose_aarch64_op_eon, new ARM64::IP_eon_execute);
             }
 
             void
