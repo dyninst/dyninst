@@ -1169,7 +1169,7 @@ namespace Dyninst {
 
         void InstructionDecoder_aarch64::getMemRefIndex_SizeSizelen(unsigned int &size, unsigned int &sizeLen) {
             size = field<30, 31>(insn);
-            if (size == 0x0 && field<23, 23>(insn) == 0x1)
+            if (isSIMDInsn && size == 0x0 && field<23, 23>(insn) == 0x1)
                 size = 4;
             sizeLen = 31 - 30 + 1 + (size / 4);
             return;
