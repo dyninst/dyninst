@@ -813,7 +813,7 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
 	switch(category) {
 	    case aarch64::GPR: {
 			  c = armv8_regclass_gpr;
-			  if(baseID == aarch64::zr || baseID == aarch64::wzr)
+			  if(baseID == aarch64::xzr || baseID == aarch64::wzr)
 			      n = armv8_gpr_zr;
 			  else {
 			      int regnum = baseID - aarch64::x0;
@@ -1863,7 +1863,7 @@ MachRegister MachRegister::getArchReg(unsigned int regNum, Dyninst::Architecture
             case 100: return Dyninst::aarch64::sp;
             case 101: return Dyninst::aarch64::pc;
             case 102: return Dyninst::aarch64::pstate;
-            case 103: return Dyninst::aarch64::zr;
+            case 103: return Dyninst::aarch64::xzr;
          }
       default:
          return InvalidReg;

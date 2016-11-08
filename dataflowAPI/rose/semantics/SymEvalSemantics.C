@@ -83,7 +83,7 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateARM64::convert(ARMv8GeneralPurpos
     Dyninst::MachRegister mreg;
 
     if(r != armv8_gpr_zr) {
-        mreg = (size == 32)?Dyninst::aarch64::wzr:Dyninst::aarch64::zr;
+        mreg = (size == 32)?Dyninst::aarch64::wzr:Dyninst::aarch64::xzr;
     } else {
         mreg = (size == 32)?Dyninst::aarch64::w0:Dyninst::aarch64::x0;
         mreg = Dyninst::MachRegister(mreg.val() + (r - armv8_gpr_r0));

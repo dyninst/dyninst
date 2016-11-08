@@ -309,7 +309,7 @@ namespace Dyninst {
             MachRegister reg;
             int encoding = field<16, 20>(insn);
 
-            reg = ((optionField & 0x3) == 0x3) ? ((encoding == 31) ? aarch64::zr : aarch64::x0) : ((encoding == 31)
+            reg = ((optionField & 0x3) == 0x3) ? ((encoding == 31) ? aarch64::xzr : aarch64::x0) : ((encoding == 31)
                                                                                                    ? aarch64::wzr
                                                                                                    : aarch64::w0);
             if (encoding != 31)
@@ -707,7 +707,7 @@ namespace Dyninst {
             else {
                 if (encoding == 31)
                     reg = ((IS_INSN_ADDSUB_IMM(insn) || IS_INSN_ADDSUB_EXT(insn) || IS_INSN_LOGICAL_IMM(insn)) &&
-                           !isPstateWritten) ? (is64Bit ? aarch64::sp : aarch64::wsp) : (is64Bit ? aarch64::zr
+                           !isPstateWritten) ? (is64Bit ? aarch64::sp : aarch64::wsp) : (is64Bit ? aarch64::xzr
                                                                                                  : aarch64::wzr);
                 else
                     reg = is64Bit ? aarch64::x0 : aarch64::w0;
@@ -807,7 +807,7 @@ namespace Dyninst {
                                     reg = encoding == 31 ? aarch64::wzr : aarch64::w0;
                                 }
                                 else {
-                                    reg = encoding == 31 ? aarch64::zr : aarch64::x0;
+                                    reg = encoding == 31 ? aarch64::xzr : aarch64::x0;
                                 }
                                 break;
                             default:
@@ -981,7 +981,7 @@ namespace Dyninst {
                 else
                     reg = _Q == 0x1 ? aarch64::q0 : aarch64::d0;
 
-                if (!(reg == aarch64::wzr || reg == aarch64::zr))
+                if (!(reg == aarch64::wzr || reg == aarch64::xzr))
                     reg = makeAarch64RegID(reg, encoding);
             }
             else if (isFPInsn && !((IS_INSN_FP_CONV_FIX(insn) || (IS_INSN_FP_CONV_INT(insn))) && IS_SOURCE_GP(insn))) {
@@ -1011,7 +1011,7 @@ namespace Dyninst {
                 if (encoding == 31)
                     reg = (IS_INSN_ADDSUB_IMM(insn) || IS_INSN_ADDSUB_EXT(insn)) ? (is64Bit ? aarch64::sp
                                                                                             : aarch64::wsp) : (is64Bit
-                                                                                                               ? aarch64::zr
+                                                                                                               ? aarch64::xzr
                                                                                                                : aarch64::wzr);
                 else
                     reg = is64Bit ? aarch64::x0 : aarch64::w0;
@@ -1474,7 +1474,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             unsigned int encoding = field<16, 20>(insn);
 
             if (encoding == 31)//zero register
-                return makeRegisterExpression(makeAarch64RegID(aarch64::zr, 0));
+                return makeRegisterExpression(makeAarch64RegID(aarch64::xzr, 0));
             else
                 return makeRegisterExpression(makeAarch64RegID(baseReg, encoding));
         }
@@ -1820,7 +1820,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                 reg = makeAarch64RegID(reg, encoding);
             }
             else {
-                reg = is64Bit ? ((encoding == 31) ? aarch64::zr : aarch64::x0) : ((encoding == 31) ? aarch64::wzr
+                reg = is64Bit ? ((encoding == 31) ? aarch64::xzr : aarch64::x0) : ((encoding == 31) ? aarch64::wzr
                                                                                                    : aarch64::w0);
                 if (encoding != 31)
                     reg = makeAarch64RegID(reg, encoding);
@@ -1993,7 +1993,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                 reg = getLoadStoreSimdRegister(encoding);
             }
             else {
-                reg = is64Bit ? ((encoding == 31) ? aarch64::zr : aarch64::x0) : ((encoding == 31) ? aarch64::wzr
+                reg = is64Bit ? ((encoding == 31) ? aarch64::xzr : aarch64::x0) : ((encoding == 31) ? aarch64::wzr
                                                                                                    : aarch64::w0);
                 if (encoding != 31)
                     reg = makeAarch64RegID(reg, encoding);
@@ -2048,7 +2048,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 
             if (IS_INSN_BRANCHING(insn)) {
                 if (encoding == 31)
-                    insn_in_progress->appendOperand(makeRegisterExpression(is64Bit ? aarch64::zr : aarch64::wzr), true,
+                    insn_in_progress->appendOperand(makeRegisterExpression(is64Bit ? aarch64::xzr : aarch64::wzr), true,
                                                     false);
                 else
                     insn_in_progress->appendOperand(
@@ -2133,7 +2133,10 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                 baseReg = getLoadStoreSimdRegister(encoding);
             }
             else {
-                baseReg = makeAarch64RegID(is64Bit ? aarch64::x0 : aarch64::w0, encoding);
+                baseReg = is64Bit ? ((encoding == 31) ? aarch64::xzr : aarch64::x0) : ((encoding == 31) ? aarch64::wzr
+                                                                                                   : aarch64::w0);
+                if (encoding != 31)
+                    baseReg = makeAarch64RegID(baseReg, encoding);
             }
 
             return makeRegisterExpression(baseReg);
