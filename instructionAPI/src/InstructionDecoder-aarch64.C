@@ -2175,12 +2175,16 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
         }
 
         void InstructionDecoder_aarch64::OPRnzcv() {
-            unsigned int nzcvVal = field<0, 3>(insn) << 28;
-            Expression::Ptr nzcv = Immediate::makeImmediate(Result(u32, nzcvVal));
-            insn_in_progress->appendOperand(nzcv, true, false);
+            if(!isFPInsn && field<4, 4>(insn) == 1) {
+                isValid = false;
+            } else {
+                unsigned int nzcvVal = field<0, 3>(insn);
+                Expression::Ptr nzcv = Immediate::makeImmediate(Result(u8, nzcvVal));
+                insn_in_progress->appendOperand(nzcv, true, false);
 
-            isPstateWritten = true;
-            oprRotateAmt++;
+                isPstateWritten = true;
+                oprRotateAmt++;
+            }
         }
 
         void InstructionDecoder_aarch64::OPRop1() {
@@ -2808,20 +2812,20 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 
         }
 
-        bool InstructionDecoder_aarch64::decodeOperands(const Instruction * insn_to_complete) {
+        bool InstructionDecoder_aarch64::decodeOperands(const Instruction *insn_to_complete) {
             int insn_table_index = findInsnTableIndex(0);
             aarch64_insn_entry *insn_table_entry = &aarch64_insn_entry::main_insn_table[insn_table_index];
 
             insn = insn_to_complete->m_RawInsn.small_insn;
             insn_in_progress = const_cast<Instruction *>(insn_to_complete);
-            
-	    if (IS_INSN_LDST_REG(insn) ||
+
+            if (IS_INSN_LDST_REG(insn) ||
                 IS_INSN_ADDSUB_EXT(insn) ||
                 IS_INSN_ADDSUB_SHIFT(insn) ||
                 IS_INSN_LOGICAL_SHIFT(insn))
-		skipRm = true;
-            
-	    for (operandSpec::const_iterator fn = insn_table_entry->operands.begin();
+                skipRm = true;
+
+            for (operandSpec::const_iterator fn = insn_table_entry->operands.begin();
                  fn != insn_table_entry->operands.end(); fn++) {
                 std::mem_fun(*fn)(this);
             }
@@ -2834,8 +2838,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                 insn_in_progress->getOperation().operationID = INVALID_ENTRY.op;
                 insn_in_progress->m_Operands.clear();
                 insn_in_progress->m_Successors.clear();
-            }
-            else {
+            } else {
                 reorderOperands();
 
                 if (IS_INSN_SYSTEM(insn)) {
@@ -2848,8 +2851,9 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 
                 if (IS_INSN_LDST_SIMD_MULT_POST(insn) || IS_INSN_LDST_SIMD_SING_POST(insn))
                     insn_in_progress->appendOperand(makeRnExpr(), false, true);
-		else if(insn_in_progress->getOperation().operationID == aarch64_op_cmeq_advsimd_zero && field<29, 29>(insn) == 0)
-		    insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32, 0)), true, false);
+                else if (insn_in_progress->getOperation().operationID == aarch64_op_cmeq_advsimd_zero &&
+                         field<29, 29>(insn) == 0)
+                    insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32, 0)), true, false);
 
                 if (isPstateWritten || isPstateRead)
                     insn_in_progress->appendOperand(makePstateExpr(), isPstateRead, isPstateWritten);
