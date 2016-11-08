@@ -468,6 +468,14 @@ namespace Dyninst {
         template<unsigned int endBit, unsigned int startBit>
         void InstructionDecoder_aarch64::OPRsize() {
             size = field<startBit, endBit>(insn);
+
+            entryID insnID = insn_in_progress->getOperation().operationID;
+            if((insnID == aarch64_op_pmull_advsimd && (size == 0x1 || size == 0x2)) ||
+               (IS_INSN_SIMD_3DIFF(insn) && size == 0x3) ||
+               ((insnID == aarch64_op_sqdmull_advsimd_vec || insnID == aarch64_op_sqdmlal_advsimd_vec || insnID == aarch64_op_sqdmlsl_advsimd_vec)
+                 && size == 0)) {
+                isValid = false;
+            }
         }
 
         Expression::Ptr InstructionDecoder_aarch64::makeRdExpr() {
@@ -1859,6 +1867,9 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
         void InstructionDecoder_aarch64::OPRhw() {
             hasHw = true;
             hwField = field<21, 22>(insn);
+
+            if(!is64Bit && ((hwField >> 1) & 0x1) == 1)
+                isValid = false;
         }
 
         template<unsigned int endBit, unsigned int startBit>
