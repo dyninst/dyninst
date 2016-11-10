@@ -90,7 +90,7 @@ bool IA_IAPI::isThunk() const
 }
 
 bool IA_IAPI::isTailCall(Function* context, EdgeTypeEnum type, unsigned int,
-        const std::set<Address>& ) const
+        const std::set<Address>& knownTargets ) const
 {
     switch(type) {
        case CALL:
@@ -109,7 +109,6 @@ bool IA_IAPI::isTailCall(Function* context, EdgeTypeEnum type, unsigned int,
 
     parsing_printf("Checking for Tail Call \n");
     context->obj()->cs()->incrementCounter(PARSE_TAILCALL_COUNT); 
-    parsing_printf("***type: %d, current: %d\n", type, tailCalls[type]);
 
     if (tailCalls.find(type) != tailCalls.end()) {
         parsing_printf("\tReturning cached tail call check result: %d\n", tailCalls[type]);
@@ -126,14 +125,56 @@ bool IA_IAPI::isTailCall(Function* context, EdgeTypeEnum type, unsigned int,
     Function *callee = _obj->findFuncByEntry(_cr, addr);
     Block *target = _obj->findBlockByEntry(_cr, addr);
 
+    // check if addr is in a block if it is not entry.
+    if (target == NULL) {
+        std::set<Block*> blocks;
+        _obj->findCurrentBlocks(_cr, addr, blocks);
+        if (blocks.size() == 1) {
+            target = *blocks.begin();
+        } else if (blocks.size() == 0) {
+	    // This case can happen when the jump target is a function entry,
+	    // but we have not parsed the function yet
+	    target = NULL;
+	} else {
+	    // If this case happens, it means the jump goes into overlapping instruction streams,
+	    // it is not likely to be a tail call.
+	    parsing_printf("\tjumps into overlapping instruction streams\n");
+	    for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
+	        parsing_printf("\t block [%lx,%lx)\n", (*bit)->start(), (*bit)->end());
+	    }
+	    parsing_printf("\tjump to 0x%lx, NOT TAIL CALL\n", addr);
+	    tailCalls[type] = false;
+	    return false;
+	}
+    }
+
     if(curInsn()->getCategory() == c_BranchInsn &&
        valid &&
-       callee && callee != context && !context->contains(target))
+       callee && 
+       callee != context &&
+       !context->contains(target)
+       )
     {
       parsing_printf("\tjump to 0x%lx, TAIL CALL\n", addr);
       tailCalls[type] = true;
       return true;
     }
+
+    if (curInsn()->getCategory() == c_BranchInsn &&
+            valid &&
+            !callee) {
+	if (target) {
+	    parsing_printf("\tjump to 0x%lx is known block, but not func entry, NOT TAIL CALL\n", addr);
+	    tailCalls[type] = false;
+	    return false;
+	} else if (knownTargets.find(addr) != knownTargets.end()) {
+	    parsing_printf("\tjump to 0x%lx is known target in this function, NOT TAIL CALL\n", addr);
+	    tailCalls[type] = false;
+	    return false;
+	}
+    }
+
+
 
     if(allInsns.size() < 2) {
         parsing_printf("\ttoo few insns to detect tail call\n");

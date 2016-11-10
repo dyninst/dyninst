@@ -652,12 +652,14 @@ void BoundValue::MemoryRead(Block* b, int readSize) {
 #endif
 		if (IsInReadOnlyRegion(memAddrLow, memAddrHigh)) {
 		    set<uint64_t> values;
-		    if (interval.size() <= MAX_TABLE_ENTRY && b->obj()->cs()->isValidAddress(memAddrLow) && b->obj()->cs()->isReadOnly(memAddrLow)) {
+		    if (interval.size() <= MAX_TABLE_ENTRY && b->obj()->cs()->isReadOnly(memAddrLow)) {
+//		    if (interval.size() <= MAX_TABLE_ENTRY && b->obj()->cs()->isValidAddress(memAddrLow) && b->obj()->cs()->isReadOnly(memAddrLow)) {
+
 		        for (Address memAddr = memAddrLow ; memAddr <= memAddrHigh; memAddr += interval.stride) {
-			    if (!b->obj()->cs()->isValidAddress(memAddr)) {
-			        parsing_printf("INVALID ADDRESS %lx\n", memAddr);
-			        continue;			
-			    }
+//			    if (!b->obj()->cs()->isValidAddress(memAddr)) {
+//			        parsing_printf("INVALID ADDRESS %lx\n", memAddr);
+//			        continue;			
+//			    }
                             if (!b->obj()->cs()->isReadOnly(memAddr)) {
                                 parsing_printf("NOT READ ONLY SECTION %lx\n", memAddr);
                                 continue;                       

@@ -25,7 +25,6 @@ using namespace Dyninst::InstructionAPI;
 
 // Assume the table contain less than this many entries.
 #define MAX_TABLE_ENTRY 1000000
-
 static void BuildEdgesAux(SliceNode::Ptr srcNode,
                           ParseAPI::Block* curBlock,
 			  map<ParseAPI::Block*, map<AssignmentPtr, SliceNode::Ptr> > &targetMap,
@@ -61,7 +60,7 @@ static void BuildEdgesAux(SliceNode::Ptr srcNode,
 
     if (visit.find(curBlock) != visit.end()) return;
     visit.insert(curBlock);
-    for (auto eit = curBlock->targets().begin(); eit != curBlock->targets().end(); ++eit)
+    for (auto eit = curBlock->targets().begin(); eit != curBlock->targets().end(); ++eit) {
 	// Xiaozhu:
 	// Our current slicing code ignores tail calls 
 	// (the slice code only checks if an edge type is CALL or not)
@@ -78,6 +77,7 @@ static void BuildEdgesAux(SliceNode::Ptr srcNode,
 	    } 
 	    BuildEdgesAux(srcNode, (*eit)->trg(), targetMap, newG, visit, newT, allowedEdges);	   
 	}
+    }
 }			  
 
 
@@ -120,7 +120,8 @@ GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
     GraphPtr newG = Graph::createGraph();
     
     NodeIterator gbegin, gend;
-    
+    parsing_printf("\t\t start to build analysis graph\n");
+
     // Create a map to help find whether we have reached a node
     map<ParseAPI::Block*, map<AssignmentPtr, SliceNode::Ptr> > targetMap;
 
@@ -130,6 +131,8 @@ GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
 	if (AssignIsZF(*ait))
 	    shouldSkip.insert((*ait)->addr());
     }
+    parsing_printf("\t\t calculate skipped nodes\n");
+
     // We only need one assignment from xchg instruction at each address
     set<Address> xchgCount;
     set<Assignment::Ptr> xchgAssign;
@@ -140,7 +143,8 @@ GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
 	    xchgAssign.insert(*ait);
 	}
     }
-    
+    parsing_printf("\t\t calculate xchg assignments\n");
+   
     for (auto ait = currentAssigns.begin(); ait != currentAssigns.end(); ++ait) {
         Assignment::Ptr a = *ait;
 	if (   (AssignIsZF(a) || shouldSkip.find(a->addr()) == shouldSkip.end()) 
@@ -152,13 +156,14 @@ GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
 	    newG->addNode(newNode);
 	}
     }
-
+    parsing_printf("\t\t calculate nodes in the new graph\n");
     // Start from each node to do DFS and build edges
     newG->allNodes(gbegin, gend);
     for (; gbegin != gend; ++gbegin) {
         SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(*gbegin);
 	BuildEdges(node, targetMap, newG, visitedEdges);
     }
+    parsing_printf("\t\t calculate edges in the new graph\n");
 
     // Build a virtual exit node
     SliceNode::Ptr virtualExit = SliceNode::create(Assignment::Ptr(), NULL, NULL);
@@ -170,6 +175,7 @@ GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
 	    newG->insertPair(cur, virtualExit, TypedSliceEdge::create(cur, virtualExit, FALLTHROUGH));
 	}
     }
+    parsing_printf("\t\t calculate virtual nodes in the new graph\n");
 
     AdjustGraphEntryAndExit(newG);
 
@@ -229,7 +235,6 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
 
     // We create the CFG based on the found nodes
     GraphPtr g = BuildAnalysisGraph(visitedEdges);
-
     BoundFactsCalculator bfc(func, g, func->entry() == block, rf, thunks, block->last(), false, expandCache);
     bfc.CalculateBoundedFacts();
 
@@ -249,6 +254,7 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
 }
 bool JumpTablePred::FillInOutEdges(BoundValue &target, 
                                                  vector<pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
+    set<Address> jumpTargets;						 
     outEdges.clear();
     Address tableBase = target.interval.low;
     Address tableLastEntry = target.interval.high;
@@ -265,7 +271,7 @@ bool JumpTablePred::FillInOutEdges(BoundValue &target,
 
     parsing_printf("The final target bound fact:\n");
     target.Print();
-    if (!block->obj()->cs()->isValidAddress(tableBase)) {
+    if (!block->obj()->cs()->isCode(tableBase) && !block->obj()->cs()->isData(tableBase)) {
         parsing_printf("\ttableBase 0x%lx invalid, returning false\n", tableBase);
 	jumpTableFormat = false;
 	parsing_printf("Not jump table format!\n");
@@ -280,9 +286,9 @@ bool JumpTablePred::FillInOutEdges(BoundValue &target,
 
 
     for (Address tableEntry = tableBase; tableEntry <= tableLastEntry; tableEntry += target.interval.stride) {
-	if (!block->obj()->cs()->isValidAddress(tableEntry)) continue;
+	if (!block->obj()->cs()->isCode(tableEntry) && !block->obj()->cs()->isData(tableEntry)) continue;
 	if (!block->obj()->cs()->isReadOnly(tableEntry)) continue;
-	Address targetAddress = 0;
+	int targetAddress = 0;
 	if (target.tableReadSize > 0) {
 	    switch (target.tableReadSize) {
 	        case 8:
@@ -338,13 +344,18 @@ bool JumpTablePred::FillInOutEdges(BoundValue &target,
 	if (addressWidth == 4) targetAddress &= 0xffffffff;
 	parsing_printf("Jumping to target %lx,", targetAddress);
 	if (block->obj()->cs()->isCode(targetAddress)) {
-	    outEdges.push_back(make_pair(targetAddress, INDIRECT));
+	    // Jump tables may contain may repetitious entries.
+	    // We only want to create one edge for disctinct each jump target.
+	    jumpTargets.insert(targetAddress);
 	    parsing_printf(" is code.\n" );
 	} else {
 	    parsing_printf(" not code.\n");
 	}
 	// If the jump target is resolved to be a constant, 
 	if (target.interval.stride == 0) break;
+    }
+    for (auto tit = jumpTargets.begin(); tit != jumpTargets.end(); ++tit) {
+        outEdges.push_back(make_pair(*tit, INDIRECT));
     }
     return true;
 }

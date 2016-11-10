@@ -293,6 +293,10 @@ SymtabCodeSource::init_stats() {
         stats_parse->add(PARSE_TAILCALL_COUNT, CountStat);
         stats_parse->add(PARSE_TAILCALL_FAIL, CountStat);
 
+	stats_parse->add(PARSE_JUMPTABLE_TIME, TimerStat);
+	stats_parse->add(PARSE_TOTAL_TIME, TimerStat);
+
+
         _have_stats = true;
     }
 
@@ -332,6 +336,9 @@ SymtabCodeSource::print_stats() const {
         fprintf(stderr, "\t\t isTailCall attempts: %ld\n", (*stats_parse)[PARSE_TAILCALL_COUNT]->value());
         fprintf(stderr, "\t\t isTailCall failures: %ld\n", (*stats_parse)[PARSE_TAILCALL_FAIL]->value());
 
+	fprintf(stderr, "\t Parsing total time: %.2lf\n", (*stats_parse)[PARSE_TOTAL_TIME]->usecs());
+	fprintf(stderr, "\t Parsing jump table time: %.2lf\n", (*stats_parse)[PARSE_JUMPTABLE_TIME]->usecs());
+
     }
 }
 
@@ -356,6 +363,22 @@ SymtabCodeSource::decrementCounter(const std::string& name) const
 {
     if (_have_stats) {
         stats_parse->decrementCounter(name);
+    }
+}
+
+void
+SymtabCodeSource::startTimer(const std::string & name) const
+{
+    if (_have_stats) {
+        stats_parse->startTimer(name);
+    }
+}
+
+void
+SymtabCodeSource::stopTimer(const std::string & name) const
+{
+    if (_have_stats) {
+        stats_parse->stopTimer(name);
     }
 }
 
