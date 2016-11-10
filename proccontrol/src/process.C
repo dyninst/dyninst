@@ -257,41 +257,16 @@ bool int_process::attachThreads()
    return attachThreads(found_new_threads);
 }
 
-// Attach any new threads and synchronize, until there are no new threads
-bool int_process::attachThreadsSync()
+bool int_process::plat_attachThreadsSync()
 {
-   while (true) {
-      bool found_new_threads = false;
-
-      ProcPool()->condvar()->lock();
-      bool result = attachThreads(found_new_threads);
-      if (found_new_threads)
-         ProcPool()->condvar()->broadcast();
-      ProcPool()->condvar()->unlock();
-
-      if (!result) {
-         pthrd_printf("Failed to attach to threads in %d\n", pid);
-         setLastError(err_internal, "Could not get threads during attach\n");
-         return false;
-      }
-
-      if (!found_new_threads)
-         return true;
-
-      pthrd_printf("Wait again for attach from process %d\n", pid);
-      bool proc_exited = false;
-      result = waitAndHandleForProc(true, this, proc_exited);
-      if (!result) {
-         perr_printf("Internal error calling waitAndHandleForProc on %d\n", getPid());
-         setLastError(err_internal, "Error while calling waitAndHandleForProc for attached threads\n");
-         return false;
-      }
-      if (proc_exited) {
-         perr_printf("Process exited while waiting for user thread stop, erroring\n");
-         setLastError(err_exited, "Process exited while thread being stopped.\n");
-         return false;
-      }
+   // By default, platforms just call the idempotent attachThreads().
+   // Some platforms may override, e.g. Linux should sync with all threads.
+   if (!attachThreads()) {
+      pthrd_printf("Failed to attach to threads in %d\n", pid);
+      setLastError(err_internal, "Could not get threads during attach\n");
+      return false;
    }
+   return true;
 }
 
 bool int_process::attach(int_processSet *ps, bool reattach)
@@ -488,7 +463,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
       int_process *proc = *i;
       if (proc->getState() == errorstate)
          continue;
-      bool result = proc->attachThreadsSync();
+      bool result = proc->plat_attachThreadsSync();
       if (!result) {
          pthrd_printf("Failed to attach to threads in %d--now an error\n", proc->pid);
          procs.erase(i++);
