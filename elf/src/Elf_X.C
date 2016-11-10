@@ -889,21 +889,31 @@ void Elf_X_Data::d_align(unsigned int input)
 }
 void Elf_X_Data::xlatetom(unsigned int encode)
 {
+    Elf_Data tmp;
+    memcpy(&tmp, data, sizeof(Elf_Data));
+    tmp.d_buf = malloc(tmp.d_size);
     if(is64)
     {
-        elf64_xlatetom(data, data, encode);
+        elf64_xlatetom(&tmp, data, encode);
     } else {
-        elf32_xlatetom(data, data, encode);
+        elf32_xlatetom(&tmp, data, encode);
     }
+    memcpy(data->d_buf, tmp.d_buf, tmp.d_size);
+    free(tmp.d_buf);
 }
 void Elf_X_Data::xlatetof(unsigned int encode)
 {
+    Elf_Data tmp;
+    memcpy(&tmp, data, sizeof(Elf_Data));
+    tmp.d_buf = malloc(tmp.d_size);
     if(is64)
     {
-        elf64_xlatetof(data, data, encode);
+        elf64_xlatetof(&tmp, data, encode);
     } else {
-        elf32_xlatetof(data, data, encode);
+        elf32_xlatetof(&tmp, data, encode);
     }
+    memcpy(data->d_buf, tmp.d_buf, tmp.d_size);
+    free(tmp.d_buf);
 }
 
 // Data Interface
