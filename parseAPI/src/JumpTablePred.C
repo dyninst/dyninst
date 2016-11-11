@@ -211,7 +211,9 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
 */
 
     if (!expandRet.second || expandRet.first == NULL) {
-        unknownInstruction = true;
+        if (ap && ap->block() && ap->block()->obj()->cs()->getArch() == Arch_aarch64) {
+	    unknownInstruction = true;
+	}
         return true;
     }
 

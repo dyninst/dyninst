@@ -48,6 +48,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     // After the slicing is done, we do one last check to 
     // see if we can resolve the indirect jump by assuming 
     // one byte read is in bound [0,255]
+    parsing_printf("\tuse one-byte read heuristics\n");
     if (jumpTableOutEdges.empty() && jtp.jumpTableFormat && block->obj()->cs()->getArch() != Arch_aarch64) {
         GraphPtr g = jtp.BuildAnalysisGraph(s.visitedEdges);
 	
