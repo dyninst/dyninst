@@ -2822,6 +2822,152 @@ namespace rose {
                     }
                 };
 
+                struct IP_bfm_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr tmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            false, (EXTR(31, 31) + 1) * 32);
+                        BaseSemantics::SValuePtr wmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            true, (EXTR(31, 31) + 1) * 32);
+                        BaseSemantics::SValuePtr dst;
+                        if (d->inzero(raw))
+                            dst = d->Zeros(64);
+                        else
+                            dst = d->read(args[0]);
+                        BaseSemantics::SValuePtr src = d->read(args[1]);
+                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst, d->NOT(wmask)),
+                                                                ops->and_(d->ROR(src, d->read(args[2])), wmask));
+                        BaseSemantics::SValuePtr top;
+                        if (d->extend(raw))
+                            top = d->Replicate(ops->and_(ops->shiftRight(src, d->read(args[3])), ops->number_(1, 1)));
+                        else
+                            top = dst;
+                        d->write(args[0], ops->or_(ops->and_(top, d->NOT(tmask)), ops->and_(bot, tmask)));
+
+                    }
+                };
+
+                struct IP_bfxil_bfm_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr tmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            false, (EXTR(31, 31) + 1) * 32);
+                        BaseSemantics::SValuePtr wmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            true, (EXTR(31, 31) + 1) * 32);
+                        BaseSemantics::SValuePtr dst;
+                        if (d->inzero(raw))
+                            dst = d->Zeros(64);
+                        else
+                            dst = d->read(args[0]);
+                        BaseSemantics::SValuePtr src = d->read(args[1]);
+                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst, d->NOT(wmask)),
+                                                                ops->and_(d->ROR(src, d->read(args[2])), wmask));
+                        BaseSemantics::SValuePtr top;
+                        if (d->extend(raw))
+                            top = d->Replicate(ops->and_(ops->shiftRight(src, d->read(args[3])), ops->number_(1, 1)));
+                        else
+                            top = dst;
+                        d->write(args[0], ops->or_(ops->and_(top, d->NOT(tmask)), ops->and_(bot, tmask)));
+
+                    }
+                };
+
+                struct IP_bfi_bfm_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr tmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            false, (EXTR(31, 31) + 1) * 32);
+                        BaseSemantics::SValuePtr wmask = d->getBitfieldMask(EXTR(16, 21), EXTR(10, 15), EXTR(22, 22),
+                                                                            true, (EXTR(31, 31) + 1) * 32);
+                        BaseSemantics::SValuePtr dst;
+                        if (d->inzero(raw))
+                            dst = d->Zeros(64);
+                        else
+                            dst = d->read(args[0]);
+                        BaseSemantics::SValuePtr src = d->read(args[1]);
+                        BaseSemantics::SValuePtr bot = ops->or_(ops->and_(dst, d->NOT(wmask)),
+                                                                ops->and_(d->ROR(src, d->read(args[2])), wmask));
+                        BaseSemantics::SValuePtr top;
+                        if (d->extend(raw))
+                            top = d->Replicate(ops->and_(ops->shiftRight(src, d->read(args[3])), ops->number_(1, 1)));
+                        else
+                            top = dst;
+                        d->write(args[0], ops->or_(ops->and_(top, d->NOT(tmask)), ops->and_(bot, tmask)));
+
+                    }
+                };
+
+                struct IP_bic_log_shift_execute : P {                                      //
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+
+                        if ((EXTR(21, 21) == 1)) {
+                            operand2 = d->NOT(operand2);
+                        }
+
+                        switch (d->op(raw)) {
+                            case LogicalOp_AND: {
+                                result = ops->and_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_ORR: {
+                                result = ops->or_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_EOR: {
+                                result = ops->xor_(operand1, operand2);
+                            }
+                                break;
+                        }
+
+                        if (d->setflags(raw)) {
+                            d->writeRegister(d->REG_N,
+                                             ops->extract(result, result->get_width() - 1, result->get_width()));
+                            d->writeRegister(d->REG_Z, d->isZero(result));
+                            d->writeRegister(d->REG_C, ops->number_(1, 0));
+                            d->writeRegister(d->REG_V, ops->number_(1, 0));
+                        }
+                        d->write(args[0], result);
+
+                    }
+                };
+
+                struct IP_bics_execute : P {                                               //
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+
+                        if ((EXTR(21, 21) == 1)) {
+                            operand2 = d->NOT(operand2);
+                        }
+
+                        switch (d->op(raw)) {
+                            case LogicalOp_AND: {
+                                result = ops->and_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_ORR: {
+                                result = ops->or_(operand1, operand2);
+                            }
+                                break;
+                            case LogicalOp_EOR: {
+                                result = ops->xor_(operand1, operand2);
+                            }
+                                break;
+                        }
+
+                        if (d->setflags(raw)) {
+                            d->writeRegister(d->REG_N,
+                                             ops->extract(result, result->get_width() - 1, result->get_width()));
+                            d->writeRegister(d->REG_Z, d->isZero(result));
+                            d->writeRegister(d->REG_C, ops->number_(1, 0));
+                            d->writeRegister(d->REG_V, ops->number_(1, 0));
+                        }
+                        d->write(args[0], result);
+
+                    }
+                };
+
 
             } // namespace
 
@@ -2916,6 +3062,11 @@ namespace rose {
                 iproc_set (rose_aarch64_op_lsl_ubfm, new ARM64::IP_lsl_ubfm_execute);
                 iproc_set (rose_aarch64_op_lsr_ubfm, new ARM64::IP_lsr_ubfm_execute);
                 iproc_set (rose_aarch64_op_asr_sbfm, new ARM64::IP_asr_sbfm_execute);
+                iproc_set (rose_aarch64_op_bfm, new ARM64::IP_bfm_execute);
+                iproc_set (rose_aarch64_op_bfxil_bfm, new ARM64::IP_bfxil_bfm_execute);
+                iproc_set (rose_aarch64_op_bfi_bfm, new ARM64::IP_bfi_bfm_execute);
+                iproc_set (rose_aarch64_op_bic_log_shift, new ARM64::IP_bic_log_shift_execute);
+                iproc_set (rose_aarch64_op_bics, new ARM64::IP_bics_execute);
             }
 
             void
