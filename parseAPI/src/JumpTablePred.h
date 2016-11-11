@@ -25,6 +25,7 @@ class JumpTablePred : public Slicer::Predicates {
 
 public:
     bool jumpTableFormat;
+    bool unknownInstruction;
     std::set<Assignment::Ptr> currentAssigns;
 
 std::unordered_map<Assignment::Ptr, AST::Ptr, Assignment::AssignmentPtrHasher> expandCache;
@@ -41,7 +42,7 @@ GraphPtr BuildAnalysisGraph(std::set<ParseAPI::Edge*> &visitedEdges);
 		  ThunkData &t,
 		  std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& out):
             firstMemoryRead(true),  func(f), 
-	    block(b), rf(r), thunks(t), outEdges(out),jumpTableFormat(true) {}
+	    block(b), rf(r), thunks(t), outEdges(out),jumpTableFormat(true), unknownInstruction(false) {}
 };
 
 

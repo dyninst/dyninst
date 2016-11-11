@@ -187,6 +187,7 @@ GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
 
 bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visitedEdges) {
     if (!jumpTableFormat) return false;
+    if (unknownInstruction) return false;
     if (currentAssigns.find(ap) != currentAssigns.end()) return true;
     if (currentAssigns.size() > 50) return false; 
     // For flags, we only analyze zf
@@ -209,7 +210,10 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
     }
 */
 
-    if (!expandRet.second || expandRet.first == NULL) return true;
+    if (!expandRet.second || expandRet.first == NULL) {
+        unknownInstruction = true;
+        return true;
+    }
 
     // If this assignment writes memory,
     // we only want to analyze it when it writes to 
