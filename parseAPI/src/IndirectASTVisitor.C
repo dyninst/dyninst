@@ -372,10 +372,17 @@ AST::Ptr ComparisonVisitor::visit(DataflowAPI::RoseAST *ast) {
 		    else
 		        parsing_printf("WARNING: constant bit size %d exceeds 64!\n", size);
 		    minuend = ConstantAST::create(Constant(val, size));
-		} else {
-		    // Otherwise, the minuend ast is in the form of add(invert(minuend), 1)
-		    // Need to extract the real minuend
-		    minuend = minuend->child(0)->child(0);
+		} else if (minuend->getID() == AST::V_RoseAST) {
+		    RoseAST::Ptr sub = boost::static_pointer_cast<RoseAST>(minuend);
+		    minuend = AST::Ptr();
+		    if (sub->val().op == ROSEOperation::addOp && sub->child(0)->getID() == AST::V_RoseAST) {
+		        sub = boost::static_pointer_cast<RoseAST>(sub->child(0));
+			if (sub->val().op == ROSEOperation::invertOp) {
+			    // Otherwise, the minuend ast is in the form of add(invert(minuend), 1)
+  		            // Need to extract the real minuend
+		             minuend = sub->child(0);
+			}
+		    }
 		}
 	    } 	
 	} 
