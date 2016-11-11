@@ -1105,9 +1105,8 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 
             } else if (plt_entry_size_ == 16) {
                 // New style secure PLT
-                Region *plt = NULL, *dynamic = NULL,
+                Region *plt = NULL, *relplt = NULL, *dynamic = NULL,
                         *got = NULL, *glink = NULL;
-                // Region *relplt = NULL;
                 unsigned int glink_addr = 0;
                 unsigned int stub_addr = 0;
 
@@ -1117,7 +1116,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
                 for (unsigned iter = 0; iter < regions_.size(); ++iter) {
                     std::string name = regions_[iter]->getRegionName();
                     if (name == PLT_NAME) plt = regions_[iter];
-                    // else if (name == REL_PLT_NAME) relplt = regions_[iter];
+                    else if (name == REL_PLT_NAME) relplt = regions_[iter];
                     else if (name == DYNAMIC_NAME) dynamic = regions_[iter];
                     else if (name == GOT_NAME) got = regions_[iter];
                 }
@@ -5118,38 +5117,9 @@ bool Object::getTruncateLinePaths()
     return truncateLineFilenames;
 }
 
-// Add definitions that may not be in all elf.h files
-#if !defined(EM_K10M)
-#define EM_K10M 180
-#endif
-#if !defined(EM_L10M)
-#define EM_L10M 181
-#endif
-#if !defined(EM_AARCH64)
-#define EM_AARCH64 183
-#endif
-
-Dyninst::Architecture Object::getArch()
+Dyninst::Architecture Object::getArch() const
 {
-    switch(elfHdr->e_machine())
-    {
-        case EM_PPC:
-            return Dyninst::Arch_ppc32;
-        case EM_PPC64:
-            return Dyninst::Arch_ppc64;
-        case EM_386:
-            return Dyninst::Arch_x86;
-        case EM_X86_64:
-        case EM_K10M:
-        case EM_L10M:
-            return Dyninst::Arch_x86_64;
-        case EM_ARM:
-            return Dyninst::Arch_aarch32;
-        case EM_AARCH64:
-            return Dyninst::Arch_aarch64;
-        default:
-            return Dyninst::Arch_none;
-    }
+    return elfHdr->getArch();
 }
 
 bool Object::getABIVersion(int &major, int &minor) const

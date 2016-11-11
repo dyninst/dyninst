@@ -1742,6 +1742,39 @@ bool Elf_X::findDebugFile(std::string origfilename, string &output_name, char* &
   return false;
 }
 
+// Add definitions that may not be in all elf.h files
+#if !defined(EM_K10M)
+#define EM_K10M 180
+#endif
+#if !defined(EM_L10M)
+#define EM_L10M 181
+#endif
+#if !defined(EM_AARCH64)
+#define EM_AARCH64 183
+#endif
+Dyninst::Architecture Elf_X::getArch() const
+{
+    switch(e_machine())
+    {
+        case EM_PPC:
+            return Dyninst::Arch_ppc32;
+        case EM_PPC64:
+            return Dyninst::Arch_ppc64;
+        case EM_386:
+            return Dyninst::Arch_x86;
+        case EM_X86_64:
+        case EM_K10M:
+        case EM_L10M:
+            return Dyninst::Arch_x86_64;
+        case EM_ARM:
+            return Dyninst::Arch_aarch32;
+        case EM_AARCH64:
+            return Dyninst::Arch_aarch64;
+        default:
+            return Dyninst::Arch_none;
+    }
+}
+
 // ------------------------------------------------------------------------
 // Class Elf_X_Nhdr simulates the Elf(32|64)_Nhdr structure.
 Elf_X_Nhdr::Elf_X_Nhdr()

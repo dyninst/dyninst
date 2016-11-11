@@ -2351,9 +2351,17 @@ void Object::insertPrereqLibrary(std::string lib)
            getRegionPermissions() == RP_RWX);
 }
 
-Dyninst::Architecture Object::getArch()
+Dyninst::Architecture Object::getArch() const
 {
-   return Dyninst::Arch_x86;
+    switch (peHdr->FileHeader.Machine)
+    {
+    case IMAGE_FILE_MACHINE_I386:
+        return Dyninst::Arch_x86;
+    case IMAGE_FILE_MACHINE_AMD64:
+        return Dyninst::Arch_x86_64;
+    default:
+        return Dyninst::Arch_none;
+    }
 }
 
 /*

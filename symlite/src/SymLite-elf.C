@@ -311,6 +311,11 @@ bool SymElf::isBigEndianDataEncoding() const
    return (elf->e_endian() != 0);
 }
 
+Architecture SymElf::getArchitecture() const
+{
+    return elf->getArch();
+}
+
 unsigned long SymElf::getSymbolSize(const Symbol_t &sym)
 {
    GET_SYMBOL(sym, shdr, symbol, name, idx);
