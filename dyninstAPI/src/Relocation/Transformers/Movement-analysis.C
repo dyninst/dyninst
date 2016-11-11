@@ -672,7 +672,7 @@ bool PCSensitiveTransformer::exceptionSensitive(Address a, const block_instance 
             sensitivity_cerr << "\t\tstart: 0x" << hex << r.low() 
                 << " end: 0x" << r.high() << dec << endl;
 
-            if((r.low() <= ts && r.high() > ts)
+            if((r.low() <= ts && r.high() >= ts)
                     || (r.low() < te && r.high() >= te))
             {
                 sensitivity_cerr << "\t\t\tWithin range <<<<<<<<<<<<<<" << endl;
