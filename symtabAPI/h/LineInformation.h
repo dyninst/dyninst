@@ -43,21 +43,27 @@ namespace Dyninst{
 namespace SymtabAPI{
 
 class SYMTAB_EXPORT LineInformation : 
-                        private RangeLookup< Statement, Statement::StatementLess > 
+                        private RangeLookupTypes< Statement >::type
 {
-	bool addItem_impl(Statement);
-   public:
-      typedef RangeLookup< Statement, Statement::StatementLess >::const_iterator const_iterator;
-      typedef RangeLookup< Statement, Statement::StatementLess >::AddressRange AddressRange;
-
+public:
+    typedef RangeLookupTypes< Statement> traits;
+    typedef RangeLookupTypes< Statement >::type impl_t;
+    typedef impl_t::index<Statement::addr_range>::type::const_iterator const_iterator;
+    typedef impl_t::index<Statement::line_info>::type::const_iterator const_line_info_iterator;
+    typedef traits::value_type Statement_t;
       LineInformation();
 
       /* You MAY freely deallocate the lineSource strings you pass in. */
-      bool addLine( const char * lineSource, 
+      bool addLine( std::string lineSource,
             unsigned int lineNo, 
             unsigned int lineOffset, 
             Offset lowInclusiveAddr, 
             Offset highExclusiveAddr );
+    bool addLine( unsigned int fileIndex,
+                  unsigned int lineNo,
+                  unsigned int lineOffset,
+                  Offset lowInclusiveAddr,
+                  Offset highExclusiveAddr );
 
       void addLineInfo(LineInformation *lineInfo);	      
 
@@ -68,26 +74,37 @@ class SYMTAB_EXPORT LineInformation :
             unsigned int lineOffset = 0 );
 
       /* You MUST NOT deallocate the strings returned. */
-      bool getSourceLines( Offset addressInRange, std::vector< Statement *> & lines );
-      bool getSourceLines( Offset addressInRange, std::vector< LineNoTuple > & lines);
+      bool getSourceLines(Offset addressInRange, std::vector<Statement_t> &lines);
+    bool getSourceLines(Offset addressInRange, std::vector<Statement> &lines);
 
       bool getAddressRanges( const char * lineSource, unsigned int LineNo, std::vector< AddressRange > & ranges );
-
+      const_line_info_iterator begin_by_source() const;
+      const_line_info_iterator end_by_source() const;
+      std::pair<const_line_info_iterator, const_line_info_iterator> equal_range(std::string file,
+                                                                                const unsigned int lineNo) const;
+      std::pair<const_line_info_iterator, const_line_info_iterator> equal_range(std::string file) const;
       const_iterator begin() const;
       const_iterator end() const;
+      const_iterator find(Offset addressInRange) const;
+      const_iterator find(Offset addressInRange, const_iterator hint) const;
+
       unsigned getSize() const;
 
-      ~LineInformation();
-
+      virtual ~LineInformation();
+        StringTablePtr strings_;
    protected:
-      /* We maintain internal copies of all the source file names.  Because
-         both directions of the mapping include pointers to these names,
-         maintain a separate list of them, and only ever deallocate those
-         (in the destructor).  Note that it speeds and simplifies things
-         to have the string pointers be the same. */
+public:
+    StringTablePtr getStrings() ;
 
-      unsigned size_;
-}; /* end class LineInformation */
+    void setStrings(StringTablePtr strings_);
+
+protected:
+    mutable int wasted_compares;
+    mutable int num_queries;
+};
+
+
+    /* end class LineInformation */
 
 }//namespace SymtabAPI
 }//namespace Dyninst

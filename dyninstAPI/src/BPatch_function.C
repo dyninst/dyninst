@@ -602,10 +602,6 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPoint(
 
     if (!mod->isValid()) return NULL;
 
-    // if the function is not instrumentable, we won't find the point
-    if (!isInstrumentable())
-       return NULL;
-
     BPatch_Vector<BPatch_point*> *result = new BPatch_Vector<BPatch_point *>;
     
     switch(loc) {

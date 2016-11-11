@@ -141,6 +141,11 @@ bool SymtabReader::isBigEndianDataEncoding() const
    return symtab->isBigEndianDataEncoding();
 }
 
+Architecture SymtabReader::getArchitecture() const
+{
+    return symtab->getArchitecture();
+}
+
 unsigned SymtabReader::numSegments()
 {
    buildSegments();

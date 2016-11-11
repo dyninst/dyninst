@@ -340,7 +340,7 @@ public:
 
     bool getAddressRange(void * &start, void * &end);
 
-               bool getAddressRange(Dyninst::Address &start, Dyninst::Address &end);
+    bool getAddressRange(Dyninst::Address &start, Dyninst::Address &end);
 
     unsigned int getFootprint();
     BPatch_variableExpr *getFunctionRef();

@@ -40,6 +40,7 @@
 #include <assert.h>
 #include <time.h>
 #include <iostream>
+#include <fstream>
 
 #include "common/h/dyn_regs.h"
 #include "common/h/dyntypes.h"
@@ -884,8 +885,9 @@ int linux_process::computeAddrWidth()
     * of name word will be 0x0 on 64 bit processes.  On 32-bit process this
     * word will contain a value, of which some should be non-zero.
     *
-    * We'll thus check every word that is 1 mod 4.  If all are 0x0 we assume we're
-    * looking at a 64-bit process.
+    * We'll thus check every word that is 1 mod 4 for little-endian machines,
+    * or 0 mod 4 for big-endian.  If all words of either stripe are 0x0, we
+    * assume we're looking at a 64-bit process.
     **/
    uint32_t buffer[256];
    char auxv_name[64];
@@ -898,25 +900,21 @@ int linux_process::computeAddrWidth()
       return -1;
    }
 
-   long int result = read(fd, buffer, sizeof(buffer));
-   long int words_read = result / sizeof(uint32_t);
-   int word_size = 8;
+   ssize_t result = read(fd, buffer, sizeof(buffer));
+   ssize_t words_read = (result / sizeof(uint32_t)) & ~3;
+   close(fd);
 
    // We want to check the highest 4 bytes of each integer
    // On big-endian systems, these come first in memory
-   SymReader *objSymReader = getSymReader()->openSymbolReader(getExecutable());
-   int start_index = objSymReader->isBigEndianDataEncoding() ? 0 : 1;
-
-   for (long int i=start_index; i<words_read; i+= 4)
+   bool be_zero = true, le_zero = true;
+   for (ssize_t i=0; i<words_read; i+= 4)
    {
-      if (buffer[i] != 0) {
-         word_size = 4;
-         break;
-      }
+     be_zero &= buffer[i] == 0;
+     le_zero &= buffer[i+1] == 0;
    }
-   close(fd);
 
-   pthrd_printf("computeAddrWidth: Offset set to %d, word size is %d\n", start_index, word_size);
+   int word_size = (be_zero || le_zero) ? 8 : 4;
+   pthrd_printf("computeAddrWidth: word size is %d\n", word_size);
    return word_size;
 }
 
@@ -1004,40 +1002,38 @@ bool linux_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runnin
     for(vector<Dyninst::LWP>::iterator i = lwps.begin();
             i != lwps.end(); ++i)
     {
+        const auto ignore_max = std::numeric_limits<std::streamsize>::max();
         char proc_stat_name[128];
-        char sstat[256];
-        char *status;
-        int paren_level = 1;
 
         snprintf(proc_stat_name, 128, "/proc/%d/stat", *i);
-        FILE *sfile = fopen(proc_stat_name, "r");
+        ifstream sfile(proc_stat_name);
 
-        if (sfile == NULL) {
-            pthrd_printf("Failed to open /proc/%d/stat file\n", *i);
+        while (sfile.good()) {
+
+            // The stat looks something like: 123 (command) R 456...
+            // We'll just look for the ") R " part.
+            if (sfile.ignore(ignore_max, ')').peek() == ' ') {
+                char space, state;
+
+                // Eat the space we peeked and grab the state char.
+                if (sfile.get(space).get(state).peek() == ' ') {
+                    // Found the state char -- 'T' means it's already stopped.
+                    runningStates.insert(make_pair(*i, (state != 'T')));
+                    break;
+                }
+
+                // Restore the state char and try again
+                sfile.unget();
+            }
+        }
+
+        if (!sfile.good() && (*i == getPid())) {
+            // Only the main thread is treated as an error.  Other threads may
+            // have exited between getThreadLWPs and /proc/pid/stat open or read.
+            pthrd_printf("Failed to read /proc/%d/stat file\n", *i);
             setLastError(err_noproc, "Failed to find /proc files for debuggee");
             return false;
         }
-        if( fread(sstat, 1, 256, sfile) == 0 ) {
-            pthrd_printf("Failed to read /proc/%d/stat file \n", *i);
-            setLastError(err_noproc, "Failed to find /proc files for debuggee");
-            fclose(sfile);
-            return false;
-        }
-        fclose(sfile);
-
-        sstat[255] = '\0';
-        status = sstat;
-
-        while (*status != '\0' && *(status++) != '(') ;
-        while (*status != '\0' && paren_level != 0) {
-            if (*status == '(') paren_level++;
-            if (*status == ')') paren_level--;
-            status++;
-        }
-
-        while (*status == ' ') status++;
-
-        runningStates.insert(make_pair(*i, (*status != 'T')));
     }
 
     return true;
@@ -1112,6 +1108,44 @@ bool linux_process::plat_attach(bool, bool &)
    }
 
    return true;
+}
+
+// Attach any new threads and synchronize, until there are no new threads
+bool linux_process::plat_attachThreadsSync()
+{
+   while (true) {
+      bool found_new_threads = false;
+
+      ProcPool()->condvar()->lock();
+      bool result = attachThreads(found_new_threads);
+      if (found_new_threads)
+         ProcPool()->condvar()->broadcast();
+      ProcPool()->condvar()->unlock();
+
+      if (!result) {
+         pthrd_printf("Failed to attach to threads in %d\n", pid);
+         setLastError(err_internal, "Could not get threads during attach\n");
+         return false;
+      }
+
+      if (!found_new_threads)
+         return true;
+
+      while (Counter::processCount(Counter::NeonatalThreads, this) > 0) {
+         bool proc_exited = false;
+         pthrd_printf("Waiting for neonatal threads in process %d\n", pid);
+         result = waitAndHandleForProc(true, this, proc_exited);
+         if (!result) {
+            perr_printf("Internal error calling waitAndHandleForProc on %d\n", getPid());
+            return false;
+         }
+         if (proc_exited) {
+            perr_printf("Process exited while waiting for user thread stop, erroring\n");
+            setLastError(err_exited, "Process exited while thread being stopped.\n");
+            return false;
+         }
+      }
+   }
 }
 
 bool linux_process::plat_attachWillTriggerStop() {

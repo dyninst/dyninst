@@ -1,0 +1,15 @@
+build:
+    parallel: true
+    project: Dyninst.sln
+    verbosity: normal
+
+clone_depth: 5
+
+platform:
+    - Win32
+
+configuration:
+    - Release
+
+before_build:
+    - cmake .

@@ -11,7 +11,6 @@ using namespace Dyninst;
 
 class JumpTablePred : public Slicer::Predicates {
 
-    bool firstMemoryRead;
     ParseAPI::Function *func;
     ParseAPI::Block *block;
     ReachFact &rf;
@@ -41,8 +40,7 @@ GraphPtr BuildAnalysisGraph(std::set<ParseAPI::Edge*> &visitedEdges);
 		  ReachFact &r,
 		  ThunkData &t,
 		  std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& out):
-            firstMemoryRead(true),  func(f), 
-	    block(b), rf(r), thunks(t), outEdges(out),jumpTableFormat(true), unknownInstruction(false) {}
+            func(f), block(b), rf(r), thunks(t), outEdges(out), jumpTableFormat(true), unknownInstruction(false) {}
 };
 
 

@@ -38,7 +38,7 @@ class BPatch_function;
 class BPatch_stackInsertExpr : public BPatch_snippet {
     public: 
         // Creates a stack shift (insertion) of size
-        BPatch_stackInsertExpr(int size, int dispFromRSP = 0);
+        BPatch_stackInsertExpr(int size);
 };
 
 class BPatch_stackRemoveExpr : public BPatch_snippet {

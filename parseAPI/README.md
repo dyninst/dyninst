@@ -1,3 +1,10 @@
+# ParseAPI
+
+## Branch states
+
+| Branch                                  | Status        | Notes                                              |
+| --------------------------------------- |:-------------:|:--------------------------------------------------:|
+| master                                  | stable        | No open issues                                     |
 
 This is release 9.1 of the ParseAPI. Currently, this library is
 available for the x86[_64]/Linux, x86/Windows, and
@@ -10,8 +17,7 @@ Documentation for the API can be found at
 as well as in the doc/ subdirectory.
 
 
-Prerequisites
---------------------------
+## Prerequisites
 
 The ParseAPI is a component of the Dyninst system, and depends on two other
 components: the SymtabAPI binary format library and the InstructionAPI
@@ -23,8 +29,7 @@ The SymtabAPI has further dependencies depending on the platform, including
 libelf and libdwarf. See the SymtabAPI documentation for details.
 
 
-Compiling the library
---------------------------
+## Compiling the library
 
 See the top-level INSTALL file for build information.
 

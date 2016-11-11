@@ -54,7 +54,7 @@ class CFGModifier;
 **/
 
 
-class PARSER_EXPORT CodeRegion : public Dyninst::InstructionSource, public Dyninst::interval<Address> {
+class PARSER_EXPORT CodeRegion : public Dyninst::InstructionSource, public Dyninst::SimpleInterval<Address> {
  public:
 
     /* Fills a vector with any names associated with the function at at 

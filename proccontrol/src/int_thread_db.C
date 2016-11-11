@@ -1635,7 +1635,7 @@ async_ret_t thread_db_process::plat_calcTLSAddress(int_thread *thread, int_libra
                                                    Address &outaddr, set<response::ptr> &resps)
 {
    thread_db_thread *thrd = dynamic_cast<thread_db_thread *>(thread);
-   if (!thrd) {
+   if (!thrd || !thrd->initThreadHandle()) {
       perr_printf("Thread_db not supported on thread %d/%d\n", getPid(), thread->getLWP());
       setLastError(err_unsupported, "TLS Operations not supported on this thread\n");
       return aret_error;

@@ -35,13 +35,13 @@
 #include "common/src/wtxKludges.h"
 #endif
 
-using namespace NS_aarch64;
+namespace NS_aarch64 {
 
 ATOMIC_t ATOMIC;
 UNCOND_BR_t UNCOND_BR;
 COND_BR_t COND_BR;
 
-unsigned int NS_aarch64::swapBytesIfNeeded(unsigned int i)
+unsigned int swapBytesIfNeeded(unsigned int i)
 {
 	assert(0);
     return i;
@@ -250,3 +250,5 @@ bool instruction::isAtomicStore() const {
         return true;
     return false;
 }
+
+} // namespace NS_aarch64

@@ -27,8 +27,6 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-			     
-#define WIN32_LEAN_AND_MEAN
 
 #include <windows.h>
 #include <cvconst/cvconst.h>
@@ -54,7 +52,7 @@
 #include "Function.h"
 #include "Variable.h"
 #include "emitWin.h"
-
+#include "SymReader.h"
 #include "common/src/headers.h"
 
 using namespace Dyninst;
@@ -819,7 +817,7 @@ void Object::FindInterestingSections(bool alloc_syms, bool defensive)
       code_len_ = mf->size();
       is_aout_ = false;
       fprintf(stderr,"Adding Symtab object with no program header, will " 
-              "designate it as code, code_ptr_=%lx code_len_=%lx\n",
+              "designate it as code, code_ptr_=%s code_len_=%lx\n",
               code_ptr_,code_len_);
       if (alloc_syms) {
           Region *bufReg = new Region
@@ -1118,8 +1116,8 @@ void fixup_filename(std::string &filename)
 
 Object::Object(MappedFile *mf_,
                bool defensive, 
-               void (*err_func)(const char *), bool alloc_syms) :
-    AObject(mf_, err_func),
+               void (*err_func)(const char *), bool alloc_syms, Symtab *st) :
+    AObject(mf_, err_func, st),
     curModule( NULL ),
     baseAddr( 0 ),
     imageBase( 0 ),
@@ -1213,7 +1211,7 @@ static bool store_line_info(Symtab* st,	info_for_all_files_t *baseInfo)
    return true;
 }
 
-void Object::parseFileLineInfo(Symtab *st)
+void Object::parseFileLineInfo()
 {   
   if(parsedAllLineInfo) return;
   
@@ -1240,7 +1238,7 @@ void Object::parseFileLineInfo(Symtab *st)
 	//	   __FILE__, __LINE__, src_file_name, libname);
     return;
   }
-  store_line_info(st, &inf);
+  store_line_info(associated_symtab, &inf);
   
 }
 
@@ -1700,7 +1698,7 @@ static Type *getUDTType(HANDLE p, Offset base, int typeIndex, Module *mod) {
 	std::string tName = convertCharToString(name);
 	result = SymGetTypeInfo(p, base, typeIndex, TI_GET_LENGTH, &size64);
     if (!result) {
-        fprintf(stderr, "[%s:%u] - TI_GET_LENGTH return error\n");
+        fprintf(stderr, "%s - TI_GET_LENGTH return error\n", name);
         return NULL;
     }
     size = (unsigned) size64;
@@ -1711,7 +1709,7 @@ static Type *getUDTType(HANDLE p, Offset base, int typeIndex, Module *mod) {
     //
     result = SymGetTypeInfo(p, base, typeIndex, TI_GET_UDTKIND, &udtType);
     if (!result) {
-        fprintf(stderr, "[%s:%u] - TI_GET_UDTKIND returned error\n");
+        fprintf(stderr, "%s - TI_GET_UDTKIND returned error\n", name);
         return NULL;
     }
     switch (udtType) {
@@ -1891,13 +1889,13 @@ static Type *getBaseType(HANDLE p, Offset base, int typeIndex, Module *mod) {
 
     result = SymGetTypeInfo(p, base, typeIndex, TI_GET_BASETYPE, &baseType);
     if (!result) {
-        fprintf(stderr, "[%s:%u] - TI_GET_BASETYPE return error\n");
+        fprintf(stderr, "TI_GET_BASETYPE return error\n");
         return NULL;
     }
 
     result = SymGetTypeInfo(p, base, typeIndex, TI_GET_LENGTH, &size64);
     if (!result) {
-        fprintf(stderr, "[%s:%u] - TI_GET_LENGTH return error\n");
+        fprintf(stderr, "TI_GET_LENGTH return error\n");
         return NULL;
     }
     size = (unsigned) size64;
@@ -2172,7 +2170,7 @@ BOOL CALLBACK add_type_info(PSYMBOL_INFO pSymInfo, ULONG SymbolSize, void *info)
    return TRUE;
 }
 
-void Object::parseTypeInfo(Symtab *obj) {
+void Object::parseTypeInfo() {
     proc_mod_pair pair;
     BOOL result;
     //
@@ -2180,7 +2178,7 @@ void Object::parseTypeInfo(Symtab *obj) {
     //
 
     pair.handle = hProc;
-    pair.obj = obj;
+    pair.obj = associated_symtab;
     pair.base_addr = getBaseAddress();
     
     if (!pair.base_addr) {
@@ -2199,7 +2197,7 @@ void Object::parseTypeInfo(Symtab *obj) {
     // Parse local variables and local type information
     //
     std::vector<Function *> funcs;
-	obj->getAllFunctions(funcs);
+	associated_symtab->getAllFunctions(funcs);
     for (unsigned i=0; i < funcs.size(); i++) {
         findLocalVars(funcs[i], pair);
     }
@@ -2220,11 +2218,26 @@ bool AObject::getSegments(vector<Segment> &segs) const
     return true;
 }
 
-bool Object::emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&allSymbols, 
-						unsigned flag) 
+void Object::getSegmentsSymReader(std::vector<SymSegment> & sym_segs)
+{
+	for(auto i = regions_.begin();
+			i != regions_.end();
+			++i)
+	{
+		SymSegment s;
+		s.file_offset = (*i)->getDiskOffset();
+		s.file_size = (*i)->getDiskSize();
+		s.mem_addr = (*i)->getMemOffset();
+		s.mem_size = (*i)->getMemSize();
+		s.perms = (*i)->getRegionPermissions();
+		s.type = (*i)->getRegionType();
+	}
+}
+
+bool Object::emitDriver(string fName, std::vector<Symbol *> &allSymbols, unsigned flag)
 {
 	emitWin *em = new emitWin((PCHAR)GetMapAddr(), this, err_func_);
-	return em -> driver(obj, fName);
+	return em -> driver(associated_symtab, fName);
 }
 
 // automatically discards duplicates
@@ -2338,9 +2351,17 @@ void Object::insertPrereqLibrary(std::string lib)
            getRegionPermissions() == RP_RWX);
 }
 
-Dyninst::Architecture Object::getArch()
+Dyninst::Architecture Object::getArch() const
 {
-   return Dyninst::Arch_x86;
+    switch (peHdr->FileHeader.Machine)
+    {
+    case IMAGE_FILE_MACHINE_I386:
+        return Dyninst::Arch_x86;
+    case IMAGE_FILE_MACHINE_AMD64:
+        return Dyninst::Arch_x86_64;
+    default:
+        return Dyninst::Arch_none;
+    }
 }
 
 /*
@@ -2448,7 +2469,7 @@ void Object::applyRelocs(Region* relocs, Offset delta)
 				}
 				break;
 			default:
-				fprintf(stderr, "Unknown relocation type 0x%x for addr %p\n", type, addr);
+				fprintf(stderr, "Unknown relocation type 0x%x for addr %lx\n", type, addr);
 				break;
 			}
 		}

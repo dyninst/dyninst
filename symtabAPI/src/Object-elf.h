@@ -262,16 +262,18 @@ class Region;
 class Object;
 
         class Object : public AObject {
+            friend class Module;
 
   // declared but not implemented; no copying allowed
   Object(const Object &);
   const Object& operator=(const Object &);
 
  public:
-  Object(MappedFile *, bool, void (*)(const char *) = log_msg, bool alloc_syms = true);
+
+  Object(MappedFile *, bool, void (*)(const char *) = log_msg, bool alloc_syms = true, Symtab* st = NULL);
   virtual ~Object();
 
-  bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&allSymbols, unsigned flag);  
+  bool emitDriver(std::string fName, std::vector<Symbol *> &allSymbols, unsigned flag);
   
   const char *elf_vaddr_to_ptr(Offset vaddr) const;
   bool hasStabInfo() const { return ! ( !stab_off_ || !stab_size_ || !stabstr_off_ ); }
@@ -279,9 +281,9 @@ class Object;
   stab_entry * get_stab_info() const;
   std::string getFileName() const;
   void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
-  void parseFileLineInfo(Symtab *obj);
+  void parseFileLineInfo();
   
-  void parseTypeInfo(Symtab *obj);
+  void parseTypeInfo();
 
   bool needs_function_binding() const { return (plt_addr_ > 0); } 
   bool get_func_binding_table(std::vector<relocationEntry> &fbt) const;
@@ -347,7 +349,7 @@ class Object;
 	    return false;
 	}
 
-   Dyninst::Architecture getArch();
+   Dyninst::Architecture getArch() const;
    bool isBigEndianDataEncoding() const;
    bool getABIVersion(int &major, int &minor) const;
 	bool is_offset_in_plt(Offset offset) const;
@@ -516,19 +518,17 @@ class Object;
   Symbol *handle_opd_symbol(Region *opd, Symbol *sym);
   void handle_opd_relocations();
   void parse_opd(Elf_X_Shdr *);
-  void parseStabFileLineInfo(Symtab *);
+  void parseStabFileLineInfo();
  public:
-  void parseDwarfFileLineInfo(Symtab* obj);
-  void parseLineInfoForAddr(Symtab* obj, Offset addr_to_find);
+  void parseDwarfFileLineInfo();
+  void parseLineInfoForAddr(Offset addr_to_find);
   
  private:
-            bool addrInCU(Dwarf_Debug dbg, Dwarf_Die cu, Address to_find);
-  void parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li);
-  
-  
-  void createLineInfoForModules(dyn_hash_map<std::string, LineInformation> &li);
+            void parseLineInfoForCU(Module::DebugInfoT cuDIE, LineInformation* li);
+            bool dwarf_parse_aranges(Dwarf_Debug dbg, std::set<Dwarf_Off>& dies_seen);
+
   void parseDwarfTypes(Symtab *obj);
-  void parseStabTypes(Symtab *obj);
+  void parseStabTypes();
 
   void load_object(bool);
   void load_shared_object(bool);

@@ -45,6 +45,8 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
+#include <libelf.h>
+
 
 using namespace std;
 using boost::crc_32_type;
@@ -135,16 +137,10 @@ Elf_X::Elf_X(int input, Elf_Cmd cmd, Elf_X *ref)
        elf = elf_begin(input, cmd, NULL);
     }
     if (elf) {
-       if (elf_kind(elf) == ELF_K_ELF) {
-          char *identp = elf_getident(elf, NULL);
-          is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
-          isBigEndian = (identp && identp[EI_DATA] == ELFDATA2MSB);
-       }
-       else if(elf_kind(elf) == ELF_K_AR) {
-          char *identp = elf_getident(elf, NULL);
-          is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
-          isArchive = true;
-       }
+       char *identp = elf_getident(elf, NULL);
+       is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
+       isBigEndian = (identp && identp[EI_DATA] == ELFDATA2MSB);
+       isArchive = (elf_kind(elf) == ELF_K_AR);
        
        if (!is64)  ehdr32 = elf32_getehdr(elf);
        else       ehdr64 = elf64_getehdr(elf);
@@ -890,6 +886,34 @@ void Elf_X_Data::d_off(signed int input)
 void Elf_X_Data::d_align(unsigned int input)
 {
     data->d_align = input;
+}
+void Elf_X_Data::xlatetom(unsigned int encode)
+{
+    Elf_Data tmp;
+    memcpy(&tmp, data, sizeof(Elf_Data));
+    tmp.d_buf = malloc(tmp.d_size);
+    if(is64)
+    {
+        elf64_xlatetom(&tmp, data, encode);
+    } else {
+        elf32_xlatetom(&tmp, data, encode);
+    }
+    memcpy(data->d_buf, tmp.d_buf, tmp.d_size);
+    free(tmp.d_buf);
+}
+void Elf_X_Data::xlatetof(unsigned int encode)
+{
+    Elf_Data tmp;
+    memcpy(&tmp, data, sizeof(Elf_Data));
+    tmp.d_buf = malloc(tmp.d_size);
+    if(is64)
+    {
+        elf64_xlatetof(&tmp, data, encode);
+    } else {
+        elf32_xlatetof(&tmp, data, encode);
+    }
+    memcpy(data->d_buf, tmp.d_buf, tmp.d_size);
+    free(tmp.d_buf);
 }
 
 // Data Interface
@@ -1726,6 +1750,39 @@ bool Elf_X::findDebugFile(std::string origfilename, string &output_name, char* &
   }
 
   return false;
+}
+
+// Add definitions that may not be in all elf.h files
+#if !defined(EM_K10M)
+#define EM_K10M 180
+#endif
+#if !defined(EM_L10M)
+#define EM_L10M 181
+#endif
+#if !defined(EM_AARCH64)
+#define EM_AARCH64 183
+#endif
+Dyninst::Architecture Elf_X::getArch() const
+{
+    switch(e_machine())
+    {
+        case EM_PPC:
+            return Dyninst::Arch_ppc32;
+        case EM_PPC64:
+            return Dyninst::Arch_ppc64;
+        case EM_386:
+            return Dyninst::Arch_x86;
+        case EM_X86_64:
+        case EM_K10M:
+        case EM_L10M:
+            return Dyninst::Arch_x86_64;
+        case EM_ARM:
+            return Dyninst::Arch_aarch32;
+        case EM_AARCH64:
+            return Dyninst::Arch_aarch64;
+        default:
+            return Dyninst::Arch_none;
+    }
 }
 
 // ------------------------------------------------------------------------

@@ -257,7 +257,8 @@ bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int, co
             target = *blocks.begin();
         } else if (blocks.size() == 0) {
 	    // This case can happen when the jump target is a function entry,
-	    // but we have not parsed the function yet
+	    // but we have not parsed the function yet,
+	    // or when this is an indirect jump 
 	    target = NULL;
 	} else {
 	    // If this case happens, it means the jump goes into overlapping instruction streams,
@@ -276,6 +277,7 @@ bool IA_IAPI::isTailCall(Function * context, EdgeTypeEnum type, unsigned int, co
        valid &&
        callee && 
        callee != context &&
+       target &&
        !context->contains(target)
        )
     {

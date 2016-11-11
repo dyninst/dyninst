@@ -921,6 +921,7 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
            }
            return;
        }
+
       break;
       default:
          c = x86_regclass_unknown;

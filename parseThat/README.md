@@ -1,4 +1,6 @@
-INTRODUCTION
+# parseThat
+
+## Introduction
 
 parseThat is an application that provides a rigorous and robust test of
 DyninstAPI on arbitrary binaries.  Geared mainly for debugging purposes,
@@ -7,7 +9,7 @@ parseThat generates copious output for each dyninstAPI feature it uses.
 These output logs can be used to quickly locate the source of parsing or
 instrumentation bugs, in the rare instance when they occur.
 
-CONFIGURATION
+## Configuration
 
 Autoconf scripts are used to gather information about the target platform
 before building.  The top level Makefile, however, will issue configure commands.
@@ -37,7 +39,7 @@ built.
 	variable to manually specify where you placed a source or
 	binary distribution of DyninstAPI.
 
-BUILDING & INSTALLING
+## Building and Installing
 
 To build parseThat from scratch, issue the make command.  This will create
 a platform-specific build directory, configure the Makefile, and build 
@@ -47,7 +49,7 @@ commands to the platform specific Makefile in the $PLATFORM directory.
 Once successfully built, invoking GNU make with the "install" target will
 copy the binary to its final destination.
 
-RUNNING
+## Running
 
 Documentation on running parseThat is encoded within the binary itself.
 It can be viewed by simply running parseThat with the --help flag.

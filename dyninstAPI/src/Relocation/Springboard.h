@@ -208,9 +208,7 @@ class InstalledSpringboards
   typedef boost::shared_ptr<InstalledSpringboards> Ptr;
   static const int Allocated;
   static const int UnallocatedStart;
- InstalledSpringboards() : nextFuncID_(UnallocatedStart) 
-  {
-  }
+ InstalledSpringboards() {}
   
   
 
@@ -230,7 +228,6 @@ class InstalledSpringboards
     
   
  private:
-  int nextFuncID_;
   // tracks relocation addresses that need trap-based springboards
   std::set<Address> relocTraps_; 
   

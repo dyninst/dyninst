@@ -23,7 +23,7 @@ struct StridedInterval {
     // stride < 0: bottom (empty set)
     // stride = 0: represent a constant
     // stride > 0: represent an interval
-    int stride;
+    int64_t stride;
     int64_t low, high;
 
     // Bottom: empty set

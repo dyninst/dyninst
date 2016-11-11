@@ -173,6 +173,59 @@ method. The new stack walk is returned as a vector of Frame objects.
 \input{API/Walker}
 \input{API/Frame}
 
+\subsection{Mapping Addresses to Libraries}
+\definedin{procstate.h}
+
+StackwalkerAPI provides an interface to access the addresses where libraries are mapped in the
+target process.
+
+\begin{apient}
+typedef std::pair<std::string, Address> LibAddrPair;
+\end{apient}
+\apidesc{
+A pair consisting of a library filename and its base address in the target process.
+}
+
+\begin{apient}
+class LibraryState
+\end{apient}
+\apidesc{
+Class providing interfaces for library tracking. Only the public query interfaces below are user-facing; the other public
+methods are callbacks that allow StackwalkerAPI to update its internal state.
+}
+
+\begin{apient}
+   virtual bool getLibraryAtAddr(Address addr, LibAddrPair &lib) = 0;
+\end{apient}
+\apidesc{
+Given an address \code{addr} in the target process, returns \code{true} and sets \code{lib} to the name and base address of the library containing
+addr. Given an address outside the target process, returns \code{false}.
+}
+\begin{apient}
+   virtual bool getLibraries(std::vector<LibAddrPair> &libs, bool allow\_refresh = true) = 0;
+\end{apient}
+\apidesc{
+Fills \code{libs} with the libraries loaded in the target process. If \code{allow\_refresh} is true, this method will attempt to ensure
+that this list is freshly updated via inspection of the process; if it is false, it will return a cached list.
+}
+\begin{apient}
+   virtual bool getLibc(LibAddrPair &lc);
+\end{apient}
+\apidesc{
+Convenience function to find the name and base address of the standard C runtime, if present.
+}
+\begin{apient}
+   virtual bool getLibthread(LibAddrPair &lt);
+\end{apient}
+\apidesc{
+Convenience function to find the name and base address of the standard thread library, if present (e.g. pthreads).
+}
+\begin{apient}
+   virtual bool getAOut(LibAddrPair &ao) = 0;
+\end{apient}
+\apidesc{
+Convenience function to find the name and base address of the executable.
+}
 \subsection{Accessing Local Variables}
 \definedin{local\_var.h}
 	

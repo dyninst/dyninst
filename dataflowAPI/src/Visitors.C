@@ -107,8 +107,8 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
       ConstantAST::Ptr val = ConstantAST::convert(newKids[0]);
       
       unsigned long mask = 0;
-      for (unsigned i = from->val().val; i <= to->val().val; ++i) {
-	mask |= 1 << i;
+      for (uint64_t i = from->val().val; i <= to->val().val; ++i) {
+		mask |= 1 << i;
       }
 
       return ConstantAST::create(Constant(val->val().val & mask, to->val().val - from->val().val));
