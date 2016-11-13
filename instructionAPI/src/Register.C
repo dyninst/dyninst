@@ -98,6 +98,38 @@ namespace Dyninst
         return formatter->formatRegister(m_Reg.name());
     }
 
+    std::string RegisterAST::format(formatStyle) const
+    {
+        std::string name = m_Reg.name();
+        std::string::size_type substr = name.rfind(':');
+        if(substr != std::string::npos)
+        {
+            name = name.substr(substr + 1, name.length());
+        }
+
+        /* we have moved to AT&T syntax (lowercase registers) */
+        std::transform(name.begin(), name.end(), name.begin(), ::toupper);
+        return name;
+    }
+
+    std::string MaskRegisterAST::format(formatStyle) const
+    {
+        std::string name = m_Reg.name();
+        std::string::size_type substr = name.rfind(':');
+        if(substr != std::string::npos)
+        {
+            name = name.substr(substr + 1, name.length());
+        }
+
+        /* The syntax for a masking register is {kX} in AT&T syntax. */
+        std::stringstream ss;
+        ss << "{" << name << "}";
+
+        return ss.str();
+    }
+
+     
+
     RegisterAST RegisterAST::makePC(Dyninst::Architecture arch)
     {
         return RegisterAST(MachRegister::getPC(arch), 0, MachRegister::getPC(arch).size());

@@ -76,6 +76,8 @@ namespace Dyninst
 
       /// The \c format method on a %RegisterAST object returns the name associated with its ID.
       virtual std::string format(ArchSpecificFormatter *, formatStyle how = defaultStyle) const;
+      /// The \c format method on a %RegisterAST object returns the name associated with its ID.
+      virtual std::string format(formatStyle how = defaultStyle) const __attribute__ ((deprecated));
 
       /// Utility function to get a Register object that represents the program counter.
       ///
@@ -128,6 +130,7 @@ namespace Dyninst
                 : RegisterAST(r, lowbit, highbit, regType) {}
 
             virtual std::string format(ArchSpecificFormatter *formatter, formatStyle how = defaultStyle) const;
+            virtual std::string format(formatStyle how = defaultStyle) const;
     };
   };
 };

@@ -596,7 +596,6 @@ static int vex3_simdop_convert[3][4] = {
 #define Mf   { am_M, op_f }
 #define Mfd  { am_M, op_dbl }
 #define M14  { am_M, op_14 }
-#define Nss  { am_N, op_ss }
 #define Ob   { am_O, op_b }
 #define Ov   { am_O, op_v }
 #define Pd   { am_P, op_d }

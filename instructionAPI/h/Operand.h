@@ -125,6 +125,11 @@ namespace Dyninst
       /// \return The operand in a disassembly format
       INSTRUCTION_EXPORT std::string format(ArchSpecificFormatter *formatter, Architecture arch, Address addr = 0) const;
 
+
+      /// \brief Return a printable string representation of the operand. Please use the updated function instead.
+      /// \return The operand in a dissassembly format.
+      INSTRUCTION_EXPORT std::string format(Architecture arch, Address addr = 0) const;
+
       /// The \c getValue method returns an %Expression::Ptr to the AST contained by the operand.
       INSTRUCTION_EXPORT Expression::Ptr getValue() const;
       
@@ -134,36 +139,6 @@ namespace Dyninst
       bool m_isWritten;
       bool m_isImplicit;
     };
-
-#if 0
-    static inline void print_tabs(int depth)
-    {
-		for(int x = 0;x < depth;x++)
-			std::cout << "\t";
-    }
-#endif
-
-    struct att_operand_arglist
-    {
-        char* base;
-        char* scale;
-        char* segment;
-        char* offset;
-        char* displacement;
-    };
-
-	/**
-     * Create the AT&T syntax for the instruction operand AST (not call or jump).
-     */
-    INSTRUCTION_EXPORT int binary_function_att_jump(const Expression* exp, 
-            uint64_t* imm_val);
-
-	/**
-     * Convert the given instruction AST into the address of the target of
-     * the jump/call.
-     */
-    INSTRUCTION_EXPORT int binary_function_att(const Expression* exp,
-            struct att_operand_arglist* options, int depth, ArchSpecificFormatter *formatter);
   };
 };
 

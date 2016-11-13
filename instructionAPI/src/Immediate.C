@@ -71,6 +71,10 @@ namespace Dyninst {
             return formatter->formatImmediate(eval().format());
         }
 
+        std::string Immediate::format(formatStyle) const {
+            return eval().format();
+        }
+
         bool Immediate::isStrictEqual(const InstructionAST &rhs) const {
 
             return (rhs.eval() == eval());
@@ -98,6 +102,14 @@ namespace Dyninst {
 		return "Error: Invalid condition code for ARM64!";
         }
 
+        std::string ArmConditionImmediate::format(formatStyle) const {
+            unsigned int cond_val = eval().convert<unsigned int>();
+            if(m_condLookupMap.count(cond_val) > 0)
+        return m_condLookupMap.find(cond_val)->second;
+        else
+        return "Error: Invalid condition code for ARM64!";
+        }
+
 	ArmPrfmTypeImmediate::ArmPrfmTypeImmediate(const Result &val) : Immediate(val) {
 	    m_prfmTypeLookupMap = boost::assign::map_list_of(0, "PLDL1KEEP")(1, "PLDL1STRM")(2, "PLDL2KEEP")(3, "PLDL2STRM")(4, "PLDL3KEEP")(5, "PLDL3STRM")(8, "PLIL1KEEP")(9, "PLIL1STRM")(10, "PLIL2KEEP")(11, "PLIL2STRM")(12, "PLIL3KEEP")(13, "PLIL3STRM")(16, "PSTL1KEEP")(17, "PSTL1STRM")(18, "PSTL2KEEP")(19, "PSTL2STRM")(20, "PSTL3KEEP")(21, "PSTL3STRM").convert_to_container<std::map<unsigned int, std::string> >();
 	}
@@ -114,6 +126,15 @@ namespace Dyninst {
 	    else
 		return "Error: Invalid prefetech memory type for ARM64!";
 	}
+
+    std::string ArmPrfmTypeImmediate::format(formatStyle) const {
+        unsigned prfm_type = eval().convert<unsigned int>();
+        if(m_prfmTypeLookupMap.count(prfm_type) > 0)
+        return m_prfmTypeLookupMap.find(prfm_type)->second;
+        else
+        return "Error: Invalid prefetech memory type for ARM64!";
+    }
+
 
     };
 };

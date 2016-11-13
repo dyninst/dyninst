@@ -64,6 +64,7 @@ namespace Dyninst
       virtual bool isUsed(InstructionAST::Ptr findMe) const;
 
       virtual std::string format(ArchSpecificFormatter *, formatStyle) const;
+      virtual std::string format(formatStyle) const;
       static Immediate::Ptr makeImmediate(const Result& val);
       virtual void apply(Visitor* v);
       
@@ -78,6 +79,7 @@ namespace Dyninst
 
         static ArmConditionImmediate::Ptr makeArmConditionImmediate(const Result &val);
         virtual std::string format(ArchSpecificFormatter *, formatStyle) const;
+        virtual std::string format(formatStyle) const;
 
     private:
         std::map<unsigned int, std::string> m_condLookupMap;
@@ -90,6 +92,7 @@ namespace Dyninst
 
 	static Immediate::Ptr makeArmPrfmTypeImmediate(const Result &val);
 	virtual std::string format(ArchSpecificFormatter *, formatStyle) const;
+    virtual std::string format(formatStyle) const;
 
     private:
 	std::map<unsigned int, std::string> m_prfmTypeLookupMap;

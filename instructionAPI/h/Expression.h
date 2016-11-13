@@ -179,6 +179,7 @@ namespace Dyninst
             virtual void getUses(set<InstructionAST::Ptr>& ) {};
             virtual bool isUsed(InstructionAST::Ptr ) const { return true;};
             virtual std::string format(ArchSpecificFormatter *, formatStyle) const { return "[WILDCARD]";};
+            virtual std::string format(formatStyle) const { return "[WILDCARD]";};
             DummyExpr() : Expression(u8) {}
         protected:
             virtual bool checkRegID(MachRegister, unsigned int = 0, unsigned int = 0) const;

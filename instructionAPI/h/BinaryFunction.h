@@ -343,6 +343,21 @@ namespace Dyninst
 				return m_arg1->isUsed(findMe) || m_arg2->isUsed(findMe) 
 									|| (*m_arg1 == *findMe) || (*m_arg2 == *findMe) || (*findMe == *this);
 			}
+
+            virtual std::string format(formatStyle how) const
+            {
+                std::stringstream retVal;
+                if(how == memoryAccessStyle)
+                {
+                    retVal << m_arg2->format() << "(" << m_arg1->format() << ")";
+                }
+                else
+                {
+                    retVal << m_arg1->format() << " " << m_funcPtr->format() << " " << m_arg2->format();
+                }
+
+                return retVal.str();
+            }
 			
 			virtual std::string format(ArchSpecificFormatter *formatter, formatStyle how) const
 			{
