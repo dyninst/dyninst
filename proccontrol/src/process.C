@@ -3495,8 +3495,14 @@ int_thread *int_thread::createThread(int_process *proc,
    bool result = newthr->attach();
    if (!result) {
       pthrd_printf("Failed to attach to new thread %d/%d\n", proc->getPid(), lwp_id);
+      newthr->getUserState().setState(errorstate);
+      newthr->getHandlerState().setState(errorstate);
+      newthr->getGeneratorState().setState(errorstate);
+      ProcPool()->rmThread(newthr);
+      proc->threadPool()->rmThread(newthr);
       return NULL;
    }
+
    if (newthr->isUser() && newthr->getUserState().getState() == neonatal) {
 	   newthr->getUserState().setState(neonatal_intermediate);
 	   newthr->getHandlerState().setState(neonatal_intermediate);
