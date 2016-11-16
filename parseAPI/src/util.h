@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #ifndef _UTIL_H_
-#define _HTIL_H_
+#define _UTIL_H_
 
 #define HASHDEF(h,k) (h.find(k) != h.end())
 

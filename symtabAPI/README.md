@@ -1,16 +1,12 @@
-        *** Symtab 9.1 Release Notes ***
+# SymtabAPI        
 
-This is the version 9.1 release of the SymtabAPI.  Currently, the API
-library is available for ELF platforms (Linux, BlueGene), and PE
-platforms (Windows).
+## Branch states
 
-Documentation for the Symtab API can be found at:
+| Branch                                  | Status        | Notes                                              |
+| --------------------------------------- |:-------------:|:--------------------------------------------------:|
+| master                                  | stable        | No open issues                                     |
 
-    http://www.dyninst.org/
-
-
-Prerequisites
--------------
+## Prerequisites
 
 On Linux, Symtab requires some libraries that are not installed by default
 in most distributions.  The first is libelf, which is included with most
@@ -19,18 +15,18 @@ The second is libdwarf.  You can get the latest source code distribution
 of libdwarf from http://sourceforge.net/projects/libdwarf/.  RPM files for libdwarf
 are also available from various sites.  
 
-Building the SymtabAPI from source
-------------------------------------
+## Building the SymtabAPI from source
 
 See the top-level INSTALL file for how to build.
 
-Changes since 9.0
------------------
+### Changes since 9.0
+
 - Speed and space optimizations
 - Fixes for bugs reading line information
 - Fixes for bugs reading exception information
 
 -----------------------------------------------------------------------------
+
 This software is derived from the Paradyn system and therefore subject to
 the same copyright.  A copy of the Paradyn copyright appears at the end of
 this file.
@@ -39,6 +35,7 @@ this file.
    12/9/2015
 
 ----------------------- Start of Paradyn Copyright --------------------------
+
 See the dyninst/COPYRIGHT file for copyright information.
  
 We provide the Paradyn Tools (below described as "Paradyn")

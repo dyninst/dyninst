@@ -84,7 +84,7 @@ class TrackerElement {
   void setReloc(Address reloc) { reloc_ = reloc; };
   void setSize(unsigned size) { size_ = size; }
 
-  virtual bool mergeable() const { return true; } 
+  virtual bool mergeable() const { return true; }
 
  protected:
   TrackerElement() { assert(0); };
@@ -119,6 +119,8 @@ class OriginalTracker : public TrackerElement {
 
  private:
 };
+    std::ostream &
+    operator<<(std::ostream &os, const Dyninst::Relocation::TrackerElement &e);
 
 class EmulatorTracker : public TrackerElement {
  public:
@@ -276,7 +278,5 @@ class CodeTracker {
 };
 };
 
-std::ostream &
-operator<<(std::ostream &os, const Dyninst::Relocation::TrackerElement &e);
 
 #endif

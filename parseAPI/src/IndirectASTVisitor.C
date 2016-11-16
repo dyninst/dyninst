@@ -386,10 +386,10 @@ AST::Ptr DeepCopyAnAST(AST::Ptr ast) {
     } else if (ast->getID() == AST::V_BottomAST) {
         BottomAST::Ptr bottomAST = boost::static_pointer_cast<BottomAST>(ast);
 	return BottomAST::create(bottomAST->val());
-    } else {
-        fprintf(stderr, "ast type %d, %s\n", ast->getID(), ast->format().c_str());
-        assert(0);	
     }
+    fprintf(stderr, "ast type %d, %s\n", ast->getID(), ast->format().c_str());
+    assert(0);
+	return AST::Ptr();
 }
 
 AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
@@ -407,11 +407,11 @@ AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
 	        Address tableBase = 0;
 		if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_VariableAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
-		    tableBase = constAST->val().val;
+		    tableBase = (Address)constAST->val().val;
 		}
 		if (roseAST->child(1)->getID() == AST::V_ConstantAST && roseAST->child(0)->getID() == AST::V_VariableAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
-		    tableBase = constAST->val().val;
+		    tableBase = (Address)constAST->val().val;
 		}
 		if (tableBase) {
 		    Architecture arch = b->obj()->cs()->getArch();

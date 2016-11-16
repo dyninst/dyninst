@@ -52,7 +52,7 @@ class SgAsmPowerpcInstruction : public SgAsmInstruction
                 powerpc_unknown_instruction);
 
     protected:
-        unsigned int p_address;
+        rose_addr_t p_address;
         PowerpcInstructionKind p_kind;
         SgAsmOperandList* p_operandList;
         std::string p_mnemonic;

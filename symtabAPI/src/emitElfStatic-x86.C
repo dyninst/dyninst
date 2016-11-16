@@ -574,10 +574,6 @@ void emitElfStatic::buildGOT(Symtab *, LinkMap &lmap) {
  * instead of 4. So the header and trailler are the same, but extended to
  * 8 bytes.
  */
-static const Elf64_Word X86_HEADER = 0xffffffff;
-static const Elf64_Word X86_TRAILER = 0x00000000;
-static const Elf64_Xword X86_64_HEADER = 0xffffffffffffffffULL;
-static const Elf64_Xword X86_64_TRAILER = 0x0000000000000000ULL;
 static const string DTOR_NAME(".dtors");
 static const string CTOR_NAME(".ctors");
 static const string DTOR_NAME2(".fini_array");

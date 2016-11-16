@@ -823,12 +823,12 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
 		      break;
 	    case aarch64::SPR: {
 			    n = 0;
-			    if(baseID == aarch64::pstate) {
+			    if(baseID == (aarch64::pstate & 0xFF)) {
 				c = armv8_regclass_pstate;
 				p = armv8_pstatefield_nzcv;
-			    } else if(baseID == aarch64::pc) {
+			    } else if(baseID == (aarch64::pc & 0xFF)) {
 				c = armv8_regclass_pc;
-			    } else if(baseID == aarch64::sp || baseID == aarch64::wsp) {
+			    } else if(baseID == (aarch64::sp & 0xFF) || baseID == (aarch64::wsp & 0xFF)) {
 				c = armv8_regclass_sp;
 			    }
 			  }

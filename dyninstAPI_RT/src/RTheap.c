@@ -76,48 +76,11 @@ static heapList_t *Heaps = NULL;
 static int psize = -1;
 
 
-/*
-static void heap_printMappings(int nmaps, dyninstmm_t *maps)
-{
-  int i;
-  fprintf(stderr, "memory mappings:\n");
-  for(i = 0; i < nmaps; i++) {
-    dyninstmm_t *map = &maps[i];
-    Address addr = (Address)map->pr_vaddr;
-    fprintf(stderr, "  heap %2i: 0x%016lx-0x%016lx (%3lu pages, %.2fkB)\n", 
-	    i, addr, addr + map->pr_size - 1, 
-	    map->pr_size / psize, map->pr_size / 1024.0);
-  }
-}
-*/
-
-static void heap_checkMappings(int nmaps, dyninstmm_t *maps)
-{
-  int i;
-  for (i = 0; i < nmaps-1; i++) {
-    if (maps[i].pr_vaddr + maps[i].pr_size > maps[i+1].pr_vaddr) {
-      fprintf(stderr, "*** memory mappings overlap\n");
-      abort();
-    }
-  }
-}
-
 static Address heap_alignUp(Address addr, int align)
 {
   if (addr % align == 0) return addr;
   return ((addr / align) + 1) * align;
 }
-
-/*
-static Address heap_alignDown(Address addr, int align)
-{
-  if (addr % align == 0) return addr;
-  return ((addr / align) + 0) * align;
-}
-*/
-
-#define BEG(x) ((Address)(x)->pr_vaddr)
-#define END(x) ((Address)(x)->pr_vaddr + (x)->pr_size)
 
 static Address trymmap(size_t len, Address beg, Address end, size_t inc, int fd)
 {
@@ -128,121 +91,15 @@ static Address trymmap(size_t len, Address beg, Address end, size_t inc, int fd)
   /* until we get one that succeeds.*/
   for (addr = beg; addr + len <= end; addr += inc) {
     result = map_region((void *) addr, len, fd);
-    if (result)
+    if (result) {
+      /* Success doesn't necessarily mean it actually mapped at the hinted
+       * address.  Return if it's in range, else unmap and try again. */
+      if ((Address) result >= beg && (Address) result + len <= end)
         return (Address) result;
+      unmap_region(result, len);
+    }
   }
   return (Address) NULL;
-}
-
-/* Attempt to mmap a region of memory of size LEN bytes somewhere
-   between LO and HI.  Returns the address of the region on success, 0
-   otherwise.  MAPS is the current address space map, with NMAPS
-   elements.  FD is the mmap file descriptor argument. */
-static Address constrained_mmap(size_t len, Address lo, Address hi,
-                                const dyninstmm_t *maps, int nmaps, int fd)
-{
-   const dyninstmm_t *mlo, *mhi, *p;
-   Address beg, end, try;
-#if defined (os_linux)  && defined(arch_power)
-// DYNINSTheap_loAddr should already be defined in DYNINSTos_malloc. 
-// Redefining here, just in case constrained_mmap is called from a different call path.
-   DYNINSTheap_loAddr = getpagesize();
-#endif
-
-   if (lo > DYNINSTheap_hiAddr) return 0;
-
-   if (lo < DYNINSTheap_loAddr) lo = DYNINSTheap_loAddr;
-   if (hi > DYNINSTheap_hiAddr) hi = DYNINSTheap_hiAddr;
-
-   /* Round down to nearest page boundary */
-   lo = lo & ~(psize-1);
-   hi = hi & ~(psize-1);
-
-   /* Round up to nearest page boundary */
-   if (len % psize) {
-      len += psize;
-      len = len & ~(psize-1);
-   }
-
-   assert(lo < hi);
-   /* Find lowest (mlo) and highest (mhi) segments between lo and
-      hi.  If either lo or hi occurs within a segment, they are
-      shifted out of it toward the other bound. */
-   mlo = maps;
-   mhi = &maps[nmaps-1];
-   while (mlo <= mhi) {
-      beg = BEG(mlo);
-      end = END(mlo);
-
-      if (lo < beg)
-         break;
-
-      if (lo >= beg && lo < end)
-         /* lo occurs in this segment.  Shift lo to end of segment. */
-         lo = end; /* still a page boundary */
-
-      ++mlo;
-   }
-	     
-   while (mhi >= mlo) {
-      beg = BEG(mhi);
-      end = END(mhi);
-
-      if (hi > end)
-         break;
-      if (hi >= beg && hi <= end)
-         /* hi occurs in this segment (or just after it).  Shift
-            hi to beginning of segment. */
-         hi = beg; /* still a page boundary */
-
-      --mhi;
-   }
-   if (lo >= hi)
-      return 0;
-
-   /* We've set the bounds of the search, now go find some free space. */
-
-   /* Pathological cases in which the range (lo,hi) is entirely
-      above or below the rest of the address space, or there are no
-      segments between lo and hi.  Return no matter what from
-      here. */
-   if (BEG(mlo) >= hi || END(mhi) <= lo) {
-      return trymmap(len, lo, hi, psize, fd);
-   }
-   assert(lo < BEG(mlo) && hi > END(mhi));
-   /* Try to mmap in space before mlo */
-   try = trymmap(len, lo, BEG(mlo), psize, fd);
-   if (try) {
-      return try;
-   }
-
-   /* Try to mmap in space between mlo and mhi.  Try nothing here if
-      mlo and mhi are the same. */
-   for (p = mlo; p < mhi; p++) {
-      try = trymmap(len, END(p), BEG(p+1), psize, fd);
-      if (try)
-         return try;
-   }
-
-   /* Try to mmap in space between mhi and hi */
-   try = trymmap(len, END(mhi), hi, psize, fd);
-   if (try)
-      return try;
-
-   /* We've tried everything */
-   return 0;
-}
-#undef BEG
-#undef END
-
-
-static int heap_memmapCompare(const void *A, const void *B)
-{
-  const dyninstmm_t *a = (const dyninstmm_t *)A;
-  const dyninstmm_t *b = (const dyninstmm_t *)B;
-  if (a->pr_vaddr < b->pr_vaddr) return -1;
-  if (a->pr_vaddr > b->pr_vaddr) return 1;
-  return 0;
 }
 
 void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)

@@ -49,7 +49,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     if (jumpTableOutEdges.empty() && jtp.jumpTableFormat) {
         GraphPtr g = jtp.BuildAnalysisGraph(s.visitedEdges);
 	
-	BoundFactsCalculator bfc(func, g, func->entry() == block, rf, thunks, block->last(), true, jtp.expandCache);
+	BoundFactsCalculator bfc(func, g, func->entry() == block, rf, thunks, true, jtp.expandCache);
 	bfc.CalculateBoundedFacts();
 	
 	BoundValue target;

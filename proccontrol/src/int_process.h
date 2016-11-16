@@ -271,7 +271,10 @@ class int_process
    static bool reattach(int_processSet *pset);
    virtual bool plat_attach(bool allStopped, bool &should_sync) = 0;
 
+   bool attachThreads(bool &found_new_threads);
    bool attachThreads();
+   virtual bool plat_attachThreadsSync();
+
    virtual async_ret_t post_attach(bool wasDetached, std::set<response::ptr> &aresps);
    async_ret_t initializeAddressSpace(std::set<response::ptr> &async_responses);
 

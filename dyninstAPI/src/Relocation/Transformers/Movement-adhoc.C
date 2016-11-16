@@ -78,7 +78,7 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
     assert(offVec);
 
     if (!cur->func()->hasValidOffsetVector()) {
-      // We should not be able to get here, but enforce that we do don't
+      // We should not be able to get here, but enforce that we don't
       return false;
     }
 

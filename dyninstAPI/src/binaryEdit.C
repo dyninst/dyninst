@@ -162,7 +162,6 @@ bool BinaryEdit::writeDataWord(void *inOther,
 
 const Address ADDRESS_LO = (Address)0;
 const Address ADDRESS_HI = (Address)(~(Address)0);
-const unsigned HEAP_STAT_BUF_SIZE = (0x100000);
 
 Address BinaryEdit::inferiorMalloc(unsigned size,
                                inferiorHeapType /*ignored*/,

@@ -1258,15 +1258,6 @@ unsigned char jccOpcodeFromRelOp(unsigned op)
    return 0x0;
 }
 
-static inline void emitEnter(short imm16, codeGen &gen) {
-    GET_PTR(insn, gen);
-   *insn++ = 0xC8;
-   *((short*)insn) = imm16;
-   insn += sizeof(short);
-   *insn++ = 0;
-    SET_PTR(insn, gen);
-}
-
 Register emitFuncCall(opCode, codeGen &, pdvector<AstNodePtr> &, bool, Address) {
 	assert(0);
 	return 0;

@@ -28,7 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "LineInformation.h"
 #include <assert.h>
 #include <list>
 #include <cstring>
@@ -37,45 +36,49 @@
 #include "Module.h"
 #include "Serialization.h"
 
+#include <functional>
+#include <iostream>
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
-using namespace std;
+using std::vector;
 
-LineInformation::LineInformation() : 
-    Dyninst::SymtabAPI::RangeLookup< Statement, Statement::StatementLess >()
+#include "LineInformation.h"
+#include <sstream>
+
+LineInformation::LineInformation() :strings_(new StringTable), wasted_compares(0), num_queries(0)
 {
-   size_ = 0;
 } /* end LineInformation constructor */
 
-bool LineInformation::addItem_impl(Statement s)
-{
-   size_++;
-
-   bool ret = addValue( s, s.startAddr(), s.endAddr() );
-	return ret;
-}
-bool LineInformation::addLine( const char * lineSource, 
+bool LineInformation::addLine( unsigned int lineSource,
       unsigned int lineNo, 
       unsigned int lineOffset, 
       Offset lowInclusiveAddr, 
       Offset highExclusiveAddr ) 
 {
+    Statement* the_stmt = new Statement(lineSource, lineNo, lineOffset,
+                                        lowInclusiveAddr, highExclusiveAddr);
+    Statement::Ptr insert_me(the_stmt);
+    insert_me->setStrings_(strings_);
+   return insert( insert_me).second;
 
-   bool ret = addItem_impl( Statement(lineSource, lineNo, lineOffset, 
-                                      lowInclusiveAddr, highExclusiveAddr)); 
-
-   return ret;
 } /* end setLineToAddressRangeMapping() */
+bool LineInformation::addLine( std::string lineSource,
+                               unsigned int lineNo,
+                               unsigned int lineOffset,
+                               Offset lowInclusiveAddr,
+                               Offset highExclusiveAddr )
+{
+    auto index = strings_->get<1>().insert(lineSource).first;
+
+    return addLine(index->str, lineNo, lineOffset, lowInclusiveAddr, highExclusiveAddr);
+}
 
 void LineInformation::addLineInfo(LineInformation *lineInfo)
 {
-   const_iterator iter = lineInfo->begin();
-
-   for (; iter != lineInfo->end(); iter++)
-   {
-      addLine(iter->second.file_.c_str(), iter->second.line_, iter->second.column, 
-            iter->first.first, iter->first.second);
-   }
+    if(!lineInfo)
+        return;
+    insert(lineInfo->begin(), lineInfo->end());
 }
 
 bool LineInformation::addAddressRange( Offset lowInclusiveAddr, 
@@ -87,84 +90,170 @@ bool LineInformation::addAddressRange( Offset lowInclusiveAddr,
    return addLine( lineSource, lineNo, lineOffset, lowInclusiveAddr, highExclusiveAddr );
 } /* end setAddressRangeToLineMapping() */
 
-bool LineInformation::getSourceLines( Offset addressInRange, 
-      vector< Statement *> & lines ) 
+
+std::string print(const Dyninst::SymtabAPI::Statement& stmt)
 {
-   return getValues( addressInRange, lines );
+    std::stringstream stream;
+    stream << std::hex << "Statement: < [" << stmt.startAddr() << ", " << stmt.endAddr() << "): "
+           << std::dec << stmt.getFile() << ":" << stmt.getLine() << " >";
+    return stream.str();
+}
+
+
+bool LineInformation::getSourceLines(Offset addressInRange,
+                                     vector<Statement_t> &lines)
+{
+    ++num_queries;
+    const_iterator start_addr_valid = project<Statement::addr_range>(get<Statement::upper_bound>().lower_bound(addressInRange ));
+    const_iterator end_addr_valid = impl_t::upper_bound(addressInRange );
+    while(start_addr_valid != end_addr_valid && start_addr_valid != end())
+    {
+        if(*(*start_addr_valid) == addressInRange)
+        {
+            lines.push_back(*start_addr_valid);
+        }
+        else
+        {
+            ++wasted_compares;
+        }
+        ++start_addr_valid;
+    }
+    return true;
 } /* end getLinesFromAddress() */
 
-bool LineInformation::getSourceLines( Offset addressInRange, 
-                                      vector<LineNoTuple> &lines) 
+bool LineInformation::getSourceLines( Offset addressInRange,
+                                      vector<LineNoTuple> &lines)
 {
-   vector<Statement *> plines;
-   bool result = getValues(addressInRange, plines);
-   if (!result) {
-      return false;
-   }
-   for (vector<Statement *>::iterator i = plines.begin(); i != plines.end(); i++) {
-      LineNoTuple lnt = **i;
-      lines.push_back(lnt);
-   }
-   return true;
+    vector<Statement_t> tmp;
+    if(!getSourceLines(addressInRange, tmp)) return false;
+    for(auto i = tmp.begin(); i != tmp.end(); ++i)
+    {
+        lines.push_back(**i);
+    }
+    return true;
 } /* end getLinesFromAddress() */
+
+
 
 bool LineInformation::getAddressRanges( const char * lineSource, 
-      unsigned int lineNo, vector< AddressRange > & ranges ) 
+      unsigned int lineNo, vector< AddressRange > & ranges )
 {
-   bool ret = Dyninst::SymtabAPI::RangeLookup< Statement, Statement::StatementLess >::getAddressRanges( Statement( lineSource, lineNo ), ranges );
-
-   return ret;
+    auto found_statements = equal_range(lineSource, lineNo);
+    for(auto i = found_statements.first;
+            i != found_statements.second;
+            ++i)
+    {
+        ranges.push_back(AddressRange(**i));
+    }
+    return found_statements.first != found_statements.second;
 } /* end getAddressRangesFromLine() */
 
 LineInformation::const_iterator LineInformation::begin() const 
 {
-   return Dyninst::SymtabAPI::RangeLookup< Statement, Statement::StatementLess >::begin();
+   return impl_t::begin();
 } /* end begin() */
 
 LineInformation::const_iterator LineInformation::end() const 
 {
-   return Dyninst::SymtabAPI::RangeLookup< Statement, Statement::StatementLess >::end();
-} /* end begin() */
+   return impl_t::end();
+} /* end end() */
+
+LineInformation::const_iterator LineInformation::find(Offset addressInRange) const
+{
+    ++num_queries;
+    const_iterator start_addr_valid = project<Statement::addr_range>(get<Statement::upper_bound>().lower_bound(addressInRange ));
+    if(start_addr_valid == end()) return end();
+    const_iterator end_addr_valid = impl_t::upper_bound(addressInRange + 1);
+    while(start_addr_valid != end_addr_valid && start_addr_valid != end())
+    {
+        if(*(*start_addr_valid) == addressInRange)
+        {
+            return start_addr_valid;
+        }
+        else
+        {
+            ++wasted_compares;
+        }
+        ++start_addr_valid;
+    }
+    return end();
+} /* end find() */
+
+
 
 unsigned LineInformation::getSize() const
 {
-   return size_;
+   return impl_t::size();
 }
 
-bool Statement::StatementLess::operator () ( const Statement &lhs, const Statement &rhs ) const
-{
-	//  dont bother with ordering by column information yet.
 
-	int strcmp_res = strcmp( lhs.file_.c_str(), rhs.file_.c_str());
-
-	if (strcmp_res < 0 )
-		return true;
-
-	if ( strcmp_res == 0 )
-	{
-		if ( lhs.line_ < rhs.line_ )
-			return true;
-	}
-
-	return false;
-} /* end StatementLess() */
-
-bool Statement::operator==(const Statement &cmp) const 
-{
-	if (line_ != cmp.line_) return false;
-	if (column != cmp.column) return false;
-
-	//  is compare-by-pointer OK here, or do we really have to really strcmp?
-	return (file_ == cmp.file_);
-}
-
-/* We free the strings we allocated, and let the compiler clean up everything else:
-
-   Section 10.4.6 [Stroustroup's C++]: "When a class object containing class
-   objects is destroyed, the body of that object's own destructor is executed first,
-   and then the members' destructors are executed in the reverse order of declaration." */
 
 LineInformation::~LineInformation() 
 {
-} /* end LineInformation destructor */
+//    std::cerr << "Line information with " << getSize() << " entries queried " << num_queries << " times";
+//    if(num_queries)
+//    {
+//        std::cerr << " with " << wasted_compares << " extra compares (" << (float)(wasted_compares) / (num_queries) << " per query)";
+//    }
+//    std::cerr << std::endl;
+}
+
+LineInformation::const_line_info_iterator LineInformation::begin_by_source() const {
+    const traits::line_info_index& i = impl_t::get<Statement::line_info>();
+    return i.begin();
+}
+
+LineInformation::const_line_info_iterator LineInformation::end_by_source() const {
+    const traits::line_info_index& i = impl_t::get<Statement::line_info>();
+    return i.end();
+}
+
+std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line_info_iterator>
+LineInformation::equal_range(std::string file, const unsigned int lineNo) const {
+    auto found = strings_->get<1>().find(file);
+    unsigned index = strings_->project<0>(found) - strings_->begin();
+//    auto search_info = std::make_tuple(index, lineNo);
+    std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line_info_iterator > bounds;
+    bounds =  get<Statement::line_info>().equal_range(index);
+    while((*bounds.first)->getLine() < lineNo && bounds.first != bounds.second) {
+        ++bounds.first;
+    }
+    while((*bounds.second)->getLine() > lineNo && bounds.second != bounds.first) {
+        --bounds.second;
+    }
+    if(bounds.second != get<Statement::line_info>().end()) ++bounds.second;
+    return bounds;
+//    return get<traits::line_info>().equal_range(boost::cref<std::tuple<unsigned int, unsigned int> >(search_info));
+
+}
+
+std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line_info_iterator>
+LineInformation::equal_range(std::string file) const {
+    auto found = strings_->get<1>().find(file);
+    unsigned index = strings_->project<0>(found) - strings_->begin();
+    return get<Statement::line_info>().equal_range(index);
+//    const traits::line_info_index& by_line_info = impl_t::get<traits::line_info>();
+//    return by_line_info.equal_range(file);
+
+}
+
+StringTablePtr LineInformation::getStrings()  {
+    return strings_;
+}
+
+void LineInformation::setStrings(StringTablePtr strings_) {
+    LineInformation::strings_ = strings_;
+}
+
+LineInformation::const_iterator LineInformation::find(Offset addressInRange, const_iterator hint) const {
+    while(hint != end())
+    {
+        if((**hint) == addressInRange) return hint;
+        if((**hint) > addressInRange) break;
+        ++hint;
+    }
+    return find(addressInRange);
+}
+
+/* end LineInformation destructor */
 

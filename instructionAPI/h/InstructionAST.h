@@ -34,6 +34,7 @@
 #if defined(_MSC_VER)
 // Exported class inheriting from non-exported class.  This is by design; don't
 // use the shared_from_this externally!
+#pragma warning(push)
 #pragma warning(disable:4251)
 #endif
 
@@ -126,8 +127,7 @@ namespace Dyninst
   };
 };
 #if defined(_MSC_VER)
-// reenable warning
-#pragma warning(default:4251)
+#pragma warning(pop)
 #endif
 
 

@@ -29,6 +29,7 @@
  */
 
 #include <windows.h>
+#include <stdlib.h>
 #include "dyninstAPI_RT/src/RTheap.h"
 #include "dyninstAPI_RT/src/RTcommon.h"
 
@@ -51,7 +52,7 @@ int getpagesize() {
 void *map_region(void *addr, int len, int fd) {
     void *result;
 	DWORD lastError;
-	char* lpMessage;
+	char* lpMessage = NULL;
     result = VirtualAlloc(addr, len, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 	if(!result) {
 		lastError = GetLastError();

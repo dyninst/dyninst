@@ -44,6 +44,7 @@
 
 #include <set>
 #include <limits>
+#include <ostream>
 
 /** Template class for Interval Binary Search Tree. The implementation is
   * based on a red-black tree (derived from our codeRange implementation)
@@ -82,44 +83,33 @@ namespace IBS {
 typedef enum { TREE_RED, TREE_BLACK } color_t;
 };
 
-template<class T = unsigned long>
-class interval {
+
+template <typename T = int, typename U = void*>
+class SimpleInterval
+{
   public:
-    interval() { }
-    virtual ~interval() { }
-
-    virtual T low() const = 0;
-    virtual T high() const = 0;
-
     typedef T type;
-};
-
-class SimpleInterval : public interval<int> {
-  public:
-    SimpleInterval( interval<int> & i, void * id ) {
-        low_ = i.low();
-        high_ = i.high();
-        id_ = id;
-    }
-    SimpleInterval(int low, int high, void * id) {
+    SimpleInterval(T low, T high, U id) {
         low_ = low;
         high_ = high;
         id_ = id;
     }
+    SimpleInterval() {}
+    virtual ~SimpleInterval() {}
 
-    virtual int low() const { return low_; }
-    virtual int high() const { return high_; }
-
-  private:
-    int low_;
-    int high_;
-    void * id_; // some arbitrary unique identifier
+    virtual T low() const { return low_; }
+    virtual T high() const { return high_; }
+    virtual U id() const { return id_; }
+  protected:
+    T low_;
+    T high_;
+    U id_; // some arbitrary unique identifier
 };
 
 template<class ITYPE>
 class IBSTree;
 
-template<class ITYPE = interval<> >
+template<class ITYPE = SimpleInterval<> >
 class IBSNode {
     friend class IBSTree<ITYPE>;
     typedef typename ITYPE::type interval_type;
@@ -142,6 +132,16 @@ class IBSNode {
     ~IBSNode() { }
 
     interval_type value() const { return val_; };
+    interval_type operator*() const { return value; }
+    friend std::ostream& operator<<(std::ostream& stream, const IBSNode<ITYPE>& node)
+    {
+        if(node.left) stream << *(node.left);
+        stream << node.val_ << std::endl;
+        if(node.right) stream << *(node.right);
+        return stream;
+
+    }
+
 
   private: 
     /* The endpoint of an interval range */
@@ -159,9 +159,17 @@ class IBSNode {
     IBSNode<ITYPE> *parent;
 };
 
-template<class ITYPE = interval<> >
+template<class ITYPE = SimpleInterval<> >
 class IBSTree {
+public:
     typedef typename ITYPE::type interval_type;
+    typedef IBSNode<ITYPE>* iterator;
+    typedef const IBSNode<ITYPE>* const_iterator;
+    typedef ITYPE value_type;
+    typedef value_type& reference;
+    typedef const value_type& const_reference;
+    typedef size_t difference_type;
+    typedef size_t size_type;
 
     IBSNode<ITYPE> *nil;
 
@@ -217,6 +225,10 @@ class IBSTree {
     int CountMarks(IBSNode<ITYPE> *R) const;
 
     unsigned MemUse() const;
+    friend std::ostream& operator<<(std::ostream& stream, const IBSTree<ITYPE>& tree)
+    {
+        return stream << *(tree.root);
+    };
 
   public:
 
@@ -235,7 +247,18 @@ class IBSTree {
         delete nil;
     }
 
-    int size() const { return treeSize; }
+    size_type size() const { return treeSize; }
+    const_iterator begin() const {
+        iterator b = root;
+        while(root->left) b = root->left;
+        return b;
+    }
+    const_iterator end() const {
+        iterator e = root;
+        while(root->right) e = root->right;
+        return e;
+
+    }
     int CountMarks() const;
     
     bool empty() const { return (root == nil); }
@@ -879,11 +902,15 @@ void IBSTree<ITYPE>::PrintPreorder(IBSNode<ITYPE> *n)
     }
 }
 
+
+
 template<class ITYPE>
 int IBSTree<ITYPE>::CountMarks() const
 {
     return CountMarks(root);
 }
-} /* Dyninst */
+}/* Dyninst */
+
+
 #endif
 

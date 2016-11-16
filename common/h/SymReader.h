@@ -91,6 +91,7 @@ class COMMON_EXPORT SymReader
    virtual unsigned getAddressWidth() = 0;
    virtual bool getABIVersion(int &major, int &minor) const = 0;
    virtual bool isBigEndianDataEncoding() const = 0;
+   virtual Architecture getArchitecture() const = 0;
    
    virtual unsigned numSegments() = 0;
    virtual bool getSegment(unsigned num, SymSegment &reg) = 0; 

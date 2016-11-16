@@ -495,7 +495,7 @@ bool ProbabilityCalculator::decodeInstruction(DecodeData &data, Address addr) {
 	    decodeCache.insert(make_pair(addr, DecodeData(JUNK_OPCODE, 0,0,0)));
 	    return false;
 	}
-	data.len = insn->size();
+	data.len = (unsigned short)insn->size();
 	if (data.len == 0) {
 	    decodeCache.insert(make_pair(addr, DecodeData(JUNK_OPCODE, 0,0,0)));
 	    return false;

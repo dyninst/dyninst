@@ -27,7 +27,7 @@ SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 # Shave 3 minute off of the time it takes to compile this file by falling back to not tracking
 # variables by default, rather then waiting until the variable tracking limit
 # is reached.
-if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
+if (${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
 set_source_files_properties(src/InstructionDecoder-aarch64.C PROPERTIES COMPILE_FLAGS
     -fno-var-tracking-assignments)
 endif()
@@ -36,6 +36,8 @@ ADD_DEFINITIONS(-DINSTRUCTION_LIB)
 
 dyninst_library(instructionAPI common)
 
-if(UNIX)
-  target_link_private_libraries(instructionAPI ${Boost_LIBRARIES})
+target_link_private_libraries(instructionAPI ${Boost_LIBRARIES})
+
+if (USE_COTIRE)
+    cotire(instructionAPI)
 endif()
