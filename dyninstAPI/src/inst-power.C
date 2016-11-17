@@ -1159,7 +1159,6 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
     }
 }
 
-void cleanUpAndExit(int status);
 
 /* Recursive function that goes to where our instrumentation is calling
 to figure out what registers are clobbered there, and in any function
@@ -1439,7 +1438,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
 	    " only 8 arguments can (currently) be passed on the POWER architecture.\n";
 	bperr( msg.c_str());
 	showErrorCallback(94,msg);
-	cleanUpAndExit(-1);
+	exit(-1);
     }
 
     // If we got the wrong register, we may need to do a 3-way swap. 
