@@ -1669,7 +1669,9 @@ void Object::load_object(bool alloc_syms)
 
         if (opd_scnp) {
             parse_opd(opd_scnp);
-        }
+        } else if (got_scnp) {
+	    // Add a single global TOC value...
+	}
 
         return;
     } // end binding contour (for "goto cleanup2")
@@ -1965,6 +1967,7 @@ void Object::parse_opd(Elf_X_Shdr *opd_hdr) {
     // special location 0 and only record differences.
     Offset baseTOC = buf[1];
     TOC_table_[0] = baseTOC;
+    create_printf("Set base TOC to %p\n", baseTOC);
 
     // Note the lack of 32/64 here: okay because the only platform with an OPD
     // is 64-bit elf.
@@ -1982,6 +1985,7 @@ void Object::parse_opd(Elf_X_Shdr *opd_hdr) {
 
         if (toc != baseTOC) {
             TOC_table_[func] = toc;
+	    create_printf("Set TOC for %p to %p\n", func, toc);
         }
         i += 2;
     }

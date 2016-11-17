@@ -514,12 +514,8 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
   patternIter = currentBlock->curInsnIter;
   patternIter--;
   RegisterAST::Ptr jumpAddrReg;
-  static RegisterAST::Ptr linkReg(new RegisterAST(ppc32::lr));
-  static RegisterAST::Ptr countReg(new RegisterAST(ppc32::ctr));
   std::set<RegisterAST::Ptr> regs;
-  if(patternIter->second->getOperation().getID() == power_op_mtspr &&
-     (patternIter->second->isWritten(linkReg) ||
-      patternIter->second->isWritten(countReg)))
+  if(patternIter->second->getOperation().getID() == power_op_mtspr)
     {
       regs.clear();
       patternIter->second->getReadSet(regs);
