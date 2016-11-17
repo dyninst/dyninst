@@ -188,7 +188,7 @@ unsigned int MachRegister::size() const {
       case Arch_aarch32:
         assert(0);
       case Arch_ARMv6M:
-        return ((reg & 0x0000ff00) >> 8) / 4;
+        return ((reg & 0x0000ff00) >> 8) / 8;
       case Arch_aarch64:
 		if((reg & 0x00ff0000) == aarch64::FPR)
 		{
