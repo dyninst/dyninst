@@ -453,6 +453,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
          pthrd_printf("Error waiting for attach to %d\n", proc->pid);
          procs.erase(i++);
          had_error = true;
+         continue;
       }
       i++;
    }
