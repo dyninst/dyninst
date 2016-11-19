@@ -17,8 +17,8 @@ using namespace Dyninst::InstructionAPI;
 
 
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
-//    if (block->last() == 0xfa10) dyn_debug_parsing = 1; else dyn_debug_parsing = 0; 
-
+//    if (block->last() == 0x47947) dyn_debug_parsing = 1; else dyn_debug_parsing = 0; 
+//    if (block->last() == 0x52460) dyn_debug_parsing=1; else dyn_debug_parsing=0;
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
     parsing_printf("Looking for thunk\n");
 
@@ -120,10 +120,10 @@ void IndirectControlFlowAnalyzer::FindAllThunks() {
 	    parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",FILE__, __LINE__);
 	    return;
 	}
-	parsing_printf("Looking for thunk in block [%lx,%lx).", b->start(), b->end());
 	InstructionDecoder dec(buf, b->end() - b->start(), b->obj()->cs()->getArch());
 	InsnAdapter::IA_IAPI block(dec, b->start(), b->obj() , b->region(), b->obj()->cs(), b);
-	while (block.getAddr() < b->end()) {
+	Address cur = b->start();
+	while (cur < b->end()) {
 	    if (block.getInstruction()->getCategory() == c_CallInsn && block.isThunk()) {
 	        bool valid;
 		Address addr;
@@ -144,7 +144,8 @@ void IndirectControlFlowAnalyzer::FindAllThunks() {
 		    parsing_printf("\tfind thunk at %lx, storing value %lx to %s\n", block.getAddr(), t.value , t.reg.name().c_str());
 		}
 	    }
-	    block.advance();
+	    cur += block.getInstruction()->size();
+	    if (cur < b->end()) block.advance();
 	}
     }
 }
