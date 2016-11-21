@@ -263,7 +263,7 @@ bool JumpTablePred::FillInOutEdges(BoundValue &target,
         }
 	return true;
     }
-    set<int> jumpTargets;						 
+    set<int64_t> jumpTargets;						 
     if (!PerformTableRead(target, jumpTargets, block->obj()->cs())) {
         jumpTableFormat = false;
 	return false;

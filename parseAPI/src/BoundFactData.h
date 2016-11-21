@@ -81,7 +81,7 @@ struct BoundValue {
     // Otherwise, tableReadSize reprenents the number bytes of the access
     int tableReadSize;
     int multiply;
-    std::set<int> * values;
+    std::set<int64_t> * values;
     bool isInverted;
     bool isSubReadContent;
     bool isZeroExtend;

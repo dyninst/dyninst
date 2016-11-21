@@ -396,7 +396,7 @@ BoundValue::BoundValue(const BoundValue & bv):
 	isZeroExtend(bv.isZeroExtend)
 {
     if (bv.values != NULL) {
-        values = new set<int>(*(bv.values));
+        values = new set<int64_t>(*(bv.values));
     }
 }
 
@@ -441,7 +441,7 @@ BoundValue & BoundValue::operator = (const BoundValue &bv) {
 	values = NULL;
     }
     if (bv.values != NULL) {
-        values = new set<int>(*bv.values);
+        values = new set<int64_t>(*bv.values);
     }
     return *this;
 
@@ -519,13 +519,13 @@ void BoundValue::Join(BoundValue &bv, Block *b) {
 	// it could be a case where multiple jump tables share
 	// an indirect jump. 
 	// Example: 0x47947 at libc-2.17.so 
-	set<int> left, right;
+	set<int64_t> left, right;
 	bool leftRet, rightRet;
 	leftRet = PerformTableRead(*this, left, b->obj()->cs());
 	rightRet = PerformTableRead(bv, right, b->obj()->cs());
 	if (leftRet && rightRet) {
 	    left.insert(right.begin(), right.end());
-	    values = new set<int> (left);
+	    values = new set<int64_t> (left);
 	    return;
 	}
     }
