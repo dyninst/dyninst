@@ -40,7 +40,7 @@ extern std::string lineStr;
 #define YYDEBUG 0 //set to 1 for debug mode
 
 // name of current snippet for error reporting
-char *dynCSnippetName = "";
+char *dynCSnippetName = NULL;
 
 SnippetGenerator *snippetGen;
 BPatch_point *snippetPoint = NULL;
