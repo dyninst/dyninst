@@ -1,0 +1,6 @@
+add_subdirectory (i386-unknown-nt4.0/symtab/VC/32/dyn/none/none)
+add_subdirectory (i386-unknown-nt4.0/dyninst/VC/32/dyn/none/none)
+add_subdirectory (i386-unknown-nt4.0/proccontrol/VC/32/dyn/none/none)
+add_subdirectory (i386-unknown-nt4.0/symtab/VC++/32/dyn/none/none)
+add_subdirectory (i386-unknown-nt4.0/dyninst/VC++/32/dyn/none/none)
+add_subdirectory (i386-unknown-nt4.0/proccontrol/VC++/32/dyn/none/none)

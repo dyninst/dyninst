@@ -1,0 +1,248 @@
+[walker.C:150] - Creating new stackwalker with process stack
+[walker.C:73] - Creating new Walker with proc=0x2fd87650, sym=(nil), step = 1
+[steppergroup.C:83] - Constructing new AddrRangeGroup at 0x2fda7a50
+[framestepper.C:49] - Creating FrameStepper 0x2fd4c100 with walker 0x2fd565d0
+[framestepper_pimple.h:73] - Constructing FrameFuncStepper at 0x2fd4c100
+[framestepper.C:49] - Creating FrameStepper 0x2fd877b0 with walker 0x2fd565d0
+[walker.C:649] - Registering stepper FrameFuncStepper with group 0x2fda7a50
+[steppergroup.C:150] - Adding stepper FrameFuncStepper to address ranges 0 -> ffffffffffffffff
+[symlookup.C:49] - Creating SymbolLookup 0x2fd53440
+[walker.C:167] - Successfully created Walker 0x2fd565d0
+[sw_pcontrol.C:318] - Running process 28165
+[sw_pcontrol.C:278] - Stopping process 28165
+[walker.C:595] - getThreadIds returning 1 values:	
+28165 
+ [frame.C:96] - Created frame at 0x3ffea198ac8
+[sw_pcontrol.C:222] - Calling preStackwalk for thread 28165
+[walker.C:391] - Starting stackwalk on thread 28165
+[frame.C:176] - Setting ra of frame 0x3ffea198ac8 to 400700
+[frame.C:183] - Setting fp of frame 0x3ffea198ac8 to 3ffd6be2b70
+[frame.C:189] - Setting sp of frame 0x3ffea198ac8 to 3ffd6be2b70
+[frame.C:199] - Setting frame 0x3ffea198ac8 RA location to register abstract::ReturnAddr
+[frame.C:199] - Setting frame 0x3ffea198ac8 SP location to register abstract::StackTop
+[frame.C:199] - Setting frame 0x3ffea198ac8 FP location to register abstract::FrameBase
+[frame.C:140] - Marking frame 0x3ffea198ac8 as top
+[walker.C:425] - walkStackFromFrame called with frame at 400700
+[frame.C:96] - Created frame at 0x3ffea198958
+[walker.C:437] - Walking single frame from 400700
+[walker.C:484] - Attempting to walk through frame with RA 0x400700
+[steppergroup.C:92] - AddrRangeGroup trying to find stepper at 400700 (last_tried = <NONE>)
+[steppergroup.C:111] - Found FrameStepper FrameFuncStepper at address 400700
+[walker.C:513] - Attempting to use stepper FrameFuncStepper
+[frame.C:189] - Setting sp of frame 0x3ffea198958 to 3ffd6be2b70
+ARM-debug: in_fp (3ffd6be2b90)
+[frame.C:183] - Setting fp of frame 0x3ffea198958 to 3ffd6be2b90
+[frame.C:176] - Setting ra of frame 0x3ffea198958 to 400718
+[walker.C:517] - Success using stepper FrameFuncStepper on 0x400700
+[walker.C:524] - Returning frame with RA 400718, SP 3ffd6be2b70, FP 3ffd6be2b90
+[frame.C:134] - Setting frame 0x3ffea198958's stepper to 0x2fd877b0
+[frame.C:316] - Destroying frame 0x3ffea198848
+[frame.C:316] - Destroying frame 0x2fda7910
+[frame.C:316] - Destroying frame 0x3ffea198958
+[frame.C:96] - Created frame at 0x3ffea198958
+[walker.C:437] - Walking single frame from 400718
+[walker.C:484] - Attempting to walk through frame with RA 0x400718
+[steppergroup.C:92] - AddrRangeGroup trying to find stepper at 400718 (last_tried = <NONE>)
+[steppergroup.C:111] - Found FrameStepper FrameFuncStepper at address 400718
+[walker.C:513] - Attempting to use stepper FrameFuncStepper
+[frame.C:189] - Setting sp of frame 0x3ffea198958 to 3ffd6be2b90
+ARM-debug: in_fp (3ffd6be2bb0)
+[frame.C:183] - Setting fp of frame 0x3ffea198958 to 3ffd6be2bb0
+[frame.C:176] - Setting ra of frame 0x3ffea198958 to 400718
+[walker.C:517] - Success using stepper FrameFuncStepper on 0x400718
+[walker.C:524] - Returning frame with RA 400718, SP 3ffd6be2b90, FP 3ffd6be2bb0
+[frame.C:134] - Setting frame 0x3ffea198958's stepper to 0x2fd877b0
+[frame.C:316] - Destroying frame 0x3ffea198848
+[frame.C:316] - Destroying frame 0x2fd87ab0
+[frame.C:316] - Destroying frame 0x2fd87b58
+[frame.C:316] - Destroying frame 0x3ffea198958
+[frame.C:96] - Created frame at 0x3ffea198958
+[walker.C:437] - Walking single frame from 400718
+[walker.C:484] - Attempting to walk through frame with RA 0x400718
+[steppergroup.C:92] - AddrRangeGroup trying to find stepper at 400718 (last_tried = <NONE>)
+[steppergroup.C:111] - Found FrameStepper FrameFuncStepper at address 400718
+[walker.C:513] - Attempting to use stepper FrameFuncStepper
+[frame.C:189] - Setting sp of frame 0x3ffea198958 to 3ffd6be2bb0
+ARM-debug: in_fp (3ffd6be2bd0)
+[frame.C:183] - Setting fp of frame 0x3ffea198958 to 3ffd6be2bd0
+[frame.C:176] - Setting ra of frame 0x3ffea198958 to 400718
+[walker.C:517] - Success using stepper FrameFuncStepper on 0x400718
+[walker.C:524] - Returning frame with RA 400718, SP 3ffd6be2bb0, FP 3ffd6be2bd0
+[frame.C:134] - Setting frame 0x3ffea198958's stepper to 0x2fd877b0
+[frame.C:316] - Destroying frame 0x3ffea198848
+[frame.C:316] - Destroying frame 0x3ffea198958
+[frame.C:96] - Created frame at 0x3ffea198958
+[walker.C:437] - Walking single frame from 400718
+[walker.C:484] - Attempting to walk through frame with RA 0x400718
+[steppergroup.C:92] - AddrRangeGroup trying to find stepper at 400718 (last_tried = <NONE>)
+[steppergroup.C:111] - Found FrameStepper FrameFuncStepper at address 400718
+[walker.C:513] - Attempting to use stepper FrameFuncStepper
+[frame.C:189] - Setting sp of frame 0x3ffea198958 to 3ffd6be2bd0
+ARM-debug: in_fp (3ffd6be2bf0)
+[frame.C:183] - Setting fp of frame 0x3ffea198958 to 3ffd6be2bf0
+[frame.C:176] - Setting ra of frame 0x3ffea198958 to 400754
+[walker.C:517] - Success using stepper FrameFuncStepper on 0x400718
+[walker.C:524] - Returning frame with RA 400754, SP 3ffd6be2bd0, FP 3ffd6be2bf0
+[frame.C:134] - Setting frame 0x3ffea198958's stepper to 0x2fd877b0
+[frame.C:316] - Destroying frame 0x3ffea198848
+[frame.C:316] - Destroying frame 0x2fd87c10
+[frame.C:316] - Destroying frame 0x2fd87cb8
+[frame.C:316] - Destroying frame 0x2fd87d60
+[frame.C:316] - Destroying frame 0x2fd87e08
+[frame.C:316] - Destroying frame 0x3ffea198958
+[frame.C:96] - Created frame at 0x3ffea198958
+[walker.C:437] - Walking single frame from 400754
+[walker.C:484] - Attempting to walk through frame with RA 0x400754
+[steppergroup.C:92] - AddrRangeGroup trying to find stepper at 400754 (last_tried = <NONE>)
+[steppergroup.C:111] - Found FrameStepper FrameFuncStepper at address 400754
+[walker.C:513] - Attempting to use stepper FrameFuncStepper
+[frame.C:189] - Setting sp of frame 0x3ffea198958 to 3ffd6be2bf0
+ARM-debug: in_fp (3ffd6be2c10)
+[frame.C:183] - Setting fp of frame 0x3ffea198958 to 3ffd6be2c10
+[frame.C:176] - Setting ra of frame 0x3ffea198958 to 400790
+[walker.C:517] - Success using stepper FrameFuncStepper on 0x400754
+[walker.C:524] - Returning frame with RA 400790, SP 3ffd6be2bf0, FP 3ffd6be2c10
+[frame.C:134] - Setting frame 0x3ffea198958's stepper to 0x2fd877b0
+[frame.C:316] - Destroying frame 0x3ffea198848
+[frame.C:316] - Destroying frame 0x3ffea198958
+[frame.C:96] - Created frame at 0x3ffea198958
+[walker.C:437] - Walking single frame from 400790
+[walker.C:484] - Attempting to walk through frame with RA 0x400790
+[steppergroup.C:92] - AddrRangeGroup trying to find stepper at 400790 (last_tried = <NONE>)
+[steppergroup.C:111] - Found FrameStepper FrameFuncStepper at address 400790
+[walker.C:513] - Attempting to use stepper FrameFuncStepper
+[frame.C:189] - Setting sp of frame 0x3ffea198958 to 3ffd6be2c10
+ARM-debug: in_fp (3ffd6be2c30)
+[frame.C:183] - Setting fp of frame 0x3ffea198958 to 3ffd6be2c30
+[frame.C:176] - Setting ra of frame 0x3ffea198958 to 4007b8
+[walker.C:517] - Success using stepper FrameFuncStepper on 0x400790
+[walker.C:524] - Returning frame with RA 4007b8, SP 3ffd6be2c10, FP 3ffd6be2c30
+[frame.C:134] - Setting frame 0x3ffea198958's stepper to 0x2fd877b0
+[frame.C:316] - Destroying frame 0x3ffea198848
+[frame.C:316] - Destroying frame 0x3ffea198958
+[frame.C:96] - Created frame at 0x3ffea198958
+[walker.C:437] - Walking single frame from 4007b8
+[walker.C:484] - Attempting to walk through frame with RA 0x4007b8
+[steppergroup.C:92] - AddrRangeGroup trying to find stepper at 4007b8 (last_tried = <NONE>)
+[steppergroup.C:111] - Found FrameStepper FrameFuncStepper at address 4007b8
+[walker.C:513] - Attempting to use stepper FrameFuncStepper
+[frame.C:189] - Setting sp of frame 0x3ffea198958 to 3ffd6be2c30
+ARM-debug: in_fp (3ffd6be2c50)
+[frame.C:183] - Setting fp of frame 0x3ffea198958 to 3ffd6be2c50
+[frame.C:176] - Setting ra of frame 0x3ffea198958 to 3ff7a2cf264
+[walker.C:517] - Success using stepper FrameFuncStepper on 0x4007b8
+[walker.C:524] - Returning frame with RA 3ff7a2cf264, SP 3ffd6be2c30, FP 3ffd6be2c50
+[frame.C:134] - Setting frame 0x3ffea198958's stepper to 0x2fd877b0
+[frame.C:316] - Destroying frame 0x3ffea198848
+[frame.C:316] - Destroying frame 0x3ffea198958
+[frame.C:96] - Created frame at 0x3ffea198958
+[walker.C:437] - Walking single frame from 3ff7a2cf264
+[walker.C:484] - Attempting to walk through frame with RA 0x3ff7a2cf264
+[steppergroup.C:92] - AddrRangeGroup trying to find stepper at 3ff7a2cf264 (last_tried = <NONE>)
+[steppergroup.C:111] - Found FrameStepper FrameFuncStepper at address 3ff7a2cf264
+[walker.C:513] - Attempting to use stepper FrameFuncStepper
+[frame.C:189] - Setting sp of frame 0x3ffea198958 to 3ffd6be2c50
+ARM-debug: in_fp (3ffd6be2c60)
+[frame.C:183] - Setting fp of frame 0x3ffea198958 to 3ffd6be2c60
+[frame.C:176] - Setting ra of frame 0x3ffea198958 to 4005ac
+[walker.C:517] - Success using stepper FrameFuncStepper on 0x3ff7a2cf264
+[walker.C:524] - Returning frame with RA 4005ac, SP 3ffd6be2c50, FP 3ffd6be2c60
+[frame.C:134] - Setting frame 0x3ffea198958's stepper to 0x2fd877b0
+[frame.C:316] - Destroying frame 0x3ffea198848
+[frame.C:316] - Destroying frame 0x2fd87ec0
+[frame.C:316] - Destroying frame 0x2fd87f68
+[frame.C:316] - Destroying frame 0x2fd88010
+[frame.C:316] - Destroying frame 0x2fd880b8
+[frame.C:316] - Destroying frame 0x2fd88160
+[frame.C:316] - Destroying frame 0x2fd88208
+[frame.C:316] - Destroying frame 0x2fd882b0
+[frame.C:316] - Destroying frame 0x2fd88358
+[frame.C:316] - Destroying frame 0x3ffea198958
+[frame.C:96] - Created frame at 0x3ffea198958
+[walker.C:437] - Walking single frame from 4005ac
+[walker.C:484] - Attempting to walk through frame with RA 0x4005ac
+[steppergroup.C:92] - AddrRangeGroup trying to find stepper at 4005ac (last_tried = <NONE>)
+[steppergroup.C:111] - Found FrameStepper FrameFuncStepper at address 4005ac
+[walker.C:513] - Attempting to use stepper FrameFuncStepper
+[frame.C:189] - Setting sp of frame 0x3ffea198958 to 3ffd6be2c60
+ARM-debug: in_fp (3ffd6be2da0)
+[frame.C:183] - Setting fp of frame 0x3ffea198958 to 3ffd6be2da0
+[frame.C:176] - Setting ra of frame 0x3ffea198958 to 3ffd6bef518
+[walker.C:517] - Success using stepper FrameFuncStepper on 0x4005ac
+[walker.C:524] - Returning frame with RA 3ffd6bef518, SP 3ffd6be2c60, FP 3ffd6be2da0
+[frame.C:134] - Setting frame 0x3ffea198958's stepper to 0x2fd877b0
+[frame.C:316] - Destroying frame 0x3ffea198848
+[frame.C:316] - Destroying frame 0x3ffea198958
+[frame.C:96] - Created frame at 0x3ffea198958
+[walker.C:437] - Walking single frame from 3ffd6bef518
+[walker.C:484] - Attempting to walk through frame with RA 0x3ffd6bef518
+[steppergroup.C:92] - AddrRangeGroup trying to find stepper at 3ffd6bef518 (last_tried = <NONE>)
+[steppergroup.C:111] - Found FrameStepper FrameFuncStepper at address 3ffd6bef518
+[walker.C:513] - Attempting to use stepper FrameFuncStepper
+[frame.C:189] - Setting sp of frame 0x3ffea198958 to 3ffd6be2da0
+ARM-debug: in_fp (1)
+[linuxKludges.C:252]ERROR: ptrace PEEKTEXT failed!
+ERROR: Input/output error
+[sw_pcontrol.C:188] - ProcControlAPI error reading memory at 0x1
+[aarch64-swk.C:178] - Couldn't read from 0
+[walker.C:544] - A stepper reported error 802715568 on frame at 3ffd6bef518
+[frame.C:316] - Destroying frame 0x3ffea198848
+[walker.C:449] - Error walking through stack frame ok
+[frame.C:316] - Destroying frame 0x3ffea198958
+[walker.C:472] - Finished walking callstack from frame, result = false
+[walker.C:403] - walkStackFromFrame failed
+[sw_pcontrol.C:250] - Calling postStackwalk for thread 28165
+[frame.C:316] - Destroying frame 0x3ffea198ac8
+[linux-swk.C:128] - Found vsyscall over range 0 to 0
+[linux-swk.C:134] - Error collecting vsyscall base and end
+[sw_pcontrol.C:501] - Detected new library /home/xi/testsuite/src/stackwalker/stack at 0, notifying
+[sw_pcontrol.C:501] - Detected new library /lib/ld-linux-aarch64.so.1 at 3ff7a690000, notifying
+[sw_pcontrol.C:501] - Detected new library /lib64/libstdc++.so.6 at 3ff7a540000, notifying
+[sw_pcontrol.C:501] - Detected new library /lib64/libm.so.6 at 3ff7a470000, notifying
+[sw_pcontrol.C:501] - Detected new library /lib64/libgcc_s.so.1 at 3ff7a440000, notifying
+[sw_pcontrol.C:501] - Detected new library /lib64/libc.so.6 at 3ff7a2b0000, notifying
+[sw_pcontrol.C:654] - Found library /home/xi/testsuite/src/stackwalker/stack contains address 400700
+[symlookup.C:126] - Found symbol func3(int) at address 400700
+[frame.C:252] - Successfully looked up symbol for frame 0x2fd88410
+[frame.C:262] - Frame::getName (frame 0x2fd88410) returning func3(int)
+[symlookup.C:126] - Found symbol func3(int) at address 400718
+[frame.C:252] - Successfully looked up symbol for frame 0x2fd884b8
+[frame.C:262] - Frame::getName (frame 0x2fd884b8) returning func3(int)
+[symlookup.C:126] - Found symbol func3(int) at address 400718
+[frame.C:252] - Successfully looked up symbol for frame 0x2fd88560
+[frame.C:262] - Frame::getName (frame 0x2fd88560) returning func3(int)
+[symlookup.C:126] - Found symbol func3(int) at address 400718
+[frame.C:252] - Successfully looked up symbol for frame 0x2fd88608
+[frame.C:262] - Frame::getName (frame 0x2fd88608) returning func3(int)
+[symlookup.C:126] - Found symbol func2(int) at address 400754
+[frame.C:252] - Successfully looked up symbol for frame 0x2fd886b0
+[frame.C:262] - Frame::getName (frame 0x2fd886b0) returning func2(int)
+[symlookup.C:126] - Found symbol func1(int) at address 400790
+[frame.C:252] - Successfully looked up symbol for frame 0x2fd88758
+[frame.C:262] - Frame::getName (frame 0x2fd88758) returning func1(int)
+[symlookup.C:126] - Found symbol main at address 4007b8
+[frame.C:252] - Successfully looked up symbol for frame 0x2fd88800
+[frame.C:262] - Frame::getName (frame 0x2fd88800) returning main
+[sw_pcontrol.C:654] - Found library /lib64/libc.so.6 contains address 3ff7a2cf264
+[symlookup.C:126] - Found symbol __libc_start_main at address 3ff7a2cf264
+[frame.C:252] - Successfully looked up symbol for frame 0x2fd888a8
+[frame.C:262] - Frame::getName (frame 0x2fd888a8) returning __libc_start_main
+[symlookup.C:126] - Found symbol _start at address 4005ac
+[frame.C:252] - Successfully looked up symbol for frame 0x2fd88950
+[frame.C:262] - Frame::getName (frame 0x2fd88950) returning _start
+[sw_pcontrol.C:691] - Could not find library for addr 3ffd6bef518
+[symlookup.C:106] - Failed to find a library at 3ffd6bef518 for lookup
+[frame.C:247] - Error, returned by lookupAtAddr().
+[frame.C:252] - Successfully looked up symbol for frame 0x2fd889f8
+[frame.C:262] - Frame::getName (frame 0x2fd889f8) returning 
+[sw_pcontrol.C:318] - Running process 28165
+[frame.C:316] - Destroying frame 0x2fd88410
+[frame.C:316] - Destroying frame 0x2fd884b8
+[frame.C:316] - Destroying frame 0x2fd88560
+[frame.C:316] - Destroying frame 0x2fd88608
+[frame.C:316] - Destroying frame 0x2fd886b0
+[frame.C:316] - Destroying frame 0x2fd88758
+[frame.C:316] - Destroying frame 0x2fd88800
+[frame.C:316] - Destroying frame 0x2fd888a8
+[frame.C:316] - Destroying frame 0x2fd88950
+[frame.C:316] - Destroying frame 0x2fd889f8
