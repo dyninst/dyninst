@@ -73,10 +73,10 @@
 /* Copy the first part of user declarations.  */
 #line 5 "C.y" /* yacc.c:339  */
 
-/*                                                                                 
- * Yacc will define token IF, conflicting with dyn_regs.h                          
- * This undef is safe b/c yacc also creates an enum IF                             
- * which serves the same purpose.                                                  
+/*
+ * Yacc will define token IF, conflicting with dyn_regs.h
+ * This undef is safe b/c yacc also creates an enum IF
+ * which serves the same purpose.
  */
 #undef IF
 #undef RETURN
@@ -94,7 +94,7 @@
 #include <sstream>
 
 extern "C" {
-   void yyerror(const char *s); 
+   void yyerror(const char *s);
    void yyerrorNonUni(const char *s);
    void yyerrorNoTok(const char *s);
    void yyerrorNoTokNonUni(const char *s);
@@ -268,17 +268,17 @@ union YYSTYPE
    char  *sval;
 
    const char *context;
-   
+
    struct VariableSpec {
       bool isConstant;
-      bool isStatic; 
+      bool isStatic;
       bool isGlobal;
       bool isLocal;
       bool isParam;
       bool isThread;
       bool isMachineState;
       bool isMutateeScope;
-      
+
       const char * type;
    } varSpec;
 
@@ -288,7 +288,7 @@ union YYSTYPE
    BPatch_variableExpr *varExpr;
    std::vector<BPatch_snippet *> *snippetList;
    std::vector<std::pair<BPatch_snippet *, const char *> > *snippetStringListPair;
-   std::pair<BPatch_snippet *, const char *> *snippetStringPair;   
+   std::pair<BPatch_snippet *, const char *> *snippetStringPair;
 
 #line 294 "dynC.tab.C" /* yacc.c:355  */
 };
@@ -1692,7 +1692,7 @@ yyreduce:
     {
         case 2:
 #line 167 "C.y" /* yacc.c:1646  */
-    { 
+    {
        oneTimeCount = 0;
        oneTimeGblCount = 0;
        if(fatalError){
@@ -1741,8 +1741,8 @@ yyreduce:
 
   case 4:
 #line 210 "C.y" /* yacc.c:1646  */
-    {   
-      
+    {
+
        std::string mangledName = dynC_API::mangle((yyvsp[-2].sval), dynCSnippetName, (yyvsp[-3].varSpec).type);
        if(verbose) printf("name : %s\n", mangledName.c_str());
        BPatch_snippet *alloc = snippetGen->findOrCreateVariable(mangledName.c_str(), (yyvsp[-3].varSpec).type);
@@ -1756,7 +1756,7 @@ yyreduce:
 
        if((yyvsp[-3].varSpec).isStatic || (yyvsp[-3].varSpec).isGlobal){
           makeOneTimeStatementGbl(*(yyval.snippet));
-       }       
+       }
     }
 #line 1762 "dynC.tab.C" /* yacc.c:1646  */
     break;
@@ -1772,7 +1772,7 @@ yyreduce:
           (yyval.snippet) = new BPatch_nullExpr();
           break;
        }
-      
+
        std::stringstream type;
        type << (yyvsp[-4].varSpec).type << "[" << (yyvsp[-1].ival) << "]";
        std::string mangledName = dynC_API::mangle((yyvsp[-3].sval), dynCSnippetName, type.str().c_str());
@@ -1788,7 +1788,7 @@ yyreduce:
              setSn = BPatch_constExpr("");
           }
           for(int n = 0; n < (yyvsp[-1].ival); ++n){
-             endSnippets.push_back(new BPatch_arithExpr(BPatch_assign, BPatch_arithExpr(BPatch_ref, *(yyval.snippet), BPatch_constExpr(n)), setSn));             
+             endSnippets.push_back(new BPatch_arithExpr(BPatch_assign, BPatch_arithExpr(BPatch_ref, *(yyval.snippet), BPatch_constExpr(n)), setSn));
           }
        }
 
@@ -1822,7 +1822,7 @@ yyreduce:
              break;
           }
           BPatch_snippet *assign = new BPatch_arithExpr(BPatch_assign, BPatch_arithExpr(BPatch_ref, *(yyval.snippet), BPatch_constExpr(n)), *(*(yyvsp[-1].snippetStringListPair))[n].first);
-          
+
           if((yyvsp[-7].varSpec).isStatic || (yyvsp[-7].varSpec).isGlobal){
               makeOneTimeStatement(*assign);
               }
@@ -1876,7 +1876,7 @@ yyreduce:
              makeOneTimeStatement(*assign);
           }
           assignVect->push_back(assign);
-       
+
        }
        (yyval.snippet) = new BPatch_sequence(*assignVect);
     }
@@ -1908,9 +1908,9 @@ yyreduce:
 
   case 10:
 #line 358 "C.y" /* yacc.c:1646  */
-    { 
+    {
        if(verbose) printf("\n");
-       (yyval.snippetList) = new BPatch_Vector<BPatch_snippet *>; 
+       (yyval.snippetList) = new BPatch_Vector<BPatch_snippet *>;
        (yyval.snippetList)->push_back((yyvsp[0].snippet));
     }
 #line 1917 "dynC.tab.C" /* yacc.c:1646  */
@@ -1932,7 +1932,7 @@ yyreduce:
        makeOneTimeStatementGbl(*seq);
        std::vector<BPatch_snippet *> *retVect = new std::vector<BPatch_snippet *>;
        retVect->push_back(seq);
-       (yyval.snippetList) = retVect;       
+       (yyval.snippetList) = retVect;
     }
 #line 1938 "dynC.tab.C" /* yacc.c:1646  */
     break;
@@ -1983,7 +1983,7 @@ yyreduce:
           (yyval.snippet) = new BPatch_nullExpr();
        }else{
           (yyval.snippet) = (yyvsp[-1].snippet);
-       } 
+       }
        actionTaken = false;
     }
 #line 1990 "dynC.tab.C" /* yacc.c:1646  */
@@ -2041,7 +2041,7 @@ yyreduce:
 
   case 23:
 #line 458 "C.y" /* yacc.c:1646  */
-    { 
+    {
        BPatch_function *func = snippetGen->findFunction((yyvsp[-3].sval), *(yyvsp[-1].snippetList));
        if(func == NULL){
           (yyval.snippet) = new BPatch_nullExpr();
@@ -2260,7 +2260,7 @@ yyreduce:
        if(snippetPoint == NULL){
           yyerrorNoTok("Local variables not allowed when snippet point is unspecified.");
           break;
-       }       
+       }
        if(!(yyvsp[-2].varSpec).isParam){
           yyerror("Numbered indexes for parameters only");
           (yyval.snippet) = new BPatch_nullExpr();
@@ -2309,7 +2309,7 @@ yyreduce:
 
   case 48:
 #line 655 "C.y" /* yacc.c:1646  */
-    { 
+    {
       if(verbose) printf(" %d ", (yyvsp[0].ival));
       BPatch_snippet * c = new BPatch_constExpr((yyvsp[0].ival));
       (yyval.snippetStringPair) = new std::pair<BPatch_snippet *, const char *>(c, "int");
@@ -2319,7 +2319,7 @@ yyreduce:
 
   case 49:
 #line 661 "C.y" /* yacc.c:1646  */
-    { 
+    {
        if(verbose) printf(" %s ", (yyvsp[0].sval));
        BPatch_snippet * c = new BPatch_constExpr((yyvsp[0].sval));
        (yyval.snippetStringPair) = new std::pair<BPatch_snippet *, const char *>(c, "char *");
@@ -2374,7 +2374,7 @@ yyreduce:
 #line 694 "C.y" /* yacc.c:1646  */
     {
        if(verbose) printf("dyninst`%s ", (yyvsp[0].sval));
-       
+
        std::vector<BPatch_snippet *> argVect;
        //snippets w/ return vals
        if(strcmp((yyvsp[0].sval), "function_name") == 0){
@@ -2398,12 +2398,12 @@ yyreduce:
           break;
        }
        if(strcmp((yyvsp[0].sval), "effective_address") == 0){
-          (yyval.snippet) = new BPatch_effectiveAddressExpr(); 
+          (yyval.snippet) = new BPatch_effectiveAddressExpr();
           break;
        }
        if(strcmp((yyvsp[0].sval), "original_address") == 0){
           (yyval.snippet) = new BPatch_originalAddressExpr();
-          
+
           break;
        }
        if(strcmp((yyvsp[0].sval), "actual_address") == 0){
@@ -2435,7 +2435,7 @@ yyreduce:
           (yyval.snippet) = new BPatch_dynamicTargetExpr();
           break;
        }
- 
+
        yyerror("Syntax error: unrecognized dyninst call");
        (yyval.snippet) = new BPatch_nullExpr();
     }
@@ -2917,7 +2917,7 @@ void yyerrorNoTok(const char *s){
    err << ebase << " error: " << s;
    if(universalErrors->find(err.str()) != universalErrors->end()){
       return;
-   }   
+   }
    printf("%s\n", err.str().c_str());
    universalErrors->insert(err.str());
 }
@@ -2937,7 +2937,7 @@ void yywarn(const char *s)
    err << dynCSnippetName << ":" << yylloc.first_line << ":" << " warning: " << s;
    if(universalErrors->find(err.str()) != universalErrors->end()){
       return;
-   }   
+   }
    printf("%s\n", err.str().c_str());
    universalErrors->insert(err.str());
 }
@@ -2949,7 +2949,7 @@ void makeOneTimeStatement(BPatch_snippet &statement){
    BPatch_arithExpr *setFlag = new BPatch_arithExpr(BPatch_assign, *var, BPatch_constExpr(1));
    BPatch_arithExpr *pair = new BPatch_arithExpr(BPatch_seq, *setFlag, statement);
    BPatch_ifExpr *testFirst = new BPatch_ifExpr(BPatch_boolExpr(BPatch_eq, *var, BPatch_constExpr(0)), *pair);
-   statement = *testFirst;    
+   statement = *testFirst;
 }
 
 void makeOneTimeStatementGbl(BPatch_snippet &statement){
@@ -2959,5 +2959,5 @@ void makeOneTimeStatementGbl(BPatch_snippet &statement){
    BPatch_arithExpr *setFlag = new BPatch_arithExpr(BPatch_assign, *var, BPatch_constExpr(1));
    BPatch_arithExpr *pair = new BPatch_arithExpr(BPatch_seq, *setFlag, statement);
    BPatch_ifExpr *testFirst = new BPatch_ifExpr(BPatch_boolExpr(BPatch_eq, *var, BPatch_constExpr(0)), *pair);
-   statement = *testFirst;    
+   statement = *testFirst;
 }
