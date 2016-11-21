@@ -17,14 +17,10 @@ using namespace Dyninst;
 using namespace Dyninst::DataflowAPI;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InstructionAPI;
-#define SIGNEX_64_32 0xffffffff00000000LL
-#define SIGNEX_64_16 0xffffffffffff0000LL
-#define SIGNEX_64_8  0xffffffffffffff00LL
-#define SIGNEX_32_16 0xffff0000
-#define SIGNEX_32_8 0xffffff00
-
 // Assume the table contain less than this many entries.
 #define MAX_TABLE_ENTRY 1000000
+
+
 static void BuildEdgesAux(SliceNode::Ptr srcNode,
                           ParseAPI::Block* curBlock,
 			  map<ParseAPI::Block*, map<AssignmentPtr, SliceNode::Ptr> > &targetMap,
@@ -260,106 +256,19 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
 }
 bool JumpTablePred::FillInOutEdges(BoundValue &target, 
                                                  vector<pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
-    set<Address> jumpTargets;						 
-    outEdges.clear();
-    Address tableBase = (Address)target.interval.low;
-    Address tableLastEntry = (Address)target.interval.high;
-    int addressWidth = block->obj()->cs()->getAddressWidth();
-    if (addressWidth == 4) {
-        tableBase &= 0xffffffff;
-	tableLastEntry &= 0xffffffff;
+    if (target.values != NULL) {
+        outEdges.clear();
+        for (auto tit = target.values->begin(); tit != target.values->end(); ++tit) {
+            outEdges.push_back(make_pair(*tit, INDIRECT));
+        }
+	return true;
     }
-
-#if defined(os_windows)
-    tableBase -= block->obj()->cs()->loadAddress();
-    tableLastEntry -= block->obj()->cs()->loadAddress();
-#endif
-
-    parsing_printf("The final target bound fact:\n");
-    target.Print();
-    if (!block->obj()->cs()->isCode(tableBase) && !block->obj()->cs()->isData(tableBase)) {
-        parsing_printf("\ttableBase 0x%lx invalid, returning false\n", tableBase);
-	jumpTableFormat = false;
-	parsing_printf("Not jump table format!\n");
+    set<int> jumpTargets;						 
+    if (!PerformTableRead(target, jumpTargets, block->obj()->cs())) {
+        jumpTableFormat = false;
 	return false;
     }
-    if (!block->obj()->cs()->isReadOnly(tableBase)) {
-        parsing_printf("\ttableBase 0x%lx not read only, returning false\n", tableBase);
-	jumpTableFormat = false;
-	parsing_printf("Not jump table format!\n");
-        return false;
-    }
-
-
-    for (Address tableEntry = tableBase; tableEntry <= tableLastEntry; tableEntry += target.interval.stride) {
-	if (!block->obj()->cs()->isCode(tableEntry) && !block->obj()->cs()->isData(tableEntry)) continue;
-	if (!block->obj()->cs()->isReadOnly(tableEntry)) continue;
-	int targetAddress = 0;
-	if (target.tableReadSize > 0) {
-	    switch (target.tableReadSize) {
-	        case 8:
-		    targetAddress = *(const uint64_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
-		    break;
-		case 4:
-		    targetAddress = *(const uint32_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
-		    if (target.isZeroExtend) break;
-		    if ((addressWidth == 8) && (targetAddress & 0x80000000)) {
-		        targetAddress |= SIGNEX_64_32;
-		    }
-		    break;
-		case 2:
-		    targetAddress = *(const uint16_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
-		    if (target.isZeroExtend) break;
-		    if ((addressWidth == 8) && (targetAddress & 0x8000)) {
-		        targetAddress |= SIGNEX_64_16;
-		    }
-		    if ((addressWidth == 4) && (targetAddress & 0x8000)) {
-		        targetAddress |= SIGNEX_32_16;
-		    }
-
-		    break;
-		case 1:
-		    targetAddress = *(const uint8_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
-		    if (target.isZeroExtend) break;
-		    if ((addressWidth == 8) && (targetAddress & 0x80)) {
-		        targetAddress |= SIGNEX_64_8;
-		    }
-		    if ((addressWidth == 4) && (targetAddress & 0x80)) {
-		        targetAddress |= SIGNEX_32_8;
-		    }
-
-		    break;
-
-		default:
-		    parsing_printf("Invalid memory read size %d\n", target.tableReadSize);
-		    return false;
-	    }
-	    targetAddress *= target.multiply;
-	    if (target.targetBase != 0) {
-	        if (target.isSubReadContent) 
-		    targetAddress = target.targetBase - targetAddress;
-		else 
-		    targetAddress += target.targetBase; 
-
-	    }
-#if defined(os_windows)
-            targetAddress -= block->obj()->cs()->loadAddress();
-#endif
-	} else targetAddress = tableEntry;
-
-	if (addressWidth == 4) targetAddress &= 0xffffffff;
-	parsing_printf("Jumping to target %lx,", targetAddress);
-	if (block->obj()->cs()->isCode(targetAddress)) {
-	    // Jump tables may contain may repetitious entries.
-	    // We only want to create one edge for disctinct each jump target.
-	    jumpTargets.insert(targetAddress);
-	    parsing_printf(" is code.\n" );
-	} else {
-	    parsing_printf(" not code.\n");
-	}
-	// If the jump target is resolved to be a constant, 
-	if (target.interval.stride == 0) break;
-    }
+    outEdges.clear();
     for (auto tit = jumpTargets.begin(); tit != jumpTargets.end(); ++tit) {
         outEdges.push_back(make_pair(*tit, INDIRECT));
     }
@@ -381,7 +290,11 @@ bool JumpTablePred::IsJumpTable(GraphPtr slice,
     BoundValue *tarBoundValue = bf->GetBound(ip);
     if (tarBoundValue != NULL) {
         target = *(tarBoundValue);
-	uint64_t s = target.interval.size();
+	uint64_t s;
+	if (target.values == NULL)
+	    s = target.interval.size();
+	else
+	    s = target.values->size();
 	if (s > 0 && s <= MAX_TABLE_ENTRY) return true;
     }
     AST::Ptr ipExp = bf->GetAlias(ip);

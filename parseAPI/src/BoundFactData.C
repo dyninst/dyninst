@@ -360,6 +360,7 @@ BoundValue::BoundValue(int64_t val):
 	targetBase(0), 
 	tableReadSize(0),
 	multiply(1),
+	values(NULL),
 	isInverted(false),
 	isSubReadContent(false),
 	isZeroExtend(false) {}
@@ -369,6 +370,7 @@ BoundValue::BoundValue(const StridedInterval &si):
 	targetBase(0), 
 	tableReadSize(0),
 	multiply(1),
+	values(NULL),
 	isInverted(false),
 	isSubReadContent(false),
 	isZeroExtend(false){}
@@ -378,6 +380,7 @@ BoundValue::BoundValue():
 	targetBase(0),
 	tableReadSize(0),
 	multiply(1),
+	values(NULL),
 	isInverted(false),
 	isSubReadContent(false),
 	isZeroExtend(false) {}
@@ -387,21 +390,37 @@ BoundValue::BoundValue(const BoundValue & bv):
 	targetBase(bv.targetBase),
 	tableReadSize(bv.tableReadSize),
 	multiply(bv.multiply),
+	values(NULL),
 	isInverted(bv.isInverted),
 	isSubReadContent(bv.isSubReadContent),
 	isZeroExtend(bv.isZeroExtend)
 {
+    if (bv.values != NULL) {
+        values = new set<int>(*(bv.values));
+    }
 }
 
+BoundValue::~BoundValue() {
+    if (values != NULL) {
+        delete values;
+	values = NULL;
+    }
+}
 
 bool BoundValue::operator == (const BoundValue &bv) const {
-    return (interval == bv.interval) &&
-	   (targetBase == bv.targetBase) &&
-	   (tableReadSize == bv.tableReadSize) &&
-	   (multiply == bv.multiply) &&
-	   (isInverted == bv.isInverted) &&
-	   (isSubReadContent == bv.isSubReadContent) &&
-	   (isZeroExtend == bv.isZeroExtend);
+    if (values == NULL && bv.values == NULL) {
+        return (interval == bv.interval) &&
+	       (targetBase == bv.targetBase) &&
+	       (tableReadSize == bv.tableReadSize) &&
+	       (multiply == bv.multiply) &&
+	       (isInverted == bv.isInverted) &&
+	       (isSubReadContent == bv.isSubReadContent) &&
+	       (isZeroExtend == bv.isZeroExtend);
+    } else if (values != NULL && bv.values != NULL) {
+        return *values == *bv.values;
+    } else {
+        return false;
+    }
 }
 
 bool BoundValue::operator != (const BoundValue &bv) const {
@@ -417,18 +436,32 @@ BoundValue & BoundValue::operator = (const BoundValue &bv) {
     isInverted = bv.isInverted;
     isSubReadContent = bv.isSubReadContent;
     isZeroExtend = bv.isZeroExtend;
+    if (values != NULL) {
+        delete values;
+	values = NULL;
+    }
+    if (bv.values != NULL) {
+        values = new set<int>(*bv.values);
+    }
     return *this;
 
 }
 
 void BoundValue::Print() {
-    parsing_printf("Interval %s, ", interval.format().c_str() );
-    parsing_printf("targetBase %lx, ",targetBase);
-    parsing_printf("tableReadSize %d, ", tableReadSize);
-    parsing_printf("multiply %d, ", multiply);
-    parsing_printf("isInverted %d, ", isInverted);
-    parsing_printf("isSubReadContent %d, ", isSubReadContent);
-    parsing_printf("isZeroExtend %d\n", isZeroExtend);
+    if (values == NULL) {
+        parsing_printf("Interval %s, ", interval.format().c_str() );
+        parsing_printf("targetBase %lx, ",targetBase);
+        parsing_printf("tableReadSize %d, ", tableReadSize);
+        parsing_printf("multiply %d, ", multiply);
+        parsing_printf("isInverted %d, ", isInverted);
+        parsing_printf("isSubReadContent %d, ", isSubReadContent);
+        parsing_printf("isZeroExtend %d\n", isZeroExtend);
+    } else {
+        parsing_printf("Values:");
+	for (auto vit = values->begin(); vit != values->end(); ++vit)
+	    parsing_printf(" %x", *vit);
+	parsing_printf("\n");
+    }
 }
 
 
@@ -471,7 +504,7 @@ void BoundValue::DeleteElementFromInterval(int64_t val) {
     interval.DeleteElement(val);
 }
 
-void BoundValue::Join(BoundValue &bv) {
+void BoundValue::Join(BoundValue &bv, Block *b) {
     // If one is a table read and the other is a constant,
     // assume that the constant appears in the table read.
     if (tableReadSize > 0 && bv.interval.stride == 0) {
@@ -480,6 +513,21 @@ void BoundValue::Join(BoundValue &bv) {
     if (bv.tableReadSize > 0 && interval.stride == 0) {
         *this = bv;
 	return;
+    }
+    if (tableReadSize > 0 && bv.tableReadSize > 0) {
+        // If both paths represent a table read,
+	// it could be a case where multiple jump tables share
+	// an indirect jump. 
+	// Example: 0x47947 at libc-2.17.so 
+	set<int> left, right;
+	bool leftRet, rightRet;
+	leftRet = PerformTableRead(*this, left, b->obj()->cs());
+	rightRet = PerformTableRead(bv, right, b->obj()->cs());
+	if (leftRet && rightRet) {
+	    left.insert(right.begin(), right.end());
+	    values = new set<int> (left);
+	    return;
+	}
     }
     if (tableReadSize != bv.tableReadSize) {
         // Unless boths are table reads, we stop trakcing
@@ -694,7 +742,7 @@ void BoundValue::MemoryRead(Block* b, int readSize) {
 	}	
 }
 
-void BoundFact::Meet(BoundFact &bf) {
+void BoundFact::Meet(BoundFact &bf, Block* b) {
         for (auto fit = fact.begin(); fit != fact.end();) {
 	    BoundValue *val2 = bf.GetBound(fit->first);
 	    // if ast fit->first cannot be found in bf,
@@ -702,7 +750,7 @@ void BoundFact::Meet(BoundFact &bf) {
 	    // Anything joins top becomes top
 	    if (val2 != NULL) {
 	        BoundValue *val1 = fit->second;
-		val1->Join(*val2);
+		val1->Join(*val2, b);
 		++fit;
 	    } else {
 	        auto toErase = fit;
@@ -1538,17 +1586,6 @@ AST::Ptr BoundFact::GetAlias(const AST::Ptr ast) {
 }
 
 void BoundFact::TrackAlias(AST::Ptr expr, AST::Ptr outAST, bool findBound) {
-    // This definition should kill all existing aliases
-    // involving outAST, as outAST is assigned to a new value
-    parsing_printf("\tTracking alias for %s = %s\n", outAST->format().c_str(), expr->format().c_str());
-    for (auto ait = aliasMap.begin(); ait != aliasMap.end(); ) {
-        if (ContainAnAST(ait->second , outAST)) {
-	    auto e = ait;
-	    ++ait;
-	    aliasMap.erase(e);
-	} else ++ait;
-    }
-
     expr = SubstituteAnAST(expr, aliasMap);
     bool find = false;    
     for (auto ait = aliasMap.begin(); ait != aliasMap.end(); ++ait) {
