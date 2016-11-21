@@ -233,7 +233,7 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 		else
 		    val = new BoundValue(BoundValue::top);
 		if (IsResultBounded(ast->child(1)))
-		    val->And(GetResultBound(ast->child(1))->interval);
+		    val->And(*GetResultBound(ast->child(1)));
 		else
 		    val->And(StridedInterval::top);
 		// the result of an AND operation should not be

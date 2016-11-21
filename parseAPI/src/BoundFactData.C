@@ -1381,23 +1381,8 @@ void BoundFact::SetPredicate(Assignment::Ptr assign,std::pair<AST::Ptr, bool> ex
     AST::Ptr simplifiedAST = expandRet.first;
     parsing_printf("\t\t semanic expansions: %s\n", simplifiedAST->format().c_str());
     
-    ComparisonVisitor cv;
-    expandRet.first->accept(&cv);
-    pred.e1 = cv.subtrahend;
-    pred.e2 = cv.minuend; 
-    pred.id = id;
-    if (pred.e1 != AST::Ptr() && pred.e2 != AST::Ptr()) {
-        return;
-    }
-
+    // Special handling of test and and instructions on x86
     switch (id) {
-        case e_cmp:
-	case e_sub: {	
-	    // The effect of the subtraction can only
-	    // be evaluated when there is a conditional jump
-	    // after it. Currently, we do not know anything.
-	    break;
-	}
 	case e_test: {
 	    if (simplifiedAST->getID() == AST::V_RoseAST) {
 	        RoseAST::Ptr rootRoseAST = boost::static_pointer_cast<RoseAST>(simplifiedAST);
@@ -1456,8 +1441,17 @@ void BoundFact::SetPredicate(Assignment::Ptr assign,std::pair<AST::Ptr, bool> ex
 	    break;
 	}
 	default:
-	    parsing_printf("Not tracking this instruction that sets flags: %s\n", insn->format().c_str());
-	    pred.valid = false;
+	    break;
+    }
+
+
+    ComparisonVisitor cv;
+    expandRet.first->accept(&cv);
+    pred.e1 = cv.subtrahend;
+    pred.e2 = cv.minuend; 
+    pred.id = id;
+    if (pred.e1 == AST::Ptr() || pred.e2 == AST::Ptr()) {
+        pred.valid = false;
     }
 }
 
