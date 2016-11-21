@@ -381,8 +381,10 @@ bool int_process::attach(int_processSet *ps, bool reattach)
       pthrd_printf("Attaching to threads for %d\n", proc->getPid());
       bool result = proc->attachThreads();
       if (!result) {
-         pthrd_printf("Could not attach to threads in %d--will try again\n", proc->pid);
+         pthrd_printf("Failed to attach to threads in %d\n", proc->pid);
          procs.erase(i++);
+         had_error = true;
+         continue;
       }
 
       if (reattach) {
@@ -466,7 +468,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
          continue;
       bool result = proc->plat_attachThreadsSync();
       if (!result) {
-         pthrd_printf("Failed to attach to threads in %d--now an error\n", proc->pid);
+         pthrd_printf("Failed to attach to threads in %d\n", proc->pid);
          procs.erase(i++);
          had_error = true;
          continue;
