@@ -1009,7 +1009,7 @@ namespace Dyninst
                     // Selects a general purpose register from VEX.vvvv (VEX3 or EVEX)
                     if(!pref.vex_present)
                     {
-                        assert(!"Non VEX3 or EVEX instruction with am_B addressing mode!");
+                        // assert(!"Non VEX3 or EVEX instruction with am_B addressing mode!");
                         return false;
                     }
 
