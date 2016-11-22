@@ -202,7 +202,7 @@ class Object : public AObject
     SYMTAB_EXPORT const char *interpreter_name() const { return NULL; }
     SYMTAB_EXPORT dyn_hash_map <std::string, LineInformation> &getLineInfo();
     SYMTAB_EXPORT void parseTypeInfo();
-    SYMTAB_EXPORT virtual Dyninst::Architecture getArch();   
+    SYMTAB_EXPORT virtual Dyninst::Architecture getArch() const;
     SYMTAB_EXPORT void    ParseGlobalSymbol(PSYMBOL_INFO pSymInfo);
     SYMTAB_EXPORT const std::vector<Offset> &getPossibleMains() const   { return possible_mains; }
     SYMTAB_EXPORT void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);

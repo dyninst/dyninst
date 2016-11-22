@@ -36,6 +36,7 @@
 #include <map>
 #include <vector>
 #include "util.h"
+#include "dyn_regs.h"
 
 namespace Dyninst {
 
@@ -116,6 +117,8 @@ class DYNELF_EXPORT Elf_X {
     Elf_X_Shdr &get_shdr(unsigned int i);
 
     bool findDebugFile(std::string origfilename, std::string &output_name, char* &output_buffer, unsigned long &output_buffer_size);
+
+    Dyninst::Architecture getArch() const;
 
   protected:
     Elf *elf;

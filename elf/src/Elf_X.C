@@ -889,21 +889,31 @@ void Elf_X_Data::d_align(unsigned int input)
 }
 void Elf_X_Data::xlatetom(unsigned int encode)
 {
+    Elf_Data tmp;
+    memcpy(&tmp, data, sizeof(Elf_Data));
+    tmp.d_buf = malloc(tmp.d_size);
     if(is64)
     {
-        elf64_xlatetom(data, data, encode);
+        elf64_xlatetom(&tmp, data, encode);
     } else {
-        elf32_xlatetom(data, data, encode);
+        elf32_xlatetom(&tmp, data, encode);
     }
+    memcpy(data->d_buf, tmp.d_buf, tmp.d_size);
+    free(tmp.d_buf);
 }
 void Elf_X_Data::xlatetof(unsigned int encode)
 {
+    Elf_Data tmp;
+    memcpy(&tmp, data, sizeof(Elf_Data));
+    tmp.d_buf = malloc(tmp.d_size);
     if(is64)
     {
-        elf64_xlatetof(data, data, encode);
+        elf64_xlatetof(&tmp, data, encode);
     } else {
-        elf32_xlatetof(data, data, encode);
+        elf32_xlatetof(&tmp, data, encode);
     }
+    memcpy(data->d_buf, tmp.d_buf, tmp.d_size);
+    free(tmp.d_buf);
 }
 
 // Data Interface
@@ -1740,6 +1750,39 @@ bool Elf_X::findDebugFile(std::string origfilename, string &output_name, char* &
   }
 
   return false;
+}
+
+// Add definitions that may not be in all elf.h files
+#if !defined(EM_K10M)
+#define EM_K10M 180
+#endif
+#if !defined(EM_L10M)
+#define EM_L10M 181
+#endif
+#if !defined(EM_AARCH64)
+#define EM_AARCH64 183
+#endif
+Dyninst::Architecture Elf_X::getArch() const
+{
+    switch(e_machine())
+    {
+        case EM_PPC:
+            return Dyninst::Arch_ppc32;
+        case EM_PPC64:
+            return Dyninst::Arch_ppc64;
+        case EM_386:
+            return Dyninst::Arch_x86;
+        case EM_X86_64:
+        case EM_K10M:
+        case EM_L10M:
+            return Dyninst::Arch_x86_64;
+        case EM_ARM:
+            return Dyninst::Arch_aarch32;
+        case EM_AARCH64:
+            return Dyninst::Arch_aarch64;
+        default:
+            return Dyninst::Arch_none;
+    }
 }
 
 // ------------------------------------------------------------------------

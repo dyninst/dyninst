@@ -235,7 +235,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool isExec() const;
    bool isStripped();
    ObjectType getObjectType() const;
-   Dyninst::Architecture getArchitecture();
+   Dyninst::Architecture getArchitecture() const;
    bool isCode(const Offset where) const;
    bool isData(const Offset where) const;
    bool isValidOffset(const Offset where) const;
@@ -604,7 +604,9 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    //Don't use obj_private, use getObject() instead.
  public:
    Object *getObject();
-    ModRangeLookup* mod_lookup();
+   const Object *getObject() const;
+   ModRangeLookup* mod_lookup();
+
  private:
    Object *obj_private;
 

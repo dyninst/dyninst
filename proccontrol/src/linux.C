@@ -1110,6 +1110,44 @@ bool linux_process::plat_attach(bool, bool &)
    return true;
 }
 
+// Attach any new threads and synchronize, until there are no new threads
+bool linux_process::plat_attachThreadsSync()
+{
+   while (true) {
+      bool found_new_threads = false;
+
+      ProcPool()->condvar()->lock();
+      bool result = attachThreads(found_new_threads);
+      if (found_new_threads)
+         ProcPool()->condvar()->broadcast();
+      ProcPool()->condvar()->unlock();
+
+      if (!result) {
+         pthrd_printf("Failed to attach to threads in %d\n", pid);
+         setLastError(err_internal, "Could not get threads during attach\n");
+         return false;
+      }
+
+      if (!found_new_threads)
+         return true;
+
+      while (Counter::processCount(Counter::NeonatalThreads, this) > 0) {
+         bool proc_exited = false;
+         pthrd_printf("Waiting for neonatal threads in process %d\n", pid);
+         result = waitAndHandleForProc(true, this, proc_exited);
+         if (!result) {
+            perr_printf("Internal error calling waitAndHandleForProc on %d\n", getPid());
+            return false;
+         }
+         if (proc_exited) {
+            perr_printf("Process exited while waiting for user thread stop, erroring\n");
+            setLastError(err_exited, "Process exited while thread being stopped.\n");
+            return false;
+         }
+      }
+   }
+}
+
 bool linux_process::plat_attachWillTriggerStop() {
     char procName[64];
     char cmd[256];

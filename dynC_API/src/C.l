@@ -63,7 +63,7 @@ const bool lexVerbose = false; // set to true for debug mode
 "*"+[^*/\n]*   /* eat up '*'s not followed by '/'s */                           
 \n             ++line_num;                                                      
 "*"+"/"        BEGIN(INITIAL);       
-<<EOF>>        {yylval.context = "Syntax Error: Unterminated block comment"; return(ERROR);}
+<<EOF>>        {yylval.context = "Syntax Error: Unterminated block comment"; return(D_ERROR);}
 }   
 
 "//".*      { if(lexVerbose)printf("Inline Comment\n") /* inline comment */;}                            
@@ -77,7 +77,7 @@ char|int|long|float|double|short|void|bool { yylval.sval = strdup(yytext); retur
 "enum" {return ENUM; }
  
 "case" { return(CASE); }
-"const" { return(CONST); }
+"const" { return(D_CONST); }
 "default" { return(DEFAULT); }
 "else" { return(ELSE); }
 "if" { return(IF); }
@@ -130,7 +130,7 @@ L?'(\\.|[^\\'])+' { return(CONSTANT); }
                   yylval.context = "Unterminated string constant";
                   yycolumn = 1;
                   //yylval.line_number = line_num;                                                     line_num++;
-                  return ERROR; 
+                  return D_ERROR;
                 }
 
    \\[0-7]{1,3} { /* octal escape sequence */
@@ -140,7 +140,7 @@ L?'(\\.|[^\\'])+' { return(CONSTANT); }
                       /* error, constant is out-of-bounds */
                       yylval.context = "constant out of bounds";                
                      // yylval.line_number = line_num;                            
-                      return ERROR;                                                  
+                      return D_ERROR;
                   }
                   c_string_buf += result;                                            
   
@@ -149,7 +149,7 @@ L?'(\\.|[^\\'])+' { return(CONSTANT); }
    \\[0-9]+     { /* generate error - bad escape sequence */
                   yylval.context = "bad escape sequence";                       
                  // yylval.line_number = line_num;                                
-                  return ERROR;                                                      
+                  return D_ERROR;
                 }
    \\n          c_string_buf += '\n';                                                
    \\t          c_string_buf += '\t';                                                
@@ -216,7 +216,7 @@ L?'(\\.|[^\\'])+' { return(CONSTANT); }
 "`" { if(lexVerbose)printf("Backtick\n"); return(BACKTICK); }
 [ \t\v\f] { }
 
-^([^\n;{}])+\n {if(strstr(yytext, "//") != NULL){++line_num;}else{if(strncmp(yytext,"/*", 2) == 0){BEGIN(comment);++line_num;}else{if(lexVerbose)printf("No Semi!\n"); fatalError = true; dynClloc.first_column = yycolumn; yylval.context = "syntax error: missing ';'!"; yyless(yyleng - 1); return(ERROR);}}}
+^([^\n;{}])+\n {if(strstr(yytext, "//") != NULL){++line_num;}else{if(strncmp(yytext,"/*", 2) == 0){BEGIN(comment);++line_num;}else{if(lexVerbose)printf("No Semi!\n"); fatalError = true; dynClloc.first_column = yycolumn; yylval.context = "syntax error: missing ';'!"; yyless(yyleng - 1); return(D_ERROR);}}}
 
 \n {if(lexVerbose)printf("New Line!\n"); line_num++; yycolumn = 0; lineStr = "";}
 

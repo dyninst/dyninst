@@ -106,7 +106,7 @@ bool LineInformation::getSourceLines(Offset addressInRange,
     ++num_queries;
     const_iterator start_addr_valid = project<Statement::addr_range>(get<Statement::upper_bound>().lower_bound(addressInRange ));
     const_iterator end_addr_valid = impl_t::upper_bound(addressInRange );
-    while(start_addr_valid != end_addr_valid)
+    while(start_addr_valid != end_addr_valid && start_addr_valid != end())
     {
         if(*(*start_addr_valid) == addressInRange)
         {

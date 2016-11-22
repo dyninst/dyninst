@@ -3,7 +3,7 @@ set (DYNINST_MINOR_VERSION 2)
 set (DYNINST_PATCH_VERSION 0)
 
 # Debugging
-set(Boost_DEBUG 1)
+# set(Boost_DEBUG 1)
 
 add_definitions(-DBOOST_ALL_NO_LIB=1)
 set (SOVERSION "${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}")
