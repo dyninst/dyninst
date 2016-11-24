@@ -171,6 +171,14 @@ BPatch_typeCollection::~BPatch_typeCollection()
     // decRefCount (which will delete when refcount == 0)
     assert(refcount == 0 ||
            refcount == 1);
+
+    for(const auto& t: typesByName) {
+        t.second->decrRefCount();
+    }
+
+    for(const auto& t: typesByID) {
+        t.second->decrRefCount();
+    }
 }
 
 /*
