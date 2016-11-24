@@ -167,11 +167,13 @@ BPatch::BPatch()
     vector<Type *> *sTypes = Symtab::getAllstdTypes();
     for(unsigned i=0; i< sTypes->size(); i++)
         stdTypes->addType(new BPatch_type((*sTypes)[i]));
+    delete sTypes;
 
     builtInTypes = new BPatch_builtInTypeCollection;
     sTypes = Symtab::getAllbuiltInTypes();
     for(unsigned i=0; i< sTypes->size(); i++)
         builtInTypes->addBuiltInType(new BPatch_type((*sTypes)[i]));
+    delete sTypes;
 
     //loadNativeDemangler();
 

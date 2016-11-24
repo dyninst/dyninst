@@ -98,10 +98,10 @@ BPatch_type::BPatch_type(Type *typ_): ID(typ_->getID()), typ(typ_),
 		{
 			//fprintf(stderr, "%s[%d]:  failed to get up ptr here\n", FILE__, __LINE__);
 
-			BPatch_type* dyninstType = new BPatch_type(base);
+			//BPatch_type* dyninstType = new BPatch_type(base);
 			// We might consider registering this new type in BPatch.
 			// For now, just silence the warning:
-			(void) dyninstType;
+			//(void) dyninstType;
 		}
 		else
 		{
