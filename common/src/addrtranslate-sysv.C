@@ -650,6 +650,7 @@ Address AddressTranslateSysV::getTrapAddrFromRdebug() {
             return 0;
         }
         if( !r_debug_native->is_valid() ) {
+            delete r_debug_native;
             return 0;
         }
         retVal = (Address) r_debug_native->r_brk();
@@ -661,6 +662,7 @@ Address AddressTranslateSysV::getTrapAddrFromRdebug() {
             return 0;
         }
         if( !r_debug_32->is_valid() ) {
+            delete r_debug_32;
             return 0;
         }
         retVal = (Address) r_debug_32->r_brk();
