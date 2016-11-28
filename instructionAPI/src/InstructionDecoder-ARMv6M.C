@@ -1,4 +1,4 @@
-// This content was generated on Thu Nov 17 17:40:54 CET 2016
+// This content was generated on Mon Nov 28 16:25:22 CET 2016
 // Do not edit directly.
 // Contact: eda@tum
 
@@ -105,6 +105,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_label = ((m_instrWord >> 16) & 0xff) >> 0;
 				
+				struct { int8_t field : 8; } signExtender_label;
+				param_label = signExtender_label.field = param_label;
+				
 				int32_t local_imm32;
 				
 				local_imm32 = CoerceBits<int32_t>((param_label << 0x1));
@@ -144,6 +147,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b1111'1111
 				// Slice: []
 				param_label = ((m_instrWord >> 16) & 0xff) >> 0;
+				
+				struct { int8_t field : 8; } signExtender_label;
+				param_label = signExtender_label.field = param_label;
 				
 				int32_t local_imm32;
 				
@@ -185,6 +191,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_label = ((m_instrWord >> 16) & 0xff) >> 0;
 				
+				struct { int8_t field : 8; } signExtender_label;
+				param_label = signExtender_label.field = param_label;
+				
 				int32_t local_imm32;
 				
 				local_imm32 = CoerceBits<int32_t>((param_label << 0x1));
@@ -224,6 +233,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b1111'1111
 				// Slice: []
 				param_label = ((m_instrWord >> 16) & 0xff) >> 0;
+				
+				struct { int8_t field : 8; } signExtender_label;
+				param_label = signExtender_label.field = param_label;
 				
 				int32_t local_imm32;
 				
@@ -266,6 +278,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_label = ((m_instrWord >> 16) & 0xff) >> 0;
 				
+				struct { int8_t field : 8; } signExtender_label;
+				param_label = signExtender_label.field = param_label;
+				
 				int32_t local_imm32;
 				
 				local_imm32 = CoerceBits<int32_t>((param_label << 0x1));
@@ -307,6 +322,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_label = ((m_instrWord >> 16) & 0xff) >> 0;
 				
+				struct { int8_t field : 8; } signExtender_label;
+				param_label = signExtender_label.field = param_label;
+				
 				int32_t local_imm32;
 				
 				local_imm32 = CoerceBits<int32_t>((param_label << 0x1));
@@ -346,6 +364,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b1111'1111
 				// Slice: []
 				param_label = ((m_instrWord >> 16) & 0xff) >> 0;
+				
+				struct { int8_t field : 8; } signExtender_label;
+				param_label = signExtender_label.field = param_label;
 				
 				int32_t local_imm32;
 				
@@ -387,6 +408,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_label = ((m_instrWord >> 16) & 0xff) >> 0;
 				
+				struct { int8_t field : 8; } signExtender_label;
+				param_label = signExtender_label.field = param_label;
+				
 				int32_t local_imm32;
 				
 				local_imm32 = CoerceBits<int32_t>((param_label << 0x1));
@@ -426,6 +450,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b1111'1111
 				// Slice: []
 				param_label = ((m_instrWord >> 16) & 0xff) >> 0;
+				
+				struct { int8_t field : 8; } signExtender_label;
+				param_label = signExtender_label.field = param_label;
 				
 				int32_t local_imm32;
 				
@@ -467,6 +494,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_label = ((m_instrWord >> 16) & 0xff) >> 0;
 				
+				struct { int8_t field : 8; } signExtender_label;
+				param_label = signExtender_label.field = param_label;
+				
 				int32_t local_imm32;
 				
 				local_imm32 = CoerceBits<int32_t>((param_label << 0x1));
@@ -506,6 +536,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b1111'1111
 				// Slice: []
 				param_label = ((m_instrWord >> 16) & 0xff) >> 0;
+				
+				struct { int8_t field : 8; } signExtender_label;
+				param_label = signExtender_label.field = param_label;
 				
 				int32_t local_imm32;
 				
@@ -549,6 +582,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_label = ((m_instrWord >> 16) & 0xff) >> 0;
 				
+				struct { int8_t field : 8; } signExtender_label;
+				param_label = signExtender_label.field = param_label;
+				
 				int32_t local_imm32;
 				
 				local_imm32 = CoerceBits<int32_t>((param_label << 0x1));
@@ -590,6 +626,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b1111'1111
 				// Slice: []
 				param_label = ((m_instrWord >> 16) & 0xff) >> 0;
+				
+				struct { int8_t field : 8; } signExtender_label;
+				param_label = signExtender_label.field = param_label;
 				
 				int32_t local_imm32;
 				
@@ -633,6 +672,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_label = ((m_instrWord >> 16) & 0xff) >> 0;
 				
+				struct { int8_t field : 8; } signExtender_label;
+				param_label = signExtender_label.field = param_label;
+				
 				int32_t local_imm32;
 				
 				local_imm32 = CoerceBits<int32_t>((param_label << 0x1));
@@ -674,6 +716,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b1111'1111
 				// Slice: []
 				param_label = ((m_instrWord >> 16) & 0xff) >> 0;
+				
+				struct { int8_t field : 8; } signExtender_label;
+				param_label = signExtender_label.field = param_label;
 				
 				int32_t local_imm32;
 				
@@ -719,6 +764,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_label = ((m_instrWord >> 16) & 0xff) >> 0;
 				
+				struct { int8_t field : 8; } signExtender_label;
+				param_label = signExtender_label.field = param_label;
+				
 				int32_t local_imm32;
 				
 				local_imm32 = CoerceBits<int32_t>((param_label << 0x1));
@@ -759,6 +807,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				param_imm = ((m_instrWord >> 16) & 0xff) >> 0;
 				
 				
+				
 			}
 		}
 		if (!m_instrInProgress &&
@@ -781,6 +830,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b1111'1111
 				// Slice: []
 				param_imm = ((m_instrWord >> 16) & 0xff) >> 0;
+				
 				
 				
 			}
@@ -808,6 +858,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				param_imm = ((m_instrWord >> 16) & 0xff) >> 0;
 				
 				
+				
 				;
 			}
 		}
@@ -832,6 +883,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b1111'1111
 				// Slice: []
 				param_imm = ((m_instrWord >> 16) & 0xff) >> 0;
+				
 				
 				
 				;
@@ -867,6 +919,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111'1111'1111
 				// Slice: []
 				param_label = ((m_instrWord >> 16) & 0x7ff) >> 0;
+				
+				struct { int16_t field : 11; } signExtender_label;
+				param_label = signExtender_label.field = param_label;
 				
 				int32_t local_imm32;
 				
@@ -939,6 +994,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					// Mask: 0b11'1111'1111'0000'0000'0000'0000
 					// Slice: [22, 13]
 					param_label = (param_label & ~0x7fe000) | ((((m_instrWord >> 0) & 0x3ff0000) >> 16 << 13) & 0x7fe000);
+					
 					
 					uint32_t local_imm10;
 					int32_t local_imm32;
@@ -1050,6 +1106,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 														
 														
 														
+														
 													}
 												}
 												if (!m_instrInProgress &&
@@ -1065,6 +1122,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 													
 														/* Behavior:
 														*/
+														
 														
 														
 														
@@ -1096,6 +1154,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 														
 														
 														
+														
 													}
 												}
 												if (!m_instrInProgress &&
@@ -1113,6 +1172,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 														*/
 														
 														bool param_ = 0;
+														
 														
 														
 														
@@ -1144,6 +1204,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 														
 														
 														
+														
 													}
 												}
 												if (!m_instrInProgress &&
@@ -1159,6 +1220,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 													
 														/* Behavior:
 														*/
+														
 														
 														
 														
@@ -1276,6 +1338,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 											// Mask: 0b1111'1111
 											// Slice: []
 											param_sysm = ((m_instrWord >> 0) & 0xff) >> 0;
+											
 											
 											
 											// write R
@@ -1485,6 +1548,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 														param_n = ((m_instrWord >> 0) & 0xf0000) >> 16;
 														
 														
+														
 														if ((((param_sysm & 0xf8) >> 0x3) == 0x0))
 														{
 															if ((((param_sysm & 0x4) >> 0x2) == 0x0))
@@ -1561,6 +1625,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						// Slice: []
 						param_m = ((m_instrWord >> 16) & 0x78) >> 3;
 						
+						
 						uint32_t local_next_instr;
 						
 						// read PC
@@ -1605,6 +1670,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						// Mask: 0b111'1000
 						// Slice: []
 						param_m = ((m_instrWord >> 16) & 0x78) >> 3;
+						
 						
 						
 						// write PC
@@ -1673,6 +1739,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: [2, 0]
 				param_dn = (param_dn & ~0x7) | ((((m_instrWord >> 16) & 0x7) >> 0 << 0) & 0x7);
+				
 				
 				uint32_t local__i_add_c;
 				int32_t local___signed_sum;
@@ -1764,6 +1831,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: [2, 0]
 				param_n = (param_n & ~0x7) | ((((m_instrWord >> 16) & 0x7) >> 0 << 0) & 0x7);
 				
+				
 				uint32_t local__i_add_c;
 				int32_t local___signed_sum;
 				uint32_t local___unsigned_sum;
@@ -1822,6 +1890,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: [2, 0]
 				param_d = (param_d & ~0x7) | ((((m_instrWord >> 16) & 0x7) >> 0 << 0) & 0x7);
+				
 				
 				
 				// write R
@@ -1885,6 +1954,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_d = ((m_instrWord >> 16) & 0x7) >> 0;
+				
+				struct { int8_t field : 5; } signExtender_imm;
+				param_imm = signExtender_imm.field = param_imm;
 				
 				uint32_t local_result;
 				uint32_t local_shift;
@@ -1950,6 +2022,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					param_d = ((m_instrWord >> 16) & 0x7) >> 0;
 					
 					
+					
 					// write R
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_d)), false, true);
 					// Maybe PC write:
@@ -2001,6 +2074,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_d = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				uint32_t local_result;
 				uint32_t local_shift;
@@ -2066,6 +2140,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_d = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				uint32_t local_result;
 				uint32_t local_shift;
@@ -2161,6 +2236,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						// Slice: []
 						param_d = ((m_instrWord >> 16) & 0x7) >> 0;
 						
+						
 						uint32_t local__i_add_c;
 						int32_t local___signed_sum;
 						uint32_t local___unsigned_sum;
@@ -2247,6 +2323,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						// Mask: 0b111
 						// Slice: []
 						param_d = ((m_instrWord >> 16) & 0x7) >> 0;
+						
 						
 						uint32_t local__i_add_c;
 						int32_t local___signed_sum;
@@ -2342,6 +2419,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						// Slice: []
 						param_d = ((m_instrWord >> 16) & 0x7) >> 0;
 						
+						
 						uint32_t local__i_add_c;
 						int32_t local___signed_sum;
 						uint32_t local___unsigned_sum;
@@ -2427,6 +2505,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						// Slice: []
 						param_d = ((m_instrWord >> 16) & 0x7) >> 0;
 						
+						
 						uint32_t local__i_add_c;
 						int32_t local___signed_sum;
 						uint32_t local___unsigned_sum;
@@ -2510,6 +2589,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						// Mask: 0b111
 						// Slice: []
 						param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
+						
 						
 						uint32_t local__i_add_c;
 						int32_t local___signed_sum;
@@ -2596,6 +2676,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_d = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				struct { int8_t field : 5; } signExtender_imm;
+				param_imm = signExtender_imm.field = param_imm;
+				
 				uint32_t local_result;
 				uint32_t local_shift;
 				int32_t local_operand;
@@ -2669,6 +2752,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_d = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				struct { int8_t field : 5; } signExtender_imm;
+				param_imm = signExtender_imm.field = param_imm;
+				
 				uint32_t local_result;
 				uint32_t local_shift;
 				uint32_t local_operand;
@@ -2740,6 +2826,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_d = ((m_instrWord >> 16) & 0x7) >> 0;
+				
+				struct { int8_t field : 5; } signExtender_imm;
+				param_imm = signExtender_imm.field = param_imm;
 				
 				uint32_t local_result;
 				uint32_t local_shift;
@@ -2814,6 +2903,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				
 				uint32_t local_result;
 				uint32_t local_shift;
 				int32_t local_operand;
@@ -2884,6 +2974,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				
 				uint32_t local_result;
 				uint32_t local_shift;
 				int32_t local_operand;
@@ -2946,6 +3037,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				uint32_t local_result;
 				uint32_t local_shift;
@@ -3017,6 +3109,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				
 				uint32_t local_result;
 				uint32_t local_shift;
 				uint32_t local_operand;
@@ -3079,6 +3172,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				uint32_t local_result;
 				uint32_t local_shift;
@@ -3150,6 +3244,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				
 				uint32_t local_result;
 				uint32_t local_shift;
 				uint32_t local_operand;
@@ -3206,6 +3301,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				uint32_t local_result;
 				
@@ -3264,6 +3360,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				uint32_t local_result;
 				
@@ -3334,6 +3431,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				bool local__i_add_c;
 				int32_t local___signed_sum;
@@ -3422,6 +3520,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				
 				bool local__i_add_c;
 				int32_t local___signed_sum;
 				uint32_t local___unsigned_sum;
@@ -3485,6 +3584,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				
 				uint32_t local_result;
 				
 				// read R
@@ -3539,6 +3639,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				
 				uint32_t local_result;
 				
 				// read R
@@ -3588,6 +3689,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				uint32_t local_result;
 				
@@ -3642,6 +3744,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				uint32_t local_result;
 				
@@ -3709,6 +3812,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_n = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				uint32_t local__i_add_c;
 				int32_t local___signed_sum;
@@ -3781,6 +3885,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_n = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				
 				uint32_t local__i_add_c;
 				int32_t local___signed_sum;
 				uint32_t local___unsigned_sum;
@@ -3835,6 +3940,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				
 				uint32_t local_result;
 				
 				// read R
@@ -3888,6 +3994,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				uint32_t local_result;
 				
@@ -3953,6 +4060,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				uint32_t local_result;
 				uint32_t local_shift;
@@ -4025,6 +4133,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				
 				uint32_t local_result;
 				uint32_t local_shift;
 				uint32_t local_operand;
@@ -4096,6 +4205,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				
 				uint32_t local_result;
 				uint32_t local_shift;
 				uint32_t local_operand;
@@ -4159,6 +4269,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				
 				uint32_t local_result;
 				
 				// read R
@@ -4211,6 +4322,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_d = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				
 				uint32_t local_result;
 				
 				// read R
@@ -4258,6 +4370,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				uint32_t local_result;
 				
@@ -4312,6 +4425,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				uint32_t local_result;
 				
@@ -4381,6 +4495,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_d = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				uint32_t local__i_add_c;
 				int32_t local___signed_sum;
@@ -4461,6 +4576,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				
 				uint32_t local__i_add_c;
 				int32_t local___signed_sum;
 				uint32_t local___unsigned_sum;
@@ -4539,6 +4655,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				bool local__i_add_c;
 				int32_t local___signed_sum;
@@ -4627,6 +4744,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				
 				bool local__i_add_c;
 				int32_t local___signed_sum;
 				uint32_t local___unsigned_sum;
@@ -4688,6 +4806,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_n = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				uint32_t local_result;
 				
@@ -4753,6 +4872,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_dn = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				uint32_t local__i_add_c;
 				int32_t local___signed_sum;
@@ -4839,6 +4959,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_d = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				
 				uint32_t local__i_add_c;
 				int32_t local___signed_sum;
 				uint32_t local___unsigned_sum;
@@ -4902,6 +5023,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_dm = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				
 				int32_t local_op2;
 				int32_t local_result;
 				int32_t local_op1;
@@ -4961,6 +5083,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_dm = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				int32_t local_op2;
 				int32_t local_result;
@@ -5040,6 +5163,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b1111'1111
 				// Slice: []
 				param_imm = ((m_instrWord >> 16) & 0xff) >> 0;
+				
 				
 				uint32_t local__i_add_c;
 				int32_t local___signed_sum;
@@ -5130,6 +5254,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_imm = ((m_instrWord >> 16) & 0xff) >> 0;
 				
+				
 				uint32_t local__i_add_c;
 				int32_t local___signed_sum;
 				uint32_t local___unsigned_sum;
@@ -5211,6 +5336,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_imm = ((m_instrWord >> 16) & 0xff) >> 0;
 				
+				
 				uint32_t local__i_add_c;
 				int32_t local___signed_sum;
 				uint32_t local___unsigned_sum;
@@ -5265,6 +5391,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b1111'1111
 				// Slice: []
 				param_imm = ((m_instrWord >> 16) & 0xff) >> 0;
+				
 				
 				uint32_t local_imm32;
 				
@@ -5331,6 +5458,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b1111'1111
 				// Slice: []
 				param_imm = ((m_instrWord >> 16) & 0xff) >> 0;
+				
 				
 				uint32_t local__i_add_c;
 				int32_t local___signed_sum;
@@ -5421,6 +5549,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_imm = ((m_instrWord >> 16) & 0xff) >> 0;
 				
+				
 				uint32_t local__i_add_c;
 				int32_t local___signed_sum;
 				uint32_t local___unsigned_sum;
@@ -5503,6 +5632,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_imm = ((m_instrWord >> 16) & 0xff) >> 0;
 				
+				
 				uint32_t local__i_add_c;
 				int32_t local___signed_sum;
 				uint32_t local___unsigned_sum;
@@ -5556,6 +5686,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_imm = ((m_instrWord >> 16) & 0xff) >> 0;
 				
+				
 				uint32_t local_imm32;
 				
 				local_imm32 = CoerceBits<uint32_t>((param_imm << 0x2));
@@ -5600,6 +5731,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b1111'1111
 				// Slice: []
 				param_imm = ((m_instrWord >> 16) & 0xff) >> 0;
+				
 				
 				uint32_t local_imm32;
 				
@@ -5666,6 +5798,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					// Slice: []
 					param_imm = ((m_instrWord >> 16) & 0x7f) >> 0;
 					
+					
 					uint32_t local__i_add_c;
 					int32_t local___signed_sum;
 					uint32_t local___unsigned_sum;
@@ -5727,6 +5860,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					// Slice: []
 					param_imm = ((m_instrWord >> 16) & 0x7f) >> 0;
 					
+					
 					uint32_t local__i_add_c;
 					int32_t local___signed_sum;
 					uint32_t local___unsigned_sum;
@@ -5781,6 +5915,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					// Mask: 0b111'1111
 					// Slice: []
 					param_imm = ((m_instrWord >> 16) & 0x7f) >> 0;
+					
 					
 					uint32_t local__i_add_c;
 					int32_t local___signed_sum;
@@ -5843,6 +5978,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					// Slice: []
 					param_imm = ((m_instrWord >> 16) & 0x7f) >> 0;
 					
+					
 					uint32_t local__i_add_c;
 					int32_t local___signed_sum;
 					uint32_t local___unsigned_sum;
@@ -5899,6 +6035,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					// Mask: 0b111
 					// Slice: []
 					param_d = ((m_instrWord >> 16) & 0x7) >> 0;
+					
 					
 					
 					// write R
@@ -5974,6 +6111,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					param_d = ((m_instrWord >> 16) & 0x7) >> 0;
 					
 					
+					
 					// write R
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_d)), false, true);
 					// Maybe PC write:
@@ -6045,6 +6183,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					param_d = ((m_instrWord >> 16) & 0x7) >> 0;
 					
 					
+					
 					// write R
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_d)), false, true);
 					// Maybe PC write:
@@ -6103,6 +6242,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					param_d = ((m_instrWord >> 16) & 0x7) >> 0;
 					
 					
+					
 					// write R
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_d)), false, true);
 					// Maybe PC write:
@@ -6141,6 +6281,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					// Mask: 0b111
 					// Slice: []
 					param_d = ((m_instrWord >> 16) & 0x7) >> 0;
+					
 					
 					
 					// write R
@@ -6183,6 +6324,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					param_d = ((m_instrWord >> 16) & 0x7) >> 0;
 					
 					
+					
 					// write R
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_d)), false, true);
 					// Maybe PC write:
@@ -6221,6 +6363,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					// Mask: 0b111
 					// Slice: []
 					param_d = ((m_instrWord >> 16) & 0x7) >> 0;
+					
 					
 					
 					// write R
@@ -6383,6 +6526,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					// Mask: 0b1'1111'1111
 					// Slice: []
 					param_list = ((m_instrWord >> 16) & 0x1ff) >> 0;
+					
 					
 					uint32_t local__i_address;
 					uint32_t local_bit_count;
@@ -6690,6 +6834,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					// Slice: []
 					param_list = ((m_instrWord >> 16) & 0x1ff) >> 0;
 					
+					
 					uint32_t local__i_address;
 					uint32_t local_bit_count;
 					uint32_t local__i_data;
@@ -6890,6 +7035,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 							
 							
 							
+							
 						}
 					}
 					
@@ -6915,6 +7061,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 							*/
 							
 							bool param_ = 0;
+							
 							
 							
 							
@@ -6955,6 +7102,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						
 						
 						
+						
 					}
 				}
 				
@@ -6978,6 +7126,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					
 						/* Behavior:
 						*/
+						
 						
 						
 						
@@ -7009,6 +7158,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						
 						
 						
+						
 					}
 				}
 				
@@ -7036,6 +7186,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						
 						
 						
+						
 					}
 				}
 				
@@ -7059,6 +7210,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					
 						/* Behavior:
 						*/
+						
 						
 						
 						
@@ -7091,6 +7243,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				param_imm = ((m_instrWord >> 16) & 0xff) >> 0;
 				
 				
+				
 			}
 		}
 		if (!m_instrInProgress &&
@@ -7113,6 +7266,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b1111'1111
 				// Slice: []
 				param_imm = ((m_instrWord >> 16) & 0xff) >> 0;
+				
 				
 				
 			}
@@ -7163,6 +7317,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b1000'0000
 				// Slice: [3]
 				param_dm = (param_dm & ~0x8) | ((((m_instrWord >> 16) & 0x80) >> 7 << 3) & 0x8);
+				
 				
 				uint32_t local__i_add_c;
 				int32_t local___signed_sum;
@@ -7228,6 +7383,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					// Mask: 0b111'1000
 					// Slice: []
 					param_m = ((m_instrWord >> 16) & 0x78) >> 3;
+					
 					
 					uint32_t local__i_add_c;
 					int32_t local___signed_sum;
@@ -7392,6 +7548,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b1111'1111
 				// Slice: []
 				param_list = ((m_instrWord >> 16) & 0xff) >> 0;
+				
 				
 				uint32_t local__i_address;
 				uint32_t local_bit_count;
@@ -7673,6 +7830,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b1111'1111
 				// Slice: []
 				param_list = ((m_instrWord >> 16) & 0xff) >> 0;
+				
 				
 				uint32_t local__i_address;
 				uint32_t local_bit_count;
@@ -8006,6 +8164,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_list = ((m_instrWord >> 16) & 0xff) >> 0;
 				
+				
 				uint32_t local__i_address;
 				uint32_t local_lowest_set_bit;
 				uint32_t local__i_data;
@@ -8277,6 +8436,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						// Slice: []
 						param_t = ((m_instrWord >> 16) & 0x7) >> 0;
 						
+						
 						uint32_t local_imm32;
 						uint32_t local__i_address;
 						uint32_t local_imm;
@@ -8340,6 +8500,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					// Mask: 0b111
 					// Slice: []
 					param_t = ((m_instrWord >> 16) & 0x7) >> 0;
+					
 					
 					uint32_t local_imm32;
 					uint32_t local__i_address;
@@ -8411,6 +8572,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						// Slice: []
 						param_t = ((m_instrWord >> 16) & 0x7) >> 0;
 						
+						
 						uint32_t local_imm32;
 						uint32_t local__i_address;
 						uint32_t local_imm;
@@ -8468,6 +8630,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					// Mask: 0b111
 					// Slice: []
 					param_t = ((m_instrWord >> 16) & 0x7) >> 0;
+					
 					
 					uint32_t local_imm32;
 					uint32_t local__i_address;
@@ -8535,6 +8698,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						// Slice: []
 						param_t = ((m_instrWord >> 16) & 0x7) >> 0;
 						
+						
 						uint32_t local_imm32;
 						uint32_t local__i_address;
 						uint32_t local_imm;
@@ -8586,6 +8750,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					// Mask: 0b111
 					// Slice: []
 					param_t = ((m_instrWord >> 16) & 0x7) >> 0;
+					
 					
 					uint32_t local_imm32;
 					uint32_t local__i_address;
@@ -8645,6 +8810,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						// Slice: []
 						param_t = ((m_instrWord >> 16) & 0x7) >> 0;
 						
+						
 						uint32_t local_imm32;
 						uint32_t local__i_address;
 						uint32_t local_imm;
@@ -8690,6 +8856,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					// Mask: 0b111
 					// Slice: []
 					param_t = ((m_instrWord >> 16) & 0x7) >> 0;
+					
 					
 					uint32_t local_imm32;
 					uint32_t local__i_address;
@@ -8754,6 +8921,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					// Slice: []
 					param_t = ((m_instrWord >> 16) & 0x700) >> 8;
 					
+					
 					uint32_t local_imm32;
 					uint32_t local__i_address;
 					uint32_t local_imm;
@@ -8812,6 +8980,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b1111'1111
 				// Slice: []
 				param_imm = ((m_instrWord >> 16) & 0xff) >> 0;
+				
 				
 				uint32_t local_imm32;
 				uint32_t local__i_address;
@@ -8878,6 +9047,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					// Slice: []
 					param_t = ((m_instrWord >> 16) & 0x700) >> 8;
 					
+					
 					uint32_t local_imm32;
 					uint32_t local__i_address;
 					uint32_t local_imm;
@@ -8930,6 +9100,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b1111'1111
 				// Slice: []
 				param_imm = ((m_instrWord >> 16) & 0xff) >> 0;
+				
 				
 				uint32_t local_imm32;
 				uint32_t local__i_address;
@@ -8989,6 +9160,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 			// Mask: 0b1111'1111
 			// Slice: []
 			param_label = ((m_instrWord >> 16) & 0xff) >> 0;
+			
 			
 			uint32_t local_imm32;
 			uint32_t local__i_address;
@@ -9059,6 +9231,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 			// Mask: 0b1111'1111
 			// Slice: []
 			param_label = ((m_instrWord >> 16) & 0xff) >> 0;
+			
 			
 			uint32_t local_imm32;
 			uint32_t local__i_address;
@@ -9134,6 +9307,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_t = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				
 				uint32_t local__i_address;
 				uint8_t local__o_data;
 				
@@ -9195,6 +9369,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_t = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				
 				uint32_t local__i_address;
 				uint8_t local__o_data;
 				
@@ -9251,6 +9426,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_t = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				uint32_t local__i_address;
 				uint8_t local__o_data;
@@ -9309,6 +9485,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_t = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				
 				uint32_t local__i_address;
 				uint8_t local__o_data;
 				
@@ -9365,6 +9542,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_t = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				uint32_t local__i_address;
 				uint8_t local__o_data;
@@ -9429,6 +9607,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_t = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				
 				uint32_t local__i_address;
 				uint32_t local__i_data;
 				
@@ -9486,6 +9665,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Slice: []
 				param_t = ((m_instrWord >> 16) & 0x7) >> 0;
 				
+				
 				uint32_t local__i_address;
 				uint32_t local__i_data;
 				
@@ -9536,6 +9716,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_t = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				uint32_t local__i_address;
 				uint32_t local__i_data;
@@ -9599,6 +9780,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					// Slice: []
 					param_t = ((m_instrWord >> 16) & 0x7) >> 0;
 					
+					
 					uint32_t local_imm32;
 					uint32_t local__i_address;
 					uint32_t local_imm;
@@ -9654,6 +9836,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_t = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				uint32_t local_imm32;
 				uint32_t local__i_address;
@@ -9717,6 +9900,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					// Slice: []
 					param_t = ((m_instrWord >> 16) & 0x7) >> 0;
 					
+					
 					uint32_t local_imm32;
 					uint32_t local__i_address;
 					uint32_t local_imm;
@@ -9766,6 +9950,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// Mask: 0b111
 				// Slice: []
 				param_t = ((m_instrWord >> 16) & 0x7) >> 0;
+				
 				
 				uint32_t local_imm32;
 				uint32_t local__i_address;
@@ -9828,6 +10013,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						param_imm = (param_imm & ~0xf000) | ((((m_instrWord >> 0) & 0xf0000) >> 16 << 12) & 0xf000);
 						
 						
+						
 					}
 				}
 				if (!m_instrInProgress &&
@@ -9854,6 +10040,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						// Mask: 0b1111'0000'0000'0000'0000
 						// Slice: [15, 12]
 						param_imm = (param_imm & ~0xf000) | ((((m_instrWord >> 0) & 0xf0000) >> 16 << 12) & 0xf000);
+						
 						
 						
 					}
