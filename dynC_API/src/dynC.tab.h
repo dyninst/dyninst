@@ -145,17 +145,17 @@ union YYSTYPE
    char  *sval;
 
    const char *context;
-   
+
    struct VariableSpec {
       bool isConstant;
-      bool isStatic; 
+      bool isStatic;
       bool isGlobal;
       bool isLocal;
       bool isParam;
       bool isThread;
       bool isMachineState;
       bool isMutateeScope;
-      
+
       const char * type;
    } varSpec;
 
@@ -165,7 +165,7 @@ union YYSTYPE
    BPatch_variableExpr *varExpr;
    std::vector<BPatch_snippet *> *snippetList;
    std::vector<std::pair<BPatch_snippet *, const char *> > *snippetStringListPair;
-   std::pair<BPatch_snippet *, const char *> *snippetStringPair;   
+   std::pair<BPatch_snippet *, const char *> *snippetStringPair;
 
 #line 171 "dynC.tab.h" /* yacc.c:1909  */
 };
