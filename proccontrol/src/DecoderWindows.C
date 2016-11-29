@@ -295,7 +295,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                     int sig = e.u.Exception.ExceptionRecord.ExceptionCode;
                     int cause = e.u.Exception.ExceptionRecord.ExceptionInformation[0];
                     Address addr = e.u.Exception.ExceptionRecord.ExceptionInformation[1];
-                    EventSignal* evSig = nullptr;
+                    EventSignal* evSig = NULL;
                     switch (cause) {
                     case 0: evSig = new EventSignal(sig, addr, EventSignal::ReadViolation, true); break;
                     case 1: evSig = new EventSignal(sig, addr, EventSignal::WriteViolation, true); break;

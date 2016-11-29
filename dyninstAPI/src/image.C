@@ -81,8 +81,8 @@
 // For callbacks
 #include "dyninstAPI/src/mapped_object.h" 
 
-AnnotationClass<image_variable> ImageVariableUpPtrAnno("ImageVariableUpPtrAnno", nullptr);
-AnnotationClass<parse_func> ImageFuncUpPtrAnno("ImageFuncUpPtrAnno", nullptr);
+AnnotationClass<image_variable> ImageVariableUpPtrAnno("ImageVariableUpPtrAnno", NULL);
+AnnotationClass<parse_func> ImageFuncUpPtrAnno("ImageFuncUpPtrAnno", NULL);
 pdvector<image*> allImages;
 
 using namespace std;
