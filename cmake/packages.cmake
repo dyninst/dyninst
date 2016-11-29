@@ -30,7 +30,7 @@ if (UNIX)
     include(ExternalProject)
     ExternalProject_Add(LibDwarf
       PREFIX ${CMAKE_BINARY_DIR}/libdwarf
-      DEPENDS libelf_imp
+      DEPENDS LibElf
       #	URL http://reality.sgiweb.org/davea/libdwarf-20130126.tar.gz
       #	URL http://sourceforge.net/p/libdwarf/code/ci/20130126/tarball
       URL http://www.paradyn.org/libdwarf/libdwarf-20130126.tar.gz
