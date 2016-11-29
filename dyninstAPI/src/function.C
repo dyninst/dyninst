@@ -1641,13 +1641,13 @@ void func_instance::createTMap_internal(StackMod* mod, TMap* tMap)
 }
 
 AnnotationClass<StackAnalysis::Intervals>
-        Stack_Anno_Intervals(std::string("Stack_Anno_Intervals"), nullptr);
+        Stack_Anno_Intervals(std::string("Stack_Anno_Intervals"), NULL);
 AnnotationClass<StackAnalysis::BlockEffects>
-        Stack_Anno_Block_Effects(std::string("Stack_Anno_Block_Effects"), nullptr);
+        Stack_Anno_Block_Effects(std::string("Stack_Anno_Block_Effects"), NULL);
 AnnotationClass<StackAnalysis::InstructionEffects>
-        Stack_Anno_Insn_Effects(std::string("Stack_Anno_Insn_Effects"), nullptr);
+        Stack_Anno_Insn_Effects(std::string("Stack_Anno_Insn_Effects"), NULL);
 AnnotationClass<StackAnalysis::CallEffects>
-        Stack_Anno_Call_Effects(std::string("Stack_Anno_Call_Effects"), nullptr);
+        Stack_Anno_Call_Effects(std::string("Stack_Anno_Call_Effects"), NULL);
 void func_instance::freeStackMod() {
     // Free stack analysis intervals
     StackAnalysis::Intervals *i = NULL;
