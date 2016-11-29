@@ -893,7 +893,7 @@ Elf_X_Data::Elf_X_Data(bool is64_, Elf_Data *input)
 // Read Interface
 void *Elf_X_Data::d_buf() const
 {
-    return data->d_buf;
+    return data ? data->d_buf : NULL;
 }
 
 Elf_Type Elf_X_Data::d_type() const
