@@ -809,6 +809,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_cmovpo, "cmovpo")
   (e_cmovs, "cmovs")
   (e_cmp, "cmp")
+  (e_cmpw, "cmpw")
   (e_cmppd, "cmppd")
   (e_cmpps, "cmpps")
   (e_cmpsb, "cmpsb")
@@ -851,6 +852,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_daa, "daa")
   (e_das, "das")
   (e_dec, "dec")
+  (e_decl, "decl")
   (e_div, "div")
   (e_divpd, "divpd")
   (e_divps, "divps")
@@ -1033,10 +1035,10 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_movdqu, "movdqu")
   (e_movhpd, "movhpd")
   (e_movhps, "movhps")
-  (e_movhps_movlhps, "movhps/movlhps")
+  (e_movhps_movlhps, "movhps")
   (e_movlpd, "movlpd")
   (e_movlps, "movlps")
-  (e_movlps_movhlps, "movlps/movhlps")
+  (e_movlps_movhlps, "movlps")
   (e_movmskpd, "movmskpd")
   (e_movmskps, "movmskps")
   (e_movntdq, "movntdq")
@@ -1264,7 +1266,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_setz, "setz")
   (e_sfence, "sfence")
   (e_sgdt, "sgdt")
-  (e_shl_sal, "shl/sal")
+  (e_shl_sal, "shl")
   (e_shld, "shld")
   (e_shr, "shr")
   (e_shrd, "shrd")
@@ -2138,8 +2140,7 @@ static ia32_entry oneByteMap[256] = {
   { e_push, t_done, 0, false, { ES, eSP, Zz }, 0, s1R2RW | s2I }, // Semantics rewritten to ignore stack "operand"
   { e_pop,  t_done, 0, false, { ES, eSP, Zz }, 0, s1W2RW | s2I },
   /* 08 */
-  { e_or,   t_done, 0, 
-true, { Eb, Gb, Zz }, 0, s1RW2R },
+  { e_or,   t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_or,   t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
   { e_or,   t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
   { e_or,   t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
@@ -3505,7 +3506,7 @@ static ia32_entry groupMap[][8] = {
     { e_No_Entry, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
     { e_or,  t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
     { e_adc, t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
-    { e_sbb, t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
+    { e_sbbl, t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
     { e_and, t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
     { e_sub, t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
     { e_xor, t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
@@ -3529,7 +3530,7 @@ static ia32_entry groupMap[][8] = {
     { e_and, t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
     { e_sub, t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
     { e_xor, t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
-    { e_cmp, t_done, 0, true, { Ev, Ib, Zz }, 0, s1R2R },
+    { e_cmpw, t_done, 0, true, { Ev, Ib, Zz }, 0, s1R2R },
   },
 
 
@@ -3580,7 +3581,7 @@ static ia32_entry groupMap[][8] = {
 
  { /* group 5 - operands are defined here */
   { e_inc,  t_done, 0, true, { Ev, Zz, Zz }, 0, s1RW },
-  { e_dec,  t_done, 0, true, { Ev, Zz, Zz }, 0, s1RW },
+  { e_decl,  t_done, 0, true, { Ev, Zz, Zz }, 0, s1RW },
   { e_call, t_done, 0, true, { Ev, Zz, Zz }, (IS_CALL | INDIR), s1R | (fINDIRCALL << FPOS) },
   { e_call, t_done, 0, true, { Ep, Zz, Zz }, (IS_CALL | INDIR), s1R | (fINDIRCALL << FPOS) },
   { e_jmp,  t_done, 0, true, { Ev, Zz, Zz }, (IS_JUMP | INDIR), s1R | (fINDIRJUMP << FPOS) },
