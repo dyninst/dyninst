@@ -21,6 +21,9 @@ if (UNIX)
   add_library(libelf_imp SHARED IMPORTED)
   set_property(TARGET libelf_imp
     PROPERTY IMPORTED_LOCATION ${LIBELF_LIBRARIES}) 
+  if (NOT LIBELF_FOUND)
+    add_dependencies(libelf_imp LibElf)
+  endif()
 
   find_package (LibDwarf)
 
@@ -30,7 +33,7 @@ if (UNIX)
     include(ExternalProject)
     ExternalProject_Add(LibDwarf
       PREFIX ${CMAKE_BINARY_DIR}/libdwarf
-      DEPENDS LibElf
+      DEPENDS libelf_imp
       #	URL http://reality.sgiweb.org/davea/libdwarf-20130126.tar.gz
       #	URL http://sourceforge.net/p/libdwarf/code/ci/20130126/tarball
       URL http://www.paradyn.org/libdwarf/libdwarf-20130126.tar.gz
