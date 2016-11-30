@@ -1105,7 +1105,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 
             } else if (plt_entry_size_ == 16) {
                 // New style secure PLT
-                Region *plt = NULL, /* *relplt = NULL, */ *dynamic = NULL,
+                Region *plt = NULL, *relplt = NULL, *dynamic = NULL,
                         *got = NULL, *glink = NULL;
                 unsigned int glink_addr = 0;
                 unsigned int stub_addr = 0;
@@ -1116,7 +1116,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
                 for (unsigned iter = 0; iter < regions_.size(); ++iter) {
                     std::string name = regions_[iter]->getRegionName();
                     if (name == PLT_NAME) plt = regions_[iter];
-                    // else if (name == REL_PLT_NAME) relplt = regions_[iter];
+                    else if (name == REL_PLT_NAME) relplt = regions_[iter];
                     else if (name == DYNAMIC_NAME) dynamic = regions_[iter];
                     else if (name == GOT_NAME) got = regions_[iter];
                 }
