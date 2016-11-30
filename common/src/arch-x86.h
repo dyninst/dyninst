@@ -640,6 +640,18 @@ enum { sNONE=0, // the instruction does something that cannot be classified as r
 /* This should equal the first operand semantic where 4 operands are used. */
 #define s4OP s1W2R3R4R
 
+/* Implicit operand specifier */
+#define s1I (1 << 28)
+#define s2I (1 << 29)
+#define s3I (1 << 30)
+#define s4I (1 << 31)
+
+/* Masks */
+#define FPOS 17
+#define sGETHACK(i) (((i) >> FPOS) & 0xFF)
+#define sGETIMPL(i) (((i) >> 28) & 0xF)
+#define sGETSEM(i) ((i) & ((1 << FPOS) - 1))
+
 
 struct modRMByte {
   unsigned mod : 2;
@@ -817,6 +829,7 @@ struct ia32_entry {
   // code to decode memory access - this field should be seen as two 16 bit fields
   // the lower half gives operand semantics, e.g. s1RW2R, the upper half is a fXXX hack if needed
   // before hating me for this: it takes a LOT less time to add ONE field to ~2000 table lines!
+  // The upper 3 bits of this field (bits 29, 30, 31) are specifiers for implicit operands.
   unsigned int opsema;  
 };
 

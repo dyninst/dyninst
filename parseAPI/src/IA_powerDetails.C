@@ -128,6 +128,7 @@ bool IA_powerDetails::findTableAddrNoTOC(const IA_IAPI* blockToCheck)
 		     patternIter->first);
       // Ignore rlwinm instruction since its used for the index and not the table start.
       // Also, remove it from the backwards DFG
+	  ArchSpecificFormatter *insnFormatter = patternIter->second->getFormatter();
       if(patternIter->second->getOperation().getID() == power_op_rlwinm){
 	patternIter->second->getWriteSet(writeregs);
 	for(itw=writeregs.begin(); itw!= writeregs.end(); itw++){
@@ -149,7 +150,7 @@ bool IA_powerDetails::findTableAddrNoTOC(const IA_IAPI* blockToCheck)
 
       for(itw=writeregs.begin(); itw!= writeregs.end(); itw++){
 	writereg=*(itw); 
-	parsing_printf("Register Written %s \n", writereg->format().c_str());
+	parsing_printf("Register Written %s \n", writereg->format(insnFormatter).c_str());
 	for(itd=dfgregs.begin(); itd!= dfgregs.end(); itd++){
 	  dfgreg = *itd;
 	  parsing_printf("DFG has %d \n", dfgreg);
@@ -161,7 +162,7 @@ bool IA_powerDetails::findTableAddrNoTOC(const IA_IAPI* blockToCheck)
 	    for(itr=readregs.begin(); itr!= readregs.end(); itr++){
 	      readreg=*(itr); 
 	      dfgregs.insert(readreg->getID());
-	      parsing_printf("Reading %s \n", readreg->format().c_str());
+	      parsing_printf("Reading %s \n", readreg->format(insnFormatter).c_str());
 	    }
 	    foundDep = true;
 	    break;
@@ -292,7 +293,7 @@ bool IA_powerDetails::findTableAddrNoTOC(const IA_IAPI* blockToCheck)
 	  toc_visitor->toc_contents = GOTaddress;
 	  tableStartAddress = 0;
 	  patternIter = currentBlock->curInsnIter;
-	  parsing_printf("\t calling parseRelativeTableIdiom with toc_reg %s\n", toc_visitor->toc_reg->format().c_str());
+	  parsing_printf("\t calling parseRelativeTableIdiom with toc_reg %s\n", toc_visitor->toc_reg->format(patternIter->second->getFormatter()).c_str());
 	  return parseRelativeTableIdiom();
         }
     }
@@ -438,7 +439,7 @@ bool IA_powerDetails::scanForAdjustOrBase(IA_IAPI::allInsns_t::const_iterator st
       parsing_printf("... that adds to a load reg\n");
       foundAdjustEntry = true;
       toc_visitor->clear();
-      parsing_printf("... with operand %s\n", insn->getOperand(1).format(insn->getArch(), start->first).c_str());
+      parsing_printf("... with operand %s\n", insn->getOperand(1).format(insn->getFormatter(), insn->getArch(), start->first).c_str());
       insn->getOperand(1).getValue()->apply(toc_visitor.get());
       adjustEntry = toc_visitor->result;
       if (!adjustEntry)
@@ -524,7 +525,7 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
 	return false;
       }
       jumpAddrReg = *(regs.begin());
-      parsing_printf("%s[%d]: JUMPREG %s mtspr at prev insn %s \n", FILE__, __LINE__, jumpAddrReg->format().c_str(), patternIter->second->format().c_str());
+      parsing_printf("%s[%d]: JUMPREG %s mtspr at prev insn %s \n", FILE__, __LINE__, jumpAddrReg->format(patternIter->second->getFormatter()).c_str(), patternIter->second->format().c_str());
       dfgregs.insert(jumpAddrReg->getID());
     }
   else

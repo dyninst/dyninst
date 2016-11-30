@@ -1333,6 +1333,7 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
    operands[1].getReadSet(readSet);
    operands[0].getWriteSet(writeSet);
 
+   ArchSpecificFormatter *insnFormatter = insn->getFormatter();
    if (insn->writesMemory()) {
       // Cases 3 and 5
       assert(writeSet.size() == 0);
@@ -1501,6 +1502,8 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn,
    InstructionAPI::Expression::Ptr srcExpr = srcOperand.getValue();
    std::vector<InstructionAPI::Expression::Ptr> children;
    srcExpr->getChildren(children);
+
+   ArchSpecificFormatter *insnFormatter = insn->getFormatter();
 
    if (readSet.size() == 0) {
       // op1: imm

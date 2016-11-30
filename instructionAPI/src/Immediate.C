@@ -28,6 +28,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <string>
+#include <iostream>
+#include <sstream>
+
 #include "Immediate.h"
 #include "../../common/src/singleton_object_pool.h"
 #include "Visitor.h"
@@ -36,17 +40,7 @@
 namespace Dyninst {
     namespace InstructionAPI {
         Immediate::Ptr Immediate::makeImmediate(const Result &val) {
-            //static std::map<Result, Immediate::Ptr> builtImmediates;
-            //static int cache_hits = 0;
-            //std::map<Result, Immediate::Ptr>::const_iterator foundIt = builtImmediates.find(val);
-
-            //if(foundIt == builtImmediates.end())
-            //{
-            Immediate::Ptr ret = make_shared(singleton_object_pool<Immediate>::construct(val));
-            //builtImmediates[val] = ret;
-            return ret;
-            //}
-            //return foundIt->second;
+            return make_shared(singleton_object_pool<Immediate>::construct(val));
         }
 
 
@@ -73,6 +67,10 @@ namespace Dyninst {
             return;
         }
 
+        std::string Immediate::format(ArchSpecificFormatter *formatter, formatStyle) const {
+            return formatter->formatImmediate(eval().format());
+        }
+
         std::string Immediate::format(formatStyle) const {
             return eval().format();
         }
@@ -96,12 +94,20 @@ namespace Dyninst {
             return ret;
         }
 
-        std::string ArmConditionImmediate::format(formatStyle) const {
+        std::string ArmConditionImmediate::format(ArchSpecificFormatter *, formatStyle) const {
             unsigned int cond_val = eval().convert<unsigned int>();
             if(m_condLookupMap.count(cond_val) > 0)
 		return m_condLookupMap.find(cond_val)->second;
 	    else
 		return "Error: Invalid condition code for ARM64!";
+        }
+
+        std::string ArmConditionImmediate::format(formatStyle) const {
+            unsigned int cond_val = eval().convert<unsigned int>();
+            if(m_condLookupMap.count(cond_val) > 0)
+        return m_condLookupMap.find(cond_val)->second;
+        else
+        return "Error: Invalid condition code for ARM64!";
         }
 
 	ArmPrfmTypeImmediate::ArmPrfmTypeImmediate(const Result &val) : Immediate(val) {
@@ -113,7 +119,7 @@ namespace Dyninst {
 	    return ret;
 	}
 
-	std::string ArmPrfmTypeImmediate::format(formatStyle) const {
+	std::string ArmPrfmTypeImmediate::format(ArchSpecificFormatter *, formatStyle) const {
 	    unsigned prfm_type = eval().convert<unsigned int>();
 	    if(m_prfmTypeLookupMap.count(prfm_type) > 0)
 		return m_prfmTypeLookupMap.find(prfm_type)->second;
@@ -121,6 +127,14 @@ namespace Dyninst {
 		return "Error: Invalid prefetech memory type for ARM64!";
 	}
 
+    std::string ArmPrfmTypeImmediate::format(formatStyle) const {
+        unsigned prfm_type = eval().convert<unsigned int>();
+        if(m_prfmTypeLookupMap.count(prfm_type) > 0)
+        return m_prfmTypeLookupMap.find(prfm_type)->second;
+        else
+        return "Error: Invalid prefetech memory type for ARM64!";
+    }
+
+
     };
 };
-

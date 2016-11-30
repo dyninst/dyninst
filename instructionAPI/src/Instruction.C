@@ -77,7 +77,17 @@ namespace Dyninst
                              Dyninst::Architecture arch)
       : m_InsnOp(what), m_Valid(true), arch_decoded_from(arch)
     {
-
+        switch(arch_decoded_from) {
+            case Arch_aarch64: 
+                formatter = new ArmFormatter();
+                break;
+            case Arch_x86_64:
+            case Arch_x86:
+                formatter = new x86Formatter();
+                break;
+            default:formatter = NULL;
+                break;
+        }
         copyRaw(size, raw);
 
 #if defined(DEBUG_INSN_ALLOCATIONS)
@@ -121,9 +131,8 @@ namespace Dyninst
     }
     
     INSTRUCTION_EXPORT Instruction::Instruction() :
-      m_Valid(false), m_size(0), arch_decoded_from(Arch_none)
+      m_Valid(false), m_size(0), arch_decoded_from(Arch_none), formatter(NULL)
     {
-
 #if defined(DEBUG_INSN_ALLOCATIONS)
         numInsnsAllocated++;
         if((numInsnsAllocated % 1000) == 0)
@@ -140,6 +149,9 @@ namespace Dyninst
       {
 	delete[] m_RawInsn.large_insn;
       }
+
+        if(formatter)
+            delete formatter;
 #if defined(DEBUG_INSN_ALLOCATIONS)
       numInsnsAllocated--;
       if((numInsnsAllocated % 1000) == 0)
@@ -166,6 +178,8 @@ namespace Dyninst
 
       m_InsnOp = o.m_InsnOp;
       m_Valid = o.m_Valid;
+        formatter = o.formatter;
+
 #if defined(DEBUG_INSN_ALLOCATIONS)
       numInsnsAllocated++;
       if((numInsnsAllocated % 1000) == 0)
@@ -199,6 +213,7 @@ namespace Dyninst
 
       m_InsnOp = rhs.m_InsnOp;
       m_Valid = rhs.m_Valid;
+        formatter = rhs.formatter;
       arch_decoded_from = rhs.arch_decoded_from;
       return *this;
     }    
@@ -272,10 +287,10 @@ namespace Dyninst
     
     INSTRUCTION_EXPORT void Instruction::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const
     {
-      if(m_Operands.empty())
-      {
-	decodeOperands();
-      }
+        if(m_Operands.empty())
+        {
+	        decodeOperands();
+        }
       for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
@@ -437,37 +452,43 @@ memAccessors.begin()));
         }
         return m_Successors.front().target;
     }
-    
+
+    INSTRUCTION_EXPORT ArchSpecificFormatter *Instruction::getFormatter() const {
+        return formatter;
+    }
+
     INSTRUCTION_EXPORT std::string Instruction::format(Address addr) const
     {
         if(m_Operands.empty())
         {
-	        decodeOperands();
+            decodeOperands();
         }
 
-        std::string retVal = m_InsnOp->format();
+        //remove this once ArchSpecificFormatter is extended for all architectures
+        if(formatter == NULL)
+            return "";
 
-        retVal += " ";
-        std::list<Operand>::const_iterator curOperand;
-        for(curOperand = m_Operands.begin();
-	    curOperand != m_Operands.end();
-	    ++curOperand)
+        std::string opstr = m_InsnOp->format();
+        opstr += " ";
+        std::list<Operand>::const_iterator currOperand;
+        std::vector<std::string> formattedOperands;
+        int op = 0;
+        for(currOperand = m_Operands.begin();
+                currOperand != m_Operands.end();
+                op++, ++currOperand)
         {
-            retVal += curOperand->format(getArch(), addr);
-	        retVal += ", ";
+            if(currOperand->isImplicit())
+                continue;
+            formattedOperands.push_back(currOperand->format(formatter, getArch(), addr));
         }
-        if(!m_Operands.empty())
-        {
-	        // trim trailing ", "
-	        retVal.erase(retVal.size() - 2, retVal.size());
-        }
+
 #if defined(DEBUG_READ_WRITE)      
         std::set<RegisterAST::Ptr> tmp;
         getReadSet(tmp);
         cout << "Read set:" << endl;
         for(std::set<RegisterAST::Ptr>::iterator i = tmp.begin();
-            i != tmp.end();
-            ++i)
+                i != tmp.end();
+                ++i)
         {
             cout << (*i)->format() << " ";
         }
@@ -476,8 +497,8 @@ memAccessors.begin()));
         getWriteSet(tmp);
         cout << "Write set:" << endl;
         for(std::set<RegisterAST::Ptr>::iterator i = tmp.begin();
-            i != tmp.end();
-            ++i)
+                i != tmp.end();
+                ++i)
         {
             cout << (*i)->format() << " ";
         }
@@ -486,8 +507,8 @@ memAccessors.begin()));
         getMemoryReadOperands(mem);
         cout << "Read mem:" << endl;
         for(std::set<Expression::Ptr>::iterator i = mem.begin();
-          i != mem.end();
-          ++i)
+                i != mem.end();
+                ++i)
         {
             cout << (*i)->format() << " ";
         }
@@ -496,16 +517,17 @@ memAccessors.begin()));
         getMemoryWriteOperands(mem);
         cout << "Write mem:" << endl;
         for(std::set<Expression::Ptr>::iterator i = mem.begin();
-            i != mem.end();
-            ++i)
+                i != mem.end();
+                ++i)
         {
             cout << (*i)->format() << " ";
         }
         cout << endl;
 #endif // defined(DEBUG_READ_WRITE)
 
-        return retVal;
+        return opstr + formatter->getInstructionString(formattedOperands);
     }
+
     INSTRUCTION_EXPORT bool Instruction::allowsFallThrough() const
     {
       switch(m_InsnOp->getID())
@@ -605,6 +627,12 @@ memAccessors.begin()));
     void Instruction::appendOperand(Expression::Ptr e, bool isRead, bool isWritten) const
     {
         m_Operands.push_back(Operand(e, isRead, isWritten));
+    }
+
+    void Instruction::appendOperand(Expression::Ptr e, 
+		bool isRead, bool isWritten, bool isImplicit) const
+    {
+        m_Operands.push_back(Operand(e, isRead, isWritten, isImplicit));
     }
   
 
