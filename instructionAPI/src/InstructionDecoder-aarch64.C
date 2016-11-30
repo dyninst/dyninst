@@ -2518,6 +2518,12 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 			entryID curID;
 
                         if (IS_INSN_BITFIELD(insn)) {
+                            if((is64Bit && nField != 0x1) ||
+                               (!is64Bit && (nField != 0 || (immr & 0x20) != 0 || (immVal & 0x20) != 0))) {
+                                isValid = false;
+                                return;
+                            }
+
                             if (!fix_bitfieldinsn_alias(immr, immVal))
                                 return;
 
@@ -2561,6 +2567,9 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                 if (IS_INSN_ADDSUB_SHIFT(insn) || IS_INSN_LOGICAL_SHIFT(insn))    //add-sub shifted | logical shifted
                 {
                     processShiftFieldShiftedInsn(immLen, immVal);
+
+                    if((IS_INSN_ADDSUB_SHIFT(insn) && shiftField == 0x3) || (!is64Bit && ((immVal >> 5) & 0x1) == 0x1))
+                        isValid = false;
                 }
                 else if (IS_INSN_ADDSUB_IMM(insn))        //add-sub (immediate)
                 {
