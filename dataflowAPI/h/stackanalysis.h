@@ -61,17 +61,17 @@
 
 // These are _NOT_ in the Dyninst namespace...
 namespace Dyninst {
-  namespace ParseAPI {
-    class Function;
-    class Block;
-	class Edge;
-  };
-  namespace InstructionAPI {
-    class Instruction;
-    class Expression;
-  };
+   namespace ParseAPI {
+      class Function;
+      class Block;
+      class Edge;
+   };
+   namespace InstructionAPI {
+      class Instruction;
+      class Expression;
+   };
 
- 
+
 class StackAnalysis {
 public:
    typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
@@ -131,6 +131,11 @@ public:
          retVal << height_;
          return retVal.str();
       }
+       friend std::ostream& operator<<(std::ostream& stream, const Height& c)
+       {
+          stream << c.format() << std::endl;
+          return stream;
+       }
 
       bool isBottom() const {
          return type_ == BOTTOM && height_ == notUnique;
@@ -148,14 +153,10 @@ public:
       }
 
       static Height meet(std::set<Height> &ins) {
-         if (ins.empty()) {
-            return top;
-         }
+         if (ins.empty()) return top;
 
          // If there is a single element in the set return it.
-         if (ins.size() == 1) {
-            return *(ins.begin());
-         }
+         if (ins.size() == 1) return *ins.begin();
 
          // MEET (bottom, ...) == bottom
          // Since ins is sorted, if bottom is in the set it must
@@ -164,7 +165,7 @@ public:
 
          // MEET (N, top) == N
          if (ins.size() == 2 && *ins.rbegin() == top) {
-            return *(ins.begin());
+            return *ins.begin();
          }
 
          // There are 2 or more elements; the last one is not top; therefore
@@ -230,6 +231,8 @@ public:
       static TransferFunc meet(const TransferFunc &lhs,
          const TransferFunc &rhs);
 
+      bool isBaseRegCopy() const;
+      bool isBaseRegSIB() const;
       bool isIdentity() const;
       bool isBottom() const;
       bool isTop() const;
@@ -306,6 +309,7 @@ public:
       void validate() const;
 
       void add(TransferFuncs &f);
+      void addSummary(const TransferSet &summary);
 
       TransferSet accumFuncs;
    };
@@ -331,11 +335,18 @@ public:
 
    // To build intervals, we must replay the effect of each instruction.
    // To avoid sucking enormous time, we keep those transfer functions around...
-   typedef std::map<ParseAPI::Block *, std::map<Offset, TransferFuncs>>
+   typedef std::map<ParseAPI::Block *, std::map<Offset, TransferFuncs> >
       InstructionEffects;
+   typedef std::map<ParseAPI::Block *, std::map<Offset, TransferSet> >
+      CallEffects;
 
    DATAFLOW_EXPORT StackAnalysis();
    DATAFLOW_EXPORT StackAnalysis(ParseAPI::Function *f);
+   // TODO: Update DataflowAPI manual
+   DATAFLOW_EXPORT StackAnalysis(ParseAPI::Function *f,
+      const std::map<Address, Address> &crm,
+      const std::map<Address, TransferSet> &fs,
+      const std::set<Address> &toppable = std::set<Address>());
 
    DATAFLOW_EXPORT Height find(ParseAPI::Block *, Address addr, Absloc loc);
    DATAFLOW_EXPORT Height findSP(ParseAPI::Block *, Address addr);
@@ -344,6 +355,7 @@ public:
       std::vector<std::pair<Absloc, Height> >& heights);
 
    // TODO: Update DataflowAPI manual
+   DATAFLOW_EXPORT bool canGetFunctionSummary();
    DATAFLOW_EXPORT bool getFunctionSummary(TransferSet &summary);
 
    DATAFLOW_EXPORT void debug();
@@ -357,10 +369,10 @@ private:
 
    bool analyze();
    bool genInsnEffects();
-   void summarizeBlocks();
+   void summarizeBlocks(bool verbose = false);
    void summarize();
 
-   void fixpoint();
+   void fixpoint(bool verbose = false);
    void summaryFixpoint();
 
    void createIntervals();
@@ -376,12 +388,15 @@ private:
    AbslocState getSrcOutputLocs(ParseAPI::Edge* e);
    TransferSet getSummarySrcOutputLocs(ParseAPI::Edge *e);
    void computeInsnEffects(ParseAPI::Block *block, InstructionPtr insn,
-      const Offset off, TransferFuncs &xferFunc);
+      const Offset off, TransferFuncs &xferFunc, TransferSet &funcSummary);
 
    bool isCall(InstructionPtr insn);
+   bool isJump(InstructionPtr insn);
    bool handleNormalCall(InstructionPtr insn, ParseAPI::Block *block,
-      Offset off, TransferFuncs &xferFuncs);
+      Offset off, TransferFuncs &xferFuncs, TransferSet &funcSummary);
    bool handleThunkCall(InstructionPtr insn, TransferFuncs &xferFuncs);
+   bool handleJump(InstructionPtr insn, ParseAPI::Block *block,
+      Offset off, TransferFuncs &xferFuncs, TransferSet &funcSummary);
    void handlePushPop(InstructionPtr insn, ParseAPI::Block *block,
       const Offset off, int sign, TransferFuncs &xferFuncs);
    void handleReturn(InstructionPtr insn, TransferFuncs &xferFuncs);
@@ -392,9 +407,10 @@ private:
       TransferFuncs &xferFuncs);
    void handlePushPopFlags(int sign, TransferFuncs &xferFuncs);
    void handlePushPopRegs(int sign, TransferFuncs &xferFuncs);
-   void handlePowerAddSub(InstructionPtr insn, int sign,
-      TransferFuncs &xferFuncs);
-   void handlePowerStoreUpdate(InstructionPtr insn, TransferFuncs &xferFuncs);
+   void handlePowerAddSub(InstructionPtr insn, ParseAPI::Block *block,
+      const Offset off, int sign, TransferFuncs &xferFuncs);
+   void handlePowerStoreUpdate(InstructionPtr insn, ParseAPI::Block *block,
+      const Offset off, TransferFuncs &xferFuncs);
    void handleMov(InstructionPtr insn, ParseAPI::Block *block,
       const Offset off, TransferFuncs &xferFuncs);
    void handleZeroExtend(InstructionPtr insn, ParseAPI::Block *block,
@@ -406,7 +422,8 @@ private:
       TransferFuncs &xferFuncs);
    void handleDiv(InstructionPtr insn, TransferFuncs &xferFuncs);
    void handleMul(InstructionPtr insn, TransferFuncs &xferFuncs);
-   void handleDefault(InstructionPtr insn, TransferFuncs &xferFuncs);
+   void handleDefault(InstructionPtr insn, ParseAPI::Block *block,
+      const Offset off, TransferFuncs &xferFuncs);
 
    long extractDelta(InstructionAPI::Result deltaRes);
    bool getSubReg(const MachRegister &reg, MachRegister &subreg);
@@ -419,9 +436,22 @@ private:
 
    ParseAPI::Function *func;
 
+   // Map from call sites to PLT-resolved addresses
+   std::map<Address, Address> callResolutionMap;
+
+   // Function summaries to utilize during analysis
+   std::map<Address, TransferSet> functionSummaries;
+
+   // Functions whose return values should be topped rather than bottomed.  This
+   // is used when evaluating a cycle in the call graph via fixed-point
+   // analysis.  Note that if functionSummaries contains a summary for the
+   // function, it will be used instead.
+   std::set<Address> toppableFunctions;
+
    // SP effect tracking
    BlockEffects *blockEffects;  // Pointer so we can make it an annotation
    InstructionEffects *insnEffects;  // Pointer so we can make it an annotation
+   CallEffects *callEffects;  // Pointer so we can make it an annotation
 
    BlockState blockInputs;
    BlockState blockOutputs;
@@ -441,8 +471,6 @@ private:
 
 } // namespace Dyninst
 
-DATAFLOW_EXPORT std::ostream &operator<<(std::ostream &os,
-   const Dyninst::StackAnalysis::Height &h);
 
 namespace Dyninst {
    DEF_AST_LEAF_TYPE(StackAST, Dyninst::StackAnalysis::Height);

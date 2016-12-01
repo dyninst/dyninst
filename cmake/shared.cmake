@@ -3,11 +3,18 @@ set (DYNINST_MINOR_VERSION 2)
 set (DYNINST_PATCH_VERSION 0)
 
 # Debugging
-# set(Boost_DEBUG 1)
+set(Boost_DEBUG 1)
 
+add_definitions(-DBOOST_ALL_NO_LIB=1)
 set (SOVERSION "${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}")
 set (LIBVERSION "${SOVERSION}.${DYNINST_PATCH_VERSION}")
 set (DYNINST_VERSION "${LIBVERSION}")
+
+if(CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_CONFIGURATION_TYPES Debug Release)
+  set(CMAKE_CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES}" CACHE STRING
+  "Reset the available configurations to exclude MinSizeRel and RelWithDebugInfo" FORCE)
+endif()
 
 if (LIGHTWEIGHT_SYMTAB)
   set(SYMREADER symLite)
@@ -78,6 +85,8 @@ endfunction()
 #Change to switch between libiberty/libstdc++ demangler
 #set(USE_GNU_DEMANGLER 1)
 
+set (ENABLE_LTO FALSE CACHE BOOL "Enable Link-Time Optimization")
+
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${DYNINST_ROOT}/cmake/Modules")
 include (${DYNINST_ROOT}/cmake/platform.cmake)
 if (NOT ${PROJECT_NAME} MATCHES DyninstRT)
@@ -88,6 +97,32 @@ include (${DYNINST_ROOT}/cmake/visibility.cmake)
 include (${DYNINST_ROOT}/cmake/warnings.cmake)
 include (${DYNINST_ROOT}/cmake/options.cmake)
 include (${DYNINST_ROOT}/cmake/optimization.cmake)
+
+# Check for cotire-gcc compatibility
+set(USE_COTIRE true)
+IF(CMAKE_COMPILER_IS_GNUCC)
+    execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
+    string(REGEX MATCHALL "[0-9]+" GCC_VERSION_COMPONENTS ${GCC_VERSION})
+    IF(GCC_VERSION VERSION_LESS 4.5)
+        SET(USE_COTIRE false)
+    ENDIF()
+ENDIF(CMAKE_COMPILER_IS_GNUCC)
+
+# If we're compiling for unix, cotire only supports Intel, GCC and Clang.
+IF (UNIX AND NOT ((${CMAKE_CXX_COMPILER_ID} MATCHES Clang) OR (${CMAKE_CXX_COMPILER_ID} MATCHES GNU) OR (${CMAKE_CXX_COMPILER_ID} MATCHES Intel)))
+	set(USE_COTIRE false)
+ENDIF()
+
+# Make sure our CMake version is actually supported by cotire
+IF(CMAKE_VERSION VERSION_LESS 2.8.12)
+    SET(USE_COTIRE false)
+ENDIF()
+
+if (USE_COTIRE)
+    include (${DYNINST_ROOT}/cmake/cotire.cmake)
+endif()
+
+set_directory_properties(PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
 
 set (BUILD_SHARED_LIBS ON)
 
@@ -105,6 +140,7 @@ foreach (p LIB INCLUDE CMAKE)
 endforeach()
 
 if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
+  add_definitions(-DWIN32_LEAN_AND_MEAN)
   if (CMAKE_C_COMPILER_VERSION VERSION_GREATER 19)
     add_definitions(-D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS=1)
   else()
@@ -134,4 +170,10 @@ set (CONF_INCLUDE_DIRS "\${DYNINST_CMAKE_DIR}/${REL_INCLUDE_DIR}")
 if (NOT CMAKE_BUILD_TYPE)
    set (CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING 
        "Choose the build type (None, Debug, Release, RelWithDebInfo, MinSizeRel)" FORCE)
+endif()
+
+# There are broken versions of MSVC that won't handle variadic templates correctly (despite the C++11 test case passing).
+# Just build vanilla versions, boost can handle it.
+if (MSVC)
+  add_definitions(-DBOOST_NO_CXX11_VARIADIC_TEMPLATES)
 endif()

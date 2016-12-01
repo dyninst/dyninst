@@ -23,4 +23,6 @@ endif()
 dyninst_library(dynElf ${LIBELF_LIBRARIES})
 
 add_definitions(-DDYNELF_LIB)
-
+if (USE_COTIRE)
+    cotire(dynElf)
+endif()

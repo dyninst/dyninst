@@ -53,13 +53,6 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-static const int fp_offset_32 = 28;
-static const int pc_offset_32 = 60;
-static const int frame_size_32 = 736;
-static const int fp_offset_64 = 120;
-static const int pc_offset_64 = 168;
-static const int frame_size_64 = 1088;
-
 struct sigframe_offsets {
    int fp_offset;
    int pc_offset;

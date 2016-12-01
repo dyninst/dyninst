@@ -95,10 +95,13 @@ set (DEPS common ${SYMREADER})
 dyninst_library(pcontrol ${DEPS})
 
 target_link_private_libraries(pcontrol ${CMAKE_DL_LIBS})
+target_link_private_libraries(pcontrol ${Boost_LIBRARIES})
 
 if (UNIX)
 # Boost auto-links on Windows; don't double-link
-target_link_private_libraries(pcontrol ${Boost_LIBRARIES})
 target_link_private_libraries(pcontrol pthread)
+endif()
+if (USE_COTIRE)
+    cotire(pcontrol)
 endif()
 

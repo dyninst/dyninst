@@ -69,6 +69,7 @@ if (UNIX)
 	INSTALL_COMMAND install <BINARY_DIR>/libiberty.a <INSTALL_DIR>
 	)
       set(IBERTY_LIBRARIES ${CMAKE_BINARY_DIR}/libiberty/libiberty.a)
+      set(IBERTY_FOUND TRUE)
     endif()
 
     message(STATUS "Using libiberty ${IBERTY_LIBRARIES}")
@@ -97,7 +98,8 @@ endif()
 # an older CMake and it complains that it can't find Boost
 set(Boost_ADDITIONAL_VERSIONS "1.47" "1.47.0" "1.48" "1.48.0" "1.49" "1.49.0"
   "1.50" "1.50.0" "1.51" "1.51.0" "1.52" "1.52.0"
-  "1.53" "1.53.0" "1.54" "1.54.0" "1.55" "1.55.0" "1.56" "1.56.0" "1.57" "1.57.0" "1.58" "1.58.0" "1.59" "1.59.0")
+  "1.53" "1.53.0" "1.54" "1.54.0" "1.55" "1.55.0" "1.56" "1.56.0" "1.57" "1.57.0" "1.58" "1.58.0" "1.59" "1.59.0"
+        "1.60" "1.60.0" "1.61" "1.61.0" "1.62" "1.62.0")
 
 # set (Boost_DEBUG ON)
 set (PATH_BOOST "/usr" CACHE STRING "Path to boost")
@@ -125,14 +127,59 @@ if(DEFINED PATH_BOOST OR
   set(Boost_NO_SYSTEM_PATHS ON)
 endif()
 
-find_package (Boost ${BOOST_MIN_VERSION} REQUIRED COMPONENTS thread system)
+
+find_package (Boost ${BOOST_MIN_VERSION} COMPONENTS thread system date_time)
+
+
+if(NOT Boost_FOUND)
+  set (BOOST_ARGS
+          --with-system
+          --with-thread
+          --with-date_time
+          --ignore-site-config
+          --link=static
+          --runtime-link=shared
+          --threading=multi)
+  set(BOOST_BUILD "./b2")
+  if(WIN32)
+    set(BOOST_BOOTSTRAP call bootstrap.bat)
+    set(BOOST_BASE boost/src/Boost)
+    list(APPEND BOOST_ARGS --layout=system)
+    set(BOOST_LIB_PREFIX lib)
+  else()
+    set(BOOST_BOOTSTRAP "./bootstrap.sh")
+    set(BOOST_BASE boost/src/boost)
+    list(APPEND BOOST_ARGS --layout=tagged)
+  endif()
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    list(APPEND BOOST_ARGS variant=debug)
+  else()
+    list(APPEND BOOST_ARGS variant=release)
+  endif()
+
+  message(STATUS "No boost found, attempting to build as external project")
+  cmake_minimum_required (VERSION 2.8.11)
+  include(ExternalProject)
+  ExternalProject_Add(boost
+    PREFIX ${CMAKE_BINARY_DIR}/boost
+    URL http://downloads.sourceforge.net/project/boost/boost/1.61.0/boost_1_61_0.7z
+    URL_MD5 bb1dad35ad069e8d7c8516209a51053c
+    BUILD_IN_SOURCE 1
+    CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${CMAKE_INSTALL_PREFIX}
+    BUILD_COMMAND ${BOOST_BUILD} ${BOOST_ARGS} stage
+    INSTALL_COMMAND ""
+    )
+  set(Boost_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/${BOOST_BASE})
+  set(Boost_LIBRARY_DIRS ${CMAKE_BINARY_DIR}/${BOOST_BASE}/stage/lib)
+  set(Boost_LIBRARIES ${BOOST_LIB_PREFIX}boost_thread ${BOOST_LIB_PREFIX}boost_system ${BOOST_LIB_PREFIX}boost_date_time)
+endif()
 
 link_directories ( ${Boost_LIBRARY_DIRS} )
 
 include_directories (
   ${Boost_INCLUDE_DIRS}
   )
-
+add_definitions(-DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION)
 message(STATUS "Boost includes: ${Boost_INCLUDE_DIRS}")
 message(STATUS "Boost library dirs: ${Boost_LIBRARY_DIRS}")
 message(STATUS "Boost thread library: ${Boost_THREAD_LIBRARY}")

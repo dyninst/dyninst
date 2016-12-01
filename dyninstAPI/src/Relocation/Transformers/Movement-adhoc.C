@@ -59,7 +59,8 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
 
    RelocBlock::WidgetList &elements = cur->elements();
 
-  relocation_cerr << "PCRelTrans: processing block " 
+  relocation_cerr << "PCRelTrans: processing block (ID= "
+                  << cur->id() << ") " 
 		  << cur << " with "
 		  << elements.size() << " elements." << endl;
 
@@ -77,7 +78,7 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
     assert(offVec);
 
     if (!cur->func()->hasValidOffsetVector()) {
-      // We should not be able to get here, but enforce that we do don't
+      // We should not be able to get here, but enforce that we don't
       return false;
     }
 
@@ -93,7 +94,6 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
 
     // Cache this so we don't re-decode...
     InsnPtr insn = (*iter)->insn();
-
     if (!insn) continue;
 
     Address target = 0;

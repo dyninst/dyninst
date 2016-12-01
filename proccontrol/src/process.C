@@ -60,7 +60,7 @@
 #include <errno.h>
 
 #if defined(os_windows)
-#pragma warning(disable:4355)
+#pragma warning(disable:4355 4477)
 #endif
 
 using namespace Dyninst;
@@ -211,8 +211,10 @@ void int_process::plat_threadAttachDone()
 {
 }
 
-bool int_process::attachThreads()
+bool int_process::attachThreads(bool &found_new_threads)
 {
+   found_new_threads = false;
+
    if (!needIndividualThreadAttach())
       return true;
 
@@ -224,9 +226,9 @@ bool int_process::attachThreads()
     * a list of LWPs, but then new threads are created before we attach to
     * all the existing threads.
     **/
-   bool found_new_threads;
+   bool loop_new_threads;
    do {
-      found_new_threads = false;
+      loop_new_threads = false;
       vector<Dyninst::LWP> lwps;
       bool result = getThreadLWPs(lwps);
       if (!result) {
@@ -242,10 +244,28 @@ bool int_process::attachThreads()
          }
          pthrd_printf("Creating new thread for %d/%d during attach\n", pid, *i);
          thr = int_thread::createThread(this, NULL_THR_ID, *i, false, int_thread::as_needs_attach);
-         found_new_threads = true;
+         found_new_threads = loop_new_threads = true;
       }
-   } while (found_new_threads);
+   } while (loop_new_threads);
 
+   return true;
+}
+
+bool int_process::attachThreads()
+{
+   bool found_new_threads = false;
+   return attachThreads(found_new_threads);
+}
+
+bool int_process::plat_attachThreadsSync()
+{
+   // By default, platforms just call the idempotent attachThreads().
+   // Some platforms may override, e.g. Linux should sync with all threads.
+   if (!attachThreads()) {
+      pthrd_printf("Failed to attach to threads in %d\n", pid);
+      setLastError(err_internal, "Could not get threads during attach\n");
+      return false;
+   }
    return true;
 }
 
@@ -443,10 +463,9 @@ bool int_process::attach(int_processSet *ps, bool reattach)
       int_process *proc = *i;
       if (proc->getState() == errorstate)
          continue;
-      bool result = proc->attachThreads();
+      bool result = proc->plat_attachThreadsSync();
       if (!result) {
          pthrd_printf("Failed to attach to threads in %d--now an error\n", proc->pid);
-         proc->setLastError(err_internal, "Could not get threads during attach\n");
          procs.erase(i++);
          had_error = true;
          continue;

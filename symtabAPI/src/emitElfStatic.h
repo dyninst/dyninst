@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(_emit_Elf_Static_h_)
-#define _emit_Elf_Static_h
+#ifndef _emit_Elf_Static_h_
+#define _emit_Elf_Static_h_
 
 #include "Symtab.h"
 #include "Archive.h"

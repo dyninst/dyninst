@@ -179,6 +179,11 @@ class Absloc {
     }
   };
 
+  friend std::ostream &operator<<(std::ostream &os, const Absloc &a) {
+    os << a.format();
+    return os;
+  }
+
  private:
   Type type_;
 
@@ -253,6 +258,10 @@ class AbsRegion {
   DATAFLOW_EXPORT AST::Ptr generator() const { return generator_; }
 
   DATAFLOW_EXPORT bool isImprecise() const { return type_ != Absloc::Unknown; }
+  friend std::ostream &operator<<(std::ostream &os, const AbsRegion &a) {
+    os << a.format();
+    return os;
+  }
 
  private:
   // Type is for "we're on the stack but we don't know where".
@@ -349,6 +358,10 @@ class Assignment {
   DATAFLOW_EXPORT ParseAPI::Function *func() const { return func_; }
 
   DATAFLOW_EXPORT ParseAPI::Block *block() const { return block_; }
+  friend std::ostream &operator<<(std::ostream &os, const Assignment::Ptr &a) {
+    os << a->format();
+    return os;
+  }
 
  private:
   InstructionAPI::Instruction::Ptr insn_;
@@ -376,9 +389,6 @@ struct AssignmentPtrValueComp {
 };
 
 
-std::ostream &operator<<(std::ostream &os, const Dyninst::Absloc &a);
-std::ostream &operator<<(std::ostream &os, const Dyninst::AbsRegion &a);
-std::ostream &operator<<(std::ostream &os, const Dyninst::Assignment::Ptr &a);
 
 #endif
 

@@ -47,10 +47,10 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-AnnotationClass<BPatch_cblock> CommonBlockUpPtrAnno("CommonBlockUpPtr");
-AnnotationClass<BPatch_localVar> LocalVarUpPtrAnno("LocalVarUpPtrAnno");
-AnnotationClass<BPatch_field> FieldUpPtrAnno("FieldUpPtrAnno");
-AnnotationClass<BPatch_type> TypeUpPtrAnno("TypeUpPtr");
+AnnotationClass<BPatch_cblock> CommonBlockUpPtrAnno("CommonBlockUpPtr", nullptr);
+AnnotationClass<BPatch_localVar> LocalVarUpPtrAnno("LocalVarUpPtrAnno", nullptr);
+AnnotationClass<BPatch_field> FieldUpPtrAnno("FieldUpPtrAnno", nullptr);
+AnnotationClass<BPatch_type> TypeUpPtrAnno("TypeUpPtr", nullptr);
 //static int findIntrensicType(const char *name);
 
 // This is the ID that is decremented for each type a user defines. It is

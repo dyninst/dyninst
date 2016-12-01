@@ -146,21 +146,7 @@ SymtabCodeRegion::getAddressWidth() const
 Architecture
 SymtabCodeRegion::getArch() const
 {
-#if defined(arch_power)
-    if(getAddressWidth() == 8)
-        return Arch_ppc64;
-    else
-        return Arch_ppc32;
-#elif defined(arch_x86) || defined(arch_x86_64)
-    if(getAddressWidth() == 8)
-        return Arch_x86_64;
-    else
-        return Arch_x86;
-#elif defined(arch_aarch64)
-		return Arch_aarch64;
-#else
-    return Arch_none;
-#endif
+    return _symtab->getArchitecture();
 }
 
 bool
@@ -676,21 +662,7 @@ SymtabCodeSource::getAddressWidth() const
 Architecture
 SymtabCodeSource::getArch() const
 {
-#if defined(arch_power)
-    if(getAddressWidth() == 8)
-        return Arch_ppc64;
-    else
-        return Arch_ppc32;
-#elif defined(arch_x86) || defined(arch_x86_64)
-    if(getAddressWidth() == 8)
-        return Arch_x86_64;
-    else
-        return Arch_x86;
-#elif defined(arch_aarch64)
-		return Arch_aarch64;
-#else
-    return Arch_none;
-#endif
+    return _symtab->getArchitecture();
 }
 
 bool

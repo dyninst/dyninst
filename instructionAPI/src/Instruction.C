@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#define INSIDE_INSTRUCTION_API
 // Needs to be the first include.
 #include "common/src/Types.h"
 
@@ -46,7 +47,6 @@
 #include <set>
 #include <functional>
 
-#define INSIDE_INSTRUCTION_API
 #include "common/src/arch-x86.h"
 #include "version.h"
 

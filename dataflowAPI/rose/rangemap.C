@@ -6,10 +6,8 @@
     #define isnan(x) _isnan(x)
     #define INFINITY (DBL_MAX+DBL_MAX)
     #define NAN (INFINITY-INFINITY)
-#elif __cplusplus >= 201103L
-    // isnan is already defined in this scope
 #else
-    using std::isnan;
+    #define isnan(x) std::isnan(x)
 #endif
 
 /******************************************************************************************************************************

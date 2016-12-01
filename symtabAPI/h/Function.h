@@ -177,8 +177,9 @@ class SYMTAB_EXPORT FunctionBase
    {return Aggregate::addMangledName(name, isPrimary, isDebug);}
    virtual bool addPrettyName(std::string name, bool isPrimary, bool isDebug=false)
    {return Aggregate::addPrettyName(name, isPrimary, isDebug);}
-   virtual Module* getModule() const { return module_; }
-};
+
+     virtual Module * getModule() const;
+ };
 
 class SYMTAB_EXPORT InlinedFunction : public FunctionBase
 {
@@ -197,8 +198,9 @@ class SYMTAB_EXPORT InlinedFunction : public FunctionBase
    virtual std::string getName() const;
    virtual Offset getOffset() const;
    virtual unsigned getSize() const;
+    void setFile(std::string filename);
   private:
-   const char* callsite_file;
+   size_t callsite_file_number;
    Dyninst::Offset callsite_line;
    std::string name_;
    Module* module_;

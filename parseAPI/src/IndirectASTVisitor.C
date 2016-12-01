@@ -5,6 +5,11 @@
 #include <algorithm>
 
 using namespace Dyninst::ParseAPI;
+#define SIGNEX_64_32 0xffffffff00000000LL
+#define SIGNEX_64_16 0xffffffffffff0000LL
+#define SIGNEX_64_8  0xffffffffffffff00LL
+#define SIGNEX_32_16 0xffff0000
+#define SIGNEX_32_8 0xffffff00
 
 Address PCValue(Address cur, size_t insnSize, Architecture a) {
     switch (a) {
@@ -228,7 +233,7 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 		else
 		    val = new BoundValue(BoundValue::top);
 		if (IsResultBounded(ast->child(1)))
-		    val->And(GetResultBound(ast->child(1))->interval);
+		    val->And(*GetResultBound(ast->child(1)));
 		else
 		    val->And(StridedInterval::top);
 		// the result of an AND operation should not be
@@ -288,7 +293,7 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 	case ROSEOperation::ifOp:
 	    if (IsResultBounded(ast->child(1)) && IsResultBounded(ast->child(2))) {
 	        BoundValue *val = new BoundValue(*GetResultBound(ast->child(1)));
-		val->Join(*GetResultBound(ast->child(2)));
+		val->Join(*GetResultBound(ast->child(2)), block);
 		if (*val != BoundValue::top)
 		    bound.insert(make_pair(ast, val));
 	    }
@@ -404,6 +409,12 @@ AST::Ptr SubstituteAnAST(AST::Ptr ast, const BoundFact::AliasMap &aliasMap) {
     for (unsigned i = 0 ; i < totalChildren; ++i) {
         ast->setChild(i, SubstituteAnAST(ast->child(i), aliasMap));
     }
+    if (ast->getID() == AST::V_VariableAST) {
+        // If this variable is not in the aliasMap yet,
+	// this variable is from the input.
+        VariableAST::Ptr varAST = boost::static_pointer_cast<VariableAST>(ast);
+	return VariableAST::create(Variable(varAST->val().reg, 1));
+    }
     return ast;
 
 }
@@ -437,10 +448,10 @@ AST::Ptr DeepCopyAnAST(AST::Ptr ast) {
     } else if (ast->getID() == AST::V_BottomAST) {
         BottomAST::Ptr bottomAST = boost::static_pointer_cast<BottomAST>(ast);
 	return BottomAST::create(bottomAST->val());
-    } else {
-        fprintf(stderr, "ast type %d, %s\n", ast->getID(), ast->format().c_str());
-        assert(0);	
     }
+    fprintf(stderr, "ast type %d, %s\n", ast->getID(), ast->format().c_str());
+    assert(0);
+	return AST::Ptr();
 }
 
 AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
@@ -458,11 +469,11 @@ AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
 	        Address tableBase = 0;
 		if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_VariableAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
-		    tableBase = constAST->val().val;
+		    tableBase = (Address)constAST->val().val;
 		}
 		if (roseAST->child(1)->getID() == AST::V_ConstantAST && roseAST->child(0)->getID() == AST::V_VariableAST) {
 		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
-		    tableBase = constAST->val().val;
+		    tableBase = (Address)constAST->val().val;
 		}
 		if (tableBase) {
 		    Architecture arch = b->obj()->cs()->getArch();
@@ -496,4 +507,100 @@ AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
 	}
     } 
     return AST::Ptr();
+}
+
+bool PerformTableRead(BoundValue &target, set<int64_t> & jumpTargets, CodeSource *cs) {
+
+    Address tableBase = (Address)target.interval.low;
+    Address tableLastEntry = (Address)target.interval.high;
+    int addressWidth = cs->getAddressWidth();
+    if (addressWidth == 4) {
+        tableBase &= 0xffffffff;
+	tableLastEntry &= 0xffffffff;
+    }
+
+#if defined(os_windows)
+    tableBase -= cs->loadAddress();
+    tableLastEntry -= cs->loadAddress();
+#endif
+
+    if (!cs->isCode(tableBase) && !cs->isData(tableBase)) {
+        parsing_printf("\ttableBase 0x%lx invalid, returning false\n", tableBase);
+	parsing_printf("Not jump table format!\n");
+	return false;
+    }
+    if (!cs->isReadOnly(tableBase)) {
+        parsing_printf("\ttableBase 0x%lx not read only, returning false\n", tableBase);
+	parsing_printf("Not jump table format!\n");
+        return false;
+    }
+
+
+    for (Address tableEntry = tableBase; tableEntry <= tableLastEntry; tableEntry += target.interval.stride) {
+	if (!cs->isCode(tableEntry) && !cs->isData(tableEntry)) continue;
+	if (!cs->isReadOnly(tableEntry)) continue;
+	int64_t targetAddress = 0;
+	if (target.tableReadSize > 0) {
+	    switch (target.tableReadSize) {
+	        case 8:
+		    targetAddress = *(const uint64_t *) cs->getPtrToInstruction(tableEntry);
+		    break;
+		case 4:
+		    targetAddress = *(const uint32_t *) cs->getPtrToInstruction(tableEntry);
+		    if (target.isZeroExtend) break;
+		    if ((addressWidth == 8) && (targetAddress & 0x80000000)) {
+		        targetAddress |= SIGNEX_64_32;
+		    }
+		    break;
+		case 2:
+		    targetAddress = *(const uint16_t *) cs->getPtrToInstruction(tableEntry);
+		    if (target.isZeroExtend) break;
+		    if ((addressWidth == 8) && (targetAddress & 0x8000)) {
+		        targetAddress |= SIGNEX_64_16;
+		    }
+		    if ((addressWidth == 4) && (targetAddress & 0x8000)) {
+		        targetAddress |= SIGNEX_32_16;
+		    }
+
+		    break;
+		case 1:
+		    targetAddress = *(const uint8_t *) cs->getPtrToInstruction(tableEntry);
+		    if (target.isZeroExtend) break;
+		    if ((addressWidth == 8) && (targetAddress & 0x80)) {
+		        targetAddress |= SIGNEX_64_8;
+		    }
+		    if ((addressWidth == 4) && (targetAddress & 0x80)) {
+		        targetAddress |= SIGNEX_32_8;
+		    }
+
+		    break;
+
+		default:
+		    parsing_printf("Invalid memory read size %d\n", target.tableReadSize);
+		    return false;
+	    }
+	    targetAddress *= target.multiply;
+	    if (target.targetBase != 0) {
+	        if (target.isSubReadContent) 
+		    targetAddress = target.targetBase - targetAddress;
+		else 
+		    targetAddress += target.targetBase; 
+
+	    }
+#if defined(os_windows)
+            targetAddress -= cs->loadAddress();
+#endif
+	} else targetAddress = tableEntry;
+
+	if (addressWidth == 4) targetAddress &= 0xffffffff;
+	parsing_printf("Jumping to target %lx,", targetAddress);
+	if (cs->isCode(targetAddress)) {
+	    // Jump tables may contain may repetitious entries.
+	    // We only want to create one edge for disctinct each jump target.
+	    jumpTargets.insert(targetAddress);
+	}
+	// If the jump target is resolved to be a constant, 
+	if (target.interval.stride == 0) break;
+    }
+    return true;
 }

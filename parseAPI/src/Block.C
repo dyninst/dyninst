@@ -252,3 +252,18 @@ Block::getInsn(Offset a) const {
 }
 
 
+bool Block::operator==(const Block &rhs) const {
+    return _obj == rhs._obj &&
+           _region == rhs._region &&
+           _start == rhs._start &&
+           _end == rhs._end &&
+           _lastInsn == rhs._lastInsn &&
+           _srclist == rhs._srclist &&
+           _trglist == rhs._trglist &&
+           _func_cnt == rhs._func_cnt &&
+           _parsed == rhs._parsed;
+}
+
+bool Block::operator!=(const Block &rhs) const {
+    return !(rhs == *this);
+}

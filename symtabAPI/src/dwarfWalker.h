@@ -1,6 +1,9 @@
 
+#include <common/src/debug_common.h>
+
 #if !defined(_dwarf_walker_h_)
 #define _dwarf_walker_h_
+
 
 #include "elf.h"
 #include "libelf.h"
@@ -47,9 +50,9 @@ namespace Dyninst {
             Dwarf_Debug dbg_;
         public:
             DwarfParseActions(Symtab* s, Dwarf_Debug d) :
-                    symtab_(s),
+                    mod_(NULL),
                     dbg_(d),
-                    mod_(NULL)
+                    symtab_(s)
             {}
             typedef std::vector<std::pair<Address, Address> > range_set_t;
             typedef boost::shared_ptr<std::vector<std::pair<Address, Address> > > range_set_ptr;
@@ -174,9 +177,7 @@ namespace Dyninst {
             DwarfWalker(Symtab *symtab, Dwarf_Debug dbg);
 
             virtual ~DwarfWalker();
-            typedef
-            std::vector<boost::shared_ptr<void> > FreeListT;
-            FreeListT getFreeList();
+
             bool parse();
 
             // Takes current debug state as represented by dbg_;
@@ -186,6 +187,8 @@ namespace Dyninst {
             // A Context must be provided as an _input_ to this function,
             // whereas parse creates a context.
             bool parse_int(Dwarf_Die entry, bool parseSiblings);
+            static std::pair<std::vector<Dyninst::SymtabAPI::AddressRange>::iterator, std::vector<Dyninst::SymtabAPI::AddressRange>::iterator>
+            parseRangeList(Dwarf_Ranges *ranges, Dwarf_Signed num_ranges, Offset initial_base);
         private:
             enum inline_t {
                 NormalFunc,
@@ -194,7 +197,7 @@ namespace Dyninst {
 
             bool parseSubprogram(inline_t func_type);
             bool parseLexicalBlock();
-            bool parseRangeTypes();
+            bool parseRangeTypes(Dwarf_Debug dbg, Dwarf_Die die);
             bool parseCommonBlock();
             bool parseConstant();
             virtual bool parseVariable();
@@ -210,7 +213,7 @@ namespace Dyninst {
             bool parseMember();
             bool parseConstPackedVolatile();
             bool parseTypeReferences();
-            bool parseHighPCLowPC(Dwarf_Die entry);
+            static std::pair<AddressRange, bool> parseHighPCLowPC(Dwarf_Debug dbg, Dwarf_Die entry);
 
 
             // These vary as we parse the tree
@@ -223,7 +226,7 @@ namespace Dyninst {
             bool nameDefined() { return name_ != ""; }
             // These are invariant across a parse
 
-            std::vector<const char*> &srcFiles() { return srcFiles_; }
+            StringTablePtr srcFiles() { return mod()->getStrings(); }
 
             // For functions and variables with a separate specification, a
             // pointer to that spec. For everyone else, this points to entry
@@ -236,10 +239,11 @@ namespace Dyninst {
 
             // A printable ID for a particular entry
             unsigned long id() { return (unsigned long) (offset() - compile_offset); }
+        public:
+            static bool buildSrcFiles(Dwarf_Debug dbg, Dwarf_Die entry, StringTablePtr strings);
         private:
 
             bool parseCallsite();
-            virtual bool buildSrcFiles(Dwarf_Die entry);
             bool hasDeclaration(bool &decl);
             bool findTag();
             bool findOffset();
@@ -258,7 +262,9 @@ namespace Dyninst {
             bool getLineInformation(Dwarf_Unsigned &variableLineNo,
                                     bool &hasLineNumber,
                                     std::string &filename);
-            bool findDieName(Dwarf_Die die, std::string &);
+        public:
+            static bool findDieName(Dwarf_Debug dbg, Dwarf_Die die, std::string &);
+        private:
             bool findName(std::string &);
             void removeFortranUnderscore(std::string &);
             bool findSize(unsigned &size);
@@ -278,12 +284,13 @@ namespace Dyninst {
                                         bool &constant,
                                         bool &expr,
                                         Dwarf_Half &form);
-            bool findString(Dwarf_Half attr, const char* &str);
+            bool findString(Dwarf_Half attr, std::string &str);
         public:
             static bool findConstant(Dwarf_Half attr, Address &value, Dwarf_Die entry, Dwarf_Debug dbg);
             static bool findConstantWithForm(Dwarf_Attribute &attr,
                                              Dwarf_Half form,
                                              Address &value);
+            static std::vector<AddressRange> getDieRanges(Dwarf_Debug dbg, Dwarf_Die die, Offset base);
         private:
             bool decodeConstantLocation(Dwarf_Attribute &attr, Dwarf_Half form,
                                         std::vector<VariableLocation> &locs);
@@ -310,9 +317,6 @@ namespace Dyninst {
         private:
             std::vector<const char*> srcFiles_;
             char** srcFileList_;
-
-            FreeListT freeList;
-
             std::string name_;
             bool is_mangled_name_;
 
@@ -353,14 +357,14 @@ namespace Dyninst {
                                      Dwarf_Unsigned variableLineNo,
                                      const std::string &fileName);
 
-            virtual void createInlineFunc();
+            virtual bool createInlineFunc();
 
             virtual void setFuncFromLowest(Address lowest);
 
             virtual void createParameter(const std::vector<VariableLocation> &locs, Type *paramType, Dwarf_Unsigned lineNo,
                          const std::string &fileName);
 
-            virtual void setFuncRanges();
+            virtual void setRanges(FunctionBase *func);
 
             virtual void createGlobalVariable(const std::vector<VariableLocation> &locs, Type *type);
 
@@ -370,76 +374,6 @@ namespace Dyninst {
 
             virtual Symbol *findSymbolForCommonBlock(const std::string &commonBlockName);
         };
-
-    class ModuleFixer: public DwarfWalker {
-    private:
-        virtual bool findType(Type *&type, bool defaultToVoid)  {
-            return false;
-        }
-    public:
-        virtual std::string filename() const {
-            return obj()->getFileName();
-        }
-
-        ModuleFixer(Dwarf_Debug dbg, Object* obj)
-                : DwarfWalker(NULL, dbg),  m_obj(obj) {}
-        virtual ~ModuleFixer() {}
-    protected:
-        virtual void setFuncReturnType() {
-        }
-        virtual Object* obj() const {
-            return m_obj;
-        }
-
-        virtual void createLocalVariable(const std::vector<VariableLocation> &locs, Type *type,
-                                         Dwarf_Unsigned variableLineNo,
-                                         const std::string &fileName) {
-        }
-
-
-        virtual void createInlineFunc() {}
-
-        virtual void setFuncFromLowest(Address lowest) {
-            m_obj->setModuleForOffset(lowest, modname);
-            setParseChild(false);
-        }
-
-
-        virtual void createParameter(const std::vector<VariableLocation> &locs, Type *paramType, Dwarf_Unsigned lineNo,
-                                     const std::string &fileName) {
-        }
-
-
-        virtual void setFuncRanges() {
-        }
-
-
-        virtual void createGlobalVariable(const std::vector<VariableLocation> &locs, Type *type) {
-        }
-
-
-        virtual bool addStaticClassVariable(const std::vector<VariableLocation> &locs, Type *type) {
-        }
-
-
-        virtual typeCommon *getCommonBlockType(std::string &commonBlockName) {
-            return NULL;
-        }
-        virtual void setModuleFromName(std::string moduleName) {
-            modname = moduleName;
-        }
-
-
-        virtual Symbol *findSymbolForCommonBlock(const std::string &commonBlockName) {
-            return NULL;
-        }
-        virtual bool parseVariable() {
-            return false;
-        }
-    private:
-        Object *m_obj;
-        std::string modname;
-    };
 
     };
 };

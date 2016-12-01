@@ -36,6 +36,15 @@
 
 #include "Annotatable.h"
 #include "Serialization.h"
+#include "IBSTree.h"
+#include "IBSTree-fast.h"
+#if defined(cap_dwarf)
+#include "libdwarf.h"
+#endif
+#include <boost/shared_ptr.hpp>
+#include "RangeLookup.h"
+
+#include "StringTable.h"
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -45,59 +54,81 @@ class LineInformation;
 class localVar;
 class Symtab;
 
-class SYMTAB_EXPORT Statement : public AnnotatableSparse, public Serializable
+
+class SYMTAB_EXPORT Statement : public AddressRange
 {
 	friend class Module;
-	friend class std::vector<Statement>;
 	friend class LineInformation;
-
-	Statement(const char *file, unsigned int line, unsigned int col = 0,
+	Statement(int file_index, unsigned int line, unsigned int col = 0,
              Offset start_addr = (Offset) -1L, Offset end_addr = (Offset) -1L) :
-      file_(file ? std::string(file) : std::string()),
+    AddressRange(start_addr, end_addr),
+			file_index_(file_index),
       line_(line),
-      start_addr_(start_addr),
-      end_addr_(end_addr),
-      first(file_.c_str()),
-      second(line_),
-      column(col)
+            column_(col)
       {
       }
 	
-	std::string file_; // Maybe this should be module?
+	unsigned int file_index_; // Maybe this should be module?
 	unsigned int line_;
-	Offset start_addr_;
-	Offset end_addr_;
+    unsigned int column_;
+	StringTablePtr strings_;
+public:
+    StringTablePtr getStrings_() const;
 
-	public:
-	const char *first;
-	unsigned int second;
-	unsigned int column;
+    void setStrings_(StringTablePtr strings_);
 
-	Statement() : first(NULL), second(line_) {}
+public:
+
+	Statement() : AddressRange(0,0), file_index_(0), line_(0), column_(0)  {}
 	struct StatementLess {
 		bool operator () ( const Statement &lhs, const Statement &rhs ) const;
 	};
 
 	typedef StatementLess LineNoTupleLess;
-
 	bool operator==(const Statement &cmp) const;
+//    bool operator==(const char* file) const {return strcmp(file, first) == 0; }
+    bool operator==(Offset addr) const {
+        return AddressRange::contains(addr);
+    }
+    bool operator<(Offset addr) const {
+        return startAddr() <= addr;
+    }
+    bool operator>(Offset addr) const {
+        return !((*this) < addr || (*this == addr));
+    }
 	~Statement() {}
 
-	Offset startAddr() { return start_addr_;}
-	Offset endAddr() {return end_addr_;}
-	const std::string &getFile() { return file_;}
-	unsigned int getLine() {return line_;}
-	unsigned int getColumn() {return column;}
+	Offset startAddr() const { return first;}
+	Offset endAddr() const {return second;}
+	std::string getFile() const;
+    unsigned int getFileIndex() const { return file_index_; }
+	unsigned int getLine()const {return line_;}
+    unsigned int getColumn() const { return column_; }
+    struct addr_range {};
+    struct line_info {};
+    struct upper_bound {};
 
-	Serializable *serialize_impl(SerializerBase *sb, const char *tag = "Statement") THROW_SPEC (SerializerError);
+    typedef Statement* Ptr;
+    typedef const Statement* ConstPtr;
+//    typedef boost::shared_ptr<Statement> Ptr;
+//    typedef boost::shared_ptr<const Statement> ConstPtr;
 
-	//  Does dyninst really need these?
-	void setLine(unsigned int l) {line_ = l;}
-	void setColumn(unsigned int l) {column = l;}
-	void setFile(const char * l) {file_ = std::string(l); first = file_.c_str();}
-	void setStartAddr(Offset l) {start_addr_ = l;}
-	void setEndAddr(Offset l) {end_addr_ = l;}
 };
+template <typename OS>
+OS& operator<<(OS& os, const Statement& s)
+{
+    os << "<statement>: [" << std::hex << s.startAddr() << ", " << s.endAddr() << std::dec << ") @ " << s.getFile()
+       << " (" << s.getFileIndex() << "): " << s.getLine();
+    return os;
+}
+template <typename OS>
+OS& operator<<(OS& os, Statement* s)
+{
+    os << "<statement>: [" << std::hex << s->startAddr() << ", " << s->endAddr() << std::dec << ") @ " << s->getFile()
+       << " (" << s->getFileIndex() << "): " << s->getLine();
+    return os;
+}
+
 
 typedef Statement LineNoTuple;
 #define MODULE_ANNOTATABLE_CLASS AnnotatableSparse
@@ -107,6 +138,11 @@ typedef Statement LineNoTuple;
 	friend class Symtab;
 
 	public:
+#if defined(cap_dwarf)
+			typedef Dwarf_Die DebugInfoT;
+#else
+			typedef void* DebugInfoT;
+#endif
 
 	Module();
 	Module(supportedLanguages lang, Offset adr, std::string fullNm,
@@ -170,17 +206,17 @@ typedef Statement LineNoTuple;
    bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
 
    /***** Line Number Information *****/
-   bool getAddressRanges(std::vector<std::pair<Offset, Offset> >&ranges,
+   bool getAddressRanges(std::vector<AddressRange >&ranges,
          std::string lineSource, unsigned int LineNo);
-   bool getSourceLines(std::vector<Statement *> &lines,
+   bool getSourceLines(std::vector<Statement::Ptr> &lines,
          Offset addressInRange);
    bool getSourceLines(std::vector<LineNoTuple> &lines,
          Offset addressInRange);
-   bool getStatements(std::vector<Statement *> &statements);
+   bool getStatements(std::vector<Statement::Ptr> &statements);
    LineInformation *getLineInformation();
+    LineInformation* parseLineInformation();
 
-   bool hasLineInformation();
-   bool setDefaultNamespacePrefix(std::string str);
+			bool setDefaultNamespacePrefix(std::string str);
 
 
    //  Super secret private methods that aren't really private
@@ -191,9 +227,16 @@ typedef Statement LineNoTuple;
    }
    
    bool setLineInfo(Dyninst::SymtabAPI::LineInformation *lineInfo);
-   private:
+	 void addRange(Dyninst::Address low, Dyninst::Address high);
+
+	void addDebugInfo(Module::DebugInfoT info);
+
+	void finalizeRanges();
+
+        private:
    Dyninst::SymtabAPI::LineInformation* lineInfo_;
    typeCollection* typeInfo_;
+	std::vector<Module::DebugInfoT> info_;
    
 
    std::string fileName_;                   // short file 
@@ -201,19 +244,49 @@ typedef Statement LineNoTuple;
    supportedLanguages language_;
    Offset addr_;                      // starting address of module
    Symtab *exec_;
-};
+    std::set<AddressRange > ranges;
+
+    StringTablePtr strings_;
+        public:
+            StringTablePtr & getStrings() ;
+
+        private:
+            bool ranges_finalized;
+
+            void finalizeOneRange(Address ext_s, Address ext_e) const;
+        };
 		template <typename OS>
 		OS& operator<<(OS& os, const Module& m)
 		{
 			os << m.fileName() << ": " << m.addr();
 			return os;
 		}
+		template <typename OS>
+		OS& operator<<(OS& os, Module* m)
+		{
+			os << m->fileName() << ": " << m->addr();
+			return os;
+		}
 
+typedef Dyninst::SimpleInterval<Offset, Module*> ModRange;
 
-
+inline bool operator==(Offset off, const ModRange& r) {
+    return (r.low() <= off) && (off < r.high());
+}
+inline bool operator==(const ModRange& r, Offset off) {
+    return off == r;
+}
+template<typename OS>
+OS& operator<<(OS& os, const ModRange& m)
+{
+    os << m.id() << ": [" << m.low() << ", " << m.high() << ")";
+    return os;
+}
 
 
 }//namespace SymtabAPI
 
 }//namespace Dyninst
+
+
 #endif

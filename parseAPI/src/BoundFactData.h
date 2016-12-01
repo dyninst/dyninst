@@ -23,7 +23,7 @@ struct StridedInterval {
     // stride < 0: bottom (empty set)
     // stride = 0: represent a constant
     // stride > 0: represent an interval
-    int stride;
+    int64_t stride;
     int64_t low, high;
 
     // Bottom: empty set
@@ -81,6 +81,7 @@ struct BoundValue {
     // Otherwise, tableReadSize reprenents the number bytes of the access
     int tableReadSize;
     int multiply;
+    std::set<int64_t> * values;
     bool isInverted;
     bool isSubReadContent;
     bool isZeroExtend;
@@ -89,6 +90,7 @@ struct BoundValue {
     BoundValue();
     BoundValue(const BoundValue & bv);
     BoundValue& operator = (const BoundValue &bv);
+    ~BoundValue();
     bool operator< (const BoundValue &bv) const { return interval < bv.interval; }
     bool operator== (const BoundValue &bv) const;
     bool operator!= (const BoundValue &bv) const;
@@ -97,7 +99,7 @@ struct BoundValue {
     void SetToBottom();
     void IntersectInterval(StridedInterval &si);
     void DeleteElementFromInterval(int64_t val);
-    void Join(BoundValue &bv);
+    void Join(BoundValue &bv, ParseAPI::Block* b);
     void ClearTableCheck();
     void Add(const BoundValue &rhs);
     void And(const BoundValue &rhs);
@@ -152,6 +154,13 @@ struct BoundFact {
 
     vector<RelationShip*> relation;
 
+    // We need to track aliases of each register and memory locations.
+    // The left hand side represents an abstract location at the current address
+    // and the right hand side represents an AST of input absloc locations.
+    // eax at the current location can be different from eax at the input absloc location
+    //
+    // Register abstract location with address 0 represents an absloc at the current address
+    // Register abstract location with address 1 represents an input absloc
     typedef std::map<AST::Ptr, AST::Ptr> AliasMap;
     AliasMap aliasMap;
 
@@ -210,7 +219,7 @@ struct BoundFact {
     BoundValue* GetBound(const AST::Ptr ast); 
     BoundValue* GetBound(const AST* ast);
     AST::Ptr GetAlias(const AST::Ptr ast);
-    void Meet(BoundFact &bf);
+    void Meet(BoundFact &bf, ParseAPI::Block* b);
 
 
     bool ConditionalJumpBound(InstructionAPI::Instruction::Ptr insn, EdgeTypeEnum type);

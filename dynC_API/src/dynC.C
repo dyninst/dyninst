@@ -48,7 +48,6 @@ extern BPatch_point *snippetPoint;
 namespace dynC_API{
 
    const std::string varNameBase = "dynC_mangled_";
-   const bool debug = true;
    static int snippetCount = 0;
 
   std::map<BPatch_point *, BPatch_snippet *> *createSnippet(const char *s, std::vector<BPatch_point *> points){
@@ -80,7 +79,7 @@ namespace dynC_API{
          printf("%s", s);
          set_lex_input(mutS);
          snippetPoint = (*it);
-         snippetGen = new SnippetGenerator(**it, mutName);
+         snippetGen = new SnippetGenerator(**it);
 
          if(dynCparse() == 0){
             printf("parse_result is %s\n", (parse_result == NULL ? "null" : "not null"));
@@ -125,7 +124,7 @@ namespace dynC_API{
       char *mutName = strdup(name.c_str());      
       dynCSnippetName = mutName;
       snippetPoint = NULL;
-      snippetGen = new SnippetGenerator(addSpace, mutName);
+      snippetGen = new SnippetGenerator(addSpace);
       if(dynCparse() == 0){
          free(mutS);
          free(mutName);

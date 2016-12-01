@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="372d9515-0d46-4bdb-b502-7c1f39f16d6c" name="install" url="http://localhost">
+        <fileTransfer port="0" mountedRoot="$PROJECT_DIR$/../dyninst" accessType="MOUNT" />
+      </webServer>
+    </option>
+  </component>
+</project>

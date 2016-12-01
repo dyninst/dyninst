@@ -19,11 +19,9 @@ include (${DYNINST_ROOT}/cmake/shared.cmake)
 configure_file(cmake/version.h.in common/h/version.h)
 include_directories(${PROJECT_BINARY_DIR})
 include_directories(${PROJECT_BINARY_DIR}/common/h)
-if(${PLATFORM} MATCHES nt)
-  set (HEADER_DIRS common
+set (HEADER_DIRS common
     dataflowAPI
     dyninstAPI
-    dynutil
     instructionAPI
     parseAPI
     patchAPI
@@ -31,20 +29,11 @@ if(${PLATFORM} MATCHES nt)
     stackwalk
     symtabAPI
     )
-else()
-  set (HEADER_DIRS common
-    dataflowAPI
+if(NOT ${PLATFORM} MATCHES nt)
+  set (HEADER_DIRS ${HEADER_DIRS}
     dwarf
-    dyninstAPI
-    dynutil
     elf
-    instructionAPI
-    parseAPI
-    patchAPI
-    proccontrol
-    stackwalk
     symlite
-    symtabAPI
     )
 endif()
 
@@ -82,21 +71,10 @@ if(${SYMREADER} MATCHES symtabAPI)
   add_subdirectory (dyninstAPI)
 endif()
 
-# Build the RT library as a seperate project so we can change compilers
-message(STATUS "Configuring DyninstAPI_RT")
-file(REMOVE_RECURSE ${RT_BINARY_DIR}/CMakeCache.txt ${RT_BINARY_DIR}/CMakeFiles ${RT_BINARY_DIR}/Makefile ${RT_BINARY_DIR}/Makefile)
-file(MAKE_DIRECTORY ${RT_BINARY_DIR})
-if (PLATFORM MATCHES bgq)
-  set (RT_C_COMPILER mpicc CACHE STRING "Compiler for runtime library")
-else()
-  set (RT_C_COMPILER ${CMAKE_C_COMPILER} CACHE STRING "Compiler for runtime library")
-endif()
-set (ENABLE_STATIC_LIBS NO CACHE STRING "Build static libraries as well?")
-message(STATUS "Configuring RT library")
 if(BUILD_RTLIB)
-  # Build the RT library as a seperate project so we can change compilers
+  # Build the RT library as a separate project so we can change compilers
   message(STATUS "Configuring DyninstAPI_RT")
-  file(REMOVE_RECURSE ${RT_BINARY_DIR}/CMakeCache.txt ${RT_BINARY_DIR}/CMakeFiles ${RT_BINARY_DIR}/Makefile ${RT_BINARY_DIR}/Makefile)
+  file(REMOVE_RECURSE ${RT_BINARY_DIR}/CMakeCache.txt ${RT_BINARY_DIR}/CMakeFiles ${RT_BINARY_DIR}/Makefile)
   file(MAKE_DIRECTORY ${RT_BINARY_DIR})
   if (PLATFORM MATCHES bgq)
     set (RT_C_COMPILER mpicc CACHE STRING "Compiler for runtime library")
@@ -122,6 +100,7 @@ if(BUILD_RTLIB)
 
   if(MSVC)
       include_external_msproject(DyninstAPI_RT dyninstAPI_RT/dyninstAPI_RT.vcxproj)
+	  include_external_msproject(DyninstAPI_RT_static dyninstAPI_RT/dyninstAPI_RT_static.vcxproj)
   else()
     add_custom_target(DyninstRT
       ALL
@@ -173,7 +152,6 @@ if(BUILD_DOCS)
       )
   endforeach()
 
-  #set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
   find_package(LATEX)
   if(PDFLATEX_COMPILER)
     file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/common/doc
@@ -183,11 +161,9 @@ if(BUILD_DOCS)
         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT})
       set (DEPS "")
       file(GLOB_RECURSE DEPS ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/*.tex ${CMAKE_CURRENT_SOURCE_DIR}/common/doc/*.tex)
-      #message(STATUS "Found dependencies for ${COMPONENT} manual: ${DEPS}")
       add_custom_command(
-        #      OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.aux
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.aux
-        DEPENDS ${DEPS} #${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.tex
+        DEPENDS ${DEPS}
         COMMAND ${PDFLATEX_COMPILER}
         ARGS -interaction=batchmode ${COMPONENT}.tex
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc
@@ -196,20 +172,16 @@ if(BUILD_DOCS)
       add_custom_command(
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.log
         DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.aux
-        #      OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.log
-        #      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.aux
         COMMAND ${PDFLATEX_COMPILER}
         ARGS -interaction=batchmode ${COMPONENT}.tex
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc
         COMMENT "Latex (second pass)"
         )
       add_custom_target(${COMPONENT}-doc echo
-        #      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.log
         DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.log
         )
       add_dependencies(doc ${COMPONENT}-doc)
       set_target_properties(${COMPONENT}-doc PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD 1)
-      #add_dependencies(${COMPONENT} ${COMPONENT}-doc)
       install(FILES  ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.pdf
         DESTINATION ${INSTALL_DOC_DIR}
         RENAME ${COMPONENT}-${VERSION_STRING}.pdf
@@ -248,3 +220,6 @@ if(UNIX)
   endif()
 endif()
 
+if(TARGET boost)
+    add_dependencies(common boost)
+endif()

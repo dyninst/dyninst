@@ -80,6 +80,7 @@ class SYMTAB_EXPORT SymtabReader : public SymReader {
    virtual unsigned getAddressWidth();
    virtual bool isBigEndianDataEncoding() const;
    virtual bool getABIVersion(int &major, int &minor) const;
+   virtual Architecture getArchitecture() const;
    
    virtual unsigned numSegments();
    virtual bool getSegment(unsigned num, SymSegment &seg); 

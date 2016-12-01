@@ -120,7 +120,7 @@ namespace Dyninst
           Result res = op_value->eval();
           if (res.defined) {
               stringstream ret;
-              ret << hex << res.convert<unsigned>() << dec;
+              ret << hex << res.convert<uintmax_t>() << dec;
               return ret.str();
           }
       }

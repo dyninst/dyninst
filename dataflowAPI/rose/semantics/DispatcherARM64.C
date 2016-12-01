@@ -1318,7 +1318,7 @@ namespace rose {
                             }
                                 break;
                             case MemOp_LOAD: {
-						 fprintf(stderr, "xxx %d %d\n", 0x8 << EXTR(30, 31), EXTR(30, 31));
+//						 fprintf(stderr, "xxx %d %d\n", 0x8 << EXTR(30, 31), EXTR(30, 31));
                                 data = d->readMemory(address, 0x8 << EXTR(30, 31));
 
                                 if ((EXTR(23, 23) == 1)) {

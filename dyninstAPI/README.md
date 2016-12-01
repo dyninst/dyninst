@@ -1,3 +1,10 @@
+# DyninstAPI
+
+## Branch states
+
+| Branch                                  | Status        | Notes                                              |
+| --------------------------------------- |:-------------:|:--------------------------------------------------:|
+| master                                  | stable        | No open issues                                     |
 
 This is the version 9.1 release of the Dyninst API.  Currently, the API
 library is available for the POWER/Linux, x86/Linux, x86_64/Linux, and
@@ -12,8 +19,7 @@ that test the API functions.  These programs are useful as examples of how
 to use the API.  See the README file in that directory for how to run or
 rebuild them.
 
-Setting up the environment
---------------------------
+## Setting up the environment
 
 DYNINSTAPI_RT_LIB should be set to the full pathname of the file
 libdyninstAPI_RT.so (on Windows, libdyninstAPI_RT.dll). 
@@ -45,10 +51,11 @@ This software is derived from the Paradyn system and therefore subject to
 the same copyright.  A copy of the Paradyn copyright appears at the end of
 this file.
 
-	The Dyninst API Team
-	12/9/2015
+The Dyninst API Team
+12/9/2015
 
 ----------------------- Start of Paradyn Copyright --------------------------
+
 See the dyninst/COPYRIGHT file for copyright information.
  
 We provide the Paradyn Tools (below described as "Paradyn")
@@ -76,4 +83,3 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-
