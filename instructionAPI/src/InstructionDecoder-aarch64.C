@@ -2212,10 +2212,14 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
         }
 
         void InstructionDecoder_aarch64::OPRscale() {
-            int scaleVal = 64 - field<10, 15>(insn);
+            int scaleVal = field<10, 15>(insn);
 
-            Expression::Ptr scale = Immediate::makeImmediate(Result(u32, unsign_extend32(6, scaleVal)));
-            insn_in_progress->appendOperand(scale, true, false);
+	    if(!is64Bit && ((scaleVal >> 0x5) & 0x1) == 0x0)
+		isValid = false;
+	    else {
+		Expression::Ptr scale = Immediate::makeImmediate(Result(u32, unsign_extend32(6, 64 - scaleVal)));
+		insn_in_progress->appendOperand(scale, true, false);
+	    }
         }
 
         Expression::Ptr InstructionDecoder_aarch64::makeRaExpr() {
