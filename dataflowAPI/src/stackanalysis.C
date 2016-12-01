@@ -258,6 +258,7 @@ void StackAnalysis::summarizeBlocks(bool verbose) {
 
 void StackAnalysis::fixpoint(bool verbose) {
    intra_nosink_nocatch epred2;
+   std::set<Block *> touchedSet;
    std::queue<Block *> worklist;
    worklist.push(func->entry());
 
@@ -291,8 +292,9 @@ void StackAnalysis::fixpoint(bool verbose) {
          stackanalysis_printf("\t New in meet: %s\n", format(input).c_str());
       }
 
-      // Step 2: see if the input has changed
-      if (input == blockInputs[block]) {
+      // Step 2: see if the input has changed. Analyze each block at least once
+      if (input == blockInputs[block] &&
+         touchedSet.find(block) != touchedSet.end()) {
          // No new work here
          if (verbose) {
             stackanalysis_printf("\t ... equal to current, skipping block\n");
@@ -323,6 +325,7 @@ void StackAnalysis::fixpoint(bool verbose) {
       );
 
       firstBlock = false;
+      touchedSet.insert(block);
    }
 }
 
