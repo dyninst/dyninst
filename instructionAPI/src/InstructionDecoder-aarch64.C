@@ -1245,7 +1245,7 @@ namespace Dyninst {
                 scale += field<31, 31>(insn);
 
             //return makeMultiplyExpression(imm7, scale, s64);
-            return Immediate::makeImmediate(Result(u32, immVal << scale));
+            return Immediate::makeImmediate(Result(s64, sign_extend64(immLen, immVal) << scale));
         }
 
         Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndex_addOffset9() {
@@ -2059,7 +2059,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                             makeRegisterExpression(makeAarch64RegID(is64Bit ? aarch64::x0 : aarch64::w0, encoding)),
                             true, false);
             }
-            else if (op == aarch64_op_prfm_imm || op == aarch64_op_prfm_lit || op == aarch64_op_prfm_reg) {
+            else if (op == aarch64_op_prfm_imm || op == aarch64_op_prfm_lit || op == aarch64_op_prfm_reg || op == aarch64_op_prfum) {
                 Expression::Ptr prfop;
 		Result arg = Result(u32, unsign_extend32(5, encoding));
 		
