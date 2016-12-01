@@ -479,6 +479,7 @@ class FindMainVisitor : public ASTVisitor
  */
 int image::findMain()
 {
+
 #if defined(ppc32_linux) || defined(ppc32_bgp) || defined(ppc64_linux)
     using namespace Dyninst::InstructionAPI;
 
@@ -575,6 +576,11 @@ int image::findMain()
     || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
     || (defined(os_freebsd) \
             && (defined(arch_x86) || defined(arch_x86_64)))
+
+    startup_printf("%s[%d] Starting findMain analysis for "
+            "x86/x86_64 linux/freebsd...\n",
+            FILE__,__LINE__);
+
     // Only look for main in executables, but do allow position-independent
     // executables (PIE) which look like shared objects with an INTERP.
     // (Some strange DSOs also have INTERP, but this is rare.)
@@ -604,23 +610,13 @@ int image::findMain()
 
         if (!eReg)
             return -1;
-         
+
         // Address eStart = eReg->getMemOffset();
 
         if(!foundMain)
         {
             logLine( "No main symbol found: creating symbol for main\n" );
 
-            //find and add main to allsymbols
-            // const unsigned char* p;
-
-            // p = (( const unsigned char * ) eReg->getPtrToRawData());
-
-            // if (eAddr > eStart) {
-                // p += (eAddr - eStart);
-            // }
-
-            bool mode_64 = false;
             switch(linkedFile->getAddressWidth()) {
                 case 4:
                     // 32-bit...
@@ -629,7 +625,6 @@ int image::findMain()
                     ia32_set_mode_64(false);
                     break;
                 case 8:
-                    mode_64 = true;
                     startup_printf("%s[%u]:  setting 64-bit mode\n",
                             FILE__,__LINE__);
                     ia32_set_mode_64(true);
@@ -683,7 +678,7 @@ int image::findMain()
 
             /* Get the call edges for this function */
             Function::edgelist list = func->callEdges();
-            
+
             /* There should be at least one edge */
             ParseAPI::Edge* e = *list.begin();
 
@@ -694,45 +689,47 @@ int image::findMain()
                 return -1;
             }
 
-            /* get the block for this call edge (source) */
+            /* Get the block for this call edge (source) */
             Block* b = e->src();
             assert(b);
 
-            /* Get the address of the last instruction in the block (the call) */
-            Address insn_addr = b->lastInsnAddr();
-            void* insn_raw = region->getPtrToInstruction(insn_addr);
+            /* Find the address of mov $imm, %edi */
+            Block::Insns instructions;
+            b->getInsns(instructions);
+            InstructionAPI::InstructionPtr movPtr = NULL;
+            Offset movOffset = 0;
+            bool callFound = false;
 
-            /* Make sure insn_raw is valid */
-            if(!insn_raw)
+            for(auto iter = instructions.begin();iter != instructions.end();iter++)
             {
-                startup_printf("%s[%u]: Error: no instruction pointer in region.\n",
+                InstructionAPI::InstructionPtr curr = iter->second;
+                InstructionAPI::Instruction i = *curr;
+
+                if(i.getCategory() == InstructionAPI::c_CallInsn)
+                {
+                    callFound = true;
+                    break;
+                }
+
+                movOffset = iter->first;
+                movPtr = curr;
+            }
+
+            /* If we didn't find the call, we don't have the address of mov */
+            if(!callFound)
+            {
+                startup_printf("%s[%u]: Error: no call found in block.\n",
                         FILE__, __LINE__);
                 return -1;
             }
 
-            /* Needed to get the size of the call instruction */
-            instruction insn;
-            insn.setInstruction((const unsigned char*)insn_raw);
-
-            /* We also need the instructionAPI representation of the call instruction */
-            InstructionAPI::InstructionDecoder* decoder = NULL;
-            if(mode_64)
-            {
-                decoder = new InstructionAPI::InstructionDecoder(
-                        insn_raw, insn.size(), Dyninst::Arch_x86_64);
-            } else {
-                decoder = new InstructionAPI::InstructionDecoder(
-                        insn_raw, insn.size(), Dyninst::Arch_x86);
-            }
-
-            /* Decode just the call instruction */
-            InstructionAPI::Instruction::Ptr insn_ptr = decoder->decode(
-                    (const unsigned char*)insn_raw);
+            /* We found the address of the mov $imm, %edi instruction */
+            Address movAddress = movOffset + b->start();
 
             /* Let's get the assignment for this instruction. */
             std::vector<Assignment::Ptr> assignments;
             Dyninst::AssignmentConverter assign_convert(true, false);
-            assign_convert.convert(insn_ptr, insn_addr, func, b, assignments);
+            assign_convert.convert(movPtr, movAddress, func, b, assignments);
             if(assignments.size() >= 1)
             {
                 Assignment::Ptr assignment = *assignments.begin();
@@ -746,6 +743,7 @@ int image::findMain()
                 } else { 
                     FindMainVisitor fmv;
                     ast->accept(&fmv);
+
                     if(fmv.resolved)
                     {
                         mainAddress = fmv.target;
