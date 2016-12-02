@@ -286,9 +286,11 @@ bool PtraceBulkRead(Address inTraced, unsigned size, void *inSelf, int pid)
       if (ret == -1) {
          if (errno == ENOSYS) {
             have_process_vm_readv = false;
-         } else if (errno == EFAULT) {
+         } else if (errno == EFAULT || errno == EPERM) {
             /* Could be a no-read page -- ptrace may be allowed to
-             * peek anyway, so fallthrough and let ptrace try.  */
+             * peek anyway, so fallthrough and let ptrace try.
+             * It may also be denied by kernel.yama.ptrace_scope=1 if we're
+             * no longer a direct ancestor thanks to pid re-parenting.  */
          } else {
             return false;
          }
@@ -377,9 +379,11 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
       if (ret == -1) {
          if (errno == ENOSYS) {
             have_process_vm_writev = false;
-         } else if (errno == EFAULT) {
+         } else if (errno == EFAULT || errno == EPERM) {
             /* Could be a read-only page -- ptrace may be allowed to
-             * poke anyway, so fallthrough and let ptrace try.  */
+             * poke anyway, so fallthrough and let ptrace try.
+             * It may also be denied by kernel.yama.ptrace_scope=1 if we're
+             * no longer a direct ancestor thanks to pid re-parenting.  */
          } else {
             return false;
          }

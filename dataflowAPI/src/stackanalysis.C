@@ -61,13 +61,13 @@ const StackAnalysis::Height StackAnalysis::Height::top(
    StackAnalysis::Height::uninitialized, StackAnalysis::Height::TOP);
 
 AnnotationClass<StackAnalysis::Intervals>
-        Stack_Anno_Intervals(std::string("Stack_Anno_Intervals"), nullptr);
+        Stack_Anno_Intervals(std::string("Stack_Anno_Intervals"), NULL);
 AnnotationClass<StackAnalysis::BlockEffects>
-        Stack_Anno_Block_Effects(std::string("Stack_Anno_Block_Effects"), nullptr);
+        Stack_Anno_Block_Effects(std::string("Stack_Anno_Block_Effects"), NULL);
 AnnotationClass<StackAnalysis::InstructionEffects>
-        Stack_Anno_Insn_Effects(std::string("Stack_Anno_Insn_Effects"), nullptr);
+        Stack_Anno_Insn_Effects(std::string("Stack_Anno_Insn_Effects"), NULL);
 AnnotationClass<StackAnalysis::CallEffects>
-        Stack_Anno_Call_Effects(std::string("Stack_Anno_Call_Effects"), nullptr);
+        Stack_Anno_Call_Effects(std::string("Stack_Anno_Call_Effects"), NULL);
 
 template class std::list<Dyninst::StackAnalysis::TransferFunc*>;
 template class std::map<Dyninst::Absloc, Dyninst::StackAnalysis::Height>;
@@ -186,6 +186,15 @@ void add_target(std::queue<Block*>& worklist, Edge* e) {
    worklist.push(e->trg());
 }
 
+void add_target_list_exclude(std::queue<Block *> &worklist,
+   std::set<Block *> &excludeSet,  Edge *e) {
+   Block *b = e->trg();
+   if (excludeSet.find(b) == excludeSet.end()) {
+      excludeSet.insert(b);
+      worklist.push(b);
+   }
+}
+
 void add_target_exclude(std::stack<Block *> &workstack,
    std::set<Block *> &excludeSet,  Edge *e) {
    Block *b = e->trg();
@@ -194,7 +203,6 @@ void add_target_exclude(std::stack<Block *> &workstack,
       workstack.push(b);
    }
 }
-
 
 // We want to create a transfer function for the block as a whole. This will
 // allow us to perform our fixpoint calculation over blocks (thus, O(B^2))
@@ -258,13 +266,17 @@ void StackAnalysis::summarizeBlocks(bool verbose) {
 
 void StackAnalysis::fixpoint(bool verbose) {
    intra_nosink_nocatch epred2;
+   std::set<Block *> touchedSet;
+   std::set<Block *> workSet;
    std::queue<Block *> worklist;
+   workSet.insert(func->entry());
    worklist.push(func->entry());
 
    bool firstBlock = true;
    while (!worklist.empty()) {
       Block *block = worklist.front();
       worklist.pop();
+      workSet.erase(block);
 
       if (verbose) {
          stackanalysis_printf("\t Fixpoint analysis: visiting block at 0x%lx\n",
@@ -291,8 +303,9 @@ void StackAnalysis::fixpoint(bool verbose) {
          stackanalysis_printf("\t New in meet: %s\n", format(input).c_str());
       }
 
-      // Step 2: see if the input has changed
-      if (input == blockInputs[block]) {
+      // Step 2: see if the input has changed. Analyze each block at least once
+      if (input == blockInputs[block] &&
+         touchedSet.find(block) != touchedSet.end()) {
          // No new work here
          if (verbose) {
             stackanalysis_printf("\t ... equal to current, skipping block\n");
@@ -319,10 +332,12 @@ void StackAnalysis::fixpoint(bool verbose) {
       std::for_each(
          boost::make_filter_iterator(epred2, outEdges.begin(), outEdges.end()),
          boost::make_filter_iterator(epred2, outEdges.end(), outEdges.end()),
-         boost::bind(add_target, boost::ref(worklist), _1)
+         boost::bind(add_target_list_exclude, boost::ref(worklist),
+            boost::ref(workSet), _1)
       );
 
       firstBlock = false;
+      touchedSet.insert(block);
    }
 }
 

@@ -4,7 +4,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -Wpointer-arith -Wcast-qual -Wo
 if (CMAKE_C_COMPILER_ID MATCHES GNU)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wcast-align")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wcast-align -Wno-non-template-friend -Wno-unused-local-typedefs -Wno-deprecated-declarations")
-endif (CMAKE_C_COMPILER_ID)
+endif (CMAKE_C_COMPILER_ID MATCHES GNU)
 elseif (MSVC)
 message(STATUS "TODO: Set up custom warning flags for MSVC")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /wd4251 /wd4091 /wd4503")

@@ -66,8 +66,8 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
 
 #if defined(cap_stack_mods)
   // Grab some stack modification data structures if we need them
-  OffsetVector* offVec;
-  TMap* tMap;
+  OffsetVector* offVec = NULL;
+  TMap* tMap = NULL;
   if (cur->func()->hasStackMod()) {
     // Make sure we have an offset vector and transformation mapping.  We
     // shouldn't be able to get to relocation without having generated these.

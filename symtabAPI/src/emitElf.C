@@ -1932,7 +1932,7 @@ bool emitElf<ElfTypes>::createSymbolTables(vector<Symbol *> &allSymbols) {
             }
         }
 
-        Elf_Dyn *dynsecData;
+        Elf_Dyn *dynsecData = NULL;
         unsigned dynsecSize = 0;
         if (obj->findRegion(sec, ".dynamic")) {
             // Need to ensure that DT_REL and related fields added to .dynamic

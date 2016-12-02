@@ -1428,13 +1428,13 @@ namespace Dyninst {
         }
 
         Expression::Ptr InstructionDecoder_aarch64::makeMemRefSIMD_MULT() {
-            Result_Type rt;
+            Result_Type rt = invalid_type;
             getMemRefSIMD_MULT_RT(rt);
             return makeDereferenceExpression(makeRnExpr(), rt);
         }
 
         Expression::Ptr InstructionDecoder_aarch64::makeMemRefSIMD_SING() {
-            Result_Type rt;
+            Result_Type rt = invalid_type;
             getMemRefSIMD_SING_RT(rt);
             return makeDereferenceExpression(makeRnExpr(), rt);
         }
