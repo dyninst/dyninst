@@ -2211,6 +2211,15 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             sField = field<startBit, endBit>(insn);
         }
 
+	void InstructionDecoder_aarch64::OPRopc() {
+	    int opcVal = field<30, 31>(insn);
+	    int lopc = (field<22, 22>(insn) << 1) | (opcVal & 0x1);
+
+	    if((IS_INSN_LDST_PAIR_NOALLOC(insn) && (opcVal & 0x1) == 0x1) ||
+	       (IS_INSN_LDST_PAIR(insn) && (opcVal == 0x3 || lopc == 0x1)))
+		isValid = false;
+	}
+
         void InstructionDecoder_aarch64::OPRscale() {
             int scaleVal = field<10, 15>(insn);
 

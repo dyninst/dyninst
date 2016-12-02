@@ -480,7 +480,7 @@ namespace Dyninst {
 
             void OPRh();
 
-            void OPRopc() { }
+            void OPRopc();
 
             void OPRopcode() { }
 
