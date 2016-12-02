@@ -457,7 +457,7 @@ void aarch64_insn_entry::buildInsnTable()
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_prfm_imm, 	"prfm",	list_of( (operandFactory) fn(OPRimm<21 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRt) ), 4185915392, 4290772992) );
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_prfm_lit, 	"prfm",	list_of( (operandFactory) fn(OPRimm<23 COMMA 5>) )( fn(OPRRt) ), 3623878656, 4278190080) );
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_prfm_reg, 	"prfm",	list_of( fn(OPRRm) )( fn(OPRoption<15 COMMA 13>) )( fn(OPRS<12 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRt) ), 4171237376, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_prfum, 	"prfum",	list_of( (operandFactory) fn(OPRimm<20 COMMA 12>) )( fn(OPRRn) )( fn(OPRRt) ), 4169138176, 4292873216) );
+	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_prfum, 	"prfum",	list_of( (operandFactory) fn(OPRimm<20 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRt) ), 4169138176, 4292873216) );
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_raddhn_advsimd, 	"raddhn",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773865472, 3206609920) );
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_rbit_advsimd, 	"rbit",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRn) )( fn(OPRRd) ), 778065920, 3221224448) );
 	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_rbit_int, 	"rbit",	list_of( fn(OPRsf) )( fn(OPRRn) )( fn(OPRRd) ), 1522532352, 2147482624) );

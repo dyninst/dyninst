@@ -1245,7 +1245,7 @@ namespace Dyninst {
                 scale += field<31, 31>(insn);
 
             //return makeMultiplyExpression(imm7, scale, s64);
-            return Immediate::makeImmediate(Result(u32, immVal << scale));
+            return Immediate::makeImmediate(Result(s64, sign_extend64(immLen, immVal) << scale));
         }
 
         Expression::Ptr InstructionDecoder_aarch64::makeMemRefIndex_addOffset9() {
@@ -2059,7 +2059,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                             makeRegisterExpression(makeAarch64RegID(is64Bit ? aarch64::x0 : aarch64::w0, encoding)),
                             true, false);
             }
-            else if (op == aarch64_op_prfm_imm || op == aarch64_op_prfm_lit || op == aarch64_op_prfm_reg) {
+            else if (op == aarch64_op_prfm_imm || op == aarch64_op_prfm_lit || op == aarch64_op_prfm_reg || op == aarch64_op_prfum) {
                 Expression::Ptr prfop;
 		Result arg = Result(u32, unsign_extend32(5, encoding));
 		
@@ -2211,11 +2211,24 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             sField = field<startBit, endBit>(insn);
         }
 
-        void InstructionDecoder_aarch64::OPRscale() {
-            int scaleVal = 64 - field<10, 15>(insn);
+	void InstructionDecoder_aarch64::OPRopc() {
+	    int opcVal = field<30, 31>(insn);
+	    int lopc = (field<22, 22>(insn) << 1) | (opcVal & 0x1);
 
-            Expression::Ptr scale = Immediate::makeImmediate(Result(u32, unsign_extend32(6, scaleVal)));
-            insn_in_progress->appendOperand(scale, true, false);
+	    if((IS_INSN_LDST_PAIR_NOALLOC(insn) && (opcVal & 0x1) == 0x1) ||
+	       (IS_INSN_LDST_PAIR(insn) && (opcVal == 0x3 || lopc == 0x1)))
+		isValid = false;
+	}
+
+        void InstructionDecoder_aarch64::OPRscale() {
+            int scaleVal = field<10, 15>(insn);
+
+	    if(!is64Bit && ((scaleVal >> 0x5) & 0x1) == 0x0)
+		isValid = false;
+	    else {
+		Expression::Ptr scale = Immediate::makeImmediate(Result(u32, unsign_extend32(6 + is64Bit, 64 - scaleVal)));
+		insn_in_progress->appendOperand(scale, true, false);
+	    }
         }
 
         Expression::Ptr InstructionDecoder_aarch64::makeRaExpr() {
@@ -2518,6 +2531,12 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 			entryID curID;
 
                         if (IS_INSN_BITFIELD(insn)) {
+                            if((is64Bit && nField != 0x1) ||
+                               (!is64Bit && (nField != 0 || (immr & 0x20) != 0 || (immVal & 0x20) != 0))) {
+                                isValid = false;
+                                return;
+                            }
+
                             if (!fix_bitfieldinsn_alias(immr, immVal))
                                 return;
 
@@ -2561,6 +2580,9 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                 if (IS_INSN_ADDSUB_SHIFT(insn) || IS_INSN_LOGICAL_SHIFT(insn))    //add-sub shifted | logical shifted
                 {
                     processShiftFieldShiftedInsn(immLen, immVal);
+
+                    if((IS_INSN_ADDSUB_SHIFT(insn) && shiftField == 0x3) || (!is64Bit && ((immVal >> 5) & 0x1) == 0x1))
+                        isValid = false;
                 }
                 else if (IS_INSN_ADDSUB_IMM(insn))        //add-sub (immediate)
                 {
