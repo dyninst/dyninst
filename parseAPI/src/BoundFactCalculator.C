@@ -320,6 +320,7 @@ static bool IsConditionalJump(Instruction::Ptr insn) {
 	id == e_jb_jnaej_j || id == e_jnb_jae_j ||
 	id == e_jle || id == e_jl ||
 	id == e_jnl || id == e_jnle) return true;
+    if (id == aarch64_op_b_cond) return true;
     return false;
 }
 
@@ -391,7 +392,7 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	    first = false;
 	    if (newCopy) newFact = prevFact; else newFact = new BoundFact(*prevFact);
 	} else {
-	    newFact->Meet(*prevFact);
+	    newFact->Meet(*prevFact, func->entry());
 	    if (newCopy) delete prevFact;
         }
     }
@@ -401,8 +402,9 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *newFact){
     SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(curNode);
     if (!node->assign()) return;
-    if (node->assign() && node->assign()->out().absloc().type() == Absloc::Register &&
-	    (node->assign()->out().absloc().reg() == x86::zf || node->assign()->out().absloc().reg() == x86_64::zf)) {
+    if (node->assign() && 
+        node->assign()->out().absloc().type() == Absloc::Register &&
+	node->assign()->out().absloc().reg() == MachRegister::getZeroFlag(func->obj()->cs()->getArch())) {
 	    // zf should be only predecessor of this node
         parsing_printf("\t\tThe predecessor node is zf assignment!\n");
 	newFact->SetPredicate(node->assign(), ExpandAssignment(node->assign()) );
@@ -456,7 +458,11 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     // In other cases, if the AbsRegion represents a register,
     // the generator is not set.
     if (ar.generator() != NULL)
-        outAST = SimplifyAnAST(RoseAST::create(ROSEOperation(ROSEOperation::derefOp, ar.size()), ar.generator()), node->assign()->insn()->size());
+        outAST = SimplifyAnAST(RoseAST::create(ROSEOperation(ROSEOperation::derefOp, ar.size()), ar.generator()), 
+	                       PCValue(node->assign()->addr(), 
+			               insn->size(), 
+				       node->assign()->block()->obj()->cs()->getArch()));
+
     else
         outAST = VariableAST::create(Variable(ar));
 /*
@@ -536,7 +542,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     // Now try to track all aliasing.
     // Currently, all variables in the slice are presented as an AST
     // consists of input variables to the slice (the variables that
-    // we do not the sources of their values).
+    // we do not know the sources of their values).
     newFact->TrackAlias(DeepCopyAnAST(calculation), outAST, findBound);
 
     // Apply tracking relations to the calculation to generate a
@@ -595,7 +601,10 @@ pair<AST::Ptr, bool> BoundFactsCalculator::ExpandAssignment(Assignment::Ptr assi
         pair<AST::Ptr, bool> expandRet = SymEval::expand(assign, false);
 	if (expandRet.second && expandRet.first) {
 	    parsing_printf("Original expand: %s\n", expandRet.first->format().c_str());
-	    AST::Ptr calculation = SimplifyAnAST(expandRet.first, assign->insn()->size());
+	    AST::Ptr calculation = SimplifyAnAST(expandRet.first, 
+	                                         PCValue(assign->addr(), 
+						         assign->insn()->size(), 
+							 assign->block()->obj()->cs()->getArch()));
 	    expandCache[assign] = calculation;
 	} else {
 	    expandCache[assign] = AST::Ptr();

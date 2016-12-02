@@ -5,17 +5,34 @@
 #include <algorithm>
 
 using namespace Dyninst::ParseAPI;
+#define SIGNEX_64_32 0xffffffff00000000LL
+#define SIGNEX_64_16 0xffffffffffff0000LL
+#define SIGNEX_64_8  0xffffffffffffff00LL
+#define SIGNEX_32_16 0xffff0000
+#define SIGNEX_32_8 0xffffff00
+
+Address PCValue(Address cur, size_t insnSize, Architecture a) {
+    switch (a) {
+        case Arch_x86:
+	case Arch_x86_64:
+	    return cur + insnSize;
+	case Arch_aarch64:{
+	    return cur;
+	}
+    }    
+    return cur + insnSize;
+}
 
 AST::Ptr SimplifyVisitor::visit(DataflowAPI::RoseAST *ast) {
         unsigned totalChildren = ast->numChildren();
 	for (unsigned i = 0 ; i < totalChildren; ++i) {
 	    ast->child(i)->accept(this);
-	    ast->setChild(i, SimplifyRoot(ast->child(i), size));
+	    ast->setChild(i, SimplifyRoot(ast->child(i), addr));
 	}
 	return AST::Ptr();
 }
 
-AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t insnSize) {
+AST::Ptr SimplifyRoot(AST::Ptr ast, Address addr) {
     if (ast->getID() == AST::V_RoseAST) {
         RoseAST::Ptr roseAST = boost::static_pointer_cast<RoseAST>(ast); 
 	
@@ -113,6 +130,28 @@ AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t insnSize) {
 		else
 		    return RoseAST::create(ROSEOperation(ROSEOperation::derefOp), ast->child(0));
 		break;
+	    case ROSEOperation::shiftLOp:
+	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    return ConstantAST::create(Constant(child0->val().val << child1->val().val, 64));
+		}
+		break;
+	    case ROSEOperation::andOp:
+	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    return ConstantAST::create(Constant(child0->val().val & child1->val().val, 64));
+		}
+		break;
+	    case ROSEOperation::orOp:
+	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    return ConstantAST::create(Constant(child0->val().val | child1->val().val, 64));
+		}
+		break;
+
 	    default:
 	        break;
 
@@ -120,8 +159,8 @@ AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t insnSize) {
     } else if (ast->getID() == AST::V_VariableAST) {
         VariableAST::Ptr varAST = boost::static_pointer_cast<VariableAST>(ast);
 	if (varAST->val().reg.absloc().isPC()) {
-	    MachRegister pc = varAST->val().reg.absloc().reg();
-	    return ConstantAST::create(Constant(varAST->val().addr + insnSize, getArchAddressWidth(pc.getArchitecture()) * 8));
+	    MachRegister pc = varAST->val().reg.absloc().reg();	    
+	    return ConstantAST::create(Constant(addr, getArchAddressWidth(pc.getArchitecture()) * 8));
 	}
 	// We do not care about the address of the a-loc
 	// because we will keep tracking the changes of 
@@ -142,10 +181,10 @@ AST::Ptr SimplifyRoot(AST::Ptr ast, uint64_t insnSize) {
 }
 
 
-AST::Ptr SimplifyAnAST(AST::Ptr ast, uint64_t size) {
-    SimplifyVisitor sv(size);
+AST::Ptr SimplifyAnAST(AST::Ptr ast, Address addr) {
+    SimplifyVisitor sv(addr);
     ast->accept(&sv);
-    return SimplifyRoot(ast, size);
+    return SimplifyRoot(ast, addr);
 }
 
 AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
@@ -194,7 +233,7 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 		else
 		    val = new BoundValue(BoundValue::top);
 		if (IsResultBounded(ast->child(1)))
-		    val->And(GetResultBound(ast->child(1))->interval);
+		    val->And(*GetResultBound(ast->child(1)));
 		else
 		    val->And(StridedInterval::top);
 		// the result of an AND operation should not be
@@ -254,7 +293,7 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 	case ROSEOperation::ifOp:
 	    if (IsResultBounded(ast->child(1)) && IsResultBounded(ast->child(2))) {
 	        BoundValue *val = new BoundValue(*GetResultBound(ast->child(1)));
-		val->Join(*GetResultBound(ast->child(2)));
+		val->Join(*GetResultBound(ast->child(2)), block);
 		if (*val != BoundValue::top)
 		    bound.insert(make_pair(ast, val));
 	    }
@@ -338,10 +377,17 @@ AST::Ptr ComparisonVisitor::visit(DataflowAPI::RoseAST *ast) {
 		    else
 		        parsing_printf("WARNING: constant bit size %d exceeds 64!\n", size);
 		    minuend = ConstantAST::create(Constant(val, size));
-		} else {
-		    // Otherwise, the minuend ast is in the form of add(invert(minuend), 1)
-		    // Need to extract the real minuend
-		    minuend = minuend->child(0)->child(0);
+		} else if (minuend->getID() == AST::V_RoseAST) {
+		    RoseAST::Ptr sub = boost::static_pointer_cast<RoseAST>(minuend);
+		    minuend = AST::Ptr();
+		    if (sub->val().op == ROSEOperation::addOp && sub->child(0)->getID() == AST::V_RoseAST) {
+		        sub = boost::static_pointer_cast<RoseAST>(sub->child(0));
+			if (sub->val().op == ROSEOperation::invertOp) {
+			    // Otherwise, the minuend ast is in the form of add(invert(minuend), 1)
+  		            // Need to extract the real minuend
+		             minuend = sub->child(0);
+			}
+		    }
 		}
 	    } 	
 	} 
@@ -363,8 +409,24 @@ AST::Ptr SubstituteAnAST(AST::Ptr ast, const BoundFact::AliasMap &aliasMap) {
     for (unsigned i = 0 ; i < totalChildren; ++i) {
         ast->setChild(i, SubstituteAnAST(ast->child(i), aliasMap));
     }
+    if (ast->getID() == AST::V_VariableAST) {
+        // If this variable is not in the aliasMap yet,
+	// this variable is from the input.
+        VariableAST::Ptr varAST = boost::static_pointer_cast<VariableAST>(ast);
+	return VariableAST::create(Variable(varAST->val().reg, 1));
+    }
     return ast;
 
+}
+
+bool ContainAnAST(AST::Ptr root, AST::Ptr check) {
+    if (*root == *check) return true;
+    bool ret = false;
+    unsigned totalChildren = root->numChildren();
+    for (unsigned i = 0 ; i < totalChildren && !ret; ++i) {
+        ret |= ContainAnAST(root->child(i), check);
+    }
+    return ret;
 }
 
 
@@ -445,4 +507,100 @@ AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
 	}
     } 
     return AST::Ptr();
+}
+
+bool PerformTableRead(BoundValue &target, set<int64_t> & jumpTargets, CodeSource *cs) {
+
+    Address tableBase = (Address)target.interval.low;
+    Address tableLastEntry = (Address)target.interval.high;
+    int addressWidth = cs->getAddressWidth();
+    if (addressWidth == 4) {
+        tableBase &= 0xffffffff;
+	tableLastEntry &= 0xffffffff;
+    }
+
+#if defined(os_windows)
+    tableBase -= cs->loadAddress();
+    tableLastEntry -= cs->loadAddress();
+#endif
+
+    if (!cs->isCode(tableBase) && !cs->isData(tableBase)) {
+        parsing_printf("\ttableBase 0x%lx invalid, returning false\n", tableBase);
+	parsing_printf("Not jump table format!\n");
+	return false;
+    }
+    if (!cs->isReadOnly(tableBase)) {
+        parsing_printf("\ttableBase 0x%lx not read only, returning false\n", tableBase);
+	parsing_printf("Not jump table format!\n");
+        return false;
+    }
+
+
+    for (Address tableEntry = tableBase; tableEntry <= tableLastEntry; tableEntry += target.interval.stride) {
+	if (!cs->isCode(tableEntry) && !cs->isData(tableEntry)) continue;
+	if (!cs->isReadOnly(tableEntry)) continue;
+	int64_t targetAddress = 0;
+	if (target.tableReadSize > 0) {
+	    switch (target.tableReadSize) {
+	        case 8:
+		    targetAddress = *(const uint64_t *) cs->getPtrToInstruction(tableEntry);
+		    break;
+		case 4:
+		    targetAddress = *(const uint32_t *) cs->getPtrToInstruction(tableEntry);
+		    if (target.isZeroExtend) break;
+		    if ((addressWidth == 8) && (targetAddress & 0x80000000)) {
+		        targetAddress |= SIGNEX_64_32;
+		    }
+		    break;
+		case 2:
+		    targetAddress = *(const uint16_t *) cs->getPtrToInstruction(tableEntry);
+		    if (target.isZeroExtend) break;
+		    if ((addressWidth == 8) && (targetAddress & 0x8000)) {
+		        targetAddress |= SIGNEX_64_16;
+		    }
+		    if ((addressWidth == 4) && (targetAddress & 0x8000)) {
+		        targetAddress |= SIGNEX_32_16;
+		    }
+
+		    break;
+		case 1:
+		    targetAddress = *(const uint8_t *) cs->getPtrToInstruction(tableEntry);
+		    if (target.isZeroExtend) break;
+		    if ((addressWidth == 8) && (targetAddress & 0x80)) {
+		        targetAddress |= SIGNEX_64_8;
+		    }
+		    if ((addressWidth == 4) && (targetAddress & 0x80)) {
+		        targetAddress |= SIGNEX_32_8;
+		    }
+
+		    break;
+
+		default:
+		    parsing_printf("Invalid memory read size %d\n", target.tableReadSize);
+		    return false;
+	    }
+	    targetAddress *= target.multiply;
+	    if (target.targetBase != 0) {
+	        if (target.isSubReadContent) 
+		    targetAddress = target.targetBase - targetAddress;
+		else 
+		    targetAddress += target.targetBase; 
+
+	    }
+#if defined(os_windows)
+            targetAddress -= cs->loadAddress();
+#endif
+	} else targetAddress = tableEntry;
+
+	if (addressWidth == 4) targetAddress &= 0xffffffff;
+	parsing_printf("Jumping to target %lx,", targetAddress);
+	if (cs->isCode(targetAddress)) {
+	    // Jump tables may contain may repetitious entries.
+	    // We only want to create one edge for disctinct each jump target.
+	    jumpTargets.insert(targetAddress);
+	}
+	// If the jump target is resolved to be a constant, 
+	if (target.interval.stride == 0) break;
+    }
+    return true;
 }
