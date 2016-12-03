@@ -2239,7 +2239,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                 reg = makeAarch64RegID(isSinglePrec() ? aarch64::s0 : aarch64::d0, encoding);
             }
             else {
-                reg = is64Bit ? ((encoding == 31) ? aarch64::sp : aarch64::x0) : ((encoding == 31) ? aarch64::wsp
+                reg = is64Bit ? ((encoding == 31) ? aarch64::xzr : aarch64::x0) : ((encoding == 31) ? aarch64::wzr
                                                                                                    : aarch64::w0);
                 if (encoding != 31)
                     reg = makeAarch64RegID(reg, encoding);
