@@ -1237,6 +1237,37 @@ void StackAnalysis::handlePushPop(Instruction::Ptr insn, Block *block,
                // Get pushed immediate
                long immVal = readExpr->eval().convert<long>();
                xferFuncs.push_back(TransferFunc::absFunc(writtenLoc, immVal));
+            } else if (dynamic_cast<Dereference *>(readExpr.get())) {
+               // Extract the read address expression
+               std::vector<Expression::Ptr> addrExpr;
+               readExpr->getChildren(addrExpr);
+               assert(addrExpr.size() == 1);
+
+               // Try to determine the read memory address
+               StateEvalVisitor visitor;
+               if (intervals_ == NULL) {
+                  visitor = StateEvalVisitor(off, insn, NULL);
+               } else {
+                  visitor = StateEvalVisitor(off, insn,
+                     &(*intervals_)[block][off]);
+               }
+               addrExpr[0]->apply(&visitor);
+               if (visitor.isDefined()) {
+                  Absloc readLoc;
+                  std::pair<Address, bool> resultPair = visitor.getResult();
+                  if (resultPair.second) {
+                     // We have a stack slot
+                     readLoc = Absloc(resultPair.first, 0, NULL);
+                  } else {
+                     // We have a static address
+                     readLoc = Absloc(resultPair.first);
+                  }
+                  xferFuncs.push_back(TransferFunc::copyFunc(readLoc,
+                     writtenLoc));
+               } else {
+                  // Unknown read address.  Assume top.
+                  xferFuncs.push_back(TransferFunc::retopFunc(writtenLoc));
+               }
             } else {
                assert(false);
             }
