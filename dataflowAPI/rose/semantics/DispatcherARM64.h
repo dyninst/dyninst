@@ -223,6 +223,8 @@ namespace rose {
 
                 bool setflags(uint32_t raw);
 
+                int getDatasize(uint32_t raw);
+
                 /** */
                 BaseSemantics::SValuePtr readMemory(const BaseSemantics::SValuePtr &addr, size_t readSize);
 
