@@ -76,4 +76,7 @@ extern const std::string PARSE_JUMPTABLE_FAIL;
 extern const std::string PARSE_TAILCALL_COUNT;
 extern const std::string PARSE_TAILCALL_FAIL;
 
+extern const std::string PARSE_TOTAL_TIME;
+extern const std::string PARSE_JUMPTABLE_TIME;
+
 #endif

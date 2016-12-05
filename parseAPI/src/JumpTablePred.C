@@ -17,14 +17,9 @@ using namespace Dyninst;
 using namespace Dyninst::DataflowAPI;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InstructionAPI;
-#define SIGNEX_64_32 0xffffffff00000000LL
-#define SIGNEX_64_16 0xffffffffffff0000LL
-#define SIGNEX_64_8  0xffffffffffffff00LL
-#define SIGNEX_32_16 0xffff0000
-#define SIGNEX_32_8 0xffffff00
-
 // Assume the table contain less than this many entries.
 #define MAX_TABLE_ENTRY 1000000
+
 
 static void BuildEdgesAux(SliceNode::Ptr srcNode,
                           ParseAPI::Block* curBlock,
@@ -61,7 +56,7 @@ static void BuildEdgesAux(SliceNode::Ptr srcNode,
 
     if (visit.find(curBlock) != visit.end()) return;
     visit.insert(curBlock);
-    for (auto eit = curBlock->targets().begin(); eit != curBlock->targets().end(); ++eit)
+    for (auto eit = curBlock->targets().begin(); eit != curBlock->targets().end(); ++eit) {
 	// Xiaozhu:
 	// Our current slicing code ignores tail calls 
 	// (the slice code only checks if an edge type is CALL or not)
@@ -78,6 +73,7 @@ static void BuildEdgesAux(SliceNode::Ptr srcNode,
 	    } 
 	    BuildEdgesAux(srcNode, (*eit)->trg(), targetMap, newG, visit, newT, allowedEdges);	   
 	}
+    }
 }			  
 
 
@@ -91,7 +87,7 @@ static void BuildEdges(SliceNode::Ptr curNode,
 
 static bool AssignIsZF(Assignment::Ptr a) {
     return a->out().absloc().type() == Absloc::Register &&
-	   (a->out().absloc().reg() == x86::zf || a->out().absloc().reg() == x86_64::zf);
+	   (a->out().absloc().reg() == MachRegister::getZeroFlag(a->out().absloc().reg().getArchitecture()));
 }
 
 static bool IsPushAndChangeSP(Assignment::Ptr a) {
@@ -120,7 +116,8 @@ GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
     GraphPtr newG = Graph::createGraph();
     
     NodeIterator gbegin, gend;
-    
+    parsing_printf("\t\t start to build analysis graph\n");
+
     // Create a map to help find whether we have reached a node
     map<ParseAPI::Block*, map<AssignmentPtr, SliceNode::Ptr> > targetMap;
 
@@ -130,6 +127,8 @@ GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
 	if (AssignIsZF(*ait))
 	    shouldSkip.insert((*ait)->addr());
     }
+    parsing_printf("\t\t calculate skipped nodes\n");
+
     // We only need one assignment from xchg instruction at each address
     set<Address> xchgCount;
     set<Assignment::Ptr> xchgAssign;
@@ -140,7 +139,8 @@ GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
 	    xchgAssign.insert(*ait);
 	}
     }
-    
+    parsing_printf("\t\t calculate xchg assignments\n");
+   
     for (auto ait = currentAssigns.begin(); ait != currentAssigns.end(); ++ait) {
         Assignment::Ptr a = *ait;
 	if (   (AssignIsZF(a) || shouldSkip.find(a->addr()) == shouldSkip.end()) 
@@ -152,13 +152,14 @@ GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
 	    newG->addNode(newNode);
 	}
     }
-
+    parsing_printf("\t\t calculate nodes in the new graph\n");
     // Start from each node to do DFS and build edges
     newG->allNodes(gbegin, gend);
     for (; gbegin != gend; ++gbegin) {
         SliceNode::Ptr node = boost::static_pointer_cast<SliceNode>(*gbegin);
 	BuildEdges(node, targetMap, newG, visitedEdges);
     }
+    parsing_printf("\t\t calculate edges in the new graph\n");
 
     // Build a virtual exit node
     SliceNode::Ptr virtualExit = SliceNode::create(Assignment::Ptr(), NULL, NULL);
@@ -170,6 +171,7 @@ GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
 	    newG->insertPair(cur, virtualExit, TypedSliceEdge::create(cur, virtualExit, FALLTHROUGH));
 	}
     }
+    parsing_printf("\t\t calculate virtual nodes in the new graph\n");
 
     AdjustGraphEntryAndExit(newG);
 
@@ -181,14 +183,16 @@ GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
 
 bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visitedEdges) {
     if (!jumpTableFormat) return false;
+    if (unknownInstruction) return false;
     if (currentAssigns.find(ap) != currentAssigns.end()) return true;
     if (currentAssigns.size() > 50) return false; 
     // For flags, we only analyze zf
-    if (ap->out().absloc().type() == Absloc::Register && ap->out().absloc().reg().regClass() == (unsigned int)x86::FLAG &&
-       ap->out().absloc().reg() != x86::zf && ap->out().absloc().reg() != x86_64::zf) {
-	return true;
+    if (ap->out().absloc().type() == Absloc::Register) {
+        MachRegister reg = ap->out().absloc().reg();
+	if (reg.isFlag() && reg != MachRegister::getZeroFlag(reg.getArchitecture())) {
+	    return true;
+	}
     }
-
     pair<AST::Ptr, bool> expandRet = ExpandAssignment(ap);
 
     currentAssigns.insert(ap);
@@ -202,7 +206,12 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
     }
 */
 
-    if (!expandRet.second || expandRet.first == NULL) return true;
+    if (!expandRet.second || expandRet.first == NULL) {
+        if (ap && ap->block() && ap->block()->obj()->cs()->getArch() == Arch_aarch64) {
+            unknownInstruction = true;
+        }
+        return true;
+    }
 
     // If this assignment writes memory,
     // we only want to analyze it when it writes to 
@@ -228,7 +237,6 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
 
     // We create the CFG based on the found nodes
     GraphPtr g = BuildAnalysisGraph(visitedEdges);
-
     BoundFactsCalculator bfc(func, g, func->entry() == block, rf, thunks, false, expandCache);
     bfc.CalculateBoundedFacts();
 
@@ -248,101 +256,21 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
 }
 bool JumpTablePred::FillInOutEdges(BoundValue &target, 
                                                  vector<pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
-    outEdges.clear();
-    Address tableBase = (Address)target.interval.low;
-    Address tableLastEntry = (Address)target.interval.high;
-    Architecture arch = block->obj()->cs()->getArch();
-    if (arch == Arch_x86) {
-        tableBase &= 0xffffffff;
-	tableLastEntry &= 0xffffffff;
+    if (target.values != NULL) {
+        outEdges.clear();
+        for (auto tit = target.values->begin(); tit != target.values->end(); ++tit) {
+            outEdges.push_back(make_pair(*tit, INDIRECT));
+        }
+	return true;
     }
-
-#if defined(os_windows)
-    tableBase -= block->obj()->cs()->loadAddress();
-    tableLastEntry -= block->obj()->cs()->loadAddress();
-#endif
-
-    parsing_printf("The final target bound fact:\n");
-    target.Print();
-    if (!block->obj()->cs()->isValidAddress(tableBase)) {
-        parsing_printf("\ttableBase 0x%lx invalid, returning false\n", tableBase);
-	jumpTableFormat = false;
-	parsing_printf("Not jump table format!\n");
+    set<int64_t> jumpTargets;						 
+    if (!PerformTableRead(target, jumpTargets, block->obj()->cs())) {
+        jumpTableFormat = false;
 	return false;
     }
-    if (!block->obj()->cs()->isReadOnly(tableBase)) {
-        parsing_printf("\ttableBase 0x%lx not read only, returning false\n", tableBase);
-	jumpTableFormat = false;
-	parsing_printf("Not jump table format!\n");
-        return false;
-    }
-
-
-    for (Address tableEntry = tableBase; tableEntry <= tableLastEntry; tableEntry += (Address)target.interval.stride) {
-	if (!block->obj()->cs()->isValidAddress(tableEntry)) continue;
-	if (!block->obj()->cs()->isReadOnly(tableEntry)) continue;
-	Address targetAddress = 0;
-	if (target.tableReadSize > 0) {
-	    switch (target.tableReadSize) {
-	        case 8:
-		    targetAddress = *(const uint64_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
-		    break;
-		case 4:
-		    targetAddress = *(const uint32_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
-		    if (target.isZeroExtend) break;
-		    if ((arch == Arch_x86_64) && (targetAddress & 0x80000000)) {
-		        targetAddress |= SIGNEX_64_32;
-		    }
-		    break;
-		case 2:
-		    targetAddress = *(const uint16_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
-		    if (target.isZeroExtend) break;
-		    if ((arch == Arch_x86_64) && (targetAddress & 0x8000)) {
-		        targetAddress |= SIGNEX_64_16;
-		    }
-		    if ((arch == Arch_x86) && (targetAddress & 0x8000)) {
-		        targetAddress |= SIGNEX_32_16;
-		    }
-
-		    break;
-		case 1:
-		    targetAddress = *(const uint8_t *) block->obj()->cs()->getPtrToInstruction(tableEntry);
-		    if (target.isZeroExtend) break;
-		    if ((arch == Arch_x86_64) && (targetAddress & 0x80)) {
-		        targetAddress |= SIGNEX_64_8;
-		    }
-		    if ((arch == Arch_x86) && (targetAddress & 0x80)) {
-		        targetAddress |= SIGNEX_32_8;
-		    }
-
-		    break;
-
-		default:
-		    parsing_printf("Invalid memory read size %d\n", target.tableReadSize);
-		    return false;
-	    }
-	    if (target.targetBase != 0) {
-	        if (target.isSubReadContent) 
-		    targetAddress = target.targetBase - targetAddress;
-		else 
-		    targetAddress += target.targetBase; 
-
-	    }
-#if defined(os_windows)
-            targetAddress -= block->obj()->cs()->loadAddress();
-#endif
-	} else targetAddress = tableEntry;
-
-	if (block->obj()->cs()->getArch() == Arch_x86) targetAddress &= 0xffffffff;
-	parsing_printf("Jumping to target %lx,", targetAddress);
-	if (block->obj()->cs()->isCode(targetAddress)) {
-	    outEdges.push_back(make_pair(targetAddress, INDIRECT));
-	    parsing_printf(" is code.\n" );
-	} else {
-	    parsing_printf(" not code.\n");
-	}
-	// If the jump target is resolved to be a constant, 
-	if (target.interval.stride == 0) break;
+    outEdges.clear();
+    for (auto tit = jumpTargets.begin(); tit != jumpTargets.end(); ++tit) {
+        outEdges.push_back(make_pair(*tit, INDIRECT));
     }
     return true;
 }
@@ -362,7 +290,11 @@ bool JumpTablePred::IsJumpTable(GraphPtr slice,
     BoundValue *tarBoundValue = bf->GetBound(ip);
     if (tarBoundValue != NULL) {
         target = *(tarBoundValue);
-	uint64_t s = target.interval.size();
+	uint64_t s;
+	if (target.values == NULL)
+	    s = target.interval.size();
+	else
+	    s = target.values->size();
 	if (s > 0 && s <= MAX_TABLE_ENTRY) return true;
     }
     AST::Ptr ipExp = bf->GetAlias(ip);
@@ -383,7 +315,10 @@ bool JumpTablePred::MatchReadAST(Assignment::Ptr a) {
     pair<AST::Ptr, bool> expandRet = ExpandAssignment(a);
     if (!expandRet.second || expandRet.first == NULL) return false;
     if (a->out().generator() == NULL) return false;
-    AST::Ptr write = SimplifyAnAST(RoseAST::create(ROSEOperation(ROSEOperation::derefOp, a->out().size()), a->out().generator()), a->insn()->size());
+    AST::Ptr write = SimplifyAnAST(RoseAST::create(ROSEOperation(ROSEOperation::derefOp, a->out().size()), a->out().generator()), 
+                                   PCValue(a->addr(),
+				           a->insn()->size(),
+					   a->block()->obj()->cs()->getArch()));
 
     if (write == NULL) return false;
     for (auto ait = readAST.begin(); ait != readAST.end(); ++ait) 
@@ -402,7 +337,10 @@ pair<AST::Ptr, bool> JumpTablePred::ExpandAssignment(Assignment::Ptr assign) {
 	if (expandRet.second && expandRet.first) {
 parsing_printf("Original expand: %s\n", expandRet.first->format().c_str());
 
-	    AST::Ptr calculation = SimplifyAnAST(expandRet.first, assign->insn()->size());
+	    AST::Ptr calculation = SimplifyAnAST(expandRet.first, 
+	                                         PCValue(assign->addr(),
+						         assign->insn()->size(),
+							 assign->block()->obj()->cs()->getArch()));
 	    expandCache[assign] = calculation;
 	} else {
 	    expandCache[assign] = AST::Ptr();

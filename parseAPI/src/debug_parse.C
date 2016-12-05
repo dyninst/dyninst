@@ -120,6 +120,9 @@ const std::string PARSE_JUMPTABLE_FAIL("parseJumptableFail");
 const std::string PARSE_TAILCALL_COUNT("isTailcallCount");
 const std::string PARSE_TAILCALL_FAIL("isTailcallFail");
 
+const std::string PARSE_TOTAL_TIME("parseTotalTime");
+const std::string PARSE_JUMPTABLE_TIME("parseJumpTableTime");
+
 #if defined(_MSC_VER)
 #pragma warning(pop)    
 #endif

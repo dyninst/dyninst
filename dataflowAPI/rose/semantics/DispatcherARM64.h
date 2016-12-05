@@ -58,7 +58,7 @@ namespace rose {
                  *
                  * @{ */
 
-                RegisterDescriptor REG_PC, REG_NZCV, REG_SP;
+                RegisterDescriptor REG_PC, REG_N, REG_Z, REG_C, REG_V, REG_SP;
 
                 /** @}*/
 
@@ -110,6 +110,8 @@ namespace rose {
 
                 virtual RegisterDescriptor stackPointerRegister() const;
 
+                virtual BaseSemantics::SValuePtr effectiveAddress(SgAsmExpression *, size_t nbits = 0);
+
                 virtual int iproc_key(SgAsmInstruction *insn_) const {
                     SgAsmArmv8Instruction *insn = isSgAsmArmv8Instruction(insn_);
                     assert(insn != NULL);
@@ -132,7 +134,11 @@ namespace rose {
                 /** Set parity, sign, and zero flags appropriate for result value. */
                 virtual void setFlagsForResult(const BaseSemantics::SValuePtr &result,
                                                const BaseSemantics::SValuePtr &carries,
-                                               bool invertCarries, size_t nbits, BaseSemantics::SValuePtr &nzcv);
+                                               bool invertCarries, size_t nbits,
+                                               BaseSemantics::SValuePtr &n,
+                                               BaseSemantics::SValuePtr &z,
+                                               BaseSemantics::SValuePtr &c,
+                                               BaseSemantics::SValuePtr &v);
 
                 /** Returns true if byte @p v has an even number of bits set; false for an odd number */
                 virtual BaseSemantics::SValuePtr parity(const BaseSemantics::SValuePtr &v);
@@ -145,7 +151,11 @@ namespace rose {
                  * @{ */
                 virtual BaseSemantics::SValuePtr doAddOperation(BaseSemantics::SValuePtr a, BaseSemantics::SValuePtr b,
                                                                 bool invertCarries,
-                                                                const BaseSemantics::SValuePtr &carryIn, BaseSemantics::SValuePtr &nzcv);
+                                                                const BaseSemantics::SValuePtr &carryIn,
+                                                                BaseSemantics::SValuePtr &n,
+                                                                BaseSemantics::SValuePtr &z,
+                                                                BaseSemantics::SValuePtr &c,
+                                                                BaseSemantics::SValuePtr &v);
 
                 //FIXME
                 /** Implements the RCL, RCR, ROL, and ROR instructions for various operand sizes.  The rotate amount is always 8 bits wide
@@ -185,6 +195,42 @@ namespace rose {
                 /** Returns a value that equals 0. nbits specifies what should be the bit-length of the value,
                  * but is irrelevant in practice as a 64-bit zero is returned anyway. */
                 virtual BaseSemantics::SValuePtr Zeros(const unsigned int nbits);
+
+                /** Returns the input value sign extended to the provided length. */
+                virtual BaseSemantics::SValuePtr SignExtend(const BaseSemantics::SValuePtr &expr, size_t newsize);
+
+                /** Returns the input value zero extended to the provided length. */
+                virtual BaseSemantics::SValuePtr ZeroExtend(const BaseSemantics::SValuePtr &expr, size_t newsize);
+
+                /** Returns the input value right rotated by the provided amount. */
+                virtual BaseSemantics::SValuePtr ROR(const BaseSemantics::SValuePtr &expr, const BaseSemantics::SValuePtr &amt);
+
+                /** */
+                virtual BaseSemantics::SValuePtr Replicate(const BaseSemantics::SValuePtr &expr);
+
+                /** */
+                virtual BaseSemantics::SValuePtr getBitfieldMask(int immr, int imms, int N, bool iswmask, int datasize);
+
+                size_t getRegSize(uint32_t raw);
+
+                size_t ldStrLiteralAccessSize(uint32_t raw);
+
+                bool inzero(uint32_t raw);
+
+                bool extend(uint32_t raw);
+
+                int op(uint32_t raw);
+
+                bool setflags(uint32_t raw);
+
+                /** */
+                BaseSemantics::SValuePtr readMemory(const BaseSemantics::SValuePtr &addr, size_t readSize);
+
+                /** */
+                void writeMemory(const BaseSemantics::SValuePtr &addr, size_t writeSize, const BaseSemantics::SValuePtr &data);
+
+                /** */
+                SgAsmExpression *getWriteBackTarget(SgAsmExpression *expr);
             };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -213,6 +259,24 @@ namespace rose {
 
                     virtual void assert_args(I insn, A args, size_t nargs);
                     //void check_arg_width(D d, I insn, A args);
+
+                public:
+                    enum MemOp {
+                        MemOp_STORE,
+                        MemOp_LOAD
+                    };
+
+                    enum MoveWideOp {
+                        MoveWideOp_N,
+                        MoveWideOp_Z,
+                        MoveWideOp_K
+                    };
+
+                    enum LogicalOp {
+                        LogicalOp_AND,
+                        LogicalOp_ORR,
+                        LogicalOp_EOR
+                    };
                 };
 
             } // namespace

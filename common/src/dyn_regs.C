@@ -202,11 +202,13 @@ unsigned int MachRegister::size() const {
 			    return 0;
 		    }
 		}
-		else if((reg & 0x00ff0000) == aarch64::GPR || (reg & 0x00ff0000) == aarch64::SPR || (reg & 0x00ff0000) == aarch64::SYSREG)
+		else if((reg & 0x00ff0000) == aarch64::GPR || (reg & 0x00ff0000) == aarch64::SPR ||
+                (reg & 0x00ff0000) == aarch64::SYSREG || (reg & 0x00ff0000) == aarch64::FLAG)
 			switch(reg & 0x0000ff00)
 			{
 				case aarch64::FULL : return 8;
 				case aarch64::D_REG: return 4;
+                case aarch64::BIT:   return 0;
 				default: return 0;
 			}
 		else
@@ -418,6 +420,25 @@ MachRegister MachRegister::getArchRegFromAbstractReg(MachRegister abstract,
     return Dyninst::InvalidReg;
 }
 
+MachRegister MachRegister::getZeroFlag(Dyninst::Architecture arch)
+{
+   switch (arch)
+   {
+      case Arch_x86:
+         return x86::zf;
+      case Arch_x86_64:
+         return x86_64::zf;
+      case Arch_aarch64: 
+         return aarch64::z;
+      case Arch_aarch32:
+         assert(0);
+      case Arch_none:
+         return InvalidReg;
+   }
+   return InvalidReg;
+}
+
+
 bool MachRegister::isPC() const
 {
    return (*this == x86_64::rip || *this == x86::eip ||
@@ -455,6 +476,23 @@ bool MachRegister::isSyscallReturnValueReg() const
             *this == ppc32::r1   || *this == ppc64::r1 ||
             *this == aarch64::x0
             );
+}
+
+bool MachRegister::isFlag() const
+{
+    int regC = regClass();
+    switch (getArchitecture())
+    {
+      case Arch_x86:
+         return regC == x86::FLAG;
+      case Arch_x86_64:
+         return regC == x86_64::FLAG;
+      case Arch_aarch64:
+         return regC == aarch64::FLAG;
+      default:
+         assert(!"Not implemented!");
+   }
+   return false;
 }
 
 COMMON_EXPORT bool Dyninst::isSegmentRegister(int regClass)
@@ -808,36 +846,82 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
            return;
        }
        break;
-      case Arch_aarch64:
-      {
-	switch(category) {
-	    case aarch64::GPR: {
-			  c = armv8_regclass_gpr;
-			  if(baseID == (aarch64::zr & 0xFF) || baseID == (aarch64::wzr & 0xFF))
-			      n = armv8_gpr_zr;
-			  else {
-			      int regnum = baseID - aarch64::x0;
-			      n = armv8_gpr_r0 + regnum;
-			  }
-		      } 
-		      break;
-	    case aarch64::SPR: {
-			    n = 0;
-			    if(baseID == (aarch64::pstate & 0xFF)) {
-				c = armv8_regclass_pstate;
-				p = armv8_pstatefield_nzcv;
-			    } else if(baseID == (aarch64::pc & 0xFF)) {
-				c = armv8_regclass_pc;
-			    } else if(baseID == (aarch64::sp & 0xFF) || baseID == (aarch64::wsp & 0xFF)) {
-				c = armv8_regclass_sp;
-			    }
-			  }
-			  break; 
-	    default:assert(!"unknown register type!");
-		    break;
-	}
-	return;
-      }
+       case Arch_aarch64: {
+           p = 0;
+           switch (category) {
+               case aarch64::GPR: {
+                   c = armv8_regclass_gpr;
+                   int regnum = baseID - (aarch64::x0 & 0xFF);
+                   n = armv8_gpr_r0 + regnum;
+               }
+                   break;
+               case aarch64::SPR: {
+                   n = 0;
+                   if (baseID == (aarch64::pstate & 0xFF)) {
+                       c = armv8_regclass_pstate;
+                   } else if(baseID == (aarch64::zr & 0xFF) || baseID == (aarch64::wzr & 0xFF)) {
+                       c = armv8_regclass_gpr;
+                       n = armv8_gpr_zr;
+                   } else if (baseID == (aarch64::pc & 0xFF)) {
+                       c = armv8_regclass_pc;
+                   } else if (baseID == (aarch64::sp & 0xFF) || baseID == (aarch64::wsp & 0xFF)) {
+                       c = armv8_regclass_sp;
+                   }
+               }
+                   break;
+               case aarch64::FPR: {
+                   c = armv8_regclass_simd_fpr;
+
+                   int firstRegId;
+                   switch(reg & 0xFF00) {
+                       case aarch64::Q_REG: firstRegId = (aarch64::q0 & 0xFF);
+                           break;
+                       case aarch64::HQ_REG: firstRegId = (aarch64::hq0 & 0xFF);
+                           p = 64;
+                           break;
+                       case aarch64::FULL: firstRegId = (aarch64::d0 & 0xFF);
+                           break;
+                       case aarch64::D_REG: firstRegId = (aarch64::s0 & 0xFF);
+                           break;
+                       case aarch64::W_REG: firstRegId = (aarch64::h0 & 0xFF);
+                           break;
+                       case aarch64::B_REG: firstRegId = (aarch64::b0 & 0xFF);
+                           break;
+                       default:assert(!"invalid register subcategory for ARM64!");
+                           break;
+                   }
+                   n = armv8_simdfpr_v0 + (baseID - firstRegId);
+               }
+                   break;
+               case aarch64::FLAG: {
+                   c = armv8_regclass_pstate;
+                   n = 0;
+                   switch (baseID) {
+                       case aarch64::N_FLAG:
+                           p = armv8_pstatefield_n;
+                           break;
+                       case aarch64::Z_FLAG:
+                           p = armv8_pstatefield_z;
+                           break;
+                       case aarch64::V_FLAG:
+                           p = armv8_pstatefield_v;
+                           break;
+                       case aarch64::C_FLAG:
+                           p = armv8_pstatefield_c;
+                           break;
+                       default:
+                           assert(!"unknown flag type!");
+                           break;
+                   }
+               }
+                   break;
+               default:
+                   assert(!"unknown register type!");
+                   break;
+           }
+           return;
+       }
+
       break;
       default:
          c = x86_regclass_unknown;
