@@ -683,8 +683,12 @@ pair<AddressRange, bool> DwarfWalker::parseHighPCLowPC(Dwarf_Debug dbg, Dwarf_Di
    {
      high += low;
    }
-   dwarf_printf("Lexical block from 0x%lx to 0x%lx\n", low, high);
-    result = make_pair(AddressRange(low, high), true);
+    // Don't add 0,0; it's not a real range but a sign something went wrong.
+    if(low || high)
+    {
+        dwarf_printf("Lexical block from 0x%lx to 0x%lx\n", low, high);
+        result = make_pair(AddressRange(low, high), true);
+    }
     return result;
 }
 

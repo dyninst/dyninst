@@ -1105,7 +1105,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 
             } else if (plt_entry_size_ == 16) {
                 // New style secure PLT
-                Region *plt = NULL, /* *relplt = NULL, */ *dynamic = NULL,
+                Region *plt = NULL, *relplt = NULL, *dynamic = NULL,
                         *got = NULL, *glink = NULL;
                 unsigned int glink_addr = 0;
                 unsigned int stub_addr = 0;
@@ -1116,7 +1116,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
                 for (unsigned iter = 0; iter < regions_.size(); ++iter) {
                     std::string name = regions_[iter]->getRegionName();
                     if (name == PLT_NAME) plt = regions_[iter];
-                    // else if (name == REL_PLT_NAME) relplt = regions_[iter];
+                    else if (name == REL_PLT_NAME) relplt = regions_[iter];
                     else if (name == DYNAMIC_NAME) dynamic = regions_[iter];
                     else if (name == GOT_NAME) got = regions_[iter];
                 }
@@ -2517,6 +2517,39 @@ bool Object::fix_global_symbol_modules_static_dwarf()
                 ++r)
         {
             m->addRange(r->first, r->second);
+        }
+        if(!m->hasRanges())
+        {
+//            cout << "No ranges for module " << modname << ", need to extract from statements\n";
+            Dwarf_Line* lines;
+            Dwarf_Signed num_lines;
+            if(dwarf_srclines(cu_die, &lines, &num_lines, NULL) == DW_DLV_OK)
+            {
+                Dwarf_Addr low;
+                for(int i = 0; i < num_lines; ++i)
+                {
+                    if((dwarf_lineaddr(lines[i], &low, NULL) == DW_DLV_OK) && low)
+                    {
+                        Dwarf_Bool is_end = false;
+                        Dwarf_Addr high = low;
+                        int result = DW_DLV_OK;
+                        for(; (i < num_lines) &&
+                                      (is_end == false) &&
+                                      (result == DW_DLV_OK); ++i)
+                        {
+                            result = dwarf_lineendsequence(lines[i], &is_end, NULL);
+                            if(result == DW_DLV_OK && is_end) {
+                                result = dwarf_lineaddr(lines[i], &high, NULL);
+                            }
+
+                        }
+                        cout << "Adding range [" << hex << low << ", " << high << ") to " << dec <<
+                             m->fileName() << " based on statements" << endl;
+                        m->addRange(low, high);
+                    }
+                }
+                dwarf_srclines_dealloc(dbg, lines, num_lines);
+            }
         }
         m->addDebugInfo(cu_die);
         DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
@@ -4282,6 +4315,14 @@ void Object::parseStabFileLineInfo()
 
 void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 {
+    struct open_statement {
+        Dwarf_Unsigned string_table_index;
+        Dwarf_Addr start_addr;
+        Dwarf_Addr end_addr;
+        Dwarf_Unsigned line_number;
+        Dwarf_Signed column_number;
+    };
+    std::vector<open_statement> open_statements;
     Dwarf_Debug *dbg_ptr = dwarf->line_dbg();
     if (!dbg_ptr)
         return;
@@ -4335,10 +4376,6 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
      generated from lineNo runs from lineAddr up to but not including
      the lineAddr of the next line. */
     bool isPreviousValid = false;
-    Dwarf_Unsigned previousLineNo = 0;
-    Dwarf_Signed previousLineColumn = 0;
-    Dwarf_Addr previousLineAddr = 0x0;
-    Dwarf_Unsigned previousLineSource = 0;
 
     Offset baseAddr = getBaseAddress();
 
@@ -4346,125 +4383,98 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
     dwarf_highpc(cuDIE, &cu_high_pc, NULL);
     bool needs_followup = false;
     /* Iterate over this CU's source lines. */
+    open_statement current_statement;
     for ( int i = 0; i < lineCount; i++ )
     {
         /* Acquire the line number, address, source, and end of sequence flag. */
-        Dwarf_Unsigned lineNo;
-        status = dwarf_lineno( lineBuffer[i], & lineNo, NULL );
+        status = dwarf_lineno( lineBuffer[i], & current_statement.line_number, NULL );
         if ( status != DW_DLV_OK ) {
-            if(needs_followup) cout << "dwarf_lineno failed" << endl;
+            cout << "dwarf_lineno failed" << endl;
             continue;
         }
 
-        Dwarf_Signed lineOff;
-        status = dwarf_lineoff( lineBuffer[i], & lineOff, NULL );
-        if ( status != DW_DLV_OK ) { lineOff = 0; }
+        status = dwarf_lineoff( lineBuffer[i], & current_statement.column_number, NULL );
+        if ( status != DW_DLV_OK ) { current_statement.column_number = 0; }
 
-        Dwarf_Addr lineAddr;
-        status = dwarf_lineaddr( lineBuffer[i], & lineAddr, NULL );
+        status = dwarf_lineaddr( lineBuffer[i], & current_statement.start_addr, NULL );
         if ( status != DW_DLV_OK )
         {
-            if(needs_followup) cout << "dwarf_lineaddr failed" << endl;
+            cout << "dwarf_lineaddr failed" << endl;
             continue;
 
         }
 
-        lineAddr += baseAddr;
+        current_statement.start_addr += baseAddr;
 
 
         if (dwarf->debugLinkFile()) {
             Offset new_lineAddr;
-            bool result = convertDebugOffset(lineAddr, new_lineAddr);
+            bool result = convertDebugOffset(current_statement.start_addr, new_lineAddr);
             if (result)
-                lineAddr = new_lineAddr;
+                current_statement.start_addr = new_lineAddr;
         }
-//        if(!associated_symtab->isCode(lineAddr))
-//        {
-//            cout << hex << "WARNING: Discarding line info for non-text addr " << hex << lineAddr << endl;
-//            continue;
-//        }
-
-
-        Dwarf_Unsigned lineSource;
-        status = dwarf_line_srcfileno( lineBuffer[i], & lineSource, NULL );
+        status = dwarf_line_srcfileno( lineBuffer[i], & current_statement.string_table_index, NULL );
         if ( status != DW_DLV_OK ) {
+            cout << "dwarf_line_srcfileno failed" << endl;
             continue;
         }
+        current_statement.string_table_index += offset;
 
         Dwarf_Bool isEndOfSequence;
         status = dwarf_lineendsequence( lineBuffer[i], & isEndOfSequence, NULL );
         if ( status != DW_DLV_OK ) {
+            cout << "dwarf_lineendsequence failed" << endl;
             continue;
+        }
+        if(i == lineCount - 1) {
+            isEndOfSequence = true;
         }
         Dwarf_Bool isStatement;
         status = dwarf_linebeginstatement(lineBuffer[i], &isStatement, NULL);
         if(status != DW_DLV_OK) {
+            cout << "dwarf_linebeginstatement failed" << endl;
             continue;
         }
-
-        if ( isPreviousValid )
+        std::vector<open_statement> tmp;
+        for(auto stmt = open_statements.begin();
+                stmt != open_statements.end();
+                ++stmt)
         {
-            /* If we're talking about the same (source file, line number) tuple,
-	 and it isn't the end of the sequence, we can coalesce the range.
-	 (The end of sequence marker marks discontinuities in the ranges.) */
-            if ( (lineNo == previousLineNo) && (lineSource == previousLineSource)
-                 && ! isEndOfSequence )
+            stmt->end_addr = current_statement.start_addr;
+            if(stmt->string_table_index != current_statement.string_table_index ||
+                    stmt->line_number != current_statement.line_number ||
+                    isEndOfSequence)
             {
-                /* Don't update the prev* values; just keep going until we hit the end of
-	   a sequence or  new sourcefile. */
-                continue;
-            } /* end if we can coalesce this range */
-
-            Dyninst::Offset startAddrToUse = previousLineAddr;
-            Dyninst::Offset endAddrToUse = lineAddr;
-
-            if (startAddrToUse && endAddrToUse)
-            {
-                if(startAddrToUse ==  (Dyninst::Offset)(-1) || endAddrToUse == (Dyninst::Offset)(-1)) {
-                    cout << "Suspicious line info range: [" << hex << startAddrToUse << ", " << endAddrToUse << ")\n";
-                }
-                if(startAddrToUse ==  (Dyninst::Offset)(1) || endAddrToUse == (Dyninst::Offset)(1)) {
-                    cout << "Suspicious line info range: [" << hex << startAddrToUse << ", " << endAddrToUse << ")\n";
-                }
-                if(startAddrToUse != endAddrToUse)
-                {
-                    // string table entry.
-                    li_for_module->addLine((unsigned int)(previousLineSource + offset),
-                                           (unsigned int) previousLineNo,
-                                           (unsigned int) previousLineColumn,
-                                           startAddrToUse,
-                                           endAddrToUse );
-                }
-//                else
-//                {
-////                    cout << dec << "Skipping entry for " << (*strings)[previousLineSource+offset]
-////                         << ":" << previousLineNo
-////                         << " at " << hex << startAddrToUse << dec << endl;
-//                }
-
-                /* The line 'canonicalLineSource:previousLineNo' has an address range of [previousLineAddr, lineAddr). */
+                li_for_module->addLine((unsigned int)(stmt->string_table_index),
+                                       (unsigned int)(stmt->line_number),
+                                       (unsigned int)(stmt->column_number),
+                                       stmt->start_addr,
+                                       stmt->end_addr);
             }
-        } /* end if the previous* variables are valid */
-
-        /* If the current line ends the sequence, invalidate previous; otherwise, update. */
-        // We've seen a pattern where there are multiple lines for a given address and
-        // only one has an end marker. Carry through in that case.
-        if ( isEndOfSequence )
-        {
-            isPreviousValid = false; //(lineAddr == previousLineAddr) ;
+            else
+            {
+                tmp.push_back(*stmt);
+            }
         }
-        else {
-            if(isStatement)
-            {
-                isPreviousValid = true; //((previousLineNo != lineNo) && (previousLineSource != lineSource));
-                previousLineNo = lineNo;
-                previousLineSource = lineSource;
-                previousLineAddr = lineAddr;
-                previousLineColumn = lineOff;
-            }
-
-        } /* end if line was not the end of a sequence */
+        open_statements.swap(tmp);
+        if(isEndOfSequence) {
+            open_statements.clear();
+        } else
+        if(isStatement) {
+            open_statements.push_back(current_statement);
+        }
     } /* end iteration over source line entries. */
+    for(auto i = open_statements.begin();
+        i != open_statements.end();
+        ++i)
+    {
+        li_for_module->addLine((unsigned int)(i->string_table_index),
+                               (unsigned int)(i->line_number),
+                               (unsigned int)(i->column_number),
+                               i->start_addr,
+                               current_statement.start_addr);
+        assert(0);
+    }
 
 /* Free this CU's source lines. */
     dwarf_srclines_dealloc(dbg, lineBuffer, lineCount);
