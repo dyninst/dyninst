@@ -2543,8 +2543,8 @@ bool Object::fix_global_symbol_modules_static_dwarf()
                             }
 
                         }
-                        cout << "Adding range [" << hex << low << ", " << high << ") to " << dec <<
-                             m->fileName() << " based on statements" << endl;
+//                        cout << "Adding range [" << hex << low << ", " << high << ") to " << dec <<
+//                             m->fileName() << " based on statements" << endl;
                         m->addRange(low, high);
                     }
                 }
@@ -4311,17 +4311,17 @@ void Object::parseStabFileLineInfo()
     //  haveParsedFileMap[ key ] = true;
 } /* end parseStabFileLineInfo() */
 
+struct open_statement {
+    Dwarf_Unsigned string_table_index;
+    Dwarf_Addr start_addr;
+    Dwarf_Addr end_addr;
+    Dwarf_Unsigned line_number;
+    Dwarf_Signed column_number;
+};
 
 
 void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 {
-    struct open_statement {
-        Dwarf_Unsigned string_table_index;
-        Dwarf_Addr start_addr;
-        Dwarf_Addr end_addr;
-        Dwarf_Unsigned line_number;
-        Dwarf_Signed column_number;
-    };
     std::vector<open_statement> open_statements;
     Dwarf_Debug *dbg_ptr = dwarf->line_dbg();
     if (!dbg_ptr)
