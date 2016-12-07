@@ -1105,7 +1105,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 
             } else if (plt_entry_size_ == 16) {
                 // New style secure PLT
-                Region *plt = NULL, *relplt = NULL, *dynamic = NULL,
+                Region *plt = NULL, *dynamic = NULL,
                         *got = NULL, *glink = NULL;
                 unsigned int glink_addr = 0;
                 unsigned int stub_addr = 0;
@@ -4375,13 +4375,11 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
     /* The 'lines' returned are actually interval markers; the code
      generated from lineNo runs from lineAddr up to but not including
      the lineAddr of the next line. */
-    bool isPreviousValid = false;
 
     Offset baseAddr = getBaseAddress();
 
     Dwarf_Addr cu_high_pc = 0;
     dwarf_highpc(cuDIE, &cu_high_pc, NULL);
-    bool needs_followup = false;
     /* Iterate over this CU's source lines. */
     open_statement current_statement;
     for ( int i = 0; i < lineCount; i++ )
