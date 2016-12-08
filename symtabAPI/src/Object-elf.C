@@ -1105,7 +1105,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 
             } else if (plt_entry_size_ == 16) {
                 // New style secure PLT
-                Region *plt = NULL, *dynamic = NULL,
+                Region *plt = NULL, *relplt = NULL, *dynamic = NULL,
                         *got = NULL, *glink = NULL;
                 unsigned int glink_addr = 0;
                 unsigned int stub_addr = 0;
