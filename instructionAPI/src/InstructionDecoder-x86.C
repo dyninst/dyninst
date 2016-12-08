@@ -84,7 +84,7 @@ namespace Dyninst
                 case sNONE:
                     return false;
                 default:
-                    printf("OPSEMA: %d\n", opsema);
+                    // printf("OPSEMA: %d\n", opsema);
                     assert(!"Unknown opsema!");
                     return false;
             }
@@ -120,7 +120,7 @@ namespace Dyninst
                 case sNONE:
                 default:
                   return false;
-                    printf("OPSEMA: %d\n", opsema);
+                    // printf("OPSEMA: %d\n", opsema);
                   assert(!"Unknown opsema!");
                   return false;
             }
