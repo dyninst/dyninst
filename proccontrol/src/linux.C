@@ -1512,34 +1512,6 @@ bool linux_thread::plat_cont()
    int result;
    if (hasPostponedSyscallEvent())
    {
-/* This should be turned on to solve the arm kernel bug.
- * When it recognize the syscall enter event, insert a bp as the fake
- * syscall exit stop.
- */
-#if defined(arch_aarch64) && defined(SYSCALL_EXIT_BREAKPOINT)
-       if( postponed_syscall_event->event_ext == PTRACE_EVENT_FORK ||
-           postponed_syscall_event->event_ext == PTRACE_EVENT_CLONE ){
-            //install bp
-            Dyninst::MachRegisterVal addr;
-            result = plat_getRegister(MachRegister::getPC(this->llproc()->getTargetArch()), addr);
-            if (!result) {
-               fprintf(stderr, "Failed to read PC address upon crash\n");
-            }
-            pthrd_printf("Got SIGTRAP at %lx\n", addr);
-            pthrd_printf("Installing breakpoint for postpone syscall at %lx\n", addr);
-
-            this->BPptr_fakeSyscallExitBp = Breakpoint::ptr();
-            //int_breakpoint *fakeSyscallExitBp = new int_breakpoint(Breakpoint::ptr());
-            int_breakpoint *fakeSyscallExitBp = new int_breakpoint(this->BPptr_fakeSyscallExitBp);
-            fakeSyscallExitBp->setThreadSpecific(this->thread());
-            fakeSyscallExitBp->setOneTimeBreakpoint(true);
-            //this->llproc()->addBreakpoint(addr, fakeSyscallExitBp);
-            this->proc()->addBreakpoint(addr, this->BPptr_fakeSyscallExitBp);
-            this->addr_fakeSyscallExitBp = addr;
-            this->isSet_fakeSyscallExitBp = true;
-       }
-#endif
-
       pthrd_printf("Calling PTRACE_SYSCALL on %d with signal %d\n", lwp, tmpSignal);
       result = do_ptrace((pt_req) PTRACE_SYSCALL, lwp, NULL, data);
    }
