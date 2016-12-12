@@ -73,8 +73,7 @@ namespace rose {
                         if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
                             carry_in = true;
-                        }
-                        else {
+                        } else {
                             carry_in = false;
                         }
                         result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
@@ -88,8 +87,7 @@ namespace rose {
 
                         if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
                             d->writeRegister(d->REG_SP, result);
-                        }
-                        else {
+                        } else {
                             d->write(args[0], result);
                         }
 
@@ -107,8 +105,7 @@ namespace rose {
                         if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
                             carry_in = true;
-                        }
-                        else {
+                        } else {
                             carry_in = false;
                         }
                         result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
@@ -122,8 +119,7 @@ namespace rose {
 
                         if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
                             d->writeRegister(d->REG_SP, result);
-                        }
-                        else {
+                        } else {
                             d->write(args[0], result);
                         }
 
@@ -141,8 +137,7 @@ namespace rose {
                         if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
                             carry_in = true;
-                        }
-                        else {
+                        } else {
                             carry_in = false;
                         }
                         result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
@@ -156,8 +151,7 @@ namespace rose {
 
                         if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
                             d->writeRegister(d->REG_SP, result);
-                        }
-                        else {
+                        } else {
                             d->write(args[0], result);
                         }
 
@@ -175,8 +169,7 @@ namespace rose {
                         if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
                             carry_in = true;
-                        }
-                        else {
+                        } else {
                             carry_in = false;
                         }
                         result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
@@ -190,8 +183,7 @@ namespace rose {
 
                         if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
                             d->writeRegister(d->REG_SP, result);
-                        }
-                        else {
+                        } else {
                             d->write(args[0], result);
                         }
 
@@ -209,8 +201,7 @@ namespace rose {
                         if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
                             carry_in = true;
-                        }
-                        else {
+                        } else {
                             carry_in = false;
                         }
                         result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
@@ -224,8 +215,7 @@ namespace rose {
 
                         if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
                             d->writeRegister(d->REG_SP, result);
-                        }
-                        else {
+                        } else {
                             d->write(args[0], result);
                         }
 
@@ -243,8 +233,7 @@ namespace rose {
                         if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
                             carry_in = true;
-                        }
-                        else {
+                        } else {
                             carry_in = false;
                         }
                         result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
@@ -258,8 +247,7 @@ namespace rose {
 
                         if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
                             d->writeRegister(d->REG_SP, result);
-                        }
-                        else {
+                        } else {
                             d->write(args[0], result);
                         }
 
@@ -277,8 +265,7 @@ namespace rose {
                         if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
                             carry_in = true;
-                        }
-                        else {
+                        } else {
                             carry_in = false;
                         }
                         result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
@@ -292,8 +279,7 @@ namespace rose {
 
                         if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
                             d->writeRegister(d->REG_SP, result);
-                        }
-                        else {
+                        } else {
                             d->write(args[0], result);
                         }
 
@@ -311,8 +297,7 @@ namespace rose {
                         if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
                             carry_in = true;
-                        }
-                        else {
+                        } else {
                             carry_in = false;
                         }
                         result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
@@ -326,8 +311,7 @@ namespace rose {
 
                         if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
                             d->writeRegister(d->REG_SP, result);
-                        }
-                        else {
+                        } else {
                             d->write(args[0], result);
                         }
 
@@ -345,8 +329,7 @@ namespace rose {
                         if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
                             carry_in = true;
-                        }
-                        else {
+                        } else {
                             carry_in = false;
                         }
                         result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
@@ -373,8 +356,7 @@ namespace rose {
                         if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
                             carry_in = true;
-                        }
-                        else {
+                        } else {
                             carry_in = false;
                         }
                         result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
@@ -401,8 +383,7 @@ namespace rose {
                         if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
                             carry_in = true;
-                        }
-                        else {
+                        } else {
                             carry_in = false;
                         }
                         result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
@@ -429,8 +410,7 @@ namespace rose {
                         if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
                             carry_in = true;
-                        }
-                        else {
+                        } else {
                             carry_in = false;
                         }
                         result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
@@ -456,7 +436,8 @@ namespace rose {
                         if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
                         }
-                        result = d->doAddOperation(operand1, operand2, false, d->readRegister(d->REG_C)/*, ops->boolean_(false)*/,
+                        result = d->doAddOperation(operand1, operand2, false,
+                                                   d->readRegister(d->REG_C)/*, ops->boolean_(false)*/,
                                                    n, z, c, v);
 
                         if ((EXTR(29, 29) == 1)) {
@@ -480,7 +461,8 @@ namespace rose {
                         if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
                         }
-                        result = d->doAddOperation(operand1, operand2, false, d->readRegister(d->REG_C)/*, ops->boolean_(false)*/,
+                        result = d->doAddOperation(operand1, operand2, false,
+                                                   d->readRegister(d->REG_C)/*, ops->boolean_(false)*/,
                                                    n, z, c, v);
 
                         if ((EXTR(29, 29) == 1)) {
@@ -634,8 +616,7 @@ namespace rose {
                         if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
                             carry_in = true;
-                        }
-                        else {
+                        } else {
                             carry_in = false;
                         }
                         result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
@@ -649,8 +630,7 @@ namespace rose {
 
                         if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
                             d->writeRegister(d->REG_SP, result);
-                        }
-                        else {
+                        } else {
                             d->write(args[0], result);
                         }
 
@@ -668,8 +648,7 @@ namespace rose {
                         if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
                             carry_in = true;
-                        }
-                        else {
+                        } else {
                             carry_in = false;
                         }
                         result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
@@ -683,8 +662,7 @@ namespace rose {
 
                         if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
                             d->writeRegister(d->REG_SP, result);
-                        }
-                        else {
+                        } else {
                             d->write(args[0], result);
                         }
 
@@ -702,8 +680,7 @@ namespace rose {
                         if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
                             carry_in = true;
-                        }
-                        else {
+                        } else {
                             carry_in = false;
                         }
                         result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
@@ -730,8 +707,7 @@ namespace rose {
                         if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
                             carry_in = true;
-                        }
-                        else {
+                        } else {
                             carry_in = false;
                         }
                         result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
@@ -745,8 +721,7 @@ namespace rose {
 
                         if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
                             d->writeRegister(d->REG_SP, result);
-                        }
-                        else {
+                        } else {
                             d->write(args[0], result);
                         }
 
@@ -764,8 +739,7 @@ namespace rose {
                         if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
                             carry_in = true;
-                        }
-                        else {
+                        } else {
                             carry_in = false;
                         }
                         result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
@@ -779,8 +753,7 @@ namespace rose {
 
                         if (EXTR(0, 4) == 31 && !(EXTR(29, 29) == 1)) {
                             d->writeRegister(d->REG_SP, result);
-                        }
-                        else {
+                        } else {
                             d->write(args[0], result);
                         }
 
@@ -798,8 +771,7 @@ namespace rose {
                         if ((EXTR(30, 30) == 1)) {
                             operand2 = d->NOT(operand2);
                             carry_in = true;
-                        }
-                        else {
+                        } else {
                             carry_in = false;
                         }
                         result = d->doAddOperation(operand1, operand2, carry_in, ops->boolean_(false), n, z, c, v);
@@ -911,8 +883,7 @@ namespace rose {
 
                                 if (rt_unknown) {
                                     data = ops->unspecified_(1);
-                                }
-                                else {
+                                } else {
                                     data = d->read(args[0]);
                                 }
                                 d->writeMemory(address, 0x8 << EXTR(30, 31), data);
@@ -923,8 +894,7 @@ namespace rose {
 
                                 if ((EXTR(23, 23) == 1)) {
                                     d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                }
-                                else {
+                                } else {
                                     d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                                 }
                             }
@@ -935,16 +905,13 @@ namespace rose {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
-                            }
-
-                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
                             if (EXTR(5, 9) == 31) {
                                 d->writeRegister(d->REG_SP, address);
-                            }
-                            else {
+                            } else {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
@@ -968,8 +935,7 @@ namespace rose {
 
                                 if (rt_unknown) {
                                     data = ops->unspecified_(1);
-                                }
-                                else {
+                                } else {
                                     data = d->read(args[0]);
                                 }
                                 d->writeMemory(address, 0x8 << EXTR(30, 31), data);
@@ -980,8 +946,7 @@ namespace rose {
 
                                 if ((EXTR(23, 23) == 1)) {
                                     d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                }
-                                else {
+                                } else {
                                     d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                                 }
                             }
@@ -992,16 +957,13 @@ namespace rose {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
-                            }
-
-                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
                             if (EXTR(5, 9) == 31) {
                                 d->writeRegister(d->REG_SP, address);
-                            }
-                            else {
+                            } else {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
@@ -1025,8 +987,7 @@ namespace rose {
 
                                 if (rt_unknown) {
                                     data = ops->unspecified_(1);
-                                }
-                                else {
+                                } else {
                                     data = d->read(args[0]);
                                 }
                                 d->writeMemory(address, 0x8 << EXTR(30, 31), data);
@@ -1037,8 +998,7 @@ namespace rose {
 
                                 if ((EXTR(23, 23) == 1)) {
                                     d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                }
-                                else {
+                                } else {
                                     d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                                 }
                             }
@@ -1049,16 +1009,13 @@ namespace rose {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
-                            }
-
-                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
                             if (EXTR(5, 9) == 31) {
                                 d->writeRegister(d->REG_SP, address);
-                            }
-                            else {
+                            } else {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
@@ -1082,8 +1039,7 @@ namespace rose {
 
                                 if (rt_unknown) {
                                     data = ops->unspecified_(1);
-                                }
-                                else {
+                                } else {
                                     data = d->read(args[0]);
                                 }
                                 d->writeMemory(address, 0x8 << EXTR(30, 31), data);
@@ -1094,8 +1050,7 @@ namespace rose {
 
                                 if ((EXTR(23, 23) == 1)) {
                                     d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                }
-                                else {
+                                } else {
                                     d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                                 }
                             }
@@ -1106,16 +1061,13 @@ namespace rose {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
-                            }
-
-                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
                             if (EXTR(5, 9) == 31) {
                                 d->writeRegister(d->REG_SP, address);
-                            }
-                            else {
+                            } else {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
@@ -1139,8 +1091,7 @@ namespace rose {
 
                                 if (rt_unknown) {
                                     data = ops->unspecified_(1);
-                                }
-                                else {
+                                } else {
                                     data = d->read(args[0]);
                                 }
                                 d->writeMemory(address, 0x8 << EXTR(30, 31), data);
@@ -1151,8 +1102,7 @@ namespace rose {
 
                                 if ((EXTR(23, 23) == 1)) {
                                     d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                }
-                                else {
+                                } else {
                                     d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                                 }
                             }
@@ -1163,16 +1113,13 @@ namespace rose {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
-                            }
-
-                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
                             if (EXTR(5, 9) == 31) {
                                 d->writeRegister(d->REG_SP, address);
-                            }
-                            else {
+                            } else {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
@@ -1196,8 +1143,7 @@ namespace rose {
 
                                 if (rt_unknown) {
                                     data = ops->unspecified_(1);
-                                }
-                                else {
+                                } else {
                                     data = d->read(args[0]);
                                 }
                                 d->writeMemory(address, 0x8 << EXTR(30, 31), data);
@@ -1208,8 +1154,7 @@ namespace rose {
 
                                 if ((EXTR(23, 23) == 1)) {
                                     d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                }
-                                else {
+                                } else {
                                     d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                                 }
                             }
@@ -1220,16 +1165,13 @@ namespace rose {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
-                            }
-
-                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
                             if (EXTR(5, 9) == 31) {
                                 d->writeRegister(d->REG_SP, address);
-                            }
-                            else {
+                            } else {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
@@ -1253,8 +1195,7 @@ namespace rose {
 
                                 if (rt_unknown) {
                                     data = ops->unspecified_(1);
-                                }
-                                else {
+                                } else {
                                     data = d->read(args[0]);
                                 }
                                 d->writeMemory(address, 0x8 << EXTR(30, 31), data);
@@ -1265,8 +1206,7 @@ namespace rose {
 
                                 if ((EXTR(23, 23) == 1)) {
                                     d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                }
-                                else {
+                                } else {
                                     d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                                 }
                             }
@@ -1277,16 +1217,13 @@ namespace rose {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
-                            }
-
-                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
                             if (EXTR(5, 9) == 31) {
                                 d->writeRegister(d->REG_SP, address);
-                            }
-                            else {
+                            } else {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
@@ -1310,8 +1247,7 @@ namespace rose {
 
                                 if (rt_unknown) {
                                     data = ops->unspecified_(1);
-                                }
-                                else {
+                                } else {
                                     data = d->read(args[0]);
                                 }
                                 d->writeMemory(address, 0x8 << EXTR(30, 31), data);
@@ -1323,8 +1259,7 @@ namespace rose {
 
                                 if ((EXTR(23, 23) == 1)) {
                                     d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                }
-                                else {
+                                } else {
                                     d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                                 }
                             }
@@ -1335,16 +1270,13 @@ namespace rose {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
-                            }
-
-                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
                             if (EXTR(5, 9) == 31) {
                                 d->writeRegister(d->REG_SP, address);
-                            }
-                            else {
+                            } else {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
@@ -1368,8 +1300,7 @@ namespace rose {
 
                                 if (rt_unknown) {
                                     data = ops->unspecified_(1);
-                                }
-                                else {
+                                } else {
                                     data = d->read(args[0]);
                                 }
                                 d->writeMemory(address, 0x8 << EXTR(30, 31), data);
@@ -1380,8 +1311,7 @@ namespace rose {
 
                                 if ((EXTR(23, 23) == 1)) {
                                     d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                }
-                                else {
+                                } else {
                                     d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                                 }
                             }
@@ -1392,16 +1322,13 @@ namespace rose {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
-                            }
-
-                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
                             if (EXTR(5, 9) == 31) {
                                 d->writeRegister(d->REG_SP, address);
-                            }
-                            else {
+                            } else {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
@@ -1425,8 +1352,7 @@ namespace rose {
 
                                 if (rt_unknown) {
                                     data = ops->unspecified_(1);
-                                }
-                                else {
+                                } else {
                                     data = d->read(args[0]);
                                 }
                                 d->writeMemory(address, 0x8 << EXTR(30, 31), data);
@@ -1437,8 +1363,7 @@ namespace rose {
 
                                 if ((EXTR(23, 23) == 1)) {
                                     d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                }
-                                else {
+                                } else {
                                     d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                                 }
                             }
@@ -1449,16 +1374,13 @@ namespace rose {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
-                            }
-
-                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
                             if (EXTR(5, 9) == 31) {
                                 d->writeRegister(d->REG_SP, address);
-                            }
-                            else {
+                            } else {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
@@ -1482,8 +1404,7 @@ namespace rose {
 
                                 if (rt_unknown) {
                                     data = ops->unspecified_(1);
-                                }
-                                else {
+                                } else {
                                     data = d->read(args[0]);
                                 }
                                 d->writeMemory(address, 0x8 << EXTR(30, 31), data);
@@ -1494,8 +1415,7 @@ namespace rose {
 
                                 if ((EXTR(23, 23) == 1)) {
                                     d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                }
-                                else {
+                                } else {
                                     d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                                 }
                             }
@@ -1506,16 +1426,13 @@ namespace rose {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
-                            }
-
-                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
                             if (EXTR(5, 9) == 31) {
                                 d->writeRegister(d->REG_SP, address);
-                            }
-                            else {
+                            } else {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
@@ -1539,8 +1456,7 @@ namespace rose {
 
                                 if (rt_unknown) {
                                     data = ops->unspecified_(1);
-                                }
-                                else {
+                                } else {
                                     data = d->read(args[0]);
                                 }
                                 d->writeMemory(address, 0x8 << EXTR(30, 31), data);
@@ -1551,8 +1467,7 @@ namespace rose {
 
                                 if ((EXTR(23, 23) == 1)) {
                                     d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                }
-                                else {
+                                } else {
                                     d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                                 }
                             }
@@ -1563,16 +1478,13 @@ namespace rose {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
-                            }
-
-                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
                             if (EXTR(5, 9) == 31) {
                                 d->writeRegister(d->REG_SP, address);
-                            }
-                            else {
+                            } else {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
@@ -1596,8 +1508,7 @@ namespace rose {
 
                                 if (rt_unknown) {
                                     data = ops->unspecified_(1);
-                                }
-                                else {
+                                } else {
                                     data = d->read(args[0]);
                                 }
                                 d->writeMemory(address, 0x8 << EXTR(30, 31), data);
@@ -1608,8 +1519,7 @@ namespace rose {
 
                                 if ((EXTR(23, 23) == 1)) {
                                     d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                }
-                                else {
+                                } else {
                                     d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                                 }
                             }
@@ -1620,16 +1530,13 @@ namespace rose {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
-                            }
-
-                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
                             if (EXTR(5, 9) == 31) {
                                 d->writeRegister(d->REG_SP, address);
-                            }
-                            else {
+                            } else {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
@@ -1653,8 +1560,7 @@ namespace rose {
 
                                 if (rt_unknown) {
                                     data = ops->unspecified_(1);
-                                }
-                                else {
+                                } else {
                                     data = d->read(args[0]);
                                 }
                                 d->writeMemory(address, 0x8 << EXTR(30, 31), data);
@@ -1665,8 +1571,7 @@ namespace rose {
 
                                 if ((EXTR(23, 23) == 1)) {
                                     d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                }
-                                else {
+                                } else {
                                     d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                                 }
                             }
@@ -1677,16 +1582,13 @@ namespace rose {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
-                            }
-
-                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
                             if (EXTR(5, 9) == 31) {
                                 d->writeRegister(d->REG_SP, address);
-                            }
-                            else {
+                            } else {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
@@ -1710,8 +1612,7 @@ namespace rose {
 
                                 if (rt_unknown) {
                                     data = ops->unspecified_(1);
-                                }
-                                else {
+                                } else {
                                     data = d->read(args[0]);
                                 }
                                 d->writeMemory(address, 0x8 << EXTR(30, 31), data);
@@ -1722,8 +1623,7 @@ namespace rose {
 
                                 if ((EXTR(23, 23) == 1)) {
                                     d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                }
-                                else {
+                                } else {
                                     d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                                 }
                             }
@@ -1734,16 +1634,13 @@ namespace rose {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
-                            }
-
-                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
                             if (EXTR(5, 9) == 31) {
                                 d->writeRegister(d->REG_SP, address);
-                            }
-                            else {
+                            } else {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
@@ -1767,8 +1664,7 @@ namespace rose {
 
                                 if (rt_unknown) {
                                     data = ops->unspecified_(1);
-                                }
-                                else {
+                                } else {
                                     data = d->read(args[0]);
                                 }
                                 d->writeMemory(address, 0x8 << EXTR(30, 31), data);
@@ -1779,8 +1675,7 @@ namespace rose {
 
                                 if ((EXTR(23, 23) == 1)) {
                                     d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                }
-                                else {
+                                } else {
                                     d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                                 }
                             }
@@ -1791,16 +1686,13 @@ namespace rose {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
-                            }
-
-                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
                             if (EXTR(5, 9) == 31) {
                                 d->writeRegister(d->REG_SP, address);
-                            }
-                            else {
+                            } else {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
@@ -1824,8 +1716,7 @@ namespace rose {
 
                                 if (rt_unknown) {
                                     data = ops->unspecified_(1);
-                                }
-                                else {
+                                } else {
                                     data = d->read(args[0]);
                                 }
                                 d->writeMemory(address, 0x8 << EXTR(30, 31), data);
@@ -1836,8 +1727,7 @@ namespace rose {
 
                                 if ((EXTR(23, 23) == 1)) {
                                     d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                }
-                                else {
+                                } else {
                                     d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                                 }
                             }
@@ -1848,16 +1738,13 @@ namespace rose {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
-                            }
-
-                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
                             if (EXTR(5, 9) == 31) {
                                 d->writeRegister(d->REG_SP, address);
-                            }
-                            else {
+                            } else {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
@@ -1881,8 +1768,7 @@ namespace rose {
 
                                 if (rt_unknown) {
                                     data = ops->unspecified_(1);
-                                }
-                                else {
+                                } else {
                                     data = d->read(args[0]);
                                 }
                                 d->writeMemory(address, 0x8 << EXTR(30, 31), data);
@@ -1893,8 +1779,7 @@ namespace rose {
 
                                 if ((EXTR(23, 23) == 1)) {
                                     d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                                }
-                                else {
+                                } else {
                                     d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
                                 }
                             }
@@ -1905,16 +1790,13 @@ namespace rose {
 
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
-                            }
-
-                            else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                                 address = ops->add(address, d->read(args[2]));
                             }
 
                             if (EXTR(5, 9) == 31) {
                                 d->writeRegister(d->REG_SP, address);
-                            }
-                            else {
+                            } else {
                                 d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
@@ -1933,8 +1815,7 @@ namespace rose {
 
                                 if ((EXTR(23, 23) == 1)) {
                                     d->write(args[0], d->SignExtend(data, 64));
-                                }
-                                else {
+                                } else {
                                     d->write(args[0], data);
                                 }
                             }
@@ -1955,8 +1836,7 @@ namespace rose {
 
                                 if ((EXTR(23, 23) == 1)) {
                                     d->write(args[0], d->SignExtend(data, 64));
-                                }
-                                else {
+                                } else {
                                     d->write(args[0], data);
                                 }
                             }
@@ -2351,11 +2231,11 @@ namespace rose {
                 };
 
                 struct IP_fmov_float_gen_execute : P {
-                   void p(D d, Ops ops, I insn, A args, B raw) {
-			            BaseSemantics::SValuePtr srcVal = d->read(args[1]);
-			            d->write(args[0], srcVal);
-	            }
-	        };
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr srcVal = d->read(args[1]);
+                        d->write(args[0], srcVal);
+                    }
+                };
 
                 struct IP_orr_log_shift_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
@@ -3555,163 +3435,631 @@ namespace rose {
                     }
                 };
 
-                struct IP_sttr_execute: P {
+                struct IP_sttr_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
-                    BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
-                    BaseSemantics::SValuePtr data;
-                    bool wb_unknown = false;
-                    bool rt_unknown = false;
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
 
-                    /*f (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                        address = ops->add(address, d->read(args[2]));
-                    }*/
-
-                    switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                        case MemOp_STORE: {
-
-                            if (rt_unknown) {
-                                data = ops->unspecified_(1);
-                            } else {
-                                data = d->read(args[0]);
-                            }
-                            d->writeMemory(address, d->getDatasize(raw) / 8, data);
-                        }
-                            break;
-                        case MemOp_LOAD: {
-                            data = d->readMemory(address, d->getDatasize(raw) / 8);
-
-                            if ((EXTR(23, 23) == 1)) {
-                                d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
-                            } else {
-                                d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
-                            }
-                        }
-                            break;
-                    }
-
-                    if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
-
-                        if (wb_unknown) {
-                            address = ops->unspecified_(1);
-                        } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                        /*f (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
-                        }
+                        }*/
 
-                        if (EXTR(5, 9) == 31) {
-                            d->writeRegister(d->REG_SP, address);
-                        } else {
-                            d->write(d->getWriteBackTarget(args[1]), address);
-                        }
-                    }
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
 
-                }
-            };
-
-            struct IP_sttrb_execute : P {
-                void p(D d, Ops ops, I insn, A args, B raw) {
-                    BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
-                    BaseSemantics::SValuePtr data;
-                    bool wb_unknown = false;
-                    bool rt_unknown = false;
-
-                    /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                        address = ops->add(address, d->read(args[2]));
-                    }*/
-
-                    switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                        case MemOp_STORE: {
-
-                            if (rt_unknown) {
-                                data = ops->unspecified_(1);
-                            } else {
-                                data = d->read(args[0]);
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                } else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
                             }
-                            d->writeMemory(address, d->getDatasize(raw) / 8, data);
-                        }
-                            break;
-                        case MemOp_LOAD: {
-                            data = d->readMemory(address, d->getDatasize(raw) / 8);
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, d->getDatasize(raw) / 8);
 
-                            if ((EXTR(23, 23) == 1)) {
-                                d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                } else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
                             } else {
-                                d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
-                            break;
+
                     }
+                };
 
-                    if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                struct IP_sttrb_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
 
-                        if (wb_unknown) {
-                            address = ops->unspecified_(1);
-                        } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
-                        }
+                        }*/
 
-                        if (EXTR(5, 9) == 31) {
-                            d->writeRegister(d->REG_SP, address);
-                        } else {
-                            d->write(d->getWriteBackTarget(args[1]), address);
-                        }
-                    }
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
 
-                }
-            };
-
-            struct IP_sttrh_execute : P {
-                void p(D d, Ops ops, I insn, A args, B raw) {
-                    BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
-                    BaseSemantics::SValuePtr data;
-                    bool wb_unknown = false;
-                    bool rt_unknown = false;
-
-                    /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                        address = ops->add(address, d->read(args[2]));
-                    }*/
-
-                    switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
-                        case MemOp_STORE: {
-
-                            if (rt_unknown) {
-                                data = ops->unspecified_(1);
-                            } else {
-                                data = d->read(args[0]);
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                } else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
                             }
-                            d->writeMemory(address, d->getDatasize(raw) / 8, data);
-                        }
-                            break;
-                        case MemOp_LOAD: {
-                            data = d->readMemory(address, d->getDatasize(raw) / 8);
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, d->getDatasize(raw) / 8);
 
-                            if ((EXTR(23, 23) == 1)) {
-                                d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                } else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
                             } else {
-                                d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                d->write(d->getWriteBackTarget(args[1]), address);
                             }
                         }
-                            break;
+
                     }
+                };
 
-                    if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+                struct IP_sttrh_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
 
-                        if (wb_unknown) {
-                            address = ops->unspecified_(1);
-                        } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
                             address = ops->add(address, d->read(args[2]));
+                        }*/
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                } else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, d->getDatasize(raw) / 8);
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                } else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
                         }
 
-                        if (EXTR(5, 9) == 31) {
-                            d->writeRegister(d->REG_SP, address);
-                        } else {
-                            d->write(d->getWriteBackTarget(args[1]), address);
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            } else {
+                                d->write(d->getWriteBackTarget(args[1]), address);
+                            }
                         }
+
                     }
+                };
 
-                }
-            };
+                struct IP_ldur_gen_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
 
-        } // namespace
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }*/
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                } else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, d->getDatasize(raw) / 8);
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                } else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            } else {
+                                d->write(d->getWriteBackTarget(args[1]), address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_ldurb_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }*/
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                } else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, d->getDatasize(raw) / 8);
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                } else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            } else {
+                                d->write(d->getWriteBackTarget(args[1]), address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_ldurh_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }*/
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                } else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, d->getDatasize(raw) / 8);
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                } else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            } else {
+                                d->write(d->getWriteBackTarget(args[1]), address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_ldursb_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }*/
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                } else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, d->getDatasize(raw) / 8);
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                } else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            } else {
+                                d->write(d->getWriteBackTarget(args[1]), address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_ldursh_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }*/
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                } else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, d->getDatasize(raw) / 8);
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                } else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            } else {
+                                d->write(d->getWriteBackTarget(args[1]), address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_ldursw_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }*/
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                } else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, d->getDatasize(raw) / 8);
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                } else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            } else {
+                                d->write(d->getWriteBackTarget(args[1]), address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_sturb_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }*/
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                } else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, d->getDatasize(raw) / 8);
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                } else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            } else {
+                                d->write(d->getWriteBackTarget(args[1]), address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_sturh_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }*/
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                } else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, d->getDatasize(raw) / 8);
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                } else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            } else {
+                                d->write(d->getWriteBackTarget(args[1]), address);
+                            }
+                        }
+
+                    }
+                };
+
+                struct IP_stur_gen_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        bool wb_unknown = false;
+                        bool rt_unknown = false;
+
+                        /*if (!(EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                            address = ops->add(address, d->read(args[2]));
+                        }*/
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+
+                                if (rt_unknown) {
+                                    data = ops->unspecified_(1);
+                                } else {
+                                    data = d->read(args[0]);
+                                }
+                                d->writeMemory(address, d->getDatasize(raw) / 8, data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, d->getDatasize(raw) / 8);
+
+                                if ((EXTR(23, 23) == 1)) {
+                                    d->write(args[0], d->SignExtend(data, d->getRegSize(raw)));
+                                } else {
+                                    d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                                }
+                            }
+                                break;
+                        }
+
+                        if (((EXTR(24, 24) == 0) && EXTR(21, 21) == 0)) {
+
+                            if (wb_unknown) {
+                                address = ops->unspecified_(1);
+                            } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
+                                address = ops->add(address, d->read(args[2]));
+                            }
+
+                            if (EXTR(5, 9) == 31) {
+                                d->writeRegister(d->REG_SP, address);
+                            } else {
+                                d->write(d->getWriteBackTarget(args[1]), address);
+                            }
+                        }
+
+                    }
+                };
+
+            } // namespace
 
 /*******************************************************************************************************************************
  *                                      DispatcherARM64
@@ -3719,109 +4067,118 @@ namespace rose {
 
             void
             DispatcherARM64::iproc_init() {
-                iproc_set (rose_aarch64_op_add_addsub_imm, new ARM64::IP_add_addsub_imm_execute);
-                iproc_set (rose_aarch64_op_adds_addsub_imm, new ARM64::IP_adds_addsub_imm_execute);
-                iproc_set (rose_aarch64_op_sub_addsub_imm, new ARM64::IP_sub_addsub_imm_execute);
-                iproc_set (rose_aarch64_op_subs_addsub_imm, new ARM64::IP_subs_addsub_imm_execute);
-                iproc_set (rose_aarch64_op_add_addsub_ext, new ARM64::IP_add_addsub_ext_execute);
-                iproc_set (rose_aarch64_op_adds_addsub_ext, new ARM64::IP_adds_addsub_ext_execute);
-                iproc_set (rose_aarch64_op_sub_addsub_ext, new ARM64::IP_sub_addsub_ext_execute);
-                iproc_set (rose_aarch64_op_subs_addsub_ext, new ARM64::IP_subs_addsub_ext_execute);
-                iproc_set (rose_aarch64_op_add_addsub_shift, new ARM64::IP_add_addsub_shift_execute);
-                iproc_set (rose_aarch64_op_adds_addsub_shift, new ARM64::IP_adds_addsub_shift_execute);
-                iproc_set (rose_aarch64_op_sub_addsub_shift, new ARM64::IP_sub_addsub_shift_execute);
-                iproc_set (rose_aarch64_op_subs_addsub_shift, new ARM64::IP_subs_addsub_shift_execute);
-                iproc_set (rose_aarch64_op_adc, new ARM64::IP_adc_execute);
-                iproc_set (rose_aarch64_op_adcs, new ARM64::IP_adcs_execute);
-                iproc_set (rose_aarch64_op_adr, new ARM64::IP_adr_execute);
-                iproc_set (rose_aarch64_op_adrp, new ARM64::IP_adrp_execute);
-                iproc_set (rose_aarch64_op_b_uncond, new ARM64::IP_b_uncond_execute);
-                iproc_set (rose_aarch64_op_b_cond, new ARM64::IP_b_cond_execute);
-                iproc_set (rose_aarch64_op_br, new ARM64::IP_br_execute);
-                iproc_set (rose_aarch64_op_blr, new ARM64::IP_blr_execute);
-                iproc_set (rose_aarch64_op_bl, new ARM64::IP_bl_execute);
-                iproc_set (rose_aarch64_op_cbz, new ARM64::IP_cbz_execute);
-                iproc_set (rose_aarch64_op_cbnz, new ARM64::IP_cbnz_execute);
-                iproc_set (rose_aarch64_op_tbz, new ARM64::IP_tbz_execute);
-                iproc_set (rose_aarch64_op_tbnz, new ARM64::IP_tbnz_execute);
-                iproc_set (rose_aarch64_op_cmp_subs_addsub_imm, new ARM64::IP_cmp_subs_addsub_imm_execute);
-                iproc_set (rose_aarch64_op_cmp_subs_addsub_ext, new ARM64::IP_cmp_subs_addsub_ext_execute);
-                iproc_set (rose_aarch64_op_cmp_subs_addsub_shift, new ARM64::IP_cmp_subs_addsub_shift_execute);
-                iproc_set (rose_aarch64_op_cmn_adds_addsub_imm, new ARM64::IP_cmn_adds_addsub_imm_execute);
-                iproc_set (rose_aarch64_op_cmn_adds_addsub_ext, new ARM64::IP_cmn_adds_addsub_ext_execute);
-                iproc_set (rose_aarch64_op_cmn_adds_addsub_shift, new ARM64::IP_cmn_adds_addsub_shift_execute);
-                iproc_set (rose_aarch64_op_ccmn_reg, new ARM64::IP_ccmn_reg_execute);
-                iproc_set (rose_aarch64_op_ccmn_imm, new ARM64::IP_ccmn_imm_execute);
-                iproc_set (rose_aarch64_op_ldr_imm_gen, new ARM64::IP_ldr_imm_gen_execute);
-                iproc_set (rose_aarch64_op_str_imm_gen, new ARM64::IP_str_imm_gen_execute);
-                iproc_set (rose_aarch64_op_ldrb_imm, new ARM64::IP_ldrb_imm_execute);
-                iproc_set (rose_aarch64_op_strb_imm, new ARM64::IP_strb_imm_execute);
-                iproc_set (rose_aarch64_op_ldrh_imm, new ARM64::IP_ldrh_imm_execute);
-                iproc_set (rose_aarch64_op_ldrsb_imm, new ARM64::IP_ldrsb_imm_execute);
-                iproc_set (rose_aarch64_op_ldrsh_imm, new ARM64::IP_ldrsh_imm_execute);
-                iproc_set (rose_aarch64_op_ldrsw_imm, new ARM64::IP_ldrsw_imm_execute);
-                iproc_set (rose_aarch64_op_strh_imm, new ARM64::IP_strh_imm_execute);
-                iproc_set (rose_aarch64_op_ldr_reg_gen, new ARM64::IP_ldr_reg_gen_execute);
-                iproc_set (rose_aarch64_op_ldrb_reg, new ARM64::IP_ldrb_reg_execute);
-                iproc_set (rose_aarch64_op_ldrh_reg, new ARM64::IP_ldrh_reg_execute);
-                iproc_set (rose_aarch64_op_ldrsb_reg, new ARM64::IP_ldrsb_reg_execute);
-                iproc_set (rose_aarch64_op_ldrsh_reg, new ARM64::IP_ldrsh_reg_execute);
-                iproc_set (rose_aarch64_op_ldrsw_reg, new ARM64::IP_ldrsw_reg_execute);
-                iproc_set (rose_aarch64_op_str_reg_gen, new ARM64::IP_str_reg_gen_execute);
-                iproc_set (rose_aarch64_op_strb_reg, new ARM64::IP_strb_reg_execute);
-                iproc_set (rose_aarch64_op_strh_reg, new ARM64::IP_strh_reg_execute);
-                iproc_set (rose_aarch64_op_ldr_lit_gen, new ARM64::IP_ldr_lit_gen_execute);
-                iproc_set (rose_aarch64_op_ldrsw_lit, new ARM64::IP_ldrsw_lit_execute);
-                iproc_set (rose_aarch64_op_ubfm, new ARM64::IP_ubfm_execute);
-                iproc_set (rose_aarch64_op_uxtb_ubfm, new ARM64::IP_uxtb_ubfm_execute);
-                iproc_set (rose_aarch64_op_uxth_ubfm, new ARM64::IP_uxth_ubfm_execute);
-                iproc_set (rose_aarch64_op_ubfiz_ubfm, new ARM64::IP_ubfiz_ubfm_execute);
-                iproc_set (rose_aarch64_op_ubfx_ubfm, new ARM64::IP_ubfx_ubfm_execute);
-                iproc_set (rose_aarch64_op_sbfm, new ARM64::IP_sbfm_execute);
-                iproc_set (rose_aarch64_op_sxth_sbfm, new ARM64::IP_sxth_sbfm_execute);
-                iproc_set (rose_aarch64_op_sxtb_sbfm, new ARM64::IP_sxtb_sbfm_execute);
-                iproc_set (rose_aarch64_op_sxtw_sbfm, new ARM64::IP_sxtw_sbfm_execute);
-                iproc_set (rose_aarch64_op_sbfiz_sbfm, new ARM64::IP_sbfiz_sbfm_execute);
-                iproc_set (rose_aarch64_op_sbfx_sbfm, new ARM64::IP_sbfx_sbfm_execute);
-                iproc_set (rose_aarch64_op_fmov_float_gen, new ARM64::IP_fmov_float_gen_execute);
-                iproc_set (rose_aarch64_op_movz, new ARM64::IP_movz_execute);
-                iproc_set (rose_aarch64_op_mov_movz, new ARM64::IP_mov_movz_execute);
-                iproc_set (rose_aarch64_op_movn, new ARM64::IP_movn_execute);
-                iproc_set (rose_aarch64_op_mov_movn, new ARM64::IP_mov_movn_execute);
-                iproc_set (rose_aarch64_op_movk, new ARM64::IP_movk_execute);
-                iproc_set (rose_aarch64_op_mov_orr_log_shift, new ARM64::IP_mov_orr_log_shift_execute);
-                iproc_set (rose_aarch64_op_mov_orr_log_imm, new ARM64::IP_mov_orr_log_imm_execute);
-                iproc_set (rose_aarch64_op_orr_log_shift, new ARM64::IP_orr_log_shift_execute);
-                iproc_set (rose_aarch64_op_orn_log_shift, new ARM64::IP_orn_log_shift_execute);
-                iproc_set (rose_aarch64_op_orr_log_imm, new ARM64::IP_orr_log_imm_execute);
-                iproc_set (rose_aarch64_op_and_log_imm, new ARM64::IP_and_log_imm_execute);
-                iproc_set (rose_aarch64_op_and_log_shift, new ARM64::IP_and_log_shift_execute);
-                iproc_set (rose_aarch64_op_ands_log_imm, new ARM64::IP_ands_log_imm_execute);
-                iproc_set (rose_aarch64_op_ands_log_shift, new ARM64::IP_ands_log_shift_execute);
-                iproc_set (rose_aarch64_op_eor_log_shift, new ARM64::IP_eor_log_shift_execute);
-                iproc_set (rose_aarch64_op_eor_log_imm, new ARM64::IP_eor_log_imm_execute);
-                iproc_set (rose_aarch64_op_eon, new ARM64::IP_eon_execute);
-                iproc_set (rose_aarch64_op_lsl_ubfm, new ARM64::IP_lsl_ubfm_execute);
-                iproc_set (rose_aarch64_op_lsr_ubfm, new ARM64::IP_lsr_ubfm_execute);
-                iproc_set (rose_aarch64_op_asr_sbfm, new ARM64::IP_asr_sbfm_execute);
-                iproc_set (rose_aarch64_op_bfm, new ARM64::IP_bfm_execute);
-                iproc_set (rose_aarch64_op_bfxil_bfm, new ARM64::IP_bfxil_bfm_execute);
-                iproc_set (rose_aarch64_op_bfi_bfm, new ARM64::IP_bfi_bfm_execute);
-                iproc_set (rose_aarch64_op_bic_log_shift, new ARM64::IP_bic_log_shift_execute);
-                iproc_set (rose_aarch64_op_bics, new ARM64::IP_bics_execute);
-                iproc_set (rose_aarch64_op_stp_gen, new ARM64::IP_stp_gen_execute);
-                iproc_set (rose_aarch64_op_ldp_gen, new ARM64::IP_ldp_gen_execute);
-                iproc_set (rose_aarch64_op_ldpsw, new ARM64::IP_ldpsw_execute);
-                iproc_set (rose_aarch64_op_ldnp_gen, new ARM64::IP_ldnp_gen_execute);
-                iproc_set (rose_aarch64_op_stnp_gen, new ARM64::IP_stnp_gen_execute);
-                iproc_set (rose_aarch64_op_ldtr, new ARM64::IP_ldtr_execute);
-                iproc_set (rose_aarch64_op_ldtrb, new ARM64::IP_ldtrb_execute);
-                iproc_set (rose_aarch64_op_ldtrh, new ARM64::IP_ldtrh_execute);
-                iproc_set (rose_aarch64_op_ldtrsb, new ARM64::IP_ldtrsb_execute);
-                iproc_set (rose_aarch64_op_ldtrsh, new ARM64::IP_ldtrsh_execute);
-                iproc_set (rose_aarch64_op_sttr, new ARM64::IP_sttr_execute);
-                iproc_set (rose_aarch64_op_sttrb, new ARM64::IP_sttrb_execute);
-                iproc_set (rose_aarch64_op_sttrh, new ARM64::IP_sttrh_execute);
+                iproc_set(rose_aarch64_op_add_addsub_imm, new ARM64::IP_add_addsub_imm_execute);
+                iproc_set(rose_aarch64_op_adds_addsub_imm, new ARM64::IP_adds_addsub_imm_execute);
+                iproc_set(rose_aarch64_op_sub_addsub_imm, new ARM64::IP_sub_addsub_imm_execute);
+                iproc_set(rose_aarch64_op_subs_addsub_imm, new ARM64::IP_subs_addsub_imm_execute);
+                iproc_set(rose_aarch64_op_add_addsub_ext, new ARM64::IP_add_addsub_ext_execute);
+                iproc_set(rose_aarch64_op_adds_addsub_ext, new ARM64::IP_adds_addsub_ext_execute);
+                iproc_set(rose_aarch64_op_sub_addsub_ext, new ARM64::IP_sub_addsub_ext_execute);
+                iproc_set(rose_aarch64_op_subs_addsub_ext, new ARM64::IP_subs_addsub_ext_execute);
+                iproc_set(rose_aarch64_op_add_addsub_shift, new ARM64::IP_add_addsub_shift_execute);
+                iproc_set(rose_aarch64_op_adds_addsub_shift, new ARM64::IP_adds_addsub_shift_execute);
+                iproc_set(rose_aarch64_op_sub_addsub_shift, new ARM64::IP_sub_addsub_shift_execute);
+                iproc_set(rose_aarch64_op_subs_addsub_shift, new ARM64::IP_subs_addsub_shift_execute);
+                iproc_set(rose_aarch64_op_adc, new ARM64::IP_adc_execute);
+                iproc_set(rose_aarch64_op_adcs, new ARM64::IP_adcs_execute);
+                iproc_set(rose_aarch64_op_adr, new ARM64::IP_adr_execute);
+                iproc_set(rose_aarch64_op_adrp, new ARM64::IP_adrp_execute);
+                iproc_set(rose_aarch64_op_b_uncond, new ARM64::IP_b_uncond_execute);
+                iproc_set(rose_aarch64_op_b_cond, new ARM64::IP_b_cond_execute);
+                iproc_set(rose_aarch64_op_br, new ARM64::IP_br_execute);
+                iproc_set(rose_aarch64_op_blr, new ARM64::IP_blr_execute);
+                iproc_set(rose_aarch64_op_bl, new ARM64::IP_bl_execute);
+                iproc_set(rose_aarch64_op_cbz, new ARM64::IP_cbz_execute);
+                iproc_set(rose_aarch64_op_cbnz, new ARM64::IP_cbnz_execute);
+                iproc_set(rose_aarch64_op_tbz, new ARM64::IP_tbz_execute);
+                iproc_set(rose_aarch64_op_tbnz, new ARM64::IP_tbnz_execute);
+                iproc_set(rose_aarch64_op_cmp_subs_addsub_imm, new ARM64::IP_cmp_subs_addsub_imm_execute);
+                iproc_set(rose_aarch64_op_cmp_subs_addsub_ext, new ARM64::IP_cmp_subs_addsub_ext_execute);
+                iproc_set(rose_aarch64_op_cmp_subs_addsub_shift, new ARM64::IP_cmp_subs_addsub_shift_execute);
+                iproc_set(rose_aarch64_op_cmn_adds_addsub_imm, new ARM64::IP_cmn_adds_addsub_imm_execute);
+                iproc_set(rose_aarch64_op_cmn_adds_addsub_ext, new ARM64::IP_cmn_adds_addsub_ext_execute);
+                iproc_set(rose_aarch64_op_cmn_adds_addsub_shift, new ARM64::IP_cmn_adds_addsub_shift_execute);
+                iproc_set(rose_aarch64_op_ccmn_reg, new ARM64::IP_ccmn_reg_execute);
+                iproc_set(rose_aarch64_op_ccmn_imm, new ARM64::IP_ccmn_imm_execute);
+                iproc_set(rose_aarch64_op_ldr_imm_gen, new ARM64::IP_ldr_imm_gen_execute);
+                iproc_set(rose_aarch64_op_str_imm_gen, new ARM64::IP_str_imm_gen_execute);
+                iproc_set(rose_aarch64_op_ldrb_imm, new ARM64::IP_ldrb_imm_execute);
+                iproc_set(rose_aarch64_op_strb_imm, new ARM64::IP_strb_imm_execute);
+                iproc_set(rose_aarch64_op_ldrh_imm, new ARM64::IP_ldrh_imm_execute);
+                iproc_set(rose_aarch64_op_ldrsb_imm, new ARM64::IP_ldrsb_imm_execute);
+                iproc_set(rose_aarch64_op_ldrsh_imm, new ARM64::IP_ldrsh_imm_execute);
+                iproc_set(rose_aarch64_op_ldrsw_imm, new ARM64::IP_ldrsw_imm_execute);
+                iproc_set(rose_aarch64_op_strh_imm, new ARM64::IP_strh_imm_execute);
+                iproc_set(rose_aarch64_op_ldr_reg_gen, new ARM64::IP_ldr_reg_gen_execute);
+                iproc_set(rose_aarch64_op_ldrb_reg, new ARM64::IP_ldrb_reg_execute);
+                iproc_set(rose_aarch64_op_ldrh_reg, new ARM64::IP_ldrh_reg_execute);
+                iproc_set(rose_aarch64_op_ldrsb_reg, new ARM64::IP_ldrsb_reg_execute);
+                iproc_set(rose_aarch64_op_ldrsh_reg, new ARM64::IP_ldrsh_reg_execute);
+                iproc_set(rose_aarch64_op_ldrsw_reg, new ARM64::IP_ldrsw_reg_execute);
+                iproc_set(rose_aarch64_op_str_reg_gen, new ARM64::IP_str_reg_gen_execute);
+                iproc_set(rose_aarch64_op_strb_reg, new ARM64::IP_strb_reg_execute);
+                iproc_set(rose_aarch64_op_strh_reg, new ARM64::IP_strh_reg_execute);
+                iproc_set(rose_aarch64_op_ldr_lit_gen, new ARM64::IP_ldr_lit_gen_execute);
+                iproc_set(rose_aarch64_op_ldrsw_lit, new ARM64::IP_ldrsw_lit_execute);
+                iproc_set(rose_aarch64_op_ubfm, new ARM64::IP_ubfm_execute);
+                iproc_set(rose_aarch64_op_uxtb_ubfm, new ARM64::IP_uxtb_ubfm_execute);
+                iproc_set(rose_aarch64_op_uxth_ubfm, new ARM64::IP_uxth_ubfm_execute);
+                iproc_set(rose_aarch64_op_ubfiz_ubfm, new ARM64::IP_ubfiz_ubfm_execute);
+                iproc_set(rose_aarch64_op_ubfx_ubfm, new ARM64::IP_ubfx_ubfm_execute);
+                iproc_set(rose_aarch64_op_sbfm, new ARM64::IP_sbfm_execute);
+                iproc_set(rose_aarch64_op_sxth_sbfm, new ARM64::IP_sxth_sbfm_execute);
+                iproc_set(rose_aarch64_op_sxtb_sbfm, new ARM64::IP_sxtb_sbfm_execute);
+                iproc_set(rose_aarch64_op_sxtw_sbfm, new ARM64::IP_sxtw_sbfm_execute);
+                iproc_set(rose_aarch64_op_sbfiz_sbfm, new ARM64::IP_sbfiz_sbfm_execute);
+                iproc_set(rose_aarch64_op_sbfx_sbfm, new ARM64::IP_sbfx_sbfm_execute);
+                iproc_set(rose_aarch64_op_fmov_float_gen, new ARM64::IP_fmov_float_gen_execute);
+                iproc_set(rose_aarch64_op_movz, new ARM64::IP_movz_execute);
+                iproc_set(rose_aarch64_op_mov_movz, new ARM64::IP_mov_movz_execute);
+                iproc_set(rose_aarch64_op_movn, new ARM64::IP_movn_execute);
+                iproc_set(rose_aarch64_op_mov_movn, new ARM64::IP_mov_movn_execute);
+                iproc_set(rose_aarch64_op_movk, new ARM64::IP_movk_execute);
+                iproc_set(rose_aarch64_op_mov_orr_log_shift, new ARM64::IP_mov_orr_log_shift_execute);
+                iproc_set(rose_aarch64_op_mov_orr_log_imm, new ARM64::IP_mov_orr_log_imm_execute);
+                iproc_set(rose_aarch64_op_orr_log_shift, new ARM64::IP_orr_log_shift_execute);
+                iproc_set(rose_aarch64_op_orn_log_shift, new ARM64::IP_orn_log_shift_execute);
+                iproc_set(rose_aarch64_op_orr_log_imm, new ARM64::IP_orr_log_imm_execute);
+                iproc_set(rose_aarch64_op_and_log_imm, new ARM64::IP_and_log_imm_execute);
+                iproc_set(rose_aarch64_op_and_log_shift, new ARM64::IP_and_log_shift_execute);
+                iproc_set(rose_aarch64_op_ands_log_imm, new ARM64::IP_ands_log_imm_execute);
+                iproc_set(rose_aarch64_op_ands_log_shift, new ARM64::IP_ands_log_shift_execute);
+                iproc_set(rose_aarch64_op_eor_log_shift, new ARM64::IP_eor_log_shift_execute);
+                iproc_set(rose_aarch64_op_eor_log_imm, new ARM64::IP_eor_log_imm_execute);
+                iproc_set(rose_aarch64_op_eon, new ARM64::IP_eon_execute);
+                iproc_set(rose_aarch64_op_lsl_ubfm, new ARM64::IP_lsl_ubfm_execute);
+                iproc_set(rose_aarch64_op_lsr_ubfm, new ARM64::IP_lsr_ubfm_execute);
+                iproc_set(rose_aarch64_op_asr_sbfm, new ARM64::IP_asr_sbfm_execute);
+                iproc_set(rose_aarch64_op_bfm, new ARM64::IP_bfm_execute);
+                iproc_set(rose_aarch64_op_bfxil_bfm, new ARM64::IP_bfxil_bfm_execute);
+                iproc_set(rose_aarch64_op_bfi_bfm, new ARM64::IP_bfi_bfm_execute);
+                iproc_set(rose_aarch64_op_bic_log_shift, new ARM64::IP_bic_log_shift_execute);
+                iproc_set(rose_aarch64_op_bics, new ARM64::IP_bics_execute);
+                iproc_set(rose_aarch64_op_stp_gen, new ARM64::IP_stp_gen_execute);
+                iproc_set(rose_aarch64_op_ldp_gen, new ARM64::IP_ldp_gen_execute);
+                iproc_set(rose_aarch64_op_ldpsw, new ARM64::IP_ldpsw_execute);
+                iproc_set(rose_aarch64_op_ldnp_gen, new ARM64::IP_ldnp_gen_execute);
+                iproc_set(rose_aarch64_op_stnp_gen, new ARM64::IP_stnp_gen_execute);
+                iproc_set(rose_aarch64_op_ldtr, new ARM64::IP_ldtr_execute);
+                iproc_set(rose_aarch64_op_ldtrb, new ARM64::IP_ldtrb_execute);
+                iproc_set(rose_aarch64_op_ldtrh, new ARM64::IP_ldtrh_execute);
+                iproc_set(rose_aarch64_op_ldtrsb, new ARM64::IP_ldtrsb_execute);
+                iproc_set(rose_aarch64_op_ldtrsh, new ARM64::IP_ldtrsh_execute);
+                iproc_set(rose_aarch64_op_sttr, new ARM64::IP_sttr_execute);
+                iproc_set(rose_aarch64_op_sttrb, new ARM64::IP_sttrb_execute);
+                iproc_set(rose_aarch64_op_sttrh, new ARM64::IP_sttrh_execute);
+                iproc_set(rose_aarch64_op_ldur_gen, new ARM64::IP_ldur_gen_execute);
+                iproc_set(rose_aarch64_op_ldurb, new ARM64::IP_ldurb_execute);
+                iproc_set(rose_aarch64_op_ldurh, new ARM64::IP_ldurh_execute);
+                iproc_set(rose_aarch64_op_ldursb, new ARM64::IP_ldursb_execute);
+                iproc_set(rose_aarch64_op_ldursh, new ARM64::IP_ldursh_execute);
+                iproc_set(rose_aarch64_op_ldursw, new ARM64::IP_ldursw_execute);
+                iproc_set(rose_aarch64_op_sturb, new ARM64::IP_sturb_execute);
+                iproc_set(rose_aarch64_op_sturh, new ARM64::IP_sturh_execute);
+                iproc_set(rose_aarch64_op_stur_gen, new ARM64::IP_stur_gen_execute);
             }
 
             void
@@ -3829,9 +4186,9 @@ namespace rose {
                 if (regdict) {
                     REG_PC = findRegister("pc", 64);
                     REG_N = findRegister("n", 1);
-		            REG_Z = findRegister("z", 1);
-		            REG_C = findRegister("c", 1);
-		            REG_V = findRegister("v", 1);
+                    REG_Z = findRegister("z", 1);
+                    REG_C = findRegister("c", 1);
+                    REG_V = findRegister("v", 1);
                     REG_SP = findRegister("sp", 64);
                 }
             }
@@ -3874,10 +4231,10 @@ namespace rose {
                 registers.erase(std::remove_if(registers.begin(), registers.end(), isStatusRegister),
                                 registers.end());
                 BOOST_FOREACH(
-                        const RegisterDescriptor &reg, regdict->get_smallest_registers()) {
-                                if (isStatusRegister(reg))
-                                    registers.push_back(reg);
-                            }
+                const RegisterDescriptor &reg, regdict->get_smallest_registers()) {
+                    if (isStatusRegister(reg))
+                        registers.push_back(reg);
+                }
                 return registers;
             }
 
@@ -3934,9 +4291,10 @@ namespace rose {
             BaseSemantics::SValuePtr
             DispatcherARM64::ConditionHolds(const BaseSemantics::SValuePtr &cond) {
                 Dyninst::AST::Ptr condExpr = SymEvalSemantics::SValue::promote(cond)->get_expression();
-                Dyninst::DataflowAPI::ConstantAST *constAST = dynamic_cast<Dyninst::DataflowAPI::ConstantAST *>(condExpr.get());
+                Dyninst::DataflowAPI::ConstantAST *
+                constAST = dynamic_cast<Dyninst::DataflowAPI::ConstantAST *>(condExpr.get());
 
-		ASSERT_not_null(constAST);
+                ASSERT_not_null(constAST);
                 Dyninst::DataflowAPI::Constant constVal = constAST->val();
                 uint64_t condVal = constVal.val;
 
@@ -3946,37 +4304,46 @@ namespace rose {
                 BaseSemantics::SValuePtr vVal = readRegister(REG_V);
                 BaseSemantics::SValuePtr result = operators->unspecified_(1);
 
-                switch(((condVal & 0xF) >> 1)) {
-                    case 0: result = operators->isEqual(zVal, operators->number_(1, 1));
+                switch (((condVal & 0xF) >> 1)) {
+                    case 0:
+                        result = operators->isEqual(zVal, operators->number_(1, 1));
                         break;
-                    case 1: result = operators->isEqual(cVal, operators->number_(1, 1));
+                    case 1:
+                        result = operators->isEqual(cVal, operators->number_(1, 1));
                         break;
-                    case 2: result = operators->isEqual(nVal, operators->number_(1, 1));
+                    case 2:
+                        result = operators->isEqual(nVal, operators->number_(1, 1));
                         break;
-                    case 3: result = operators->isEqual(vVal, operators->number_(1, 1));
+                    case 3:
+                        result = operators->isEqual(vVal, operators->number_(1, 1));
                         break;
-                    case 4: result = operators->ite(operators->isEqual(cVal, operators->number_(1, 1)),
-                                                    operators->ite(
-                                                            operators->isEqual(zVal, operators->number_(1, 0)),
-                                                            operators->boolean_(true), operators->boolean_(false)),
-                                                    operators->boolean_(false));
+                    case 4:
+                        result = operators->ite(operators->isEqual(cVal, operators->number_(1, 1)),
+                                                operators->ite(
+                                                        operators->isEqual(zVal, operators->number_(1, 0)),
+                                                        operators->boolean_(true), operators->boolean_(false)),
+                                                operators->boolean_(false));
                         break;
-                    case 5: result = operators->isEqual(nVal, vVal);
+                    case 5:
+                        result = operators->isEqual(nVal, vVal);
                         break;
-                    case 6: result = operators->ite(operators->isEqual(nVal, vVal),
-                                                    operators->ite(operators->isEqual(zVal,
-                                                                                      operators->number_(1, 0)),
-                                                                   operators->boolean_(true),
-                                                                   operators->boolean_(false)),
-                                                    operators->boolean_(false));
+                    case 6:
+                        result = operators->ite(operators->isEqual(nVal, vVal),
+                                                operators->ite(operators->isEqual(zVal,
+                                                                                  operators->number_(1, 0)),
+                                                               operators->boolean_(true),
+                                                               operators->boolean_(false)),
+                                                operators->boolean_(false));
                         break;
-                    case 7: result = operators->boolean_(true);
+                    case 7:
+                        result = operators->boolean_(true);
                         break;
-                    default: assert(!"invalid 3-bit value!");
+                    default:
+                        assert(!"invalid 3-bit value!");
                         break;
                 }
 
-                if((condVal & 0x1) == 1 && (condVal & 0xF) != 0xF)
+                if ((condVal & 0x1) == 1 && (condVal & 0xF) != 0xF)
                     result = operators->invert(result);
 
                 return result;
@@ -4022,10 +4389,11 @@ namespace rose {
                 ASSERT_not_null(expr);
                 ASSERT_always_require(64 % expr->get_width() == 0);
 
-                int blocknums = 64/expr->get_width();
+                int blocknums = 64 / expr->get_width();
                 BaseSemantics::SValuePtr ret = expr;
-                for(int idx = 0; idx < blocknums; idx++) {
-                    ret = operators->or_(ret, operators->shiftLeft(ret, operators->number_(8, expr->get_width() * idx)));
+                for (int idx = 0; idx < blocknums; idx++) {
+                    ret = operators->or_(ret,
+                                         operators->shiftLeft(ret, operators->number_(8, expr->get_width() * idx)));
                 }
 
                 return ret;
@@ -4036,13 +4404,13 @@ namespace rose {
                                              int N, bool iswmask, int datasize) {
                 int hsbarg = (N << 6) | (~imms);
                 int len;
-                for(int idx = 0; idx < 7; idx++) {
-                    if((hsbarg & 0x1) == 1)
+                for (int idx = 0; idx < 7; idx++) {
+                    if ((hsbarg & 0x1) == 1)
                         len = idx;
                     hsbarg >>= 1;
                 }
 
-                if(len < 1 || (1 << len) > 64)
+                if (len < 1 || (1 << len) > 64)
                     assert(!"Reserved value found in bitfield extract instruction!");
 
                 int levels = ((1 << len) - 1);
@@ -4053,7 +4421,7 @@ namespace rose {
                 int d = diff & levels;
                 int welem = (1 << (S + 1)) - 1, telem = (1 << (d + 1)) - 1;
 
-                if(iswmask) {
+                if (iswmask) {
                     BaseSemantics::SValuePtr wmask = operators->number_(datasize, welem);
                     wmask = ROR(wmask, operators->number_(32, R));
                     return Replicate(wmask);
@@ -4065,13 +4433,13 @@ namespace rose {
 
             size_t
             DispatcherARM64::getRegSize(uint32_t raw) {
-                if(IntegerOps::extract2<uint32_t>(23, 23, raw) == 0) {
-                    if(IntegerOps::extract2<uint32_t>(30, 31, raw) == 0x3)
+                if (IntegerOps::extract2<uint32_t>(23, 23, raw) == 0) {
+                    if (IntegerOps::extract2<uint32_t>(30, 31, raw) == 0x3)
                         return 64;
                     else
                         return 32;
                 } else {
-                    if(IntegerOps::extract2<uint32_t>(22, 22, raw) == 1)
+                    if (IntegerOps::extract2<uint32_t>(22, 22, raw) == 1)
                         return 32;
                     else
                         return 64;
@@ -4082,58 +4450,74 @@ namespace rose {
             DispatcherARM64::ldStrLiteralAccessSize(uint32_t raw) {
                 int opc = IntegerOps::extract2<uint32_t>(30, 31, raw);
 
-                switch(opc) {
+                switch (opc) {
                     case 2:
-                    case 0: return 32;
-                    case 1: return 64;
-                    default:    assert("Memory prefetch instruction not implemented yet!");
+                    case 0:
+                        return 32;
+                    case 1:
+                        return 64;
+                    default:
+                        assert("Memory prefetch instruction not implemented yet!");
                         return 0;
                 }
             }
 
             bool
             DispatcherARM64::inzero(uint32_t raw) {
-                switch(IntegerOps::extract2<uint32_t>(29, 30, raw)) {
+                switch (IntegerOps::extract2<uint32_t>(29, 30, raw)) {
                     case 0:
-                    case 2: return true;
-                    case 1: return false;
-                    default: assert(!"Bitfield extract instruction has invalid opc field for inzero!");
+                    case 2:
+                        return true;
+                    case 1:
+                        return false;
+                    default:
+                        assert(!"Bitfield extract instruction has invalid opc field for inzero!");
                         break;
                 }
             }
 
             bool
             DispatcherARM64::extend(uint32_t raw) {
-                switch(IntegerOps::extract2<uint32_t>(29, 30, raw)) {
+                switch (IntegerOps::extract2<uint32_t>(29, 30, raw)) {
                     case 2:
-                    case 1: return false;
-                    case 0: return true;
-                    default: assert(!"Bitfield extract instruction has invalid opc field for extend!");
+                    case 1:
+                        return false;
+                    case 0:
+                        return true;
+                    default:
+                        assert(!"Bitfield extract instruction has invalid opc field for extend!");
                         break;
                 }
             }
 
             int
             DispatcherARM64::op(uint32_t raw) {
-                switch(IntegerOps::extract2<uint32_t>(29, 30, raw)) {
+                switch (IntegerOps::extract2<uint32_t>(29, 30, raw)) {
                     case 0:
-                    case 3: return static_cast<int>(ARM64::InsnProcessor::LogicalOp_AND);
-                    case 1: return static_cast<int>(ARM64::InsnProcessor::LogicalOp_ORR);
-                    case 2: return static_cast<int>(ARM64::InsnProcessor::LogicalOp_EOR);
-                    default: assert(!"Invalid code for opc field in logical OR instruction variant!");
+                    case 3:
+                        return static_cast<int>(ARM64::InsnProcessor::LogicalOp_AND);
+                    case 1:
+                        return static_cast<int>(ARM64::InsnProcessor::LogicalOp_ORR);
+                    case 2:
+                        return static_cast<int>(ARM64::InsnProcessor::LogicalOp_EOR);
+                    default:
+                        assert(!"Invalid code for opc field in logical OR instruction variant!");
                         break;
                 }
             }
 
             bool
             DispatcherARM64::setflags(uint32_t raw) {
-                if(IntegerOps::extract2(24, 28, raw) == 0x0A) {
-                    switch(IntegerOps::extract2(29, 30, raw)) {
+                if (IntegerOps::extract2(24, 28, raw) == 0x0A) {
+                    switch (IntegerOps::extract2(29, 30, raw)) {
                         case 0:
                         case 1:
-                        case 2: return false;
-                        case 3: return true;
-                        default: assert(!"Invalid code for opc field in logical instruction!");
+                        case 2:
+                            return false;
+                        case 3:
+                            return true;
+                        default:
+                            assert(!"Invalid code for opc field in logical instruction!");
                             break;
                     }
                 } else {
@@ -4143,10 +4527,12 @@ namespace rose {
 
             int
             DispatcherARM64::getDatasize(uint32_t raw) {
-                int v27_29 = IntegerOps::extract2<uint32_t>(27, 29, raw), v23_25 = IntegerOps::extract2<uint32_t>(23, 25, raw);
+                int v27_29 = IntegerOps::extract2<uint32_t>(27, 29, raw), v23_25 = IntegerOps::extract2<uint32_t>(23,
+                                                                                                                  25,
+                                                                                                                  raw);
                 int retval, v30_31 = IntegerOps::extract2<uint32_t>(30, 31, raw);;
 
-                if(v27_29 == 0x5 && v23_25 < 0x4) {
+                if (v27_29 == 0x5 && v23_25 < 0x4) {
                     retval = 0x8 << (2 + (v30_31 & 0x1));
                 } else {
                     retval = 0x8 << v30_31;
@@ -4179,7 +4565,7 @@ namespace rose {
             BaseSemantics::SValuePtr
             DispatcherARM64::effectiveAddress(SgAsmExpression *e, size_t nbits) {
                 SgAsmExpression *addressExpression;
-                if(SgAsmMemoryReferenceExpression *memoryReferenceExpression = isSgAsmMemoryReferenceExpression(e))
+                if (SgAsmMemoryReferenceExpression *memoryReferenceExpression = isSgAsmMemoryReferenceExpression(e))
                     addressExpression = memoryReferenceExpression->get_address();
                 else
                     addressExpression = e;
@@ -4288,7 +4674,7 @@ namespace rose {
                 SgAsmExpression *address = memoryExpression->get_address();
                 ASSERT_not_null(address);
 
-                if(isSgAsmBinaryAdd(address)) {
+                if (isSgAsmBinaryAdd(address)) {
                     return isSgAsmBinaryAdd(address)->get_lhs();
                 } else {
                     SgAsmRegisterReferenceExpression *retval = isSgAsmRegisterReferenceExpression(address);
