@@ -1269,6 +1269,9 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
    obj_private = new Object(mf, defensive_bin, 
                             symtab_log_perror, true, this);
    if (obj_private->hasError()) {
+      create_printf("%s[%d]: WARNING: creating symtab for %s, " 
+                    "Object ctor failed\n", FILE__, __LINE__, 
+                    filename.c_str());
      err = true;
      return;
    }
@@ -2115,31 +2118,14 @@ bool Symtab::openFile(Symtab *&obj, std::string filename, def_t def_binary)
    {
       if (filename.find("/proc") == std::string::npos)
          allSymtabs.push_back(obj);
-
-
-#if defined (cap_serialization)
-#if 0
-      serialize_printf("%s[%d]:  doing bin-serialize for %s\n", 
-            FILE__, __LINE__, filename.c_str());
-
-      if (!obj->exportBin(filename))
-      {
-         serialize_printf("%s[%d]:  failed to export symtab\n", FILE__, __LINE__);
-      }
-      else
-         serialize_printf("%s[%d]:  did bin-serialize for %s\n", 
-                          FILE__, __LINE__, filename.c_str());
-#endif
-#endif
-
-    }
-    else
-    {
+   }
+   else
+   {
        create_printf("%s[%d]: WARNING: failed to open symtab for %s\n", 
-             FILE__, __LINE__, filename.c_str());
+		     FILE__, __LINE__, filename.c_str());
        delete obj;
        obj = NULL;
-    }
+   }
 
    // returns true on success (not an error)
    return !err;
