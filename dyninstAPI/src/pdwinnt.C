@@ -1073,7 +1073,7 @@ bool PCProcess::getDyninstRTLibName()
     rt_base += ".dll";
     if(!BinaryEdit::getResolvedLibraryPath(rt_base, rt_paths) || rt_paths.empty())
     {
-        startup_printf("%s[%d]: Could not find %s in search path\n", FILE__, __LINE__. rt_base.c_str());
+        startup_printf("%s[%d]: Could not find %s in search path\n", FILE__, __LINE__, rt_base.c_str());
         return false;
     }
     for(auto i = rt_paths.begin();
