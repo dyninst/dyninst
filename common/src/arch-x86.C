@@ -8293,7 +8293,9 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
     /* First decode any prefixes for this instruction */
     if (!ia32_decode_prefixes(addr, instruct)) 
     {
+#ifdef VEX_DEBUG
         fprintf(stderr, "PREFIX DECODE FAILURE\n");
+#endif
         instruct.size = 1;
 	    instruct.entry = NULL;
         instruct.legacy_type = ILLEGAL;
