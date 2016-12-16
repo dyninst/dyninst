@@ -2414,7 +2414,11 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) (unsigned long) offset, NULL);
 #endif
    //unsigned long result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) (unsigned long) offset, NULL);
-   if (errno != 0) {
+#if defined(arch_aarch64)
+   if (ret != 0) {
+#else
+   if (result != 0) {
+#endif
       int error = errno;
       perr_printf("Error reading registers from %d: %s\n", lwp, strerror(errno));
       //pthrd_printf("ARM-Info: offset(%d-%d)\n", (void *)(unsigned long)offset, offset/8);
