@@ -2579,10 +2579,18 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             else if (hasShift) {
                 if (IS_INSN_ADDSUB_SHIFT(insn) || IS_INSN_LOGICAL_SHIFT(insn))    //add-sub shifted | logical shifted
                 {
-                    processShiftFieldShiftedInsn(immLen, immVal);
+                    if(IS_INSN_LOGICAL_SHIFT(insn) && shiftField == 0 && field<5, 9>(insn) == 0x1F && immVal == 0) {
+                        insn_in_progress->getOperation().operationID = aarch64_op_mov_orr_log_shift;
+                        insn_in_progress->getOperation().mnemonic = "mov";
+                        skipRn = true;
 
-                    if((IS_INSN_ADDSUB_SHIFT(insn) && shiftField == 0x3) || (!is64Bit && ((immVal >> 5) & 0x1) == 0x1))
-                        isValid = false;
+                        insn_in_progress->appendOperand(makeRmExpr(), true, false);
+                    } else {
+                        processShiftFieldShiftedInsn(immLen, immVal);
+                        
+                        if((IS_INSN_ADDSUB_SHIFT(insn) && shiftField == 0x3) || (!is64Bit && ((immVal >> 5) & 0x1) == 0x1))
+                            isValid = false;
+                    }
                 }
                 else if (IS_INSN_ADDSUB_IMM(insn))        //add-sub (immediate)
                 {

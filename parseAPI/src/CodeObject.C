@@ -153,7 +153,10 @@ CodeObject::parse() {
         fprintf(stderr,"FATAL: internal parser undefined\n");
         return;
     }
+    cs()->startTimer(PARSE_TOTAL_TIME);
     parser->parse();
+    cs()->stopTimer(PARSE_TOTAL_TIME);
+
 }
 
 void

@@ -99,11 +99,14 @@ namespace Dyninst
         static MachRegister getSyscallNumberReg(Dyninst::Architecture arch);
         static MachRegister getSyscallNumberOReg(Dyninst::Architecture arch);
         static MachRegister getSyscallReturnValueReg(Dyninst::Architecture arch);
+	static MachRegister getZeroFlag(Dyninst::Architecture arch);
+
         bool isPC() const;
         bool isFramePointer() const;
         bool isStackPointer() const;
         bool isSyscallNumberReg() const;
         bool isSyscallReturnValueReg() const;
+	bool isFlag() const;
 
         void getROSERegister(int &c, int &n, int &p);
 
@@ -274,8 +277,8 @@ namespace Dyninst
       DEF_REGISTER(k5,    0x05    | OCT   | KMASK| Arch_x86, "x86");
       DEF_REGISTER(k6,    0x06    | OCT   | KMASK| Arch_x86, "x86");
       DEF_REGISTER(k7,    0x07    | OCT   | KMASK| Arch_x86, "x86");
-
-	  DEF_REGISTER(xmm0,  0x00    | OCT   | XMM  | Arch_x86, "x86");
+      
+      DEF_REGISTER(xmm0,  0x00    | OCT   | XMM  | Arch_x86, "x86");
       DEF_REGISTER(xmm1,  0x01    | OCT   | XMM  | Arch_x86, "x86");
       DEF_REGISTER(xmm2,  0x02    | OCT   | XMM  | Arch_x86, "x86");
       DEF_REGISTER(xmm3,  0x03    | OCT   | XMM  | Arch_x86, "x86");
@@ -1074,10 +1077,12 @@ namespace Dyninst
       //arch        reg cat:GPR     alias&subrange  reg ID
       const signed int GPR   = 0x00010000;
       const signed int FPR   = 0x00020000;
+      const signed int FLAG  = 0x00030000;
       const signed int FSR   = 0x00040000;
       const signed int SPR   = 0x00080000;
       const signed int SYSREG = 0x00100000;
 
+      const signed int BIT   = 0x00008000;
       const signed int B_REG = 0x00000100;      //8bit  byte reg
       const signed int W_REG = 0x00000300;      //16bit half-wor reg
       const signed int D_REG = 0x00000f00;      //32bit single-word reg
@@ -1366,11 +1371,20 @@ namespace Dyninst
 
       //special registers
 	  //PC is not writable in aarch64
+      const signed int N_FLAG   =   31;
+      const signed int Z_FLAG   =   30;
+      const signed int C_FLAG   =   29;
+      const signed int V_FLAG   =   28;
+
       DEF_REGISTER(sp,       0 | FULL   |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(wsp,      0 | D_REG  |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(pc,       1 | FULL   |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(pstate,   2 | D_REG  |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(xzr,		 3 | FULL   |SPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(n,   N_FLAG | BIT    |FLAG| Arch_aarch64, "aarch64");
+      DEF_REGISTER(z,   Z_FLAG | BIT    |FLAG| Arch_aarch64, "aarch64");
+      DEF_REGISTER(c,   C_FLAG | BIT    |FLAG| Arch_aarch64, "aarch64");
+      DEF_REGISTER(v,   V_FLAG | BIT    |FLAG| Arch_aarch64, "aarch64");
       DEF_REGISTER(wzr,		 3 | D_REG  |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(fpcr,     4 | D_REG  |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(fpsr,     5 | D_REG  |SPR | Arch_aarch64, "aarch64");

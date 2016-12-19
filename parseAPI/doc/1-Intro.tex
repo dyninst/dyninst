@@ -7,6 +7,8 @@ blocks, functions, and loops that the binary code represents. The ParseAPI is a
 multi-platform library for creating such abstractions from binary code sources.
 The current incarnation uses the Dyninst SymtabAPI as the default binary code
 source; all platforms and architectures handled by the SymtabAPI are supported.
+The ParseAPI has cross-architecture binary analysis capabilities in analyzing
+ELF binaries (parsing of ARM binaries on x86 and vice versa, for example).
 The ParseAPI is designed to be easily extensible to other binary code sources.
 Support for parsing binary code in memory dumps or other formats requires only
 implementation of a small interface as described in this document.

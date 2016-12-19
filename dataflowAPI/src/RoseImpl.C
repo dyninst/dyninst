@@ -795,7 +795,10 @@ SgAsmBinaryAdd::SgAsmBinaryAdd(SgAsmExpression *lhs, SgAsmExpression *rhs)
 }
 
 SgAsmType *SgAsmBinaryAdd::get_type() const {
-    return ((SgAsmBinaryExpression *) this)->get_type();
+    SgAsmBinaryExpression *addExpr = &(*(const_cast<SgAsmBinaryAdd *>(this)));
+    SgAsmBinaryExpression binExpr = *addExpr;
+    return (&binExpr)->get_type();
+    //return ((SgAsmBinaryExpression *) this)->get_type();
 }
 
 std::string SgAsmBinaryAdd::class_name() const {

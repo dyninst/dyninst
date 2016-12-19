@@ -96,7 +96,7 @@ struct Variable {
   }
     friend std::ostream& operator<<(std::ostream& stream, const Variable& c)
     {
-        stream << c.format() << std::endl;
+        stream << c.format();
         return stream;
     }
 
@@ -129,7 +129,7 @@ struct Constant {
   }
 friend std::ostream& operator<<(std::ostream& stream, const Constant& c)
 {
-    stream << c.format() << std::endl;
+    stream << c.format();
     return stream;
 }
   
@@ -290,7 +290,7 @@ DATAFLOW_EXPORT const std::string format() const {
 };
     friend std::ostream& operator<<(std::ostream& stream, const ROSEOperation& c)
     {
-        stream << c.format() << std::endl;
+        stream << c.format();
         return stream;
     }
 

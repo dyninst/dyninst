@@ -683,8 +683,12 @@ pair<AddressRange, bool> DwarfWalker::parseHighPCLowPC(Dwarf_Debug dbg, Dwarf_Di
    {
      high += low;
    }
-   dwarf_printf("Lexical block from 0x%lx to 0x%lx\n", low, high);
-    result = make_pair(AddressRange(low, high), true);
+    // Don't add 0,0; it's not a real range but a sign something went wrong.
+    if(low || high)
+    {
+        dwarf_printf("Lexical block from 0x%lx to 0x%lx\n", low, high);
+        result = make_pair(AddressRange(low, high), true);
+    }
     return result;
 }
 
@@ -1624,15 +1628,16 @@ bool DwarfWalker::getLineInformation(Dwarf_Unsigned &variableLineNo,
       fileName = "";
    }
    else if (status == DW_DLV_OK) {
+      StringTablePtr files = srcFiles();
       Dwarf_Unsigned fileNameDeclVal;
       DWARF_FAIL_RET(dwarf_formudata(fileDeclAttribute, &fileNameDeclVal, NULL));
       dwarf_dealloc( dbg(), fileDeclAttribute, DW_DLA_ATTR );
-      if (fileNameDeclVal > srcFiles()->size() || fileNameDeclVal <= 0) {
+      if (fileNameDeclVal >= files->size() || fileNameDeclVal <= 0) {
          dwarf_printf("Dwarf error reading line index %d from srcFiles of size %lu\n",
-                      fileNameDeclVal, srcFiles()->size());
+                      fileNameDeclVal, files->size());
          return false;
       }
-      fileName = (*srcFiles())[fileNameDeclVal].str;
+      fileName = ((files->get<0>())[fileNameDeclVal]).str;
    }
    else {
       return true;

@@ -50,12 +50,50 @@ enum ARMv8GeneralPurposeRegister {
     armv8_gpr_zr
 };
 
+/** ARMv8-A SIMD & FP registers */
+enum ARMv8SimdFpRegister {
+    armv8_simdfpr_v0,
+    armv8_simdfpr_v1,
+    armv8_simdfpr_v2,
+    armv8_simdfpr_v3,
+    armv8_simdfpr_v4,
+    armv8_simdfpr_v5,
+    armv8_simdfpr_v6,
+    armv8_simdfpr_v7,
+    armv8_simdfpr_v8,
+    armv8_simdfpr_v9,
+    armv8_simdfpr_v10,
+    armv8_simdfpr_v11,
+    armv8_simdfpr_v12,
+    armv8_simdfpr_v13,
+    armv8_simdfpr_v14,
+    armv8_simdfpr_v15,
+    armv8_simdfpr_v16,
+    armv8_simdfpr_v17,
+    armv8_simdfpr_v18,
+    armv8_simdfpr_v19,
+    armv8_simdfpr_v20,
+    armv8_simdfpr_v21,
+    armv8_simdfpr_v22,
+    armv8_simdfpr_v23,
+    armv8_simdfpr_v24,
+    armv8_simdfpr_v25,
+    armv8_simdfpr_v26,
+    armv8_simdfpr_v27,
+    armv8_simdfpr_v28,
+    armv8_simdfpr_v29,
+    armv8_simdfpr_v30,
+    armv8_simdfpr_v31
+};
+
 /** ARMv8-A fields of the Pstate register */
 enum ARMv8PstateFields {
     armv8_pstatefield_pstate        =   0,      /* The entire 32-bit pstate register */
-    armv8_pstatefield_nzcv          =   28      /* The upper four bits, representing the
- *                                                 negative (bit 31), zero (bit 30), carry (bit 29) and overflow (bit 28) flags.
- *                                                 These are not added are distinct flags because the four bits are almost always accessed together. */
+    /* Values for each enum member below match the position of the bit in the pstate register */
+    armv8_pstatefield_n             =   31,     /* The negative flag */
+    armv8_pstatefield_z             =   30,     /* The zero flag */
+    armv8_pstatefield_c             =   29,     /* The carry flag */
+    armv8_pstatefield_v             =   28      /* The overflow flag */
 };
 
 /** ARMv8-A instructions for the AArch64 processor mode
