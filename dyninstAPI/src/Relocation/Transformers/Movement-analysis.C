@@ -279,6 +279,7 @@ bool PCSensitiveTransformer::isPCSensitive(Instruction::Ptr insn,
 					   const block_instance *block,
 					   AssignList &sensitiveAssignments) {
   if (!(insn->getOperation().getID() == e_call)) return false;
+    if(func->obj()->hybridMode() == BPatch_normalMode) return false;
   // FIXME for loopnz instruction
   Absloc pc = Absloc::makePC(func->ifunc()->isrc()->getArch());
 
@@ -376,7 +377,7 @@ Graph::Ptr PCSensitiveTransformer::forwardSlice(Assignment::Ptr ptr,
 						parse_block *block,
 						parse_func *func) {
   M_A_Predicates pred;
-  Slicer slicer(ptr, block, func);
+  Slicer slicer(ptr, block, func, false, false);
 
   Graph::Ptr g = slicer.forwardSlice(pred);
   return g;

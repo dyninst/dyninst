@@ -463,6 +463,7 @@ class FindMainVisitor : public ASTVisitor
 
     virtual ASTPtr visit(DataflowAPI::VariableAST* v)
     {
+        
         /* If we visit a variable node, we can't do any analysis */
         hardFault = true;
         resolved = false;
@@ -620,7 +621,6 @@ int image::findMain()
                 // p += (eAddr - eStart);
             // }
 
-            bool mode_64 = false;
             switch(linkedFile->getAddressWidth()) {
                 case 4:
                     // 32-bit...
@@ -629,7 +629,6 @@ int image::findMain()
                     ia32_set_mode_64(false);
                     break;
                 case 8:
-                    mode_64 = true;
                     startup_printf("%s[%u]:  setting 64-bit mode\n",
                             FILE__,__LINE__);
                     ia32_set_mode_64(true);
@@ -698,52 +697,35 @@ int image::findMain()
             Block* b = e->src();
             assert(b);
 
-            /* Get the address of the last instruction in the block (the call) */
-            Address insn_addr = b->lastInsnAddr();
-            void* insn_raw = region->getPtrToInstruction(insn_addr);
+	    Block::Insns insns;
+	    b->getInsns(insns);
+	    if (insns.size() < 2) {
+	        startup_printf("%s[%u]: should have at least two instructions\n", FILE__, __LINE__);   
+		return -1;
+	    }
 
-            /* Make sure insn_raw is valid */
-            if(!insn_raw)
-            {
-                startup_printf("%s[%u]: Error: no instruction pointer in region.\n",
-                        FILE__, __LINE__);
-                return -1;
-            }
-
-            /* Needed to get the size of the call instruction */
-            instruction insn;
-            insn.setInstruction((const unsigned char*)insn_raw);
-
-            /* We also need the instructionAPI representation of the call instruction */
-            InstructionAPI::InstructionDecoder* decoder = NULL;
-            if(mode_64)
-            {
-                decoder = new InstructionAPI::InstructionDecoder(
-                        insn_raw, insn.size(), Dyninst::Arch_x86_64);
-            } else {
-                decoder = new InstructionAPI::InstructionDecoder(
-                        insn_raw, insn.size(), Dyninst::Arch_x86);
-            }
-
-            /* Decode just the call instruction */
-            InstructionAPI::Instruction::Ptr insn_ptr = decoder->decode(
-                    (const unsigned char*)insn_raw);
+	    // To get the secont to last instruction, which loads the address of main 
+	    auto iit = insns.end();
+	    --iit;
+	    --iit;	    
 
             /* Let's get the assignment for this instruction. */
             std::vector<Assignment::Ptr> assignments;
             Dyninst::AssignmentConverter assign_convert(true, false);
-            assign_convert.convert(insn_ptr, insn_addr, func, b, assignments);
+            assign_convert.convert(iit->second, iit->first, func, b, assignments);
             if(assignments.size() >= 1)
             {
-                Assignment::Ptr assignment = *assignments.begin();
-
-                std::pair<AST::Ptr, bool> res = DataflowAPI::SymEval::expand(assignment, false);
-                AST::Ptr ast = res.first;
+	        
+                Assignment::Ptr assignment = assignments[0];
+		std::pair<AST::Ptr, bool> res = DataflowAPI::SymEval::expand(assignment, false);
+		AST::Ptr ast = res.first;
                 if(!ast)
                 {
                     /* expand failed */
                     mainAddress = 0x0;
+		    startup_printf("%s[%u]:  cannot expand %s from instruction %s\n", FILE__, __LINE__, assignment->format().c_str(), assignment->insn()->format().c_str());   
                 } else { 
+		    startup_printf("%s[%u]:  try to visit  %s\n", FILE__, __LINE__, ast->format().c_str());   
                     FindMainVisitor fmv;
                     ast->accept(&fmv);
                     if(fmv.resolved)
@@ -751,6 +733,8 @@ int image::findMain()
                         mainAddress = fmv.target;
                     } else {
                         mainAddress = 0x0;
+			startup_printf("%s[%u]:  FindMainVisitor cannot find main address in %s\n", FILE__, __LINE__, ast->format().c_str());   
+
                     }
                 }
             }

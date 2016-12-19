@@ -348,7 +348,9 @@ public:
       const std::map<Address, TransferSet> &fs,
       const std::set<Address> &toppable = std::set<Address>());
 
-   DATAFLOW_EXPORT Height find(ParseAPI::Block *, Address addr, Absloc loc);
+    DATAFLOW_EXPORT virtual ~StackAnalysis();
+
+    DATAFLOW_EXPORT Height find(ParseAPI::Block *, Address addr, Absloc loc);
    DATAFLOW_EXPORT Height findSP(ParseAPI::Block *, Address addr);
    DATAFLOW_EXPORT Height findFP(ParseAPI::Block *, Address addr);
    DATAFLOW_EXPORT void findDefinedHeights(ParseAPI::Block* b, Address addr,

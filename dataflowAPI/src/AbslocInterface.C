@@ -301,6 +301,10 @@ AbsRegion AbsRegionConverter::stack(Address addr,
 				    ParseAPI::Function *func,
                                     ParseAPI::Block *block,
 				    bool push) {
+    if(!stackAnalysisEnabled_) {
+//        std::cerr << "Stack analysis disabled, returning Stack absregion" << std::endl;
+        return AbsRegion(Absloc::Stack);
+    }
     long spHeight = 0;
     bool stackExists = getCurrentStackHeight(func,
                                              block,

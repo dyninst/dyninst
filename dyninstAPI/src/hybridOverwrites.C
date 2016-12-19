@@ -1343,7 +1343,7 @@ bool HybridAnalysisOW::isRealStore(Address insnAddr, block_instance *block,
     Address image_addr = func->lowlevel_func()->addrToOffset(insnAddr);
 
     std::vector<Assignment::Ptr> assignments;
-    AssignmentConverter aConverter(false);
+    AssignmentConverter aConverter(false, false);
     aConverter.convert(insn, image_addr, imgfunc, block->llb(), assignments);
 
     for (std::vector<Assignment::Ptr>::const_iterator a_iter = assignments.begin();

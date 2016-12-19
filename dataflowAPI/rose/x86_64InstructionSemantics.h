@@ -2259,19 +2259,19 @@ struct X86_64InstructionSemantics {
                 policy.writeGPR(x86_gpr_sp, newSp);
                 break;
             }
-
+*/
             case x86_call: {
                 ROSE_ASSERT(operands.size() == 1);
-                ROSE_ASSERT(insn->get_addressSize() == x86_insnsize_32);
-                ROSE_ASSERT(insn->get_operandSize() == x86_insnsize_32);
-                Word(32) oldSp = policy.readGPR(x86_gpr_sp);
-                Word(32) newSp = policy.add(oldSp, number<32>(-4));
+                ROSE_ASSERT(insn->get_addressSize() == x86_insnsize_64);
+                ROSE_ASSERT(insn->get_operandSize() == x86_insnsize_64);
+                Word(64) oldSp = policy.readGPR(x86_gpr_sp);
+                Word(64) newSp = policy.add(oldSp, number<64>(-4));
                 policy.writeMemory(x86_segreg_ss, newSp, policy.readIP(), policy.true_());
-                policy.writeIP(policy.filterCallTarget(read32(operands[0])));
+                policy.writeIP(policy.filterCallTarget(read64(operands[0])));
                 policy.writeGPR(x86_gpr_sp, newSp);
                 break;
             }
-
+/*
             case x86_ret: {
                 ROSE_ASSERT(operands.size() <= 1);
                 ROSE_ASSERT(insn->get_addressSize() == x86_insnsize_32);
