@@ -376,7 +376,7 @@ Graph::Ptr PCSensitiveTransformer::forwardSlice(Assignment::Ptr ptr,
 						parse_block *block,
 						parse_func *func) {
   M_A_Predicates pred;
-  Slicer slicer(ptr, block, func);
+  Slicer slicer(ptr, block, func, false, false);
 
   Graph::Ptr g = slicer.forwardSlice(pred);
   return g;

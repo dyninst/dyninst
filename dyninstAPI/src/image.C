@@ -621,7 +621,6 @@ int image::findMain()
                 // p += (eAddr - eStart);
             // }
 
-            bool mode_64 = false;
             switch(linkedFile->getAddressWidth()) {
                 case 4:
                     // 32-bit...
@@ -630,7 +629,6 @@ int image::findMain()
                     ia32_set_mode_64(false);
                     break;
                 case 8:
-                    mode_64 = true;
                     startup_printf("%s[%u]:  setting 64-bit mode\n",
                             FILE__,__LINE__);
                     ia32_set_mode_64(true);

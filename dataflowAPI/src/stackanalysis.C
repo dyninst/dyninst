@@ -3529,3 +3529,26 @@ void StackAnalysis::bottomBaseSubReg(const MachRegister &reg,
       }
    }
 }
+
+StackAnalysis::~StackAnalysis() {
+   // delete func;
+
+   callResolutionMap.clear();
+   functionSummaries.clear();
+   toppableFunctions.clear();
+
+   // SP effect tracking
+//   delete blockEffects;  // Pointer so we can make it an annotation
+//   delete insnEffects;  // Pointer so we can make it an annotation
+//   delete callEffects;  // Pointer so we can make it an annotation
+
+   blockInputs.clear();
+   blockOutputs.clear();
+
+   blockSummaryInputs.clear();
+   blockSummaryOutputs.clear();
+
+//   delete intervals_; // Pointer so we can make it an annotation
+
+   funcCleanAmounts.clear();
+}
