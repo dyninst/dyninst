@@ -4375,13 +4375,11 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
     /* The 'lines' returned are actually interval markers; the code
      generated from lineNo runs from lineAddr up to but not including
      the lineAddr of the next line. */
-    bool isPreviousValid = false;
 
     Offset baseAddr = getBaseAddress();
 
     Dwarf_Addr cu_high_pc = 0;
     dwarf_highpc(cuDIE, &cu_high_pc, NULL);
-    bool needs_followup = false;
     /* Iterate over this CU's source lines. */
     open_statement current_statement;
     for ( int i = 0; i < lineCount; i++ )

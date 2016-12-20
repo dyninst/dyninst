@@ -1692,7 +1692,7 @@ bool Elf_X::findDebugFile(std::string origfilename, string &output_name, char* &
               buildid_path << "/usr/lib/debug/.build-id/"
                  << hex << setfill('0') << setw(2) << (unsigned)desc[0] << '/';
               for (unsigned long j = 1; j < note.n_descsz(); ++j)
-                 buildid_path << (unsigned)desc[j];
+                 buildid_path << setw(2) << (unsigned)desc[j];
               buildid_path << ".debug";
               debugFileFromBuildID = buildid_path.str();
               break;

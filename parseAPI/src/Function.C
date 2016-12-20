@@ -560,7 +560,7 @@ Function::tampersStack(bool recalculate)
         return _tamper;
     }
 	assert(_cache_valid);
-    AssignmentConverter converter(true);
+    AssignmentConverter converter(true, true);
     vector<Assignment::Ptr> assgns;
     ST_Predicates preds;
     _tamper = TAMPER_UNSET;
