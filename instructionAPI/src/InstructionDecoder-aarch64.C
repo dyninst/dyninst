@@ -470,12 +470,35 @@ namespace Dyninst {
             size = field<startBit, endBit>(insn);
 
             entryID insnID = insn_in_progress->getOperation().operationID;
+
             if((insnID == aarch64_op_pmull_advsimd && (size == 0x1 || size == 0x2)) ||
                ((IS_INSN_SIMD_3DIFF(insn) || IS_INSN_SCALAR_3DIFF(insn)) && size == 0x3) ||
-               ((insnID == aarch64_op_sqdmull_advsimd_vec || insnID == aarch64_op_sqdmlal_advsimd_vec || insnID == aarch64_op_sqdmlsl_advsimd_vec)
-                 && size == 0)) {
+               ((insnID == aarch64_op_sqdmull_advsimd_vec || insnID == aarch64_op_sqdmlal_advsimd_vec || insnID == aarch64_op_sqdmlsl_advsimd_vec) && size == 0)) {
                 isValid = false;
-            }
+            } else if(IS_INSN_SCALAR_3SAME(insn)) {
+		int opcode = field<11, 15>(insn);
+		int S = opcode & 0x1;
+
+		if(opcode != 0x1 && opcode != 0x5 && ((opcode >> 3) & 0x3) != 0x3) {
+		    if(opcode == 0x16) {
+			if(size == 0 || size == 0x3)
+			    isValid = false;
+		    } else {
+			if(((opcode >> 2) & 0x2) == 0x2) {
+			    if(S == 0 && size != 0x3)
+				isValid = false;
+			} else if(size != 0x3) {
+			    isValid = false;
+			}
+		    }
+		}
+	    } else if(IS_INSN_SCALAR_2REG_MISC(insn)) {
+		int opcode = field<12, 16>(insn);
+
+		if(((opcode == 0x14 || opcode == 0x12) && size == 0x3) ||
+		    (opcode >= 0x8 && opcode <= 0xB && size != 0x3))
+		    isValid = false;
+	    }
         }
 
         Expression::Ptr InstructionDecoder_aarch64::makeRdExpr() {
@@ -632,12 +655,15 @@ namespace Dyninst {
                         }
                     }
                     else {
-                        switch (_szField) {
+                        entryID op = insn_in_progress->getOperation().operationID;
+                        
+			switch (_szField) {
                             case 0x0:
                                 reg = aarch64::s0;
+				if(op == aarch64_op_fcvtxn_advsimd)
+				    isValid = false;
                                 break;
                             case 0x1: {
-                                entryID op = insn_in_progress->getOperation().operationID;
                                 reg = (op == aarch64_op_fcvtxn_advsimd) ? aarch64::s0 : aarch64::d0;
                             }
                                 break;
