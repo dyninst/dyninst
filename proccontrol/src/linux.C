@@ -2417,7 +2417,7 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
 #if defined(arch_aarch64)
    if (ret != 0) {
 #else
-   if (result != 0) {
+   if (result == -1 && errno != 0) {
 #endif
       int error = errno;
       perr_printf("Error reading registers from %d: %s\n", lwp, strerror(errno));
