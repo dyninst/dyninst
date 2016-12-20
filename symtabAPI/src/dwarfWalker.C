@@ -1240,6 +1240,12 @@ bool DwarfWalker::parseMember() {
    int offset_to_use = locs.size() ? locs[0].frameOffset : -1;
 
    dwarf_printf("(0x%lx) Using offset of 0x%lx\n", id(), offset_to_use);
+   
+   // Filter out DW_TAG_member for static fields in structs (generated since DWARF3, e.g. by GCC, but actually not a field of a struct)
+   // see http://www.dwarfstd.org/ShowIssue.php?issue=161118.1
+   bool isStatic;
+   if (!isStaticStructMember(locs, isStatic)) return false;
+   if (isStatic) return false;
 
    if (nameDefined()) {
       curEnclosure()->addField( curName(), memberType, offset_to_use);
@@ -1527,6 +1533,25 @@ bool DwarfWalker::addFuncToContainer(Type *returnType) {
    typeFunction *funcType = new typeFunction( type_id(), returnType, toUse);
    curEnclosure()->addField( toUse, funcType);
    free( demangledName );
+   return true;
+}
+
+bool DwarfWalker::isStaticStructMember(std::vector<VariableLocation> &locs, bool &isStatic) {
+   isStatic = false;
+   
+   // if parsing a struct-member which is not a regular member (i.e. not with an offset)
+   if (curEnclosure()->getDataClass() == dataStructure && locs.size() == 0) {
+	long value;
+	bool hasValue;
+	if (!findValue(value, hasValue)) return false;
+	
+	// and, if it is not a constant, then it must be a static field member
+	if (!hasValue) {
+		isStatic = true;
+		return true;
+	}
+   }
+   
    return true;
 }
 
