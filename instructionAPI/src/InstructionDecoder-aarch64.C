@@ -717,21 +717,26 @@ namespace Dyninst {
                 reg = makeAarch64RegID(reg, encoding);
             }
             else if (isFPInsn && !((IS_INSN_FP_CONV_FIX(insn) || (IS_INSN_FP_CONV_INT(insn))) && !IS_SOURCE_GP(insn))) {
-                if (IS_INSN_FP_DATAPROC_ONESRC(insn)) {
+                if (insn_in_progress->getOperation().operationID == aarch64_op_fcvt_float) {
                     int opc = field<15, 16>(insn);
-                    switch (opc) {
-                        case 0:
-                            reg = aarch64::s0;
-                            break;
-                        case 1:
-                            reg = aarch64::d0;
-                            break;
-                        case 3:
-                            reg = aarch64::h0;
-                            break;
-                        default:
-                            isValid = false;
-                    }
+
+		    if(opc == _typeField || opc == 0x2)
+			isValid = false;
+		    else {
+			switch (opc) {
+			    case 0:
+				reg = aarch64::s0;
+				break;
+			    case 1:
+				reg = aarch64::d0;
+				break;
+			    case 3:
+				reg = aarch64::h0;
+				break;
+			    default:
+				isValid = false;
+			}
+		    }
                 }
                 else
                     reg = isSinglePrec() ? aarch64::s0 : aarch64::d0;
@@ -1019,19 +1024,23 @@ namespace Dyninst {
                     reg = makeAarch64RegID(reg, encoding);
             }
             else if (isFPInsn && !((IS_INSN_FP_CONV_FIX(insn) || (IS_INSN_FP_CONV_INT(insn))) && IS_SOURCE_GP(insn))) {
-                switch (_typeField) {
-                    case 0:
-                        reg = aarch64::s0;
-                        break;
-                    case 1:
-                        reg = aarch64::d0;
-                        break;
-                    case 3:
-                        reg = aarch64::h0;
-                        break;
-                    default:
-                        isValid = false;
-                }
+		if(insn_in_progress->getOperation().operationID == aarch64_op_fcvt_float) {
+                    switch (_typeField) {
+	                case 0:
+	                    reg = aarch64::s0;
+		            break;
+		        case 1:
+			    reg = aarch64::d0;
+			    break;
+                        case 3:
+	                    reg = aarch64::h0;
+	                    break;
+		        default:
+		            isValid = false;
+		    }
+		} else {
+		    reg = isSinglePrec()?aarch64::s0:aarch64::d0;
+		}
 
                 reg = makeAarch64RegID(reg, encoding);
             }
@@ -2312,6 +2321,10 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                     //TODO if the type field is not set, do sth else
                     OPRtype<23, 22>();
                 }
+		if(_typeField > 1)
+		    isValid = false;
+
+		//return false even if type has an invalid value, it won't matter because isValid is set to false and thus the instruction will be marked invalid
                 return _typeField == 0 ? true : false;
             } else if (isSIMDInsn) {
                 isValid = false; //not implemeted yet
