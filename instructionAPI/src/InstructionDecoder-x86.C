@@ -84,6 +84,7 @@ namespace Dyninst
                 case sNONE:
                     return false;
                 default:
+                    return false;
                     // printf("OPSEMA: %d\n", opsema);
                     assert(!"Unknown opsema!");
                     return false;
@@ -126,11 +127,9 @@ namespace Dyninst
             }
         }
 
-        bool implicitOperand(unsigned int opsema, unsigned int i)
+        bool implicitOperand(unsigned int implicit_operands, unsigned int i)
         {
-            // unsigned int implicits = sGETIMPL(opsema);
-            // return ((0x1 << i) & implicits) != 0x0;
-            return false;
+            return sGetImplicitOP(implicit_opernds, i) != 0x0;
         }
 
 
@@ -1817,6 +1816,8 @@ namespace Dyninst
         if(!decodedInstruction || !decodedInstruction->getEntry()) return false;
         unsigned int opsema = decodedInstruction->getEntry()->opsema;
         unsigned int semantics = opsema & 0xFF;
+        unsigned int implicit_operands = 
+            sGetImplicitOPs(decodedInstruction->getEntry()->impl_dec);
         InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
 
         if (decodedInstruction->getEntry()->getID() == e_ret_near ||
@@ -1838,7 +1839,7 @@ namespace Dyninst
                         insn_to_complete, 
                         readsOperand(semantics, i),
                         writesOperand(semantics, i),
-                        implicitOperand(0x0, i)))
+                        implicitOperand(implicit_operands, i)))
             {
                 return false;
             }
@@ -1853,7 +1854,7 @@ namespace Dyninst
                         insn_to_complete,
                         readsOperand(semantics, 3),
                         writesOperand(semantics, 3),
-                        implicitOperand(0x0, 3)))
+                        implicitOperand(implicit_operands, 3)))
             {
                 return false;
             }
