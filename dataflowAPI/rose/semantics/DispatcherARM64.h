@@ -9,7 +9,6 @@ namespace rose {
     namespace BinaryAnalysis {
         namespace InstructionSemantics2 {
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                      Dispatcher
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -225,6 +224,8 @@ namespace rose {
 
                 int getDatasize(uint32_t raw);
 
+                int getShiftType(uint32_t raw);
+
                 /** */
                 BaseSemantics::SValuePtr readMemory(const BaseSemantics::SValuePtr &addr, size_t readSize);
 
@@ -233,6 +234,12 @@ namespace rose {
 
                 /** */
                 SgAsmExpression *getWriteBackTarget(SgAsmExpression *expr);
+
+                /** */
+                BaseSemantics::SValuePtr UInt(const BaseSemantics::SValuePtr &expr);
+
+                /** */
+                BaseSemantics::SValuePtr ShiftReg(const BaseSemantics::SValuePtr &src, int shiftType, const BaseSemantics::SValuePtr &amount);
             };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -278,6 +285,13 @@ namespace rose {
                         LogicalOp_AND,
                         LogicalOp_ORR,
                         LogicalOp_EOR
+                    };
+
+                    enum ShiftType {
+                        ShiftType_LSL,
+                        ShiftType_LSR,
+                        ShiftType_ASR,
+                        ShiftType_ROR
                     };
                 };
 

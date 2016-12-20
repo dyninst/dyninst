@@ -4059,6 +4059,102 @@ namespace rose {
                     }
                 };
 
+                struct IP_asr_asrv_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        result = d->ShiftReg(d->read(args[1]), d->getShiftType(raw),
+                                             ops->unsignedModulo(d->UInt(operand2),
+                                                                 ops->number_(32, d->getDatasize(raw))));
+                        d->write(args[0], result);
+
+                    }
+                };
+
+                struct IP_asrv_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        result = d->ShiftReg(d->read(args[1]), d->getShiftType(raw),
+                                             ops->unsignedModulo(d->UInt(operand2),
+                                                                 ops->number_(32, d->getDatasize(raw))));
+                        d->write(args[0], result);
+
+                    }
+                };
+
+                struct IP_lsl_lslv_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        result = d->ShiftReg(d->read(args[1]), d->getShiftType(raw),
+                                             ops->unsignedModulo(d->UInt(operand2),
+                                                                 ops->number_(32, d->getDatasize(raw))));
+                        d->write(args[0], result);
+
+                    }
+                };
+
+                struct IP_lslv_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        result = d->ShiftReg(d->read(args[1]), d->getShiftType(raw),
+                                             ops->unsignedModulo(d->UInt(operand2),
+                                                                 ops->number_(32, d->getDatasize(raw))));
+                        d->write(args[0], result);
+
+                    }
+                };
+
+                struct IP_lsr_lsrv_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        result = d->ShiftReg(d->read(args[1]), d->getShiftType(raw),
+                                             ops->unsignedModulo(d->UInt(operand2),
+                                                                 ops->number_(32, d->getDatasize(raw))));
+                        d->write(args[0], result);
+
+                    }
+                };
+
+                struct IP_lsrv_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        result = d->ShiftReg(d->read(args[1]), d->getShiftType(raw),
+                                             ops->unsignedModulo(d->UInt(operand2),
+                                                                 ops->number_(32, d->getDatasize(raw))));
+                        d->write(args[0], result);
+
+                    }
+                };
+
+                struct IP_ror_rorv_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        result = d->ShiftReg(d->read(args[1]), d->getShiftType(raw),
+                                             ops->unsignedModulo(d->UInt(operand2),
+                                                                 ops->number_(32, d->getDatasize(raw))));
+                        d->write(args[0], result);
+
+                    }
+                };
+
+                struct IP_rorv_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        result = d->ShiftReg(d->read(args[1]), d->getShiftType(raw),
+                                             ops->unsignedModulo(d->UInt(operand2),
+                                                                 ops->number_(32, d->getDatasize(raw))));
+                        d->write(args[0], result);
+
+                    }
+                };
+
             } // namespace
 
 /*******************************************************************************************************************************
@@ -4179,6 +4275,14 @@ namespace rose {
                 iproc_set(rose_aarch64_op_sturb, new ARM64::IP_sturb_execute);
                 iproc_set(rose_aarch64_op_sturh, new ARM64::IP_sturh_execute);
                 iproc_set(rose_aarch64_op_stur_gen, new ARM64::IP_stur_gen_execute);
+                iproc_set(rose_aarch64_op_asr_asrv, new ARM64::IP_asr_asrv_execute);
+                iproc_set(rose_aarch64_op_asrv, new ARM64::IP_asrv_execute);
+                iproc_set(rose_aarch64_op_lsl_lslv, new ARM64::IP_lsl_lslv_execute);
+                iproc_set(rose_aarch64_op_lslv, new ARM64::IP_lslv_execute);
+                iproc_set(rose_aarch64_op_lsr_lsrv, new ARM64::IP_lsr_lsrv_execute);
+                iproc_set(rose_aarch64_op_lsrv, new ARM64::IP_lsrv_execute);
+                iproc_set(rose_aarch64_op_ror_rorv, new ARM64::IP_ror_rorv_execute);
+                iproc_set(rose_aarch64_op_rorv, new ARM64::IP_rorv_execute);
             }
 
             void
@@ -4527,18 +4631,33 @@ namespace rose {
 
             int
             DispatcherARM64::getDatasize(uint32_t raw) {
-                int v27_29 = IntegerOps::extract2<uint32_t>(27, 29, raw), v23_25 = IntegerOps::extract2<uint32_t>(23,
-                                                                                                                  25,
-                                                                                                                  raw);
-                int retval, v30_31 = IntegerOps::extract2<uint32_t>(30, 31, raw);;
-
-                if (v27_29 == 0x5 && v23_25 < 0x4) {
-                    retval = 0x8 << (2 + (v30_31 & 0x1));
+                if(IntegerOps::extract2(25, 27, raw) == 0x5) {
+                    return 32 * (1 + (IntegerOps::extract2(31, 31, raw) & 0x1));
                 } else {
-                    retval = 0x8 << v30_31;
-                }
+                    int v27_29 = IntegerOps::extract2<uint32_t>(27, 29, raw), v23_25 = IntegerOps::extract2<uint32_t>(23, 25, raw);
+                    int retval, v30_31 = IntegerOps::extract2<uint32_t>(30, 31, raw);;
 
-                return retval * 8;
+                    if (v27_29 == 0x5 && v23_25 < 0x4) {
+                        retval = 0x8 << (2 + (v30_31 & 0x1));
+                    } else {
+                        retval = 0x8 << v30_31;
+                    }
+
+                    return retval * 8;
+                }
+            }
+
+            int
+            DispatcherARM64::getShiftType(uint32_t raw) {
+                int v10_11 = IntegerOps::extract2(10, 11, raw);
+
+                switch(v10_11) {
+                    case 0: return static_cast<int>(ARM64::InsnProcessor::ShiftType_LSL);
+                    case 1: return static_cast<int>(ARM64::InsnProcessor::ShiftType_LSR);
+                    case 2: return static_cast<int>(ARM64::InsnProcessor::ShiftType_ASR);
+                    case 3: return static_cast<int>(ARM64::InsnProcessor::ShiftType_ROR);
+                    default: ASSERT_not_reachable("Cannot have a value greater than 3 for a 2-bit field (field: op2, bits: 10..11)!");
+                }
             }
 
             BaseSemantics::SValuePtr
@@ -4681,6 +4800,28 @@ namespace rose {
                     ASSERT_not_null(retval);
 
                     return retval;
+                }
+            }
+
+            /*Just returning the expression as-is, since there is no flag or variable in semantics indicating whether or not
+            a SValue should be treated as signed/unsigned. The signed-ness should be taken into account when performing an
+            operation on this value instead */
+            BaseSemantics::SValuePtr
+            DispatcherARM64::UInt(const BaseSemantics::SValuePtr &expr) {
+                ASSERT_not_null(expr);
+                return expr;
+            }
+
+            BaseSemantics::SValuePtr
+            DispatcherARM64::ShiftReg(const BaseSemantics::SValuePtr &src, int shiftType, const BaseSemantics::SValuePtr &amount) {
+                ASSERT_not_null(amount);
+
+                switch(static_cast<ARM64::InsnProcessor::ShiftType>(shiftType)) {
+                    case ARM64::InsnProcessor::ShiftType_LSL: return operators->shiftLeft(src, amount);
+                    case ARM64::InsnProcessor::ShiftType_LSR: return operators->shiftRight(src, amount);
+                    case ARM64::InsnProcessor::ShiftType_ASR: return operators->shiftRightArithmetic(src, amount);
+                    case ARM64::InsnProcessor::ShiftType_ROR: return operators->rotateRight(src, amount);
+                    default: ASSERT_not_reachable("Found invalid shift type for shift instruction!");
                 }
             }
         } // namespace
