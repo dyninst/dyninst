@@ -417,6 +417,7 @@ MachRegister MachRegister::getArchRegFromAbstractReg(MachRegister abstract,
         default:
             assert(0);
     }
+
     return Dyninst::InvalidReg;
 }
 
@@ -434,7 +435,10 @@ MachRegister MachRegister::getZeroFlag(Dyninst::Architecture arch)
          assert(0);
       case Arch_none:
          return InvalidReg;
+      default:
+         return InvalidReg;
    }
+
    return InvalidReg;
 }
 

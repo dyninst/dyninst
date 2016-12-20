@@ -2108,8 +2108,7 @@ static ia32_entry oneByteMap[256] = {
   { e_push, t_done, 0, false, { ES, eSP, Zz }, 0, s1R2RW, 0 }, // Semantics rewritten to ignore stack "operand"
   { e_pop,  t_done, 0, false, { ES, eSP, Zz }, 0, s1W2RW, 0 },
   /* 08 */
-  { e_or,   t_done, 0, 
-true, { Eb, Gb, Zz }, 0, s1RW2R },
+  { e_or,   t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R, 0},
   { e_or,   t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R, 0 },
   { e_or,   t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R, 0 },
   { e_or,   t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R, 0 },
