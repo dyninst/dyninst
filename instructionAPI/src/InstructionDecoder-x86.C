@@ -128,8 +128,9 @@ namespace Dyninst
 
         bool implicitOperand(unsigned int opsema, unsigned int i)
         {
-            unsigned int implicits = sGETIMPL(opsema);
-            return ((0x1 << i) & implicits) != 0x0;
+            // unsigned int implicits = sGETIMPL(opsema);
+            // return ((0x1 << i) & implicits) != 0x0;
+            return false;
         }
 
 
@@ -1815,7 +1816,7 @@ namespace Dyninst
         int imm_index = 0; // handle multiple immediate operands
         if(!decodedInstruction || !decodedInstruction->getEntry()) return false;
         unsigned int opsema = decodedInstruction->getEntry()->opsema;
-        unsigned int semantics = sGETSEM(decodedInstruction->getEntry()->opsema);
+        unsigned int semantics = opsema & 0xFF;
         InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
 
         if (decodedInstruction->getEntry()->getID() == e_ret_near ||
@@ -1837,7 +1838,7 @@ namespace Dyninst
                         insn_to_complete, 
                         readsOperand(semantics, i),
                         writesOperand(semantics, i),
-                        implicitOperand(opsema, i)))
+                        implicitOperand(0x0, i)))
             {
                 return false;
             }
@@ -1852,7 +1853,7 @@ namespace Dyninst
                         insn_to_complete,
                         readsOperand(semantics, 3),
                         writesOperand(semantics, 3),
-                        implicitOperand(opsema, 3)))
+                        implicitOperand(0x0, 3)))
             {
                 return false;
             }

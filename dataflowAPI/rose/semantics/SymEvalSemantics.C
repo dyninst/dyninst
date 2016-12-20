@@ -90,7 +90,7 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateARM64::convert(const RegisterDesc
             unsigned int minor = reg.get_minor();
 
             if (minor == armv8_gpr_zr) {
-                mreg = Dyninst::MachRegister((size == 32) ? Dyninst::aarch64::wzr : Dyninst::aarch64::zr);
+                mreg = Dyninst::MachRegister((size == 32) ? Dyninst::aarch64::wzr : Dyninst::aarch64::xzr);
             } else {
                 Dyninst::MachRegister base = (size == 32) ? Dyninst::aarch64::w0 : Dyninst::aarch64::x0;
                 mreg = Dyninst::MachRegister(base.val() + (minor - armv8_gpr_r0));

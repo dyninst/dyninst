@@ -641,17 +641,35 @@ enum { sNONE=0, // the instruction does something that cannot be classified as r
 #define s4OP s1W2R3R4R
 
 /* Implicit operand specifier */
-#define s1I (1 << 28)
-#define s2I (1 << 29)
-#define s3I (1 << 30)
-#define s4I (1 << 31)
+#define s1I (1 << 16) /* 1st operand is implicit */
+#define s2I (1 << 17) /* 2nd operand is implicit */
+#define s3I (1 << 18) /* 3rd operand is implicit */
+#define s4I (1 << 19) /* 4th operand is implicit */
+
+/* Implicit mask getters */
+#define sGetImplicitOP1(b) ((b) & s1I)
+#define sGetImplicitOP2(b) ((b) & s2I)
+#define sGetImplicitOP3(b) ((b) & s3I)
+#define sGetImplicitOP4(b) ((b) & s4I)
+#define sGetImplicitOPs(b) ((b) & 0xFFFF0000)
+
+/* Implicit mask setters */
+#define sSetImplicitOP1(b) ((b) | s1I)
+#define sSetImplicitOP2(b) ((b) | s12)
+#define sSetImplicitOP3(b) ((b) | s13)
+#define sSetImplicitOP4(b) ((b) | s14)
+
+/* Instruction decoration descriptors */
+#define sGetDecoration(b) ((b) & 0xFFFF)
+#define sSetDecoration(b, dec) ((b) | (dec))
+
+enum { 
+    s1D = 1,
+    s1D2D
+};
 
 /* Masks */
 #define FPOS 17
-#define sGETHACK(i) (((i) >> FPOS) & 0xFF)
-#define sGETIMPL(i) (((i) >> 28) & 0xF)
-#define sGETSEM(i) ((i) & ((1 << FPOS) - 1))
-
 
 struct modRMByte {
   unsigned mod : 2;
@@ -831,6 +849,8 @@ struct ia32_entry {
   // before hating me for this: it takes a LOT less time to add ONE field to ~2000 table lines!
   // The upper 3 bits of this field (bits 29, 30, 31) are specifiers for implicit operands.
   unsigned int opsema;  
+
+  unsigned int impl_dec; /* Implicit operands and decoration descriptions */
 };
 
 using std::vector;
