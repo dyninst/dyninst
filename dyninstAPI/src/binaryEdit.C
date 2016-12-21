@@ -304,6 +304,7 @@ void BinaryEdit::deleteBinaryEdit() {
         dependentRelocations.erase(dependentRelocations.begin());
         delete rel;
     }
+    delete memoryTracker_;
 }
 
 BinaryEdit *BinaryEdit::openFile(const std::string &file, 

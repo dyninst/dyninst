@@ -4085,15 +4085,25 @@ bool Object::emitDriver(string fName, std::vector<Symbol *> &allSymbols, unsigne
     {
         Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes32> *em =
                 new Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes32>(elfHdr, isStripped, this, err_func_, associated_symtab);
-        if( !em->createSymbolTables(allSymbols) ) return false;
-        return em->driver(fName);
+        bool ok = em->createSymbolTables(allSymbols);
+        if(ok)
+        {
+            ok = em->driver(fName);
+        }
+        delete em;
+        return ok;
     }
     else if (elfHdr->e_ident()[EI_CLASS] == ELFCLASS64)
     {
         Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes64> *em =
                 new Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes64>(elfHdr, isStripped, this, err_func_, associated_symtab);
-        if( !em->createSymbolTables(allSymbols) ) return false;
-        return em->driver(fName);
+        bool ok = em->createSymbolTables(allSymbols);
+        if(ok)
+        {
+            ok = em->driver(fName);
+        }
+        delete em;
+        return ok;
     }
     return false;
 }
