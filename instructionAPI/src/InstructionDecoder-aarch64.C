@@ -629,6 +629,8 @@ namespace Dyninst {
                             default:
                                 isValid = false;
                         }
+			if(_szField == 0x1 && field<21, 21>(insn) == 0x1)
+			    isValid = false;
                     }
                     else
                         isValid = false;
