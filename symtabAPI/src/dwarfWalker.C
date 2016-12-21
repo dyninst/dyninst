@@ -1222,10 +1222,23 @@ bool DwarfWalker::parseMember() {
    Type *memberType = NULL;
    if (!findType(memberType, false)) return false;
    if (!memberType) return false;
+   
+   long value;
+   bool hasValue;
+   if (!findValue(value, hasValue)) return false;
+   if (hasValue) {
+      assert(nameDefined());
+      dwarf_printf("(0x%lx) member is a named constant, forwarding to parseConstant\n", id());
+      return parseConstant();
+   }
 
    std::vector<VariableLocation> locs;
    Address initialStackValue = 0;
    if (!decodeLocationList(DW_AT_data_member_location, &initialStackValue, locs)) return false;
+   if (locs.empty()) {	   
+      dwarf_printf("(0x%lx) Skipping member as no location is given.\n", id()); 
+      return true;
+   }
 
    /* DWARF stores offsets in bytes unless the member is a bit field.
       Correct memberOffset as indicated.  Also, memberSize is in bytes
@@ -1237,18 +1250,12 @@ bool DwarfWalker::parseMember() {
    // This code changes memberSize, which is then discarded. I'm not sure why...
    if (!fixBitFields(locs, memberSize)) return false;
 
-   int offset_to_use = locs.size() ? locs[0].frameOffset : -1;
+   int offset_to_use = locs[0].frameOffset;
 
    dwarf_printf("(0x%lx) Using offset of 0x%lx\n", id(), offset_to_use);
-   
-   // Filter out DW_TAG_member for static fields in structs (generated since DWARF3, e.g. by GCC, but actually not a field of a struct)
-   // see http://www.dwarfstd.org/ShowIssue.php?issue=161118.1
-   bool isStatic;
-   if (!isStaticStructMember(locs, isStatic)) return false;
-   if (isStatic) return false;
 
    if (nameDefined()) {
-      curEnclosure()->addField( curName(), memberType, offset_to_use);
+      curEnclosure()->addField(curName(), memberType, offset_to_use);
    }
    else {
       curEnclosure()->addField("[anonymous union]", memberType, offset_to_use);
