@@ -2709,7 +2709,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                             isValid = false;
                     }
                     else {
-                        Expression::Ptr imm = Immediate::makeImmediate(Result(u32, unsign_extend32(immLen, immVal)));\
+                        Expression::Ptr imm = Immediate::makeImmediate(Result(u32, unsign_extend32(immLen, immVal)));
             insn_in_progress->appendOperand(imm, true, false);
                     }
                 }
@@ -2718,6 +2718,31 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                     if (startBit == 19 && endBit == 22) {
                         immlo = immVal;
                         immloLen = endBit - startBit + 1;
+
+			int immh_3 = (immlo >> 3) & 0x1, opcode = field<11, 15>(insn);
+			if(IS_INSN_SIMD_SHIFT_IMM(insn)) {
+			    if(((opcode >> 3) & 0x3) == 0x3 && ((immlo >> 2) & 0x2) == 0)
+				isValid = false;
+
+			    if(immh_3 == 1) {
+				if(((opcode >> 4) & 0x1) == 0x1 || _Q == 0)
+				    isValid = false;
+			    }
+			} else {
+			   if(((opcode >> 2) & 0x7) == 0x6) {
+			       if(immlo == 0)
+				   isValid = false;
+			   } else if(((opcode >> 2) & 0x7) == 0x4) {
+			       if(immlo == 0 || immh_3 == 1)
+				   isValid = false;
+			   } else if(((opcode >> 3) & 0x3) == 0x3) {
+			       if(((immlo >> 2) & 0x2) == 0)
+				   isValid = false;
+			   } else {
+			       if(immh_3 != 1)
+				   isValid = false;
+			   }
+			}
                     }
                         //immb
                     else if (startBit == 16 && endBit == 18) {
