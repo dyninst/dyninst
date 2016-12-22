@@ -35,7 +35,7 @@
 #include "BPatch_object.h"
 #include "BPatch_point.h"
 
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(arch_x86) || defined(arch_x86_64) || defined(arch_aarch64)
 #include "inst-x86.h"
 #elif defined(arch_power)
 #include "inst-power.h"
