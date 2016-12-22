@@ -2315,6 +2315,13 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
         template<unsigned int endBit, unsigned int startBit>
         void InstructionDecoder_aarch64::OPRsz() {
             _szField = field<startBit, endBit>(insn);
+
+	    if(IS_INSN_SIMD_VEC_INDEX(insn)) {
+		int L = field<21, 21>(insn);
+
+		if(_szField == 0x1 && (L == 0x1 || _Q == 0))
+		    isValid = false;
+	    }
         }
 
         bool InstructionDecoder_aarch64::isSinglePrec() {
