@@ -1053,13 +1053,17 @@ namespace Dyninst {
                     reg = makeAarch64RegID(reg, encoding);
             }
             else {
+		bool use32for64bit = false;
+		if(field<24, 28>(insn) == 0x1B && (field<21, 23>(insn) == 0x1 || field<21, 23>(insn) == 0x5))
+		   use32for64bit = true; 
+
                 if (encoding == 31)
                     reg = (IS_INSN_ADDSUB_IMM(insn) || IS_INSN_ADDSUB_EXT(insn)) ? (is64Bit ? aarch64::sp
-                                                                                            : aarch64::wsp) : (is64Bit
+                                                                                            : aarch64::wsp) : ((is64Bit && !use32for64bit)
                                                                                                                ? aarch64::xzr
                                                                                                                : aarch64::wzr);
                 else
-                    reg = is64Bit ? aarch64::x0 : aarch64::w0;
+                    reg = (is64Bit && !use32for64bit) ? aarch64::x0 : aarch64::w0;
 
                 if (isValid && encoding != 31)
                     reg = makeAarch64RegID(reg, encoding);
@@ -1858,7 +1862,11 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                 reg = makeAarch64RegID(reg, encoding);
             }
             else {
-                reg = is64Bit ? ((encoding == 31) ? aarch64::xzr : aarch64::x0) : ((encoding == 31) ? aarch64::wzr
+		bool use32for64bit = false;
+		if(field<24, 28>(insn) == 0x1B && (field<21, 23>(insn) == 0x1 || field<21, 23>(insn) == 0x5))
+		   use32for64bit = true; 
+                
+		reg = (is64Bit && !use32for64bit) ? ((encoding == 31) ? aarch64::xzr : aarch64::x0) : ((encoding == 31) ? aarch64::wzr
                                                                                                    : aarch64::w0);
                 if (encoding != 31)
                     reg = makeAarch64RegID(reg, encoding);
