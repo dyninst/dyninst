@@ -2539,6 +2539,33 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 	    if(skipRm)
 		cond = ((cond % 2) == 0) ? (cond + 1) : (cond - 1);
         }
+	
+	void InstructionDecoder_aarch64::modify_mnemonic_simd_upperhalf_insns() {
+	    if(field<30, 30>(insn) != 1)
+		return;
+
+	    string cur_mnemonic = insn_in_progress->getOperation().mnemonic;
+	    bool add2 = false;
+
+	    if(IS_INSN_SIMD_3DIFF(insn) || IS_INSN_SCALAR_3DIFF(insn))
+		add2 = true;
+	    else if(IS_INSN_SCALAR_2REG_MISC(insn) || IS_INSN_SIMD_2REG_MISC(insn)) {
+		int checkval = (field<12, 16>(insn) >> 2) & 0x7;
+		if(checkval == 0x4 || checkval == 0x5)
+		    add2 = true;
+	    } else if(IS_INSN_SIMD_SHIFT_IMM(insn) || IS_INSN_SCALAR_SHIFT_IMM(insn)) {
+		int checkval = (field<11, 15>(insn) >> 2) & 0x7;
+		if(checkval == 0x4 || (IS_INSN_SIMD_SHIFT_IMM(insn) && checkval == 0x5))
+		    add2 = true;
+	    } else if(IS_INSN_SIMD_VEC_INDEX(insn) || IS_INSN_SCALAR_INDEX(insn)) {
+		int checkval = field<12, 15>(insn) & 0x3;
+		if((checkval >> 1) == 0x1 || (IS_INSN_SCALAR_INDEX(insn) && (checkval & 0x1) == 0x1))
+		    add2 = true;
+	    }
+
+	    if(add2)
+		insn_in_progress->getOperation().mnemonic = cur_mnemonic + "2";
+	}
 
         template<unsigned int endBit, unsigned int startBit>
         void InstructionDecoder_aarch64::OPRimm() {
@@ -3018,6 +3045,8 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 
             insn_in_progress = makeInstruction(insn_table_entry->op, insn_table_entry->mnemonic, 4,
                                                reinterpret_cast<unsigned char *>(&insn));
+
+	    modify_mnemonic_simd_upperhalf_insns();
 
             if (IS_INSN_BRANCHING(insn)) {
                 decodeOperands(insn_in_progress);
