@@ -4361,7 +4361,12 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
     size_t offset = strings->size();
     Dwarf_Signed filecount;
     status = dwarf_srcfiles(cuDIE, &files, &filecount, &ignored);
-    assert( status == DW_DLV_OK );
+    if (status != DW_DLV_OK ) 
+    {
+        // It could happen the line table is present,
+	// but there is no line in the table
+        return;
+    }
     // dwarf_line_srcfileno == 0 means unknown; 1...n means files[0...n-1]
     // so we ensure that we're adding a block of unknown, 1...n to the string table
     // and that offset + dwarf_line_srcfileno points to the correct string
