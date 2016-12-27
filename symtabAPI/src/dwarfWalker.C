@@ -41,6 +41,7 @@
 #include "dwarfExprParser.h"
 #include "pathName.h"
 #include "debug_common.h"
+#include "Type-mem.h"
 #include <boost/bind.hpp>
 using namespace Dyninst;
 using namespace SymtabAPI;
