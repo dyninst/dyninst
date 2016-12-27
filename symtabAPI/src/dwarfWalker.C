@@ -250,7 +250,8 @@ void DwarfParseActions::setModuleFromName(std::string moduleName)
 bool DwarfWalker::buildSrcFiles(Dwarf_Debug dbg, Dwarf_Die entry, StringTablePtr srcFiles) {
    Dwarf_Signed cnt = 0;
     char** srcFileList;
-   DWARF_ERROR_RET(dwarf_srcfiles(entry, &srcFileList, &cnt, NULL));
+   Dwarf_Error error;
+   DWARF_ERROR_RET(dwarf_srcfiles(entry, &srcFileList, &cnt, &error));
 
    if(!srcFiles->empty()) {
         return true;
