@@ -228,6 +228,8 @@ namespace rose {
 
                 int getShiftType(uint32_t raw);
 
+                int getConditionVal(uint32_t raw);
+
                 /** */
                 BaseSemantics::SValuePtr readMemory(const BaseSemantics::SValuePtr &addr, size_t readSize);
 

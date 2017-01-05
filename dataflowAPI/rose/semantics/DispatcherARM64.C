@@ -4453,7 +4453,7 @@ namespace rose {
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
 
-                        if (isTrue(d->ConditionHolds(ops->number_(32, EXTR(0, 4))))) {
+                        if (isTrue(d->ConditionHolds(ops->number_(32, d->getConditionVal(raw))))) {
                             result = operand1;
                         } else {
                             result = operand2;
@@ -4477,7 +4477,7 @@ namespace rose {
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
 
-                        if (isTrue(d->ConditionHolds(ops->number_(32, EXTR(0, 4))))) {
+                        if (isTrue(d->ConditionHolds(ops->number_(32, d->getConditionVal(raw))))) {
                             result = operand1;
                         } else {
                             result = operand2;
@@ -4501,7 +4501,7 @@ namespace rose {
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
 
-                        if (isTrue(d->ConditionHolds(ops->number_(32, EXTR(0, 4))))) {
+                        if (isTrue(d->ConditionHolds(ops->number_(32, d->getConditionVal(raw))))) {
                             result = operand1;
                         } else {
                             result = operand2;
@@ -4519,6 +4519,29 @@ namespace rose {
                     }
                 };
 
+                struct IP_csel_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr result;
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+
+                        if (isTrue(d->ConditionHolds(ops->number_(32, d->getConditionVal(raw))))) {
+                            result = operand1;
+                        } else {
+                            result = operand2;
+
+                            if ((EXTR(30, 30) == 1)) {
+                                result = d->NOT(result);
+                            }
+
+                            if ((EXTR(10, 10) == 1)) {
+                                result = ops->add(result, ops->number_(32, 1));
+                            }
+                        }
+                        d->write(args[0], result);
+
+                    }
+                };
 
             } // namespace
 
@@ -4661,6 +4684,7 @@ namespace rose {
                 iproc_set(rose_aarch64_op_csinv, new ARM64::IP_csinv_execute);
                 iproc_set(rose_aarch64_op_csinc, new ARM64::IP_csinc_execute);
                 iproc_set(rose_aarch64_op_csneg, new ARM64::IP_csneg_execute);
+                iproc_set(rose_aarch64_op_csel, new ARM64::IP_csel_execute);
             }
 
             bool
@@ -5050,6 +5074,14 @@ namespace rose {
                     case 3: return static_cast<int>(ARM64::InsnProcessor::ShiftType_ROR);
                     default: ASSERT_not_reachable("Cannot have a value greater than 3 for a 2-bit field (field: op2, bits: 10..11)!");
                 }
+            }
+
+            int
+            DispatcherARM64::getConditionVal(uint32_t raw) {
+                if(IntegerOps::extract2<uint32_t>(24, 31, raw) == 0x54 && IntegerOps::extract2<uint32_t>(4, 4, raw) == 0)
+                    return IntegerOps::extract2(0, 3, raw);
+                else
+                    return IntegerOps::extract2(12, 15, raw);
             }
 
             BaseSemantics::SValuePtr
