@@ -230,6 +230,8 @@ namespace rose {
 
                 int getConditionVal(uint32_t raw);
 
+                int opcode(uint32_t raw);
+
                 /** */
                 BaseSemantics::SValuePtr readMemory(const BaseSemantics::SValuePtr &addr, size_t readSize);
 
@@ -244,6 +246,12 @@ namespace rose {
 
                 /** */
                 BaseSemantics::SValuePtr ShiftReg(const BaseSemantics::SValuePtr &src, int shiftType, const BaseSemantics::SValuePtr &amount);
+
+                /** */
+                BaseSemantics::SValuePtr CountLeadingZeroBits(const BaseSemantics::SValuePtr &expr);
+
+                /** */
+                BaseSemantics::SValuePtr CountLeadingSignBits(const BaseSemantics::SValuePtr &expr);
             };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -296,6 +304,12 @@ namespace rose {
                         ShiftType_LSR,
                         ShiftType_ASR,
                         ShiftType_ROR
+                    };
+
+                    enum CountOp {
+                        CountOp_CLZ,
+                        CountOp_CLS,
+                        CountOp_CNT
                     };
                 };
 
