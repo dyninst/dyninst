@@ -1004,7 +1004,7 @@ func_instance *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
    if (!findObject(addr)) return NULL;
 
    using namespace Dyninst::InstructionAPI;
-   InstructionDecoder decoder((const unsigned char*)getPtrToInstruction(addr),
+   InstructionDecoder decoder((const unsigned char*)getPtrToInstruction(stripAddrEncoding(addr, getArch())),
                               InstructionDecoder::maxInstructionLength,
                               getArch());
    Instruction::Ptr curInsn = decoder.decode();

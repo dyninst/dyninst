@@ -30,8 +30,10 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
 //  and be reachable from thunk blocks
     ReachFact rf(thunks);
  
-    const unsigned char * buf = (const unsigned char*) block->obj()->cs()->getPtrToInstruction(block->last());
-    InstructionDecoder dec(buf, InstructionDecoder::maxInstructionLength, block->obj()->cs()->getArch());
+    Architecture arch = block->obj()->cs()->getArch();
+    Address cleanAddr = stripAddrEncoding(block->last(), arch);
+    const unsigned char * buf = (const unsigned char*) block->obj()->cs()->getPtrToInstruction(cleanAddr);
+    InstructionDecoder dec(buf, InstructionDecoder::maxInstructionLength, arch);
     Instruction::Ptr insn = dec.decode();
     AssignmentConverter ac(true, false);
     vector<Assignment::Ptr> assignments;
@@ -88,8 +90,10 @@ static Address ThunkAdjustment(Address afterThunk, MachRegister reg, ParseAPI::B
     // an add insturction like ADD ebx, OFFSET to adjust
     // the value coming out of thunk.
    
-    const unsigned char* buf = (const unsigned char*) (b->obj()->cs()->getPtrToInstruction(afterThunk));
-    InstructionDecoder dec(buf, b->end() - b->start(), b->obj()->cs()->getArch());
+    Architecture arch = b->obj()->cs()->getArch();
+    Address cleanAddr = stripAddrEncoding(afterThunk, arch);
+    const unsigned char* buf = (const unsigned char*) (b->obj()->cs()->getPtrToInstruction(cleanAddr));
+    InstructionDecoder dec(buf, b->end() - b->start(), arch);
     Instruction::Ptr nextInsn = dec.decode();
     // It has to be an add
     if (nextInsn->getOperation().getID() != e_add) return 0;
@@ -109,25 +113,28 @@ static Address ThunkAdjustment(Address afterThunk, MachRegister reg, ParseAPI::B
 void IndirectControlFlowAnalyzer::FindAllThunks() {
     // Enumuerate every block to find thunk
     for (auto bit = reachable.begin(); bit != reachable.end(); ++bit) {
-        // We intentional treat a getting PC call as a special case that does not
+    // We intentional treat a getting PC call as a special case that does not
 	// end a basic block. So, we need to check every instruction to find all thunks
-        ParseAPI::Block *b = *bit;
+    ParseAPI::Block *b = *bit;
+    Architecture arch = b->obj()->cs()->getArch();
+    Address cleanAddr = stripAddrEncoding(b->start(), arch);
 	const unsigned char* buf =
-            (const unsigned char*)(b->obj()->cs()->getPtrToInstruction(b->start()));
+            (const unsigned char*)(b->obj()->cs()->getPtrToInstruction(cleanAddr));
 	if( buf == NULL ) {
 	    parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",FILE__, __LINE__);
 	    return;
 	}
 	parsing_printf("Looking for thunk in block [%lx,%lx).", b->start(), b->end());
-	InstructionDecoder dec(buf, b->end() - b->start(), b->obj()->cs()->getArch());
+	InstructionDecoder dec(buf, b->end() - b->start(), arch);
 	InsnAdapter::IA_IAPI block(dec, b->start(), b->obj() , b->region(), b->obj()->cs(), b);
 	while (block.getAddr() < b->end()) {
 	    if (block.getInstruction()->getCategory() == c_CallInsn && block.isThunk()) {
 	        bool valid;
 		Address addr;
 		boost::tie(valid, addr) = block.getCFT();
-		const unsigned char *target = (const unsigned char *) b->obj()->cs()->getPtrToInstruction(addr);
-		InstructionDecoder targetChecker(target, InstructionDecoder::maxInstructionLength, b->obj()->cs()->getArch());
+		Address cleanAddrInner = stripAddrEncoding(addr, arch);
+		const unsigned char *target = (const unsigned char *) b->obj()->cs()->getPtrToInstruction(cleanAddrInner);
+		InstructionDecoder targetChecker(target, InstructionDecoder::maxInstructionLength, arch);
 		Instruction::Ptr thunkFirst = targetChecker.decode();
 		set<RegisterAST::Ptr> thunkTargetRegs;
 		thunkFirst->getWriteSet(thunkTargetRegs);

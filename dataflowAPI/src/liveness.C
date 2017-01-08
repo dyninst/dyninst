@@ -133,11 +133,13 @@ void LivenessAnalyzer::summarizeBlockLivenessInfo(Function* func, Block *block, 
    data.use = data.def = data.in = abi->getBitArray();
 
    using namespace Dyninst::InstructionAPI;
+   Architecture arch = block->obj()->cs()->getArch();
    Address current = block->start();
+   Address cleanAddr = stripAddrEncoding(current, arch);
    InstructionDecoder decoder(
-                       reinterpret_cast<const unsigned char*>(getPtrToInstruction(block, block->start())),		     
+                       reinterpret_cast<const unsigned char*>(getPtrToInstruction(block, cleanAddr)),
                        block->size(),
-                       block->obj()->cs()->getArch());
+                       arch);
    Instruction::Ptr curInsn = decoder.decode();
    while(curInsn) {
      ReadWriteInfo curInsnRW;
@@ -358,12 +360,13 @@ bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
    Address blockEnd = loc.block->end();
    std::vector<Address> blockAddrs;
    
+   Architecture arch = loc.func->isrc()->getArch();
+   Address cleanAddr = stripAddrEncoding(blockBegin, arch);
    const unsigned char* insnBuffer = 
-      reinterpret_cast<const unsigned char*>(getPtrToInstruction(loc.block, blockBegin));
+      reinterpret_cast<const unsigned char*>(getPtrToInstruction(loc.block, cleanAddr));
    assert(insnBuffer);
 
-   InstructionDecoder decoder(insnBuffer,loc.block->size(),
-        loc.func->isrc()->getArch());
+   InstructionDecoder decoder(insnBuffer,loc.block->size(), arch);
    Address curInsnAddr = blockBegin;
    do
    {

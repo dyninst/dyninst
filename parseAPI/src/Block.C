@@ -78,19 +78,18 @@ Block::consistent(Address addr, Address & prev_insn)
     const unsigned char * buf =
         (const unsigned char*)(region()->getPtrToInstruction(cleanAddrStart));
     InstructionDecoder dec(buf, size(), arch);
-    InstructionAdapter_t ah(dec,cleanAddrStart,_obj,region(),isrc, this);
+    InstructionAdapter_t ah(dec,_start,_obj,region(),isrc, this);
 
-    Address cur = stripAddrEncoding(ah.getAddr(), arch);
+    Address cur = ah.getAddr();
     //parsing_printf("consistency check for [%lx,%lx), start: %lx addr: %lx\n",
         //start(),end(),cur,addr);
-    Address cleanAddr = stripAddrEncoding(addr, arch);
-    while(cur < cleanAddr) {
+    while(cur < addr) {
         ah.advance();
         prev_insn = cur;
-        cur = stripAddrEncoding(ah.getAddr(), arch);
+        cur = ah.getAddr();
         //parsing_printf(" cur: %lx\n",cur);
     }
-    return cur == cleanAddr;
+    return cur == addr;
 }
 
 void

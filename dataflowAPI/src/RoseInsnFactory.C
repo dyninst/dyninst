@@ -38,6 +38,7 @@
 #include "../rose/SgAsmInstruction.h"
 #include "../rose/SgAsmPowerpcInstruction.h"
 #include "../rose/SgAsmArmv8Instruction.h"
+#include "../rose/SgAsmARMv6MInstruction.h"
 #include "../rose/SgAsmx86Instruction.h"
 #include "../rose/SgAsmExpression.h"
 
@@ -395,4 +396,26 @@ bool RoseInsnArmv8Factory::handleSpecialCases(entryID, SgAsmInstruction *, SgAsm
 void RoseInsnArmv8Factory::massageOperands(const InstructionAPI::Instruction::Ptr &,
                                            std::vector <InstructionAPI::Operand> &) {
   return;
+}
+
+
+void RoseInsnARMv6MFactory::setSizes(SgAsmInstruction */*insn*/) {
+}
+
+SgAsmInstruction *RoseInsnARMv6MFactory::createInsn() {
+    return new SgAsmARMv6MInstruction;
+}
+
+void RoseInsnARMv6MFactory::setOpcode(SgAsmInstruction *insn, entryID opcode, prefixEntryID, std::string) {
+    SgAsmARMv6MInstruction *tmp = static_cast<SgAsmARMv6MInstruction *>(insn);
+    tmp->set_kind(convertKind(opcode));
+}
+
+bool RoseInsnARMv6MFactory::handleSpecialCases(entryID, SgAsmInstruction *, SgAsmOperandList *) {
+    return false;
+}
+
+void RoseInsnARMv6MFactory::massageOperands(const InstructionAPI::Instruction::Ptr &,
+                                           std::vector <InstructionAPI::Operand> &) {
+    return;
 }

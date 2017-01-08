@@ -36,6 +36,7 @@
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
 #include "external/rose/armv8InstructionEnum.h"
+#include "external/rose/ARMv6MInstructionEnum.h"
 #include "Visitor.h"
 #include "common/h/util.h"
 #include "boost/shared_ptr.hpp"
@@ -180,6 +181,30 @@ namespace Dyninst {
             virtual void setSizes(SgAsmInstruction *insn);
 
             ARMv8InstructionKind convertKind(entryID opcode);
+
+            virtual Architecture arch() { return a; };
+        };
+
+        class RoseInsnARMv6MFactory : public RoseInsnFactory {
+        public:
+            DATAFLOW_EXPORT RoseInsnARMv6MFactory(Architecture arch) : a(arch) { };
+
+            DATAFLOW_EXPORT virtual ~RoseInsnARMv6MFactory() { };
+
+        private:
+            Architecture a;
+
+            virtual SgAsmInstruction *createInsn();
+
+            virtual void setOpcode(SgAsmInstruction *insn, entryID opcode, prefixEntryID prefix, std::string mnem);
+
+            virtual bool handleSpecialCases(entryID opcode, SgAsmInstruction *rinsn, SgAsmOperandList *roperands);
+
+            virtual void massageOperands(const InstructionPtr &insn, std::vector<InstructionAPI::Operand> &operands);
+
+            virtual void setSizes(SgAsmInstruction *insn);
+
+            ARMv6MInstructionKind convertKind(entryID opcode);
 
             virtual Architecture arch() { return a; };
         };

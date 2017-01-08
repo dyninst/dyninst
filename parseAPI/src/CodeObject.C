@@ -334,8 +334,9 @@ bool CodeObject::isIATcall(Address insnAddr, std::string &calleeName)
    }
    Block *blk = *blocks.begin();
 
+   Address cleanAddr = stripAddrEncoding(insnAddr, reg->getArch());
    const unsigned char* bufferBegin = 
-      (const unsigned char *)(cs()->getPtrToInstruction(insnAddr));
+      (const unsigned char *)(cs()->getPtrToInstruction(cleanAddr));
    using namespace InstructionAPI;
    InstructionDecoder dec = InstructionDecoder(bufferBegin,
       InstructionDecoder::maxInstructionLength, reg->getArch());

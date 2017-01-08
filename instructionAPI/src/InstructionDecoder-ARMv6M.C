@@ -1,4 +1,4 @@
-// This content was generated on Mon Nov 28 16:25:22 CET 2016
+// This content was generated on Sat Jan 07 20:53:39 CET 2017
 // Do not edit directly.
 // Contact: eda@tum
 
@@ -117,7 +117,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), false, true);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u32, (local_imm32 + 0x4))), u32), false, false, true, false);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u8, 2)), u32), false, false, true, true);
-				m_instrInProgress->m_category = c_BranchInsn;
+				{
+					m_instrInProgress->m_category = c_BranchInsn;
+				}
 				// read PC
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), true, false);
 			}
@@ -160,7 +162,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), false, true);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u32, (local_imm32 + 0x4))), u32), false, false, true, false);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u8, 2)), u32), false, false, true, true);
-				m_instrInProgress->m_category = c_BranchInsn;
+				{
+					m_instrInProgress->m_category = c_BranchInsn;
+				}
 				// read PC
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), true, false);
 			}
@@ -203,7 +207,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), false, true);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u32, (local_imm32 + 0x4))), u32), false, false, true, false);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u8, 2)), u32), false, false, true, true);
-				m_instrInProgress->m_category = c_BranchInsn;
+				{
+					m_instrInProgress->m_category = c_BranchInsn;
+				}
 				// read PC
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), true, false);
 			}
@@ -246,7 +252,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), false, true);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u32, (local_imm32 + 0x4))), u32), false, false, true, false);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u8, 2)), u32), false, false, true, true);
-				m_instrInProgress->m_category = c_BranchInsn;
+				{
+					m_instrInProgress->m_category = c_BranchInsn;
+				}
 				// read PC
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), true, false);
 			}
@@ -290,7 +298,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), false, true);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u32, (local_imm32 + 0x4))), u32), false, false, true, false);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u8, 2)), u32), false, false, true, true);
-				m_instrInProgress->m_category = c_BranchInsn;
+				{
+					m_instrInProgress->m_category = c_BranchInsn;
+				}
 				// read PC
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), true, false);
 			}
@@ -334,7 +344,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), false, true);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u32, (local_imm32 + 0x4))), u32), false, false, true, false);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u8, 2)), u32), false, false, true, true);
-				m_instrInProgress->m_category = c_BranchInsn;
+				{
+					m_instrInProgress->m_category = c_BranchInsn;
+				}
 				// read PC
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), true, false);
 			}
@@ -377,7 +389,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), false, true);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u32, (local_imm32 + 0x4))), u32), false, false, true, false);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u8, 2)), u32), false, false, true, true);
-				m_instrInProgress->m_category = c_BranchInsn;
+				{
+					m_instrInProgress->m_category = c_BranchInsn;
+				}
 				// read PC
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), true, false);
 			}
@@ -420,7 +434,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), false, true);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u32, (local_imm32 + 0x4))), u32), false, false, true, false);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u8, 2)), u32), false, false, true, true);
-				m_instrInProgress->m_category = c_BranchInsn;
+				{
+					m_instrInProgress->m_category = c_BranchInsn;
+				}
 				// read PC
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), true, false);
 			}
@@ -463,7 +479,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), false, true);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u32, (local_imm32 + 0x4))), u32), false, false, true, false);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u8, 2)), u32), false, false, true, true);
-				m_instrInProgress->m_category = c_BranchInsn;
+				{
+					m_instrInProgress->m_category = c_BranchInsn;
+				}
 				// read PC
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), true, false);
 			}
@@ -506,7 +524,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), false, true);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u32, (local_imm32 + 0x4))), u32), false, false, true, false);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u8, 2)), u32), false, false, true, true);
-				m_instrInProgress->m_category = c_BranchInsn;
+				{
+					m_instrInProgress->m_category = c_BranchInsn;
+				}
 				// read PC
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), true, false);
 			}
@@ -551,7 +571,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), false, true);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u32, (local_imm32 + 0x4))), u32), false, false, true, false);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u8, 2)), u32), false, false, true, true);
-				m_instrInProgress->m_category = c_BranchInsn;
+				{
+					m_instrInProgress->m_category = c_BranchInsn;
+				}
 				// read PC
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), true, false);
 			}
@@ -596,7 +618,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), false, true);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u32, (local_imm32 + 0x4))), u32), false, false, true, false);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u8, 2)), u32), false, false, true, true);
-				m_instrInProgress->m_category = c_BranchInsn;
+				{
+					m_instrInProgress->m_category = c_BranchInsn;
+				}
 				// read PC
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), true, false);
 			}
@@ -641,7 +665,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), false, true);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u32, (local_imm32 + 0x4))), u32), false, false, true, false);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u8, 2)), u32), false, false, true, true);
-				m_instrInProgress->m_category = c_BranchInsn;
+				{
+					m_instrInProgress->m_category = c_BranchInsn;
+				}
 				// read PC
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), true, false);
 			}
@@ -686,7 +712,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), false, true);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u32, (local_imm32 + 0x4))), u32), false, false, true, false);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u8, 2)), u32), false, false, true, true);
-				m_instrInProgress->m_category = c_BranchInsn;
+				{
+					m_instrInProgress->m_category = c_BranchInsn;
+				}
 				// read PC
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), true, false);
 			}
@@ -733,7 +761,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), false, true);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u32, (local_imm32 + 0x4))), u32), false, false, true, false);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u8, 2)), u32), false, false, true, true);
-				m_instrInProgress->m_category = c_BranchInsn;
+				{
+					m_instrInProgress->m_category = c_BranchInsn;
+				}
 				// read PC
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), true, false);
 			}
@@ -780,7 +810,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), false, true);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u32, (local_imm32 + 0x4))), u32), false, false, true, false);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u8, 2)), u32), false, false, true, true);
-				m_instrInProgress->m_category = c_BranchInsn;
+				{
+					m_instrInProgress->m_category = c_BranchInsn;
+				}
 				// read PC
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), true, false);
 			}
@@ -929,7 +961,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// write PC
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), false, true);
 				m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u32, (local_imm32 + 0x4))), u32), false, false, false, false);
-				m_instrInProgress->m_category = c_BranchInsn;
+				{
+					m_instrInProgress->m_category = c_BranchInsn;
+				}
 				// read PC
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), true, false);
 			}
@@ -960,11 +994,11 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					m_instrInProgress = make_shared(makeInstruction(ARMv6M_op_BL, "BL", 4, buf.start));
 				
 					/* Behavior:
-					LOCAL_LITERAL_S = LITERAL_label<CONSTNUM_0x17..CONSTNUM_0x17>; { Type: Unsigned32Bit, MemRef: no }
-					LOCAL_LITERAL_J1 = LITERAL_label<CONSTNUM_0xc..CONSTNUM_0xc>; { Type: Unsigned32Bit, MemRef: no }
-					LOCAL_LITERAL_J2 = LITERAL_label<CONSTNUM_0xb..CONSTNUM_0xb>; { Type: Unsigned32Bit, MemRef: no }
-					LOCAL_LITERAL_I1 = (~(LOCAL_LITERAL_J1 ^ LOCAL_LITERAL_S){ Type: Unsigned32Bit, MemRef: no }){ Type: Unsigned32Bit, MemRef: no }; { Type: Unsigned32Bit, MemRef: no }
-					LOCAL_LITERAL_I2 = (~(LOCAL_LITERAL_J2 ^ LOCAL_LITERAL_S){ Type: Unsigned32Bit, MemRef: no }){ Type: Unsigned32Bit, MemRef: no }; { Type: Unsigned32Bit, MemRef: no }
+					LOCAL_LITERAL_S = LITERAL_label<CONSTNUM_0x17..CONSTNUM_0x17>; { Type: Bit, MemRef: no }
+					LOCAL_LITERAL_J1 = LITERAL_label<CONSTNUM_0xc..CONSTNUM_0xc>; { Type: Bit, MemRef: no }
+					LOCAL_LITERAL_J2 = LITERAL_label<CONSTNUM_0xb..CONSTNUM_0xb>; { Type: Bit, MemRef: no }
+					LOCAL_LITERAL_I1 = (~(LOCAL_LITERAL_J1 ^ LOCAL_LITERAL_S){ Type: Bit, MemRef: no }){ Type: Bit, MemRef: no }; { Type: Bit, MemRef: no }
+					LOCAL_LITERAL_I2 = (~(LOCAL_LITERAL_J2 ^ LOCAL_LITERAL_S){ Type: Bit, MemRef: no }){ Type: Bit, MemRef: no }; { Type: Bit, MemRef: no }
 					LOCAL_LITERAL_imm10 = LITERAL_label<CONSTNUM_0x16..CONSTNUM_0xd>; { Type: Unsigned32Bit, MemRef: no }
 					LOCAL_LITERAL_imm11 = LITERAL_label<CONSTNUM_0xa..CONSTNUM_0x0>; { Type: Unsigned32Bit, MemRef: no }
 					LOCAL_LITERAL_imm32 = CAST(SIGNED, 32, (((((LOCAL_LITERAL_S << CONSTNUM_0x18){ Type: Unsigned32Bit, MemRef: no } | (LOCAL_LITERAL_I1 << CONSTNUM_0x17){ Type: Unsigned32Bit, MemRef: no }){ Type: Unsigned32Bit, MemRef: no } | (LOCAL_LITERAL_I2 << CONSTNUM_0x16){ Type: Unsigned32Bit, MemRef: no }){ Type: Unsigned32Bit, MemRef: no } | (LOCAL_LITERAL_imm10 << CONSTNUM_0xc){ Type: Unsigned32Bit, MemRef: no }){ Type: Unsigned32Bit, MemRef: no } | (LOCAL_LITERAL_imm11 << CONSTNUM_0x1){ Type: Unsigned32Bit, MemRef: no }){ Type: Unsigned32Bit, MemRef: no }); { Type: Signed32Bit, MemRef: no }
@@ -998,18 +1032,18 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					
 					uint32_t local_imm10;
 					int32_t local_imm32;
-					uint32_t local_S;
+					bool local_S;
 					uint32_t local_imm11;
-					uint32_t local_J1;
-					uint32_t local_J2;
-					uint32_t local_I1;
-					uint32_t local_I2;
+					bool local_J1;
+					bool local_J2;
+					bool local_I1;
+					bool local_I2;
 					
-					local_S = ((param_label & 0x800000) >> 0x17);
-					local_J1 = ((param_label & 0x1000) >> 0xc);
-					local_J2 = ((param_label & 0x800) >> 0xb);
-					local_I1 = ~(local_J1 ^ local_S);
-					local_I2 = ~(local_J2 ^ local_S);
+					local_S = (((param_label & 0x800000) >> 0x17) != 0);
+					local_J1 = (((param_label & 0x1000) >> 0xc) != 0);
+					local_J2 = (((param_label & 0x800) >> 0xb) != 0);
+					local_I1 = !(local_J1 ^ local_S);
+					local_I2 = !(local_J2 ^ local_S);
 					local_imm10 = ((param_label & 0x7fe000) >> 0xd);
 					local_imm11 = ((param_label & 0x7ff) >> 0x0);
 					local_imm32 = CoerceBits<int32_t>((((((local_S << 0x18) | (local_I1 << 0x17)) | (local_I2 << 0x16)) | (local_imm10 << 0xc)) | (local_imm11 << 0x1)));
@@ -1347,11 +1381,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 											if (param_d == 15)
 											{
 												m_instrInProgress->addSuccessor(Immediate::makeImmediate(Result(u32, 0x0)), false, false, false, false);
-												m_instrInProgress->m_category = c_BranchInsn;
+												if (param_d == 13)
+												{
+													m_instrInProgress->m_category = c_ReturnInsn;
+												} else 
+												if (param_d == 14)
+												{
+													m_instrInProgress->m_category = c_CallInsn;
+												} else 
+												{
+													m_instrInProgress->m_category = c_BranchInsn;
+												}
 											}
 											if ((((param_sysm & 0xf8) >> 0x3) == 0x0))
 											{
-												if ((((param_sysm & 0x1) >> 0x0) == 0x1))
+												if (((((param_sysm & 0x1) >> 0x0) != 0) == 0x1))
 												{
 													// write R
 													m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_d)), false, true);
@@ -1359,12 +1403,22 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 													if (param_d == 15)
 													{
 														m_instrInProgress->addSuccessor(makeRegisterExpression(MachRegister(ARMv6M::PSR)), false, true, false, false);
-														m_instrInProgress->m_category = c_BranchInsn;
+														if (param_d == 13)
+														{
+															m_instrInProgress->m_category = c_ReturnInsn;
+														} else 
+														if (param_d == 14)
+														{
+															m_instrInProgress->m_category = c_CallInsn;
+														} else 
+														{
+															m_instrInProgress->m_category = c_BranchInsn;
+														}
 													}
 													// read PSR
 													m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PSR)), true, false);
 												}
-												if ((((param_sysm & 0x2) >> 0x1) == 0x1))
+												if (((((param_sysm & 0x2) >> 0x1) != 0) == 0x1))
 												{
 													// write R
 													m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_d)), false, true);
@@ -1372,10 +1426,20 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 													if (param_d == 15)
 													{
 														m_instrInProgress->addSuccessor(Immediate::makeImmediate(Result(u32, 0x0)), false, false, false, false);
-														m_instrInProgress->m_category = c_BranchInsn;
+														if (param_d == 13)
+														{
+															m_instrInProgress->m_category = c_ReturnInsn;
+														} else 
+														if (param_d == 14)
+														{
+															m_instrInProgress->m_category = c_CallInsn;
+														} else 
+														{
+															m_instrInProgress->m_category = c_BranchInsn;
+														}
 													}
 												}
-												if ((((param_sysm & 0x4) >> 0x2) == 0x0))
+												if (((((param_sysm & 0x4) >> 0x2) != 0) == 0x0))
 												{
 													// write R
 													m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_d)), false, true);
@@ -1383,7 +1447,17 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 													if (param_d == 15)
 													{
 														m_instrInProgress->addSuccessor(makeRegisterExpression(MachRegister(ARMv6M::PSR)), false, true, false, false);
-														m_instrInProgress->m_category = c_BranchInsn;
+														if (param_d == 13)
+														{
+															m_instrInProgress->m_category = c_ReturnInsn;
+														} else 
+														if (param_d == 14)
+														{
+															m_instrInProgress->m_category = c_CallInsn;
+														} else 
+														{
+															m_instrInProgress->m_category = c_BranchInsn;
+														}
 													}
 													// read PSR
 													m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PSR)), true, false);
@@ -1399,7 +1473,17 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 														if (param_d == 15)
 														{
 															m_instrInProgress->addSuccessor(makeRegisterExpression(MachRegister(ARMv6M::SP)), false, true, false, false);
-															m_instrInProgress->m_category = c_BranchInsn;
+															if (param_d == 13)
+															{
+																m_instrInProgress->m_category = c_ReturnInsn;
+															} else 
+															if (param_d == 14)
+															{
+																m_instrInProgress->m_category = c_CallInsn;
+															} else 
+															{
+																m_instrInProgress->m_category = c_BranchInsn;
+															}
 														}
 														// read SP
 														m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::SP)), true, false);
@@ -1412,7 +1496,17 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 															if (param_d == 15)
 															{
 																m_instrInProgress->addSuccessor(makeRegisterExpression(MachRegister(ARMv6M::SP)), false, true, false, false);
-																m_instrInProgress->m_category = c_BranchInsn;
+																if (param_d == 13)
+																{
+																	m_instrInProgress->m_category = c_ReturnInsn;
+																} else 
+																if (param_d == 14)
+																{
+																	m_instrInProgress->m_category = c_CallInsn;
+																} else 
+																{
+																	m_instrInProgress->m_category = c_BranchInsn;
+																}
 															}
 															// read SP
 															m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::SP)), true, false);
@@ -1429,7 +1523,17 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 															if (param_d == 15)
 															{
 																m_instrInProgress->addSuccessor(Immediate::makeImmediate(Result(u32, 0x0)), false, false, false, false);
-																m_instrInProgress->m_category = c_BranchInsn;
+																if (param_d == 13)
+																{
+																	m_instrInProgress->m_category = c_ReturnInsn;
+																} else 
+																if (param_d == 14)
+																{
+																	m_instrInProgress->m_category = c_CallInsn;
+																} else 
+																{
+																	m_instrInProgress->m_category = c_BranchInsn;
+																}
 															}
 														} else {
 															if ((((param_sysm & 0x7) >> 0x0) == 0x1))
@@ -1440,7 +1544,17 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 																if (param_d == 15)
 																{
 																	m_instrInProgress->addSuccessor(Immediate::makeImmediate(Result(u32, 0x0)), false, false, false, false);
-																	m_instrInProgress->m_category = c_BranchInsn;
+																	if (param_d == 13)
+																	{
+																		m_instrInProgress->m_category = c_ReturnInsn;
+																	} else 
+																	if (param_d == 14)
+																	{
+																		m_instrInProgress->m_category = c_CallInsn;
+																	} else 
+																	{
+																		m_instrInProgress->m_category = c_BranchInsn;
+																	}
 																}
 															}
 														}
@@ -1551,7 +1665,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 														
 														if ((((param_sysm & 0xf8) >> 0x3) == 0x0))
 														{
-															if ((((param_sysm & 0x4) >> 0x2) == 0x0))
+															if (((((param_sysm & 0x4) >> 0x2) != 0) == 0x0))
 															{
 																// write PSR
 																m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PSR)), false, true);
@@ -1676,7 +1790,13 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						// write PC
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), false, true);
 						m_instrInProgress->addSuccessor(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (param_m == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 						// read R
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), true, false);
 					}
@@ -1713,7 +1833,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				LOCAL_LITERAL__o_add_v = (not(CAST(STRICT, SIGNED, 32, LOCAL_LITERAL__o_add_result) == LOCAL_LITERAL___signed_sum){ Type: Signed32Bit, MemRef: yes }){ Type: Signed32Bit, MemRef: yes }; { Type: Signed32Bit, MemRef: yes }
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL__o_add_result; { Type: Unsigned32Bit, MemRef: yes }
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL__o_add_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -1764,7 +1884,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					if (param_dn == 15)
 					{
 						m_instrInProgress->addSuccessor(makeAddExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_c))), u32), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (param_dn == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_m == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_dn == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						if (param_dn == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 					}
 					// write N
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -1804,7 +1942,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				LOCAL_LITERAL__o_add_v = (not(CAST(STRICT, SIGNED, 32, LOCAL_LITERAL__o_add_result) == LOCAL_LITERAL___signed_sum){ Type: Signed32Bit, MemRef: yes }){ Type: Signed32Bit, MemRef: yes }; { Type: Signed32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL__o_add_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -1899,7 +2037,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_d == 15)
 				{
 					m_instrInProgress->addSuccessor(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_d == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_d == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// read R
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), true, false);
@@ -1933,7 +2085,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				LOCAL_LITERAL_operand = CAST(STRICT, SIGNED, 32, MEMREF_R[LITERAL_m]{ Type: Unsigned32Bit }); { Type: Signed32Bit, MemRef: yes }
 				LOCAL_LITERAL_result = (LOCAL_LITERAL_operand >> LOCAL_LITERAL_shift){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				MEMREF_R[LITERAL_d]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				MEMREF_C{ Type: Bit } = LOCAL_LITERAL_operand<(LOCAL_LITERAL_shift - CONSTNUM_0x1){ Type: Unsigned32Bit, MemRef: no }..(LOCAL_LITERAL_shift - CONSTNUM_0x1){ Type: Unsigned32Bit, MemRef: no }>; { Type: Signed32Bit, MemRef: yes }
 				*/
@@ -1976,7 +2128,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_d == 15)
 				{
 					m_instrInProgress->addSuccessor(makeRightArithmeticShiftExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), Immediate::makeImmediate(Result(u32, local_shift)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_d == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_d == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -2029,7 +2195,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					if (param_d == 15)
 					{
 						m_instrInProgress->addSuccessor(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (param_d == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_m == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_d == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 					}
 					// read R
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), true, false);
@@ -2053,7 +2233,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				LOCAL_LITERAL_operand = CAST(STRICT, 32, MEMREF_R[LITERAL_m]{ Type: Unsigned32Bit }); { Type: Unsigned32Bit, MemRef: yes }
 				LOCAL_LITERAL_result = (LOCAL_LITERAL_operand << LOCAL_LITERAL_shift){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				MEMREF_R[LITERAL_d]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				MEMREF_C{ Type: Bit } = LOCAL_LITERAL_operand<(CONSTNUM_0x20 - LOCAL_LITERAL_shift){ Type: Unsigned32Bit, MemRef: no }..(CONSTNUM_0x20 - LOCAL_LITERAL_shift){ Type: Unsigned32Bit, MemRef: no }>; { Type: Unsigned32Bit, MemRef: yes }
 				*/
@@ -2089,7 +2269,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_d == 15)
 				{
 					m_instrInProgress->addSuccessor(makeLeftShiftExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), Immediate::makeImmediate(Result(u32, local_shift)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_d == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_d == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -2119,7 +2313,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				LOCAL_LITERAL_operand = CAST(STRICT, 32, MEMREF_R[LITERAL_m]{ Type: Unsigned32Bit }); { Type: Unsigned32Bit, MemRef: yes }
 				LOCAL_LITERAL_result = (LOCAL_LITERAL_operand >> LOCAL_LITERAL_shift){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				MEMREF_R[LITERAL_d]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				MEMREF_C{ Type: Bit } = LOCAL_LITERAL_operand<(LOCAL_LITERAL_shift - CONSTNUM_0x1){ Type: Unsigned32Bit, MemRef: no }..(LOCAL_LITERAL_shift - CONSTNUM_0x1){ Type: Unsigned32Bit, MemRef: no }>; { Type: Unsigned32Bit, MemRef: yes }
 				*/
@@ -2160,7 +2354,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_d == 15)
 				{
 					m_instrInProgress->addSuccessor(makeRightArithmeticShiftExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), Immediate::makeImmediate(Result(u32, local_shift)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_d == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_d == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -2209,7 +2417,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						LOCAL_LITERAL__o_add_v = (not(CAST(STRICT, SIGNED, 32, LOCAL_LITERAL__o_add_result) == LOCAL_LITERAL___signed_sum){ Type: Signed32Bit, MemRef: yes }){ Type: Signed32Bit, MemRef: yes }; { Type: Signed32Bit, MemRef: yes }
 						;
 						MEMREF_R[LITERAL_d]{ Type: Unsigned32Bit } = LOCAL_LITERAL__o_add_result; { Type: Unsigned32Bit, MemRef: yes }
-						MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+						MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 						;
 						MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL__o_add_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 						;
@@ -2258,7 +2466,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						if (param_d == 15)
 						{
 							m_instrInProgress->addSuccessor(makeAddExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_y))), u32), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_c))), u32), false, true, false, false);
-							m_instrInProgress->m_category = c_BranchInsn;
+							if (param_d == 13)
+							{
+								m_instrInProgress->m_category = c_ReturnInsn;
+							} else 
+							if (param_n == 14)
+							{
+								m_instrInProgress->m_category = c_ReturnInsn;
+							} else 
+							if (param_d == 14)
+							{
+								m_instrInProgress->m_category = c_CallInsn;
+							} else 
+							{
+								m_instrInProgress->m_category = c_BranchInsn;
+							}
 						}
 						// write N
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -2297,7 +2519,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						LOCAL_LITERAL__o_add_v = (not(CAST(STRICT, SIGNED, 32, LOCAL_LITERAL__o_add_result) == LOCAL_LITERAL___signed_sum){ Type: Signed32Bit, MemRef: yes }){ Type: Signed32Bit, MemRef: yes }; { Type: Signed32Bit, MemRef: yes }
 						;
 						MEMREF_R[LITERAL_d]{ Type: Unsigned32Bit } = LOCAL_LITERAL__o_add_result; { Type: Unsigned32Bit, MemRef: yes }
-						MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+						MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 						;
 						MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL__o_add_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 						;
@@ -2346,7 +2568,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						if (param_d == 15)
 						{
 							m_instrInProgress->addSuccessor(makeAddExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_y))), u32), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_c))), u32), false, true, false, false);
-							m_instrInProgress->m_category = c_BranchInsn;
+							if (param_d == 13)
+							{
+								m_instrInProgress->m_category = c_ReturnInsn;
+							} else 
+							if (param_n == 14)
+							{
+								m_instrInProgress->m_category = c_ReturnInsn;
+							} else 
+							if (param_d == 14)
+							{
+								m_instrInProgress->m_category = c_CallInsn;
+							} else 
+							{
+								m_instrInProgress->m_category = c_BranchInsn;
+							}
 						}
 						// write N
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -2392,7 +2628,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						LOCAL_LITERAL__o_add_v = (not(CAST(STRICT, SIGNED, 32, LOCAL_LITERAL__o_add_result) == LOCAL_LITERAL___signed_sum){ Type: Signed32Bit, MemRef: yes }){ Type: Signed32Bit, MemRef: yes }; { Type: Signed32Bit, MemRef: yes }
 						;
 						MEMREF_R[LITERAL_d]{ Type: Unsigned32Bit } = LOCAL_LITERAL__o_add_result; { Type: Unsigned32Bit, MemRef: yes }
-						MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+						MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 						;
 						MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL__o_add_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 						;
@@ -2440,7 +2676,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						if (param_d == 15)
 						{
 							m_instrInProgress->addSuccessor(makeAddExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_c))), u32), false, true, false, false);
-							m_instrInProgress->m_category = c_BranchInsn;
+							if (param_d == 13)
+							{
+								m_instrInProgress->m_category = c_ReturnInsn;
+							} else 
+							if (param_m == 14)
+							{
+								m_instrInProgress->m_category = c_ReturnInsn;
+							} else 
+							if (param_n == 14)
+							{
+								m_instrInProgress->m_category = c_ReturnInsn;
+							} else 
+							if (param_d == 14)
+							{
+								m_instrInProgress->m_category = c_CallInsn;
+							} else 
+							{
+								m_instrInProgress->m_category = c_BranchInsn;
+							}
 						}
 						// write N
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -2478,7 +2732,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						LOCAL_LITERAL__o_add_v = (not(CAST(STRICT, SIGNED, 32, LOCAL_LITERAL__o_add_result) == LOCAL_LITERAL___signed_sum){ Type: Signed32Bit, MemRef: yes }){ Type: Signed32Bit, MemRef: yes }; { Type: Signed32Bit, MemRef: yes }
 						;
 						MEMREF_R[LITERAL_d]{ Type: Unsigned32Bit } = LOCAL_LITERAL__o_add_result; { Type: Unsigned32Bit, MemRef: yes }
-						MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+						MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 						;
 						MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL__o_add_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 						;
@@ -2526,7 +2780,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						if (param_d == 15)
 						{
 							m_instrInProgress->addSuccessor(makeAddExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), makeBitwiseXorExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), Immediate::makeImmediate(Result(u32, ~static_cast<uint32_t>(0))), u32), u32), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_c))), u32), false, true, false, false);
-							m_instrInProgress->m_category = c_BranchInsn;
+							if (param_d == 13)
+							{
+								m_instrInProgress->m_category = c_ReturnInsn;
+							} else 
+							if (param_m == 14)
+							{
+								m_instrInProgress->m_category = c_ReturnInsn;
+							} else 
+							if (param_n == 14)
+							{
+								m_instrInProgress->m_category = c_ReturnInsn;
+							} else 
+							if (param_d == 14)
+							{
+								m_instrInProgress->m_category = c_CallInsn;
+							} else 
+							{
+								m_instrInProgress->m_category = c_BranchInsn;
+							}
 						}
 						// write N
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -2564,7 +2836,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						LOCAL_LITERAL__o_add_v = (not(CAST(STRICT, SIGNED, 32, LOCAL_LITERAL__o_add_result) == LOCAL_LITERAL___signed_sum){ Type: Signed32Bit, MemRef: yes }){ Type: Signed32Bit, MemRef: yes }; { Type: Signed32Bit, MemRef: yes }
 						;
 						MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL__o_add_result; { Type: Unsigned32Bit, MemRef: yes }
-						MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+						MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 						;
 						MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL__o_add_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 						;
@@ -2611,7 +2883,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						if (param_dn == 15)
 						{
 							m_instrInProgress->addSuccessor(makeAddExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeBitwiseXorExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), Immediate::makeImmediate(Result(u32, ~static_cast<uint32_t>(0))), u32), u32), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_c))), u32), false, true, false, false);
-							m_instrInProgress->m_category = c_BranchInsn;
+							if (param_dn == 13)
+							{
+								m_instrInProgress->m_category = c_ReturnInsn;
+							} else 
+							if (param_m == 14)
+							{
+								m_instrInProgress->m_category = c_ReturnInsn;
+							} else 
+							if (param_dn == 14)
+							{
+								m_instrInProgress->m_category = c_CallInsn;
+							} else 
+							if (param_dn == 14)
+							{
+								m_instrInProgress->m_category = c_ReturnInsn;
+							} else 
+							{
+								m_instrInProgress->m_category = c_BranchInsn;
+							}
 						}
 						// write N
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -2651,7 +2941,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				MEMREF_R[LITERAL_d]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -2697,7 +2987,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_d == 15)
 				{
 					m_instrInProgress->addSuccessor(makeRightArithmeticShiftExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), Immediate::makeImmediate(Result(u32, local_shift)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_d == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_d == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -2727,7 +3031,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				MEMREF_R[LITERAL_d]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -2768,7 +3072,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_d == 15)
 				{
 					m_instrInProgress->addSuccessor(makeLeftShiftExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), Immediate::makeImmediate(Result(u32, local_shift)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_d == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_d == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -2802,7 +3120,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				MEMREF_R[LITERAL_d]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -2848,7 +3166,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_d == 15)
 				{
 					m_instrInProgress->addSuccessor(makeRightArithmeticShiftExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), Immediate::makeImmediate(Result(u32, local_shift)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_d == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_d == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -2882,7 +3214,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				LOCAL_LITERAL_operand = CAST(STRICT, SIGNED, 32, MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit }); { Type: Signed32Bit, MemRef: yes }
 				LOCAL_LITERAL_result = (LOCAL_LITERAL_operand >> LOCAL_LITERAL_shift){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				if ((LOCAL_LITERAL_shift < CONSTNUM_0x20){ Type: Unsigned32Bit, MemRef: yes }) {
 				MEMREF_C{ Type: Bit } = LOCAL_LITERAL_operand<(LOCAL_LITERAL_shift - CONSTNUM_0x1){ Type: Unsigned32Bit, MemRef: yes }..(LOCAL_LITERAL_shift - CONSTNUM_0x1){ Type: Unsigned32Bit, MemRef: yes }>; { Type: Signed32Bit, MemRef: yes }
@@ -2918,7 +3250,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeRightArithmeticShiftExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -2950,7 +3300,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -2989,7 +3339,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeRightArithmeticShiftExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -3017,7 +3385,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				LOCAL_LITERAL_operand = CAST(STRICT, 32, MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit }); { Type: Unsigned32Bit, MemRef: yes }
 				LOCAL_LITERAL_result = (LOCAL_LITERAL_operand << LOCAL_LITERAL_shift){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				if ((LOCAL_LITERAL_shift <= CONSTNUM_0x20){ Type: Unsigned32Bit, MemRef: yes }) {
 				MEMREF_C{ Type: Bit } = LOCAL_LITERAL_operand<(CONSTNUM_0x20 - LOCAL_LITERAL_shift){ Type: Unsigned32Bit, MemRef: yes }..(CONSTNUM_0x20 - LOCAL_LITERAL_shift){ Type: Unsigned32Bit, MemRef: yes }>; { Type: Unsigned32Bit, MemRef: yes }
@@ -3053,7 +3421,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeLeftShiftExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -3085,7 +3471,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -3124,7 +3510,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeLeftShiftExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -3152,7 +3556,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				LOCAL_LITERAL_operand = CAST(STRICT, 32, MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit }); { Type: Unsigned32Bit, MemRef: yes }
 				LOCAL_LITERAL_result = (LOCAL_LITERAL_operand >> LOCAL_LITERAL_shift){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				if ((LOCAL_LITERAL_shift < CONSTNUM_0x20){ Type: Unsigned32Bit, MemRef: yes }) {
 				MEMREF_C{ Type: Bit } = LOCAL_LITERAL_operand<(LOCAL_LITERAL_shift - CONSTNUM_0x1){ Type: Unsigned32Bit, MemRef: yes }..(LOCAL_LITERAL_shift - CONSTNUM_0x1){ Type: Unsigned32Bit, MemRef: yes }>; { Type: Unsigned32Bit, MemRef: yes }
@@ -3188,7 +3592,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeRightArithmeticShiftExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -3220,7 +3642,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -3259,7 +3681,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeRightArithmeticShiftExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -3285,9 +3725,9 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				/* Behavior:
 				LOCAL_LITERAL_result = (MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } >>> CAST(32, MEMREF_R[LITERAL_m]<CONSTNUM_0x7..CONSTNUM_0x0>{ Type: Unsigned32Bit })){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
-				MEMREF_C{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_C{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				*/
 				
 				uint8_t param_dn = 0;
@@ -3315,7 +3755,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeRightRotateExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -3341,11 +3799,11 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_C{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_C{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				*/
 				
@@ -3374,7 +3832,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeRightRotateExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -3410,7 +3886,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				LOCAL_LITERAL__o_add_v = (not(CAST(STRICT, SIGNED, 32, LOCAL_LITERAL__o_add_result) == LOCAL_LITERAL___signed_sum){ Type: Signed32Bit, MemRef: yes }){ Type: Signed32Bit, MemRef: yes }; { Type: Signed32Bit, MemRef: yes }
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL__o_add_result; { Type: Unsigned32Bit, MemRef: yes }
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL__o_add_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -3454,7 +3930,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeAddExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), makeRegisterExpression(MachRegister(ARMv6M::C)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -3497,7 +3991,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL__o_add_result; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL__o_add_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -3542,7 +4036,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeAddExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), makeRegisterExpression(MachRegister(ARMv6M::C)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -3568,7 +4080,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				/* Behavior:
 				LOCAL_LITERAL_result = (MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } & MEMREF_R[LITERAL_m]{ Type: Unsigned32Bit }){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				*/
 				
@@ -3597,7 +4109,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeAndExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -3621,7 +4151,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -3652,7 +4182,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeAndExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -3674,7 +4222,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				/* Behavior:
 				LOCAL_LITERAL_result = (MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } & (~MEMREF_R[LITERAL_m]{ Type: Unsigned32Bit }){ Type: Unsigned32Bit, MemRef: yes }){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				*/
 				
@@ -3703,7 +4251,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeAndExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeBitwiseXorExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), Immediate::makeImmediate(Result(u32, ~static_cast<uint32_t>(0))), u32), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -3727,7 +4293,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -3758,7 +4324,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeAndExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeBitwiseXorExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), Immediate::makeImmediate(Result(u32, ~static_cast<uint32_t>(0))), u32), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -3791,7 +4375,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				LOCAL_LITERAL__o_add_v = (not(CAST(STRICT, SIGNED, 32, LOCAL_LITERAL__o_add_result) == LOCAL_LITERAL___signed_sum){ Type: Signed32Bit, MemRef: yes }){ Type: Signed32Bit, MemRef: yes }; { Type: Signed32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL__o_add_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -3863,7 +4447,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				LOCAL_LITERAL__o_add_v = (not(CAST(STRICT, SIGNED, 32, LOCAL_LITERAL__o_add_result) == LOCAL_LITERAL___signed_sum){ Type: Signed32Bit, MemRef: yes }){ Type: Signed32Bit, MemRef: yes }; { Type: Signed32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL__o_add_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -3924,7 +4508,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				/* Behavior:
 				LOCAL_LITERAL_result = (MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } ^ MEMREF_R[LITERAL_m]{ Type: Unsigned32Bit }){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				*/
 				
@@ -3953,7 +4537,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeBitwiseXorExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -3977,7 +4579,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -4008,7 +4610,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeBitwiseXorExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -4036,7 +4656,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -4076,7 +4696,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeRightArithmeticShiftExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -4108,7 +4746,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -4148,7 +4786,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeLeftShiftExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -4180,7 +4836,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -4220,7 +4876,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeRightArithmeticShiftExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -4248,11 +4922,11 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_C{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_C{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				;
 				*/
@@ -4282,7 +4956,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeRightRotateExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -4306,7 +4998,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				/* Behavior:
 				LOCAL_LITERAL_result = (~MEMREF_R[LITERAL_m]{ Type: Unsigned32Bit }){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				MEMREF_R[LITERAL_d]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				*/
 				
@@ -4333,7 +5025,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_d == 15)
 				{
 					m_instrInProgress->addSuccessor(makeBitwiseXorExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), Immediate::makeImmediate(Result(u32, ~static_cast<uint32_t>(0))), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_d == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_d == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -4355,7 +5061,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				/* Behavior:
 				LOCAL_LITERAL_result = (MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } | MEMREF_R[LITERAL_m]{ Type: Unsigned32Bit }){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				*/
 				
@@ -4384,7 +5090,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeOrExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -4408,7 +5132,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -4439,7 +5163,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeOrExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -4473,7 +5215,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				LOCAL_LITERAL__o_add_v = (not(CAST(STRICT, SIGNED, 32, LOCAL_LITERAL__o_add_result) == LOCAL_LITERAL___signed_sum){ Type: Signed32Bit, MemRef: yes }){ Type: Signed32Bit, MemRef: yes }; { Type: Signed32Bit, MemRef: yes }
 				;
 				MEMREF_R[LITERAL_d]{ Type: Unsigned32Bit } = LOCAL_LITERAL__o_add_result; { Type: Unsigned32Bit, MemRef: yes }
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL__o_add_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -4516,7 +5258,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_d == 15)
 				{
 					m_instrInProgress->addSuccessor(makeAddExpression(makeAddExpression(makeBitwiseXorExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), Immediate::makeImmediate(Result(u32, ~static_cast<uint32_t>(0))), u32), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_y))), u32), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_c))), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_d == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_n == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_d == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -4554,7 +5310,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				LOCAL_LITERAL__o_add_v = (not(CAST(STRICT, SIGNED, 32, LOCAL_LITERAL__o_add_result) == LOCAL_LITERAL___signed_sum){ Type: Signed32Bit, MemRef: yes }){ Type: Signed32Bit, MemRef: yes }; { Type: Signed32Bit, MemRef: yes }
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL__o_add_result; { Type: Unsigned32Bit, MemRef: yes }
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL__o_add_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -4596,7 +5352,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeAddExpression(makeAddExpression(makeBitwiseXorExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), Immediate::makeImmediate(Result(u32, ~static_cast<uint32_t>(0))), u32), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_y))), u32), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_c))), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -4634,7 +5404,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				LOCAL_LITERAL__o_add_v = (not(CAST(STRICT, SIGNED, 32, LOCAL_LITERAL__o_add_result) == LOCAL_LITERAL___signed_sum){ Type: Signed32Bit, MemRef: yes }){ Type: Signed32Bit, MemRef: yes }; { Type: Signed32Bit, MemRef: yes }
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL__o_add_result; { Type: Unsigned32Bit, MemRef: yes }
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL__o_add_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -4678,7 +5448,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeAddExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeBitwiseXorExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), Immediate::makeImmediate(Result(u32, ~static_cast<uint32_t>(0))), u32), u32), makeRegisterExpression(MachRegister(ARMv6M::C)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -4721,7 +5509,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL__o_add_result; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL__o_add_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -4766,7 +5554,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeAddExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), makeBitwiseXorExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), Immediate::makeImmediate(Result(u32, ~static_cast<uint32_t>(0))), u32), u32), makeRegisterExpression(MachRegister(ARMv6M::C)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -4791,7 +5597,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 			
 				/* Behavior:
 				LOCAL_LITERAL_result = (MEMREF_R[LITERAL_n]{ Type: Unsigned32Bit } & MEMREF_R[LITERAL_m]{ Type: Unsigned32Bit }){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				*/
 				
@@ -4851,7 +5657,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL__o_add_result; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL__o_add_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -4893,7 +5699,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeAddExpression(makeAddExpression(makeBitwiseXorExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), Immediate::makeImmediate(Result(u32, ~static_cast<uint32_t>(0))), u32), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_y))), u32), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_c))), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -4936,7 +5756,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				MEMREF_R[LITERAL_d]{ Type: Unsigned32Bit } = LOCAL_LITERAL__o_add_result; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL__o_add_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -4979,7 +5799,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_d == 15)
 				{
 					m_instrInProgress->addSuccessor(makeAddExpression(makeAddExpression(makeBitwiseXorExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), Immediate::makeImmediate(Result(u32, ~static_cast<uint32_t>(0))), u32), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_y))), u32), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_c))), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_d == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_n == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_d == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -5007,7 +5841,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				LOCAL_LITERAL_op2 = CAST(STRICT, SIGNED, 32, MEMREF_R[LITERAL_dm]{ Type: Unsigned32Bit }); { Type: Signed32Bit, MemRef: yes }
 				LOCAL_LITERAL_result = (LOCAL_LITERAL_op1 * LOCAL_LITERAL_op2){ Type: Signed32Bit, MemRef: yes }; { Type: Signed32Bit, MemRef: yes }
 				MEMREF_R[LITERAL_dm]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x0>; { Type: Signed32Bit, MemRef: yes }
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Signed32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				*/
 				
@@ -5038,7 +5872,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dm == 15)
 				{
 					m_instrInProgress->addSuccessor(makeMultiplyExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dm)), s32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dm == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_n == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dm == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dm == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -5066,7 +5918,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				MEMREF_R[LITERAL_dm]{ Type: Unsigned32Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x0>; { Type: Signed32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Signed32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -5099,7 +5951,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dm == 15)
 				{
 					m_instrInProgress->addSuccessor(makeMultiplyExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dm)), s32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dm == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_n == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dm == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dm == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -5142,7 +6012,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				LOCAL_LITERAL__o_add_v = (not(CAST(STRICT, SIGNED, 32, LOCAL_LITERAL__o_add_result) == LOCAL_LITERAL___signed_sum){ Type: Signed32Bit, MemRef: yes }){ Type: Signed32Bit, MemRef: yes }; { Type: Signed32Bit, MemRef: yes }
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL__o_add_result; { Type: Unsigned32Bit, MemRef: yes }
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL__o_add_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -5186,7 +6056,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeAddExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_y))), u32), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_c))), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -5231,7 +6115,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL__o_add_result; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL__o_add_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -5276,7 +6160,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeAddExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_y))), u32), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_c))), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -5314,7 +6212,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				LOCAL_LITERAL__o_add_v = (not(CAST(STRICT, SIGNED, 32, LOCAL_LITERAL__o_add_result) == LOCAL_LITERAL___signed_sum){ Type: Signed32Bit, MemRef: yes }){ Type: Signed32Bit, MemRef: yes }; { Type: Signed32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL__o_add_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -5376,7 +6274,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				/* Behavior:
 				LOCAL_LITERAL_imm32 = CAST(32, LITERAL_imm); { Type: Unsigned32Bit, MemRef: no }
 				MEMREF_R[LITERAL_d]{ Type: Unsigned32Bit } = LOCAL_LITERAL_imm32; { Type: Unsigned32Bit, MemRef: yes }
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_imm32<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL_imm32<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL_imm32 == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: no }; { Type: Unsigned32Bit, MemRef: yes }
 				*/
 				
@@ -5402,7 +6300,17 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_d == 15)
 				{
 					m_instrInProgress->addSuccessor(Immediate::makeImmediate(Result(u32, local_imm32)), false, false, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_d == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_d == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -5437,7 +6345,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				LOCAL_LITERAL__o_add_v = (not(CAST(STRICT, SIGNED, 32, LOCAL_LITERAL__o_add_result) == LOCAL_LITERAL___signed_sum){ Type: Signed32Bit, MemRef: yes }){ Type: Signed32Bit, MemRef: yes }; { Type: Signed32Bit, MemRef: yes }
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL__o_add_result; { Type: Unsigned32Bit, MemRef: yes }
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL__o_add_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -5481,7 +6389,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeAddExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_y))), u32), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_c))), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -5526,7 +6448,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				;
 				MEMREF_R[LITERAL_dn]{ Type: Unsigned32Bit } = LOCAL_LITERAL__o_add_result; { Type: Unsigned32Bit, MemRef: yes }
 				;
-				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Unsigned32Bit, MemRef: yes }
+				MEMREF_N{ Type: Bit } = LOCAL_LITERAL__o_add_result<CONSTNUM_0x1f..CONSTNUM_0x1f>; { Type: Bit, MemRef: yes }
 				;
 				MEMREF_Z{ Type: Bit } = (LOCAL_LITERAL__o_add_result == CONSTNUM_0x0){ Type: Unsigned32Bit, MemRef: yes }; { Type: Unsigned32Bit, MemRef: yes }
 				;
@@ -5571,7 +6493,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dn == 15)
 				{
 					m_instrInProgress->addSuccessor(makeAddExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dn)), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_y))), u32), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_c))), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dn == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dn == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// write N
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::N)), false, true);
@@ -5654,7 +6590,17 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_d == 15)
 				{
 					m_instrInProgress->addSuccessor(makeAddExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::SP)), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_y))), u32), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_c))), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_d == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_d == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 			}
 		}
@@ -5696,7 +6642,17 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_d == 15)
 				{
 					m_instrInProgress->addSuccessor(makeAddExpression(makeAndExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u32, 0xfffffffc)), u32), Immediate::makeImmediate(Result(u32, local_imm32)), u32), false, false, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_d == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_d == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// read PC
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), true, false);
@@ -5742,7 +6698,17 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_d == 15)
 				{
 					m_instrInProgress->addSuccessor(makeAddExpression(makeAndExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u32, 0xfffffffc)), u32), Immediate::makeImmediate(Result(u32, local_imm32)), u32), false, false, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_d == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_d == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// read PC
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::PC)), true, false);
@@ -6044,7 +7010,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					if (param_d == 15)
 					{
 						m_instrInProgress->addSuccessor(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (param_d == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_m == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_d == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 					}
 					// read R
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), true, false);
@@ -6054,7 +7034,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					if (param_d == 15)
 					{
 						m_instrInProgress->addSuccessor(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (param_d == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_m == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_d == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 					}
 					// read R
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), true, false);
@@ -6064,7 +7058,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					if (param_d == 15)
 					{
 						m_instrInProgress->addSuccessor(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (param_d == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_m == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_d == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 					}
 					// read R
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), true, false);
@@ -6074,7 +7082,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					if (param_d == 15)
 					{
 						m_instrInProgress->addSuccessor(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (param_d == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_m == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_d == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 					}
 					// read R
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), true, false);
@@ -6118,7 +7140,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					if (param_d == 15)
 					{
 						m_instrInProgress->addSuccessor(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (param_d == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_m == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_d == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 					}
 					// read R
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), true, false);
@@ -6128,7 +7164,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					if (param_d == 15)
 					{
 						m_instrInProgress->addSuccessor(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (param_d == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_m == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_d == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 					}
 					// read R
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), true, false);
@@ -6138,7 +7188,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					if (param_d == 15)
 					{
 						m_instrInProgress->addSuccessor(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (param_d == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_m == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_d == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 					}
 					// read R
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), true, false);
@@ -6148,7 +7212,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					if (param_d == 15)
 					{
 						m_instrInProgress->addSuccessor(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (param_d == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_m == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_d == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 					}
 					// read R
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), true, false);
@@ -6190,7 +7268,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					if (param_d == 15)
 					{
 						m_instrInProgress->addSuccessor(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (param_d == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_m == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_d == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 					}
 					// read R
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), true, false);
@@ -6200,7 +7292,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					if (param_d == 15)
 					{
 						m_instrInProgress->addSuccessor(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (param_d == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_m == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_d == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 					}
 					// read R
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), true, false);
@@ -6249,7 +7355,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					if (param_d == 15)
 					{
 						m_instrInProgress->addSuccessor(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (param_d == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_m == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_d == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 					}
 					// read R
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), true, false);
@@ -6290,7 +7410,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					if (param_d == 15)
 					{
 						m_instrInProgress->addSuccessor(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (param_d == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_m == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_d == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 					}
 					// read R
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), true, false);
@@ -6331,7 +7465,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					if (param_d == 15)
 					{
 						m_instrInProgress->addSuccessor(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (param_d == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_m == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_d == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 					}
 					// read R
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), true, false);
@@ -6372,7 +7520,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					if (param_d == 15)
 					{
 						m_instrInProgress->addSuccessor(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (param_d == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_m == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_d == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 					}
 					// read R
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), true, false);
@@ -6535,7 +7697,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					// read SP
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::SP)), true, false);
 					local_bit_count = 0x0;
-					if ((((param_list & 0x1) >> 0x0) == 0x1))
+					if (((((param_list & 0x1) >> 0x0) != 0) == 0x1))
 					{
 						// read M
 						m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::SP)), u8), true, false);
@@ -6549,7 +7711,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x0)), false, true);
 						local_bit_count = (local_bit_count + 0x1);
 					}
-					if ((((param_list & 0x2) >> 0x1) == 0x1))
+					if (((((param_list & 0x2) >> 0x1) != 0) == 0x1))
 					{
 						// read M
 						m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::SP)), u8), true, false);
@@ -6563,7 +7725,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x1)), false, true);
 						local_bit_count = (local_bit_count + 0x1);
 					}
-					if ((((param_list & 0x4) >> 0x2) == 0x1))
+					if (((((param_list & 0x4) >> 0x2) != 0) == 0x1))
 					{
 						// read M
 						m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::SP)), u8), true, false);
@@ -6577,7 +7739,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x2)), false, true);
 						local_bit_count = (local_bit_count + 0x1);
 					}
-					if ((((param_list & 0x8) >> 0x3) == 0x1))
+					if (((((param_list & 0x8) >> 0x3) != 0) == 0x1))
 					{
 						// read M
 						m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::SP)), u8), true, false);
@@ -6591,7 +7753,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x3)), false, true);
 						local_bit_count = (local_bit_count + 0x1);
 					}
-					if ((((param_list & 0x10) >> 0x4) == 0x1))
+					if (((((param_list & 0x10) >> 0x4) != 0) == 0x1))
 					{
 						// read M
 						m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::SP)), u8), true, false);
@@ -6605,7 +7767,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x4)), false, true);
 						local_bit_count = (local_bit_count + 0x1);
 					}
-					if ((((param_list & 0x20) >> 0x5) == 0x1))
+					if (((((param_list & 0x20) >> 0x5) != 0) == 0x1))
 					{
 						// read M
 						m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::SP)), u8), true, false);
@@ -6619,7 +7781,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x5)), false, true);
 						local_bit_count = (local_bit_count + 0x1);
 					}
-					if ((((param_list & 0x40) >> 0x6) == 0x1))
+					if (((((param_list & 0x40) >> 0x6) != 0) == 0x1))
 					{
 						// read M
 						m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::SP)), u8), true, false);
@@ -6633,7 +7795,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x6)), false, true);
 						local_bit_count = (local_bit_count + 0x1);
 					}
-					if ((((param_list & 0x80) >> 0x7) == 0x1))
+					if (((((param_list & 0x80) >> 0x7) != 0) == 0x1))
 					{
 						// read M
 						m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::SP)), u8), true, false);
@@ -6647,7 +7809,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x7)), false, true);
 						local_bit_count = (local_bit_count + 0x1);
 					}
-					if ((((param_list & 0x100) >> 0x8) == 0x1))
+					if (((((param_list & 0x100) >> 0x8) != 0) == 0x1))
 					{
 						// read M
 						m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::SP)), u8), true, false);
@@ -6840,41 +8002,41 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					uint32_t local__i_data;
 					
 					local_bit_count = 0x0;
-					if ((((param_list & 0x1) >> 0x0) == 0x1))
+					if (((((param_list & 0x1) >> 0x0) != 0) == 0x1))
 					{
 						local_bit_count = (local_bit_count + 0x1);
 					}
-					if ((((param_list & 0x2) >> 0x1) == 0x1))
+					if (((((param_list & 0x2) >> 0x1) != 0) == 0x1))
 					{
 						local_bit_count = (local_bit_count + 0x1);
 					}
-					if ((((param_list & 0x4) >> 0x2) == 0x1))
+					if (((((param_list & 0x4) >> 0x2) != 0) == 0x1))
 					{
 						local_bit_count = (local_bit_count + 0x1);
 					}
-					if ((((param_list & 0x8) >> 0x3) == 0x1))
+					if (((((param_list & 0x8) >> 0x3) != 0) == 0x1))
 					{
 						local_bit_count = (local_bit_count + 0x1);
 					}
-					if ((((param_list & 0x10) >> 0x4) == 0x1))
+					if (((((param_list & 0x10) >> 0x4) != 0) == 0x1))
 					{
 						local_bit_count = (local_bit_count + 0x1);
 					}
-					if ((((param_list & 0x20) >> 0x5) == 0x1))
+					if (((((param_list & 0x20) >> 0x5) != 0) == 0x1))
 					{
 						local_bit_count = (local_bit_count + 0x1);
 					}
-					if ((((param_list & 0x40) >> 0x6) == 0x1))
+					if (((((param_list & 0x40) >> 0x6) != 0) == 0x1))
 					{
 						local_bit_count = (local_bit_count + 0x1);
 					}
-					if ((((param_list & 0x80) >> 0x7) == 0x1))
+					if (((((param_list & 0x80) >> 0x7) != 0) == 0x1))
 					{
 						local_bit_count = (local_bit_count + 0x1);
 					}
 					// read SP
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::SP)), true, false);
-					if ((((param_list & 0x1) >> 0x0) == 0x1))
+					if (((((param_list & 0x1) >> 0x0) != 0) == 0x1))
 					{
 						// read R
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x0)), true, false);
@@ -6887,7 +8049,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						// write M
 						m_instrInProgress->appendOperand(makeDereferenceExpression(makeAddExpression(makeSubExpression(makeRegisterExpression(MachRegister(ARMv6M::SP)), Immediate::makeImmediate(Result(u32, (0x4 * local_bit_count))), u32), Immediate::makeImmediate(Result(u32, 0x3)), u32), u8), false, true);
 					}
-					if ((((param_list & 0x2) >> 0x1) == 0x1))
+					if (((((param_list & 0x2) >> 0x1) != 0) == 0x1))
 					{
 						// read R
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x1)), true, false);
@@ -6900,7 +8062,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						// write M
 						m_instrInProgress->appendOperand(makeDereferenceExpression(makeAddExpression(makeSubExpression(makeRegisterExpression(MachRegister(ARMv6M::SP)), Immediate::makeImmediate(Result(u32, (0x4 * local_bit_count))), u32), Immediate::makeImmediate(Result(u32, 0x3)), u32), u8), false, true);
 					}
-					if ((((param_list & 0x4) >> 0x2) == 0x1))
+					if (((((param_list & 0x4) >> 0x2) != 0) == 0x1))
 					{
 						// read R
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x2)), true, false);
@@ -6913,7 +8075,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						// write M
 						m_instrInProgress->appendOperand(makeDereferenceExpression(makeAddExpression(makeSubExpression(makeRegisterExpression(MachRegister(ARMv6M::SP)), Immediate::makeImmediate(Result(u32, (0x4 * local_bit_count))), u32), Immediate::makeImmediate(Result(u32, 0x3)), u32), u8), false, true);
 					}
-					if ((((param_list & 0x8) >> 0x3) == 0x1))
+					if (((((param_list & 0x8) >> 0x3) != 0) == 0x1))
 					{
 						// read R
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x3)), true, false);
@@ -6926,7 +8088,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						// write M
 						m_instrInProgress->appendOperand(makeDereferenceExpression(makeAddExpression(makeSubExpression(makeRegisterExpression(MachRegister(ARMv6M::SP)), Immediate::makeImmediate(Result(u32, (0x4 * local_bit_count))), u32), Immediate::makeImmediate(Result(u32, 0x3)), u32), u8), false, true);
 					}
-					if ((((param_list & 0x10) >> 0x4) == 0x1))
+					if (((((param_list & 0x10) >> 0x4) != 0) == 0x1))
 					{
 						// read R
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x4)), true, false);
@@ -6939,7 +8101,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						// write M
 						m_instrInProgress->appendOperand(makeDereferenceExpression(makeAddExpression(makeSubExpression(makeRegisterExpression(MachRegister(ARMv6M::SP)), Immediate::makeImmediate(Result(u32, (0x4 * local_bit_count))), u32), Immediate::makeImmediate(Result(u32, 0x3)), u32), u8), false, true);
 					}
-					if ((((param_list & 0x20) >> 0x5) == 0x1))
+					if (((((param_list & 0x20) >> 0x5) != 0) == 0x1))
 					{
 						// read R
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x5)), true, false);
@@ -6952,7 +8114,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						// write M
 						m_instrInProgress->appendOperand(makeDereferenceExpression(makeAddExpression(makeSubExpression(makeRegisterExpression(MachRegister(ARMv6M::SP)), Immediate::makeImmediate(Result(u32, (0x4 * local_bit_count))), u32), Immediate::makeImmediate(Result(u32, 0x3)), u32), u8), false, true);
 					}
-					if ((((param_list & 0x40) >> 0x6) == 0x1))
+					if (((((param_list & 0x40) >> 0x6) != 0) == 0x1))
 					{
 						// read R
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x6)), true, false);
@@ -6965,7 +8127,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						// write M
 						m_instrInProgress->appendOperand(makeDereferenceExpression(makeAddExpression(makeSubExpression(makeRegisterExpression(MachRegister(ARMv6M::SP)), Immediate::makeImmediate(Result(u32, (0x4 * local_bit_count))), u32), Immediate::makeImmediate(Result(u32, 0x3)), u32), u8), false, true);
 					}
-					if ((((param_list & 0x80) >> 0x7) == 0x1))
+					if (((((param_list & 0x80) >> 0x7) != 0) == 0x1))
 					{
 						// read R
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x7)), true, false);
@@ -6978,7 +8140,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						// write M
 						m_instrInProgress->appendOperand(makeDereferenceExpression(makeAddExpression(makeSubExpression(makeRegisterExpression(MachRegister(ARMv6M::SP)), Immediate::makeImmediate(Result(u32, (0x4 * local_bit_count))), u32), Immediate::makeImmediate(Result(u32, 0x3)), u32), u8), false, true);
 					}
-					if ((((param_list & 0x100) >> 0x8) == 0x1))
+					if (((((param_list & 0x100) >> 0x8) != 0) == 0x1))
 					{
 						// read LR
 						m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::LR)), true, false);
@@ -7339,7 +8501,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_dm == 15)
 				{
 					m_instrInProgress->addSuccessor(makeAddExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::SP)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_dm)), u32), Immediate::makeImmediate(Result(u32, CastBits<uint32_t>(local__i_add_c))), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_dm == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_dm == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_dm == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 			}
 		}
@@ -7557,7 +8733,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// read R
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), true, false);
 				local_bit_count = 0x0;
-				if ((((param_list & 0x1) >> 0x0) == 0x1))
+				if (((((param_list & 0x1) >> 0x0) != 0) == 0x1))
 				{
 					// read M
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), u8), true, false);
@@ -7571,7 +8747,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x0)), false, true);
 					local_bit_count = (local_bit_count + 0x1);
 				}
-				if ((((param_list & 0x2) >> 0x1) == 0x1))
+				if (((((param_list & 0x2) >> 0x1) != 0) == 0x1))
 				{
 					// read M
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), u8), true, false);
@@ -7585,7 +8761,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x1)), false, true);
 					local_bit_count = (local_bit_count + 0x1);
 				}
-				if ((((param_list & 0x4) >> 0x2) == 0x1))
+				if (((((param_list & 0x4) >> 0x2) != 0) == 0x1))
 				{
 					// read M
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), u8), true, false);
@@ -7599,7 +8775,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x2)), false, true);
 					local_bit_count = (local_bit_count + 0x1);
 				}
-				if ((((param_list & 0x8) >> 0x3) == 0x1))
+				if (((((param_list & 0x8) >> 0x3) != 0) == 0x1))
 				{
 					// read M
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), u8), true, false);
@@ -7613,7 +8789,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x3)), false, true);
 					local_bit_count = (local_bit_count + 0x1);
 				}
-				if ((((param_list & 0x10) >> 0x4) == 0x1))
+				if (((((param_list & 0x10) >> 0x4) != 0) == 0x1))
 				{
 					// read M
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), u8), true, false);
@@ -7627,7 +8803,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x4)), false, true);
 					local_bit_count = (local_bit_count + 0x1);
 				}
-				if ((((param_list & 0x20) >> 0x5) == 0x1))
+				if (((((param_list & 0x20) >> 0x5) != 0) == 0x1))
 				{
 					// read M
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), u8), true, false);
@@ -7641,7 +8817,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x5)), false, true);
 					local_bit_count = (local_bit_count + 0x1);
 				}
-				if ((((param_list & 0x40) >> 0x6) == 0x1))
+				if (((((param_list & 0x40) >> 0x6) != 0) == 0x1))
 				{
 					// read M
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), u8), true, false);
@@ -7655,7 +8831,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x6)), false, true);
 					local_bit_count = (local_bit_count + 0x1);
 				}
-				if ((((param_list & 0x80) >> 0x7) == 0x1))
+				if (((((param_list & 0x80) >> 0x7) != 0) == 0x1))
 				{
 					// read M
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), u8), true, false);
@@ -7677,7 +8853,85 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					if (param_n == 15)
 					{
 						m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), Immediate::makeImmediate(Result(u32, (0x4 * local_bit_count))), u32), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (0x3 == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (0x1 == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (0x5 == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (0x7 == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (0x1 == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						if (0x2 == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (0x0 == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (0x5 == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						if (param_n == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (0x4 == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_n == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						if (0x3 == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						if (0x7 == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						if (param_n == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (0x0 == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						if (0x2 == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						if (0x4 == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						if (0x6 == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						if (0x6 == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 					}
 					// read R
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), true, false);
@@ -7839,7 +9093,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// read R
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), true, false);
 				local_bit_count = 0x0;
-				if ((((param_list & 0x1) >> 0x0) == 0x1))
+				if (((((param_list & 0x1) >> 0x0) != 0) == 0x1))
 				{
 					// read M
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), u8), true, false);
@@ -7853,7 +9107,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x0)), false, true);
 					local_bit_count = (local_bit_count + 0x1);
 				}
-				if ((((param_list & 0x2) >> 0x1) == 0x1))
+				if (((((param_list & 0x2) >> 0x1) != 0) == 0x1))
 				{
 					// read M
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), u8), true, false);
@@ -7867,7 +9121,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x1)), false, true);
 					local_bit_count = (local_bit_count + 0x1);
 				}
-				if ((((param_list & 0x4) >> 0x2) == 0x1))
+				if (((((param_list & 0x4) >> 0x2) != 0) == 0x1))
 				{
 					// read M
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), u8), true, false);
@@ -7881,7 +9135,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x2)), false, true);
 					local_bit_count = (local_bit_count + 0x1);
 				}
-				if ((((param_list & 0x8) >> 0x3) == 0x1))
+				if (((((param_list & 0x8) >> 0x3) != 0) == 0x1))
 				{
 					// read M
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), u8), true, false);
@@ -7895,7 +9149,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x3)), false, true);
 					local_bit_count = (local_bit_count + 0x1);
 				}
-				if ((((param_list & 0x10) >> 0x4) == 0x1))
+				if (((((param_list & 0x10) >> 0x4) != 0) == 0x1))
 				{
 					// read M
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), u8), true, false);
@@ -7909,7 +9163,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x4)), false, true);
 					local_bit_count = (local_bit_count + 0x1);
 				}
-				if ((((param_list & 0x20) >> 0x5) == 0x1))
+				if (((((param_list & 0x20) >> 0x5) != 0) == 0x1))
 				{
 					// read M
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), u8), true, false);
@@ -7923,7 +9177,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x5)), false, true);
 					local_bit_count = (local_bit_count + 0x1);
 				}
-				if ((((param_list & 0x40) >> 0x6) == 0x1))
+				if (((((param_list & 0x40) >> 0x6) != 0) == 0x1))
 				{
 					// read M
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), u8), true, false);
@@ -7937,7 +9191,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0x6)), false, true);
 					local_bit_count = (local_bit_count + 0x1);
 				}
-				if ((((param_list & 0x80) >> 0x7) == 0x1))
+				if (((((param_list & 0x80) >> 0x7) != 0) == 0x1))
 				{
 					// read M
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), u8), true, false);
@@ -7959,7 +9213,85 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					if (param_n == 15)
 					{
 						m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), Immediate::makeImmediate(Result(u32, (0x4 * local_bit_count))), u32), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (0x3 == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (0x1 == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (0x5 == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (0x7 == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (0x1 == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						if (0x2 == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (0x0 == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (0x5 == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						if (param_n == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (0x4 == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_n == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						if (0x3 == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						if (0x7 == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						if (param_n == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (0x0 == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						if (0x2 == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						if (0x4 == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						if (0x6 == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						if (0x6 == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 					}
 					// read R
 					m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), true, false);
@@ -8174,35 +9506,35 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				// read R
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), true, false);
 				local_lowest_set_bit = 0x8;
-				if ((((param_list & 0x1) >> 0x0) == 0x1))
+				if (((((param_list & 0x1) >> 0x0) != 0) == 0x1))
 				{
 					local_lowest_set_bit = 0x0;
 				} else {
-					if ((((param_list & 0x2) >> 0x1) == 0x1))
+					if (((((param_list & 0x2) >> 0x1) != 0) == 0x1))
 					{
 						local_lowest_set_bit = 0x1;
 					} else {
-						if ((((param_list & 0x4) >> 0x2) == 0x1))
+						if (((((param_list & 0x4) >> 0x2) != 0) == 0x1))
 						{
 							local_lowest_set_bit = 0x2;
 						} else {
-							if ((((param_list & 0x8) >> 0x3) == 0x1))
+							if (((((param_list & 0x8) >> 0x3) != 0) == 0x1))
 							{
 								local_lowest_set_bit = 0x3;
 							} else {
-								if ((((param_list & 0x10) >> 0x4) == 0x1))
+								if (((((param_list & 0x10) >> 0x4) != 0) == 0x1))
 								{
 									local_lowest_set_bit = 0x4;
 								} else {
-									if ((((param_list & 0x20) >> 0x5) == 0x1))
+									if (((((param_list & 0x20) >> 0x5) != 0) == 0x1))
 									{
 										local_lowest_set_bit = 0x5;
 									} else {
-										if ((((param_list & 0x40) >> 0x6) == 0x1))
+										if (((((param_list & 0x40) >> 0x6) != 0) == 0x1))
 										{
 											local_lowest_set_bit = 0x6;
 										} else {
-											if ((((param_list & 0x80) >> 0x7) == 0x1))
+											if (((((param_list & 0x80) >> 0x7) != 0) == 0x1))
 											{
 												local_lowest_set_bit = 0x7;
 											}
@@ -8213,7 +9545,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						}
 					}
 				}
-				if ((((param_list & 0x1) >> 0x0) == 0x1))
+				if (((((param_list & 0x1) >> 0x0) != 0) == 0x1))
 				{
 					if (((param_n == 0x0) && (local_lowest_set_bit != 0x0)))
 					{
@@ -8232,7 +9564,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), Immediate::makeImmediate(Result(u32, 0x3)), u32), u8), false, true);
 					local_bit_counter = (local_bit_counter + 0x1);
 				}
-				if ((((param_list & 0x2) >> 0x1) == 0x1))
+				if (((((param_list & 0x2) >> 0x1) != 0) == 0x1))
 				{
 					if (((param_n == 0x1) && (local_lowest_set_bit != 0x1)))
 					{
@@ -8251,7 +9583,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), Immediate::makeImmediate(Result(u32, 0x3)), u32), u8), false, true);
 					local_bit_counter = (local_bit_counter + 0x1);
 				}
-				if ((((param_list & 0x4) >> 0x2) == 0x1))
+				if (((((param_list & 0x4) >> 0x2) != 0) == 0x1))
 				{
 					if (((param_n == 0x2) && (local_lowest_set_bit != 0x2)))
 					{
@@ -8270,7 +9602,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), Immediate::makeImmediate(Result(u32, 0x3)), u32), u8), false, true);
 					local_bit_counter = (local_bit_counter + 0x1);
 				}
-				if ((((param_list & 0x8) >> 0x3) == 0x1))
+				if (((((param_list & 0x8) >> 0x3) != 0) == 0x1))
 				{
 					if (((param_n == 0x3) && (local_lowest_set_bit != 0x3)))
 					{
@@ -8289,7 +9621,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), Immediate::makeImmediate(Result(u32, 0x3)), u32), u8), false, true);
 					local_bit_counter = (local_bit_counter + 0x1);
 				}
-				if ((((param_list & 0x10) >> 0x4) == 0x1))
+				if (((((param_list & 0x10) >> 0x4) != 0) == 0x1))
 				{
 					if (((param_n == 0x4) && (local_lowest_set_bit != 0x4)))
 					{
@@ -8308,7 +9640,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), Immediate::makeImmediate(Result(u32, 0x3)), u32), u8), false, true);
 					local_bit_counter = (local_bit_counter + 0x1);
 				}
-				if ((((param_list & 0x20) >> 0x5) == 0x1))
+				if (((((param_list & 0x20) >> 0x5) != 0) == 0x1))
 				{
 					if (((param_n == 0x5) && (local_lowest_set_bit != 0x5)))
 					{
@@ -8327,7 +9659,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), Immediate::makeImmediate(Result(u32, 0x3)), u32), u8), false, true);
 					local_bit_counter = (local_bit_counter + 0x1);
 				}
-				if ((((param_list & 0x40) >> 0x6) == 0x1))
+				if (((((param_list & 0x40) >> 0x6) != 0) == 0x1))
 				{
 					if (((param_n == 0x6) && (local_lowest_set_bit != 0x6)))
 					{
@@ -8346,7 +9678,7 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					m_instrInProgress->appendOperand(makeDereferenceExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), Immediate::makeImmediate(Result(u32, 0x3)), u32), u8), false, true);
 					local_bit_counter = (local_bit_counter + 0x1);
 				}
-				if ((((param_list & 0x80) >> 0x7) == 0x1))
+				if (((((param_list & 0x80) >> 0x7) != 0) == 0x1))
 				{
 					if (((param_n == 0x7) && (local_lowest_set_bit != 0x7)))
 					{
@@ -8371,7 +9703,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_n == 15)
 				{
 					m_instrInProgress->addSuccessor(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), Immediate::makeImmediate(Result(u32, local_bit_counter)), u32), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_n == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_n == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (param_n == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 				// read R
 				m_instrInProgress->appendOperand(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), true, false);
@@ -8460,7 +9806,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						if (param_t == 15)
 						{
 							m_instrInProgress->addSuccessor(makeDereferenceExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), Immediate::makeImmediate(Result(u32, local_imm32)), u32), u8), false, true, false, false);
-							m_instrInProgress->m_category = c_BranchInsn;
+							if (param_t == 13)
+							{
+								m_instrInProgress->m_category = c_ReturnInsn;
+							} else 
+							if (param_n == 14)
+							{
+								m_instrInProgress->m_category = c_ReturnInsn;
+							} else 
+							if (param_t == 14)
+							{
+								m_instrInProgress->m_category = c_CallInsn;
+							} else 
+							{
+								m_instrInProgress->m_category = c_BranchInsn;
+							}
 						}
 					}
 				}
@@ -8523,7 +9883,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					if (param_t == 15)
 					{
 						m_instrInProgress->addSuccessor(makeDereferenceExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), Immediate::makeImmediate(Result(u32, local_imm32)), u32), u8), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (param_t == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_n == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_t == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 					}
 				}
 			}
@@ -8716,7 +10090,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 						if (param_t == 15)
 						{
 							m_instrInProgress->addSuccessor(makeDereferenceExpression(makeAddExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), Immediate::makeImmediate(Result(u32, local_imm32)), u32), Immediate::makeImmediate(Result(u32, 0x1)), u32), u8), false, true, false, false);
-							m_instrInProgress->m_category = c_BranchInsn;
+							if (param_t == 13)
+							{
+								m_instrInProgress->m_category = c_ReturnInsn;
+							} else 
+							if (param_n == 14)
+							{
+								m_instrInProgress->m_category = c_ReturnInsn;
+							} else 
+							if (param_t == 14)
+							{
+								m_instrInProgress->m_category = c_CallInsn;
+							} else 
+							{
+								m_instrInProgress->m_category = c_BranchInsn;
+							}
 						}
 					}
 				}
@@ -8767,7 +10155,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					if (param_t == 15)
 					{
 						m_instrInProgress->addSuccessor(makeDereferenceExpression(makeAddExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), Immediate::makeImmediate(Result(u32, local_imm32)), u32), Immediate::makeImmediate(Result(u32, 0x1)), u32), u8), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (param_t == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_n == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_t == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 					}
 				}
 			}
@@ -8945,7 +10347,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					if (param_t == 15)
 					{
 						m_instrInProgress->addSuccessor(makeDereferenceExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0xd)), Immediate::makeImmediate(Result(u32, local_imm32)), u32), u8), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (param_t == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_t == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						if (0xd == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 					}
 				}
 			}
@@ -9003,7 +10419,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_t == 15)
 				{
 					m_instrInProgress->addSuccessor(makeDereferenceExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + 0xd)), Immediate::makeImmediate(Result(u32, local_imm32)), u32), u8), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_t == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_t == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					if (0xd == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 			}
 		}
@@ -9184,7 +10614,17 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 			if (param_t == 15)
 			{
 				m_instrInProgress->addSuccessor(makeDereferenceExpression(makeAddExpression(makeAndExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u32, 0xfffffffc)), u32), Immediate::makeImmediate(Result(u32, local_imm32)), u32), u8), false, true, false, false);
-				m_instrInProgress->m_category = c_BranchInsn;
+				if (param_t == 13)
+				{
+					m_instrInProgress->m_category = c_ReturnInsn;
+				} else 
+				if (param_t == 14)
+				{
+					m_instrInProgress->m_category = c_CallInsn;
+				} else 
+				{
+					m_instrInProgress->m_category = c_BranchInsn;
+				}
 			}
 		}
 	}
@@ -9255,7 +10695,17 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 			if (param_t == 15)
 			{
 				m_instrInProgress->addSuccessor(makeDereferenceExpression(makeAddExpression(makeAndExpression(makeRegisterExpression(MachRegister(ARMv6M::PC)), Immediate::makeImmediate(Result(u32, 0xfffffffc)), u32), Immediate::makeImmediate(Result(u32, local_imm32)), u32), u8), false, true, false, false);
-				m_instrInProgress->m_category = c_BranchInsn;
+				if (param_t == 13)
+				{
+					m_instrInProgress->m_category = c_ReturnInsn;
+				} else 
+				if (param_t == 14)
+				{
+					m_instrInProgress->m_category = c_CallInsn;
+				} else 
+				{
+					m_instrInProgress->m_category = c_BranchInsn;
+				}
 			}
 		}
 	}
@@ -9329,7 +10779,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_t == 15)
 				{
 					m_instrInProgress->addSuccessor(makeDereferenceExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), u8), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_t == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_n == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_t == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 			}
 		}
@@ -9385,7 +10853,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_t == 15)
 				{
 					m_instrInProgress->addSuccessor(makeDereferenceExpression(makeAddExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), Immediate::makeImmediate(Result(u32, 0x1)), u32), u8), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_t == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_n == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_t == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 			}
 		}
@@ -9445,7 +10931,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_t == 15)
 				{
 					m_instrInProgress->addSuccessor(makeDereferenceExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), u8), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_t == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_n == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_t == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 			}
 		}
@@ -9501,7 +11005,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_t == 15)
 				{
 					m_instrInProgress->addSuccessor(makeDereferenceExpression(makeAddExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), Immediate::makeImmediate(Result(u32, 0x1)), u32), u8), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_t == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_n == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_t == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 			}
 		}
@@ -9561,7 +11083,25 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_t == 15)
 				{
 					m_instrInProgress->addSuccessor(makeDereferenceExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), makeRegisterExpression(MachRegister(ARMv6M::R0 + param_m)), u32), u8), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_m == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_t == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_n == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_t == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 			}
 		}
@@ -9800,7 +11340,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 					if (param_t == 15)
 					{
 						m_instrInProgress->addSuccessor(makeDereferenceExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), Immediate::makeImmediate(Result(u32, local_imm32)), u32), u8), false, true, false, false);
-						m_instrInProgress->m_category = c_BranchInsn;
+						if (param_t == 13)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_n == 14)
+						{
+							m_instrInProgress->m_category = c_ReturnInsn;
+						} else 
+						if (param_t == 14)
+						{
+							m_instrInProgress->m_category = c_CallInsn;
+						} else 
+						{
+							m_instrInProgress->m_category = c_BranchInsn;
+						}
 					}
 				}
 			}
@@ -9855,7 +11409,21 @@ void InstructionDecoder_ARMv6M::doDecode(InstructionDecoder::buffer &buf) {
 				if (param_t == 15)
 				{
 					m_instrInProgress->addSuccessor(makeDereferenceExpression(makeAddExpression(makeRegisterExpression(MachRegister(ARMv6M::R0 + param_n)), Immediate::makeImmediate(Result(u32, local_imm32)), u32), u8), false, true, false, false);
-					m_instrInProgress->m_category = c_BranchInsn;
+					if (param_t == 13)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_n == 14)
+					{
+						m_instrInProgress->m_category = c_ReturnInsn;
+					} else 
+					if (param_t == 14)
+					{
+						m_instrInProgress->m_category = c_CallInsn;
+					} else 
+					{
+						m_instrInProgress->m_category = c_BranchInsn;
+					}
 				}
 			}
 		}

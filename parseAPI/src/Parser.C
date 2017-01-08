@@ -780,7 +780,7 @@ Parser::init_frame(ParseFrame & frame)
     const unsigned char* bufferBegin =
      (const unsigned char *)(frame.func->isrc()->getPtrToInstruction(cleanAddr));
     InstructionDecoder dec(bufferBegin, size, arch);
-    InstructionAdapter_t ah(dec, cleanAddr, frame.func->obj(),
+    InstructionAdapter_t ah(dec, frame.func->addr(), frame.func->obj(),
         frame.codereg, frame.func->isrc(), b);
 	if(ah.isStackFramePreamble()) {
         frame.func->_no_stack_frame = false;
@@ -1072,10 +1072,10 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 		    const unsigned char* bufferBegin = (const unsigned char *)(func->isrc()->getPtrToInstruction(cleanAddr));
 		    InstructionDecoder dec(bufferBegin, size, arch);
 		    if (!ahPtr)
-		        ahPtr.reset(new InstructionAdapter_t(dec, cleanAddr, func->obj(), 
+		        ahPtr.reset(new InstructionAdapter_t(dec, caller->end(), func->obj(), 
 			            caller->region(), func->isrc(), NULL));
          	    else
-		        ahPtr->reset(dec, cleanAddr,func->obj(),
+		        ahPtr->reset(dec, caller->end(),func->obj(),
 			             caller->region(), func->isrc(), NULL);
  		    InstructionAdapter_t & ah = *ahPtr; 
 		    bool found = false;
@@ -1208,10 +1208,10 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         InstructionDecoder dec(bufferBegin, size, arch);
 
         if (!ahPtr)
-            ahPtr.reset(new InstructionAdapter_t(dec, cleanAddr, func->obj(), 
+            ahPtr.reset(new InstructionAdapter_t(dec, curAddr, func->obj(), 
                         cur->region(), func->isrc(), cur));
         else
-            ahPtr->reset(dec,cleanAddr,func->obj(),
+            ahPtr->reset(dec,curAddr,func->obj(),
                          cur->region(), func->isrc(), cur);
        
         InstructionAdapter_t & ah = *ahPtr; 

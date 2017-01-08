@@ -164,10 +164,12 @@ bool StackAnalysis::genInsnEffects() {
 typedef std::vector<std::pair<Instruction::Ptr, Offset> > InsnVec;
 static void getInsnInstances(Block *block, InsnVec &insns) {
    Offset off = block->start();
+   Architecture arch = block->obj()->cs()->getArch();
+   Address cleanAddr = stripAddrEncoding(off, arch);
    const unsigned char *ptr = (const unsigned char *)
-      block->region()->getPtrToInstruction(off);
+      block->region()->getPtrToInstruction(cleanAddr);
    if (ptr == NULL) return;
-   InstructionDecoder d(ptr, block->size(), block->obj()->cs()->getArch());
+   InstructionDecoder d(ptr, block->size(), arch);
    while (off < block->end()) {
       insns.push_back(std::make_pair(d.decode(), off));
       off += insns.back().first->size();
@@ -645,8 +647,8 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(Function *func) {
       return funcCleanAmounts[func];
    }
 
-   InstructionDecoder decoder((const unsigned char*) NULL, 0,
-      func->isrc()->getArch());
+   Architecture arch = func->isrc()->getArch();
+   InstructionDecoder decoder((const unsigned char*) NULL, 0, arch);
    unsigned char *cur;
 
    std::set<Height> returnCleanVals;
@@ -654,8 +656,9 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(Function *func) {
    Function::const_blocklist returnBlocks = func->returnBlocks();
    for (auto rets = returnBlocks.begin(); rets != returnBlocks.end(); ++rets) {
       Block *ret = *rets;
+      Address cleanAddr = stripAddrEncoding(ret->lastInsnAddr(), arch);
       cur = (unsigned char *) ret->region()->getPtrToInstruction(
-         ret->lastInsnAddr());
+         cleanAddr);
       Instruction::Ptr insn = decoder.decode(cur);
 
       entryID what = insn->getOperation().getID();

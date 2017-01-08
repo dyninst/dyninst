@@ -34,6 +34,7 @@
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
 #include "external/rose/armv8InstructionEnum.h"
+#include "external/rose/ARMv6MInstructionEnum.h"
 
 #include <iostream>
 
@@ -852,6 +853,74 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
 	return;
       }
       break;
+
+      // This content was generated on Mon Jan 02 22:44:49 CET 2017
+      // Do not edit directly.
+      // Contact: eda@tum
+
+      case Arch_ARMv6M:
+      {
+      	c = ARMv6M_regclass_r;
+      	p = 0;
+
+      	switch (baseID)
+      	{
+      	case ARMv6M::iR0: n = ARMv6M_r_R0; break;
+      	case ARMv6M::iR1: n = ARMv6M_r_R1; break;
+      	case ARMv6M::iR2: n = ARMv6M_r_R2; break;
+      	case ARMv6M::iR3: n = ARMv6M_r_R3; break;
+      	case ARMv6M::iR4: n = ARMv6M_r_R4; break;
+      	case ARMv6M::iR5: n = ARMv6M_r_R5; break;
+      	case ARMv6M::iR6: n = ARMv6M_r_R6; break;
+      	case ARMv6M::iR7: n = ARMv6M_r_R7; break;
+      	case ARMv6M::iR8: n = ARMv6M_r_R8; break;
+      	case ARMv6M::iR9: n = ARMv6M_r_R9; break;
+      	case ARMv6M::iR10: n = ARMv6M_r_R10; break;
+      	case ARMv6M::iR11: n = ARMv6M_r_R11; break;
+      	case ARMv6M::iR12: n = ARMv6M_r_R12; break;
+      	case ARMv6M::iSP: n = ARMv6M_r_SP; break;
+      	case ARMv6M::iLR: n = ARMv6M_r_LR; break;
+      	case ARMv6M::iPC: n = ARMv6M_r_PC; break;
+      	case ARMv6M::iPSR: n = ARMv6M_r_PSR; break;
+      	case ARMv6M::iIPSR0: n = ARMv6M_r_IPSR0; break;
+      	case ARMv6M::iIPSR1: n = ARMv6M_r_IPSR1; break;
+      	case ARMv6M::iIPSR2: n = ARMv6M_r_IPSR2; break;
+      	case ARMv6M::iIPSR3: n = ARMv6M_r_IPSR3; break;
+      	case ARMv6M::iIPSR4: n = ARMv6M_r_IPSR4; break;
+      	case ARMv6M::iIPSR5: n = ARMv6M_r_IPSR5; break;
+      	case ARMv6M::iPSR6: n = ARMv6M_r_PSR6; break;
+      	case ARMv6M::iPSR7: n = ARMv6M_r_PSR7; break;
+      	case ARMv6M::iPSR8: n = ARMv6M_r_PSR8; break;
+      	case ARMv6M::iPSR9: n = ARMv6M_r_PSR9; break;
+      	case ARMv6M::iPSR10: n = ARMv6M_r_PSR10; break;
+      	case ARMv6M::iPSR11: n = ARMv6M_r_PSR11; break;
+      	case ARMv6M::iPSR12: n = ARMv6M_r_PSR12; break;
+      	case ARMv6M::iPSR13: n = ARMv6M_r_PSR13; break;
+      	case ARMv6M::iPSR14: n = ARMv6M_r_PSR14; break;
+      	case ARMv6M::iPSR15: n = ARMv6M_r_PSR15; break;
+      	case ARMv6M::iPSR16: n = ARMv6M_r_PSR16; break;
+      	case ARMv6M::iPSR17: n = ARMv6M_r_PSR17; break;
+      	case ARMv6M::iPSR18: n = ARMv6M_r_PSR18; break;
+      	case ARMv6M::iPSR19: n = ARMv6M_r_PSR19; break;
+      	case ARMv6M::iPSR20: n = ARMv6M_r_PSR20; break;
+      	case ARMv6M::iPSR21: n = ARMv6M_r_PSR21; break;
+      	case ARMv6M::iPSR22: n = ARMv6M_r_PSR22; break;
+      	case ARMv6M::iPSR23: n = ARMv6M_r_PSR23; break;
+      	case ARMv6M::iT: n = ARMv6M_r_T; break;
+      	case ARMv6M::iPSR25: n = ARMv6M_r_PSR25; break;
+      	case ARMv6M::iPSR26: n = ARMv6M_r_PSR26; break;
+      	case ARMv6M::iPSR27: n = ARMv6M_r_PSR27; break;
+      	case ARMv6M::iV: n = ARMv6M_r_V; break;
+      	case ARMv6M::iC: n = ARMv6M_r_C; break;
+      	case ARMv6M::iZ: n = ARMv6M_r_Z; break;
+      	case ARMv6M::iN: n = ARMv6M_r_N; break;
+      	}
+      	
+      	return;
+      }
+
+
+
       default:
          c = x86_regclass_unknown;
          n = 0;

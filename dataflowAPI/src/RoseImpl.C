@@ -35,6 +35,7 @@
 #include "../rose/SgAsmx86Instruction.h"
 #include "../rose/SgAsmPowerpcInstruction.h"
 #include "../rose/SgAsmArmv8Instruction.h"
+#include "../rose/SgAsmARMv6MInstruction.h"
 #include "external/rose/rose-compat.h"
 #include "../rose/RegisterDescriptor.h"
 #include "../rose/x86InstructionSemantics.h"
@@ -1390,6 +1391,32 @@ SgAsmArmv8Instruction::~SgAsmArmv8Instruction() {
     p_kind = rose_aarch64_op_INVALID;
 }
 
+// defs for SgAsmARMv6MInstruction
+std::string SgAsmARMv6MInstruction::class_name() const {
+    return "SgAsmARMv6MInstruction";
+}
+
+VariantT SgAsmARMv6MInstruction::variantT() const {
+    return V_SgAsmARMv6MInstruction;
+}
+
+SgAsmARMv6MInstruction::SgAsmARMv6MInstruction(rose_addr_t address, std::string mnemonic, ARMv6MInstructionKind kind) :
+        SgAsmInstruction(address, mnemonic) {
+    p_kind = kind;
+}
+
+ARMv6MInstructionKind SgAsmARMv6MInstruction::get_kind() const {
+    return p_kind;
+}
+
+void SgAsmARMv6MInstruction::set_kind(ARMv6MInstructionKind kind) {
+    p_kind = kind;
+}
+
+SgAsmARMv6MInstruction::~SgAsmARMv6MInstruction() {
+    p_kind = rose_ARMv6M_op_INVALID;
+}
+
 SgAsmx86RegisterReferenceExpression::SgAsmx86RegisterReferenceExpression(X86RegisterClass register_class,
                                                                          int register_number,
                                                                          X86PositionInRegister position_in_register) {
@@ -1602,6 +1629,10 @@ SgAsmFloatValueExpression *isSgAsmFloatValueExpression(SgNode *s) {
 
 SgAsmArmv8Instruction *isSgAsmArmv8Instruction(SgNode *s) {
     return dynamic_cast<SgAsmArmv8Instruction *>(s);
+}
+
+SgAsmARMv6MInstruction *isSgAsmARMv6MInstruction(SgNode *s) {
+    return dynamic_cast<SgAsmARMv6MInstruction *>(s);
 }
 
 SgAsmNode *isSgAsmNode(SgNode *s) {
