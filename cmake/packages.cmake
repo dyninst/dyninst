@@ -20,7 +20,10 @@ if (UNIX)
 
   add_library(libelf_imp SHARED IMPORTED)
   set_property(TARGET libelf_imp
-    PROPERTY IMPORTED_LOCATION ${LIBELF_LIBRARIES}) 
+    PROPERTY IMPORTED_LOCATION ${LIBELF_LIBRARIES})
+  if(NOT LIBELF_FOUND)
+    add_dependencies(libelf_imp LibElf)
+  endif()
 
   find_package (LibDwarf)
 

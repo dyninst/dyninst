@@ -953,17 +953,12 @@ void Elf_X_Data::d_align(unsigned int input)
 }
 void Elf_X_Data::xlatetom(unsigned int encode)
 {
-    Elf_Data tmp;
-    memcpy(&tmp, data, sizeof(Elf_Data));
-    tmp.d_buf = malloc(tmp.d_size);
     if(is64)
     {
-        elf64_xlatetom(&tmp, data, encode);
+        elf64_xlatetom(data, data, encode);
     } else {
-        elf32_xlatetom(&tmp, data, encode);
+        elf32_xlatetom(data, data, encode);
     }
-    memcpy(data->d_buf, tmp.d_buf, tmp.d_size);
-    free(tmp.d_buf);
 }
 void Elf_X_Data::xlatetof(unsigned int encode)
 {
@@ -972,9 +967,9 @@ void Elf_X_Data::xlatetof(unsigned int encode)
     tmp.d_buf = malloc(tmp.d_size);
     if(is64)
     {
-        elf64_xlatetof(&tmp, data, encode);
+        elf64_xlatetof(data, data, encode);
     } else {
-        elf32_xlatetof(&tmp, data, encode);
+        elf32_xlatetof(data, data, encode);
     }
     memcpy(data->d_buf, tmp.d_buf, tmp.d_size);
     free(tmp.d_buf);
@@ -1761,7 +1756,7 @@ bool Elf_X::findDebugFile(std::string origfilename, string &output_name, char* &
               buildid_path << "/usr/lib/debug/.build-id/"
                  << hex << setfill('0') << setw(2) << (unsigned)desc[0] << '/';
               for (unsigned long j = 1; j < note.n_descsz(); ++j)
-                 buildid_path << (unsigned)desc[j];
+                 buildid_path << setw(2) << (unsigned)desc[j];
               buildid_path << ".debug";
               debugFileFromBuildID = buildid_path.str();
               break;

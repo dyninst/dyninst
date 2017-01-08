@@ -96,7 +96,7 @@ int P_gettid()
 
 vsys_info *Dyninst::Stackwalker::getVsysInfo(ProcessState *ps)
 {
-#if defined(arch_x86_64)
+#if defined(arch_x86_64) || defined(arch_aarch64)
    if (ps->getAddressWidth() == 8)
       return NULL;
 #endif

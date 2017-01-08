@@ -40,13 +40,22 @@ RelocGraph::~RelocGraph() {
    for (Edges::iterator iter = edges.begin(); iter != edges.end(); ++iter) {
       delete *iter;
    }
-
+   std::set<func_instance*> funcs_to_clean;
    RelocBlock *cur = head;
    while (cur) {
       RelocBlock *next = cur->next();
+      funcs_to_clean.insert(cur->func());
       delete cur;
       cur = next;
    }
+#if defined(cap_stack_mod)
+   for(auto f = funcs_to_clean.begin();
+           f != funcs_to_clean.end();
+           ++f)
+   {
+      if(*f) (*f)->freeStackMod();
+   }
+#endif   
 }
 
 void RelocGraph::addRelocBlock(RelocBlock *t) {

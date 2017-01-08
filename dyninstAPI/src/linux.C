@@ -219,12 +219,14 @@ bool BinaryEdit::getResolvedLibraryPath(const string &filename, std::vector<stri
     }
 
     // search ld.so.cache
-    boost::shared_ptr<FILE> ldconfig(popen("/sbin/ldconfig -p", "r"), pclose);
+    // apparently ubuntu doesn't like pclosing NULL, so a shared pointer custom
+    // destructor is out. Ugh.
+    FILE* ldconfig = popen("/sbin/ldconfig -p", "r");
     if (ldconfig) {
-        if(!fgets(buffer, 512, ldconfig.get())) {	// ignore first line
+        if(!fgets(buffer, 512, ldconfig)) {	// ignore first line
           return false;
         }
-        while (fgets(buffer, 512, ldconfig.get()) != NULL) {
+        while (fgets(buffer, 512, ldconfig) != NULL) {
             pos = buffer;
             while (*pos == ' ' || *pos == '\t') pos++;
             key = pos;
@@ -240,6 +242,7 @@ bool BinaryEdit::getResolvedLibraryPath(const string &filename, std::vector<stri
                 paths.push_back(val);
             }
         }
+        pclose(ldconfig);
     }
 
     // search hard-coded system paths

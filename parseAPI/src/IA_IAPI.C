@@ -958,9 +958,11 @@ bool IA_IAPI::parseJumpTable(Dyninst::ParseAPI::Function * currFunc,
 {
 
     // Call platform specific jump table parser
+    _obj->cs()->startTimer(PARSE_JUMPTABLE_TIME);
     IA_platformDetails* jumpTableParser = makePlatformDetails(_isrc->getArch(), this);
-    bool ret = jumpTableParser->parseJumpTable(currFunc, currBlk, outEdges);
+    bool ret = jumpTableParser->parseJumpTable(currFunc, currBlk, outEdges);    
     delete jumpTableParser;
+    _obj->cs()->stopTimer(PARSE_JUMPTABLE_TIME);
 
     return ret;
 }

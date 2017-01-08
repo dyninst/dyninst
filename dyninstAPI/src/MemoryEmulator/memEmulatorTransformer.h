@@ -56,7 +56,7 @@ class MemEmulatorTransformer : public Transformer {
   virtual bool process(RelocBlock *, RelocGraph *);
 
  MemEmulatorTransformer() :
-  aConverter(false) {};
+  aConverter(false, false) {};
 
   virtual ~MemEmulatorTransformer() {};
 
