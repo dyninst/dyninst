@@ -129,7 +129,7 @@ namespace Dyninst
 
         bool implicitOperand(unsigned int implicit_operands, unsigned int i)
         {
-            return sGetImplicitOP(implicit_opernds, i) != 0x0;
+            return sGetImplicitOP(implicit_operands, i) != 0x0;
         }
 
 
@@ -1755,7 +1755,7 @@ namespace Dyninst
             sizePrefixPresent = false;
         }
         addrSizePrefixPresent = (decodedInstruction->getPrefix()->getAddrSzPrefix() == 0x67);
-        static ia32_entry invalid = { e_No_Entry, 0, 0, false, { {0,0}, {0,0}, {0,0} }, 0, 0 };
+        static ia32_entry invalid = { e_No_Entry, 0, 0, false, { {0,0}, {0,0}, {0,0} }, 0, 0, 0 };
         if(decodedInstruction->getEntry()) {
             // check prefix validity
             // lock prefix only allowed on certain insns.

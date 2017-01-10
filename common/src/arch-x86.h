@@ -662,7 +662,7 @@ enum { sNONE=0, // the instruction does something that cannot be classified as r
 
 /* Instruction decoration descriptors */
 #define sGetDecoration(b) ((b) & 0xFFFF)
-#define sSetDecoration(b, dec) ((b) | (dec))
+#define sSetDecoration(b, dec) (((b) & ~0xFFFF) | (dec))
 
 enum { 
     s1D = 1, /* Take decoration from 1st operand */
