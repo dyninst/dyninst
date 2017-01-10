@@ -629,6 +629,8 @@ namespace Dyninst {
                             default:
                                 isValid = false;
                         }
+			if(_szField == 0x1 && field<21, 21>(insn) == 0x1)
+			    isValid = false;
                     }
                     else
                         isValid = false;
@@ -717,21 +719,26 @@ namespace Dyninst {
                 reg = makeAarch64RegID(reg, encoding);
             }
             else if (isFPInsn && !((IS_INSN_FP_CONV_FIX(insn) || (IS_INSN_FP_CONV_INT(insn))) && !IS_SOURCE_GP(insn))) {
-                if (IS_INSN_FP_DATAPROC_ONESRC(insn)) {
+                if (insn_in_progress->getOperation().operationID == aarch64_op_fcvt_float) {
                     int opc = field<15, 16>(insn);
-                    switch (opc) {
-                        case 0:
-                            reg = aarch64::s0;
-                            break;
-                        case 1:
-                            reg = aarch64::d0;
-                            break;
-                        case 3:
-                            reg = aarch64::h0;
-                            break;
-                        default:
-                            isValid = false;
-                    }
+
+		    if(opc == _typeField || opc == 0x2)
+			isValid = false;
+		    else {
+			switch (opc) {
+			    case 0:
+				reg = aarch64::s0;
+				break;
+			    case 1:
+				reg = aarch64::d0;
+				break;
+			    case 3:
+				reg = aarch64::h0;
+				break;
+			    default:
+				isValid = false;
+			}
+		    }
                 }
                 else
                     reg = isSinglePrec() ? aarch64::s0 : aarch64::d0;
@@ -1019,19 +1026,23 @@ namespace Dyninst {
                     reg = makeAarch64RegID(reg, encoding);
             }
             else if (isFPInsn && !((IS_INSN_FP_CONV_FIX(insn) || (IS_INSN_FP_CONV_INT(insn))) && IS_SOURCE_GP(insn))) {
-                switch (_typeField) {
-                    case 0:
-                        reg = aarch64::s0;
-                        break;
-                    case 1:
-                        reg = aarch64::d0;
-                        break;
-                    case 3:
-                        reg = aarch64::h0;
-                        break;
-                    default:
-                        isValid = false;
-                }
+		if(insn_in_progress->getOperation().operationID == aarch64_op_fcvt_float) {
+                    switch (_typeField) {
+	                case 0:
+	                    reg = aarch64::s0;
+		            break;
+		        case 1:
+			    reg = aarch64::d0;
+			    break;
+                        case 3:
+	                    reg = aarch64::h0;
+	                    break;
+		        default:
+		            isValid = false;
+		    }
+		} else {
+		    reg = isSinglePrec()?aarch64::s0:aarch64::d0;
+		}
 
                 reg = makeAarch64RegID(reg, encoding);
             }
@@ -1042,13 +1053,17 @@ namespace Dyninst {
                     reg = makeAarch64RegID(reg, encoding);
             }
             else {
+		bool use32for64bit = false;
+		if(field<24, 28>(insn) == 0x1B && (field<21, 23>(insn) == 0x1 || field<21, 23>(insn) == 0x5))
+		   use32for64bit = true; 
+
                 if (encoding == 31)
                     reg = (IS_INSN_ADDSUB_IMM(insn) || IS_INSN_ADDSUB_EXT(insn)) ? (is64Bit ? aarch64::sp
-                                                                                            : aarch64::wsp) : (is64Bit
+                                                                                            : aarch64::wsp) : ((is64Bit && !use32for64bit)
                                                                                                                ? aarch64::xzr
                                                                                                                : aarch64::wzr);
                 else
-                    reg = is64Bit ? aarch64::x0 : aarch64::w0;
+                    reg = (is64Bit && !use32for64bit) ? aarch64::x0 : aarch64::w0;
 
                 if (isValid && encoding != 31)
                     reg = makeAarch64RegID(reg, encoding);
@@ -1847,7 +1862,11 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                 reg = makeAarch64RegID(reg, encoding);
             }
             else {
-                reg = is64Bit ? ((encoding == 31) ? aarch64::xzr : aarch64::x0) : ((encoding == 31) ? aarch64::wzr
+		bool use32for64bit = false;
+		if(field<24, 28>(insn) == 0x1B && (field<21, 23>(insn) == 0x1 || field<21, 23>(insn) == 0x5))
+		   use32for64bit = true; 
+                
+		reg = (is64Bit && !use32for64bit) ? ((encoding == 31) ? aarch64::xzr : aarch64::x0) : ((encoding == 31) ? aarch64::wzr
                                                                                                    : aarch64::w0);
                 if (encoding != 31)
                     reg = makeAarch64RegID(reg, encoding);
@@ -2304,6 +2323,13 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
         template<unsigned int endBit, unsigned int startBit>
         void InstructionDecoder_aarch64::OPRsz() {
             _szField = field<startBit, endBit>(insn);
+
+	    if(IS_INSN_SIMD_VEC_INDEX(insn)) {
+		int L = field<21, 21>(insn);
+
+		if(_szField == 0x1 && (L == 0x1 || _Q == 0))
+		    isValid = false;
+	    }
         }
 
         bool InstructionDecoder_aarch64::isSinglePrec() {
@@ -2312,6 +2338,10 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                     //TODO if the type field is not set, do sth else
                     OPRtype<23, 22>();
                 }
+		if(_typeField > 1)
+		    isValid = false;
+
+		//return false even if type has an invalid value, it won't matter because isValid is set to false and thus the instruction will be marked invalid
                 return _typeField == 0 ? true : false;
             } else if (isSIMDInsn) {
                 isValid = false; //not implemeted yet
@@ -2509,6 +2539,33 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 	    if(skipRm)
 		cond = ((cond % 2) == 0) ? (cond + 1) : (cond - 1);
         }
+	
+	void InstructionDecoder_aarch64::modify_mnemonic_simd_upperhalf_insns() {
+	    if(field<30, 30>(insn) != 1)
+		return;
+
+	    string cur_mnemonic = insn_in_progress->getOperation().mnemonic;
+	    bool add2 = false;
+
+	    if(IS_INSN_SIMD_3DIFF(insn) || IS_INSN_SCALAR_3DIFF(insn))
+		add2 = true;
+	    else if(IS_INSN_SCALAR_2REG_MISC(insn) || IS_INSN_SIMD_2REG_MISC(insn)) {
+		int checkval = (field<12, 16>(insn) >> 2) & 0x7;
+		if(checkval == 0x4 || checkval == 0x5)
+		    add2 = true;
+	    } else if(IS_INSN_SIMD_SHIFT_IMM(insn) || IS_INSN_SCALAR_SHIFT_IMM(insn)) {
+		int checkval = (field<11, 15>(insn) >> 2) & 0x7;
+		if(checkval == 0x4 || (IS_INSN_SIMD_SHIFT_IMM(insn) && checkval == 0x5))
+		    add2 = true;
+	    } else if(IS_INSN_SIMD_VEC_INDEX(insn) || IS_INSN_SCALAR_INDEX(insn)) {
+		int checkval = field<12, 15>(insn) & 0x3;
+		if((checkval >> 1) == 0x1 || (IS_INSN_SCALAR_INDEX(insn) && (checkval & 0x1) == 0x1))
+		    add2 = true;
+	    }
+
+	    if(add2)
+		insn_in_progress->getOperation().mnemonic = cur_mnemonic + "2";
+	}
 
         template<unsigned int endBit, unsigned int startBit>
         void InstructionDecoder_aarch64::OPRimm() {
@@ -2696,7 +2753,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                             isValid = false;
                     }
                     else {
-                        Expression::Ptr imm = Immediate::makeImmediate(Result(u32, unsign_extend32(immLen, immVal)));\
+                        Expression::Ptr imm = Immediate::makeImmediate(Result(u32, unsign_extend32(immLen, immVal)));
             insn_in_progress->appendOperand(imm, true, false);
                     }
                 }
@@ -2705,6 +2762,31 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                     if (startBit == 19 && endBit == 22) {
                         immlo = immVal;
                         immloLen = endBit - startBit + 1;
+
+			int immh_3 = (immlo >> 3) & 0x1, opcode = field<11, 15>(insn);
+			if(IS_INSN_SIMD_SHIFT_IMM(insn)) {
+			    if(((opcode >> 3) & 0x3) == 0x3 && ((immlo >> 2) & 0x2) == 0)
+				isValid = false;
+
+			    if(immh_3 == 1) {
+				if(((opcode >> 4) & 0x1) == 0x1 || _Q == 0)
+				    isValid = false;
+			    }
+			} else {
+			   if(((opcode >> 2) & 0x7) == 0x6) {
+			       if(immlo == 0)
+				   isValid = false;
+			   } else if(((opcode >> 2) & 0x7) == 0x4) {
+			       if(immlo == 0 || immh_3 == 1)
+				   isValid = false;
+			   } else if(((opcode >> 3) & 0x3) == 0x3) {
+			       if(((immlo >> 2) & 0x2) == 0)
+				   isValid = false;
+			   } else {
+			       if(immh_3 != 1)
+				   isValid = false;
+			   }
+			}
                     }
                         //immb
                     else if (startBit == 16 && endBit == 18) {
@@ -2963,6 +3045,8 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 
             insn_in_progress = makeInstruction(insn_table_entry->op, insn_table_entry->mnemonic, 4,
                                                reinterpret_cast<unsigned char *>(&insn));
+
+	    modify_mnemonic_simd_upperhalf_insns();
 
             if (IS_INSN_BRANCHING(insn)) {
                 decodeOperands(insn_in_progress);
