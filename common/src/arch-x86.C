@@ -9271,6 +9271,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
   unsigned char mod = MODRM_MOD(modrm);
   unsigned char rm  = MODRM_RM(modrm);
   unsigned char reg = MODRM_REG(modrm);
+
   if (loc) {
      loc->modrm_byte = modrm;
      loc->modrm_mod = mod;
@@ -9731,7 +9732,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
                         loc->modrm_operand = i;
                     }
 
-                    if(mac) 
+                    if(mac)
                     {
                         nib += ia32_decode_modrm(addrSzAttr, addr, &mac[i], &pref, loc);
                         mac[i].size = type2size(op.optype, operSzAttr);

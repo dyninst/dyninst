@@ -204,83 +204,77 @@ namespace Dyninst
       Expression::Ptr InstructionDecoder_x86::makeModRMExpression(const InstructionDecoder::buffer& b,
 								  unsigned int opType)
     {
-       unsigned int regType = op_d;
-       Result_Type aw;
-       if(ia32_is_mode_64())
-       {
-	   if(addrSizePrefixPresent) {
-	       aw = u32;
-	   } else {
-	       aw = u64;
-	       regType = op_q;
-	   }
-       }
-       else
-       {
-	   if(!addrSizePrefixPresent) {
-	       aw = u32;
-	   } else {
-	       aw = u16;
-	       regType = op_w;
-	   }
-       }
-        if (opType == op_lea) {
+        unsigned int regType = op_d;
+        Result_Type aw;
+        if(ia32_is_mode_64())
+        {
+            if(addrSizePrefixPresent) 
+            {
+                aw = u32;
+            } else {
+                aw = u64;
+                regType = op_q;
+            }
+        } else {
+            if(!addrSizePrefixPresent) 
+            {
+                aw = u32;
+            } else {
+                aw = u16;
+                regType = op_w;
+            }
+        }
+
+        if (opType == op_lea) 
+        {
             // For an LEA, aw (address width) is insufficient, use makeSizeType
             aw = makeSizeType(opType);
         }
+
         Expression::Ptr e =
             makeRegisterExpression(makeRegisterID(locs->modrm_rm, regType, locs->rex_b));
         switch(locs->modrm_mod)
         {
             case 0:
-                if(locs->modrm_rm == modrm_use_sib) {
+                /* modrm_rm == 0x4 is use SIB */
+                if(locs->modrm_rm == modrm_use_sib) 
                     e = makeSIBExpression(b);
-                }
-                if(locs->modrm_rm == 0x5 && !addrSizePrefixPresent)
+                else if(locs->modrm_rm == 0x5 && !addrSizePrefixPresent)
                 {
+                    /* modrm_rm 00 0x5 is use 32 bit displacement only */
                     assert(locs->opcode_position > -1);
                     if(ia32_is_mode_64())
                     {
                         e = makeAddExpression(makeRegisterExpression(x86_64::rip),
-                                            getModRMDisplacement(b), aw);
-                    }
-                    else
-                    {
+                                getModRMDisplacement(b), aw);
+                    } else {
                         e = getModRMDisplacement(b);
                     }
-        
+
+                } else{
+                    e = makeRegisterExpression(makeRegisterID(locs->modrm_rm, op_d, locs->rex_r));
                 }
-                if(locs->modrm_rm == 0x6 && addrSizePrefixPresent)
-                {
-                    e = getModRMDisplacement(b);
-                }
+                    
                 if(opType == op_lea)
-                {
                     return e;
-                }
+
                 return makeDereferenceExpression(e, makeSizeType(opType));
-                assert(0);
-                break;
             case 1:
             case 2:
-            {
-                if(locs->modrm_rm == modrm_use_sib) {
-                    e = makeSIBExpression(b);
-                }
-                Expression::Ptr disp_e = makeAddExpression(e, getModRMDisplacement(b), aw);
+                // if(locs->modrm_rm == modrm_use_sib)
+                    // e = makeSIBExpression(b);
+                // Expression::Ptr disp_e = makeAddExpression(e, getModRMDisplacement(b), aw);
+                e = makeAddExpression(e, getModRMDisplacement(b), aw);
+
                 if(opType == op_lea)
-                {
-                    return disp_e;
-                }
-                return makeDereferenceExpression(disp_e, makeSizeType(opType));
-            }
-            assert(0);
-            break;
+                    return e;
+
+                return makeDereferenceExpression(e, makeSizeType(opType));
             case 3:
                 return makeRegisterExpression(makeRegisterID(locs->modrm_rm, opType, locs->rex_b));
             default:
                 return Expression::Ptr();
-        
+
         };
         // can't get here, but make the compiler happy...
         assert(0);
@@ -367,29 +361,25 @@ namespace Dyninst
         int disp_pos;
 
         if(locs->sib_position != -1)
-        {
             disp_pos = locs->sib_position + 1;
-        }
-        else
-        {
-            disp_pos = locs->modrm_position + 1;
-        }
+        else disp_pos = locs->modrm_position + 1;
+
         switch(locs->modrm_mod)
         {
             case 1:
                 return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, (*(const byte_t*)(b.start +
-                        disp_pos)))));
+                                        disp_pos)))));
                 break;
             case 2:
                 if(0 && sizePrefixPresent)
                 {
                     return make_shared(singleton_object_pool<Immediate>::construct(Result(s16, *((const word_t*)(b.start +
-                            disp_pos)))));
+                                            disp_pos)))));
                 }
                 else
                 {
                     return make_shared(singleton_object_pool<Immediate>::construct(Result(s32, *((const dword_t*)(b.start +
-                            disp_pos)))));
+                                            disp_pos)))));
                 }
                 break;
             case 0:
@@ -399,14 +389,14 @@ namespace Dyninst
                     if(locs->modrm_rm == 6)
                     {
                         return make_shared(singleton_object_pool<Immediate>::construct(Result(s16,
-                                           *((const dword_t*)(b.start + disp_pos)))));
+                                        *((const dword_t*)(b.start + disp_pos)))));
                     }
                     // TODO FIXME; this was decoding wrong, but I'm not sure
                     // why...
                     else if (locs->modrm_rm == 5) {
                         assert(b.start + disp_pos + 4 <= b.end);
                         return make_shared(singleton_object_pool<Immediate>::construct(Result(s32,
-                                           *((const dword_t*)(b.start + disp_pos)))));
+                                        *((const dword_t*)(b.start + disp_pos)))));
                     } else {
                         assert(b.start + disp_pos + 1 <= b.end);
                         return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, 0)));
@@ -418,25 +408,26 @@ namespace Dyninst
                 {
                     if(locs->modrm_rm == 5)
                     {
-		        if (b.start + disp_pos + 4 <= b.end) 
-			    return make_shared(singleton_object_pool<Immediate>::construct(Result(s32,
-			                       *((const dword_t*)(b.start + disp_pos)))));
+                        if (b.start + disp_pos + 4 <= b.end) 
+                            return make_shared(singleton_object_pool<Immediate>::construct(Result(s32,
+                                            *((const dword_t*)(b.start + disp_pos)))));
                         else
-			    return make_shared(singleton_object_pool<Immediate>::construct(Result()));
+                            return make_shared(singleton_object_pool<Immediate>::construct(Result()));
                     }
                     else
                     {
-			if (b.start + disp_pos + 1 <= b.end)
-			    return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, 0)));
-			else
-			    return make_shared(singleton_object_pool<Immediate>::construct(Result()));
+                        if (b.start + disp_pos + 1 <= b.end)
+                            return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, 0)));
+                        else
+                        {
+                            return make_shared(singleton_object_pool<Immediate>::construct(Result()));
+                        }
                     }
                     break;
                 }
             default:
                 assert(b.start + disp_pos + 1 <= b.end);
                 return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, 0)));
-                break;
         }
     }
 
