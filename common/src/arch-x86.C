@@ -5955,8 +5955,8 @@ ia32_entry sseMapMult[][3] =
     { e_vunpckhps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
     { e_vunpckhps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
   }, { /* SSE16_66 */
-    { e_vmovhpd, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
-    { e_vmovhpd, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
+    { e_vmovhpd, t_done, 0, true, { Vpd, Wpd, Hpd }, 0, s1W2R3R, 0 },
+    { e_vmovhpd, t_done, 0, true, { Vpd, Wpd, Hpd }, 0, s1W2R3R, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
   }, { /* SSE16_F3 */
     { e_vmovshdup, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
