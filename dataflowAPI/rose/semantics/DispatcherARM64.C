@@ -4573,6 +4573,256 @@ namespace rose {
                     }
                 };
 
+                struct IP_madd_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        BaseSemantics::SValuePtr operand3 = d->read(args[3]);
+                        BaseSemantics::SValuePtr result;
+
+                        if (d->subop(raw)) {
+                            result = ops->add(d->UInt(operand3),
+                                              ops->negate(ops->unsignedMultiply(d->UInt(operand1), d->UInt(operand2))));
+                        } else {
+                            result = ops->add(d->UInt(operand3),
+                                              ops->unsignedMultiply(d->UInt(operand1), d->UInt(operand2)));
+                        }
+                        d->write(args[0], ops->extract(result, 0, d->getDatasize(raw) - 1 + 1));
+
+                    }
+                };
+
+                struct IP_msub_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        BaseSemantics::SValuePtr operand3 = d->read(args[3]);
+                        BaseSemantics::SValuePtr result;
+
+                        if (d->subop(raw)) {
+                            result = ops->add(d->UInt(operand3),
+                                              ops->negate(ops->unsignedMultiply(d->UInt(operand1), d->UInt(operand2))));
+                        } else {
+                            result = ops->add(d->UInt(operand3),
+                                              ops->unsignedMultiply(d->UInt(operand1), d->UInt(operand2)));
+                        }
+                        d->write(args[0], ops->extract(result, 0, d->getDatasize(raw) - 1 + 1));
+
+                    }
+                };
+
+                struct IP_mneg_msub_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        BaseSemantics::SValuePtr operand3 = d->read(args[3]);
+                        BaseSemantics::SValuePtr result;
+
+                        if (d->subop(raw)) {
+                            result = ops->add(d->UInt(operand3),
+                                              ops->negate(ops->unsignedMultiply(d->UInt(operand1), d->UInt(operand2))));
+                        } else {
+                            result = ops->add(d->UInt(operand3),
+                                              ops->unsignedMultiply(d->UInt(operand1), d->UInt(operand2)));
+                        }
+                        d->write(args[0], ops->extract(result, 0, d->getDatasize(raw) - 1 + 1));
+
+                    }
+                };
+
+                struct IP_mul_madd_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        BaseSemantics::SValuePtr operand3 = d->read(args[3]);
+                        BaseSemantics::SValuePtr result;
+
+                        if (d->subop(raw)) {
+                            result = ops->add(d->UInt(operand3),
+                                              ops->negate(ops->unsignedMultiply(d->UInt(operand1), d->UInt(operand2))));
+                        } else {
+                            result = ops->add(d->UInt(operand3),
+                                              ops->unsignedMultiply(d->UInt(operand1), d->UInt(operand2)));
+                        }
+                        d->write(args[0], ops->extract(result, 0, d->getDatasize(raw) - 1 + 1));
+
+                    }
+                };
+
+                struct IP_smaddl_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        BaseSemantics::SValuePtr operand3 = d->read(args[3]);
+                        BaseSemantics::SValuePtr result;
+
+                        if (d->subop(raw)) {
+                            result = ops->add(d->Int(operand3, true), ops->negate(
+                                    ops->unsignedMultiply(d->Int(operand1, true), d->Int(operand2, true))));
+                        } else {
+                            result = ops->add(d->Int(operand3, true),
+                                              ops->unsignedMultiply(d->Int(operand1, true), d->Int(operand2, true)));
+                        }
+                        d->write(args[0], ops->extract(result, 0, 63 + 1));
+
+                    }
+                };
+
+                struct IP_smsubl_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        BaseSemantics::SValuePtr operand3 = d->read(args[3]);
+                        BaseSemantics::SValuePtr result;
+
+                        if (d->subop(raw)) {
+                            result = ops->add(d->Int(operand3, true), ops->negate(
+                                    ops->unsignedMultiply(d->Int(operand1, true), d->Int(operand2, true))));
+                        } else {
+                            result = ops->add(d->Int(operand3, true),
+                                              ops->unsignedMultiply(d->Int(operand1, true), d->Int(operand2, true)));
+                        }
+                        d->write(args[0], ops->extract(result, 0, 63 + 1));
+
+                    }
+                };
+
+                struct IP_smnegl_smsubl_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        BaseSemantics::SValuePtr operand3 = d->read(args[3]);
+                        BaseSemantics::SValuePtr result;
+
+                        if (d->subop(raw)) {
+                            result = ops->add(d->Int(operand3, true), ops->negate(
+                                    ops->unsignedMultiply(d->Int(operand1, true), d->Int(operand2, true))));
+                        } else {
+                            result = ops->add(d->Int(operand3, true),
+                                              ops->unsignedMultiply(d->Int(operand1, true), d->Int(operand2, true)));
+                        }
+                        d->write(args[0], ops->extract(result, 0, 63 + 1));
+
+                    }
+                };
+
+                struct IP_smulh_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        BaseSemantics::SValuePtr result;
+                        result = ops->unsignedMultiply(d->Int(operand1, true), d->Int(operand2, true));
+                        d->write(args[0], ops->extract(result, 64, 127 + 1));
+
+                    }
+                };
+
+                struct IP_smull_smaddl_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        BaseSemantics::SValuePtr operand3 = d->read(args[3]);
+                        BaseSemantics::SValuePtr result;
+
+                        if (d->subop(raw)) {
+                            result = ops->add(d->Int(operand3, true), ops->negate(
+                                    ops->unsignedMultiply(d->Int(operand1, true), d->Int(operand2, true))));
+                        } else {
+                            result = ops->add(d->Int(operand3, true),
+                                              ops->unsignedMultiply(d->Int(operand1, true), d->Int(operand2, true)));
+                        }
+                        d->write(args[0], ops->extract(result, 0, 63 + 1));
+
+                    }
+                };
+
+                struct IP_umaddl_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        BaseSemantics::SValuePtr operand3 = d->read(args[3]);
+                        BaseSemantics::SValuePtr result;
+
+                        if (d->subop(raw)) {
+                            result = ops->add(d->Int(operand3, true), ops->negate(
+                                    ops->unsignedMultiply(d->Int(operand1, true), d->Int(operand2, true))));
+                        } else {
+                            result = ops->add(d->Int(operand3, true),
+                                              ops->unsignedMultiply(d->Int(operand1, true), d->Int(operand2, true)));
+                        }
+                        d->write(args[0], ops->extract(result, 0, 63 + 1));
+
+                    }
+                };
+
+                struct IP_umsubl_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        BaseSemantics::SValuePtr operand3 = d->read(args[3]);
+                        BaseSemantics::SValuePtr result;
+
+                        if (d->subop(raw)) {
+                            result = ops->add(d->Int(operand3, true), ops->negate(
+                                    ops->unsignedMultiply(d->Int(operand1, true), d->Int(operand2, true))));
+                        } else {
+                            result = ops->add(d->Int(operand3, true),
+                                              ops->unsignedMultiply(d->Int(operand1, true), d->Int(operand2, true)));
+                        }
+                        d->write(args[0], ops->extract(result, 0, 63 + 1));
+
+                    }
+                };
+
+                struct IP_umnegl_umsubl_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        BaseSemantics::SValuePtr operand3 = d->read(args[3]);
+                        BaseSemantics::SValuePtr result;
+
+                        if (d->subop(raw)) {
+                            result = ops->add(d->Int(operand3, true), ops->negate(
+                                    ops->unsignedMultiply(d->Int(operand1, true), d->Int(operand2, true))));
+                        } else {
+                            result = ops->add(d->Int(operand3, true),
+                                              ops->unsignedMultiply(d->Int(operand1, true), d->Int(operand2, true)));
+                        }
+                        d->write(args[0], ops->extract(result, 0, 63 + 1));
+
+                    }
+                };
+
+                struct IP_umulh_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        BaseSemantics::SValuePtr result;
+                        result = ops->unsignedMultiply(d->Int(operand1, true), d->Int(operand2, true));
+                        d->write(args[0], ops->extract(result, 64, 127 + 1));
+
+                    }
+                };
+
+                struct IP_umull_umaddl_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        BaseSemantics::SValuePtr operand3 = d->read(args[3]);
+                        BaseSemantics::SValuePtr result;
+
+                        if (d->subop(raw)) {
+                            result = ops->add(d->Int(operand3, true), ops->negate(
+                                    ops->unsignedMultiply(d->Int(operand1, true), d->Int(operand2, true))));
+                        } else {
+                            result = ops->add(d->Int(operand3, true),
+                                              ops->unsignedMultiply(d->Int(operand1, true), d->Int(operand2, true)));
+                        }
+                        d->write(args[0], ops->extract(result, 0, 63 + 1));
+
+                    }
+                };
+
             } // namespace
 
 /*******************************************************************************************************************************
@@ -4717,6 +4967,20 @@ namespace rose {
                 iproc_set(rose_aarch64_op_csel, new ARM64::IP_csel_execute);
                 iproc_set(rose_aarch64_op_cls_int, new ARM64::IP_cls_int_execute);
                 iproc_set(rose_aarch64_op_clz_int, new ARM64::IP_clz_int_execute);
+                iproc_set(rose_aarch64_op_madd, new ARM64::IP_madd_execute);
+                iproc_set(rose_aarch64_op_msub, new ARM64::IP_msub_execute);
+                iproc_set(rose_aarch64_op_mneg_msub, new ARM64::IP_mneg_msub_execute);
+                iproc_set(rose_aarch64_op_mul_madd, new ARM64::IP_mul_madd_execute);
+                iproc_set(rose_aarch64_op_smaddl, new ARM64::IP_smaddl_execute);
+                iproc_set(rose_aarch64_op_smsubl, new ARM64::IP_smsubl_execute);
+                iproc_set(rose_aarch64_op_smnegl_smsubl, new ARM64::IP_smnegl_smsubl_execute);
+                iproc_set(rose_aarch64_op_smulh, new ARM64::IP_smulh_execute);
+                iproc_set(rose_aarch64_op_smull_smaddl, new ARM64::IP_smull_smaddl_execute);
+                iproc_set(rose_aarch64_op_umaddl, new ARM64::IP_umaddl_execute);
+                iproc_set(rose_aarch64_op_umsubl, new ARM64::IP_umsubl_execute);
+                iproc_set(rose_aarch64_op_umnegl_umsubl, new ARM64::IP_umnegl_umsubl_execute);
+                iproc_set(rose_aarch64_op_umulh, new ARM64::IP_umulh_execute);
+                iproc_set(rose_aarch64_op_umull_umaddl, new ARM64::IP_umull_umaddl_execute);
             }
 
             bool
@@ -5124,6 +5388,15 @@ namespace rose {
                     return IntegerOps::extract2<uint32_t>(10, 10, raw);
             }
 
+            bool
+            DispatcherARM64::subop(uint32_t raw) {
+                if(IntegerOps::extract2<uint32_t>(24, 28, raw) == 0x1B) {
+                    return IntegerOps::extract2<uint32_t>(15, 15, raw) == 0x1;
+                } else {
+                    return IntegerOps::extract2<uint32_t>(30, 30, raw) == 0x1;
+                }
+            }
+
             BaseSemantics::SValuePtr
             DispatcherARM64::doAddOperation(BaseSemantics::SValuePtr a, BaseSemantics::SValuePtr b,
                                             bool invertCarries, const BaseSemantics::SValuePtr &carryIn,
@@ -5305,6 +5578,25 @@ namespace rose {
                 size_t len = expr->get_width();
                 BaseSemantics::SValuePtr arg = operators->xor_(operators->extract(expr, 1, len), operators->extract(expr, 0, len - 1));
                 return CountLeadingZeroBits(arg);
+            }
+
+            BaseSemantics::SValuePtr
+            DispatcherARM64::Int(const BaseSemantics::SValuePtr &expr, bool isUnsigned) {
+                if(isUnsigned)
+                    return UInt(expr);
+                else {
+                    int len = expr->get_width();
+                    BaseSemantics::SValuePtr ret = Zeros(len);
+
+                    for(int idx = 0; idx < len; idx++)
+                        if(operators->isEqual(operators->extract(expr, idx, idx + 1), operators->number_(1, 1)))
+                            ret = operators->add(ret, operators->number_(len, 2<<idx));
+
+                    if(operators->isEqual(operators->extract(expr, len, len + 1), operators->number_(1, 1)))
+                        ret = operators->add(ret, operators->negate(operators->number_(len + 1, 2<<len)));
+
+                    return ret;
+                }
             }
         } // namespace
     } // namespace

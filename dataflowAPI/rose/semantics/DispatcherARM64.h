@@ -232,6 +232,8 @@ namespace rose {
 
                 int opcode(uint32_t raw);
 
+                bool subop(uint32_t raw);
+
                 /** */
                 BaseSemantics::SValuePtr readMemory(const BaseSemantics::SValuePtr &addr, size_t readSize);
 
@@ -252,6 +254,9 @@ namespace rose {
 
                 /** */
                 BaseSemantics::SValuePtr CountLeadingSignBits(const BaseSemantics::SValuePtr &expr);
+
+                /** */
+                BaseSemantics::SValuePtr Int(const BaseSemantics::SValuePtr &expr, bool isUnsigned);
             };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
