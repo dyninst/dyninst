@@ -81,7 +81,7 @@ Region::Region(const Region &reg) :
    diskOff_(reg.diskOff_), diskSize_(reg.diskSize_), memOff_(reg.memOff_),
    memSize_(reg.memSize_), fileOff_(reg.fileOff_), rawDataPtr_(reg.rawDataPtr_),
    permissions_(reg.permissions_), rType_(reg.rType_), isDirty_(reg.isDirty_),
-   rels_(reg.rels_), buffer_(reg.buffer_), isLoadable_(reg.isLoadable_),
+   rels_(reg.rels_), buffer_(NULL), isLoadable_(reg.isLoadable_),
    isTLS_(reg.isTLS_), memAlign_(reg.memAlign_), symtab_(reg.symtab_)
 {
 }
@@ -99,7 +99,7 @@ Region& Region::operator=(const Region &reg)
     rType_ = reg.rType_;
     isDirty_ = reg.isDirty_;
     rels_ = reg.rels_;
-    buffer_ = reg.buffer_;
+    buffer_ = NULL;
     isLoadable_ = reg.isLoadable_;
     isTLS_ = reg.isTLS_;
     memAlign_ = reg.memAlign_;
@@ -109,8 +109,6 @@ Region& Region::operator=(const Region &reg)
 
 bool Region::operator==(const Region &reg)
 {
-            //(rawDataPtr_ == reg.rawDataPtr_) &&
-            //(buffer_ == reg.buffer_));
 
 	if (rels_.size() != reg.rels_.size()) return false;
 

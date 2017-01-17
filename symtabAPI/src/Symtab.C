@@ -1812,15 +1812,16 @@ Symtab::~Symtab()
    dataRegions_.clear();
    regionsByEntryAddr.clear();
 
-   std::vector<Region *> *user_regions = NULL;
-   getAnnotation(user_regions, UserRegionsAnno);
-
-   if (user_regions)
-   {
-      for (unsigned i = 0; i < user_regions->size(); ++i) 
-         delete (*user_regions)[i];
-      user_regions->clear();
-   }
+    // User regions are owned by regions_ and we don't need to delete them
+//   std::vector<Region *> *user_regions = NULL;
+//   getAnnotation(user_regions, UserRegionsAnno);
+//
+//   if (user_regions)
+//   {
+//      for (unsigned i = 0; i < user_regions->size(); ++i)
+//         delete (*user_regions)[i];
+//      user_regions->clear();
+//   }
 
    // Symbols are copied from linkedFile, and NOT deleted
    everyDefinedSymbol.clear();

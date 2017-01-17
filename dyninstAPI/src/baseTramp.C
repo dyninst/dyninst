@@ -286,85 +286,92 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
    // pieces.
 
    // Specialize for the instPoint...
-	
-   gen.setRegisterSpace(registerSpace::actualRegSpace(instP()));
+   bool retval = false;
+   try {
+      gen.setRegisterSpace(registerSpace::actualRegSpace(instP()));
 
-   pdvector<AstNodePtr> miniTramps;
+      pdvector<AstNodePtr> miniTramps;
 
-   if (point_) {
-      for (instPoint::instance_iter iter = point_->begin(); 
-           iter != point_->end(); ++iter) {
-         AstNodePtr ast = DCAST_AST((*iter)->snippet());
-         if (ast) 
-            miniTramps.push_back(ast);
-         else
-            miniTramps.push_back(AstNode::snippetNode((*iter)->snippet()));
+      if (point_) {
+         for (instPoint::instance_iter iter = point_->begin();
+              iter != point_->end(); ++iter) {
+            AstNodePtr ast = DCAST_AST((*iter)->snippet());
+            if (ast)
+               miniTramps.push_back(ast);
+            else
+               miniTramps.push_back(AstNode::snippetNode((*iter)->snippet()));
+         }
       }
+      else {
+         miniTramps.push_back(ast_);
+      }
+
+      AstNodePtr minis = AstNode::sequenceNode(miniTramps);
+
+      AstNodePtr baseTrampSequence;
+      pdvector<AstNodePtr > baseTrampElements;
+
+
+      // Run the minitramps
+      baseTrampElements.push_back(minis);
+      vector<AstNodePtr> empty_args;
+
+      if (guarded() &&
+          minis->containsFuncCall()) {
+         baseTrampElements.push_back(AstNode::funcCallNode("DYNINST_unlock_tramp_guard", empty_args));
+      }
+
+      baseTrampSequence = AstNode::sequenceNode(baseTrampElements);
+
+      AstNodePtr baseTrampAST;
+
+      // If trampAddr is non-NULL, then we wrap this with an IF. If not,
+      // we just run the minitramps.
+      if (guarded() &&
+          minis->containsFuncCall()) {
+         baseTrampAST = AstNode::operatorNode(ifOp,
+                 // trampGuardAddr,
+                                              AstNode::funcCallNode("DYNINST_lock_tramp_guard", empty_args),
+                                              baseTrampSequence);
+      }
+      else {
+         baseTrampAST = baseTrampSequence;
+         baseTrampSequence.reset();
+      }
+
+
+
+      // Sets up state in the codeGen object (and gen.rs())
+      // that is later used when saving and restoring. This
+      // MUST HAPPEN BEFORE THE SAVES, and state should not
+      // be reset until AFTER THE RESTORES.
+      retval = baseTrampAST->initRegisters(gen);
+      if (!gen.insertNaked()) {
+         generateSaves(gen, gen.rs());
+      }
+
+      if (!baseTrampAST->generateCode(gen, false)) {
+         fprintf(stderr, "Gripe: base tramp creation failed\n");
+         retval = false;
+      }
+
+      if (!gen.insertNaked()) {
+         generateRestores(gen, gen.rs());
+      }
+
+      // And now to clean up after us
+      //if (minis) delete minis;
+      //if (trampGuardAddr) delete trampGuardAddr;
+      //if (baseTrampSequence) delete baseTrampSequence;
+      //if (baseTramp) delete baseTramp;
+
+
    }
-   else {
-      miniTramps.push_back(ast_);
+   catch(std::exception e) {
+      cerr << e.what() << endl;
    }
-
-   AstNodePtr minis = AstNode::sequenceNode(miniTramps);
-
-   AstNodePtr baseTrampSequence;
-   pdvector<AstNodePtr > baseTrampElements;
-
-    
-   // Run the minitramps
-   baseTrampElements.push_back(minis);
-   vector<AstNodePtr> empty_args;
-    
-   if (guarded() &&
-       minis->containsFuncCall()) {
-     baseTrampElements.push_back(AstNode::funcCallNode("DYNINST_unlock_tramp_guard", empty_args));
-   }
-
-   baseTrampSequence = AstNode::sequenceNode(baseTrampElements);
-
-   AstNodePtr baseTrampAST;
-
-   // If trampAddr is non-NULL, then we wrap this with an IF. If not, 
-   // we just run the minitramps.
-   if (guarded() &&
-       minis->containsFuncCall()) {
-      baseTrampAST = AstNode::operatorNode(ifOp,
-                                           // trampGuardAddr,
-					   AstNode::funcCallNode("DYNINST_lock_tramp_guard", empty_args),
-                                           baseTrampSequence);
-   }
-   else {
-      baseTrampAST = baseTrampSequence;
-      baseTrampSequence.reset();
-   }
-
-
-
-   // Sets up state in the codeGen object (and gen.rs())
-   // that is later used when saving and restoring. This
-   // MUST HAPPEN BEFORE THE SAVES, and state should not
-   // be reset until AFTER THE RESTORES.
-   bool retval = baseTrampAST->initRegisters(gen);
-   if (!gen.insertNaked()) {
-       generateSaves(gen, gen.rs());
-   }
-
-   if (!baseTrampAST->generateCode(gen, false)) {
-      fprintf(stderr, "Gripe: base tramp creation failed\n");
-      retval = false;
-   }
-
-   if (!gen.insertNaked()) {
-       generateRestores(gen, gen.rs());
-   }
-
-   // And now to clean up after us
-   //if (minis) delete minis;
-   //if (trampGuardAddr) delete trampGuardAddr;
-   //if (baseTrampSequence) delete baseTrampSequence;
-   //if (baseTramp) delete baseTramp;
-
    return retval;
+
 }
 
 AddressSpace *baseTramp::proc() const { 

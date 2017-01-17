@@ -179,17 +179,17 @@ char *emitElfStatic::linkStatic(Symtab *target,
 
     // Now that all symbols are at their final locations, compute and apply relocations
     if( !applyRelocations(target, relocatableObjects, globalOffset, lmap, err, errMsg) ) {
-        if( lmap.allocatedData ) delete lmap.allocatedData;
+        if( lmap.allocatedData ) delete[] lmap.allocatedData;
         return NULL;
     }
 
     if (!buildPLT(target, globalOffset, lmap, err, errMsg)) {
-      if (lmap.allocatedData) delete lmap.allocatedData;
+      if (lmap.allocatedData) delete[] lmap.allocatedData;
       return NULL;
     }
 
     if (!buildRela(target, globalOffset, lmap, err, errMsg)) {
-      if (lmap.allocatedData) delete lmap.allocatedData;
+      if (lmap.allocatedData) delete[] lmap.allocatedData;
       return NULL;
     }
 

@@ -2062,11 +2062,15 @@ bool AstCallNode::initRegisters(codeGen &gen) {
     // Our "everything" is "floating point registers".
     // We also need a function object.
     func_instance *callee = func_;
+
+    std::string error_msg = "Call target for snippet not found: " + func_name_;
     if (!callee) {
         // Painful lookup time
         callee = gen.addrSpace()->findOnlyOneFunction(func_name_.c_str());
     }
-    assert(callee);
+    if(!callee) {
+        throw std::runtime_error(error_msg);
+    }
 
     // Marks registers as used based on the callee's behavior
     // This means we'll save them if necessary (also, lets us use

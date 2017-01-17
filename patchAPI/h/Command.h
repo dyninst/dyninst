@@ -81,6 +81,7 @@ class PATCHAPI_EXPORT BatchCommand : public Command {
 
 class PATCHAPI_EXPORT Patcher : public BatchCommand {
   public:
+    typedef Patcher* Ptr;
    static Patcher* create(Dyninst::PatchAPI::PatchMgrPtr mgr) {
       return new Patcher(mgr);
     }
