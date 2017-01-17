@@ -4823,6 +4823,138 @@ namespace rose {
                     }
                 };
 
+                struct IP_ldar_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        int dbytes = d->getDatasize(raw) / 8;
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+                                data = d->read(args[0]);
+                                d->writeMemory(address, dbytes, data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, dbytes);
+                                d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                            }
+                                break;
+                        }
+
+                    }
+                };
+
+                struct IP_ldarb_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        int dbytes = d->getDatasize(raw) / 8;
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+                                data = d->read(args[0]);
+                                d->writeMemory(address, dbytes, data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, dbytes);
+                                d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                            }
+                                break;
+                        }
+
+                    }
+                };
+
+                struct IP_ldarh_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        int dbytes = d->getDatasize(raw) / 8;
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+                                data = d->read(args[0]);
+                                d->writeMemory(address, dbytes, data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, dbytes);
+                                d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                            }
+                                break;
+                        }
+
+                    }
+                };
+
+                struct IP_stlr_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        int dbytes = d->getDatasize(raw) / 8;
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+                                data = d->read(args[0]);
+                                d->writeMemory(address, dbytes, data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, dbytes);
+                                d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                            }
+                                break;
+                        }
+
+                    }
+                };
+
+                struct IP_stlrb_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        int dbytes = d->getDatasize(raw) / 8;
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+                                data = d->read(args[0]);
+                                d->writeMemory(address, dbytes, data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, dbytes);
+                                d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                            }
+                                break;
+                        }
+
+                    }
+                };
+
+                struct IP_stlrh_execute : P {
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr address = d->effectiveAddress(args[1]);
+                        BaseSemantics::SValuePtr data;
+                        int dbytes = d->getDatasize(raw) / 8;
+
+                        switch ((EXTR(22, 22) ^ EXTR(23, 23))) {
+                            case MemOp_STORE: {
+                                data = d->read(args[0]);
+                                d->writeMemory(address, dbytes, data);
+                            }
+                                break;
+                            case MemOp_LOAD: {
+                                data = d->readMemory(address, dbytes);
+                                d->write(args[0], d->ZeroExtend(data, d->getRegSize(raw)));
+                            }
+                                break;
+                        }
+
+                    }
+                };
+
             } // namespace
 
 /*******************************************************************************************************************************
@@ -4981,6 +5113,12 @@ namespace rose {
                 iproc_set(rose_aarch64_op_umnegl_umsubl, new ARM64::IP_umnegl_umsubl_execute);
                 iproc_set(rose_aarch64_op_umulh, new ARM64::IP_umulh_execute);
                 iproc_set(rose_aarch64_op_umull_umaddl, new ARM64::IP_umull_umaddl_execute);
+                iproc_set(rose_aarch64_op_ldar, new ARM64::IP_ldar_execute);
+                iproc_set(rose_aarch64_op_ldarb, new ARM64::IP_ldarb_execute);
+                iproc_set(rose_aarch64_op_ldarh, new ARM64::IP_ldarh_execute);
+                iproc_set(rose_aarch64_op_stlr, new ARM64::IP_stlr_execute);
+                iproc_set(rose_aarch64_op_stlrb, new ARM64::IP_stlrb_execute);
+                iproc_set(rose_aarch64_op_stlrh, new ARM64::IP_stlrh_execute);
             }
 
             bool
