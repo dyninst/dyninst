@@ -250,7 +250,8 @@ void DwarfParseActions::setModuleFromName(std::string moduleName)
 bool DwarfWalker::buildSrcFiles(Dwarf_Debug dbg, Dwarf_Die entry, StringTablePtr srcFiles) {
    Dwarf_Signed cnt = 0;
     char** srcFileList;
-   DWARF_ERROR_RET(dwarf_srcfiles(entry, &srcFileList, &cnt, NULL));
+   Dwarf_Error error;
+   DWARF_ERROR_RET(dwarf_srcfiles(entry, &srcFileList, &cnt, &error));
 
    if(!srcFiles->empty()) {
         return true;
@@ -1222,10 +1223,23 @@ bool DwarfWalker::parseMember() {
    Type *memberType = NULL;
    if (!findType(memberType, false)) return false;
    if (!memberType) return false;
+   
+   long value;
+   bool hasValue;
+   if (!findValue(value, hasValue)) return false;
+   if (hasValue) {
+      assert(nameDefined());
+      dwarf_printf("(0x%lx) member is a named constant, forwarding to parseConstant\n", id());
+      return parseConstant();
+   }
 
    std::vector<VariableLocation> locs;
    Address initialStackValue = 0;
    if (!decodeLocationList(DW_AT_data_member_location, &initialStackValue, locs)) return false;
+   if (locs.empty()) {	   
+      dwarf_printf("(0x%lx) Skipping member as no location is given.\n", id()); 
+      return true;
+   }
 
    /* DWARF stores offsets in bytes unless the member is a bit field.
       Correct memberOffset as indicated.  Also, memberSize is in bytes
@@ -1237,12 +1251,12 @@ bool DwarfWalker::parseMember() {
    // This code changes memberSize, which is then discarded. I'm not sure why...
    if (!fixBitFields(locs, memberSize)) return false;
 
-   int offset_to_use = locs.size() ? locs[0].frameOffset : -1;
+   int offset_to_use = locs[0].frameOffset;
 
    dwarf_printf("(0x%lx) Using offset of 0x%lx\n", id(), offset_to_use);
 
    if (nameDefined()) {
-      curEnclosure()->addField( curName(), memberType, offset_to_use);
+      curEnclosure()->addField(curName(), memberType, offset_to_use);
    }
    else {
       curEnclosure()->addField("[anonymous union]", memberType, offset_to_use);
@@ -1527,6 +1541,25 @@ bool DwarfWalker::addFuncToContainer(Type *returnType) {
    typeFunction *funcType = new typeFunction( type_id(), returnType, toUse);
    curEnclosure()->addField( toUse, funcType);
    free( demangledName );
+   return true;
+}
+
+bool DwarfWalker::isStaticStructMember(std::vector<VariableLocation> &locs, bool &isStatic) {
+   isStatic = false;
+   
+   // if parsing a struct-member which is not a regular member (i.e. not with an offset)
+   if (curEnclosure()->getDataClass() == dataStructure && locs.size() == 0) {
+	long value;
+	bool hasValue;
+	if (!findValue(value, hasValue)) return false;
+	
+	// and, if it is not a constant, then it must be a static field member
+	if (!hasValue) {
+		isStatic = true;
+		return true;
+	}
+   }
+   
    return true;
 }
 

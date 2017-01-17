@@ -72,9 +72,9 @@ them. Components may be built and installed individually: "make
 $COMPONENT" and "make $COMPONENT-install" respectively; this will
 appropriately respect inter-component dependencies.
 
-## What's new
+### What's new
 
-NEW FEATURES:
+## New features
 
 * ARM64 SIMD support in instructionAPI
 
