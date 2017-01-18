@@ -442,6 +442,8 @@ MachRegister MachRegister::getZeroFlag(Dyninst::Architecture arch)
          return x86::zf;
       case Arch_x86_64:
          return x86_64::zf;
+      case Arch_ARMv6M:
+         return ARMv6M::Z;
       case Arch_aarch64: 
          return aarch64::z;
       case Arch_aarch32:
