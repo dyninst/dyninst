@@ -1473,7 +1473,6 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
 
     if ((insnSz + expectedDifference) != newInsnSz) {
         relocation_cerr << "\t\tERROR: Old Size: " << std::dec << insnSz << " New size: " << newInsnSz << " Expected size: " << (insnSz + expectedDifference) << std::endl;
-        assert(0);
         return false;
     }
 
