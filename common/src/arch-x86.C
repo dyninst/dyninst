@@ -2142,7 +2142,7 @@ static ia32_entry oneByteMap[256] = {
   { e_and, t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R, 0 },
   { e_and, t_done, 0, false, { rAX, Iz, Zz }, 0, s1RW2R, 0 },
   { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }, // PREFIX_SEG_OVR
-  { e_daa, t_done, 0, false, { AL, Zz, Zz }, 0, s1RW, 0 },
+  { e_daa, t_done, 0, false, { AL, Zz, Zz }, 0, s1RW, s1I },
   /* 28 */
   { e_sub, t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R, 0 },
   { e_sub, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R, 0 },
@@ -2151,7 +2151,7 @@ static ia32_entry oneByteMap[256] = {
   { e_sub, t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R, 0 },
   { e_sub, t_done, 0, false, { rAX, Iz, Zz }, 0, s1RW2R, 0 },
   { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }, // PREFIX_SEG_OVR
-  { e_das , t_done, 0, false, { AL, Zz, Zz }, 0, s1RW, 0 },
+  { e_das , t_done, 0, false, { AL, Zz, Zz }, 0, s1RW, s1I },
   /* 30 */
   { e_xor, t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R, 0 },
   { e_xor, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R, 0 },
@@ -2160,7 +2160,7 @@ static ia32_entry oneByteMap[256] = {
   { e_xor, t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R, 0 },
   { e_xor, t_done, 0, false, { rAX, Iz, Zz }, 0, s1RW2R, 0 },
   { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }, // PREFIX_SEG_OVR
-  { e_aaa, t_done, 0, false, { AX, Zz, Zz }, 0, s1RW, 0 },
+  { e_aaa, t_done, 0, false, { AX, Zz, Zz }, 0, s1RW, s1I },
   /* 38 */
   { e_cmp, t_done, 0, true, { Eb, Gb, Zz }, 0, s1R2R, 0 },
   { e_cmp, t_done, 0, true, { Ev, Gv, Zz }, 0, s1R2R, 0 },
@@ -2169,7 +2169,7 @@ static ia32_entry oneByteMap[256] = {
   { e_cmp, t_done, 0, false, { AL, Ib, Zz }, 0, s1R2R, 0 },
   { e_cmp, t_done, 0, false, { rAX, Iz, Zz }, 0, s1R2R, 0 },
   { e_No_Entry,     t_ill,  0, false, { Zz, Zz, Zz }, 0, 0, 0 }, // PREFIX_SEG_OVR
-  { e_aas, t_done, 0, false, { AX, Zz, Zz }, 0, s1RW, 0 },
+  { e_aas, t_done, 0, false, { AX, Zz, Zz }, 0, s1RW, s1I },
   /* 40 */
   { e_inc, t_done, 0, false, { eAX, Zz, Zz }, 0, s1RW, 0 },
   { e_inc, t_done, 0, false, { eCX, Zz, Zz }, 0, s1RW, 0 },
@@ -2339,8 +2339,8 @@ static ia32_entry oneByteMap[256] = {
   { e_No_Entry, t_grp, Grp2, true, { Ev, ImplImm, Zz }, 0, s1RW2R, 0 }, // --"--
   { e_No_Entry, t_grp, Grp2, true, { Eb, CL, Zz }, 0, s1RW2R, 0 },
   { e_No_Entry, t_grp, Grp2, true, { Ev, CL, Zz }, 0, s1RW2R, 0 },
-  { e_aam,  t_done, 0, false, { AX, Ib, Zz }, 0, s1RW2R, 0 },
-  { e_aad,  t_done, 0, false, { AX, Ib, Zz }, 0, s1RW2R, 0 },
+  { e_aam,  t_done, 0, false, { AX, Ib, Zz }, 0, s1RW2R, s1I | s2I },
+  { e_aad,  t_done, 0, false, { AX, Ib, Zz }, 0, s1RW2R, s1I | s2I },
   { e_salc, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE, 0 }, // undocumeted
   { e_xlat, t_done, 0, false, { Zz, Zz, Zz }, 0, fXLAT << FPOS, 0 }, // scream
   /* D8 */
@@ -2454,7 +2454,7 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_sse, SSE2F, true, { Zz, Zz, Zz }, 0, 0, 0 },
   /* 30 */
   { e_wrmsr, t_done, 0, false, { rAX, rDX, rCX }, 0, s1R2R3R, 0 },
-  { e_rdtsc, t_done, 0, false, { rAX, rDX, Zz }, 0, s1W2W3R, 0 },
+  { e_rdtsc, t_done, 0, false, { rAX, rDX, Zz }, 0, s1W2W3R, s1I | s2I },
   { e_rdmsr, t_done, 0, false, { rAX, rDX, rCX }, 0, s1W2W3R, 0 },
   { e_rdpmc, t_done, 0, false, { rAX, rDX, rCX }, 0, s1W2W3R, 0 },
   { e_sysenter, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE, 0 }, // XXX: fixme for kernel work
@@ -2600,8 +2600,8 @@ static ia32_entry twoByteMap[256] = {
   // Assuming this is used with LOCK prefix, the destination gets a write anyway
   // This is not the case without lock prefix, but I ignore that case
   // Also, given that the 3rd operand is a register I ignore that it may be written
-  { e_cmpxch, t_done, 0, true, { Eb, Gb, AL }, 0, s1RW2R3R | (fCMPXCH << FPOS), 0 },
-  { e_cmpxch, t_done, 0, true, { Ev, Gv, eAX }, 0, s1RW2R3R | (fCMPXCH << FPOS), 0 },
+  { e_cmpxch, t_done, 0, true, { Eb, Gb, AL }, 0, s1RW2R3R | (fCMPXCH << FPOS), s2I },
+  { e_cmpxch, t_done, 0, true, { Ev, Gv, eAX }, 0, s1RW2R3R | (fCMPXCH << FPOS), s2I },
   { e_lss, t_done, 0, true, { SS, Gv, Mp }, 0, s1W2W3R, 0 },
   { e_btr, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R, 0 },
   { e_lfs, t_done, 0, true, { FS, Gv, Mp }, 0, s1W2W3R, 0 },
@@ -2919,16 +2919,11 @@ static ia32_entry threeByteMap[256] = {
 		{ e_No_Entry, t_sse_bis, SSEBC7, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		/* C8 */
 		{ e_No_Entry, t_sse_bis, SSEBC8, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		// { e_sha1nexte, t_done, 0, true, { Wps, Vps, Zz }, 0, s1RW2R, 0 },
 		{ e_sha1msg1, t_done, 0, true, { Wps, Vps, Zz }, 0, s1RW2R, 0 },
 		{ e_No_Entry, t_sse_bis, SSEBCA, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		// { e_sha1msg2, t_done, 0, true, { Wps, Vps, Zz }, 0, s1RW2R, 0 },
 		{ e_No_Entry, t_sse_bis, SSEBCB, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		// { e_sha256rnds2, t_done, 0, true, { Wps, Vps, Zz }, 0, s1RW2R, 0 }, /* IMPLICIT XMM0 */
 		{ e_No_Entry, t_sse_bis, SSEBCC, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		// { e_sha256msg1, t_done, 0, true, { Wps, Vps, Zz }, 0, s1RW2R, 0 },
 		{ e_No_Entry, t_sse_bis, SSEBCD, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		// { e_sha256msg2, t_done, 0, true, { Wps, Vps, Zz }, 0, s1RW2R, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		/* D0 */
@@ -3521,8 +3516,8 @@ static ia32_entry groupMap[][8] = {
   { e_neg,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1RW, 0 },
   { e_mul,  t_done, 0, true, { AX, AL, Eb }, 0, s1W2R3R, 0 },
   { e_imul, t_done, 0, true, { AX, AL, Eb }, 0, s1W2R3R, 0 },
-  { e_div,  t_done, 0, true, { AX, AL, Eb }, 0, s1RW2R3R, 0 },
-  { e_idiv, t_done, 0, true, { AX, AL, Eb }, 0, s1RW2R3R, 0 }
+  { e_div,  t_done, 0, true, { AX, AL, Eb }, 0, s1RW2R3R, s1I },
+  { e_idiv, t_done, 0, true, { AX, AL, Eb }, 0, s1RW2R3R, s1I }
  },
 
  { /* group 3b - operands are defined here */
@@ -3532,8 +3527,8 @@ static ia32_entry groupMap[][8] = {
   { e_neg,  t_done, 0, true, { Ev, Zz, Zz }, 0, s1RW, 0 },
   { e_mul,  t_done, 0, true, { eDX, eAX, Ev }, 0, s1W2RW3R, 0 },
   { e_imul, t_done, 0, true, { eDX, eAX, Ev }, 0, s1W2RW3R, 0 },
-  { e_div,  t_done, 0, true, { eDX, eAX, Ev }, 0, s1RW2RW3R, 0 },
-  { e_idiv, t_done, 0, true, { eDX, eAX, Ev }, 0, s1RW2RW3R, 0 }
+  { e_div,  t_done, 0, true, { eDX, eAX, Ev }, 0, s1RW2RW3R, s1I },
+  { e_idiv, t_done, 0, true, { eDX, eAX, Ev }, 0, s1RW2RW3R, s1I }
  },
 
  { /* group 4 - operands are defined here */
@@ -3597,7 +3592,7 @@ static ia32_entry groupMap[][8] = {
  { /* group 9 - operands are defined here */
   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
   // see comments for cmpxch
-  { e_cmpxch8b, t_done, 0, true, { EDXEAX, Mq, ECXEBX }, 0, s1RW2RW3R | (fCMPXCH8 << FPOS), 0 },
+  { e_cmpxch8b, t_done, 0, true, { EDXEAX, Mq, ECXEBX }, 0, s1RW2RW3R | (fCMPXCH8 << FPOS), s2I },
   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -4772,7 +4767,7 @@ static ia32_entry sseMapBis[][5] = {
     }, { /* SSEB10 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse_bis_mult, SSEB10_F3, true, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_pblendvb, t_sse_bis_mult, SSEB10_66, true, { Vdq, Wdq, Zz }, 0, s1RW2R3R, 0 },
+        { e_pblendvb, t_sse_bis_mult, SSEB10_66, true, { Vdq, Wdq, Zz }, 0, s1RW2R3R, s3I },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
     }, { /* SSEB11 */
@@ -4796,13 +4791,13 @@ static ia32_entry sseMapBis[][5] = {
     }, { /* SSEB14 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse_bis_mult, SSEB14_F3, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_blendvps, t_sse_bis_mult, SSEB14_66, true, { Vdq, Wdq, Zz }, 0, s1RW2R3R, 0 },
+        { e_blendvps, t_sse_bis_mult, SSEB14_66, true, { Vdq, Wdq, Zz }, 0, s1RW2R3R, s3I },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
     }, { /* SSEB15 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse_bis_mult, SSEB15_F3, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_blendvpd, t_sse_bis_mult, SSEB15_66, true, { Vdq, Wdq, Zz }, 0, s1RW2R3R, 0 },
+        { e_blendvpd, t_sse_bis_mult, SSEB15_66, true, { Vdq, Wdq, Zz }, 0, s1RW2R3R, s3I },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
     }, { /* SSEB16 */
@@ -5526,9 +5521,9 @@ static ia32_entry sseMapBis[][5] = {
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
     }, { /* SSEBCB */
-        { e_sha256rnds2, t_done, 0, true, { Wps, Vps, Zz }, 0, s1RW2R, 0 }, /* IMPLICIT XMM0 */
+        { e_sha256rnds2, t_done, 0, true, { Wps, Vps, Zz }, 0, s1RW2R, s3I },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_No_Entry, t_sse_bis_mult, SSEBCB_66, false, { Zz, Zz, Zz }, 0, 0, 0 }, /* IMPLICIT XMM0 */
+        { e_No_Entry, t_sse_bis_mult, SSEBCB_66, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
     }, { /* SSEBCC */
