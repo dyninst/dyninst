@@ -119,9 +119,11 @@ ParseAPI::Edge::~Edge() {
 
 Function::~Function()
 {
+#if defined(parsing_block_counts)
     if (_obj && _obj->cs()) {
         _obj->cs()->decrementCounter(PARSE_FUNCTION_COUNT);
     }
+#endif
     vector<FuncExtent *>::iterator eit = _extents.begin();
     for( ; eit != _extents.end(); ++eit) {
         delete *eit;

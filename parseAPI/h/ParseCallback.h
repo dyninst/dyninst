@@ -178,12 +178,12 @@ class ParseCallbackManager {
   iterator end() { return cbs_.end(); }
 
   void batch_begin();
-  void batch_end(CFGFactory *fact); // fact provided so we can safely delete
+  void batch_end(boost::shared_ptr<CFGFactory> fact); // fact provided so we can safely delete
 
   // Batch-compatible methods
-  void destroy(Block *, CFGFactory *fact);
-  void destroy(Edge *, CFGFactory *fact);
-  void destroy(Function *, CFGFactory *fact);
+  void destroy(Block *b, boost::shared_ptr<CFGFactory> fact);
+  void destroy(Edge *e, boost::shared_ptr<CFGFactory> fact);
+  void destroy(Function *f, boost::shared_ptr<CFGFactory> fact);
   void removeEdge(Block *, Edge *, ParseCallback::edge_type_t);
   void addEdge(Block *, Edge *, ParseCallback::edge_type_t);  
   void removeBlock(Function *, Block *);

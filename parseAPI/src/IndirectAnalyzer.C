@@ -120,7 +120,7 @@ void IndirectControlFlowAnalyzer::FindAllThunks() {
 	    return;
 	}
 	InstructionDecoder dec(buf, b->end() - b->start(), b->obj()->cs()->getArch());
-	InsnAdapter::IA_IAPI block(dec, b->start(), b->obj() , b->region(), b->obj()->cs(), b);
+	InsnAdapter::IA_IAPI block(dec, b->start(), b->obj() , b->region(), b->obj()->cs().get(), b);
 	Address cur = b->start();
 	while (cur < b->end()) {
 	    if (block.getInstruction()->getCategory() == c_CallInsn && block.isThunk()) {

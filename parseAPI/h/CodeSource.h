@@ -195,11 +195,11 @@ class PARSER_EXPORT CodeSource : public Dyninst::InstructionSource {
     virtual void decrementCounter(const std::string& /*name*/) const { return; }
     virtual void startTimer(const std::string& /*name*/) const { return; } 
     virtual void stopTimer(const std::string& /*name*/) const { return; }
-   
+
+    virtual ~CodeSource() {}
  protected:
     CodeSource() : _regions_overlap(false),
                    _table_of_contents(0) {}
-    virtual ~CodeSource() {}
 
     void addRegion(CodeRegion *);
    

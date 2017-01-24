@@ -237,6 +237,8 @@ class image_variable {
     image_variable(SymtabAPI::Variable *var,
     		   pdmodule *mod);
 
+    virtual ~image_variable();
+
     Address getOffset() const;
 
     string symTabName() const { return var_->getFirstSymbol()->getMangledName(); }
@@ -256,18 +258,6 @@ class image_variable {
     
 };
 
-/* Stores source code to address in text association for modules */
-class lineDict {
- public:
-   lineDict()  { }
-   ~lineDict() { /* TODO */ }
-   void setLineAddr (unsigned line, Address addr) { lineMap[line] = addr; }
-   inline bool getLineAddr (const unsigned line, Address &adr);
-
- private:
-   std::unordered_map<unsigned, Address> lineMap;
-};
-
 std::string getModuleName(std::string constraint);
 std::string getFunctionName(std::string constraint);
 
@@ -281,20 +271,11 @@ class image : public codeRange {
    friend class image_variable;
    friend class DynCFGFactory;
  public:
-   static image *parseImage(fileDescriptor &desc, 
-                            BPatch_hybridMode mode,
-                            bool parseGaps);
+   static boost::shared_ptr<image> parseImage(fileDescriptor &desc,
+                                              BPatch_hybridMode mode,
+                                              bool parseGaps);
 
-   // And to get rid of them if we need to re-parse
-   static void removeImage(image *img);
-
-   // "I need another handle!"
-   image *clone() {
-      refCount++; 
-      return this; 
-   }
-
-   image(fileDescriptor &desc, bool &err, 
+    image(fileDescriptor &desc, bool &err,
          BPatch_hybridMode mode,
          bool parseGaps);
 
@@ -305,12 +286,9 @@ class image : public codeRange {
    // creates the module if it does not exist
    pdmodule *getOrCreateModule (SymtabAPI::Module *mod);
 
- protected:
    ~image();
 
-   // 7JAN05: go through the removeImage call!
-   int destroy();
- public:
+public:
    // find the named module  
    pdmodule *findModule(const string &name, bool wildcard = false);
 
@@ -326,9 +304,6 @@ class image : public codeRange {
    pdvector <parse_func *> *findFuncVectorByPretty(functionNameSieve_t bpsieve, 
                                                     void *user_data, 
                                                     pdvector<parse_func *> *found);
-   pdvector <parse_func *> *findFuncVectorByMangled(functionNameSieve_t bpsieve, 
-                                                     void *user_data, 
-                                                     pdvector<parse_func *> *found);
 
    /*********************************************************************/
    /**** Function lookup (by name or address) routines               ****/
@@ -350,8 +325,6 @@ class image : public codeRange {
    // variable and adds to appropriate data structures.
    image_variable* createImageVariable(Address offset, std::string name, int size, pdmodule *mod);
 	
-   bool symbolExists(const std::string &); /* Check symbol existence */
-   void postProcess(const std::string);          /* Load .pif file */
 
    // data member access
 
@@ -371,7 +344,7 @@ class image : public codeRange {
    unsigned get_size() const { return imageLength(); }
 
    SymtabAPI::Symtab *getObject() const { return linkedFile; }
-   ParseAPI::CodeObject *codeObject() const { return obj_; }
+   boost::shared_ptr<ParseAPI::CodeObject> codeObject() const { return obj_; }
 
    bool isDyninstRTLib() const { return is_libdyninstRT; }
    bool isAOut() const { return is_a_out; }
@@ -424,8 +397,7 @@ class image : public codeRange {
 
    void * getErrFunc() const { return (void *) dyninst_log_perror; }
 
-   std::unordered_map<Address, std::string> *getPltFuncs();
-   void getPltFuncs(std::map<Address, std::string> &out);
+    void getPltFuncs(std::map<Address, std::string> &out);
 #if defined(arch_power)
    bool updatePltFunc(parse_func *caller_func, Address stub_targ);
 #endif
@@ -446,20 +418,15 @@ class image : public codeRange {
    //
 
    // Platform-specific discovery of the "main" function
-   // FIXME There is a minor but fundamental design flaw that
-   //       needs to be resolved wrt findMain returning void.
    int findMain();
 
    bool determineImageType();
    bool addSymtabVariables();
 
    void getModuleLanguageInfo(std::unordered_map<std::string, SymtabAPI::supportedLanguages> *mod_langs);
-   void setModuleLanguages(std::unordered_map<std::string, SymtabAPI::supportedLanguages> *mod_langs);
 
    // We have a _lot_ of lookup types; this handles proper entry
-   void enterFunctionInTables(parse_func *func);
 
-   bool buildFunctionLists(pdvector<parse_func *> &raw_funcs);
    void analyzeImage();
 
    //
@@ -499,10 +466,10 @@ class image : public codeRange {
 #endif
 
    // ParseAPI
-   Dyninst::ParseAPI::CodeObject * obj_;
-   Dyninst::ParseAPI::SymtabCodeSource * cs_;
+   boost::shared_ptr<Dyninst::ParseAPI::CodeObject> obj_;
+   boost::shared_ptr<Dyninst::ParseAPI::SymtabCodeSource> cs_;
    Dyninst::ParseAPI::SymtabCodeSource::hint_filt *filt;
-   DynCFGFactory * img_fact_;
+   boost::shared_ptr<DynCFGFactory>  img_fact_;
    DynParseCallback * parse_cb_;
    void *cb_arg0_; // argument for mapped_object callback
 
@@ -529,11 +496,7 @@ class image : public codeRange {
    dyn_hash_map <string, pdmodule *> modsByFileName;
    dyn_hash_map <string, pdmodule*> modsByFullName;
 
-   // "Function" symbol names that are PLT entries or the equivalent
-   // FIXME remove
-   std::unordered_map<Address, std::string> *pltFuncs;
-
-   std::unordered_map <Address, image_variable *> varsByAddr;
+    std::unordered_map <Address, image_variable *> varsByAddr;
 
    vector<pair<string, Address> > codeHeaps_;
    vector<pair<string, Address> > dataHeaps_;
@@ -556,7 +519,6 @@ class pdmodule {
    pdmodule(SymtabAPI::Module *mod, image *e)
    	    : mod_(mod), exec_(e) {}
 
-   void cleanProcessSpecific(PCProcess *p);
 
    bool getFunctions(pdvector<parse_func *> &funcs);
 
@@ -585,19 +547,14 @@ class pdmodule {
 
    SymtabAPI::Module *mod();
 
-   image *imExec() const { return exec_; }
-   
- private:
-   SymtabAPI::Module *mod_;
-   image *exec_;
-};
+   image * imExec() const { return exec_; }
 
-inline bool lineDict::getLineAddr (const unsigned line, Address &adr) {
-   auto iter = lineMap.find(line);
-   if (iter == lineMap.end()) return false;
-   adr = iter->second;
-   return true;
-}
+    virtual ~pdmodule();
+
+private:
+   SymtabAPI::Module *mod_;
+   image* exec_;
+};
 
 class BPatch_basicBlock;
 

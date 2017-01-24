@@ -143,7 +143,7 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
  private:
     mapped_object();
     mapped_object(fileDescriptor fileDesc,
-                  image *img,
+                  boost::shared_ptr<image> img,
                   AddressSpace *proc,
                   BPatch_hybridMode mode = BPatch_normalMode);
 
@@ -191,7 +191,7 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     Address dataOffset() const { return parse_img()->dataOffset(); }
     unsigned dataSize() const { return parse_img()->dataLength(); }
 
-    image *parse_img() const { return image_; }
+    boost::shared_ptr<image> parse_img() const { return image_; }
     bool isSharedLib() const;
     bool isStaticExec() const;
     static bool isSystemLib(const std::string &name);
@@ -374,7 +374,7 @@ public:
     bool dirty_; // marks the shared object as dirty
     bool dirtyCalled_;//see comment for setDirtyCalled
 
-    image  *image_; // pointer to image if processed is true
+    boost::shared_ptr<image> image_; // pointer to image if processed is true
     bool dlopenUsed; //mark this shared object as opened by dlopen
     AddressSpace *proc_; // Parent process
 

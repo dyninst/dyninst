@@ -132,9 +132,7 @@ class PARSER_EXPORT CFGFactory {
     void destroy_block(Block *b);
     void destroy_edge(Edge *e);
 
-    void destroy_all();
-
- protected:
+protected:
     virtual Function * mkfunc(Address addr, FuncSource src, 
             std::string name, CodeObject * obj, CodeRegion * region, 
             Dyninst::InstructionSource * isrc);

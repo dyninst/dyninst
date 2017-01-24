@@ -41,7 +41,7 @@ using Dyninst::PatchAPI::InstancePtr;
 using Dyninst::PatchAPI::DynCFGMakerPtr;
 using Dyninst::PatchAPI::DynCFGMaker;
 
-DynObject::DynObject(ParseAPI::CodeObject* co, AddressSpace* as, Address base)
+DynObject::DynObject(boost::shared_ptr<ParseAPI::CodeObject> co, AddressSpace* as, Address base)
    : PatchObject(co, base, 
                  new DynCFGMaker, 
                  new DynPatchCallback),

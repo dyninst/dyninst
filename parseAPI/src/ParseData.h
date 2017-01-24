@@ -124,7 +124,7 @@ class ParseFrame {
 
     ParseWorkElem * seed; // stored for cleanup
 
-    ParseFrame(Function * f,ParseData *pd) :
+    ParseFrame(Function * f,boost::shared_ptr<ParseData> pd) :
         curAddr(0),
         num_insns(0),
         call_target(NULL),
@@ -142,7 +142,7 @@ class ParseFrame {
     void set_status(Status);
  private:
     Status _status;
-    ParseData * _pd;
+    boost::shared_ptr<ParseData> _pd;
 };
 
 /* per-CodeRegion parsing data */

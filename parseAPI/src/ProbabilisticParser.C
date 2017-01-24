@@ -309,7 +309,7 @@ const IdiomPrefixTree::ChildrenType* IdiomPrefixTree::getChildrenByEntryID(unsig
 const IdiomPrefixTree::ChildrenType* IdiomPrefixTree::getWildCardChildren() {
     return getChildrenByEntryID(WILDCARD_ENTRY_ID);
 }
-ProbabilityCalculator::ProbabilityCalculator(CodeRegion *reg, CodeSource *source, Parser* p, string model_spec):
+ProbabilityCalculator::ProbabilityCalculator(CodeRegion *reg, boost::shared_ptr<CodeSource> source, Parser* p, string model_spec):
     model(model_spec), cr(reg), cs(source), parser(p) 
 {
 }

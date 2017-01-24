@@ -42,12 +42,12 @@ namespace PatchAPI {
 class DynObject : public PatchObject {
 
   public:
-    static DynObject* create(ParseAPI::CodeObject* co,
+    static DynObject* create(boost::shared_ptr<ParseAPI::CodeObject> co,
                              AddressSpace* as,
                              Address base) {
       return (new DynObject(co, as, base));
     }
-    DynObject(ParseAPI::CodeObject* co, AddressSpace* as, Address base);
+    DynObject(boost::shared_ptr<ParseAPI::CodeObject> co, AddressSpace* as, Address base);
     DynObject(const DynObject *par_obj, AddressSpace* child, Address base);
     ~DynObject();
 

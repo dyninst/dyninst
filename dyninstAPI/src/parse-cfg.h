@@ -228,7 +228,7 @@ class parse_func : public ParseAPI::Function
         InstructionSource * isrc,
         FuncSource src);
 
-   ~parse_func();
+   virtual ~parse_func();
 
    SymtabAPI::Function* getSymtabFunction() const{
       return  func_; 

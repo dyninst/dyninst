@@ -306,22 +306,22 @@ bool PCProcess::getDyninstRTLibName()
     use_abi_rt = (getAddressWidth() == 4);
 #endif
 
-    std::vector<std::string> rt_paths;
+    std::set<std::string> rt_paths;
     std::string rt_base = "libdyninstAPI_RT";
     if(use_abi_rt) rt_base += "_m32";
     rt_base += ".so";
     if(!BinaryEdit::getResolvedLibraryPath(rt_base, rt_paths) || rt_paths.empty())
     {
-	startup_printf("%s[%d]: Could not find libdyninstAPI_RT.so in search path\n", FILE__, __LINE__);
-	return false;
+        startup_printf("%s[%d]: Could not find libdyninstAPI_RT.so in search path\n", FILE__, __LINE__);
+        return false;
     }
     for(auto i = rt_paths.begin();
 	i != rt_paths.end();
 	++i)
     {
-	startup_printf("%s[%d]: Candidate RTLib is %s\n", FILE__, __LINE__, i->c_str());
+    	startup_printf("%s[%d]: Candidate RTLib is %s\n", FILE__, __LINE__, i->c_str());
     }
-    dyninstRT_name = rt_paths[0];
+    dyninstRT_name = *(rt_paths.begin());
     return true;
 }
 
@@ -337,7 +337,7 @@ bool PCProcess::setEnvPreload(std::vector<std::string> &envp, std::string fileNa
     use_abi_rt = (symt_obj->getAddressWidth() == 4);
 #endif
 
-    std::vector<std::string> rt_paths;
+    std::set<std::string> rt_paths;
     std::string rt_base = "libdyninstAPI_RT";
     if(use_abi_rt) rt_base += "_m32";
     rt_base += ".so";
@@ -350,9 +350,9 @@ bool PCProcess::setEnvPreload(std::vector<std::string> &envp, std::string fileNa
 	i != rt_paths.end();
 	++i)
     {
-	startup_printf("%s[%d]: Candidate RTLib is %s\n", FILE__, __LINE__, i->c_str());
+	    startup_printf("%s[%d]: Candidate RTLib is %s\n", FILE__, __LINE__, i->c_str());
     }
-    std::string rt_lib_name = rt_paths[0];
+    std::string rt_lib_name = *(rt_paths.begin());
 
     // Check to see if the library given exists.
     if (access(rt_lib_name.c_str(), R_OK)) {
@@ -538,14 +538,30 @@ bool PCProcess::startDebugger() {
 
 #include "dyninstAPI/src/binaryEdit.h"
 #include "symtabAPI/h/Archive.h"
+#include "symlite/h/SymLite-elf.h"
 
 using namespace Dyninst::SymtabAPI;
 
 
+struct CloseReader
+{
+    CloseReader(SymElfFactory* f) : fact(f) {};
+    void operator()(SymReader* s) {
+        fact->closeSymbolReader(s);
+    }
+    SymElfFactory* fact;
+};
+bool BinaryEdit::isCompatibleBinary(std::string pathname)
+{
+    SymElfFactory f;
+    boost::shared_ptr<SymReader> reader(f.openSymbolReader(pathname), CloseReader(&f));
+    return reader && reader->getAddressWidth() == getAddressWidth();
+}
+
 mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
                                                    std::map<std::string, BinaryEdit*> &retMap) {
-    std::vector<std::string> paths;
-    std::vector<std::string>::iterator pathIter;
+    std::set<std::string> paths;
+    std::set<std::string>::iterator pathIter;
     // First, find the specified library file
     bool resolved = getResolvedLibraryPath(filename, paths);
 
@@ -555,17 +571,16 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
                        FILE__, __LINE__, filename.c_str());
 
         Symtab *origSymtab = getMappedObject()->parse_img()->getObject();
-	assert(mgr());
+        assert(mgr());
         // Dynamic case
         if ( !origSymtab->isStaticBinary() ) {
             for(pathIter = paths.begin(); pathIter != paths.end(); ++pathIter) {
-               BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr(), patcher());
-
-                if (temp && temp->getAddressWidth() == getAddressWidth()) {
+                if(isCompatibleBinary(*pathIter))
+                {
+                    BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr(), patcher());
                     retMap.insert(std::make_pair(*pathIter, temp));
                     return temp->getMappedObject();
                 }
-                delete temp;
             }
         } else {
             // Static executable case
@@ -588,19 +603,15 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
                     if (library->getAllMembers(members)) {
                         std::vector <Symtab *>::iterator member_it;
                         for (member_it = members.begin(); member_it != members.end();
-                             ++member_it) 
+                             ++member_it)
                         {
-                           BinaryEdit *temp = BinaryEdit::openFile(*pathIter, 
-                                                                   mgr(), patcher(), (*member_it)->memberName());
-
-                            if (temp && temp->getAddressWidth() == getAddressWidth()) {
+                            if(isCompatibleBinary(*pathIter))
+                            {
+                                BinaryEdit *temp = BinaryEdit::openFile(*pathIter,
+                                                                        mgr(), patcher(), (*member_it)->memberName());
                                 std::string mapName = *pathIter + string(":") +
-                                    (*member_it)->memberName();
+                                                      (*member_it)->memberName();
                                 retMap.insert(std::make_pair(mapName, temp));
-                            }else{
-                                if(temp) delete temp;
-                                retMap.clear();
-                                break;
                             }
                         }
 
@@ -614,25 +625,24 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
                         //if( library ) delete library;
                     }
                 } else if (Symtab::openFile(singleObject, *pathIter)) {
-                   BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr(), patcher());
 
 
-                    if (temp && temp->getAddressWidth() == getAddressWidth()) {
+                    if (isCompatibleBinary(*pathIter)) {
                         if( singleObject->getObjectType() == obj_SharedLib ||
-                            singleObject->getObjectType() == obj_Executable ) 
+                            singleObject->getObjectType() == obj_Executable )
                         {
-                          startup_printf("%s[%d]: cannot load dynamic object(%s) when rewriting a static binary\n", 
-                                  FILE__, __LINE__, pathIter->c_str());
-                          std::string msg = std::string("Cannot load a dynamic object when rewriting a static binary");
-                          showErrorCallback(71, msg.c_str());
+                            startup_printf("%s[%d]: cannot load dynamic object(%s) when rewriting a static binary\n",
+                                           FILE__, __LINE__, pathIter->c_str());
+                            std::string msg = std::string("Cannot load a dynamic object when rewriting a static binary");
+                            showErrorCallback(71, msg.c_str());
 
-                          delete singleObject;
-                        }else{
+                            Symtab::closeSymtab(singleObject);
+                        } else{
+                            BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr(), patcher());
                             retMap.insert(std::make_pair(*pathIter, temp));
                             return temp->getMappedObject();
                         }
                     }
-                    if(temp) delete temp;
                 }
             }
         }
@@ -661,6 +671,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
 
 #if defined(os_linux)
 #include "dyninstAPI/src/linux.h"
+
 #else
 #include "dyninstAPI/src/freebsd.h"
 #endif

@@ -109,7 +109,7 @@ getBlockInsns(Block &blk, std::set<Address> &addrs)
         (blk.obj()->cs()->getPtrToInstruction(blk.start()));
     InstructionDecoder dec = InstructionDecoder
         (bufferBegin, bufSize, blk.region()->getArch());
-    InstructionAdapter_t ah(dec, blk.start(), blk.obj(), blk.region(), blk.obj()->cs(), &blk);
+    InstructionAdapter_t ah(dec, blk.start(), blk.obj(), blk.region(), blk.obj()->cs().get(), &blk);
 
 	for (; ah.getAddr() < blk.end(); ah.advance()) {
         addrs.insert(ah.getAddr());
@@ -126,7 +126,7 @@ Parser::getTamperAbsFrame(Function *tamperFunc)
 
     // get the binary's load address and subtract it
 
-    CodeSource *cs = tamperFunc->obj()->cs();
+    auto cs = tamperFunc->obj()->cs();
     set<CodeRegion*> targRegs;
 
     Address loadAddr = cs->loadAddress();
@@ -282,7 +282,7 @@ Parser::tamper_post_processing(vector<ParseFrame *> & work, ParseFrame *pf)
     {
         Address objLoad = 0;
         CodeObject *targObj = NULL;
-        if (_pcb.absAddr(pf->func->_tamper_addr, 
+        if (_pcb->absAddr(pf->func->_tamper_addr, 
                          objLoad, 
                          targObj)) 
         {
@@ -294,7 +294,7 @@ Parser::tamper_post_processing(vector<ParseFrame *> & work, ParseFrame *pf)
                     init_frame(*tf);
                     frames.push_back(tf);
                     _parse_data->record_frame(tf);
-                    _pcb.updateCodeBytes(pf->func->_tamper_addr - objLoad);
+                    _pcb->updateCodeBytes(pf->func->_tamper_addr - objLoad);
                 }
                 if (tf) {
                     mal_printf("adding TAMPER_ABS target %lx frame\n", 
@@ -348,7 +348,7 @@ void Parser::ProcessUnresBranchEdge(
         det.data.unres.dynamic = false;
         det.data.unres.absolute_address = false;
     }
-    _pcb.interproc_cf(frame.func,cur,ah.getAddr(),&det);
+    _pcb->interproc_cf(frame.func,cur,ah.getAddr(),&det);
 }
 
 /*
@@ -369,7 +369,7 @@ void Parser::ProcessReturnInsn(
     det.isize = ah.getSize();
     det.type = ParseCallback::interproc_details::ret;
 
-    _pcb.interproc_cf(frame.func, cur, ah.getAddr(),&det);
+    _pcb->interproc_cf(frame.func, cur, ah.getAddr(),&det);
 }
 
 
@@ -404,7 +404,7 @@ void Parser::ProcessCallInsn(
     else
         det.type = ParseCallback::interproc_details::branch_interproc;
     
-    _pcb.interproc_cf(frame.func,cur,ah.getAddr(),&det);
+    _pcb->interproc_cf(frame.func,cur,ah.getAddr(),&det);
 }
 
 void Parser::ProcessCFInsn(
@@ -478,7 +478,7 @@ void Parser::ProcessCFInsn(
                 (unsigned char*) cur->region()->getPtrToInstruction(cur->lastInsnAddr()),
                 cur->end() - cur->lastInsnAddr(),
                 true);
-            _pcb.abruptEnd_cf(cur->lastInsnAddr(),cur,&det);
+            _pcb->abruptEnd_cf(cur->lastInsnAddr(),cur,&det);
         }
     }
 
@@ -595,7 +595,7 @@ void Parser::ProcessCFInsn(
                       || COND_TAKEN == curEdge->second)
                 {
 
-                    _pcb.updateCodeBytes(curEdge->first);
+                    _pcb->updateCodeBytes(curEdge->first);
                 }
             }
         } 

@@ -59,7 +59,7 @@ AddrSpace::create(PatchObject* obj) {
 
 bool
 AddrSpace::loadObject(PatchObject* obj) {
-  obj_map_[obj->co()] = obj;
+  obj_map_[obj->co().get()] = obj;
   obj->setAddrSpace(this);
   return true;
 }

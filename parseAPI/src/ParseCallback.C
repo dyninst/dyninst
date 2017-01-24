@@ -46,7 +46,7 @@ void ParseCallbackManager::batch_begin() {
    inBatch_ = true;
 }
 
-void ParseCallbackManager::batch_end(CFGFactory *fact) {
+void ParseCallbackManager::batch_end(boost::shared_ptr<CFGFactory> fact) {
    assert(inBatch_);
    // And now we do work. Hard work. 
    // Collect up all the info we've copied and send it up to the user
@@ -115,7 +115,7 @@ void ParseCallbackManager::batch_end(CFGFactory *fact) {
    inBatch_ = false;
 }
 
-void ParseCallbackManager::destroy(Block *b, CFGFactory *fact) {
+void ParseCallbackManager::destroy(Block *b, boost::shared_ptr<CFGFactory> fact) {
    if (inBatch_) destroyedBlocks_.push_back(b);
    else {
       destroy_cb(b);
@@ -123,7 +123,7 @@ void ParseCallbackManager::destroy(Block *b, CFGFactory *fact) {
    }
 }
 
-void ParseCallbackManager::destroy(Edge *e, CFGFactory *fact) {
+void ParseCallbackManager::destroy(Edge *e, boost::shared_ptr<CFGFactory> fact) {
    if (inBatch_) destroyedEdges_.push_back(e);
    else {
       destroy_cb(e);
@@ -131,7 +131,7 @@ void ParseCallbackManager::destroy(Edge *e, CFGFactory *fact) {
    }
 }
 
-void ParseCallbackManager::destroy(Function *f, CFGFactory *fact) {
+void ParseCallbackManager::destroy(Function *f, boost::shared_ptr<CFGFactory> fact) {
    if (inBatch_) destroyedFunctions_.push_back(f);
    else {
       destroy_cb(f);

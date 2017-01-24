@@ -43,9 +43,16 @@ using namespace Dyninst::ParseAPI;
 
 namespace {
     // initialization help
-    static inline CFGFactory * __fact_init(CFGFactory * fact) {
-        if(fact) return fact;
-        return new CFGFactory();
+    template <typename T>
+    static inline boost::shared_ptr<CFGFactory> __fact_init(T fact) {
+        if(fact) return boost::shared_ptr<CFGFactory>(fact);
+        return boost::shared_ptr<CFGFactory>(new CFGFactory());
+    }
+    template <typename T>
+    static inline boost::shared_ptr<CFGFactory> __fact_init(boost::shared_ptr<T> fact) {
+        assert(fact);
+        return fact;
+
     }
 }
 
@@ -61,20 +68,32 @@ void CodeObject::version(int& major, int& minor, int& maintenance)
 }
 
 
-CodeObject::CodeObject(CodeSource *cs, 
-                       CFGFactory *fact, 
-                       ParseCallback * cb, 
-                       bool defMode) :
-    _cs(cs),
-    _fact(__fact_init(fact)),
-    _pcb(new ParseCallbackManager(cb)),
-    parser(new Parser(*this,*_fact,*_pcb) ),
-    owns_factory(fact == NULL),
-    defensive(defMode),
-    flist(parser->sorted_funcs)
-{
-    process_hints(); // if any
-}
+//CodeObject::CodeObject(CodeSource *cs,
+//                       CFGFactory *fact,
+//                       ParseCallback * cb,
+//                       bool defMode) :
+//        _cs(cs),
+//        _fact(__fact_init(fact)),
+//        _pcb(new ParseCallbackManager(cb)),
+//        parser(new Parser(*this,_fact,_pcb) ),
+//        defensive(defMode),
+//        flist(parser->sorted_funcs)
+//{
+//    process_hints(); // if any
+//}
+//CodeObject::CodeObject(CodeSource *cs,
+//                       boost::shared_ptr<CFGFactory> fact,
+//                       ParseCallback * cb,
+//                       bool defMode) :
+//        _cs(cs),
+//        _fact(__fact_init(fact)),
+//        _pcb(new ParseCallbackManager(cb)),
+//        parser(new Parser(*this,_fact,_pcb) ),
+//        defensive(defMode),
+//        flist(parser->sorted_funcs)
+//{
+//    process_hints(); // if any
+//}
 
 void
 CodeObject::process_hints()
@@ -87,7 +106,7 @@ CodeObject::process_hints()
         CodeRegion * cr = (*hit)._reg;
         if(!cs()->regionsOverlap())
             f = parser->factory()._mkfunc(
-               (*hit)._addr,HINT,(*hit)._name,this,cr,cs());
+               (*hit)._addr,HINT,(*hit)._name,this,cr,cs().get());
         else
             f = parser->factory()._mkfunc(
                 (*hit)._addr,HINT,(*hit)._name,this,cr,cr);
@@ -99,8 +118,6 @@ CodeObject::process_hints()
 }
 
 CodeObject::~CodeObject() {
-    if(owns_factory)
-        delete _fact;
     delete _pcb;
     if(parser)
         delete parser;
@@ -298,9 +315,9 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
         }
     }
 
-    parser->_pcb.batch_begin(); // must batch callbacks and deliver after parsing structures are stable
+    _pcb->batch_begin(); // must batch callbacks and deliver after parsing structures are stable
     parser->parse_edges( work_elems );
-    parser->_pcb.batch_end(_fact);
+    _pcb->batch_end(_fact);
 
     if (defensiveMode()) {
         // update tampersStack for modified funcs
@@ -343,7 +360,7 @@ bool CodeObject::isIATcall(Address insnAddr, std::string &calleeName)
    InstructionDecoder dec = InstructionDecoder(bufferBegin,
       InstructionDecoder::maxInstructionLength, reg->getArch());
    InstructionAdapter_t ah = InstructionAdapter_t(
-      dec, insnAddr, this, reg, cs(), blk);
+      dec, insnAddr, this, reg, cs().get(), blk);
 
    return ah.isIATcall(calleeName);
 }
@@ -394,4 +411,11 @@ Address CodeObject::getFreeAddr() const {
       hi = (hi > (*iter)->high()) ? hi : (*iter)->high();
    }
    return hi;
+}
+
+void CodeObject::initialize(ParseCallback *cb) {
+    _pcb = new ParseCallbackManager(cb);
+    parser = new Parser(*this,_fact,_pcb);
+    flist = parser->sorted_funcs;
+    process_hints(); // if any
 }

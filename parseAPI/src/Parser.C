@@ -45,7 +45,7 @@
 #include "debug_parse.h"
 
 #include <boost/tuple/tuple.hpp>
-
+#include <boost/make_shared.hpp>
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
@@ -55,7 +55,7 @@ typedef std::pair< Address, EdgeTypeEnum > edge_pair_t;
 typedef vector< edge_pair_t > Edges_t;
 
 #include "common/src/dthread.h"
-
+#include <boost/make_shared.hpp>
 namespace {
     struct less_cr {
      bool operator()(CodeRegion * x, CodeRegion * y) 
@@ -65,16 +65,16 @@ namespace {
     };
 }
 
-Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) :
+Parser::Parser(CodeObject &obj, boost::shared_ptr<CFGFactory> fact, ParseCallbackManager *pcb) :
     _obj(obj),
     _cfgfact(fact),
     _pcb(pcb),
-    _parse_data(NULL),
     num_delayedFrames(0),
     _sink(NULL),
     _parse_state(UNPARSED),
     _in_parse(false),
-    _in_finalize(false)
+    _in_finalize(false),
+    sorted_funcs(boost::make_shared<set<Function*,Function::less> >())
 {
     // cache plt entries for fast lookup
     const map<Address, string> & lm = obj.cs()->linkage();
@@ -98,7 +98,7 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
     sort(copy.begin(),copy.end(),less_cr());
 
     // allocate a sink block -- region is arbitrary
-    _sink = _cfgfact._mksink(&_obj,copy[0]);
+    _sink = factory()._mksink(&_obj,copy[0]);
 
     bool overlap = false;
     CodeRegion * prev = copy[0], *cur = NULL;
@@ -114,9 +114,9 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
     }
 
     if(overlap)
-        _parse_data = new OverlappingParseData(this,copy);
+        _parse_data = boost::make_shared<OverlappingParseData>(this,copy);
     else
-        _parse_data = new StandardParseData(this);
+        _parse_data = boost::make_shared<StandardParseData> (this);
 }
 
 ParseFrame::~ParseFrame()
@@ -126,8 +126,6 @@ ParseFrame::~ParseFrame()
 
 Parser::~Parser()
 {
-    if(_parse_data)
-        delete _parse_data;
 
     vector<ParseFrame *>::iterator fit = frames.begin();
     for( ; fit != frames.end(); ++fit) 
@@ -229,7 +227,7 @@ Parser::parse_at(Address target, bool recursive, FuncSource src)
     if(_parse_state == UNPARSEABLE)
         return;
 
-    StandardParseData * spd = dynamic_cast<StandardParseData *>(_parse_data);
+    auto  spd = boost::shared_dynamic_cast<StandardParseData >(_parse_data);
     if(!spd) {
         parsing_printf("   parse_at is invalid on overlapping regions\n");
         return;
@@ -742,7 +740,7 @@ Parser::record_func(Function *f) {
     else
         discover_funcs.push_back(f);
 
-    sorted_funcs.insert(f);
+    sorted_funcs->insert(f);
 
     _parse_data->record_func(f);
 }
@@ -768,7 +766,7 @@ Parser::init_frame(ParseFrame & frame)
             return;
         }
         if (split) {
-            _pcb.splitBlock(split,b);
+            _pcb->splitBlock(split,b);
         }
     }
 
@@ -818,7 +816,7 @@ namespace {
     inline std::pair<Address, Block*> get_next_block(
         Address addr,
         CodeRegion * codereg, 
-        ParseData * _parse_data)
+        boost::shared_ptr<ParseData>  _parse_data)
     {
         Block * nextBlock = NULL;
         Address nextBlockAddr;
@@ -1268,7 +1266,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 
                 // NB "cur" hasn't ended, so its range may
                 // not look like it overlaps with nextBlock
-                _pcb.overlapping_blocks(cur,nextBlock);
+                _pcb->overlapping_blocks(cur,nextBlock);
 
                 tie(nextBlockAddr,nextBlock) = 
                     get_next_block(frame.curAddr, frame.codereg, _parse_data);
@@ -1288,8 +1286,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                         FILE__,__LINE__,func->_is_leaf_function, func->name().c_str());
                 if (!func->_is_leaf_function) func->_ret_addr = ret_addr;	
             }
-		
-            _pcb.instruction_cb(func,cur,curAddr,&insn_det);
+
+            _pcb->instruction_cb(func,cur,curAddr,&insn_det);
 
             if (isNopBlock && !ah.isNop()) {
                 ah.retreat();
@@ -1377,15 +1375,15 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 }
                 break;
             } else if (unlikely(func->obj()->defensiveMode())) {
-                if (!_pcb.hasWeirdInsns(func) && ah.isGarbageInsn()) {
+                if (!_pcb->hasWeirdInsns(func) && ah.isGarbageInsn()) {
                     // add instrumentation at this addr so we can
                     // extend the function if this really executes
                     ParseCallback::default_details det(
                         (unsigned char*) cur->region()->getPtrToInstruction(cur->lastInsnAddr()),
                         cur->end() - cur->lastInsnAddr(),
                         true);
-                    _pcb.abruptEnd_cf(cur->lastInsnAddr(),cur,&det);
-                    _pcb.foundWeirdInsns(func);
+                    _pcb->abruptEnd_cf(cur->lastInsnAddr(),cur,&det);
+                    _pcb->foundWeirdInsns(func);
                     end_block(cur,ah);
                     // allow invalid instructions to end up as a sink node.
 		    link(cur, _sink, DIRECT, true);
@@ -1396,7 +1394,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     // as a no-op this time, allowing the subsequent
                     // instruction to be parsed correctly
                     mal_printf("Nop jump at %lx, changing it to nop\n",ah.getAddr());
-                    _pcb.patch_nop_jump(ah.getAddr());
+                    _pcb->patch_nop_jump(ah.getAddr());
                     unsigned bufsize = 
                         func->region()->offset() + func->region()->length() - ah.getAddr();
                     const unsigned char* bufferBegin = (const unsigned char *)
@@ -1472,8 +1470,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
        // calculate this after setting the function to PARSED, so that when
        // we finalize the function we'll actually save the results and won't 
        // re-finalize it
-       func->tampersStack(); 
-       _pcb.newfunction_retstatus( func );
+       func->tampersStack();
+        _pcb->newfunction_retstatus( func );
     }
 }
 
@@ -1569,11 +1567,11 @@ Parser::block_at(
     } else {
         ret = factory()._mkblock(owner,cr,addr);
         record_block(ret);
-        _pcb.addBlock(owner, ret);
+        _pcb->addBlock(owner, ret);
     }
 
     if(unlikely(inconsistent)) {
-       _pcb.overlapping_blocks(ret,inconsistent); 
+        _pcb->overlapping_blocks(ret,inconsistent);
     }
 
     return ret;
@@ -1689,7 +1687,7 @@ Parser::split_block(
         }
     }
     // KEVINTODO: study performance impact of this callback
-    _pcb.splitBlock(b,ret);
+    _pcb->splitBlock(b,ret);
 
     return ret;
  }
@@ -1821,8 +1819,8 @@ Parser::link(Block *src, Block *dst, EdgeTypeEnum et, bool sink)
     e->_type._sink = sink;
     src->_trglist.push_back(e);
     dst->_srclist.push_back(e);
-    _pcb.addEdge(src, e, ParseCallback::target);
-    _pcb.addEdge(dst, e, ParseCallback::source);
+    _pcb->addEdge(src, e, ParseCallback::target);
+    _pcb->addEdge(dst, e, ParseCallback::source);
     return e;
 }
 
@@ -1855,26 +1853,26 @@ Parser::relink(Edge * e, Block *src, Block *dst)
     bool addSrcAndDest = true;
     if(src != e->src()) {
         e->src()->removeTarget(e);
-        _pcb.removeEdge(e->src(), e, ParseCallback::target);
+        _pcb->removeEdge(e->src(), e, ParseCallback::target);
         e->_source = src;
         src->addTarget(e);
-        _pcb.addEdge(src, e, ParseCallback::target);
+        _pcb->addEdge(src, e, ParseCallback::target);
         addSrcAndDest = false;
     }
     if(dst != e->trg()) { 
         if(e->trg() != _sink) {
             e->trg()->removeSource(e);
-            _pcb.removeEdge(e->trg(), e, ParseCallback::source);
+            _pcb->removeEdge(e->trg(), e, ParseCallback::source);
             addSrcAndDest = false;
         }
         e->_target = dst;
         dst->addSource(e);
-        _pcb.addEdge(dst, e, ParseCallback::source);
+        _pcb->addEdge(dst, e, ParseCallback::source);
         if (addSrcAndDest) {
             // We're re-linking a sinkEdge to be a non-sink edge; since 
             // we don't inform PatchAPI of temporary sinkEdges, we have
             // to add both the source AND target edges
-            _pcb.addEdge(src, e, ParseCallback::target);
+            _pcb->addEdge(src, e, ParseCallback::target);
         }
     }
 
@@ -1892,8 +1890,8 @@ Parser::frame_status(CodeRegion * cr, Address addr)
 void
 Parser::remove_func(Function *func)
 {
-    if (sorted_funcs.end() != sorted_funcs.find(func)) {
-        sorted_funcs.erase(func);
+    if (sorted_funcs->end() != sorted_funcs->find(func)) {
+        sorted_funcs->erase(func);
     }
     if (HINT == func->src()) {
         for (unsigned fidx=0; fidx < hint_funcs.size(); fidx++) {

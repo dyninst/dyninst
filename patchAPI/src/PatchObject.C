@@ -42,7 +42,7 @@ using namespace PatchAPI;
 
 
 PatchObject*
-PatchObject::create(ParseAPI::CodeObject* co, Address base, CFGMaker* cm, PatchCallback *cb) {
+PatchObject::create(boost::shared_ptr<ParseAPI::CodeObject> co, Address base, CFGMaker* cm, PatchCallback *cb) {
   patchapi_debug("Create PatchObject at %lx", base);
    PatchObject* obj = new PatchObject(co, base, cm, cb);
    return obj;
@@ -56,7 +56,7 @@ PatchObject::clone(PatchObject* par_obj, Address base, CFGMaker* cm, PatchCallba
   return obj;
 }
 
-PatchObject::PatchObject(ParseAPI::CodeObject* o, Address a, CFGMaker* cm, PatchCallback *cb)
+PatchObject::PatchObject(boost::shared_ptr<ParseAPI::CodeObject> o, Address a, CFGMaker* cm, PatchCallback *cb)
    : co_(o), codeBase_(a),
      addr_space_(NULL),
      cfg_maker_(NULL)
@@ -116,7 +116,9 @@ PatchObject::~PatchObject() {
   for (EdgeMap::iterator iter = edges_.begin(); iter != edges_.end(); ++iter) {
     delete iter->second;
   }
-  co_->unregisterCallback(pcb_);
+  if(co_) {
+      co_->unregisterCallback(pcb_);
+  }
   delete cfg_maker_;
   delete cb_;
 }
@@ -143,7 +145,7 @@ PatchFunction*
 PatchObject::getFunc(ParseAPI::Function *f, bool create) {
   if (!f) return NULL;
 
-  if (co_ != f->obj()) {
+  if (co_.get() != f->obj()) {
     cerr << "ERROR: function " << f->name() << " doesn't exist in this object!\n";
     assert(0);
   }
@@ -186,7 +188,7 @@ void PatchObject::createBlocks() {
 
 PatchBlock*
 PatchObject::getBlock(ParseAPI::Block* b, bool create) {
-  if (co_ != b->obj()) {
+  if (co_.get() != b->obj()) {
     cerr << "ERROR: block starting at 0x" << b->start()
          << " doesn't exist in this object!\n";
     cerr << "This: " << hex << this << " and our code object: " << co_ << " and block is " << b->obj() << dec << endl;
@@ -294,7 +296,7 @@ bool PatchObject::splitBlock(PatchBlock * /*orig*/, ParseAPI::Block *second) {
 }
 
 std::string PatchObject::format() const {
-   ParseAPI::CodeSource *cs = co()->cs();
+   ParseAPI::CodeSource *cs = co()->cs().get();
    ParseAPI::SymtabCodeSource *symtab = dynamic_cast<ParseAPI::SymtabCodeSource *>(cs);
    stringstream ret;
 

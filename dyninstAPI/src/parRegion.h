@@ -69,8 +69,10 @@ class image_parRegion : public codeRange {
  public:
   image_parRegion(parse_func * imageFunc);
   image_parRegion(Address firstOffset, parse_func * imageFunc);
- 
-  Address firstInsnOffset() const { return firstInsnOffset_; }
+
+    virtual ~image_parRegion();
+
+    Address firstInsnOffset() const { return firstInsnOffset_; }
 
   void setLastInsn(Address last) { lastInsnOffset_ = last;}
   Address lastInsnOffset() const { return lastInsnOffset_; }

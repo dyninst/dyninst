@@ -190,6 +190,10 @@ Address image_parRegion::getClauseLoc(const char * key)
     return 0;
 }
 
+image_parRegion::~image_parRegion() {
+
+}
+
 
 int int_parRegion::replaceOMPParameter(const char * key, int value)
 {

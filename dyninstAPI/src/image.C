@@ -34,6 +34,8 @@
 #include <assert.h>
 #include <string>
 #include <fstream>
+#include <boost/make_shared.hpp>
+#include <boost/ref.hpp>
 
 #include "image.h"
 #include "common/src/arch.h"
@@ -83,7 +85,7 @@
 
 AnnotationClass<image_variable> ImageVariableUpPtrAnno("ImageVariableUpPtrAnno", NULL);
 AnnotationClass<parse_func> ImageFuncUpPtrAnno("ImageFuncUpPtrAnno", NULL);
-pdvector<image*> allImages;
+std::vector<boost::shared_ptr<image> > allImages;
 
 using namespace std;
 using namespace Dyninst;
@@ -644,8 +646,8 @@ int image::findMain()
             // We're going to throw it away when we're done so that we can re-sync
             // with the new symbols we're going to add shortly. 
             bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
-            SymtabCodeSource scs(linkedFile, filt, parseInAllLoadableRegions);
-            CodeObject co(&scs);
+            auto scs = boost::make_shared<SymtabCodeSource>(linkedFile, filt, parseInAllLoadableRegions);
+            CodeObject co(scs);
 
 #if !defined(os_freebsd)
             /* Find the entry point, where we start our analysis */
@@ -653,7 +655,7 @@ int image::findMain()
 
             /* Get the code regions we are looking at */
             std::set<CodeRegion*> regions;
-            scs.findRegions(entry_point, regions);
+            scs->findRegions(entry_point, regions);
 
             /* We should only get one region */
             if(regions.size() != 1)
@@ -778,7 +780,7 @@ int image::findMain()
             }
 #endif
 
-            if(!mainAddress || !scs.isValidAddress(mainAddress)) {
+            if(!mainAddress || !scs->isValidAddress(mainAddress)) {
                 startup_printf("%s[%u]:  invalid main address 0x%lx\n",
                         FILE__, __LINE__, mainAddress);   
             } else {
@@ -1179,7 +1181,7 @@ unsigned int int_addrHash(const Address& addr) {
  *    physical offset. 
  */
 
-image *image::parseImage(fileDescriptor &desc, 
+boost::shared_ptr<image> image::parseImage(fileDescriptor &desc,
                          BPatch_hybridMode mode, 
                          bool parseGaps)
 {
@@ -1195,12 +1197,11 @@ image *image::parseImage(fileDescriptor &desc,
   // about it. If so, yank the old one out of the images vector -- replace
   // it, basically.
   for (unsigned u=0; u<numImages; u++) {
-      if (desc.isSameFile(allImages[u]->desc())) {
-         if (allImages[u]->getObject()->canBeShared()) {
-            // We reference count...
-            startup_printf("%s[%d]: returning pre-parsed image\n", FILE__, __LINE__);
-            return allImages[u]->clone();
-         }
+      auto img = allImages[u];
+      if(img && desc.isSameFile(img->desc()) && img->getObject()->canBeShared()) {
+          // We reference count...
+          startup_printf("%s[%d]: returning pre-parsed image\n", FILE__, __LINE__);
+          return img;
       }
   }
 
@@ -1218,7 +1219,7 @@ image *image::parseImage(fileDescriptor &desc,
 #endif
 
   startup_printf("%s[%d]:  about to create image\n", FILE__, __LINE__);
-  image *ret = new image(desc, err, mode, parseGaps); 
+  boost::shared_ptr<image> ret(new image(desc, err, mode, parseGaps));
   startup_printf("%s[%d]:  created image\n", FILE__, __LINE__);
 
   if(desc.isSharedObject()) 
@@ -1241,17 +1242,19 @@ image *image::parseImage(fileDescriptor &desc,
      if (ret) {
          startup_printf("%s[%d]: error in processing, deleting image and returning\n",
                         FILE__, __LINE__);
-         delete ret;
+        ret.reset();
      }
      else {
         fprintf(stderr, "Failed to allocate memory for parsing %s!\n", 
                 desc.file().c_str());
      }
      stats_parse.stopTimer(PARSE_SYMTAB_TIMER);
-     return NULL;
+     return boost::shared_ptr<image>();
   }
 
-  allImages.push_back(ret);
+  if(ret->getObject()->canBeShared()) {
+      allImages.push_back(ret);
+  }
 
   // start tracking new blocks after initial parse
   if ( BPatch_exploratoryMode == mode ||
@@ -1266,48 +1269,6 @@ image *image::parseImage(fileDescriptor &desc,
   stats_parse.stopTimer(PARSE_SYMTAB_TIMER);
 
   return ret;
-}
-
-/*
- * Remove a parsed executable from the global list. Used if the old handle
- * is no longer valid.
- */
-void image::removeImage(image *img)
-{
-
-  // Here's a question... do we want to actually delete images?
-  // Pro: free up memory. Con: we'd just have to parse them again...
-  // I guess the question is "how often do we serially open files".
-  /* int refCount = */ img->destroy();
-  
-
-  /*
-    // We're not deleting when the refcount hits 0, so we may as well
-    // keep the vector. It's a time/memory problem. 
-  if (refCount == 0) {
-    pdvector<image*> newImages;
-    // It's gone... remove from image vector
-    for (unsigned i = 0; i < allImages.size(); i++) {
-      if (allImages[i] != img)
-	newImages.push_back(allImages[i]);
-    }
-    allImages = newImages;
-  }
-  */
-}
-
-int image::destroy() {
-    refCount--;
-    if (refCount == 0) {
-        if (!desc().isSharedObject()) {
-            // a.out... destroy it
-            //delete this;
-            return 0;
-        }
-    }
-    if (refCount < 0)
-        assert(0 && "NEGATIVE REFERENCE COUNT FOR IMAGE!");
-    return refCount; 
 }
 
 void image::analyzeIfNeeded() {
@@ -1394,14 +1355,10 @@ image::image(fileDescriptor &desc,
 #if defined(os_linux) || defined(os_freebsd)
    archive(NULL),
 #endif
-   obj_(NULL),
-   cs_(NULL),
    filt(NULL),
-   img_fact_(NULL),
    parse_cb_(NULL),
    cb_arg0_(NULL),
    nextBlockID_(0),
-   pltFuncs(NULL),
    trackNewBlocks_(false),
    refCount(1),
    parseState_(unparsed),
@@ -1526,12 +1483,12 @@ image::image(fileDescriptor &desc,
     filt = &nuke_heap;
 
    bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
-   cs_ = new SymtabCodeSource(linkedFile,filt,parseInAllLoadableRegions);
+   cs_ = boost::make_shared<SymtabCodeSource>(linkedFile,filt,parseInAllLoadableRegions);
 
    // Continue ParseAPI init
-   img_fact_ = new DynCFGFactory(this);
+   img_fact_ = boost::make_shared<DynCFGFactory>(this);
    parse_cb_ = new DynParseCallback(this);
-   obj_ = new CodeObject(cs_,img_fact_,parse_cb_,BPatch_defensiveMode == mode);
+   obj_ = boost::make_shared<CodeObject>(cs_,img_fact_,parse_cb_,BPatch_defensiveMode == mode);
 
    string msg;
    // give user some feedback....
@@ -1555,40 +1512,24 @@ image::image(fileDescriptor &desc,
 
 image::~image() 
 {
-    unsigned i;
-
+    cerr << hex << "Destroying image " << this << " for " << file() << dec << endl;
     for (map<Module *, pdmodule *>::iterator iter = mods_.begin();
          iter != mods_.end(); iter++) {
         delete (iter->second);
     }
 
-    for (i = 0; i < everyUniqueVariable.size(); i++) {
-        delete everyUniqueVariable[i];
+    for (auto v = everyUniqueVariable.begin(); v != everyUniqueVariable.end(); v++) {
+        delete *v;
     }
     everyUniqueVariable.clear();
     createdVariables.clear();
     exportedVariables.clear();
 
    
-    for (i = 0; i < parallelRegions.size(); i++)
-      delete parallelRegions[i];
+    for (auto p = parallelRegions.begin(); p != parallelRegions.end(); p++)
+      delete *p;
     parallelRegions.clear();
 
-    // Finally, remove us from the image list.
-    for (i = 0; i < allImages.size(); i++) {
-        if (allImages[i] == this)
-            VECTOR_ERASE(allImages,i,i);
-    }
-
-    if (pltFuncs) {
-       delete pltFuncs;
-       pltFuncs = NULL;
-    }
-
-    if(obj_) delete obj_;
-    if(cs_) delete cs_;
-    if(img_fact_) delete img_fact_;
-    if(parse_cb_) delete parse_cb_;
 
     if (linkedFile) { SymtabAPI::Symtab::closeSymtab(linkedFile); }
 }
@@ -1990,7 +1931,12 @@ bool pdmodule::getVariables(pdvector<image_variable *> &vars)  {
     }
   
     return (vars.size() > curVarSize);
-} /* end getFunctions() */
+}
+
+pdmodule::~pdmodule() {
+
+}
+/* end getFunctions() */
 
 /*
 void *image::getPtrToDataInText( Address offset ) const {
@@ -2059,32 +2005,6 @@ bool image::findSymByPrefix(const std::string &prefix, pdvector<Symbol *> &ret) 
     for(start=0;start< found.size();start++)
 		ret.push_back(found[start]);
 	return true;	
-}
-
-std::unordered_map<Address, std::string> *image::getPltFuncs()
-{
-   bool result;
-   if (pltFuncs)
-      return pltFuncs;
-
-
-   vector<SymtabAPI::relocationEntry> fbt;
-   result = getObject()->getFuncBindingTable(fbt);
-   if (!result)
-      return NULL;
-
-   pltFuncs = new std::unordered_map<Address, std::string>;
-   assert(pltFuncs);
-   for(unsigned k = 0; k < fbt.size(); k++) {
-#if defined(os_vxworks)
-       if (fbt[k].target_addr() == 0) {
-           (*pltFuncs)[fbt[k].rel_addr()] = fbt[k].name().c_str();
-       }
-#else
-      (*pltFuncs)[fbt[k].target_addr()] = fbt[k].name().c_str();
-#endif
-   }
-   return pltFuncs;
 }
 
 void image::getPltFuncs(std::map<Address, std::string> &out)

@@ -255,10 +255,6 @@ Architecture BinaryEdit::getArch() const {
   return mapped_objects[0]->parse_img()->codeObject()->cs()->getArch();
 }
 
-unsigned BinaryEdit::getAddressWidth() const {
-  assert(!mapped_objects.empty());
-  return mapped_objects[0]->parse_img()->codeObject()->cs()->getAddressWidth();
-}
 Address BinaryEdit::offset() const {
     fprintf(stderr,"error BinaryEdit::offset() unimpl\n");
     return 0;
@@ -290,26 +286,27 @@ BinaryEdit::BinaryEdit() :
 
 BinaryEdit::~BinaryEdit() 
 {
-}
-
-void BinaryEdit::deleteBinaryEdit() {
-    deleteAddressSpace();
     highWaterMark_ = 0;
     lowWaterMark_ = 0;
 
-    // TODO: is this cleanup necessary?
-    depRelocation *rel;
-    while (dependentRelocations.size() > 0) {
-        rel = dependentRelocations[0];
-        dependentRelocations.erase(dependentRelocations.begin());
-        delete rel;
+    for(auto i = dependentRelocations.begin();
+            i != dependentRelocations.end();
+            ++i)
+    {
+        delete (*i);
+    }
+    for (auto mt = trackerFreeList.begin();
+            mt != trackerFreeList.end();
+            ++mt)
+    {
+        delete (*mt);
     }
     delete memoryTracker_;
 }
 
-BinaryEdit *BinaryEdit::openFile(const std::string &file, 
+BinaryEdit *BinaryEdit::openFile(const std::string &file,
                                  PatchMgrPtr mgr, 
-                                 Dyninst::PatchAPI::Patcher *patch,
+                                 Dyninst::PatchAPI::Patcher::Ptr patch,
                                  const std::string &member) {
     if (!OS::executableExists(file)) {
         startup_printf("%s[%d]:  failed to read file %s\n", FILE__, __LINE__, file.c_str());
@@ -762,13 +759,11 @@ bool BinaryEdit::createMemoryBackingStore(mapped_object *obj) {
       {
          continue;
       }
-      else {
-         newTracker = new memoryTracker(regs[i]->getMemOffset(),
-                                        regs[i]->getMemSize(),
-                                        regs[i]->getPtrToRawData());
-         
-      }
+     newTracker = new memoryTracker(regs[i]->getMemOffset(),
+                                    regs[i]->getMemSize(),
+                                    regs[i]->getPtrToRawData());
       newTracker->alloced = false;
+       trackerFreeList.push_back(newTracker);
       if (!memoryTracker_)
          memoryTracker_ = new codeRangeTree();
       memoryTracker_->insert(newTracker);

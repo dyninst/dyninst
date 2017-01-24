@@ -100,8 +100,6 @@ class BinaryEdit : public AddressSpace {
     virtual void inferiorFree(Address item);
     virtual bool inferiorRealloc(Address item, unsigned newSize);
 
-    /* AddressSpace pure virtual implementation */
-    unsigned getAddressWidth() const;
     Address offset() const;
     Address length() const;
     Architecture getArch() const;
@@ -138,13 +136,10 @@ class BinaryEdit : public AddressSpace {
     BinaryEdit();
     ~BinaryEdit();
 
-    // Same usage pattern as process
-    void deleteBinaryEdit();
-
     // And the "open" factory method.
     static BinaryEdit *openFile(const std::string &file,
                                 Dyninst::PatchAPI::PatchMgrPtr mgr = Dyninst::PatchAPI::PatchMgrPtr(),
-                                Dyninst::PatchAPI::Patcher *patch = NULL,
+                                Dyninst::PatchAPI::Patcher::Ptr patch = Dyninst::PatchAPI::Patcher::Ptr(),
                                 const std::string &member = "");
 
     bool writeFile(const std::string &newFileName);
@@ -191,7 +186,7 @@ class BinaryEdit : public AddressSpace {
 
    virtual void addTrap(Address from, Address to, codeGen &gen);
    virtual void removeTrap(Address /*from*/) {};
-    static bool getResolvedLibraryPath(const std::string &filename, std::vector<std::string> &paths);
+    static bool getResolvedLibraryPath(const std::string &filename, set<std::string> &paths);
 
  private:
     Address highWaterMark_;
@@ -218,7 +213,7 @@ class BinaryEdit : public AddressSpace {
    bool doStaticBinarySpecialCases();
     
     codeRangeTree* memoryTracker_;
-
+    std::vector<memoryTracker*> trackerFreeList;
     mapped_object * addSharedObject(const std::string *fullPath);
 
     std::vector<depRelocation *> dependentRelocations;
@@ -234,6 +229,7 @@ class BinaryEdit : public AddressSpace {
 
     // Symbols that other people (e.g., functions) want us to add
     std::vector<SymtabAPI::Symbol *> newDyninstSyms_;
+    bool isCompatibleBinary(std::string pathname);
 
 };
 
@@ -252,16 +248,16 @@ class memoryTracker : public codeRange {
  public:
     memoryTracker(Address a, unsigned s) :
         alloced(false),  dirty(false), a_(a), s_(s) {
-        b_ = malloc(s_);
+        b_ = calloc(s_, 1);
     }
 
     memoryTracker(Address a, unsigned s, void *b) :
     alloced(false), dirty(false), a_(a), s_(s)
         {
-            b_ = malloc(s_);
+            b_ = calloc(s_, 1);
             memcpy(b_, b, s_);
         }
-    ~memoryTracker() { free(b_); }
+    virtual ~memoryTracker() { free(b_); }
 
     Address get_address() const { return a_; }
     unsigned get_size() const { return s_; }

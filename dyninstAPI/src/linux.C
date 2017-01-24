@@ -51,6 +51,7 @@
 #include "common/src/linuxKludges.h"
 
 #include "symtabAPI/h/Symtab.h"
+
 using namespace Dyninst::SymtabAPI;
 using namespace Dyninst::ProcControlAPI;
 
@@ -174,7 +175,7 @@ bool PCEventMuxer::useCallback(Dyninst::ProcControlAPI::EventType et)
    return false;
 }
 
-bool BinaryEdit::getResolvedLibraryPath(const string &filename, std::vector<string> &paths) {
+bool BinaryEdit::getResolvedLibraryPath(const string &filename, set<string> &paths) {
     char *libPathStr, *libPath;
     std::vector<string> libPaths;
     struct stat dummy;
@@ -183,7 +184,7 @@ bool BinaryEdit::getResolvedLibraryPath(const string &filename, std::vector<stri
 
     // prefer qualified file paths
     if (stat(filename.c_str(), &dummy) == 0) {
-        paths.push_back(filename);
+        paths.insert(filename);
     }
 
     // For cross-rewriting
@@ -214,7 +215,7 @@ bool BinaryEdit::getResolvedLibraryPath(const string &filename, std::vector<stri
     for (unsigned int i = 0; i < libPaths.size(); i++) {
         string str = libPaths[i] + "/" + filename;
         if (stat(str.c_str(), &dummy) == 0) {
-            paths.push_back(str);
+            paths.insert(str);
         }
     }
 
@@ -239,7 +240,7 @@ bool BinaryEdit::getResolvedLibraryPath(const string &filename, std::vector<stri
             while (*pos != '\n' && *pos != '\0') pos++;
             *pos = '\0';
             if (strcmp(key, filename.c_str()) == 0) {
-                paths.push_back(val);
+                paths.insert(val);
             }
         }
         pclose(ldconfig);
@@ -260,7 +261,7 @@ bool BinaryEdit::getResolvedLibraryPath(const string &filename, std::vector<stri
     for (unsigned int i = 0; i < libPaths.size(); i++) {
         string str = libPaths[i] + "/" + filename;
         if (stat(str.c_str(), &dummy) == 0) {
-            paths.push_back(str);
+            paths.insert(str);
         }
     }
 

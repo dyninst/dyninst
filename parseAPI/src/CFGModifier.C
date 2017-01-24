@@ -300,7 +300,7 @@ bool CFGModifier::remove(vector<Block*> &blks, bool force) {
       rd->blocksByAddr.erase(b->start());
 
       // 5)
-      CFGFactory *fact = b->obj()->fact();
+      auto fact = b->obj()->fact();
       for (vector<Edge*>::iterator eit = deadEdges.begin(); eit != deadEdges.end(); eit++) {
           pcb->destroy(*eit, fact);
       }
@@ -345,7 +345,7 @@ bool CFGModifier::remove(Function *f) {
    return true;
 }
 
-InsertedRegion *CFGModifier::insert(CodeObject *obj, 
+InsertedRegion *CFGModifier::insert(boost::shared_ptr<CodeObject> obj,
                                     Address base, void *data, 
                                     unsigned size) {
    parsing_cerr << "Inserting new code: " << hex << (unsigned) (*((unsigned *)data)) << dec << endl;
@@ -378,7 +378,7 @@ Function *CFGModifier::makeEntry(Block *b) {
    // functionality. 
    // We want to call ParseData::get_func(CodeRegion *, Address, FuncSource)
 
-   ParseData *data = b->obj()->parser->_parse_data;
+   auto data = b->obj()->parser->_parse_data;
    
    return data->get_func(b->region(), b->start(), MODIFICATION);
 

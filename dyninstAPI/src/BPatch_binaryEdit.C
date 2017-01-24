@@ -185,7 +185,7 @@ BPatch_binaryEdit::~BPatch_binaryEdit()
      delete (*i).second;
   }
   llBinEdits.clear();
-  origBinEdit = NULL;
+
 
   assert(BPatch::bpatch != NULL);
 }

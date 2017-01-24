@@ -130,7 +130,7 @@ PatchBlock *PatchModifier::split(PatchBlock *block, Address addr, bool trust, Ad
 }
 
 InsertedCode::Ptr PatchModifier::insert(PatchObject *obj, void *start, unsigned size, Address base) {
-   ParseAPI::CodeObject *co = obj->co();
+   auto co = obj->co();
    
    ParseAPI::InsertedRegion *newRegion = ParseAPI::CFGModifier::insert(co, base, start, size);
 
@@ -176,7 +176,7 @@ InsertedCode::Ptr PatchModifier::insert(PatchObject *obj, void *start, unsigned 
 }
 
 InsertedCode::Ptr PatchModifier::insert(PatchObject *obj, void *start, unsigned size) {
-   ParseAPI::CodeObject *co = obj->co();
+   auto co = obj->co();
    Address base = co->getFreeAddr();
    return insert(obj, start, size, base);
 }
@@ -185,7 +185,7 @@ InsertedCode::Ptr PatchModifier::insert(PatchObject *obj, void *start, unsigned 
 InsertedCode::Ptr PatchModifier::insert(PatchObject *obj, SnippetPtr snip, Point *p) {
    if (!snip) return InsertedCode::Ptr();
 
-   ParseAPI::CodeObject *co = obj->co();
+   auto co = obj->co();
    Address base = co->getFreeAddr();
 
    Buffer buf(base, 1024);

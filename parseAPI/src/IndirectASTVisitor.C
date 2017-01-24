@@ -509,7 +509,7 @@ AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
     return AST::Ptr();
 }
 
-bool PerformTableRead(BoundValue &target, set<int64_t> & jumpTargets, CodeSource *cs) {
+bool PerformTableRead(BoundValue &target, set<int64_t> & jumpTargets, boost::shared_ptr<CodeSource> cs) {
 
     Address tableBase = (Address)target.interval.low;
     Address tableLastEntry = (Address)target.interval.high;

@@ -183,7 +183,7 @@ std::string BPatch_object::Region::format() {
 
 Dyninst::ParseAPI::CodeObject *Dyninst::ParseAPI::convert(const BPatch_object *o) {
    if (!o->obj) return NULL;
-   return o->obj->parse_img()->codeObject();
+   return o->obj->parse_img()->codeObject().get();
 }
 
 Dyninst::PatchAPI::PatchObject *Dyninst::PatchAPI::convert(const BPatch_object *o) {

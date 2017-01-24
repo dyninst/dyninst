@@ -192,7 +192,7 @@ set (SRC_LIST ${SRC_LIST} src/cpuid-x86.S)
 set_source_files_properties(src/cpuid-x86.S PROPERTIES LANGUAGE C)
 endif ()
 
-dyninst_library(dyninstAPI common instructionAPI stackwalk pcontrol patchAPI parseAPI symtabAPI)
+dyninst_library(dyninstAPI common instructionAPI stackwalk pcontrol patchAPI parseAPI symtabAPI symLite)
 
 target_link_private_libraries(dyninstAPI ${Boost_LIBRARIES})
 if (UNIX)

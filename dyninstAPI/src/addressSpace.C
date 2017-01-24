@@ -28,6 +28,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "os.h"
+
+
 #include "addressSpace.h"
 #include "codeRange.h"
 #include "dynProcess.h"
@@ -63,6 +66,10 @@
 
 #include <boost/bind.hpp>
 
+#include "dynThread.h"
+#include "pcEventHandler.h"
+
+
 // Implementations of non-virtual functions in the address space
 // class.
 
@@ -88,8 +95,7 @@ AddressSpace::AddressSpace () :
     memEmulator_(NULL),
     emulateMem_(false),
     emulatePC_(false),
-    delayRelocation_(false),
-    patcher_(NULL)
+    delayRelocation_(false)
 {
 #if 0
    // Disabled for now; used by defensive mode
@@ -103,10 +109,8 @@ AddressSpace::AddressSpace () :
 }
 
 AddressSpace::~AddressSpace() {
-    if (memEmulator_)
-      delete memEmulator_;
-    if (mgr_)
-       static_cast<DynAddrSpace*>(mgr_->as())->removeAddrSpace(this);
+    cerr << "Destroying AddressSpace " << hex << this << dec << " for " << getAOut()->fileName() << endl;
+    deleteAddressSpace();
 }
 
 PCProcess *AddressSpace::proc() {
@@ -252,7 +256,6 @@ void AddressSpace::deleteAddressSpace() {
 
    // bool heapInitialized_
    // inferiorHeap heap_
-
    heapInitialized_ = false;
    heap_.clear();
    for (unsigned i = 0; i < mapped_objects.size(); i++) 
@@ -877,7 +880,7 @@ mapped_object *AddressSpace::findObject(Address addr) const {
 
 mapped_object *AddressSpace::findObject(const ParseAPI::CodeObject *co) const {
    mapped_object *obj = 
-      findObject(static_cast<ParseAPI::SymtabCodeSource*>(co->cs())->
+      findObject(static_cast<ParseAPI::SymtabCodeSource*>(co->cs().get())->
                  getSymtabObject()->file());
    return obj;
 }
@@ -2320,4 +2323,13 @@ bool uninstrument(Dyninst::PatchAPI::Instance::Ptr inst) {
    point->markModified();
    return true;
 
+}
+
+
+unsigned AddressSpace::getAddressWidth() const {
+    if( mapped_objects.size() > 0 ) {
+        return mapped_objects[0]->parse_img()->codeObject()->cs()->getAddressWidth();
+    }
+    // We can call this before we've attached...best effort guess
+    return sizeof(Address);
 }

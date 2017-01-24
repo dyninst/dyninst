@@ -800,7 +800,7 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
             InstructionDecoder dec(b, sourceBlock->size(), currentBlock->_isrc->getArch());
             IA_IAPI IABlock(dec, blockStart,currentBlock->_obj,currentBlock->_cr,currentBlock->_isrc, sourceBlock);
 
-            SymtabCodeSource *scs = dynamic_cast<SymtabCodeSource *>(IABlock._obj->cs());
+            SymtabCodeSource *scs = dynamic_cast<SymtabCodeSource *>(IABlock._obj->cs().get());
             SymtabAPI::Symtab * symtab = scs->getSymtabObject();
             std::vector<SymtabAPI::Region *> regions;
             symtab->getAllRegions(regions);

@@ -67,7 +67,7 @@ class CFGModifier {
    // The void * becomes "owned" by the CodeObject, as it's used
    // as a backing store; it cannot be ephemeral.
    // Returns the new entry block. 
-   PARSER_EXPORT static InsertedRegion *insert(CodeObject *obj, 
+   PARSER_EXPORT static InsertedRegion *insert(boost::shared_ptr<CodeObject> obj,
                                                Address base, void *data, 
                                                unsigned size);
 

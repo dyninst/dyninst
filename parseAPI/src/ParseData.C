@@ -144,7 +144,7 @@ StandardParseData::get_func(CodeRegion * cr, Address entry, FuncSource src)
            }
             parsing_printf("[%s] new function for target %lx\n",FILE__,entry);
             ret = _parser->factory()._mkfunc(
-               entry,src,name,&_parser->obj(),reg,_parser->obj().cs());
+               entry,src,name,&_parser->obj(),reg,_parser->obj().cs().get());
             _parser->record_func(ret);
         }
     }

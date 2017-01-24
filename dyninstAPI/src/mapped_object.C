@@ -48,7 +48,7 @@
 #include "instPoint.h"
 #include "MemoryEmulator/memEmulator.h"
 #include <boost/tuple/tuple.hpp>
-
+#include "BPatch_image.h"
 #include "PatchCFG.h"
 #include "PCProcess.h"
 
@@ -71,9 +71,9 @@ bool codeBytesUpdateCB(void *objCB, Address targ)
 }
 
 mapped_object::mapped_object(fileDescriptor fileDesc,
-      image *img,
-      AddressSpace *proc,
-      BPatch_hybridMode mode):
+                             boost::shared_ptr<image> img,
+                             AddressSpace *proc,
+                             BPatch_hybridMode mode):
   DynObject(img->codeObject(), proc, fileDesc.code()),
   desc_(fileDesc),
   fullName_(img->getObject()->file()),
@@ -151,7 +151,7 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
    startup_printf("%s[%d]:  about to parseImage\n", FILE__, __LINE__);
    startup_printf("%s[%d]: name %s, codeBase 0x%lx, dataBase 0x%lx\n",
                   FILE__, __LINE__, desc.file().c_str(), desc.code(), desc.data());
-   image *img = image::parseImage( desc, analysisMode, parseGaps);
+   boost::shared_ptr<image> img(image::parseImage( desc, analysisMode, parseGaps));
    if (!img)  {
       startup_printf("%s[%d]:  failed to parseImage\n", FILE__, __LINE__);
       return NULL;
@@ -249,7 +249,7 @@ mapped_object::mapped_object(const mapped_object *s, AddressSpace *child) :
 
    assert(BPatch_defensiveMode != analysisMode_);
 
-   image_ = s->image_->clone();
+   image_ = s->image_;
 }
 
 
@@ -271,33 +271,12 @@ mapped_object::~mapped_object()
    }
    everyUniqueVariable.clear();
 
-   for (auto fm_iter = allFunctionsByMangledName.begin(); 
-        fm_iter != allFunctionsByMangledName.end(); ++fm_iter) {
-      delete fm_iter->second;
-   }
-   allFunctionsByMangledName.clear();
-
-   for (auto fp_iter = allFunctionsByPrettyName.begin(); 
-        fp_iter != allFunctionsByPrettyName.end(); ++fp_iter) {
-      delete fp_iter->second;
-   }
-   allFunctionsByPrettyName.clear();
-
-   for (auto vm_iter = allVarsByMangledName.begin(); 
-        vm_iter != allVarsByMangledName.end(); ++vm_iter) {
-      delete vm_iter->second;
-   }
-   allVarsByMangledName.clear();
-
-   for (auto vp_iter = allVarsByPrettyName.begin(); 
-        vp_iter != allVarsByPrettyName.end(); ++vp_iter) {
-      delete vp_iter->second;
-   }
-   allVarsByPrettyName.clear();
+    // functions etc are cleaned up when we kill the CFG factory during image destruction
 
    // codeRangesByAddr_ is static
     // Remainder are static
-   image::removeImage(image_);
+   image_.reset();
+    co_.reset();
 }
 
 Address mapped_object::codeAbs() const {
@@ -400,7 +379,7 @@ mapped_module *mapped_object::findModule(pdmodule *pdmod)
 
    assert(pdmod);
 
-   if (pdmod->imExec() != parse_img()) {
+   if (pdmod->imExec() != parse_img().get()) {
       fprintf(stderr, "%s[%d]: WARNING: lookup for module in wrong mapped object! %p != %p\n", FILE__, __LINE__, pdmod->imExec(), parse_img());
       fprintf(stderr, "%s[%d]:  \t\t %s \n", FILE__, __LINE__, parse_img()->name().c_str());
       fprintf(stderr, "%s[%d]:  \t %s != \n", FILE__, __LINE__, pdmod->imExec()->name().c_str());
@@ -1329,7 +1308,7 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
     void *mappedPtr = reg->getPtrToRawData();
     Address regStart = reg->getMemOffset();
     ParseAPI::Block *cur = NULL;
-    ParseAPI::CodeObject *cObj = parse_img()->codeObject();
+    auto cObj = parse_img()->codeObject();
     ParseAPI::CodeRegion *parseReg = NULL;
     Address copySize = reg->getMemSize();
     void* regBuf = malloc(copySize);
@@ -1403,7 +1382,7 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
     }
 
     // swap out rawDataPtr for the mapped file
-    static_cast<SymtabCodeSource*>(cObj->cs())->
+    static_cast<SymtabCodeSource*>(cObj->cs().get())->
         resizeRegion( reg, reg->getMemSize() );
     reg->setPtrToRawData( regBuf , copySize );
 
@@ -1502,7 +1481,7 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * symReg)
     assert(NULL != symReg);
 
     Address base = codeBase();
-    ParseAPI::CodeObject *cObj = parse_img()->codeObject();
+    auto cObj = parse_img()->codeObject();
     std::vector<SymtabAPI::Region *> regions;
 
     Block *curB = NULL;
@@ -1609,7 +1588,7 @@ bool mapped_object::isUpdateNeeded(Address entry)
     assert( BPatch_defensiveMode == hybridMode() );
 
     set<CodeRegion*> cregs;
-    CodeObject *co = parse_img()->codeObject();
+    auto co = parse_img()->codeObject();
     co->cs()->findRegions(entry-base, cregs);
     assert( ! co->cs()->regionsOverlap() );
     if (0 == cregs.size()) {

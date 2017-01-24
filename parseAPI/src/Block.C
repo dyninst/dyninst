@@ -50,19 +50,23 @@ Block::Block(CodeObject * o, CodeRegion *r, Address start) :
     _func_cnt(0),
     _parsed(false)
 {
+#if defined(parsing_block_counts)
     if (_obj && _obj->cs()) {
         _obj->cs()->incrementCounter(PARSE_BLOCK_COUNT);
         _obj->cs()->addCounter(PARSE_BLOCK_SIZE, size());
     }
+#endif
 }
 
 Block::~Block()
 {
+#if defined(parsing_block_counts)
     // nothing special
     if (_obj && _obj->cs()) {
         _obj->cs()->decrementCounter(PARSE_BLOCK_COUNT);
         _obj->cs()->addCounter(PARSE_BLOCK_SIZE, -1*size());
     }
+#endif
 }
 
 bool
@@ -70,7 +74,7 @@ Block::consistent(Address addr, Address & prev_insn)
 {
     InstructionSource * isrc;
     if(!_obj->cs()->regionsOverlap())
-        isrc = _obj->cs();
+        isrc = _obj->cs().get();
     else
         isrc = region();
     const unsigned char * buf =

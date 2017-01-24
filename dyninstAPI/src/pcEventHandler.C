@@ -41,9 +41,11 @@
 #include "Mailbox.h"
 #include "PCErrors.h"
 #include "pcEventMuxer.h"
+#include "addressSpace.h"
 #include <set>
 #include <queue>
-#include <vector>
+#include "dynThread.h"
+
 using std::vector;
 using std::queue;
 using std::set;

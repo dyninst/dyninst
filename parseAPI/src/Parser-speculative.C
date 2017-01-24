@@ -127,7 +127,7 @@ namespace hd {
     bool compute_gap_new(
         CodeRegion * cr,
         Address addr,
-        set<Function *,Function::less> const& funcs,
+        boost::shared_ptr<set<Function *,Function::less> > funcs,
         set<Function *,Function::less>::const_iterator & beforeGap,
         Address & gapStart,
         Address & gapEnd,
@@ -138,17 +138,17 @@ namespace hd {
         Address upperBound = cr->offset() + cr->length();
 
 
-        if (funcs.empty()) {
+        if (funcs->empty()) {
 	    if (addr >= upperBound) return false;
 	    gapStart = addr + 1;
 	    if (gapStart < lowerBound) gapStart = lowerBound;
 	    gapEnd = upperBound;
 	    reset_iterator = true;
 	    return true;
-	} else if (addr < (*funcs.begin())->addr()) {
+	} else if (addr < (*funcs->begin())->addr()) {
 	    gapStart = addr + 1;
 	    if (gapStart < lowerBound) gapStart = lowerBound;
-	    gapEnd = (*funcs.begin())->addr();
+	    gapEnd = (*funcs->begin())->addr();
 	    reset_iterator = true;
 	    return true;
 	} else {
@@ -157,12 +157,12 @@ namespace hd {
 	    ++afterGap;
 	    while (true) {
 	        gapStart = calc_end(*beforeGap);
-		if (afterGap == funcs.end() || (*afterGap)->addr() > upperBound)
+		if (afterGap == funcs->end() || (*afterGap)->addr() > upperBound)
 		    gapEnd = upperBound;
 		else
 		    gapEnd = (*afterGap)->addr();
 		if (addr >= gapEnd || (long)(gapEnd - gapStart) <= MIN_GAP_SIZE) {
-		    if (afterGap == funcs.end()) return false;
+		    if (afterGap == funcs->end()) return false;
 		    beforeGap = afterGap;
 		    ++afterGap;
 		} else {
@@ -300,9 +300,9 @@ void Parser::parse_gap_heuristic(CodeRegion * cr)
     int match = 0;
 
     // don't touch this iterator, except when it starts out empty
-    bool reset_iterator = sorted_funcs.empty();
-    set<Function *,Function::less>::const_iterator fit = sorted_funcs.begin();
-    while(hd::compute_gap(cr,curAddr,sorted_funcs,fit,gapStart,gapEnd)) {
+    bool reset_iterator = sorted_funcs->empty();
+    set<Function *,Function::less>::const_iterator fit = sorted_funcs->begin();
+    while(hd::compute_gap(cr,curAddr,*sorted_funcs,fit,gapStart,gapEnd)) {
         parsing_printf("[%s] scanning for prologues in [%lx,%lx)\n",
             FILE__,gapStart,gapEnd);
         for(curAddr=gapStart; curAddr < gapEnd; ++curAddr) {
@@ -312,7 +312,7 @@ void Parser::parse_gap_heuristic(CodeRegion * cr)
                 parse_at(cr,curAddr,true,GAP);
 
                 if(reset_iterator) {
-                    fit = sorted_funcs.begin();
+                    fit = sorted_funcs->begin();
                     reset_iterator = false;
                 }
 
@@ -350,8 +350,8 @@ void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
     Address gapEnd = 0;
     Address curAddr = 0;
 
-    bool reset_iterator = sorted_funcs.empty();
-    set<Function *,Function::less>::const_iterator beforeGap = sorted_funcs.begin();
+    bool reset_iterator = sorted_funcs->empty();
+    set<Function *,Function::less>::const_iterator beforeGap = sorted_funcs->begin();
 
     while(hd::compute_gap_new(cr,curAddr,sorted_funcs,beforeGap,gapStart,gapEnd, reset_iterator)) {
         parsing_printf("[%s] scanning for FEP in [%lx,%lx)\n",
@@ -365,8 +365,8 @@ void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
 		if (parsed) continue;
                 parse_at(cr,curAddr,true,GAP);
 
-                if(reset_iterator && !sorted_funcs.empty()) {
-                    beforeGap = sorted_funcs.begin();
+                if(reset_iterator && !sorted_funcs->empty()) {
+                    beforeGap = sorted_funcs->begin();
                 }
 
                 break;

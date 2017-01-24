@@ -223,7 +223,7 @@ mapped_module *mapped_module::createMappedModule(mapped_object *obj,
 {
    assert(obj);
    assert(pdmod);
-   assert(pdmod->imExec() == obj->parse_img());
+   assert(pdmod->imExec() == obj->parse_img().get());
    mapped_module *mod = new mapped_module(obj, pdmod);
    // Do things?
 

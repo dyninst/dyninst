@@ -498,7 +498,7 @@ void codeRange::print_range(Address) {
    if (func_ptr && !mapped_ptr)
       mapped_ptr = func_ptr->obj();
    if (mapped_ptr && !img_ptr)
-      img_ptr = mapped_ptr->parse_img();
+      img_ptr = mapped_ptr->parse_img().get();
 
    fprintf(stderr, "[");
 

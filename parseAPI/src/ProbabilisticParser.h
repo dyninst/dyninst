@@ -161,7 +161,7 @@ class ProbabilityCalculator {
 
     IdiomModel model;
     CodeRegion* cr;
-    CodeSource* cs;
+    boost::shared_ptr<CodeSource> cs;
     Parser* parser;
     // The probability of each address to be FEP
     dyn_hash_map<Address, double> FEPProb;
@@ -197,7 +197,7 @@ class ProbabilityCalculator {
    
 
 public:
-    ProbabilityCalculator(CodeRegion *reg, CodeSource *source, Parser *parser, std::string model_spec);
+    ProbabilityCalculator(CodeRegion *reg, boost::shared_ptr<CodeSource> source, Parser *parser, std::string model_spec);
 	virtual ~ProbabilityCalculator() {
 		FEPProb.clear();
 	    reachingProb.clear();

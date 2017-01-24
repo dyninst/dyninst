@@ -192,7 +192,7 @@ class AddressSpace : public InstructionSource {
     virtual bool isValidAddress(const Address) const;
     virtual void *getPtrToInstruction(const Address) const;
     virtual void *getPtrToData(const Address a) const { return getPtrToInstruction(a); }
-    virtual unsigned getAddressWidth() const = 0;
+
     bool usesDataLoadAddress() const; // OS-specific
     virtual bool isCode(const Address) const;
     virtual bool isData(const Address) const;
@@ -373,7 +373,11 @@ class AddressSpace : public InstructionSource {
     //////////////////////////////////////////////////////
     // Callbacks for higher level code (like BPatch) to learn about new 
     //  functions and InstPoints.
- private:
+    /* AddressSpace pure virtual implementation */
+    unsigned getAddressWidth() const;
+
+
+private:
     BPatch_function *(*new_func_cb)(AddressSpace *a, Dyninst::PatchAPI::PatchFunction *f);
     BPatch_point *(*new_instp_cb)(AddressSpace *a, Dyninst::PatchAPI::PatchFunction *f, 
                                   Dyninst::PatchAPI::Point *ip, 
@@ -565,14 +569,14 @@ class AddressSpace : public InstructionSource {
   public:
     Dyninst::PatchAPI::PatchMgrPtr mgr() const { assert(mgr_); return mgr_; }
     void setMgr(Dyninst::PatchAPI::PatchMgrPtr m) { mgr_ = m; }
-    void setPatcher(Dyninst::PatchAPI::Patcher* p) { patcher_ = p; }
+    void setPatcher(Dyninst::PatchAPI::Patcher::Ptr p) { patcher_ = p; }
     void initPatchAPI();
     void addMappedObject(mapped_object* obj);
-    Dyninst::PatchAPI::Patcher* patcher() { return patcher_; }
+    Dyninst::PatchAPI::Patcher::Ptr patcher() { return patcher_; }
     static bool patch(AddressSpace*);
   protected:
     Dyninst::PatchAPI::PatchMgrPtr mgr_;
-    Dyninst::PatchAPI::Patcher* patcher_;
+    Dyninst::PatchAPI::Patcher::Ptr patcher_;
 };
 
 

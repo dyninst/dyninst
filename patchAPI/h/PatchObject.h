@@ -49,7 +49,7 @@ class PATCHAPI_EXPORT PatchObject {
   friend class PatchParseCallback;
 
   public:
-    static PatchObject* create(ParseAPI::CodeObject* co, Address base,
+    static PatchObject* create(boost::shared_ptr<ParseAPI::CodeObject> co, Address base,
                                                CFGMaker* cm = NULL,
                                                PatchCallback *cb = NULL);
 
@@ -70,7 +70,7 @@ class PATCHAPI_EXPORT PatchObject {
     Address codeBase() const { return codeBase_; }
     Address codeOffsetToAddr(Address offset) const;
     Address addrMask() const;
-    ParseAPI::CodeObject* co() const { return co_; }
+    boost::shared_ptr<ParseAPI::CodeObject> co() const { return co_; }
     //ParseAPI::CodeSource* cs() const { return cs_; }
     AddrSpace* addrSpace() const { return addr_space_; }
     void setAddrSpace(AddrSpace* as);
@@ -105,7 +105,7 @@ class PATCHAPI_EXPORT PatchObject {
 
 
   protected:
-    ParseAPI::CodeObject* co_;
+    boost::shared_ptr<ParseAPI::CodeObject> co_;
     Address codeBase_;
     AddrSpace* addr_space_;
     FuncMap funcs_;
@@ -113,7 +113,7 @@ class PATCHAPI_EXPORT PatchObject {
     EdgeMap edges_;
     CFGMaker* cfg_maker_;
 
-    PatchObject(ParseAPI::CodeObject* o, Address a, CFGMaker* cm, PatchCallback *cb = NULL);
+    PatchObject(boost::shared_ptr<ParseAPI::CodeObject> o, Address a, CFGMaker* cm, PatchCallback *cb = NULL);
     PatchObject(const PatchObject* par_obj, Address a, CFGMaker* cm, PatchCallback *cb = NULL);
     void copyCFG(PatchObject* par_obj);
     bool splitBlock(PatchBlock *first, ParseAPI::Block *second);

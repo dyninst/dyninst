@@ -32,6 +32,7 @@
 #define CODE_OBJECT_H
 
 #include <map>
+#include <boost/make_shared.hpp>
 
 #include "Symtab.h"
 #include "IBSTree.h"
@@ -43,6 +44,8 @@
 
 namespace Dyninst {
 namespace ParseAPI {
+
+
 
 /** A CodeObject defines a collection of binary code, for example a binary,
     dynamic library, archive, memory snapshot, etc. In the context of
@@ -61,14 +64,33 @@ typedef enum {
 
 class CodeObject {
    friend class CFGModifier;
+    PARSER_EXPORT void initialize(ParseCallback* cb = NULL);
  public:
     PARSER_EXPORT static void version(int& major, int& minor, int& maintenance);
     typedef std::set<Function*,Function::less> funclist;
 
-    PARSER_EXPORT CodeObject(CodeSource * cs, 
-                             CFGFactory * fact = NULL, 
+    template <typename CSPtr, typename FactPtr>
+    PARSER_EXPORT CodeObject(CSPtr cs,
+                             FactPtr fact,
                              ParseCallback * cb = NULL,
-                             bool defensiveMode = false);
+                             bool defensiveMode = false) :
+    _cs(cs),
+    _fact(fact),
+    defensive(defensiveMode)
+    {
+        initialize(cb);
+    }
+    template <typename CSPtr>
+    PARSER_EXPORT CodeObject(CSPtr cs,
+                             void* dummy = NULL,
+                             ParseCallback * cb = NULL,
+                             bool defensiveMode = false) :
+            _cs(boost::shared_ptr<CodeSource>(cs)),
+            _fact(boost::make_shared<CFGFactory>()),
+            defensive(defensiveMode)
+    {
+        initialize(cb);
+    }
     PARSER_EXPORT ~CodeObject();
 
     /** Parsing interface **/
@@ -108,7 +130,7 @@ class CodeObject {
     PARSER_EXPORT int findFuncs(CodeRegion * cr,
             Address start, Address end,
             std::set<Function*> & funcs);
-    PARSER_EXPORT const funclist & funcs() { return flist; }
+    PARSER_EXPORT const funclist & funcs() { return *flist; }
 
     // blocks
     PARSER_EXPORT Block * findBlockByEntry(CodeRegion * cr, Address entry);
@@ -120,8 +142,8 @@ class CodeObject {
     PARSER_EXPORT Block * findNextBlock(CodeRegion * cr, Address addr);
 
     /* Misc */
-    PARSER_EXPORT CodeSource * cs() const { return _cs; }
-    PARSER_EXPORT CFGFactory * fact() const { return _fact; }
+    PARSER_EXPORT boost::shared_ptr<CodeSource> cs() const { return _cs; }
+    PARSER_EXPORT boost::shared_ptr<CFGFactory> fact() const { return _fact; }
     PARSER_EXPORT bool defensiveMode() { return defensive; }
 
     PARSER_EXPORT bool isIATcall(Address insn, std::string &calleeName);
@@ -166,15 +188,14 @@ class CodeObject {
     friend void Function::setEntryBlock(Block *);
 
   private:
-    CodeSource * _cs;
-    CFGFactory * _fact;
+    boost::shared_ptr<CodeSource> _cs;
+    boost::shared_ptr<CFGFactory> _fact;
     ParseCallbackManager * _pcb;
 
     Parser * parser; // parser implementation
 
-    bool owns_factory;
     bool defensive;
-    funclist& flist;
+    boost::shared_ptr<funclist> flist;
 };
 
 // We need CFG.h, which is included by this

@@ -60,7 +60,7 @@ namespace ParseAPI {
 /** This is the internal parser **/
 class Parser {
    // The CFG modifier needs to manipulate the lookup structures,
-   // which are internal Parser data. 
+   // which are internal Parser data.
    friend class CFGModifier;
  private:
     Mutex<false> finalize_lock;
@@ -69,13 +69,13 @@ class Parser {
     CodeObject & _obj;
 
     // CFG object factory
-    CFGFactory & _cfgfact;
+    boost::shared_ptr<CFGFactory> _cfgfact;
 
     // Callback notifications
-    ParseCallbackManager & _pcb;
+    ParseCallbackManager * _pcb;
 
     // region data store
-    ParseData * _parse_data;
+    boost::shared_ptr<ParseData> _parse_data;
 
     // All allocated frames
     vector<ParseFrame *> frames;
@@ -89,7 +89,7 @@ class Parser {
     vector<Function *> hint_funcs;
     vector<Function *> discover_funcs;
 
-    set<Function*,Function::less> sorted_funcs;
+    boost::shared_ptr<set<Function*,Function::less> >sorted_funcs;
 
     // PLT, IAT entries
     dyn_hash_map<Address, string> plt_entries;
@@ -110,7 +110,7 @@ class Parser {
     bool _in_finalize;
 
  public:
-    Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb);
+    Parser(CodeObject &obj, boost::shared_ptr<CFGFactory> fact, ParseCallbackManager *pcb);
     ~Parser();
 
     /** Initialization & hints **/
@@ -133,7 +133,7 @@ class Parser {
     void parse_at(Address addr, bool recursive, FuncSource src);
     void parse_edges(vector< ParseWorkElem * > & work_elems);
 
-    CFGFactory & factory() const { return _cfgfact; }
+    CFGFactory & factory() const { return *_cfgfact; }
     CodeObject & obj() { return _obj; }
 
     // removal

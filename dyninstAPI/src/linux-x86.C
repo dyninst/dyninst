@@ -47,7 +47,6 @@
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "common/src/headers.h"
-#include "dyninstAPI/src/os.h"
 #include "common/src/stats.h"
 #include "common/src/Types.h"
 #include "dyninstAPI/src/debug.h"
@@ -66,12 +65,12 @@
 
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/binaryEdit.h"
-#include "dyninstAPI/src/dynThread.h"
 #include "dyninstAPI/src/dynProcess.h"
 #include "common/src/linuxKludges.h"
 
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "instructionAPI/h/Instruction.h"
+#include "dynThread.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;

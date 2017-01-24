@@ -51,6 +51,7 @@
 #include "instPoint.h"
 #include "hybridAnalysis.h"
 #include "BPatch_object.h"
+#include "os.h"
 
 // ProcControlAPI interface
 #include "dynProcess.h"

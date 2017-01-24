@@ -84,9 +84,12 @@ SymtabAPI::Aggregate::name_iter image_variable::pretty_names_end() const
   return var_->pretty_names_end();
 }
 
+image_variable::~image_variable() {
+
+}
 
 
-int_variable::int_variable(image_variable *var, 
+int_variable::int_variable(image_variable *var,
       Address base,
       mapped_module *mod) :
    addr_(base + var->getOffset()),

@@ -94,13 +94,13 @@ PatchEdge* DynCFGMaker::makeEdge(ParseAPI::Edge* e,
   mapped_object* moS = NULL;
   mapped_object* moT = NULL;
   if (!s) {
-      if (e->src()->obj() == o->co()) 
+      if (e->src()->obj() == o->co().get())
           moS = SCAST_MO(o);
       else 
           moS = SCAST_MO(o)->as()->findObject(e->src()->obj());
   }
   if (!t) {
-      if (e->trg()->obj() == o->co()) 
+      if (e->trg()->obj() == o->co().get())
           moT = SCAST_MO(o);
       else 
           moT = SCAST_MO(o)->as()->findObject(e->trg()->obj());

@@ -216,7 +216,7 @@ bool PatchParseCallback::absAddr(Address absolute,
     AddrSpace::ObjMap::iterator oit = objs.begin();
     for (; oit != objs.end(); oit++) {
         if (absolute > oit->second->codeBase()) {
-            ParseAPI::CodeSource *cs = oit->first->cs();
+            auto cs = oit->first->cs();
             set<ParseAPI::CodeRegion*> regs;
             cs->findRegions(absolute - oit->second->codeBase(), regs);
             if (1 == regs.size()) {

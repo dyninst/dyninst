@@ -17,7 +17,7 @@ AST::Ptr SimplifyAnAST(AST::Ptr ast, Address addr);
 AST::Ptr SubstituteAnAST(AST::Ptr ast, const BoundFact::AliasMap &aliasMap);
 AST::Ptr DeepCopyAnAST(AST::Ptr ast);
 bool ContainAnAST(AST::Ptr root, AST::Ptr check);
-bool PerformTableRead(BoundValue &target, set<int64_t> & jumpTargets, CodeSource*);
+bool PerformTableRead(BoundValue &target, set<int64_t> & jumpTargets, boost::shared_ptr<CodeSource>);
 
 
 // On x86 and x86-64, the value of PC is post-instruction, 
