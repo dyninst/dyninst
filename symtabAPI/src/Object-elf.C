@@ -2427,8 +2427,16 @@ void pd_dwarf_handler(Dwarf_Error error, Dwarf_Ptr /*userData*/)
     //bperr( "DWARF error: %s\n", dwarf_msg);
 }
 
-Dwarf_Signed declFileNo = 0;
-char ** declFileNoToName = NULL;
+
+struct Die_Dealloc
+{
+    Dwarf_Debug dbg;
+    Die_Dealloc(Dwarf_Debug d) : dbg(d) {}
+    void operator()(void* die) {
+        dwarf_dealloc(dbg, die, DW_DLA_DIE);
+    }
+};
+
 
 bool Object::dwarf_parse_aranges(Dwarf_Debug dbg, std::set<Dwarf_Off>& dies_seen)
 {
@@ -2464,7 +2472,7 @@ bool Object::dwarf_parse_aranges(Dwarf_Debug dbg, std::set<Dwarf_Off>& dies_seen
         convertDebugOffset(start + len, actual_end);
         Module* m = associated_symtab->getOrCreateModule(modname, actual_start);
         m->addRange(actual_start, actual_end);
-        m->addDebugInfo(cu_die);
+        m->addDebugInfo(boost::shared_ptr<void>(cu_die, Die_Dealloc(dbg)));
         DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
         dies_seen.insert(cu_die_off);
         dwarf_dealloc(dbg, ranges[i], DW_DLA_ARANGE);
@@ -2551,7 +2559,7 @@ bool Object::fix_global_symbol_modules_static_dwarf()
                 dwarf_srclines_dealloc(dbg, lines, num_lines);
             }
         }
-        m->addDebugInfo(cu_die);
+        m->addDebugInfo(boost::shared_ptr<void>(cu_die, Die_Dealloc(dbg)));
         DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
         dies_seen.insert(cu_die_off);
 
@@ -4330,8 +4338,9 @@ struct open_statement {
 };
 
 
-void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
+void Object::parseLineInfoForCU(boost::shared_ptr<void> dieptr, LineInformation* li_for_module)
 {
+    Dwarf_Die cuDIE = static_cast<Dwarf_Die>(dieptr.get());
     std::vector<open_statement> open_statements;
     Dwarf_Debug *dbg_ptr = dwarf->line_dbg();
     if (!dbg_ptr)

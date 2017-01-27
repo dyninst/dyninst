@@ -430,7 +430,7 @@ bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
                          Result_t &res) {
 
 
-    SgAsmInstruction *roseInsn;
+    SgAsmInstruction *roseInsn = NULL;
     switch (insn->getArch()) {
         case Arch_x86: {
             SymEvalPolicy policy(res, addr, insn->getArch(), insn);
@@ -441,6 +441,7 @@ bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
             exp.expandX86(roseInsn, policy);
             if (policy.failedTranslate()) {
                 cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
+                delete roseInsn;
                 return false;
             }
 
@@ -455,6 +456,7 @@ bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
             exp.expandX86_64(roseInsn, policy);
             if (policy.failedTranslate()) {
                 cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
+                delete roseInsn;
                 return false;
             }
 
@@ -470,6 +472,7 @@ bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
             exp.expandPPC32(roseInsn, policy);
             if (policy.failedTranslate()) {
                 cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
+                delete roseInsn;
                 return false;
             }
 
@@ -484,6 +487,7 @@ bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
             exp.expandPPC64(roseInsn, policy);
             if (policy.failedTranslate()) {
                 cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
+                delete roseInsn;
                 return false;
             }
 
@@ -509,7 +513,7 @@ bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
             assert(0 && "Unimplemented symbolic expansion architecture");
             break;
     }
-
+    delete roseInsn;
     return true;
 }
 

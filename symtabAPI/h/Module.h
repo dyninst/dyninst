@@ -138,11 +138,7 @@ namespace Dyninst{
 			friend class Symtab;
 
 		public:
-#if defined(cap_dwarf)
-			typedef Dwarf_Die DebugInfoT;
-#else
-			typedef void* DebugInfoT;
-#endif
+			typedef boost::shared_ptr<void> DebugInfoT;
 
 			Module();
 			Module(supportedLanguages lang, Offset adr, std::string fullNm,

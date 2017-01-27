@@ -252,12 +252,12 @@ bool DwarfWalker::buildSrcFiles(Dwarf_Debug dbg, Dwarf_Die entry, StringTablePtr
     Dwarf_Signed cnt = 0;
     char** srcFileList;
     Dwarf_Error error;
-    int ret = dwarf_srcfiles(entry, &srcFileList, &cnt, &error);
-    DWARF_ERROR_RET(ret);
-    
     if(!srcFiles->empty()) {
         return true;
     } // already parsed, the module had better be right.
+    int ret = dwarf_srcfiles(entry, &srcFileList, &cnt, &error);
+    DWARF_ERROR_RET(ret);
+
     srcFiles->push_back("Unknown file");
 
     // The module does not have any source files..

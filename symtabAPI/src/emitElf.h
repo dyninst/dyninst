@@ -145,6 +145,12 @@ namespace Dyninst {
 
             ~emitElf() {
                 if( linkedStaticData ) delete[] linkedStaticData;
+                for(auto b = buffer_list.begin();
+                        b != buffer_list.end();
+                        ++b)
+                {
+                    free(*b);
+                }
             }
 
             bool createSymbolTables(vector<Symbol *> &allSymbols);
@@ -268,7 +274,9 @@ namespace Dyninst {
 
             bool isBlueGeneQ;
             bool isStaticBinary;
+            std::vector<void*> buffer_list;
 
+            char *allocateBuffer(size_t size) ;
         };
         extern template class emitElf<ElfTypes32>;
         extern template class emitElf<ElfTypes64>;
