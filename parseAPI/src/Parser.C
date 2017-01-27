@@ -46,6 +46,8 @@
 
 #include <boost/tuple/tuple.hpp>
 #include <boost/make_shared.hpp>
+#include <boost/shared_ptr.hpp>
+
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
