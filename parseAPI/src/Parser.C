@@ -229,7 +229,7 @@ Parser::parse_at(Address target, bool recursive, FuncSource src)
     if(_parse_state == UNPARSEABLE)
         return;
 
-    auto  spd = boost::shared_dynamic_cast<StandardParseData >(_parse_data);
+    auto  spd = boost::dynamic_pointer_cast<StandardParseData >(_parse_data);
     if(!spd) {
         parsing_printf("   parse_at is invalid on overlapping regions\n");
         return;
