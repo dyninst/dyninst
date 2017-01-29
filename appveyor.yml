@@ -7,9 +7,11 @@ clone_depth: 5
 
 platform:
     - Win32
+    - x64
 
 configuration:
     - Release
 
 before_build:
-    - cmake .
+    - cmd: if "%platform%"=="x64" cmake -G "Visual Studio 14 2015 Win64" .
+    - cmd: if "%platform%"=="Win32" cmake -G "Visual Studio 14 2015" .

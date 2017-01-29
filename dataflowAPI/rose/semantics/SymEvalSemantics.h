@@ -384,7 +384,7 @@ namespace rose {
                                                           const BaseSemantics::SValuePtr &b_);
                     virtual BaseSemantics::SValuePtr invert(const BaseSemantics::SValuePtr &a_);
                     virtual BaseSemantics::SValuePtr extract(const BaseSemantics::SValuePtr &a_,
-                                                             size_t begin, size_t end);
+                                                             uint64_t begin, uint64_t end);
                     virtual BaseSemantics::SValuePtr ite(const BaseSemantics::SValuePtr &sel_,
                                                          const BaseSemantics::SValuePtr &a_,
                                                          const BaseSemantics::SValuePtr &b_);
@@ -404,7 +404,7 @@ namespace rose {
                                                                 const BaseSemantics::SValuePtr &b_);
                     virtual BaseSemantics::SValuePtr equalToZero(const BaseSemantics::SValuePtr &a_);
                     virtual BaseSemantics::SValuePtr signExtend(const BaseSemantics::SValuePtr &a_,
-                                                                size_t newwidth = 0);
+                                                                uint64_t newwidth = 0);
                     virtual BaseSemantics::SValuePtr add(const BaseSemantics::SValuePtr &a_,
                                                          const BaseSemantics::SValuePtr &b_);
                     virtual BaseSemantics::SValuePtr addWithCarries(const BaseSemantics::SValuePtr &a_,
