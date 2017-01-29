@@ -2398,7 +2398,7 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
  * Here it is different for aarch64,
  * I have to use GETREGSET instead of PEEKUSER
  */
-   unsigned long result;
+   long result;
 #if defined(arch_aarch64)
    elf_gregset_t regs;
    struct iovec iovec;

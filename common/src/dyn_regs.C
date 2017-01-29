@@ -431,6 +431,8 @@ MachRegister MachRegister::getZeroFlag(Dyninst::Architecture arch)
       case Arch_aarch64: 
          return aarch64::z;
       case Arch_aarch32:
+      case Arch_ppc32:
+      case Arch_ppc64:
          assert(0);
       case Arch_none:
          return InvalidReg;
