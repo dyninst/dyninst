@@ -69,8 +69,9 @@ class CodeObject {
     PARSER_EXPORT static void version(int& major, int& minor, int& maintenance);
     typedef std::set<Function*,Function::less> funclist;
 
+    // Need to not export the templates as they're inlined
     template <typename CSPtr, typename FactPtr>
-    PARSER_EXPORT CodeObject(CSPtr cs,
+    CodeObject(CSPtr cs,
                              FactPtr fact,
                              ParseCallback * cb = NULL,
                              bool defensiveMode = false) :
@@ -81,7 +82,7 @@ class CodeObject {
         initialize(cb);
     }
     template <typename CSPtr>
-    PARSER_EXPORT CodeObject(CSPtr cs,
+    CodeObject(CSPtr cs,
                              void* dummy = NULL,
                              ParseCallback * cb = NULL,
                              bool defensiveMode = false) :

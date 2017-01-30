@@ -380,7 +380,8 @@ mapped_module *mapped_object::findModule(pdmodule *pdmod)
    assert(pdmod);
 
    if (pdmod->imExec() != parse_img().get()) {
-      fprintf(stderr, "%s[%d]: WARNING: lookup for module in wrong mapped object! %p != %p\n", FILE__, __LINE__, pdmod->imExec(), parse_img());
+      fprintf(stderr, "%s[%d]: WARNING: lookup for module in wrong mapped object! %p != %p\n", FILE__, __LINE__,
+              pdmod->imExec(), parse_img().get());
       fprintf(stderr, "%s[%d]:  \t\t %s \n", FILE__, __LINE__, parse_img()->name().c_str());
       fprintf(stderr, "%s[%d]:  \t %s != \n", FILE__, __LINE__, pdmod->imExec()->name().c_str());
       return NULL;
