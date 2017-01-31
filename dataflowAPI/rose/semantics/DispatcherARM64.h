@@ -206,11 +206,10 @@ namespace rose {
                 /** Returns the input value right rotated by the provided amount. */
                 virtual BaseSemantics::SValuePtr ROR(const BaseSemantics::SValuePtr &expr, const BaseSemantics::SValuePtr &amt);
 
-                /** */
+                /** Replicates the value contained in expr to fill the full 64-bit width. */
                 virtual BaseSemantics::SValuePtr Replicate(const BaseSemantics::SValuePtr &expr);
 
-                /** */
-                virtual BaseSemantics::SValuePtr getBitfieldMask(int immr, int imms, int N, bool iswmask, int datasize);
+                BaseSemantics::SValuePtr getBitfieldMask(int immr, int imms, int N, bool iswmask, int datasize);
 
                 size_t getRegSize(uint32_t raw);
 
@@ -234,31 +233,31 @@ namespace rose {
 
                 bool subop(uint32_t raw);
 
-                /** */
+                /** Reads memory of size readSize bits from address addr. */
                 BaseSemantics::SValuePtr readMemory(const BaseSemantics::SValuePtr &addr, size_t readSize);
 
-                /** */
+                /** Writes value data of size writeSize bits to memory at address addr. */
                 void writeMemory(const BaseSemantics::SValuePtr &addr, size_t writeSize, const BaseSemantics::SValuePtr &data);
 
-                /** */
+                /** Returns the register expression containing the target address for a write-back in case of memory-access instructions. */
                 SgAsmExpression *getWriteBackTarget(SgAsmExpression *expr);
 
-                /** */
+                /** Returns an expression that is an unsigned representation of expr. */
                 BaseSemantics::SValuePtr UInt(const BaseSemantics::SValuePtr &expr);
 
-                /** */
+                /** Applies a shift operation of type shiftType (defined in enum ShiftType) and shift length of amount to src. */
                 BaseSemantics::SValuePtr ShiftReg(const BaseSemantics::SValuePtr &src, int shiftType, const BaseSemantics::SValuePtr &amount);
 
-                /** */
+                /** Returns an expression representing the number of leading 0s in expr. */
                 BaseSemantics::SValuePtr CountLeadingZeroBits(const BaseSemantics::SValuePtr &expr);
 
-                /** */
+                /** Returns an expression representing the number of leading contiguous bits that match the sign bit in expr. */
                 BaseSemantics::SValuePtr CountLeadingSignBits(const BaseSemantics::SValuePtr &expr);
 
-                /** */
+                /** Returns an expression that is a signed representation of expr if unSigned is false and calls UInt if unSigned is true. */
                 BaseSemantics::SValuePtr Int(const BaseSemantics::SValuePtr &expr, bool isUnsigned);
 
-                /** */
+                /** Rounds a number to zero (upwards if it is negative, downwards if it is positive. */
                 BaseSemantics::SValuePtr RoundTowardsZero(const BaseSemantics::SValuePtr &expr);
             };
 

@@ -5773,6 +5773,10 @@ namespace rose {
                 }
             }
 
+            /* Return the input expression as-is. At this point, it is assumed that any RiscOperators implementation
+             * that performs division and passes the result to this method would have already performed the rounding
+             * (most likely by using the / operator) to match how integer division is normally performed in C/C++.
+             * Of course, this would be invalid for floating point division but that is not currently supported. */
             BaseSemantics::SValuePtr
             DispatcherARM64::RoundTowardsZero(const BaseSemantics::SValuePtr &expr) {
                 return expr;
