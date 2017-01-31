@@ -257,6 +257,9 @@ namespace rose {
 
                 /** */
                 BaseSemantics::SValuePtr Int(const BaseSemantics::SValuePtr &expr, bool isUnsigned);
+
+                /** */
+                BaseSemantics::SValuePtr RoundTowardsZero(const BaseSemantics::SValuePtr &expr);
             };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

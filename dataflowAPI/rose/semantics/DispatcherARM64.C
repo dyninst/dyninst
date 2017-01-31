@@ -4955,6 +4955,40 @@ namespace rose {
                     }
                 };
 
+                struct IP_udiv_execute : P {                    //
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        BaseSemantics::SValuePtr result;
+
+                        if (isTrue(d->isZero(operand2))) {
+                            result = d->Zeros(64);
+                        } else {
+                            result = d->RoundTowardsZero(
+                                    ops->unsignedDivide(d->Int(operand1, true), d->Int(operand2, true)));
+                        }
+                        d->write(args[0], ops->extract(result, 0, d->getDatasize(raw) - 1 + 1));
+
+                    }
+                };
+
+                struct IP_sdiv_execute : P {                    //
+                    void p(D d, Ops ops, I insn, A args, B raw) {
+                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
+                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
+                        BaseSemantics::SValuePtr result;
+
+                        if (isTrue(d->isZero(operand2))) {
+                            result = d->Zeros(64);
+                        } else {
+                            result = d->RoundTowardsZero(
+                                    ops->unsignedDivide(d->Int(operand1, true), d->Int(operand2, true)));
+                        }
+                        d->write(args[0], ops->extract(result, 0, d->getDatasize(raw) - 1 + 1));
+
+                    }
+                };
+
             } // namespace
 
 /*******************************************************************************************************************************
@@ -5119,6 +5153,8 @@ namespace rose {
                 iproc_set(rose_aarch64_op_stlr, new ARM64::IP_stlr_execute);
                 iproc_set(rose_aarch64_op_stlrb, new ARM64::IP_stlrb_execute);
                 iproc_set(rose_aarch64_op_stlrh, new ARM64::IP_stlrh_execute);
+                iproc_set(rose_aarch64_op_udiv, new ARM64::IP_udiv_execute);
+                iproc_set(rose_aarch64_op_sdiv, new ARM64::IP_sdiv_execute);
             }
 
             bool
@@ -5735,6 +5771,11 @@ namespace rose {
 
                     return ret;
                 }
+            }
+
+            BaseSemantics::SValuePtr
+            DispatcherARM64::RoundTowardsZero(const BaseSemantics::SValuePtr &expr) {
+                return expr;
             }
         } // namespace
     } // namespace
