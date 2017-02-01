@@ -47,6 +47,7 @@
 #include "mapped_object.h"
 #include "mapped_module.h"
 #include "MemoryEmulator/memEmulator.h"
+#include "BPatch_image.h"
 
 using namespace Dyninst;
 
