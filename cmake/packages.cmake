@@ -6,7 +6,7 @@ if (UNIX)
     include(ExternalProject)
     ExternalProject_Add(LibElf
       PREFIX ${CMAKE_BINARY_DIR}/libelf
-      URL http://www.mr511.de/software/libelf-0.8.13.tar.gz
+      URL https://sourceware.org/elfutils/ftp/0.168/elfutils-0.168.tar.bz2
       CONFIGURE_COMMAND <SOURCE_DIR>/configure --enable-shared --prefix=${CMAKE_BINARY_DIR}/libelf
       BUILD_COMMAND make
       INSTALL_COMMAND make install
