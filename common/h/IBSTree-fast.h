@@ -85,60 +85,6 @@ namespace Dyninst
         struct by_high{};
 
     };
-    template <typename Value>
-    struct IntervalLookupTraits
-    {
-        typedef typename Value::range_type RangeType;
-        typedef typename Dyninst::Interval<RangeType> IntervalType;
-        typedef boost::multi_index::composite_key<Value,
-                        boost::multi_index::member<IntervalType, RangeType, &Value::first>,
-                        boost::multi_index::member<IntervalType, RangeType, &Value::second> > low_key;
-        typedef boost::multi_index::composite_key<Value,
-                boost::multi_index::member<IntervalType, RangeType, &Value::second>,
-                boost::multi_index::member<IntervalType, RangeType, &Value::first> > high_key;
-        typedef typename boost::multi_index_container
-                <
-                        typename Value::Ptr, boost::multi_index::indexed_by<
-                                boost::multi_index::ordered_unique<boost::multi_index::tag<typename Value::by_low>, low_key>,
-                                        boost::multi_index::ordered_non_unique<boost::multi_index::tag<typename Value::by_high>, high_key> >
-                > type;
-        typedef typename type::value_type value_type;
-    };
-    template <typename Value>
-    struct IntervalLookup : public IntervalLookupTraits<Value>::type
-    {
-        typedef IntervalLookupTraits<Value> traits;
-        typedef typename traits::type parent;
-        typedef typename traits::RangeType RangeType;
-
-
-        typedef typename parent::template index<typename Value::by_low>::type low_index;
-        typedef typename parent::template index<typename Value::by_high>::type high_index;
-        typedef typename low_index::const_iterator const_iterator;
-        typedef typename high_index::const_iterator const_iterator_by_high;
-
-        // First interval overlapping with v
-        template <typename T>
-        const_iterator find(const T& t) const {
-            auto lower = parent::template get<typename Value::by_high>().lower_bound(t);
-            auto upper = parent::template get<typename Value::by_high>().upper_bound(t);
-            while(lower != upper && lower != parent::end())
-            {
-                if(lower == t) return lower;
-                ++lower;
-            }
-        }
-
-
-        template <typename T, typename OI>
-        void copy_equal_range(const T& t, OI iter) const {
-            auto lower = parent::template get<typename Value::by_high>().lower_bound(t);
-            auto upper = parent::template get<typename Value::by_high>().upper_bound(t);
-            parent candidates_by_high(lower, upper);
-            auto rng = candidates_by_high.equal_range(t);
-            std::copy(rng.first, rng.second, iter);
-        }
-    };
 
     template <typename ITYPE >
     class IBSTree_fast
@@ -202,7 +148,7 @@ namespace Dyninst
                 unique_intervals.upper_bound(entry->low());
         // lower.high first >= entry.low
         if(lower != unique_intervals.end() && (**lower == *entry)) return;
-        auto upper = lower;
+        typename interval_set::iterator upper = lower;
         while(upper != unique_intervals.end() &&
               (*upper)->low() <= entry->high())
         {
@@ -223,7 +169,7 @@ namespace Dyninst
     void IBSTree_fast<ITYPE>::remove(ITYPE* entry)
     {
         overlapping_intervals.remove(entry);
-        auto found = unique_intervals.find(entry->high());
+        typename interval_set::iterator found = unique_intervals.find(entry->high());
         if(found != unique_intervals.end() && *found == entry) unique_intervals.erase(found);
     }
     template<class ITYPE>
@@ -249,7 +195,7 @@ namespace Dyninst
         int num_overlapping = overlapping_intervals.find(I, results);
         if(num_overlapping) return num_overlapping;
         typename interval_set::const_iterator lb = unique_intervals.upper_bound(I->low());
-        auto ub = lb;
+        typename interval_set::iterator  ub = lb;
         while(ub != unique_intervals.end() && (*ub)->low() < I->high())
         {
             results.insert(*ub);
