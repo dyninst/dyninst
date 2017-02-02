@@ -2196,7 +2196,11 @@ bool ia32_entry::flagsUsed(std::set<MachRegister>& flagsRead, std::set<MachRegis
 // clflush, prefetch*
 
 
-// oneByteMap: one byte opcode map
+/**
+ * This is generally the first table in the decoding process. The row selected here 
+ * is just based on the current byte we are looking at in the instruction. This 
+ * table contains a lot of the really basic and most common x86 instructions.
+ */
 static ia32_entry oneByteMap[256] = {
   /* 00 */
   { e_add,  t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R, 0 },
@@ -2491,7 +2495,13 @@ static ia32_entry oneByteMap[256] = {
 };
 
 
-// twoByteMap: two byte opcode instructions (first byte is 0x0F)
+/**
+ * This table is for two byte instructions. The index for this table is
+ * always the current byte. Decoding can continue into the group map, the
+ * sse map or one of the three byte maps. It can also continue into the
+ * sse/vex multiplexing table if there is an SSE and VEX version of the
+ * same instruction.
+ */
 static ia32_entry twoByteMap[256] = {
   /* 00 */
   // Syscall/sysret are somewhat hacked
@@ -2791,6 +2801,13 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_sse, SSEFF, false, { Zz, Zz, Zz }, 0, 0, 0 }
 };
 
+/**
+ * This table is very similar to the twoByteMap. This table just holds
+ * three byte instructions. Decoding can progress through this table
+ * into sseMapBis if the current instruction is an SSE instruction.
+ * If the current instruction also has an SSE and VEX version, decoding
+ * can progress into the sseMapBisMult table.
+ */
 static ia32_entry threeByteMap[256] = {
 		/* 00 */
 		{ e_No_Entry, t_sse_bis, SSEB00, true, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -2808,8 +2825,8 @@ static ia32_entry threeByteMap[256] = {
 		{ e_No_Entry, t_sse_bis, SSEB0B, true, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB0C, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB0D, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_sse_bis, SSEB0E, false, { Zz, Zz, Zz }, 0, sNONE, 0 },
-		{ e_No_Entry, t_sse_bis, SSEB0F, false, { Zz, Zz, Zz }, 0, sNONE, 0 },
+		{ e_No_Entry, t_sse_bis, SSEB0E, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_sse_bis, SSEB0F, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		/* 10 */
 		{ e_No_Entry, t_sse_bis, SSEB10, true, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEB11, true, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -3081,6 +3098,14 @@ static ia32_entry threeByteMap[256] = {
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
 };
+
+/**
+ * This table is very similar to the twoByteMap. This table just holds
+ * three byte instructions. Decoding can progress through this table
+ * into sseMapBis if the current instruction is an SSE instruction.
+ * If the current instruction also has an SSE and VEX version, decoding
+ * can progress into the sseMapBisMult table.
+ */
 
 static ia32_entry threeByteMap2[256] = {
 		/* 00 */
@@ -3554,6 +3579,31 @@ static ia32_entry fpuMap[][2][8] = {
 }
 };
 
+/**
+ * This is one of the more complicated tables. Each row in this table has 
+ * multiple entries. The row that is selected is based off of the previous 
+ * table the decoder was in. The current byte is broken down as a ModR/M byte. 
+ * Here is a quick overview of how a ModR/M byte is broken down:
+ *
+ * +-----+-------+-------+
+ * | 8 7 | 6 5 4 | 3 2 1 |
+ * +-----+-------+-------+
+ * Mod   Reg     R/M
+ * 
+ *
+ * We only care about the `Reg` part of the ModR/M byte. This value is used as 
+ * the indexer for this table. For example, if you have a byte `0x3F`:
+ *
+ * 
+ * Value in Hex: 0x3F
+ * Value in Bin: 0 0 1 1 1 1 1 1
+ * Reg bits:         1 1 1
+ * Reg value: 7
+ * 
+ * 
+ * Therefore we can see that we should choose entry 7 in this row (for this example).
+ *
+ */
 static ia32_entry groupMap[][8] = {
   { /* group 1a */
     { e_add, t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R, 0 },
@@ -3717,9 +3767,42 @@ static ia32_entry groupMap[][8] = {
 };
 
 
-// Groups 12-16 are split by mod={mem,11}. Some spill over into SSE groups!
-// Notation: G12SSE010B = group 12, SSE, reg=010; B means mod=11
-// Use A if Intel decides to put SSE instructions for mod=mem
+/**
+ * This table is very similar to `groupMap`. Each row in this table actually 
+ * has 2 sub rows which contain 8 entries. The row that is selected is based 
+ * off of the previous table the decoder was in. The current byte is broken 
+ * down as a ModR/M byte. Here is a quick overview of how a ModR/M byte is 
+ * broken down:
+ *
+ * 
+ * +-----+-------+-------+
+ * | 8 7 | 6 5 4 | 3 2 1 |
+ * +-----+-------+-------+
+ *  Mod   Reg     R/M
+ * 
+ *
+ * We care about two things now: the `Mod` and the `Reg`. If the `Mod` is all 
+ * 1's, then we will use the 2nd sub row. Otherwise we will use the first sub 
+ * row (sub rows here contain 8 entries each). Then the entry is selected based 
+ * off of the `Reg` value, just like the `groupMap` table. Here is our example 
+ * again of using `0x3F` as our ModR/M
+ *
+ *
+ *  
+ *  Value in Hex: 0x3F
+ *  Value in Bin: 0 0 1 1 1 1 1 1
+ *  Reg bits:         1 1 1
+ *  Mod bits:     0 0
+ *  Reg value: 7
+ *  Mod value: 0
+ *  
+ *
+ * Therefore we will use the first sub row, and select the 7th entry in that sub 
+ * row. If `Mod` would have been all 1's, we would have selected the second sub 
+ * row. **Note: all values of mod should map to the first sub row except for 
+ * 3 (0b11)**
+ *
+ */
 static ia32_entry groupMap2[][2][8] = {
   { /* group 12 */
     {
@@ -3878,8 +3961,18 @@ static ia32_entry groupMap2[][2][8] = {
 };
 
 /**
- * Table for instructions where the decoding between VEX and non VEX versions of
- * the same instruction needs more decoding.
+ * The purpose of this table is to allow our decoder to differentiate between 
+ * looking at an SSE instruction or a VEX instruction. For certain instructions, 
+ * there are SSE and VEX versions of the same instruction. Having a VEX prefix 
+ * on the instruction instead of an SSE prefix means that we have to make a 
+ * different decoding decision.
+ *
+ * Each row in this table has multiple entries. The entry that is selected is 
+ * based on the prefix of the instruction. If the instruction has only an SSE 
+ * prefix, entry 0th is selected. If the instruction has a VEX2 prefix, then 
+ * the 1st entry is selected. If the instruction has a VEX3 prefix, then the 
+ * 2nd entry is selected. Finally, if the instruction has an EVEX prefix, the 
+ * 3rd entry is selected.
  */
 /** START_DYNINST_TABLE_VERIFICATION(sse_vex_mult_table) */
 static ia32_entry sseVexMult[][4] = {
@@ -5981,14 +6074,31 @@ static ia32_entry sseMapTer[][3] =
 /** END_DYNINST_TABLE_VERIFICATION */
 
 /**
-* SSE multiplexer tables:
-*
-* Some instructions share the same opcode and the only way
+ * SSE multiplexer tables:
+ *
+ * Some instructions share the same opcode and the only way
  * to tell how many operands there are and the addressing
  * mode is by looking at which vex prefix is used. This doesn't
  * affect all sse/vex instructions so some skip this table
+ *
+ * We are allowed to have a VEX instruction that has a decoding 
+ * path that passes through one of the SSE tables (sseMap, 
+ * sseMapBis, sseMapTer). However, a VEX instruction cannot end 
+ * it's decoding in one of the SSE tables. Therefore when the 
+ * decoder exits one of the SSE tables when it's decoding a VEX 
+ * instruction, it will enter one of the SSE multiplexer tables 
+ * in order to get the correct decoding for the VEX prefix that 
+ * is on the current instruction.
+ *
+ * This table has 3 entries per row. The 0th entry specifies the 
+ * entry that should be used for VEX2 instructions. The 1st entry 
+ * specifies the entry that should be used for VEX3 instructions. 
+ * Finallly, the last entry specifies the entry that should be used 
+ * for EVEX instructions.
+ *
  */
 
+/* Table orders for reference */
 /* SSE Table order:  NO, F3, 66, F2 */
 /* BSSE Table order: NO, F3, F2, 66F2 */
 /* TSSE Table order: NO, 66, F2 */
@@ -7682,6 +7792,21 @@ ia32_entry sseMapTerMult[][3] =
     }
 };
 /** END_DYNINST_TABLE_VERIFICATION */
+
+/**
+ * This is the table that typically follows after the Group Map 
+ * table. This table holds the SSE version of the instructions in 
+ * the Group Map. The format of the names is as follows:
+ *
+ * 
+ * +---+----+-----+-----+-----+
+ * | G | XX | SSE | XXX | (X) |
+ * +---+----+-----+-----+-----+
+ *       |           |     +-> If this is a B, then the Mod value was 3
+ *       |           +-------> This is the value of the Reg value in binary
+ *       +-------------------> This is the group number.
+ *                   
+ */
 
 /* rows are none or 66 prefixed in this order (see book) */
 /** START_DYNINST_TABLE_VERIFICATION(sse_grp_map) */
