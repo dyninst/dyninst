@@ -34,8 +34,99 @@
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
 // Unofficial documentation used:  - www.sandpile.org/ia32
 //                                 - NASM documentation
-
 // Note: Unless specified "book" refers to Intel's manual
+
+/**
+ *
+ * Notes on Intel decoding and where to start:
+ *
+ * The descriptions for the instructions in the Intel instruction set are defined
+ * in a struct in arch-x86.h. The struct can be summarized as follows:
+ *
+ * 1. id (Entry ID)
+ *
+ * This is used to identify the instruction. Multiple rows can have the same ID
+ * if they have the same instruction mnemonic. This ID should map with an entry
+ * in the dyn_hash_map which stores the actual string for the instruction
+ * mnemonics.
+ *
+ * 2. otable (Next Opcode Table)
+ *
+ * This is used during the decoding process. It the identifier for the next
+ * table that should be used in the decoding process. This is explained more
+ * in ia32_decode_opcode.
+ *
+ * 3. tabidx (Opcode Table Index)
+ *
+ * This is also used during the decoding process and specifies the index for the
+ * next table that should be used. Depending on the table, this value is ignored
+ * and other logic is used to make the decision as to which table index should
+ * be used next.
+ *
+ * 4. hasModRM (Whether or not this instruction has a ModR/M byte)
+ *
+ * This designates whether or not the instruction being described has a ModR/M
+ * byte or not. NOTE: This MUST be set to true for instructions that have operands
+ * that use the ModR/M byte even if you specify it has operands that use the
+ * ModR/M byte.
+ *
+ * 5. operands[3] (Instruction Operands)
+ *
+ * This is an array of descriptors for the first 3 operands. Please look at the
+ * Intel manual to see which addressing modes and operand sizes are available.
+ * We follow the same format as the Intel manual except for a couple of very
+ * rare cases.
+ *
+ * 6. legacyType (Legacy information)
+ *
+ * This is generally used for dataflow analysis and other semantic information. You
+ * shouldn't have to mess with this assuming that intel doesn't add any new instructions
+ * that are capable of changing the RIP/EIP like jumps, calls, ret, ect.
+ *
+ * 7. opsema (Operand Read/Write Semantics)
+ *
+ * This describes which operands and read and written. Search arch-x86.h for
+ * 'operand semantic' and you should be able to find the options for this.
+ *
+ * 8. impl_dec (Implicit Operand Description)
+ *
+ * This is a mask that should be used to mark implicit operands. If an operand
+ * should not be printed in AT&T syntax, then you should mask it here.
+ *
+ * The Decoding Process
+ * --------------------
+ *
+ * The main decoding function is ia32_decode, which calls a bunch of helper functions
+ * that are for the most part extremely well commented. The overall flow of the
+ * decoding process is like this:
+ *
+ * 1. Decode any prefixes
+ *
+ *      This step is really easy. When we first look at an instruction, we have
+ * to decode which bytes are prefix bytes. Usually, there is only one prefix,
+ * however some instructions can have 2 or more prefixes. All VEX instructions
+ * can only have one prefix: The VEX2, VEX3 or EVEX prefix.
+ *
+ * 2. Decode the opcode and determine the instruction description
+ *
+ *      In this step we start at some initial decoding table. The starting table
+ * is determined by which prefixes are present. If there are no prefixes present,
+ * we start in the twoByteMap. We can go through several tables in the decoding
+ * process and the logic for each table is a bit different.
+ *
+ * 3. Decode operands
+ *
+ *      In this step we look at the description we got from step 2. The operand
+ * descriptions in the ia32_entry entry are used to determine what to look for
+ * and how long the final instruction length should be.
+ *
+ * The main objective of the decoding process is to get the length of the instruction
+ * correct. Because x86 has variable length instructions, getting the instruction
+ * length wrong will mess up the decoding for the instructions that follow.
+ * 
+ *
+ */
+
 
 // This include *must* come first in the file.
 #include "common/src/Types.h"
@@ -547,6 +638,13 @@ static int vex3_simdop_convert[3][4] = {
   {0, 2,  1, 3},
   {0, 1, -1, 2}
 };
+
+/**
+ * Operand descriptors:
+ *
+ * These are used to describe the addressing mode and the size of
+ * the operand.
+ */
 
 #define Zz   { 0, 0 }
 #define ImplImm { am_ImplImm, op_b }
@@ -8275,16 +8373,24 @@ int getOperSz(const ia32_prefixes &pref)
     else return 2;
 }
 
+
+/**
+ * This is the main Intel x86/x86_64 decoding function. This is used to determine
+ * the instruction mnemonic, operands and the overall instruction length.
+ *
+ * @param capa A mask of capabilities that should be enabled for decoding.
+ * @param addr A pointer to the start of the instruction that should be decoded.
+ * @param instruc A reference to an ia32_instruction that should be setup with the decoded instruction.
+ */
 ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32_instruction& instruct)
 {
-    const unsigned char* addr_orig = addr;
-    ia32_prefixes& pref = instruct.prf;
-    ia32_entry *gotit = NULL;
-  
+    const unsigned char* addr_orig = addr; /* The original start to this instruction (addr will change) */
+    ia32_prefixes& pref = instruct.prf; /* A reference to the prefix information for this instruction */
+    ia32_entry *gotit = NULL; /* A pointer to the descriptor for the decoded instruction */
+
+    /* If we are being assed to decode memory accesses, then instrut.mac must not be null. */  
     if(capa & IA32_DECODE_MEMACCESS)
-    {
         assert(instruct.mac != NULL);
-    }
 
     /* First decode any prefixes for this instruction */
     if (!ia32_decode_prefixes(addr, instruct)) 
@@ -8298,17 +8404,12 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
         return instruct;
     }
 
-    // printf("PREFIXES(%d): ", instruct.size);
-
-    // int x;
-    // for(x = 0;x < instruct.size;x++)
-        // printf("%x ", addr[x]);
-
     /* Skip the prefixes so that we don't decode them again */
     addr = addr_orig + instruct.size;
 
-    int opcode_decoding;
     /* Get the entry in the decoding tables */
+    int opcode_decoding;
+
     if((opcode_decoding = ia32_decode_opcode(capa, addr, instruct, &gotit)))
     {
         if(opcode_decoding > 0)
@@ -8316,16 +8417,12 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
             /* FPU decoding success. Return immediately */
             return instruct;
         }
+
         /* Opcode decoding failed */
         instruct.entry = NULL;
         instruct.legacy_type = ILLEGAL;
         return instruct;
     }
-
-    // printf("OP(%d): ", instruct.size - x);
-
-    // for(;x < instruct.size;x++)
-        // printf("%x ", addr_orig[x]);
 
     if(!gotit)
         assert(!"Didn't find a valid instruction, however decode suceeded.");
@@ -8335,10 +8432,6 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
 
     /* Do the operand decoding */
     ia32_decode_operands(pref, *gotit, addr, instruct, instruct.mac);
-
-    // printf("OPERANDS(%d): ", instruct.size - x);
-    // for(;x < instruct.size;x++)
-        // printf("%x ", addr_orig[x]);
 
     /* Decode the memory accesses if requested */
     if(capa & IA32_DECODE_MEMACCESS) 
@@ -8562,6 +8655,17 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
     return instruct;
 }
 
+/**
+ * Get the instruction table descriptor for the given instructino.
+ *
+ * @param capa The capabilities that should be enabled for this instruction decoding.
+ * @param addr The start of the opcode. WARNING: Prefixes must already be decoded!
+ * @param instruct The instruction structure to fill out with the decoding information.
+ * @param gotit_ret The ia32_entry that we stopped at. NULL if there was an issue.
+ *
+ * @return >= 0 on success. < 0 on failure. A result greater that zero usually means
+ *          that it was an FPU instruction that has been fully decoded.
+ */
 int ia32_decode_opcode(unsigned int capa, const unsigned char* addr, 
         ia32_instruction& instruct, ia32_entry** gotit_ret)
 {
@@ -9958,17 +10062,28 @@ bool is_sse_opcode(unsigned char byte1, unsigned char byte2, unsigned char byte3
 	return false;
 }
 
-// FIXME: lookahead might blow up...
+
+/**
+ * Decode's an instruction's prefixes. If there are no prefixes for this instruction,
+ * then nothing is done and false is returned.
+ *
+ * @param addr A pointer to the start of the instruction.
+ * @param instruct A reference to the instruction that we should setup the prefix information for.
+ *
+ * @return true if the prefixes were decoded successfully, false if there was a problem.
+ */
 bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& instruct)
 {
     ia32_prefixes& pref = instruct.prf;
     ia32_locations* loc = instruct.loc; 
+
     /* Initilize the prefix */
     memset(pref.prfx, 0, 5);
     pref.count = 0;
     pref.opcode_prefix = 0;
     bool in_prefix = true;
 
+    /* Clear all of the VEX information */
     pref.vex_present = false;
     pref.vex_type = VEX_TYPE_NONE;
     memset(pref.vex_prefix, 0, 5);
@@ -9989,6 +10104,16 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& instruct)
 
     while(in_prefix && !err) 
     {
+        /**
+         * Switch based on the current byte. If the current byte
+         * is a valid prefix, we will consume the byte and keep
+         * trying to decode more prefixes. All of the prefix
+         * constants for this switch are defined in arch-x86.h.
+         *
+         * NOTE: Some prefixes need to be in a certain order and
+         * some prefixes cannot go together.
+         */
+
         switch(addr[0]) 
         {
             case PREFIX_REPNZ:
@@ -10035,10 +10160,8 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& instruct)
                 break;
 
             case PREFIX_XOP:
+                /* FIXME: XOP instruction are not supported! */
                 err = true;
-                // assert(!"NOT HANDLING XOP YET!\n");
-                // pref.vex_prefix[2] = addr[3];
-                // ++pref.count;
                 break;
 
             case PREFIX_EVEX:
@@ -10202,6 +10325,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& instruct)
         ++addr;
     }
 
+    /* If there was no error, set prefix count and correct instruction length */
     if(!err)
     {
         if(loc)
@@ -10209,7 +10333,9 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& instruct)
         instruct.size = pref.count;
     }
 
-#if 0 /* Print out prefix information (very verbose) */
+    /* Print debug information that is super helpful for VEX debugging. */
+
+#ifdef VEX_DEBUG /* Print out prefix information (very verbose) */
     fprintf(stderr, "Prefix buffer: %x %x %x %x %x\n", pref.prfx[0], pref.prfx[1], 
             pref.prfx[2], pref.prfx[3], pref.prfx[4]);
     fprintf(stderr, "opcode prefix: 0x%x\n", pref.opcode_prefix);
