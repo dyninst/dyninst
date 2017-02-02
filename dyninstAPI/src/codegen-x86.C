@@ -1283,7 +1283,7 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
 
 bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &gen, Architecture arch, Address addr) {
 
-    relocation_cerr << "modifyDisp "
+    relocation_cerr << "\t\tmodifyDisp "
         << std::hex << addr
         << std::dec << ", newDisp = " << newDisp << endl;
 
@@ -1301,6 +1301,8 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
         assert(0);
     } else {
         origDisp = origAccess->disp();
+        relocation_cerr << "\t\tOld displacement: " << std::hex << 
+            origDisp << " New: " << newDisp << std::dec << std::endl;
     }
 
     GET_PTR(newInsn, gen);
@@ -1338,14 +1340,20 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
     newInsn += opcode_len;
     origInsn += opcode_len;
 
+    /* Update the new instruction size */
+    newInsnSz = pref_count + opcode_len;
+
     /******************************************* modRM *************************/
     // Update displacement size (mod bits in ModRM), if necessary
     int expectedDifference = 0;
     unsigned char modrm = *origInsn++;
     unsigned char modrm_mod = MODRM_MOD(modrm);
-    //unsigned char modrm_reg = MODRM_REG(modrm);
     unsigned char modrm_rm = MODRM_RM(modrm);
 
+    relocation_cerr << "\t\tModRM: " << std:: hex <<
+        (unsigned int)modrm << " mod: " << (unsigned int)modrm_mod << 
+        " rm: " << (unsigned int)modrm_rm
+        << std::endl;
 
     int origDispSize = -1;
 
@@ -1464,6 +1472,7 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
     InstructionAPI::Instruction::Ptr newInsnPtr = d.decode();
 
     if ((insnSz + expectedDifference) != newInsnSz) {
+        relocation_cerr << "\t\tERROR: Old Size: " << std::dec << insnSz << " New size: " << newInsnSz << " Expected size: " << (insnSz + expectedDifference) << std::endl;
         return false;
     }
 
@@ -1482,5 +1491,6 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
 
     SET_PTR(newInsn, gen);
 
+    relocation_cerr << "\t\tModify Disp success.\n";
     return true;
 }

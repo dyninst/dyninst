@@ -41,6 +41,7 @@
 #include "dwarfExprParser.h"
 #include "pathName.h"
 #include "debug_common.h"
+#include "Type-mem.h"
 #include <boost/bind.hpp>
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -248,21 +249,28 @@ void DwarfParseActions::setModuleFromName(std::string moduleName)
 }
 
 bool DwarfWalker::buildSrcFiles(Dwarf_Debug dbg, Dwarf_Die entry, StringTablePtr srcFiles) {
-   Dwarf_Signed cnt = 0;
+    Dwarf_Signed cnt = 0;
     char** srcFileList;
-   Dwarf_Error error;
-   DWARF_ERROR_RET(dwarf_srcfiles(entry, &srcFileList, &cnt, &error));
-
-   if(!srcFiles->empty()) {
+    Dwarf_Error error;
+    int ret = dwarf_srcfiles(entry, &srcFileList, &cnt, &error);
+    DWARF_ERROR_RET(ret);
+    
+    if(!srcFiles->empty()) {
         return true;
-   } // already parsed, the module had better be right.
-   srcFiles->push_back("Unknown file");
-   for (unsigned i = 0; i < cnt; ++i) {
-      srcFiles->push_back(srcFileList[i]);
-      dwarf_dealloc(dbg, srcFileList[i], DW_DLA_STRING);
-   }
+    } // already parsed, the module had better be right.
+    srcFiles->push_back("Unknown file");
+
+    // The module does not have any source files..
+    if (ret == DW_DLV_NO_ENTRY) {
+        return true;
+    }
+
+    for (unsigned i = 0; i < cnt; ++i) {
+       srcFiles->push_back(srcFileList[i]);
+       dwarf_dealloc(dbg, srcFileList[i], DW_DLA_STRING);
+    }
     dwarf_dealloc(dbg, srcFileList, DW_DLA_LIST);
-   return true;
+    return true;
 }
 
 

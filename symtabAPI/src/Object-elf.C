@@ -1105,7 +1105,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 
             } else if (plt_entry_size_ == 16) {
                 // New style secure PLT
-                Region *plt = NULL, *relplt = NULL, *dynamic = NULL,
+                Region *plt = NULL, *dynamic = NULL,
                         *got = NULL, *glink = NULL;
                 unsigned int glink_addr = 0;
                 unsigned int stub_addr = 0;
@@ -1116,7 +1116,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
                 for (unsigned iter = 0; iter < regions_.size(); ++iter) {
                     std::string name = regions_[iter]->getRegionName();
                     if (name == PLT_NAME) plt = regions_[iter];
-                    else if (name == REL_PLT_NAME) relplt = regions_[iter];
+                    // else if (name == REL_PLT_NAME) relplt = regions_[iter];
                     else if (name == DYNAMIC_NAME) dynamic = regions_[iter];
                     else if (name == GOT_NAME) got = regions_[iter];
                 }
@@ -4361,7 +4361,12 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
     size_t offset = strings->size();
     Dwarf_Signed filecount;
     status = dwarf_srcfiles(cuDIE, &files, &filecount, &ignored);
-    assert( status == DW_DLV_OK );
+    if (status != DW_DLV_OK ) 
+    {
+        // It could happen the line table is present,
+	// but there is no line in the table
+        return;
+    }
     // dwarf_line_srcfileno == 0 means unknown; 1...n means files[0...n-1]
     // so we ensure that we're adding a block of unknown, 1...n to the string table
     // and that offset + dwarf_line_srcfileno points to the correct string

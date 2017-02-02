@@ -170,7 +170,7 @@ using namespace Dyninst;
 static const Address ADDR_NULL = (Address)(0);
 #else
 #define ADDR_NULL (0)
-typedef unsigned long Address;
+typedef uintptr_t Address;
 #endif
 /* Note the inherent assumption that the size of a "long" integer matches
    that of an address (void*) on every supported Paradyn/Dyninst system!
