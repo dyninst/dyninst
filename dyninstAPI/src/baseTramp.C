@@ -287,7 +287,6 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
 
    // Specialize for the instPoint...
    bool retval = false;
-   try {
       gen.setRegisterSpace(registerSpace::actualRegSpace(instP()));
 
       pdvector<AstNodePtr> miniTramps;
@@ -349,10 +348,14 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
       if (!gen.insertNaked()) {
          generateSaves(gen, gen.rs());
       }
-
-      if (!baseTrampAST->generateCode(gen, false)) {
-         fprintf(stderr, "Gripe: base tramp creation failed\n");
-         retval = false;
+      try {
+         if (!baseTrampAST->generateCode(gen, false)) {
+            fprintf(stderr, "Gripe: base tramp creation failed\n");
+            retval = false;
+         }
+      }
+      catch(std::exception e) {
+         cerr << e.what() << endl;
       }
 
       if (!gen.insertNaked()) {
@@ -366,10 +369,6 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
       //if (baseTramp) delete baseTramp;
 
 
-   }
-   catch(std::exception e) {
-      cerr << e.what() << endl;
-   }
    return retval;
 
 }
