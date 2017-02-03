@@ -366,6 +366,7 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
         break;
      case Arch_x86_64:
      case Arch_ppc64:
+     case Arch_aarch64:
         CFT->bind(thePC.get(), Result(u64, ptr->addr()));
         break;
      default:

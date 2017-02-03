@@ -40,8 +40,34 @@ using namespace Dyninst;
 
 bool PCProcess::createStackwalkerSteppers()
 {
-	assert(0);
-  return true;
+    using namespace Stackwalker;
+
+    FrameStepper *stepper = NULL;
+    StackwalkInstrumentationHelper *swInstrHelper = NULL;
+    DynFrameHelper *dynFrameHelper = NULL;
+
+    // Create steppers, adding to walker
+
+    swInstrHelper = new StackwalkInstrumentationHelper(this);
+    stepper = new DyninstDynamicStepper(stackwalker_, swInstrHelper);
+    if (!stackwalker_->addStepper(stepper))
+    {
+        startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+        return false;
+    }
+    startup_printf("Stackwalker stepper %p is a DyninstDynamicStepper\n", stepper);
+
+    // FrameFuncHelper not used on PPC
+    dynFrameHelper = new DynFrameHelper(this);
+    stepper = new FrameFuncStepper(stackwalker_, dynFrameHelper);
+    if (!stackwalker_->addStepper(stepper))
+    {
+        startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+        return false;
+    }
+    startup_printf("Stackwalker stepper %p is a FrameFuncStepper\n", stepper);
+
+    return true;
 }
 
 bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
