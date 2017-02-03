@@ -605,7 +605,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
                         for (member_it = members.begin(); member_it != members.end();
                              ++member_it)
                         {
-                            if(isCompatibleBinary(*pathIter))
+                            if((*member_it)->getAddressWidth() == getAddressWidth())
                             {
                                 BinaryEdit *temp = BinaryEdit::openFile(*pathIter,
                                                                         mgr(), patcher(), (*member_it)->memberName());
@@ -627,7 +627,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
                 } else if (Symtab::openFile(singleObject, *pathIter)) {
 
 
-                    if (isCompatibleBinary(*pathIter)) {
+                    if (singleObject->getAddressWidth() == getAddressWidth()) {
                         if( singleObject->getObjectType() == obj_SharedLib ||
                             singleObject->getObjectType() == obj_Executable )
                         {
