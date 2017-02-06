@@ -54,17 +54,13 @@ class insnCodeGen {
                              Address from,
                              Address to);
 
-    // This is a register-stomping, full-range branch. Uses one GPR
-    // and either LR or CTR. New addition: use liveness information to
-    // calculate which registers to use; otherwise, trap.
-
+    //TODO
     static void generateLongBranch(codeGen &gen,
                                    Address from,
                                    Address to,
                                    bool isCall);
 
-    // A specialization of the above that assumes R0/CTR are dead.
-
+    //TODO
     static void generateInterFunctionBranch(codeGen &gen,
                                             Address from,
                                             Address to,
