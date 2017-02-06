@@ -61,7 +61,6 @@ codeBuf_t *insnCodeGen::ptrAndInc(codeGen &gen) {
 #endif
 
 void insnCodeGen::generate(codeGen &gen, instruction&insn) {
-    assert(0);
 #if defined(endian_mismatch)
   // Writing an instruction.  Convert byte order if necessary.
   unsigned raw = swapBytesIfNeeded(insn.asInt());
@@ -73,28 +72,43 @@ void insnCodeGen::generate(codeGen &gen, instruction&insn) {
 }
 
 void insnCodeGen::generateIllegal(codeGen &gen) { // instP.h
-    assert(0);
     instruction insn;
     generate(gen,insn);
 }
 
 void insnCodeGen::generateTrap(codeGen &gen) {
-    assert(0);
     instruction insn(BREAK_POINT_INSN);
     generate(gen,insn);
 }
 
-void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link)
-{
-    assert(0);
+void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link) {
+    if (ABS(disp) > MAX_BRANCH_OFFSET) {
+        fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
+                ABS(disp), (unsigned long) MAX_BRANCH_OFFSET);
+        bperr( "Error: attempted a branch of 0x%lx\n", disp);
+        logLine("a branch too far\n");
+        showErrorCallback(52, "Internal error: branch too far");
+        bperr( "Attempted to make a branch of offset 0x%lx\n", disp);
+        assert(0);
+    }
+
+    instruction insn;
+    INSN_SET(insn, 26, 30, Bop);
+    INSN_SET(insn, 0, 25, disp >> 2);
+
+    //Bit 31 is set if it's a branch-and-link (essentially, a call), unset if it's just a branch
+    if(link)
+        INSN_SET(insn, 31, 31, 1);
+    else
+        INSN_SET(insn, 31, 31, 0);
+
+    insnCodeGen::generate(gen, insn);
 }
 
 void insnCodeGen::generateBranch(codeGen &gen, Address from, Address to, bool link) {
-    assert(0);
-
     long disp = (to - from);
 
-    if (ABS(disp) > MAX_BRANCH) {
+    if (ABS(disp) > MAX_BRANCH_OFFSET) {
         return generateLongBranch(gen, from, to, link);
     }
 
@@ -103,7 +117,6 @@ void insnCodeGen::generateBranch(codeGen &gen, Address from, Address to, bool li
 }
 
 void insnCodeGen::generateCall(codeGen &gen, Address from, Address to) {
-    assert(0);
     generateBranch(gen, from, to, true);
 }
 
@@ -122,13 +135,38 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
 }
 
 void insnCodeGen::generateBranchViaTrap(codeGen &gen, Address from, Address to, bool isCall) {
-    assert(0);
+    long disp = to - from;
+    if (ABS(disp) <= MAX_BRANCH_OFFSET) {
+        // We shouldn't be here, since this is an internal-called-only func.
+        return generateBranch(gen, disp, isCall);
+    }
+
+    assert (!isCall); // Can't do this yet
+
+    if (gen.addrSpace()) {
+        // Too far to branch.  Use trap-based instrumentation.
+        gen.addrSpace()->trapMapping.addTrapMapping(from, to, true);
+        insnCodeGen::generateTrap(gen);
+    } else {
+        // Too far to branch and no proc to register trap.
+        fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
+                ABS(disp), (unsigned long) MAX_BRANCH_OFFSET);
+        bperr( "Error: attempted a branch of 0x%lx\n", disp);
+        logLine("a branch too far\n");
+        showErrorCallback(52, "Internal error: branch too far");
+        bperr( "Attempted to make a branch of offset 0x%lx\n", disp);
+        assert(0);
+    }
 }
 
 void insnCodeGen::generateAddReg (codeGen & gen, int op, Register rt,
 				   Register ra, Register rb)
 {
     assert(0);
+    instruction insn;
+    insn.clear();
+
+    insnCodeGen::generate(gen, insn);
 }
 
 void insnCodeGen::generateLoadReg(codeGen &gen, Register rt,
