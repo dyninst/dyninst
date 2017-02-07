@@ -18,7 +18,7 @@ addons:
             - libboost-system1.55-dev
             - libboost-thread1.55-dev
             - cmake
-            - libelf-dev
+            - elfutils
             - g++-4.9
 
 compiler:
