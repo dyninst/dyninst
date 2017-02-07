@@ -38,6 +38,7 @@ before_install:
 script:
     - if [ "$CC" == "clang" ]; then export CC=$HOME/llvm-$LLVM_VERSION/bin/clang; export CXX=$HOME/llvm-$LLVM_VERSION/bin/clang++; fi
     - if [ "$CC" == "gcc" ]; then export CC=gcc-4.9; export CXX=g++-4.9; fi
+    - find /usr -name 'libelf.*'
     - mkdir work
     - cd work
     - cmake ..
