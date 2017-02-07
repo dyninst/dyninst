@@ -120,13 +120,6 @@ void insnCodeGen::generateCall(codeGen &gen, Address from, Address to) {
     generateBranch(gen, from, to, true);
 }
 
-void insnCodeGen::generateInterFunctionBranch(codeGen &gen,
-                                              Address from,
-                                              Address to,
-                                              bool link) {
-    assert(0);
-}
-
 void insnCodeGen::generateLongBranch(codeGen &gen,
                                      Address from,
                                      Address to,

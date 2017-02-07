@@ -60,12 +60,6 @@ class insnCodeGen {
                                    Address to,
                                    bool isCall);
 
-    //TODO
-    static void generateInterFunctionBranch(codeGen &gen,
-                                            Address from,
-                                            Address to,
-                                            bool link = false);
-
     // Using the process trap mapping for a branch
     static void generateBranchViaTrap(codeGen &gen,
                                       Address from,

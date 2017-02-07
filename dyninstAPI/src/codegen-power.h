@@ -63,13 +63,6 @@ class insnCodeGen {
                                    Address to,
                                    bool isCall);
 
-    // A specialization of the above that assumes R0/CTR are dead.
-
-    static void generateInterFunctionBranch(codeGen &gen,
-                                            Address from,
-                                            Address to,
-                                            bool link = false);
-
     // Using the process trap mapping for a branch
     static void generateBranchViaTrap(codeGen &gen,
                                       Address from,

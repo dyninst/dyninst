@@ -72,9 +72,6 @@ class insnCodeGen {
   static void generateBranch32(codeGen &gen, Address to);
   static void generateCall(codeGen &gen, Address from, Address to);
 
-  // Function relocation...
-  static void generateInterFunctionBranch(codeGen &gen, Address from, Address to) { generateBranch(gen, from, to); }
-  
   // We may want to generate an efficient set 'o nops
   static void generateNOOP(codeGen &gen, unsigned size = 1);
   
