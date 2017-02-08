@@ -126,11 +126,9 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
                 return true;
             }
             case CFPatch::Data: {
-                if (!insnCodeGen::modifyData(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
-                    relocation_cerr << "modifyData failed, ret false" << endl;
-                    return false;
-                }
-                return true;
+                /*This patch type is for PC-relative calls and is hence applicable only to x86.
+                  The very fact that we're reaching here on ARM means something is wrong.*/
+                assert(!"Trying to apply patch for a PC-relative call...should not be hitting this on ARM64!");
             }
         }
     } else {
