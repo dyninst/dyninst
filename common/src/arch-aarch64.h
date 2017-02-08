@@ -58,11 +58,16 @@ namespace NS_aarch64 {
 #define BREAK_POINT_INSN 0xd4200000
 #define ABS(x)      ((x) > 0 ? x : -x)
 
-#define Bop             0x05
+#define BOp             0x05
+#define BCondOp         0x2A
 
 #define INSN_SET(I, s, e, v)    ((I).setBits(s, e - s + 1, (v)))
 
+#define INSN_GET_ISCALL(I)          ((unsigned int) ((I).asInt() & 0x80000000))
+#define INSN_GET_CBRANCH_OFFSET(I)  ((unsigned int) (((I).asInt() >> 5) & 0x7ffff))
+
 #define MAX_BRANCH_OFFSET      0x01ffffff
+#define MAX_CBRANCH_OFFSET     0x0003ffff
 
 #define CHECK_INST(isInst) \
     !((insn_.raw&isInst##_MASK)^isInst)
