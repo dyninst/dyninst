@@ -5,7 +5,7 @@ sudo: false
 env:
     global:
         - LLVM_VERSION=3.7.0
-        - LD_LIBRARY_PATH=$HOME/clang-$LLVM_VERSION/lib:$LD_LIBRARY_PATH
+        - LD_LIBRARY_PATH=$HOME/clang-$LLVM_VERSION/lib:/usr/lib/x86_64-linux-gnu/:$LD_LIBRARY_PATH
 
 addons:
     apt:
