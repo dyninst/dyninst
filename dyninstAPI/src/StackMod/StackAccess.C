@@ -33,6 +33,7 @@
 #include "debug.h"
 
 #include "Instruction.h"
+#include "InstructionCategories.h"
 #include "InstructionDecoder.h"
 #include "Expression.h"
 #include "Register.h"
@@ -43,6 +44,7 @@
 
 #include "CFG.h"
 
+#include "ABI.h"
 #include "slicing.h"
 #include "SymEval.h"
 
@@ -226,6 +228,8 @@ public:
     }
 };
 
+
+
 bool getAccesses(ParseAPI::Function* func,
         ParseAPI::Block* block,
         Address addr,
@@ -249,19 +253,74 @@ bool getAccesses(ParseAPI::Function* func,
         return true;
     }
 
+    unsigned int gpr;
+    if (arch == Arch_x86) {
+        gpr = x86::GPR;
+    } else if (arch == Arch_x86_64) {
+        gpr = x86_64::GPR;
+    } else {
+        assert(0);
+    }
+
+    int word_size = func->isrc()->getAddressWidth();
+
+    // If this instruction is a call, check if any stack pointers are possibly
+    // being passed as parameters.  If so, we don't know what the callee will
+    // access through that pointer and need to return false.
+    if (insn->getCategory() == InstructionAPI::c_CallInsn) {
+        // Check parameter registers for stack pointers
+        ABI *abi = ABI::getABI(word_size);
+        const bitArray &callParamRegs = abi->getParameterRegisters();
+        for (auto iter = abi->getIndexMap()->begin();
+            iter != abi->getIndexMap()->end(); iter++) {
+            const MachRegister &reg = iter->first;
+            if (reg.regClass() == gpr && callParamRegs.test(iter->second)) {
+                // This register is used as a parameter. Check if it contains a
+                // stack pointer.
+                const StackAnalysis::Height &h = sa.find(block, addr,
+                    Absloc(reg));
+                if (!h.isTop()) {
+                    return false;
+                }
+            }
+        }
+
+        // Check parameters passed on stack for stack pointers
+        const StackAnalysis::Height &sp = sa.findSP(block, addr);
+        if (!sp.isTop() && !sp.isBottom()) {
+            // Check most recent words on stack for stack pointers.  We check
+            // last 7 words as a reasonable medium between conservatism and
+            // liberalism.
+            long lb = sp.height();
+            long ub = sp.height() + word_size * 7;
+            for (auto iter = heights.begin(); iter != heights.end(); iter++) {
+                const Absloc &loc = iter->first;
+                const StackAnalysis::Height &h = iter->second;
+
+                if (loc.type() != Absloc::Stack) continue;
+                long stackOff = loc.off();
+
+                if (stackOff < ub && stackOff >= lb && !h.isTop()) {
+                    return false;
+                }
+            }
+        } else {
+            // Check all stack locations for stack pointers since we don't know
+            // where RSP is pointing on the stack.
+            for (auto iter = heights.begin(); iter != heights.end(); iter++) {
+                const Absloc &loc = iter->first;
+                const StackAnalysis::Height &h = iter->second;
+                if (loc.type() == Absloc::Stack && !h.isTop()) {
+                    return false;
+                }
+            }
+        }
+    }
+
     for (auto iter = heights.begin(); iter != heights.end(); ++iter) {
         // Only consider registers, not tracked memory locations
         if (iter->first.type() != Absloc::Register) continue;
         MachRegister curReg = iter->first.reg();
-
-        unsigned int gpr;
-        if (arch == Arch_x86) {
-            gpr = x86::GPR;
-        } else if (arch == Arch_x86_64) {
-            gpr = x86_64::GPR;
-        } else {
-            assert(0);
-        }
 
         // Skip the PC
         if (curReg == MachRegister::getPC(arch)) {
