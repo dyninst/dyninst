@@ -19,6 +19,8 @@ addons:
             - libboost-thread1.55-dev
             - cmake
             - elfutils
+            - libelf1
+            - libelf-dev
             - g++-4.9
 
 compiler:
