@@ -7,7 +7,7 @@
 
 #include "elf.h"
 #include "libelf.h"
-#include "libdwarf.h"
+#include "libdw.h"
 #include <stack>
 #include <vector>
 #include <string>
@@ -37,7 +37,7 @@ namespace Dyninst {
         class DwarfParseActions {
 
         protected:
-            Dwarf_Debug dbg() { return dbg_; }
+            Dwarf dbg() { return dbg_; }
 
 
             Module *& mod() { return mod_; }
@@ -47,9 +47,9 @@ namespace Dyninst {
 
         private:
             Module *mod_;
-            Dwarf_Debug dbg_;
+            Dwarf dbg_;
         public:
-            DwarfParseActions(Symtab* s, Dwarf_Debug d) :
+            DwarfParseActions(Symtab* s, Dwarf d) :
                     mod_(NULL),
                     dbg_(d),
                     symtab_(s)
@@ -174,7 +174,7 @@ namespace Dyninst {
 
             } Error;
 
-            DwarfWalker(Symtab *symtab, Dwarf_Debug dbg);
+            DwarfWalker(Symtab *symtab, Dwarf dbg);
 
             virtual ~DwarfWalker();
 
@@ -188,7 +188,7 @@ namespace Dyninst {
             // whereas parse creates a context.
             bool parse_int(Dwarf_Die entry, bool parseSiblings);
             static std::pair<std::vector<Dyninst::SymtabAPI::AddressRange>::iterator, std::vector<Dyninst::SymtabAPI::AddressRange>::iterator>
-            parseRangeList(Dwarf_Ranges *ranges, Dwarf_Signed num_ranges, Offset initial_base);
+            parseRangeList(Dwarf_Ranges *ranges, Dwarf_Sword num_ranges, Offset initial_base);
         private:
             enum inline_t {
                 NormalFunc,
@@ -197,7 +197,7 @@ namespace Dyninst {
 
             bool parseSubprogram(inline_t func_type);
             bool parseLexicalBlock();
-            bool parseRangeTypes(Dwarf_Debug dbg, Dwarf_Die die);
+            bool parseRangeTypes(Dwarf dbg, Dwarf_Die die);
             bool parseCommonBlock();
             bool parseConstant();
             virtual bool parseVariable();
@@ -213,7 +213,7 @@ namespace Dyninst {
             bool parseMember();
             bool parseConstPackedVolatile();
             bool parseTypeReferences();
-            static std::pair<AddressRange, bool> parseHighPCLowPC(Dwarf_Debug dbg, Dwarf_Die entry);
+            static std::pair<AddressRange, bool> parseHighPCLowPC(Dwarf dbg, Dwarf_Die entry);
 
 
             // These vary as we parse the tree
@@ -240,7 +240,7 @@ namespace Dyninst {
             // A printable ID for a particular entry
             unsigned long id() { return (unsigned long) (offset() - compile_offset); }
         public:
-            static bool buildSrcFiles(Dwarf_Debug dbg, Dwarf_Die entry, StringTablePtr strings);
+            static bool buildSrcFiles(Dwarf dbg, Dwarf_Die entry, StringTablePtr strings);
         private:
 
             bool parseCallsite();
@@ -264,7 +264,7 @@ namespace Dyninst {
                                     bool &hasLineNumber,
                                     std::string &filename);
         public:
-            static bool findDieName(Dwarf_Debug dbg, Dwarf_Die die, std::string &);
+            static bool findDieName(Dwarf dbg, Dwarf_Die die, std::string &);
         private:
             bool findName(std::string &);
             void removeFortranUnderscore(std::string &);
@@ -287,11 +287,11 @@ namespace Dyninst {
                                         Dwarf_Half &form);
             bool findString(Dwarf_Half attr, std::string &str);
         public:
-            static bool findConstant(Dwarf_Half attr, Address &value, Dwarf_Die entry, Dwarf_Debug dbg);
+            static bool findConstant(Dwarf_Half attr, Address &value, Dwarf_Die entry, Dwarf dbg);
             static bool findConstantWithForm(Dwarf_Attribute &attr,
                                              Dwarf_Half form,
                                              Address &value);
-            static std::vector<AddressRange> getDieRanges(Dwarf_Debug dbg, Dwarf_Die die, Offset base);
+            static std::vector<AddressRange> getDieRanges(Dwarf dbg, Dwarf_Die die, Offset base);
         private:
             bool decodeConstantLocation(Dwarf_Attribute &attr, Dwarf_Half form,
                                         std::vector<VariableLocation> &locs);
@@ -305,12 +305,12 @@ namespace Dyninst {
             bool decodeExpression(Dwarf_Attribute &attr,
                                   std::vector<VariableLocation> &locs);
 
-            bool decodeLocationListForStaticOffsetOrAddress(Dwarf_Locdesc **locationList,
-                                                            Dwarf_Signed listLength,
+            bool decodeLocationListForStaticOffsetOrAddress(Dwarf_Op* **locationList,
+                                                            Dwarf_Sword listLength,
                                                             std::vector<VariableLocation>& locs,
                                                             Address * initialStackValue = NULL);
-            void deallocateLocationList(Dwarf_Locdesc **locationList,
-                                        Dwarf_Signed listLength);
+            void deallocateLocationList(Dwarf_Op* **locationList,
+                                        Dwarf_Sword listLength);
 
 
             // Header-only functions get multiple parsed.

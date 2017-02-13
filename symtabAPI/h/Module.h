@@ -39,7 +39,7 @@
 #include "IBSTree.h"
 #include "IBSTree-fast.h"
 #if defined(cap_dwarf)
-#include "libdwarf.h"
+#include "libdw.h"
 #endif
 #include <boost/shared_ptr.hpp>
 #include "RangeLookup.h"

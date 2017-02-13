@@ -74,7 +74,7 @@ using namespace std;
    }
 #define DWARF_CHECK_RET(x) DWARF_CHECK_RET_VAL(x, false)
 
-DwarfWalker::DwarfWalker(Symtab *symtab, Dwarf_Debug dbg)
+DwarfWalker::DwarfWalker(Symtab *symtab, Dwarf dbg)
    :
    DwarfParseActions(symtab, dbg),
    srcFileList_(NULL),
@@ -248,8 +248,8 @@ void DwarfParseActions::setModuleFromName(std::string moduleName)
    }
 }
 
-bool DwarfWalker::buildSrcFiles(Dwarf_Debug dbg, Dwarf_Die entry, StringTablePtr srcFiles) {
-    Dwarf_Signed cnt = 0;
+bool DwarfWalker::buildSrcFiles(Dwarf dbg, Dwarf_Die entry, StringTablePtr srcFiles) {
+    Dwarf_Sword cnt = 0;
     char** srcFileList;
     Dwarf_Error error;
     int ret = dwarf_srcfiles(entry, &srcFileList, &cnt, &error);
@@ -673,7 +673,7 @@ void DwarfWalker::setRanges(FunctionBase *func) {
     }
 }
 
-pair<AddressRange, bool> DwarfWalker::parseHighPCLowPC(Dwarf_Debug dbg, Dwarf_Die entry)
+pair<AddressRange, bool> DwarfWalker::parseHighPCLowPC(Dwarf dbg, Dwarf_Die entry)
 {
    Dwarf_Attribute hasLow;
 
@@ -701,7 +701,7 @@ pair<AddressRange, bool> DwarfWalker::parseHighPCLowPC(Dwarf_Debug dbg, Dwarf_Di
     return result;
 }
 
-bool DwarfWalker::parseRangeTypes(Dwarf_Debug dbg, Dwarf_Die die) {
+bool DwarfWalker::parseRangeTypes(Dwarf dbg, Dwarf_Die die) {
    dwarf_printf("(0x%lx) Parsing ranges\n", id());
 
    clearRanges();
@@ -715,7 +715,7 @@ bool DwarfWalker::parseRangeTypes(Dwarf_Debug dbg, Dwarf_Die die) {
    return !newRanges.empty();
 }
 
-vector<AddressRange> DwarfWalker::getDieRanges(Dwarf_Debug dbg, Dwarf_Die die, Offset range_base) {
+vector<AddressRange> DwarfWalker::getDieRanges(Dwarf dbg, Dwarf_Die die, Offset range_base) {
     std::vector<AddressRange> newRanges;
     auto highlow = parseHighPCLowPC(dbg, die);
     if(highlow.second) newRanges.push_back(highlow.first);
@@ -724,7 +724,7 @@ vector<AddressRange> DwarfWalker::getDieRanges(Dwarf_Debug dbg, Dwarf_Die die, O
       if (findConstant(DW_AT_ranges, range_offset, die, dbg))
       {
           Dwarf_Ranges *ranges = NULL;
-          Dwarf_Signed ranges_length = 0;
+          Dwarf_Sword ranges_length = 0;
           dwarf_printf("calling ranges_a, offset 0x%lx, die %p\n", range_offset, die);
           int status = (dwarf_get_ranges_a(dbg, (Dwarf_Off) range_offset, die,
                                        &ranges, &ranges_length, NULL, NULL));
@@ -1416,7 +1416,7 @@ bool DwarfWalker::handleSpecification(bool &hasSpec) {
    return true;
 }
 
-bool DwarfWalker::findDieName(Dwarf_Debug dbg, Dwarf_Die die, std::string &name) {
+bool DwarfWalker::findDieName(Dwarf dbg, Dwarf_Die die, std::string &name) {
    char *cname = NULL;
 
    Dwarf_Error error;
@@ -1733,8 +1733,8 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
    }
    else {
      dwarf_printf("(0x%lx) Decoding loclist location\n", id());
-      Dwarf_Locdesc **locationList;
-      Dwarf_Signed listLength;
+      Dwarf_Op* **locationList;
+      Dwarf_Sword listLength;
       int status = dwarf_loclist_n( locationAttribute, & locationList, & listLength, NULL );
 
       dwarf_dealloc( dbg(), locationAttribute, DW_DLA_ATTR );
@@ -1843,7 +1843,7 @@ bool DwarfWalker::findString(Dwarf_Half attr,
    return result;
 }
 
-bool DwarfWalker::findConstant(Dwarf_Half attr, Address &value, Dwarf_Die entry, Dwarf_Debug dbg) {
+bool DwarfWalker::findConstant(Dwarf_Half attr, Address &value, Dwarf_Die entry, Dwarf dbg) {
    Dwarf_Bool has = false;
    DWARF_FAIL_RET(dwarf_hasattr(entry, attr, &has, NULL));
    if (!has) return false;
@@ -1874,7 +1874,7 @@ bool DwarfWalker::findConstantWithForm(Dwarf_Attribute &locationAttribute,
          value = (Address) addr;
          return true;
       case DW_FORM_sdata:
-         Dwarf_Signed s_tmp;
+         Dwarf_Sword s_tmp;
          DWARF_FAIL_RET(dwarf_formsdata(locationAttribute, &s_tmp, NULL));
          value = (Address) s_tmp;
          dwarf_printf("Decoded data of form %x to 0x%lx\n",
@@ -1987,7 +1987,7 @@ bool DwarfWalker::findValue(long &value, bool &valid) {
       return true;
    }
 
-   Dwarf_Signed enumValue;
+   Dwarf_Sword enumValue;
 
    DWARF_FAIL_RET(dwarf_formsdata(valueAttr, &enumValue, NULL));
 
@@ -2224,7 +2224,7 @@ bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, Dwarf_Bool is_in
          dwarf_printf("(0x%lx) Decoding form %d with formsdata\n",
                       id(), boundForm);
 
-         Dwarf_Signed constantBound;
+         Dwarf_Sword constantBound;
          DWARF_FAIL_RET(dwarf_formsdata( boundAttribute, & constantBound, NULL ));
          char bString[40];
          sprintf(bString, "%lld", (long long)constantBound);
@@ -2276,8 +2276,8 @@ bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, Dwarf_Bool is_in
       {
          /* PGI extends DWARF to allow some bounds to be location lists.  Since we can't
             do anything sane with them, ignore them. */
-         // Dwarf_Locdesc * locationList;
-         // Dwarf_Signed listLength;
+         // Dwarf_Op* * locationList;
+         // Dwarf_Sword listLength;
          // status = dwarf_loclist( boundAttribute, & locationList, & listLength, NULL );
          boundString = "{PGI extension}";
          return false;
@@ -2299,7 +2299,7 @@ bool DwarfWalker::decodeExpression(Dwarf_Attribute &attr,
   DWARF_FAIL_RET(dwarf_formexprloc(attr, &expr_len, &expr_ptr, NULL));
   unsigned char *bitstream = (unsigned char *) expr_ptr;
 
-  // expr_ptr is a pointer to a bytestream. Try to turn it into a Dwarf_Locdesc so
+  // expr_ptr is a pointer to a bytestream. Try to turn it into a Dwarf_Op* so
   // we can use decodeDwarfExpression.
 
   dwarf_printf("(0x%lx) bitstream for expr has len %d\n", id(), expr_len);
@@ -2307,8 +2307,8 @@ bool DwarfWalker::decodeExpression(Dwarf_Attribute &attr,
     dwarf_printf("(0x%lx) \t %#hhx\n", id(), bitstream[i]);
   }
 
-  Dwarf_Signed cnt;
-  Dwarf_Locdesc *descs;
+  Dwarf_Sword cnt;
+  Dwarf_Op* *descs;
 
   DWARF_FAIL_RET(dwarf_loclist_from_expr_a(dbg(), expr_ptr, expr_len, addr_size,
 					   &descs, &cnt, NULL));
@@ -2319,8 +2319,8 @@ bool DwarfWalker::decodeExpression(Dwarf_Attribute &attr,
   return ret;
 }
 
-bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
-                                                              Dwarf_Signed listLength,
+bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress( Dwarf_Op* **locationList,
+                                                              Dwarf_Sword listLength,
                                                               std::vector<VariableLocation>& locs,
                                                               Address * initialStackValue)
 {
@@ -2357,7 +2357,7 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **lo
    for (unsigned locIndex = 0 ; locIndex < listLength; locIndex++) {
 
       /* There is only one location. */
-      Dwarf_Locdesc *location = locationList[locIndex];
+      Dwarf_Op* *location = locationList[locIndex];
 
       VariableLocation loc;
       // Initialize location values.
@@ -2430,8 +2430,8 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **lo
 } /* end decodeLocationListForStaticOffsetOrAddress() */
 
 
-void DwarfWalker::deallocateLocationList( Dwarf_Locdesc ** locationList,
-                                          Dwarf_Signed listLength )
+void DwarfWalker::deallocateLocationList( Dwarf_Op* ** locationList,
+                                          Dwarf_Sword listLength )
 {
   for( int i = 0; i < listLength; i++ ) {
      dwarf_dealloc( dbg(), locationList[i]->ld_s, DW_DLA_LOC_BLOCK );

@@ -39,7 +39,7 @@
 
 #if defined(cap_dwarf)
 //#include "dwarf.h"
-#include "libdwarf.h"
+#include "libdw.h"
 #include "dwarfHandle.h"
 #endif
 
@@ -525,7 +525,7 @@ class Object;
   
  private:
             void parseLineInfoForCU(Module::DebugInfoT cuDIE, LineInformation* li);
-            bool dwarf_parse_aranges(Dwarf_Debug dbg, std::set<Dwarf_Off>& dies_seen);
+            bool dwarf_parse_aranges(Dwarf dbg, std::set<Dwarf_Off>& dies_seen);
 
   void parseDwarfTypes(Symtab *obj);
   void parseStabTypes();

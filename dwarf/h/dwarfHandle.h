@@ -31,7 +31,7 @@
 #if !defined(DWARF_HANDLE_H_)
 #define DWARF_HANDLE_H_
 
-#include "libdwarf.h"
+#include "libdw.h"
 #include "dyntypes.h"
 #include <map>
 #include <string>
@@ -56,11 +56,11 @@ class DYNDWARF_EXPORT DwarfHandle {
    } dwarf_status_t;
    dwarf_status_t init_dwarf_status;
 
-   Dwarf_Debug dbg_file_data;
-   Dwarf_Debug file_data;
-   Dwarf_Debug *line_data;
-   Dwarf_Debug *type_data;
-   Dwarf_Debug *frame_data;
+   Dwarf dbg_file_data;
+   Dwarf file_data;
+   Dwarf *line_data;
+   Dwarf *type_data;
+   Dwarf *frame_data;
 
    Elf_X *file;
    Elf_X *dbg_file;
@@ -83,9 +83,9 @@ class DYNDWARF_EXPORT DwarfHandle {
 
    Elf_X *origFile();
    Elf_X *debugLinkFile();
-   Dwarf_Debug *line_dbg();
-   Dwarf_Debug *type_dbg();
-   Dwarf_Debug *frame_dbg();
+   Dwarf *line_dbg();
+   Dwarf *type_dbg();
+   Dwarf *frame_dbg();
    DwarfFrameParserPtr frameParser();
 };
 

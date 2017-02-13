@@ -36,7 +36,7 @@
 #include "dyntypes.h"
 #include "dyn_regs.h"
 #include "ProcReader.h"
-#include "libdwarf.h"
+#include "libdw.h"
 #include "util.h"
 
 namespace Dyninst {
@@ -44,118 +44,117 @@ namespace Dyninst {
 class VariableLocation;
 
 namespace Dwarf {
-   class DwarfResult;
+
+class DwarfResult;
 typedef enum {
-   FE_Bad_Frame_Data = 15,   /* to coincide with equivalent SymtabError */
-   FE_No_Frame_Entry,
-   FE_Frame_Read_Error,
-   FE_Frame_Eval_Error,
-   FE_No_Error
+    FE_Bad_Frame_Data = 15,   /* to coincide with equivalent SymtabError */
+    FE_No_Frame_Entry,
+    FE_Frame_Read_Error,
+    FE_Frame_Eval_Error,
+    FE_No_Error
 } FrameErrors_t;
 
 typedef struct {
-  Dwarf_Fde *fde_data;
-  Dwarf_Signed fde_count;
-  Dwarf_Cie *cie_data;
-  Dwarf_Signed cie_count;   
+    Dwarf_FDE *fde_data;
+    Dwarf_Sword fde_count;
+    Dwarf_CIE *cie_data;
+    Dwarf_Sword cie_count;   
 } fde_cie_data;
 
 
 class DYNDWARF_EXPORT DwarfFrameParser {
-  public:
+public:
 
-   typedef boost::shared_ptr<DwarfFrameParser> Ptr;
+    typedef boost::shared_ptr<DwarfFrameParser> Ptr;
 
-   static Ptr create(Dwarf_Debug dbg, Architecture arch);
+    static Ptr create(::Dwarf * dbg, Architecture arch);
 
-   DwarfFrameParser(Dwarf_Debug dbg_, Architecture arch);
-   ~DwarfFrameParser();
+    DwarfFrameParser(::Dwarf * dbg_, Architecture arch);
+    ~DwarfFrameParser();
 
-   bool hasFrameDebugInfo();
-   
-   bool getRegRepAtFrame(Address pc,
-                         MachRegister reg,
-                         VariableLocation &loc,
-                         FrameErrors_t &err_result);
+    bool hasFrameDebugInfo();
 
-   bool getRegValueAtFrame(Address pc, 
-                           MachRegister reg, 
-                           MachRegisterVal &reg_result,
-                           ProcessReader *reader,
-                           FrameErrors_t &err_result);
+    bool getRegRepAtFrame(Address pc,
+            MachRegister reg,
+            VariableLocation &loc,
+            FrameErrors_t &err_result);
 
-   bool getRegAtFrame(Address pc,
-                      MachRegister reg,
-                      DwarfResult &cons,
-                      FrameErrors_t &err_result);
+    bool getRegValueAtFrame(Address pc, 
+            MachRegister reg, 
+            MachRegisterVal &reg_result,
+            ProcessReader *reader,
+            FrameErrors_t &err_result);
 
-   // Returns whatever Dwarf claims the function covers. 
-   // We use an entryPC (actually, can be any PC in the function)
-   // because common has no idea what a Function is and I don't want
-   // to move this to Symtab. 
-   bool getRegsForFunction(Address entryPC,
-                           MachRegister reg,
-                           std::vector<VariableLocation> &locs,
-                           FrameErrors_t &err_result);
+    bool getRegAtFrame(Address pc,
+            MachRegister reg,
+            DwarfResult &cons,
+            FrameErrors_t &err_result);
 
-
-  private:
-
-   bool getRegAtFrame_aux(Address pc,
-                          Dwarf_Fde fde,
-                          Dwarf_Half dwarf_reg,
-                          MachRegister orig_reg,
-                          DwarfResult &cons,
-                          Address &lowpc,
-                          FrameErrors_t &err_result);
-
-   bool getFDE(Address pc, 
-               Dwarf_Fde &fde, 
-               Address &low,
-               Address &high,
-               FrameErrors_t &err_result);
-
-   bool getDwarfReg(MachRegister reg,
-                    Dwarf_Fde &fde,
-                    Dwarf_Half &dwarf_reg,
-                    FrameErrors_t &err_result);
-   
-   bool handleExpression(Address pc,
-                         Dwarf_Signed registerNum,
-                         MachRegister origReg,
-                         Architecture arch,
-                         DwarfResult &cons,
-                         bool &done,
-                         FrameErrors_t &err_result);
-   struct frameParser_key
-   {
-     Dwarf_Debug dbg;
-     Architecture arch;
-   frameParser_key(Dwarf_Debug d, Architecture a) : dbg(d), arch(a) 
-     {
-     }
-     
-     bool operator< (const frameParser_key& rhs) const
-     {
-       return (dbg < rhs.dbg) || (dbg == rhs.dbg && arch < rhs.arch);
-     }
-     
-   };
-   static std::map<frameParser_key, Ptr> frameParsers;
-
-   typedef enum {
-      dwarf_status_uninitialized,
-      dwarf_status_error,
-      dwarf_status_ok
-   } dwarf_status_t;
-   Dwarf_Debug dbg;
-   Architecture arch;
-   dwarf_status_t fde_dwarf_status;
-
-   std::vector<fde_cie_data> fde_data;
-   void setupFdeData();
+    // Returns whatever Dwarf claims the function covers. 
+    // We use an entryPC (actually, can be any PC in the function)
+    // because common has no idea what a Function is and I don't want
+    // to move this to Symtab. 
+    bool getRegsForFunction(Address entryPC,
+            MachRegister reg,
+            std::vector<VariableLocation> &locs,
+            FrameErrors_t &err_result);
 
 
+private:
+
+    bool getRegAtFrame_aux(Address pc,
+            Dwarf_FDE fde,
+            Dwarf_Half dwarf_reg,
+            MachRegister orig_reg,
+            DwarfResult &cons,
+            Address &lowpc,
+            FrameErrors_t &err_result);
+
+    bool getFDE(Address pc, 
+            Dwarf_FDE &fde, 
+            Address &low,
+            Address &high,
+            FrameErrors_t &err_result);
+
+    bool getDwarfReg(MachRegister reg,
+            Dwarf_FDE &fde,
+            Dwarf_Half &dwarf_reg,
+            FrameErrors_t &err_result);
+
+    bool handleExpression(Address pc,
+            Dwarf_Sword registerNum,
+            MachRegister origReg,
+            Architecture arch,
+            DwarfResult &cons,
+            bool &done,
+            FrameErrors_t &err_result);
+    struct frameParser_key
+    {
+        ::Dwarf * dbg;
+        Architecture arch;
+        frameParser_key(::Dwarf * d, Architecture a) : dbg(d), arch(a) 
+        {
+        }
+
+        bool operator< (const frameParser_key& rhs) const
+        {
+            return (dbg < rhs.dbg) || (dbg == rhs.dbg && arch < rhs.arch);
+        }
+
+    };
+    static std::map<frameParser_key, Ptr> frameParsers;
+
+    typedef enum {
+        dwarf_status_uninitialized,
+        dwarf_status_error,
+        dwarf_status_ok
+    } dwarf_status_t;
+    ::Dwarf * dbg;
+    Architecture arch;
+    dwarf_status_t fde_dwarf_status;
+
+    std::vector<fde_cie_data> fde_data;
+    void setupFdeData();
 
 };
 

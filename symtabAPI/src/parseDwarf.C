@@ -32,7 +32,7 @@
 #include "elf.h"
 #include "libelf.h"
 #include "dwarf.h"
-#include "libdwarf.h"
+#include "libdw.h"
 #include "dwarfExprParser.h"
 #include "dwarfFrameParser.h"
 
@@ -57,12 +57,12 @@
 /* Use this to get the cfa. */
 extern "C" {
 int dwarf_get_fde_info_for_cfa_reg3(
-		Dwarf_Fde /*fde*/,
+		Dwarf_FDE /*fde*/,
 		Dwarf_Addr       /*pc_requested*/, 
 		Dwarf_Small  *   /*value_type*/, 
-		Dwarf_Signed *   /*offset_relevant*/,
-		Dwarf_Signed *    /*register*/,  
-		Dwarf_Signed *    /*offset_or_block_len*/,
+		Dwarf_Sword *   /*offset_relevant*/,
+		Dwarf_Sword *    /*register*/,  
+		Dwarf_Sword *    /*offset_or_block_len*/,
 		Dwarf_Ptr   *    /*block_ptr */,
 		Dwarf_Addr*      /*row_pc_out*/,
 		Dwarf_Error*     /*error*/)

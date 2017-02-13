@@ -33,7 +33,7 @@
 
 #include <stack>
 #include "dyn_regs.h"
-#include "libdwarf.h"
+#include "libdw.h"
 #include "dwarf.h"
 #include "util.h"
 
@@ -49,21 +49,24 @@ class DwarfResult;
 DYNDWARF_EXPORT int Register_DWARFtoMachineEnc32(int n);
 DYNDWARF_EXPORT int Register_DWARFtoMachineEnc64(int n);
 
-DYNDWARF_EXPORT bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
-                           long int *initialStackValue,
-                           Dyninst::VariableLocation &loc,
-                           Dyninst::Architecture arch);
+DYNDWARF_EXPORT bool decodeDwarfExpression(Dwarf_Op ** dwlocs,
+        Dwarf_Sword listlen,
+        long int *initialStackValue,
+        Dyninst::VariableLocation &loc,
+        Dyninst::Architecture arch);
 
-DYNDWARF_EXPORT bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
-                           long int *initialStackValue,
-                           Dyninst::ProcessReader *reader,
-                           Dyninst::Architecture arch,
-                           long int &end_result);
+DYNDWARF_EXPORT bool decodeDwarfExpression(Dwarf_Op ** dwlocs,
+        Dwarf_Sword listlen,
+        long int *initialStackValue,
+        Dyninst::ProcessReader *reader,
+        Dyninst::Architecture arch,
+        long int &end_result);
 
-DYNDWARF_EXPORT bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
-                           long int *initialStackValue,
-                           DwarfResult &res,
-                           Dyninst::Architecture arch);
+DYNDWARF_EXPORT bool decodeDwarfExpression(Dwarf_Op ** dwlocs,
+        Dwarf_Sword listlen,
+        long int *initialStackValue,
+        DwarfResult &res,
+        Dyninst::Architecture arch);
 
 }
 

@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "libdwarf.h"
+#include "libdw.h"
 #include "Elf_X.h"
 #include "dwarfHandle.h"
 #include "dwarfFrameParser.h"
@@ -51,7 +51,7 @@ using namespace std;
 #endif
 
 void DwarfHandle::defaultDwarfError(Dwarf_Error err, Dwarf_Ptr p) {
-    dwarf_dealloc(*(Dwarf_Debug*)(p), err, DW_DLA_ERROR);
+    dwarf_dealloc(*(Dwarf*)(p), err, DW_DLA_ERROR);
 }
 
 Dwarf_Handler DwarfHandle::defaultErrFunc = DwarfHandle::defaultDwarfError;
@@ -202,21 +202,21 @@ Elf_X *DwarfHandle::debugLinkFile()
    return dbg_file;
 }
 
-Dwarf_Debug *DwarfHandle::line_dbg()
+Dwarf *DwarfHandle::line_dbg()
 {
    if (!init_dbg())
       return NULL;
    return line_data;
 }
 
-Dwarf_Debug *DwarfHandle::type_dbg()
+Dwarf *DwarfHandle::type_dbg()
 {
    if (!init_dbg())
       return NULL;
    return type_data;
 }
 
-Dwarf_Debug *DwarfHandle::frame_dbg()
+Dwarf *DwarfHandle::frame_dbg()
 {
    if (!init_dbg())
       return NULL;

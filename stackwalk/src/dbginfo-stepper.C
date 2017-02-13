@@ -55,7 +55,7 @@ static std::map<std::string, DwarfFrameParser::Ptr> dwarf_info;
 
 #include <stdarg.h>
 #include "dwarf.h"
-#include "libdwarf.h"
+#include "libdw.h"
 #include "Elf_X.h"
 
 static DwarfFrameParser::Ptr getAuxDwarfInfo(std::string s)
