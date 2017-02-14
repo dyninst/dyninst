@@ -1174,7 +1174,7 @@ bool DwarfWalker::parseStructUnionClass() {
    assert(tag() == DW_TAG_structure_type ||
           tag() == DW_TAG_union_type ||
           tag() == DW_TAG_class_type);
-   if (!findName(curName())) return false;
+   findName(curName());
 
    bool isDeclaration = false;
    if (!hasDeclaration(isDeclaration)) return false;
