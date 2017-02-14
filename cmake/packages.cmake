@@ -8,8 +8,8 @@ if (UNIX)
       PREFIX ${CMAKE_BINARY_DIR}/libelf
       URL https://sourceware.org/elfutils/ftp/0.168/elfutils-0.168.tar.bz2
       CONFIGURE_COMMAND <SOURCE_DIR>/configure --enable-shared --prefix=${CMAKE_BINARY_DIR}/libelf
-      BUILD_COMMAND make
-      INSTALL_COMMAND make install
+      BUILD_COMMAND make -C libelf
+      INSTALL_COMMAND make -C libelf install
       )
     set(LIBELF_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libelf/include)
     set(LIBELF_LIBRARIES ${CMAKE_BINARY_DIR}/libelf/lib/libelf.so)
