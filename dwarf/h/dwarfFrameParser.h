@@ -128,6 +128,9 @@ private:
             DwarfResult &cons,
             bool &done,
             FrameErrors_t &err_result);
+
+    void setupFdeData();
+
     struct frameParser_key
     {
         ::Dwarf * dbg;
@@ -142,6 +145,7 @@ private:
         }
 
     };
+
     static std::map<frameParser_key, Ptr> frameParsers;
 
     typedef enum {
@@ -149,12 +153,14 @@ private:
         dwarf_status_error,
         dwarf_status_ok
     } dwarf_status_t;
+
     ::Dwarf * dbg;
+    
     Architecture arch;
+
     dwarf_status_t fde_dwarf_status;
 
     std::vector<fde_cie_data> fde_data;
-    void setupFdeData();
 
 };
 
