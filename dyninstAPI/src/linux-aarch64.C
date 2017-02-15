@@ -85,18 +85,7 @@ Address PCProcess::getTOCoffsetInfo(func_instance *func) {
 }
 
 bool PCProcess::getOPDFunctionAddr(Address &addr) {
-    bool result = true;
-    if( getAddressWidth() == 8 ) {
-        Address resultAddr = 0;
-        if( !readDataSpace((const void *)addr, getAddressWidth(),
-                    (void *)&resultAddr, false) )
-        {
-            result = false;
-        }else{
-            addr = resultAddr;
-       }
-    }
-    return result;
+    return true;
 }
 
 AstNodePtr PCProcess::createUnprotectStackAST() {
