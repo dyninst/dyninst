@@ -1245,6 +1245,30 @@ bool DwarfWalker::parseStructUnionClass() {
           tag() == DW_TAG_union_type ||
           tag() == DW_TAG_class_type);
    if (!findName(curName())) return false;
+   if (!nameDefined()) {
+      /* anonymous unions, structs and classes are explicitely labelled */
+      Dwarf_Unsigned lineNumber;
+      bool hasLineNumber = false;
+      std::string fileName;  
+      if (!getLineInformation(lineNumber, hasLineNumber, fileName)) return false;
+      stringstream ss;
+      ss << "{anonymous ";
+      switch (tag()) {
+      case DW_TAG_structure_type:
+         ss << "struct";
+	 break;
+      case DW_TAG_union_type:
+         ss << "union";
+	 break;
+      case DW_TAG_class_type:
+         ss << "class";
+	 break;
+      }
+      if (fileName.length() && hasLineNumber)
+	     ss << " at " << fileName << ":" << lineNumber;
+      ss << "}";
+      curName() = ss.str();
+   }
 
    bool isDeclaration = false;
    if (!hasDeclaration(isDeclaration)) return false;
