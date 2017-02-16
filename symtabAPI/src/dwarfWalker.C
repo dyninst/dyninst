@@ -1174,7 +1174,7 @@ bool DwarfWalker::parseStructUnionClass() {
    assert(tag() == DW_TAG_structure_type ||
           tag() == DW_TAG_union_type ||
           tag() == DW_TAG_class_type);
-   if (!findName(curName())) return false;
+   findName(curName());
 
    bool isDeclaration = false;
    if (!hasDeclaration(isDeclaration)) return false;
@@ -1244,9 +1244,14 @@ bool DwarfWalker::parseMember() {
    std::vector<VariableLocation> locs;
    Address initialStackValue = 0;
    if (!decodeLocationList(DW_AT_data_member_location, &initialStackValue, locs)) return false;
-   if (locs.empty()) {	   
-      dwarf_printf("(0x%lx) Skipping member as no location is given.\n", id()); 
-      return true;
+   if (locs.empty()) {
+	if (curEnclosure()->getUnionType()) {
+		/* GCC generates DW_TAG_union_type without DW_AT_data_member_location */
+		if (!constructConstantVariableLocation((Address) 0, locs)) return false;
+	} else {
+		dwarf_printf("(0x%lx) Skipping member as no location is given.\n", id()); 
+		return true;
+	}
    }
 
    /* DWARF stores offsets in bytes unless the member is a bit field.
