@@ -32,27 +32,37 @@
 #define _CODEGEN_AARCH64_H
 
 class AddressSpace;
+
 class codeGen;
 
 class insnCodeGen {
- public:
+public:
     static instructUnion *insnPtr(codeGen &gen);
     //static instructUnion *ptrAndInc(codeGen &gen);
 
     // All of these write into a buffer
     static void generateTrap(codeGen &gen);
+
     static void generateIllegal(codeGen &gen);
 
     static void generateBranch(codeGen &gen,
                                long jump_off,
                                bool link = false);
+
     static void generateBranch(codeGen &gen,
                                Address from,
                                Address to,
                                bool link = false);
+
     static void generateCall(codeGen &gen,
                              Address from,
                              Address to);
+
+    //TODO
+    static void generateLongBranch(codeGen &gen,
+                                   Address from,
+                                   Address to,
+                                   bool isCall);
 
     // Using the process trap mapping for a branch
     static void generateBranchViaTrap(codeGen &gen,
@@ -60,9 +70,65 @@ class insnCodeGen {
                                       Address to,
                                       bool isCall);
 
-    static void generateNOOP(codeGen &gen, unsigned size = 4);
+    /** TODO **/
+    static void generateLoadReg(codeGen &gen, Register rt,
+                                Register ra, Register rb);
+
+    static void generateStoreReg(codeGen &gen, Register rs,
+                                 Register ra, Register rb);
+
+    static void generateLoadReg64(codeGen &gen, Register rt,
+                                  Register ra, Register rb);
+
+    static void generateStoreReg64(codeGen &gen, Register rs,
+                                   Register ra, Register rb);
+
+    static void generateAddReg(codeGen &gen, int op,
+                               Register rt, Register ra, Register rb);
+
+    static void generateImm(codeGen &gen, int op,
+                            Register rt, Register ra, int immd);
+
+    static void generateMemAccess64(codeGen &gen, int op, int xop,
+                                    Register r1, Register r2, int immd);
+
+    static void generateLShift(codeGen &gen, Register rs,
+                               int shift, Register ra);
+
+    static void generateRShift(codeGen &gen, Register rs,
+                               int shift, Register ra);
+
+    static void generateLShift64(codeGen &gen, Register rs,
+                                 int shift, Register ra);
+
+    static void generateRShift64(codeGen &gen, Register rs,
+                                 int shift, Register ra);
+
+    static void generateSimple(codeGen &gen,
+                               int op, Register src1,
+                               Register src2, Register dest);
+
+    static void generateRelOp(codeGen &gen, int cond,
+                              int mode, Register rs1,
+                              Register rs2, Register rd);
+
+    static void loadImmIntoReg(codeGen &gen, Register rt,
+                               long value);
+
+    static void loadPartialImmIntoReg(codeGen &gen, Register rt,
+                                      long value);
+
+    static void generateMoveFromLR(codeGen &gen, Register rt);
+
+    static void generateMoveToLR(codeGen &gen, Register rs);
+
+    static void generateMoveToCR(codeGen &gen, Register rs);
+
+    /** *** **/
+
     static void generate(codeGen &gen, instruction &insn);
-    static void write(codeGen &gen, instruction &insn) { generate(gen,insn); }
+
+    static void write(codeGen &gen, instruction &insn) { generate(gen, insn); }
 
     static bool generate(codeGen &gen,
                          instruction &insn,
@@ -72,6 +138,7 @@ class insnCodeGen {
                          patchTarget *fallthroughOverride = NULL,
                          patchTarget *targetOverride = NULL);
 
+    //TODO
     static bool generateMem(codeGen &gen,
                             instruction &insn,
                             Address origAddr,
@@ -79,18 +146,32 @@ class insnCodeGen {
                             Register newLoadReg,
                             Register newStoreReg);
 
-  static bool modifyJump(Address target,
-                         NS_aarch64::instruction &insn, 
-                         codeGen &gen);
-  static bool modifyJcc(Address target,
-                        NS_aarch64::instruction &insn, 
-                         codeGen &gen);
-  static bool modifyCall(Address target,
-                         NS_aarch64::instruction &insn, 
-                         codeGen &gen);
-  static bool modifyData(Address target,
-                         NS_aarch64::instruction &insn, 
-                         codeGen &gen);
+    //TODO
+    // Routines to create/remove a new stack frame for getting scratch registers
+    static int
+    createStackFrame(codeGen &gen, int numRegs, pdvector <Register> &freeReg, pdvector <Register> &excludeReg);
+
+    //TODO
+    static void removeStackFrame(codeGen &gen);
+
+
+    static void generateNOOP(codeGen &gen, unsigned size = 4);
+
+    static bool modifyJump(Address target,
+                           NS_aarch64::instruction &insn,
+                           codeGen &gen);
+
+    static bool modifyJcc(Address target,
+                          NS_aarch64::instruction &insn,
+                          codeGen &gen);
+
+    static bool modifyCall(Address target,
+                           NS_aarch64::instruction &insn,
+                           codeGen &gen);
+
+    static bool modifyData(Address target,
+                           NS_aarch64::instruction &insn,
+                           codeGen &gen);
 };
 
 #endif
