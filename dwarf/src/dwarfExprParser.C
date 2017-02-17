@@ -43,19 +43,19 @@ using namespace std;
 namespace Dyninst {
 namespace Dwarf {
 
-bool decodeDwarfExpression(Dwarf_Op ** dwlocs,
+bool decodeDwarfExpression(Dwarf_Op * expr,
         Dwarf_Sword listlen,
         long int *initialStackValue,
         VariableLocation &loc,
         Dyninst::Architecture arch) {
     SymbolicDwarfResult res(loc, arch);
-    if (!decodeDwarfExpression(dwlocs, listlen, initialStackValue, 
+    if (!decodeDwarfExpression(expr, listlen, initialStackValue, 
                 res, arch)) return false;
     res.val();
     return true;
 }
 
-bool decodeDwarfExpression(Dwarf_Op ** dwlocs,
+bool decodeDwarfExpression(Dwarf_Op * expr,
         Dwarf_Sword listlen,
         long int *initialStackValue,
         ProcessReader *reader,
@@ -64,14 +64,14 @@ bool decodeDwarfExpression(Dwarf_Op ** dwlocs,
         Dyninst::Architecture arch,
         MachRegisterVal &end_result) {
     ConcreteDwarfResult res(reader, arch, pc, dbg);
-    if (!decodeDwarfExpression(dwlocs, listlen, initialStackValue, 
+    if (!decodeDwarfExpression(expr, listlen, initialStackValue, 
                 res, arch)) return false;
     if (res.err()) return false;
     end_result = res.val();
     return true;
 }
 
-bool decodeDwarfExpression(Dwarf_Op ** dwlocs,
+bool decodeDwarfExpression(Dwarf_Op * expr,
         Dwarf_Sword listlen,
         long int *initialStackValue,
         DwarfResult &cons,
@@ -87,7 +87,7 @@ bool decodeDwarfExpression(Dwarf_Op ** dwlocs,
         cons.pushUnsignedVal((Dyninst::MachRegisterVal) *initialStackValue);
     }
 
-    Dwarf_Op *locations = *dwlocs;
+    Dwarf_Op *locations = expr;
     unsigned count = listlen;
     for ( unsigned int i = 0; i < count; i++ ) 
     {
@@ -321,45 +321,47 @@ bool decodeDwarfExpression(Dwarf_Op ** dwlocs,
                 cons.pushOp(DwarfResult::GT);
                 break;
 
-            case DW_OP_bra: {
-                                // Conditional branch... 
-                                // It needs immediate evaluation so we can continue processing
-                                // the DWARF. 
-                                Dyninst::MachRegisterVal value;
+            case DW_OP_bra: 
+                {
+                    // Conditional branch... 
+                    // It needs immediate evaluation so we can continue processing
+                    // the DWARF. 
+                    Dyninst::MachRegisterVal value;
 
-                                if (!cons.eval(value)) {
-                                    // Error in dwarf, or we're doing static. I'm not worrying about
-                                    // encoding a conditional branch in static eval right now. 
-                                    return false;
-                                }
+                    if (!cons.eval(value)) {
+                        // Error in dwarf, or we're doing static. I'm not worrying about
+                        // encoding a conditional branch in static eval right now. 
+                        return false;
+                    }
 
-                                if (value == 0) break;
-                                // Do not break; fall through to skip
-                            }
-            case DW_OP_skip: {
-                                    int bytes = (int)(Dwarf_Sword)locations[i].number;
-                                    unsigned int target = (unsigned int) locations[i].offset + bytes;
+                    if (value == 0) break;
+                    // Do not break; fall through to skip
+                }
+            case DW_OP_skip: 
+                {
+                    int bytes = (int)(Dwarf_Sword)locations[i].number;
+                    unsigned int target = (unsigned int) locations[i].offset + bytes;
 
-                                    unsigned int j = i;
-                                    if ( bytes < 0 ) {
-                                        for ( j = i - 1; j >= 0; j-- ) {
-                                            if ( locations[j].offset == target ) { break; }
-                                        } /* end search backward */
-                                    } else {
-                                        for ( j = i + 1; j < count; j ++ ) {
-                                            if ( locations[j].offset == target ) { break; }
-                                        } /* end search forward */
-                                    } /* end if positive offset */
+                    unsigned int j = i;
+                    if ( bytes < 0 ) {
+                        for ( j = i - 1; /*FIXME j >= 0*/; j-- ) {
+                            if ( locations[j].offset == target ) { break; }
+                        } /* end search backward */
+                    } else {
+                        for ( j = i + 1; j < count; j ++ ) {
+                            if ( locations[j].offset == target ) { break; }
+                        } /* end search forward */
+                    } /* end if positive offset */
 
-                                    /* Because i will be incremented the next time around the loop. */
-                                    i = j - 1; 
-                                    break;
-                                }
+                    /* Because i will be incremented the next time around the loop. */
+                    i = j - 1; 
+                    break;
+                }
             case DW_OP_piece:
-                                // Should detect multiple of these...
-                                continue;
+                // Should detect multiple of these...
+                continue;
             default:
-                                return false;
+                return false;
         } /* end operand switch */
     } /* end iteration over Dwarf_Op entries. */
 

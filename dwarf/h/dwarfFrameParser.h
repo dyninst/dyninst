@@ -46,6 +46,7 @@ class VariableLocation;
 namespace Dwarf {
 
 class DwarfResult;
+
 typedef enum {
     FE_Bad_Frame_Data = 15,   /* to coincide with equivalent SymtabError */
     FE_No_Frame_Entry,
@@ -69,7 +70,8 @@ public:
 
     static Ptr create(::Dwarf * dbg, Architecture arch);
 
-    DwarfFrameParser(::Dwarf * dbg_, Architecture arch);
+    DwarfFrameParser(::Dwarf * dbg_, Architecture arch_);
+
     ~DwarfFrameParser();
 
     bool hasFrameDebugInfo();
@@ -103,24 +105,25 @@ public:
 private:
 
     bool getRegAtFrame_aux(Address pc,
-            Dwarf_FDE fde,
+            Dwarf_Frame* frame, 
             Dwarf_Half dwarf_reg,
             MachRegister orig_reg,
             DwarfResult &cons,
             Address &lowpc,
             FrameErrors_t &err_result);
 
-    bool getFDE(Address pc, 
-            Dwarf_FDE &fde, 
+    bool getFrame(Address pc, 
+            Dwarf_Frame* &frame, 
             Address &low,
             Address &high,
             FrameErrors_t &err_result);
 
     bool getDwarfReg(MachRegister reg,
-            Dwarf_FDE &fde,
+            Dwarf_Frame* frame, 
             Dwarf_Half &dwarf_reg,
             FrameErrors_t &err_result);
 
+#if 0
     bool handleExpression(Address pc,
             Dwarf_Sword registerNum,
             MachRegister origReg,
@@ -128,6 +131,7 @@ private:
             DwarfResult &cons,
             bool &done,
             FrameErrors_t &err_result);
+#endif
 
     void setupFdeData();
 
@@ -146,21 +150,21 @@ private:
 
     };
 
-    static std::map<frameParser_key, Ptr> frameParsers;
-
     typedef enum {
         dwarf_status_uninitialized,
         dwarf_status_error,
         dwarf_status_ok
     } dwarf_status_t;
+    
+    static std::map<frameParser_key, Ptr> frameParsers;
 
     ::Dwarf * dbg;
     
     Architecture arch;
 
     dwarf_status_t fde_dwarf_status;
-
-    std::vector<fde_cie_data> fde_data;
+    
+    std::vector<Dwarf_CFI *> fde_data;
 
 };
 

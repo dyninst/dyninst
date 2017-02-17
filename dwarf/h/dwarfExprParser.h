@@ -49,20 +49,20 @@ class DwarfResult;
 DYNDWARF_EXPORT int Register_DWARFtoMachineEnc32(int n);
 DYNDWARF_EXPORT int Register_DWARFtoMachineEnc64(int n);
 
-DYNDWARF_EXPORT bool decodeDwarfExpression(Dwarf_Op ** dwlocs,
+DYNDWARF_EXPORT bool decodeDwarfExpression(Dwarf_Op * expr,
         Dwarf_Sword listlen,
         long int *initialStackValue,
         Dyninst::VariableLocation &loc,
         Dyninst::Architecture arch);
 
-DYNDWARF_EXPORT bool decodeDwarfExpression(Dwarf_Op ** dwlocs,
+DYNDWARF_EXPORT bool decodeDwarfExpression(Dwarf_Op * expr,
         Dwarf_Sword listlen,
         long int *initialStackValue,
         Dyninst::ProcessReader *reader,
         Dyninst::Architecture arch,
         long int &end_result);
 
-DYNDWARF_EXPORT bool decodeDwarfExpression(Dwarf_Op ** dwlocs,
+DYNDWARF_EXPORT bool decodeDwarfExpression(Dwarf_Op * expr,
         Dwarf_Sword listlen,
         long int *initialStackValue,
         DwarfResult &res,
