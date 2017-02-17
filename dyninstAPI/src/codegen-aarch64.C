@@ -110,10 +110,10 @@ void insnCodeGen::generateBranch(codeGen &gen, Address from, Address to, bool li
     long disp = (to - from);
 
     if (ABS(disp) > MAX_BRANCH_OFFSET) {
-        return generateLongBranch(gen, from, to, link);
+        generateLongBranch(gen, from, to, link);
     }
 
-    return generateBranch(gen, disp, link);
+    generateBranch(gen, disp, link);
 
 }
 
@@ -121,11 +121,18 @@ void insnCodeGen::generateCall(codeGen &gen, Address from, Address to) {
     generateBranch(gen, from, to, true);
 }
 
+void insnCodeGen::generateLongBranch(codeGen &gen,
+                                     Address from,
+                                     Address to,
+                                     bool isCall) {
+    assert(0);
+}
+
 void insnCodeGen::generateBranchViaTrap(codeGen &gen, Address from, Address to, bool isCall) {
     long disp = to - from;
     if (ABS(disp) <= MAX_BRANCH_OFFSET) {
         // We shouldn't be here, since this is an internal-called-only func.
-        return generateBranch(gen, disp, isCall);
+        generateBranch(gen, disp, isCall);
     }
 
     assert (!isCall); // Can't do this yet
@@ -146,22 +153,150 @@ void insnCodeGen::generateBranchViaTrap(codeGen &gen, Address from, Address to, 
     }
 }
 
+void insnCodeGen::generateAddReg (codeGen & gen, int op, Register rt,
+				   Register ra, Register rb)
+{
+    assert(0);
+    instruction insn;
+    insn.clear();
+
+    insnCodeGen::generate(gen, insn);
+}
+
+void insnCodeGen::generateLoadReg(codeGen &gen, Register rt,
+                                  Register ra, Register rb)
+{
+    assert(0);
+//#warning "This function is not implemented yet!"
+}
+
+void insnCodeGen::generateStoreReg(codeGen &gen, Register rt,
+                                   Register ra, Register rb)
+{
+    assert(0);
+//#warning "This function is not implemented yet!"
+}
+
+void insnCodeGen::generateLoadReg64(codeGen &gen, Register rt,
+                                    Register ra, Register rb)
+{
+assert(0);
+//#warning "This function is not implemented yet!"
+}
+
+void insnCodeGen::generateStoreReg64(codeGen &gen, Register rs,
+                                     Register ra, Register rb)
+{
+assert(0);
+//#warning "This function is not implemented yet!"
+}
+
+void insnCodeGen::generateImm(codeGen &gen, int op, Register rt, Register ra, int immd)
+ {
+assert(0);
+  // something should be here to make sure immd is within bounds
+  // bound check really depends on op since we have both signed and unsigned
+  //   opcodes.
+  // We basically check if the top bits are 0 (unsigned, or positive signed)
+  // or 0xffff (negative signed)
+  // This is because we don't enforce calling us with LOW(immd), and
+  // signed ints come in with 0xffff set. C'est la vie.
+  // TODO: This should be a check that the high 16 bits are equal to bit 15,
+  // really.
+//#warning "This function is not implemented yet!"
+}
+
+void insnCodeGen::generateMemAccess64(codeGen &gen, int op, int xop, Register r1, Register r2, int immd)
+{
+assert(0);
+//#warning "This function is not implemented yet!"
+}
+
+// rlwinm ra,rs,n,0,31-n
+void insnCodeGen::generateLShift(codeGen &gen, Register rs, int shift, Register ra)
+{
+assert(0);
+//#warning "This function is not implemented yet!"
+}
+
+// rlwinm ra,rs,32-n,n,31
+void insnCodeGen::generateRShift(codeGen &gen, Register rs, int shift, Register ra)
+{
+assert(0);
+//#warning "This function is not implemented yet!"
+}
+
+// sld ra, rs, rb
+void insnCodeGen::generateLShift64(codeGen &gen, Register rs, int shift, Register ra)
+{
+assert(0);
+//#warning "This function is not implemented yet!"
+}
+
+// srd ra, rs, rb
+void insnCodeGen::generateRShift64(codeGen &gen, Register rs, int shift, Register ra)
+{
+assert(0);
+//not implemented
+}
+
 //
 // generate an instruction that does nothing and has to side affect except to
 //   advance the program counter.
 //
-void insnCodeGen::generateNOOP(codeGen &gen, unsigned size)
-{
-    assert ((size % instruction::size()) == 0);
+void insnCodeGen::generateNOOP(codeGen &gen, unsigned size) {
+    assert((size % instruction::size()) == 0);
     while (size) {
         instruction insn(NOOP);
-        insnCodeGen::generate(gen,insn);
+        insnCodeGen::generate(gen, insn);
         size -= instruction::size();
     }
 }
 
-bool insnCodeGen::generate(codeGen /*&gen*/,
-                           instruction /*&insn*/,
+void insnCodeGen::generateSimple(codeGen &gen, int op,
+                                 Register src1, Register src2,
+                                 Register dest)
+{
+assert(0);
+//#warning "This function is not implemented yet!"
+}
+
+void insnCodeGen::generateRelOp(codeGen &gen, int cond, int mode, Register rs1,
+                                Register rs2, Register rd)
+{
+assert(0);
+//#warning "This function is not implemented yet!"
+}
+
+// Given a value, load it into a register.
+void insnCodeGen::loadImmIntoReg(codeGen &gen, Register rt, long value)
+{
+assert(0);
+//#warning "This function is not implemented yet!"
+}
+
+// Helper method.  Fills register with partial value to be completed
+// by an operation with a 16-bit signed immediate.  Such as loads and
+// stores.
+void insnCodeGen::loadPartialImmIntoReg(codeGen &gen, Register rt, long value)
+{
+assert(0);
+//#warning "This function is not implemented yet!"
+}
+
+int insnCodeGen::createStackFrame(codeGen &gen, int numRegs, pdvector<Register>& freeReg, pdvector<Register>& excludeReg){
+assert(0);
+//#warning "This function is not implemented yet!"
+		return freeReg.size();
+}
+
+void insnCodeGen::removeStackFrame(codeGen &gen) {
+assert(0);
+//#warning "This function is not implemented yet!"
+}
+
+bool insnCodeGen::generate(codeGen &gen,
+                           instruction &insn,
                            AddressSpace * /*proc*/,
                            Address /*origAddr*/,
                            Address /*relocAddr*/,
@@ -179,7 +314,20 @@ bool insnCodeGen::generateMem(codeGen &,
                   Register) {
 assert(0);
 //#warning "This function is not implemented yet!"
-return false;
+return false; }
+
+void insnCodeGen::generateMoveFromLR(codeGen &gen, Register rt) {
+assert(0);
+//#warning "This function is not implemented yet!"
+}
+
+void insnCodeGen::generateMoveToLR(codeGen &gen, Register rs) {
+assert(0);
+//#warning "This function is not implemented yet!"
+}
+void insnCodeGen::generateMoveToCR(codeGen &gen, Register rs) {
+assert(0);
+//#warning "This function is not implemented yet!"
 }
 
 bool insnCodeGen::modifyJump(Address target,
@@ -215,7 +363,7 @@ bool insnCodeGen::modifyJcc(Address target,
         /*
          * A conditional branch of the form
          *    b.cond A
-         * C: ...next insn...
+         * C: ...next insn...:
          *  gets converted to
          *    b.cond B
          *    b      C
