@@ -60,6 +60,7 @@ namespace NS_aarch64 {
 
 #define BOp             0x05
 #define BCondOp         0x2A
+#define NOOP            0xD503201F
 
 #define INSN_SET(I, s, e, v)    ((I).setBits(s, e - s + 1, (v)))
 

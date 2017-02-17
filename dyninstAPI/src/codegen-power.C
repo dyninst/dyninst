@@ -737,6 +737,9 @@ bool insnCodeGen::modifyJump(Address target,
     return true;
 }
 
+//FIXME
+/*The bit twiddling in this function to deal with the various conditional-branch types on PPC is probably already being handled in one of thw widgets.
+Check and consider for update/removal. */
 bool insnCodeGen::modifyJcc(Address target,
 			    NS_power::instruction &insn,
 			    codeGen &gen) {
@@ -841,6 +844,8 @@ bool insnCodeGen::modifyCall(Address target,
     return modifyJcc(target, insn, gen);
 }
 
+//FIXME
+//This function is used for PC-relative and hence may not be required for PPC. Consider for update/removal.
 bool insnCodeGen::modifyData(Address /*target*/,
 			     NS_power::instruction &insn,
 			     codeGen &gen) {
