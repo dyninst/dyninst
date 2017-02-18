@@ -39,7 +39,7 @@
 
 #if defined(cap_dwarf)
 //#include "dwarf.h"
-#include "libdw.h"
+#include "elfutils/libdw.h"
 #include "dwarfHandle.h"
 #endif
 
@@ -522,10 +522,10 @@ class Object;
  public:
   void parseDwarfFileLineInfo();
   void parseLineInfoForAddr(Offset addr_to_find);
-  
- private:
-            void parseLineInfoForCU(Module::DebugInfoT cuDIE, LineInformation* li);
-            bool dwarf_parse_aranges(::Dwarf *dbg, std::set<Dwarf_Off>& dies_seen);
+
+private:
+    void parseLineInfoForCU(Module::DebugInfoT cuDIE, LineInformation* li);
+    bool dwarf_parse_aranges(::Dwarf *dbg, std::set<Dwarf_Off>& dies_seen);
 
   void parseDwarfTypes(Symtab *obj);
   void parseStabTypes();

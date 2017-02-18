@@ -36,7 +36,7 @@
 #include "dyntypes.h"
 #include "dyn_regs.h"
 #include "ProcReader.h"
-#include "libdw.h"
+#include "elfutils/libdw.h"
 #include "util.h"
 
 namespace Dyninst {

@@ -63,7 +63,7 @@
 #include <iomanip>
 #include <stdarg.h>
 
-#include "version.h"
+#include "dyninstversion.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;

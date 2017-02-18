@@ -33,7 +33,7 @@
 
 #include <stack>
 #include "dyn_regs.h"
-#include "libdw.h"
+#include "elfutils/libdw.h"
 #include "dwarf.h"
 #include "util.h"
 

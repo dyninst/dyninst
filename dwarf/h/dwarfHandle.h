@@ -31,7 +31,7 @@
 #if !defined(DWARF_HANDLE_H_)
 #define DWARF_HANDLE_H_
 
-#include "libdw.h"
+#include "elfutils/libdw.h"
 #include "dyntypes.h"
 #include <map>
 #include <string>

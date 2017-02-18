@@ -33,7 +33,7 @@
 #include "dwarfResult.h"
 #include "VariableLocation.h"
 #include "Types.h"
-#include "libdw.h"
+#include "elfutils/libdw.h"
 #include <stdio.h>
 #include <iostream>
 #include "debug_common.h" // dwarf_printf

@@ -67,7 +67,7 @@
 
 #if defined( cap_dwarf )
 #include "dwarf.h"
-#include "libdw.h"
+#include "elfutils/libdw.h"
 #endif
 
 #if defined(_MSC_VER)

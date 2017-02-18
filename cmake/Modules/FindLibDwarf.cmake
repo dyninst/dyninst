@@ -18,18 +18,14 @@ endif (LIBDWARF_LIBRARIES AND LIBDWARF_INCLUDE_DIRS)
 
 find_path (LIBDWARF_INCLUDE_DIR
   NAMES
-  libdw.h
+  elfutils/libdw.h
   HINTS
   ${LIBDWARF_INCLUDE_DIRS}
   PATHS
   /usr/include
-  /usr/include/elfutils
   /usr/local/include
   /opt/local/include
   /sw/include
-  /usr/local/include/elfutils
-  /opt/local/include/elfutils
-  /sw/include/elfutils
   ENV CPATH) # PATH and INCLUDE will also work
 
 find_library (LIBDWARF_LIBRARIES

@@ -32,7 +32,7 @@
 #include "elf.h"
 #include "libelf.h"
 #include "dwarf.h"
-#include "libdw.h"
+#include "elfutils/libdw.h"
 #include "dwarfExprParser.h"
 #include "dwarfFrameParser.h"
 
@@ -50,6 +50,7 @@
 #include "annotations.h"
 #include "debug.h"
 
+#if 0
 #ifndef DW_FRAME_CFA_COL3
 //  This is a newer feature of libdwarf (which has been causing some other 
 //  compilation problems locally) -- so we just fudge it for the moment
@@ -72,6 +73,7 @@ int dwarf_get_fde_info_for_cfa_reg3(
 }
 }
 #endif
+#endif
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -88,7 +90,7 @@ std::string convertCharToString(char *ptr)
   return str;	
 }
 
-extern void pd_dwarf_handler( Dwarf_Error, Dwarf_Ptr );
+/* extern void pd_dwarf_handler( Dwarf_Error, Dwarf_Ptr ); */
 
 void Object::parseDwarfTypes( Symtab *) 
 {

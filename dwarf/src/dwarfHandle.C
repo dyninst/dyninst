@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "libdw.h"
+#include "elfutils/libdw.h"
 #include "Elf_X.h"
 #include "dwarfHandle.h"
 #include "dwarfFrameParser.h"

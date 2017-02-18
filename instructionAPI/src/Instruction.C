@@ -48,7 +48,7 @@
 #include <functional>
 
 #include "common/src/arch-x86.h"
-#include "version.h"
+#include "dyninstversion.h"
 
 using namespace std;
 using namespace NS_x86;

@@ -110,7 +110,7 @@ bool DwarfWalker::parse() {
 
    /* First .debug_types (0), then .debug_info (1) */
    for (int i = 0; i < 2; ++i) {
-      Dwarf_Bool is_info = i;
+      bool is_info = i;
 
       /* NB: parseModule used to compute compile_offset as 11 bytes before the
        * first die offset, to account for the header.  This would need 23 bytes
@@ -172,7 +172,7 @@ bool DwarfWalker::parse() {
    return true;
 }
 
-bool DwarfWalker::parseModule(Dwarf_Bool is_info, Module *&fixUnknownMod) {
+bool DwarfWalker::parseModule(bool is_info, Module *&fixUnknownMod) {
    /* Obtain the module DIE. */
    Dwarf_Die moduleDIE;
    DWARF_FAIL_RET(dwarf_siblingof_b( dbg(), NULL, is_info, &moduleDIE, NULL ));
@@ -425,7 +425,7 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
 
       dwarf_printf("(0x%lx) Asking for sibling\n", id());
       Dwarf_Die siblingDwarf;
-      Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(entry());
+      bool is_info = dwarf_get_die_infotypes_flag(entry());
       int status =  dwarf_siblingof_b( dbg(), entry(), is_info, & siblingDwarf, NULL );
 
       DWARF_CHECK_RET(status == DW_DLV_ERROR);
@@ -446,7 +446,7 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
 
 bool DwarfWalker::parseCallsite()
 {
-   Dwarf_Bool has_line = false, has_file = false;
+   bool has_line = false, has_file = false;
    DWARF_FAIL_RET(dwarf_hasattr(entry(), DW_AT_call_file, &has_file, NULL));
    if (!has_file)
       return true;
@@ -845,7 +845,7 @@ bool DwarfWalker::parseVariable() {
    if (!findType(type, false)) return false;
    assert(type);
 
-   Dwarf_Unsigned variableLineNo;
+   unsigned long long variableLineNo;
    bool hasLineNumber = false;
    std::string fileName;
 
@@ -899,7 +899,7 @@ void DwarfWalker::createGlobalVariable(const vector<VariableLocation> &locs, Typ
 }
 
 void DwarfWalker::createLocalVariable(const vector<VariableLocation> &locs, Type *type,
-                                      Dwarf_Unsigned variableLineNo,
+                                      unsigned long long variableLineNo,
                                       const string &fileName) {
    localVar * newVariable = new localVar(curName(),
                                          type,
@@ -974,7 +974,7 @@ bool DwarfWalker::parseFormalParam() {
    Type *paramType = NULL;
    if (!findType(paramType, false)) return false;
 
-   Dwarf_Unsigned lineNo = 0;
+   unsigned long long lineNo = 0;
    bool hasLineNumber = false;
    std::string fileName;
    if (!getLineInformation(lineNo, hasLineNumber, fileName)) return false;
@@ -983,7 +983,7 @@ bool DwarfWalker::parseFormalParam() {
    return true;
 }
 
-void DwarfWalker::createParameter(const vector<VariableLocation> &locs, Type *paramType, Dwarf_Unsigned lineNo,
+void DwarfWalker::createParameter(const vector<VariableLocation> &locs, Type *paramType, unsigned long long lineNo,
                                   const string &fileName) {
    localVar * newParameter = new localVar(curName(),
                                           paramType,
@@ -1327,7 +1327,7 @@ bool DwarfWalker::parseTypeReferences() {
 }
 
 bool DwarfWalker::hasDeclaration(bool &isDecl) {
-   Dwarf_Bool tmp;
+   bool tmp;
    DWARF_FAIL_RET(dwarf_hasattr(entry(),
                                 DW_AT_declaration,
                                 &tmp, NULL ));
@@ -1357,7 +1357,7 @@ bool DwarfWalker::handleAbstractOrigin(bool &isAbstract) {
    dwarf_printf("(0x%lx) Checking for abstract origin\n", id());
 
    isAbstract = false;
-   Dwarf_Bool isAbstractOrigin;
+   bool isAbstractOrigin;
 
    DWARF_FAIL_RET(dwarf_hasattr(entry(),
                             DW_AT_abstract_origin,
@@ -1374,7 +1374,7 @@ bool DwarfWalker::handleAbstractOrigin(bool &isAbstract) {
    Dwarf_Off abstractOffset;
    if (!findDieOffset( abstractAttribute, abstractOffset )) return false;
 
-   Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(entry());
+   bool is_info = dwarf_get_die_infotypes_flag(entry());
    DWARF_FAIL_RET(dwarf_offdie_b( dbg(), abstractOffset, is_info, & absE, NULL));
 
    dwarf_dealloc( dbg() , abstractAttribute, DW_DLA_ATTR );
@@ -1390,7 +1390,7 @@ bool DwarfWalker::handleSpecification(bool &hasSpec) {
    dwarf_printf("(0x%lx) Checking for separate specification\n", id());
    hasSpec = false;
 
-   Dwarf_Bool hasSpecification;
+   bool hasSpecification;
    DWARF_FAIL_RET(dwarf_hasattr( entry(), DW_AT_specification, & hasSpecification, NULL ));
 
    if (!hasSpecification) return true;
@@ -1405,7 +1405,7 @@ bool DwarfWalker::handleSpecification(bool &hasSpec) {
    Dwarf_Off specOffset;
    if (!findDieOffset( specAttribute, specOffset )) return false;
 
-   Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(entry());
+   bool is_info = dwarf_get_die_infotypes_flag(entry());
    DWARF_FAIL_RET(dwarf_offdie_b( dbg(), specOffset, is_info, & specE, NULL ));
 
    dwarf_dealloc( dbg(), specAttribute, DW_DLA_ATTR );
@@ -1497,7 +1497,7 @@ bool DwarfWalker::getReturnType(bool hasSpecification, Type *&returnType) {
    Dwarf_Attribute typeAttribute;
    int status = DW_DLV_OK;
 
-   Dwarf_Bool is_info = true;
+   bool is_info = true;
    if (hasSpecification) {
       is_info = dwarf_get_die_infotypes_flag(specEntry());
       status = dwarf_attr( specEntry(), DW_AT_type, & typeAttribute, NULL );
@@ -1588,7 +1588,7 @@ bool DwarfWalker::findType(Type *&type, bool defaultToVoid) {
       return false;
    }
 
-   Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(specEntry());
+   bool is_info = dwarf_get_die_infotypes_flag(specEntry());
 
    bool ret = findAnyType( typeAttribute, is_info, type );
    dwarf_dealloc( dbg(), typeAttribute, DW_DLA_ATTR );
@@ -1622,12 +1622,12 @@ bool DwarfWalker::findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset) {
 }
 
 bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute,
-                              Dwarf_Bool is_info, Type *&type) {
+                              bool is_info, Type *&type) {
    /* If this is a ref_sig8, look for the type elsewhere. */
    Dwarf_Half form;
    DWARF_FAIL_RET(dwarf_whatform(typeAttribute, &form, NULL));
    if (form == DW_FORM_ref_sig8) {
-      Dwarf_Sig8 signature;
+      char signature[8];
       DWARF_FAIL_RET(dwarf_formsig8(typeAttribute, &signature, NULL));
       return findSig8Type(&signature, type);
    }
@@ -1658,7 +1658,7 @@ bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute,
    return true;
 }
 
-bool DwarfWalker::getLineInformation(Dwarf_Unsigned &variableLineNo,
+bool DwarfWalker::getLineInformation(unsigned long long &variableLineNo,
                                      bool &hasLineNumber,
                                      std::string &fileName) {
    Dwarf_Attribute fileDeclAttribute;
@@ -1670,7 +1670,7 @@ bool DwarfWalker::getLineInformation(Dwarf_Unsigned &variableLineNo,
    }
    else if (status == DW_DLV_OK) {
       StringTablePtr files = srcFiles();
-      Dwarf_Unsigned fileNameDeclVal;
+      unsigned long long fileNameDeclVal;
       DWARF_FAIL_RET(dwarf_formudata(fileDeclAttribute, &fileNameDeclVal, NULL));
       dwarf_dealloc( dbg(), fileDeclAttribute, DW_DLA_ATTR );
       if (fileNameDeclVal >= files->size() || fileNameDeclVal <= 0) {
@@ -1703,7 +1703,7 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
                                      std::vector<VariableLocation> &locs) {
    dwarf_printf("(0x%lx) decodeLocationList for attr %d\n", id(), attr);
 
-   Dwarf_Bool hasAttr = false;
+   bool hasAttr = false;
    DWARF_FAIL_RET(dwarf_hasattr(entry(), attr, &hasAttr, NULL));
 
    if (!hasAttr) {
@@ -1844,7 +1844,7 @@ bool DwarfWalker::findString(Dwarf_Half attr,
 }
 
 bool DwarfWalker::findConstant(Dwarf_Half attr, Address &value, Dwarf_Die entry, Dwarf dbg) {
-   Dwarf_Bool has = false;
+   bool has = false;
    DWARF_FAIL_RET(dwarf_hasattr(entry, attr, &has, NULL));
    if (!has) return false;
 
@@ -1885,7 +1885,7 @@ bool DwarfWalker::findConstantWithForm(Dwarf_Attribute &locationAttribute,
       case DW_FORM_data4:
       case DW_FORM_data8:
       case DW_FORM_udata:
-         Dwarf_Unsigned u_tmp;
+         unsigned long long u_tmp;
          DWARF_FAIL_RET(dwarf_formudata(locationAttribute, &u_tmp, NULL));
          value = (Address) u_tmp;
          return true;
@@ -1934,12 +1934,12 @@ bool DwarfWalker::constructConstantVariableLocation(Address value,
 }
 
 bool DwarfWalker::findSize(unsigned &size) {
-   Dwarf_Bool hasSize;
+   bool hasSize;
    DWARF_FAIL_RET(dwarf_hasattr(entry(), DW_AT_byte_size, &hasSize, NULL));
    if (!hasSize) return false;
 
    Dwarf_Attribute byteSizeAttr;
-   Dwarf_Unsigned byteSize;
+   unsigned long long byteSize;
    DWARF_FAIL_RET(dwarf_attr( specEntry(), DW_AT_byte_size, & byteSizeAttr, NULL ));
 
    DWARF_FAIL_RET(dwarf_formudata( byteSizeAttr, & byteSize, NULL ));
@@ -1960,7 +1960,7 @@ bool DwarfWalker::findVisibility(visibility_t &visibility) {
       return true;
    }
 
-   Dwarf_Unsigned visValue;
+   unsigned long long visValue;
    DWARF_FAIL_RET(dwarf_formudata( visAttr, & visValue, NULL ));
 
    switch( visValue ) {
@@ -2006,7 +2006,7 @@ bool DwarfWalker::fixBitFields(std::vector<VariableLocation> &locs,
 
    if ( status == DW_DLV_OK && locs.size() )
    {
-      Dwarf_Unsigned memberOffset_du = locs[0].frameOffset;
+      unsigned long long memberOffset_du = locs[0].frameOffset;
 
       DWARF_FAIL_RET(dwarf_formudata( bitOffset, &memberOffset_du, NULL ));
 
@@ -2015,7 +2015,7 @@ bool DwarfWalker::fixBitFields(std::vector<VariableLocation> &locs,
       Dwarf_Attribute bitSize;
       DWARF_FAIL_RET(dwarf_attr( entry(), DW_AT_bit_size, & bitSize, NULL ));
 
-      Dwarf_Unsigned memberSize_du = size;
+      unsigned long long memberSize_du = size;
       DWARF_FAIL_RET(dwarf_formudata( bitSize, &memberSize_du, NULL ));
 
       dwarf_dealloc( dbg(), bitSize, DW_DLA_ATTR );
@@ -2088,7 +2088,7 @@ bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
 
    /* Look for the lower bound. */
    Dwarf_Attribute lowerBoundAttribute;
-   Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(entry);
+   bool is_info = dwarf_get_die_infotypes_flag(entry);
    int status = dwarf_attr( entry, DW_AT_lower_bound, & lowerBoundAttribute, NULL );
    DWARF_CHECK_RET(status == DW_DLV_ERROR);
 
@@ -2159,7 +2159,7 @@ typeArray *DwarfWalker::parseMultiDimensionalArray(Dwarf_Die range,
 
   /* Does the recursion continue? */
   Dwarf_Die nextSibling;
-  Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(range);
+  bool is_info = dwarf_get_die_infotypes_flag(range);
   int status = dwarf_siblingof_b( dbg(), range, is_info, & nextSibling, NULL );
   DWARF_CHECK_RET_VAL(status == DW_DLV_ERROR, NULL);
 
@@ -2195,7 +2195,7 @@ typeArray *DwarfWalker::parseMultiDimensionalArray(Dwarf_Die range,
   return outerType;
 } /* end parseMultiDimensionalArray() */
 
-bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, Dwarf_Bool is_info,
+bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, bool is_info,
                                 std::string &boundString )
 {
    Dwarf_Half boundForm;
@@ -2211,7 +2211,7 @@ bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, Dwarf_Bool is_in
          dwarf_printf("(0x%lx) Decoding form %d with formudata\n",
                       id(), boundForm);
 
-         Dwarf_Unsigned constantBound;
+         unsigned long long constantBound;
          DWARF_FAIL_RET(dwarf_formudata( boundAttribute, & constantBound, NULL ));
          char bString[40];
          sprintf(bString, "%llu", (unsigned long long)constantBound);
@@ -2257,7 +2257,7 @@ bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, Dwarf_Bool is_in
          DWARF_CHECK_RET(status == DW_DLV_ERROR);
 
          if ( status == DW_DLV_OK ) {
-            Dwarf_Unsigned constBoundValue;
+            unsigned long long constBoundValue;
             DWARF_FAIL_RET(dwarf_formudata( constBoundAttribute, & constBoundValue, NULL ));
 
             char bString[40];
@@ -2294,7 +2294,7 @@ bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, Dwarf_Bool is_in
 
 bool DwarfWalker::decodeExpression(Dwarf_Attribute &attr,
 				   std::vector<VariableLocation> &locs) {
-  Dwarf_Unsigned expr_len;
+  unsigned long long expr_len;
   Dwarf_Ptr expr_ptr;
   DWARF_FAIL_RET(dwarf_formexprloc(attr, &expr_len, &expr_ptr, NULL));
   unsigned char *bitstream = (unsigned char *) expr_ptr;
@@ -2497,7 +2497,7 @@ typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info)
 
 typeId_t DwarfWalker::type_id()
 {
-  Dwarf_Bool is_info = dwarf_get_die_infotypes_flag(entry());
+  bool is_info = dwarf_get_die_infotypes_flag(entry());
   return get_type_id(offset(), is_info);
 }
 
@@ -2507,7 +2507,7 @@ void DwarfWalker::findAllSig8Types()
     * In DWARF4, only .debug_types contains DW_TAG_type_unit,
     * but DWARF5 is considering them for .debug_info too.*/
    for (int i = 0; i < 2; ++i) {
-      Dwarf_Bool is_info = i;
+      bool is_info = i;
       Dwarf_Error err;
       compile_offset = next_cu_header = 0;
 
@@ -2528,7 +2528,7 @@ void DwarfWalker::findAllSig8Types()
    }
 }
 
-bool DwarfWalker::parseModuleSig8(Dwarf_Bool is_info)
+bool DwarfWalker::parseModuleSig8(bool is_info)
 {
    /* Obtain the type DIE. */
    Dwarf_Die typeDIE;
@@ -2553,7 +2553,7 @@ bool DwarfWalker::parseModuleSig8(Dwarf_Bool is_info)
    return true;
 }
 
-bool DwarfWalker::findSig8Type(Dwarf_Sig8 *signature, Type *&returnType)
+bool DwarfWalker::findSig8Type(char ** signature, Type *&returnType)
 {
    uint64_t sig8 = * reinterpret_cast<uint64_t*>(signature);
    auto it = sig8_type_ids_.find(sig8);
