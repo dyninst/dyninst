@@ -58,7 +58,6 @@ public:
                              Address from,
                              Address to);
 
-    //TODO
     static void generateLongBranch(codeGen &gen,
                                    Address from,
                                    Address to,
@@ -86,9 +85,6 @@ public:
     static void generateAddReg(codeGen &gen, int op,
                                Register rt, Register ra, Register rb);
 
-    static void generateImm(codeGen &gen, int op,
-                            Register rt, Register ra, int immd);
-
     static void generateMemAccess64(codeGen &gen, int op, int xop,
                                     Register r1, Register r2, int immd);
 
@@ -113,7 +109,7 @@ public:
                               Register rs2, Register rd);
 
     static void loadImmIntoReg(codeGen &gen, Register rt,
-                               long value);
+                               unsigned long value);
 
     static void loadPartialImmIntoReg(codeGen &gen, Register rt,
                                       long value);
@@ -125,6 +121,8 @@ public:
     static void generateMoveToCR(codeGen &gen, Register rs);
 
     /** *** **/
+
+    static void generateMove(codeGen &gen, int imm16, int shift, Register rd, MoveOp movOp);
 
     static void generate(codeGen &gen, instruction &insn);
 
@@ -172,6 +170,12 @@ public:
     static bool modifyData(Address target,
                            NS_aarch64::instruction &insn,
                            codeGen &gen);
+
+    enum MoveOp {
+        MovOp_MOVK = 0xE5,
+        MovOp_MOVN = 0x25,
+        MovOp_MOVZ = 0xA5
+    };
 };
 
 #endif

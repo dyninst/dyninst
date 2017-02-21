@@ -60,7 +60,17 @@ namespace NS_aarch64 {
 
 #define BOp             0x05
 #define BCondOp         0x2A
+#define BRegOp          0xD61F
 #define NOOP            0xD503201F
+
+#define MIN_IMM8    (-32768)
+#define MAX_IMM8    (32767)
+#define MAX_IMM16   (-65536)
+#define MAX_IMM16   (65535)
+#define MIN_IMM32   (-2147483647 - 1)
+#define MAX_IMM32   (2147483647)
+#define MAX_IMM48   ((long)(-1 >> 17))
+#define MIN_IMM48   ((long)(~MAX_IMM48))
 
 #define INSN_SET(I, s, e, v)    ((I).setBits(s, e - s + 1, (v)))
 
