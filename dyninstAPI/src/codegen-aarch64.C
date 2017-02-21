@@ -125,7 +125,38 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
                                      Address from,
                                      Address to,
                                      bool isCall) {
-    assert(0);
+    instPoint *point = gen.point();
+    if(!point)
+        generateBranchViaTrap(gen, from, to, isCall);
+    assert(point);
+
+    registerSpace *rs = registerSpace::actualRegSpace(point);
+    gen.setRegisterSpace(rs);
+
+    Register scratch = rs->getScratchRegister(gen, true);
+    if (scratch == REG_NULL) {
+        fprintf(stderr, " %s[%d] No registers. Calling generateBranchViaTrap...\n", FILE__, __LINE__);
+        generateBranchViaTrap(gen, from, to, isCall);
+    }
+
+    insnCodeGen::loadImmIntoReg(gen, scratch, to);
+
+    instruction branchInsn;
+    branchInsn.clear();
+
+    //Set bits which are 0 for both BR and BLR
+    INSN_SET(branchInsn, 0, 4, 0);
+    INSN_SET(branchInsn, 10, 15, 0);
+
+    //Set register
+    INSN_SET(branchInsn, 5, 9, scratch);
+
+    //Set other bits . Basically, these are the opcode bits. The only difference between BR and BLR is that bit 21 is 1 for BLR.
+    INSN_SET(branchInsn, 16, 31, BRegOp);
+    if(isCall)
+        INSN_SET(branchInsn, 21, 21, 1);
+
+    insnCodeGen::generate(gen, branchInsn);
 }
 
 void insnCodeGen::generateBranchViaTrap(codeGen &gen, Address from, Address to, bool isCall) {
@@ -191,19 +222,27 @@ assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-void insnCodeGen::generateImm(codeGen &gen, int op, Register rt, Register ra, int immd)
- {
-assert(0);
-  // something should be here to make sure immd is within bounds
-  // bound check really depends on op since we have both signed and unsigned
-  //   opcodes.
-  // We basically check if the top bits are 0 (unsigned, or positive signed)
-  // or 0xffff (negative signed)
-  // This is because we don't enforce calling us with LOW(immd), and
-  // signed ints come in with 0xffff set. C'est la vie.
-  // TODO: This should be a check that the high 16 bits are equal to bit 15,
-  // really.
-//#warning "This function is not implemented yet!"
+void insnCodeGen::generateMove(codeGen &gen, int imm16, int shift, Register rd, MoveOp movOp)
+{
+    instruction insn;
+    insn.clear();
+
+    //Set the sf bit to 1 since we always want to use 64-bit registers
+    INSN_SET(insn, 31, 31, 1);
+
+    //Set opcode
+    INSN_SET(insn, 23, 30, movOp);
+
+    //Set immediate
+    INSN_SET(insn, 5, 20, imm16);
+
+    //Set register
+    INSN_SET(insn, 0, 4, rd);
+
+    //Set shift amount for immediate
+    INSN_SET(insn, 21, 22, (shift & 0x3));
+
+    insnCodeGen::generate(gen, insn);
 }
 
 void insnCodeGen::generateMemAccess64(codeGen &gen, int op, int xop, Register r1, Register r2, int immd)
@@ -268,11 +307,17 @@ assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-// Given a value, load it into a register.
-void insnCodeGen::loadImmIntoReg(codeGen &gen, Register rt, long value)
+void insnCodeGen::loadImmIntoReg(codeGen &gen, Register rt, unsigned long value)
 {
-assert(0);
-//#warning "This function is not implemented yet!"
+    assert(value >= 0);
+
+    insnCodeGen::generateMove(gen, (value & 0xFFFF), 0, rt, MovOp_MOVZ);
+    if(value > MAX_IMM16)
+        insnCodeGen::generateMove(gen, ((value >> 16) & 0xFFFF), 0x1, rt, MovOp_MOVK);
+    if(value > MAX_IMM32) {
+        insnCodeGen::generateMove(gen, ((value >> 32) & 0xFFFF), 0x2, rt, MoveOp_MOVK);
+        insnCodeGen::generateMove(gen, ((value >> 48) & 0xFFFF), 0x3, rt, MoveOp_MOVK);
+    }
 }
 
 // Helper method.  Fills register with partial value to be completed
