@@ -74,8 +74,7 @@ using namespace std;
    }
 #define DWARF_CHECK_RET(x) DWARF_CHECK_RET_VAL(x, false)
 
-DwarfWalker::DwarfWalker(Symtab *symtab, Dwarf dbg)
-   :
+DwarfWalker::DwarfWalker(Symtab *symtab, ::Dwarf * dbg) :
    DwarfParseActions(symtab, dbg),
    srcFileList_(NULL),
    is_mangled_name_(false),
@@ -99,77 +98,98 @@ DwarfWalker::~DwarfWalker() {
 
 
 bool DwarfWalker::parse() {
-   dwarf_printf("Parsing DWARF for %s\n",filename().c_str());
+    dwarf_printf("Parsing DWARF for %s\n",filename().c_str());
 
-   /* Start the dwarven debugging. */
-   Module *fixUnknownMod = NULL;
-   mod() = NULL;
+    /* Start the dwarven debugging. */
+    Module *fixUnknownMod = NULL;
+    mod() = NULL;
 
-   /* Prepopulate type signatures for DW_FORM_ref_sig8 */
-   findAllSig8Types();
+    /* Prepopulate type signatures for DW_FORM_ref_sig8 */
+    findAllSig8Types();
 
-   /* First .debug_types (0), then .debug_info (1) */
-   for (int i = 0; i < 2; ++i) {
-      bool is_info = i;
+    /* First .debug_types (0), then .debug_info (1) */
+    for (int i = 0; i < 2; ++i) {
+        bool is_info = i;
 
-      /* NB: parseModule used to compute compile_offset as 11 bytes before the
-       * first die offset, to account for the header.  This would need 23 bytes
-       * instead for 64-bit format DWARF, and even more for type units.
-       * (See DWARF4 sections 7.4 & 7.5.1.)
-       * But more directly, we know the first CU is just at 0x0, and each
-       * following CU is already reported in next_cu_header.
-       */
-      compile_offset = next_cu_header = 0;
-      Dwarf_Error err;
+        /* NB: parseModule used to compute compile_offset as 11 bytes before the
+         * first die offset, to account for the header.  This would need 23 bytes
+         * instead for 64-bit format DWARF, and even more for type units.
+         * (See DWARF4 sections 7.4 & 7.5.1.)
+         * But more directly, we know the first CU is just at 0x0, and each
+         * following CU is already reported in next_cu_header.
+         */
+        compile_offset = next_cu_header = 0;
+        Dwarf_Error err;
 
-      /* Iterate over the compilation-unit headers. */
-      while (dwarf_next_cu_header_c(dbg(), is_info,
-                                    &cu_header_length,
-                                    &version,
-                                    &abbrev_offset,
-                                    &addr_size,
-                                    &offset_size,
-                                    &extension_size,
-                                    &signature,
-                                    &typeoffset,
-                                    &next_cu_header, &err) == DW_DLV_OK ) {
-         push();
-         bool ret = parseModule(is_info, fixUnknownMod);
-         pop();
-         if (!ret) return false;
-         compile_offset = next_cu_header;
-      }
-   }
+        /* Iterate over the compilation-unit headers. */
+        /* Old code previous to libdw
+        while (dwarf_next_cu_header_c(dbg(), is_info,
+                    &cu_header_length,
+                    &version,
+                    &abbrev_offset,
+                    &addr_size,
+                    &offset_size,
+                    &extension_size,
+                    &signature,
+                    &typeoffset,
+                    &next_cu_header, &err) == DW_DLV_OK ) {
+            push();
+            bool ret = parseModule(is_info, fixUnknownMod);
+            pop();
+            if (!ret) return false;
+            compile_offset = next_cu_header;
+        }
+        */
+        size_t cu_header_size;
+        for(Dwarf_Off cu_off = 0, next_cu_off;
+                dwarf_nextcu(dbg, cu_off, &next_cu_off, &cu_header_size,
+                    NULL, NULL, NULL) == 0;
+                cu_off = next_cu_off)
+        {
+            Dwarf_Off cu_die_off = cu_off + cu_header_size;
+            Dwarf_Die cu_die, *cu_die_p; 
+            cu_die_p = dwarf_offdie(dbg, cu_die_off, &cu_die);
+            assert(cu_die_p  == NULL);
+            if(dies_seen.count(cu_die_off) != 0) continue;
 
-   if (!fixUnknownMod)
-      return true;
+            push();
+            bool ret = parseModule(is_info, fixUnknownMod);
+            pop();
+            if (!ret) return false;
+            compile_offset = next_cu_header;
+        }       
 
-   dwarf_printf("Fixing types for final module %s\n", fixUnknownMod->fileName().c_str());
+    }
 
-   /* Fix type list. */
-   typeCollection *moduleTypes = typeCollection::getModTypeCollection(fixUnknownMod);
-   assert(moduleTypes);
-   dyn_hash_map< int, Type * >::iterator typeIter =  moduleTypes->typesByID.begin();
-   for (;typeIter!=moduleTypes->typesByID.end();typeIter++)
-   {
-      typeIter->second->fixupUnknowns(fixUnknownMod);
-   } /* end iteration over types. */
+    if (!fixUnknownMod)
+        return true;
 
-   /* Fix the types of variables. */
-   std::string variableName;
-   dyn_hash_map< std::string, Type * >::iterator variableIter = moduleTypes->globalVarsByName.begin();
-   for (;variableIter!=moduleTypes->globalVarsByName.end();variableIter++)
-   {
-      if (variableIter->second->getDataClass() == dataUnknownType &&
-          moduleTypes->findType( variableIter->second->getID() ) != NULL )
-      {
-         moduleTypes->globalVarsByName[ variableIter->first ]
-            = moduleTypes->findType( variableIter->second->getID() );
-      } /* end if data class is unknown but the type exists. */
-   } /* end iteration over variables. */
+    dwarf_printf("Fixing types for final module %s\n", fixUnknownMod->fileName().c_str());
 
-   moduleTypes->setDwarfParsed();
-   return true;
+    /* Fix type list. */
+    typeCollection *moduleTypes = typeCollection::getModTypeCollection(fixUnknownMod);
+    assert(moduleTypes);
+    dyn_hash_map< int, Type * >::iterator typeIter =  moduleTypes->typesByID.begin();
+    for (;typeIter!=moduleTypes->typesByID.end();typeIter++)
+    {
+        typeIter->second->fixupUnknowns(fixUnknownMod);
+    } /* end iteration over types. */
+
+    /* Fix the types of variables. */
+    std::string variableName;
+    dyn_hash_map< std::string, Type * >::iterator variableIter = moduleTypes->globalVarsByName.begin();
+    for (;variableIter!=moduleTypes->globalVarsByName.end();variableIter++)
+    {
+        if (variableIter->second->getDataClass() == dataUnknownType &&
+                moduleTypes->findType( variableIter->second->getID() ) != NULL )
+        {
+            moduleTypes->globalVarsByName[ variableIter->first ]
+                = moduleTypes->findType( variableIter->second->getID() );
+        } /* end if data class is unknown but the type exists. */
+    } /* end iteration over variables. */
+
+    moduleTypes->setDwarfParsed();
+    return true;
 }
 
 bool DwarfWalker::parseModule(bool is_info, Module *&fixUnknownMod) {

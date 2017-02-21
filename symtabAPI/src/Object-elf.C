@@ -2482,24 +2482,21 @@ bool Object::fix_global_symbol_modules_static_dwarf()
         return false;
     ::Dwarf *dbg = *dbg_ptr;
     std::set<Dwarf_Off> dies_seen;
-    Dwarf_Off cu_die_off;
-    Dwarf_Die cu_die;
     dwarf_parse_aranges(dbg, dies_seen);
+
     /* Iterate over the compilation-unit headers. */
-    while (dwarf_next_cu_header_c(dbg, bool(true),
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  &cu_die_off, NULL) == DW_DLV_OK )
+    size_t cu_header_size;
+    for(Dwarf_Off cu_off = 0, next_cu_off;
+        dwarf_nextcu(dbg, cu_off, &next_cu_off, &cu_header_size,
+            NULL, NULL, NULL) == 0;
+        cu_off = next_cu_off)
     {
-        int status = dwarf_siblingof_b(dbg, NULL, bool(true), &cu_die, NULL);
-        assert(status == DW_DLV_OK);
-        if(dies_seen.find(cu_die_off) != dies_seen.end()) continue;
+        Dwarf_Off cu_die_off = cu_off + cu_header_size;
+        Dwarf_Die cu_die, *cu_die_p; 
+        cu_die_p = dwarf_offdie(dbg, cu_die_off, &cu_die);
+        assert(cu_die_p  == NULL);
+        if(dies_seen.count(cu_die_off) != 0) continue;
+        
         std::string modname;
         if(!DwarfWalker::findDieName(dbg, cu_die, modname))
         {
@@ -2514,33 +2511,36 @@ bool Object::fix_global_symbol_modules_static_dwarf()
         std::vector<AddressRange> mod_ranges = DwarfWalker::getDieRanges(dbg, cu_die, modLow);
         Module* m = associated_symtab->getOrCreateModule(modname, modLow);
         for(auto r = mod_ranges.begin();
-                r != mod_ranges.end();
-                ++r)
+            r != mod_ranges.end(); ++r)
         {
             m->addRange(r->first, r->second);
         }
         if(!m->hasRanges())
         {
 //            cout << "No ranges for module " << modname << ", need to extract from statements\n";
-            Dwarf_Line* lines;
-            Dwarf_Sword num_lines;
-            if(dwarf_srclines(cu_die, &lines, &num_lines, NULL) == DW_DLV_OK)
+            Dwarf_Lines* lines;
+            size_t num_lines;
+            if(dwarf_getsrclines(&cu_die, &lines, &num_lines) == 0)
             {
                 Dwarf_Addr low;
-                for(int i = 0; i < num_lines; ++i)
+                for(size_t i = 0; i < num_lines; ++i)
                 {
-                    if((dwarf_lineaddr(lines[i], &low, NULL) == DW_DLV_OK) && low)
+                    Dwarf_Line *line = dwarf_onesrcline(lines, i);
+                    if((dwarf_lineaddr(line, &low) == 0) && low)
                     {
                         bool is_end = false;
                         Dwarf_Addr high = low;
-                        int result = DW_DLV_OK;
+                        int result = 0;
                         for(; (i < num_lines) &&
                                       (is_end == false) &&
-                                      (result == DW_DLV_OK); ++i)
+                                      (result == 0); ++i)
                         {
-                            result = dwarf_lineendsequence(lines[i], &is_end, NULL);
-                            if(result == DW_DLV_OK && is_end) {
-                                result = dwarf_lineaddr(lines[i], &high, NULL);
+                            line = dwarf_onesrcline(lines, i);
+                            if(!line) continue;
+
+                            result = dwarf_lineendsequence(line, &is_end);
+                            if(result == 0 && is_end) {
+                                result = dwarf_lineaddr(line, &high);
                             }
 
                         }
@@ -2549,13 +2549,11 @@ bool Object::fix_global_symbol_modules_static_dwarf()
                         m->addRange(low, high);
                     }
                 }
-                dwarf_srclines_dealloc(dbg, lines, num_lines);
             }
         }
         m->addDebugInfo(cu_die);
         DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
         dies_seen.insert(cu_die_off);
-
     }
 
     return true;
@@ -3159,6 +3157,7 @@ bool parseCompilerType(Object *objPtr)
 
 #if (defined(os_linux) || defined(os_freebsd))
 
+#if 0 // TODO
 static unsigned long read_uleb128(const unsigned char *data, unsigned *bytes_read)
 {
     unsigned long result = 0;
@@ -3656,6 +3655,7 @@ static bool read_except_table_gcc2(Elf_X_Shdr *except_table,
     }
     return true;
 }
+#endif // TODO
 
 struct  exception_compare: public binary_function<const ExceptionBlock &, const ExceptionBlock &, bool>
 {
@@ -3672,11 +3672,12 @@ struct  exception_compare: public binary_function<const ExceptionBlock &, const 
  *  'eh_frame' should point to the .eh_frame section
  *  the addresses will be pushed into 'addresses'
  **/
-bool Object::find_catch_blocks(Elf_X_Shdr *eh_frame,
-                               Elf_X_Shdr *except_scn,
-                               Address txtaddr, Address dataaddr,
-                               std::vector<ExceptionBlock> &catch_addrs)
+bool Object::find_catch_blocks(Elf_X_Shdr * /*eh_frame*/,
+                               Elf_X_Shdr * /*except_scn*/,
+                               Address /*txtaddr*/, Address /*dataaddr*/,
+                               std::vector<ExceptionBlock> & /*catch_addrs*/)
 {
+#if 0 // TODO
     Dwarf_CIE *cie_data;
     Dwarf_FDE *fde_data;
     Dwarf_Sword cie_count, fde_count;
@@ -3750,6 +3751,9 @@ bool Object::find_catch_blocks(Elf_X_Shdr *eh_frame,
     dwarf_dealloc(dbg, fde_data, DW_DLA_LIST);
 
     return result;
+#else //TODO
+    return false;
+#endif // TODO
 }
 
 #endif
@@ -3943,13 +3947,15 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
     delete stabptr;
 
 #if defined(cap_dwarf)
+
+#if 0 //TODO
     if (hasDwarfInfo())
     {
         int status;
-        ::Dwarf *dbg_ptr = dwarf->type_dbg();
+        ::Dwarf **dbg_ptr = dwarf->type_dbg();
         if (!dbg_ptr)
             return;
-        ::Dwarf &dbg = *dbg_ptr;
+        ::Dwarf * &dbg = *dbg_ptr;
 
         unsigned long long hdr;
         char * moduleName = NULL;
@@ -4049,7 +4055,9 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
         }
 
     }
-#endif
+#endif //TODO
+
+#endif 
 
 }
 
@@ -4331,14 +4339,15 @@ struct open_statement {
 };
 
 
-void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
+void Object::parseLineInfoForCU(Dwarf_Die /*cuDIE*/, LineInformation* /*li_for_module*/)
 {
+#if 0 //TODO
     std::vector<open_statement> open_statements;
-    ::Dwarf *dbg_ptr = dwarf->line_dbg();
+    ::Dwarf **dbg_ptr = dwarf->line_dbg();
     if (!dbg_ptr)
         return;
     if(!cuDIE) return;
-    ::Dwarf dbg = *dbg_ptr;
+    ::Dwarf *dbg = *dbg_ptr;
     /* Acquire this CU's source lines. */
     Dwarf_Line * lineBuffer;
     Dwarf_Sword lineCount;
@@ -4492,13 +4501,14 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 
 /* Free this CU's source lines. */
     dwarf_srclines_dealloc(dbg, lineBuffer, lineCount);
+#endif //TODO
 }
 
 
 
 void Object::parseLineInfoForAddr(Offset addr_to_find)
 {
-    ::Dwarf *dbg_ptr = dwarf->line_dbg();
+    ::Dwarf **dbg_ptr = dwarf->line_dbg();
     if (!dbg_ptr)
         return;
     std::set<Module*> mod_for_offset;
@@ -4546,7 +4556,7 @@ void Object::parseTypeInfo()
 #endif
 
     parseStabTypes();
-    ::Dwarf* typeInfo = dwarf->type_dbg();
+    ::Dwarf ** typeInfo = dwarf->type_dbg();
     if(!typeInfo) return;
     DwarfWalker walker(associated_symtab, *typeInfo);
     walker.parse();
