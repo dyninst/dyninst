@@ -330,7 +330,13 @@ private:
     Dwarf_Half addr_size;
     Dwarf_Half offset_size;
     Dwarf_Half extension_size;
-    char signature[8];
+
+    typedef struct{
+        char signature[8];
+    } Dwarf_Sig8;
+
+    Dwarf_Sig8 signature;
+
     unsigned long long typeoffset;
     unsigned long long next_cu_header;
 
@@ -349,7 +355,7 @@ private:
     dyn_hash_map<uint64_t, typeId_t> sig8_type_ids_;
     bool parseModuleSig8(bool is_info);
     void findAllSig8Types();
-    bool findSig8Type(char ** signature, Type *&type);
+    bool findSig8Type(Dwarf_Sig8 * signature, Type *&type);
 
 protected:
     virtual void setFuncReturnType();
