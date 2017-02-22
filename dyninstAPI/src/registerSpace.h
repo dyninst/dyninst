@@ -489,7 +489,6 @@ class registerSpace {
                    lr, sp, pc, pstate, fpcr, fpsr, ignored } aarch64Registers_t;
     static unsigned GPR(Register x) { return x; }
     static unsigned FPR(Register x) { return x - fpr0; }
-    static unsigned SPR(Register x);
     int framePointer() { return r29; }
 #endif
     // Create a map of register names to register numbers

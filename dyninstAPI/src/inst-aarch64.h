@@ -31,8 +31,6 @@
 #ifndef INST_AARCH64_H
 #define INST_AARCH64_H
 
-#define MAX_BRANCH 0
-
 #define DEAD_REG              0
 #define LIVE_REG              1
 #define LIVE_UNCLOBBERED_REG  2
