@@ -514,7 +514,10 @@ AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
 }
 
 bool PerformTableRead(BoundValue &target, set<int64_t> & jumpTargets, CodeSource *cs) {
-
+    if (target.tableReadSize > 0 && target.interval.stride == 0) {
+        // This is a PC-relative read to variable, not a table read
+        return false;
+    }
     Address tableBase = (Address)target.interval.low;
     Address tableLastEntry = (Address)target.interval.high;
     int addressWidth = cs->getAddressWidth();
