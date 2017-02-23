@@ -50,32 +50,32 @@ using namespace std;
 
 #define DWARF_FAIL_RET_VAL(x, v) {                                      \
       int status = (x);                                                 \
-      if (status != DW_DLV_OK) {                                        \
-         types_printf("[%s:%d]: libdwarf returned %d, ret false\n", FILE__, __LINE__, status); \
+      if (status != 0) {                                                \
+         types_printf("[%s:%d]: libdwarf returned %d, ret false\n",     \
+                 FILE__, __LINE__, status);                             \
          return (v);                                                    \
       }                                                                 \
    }
-//#define DWARF_FAIL_RET(x) DWARF_FAIL_RET_VAL(x, false)
-#define DWARF_FAIL_RET(x) x
+#define DWARF_FAIL_RET(x) DWARF_FAIL_RET_VAL(x, false)
 
 #define DWARF_ERROR_RET_VAL(x, v) {                                     \
       int status = (x);                                                 \
-      if (status == 0 /*DW_DLV_ERROR*/) {                                     \
-         types_printf("[%s:%d]: parsing failure, ret false\n", FILE__, __LINE__); \
+      if (status == 1 /*DW_DLV_ERROR*/) {                               \
+         types_printf("[%s:%d]: parsing failure, ret false\n",          \
+                 FILE__, __LINE__);                                     \
          return (v);                                                    \
       }                                                                 \
    }
 #define DWARF_ERROR_RET(x) DWARF_ERROR_RET_VAL(x, false)
-//#define DWARF_ERROR_RET(x) x
 
 #define DWARF_CHECK_RET_VAL(x, v) {                                     \
       if (x) {                                                          \
-         types_printf("[%s:%d]: parsing failure, ret false\n", FILE__, __LINE__); \
+         types_printf("[%s:%d]: parsing failure, ret false\n",          \
+                 FILE__, __LINE__);                                     \
          return (v);                                                    \
       }                                                                 \
    }
-//#define DWARF_CHECK_RET(x) DWARF_CHECK_RET_VAL(x, false)
-#define DWARF_CHECK_RET(x) x
+#define DWARF_CHECK_RET(x) DWARF_CHECK_RET_VAL(x, false)
 
 DwarfWalker::DwarfWalker(Symtab *symtab, ::Dwarf * dbg) :
    DwarfParseActions(symtab, dbg),
@@ -275,7 +275,7 @@ void DwarfParseActions::setModuleFromName(std::string moduleName)
    }
 }
 
-bool DwarfWalker::buildSrcFiles(::Dwarf * dbg, Dwarf_Die entry, StringTablePtr srcFiles) {
+bool DwarfWalker::buildSrcFiles(::Dwarf * /*dbg*/, Dwarf_Die entry, StringTablePtr srcFiles) {
     size_t cnt = 0;
     //char** srcFileList;
     //Dwarf_Error error;
@@ -294,7 +294,7 @@ bool DwarfWalker::buildSrcFiles(::Dwarf * dbg, Dwarf_Die entry, StringTablePtr s
     }
 
     for (unsigned i = 0; i < cnt; ++i) {
-        srcFiles->push_back(df->info[i].name);
+        srcFiles->push_back(dwarf_filesrc(df, i, NULL, NULL));
         //dwarf_dealloc(dbg, srcFileList[i], DW_DLA_STRING);
     }
     //dwarf_dealloc(dbg, srcFileList, DW_DLA_LIST);
@@ -307,198 +307,200 @@ bool DwarfWalker::buildSrcFiles(::Dwarf * dbg, Dwarf_Die entry, StringTablePtr s
 // the Context from the parent. This allows us to pass in current
 // function, etc. without the Context stack exploding
 bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
-   dwarf_printf("PARSE_INT entry, context size %d\n", stack_size());
-   // We escape the loop by checking parseSibling() after
-   // parsing this DIE and its children, if any
-   while(1) {
-      ContextGuard cg(*this);
+    dwarf_printf("PARSE_INT entry, context size %d\n", stack_size());
+    // We escape the loop by checking parseSibling() after
+    // parsing this DIE and its children, if any
+    while(1) {
+        ContextGuard cg(*this);
 
-      setEntry(e);
-      setParseSibling(p);
+        setEntry(e);
+        setParseSibling(p);
 
-      if (!findTag()) return false;
-      if (!findOffset()) return false;
-      curName() = std::string();
-      setMangledName(false);
+        if (!findTag()) return false;
+        if (!findOffset()) return false;
+        curName() = std::string();
+        setMangledName(false);
 
-      dwarf_printf("(0x%lx) Parsing entry %p with context size %d, func %p, encl %p\n",
-                   id(),
-                   e,
-                   stack_size(),
-                   curFunc(),
-		   //                   (curFunc() && !curFunc()->getAllMangledNames().empty()) ?
-                   //curFunc()->getAllMangledNames()[0].c_str() : "<null>",
-                   curEnclosure());
+        dwarf_printf("(0x%lx) Parsing entry %p with context size %d, func %p, encl %p\n",
+                id(),
+                e,
+                stack_size(),
+                curFunc(),
+                //                   (curFunc() && !curFunc()->getAllMangledNames().empty()) ?
+                //curFunc()->getAllMangledNames()[0].c_str() : "<null>",
+                curEnclosure());
 
-      bool ret = false;
+        bool ret = false;
 
-   // BLUEGENE BUG HACK
+        // BLUEGENE BUG HACK
 #if defined(os_bg)
-      if (tag() == DW_TAG_base_type ||
-          tag() == DW_TAG_const_type ||
-          tag() == DW_TAG_pointer_type) {
-         // XLC compilers nest a bunch of stuff under an invented function; however,
-         // this is broken (they don't close the function properly). If we see a 
-         // tag like this, close off the previous function immediately
-         clearFunc();
-      }
+        if (tag() == DW_TAG_base_type ||
+                tag() == DW_TAG_const_type ||
+                tag() == DW_TAG_pointer_type) {
+            // XLC compilers nest a bunch of stuff under an invented function; however,
+            // this is broken (they don't close the function properly). If we see a 
+            // tag like this, close off the previous function immediately
+            clearFunc();
+        }
 #endif
 
+        switch(tag()) {
+            case DW_TAG_subprogram:
+            case DW_TAG_entry_point:
+                ret = parseSubprogram(NormalFunc);
+                break;
+            case DW_TAG_inlined_subroutine:
+                ret = parseSubprogram(InlinedFunc);
+                break;
+            case DW_TAG_lexical_block:
+                ret = parseLexicalBlock();
+                break;
+            case DW_TAG_common_block:
+                ret = parseCommonBlock();
+                break;
+            case DW_TAG_constant:
+                ret = parseConstant();
+                break;
+            case DW_TAG_variable:
+                ret = parseVariable();
+                break;
+            case DW_TAG_formal_parameter:
+                ret = parseFormalParam();
+                break;
+            case DW_TAG_base_type:
+                ret = parseBaseType();
+                break;
+            case DW_TAG_typedef:
+                ret = parseTypedef();
+                break;
+            case DW_TAG_array_type:
+                ret = parseArray();
+                break;
+            case DW_TAG_subrange_type:
+                ret = parseSubrange();
+                break;
+            case DW_TAG_enumeration_type:
+                ret = parseEnum();
+                break;
+            case DW_TAG_inheritance:
+                ret = parseInheritance();
+                break;
+            case DW_TAG_structure_type:
+            case DW_TAG_union_type:
+            case DW_TAG_class_type:
+                ret = parseStructUnionClass();
+                break;
+            case DW_TAG_enumerator:
+                ret = parseEnumEntry();
+                break;
+            case DW_TAG_member:
+                ret = parseMember();
+                break;
+            case DW_TAG_const_type:
+            case DW_TAG_packed_type:
+            case DW_TAG_volatile_type:
+                ret = parseConstPackedVolatile();
+                break;
+            case DW_TAG_subroutine_type:
+                /* If the pointer specifies argument types, this DIE has
+                   children of those types. */
+            case DW_TAG_ptr_to_member_type:
+            case DW_TAG_pointer_type:
+            case DW_TAG_reference_type:
+                ret = parseTypeReferences();
+                break;
+            case DW_TAG_compile_unit:
+                dwarf_printf("(0x%lx) Compilation unit, parsing children\n", id());
+                // Parse child
+                ret = parseChild();
+                break;
+            case DW_TAG_partial_unit:
+                dwarf_printf("(0x%lx) Partial unit, parsing children\n", id());
+                // Parse child
+                ret = parseChild();
+                break;
+            case DW_TAG_type_unit:
+                dwarf_printf("(0x%lx) Type unit, parsing children\n", id());
+                // Parse child
+                ret = parseChild();
+                break;
+            default:
+                dwarf_printf("(0x%lx) Warning: unparsed entry with tag %x\n",
+                        id(), tag());
+                ret = true;
+                break;
+        }
 
+        dwarf_printf("Finished parsing 0x%lx, ret %d, parseChild %d, parseSibling %d\n",
+                id(), ret, parseChild(), parseSibling());
 
-      switch(tag()) {
-         case DW_TAG_subprogram:
-         case DW_TAG_entry_point:
-	        ret = parseSubprogram(NormalFunc);
-	        break;
-         case DW_TAG_inlined_subroutine:
-            ret = parseSubprogram(InlinedFunc);
-            break;
-         case DW_TAG_lexical_block:
-            ret = parseLexicalBlock();
-            break;
-         case DW_TAG_common_block:
-            ret = parseCommonBlock();
-            break;
-         case DW_TAG_constant:
-            ret = parseConstant();
-            break;
-         case DW_TAG_variable:
-            ret = parseVariable();
-            break;
-         case DW_TAG_formal_parameter:
-            ret = parseFormalParam();
-            break;
-         case DW_TAG_base_type:
-            ret = parseBaseType();
-            break;
-         case DW_TAG_typedef:
-            ret = parseTypedef();
-            break;
-         case DW_TAG_array_type:
-            ret = parseArray();
-            break;
-         case DW_TAG_subrange_type:
-            ret = parseSubrange();
-            break;
-         case DW_TAG_enumeration_type:
-            ret = parseEnum();
-            break;
-         case DW_TAG_inheritance:
-            ret = parseInheritance();
-            break;
-         case DW_TAG_structure_type:
-         case DW_TAG_union_type:
-         case DW_TAG_class_type:
-            ret = parseStructUnionClass();
-            break;
-         case DW_TAG_enumerator:
-            ret = parseEnumEntry();
-            break;
-         case DW_TAG_member:
-            ret = parseMember();
-            break;
-         case DW_TAG_const_type:
-         case DW_TAG_packed_type:
-         case DW_TAG_volatile_type:
-            ret = parseConstPackedVolatile();
-            break;
-         case DW_TAG_subroutine_type:
-            /* If the pointer specifies argument types, this DIE has
-               children of those types. */
-         case DW_TAG_ptr_to_member_type:
-         case DW_TAG_pointer_type:
-         case DW_TAG_reference_type:
-            ret = parseTypeReferences();
-            break;
-         case DW_TAG_compile_unit:
-            dwarf_printf("(0x%lx) Compilation unit, parsing children\n", id());
-            // Parse child
-            ret = parseChild();
-            break;
-         case DW_TAG_partial_unit:
-            dwarf_printf("(0x%lx) Partial unit, parsing children\n", id());
-            // Parse child
-            ret = parseChild();
-            break;
-         case DW_TAG_type_unit:
-            dwarf_printf("(0x%lx) Type unit, parsing children\n", id());
-            // Parse child
-            ret = parseChild();
-            break;
-         default:
-            dwarf_printf("(0x%lx) Warning: unparsed entry with tag %x\n",
-                         id(), tag());
-            ret = true;
-            break;
-      }
+        if (ret && parseChild() ) {
+            // Parse children
+            Dwarf_Die childDwarf;
+            Dwarf_Die e = entry();
+            int status = dwarf_child( &e, & childDwarf);
+            DWARF_CHECK_RET(status == 1);
+            if (status == 0) {
+                if (!parse_int(childDwarf, true)) return false;
+            }
+        }
 
-      dwarf_printf("Finished parsing 0x%lx, ret %d, parseChild %d, parseSibling %d\n",
-                   id(), ret, parseChild(), parseSibling());
+        if (!parseSibling()) {
+            dwarf_printf("(0x%lx) Skipping sibling parse\n", id());
+            break;
+        }
 
-      if (ret && parseChild() ) {
-         // Parse children
-         Dwarf_Die childDwarf;
-         int status = dwarf_child( entry(), & childDwarf, NULL );
-         DWARF_CHECK_RET(status == DW_DLV_ERROR);
-         if (status == DW_DLV_OK) {
-            if (!parse_int(childDwarf, true)) return false;
-         }
-      }
+        dwarf_printf("(0x%lx) Asking for sibling\n", id());
+        Dwarf_Die siblingDwarf;
+        bool is_info = dwarf_get_die_infotypes_flag(entry());
+        int status =  dwarf_siblingof_b( dbg(), entry(), is_info, & siblingDwarf, NULL );
 
-      if (!parseSibling()) {
-         dwarf_printf("(0x%lx) Skipping sibling parse\n", id());
-         break;
-      }
+        DWARF_CHECK_RET(status == 1);
 
-      dwarf_printf("(0x%lx) Asking for sibling\n", id());
-      Dwarf_Die siblingDwarf;
-      bool is_info = dwarf_get_die_infotypes_flag(entry());
-      int status =  dwarf_siblingof_b( dbg(), entry(), is_info, & siblingDwarf, NULL );
+        /* Deallocate the entry we just parsed. */
+        //dwarf_dealloc( dbg(), entry(), DW_DLA_DIE );
 
-      DWARF_CHECK_RET(status == DW_DLV_ERROR);
+        if (status != 0) {
+            break;
+        }
 
-      /* Deallocate the entry we just parsed. */
-         //dwarf_dealloc( dbg(), entry(), DW_DLA_DIE );
+        e = siblingDwarf;
+    }
 
-      if (status != DW_DLV_OK) {
-         break;
-      }
-
-      e = siblingDwarf;
-   }
-
-   dwarf_printf("PARSE_INT exit, context size %d\n", stack_size());
-   return true;
+    dwarf_printf("PARSE_INT exit, context size %d\n", stack_size());
+    return true;
 }
 
 bool DwarfWalker::parseCallsite()
 {
-   bool has_line = false, has_file = false;
-   DWARF_FAIL_RET(dwarf_hasattr(entry(), DW_AT_call_file, &has_file, NULL));
-   if (!has_file)
-      return true;
-   DWARF_FAIL_RET(dwarf_hasattr(entry(), DW_AT_call_line, &has_line, NULL));
-   if (!has_line)
-      return true;
+    int has_line = 0, has_file = 0;
+    Dwarf_Die e = entry();
+    has_file = dwarf_hasattr(&e, DW_AT_call_file);
+    DWARF_FAIL_RET(has_file);
+    if (!has_file)
+        return true;
+    has_line = dwarf_hasattr(&e, DW_AT_call_line);
+    DWARF_FAIL_RET(has_line );
+    if (!has_line)
+        return true;
 
     std::string inline_file;
-   bool result = findString(DW_AT_call_file, inline_file);
-   if (!result)
-      return false;
+    bool result = findString(DW_AT_call_file, inline_file);
+    if (!result)
+        return false;
 
-   Dyninst::Offset inline_line;
-   result = findConstant(DW_AT_call_line, inline_line, entry(), dbg());
-   if (!result)
-      return false;
+    Dyninst::Offset inline_line;
+    result = findConstant(DW_AT_call_line, inline_line, entry(), dbg());
+    if (!result)
+        return false;
 
-   InlinedFunction *ifunc = static_cast<InlinedFunction *>(curFunc());
-//    cout << "Found inline call site in func (0x" << hex << id() << ") "
-//         << curFunc()->getName() << " at " << curFunc()->getOffset() << dec
-//         << ", file " << inline_file << ": " << inline_line << endl;
+    InlinedFunction *ifunc = static_cast<InlinedFunction *>(curFunc());
+    //    cout << "Found inline call site in func (0x" << hex << id() << ") "
+    //         << curFunc()->getName() << " at " << curFunc()->getOffset() << dec
+    //         << ", file " << inline_file << ": " << inline_line << endl;
     ifunc->setFile(inline_file);
-   ifunc->callsite_line = inline_line;
-   return true;
+    ifunc->callsite_line = inline_line;
+    return true;
 }
 
 bool DwarfWalker::setFunctionFromRange(inline_t func_type)
@@ -701,25 +703,25 @@ void DwarfWalker::setRanges(FunctionBase *func) {
     }
 }
 
-pair<AddressRange, bool> DwarfWalker::parseHighPCLowPC(Dwarf dbg, Dwarf_Die entry)
+pair<AddressRange, bool> DwarfWalker::parseHighPCLowPC(::Dwarf * dbg, Dwarf_Die entry)
 {
-   Dwarf_Attribute hasLow;
+    Dwarf_Attribute hasLow;
 
-   Dwarf_Attribute hasHigh;
+    Dwarf_Attribute hasHigh;
     std::pair<AddressRange, bool> result = make_pair(AddressRange(0,0), false);
-   if(dwarf_attr(entry, DW_AT_low_pc, &hasLow, NULL) != DW_DLV_OK) return result;
-   if(dwarf_attr(entry, DW_AT_high_pc, &hasHigh, NULL) != DW_DLV_OK) return result;
+    if(dwarf_attr(&entry, DW_AT_low_pc, &hasLow) == NULL) return result;
+    if(dwarf_attr(&entry, DW_AT_high_pc, &hasHigh) == NULL) return result;
 
-   Address low, high;
-   if (!findConstant(DW_AT_low_pc, low, entry, dbg)) return result;
-   if (!findConstant(DW_AT_high_pc, high, entry, dbg)) return result;
-   Dwarf_Half form;
-   if(dwarf_whatform(hasHigh, &form, NULL) != DW_DLV_OK) return result;
+    Address low, high;
+    if (!findConstant(DW_AT_low_pc, low, entry, dbg)) return result;
+    if (!findConstant(DW_AT_high_pc, high, entry, dbg)) return result;
+    Dwarf_Half form = dwarf_whatform(&hasHigh);
+    if(form != 0) return result;
 
-   if(form != DW_FORM_addr)
-   {
-     high += low;
-   }
+    if(form != DW_FORM_addr)
+    {
+        high += low;
+    }
     // Don't add 0,0; it's not a real range but a sign something went wrong.
     if(low || high)
     {
@@ -729,7 +731,7 @@ pair<AddressRange, bool> DwarfWalker::parseHighPCLowPC(Dwarf dbg, Dwarf_Die entr
     return result;
 }
 
-bool DwarfWalker::parseRangeTypes(Dwarf dbg, Dwarf_Die die) {
+bool DwarfWalker::parseRangeTypes(::Dwarf * dbg, Dwarf_Die die) {
    dwarf_printf("(0x%lx) Parsing ranges\n", id());
 
    clearRanges();
@@ -743,7 +745,7 @@ bool DwarfWalker::parseRangeTypes(Dwarf dbg, Dwarf_Die die) {
    return !newRanges.empty();
 }
 
-vector<AddressRange> DwarfWalker::getDieRanges(Dwarf dbg, Dwarf_Die die, Offset range_base) {
+vector<AddressRange> DwarfWalker::getDieRanges(::Dwarf * dbg, Dwarf_Die die, Offset range_base) {
     std::vector<AddressRange> newRanges;
     auto highlow = parseHighPCLowPC(dbg, die);
     if(highlow.second) newRanges.push_back(highlow.first);
@@ -756,7 +758,7 @@ vector<AddressRange> DwarfWalker::getDieRanges(Dwarf dbg, Dwarf_Die die, Offset 
           dwarf_printf("calling ranges_a, offset 0x%lx, die %p\n", range_offset, die);
           int status = (dwarf_get_ranges_a(dbg, (Dwarf_Off) range_offset, die,
                                        &ranges, &ranges_length, NULL, NULL));
-          bool done = (status != DW_DLV_OK);
+          bool done = (status != 0);
           for (unsigned i = 0; i < ranges_length && !done; i++) {
               Dwarf_Ranges cur = ranges[i];
               Address cur_base = range_base;
@@ -777,7 +779,7 @@ vector<AddressRange> DwarfWalker::getDieRanges(Dwarf dbg, Dwarf_Die die, Offset 
                       break;
               }
           }
-          dwarf_ranges_dealloc(dbg, ranges, ranges_length);
+          //dwarf_ranges_dealloc(dbg, ranges, ranges_length);
       }
     return newRanges;
 }
@@ -873,7 +875,7 @@ bool DwarfWalker::parseVariable() {
    if (!findType(type, false)) return false;
    assert(type);
 
-   unsigned long long variableLineNo;
+   Dwarf_Word variableLineNo;
    bool hasLineNumber = false;
    std::string fileName;
 
@@ -1115,7 +1117,8 @@ bool DwarfWalker::parseArray() {
    /* Find the range(s) of the elements. */
    Dwarf_Die firstRange;
 
-   DWARF_FAIL_RET(dwarf_child( entry(), & firstRange, NULL ));
+   Dwarf_Die e = entry();
+   DWARF_FAIL_RET(dwarf_child(&e, &firstRange));
 
    push();
 
@@ -1355,111 +1358,117 @@ bool DwarfWalker::parseTypeReferences() {
 }
 
 bool DwarfWalker::hasDeclaration(bool &isDecl) {
-   bool tmp;
-   DWARF_FAIL_RET(dwarf_hasattr(entry(),
-                                DW_AT_declaration,
-                                &tmp, NULL ));
-   isDecl = tmp;
-   return true;
+    bool tmp;
+    Dwarf_Die e = entry();
+    tmp = dwarf_hasattr(&e, DW_AT_declaration);
+    DWARF_FAIL_RET(tmp);
+    isDecl = tmp;
+    return true;
 }
 
 bool DwarfWalker::findTag() {
-   Dwarf_Half dieTag;
-   DWARF_FAIL_RET(dwarf_tag( entry(), & dieTag, NULL ));
-   setTag(dieTag);
-   return true;
+    Dwarf_Die e = entry();
+    Dwarf_Half dieTag = dwarf_tag(&e);
+    DWARF_FAIL_RET(dieTag);
+    setTag(dieTag);
+    return true;
 }
 
 
 bool DwarfWalker::findOffset() {
-   Dwarf_Off dieOffset;
-   DWARF_FAIL_RET(dwarf_dieoffset( entry(), & dieOffset, NULL ));
+    Dwarf_Die e = entry();
+    Dwarf_Off dieOffset = dwarf_dieoffset(&e);
+    DWARF_FAIL_RET(dieOffset);
 
-   setOffset(dieOffset);
-   return true;
+    setOffset(dieOffset);
+    return true;
 }
 
 bool DwarfWalker::handleAbstractOrigin(bool &isAbstract) {
-   Dwarf_Die absE;
+    Dwarf_Die absE;
 
-   dwarf_printf("(0x%lx) Checking for abstract origin\n", id());
+    dwarf_printf("(0x%lx) Checking for abstract origin\n", id());
 
-   isAbstract = false;
-   bool isAbstractOrigin;
+    isAbstract = false;
+    bool isAbstractOrigin;
 
-   DWARF_FAIL_RET(dwarf_hasattr(entry(),
-                            DW_AT_abstract_origin,
-                            &isAbstractOrigin, NULL ));
+    DWARF_FAIL_RET(dwarf_hasattr(entry(),
+                DW_AT_abstract_origin,
+                &isAbstractOrigin, NULL ));
 
-   if (!isAbstractOrigin) return true;
+    if (!isAbstractOrigin) return true;
 
-   isAbstract = true;
-   dwarf_printf("(0x%lx) abstract_origin is true, looking up reference\n", id());
+    isAbstract = true;
+    dwarf_printf("(0x%lx) abstract_origin is true, looking up reference\n", id());
 
-   Dwarf_Attribute abstractAttribute;
-   DWARF_FAIL_RET(dwarf_attr( entry(), DW_AT_abstract_origin, & abstractAttribute, NULL ));
+    Dwarf_Die e = entry();
+    Dwarf_Attribute abstractAttribute, *ret_p; 
+    ret_p = dwarf_attr(&e, DW_AT_abstract_origin, &abstractAttribute);
+    if(ret_p == NULL) return false;
 
-   Dwarf_Off abstractOffset;
-   if (!findDieOffset( abstractAttribute, abstractOffset )) return false;
+    Dwarf_Off abstractOffset;
+    if (!findDieOffset( abstractAttribute, abstractOffset )) return false;
 
-   bool is_info = dwarf_get_die_infotypes_flag(entry());
-   DWARF_FAIL_RET(dwarf_offdie_b( dbg(), abstractOffset, is_info, & absE, NULL));
+    bool is_info = dwarf_get_die_infotypes_flag(entry());
+    DWARF_FAIL_RET(dwarf_offdie_b( dbg(), abstractOffset, is_info, & absE, NULL));
 
-   //dwarf_dealloc( dbg() , abstractAttribute, DW_DLA_ATTR );
+    //dwarf_dealloc( dbg() , abstractAttribute, DW_DLA_ATTR );
 
-   setAbstractEntry(absE);
+    setAbstractEntry(absE);
 
-   return true;
+    return true;
 }
 
 bool DwarfWalker::handleSpecification(bool &hasSpec) {
-   Dwarf_Die specE;
+    Dwarf_Die specE;
 
-   dwarf_printf("(0x%lx) Checking for separate specification\n", id());
-   hasSpec = false;
+    dwarf_printf("(0x%lx) Checking for separate specification\n", id());
+    hasSpec = false;
 
-   bool hasSpecification;
-   DWARF_FAIL_RET(dwarf_hasattr( entry(), DW_AT_specification, & hasSpecification, NULL ));
+    bool hasSpecification;
+    DWARF_FAIL_RET(dwarf_hasattr( entry(), DW_AT_specification, & hasSpecification, NULL ));
 
-   if (!hasSpecification) return true;
+    if (!hasSpecification) return true;
 
-   hasSpec = true;
+    hasSpec = true;
 
-   dwarf_printf("(0x%lx) Entry has separate specification, retrieving\n", id());
+    dwarf_printf("(0x%lx) Entry has separate specification, retrieving\n", id());
 
-   Dwarf_Attribute specAttribute;
-   DWARF_FAIL_RET(dwarf_attr( entry(), DW_AT_specification, & specAttribute, NULL ));
+    Dwarf_Die e = entry();
+    Dwarf_Attribute specAttribute, *ret_p;
+    ret_p = dwarf_attr(&e, DW_AT_specification, &specAttribute);
+    if(ret_p == NULL) return false;
 
-   Dwarf_Off specOffset;
-   if (!findDieOffset( specAttribute, specOffset )) return false;
+    Dwarf_Off specOffset;
+    if (!findDieOffset( specAttribute, specOffset )) return false;
 
-   bool is_info = dwarf_get_die_infotypes_flag(entry());
-   DWARF_FAIL_RET(dwarf_offdie_b( dbg(), specOffset, is_info, & specE, NULL ));
+    bool is_info = dwarf_get_die_infotypes_flag(entry());
+    DWARF_FAIL_RET(dwarf_offdie_b( dbg(), specOffset, is_info, & specE, NULL ));
 
-   //dwarf_dealloc( dbg(), specAttribute, DW_DLA_ATTR );
-//    cout << "Set spec entry" << endl;
+    //dwarf_dealloc( dbg(), specAttribute, DW_DLA_ATTR );
+    //    cout << "Set spec entry" << endl;
 
-   setSpecEntry(specE);
+    setSpecEntry(specE);
 
-   return true;
+    return true;
 }
 
-bool DwarfWalker::findDieName(Dwarf dbg, Dwarf_Die die, std::string &name) {
+bool DwarfWalker::findDieName(::Dwarf * dbg, Dwarf_Die die, std::string &name) {
    char *cname = NULL;
 
    Dwarf_Error error;
    int status = dwarf_diename( die, &cname, &error );
 
    /* Squash errors from unsupported forms, like DW_FORM_GNU_strp_alt. */
-   if (status == DW_DLV_ERROR) {
+   if (status == 1) {
       if (dwarf_errno(error) == DW_DLE_ATTR_FORM_BAD) {
-         status = DW_DLV_NO_ENTRY;
+         status = -1;
       }
       //dwarf_dealloc( dbg, error, DW_DLA_ERROR );
    }
 
-   DWARF_CHECK_RET(status == DW_DLV_ERROR);
-   if (status != DW_DLV_OK) {
+   DWARF_CHECK_RET(status == 1);
+   if (status != 0) {
       name = std::string();
       return true;
    }
@@ -1477,31 +1486,34 @@ bool DwarfWalker::findName(std::string &name) {
 
 
 bool DwarfWalker::findFuncName() {
-   dwarf_printf("(0x%lx) Checking for function name\n", id());
-   /* Prefer linkage names. */
-   char *dwarfName = NULL;
+    dwarf_printf("(0x%lx) Checking for function name\n", id());
+    /* Prefer linkage names. */
+    char *dwarfName = NULL;
 
-   Dwarf_Attribute linkageNameAttr;
+    Dwarf_Attribute linkageNameAttr;
 
-   int status = dwarf_attr(entry(), DW_AT_MIPS_linkage_name, &linkageNameAttr, NULL);
-   if (status != DW_DLV_OK)
-      status = dwarf_attr(entry(), DW_AT_linkage_name, &linkageNameAttr, NULL);
-   DWARF_CHECK_RET(status == DW_DLV_ERROR);
-   if ( status == DW_DLV_OK )  {
-      DWARF_FAIL_RET(dwarf_formstring( linkageNameAttr, &dwarfName, NULL ));
-      curName() = dwarfName;
-      setMangledName(true);
-      dwarf_printf("(0x%lx) Found mangled name of %s, using\n", id(), curName().c_str());
-      //dwarf_dealloc( dbg(), linkageNameAttr, DW_DLA_ATTR );
-      return true;
-   }
+    Dwarf_Die e = entry();
+    int status = dwarf_attr(&e, DW_AT_MIPS_linkage_name, &linkageNameAttr);
+    //if (status != 0)
+    if (status == 0)
+        status = dwarf_attr(&e, DW_AT_linkage_name,      &linkageNameAttr);
+    DWARF_CHECK_RET(status == 0); // previously ==1
+    if ( status != 0 )  { // previously ==1
+        DWARF_FAIL_RET(dwarf_formstring( &linkageNameAttr, &dwarfName));
+        curName() = dwarfName;
+        setMangledName(true);
+        dwarf_printf("(0x%lx) Found mangled name of %s, using\n", id(), curName().c_str());
+        //dwarf_dealloc( dbg(), linkageNameAttr, DW_DLA_ATTR );
+        return true;
+    }
 
     if(findDieName(dbg(), entry(), curName())) {
-//        cout << "Found DIE pretty name: " << curName() << endl;
+        //        cout << "Found DIE pretty name: " << curName() << endl;
     }
-   setMangledName(false);
-   return true;
+    setMangledName(false);
+    return true;
 }
+
 std::vector<VariableLocation>& DwarfParseActions::getFramePtrRefForInit()
 {
    return curFunc()->getFramePtrRefForInit();
@@ -1522,32 +1534,33 @@ bool DwarfWalker::getFrameBase() {
 }
 
 bool DwarfWalker::getReturnType(bool hasSpecification, Type *&returnType) {
-   Dwarf_Attribute typeAttribute;
-   int status = DW_DLV_OK;
+    Dwarf_Attribute typeAttribute;
+    int status = 0;
 
-   bool is_info = true;
-   if (hasSpecification) {
-      is_info = dwarf_get_die_infotypes_flag(specEntry());
-      status = dwarf_attr( specEntry(), DW_AT_type, & typeAttribute, NULL );
-   }
-   if (!hasSpecification || (status == DW_DLV_NO_ENTRY)) {
-      is_info = dwarf_get_die_infotypes_flag(entry());
-      status = dwarf_attr( entry(), DW_AT_type, & typeAttribute, NULL );
-   }
+    bool is_info = true;
+    Dwarf_Die e = specEntry();
+    if (hasSpecification) {
+        is_info = dwarf_get_die_infotypes_flag(specEntry());
+        status = dwarf_attr( &e, DW_AT_type, &typeAttribute);
+    }
+    if (!hasSpecification || (status == 0)) {
+        is_info = dwarf_get_die_infotypes_flag(entry());
+        e = entry();
+        status = dwarf_attr(&e, DW_AT_type, &typeAttribute);
+    }
 
+    DWARF_CHECK_RET(status == 0);
+    if ( status == 0) {
+        dwarf_printf("(0x%lx) Return type is void\n", id());
+        return false;
+    }
 
-   DWARF_CHECK_RET(status == DW_DLV_ERROR);
-   if ( status == DW_DLV_NO_ENTRY ) {
-     dwarf_printf("(0x%lx) Return type is void\n", id());
-      return false;
-   }
+    /* There's a return type attribute. */
+    dwarf_printf("(0x%lx) Return type is not void\n", id());
 
-   /* There's a return type attribute. */
-   dwarf_printf("(0x%lx) Return type is not void\n", id());
-
-   bool ret = findAnyType( typeAttribute, is_info, returnType );
-   //dwarf_dealloc( dbg(), typeAttribute, DW_DLA_ATTR );
-   return ret;
+    bool ret = findAnyType( typeAttribute, is_info, returnType );
+    //dwarf_dealloc( dbg(), typeAttribute, DW_DLA_ATTR );
+    return ret;
 }
 
 // I'm not sure how the provided fieldListType is different from curEnclosure(),
@@ -1600,32 +1613,33 @@ bool DwarfWalker::isStaticStructMember(std::vector<VariableLocation> &locs, bool
 }
 
 bool DwarfWalker::findType(Type *&type, bool defaultToVoid) {
-   if(!tc()) return false;
-  // Do *not* return true unless type is actually usable.
-   int status;
-   /* Acquire the parameter's type. */
-   Dwarf_Attribute typeAttribute;
-   status = dwarf_attr( specEntry(), DW_AT_type, & typeAttribute, NULL );
-   DWARF_CHECK_RET(status == DW_DLV_ERROR);
+    if(!tc()) return false;
+    // Do *not* return true unless type is actually usable.
+    int status;
+    /* Acquire the parameter's type. */
+    Dwarf_Attribute typeAttribute;
+    Dwarf_Die e = specEntry();
+    status = dwarf_attr( &e, DW_AT_type, &typeAttribute);
+    DWARF_CHECK_RET(status == 0);
 
-   if (status == DW_DLV_NO_ENTRY) {
-      if (defaultToVoid) {
-         type = tc()->findType("void");
-	 return (type != NULL);
-      }
-      return false;
-   }
+    if (status == 0) {
+        if (defaultToVoid) {
+            type = tc()->findType("void");
+            return (type != NULL);
+        }
+        return false;
+    }
 
-   bool is_info = dwarf_get_die_infotypes_flag(specEntry());
+    bool is_info = dwarf_get_die_infotypes_flag(specEntry());
 
-   bool ret = findAnyType( typeAttribute, is_info, type );
-   //dwarf_dealloc( dbg(), typeAttribute, DW_DLA_ATTR );
-   return ret;
+    bool ret = findAnyType( typeAttribute, is_info, type );
+    //dwarf_dealloc( dbg(), typeAttribute, DW_DLA_ATTR );
+    return ret;
 }
 
 bool DwarfWalker::findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset) {
    Dwarf_Half form;
-   DWARF_FAIL_RET(dwarf_whatform( attr, &form, NULL ));
+   DWARF_FAIL_RET(dwarf_whatform( &attr, &form));
    switch (form) {
       /* These forms are suitable as direct DIE offsets */
       case DW_FORM_ref1:
@@ -1636,7 +1650,7 @@ bool DwarfWalker::findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset) {
       case DW_FORM_ref_addr:
       case DW_FORM_data4:
       case DW_FORM_data8:
-         DWARF_FAIL_RET(dwarf_global_formref( attr, &offset, NULL ));
+         DWARF_FAIL_RET(dwarf_global_formref( &attr, &offset));
          return true;
 
       /* Then there's DW_FORM_sec_offset which refer other sections, or
@@ -1653,7 +1667,7 @@ bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute,
                               bool is_info, Type *&type) {
    /* If this is a ref_sig8, look for the type elsewhere. */
    Dwarf_Half form;
-   DWARF_FAIL_RET(dwarf_whatform(typeAttribute, &form, NULL));
+   DWARF_FAIL_RET(dwarf_whatform(&typeAttribute, &form));
    if (form == DW_FORM_ref_sig8) {
       char signature[8];
       DWARF_FAIL_RET(dwarf_formsig8(typeAttribute, &signature, NULL));
@@ -1686,109 +1700,113 @@ bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute,
    return true;
 }
 
-bool DwarfWalker::getLineInformation(unsigned long long &variableLineNo,
-                                     bool &hasLineNumber,
-                                     std::string &fileName) {
-   Dwarf_Attribute fileDeclAttribute;
-   int status = dwarf_attr( specEntry(), DW_AT_decl_file, & fileDeclAttribute, NULL );
-   DWARF_CHECK_RET(status == DW_DLV_ERROR);
+bool DwarfWalker::getLineInformation(Dwarf_Word &variableLineNo,
+        bool &hasLineNumber,
+        std::string &fileName)
+{
+    Dwarf_Attribute fileDeclAttribute;
+    Dwarf_Die e = specEntry();
+    int status = dwarf_attr( &e, DW_AT_decl_file, &fileDeclAttribute);
+    DWARF_CHECK_RET(status == 0);
 
-   if (status == DW_DLV_NO_ENTRY) {
-      fileName = "";
-   }
-   else if (status == DW_DLV_OK) {
-      StringTablePtr files = srcFiles();
-      unsigned long long fileNameDeclVal;
-      DWARF_FAIL_RET(dwarf_formudata(fileDeclAttribute, &fileNameDeclVal, NULL));
-      //dwarf_dealloc( dbg(), fileDeclAttribute, DW_DLA_ATTR );
-      if (fileNameDeclVal >= files->size() || fileNameDeclVal <= 0) {
-         dwarf_printf("Dwarf error reading line index %d from srcFiles of size %lu\n",
-                      fileNameDeclVal, files->size());
-         return false;
-      }
-      fileName = ((files->get<0>())[fileNameDeclVal]).str;
-   }
-   else {
-      return true;
-   }
+    if (status == 0) {
+        fileName = "";
+        StringTablePtr files = srcFiles();
+        unsigned long long fileNameDeclVal;
+        DWARF_FAIL_RET(dwarf_formudata(&fileDeclAttribute, &fileNameDeclVal));
+        //dwarf_dealloc( dbg(), fileDeclAttribute, DW_DLA_ATTR );
+        if (fileNameDeclVal >= files->size() || fileNameDeclVal <= 0) {
+            dwarf_printf("Dwarf error reading line index %d from srcFiles of size %lu\n",
+                    fileNameDeclVal, files->size());
+            return false;
+        }
+        fileName = ((files->get<0>())[fileNameDeclVal]).str;
+    }
+    else {
+        return true;
+    }
 
-   Dwarf_Attribute lineNoAttribute;
-   status = dwarf_attr( specEntry(), DW_AT_decl_line, & lineNoAttribute, NULL );
-   DWARF_CHECK_RET(status == DW_DLV_ERROR);
-   if (status != DW_DLV_OK) return true;
+    Dwarf_Attribute lineNoAttribute;
+    status = dwarf_attr(&e, DW_AT_decl_line, &lineNoAttribute);
+    DWARF_CHECK_RET(status == 0);
+    if (status != 0) return true;
 
-   /* We don't need to tell Dyninst a line number for C++ static variables,
-      so it's OK if there isn't one. */
-   hasLineNumber = true;
-   DWARF_FAIL_RET(dwarf_formudata( lineNoAttribute, & variableLineNo, NULL ));
-   //dwarf_dealloc( dbg(), lineNoAttribute, DW_DLA_ATTR );
+    /* We don't need to tell Dyninst a line number for C++ static variables,
+       so it's OK if there isn't one. */
+    hasLineNumber = true;
+    DWARF_FAIL_RET(dwarf_formudata(&lineNoAttribute, &variableLineNo));
+    //dwarf_dealloc( dbg(), lineNoAttribute, DW_DLA_ATTR );
 
-   return true;
+    return true;
 }
 
 bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
-                                     Address *initialStackValue,
-                                     std::vector<VariableLocation> &locs) {
-   dwarf_printf("(0x%lx) decodeLocationList for attr %d\n", id(), attr);
+        Address *initialStackValue,
+        std::vector<VariableLocation> &locs) {
+    dwarf_printf("(0x%lx) decodeLocationList for attr %d\n", id(), attr);
 
-   bool hasAttr = false;
-   DWARF_FAIL_RET(dwarf_hasattr(entry(), attr, &hasAttr, NULL));
+    bool hasAttr = false;
+    Dwarf_Die e = entry();
+    hasAttr = dwarf_hasattr(&e, attr);
+    DWARF_FAIL_RET(hasAttr);
 
-   if (!hasAttr) {
-      dwarf_printf("(0x%lx): no such attribute\n", id());
-      return true;
-   }
+    if (!hasAttr) {
+        dwarf_printf("(0x%lx): no such attribute\n", id());
+        return true;
+    }
 
-   locs.clear();
+    locs.clear();
 
-   /* Acquire the location of this formal parameter. */
-   Dwarf_Attribute locationAttribute;
-   DWARF_FAIL_RET(dwarf_attr( entry(), attr, & locationAttribute, NULL ));
+    /* Acquire the location of this formal parameter. */
+    Dwarf_Attribute locationAttribute;
+    e = entry();
+    auto ret_p = dwarf_attr(&e, attr, &locationAttribute);
+    if(!ret_p) return false;
 
-   bool isExpr = false;
-   bool isConstant = false;
-   Dwarf_Half form;
-   if (!checkForConstantOrExpr(attr, locationAttribute, isConstant, isExpr, form))
-     return false;
-   dwarf_printf("(0x%lx) After checkForConstantOrExpr, form class is 0x%x\n",id(), form);
-   if (isConstant) {
-     dwarf_printf("(0x%lx) Decoding constant location\n", id());
-      if (!decodeConstantLocation(locationAttribute, form, locs)) return false;
-   }
-   else if (isExpr) {
-     dwarf_printf("(0x%lx) Decoding expression without location list\n", id());
-     if (!decodeExpression(locationAttribute, locs)) return false;
-   }
-   else {
-     dwarf_printf("(0x%lx) Decoding loclist location\n", id());
-      Dwarf_Op* **locationList;
-      Dwarf_Sword listLength;
-      int status = dwarf_loclist_n( locationAttribute, & locationList, & listLength, NULL );
+    bool isExpr = false;
+    bool isConstant = false;
+    Dwarf_Half form;
+    if (!checkForConstantOrExpr(attr, locationAttribute, isConstant, isExpr, form))
+        return false;
+    dwarf_printf("(0x%lx) After checkForConstantOrExpr, form class is 0x%x\n",id(), form);
+    if (isConstant) {
+        dwarf_printf("(0x%lx) Decoding constant location\n", id());
+        if (!decodeConstantLocation(locationAttribute, form, locs)) return false;
+    }
+    else if (isExpr) {
+        dwarf_printf("(0x%lx) Decoding expression without location list\n", id());
+        if (!decodeExpression(locationAttribute, locs)) return false;
+    }
+    else {
+        dwarf_printf("(0x%lx) Decoding loclist location\n", id());
+        Dwarf_Op* **locationList;
+        Dwarf_Sword listLength;
+        int status = dwarf_loclist_n( locationAttribute, & locationList, & listLength, NULL );
 
-      //dwarf_dealloc( dbg(), locationAttribute, DW_DLA_ATTR );
+        //dwarf_dealloc( dbg(), locationAttribute, DW_DLA_ATTR );
 
-      if (status != DW_DLV_OK) {
-
-
-	dwarf_printf("(0x%lx) Failed loclist decode: %d\n", id(), status);
-	return true;
-      }
-
-      dwarf_printf("(0x%lx) location list with %d entries found\n", id(), (int) listLength);
-
-      if (!decodeLocationListForStaticOffsetOrAddress( locationList,
-                                                       listLength,
-                                                       locs,
-                                                       initialStackValue)) {
-	deallocateLocationList( locationList, listLength );
-	return false;
-      }
+        if (status != 0) {
 
 
-      deallocateLocationList( locationList, listLength );
-   }
+            dwarf_printf("(0x%lx) Failed loclist decode: %d\n", id(), status);
+            return true;
+        }
 
-   return true;
+        dwarf_printf("(0x%lx) location list with %d entries found\n", id(), (int) listLength);
+
+        if (!decodeLocationListForStaticOffsetOrAddress( locationList,
+                    listLength,
+                    locs,
+                    initialStackValue)) {
+            deallocateLocationList( locationList, listLength );
+            return false;
+        }
+
+
+        deallocateLocationList( locationList, listLength );
+    }
+
+    return true;
 }
 
 bool DwarfWalker::checkForConstantOrExpr(Dwarf_Half attr,
@@ -1814,79 +1832,84 @@ bool DwarfWalker::checkForConstantOrExpr(Dwarf_Half attr,
 }
 
 bool DwarfWalker::findString(Dwarf_Half attr,
-                             string &str)
+        string &str)
 {
-   Dwarf_Half form;
-   Dwarf_Attribute strattr;
+    Dwarf_Half form;
+    Dwarf_Attribute strattr;
 
-   if (attr == DW_AT_call_file || attr == DW_AT_decl_file) {
-      unsigned long line_index;
-      bool result = findConstant(attr, line_index, entry(), dbg());
-      if (!result)
-         return false;
-      if (line_index >= mod()->getStrings()->size()) {
-         dwarf_printf("Dwarf error reading line index %d from srcFiles of size %lu\n",
-                      line_index, mod()->getStrings()->size());
-         return false;
-      }
-//       cout << "findString found " << (*srcFiles())[line_index].str << " at srcFiles[" << line_index << "] for " << mod()->fileName() << endl;
-      str = (*srcFiles())[line_index].str;
-      return true;
-   }
+    if (attr == DW_AT_call_file || attr == DW_AT_decl_file) {
+        unsigned long line_index;
+        bool result = findConstant(attr, line_index, entry(), dbg());
+        if (!result)
+            return false;
+        if (line_index >= mod()->getStrings()->size()) {
+            dwarf_printf("Dwarf error reading line index %d from srcFiles of size %lu\n",
+                    line_index, mod()->getStrings()->size());
+            return false;
+        }
+        //       cout << "findString found " << (*srcFiles())[line_index].str << " at srcFiles[" << line_index << "] for " << mod()->fileName() << endl;
+        str = (*srcFiles())[line_index].str;
+        return true;
+    }
 
-   DWARF_FAIL_RET(dwarf_attr(entry(), attr, &strattr, NULL));
-   int status = dwarf_whatform(strattr, &form, NULL);
-   if (status != DW_DLV_OK) {
-      //dwarf_dealloc(dbg(), strattr, DW_DLA_ATTR);
-      return false;
-   }
+    Dwarf_Die e = entry();
+    auto ret_p = dwarf_attr(&e, attr, &strattr);
+    if(!ret_p) return false;
+    int status = dwarf_whatform(strattr, &form, NULL);
+    if (status != 0) {
+        //dwarf_dealloc(dbg(), strattr, DW_DLA_ATTR);
+        return false;
+    }
 
-   bool result;
-   switch (form) {
-      case DW_FORM_string: {
-         char *s = NULL;
-         DWARF_FAIL_RET(dwarf_formstring(strattr, &s, NULL));
-//          cout << "findString found " << s << " in DW_FORM_string" << endl;
-         str  = s;
-         result = true;
-         break;
-      }
-      case DW_FORM_block:
-      case DW_FORM_block1:
-      case DW_FORM_block2:
-      case DW_FORM_block4: {
-         Dwarf_Block *block = NULL;
-         DWARF_FAIL_RET(dwarf_formblock(strattr, &block, NULL));
-         str = (char *) block->bl_data;
-         //dwarf_dealloc(dbg(), block, DW_DLA_BLOCK);
-//          cout << "findString found " << str << " in DW_FORM_block" << endl;
-         result = !str.empty();
-         break;
-      }
-      default:
-         result = false;
-         break;
-   }
-   //dwarf_dealloc(dbg(), strattr, DW_DLA_ATTR);
-   return result;
+    bool result;
+    switch (form) {
+        case DW_FORM_string:
+            {
+                char *s = NULL;
+                DWARF_FAIL_RET(dwarf_formstring(strattr, &s, NULL));
+                //          cout << "findString found " << s << " in DW_FORM_string" << endl;
+                str  = s;
+                result = true;
+                break;
+            }
+        case DW_FORM_block:
+        case DW_FORM_block1:
+        case DW_FORM_block2:
+        case DW_FORM_block4: 
+            {
+                Dwarf_Block *block = NULL;
+                DWARF_FAIL_RET(dwarf_formblock(strattr, &block, NULL));
+                str = (char *) block->bl_data;
+                //dwarf_dealloc(dbg(), block, DW_DLA_BLOCK);
+                //          cout << "findString found " << str << " in DW_FORM_block" << endl;
+                result = !str.empty();
+                break;
+            }
+        default:
+            result = false;
+            break;
+    }
+    //dwarf_dealloc(dbg(), strattr, DW_DLA_ATTR);
+    return result;
 }
 
 bool DwarfWalker::findConstant(Dwarf_Half attr, Address &value, Dwarf_Die entry, Dwarf dbg) {
-   bool has = false;
-   DWARF_FAIL_RET(dwarf_hasattr(entry, attr, &has, NULL));
-   if (!has) return false;
+    bool has = false;
+    DWARF_FAIL_RET(dwarf_hasattr(&entry, attr, &has, NULL));
+    if (!has) return false;
 
-   // Get the attribute
-   Dwarf_Attribute d_attr;
-   DWARF_FAIL_RET(dwarf_attr(entry, attr, &d_attr, NULL));
+    // Get the attribute
+    Dwarf_Attribute d_attr;
+    auto ret_p = dwarf_attr(&entry, attr, &d_attr);
+    if(!ret_p) return false;
 
-   Dwarf_Half form;
-   // Get the form (datatype) for this particular attribute
-   DWARF_FAIL_RET(dwarf_whatform(d_attr, &form, NULL));
+    Dwarf_Half form;
+    // Get the form (datatype) for this particular attribute
+    DWARF_FAIL_RET(dwarf_whatform(d_attr, &form, NULL));
 
-   bool ret = findConstantWithForm(d_attr, form, value);
-   //dwarf_dealloc(dbg, d_attr, DW_DLA_ATTR);
-   return ret;
+    bool ret = findConstantWithForm(d_attr, form, value);
+    //dwarf_dealloc(dbg, d_attr, DW_DLA_ATTR);
+    return ret;
 
 }
 
@@ -1903,7 +1926,7 @@ bool DwarfWalker::findConstantWithForm(Dwarf_Attribute &locationAttribute,
          return true;
       case DW_FORM_sdata:
          Dwarf_Sword s_tmp;
-         DWARF_FAIL_RET(dwarf_formsdata(locationAttribute, &s_tmp, NULL));
+         DWARF_FAIL_RET(dwarf_formsdata(&locationAttribute, &s_tmp));
          value = (Address) s_tmp;
          dwarf_printf("Decoded data of form %x to 0x%lx\n",
                       form, value);
@@ -1914,7 +1937,7 @@ bool DwarfWalker::findConstantWithForm(Dwarf_Attribute &locationAttribute,
       case DW_FORM_data8:
       case DW_FORM_udata:
          unsigned long long u_tmp;
-         DWARF_FAIL_RET(dwarf_formudata(locationAttribute, &u_tmp, NULL));
+         DWARF_FAIL_RET(dwarf_formudata(&locationAttribute, &u_tmp));
          value = (Address) u_tmp;
          return true;
    case DW_FORM_sec_offset:
@@ -1962,103 +1985,110 @@ bool DwarfWalker::constructConstantVariableLocation(Address value,
 }
 
 bool DwarfWalker::findSize(unsigned &size) {
-   bool hasSize;
-   DWARF_FAIL_RET(dwarf_hasattr(entry(), DW_AT_byte_size, &hasSize, NULL));
-   if (!hasSize) return false;
+    bool hasSize;
+    DWARF_FAIL_RET(dwarf_hasattr(entry(), DW_AT_byte_size, &hasSize, NULL));
+    if (!hasSize) return false;
 
-   Dwarf_Attribute byteSizeAttr;
-   unsigned long long byteSize;
-   DWARF_FAIL_RET(dwarf_attr( specEntry(), DW_AT_byte_size, & byteSizeAttr, NULL ));
+    Dwarf_Attribute byteSizeAttr;
+    Dwarf_Word byteSize;
+    Dwarf_Die e = specEntry();
+    auto ret_p = dwarf_attr( &e, DW_AT_byte_size, & byteSizeAttr);
+    if(!ret_p) return false;
 
-   DWARF_FAIL_RET(dwarf_formudata( byteSizeAttr, & byteSize, NULL ));
+    DWARF_FAIL_RET(dwarf_formudata( &byteSizeAttr, & byteSize));
 
-   //dwarf_dealloc( dbg(), byteSizeAttr, DW_DLA_ATTR );
-   size = (unsigned) byteSize;
-   return true;
+    //dwarf_dealloc( dbg(), byteSizeAttr, DW_DLA_ATTR );
+    size = (unsigned) byteSize;
+    return true;
 }
 
 bool DwarfWalker::findVisibility(visibility_t &visibility) {
-   /* Acquire the visibility, if any.  DWARF calls it accessibility
-      to distinguish it from symbol table visibility. */
-   Dwarf_Attribute visAttr;
-   int status = dwarf_attr( entry(), DW_AT_accessibility, & visAttr, NULL );
-   DWARF_CHECK_RET(status == DW_DLV_ERROR);
-   if (status != DW_DLV_OK) {
-      visibility = visPrivate;
-      return true;
-   }
+    /* Acquire the visibility, if any.  DWARF calls it accessibility
+       to distinguish it from symbol table visibility. */
+    Dwarf_Attribute visAttr;
+    Dwarf_Die e = entry();
+    auto status = dwarf_attr( &e, DW_AT_accessibility, & visAttr);
+    DWARF_CHECK_RET(status == 0);
+    if (status != 0) {
+        visibility = visPrivate;
+        return true;
+    }
 
-   unsigned long long visValue;
-   DWARF_FAIL_RET(dwarf_formudata( visAttr, & visValue, NULL ));
+    Dwarf_Word visValue;
+    DWARF_FAIL_RET(dwarf_formudata( &visAttr, &visValue));
 
-   switch( visValue ) {
-      case DW_ACCESS_public: visibility = visPublic; break;
-      case DW_ACCESS_protected: visibility = visProtected; break;
-      case DW_ACCESS_private: visibility = visPrivate; break;
-      default:
-         //bperr ( "Uknown visibility, ignoring.\n" );
-         break;
-   } /* end visibility switch */
+    switch( visValue ) {
+        case DW_ACCESS_public: visibility = visPublic; break;
+        case DW_ACCESS_protected: visibility = visProtected; break;
+        case DW_ACCESS_private: visibility = visPrivate; break;
+        default:
+                                //bperr ( "Uknown visibility, ignoring.\n" );
+                                break;
+    } /* end visibility switch */
 
-   //dwarf_dealloc( dbg(), visAttr, DW_DLA_ATTR );
+    //dwarf_dealloc( dbg(), visAttr, DW_DLA_ATTR );
 
-   return true;
+    return true;
 }
 
 bool DwarfWalker::findValue(long &value, bool &valid) {
-   Dwarf_Attribute valueAttr;
-   int status = dwarf_attr( entry(), DW_AT_const_value, & valueAttr, NULL );
-   DWARF_CHECK_RET(status == DW_DLV_ERROR);
+    Dwarf_Attribute valueAttr;
+    Dwarf_Die e = entry();
+    auto status = dwarf_attr( &e, DW_AT_const_value, & valueAttr);
+    DWARF_CHECK_RET(status == 0);
 
-   if (status != DW_DLV_OK) {
-      valid = false;
-      return true;
-   }
+    if (status != 0) {
+        valid = false;
+        return true;
+    }
 
-   Dwarf_Sword enumValue;
+    Dwarf_Sword enumValue;
 
-   DWARF_FAIL_RET(dwarf_formsdata(valueAttr, &enumValue, NULL));
+    DWARF_FAIL_RET(dwarf_formsdata(&valueAttr, &enumValue));
 
-   value = enumValue;
-   valid = true;
+    value = enumValue;
+    valid = true;
 
-   //dwarf_dealloc( dbg(), valueAttr, DW_DLA_ATTR );
-   return true;
+    //dwarf_dealloc( dbg(), valueAttr, DW_DLA_ATTR );
+    return true;
 }
 
 bool DwarfWalker::fixBitFields(std::vector<VariableLocation> &locs,
-                               long &size) {
-   Dwarf_Attribute bitOffset;
-   int status = dwarf_attr( entry(), DW_AT_bit_offset, & bitOffset, NULL );
-   DWARF_CHECK_RET(status == DW_DLV_ERROR);
+        long &size) {
+    Dwarf_Attribute bitOffset;
+    Dwarf_Die e = entry();
+    auto status = dwarf_attr( &e, DW_AT_bit_offset, & bitOffset);
+    DWARF_CHECK_RET(status == 0);
 
-   if ( status == DW_DLV_OK && locs.size() )
-   {
-      unsigned long long memberOffset_du = locs[0].frameOffset;
+    if ( status == 0 && locs.size() )
+    {
+        unsigned long long memberOffset_du = locs[0].frameOffset;
 
-      DWARF_FAIL_RET(dwarf_formudata( bitOffset, &memberOffset_du, NULL ));
+        DWARF_FAIL_RET(dwarf_formudata( &bitOffset, &memberOffset_du));
 
-      //dwarf_dealloc( dbg(), bitOffset, DW_DLA_ATTR );
+        //dwarf_dealloc( dbg(), bitOffset, DW_DLA_ATTR );
 
-      Dwarf_Attribute bitSize;
-      DWARF_FAIL_RET(dwarf_attr( entry(), DW_AT_bit_size, & bitSize, NULL ));
+        Dwarf_Attribute bitSize;
+        Dwarf_Die e = entry();
+        auto ret_p = dwarf_attr( &e, DW_AT_bit_size, & bitSize);
+        if(!ret_p) return false;
 
-      unsigned long long memberSize_du = size;
-      DWARF_FAIL_RET(dwarf_formudata( bitSize, &memberSize_du, NULL ));
+        Dwarf_Word memberSize_du = size;
+        DWARF_FAIL_RET(dwarf_formudata( &bitSize, &memberSize_du));
 
-      //dwarf_dealloc( dbg(), bitSize, DW_DLA_ATTR );
+        //dwarf_dealloc( dbg(), bitSize, DW_DLA_ATTR );
 
-      /* If the DW_AT_byte_size field exists, there's some padding.
-         FIXME?  We ignore padding for now.  (We also don't seem to handle
-         bitfields right in getComponents() anyway...) */
-   }
-   else
-   {
-      if (locs.size())
-         locs[0].frameOffset *= 8;
-      size *= 8;
-   } /* end if not a bit field member. */
-   return true;
+        /* If the DW_AT_byte_size field exists, there's some padding.
+           FIXME?  We ignore padding for now.  (We also don't seem to handle
+           bitfields right in getComponents() anyway...) */
+    }
+    else
+    {
+        if (locs.size())
+            locs[0].frameOffset *= 8;
+        size *= 8;
+    } /* end if not a bit field member. */
+    return true;
 }
 
 bool DwarfWalker::fixName(std::string &name, Type *type) {
@@ -2093,141 +2123,141 @@ void DwarfWalker::removeFortranUnderscore(std::string &name) {
 }
 
 bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
-                                   std::string &loBound,
-                                   std::string &hiBound) {
-   dwarf_printf("(0x%lx) Parsing subrange /w/ auxiliary function\n", id());
-   loBound = "{unknown or default}";
-   hiBound = "{unknown or default}";
+        std::string &loBound,
+        std::string &hiBound) {
+    dwarf_printf("(0x%lx) Parsing subrange /w/ auxiliary function\n", id());
+    loBound = "{unknown or default}";
+    hiBound = "{unknown or default}";
 
-   /* Set the default lower bound, if we know it. */
-   switch ( mod()->language() ) {
-      case lang_Fortran:
-      case lang_Fortran_with_pretty_debug:
-      case lang_CMFortran:
-         loBound = "1";
-         break;
-      case lang_C:
-      case lang_CPlusPlus:
-         loBound = "0";
-         break;
-      default:
-         break;
-   } /* end default lower bound switch */
+    /* Set the default lower bound, if we know it. */
+    switch ( mod()->language() ) {
+        case lang_Fortran:
+        case lang_Fortran_with_pretty_debug:
+        case lang_CMFortran:
+            loBound = "1";
+            break;
+        case lang_C:
+        case lang_CPlusPlus:
+            loBound = "0";
+            break;
+        default:
+            break;
+    } /* end default lower bound switch */
 
-   /* Look for the lower bound. */
-   Dwarf_Attribute lowerBoundAttribute;
-   bool is_info = dwarf_get_die_infotypes_flag(entry);
-   int status = dwarf_attr( entry, DW_AT_lower_bound, & lowerBoundAttribute, NULL );
-   DWARF_CHECK_RET(status == DW_DLV_ERROR);
+    /* Look for the lower bound. */
+    Dwarf_Attribute lowerBoundAttribute;
+    bool is_info = dwarf_get_die_infotypes_flag(entry);
+    auto status = dwarf_attr( &entry, DW_AT_lower_bound, & lowerBoundAttribute);
+    DWARF_CHECK_RET(status == 0);
 
-   if ( status == DW_DLV_OK ) {
-      if (!decipherBound(lowerBoundAttribute, is_info, loBound )) return false;
-      //dwarf_dealloc( dbg(), lowerBoundAttribute, DW_DLA_ATTR );
-   } /* end if we found a lower bound. */
+    if ( status == 0 ) {
+        if (!decipherBound(lowerBoundAttribute, is_info, loBound )) return false;
+        //dwarf_dealloc( dbg(), lowerBoundAttribute, DW_DLA_ATTR );
+    } /* end if we found a lower bound. */
 
-   /* Look for the upper bound. */
-   Dwarf_Attribute upperBoundAttribute;
-   status = dwarf_attr( entry, DW_AT_upper_bound, & upperBoundAttribute, NULL );
-   DWARF_CHECK_RET(status == DW_DLV_ERROR);
+    /* Look for the upper bound. */
+    Dwarf_Attribute upperBoundAttribute;
+    status = dwarf_attr( &entry, DW_AT_upper_bound, & upperBoundAttribute);
+    DWARF_CHECK_RET(status == 0);
 
-   if ( status == DW_DLV_NO_ENTRY ) {
-      status = dwarf_attr( entry, DW_AT_count, & upperBoundAttribute, NULL );
-      DWARF_CHECK_RET(status == DW_DLV_ERROR);
-   }
+    if ( status == -1 ) {
+        status = dwarf_attr( &entry, DW_AT_count, & upperBoundAttribute);
+        DWARF_CHECK_RET(status == 0);
+    }
 
-   if ( status == DW_DLV_OK ) {
-      if (!decipherBound(upperBoundAttribute, is_info, hiBound )) return false;
-      //dwarf_dealloc( dbg(), upperBoundAttribute, DW_DLA_ATTR );
-   } /* end if we found an upper bound or count. */
+    if ( status == 0 ) {
+        if (!decipherBound(upperBoundAttribute, is_info, hiBound )) return false;
+        //dwarf_dealloc( dbg(), upperBoundAttribute, DW_DLA_ATTR );
+    } /* end if we found an upper bound or count. */
 
-   /* Construct the range type. */
-   if (!findName(curName())) return false;
-   if (!nameDefined()) {
-      curName() = "{anonymousRange}";
-   }
+    /* Construct the range type. */
+    if (!findName(curName())) return false;
+    if (!nameDefined()) {
+        curName() = "{anonymousRange}";
+    }
 
-   Dwarf_Off subrangeOffset;
-   DWARF_ERROR_RET(dwarf_dieoffset( entry, & subrangeOffset, NULL ));
-   typeId_t type_id = get_type_id(subrangeOffset, is_info);
+    Dwarf_Off subrangeOffset = dwarf_dieoffset(&entry);
+    DWARF_ERROR_RET(subrangeOffset);
+    typeId_t type_id = get_type_id(subrangeOffset, is_info);
 
-   errno = 0;
-   unsigned long low_conv = strtoul(loBound.c_str(), NULL, 10);
-   if (errno) {
-      low_conv = LONG_MIN;
-   }
+    errno = 0;
+    unsigned long low_conv = strtoul(loBound.c_str(), NULL, 10);
+    if (errno) {
+        low_conv = LONG_MIN;
+    }
 
-   errno = 0;
-   unsigned long hi_conv = strtoul(hiBound.c_str(), NULL, 10);
-   if (errno)  {
-      hi_conv = LONG_MAX;
-   }
-   dwarf_printf("(0x%lx) Adding subrange type: id %d, low %ld, high %ld, named %s\n",
-                id(), type_id,
-                low_conv, hi_conv, curName().c_str());
-   typeSubrange * rangeType = new typeSubrange( type_id,
-                                                0, low_conv, hi_conv, curName() );
-   assert( rangeType != NULL );
-   rangeType = tc()->addOrUpdateType( rangeType );
-   dwarf_printf("(0x%lx) Subrange has pointer %p (tc %p)\n", id(), rangeType, tc());
-   return true;
+    errno = 0;
+    unsigned long hi_conv = strtoul(hiBound.c_str(), NULL, 10);
+    if (errno)  {
+        hi_conv = LONG_MAX;
+    }
+    dwarf_printf("(0x%lx) Adding subrange type: id %d, low %ld, high %ld, named %s\n",
+            id(), type_id,
+            low_conv, hi_conv, curName().c_str());
+    typeSubrange * rangeType = new typeSubrange( type_id,
+            0, low_conv, hi_conv, curName() );
+    assert( rangeType != NULL );
+    rangeType = tc()->addOrUpdateType( rangeType );
+    dwarf_printf("(0x%lx) Subrange has pointer %p (tc %p)\n", id(), rangeType, tc());
+    return true;
 }
 
 typeArray *DwarfWalker::parseMultiDimensionalArray(Dwarf_Die range,
-                                                   Type * elementType)
+        Type * elementType)
 {
-  char buf[32];
-  /* Get the (negative) typeID for this range/subarray. */
-  Dwarf_Off dieOffset;
-  DWARF_FAIL_RET_VAL(dwarf_dieoffset( range, & dieOffset, NULL ), NULL);
+    char buf[32];
+    /* Get the (negative) typeID for this range/subarray. */
+    Dwarf_Off dieOffset = dwarf_dieoffset(&range);
+    DWARF_FAIL_RET_VAL(dieOffset, NULL);
 
-  /* Determine the range. */
-  std::string loBound;
-  std::string hiBound;
-  parseSubrangeAUX(range, loBound, hiBound);
+    /* Determine the range. */
+    std::string loBound;
+    std::string hiBound;
+    parseSubrangeAUX(range, loBound, hiBound);
 
-  /* Does the recursion continue? */
-  Dwarf_Die nextSibling;
-  bool is_info = dwarf_get_die_infotypes_flag(range);
-  int status = dwarf_siblingof_b( dbg(), range, is_info, & nextSibling, NULL );
-  DWARF_CHECK_RET_VAL(status == DW_DLV_ERROR, NULL);
+    /* Does the recursion continue? */
+    Dwarf_Die nextSibling;
+    bool is_info = dwarf_get_die_infotypes_flag(range);
+    int status = dwarf_siblingof_b( dbg(), range, is_info, & nextSibling, NULL );
+    DWARF_CHECK_RET_VAL(status == 1, NULL);
 
-  snprintf(buf, 31, "__array%d", (int) offset());
+    snprintf(buf, 31, "__array%d", (int) offset());
 
-  if ( status == DW_DLV_NO_ENTRY ) {
-    /* Terminate the recursion by building an array type out of the elemental type.
-       Use the negative dieOffset to avoid conflicts with the range type created
-       by parseSubRangeDIE(). */
-    // N.B.  I'm going to ignore the type id, and just create an anonymous type here
-     std::string aName = buf;
-     typeArray* innermostType = new typeArray( elementType,
-                                               atoi( loBound.c_str() ),
-                                               atoi( hiBound.c_str() ),
-                                               aName );
-     assert( innermostType != NULL );
-     Type * typ = tc()->addOrUpdateType( innermostType );
-    innermostType = dynamic_cast<typeArray *>(typ);
-    return innermostType;
-  } /* end base-case of recursion. */
+    if ( status == -1 ) {
+        /* Terminate the recursion by building an array type out of the elemental type.
+           Use the negative dieOffset to avoid conflicts with the range type created
+           by parseSubRangeDIE(). */
+        // N.B.  I'm going to ignore the type id, and just create an anonymous type here
+        std::string aName = buf;
+        typeArray* innermostType = new typeArray( elementType,
+                atoi( loBound.c_str() ),
+                atoi( hiBound.c_str() ),
+                aName );
+        assert( innermostType != NULL );
+        Type * typ = tc()->addOrUpdateType( innermostType );
+        innermostType = dynamic_cast<typeArray *>(typ);
+        return innermostType;
+    } /* end base-case of recursion. */
 
-  /* If it does, build this array type out of the array type returned from the next recusion. */
-  typeArray * innerType = parseMultiDimensionalArray( nextSibling, elementType);
-  assert( innerType != NULL );
-  // same here - type id ignored    jmo
-  std::string aName = buf;
-  typeArray * outerType = new typeArray( innerType, atoi(loBound.c_str()), atoi(hiBound.c_str()), aName);
-  assert( outerType != NULL );
-  Type *typ = tc()->addOrUpdateType( outerType );
-  outerType = static_cast<typeArray *>(typ);
+    /* If it does, build this array type out of the array type returned from the next recusion. */
+    typeArray * innerType = parseMultiDimensionalArray( nextSibling, elementType);
+    assert( innerType != NULL );
+    // same here - type id ignored    jmo
+    std::string aName = buf;
+    typeArray * outerType = new typeArray( innerType, atoi(loBound.c_str()), atoi(hiBound.c_str()), aName);
+    assert( outerType != NULL );
+    Type *typ = tc()->addOrUpdateType( outerType );
+    outerType = static_cast<typeArray *>(typ);
 
-  //dwarf_dealloc( dbg(), nextSibling, DW_DLA_DIE );
-  return outerType;
+    //dwarf_dealloc( dbg(), nextSibling, DW_DLA_DIE );
+    return outerType;
 } /* end parseMultiDimensionalArray() */
 
 bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, bool is_info,
                                 std::string &boundString )
 {
    Dwarf_Half boundForm;
-   DWARF_FAIL_RET(dwarf_whatform( boundAttribute, & boundForm, NULL ));
+   DWARF_FAIL_RET(dwarf_whatform( &boundAttribute, & boundForm));
 
    switch( boundForm ) {
       case DW_FORM_data1:
@@ -2239,8 +2269,8 @@ bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, bool is_info,
          dwarf_printf("(0x%lx) Decoding form %d with formudata\n",
                       id(), boundForm);
 
-         unsigned long long constantBound;
-         DWARF_FAIL_RET(dwarf_formudata( boundAttribute, & constantBound, NULL ));
+         Dwarf_Word constantBound;
+         DWARF_FAIL_RET(dwarf_formudata( &boundAttribute, & constantBound));
          char bString[40];
          sprintf(bString, "%llu", (unsigned long long)constantBound);
          boundString = bString;
@@ -2253,7 +2283,7 @@ bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, bool is_info,
                       id(), boundForm);
 
          Dwarf_Sword constantBound;
-         DWARF_FAIL_RET(dwarf_formsdata( boundAttribute, & constantBound, NULL ));
+         DWARF_FAIL_RET(dwarf_formsdata( &boundAttribute, & constantBound));
          char bString[40];
          sprintf(bString, "%lld", (long long)constantBound);
          boundString = bString;
@@ -2269,7 +2299,7 @@ bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, bool is_info,
       {
          /* Acquire the referenced DIE. */
          Dwarf_Off boundOffset;
-         DWARF_FAIL_RET(dwarf_global_formref( boundAttribute, & boundOffset, NULL ));
+         DWARF_FAIL_RET(dwarf_global_formref( &boundAttribute, & boundOffset));
 
          Dwarf_Die boundEntry;
          DWARF_FAIL_RET(dwarf_offdie_b( dbg(), boundOffset, is_info, & boundEntry, NULL ));
@@ -2281,12 +2311,12 @@ bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, bool is_info,
 
          /* Does it describe a nameless constant? */
          Dwarf_Attribute constBoundAttribute;
-         int status = dwarf_attr( boundEntry, DW_AT_const_value, & constBoundAttribute, NULL );
-         DWARF_CHECK_RET(status == DW_DLV_ERROR);
+         auto status = dwarf_attr(&boundEntry, DW_AT_const_value, &constBoundAttribute);
+         DWARF_CHECK_RET(status == 0);
 
-         if ( status == DW_DLV_OK ) {
-            unsigned long long constBoundValue;
-            DWARF_FAIL_RET(dwarf_formudata( constBoundAttribute, & constBoundValue, NULL ));
+         if ( status == 0 ) {
+            Dwarf_Word constBoundValue;
+            DWARF_FAIL_RET(dwarf_formudata( &constBoundAttribute, & constBoundValue));
 
             char bString[40];
             sprintf(bString, "%lu", (unsigned long)constBoundValue);
@@ -2409,7 +2439,8 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress( Dwarf_Op* **locati
       }
 
       long int *tmp = (long int *)initialStackValue;
-      bool result = decodeDwarfExpression(location, tmp, loc,
+      /* FIXME: should 1 be passed as the size of the list of location being passed? */
+      bool result = decodeDwarfExpression(*location, 1, tmp, loc,
                                           symtab()->getArchitecture());
       if (!result) {
          dwarf_printf("(0x%lx): decodeDwarfExpr failed\n", id());
@@ -2458,7 +2489,7 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress( Dwarf_Op* **locati
 } /* end decodeLocationListForStaticOffsetOrAddress() */
 
 
-void DwarfWalker::deallocateLocationList( Dwarf_Op* ** locationList,
+void DwarfWalker::deallocateLocationList( Dwarf_Op* ** /*locationList*/,
                                           Dwarf_Sword listLength )
 {
   for( int i = 0; i < listLength; i++ ) {
@@ -2549,7 +2580,7 @@ void DwarfWalker::findAllSig8Types()
                                     &extension_size,
                                     &signature,
                                     &typeoffset,
-                                    &next_cu_header, &err) == DW_DLV_OK ) {
+                                    &next_cu_header, &err) == 0 ) {
          parseModuleSig8(is_info);
          compile_offset = next_cu_header;
       }
@@ -2558,27 +2589,27 @@ void DwarfWalker::findAllSig8Types()
 
 bool DwarfWalker::parseModuleSig8(bool is_info)
 {
-   /* Obtain the type DIE. */
-   Dwarf_Die typeDIE;
-   DWARF_FAIL_RET(dwarf_siblingof_b( dbg(), NULL, is_info, &typeDIE, NULL ));
+    /* Obtain the type DIE. */
+    Dwarf_Die typeDIE;
+    DWARF_FAIL_RET(dwarf_siblingof_b( dbg(), NULL, is_info, &typeDIE, NULL ));
 
-   /* Make sure we've got the right one. */
-   Dwarf_Half typeTag;
-   DWARF_FAIL_RET(dwarf_tag( typeDIE, & typeTag, NULL ));
+    /* Make sure we've got the right one. */
+    Dwarf_Half typeTag = dwarf_tag(&typeDIE);
+    DWARF_FAIL_RET(typeTag);
 
-   if (typeTag != DW_TAG_type_unit)
-      return false;
+    if (typeTag != DW_TAG_type_unit)
+        return false;
 
-   /* typeoffset is relative to the type unit; we want the global offset. */
-   Dwarf_Off cu_off, cu_length;
-   DWARF_FAIL_RET(dwarf_die_CU_offset_range( typeDIE, &cu_off, &cu_length, NULL ));
+    /* typeoffset is relative to the type unit; we want the global offset. */
+    Dwarf_Off cu_off, cu_length;
+    DWARF_FAIL_RET(dwarf_die_CU_offset_range( typeDIE, &cu_off, &cu_length, NULL ));
 
-   uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
-   typeId_t type_id = get_type_id(cu_off + typeoffset, is_info);
-   sig8_type_ids_[sig8] = type_id;
+    uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
+    typeId_t type_id = get_type_id(cu_off + typeoffset, is_info);
+    sig8_type_ids_[sig8] = type_id;
 
-   dwarf_printf("Mapped Sig8 {%016llx} to type id 0x%x\n", (long long) sig8, type_id);
-   return true;
+    dwarf_printf("Mapped Sig8 {%016llx} to type id 0x%x\n", (long long) sig8, type_id);
+    return true;
 }
 
 bool DwarfWalker::findSig8Type(Dwarf_Sig8 * signature, Type *&returnType)
