@@ -67,7 +67,7 @@ namespace NS_aarch64 {
 
 #define MIN_IMM8    (-32768)
 #define MAX_IMM8    (32767)
-#define MAX_IMM16   (-65536)
+#define MIN_IMM16   (-65536)
 #define MAX_IMM16   (65535)
 #define MIN_IMM32   (-2147483647 - 1)
 #define MAX_IMM32   (2147483647)
