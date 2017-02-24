@@ -260,7 +260,7 @@ private:
     bool findAnyType(Dwarf_Attribute typeAttribute,
             bool is_info, Type *&type);
     bool findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset);
-    bool getLineInformation(unsigned long long &variableLineNo,
+    bool getLineInformation(Dwarf_Word &variableLineNo,
             bool &hasLineNumber,
             std::string &filename);
 public:
@@ -324,9 +324,9 @@ private:
     // Per-module info
     Address modLow;
     Address modHigh;
-    unsigned long long cu_header_length;
+    Dwarf_Word cu_header_length;
     Dwarf_Half version;
-    unsigned long long abbrev_offset;
+    Dwarf_Word abbrev_offset;
     Dwarf_Half addr_size;
     Dwarf_Half offset_size;
     Dwarf_Half extension_size;
@@ -337,8 +337,8 @@ private:
 
     Dwarf_Sig8 signature;
 
-    unsigned long long typeoffset;
-    unsigned long long next_cu_header;
+    Dwarf_Word typeoffset;
+    Dwarf_Word next_cu_header;
 
     // For debugging purposes; to match dwarfdump's output,
     // we need to subtract a "header overall offset".
@@ -361,7 +361,7 @@ protected:
     virtual void setFuncReturnType();
 
     virtual void createLocalVariable(const std::vector<VariableLocation> &locs, Type *type,
-            unsigned long long variableLineNo,
+            Dwarf_Word variableLineNo,
             const std::string &fileName);
 
     virtual bool createInlineFunc();
@@ -369,7 +369,7 @@ protected:
     virtual void setFuncFromLowest(Address lowest);
 
     virtual void createParameter(const std::vector<VariableLocation> &locs, 
-            Type *paramType, unsigned long long lineNo, const std::string &fileName);
+            Type *paramType, Dwarf_Word lineNo, const std::string &fileName);
 
     virtual void setRanges(FunctionBase *func);
 

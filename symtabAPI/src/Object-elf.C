@@ -2452,6 +2452,7 @@ bool Object::dwarf_parse_aranges(::Dwarf * dbg, std::set<Dwarf_Off>& dies_seen)
         if(dies_seen.count(cu_die_off) != 0) continue;
         if(len == 0) continue;
 
+        //May be wrong
         Dwarf_Die cu_die, * cu_die_p;
         cu_die_p = dwarf_offdie(dbg, cu_die_off, &cu_die);
         assert(cu_die_p != NULL);
