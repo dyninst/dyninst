@@ -69,6 +69,9 @@ public:
                                       Address to,
                                       bool isCall);
 
+    static void generateMemAccess32or64(codeGen &gen, int op, int index,
+                                        Register r1, Register r2, int immd, bool is64bit);
+
     /** TODO **/
     static void generateLoadReg(codeGen &gen, Register rt,
                                 Register ra, Register rb);
@@ -84,9 +87,6 @@ public:
 
     static void generateAddReg(codeGen &gen, int op,
                                Register rt, Register ra, Register rb);
-
-    static void generateMemAccess64(codeGen &gen, int op, int xop,
-                                    Register r1, Register r2, int immd);
 
     static void generateLShift(codeGen &gen, Register rs,
                                int shift, Register ra);
@@ -119,6 +119,13 @@ public:
     static void generateMoveToLR(codeGen &gen, Register rs);
 
     static void generateMoveToCR(codeGen &gen, Register rs);
+    
+    static bool generateMem(codeGen &gen,
+                            instruction &insn,
+                            Address origAddr,
+                            Address newAddr,
+                            Register newLoadReg,
+                            Register newStoreReg);
 
     /** *** **/
 
@@ -135,14 +142,6 @@ public:
                          Address newAddr,
                          patchTarget *fallthroughOverride = NULL,
                          patchTarget *targetOverride = NULL);
-
-    //TODO
-    static bool generateMem(codeGen &gen,
-                            instruction &insn,
-                            Address origAddr,
-                            Address newAddr,
-                            Register newLoadReg,
-                            Register newStoreReg);
 
     //TODO
     // Routines to create/remove a new stack frame for getting scratch registers

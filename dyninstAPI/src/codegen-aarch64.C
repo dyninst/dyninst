@@ -245,10 +245,34 @@ void insnCodeGen::generateMove(codeGen &gen, int imm16, int shift, Register rd, 
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateMemAccess64(codeGen &gen, int op, int xop, Register r1, Register r2, int immd)
+/* Currently, I'm only considering generation of only STR/LDR and their register/immediate variants.*/
+void insnCodeGen::generateMemAccess32or64(codeGen &gen, int op, int index, Register r1, Register r2, int immd, bool is64bit)
 {
-assert(0);
-//#warning "This function is not implemented yet!"
+    instruction insn;
+    insn.clear();
+
+    //Bit 31 is always 1. Bit 30 is 1 if we're using the 64-bit variant.
+    INSN_SET(insn, 31, 31, 1);
+    if(is64bit)
+        INSN_SET(insn, 30, 30, 1);
+
+    //Set opcode, index and offset bits
+    /*At the moment, I only need the STR instructions, hence the check below only compares to the opcode for the STR immediate-unsigned offset variant.
+    However, once the LDR variant is also required to be generated, this check will have to be updated. TODO */
+    if(op != STRImmUIOp) {
+        INSN_SET(insn, 21, 29, op);
+        INSN_SET(insn, 10, 11, index);
+        INSN_SET(insn, 12, 20, immd);
+    } else {
+        INSN_SET(insn, 22, 29, op);
+        INSN_SET(insn, 10, 21, is64bit ? (immd >> 3) : (immd >> 2));
+    }
+
+    //Set memory access register and register for address calculation.
+    INSN_SET(insn, 0, 4, r1 & 0x1F);
+    INSN_SET(insn, 5, 9, r2 & 0x1F);
+
+    insnCodeGen::generate(gen, insn);
 }
 
 // rlwinm ra,rs,n,0,31-n

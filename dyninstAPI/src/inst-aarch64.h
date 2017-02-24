@@ -103,17 +103,16 @@
                                            + FUNCSAVE_64 + FUNCARGS_64 + LINKAREA_64)
 #define PDYN_RESERVED_64 (LINKAREA_64 + FUNCARGS_64 + FUNCSAVE_64)
 
-//TODO ??/Fix for ARM
 #define TRAMP_SPR_OFFSET_64 (PDYN_RESERVED_64)
-#define STK_CR_64    (STK_LR      + 8)
-#define STK_CTR_64   (STK_CR_64   + 8)
-#define STK_XER_64   (STK_CTR_64  + 8)
-#define STK_FP_CR_64 (STK_XER_64  + 8)
-#define STK_SPR0_64  (STK_FP_CR_64+ 8)
+#define STK_LR       (              0)
+#define STK_SP_EL0   (STK_LR      + 8)
+#define STK_NZCV     (STK_SP_EL0  + 8)
+#define STK_FPCR     (STK_NZCV    + 4)
+#define STK_FPSR     (STK_FPCR    + 4)
 
 #define TRAMP_FPR_OFFSET_64 (TRAMP_SPR_OFFSET_64 + SPRSAVE_64)
 #define TRAMP_GPR_OFFSET_64 (TRAMP_FPR_OFFSET_64 + FPRSAVE)
-#define FUNC_CALL_SAVE_64 (LINKAREA_64 + FUNCARGS_64)
+#define FUNC_CALL_SAVE_64   (LINKAREA_64 + FUNCARGS_64)
 
 ///////////////////////////// Multi-instruction sequences
 class codeGen;
