@@ -109,7 +109,7 @@ bool Object::getRegValueAtFrame(Address pc,
 		Dyninst::MachRegisterVal &reg_result,
 		MemRegReader *reader)
 {
-   Dwarf::FrameErrors_t frame_error = Dwarf::FE_No_Error;
+   DwarfDyninst::FrameErrors_t frame_error = DwarfDyninst::FE_No_Error;
    bool result;
 
    dwarf->frame_dbg();

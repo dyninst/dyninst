@@ -49,7 +49,7 @@
 
 using namespace Dyninst;
 using namespace Stackwalker;
-using namespace Dwarf;
+using namespace DwarfDyninst;
 
 static std::map<std::string, DwarfFrameParser::Ptr> dwarf_info;
 

@@ -41,7 +41,7 @@ namespace Dyninst {
 class VariableLocation;
 class ProcessReader;
 
-namespace Dwarf {
+namespace DwarfDyninst {
 
 class DYNDWARF_EXPORT DwarfResult {
     // An interface for building representations of Dwarf expressions.

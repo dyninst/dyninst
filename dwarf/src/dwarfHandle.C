@@ -36,7 +36,7 @@
 #include <cstring>
 
 using namespace Dyninst;
-using namespace Dwarf;
+using namespace DwarfDyninst;
 using namespace std;
 
 // Add definitions that may not be in all elf.h files
@@ -162,7 +162,7 @@ bool DwarfHandle::init_dbg()
             assert(0 && "Unsupported archiecture in ELF file.");
             return false;
     }
-    sw = Dwarf::DwarfFrameParser::create(*frame_data, arch);
+    sw = DwarfDyninst::DwarfFrameParser::create(*frame_data, arch);
 
     init_dwarf_status = dwarf_status_ok;
     return true;

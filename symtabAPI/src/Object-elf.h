@@ -66,7 +66,7 @@
 
 namespace Dyninst{
 
-namespace Dwarf {
+namespace DwarfDyninst {
    class DwarfFrameParser;
    typedef boost::shared_ptr<DwarfFrameParser> DwarfFrameParserPtr;
 }
@@ -474,7 +474,7 @@ class Object;
   std::map<Offset, Offset> TOC_table_;
 
   public:
-  Dyninst::Dwarf::DwarfHandle::ptr dwarf;
+  Dyninst::DwarfDyninst::DwarfHandle::ptr dwarf;
   private:
 
   bool      EEL;                 // true if EEL rewritten

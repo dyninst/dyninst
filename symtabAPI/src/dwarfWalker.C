@@ -45,7 +45,7 @@
 #include <boost/bind.hpp>
 using namespace Dyninst;
 using namespace SymtabAPI;
-using namespace Dwarf;
+using namespace DwarfDyninst;
 using namespace std;
 
 #define DWARF_FAIL_RET_VAL(x, v) {                                      \
@@ -142,7 +142,7 @@ bool DwarfWalker::parse() {
             compile_offset = next_cu_header;
         }
         */
-        size_t cu_header_size;
+        size_t cu_header_size = 0;
         for(Dwarf_Off cu_off = 0, next_cu_off;
                 dwarf_nextcu(dbg(), cu_off, &next_cu_off, &cu_header_size,
                     NULL, NULL, NULL) == 0;
@@ -775,38 +775,50 @@ vector<AddressRange> DwarfWalker::getDieRanges(::Dwarf * dbg, Dwarf_Die die, Off
     auto highlow = parseHighPCLowPC(dbg, die);
     if(highlow.second) newRanges.push_back(highlow.first);
 
-      Address range_offset;
-      if (findConstant(DW_AT_ranges, range_offset, die, dbg))
-      {
-          Dwarf_Aranges *ranges = NULL;
-          size_t ranges_length = 0;
-          dwarf_printf("calling ranges_a, offset 0x%lx, die %p\n", range_offset, die);
-          //int status = (dwarf_get_ranges_a(dbg, (Dwarf_Off) range_offset, die,
-          //                             &ranges, &ranges_length, NULL, NULL));
-          int status = (dwarf_getaranges(dbg, &ranges, &ranges_length));
-          bool done = (status != 0);
-          for (unsigned i = 0; i < ranges_length && !done; i++) {
-              Dwarf_Arange *cur = dwarf_onearange(ranges,i);
-              Address cur_base = range_base;
-              switch (cur.dwr_type) {
-                  case DW_RANGES_ENTRY: {
-                      Address low = cur.dwr_addr1 + cur_base;
-                      Address high = cur.dwr_addr2 + cur_base;
-                      dwarf_printf("Lexical block from 0x%lx to 0x%lx\n", low, high);
-                      newRanges.push_back(AddressRange(low, high));
-                      // mod()->addRange(low, high);
-                      break;
-                  }
-                  case DW_RANGES_ADDRESS_SELECTION:
-                      cur_base = cur.dwr_addr2;
-                      break;
-                  case DW_RANGES_END:
-                      done = true;
-                      break;
-              }
-          }
-          //dwarf_ranges_dealloc(dbg, ranges, ranges_length);
-      }
+    Address range_offset;
+    if (findConstant(DW_AT_ranges, range_offset, die, dbg))
+    {
+        Dwarf_Aranges *ranges = NULL;
+        size_t ranges_length = 0;
+        dwarf_printf("calling ranges_a, offset 0x%lx, die %p\n", range_offset, die);
+        //int status = (dwarf_get_ranges_a(dbg, (Dwarf_Off) range_offset, die,
+        //                             &ranges, &ranges_length, NULL, NULL));
+        int status = (dwarf_getaranges(dbg, &ranges, &ranges_length));
+        bool done = (status != 0);
+        for (unsigned i = 0; i < ranges_length && !done; i++) {
+            Dwarf_Arange *cur = dwarf_onearange(ranges,i);
+            Address cur_base = range_base;
+            /*old code 
+            switch (cur.dwr_type) {
+                case DW_RANGES_ENTRY: 
+                    {
+                        Address low = cur.dwr_addr1 + cur_base;
+                        Address high = cur.dwr_addr2 + cur_base;
+                        dwarf_printf("Lexical block from 0x%lx to 0x%lx\n", low, high);
+                        newRanges.push_back(AddressRange(low, high));
+                        // mod()->addRange(low, high);
+                        break;
+                    }
+                case DW_RANGES_ADDRESS_SELECTION:
+                    cur_base = cur.dwr_addr2;
+                    break;
+                case DW_RANGES_END:
+                    done = true;
+                    break;
+            }*/
+            Dwarf_Addr address;
+            Dwarf_Word length;
+            Dwarf_Off offset;
+            if(!dwarf_getarangeinfo(cur, &address, &length, &offset))
+                continue;
+            Address low = address + offset + cur_base;
+            Address high = low + length;
+            dwarf_printf("Lexical block from 0x%lx to 0x%lx\n", low, high);
+            newRanges.push_back(AddressRange(low, high));
+
+        }
+        //dwarf_ranges_dealloc(dbg, ranges, ranges_length);
+    }
     return newRanges;
 }
 
@@ -1438,8 +1450,16 @@ bool DwarfWalker::handleAbstractOrigin(bool &isAbstract) {
 
     //bool is_info = dwarf_get_die_infotypes_flag(entry());
     bool is_info = !dwarf_hasattr_integrate(&e, DW_TAG_type_unit);
-    DWARF_FAIL_RET(dwarf_offdie_b( dbg(), abstractOffset, is_info, & absE, NULL));
-
+    //DWARF_FAIL_RET(dwarf_offdie_b( dbg(), abstractOffset, is_info, & absE, NULL));
+    Dwarf_Die * cu_die_p = 0; 
+    if(is_info){
+        cu_die_p = dwarf_offdie(dbg(), abstractOffset, &absE);
+    }else{
+        cu_die_p = dwarf_offdie_types(dbg(), abstractOffset, &absE);
+    }
+    if (cu_die_p == 0) {
+        return false;
+    }
     //dwarf_dealloc( dbg() , abstractAttribute, DW_DLA_ATTR );
 
     setAbstractEntry(absE);
@@ -1473,8 +1493,16 @@ bool DwarfWalker::handleSpecification(bool &hasSpec) {
 
     //bool is_info = dwarf_get_die_infotypes_flag(entry());
     bool is_info = !dwarf_hasattr_integrate(&e, DW_TAG_type_unit);
-    DWARF_FAIL_RET(dwarf_offdie_b( dbg(), specOffset, is_info, &specE, NULL ));
-
+    //DWARF_FAIL_RET(dwarf_offdie_b( dbg(), specOffset, is_info, &specE, NULL ));
+    Dwarf_Die * cu_die_p = 0; 
+    if(is_info){
+        cu_die_p = dwarf_offdie(dbg(), specOffset, &specE);
+    }else{
+        cu_die_p = dwarf_offdie_types(dbg(), specOffset, &specE);
+    }
+    if (cu_die_p == 0) {
+        return false;
+    }
     //dwarf_dealloc( dbg(), specAttribute, DW_DLA_ATTR );
     //    cout << "Set spec entry" << endl;
 
@@ -1522,7 +1550,8 @@ bool DwarfWalker::findFuncName() {
     DWARF_CHECK_RET(status == 0); // previously ==1
     if ( status != 0 )  { // previously ==1
         const char *dwarfName = dwarf_formstring(&linkageNameAttr);
-        DWARF_FAIL_RET(dwarfName);
+        //DWARF_FAIL_RET(dwarfName);
+        if(dwarfName==NULL) return false;
         curName() = dwarfName;
         setMangledName(true);
         dwarf_printf("(0x%lx) Found mangled name of %s, using\n", id(), curName().c_str());
@@ -1677,7 +1706,8 @@ bool DwarfWalker::findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset) {
         case DW_FORM_data4:
         case DW_FORM_data8:
             {
-                DWARF_FAIL_RET(dwarf_global_formref(&attr, &offset));
+                //DWARF_FAIL_RET(dwarf_global_formref(&attr, &offset));
+                DWARF_FAIL_RET(dwarf_formref(&attr, &offset));
                 return true;
             }
             /* Then there's DW_FORM_sec_offset which refer other sections, or
@@ -1698,7 +1728,10 @@ bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute,
     if (form == DW_FORM_ref_sig8) {
         Dwarf_Sig8 signature;
         //char signature[8];
-        DWARF_FAIL_RET(dwarf_formsig8(typeAttribute, &signature, NULL));
+        //DWARF_FAIL_RET(dwarf_formsig8(typeAttribute, &signature, NULL));
+        const char * sig = dwarf_formstring(&typeAttribute);
+        if(!sig) return false;
+        memcpy(signature.signature, sig, 8);
         return findSig8Type(&signature, type);
     }
 
@@ -1722,9 +1755,7 @@ bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute,
        so the Type look-ups by it rather than name. */
     type = tc()->findOrCreateType( type_id );
     dwarf_printf("(0x%lx) Returning type %p / %s for id 0x%x\n",
-            id(),
-            type, type->getName().c_str(),
-            type_id);
+            id(), type, type->getName().c_str(), type_id);
     return true;
 }
 
@@ -1769,8 +1800,9 @@ bool DwarfWalker::getLineInformation(Dwarf_Word &variableLineNo,
 }
 
 bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
-        Address *initialStackValue,
-        std::vector<VariableLocation> &locs) {
+        Address * /*initialStackValue*/,
+        std::vector<VariableLocation> &locs) 
+{
     dwarf_printf("(0x%lx) decodeLocationList for attr %d\n", id(), attr);
 
     bool hasAttr = false;
@@ -1807,6 +1839,7 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
     }
     else {
         dwarf_printf("(0x%lx) Decoding loclist location\n", id());
+        /* FIXME
         Dwarf_Op* **locationList;
         Dwarf_Sword listLength;
         int status = dwarf_loclist_n( locationAttribute, & locationList, & listLength, NULL );
@@ -1814,8 +1847,6 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
         //dwarf_dealloc( dbg(), locationAttribute, DW_DLA_ATTR );
 
         if (status != 0) {
-
-
             dwarf_printf("(0x%lx) Failed loclist decode: %d\n", id(), status);
             return true;
         }
@@ -1828,19 +1859,17 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
                     initialStackValue)) {
             deallocateLocationList( locationList, listLength );
             return false;
-        }
-
-
-        deallocateLocationList( locationList, listLength );
+        }*/
+        //deallocateLocationList( locationList, listLength );
     }
 
     return true;
 }
 
-bool DwarfWalker::checkForConstantOrExpr(Dwarf_Half attr,
+bool DwarfWalker::checkForConstantOrExpr(Dwarf_Half /*attr*/,
         Dwarf_Attribute &locationAttribute,
         bool &constant,
-        bool &expr,
+        bool & /*expr*/,
         Dwarf_Half &form)
 {
     constant = false;
@@ -1849,6 +1878,7 @@ bool DwarfWalker::checkForConstantOrExpr(Dwarf_Half attr,
     DWARF_FAIL_RET(form);
 
     // And see if it's a constant
+    /*FIXME 
     Dwarf_Form_Class formtype = dwarf_get_form_class(version, attr, offset_size, form);
     dwarf_printf("(0x%lx) Checking for constant, formtype is 0x%x looking for 0x%x\n",
             id(), formtype, DW_FORM_CLASS_CONSTANT);
@@ -1858,7 +1888,7 @@ bool DwarfWalker::checkForConstantOrExpr(Dwarf_Half attr,
     }
     else if (formtype == DW_FORM_CLASS_EXPRLOC) {
         expr = true;
-    }
+    }*/
     return true;
 }
 
@@ -1897,7 +1927,7 @@ bool DwarfWalker::findString(Dwarf_Half attr,
         case DW_FORM_string:
             {
                 const char *s = dwarf_formstring(&strattr);
-                DWARF_FAIL_RET(s);
+                if(!s) return false;
                 //          cout << "findString found " << s << " in DW_FORM_string" << endl;
                 str  = s;
                 result = true;
@@ -1910,7 +1940,7 @@ bool DwarfWalker::findString(Dwarf_Half attr,
             {
                 Dwarf_Block *block = NULL;
                 DWARF_FAIL_RET(dwarf_formblock(&strattr, block));
-                str = (char *) block->bl_data;
+                str = (char *) block->data;
                 //dwarf_dealloc(dbg(), block, DW_DLA_BLOCK);
                 //          cout << "findString found " << str << " in DW_FORM_block" << endl;
                 result = !str.empty();
@@ -1944,40 +1974,41 @@ bool DwarfWalker::findConstant(Dwarf_Half attr, Address &value, Dwarf_Die entry,
 }
 
 bool DwarfWalker::findConstantWithForm(Dwarf_Attribute &locationAttribute,
-                                       Dwarf_Half form,
-                                       Address &value) {
-   value = 0;
+        Dwarf_Half form,
+        Address &value) {
+    value = 0;
 
-   switch(form) {
-      case DW_FORM_addr:
-         Dwarf_Addr addr;
-         DWARF_FAIL_RET(dwarf_formaddr(&locationAttribute, &addr));
-         value = (Address) addr;
-         return true;
-      case DW_FORM_sdata:
-         Dwarf_Sword s_tmp;
-         DWARF_FAIL_RET(dwarf_formsdata(&locationAttribute, &s_tmp));
-         value = (Address) s_tmp;
-         dwarf_printf("Decoded data of form %x to 0x%lx\n",
-                      form, value);
-         return true;
-      case DW_FORM_data1:
-      case DW_FORM_data2:
-      case DW_FORM_data4:
-      case DW_FORM_data8:
-      case DW_FORM_udata:
-         Dwarf_Word u_tmp;
-         DWARF_FAIL_RET(dwarf_formudata(&locationAttribute, &u_tmp));
-         value = (Address) u_tmp;
-         return true;
-   case DW_FORM_sec_offset:
-     DWARF_FAIL_RET(dwarf_global_formref(locationAttribute, &u_tmp, NULL));
-     value = (Address)(u_tmp);
-     return true;
-      default:
-         dwarf_printf("Unhandled form 0x%x for constant decode\n", (unsigned) form);
-         return false;
-   }
+    switch(form) {
+        case DW_FORM_addr:
+            Dwarf_Addr addr;
+            DWARF_FAIL_RET(dwarf_formaddr(&locationAttribute, &addr));
+            value = (Address) addr;
+            return true;
+        case DW_FORM_sdata:
+            Dwarf_Sword s_tmp;
+            DWARF_FAIL_RET(dwarf_formsdata(&locationAttribute, &s_tmp));
+            value = (Address) s_tmp;
+            dwarf_printf("Decoded data of form %x to 0x%lx\n",
+                    form, value);
+            return true;
+        case DW_FORM_data1:
+        case DW_FORM_data2:
+        case DW_FORM_data4:
+        case DW_FORM_data8:
+        case DW_FORM_udata:
+            Dwarf_Word u_tmp;
+            DWARF_FAIL_RET(dwarf_formudata(&locationAttribute, &u_tmp));
+            value = (Address) u_tmp;
+            return true;
+        case DW_FORM_sec_offset:
+            //DWARF_FAIL_RET(dwarf_global_formref(locationAttribute, &u_tmp, NULL));
+            DWARF_FAIL_RET(dwarf_formref(&locationAttribute, &u_tmp));
+            value = (Address)(u_tmp);
+            return true;
+        default:
+            dwarf_printf("Unhandled form 0x%x for constant decode\n", (unsigned) form);
+            return false;
+    }
 }
 
 bool DwarfWalker::decodeConstantLocation(Dwarf_Attribute &attr, Dwarf_Half form,
@@ -2295,106 +2326,117 @@ typeArray *DwarfWalker::parseMultiDimensionalArray(Dwarf_Die range,
 } /* end parseMultiDimensionalArray() */
 
 bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, bool is_info,
-                                std::string &boundString )
+        std::string &boundString )
 {
-   Dwarf_Half boundForm = dwarf_whatform(&boundAttribute);
-   DWARF_FAIL_RET(boundForm);
+    Dwarf_Half boundForm = dwarf_whatform(&boundAttribute);
+    DWARF_FAIL_RET(boundForm);
 
-   switch( boundForm ) {
-      case DW_FORM_data1:
-      case DW_FORM_data2:
-      case DW_FORM_data4:
-      case DW_FORM_data8:
-      case DW_FORM_udata:
-      {
-         dwarf_printf("(0x%lx) Decoding form %d with formudata\n",
-                      id(), boundForm);
+    switch( boundForm ) {
+        case DW_FORM_data1:
+        case DW_FORM_data2:
+        case DW_FORM_data4:
+        case DW_FORM_data8:
+        case DW_FORM_udata:
+            {
+                dwarf_printf("(0x%lx) Decoding form %d with formudata\n",
+                        id(), boundForm);
 
-         Dwarf_Word constantBound;
-         DWARF_FAIL_RET(dwarf_formudata( &boundAttribute, & constantBound));
-         char bString[40];
-         sprintf(bString, "%llu", (unsigned long long)constantBound);
-         boundString = bString;
-         return true;
-      } break;
+                Dwarf_Word constantBound;
+                DWARF_FAIL_RET(dwarf_formudata( &boundAttribute, & constantBound));
+                char bString[40];
+                sprintf(bString, "%llu", (unsigned long long)constantBound);
+                boundString = bString;
+                return true;
+            } break;
 
-      case DW_FORM_sdata:
-      {
-         dwarf_printf("(0x%lx) Decoding form %d with formsdata\n",
-                      id(), boundForm);
+        case DW_FORM_sdata:
+            {
+                dwarf_printf("(0x%lx) Decoding form %d with formsdata\n",
+                        id(), boundForm);
 
-         Dwarf_Sword constantBound;
-         DWARF_FAIL_RET(dwarf_formsdata( &boundAttribute, & constantBound));
-         char bString[40];
-         sprintf(bString, "%lld", (long long)constantBound);
-         boundString = bString;
-         return true;
-      } break;
+                Dwarf_Sword constantBound;
+                DWARF_FAIL_RET(dwarf_formsdata( &boundAttribute, & constantBound));
+                char bString[40];
+                sprintf(bString, "%lld", (long long)constantBound);
+                boundString = bString;
+                return true;
+            } break;
 
-      case DW_FORM_ref_addr:
-      case DW_FORM_ref1:
-      case DW_FORM_ref2:
-      case DW_FORM_ref4:
-      case DW_FORM_ref8:
-      case DW_FORM_ref_udata:
-      {
-         /* Acquire the referenced DIE. */
-         Dwarf_Off boundOffset;
-         DWARF_FAIL_RET(dwarf_global_formref( &boundAttribute, & boundOffset));
+        case DW_FORM_ref_addr:
+        case DW_FORM_ref1:
+        case DW_FORM_ref2:
+        case DW_FORM_ref4:
+        case DW_FORM_ref8:
+        case DW_FORM_ref_udata:
+            {
+                /* Acquire the referenced DIE. */
+                Dwarf_Off boundOffset;
+                //DWARF_FAIL_RET(dwarf_global_formref( &boundAttribute, & boundOffset));
+                DWARF_FAIL_RET(dwarf_formref(&boundAttribute, &boundOffset));
 
-         Dwarf_Die boundEntry;
-         DWARF_FAIL_RET(dwarf_offdie_b( dbg(), boundOffset, is_info, & boundEntry, NULL ));
+                Dwarf_Die boundEntry;
+                //DWARF_FAIL_RET(dwarf_offdie_b( dbg(), boundOffset, is_info, &boundEntry, NULL ));
+                Dwarf_Die * cu_die_p = 0; 
+                if(is_info){
+                    cu_die_p = dwarf_offdie(dbg(), boundOffset, &boundEntry);
+                }else{
+                    cu_die_p = dwarf_offdie_types(dbg(), boundOffset, &boundEntry);
+                }
+                if (cu_die_p == 0) {
+                    return false;
+                }
 
-         /* Does it have a name? */
-         if (findDieName(dbg(), boundEntry, boundString)
-               && !boundString.empty())
-            return true;
+                /* Does it have a name? */
+                if (findDieName(dbg(), boundEntry, boundString)
+                        && !boundString.empty())
+                    return true;
 
-         /* Does it describe a nameless constant? */
-         Dwarf_Attribute constBoundAttribute;
-         auto status = dwarf_attr(&boundEntry, DW_AT_const_value, &constBoundAttribute);
-         DWARF_CHECK_RET(status == 0);
+                /* Does it describe a nameless constant? */
+                Dwarf_Attribute constBoundAttribute;
+                auto status = dwarf_attr(&boundEntry, DW_AT_const_value, &constBoundAttribute);
+                DWARF_CHECK_RET(status == 0);
 
-         if ( status == 0 ) {
-            Dwarf_Word constBoundValue;
-            DWARF_FAIL_RET(dwarf_formudata( &constBoundAttribute, & constBoundValue));
+                if ( status == 0 ) {
+                    Dwarf_Word constBoundValue;
+                    DWARF_FAIL_RET(dwarf_formudata( &constBoundAttribute, & constBoundValue));
 
-            char bString[40];
-            sprintf(bString, "%lu", (unsigned long)constBoundValue);
-            boundString = bString;
+                    char bString[40];
+                    sprintf(bString, "%lu", (unsigned long)constBoundValue);
+                    boundString = bString;
 
-            //dwarf_dealloc( dbg(), boundEntry, DW_DLA_DIE );
-            //dwarf_dealloc( dbg(), constBoundAttribute, DW_DLA_ATTR );
-            return true;
-         }
+                    //dwarf_dealloc( dbg(), boundEntry, DW_DLA_DIE );
+                    //dwarf_dealloc( dbg(), constBoundAttribute, DW_DLA_ATTR );
+                    return true;
+                }
 
-         return false;
-      } break;
-      case DW_FORM_block:
-      case DW_FORM_block1:
-      {
-         /* PGI extends DWARF to allow some bounds to be location lists.  Since we can't
-            do anything sane with them, ignore them. */
-         // Dwarf_Op* * locationList;
-         // Dwarf_Sword listLength;
-         // status = dwarf_loclist( boundAttribute, & locationList, & listLength, NULL );
-         boundString = "{PGI extension}";
-         return false;
-      } break;
+                return false;
+            } break;
+        case DW_FORM_block:
+        case DW_FORM_block1:
+            {
+                /* PGI extends DWARF to allow some bounds to be location lists.  Since we can't
+                   do anything sane with them, ignore them. */
+                // Dwarf_Op* * locationList;
+                // Dwarf_Sword listLength;
+                // status = dwarf_loclist( boundAttribute, & locationList, & listLength, NULL );
+                boundString = "{PGI extension}";
+                return false;
+            } break;
 
-      default:
-         //bperr ( "Invalid bound form 0x%x\n", boundForm );
-         boundString = "{invalid bound form}";
-         return false;
-         break;
-   } /* end boundForm switch */
-   return true;
+        default:
+            //bperr ( "Invalid bound form 0x%x\n", boundForm );
+            boundString = "{invalid bound form}";
+            return false;
+            break;
+    } /* end boundForm switch */
+    return true;
 }
 
-bool DwarfWalker::decodeExpression(Dwarf_Attribute &attr,
+//FIXME whole function
+bool DwarfWalker::decodeExpression(Dwarf_Attribute & /*attr*/,
 				   std::vector<VariableLocation> &locs) {
-  Dwarf_Word expr_len;
-  Dwarf_Ptr expr_ptr;
+  //Dwarf_Word expr_len;
+  /*Dwarf_Ptr expr_ptr;
   DWARF_FAIL_RET(dwarf_formexprloc(attr, &expr_len, &expr_ptr));
   unsigned char *bitstream = (unsigned char *) expr_ptr;
 
@@ -2404,13 +2446,13 @@ bool DwarfWalker::decodeExpression(Dwarf_Attribute &attr,
   dwarf_printf("(0x%lx) bitstream for expr has len %d\n", id(), expr_len);
   for (unsigned i = 0; i < expr_len; ++i) {
     dwarf_printf("(0x%lx) \t %#hhx\n", id(), bitstream[i]);
-  }
+  }*/
 
-  Dwarf_Sword cnt;
+  Dwarf_Sword cnt = 1;
   Dwarf_Op* *descs;
 
-  DWARF_FAIL_RET(dwarf_loclist_from_expr_a(dbg(), expr_ptr, expr_len, addr_size,
-					   &descs, &cnt, NULL));
+  //DWARF_FAIL_RET(dwarf_loclist_from_expr_a(dbg(), expr_ptr, expr_len, addr_size,
+  //					   &descs, &cnt, NULL));
   assert(cnt == 1);
 
   bool ret = decodeLocationListForStaticOffsetOrAddress(&descs, cnt, locs, NULL);
@@ -2608,29 +2650,48 @@ typeId_t DwarfWalker::type_id()
 
 void DwarfWalker::findAllSig8Types()
 {
-   /* First .debug_types (0), then .debug_info (1).
-    * In DWARF4, only .debug_types contains DW_TAG_type_unit,
-    * but DWARF5 is considering them for .debug_info too.*/
-   for (int i = 0; i < 2; ++i) {
-      bool is_info = i;
-      Dwarf_Error err;
-      compile_offset = next_cu_header = 0;
+    /* First .debug_types (0), then .debug_info (1).
+     * In DWARF4, only .debug_types contains DW_TAG_type_unit,
+     * but DWARF5 is considering them for .debug_info too.*/
+    for (int i = 0; i < 2; ++i) {
+        //bool is_info = i;
+        //Dwarf_Error err;
+        compile_offset = next_cu_header = 0;
 
-      /* Iterate over the compilation-unit headers. */
-      while (dwarf_next_cu_header_c(dbg(), is_info,
-                                    &cu_header_length,
-                                    &version,
-                                    &abbrev_offset,
-                                    &addr_size,
-                                    &offset_size,
-                                    &extension_size,
-                                    &signature,
-                                    &typeoffset,
-                                    &next_cu_header, &err) == 0 ) {
-         parseModuleSig8(is_info);
-         compile_offset = next_cu_header;
-      }
-   }
+        /* Iterate over the compilation-unit headers. */
+        /*while (dwarf_next_cu_header_c(dbg(), is_info,
+                    &cu_header_length,
+                    &version,
+                    &abbrev_offset,
+                    &addr_size,
+                    &offset_size,
+                    &extension_size,
+                    &signature,
+                    &typeoffset,
+                    &next_cu_header, &err) == 0 ) {
+            parseModuleSig8(is_info);
+            compile_offset = next_cu_header;
+        }*/
+
+        size_t cu_header_size = 0;
+        for(Dwarf_Off cu_off = 0;
+                dwarf_nextcu(dbg(), cu_off, &next_cu_header, &cu_header_length,
+                    &abbrev_offset, &addr_size, &offset_size) == 0;
+                cu_off = next_cu_header)
+        {
+            Dwarf_Off cu_die_off = cu_off + cu_header_size;
+            Dwarf_Die cu_die, *cu_die_p; 
+            if(i==0){ //.debug_types
+                cu_die_p = dwarf_offdie_types(dbg(), cu_die_off, &cu_die);
+            }else{
+                cu_die_p = dwarf_offdie(dbg(), cu_die_off, &cu_die);
+            }
+            assert(cu_die_p  == NULL);
+
+            parseModuleSig8(i);
+            compile_offset = next_cu_header;
+        }       
+    }
 }
 
 bool DwarfWalker::parseModuleSig8(bool is_info)
@@ -2656,11 +2717,12 @@ bool DwarfWalker::parseModuleSig8(bool is_info)
         return false;
 
     /* typeoffset is relative to the type unit; we want the global offset. */
-    Dwarf_Off cu_off, cu_length;
-    DWARF_FAIL_RET(dwarf_die_CU_offset_range( typeDIE, &cu_off, &cu_length, NULL ));
+    //FIXME
+    //Dwarf_Off cu_off, cu_length;
+    //DWARF_FAIL_RET(dwarf_die_CU_offset_range(typeDIE, &cu_off, &cu_length, NULL ));
 
     uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
-    typeId_t type_id = get_type_id(cu_off + typeoffset, is_info);
+    typeId_t type_id = get_type_id(/*cu_off +*/ typeoffset, is_info);
     sig8_type_ids_[sig8] = type_id;
 
     dwarf_printf("Mapped Sig8 {%016llx} to type id 0x%x\n", (long long) sig8, type_id);

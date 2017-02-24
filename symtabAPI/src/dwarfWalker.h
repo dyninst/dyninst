@@ -327,8 +327,8 @@ private:
     Dwarf_Word cu_header_length;
     Dwarf_Half version;
     Dwarf_Word abbrev_offset;
-    Dwarf_Half addr_size;
-    Dwarf_Half offset_size;
+    uint8_t /*Dwarf_Half*/ addr_size;
+    uint8_t /*Dwarf_Half*/ offset_size;
     Dwarf_Half extension_size;
 
     typedef struct{

@@ -40,7 +40,7 @@
 #include "debug_common.h"
 
 using namespace Dyninst;
-using namespace Dwarf;
+using namespace DwarfDyninst;
 using namespace std;
 
 #define CHECK_OPER(n) if (operands.size() < n) { error = true; break; }

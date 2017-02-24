@@ -43,7 +43,7 @@ namespace Dyninst {
 
 class VariableLocation;
 
-namespace Dwarf {
+namespace DwarfDyninst {
 
 class DwarfResult;
 

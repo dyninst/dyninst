@@ -41,7 +41,7 @@
 #define DW_FRAME_CFA_COL3 ((Dwarf_Half) -1)
 
 using namespace Dyninst;
-using namespace Dwarf;
+using namespace DwarfDyninst;
 using namespace std;
 
 struct frameParser_key

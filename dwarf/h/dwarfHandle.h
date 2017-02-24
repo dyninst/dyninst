@@ -39,7 +39,7 @@
 namespace Dyninst {
 class Elf_X;
 
-namespace Dwarf {
+namespace DwarfDyninst {
 class DwarfFrameParser;
 
 typedef boost::shared_ptr<DwarfFrameParser> DwarfFrameParserPtr;

@@ -47,7 +47,7 @@
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
-using namespace Dyninst::Dwarf;
+using namespace Dyninst::DwarfDyninst;
 using namespace std;
 
 #if !defined(_Object_elf_h_)

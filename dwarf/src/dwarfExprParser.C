@@ -41,7 +41,7 @@
 using namespace std;
 
 namespace Dyninst {
-namespace Dwarf {
+namespace DwarfDyninst {
 
 bool decodeDwarfExpression(Dwarf_Op * expr,
         Dwarf_Sword listlen,

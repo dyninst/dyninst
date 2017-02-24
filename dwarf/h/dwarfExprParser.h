@@ -42,7 +42,7 @@ namespace Dyninst {
 class VariableLocation;
 class ProcessReader;
 
-namespace Dwarf {
+namespace DwarfDyninst{
 
 class DwarfResult;
 
