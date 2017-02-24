@@ -119,7 +119,7 @@ public:
     static void generateMoveToLR(codeGen &gen, Register rs);
 
     static void generateMoveToCR(codeGen &gen, Register rs);
-    
+
     static bool generateMem(codeGen &gen,
                             instruction &insn,
                             Address origAddr,
