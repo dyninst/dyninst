@@ -691,6 +691,12 @@ static bool IsTableIndex(set<uint64_t> &values) {
 }
 
 void BoundValue::MemoryRead(Block* b, int readSize) {
+        if (interval.stride == 0) {
+            // This is a read to variable, not a table read
+	    *this = BoundValue::top;
+            return;
+        }
+
 	if (interval != StridedInterval::top) {
 		Address memAddrLow = (Address)interval.low;
 		Address memAddrHigh = (Address)interval.high;
