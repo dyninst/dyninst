@@ -2495,7 +2495,8 @@ bool Object::fix_global_symbol_modules_static_dwarf()
         Dwarf_Off cu_die_off = cu_off + cu_header_size;
         Dwarf_Die cu_die, *cu_die_p; 
         cu_die_p = dwarf_offdie(dbg, cu_die_off, &cu_die);
-        assert(cu_die_p  == NULL);
+        //assert(cu_die_p == NULL);
+        if(cu_die_p == NULL) continue;
         if(dies_seen.count(cu_die_off) != 0) continue;
         
         std::string modname;
