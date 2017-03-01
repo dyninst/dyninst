@@ -69,7 +69,7 @@
 //TODO Fix for ARM
 #define GPRSAVE_64  (31*8)
 #define FPRSAVE     (32*8)
-#define SPRSAVE_64  (2*8+3*4)
+#define SPRSAVE_64  (1*8+3*4)
 #define FUNCSAVE_64 (32*8)
 #define FUNCARGS_64 (16*8)
 #define LINKAREA_64 (6*8)
@@ -105,7 +105,6 @@
 
 #define TRAMP_SPR_OFFSET_64 (PDYN_RESERVED_64)
 #define STK_LR       (              0)
-#define STK_SP_EL0   (STK_LR      + 8)
 #define STK_NZCV     (STK_SP_EL0  + 8)
 #define STK_FPCR     (STK_NZCV    + 4)
 #define STK_FPSR     (STK_FPCR    + 4)
@@ -134,26 +133,6 @@ void saveLR(codeGen &gen,
 void restoreLR(codeGen &gen,
                Register scratchReg,
                int stkOffset);
-
-void setBRL(codeGen &gen,
-            Register scratchReg,
-            long val,
-            unsigned ti); // We're lazy and hand in the next insn
-void saveCR(codeGen &gen,
-            Register scratchReg,
-            int stkOffset);
-
-void restoreCR(codeGen &gen,
-               Register scratchReg,
-               int stkOffset);
-
-void saveFPSCR(codeGen &gen,
-               Register scratchReg,
-               int stkOffset);
-
-void restoreFPSCR(codeGen &gen,
-                  Register scratchReg,
-                  int stkOffset);
 
 void saveRegister(codeGen &gen,
                   Register reg,
