@@ -85,6 +85,9 @@ namespace Dyninst
             case Arch_x86:
                 formatter = new x86Formatter();
                 break;
+            case Arch_ppc64:
+                formatter = new PPCFormatter();
+                break;
             default:formatter = NULL;
                 break;
         }
