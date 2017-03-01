@@ -77,6 +77,12 @@ namespace NS_aarch64 {
 #define MAX_IMM48   ((long)(-1 >> 17))
 #define MIN_IMM48   ((long)(~MAX_IMM48))
 
+//Would probably want to use the register category as well (FPR/SPR/GPR), but for the uses of these macros, this should suffice
+#define SPR_LR      (((Dyninst::aarch64::x29).val()) & 0x1F)
+#define SPR_NZCV    (((Dyninst::aarch64::pstate).val()) & 0x1F)
+#define SPR_FPCR    (((Dyninst::aarch64::fpcr).val()) & 0x1F)
+#define SPR_FPSR    (((Dyninst::aarch64::fpsr).val()) & 0x1F)
+
 #define INSN_SET(I, s, e, v)    ((I).setBits(s, e - s + 1, (v)))
 
 #define INSN_GET_ISCALL(I)          ((unsigned int) ((I).asInt() & 0x80000000))

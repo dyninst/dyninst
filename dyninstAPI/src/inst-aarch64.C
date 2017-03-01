@@ -130,64 +130,77 @@ void registerSpace::initialize() {
     initialize64();
 }
 
-void saveSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset) {
-    //TODO move map to common location
-    map<int, int> sysRegCodeMap = map_list_of(SPR_NZCV, 0x5A10)(SPR_FPCR, 0x5A20)(SPR_FPSR, 0x5A21);
-    if(!sysRegCodeMap.count(sprnum))
-        assert(!"Invalid/unknown system register passed to saveSPR()!");
-
-    instruction insn;
-    insn.clear();
-
-    //Set opcode for MRS instruction
-    INSN_SET(insn, 20, 31, MRSOp);
-    //Set destination register
-    INSN_SET(insn, 0, 4, scratchReg & 0x1F);
-    //Set bits representing source system register
-    INSN_SET(insn, 5, 19, sysRegCodeMap[sprnum]);
-    insnCodeGen::generate(gen, insn);
-
-    insnCodeGen::generateMemAccess32or64(gen, STRImmUIOp, -1, scratchReg, REG_SP, stkOffset, false);
-}
-
-void restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset) {
-    insnCodeGen::generateMemAccess32or64(gen, LDRImmUIOp, -1, scratchReg, REG_SP, stkOffset, false);
-
-    //TODO move map to common location
-    map<int, int> sysRegCodeMap = map_list_of(SPR_NZCV, 0x5A10)(SPR_FPCR, 0x5A20)(SPR_FPSR, 0x5A21);
-    if(!sysRegCodeMap.count(sprnum))
-        assert(!"Invalid/unknown system register passed to restoreSPR()!");
-
-    instruction insn;
-    insn.clear();
-
-    //Set opcode for MSR (register) instruction
-    INSN_SET(insn, 20, 31, MSROp);
-    //Set source register
-    INSN_SET(insn, 0, 4, scratchReg & 0x1F);
-    //Set bits representing destination system register
-    INSN_SET(insn, 5, 19, sysRegCodeMap[sprnum]);
-    insnCodeGen::generate(gen, insn);
-}
-
 void saveRegisterAtOffset(codeGen &gen,
                           Register reg,
                           int save_off) {
 }
 
+/********************************* EmitterAARCH64SaveRegs ***************************************/
+
+/********************************* Private methods *********************************************/
+
+void EmitterAARCH64SaveRegs::saveSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset) {
+    //TODO move map to common location
+    map<int, int> sysRegCodeMap = map_list_of(SPR_NZCV, 0x5A10)(SPR_FPCR, 0x5A20)(SPR_FPSR, 0x5A21);
+    if(!sysRegCodeMap.count(sprnum))
+        assert(!"Invalid/unknown system register passed to saveSPR()!");
+
+    if(sprnum != SPR_LR) {
+        instruction insn;
+        insn.clear();
+
+        //Set opcode for MRS instruction
+        INSN_SET(insn, 20, 31, MRSOp);
+        //Set destination register
+        INSN_SET(insn, 0, 4, scratchReg & 0x1F);
+        //Set bits representing source system register
+        INSN_SET(insn, 5, 19, sysRegCodeMap[sprnum]);
+        insnCodeGen::generate(gen, insn);
+    } else {
+        scratchReg = gen.rs()->getRegByName("r29");
+    }
+
+    insnCodeGen::generateMemAccess32or64(gen, STRImmUIOp, -1, scratchReg, REG_SP, stkOffset, sprnum == SPR_LR);
+}
+
 // Dest != reg : optimizate away a load/move pair
-void saveRegister(codeGen &gen,
-                  Register source,
-                  Register dest,
-                  int save_off) {
+void EmitterAARCH64SaveRegs::saveRegister(codeGen &gen, Register source, Register dest, int save_off) {
     assert(0); //Not implemented
 }
 
-void saveRegister(codeGen &gen,
-                  Register reg,
-                  int save_off) {
+void EmitterAARCH64SaveRegs::saveRegister(codeGen &gen, Register reg, int save_off) {
     assert(0); //Not implemented
 }
+
+
+void EmitterAARCH64SaveRegs::saveFPRegister(codeGen &gen, Register reg, int save_off) {
+    assert(0); //Not implemented
+}
+
+/********************************* Public methods *********************************************/
+
+unsigned EmitterAARCH64SaveRegs::saveGPRegisters(codeGen &gen, registerSpace *theRegSpace, int numReqGPRs) {
+    assert(0); //Not implemented
+}
+
+unsigned EmitterAARCH64SaveRegs::saveFPRegisters(codeGen &gen, registerSpace *theRegSpace) {
+    assert(0); //Not implemented
+    unsigned numRegs = 0;
+
+    return numRegs;
+}
+
+unsigned EmitterAARCH64SaveRegs::saveSPRegisters(codeGen &gen, registerSpace *, int force_save) {
+    assert(0); //Not implemented
+    unsigned num_saved = 0;
+    return num_saved;
+}
+
+void EmitterAARCH64SaveRegs::pushStack(codeGen &gen) {
+    assert(0); //Not implemented
+}
+
+/***********************************************************************************************/
 
 void restoreRegisterAtOffset(codeGen &gen,
                              Register dest,
@@ -195,137 +208,78 @@ void restoreRegisterAtOffset(codeGen &gen,
     assert(0); //Not implemented
 }
 
-// Dest != reg : optimizate away a load/move pair
-void restoreRegister(codeGen &gen,
-                     Register source,
-                     Register dest,
-                     int saved_off) {
-    assert(0); //Not implemented
+/********************************* EmitterAARCH64RestoreRegs ************************************/
 
-}
+/********************************* Public methods *********************************************/
 
-void restoreRegister(codeGen &gen,
-                     Register reg,
-                     int save_off) {
-    assert(0); //Not implemented
-}
-
-void saveFPRegister(codeGen &gen,
-                    Register reg,
-                    int save_off) {
-    assert(0); //Not implemented
-}
-
-void restoreFPRegister(codeGen &gen,
-                       Register source,
-                       Register dest,
-                       int save_off) {
-    assert(0); //Not implemented
-}
-
-void restoreFPRegister(codeGen &gen,
-                       Register reg,
-                       int save_off) {
-    assert(0); //Not implemented
-}
-
-/*
- * Emit code to push down the stack, AST-generate style
- */
-void pushStack(codeGen &gen) {
-    assert(0); //Not implemented
-}
-
-void popStack(codeGen &gen) {
-    assert(0); //Not implemented
-}
-
-/*
- * Save necessary registers on the stack
- * insn, base: for code generation. Offset: regs saved at offset + reg
- * Returns: number of registers saved.
- * Side effects: instruction pointer and base param are shifted to
- *   next free slot.
- */
-unsigned saveGPRegisters(codeGen &gen,
-                         registerSpace *theRegSpace,
-                         int save_off, int numReqGPRs) {
-    assert(0); //Not implemented
-}
-
-/*
- * Restore necessary registers from the stack
- * insn, base: for code generation. Offset: regs restored from offset + reg
- * Returns: number of registers restored.
- * Side effects: instruction pointer and base param are shifted to
- *   next free slot.
- */
-
-unsigned restoreGPRegisters(codeGen &gen,
-                            registerSpace *theRegSpace,
-                            int save_off) {
+unsigned EmitterAARCH64RestoreRegs::restoreGPRegisters(codeGen &gen, registerSpace *theRegSpace) {
     assert(0); //Not implemented
     return 0;
 }
 
-/*
- * Save FPR registers on the stack. (0-13)
- * insn, base: for code generation. Offset: regs saved at offset + reg
- * Returns: number of regs saved.
- */
-
-unsigned saveFPRegisters(codeGen &gen,
-                         registerSpace *theRegSpace,
-                         int save_off) {
+unsigned EmitterAARCH64RestoreRegs::restoreFPRegisters(codeGen &gen, registerSpace *theRegSpace) {
     assert(0); //Not implemented
     unsigned numRegs = 0;
 
     return numRegs;
 }
 
-/*
- * Restore FPR registers from the stack. (0-13)
- * insn, base: for code generation. Offset: regs restored from offset + reg
- * Returns: number of regs restored.
- */
-
-unsigned restoreFPRegisters(codeGen &gen,
-                            registerSpace *theRegSpace,
-                            int save_off) {
-    assert(0); //Not implemented
-    unsigned numRegs = 0;
-
-    return numRegs;
-}
-
-/*
- * Save the special purpose registers (for Dyninst conservative tramp)
- * CTR, CR, XER, SPR0, FPSCR
- */
-unsigned saveSPRegisters(codeGen &gen,
-                         registerSpace *,
-                         int save_off,
-                         int force_save) {
-    assert(0); //Not implemented
-    unsigned num_saved = 0;
-    return num_saved;
-}
-
-/*
- * Restore the special purpose registers (for Dyninst conservative tramp)
- * CTR, CR, XER, SPR0, FPSCR
- */
-
-unsigned restoreSPRegisters(codeGen &gen,
-                            registerSpace *,
-                            int save_off,
-                            int force_save) {
+unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(codeGen &gen, registerSpace *, int force_save) {
     assert(0); //Not implemented
     int cr_off, ctr_off, xer_off, spr0_off, fpscr_off;
     unsigned num_restored = 0;
     return num_restored;
 }
 
+void EmitterAARCH64RestoreRegs::popStack(codeGen &gen) {
+    assert(0); //Not implemented
+}
+
+/********************************* Private methods *********************************************/
+
+void EmitterAARCH64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset) {
+    if(sprnum == SPR_LR)
+        scratchReg = gen.rs()->getRegByName("r29");
+    insnCodeGen::generateMemAccess32or64(gen, LDRImmUIOp, -1, scratchReg, REG_SP, stkOffset, sprnum == SPR_LR);
+
+    //TODO move map to common location
+    if(sprnum != SPR_LR) {
+        map<int, int> sysRegCodeMap = map_list_of(SPR_NZCV, 0x5A10)(SPR_FPCR, 0x5A20)(SPR_FPSR, 0x5A21);
+        if (!sysRegCodeMap.count(sprnum))
+            assert(!"Invalid/unknown system register passed to restoreSPR()!");
+
+        instruction insn;
+        insn.clear();
+
+        //Set opcode for MSR (register) instruction
+        INSN_SET(insn, 20, 31, MSROp);
+        //Set source register
+        INSN_SET(insn, 0, 4, scratchReg & 0x1F);
+        //Set bits representing destination system register
+        INSN_SET(insn, 5, 19, sysRegCodeMap[sprnum]);
+        insnCodeGen::generate(gen, insn);
+    }
+}
+
+// Dest != reg : optimizate away a load/move pair
+void EmitterAARCH64RestoreRegs::restoreRegister(codeGen &gen, Register source, Register dest, int saved_off) {
+    assert(0); //Not implemented
+
+}
+
+void EmitterAARCH64RestoreRegs::restoreRegister(codeGen &gen, Register reg, int save_off) {
+    assert(0); //Not implemented
+}
+
+void EmitterAARCH64RestoreRegs::restoreFPRegister(codeGen &gen, Register source, Register dest, int save_off) {
+    assert(0); //Not implemented
+}
+
+void EmitterAARCH64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, int save_off) {
+    assert(0); //Not implemented
+}
+
+/***********************************************************************************************/
 
 bool baseTramp::generateSaves(codeGen &gen,
                               registerSpace *) {
