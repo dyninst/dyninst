@@ -257,9 +257,7 @@ void insnCodeGen::generateMemAccess32or64(codeGen &gen, int op, int index, Regis
         INSN_SET(insn, 30, 30, 1);
 
     //Set opcode, index and offset bits
-    /*At the moment, I only need the STR instructions, hence the check below only compares to the opcode for the STR immediate-unsigned offset variant.
-    However, once the LDR variant is also required to be generated, this check will have to be updated. TODO */
-    if(op != STRImmUIOp) {
+    if(op != STRImmUIOp && op != LDRImmUIOp) {
         INSN_SET(insn, 21, 29, op);
         INSN_SET(insn, 10, 11, index);
         INSN_SET(insn, 12, 20, immd);
