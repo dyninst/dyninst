@@ -24,6 +24,71 @@ std::string ArchSpecificFormatter::formatBinaryFunc(std::string left, std::strin
 
 ///////////////////////////
 
+///////// Formatter for PowerPC
+
+PPCFormatter::PPCFormatter() {
+}
+
+std::string PPCFormatter::formatImmediate(std::string evalString) {
+    size_t endPos;
+    long long long_val = stoll(evalString, &endPos, 16);
+    signed short val = static_cast<signed short>(long_val);
+    return std::to_string(val);
+}
+
+std::string PPCFormatter::formatRegister(std::string regName) {
+    if (regName == "ppc64::pc"  || 
+        regName == "ppc64::ctr" || 
+        regName == "ppc64::lr"  ||
+        regName == "ppc64::cr0") {
+
+        return "";
+    }
+    std::string::size_type lastColon = regName.rfind(':');
+    std::string ret = regName;
+
+    if (lastColon != std::string::npos) {
+        ret = ret.substr(lastColon + 1, ret.length());
+    }
+
+    return ret;
+}
+
+std::string PPCFormatter::formatDeref(std::string addrString) {
+    size_t commaPos = addrString.find(",");
+    if (commaPos == std::string::npos || commaPos > addrString.length() - 2) {
+        return "(" + addrString + ")";
+    }
+    std::string base = addrString.substr(0, commaPos);
+    std::string offset = addrString.substr(commaPos + 2);
+    return offset + "(" + base + ")";
+}
+
+std::string PPCFormatter::getInstructionString(std::vector<std::string> operands) {
+    std::stringstream out;
+
+    for(std::vector<std::string>::iterator itr = operands.begin(); itr != operands.end(); itr++) {
+        if (*itr != "") {
+            out<<*itr;
+            if(itr != operands.end() - 1) {
+                out<<", ";
+            }
+        }
+    }
+
+    return out.str();
+}
+
+std::string PPCFormatter::formatBinaryFunc(std::string left, std::string func, std::string right) {
+    if (left == "") {
+        return right;
+    }
+    if (func == "+") {
+        return left + ", " + right;
+    }
+    return left + " " + func + " " + right;
+}
+
 ///////// Formatter for ARMv-8A
 
 ArmFormatter::ArmFormatter() {

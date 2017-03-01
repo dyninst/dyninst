@@ -48,6 +48,19 @@ namespace Dyninst {
             virtual ~ArchSpecificFormatter() {}
         };
 
+        class PPCFormatter : public ArchSpecificFormatter {
+        public:
+            PPCFormatter();
+
+            virtual std::string getInstructionString(std::vector <std::string>);
+            virtual std::string formatImmediate(std::string);
+            virtual std::string formatDeref(std::string);
+            virtual std::string formatRegister(std::string);
+            virtual std::string formatBinaryFunc(std::string, std::string, std::string);
+            virtual ~PPCFormatter() {}
+
+        };
+
         class ArmFormatter : public ArchSpecificFormatter {
         public:
             ArmFormatter();
