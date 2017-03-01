@@ -126,14 +126,6 @@ void restoreSPR(codeGen &gen,
                 int sprnum,
                 int stkOffset);
 
-void saveLR(codeGen &gen,
-            Register scratchReg,
-            int stkOffset);
-
-void restoreLR(codeGen &gen,
-               Register scratchReg,
-               int stkOffset);
-
 void saveRegister(codeGen &gen,
                   Register reg,
                   int save_off);

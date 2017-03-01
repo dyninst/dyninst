@@ -170,44 +170,6 @@ void restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset) {
     insnCodeGen::generate(gen, insn);
 }
 
-////////////////////////////////////////////////////////////////////
-//Generates instructions to save link register onto stack.
-//  Returns the number of bytes needed to store the generated
-//    instructions.
-//  The instruction storage pointer is advanced the number of
-//    instructions generated.
-void saveLR(codeGen &gen,       //Instruction storage pointer
-            Register scratchReg, //Scratch register
-            int stkOffset)  //Offset from stack pointer
-{
-    assert(0); //Not implemented
-
-}
-
-////////////////////////////////////////////////////////////////////
-//Generates instructions to restore link register from stack.
-//  Returns the number of bytes needed to store the generated
-//    instructions.
-//  The instruction storage pointer is advanced the number of
-//    instructions generated.
-//
-void restoreLR(codeGen &gen,       //Instruction storage pointer
-               Register scratchReg, //Scratch register
-               int stkOffset)  //Offset from stack pointer
-{
-    assert(0); //Not implemented
-
-}
-
-//////////////////////////////////////////////////////////////////////////
-//Writes out a `br' instruction
-//
-void resetBR(AddressSpace *p,    //Process to write instruction into
-             Address loc)  //Address in process to write into
-{
-    assert(0); //Not implemented
-}
-
 void saveRegisterAtOffset(codeGen &gen,
                           Register reg,
                           int save_off) {
