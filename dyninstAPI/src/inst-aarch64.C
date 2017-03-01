@@ -130,30 +130,44 @@ void registerSpace::initialize() {
     initialize64();
 }
 
-void saveSPR(codeGen &gen,     //Instruction storage pointer
-             Register scratchReg, //Scratch register
-             int sprnum,     //SPR number
-             int stkOffset) //Offset from stack pointer
-{
-    assert(0); //Not implemented
+void saveSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset) {
+    //TODO move map to common location
+    map<int, int> sysRegCodeMap = map_list_of(SPR_NZCV, 0x5A10)(SPR_FPCR, 0x5A20)(SPR_FPSR, 0x5A21);
+    if(!sysRegCodeMap.count(sprnum))
+        assert(!"Invalid/unknown system register passed to saveSPR()!");
 
+    instruction insn;
+    insn.clear();
+
+    //Set opcode for MRS instruction
+    INSN_SET(insn, 20, 31, MRSOp);
+    //Set destination register
+    INSN_SET(insn, 0, 4, scratchReg & 0x1F);
+    //Set bits representing source system register
+    INSN_SET(insn, 5, 19, sysRegCodeMap[sprnum]);
+    insnCodeGen::generate(gen, insn);
+
+    insnCodeGen::generateMemAccess32or64(gen, STRImmUIOp, -1, scratchReg, REG_SP, stkOffset, false);
 }
 
-////////////////////////////////////////////////////////////////////
-//Generates instructions to restore a special purpose register from
-//the stack.
-//  Returns the number of bytes needed to store the generated
-//    instructions.
-//  The instruction storage pointer is advanced the number of
-//    instructions generated.
-//
-void restoreSPR(codeGen &gen,       //Instruction storage pointer
-                Register scratchReg, //Scratch register
-                int sprnum,     //SPR number
-                int stkOffset)  //Offset from stack pointer
-{
-    assert(0); //Not implemented
+void restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset) {
+    insnCodeGen::generateMemAccess32or64(gen, LDRImmUIOp, -1, scratchReg, REG_SP, stkOffset, false);
 
+    //TODO move map to common location
+    map<int, int> sysRegCodeMap = map_list_of(SPR_NZCV, 0x5A10)(SPR_FPCR, 0x5A20)(SPR_FPSR, 0x5A21);
+    if(!sysRegCodeMap.count(sprnum))
+        assert(!"Invalid/unknown system register passed to restoreSPR()!");
+
+    instruction insn;
+    insn.clear();
+
+    //Set opcode for MSR (register) instruction
+    INSN_SET(insn, 20, 31, MSROp);
+    //Set source register
+    INSN_SET(insn, 0, 4, scratchReg & 0x1F);
+    //Set bits representing destination system register
+    INSN_SET(insn, 5, 19, sysRegCodeMap[sprnum]);
+    insnCodeGen::generate(gen, insn);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -183,98 +197,6 @@ void restoreLR(codeGen &gen,       //Instruction storage pointer
 {
     assert(0); //Not implemented
 
-}
-
-////////////////////////////////////////////////////////////////////
-//Generates instructions to place a given value into link register.
-//  The entire instruction sequence consists of the generated
-//    instructions followed by a given (tail) instruction.
-//  Returns the number of bytes needed to store the entire
-//    instruction sequence.
-//  The instruction storage pointer is advanced the number of
-//    instructions in the sequence.
-//
-void setBRL(codeGen &gen,        //Instruction storage pointer
-            Register scratchReg,  //Scratch register
-            long val,         //Value to set link register to
-            instruction ti)          //Tail instruction
-{
-    assert(0); //Not implemented
-
-}
-
-//////////////////////////////////////////////////////////////////////////
-//Writes out instructions to place a value into the link register.
-//  If val == 0, then the instruction sequence is followed by a `nop'.
-//  If val != 0, then the instruction sequence is followed by a `brl'.
-//
-void resetBRL(AddressSpace *p,   //Process to write instructions into
-              Address loc, //Address in process to write into
-              unsigned val) //Value to set link register
-{
-    assert(0); //Not implemented
-
-}
-
-/////////////////////////////////////////////////////////////////////////
-//Generates instructions to save the condition codes register onto stack.
-//  Returns the number of bytes needed to store the generated
-//    instructions.
-//  The instruction storage pointer is advanced the number of
-//    instructions generated.
-//
-void saveCR(codeGen &gen,       //Instruction storage pointer
-            Register scratchReg, //Scratch register
-            int stkOffset)  //Offset from stack pointer
-{
-    assert(0); //Not implemented
-
-}
-
-///////////////////////////////////////////////////////////////////////////
-//Generates instructions to restore the condition codes register from stack.
-//  Returns the number of bytes needed to store the generated
-//    instructions.
-//  The instruction storage pointer is advanced the number of
-//    instructions generated.
-//
-void restoreCR(codeGen &gen,       //Instruction storage pointer
-               Register scratchReg, //Scratch register
-               int stkOffset)  //Offset from stack pointer
-{
-    assert(0); //Not implemented
-
-}
-
-/////////////////////////////////////////////////////////////////////////
-//Generates instructions to save the floating point status and control
-//register on the stack.
-//  Returns the number of bytes needed to store the generated
-//    instructions.
-//  The instruction storage pointer is advanced the number of
-//    instructions generated.
-//
-void saveFPSCR(codeGen &gen,       //Instruction storage pointer
-               Register scratchReg, //Scratch fp register
-               int stkOffset)  //Offset from stack pointer
-{
-    assert(0); //Not implemented
-
-}
-
-///////////////////////////////////////////////////////////////////////////
-//Generates instructions to restore the floating point status and control
-//register from the stack.
-//  Returns the number of bytes needed to store the generated
-//    instructions.
-//  The instruction storage pointer is advanced the number of
-//    instructions generated.
-//
-void restoreFPSCR(codeGen &gen,       //Instruction storage pointer
-                  Register scratchReg, //Scratch fp register
-                  int stkOffset)  //Offset from stack pointer
-{
-    assert(0); //Not implemented
 }
 
 //////////////////////////////////////////////////////////////////////////
