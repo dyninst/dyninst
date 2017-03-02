@@ -58,14 +58,13 @@ Aggregate::Aggregate() :
 Aggregate::Aggregate(Symbol *sym) :
     module_(NULL), firstSymbol(NULL), offset_(0L)
 {
-    assert(sym);
-    module_ = sym->getModule();
-    symbols_.push_back(sym);
-    firstSymbol = symbols_[0];
-    offset_ = firstSymbol->getOffset();
-    //mangledNames_.push_back(sym->getMangledName());
-    //prettyNames_.push_back(sym->getPrettyName());
-    //typedNames_.push_back(sym->getTypedName());
+    if(sym)
+    {
+        module_ = sym->getModule();
+        symbols_.push_back(sym);
+        firstSymbol = symbols_[0];
+        offset_ = firstSymbol->getOffset();
+    }
 }
 
 Aggregate::Aggregate(Module *mod) :
