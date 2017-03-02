@@ -803,7 +803,6 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
                 //
                 //plt_entry_size_ = plt_size_ / ((rel_plt_size_ / rel_plt_entry_size_) + 1);
                 plt_entry_size_ = 16;
-                assert(plt_entry_size_ == 16);
             }
             else
             {
@@ -1306,7 +1305,11 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 
                 std::string _name = &_strs[ _sym.st_name(_index) ];
                 // I'm interested to see if this assert will ever fail.
-                assert(_name.length());
+                if(!_name.length())
+                {
+                    create_printf("Empty name for REL/RELA entry found, ignoring\n");
+                    continue;
+                }
 
                 plt_rel_map[_name] = _offset;
             }
@@ -1951,10 +1954,10 @@ void printSyms( std::vector< Symbol *>& allsymbols )
 
 void Object::parse_opd(Elf_X_Shdr *opd_hdr) {
     // If the OPD is filled in, parse it and fill in our TOC table
-    assert(opd_hdr);
+    if(!opd_hdr) return;
 
     Elf_X_Data data = opd_hdr->get_data();
-    assert(data.isValid());
+    if(!(data.isValid())) return;
 
     // Let's read this puppy
     unsigned long *buf = (unsigned long *)data.d_buf();
@@ -2030,7 +2033,7 @@ Symbol *Object::handle_opd_symbol(Region *opd, Symbol *sym)
     if (!sym) return NULL;
 
     Offset soffset = sym->getOffset();
-    assert(opd->isOffsetInRegion(soffset));  // Symbol must be in .opd section.
+    if(!opd->isOffsetInRegion(soffset)) return NULL;  // Symbol must be in .opd section.
 
     Offset* opd_entry = (Offset*)opd->getPtrToRawData();
     opd_entry += (soffset - opd->getDiskOffset()) / sizeof(Offset); // table of offsets;
@@ -2048,7 +2051,6 @@ Symbol *Object::handle_opd_symbol(Region *opd, Symbol *sym)
         }
         ++i;
     }
-    assert(i < regions_.size());
     retval->setSymbolType(Symbol::ST_FUNCTION);
 #if 0
     retval->tag_ = Symbol::TAG_INTERNAL;  // Not sure if this is an appropriate
