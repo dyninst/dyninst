@@ -110,61 +110,54 @@ bool DwarfWalker::parse() {
     /* Prepopulate type signatures for DW_FORM_ref_sig8 */
     findAllSig8Types();
 
-    /* First .debug_types (0), then .debug_info (1) */
-    for (int i = 0; i < 2; ++i) {
-        bool is_info = i;
+    /* First .debug_types (0), then .debug_info (1).
+     * In DWARF4, only .debug_types contains DW_TAG_type_unit,
+     * but DWARF5 is considering them for .debug_info too.*/
 
-        /* NB: parseModule used to compute compile_offset as 11 bytes before the
-         * first die offset, to account for the header.  This would need 23 bytes
-         * instead for 64-bit format DWARF, and even more for type units.
-         * (See DWARF4 sections 7.4 & 7.5.1.)
-         * But more directly, we know the first CU is just at 0x0, and each
-         * following CU is already reported in next_cu_header.
-         */
-        compile_offset = next_cu_header = 0;
+    /* NB: parseModule used to compute compile_offset as 11 bytes before the
+     * first die offset, to account for the header.  This would need 23 bytes
+     * instead for 64-bit format DWARF, and even more for type units.
+     * (See DWARF4 sections 7.4 & 7.5.1.)
+     * But more directly, we know the first CU is just at 0x0, and each
+     * following CU is already reported in next_cu_header.
+     */
+    compile_offset = next_cu_header = 0;
 
-        /* Iterate over the compilation-unit headers. */
-        /* Old code previous to libdw
-        while (dwarf_next_cu_header_c(dbg(), is_info,
-                    &cu_header_length,
-                    &version,
-                    &abbrev_offset,
-                    &addr_size,
-                    &offset_size,
-                    &extension_size,
-                    &signature,
-                    &typeoffset,
-                    &next_cu_header, &err) == DW_DLV_OK ) {
-            push();
-            bool ret = parseModule(is_info, fixUnknownMod);
-            pop();
-            if (!ret) return false;
-            compile_offset = next_cu_header;
-        }
-        */
-        size_t cu_header_size = 0;
-        for(Dwarf_Off cu_off = 0, next_cu_off;
-                dwarf_nextcu(dbg(), cu_off, &next_cu_off, &cu_header_size,
-                    NULL, NULL, NULL) == 0;
-                cu_off = next_cu_off)
-        {
-            Dwarf_Off cu_die_off = cu_off + cu_header_size;
-            Dwarf_Die cu_die, *cu_die_p; 
-            if(i==0){ //.debug_types
-                cu_die_p = dwarf_offdie_types(dbg(), cu_die_off, &cu_die);
-            }else{
-                cu_die_p = dwarf_offdie(dbg(), cu_die_off, &cu_die);
-            }
-            assert(cu_die_p  == NULL);
+    /* Iterate over the compilation-unit headers for .debug_types. */
+    uint64_t type_signaturep;
+    for(Dwarf_Off cu_off = 0;
+            dwarf_next_unit(dbg(), cu_off, &next_cu_header, &cu_header_length,
+                NULL, &abbrev_offset, &addr_size, &offset_size, 
+                &type_signaturep, NULL) == 0;
+            cu_off = next_cu_header)
+    {
+        Dwarf_Die cu_die; 
+        if(!dwarf_offdie_types(dbg(), cu_off + cu_header_length, &cu_die)) 
+            continue;
 
-            push();
-            bool ret = parseModule(is_info, fixUnknownMod);
-            pop();
-            if (!ret) return false;
-            compile_offset = next_cu_header;
-        }       
-
+        push();
+        bool ret = parseModule(false, fixUnknownMod);
+        pop();
+        if (!ret) return false;
+        compile_offset = next_cu_header;
     }
+
+    /* Iterate over the compilation-unit headers for .debug_info. */
+    for(Dwarf_Off cu_off = 0;
+            dwarf_nextcu(dbg(), cu_off, &next_cu_header, &cu_header_length,
+                &abbrev_offset, &addr_size, &offset_size) == 0;
+            cu_off = next_cu_header)
+    {
+        Dwarf_Die cu_die; 
+        if(!dwarf_offdie(dbg(), cu_off + cu_header_length, &cu_die)) 
+            continue;
+
+        push();
+        bool ret = parseModule(true, fixUnknownMod);
+        pop();
+        if (!ret) return false;
+        compile_offset = next_cu_header;
+    }       
 
     if (!fixUnknownMod)
         return true;
@@ -2653,45 +2646,37 @@ void DwarfWalker::findAllSig8Types()
     /* First .debug_types (0), then .debug_info (1).
      * In DWARF4, only .debug_types contains DW_TAG_type_unit,
      * but DWARF5 is considering them for .debug_info too.*/
-    for (int i = 0; i < 2; ++i) {
-        //bool is_info = i;
-        //Dwarf_Error err;
-        compile_offset = next_cu_header = 0;
+    compile_offset = next_cu_header = 0;
 
-        /* Iterate over the compilation-unit headers. */
-        /*while (dwarf_next_cu_header_c(dbg(), is_info,
-                    &cu_header_length,
-                    &version,
-                    &abbrev_offset,
-                    &addr_size,
-                    &offset_size,
-                    &extension_size,
-                    &signature,
-                    &typeoffset,
-                    &next_cu_header, &err) == 0 ) {
-            parseModuleSig8(is_info);
-            compile_offset = next_cu_header;
-        }*/
+    /* Iterate over the compilation-unit headers for .debug_types. */
+    uint64_t type_signaturep;
+    for(Dwarf_Off cu_off = 0;
+            dwarf_next_unit(dbg(), cu_off, &next_cu_header, &cu_header_length,
+                NULL, &abbrev_offset, &addr_size, &offset_size, 
+                &type_signaturep, NULL) == 0;
+            cu_off = next_cu_header)
+    {
+        Dwarf_Die cu_die; 
+        if(!dwarf_offdie_types(dbg(), cu_off + cu_header_length, &cu_die)) 
+            continue;
 
-        size_t cu_header_size = 0;
-        for(Dwarf_Off cu_off = 0;
-                dwarf_nextcu(dbg(), cu_off, &next_cu_header, &cu_header_length,
-                    &abbrev_offset, &addr_size, &offset_size) == 0;
-                cu_off = next_cu_header)
-        {
-            Dwarf_Off cu_die_off = cu_off + cu_header_size;
-            Dwarf_Die cu_die, *cu_die_p; 
-            if(i==0){ //.debug_types
-                cu_die_p = dwarf_offdie_types(dbg(), cu_die_off, &cu_die);
-            }else{
-                cu_die_p = dwarf_offdie(dbg(), cu_die_off, &cu_die);
-            }
-            assert(cu_die_p  == NULL);
-
-            parseModuleSig8(i);
-            compile_offset = next_cu_header;
-        }       
+        parseModuleSig8(false);
+        compile_offset = next_cu_header;
     }
+
+    /* Iterate over the compilation-unit headers for .debug_info. */
+    for(Dwarf_Off cu_off = 0;
+            dwarf_nextcu(dbg(), cu_off, &next_cu_header, &cu_header_length,
+                &abbrev_offset, &addr_size, &offset_size) == 0;
+            cu_off = next_cu_header)
+    {
+        Dwarf_Die cu_die; 
+        if(!dwarf_offdie(dbg(), cu_off + cu_header_length, &cu_die)) 
+            continue;
+
+        parseModuleSig8(true);
+        compile_offset = next_cu_header;
+    }       
 }
 
 bool DwarfWalker::parseModuleSig8(bool is_info)

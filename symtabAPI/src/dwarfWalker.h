@@ -324,7 +324,7 @@ private:
     // Per-module info
     Address modLow;
     Address modHigh;
-    Dwarf_Word cu_header_length;
+    size_t  cu_header_length;
     Dwarf_Half version;
     Dwarf_Word abbrev_offset;
     uint8_t /*Dwarf_Half*/ addr_size;
