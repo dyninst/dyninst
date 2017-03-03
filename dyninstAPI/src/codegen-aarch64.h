@@ -69,7 +69,7 @@ public:
                                       Address to,
                                       bool isCall);
 
-    static void generateMemAccess32or64(codeGen &gen, int op, int index,
+    static void generateMemAccess32or64(codeGen &gen, LoadStore accType,
                                         Register r1, Register r2, int immd, bool is64bit);
 
     /** TODO **/
@@ -174,6 +174,11 @@ public:
         MovOp_MOVK = 0xE5,
         MovOp_MOVN = 0x25,
         MovOp_MOVZ = 0xA5
+    };
+
+    enum LoadStore {
+        Load,
+        Store
     };
 };
 

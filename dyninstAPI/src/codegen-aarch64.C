@@ -246,7 +246,7 @@ void insnCodeGen::generateMove(codeGen &gen, int imm16, int shift, Register rd, 
 }
 
 /* Currently, I'm only considering generation of only STR/LDR and their register/immediate variants.*/
-void insnCodeGen::generateMemAccess32or64(codeGen &gen, int op, int index, Register r1, Register r2, int immd, bool is64bit)
+void insnCodeGen::generateMemAccess32or64(codeGen &gen, LoadStore accType, Register r1, Register r2, int immd, bool is64bit)
 {
     instruction insn;
     insn.clear();
@@ -257,13 +257,12 @@ void insnCodeGen::generateMemAccess32or64(codeGen &gen, int op, int index, Regis
         INSN_SET(insn, 30, 30, 1);
 
     //Set opcode, index and offset bits
-    if(op != STRImmUIOp && op != LDRImmUIOp) {
-        INSN_SET(insn, 21, 29, op);
-        INSN_SET(insn, 10, 11, index);
+    if(immd >= -256 && immd <= 255) {
+        INSN_SET(insn, 21, 29, (accType == Load) ? LDRImmOp : STRImmOp);
+        INSN_SET(insn, 10, 11, 0x1);
         INSN_SET(insn, 12, 20, immd);
     } else {
-        INSN_SET(insn, 22, 29, op);
-        INSN_SET(insn, 10, 21, is64bit ? (immd >> 3) : (immd >> 2));
+        assert(!"Cannot perform a post-indexed memory access for offsets not in range [-256, 255]!");
     }
 
     //Set memory access register and register for address calculation.
