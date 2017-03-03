@@ -62,16 +62,18 @@ namespace NS_aarch64 {
 #define BCondOp         0x2A
 #define BRegOp          0xD61F
 #define NOOP            0xD503201F
+
 #define STRImmOp        0x1C0
 #define LDRImmOp        0x1C2
 #define STRImmUIOp      0xE4
 #define LDRImmUIOp      0xE5
+
 #define MRSOp           0xD53
 
-#define MIN_IMM8    (-32768)
-#define MAX_IMM8    (32767)
-#define MIN_IMM16   (-65536)
-#define MAX_IMM16   (65535)
+#define MIN_IMM8    (-128)
+#define MAX_IMM8    (127)
+#define MIN_IMM16   (-32768)
+#define MAX_IMM16   (32767)
 #define MIN_IMM32   (-2147483647 - 1)
 #define MAX_IMM32   (2147483647)
 #define MAX_IMM48   ((long)(-1 >> 17))
