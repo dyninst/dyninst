@@ -68,7 +68,7 @@
 
 //TODO Fix for ARM
 #define GPRSAVE_64  (31*8)
-#define FPRSAVE     (32*8)
+#define FPRSAVE     (32*16)
 #define SPRSAVE_64  (1*8+3*4)
 #define FUNCSAVE_64 (32*8)
 #define FUNCARGS_64 (16*8)

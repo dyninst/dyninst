@@ -77,6 +77,8 @@ void initDefaultPointFrequencyTable() {
     assert(0); //Not implemented
 }
 
+/************************************* Register Space **************************************/
+
 void registerSpace::initialize32() {
     assert(!"No 32-bit implementation for the ARM architecture!");
 }
@@ -130,9 +132,11 @@ void registerSpace::initialize() {
     initialize64();
 }
 
-void saveRegisterAtOffset(codeGen &gen,
-                          Register reg,
-                          int save_off) {
+/************************************************************************************************/
+/************************************************************************************************/
+
+void saveRegisterAtOffset(codeGen &gen, Register reg, int save_off) {
+
 }
 
 /********************************* EmitterAARCH64SaveRegs ***************************************/
@@ -157,19 +161,19 @@ void EmitterAARCH64SaveRegs::saveSPR(codeGen &gen, Register scratchReg, int sprn
         INSN_SET(insn, 5, 19, sysRegCodeMap[sprnum]);
         insnCodeGen::generate(gen, insn);
     } else {
-        scratchReg = gen.rs()->getRegByName("r29");
+        scratchReg = gen.rs()->getRegByName("r30");
     }
 
-    insnCodeGen::generateMemAccess32or64(gen, STRImmUIOp, -1, scratchReg, REG_SP, stkOffset, sprnum == SPR_LR);
+    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, scratchReg, REG_SP, stkOffset, sprnum == SPR_LR);
 }
 
 // Dest != reg : optimizate away a load/move pair
 void EmitterAARCH64SaveRegs::saveRegister(codeGen &gen, Register source, Register dest, int save_off) {
-    assert(0); //Not implemented
+
 }
 
 void EmitterAARCH64SaveRegs::saveRegister(codeGen &gen, Register reg, int save_off) {
-    assert(0); //Not implemented
+
 }
 
 
@@ -180,7 +184,7 @@ void EmitterAARCH64SaveRegs::saveFPRegister(codeGen &gen, Register reg, int save
 /********************************* Public methods *********************************************/
 
 unsigned EmitterAARCH64SaveRegs::saveGPRegisters(codeGen &gen, registerSpace *theRegSpace, int numReqGPRs) {
-    assert(0); //Not implemented
+
 }
 
 unsigned EmitterAARCH64SaveRegs::saveFPRegisters(codeGen &gen, registerSpace *theRegSpace) {
@@ -200,6 +204,7 @@ void EmitterAARCH64SaveRegs::pushStack(codeGen &gen) {
     assert(0); //Not implemented
 }
 
+/***********************************************************************************************/
 /***********************************************************************************************/
 
 void restoreRegisterAtOffset(codeGen &gen,
@@ -239,8 +244,8 @@ void EmitterAARCH64RestoreRegs::popStack(codeGen &gen) {
 
 void EmitterAARCH64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset) {
     if(sprnum == SPR_LR)
-        scratchReg = gen.rs()->getRegByName("r29");
-    insnCodeGen::generateMemAccess32or64(gen, LDRImmUIOp, -1, scratchReg, REG_SP, stkOffset, sprnum == SPR_LR);
+        scratchReg = gen.rs()->getRegByName("r30");
+    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, scratchReg, REG_SP, stkOffset, sprnum == SPR_LR);
 
     //TODO move map to common location
     if(sprnum != SPR_LR) {
@@ -280,6 +285,9 @@ void EmitterAARCH64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, in
 }
 
 /***********************************************************************************************/
+/***********************************************************************************************/
+
+/*********************************** Base Tramp ***********************************************/
 
 bool baseTramp::generateSaves(codeGen &gen,
                               registerSpace *) {
@@ -293,6 +301,8 @@ bool baseTramp::generateRestores(codeGen &gen,
     return true;
 }
 
+/***********************************************************************************************/
+/***********************************************************************************************/
 
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
              codeGen &gen, bool noCost, registerSpace * /* rs */) {
