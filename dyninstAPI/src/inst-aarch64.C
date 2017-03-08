@@ -200,7 +200,7 @@ unsigned EmitterAARCH64SaveRegs::saveSPRegisters(codeGen &gen, registerSpace *, 
     return num_saved;
 }
 
-void EmitterAARCH64SaveRegs::pushStack(codeGen &gen) {
+void EmitterAARCH64SaveRegs::createFrame(codeGen &gen) {
     assert(0); //Not implemented
 }
 
@@ -236,7 +236,7 @@ unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(codeGen &gen, registerSpa
     return num_restored;
 }
 
-void EmitterAARCH64RestoreRegs::popStack(codeGen &gen) {
+void EmitterAARCH64RestoreRegs::tearFrame(codeGen &gen) {
     assert(0); //Not implemented
 }
 
@@ -269,7 +269,6 @@ void EmitterAARCH64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, in
 // Dest != reg : optimizate away a load/move pair
 void EmitterAARCH64RestoreRegs::restoreRegister(codeGen &gen, Register source, Register dest, int saved_off) {
     assert(0); //Not implemented
-
 }
 
 void EmitterAARCH64RestoreRegs::restoreRegister(codeGen &gen, Register reg, int save_off) {
@@ -291,13 +290,45 @@ void EmitterAARCH64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, in
 
 bool baseTramp::generateSaves(codeGen &gen,
                               registerSpace *) {
-    assert(0); //Not implemented
+    EmitterAARCH64SaveRegs saveRegs;
+
+    baseTramp *bt = this;
+    bool saveFrame = !bt || bt->needsFrame();
+    if(saveFrame)
+        saveRegs.createFrame(gen);
+    bt->createdFrame = saveFrame;
+
+    saveRegs.saveGPRegisters(gen, gen.rs());
+
+    bool saveFPRs = BPatch::bpatch->isForceSaveFPROn() ||
+                   (BPatch::bpatch->isSaveFPROn()      &&
+                    gen.rs()->anyLiveFPRsAtEntry()     &&
+                    bt->saveFPRs());
+
+    if(saveFPRs)
+        saveRegs.saveFPRegisters(gen, gen.rs());
+    bt->savedFPRs = saveFPRs;
+
+    saveRegs.saveSPRegisters(gen, gen.rs());
+
     return true;
 }
 
 bool baseTramp::generateRestores(codeGen &gen,
                                  registerSpace *) {
-    assert(0); //Not implemented
+    EmitterAARCH64RestoreRegs restoreRegs;
+
+    restoreRegs.restoreSPRegisters(gen, gen.rs());
+
+    baseTramp *bt = this;
+    if(bt->savedFPRs)
+        restoreRegs.restoreFPRegisters(gen, gen.rs());
+
+    restoreRegs.restoreGPRegisters(gen, gen.rs());
+
+    if(bt->createdFrame)
+        restoreRegs.tearFrame(gen);
+
     return true;
 }
 
