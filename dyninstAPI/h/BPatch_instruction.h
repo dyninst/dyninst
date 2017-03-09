@@ -69,7 +69,7 @@ class BPATCH_DLL_EXPORT BPatch_instruction {
  public:
 
   BPatch_instruction(internal_instruction *insn,
-	  uintptr_t _addr);
+	  Dyninst::Address _addr);
   virtual ~BPatch_instruction();
 
   void getInstruction(const unsigned char *&_buffer, unsigned char &_length);
