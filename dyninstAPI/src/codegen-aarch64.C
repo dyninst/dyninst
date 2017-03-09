@@ -245,6 +245,23 @@ void insnCodeGen::generateMove(codeGen &gen, int imm16, int shift, Register rd, 
     insnCodeGen::generate(gen, insn);
 }
 
+void insnCodeGen::generateMoveSP(codeGen &gen, Register rn, Register rd, bool is64bit) {
+    instruction insn;
+    insn.clear();
+
+    //Set source and destination registers
+    INSN_SET(insn, 0, 4, rd & 0x1f);
+    INSN_SET(insn, 5, 9, rn & 0x1f);
+
+    //Set opcode
+    INSN_SET(insn, 10, 30, MOVSPOp);
+
+    //Set if using 64-bit registers
+    INSN_SET(insn, 31, 31, is64bit);
+
+    insnCodeGen::generate(gen, insn);
+}
+
 /* Currently, I'm only considering generation of only STR/LDR and their register/immediate variants.*/
 void insnCodeGen::generateMemAccess32or64(codeGen &gen, LoadStore accType, Register r1, Register r2, int immd, bool is64bit)
 {
