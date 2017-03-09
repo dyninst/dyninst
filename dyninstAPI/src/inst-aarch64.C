@@ -96,7 +96,7 @@ void registerSpace::initialize64() {
         if (idx < 10)
             sprintf(name, "r%1d", idx - r0);
         else
-            sprintfname, "r%2d", idx - r0);
+            sprintf(name, "r%2d", idx - r0);
         registers.push_back(new registerSlot(idx,
                                              name,
                                              false,
@@ -145,7 +145,7 @@ void saveRegisterAtOffset(codeGen &gen, Register reg, int save_off) {
 
 void EmitterAARCH64SaveRegs::saveSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset) {
     //TODO move map to common location
-    map<int, int> sysRegCodeMap = map_list_of(SPR_NZCV, 0x5A10)(SPR_FPCR, 0x5A20)(SPR_FPSR, 0x5A21);
+    map<int, int> sysRegCodeMap = boost::assign::map_list_of(SPR_NZCV, 0x5A10)(SPR_FPCR, 0x5A20)(SPR_FPSR, 0x5A21);
     if(!sysRegCodeMap.count(sprnum))
         assert(!"Invalid/unknown system register passed to saveSPR()!");
 
@@ -196,6 +196,10 @@ unsigned EmitterAARCH64SaveRegs::saveSPRegisters(codeGen &gen, registerSpace *, 
     return num_saved;
 }
 
+unsigned EmitterAARCH64SaveRegs::saveSPRegisters(codeGen &gen, registerSpace *) {
+    assert(0);
+}
+
 void EmitterAARCH64SaveRegs::createFrame(codeGen &gen, EmitterAARCH64SaveRegs saveRegs) {
     //Save link register
     Register linkRegister = gen.rs()->getRegByName("r30");
@@ -242,6 +246,10 @@ unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(codeGen &gen, registerSpa
     return num_restored;
 }
 
+unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(codeGen &gen, registerSpace *) {
+    assert(0);
+}
+
 void EmitterAARCH64RestoreRegs::tearFrame(codeGen &gen, EmitterAARCH64RestoreRegs restoreRegs) {
     //Restore frame pointer
     Register framePointer = gen.rs()->getRegByName("r29");
@@ -258,7 +266,7 @@ void EmitterAARCH64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, in
     insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, scratchReg, REG_SP, stkOffset, false);
 
     //TODO move map to common location
-    map<int, int> sysRegCodeMap = map_list_of(SPR_NZCV, 0x5A10)(SPR_FPCR, 0x5A20)(SPR_FPSR, 0x5A21);
+    map<int, int> sysRegCodeMap = boost::assign::map_list_of(SPR_NZCV, 0x5A10)(SPR_FPCR, 0x5A20)(SPR_FPSR, 0x5A21);
     if (!sysRegCodeMap.count(sprnum))
         assert(!"Invalid/unknown system register passed to restoreSPR()!");
 
@@ -266,7 +274,7 @@ void EmitterAARCH64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, in
     insn.clear();
 
     //Set opcode for MSR (register) instruction
-    INSN_SET(insn, 20, 31, MSROp);
+    //INSN_SET(insn, 20, 31, MSROp);
     //Set source register
     INSN_SET(insn, 0, 4, scratchReg & 0x1F);
     //Set bits representing destination system register

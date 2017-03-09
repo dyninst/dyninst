@@ -232,6 +232,7 @@ public:
     unsigned saveFPRegisters(codeGen &gen, registerSpace *theRegSpace);
 
     unsigned saveSPRegisters(codeGen &gen, registerSpace *, int force_save);
+    unsigned saveSPRegisters(codeGen &gen, registerSpace *);
 
     void createFrame(codeGen &gen, EmitterAARCH64SaveRegs saveRegs);
 
@@ -254,6 +255,7 @@ public:
     unsigned restoreFPRegisters(codeGen &gen, registerSpace *theRegSpace);
 
     unsigned restoreSPRegisters(codeGen &gen, registerSpace *, int force_save);
+    unsigned restoreSPRegisters(codeGen &gen, registerSpace *);
 
     void tearFrame(codeGen &gen, EmitterAARCH64RestoreRegs restoreRegs);
 
