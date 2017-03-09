@@ -131,6 +131,8 @@ public:
 
     static void generateMove(codeGen &gen, int imm16, int shift, Register rd, MoveOp movOp);
 
+    static void generateMoveSP(codeGen &gen, Register rn, Register rd, bool is64bit);
+
     static void generate(codeGen &gen, instruction &insn);
 
     static void write(codeGen &gen, instruction &insn) { generate(gen, insn); }

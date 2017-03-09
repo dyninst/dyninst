@@ -119,7 +119,7 @@ void registerSpace::initialize64() {
         char name[32];
         sprintf(name, "fpr%d", idx - fpr0);
         registers.push_back(new registerSlot(idx,
-                                             name,
+                                             name,//TODO mov SP to FP
                                              false,
                                              registerSlot::liveAlways,
                                              registerSlot::FPR));
@@ -149,22 +149,18 @@ void EmitterAARCH64SaveRegs::saveSPR(codeGen &gen, Register scratchReg, int sprn
     if(!sysRegCodeMap.count(sprnum))
         assert(!"Invalid/unknown system register passed to saveSPR()!");
 
-    if(sprnum != SPR_LR) {
-        instruction insn;
-        insn.clear();
+    instruction insn;
+    insn.clear();
 
-        //Set opcode for MRS instruction
-        INSN_SET(insn, 20, 31, MRSOp);
-        //Set destination register
-        INSN_SET(insn, 0, 4, scratchReg & 0x1F);
-        //Set bits representing source system register
-        INSN_SET(insn, 5, 19, sysRegCodeMap[sprnum]);
-        insnCodeGen::generate(gen, insn);
-    } else {
-        scratchReg = gen.rs()->getRegByName("r30");
-    }
+    //Set opcode for MRS instruction
+    INSN_SET(insn, 20, 31, MRSOp);
+    //Set destination register
+    INSN_SET(insn, 0, 4, scratchReg & 0x1F);
+    //Set bits representing source system register
+    INSN_SET(insn, 5, 19, sysRegCodeMap[sprnum]);
+    insnCodeGen::generate(gen, insn);
 
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, scratchReg, REG_SP, stkOffset, sprnum == SPR_LR);
+    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, scratchReg, REG_SP, stkOffset, false);
 }
 
 // Dest != reg : optimizate away a load/move pair
@@ -200,8 +196,18 @@ unsigned EmitterAARCH64SaveRegs::saveSPRegisters(codeGen &gen, registerSpace *, 
     return num_saved;
 }
 
-void EmitterAARCH64SaveRegs::pushStack(codeGen &gen) {
-    assert(0); //Not implemented
+void EmitterAARCH64SaveRegs::createFrame(codeGen &gen, EmitterAARCH64SaveRegs saveRegs) {
+    //Save link register
+    Register linkRegister = gen.rs()->getRegByName("r30");
+    saveRegs.saveRegister(gen, linkRegister, GPRSIZE_64);
+
+    //Save frame pointer
+    Register framePointer = gen.rs()->getRegByName("r29");
+    saveRegs.saveRegister(gen, framePointer, GPRSIZE_64);
+
+    //Move stack pointer to frame pointer
+    Register stackPointer = gen.rs()->getRegByName("sp");
+    insnCodeGen::generateMoveSP(gen, stackPointer, framePointer, true);
 }
 
 /***********************************************************************************************/
@@ -236,40 +242,41 @@ unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(codeGen &gen, registerSpa
     return num_restored;
 }
 
-void EmitterAARCH64RestoreRegs::popStack(codeGen &gen) {
-    assert(0); //Not implemented
+void EmitterAARCH64RestoreRegs::tearFrame(codeGen &gen, EmitterAARCH64RestoreRegs restoreRegs) {
+    //Restore frame pointer
+    Register framePointer = gen.rs()->getRegByName("r29");
+    restoreRegs.restoreRegister(gen, framePointer, GPRSIZE_64);
+
+    //Restore link register
+    Register linkRegister = gen.rs()->getRegByName("r30");
+    restoreRegs.restoreRegister(gen, linkRegister, GPRSIZE_64);
 }
 
 /********************************* Private methods *********************************************/
 
 void EmitterAARCH64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset) {
-    if(sprnum == SPR_LR)
-        scratchReg = gen.rs()->getRegByName("r30");
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, scratchReg, REG_SP, stkOffset, sprnum == SPR_LR);
+    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, scratchReg, REG_SP, stkOffset, false);
 
     //TODO move map to common location
-    if(sprnum != SPR_LR) {
-        map<int, int> sysRegCodeMap = map_list_of(SPR_NZCV, 0x5A10)(SPR_FPCR, 0x5A20)(SPR_FPSR, 0x5A21);
-        if (!sysRegCodeMap.count(sprnum))
-            assert(!"Invalid/unknown system register passed to restoreSPR()!");
+    map<int, int> sysRegCodeMap = map_list_of(SPR_NZCV, 0x5A10)(SPR_FPCR, 0x5A20)(SPR_FPSR, 0x5A21);
+    if (!sysRegCodeMap.count(sprnum))
+        assert(!"Invalid/unknown system register passed to restoreSPR()!");
 
-        instruction insn;
-        insn.clear();
+    instruction insn;
+    insn.clear();
 
-        //Set opcode for MSR (register) instruction
-        INSN_SET(insn, 20, 31, MSROp);
-        //Set source register
-        INSN_SET(insn, 0, 4, scratchReg & 0x1F);
-        //Set bits representing destination system register
-        INSN_SET(insn, 5, 19, sysRegCodeMap[sprnum]);
-        insnCodeGen::generate(gen, insn);
-    }
+    //Set opcode for MSR (register) instruction
+    INSN_SET(insn, 20, 31, MSROp);
+    //Set source register
+    INSN_SET(insn, 0, 4, scratchReg & 0x1F);
+    //Set bits representing destination system register
+    INSN_SET(insn, 5, 19, sysRegCodeMap[sprnum]);
+    insnCodeGen::generate(gen, insn);
 }
 
 // Dest != reg : optimizate away a load/move pair
 void EmitterAARCH64RestoreRegs::restoreRegister(codeGen &gen, Register source, Register dest, int saved_off) {
     assert(0); //Not implemented
-
 }
 
 void EmitterAARCH64RestoreRegs::restoreRegister(codeGen &gen, Register reg, int save_off) {
@@ -291,13 +298,45 @@ void EmitterAARCH64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, in
 
 bool baseTramp::generateSaves(codeGen &gen,
                               registerSpace *) {
-    assert(0); //Not implemented
+    EmitterAARCH64SaveRegs saveRegs;
+
+    baseTramp *bt = this;
+    bool saveFrame = !bt || bt->needsFrame();
+    if(saveFrame)
+        saveRegs.createFrame(gen, saveRegs);
+    bt->createdFrame = saveFrame;
+
+    saveRegs.saveGPRegisters(gen, gen.rs());
+
+    bool saveFPRs = BPatch::bpatch->isForceSaveFPROn() ||
+                   (BPatch::bpatch->isSaveFPROn()      &&
+                    gen.rs()->anyLiveFPRsAtEntry()     &&
+                    bt->saveFPRs());
+
+    if(saveFPRs)
+        saveRegs.saveFPRegisters(gen, gen.rs());
+    bt->savedFPRs = saveFPRs;
+
+    saveRegs.saveSPRegisters(gen, gen.rs());
+
     return true;
 }
 
 bool baseTramp::generateRestores(codeGen &gen,
                                  registerSpace *) {
-    assert(0); //Not implemented
+    EmitterAARCH64RestoreRegs restoreRegs;
+
+    restoreRegs.restoreSPRegisters(gen, gen.rs());
+
+    baseTramp *bt = this;
+    if(bt->savedFPRs)
+        restoreRegs.restoreFPRegisters(gen, gen.rs());
+
+    restoreRegs.restoreGPRegisters(gen, gen.rs());
+
+    if(bt->createdFrame)
+        restoreRegs.tearFrame(gen, restoreRegs);
+
     return true;
 }
 
