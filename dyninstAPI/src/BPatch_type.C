@@ -80,7 +80,7 @@ BPatch_type *BPatch_type::createFake(const char *_name) {
  * 
  */
 
-BPatch_type::BPatch_type(Type *typ_): ID(typ_->getID()), typ(typ_), owns_typ(false),
+BPatch_type::BPatch_type(Type *typ_): ID(typ_->getID()), typ(typ_),
     refCount(1)
 {
 	// if a derived type, make sure the upPtr is set for the base type.
@@ -111,13 +111,14 @@ BPatch_type::BPatch_type(Type *typ_): ID(typ_->getID()), typ(typ_), owns_typ(fal
 
 	assert(typ_);
 	typ_->addAnnotation(this, TypeUpPtrAnno);
+    typ_->incrRefCount();
 
 	type_ = convertToBPatchdataClass(typ_->getDataClass());
 	type_map[typ] = this;
 }
 
 BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type) :
-   ID(_ID), type_(_type), typ(NULL), owns_typ(true), refCount(1)
+   ID(_ID), type_(_type), typ(NULL), refCount(1)
 {
 	if (_name != NULL)
 		typ = new Type(_name, ID, convertToSymtabType(_type));
@@ -147,9 +148,7 @@ BPatch_type *BPatch_type::findOrCreateType(Dyninst::SymtabAPI::Type *type)
  */
 BPatch_type::~BPatch_type()
 {
-    if(owns_typ) {
-        typ->decrRefCount();
-    }
+    typ->decrRefCount();
 }
 
 bool BPatch_type::operator==(const BPatch_type &otype) const 
@@ -162,7 +161,7 @@ unsigned int BPatch_type::getSize()
   return typ->getSize();
 }
 
-const char *BPatch_type::getName() const 
+const char *BPatch_type::getName() const
 {
    return typ->getName().c_str(); 
 }
