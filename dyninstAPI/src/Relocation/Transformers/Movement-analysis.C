@@ -125,18 +125,6 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
             continue;
         }
 
-        AssignList sensitiveAssignments;
-        // This function also returns the sensitive assignments
-        if (!isPCSensitive(insn,
-                    addr,
-                    func,
-                    block,
-                    sensitiveAssignments)) {
-            //cerr << "Instruction " << insn->format() << " not PC sensitive, skipping" << endl;
-            continue;
-        }
-
-        Sens_++;
 
         // sensitivity_cerr << "Instruction is sensitive @ " << hex << addr << dec << endl;
 
@@ -146,6 +134,7 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
         bool approx = false;
         Absloc dest;
 
+        AssignList sensitiveAssignments;
         if (insnIsThunkCall(insn, addr, dest)) {
             relocation_cerr << "\tThunk @ " << hex << addr << dec << endl;
             handleThunkCall(reloc, g, iter, dest);
@@ -153,62 +142,69 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
             extSens_++;
             thunk_++;
             continue;
-        }
-
-        if (exceptionSensitive(addr+insn->size(), block)) {
+        } else if (exceptionSensitive(addr+insn->size(), block)) {
             extSens = true;
             sensitivity_cerr << "\tException sensitive @ " << hex << addr << dec << endl;
         }
+        // This function also returns the sensitive assignments
+        else if (isPCSensitive(insn,
+                           addr,
+                           func,
+                           block,
+                           sensitiveAssignments)) {
+            Sens_++;
 
-        if (!queryCache(block, addr, intSens, extSens)) {
-            for (AssignList::iterator a_iter = sensitiveAssignments.begin();
-                    a_iter != sensitiveAssignments.end(); ++a_iter) {
+            if (!queryCache(block, addr, intSens, extSens)) {
+                for (AssignList::iterator a_iter = sensitiveAssignments.begin();
+                     a_iter != sensitiveAssignments.end(); ++a_iter) {
 
-                //cerr << "Forward slice from " << (*a_iter)->format() << hex << " @ " << addr << " (parse of " << (*a_iter)->addr() << dec << ") in func " << block->func()->prettyName() << endl;
+                    //cerr << "Forward slice from " << (*a_iter)->format() << hex << " @ " << addr << " (parse of " << (*a_iter)->addr() << dec << ") in func " << block->func()->prettyName() << endl;
 
-                Graph::Ptr slice = forwardSlice(*a_iter,
-                        block->llb(),
-                        func->ifunc());
+                    Graph::Ptr slice = forwardSlice(*a_iter,
+                                                    block->llb(),
+                                                    func->ifunc());
 
-                if (!slice) {
-                    // Safe assumption, as always
-                    // sensitivity_cerr << "\t slice failed!" << endl;
-                    approx = true;
-                }
-                else {
-                    if (slice->size() > 10) {
-                        // HACK around a problem with slice sizes
-                        approx = true;
-                    }
-                    else if (!determineSensitivity(slice, intSens, extSens)) {
-                        // Analysis failed for some reason... go conservative
-                        // cerr << "\t Warning: sensitivity analysis failed!" << endl;
+                    if (!slice) {
+                        // Safe assumption, as always
+                        // sensitivity_cerr << "\t slice failed!" << endl;
                         approx = true;
                     }
                     else {
-                        //sensitivity_cerr << "\t sens analysis returned " << (intSens ? "intSens" : "") << " / " 
+                        if (slice->size() > 10) {
+                            // HACK around a problem with slice sizes
+                            approx = true;
+                        }
+                        else if (!determineSensitivity(slice, intSens, extSens)) {
+                            // Analysis failed for some reason... go conservative
+                            // cerr << "\t Warning: sensitivity analysis failed!" << endl;
+                            approx = true;
+                        }
+                        else {
+                            //sensitivity_cerr << "\t sens analysis returned " << (intSens ? "intSens" : "") << " / "
                             //<< (extSens ? "extSens" : "") << endl;
+                        }
+                    }
+
+                    if (approx || (intSens && extSens)) {
+                        break;
                     }
                 }
+            }
 
-                if (approx || (intSens && extSens)) {
-                    break; 
+            if (approx && !adhoc_required) {
+                overApprox_++;
+                intSens = true;
+                extSens = true;
+            } else {
+                if (extSens) {
+                    extSens_++;
+                }
+                if (intSens) {
+                    intSens_++;
                 }
             }
         }
 
-        if (approx && !adhoc_required) {
-            overApprox_++;
-            intSens = true;
-            extSens = true;
-        } else {
-            if (extSens) {
-                extSens_++;
-            }
-            if (intSens) {
-                intSens_++;
-            }
-        }
 
 
         if (extSens) {
