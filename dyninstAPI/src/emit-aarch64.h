@@ -233,7 +233,7 @@ public:
 
     unsigned saveSPRegisters(codeGen &gen, registerSpace *, int force_save);
 
-    void createFrame(codeGen &gen);
+    void createFrame(codeGen &gen, EmitterAARCH64SaveRegs saveRegs);
 
 private:
     void saveSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset);
@@ -255,7 +255,7 @@ public:
 
     unsigned restoreSPRegisters(codeGen &gen, registerSpace *, int force_save);
 
-    void tearFrame(codeGen &gen);
+    void tearFrame(codeGen &gen, EmitterAARCH64RestoreRegs restoreRegs);
 
 private:
     void restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset);
