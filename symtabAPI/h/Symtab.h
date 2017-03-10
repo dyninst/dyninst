@@ -742,44 +742,9 @@ class SYMTAB_EXPORT relocationEntry : public Serializable, public AnnotatableSpa
       Offset rel_struct_addr_;
 };
 
-#if 1
-#if 1
 SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_serializer(Symtab *t, std::string file);
 SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_deserializer(Symtab *t, std::string file);
 SYMTAB_EXPORT void nonpublic_free_bin_symtab_serializer(SerializerBase *sb);
-#else
-
-template <class T>
-SerializerBase *nonpublic_make_bin_serializer(T *t, std::string file)
-{
-	SerializerBin<T> *ser;
-	ser = new SerializerBin<T>(t, "SerializerBin", file, sd_serialize, true);
-	T *test_st = ser->getScope();
-	assert(test_st == t);
-	return ser;
-}
-
-template <class T>
-SerializerBase *nonpublic_make_bin_deserializer(T *t, std::string file)
-{
-	SerializerBin<T> *ser;
-	ser = new SerializerBin<T>(t, "DeserializerBin", file, sd_deserialize, true);
-	T *test_st = ser->getScope();
-	assert(test_st == t);
-	return ser;
-}
-
-template <class T>
-void nonpublic_free_bin_serializer(SerializerBase *sb)
-{
-	SerializerBin<T> *sbin = dynamic_cast<SerializerBin<T> *>(sb);
-	if (sbin)
-	{
-		delete(sbin);
-	}
-}
-#endif
-#endif
 
 }//namespace SymtabAPI
 
