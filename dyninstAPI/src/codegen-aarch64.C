@@ -289,6 +289,32 @@ void insnCodeGen::generateMemAccess32or64(codeGen &gen, LoadStore accType, Regis
     insnCodeGen::generate(gen, insn);
 }
 
+void insnCodeGen::generateMemAccessFP(codeGen &gen, LoadStore accType, Register rt, Register rn, int immd, int size, bool is128bit) {
+    instruction insn;
+    insn.clear();
+
+    if(size < 0 || size > 3)
+        assert(!"Size field for STR (immediate, SIMD&FP) variant has to be in the range [0-3]!");
+
+    //Set size, opcode, index and offset bits
+    INSN_SET(insn, 30, 31, size & 0x3);
+    INSN_SET(insn, 21, 29, (accType == Load) ? LDRFPImmOp : STRFPImmOp);
+    if(is128bit)
+        INSN_SET(insn, 23, 23, 1);
+    INSN_SET(insn, 10, 11, 0x1);
+    if(immd >= -256 && immd <= 255) {
+        INSN_SET(insn, 12, 20, immd);
+    } else {
+        assert(!"Cannot perform a post-indexed memory access for offsets not in range [-256, 255]!");
+    }
+
+    //Set memory access register and register for address calculation.
+    INSN_SET(insn, 0, 4, rt);
+    INSN_SET(insn, 5, 9, rn);
+
+    insnCodeGen::generate(gen, insn);
+}
+
 // rlwinm ra,rs,n,0,31-n
 void insnCodeGen::generateLShift(codeGen &gen, Register rs, int shift, Register ra)
 {

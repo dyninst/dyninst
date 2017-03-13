@@ -72,6 +72,8 @@ public:
     static void generateMemAccess32or64(codeGen &gen, LoadStore accType,
                                         Register r1, Register r2, int immd, bool is64bit);
 
+    static void generateMemAccessFP(codeGen &gen, LoadStore accType, Register rt, Register rn, int immd, int size, bool is128bit);
+
     /** TODO **/
     static void generateLoadReg(codeGen &gen, Register rt,
                                 Register ra, Register rb);

@@ -240,8 +240,6 @@ private:
 
     void saveRegister(codeGen &gen, Register reg, int save_off);
 
-    void saveRegister(codeGen &gen, Register source, Register dest, int save_off);
-
     void saveFPRegister(codeGen &gen, Register reg, int save_off);
 };
 
