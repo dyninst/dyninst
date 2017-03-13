@@ -179,31 +179,89 @@ void EmitterAARCH64SaveRegs::saveFPRegister(codeGen &gen, Register reg, int save
 
 /********************************* Public methods *********************************************/
 
-unsigned EmitterAARCH64SaveRegs::saveGPRegisters(codeGen &gen, registerSpace *theRegSpace, int numReqGPRs) {
+unsigned EmitterAARCH64SaveRegs::saveGPRegisters(baseTramp *bt, codeGen &gen, registerSpace *theRegSpace, int numReqGPRs, int &offset) {
+    unsigned ret = 0;
+    if(numReqGPRs == -1)
+        numReqGPRs = theRegSpace->numGPRs();
 
+    pdvector<registerSlot *> &regs = theRegSpace->trampRegs();
+
+    for(int idx = 0; idx < regs.size() && ret < numReqGPRs; idx++) {
+        registerSlot *reg = regs[i];
+        if(bt->definedRegs[reg->encoding()]) {
+            saveRegister(gen, reg->number(), GPRSIZE_64);
+            theRegSpace->markSavedRegister(reg->number(), offset);
+
+            offset += GPRSIZE_64;
+            ret++;
+        }
+    }
+
+    return ret;
 }
 
-unsigned EmitterAARCH64SaveRegs::saveFPRegisters(codeGen &gen, registerSpace *theRegSpace) {
-    assert(0); //Not implemented
-    unsigned numRegs = 0;
+unsigned EmitterAARCH64SaveRegs::saveFPRegisters(codeGen &gen, registerSpace *theRegSpace, int &offset) {
+    unsigned ret = 0;
 
-    return numRegs;
+    for(int idx = 0; idx < theRegSpace->numFPRs(); idx++) {
+        registerSlot *reg = theRegSpace->FPRs()[idx];
+
+        if(reg->liveState == registerSlot::live) {
+            saveFPRegister(gen, reg->number(), FPRSIZE);
+            reg->liveState = registerSlot::spilled;
+
+            offset += FPRSIZE;
+            ret++;
+        }
+    }
+
+    return ret;
 }
 
-unsigned EmitterAARCH64SaveRegs::saveSPRegisters(codeGen &gen, registerSpace *, int force_save) {
-    assert(0); //Not implemented
-    unsigned num_saved = 0;
-    return num_saved;
+unsigned EmitterAARCH64SaveRegs::saveSPRegisters(codeGen &gen, registerSpace *theRegSpace, int &offset, bool force_save) {
+    int ret = 0;
+
+    pdvector<registerSlot *> spRegs;
+    map<registerSlot *, int> regMap;
+
+    registerSlot *regNzcv = (*theRegSpace)[registerSpace::pstate];
+    assert(regNzcv);
+    regMap[regNzcv] = SPR_NZCV;
+    if(force_save || regNzcv->liveState == registerSlot::live)
+        spRegs.push_back(regNzcv);
+
+    registerSlot *regFpcr = (*theRegSpace)[registerSpace::fpcr];
+    assert(regFpcr);
+    regMap[regFpcr] = SPR_FPCR;
+    if(force_save || regFpcr->liveState == registerSlot::live)
+        spRegs.push_back(regFpcr);
+
+    registerSlot *regFpsr = (*theRegSpace)[registerSpace::fpsr];
+    assert(regFpsr);
+    regMap[regFpsr] = SPR_FPSR;
+    if(force_save || regFpsr->liveState == registerSlot::live)
+        spRegs.push_back(regFpsr);
+
+    for(pdvector<registerSlot *>::iterator itr = spRegs.begin(); itr != spRegs.end(); itr++) {
+        registerSlot *cur = *itr;
+        saveSPR(gen, theRegSpace->getScratchRegister(gen, true), regMap[cur], GPRSIZE_32);
+        theRegSpace->markSavedRegister(cur->number(), offset);
+
+        offset += GPRSIZE_32;
+        ret++;
+    }
+
+    return ret;
 }
 
-void EmitterAARCH64SaveRegs::createFrame(codeGen &gen, EmitterAARCH64SaveRegs saveRegs) {
+void EmitterAARCH64SaveRegs::createFrame(codeGen &gen) {
     //Save link register
     Register linkRegister = gen.rs()->getRegByName("r30");
-    saveRegs.saveRegister(gen, linkRegister, GPRSIZE_64);
+    saveRegister(gen, linkRegister, GPRSIZE_64);
 
     //Save frame pointer
     Register framePointer = gen.rs()->getRegByName("r29");
-    saveRegs.saveRegister(gen, framePointer, GPRSIZE_64);
+    saveRegister(gen, framePointer, GPRSIZE_64);
 
     //Move stack pointer to frame pointer
     Register stackPointer = gen.rs()->getRegByName("sp");
@@ -242,14 +300,14 @@ unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(codeGen &gen, registerSpa
     return num_restored;
 }
 
-void EmitterAARCH64RestoreRegs::tearFrame(codeGen &gen, EmitterAARCH64RestoreRegs restoreRegs) {
+void EmitterAARCH64RestoreRegs::tearFrame(codeGen &gen) {
     //Restore frame pointer
     Register framePointer = gen.rs()->getRegByName("r29");
-    restoreRegs.restoreRegister(gen, framePointer, GPRSIZE_64);
+    restoreRegister(gen, framePointer, GPRSIZE_64);
 
     //Restore link register
     Register linkRegister = gen.rs()->getRegByName("r30");
-    restoreRegs.restoreRegister(gen, linkRegister, GPRSIZE_64);
+    restoreRegister(gen, linkRegister, GPRSIZE_64);
 }
 
 /********************************* Private methods *********************************************/
@@ -300,13 +358,17 @@ bool baseTramp::generateSaves(codeGen &gen,
                               registerSpace *) {
     EmitterAARCH64SaveRegs saveRegs;
 
+    int offset = 0;
+
     baseTramp *bt = this;
     bool saveFrame = !bt || bt->needsFrame();
-    if(saveFrame)
-        saveRegs.createFrame(gen, saveRegs);
+    if(saveFrame) {
+        saveRegs.createFrame(gen);
+        offset += (GPRSIZE_64 * 2);
+    }
     bt->createdFrame = saveFrame;
 
-    saveRegs.saveGPRegisters(gen, gen.rs());
+    saveRegs.saveGPRegisters(bt, gen, gen.rs(), offset);
 
     bool saveFPRs = BPatch::bpatch->isForceSaveFPROn() ||
                    (BPatch::bpatch->isSaveFPROn()      &&
@@ -314,10 +376,10 @@ bool baseTramp::generateSaves(codeGen &gen,
                     bt->saveFPRs());
 
     if(saveFPRs)
-        saveRegs.saveFPRegisters(gen, gen.rs());
+        saveRegs.saveFPRegisters(gen, gen.rs(), offset);
     bt->savedFPRs = saveFPRs;
 
-    saveRegs.saveSPRegisters(gen, gen.rs());
+    saveRegs.saveSPRegisters(gen, gen.rs(), offset, false);
 
     return true;
 }
@@ -335,7 +397,7 @@ bool baseTramp::generateRestores(codeGen &gen,
     restoreRegs.restoreGPRegisters(gen, gen.rs());
 
     if(bt->createdFrame)
-        restoreRegs.tearFrame(gen, restoreRegs);
+        restoreRegs.tearFrame(gen);
 
     return true;
 }
