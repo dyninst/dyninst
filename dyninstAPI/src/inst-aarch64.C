@@ -135,10 +135,6 @@ void registerSpace::initialize() {
 /************************************************************************************************/
 /************************************************************************************************/
 
-void saveRegisterAtOffset(codeGen &gen, Register reg, int save_off) {
-
-}
-
 /********************************* EmitterAARCH64SaveRegs ***************************************/
 
 /********************************* Private methods *********************************************/
@@ -163,18 +159,14 @@ void EmitterAARCH64SaveRegs::saveSPR(codeGen &gen, Register scratchReg, int sprn
     insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, scratchReg, REG_SP, stkOffset, false);
 }
 
-// Dest != reg : optimizate away a load/move pair
-void EmitterAARCH64SaveRegs::saveRegister(codeGen &gen, Register source, Register dest, int save_off) {
-
-}
-
 void EmitterAARCH64SaveRegs::saveRegister(codeGen &gen, Register reg, int save_off) {
-
+    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, reg, REG_SP, save_off, true);
 }
 
 
 void EmitterAARCH64SaveRegs::saveFPRegister(codeGen &gen, Register reg, int save_off) {
-    assert(0); //Not implemented
+    //Always performing save of the full FP register
+    insnCodeGen::generateMemAccessFP(gen, insnCodeGen::Store, reg, REG_SP, save_off, 0, true);
 }
 
 /********************************* Public methods *********************************************/
