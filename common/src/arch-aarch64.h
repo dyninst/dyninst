@@ -71,6 +71,7 @@ namespace NS_aarch64 {
 #define LDRImmUIOp      0xE5
 
 #define MRSOp           0xD53
+#define MSROp           0xD51
 #define MOVSPOp         0x44000
 
 #define MIN_IMM8    (-128)
