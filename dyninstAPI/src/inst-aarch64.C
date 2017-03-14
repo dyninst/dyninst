@@ -171,7 +171,7 @@ void EmitterAARCH64SaveRegs::saveFPRegister(codeGen &gen, Register reg, int save
 
 /********************************* Public methods *********************************************/
 
-unsigned EmitterAARCH64SaveRegs::saveGPRegisters(baseTramp *bt, codeGen &gen, registerSpace *theRegSpace, int numReqGPRs, int &offset) {
+unsigned EmitterAARCH64SaveRegs::saveGPRegisters(baseTramp *bt, codeGen &gen, registerSpace *theRegSpace, int &offset, int numReqGPRs) {
     unsigned ret = 0;
     if(numReqGPRs == -1)
         numReqGPRs = theRegSpace->numGPRs();
