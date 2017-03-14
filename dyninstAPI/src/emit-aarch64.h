@@ -227,7 +227,7 @@ class EmitterAARCH64SaveRegs {
 public:
     virtual ~EmitterAARCH64SaveRegs() {}
 
-    unsigned saveGPRegisters(baseTramp *bt, codeGen &gen, registerSpace *theRegSpace, int numReqGPRs = -1, int &offset);
+    unsigned saveGPRegisters(baseTramp *bt, codeGen &gen, registerSpace *theRegSpace, int &offset, int numReqGPRs = -1);
 
     unsigned saveFPRegisters(codeGen &gen, registerSpace *theRegSpace, int &offset);
 
@@ -258,11 +258,7 @@ public:
 private:
     void restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset);
 
-    void restoreRegister(codeGen &gen, Register source, Register dest, int save_off);
-
     void restoreRegister(codeGen &gen, Register reg, int save_off);
-
-    void restoreFPRegister(codeGen &gen, Register source, Register dest, int save_off);
 
     void restoreFPRegister(codeGen &gen, Register reg, int save_off);
 };
