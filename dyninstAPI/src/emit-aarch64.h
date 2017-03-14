@@ -258,11 +258,7 @@ public:
 private:
     void restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset);
 
-    void restoreRegister(codeGen &gen, Register source, Register dest, int save_off);
-
     void restoreRegister(codeGen &gen, Register reg, int save_off);
-
-    void restoreFPRegister(codeGen &gen, Register source, Register dest, int save_off);
 
     void restoreFPRegister(codeGen &gen, Register reg, int save_off);
 };

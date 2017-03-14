@@ -70,6 +70,7 @@ namespace NS_aarch64 {
 #define STRImmUIOp      0xE4
 #define LDRImmUIOp      0xE5
 
+#define MSROp           0xD51
 #define MRSOp           0xD53
 #define MSROp           0xD51
 #define MOVSPOp         0x44000
@@ -184,7 +185,7 @@ class COMMON_EXPORT instruction {
     void setBits(unsigned int pos, unsigned int len, unsigned int value) {
         unsigned int mask;
 
-        mask = ~(~0 << len);
+        mask = ~((unsigned int)(~0) << len);
         value = value & mask;
 
         mask = ~(mask << pos);
