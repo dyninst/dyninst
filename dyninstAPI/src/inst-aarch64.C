@@ -342,6 +342,7 @@ void EmitterAARCH64RestoreRegs::tearFrame(codeGen &gen) {
     restoreRegister(gen, linkRegister, GPRSIZE_64);
 }
 
+
 /********************************* Private methods *********************************************/
 
 void EmitterAARCH64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset) {
@@ -365,11 +366,11 @@ void EmitterAARCH64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, in
 }
 
 void EmitterAARCH64RestoreRegs::restoreRegister(codeGen &gen, Register reg, int save_off) {
-    assert(0); //Not implemented
+    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, reg, REG_SP, save_off, true);
 }
 
 void EmitterAARCH64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, int save_off) {
-    assert(0); //Not implemented
+    insnCodeGen::generateMemAccessFP(gen, insnCodeGen::Load, reg, REG_SP, save_off, 0, true);
 }
 
 /***********************************************************************************************/
