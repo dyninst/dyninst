@@ -59,6 +59,8 @@
 #include "emitter.h"
 #include "emit-aarch64.h"
 
+#include <boost/assign/list_of.hpp>
+using namespace boost::assign;
 #include <sstream>
 
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
@@ -96,7 +98,7 @@ void registerSpace::initialize64() {
         if (idx < 10)
             sprintf(name, "r%1d", idx - r0);
         else
-            sprintfname, "r%2d", idx - r0);
+            sprintf(name, "r%2d", idx - r0);
         registers.push_back(new registerSlot(idx,
                                              name,
                                              false,
@@ -179,10 +181,10 @@ unsigned EmitterAARCH64SaveRegs::saveGPRegisters(baseTramp *bt, codeGen &gen, re
     pdvector<registerSlot *> &regs = theRegSpace->trampRegs();
 
     for(int idx = 0; idx < regs.size() && ret < numReqGPRs; idx++) {
-        registerSlot *reg = regs[i];
+        registerSlot *reg = regs[idx];
         if(bt->definedRegs[reg->encoding()]) {
-            saveRegister(gen, reg->number(), GPRSIZE_64);
-            theRegSpace->markSavedRegister(reg->number(), offset);
+            saveRegister(gen, reg->number, -GPRSIZE_64);
+            theRegSpace->markSavedRegister(reg->number, offset);
 
             offset += GPRSIZE_64;
             ret++;
@@ -199,7 +201,7 @@ unsigned EmitterAARCH64SaveRegs::saveFPRegisters(codeGen &gen, registerSpace *th
         registerSlot *reg = theRegSpace->FPRs()[idx];
 
         if(reg->liveState == registerSlot::live) {
-            saveFPRegister(gen, reg->number(), FPRSIZE);
+            saveFPRegister(gen, reg->number, -FPRSIZE);
             reg->liveState = registerSlot::spilled;
 
             offset += FPRSIZE;
@@ -236,8 +238,8 @@ unsigned EmitterAARCH64SaveRegs::saveSPRegisters(codeGen &gen, registerSpace *th
 
     for(pdvector<registerSlot *>::iterator itr = spRegs.begin(); itr != spRegs.end(); itr++) {
         registerSlot *cur = *itr;
-        saveSPR(gen, theRegSpace->getScratchRegister(gen, true), regMap[cur], GPRSIZE_32);
-        theRegSpace->markSavedRegister(cur->number(), offset);
+        saveSPR(gen, theRegSpace->getScratchRegister(gen, true), regMap[cur], -GPRSIZE_32);
+        theRegSpace->markSavedRegister(cur->number, offset);
 
         offset += GPRSIZE_32;
         ret++;
@@ -249,11 +251,11 @@ unsigned EmitterAARCH64SaveRegs::saveSPRegisters(codeGen &gen, registerSpace *th
 void EmitterAARCH64SaveRegs::createFrame(codeGen &gen) {
     //Save link register
     Register linkRegister = gen.rs()->getRegByName("r30");
-    saveRegister(gen, linkRegister, GPRSIZE_64);
+    saveRegister(gen, linkRegister, -GPRSIZE_64);
 
     //Save frame pointer
     Register framePointer = gen.rs()->getRegByName("r29");
-    saveRegister(gen, framePointer, GPRSIZE_64);
+    saveRegister(gen, framePointer, -GPRSIZE_64);
 
     //Move stack pointer to frame pointer
     Register stackPointer = gen.rs()->getRegByName("sp");
@@ -263,33 +265,71 @@ void EmitterAARCH64SaveRegs::createFrame(codeGen &gen) {
 /***********************************************************************************************/
 /***********************************************************************************************/
 
-void restoreRegisterAtOffset(codeGen &gen,
-                             Register dest,
-                             int saved_off) {
-    assert(0); //Not implemented
-}
-
 /********************************* EmitterAARCH64RestoreRegs ************************************/
 
 /********************************* Public methods *********************************************/
 
 unsigned EmitterAARCH64RestoreRegs::restoreGPRegisters(codeGen &gen, registerSpace *theRegSpace) {
-    assert(0); //Not implemented
-    return 0;
+    unsigned ret = 0;
+
+    for(int idx = theRegSpace->numGPRs() - 1; idx >= 0; idx--) {
+        registerSlot *reg = theRegSpace->GPRs()[idx];
+
+        if(reg->liveState == registerSlot::spilled) {
+            restoreRegister(gen, reg->number, GPRSIZE_64);
+            ret++;
+        }
+    }
+
+    return ret;
 }
 
 unsigned EmitterAARCH64RestoreRegs::restoreFPRegisters(codeGen &gen, registerSpace *theRegSpace) {
-    assert(0); //Not implemented
-    unsigned numRegs = 0;
+    unsigned ret = 0;
 
-    return numRegs;
+    for(int idx = theRegSpace->numFPRs() - 1; idx >= 0; idx--) {
+        registerSlot *reg = theRegSpace->FPRs()[idx];
+
+        if(reg->liveState == registerSlot::spilled) {
+            restoreFPRegister(gen, reg->number, FPRSIZE);
+            ret++;
+        }
+    }
+
+    return ret;
 }
 
-unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(codeGen &gen, registerSpace *, int force_save) {
-    assert(0); //Not implemented
-    int cr_off, ctr_off, xer_off, spr0_off, fpscr_off;
-    unsigned num_restored = 0;
-    return num_restored;
+unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(codeGen &gen, registerSpace *theRegSpace, int force_save) {
+    int ret = 0;
+
+    pdvector<registerSlot *> spRegs;
+    map<registerSlot *, int> regMap;
+
+    registerSlot *regNzcv = (*theRegSpace)[registerSpace::pstate];
+    assert(regNzcv);
+    regMap[regNzcv] = SPR_NZCV;
+    if(force_save || regNzcv->liveState == registerSlot::spilled)
+        spRegs.push_back(regNzcv);
+
+    registerSlot *regFpcr = (*theRegSpace)[registerSpace::fpcr];
+    assert(regFpcr);
+    regMap[regFpcr] = SPR_FPCR;
+    if(force_save || regFpcr->liveState == registerSlot::spilled)
+        spRegs.push_back(regFpcr);
+
+    registerSlot *regFpsr = (*theRegSpace)[registerSpace::fpsr];
+    assert(regFpsr);
+    regMap[regFpsr] = SPR_FPSR;
+    if(force_save || regFpsr->liveState == registerSlot::spilled)
+        spRegs.push_back(regFpsr);
+
+    for(pdvector<registerSlot *>::iterator itr = spRegs.begin(); itr != spRegs.end(); itr++) {
+        registerSlot *cur = *itr;
+        restoreSPR(gen, theRegSpace->getScratchRegister(gen, true), regMap[cur], GPRSIZE_32);
+        ret++;
+    }
+
+    return ret;
 }
 
 void EmitterAARCH64RestoreRegs::tearFrame(codeGen &gen) {
@@ -324,16 +364,7 @@ void EmitterAARCH64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, in
     insnCodeGen::generate(gen, insn);
 }
 
-// Dest != reg : optimizate away a load/move pair
-void EmitterAARCH64RestoreRegs::restoreRegister(codeGen &gen, Register source, Register dest, int saved_off) {
-    assert(0); //Not implemented
-}
-
 void EmitterAARCH64RestoreRegs::restoreRegister(codeGen &gen, Register reg, int save_off) {
-    assert(0); //Not implemented
-}
-
-void EmitterAARCH64RestoreRegs::restoreFPRegister(codeGen &gen, Register source, Register dest, int save_off) {
     assert(0); //Not implemented
 }
 
@@ -380,7 +411,7 @@ bool baseTramp::generateRestores(codeGen &gen,
                                  registerSpace *) {
     EmitterAARCH64RestoreRegs restoreRegs;
 
-    restoreRegs.restoreSPRegisters(gen, gen.rs());
+    restoreRegs.restoreSPRegisters(gen, gen.rs(), false);
 
     baseTramp *bt = this;
     if(bt->savedFPRs)
