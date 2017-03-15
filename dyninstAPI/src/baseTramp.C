@@ -216,12 +216,12 @@ bool baseTramp::generateCode(codeGen &gen,
 
       gen.beginTrackRegDefs();
       gen.rs()->initRealRegSpace();
+      definedRegs = gen.getRegsDefined();
       bool result = generateCodeInlined(gen, baseInMutatee);
       if (!result)
          return false;
       gen.endTrackRegDefs();
 
-      definedRegs = gen.getRegsDefined();
       optimizationInfo_ = true;
       if (spilledRegisters) {
          spilledRegisters = gen.rs()->spilledAnything();
