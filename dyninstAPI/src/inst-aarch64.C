@@ -392,6 +392,8 @@ bool baseTramp::generateSaves(codeGen &gen,
     }
     bt->createdFrame = saveFrame;
 
+    bt->definedRegs = gen.getRegsDefined();
+    assert(!bt->definedRegs.empty());
     saveRegs.saveGPRegisters(bt, gen, gen.rs(), offset);
 
     bool saveFPRs = BPatch::bpatch->isForceSaveFPROn() ||
