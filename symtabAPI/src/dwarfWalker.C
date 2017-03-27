@@ -41,6 +41,7 @@
 #include "dwarfExprParser.h"
 #include "pathName.h"
 #include "debug_common.h"
+#include "Type-mem.h"
 #include <boost/bind.hpp>
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -147,7 +148,7 @@ bool DwarfWalker::parse() {
 
    /* Fix type list. */
    typeCollection *moduleTypes = typeCollection::getModTypeCollection(fixUnknownMod);
-   assert(moduleTypes);
+   if(!moduleTypes) return false;
    dyn_hash_map< int, Type * >::iterator typeIter =  moduleTypes->typesByID.begin();
    for (;typeIter!=moduleTypes->typesByID.end();typeIter++)
    {
@@ -248,20 +249,28 @@ void DwarfParseActions::setModuleFromName(std::string moduleName)
 }
 
 bool DwarfWalker::buildSrcFiles(Dwarf_Debug dbg, Dwarf_Die entry, StringTablePtr srcFiles) {
-   Dwarf_Signed cnt = 0;
+    Dwarf_Signed cnt = 0;
     char** srcFileList;
-   DWARF_ERROR_RET(dwarf_srcfiles(entry, &srcFileList, &cnt, NULL));
-
-   if(!srcFiles->empty()) {
+    Dwarf_Error error;
+    int ret = dwarf_srcfiles(entry, &srcFileList, &cnt, &error);
+    DWARF_ERROR_RET(ret);
+    
+    if(!srcFiles->empty()) {
         return true;
-   } // already parsed, the module had better be right.
-   srcFiles->push_back("Unknown file");
-   for (unsigned i = 0; i < cnt; ++i) {
-      srcFiles->push_back(srcFileList[i]);
-      dwarf_dealloc(dbg, srcFileList[i], DW_DLA_STRING);
-   }
+    } // already parsed, the module had better be right.
+    srcFiles->push_back("Unknown file");
+
+    // The module does not have any source files..
+    if (ret == DW_DLV_NO_ENTRY) {
+        return true;
+    }
+
+    for (unsigned i = 0; i < cnt; ++i) {
+       srcFiles->push_back(srcFileList[i]);
+       dwarf_dealloc(dbg, srcFileList[i], DW_DLA_STRING);
+    }
     dwarf_dealloc(dbg, srcFileList, DW_DLA_LIST);
-   return true;
+    return true;
 }
 
 
@@ -834,7 +843,7 @@ bool DwarfWalker::parseVariable() {
 
    Type *type = NULL;
    if (!findType(type, false)) return false;
-   assert(type);
+   if(!type) return false;
 
    Dwarf_Unsigned variableLineNo;
    bool hasLineNumber = false;
@@ -1015,7 +1024,6 @@ bool DwarfWalker::parseBaseType() {
       reliable way to distinguish between a built-in and a scalar,
       we don't bother to try. */
    typeScalar * baseType = new typeScalar( type_id(), (unsigned int) size, curName());
-   assert( baseType != NULL );
 
    /* Add the basic type to our collection. */
    typeScalar *debug = baseType;
@@ -1104,7 +1112,6 @@ bool DwarfWalker::parseArray() {
                                          baseArrayType->getLow(),
                                          baseArrayType->getHigh(),
                                          nameToUse);
-   assert( arrayType != NULL );
 
    arrayType = tc()->addOrUpdateType( arrayType );
 
@@ -1130,7 +1137,6 @@ bool DwarfWalker::parseEnum() {
    if (!findName(curName())) return false;
 
    typeEnum* enumerationType = new typeEnum( type_id(), curName());
-   assert( enumerationType != NULL );
    enumerationType = dynamic_cast<typeEnum *>(tc()->addOrUpdateType( enumerationType ));
 
    setEnum(enumerationType);
@@ -1162,10 +1168,38 @@ bool DwarfWalker::parseStructUnionClass() {
    if(!tc()) return false;
    dwarf_printf("(0x%lx) parseStructUnionClass entry\n", id());
 
-   assert(tag() == DW_TAG_structure_type ||
-          tag() == DW_TAG_union_type ||
-          tag() == DW_TAG_class_type);
+   if(tag() != DW_TAG_structure_type &&
+          tag() != DW_TAG_union_type &&
+          tag() != DW_TAG_class_type)
+   {
+      dwarf_printf("WARNING: parseStructUnionClass called on non-aggregate tagged entry\n");
+      return false;
+   }
    if (!findName(curName())) return false;
+   if (!nameDefined()) {
+      /* anonymous unions, structs and classes are explicitely labelled */
+      Dwarf_Unsigned lineNumber;
+      bool hasLineNumber = false;
+      std::string fileName;  
+      if (!getLineInformation(lineNumber, hasLineNumber, fileName)) return false;
+      stringstream ss;
+      ss << "{anonymous ";
+      switch (tag()) {
+      case DW_TAG_structure_type:
+         ss << "struct";
+	 break;
+      case DW_TAG_union_type:
+         ss << "union";
+	 break;
+      case DW_TAG_class_type:
+         ss << "class";
+	 break;
+      }
+      if (fileName.length() && hasLineNumber)
+	     ss << " at " << fileName << ":" << lineNumber;
+      ss << "}";
+      curName() = ss.str();
+   }
 
    bool isDeclaration = false;
    if (!hasDeclaration(isDeclaration)) return false;
@@ -1222,10 +1256,28 @@ bool DwarfWalker::parseMember() {
    Type *memberType = NULL;
    if (!findType(memberType, false)) return false;
    if (!memberType) return false;
+   
+   long value;
+   bool hasValue;
+   if (!findValue(value, hasValue)) return false;
+   if (hasValue) {
+      if(!nameDefined()) return false;
+      dwarf_printf("(0x%lx) member is a named constant, forwarding to parseConstant\n", id());
+      return parseConstant();
+   }
 
    std::vector<VariableLocation> locs;
    Address initialStackValue = 0;
    if (!decodeLocationList(DW_AT_data_member_location, &initialStackValue, locs)) return false;
+   if (locs.empty()) {
+	if (curEnclosure()->getUnionType()) {
+		/* GCC generates DW_TAG_union_type without DW_AT_data_member_location */
+		if (!constructConstantVariableLocation((Address) 0, locs)) return false;
+	} else {
+		dwarf_printf("(0x%lx) Skipping member as no location is given.\n", id()); 
+		return true;
+	}
+   }
 
    /* DWARF stores offsets in bytes unless the member is a bit field.
       Correct memberOffset as indicated.  Also, memberSize is in bytes
@@ -1237,12 +1289,12 @@ bool DwarfWalker::parseMember() {
    // This code changes memberSize, which is then discarded. I'm not sure why...
    if (!fixBitFields(locs, memberSize)) return false;
 
-   int offset_to_use = locs.size() ? locs[0].frameOffset : -1;
+   int offset_to_use = locs[0].frameOffset;
 
    dwarf_printf("(0x%lx) Using offset of 0x%lx\n", id(), offset_to_use);
 
    if (nameDefined()) {
-      curEnclosure()->addField( curName(), memberType, offset_to_use);
+      curEnclosure()->addField(curName(), memberType, offset_to_use);
    }
    else {
       curEnclosure()->addField("[anonymous union]", memberType, offset_to_use);
@@ -1266,7 +1318,6 @@ bool DwarfWalker::parseConstPackedVolatile() {
             if (!fixName(curName(), type)) return false;
         }
         typeTypedef * modifierType = new typeTypedef(type_id(), type, curName());
-        assert( modifierType != NULL );
         modifierType = tc()->addOrUpdateType( modifierType );
 
     }
@@ -1300,8 +1351,7 @@ bool DwarfWalker::parseTypeReferences() {
          return false;
    }
 
-   assert( indirectType != NULL );
-   return true;
+   return indirectType != NULL;
 }
 
 bool DwarfWalker::hasDeclaration(bool &isDecl) {
@@ -1527,6 +1577,25 @@ bool DwarfWalker::addFuncToContainer(Type *returnType) {
    typeFunction *funcType = new typeFunction( type_id(), returnType, toUse);
    curEnclosure()->addField( toUse, funcType);
    free( demangledName );
+   return true;
+}
+
+bool DwarfWalker::isStaticStructMember(std::vector<VariableLocation> &locs, bool &isStatic) {
+   isStatic = false;
+   
+   // if parsing a struct-member which is not a regular member (i.e. not with an offset)
+   if (curEnclosure()->getDataClass() == dataStructure && locs.size() == 0) {
+	long value;
+	bool hasValue;
+	if (!findValue(value, hasValue)) return false;
+	
+	// and, if it is not a constant, then it must be a static field member
+	if (!hasValue) {
+		isStatic = true;
+		return true;
+	}
+   }
+   
    return true;
 }
 
@@ -2097,7 +2166,6 @@ bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
                 low_conv, hi_conv, curName().c_str());
    typeSubrange * rangeType = new typeSubrange( type_id,
                                                 0, low_conv, hi_conv, curName() );
-   assert( rangeType != NULL );
    rangeType = tc()->addOrUpdateType( rangeType );
    dwarf_printf("(0x%lx) Subrange has pointer %p (tc %p)\n", id(), rangeType, tc());
    return true;
@@ -2134,7 +2202,6 @@ typeArray *DwarfWalker::parseMultiDimensionalArray(Dwarf_Die range,
                                                atoi( loBound.c_str() ),
                                                atoi( hiBound.c_str() ),
                                                aName );
-     assert( innermostType != NULL );
      Type * typ = tc()->addOrUpdateType( innermostType );
     innermostType = dynamic_cast<typeArray *>(typ);
     return innermostType;
@@ -2142,11 +2209,9 @@ typeArray *DwarfWalker::parseMultiDimensionalArray(Dwarf_Die range,
 
   /* If it does, build this array type out of the array type returned from the next recusion. */
   typeArray * innerType = parseMultiDimensionalArray( nextSibling, elementType);
-  assert( innerType != NULL );
   // same here - type id ignored    jmo
   std::string aName = buf;
   typeArray * outerType = new typeArray( innerType, atoi(loBound.c_str()), atoi(hiBound.c_str()), aName);
-  assert( outerType != NULL );
   Type *typ = tc()->addOrUpdateType( outerType );
   outerType = static_cast<typeArray *>(typ);
 
@@ -2271,7 +2336,7 @@ bool DwarfWalker::decodeExpression(Dwarf_Attribute &attr,
 
   DWARF_FAIL_RET(dwarf_loclist_from_expr_a(dbg(), expr_ptr, expr_len, addr_size,
 					   &descs, &cnt, NULL));
-  assert(cnt == 1);
+  if(cnt != 1) return false;
 
   bool ret = decodeLocationListForStaticOffsetOrAddress(&descs, cnt, locs, NULL);
   //deallocateLocationList(&descs, cnt);
@@ -2414,8 +2479,10 @@ void DwarfParseActions::push() {
 }
 
 void DwarfParseActions::pop() {
-   assert(!c.empty());
-   c.pop();
+   if(!c.empty())
+   {
+      c.pop();
+   }
 }
 
 void DwarfParseActions::setFunc(FunctionBase *f) {

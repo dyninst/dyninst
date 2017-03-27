@@ -715,6 +715,8 @@ void codeGen::beginTrackRegDefs()
     regsDefined_ = bitArray(REGNUM_IGNORED+1);
 #elif defined(arch_power)
     regsDefined_ = bitArray(registerSpace::lastReg);
+#elif defined(arch_aarch64)
+    regsDefined_ = bitArray(registerSpace::fpsr);
 #else
     regsDefined_ = bitArray();
 #endif

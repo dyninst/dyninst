@@ -16,9 +16,13 @@ Address PCValue(Address cur, size_t insnSize, Architecture a) {
         case Arch_x86:
 	case Arch_x86_64:
 	    return cur + insnSize;
-	case Arch_aarch64:{
+	case Arch_aarch64:
 	    return cur;
-	}
+        case Arch_aarch32:
+        case Arch_ppc32:
+        case Arch_ppc64:
+        case Arch_none:
+            assert(0);
     }    
     return cur + insnSize;
 }
@@ -510,7 +514,10 @@ AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
 }
 
 bool PerformTableRead(BoundValue &target, set<int64_t> & jumpTargets, CodeSource *cs) {
-
+    if (target.tableReadSize > 0 && target.interval.stride == 0) {
+        // This is a PC-relative read to variable, not a table read
+        return false;
+    }
     Address tableBase = (Address)target.interval.low;
     Address tableLastEntry = (Address)target.interval.high;
     int addressWidth = cs->getAddressWidth();

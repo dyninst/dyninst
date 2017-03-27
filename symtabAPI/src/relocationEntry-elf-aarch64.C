@@ -160,13 +160,13 @@ const char *relocationEntry::relType2Str(unsigned long r, unsigned /*addressWidt
         CASE_RETURN_STR(R_AARCH64_GLOB_DAT);
         CASE_RETURN_STR(R_AARCH64_JUMP_SLOT);
         CASE_RETURN_STR(R_AARCH64_RELATIVE);
-        CASE_RETURN_STR(R_AARCH64_TLS_DTPMOD );
-        CASE_RETURN_STR(R_AARCH64_TLS_DTPREL);
-        CASE_RETURN_STR(R_AARCH64_TLS_TPREL);
+	//        CASE_RETURN_STR(R_AARCH64_TLS_DTPMOD );
+        // CASE_RETURN_STR(R_AARCH64_TLS_DTPREL);
+        // CASE_RETURN_STR(R_AARCH64_TLS_TPREL);
         CASE_RETURN_STR(R_AARCH64_TLSDESC   );
         CASE_RETURN_STR(R_AARCH64_IRELATIVE);
 		default:
-			return "?";
+			return "Unknown relocation type";
 	}
     return "?";
 }

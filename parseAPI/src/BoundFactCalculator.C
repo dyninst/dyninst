@@ -352,8 +352,6 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	parsing_printf("\t\tThe fact from %lx before applying transfer function\n", srcNode->addr());
 	prevFact->Print();
 	if (!srcNode->assign()) {
-	    prevFact = new BoundFact(*prevFact);
-	    newCopy = true;
 	    parsing_printf("\t\tThe predecessor node is the virtual entry ndoe\n");
 	    if (firstBlock && handleOneByteRead) {
 	        // If the indirect jump is in the entry block
@@ -370,8 +368,6 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	        prevFact->GenFact(axAST, new BoundValue(StridedInterval(1,0,8)), false);
 	    }
 	} else if (srcNode->assign() && IsConditionalJump(srcNode->assign()->insn())) {
-	    prevFact = new BoundFact(*prevFact);
-	    newCopy = true;
 	    // If the predecessor is a conditional jump,
 	    // we can determine bound fact based on the predicate and the edge type
   	    parsing_printf("\t\tThe predecessor node is a conditional jump!\n");

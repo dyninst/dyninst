@@ -317,9 +317,14 @@ typeCollection::typeCollection() :
  */
 typeCollection::~typeCollection()
 {
-    // We sometimes directly delete (refcount == 1) or go through the
-    // decRefCount (which will delete when refcount == 0)
     // delete all of the types
+    for(const auto& t: typesByName) {
+        t.second->decrRefCount();
+    }
+
+    for(const auto& t: typesByID) {
+        t.second->decrRefCount();
+    }
 }
 
 /*
