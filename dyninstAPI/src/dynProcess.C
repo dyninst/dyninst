@@ -807,7 +807,7 @@ bool PCProcess::loadRTLib() {
      bootstrapState_ = bs_loadedRTLib;
      
      // Process the library load (we hope)
-     PCEventMuxer::handle();
+     PCEventMuxer::handle(this);
      
      if( runtime_lib.size() == 0 ) {
        startup_printf("%s[%d]: failed to load RT lib\n", FILE__,
@@ -1139,7 +1139,7 @@ void PCProcess::setReportingEvent(bool b) {
 }
 
 void PCProcess::markExited() {
-	if(pcProc_) pcProc_ = Process::ptr();
+    pcProc_.reset();
 }
 
 void PCProcess::writeDebugDataSpace(void *inTracedProcess, u_int amount,
