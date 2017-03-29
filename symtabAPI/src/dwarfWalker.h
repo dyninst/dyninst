@@ -38,7 +38,7 @@ class Type;
 class DwarfParseActions {
 
 protected:
-    ::Dwarf* dbg() { return dbg_; } 
+    Dwarf* dbg() { return dbg_; } 
 
     Module *& mod() { return mod_; } 
 
@@ -46,9 +46,9 @@ protected:
 
 private:
     Module *mod_;
-    ::Dwarf* dbg_;
+    Dwarf* dbg_;
 public:
-    DwarfParseActions(Symtab* s, ::Dwarf* d) :
+    DwarfParseActions(Symtab* s, Dwarf* d) :
         mod_(NULL),
         dbg_(d),
         symtab_(s)
@@ -172,7 +172,7 @@ public:
 
     } Error;
 
-    DwarfWalker(Symtab *symtab, ::Dwarf* dbg);
+    DwarfWalker(Symtab *symtab, Dwarf* dbg);
 
     virtual ~DwarfWalker();
 
@@ -190,6 +190,8 @@ public:
     //static std::pair<std::vector<Dyninst::SymtabAPI::AddressRange>::iterator, std::vector<Dyninst::SymtabAPI::AddressRange>::iterator>
     //    parseRangeList(Dwarf_Ranges *ranges, Dwarf_Sword num_ranges, Offset initial_base);
 private:
+    Dwarf_Die current_cu_die; 
+
     enum inline_t {
         NormalFunc,
         InlinedFunc
@@ -197,7 +199,7 @@ private:
 
     bool parseSubprogram(inline_t func_type);
     bool parseLexicalBlock();
-    bool parseRangeTypes(::Dwarf* dbg, Dwarf_Die die);
+    bool parseRangeTypes(Dwarf* dbg, Dwarf_Die die);
     bool parseCommonBlock();
     bool parseConstant();
     virtual bool parseVariable();
@@ -213,7 +215,7 @@ private:
     bool parseMember();
     bool parseConstPackedVolatile();
     bool parseTypeReferences();
-    static std::pair<AddressRange, bool> parseHighPCLowPC(::Dwarf* dbg, Dwarf_Die entry);
+    static std::pair<AddressRange, bool> parseHighPCLowPC(Dwarf* dbg, Dwarf_Die entry);
 
 
     // These vary as we parse the tree
@@ -240,7 +242,7 @@ private:
     // A printable ID for a particular entry
     unsigned long id() { return (unsigned long) (offset() - compile_offset); }
 public:
-    static bool buildSrcFiles(::Dwarf* dbg, Dwarf_Die entry, StringTablePtr strings);
+    static bool buildSrcFiles(Dwarf* dbg, Dwarf_Die entry, StringTablePtr strings);
 private:
 
     bool parseCallsite();
@@ -264,7 +266,7 @@ private:
             bool &hasLineNumber,
             std::string &filename);
 public:
-    static bool findDieName(::Dwarf* dbg, Dwarf_Die die, std::string &);
+    static bool findDieName(Dwarf* dbg, Dwarf_Die die, std::string &);
 private:
     bool findName(std::string &);
     void removeFortranUnderscore(std::string &);
@@ -287,11 +289,11 @@ private:
             Dwarf_Half &form);
     bool findString(Dwarf_Half attr, std::string &str);
 public:
-    static bool findConstant(Dwarf_Half attr, Address &value, Dwarf_Die entry, ::Dwarf* dbg);
+    static bool findConstant(Dwarf_Half attr, Address &value, Dwarf_Die entry, Dwarf* dbg);
     static bool findConstantWithForm(Dwarf_Attribute &attr,
             Dwarf_Half form,
             Address &value);
-    static std::vector<AddressRange> getDieRanges(::Dwarf* dbg, Dwarf_Die die, Offset base);
+    static std::vector<AddressRange> getDieRanges(Dwarf* dbg, Dwarf_Die die, Offset base);
 private:
     bool decodeConstantLocation(Dwarf_Attribute &attr, Dwarf_Half form,
             std::vector<VariableLocation> &locs);
@@ -305,11 +307,11 @@ private:
     bool decodeExpression(Dwarf_Attribute &attr,
             std::vector<VariableLocation> &locs);
 
-    bool decodeLocationListForStaticOffsetOrAddress(Dwarf_Op* **locationList,
+    bool decodeLocationListForStaticOffsetOrAddress(Dwarf_Op **locationList,
             Dwarf_Sword listLength,
             std::vector<VariableLocation>& locs,
             Address * initialStackValue = NULL);
-    void deallocateLocationList(Dwarf_Op* **locationList,
+    void deallocateLocationList(Dwarf_Op **locationList,
             Dwarf_Sword listLength);
 
 

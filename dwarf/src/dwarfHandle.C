@@ -104,11 +104,12 @@ bool DwarfHandle::init_dbg()
     //                       err_func, &file_data, &file_data, &err);
 
     file_data = dwarf_begin_elf(file->e_elfp(), DWARF_C_READ, NULL); 
-
-    if (!file_data) {
-        init_dwarf_status = dwarf_status_error;
-        return false;
-    }
+    //int errno = dwarf_errno();
+    //cerr << "Error message:" << filename << ", " << dwarf_errmsg(-1) << endl;
+    //if (!file_data && errno==0 )  {
+    //    init_dwarf_status = dwarf_status_error;
+    //    return false;
+    //}
 
     if (dbg_file) {
         dbg_file_data = dwarf_begin_elf(dbg_file->e_elfp(), DWARF_C_READ, NULL); 
@@ -207,21 +208,21 @@ Elf_X *DwarfHandle::debugLinkFile()
     return dbg_file;
 }
 
-::Dwarf **DwarfHandle::line_dbg()
+Dwarf **DwarfHandle::line_dbg()
 {
     if (!init_dbg())
         return NULL;
     return line_data;
 }
 
-::Dwarf **DwarfHandle::type_dbg()
+Dwarf **DwarfHandle::type_dbg()
 {
     if (!init_dbg())
         return NULL;
     return type_data;
 }
 
-::Dwarf **DwarfHandle::frame_dbg()
+Dwarf **DwarfHandle::frame_dbg()
 {
     if (!init_dbg())
         return NULL;

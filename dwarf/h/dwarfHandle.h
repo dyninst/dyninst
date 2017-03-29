@@ -56,11 +56,11 @@ class DYNDWARF_EXPORT DwarfHandle {
    } dwarf_status_t;
    dwarf_status_t init_dwarf_status;
 
-   ::Dwarf *dbg_file_data;
-   ::Dwarf *file_data;
-   ::Dwarf **line_data;
-   ::Dwarf **type_data;
-   ::Dwarf **frame_data;
+   Dwarf *dbg_file_data;
+   Dwarf *file_data;
+   Dwarf **line_data;
+   Dwarf **type_data;
+   Dwarf **frame_data;
 
    Elf_X *file;
    Elf_X *dbg_file;
@@ -85,9 +85,9 @@ class DYNDWARF_EXPORT DwarfHandle {
 
    Elf_X *origFile();
    Elf_X *debugLinkFile();
-   ::Dwarf **line_dbg();
-   ::Dwarf **type_dbg();
-   ::Dwarf **frame_dbg();
+   Dwarf **line_dbg();
+   Dwarf **type_dbg();
+   Dwarf **frame_dbg();
    DwarfFrameParserPtr frameParser();
 };
 
