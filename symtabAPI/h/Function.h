@@ -148,7 +148,7 @@ class SYMTAB_EXPORT FunctionBase
    friend class Symtab;
 	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
    
- private:
+ protected:
    Function(Symbol *sym);
    
  public:
