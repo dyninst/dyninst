@@ -1688,7 +1688,7 @@ bool emitElf<ElfTypes>::createNonLoadableSections(Elf_Shdr *&shdr) {
  *          and add them to the list of new sections
  */
 template<class ElfTypes>
-bool emitElf<ElfTypes>::createSymbolTables(vector<Symbol *> &allSymbols) {
+bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
     rewrite_printf(" createSymbolTables for %s \n", obj->name().c_str());
     unsigned i;
 
@@ -1793,13 +1793,13 @@ bool emitElf<ElfTypes>::createSymbolTables(vector<Symbol *> &allSymbols) {
         }
     }
 
-    for (i = 0; i < allSymbols.size(); i++) {
-        if (allSymbols[i]->isInSymtab()) {
-            allSymSymbols.push_back(allSymbols[i]);
+    for (auto sym_iter = allSymbols.begin(); sym_iter != allSymbols.end(); ++sym_iter) {
+        if ((*sym_iter)->isInSymtab()) {
+            allSymSymbols.push_back(*sym_iter);
         }
         if (!obj->isStaticBinary()) {
-            if (allSymbols[i]->isInDynSymtab()) {
-                allDynSymbols.push_back(allSymbols[i]);
+            if ((*sym_iter)->isInDynSymtab()) {
+                allDynSymbols.push_back(*sym_iter);
             }
         }
     }
