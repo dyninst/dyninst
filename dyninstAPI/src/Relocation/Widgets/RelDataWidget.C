@@ -82,7 +82,10 @@ string RelDataWidget::format() const {
 
 bool RelDataPatch::apply(codeGen &gen, CodeBuffer *) {
   instruction ugly_insn(orig_insn->ptr());
-  if (!insnCodeGen::modifyData(target_addr, ugly_insn, gen)) return false;
+  if (!insnCodeGen::modifyData(target_addr, ugly_insn, gen)) {
+      relocation_cerr << "RelDataPatch returned false from modifyData (original address: " << std::hex<< orig << ")" <<endl;
+      return false;
+  }
   return true;
 }
 
