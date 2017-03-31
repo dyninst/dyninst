@@ -447,7 +447,28 @@ look at the first level and not do recursive, since we would have to also
 store and reexamine every call out instead of doing it on the fly like before*/
 bool EmitterAARCH64::clobberAllFuncCall(registerSpace *rs,
                                         func_instance *callee) {
-    assert(0); //Not implemented
+    if(!callee)
+        return true;
+
+    stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
+
+    if(callee->ifunc()->isLeafFunc()) {
+        std::set<Register> *gpRegs = callee->ifunc()->usedGPRs();
+        for(std::set<Register>::iterator itr = gpRegs->begin(); itr != gpRegs->end(); itr++)
+            rs->GPRs()[*itr]->beenUsed = true;
+
+        std::set<Register> *fpRegs = callee->ifunc()->usedFPRs();
+        for(std::set<Register>::iterator itr = fpRegs->begin(); itr != fpRegs->end(); itr++)
+            rs->FPRs()[*itr]->beenUsed = true;
+    } else {
+        for(int idx = 0; idx < rs->numGPRs(); idx++)
+            rs->GPRs()[idx]->beenUsed = true;
+        for(int idx = 0; idx < rs->numFPRs(); idx++)
+            rs->FPRs()[idx]->beenUsed = true;
+    }
+
+    stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
+
     return false;
 }
 
