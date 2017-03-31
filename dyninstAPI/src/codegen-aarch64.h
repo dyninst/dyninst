@@ -99,9 +99,6 @@ public:
     static void generateStoreReg64(codeGen &gen, Register rs,
                                    Register ra, Register rb);
 
-    static void generateAddReg(codeGen &gen, int op,
-                               Register rt, Register ra, Register rb);
-
     static void generateLShift(codeGen &gen, Register rs,
                                int shift, Register ra);
 
@@ -142,6 +139,10 @@ public:
                             Register newStoreReg);
 
     /** *** **/
+
+    static void generateAddShifted(codeGen &gen, int shift, int imm6, Register rm, Register rn, Register rd, bool is64bit);
+
+    static void generateAddImmediate(codeGen &gen, int shift, int imm12, Register rn, Register rd, bool is64bit);
 
     static void generateMove(codeGen &gen, int imm16, int shift, Register rd, MoveOp movOp);
 
