@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <stdlib.h>
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -82,9 +83,9 @@ void insnCodeGen::generateTrap(codeGen &gen) {
 }
 
 void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link) {
-    if (ABS(disp) > MAX_BRANCH_OFFSET) {
+    if (abs(disp) > MAX_BRANCH_OFFSET) {
         fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
-                ABS(disp), (unsigned long) MAX_BRANCH_OFFSET);
+                abs(disp), (unsigned long) MAX_BRANCH_OFFSET);
         bperr( "Error: attempted a branch of 0x%lx\n", disp);
         logLine("a branch too far\n");
         showErrorCallback(52, "Internal error: branch too far");
@@ -109,7 +110,7 @@ void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link) {
 void insnCodeGen::generateBranch(codeGen &gen, Address from, Address to, bool link) {
     long disp = (to - from);
 
-    if (ABS(disp) > MAX_BRANCH_OFFSET) {
+    if (abs(disp) > MAX_BRANCH_OFFSET) {
         generateLongBranch(gen, from, to, link);
     }
 
@@ -161,7 +162,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
 
 void insnCodeGen::generateBranchViaTrap(codeGen &gen, Address from, Address to, bool isCall) {
     long disp = to - from;
-    if (ABS(disp) <= MAX_BRANCH_OFFSET) {
+    if (abs(disp) <= MAX_BRANCH_OFFSET) {
         // We shouldn't be here, since this is an internal-called-only func.
         generateBranch(gen, disp, isCall);
     }
@@ -175,7 +176,7 @@ void insnCodeGen::generateBranchViaTrap(codeGen &gen, Address from, Address to, 
     } else {
         // Too far to branch and no proc to register trap.
         fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
-                ABS(disp), (unsigned long) MAX_BRANCH_OFFSET);
+                abs(disp), (unsigned long) MAX_BRANCH_OFFSET);
         bperr( "Error: attempted a branch of 0x%lx\n", disp);
         logLine("a branch too far\n");
         showErrorCallback(52, "Internal error: branch too far");
@@ -443,7 +444,7 @@ bool insnCodeGen::modifyJump(Address target,
                              NS_aarch64::instruction &insn,
                              codeGen &gen) {
     long disp = target - gen.currAddr();
-    if (ABS(disp) > MAX_BRANCH_OFFSET) {
+    if (abs(disp) > MAX_BRANCH_OFFSET) {
         generateBranchViaTrap(gen, gen.currAddr(), target, INSN_GET_ISCALL(insn));
         return true;
     }
@@ -465,7 +466,7 @@ bool insnCodeGen::modifyJcc(Address target,
 			    codeGen &gen) {
     long disp = target - gen.currAddr();
 
-    if(ABS(disp) > MAX_CBRANCH_OFFSET) {
+    if(abs(disp) > MAX_CBRANCH_OFFSET) {
         const unsigned char *origInsn = insn.ptr();
         Address origFrom = gen.currAddr();
 
