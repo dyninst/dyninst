@@ -56,7 +56,6 @@ namespace NS_aarch64 {
 //#define UNCOND_BR_REG       (0xd6000000)
 
 #define BREAK_POINT_INSN 0xd4200000
-#define ABS(x)      ((x) > 0 ? x : -x)
 
 #define BOp             0x05
 #define BCondOp         0x2A
