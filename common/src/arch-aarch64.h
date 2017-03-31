@@ -62,6 +62,9 @@ namespace NS_aarch64 {
 #define BRegOp          0xD61F
 #define NOOP            0xD503201F
 
+#define ADDShiftOp      0x0B
+#define ADDImmOp        0x11
+
 #define STRImmOp        0x1C0
 #define LDRImmOp        0x1C2
 #define STRFPImmOp      0x1E0

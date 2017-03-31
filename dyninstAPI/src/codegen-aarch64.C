@@ -185,12 +185,52 @@ void insnCodeGen::generateBranchViaTrap(codeGen &gen, Address from, Address to, 
     }
 }
 
-void insnCodeGen::generateAddReg (codeGen & gen, int op, Register rt,
-				   Register ra, Register rb)
-{
-    assert(0);
+void insnCodeGen::generateAddShifted(codeGen &gen, int shift, int imm6, Register rm, Register rn, Register rd, bool is64bit) {
     instruction insn;
     insn.clear();
+
+    //Set bit 31 to 1 if using 64-bit registers
+    if(is64bit)
+        INSN_SET(insn, 31, 31, 1);
+    //Set opcode
+    INSN_SET(insn, 24, 30, ADDShiftOp);
+
+    //Set shift field
+    assert(shift >= 0 && shift <= 3);
+    INSN_SET(insn, 22, 23, (shift & 0x3));
+
+    //Set imm6 field
+    assert(imm6 >= 0 && imm6 < (is64bit ? 64 : 32));
+    INSN_SET(insn, 10, 15, imm6);
+
+    //Set registers
+    INSN_SET(insn, 0, 4, rd);
+    INSN_SET(insn, 5, 9, rn);
+    INSN_SET(insn, 16, 20, rm);
+
+    insnCodeGen::generate(gen, insn);
+}
+
+void insnCodeGen::generateAddImmediate(codeGen &gen, int shift, int imm12, Register rn, Register rd, bool is64bit) {
+    instruction insn;
+    insn.clear();
+
+    //Set bit 31 to 1 if using 64-bit registers
+    if(is64bit)
+        INSN_SET(insn, 31, 31, 1);
+    //Set opcode
+    INSN_SET(insn, 24, 30, ADDImmOp);
+
+    //Set shift field
+    assert(shift >= 0 && shift <= 3);
+    INSN_SET(insn, 22, 23, (shift & 0x3));
+
+    //Set imm12 field
+    INSN_SET(insn, 10, 21, imm12);
+
+    //Set registers
+    INSN_SET(insn, 5, 9, rn);
+    INSN_SET(insn, 5, 9, rd);
 
     insnCodeGen::generate(gen, insn);
 }
