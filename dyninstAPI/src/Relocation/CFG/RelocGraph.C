@@ -48,12 +48,14 @@ RelocGraph::~RelocGraph() {
       delete cur;
       cur = next;
    }
+#if (cap_stack_mod)
    for(auto f = funcs_to_clean.begin();
            f != funcs_to_clean.end();
            ++f)
    {
       if(*f) (*f)->freeStackMod();
    }
+#endif
 }
 
 void RelocGraph::addRelocBlock(RelocBlock *t) {

@@ -188,8 +188,6 @@ void DYNINSTBaseInit()
  **/
 void DYNINSTinit()
 {
-//#warning "This function is not implemented for AARCH64 yet!"
-#if !defined(arch_aarch64)
    rtdebug_printf("%s[%d]:  DYNINSTinit:  welcome to DYNINSTinit()\n", __FILE__, __LINE__);
    initFPU();
    mark_heaps_exec();
@@ -212,9 +210,6 @@ void DYNINSTinit()
    rtdebug_printf("%s[%d]:  leaving DYNINSTinit\n", __FILE__, __LINE__);
    fakeTickCount=0;
    /* Memory emulation */
-#else
-	assert(0);
-#endif
 }
 
 /**

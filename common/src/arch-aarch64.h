@@ -56,7 +56,6 @@ namespace NS_aarch64 {
 //#define UNCOND_BR_REG       (0xd6000000)
 
 #define BREAK_POINT_INSN 0xd4200000
-#define ABS(x)      ((x) > 0 ? x : -x)
 
 #define BOp             0x05
 #define BCondOp         0x2A
@@ -72,6 +71,7 @@ namespace NS_aarch64 {
 
 #define MSROp           0xD51
 #define MRSOp           0xD53
+#define MSROp           0xD51
 #define MOVSPOp         0x44000
 
 #define MIN_IMM8    (-128)
@@ -82,6 +82,8 @@ namespace NS_aarch64 {
 #define MAX_IMM32   (2147483647)
 #define MAX_IMM48   ((long)(-1 >> 17))
 #define MIN_IMM48   ((long)(~MAX_IMM48))
+#define MAX_IMM52   ((long)(1 << 52))
+#define MIN_IMM52   ((long)(~MAX_IMM52))
 
 //Would probably want to use the register category as well (FPR/SPR/GPR), but for the uses of these macros, this should suffice
 #define SPR_LR      (((Dyninst::aarch64::x29).val()) & 0x1F)
