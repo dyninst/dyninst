@@ -49,6 +49,11 @@ public:
         Store
     };
 
+    enum AddSubOp {
+        Add,
+        Sub
+    };
+
     static instructUnion *insnPtr(codeGen &gen);
     //static instructUnion *ptrAndInc(codeGen &gen);
 
@@ -140,9 +145,11 @@ public:
 
     /** *** **/
 
-    static void generateAddShifted(codeGen &gen, int shift, int imm6, Register rm, Register rn, Register rd, bool is64bit);
+    static void generateAddSubShifted(codeGen &gen, AddSubOp op, int shift, int imm6, Register rm, Register rn, Register rd, bool is64bit);
 
-    static void generateAddImmediate(codeGen &gen, int shift, int imm12, Register rn, Register rd, bool is64bit);
+    static void generateAddSubImmediate(codeGen &gen, AddSubOp op, int shift, int imm12, Register rn, Register rd, bool is64bit);
+
+    static void generateMul(codeGen &gen, Register rm, Register rn, Register rd, bool is64bit);
 
     static void generateMove(codeGen &gen, int imm16, int shift, Register rd, MoveOp movOp);
 
