@@ -68,6 +68,10 @@ namespace NS_aarch64 {
 #define SUBImmOp        0x51
 #define MULOp           0xD8
 
+#define ORRShiftOp      0x2A
+#define ANDShiftOp      0x0A
+#define EORShiftOp      0x4A
+
 #define STRImmOp        0x1C0
 #define LDRImmOp        0x1C2
 #define STRFPImmOp      0x1E0

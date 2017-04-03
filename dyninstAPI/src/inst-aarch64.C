@@ -463,15 +463,21 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, codeGen 
         }
             break;
         case timesOp: {
-            Register rm = moveValueToReg(src2imm);
+            Register rm = moveValueToReg(gen, src2imm);
             insnCodeGen::generateMul(gen, rm, src1, dest, true);
         }
             break;
         case divOp:
             break;
-        case orOp:
+        case orOp: {
+            Register rm = moveValueToReg(gen, src2imm);
+            insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Or, 0, rm, 0, src1, dest, true);
+        }
             break;
-        case andOp:
+        case andOp:  {
+            Register rm = moveValueToReg(gen, src2imm);
+            insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::And, 0, rm, 0, src1, dest, true);
+        }
             break;
     }
 }

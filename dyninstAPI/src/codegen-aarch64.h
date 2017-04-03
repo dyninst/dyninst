@@ -54,6 +54,12 @@ public:
         Sub
     };
 
+    enum BitwiseOp {
+        Or,
+        And,
+        Eor
+    };
+
     static instructUnion *insnPtr(codeGen &gen);
     //static instructUnion *ptrAndInc(codeGen &gen);
 
@@ -150,6 +156,8 @@ public:
     static void generateAddSubImmediate(codeGen &gen, AddSubOp op, int shift, int imm12, Register rn, Register rd, bool is64bit);
 
     static void generateMul(codeGen &gen, Register rm, Register rn, Register rd, bool is64bit);
+
+    static void generateBitwiseOpShifted(codeGen &gen, BitwiseOp op, int shift, Register rm, int imm6, Register rn, Register rd, bool is64bit);
 
     static void generateMove(codeGen &gen, int imm16, int shift, Register rd, MoveOp movOp);
 
