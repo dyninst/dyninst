@@ -185,7 +185,7 @@ void insnCodeGen::generateBranchViaTrap(codeGen &gen, Address from, Address to, 
     }
 }
 
-void insnCodeGen::generateAddShifted(codeGen &gen, int shift, int imm6, Register rm, Register rn, Register rd, bool is64bit) {
+void insnCodeGen::generateAddSubShifted(codeGen &gen, insnCodeGen::AddSubOp op, int shift, int imm6, Register rm, Register rn, Register rd, bool is64bit) {
     instruction insn;
     insn.clear();
 
@@ -193,7 +193,7 @@ void insnCodeGen::generateAddShifted(codeGen &gen, int shift, int imm6, Register
     if(is64bit)
         INSN_SET(insn, 31, 31, 1);
     //Set opcode
-    INSN_SET(insn, 24, 30, ADDShiftOp);
+    INSN_SET(insn, 24, 30, op == Add ? ADDShiftOp : SUBShiftOp);
 
     //Set shift field
     assert(shift >= 0 && shift <= 3);
@@ -211,7 +211,7 @@ void insnCodeGen::generateAddShifted(codeGen &gen, int shift, int imm6, Register
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateAddImmediate(codeGen &gen, int shift, int imm12, Register rn, Register rd, bool is64bit) {
+void insnCodeGen::generateAddSubImmediate(codeGen &gen, insnCodeGen::AddSubOp op, int shift, int imm12, Register rn, Register rd, bool is64bit) {
     instruction insn;
     insn.clear();
 
@@ -219,7 +219,7 @@ void insnCodeGen::generateAddImmediate(codeGen &gen, int shift, int imm12, Regis
     if(is64bit)
         INSN_SET(insn, 31, 31, 1);
     //Set opcode
-    INSN_SET(insn, 24, 30, ADDImmOp);
+    INSN_SET(insn, 24, 30, op == Add ? ADDImmOp : SUBShiftOp);
 
     //Set shift field
     assert(shift >= 0 && shift <= 3);
@@ -231,6 +231,27 @@ void insnCodeGen::generateAddImmediate(codeGen &gen, int shift, int imm12, Regis
     //Set registers
     INSN_SET(insn, 5, 9, rn);
     INSN_SET(insn, 5, 9, rd);
+
+    insnCodeGen::generate(gen, insn);
+}
+
+void insnCodeGen::generateMul(codeGen &gen, Register rm, Register rn, Register rd, bool is64bit) {
+    instruction insn;
+    insn.clear();
+
+    //Set bit 31 to 1 if using 64-bit registers
+    if(is64bit)
+        INSN_SET(insn, 31, 31, 1);
+    //Set opcode
+    INSN_SET(insn, 21, 28, MULOp);
+
+    //Bits 10 to 14 are 1 for MUL
+    INSN_SET(insn, 10, 14, 0x1F);
+
+    //Set registers
+    INSN_SET(insn, 16, 20, rm);
+    INSN_SET(insn, 5, 9, rn);
+    INSN_SET(insn, 0, 4, rd);
 
     insnCodeGen::generate(gen, insn);
 }

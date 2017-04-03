@@ -430,10 +430,50 @@ bool baseTramp::generateRestores(codeGen &gen,
 
 /***********************************************************************************************/
 /***********************************************************************************************/
+Register moveValueToReg(codeGen &gen, RegValue val) {
+    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
 
-void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
-             codeGen &gen, bool noCost, registerSpace * /* rs */) {
-    assert(0); //Not implemented
+    if (scratchReg == REG_NULL) {
+        fprintf(stderr, " %s[%d] No scratch register available to generate add instruction!", FILE__, __LINE__);
+        assert(0);
+    }
+
+    insnCodeGen::generateMove(gen, (val & 0xFFFF), 0, scratchReg, insnCodeGen::MovOp_MOVZ);
+    if (val >= MIN_IMM32 && val < MAX_IMM32)
+        insnCodeGen::generateMove(gen, ((val >> 16) & 0xFFFF), 0x1, scratchReg, insnCodeGen::MovOp_MOVK);
+    if (val < MIN_IMM32 || val > MAX_IMM32) {
+        insnCodeGen::generateMove(gen, ((val >> 32) & 0xFFFF), 0x2, scratchReg, insnCodeGen::MovOp_MOVK);
+        insnCodeGen::generateMove(gen, ((val >> 48) & 0xFFFF), 0x3, scratchReg, insnCodeGen::MovOp_MOVK);
+    }
+
+    return scratchReg;
+}
+
+//TODO: 32-/64-bit regs?
+void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, codeGen &gen, bool noCost, registerSpace * /* rs */) {
+    switch(op) {
+        case plusOp:
+        case minusOp: {
+            if(src2imm >= -(1 << 11) && src2imm < (long int)((1 << 11) - 1))
+                insnCodeGen::generateAddSubImmediate(gen, op == plusOp ? insnCodeGen::Add : insnCodeGen::Sub, 0, src2imm, src1, dest, false);
+            else if(src2imm >= MIN_IMM16 && src2imm < MAX_IMM16) {
+                Register rm = moveValueToReg(gen, src2imm);
+                insnCodeGen::generateAddSubShifted(gen, op == plusOp ? insnCodeGen::Add : insnCodeGen::Sub, 0, 0, rm, src1, dest, true);
+            }
+        }
+            break;
+        case timesOp: {
+            Register rm = moveValueToReg(src2imm);
+            insnCodeGen::generateMul(gen, rm, src1, dest, true);
+        }
+            break;
+        case divOp:
+            break;
+        case orOp:
+            break;
+        case andOp:
+            break;
+    }
 }
 
 void cleanUpAndExit(int status);
@@ -472,28 +512,6 @@ bool EmitterAARCH64::clobberAllFuncCall(registerSpace *rs,
     return false;
 }
 
-
-//
-// Author: Jeff Hollingsworth (3/26/96)
-//
-// Emit a function call.
-//   It saves registers as needed.
-//   copy the passed arguments into the canonical argument registers (r3-r10)
-//   64-bit ELF Linux ONLY:
-//     Locate the TOC entry of the callee module and copy it into R2
-//   generate a branch and link the destination
-//   64-bit ELF Linux ONLY:
-//     Restore the original TOC into R2
-//   restore the saved registers.
-//
-// Parameters:
-//   op - unused parameter (to be compatible with sparc)
-//   srcs - vector of ints indicating the registers that contain the parameters
-//   dest - the destination address (should be Address not reg).
-//   insn - pointer to the code we are generating
-//   based - offset into the code generated.
-//
-
 Register emitFuncCall(opCode, codeGen &, pdvector <AstNodePtr> &, bool, Address) {
     assert(0);
     return 0;
@@ -503,8 +521,7 @@ Register emitFuncCall(opCode op,
                       codeGen &gen,
                       pdvector <AstNodePtr> &operands, bool noCost,
                       func_instance *callee) {
-    assert(0); //Not implemented
-    return 0;
+    return gen.emitter()->emitCall(op, gen, operands, noCost, callee);
 }
 
 Register EmitterAARCH64::emitCallReplacement(opCode ocode,
