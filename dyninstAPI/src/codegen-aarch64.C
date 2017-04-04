@@ -627,7 +627,37 @@ bool insnCodeGen::modifyCall(Address target,
 bool insnCodeGen::modifyData(Address target,
                              NS_aarch64::instruction &insn,
                              codeGen &gen) {
-    //nothing to do for and not applicable to ARM
-    return false;
+    int raw = insn.asInt();
+
+    //Get the immhi and immlo values from the original instruction
+    int immhi = ((raw >> 5) & 0x7FFFF), immlo = ((raw >> 29) & 0x3);
+    //Get the original offset
+    int imm = ((immhi << 2) | immlo);
+
+    //Sign extend the original offset to the size of an Address
+    Address referTarget = ((((Address)imm ) << (sizeof(Address) - 21)) >> (sizeof(Address) - 21)) + gen.currAddr();
+    //Get offset of target from the instruction's new location
+    Address offset = abs(target - referTarget);
+
+    //If offset is within +/- 1 MB, modify the instruction (ADR/ADRP) with the new offset
+    if(offset <= (1 << 20))
+    {
+        int _offset = (offset & 0x1FFFFF);
+
+        instruction newInsn(insn);
+
+        INSN_SET(newInsn, 5, 23, ((_offset >> 2) & 0x7FFFF));
+        INSN_SET(insn, 29, 30, (_offset & 0x3));
+
+        generate(gen, newInsn);
+    }
+    //Else, generate move instructions to move the value to the same register
+    else
+    {
+        Register rd = raw & 0x1F;
+        loadImmIntoReg(gen, rd, offset);
+    }
+
+    return true;
 }
 
