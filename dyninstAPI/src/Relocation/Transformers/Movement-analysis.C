@@ -142,7 +142,7 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
             extSens_++;
             thunk_++;
             continue;
-        } else if (exceptionSensitive(addr+insn->size(), block)) {
+        } else if (insn->getCategory() == c_CallInsn && exceptionSensitive(addr+insn->size(), block)) {
             extSens = true;
             sensitivity_cerr << "\tException sensitive @ " << hex << addr << dec << endl;
         }
