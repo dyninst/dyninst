@@ -493,7 +493,7 @@ class AddressSpace : public InstructionSource {
 
     // inferior malloc support functions
     void inferiorFreeCompact();
-    int findFreeIndex(unsigned size, int type, Address lo, Address hi);
+    int findFreeIndex(unsigned size, inferiorHeapType type, Address lo, Address hi);
     void addHeap(heapItem *h);
     void initializeHeap();
     

@@ -363,7 +363,7 @@ void AddressSpace::inferiorFreeCompact() {
    }
 }
     
-int AddressSpace::findFreeIndex(unsigned size, int type, Address lo, Address hi) {
+int AddressSpace::findFreeIndex(unsigned size, inferiorHeapType type, Address lo, Address hi) {
    // type is a bitmask: match on any bit in the mask
    pdvector<heapItem *> &freeList = heap_.heapFree;
     
