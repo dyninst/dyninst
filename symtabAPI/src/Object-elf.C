@@ -803,7 +803,6 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
                 //
                 //plt_entry_size_ = plt_size_ / ((rel_plt_size_ / rel_plt_entry_size_) + 1);
                 plt_entry_size_ = 16;
-                assert(plt_entry_size_ == 16);
             }
             else
             {
@@ -1105,7 +1104,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 
             } else if (plt_entry_size_ == 16) {
                 // New style secure PLT
-                Region *plt = NULL, *relplt = NULL, *dynamic = NULL,
+                Region *plt = NULL, *dynamic = NULL,
                         *got = NULL, *glink = NULL;
                 unsigned int glink_addr = 0;
                 unsigned int stub_addr = 0;
@@ -1116,7 +1115,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
                 for (unsigned iter = 0; iter < regions_.size(); ++iter) {
                     std::string name = regions_[iter]->getRegionName();
                     if (name == PLT_NAME) plt = regions_[iter];
-                    else if (name == REL_PLT_NAME) relplt = regions_[iter];
+                    // else if (name == REL_PLT_NAME) relplt = regions_[iter];
                     else if (name == DYNAMIC_NAME) dynamic = regions_[iter];
                     else if (name == GOT_NAME) got = regions_[iter];
                 }
@@ -1306,7 +1305,11 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 
                 std::string _name = &_strs[ _sym.st_name(_index) ];
                 // I'm interested to see if this assert will ever fail.
-                assert(_name.length());
+                if(!_name.length())
+                {
+                    create_printf("Empty name for REL/RELA entry found, ignoring\n");
+                    continue;
+                }
 
                 plt_rel_map[_name] = _offset;
             }
@@ -1951,10 +1954,10 @@ void printSyms( std::vector< Symbol *>& allsymbols )
 
 void Object::parse_opd(Elf_X_Shdr *opd_hdr) {
     // If the OPD is filled in, parse it and fill in our TOC table
-    assert(opd_hdr);
+    if(!opd_hdr) return;
 
     Elf_X_Data data = opd_hdr->get_data();
-    assert(data.isValid());
+    if(!(data.isValid())) return;
 
     // Let's read this puppy
     unsigned long *buf = (unsigned long *)data.d_buf();
@@ -2030,7 +2033,7 @@ Symbol *Object::handle_opd_symbol(Region *opd, Symbol *sym)
     if (!sym) return NULL;
 
     Offset soffset = sym->getOffset();
-    assert(opd->isOffsetInRegion(soffset));  // Symbol must be in .opd section.
+    if(!opd->isOffsetInRegion(soffset)) return NULL;  // Symbol must be in .opd section.
 
     Offset* opd_entry = (Offset*)opd->getPtrToRawData();
     opd_entry += (soffset - opd->getDiskOffset()) / sizeof(Offset); // table of offsets;
@@ -2048,7 +2051,6 @@ Symbol *Object::handle_opd_symbol(Region *opd, Symbol *sym)
         }
         ++i;
     }
-    assert(i < regions_.size());
     retval->setSymbolType(Symbol::ST_FUNCTION);
 #if 0
     retval->tag_ = Symbol::TAG_INTERNAL;  // Not sure if this is an appropriate
@@ -2445,29 +2447,31 @@ bool Object::dwarf_parse_aranges(Dwarf_Debug dbg, std::set<Dwarf_Off>& dies_seen
         Dwarf_Unsigned len, segment, segment_size;
         // TODO: info_b has segment info from DWARF4
         status = dwarf_get_arange_info_b(ranges[i], &segment, &segment_size, &start, &len, &cu_die_off, NULL);
-        assert(status == DW_DLV_OK);
-        if(segment_size > 0)
+        if(status == DW_DLV_OK)
         {
-            cout << "WARNING: ignoring segment info" << endl;
+            if(segment_size > 0)
+            {
+                cout << "WARNING: ignoring segment info" << endl;
+            }
+            if(dies_seen.find(cu_die_off) != dies_seen.end()) continue;
+            if(len == 0) continue;
+            status = dwarf_offdie_b(dbg, cu_die_off, Dwarf_Bool(true), &cu_die, NULL);
+            assert(status == DW_DLV_OK);
+            std::string modname;
+            if(!DwarfWalker::findDieName(dbg, cu_die, modname))
+            {
+                modname = associated_symtab->file(); // default module
+            }
+            Offset actual_start, actual_end;
+            convertDebugOffset(start, actual_start);
+            convertDebugOffset(start + len, actual_end);
+            Module* m = associated_symtab->getOrCreateModule(modname, actual_start);
+            m->addRange(actual_start, actual_end);
+            m->addDebugInfo(cu_die);
+            DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
+            dies_seen.insert(cu_die_off);
+            dwarf_dealloc(dbg, ranges[i], DW_DLA_ARANGE);
         }
-        if(dies_seen.find(cu_die_off) != dies_seen.end()) continue;
-        if(len == 0) continue;
-        status = dwarf_offdie_b(dbg, cu_die_off, Dwarf_Bool(true), &cu_die, NULL);
-        assert(status == DW_DLV_OK);
-        std::string modname;
-        if(!DwarfWalker::findDieName(dbg, cu_die, modname))
-        {
-            modname = associated_symtab->file(); // default module
-        }
-        Offset actual_start, actual_end;
-        convertDebugOffset(start, actual_start);
-        convertDebugOffset(start + len, actual_end);
-        Module* m = associated_symtab->getOrCreateModule(modname, actual_start);
-        m->addRange(actual_start, actual_end);
-        m->addDebugInfo(cu_die);
-        DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
-        dies_seen.insert(cu_die_off);
-        dwarf_dealloc(dbg, ranges[i], DW_DLA_ARANGE);
     }
     dwarf_dealloc(dbg, ranges, DW_DLA_LIST);
     return true;
@@ -2497,63 +2501,63 @@ bool Object::fix_global_symbol_modules_static_dwarf()
                                   &cu_die_off, NULL) == DW_DLV_OK )
     {
         int status = dwarf_siblingof_b(dbg, NULL, Dwarf_Bool(true), &cu_die, NULL);
-        assert(status == DW_DLV_OK);
-        if(dies_seen.find(cu_die_off) != dies_seen.end()) continue;
-        std::string modname;
-        if(!DwarfWalker::findDieName(dbg, cu_die, modname))
+        if(status == DW_DLV_OK)
         {
-            modname = associated_symtab->file(); // default module
-        }
+
+            if(dies_seen.find(cu_die_off) != dies_seen.end()) continue;
+            std::string modname;
+            if(!DwarfWalker::findDieName(dbg, cu_die, modname))
+            {
+                modname = associated_symtab->file(); // default module
+            }
 //        cout << "Processing CU DIE for " << modname << endl;
-        Address tempModLow;
-        Address modLow = 0;
-        if (DwarfWalker::findConstant(DW_AT_low_pc, tempModLow, cu_die, dbg)) {
-            convertDebugOffset(tempModLow, modLow);
-        }
-        std::vector<AddressRange> mod_ranges = DwarfWalker::getDieRanges(dbg, cu_die, modLow);
-        Module* m = associated_symtab->getOrCreateModule(modname, modLow);
-        for(auto r = mod_ranges.begin();
+            Address tempModLow;
+            Address modLow = 0;
+            if (DwarfWalker::findConstant(DW_AT_low_pc, tempModLow, cu_die, dbg)) {
+                convertDebugOffset(tempModLow, modLow);
+            }
+            std::vector<AddressRange> mod_ranges = DwarfWalker::getDieRanges(dbg, cu_die, modLow);
+            Module* m = associated_symtab->getOrCreateModule(modname, modLow);
+            for(auto r = mod_ranges.begin();
                 r != mod_ranges.end();
                 ++r)
-        {
-            m->addRange(r->first, r->second);
-        }
-        if(!m->hasRanges())
-        {
-//            cout << "No ranges for module " << modname << ", need to extract from statements\n";
-            Dwarf_Line* lines;
-            Dwarf_Signed num_lines;
-            if(dwarf_srclines(cu_die, &lines, &num_lines, NULL) == DW_DLV_OK)
             {
-                Dwarf_Addr low;
-                for(int i = 0; i < num_lines; ++i)
-                {
-                    if((dwarf_lineaddr(lines[i], &low, NULL) == DW_DLV_OK) && low)
-                    {
-                        Dwarf_Bool is_end = false;
-                        Dwarf_Addr high = low;
-                        int result = DW_DLV_OK;
-                        for(; (i < num_lines) &&
-                                      (is_end == false) &&
-                                      (result == DW_DLV_OK); ++i)
-                        {
-                            result = dwarf_lineendsequence(lines[i], &is_end, NULL);
-                            if(result == DW_DLV_OK && is_end) {
-                                result = dwarf_lineaddr(lines[i], &high, NULL);
-                            }
-
-                        }
-//                        cout << "Adding range [" << hex << low << ", " << high << ") to " << dec <<
-//                             m->fileName() << " based on statements" << endl;
-                        m->addRange(low, high);
-                    }
-                }
-                dwarf_srclines_dealloc(dbg, lines, num_lines);
+                m->addRange(r->first, r->second);
             }
+            if(!m->hasRanges())
+            {
+                Dwarf_Line* lines;
+                Dwarf_Signed num_lines;
+                if(dwarf_srclines(cu_die, &lines, &num_lines, NULL) == DW_DLV_OK)
+                {
+                    Dwarf_Addr low;
+                    for(int i = 0; i < num_lines; ++i)
+                    {
+                        if((dwarf_lineaddr(lines[i], &low, NULL) == DW_DLV_OK) && low)
+                        {
+                            Dwarf_Bool is_end = false;
+                            Dwarf_Addr high = low;
+                            int result = DW_DLV_OK;
+                            for(; (i < num_lines) &&
+                                  (is_end == false) &&
+                                  (result == DW_DLV_OK); ++i)
+                            {
+                                result = dwarf_lineendsequence(lines[i], &is_end, NULL);
+                                if(result == DW_DLV_OK && is_end) {
+                                    result = dwarf_lineaddr(lines[i], &high, NULL);
+                                }
+
+                            }
+                            m->addRange(low, high);
+                        }
+                    }
+                    dwarf_srclines_dealloc(dbg, lines, num_lines);
+                }
+            }
+            m->addDebugInfo(cu_die);
+            DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
+            dies_seen.insert(cu_die_off);
         }
-        m->addDebugInfo(cu_die);
-        DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
-        dies_seen.insert(cu_die_off);
 
     }
 
@@ -3472,7 +3476,7 @@ int read_except_table_gcc3(Dwarf_Fde *fde_data, Dwarf_Signed fde_count,
                 //Fruit, Someone needs to check the Linux Standard Base,
                 // section 11.6 (as of v3.1), to see what new encodings
                 // exist and how we should decode them in the CIE.
-                assert(!"Unhandled augmentation");
+                dwarf_printf("WARNING: Unhandled augmentation %c\n", augmentor[j]);
                 break;
             }
         }
@@ -4085,15 +4089,25 @@ bool Object::emitDriver(string fName, std::vector<Symbol *> &allSymbols, unsigne
     {
         Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes32> *em =
                 new Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes32>(elfHdr, isStripped, this, err_func_, associated_symtab);
-        if( !em->createSymbolTables(allSymbols) ) return false;
-        return em->driver(fName);
+        bool ok = em->createSymbolTables(allSymbols);
+        if(ok)
+        {
+            ok = em->driver(fName);
+        }
+        delete em;
+        return ok;
     }
     else if (elfHdr->e_ident()[EI_CLASS] == ELFCLASS64)
     {
         Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes64> *em =
                 new Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes64>(elfHdr, isStripped, this, err_func_, associated_symtab);
-        if( !em->createSymbolTables(allSymbols) ) return false;
-        return em->driver(fName);
+        bool ok = em->createSymbolTables(allSymbols);
+        if(ok)
+        {
+            ok = em->driver(fName);
+        }
+        delete em;
+        return ok;
     }
     return false;
 }
@@ -4112,7 +4126,7 @@ void Object::parseStabFileLineInfo()
     /* We haven't parsed this file already, so iterate over its stab entries. */
 
     stab_entry * stabEntry = get_stab_info();
-    assert( stabEntry != NULL );
+    if( stabEntry == NULL ) return;
     const char * nextStabString = stabEntry->getStringBase();
 
     const char * currentSourceFile = NULL;
@@ -4247,7 +4261,7 @@ void Object::parseStabFileLineInfo()
                 currentLineBase = stabEntry->desc(i);
                 functionLineToPossiblyAdd = currentLineBase;
 
-                assert(currentFunction);
+                if(!currentFunction) continue;
                 currentAddress = currentFunction->getOffset();
 
             }
@@ -4334,24 +4348,23 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
     Dwarf_Error ignored;
     int status = dwarf_srclines( cuDIE, & lineBuffer, & lineCount, &ignored );
 
-    /* See if we can get anything useful out of the next CU
-     if this one is corrupt. */
-    assert( status != DW_DLV_ERROR );
-
     /* It's OK for a CU not to have line information. */
     if(status != DW_DLV_OK)
     {
         return;
     }
-    assert( status == DW_DLV_OK );
-
 
     StringTablePtr strings(li_for_module->getStrings());
     char** files;
     size_t offset = strings->size();
     Dwarf_Signed filecount;
     status = dwarf_srcfiles(cuDIE, &files, &filecount, &ignored);
-    assert( status == DW_DLV_OK );
+    if (status != DW_DLV_OK ) 
+    {
+        // It could happen the line table is present,
+	// but there is no line in the table
+        return;
+    }
     // dwarf_line_srcfileno == 0 means unknown; 1...n means files[0...n-1]
     // so we ensure that we're adding a block of unknown, 1...n to the string table
     // and that offset + dwarf_line_srcfileno points to the correct string
@@ -4462,17 +4475,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
             open_statements.push_back(current_statement);
         }
     } /* end iteration over source line entries. */
-    for(auto i = open_statements.begin();
-        i != open_statements.end();
-        ++i)
-    {
-        li_for_module->addLine((unsigned int)(i->string_table_index),
-                               (unsigned int)(i->line_number),
-                               (unsigned int)(i->column_number),
-                               i->start_addr,
-                               current_statement.start_addr);
-        assert(0);
-    }
+
 
 /* Free this CU's source lines. */
     dwarf_srclines_dealloc(dbg, lineBuffer, lineCount);
@@ -4768,7 +4771,7 @@ void Object::parseStabTypes()
                 }
                 case N_ECOMM: {
                     //copy this set of fields
-                    assert(currentFunctionName);
+                    if(!currentFunctionName) break;
                     if(!associated_symtab->findSymbol(bpfv,
                                         *currentFunctionName,
                                         Symbol::ST_FUNCTION,
@@ -5003,7 +5006,7 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
             }
 
             // A symbol should be uniquely identified by its index in the symbol table
-            assert(result.second);
+            if(!result.second) continue;
         }
     }
 
@@ -5087,24 +5090,24 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
                 region = shToReg_it->second;
             }
 
-            assert(region != NULL);
-
-            relocationEntry newrel(0, relOff, addend, name, sym, relType, regType);
-            region->addRelocationEntry(newrel);
-            // relocations are also stored with their targets
-            // Need to find target region
-            if (sym) {
-                if (shdr->sh_info() != 0) {
-                    Region *targetRegion = NULL;
-                    shToReg_it = shToRegion.find(shdr->sh_info());
-                    if( shToReg_it != shToRegion.end() ) {
-                        targetRegion = shToReg_it->second;
+            if(region != NULL)
+            {
+                relocationEntry newrel(0, relOff, addend, name, sym, relType, regType);
+                region->addRelocationEntry(newrel);
+                // relocations are also stored with their targets
+                // Need to find target region
+                if (sym) {
+                    if (shdr->sh_info() != 0) {
+                        Region *targetRegion = NULL;
+                        shToReg_it = shToRegion.find(shdr->sh_info());
+                        if( shToReg_it != shToRegion.end() ) {
+                            targetRegion = shToReg_it->second;
+                        }
+                        assert(targetRegion != NULL);
+                        targetRegion->addRelocationEntry(newrel);
                     }
-                    assert(targetRegion != NULL);
-                    targetRegion->addRelocationEntry(newrel);
                 }
             }
-
         }
     }
 

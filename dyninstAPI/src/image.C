@@ -353,7 +353,7 @@ namespace {
 
         if (ss_addr == 0) {
             // Get all of the assignments that happen in this instruction
-            AssignmentConverter conv(true);
+            AssignmentConverter conv(true, true);
             vector<Assignment::Ptr> assigns;
             conv.convert(r8_def,r8_def_addr,f,b,assigns);
 
@@ -1910,6 +1910,7 @@ const pdvector <image_variable *> *image::findVarVectorByPretty(const std::strin
         
         if (!symVar->getAnnotation(imv, ImageVariableUpPtrAnno)) {
             fprintf(stderr, "%s[%d]:  failed to getAnnotations here\n", FILE__, __LINE__);
+            delete res;
             return NULL;
         }
 
@@ -1942,6 +1943,7 @@ const pdvector <image_variable *> *image::findVarVectorByMangled(const std::stri
         
         if (!symVar->getAnnotation(imv, ImageVariableUpPtrAnno)) {
             fprintf(stderr, "%s[%d]:  failed to getAnnotations here\n", FILE__, __LINE__);
+            delete res;
             return NULL;
         }
 

@@ -56,19 +56,33 @@ namespace NS_aarch64 {
 //#define UNCOND_BR_REG       (0xd6000000)
 
 #define BREAK_POINT_INSN 0xd4200000
-#define ABS(x)      ((x) > 0 ? x : -x)
 
 #define BOp             0x05
 #define BCondOp         0x2A
 #define BRegOp          0xD61F
 #define NOOP            0xD503201F
 
+#define ADDShiftOp      0x0B
+#define ADDImmOp        0x11
+#define SUBShiftOp      0x4B
+#define SUBImmOp        0x51
+#define MULOp           0xD8
+
+#define ORRShiftOp      0x2A
+#define ANDShiftOp      0x0A
+#define EORShiftOp      0x4A
+
 #define STRImmOp        0x1C0
 #define LDRImmOp        0x1C2
+#define STRFPImmOp      0x1E0
+#define LDRFPImmOp      0x1E2
 #define STRImmUIOp      0xE4
 #define LDRImmUIOp      0xE5
 
+#define MSROp           0xD51
 #define MRSOp           0xD53
+#define MSROp           0xD51
+#define MOVSPOp         0x44000
 
 #define MIN_IMM8    (-128)
 #define MAX_IMM8    (127)
@@ -78,6 +92,8 @@ namespace NS_aarch64 {
 #define MAX_IMM32   (2147483647)
 #define MAX_IMM48   ((long)(-1 >> 17))
 #define MIN_IMM48   ((long)(~MAX_IMM48))
+#define MAX_IMM52   ((long)(1 << 52))
+#define MIN_IMM52   ((long)(~MAX_IMM52))
 
 //Would probably want to use the register category as well (FPR/SPR/GPR), but for the uses of these macros, this should suffice
 #define SPR_LR      (((Dyninst::aarch64::x29).val()) & 0x1F)
@@ -180,7 +196,7 @@ class COMMON_EXPORT instruction {
     void setBits(unsigned int pos, unsigned int len, unsigned int value) {
         unsigned int mask;
 
-        mask = ~(~0 << len);
+        mask = ~((unsigned int)(~0) << len);
         value = value & mask;
 
         mask = ~(mask << pos);

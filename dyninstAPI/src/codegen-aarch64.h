@@ -37,6 +37,29 @@ class codeGen;
 
 class insnCodeGen {
 public:
+
+    enum MoveOp {
+        MovOp_MOVK = 0xE5,
+        MovOp_MOVN = 0x25,
+        MovOp_MOVZ = 0xA5
+    };
+
+    enum LoadStore {
+        Load,
+        Store
+    };
+
+    enum AddSubOp {
+        Add,
+        Sub
+    };
+
+    enum BitwiseOp {
+        Or,
+        And,
+        Eor
+    };
+
     static instructUnion *insnPtr(codeGen &gen);
     //static instructUnion *ptrAndInc(codeGen &gen);
 
@@ -72,6 +95,8 @@ public:
     static void generateMemAccess32or64(codeGen &gen, LoadStore accType,
                                         Register r1, Register r2, int immd, bool is64bit);
 
+    static void generateMemAccessFP(codeGen &gen, LoadStore accType, Register rt, Register rn, int immd, int size, bool is128bit);
+
     /** TODO **/
     static void generateLoadReg(codeGen &gen, Register rt,
                                 Register ra, Register rb);
@@ -84,9 +109,6 @@ public:
 
     static void generateStoreReg64(codeGen &gen, Register rs,
                                    Register ra, Register rb);
-
-    static void generateAddReg(codeGen &gen, int op,
-                               Register rt, Register ra, Register rb);
 
     static void generateLShift(codeGen &gen, Register rs,
                                int shift, Register ra);
@@ -129,7 +151,17 @@ public:
 
     /** *** **/
 
+    static void generateAddSubShifted(codeGen &gen, AddSubOp op, int shift, int imm6, Register rm, Register rn, Register rd, bool is64bit);
+
+    static void generateAddSubImmediate(codeGen &gen, AddSubOp op, int shift, int imm12, Register rn, Register rd, bool is64bit);
+
+    static void generateMul(codeGen &gen, Register rm, Register rn, Register rd, bool is64bit);
+
+    static void generateBitwiseOpShifted(codeGen &gen, BitwiseOp op, int shift, Register rm, int imm6, Register rn, Register rd, bool is64bit);
+
     static void generateMove(codeGen &gen, int imm16, int shift, Register rd, MoveOp movOp);
+
+    static void generateMoveSP(codeGen &gen, Register rn, Register rd, bool is64bit);
 
     static void generate(codeGen &gen, instruction &insn);
 
@@ -169,17 +201,6 @@ public:
     static bool modifyData(Address target,
                            NS_aarch64::instruction &insn,
                            codeGen &gen);
-
-    enum MoveOp {
-        MovOp_MOVK = 0xE5,
-        MovOp_MOVN = 0x25,
-        MovOp_MOVZ = 0xA5
-    };
-
-    enum LoadStore {
-        Load,
-        Store
-    };
 };
 
 #endif

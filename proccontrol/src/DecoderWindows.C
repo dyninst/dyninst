@@ -390,7 +390,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 	case OUTPUT_DEBUG_STRING_EVENT:
 		{
 			TCHAR buf[1024];
-			unsigned long bytes_read = 0;
+			SIZE_T bytes_read = 0;
 			windows_process* winProc = dynamic_cast<windows_process*>(proc);
 			BOOL result = ::ReadProcessMemory(winProc->plat_getHandle(), e.u.DebugString.lpDebugStringData, buf, 
 				e.u.DebugString.nDebugStringLength, &bytes_read);

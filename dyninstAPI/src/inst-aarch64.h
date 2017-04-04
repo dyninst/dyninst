@@ -36,6 +36,7 @@
 #define LIVE_UNCLOBBERED_REG  2
 #define LIVE_CLOBBERED_REG    3
 
+#define GPRSIZE_32            4
 #define GPRSIZE_64            8
 #define FPRSIZE               16
 

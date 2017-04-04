@@ -255,6 +255,7 @@ namespace Dyninst {
             bool getFrameBase();
             bool getReturnType(bool hasSpecification, Type *&returnType);
             bool addFuncToContainer(Type *returnType);
+            bool isStaticStructMember(std::vector<VariableLocation> &locs, bool &isStatic);
             virtual bool findType(Type *&, bool defaultToVoid);
             bool findAnyType(Dwarf_Attribute typeAttribute,
                              Dwarf_Bool is_info, Type *&type);

@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <stdlib.h>
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -82,9 +83,9 @@ void insnCodeGen::generateTrap(codeGen &gen) {
 }
 
 void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link) {
-    if (ABS(disp) > MAX_BRANCH_OFFSET) {
+    if (abs(disp) > MAX_BRANCH_OFFSET) {
         fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
-                ABS(disp), (unsigned long) MAX_BRANCH_OFFSET);
+                abs(disp), (unsigned long) MAX_BRANCH_OFFSET);
         bperr( "Error: attempted a branch of 0x%lx\n", disp);
         logLine("a branch too far\n");
         showErrorCallback(52, "Internal error: branch too far");
@@ -109,7 +110,7 @@ void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link) {
 void insnCodeGen::generateBranch(codeGen &gen, Address from, Address to, bool link) {
     long disp = (to - from);
 
-    if (ABS(disp) > MAX_BRANCH_OFFSET) {
+    if (abs(disp) > MAX_BRANCH_OFFSET) {
         generateLongBranch(gen, from, to, link);
     }
 
@@ -161,7 +162,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
 
 void insnCodeGen::generateBranchViaTrap(codeGen &gen, Address from, Address to, bool isCall) {
     long disp = to - from;
-    if (ABS(disp) <= MAX_BRANCH_OFFSET) {
+    if (abs(disp) <= MAX_BRANCH_OFFSET) {
         // We shouldn't be here, since this is an internal-called-only func.
         generateBranch(gen, disp, isCall);
     }
@@ -175,7 +176,7 @@ void insnCodeGen::generateBranchViaTrap(codeGen &gen, Address from, Address to, 
     } else {
         // Too far to branch and no proc to register trap.
         fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
-                ABS(disp), (unsigned long) MAX_BRANCH_OFFSET);
+                abs(disp), (unsigned long) MAX_BRANCH_OFFSET);
         bperr( "Error: attempted a branch of 0x%lx\n", disp);
         logLine("a branch too far\n");
         showErrorCallback(52, "Internal error: branch too far");
@@ -184,12 +185,109 @@ void insnCodeGen::generateBranchViaTrap(codeGen &gen, Address from, Address to, 
     }
 }
 
-void insnCodeGen::generateAddReg (codeGen & gen, int op, Register rt,
-				   Register ra, Register rb)
-{
-    assert(0);
+void insnCodeGen::generateAddSubShifted(codeGen &gen, insnCodeGen::AddSubOp op, int shift, int imm6, Register rm, Register rn, Register rd, bool is64bit) {
     instruction insn;
     insn.clear();
+
+    //Set bit 31 to 1 if using 64-bit registers
+    if(is64bit)
+        INSN_SET(insn, 31, 31, 1);
+    //Set opcode
+    INSN_SET(insn, 24, 30, op == Add ? ADDShiftOp : SUBShiftOp);
+
+    //Set shift field
+    assert(shift >= 0 && shift <= 3);
+    INSN_SET(insn, 22, 23, (shift & 0x3));
+
+    //Set imm6 field
+    assert(imm6 >= 0 && imm6 < (is64bit ? 64 : 32));
+    INSN_SET(insn, 10, 15, imm6);
+
+    //Set registers
+    INSN_SET(insn, 0, 4, rd);
+    INSN_SET(insn, 5, 9, rn);
+    INSN_SET(insn, 16, 20, rm);
+
+    insnCodeGen::generate(gen, insn);
+}
+
+void insnCodeGen::generateAddSubImmediate(codeGen &gen, insnCodeGen::AddSubOp op, int shift, int imm12, Register rn, Register rd, bool is64bit) {
+    instruction insn;
+    insn.clear();
+
+    //Set bit 31 to 1 if using 64-bit registers
+    if(is64bit)
+        INSN_SET(insn, 31, 31, 1);
+    //Set opcode
+    INSN_SET(insn, 24, 30, op == Add ? ADDImmOp : SUBShiftOp);
+
+    //Set shift field
+    assert(shift >= 0 && shift <= 3);
+    INSN_SET(insn, 22, 23, (shift & 0x3));
+
+    //Set imm12 field
+    INSN_SET(insn, 10, 21, imm12);
+
+    //Set registers
+    INSN_SET(insn, 5, 9, rn);
+    INSN_SET(insn, 5, 9, rd);
+
+    insnCodeGen::generate(gen, insn);
+}
+
+void insnCodeGen::generateMul(codeGen &gen, Register rm, Register rn, Register rd, bool is64bit) {
+    instruction insn;
+    insn.clear();
+
+    //Set bit 31 to 1 if using 64-bit registers
+    if(is64bit)
+        INSN_SET(insn, 31, 31, 1);
+    //Set opcode
+    INSN_SET(insn, 21, 28, MULOp);
+
+    //Bits 10 to 14 are 1 for MUL
+    INSN_SET(insn, 10, 14, 0x1F);
+
+    //Set registers
+    INSN_SET(insn, 16, 20, rm);
+    INSN_SET(insn, 5, 9, rn);
+    INSN_SET(insn, 0, 4, rd);
+
+    insnCodeGen::generate(gen, insn);
+}
+
+void insnCodeGen::generateBitwiseOpShifted(codeGen &gen, insnCodeGen::BitwiseOp op, int shift, Register rm, int imm6, Register rn, Register rd, bool is64bit) {
+    instruction insn;
+    insn.clear();
+
+    //Set bit 31 to 1 if using 64-bit registers
+    if(is64bit)
+        INSN_SET(insn, 31, 31, 1);
+
+    //Set opcode
+    int opcode;
+    switch(op) {
+        case insnCodeGen::And: opcode = ANDShiftOp;
+            break;
+        case insnCodeGen::Or: opcode = ORRShiftOp;
+            break;
+        case insnCodeGen::Eor: opcode = EORShiftOp;
+            break;
+    }
+    INSN_SET(insn, 24, 30, opcode);
+
+    //Set shift field
+    assert(shift >= 0 && shift <= 3);
+    INSN_SET(insn, 22, 23, (shift & 0x3));
+
+    //Set imm6 field
+    assert(imm6 >= 0 && imm6 < (is64bit ? 64 : 32));
+    INSN_SET(insn, 10, 15, imm6);
+
+    //Set registers
+    INSN_SET(insn, 16, 20, rm);
+    INSN_SET(insn, 5, 9, rn);
+    INSN_SET(insn, 0, 4, rd);
 
     insnCodeGen::generate(gen, insn);
 }
@@ -245,6 +343,23 @@ void insnCodeGen::generateMove(codeGen &gen, int imm16, int shift, Register rd, 
     insnCodeGen::generate(gen, insn);
 }
 
+void insnCodeGen::generateMoveSP(codeGen &gen, Register rn, Register rd, bool is64bit) {
+    instruction insn;
+    insn.clear();
+
+    //Set source and destination registers
+    INSN_SET(insn, 0, 4, rd & 0x1f);
+    INSN_SET(insn, 5, 9, rn & 0x1f);
+
+    //Set opcode
+    INSN_SET(insn, 10, 30, MOVSPOp);
+
+    //Set if using 64-bit registers
+    INSN_SET(insn, 31, 31, is64bit);
+
+    insnCodeGen::generate(gen, insn);
+}
+
 /* Currently, I'm only considering generation of only STR/LDR and their register/immediate variants.*/
 void insnCodeGen::generateMemAccess32or64(codeGen &gen, LoadStore accType, Register r1, Register r2, int immd, bool is64bit)
 {
@@ -268,6 +383,32 @@ void insnCodeGen::generateMemAccess32or64(codeGen &gen, LoadStore accType, Regis
     //Set memory access register and register for address calculation.
     INSN_SET(insn, 0, 4, r1 & 0x1F);
     INSN_SET(insn, 5, 9, r2 & 0x1F);
+
+    insnCodeGen::generate(gen, insn);
+}
+
+void insnCodeGen::generateMemAccessFP(codeGen &gen, LoadStore accType, Register rt, Register rn, int immd, int size, bool is128bit) {
+    instruction insn;
+    insn.clear();
+
+    if(size < 0 || size > 3)
+        assert(!"Size field for STR (immediate, SIMD&FP) variant has to be in the range [0-3]!");
+
+    //Set size, opcode, index and offset bits
+    INSN_SET(insn, 30, 31, size & 0x3);
+    INSN_SET(insn, 21, 29, (accType == Load) ? LDRFPImmOp : STRFPImmOp);
+    if(is128bit)
+        INSN_SET(insn, 23, 23, 1);
+    INSN_SET(insn, 10, 11, 0x1);
+    if(immd >= -256 && immd <= 255) {
+        INSN_SET(insn, 12, 20, immd);
+    } else {
+        assert(!"Cannot perform a post-indexed memory access for offsets not in range [-256, 255]!");
+    }
+
+    //Set memory access register and register for address calculation.
+    INSN_SET(insn, 0, 4, rt);
+    INSN_SET(insn, 5, 9, rn);
 
     insnCodeGen::generate(gen, insn);
 }
@@ -336,8 +477,8 @@ void insnCodeGen::loadImmIntoReg(codeGen &gen, Register rt, unsigned long value)
     if(value > MAX_IMM16)
         insnCodeGen::generateMove(gen, ((value >> 16) & 0xFFFF), 0x1, rt, MovOp_MOVK);
     if(value > MAX_IMM32) {
-        insnCodeGen::generateMove(gen, ((value >> 32) & 0xFFFF), 0x2, rt, MoveOp_MOVK);
-        insnCodeGen::generateMove(gen, ((value >> 48) & 0xFFFF), 0x3, rt, MoveOp_MOVK);
+        insnCodeGen::generateMove(gen, ((value >> 32) & 0xFFFF), 0x2, rt, MovOp_MOVK);
+        insnCodeGen::generateMove(gen, ((value >> 48) & 0xFFFF), 0x3, rt, MovOp_MOVK);
     }
 }
 
@@ -400,7 +541,7 @@ bool insnCodeGen::modifyJump(Address target,
                              NS_aarch64::instruction &insn,
                              codeGen &gen) {
     long disp = target - gen.currAddr();
-    if (ABS(disp) > MAX_BRANCH_OFFSET) {
+    if (abs(disp) > MAX_BRANCH_OFFSET) {
         generateBranchViaTrap(gen, gen.currAddr(), target, INSN_GET_ISCALL(insn));
         return true;
     }
@@ -422,7 +563,7 @@ bool insnCodeGen::modifyJcc(Address target,
 			    codeGen &gen) {
     long disp = target - gen.currAddr();
 
-    if(ABS(disp) > MAX_CBRANCH_OFFSET) {
+    if(abs(disp) > MAX_CBRANCH_OFFSET) {
         const unsigned char *origInsn = insn.ptr();
         Address origFrom = gen.currAddr();
 

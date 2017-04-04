@@ -225,8 +225,8 @@ BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::invert(const Base
     return createUnaryAST(Dyninst::DataflowAPI::ROSEOperation::invertOp, a_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::extract(const BaseSemantics::SValuePtr &a_, size_t begin,
-                                                                  size_t end) {
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::extract(const BaseSemantics::SValuePtr &a_, uint64_t begin,
+                                                                  uint64_t end) {
     BaseSemantics::SValuePtr begin_ = SymEvalSemantics::SValue::instance(64, begin);
     BaseSemantics::SValuePtr end_ = SymEvalSemantics::SValue::instance(64, end);
 
@@ -283,7 +283,7 @@ BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::equalToZero(const
 }
 
 BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::signExtend(const BaseSemantics::SValuePtr &a_,
-                                                                     size_t newwidth) {
+                                                                     uint64_t newwidth) {
     BaseSemantics::SValuePtr width_ = SymEvalSemantics::SValue::instance(64, newwidth);
 
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::signExtendOp, a_, width_);

@@ -1731,7 +1731,7 @@ namespace rose {
                     /** Extracts bits from a value.  The specified bits from begin_bit (inclusive) through end_bit (exclusive) are copied into
                      *  the low-order bits of the return value (other bits in the return value are cleared). The least significant bit is
                      *  number zero. The begin_bit and end_bit values must be valid for the width of @p a. */
-                    virtual SValuePtr extract(const SValuePtr &a, size_t begin_bit, size_t end_bit) = 0;
+                    virtual SValuePtr extract(const SValuePtr &a, uint64_t begin_bit, uint64_t end_bit) = 0;
 
                     /** Concatenates the bits of two values.  The bits of @p a and @p b are concatenated so that the result has @p
                      *  b in the high-order bits and @p a in the low order bits. The width of the return value is the sum of the widths of @p
@@ -1843,7 +1843,7 @@ namespace rose {
 
                     /** Sign extends a value. The result will the the specified @p new_width, which must be at least as large as the original
                      * width. */
-                    virtual SValuePtr signExtend(const SValuePtr &a, size_t new_width) = 0;
+                    virtual SValuePtr signExtend(const SValuePtr &a, uint64_t new_width) = 0;
 
                     /** Adds two integers of equal size.  The width of @p a and @p b must be equal; the return value will have the same width
                      * as @p a and @p b. */
