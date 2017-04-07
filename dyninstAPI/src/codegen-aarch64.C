@@ -140,7 +140,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
         generateBranchViaTrap(gen, from, to, isCall);
     }
 
-    insnCodeGen::loadImmIntoReg(gen, scratch, to);
+    insnCodeGen::loadImmIntoReg<Address>(gen, scratch, to);
 
     instruction branchInsn;
     branchInsn.clear();
@@ -469,7 +469,8 @@ assert(0);
 //#warning "This function is not implemented yet!"
 }
 
-void insnCodeGen::loadImmIntoReg(codeGen &gen, Register rt, unsigned long value)
+template <typename T>
+void insnCodeGen::loadImmIntoReg(codeGen &gen, Register rt, T value)
 {
     assert(value >= 0);
 
@@ -630,44 +631,68 @@ bool insnCodeGen::modifyData(Address target,
     int raw = insn.asInt();
     bool isneg = false;
 
-    if(target < gen.currAddr())
-	    isneg = true;
+    if (target < gen.currAddr())
+        isneg = true;
     Address offset = !isneg ? (target - gen.currAddr()) : (gen.currAddr() - target);
 
-    if(((raw >> 24) & 0x1F) == 0x10) {
-    	int shiftamt = ((raw >> 31) & 0x1) ? 12 : 0;
+    if (((raw >> 24) & 0x1F) == 0x10) {
+        int shiftamt = ((raw >> 31) & 0x1) ? 12 : 0;
+        signed long imm = isneg ? -(offset >> shiftamt) : (offset >> shiftamt);
 
         //If offset is within +/- 1 MB, modify the instruction (ADR/ADRP) with the new offset
         if (offset <= (1 << 20)) {
             instruction newInsn(insn);
-
-	    signed long imm = isneg ? -(offset >> shiftamt) : (offset >> shiftamt);
 
             INSN_SET(newInsn, 5, 23, ((imm >> 2) & 0x7FFFF));
             INSN_SET(newInsn, 29, 30, (imm & 0x3));
 
             generate(gen, newInsn);
         }
-        //Else, generate move instructions to move the value to the same register
+            //Else, generate move instructions to move the value to the same register
         else {
             Register rd = raw & 0x1F;
-            loadImmIntoReg(gen, rd, offset);
+            loadImmIntoReg<Address>(gen, rd, target);
         }
-    } else if(((raw >> 24) & 0x3F) == 0x18) {
-	//If offset is within +/- 1 MB, modify the instruction (LDR/LDRSW) with the new offset
-        if(offset <= (1 << 20)) {
+    } else if (((raw >> 24) & 0x3F) == 0x18) {
+        //If offset is within +/- 1 MB, modify the instruction (LDR/LDRSW) with the new offset
+        signed long imm = isneg ? -(offset >> 2) : (offset >> 2);
+
+        if (offset <= (1 << 20)) {
             instruction newInsn(insn);
 
-	    isneg ? (offset += 4) : (offset -= 4);
-	    signed long imm = isneg ? -(offset >> 2) : (offset >> 2);
+            isneg ? (offset += 4) : (offset -= 4);
             INSN_SET(newInsn, 5, 23, (imm & 0x7FFFF));
 
             generate(gen, newInsn);
         }
-        //Else, generate move instructions to move the value to the same register
+            //Else, generate move instructions to move the value to the same register
         else {
+            //Get scratch register for loading the target address in
+            Register immReg = gen.rs()->getScratchRegister(gen, true);
+            if(immReg == REG_NULL)
+                assert(!"No scratch register available to load the target address into for a PC-relative data access using LDR/LDRSW!");
+            //Generate sequence of instructions for loading the target address in scratch register
+            loadImmIntoReg<Address>(gen, rt, target);
+
             Register rt = raw & 0x1F;
-            loadImmIntoReg(gen, rt, offset);
+
+            //Generate instruction for reading value at target address using unsigned-offset variant of the immediate variant of LDR/LDRSW
+            instruction newInsn;
+            newInsn.clear();
+
+            if(((raw >> 31) & 0x1) == 0) {
+                INSN_SET(newInsn, 30, 30, ((raw >> 30) & 0x1));
+                INSN_SET(newInsn, 22, 29, LDRImmUIOp);
+            } else {
+                INSN_SET(newInsn, 22, 29, LDRSWImmUIOp);
+            }
+
+            INSN_SET(newInsn, 31, 31, 0x1);
+            INSN_SET(newInsn, 10, 21, 0);
+            INSN_SET(newInsn, 5, 9, immReg);
+            INSN_SET(newInsn, 0, 4, rt);
+
+            generate(gen, newInsn);
         }
     } else {
         assert(!"Got an instruction other than ADR/ADRP/LDR(literal)/LDRSW(literal) in PC-relative data access!");

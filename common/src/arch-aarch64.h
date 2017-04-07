@@ -78,6 +78,7 @@ namespace NS_aarch64 {
 #define LDRFPImmOp      0x1E2
 #define STRImmUIOp      0xE4
 #define LDRImmUIOp      0xE5
+#define LDRSWImmUIOp    0xE6
 
 #define MSROp           0xD51
 #define MRSOp           0xD53
