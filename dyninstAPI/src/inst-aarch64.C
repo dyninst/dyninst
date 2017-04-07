@@ -973,7 +973,7 @@ bool EmitterAARCH64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
     assert (stackSize == 1);
     scratchReg = freeReg[0];
   }
-  insnCodeGen::loadImmIntoReg(gen, scratchReg, destOff);
+  insnCodeGen::loadImmIntoReg<Offset?(gen, scratchReg, destOff);
 
   if(!isStaticBinary) {
     insnCodeGen::generateLoadReg64(gen, scratchReg, scratchReg, TOCreg);

@@ -97,6 +97,9 @@ public:
 
     static void generateMemAccessFP(codeGen &gen, LoadStore accType, Register rt, Register rn, int immd, int size, bool is128bit);
 
+    template<typename T>
+    static void loadImmIntoReg(codeGen &gen, Register rt, T value);
+
     /** TODO **/
     static void generateLoadReg(codeGen &gen, Register rt,
                                 Register ra, Register rb);
@@ -129,9 +132,6 @@ public:
     static void generateRelOp(codeGen &gen, int cond,
                               int mode, Register rs1,
                               Register rs2, Register rd);
-
-    static void loadImmIntoReg(codeGen &gen, Register rt,
-                               unsigned long value);
 
     static void loadPartialImmIntoReg(codeGen &gen, Register rt,
                                       long value);
