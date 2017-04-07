@@ -628,34 +628,49 @@ bool insnCodeGen::modifyData(Address target,
                              NS_aarch64::instruction &insn,
                              codeGen &gen) {
     int raw = insn.asInt();
+    bool isneg = false;
 
-    //Get the immhi and immlo values from the original instruction
-    int immhi = ((raw >> 5) & 0x7FFFF), immlo = ((raw >> 29) & 0x3);
-    //Get the original offset
-    int imm = ((immhi << 2) | immlo);
+    if(target < gen.currAddr())
+	    isneg = true;
+    Address offset = !isneg ? (target - gen.currAddr()) : (gen.currAddr() - target);
 
-    //Sign extend the original offset to the size of an Address
-    Address referTarget = ((((Address)imm ) << (sizeof(Address) - 21)) >> (sizeof(Address) - 21)) + gen.currAddr();
-    //Get offset of target from the instruction's new location
-    Address offset = abs(target - referTarget);
+    if(((raw >> 24) & 0x1F) == 0x10) {
+    	int shiftamt = ((raw >> 31) & 0x1) ? 12 : 0;
 
-    //If offset is within +/- 1 MB, modify the instruction (ADR/ADRP) with the new offset
-    if(offset <= (1 << 20))
-    {
-        int _offset = (offset & 0x1FFFFF);
+        //If offset is within +/- 1 MB, modify the instruction (ADR/ADRP) with the new offset
+        if (offset <= (1 << 20)) {
+            instruction newInsn(insn);
 
-        instruction newInsn(insn);
+	    signed long imm = isneg ? -(offset >> shiftamt) : (offset >> shiftamt);
 
-        INSN_SET(newInsn, 5, 23, ((_offset >> 2) & 0x7FFFF));
-        INSN_SET(insn, 29, 30, (_offset & 0x3));
+            INSN_SET(newInsn, 5, 23, ((imm >> 2) & 0x7FFFF));
+            INSN_SET(newInsn, 29, 30, (imm & 0x3));
 
-        generate(gen, newInsn);
-    }
-    //Else, generate move instructions to move the value to the same register
-    else
-    {
-        Register rd = raw & 0x1F;
-        loadImmIntoReg(gen, rd, offset);
+            generate(gen, newInsn);
+        }
+        //Else, generate move instructions to move the value to the same register
+        else {
+            Register rd = raw & 0x1F;
+            loadImmIntoReg(gen, rd, offset);
+        }
+    } else if(((raw >> 24) & 0x3F) == 0x18) {
+	//If offset is within +/- 1 MB, modify the instruction (LDR/LDRSW) with the new offset
+        if(offset <= (1 << 20)) {
+            instruction newInsn(insn);
+
+	    isneg ? (offset += 4) : (offset -= 4);
+	    signed long imm = isneg ? -(offset >> 2) : (offset >> 2);
+            INSN_SET(newInsn, 5, 23, (imm & 0x7FFFF));
+
+            generate(gen, newInsn);
+        }
+        //Else, generate move instructions to move the value to the same register
+        else {
+            Register rt = raw & 0x1F;
+            loadImmIntoReg(gen, rt, offset);
+        }
+    } else {
+        assert(!"Got an instruction other than ADR/ADRP/LDR(literal)/LDRSW(literal) in PC-relative data access!");
     }
 
     return true;
