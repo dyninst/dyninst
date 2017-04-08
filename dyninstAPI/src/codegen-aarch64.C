@@ -671,10 +671,9 @@ bool insnCodeGen::modifyData(Address target,
             Register immReg = gen.rs()->getScratchRegister(gen, true);
             if(immReg == REG_NULL)
                 assert(!"No scratch register available to load the target address into for a PC-relative data access using LDR/LDRSW!");
+            Register rt = raw & 0x1F;
             //Generate sequence of instructions for loading the target address in scratch register
             loadImmIntoReg<Address>(gen, rt, target);
-
-            Register rt = raw & 0x1F;
 
             //Generate instruction for reading value at target address using unsigned-offset variant of the immediate variant of LDR/LDRSW
             instruction newInsn;
