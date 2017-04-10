@@ -633,11 +633,16 @@ bool insnCodeGen::modifyData(Address target,
 
     if (target < gen.currAddr())
         isneg = true;
-    Address offset = !isneg ? (target - gen.currAddr()) : (gen.currAddr() - target);
 
     if (((raw >> 24) & 0x1F) == 0x10) {
-        int shiftamt = ((raw >> 31) & 0x1) ? 12 : 0;
-        signed long imm = isneg ? -(offset >> shiftamt) : (offset >> shiftamt);
+	Address offset;
+	if((raw >> 31) & 0x1) {
+	    target &= 0xFFFFF000;
+	    Address cur = gen.currAddr() & 0xFFFFF000;
+	    offset = isneg ? (cur - target) : (target - cur);
+	    offset >>= 12;
+	}
+        signed long imm = isneg ? -offset : offset;
 
         //If offset is within +/- 1 MB, modify the instruction (ADR/ADRP) with the new offset
         if (offset <= (1 << 20)) {
@@ -654,13 +659,13 @@ bool insnCodeGen::modifyData(Address target,
             loadImmIntoReg<Address>(gen, rd, target);
         }
     } else if (((raw >> 24) & 0x3F) == 0x18) {
+    	Address offset = !isneg ? (target - gen.currAddr()) : (gen.currAddr() - target);
         //If offset is within +/- 1 MB, modify the instruction (LDR/LDRSW) with the new offset
-        signed long imm = isneg ? -(offset >> 2) : (offset >> 2);
-
         if (offset <= (1 << 20)) {
             instruction newInsn(insn);
 
             isneg ? (offset += 4) : (offset -= 4);
+	    signed long imm = isneg ? -(offset >> 2) : (offset >> 2);
             INSN_SET(newInsn, 5, 23, (imm & 0x7FFFF));
 
             generate(gen, newInsn);
@@ -672,7 +677,7 @@ bool insnCodeGen::modifyData(Address target,
             if(immReg == REG_NULL)
                 assert(!"No scratch register available to load the target address into for a PC-relative data access using LDR/LDRSW!");
             //Generate sequence of instructions for loading the target address in scratch register
-            loadImmIntoReg<Address>(gen, rt, target);
+            loadImmIntoReg<Address>(gen, immReg, target);
 
             Register rt = raw & 0x1F;
 
