@@ -604,9 +604,6 @@ bool insnCodeGen::modifyJcc(Address target,
     } else {
         instruction condBranchInsn(insn);
 
-        //Bit 4 for the conditional branch instruction is 0
-        INSN_SET(condBranchInsn, 4, 4, 0);
-        INSN_SET(condBranchInsn, 24, 31, BCondOp);
         //Set the displacement immediate
         INSN_SET(condBranchInsn, 5, 23, disp >> 2);
 
