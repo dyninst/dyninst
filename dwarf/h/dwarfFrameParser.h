@@ -55,12 +55,12 @@ typedef enum {
     FE_No_Error
 } FrameErrors_t;
 
-typedef struct {
+/*typedef struct {
     Dwarf_FDE *fde_data;
     Dwarf_Sword fde_count;
     Dwarf_CIE *cie_data;
     Dwarf_Sword cie_count;   
-} fde_cie_data;
+} fde_cie_data;*/
 
 
 class DYNDWARF_EXPORT DwarfFrameParser {
@@ -68,9 +68,9 @@ public:
 
     typedef boost::shared_ptr<DwarfFrameParser> Ptr;
 
-    static Ptr create(::Dwarf * dbg, Architecture arch);
+    static Ptr create(Dwarf * dbg, Architecture arch);
 
-    DwarfFrameParser(::Dwarf * dbg_, Architecture arch_);
+    DwarfFrameParser(Dwarf * dbg_, Architecture arch_);
 
     ~DwarfFrameParser();
 
@@ -112,7 +112,7 @@ private:
             Address &lowpc,
             FrameErrors_t &err_result);
 
-    bool getFrame(Address pc, 
+    bool getFDE(Address pc, 
             Dwarf_Frame* &frame, 
             Address &low,
             Address &high,
@@ -123,23 +123,21 @@ private:
             Dwarf_Half &dwarf_reg,
             FrameErrors_t &err_result);
 
-#if 0
-    bool handleExpression(Address pc,
+/*    bool handleExpression(Address pc,
             Dwarf_Sword registerNum,
             MachRegister origReg,
             Architecture arch,
             DwarfResult &cons,
             bool &done,
-            FrameErrors_t &err_result);
-#endif
+            FrameErrors_t &err_result);*/
 
     void setupFdeData();
 
     struct frameParser_key
     {
-        ::Dwarf * dbg;
+        Dwarf * dbg;
         Architecture arch;
-        frameParser_key(::Dwarf * d, Architecture a) : dbg(d), arch(a) 
+        frameParser_key(Dwarf * d, Architecture a) : dbg(d), arch(a) 
         {
         }
 
@@ -158,13 +156,13 @@ private:
     
     static std::map<frameParser_key, Ptr> frameParsers;
 
-    ::Dwarf * dbg;
+    Dwarf * dbg;
     
     Architecture arch;
 
     dwarf_status_t fde_dwarf_status;
     
-    std::vector<Dwarf_CFI *> fde_data;
+    std::vector<Dwarf_CFI *> cfi_data;
 
 };
 

@@ -113,6 +113,7 @@ bool Object::getRegValueAtFrame(Address pc,
    bool result;
 
    dwarf->frame_dbg();
+   assert(dwarf->frameParser());
    result = dwarf->frameParser()->getRegValueAtFrame(pc, reg, reg_result, reader, frame_error);
    setSymtabError((SymtabError) frame_error);
    return result;

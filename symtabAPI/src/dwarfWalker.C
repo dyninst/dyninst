@@ -275,8 +275,6 @@ void DwarfParseActions::setModuleFromName(std::string moduleName)
 
 bool DwarfWalker::buildSrcFiles(::Dwarf * /*dbg*/, Dwarf_Die entry, StringTablePtr srcFiles) {
     size_t cnt = 0;
-    //char** srcFileList;
-    //Dwarf_Error error;
     Dwarf_Files * df;
     int ret = dwarf_getsrcfiles(&entry, &df, &cnt);
     if(ret==-1) return true;
@@ -289,9 +287,7 @@ bool DwarfWalker::buildSrcFiles(::Dwarf * /*dbg*/, Dwarf_Die entry, StringTableP
     for (unsigned i = 1; i < cnt; ++i) {
         auto filename = dwarf_filesrc(df, i, NULL, NULL);
         srcFiles->push_back(filename);
-        //dwarf_dealloc(dbg, srcFileList[i], DW_DLA_STRING);
     }
-    //dwarf_dealloc(dbg, srcFileList, DW_DLA_LIST);
     return true;
 }
 
@@ -432,10 +428,10 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
 
         if (ret && parseChild() ) {
             // Parse children
-            Dwarf_Die childDwarf;
-            Dwarf_Die ent = entry();
+            Dwarf_Die childDwarf, ent = entry();
             int status = dwarf_child( &ent, & childDwarf);
-            DWARF_CHECK_RET(status == -1);
+            if(status == -1)
+                return false;
             if (status == 0) {
                 if (!parse_int(childDwarf, true))
                     return false;
@@ -650,23 +646,27 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
 
 
    // Get the frame base if it exists
-   if (!getFrameBase()) return false;
+   if (!getFrameBase()) 
+       return false;
 
    // Parse parent nodes and their children but not their sibling
    bool hasAbstractOrigin = false;
-   if (!handleAbstractOrigin(hasAbstractOrigin)) return false;
+   if (!handleAbstractOrigin(hasAbstractOrigin)) 
+       return false;
    if (hasAbstractOrigin) {
       dwarf_printf("(0x%lx) Parsing abstract parent\n", id());
-      if (!parse_int(abstractEntry(), false)) return false;
-      //dwarf_dealloc(dbg(), abstractEntry(), DW_DLA_DIE);
+      if (!parse_int(abstractEntry(), false)) 
+          return false;
    }
    // An abstract origin will point to a specification if it exists
    // This can actually be three-layered, so backchain again
    bool hasSpecification = false;
-   if (!handleSpecification(hasSpecification)) return false;
+   if (!handleSpecification(hasSpecification)) 
+       return false;
    if ( hasSpecification ) {
       dwarf_printf("(0x%lx) Parsing specification entry\n", id());
-      if (!parse_int(specEntry(), false)) return false;
+      if (!parse_int(specEntry(), false)) 
+          return false;
    }
 
    parsedFuncs.insert(func);
@@ -722,7 +722,7 @@ pair<AddressRange, bool> DwarfWalker::parseHighPCLowPC(::Dwarf * dbg, Dwarf_Die 
     return result;
 }
 
-bool DwarfWalker::parseRangeTypes(::Dwarf * dbg, Dwarf_Die die) {
+bool DwarfWalker::parseRangeTypes(Dwarf * dbg, Dwarf_Die die) {
    dwarf_printf("(0x%lx) Parsing ranges\n", id());
 
    clearRanges();
@@ -736,7 +736,7 @@ bool DwarfWalker::parseRangeTypes(::Dwarf * dbg, Dwarf_Die die) {
    return !newRanges.empty();
 }
 
-vector<AddressRange> DwarfWalker::getDieRanges(::Dwarf * dbg, Dwarf_Die die, Offset range_base) {
+vector<AddressRange> DwarfWalker::getDieRanges(Dwarf * dbg, Dwarf_Die die, Offset range_base) {
     std::vector<AddressRange> newRanges;
     auto highlow = parseHighPCLowPC(dbg, die);
     if(highlow.second) newRanges.push_back(highlow.first);
@@ -747,35 +747,15 @@ vector<AddressRange> DwarfWalker::getDieRanges(::Dwarf * dbg, Dwarf_Die die, Off
         Dwarf_Aranges *ranges = NULL;
         size_t ranges_length = 0;
         dwarf_printf("calling ranges_a, offset 0x%lx, die %p\n", range_offset, die);
-        //int status = (dwarf_get_ranges_a(dbg, (Dwarf_Off) range_offset, die,
-        //                             &ranges, &ranges_length, NULL, NULL));
-        int status = (dwarf_getaranges(dbg, &ranges, &ranges_length));
+        int status = dwarf_getaranges(dbg, &ranges, &ranges_length);
         bool done = (status != 0);
         for (unsigned i = 0; i < ranges_length && !done; i++) {
             Dwarf_Arange *cur = dwarf_onearange(ranges,i);
             Address cur_base = range_base;
-            /*old code 
-            switch (cur.dwr_type) {
-                case DW_RANGES_ENTRY: 
-                    {
-                        Address low = cur.dwr_addr1 + cur_base;
-                        Address high = cur.dwr_addr2 + cur_base;
-                        dwarf_printf("Lexical block from 0x%lx to 0x%lx\n", low, high);
-                        newRanges.push_back(AddressRange(low, high));
-                        // mod()->addRange(low, high);
-                        break;
-                    }
-                case DW_RANGES_ADDRESS_SELECTION:
-                    cur_base = cur.dwr_addr2;
-                    break;
-                case DW_RANGES_END:
-                    done = true;
-                    break;
-            }*/
             Dwarf_Addr address;
             Dwarf_Word length;
             Dwarf_Off offset;
-            if(!dwarf_getarangeinfo(cur, &address, &length, &offset))
+            if(dwarf_getarangeinfo(cur, &address, &length, &offset)!=0)
                 continue;
             Address low = address + offset + cur_base;
             Address high = low + length;
@@ -783,7 +763,6 @@ vector<AddressRange> DwarfWalker::getDieRanges(::Dwarf * dbg, Dwarf_Die die, Off
             newRanges.push_back(AddressRange(low, high));
 
         }
-        //dwarf_ranges_dealloc(dbg, ranges, ranges_length);
     }
     return newRanges;
 }
@@ -1139,8 +1118,6 @@ bool DwarfWalker::parseArray() {
 
    if (!baseArrayType) return false;
 
-   //dwarf_dealloc( dbg(), firstRange, DW_DLA_DIE );
-
    /* The baseArrayType is an anonymous type with its own typeID.  Extract
       the information and add an array type for this DIE. */
 
@@ -1407,27 +1384,12 @@ bool DwarfWalker::handleAbstractOrigin(bool &isAbstract) {
     isAbstract = true;
     dwarf_printf("(0x%lx) abstract_origin is true, looking up reference\n", id());
 
-    e = entry();
     Dwarf_Attribute abstractAttribute, *ret_p; 
     ret_p = dwarf_attr(&e, DW_AT_abstract_origin, &abstractAttribute);
     if(ret_p == NULL) return false;
 
-    Dwarf_Off abstractOffset;
-    if (!findDieOffset( abstractAttribute, abstractOffset )) return false;
-
-    //bool is_info = dwarf_get_die_infotypes_flag(entry());
-    bool is_info = !dwarf_hasattr_integrate(&e, DW_TAG_type_unit);
-    //DWARF_FAIL_RET(dwarf_offdie_b( dbg(), abstractOffset, is_info, & absE, NULL));
-    Dwarf_Die * cu_die_p = 0; 
-    if(is_info){
-        cu_die_p = dwarf_offdie(dbg(), abstractOffset, &absE);
-    }else{
-        cu_die_p = dwarf_offdie_types(dbg(), abstractOffset, &absE);
-    }
-    if (cu_die_p == 0) {
-        return false;
-    }
-    //dwarf_dealloc( dbg() , abstractAttribute, DW_DLA_ATTR );
+    auto die_p = dwarf_formref_die(&abstractAttribute, &absE);
+    if(!die_p) return false;
 
     setAbstractEntry(absE);
 
@@ -1446,31 +1408,14 @@ bool DwarfWalker::handleSpecification(bool &hasSpec) {
     if (!hasSpecification) return true;
 
     hasSpec = true;
-
     dwarf_printf("(0x%lx) Entry has separate specification, retrieving\n", id());
 
-    e = entry();
     Dwarf_Attribute specAttribute, *ret_p;
     ret_p = dwarf_attr(&e, DW_AT_specification, &specAttribute);
     if(ret_p == NULL) return false;
 
-    Dwarf_Off specOffset;
-    if (!findDieOffset( specAttribute, specOffset )) return false;
-
-    //bool is_info = dwarf_get_die_infotypes_flag(entry());
-    bool is_info = !dwarf_hasattr_integrate(&e, DW_TAG_type_unit);
-    //DWARF_FAIL_RET(dwarf_offdie_b( dbg(), specOffset, is_info, &specE, NULL ));
-    Dwarf_Die * cu_die_p = 0; 
-    if(is_info){
-        cu_die_p = dwarf_offdie(dbg(), specOffset, &specE);
-    }else{
-        cu_die_p = dwarf_offdie_types(dbg(), specOffset, &specE);
-    }
-    if (cu_die_p == 0) {
-        return false;
-    }
-    //dwarf_dealloc( dbg(), specAttribute, DW_DLA_ATTR );
-    //    cout << "Set spec entry" << endl;
+    auto die_p = dwarf_formref_die(&specAttribute, &specE);
+    if(!die_p) return false;
 
     setSpecEntry(specE);
 
@@ -1487,7 +1432,6 @@ bool DwarfWalker::findDieName(::Dwarf * /*dbg*/, Dwarf_Die die, std::string &nam
     }
 
     name = cname;
-    //dwarf_dealloc( dbg, cname, DW_DLA_STRING );
     return true;
 }
 
@@ -1516,7 +1460,6 @@ bool DwarfWalker::findFuncName() {
         curName() = dwarfName;
         setMangledName(true);
         dwarf_printf("(0x%lx) Found mangled name of %s, using\n", id(), curName().c_str());
-        //dwarf_dealloc( dbg(), linkageNameAttr, DW_DLA_ATTR );
         return true;
     }
 
@@ -1574,7 +1517,6 @@ bool DwarfWalker::getReturnType(bool hasSpecification, Type *&returnType) {
     dwarf_printf("(0x%lx) Return type is not void\n", id());
 
     bool ret = findAnyType( typeAttribute, is_info, returnType );
-    //dwarf_dealloc( dbg(), typeAttribute, DW_DLA_ATTR );
     return ret;
 }
 
@@ -1635,7 +1577,6 @@ bool DwarfWalker::findType(Type *&type, bool defaultToVoid) {
     Dwarf_Attribute typeAttribute;
     Dwarf_Die e = specEntry();
     auto attr_p = dwarf_attr( &e, DW_AT_type, &typeAttribute);
-    //cerr << "findType() err msg: " << dwarf_errmsg(-1) << endl;
 
     if (attr_p == 0) {
         if (defaultToVoid) {
@@ -1645,17 +1586,14 @@ bool DwarfWalker::findType(Type *&type, bool defaultToVoid) {
         return false;
     }
 
-    //bool is_info = dwarf_get_die_infotypes_flag(specEntry());
     bool is_info = !dwarf_hasattr_integrate(&e, DW_TAG_type_unit);
 
     bool ret = findAnyType( typeAttribute, is_info, type );
-    //dwarf_dealloc( dbg(), typeAttribute, DW_DLA_ATTR );
     return ret;
 }
 
 bool DwarfWalker::findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset) {
     Dwarf_Half form = dwarf_whatform(&attr);
-    //DWARF_FAIL_RET(form);
     switch (form) {
         /* These forms are suitable as direct DIE offsets */
         case DW_FORM_ref1:
@@ -1667,8 +1605,11 @@ bool DwarfWalker::findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset) {
         case DW_FORM_data4:
         case DW_FORM_data8:
             {
-                //DWARF_FAIL_RET(dwarf_global_formref(&attr, &offset));
-                DWARF_FAIL_RET(dwarf_formref(&attr, &offset));
+                //TODO debug to compare values of offset
+                Dwarf_Die die;
+                auto ret_p = dwarf_formref_die(&attr, &die);
+                if(!ret_p) return false;
+                offset = dwarf_dieoffset(&die);
                 return true;
             }
             /* Then there's DW_FORM_sec_offset which refer other sections, or
@@ -1682,14 +1623,12 @@ bool DwarfWalker::findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset) {
 }
 
 bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute,
-        bool is_info, Type *&type) {
+        bool is_info, Type *&type) 
+{
     /* If this is a ref_sig8, look for the type elsewhere. */
     Dwarf_Half form = dwarf_whatform(&typeAttribute);
-    //DWARF_FAIL_RET(form);
     if (form == DW_FORM_ref_sig8) {
         Dwarf_Sig8 signature;
-        //char signature[8];
-        //DWARF_FAIL_RET(dwarf_formsig8(typeAttribute, &signature, NULL));
         const char * sig = dwarf_formstring(&typeAttribute);
         if(!sig) return false;
         memcpy(signature.signature, sig, 8);
@@ -1732,7 +1671,6 @@ bool DwarfWalker::getLineInformation(Dwarf_Word &variableLineNo,
         StringTablePtr files = srcFiles();
         Dwarf_Word fileNameDeclVal;
         DWARF_FAIL_RET(dwarf_formudata(&fileDeclAttribute, &fileNameDeclVal));
-        //dwarf_dealloc( dbg(), fileDeclAttribute, DW_DLA_ATTR );
         if (fileNameDeclVal >= files->size() || fileNameDeclVal <= 0) {
             dwarf_printf("Dwarf error reading line index %d from srcFiles of size %lu\n",
                     fileNameDeclVal, files->size());
@@ -1752,7 +1690,6 @@ bool DwarfWalker::getLineInformation(Dwarf_Word &variableLineNo,
        so it's OK if there isn't one. */
     hasLineNumber = true;
     DWARF_FAIL_RET(dwarf_formudata(&lineNoAttribute, &variableLineNo));
-    //dwarf_dealloc( dbg(), lineNoAttribute, DW_DLA_ATTR );
 
     return true;
 }
@@ -1764,7 +1701,7 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
     Dwarf_Die e = entry();
     if (!dwarf_hasattr(&e, attr)) {
         dwarf_printf("(0x%lx): no such attribute\n", id());
-        return false;
+        return true;
     }
     locs.clear();
 
@@ -1793,7 +1730,8 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
     }
     else {
         dwarf_printf("(0x%lx) Decoding loclist location\n", id());
-        Dwarf_Op *locationList;
+
+        /*Dwarf_Op *locationList;
         size_t listLength;
         int status = dwarf_getlocation(&locationAttribute, &locationList, &listLength);
         if (status != 0) {
@@ -1802,11 +1740,38 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
         }
 
         dwarf_printf("(0x%lx) location list with %d entries found\n", id(), (int) listLength);
+        */
 
-        if (!decodeLocationListForStaticOffsetOrAddress(&locationList,
-                    (Dwarf_Sword) listLength, locs, locationAttribute, initialStackValue)) {
+        Dwarf_Op * exprs = NULL;
+        size_t exprlen = 0; 
+        std::vector<LocDesc> locDescs;
+        ptrdiff_t offset = 0; 
+        Dwarf_Addr *basep = NULL, start, end;
+        do {
+            offset = dwarf_getlocations(&locationAttribute, offset, basep, 
+                    &start, &end, &exprs, &exprlen);
+            LocDesc ld;
+            ld.ld_lopc = start;
+            ld.ld_hipc = end;
+            ld.dwarfOp = exprs;
+            ld.opLen = exprlen;
+            locDescs.push_back(ld);
+        }while(offset > 0);
+        if (locDescs.size() <= 0) {
+            dwarf_printf("(0x%lx) Failed loclist decode: %d\n", id());
+            return true;
+        }
+
+
+        if(decodeLocationListForStaticOffsetOrAddress(locDescs, locDescs.size(), 
+                locs, locationAttribute, initialStackValue))
+        {
             return false;
         }
+        /*if (!decodeLocationListForStaticOffsetOrAddress(&locationList,
+                    (Dwarf_Sword) listLength, locs, locationAttribute, initialStackValue)) {
+            return false;
+        }*/
     }
 
     return true;
@@ -1854,7 +1819,6 @@ bool DwarfWalker::findString(Dwarf_Half attr,
     if(!ret_p) return false;
     form = dwarf_whatform(&strattr);
     if (form != 0) {
-        //dwarf_dealloc(dbg(), strattr, DW_DLA_ATTR);
         return false;
     }
 
@@ -1877,7 +1841,6 @@ bool DwarfWalker::findString(Dwarf_Half attr,
                 Dwarf_Block *block = NULL;
                 DWARF_FAIL_RET(dwarf_formblock(&strattr, block));
                 str = (char *) block->data;
-                //dwarf_dealloc(dbg(), block, DW_DLA_BLOCK);
                 //          cout << "findString found " << str << " in DW_FORM_block" << endl;
                 result = !str.empty();
                 break;
@@ -1886,11 +1849,10 @@ bool DwarfWalker::findString(Dwarf_Half attr,
             result = false;
             break;
     }
-    //dwarf_dealloc(dbg(), strattr, DW_DLA_ATTR);
     return result;
 }
 
-bool DwarfWalker::findConstant(Dwarf_Half attr, Address &value, Dwarf_Die entry, ::Dwarf * /*dbg*/) {
+bool DwarfWalker::findConstant(Dwarf_Half attr, Address &value, Dwarf_Die entry, Dwarf * /*dbg*/) {
     bool has = dwarf_hasattr(&entry, attr);
     if (!has) return false;
 
@@ -1907,8 +1869,8 @@ bool DwarfWalker::findConstant(Dwarf_Half attr, Address &value, Dwarf_Die entry,
 }
 
 bool DwarfWalker::findConstantWithForm(Dwarf_Attribute &locationAttribute,
-        Dwarf_Half form,
-        Address &value) {
+        Dwarf_Half form, Address &value) 
+{
     value = 0;
 
     switch(form) {
@@ -1929,13 +1891,10 @@ bool DwarfWalker::findConstantWithForm(Dwarf_Attribute &locationAttribute,
         case DW_FORM_data4:
         case DW_FORM_data8:
         case DW_FORM_udata:
+        case DW_FORM_sec_offset:
             Dwarf_Word u_tmp;
             DWARF_FAIL_RET(dwarf_formudata(&locationAttribute, &u_tmp));
             value = (Address) u_tmp;
-            return true;
-        case DW_FORM_sec_offset:
-            DWARF_FAIL_RET(dwarf_formref(&locationAttribute, &u_tmp));
-            value = (Address)(u_tmp);
             return true;
         default:
             dwarf_printf("Unhandled form 0x%x for constant decode\n", (unsigned) form);
@@ -1991,7 +1950,6 @@ bool DwarfWalker::findSize(unsigned &size) {
 
     DWARF_FAIL_RET(dwarf_formudata(&byteSizeAttr, &byteSize));
 
-    //dwarf_dealloc( dbg(), byteSizeAttr, DW_DLA_ATTR );
     size = (unsigned) byteSize;
     return true;
 }
@@ -2019,8 +1977,6 @@ bool DwarfWalker::findVisibility(visibility_t &visibility) {
                                 break;
     } /* end visibility switch */
 
-    //dwarf_dealloc( dbg(), visAttr, DW_DLA_ATTR );
-
     return true;
 }
 
@@ -2041,7 +1997,6 @@ bool DwarfWalker::findValue(long &value, bool &valid) {
     value = enumValue;
     valid = true;
 
-    //dwarf_dealloc( dbg(), valueAttr, DW_DLA_ATTR );
     return true;
 }
 
@@ -2057,16 +2012,12 @@ bool DwarfWalker::fixBitFields(std::vector<VariableLocation> &locs,
 
         DWARF_FAIL_RET(dwarf_formudata( &bitOffset, &memberOffset_du));
 
-        //dwarf_dealloc( dbg(), bitOffset, DW_DLA_ATTR );
-
         Dwarf_Attribute bitSize;
         auto ret_p = dwarf_attr( &e, DW_AT_bit_size, & bitSize);
         if(!ret_p) return false;
 
         Dwarf_Word memberSize_du = size;
         DWARF_FAIL_RET(dwarf_formudata( &bitSize, &memberSize_du));
-
-        //dwarf_dealloc( dbg(), bitSize, DW_DLA_ATTR );
 
         /* If the DW_AT_byte_size field exists, there's some padding.
            FIXME?  We ignore padding for now.  (We also don't seem to handle
@@ -2142,7 +2093,6 @@ bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
 
     if ( status != 0 ) {
         if (!decipherBound(lowerBoundAttribute, is_info, loBound )) return false;
-        //dwarf_dealloc( dbg(), lowerBoundAttribute, DW_DLA_ATTR );
     } /* end if we found a lower bound. */
 
     /* Look for the upper bound. */
@@ -2155,7 +2105,6 @@ bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
 
     if ( status != 0 ) {
         if (!decipherBound(upperBoundAttribute, is_info, hiBound )) return false;
-        //dwarf_dealloc( dbg(), upperBoundAttribute, DW_DLA_ATTR );
     } /* end if we found an upper bound or count. */
 
     /* Construct the range type. */
@@ -2232,7 +2181,6 @@ typeArray *DwarfWalker::parseMultiDimensionalArray(Dwarf_Die range,
     Type *typ = tc()->addOrUpdateType( outerType );
     outerType = static_cast<typeArray *>(typ);
 
-    //dwarf_dealloc( dbg(), nextSibling, DW_DLA_DIE );
     return outerType;
 } /* end parseMultiDimensionalArray() */
 
@@ -2303,8 +2251,6 @@ bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, bool /*is_info*/
                     sprintf(bString, "%lu", (unsigned long)constBoundValue);
                     boundString = bString;
 
-                    //dwarf_dealloc( dbg(), boundEntry, DW_DLA_DIE );
-                    //dwarf_dealloc( dbg(), constBoundAttribute, DW_DLA_ATTR );
                     return true;
                 }
 
@@ -2331,57 +2277,36 @@ bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, bool /*is_info*/
     return true;
 }
 
-//FIXME whole function
+
 bool DwarfWalker::decodeExpression(Dwarf_Attribute &locationAttribute,
         std::vector<VariableLocation> &locs) 
 {
     Dwarf_Op * exprs = NULL;
     size_t exprlen = 0; 
-    int result = dwarf_getlocation(&locationAttribute, &exprs, &exprlen);
-    if(result!=0) return false;
 
-    bool ret = decodeLocationListForStaticOffsetOrAddress(&exprs, exprlen, 
-            locs, locationAttribute);
-    return ret;
-    
-///////////////////////
-/*
+    std::vector<LocDesc> locDescs;
     ptrdiff_t offset = 0; 
     Dwarf_Addr *basep = NULL, start, end;
-    Dwarf_Die e = entry();
     do {
-        offset = dwarf_ranges(&e, offset, basep, &start, &end);
-        Dwarf_Op * list_expr[exprlen];
-        size_t exprlens[exprlen];
-        int num_loc = dwarf_getlocation_addr(&locationAttribute, start, 
-                list_expr, exprlens, exprlen);
-
-        for(int i=0; i<num_loc; i++)
-        { 
-            VariableLocation vl; 
-            // Initialize location values.
-            vl.stClass = storageAddr;
-            vl.refClass = storageNoRef;
-            vl.lowPC = start;
-            vl.hiPC = end;
-
-            bool result = decodeDwarfExpression(list_expr[i],
-                    exprlens[i], 0, vl, symtab()->getArchitecture());
-            if(result) locs.push_back(vl);
-        }
+        offset = dwarf_getlocations(&locationAttribute, offset, basep, 
+                &start, &end, &exprs, &exprlen);
+        LocDesc ld;
+        ld.ld_lopc = start;
+        ld.ld_hipc = end;
+        ld.dwarfOp = exprs;
+        ld.opLen = exprlen;
+        locDescs.push_back(ld);
     }while(offset > 0);
 
-    return !locs.empty();*/
+    //assert(locDescs.size()!=1);
+    bool ret = decodeLocationListForStaticOffsetOrAddress(locDescs, 1, 
+            locs, locationAttribute);
+    return ret;
 }
 
-typedef struct {
-    Dwarf_Addr ld_lopc, ld_hipc;
-    Dwarf_Op * dwarfOp;
-    size_t opLen;
-}LocDesc;
 
 bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress( 
-        Dwarf_Op ** /*locationList*/,
+        std::vector<LocDesc>& locationList,
         Dwarf_Sword listLength,
         std::vector<VariableLocation>& locs,
         Dwarf_Attribute &attr,
@@ -2417,33 +2342,10 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress(
     uint64_t max_addr = (addr_size == 4) ? 0xffffffff : 0xffffffffffffffff;
     Address base = modLow;
 
-    std::vector<LocDesc> locDescs;
-    ptrdiff_t offset = 0; 
-    Dwarf_Addr *basep = NULL, start, end;
-    Dwarf_Die e = entry();
-    do {
-        offset = dwarf_ranges(&e, offset, basep, &start, &end);
-        Dwarf_Op * list_expr[listLength];
-        size_t exprlens[listLength];
-        int num_loc = dwarf_getlocation_addr(&attr, start, list_expr, 
-                exprlens, listLength); 
-        for(int i=0; i<num_loc; i++)
-        { 
-            LocDesc ld;
-            ld.ld_lopc = start;
-            ld.ld_hipc = end;
-            ld.dwarfOp = list_expr[i];
-            ld.opLen = exprlens[i];
-            locDescs.push_back(ld);
-        }
-    }while(offset > 0);
-    
-    //assert( (signed) listLength == locDescs.size() ); 
-
     for (unsigned locIndex = 0 ; locIndex < listLength; locIndex++) {
 
         /* There is only one location. */
-        LocDesc * location = &(locDescs[locIndex]);
+        LocDesc * location = &locationList[locIndex];
 
         VariableLocation loc;
         // Initialize location values.
@@ -2467,17 +2369,15 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress(
         }
 
         long int *tmp = (long int *)initialStackValue;
-        /* FIXME: should 1 be passed as the size of the list of location being passed? */
-        bool result = decodeDwarfExpression(location->dwarfOp, 1, tmp, loc,
+        bool result = decodeDwarfExpression(location->dwarfOp, location->opLen, tmp, loc,
                 symtab()->getArchitecture());
         if (!result) {
             dwarf_printf("(0x%lx): decodeDwarfExpr failed\n", id());
             continue;
         }
 
-        //FIXME 
         if (location->ld_lopc == 0 &&
-                location->ld_hipc == (Dwarf_Addr) ~0) {
+            location->ld_hipc == (Dwarf_Addr) ~0) {
             // Unset low and high. Use the lexical block info if present, otherwise
             // pass through.
             if (hasRanges()) {
@@ -2587,7 +2487,6 @@ typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info)
 
 typeId_t DwarfWalker::type_id()
 {
-    //bool is_info = dwarf_get_die_infotypes_flag(entry());
     Dwarf_Die e = entry();
     bool is_info = !dwarf_hasattr_integrate(&e, DW_TAG_type_unit);
     return get_type_id(offset(), is_info);
@@ -2633,15 +2532,6 @@ bool DwarfWalker::parseModuleSig8(bool is_info)
 {
     /* Obtain the type DIE. */
     Dwarf_Die typeDIE = current_cu_die;
-    /*Dwarf_Die * cu_die_p = 0; 
-    if(is_info){
-        cu_die_p = dwarf_offdie(dbg(), 0, &typeDIE);
-    }else{
-        cu_die_p = dwarf_offdie_types(dbg(), 0, &typeDIE);
-    }
-    if (cu_die_p == 0) {
-        return false;
-    }*/
 
     /* Make sure we've got the right one. */
     Dwarf_Half typeTag = dwarf_tag(&typeDIE);
@@ -2654,6 +2544,8 @@ bool DwarfWalker::parseModuleSig8(bool is_info)
     //FIXME
     //Dwarf_Off cu_off, cu_length;
     //DWARF_FAIL_RET(dwarf_die_CU_offset_range(typeDIE, &cu_off, &cu_length, NULL ));
+    //cerr << "a) " <<  dwarf_dieoffset(&typeDIE) << endl;
+    //cerr << "b) " <<  dwarf_cuoffset(&typeDIE) << endl;
 
     uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
     typeId_t type_id = get_type_id(/*cu_off +*/ typeoffset, is_info);

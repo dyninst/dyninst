@@ -106,10 +106,10 @@ bool DwarfHandle::init_dbg()
     file_data = dwarf_begin_elf(file->e_elfp(), DWARF_C_READ, NULL); 
     //int errno = dwarf_errno();
     //cerr << "Error message:" << filename << ", " << dwarf_errmsg(-1) << endl;
-    //if (!file_data && errno==0 )  {
+    //if (!file_data /*&& errno==0*/ )  {
     //    init_dwarf_status = dwarf_status_error;
     //    return false;
-    //}
+    //cerr << "Error message:" << filename << ", " << dwarf_errmsg(-1) << endl; }
 
     if (dbg_file) {
         dbg_file_data = dwarf_begin_elf(dbg_file->e_elfp(), DWARF_C_READ, NULL); 

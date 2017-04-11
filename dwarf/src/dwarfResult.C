@@ -362,14 +362,12 @@ void ConcreteDwarfResult::pushFrameBase() {
 
 void ConcreteDwarfResult::pushCFA() {
    DwarfFrameParser::Ptr cfaParser = DwarfFrameParser::create(dbg, arch);
+   if(!cfaParser) return; 
    MachRegisterVal cfa;
    FrameErrors_t err;
    dwarf_printf("Getting CFA value...\n");
-   if (!cfaParser->getRegValueAtFrame(pc, 
-                                      CFA, 
-                                      cfa, 
-                                      reader,
-                                      err)) error = true;
+   if (!cfaParser->getRegValueAtFrame(pc, CFA, cfa, reader, err))
+       error = true;
    dwarf_printf("Got CFA value 0x%lx\n", cfa);
    pushUnsignedVal(cfa);
 }

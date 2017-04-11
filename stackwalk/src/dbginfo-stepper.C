@@ -96,6 +96,7 @@ static DwarfFrameParser::Ptr getAuxDwarfInfo(std::string s)
 #endif
 
    DwarfFrameParser::Ptr dresult = DwarfFrameParser::create(*dwarf->frame_dbg(), arch);
+   if(!dresult) return NULL;
    dwarf_aux_info[s] = dresult;
    return dresult;
 }

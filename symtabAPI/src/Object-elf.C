@@ -2450,8 +2450,6 @@ bool Object::dwarf_parse_aranges(Dwarf * dbg, std::set<Dwarf_Off>& dies_seen)
         Dwarf_Off some_offset;
         status = dwarf_getarangeinfo(range, &start, &len, &some_offset);
         assert(status == 0);
-
-        if(dies_seen.count(cu_die_off) != 0) continue;
         if(len == 0) continue;
 
         Dwarf_Die cu_die, *cu_die_off_p;
@@ -3952,24 +3950,16 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
     delete stabptr;
 
 #if defined(cap_dwarf)
-
-#if 0 //TODO
     if (hasDwarfInfo())
     {
-        //int status;
         Dwarf **dbg_ptr = dwarf->type_dbg();
         if (!dbg_ptr) return;
         Dwarf * &dbg = *dbg_ptr;
 
-        //Dwarf_Word hdr;
-        //char * moduleName = NULL;
         Dwarf_Die moduleDIE;
         Dwarf_Attribute languageAttribute;
-        //bool done = false;
 
         /* Only .debug_info for now, not .debug_types */
-        //bool is_info = 1;
-
         size_t cu_header_size;
         for(Dwarf_Off cu_off = 0, next_cu_off;
             dwarf_nextcu(dbg, cu_off, &next_cu_off, &cu_header_size,
@@ -3977,38 +3967,18 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
             cu_off = next_cu_off)
         {
             Dwarf_Off cu_die_off = cu_off + cu_header_size;
-            
-        //while( !done &&
-        //       dwarf_next_cu_header_c( dbg, is_info,
-        //                               NULL, NULL, NULL, // len, stamp, abbrev
-        //                               NULL, NULL, NULL, // address, offset, extension
-        //                               NULL, NULL, // signature, typeoffset
-        //                               & hdr, NULL ) == DW_DLV_OK )
-        //{
-
-            //status = dwarf_siblingof_b(dbg, NULL, is_info, &moduleDIE, NULL);
             Dwarf_Die *cu_die_p; 
             cu_die_p = dwarf_offdie(dbg, cu_die_off, &moduleDIE);
             if(cu_die_p == NULL) break;
-            /*if (status != 0) {
-                done = true;
-                goto cleanup_dwarf;
-            }*/
 
-            //status = dwarf_tag( moduleDIE, & moduleTag, NULL);
             Dwarf_Half moduleTag = dwarf_tag(&moduleDIE);
-            if (/*status != DW_DLV_OK ||*/ moduleTag != DW_TAG_compile_unit) {
-                //done = true;
-                //goto cleanup_dwarf;
+            if (moduleTag != DW_TAG_compile_unit) {
                 break;
             }
 
             /* Extract the name of this module. */
-            //status = dwarf_diename( moduleDIE, & moduleName, NULL );
             auto moduleName = dwarf_diename(&moduleDIE); 
-            if (/*status != DW_DLV_OK ||*/ !moduleName) {
-                //done = true;
-                //goto cleanup_dwarf;
+            if (!moduleName) {
                 break;
             }
             ptr = strrchr(moduleName, '/');
@@ -4018,21 +3988,14 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
                 ptr = moduleName;
 
             working_module = string(ptr);
-
-            //status = dwarf_attr( moduleDIE, DW_AT_language, & languageAttribute, NULL );
             auto attr_p = dwarf_attr(&moduleDIE, DW_AT_language, &languageAttribute);
             if (attr_p == NULL) {
-                //done = true;
-                //goto cleanup_dwarf;
                 break;
             }
 
-            //status = dwarf_formudata( languageAttribute, & languageConstant, NULL );
             Dwarf_Word languageConstant;
             int status = dwarf_formudata(&languageAttribute, &languageConstant);
             if (status != 0) {
-                //done = true;
-                //goto cleanup_dwarf;
                 break;
             }
 
@@ -4064,24 +4027,9 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
                     /* We know what the language is but don't care. */
                     break;
             } /* end languageConstant switch */
-
-            //cleanup_dwarf:
-            //if (languageAttribute)
-            //    dwarf_dealloc( dbg, languageAttribute, DW_DLA_ATTR );
-            //if (moduleName)
-            //    dwarf_dealloc( dbg, moduleName, DW_DLA_STRING );
-            //if (moduleDIE)
-            //    dwarf_dealloc( dbg, moduleDIE, DW_DLA_DIE );
-            //languageAttribute = NULL;
-            //moduleName = NULL;
-            //moduleDIE = NULL;
         }
-
     }
-#endif //TODO
-
 #endif 
-
 }
 
 bool AObject::getSegments(vector<Segment> &segs) const
@@ -4364,18 +4312,11 @@ struct open_statement {
 
 void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 {
-#if 0 //TODO
     std::vector<open_statement> open_statements;
-    //Dwarf **dbg_ptr = dwarf->line_dbg();
-    //if (!dbg_ptr)
-    //    return;
-    //if(!cuDIE) return;
-    //Dwarf *dbg = *dbg_ptr;
     
     /* Acquire this CU's source lines. */
     Dwarf_Lines * lineBuffer;
     size_t lineCount;
-    //Dwarf_Error ignored;
     int status = dwarf_getsrclines(&cuDIE, &lineBuffer, &lineCount);
 
     /* It's OK for a CU not to have line information. */
@@ -4411,9 +4352,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         {
             strings->push_back(filename);
         }
-        //dwarf_dealloc(dbg, files[i], DW_DLA_STRING);
     }
-    //dwarf_dealloc(dbg, files, DW_DLA_LIST);
     li_for_module->setStrings(strings);
 
     /* The 'lines' returned are actually interval markers; the code
@@ -4446,11 +4385,9 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         {
             cout << "dwarf_lineaddr failed" << endl;
             continue;
-
         }
 
         current_statement.start_addr += baseAddr;
-
 
         if (dwarf->debugLinkFile()) {
             Offset new_lineAddr;
@@ -4511,7 +4448,6 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         }
     } /* end iteration over source line entries. */
 
-
 /* Free this CU's source lines. */
     //dwarf_srclines_dealloc(dbg, lineBuffer, lineCount);
 }
@@ -4520,7 +4456,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 
 void Object::parseLineInfoForAddr(Offset addr_to_find)
 {
-    ::Dwarf **dbg_ptr = dwarf->line_dbg();
+    Dwarf **dbg_ptr = dwarf->line_dbg();
     if (!dbg_ptr)
         return;
     std::set<Module*> mod_for_offset;
@@ -4568,7 +4504,7 @@ void Object::parseTypeInfo()
 #endif
 
     parseStabTypes();
-    ::Dwarf ** typeInfo = dwarf->type_dbg();
+    Dwarf ** typeInfo = dwarf->type_dbg();
     if(!typeInfo) return;
     DwarfWalker walker(associated_symtab, *typeInfo);
     walker.parse();

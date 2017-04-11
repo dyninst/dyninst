@@ -237,10 +237,8 @@ void FunctionBase::expandLocation(const VariableLocation &loc,
    
    std::vector<VariableLocation> FDEs;
    Dyninst::DwarfDyninst::FrameErrors_t err;
-   frameParser->getRegsForFunction(getOffset(),
-                                   Dyninst::CFA,
-                                   FDEs,
-                                   err);
+   if(!frameParser) return;
+   frameParser->getRegsForFunction(getOffset(), Dyninst::CFA, FDEs, err);
 
 
    if (FDEs.empty()) {
