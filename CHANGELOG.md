@@ -1,28 +1,44 @@
 # Change Log
 
-## [v9.3.1](https://github.com/dyninst/dyninst/releases/v9.3.1) (2017-03-02)
-[Full Changelog](https://github.com/dyninst/dyninst/compare/v9.3.0...v9.3.1)
+## [v9.3.2](https://github.com/dyninst/dyninst/releases/v9.3.2) (2017-04-05)
+[Full Changelog](https://github.com/dyninst/dyninst/compare/v9.3.1...v9.3.2)
 
 **Fixed bugs:**
 
-- Abort on PPC64LE when trying to get line number info [\#337](https://github.com/dyninst/dyninst/issues/337)
-- Seg Fault on PPC64LE during attach [\#336](https://github.com/dyninst/dyninst/issues/336)
-- Memory leaks in indirect control flow analysis [\#322](https://github.com/dyninst/dyninst/issues/322)
-- BPatch\_binaryEdit::writeFile\(\) fails for stack diversification [\#311](https://github.com/dyninst/dyninst/issues/311)
-- Stackwalk issue on arm64  [\#303](https://github.com/dyninst/dyninst/issues/303)
-- Decode returns null shared pointer [\#288](https://github.com/dyninst/dyninst/issues/288)
-- Operands labelled "\[empty\]" with operand type mismatch \(all with 0x67 prefix\) [\#203](https://github.com/dyninst/dyninst/issues/203)
+- memcpy can fail with rewriter tests [\#355](https://github.com/dyninst/dyninst/issues/355)
+- dyninst does not build on i386 [\#343](https://github.com/dyninst/dyninst/issues/343)
+- \[ARMv8 Decoding\] SQ\* instructions need to check bits with specific values [\#268](https://github.com/dyninst/dyninst/issues/268)
+- \[ARMv8 Decoding\] SMADDL and SMSUBL should have 32-bit register for operands 2 and 3 [\#266](https://github.com/dyninst/dyninst/issues/266)
+- \[ARMv8 Decoding\] SHL and SLI should have 0 for bit 11 [\#265](https://github.com/dyninst/dyninst/issues/265)
+- \[ARMv8 Decoding\] NEG instruction must have size = '11' [\#263](https://github.com/dyninst/dyninst/issues/263)
+- \[ARMv8 Decoding\] FMUL instruction cannot have size:q = '10' [\#262](https://github.com/dyninst/dyninst/issues/262)
+- \[ARM Decoding\] FMUL instructions cannot have 'size:L' == '11' [\#258](https://github.com/dyninst/dyninst/issues/258)
+- \[ARM Decoding\] Convert instruction immediate has reserved values \(currently ignored\) [\#257](https://github.com/dyninst/dyninst/issues/257)
+- \[ARM Decoding\] FCVTXN should be FCVTXN2 [\#255](https://github.com/dyninst/dyninst/issues/255)
+- \[ARM Decoding\] FCVT 'type' field cannot equal 'opc' field [\#254](https://github.com/dyninst/dyninst/issues/254)
+- \[ARM Decoding\] Reserved size value for some vector register instructions is ignored [\#249](https://github.com/dyninst/dyninst/issues/249)
+- \[ARM Decoding\] Stack pointer used where zero register should be [\#248](https://github.com/dyninst/dyninst/issues/248)
+- \[ARM Decoding\] Signed multiply instructions ignore size resitrictions [\#247](https://github.com/dyninst/dyninst/issues/247)
+- \[ARM Decoding\] Paired memory accesses must access aligned memory [\#245](https://github.com/dyninst/dyninst/issues/245)
+- \[ARM Decoding\] Convert instruction immediates appear incorrect at 64 [\#241](https://github.com/dyninst/dyninst/issues/241)
+- \[ARM Decoding\] Convert instruction immediate should not be larger than the register size [\#240](https://github.com/dyninst/dyninst/issues/240)
+- \[ARM Syntax\] Signed immediates should be shown as signed [\#239](https://github.com/dyninst/dyninst/issues/239)
+- \[ARM Decoding\] We should print the full operands of PRFUM [\#238](https://github.com/dyninst/dyninst/issues/238)
+- \[ARM Decoding\] Bad shift amounts. [\#233](https://github.com/dyninst/dyninst/issues/233)
+- \[ARM Decoding\] SIMD load instruction should be valid [\#223](https://github.com/dyninst/dyninst/issues/223)
+- \[ARM Decoding\] Decoding of MOVK instruction ignores restriction on combination of size and hw bits [\#222](https://github.com/dyninst/dyninst/issues/222)
+- \[ARM Decoding\] Decoding of ADDHN ignore reserved size bits [\#221](https://github.com/dyninst/dyninst/issues/221)
+- \[ARM Syntax\] Zero register should have sizing, either XZR or WZR [\#220](https://github.com/dyninst/dyninst/issues/220)
+- \[ARM Decoding\] Invalid CCMP and CCMN decoded as valid [\#219](https://github.com/dyninst/dyninst/issues/219)
+- \[ARM Syntax\] Shifted immediate for CCMP and CCMN [\#218](https://github.com/dyninst/dyninst/issues/218)
+- \[ARM Syntax\] Immediate out of range for LDRSB [\#217](https://github.com/dyninst/dyninst/issues/217)
+- \[ARM Syntax\] Repeated register number as constant [\#216](https://github.com/dyninst/dyninst/issues/216)
 
 **Merged pull requests:**
 
-- Replaced a bunch of asserts with graceful error handling. [\#340](https://github.com/dyninst/dyninst/pull/340) ([wrwilliams](https://github.com/wrwilliams))
-- Fix jump table analysis for lulesh  [\#338](https://github.com/dyninst/dyninst/pull/338) ([mxz297](https://github.com/mxz297))
-- Better handling of anonymous structs and unions [\#335](https://github.com/dyninst/dyninst/pull/335) ([wrwilliams](https://github.com/wrwilliams))
-- Fix memory leaks found with lsan [\#333](https://github.com/dyninst/dyninst/pull/333) ([wrwilliams](https://github.com/wrwilliams))
-- Suppress debug message when no vsyscall page was found on arm64 [\#332](https://github.com/dyninst/dyninst/pull/332) ([wrwilliams](https://github.com/wrwilliams))
-- Use ifdef to guard x86 code [\#331](https://github.com/dyninst/dyninst/pull/331) ([wrwilliams](https://github.com/wrwilliams))
-- Fix memory leaks in indirect control flow. [\#329](https://github.com/dyninst/dyninst/pull/329) ([wrwilliams](https://github.com/wrwilliams))
-- Fixes for API and dependency issues in 9.3.0 [\#323](https://github.com/dyninst/dyninst/pull/323) ([wrwilliams](https://github.com/wrwilliams))
+- CMake fixup [\#349](https://github.com/dyninst/dyninst/pull/349) ([wrwilliams](https://github.com/wrwilliams))
+- Fix up exception handling code so that we only consider call instructions for exception sensitivity and its attendant emulation [\#347](https://github.com/dyninst/dyninst/pull/347) ([wrwilliams](https://github.com/wrwilliams))
+- Refactor BPatch\_type so it always has a reference to its underlying symtab type. [\#346](https://github.com/dyninst/dyninst/pull/346) ([wrwilliams](https://github.com/wrwilliams))
 
 
 
