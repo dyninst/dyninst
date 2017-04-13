@@ -127,6 +127,7 @@ void registerSpace::initialize64() {
                                              registerSlot::FPR));
     }
 
+    registerSpace::createRegisterSpace64(registers);
     done = true;
 }
 

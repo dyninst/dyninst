@@ -655,7 +655,7 @@ bool insnCodeGen::modifyData(Address target,
             Register rd = raw & 0x1F;
             loadImmIntoReg<Address>(gen, rd, target);
         }
-    } else if (((raw >> 24) & 0x3F) == 0x18) {
+    } else if (((raw >> 24) & 0x3F) == 0x18 || ((raw >> 24) & 0x3F) == 0x1C) {
     	Address offset = !isneg ? (target - gen.currAddr()) : (gen.currAddr() - target);
         //If offset is within +/- 1 MB, modify the instruction (LDR/LDRSW) with the new offset
         if (offset <= (1 << 20)) {
