@@ -241,7 +241,6 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     }
     XLFORM_LK_SET(branchToBr, (isCall ? 1 : 0));
     insnCodeGen::generate(gen,branchToBr);
-    if(save_lr) saveLR();
 }
 
 void insnCodeGen::generateBranchViaTrap(codeGen &gen, Address from, Address to, bool isCall) {
