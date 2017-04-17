@@ -156,7 +156,10 @@ SymtabCodeRegion::isCode(const Address addr) const
     map<Address, Address>::const_iterator dit = knownData.upper_bound(addr);
     if (dit != knownData.begin()) {
         --dit;
-	if (dit->first <= addr && dit->second > addr) return false;
+	if (dit->first < addr && dit->second > addr)
+	{
+		return false;
+	}
     }
     // XXX this is the predicate from Symtab::isCode(a) +
     //     the condition by which Symtab::codeRegions_ is filled
