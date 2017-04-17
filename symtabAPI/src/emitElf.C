@@ -1857,9 +1857,10 @@ bool emitElf<ElfTypes>::createSymbolTables(vector<Symbol *> &allSymbols) {
         symbolStrs.push_back(allSymSymbols[i]->getMangledName());
         symbolNamesLength += allSymSymbols[i]->getMangledName().length() + 1;
     }
+    int nTmp = dynsymVector.size();
     for (i = 0; i < allDynSymbols.size(); i++) {
         createElfSymbol(allDynSymbols[i], allDynSymbols[i]->getStrIndex(), dynsymbols, true);
-        dynSymNameMapping[allDynSymbols[i]->getMangledName().c_str()] = allDynSymbols[i]->getIndex();
+        dynSymNameMapping[allDynSymbols[i]->getMangledName().c_str()] = i + nTmp;//allDynSymbols[i]->getIndex();
         dynsymVector.push_back(allDynSymbols[i]);
     }
 
