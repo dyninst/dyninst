@@ -788,7 +788,45 @@ RegisterMap &machRegIndex_aarch64() {
 	 {aarch64::x27, 27},
 	 {aarch64::x28, 28},
 	 {aarch64::x29, 29},
-	 {aarch64::x30, 30} };
+	 {aarch64::x30, 30},
+     {aarch64::q0,  31},
+     {aarch64::q1,  32},
+     {aarch64::q2,  33},
+     {aarch64::q3,  34},
+     {aarch64::q4,  35},
+     {aarch64::q5,  36},
+     {aarch64::q6,  37},
+     {aarch64::q7,  38},
+     {aarch64::q8,  39},
+     {aarch64::q9,  40},
+     {aarch64::q10, 41},
+     {aarch64::q11, 42},
+     {aarch64::q12, 43},
+     {aarch64::q13, 44},
+     {aarch64::q14, 45},
+     {aarch64::q15, 46},
+     {aarch64::q16, 47},
+     {aarch64::q17, 48},
+     {aarch64::q18, 49},
+     {aarch64::q19, 50},
+     {aarch64::q20, 51},
+     {aarch64::q21, 52},
+     {aarch64::q22, 53},
+     {aarch64::q23, 54},
+     {aarch64::q24, 55},
+     {aarch64::q25, 56},
+     {aarch64::q26, 57},
+     {aarch64::q27, 58},
+     {aarch64::q28, 59},
+     {aarch64::q29, 60},
+     {aarch64::q30, 61},
+     {aarch64::q31, 62},
+     {aarch64::fpcr,63},
+     {aarch64::fpsr,64},
+     {aarch64::pc,  65},
+     {aarch64::sp,  66},
+     {aarch64::pstate, 67},
+     {aarch64::xzr, 68}};
    }
    return mrmap;
 }
@@ -1438,9 +1476,48 @@ RegisterMap &machRegIndex_aarch64() {
         (aarch64::x27, 27)
         (aarch64::x28, 28)
         (aarch64::x29, 29)
-        (aarch64::x30, 30);
-	 }
-	return mrmap;
+        (aarch64::x30, 30)
+        (aarch64::q0,  31)
+        (aarch64::q1,  32)
+        (aarch64::q2,  33)
+        (aarch64::q3,  34)
+        (aarch64::q4,  35)
+        (aarch64::q5,  36)
+        (aarch64::q6,  37)
+        (aarch64::q7,  38)
+        (aarch64::q8,  39)
+        (aarch64::q9,  40)
+        (aarch64::q10, 41)
+        (aarch64::q11, 42)
+        (aarch64::q12, 43)
+        (aarch64::q13, 44)
+        (aarch64::q14, 45)
+        (aarch64::q15, 46)
+        (aarch64::q16, 47)
+        (aarch64::q17, 48)
+        (aarch64::q18, 49)
+        (aarch64::q19, 50)
+        (aarch64::q20, 51)
+        (aarch64::q21, 52)
+        (aarch64::q22, 53)
+        (aarch64::q23, 54)
+        (aarch64::q24, 55)
+        (aarch64::q25, 56)
+        (aarch64::q26, 57)
+        (aarch64::q27, 58)
+        (aarch64::q28, 59)
+        (aarch64::q29, 60)
+        (aarch64::q30, 61)
+        (aarch64::q31, 62)
+        (aarch64::fpcr,63)
+        (aarch64::fpsr,64)
+        (aarch64::pc,  65)
+        (aarch64::sp,  66)
+        (aarch64::pstate, 67)
+        (aarch64::xzr, 68);
+   }
+
+   return mrmap;
 }
 
 #endif

@@ -543,10 +543,93 @@ void ABI::initialize64(){
 //#warning "This is not verified!"
 #if defined(arch_aarch64)
 void ABI::initialize32(){
-	assert(0);
+	return;
 }
 
 void ABI::initialize64(){
-	assert(0);
+    RegisterMap aarch64Map = machRegIndex_aarch64();
+	int sz = aarch64Map.size();
+
+	returnRegs64_ = getBitArray(sz);
+    returnRegs64_[aarch64Map[aarch64::x0]] = true;
+    returnRegs64_[aarch64Map[aarch64::q0]] = true;
+
+	returnRead64_ = getBitArray(sz);
+    returnRegs64_[aarch64Map[aarch64::x0]] = true;
+    returnRegs64_[aarch64Map[aarch64::q0]] = true;
+    //Callee-saved registers
+    //First, GPRs...
+    returnRegs64_[aarch64Map[aarch64::x19]] = true;
+    returnRegs64_[aarch64Map[aarch64::x20]] = true;
+    returnRegs64_[aarch64Map[aarch64::x21]] = true;
+    returnRegs64_[aarch64Map[aarch64::x22]] = true;
+    returnRegs64_[aarch64Map[aarch64::x23]] = true;
+    returnRegs64_[aarch64Map[aarch64::x24]] = true;
+    returnRegs64_[aarch64Map[aarch64::x25]] = true;
+    returnRegs64_[aarch64Map[aarch64::x26]] = true;
+    returnRegs64_[aarch64Map[aarch64::x27]] = true;
+    returnRegs64_[aarch64Map[aarch64::x28]] = true;
+    returnRegs64_[aarch64Map[aarch64::x29]] = true;
+    //Now, SIMD regs...
+    returnRegs64_[aarch64Map[aarch64::q8]] = true;
+    returnRegs64_[aarch64Map[aarch64::q9]] = true;
+    returnRegs64_[aarch64Map[aarch64::q10]] = true;
+    returnRegs64_[aarch64Map[aarch64::q11]] = true;
+    returnRegs64_[aarch64Map[aarch64::q12]] = true;
+    returnRegs64_[aarch64Map[aarch64::q13]] = true;
+    returnRegs64_[aarch64Map[aarch64::q14]] = true;
+    returnRegs64_[aarch64Map[aarch64::q15]] = true;
+
+	callRead64_ = getBitArray(sz);
+	//First, GPRs...
+	callRead64_[aarch64Map[aarch64::x0]] = true;
+	callRead64_[aarch64Map[aarch64::x1]] = true;
+	callRead64_[aarch64Map[aarch64::x2]] = true;
+	callRead64_[aarch64Map[aarch64::x3]] = true;
+	callRead64_[aarch64Map[aarch64::x4]] = true;
+	callRead64_[aarch64Map[aarch64::x5]] = true;
+	callRead64_[aarch64Map[aarch64::x6]] = true;
+	callRead64_[aarch64Map[aarch64::x7]] = true;
+	//Now, SIMD regs...
+	callRead64_[aarch64Map[aarch64::q0]] = true;
+	callRead64_[aarch64Map[aarch64::q1]] = true;
+	callRead64_[aarch64Map[aarch64::q2]] = true;
+	callRead64_[aarch64Map[aarch64::q3]] = true;
+	callRead64_[aarch64Map[aarch64::q4]] = true;
+	callRead64_[aarch64Map[aarch64::q5]] = true;
+	callRead64_[aarch64Map[aarch64::q6]] = true;
+	callRead64_[aarch64Map[aarch64::q7]] = true;
+
+	callWritten64_ = getBitArray(sz);
+	//First, GPRs...
+	callWritten64_[aarch64Map[aarch64::x9]] = true;
+	callWritten64_[aarch64Map[aarch64::x10]] = true;
+	callWritten64_[aarch64Map[aarch64::x11]] = true;
+	callWritten64_[aarch64Map[aarch64::x12]] = true;
+	callWritten64_[aarch64Map[aarch64::x13]] = true;
+	callWritten64_[aarch64Map[aarch64::x14]] = true;
+	callWritten64_[aarch64Map[aarch64::x15]] = true;
+	//Now, SIMD regs...
+	callWritten64_[aarch64Map[aarch64::q16]] = true;
+	callWritten64_[aarch64Map[aarch64::q17]] = true;
+	callWritten64_[aarch64Map[aarch64::q18]] = true;
+	callWritten64_[aarch64Map[aarch64::q19]] = true;
+	callWritten64_[aarch64Map[aarch64::q20]] = true;
+	callWritten64_[aarch64Map[aarch64::q21]] = true;
+	callWritten64_[aarch64Map[aarch64::q22]] = true;
+	callWritten64_[aarch64Map[aarch64::q23]] = true;
+	callWritten64_[aarch64Map[aarch64::q24]] = true;
+	callWritten64_[aarch64Map[aarch64::q25]] = true;
+	callWritten64_[aarch64Map[aarch64::q26]] = true;
+	callWritten64_[aarch64Map[aarch64::q27]] = true;
+	callWritten64_[aarch64Map[aarch64::q28]] = true;
+	callWritten64_[aarch64Map[aarch64::q29]] = true;
+	callWritten64_[aarch64Map[aarch64::q30]] = true;
+	callWritten64_[aarch64Map[aarch64::q31]] = true;
+
+	syscallRead64_ = getBitArray(sz).set();
+	syscallWritten64_ = getBitArray(sz).set();
+
+	allRegs64_ = getBitArray(sz).set();
 }
 #endif
