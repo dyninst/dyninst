@@ -87,8 +87,8 @@ ABI* ABI::getABI(int addr_width){
 //#warning "This is not verified yet!"
 #if defined(arch_aarch64)
 	globalABI64_->addr_width = 8;
-	globalABI_->index = &machRegIndex_ppc();
-	globalABI64_->index = &machRegIndex_ppc();
+	globalABI_->index = &machRegIndex_aarch64();
+	globalABI64_->index = &machRegIndex_aarch64();
 #endif
 
 	initialize32();
