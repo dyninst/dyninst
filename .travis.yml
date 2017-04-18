@@ -23,6 +23,12 @@ addons:
             - libelf-dev
             - g++-4.9
 
+env:
+    global:
+        - DYNINSTAPI_RT_LIB=$HOME/install/lib/libdyninstAPI_RT.so
+        - DYNINST_DEBUG_STARTUP=1
+        - PATH=$PATH:$HOME/install/bin
+
 compiler:
     - gcc
     - clang
@@ -37,11 +43,22 @@ before_install:
         tar xf llvm-$LLVM_VERSION.tar.xz --strip 1 -C $HOME/llvm-$LLVM_VERSION;
       fi
 
+before_script:
+    - git clone --depth 1 git://github.com/dyninst/testsuite
+
 script:
     - if [ "$CC" == "clang" ]; then export CC=$HOME/llvm-$LLVM_VERSION/bin/clang; export CXX=$HOME/llvm-$LLVM_VERSION/bin/clang++; fi
     - if [ "$CC" == "gcc" ]; then export CC=gcc-4.9; export CXX=g++-4.9; fi
     - find /usr -name 'libelf.*'
     - mkdir work
     - cd work
-    - cmake ..
-    - make
+    - cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/install
+    - make -j2
+    - make install
+    - cd ../testsuite
+    - mkdir work
+    - cd work
+    - cmake .. -DDyninst_DIR=$HOME/install/lib/cmake/Dyninst -DCMAKE_INSTALL_PREFIX=$HOME/install
+    - make -j2
+    - make install
+    - $HOME/install/bin/testsuite/runTests -all -log -verbose
