@@ -431,24 +431,6 @@ bool baseTramp::generateRestores(codeGen &gen,
 
 /***********************************************************************************************/
 /***********************************************************************************************/
-Register moveValueToReg(codeGen &gen, RegValue val) {
-    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
-
-    if (scratchReg == REG_NULL) {
-        fprintf(stderr, " %s[%d] No scratch register available to generate add instruction!", FILE__, __LINE__);
-        assert(0);
-    }
-
-    insnCodeGen::generateMove(gen, (val & 0xFFFF), 0, scratchReg, insnCodeGen::MovOp_MOVZ);
-    if (val >= MIN_IMM32 && val < MAX_IMM32)
-        insnCodeGen::generateMove(gen, ((val >> 16) & 0xFFFF), 0x1, scratchReg, insnCodeGen::MovOp_MOVK);
-    if (val < MIN_IMM32 || val > MAX_IMM32) {
-        insnCodeGen::generateMove(gen, ((val >> 32) & 0xFFFF), 0x2, scratchReg, insnCodeGen::MovOp_MOVK);
-        insnCodeGen::generateMove(gen, ((val >> 48) & 0xFFFF), 0x3, scratchReg, insnCodeGen::MovOp_MOVK);
-    }
-
-    return scratchReg;
-}
 
 //TODO: 32-/64-bit regs?
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, codeGen &gen, bool noCost, registerSpace * /* rs */) {
@@ -458,25 +440,25 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, codeGen 
             if(src2imm >= -(1 << 11) && src2imm < (long int)((1 << 11) - 1))
                 insnCodeGen::generateAddSubImmediate(gen, op == plusOp ? insnCodeGen::Add : insnCodeGen::Sub, 0, src2imm, src1, dest, false);
             else if(src2imm >= MIN_IMM16 && src2imm < MAX_IMM16) {
-                Register rm = moveValueToReg(gen, src2imm);
+                Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
                 insnCodeGen::generateAddSubShifted(gen, op == plusOp ? insnCodeGen::Add : insnCodeGen::Sub, 0, 0, rm, src1, dest, true);
             }
         }
             break;
         case timesOp: {
-            Register rm = moveValueToReg(gen, src2imm);
+            Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
             insnCodeGen::generateMul(gen, rm, src1, dest, true);
         }
             break;
         case divOp:
             break;
         case orOp: {
-            Register rm = moveValueToReg(gen, src2imm);
+            Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
             insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Or, 0, rm, 0, src1, dest, true);
         }
             break;
         case andOp:  {
-            Register rm = moveValueToReg(gen, src2imm);
+            Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
             insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::And, 0, rm, 0, src1, dest, true);
         }
             break;

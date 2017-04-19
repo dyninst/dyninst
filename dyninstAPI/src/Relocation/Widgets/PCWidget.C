@@ -172,6 +172,7 @@ string PCWidget::format() const {
 
 bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
   relocation_cerr << "\t\t IPPatch::apply" << endl;
+  relocation_cerr << "\t\t\t Generating IPPatch for target address " << std::hex << addr << ", CodeGen current address " << std::hex << gen.currAddr() << " and register number " << reg << endl;
 
   // We want to generate addr (as modified) into the appropriate location.
   // TODO get rid of the #ifdef here...
@@ -207,10 +208,6 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
     // For dynamic we can do this in-line
     assert(gen.addrSpace()->edit());
 
-    // Must be in LR
-    if (reg == (Register) -1) reg = registerSpace::lr;
-    assert(reg == registerSpace::lr);
-
     instPoint *point = gen.point();
     // If we do not have a point then we have to invent one
     if (!point || 
@@ -222,6 +219,28 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
     
     registerSpace *rs = registerSpace::actualRegSpace(point);
     gen.setRegisterSpace(rs);
+
+#if defined(arch_aarch64)
+    instruction adrInsn;
+    adrInsn.clear();
+
+    if(reg == (Register)-1) {
+	reg = gen.rs()->getScratchRegister(gen, true); 
+    }
+
+    INSN_SET(adrInsn, 28, 28, 0x1);
+    INSN_SET(adrInsn, 0, 4, reg);
+    insnCodeGen::generate(gen, adrInsn);
+
+    long int offset = addr - gen.currAddr() + 4;
+    pdvector<Register> exclude;
+    exclude.push_back(reg);
+    Register scratchReg = insnCodeGen::moveValueToReg(gen, offset, &exclude);
+    insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, 0, 0, scratchReg, reg, reg, true);
+#else
+    // Must be in LR
+    if (reg == (Register) -1) reg = registerSpace::lr;
+    assert(reg == registerSpace::lr);
     
     int stackSize = 0;
     pdvector<Register> freeReg;
@@ -260,6 +279,7 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
     if( stackSize > 0) {
       insnCodeGen::removeStackFrame(gen); 
     }
+#endif
 #endif
     return true;
 }

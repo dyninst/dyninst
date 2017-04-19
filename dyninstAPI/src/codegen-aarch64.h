@@ -163,6 +163,8 @@ public:
 
     static void generateMoveSP(codeGen &gen, Register rn, Register rd, bool is64bit);
 
+    static Register moveValueToReg(codeGen &gen, long int val, pdvector<Register> *exclude = NULL);
+
     static void generate(codeGen &gen, instruction &insn);
 
     static void write(codeGen &gen, instruction &insn) { generate(gen, insn); }

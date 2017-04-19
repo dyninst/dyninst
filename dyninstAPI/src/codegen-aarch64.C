@@ -360,6 +360,29 @@ void insnCodeGen::generateMoveSP(codeGen &gen, Register rn, Register rd, bool is
     insnCodeGen::generate(gen, insn);
 }
 
+Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, pdvector<Register> *exclude) {
+    Register scratchReg;
+    if(exclude)
+	    scratchReg = gen.rs()->getScratchRegister(gen, *exclude, true);
+    else
+	    scratchReg = gen.rs()->getScratchRegister(gen, true);
+
+    if (scratchReg == REG_NULL) {
+        fprintf(stderr, " %s[%d] No scratch register available to generate add instruction!", FILE__, __LINE__);
+        assert(0);
+    }
+
+    insnCodeGen::generateMove(gen, (val & 0xFFFF), 0, scratchReg, insnCodeGen::MovOp_MOVZ);
+    if (val >= MIN_IMM32 && val < MAX_IMM32)
+        insnCodeGen::generateMove(gen, ((val >> 16) & 0xFFFF), 0x1, scratchReg, insnCodeGen::MovOp_MOVK);
+    if (val < MIN_IMM32 || val > MAX_IMM32) {
+        insnCodeGen::generateMove(gen, ((val >> 32) & 0xFFFF), 0x2, scratchReg, insnCodeGen::MovOp_MOVK);
+        insnCodeGen::generateMove(gen, ((val >> 48) & 0xFFFF), 0x3, scratchReg, insnCodeGen::MovOp_MOVK);
+    }
+
+    return scratchReg;
+}
+
 /* Currently, I'm only considering generation of only STR/LDR and their register/immediate variants.*/
 void insnCodeGen::generateMemAccess32or64(codeGen &gen, LoadStore accType, Register r1, Register r2, int immd, bool is64bit)
 {
