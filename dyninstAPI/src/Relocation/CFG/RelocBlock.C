@@ -215,9 +215,10 @@ void RelocBlock::processEdge(EdgeDirection e, edge_instance *edge, RelocGraph *c
       block_instance *block = (e == OutEdge) ? edge->trg() : edge->src();
 
       func_instance *f = NULL;
-      // Let's determine the function. If this is a call edge, then block must be
-      // an entry block and we use its function. Otherwise we use ours. 
-      if (type == ParseAPI::CALL) {
+      // Let's determine the function. If this is an interprocedural edge,
+      // then block must be an entry block and we use its function. Otherwise
+      // we use ours.
+      if (edge->interproc()) {
          f = block->entryOfFunc();
       }
       else {
