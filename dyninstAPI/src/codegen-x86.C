@@ -36,6 +36,7 @@
 #include <map>
 #include <string>
 #include "common/src/Types.h"
+#include "common/src/ia32_locations.h"
 #include "codegen.h"
 #include "util.h"
 #include "debug.h"
@@ -1185,7 +1186,8 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
 
     /******************************************* prefix/opcode ****************/
 
-    ia32_instruction instruct;
+    ia32_locations loc;
+    ia32_instruction instruct(NULL, NULL, &loc);
 
     /**
      * This information is generated during ia32_decode. To make this faster
@@ -1203,7 +1205,7 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
         assert(!"Couldn't decode opcode of already known instruction!\n");
 
     /* Calculate the amount of opcode bytes */
-    size_t opcode_len = instruct.getSize() - pref_count;
+    size_t opcode_len = instruct.getLocationInfo().opcode_size;
     origInsn += opcode_len;
 
     /* Get the value of the Mod/RM byte */
