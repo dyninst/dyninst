@@ -28,8 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "RoseInsnFactory.h"
-//#include "../rose/x86InstructionSemantics.h"
-//#include "../rose/powerpcInstructionSemantics.h"
 
 #include "Instruction.h"
 #include "Dereference.h"

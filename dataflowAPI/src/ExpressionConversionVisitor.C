@@ -40,11 +40,6 @@
 
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
-
-//#include "../rose/x86InstructionSemantics.h"
-//#include "../rose/powerpcInstructionSemantics.h"
-
-using namespace Dyninst;
 using namespace DataflowAPI;
 
 void ExpressionConversionVisitor::visit(InstructionAPI::Immediate *immed) {

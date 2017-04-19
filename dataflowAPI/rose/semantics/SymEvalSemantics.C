@@ -8,61 +8,61 @@
 using namespace rose::BinaryAnalysis::InstructionSemantics2;
 
 ///////////////////////////////////////////////////////
-//                                           StateARM64
+//                                           StateAST
 ///////////////////////////////////////////////////////
 
-BaseSemantics::SValuePtr SymEvalSemantics::StateARM64::readRegister(const RegisterDescriptor &desc,
+BaseSemantics::SValuePtr SymEvalSemantics::StateAST::readRegister(const RegisterDescriptor &desc,
                                                                     const BaseSemantics::SValuePtr &/*dflt*/, BaseSemantics::RiscOperators */*ops*/) {
     ASSERT_require(desc.is_valid());
-    SymEvalSemantics::RegisterStateARM64Ptr registers = SymEvalSemantics::RegisterStateARM64::promote(registerState());
+    SymEvalSemantics::RegisterStateASTPtr registers = SymEvalSemantics::RegisterStateAST::promote(registerState());
     return registers->readRegister(desc, addr);
 }
 
-void SymEvalSemantics::StateARM64::writeRegister(const RegisterDescriptor &reg, const BaseSemantics::SValuePtr &value,
+void SymEvalSemantics::StateAST::writeRegister(const RegisterDescriptor &reg, const BaseSemantics::SValuePtr &value,
                                                  BaseSemantics::RiscOperators */*ops*/) {
     ASSERT_require(reg.is_valid());
     ASSERT_not_null(value);
-    SymEvalSemantics::RegisterStateARM64Ptr registers = SymEvalSemantics::RegisterStateARM64::promote(registerState());
+    SymEvalSemantics::RegisterStateASTPtr registers = SymEvalSemantics::RegisterStateAST::promote(registerState());
     registers->writeRegister(reg, value, res, aaMap);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::StateARM64::readMemory(const BaseSemantics::SValuePtr &address,
+BaseSemantics::SValuePtr SymEvalSemantics::StateAST::readMemory(const BaseSemantics::SValuePtr &address,
                                                                   const BaseSemantics::SValuePtr &/*dflt*/,
                                                                   BaseSemantics::RiscOperators */*addrOps*/,
                                                                   BaseSemantics::RiscOperators */*valOps*/,
                                                                   size_t readSize) {
     ASSERT_not_null(address);
-    SymEvalSemantics::MemoryStateARM64Ptr memory = SymEvalSemantics::MemoryStateARM64::promote(memoryState());
+    SymEvalSemantics::MemoryStateASTPtr memory = SymEvalSemantics::MemoryStateAST::promote(memoryState());
     return memory->readMemory(address, readSize);
 }
 
-void SymEvalSemantics::StateARM64::writeMemory(const BaseSemantics::SValuePtr &addr,
+void SymEvalSemantics::StateAST::writeMemory(const BaseSemantics::SValuePtr &addr,
                                                const BaseSemantics::SValuePtr &value,
                                                BaseSemantics::RiscOperators */*addrOps*/,
                                                BaseSemantics::RiscOperators */*valOps*/,
                                                size_t writeSize) {
     ASSERT_not_null(addr);
     ASSERT_not_null(value);
-    SymEvalSemantics::MemoryStateARM64Ptr memory = SymEvalSemantics::MemoryStateARM64::promote(memoryState());
+    SymEvalSemantics::MemoryStateASTPtr memory = SymEvalSemantics::MemoryStateAST::promote(memoryState());
     memory->writeMemory(addr, value, res, aaMap, writeSize);
 }
 
 ///////////////////////////////////////////////////////
-//                                   RegisterStateARM64
+//                                   RegisterStateAST
 ///////////////////////////////////////////////////////
 
-BaseSemantics::SValuePtr SymEvalSemantics::RegisterStateARM64::readRegister(const RegisterDescriptor &reg,
+BaseSemantics::SValuePtr SymEvalSemantics::RegisterStateAST::readRegister(const RegisterDescriptor &reg,
                                                                             Dyninst::Address addr) {
     return SymEvalSemantics::SValue::instance(wrap(convert(reg), addr));
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RegisterStateARM64::readRegister(const RegisterDescriptor &reg,
+BaseSemantics::SValuePtr SymEvalSemantics::RegisterStateAST::readRegister(const RegisterDescriptor &reg,
                                                                             const BaseSemantics::SValuePtr &/*dflt*/,
                                                                             BaseSemantics::RiscOperators */*ops*/) {
-    ASSERT_always_forbid("overridden RegisterState::readRegister() should never be called for ARM64, always use the non-virtual readRegister that takes Dyninst::Address as an argument.");
+    ASSERT_always_forbid("overridden RegisterState::readRegister() should never be called for AST, always use the non-virtual readRegister that takes Dyninst::Address as an argument.");
 }
 
-void SymEvalSemantics::RegisterStateARM64::writeRegister(const RegisterDescriptor &reg,
+void SymEvalSemantics::RegisterStateAST::writeRegister(const RegisterDescriptor &reg,
                                                          const BaseSemantics::SValuePtr &value,
                                                          Dyninst::DataflowAPI::Result_t &res,
                                                          std::map<Dyninst::Absloc, Dyninst::Assignment::Ptr> &aaMap) {
@@ -73,13 +73,17 @@ void SymEvalSemantics::RegisterStateARM64::writeRegister(const RegisterDescripto
     }
 }
 
-void SymEvalSemantics::RegisterStateARM64::writeRegister(const RegisterDescriptor &/*reg*/,
+void SymEvalSemantics::RegisterStateAST::writeRegister(const RegisterDescriptor &/*reg*/,
                                                          const BaseSemantics::SValuePtr &/*value*/,
                                                          BaseSemantics::RiscOperators */*ops*/) {
-    ASSERT_always_forbid("overridden RegisterState::writeRegister() should never be called for ARM64, always use the non-virtual writeRegister that also takes additional parameters.");
+    ASSERT_always_forbid("overridden RegisterState::writeRegister() should never be called for AST, always use the non-virtual writeRegister that also takes additional parameters.");
 }
 
-Dyninst::Absloc SymEvalSemantics::RegisterStateARM64::convert(const RegisterDescriptor &reg) {
+Dyninst::Absloc SymEvalSemantics::RegisterStateAST::convert(const RegisterDescriptor &reg) {
+    ASSERT_always_forbid("converting ROSE register to Dyninst register is platform specific, should not call this base class method.");
+}
+
+Dyninst::Absloc SymEvalSemantics::RegisterStateASTARM64::convert(const RegisterDescriptor &reg) {
     Dyninst::MachRegister mreg;
 
     unsigned int major = reg.get_major();
@@ -157,13 +161,113 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateARM64::convert(const RegisterDesc
     return Dyninst::Absloc(mreg);
 }
 
+Dyninst::Absloc SymEvalSemantics::RegisterStateASTPPC32::convert(const RegisterDescriptor &reg) {
+    Dyninst::MachRegister mreg;
+
+    unsigned int major = reg.get_major();
+    unsigned int size = reg.get_nbits();
+
+    switch (major) {
+        case powerpc_regclass_gpr: {
+            unsigned int minor = reg.get_minor();
+	    Dyninst::MachRegister base = Dyninst::ppc32::r0;
+
+	    // For some reason, ROSE does not provide a enum representation for power registers
+	    mreg = Dyninst::MachRegister(base.val() + minor);
+        }
+            break;
+        case powerpc_regclass_fpr: {
+            Dyninst::MachRegister base = Dyninst::ppc32::fpr0;
+            unsigned int minor = reg.get_minor();
+            mreg = Dyninst::MachRegister(base.val() + minor);
+        }
+            break;
+	    
+	case powerpc_regclass_cr: {
+	    unsigned int offset = reg.get_offset();
+	    if (size == 4) {
+	        Dyninst::MachRegister base = Dyninst::ppc32::cr0;
+		mreg = Dyninst::MachRegister(base.val() + offset / 4);
+	    } else if (size == 1) {
+	        Dyninst::MachRegister base;
+		if (offset < 4) {
+		    base = Dyninst::ppc32::cr0l;
+		} else if (offset < 8) {
+		    base = Dyninst::ppc32::cr1l;
+		} else {
+		    assert(!"not implemented cr fields");
+		}
+		mreg = Dyninst::MachRegister(base.val() + offset % 4);
+	    } else {
+	        assert(!"bad cr register size");
+	    }
+	}
+	    break;
+	
+	case powerpc_regclass_fpscr:
+	    assert(!"not implemented register class fpscr");
+	    break;
+
+	case powerpc_regclass_spr: {
+	    unsigned int minor = reg.get_minor();
+	    switch (minor) {
+	        case powerpc_spr_xer: 
+		    mreg = Dyninst::ppc32::xer;
+		    break;
+		case powerpc_spr_lr:
+		    mreg = Dyninst::ppc32::lr;
+		    break;
+		case powerpc_spr_ctr:
+		    mreg = Dyninst::ppc32::ctr;
+		    break;
+		case powerpc_spr_dsisr:
+		    mreg = Dyninst::ppc32::dsisr;
+		    break;
+		case powerpc_spr_dar:
+		    mreg = Dyninst::ppc32::dar;
+		    break;
+		case powerpc_spr_dec:
+		    mreg = Dyninst::ppc32::dec;
+		    break;
+		default:
+		    assert(!"not implemented special register");
+	    }
+	}
+	    break;
+	case powerpc_regclass_tbr:
+	    assert(!"not implemented regclass tbr");
+	    break;
+	
+	case powerpc_regclass_msr:
+	    mreg = Dyninst::ppc32::msr;
+	    break;
+	    
+	case powerpc_regclass_sr:
+	    assert(!"not implemented regclass sr");
+	    break;
+
+        case powerpc_regclass_iar:
+            mreg = Dyninst::ppc32::pc;
+            break;
+	    
+	case powerpc_regclass_pvr:
+	    mreg = Dyninst::ppc32::pvr;
+	    break;
+        default:
+            ASSERT_always_forbid("Unexpected register major type.");
+    }
+
+    return Dyninst::Absloc(mreg);
+}
+
+
 ///////////////////////////////////////////////////////
-//                                     MemoryStateARM64
+//                                     MemoryStateAST
 ///////////////////////////////////////////////////////
 
 //TODO: what is Len in this case?
 
-BaseSemantics::SValuePtr SymEvalSemantics::MemoryStateARM64::readMemory(const BaseSemantics::SValuePtr &address,
+BaseSemantics::SValuePtr SymEvalSemantics::MemoryStateAST::readMemory(const BaseSemantics::SValuePtr &address,
                                                                         size_t readSize) {
     SymEvalSemantics::SValuePtr addr = SymEvalSemantics::SValue::promote(address);
     return SymEvalSemantics::SValue::instance(Dyninst::DataflowAPI::RoseAST::create(Dyninst::DataflowAPI::ROSEOperation(Dyninst::DataflowAPI::ROSEOperation::derefOp, readSize),
@@ -171,14 +275,14 @@ BaseSemantics::SValuePtr SymEvalSemantics::MemoryStateARM64::readMemory(const Ba
                                                                                     Dyninst::DataflowAPI::ConstantAST::create(Dyninst::DataflowAPI::Constant(1, 1))));
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::MemoryStateARM64::readMemory(const BaseSemantics::SValuePtr &address,
+BaseSemantics::SValuePtr SymEvalSemantics::MemoryStateAST::readMemory(const BaseSemantics::SValuePtr &address,
                                                                         const BaseSemantics::SValuePtr &/*dflt*/,
                                                                         BaseSemantics::RiscOperators */*addrOps*/,
                                                                         BaseSemantics::RiscOperators */*valOps*/) {
-    ASSERT_always_forbid("overridden MemoryState::readMemory() should never be called for ARM64, always use the non-virtual readMemory that also takes additional parameters.");
+    ASSERT_always_forbid("overridden MemoryState::readMemory() should never be called for AST, always use the non-virtual readMemory that also takes additional parameters.");
 }
 
-void SymEvalSemantics::MemoryStateARM64::writeMemory(const BaseSemantics::SValuePtr &address,
+void SymEvalSemantics::MemoryStateAST::writeMemory(const BaseSemantics::SValuePtr &address,
                                                      const BaseSemantics::SValuePtr &value,
                                                      Dyninst::DataflowAPI::Result_t &res,
                                                      std::map<Dyninst::Absloc, Dyninst::Assignment::Ptr> &aaMap,
@@ -195,37 +299,37 @@ void SymEvalSemantics::MemoryStateARM64::writeMemory(const BaseSemantics::SValue
     }
 }
 
-void SymEvalSemantics::MemoryStateARM64::writeMemory(const BaseSemantics::SValuePtr &/*addr*/,
+void SymEvalSemantics::MemoryStateAST::writeMemory(const BaseSemantics::SValuePtr &/*addr*/,
                                                      const BaseSemantics::SValuePtr &/*value*/,
                                                      BaseSemantics::RiscOperators */*addrOps*/,
                                                      BaseSemantics::RiscOperators */*valOps*/) {
-    ASSERT_always_forbid("overridden MemoryState::writeMemory() should never be called for ARM64, always use the non-virtual writeMemory that also takes additional parameters.");
+    ASSERT_always_forbid("overridden MemoryState::writeMemory() should never be called for AST, always use the non-virtual writeMemory that also takes additional parameters.");
 }
 
 ///////////////////////////////////////////////////////
 //                                        RiscOperators
 ///////////////////////////////////////////////////////
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::and_(const BaseSemantics::SValuePtr &a_,
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::and_(const BaseSemantics::SValuePtr &a_,
                                                                const BaseSemantics::SValuePtr &b_) {
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::andOp, a_, b_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::or_(const BaseSemantics::SValuePtr &a_,
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::or_(const BaseSemantics::SValuePtr &a_,
                                                               const BaseSemantics::SValuePtr &b_) {
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::orOp, a_, b_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::xor_(const BaseSemantics::SValuePtr &a_,
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::xor_(const BaseSemantics::SValuePtr &a_,
                                                                const BaseSemantics::SValuePtr &b_) {
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::xorOp, a_, b_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::invert(const BaseSemantics::SValuePtr &a_) {
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::invert(const BaseSemantics::SValuePtr &a_) {
     return createUnaryAST(Dyninst::DataflowAPI::ROSEOperation::invertOp, a_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::extract(const BaseSemantics::SValuePtr &a_, uint64_t begin,
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::extract(const BaseSemantics::SValuePtr &a_, uint64_t begin,
                                                                   uint64_t end) {
     BaseSemantics::SValuePtr begin_ = SymEvalSemantics::SValue::instance(64, begin);
     BaseSemantics::SValuePtr end_ = SymEvalSemantics::SValue::instance(64, end);
@@ -233,68 +337,68 @@ BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::extract(const Bas
     return createTernaryAST(Dyninst::DataflowAPI::ROSEOperation::extractOp, a_, begin_, end_, end - begin);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::ite(const BaseSemantics::SValuePtr &sel_,
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::ite(const BaseSemantics::SValuePtr &sel_,
                                                               const BaseSemantics::SValuePtr &a_,
                                                               const BaseSemantics::SValuePtr &b_) {
     return createTernaryAST(Dyninst::DataflowAPI::ROSEOperation::ifOp, sel_, a_, b_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::concat(const BaseSemantics::SValuePtr &a_,
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::concat(const BaseSemantics::SValuePtr &a_,
                                                                  const BaseSemantics::SValuePtr &b_) {
     //TODO: should be able to specify number of bits to concat for each expression
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::concatOp, a_, b_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::leastSignificantSetBit(const BaseSemantics::SValuePtr &a_) {
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::leastSignificantSetBit(const BaseSemantics::SValuePtr &a_) {
     return createUnaryAST(Dyninst::DataflowAPI::ROSEOperation::LSBSetOp, a_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::mostSignificantSetBit(const BaseSemantics::SValuePtr &a_) {
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::mostSignificantSetBit(const BaseSemantics::SValuePtr &a_) {
     return createUnaryAST(Dyninst::DataflowAPI::ROSEOperation::MSBSetOp, a_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::rotateLeft(const BaseSemantics::SValuePtr &a_,
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::rotateLeft(const BaseSemantics::SValuePtr &a_,
                                                                      const BaseSemantics::SValuePtr &b_) {
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::rotateLOp, a_, b_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::rotateRight(const BaseSemantics::SValuePtr &a_,
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::rotateRight(const BaseSemantics::SValuePtr &a_,
                                                                       const BaseSemantics::SValuePtr &b_) {
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::rotateROp, a_, b_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::shiftLeft(const BaseSemantics::SValuePtr &a_,
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::shiftLeft(const BaseSemantics::SValuePtr &a_,
                                                                     const BaseSemantics::SValuePtr &b_) {
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::shiftLOp, a_, b_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::shiftRight(const BaseSemantics::SValuePtr &a_,
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::shiftRight(const BaseSemantics::SValuePtr &a_,
                                                                      const BaseSemantics::SValuePtr &b_) {
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::shiftROp, a_, b_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::shiftRightArithmetic(const BaseSemantics::SValuePtr &a_,
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::shiftRightArithmetic(const BaseSemantics::SValuePtr &a_,
                                                                                const BaseSemantics::SValuePtr &b_) {
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::shiftRArithOp, a_, b_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::equalToZero(const BaseSemantics::SValuePtr &a_) {
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::equalToZero(const BaseSemantics::SValuePtr &a_) {
     return createUnaryAST(Dyninst::DataflowAPI::ROSEOperation::equalToZeroOp, a_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::signExtend(const BaseSemantics::SValuePtr &a_,
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::signExtend(const BaseSemantics::SValuePtr &a_,
                                                                      uint64_t newwidth) {
     BaseSemantics::SValuePtr width_ = SymEvalSemantics::SValue::instance(64, newwidth);
 
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::signExtendOp, a_, width_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::add(const BaseSemantics::SValuePtr &a_,
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::add(const BaseSemantics::SValuePtr &a_,
                                                               const BaseSemantics::SValuePtr &b_) {
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::addOp, a_, b_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::addWithCarries(const BaseSemantics::SValuePtr &a_,
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::addWithCarries(const BaseSemantics::SValuePtr &a_,
                                                                          const BaseSemantics::SValuePtr &b_,
                                                                          const BaseSemantics::SValuePtr &c_,
                                                                          BaseSemantics::SValuePtr &carry_out) {
@@ -310,49 +414,49 @@ BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::addWithCarries(co
     return extract(sum_, 0, a_->get_width());
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::negate(const BaseSemantics::SValuePtr &a_) {
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::negate(const BaseSemantics::SValuePtr &a_) {
     return createUnaryAST(Dyninst::DataflowAPI::ROSEOperation::negateOp, a_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::signedDivide(const BaseSemantics::SValuePtr &a_,
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::signedDivide(const BaseSemantics::SValuePtr &a_,
                                                                        const BaseSemantics::SValuePtr &b_) {
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::sDivOp, a_, b_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::signedModulo(const BaseSemantics::SValuePtr &a_,
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::signedModulo(const BaseSemantics::SValuePtr &a_,
                                                                        const BaseSemantics::SValuePtr &b_) {
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::sModOp, a_, b_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::signedMultiply(const BaseSemantics::SValuePtr &a_,
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::signedMultiply(const BaseSemantics::SValuePtr &a_,
                                                                          const BaseSemantics::SValuePtr &b_) {
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::sMultOp, a_, b_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::unsignedDivide(const BaseSemantics::SValuePtr &a_,
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::unsignedDivide(const BaseSemantics::SValuePtr &a_,
                                                                        const BaseSemantics::SValuePtr &b_) {
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::uDivOp, a_, b_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::unsignedModulo(const BaseSemantics::SValuePtr &a_,
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::unsignedModulo(const BaseSemantics::SValuePtr &a_,
                                                                        const BaseSemantics::SValuePtr &b_) {
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::uModOp, a_, b_);
 }
 
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::unsignedMultiply(const BaseSemantics::SValuePtr &a_,
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::unsignedMultiply(const BaseSemantics::SValuePtr &a_,
                                                                          const BaseSemantics::SValuePtr &b_) {
     return createBinaryAST(Dyninst::DataflowAPI::ROSEOperation::uMultOp, a_, b_);
 }
 
 //TODO: do we deal with byte ordering?
-BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsARM64::readMemory(const RegisterDescriptor &/*segreg*/,
+BaseSemantics::SValuePtr SymEvalSemantics::RiscOperatorsAST::readMemory(const RegisterDescriptor &/*segreg*/,
                                                                      const BaseSemantics::SValuePtr &addr,
                                                                      const BaseSemantics::SValuePtr &dflt,
                                                                      const BaseSemantics::SValuePtr &/*cond*/) {
     return currentState()->readMemory(addr, dflt, this, this);
 }
 
-void SymEvalSemantics::RiscOperatorsARM64::writeMemory(const RegisterDescriptor &/*segreg*/,
+void SymEvalSemantics::RiscOperatorsAST::writeMemory(const RegisterDescriptor &/*segreg*/,
                                                   const BaseSemantics::SValuePtr &addr,
                                                   const BaseSemantics::SValuePtr &data,
                                                   const BaseSemantics::SValuePtr &/*cond*/) {

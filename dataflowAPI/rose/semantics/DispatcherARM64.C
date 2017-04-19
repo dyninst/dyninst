@@ -3497,7 +3497,7 @@ namespace rose {
 
             BaseSemantics::SValuePtr
             DispatcherARM64::readMemory(const BaseSemantics::SValuePtr &addr, size_t readSize) {
-                SymEvalSemantics::StateARM64Ptr state = SymEvalSemantics::StateARM64::promote(operators->currentState());
+                SymEvalSemantics::StateASTPtr state = SymEvalSemantics::StateAST::promote(operators->currentState());
 
                 //The second, third and fourth arguments will remain unused
                 return state->readMemory(addr, operators->unspecified_(1), NULL, NULL, readSize);
@@ -3505,7 +3505,7 @@ namespace rose {
 
             void
             DispatcherARM64::writeMemory(const BaseSemantics::SValuePtr &addr, size_t writeSize, const BaseSemantics::SValuePtr &data) {
-                SymEvalSemantics::StateARM64Ptr state = SymEvalSemantics::StateARM64::promote(operators->currentState());
+                SymEvalSemantics::StateASTPtr state = SymEvalSemantics::StateAST::promote(operators->currentState());
 
                 //The third and fourth arguments will remain unused
                 state->writeMemory(addr, data, NULL, NULL, writeSize);
