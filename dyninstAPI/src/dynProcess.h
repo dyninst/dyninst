@@ -101,6 +101,7 @@ public:
     ~PCProcess();
 
     static std::string createExecPath(const std::string &file, const std::string &dir);
+    virtual bool getDyninstRTLibName();
 
     bool continueProcess();
     bool stopProcess();

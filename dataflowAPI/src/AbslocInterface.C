@@ -39,7 +39,7 @@
 #include "Dereference.h"
 
 #include "dataflowAPI/h/stackanalysis.h"
-
+#include "common/src/singleton_object_pool.h"
 #include "parseAPI/h/CFG.h"
 #include "parseAPI/h/CodeObject.h"
 
@@ -90,7 +90,20 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
 
     for (std::set<RegisterAST::Ptr>::const_iterator i = regsRead.begin();
 	 i != regsRead.end(); ++i) {
-      used.push_back(AbsRegionConverter::convert(*i));
+        if(insn->getArch() == Arch_aarch64) {
+            MachRegister machReg = (*i)->getID();
+            std::vector<MachRegister> flagRegs = {aarch64::n, aarch64::z, aarch64::c, aarch64::v};
+
+            if((machReg & 0xFF) == (aarch64::pstate & 0xFF) && (machReg & 0xFF0000) == (aarch64::SPR)) {
+                for(std::vector<MachRegister>::iterator itr = flagRegs.begin(); itr != flagRegs.end(); itr++) {
+                    used.push_back(AbsRegionConverter::convert(RegisterAST::Ptr(new RegisterAST(*itr))));
+                }
+            } else {
+                used.push_back(AbsRegionConverter::convert(*i));
+            }
+        } else {
+            used.push_back(AbsRegionConverter::convert(*i));
+        }
     }
     
     if (insn->readsMemory()) {
@@ -110,7 +123,20 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
     
     for (std::set<RegisterAST::Ptr>::const_iterator i = regsWritten.begin();
 	 i != regsWritten.end(); ++i) {
-      defined.push_back(AbsRegionConverter::convert(*i));
+      if(insn->getArch() == Arch_aarch64) {
+            MachRegister machReg = (*i)->getID();
+            std::vector<MachRegister> flagRegs = {aarch64::n, aarch64::z, aarch64::c, aarch64::v};
+
+            if((machReg & 0xFF) == (aarch64::pstate & 0xFF) && (machReg & 0xFF0000) == (aarch64::SPR)) {
+                for(std::vector<MachRegister>::iterator itr = flagRegs.begin(); itr != flagRegs.end(); itr++) {
+                    defined.push_back(AbsRegionConverter::convert(RegisterAST::Ptr(new RegisterAST(*itr))));
+                }
+            } else {
+                defined.push_back(AbsRegionConverter::convert(*i));
+            }
+        } else {
+            defined.push_back(AbsRegionConverter::convert(*i));
+        }
     }
 
     // special case for repeat-prefixed instructions on x86
@@ -275,6 +301,10 @@ AbsRegion AbsRegionConverter::stack(Address addr,
 				    ParseAPI::Function *func,
                                     ParseAPI::Block *block,
 				    bool push) {
+    if(!stackAnalysisEnabled_) {
+//        std::cerr << "Stack analysis disabled, returning Stack absregion" << std::endl;
+        return AbsRegion(Absloc::Stack);
+    }
     long spHeight = 0;
     bool stackExists = getCurrentStackHeight(func,
                                              block,

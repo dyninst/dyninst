@@ -55,6 +55,9 @@
 
 #include "symtabAPI/src/Object.h"
 
+#include <boost/function_output_iterator.hpp>
+#include <boost/foreach.hpp>
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
@@ -369,9 +372,9 @@ bool Symtab::getAllVariables(std::vector<Variable *> &ret)
 
 bool Symtab::getAllModules(std::vector<Module *> &ret)
 {
-    if (_mods.size() >0 )
+    if (indexed_modules.size() >0 )
     {
-        ret = _mods;
+        std::copy(indexed_modules.begin(), indexed_modules.end(), std::back_inserter(ret));
         return true;
     }	
 
@@ -379,51 +382,50 @@ bool Symtab::getAllModules(std::vector<Module *> &ret)
     return false;
 }
 
-bool module_less(Module* lhs, Module* rhs)
-{
-    if(lhs == NULL) return false;
-    if(rhs == NULL) return true;
-    return lhs->addr() < rhs->addr();
-}
-
 
 bool Symtab::findModuleByOffset(Module *&ret, Offset off)
 {
-    std::sort(_mods.begin(), _mods.end(), module_less);
-    //  this should be a hash, really
-    for(size_t i = 0; i < _mods.size(); i++)
+
+    std::set<ModRange*> mods;
+    mod_lookup()->find(off, mods);
+    if(!mods.empty())
     {
-//        cout << *(_mods[i]) << endl;
-        if(_mods[i]->addr() == off)
-        //&& i < _mods.size() - 1 &&
-        //        off < _mods[i+1]->addr())
-        {
-            ret = _mods[i];
-            return true;
-        }
+        ret = (*mods.begin())->id();
     }
-    ret = NULL;
-    return false;
+    return !mods.empty();
+}
+
+bool Symtab::findModuleByOffset(std::set<Module *>&ret, Offset off)
+{
+    std::set<ModRange*> mods;
+    ret.clear();
+    mod_lookup()->find(off, mods);
+    for(auto i = mods.begin();
+            i != mods.end();
+            ++i)
+    {
+        ret.insert((*i)->id());
+    }
+    return !ret.empty();
 }
 
 bool Symtab::findModuleByName(Module *&ret, const std::string name)
 {
-   dyn_hash_map<std::string, Module *>::iterator loc;
-   loc = modsByFullName.find(name);
+   auto loc = indexed_modules.get<3>().find(name);
 
-   if (loc != modsByFullName.end()) 
+   if (loc != indexed_modules.get<3>().end())
    {
-      ret = loc->second;
+      ret = *(loc);
       return true;
    }
 
    std::string tmp = extract_pathname_tail(name);
 
-   loc = modsByFileName.find(tmp);
+   auto loc2 = indexed_modules.get<2>().find(tmp);
 
-   if (loc != modsByFileName.end()) 
+   if (loc2 != indexed_modules.get<2>().end())
    {
-      ret = loc->second;
+      ret = *loc2;
       return true;
    }
 
@@ -880,16 +882,8 @@ bool Symtab::getContainingInlinedFunction(Offset offset, FunctionBase* &func)
 }
 
 Module *Symtab::getDefaultModule() {
-    Module *mod = NULL;
-    // TODO: automatically pick the module that contains this address?
-    // For now, DEFAULT_MODULE or (if we have only one) that one.
-    if (_mods.size() == 1)
-        return _mods[0];
-    else {
-        if (!findModuleByName(mod, name()))
-            return NULL;
-    }
-    return mod;
+    if(indexed_modules.empty()) createDefaultModule();
+    return indexed_modules[0];
 }
 
 unsigned Function::getSize() const {

@@ -47,6 +47,7 @@
 #include <sstream>
 #include <libelf.h>
 
+
 using namespace std;
 using boost::crc_32_type;
 using namespace boost::assign;
@@ -855,24 +856,6 @@ size_t Elf_X_Data::d_align() const
 {
     return data->d_align;
 }
-void Elf_X_Data::xlatetom(unsigned int encode)
-{
-    if(is64)
-    {
-        elf64_xlatetom(data, data, encode);
-    } else {
-        elf32_xlatetom(data, data, encode);
-    }
-}
-void Elf_X_Data::xlatetof(unsigned int encode)
-{
-    if(is64)
-    {
-        elf64_xlatetof(data, data, encode);
-    } else {
-        elf32_xlatetof(data, data, encode);
-    }
-}
 
 // Write Interface
 void Elf_X_Data::d_buf(void *input)
@@ -903,6 +886,29 @@ void Elf_X_Data::d_off(signed int input)
 void Elf_X_Data::d_align(unsigned int input)
 {
     data->d_align = input;
+}
+void Elf_X_Data::xlatetom(unsigned int encode)
+{
+    if(is64)
+    {
+        elf64_xlatetom(data, data, encode);
+    } else {
+        elf32_xlatetom(data, data, encode);
+    }
+}
+void Elf_X_Data::xlatetof(unsigned int encode)
+{
+    Elf_Data tmp;
+    memcpy(&tmp, data, sizeof(Elf_Data));
+    tmp.d_buf = malloc(tmp.d_size);
+    if(is64)
+    {
+        elf64_xlatetof(data, data, encode);
+    } else {
+        elf32_xlatetof(data, data, encode);
+    }
+    memcpy(data->d_buf, tmp.d_buf, tmp.d_size);
+    free(tmp.d_buf);
 }
 
 // Data Interface
@@ -1686,7 +1692,7 @@ bool Elf_X::findDebugFile(std::string origfilename, string &output_name, char* &
               buildid_path << "/usr/lib/debug/.build-id/"
                  << hex << setfill('0') << setw(2) << (unsigned)desc[0] << '/';
               for (unsigned long j = 1; j < note.n_descsz(); ++j)
-                 buildid_path << (unsigned)desc[j];
+                 buildid_path << setw(2) << (unsigned)desc[j];
               buildid_path << ".debug";
               debugFileFromBuildID = buildid_path.str();
               break;
@@ -1739,6 +1745,39 @@ bool Elf_X::findDebugFile(std::string origfilename, string &output_name, char* &
   }
 
   return false;
+}
+
+// Add definitions that may not be in all elf.h files
+#if !defined(EM_K10M)
+#define EM_K10M 180
+#endif
+#if !defined(EM_L10M)
+#define EM_L10M 181
+#endif
+#if !defined(EM_AARCH64)
+#define EM_AARCH64 183
+#endif
+Dyninst::Architecture Elf_X::getArch() const
+{
+    switch(e_machine())
+    {
+        case EM_PPC:
+            return Dyninst::Arch_ppc32;
+        case EM_PPC64:
+            return Dyninst::Arch_ppc64;
+        case EM_386:
+            return Dyninst::Arch_x86;
+        case EM_X86_64:
+        case EM_K10M:
+        case EM_L10M:
+            return Dyninst::Arch_x86_64;
+        case EM_ARM:
+            return Dyninst::Arch_aarch32;
+        case EM_AARCH64:
+            return Dyninst::Arch_aarch64;
+        default:
+            return Dyninst::Arch_none;
+    }
 }
 
 // ------------------------------------------------------------------------

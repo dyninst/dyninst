@@ -293,16 +293,18 @@ Function *Symtab::createFunction(std::string name,
     }
 
     // Check to see if we contain this module...
-    bool found = false;
-    for (unsigned i = 0; i < _mods.size(); i++) {
-        if (_mods[i] == mod) {
-            found = true;
-            break;
-        }
-    }
-    if (!found) {
-        return NULL;
-    }
+    if(indexed_modules.get<1>().find(mod) == indexed_modules.get<1>().end()) return NULL;
+//
+//    bool found = false;
+//    for (unsigned i = 0; i < indexed_modules.size(); i++) {
+//        if (indexed_modules[i] == mod) {
+//            found = true;
+//            break;
+//        }
+//    }
+//    if (!found) {
+//        return NULL;
+//    }
     
     Symbol *statSym = new Symbol(name, 
                                  Symbol::ST_FUNCTION, 
@@ -350,14 +352,18 @@ Variable *Symtab::createVariable(std::string name,
         mod = getDefaultModule();
     }
     // Check to see if we contain this module...
-    bool found = false;
-    for (unsigned i = 0; i < _mods.size(); i++) {
-        if (_mods[i] == mod) {
-            found = true;
-            break;
-        }
-    }
-    if (!found) return NULL;
+    if(indexed_modules.get<1>().find(mod) == indexed_modules.get<1>().end()) return NULL;
+//
+//    bool found = false;
+//    for (unsigned i = 0; i < indexed_modules.size(); i++) {
+//        if (indexed_modules[i] == mod) {
+//            found = true;
+//            break;
+//        }
+//    }
+//    if (!found) {
+//        return NULL;
+//    }
     
     Symbol *statSym = new Symbol(name, 
                                  Symbol::ST_OBJECT, 

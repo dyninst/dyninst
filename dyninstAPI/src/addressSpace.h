@@ -186,7 +186,7 @@ class AddressSpace : public InstructionSource {
     virtual void addTrap(Address from, Address to, codeGen &gen) = 0;
     virtual void removeTrap(Address from) = 0;
 
-    bool getDyninstRTLibName();
+    virtual bool getDyninstRTLibName();
 
     // InstructionSource 
     virtual bool isValidAddress(const Address) const;

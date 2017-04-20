@@ -35,6 +35,5 @@ InstructionSource::isAligned(const Address addr) const
 {
 //aarch64: instructions have a width of 32bits.
 //0x3 should be fine.
-		assert(0);
     return !(addr & 0x3);
 }

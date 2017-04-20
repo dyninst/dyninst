@@ -52,7 +52,7 @@
 #include "Function.h"
 #include "Variable.h"
 #include "emitWin.h"
-
+#include "SymReader.h"
 #include "common/src/headers.h"
 
 using namespace Dyninst;
@@ -1116,8 +1116,8 @@ void fixup_filename(std::string &filename)
 
 Object::Object(MappedFile *mf_,
                bool defensive, 
-               void (*err_func)(const char *), bool alloc_syms) :
-    AObject(mf_, err_func),
+               void (*err_func)(const char *), bool alloc_syms, Symtab *st) :
+    AObject(mf_, err_func, st),
     curModule( NULL ),
     baseAddr( 0 ),
     imageBase( 0 ),
@@ -1211,7 +1211,7 @@ static bool store_line_info(Symtab* st,	info_for_all_files_t *baseInfo)
    return true;
 }
 
-void Object::parseFileLineInfo(Symtab *st)
+void Object::parseFileLineInfo()
 {   
   if(parsedAllLineInfo) return;
   
@@ -1238,7 +1238,7 @@ void Object::parseFileLineInfo(Symtab *st)
 	//	   __FILE__, __LINE__, src_file_name, libname);
     return;
   }
-  store_line_info(st, &inf);
+  store_line_info(associated_symtab, &inf);
   
 }
 
@@ -2170,7 +2170,7 @@ BOOL CALLBACK add_type_info(PSYMBOL_INFO pSymInfo, ULONG SymbolSize, void *info)
    return TRUE;
 }
 
-void Object::parseTypeInfo(Symtab *obj) {
+void Object::parseTypeInfo() {
     proc_mod_pair pair;
     BOOL result;
     //
@@ -2178,7 +2178,7 @@ void Object::parseTypeInfo(Symtab *obj) {
     //
 
     pair.handle = hProc;
-    pair.obj = obj;
+    pair.obj = associated_symtab;
     pair.base_addr = getBaseAddress();
     
     if (!pair.base_addr) {
@@ -2197,7 +2197,7 @@ void Object::parseTypeInfo(Symtab *obj) {
     // Parse local variables and local type information
     //
     std::vector<Function *> funcs;
-	obj->getAllFunctions(funcs);
+	associated_symtab->getAllFunctions(funcs);
     for (unsigned i=0; i < funcs.size(); i++) {
         findLocalVars(funcs[i], pair);
     }
@@ -2218,11 +2218,26 @@ bool AObject::getSegments(vector<Segment> &segs) const
     return true;
 }
 
-bool Object::emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&allSymbols, 
-						unsigned flag) 
+void Object::getSegmentsSymReader(std::vector<SymSegment> & sym_segs)
+{
+	for(auto i = regions_.begin();
+			i != regions_.end();
+			++i)
+	{
+		SymSegment s;
+		s.file_offset = (*i)->getDiskOffset();
+		s.file_size = (*i)->getDiskSize();
+		s.mem_addr = (*i)->getMemOffset();
+		s.mem_size = (*i)->getMemSize();
+		s.perms = (*i)->getRegionPermissions();
+		s.type = (*i)->getRegionType();
+	}
+}
+
+bool Object::emitDriver(string fName, std::vector<Symbol *> &allSymbols, unsigned flag)
 {
 	emitWin *em = new emitWin((PCHAR)GetMapAddr(), this, err_func_);
-	return em -> driver(obj, fName);
+	return em -> driver(associated_symtab, fName);
 }
 
 // automatically discards duplicates
@@ -2336,9 +2351,17 @@ void Object::insertPrereqLibrary(std::string lib)
            getRegionPermissions() == RP_RWX);
 }
 
-Dyninst::Architecture Object::getArch()
+Dyninst::Architecture Object::getArch() const
 {
-   return Dyninst::Arch_x86;
+    switch (peHdr->FileHeader.Machine)
+    {
+    case IMAGE_FILE_MACHINE_I386:
+        return Dyninst::Arch_x86;
+    case IMAGE_FILE_MACHINE_AMD64:
+        return Dyninst::Arch_x86_64;
+    default:
+        return Dyninst::Arch_none;
+    }
 }
 
 /*

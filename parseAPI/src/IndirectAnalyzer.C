@@ -17,9 +17,10 @@ using namespace Dyninst::InstructionAPI;
 
 
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
-//    if (block->last() == 0xacef04) dyn_debug_parsing = 1; else dyn_debug_parsing=0;
+//    if (block->last() == 0x3ed4f33e9e) dyn_debug_parsing=1; else dyn_debug_parsing=0;
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
     parsing_printf("Looking for thunk\n");
+
 //  Find all blocks that reach the block containing the indirect jump
 //  This is a prerequisit for finding thunks
     GetAllReachableBlock();
@@ -46,7 +47,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     // After the slicing is done, we do one last check to 
     // see if we can resolve the indirect jump by assuming 
     // one byte read is in bound [0,255]
-    if (jumpTableOutEdges.empty() && jtp.jumpTableFormat) {
+    if (jumpTableOutEdges.empty() && jtp.jumpTableFormat && block->obj()->cs()->getArch() != Arch_aarch64) {
         GraphPtr g = jtp.BuildAnalysisGraph(s.visitedEdges);
 	
 	BoundFactsCalculator bfc(func, g, func->entry() == block, rf, thunks, true, jtp.expandCache);
@@ -118,10 +119,10 @@ void IndirectControlFlowAnalyzer::FindAllThunks() {
 	    parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",FILE__, __LINE__);
 	    return;
 	}
-	parsing_printf("Looking for thunk in block [%lx,%lx).", b->start(), b->end());
 	InstructionDecoder dec(buf, b->end() - b->start(), b->obj()->cs()->getArch());
 	InsnAdapter::IA_IAPI block(dec, b->start(), b->obj() , b->region(), b->obj()->cs(), b);
-	while (block.getAddr() < b->end()) {
+	Address cur = b->start();
+	while (cur < b->end()) {
 	    if (block.getInstruction()->getCategory() == c_CallInsn && block.isThunk()) {
 	        bool valid;
 		Address addr;
@@ -142,7 +143,8 @@ void IndirectControlFlowAnalyzer::FindAllThunks() {
 		    parsing_printf("\tfind thunk at %lx, storing value %lx to %s\n", block.getAddr(), t.value , t.reg.name().c_str());
 		}
 	    }
-	    block.advance();
+	    cur += block.getInstruction()->size();
+	    if (cur < b->end()) block.advance();
 	}
     }
 }

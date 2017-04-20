@@ -45,9 +45,9 @@ using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
 #if defined(os_linux) || defined(os_bg)
-#define GET_FRAME_BASE(spr)     __asm__("mov x0, x29;" : "=r"(spr))
-#define GET_RET_ADDR(spr)       __asm__("mov x0, x30;" : "=r"(spr))
-#define GET_STACK_POINTER(spr)  __asm__("mov x0, sp;"  : "=r"(spr))
+#define GET_FRAME_POINTER(spr)     __asm__("mov %0, x29;" : "=r"(spr))
+#define GET_RET_ADDR(spr)       __asm__("mov %0, x30;" : "=r"(spr))
+#define GET_STACK_POINTER(spr)  __asm__("mov %0, sp;"  : "=r"(spr))
 #else
 #error Unknown platform
 #endif
@@ -69,6 +69,8 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
   GET_STACK_POINTER(sp);
 
   framePointer = (ra_fp_pair_t *) sp;
+  if(!framePointer) return false;
+  if(!framePointer->FP) return false;
   thisFramePair = *framePointer;
   stackWalkFramePair = *( (ra_fp_pair_t*) (thisFramePair.FP));
 

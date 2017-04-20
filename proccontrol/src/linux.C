@@ -40,6 +40,7 @@
 #include <assert.h>
 #include <time.h>
 #include <iostream>
+#include <fstream>
 
 #include "common/h/dyn_regs.h"
 #include "common/h/dyntypes.h"
@@ -100,9 +101,6 @@ using namespace ProcControlAPI;
 #define PTRACE_SETREGS PPC_PTRACE_SETREGS
 #endif
 
-#if defined(arch_aarch64)
-#define SYSCALL_EXIT_BREAKPOINT
-#endif
 
 static pid_t P_gettid();
 static bool t_kill(int pid, int sig);
@@ -500,59 +498,16 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                      break;
                   }
                }
-               /*
-                * aarch64 notes:
-                * Due to arm kenel bug, if tracer continues the tracee with PTRACE_SYSCALL,
-                * the kernel doesn't check the changed flags again before exiting.
-                * Hence, I assume syscalls exit quietly and normally.
-                * And move the code for exit stop here.
-                * "Postpone" is actually "postponed" below.
-                */
-#if defined(arch_aarch64)
-#define DISABLE_POSTPONE
-#endif
-
-#if defined(DISABLE_POSTPONE)
-  #if defined(SYSCALL_EXIT_BREAKPOINT)
-  #undef DISABLE_POSTPONE
-  #endif
-#endif
 
                if (postpone) {
                   archevent->event_ext = ext;
 
-#if !defined(DISABLE_POSTPONE)
                   pthrd_printf("Postponing event until syscall exit on %d/%d\n",
                                proc->getPid(), thread->getLWP());
                   event = Event::ptr(new EventPostponedSyscall());
                   lthread->postponeSyscallEvent(archevent);
                   archevent = NULL;
 
-#else //disable postpone
-                   pthrd_printf("ARM-warning: syscall is not postponed on %d/%d.\n",
-                           proc->getPid(), thread->getLWP() );
-
-                    switch (ext) {
-                       case PTRACE_EVENT_FORK:
-                       case PTRACE_EVENT_CLONE:
-                          pthrd_printf("Handle %s event after syscall enter on %d/%d\n",
-                                       ext == PTRACE_EVENT_FORK ? "fork" : "clone",
-                                       proc->getPid(), thread->getLWP());
-                          if (!archevent->findPairedEvent(parent, child)) {
-                             pthrd_printf("Parent half of paired event, postponing decode "
-                                          "until child arrives\n");
-                             archevent->postponePairedEvent();
-                             return true;
-                          }
-                          break;
-                       case PTRACE_EVENT_EXEC:
-                          pthrd_printf("Resuming exec event after syscall exit on %d/%d\n",
-                                       proc->getPid(), thread->getLWP());
-                          event = Event::ptr(new EventExec(EventType::Post));
-                          event->setSyncType(Event::sync_process);
-                          break;
-                    }
-#endif
                }
                break;
             }
@@ -579,40 +534,6 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                return false;
             }
             adjusted_addr = adjustTrapAddr(addr, proc->getTargetArch());
-
-            // handle the fake syscall exit stop bp.
-#if defined(SYSCALL_EXIT_BREAKPOINT)
-            if( lthread->addr_fakeSyscallExitBp == adjusted_addr
-                && lthread->isSet_fakeSyscallExitBp){
-                //do the same as syscall_exit_stop signal
-                if (lthread->hasPostponedSyscallEvent()) {
-                    delete archevent;
-                    archevent = lthread->getPostponedSyscallEvent();
-                    ext = archevent->event_ext;
-                    switch (ext) {
-                       case PTRACE_EVENT_FORK:
-                       case PTRACE_EVENT_CLONE:
-                          pthrd_printf("Resuming %s event after syscall exit on %d/%d\n",
-                                       ext == PTRACE_EVENT_FORK ? "fork" : "clone",
-                                       proc->getPid(), thread->getLWP());
-                          if (!archevent->findPairedEvent(parent, child)) {
-                             pthrd_printf("Parent half of paired event, postponing decode "
-                                          "until child arrives\n");
-                             archevent->postponePairedEvent();
-                             return true;
-                          }
-                          break;
-                       case PTRACE_EVENT_EXEC:
-                          pthrd_printf("Resuming exec event after syscall exit on %d/%d\n",
-                                       proc->getPid(), thread->getLWP());
-                          event = Event::ptr(new EventExec(EventType::Post));
-                          event->setSyncType(Event::sync_process);
-                          break;
-                    }
-                    break;
-                }
-            }
-#endif
 
             if (rpcMgr()->isRPCTrap(thread, adjusted_addr)) {
                pthrd_printf("Decoded event to rpc completion on %d/%d at %lx\n",
@@ -1001,40 +922,38 @@ bool linux_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runnin
     for(vector<Dyninst::LWP>::iterator i = lwps.begin();
             i != lwps.end(); ++i)
     {
+        const auto ignore_max = std::numeric_limits<std::streamsize>::max();
         char proc_stat_name[128];
-        char sstat[256];
-        char *status;
-        int paren_level = 1;
 
         snprintf(proc_stat_name, 128, "/proc/%d/stat", *i);
-        FILE *sfile = fopen(proc_stat_name, "r");
+        ifstream sfile(proc_stat_name);
 
-        if (sfile == NULL) {
-            pthrd_printf("Failed to open /proc/%d/stat file\n", *i);
+        while (sfile.good()) {
+
+            // The stat looks something like: 123 (command) R 456...
+            // We'll just look for the ") R " part.
+            if (sfile.ignore(ignore_max, ')').peek() == ' ') {
+                char space, state;
+
+                // Eat the space we peeked and grab the state char.
+                if (sfile.get(space).get(state).peek() == ' ') {
+                    // Found the state char -- 'T' means it's already stopped.
+                    runningStates.insert(make_pair(*i, (state != 'T')));
+                    break;
+                }
+
+                // Restore the state char and try again
+                sfile.unget();
+            }
+        }
+
+        if (!sfile.good() && (*i == getPid())) {
+            // Only the main thread is treated as an error.  Other threads may
+            // have exited between getThreadLWPs and /proc/pid/stat open or read.
+            pthrd_printf("Failed to read /proc/%d/stat file\n", *i);
             setLastError(err_noproc, "Failed to find /proc files for debuggee");
             return false;
         }
-        if( fread(sstat, 1, 256, sfile) == 0 ) {
-            pthrd_printf("Failed to read /proc/%d/stat file \n", *i);
-            setLastError(err_noproc, "Failed to find /proc files for debuggee");
-            fclose(sfile);
-            return false;
-        }
-        fclose(sfile);
-
-        sstat[255] = '\0';
-        status = sstat;
-
-        while (*status != '\0' && *(status++) != '(') ;
-        while (*status != '\0' && paren_level != 0) {
-            if (*status == '(') paren_level++;
-            if (*status == ')') paren_level--;
-            status++;
-        }
-
-        while (*status == ' ') status++;
-
-        runningStates.insert(make_pair(*i, (*status != 'T')));
     }
 
     return true;
@@ -1109,6 +1028,44 @@ bool linux_process::plat_attach(bool, bool &)
    }
 
    return true;
+}
+
+// Attach any new threads and synchronize, until there are no new threads
+bool linux_process::plat_attachThreadsSync()
+{
+   while (true) {
+      bool found_new_threads = false;
+
+      ProcPool()->condvar()->lock();
+      bool result = attachThreads(found_new_threads);
+      if (found_new_threads)
+         ProcPool()->condvar()->broadcast();
+      ProcPool()->condvar()->unlock();
+
+      if (!result) {
+         pthrd_printf("Failed to attach to threads in %d\n", pid);
+         setLastError(err_internal, "Could not get threads during attach\n");
+         return false;
+      }
+
+      if (!found_new_threads)
+         return true;
+
+      while (Counter::processCount(Counter::NeonatalThreads, this) > 0) {
+         bool proc_exited = false;
+         pthrd_printf("Waiting for neonatal threads in process %d\n", pid);
+         result = waitAndHandleForProc(true, this, proc_exited);
+         if (!result) {
+            perr_printf("Internal error calling waitAndHandleForProc on %d\n", getPid());
+            return false;
+         }
+         if (proc_exited) {
+            perr_printf("Process exited while waiting for user thread stop, erroring\n");
+            setLastError(err_exited, "Process exited while thread being stopped.\n");
+            return false;
+         }
+      }
+   }
 }
 
 bool linux_process::plat_attachWillTriggerStop() {
@@ -1475,34 +1432,6 @@ bool linux_thread::plat_cont()
    int result;
    if (hasPostponedSyscallEvent())
    {
-/* This should be turned on to solve the arm kernel bug.
- * When it recognize the syscall enter event, insert a bp as the fake
- * syscall exit stop.
- */
-#if defined(arch_aarch64) && defined(SYSCALL_EXIT_BREAKPOINT)
-       if( postponed_syscall_event->event_ext == PTRACE_EVENT_FORK ||
-           postponed_syscall_event->event_ext == PTRACE_EVENT_CLONE ){
-            //install bp
-            Dyninst::MachRegisterVal addr;
-            result = plat_getRegister(MachRegister::getPC(this->llproc()->getTargetArch()), addr);
-            if (!result) {
-               fprintf(stderr, "Failed to read PC address upon crash\n");
-            }
-            pthrd_printf("Got SIGTRAP at %lx\n", addr);
-            pthrd_printf("Installing breakpoint for postpone syscall at %lx\n", addr);
-
-            this->BPptr_fakeSyscallExitBp = Breakpoint::ptr();
-            //int_breakpoint *fakeSyscallExitBp = new int_breakpoint(Breakpoint::ptr());
-            int_breakpoint *fakeSyscallExitBp = new int_breakpoint(this->BPptr_fakeSyscallExitBp);
-            fakeSyscallExitBp->setThreadSpecific(this->thread());
-            fakeSyscallExitBp->setOneTimeBreakpoint(true);
-            //this->llproc()->addBreakpoint(addr, fakeSyscallExitBp);
-            this->proc()->addBreakpoint(addr, this->BPptr_fakeSyscallExitBp);
-            this->addr_fakeSyscallExitBp = addr;
-            this->isSet_fakeSyscallExitBp = true;
-       }
-#endif
-
       pthrd_printf("Calling PTRACE_SYSCALL on %d with signal %d\n", lwp, tmpSignal);
       result = do_ptrace((pt_req) PTRACE_SYSCALL, lwp, NULL, data);
    }
@@ -2469,7 +2398,7 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
  * Here it is different for aarch64,
  * I have to use GETREGSET instead of PEEKUSER
  */
-   unsigned long result;
+   long result;
 #if defined(arch_aarch64)
    elf_gregset_t regs;
    struct iovec iovec;
@@ -2485,7 +2414,11 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) (unsigned long) offset, NULL);
 #endif
    //unsigned long result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) (unsigned long) offset, NULL);
-   if (errno != 0) {
+#if defined(arch_aarch64)
+   if (ret != 0) {
+#else
+   if (result == -1 && errno != 0) {
+#endif
       int error = errno;
       perr_printf("Error reading registers from %d: %s\n", lwp, strerror(errno));
       //pthrd_printf("ARM-Info: offset(%d-%d)\n", (void *)(unsigned long)offset, offset/8);

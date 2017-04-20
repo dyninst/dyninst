@@ -34,6 +34,7 @@
 #include "common/src/headers.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/addressSpace.h"
+#include "binaryEdit.h"
 #include "common/src/stats.h"
 #include "common/src/Types.h"
 #include "dyninstAPI/src/debug.h"
@@ -884,7 +885,7 @@ bool PCProcess::hideDebugger()
     return true;
 }
 
-unsigned long PCProcess::setAOutLoadAddress(fileDescriptor &desc)
+Address PCProcess::setAOutLoadAddress(fileDescriptor &desc)
 {
 	assert(0);
 	return 0;
@@ -1056,4 +1057,31 @@ inferiorHeapType PCProcess::getDynamicHeapType() const
 void OS::get_sigaction_names(std::vector<std::string> &names)
 {
 	//names.push_back("signal");
+}
+
+bool PCProcess::getDyninstRTLibName()
+{
+    startup_printf("Begin getDyninstRTLibName\n");
+    bool use_abi_rt = false;
+#if defined(arch_64bit)
+    use_abi_rt = (getAddressWidth() == 4);
+#endif
+
+    std::vector<std::string> rt_paths;
+    std::string rt_base = "dyninstAPI_RT";
+    if(use_abi_rt) rt_base += "_m32";
+    rt_base += ".dll";
+    if(!BinaryEdit::getResolvedLibraryPath(rt_base, rt_paths) || rt_paths.empty())
+    {
+        startup_printf("%s[%d]: Could not find %s in search path\n", FILE__, __LINE__, rt_base.c_str());
+        return false;
+    }
+    for(auto i = rt_paths.begin();
+        i != rt_paths.end();
+        ++i)
+    {
+        startup_printf("%s[%d]: Candidate RTLib is %s\n", FILE__, __LINE__, i->c_str());
+    }
+    dyninstRT_name = rt_paths[0];
+    return true;
 }

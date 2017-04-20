@@ -30,7 +30,7 @@ set (SRC_LIST
      src/BPatch_addressSpace.C 
      src/BPatch_binaryEdit.C 
      src/BPatch_memoryAccess.C 
-     src/dummy.C 
+#     src/dummy.C
      src/debug.C 
      src/ast.C 
      src/registerSpace.C 
@@ -194,9 +194,9 @@ endif ()
 
 dyninst_library(dyninstAPI common instructionAPI stackwalk pcontrol patchAPI parseAPI symtabAPI)
 
+target_link_private_libraries(dyninstAPI ${Boost_LIBRARIES})
 if (UNIX)
   # Boost auto-links on Windows; don't double-link
-  target_link_private_libraries(dyninstAPI ${Boost_LIBRARIES})
   target_link_private_libraries (dyninstAPI pthread)
 else()
   target_link_private_libraries(dyninstAPI dbghelp WS2_32 imagehlp)

@@ -30,190 +30,263 @@
 
 #ifndef __MODULE__H__
 #define __MODULE__H__
- 
+
 #include "symutil.h"
 #include "Symbol.h"
 
 #include "Annotatable.h"
 #include "Serialization.h"
+#include "IBSTree.h"
+#include "IBSTree-fast.h"
+#if defined(cap_dwarf)
+#include "libdwarf.h"
+#endif
+#include <boost/shared_ptr.hpp>
+#include "RangeLookup.h"
+
+#include "StringTable.h"
 
 namespace Dyninst{
-namespace SymtabAPI{
+	namespace SymtabAPI{
 
-class typeCollection;
-class LineInformation;
-class localVar;
-class Symtab;
+		class typeCollection;
+		class LineInformation;
+		class localVar;
+		class Symtab;
 
-class SYMTAB_EXPORT Statement : public AnnotatableSparse, public Serializable
-{
-	friend class Module;
-	friend class std::vector<Statement>;
-	friend class LineInformation;
 
-	Statement(const char *file, unsigned int line, unsigned int col = 0,
-             Offset start_addr = (Offset) -1L, Offset end_addr = (Offset) -1L) :
-      file_(file ? std::string(file) : std::string()),
-      line_(line),
-      start_addr_(start_addr),
-      end_addr_(end_addr),
-      first(file_.c_str()),
-      second(line_),
-      column(col)
-      {
-      }
-	
-	std::string file_; // Maybe this should be module?
-	unsigned int line_;
-	Offset start_addr_;
-	Offset end_addr_;
+		class SYMTAB_EXPORT Statement : public AddressRange
+		{
+			friend class Module;
+			friend class LineInformation;
+			Statement(int file_index, unsigned int line, unsigned int col = 0,
+					  Offset start_addr = (Offset) -1L, Offset end_addr = (Offset) -1L) :
+					AddressRange(start_addr, end_addr),
+					file_index_(file_index),
+					line_(line),
+					column_(col)
+			{
+			}
 
-	public:
-	const char *first;
-	unsigned int second;
-	unsigned int column;
+			unsigned int file_index_; // Maybe this should be module?
+			unsigned int line_;
+			unsigned int column_;
+			StringTablePtr strings_;
+		public:
+			StringTablePtr getStrings_() const;
 
-	Statement() : first(NULL), second(0) {}
-	struct StatementLess {
-		bool operator () ( const Statement &lhs, const Statement &rhs ) const;
-	};
+			void setStrings_(StringTablePtr strings_);
 
-	typedef StatementLess LineNoTupleLess;
+		public:
 
-	bool operator==(const Statement &cmp) const;
-	~Statement() {}
+			Statement() : AddressRange(0,0), file_index_(0), line_(0), column_(0)  {}
+			struct StatementLess {
+				bool operator () ( const Statement &lhs, const Statement &rhs ) const;
+			};
 
-	Offset startAddr() { return start_addr_;}
-	Offset endAddr() {return end_addr_;}
-	const std::string &getFile() { return file_;}
-	unsigned int getLine() {return line_;}
-	unsigned int getColumn() {return column;}
+			typedef StatementLess LineNoTupleLess;
+			bool operator==(const Statement &cmp) const;
+//    bool operator==(const char* file) const {return strcmp(file, first) == 0; }
+			bool operator==(Offset addr) const {
+				return AddressRange::contains(addr);
+			}
+			bool operator<(Offset addr) const {
+				return startAddr() <= addr;
+			}
+			bool operator>(Offset addr) const {
+				return !((*this) < addr || (*this == addr));
+			}
+			~Statement() {}
 
-	Serializable *serialize_impl(SerializerBase *sb, const char *tag = "Statement") THROW_SPEC (SerializerError);
+			Offset startAddr() const { return first;}
+			Offset endAddr() const {return second;}
+			std::string getFile() const;
+			unsigned int getFileIndex() const { return file_index_; }
+			unsigned int getLine()const {return line_;}
+			unsigned int getColumn() const { return column_; }
+			struct addr_range {};
+			struct line_info {};
+			struct upper_bound {};
 
-	//  Does dyninst really need these?
-	void setLine(unsigned int l) {line_ = l;}
-	void setColumn(unsigned int l) {column = l;}
-	void setFile(const char * l) {file_ = std::string(l); first = file_.c_str();}
-	void setStartAddr(Offset l) {start_addr_ = l;}
-	void setEndAddr(Offset l) {end_addr_ = l;}
-};
+			typedef Statement* Ptr;
+			typedef const Statement* ConstPtr;
+//    typedef boost::shared_ptr<Statement> Ptr;
+//    typedef boost::shared_ptr<const Statement> ConstPtr;
 
-typedef Statement LineNoTuple;
+		};
+		template <typename OS>
+		OS& operator<<(OS& os, const Statement& s)
+		{
+			os << "<statement>: [" << std::hex << s.startAddr() << ", " << s.endAddr() << std::dec << ") @ " << s.getFile()
+			   << " (" << s.getFileIndex() << "): " << s.getLine();
+			return os;
+		}
+		template <typename OS>
+		OS& operator<<(OS& os, Statement* s)
+		{
+			os << "<statement>: [" << std::hex << s->startAddr() << ", " << s->endAddr() << std::dec << ") @ " << s->getFile()
+			   << " (" << s->getFileIndex() << "): " << s->getLine();
+			return os;
+		}
+
+
+		typedef Statement LineNoTuple;
 #define MODULE_ANNOTATABLE_CLASS AnnotatableSparse
 
- class SYMTAB_EXPORT Module : public LookupInterface
-{
-	friend class Symtab;
+		class SYMTAB_EXPORT Module : public LookupInterface
+		{
+			friend class Symtab;
 
-	public:
+		public:
+#if defined(cap_dwarf)
+			typedef Dwarf_Die DebugInfoT;
+#else
+			typedef void* DebugInfoT;
+#endif
 
-	Module();
-	Module(supportedLanguages lang, Offset adr, std::string fullNm,
-                        Symtab *img);
-	Module(const Module &mod);
-	bool operator==(Module &mod);
+			Module();
+			Module(supportedLanguages lang, Offset adr, std::string fullNm,
+				   Symtab *img);
+			Module(const Module &mod);
+			bool operator==(Module &mod);
 
-	const std::string &fileName() const;
-	const std::string &fullName() const;
-	bool setName(std::string newName);
+			const std::string &fileName() const;
+			const std::string &fullName() const;
+			bool setName(std::string newName);
 
-	supportedLanguages language() const;
-	void setLanguage(supportedLanguages lang);
+			supportedLanguages language() const;
+			void setLanguage(supportedLanguages lang);
 
-	Offset addr() const;
-	Symtab *exec() const;
+			Offset addr() const;
+			Symtab *exec() const;
 
-	bool isShared() const;
-	~Module();
+			bool isShared() const;
+			~Module();
 
-	// Symbol output methods
-	virtual bool findSymbol(std::vector<Symbol *> &ret, 
-                                              const std::string& name,
-                                              Symbol::SymbolType sType = Symbol::ST_UNKNOWN, 
-                                              NameType nameType = anyName,
-                                              bool isRegex = false, 
-                                              bool checkCase = false,
-                                              bool includeUndefined = false);
-	virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
-			Symbol::SymbolType sType);
-	virtual bool getAllSymbols(std::vector<Symbol *> &ret);
-
-
-	// Function based methods
-	bool getAllFunctions(std::vector<Function *>&ret);
-	bool findFunctionByEntryOffset(Function *&ret, const Offset offset);
-	bool findFunctionsByName(std::vector<Function *> &ret, const std::string& name,
-			NameType nameType = anyName, 
-			bool isRegex = false,
-			bool checkCase = true);
-
-	// Variable based methods
-	bool findVariableByOffset(Variable *&ret, const Offset offset);
-	bool findVariablesByName(std::vector<Variable *> &ret, const std::string& name,
-			NameType nameType = anyName, 
-			bool isRegex = false, 
-			bool checkCase = true);
-   bool getAllVariables(std::vector<Variable *> &ret);
+			// Symbol output methods
+			virtual bool findSymbol(std::vector<Symbol *> &ret,
+									const std::string& name,
+									Symbol::SymbolType sType = Symbol::ST_UNKNOWN,
+									NameType nameType = anyName,
+									bool isRegex = false,
+									bool checkCase = false,
+									bool includeUndefined = false);
+			virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret,
+											 Symbol::SymbolType sType);
+			virtual bool getAllSymbols(std::vector<Symbol *> &ret);
 
 
-   // Type output methods
-   virtual bool findType(Type *&type, std::string name);
-   virtual bool findVariableType(Type *&type, std::string name);
+			// Function based methods
+			bool getAllFunctions(std::vector<Function *>&ret);
+			bool findFunctionByEntryOffset(Function *&ret, const Offset offset);
+			bool findFunctionsByName(std::vector<Function *> &ret, const std::string& name,
+									 NameType nameType = anyName,
+									 bool isRegex = false,
+									 bool checkCase = true);
 
-   std::vector<Type *> *getAllTypes();
-   std::vector<std::pair<std::string, Type *> > *getAllGlobalVars();
-
-   typeCollection *getModuleTypes();
-
-   /***** Local Variable Information *****/
-   bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
-
-   /***** Line Number Information *****/
-   bool getAddressRanges(std::vector<std::pair<Offset, Offset> >&ranges,
-         std::string lineSource, unsigned int LineNo);
-   bool getSourceLines(std::vector<Statement *> &lines,
-         Offset addressInRange);
-   bool getSourceLines(std::vector<LineNoTuple> &lines,
-         Offset addressInRange);
-   bool getStatements(std::vector<Statement *> &statements);
-   LineInformation *getLineInformation();
-
-   bool hasLineInformation();
-   bool setDefaultNamespacePrefix(std::string str);
+			// Variable based methods
+			bool findVariableByOffset(Variable *&ret, const Offset offset);
+			bool findVariablesByName(std::vector<Variable *> &ret, const std::string& name,
+									 NameType nameType = anyName,
+									 bool isRegex = false,
+									 bool checkCase = true);
+			bool getAllVariables(std::vector<Variable *> &ret);
 
 
-   //  Super secret private methods that aren't really private
-   typeCollection *getModuleTypesPrivate();
-   void setModuleTypes(typeCollection* tc) 
-   {
-     typeInfo_ = tc;
-   }
-   
-   bool setLineInfo(Dyninst::SymtabAPI::LineInformation *lineInfo);
-   private:
-   Dyninst::SymtabAPI::LineInformation* lineInfo_;
-   typeCollection* typeInfo_;
-   
+			// Type output methods
+			virtual bool findType(Type *&type, std::string name);
+			virtual bool findVariableType(Type *&type, std::string name);
 
-   std::string fileName_;                   // short file 
-   std::string fullName_;                   // full path to file 
-   supportedLanguages language_;
-   Offset addr_;                      // starting address of module
-   Symtab *exec_;
-};
+			std::vector<Type *> *getAllTypes();
+			std::vector<std::pair<std::string, Type *> > *getAllGlobalVars();
+
+			typeCollection *getModuleTypes();
+
+			/***** Local Variable Information *****/
+			bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
+
+			/***** Line Number Information *****/
+			bool getAddressRanges(std::vector<AddressRange >&ranges,
+								  std::string lineSource, unsigned int LineNo);
+			bool getSourceLines(std::vector<Statement::Ptr> &lines,
+								Offset addressInRange);
+			bool getSourceLines(std::vector<LineNoTuple> &lines,
+								Offset addressInRange);
+			bool getStatements(std::vector<Statement::Ptr> &statements);
+			LineInformation *getLineInformation();
+			LineInformation* parseLineInformation();
+
+			bool setDefaultNamespacePrefix(std::string str);
+
+
+			//  Super secret private methods that aren't really private
+			typeCollection *getModuleTypesPrivate();
+			void setModuleTypes(typeCollection* tc)
+			{
+				typeInfo_ = tc;
+			}
+
+			bool setLineInfo(Dyninst::SymtabAPI::LineInformation *lineInfo);
+			void addRange(Dyninst::Address low, Dyninst::Address high);
+			bool hasRanges() const { return !ranges.empty() || ranges_finalized; }
+			void addDebugInfo(Module::DebugInfoT info);
+
+			void finalizeRanges();
+
+		private:
+			Dyninst::SymtabAPI::LineInformation* lineInfo_;
+			typeCollection* typeInfo_;
+			std::vector<Module::DebugInfoT> info_;
+
+
+			std::string fileName_;                   // short file
+			std::string fullName_;                   // full path to file
+			supportedLanguages language_;
+			Offset addr_;                      // starting address of module
+			Symtab *exec_;
+			std::set<AddressRange > ranges;
+
+			StringTablePtr strings_;
+		public:
+			StringTablePtr & getStrings() ;
+
+		private:
+			bool ranges_finalized;
+
+			void finalizeOneRange(Address ext_s, Address ext_e) const;
+		};
 		template <typename OS>
 		OS& operator<<(OS& os, const Module& m)
 		{
 			os << m.fileName() << ": " << m.addr();
 			return os;
 		}
+		template <typename OS>
+		OS& operator<<(OS& os, Module* m)
+		{
+			os << m->fileName() << ": " << m->addr();
+			return os;
+		}
+
+		typedef Dyninst::SimpleInterval<Offset, Module*> ModRange;
+
+		inline bool operator==(Offset off, const ModRange& r) {
+			return (r.low() <= off) && (off < r.high());
+		}
+		inline bool operator==(const ModRange& r, Offset off) {
+			return off == r;
+		}
+		template<typename OS>
+		OS& operator<<(OS& os, const ModRange& m)
+		{
+			os << m.id() << ": [" << m.low() << ", " << m.high() << ")";
+			return os;
+		}
 
 
-
-
-
-}//namespace SymtabAPI
+	}//namespace SymtabAPI
 
 }//namespace Dyninst
+
+
 #endif

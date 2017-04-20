@@ -78,7 +78,8 @@ bool StackModPatch::apply(codeGen &gen, CodeBuffer *) {
     instruction ugly_insn(orig_insn->ptr());
     if (gen.modifiedStackFrame()) {
         relocation_cerr << "  Calling modifyDisp" << endl;
-        if (!insnCodeGen::modifyDisp(newDisp, ugly_insn, gen, arch, addr)) return false;
+        if (!insnCodeGen::modifyDisp(newDisp, ugly_insn, gen, arch, addr)) 
+            return false;
         return true;
     } else {
         relocation_cerr << "  Preserving orig" << endl;

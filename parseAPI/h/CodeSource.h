@@ -54,7 +54,7 @@ class CFGModifier;
 **/
 
 
-class PARSER_EXPORT CodeRegion : public Dyninst::InstructionSource, public Dyninst::interval<Address> {
+class PARSER_EXPORT CodeRegion : public Dyninst::InstructionSource, public Dyninst::SimpleInterval<Address> {
  public:
 
     /* Fills a vector with any names associated with the function at at 
@@ -193,7 +193,9 @@ class PARSER_EXPORT CodeSource : public Dyninst::InstructionSource {
     virtual void incrementCounter(const std::string& /*name*/) const { return; } 
     virtual void addCounter(const std::string& /*name*/, int /*num*/) const { return; }
     virtual void decrementCounter(const std::string& /*name*/) const { return; }
-    
+    virtual void startTimer(const std::string& /*name*/) const { return; } 
+    virtual void stopTimer(const std::string& /*name*/) const { return; }
+   
  protected:
     CodeSource() : _regions_overlap(false),
                    _table_of_contents(0) {}
@@ -300,6 +302,8 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource {
     void incrementCounter(const std::string& name) const;
     void addCounter(const std::string& name, int num) const; 
     void decrementCounter(const std::string& name) const;
+    void startTimer(const std::string& /*name*/) const; 
+    void stopTimer(const std::string& /*name*/) const;
 
  private:
     void init(hint_filt *, bool);

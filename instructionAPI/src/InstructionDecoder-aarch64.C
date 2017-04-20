@@ -1421,13 +1421,13 @@ namespace Dyninst {
         }
 
         Expression::Ptr InstructionDecoder_aarch64::makeMemRefSIMD_MULT() {
-            Result_Type rt;
+            Result_Type rt = invalid_type;
             getMemRefSIMD_MULT_RT(rt);
             return makeDereferenceExpression(makeRnExpr(), rt);
         }
 
         Expression::Ptr InstructionDecoder_aarch64::makeMemRefSIMD_SING() {
-            Result_Type rt;
+            Result_Type rt = invalid_type;
             getMemRefSIMD_SING_RT(rt);
             return makeDereferenceExpression(makeRnExpr(), rt);
         }
@@ -1492,19 +1492,12 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             int immLen = 2;
             int immVal = 0; //for amount
 
-            int S = field<12, 12>(insn);
             int size = field<30, 31>(insn);
 
-            if (size == 2) { //32bit
-                immVal = S == 0 ? 0 : (S == 1 ? 2 : -1);
-                if (immVal == -1)
-                    isValid = false;
-            }
-            else if (size == 3) { //64bit
-                immVal = S == 0 ? 0 : (S == 1 ? 3 : -1);
-                if (immVal == -1)
-                    isValid = false;
-            }
+            if(sField == 1)
+                immVal = size;
+            else
+                immVal = 0;
 
             Expression::Ptr ext = makeOptionExpression(immLen, immVal);
 
@@ -2551,7 +2544,15 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             else if (hasShift) {
                 if (IS_INSN_ADDSUB_SHIFT(insn) || IS_INSN_LOGICAL_SHIFT(insn))    //add-sub shifted | logical shifted
                 {
-                    processShiftFieldShiftedInsn(immLen, immVal);
+                    if(IS_INSN_LOGICAL_SHIFT(insn) && shiftField == 0 && field<5, 9>(insn) == 0x1F && immVal == 0) {
+                        insn_in_progress->getOperation().operationID = aarch64_op_mov_orr_log_shift;
+                        insn_in_progress->getOperation().mnemonic = "mov";
+                        skipRn = true;
+
+                        insn_in_progress->appendOperand(makeRmExpr(), true, false);
+                    } else {
+                        processShiftFieldShiftedInsn(immLen, immVal);
+                    }
                 }
                 else if (IS_INSN_ADDSUB_IMM(insn))        //add-sub (immediate)
                 {

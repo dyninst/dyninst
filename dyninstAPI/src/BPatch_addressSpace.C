@@ -96,8 +96,10 @@ BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(Dyninst::PatchAPI::Patc
 
    // check to see if the func_instance refers to a different
    // module, and that module contains a bpatch_func
-   assert(fi->mod() != NULL);
-   BPatch_module* containing = getImage()->findModule(fi->mod()->fileName().c_str());
+   BPatch_module* containing = NULL;
+   if (fi->mod() != NULL) {
+      containing = getImage()->findModule(fi->mod()->fileName().c_str());
+   }
 
    // findModule has a tendency to make new function objects... so
    // check the map again
@@ -538,7 +540,7 @@ bool BPatch_addressSpace::revertWrapFunction(BPatch_function *original)
 
 bool BPatch_addressSpace::getAddressRanges( const char * fileName,
       unsigned int lineNo,
-      std::vector< std::pair< unsigned long, unsigned long > > & ranges )
+      std::vector< SymtabAPI::AddressRange > & ranges )
 {
    unsigned int originalSize = ranges.size();
    image->getAddressRanges(fileName, lineNo, ranges);

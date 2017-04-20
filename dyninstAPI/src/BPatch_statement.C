@@ -33,7 +33,7 @@
 #include "Module.h"
 #include "mapped_object.h"
 #include "mapped_module.h"
-BPatch_statement::BPatch_statement(BPatch_module *mod, Dyninst::SymtabAPI::Statement *s) :
+BPatch_statement::BPatch_statement(BPatch_module *mod, Dyninst::SymtabAPI::Statement::ConstPtr s) :
         module_(mod),
         statement(s)
 {

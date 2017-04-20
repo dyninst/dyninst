@@ -146,21 +146,7 @@ SymtabCodeRegion::getAddressWidth() const
 Architecture
 SymtabCodeRegion::getArch() const
 {
-#if defined(arch_power)
-    if(getAddressWidth() == 8)
-        return Arch_ppc64;
-    else
-        return Arch_ppc32;
-#elif defined(arch_x86) || defined(arch_x86_64)
-    if(getAddressWidth() == 8)
-        return Arch_x86_64;
-    else
-        return Arch_x86;
-#elif defined(arch_aarch64)
-		return Arch_aarch64;
-#else
-    return Arch_none;
-#endif
+    return _symtab->getArchitecture();
 }
 
 bool
@@ -293,6 +279,10 @@ SymtabCodeSource::init_stats() {
         stats_parse->add(PARSE_TAILCALL_COUNT, CountStat);
         stats_parse->add(PARSE_TAILCALL_FAIL, CountStat);
 
+	stats_parse->add(PARSE_JUMPTABLE_TIME, TimerStat);
+	stats_parse->add(PARSE_TOTAL_TIME, TimerStat);
+
+
         _have_stats = true;
     }
 
@@ -332,6 +322,9 @@ SymtabCodeSource::print_stats() const {
         fprintf(stderr, "\t\t isTailCall attempts: %ld\n", (*stats_parse)[PARSE_TAILCALL_COUNT]->value());
         fprintf(stderr, "\t\t isTailCall failures: %ld\n", (*stats_parse)[PARSE_TAILCALL_FAIL]->value());
 
+	fprintf(stderr, "\t Parsing total time: %.2lf\n", (*stats_parse)[PARSE_TOTAL_TIME]->usecs());
+	fprintf(stderr, "\t Parsing jump table time: %.2lf\n", (*stats_parse)[PARSE_JUMPTABLE_TIME]->usecs());
+
     }
 }
 
@@ -356,6 +349,22 @@ SymtabCodeSource::decrementCounter(const std::string& name) const
 {
     if (_have_stats) {
         stats_parse->decrementCounter(name);
+    }
+}
+
+void
+SymtabCodeSource::startTimer(const std::string & name) const
+{
+    if (_have_stats) {
+        stats_parse->startTimer(name);
+    }
+}
+
+void
+SymtabCodeSource::stopTimer(const std::string & name) const
+{
+    if (_have_stats) {
+        stats_parse->stopTimer(name);
     }
 }
 
@@ -653,21 +662,7 @@ SymtabCodeSource::getAddressWidth() const
 Architecture
 SymtabCodeSource::getArch() const
 {
-#if defined(arch_power)
-    if(getAddressWidth() == 8)
-        return Arch_ppc64;
-    else
-        return Arch_ppc32;
-#elif defined(arch_x86) || defined(arch_x86_64)
-    if(getAddressWidth() == 8)
-        return Arch_x86_64;
-    else
-        return Arch_x86;
-#elif defined(arch_aarch64)
-		return Arch_aarch64;
-#else
-    return Arch_none;
-#endif
+    return _symtab->getArchitecture();
 }
 
 bool

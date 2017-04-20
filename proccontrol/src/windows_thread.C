@@ -108,7 +108,12 @@ std::string windows_thread::dumpThreadContext()
 	if(!result) {
 		pthrd_printf("Error getting thread context: %d\n", GetLastError());
 	}
-	s << "TID " << tid << std::hex << ", EIP=" << context.Eip <<
+	s << "TID " << tid << std::hex <<
+#ifdef _WIN64
+		", RIP=" << context.Rip <<
+#else
+		", EIP=" << context.Eip <<
+#endif
 		", Single stepping " << ((context.EFlags & TF_BIT) ? "on" : "off");
 	return s.str();
 }
@@ -248,6 +253,30 @@ bool windows_thread::plat_getAllRegisters(int_registerPool &regpool)
 	c.ContextFlags = CONTEXT_FULL | CONTEXT_DEBUG_REGISTERS;
 	if(::GetThreadContext(hthread, &c))
 	{
+#ifdef _WIN64
+		regpool.regs[x86_64::rax] = c.Rax;
+		regpool.regs[x86_64::rbx] = c.Rbx;
+		regpool.regs[x86_64::rcx] = c.Rcx;
+		regpool.regs[x86_64::rdx] = c.Rdx;
+		regpool.regs[x86_64::rsp] = c.Rsp;
+		regpool.regs[x86_64::rbp] = c.Rbp;
+		regpool.regs[x86_64::rsi] = c.Rsi;
+		regpool.regs[x86_64::rdi] = c.Rdi;
+		regpool.regs[x86_64::flags] = c.EFlags;
+		regpool.regs[x86_64::dr0] = c.Dr0;
+		regpool.regs[x86_64::dr1] = c.Dr1;
+		regpool.regs[x86_64::dr2] = c.Dr2;
+		regpool.regs[x86_64::dr3] = c.Dr3;
+		regpool.regs[x86_64::dr6] = c.Dr6;
+		regpool.regs[x86_64::dr7] = c.Dr7;
+		regpool.regs[x86_64::cs] = c.SegCs;
+		regpool.regs[x86_64::ds] = c.SegDs;
+		regpool.regs[x86_64::es] = c.SegEs;
+		regpool.regs[x86_64::fs] = c.SegFs;
+		regpool.regs[x86_64::gs] = c.SegGs;
+		regpool.regs[x86_64::ss] = c.SegSs;
+		regpool.regs[x86_64::rip] = c.Rip;
+#else
 		regpool.regs[x86::eax] = c.Eax;
 		regpool.regs[x86::ebx] = c.Ebx;
 		regpool.regs[x86::ecx] = c.Ecx;
@@ -270,6 +299,7 @@ bool windows_thread::plat_getAllRegisters(int_registerPool &regpool)
 		regpool.regs[x86::gs] = c.SegGs;
 		regpool.regs[x86::ss] = c.SegSs;
 		regpool.regs[x86::eip] = c.Eip;
+#endif
 		ret = true;
 	}
 	plat_resume();
@@ -300,11 +330,39 @@ bool windows_thread::plat_setAllRegisters(int_registerPool &regpool)
 	CONTEXT c;
 	c.ContextFlags = CONTEXT_FULL | CONTEXT_DEBUG_REGISTERS;
 	if (isRPCThread()) {
-		// The context we're given is _wrong_, but we only care about EIP. I hope.
+		// The context we're given is _wrong_, but we only care about EIP/RIP. I hope.
 		::GetThreadContext(hthread, &c);
+#ifdef _WIN64
+		c.Rip = regpool.regs[x86_64::rip];
+#else
 		c.Eip = regpool.regs[x86::eip];
+#endif
 	}
 	else {
+#ifdef _WIN64
+		c.Rax = regpool.regs[x86_64::rax];
+		c.Rbx = regpool.regs[x86_64::rbx];
+		c.Rcx = regpool.regs[x86_64::rcx];
+		c.Rdx = regpool.regs[x86_64::rdx];
+		c.Rsp = regpool.regs[x86_64::rsp];
+		c.Rbp = regpool.regs[x86_64::rbp];
+		c.Rsi = regpool.regs[x86_64::rsi];
+		c.Rdi = regpool.regs[x86_64::rdi];
+		c.EFlags = regpool.regs[x86_64::flags];
+		c.Dr0 = regpool.regs[x86_64::dr0];
+		c.Dr1 = regpool.regs[x86_64::dr1];
+		c.Dr2 = regpool.regs[x86_64::dr2];
+		c.Dr3 = regpool.regs[x86_64::dr3];
+		c.Dr6 = regpool.regs[x86_64::dr6];
+		c.Dr7 = regpool.regs[x86_64::dr7];
+		c.SegCs = regpool.regs[x86_64::cs];
+		c.SegDs = regpool.regs[x86_64::ds];
+		c.SegEs = regpool.regs[x86_64::es];
+		c.SegFs = regpool.regs[x86_64::fs];
+		c.SegGs = regpool.regs[x86_64::gs];
+		c.SegSs = regpool.regs[x86_64::ss];
+		c.Rip = regpool.regs[x86_64::rip];
+#else
 		c.Eax = regpool.regs[x86::eax];
 		c.Ebx = regpool.regs[x86::ebx];
 		c.Ecx = regpool.regs[x86::ecx];
@@ -327,6 +385,7 @@ bool windows_thread::plat_setAllRegisters(int_registerPool &regpool)
 		c.SegGs = regpool.regs[x86::gs];
 		c.SegSs = regpool.regs[x86::ss];
 		c.Eip = regpool.regs[x86::eip];
+#endif
 	}
 	BOOL ok = ::SetThreadContext(hthread, &c);
 	if(!ok) {
@@ -339,7 +398,11 @@ bool windows_thread::plat_setAllRegisters(int_registerPool &regpool)
 	CONTEXT verification;
 	verification.ContextFlags = CONTEXT_FULL;
 	::GetThreadContext(hthread, &verification);
+#ifdef _WIN64
+	assert(verification.Rip == c.Rip);
+#else
 	assert(verification.Eip == c.Eip);
+#endif
 	plat_resume();
 	return ok ? true : false;
 }

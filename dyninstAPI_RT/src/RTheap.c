@@ -91,8 +91,13 @@ static Address trymmap(size_t len, Address beg, Address end, size_t inc, int fd)
   /* until we get one that succeeds.*/
   for (addr = beg; addr + len <= end; addr += inc) {
     result = map_region((void *) addr, len, fd);
-    if (result)
+    if (result) {
+      /* Success doesn't necessarily mean it actually mapped at the hinted
+       * address.  Return if it's in range, else unmap and try again. */
+      if ((Address) result >= beg && (Address) result + len <= end)
         return (Address) result;
+      unmap_region(result, len);
+    }
   }
   return (Address) NULL;
 }

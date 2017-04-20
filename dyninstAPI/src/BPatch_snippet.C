@@ -617,7 +617,7 @@ BPatch_constExpr::BPatch_constExpr( signed int value ) {
         assert( BPatch::bpatch != NULL );
 
         ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::Constant,
-                                                                 (void *)(unsigned long) value));
+                                                                 (void *)(uintptr_t) value));
         ast_wrapper->setTypeChecking( BPatch::bpatch->isTypeChecked() );
 
         BPatch_type * type = BPatch::bpatch->stdTypes->findType( "int" );
@@ -629,7 +629,7 @@ BPatch_constExpr::BPatch_constExpr( unsigned int value ) {
         assert( BPatch::bpatch != NULL );
 
         ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::Constant,
-                                                                 (void *)(unsigned long) value));
+                                                                 (void *)(uintptr_t) value));
         ast_wrapper->setTypeChecking( BPatch::bpatch->isTypeChecked() );
 
         BPatch_type * type = BPatch::bpatch->stdTypes->findType( "unsigned int" );
@@ -641,7 +641,7 @@ BPatch_constExpr::BPatch_constExpr( signed long value ) {
         assert( BPatch::bpatch != NULL );
 
         ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::Constant,
-                                                                 (void *)(unsigned long) value));
+                                                                 (void *)(uintptr_t) value));
         ast_wrapper->setTypeChecking( BPatch::bpatch->isTypeChecked() );
 
         BPatch_type * type = BPatch::bpatch->stdTypes->findType( "long" );
@@ -653,13 +653,23 @@ BPatch_constExpr::BPatch_constExpr( unsigned long value ) {
         assert( BPatch::bpatch != NULL );
 
         ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::Constant,
-                                                                 (void *)(unsigned long) value));
+                                                                 (void *)(uintptr_t) value));
         ast_wrapper->setTypeChecking( BPatch::bpatch->isTypeChecked() );
-
         BPatch_type * type = BPatch::bpatch->stdTypes->findType( "unsigned long" );
         assert( type != NULL );
         ast_wrapper->setType( type );
         }
+
+BPatch_constExpr::BPatch_constExpr(unsigned long long value) {
+	assert(BPatch::bpatch != NULL);
+
+	ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::Constant,
+		(void *)(uintptr_t)value));
+	ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
+	BPatch_type * type = BPatch::bpatch->stdTypes->findType("unsigned long long");
+	assert(type != NULL);
+	ast_wrapper->setType(type);
+}
 
 /*
  * BPatch_constExpr::BPatch_constExpr
@@ -704,7 +714,7 @@ BPatch_constExpr::BPatch_constExpr(const void *value)
 
 BPatch_constExpr::BPatch_constExpr(long long value)
 {
-   ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::Constant, (void *)(long)value));
+   ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::Constant, (void *)(uintptr_t)value));
 
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());

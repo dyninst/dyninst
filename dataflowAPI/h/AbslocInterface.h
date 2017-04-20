@@ -51,7 +51,7 @@ namespace Dyninst {
 
 class AbsRegionConverter {
  public:
- DATAFLOW_EXPORT AbsRegionConverter(bool cache, bool stack = true) : 
+ DATAFLOW_EXPORT AbsRegionConverter(bool cache, bool stack) :
   cacheEnabled_(cache), stackAnalysisEnabled_(stack) {};
 
   // Definition: the first AbsRegion represents the expression.
@@ -122,7 +122,7 @@ class AbsRegionConverter {
 
 class AssignmentConverter {
  public:  
- DATAFLOW_EXPORT AssignmentConverter(bool cache, bool stack = true) : cacheEnabled_(cache), aConverter(false, stack) {};
+ DATAFLOW_EXPORT AssignmentConverter(bool cache, bool stack) : cacheEnabled_(cache), aConverter(false, stack) {};
 
   DATAFLOW_EXPORT void convert(InstructionAPI::Instruction::Ptr insn,
                                const Address &addr,

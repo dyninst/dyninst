@@ -227,28 +227,35 @@ void CodeTracker::debug() {
   cerr << endl;
 }
 
-std::ostream &operator<<(std::ostream &os, const Dyninst::Relocation::TrackerElement &e) {
-  os << "Tracker(" << hex
-     << e.orig() << "," << e.reloc() 
-     << "," << dec << e.size();
-  switch(e.type()) {
-  case TrackerElement::original:
-    os << ",o";
-    break;
-  case TrackerElement::emulated:
-    os << ",e";
-    break;
-  case TrackerElement::instrumentation:
-    os << ",i"; 
-    break;
-  case TrackerElement::padding:
-    os << ",p";
-    break;
-  default:
-    os << ",?";
-    break;
-  }
-  os << "," << e.block()->start() << "," << (e.func() ? e.func()->name() : "<NOFUNC>");
-  os << ")" << dec;
-  return os;
+namespace Dyninst
+{
+    namespace Relocation
+    {
+        std::ostream &operator<<(std::ostream &os, const Dyninst::Relocation::TrackerElement &e) {
+            os << "Tracker(" << hex
+               << e.orig() << "," << e.reloc()
+               << "," << dec << e.size();
+            switch(e.type()) {
+                case TrackerElement::original:
+                    os << ",o";
+                    break;
+                case TrackerElement::emulated:
+                    os << ",e";
+                    break;
+                case TrackerElement::instrumentation:
+                    os << ",i";
+                    break;
+                case TrackerElement::padding:
+                    os << ",p";
+                    break;
+                default:
+                    os << ",?";
+                    break;
+            }
+            os << "," << e.block()->start() << "," << (e.func() ? e.func()->name() : "<NOFUNC>");
+            os << ")" << dec;
+            return os;
+        }
+
+    }
 }

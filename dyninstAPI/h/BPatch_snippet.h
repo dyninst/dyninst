@@ -241,6 +241,9 @@ class BPATCH_DLL_EXPORT BPatch_constExpr : public BPatch_snippet {
     //  Creates a representation of an (unsigned long) value
     BPatch_constExpr(unsigned long value);
 
+	//  Creates a representation of an (unsigned long long) value
+	BPatch_constExpr(unsigned long long value);
+
     //  BPatch_constExpr::BPatch_constExpr
     //  Creates a representation of a (char *) value
     BPatch_constExpr(const char *value);

@@ -68,10 +68,14 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
   __asm__("movl %%ebp, %0\n"
 	  : "=r"(frame_pointer));
 #elif defined(os_windows)
+#ifdef _WIN64
+  assert(0); // FIXME WIN64-PORTING: Figure out a solution without inline asm, perhaps StackWalk64()?
+#else
    __asm
    {
       mov frame_pointer, ebp ;
-   }   
+   }
+#endif
 #endif
 
   frame_pointer = (unsigned long *) *frame_pointer;
