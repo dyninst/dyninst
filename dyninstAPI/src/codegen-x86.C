@@ -1297,9 +1297,17 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
     InstructionAPI::InstructionDecoder d2(origInsn, insnSz, arch);
     InstructionAPI::Instruction::Ptr origInsnPtr = d2.decode();
 
+    bool modifyDefinition = false;
+    if (!origInsnPtr->readsMemory() && !origInsnPtr->writesMemory()) {
+        // This instruction should be a definition
+        modifyDefinition = true;
+    }
+
     StackAccess* origAccess;
     signed long origDisp;
-    if (!getMemoryOffset(NULL, NULL, origInsnPtr, addr, MachRegister(), StackAnalysis::Height(0), origAccess, arch)) {
+    if (!getMemoryOffset(NULL, NULL, origInsnPtr, addr, MachRegister(),
+        StackAnalysis::Height(0), StackAnalysis::Definition(),  origAccess,
+        arch, modifyDefinition)) {
         assert(0);
     } else {
         origDisp = origAccess->disp();
@@ -1480,7 +1488,9 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
 
     // Validate
     StackAccess* newAccess = NULL;
-    getMemoryOffset(NULL, NULL, newInsnPtr, addr, MachRegister(), StackAnalysis::Height(0), newAccess, arch);
+    getMemoryOffset(NULL, NULL, newInsnPtr, addr, MachRegister(),
+        StackAnalysis::Height(0), StackAnalysis::Definition(),  newAccess,
+        arch, modifyDefinition);
     if (!newAccess) {
         if (newDisp != 0) {
             return false;

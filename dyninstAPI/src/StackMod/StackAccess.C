@@ -84,7 +84,8 @@ std::string StackAccess::format()
     std::stringstream ret;
     ret << "Access to " << _readHeight.height()
         << " from " << _reg.name()
-        << " (at " << _regHeight.height() << ")"
+        << " (at " << _regHeight.height()
+        << ", defined: " << _regDef.format() << ")"
         << ", insn disp = " << _disp
         << ", is " << printStackAccessType(_type);
     return ret.str();
@@ -126,10 +127,11 @@ int getAccessSize(InstructionAPI::Instruction::Ptr insn)
 #endif
 class detectToppedLoc : public InstructionAPI::Visitor {
 private:
-    typedef std::vector<std::pair<Absloc, StackAnalysis::Height>> Heights;
+    typedef std::vector<std::pair<Absloc, std::set<StackAnalysis::DefHeight> > >
+        DefHeights;
     bool defined;
     bool containsToppedReg;
-    Heights heights;
+    DefHeights defHeights;
 
     std::deque<long> results;  // Stack for calculations
 
@@ -139,8 +141,8 @@ private:
     static const long determinable = 0;
 
 public:
-    detectToppedLoc(Heights &h) : defined(true), containsToppedReg(false),
-        heights(h) {}
+    detectToppedLoc(DefHeights &h) : defined(true), containsToppedReg(false),
+        defHeights(h) {}
 
     bool isDefined() {
         return defined && results.size() == 1;
@@ -207,9 +209,9 @@ public:
         }
 
         Absloc regLoc(reg);
-        for (auto iter = heights.begin(); iter != heights.end(); iter++) {
+        for (auto iter = defHeights.begin(); iter != defHeights.end(); iter++) {
             if (regLoc == iter->first) {
-                if (iter->second.isTop()) {
+                if (StackAnalysis::isTopSet(iter->second)) {
                     containsToppedReg = true;
                     results.push_back((long) top);
                 } else {
@@ -218,7 +220,7 @@ public:
                 return;
             }
         }
-        // If reg isn't in heights, its height is TOP
+        // If reg isn't in defHeights, its height is TOP
         containsToppedReg = true;
         results.push_back((long) top);
     }
@@ -229,15 +231,24 @@ public:
 };
 
 
+bool defsSameHeights(const std::set<StackAnalysis::DefHeight> &dhSet) {
+    if (dhSet.size() == 0) return true;
+    const StackAnalysis::Height &h = dhSet.begin()->second;
+    for (auto iter = dhSet.begin(); iter != dhSet.end(); iter++) {
+        if (h != iter->second) return false;
+    }
+    return true;
+}
+
 
 bool getAccesses(ParseAPI::Function* func,
         ParseAPI::Block* block,
         Address addr,
         InstructionAPI::Instruction::Ptr insn,
-        Accesses*& accesses)
+        Accesses* accesses,
+        std::set<Address> &defPointsToMod,
+        bool analyzeDefinition)
 {
-    bool ret = true;
-
     stackmods_printf("\t\t getAccesses %s, 0x%lx @ 0x%lx: %s\n",
         func->name().c_str(), block->start(), addr, insn->format().c_str());
 
@@ -246,7 +257,10 @@ bool getAccesses(ParseAPI::Function* func,
     insn->getReadSet(readRegs);
     StackAnalysis sa(func);
     std::vector<std::pair<Absloc, StackAnalysis::Height> > heights;
+    std::vector<std::pair<Absloc, std::set<StackAnalysis::DefHeight> > >
+        defHeights;
     sa.findDefinedHeights(block, addr, heights);
+    sa.findDefHeightPairs(block, addr, defHeights);
 
     if (insn->getOperation().getID() == e_ret_far ||
         insn->getOperation().getID() == e_ret_near) {
@@ -277,10 +291,18 @@ bool getAccesses(ParseAPI::Function* func,
             if (reg.regClass() == gpr && callParamRegs.test(iter->second)) {
                 // This register is used as a parameter. Check if it contains a
                 // stack pointer.
-                const StackAnalysis::Height &h = sa.find(block, addr,
-                    Absloc(reg));
-                if (!h.isTop()) {
-                    return false;
+                const std::set<StackAnalysis::DefHeight> &dhSet =
+                    sa.findDefHeight(block, addr, Absloc(reg));
+                if (!StackAnalysis::isTopSet(dhSet)) {
+                    for (auto dhIter = dhSet.begin(); dhIter != dhSet.end();
+                        dhIter++) {
+                        const StackAnalysis::Definition &def = dhIter->first;
+                        if (def.addr != 0) {
+                            defPointsToMod.insert(def.addr);
+                        } else {
+                            return false;
+                        }
+                    }
                 }
             }
         }
@@ -293,7 +315,8 @@ bool getAccesses(ParseAPI::Function* func,
             // liberalism.
             long lb = sp.height();
             long ub = sp.height() + word_size * 7;
-            for (auto iter = heights.begin(); iter != heights.end(); iter++) {
+            for (auto iter = heights.begin(); iter != heights.end();
+                iter++) {
                 const Absloc &loc = iter->first;
                 const StackAnalysis::Height &h = iter->second;
 
@@ -301,7 +324,17 @@ bool getAccesses(ParseAPI::Function* func,
                 long stackOff = loc.off();
 
                 if (stackOff < ub && stackOff >= lb && !h.isTop()) {
-                    return false;
+                    const std::set<StackAnalysis::DefHeight> &dhSet =
+                        sa.findDefHeight(block, addr, loc);
+                    for (auto dhIter = dhSet.begin(); dhIter != dhSet.end();
+                        dhIter++) {
+                        const StackAnalysis::Definition &def = dhIter->first;
+                        if (def.addr != 0) {
+                            defPointsToMod.insert(def.addr);
+                        } else {
+                            return false;
+                        }
+                    }
                 }
             }
         } else {
@@ -311,16 +344,26 @@ bool getAccesses(ParseAPI::Function* func,
                 const Absloc &loc = iter->first;
                 const StackAnalysis::Height &h = iter->second;
                 if (loc.type() == Absloc::Stack && !h.isTop()) {
-                    return false;
+                    const std::set<StackAnalysis::DefHeight> &dhSet =
+                        sa.findDefHeight(block, addr, loc);
+                    for (auto dhIter = dhSet.begin(); dhIter != dhSet.end();
+                        dhIter++) {
+                        const StackAnalysis::Definition &def = dhIter->first;
+                        if (def.addr != 0) {
+                            defPointsToMod.insert(def.addr);
+                        } else {
+                            return false;
+                        }
+                    }
                 }
             }
         }
     }
 
-    for (auto iter = heights.begin(); iter != heights.end(); ++iter) {
+    for (auto iter = defHeights.begin(); iter != defHeights.end(); ++iter) {
         // Only consider registers, not tracked memory locations
         if (iter->first.type() != Absloc::Register) continue;
-        MachRegister curReg = iter->first.reg();
+        const MachRegister &curReg = iter->first.reg();
 
         // Skip the PC
         if (curReg == MachRegister::getPC(arch)) {
@@ -332,29 +375,59 @@ bool getAccesses(ParseAPI::Function* func,
             continue;
         }
 
-        StackAnalysis::Height curHeight = (*iter).second;
-        StackAccess* access = NULL;
-        if (getMemoryOffset(func,
-                    block,
-                    insn,
-                    addr,
-                    curReg,
-                    curHeight,
-                    access,
-                    arch)) {
-            if (curHeight.isBottom()) {
-                stackmods_printf("\t\t\t\t INVALID: Found access based on "
-                    "register we don't understand (%s = %s)\n",
-                    curReg.name().c_str(), curHeight.format().c_str());
-                // Once we've found a bad access, stop looking!
-                return false;
-            } else {
-                if (access->readHeight().height() > 20480) {
-                    stackmods_printf("\t\t\t\t Found bogus %s. Skipping.\n",
-                        access->format().c_str());
-                    continue;
+        const std::set<StackAnalysis::DefHeight> &dhSet = iter->second;
+        for (auto dhIter = dhSet.begin(); dhIter != dhSet.end(); dhIter++) {
+            const StackAnalysis::Definition &curDef = dhIter->first;
+            const StackAnalysis::Height &curHeight = dhIter->second;
+            StackAccess* access = NULL;
+            if (getMemoryOffset(func,
+                        block,
+                        insn,
+                        addr,
+                        curReg,
+                        curHeight,
+                        curDef,
+                        access,
+                        arch,
+                        analyzeDefinition)) {
+                if (curHeight.isBottom()) {
+                    stackmods_printf("\t\t\t\t INVALID: Found access based on "
+                        "register we don't understand (%s = %s)\n",
+                        curReg.name().c_str(), curHeight.format().c_str());
+                    // Once we've found a bad access, stop looking!
+                    return false;
+                } else {
+                    if (access->readHeight().height() > 20480) {
+                        stackmods_printf("\t\t\t\t Found bogus %s. Skipping.\n",
+                            access->format().c_str());
+                        continue;
+                    }
+                    (*accesses)[curReg].insert(access);
+//                accesses->insert(make_pair(curReg, access));
                 }
-                accesses->insert(make_pair(curReg, access));
+            }
+        }
+
+        // If there are multiple possible heights that can be accessed, verify
+        // that we have definitions for all of them.  Also add the definitions
+        // to defsToMod.
+        if (accesses->find(curReg) != accesses->end() &&
+            (*accesses)[curReg].size() > 1) {
+            stackmods_printf("\t\t\t\t Multiple access locs possible!\n");
+            if (!defsSameHeights(dhSet)) {
+                for (auto dhIter = dhSet.begin(); dhIter != dhSet.end();
+                    dhIter++) {
+                    const StackAnalysis::Definition &d = dhIter->first;
+                    if (d.type != StackAnalysis::Definition::DEF ||
+                        d.addr == 0) {
+                        stackmods_printf("\t\t\t\t INVALID: Multiple accesses "
+                            "possible; missing corresponding definition(s)\n");
+                        return false;
+                    }
+                    defPointsToMod.insert(d.addr);
+                }
+            } else {
+                stackmods_printf("\t\t\t\t All definitions have same height\n");
             }
         }
     }
@@ -368,7 +441,7 @@ bool getAccesses(ParseAPI::Function* func,
         insn->getMemoryWriteOperands(writeOperands);
         assert(writeOperands.size() == 1);
 
-        detectToppedLoc dtl(heights);
+        detectToppedLoc dtl(defHeights);
         (*writeOperands.begin())->apply(&dtl);
         if (dtl.isTopped()) {
             // We are writing to a topped location.
@@ -378,9 +451,10 @@ bool getAccesses(ParseAPI::Function* func,
                 regIter++) {
                 Absloc regLoc((*regIter)->getID());
 
-                for (auto hIter = heights.begin(); hIter != heights.end();
+                for (auto hIter = defHeights.begin(); hIter != defHeights.end();
                     hIter++) {
-                    if (hIter->first == regLoc && !hIter->second.isTop()) {
+                    if (hIter->first == regLoc &&
+                        !StackAnalysis::isTopSet(hIter->second)) {
                         stackmods_printf("\t\t\t\tINVALID: Writing stack "
                             "height to topped location\n");
                         return false;
@@ -397,7 +471,7 @@ bool getAccesses(ParseAPI::Function* func,
         insn->getMemoryReadOperands(readOperands);
         for (auto rIter = readOperands.begin(); rIter != readOperands.end();
             rIter++) {
-            detectToppedLoc dtl(heights);
+            detectToppedLoc dtl(defHeights);
             (*rIter)->apply(&dtl);
             if (dtl.isBottomed()) {
                 stackmods_printf("\t\t\t\tINVALID: Reading unknown stack "
@@ -407,7 +481,16 @@ bool getAccesses(ParseAPI::Function* func,
         }
     }
 
-    return ret;
+    // If we are analyzing a definition and aren't able to find the exact
+    // height of the definition, we won't be able to do any stack modifications.
+    if (analyzeDefinition && (accesses->size() != 1 ||
+        accesses->begin()->second.size() != 1)) {
+        stackmods_printf("\t\t\t\tINVALID: Unable to determine height of "
+            "definition\n");
+        return false;
+    }
+
+    return true;
 }
 
 using namespace InstructionAPI;
@@ -502,10 +585,12 @@ bool getMemoryOffset(ParseAPI::Function* func,
         ParseAPI::Block* block,
         InstructionAPI::InstructionPtr insn,
         Address addr,
-        MachRegister reg,
-        StackAnalysis::Height height,
+        const MachRegister &reg,
+        const StackAnalysis::Height &height,
+        const StackAnalysis::Definition &def,
         StackAccess*& ret,
-        Architecture arch)
+        Architecture arch,
+        bool analyzeDefinition)
 {
     stackmods_printf("\t\t\t getMemoryOffset for %s; checking reg %s = %s\n",
         insn->format().c_str(), reg.name().c_str(), height.format().c_str());
@@ -522,7 +607,9 @@ bool getMemoryOffset(ParseAPI::Function* func,
 
     // Determine how memory is accessed
     StackAccess::StackAccessType type = StackAccess::UNKNOWN;
-    if (insn->readsMemory() && insn->writesMemory()) {
+    if (analyzeDefinition) {
+        type = StackAccess::DEFINITION;
+    } else if (insn->readsMemory() && insn->writesMemory()) {
         type = StackAccess::READWRITE;
     } else if (insn->readsMemory()) {
         type = StackAccess::READ;
@@ -624,6 +711,7 @@ bool getMemoryOffset(ParseAPI::Function* func,
     if (isOffsetSet) {
         ret = new StackAccess();
         ret->setRegHeight(height);
+        ret->setRegDef(def);
         ret->setReg(reg);
         ret->setType(type);
         ret->setDisp(disp);
