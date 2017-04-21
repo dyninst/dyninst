@@ -452,7 +452,7 @@ bool Module::findVariablesByName(std::vector<Variable *> &ret, const std::string
 
 void Module::addRange(Dyninst::Address low, Dyninst::Address high)
 {
-//    printf("Adding range [%lx, %lx) to %s\n", low, high, fileName().c_str());
+    dwarf_printf("Adding range [%lx, %lx) to %s\n", low, high, fileName().c_str());
     std::set<AddressRange>::iterator lb = ranges.lower_bound(AddressRange(low, high));
     if(lb != ranges.end() && lb->first <= low)
     {

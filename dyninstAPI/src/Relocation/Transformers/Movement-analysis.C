@@ -181,7 +181,7 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
                             approx = true;
                         }
                         else {
-                            //sensitivity_cerr << "\t sens analysis returned " << (intSens ? "intSens" : "") << " / " 
+                            //sensitivity_cerr << "\t sens analysis returned " << (intSens ? "intSens" : "") << " / "
                             //<< (extSens ? "extSens" : "") << endl;
                         }
                     }
