@@ -857,7 +857,7 @@ bool AstNode::allocateCanaryRegister(codeGen& gen,
 }
 
 
-#if defined(cap_stack_mods)
+#if defined(cap_stack_mods) && !defined(arch_aarch64)
 bool AstStackInsertNode::generateCode_phase2(codeGen &gen, bool noCost,
         Address &,
         Register &)
