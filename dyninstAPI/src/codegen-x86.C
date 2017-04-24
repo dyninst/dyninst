@@ -36,6 +36,7 @@
 #include <map>
 #include <string>
 #include "common/src/Types.h"
+#include "common/src/ia32_locations.h"
 #include "codegen.h"
 #include "util.h"
 #include "debug.h"
@@ -1185,7 +1186,8 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
 
     /******************************************* prefix/opcode ****************/
 
-    ia32_instruction instruct;
+    ia32_locations loc;
+    ia32_instruction instruct(NULL, NULL, &loc);
 
     /**
      * This information is generated during ia32_decode. To make this faster
@@ -1203,7 +1205,7 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
         assert(!"Couldn't decode opcode of already known instruction!\n");
 
     /* Calculate the amount of opcode bytes */
-    size_t opcode_len = instruct.getSize() - pref_count;
+    size_t opcode_len = instruct.getLocationInfo().opcode_size;
     origInsn += opcode_len;
 
     /* Get the value of the Mod/RM byte */
@@ -1295,9 +1297,17 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
     InstructionAPI::InstructionDecoder d2(origInsn, insnSz, arch);
     InstructionAPI::Instruction::Ptr origInsnPtr = d2.decode();
 
+    bool modifyDefinition = false;
+    if (!origInsnPtr->readsMemory() && !origInsnPtr->writesMemory()) {
+        // This instruction should be a definition
+        modifyDefinition = true;
+    }
+
     StackAccess* origAccess;
     signed long origDisp;
-    if (!getMemoryOffset(NULL, NULL, origInsnPtr, addr, MachRegister(), StackAnalysis::Height(0), origAccess, arch)) {
+    if (!getMemoryOffset(NULL, NULL, origInsnPtr, addr, MachRegister(),
+        StackAnalysis::Height(0), StackAnalysis::Definition(),  origAccess,
+        arch, modifyDefinition)) {
         assert(0);
     } else {
         origDisp = origAccess->disp();
@@ -1478,7 +1488,9 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
 
     // Validate
     StackAccess* newAccess = NULL;
-    getMemoryOffset(NULL, NULL, newInsnPtr, addr, MachRegister(), StackAnalysis::Height(0), newAccess, arch);
+    getMemoryOffset(NULL, NULL, newInsnPtr, addr, MachRegister(),
+        StackAnalysis::Height(0), StackAnalysis::Definition(),  newAccess,
+        arch, modifyDefinition);
     if (!newAccess) {
         if (newDisp != 0) {
             return false;

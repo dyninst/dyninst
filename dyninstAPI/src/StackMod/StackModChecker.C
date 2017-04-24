@@ -1294,10 +1294,15 @@ bool StackModChecker::areModificationsSafe()
             Offset off = (*iIter).first;
             InstructionAPI::InstructionPtr insn = (*iIter).second; 
             Accesses* accesses = func->getAccesses(off);
-            for (auto aIter = accesses->begin(); aIter != accesses->end(); ++aIter) {
-                if (!isAccessSafe(insn, (*aIter).second)) {
-                    return false;
-                } 
+            for (auto aIter = accesses->begin(); aIter != accesses->end();
+                ++aIter) {
+                const std::set<StackAccess *> &accessSet = aIter->second;
+                for (auto setIter = accessSet.begin();
+                    setIter != accessSet.end(); setIter++) {
+                    if (!isAccessSafe(insn, *setIter)) {
+                        return false;
+                    }
+                }
             }
         }
     }
