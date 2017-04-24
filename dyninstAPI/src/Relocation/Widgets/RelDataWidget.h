@@ -77,10 +77,17 @@ struct RelDataPatch : public Patch {
   virtual bool apply(codeGen &gen, CodeBuffer *buffer);
   virtual unsigned estimate(codeGen &templ);
   virtual ~RelDataPatch() {};
+
+  void setFunc(func_instance *_func) { func = _func; }
+  void setBlock(block_instance *_block) { block = _block; }
   
   InstructionAPI::Instruction::Ptr orig_insn;
   Address target_addr;
   Address orig;
+
+private:
+  func_instance *func;
+  block_instance *block;
 };
 
 

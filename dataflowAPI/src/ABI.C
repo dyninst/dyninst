@@ -600,7 +600,7 @@ void ABI::initialize64(){
 	callRead64_[aarch64Map[aarch64::q6]] = true;
 	callRead64_[aarch64Map[aarch64::q7]] = true;
 
-	callWritten64_ = getBitArray(sz);
+	callWritten64_ = callRead64_;
 	//First, GPRs...
 	callWritten64_[aarch64Map[aarch64::x9]] = true;
 	callWritten64_[aarch64Map[aarch64::x10]] = true;

@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <dyninstAPI/src/registerSpace.h>
 #include "RelDataWidget.h"
 #include "instructionAPI/h/Instruction.h"
 #include "../dyninstAPI/src/debug.h"
@@ -53,7 +54,7 @@ TrackerElement *RelDataWidget::tracker(const RelocBlock *t) const {
   return e;
 }
 
-bool RelDataWidget::generate(const codeGen &, 
+bool RelDataWidget::generate(const codeGen &,
                               const RelocBlock *t, 
                               CodeBuffer &buffer) {
   // We want to take the original instruction and emulate
@@ -69,6 +70,8 @@ bool RelDataWidget::generate(const codeGen &,
 		  <<"," << target_ << std::dec << ")" << endl;
 
   RelDataPatch *newPatch = new RelDataPatch(insn_, target_, addr_);
+  newPatch->setBlock(t->block());
+  newPatch->setFunc(t->func());
   buffer.addPatch(newPatch, tracker(t));
 
   return true;
@@ -82,6 +85,14 @@ string RelDataWidget::format() const {
 
 bool RelDataPatch::apply(codeGen &gen, CodeBuffer *) {
   instruction ugly_insn(orig_insn->ptr());
+
+  instPoint *point = gen.point();
+  if (!point || (point->type() != instPoint::PreInsn && point->insnAddr() != orig)) {
+      point = instPoint::preInsn(func, block, orig, orig_insn, true);
+  }
+  registerSpace *rs = registerSpace::actualRegSpace(point);
+  gen.setRegisterSpace(rs);
+
   if (!insnCodeGen::modifyData(target_addr, ugly_insn, gen)) {
       relocation_cerr << "RelDataPatch returned false from modifyData (original address: " << std::hex<< orig << ")" <<endl;
       return false;
