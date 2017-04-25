@@ -513,7 +513,26 @@ void funcSummaryFixpoint(std::set<BPatch_function *> funcSet,
             functionSummaries, summarizableSet);
         Address funcBaseAddr = (Address) currFunc->getBaseAddr();
         StackAnalysis::TransferSet summary;
-        bool summarySuccess = sa.getFunctionSummary(summary);
+
+        // Hard-coded function summaries for LibC
+        bool summarySuccess;
+        if (currFunc->getName() == "__libc_memalign") {
+            stackmods_printf("Using hard-coded summary for __libc_memalign\n");
+#if defined(arch_x86)
+            Absloc eax(x86::eax);
+            summary[eax] = StackAnalysis::TransferFunc::retopFunc(eax);
+#elif defined(arch_x86_64)
+            Absloc rax(x86_64::rax);
+            Absloc eax(x86_64::eax);
+            summary[rax] = StackAnalysis::TransferFunc::retopFunc(rax);
+            summary[eax] = StackAnalysis::TransferFunc::retopFunc(eax);
+#else
+            assert(false);
+#endif
+            summarySuccess = true;
+        } else {
+            summarySuccess = sa.getFunctionSummary(summary);
+        }
 
         // If summary has changed, add affected functions back to worklist
         if (summary != functionSummaries[funcBaseAddr]) {
