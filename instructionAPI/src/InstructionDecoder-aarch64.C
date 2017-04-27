@@ -2764,8 +2764,9 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                         immloLen = endBit - startBit + 1;
 
 			int immh_3 = (immlo >> 3) & 0x1, opcode = field<11, 15>(insn);
+
 			if(IS_INSN_SIMD_SHIFT_IMM(insn)) {
-			    if(((opcode >> 3) & 0x3) == 0x3 && ((immlo >> 2) & 0x2) == 0)
+			    if(((opcode >> 3) & 0x3) == 0x3 && ((immlo >> 2) & 0x3) == 0)
 				isValid = false;
 
 			    if(immh_3 == 1) {
@@ -2773,14 +2774,14 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 				    isValid = false;
 			    }
 			} else {
-			   if(((opcode >> 2) & 0x7) == 0x6) {
+			   if(((opcode >> 2) & 0x7) == 0x3) {
 			       if(immlo == 0)
 				   isValid = false;
 			   } else if(((opcode >> 2) & 0x7) == 0x4) {
 			       if(immlo == 0 || immh_3 == 1)
 				   isValid = false;
 			   } else if(((opcode >> 3) & 0x3) == 0x3) {
-			       if(((immlo >> 2) & 0x2) == 0)
+			       if(((immlo >> 2) & 0x3) == 0)
 				   isValid = false;
 			   } else {
 			       if(immh_3 != 1)
