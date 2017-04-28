@@ -1713,7 +1713,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             {
                 int branchType = field<21, 22>(insn);
 
-                insn_in_progress->appendOperand(makePCExpr(), false, true);
+                insn_in_progress->appendOperand(makePCExpr(), false, true, true);
                 insn_in_progress->addSuccessor(makeRnExpr(), field<21, 21>(insn) == 1, true, false, false);
 
                 if (branchType == 0x1) {
@@ -2260,7 +2260,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 	    int opcVal = field<30, 31>(insn);
 	    int lopc = (field<22, 22>(insn) << 1) | (opcVal & 0x1);
 
-	    if((IS_INSN_LDST_PAIR_NOALLOC(insn) && (opcVal & 0x1) == 0x1) ||
+	    if((IS_INSN_LDST_PAIR_NOALLOC(insn) && !isSIMDInsn && (opcVal & 0x1) == 0x1) ||
 	       (IS_INSN_LDST_PAIR(insn) && (opcVal == 0x3 || lopc == 0x1)))
 		isValid = false;
 	}
@@ -2701,7 +2701,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 
                 bool branchIsCall = bIsConditional ? false : (field<31, 31>(insn) == 1);
 
-                insn_in_progress->appendOperand(makePCExpr(), false, true);
+                insn_in_progress->appendOperand(makePCExpr(), false, true, true);
                 makeBranchTarget(branchIsCall, bIsConditional, immVal, immLen);
 
                 if (hasb5)
@@ -2722,7 +2722,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                     offset = offset << (page * 12);
                     int size = immloLen + immLen + (page * 12);
 
-                    insn_in_progress->appendOperand(makePCExpr(), true, false);
+                    insn_in_progress->appendOperand(makePCExpr(), true, false, true);
                     Expression::Ptr imm = Immediate::makeImmediate(Result(s64, (offset << (64 - size)) >> (64 - size)));
 
                     insn_in_progress->appendOperand(imm, true, false);
@@ -2748,6 +2748,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                             Expression::Ptr imm = Immediate::makeImmediate(
                                     Result(u32, unsign_extend32(immLen - 1, immVal & 0x7)));
                             insn_in_progress->appendOperand(imm, true, false);
+                            oprRotateAmt++;
                         }
                         else
                             isValid = false;
@@ -2993,13 +2994,13 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                 }
 
                 if (IS_INSN_LDST_SIMD_MULT_POST(insn) || IS_INSN_LDST_SIMD_SING_POST(insn))
-                    insn_in_progress->appendOperand(makeRnExpr(), false, true);
+                    insn_in_progress->appendOperand(makeRnExpr(), false, true, true);
                 else if (insn_in_progress->getOperation().operationID == aarch64_op_cmeq_advsimd_zero &&
                          field<29, 29>(insn) == 0)
                     insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32, 0)), true, false);
 
                 if (isPstateWritten || isPstateRead)
-                    insn_in_progress->appendOperand(makePstateExpr(), isPstateRead, isPstateWritten);
+                    insn_in_progress->appendOperand(makePstateExpr(), isPstateRead, isPstateWritten, true);
             }
 
             return true;
