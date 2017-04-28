@@ -2685,6 +2685,10 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             else if (hasOption) {
                 if (IS_INSN_ADDSUB_EXT(insn))                                        //add-sub extended
                 {
+                    if(immVal > 4) {
+                        isValid = false;
+                        return;
+                    }
                     Expression::Ptr expr = makeOptionExpression(immLen, immVal);
 
                     insn_in_progress->appendOperand(expr, true, false);
