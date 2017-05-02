@@ -2960,9 +2960,32 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 
         }
 
+        bool InstructionDecoder_aarch64::pre_process_checks(aarch64_insn_entry *entry) {
+            bool ret = false;
+            entryID insnID = entry->op;
+
+            if(insnID == aarch64_op_sqshl_advsimd_imm) {
+                if(!IS_INSN_SIMD_SHIFT_IMM(insn) && !IS_INSN_SCALAR_SHIFT_IMM(insn))
+                    ret = true;
+                else if(((insn >> 11) & 0x1) != 0)
+                    ret = true;
+            } else if((insnID == aarch64_op_cmgt_advsimd_reg || insnID == aarch64_op_cmgt_advsimd_zero || insnID == aarch64_op_cmge_advsimd_reg || insnID == aarch64_op_cmge_advsimd_zero)
+                      && !(IS_INSN_SCALAR_3SAME(insn) || IS_INSN_SIMD_3SAME(insn))) {
+                ret = true;
+            } else if(insnID == aarch64_op_fcmlt_advsimd && !(IS_INSN_SIMD_2REG_MISC(insn) || IS_INSN_SCALAR_2REG_MISC(insn))) {
+                ret = true;
+            }
+
+            return ret;
+        }
+
         bool InstructionDecoder_aarch64::decodeOperands(const Instruction *insn_to_complete) {
             int insn_table_index = findInsnTableIndex(0);
             aarch64_insn_entry *insn_table_entry = &aarch64_insn_entry::main_insn_table[insn_table_index];
+            if(pre_process_checks(insn_table_entry)) {
+                insn_table_entry = &aarch64_insn_entry::main_insn_table[0];
+                isValid = false;
+            }
 
             insn = insn_to_complete->m_RawInsn.small_insn;
             insn_in_progress = const_cast<Instruction *>(insn_to_complete);
