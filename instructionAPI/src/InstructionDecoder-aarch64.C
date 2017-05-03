@@ -2685,7 +2685,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             else if (hasOption) {
                 if (IS_INSN_ADDSUB_EXT(insn))                                        //add-sub extended
                 {
-                    if(immVal > 4) {
+                    if(immVal > 4 || ((insn >> 21) & 0x7) != 0x1) {
                         isValid = false;
                         return;
                     }
@@ -2972,7 +2972,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             } else if((insnID == aarch64_op_cmgt_advsimd_reg || insnID == aarch64_op_cmgt_advsimd_zero || insnID == aarch64_op_cmge_advsimd_reg || insnID == aarch64_op_cmge_advsimd_zero)
                       && !(IS_INSN_SCALAR_3SAME(insn) || IS_INSN_SIMD_3SAME(insn))) {
                 ret = true;
-            } else if(insnID == aarch64_op_fcmlt_advsimd && !(IS_INSN_SIMD_2REG_MISC(insn) || IS_INSN_SCALAR_2REG_MISC(insn))) {
+            } else if((insnID == aarch64_op_fcmlt_advsimd || insnID == aarch64_op_rev64_advsimd) && !(IS_INSN_SIMD_2REG_MISC(insn) || IS_INSN_SCALAR_2REG_MISC(insn))) {
                 ret = true;
             }
 
@@ -3023,7 +3023,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                 entryID insnID = insn_in_progress->getOperation().operationID;
                 vector<entryID> zeroInsnIDs = {aarch64_op_cmeq_advsimd_zero, aarch64_op_cmge_advsimd_zero, aarch64_op_cmgt_advsimd_zero, aarch64_op_cmle_advsimd, aarch64_op_cmlt_advsimd,
                                                aarch64_op_fcmeq_advsimd_zero, aarch64_op_fcmge_advsimd_zero, aarch64_op_fcmgt_advsimd_zero, aarch64_op_fcmle_advsimd, aarch64_op_fcmlt_advsimd};
-                for(int idx = 0; idx < zeroInsnIDs.size(); idx++)
+                for(size_t idx = 0; idx < zeroInsnIDs.size(); idx++)
                     if(zeroInsnIDs[idx] == insnID) {
                         insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32, 0)), true, false);
                         break;
