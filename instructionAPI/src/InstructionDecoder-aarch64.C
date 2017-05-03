@@ -2964,15 +2964,24 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             bool ret = false;
             entryID insnID = entry->op;
 
+            vector<entryID> simdCompareRegInsns = {aarch64_op_cmeq_advsimd_reg, aarch64_op_cmge_advsimd_reg, aarch64_op_cmgt_advsimd_reg, aarch64_op_cmhi_advsimd, aarch64_op_cmhs_advsimd, aarch64_op_cmtst_advsimd},
+                            simdCompareZeroInsns = {aarch64_op_cmeq_advsimd_zero, aarch64_op_cmge_advsimd_zero, aarch64_op_cmgt_advsimd_zero, aarch64_op_cmle_advsimd, aarch64_op_cmlt_advsimd};
+            vector<entryID> fpCompareRegInsns = {aarch64_op_fcmeq_advsimd_reg, aarch64_op_fcmge_advsimd_reg, aarch64_op_fcmgt_advsimd_reg},
+                            fpCompareZeroInsns = {aarch64_op_fcmeq_advsimd_zero, aarch64_op_fcmge_advsimd_zero, aarch64_op_fcmgt_advsimd_zero, aarch64_op_fcmle_advsimd, aarch64_op_fcmlt_advsimd};
+
             if(insnID == aarch64_op_sqshl_advsimd_imm) {
                 if(!IS_INSN_SIMD_SHIFT_IMM(insn) && !IS_INSN_SCALAR_SHIFT_IMM(insn))
                     ret = true;
                 else if(((insn >> 11) & 0x1) != 0)
                     ret = true;
-            } else if((insnID == aarch64_op_cmgt_advsimd_reg || insnID == aarch64_op_cmgt_advsimd_zero || insnID == aarch64_op_cmge_advsimd_reg || insnID == aarch64_op_cmge_advsimd_zero)
+            } else if((find(simdCompareRegInsns.begin(), simdCompareRegInsns.end(), insnID) != simdCompareRegInsns.end() ||
+                      (find(fpCompareRegInsns.begin(), fpCompareRegInsns.end(), insnID) != fpCompareRegInsns.end()))
                       && !(IS_INSN_SCALAR_3SAME(insn) || IS_INSN_SIMD_3SAME(insn))) {
                 ret = true;
-            } else if((insnID == aarch64_op_fcmlt_advsimd || insnID == aarch64_op_rev64_advsimd) && !(IS_INSN_SIMD_2REG_MISC(insn) || IS_INSN_SCALAR_2REG_MISC(insn))) {
+            } else if((find(simdCompareZeroInsns.begin(), simdCompareZeroInsns.end(), insnID) != simdCompareZeroInsns.end() ||
+                       find(fpCompareZeroInsns.begin(), fpCompareZeroInsns.end(), insnID) != fpCompareZeroInsns.end() ||
+                       insnID == aarch64_op_rev64_advsimd)
+                      && !(IS_INSN_SIMD_2REG_MISC(insn) || IS_INSN_SCALAR_2REG_MISC(insn))) {
                 ret = true;
             }
 
