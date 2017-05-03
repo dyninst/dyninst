@@ -3020,11 +3020,17 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                     processAlphabetImm();
                 }
 
+                entryID insnID = insn_in_progress->getOperation().operationID;
+                vector<entryID> zeroInsnIDs = {aarch64_op_cmeq_advsimd_zero, aarch64_op_cmge_advsimd_zero, aarch64_op_cmgt_advsimd_zero, aarch64_op_cmle_advsimd, aarch64_op_cmlt_advsimd,
+                                               aarch64_op_fcmeq_advsimd_zero, aarch64_op_fcmge_advsimd_zero, aarch64_op_fcmgt_advsimd_zero, aarch64_op_fcmle_advsimd, aarch64_op_fcmlt_advsimd};
+                for(int idx = 0; idx < zeroInsnIDs.size(); idx++)
+                    if(zeroInsnIDs[idx] == insnID) {
+                        insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32, 0)), true, false);
+                        break;
+                    }
+
                 if (IS_INSN_LDST_SIMD_MULT_POST(insn) || IS_INSN_LDST_SIMD_SING_POST(insn))
                     insn_in_progress->appendOperand(makeRnExpr(), false, true, true);
-                else if (insn_in_progress->getOperation().operationID == aarch64_op_cmeq_advsimd_zero &&
-                         field<29, 29>(insn) == 0)
-                    insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32, 0)), true, false);
 
                 if (isPstateWritten || isPstateRead)
                     insn_in_progress->appendOperand(makePstateExpr(), isPstateRead, isPstateWritten, true);
