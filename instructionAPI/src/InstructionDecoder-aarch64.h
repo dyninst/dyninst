@@ -124,7 +124,7 @@ namespace Dyninst {
 
 #define IS_INSN_SIMD_3SAME(I)           (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xE && field<21, 21>(I) == 0x1 && field<10, 10>(I) == 0x1)
 #define IS_INSN_SIMD_3DIFF(I)           (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<21, 21>(I) == 0x1 && field<10, 11>(I) == 0x0)
-#define IS_INSN_SIMD_2REG_MISC(I)	(field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<17, 21>(I) == 0x10 && field<10, 11>(I) == 0x2)	    
+#define IS_INSN_SIMD_2REG_MISC(I)	(field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<17, 21>(I) == 0x10 && field<10, 11>(I) == 0x2)
 #define IS_INSN_SIMD_ACROSS(I)          (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<17, 21>(I) == 0x18 && field<10, 11>(I) == 0x2)
 #define IS_INSN_SIMD_COPY(I)            (field<31, 31>(I) == 0x0 && field<21, 28>(I) == 0x70 && field<15,15>(I) == 0x0 && field<10, 10>(I) == 0x1)
 #define IS_INSN_SIMD_VEC_INDEX(I)       (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xf && field<10, 10>(I) == 0x0)
@@ -139,6 +139,9 @@ namespace Dyninst {
 #define IS_INSN_SCALAR_COPY(I)          (field<30, 31>(I) == 0x1 && field<21, 28>(I) == 0xf0 && field<15, 15>(I) == 0x0 && field<10, 10>(I) == 0x1)
 #define IS_INSN_SCALAR_INDEX(I)         (field<30, 31>(I) == 0x1 && field<24, 28>(I) == 0x1f && field<10, 10>(I) == 0x0)
 #define IS_INSN_SCALAR_SHIFT_IMM(I)     (field<30, 31>(I) == 0x1 && field<23, 28>(I) == 0x3e && field<10, 10>(I) == 0x1)
+
+#define IS_INSN_CRYPT_3REG_SHA(I)       (field<24, 31>(I) == 0x5E && field<21, 21>(I) == 0 && field<15, 15>(I) == 0 && field<10, 11>(I) == 0)
+#define IS_INSN_CRYPT_2REG_SHA(I)       (field<24, 31>(I) == 0x5E && field<17, 21>(I) == 0x14 && field<10, 11>(I) == 0x2)
 
 #define    IS_FIELD_IMMR(S, E)                (S == 16 && E == 21)
 #define    IS_FIELD_IMMS(S, E)                (S == 10 && E == 15)

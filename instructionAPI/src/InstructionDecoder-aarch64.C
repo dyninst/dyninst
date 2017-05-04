@@ -2963,6 +2963,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
         bool InstructionDecoder_aarch64::pre_process_checks(aarch64_insn_entry *entry) {
             bool ret = false;
             entryID insnID = entry->op;
+            string mnemonic(entry->mnemonic);
 
             vector<entryID> simdCompareRegInsns = {aarch64_op_cmeq_advsimd_reg, aarch64_op_cmge_advsimd_reg, aarch64_op_cmgt_advsimd_reg, aarch64_op_cmhi_advsimd, aarch64_op_cmhs_advsimd, aarch64_op_cmtst_advsimd},
                             simdCompareZeroInsns = {aarch64_op_cmeq_advsimd_zero, aarch64_op_cmge_advsimd_zero, aarch64_op_cmgt_advsimd_zero, aarch64_op_cmle_advsimd, aarch64_op_cmlt_advsimd};
@@ -2982,6 +2983,9 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                        find(fpCompareZeroInsns.begin(), fpCompareZeroInsns.end(), insnID) != fpCompareZeroInsns.end() ||
                        insnID == aarch64_op_rev64_advsimd)
                       && !(IS_INSN_SIMD_2REG_MISC(insn) || IS_INSN_SCALAR_2REG_MISC(insn))) {
+                ret = true;
+            } else if((mnemonic.find("sha1") != string::npos || mnemonic.find("sha2") != string::npos)
+                      && !(IS_INSN_CRYPT_2REG_SHA(insn) || IS_INSN_CRYPT_3REG_SHA(insn))) {
                 ret = true;
             }
 
@@ -3032,11 +3036,8 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                 entryID insnID = insn_in_progress->getOperation().operationID;
                 vector<entryID> zeroInsnIDs = {aarch64_op_cmeq_advsimd_zero, aarch64_op_cmge_advsimd_zero, aarch64_op_cmgt_advsimd_zero, aarch64_op_cmle_advsimd, aarch64_op_cmlt_advsimd,
                                                aarch64_op_fcmeq_advsimd_zero, aarch64_op_fcmge_advsimd_zero, aarch64_op_fcmgt_advsimd_zero, aarch64_op_fcmle_advsimd, aarch64_op_fcmlt_advsimd};
-                for(size_t idx = 0; idx < zeroInsnIDs.size(); idx++)
-                    if(zeroInsnIDs[idx] == insnID) {
-                        insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32, 0)), true, false);
-                        break;
-                    }
+                if(find(zeroInsnIDs.begin(), zeroInsnIDs.end(), insnID) != zeroInsnIDs.end())
+                    insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u32, 0)), true, false);
 
                 if (IS_INSN_LDST_SIMD_MULT_POST(insn) || IS_INSN_LDST_SIMD_SING_POST(insn))
                     insn_in_progress->appendOperand(makeRnExpr(), false, true, true);
