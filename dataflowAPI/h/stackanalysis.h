@@ -71,11 +71,60 @@ namespace Dyninst {
       class Expression;
    };
 
-
 class StackAnalysis {
 public:
    typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
    typedef boost::shared_ptr<InstructionAPI::Expression> ExpressionPtr;
+
+   class DATAFLOW_EXPORT Definition {
+   public:
+      typedef enum {TOP, BOTTOM, DEF} Type;
+      Address addr;
+      ParseAPI::Block *block;
+      Absloc origLoc;
+      Type type;
+
+      Definition(ParseAPI::Block *b, Address a, Absloc l) : addr(a),
+         block(b), origLoc(l), type(DEF) {}
+      Definition(ParseAPI::Block *b, Absloc l) : addr(0), block(b),
+         origLoc(l), type(DEF) {}
+      Definition(Address a, Absloc l) : addr(a), block(NULL), origLoc(l),
+         type(DEF) {}
+      Definition() : addr(0), block(NULL), type(TOP) {}
+
+      bool operator==(const Definition &other) const {
+         // FIXME: To pass checks in StackAnalysis::summarize(), we consider
+         // definitions equivalent as long as one is not BOTTOM and the other
+         // something else.  This is not proper.
+         //return type == other.type && block == other.block;
+         if (type == BOTTOM && other.type != BOTTOM) return false;
+         if (type != BOTTOM && other.type == BOTTOM) return false;
+         return true;
+      }
+
+      bool operator<(const Definition &rhs) const {
+         if (type == TOP) return false;
+         if (type == BOTTOM && rhs.type == BOTTOM) return false;
+         if (type == BOTTOM) return true;
+
+         if (rhs.type == TOP) return true;
+         if (rhs.type == BOTTOM) return false;
+
+         // At this point we know both are DEFs
+         return block < rhs.block;
+      }
+
+      std::string format() const;
+
+      static Definition meet(const Definition &lhs, const Definition &rhs) {
+         if (lhs.type == TOP) return rhs;
+         if (rhs.type == TOP) return lhs;
+         if (lhs == rhs) return rhs;
+         Definition bottom;
+         bottom.type = BOTTOM;
+         return bottom;
+      }
+   };
 
    class DATAFLOW_EXPORT Height {
    public:
@@ -178,6 +227,9 @@ public:
       Type type_;
    };
 
+   typedef std::pair<Definition, Height> DefHeight;
+   DATAFLOW_EXPORT static bool isTopSet(const std::set<DefHeight> &s);
+   DATAFLOW_EXPORT static bool isBottomSet(const std::set<DefHeight> &s);
 
    // We need to represent the effects of instructions. We do this in terms of
    // transfer functions. We recognize the following effects on the stack.
@@ -199,8 +251,8 @@ public:
    // they are fixed) and RV as a parameter. Note that a transfer function is a
    // function T : (RegisterVector, RegisterID, RegisterID, value) ->
    // (RegisterVector).
-   typedef std::map<Absloc, Height> AbslocState;
-   class TransferFunc {
+   typedef std::map<Absloc, std::set<DefHeight> > AbslocState;
+   class DATAFLOW_EXPORT TransferFunc {
    public:
       typedef enum {TOP, BOTTOM, OTHER} Type;
 
@@ -255,7 +307,7 @@ public:
          return !(*this == rhs);
       }
 
-      Height apply(const AbslocState &inputs) const;
+      std::set<DefHeight> apply(const AbslocState &inputs) const;
       void accumulate(std::map<Absloc, TransferFunc> &inputs);
       TransferFunc summaryAccumulate(
          const std::map<Absloc, TransferFunc> &inputs) const;
@@ -302,7 +354,8 @@ public:
 
       SummaryFunc() {};
 
-      void apply(const AbslocState &in, AbslocState &out) const;
+      void apply(ParseAPI::Block *block, const AbslocState &in,
+         AbslocState &out) const;
       void accumulate(const TransferSet &in, TransferSet &out) const;
 
       std::string format() const;
@@ -351,10 +404,15 @@ public:
     DATAFLOW_EXPORT virtual ~StackAnalysis();
 
     DATAFLOW_EXPORT Height find(ParseAPI::Block *, Address addr, Absloc loc);
+    DATAFLOW_EXPORT std::set<DefHeight> findDefHeight(ParseAPI::Block *block,
+        Address addr, Absloc loc);
    DATAFLOW_EXPORT Height findSP(ParseAPI::Block *, Address addr);
    DATAFLOW_EXPORT Height findFP(ParseAPI::Block *, Address addr);
    DATAFLOW_EXPORT void findDefinedHeights(ParseAPI::Block* b, Address addr,
       std::vector<std::pair<Absloc, Height> >& heights);
+   // TODO: Update DataflowAPI manual
+   DATAFLOW_EXPORT void findDefHeightPairs(ParseAPI::Block *b, Address addr,
+      std::vector<std::pair<Absloc, std::set<DefHeight> > > &defHeights);
 
    // TODO: Update DataflowAPI manual
    DATAFLOW_EXPORT bool canGetFunctionSummary();
@@ -385,6 +443,9 @@ private:
       AbslocState &input);
    void meetSummaryInputs(ParseAPI::Block *b, TransferSet &blockInput,
       TransferSet &input);
+   DefHeight meetDefHeight(const DefHeight &dh1, const DefHeight &dh2);
+   std::set<DefHeight> meetDefHeights(const std::set<DefHeight> &s1,
+      const std::set<DefHeight> &s2);
    void meet(const AbslocState &source, AbslocState &accum);
    void meetSummary(const TransferSet &source, TransferSet &accum);
    AbslocState getSrcOutputLocs(ParseAPI::Edge* e);
@@ -396,7 +457,8 @@ private:
    bool isJump(InstructionPtr insn);
    bool handleNormalCall(InstructionPtr insn, ParseAPI::Block *block,
       Offset off, TransferFuncs &xferFuncs, TransferSet &funcSummary);
-   bool handleThunkCall(InstructionPtr insn, TransferFuncs &xferFuncs);
+   bool handleThunkCall(InstructionPtr insn, ParseAPI::Block *block,
+      const Offset off, TransferFuncs &xferFuncs);
    bool handleJump(InstructionPtr insn, ParseAPI::Block *block,
       Offset off, TransferFuncs &xferFuncs, TransferSet &funcSummary);
    void handlePushPop(InstructionPtr insn, ParseAPI::Block *block,
@@ -424,6 +486,8 @@ private:
       TransferFuncs &xferFuncs);
    void handleDiv(InstructionPtr insn, TransferFuncs &xferFuncs);
    void handleMul(InstructionPtr insn, TransferFuncs &xferFuncs);
+   void handleSyscall(InstructionPtr insn, ParseAPI::Block *block,
+      const Offset off, TransferFuncs &xferFuncs);
    void handleDefault(InstructionPtr insn, ParseAPI::Block *block,
       const Offset off, TransferFuncs &xferFuncs);
 
@@ -433,8 +497,22 @@ private:
    void copyBaseSubReg(const MachRegister &reg, TransferFuncs &xferFuncs);
    void bottomBaseSubReg(const MachRegister &reg, TransferFuncs &xferFuncs);
 
+   static void makeTopSet(std::set<DefHeight> &s);
+   static void makeBottomSet(std::set<DefHeight> &s);
+   static void makeNewSet(ParseAPI::Block *b, Address addr,
+      const Absloc &origLoc, const Height &h, std::set<DefHeight> &s);
+   static void addInitSet(const Height &h, std::set<DefHeight> &s);
+   static void addDeltaSet(long delta, std::set<DefHeight> &s);
+   static Height getHeightSet(const std::set<DefHeight> &s);
+   static Definition getDefSet(const std::set<DefHeight> &s);
+
+
    Height getStackCleanAmount(ParseAPI::Function *func);
 
+   // This constant limits the number of definitions we track per register. If
+   // more than this many definitions are found, the register is considered to
+   // be BOTTOM, and the definitions tracked so far are dropped.
+   static const unsigned DEF_LIMIT = 2;
 
    ParseAPI::Function *func;
 

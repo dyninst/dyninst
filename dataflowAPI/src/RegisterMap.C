@@ -754,6 +754,45 @@ RegisterMap &machRegIndex_ppc_64() {
    return mrmap;
 }
 
+RegisterMap &machRegIndex_aarch64() {
+   static RegisterMap mrmap;
+   if (mrmap.empty()) {
+      mrmap = {
+	 {aarch64::x0, 0},
+	 {aarch64::x1, 1},
+	 {aarch64::x2, 2},
+	 {aarch64::x3, 3},
+	 {aarch64::x4, 4},
+	 {aarch64::x5, 5},
+	 {aarch64::x6, 6},
+	 {aarch64::x7, 7},
+	 {aarch64::x8, 8},
+	 {aarch64::x9, 9},
+	 {aarch64::x10, 10},
+	 {aarch64::x11, 11},
+	 {aarch64::x12, 12},
+	 {aarch64::x13, 13},
+	 {aarch64::x14, 14},
+	 {aarch64::x15, 15},
+	 {aarch64::x16, 16},
+	 {aarch64::x17, 17},
+	 {aarch64::x18, 18},
+	 {aarch64::x19, 19},
+	 {aarch64::x20, 20},
+	 {aarch64::x21, 21},
+	 {aarch64::x22, 22},
+	 {aarch64::x23, 23},
+	 {aarch64::x24, 24},
+	 {aarch64::x25, 25},
+	 {aarch64::x26, 26},
+	 {aarch64::x27, 27},
+	 {aarch64::x28, 28},
+	 {aarch64::x29, 29},
+	 {aarch64::x30, 30} };
+   }
+   return mrmap;
+}
+
 #else
   // This fails on VS 2015... but not VS 2010...
 RegisterMap &machRegIndex_x86() {

@@ -211,13 +211,39 @@ bool RelocGraph::changeType(RelocEdge *e, ParseAPI::EdgeTypeEnum t) {
 }
    
 bool Predicates::Interprocedural::operator()(RelocEdge *e) {
-   return (e->type == ParseAPI::CALL ||
-           e->type == ParseAPI::RET);
+    // Calls and returns are always interprocedural
+    if (e->type == ParseAPI::CALL || e->type == ParseAPI::RET) return true;
+
+    // If there is an underlying edge_instance, use its interproc() method
+    if (e->edge != NULL) return e->edge->interproc();
+
+    // If both endpoints are RelocBlocks, check if they are in the same func
+    if (e->src->type() == TargetInt::RelocBlockTarget &&
+        e->trg->type() == TargetInt::RelocBlockTarget) {
+        Target<RelocBlock *> *src = static_cast<Target<RelocBlock *>*>(e->src);
+        Target<RelocBlock *> *trg = static_cast<Target<RelocBlock *>*>(e->trg);
+        return src->t()->func() != trg->t()->func();
+    }
+
+    return false;
 }
 
 bool Predicates::Intraprocedural::operator()(RelocEdge *e) {
-   return (e->type != ParseAPI::CALL &&
-           e->type != ParseAPI::RET);
+    // Calls and returns are always interprocedural
+    if (e->type == ParseAPI::CALL || e->type == ParseAPI::RET) return false;
+
+    // If there is an underlying edge_instance, use its interproc() method
+    if (e->edge != NULL) return !e->edge->interproc();
+
+    // If both endpoints are RelocBlocks, check if they are in the same func
+    if (e->src->type() == TargetInt::RelocBlockTarget &&
+        e->trg->type() == TargetInt::RelocBlockTarget) {
+        Target<RelocBlock *> *src = static_cast<Target<RelocBlock *>*>(e->src);
+        Target<RelocBlock *> *trg = static_cast<Target<RelocBlock *>*>(e->trg);
+        return src->t()->func() == trg->t()->func();
+    }
+
+    return true;
 }
 
 bool Predicates::Fallthrough::operator()(RelocEdge *e) {

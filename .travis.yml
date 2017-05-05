@@ -5,7 +5,7 @@ sudo: false
 env:
     global:
         - LLVM_VERSION=3.7.0
-        - LD_LIBRARY_PATH=$HOME/clang-$LLVM_VERSION/lib:$LD_LIBRARY_PATH
+        - LD_LIBRARY_PATH=$HOME/clang-$LLVM_VERSION/lib:/usr/lib/x86_64-linux-gnu/:$LD_LIBRARY_PATH
 
 addons:
     apt:
@@ -18,6 +18,8 @@ addons:
             - libboost-system1.55-dev
             - libboost-thread1.55-dev
             - cmake
+            - elfutils
+            - libelf1
             - libelf-dev
             - g++-4.9
 
@@ -38,6 +40,7 @@ before_install:
 script:
     - if [ "$CC" == "clang" ]; then export CC=$HOME/llvm-$LLVM_VERSION/bin/clang; export CXX=$HOME/llvm-$LLVM_VERSION/bin/clang++; fi
     - if [ "$CC" == "gcc" ]; then export CC=gcc-4.9; export CXX=g++-4.9; fi
+    - find /usr -name 'libelf.*'
     - mkdir work
     - cd work
     - cmake ..

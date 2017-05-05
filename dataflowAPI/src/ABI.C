@@ -39,6 +39,7 @@ bitArray ABI::callRead_;
 bitArray ABI::callWritten_;
 bitArray ABI::returnRead_;
 bitArray ABI::returnRegs_;
+bitArray ABI::callParam_;
 bitArray ABI::syscallRead_;
 bitArray ABI::syscallWritten_;
 
@@ -46,6 +47,7 @@ bitArray ABI::callRead64_;
 bitArray ABI::callWritten64_;
 bitArray ABI::returnRead64_;
 bitArray ABI::returnRegs64_;
+bitArray ABI::callParam64_;
 bitArray ABI::syscallRead64_;
 bitArray ABI::syscallWritten64_;
 bitArray ABI::allRegs_;
@@ -141,6 +143,17 @@ const bitArray &ABI::getReturnRegisters() const {
     }
 }
 
+const bitArray &ABI::getParameterRegisters() const {
+    if (addr_width == 4)
+        return callParam_;
+    else if (addr_width == 8)
+        return callParam64_;
+    else {
+        assert(0);
+        return callParam_;
+    }
+}
+
 const bitArray &ABI::getSyscallReadRegisters() const {
     if (addr_width == 4)
         return syscallRead_;
@@ -183,6 +196,7 @@ void ABI::initialize32(){
    returnRegs_ = getBitArray(machRegIndex_x86().size());
    returnRegs_[machRegIndex_x86()[x86::eax]] = true;
 
+   callParam_ = getBitArray(machRegIndex_x86().size());
 
    returnRead_ = getBitArray(machRegIndex_x86().size());
    // Callee-save registers...
@@ -267,6 +281,13 @@ void ABI::initialize64(){
     returnRegs64_[machRegIndex_x86_64()[x86_64::rax]] = true;
     returnRegs64_[machRegIndex_x86_64()[x86_64::rdx]] = true;
 
+    callParam64_ = getBitArray(machRegIndex_x86_64().size());
+    callParam64_[machRegIndex_x86_64()[x86_64::rdi]] = true;
+    callParam64_[machRegIndex_x86_64()[x86_64::rsi]] = true;
+    callParam64_[machRegIndex_x86_64()[x86_64::rdx]] = true;
+    callParam64_[machRegIndex_x86_64()[x86_64::rcx]] = true;
+    callParam64_[machRegIndex_x86_64()[x86_64::r8]] = true;
+    callParam64_[machRegIndex_x86_64()[x86_64::r9]] = true;
 
     returnRead64_ = getBitArray(machRegIndex_x86_64().size());
     returnRead64_[machRegIndex_x86_64()[x86_64::rax]] = true;
@@ -337,6 +358,17 @@ void ABI::initialize64(){
 void ABI::initialize32(){
     returnRegs_ = getBitArray(machRegIndex_ppc().size());
     returnRegs_[machRegIndex_ppc()[ppc32::r3]] = true;
+
+    callParam_ = getBitArray(machRegIndex_ppc().size());
+    callParam_[machRegIndex_ppc()[ppc32::r3]] = true;
+    callParam_[machRegIndex_ppc()[ppc32::r4]] = true;
+    callParam_[machRegIndex_ppc()[ppc32::r5]] = true;
+    callParam_[machRegIndex_ppc()[ppc32::r6]] = true;
+    callParam_[machRegIndex_ppc()[ppc32::r7]] = true;
+    callParam_[machRegIndex_ppc()[ppc32::r8]] = true;
+    callParam_[machRegIndex_ppc()[ppc32::r9]] = true;
+    callParam_[machRegIndex_ppc()[ppc32::r10]] = true;
+
 
     returnRead_ = getBitArray(machRegIndex_ppc().size());
     // Return reads r3, r4, fpr1, fpr2
@@ -424,6 +456,16 @@ void ABI::initialize32(){
 void ABI::initialize64(){
     returnRegs64_ = getBitArray(machRegIndex_ppc_64().size());
     returnRegs64_[machRegIndex_ppc_64()[ppc64::r3]] = true;
+
+    callParam64_ = getBitArray(machRegIndex_ppc_64().size());
+    callParam64_[machRegIndex_ppc_64()[ppc64::r3]] = true;
+    callParam64_[machRegIndex_ppc_64()[ppc64::r4]] = true;
+    callParam64_[machRegIndex_ppc_64()[ppc64::r5]] = true;
+    callParam64_[machRegIndex_ppc_64()[ppc64::r6]] = true;
+    callParam64_[machRegIndex_ppc_64()[ppc64::r7]] = true;
+    callParam64_[machRegIndex_ppc_64()[ppc64::r8]] = true;
+    callParam64_[machRegIndex_ppc_64()[ppc64::r9]] = true;
+    callParam64_[machRegIndex_ppc_64()[ppc64::r10]] = true;
 
     returnRead64_ = getBitArray(machRegIndex_ppc_64().size());
     // Return reads r3, r4, fpr1, fpr2

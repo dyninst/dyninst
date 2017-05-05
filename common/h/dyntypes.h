@@ -124,8 +124,13 @@
 
 namespace Dyninst
 {
-   typedef uintptr_t Address;
-   typedef uintptr_t Offset;
+#if defined(_WIN64)
+    typedef uintptr_t Address;
+    typedef uintptr_t Offset;
+#else
+    typedef unsigned long Address;
+    typedef unsigned long Offset;
+#endif
 
 #if defined(_MSC_VER)
    typedef int PID;

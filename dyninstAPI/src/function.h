@@ -341,6 +341,10 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   TMap* getTMap() const { return _tMap; }
   void replaceTMap(TMap* newTMap) { _tMap = newTMap; }
 
+  std::map<Address, StackAccess *> *getDefinitionMap() {
+    return _definitionMap;
+  }
+
   bool randomize(TMap* tMap, bool seeded = false, int seed = -1);
   void freeStackMod();
 
@@ -423,8 +427,17 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   OffsetVector* _offVec;
   set<tmpObject, less_tmpObject >* _tmpObjects;
 
+  // Records transformations to known stack locations and stack pointers due to
+  // stack modifications.
   TMap* _tMap;
+
+  // Records known accesses to stack locations (so we can determine how to
+  // modify the accesses for stack modifications).
   std::map<Address, Accesses*>* _accessMap;
+
+  // Records stack pointer definitions that need to be modified for stack
+  // modifications.
+  std::map<Address, StackAccess *> *_definitionMap;
 #endif
 };
 

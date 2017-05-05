@@ -84,6 +84,44 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
 
     tMap = cur->func()->getTMap();
     assert(tMap);
+
+    // Analyze definitions to figure out how their displacements need to be
+    // modified.
+    std::map<Address, StackAccess *> *definitionMap =
+      cur->func()->getDefinitionMap();
+    for (auto defIter = definitionMap->begin(); defIter != definitionMap->end();
+      defIter++) {
+      const Address defAddr = defIter->first;
+      StackAccess *defAccess = defIter->second;
+
+      // Set up parameters for call to  isStackFrameSensitive
+      Offset origDisp;
+      signed long delta;
+      Accesses tmpAccesses;
+      tmpAccesses[defAccess->reg()].insert(defAccess);
+      ParseAPI::Block *defBlock = NULL;
+      const ParseAPI::Function::blocklist &blocks =
+          cur->func()->ifunc()->blocks();
+      for (auto blockIter = blocks.begin(); blockIter != blocks.end();
+        blockIter++) {
+        ParseAPI::Block *block = *blockIter;
+        Address tmp;
+        if (block->start() <= defAddr && defAddr < block->end() &&
+          block->consistent(defAddr, tmp)) {
+          defBlock = block;
+          break;
+        }
+      }
+      assert(defBlock != NULL);
+
+      // Get origDisp, delta for this definition via isStackFrameSensitive
+      stackmods_printf("Checking isStackFrameSensitive for def @ 0x%lx\n",
+        defAddr);
+      if (isStackFrameSensitive(origDisp, delta, &tmpAccesses, offVec, tMap,
+        defBlock, defAddr)) {
+        definitionDeltas[defAddr] = std::make_pair(origDisp, delta);
+      }
+    }
   }
 #endif
 
@@ -464,125 +502,180 @@ bool adhocMovementTransformer::isStackFrameSensitive(Offset& origDisp,
     ParseAPI::Block* block,
     Address addr)
 {
-    // Track changes after transformations are applied
-    StackAnalysis::Height regDelta(0);  // Change in base register height
-    StackAnalysis::Height readDelta(0);  // Change in access height
+    // Short-circuit if this instruction is a definition that we already
+    // analyzed.
+    if (definitionDeltas.find(addr) != definitionDeltas.end()) {
+       origDisp = definitionDeltas[addr].first;
+       delta = definitionDeltas[addr].second;
+       return true;
+    }
 
-    bool ret = false;
-    for (auto iter = accesses->begin(); iter != accesses->end(); ++iter) {
-        MachRegister curReg = (*iter).first;
-        StackAccess* access = (*iter).second;
+    delta = 0;
 
-        // The original difference between base register height and access
-        // height
-        origDisp = access->disp();
+    assert(accesses->size() <= 1);
+    if (accesses->size() == 1) {
+        MachRegister curReg = accesses->begin()->first;
+        const std::set<StackAccess *> &accessSet = accesses->begin()->second;
+        const unsigned accessSetSize = accessSet.size();
 
-        stackmods_printf("\t %s\n", access->format().c_str());
+        // Change in base register height for each possible location accessed
+        StackAnalysis::Height *regDeltas =
+            new StackAnalysis::Height[accessSetSize];
+        // Change in access height for each possible location accessed
+        StackAnalysis::Height *readDeltas =
+            new StackAnalysis::Height[accessSetSize];
+        // Change in definition height for each possible location accessed
+        StackAnalysis::Height *defDeltas =
+            new StackAnalysis::Height[accessSetSize];
 
-        StackAnalysis::Height regHeightPrime = access->regHeight();
-        StackAnalysis::Height readHeightPrime = access->readHeight();
+        unsigned i = 0;
+        for (auto iter = accessSet.begin(); iter != accessSet.end(); iter++) {
+            StackAccess *access = *iter;
 
-        stackmods_printf("\t\t regHeight = %ld, readHeight = %ld\n",
-            access->regHeight().height(), access->readHeight().height());
+            // The original difference between base register height and access
+            // height
+            origDisp = access->disp();
 
-        // Idea: Check for exact match first, then check for overlaps.  This
-        // should fix the case where we add an exact match. However, find is
-        // going to search for any match, so we need to look ourselves.
+            stackmods_printf("\t %s\n", access->format().c_str());
 
-        bool foundReg = false;
-        bool foundRead = false;
+            StackAnalysis::Height regHeightPrime = access->regHeight();
+            StackAnalysis::Height readHeightPrime = access->readHeight();
 
-        // Find any updates to regHeight or readHeight (exact matches)
-        for (auto tIter = tMap->begin(); (!foundReg || !foundRead) &&
-            tIter != tMap->end(); ++tIter) {
-            StackLocation* src = (*tIter).first;
-            StackLocation* dest = (*tIter).second;
+            stackmods_printf("\t\t regHeight = %ld, readHeight = %ld\n",
+                access->regHeight().height(), access->readHeight().height());
 
-            stackmods_printf("\t\t\t Checking %s -> %s\n",
-                src->format().c_str(), dest->format().c_str());
+            // Idea: Check for exact match first, then check for overlaps.  This
+            // should fix the case where we add an exact match. However, find is
+            // going to search for any match, so we need to look ourselves.
 
-            if (src->isStackMemory() && dest->isStackMemory()) {
-                if (src->isRegisterHeight()) {
-                    if (src->off() == access->regHeight()) {
-                        int tmp;
-                        if (src->valid() && !src->valid()->find(addr, tmp)) {
-                            stackmods_printf("\t\t\t\t Matching src height not "
-                                "valid for this PC\n");
-                            continue;
+            bool foundReg = false;
+            bool foundRead = false;
+
+            // Find any updates to regHeight or readHeight (exact matches)
+            for (auto tIter = tMap->begin(); (!foundReg || !foundRead) &&
+                tIter != tMap->end(); ++tIter) {
+                StackLocation* src = (*tIter).first;
+                StackLocation* dest = (*tIter).second;
+
+                stackmods_printf("\t\t\t Checking %s -> %s\n",
+                    src->format().c_str(), dest->format().c_str());
+
+                if (src->isStackMemory() && dest->isStackMemory()) {
+                    if (src->isRegisterHeight()) {
+                        if (src->off() == access->regHeight()) {
+                            int tmp;
+                            if (src->valid() &&
+                                !src->valid()->find(addr, tmp)) {
+                                stackmods_printf("\t\t\t\t Matching src height "
+                                    "not valid for this PC\n");
+                                continue;
+                            }
+
+                            if (src->reg() == curReg) {
+                                foundReg = true;
+                                assert(!offVec->isSkip(curReg,
+                                    access->regHeight(), block->start(), addr));
+                                regHeightPrime = dest->off();
+                                stackmods_printf("\t\t\t\t regHeight' = %ld\n",
+                                    regHeightPrime.height());
+                            }
                         }
+                    } else {
+                        if (src->off() == access->readHeight()) {
+                            int tmp;
+                            if (src->valid() &&
+                                !src->valid()->find(addr, tmp)) {
+                                stackmods_printf("\t\t\t\t Matching src height "
+                                    "not valid for this PC\n");
+                                continue;
+                            }
 
-                        if (src->reg() == curReg) {
-                            foundReg = true;
-                            assert(!offVec->isSkip(curReg, access->regHeight(),
-                                block->start(), addr));
-                            regHeightPrime = dest->off();
-                            stackmods_printf("\t\t\t\t regHeight' = %ld\n",
-                                regHeightPrime.height());
+                            foundRead = true;
+                            readHeightPrime = dest->off();
+                            stackmods_printf("\t\t\t\t readHeight' = %ld\n",
+                                readHeightPrime.height());
                         }
                     }
+                } else if (src->isNull()) {
+                    stackmods_printf("\t\t\t\t Ignoring: insertion\n");
                 } else {
-                    if (src->off() == access->readHeight()) {
-                        int tmp;
-                        if (src->valid() && !src->valid()->find(addr, tmp)) {
-                            stackmods_printf("\t\t\t\t Matching src height not "
-                                "valid for this PC\n");
-                            continue;
-                        }
+                    assert(0);
+                }
+            }
 
-                        foundRead = true;
-                        readHeightPrime = dest->off();
-                        stackmods_printf("\t\t\t\t readHeight' = %ld\n",
-                            readHeightPrime.height());
+            // Still necessary because accesses contained inside other accesses
+            // may not have an exact offset match in O.
+            // Look for ranges that include the readHeight.
+            for (auto tIter = tMap->begin(); !foundRead && tIter != tMap->end();
+                ++tIter) {
+                StackLocation* src = (*tIter).first;
+                StackLocation* dest = (*tIter).second;
+
+                stackmods_printf("\t\t\t Checking %s -> %s\n",
+                    src->format().c_str(), dest->format().c_str());
+                if (src->isStackMemory() && dest->isStackMemory()) {
+                    if (src->isRegisterHeight()) {
+                        // Nothing to do
+                    } else {
+                        if (src->off() < access->readHeight() &&
+                            access->readHeight() < src->off() + src->size()) {
+                            int tmp;
+                            if (src->valid() &&
+                                !src->valid()->find(addr, tmp)) {
+                                stackmods_printf("\t\t\t\t Matching src height "
+                                    "not valid for this PC\n");
+                                continue;
+                            }
+                            foundRead = true;
+                            readHeightPrime = dest->off() +
+                                (access->readHeight() - src->off());
+                            stackmods_printf("\t\t\t\t readHeight' = %ld\n",
+                                readHeightPrime.height());
+                        }
                     }
                 }
-            } else if (src->isNull()) {
-                stackmods_printf("\t\t\t\t Ignoring: insertion\n");
+            }
+
+            regDeltas[i] = regHeightPrime - access->regHeight();
+            readDeltas[i] = readHeightPrime - access->readHeight();
+
+            // Check if we have a delta for this access's defintion.  Take it
+            // into account if we do.
+            const StackAnalysis::Definition &def = access->regDef();
+            if (definitionDeltas.find(def.addr) == definitionDeltas.end()) {
+                defDeltas[i] = 0;
             } else {
-                assert(0);
+                defDeltas[i] = definitionDeltas[def.addr].second;
+            }
+
+            //stackmods_printf("[isStackFrameSensitive] readD: %ld, regD: %ld, "
+            //   "defD: %ld\n", readDeltas[i].height(), regDeltas[i].height(),
+            //   defDeltas[i].height());
+            i++;
+        }
+
+        // Ensure that this access always needs the same change in displacement
+        // regardless of which location is being accessed.  If accesses to
+        // different locations require different displacements, we can't fix
+        // this instruction for all locations.  In that case, we fail.
+        // TODO: Fail gracefully, allowing other functions to still be
+        //       instrumented
+        delta = readDeltas[0].height() - regDeltas[0].height() -
+            defDeltas[0].height();
+        for (unsigned i = 1; i < accessSetSize; i++) {
+            if (delta != readDeltas[i].height() - regDeltas[i].height() -
+                defDeltas[i].height()) {
+                fprintf(stderr, "Access to multiple locations is unresolvable: "
+                    "different displacements required\n");
+                assert(false);
             }
         }
 
-        // Still necessary because accesses contained inside other accesses may
-        // not have an exact offset match in O.
-        // Look for ranges that include the readHeight.
-        for (auto tIter = tMap->begin(); !foundRead && tIter != tMap->end();
-            ++tIter) {
-            StackLocation* src = (*tIter).first;
-            StackLocation* dest = (*tIter).second;
-
-            stackmods_printf("\t\t\t Checking %s -> %s\n",
-                src->format().c_str(), dest->format().c_str());
-            if (src->isStackMemory() && dest->isStackMemory()) {
-                if (src->isRegisterHeight()) {
-                    // Nothing to do
-                } else {
-                    if (src->off() < access->readHeight() &&
-                        access->readHeight() < src->off() + src->size()) {
-                        int tmp;
-                        if (src->valid() && !src->valid()->find(addr, tmp)) {
-                            stackmods_printf("\t\t\t\t Matching src height not "
-                                "valid for this PC\n");
-                            continue;
-                        }
-                        foundRead = true;
-                        readHeightPrime = dest->off() +
-                            (access->readHeight() - src->off());
-                        stackmods_printf("\t\t\t\t readHeight' = %ld\n",
-                            readHeightPrime.height());
-                    }
-                }
-            }
-        }
-
-        regDelta += access->regHeight() - regHeightPrime;
-        readDelta += access->readHeight() - readHeightPrime;
+        delete[] regDeltas;
+        delete[] readDeltas;
+        delete[] defDeltas;
     }
 
-    if (regDelta != readDelta) {
-        ret = true;
-        delta = regDelta.height() - readDelta.height();
-    }
-
-    return ret;
+    return delta != 0;
 }
 #endif
