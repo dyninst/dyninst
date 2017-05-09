@@ -594,6 +594,7 @@ bool insnCodeGen::modifyJcc(Address target,
         /*
          * A conditional branch of the form
          *    b.cond A
+	 * [Note that b.cond could also be cbz, cbnz, tbz or tbnz -- all valid conditional branch instructions]
          * C: ...next insn...:
          *  gets converted to
          *    b.cond B
