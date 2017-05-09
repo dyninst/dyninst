@@ -132,6 +132,7 @@ class COMMON_EXPORT Graph : public AnnotatableSparse {
 
     void clearEntryNodes();
     void clearExitNodes();
+    void adjustEntryAndExitNodes();
 
     unsigned size() const;
 

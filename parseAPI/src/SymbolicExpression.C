@@ -1,0 +1,256 @@
+#include "SymbolicExpression.h"
+#include "SymEval.h"
+#include "Absloc.h"
+#include "debug_parse.h"
+#include "IndirectASTVisitor.h"
+#include "CFG.h"
+#include "CodeSource.h"
+#include "CodeObject.h"
+using namespace std;
+using namespace Dyninst;
+using namespace Dyninst::ParseAPI;
+using namespace Dyninst::DataflowAPI;
+AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr) {
+    if (ast->getID() == AST::V_RoseAST) {
+        RoseAST::Ptr roseAST = boost::static_pointer_cast<RoseAST>(ast); 
+	
+	switch (roseAST->val().op) {
+	    case ROSEOperation::invertOp:
+	        if (roseAST->child(0)->getID() == AST::V_RoseAST) {
+		    RoseAST::Ptr child = boost::static_pointer_cast<RoseAST>(roseAST->child(0));
+		    if (child->val().op == ROSEOperation::invertOp) return child->child(0);
+		} else if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    size_t size = child->val().size;
+		    uint64_t val = child->val().val;
+		    if (size < 64) {
+		        uint64_t mask = (1ULL << size) - 1;
+		        val = (~val) & mask;
+		    } else
+		        val = ~val;
+		    return ConstantAST::create(Constant(val, size));
+		}
+		break;
+	    case ROSEOperation::extendMSBOp:
+	    case ROSEOperation::extractOp:
+	    case ROSEOperation::signExtendOp:
+	    case ROSEOperation::concatOp:
+	        return roseAST->child(0);
+
+	    case ROSEOperation::addOp:
+	        // We simplify the addition as much as we can
+		// Case 1: two constants
+	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    uint64_t val = child0->val().val + child1->val().val;
+		    size_t size;
+		    if (child0->val().size > child1->val().size)
+		        size = child0->val().size;
+		    else
+		        size = child1->val().size;
+		    return ConstantAST::create(Constant(val,size));
+   	        }
+		// Case 2: anything adding zero stays the same
+		if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    if (child->val().val == 0) return roseAST->child(1);
+		}
+		if (roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    if (child->val().val == 0) return roseAST->child(0);
+		}
+		// Case 3: if v + v * c = v * (c+1), where v is a variable and c is a constant
+		if (roseAST->child(0)->getID() == AST::V_VariableAST && roseAST->child(1)->getID() == AST::V_RoseAST) {
+		    RoseAST::Ptr rOp = boost::static_pointer_cast<RoseAST>(roseAST->child(1));
+		    if (rOp->val().op == ROSEOperation::uMultOp || rOp->val().op == ROSEOperation::sMultOp) {
+		        if (rOp->child(0)->getID() == AST::V_VariableAST && rOp->child(1)->getID() == AST::V_ConstantAST) {
+			    VariableAST::Ptr varAST1 = boost::static_pointer_cast<VariableAST>(roseAST->child(0));
+			    VariableAST::Ptr varAST2 = boost::static_pointer_cast<VariableAST>(rOp->child(0));
+			    if (varAST1->val().reg == varAST2->val().reg) {
+			        ConstantAST::Ptr oldC = boost::static_pointer_cast<ConstantAST>(rOp->child(1));
+			        ConstantAST::Ptr newC = ConstantAST::create(Constant(oldC->val().val + 1, oldC->val().size));
+				RoseAST::Ptr newRoot = RoseAST::create(ROSEOperation(rOp->val()), varAST1, newC);
+				return newRoot;
+			    }
+			}
+		    }
+		} 
+		break;
+	    case ROSEOperation::sMultOp:
+	    case ROSEOperation::uMultOp:
+	        if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    if (child0->val().val == 1) return roseAST->child(1);
+		}
+
+	        if (roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    if (child1->val().val == 1) return roseAST->child(0);
+		}
+	        break;
+
+	    case ROSEOperation::xorOp:
+	        if (roseAST->child(0)->getID() == AST::V_VariableAST && roseAST->child(1)->getID() == AST::V_VariableAST) {
+		    VariableAST::Ptr child0 = boost::static_pointer_cast<VariableAST>(roseAST->child(0)); 
+		    VariableAST::Ptr child1 = boost::static_pointer_cast<VariableAST>(roseAST->child(1)); 
+		    if (child0->val() == child1->val()) {
+		        return ConstantAST::create(Constant(0 , 32));
+		    }
+  	        }
+		break;
+	    case ROSEOperation::derefOp:
+	        // Any 8-bit value is bounded in [0,255].
+		// Need to keep the length of the dereference if it is 8-bit.
+		// However, dereference longer than 8-bit should be regarded the same.
+	        if (roseAST->val().size == 8)
+		    return ast;
+		else
+		    return RoseAST::create(ROSEOperation(ROSEOperation::derefOp), ast->child(0));
+		break;
+	    case ROSEOperation::shiftLOp:
+	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    return ConstantAST::create(Constant(child0->val().val << child1->val().val, 64));
+		}
+		break;
+	    case ROSEOperation::andOp:
+	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    return ConstantAST::create(Constant(child0->val().val & child1->val().val, 64));
+		}
+		break;
+	    case ROSEOperation::orOp:
+	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    return ConstantAST::create(Constant(child0->val().val | child1->val().val, 64));
+		}
+		break;
+
+	    default:
+	        break;
+
+	}
+    } else if (ast->getID() == AST::V_VariableAST) {
+        VariableAST::Ptr varAST = boost::static_pointer_cast<VariableAST>(ast);
+	if (varAST->val().reg.absloc().isPC()) {
+	    MachRegister pc = varAST->val().reg.absloc().reg();	    
+	    return ConstantAST::create(Constant(addr, getArchAddressWidth(pc.getArchitecture()) * 8));
+	}
+	// We do not care about the address of the a-loc
+	// because we will keep tracking the changes of 
+	// each a-loc. Also, this brings a benefit that
+	// we can directly use ast->isStrictEqual() to 
+	// compare two ast.
+	return VariableAST::create(Variable(varAST->val().reg));
+    } else if (ast->getID() == AST::V_ConstantAST) {
+        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(ast);
+	size_t size = constAST->val().size;
+	uint64_t val = constAST->val().val;	
+	if (size == 32)
+	    if (!(val & (1ULL << (size - 1))))
+	        return ConstantAST::create(Constant(val, 64));
+    }
+
+    return ast;
+}
+
+
+AST::Ptr SymbolicExpression::SimplifyAnAST(AST::Ptr ast, Address addr) {
+    SimplifyVisitor sv(addr);
+    ast->accept(&sv);
+    return SimplifyRoot(ast, addr);
+}
+
+bool SymbolicExpression::ContainAnAST(AST::Ptr root, AST::Ptr check) {
+    if (*root == *check) return true;
+    bool ret = false;
+    unsigned totalChildren = root->numChildren();
+    for (unsigned i = 0 ; i < totalChildren && !ret; ++i) {
+        ret |= ContainAnAST(root->child(i), check);
+    }
+    return ret;
+}
+
+
+AST::Ptr SymbolicExpression::DeepCopyAnAST(AST::Ptr ast) {
+    if (ast->getID() == AST::V_RoseAST) {
+        RoseAST::Ptr roseAST = boost::static_pointer_cast<RoseAST>(ast);
+	AST::Children kids;
+        unsigned totalChildren = ast->numChildren();
+	for (unsigned i = 0 ; i < totalChildren; ++i) {
+	    kids.push_back(DeepCopyAnAST(ast->child(i)));
+	}
+	return RoseAST::create(ROSEOperation(roseAST->val()), kids);
+    } else if (ast->getID() == AST::V_VariableAST) {
+        VariableAST::Ptr varAST = boost::static_pointer_cast<VariableAST>(ast);
+	return VariableAST::create(Variable(varAST->val()));
+    } else if (ast->getID() == AST::V_ConstantAST) {
+        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(ast);
+	return ConstantAST::create(Constant(constAST->val()));
+    } else if (ast->getID() == AST::V_BottomAST) {
+        BottomAST::Ptr bottomAST = boost::static_pointer_cast<BottomAST>(ast);
+	return BottomAST::create(bottomAST->val());
+    }
+    fprintf(stderr, "ast type %d, %s\n", ast->getID(), ast->format().c_str());
+    assert(0);
+	return AST::Ptr();
+}
+
+pair<AST::Ptr, bool> SymbolicExpression::ExpandAssignment(Assignment::Ptr assign) {
+    if (expandCache.find(assign) != expandCache.end()) {
+        AST::Ptr ast = expandCache[assign];
+        if (ast) return make_pair(ast, true); else return make_pair(ast, false);
+    } else {
+        parsing_printf("\t\tExpanding instruction @ %x: %s\n", assign->addr(), assign->insn()->format().c_str());
+        pair<AST::Ptr, bool> expandRet = SymEval::expand(assign, false);
+	if (expandRet.second && expandRet.first) {
+	    parsing_printf("Original expand: %s\n", expandRet.first->format().c_str());
+	    AST::Ptr calculation = SimplifyAnAST(expandRet.first, 
+	                                         PCValue(assign->addr(),
+						         assign->insn()->size(),
+							 assign->block()->obj()->cs()->getArch()));
+	    expandCache[assign] = calculation;
+	} else {
+	    expandCache[assign] = AST::Ptr();
+	}
+	return make_pair( expandCache[assign], expandRet.second );
+    }
+}
+
+AST::Ptr SymbolicExpression::SubstituteAnAST(AST::Ptr ast, const map<AST::Ptr, AST::Ptr> &aliasMap) {
+    for (auto ait = aliasMap.begin(); ait != aliasMap.end(); ++ait)
+        if (*ast == *(ait->first)) {
+	    return ait->second;
+	}
+    unsigned totalChildren = ast->numChildren();
+    for (unsigned i = 0 ; i < totalChildren; ++i) {
+        ast->setChild(i, SubstituteAnAST(ast->child(i), aliasMap));
+    }
+    if (ast->getID() == AST::V_VariableAST) {
+        // If this variable is not in the aliasMap yet,
+	// this variable is from the input.
+        VariableAST::Ptr varAST = boost::static_pointer_cast<VariableAST>(ast);
+	return VariableAST::create(Variable(varAST->val().reg, 1));
+    }
+    return ast;
+}
+
+Address SymbolicExpression::PCValue(Address cur, size_t insnSize, Architecture a) {
+    switch (a) {
+        case Arch_x86:
+	case Arch_x86_64:
+	    return cur + insnSize;
+	case Arch_aarch64:
+	    return cur;
+        case Arch_aarch32:
+        case Arch_ppc32:
+        case Arch_ppc64:
+        case Arch_none:
+            assert(0);
+    }    
+    return cur + insnSize;
+}

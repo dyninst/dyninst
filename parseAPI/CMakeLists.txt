@@ -25,11 +25,10 @@ set (SRC_LIST
         src/IA_platformDetailsFactory.C 
         src/CFGModifier.C
         src/StackTamperVisitor.C
-	src/JumpTablePred.C
-	src/BoundFactCalculator.C
-	src/BoundFactData.C
+	src/JumpTableFormatPred.C
 	src/IndirectAnalyzer.C
 	src/IndirectASTVisitor.C
+	src/SymbolicExpression.C
 	src/ThunkData.C
 	../dataflowAPI/src/ABI.C 
 	src/dominator.C
