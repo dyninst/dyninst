@@ -185,7 +185,7 @@ Slicer::sliceInternal(
 
     // add to graph
     insertInitialNode(ret, dir, aP);
-    if (p.addNodeCallback(a_,visitedEdges)) {
+    if (p.addNodeCallback(a_,visitedEdges) && p.modifyCurrentFrame(initFrame, ret)) {
         // initialize slice stack and set for loop detection.
         // the set may be redundant, but speeds up the loopless case.
         addrStack.push_back(initFrame.addr());
@@ -446,7 +446,7 @@ bool Slicer::updateAndLink(
           cand.active[matches[i].reg].push_back(matches[i]);
        }
     }
-    return true;
+    return p.modifyCurrentFrame(cand, g);
 }
 
 // similar to updateAndLink, but this version only looks at the

@@ -3,7 +3,7 @@
 #include "debug_parse.h"
 #include "CodeObject.h"
 #include <algorithm>
-
+#include "SymbolicExpression.h"
 using namespace Dyninst::ParseAPI;
 #define SIGNEX_64_32 0xffffffff00000000LL
 #define SIGNEX_64_16 0xffffffffffff0000LL
@@ -11,186 +11,16 @@ using namespace Dyninst::ParseAPI;
 #define SIGNEX_32_16 0xffff0000
 #define SIGNEX_32_8 0xffffff00
 
-Address PCValue(Address cur, size_t insnSize, Architecture a) {
-    switch (a) {
-        case Arch_x86:
-	case Arch_x86_64:
-	    return cur + insnSize;
-	case Arch_aarch64:
-	    return cur;
-        case Arch_aarch32:
-        case Arch_ppc32:
-        case Arch_ppc64:
-        case Arch_none:
-            assert(0);
-    }    
-    return cur + insnSize;
-}
 
 AST::Ptr SimplifyVisitor::visit(DataflowAPI::RoseAST *ast) {
         unsigned totalChildren = ast->numChildren();
 	for (unsigned i = 0 ; i < totalChildren; ++i) {
 	    ast->child(i)->accept(this);
-	    ast->setChild(i, SimplifyRoot(ast->child(i), addr));
+	    ast->setChild(i, SymbolicExpression::SimplifyRoot(ast->child(i), addr));
 	}
 	return AST::Ptr();
 }
-
-AST::Ptr SimplifyRoot(AST::Ptr ast, Address addr) {
-    if (ast->getID() == AST::V_RoseAST) {
-        RoseAST::Ptr roseAST = boost::static_pointer_cast<RoseAST>(ast); 
-	
-	switch (roseAST->val().op) {
-	    case ROSEOperation::invertOp:
-	        if (roseAST->child(0)->getID() == AST::V_RoseAST) {
-		    RoseAST::Ptr child = boost::static_pointer_cast<RoseAST>(roseAST->child(0));
-		    if (child->val().op == ROSEOperation::invertOp) return child->child(0);
-		} else if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
-		    ConstantAST::Ptr child = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
-		    size_t size = child->val().size;
-		    uint64_t val = child->val().val;
-		    if (size < 64) {
-		        uint64_t mask = (1ULL << size) - 1;
-		        val = (~val) & mask;
-		    } else
-		        val = ~val;
-		    return ConstantAST::create(Constant(val, size));
-		}
-		break;
-	    case ROSEOperation::extendMSBOp:
-	    case ROSEOperation::extractOp:
-	    case ROSEOperation::signExtendOp:
-	    case ROSEOperation::concatOp:
-	        return roseAST->child(0);
-
-	    case ROSEOperation::addOp:
-	        // We simplify the addition as much as we can
-		// Case 1: two constants
-	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
-		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
-		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
-		    uint64_t val = child0->val().val + child1->val().val;
-		    size_t size;
-		    if (child0->val().size > child1->val().size)
-		        size = child0->val().size;
-		    else
-		        size = child1->val().size;
-		    return ConstantAST::create(Constant(val,size));
-   	        }
-		// Case 2: anything adding zero stays the same
-		if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
-		    ConstantAST::Ptr child = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
-		    if (child->val().val == 0) return roseAST->child(1);
-		}
-		if (roseAST->child(1)->getID() == AST::V_ConstantAST) {
-		    ConstantAST::Ptr child = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
-		    if (child->val().val == 0) return roseAST->child(0);
-		}
-		// Case 3: if v + v * c = v * (c+1), where v is a variable and c is a constant
-		if (roseAST->child(0)->getID() == AST::V_VariableAST && roseAST->child(1)->getID() == AST::V_RoseAST) {
-		    RoseAST::Ptr rOp = boost::static_pointer_cast<RoseAST>(roseAST->child(1));
-		    if (rOp->val().op == ROSEOperation::uMultOp || rOp->val().op == ROSEOperation::sMultOp) {
-		        if (rOp->child(0)->getID() == AST::V_VariableAST && rOp->child(1)->getID() == AST::V_ConstantAST) {
-			    VariableAST::Ptr varAST1 = boost::static_pointer_cast<VariableAST>(roseAST->child(0));
-			    VariableAST::Ptr varAST2 = boost::static_pointer_cast<VariableAST>(rOp->child(0));
-			    if (varAST1->val().reg == varAST2->val().reg) {
-			        ConstantAST::Ptr oldC = boost::static_pointer_cast<ConstantAST>(rOp->child(1));
-			        ConstantAST::Ptr newC = ConstantAST::create(Constant(oldC->val().val + 1, oldC->val().size));
-				RoseAST::Ptr newRoot = RoseAST::create(ROSEOperation(rOp->val()), varAST1, newC);
-				return newRoot;
-			    }
-			}
-		    }
-		} 
-		break;
-	    case ROSEOperation::sMultOp:
-	    case ROSEOperation::uMultOp:
-	        if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
-		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
-		    if (child0->val().val == 1) return roseAST->child(1);
-		}
-
-	        if (roseAST->child(1)->getID() == AST::V_ConstantAST) {
-		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
-		    if (child1->val().val == 1) return roseAST->child(0);
-		}
-	        break;
-
-	    case ROSEOperation::xorOp:
-	        if (roseAST->child(0)->getID() == AST::V_VariableAST && roseAST->child(1)->getID() == AST::V_VariableAST) {
-		    VariableAST::Ptr child0 = boost::static_pointer_cast<VariableAST>(roseAST->child(0)); 
-		    VariableAST::Ptr child1 = boost::static_pointer_cast<VariableAST>(roseAST->child(1)); 
-		    if (child0->val() == child1->val()) {
-		        return ConstantAST::create(Constant(0 , 32));
-		    }
-  	        }
-		break;
-	    case ROSEOperation::derefOp:
-	        // Any 8-bit value is bounded in [0,255].
-		// Need to keep the length of the dereference if it is 8-bit.
-		// However, dereference longer than 8-bit should be regarded the same.
-	        if (roseAST->val().size == 8)
-		    return ast;
-		else
-		    return RoseAST::create(ROSEOperation(ROSEOperation::derefOp), ast->child(0));
-		break;
-	    case ROSEOperation::shiftLOp:
-	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
-		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
-		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
-		    return ConstantAST::create(Constant(child0->val().val << child1->val().val, 64));
-		}
-		break;
-	    case ROSEOperation::andOp:
-	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
-		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
-		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
-		    return ConstantAST::create(Constant(child0->val().val & child1->val().val, 64));
-		}
-		break;
-	    case ROSEOperation::orOp:
-	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
-		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
-		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
-		    return ConstantAST::create(Constant(child0->val().val | child1->val().val, 64));
-		}
-		break;
-
-	    default:
-	        break;
-
-	}
-    } else if (ast->getID() == AST::V_VariableAST) {
-        VariableAST::Ptr varAST = boost::static_pointer_cast<VariableAST>(ast);
-	if (varAST->val().reg.absloc().isPC()) {
-	    MachRegister pc = varAST->val().reg.absloc().reg();	    
-	    return ConstantAST::create(Constant(addr, getArchAddressWidth(pc.getArchitecture()) * 8));
-	}
-	// We do not care about the address of the a-loc
-	// because we will keep tracking the changes of 
-	// each a-loc. Also, this brings a benefit that
-	// we can directly use ast->isStrictEqual() to 
-	// compare two ast.
-	return VariableAST::create(Variable(varAST->val().reg));
-    } else if (ast->getID() == AST::V_ConstantAST) {
-        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(ast);
-	size_t size = constAST->val().size;
-	uint64_t val = constAST->val().val;	
-	if (size == 32)
-	    if (!(val & (1ULL << (size - 1))))
-	        return ConstantAST::create(Constant(val, 64));
-    }
-
-    return ast;
-}
-
-
-AST::Ptr SimplifyAnAST(AST::Ptr ast, Address addr) {
-    SimplifyVisitor sv(addr);
-    ast->accept(&sv);
-    return SimplifyRoot(ast, addr);
-}
-
+/*
 AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
     BoundValue *astBound = boundFact.GetBound(ast);
     if (astBound != NULL) {
@@ -403,64 +233,21 @@ AST::Ptr ComparisonVisitor::visit(DataflowAPI::RoseAST *ast) {
     }
     return AST::Ptr();
 }
-
-AST::Ptr SubstituteAnAST(AST::Ptr ast, const BoundFact::AliasMap &aliasMap) {
-    for (auto ait = aliasMap.begin(); ait != aliasMap.end(); ++ait)
-        if (*ast == *(ait->first)) {
-	    return ait->second;
-	}
-    unsigned totalChildren = ast->numChildren();
-    for (unsigned i = 0 ; i < totalChildren; ++i) {
-        ast->setChild(i, SubstituteAnAST(ast->child(i), aliasMap));
-    }
-    if (ast->getID() == AST::V_VariableAST) {
-        // If this variable is not in the aliasMap yet,
-	// this variable is from the input.
-        VariableAST::Ptr varAST = boost::static_pointer_cast<VariableAST>(ast);
-	return VariableAST::create(Variable(varAST->val().reg, 1));
-    }
-    return ast;
-
-}
-
-bool ContainAnAST(AST::Ptr root, AST::Ptr check) {
-    if (*root == *check) return true;
-    bool ret = false;
-    unsigned totalChildren = root->numChildren();
-    for (unsigned i = 0 ; i < totalChildren && !ret; ++i) {
-        ret |= ContainAnAST(root->child(i), check);
-    }
-    return ret;
-}
-
-
-AST::Ptr DeepCopyAnAST(AST::Ptr ast) {
-    if (ast->getID() == AST::V_RoseAST) {
-        RoseAST::Ptr roseAST = boost::static_pointer_cast<RoseAST>(ast);
-	AST::Children kids;
-        unsigned totalChildren = ast->numChildren();
-	for (unsigned i = 0 ; i < totalChildren; ++i) {
-	    kids.push_back(DeepCopyAnAST(ast->child(i)));
-	}
-	return RoseAST::create(ROSEOperation(roseAST->val()), kids);
-    } else if (ast->getID() == AST::V_VariableAST) {
-        VariableAST::Ptr varAST = boost::static_pointer_cast<VariableAST>(ast);
-	return VariableAST::create(Variable(varAST->val()));
-    } else if (ast->getID() == AST::V_ConstantAST) {
-        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(ast);
-	return ConstantAST::create(Constant(constAST->val()));
-    } else if (ast->getID() == AST::V_BottomAST) {
-        BottomAST::Ptr bottomAST = boost::static_pointer_cast<BottomAST>(ast);
-	return BottomAST::create(bottomAST->val());
-    }
-    fprintf(stderr, "ast type %d, %s\n", ast->getID(), ast->format().c_str());
-    assert(0);
-	return AST::Ptr();
+*/
+JumpTableFormatVisitor::JumpTableFormatVisitor(ParseAPI::Block *bl) {
+    b = bl;
+    numOfVar = 0;
+    findIncorrectFormat = false;
+    findTableBase = false;
+    findIndex = false;
 }
 
 AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
+    unsigned totalChildren = ast->numChildren();
+    for (unsigned i = 0 ; i < totalChildren; ++i) {
+        ast->child(i)->accept(this);
+    }
 
-    bool findIncorrectFormat = false;
     if (ast->val().op == ROSEOperation::derefOp) {
         // We only check the first memory read
 	if (ast->child(0)->getID() == AST::V_RoseAST) {
@@ -469,50 +256,77 @@ AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
 	        // Two directly nested memory accesses cannot be jump tables
 		parsing_printf("Two directly nested memory access, not jump table format\n");
 	        findIncorrectFormat = true;
-	    } else if (roseAST->val().op == ROSEOperation::addOp) {
-	        Address tableBase = 0;
-		if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_VariableAST) {
-		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
-		    tableBase = (Address)constAST->val().val;
-		}
-		if (roseAST->child(1)->getID() == AST::V_ConstantAST && roseAST->child(0)->getID() == AST::V_VariableAST) {
-		    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
-		    tableBase = (Address)constAST->val().val;
-		}
-		if (tableBase) {
-		    Architecture arch = b->obj()->cs()->getArch();
-		    if (arch == Arch_x86) {
-		        tableBase &= 0xffffffff;
-		    }
-#if defined(os_windows)
-                    tableBase -= b->obj()->cs()->loadAddress();
-#endif
-                    if (!b->obj()->cs()->isValidAddress(tableBase)) {
-		        parsing_printf("\ttableBase 0x%lx invalid, not jump table format\n", tableBase);
-			findIncorrectFormat = true;
-		    }
-                    if (!b->obj()->cs()->isReadOnly(tableBase)) {
-		        parsing_printf("\ttableBase 0x%lx not read only, not jump table format\n", tableBase);
-			findIncorrectFormat = true;
-		    }
-
-		}
+		return AST::Ptr();
 	    }
 	}
-	if (findIncorrectFormat) {
-	    format = false;
+    } else if (ast->val().op == ROSEOperation::addOp) {
+        Address tableBase = 0;
+	if (ast->child(0)->getID() == AST::V_ConstantAST && PotentialIndexing(ast->child(1))) {
+	    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(ast->child(0));
+	    tableBase = (Address)constAST->val().val;
 	}
-	return AST::Ptr();
+	if (ast->child(1)->getID() == AST::V_ConstantAST && PotentialIndexing(ast->child(0))) {
+	    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(ast->child(1));
+	    tableBase = (Address)constAST->val().val;
+	}
+	if (tableBase) {
+	    Architecture arch = b->obj()->cs()->getArch();
+	    if (arch == Arch_x86) {
+	        tableBase &= 0xffffffff;
+	    }
+#if defined(os_windows)
+            tableBase -= b->obj()->cs()->loadAddress();
+#endif
+            if (!b->obj()->cs()->isValidAddress(tableBase)) {
+	        parsing_printf("\ttableBase 0x%lx invalid, not jump table format\n", tableBase);
+		findIncorrectFormat = true;
+		return AST::Ptr();
+	    }
+	    if (!b->obj()->cs()->isReadOnly(tableBase)) {
+	        parsing_printf("\ttableBase 0x%lx not read only, not jump table format\n", tableBase);
+		findIncorrectFormat = true;
+		return AST::Ptr();
+	    }
+	    // Note that this table base may not be within a memory read.
+	    // Functions with variable arguments often have an indirect jump with form:
+	    // targetBase - index * 4
+	    // We merge this special case with other general jump table cases.
+	    findTableBase = true;
+       }
+    } else if (ast->val().op == ROSEOperation::uMultOp || ast->val().op == ROSEOperation::sMultOp) {
+	if (ast->child(0)->getID() == AST::V_ConstantAST && ast->child(1)->getID() == AST::V_VariableAST) {
+	    findIndex = true;
+	    numOfVar++;
+	    VariableAST::Ptr varAst = boost::static_pointer_cast<VariableAST>(ast->child(1));
+	    index = varAst->val().reg;
+	    return AST::Ptr();
+	}
+	if (ast->child(1)->getID() == AST::V_ConstantAST && ast->child(0)->getID() == AST::V_VariableAST) {
+	    findIndex = true;
+	    numOfVar++;
+	    VariableAST::Ptr varAst = boost::static_pointer_cast<VariableAST>(ast->child(0));
+	    index = varAst->val().reg;
+	    return AST::Ptr();
+	}
     }
-    if (!findIncorrectFormat) {
-        unsigned totalChildren = ast->numChildren();
-	for (unsigned i = 0 ; i < totalChildren; ++i) {
-	    ast->child(i)->accept(this);
-	}
-    } 
     return AST::Ptr();
 }
 
+AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::VariableAST *ast) {
+    numOfVar++;
+    return AST::Ptr();
+}
+
+bool JumpTableFormatVisitor::PotentialIndexing(AST::Ptr ast) {
+    if (ast->getID() == AST::V_VariableAST) return true;
+    if (ast->getID() == AST::V_RoseAST) {
+        RoseAST::Ptr r = boost::static_pointer_cast<RoseAST>(ast);
+	if (r->val().op == ROSEOperation::uMultOp || r->val().op == ROSEOperation::sMultOp) return true;
+    }
+    return false;
+}
+
+/*
 bool PerformTableRead(BoundValue &target, set<int64_t> & jumpTargets, CodeSource *cs) {
     if (target.tableReadSize > 0 && target.interval.stride == 0) {
         // This is a PC-relative read to variable, not a table read
@@ -611,3 +425,4 @@ bool PerformTableRead(BoundValue &target, set<int64_t> & jumpTargets, CodeSource
     }
     return true;
 }
+*/
