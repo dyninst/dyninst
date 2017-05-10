@@ -147,7 +147,7 @@ namespace Dyninst {
                 if( linkedStaticData ) delete linkedStaticData;
             }
 
-            bool createSymbolTables(vector<Symbol *> &allSymbols);
+            bool createSymbolTables(std::set<Symbol *> &allSymbols);
 
             bool driver(std::string fName);
 

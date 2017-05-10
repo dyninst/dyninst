@@ -273,7 +273,7 @@ class Object;
   Object(MappedFile *, bool, void (*)(const char *) = log_msg, bool alloc_syms = true, Symtab* st = NULL);
   virtual ~Object();
 
-  bool emitDriver(std::string fName, std::vector<Symbol *> &allSymbols, unsigned flag);
+  bool emitDriver(std::string fName, std::set<Symbol *> &allSymbols, unsigned flag);
   
   const char *elf_vaddr_to_ptr(Offset vaddr) const;
   bool hasStabInfo() const { return ! ( !stab_off_ || !stab_size_ || !stabstr_off_ ); }

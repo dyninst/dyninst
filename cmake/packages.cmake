@@ -174,9 +174,9 @@ if(NOT Boost_FOUND)
   include(ExternalProject)
   ExternalProject_Add(boost
     PREFIX ${CMAKE_BINARY_DIR}/boost
-    URL http://downloads.sourceforge.net/project/boost/boost/1.61.0/boost_1_61_0.7z
-    URL_MD5 bb1dad35ad069e8d7c8516209a51053c
-    BUILD_IN_SOURCE 1
+    URL http://downloads.sourceforge.net/project/boost/boost/1.61.0/boost_1_61_0.zip
+    URL_MD5 015ae4afa6f3e597232bfe1dab949ace
+          BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${CMAKE_INSTALL_PREFIX}
     BUILD_COMMAND ${BOOST_BUILD} ${BOOST_ARGS} stage
     INSTALL_COMMAND ""
