@@ -484,7 +484,7 @@ CFPatch::CFPatch(Type a,
                  Address e) :
   type(a), orig_insn(b), target(c), func(d), origAddr_(e) {
   if (b)
-    ugly_insn = new instruction(b->ptr());
+    ugly_insn = new instruction(b->ptr(), (b->getArch() == Dyninst::Arch_x86_64));
   else
     ugly_insn = NULL;
 }

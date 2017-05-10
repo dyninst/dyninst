@@ -42,6 +42,7 @@ using namespace Dyninst::ParseAPI;
 int HACKCOUNT = 0;
 
 Block::Block(CodeObject * o, CodeRegion *r, Address start) :
+    SimpleInterval(start, start, 0),
     _obj(o),
     _region(r),
     _start(start),
@@ -163,7 +164,6 @@ void Block::updateEnd(Address addr)
 {
     _obj->cs()->addCounter(PARSE_BLOCK_SIZE, -1*size());   
     _end = addr;
-//    assert(_end != 0x7b320f);
     _obj->cs()->addCounter(PARSE_BLOCK_SIZE, size());
 }
 

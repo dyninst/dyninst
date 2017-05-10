@@ -37,6 +37,9 @@ if(NOT ${PLATFORM} MATCHES nt)
     )
 endif()
 
+set(CILKSCREEN_INCLUDES "/p/paradyn/packages/cilktools-linux-004501/include")
+
+
 foreach (dir ${HEADER_DIRS})
   include_directories ( ${DYNINST_ROOT}/${dir}/h )
 endforeach()
@@ -44,6 +47,7 @@ endforeach()
 include_directories (
   ${DYNINST_ROOT}
   ${DYNINST_ROOT}/external
+  ${CILKSCREEN_INCLUDES}
   )
 set(Boost_USE_STATIC_LIBS OFF)
 # Component time

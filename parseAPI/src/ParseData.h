@@ -42,6 +42,9 @@
 #include "ParserDetails.h"
 #include "debug_parse.h"
 
+#include <boost/thread/locks.hpp>
+#include <boost/thread/lockable_adapter.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 
 using namespace std;
 
@@ -53,7 +56,7 @@ class ParseData;
 
 /** Describes a saved frame during recursive parsing **/
 // Parsing data for a function. 
-class ParseFrame {
+class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
  public:
     enum Status {
         UNPARSED,
@@ -88,9 +91,11 @@ class ParseFrame {
         const InsnAdapter::IA_IAPI &ah);
 
     void pushWork(ParseWorkElem * elem) {
+        boost::lock_guard<ParseFrame> g(*this);
         worklist.push(elem);
     }
     ParseWorkElem * popWork() {
+        boost::lock_guard<ParseFrame> g(*this);
         ParseWorkElem * ret = NULL;
         if(!worklist.empty()) {
             ret = worklist.top();
@@ -100,6 +105,7 @@ class ParseFrame {
     }
 
     void pushDelayedWork(ParseWorkElem * elem, Function * ct) {
+        boost::lock_guard<ParseFrame> g(*this);
         delayedWork.insert(make_pair(elem, ct));
     }
 
@@ -146,14 +152,14 @@ class ParseFrame {
 };
 
 /* per-CodeRegion parsing data */
-class region_data { 
- public:
+class region_data : public boost::lockable_adapter<boost::recursive_mutex> {
+public:
   // Function lookups
   Dyninst::IBSTree_fast<FuncExtent> funcsByRange;
     dyn_hash_map<Address, Function *> funcsByAddr;
 
     // Block lookups
-    Dyninst::IBSTree_fast<Block> blocksByRange;
+    Dyninst::IBSTree_fast<Block > blocksByRange;
     dyn_hash_map<Address, Block *> blocksByAddr;
 
     // Parsing internals 
@@ -171,6 +177,7 @@ class region_data {
      */
     inline std::pair<Address, Block*> get_next_block(Address addr)
     {
+        boost::lock_guard<region_data> g(*this);
         Block * nextBlock = NULL;
         Address nextBlockAddr = numeric_limits<Address>::max();
 
@@ -192,6 +199,7 @@ class region_data {
 inline Function *
 region_data::findFunc(Address entry)
 {
+    boost::lock_guard<region_data> g(*this);
     dyn_hash_map<Address, Function *>::iterator fit;
     if((fit = funcsByAddr.find(entry)) != funcsByAddr.end())
         return fit->second;
@@ -201,6 +209,7 @@ region_data::findFunc(Address entry)
 inline Block *
 region_data::findBlock(Address entry)
 {
+    boost::lock_guard<region_data> g(*this);
     dyn_hash_map<Address, Block *>::iterator bit;
     if((bit = blocksByAddr.find(entry)) != blocksByAddr.end())
         return bit->second;
@@ -210,6 +219,7 @@ region_data::findBlock(Address entry)
 inline int
 region_data::findFuncs(Address addr, set<Function *> & funcs)
 {
+    boost::lock_guard<region_data> g(*this);
     int sz = funcs.size();
 
     set<FuncExtent *> extents;
@@ -224,6 +234,7 @@ region_data::findFuncs(Address addr, set<Function *> & funcs)
 inline int
 region_data::findFuncs(Address start, Address end, set<Function *> & funcs)
 {
+    boost::lock_guard<region_data> g(*this);
 	 FuncExtent dummy(NULL,start,end);
     int sz = funcs.size();
 
@@ -239,8 +250,8 @@ region_data::findFuncs(Address start, Address end, set<Function *> & funcs)
 inline int
 region_data::findBlocks(Address addr, set<Block *> & blocks)
 {
+    boost::lock_guard<region_data> g(*this);
     int sz = blocks.size();
-
     blocksByRange.find(addr,blocks);
     return blocks.size() - sz;
 }
@@ -248,7 +259,7 @@ region_data::findBlocks(Address addr, set<Block *> & blocks)
 
 /** end region_data **/
 
-class ParseData {
+class ParseData : public boost::lockable_adapter<boost::recursive_mutex>  {
  protected:
     ParseData(Parser *p) : _parser(p) { }
     Parser * _parser;
@@ -328,10 +339,12 @@ inline region_data * StandardParseData::findRegion(CodeRegion * /* cr */)
 }
 inline void StandardParseData::record_func(Function *f)
 {
+    boost::lock_guard<region_data> g(_rdata);
     _rdata.funcsByAddr[f->addr()] = f;
 }
 inline void StandardParseData::record_block(CodeRegion * /* cr */, Block *b)
 {
+    boost::lock_guard<region_data> g(_rdata);
     _rdata.blocksByAddr[b->start()] = b;
     _rdata.blocksByRange.insert(b);
 }

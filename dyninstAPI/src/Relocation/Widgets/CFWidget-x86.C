@@ -82,7 +82,7 @@ bool CFWidget::generateIndirect(CodeBuffer &buffer,
    ia32_condition cond;
 
    ia32_instruction orig_instr(memacc, &cond, &loc);
-   ia32_decode(IA32_FULL_DECODER, (const unsigned char *)insn->ptr(), orig_instr);
+   ia32_decode(IA32_FULL_DECODER, (const unsigned char *) insn->ptr(), orig_instr, (buffer.gen().width() == 8));
    const unsigned char *ptr = (const unsigned char *)insn->ptr();
 
    std::vector<unsigned char> raw (ptr,
@@ -139,7 +139,7 @@ bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
    // turned into a push/jump combo already. 
    assert(reg == Null_Register);
    // Check this to see if it's RIP-relative
-   NS_x86::instruction ugly_insn(insn->ptr());
+   NS_x86::instruction ugly_insn(insn->ptr(), (buffer.gen().width() == 8));
    if (ugly_insn.type() & REL_D_DATA) {
       // This was an IP-relative call that we moved to a new location.
       assert(origTarget_);
@@ -251,7 +251,7 @@ bool CFPatch::isPLT(codeGen &gen) {
 }
 
 bool CFPatch::applyPLT(codeGen &gen, CodeBuffer *) {
-   // We should try and keep any prefixes that were on the instruction. 
+   // We should try and keep any prefixes that were on the instruction.
    // However... yeah, right. I'm not that good with x86. So instead
    // I'm copying the code from emitCallInstruction...
    

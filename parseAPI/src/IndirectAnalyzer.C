@@ -74,6 +74,7 @@ void IndirectControlFlowAnalyzer::GetAllReachableBlock() {
     while (!q.empty()) {
         ParseAPI::Block *cur = q.front();
 	q.pop();
+    boost::lock_guard<Block> g(*cur);
 	if (reachable.find(cur) != reachable.end()) continue;
 	reachable.insert(cur);
 	for (auto eit = cur->sources().begin(); eit != cur->sources().end(); ++eit)

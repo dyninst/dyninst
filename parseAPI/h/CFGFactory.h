@@ -111,7 +111,7 @@ class fact_list {
 
 /** Objects created by a CFGFactory must descend from `allocatable' **/
 
-class PARSER_EXPORT CFGFactory {   
+class PARSER_EXPORT CFGFactory : public boost::basic_lockable_adapter<boost::recursive_mutex> {
  public:
     CFGFactory() {};
     virtual ~CFGFactory();

@@ -31,6 +31,7 @@
 #define _PARSER_DETAILS_H_
 
 #include "IA_IAPI.h"
+#include <boost/shared_ptr.hpp>
 
 namespace Dyninst {
 namespace ParseAPI {
@@ -125,9 +126,7 @@ class ParseWorkElem
           _can_resolve(resolvable),
           _tailcall(tailcall),
           _order(__parse_work_end__),
-          _call_processed(false),
-	  _cur(NULL),
-	  _ah(NULL)
+          _call_processed(false)
 
     { 
       if(e) {
@@ -171,9 +170,7 @@ class ParseWorkElem
           _can_resolve(false),
           _tailcall(false),
           _order(__parse_work_end__),
-          _call_processed(false),
-	  _cur(NULL),
-	  _ah(NULL)
+          _call_processed(false)
     { } 
 
     // This work element is a continuation of
@@ -186,12 +183,11 @@ class ParseWorkElem
           _tailcall(false),
           _order(resolve_jump_table),
           _call_processed(false),
-	  _cur(b) {	      
-	      _ah = new InsnAdapter::IA_IAPI(ah);
+	  _cur(b),
+        _ah(new InsnAdapter::IA_IAPI(ah)){
 	  }
 
     ~ParseWorkElem() {
-        if (_ah != NULL) delete _ah;
     }
 
       
@@ -207,8 +203,8 @@ class ParseWorkElem
     bool                callproc()      const { return _call_processed; }
     void                mark_call()     { _call_processed = true; }
 
-    Block *             cur()           const { return _cur; }
-    InsnAdapter::IA_IAPI *  ah()        const { return _ah; }
+    Block*          cur()           const { return _cur; }
+    boost::shared_ptr<InsnAdapter::IA_IAPI>  ah()        const { return _ah; }
 
     /* 
      * Note that compare treats the parse_work_order as `lowest is
@@ -241,8 +237,8 @@ class ParseWorkElem
     bool _call_processed;
 
     // Data for continuing parsing jump tables
-    Block * _cur;
-    InsnAdapter::IA_IAPI * _ah;
+    Block* _cur;
+    boost::shared_ptr<InsnAdapter::IA_IAPI> _ah;
 };
 
 // ParseWorkElem container

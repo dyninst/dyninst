@@ -88,6 +88,7 @@ Function *
 CFGFactory::_mkfunc(Address addr, FuncSource src, string name, 
     CodeObject * obj, CodeRegion * reg, Dyninst::InstructionSource * isrc)
 {
+    boost::lock_guard<CFGFactory> g(*this);
    Function * ret = mkfunc(addr,src,name,obj,reg,isrc);
    funcs_.add(*ret);
    ret->_src =  src;
@@ -104,7 +105,9 @@ CFGFactory::mkfunc(Address addr, FuncSource, string name,
 }
 
 Block *
-CFGFactory::_mkblock(Function *  f , CodeRegion *r, Address addr) {
+CFGFactory::_mkblock(Function *  f , CodeRegion *r, Address addr)
+{
+    boost::lock_guard<CFGFactory> g(*this);
 
    Block * ret = mkblock(f, r, addr);;
    blocks_.add(*ret);
@@ -121,6 +124,8 @@ CFGFactory::mkblock(Function *  f , CodeRegion *r, Address addr) {
 
 Block *
 CFGFactory::_mksink(CodeObject * obj, CodeRegion *r) {
+    boost::lock_guard<CFGFactory> g(*this);
+
    Block * ret = mksink(obj,r);
    blocks_.add(*ret);
    return ret;
@@ -134,6 +139,8 @@ CFGFactory::mksink(CodeObject * obj, CodeRegion *r) {
 
 Edge *
 CFGFactory::_mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
+    boost::lock_guard<CFGFactory> g(*this);
+
     Edge * ret = mkedge(src,trg,type);
     edges_.add(*ret);
     return ret;
@@ -146,6 +153,7 @@ CFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
 }
 
 void CFGFactory::destroy_func(Function *f) {
+    boost::lock_guard<CFGFactory> g(*this);
    f->remove();
    free_func(f);
 }
@@ -157,6 +165,7 @@ CFGFactory::free_func(Function *f) {
 
 void
 CFGFactory::destroy_block(Block *b) {
+    boost::lock_guard<CFGFactory> g(*this);
     b->remove();
     free_block(b);
 }
@@ -168,6 +177,7 @@ CFGFactory::free_block(Block *b) {
 
 void
 CFGFactory::destroy_edge(Edge *e) {
+    boost::lock_guard<CFGFactory> g(*this);
    e->remove();
    free_edge(e);
 }
@@ -179,6 +189,7 @@ CFGFactory::free_edge(Edge *e) {
 
 void
 CFGFactory::destroy_all() {
+    boost::lock_guard<CFGFactory> g(*this);
     // XXX carefully calling free_* routines; could be faster and just
     // call delete
 

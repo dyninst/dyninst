@@ -1,6 +1,5 @@
 # CMake configuration for common directory
 
-
 if(NOT WIN32)
 include_directories (
     ${PROJECT_SOURCE_DIR}/common/h 
@@ -10,6 +9,7 @@ else()
 include_directories (
     ${PROJECT_SOURCE_DIR}/common/h # don't include common/src; anything from there can still collide with default includes.
 	# stupid Windows case-insensitive naming.
+    ${CILKSCREEN_INCLUDES}
   )
 endif()
 
@@ -116,7 +116,7 @@ if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
   target_link_private_libraries(common Psapi WS2_32 dbghelp)
 endif()
 target_link_private_libraries(common ${Boost_LIBRARIES})
-
+target_link_libraries(common PUBLIC cilkrts)
 
 IF (USE_COTIRE)
     cotire(common)

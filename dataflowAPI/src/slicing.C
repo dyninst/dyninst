@@ -804,8 +804,9 @@ Slicer::getPredecessors(
     // Otherwise, the iterator in the for_each loop can get
     // invalidated during the loop.
     // We force finalizing if necessary
-    cand.loc.func->num_blocks();
-    SingleContextOrInterproc epred(cand.loc.func, true, true);       
+    //cand.loc.func->num_blocks();
+    SingleContextOrInterproc epred(cand.loc.func, true, true);
+    boost::lock_guard<Block> g(*(cand.loc.block));
     const Block::edgelist & sources = cand.loc.block->sources();
     std::for_each(boost::make_filter_iterator(epred, sources.begin(), sources.end()),
 		  boost::make_filter_iterator(epred, sources.end(), sources.end()),

@@ -42,52 +42,16 @@
 #include <boost/mpl/inherit.hpp>
 #include <iostream>
 
+#include <boost/thread/locks.hpp>
+#include <boost/thread/lockable_adapter.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 
 
 namespace Dyninst
 {
-    template <typename RangeType>
-    struct Interval
-    {
-        typedef RangeType range_type;
-        RangeType first;
-        RangeType second;
-        template <typename T>
-        Interval(T t) {
-            first = t.startAddr();
-            second = t.endAddr();
-        }
-        Interval(RangeType t)
-        {
-            first = t;
-            second = t;
-        }
-        Interval(RangeType start, RangeType end)
-        {
-            first = start;
-            second = end;
-        }
-        Interval<RangeType> merge(const Interval<RangeType>& other)
-        {
-            return Interval<RangeType>(std::min(first, other.first), std::max(second, other.second));
-        }
-        bool operator==(const Interval<RangeType>& rhs) const {
-            return (first == rhs.first) && (second == rhs.second);
-        }
-        bool operator<(const Interval<RangeType>& rhs) const {
-            return (first < rhs.first) || ((first == rhs.first) && (second < rhs.second));
-        }
-        bool operator==(RangeType off) const {
-            return ((first <= off) && (off < second)) ||
-                    ((first == off) && (off == second));
-        }
-        struct by_low{};
-        struct by_high{};
-
-    };
 
     template <typename ITYPE >
-    class IBSTree_fast
+    class IBSTree_fast : public boost::basic_lockable_adapter<boost::recursive_mutex>
     {
     public:
         typedef typename ITYPE::type interval_type;
@@ -111,10 +75,13 @@ namespace Dyninst
         }
         int size() const
         {
+            boost::lock_guard<mutex_type> g(lockable());
+
             return overlapping_intervals.size() + unique_intervals.size();
         }
         bool empty() const
         {
+            boost::lock_guard<mutex_type> g(lockable());
             return unique_intervals.empty() && overlapping_intervals.empty();
         }
         void insert(ITYPE*);
@@ -126,6 +93,7 @@ namespace Dyninst
         void clear();
         friend std::ostream& operator<<(std::ostream& stream, const IBSTree_fast<ITYPE>& tree)
         {
+            boost::lock_guard<IBSTree_fast<ITYPE>::mutex_type> g(tree.lockable());
             std::copy(tree.unique_intervals.begin(), tree.unique_intervals.end(),
                       std::ostream_iterator<typename Dyninst::IBSTree_fast<ITYPE>::interval_set::value_type>(stream, "\n"));
             stream << tree.overlapping_intervals;
@@ -137,6 +105,7 @@ namespace Dyninst
     template <class ITYPE>
     void IBSTree_fast<ITYPE>::insert(ITYPE* entry)
     {
+        boost::lock_guard<mutex_type> g(lockable());
         // find in overlapping first
         std::set<ITYPE*> dummy;
         if(overlapping_intervals.find(entry, dummy))
@@ -168,6 +137,7 @@ namespace Dyninst
     template <class ITYPE>
     void IBSTree_fast<ITYPE>::remove(ITYPE* entry)
     {
+        boost::lock_guard<mutex_type> g(lockable());
         overlapping_intervals.remove(entry);
         typename interval_set::iterator found = unique_intervals.find(entry->high());
         if(found != unique_intervals.end() && *found == entry) unique_intervals.erase(found);
@@ -175,6 +145,7 @@ namespace Dyninst
     template<class ITYPE>
     int IBSTree_fast<ITYPE>::find(interval_type X, std::set<ITYPE*> &results) const
     {
+        boost::lock_guard<mutex_type> g(lockable());
         int num_old_results = results.size();
 
         int num_overlapping = overlapping_intervals.find(X, results);
@@ -191,6 +162,7 @@ namespace Dyninst
     template <typename ITYPE>
     int IBSTree_fast<ITYPE>::find(ITYPE* I, std::set<ITYPE*>&results) const
     {
+        boost::lock_guard<mutex_type> g(lockable());
         int num_old_results = results.size();
         int num_overlapping = overlapping_intervals.find(I, results);
         if(num_overlapping) return num_overlapping;
@@ -206,6 +178,7 @@ namespace Dyninst
     template<typename ITYPE>
     void IBSTree_fast<ITYPE>::successor(interval_type X, std::set<ITYPE*>& results) const
     {
+        boost::lock_guard<mutex_type> g(lockable());
         ITYPE* overlapping_ub = overlapping_intervals.successor(X);
 
         typename interval_set::const_iterator unique_ub = unique_intervals.upper_bound(X);
@@ -225,6 +198,7 @@ namespace Dyninst
     template <typename ITYPE>
     ITYPE* IBSTree_fast<ITYPE>::successor(interval_type X) const
     {
+        boost::lock_guard<mutex_type> g(lockable());
         std::set<ITYPE*> tmp;
         successor(X, tmp);
         assert(tmp.size() <= 1);
@@ -235,6 +209,7 @@ namespace Dyninst
     template <typename ITYPE>
     void IBSTree_fast<ITYPE>::clear()
     {
+        boost::lock_guard<mutex_type> g(lockable());
         overlapping_intervals.clear();
         unique_intervals.clear();
     }

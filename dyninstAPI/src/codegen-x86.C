@@ -202,15 +202,16 @@ static const unsigned char trapRep[8] = {0xCC};
 
 
 void insnCodeGen::generateIllegal(codeGen &gen) {
-    instruction insn;
-    insn.setInstruction(illegalRep);
-    generate(gen,insn);
+    GET_PTR(insn, gen);
+    *insn++ = 0x0f;
+    *insn++ = 0x0b;
+    SET_PTR(insn, gen);
 }
 
 void insnCodeGen::generateTrap(codeGen &gen) {
-    instruction insn;
-    insn.setInstruction(trapRep);
-    generate(gen,insn);
+    GET_PTR(insn, gen);
+    *insn++ = 0xCC;
+    SET_PTR(insn, gen);
 }
 
 /*
@@ -798,7 +799,6 @@ bool insnCodeGen::generate(codeGen &,
 
 #define SIB_SET_REG(x, y) ((x) |= ((y) & 7))
 #define SIB_SET_INDEX(x, y) ((x) |= (((y) & 7) << 3))
-#define SIB_SET_SS(x, y) ((x) | (((y) & 3) << 6))
 
 /**
  * The comments and naming schemes in this function assume some familiarity with
@@ -851,8 +851,7 @@ bool insnCodeGen::generateMem(codeGen &gen,
    class ia32_locations loc;
 
    ia32_instruction orig_instr(memacc, &cond, &loc);
-   ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION,
-               insn_ptr, orig_instr);
+    ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION, insn_ptr, orig_instr, (gen.width() == 8));
 
    if (orig_instr.getPrefix()->getPrefix(1) != 0) {
 	   //The instruction accesses memory via segment registers.  Disallow.
@@ -1191,7 +1190,7 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
      * This information is generated during ia32_decode. To make this faster
      * We are only going to do the prefix and opcode decodings
      */
-    if(!ia32_decode_prefixes(origInsn, instruct))
+    if(!ia32_decode_prefixes(origInsn, instruct, false))
         assert(!"Couldn't decode prefix of already known instruction!\n");
 
     /* get the prefix count */
@@ -1199,7 +1198,7 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
     origInsn += pref_count;
 
     /* Decode the opcode */
-    if(ia32_decode_opcode(0, origInsn, instruct, NULL) < 0)
+    if(ia32_decode_opcode(0, origInsn, instruct, NULL, (gen.width() == 8)) < 0)
         assert(!"Couldn't decode opcode of already known instruction!\n");
 
     /* Calculate the amount of opcode bytes */
@@ -1317,7 +1316,7 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
      * This information is generated during ia32_decode. To make this faster
      * We are only going to do the prefix and opcode decodings
      */
-    if(!ia32_decode_prefixes(origInsn, instruct))
+    if(!ia32_decode_prefixes(origInsn, instruct, false))
         assert(!"Couldn't decode prefix of already known instruction!\n");
 
     /* get the prefix count */
@@ -1329,7 +1328,7 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
     origInsn += pref_count;
 
     /* Decode the opcode */
-    if(ia32_decode_opcode(0, origInsn, instruct, NULL) < 0)
+    if(ia32_decode_opcode(0, origInsn, instruct, NULL, (gen.width() == 8)) < 0)
         assert(!"Couldn't decode opcode of already known instruction!\n");
 
     /* Calculate the amount of opcode bytes */

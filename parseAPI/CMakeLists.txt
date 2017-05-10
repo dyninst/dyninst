@@ -139,7 +139,7 @@ target_link_private_libraries(parseAPI ${Boost_LIBRARIES})
 if (WIN32)
 target_link_private_libraries(parseAPI shlwapi)
 endif()
-
+message(STATUS "Architecture is: ${CMAKE_LIBRARY_ARCHITECTURE}")
 FILE (GLOB headers "h/*.h")
 FILE (GLOB dataflowheaders "../dataflowAPI/h/*.h")
 set_target_properties (parseAPI PROPERTIES PUBLIC_HEADER "${headers};${dataflowheaders}")

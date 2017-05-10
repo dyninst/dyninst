@@ -96,10 +96,10 @@ class IA_IAPI : public InstructionAdapter {
         virtual bool isLeave() const;
         virtual bool isDelaySlot() const;
         virtual bool isRelocatable(InstrumentableLevel lvl) const;
-        virtual bool isTailCall(Dyninst::ParseAPI::Function *, 
-	                        Dyninst::ParseAPI::EdgeTypeEnum, 
-				unsigned int,
-				const std::set<Address> &) const;
+        virtual bool isTailCall(const ParseAPI::Function *,
+                                Dyninst::ParseAPI::EdgeTypeEnum,
+                                unsigned int,
+                                const std::set<Address> &) const;
         virtual std::pair<bool, Address> getCFT() const;
         virtual bool isStackFramePreamble() const;
         virtual bool savesFP() const;

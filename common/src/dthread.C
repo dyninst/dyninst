@@ -32,3 +32,7 @@
 #include <assert.h>
 
 
+COMMON_EXPORT cilkscreen::fake_mutex pool_lock = cilkscreen::fake_mutex();
+
+
+

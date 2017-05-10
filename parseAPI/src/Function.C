@@ -452,6 +452,14 @@ Function::contains(Block *b)
     return HASHDEF(_bmap,b->start());
 }
 
+bool
+Function::contains(Block *b) const
+{
+    if (b == NULL) return false;
+    return HASHDEF(_bmap,b->start());
+}
+
+
 void Function::setEntryBlock(Block *new_entry)
 {
     obj()->parser->move_func(this, new_entry->start(), new_entry->region());

@@ -127,7 +127,7 @@ endif()
 if(DEFINED PATH_BOOST OR 
 	   DEFINED Boost_INCLUDE_DIR OR 
 	   DEFINED Boost_LIBRARY_DIR)
-  set(Boost_NO_SYSTEM_PATHS ON)
+#  set(Boost_NO_SYSTEM_PATHS ON)
 endif()
 
 
@@ -196,6 +196,8 @@ message(STATUS "Boost includes: ${Boost_INCLUDE_DIRS}")
 message(STATUS "Boost library dirs: ${Boost_LIBRARY_DIRS}")
 message(STATUS "Boost thread library: ${Boost_THREAD_LIBRARY}")
 message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
+find_package(Threads)
+set(Boost_LIBRARIES ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 include(${DYNINST_ROOT}/cmake/CheckCXX11Features.cmake)
 if(NOT HAS_CXX11_AUTO)
@@ -205,3 +207,7 @@ else()
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX11_COMPILER_FLAGS}")
+find_package(Cilk)
+if(CILK_FOUND)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CILK_DEFINITIONS}")
+endif()

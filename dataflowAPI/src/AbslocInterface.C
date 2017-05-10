@@ -37,6 +37,8 @@
 #include "Register.h"
 #include "Result.h"
 #include "Dereference.h"
+#include "BinaryFunction.h"
+#include "Immediate.h"
 
 #include "dataflowAPI/h/stackanalysis.h"
 #include "common/src/singleton_object_pool.h"
@@ -176,6 +178,86 @@ AbsRegion AbsRegionConverter::convert(RegisterAST::Ptr reg) {
   return tmp;
 }
 
+class bindKnownRegs : public InstructionAPI::Visitor
+{
+public:
+    bindKnownRegs(Address sp, Address fp, Address ip) :
+            defined(true),
+            is_stack(false),
+            is_frame(false),
+            m_sp(sp),
+            m_fp(fp),
+            m_ip(ip) {}
+    virtual ~bindKnownRegs() {}
+    bool defined;
+    bool is_stack;
+    bool is_frame;
+    std::deque<long> results;
+    Address m_sp;
+    Address m_fp;
+    Address m_ip;
+    long getResult() {
+        if(results.empty()) return 0;
+        return results.front();
+    }
+    bool isDefined() {
+        return defined && (results.size() == 1);
+    }
+    virtual void visit(BinaryFunction* b)
+    {
+        if(!defined) return;
+        long arg1 = results.back();
+        results.pop_back();
+        long arg2 = results.back();
+        results.pop_back();
+        if(b->isAdd())
+        {
+            results.push_back(arg1+arg2);
+        }
+        else if(b->isMultiply())
+        {
+            results.push_back(arg1*arg2);
+        }
+        else
+        {
+            defined = false;
+        }
+    }
+    virtual void visit(Immediate* i)
+    {
+        if(!defined) return;
+        results.push_back(i->eval().convert<long>());
+    }
+    virtual void visit(RegisterAST* r)
+    {
+        if(!defined) return;
+        if(r->getID().isPC())
+        {
+            results.push_back(m_ip);
+            return;
+        }
+        if(r->getID().isFramePointer())
+        {
+            results.push_back(m_fp);
+            is_frame = true;
+            return;
+        }
+        if(r->getID().isStackPointer())
+        {
+            results.push_back(m_sp);
+            is_stack = true;
+            return;
+        }
+        results.push_back(0);
+    }
+    virtual void visit(Dereference* )
+    {
+        //defined = false;
+    }
+
+};
+
+
 AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
 				      Address addr,
 				      ParseAPI::Function *func,
@@ -224,49 +306,52 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
                                               addr,
                                               fpHeight);
 
-    bool isStack = false;
-    bool isFrame = false;
+//    bool isStack = false;
+//    bool isFrame = false;
 
 
-    static Expression::Ptr theStackPtr(new RegisterAST(MachRegister::getStackPointer(Arch_x86)));
-    static Expression::Ptr theStackPtr64(new RegisterAST(MachRegister::getStackPointer(Arch_x86_64)));
-    static Expression::Ptr theStackPtrPPC(new RegisterAST(MachRegister::getStackPointer(Arch_ppc32)));
-    
-    static Expression::Ptr theFramePtr(new RegisterAST(MachRegister::getFramePointer(Arch_x86)));
-    static Expression::Ptr theFramePtr64(new RegisterAST(MachRegister::getFramePointer(Arch_x86_64)));
-
-    static Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(Arch_x86)));
-    static Expression::Ptr thePC64(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
-    static Expression::Ptr thePCPPC(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
+//    static Expression::Ptr theStackPtr(new RegisterAST(MachRegister::getStackPointer(Arch_x86)));
+//    static Expression::Ptr theStackPtr64(new RegisterAST(MachRegister::getStackPointer(Arch_x86_64)));
+//    static Expression::Ptr theStackPtrPPC(new RegisterAST(MachRegister::getStackPointer(Arch_ppc32)));
+//
+//    static Expression::Ptr theFramePtr(new RegisterAST(MachRegister::getFramePointer(Arch_x86)));
+//    static Expression::Ptr theFramePtr64(new RegisterAST(MachRegister::getFramePointer(Arch_x86_64)));
+//
+//    static Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(Arch_x86)));
+//    static Expression::Ptr thePC64(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
+//    static Expression::Ptr thePCPPC(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
     
     // We currently have to try and bind _every_ _single_ _alias_
     // of the stack pointer...
-    if (stackDefined) {
-      if (exp->bind(theStackPtr.get(), Result(s32, spHeight)) ||
-	  exp->bind(theStackPtr64.get(), Result(s64, spHeight)) ||
-	  exp->bind(theStackPtrPPC.get(), Result(s32, spHeight))) {
-	isStack = true;
-      }
-    }
-    if (frameDefined) {
-      if (exp->bind(theFramePtr.get(), Result(s32, fpHeight)) ||
-	  exp->bind(theFramePtr64.get(), Result(s64, fpHeight))) {
-	isFrame = true;
-      }
-    }
+//    if (stackDefined) {
+//      if (exp->bind(theStackPtr.get(), Result(s32, spHeight)) ||
+//	  exp->bind(theStackPtr64.get(), Result(s64, spHeight)) ||
+//	  exp->bind(theStackPtrPPC.get(), Result(s32, spHeight))) {
+//	isStack = true;
+//      }
+//    }
+//    if (frameDefined) {
+//      if (exp->bind(theFramePtr.get(), Result(s32, fpHeight)) ||
+//	  exp->bind(theFramePtr64.get(), Result(s64, fpHeight))) {
+//	isFrame = true;
+//      }
+//    }
 
     // Bind the IP, why not...
-    exp->bind(thePC.get(), Result(u32, addr));
-    exp->bind(thePC64.get(), Result(u64, addr));
-    exp->bind(thePCPPC.get(), Result(u32, addr));
-
-    Result res = exp->eval();
+//    exp->bind(thePC.get(), Result(u32, addr));
+//    exp->bind(thePC64.get(), Result(u64, addr));
+//    exp->bind(thePCPPC.get(), Result(u32, addr));
+//
+//    Result res = exp->eval();
+    bindKnownRegs calc(spHeight, fpHeight, addr);
+    exp->apply(&calc);
+    bool isFrame = calc.is_frame;
+    bool isStack = calc.is_stack;
+    Address res = calc.getResult();
 
     if (isFrame && stackAnalysisEnabled_) {
-      if (res.defined && frameDefined) {
-	return AbsRegion(Absloc(res.convert<Address>(),
-                                0,
-				func));
+      if (calc.isDefined() && frameDefined) {
+	return AbsRegion(Absloc(res, 0, func));
       }
       else {
 	return AbsRegion(Absloc::Stack);
@@ -274,8 +359,8 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
     }
 
     if (isStack && stackAnalysisEnabled_) {
-      if (res.defined && stackDefined) {
-         return AbsRegion(Absloc(res.convert<Address>(),
+      if (calc.isDefined() && stackDefined) {
+         return AbsRegion(Absloc(res,
                                  0,
                                  func));
       }
@@ -289,8 +374,8 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
     }
 
     // Otherwise we're on the heap
-    if (res.defined) {
-      return AbsRegion(Absloc(res.convert<Address>()));
+    if (calc.isDefined()) {
+      return AbsRegion(Absloc(res));
     }
     else {
       return AbsRegion(Absloc::Heap);

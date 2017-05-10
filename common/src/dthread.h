@@ -54,6 +54,10 @@
 #define WINAPI
 #endif
 
+#include <cilktools/fake_mutex.h>
+#include <cilktools/lock_guard.h>
+
+
 class PC_EXPORT DThread {
 #if defined(cap_pthreads)
    pthread_t thrd;
@@ -93,6 +97,8 @@ struct boost_mutex_selector<true>
 
 template <bool isRecursive = false>
 class PC_EXPORT Mutex : public boost_mutex_selector<isRecursive>::mutex {
+public:
+	typedef Mutex<isRecursive> type;
    
 };
 
@@ -128,5 +134,7 @@ class ScopeLock : public boost::interprocess::scoped_lock<Mut>
   public:
   ScopeLock(Mut &mut) : boost::interprocess::scoped_lock<Mut>(mut) {}
 };
+
+
 
 #endif

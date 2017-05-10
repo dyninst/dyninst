@@ -77,8 +77,7 @@ class InstructionDecoderImpl
     protected:
         Operation::Ptr m_Operation;
         Architecture m_Arch;
-        static std::map<Architecture, Ptr> impls;
-      
+
 };
 
 }

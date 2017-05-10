@@ -47,6 +47,8 @@
 
 #include "ParseData.h"
 #include "common/src/dthread.h"
+#include <boost/thread/lockable_adapter.hpp>
+#include <boost/thread/shared_mutex.hpp>
 
 using namespace std;
 
@@ -63,7 +65,6 @@ class Parser {
    // which are internal Parser data. 
    friend class CFGModifier;
  private:
-    Mutex<false> finalize_lock;
 
     // Owning code object
     CodeObject & _obj;
@@ -81,8 +82,12 @@ class Parser {
     vector<ParseFrame *> frames;
 
     // Delayed frames
-    unsigned num_delayedFrames;
-    std::map<Function *, std::set<ParseFrame *> > delayedFrames;
+    struct DelayedFrames : public boost::basic_lockable_adapter<boost::recursive_mutex> {
+        unsigned size;
+        std::map<Function *, std::set<ParseFrame *> > frames;
+
+    };
+    DelayedFrames delayed_frames;
 
     // differentiate those provided via hints and
     // those found through RT or speculative parsing
@@ -222,6 +227,18 @@ class Parser {
     bool getSyscallNumber(Function *, Block *, Address, Architecture, long int &);
 
     friend class CodeObject;
+
+    Mutex<true> parse_mutex;
+    boost::upgrade_mutex finalize_mutex;
+    vector<ParseFrame *> ProcessOneFrame(ParseFrame *pf, bool recursive);
+
+    void cleanup_frames() ;
+
+    void processCycle(vector<ParseFrame *> &work, bool recursive);
+
+    void processFixedPoint(vector<ParseFrame *> &work, bool recursive);
+
+    vector<ParseFrame *> postProcessFrame(ParseFrame *pf, bool recursive);
 };
 
 }

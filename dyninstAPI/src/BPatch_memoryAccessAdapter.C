@@ -60,9 +60,8 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction::Ptr insn,
   const unsigned char* addr = reinterpret_cast<const unsigned char*>(insn->ptr());
   BPatch_memoryAccess* bmap = BPatch_memoryAccess::none;
 
-  ia32_set_mode_64(is64);
-  
-  ia32_decode(IA32_DECODE_MEMACCESS|IA32_DECODE_CONDITION, addr, i);
+
+    ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION, addr, i, is64);
   
   bool first = true;
 

@@ -7,10 +7,6 @@
 #  LIBDWARF_DEFINITIONS - Compiler switches required for using libdwarf
 #
 
-# Locate libelf library at first
-#if (NOT LIBELF_FOUND)
-#   find_package (LibElf REQUIRED)
-#endif (NOT LIBELF_FOUND)
 
 if (LIBDWARF_LIBRARIES AND LIBDWARF_INCLUDE_DIRS)
   set (LibDwarf_FIND_QUIETLY TRUE)

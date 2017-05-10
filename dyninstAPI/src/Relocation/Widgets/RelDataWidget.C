@@ -62,7 +62,7 @@ bool RelDataWidget::generate(const codeGen &,
   // Fortunately, we can reuse old code to handle the
   // translation
 
-  // Find the original target of the instruction 
+  // Find the original target of the instruction
    
   relocation_cerr << "  Generating a PC-relative data access (" << insn_->format()
 		  << "," << std::hex << addr_ 
@@ -81,7 +81,7 @@ string RelDataWidget::format() const {
 }
 
 bool RelDataPatch::apply(codeGen &gen, CodeBuffer *) {
-  instruction ugly_insn(orig_insn->ptr());
+  instruction ugly_insn(orig_insn->ptr(), (gen.width() == 8));
   if (!insnCodeGen::modifyData(target_addr, ugly_insn, gen)) return false;
   return true;
 }

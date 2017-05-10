@@ -1907,10 +1907,11 @@ dyn_hash_map<prefixEntryID, std::string> prefixEntryNames_IAPI = map_list_of
   (prefix_repnz, "REPNZ")
         ;
 
+dyn_hash_map<entryID, flagInfo> ia32_instruction::flagTable;
+
 COMMON_EXPORT dyn_hash_map<entryID, flagInfo> const& ia32_instruction::getFlagTable()
 {
-  static dyn_hash_map<entryID, flagInfo> flagTable;
-  if(flagTable.empty()) 
+  if(flagTable.empty())
   {
     ia32_instruction::initFlagTable(flagTable);
   }
@@ -8199,10 +8200,6 @@ void ia32_set_mode_64(bool mode) {
   mode_64 = mode;
 }
 
-bool ia32_is_mode_64() {
-  return mode_64;
-}
-
 ia32_entry movsxd = { e_movsxd, t_done, 0, true, { Gv, Ed, Zz }, 0, s1W2R };
 ia32_entry invalid = { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 };
 ia32_entry seg_mov = { e_mov, t_done, 0, true, {Ev, Sw, Zz}, 0, s1W2R };		       
@@ -8244,11 +8241,8 @@ static void ia32_translate_for_64(ia32_entry** gotit_ptr)
 }
 
 /* full decoding version: supports memory access information */
-static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
-                                      const unsigned char* addr,
-                                      ia32_memacc* macadr,
-                                      const ia32_prefixes* pref,
-                                      ia32_locations *pos);
+static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsigned char *addr, ia32_memacc *macadr,
+                                      const ia32_prefixes *pref, ia32_locations *pos, bool mode_64);
 
 
 void ia32_memacc::print()
@@ -8279,7 +8273,7 @@ int getOperSz(const ia32_prefixes &pref)
     else return 2;
 }
 
-ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32_instruction& instruct)
+ia32_instruction &ia32_decode(unsigned int capa, const unsigned char *addr, ia32_instruction &instruct, bool mode_64)
 {
     const unsigned char* addr_orig = addr;
     ia32_prefixes& pref = instruct.prf;
@@ -8291,7 +8285,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
     }
 
     /* First decode any prefixes for this instruction */
-    if (!ia32_decode_prefixes(addr, instruct)) 
+    if (!ia32_decode_prefixes(addr, instruct, false))
     {
         instruct.size = 1;
 	    instruct.entry = NULL;
@@ -8310,7 +8304,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
 
     int opcode_decoding;
     /* Get the entry in the decoding tables */
-    if((opcode_decoding = ia32_decode_opcode(capa, addr, instruct, &gotit)))
+    if((opcode_decoding = ia32_decode_opcode(capa, addr, instruct, &gotit, mode_64)))
     {
         if(opcode_decoding > 0)
         {
@@ -8335,7 +8329,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
     addr = addr_orig + instruct.size;
 
     /* Do the operand decoding */
-    ia32_decode_operands(pref, *gotit, addr, instruct, instruct.mac);
+    ia32_decode_operands(pref, *gotit, addr, instruct, instruct.mac, mode_64);
 
     // printf("OPERANDS(%d): ", instruct.size - x);
     // for(;x < instruct.size;x++)
@@ -8563,8 +8557,8 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
     return instruct;
 }
 
-int ia32_decode_opcode(unsigned int capa, const unsigned char* addr, 
-        ia32_instruction& instruct, ia32_entry** gotit_ret)
+int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instruction &instruct, ia32_entry **gotit_ret,
+                       bool mode_64)
 {
     ia32_prefixes& pref = instruct.prf;
     unsigned int table, nxtab, idx;
@@ -8888,8 +8882,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char* addr,
                     unsigned int reg  = (addr[0] >> 3) & 7;
                     unsigned int mod = addr[0] >> 6;
                     gotit = &fpuMap[gotit->tabidx][mod==3][reg];
-                    ia32_decode_FP(idx, pref, addr, 
-                            instruct, gotit, instruct.mac);
+                    ia32_decode_FP(idx, pref, addr, instruct, gotit, instruct.mac, mode_64);
 
                     if(gotit_ret)
                         *gotit_ret = gotit;
@@ -9045,9 +9038,9 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char* addr,
     return 0;
 }
 
-ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
-                                 const unsigned char* addr, ia32_instruction& instruct,
-                                 ia32_entry * entry, ia32_memacc *mac)
+ia32_instruction &
+ia32_decode_FP(unsigned int opcode, const ia32_prefixes &pref, const unsigned char *addr, ia32_instruction &instruct,
+               ia32_entry *entry, ia32_memacc *mac, bool mode_64)
 {
     // addr points after the opcode, and the size has been adjusted accordingly
     if (instruct.loc) instruct.loc->opcode_size = instruct.size - pref.getCount();
@@ -9065,7 +9058,7 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
             instruct.loc->opcode_size;
         instruct.loc->modrm_operand = 0;
     }
-    nib += ia32_decode_modrm(addrSzAttr, addr, mac, &pref, instruct.loc);
+    nib += ia32_decode_modrm(addrSzAttr, addr, mac, &pref, instruct.loc, mode_64);
     // also need to check for AMD64 rip-relative data addressing
     // occurs when mod == 0 and r/m == 101
     if (mode_64)
@@ -9255,11 +9248,8 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
 #define MODRM_SET_RM(x, y) ((x) |= (y))
 #define MODRM_SET_REG(x, y) ((x) |= ((y) << 3))
 
-static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
-                                      const unsigned char* addr,
-                                      ia32_memacc* macadr,
-                                      const ia32_prefixes* pref,
-                                      ia32_locations *loc)
+static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsigned char *addr, ia32_memacc *macadr,
+                                     const ia32_prefixes *pref, ia32_locations *loc, bool mode_64)
 {
  
   unsigned char modrm = addr[0];
@@ -9625,11 +9615,8 @@ static inline int type2size(unsigned int optype, unsigned int operSzAttr)
   }
 }
 
-unsigned int ia32_decode_operands (const ia32_prefixes& pref, 
-                                   const ia32_entry& gotit, 
-                                   const unsigned char* addr, 
-                                   ia32_instruction& instruct,
-                                   ia32_memacc *mac)
+unsigned int ia32_decode_operands(const ia32_prefixes &pref, const ia32_entry &gotit, const unsigned char *addr,
+                                  ia32_instruction &instruct, ia32_memacc *mac, bool mode_64)
 {
     unsigned int nib = 0; /* # of bytes in instruction */
     ia32_locations *loc = instruct.loc;
@@ -9728,13 +9715,13 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
 
                     if(mac) 
                     {
-                        nib += ia32_decode_modrm(addrSzAttr, addr, &mac[i], &pref, loc);
+                        nib += ia32_decode_modrm(addrSzAttr, addr, &mac[i], &pref, loc, mode_64);
                         mac[i].size = type2size(op.optype, operSzAttr);
 
                         if (loc) 
                             loc->address_size = mac[i].size;
                     } else {
-                        nib += ia32_decode_modrm(addrSzAttr, addr, NULL, &pref, loc);
+                        nib += ia32_decode_modrm(addrSzAttr, addr, NULL, &pref, loc, mode_64);
                     }
                 
                     // also need to check for AMD64 rip-relative data addressing
@@ -9956,7 +9943,7 @@ bool is_sse_opcode(unsigned char byte1, unsigned char byte2, unsigned char byte3
 }
 
 // FIXME: lookahead might blow up...
-bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& instruct)
+    bool ia32_decode_prefixes(const unsigned char *addr, ia32_instruction &instruct, bool mode_64)
 {
     ia32_prefixes& pref = instruct.prf;
     ia32_locations* loc = instruct.loc; 
@@ -10323,7 +10310,7 @@ bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes& pref,
    	return true;
 }
 
-unsigned int ia32_emulate_old_type(ia32_instruction& instruct)
+unsigned int ia32_emulate_old_type(ia32_instruction &instruct, bool mode_64)
 {
   const ia32_prefixes& pref = instruct.prf;
   unsigned int& insnType = instruct.legacy_type;
@@ -10385,16 +10372,15 @@ unsigned int ia32_emulate_old_type(ia32_instruction& instruct)
 }
 
 /* decode instruction at address addr, return size of instruction */
-unsigned get_instruction(const unsigned char* addr, unsigned &insnType,
-			 const unsigned char** op_ptr)
+    unsigned get_instruction(const unsigned char *addr, unsigned &insnType, const unsigned char **op_ptr, bool mode_64)
 {
   int r1;
 
   ia32_instruction i;
-  ia32_decode(0, addr, i);
+    ia32_decode(0, addr, i, mode_64);
 
   r1 = i.getSize();
-  insnType = ia32_emulate_old_type(i);
+  insnType = ia32_emulate_old_type(i, mode_64);
   if (op_ptr)
       *op_ptr = addr + i.getPrefixCount();
 
@@ -10604,7 +10590,7 @@ skip_headers(const unsigned char* addr, ia32_instruction* instruct)
     ia32_instruction tmp;
     if(!instruct)
         instruct = &tmp;
-    ia32_decode_prefixes(addr, *instruct);
+    ia32_decode_prefixes(addr, *instruct, false);
     return addr + instruct->getSize();
 }
 
@@ -10678,50 +10664,9 @@ entryID ia32_entry::getID(ia32_locations* l) const
   return id;
 }
 
-Address get_immediate_operand(instruction *instr)
-{
-    ia32_memacc mac[3];
-    ia32_condition cond;
-    ia32_locations loc;
-    ia32_instruction detail(mac,&cond,&loc);
-
-    ia32_decode(IA32_FULL_DECODER,(const unsigned char *)(instr->ptr()),detail);
-
-    if (loc.imm_cnt < 1)
-      return 0;
-
-    // now find the immediate value in the locations
-    Address immediate = 0;
-
-    switch(loc.imm_size[0]) {
-        case 8:
-            immediate = *(const unsigned long*)(instr->ptr()+loc.imm_position[0]);
-            break;
-        case 4:
-            immediate = *(const unsigned int*)(instr->ptr()+loc.imm_position[0]);
-            break;
-        case 2:
-            immediate = *(const unsigned short*)(instr->ptr()+loc.imm_position[0]);
-            break;
-        case 1:
-            immediate = *(const unsigned char*)(instr->ptr()+loc.imm_position[0]);
-            break;
-        default:
-//            fprintf(stderr,"%s[%u]:  invalid immediate size %d in insn\n",
-//                FILE__,__LINE__,loc.imm_size[0]);
-            break;
-    }
-
-    return immediate;
-}
-
 // get the displacement of a relative jump or call
 
-int get_disp(instruction *insn) {
-  return displacement(insn->ptr(), insn->type());
-}
-
-bool isStackFramePrecheck_gcc( const unsigned char *buffer )
+    bool isStackFramePrecheck_gcc( const unsigned char *buffer )
 {
    //Currently enabled entry bytes for gaps:
    //  0x55 - push %ebp
@@ -10884,7 +10829,7 @@ unsigned instruction::jumpSize(long disp, unsigned addr_width)
    return JUMP_SZ;
 }
 #else
-unsigned instruction::jumpSize(long /*disp*/, unsigned /*addr_width*/) 
+unsigned instruction::jumpSize(long /*disp*/, unsigned /*addr_width*/)
 {
    return JUMP_SZ;
 }
@@ -10904,241 +10849,13 @@ unsigned instruction::maxJumpSize(unsigned addr_width)
    return JUMP_SZ;
 }
 #else
-unsigned instruction::maxJumpSize(unsigned /*addr_width*/) 
+unsigned instruction::maxJumpSize(unsigned /*addr_width*/)
 {
    return JUMP_SZ;
 }
 #endif
 
-bool instruction::isCmp() const {
-    if(*op_ptr_ == CMP_EB_GB || *op_ptr_ == CMP_EV_GV ||
-       *op_ptr_ == CMP_GB_EB || *op_ptr_ == CMP_GV_EV ||
-       *op_ptr_ == CMP_AL_LB || *op_ptr_ == CMP_RAX_LZ)
-    {
-        return true;
-    }
-
-    if(*op_ptr_ == 0x80 || *op_ptr_ == 0x81 || *op_ptr_ == 0x83) 
-    {
-        // group 1 opcodes -- operation depends on reg (bits 3-5) of
-        // modr/m byte
-        const unsigned char *p = op_ptr_+1;
-        if( (*p & (7<<3)) == (7<<3))
-            return true;
-    }
-
-    return false;
-}
-
 #define SIB_SET_REG(x, y) ((x) |= ((y) & 7))
 #define SIB_SET_INDEX(x, y) ((x) |= (((y) & 7) << 3))
-#define SIB_SET_SS(x, y) ((x) | (((y) & 3) << 6))
-
-bool instruction::getUsedRegs(pdvector<int> &regs) {
-   const unsigned char *insn_ptr = ptr();
-
-   struct ia32_memacc memacc[3];
-   struct ia32_condition cond;
-   class ia32_locations loc;
-   ia32_entry *entry;
-   ia32_instruction orig_instr(memacc, &cond, &loc);
-   ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION,
-               insn_ptr, orig_instr);
-   entry = orig_instr.getEntry();
-
-   if (orig_instr.getPrefix()->getPrefix(1) != 0)
-      //The instruction accesses memory via segment registers.  Disallow.
-      return false;
-   
-   if (loc.modrm_position == -1)
-      //Only supporting MOD/RM instructions now
-      return false; 
-
-   if (loc.address_size == 1)
-      //Don't support 16-bit instructions yet
-      return false;
-
-   if (loc.modrm_reg == 4 && !loc.rex_r)
-      //The non-memory access register is %rsp/%esp, we can't work with
-      // this register due to our register saving techniques.
-      return false;
-
-   if (loc.modrm_mod == 3)
-      //This instruction doesn't use the MOD/RM to access memory
-      return false;
-
-   for (unsigned i=0; i<3; i++) {
-      const ia32_operand& op = entry->operands[i];
-      if (op.admet == am_O) {
-         //The MOD/RM specifies a register that's used
-         int regused = loc.modrm_reg;
-         if (loc.address_size == 4 && loc.rex_r) {
-             regused |= 0x8;
-         }
-         regs.push_back(regused);
-      }
-      else if (op.admet == am_reg) {
-	//using namespace Dyninst::InstructionAPI;
-         //The instruction implicitely references a memory instruction
-         switch (op.optype) {
-             case x86::iah:   
-             case x86::ial:
-             case x86::iax:   
-             case x86::ieax:
-               regs.push_back(REGNUM_RAX);
-               if (loc.rex_byte) regs.push_back(REGNUM_R8);
-               break;
-             case x86::ibh:
-             case x86::ibl:
-             case x86::ibx:
-             case x86::iebx:
-               regs.push_back(REGNUM_RBX);
-               if (loc.rex_byte) regs.push_back(REGNUM_R11);
-               break;
-             case x86::ich:
-             case x86::icl:
-             case x86::icx:
-             case x86::iecx:
-                 regs.push_back(REGNUM_RCX);
-               if (loc.rex_byte) regs.push_back(REGNUM_R9);
-               break;
-             case x86::idh:
-             case x86::idl:
-             case x86::idx:
-             case x86::iedx:
-                 regs.push_back(REGNUM_RDX);
-               if (loc.rex_byte) regs.push_back(REGNUM_R10);
-               break;
-             case x86::isp:
-             case x86::iesp:
-                regs.push_back(REGNUM_RSP);
-               if (loc.rex_byte) regs.push_back(REGNUM_R12);
-               break;
-             case x86::ibp:
-             case x86::iebp:
-               regs.push_back(REGNUM_RBP);
-               if (loc.rex_byte) regs.push_back(REGNUM_R13);
-               break;
-             case x86::isi:
-             case x86::iesi:
-               regs.push_back(REGNUM_RSI);
-               if (loc.rex_byte) regs.push_back(REGNUM_R14);
-               break;
-             case x86::idi:
-             case x86::iedi:
-               regs.push_back(REGNUM_RDI);
-               if (loc.rex_byte) regs.push_back(REGNUM_R15);
-               break;
-            case op_edxeax:
-               regs.push_back(REGNUM_RAX);
-               regs.push_back(REGNUM_RDX);
-               break;
-            case op_ecxebx:
-               regs.push_back(REGNUM_RBX);
-               regs.push_back(REGNUM_RCX);
-               break;
-         }
-      }
-   }
-   return true;
-}
-
-int instruction::getStackDelta()
-{
-   ia32_instruction instruc;
-   const unsigned char *p = ptr();
-   ia32_decode(0, ptr(), instruc);
-
-   if (instruc.getEntry()->id == e_push)
-      return -4;
-   if (instruc.getEntry()->id == e_pop)
-      return 4;
-   if (instruc.getEntry()->id == e_pusha)
-      return (-2 * 9);
-   if (instruc.getEntry()->id == e_pushad)
-      return (-4 * 9);
-   if (instruc.getEntry()->id == e_popa)
-      return (2 * 9);
-   if (instruc.getEntry()->id == e_popad)
-      return (4 * 9);
-
-   if (p[0] == 0x83 && p[1] == 0xec) {
-      //Subtract byte
-      return -1 * (signed char) p[2];
-   }
-
-   if (p[0] == 0x83 && p[1] == 0xc4) {
-      //Add byte
-      return (signed char) p[2];
-   }
-   
-   return 0;
-}
-
-bool instruction::isNop() const
-{ 
-
-   if (!(type_ & IS_NOP)) //NOP or LEA
-      return false;
-
-   if (*op_ptr_ == NOP) {
-      return true;
-   }
-
-   ia32_memacc mac[3];
-   ia32_condition cnd;
-   ia32_locations loc;
-
-   ia32_instruction instruc(mac, &cnd, &loc);
-
-   ia32_decode(IA32_FULL_DECODER, ptr(), instruc);
-
-
-   if (instruc.getEntry()->id == e_nop) {
-      return true;
-   }
-
-   if (loc.modrm_mod == 3) {
-      return false;
-   }
-   if (loc.modrm_mod == 0 && loc.modrm_rm == 5) {
-      return false;
-   }
-
-   if (loc.rex_x) {
-      return false;
-   }
-   if ((!loc.rex_r) != (!loc.rex_b)) { // Logical exclusive or
-      return false;
-   }
-
-   if (loc.disp_position != -1) {
-      for (unsigned i=0; i<loc.disp_size; i++) {
-         if (ptr_[i + loc.disp_position] != 0) {
-            return false;
-         }
-      }
-   }
-   
-   if (loc.modrm_rm == 4) {
-      unsigned scale;
-      Register index, base;
-      decode_SIB(loc.sib_byte, scale, index, base);
-      
-      if (index != 4) {
-         return false;
-      }
-
-      if (base != loc.modrm_reg) {
-         return false;
-      }
-   }
-   else if (loc.modrm_reg != loc.modrm_rm) {
-      return false;
-   }
-
-
-   return true;
-}
 
 } // namespace arch_x86

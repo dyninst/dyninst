@@ -44,7 +44,8 @@
 #include "ParseContainers.h"
 #include "Annotatable.h"
 #include <iostream>
-
+#include <boost/thread/lockable_adapter.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 namespace Dyninst {
 
    namespace InstructionAPI {
@@ -251,11 +252,11 @@ class PARSER_EXPORT Intraproc : public EdgePredicate {
 class Function;
  class PARSER_EXPORT SingleContext : public EdgePredicate {
  private:
-    Function * _context;
+    const Function * _context;
     bool _forward;
     bool _backward;
  public:
-    SingleContext(Function * f, bool forward, bool backward) : 
+    SingleContext(const Function * f, bool forward, bool backward) :
         _context(f),
         _forward(forward),
         _backward(backward) { }
@@ -267,11 +268,11 @@ class Function;
  * Will follow interprocedural call/return edges */
  class PARSER_EXPORT SingleContextOrInterproc : public EdgePredicate {
     private:
-        Function * _context;
+        const Function * _context;
         bool _forward;
         bool _backward;
     public:
-        SingleContextOrInterproc(Function * f, bool forward, bool backward) :
+        SingleContextOrInterproc(const Function * f, bool forward, bool backward) :
             _context(f),
             _forward(forward),
             _backward(backward) { }
@@ -284,9 +285,11 @@ class Function;
 };
 
 class CodeRegion;
-class PARSER_EXPORT Block : public Dyninst::SimpleInterval<Address, int>,
-              public allocatable {
+class PARSER_EXPORT Block : public boost::lockable_adapter<boost::recursive_mutex>,
+                            public Dyninst::SimpleInterval<Address, int>,
+              public allocatable  {
     friend class CFGModifier;
+    friend class Parser;
  public:
     typedef std::map<Offset, InstructionAPI::InstructionPtr> Insns;
     typedef std::vector<Edge*> edgelist;
@@ -294,11 +297,11 @@ class PARSER_EXPORT Block : public Dyninst::SimpleInterval<Address, int>,
     Block(CodeObject * o, CodeRegion * r, Address start);
     virtual ~Block();
 
-    Address start() const { return _start; }
-    Address end() const { return _end; }
-    Address lastInsnAddr() const { return _lastInsn; } 
-    Address last() const { return lastInsnAddr(); }
-    Address size() const { return _end - _start; }
+    inline Address start() const { return _start; }
+    inline Address end() const { return _end; }
+    inline Address lastInsnAddr() const { return _lastInsn; }
+    inline Address last() const { return lastInsnAddr(); }
+    inline Address size() const { return _end - _start; }
     bool containsAddr(Address addr) const { return addr >= _start && addr < _end; }
 
     bool parsed() const { return _parsed; }
@@ -504,6 +507,7 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     }
     
     bool contains(Block *b);
+    bool contains(Block *b) const;
     const edgelist & callEdges();
     const_blocklist returnBlocks() ;
     const_blocklist exitBlocks();
