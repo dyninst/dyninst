@@ -227,9 +227,66 @@ public:
       Type type_;
    };
 
-   typedef std::pair<Definition, Height> DefHeight;
-   DATAFLOW_EXPORT static bool isTopSet(const std::set<DefHeight> &s);
-   DATAFLOW_EXPORT static bool isBottomSet(const std::set<DefHeight> &s);
+   class DATAFLOW_EXPORT DefHeight {
+   public:
+      DefHeight(const Definition &d, const Height &h) : def(d), height(h) {}
+
+      bool operator==(const DefHeight &other) const {
+         return def == other.def && height == other.height;
+      }
+
+      bool operator<(const DefHeight &other) const {
+         return def < other.def;
+      }
+
+      Definition def;
+      Height height;
+   };
+
+   class DATAFLOW_EXPORT DefHeightSet {
+   public:
+      bool operator==(const DefHeightSet &other) const {
+         return defHeights == other.defHeights;
+      }
+
+      std::set<DefHeight>::iterator begin() {
+         return defHeights.begin();
+      }
+
+      std::set<DefHeight>::const_iterator begin() const {
+         return defHeights.begin();
+      }
+
+      std::set<DefHeight>::iterator end() {
+         return defHeights.end();
+      }
+
+      std::set<DefHeight>::const_iterator end() const {
+         return defHeights.end();
+      }
+
+      std::set<DefHeight>::size_type size() const {
+         return defHeights.size();
+      }
+
+      void insert(const DefHeight &dh) {
+         defHeights.insert(dh);
+      }
+
+      bool isTopSet() const;
+      bool isBottomSet() const;
+      void makeTopSet();
+      void makeBottomSet();
+      void makeNewSet(ParseAPI::Block *b, Address addr,
+         const Absloc &origLoc, const Height &h);
+      void addInitSet(const Height &h);
+      void addDeltaSet(long delta);
+      Height getHeightSet() const;
+      Definition getDefSet() const;
+
+   private:
+      std::set<DefHeight> defHeights;
+   };
 
    // We need to represent the effects of instructions. We do this in terms of
    // transfer functions. We recognize the following effects on the stack.
@@ -251,7 +308,7 @@ public:
    // they are fixed) and RV as a parameter. Note that a transfer function is a
    // function T : (RegisterVector, RegisterID, RegisterID, value) ->
    // (RegisterVector).
-   typedef std::map<Absloc, std::set<DefHeight> > AbslocState;
+   typedef std::map<Absloc, DefHeightSet> AbslocState;
    class DATAFLOW_EXPORT TransferFunc {
    public:
       typedef enum {TOP, BOTTOM, OTHER} Type;
@@ -307,7 +364,7 @@ public:
          return !(*this == rhs);
       }
 
-      std::set<DefHeight> apply(const AbslocState &inputs) const;
+      DefHeightSet apply(const AbslocState &inputs) const;
       void accumulate(std::map<Absloc, TransferFunc> &inputs);
       TransferFunc summaryAccumulate(
          const std::map<Absloc, TransferFunc> &inputs) const;
@@ -404,7 +461,7 @@ public:
     DATAFLOW_EXPORT virtual ~StackAnalysis();
 
     DATAFLOW_EXPORT Height find(ParseAPI::Block *, Address addr, Absloc loc);
-    DATAFLOW_EXPORT std::set<DefHeight> findDefHeight(ParseAPI::Block *block,
+    DATAFLOW_EXPORT DefHeightSet findDefHeight(ParseAPI::Block *block,
         Address addr, Absloc loc);
    DATAFLOW_EXPORT Height findSP(ParseAPI::Block *, Address addr);
    DATAFLOW_EXPORT Height findFP(ParseAPI::Block *, Address addr);
@@ -412,7 +469,7 @@ public:
       std::vector<std::pair<Absloc, Height> >& heights);
    // TODO: Update DataflowAPI manual
    DATAFLOW_EXPORT void findDefHeightPairs(ParseAPI::Block *b, Address addr,
-      std::vector<std::pair<Absloc, std::set<DefHeight> > > &defHeights);
+      std::vector<std::pair<Absloc, DefHeightSet> > &defHeights);
 
    // TODO: Update DataflowAPI manual
    DATAFLOW_EXPORT bool canGetFunctionSummary();
@@ -444,8 +501,8 @@ private:
    void meetSummaryInputs(ParseAPI::Block *b, TransferSet &blockInput,
       TransferSet &input);
    DefHeight meetDefHeight(const DefHeight &dh1, const DefHeight &dh2);
-   std::set<DefHeight> meetDefHeights(const std::set<DefHeight> &s1,
-      const std::set<DefHeight> &s2);
+   DefHeightSet meetDefHeights(const DefHeightSet &s1,
+      const DefHeightSet &s2);
    void meet(const AbslocState &source, AbslocState &accum);
    void meetSummary(const TransferSet &source, TransferSet &accum);
    AbslocState getSrcOutputLocs(ParseAPI::Edge* e);
@@ -496,15 +553,6 @@ private:
    void retopBaseSubReg(const MachRegister &reg, TransferFuncs &xferFuncs);
    void copyBaseSubReg(const MachRegister &reg, TransferFuncs &xferFuncs);
    void bottomBaseSubReg(const MachRegister &reg, TransferFuncs &xferFuncs);
-
-   static void makeTopSet(std::set<DefHeight> &s);
-   static void makeBottomSet(std::set<DefHeight> &s);
-   static void makeNewSet(ParseAPI::Block *b, Address addr,
-      const Absloc &origLoc, const Height &h, std::set<DefHeight> &s);
-   static void addInitSet(const Height &h, std::set<DefHeight> &s);
-   static void addDeltaSet(long delta, std::set<DefHeight> &s);
-   static Height getHeightSet(const std::set<DefHeight> &s);
-   static Definition getDefSet(const std::set<DefHeight> &s);
 
 
    Height getStackCleanAmount(ParseAPI::Function *func);
