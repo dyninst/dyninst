@@ -1,0 +1,10 @@
+##frinta_float_execute
+CheckFPAdvSIMDEnabled64();
+
+bits(datasize) result;
+bits(datasize) operand = V[n];
+
+result = FPRoundInt(operand, FPCR, rounding, exact);
+
+V[d] = result;
+@@

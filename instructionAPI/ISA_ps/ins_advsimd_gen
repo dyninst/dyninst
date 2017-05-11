@@ -1,0 +1,9 @@
+##ins_advsimd_gen_execute
+CheckFPAdvSIMDEnabled64();
+bits(esize) element = X[n];
+bits(datasize) result;
+
+result = V[d];
+Elem[result, index, esize] = element;
+V[d] = result;
+@@

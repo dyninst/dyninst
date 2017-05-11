@@ -1,0 +1,17 @@
+##uhadd_advsimd_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize) operand1 = V[n];
+bits(datasize) operand2 = V[m];
+bits(datasize) result;
+integer element1;
+integer element2;
+integer sum;
+
+for e = 0 to elements-1
+    element1 = Int(Elem[operand1, e, esize], unsigned);
+    element2 = Int(Elem[operand2, e, esize], unsigned);
+    sum = element1 + element2;
+    Elem[result, e, esize] = sum<esize:1>;
+
+V[d] = result;
+@@

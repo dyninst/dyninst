@@ -1,0 +1,9 @@
+##adrp_execute
+bits(64) base = PC[];
+
+if page then
+    base<11:0> = Zeros(12);
+end
+
+X[d] = base + imm;
+@@

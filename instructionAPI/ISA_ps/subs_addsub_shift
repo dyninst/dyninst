@@ -1,0 +1,22 @@
+##subs_addsub_shift_execute
+bits(datasize) result;
+bits(datasize) operand1 = X[n];
+bits(datasize) operand2 = ShiftReg(m, shift_type, shift_amount);
+bits(4) nzcv;
+bit carry_in;
+
+if sub_op then
+    operand2 = NOT(operand2);
+    carry_in = 1;
+else
+    carry_in = 0;
+end
+
+(result, nzcv) = AddWithCarry(operand1, operand2, carry_in);
+
+if setflags then 
+    PSTATE.<N,Z,C,V> = nzcv;
+end
+
+X[d] = result;
+@@
