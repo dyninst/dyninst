@@ -117,9 +117,15 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
       // Get origDisp, delta for this definition via isStackFrameSensitive
       stackmods_printf("Checking isStackFrameSensitive for def @ 0x%lx\n",
         defAddr);
-      if (isStackFrameSensitive(origDisp, delta, &tmpAccesses, offVec, tMap,
-        defBlock, defAddr)) {
-        definitionDeltas[defAddr] = std::make_pair(origDisp, delta);
+      try {
+        if (isStackFrameSensitive(origDisp, delta, &tmpAccesses, offVec, tMap,
+          defBlock, defAddr)) {
+          definitionDeltas[defAddr] = std::make_pair(origDisp, delta);
+        }
+      } catch (stackmod_exception &e) {
+        // isStackFrameSensitive throws an exception if it's unsafe to modify
+        // this function.
+        return false;
       }
     }
   }
@@ -198,26 +204,32 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
         Architecture arch = insn->getArch();
         stackmods_printf("Checking isStackFrameSensitive @ 0x%lx = %s\n",
           (*iter)->addr(), insn->format().c_str());
-        if (isStackFrameSensitive(origDisp, delta, accesses, offVec, tMap,
-          cur->block()->llb(), (*iter)->addr())) {
-          signed long newDisp = origDisp + delta;
+        try {
+          if (isStackFrameSensitive(origDisp, delta, accesses, offVec, tMap,
+            cur->block()->llb(), (*iter)->addr())) {
+            signed long newDisp = origDisp + delta;
 
-          stackmods_printf(" ... is Stack Frame SENSITIVE at 0x%lx\n",
-            (*iter)->addr());
-          stackmods_printf("\t\t origDisp = %ld, delta = %ld, newDisp = %ld\n",
-            origDisp, delta, newDisp);
+            stackmods_printf(" ... is Stack Frame SENSITIVE at 0x%lx\n",
+              (*iter)->addr());
+            stackmods_printf("\t\t origDisp = %ld, delta = %ld, newDisp = %ld\n",
+              origDisp, delta, newDisp);
 
-          relocation_cerr << " ... is Stack Frame Sensitive at "
-            << std::hex << (*iter)->addr()
-            << std::dec
-            << ", origDisp = " << origDisp
-            << ", delta = " << delta
-            << ", newDisp = " << newDisp
-            << endl;
+            relocation_cerr << " ... is Stack Frame Sensitive at "
+              << std::hex << (*iter)->addr()
+              << std::dec
+              << ", origDisp = " << origDisp
+              << ", delta = " << delta
+              << ", newDisp = " << newDisp
+              << endl;
 
-          Widget::Ptr replacement = StackModWidget::create(insn,
-            (*iter)->addr(), newDisp, arch);
-          (*iter).swap(replacement);
+            Widget::Ptr replacement = StackModWidget::create(insn,
+              (*iter)->addr(), newDisp, arch);
+            (*iter).swap(replacement);
+          }
+        } catch (stackmod_exception &e) {
+          // isStackFrameSensitive throws an exception if it's unsafe to modify
+          // this function.
+          return false;
         }
       }
     }
@@ -657,9 +669,8 @@ bool adhocMovementTransformer::isStackFrameSensitive(Offset& origDisp,
         // Ensure that this access always needs the same change in displacement
         // regardless of which location is being accessed.  If accesses to
         // different locations require different displacements, we can't fix
-        // this instruction for all locations.  In that case, we fail.
-        // TODO: Fail gracefully, allowing other functions to still be
-        //       instrumented
+        // this instruction for all locations.  In that case, we fail by
+        // throwing an exception.
         delta = readDeltas[0].height() - regDeltas[0].height() -
             defDeltas[0].height();
         for (unsigned i = 1; i < accessSetSize; i++) {
@@ -667,7 +678,7 @@ bool adhocMovementTransformer::isStackFrameSensitive(Offset& origDisp,
                 defDeltas[i].height()) {
                 fprintf(stderr, "Access to multiple locations is unresolvable: "
                     "different displacements required\n");
-                assert(false);
+                STACKMOD_ASSERT(false);
             }
         }
 
