@@ -145,7 +145,7 @@ class Slicer {
     
   DATAFLOW_EXPORT static bool isWidenNode(Node::Ptr n);
 
-  DATAFLOW_EXPORT struct ContextElement {
+  struct DATAFLOW_EXPORT ContextElement {
     // We can implicitly find the callsite given a block,
     // since calls end blocks. It's easier to look up 
     // the successor this way than with an address.
@@ -169,11 +169,11 @@ class Slicer {
   };
 
   // This should be sufficient...
-  DATAFLOW_EXPORT typedef std::deque<ContextElement> Context;
+  typedef std::deque<ContextElement> Context;
 
 
   // Where we are in a particular search...
-  DATAFLOW_EXPORT struct Location {
+  struct DATAFLOW_EXPORT Location {
     // The block we're looking through
     ParseAPI::Function *func;
     ParseAPI::Block *block; // current block
@@ -203,7 +203,7 @@ class Slicer {
   // keep a list of the currently active elements
   // that are at the `leading edge' of the 
   // under-construction slice
-  DATAFLOW_EXPORT struct Element {
+  struct DATAFLOW_EXPORT Element {
     Element(ParseAPI::Block * b,
         ParseAPI::Function * f,
         AbsRegion const& r,
@@ -231,7 +231,7 @@ class Slicer {
 
   // State for recursive slicing is a context, location pair
   // and a list of AbsRegions that are being searched for.
-  DATAFLOW_EXPORT struct SliceFrame {
+  struct DATAFLOW_EXPORT SliceFrame {
     SliceFrame(
         Location const& l,
         Context const& c)
@@ -298,7 +298,7 @@ class Slicer {
     // This function allows users to inspect the current slice graph and determine which abslocs
     // need further slicing and which abslocs are no longer interesting, by modifying the current
     // SliceFrame.
-    DATAFLOW_EXPORT virtual bool modifyCurrentFrame(SliceFrame &currFrame, GraphPtr graph) {return true;} 						
+    DATAFLOW_EXPORT virtual bool modifyCurrentFrame(SliceFrame &, GraphPtr) {return true;} 						
     DATAFLOW_EXPORT Predicates() : clearCache(false), controlFlowDep(false) {}						
 
   };

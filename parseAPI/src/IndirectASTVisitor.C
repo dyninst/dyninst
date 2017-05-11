@@ -20,11 +20,11 @@ AST::Ptr SimplifyVisitor::visit(DataflowAPI::RoseAST *ast) {
 	}
 	return AST::Ptr();
 }
-/*
+
 AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
-    BoundValue *astBound = boundFact.GetBound(ast);
+    StridedInterval *astBound = boundFact.GetBound(ast);
     if (astBound != NULL) {
-        bound.insert(make_pair(ast, new BoundValue(*astBound)));
+        bound.insert(make_pair(ast, new StridedInterval(*astBound)));
         return AST::Ptr();
     }
     unsigned totalChildren = ast->numChildren();
@@ -34,21 +34,17 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
     switch (ast->val().op) {
         case ROSEOperation::addOp:
 	    if (IsResultBounded(ast->child(0)) && IsResultBounded(ast->child(1))) {	    
-		BoundValue* val = new BoundValue(*GetResultBound(ast->child(0)));		
+		StridedInterval* val = new StridedInterval(*GetResultBound(ast->child(0)));		
 		val->Add(*GetResultBound(ast->child(1)));
-		if (*val != BoundValue::top)
+		if (*val != StridedInterval::top)
 		    bound.insert(make_pair(ast, val));
 	    }	    
 	    break;
 	case ROSEOperation::invertOp:
 	    if (IsResultBounded(ast->child(0))) {
-	        BoundValue *val = new BoundValue(*GetResultBound(ast->child(0)));
-		if (val->tableReadSize)
-		    val->isInverted = true;
-		else {
-		    val->Invert();
-		}
-		if (*val != BoundValue::top)
+	        StridedInterval *val = new StridedInterval(*GetResultBound(ast->child(0)));
+		val->Not();
+		if (*val != StridedInterval::top)
 		    bound.insert(make_pair(ast,val));
 	    }
 	    break;
@@ -61,19 +57,18 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 	    // a cmp bound not found yet. So we only apply and
 	    // bound when this is the last attempt
 	    if (handleOneByteRead) {
-	        BoundValue *val = NULL;
+	        StridedInterval *val = NULL;
 		if (IsResultBounded(ast->child(0)))
-		    val = new BoundValue(*GetResultBound(ast->child(0)));
+		    val = new StridedInterval(*GetResultBound(ast->child(0)));
 		else
-		    val = new BoundValue(BoundValue::top);
+		    val = new StridedInterval(StridedInterval::top);
 		if (IsResultBounded(ast->child(1)))
 		    val->And(*GetResultBound(ast->child(1)));
 		else
 		    val->And(StridedInterval::top);
 		// the result of an AND operation should not be
 	        // the table lookup. Set all other values to default
-	        val->ClearTableCheck();
-	        if (*val != BoundValue::top)
+	        if (*val != StridedInterval::top)
 	            bound.insert(make_pair(ast, val));
 	    }
 	    break;
@@ -81,54 +76,49 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 	case ROSEOperation::sMultOp:
 	case ROSEOperation::uMultOp:
 	    if (IsResultBounded(ast->child(0)) && IsResultBounded(ast->child(1))) {
-	        BoundValue *val = new BoundValue(*GetResultBound(ast->child(0)));
+	        StridedInterval *val = new StridedInterval(*GetResultBound(ast->child(0)));
 	        val->Mul(*GetResultBound(ast->child(1)));
-	        if (*val != BoundValue::top)
+	        if (*val != StridedInterval::top)
 	            bound.insert(make_pair(ast, val));
 	    }
 	    break;
 	case ROSEOperation::shiftLOp:
 	    if (IsResultBounded(ast->child(0)) && IsResultBounded(ast->child(1))) {
-	        BoundValue *val = new BoundValue(*GetResultBound(ast->child(0)));
+	        StridedInterval *val = new StridedInterval(*GetResultBound(ast->child(0)));
 	        val->ShiftLeft(*GetResultBound(ast->child(1)));
-	        if (*val != BoundValue::top)
+	        if (*val != StridedInterval::top)
 	            bound.insert(make_pair(ast, val));
 	    }
 	    break;
 	case ROSEOperation::shiftROp:
 	    if (IsResultBounded(ast->child(0)) && IsResultBounded(ast->child(1))) {
-	        BoundValue *val = new BoundValue(*GetResultBound(ast->child(0)));
+	        StridedInterval *val = new StridedInterval(*GetResultBound(ast->child(0)));
 	        val->ShiftRight(*GetResultBound(ast->child(1)));
-	        if (*val != BoundValue::top)
+	        if (*val != StridedInterval::top)
 	            bound.insert(make_pair(ast, val));
 	    }
 	    break;
 	case ROSEOperation::derefOp: 
-	    if (IsResultBounded(ast->child(0))) {
-	        BoundValue *val = new BoundValue(*GetResultBound(ast->child(0)));
-		val->MemoryRead(block, derefSize);
-	        if (*val != BoundValue::top)
-	            bound.insert(make_pair(ast, val));
-	    } else if (handleOneByteRead && ast->val().size == 8) {
+	    if (handleOneByteRead && ast->val().size == 8) {
 	        // Any 8-bit value is bounded in [0,255]
 		// But I should only do this when I know the read 
 		// itself is not a jump table
-	        bound.insert(make_pair(ast, new BoundValue(StridedInterval(1,0,255))));
+	        bound.insert(make_pair(ast, new StridedInterval(1,0,255)));
 	    }
 	    break;
 	case ROSEOperation::orOp: 
 	    if (IsResultBounded(ast->child(0)) && IsResultBounded(ast->child(1))) {
-	        BoundValue *val = new BoundValue(*GetResultBound(ast->child(0)));
+	        StridedInterval *val = new StridedInterval(*GetResultBound(ast->child(0)));
 	        val->Or(*GetResultBound(ast->child(1)));
-	        if (*val != BoundValue::top)
+	        if (*val != StridedInterval::top)
 	            bound.insert(make_pair(ast, val));
 	    }
 	    break;
 	case ROSEOperation::ifOp:
 	    if (IsResultBounded(ast->child(1)) && IsResultBounded(ast->child(2))) {
-	        BoundValue *val = new BoundValue(*GetResultBound(ast->child(1)));
-		val->Join(*GetResultBound(ast->child(2)), block);
-		if (*val != BoundValue::top)
+	        StridedInterval *val = new StridedInterval(*GetResultBound(ast->child(1)));
+		val->Join(*GetResultBound(ast->child(2)));
+		if (*val != StridedInterval::top)
 		    bound.insert(make_pair(ast, val));
 	    }
 	default:
@@ -146,18 +136,18 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::ConstantAST *ast) {
 	// and change it to a negative number
         value = -(((~value) & ((1ULL << v.size) - 1)) + 1);
     }
-    bound.insert(make_pair(ast, new BoundValue(value)));
+    bound.insert(make_pair(ast, new StridedInterval(value)));
     return AST::Ptr();
 }
 
 AST::Ptr BoundCalcVisitor::visit(DataflowAPI::VariableAST *ast) {
-    BoundValue *astBound = boundFact.GetBound(ast);
+    StridedInterval *astBound = boundFact.GetBound(ast);
     if (astBound != NULL) 
-        bound.insert(make_pair(ast, new BoundValue(*astBound)));
+        bound.insert(make_pair(ast, new StridedInterval(*astBound)));
     return AST::Ptr();
 }
 
-BoundValue* BoundCalcVisitor::GetResultBound(AST::Ptr ast) {
+StridedInterval* BoundCalcVisitor::GetResultBound(AST::Ptr ast) {
     if (IsResultBounded(ast)) {
 	return bound.find(ast.get())->second;
     } else {
@@ -233,7 +223,7 @@ AST::Ptr ComparisonVisitor::visit(DataflowAPI::RoseAST *ast) {
     }
     return AST::Ptr();
 }
-*/
+
 JumpTableFormatVisitor::JumpTableFormatVisitor(ParseAPI::Block *bl) {
     b = bl;
     numOfVar = 0;
@@ -312,7 +302,7 @@ AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
     return AST::Ptr();
 }
 
-AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::VariableAST *ast) {
+AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::VariableAST *) {
     numOfVar++;
     return AST::Ptr();
 }
@@ -327,7 +317,7 @@ bool JumpTableFormatVisitor::PotentialIndexing(AST::Ptr ast) {
 }
 
 /*
-bool PerformTableRead(BoundValue &target, set<int64_t> & jumpTargets, CodeSource *cs) {
+bool PerformTableRead(StridedInterval &target, set<int64_t> & jumpTargets, CodeSource *cs) {
     if (target.tableReadSize > 0 && target.interval.stride == 0) {
         // This is a PC-relative read to variable, not a table read
         return false;

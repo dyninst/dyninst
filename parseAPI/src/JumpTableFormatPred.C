@@ -124,7 +124,10 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	    jumpTableFormat = false;
 	    return false;
 	}
-
+	if (frame.active[jtfv.index].size() > 1) {
+	    parsing_printf("\tWARNING: index variable has more than one slicing element!\n");
+	}
+	indexLoc = frame.active[jtfv.index][0].ptr;
 	// We have found the index variable.
 	// Now we leave it alone and let the jump table index slice to find its bound
 	frame.active.erase(jtfv.index);
