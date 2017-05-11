@@ -1,5 +1,5 @@
-#ifndef JUMP_TABLE_PRED_H
-#define JUMP_TABLE_PRED_H
+#ifndef JUMP_TABLE_INDEX_PRED_H
+#define JUMP_TABLE_INDEX_PRED_H
 
 #include "CFG.h"
 #include "slicing.h"
@@ -7,40 +7,43 @@
 #include "ThunkData.h"
 #include "Graph.h"
 #include "BoundFactCalculator.h"
+#include "Absloc.h"
 using namespace Dyninst;
 
-class JumpTablePred : public Slicer::Predicates {
+class JumpTableIndexPred : public Slicer::Predicates {
 
     ParseAPI::Function *func;
     ParseAPI::Block *block;
-    ReachFact &rf;
-    ThunkData &thunks;
-    std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges;
+    AbsRegion index;
+    SymbolicExpression &se;
     std::vector<AST::Ptr> readAST;
+    
+    bool MatchReadAST(Assignment::Ptr a);
 
-        bool MatchReadAST(Assignment::Ptr a);
-
-        std::pair<AST::Ptr, bool> ExpandAssignment(Assignment::Ptr);
 
 public:
-    bool jumpTableFormat;
     bool unknownInstruction;
+    bool findBound;
+    StridedInterval bound;
     std::set<Assignment::Ptr> currentAssigns;
-
-std::unordered_map<Assignment::Ptr, AST::Ptr, Assignment::AssignmentPtrHasher> expandCache;
-
     virtual bool addNodeCallback(AssignmentPtr ap, std::set<ParseAPI::Edge*> &visitedEdges);
-GraphPtr BuildAnalysisGraph(std::set<ParseAPI::Edge*> &visitedEdges);
-    bool IsJumpTable(GraphPtr slice, BoundFactsCalculator &bfc, BoundValue &target);
-    bool FillInOutEdges(BoundValue &target, std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges);
+    virtual bool modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g);
+    GraphPtr BuildAnalysisGraph(std::set<ParseAPI::Edge*> &visitedEdges);
+    bool IsIndexBounded(GraphPtr slice, BoundFactsCalculator &bfc, StridedInterval &target);
+    bool FillInOutEdges(StridedInterval &target, std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges);
 
 
-    JumpTablePred(ParseAPI::Function *f,
-                  ParseAPI::Block *b,
-		  ReachFact &r,
-		  ThunkData &t,
-		  std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& out):
-            func(f), block(b), rf(r), thunks(t), outEdges(out), jumpTableFormat(true), unknownInstruction(false) {}
+    JumpTableIndexPred(ParseAPI::Function *f,
+                       ParseAPI::Block *b,
+		       AbsRegion i,
+		       SymbolicExpression &sym)
+		          : func(f), 
+			    block(b),
+			    index(i),
+			    se(sym) {
+			       unknownInstruction = false;
+			       findBound = false;
+		      }
 };
 
 

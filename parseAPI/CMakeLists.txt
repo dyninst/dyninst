@@ -26,9 +26,12 @@ set (SRC_LIST
         src/CFGModifier.C
         src/StackTamperVisitor.C
 	src/JumpTableFormatPred.C
+	src/JumpTableIndexPred.C
 	src/IndirectAnalyzer.C
 	src/IndirectASTVisitor.C
 	src/SymbolicExpression.C
+	src/BoundFactCalculator.C
+	src/BoundFactData.C
 	src/ThunkData.C
 	../dataflowAPI/src/ABI.C 
 	src/dominator.C

@@ -6,13 +6,13 @@
 #include "DynAST.h"
 #include "SymEval.h"
 #include "CodeSource.h"
-//#include "BoundFactData.h"
+#include "BoundFactData.h"
 
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::DataflowAPI;
 
-//bool PerformTableRead(BoundValue &target, set<int64_t> & jumpTargets, CodeSource*);
+//bool PerformTableRead(StridedInterval &target, set<int64_t> & jumpTargets, CodeSource*);
 
 
 
@@ -25,12 +25,11 @@ public:
 };
 
 
-/*
 class BoundCalcVisitor: public ASTVisitor {
      
 public:
     using ASTVisitor::visit;
-    map<AST*, BoundValue*> bound;
+    map<AST*, StridedInterval*> bound;
     BoundFact &boundFact;
     ParseAPI::Block *block;
     bool handleOneByteRead;
@@ -45,7 +44,7 @@ public:
     bool IsResultBounded(AST::Ptr ast) {
         return bound.find(ast.get()) != bound.end();
     }
-    BoundValue* GetResultBound(AST::Ptr ast); 
+    StridedInterval* GetResultBound(AST::Ptr ast); 
 };
 
 class JumpCondVisitor: public ASTVisitor {
@@ -66,7 +65,7 @@ public:
 
     ComparisonVisitor(): subtrahend(AST::Ptr()), minuend(AST::Ptr()) {} 
 };
-*/
+
 class JumpTableFormatVisitor: public ASTVisitor {
 
     bool PotentialIndexing(AST::Ptr);

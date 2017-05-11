@@ -11,14 +11,12 @@
 using namespace Dyninst;
 
 class JumpTableFormatPred : public Slicer::Predicates {
-
+public:
     ParseAPI::Function *func;
     ParseAPI::Block *block;
     ReachFact &rf;
     ThunkData &thunks;
     SymbolicExpression &se;
-
-    std::pair<AST::Ptr, bool> ExpandAssignment(Assignment::Ptr);
 
     Address targetBase;    
     // If tableReadSize == 0, this does not represent a memory access
@@ -37,10 +35,10 @@ class JumpTableFormatPred : public Slicer::Predicates {
     bool findIndex;
 
     AbsRegion index;
+    Assignment::Ptr indexLoc;
     AST::Ptr jumpTargetExpr;
 
 
-public:
 
     JumpTableFormatPred(ParseAPI::Function *f,
                         ParseAPI::Block *b,
@@ -61,7 +59,7 @@ public:
 
     virtual bool modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g);
     std::string format();
-    bool isJumpTableFormat() { return jumpTableFormat; }
+    bool isJumpTableFormat() { return jumpTableFormat && findIndex; }
 
 };
 

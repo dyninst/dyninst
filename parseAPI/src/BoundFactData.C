@@ -7,6 +7,7 @@
 #include "CodeSource.h"
 #include "CodeObject.h"
 #include "CFG.h"
+#include "SymbolicExpression.h"
 #include <iostream>
 
 #define MAX_TABLE_ENTRY 1000000
@@ -17,9 +18,6 @@ using namespace Dyninst::DataflowAPI;
 
 const StridedInterval StridedInterval::top = StridedInterval(1, StridedInterval::minValue, StridedInterval::maxValue);
 const StridedInterval StridedInterval::bottom = StridedInterval();
-
-const BoundValue BoundValue::top = BoundValue(StridedInterval::top);
-const BoundValue BoundValue::bottom = BoundValue();
 
 // Greatest common divisor
 static int64_t GCD(int64_t a, int64_t b) {
@@ -169,13 +167,16 @@ void StridedInterval::And(const StridedInterval &rhs) {
 }
 
 void StridedInterval::Or(const StridedInterval &rhs) {
-    // currently only consider the case where
-    // one of them is 1[0, high], the other is a constant
+    // consider
+    // case 1: one of them is 1[0, high], the other is a constant
+    // case 2: both are 1[0, high]
     if (stride == 0 && rhs.stride == 1 && rhs.low == 0) {
         stride = 1;
 	low = 0;
 	high |= rhs.high;
     } else if (stride == 1 && low == 0 && rhs.stride == 0) {
+        high |= rhs.high;
+    } else if (stride == 1 && low == 0 && rhs.stride == 1 && rhs.low == 0) {
         high |= rhs.high;
     } else {
         // Otherwise, widen
@@ -355,324 +356,8 @@ bool StridedInterval::IsConst() const{
     return stride == 0;
 }
 
-BoundValue::BoundValue(int64_t val):
-        interval(val), 
-	targetBase(0), 
-	tableReadSize(0),
-	multiply(1),
-	values(NULL),
-	isInverted(false),
-	isSubReadContent(false),
-	isZeroExtend(false) {}
-
-BoundValue::BoundValue(const StridedInterval &si):
-        interval(si), 
-	targetBase(0), 
-	tableReadSize(0),
-	multiply(1),
-	values(NULL),
-	isInverted(false),
-	isSubReadContent(false),
-	isZeroExtend(false){}
-
-BoundValue::BoundValue():
-        interval(),
-	targetBase(0),
-	tableReadSize(0),
-	multiply(1),
-	values(NULL),
-	isInverted(false),
-	isSubReadContent(false),
-	isZeroExtend(false) {}
-
-BoundValue::BoundValue(const BoundValue & bv):
-        interval(bv.interval),
-	targetBase(bv.targetBase),
-	tableReadSize(bv.tableReadSize),
-	multiply(bv.multiply),
-	values(NULL),
-	isInverted(bv.isInverted),
-	isSubReadContent(bv.isSubReadContent),
-	isZeroExtend(bv.isZeroExtend)
-{
-    if (bv.values != NULL) {
-        values = new set<int64_t>(*(bv.values));
-    }
-}
-
-BoundValue::~BoundValue() {
-    if (values != NULL) {
-        delete values;
-	values = NULL;
-    }
-}
-
-bool BoundValue::operator == (const BoundValue &bv) const {
-    if (values == NULL && bv.values == NULL) {
-        return (interval == bv.interval) &&
-	       (targetBase == bv.targetBase) &&
-	       (tableReadSize == bv.tableReadSize) &&
-	       (multiply == bv.multiply) &&
-	       (isInverted == bv.isInverted) &&
-	       (isSubReadContent == bv.isSubReadContent) &&
-	       (isZeroExtend == bv.isZeroExtend);
-    } else if (values != NULL && bv.values != NULL) {
-        return *values == *bv.values;
-    } else {
-        return false;
-    }
-}
-
-bool BoundValue::operator != (const BoundValue &bv) const {
-    return !(*this == bv);
-}
-
-BoundValue & BoundValue::operator = (const BoundValue &bv) {
-
-    interval = bv.interval;
-    targetBase = bv.targetBase;
-    tableReadSize = bv.tableReadSize;
-    multiply = bv.multiply;
-    isInverted = bv.isInverted;
-    isSubReadContent = bv.isSubReadContent;
-    isZeroExtend = bv.isZeroExtend;
-    if (values != NULL) {
-        delete values;
-	values = NULL;
-    }
-    if (bv.values != NULL) {
-        values = new set<int64_t>(*bv.values);
-    }
-    return *this;
-
-}
-
-void BoundValue::Print() {
-    if (values == NULL) {
-        parsing_printf("Interval %s, ", interval.format().c_str() );
-        parsing_printf("targetBase %lx, ",targetBase);
-        parsing_printf("tableReadSize %d, ", tableReadSize);
-        parsing_printf("multiply %d, ", multiply);
-        parsing_printf("isInverted %d, ", isInverted);
-        parsing_printf("isSubReadContent %d, ", isSubReadContent);
-        parsing_printf("isZeroExtend %d\n", isZeroExtend);
-    } else {
-        parsing_printf("Values:");
-	for (auto vit = values->begin(); vit != values->end(); ++vit)
-	    parsing_printf(" %x", *vit);
-	parsing_printf("\n");
-    }
-}
-
-
-
-BoundValue* BoundFact::GetBound(const AST::Ptr ast) {
-    return GetBound(ast.get());
-}
-
-BoundValue* BoundFact::GetBound(const AST* ast) {
-    BoundValue *ret = NULL;
-    for (auto fit = fact.begin(); fit != fact.end(); ++fit)
-        if (*(fit->first) == *ast) {
-	    ret = fit->second;
-	    break;
-	}
-    return ret;
-}
-
-void BoundValue::IntersectInterval(StridedInterval &si) {
-    if (tableReadSize) {
-        // We are not going to continue tracking
-	// how the memory read is used.
-	// The read contents can be anything, so set to top
-	*this = top;	
-    }
-    parsing_printf("Intersect interval %s and %s", interval.format().c_str(), si.format().c_str());
-    interval.Intersect(si);
-    parsing_printf("resulting in %s\n", interval.format().c_str());
-    if (interval == StridedInterval::bottom) {
-        // If the interval becomes bottom (empty set),
-	// it means that this control flow path is impossble.
-	// However, it is more likely that we miss some control
-	// flow paths. 
-	// We simply abandon previous bounds.
-        interval = si;
-    }
-}
-
-void BoundValue::DeleteElementFromInterval(int64_t val) {
-    interval.DeleteElement(val);
-}
-
-void BoundValue::Join(BoundValue &bv, Block *b) {
-    // If one is a table read and the other is a constant,
-    // assume that the constant appears in the table read.
-    if (tableReadSize > 0 && bv.interval.stride == 0) {
-        return;
-    }
-    if (bv.tableReadSize > 0 && interval.stride == 0) {
-        *this = bv;
-	return;
-    }
-    if (tableReadSize > 0 && bv.tableReadSize > 0) {
-        // If both paths represent a table read,
-	// it could be a case where multiple jump tables share
-	// an indirect jump. 
-	// Example: 0x47947 at libc-2.17.so 
-	set<int64_t> left, right;
-	bool leftRet, rightRet;
-	leftRet = PerformTableRead(*this, left, b->obj()->cs());
-	rightRet = PerformTableRead(bv, right, b->obj()->cs());
-	if (leftRet && rightRet) {
-	    left.insert(right.begin(), right.end());
-	    values = new set<int64_t> (left);
-	    return;
-	}
-    }
-    if (tableReadSize != bv.tableReadSize) {
-        // Unless boths are table reads, we stop trakcing
-	// how the read is used.
-	// Also, since a memory read can be any value,
-	// we set to top.
-	*this = top;
-    } else {
-        interval.Join(bv.interval);
-	if (targetBase != bv.targetBase) targetBase = 0;
-	if (multiply != bv.multiply) multiply = 1;
-	if (isInverted != bv.isInverted) isInverted = false;
-	if (isSubReadContent != bv.isSubReadContent) isSubReadContent = false;
-	if (isZeroExtend != bv.isZeroExtend) isZeroExtend = false;
-    }
-}
-
-void BoundValue::ClearTableCheck(){
-    tableReadSize = 0;
-    targetBase = 0;
-    multiply = 1;
-    isInverted = false;
-    isSubReadContent = false;
-    isZeroExtend = false;
-}
-
-void BoundValue::Add(const BoundValue &rhs) {
-    // First consider the case for: Imm - [table read address]
-    // where the isInverted is true
-    if (tableReadSize && isInverted && rhs.interval.IsConst(1)) {
-        isInverted = false;
-	isSubReadContent = true;
-    } else if (rhs.tableReadSize && rhs.isInverted && interval.IsConst(1)) {
-        *this = rhs;
-        isInverted = false;
-	isSubReadContent = true;
-    }
-    // Then check if we find the target base
-    else if (tableReadSize && !isInverted && rhs.interval.IsConst() && !rhs.tableReadSize) {
-        targetBase = (Address)rhs.interval.low;
-    } else if (rhs.tableReadSize && !rhs.isInverted && interval.IsConst() && !tableReadSize) {
-        int64_t val = interval.low;
-        *this = rhs;
-		targetBase = (Address)val;
-    } 
-    // In other case, we only track the values
-    else {
-        // If either one of the operand is a table read,
-	// then the result can be anything
-        if (tableReadSize || rhs.tableReadSize) {
-	    *this = top;
-	} else {
-	    interval.Add(rhs.interval);
-	    ClearTableCheck();
-	}
-    }
-}
-
-void BoundValue::And(const BoundValue &rhs) { 
-    if (tableReadSize) {        
-        // The memory read content can be anything
-        *this = top;
-    }
-    if (rhs.tableReadSize)
-        interval.And(StridedInterval::top);
-    else
-        interval.And(rhs.interval);
-    
-    // The result is not a table read
-    ClearTableCheck();
-}
-
-void BoundValue::Mul(const BoundValue &rhs) { 
-    if (tableReadSize && rhs.interval.IsConst()) {    
-        multiply *= rhs.interval.low;
-	return;
-    }
-    if (tableReadSize) {        
-        // The memory read content can be anything
-        *this = top;
-    }
-    if (rhs.tableReadSize)
-        interval.Mul(StridedInterval::top);
-    else
-        interval.Mul(rhs.interval);
-    
-    // The result is not a table read
-    ClearTableCheck();
-}
-
-void BoundValue::ShiftLeft(const BoundValue &rhs) {
-    if (tableReadSize && rhs.interval.IsConst()) {
-        multiply *= (1 << rhs.interval.low);
-	return;
-    }
-    if (tableReadSize) {        
-        // The memory read content can be anything
-        *this = top;
-    }
-    if (rhs.tableReadSize)
-        interval.ShiftLeft(StridedInterval::top);
-    else
-        interval.ShiftLeft(rhs.interval);
-    
-    // The result is not a table read
-    ClearTableCheck();
-}
-void BoundValue::ShiftRight(const BoundValue &rhs) {
-    if (tableReadSize) {        
-        // The memory read content can be anything
-        *this = top;
-    }
-    if (rhs.tableReadSize)
-        interval.ShiftRight(StridedInterval::top);
-    else
-        interval.ShiftRight(rhs.interval);
-    
-    // The result is not a table read
-    ClearTableCheck();
-}
-
-void BoundValue::Or(const BoundValue &rhs) { 
-    if (tableReadSize) {        
-        // The memory read content can be anything
-        *this = top;
-    }
-    if (rhs.tableReadSize)
-        interval.Or(StridedInterval::top);
-    else
-        interval.Or(rhs.interval);
-    
-    // The result is not a table read
-    ClearTableCheck();
-}
-
-void BoundValue::Invert() {
-    if (tableReadSize) {        
-        // The memory read content can be anything
-        *this = top;
-    } else {
-        interval.Not();
-    }    
-    // The result is not a table read
-    ClearTableCheck();
-
+void StridedInterval::Print() {
+    parsing_printf("%s\n", format().c_str());
 }
 
 static bool IsInReadOnlyRegion(Address low, Address high) {	
@@ -690,10 +375,11 @@ static bool IsTableIndex(set<uint64_t> &values) {
 	return true;
 }
 
-void BoundValue::MemoryRead(Block* b, int readSize) {
+/*
+void StridedInterval::MemoryRead(Block* b, int readSize) {
         if (interval.stride == 0) {
             // This is a read to variable, not a table read
-	    *this = BoundValue::top;
+	    *this = StridedInterval::top;
             return;
         }
 
@@ -747,16 +433,16 @@ void BoundValue::MemoryRead(Block* b, int readSize) {
 	        tableReadSize = readSize;
 	}	
 }
-
+*/
 void BoundFact::Meet(BoundFact &bf, Block* b) {
         for (auto fit = fact.begin(); fit != fact.end();) {
-	    BoundValue *val2 = bf.GetBound(fit->first);
+	    StridedInterval *val2 = bf.GetBound(fit->first);
 	    // if ast fit->first cannot be found in bf,
 	    // then fit->first is top on this path.
 	    // Anything joins top becomes top
 	    if (val2 != NULL) {
-	        BoundValue *val1 = fit->second;
-		val1->Join(*val2, b);
+	        StridedInterval *val1 = fit->second;
+		val1->Join(*val2);
 		++fit;
 	    } else {
 	        auto toErase = fit;
@@ -833,7 +519,7 @@ void BoundFact::Print() {
     }
 }
 
-void BoundFact::GenFact(const AST::Ptr ast, BoundValue* bv, bool isConditionalJump) {
+void BoundFact::GenFact(const AST::Ptr ast, StridedInterval* bv, bool isConditionalJump) {
     bv->Print();
     KillFact(ast, isConditionalJump);
     fact.insert(make_pair(ast, bv));
@@ -841,24 +527,24 @@ void BoundFact::GenFact(const AST::Ptr ast, BoundValue* bv, bool isConditionalJu
 	if ((*rit)->type == Equal) {
 	    if (*((*rit)->left) == *ast) {
 	        KillFact((*rit)->right, isConditionalJump);
-	        fact.insert(make_pair((*rit)->right, new BoundValue(*bv)));
+	        fact.insert(make_pair((*rit)->right, new StridedInterval(*bv)));
 	    }
 	    if (*((*rit)->right) == *ast) {
 	        KillFact((*rit)->left, isConditionalJump);
-	        fact.insert(make_pair((*rit)->left, new BoundValue(*bv))); 
+	        fact.insert(make_pair((*rit)->left, new StridedInterval(*bv))); 
 	    }
 	}
     }
 
     // Only check alias for bound produced by conditinal jumps.
     if (isConditionalJump) {
-        AST::Ptr subAST = DeepCopyAnAST(ast);
+        AST::Ptr subAST = SymbolicExpression::DeepCopyAnAST(ast);
 	parsing_printf("Before substitute %s\n", ast->format().c_str());
-	subAST = SubstituteAnAST(subAST, aliasMap);
+	subAST = SymbolicExpression::SubstituteAnAST(subAST, aliasMap);
 	parsing_printf("After  substitute %s\n", subAST->format().c_str());
 	if (!(*subAST == *ast)) {
 	    KillFact(subAST, true);
-	    fact.insert(make_pair(subAST, new BoundValue(*bv)));
+	    fact.insert(make_pair(subAST, new StridedInterval(*bv)));
 
 	}
     }
@@ -943,13 +629,13 @@ BoundFact& BoundFact::operator = (const BoundFact &bf) {
         if (fit->second != NULL) delete fit->second;
     fact.clear();
     for (auto fit = bf.fact.begin(); fit != bf.fact.end(); ++fit)     
-        fact.insert(make_pair(fit->first, new BoundValue(*(fit->second))));
+        fact.insert(make_pair(fit->first, new StridedInterval(*(fit->second))));
 
     for (auto rit = relation.begin(); rit != relation.end(); ++rit)
         if (*rit != NULL) delete *rit;
     relation.clear();
     for (auto rit = bf.relation.begin(); rit != bf.relation.end(); ++rit)
-        relation.push_back(new RelationShip(**rit));
+        relation.push_back(new Relation(**rit));
     aliasMap = bf.aliasMap;
 
     return *this;
@@ -1352,16 +1038,16 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 
     if (pred.id == e_sub) {
         if (pred.e2->getID() == AST::V_ConstantAST) {
-	    BoundValue *val = GetBound(pred.e1);
+	    StridedInterval *val = GetBound(pred.e1);
 	    if (val != NULL) {
 	        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e2);
-	        val->interval.Sub(StridedInterval(constAST->val().val));
+	        val->Sub(StridedInterval(constAST->val().val));
 	    }
 	} else if (pred.e1->getID() == AST::V_ConstantAST) {
-	    BoundValue *val = GetBound(pred.e2);
+	    StridedInterval *val = GetBound(pred.e2);
 	    if (val != NULL) {
 	        ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(pred.e1);
-	        val->interval.Sub(StridedInterval(constAST->val().val));
+	        val->Sub(StridedInterval(constAST->val().val));
 	    }
 
 	}
@@ -1471,22 +1157,37 @@ void BoundFact::SetToBottom() {
     aliasMap.clear();
 }
 
+StridedInterval* BoundFact::GetBound(const AST::Ptr ast) {
+    return GetBound(ast.get());
+}
+
+StridedInterval* BoundFact::GetBound(const AST* ast) {
+    StridedInterval *ret = NULL;
+    for (auto fit = fact.begin(); fit != fact.end(); ++fit)
+        if (*(fit->first) == *ast) {
+	    ret = fit->second;
+	    break;
+	}
+    return ret;
+}
+
+
 void BoundFact::IntersectInterval(const AST::Ptr ast, StridedInterval si) {
-    BoundValue *bv = GetBound(ast);
+    StridedInterval *bv = GetBound(ast);
     if (bv != NULL) {
-        bv->IntersectInterval(si); 
-        GenFact(ast, new BoundValue(*bv), true);
+        bv->Intersect(si); 
+        GenFact(ast, new StridedInterval(*bv), true);
     } else {
         // If the fact value does not exist,
 	// it means it is top and can be any value.
-        GenFact(ast, new BoundValue(si), true);
+        GenFact(ast, new StridedInterval(si), true);
     }
 }
 
 void BoundFact::DeleteElementFromInterval(const AST::Ptr ast, int64_t val) {
-    BoundValue *bv = GetBound(ast);
+    StridedInterval *bv = GetBound(ast);
     if (bv != NULL) {
-        bv->DeleteElementFromInterval(val);
+        bv->DeleteElement(val);
     }
 }
 
@@ -1499,19 +1200,19 @@ void BoundFact::InsertRelation(AST::Ptr left, AST::Ptr right, RelationType r) {
 	for (size_t i = 0; i < n; ++i)
 	    if (relation[i]->type == Equal) {
 	        if (*(relation[i]->left) == *left && !(*(relation[i]->right) == *right))
-		    relation.push_back(new RelationShip(relation[i]->right, right, r));
+		    relation.push_back(new Relation(relation[i]->right, right, r));
 	        if (*(relation[i]->left) == *right && !(*(relation[i]->right) == *left))
-		    relation.push_back(new RelationShip(relation[i]->right, left, r));
+		    relation.push_back(new Relation(relation[i]->right, left, r));
 		if (*(relation[i]->right) == *left && !(*(relation[i]->left) == *right))
-		    relation.push_back(new RelationShip(relation[i]->left, right, r));
+		    relation.push_back(new Relation(relation[i]->left, right, r));
 	        if (*(relation[i]->right) == *right && !(*(relation[i]->left) == *left))
-		    relation.push_back(new RelationShip(relation[i]->left, left, r));
+		    relation.push_back(new Relation(relation[i]->left, left, r));
 	    }
     } else if (r == NotEqual) {
        // The new added NotEqual relation with an existing relation like UnsignedLessThanOrEqual 
        // can be combined to a more strict relation like UnsignedLessThan
        for (auto rit = relation.begin(); rit != relation.end(); ++rit) {
-           RelationShip * re = *rit;
+           Relation * re = *rit;
 	   if ((*(re->left) == *left && *(re->right) == *right) || 
 	       (*(re->left) == *right && *(re->right) == *left)) {
 	           if (re->type == UnsignedLessThanOrEqual) re->type = UnsignedLessThan;
@@ -1528,7 +1229,7 @@ void BoundFact::InsertRelation(AST::Ptr left, AST::Ptr right, RelationType r) {
                r == SignedLessThanOrEqual || r == SignedLargerThanOrEqual) {
         // Similar to the above case
        for (auto rit = relation.begin(); rit != relation.end(); ++rit) {
-           RelationShip * re = *rit;
+           Relation * re = *rit;
 	   if ((*(re->left) == *left && *(re->right) == *right) || 
 	       (*(re->left) == *right && *(re->right) == *left)) {
 	       if (re->type == NotEqual) {
@@ -1539,7 +1240,7 @@ void BoundFact::InsertRelation(AST::Ptr left, AST::Ptr right, RelationType r) {
            }
        }          
     }
-    relation.push_back(new RelationShip(left, right, r));
+    relation.push_back(new Relation(left, right, r));
 
 }
 
@@ -1586,7 +1287,7 @@ AST::Ptr BoundFact::GetAlias(const AST::Ptr ast) {
 }
 
 void BoundFact::TrackAlias(AST::Ptr expr, AST::Ptr outAST, bool findBound) {
-    expr = SubstituteAnAST(expr, aliasMap);
+    expr = SymbolicExpression::SubstituteAnAST(expr, aliasMap);
     bool find = false;    
     for (auto ait = aliasMap.begin(); ait != aliasMap.end(); ++ait) {
         if (*(ait->first) == *outAST) {
@@ -1598,9 +1299,9 @@ void BoundFact::TrackAlias(AST::Ptr expr, AST::Ptr outAST, bool findBound) {
     if (!find) {
         aliasMap.insert(make_pair(outAST, expr));
     }
-    BoundValue *substiBound = GetBound(expr);
+    StridedInterval *substiBound = GetBound(expr);
     if (substiBound != NULL && !findBound) {
-        GenFact(outAST, new BoundValue(*substiBound), false);
+        GenFact(outAST, new StridedInterval(*substiBound), false);
     }
 }
 
@@ -1611,12 +1312,12 @@ void BoundFact::PushAConst(int64_t value) {
 
 bool BoundFact::PopAConst(AST::Ptr ast) {
     if (!stackTop.valid) return false;
-    GenFact(ast, new BoundValue(stackTop.value), false);
+    GenFact(ast, new StridedInterval(stackTop.value), false);
     stackTop.valid = false;
     return true;
 }
 
-BoundValue * BoundFact::ApplyRelations(AST::Ptr outAST) {
+StridedInterval * BoundFact::ApplyRelations(AST::Ptr outAST) {
     AST::Ptr cal;
     for (auto ait = aliasMap.begin(); ait != aliasMap.end(); ++ait)
         if ( *(ait->first) == *outAST) {
@@ -1651,11 +1352,11 @@ BoundValue * BoundFact::ApplyRelations(AST::Ptr outAST) {
 	      }
     }
     parsing_printf("\t\tApply relation matched: %d\n", matched);
-    if (matched) return new BoundValue(StridedInterval(1,0,baseValue-1));
+    if (matched) return new StridedInterval(StridedInterval(1,0,baseValue-1));
     return NULL;
 }
 
-BoundValue * BoundFact::ApplyRelations2(AST::Ptr outAST) {
+StridedInterval * BoundFact::ApplyRelations2(AST::Ptr outAST) {
     AST::Ptr cal;
     for (auto ait = aliasMap.begin(); ait != aliasMap.end(); ++ait)
         if ( *(ait->first) == *outAST) {
@@ -1687,7 +1388,7 @@ BoundValue * BoundFact::ApplyRelations2(AST::Ptr outAST) {
     if (shrAST->child(0)->getID() != AST::V_VariableAST) return NULL;
     VariableAST::Ptr leftChild2 = boost::static_pointer_cast<VariableAST>(shrAST->child(0));
     if (leftChild->val().reg != leftChild2->val().reg) return NULL;
-    return new BoundValue(StridedInterval(1,0,(1 << shlBit->val().val)-1));
+    return new StridedInterval(StridedInterval(1,0,(1 << shlBit->val().val)-1));
 }
 void BoundFact::SwapFact(AST::Ptr a, AST::Ptr b) {
     auto aIter = fact.end();
@@ -1698,7 +1399,7 @@ void BoundFact::SwapFact(AST::Ptr a, AST::Ptr b) {
     }
 
     if (aIter != fact.end() && bIter != fact.end()) {
-        BoundValue * tmp = aIter->second;
+        StridedInterval * tmp = aIter->second;
         aIter->second = bIter->second;
 	bIter->second = tmp;
     } else if (aIter != fact.end() && bIter == fact.end()) {
@@ -1719,10 +1420,12 @@ void BoundFact::SwapFact(AST::Ptr a, AST::Ptr b) {
 
 
 void BoundFact::CheckZeroExtend(AST::Ptr a) {
+/*
     for (auto fit = fact.begin(); fit != fact.end(); ++fit) {
         if (*(fit->first) == *a) {
-	    BoundValue *val = fit->second;
+	    StridedInterval *val = fit->second;
 	    if (val->tableReadSize > 0) val->isZeroExtend = true;
 	}
     }
+*/
 }

@@ -1,7 +1,8 @@
 #include "dyntypes.h"
 #include "IndirectAnalyzer.h"
-//#include "BoundFactCalculator.h"
+#include "BoundFactCalculator.h"
 #include "JumpTableFormatPred.h"
+#include "JumpTableIndexPred.h"
 #include "SymbolicExpression.h"
 #include "IA_IAPI.h"
 #include "debug_parse.h"
@@ -18,7 +19,6 @@ using namespace Dyninst::InstructionAPI;
 
 
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
-//    if (block->last() == 0x3ed4f33e9e) dyn_debug_parsing=1; else dyn_debug_parsing=0;
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
     parsing_printf("Looking for thunk\n");
 
@@ -46,46 +46,50 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     JumpTableFormatPred jtfp(func, block, rf, thunks, se);
     GraphPtr slice = formatSlicer.backwardSlice(jtfp);
     //parsing_printf("\tJump table format: %s\n", jtfp.format().c_str());
-
     // If the jump target expression is not in a form we recognize,
     // we do not try to resolve it
+    fprintf(stderr, "Address %lx, jump target format %s, index loc %s,", block->last(), jtfp.format().c_str(), jtfp.indexLoc ? jtfp.indexLoc->format().c_str() : "");
+
     if (!jtfp.isJumpTableFormat()) {
+        fprintf(stderr, " not jump table\n");
         return false;
     }
-/*
-    Slicer indexSlicer(); 
-    JumpTableIndexPred jtip(func, block, jtfp.indexVarible());
+    if (block->last() == 0x527af2) dyn_debug_parsing=1; else dyn_debug_parsing=0;
+
+    Slicer indexSlicer(jtfp.indexLoc, jtfp.indexLoc->block(), func, false, false); 
+    JumpTableIndexPred jtip(func, block, jtfp.index, se);
     jtip.setSearchForControlFlowDep(true);
-    GraphPtr slice = indexSlicer.backwardSlice(jtp);
+    slice = indexSlicer.backwardSlice(jtip);
     
-    if (!jtip.indexBounded() && block->obj()->cs()->getArch() != Arch_aarch64) {
+    if (!jtip.findBound && block->obj()->cs()->getArch() != Arch_aarch64) {
         // After the slicing is done, we do one last check to 
         // see if we can resolve the indirect jump by assuming 
         // one byte read is in bound [0,255]
-        GraphPtr g = jtp.BuildAnalysisGraph(s.visitedEdges);
+        GraphPtr g = jtip.BuildAnalysisGraph(indexSlicer.visitedEdges);
 	
-	BoundFactsCalculator bfc(func, g, func->entry() == block, rf, thunks, true, jtp.expandCache);
+	BoundFactsCalculator bfc(func, g, func->entry() == block,  true, se);
 	bfc.CalculateBoundedFacts();
 	
-	BoundValue target;
-	bool ijt = jtp.IsJumpTable(g, bfc, target);
-	if (ijt) jtp.FillInOutEdges(target, jumpTableOutEdges);
+	StridedInterval target;
+	jtip.IsIndexBounded(g, bfc, target);
     }
-
-    
-    if (!jtip.indexBounded()) {
+    if (jtip.findBound) {
+        fprintf(stderr, " bound %s\n", jtip.bound.format().c_str());
+    } else {
+        fprintf(stderr, " Cannot find bound\n");
+    }
+/* 
+    if (!jtip.findBound()) {
          indexBound = ScanTable(jtfp);
     } else {
          indexBound = jtip.indexBound();
     }
-
+*/
     std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > > jumpTableOutEdges;
-    ReadTable(jtfp, indexBound);
+//    ReadTable(jtfp, indexBound);
 
     outEdges.insert(outEdges.end(), jumpTableOutEdges.begin(), jumpTableOutEdges.end());
     return !jumpTableOutEdges.empty();
-*/
-    return false;
 }						       
 
 
