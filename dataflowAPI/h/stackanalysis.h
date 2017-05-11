@@ -76,6 +76,9 @@ public:
    typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
    typedef boost::shared_ptr<InstructionAPI::Expression> ExpressionPtr;
 
+   // This class represents a stack pointer definition by recording the block
+   // and address of the definition, as well as the original absloc that was
+   // defined by the definition.
    class DATAFLOW_EXPORT Definition {
    public:
       typedef enum {TOP, BOTTOM, DEF} Type;
@@ -126,6 +129,7 @@ public:
       }
    };
 
+   // This class represents offsets on the stack, which we call heights.
    class DATAFLOW_EXPORT Height {
    public:
       typedef signed long Height_t;
@@ -227,6 +231,13 @@ public:
       Type type_;
    };
 
+   // This class represents pairs of Definitions and Heights.  During our stack
+   // pointer analysis, we keep track of any stack pointers in registers or
+   // memory, as well as the instruction addresses at which those pointers were
+   // defined. This is useful for StackMod, where we sometimes want to modify
+   // pointer definitions to adjust the locations of variables on the stack.
+   // Thus, it makes sense to associate each stack pointer (Height) to the point
+   // at which it was defined (Definition).
    class DATAFLOW_EXPORT DefHeight {
    public:
       DefHeight(const Definition &d, const Height &h) : def(d), height(h) {}
@@ -243,45 +254,76 @@ public:
       Height height;
    };
 
+   // In some programs, it is possible for a register or memory location to
+   // contain different stack pointers depending on the path taken to the
+   // current instruction.  When this happens, our stack pointer analysis tries
+   // to keep track of the different possible stack pointers, up to a maximum
+   // number per instruction (specified by the DEF_LIMIT constant).  As a
+   // result, we need a structure to hold sets of DefHeights.  This class fills
+   // that role, providing several useful methods to build, modify, and
+   // extract information from such sets.
    class DATAFLOW_EXPORT DefHeightSet {
    public:
       bool operator==(const DefHeightSet &other) const {
          return defHeights == other.defHeights;
       }
 
+      // Returns an iterator to the set of DefHeights
       std::set<DefHeight>::iterator begin() {
          return defHeights.begin();
       }
 
+      // Returns a constant iterator to the set of DefHeights
       std::set<DefHeight>::const_iterator begin() const {
          return defHeights.begin();
       }
 
+      // Returns an iterator to the end of the set of DefHeights
       std::set<DefHeight>::iterator end() {
          return defHeights.end();
       }
 
+      // Returns a constant iterator to the end of the set of DefHeights
       std::set<DefHeight>::const_iterator end() const {
          return defHeights.end();
       }
 
+      // Returns the size of this set
       std::set<DefHeight>::size_type size() const {
          return defHeights.size();
       }
 
+      // Inserts a DefHeight into this set
       void insert(const DefHeight &dh) {
          defHeights.insert(dh);
       }
 
+      // Returns true if this DefHeightSet is TOP
       bool isTopSet() const;
+
+      // Returns true if this DefHeightSet is BOTTOM
       bool isBottomSet() const;
+
+      // Sets this DefHeightSet to TOP
       void makeTopSet();
+
+      // Sets this DefHeightSet to BOTTOM
       void makeBottomSet();
+
+      // Populates this DefHeightSet with the corresponding information
       void makeNewSet(ParseAPI::Block *b, Address addr,
          const Absloc &origLoc, const Height &h);
+
+      // Adds to this DefHeightSet a new definition with height h
       void addInitSet(const Height &h);
+
+      // Updates all Heights in this set by the delta amount
       void addDeltaSet(long delta);
+
+      // Returns the result of computing a meet on all Heights in this set
       Height getHeightSet() const;
+
+      // Returns the result of computing a meet on all Definitions in this set
       Definition getDefSet() const;
 
    private:

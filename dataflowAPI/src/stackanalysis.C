@@ -3204,13 +3204,11 @@ bool StackAnalysis::TransferFunc::isSIB() const {
    return (fromRegs.size() > 0);
 }
 
-// Sets this DefHeightSet to TOP
 void StackAnalysis::DefHeightSet::makeTopSet() {
    defHeights.clear();
    defHeights.insert(DefHeight(Definition(), Height::top));
 }
 
-// Sets this DefHeightSet to BOTTOM
 void StackAnalysis::DefHeightSet::makeBottomSet() {
    defHeights.clear();
    Definition d;
@@ -3218,19 +3216,16 @@ void StackAnalysis::DefHeightSet::makeBottomSet() {
    defHeights.insert(DefHeight(d, Height::bottom));
 }
 
-// Populates this DefHeightSet with the corresponding information
 void StackAnalysis::DefHeightSet::makeNewSet(Block *b, Address addr,
    const Absloc &origLoc, const Height &h) {
    defHeights.clear();
    defHeights.insert(DefHeight(Definition(b, addr, origLoc), h));
 }
 
-// Adds to this DefHeightSet a new definition and height h
 void StackAnalysis::DefHeightSet::addInitSet(const Height &h) {
    defHeights.insert(DefHeight(Definition(), h));
 }
 
-// Updates all DefHeights in this set by the delta amount
 void StackAnalysis::DefHeightSet::addDeltaSet(long delta) {
    std::set<DefHeight> temp = defHeights;
    defHeights.clear();
@@ -3241,7 +3236,6 @@ void StackAnalysis::DefHeightSet::addDeltaSet(long delta) {
    }
 }
 
-// Returns the result of computing a meet on all heights in this set
 StackAnalysis::Height StackAnalysis::DefHeightSet::getHeightSet() const {
    Height h;
    if (defHeights.size() == 0) {
@@ -3254,7 +3248,6 @@ StackAnalysis::Height StackAnalysis::DefHeightSet::getHeightSet() const {
    return h;
 }
 
-// Returns the result of computing a meet on all definitions in this set
 StackAnalysis::Definition StackAnalysis::DefHeightSet::getDefSet() const {
    Definition d;
    if (defHeights.size() == 0) {
@@ -3267,7 +3260,6 @@ StackAnalysis::Definition StackAnalysis::DefHeightSet::getDefSet() const {
    return d;
 }
 
-// Returns true if all definitions/heights in this set are TOP
 bool StackAnalysis::DefHeightSet::isTopSet() const {
    if (defHeights.size() == 0) return true;
    return defHeights.size() == 1 &&
@@ -3275,7 +3267,6 @@ bool StackAnalysis::DefHeightSet::isTopSet() const {
       defHeights.begin()->height.isTop();
 }
 
-// Returns true if all definitions/heights in this set are BOTTOM
 bool StackAnalysis::DefHeightSet::isBottomSet() const {
    return defHeights.size() == 1 &&
       defHeights.begin()->def.type == Definition::BOTTOM &&
