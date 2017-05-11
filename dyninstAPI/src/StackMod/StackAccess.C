@@ -276,6 +276,8 @@ bool getAccesses(ParseAPI::Function* func,
         assert(0);
     }
 
+    std::set<long> extraStackOffsetsToCheck;
+
     int word_size = func->isrc()->getAddressWidth();
 
     // If this instruction is a call, check if any stack pointers are possibly
@@ -297,8 +299,16 @@ bool getAccesses(ParseAPI::Function* func,
                     for (auto dhIter = dhSet.begin(); dhIter != dhSet.end();
                         dhIter++) {
                         const StackAnalysis::Definition &def = dhIter->first;
+                        const StackAnalysis::Height &h = dhIter->second;
                         if (def.addr != 0) {
                             defPointsToMod.insert(def.addr);
+                            if (!h.isTop() && !h.isBottom()) {
+                                // Check another level of indirection.
+                                // If the location this pointer points to also
+                                // contains a stack height, we need to modify
+                                // its definition as well.
+                                extraStackOffsetsToCheck.insert(h.height());
+                            }
                         } else {
                             return false;
                         }
@@ -323,7 +333,10 @@ bool getAccesses(ParseAPI::Function* func,
                 if (loc.type() != Absloc::Stack) continue;
                 long stackOff = loc.off();
 
-                if (stackOff < ub && stackOff >= lb && !h.isTop()) {
+                if ((extraStackOffsetsToCheck.find(stackOff) !=
+                    extraStackOffsetsToCheck.end() ||
+                    (stackOff < ub && stackOff >= lb))
+                    && !h.isTop()) {
                     const std::set<StackAnalysis::DefHeight> &dhSet =
                         sa.findDefHeight(block, addr, loc);
                     for (auto dhIter = dhSet.begin(); dhIter != dhSet.end();
