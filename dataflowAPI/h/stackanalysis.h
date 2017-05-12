@@ -494,7 +494,6 @@ public:
 
    DATAFLOW_EXPORT StackAnalysis();
    DATAFLOW_EXPORT StackAnalysis(ParseAPI::Function *f);
-   // TODO: Update DataflowAPI manual
    DATAFLOW_EXPORT StackAnalysis(ParseAPI::Function *f,
       const std::map<Address, Address> &crm,
       const std::map<Address, TransferSet> &fs,
@@ -513,7 +512,6 @@ public:
    DATAFLOW_EXPORT void findDefHeightPairs(ParseAPI::Block *b, Address addr,
       std::vector<std::pair<Absloc, DefHeightSet> > &defHeights);
 
-   // TODO: Update DataflowAPI manual
    DATAFLOW_EXPORT bool canGetFunctionSummary();
    DATAFLOW_EXPORT bool getFunctionSummary(TransferSet &summary);
 
