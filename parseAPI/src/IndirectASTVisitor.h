@@ -81,4 +81,25 @@ public:
     virtual ASTPtr visit(DataflowAPI::VariableAST *ast);
     JumpTableFormatVisitor(ParseAPI::Block *bl);
 };
+
+class JumpTableReadVisitor: public ASTVisitor {
+public:
+    using ASTVisitor::visit;
+    AbsRegion index;
+    int64_t indexValue;
+    CodeSource* cs;
+    Address targetAddress;
+    int memoryReadSize;
+    bool valid;
+    bool isZeroExtend;
+
+
+    // This tracks the results of computation for each sub AST
+    map<AST*, int64_t> results;
+    JumpTableReadVisitor(AbsRegion i, int v, CodeSource *c, bool ze, int m);
+    virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
+    virtual ASTPtr visit(DataflowAPI::ConstantAST *ast);
+    virtual ASTPtr visit(DataflowAPI::VariableAST *ast);
+    bool PerformMemoryRead(Address addr, int64_t &v);
+};
 #endif

@@ -4,6 +4,7 @@
 #include "JumpTableFormatPred.h"
 #include "JumpTableIndexPred.h"
 #include "SymbolicExpression.h"
+#include "IndirectASTVisitor.h"
 #include "IA_IAPI.h"
 #include "debug_parse.h"
 
@@ -21,6 +22,7 @@ using namespace Dyninst::InstructionAPI;
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
     parsing_printf("Looking for thunk\n");
+//    if (block->last() == 0x526e74) dyn_debug_parsing=1; else dyn_debug_parsing=0;
 
 //  Find all blocks that reach the block containing the indirect jump
 //  This is a prerequisit for finding thunks
@@ -54,7 +56,6 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
         fprintf(stderr, " not jump table\n");
         return false;
     }
-    if (block->last() == 0x527af2) dyn_debug_parsing=1; else dyn_debug_parsing=0;
 
     Slicer indexSlicer(jtfp.indexLoc, jtfp.indexLoc->block(), func, false, false); 
     JumpTableIndexPred jtip(func, block, jtfp.index, se);
@@ -74,9 +75,10 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
 	jtip.IsIndexBounded(g, bfc, target);
     }
     if (jtip.findBound) {
-        fprintf(stderr, " bound %s\n", jtip.bound.format().c_str());
+        fprintf(stderr, " bound %s", jtip.bound.format().c_str());
     } else {
         fprintf(stderr, " Cannot find bound\n");
+	return false;
     }
 /* 
     if (!jtip.findBound()) {
@@ -86,8 +88,12 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     }
 */
     std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > > jumpTableOutEdges;
-//    ReadTable(jtfp, indexBound);
-
+    ReadTable(jtfp.jumpTargetExpr, 
+              jtfp.index, 
+	      jtip.bound, 
+	      GetMemoryReadSize(jtfp.memLoc), 
+	      jumpTableOutEdges);
+    fprintf(stderr, ", find %d edges\n", jumpTableOutEdges.size());	      
     outEdges.insert(outEdges.end(), jumpTableOutEdges.begin(), jumpTableOutEdges.end());
     return !jumpTableOutEdges.empty();
 }						       
@@ -178,4 +184,42 @@ void IndirectControlFlowAnalyzer::FindAllThunks() {
     }
 }
 
+void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr, 
+                                            AbsRegion index,
+					    StridedInterval &indexBound,   
+					    int memoryReadSize,
+					    std::vector<std::pair<Address, Dyninst::ParseAPI::EdgeTypeEnum> > &targetEdges) {
+    CodeSource *cs = block->obj()->cs();					    
+    set<Address> jumpTargets;
+    for (int v = indexBound.low; v <= indexBound.high; v += indexBound.stride) {
+        // TODO: need to detect whether the memory is a zero extend or a sign extend
+        JumpTableReadVisitor jtrv(index, v, cs, false, memoryReadSize);
+	jumpTargetExpr->accept(&jtrv);
+	if (jtrv.valid && cs->isCode(jtrv.targetAddress)) {
+	    jumpTargets.insert(jtrv.targetAddress);
+	} else {
+	    // We have a bad entry. We stop here, as we have wrong information
+	    // In this case, we keep the good entries
+	    parsing_printf("WARNING: resolving jump tables leads to a bad address %lx\n", jtrv.targetAddress);
+	    break;
+	}
+	if (indexBound.stride == 0) break;
+    }
+    for (auto tit = jumpTargets.begin(); tit != jumpTargets.end(); ++tit) {
+        targetEdges.push_back(make_pair(*tit, INDIRECT));
+    }
+}					    
 
+int IndirectControlFlowAnalyzer::GetMemoryReadSize(Assignment::Ptr memLoc) {
+    Instruction::Ptr i = memLoc->insn();
+    std::vector<Operand> ops;
+    i->getOperands(ops);
+    for (auto oit = ops.begin(); oit != ops.end(); ++oit) {
+        Operand o = *oit;
+	if (o.readsMemory()) {
+	    Expression::Ptr exp = o.getValue();
+	    return exp->size();
+	    break;
+	}
+    }
+}

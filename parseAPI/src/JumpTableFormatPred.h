@@ -36,6 +36,8 @@ public:
 
     AbsRegion index;
     Assignment::Ptr indexLoc;
+    bool firstMemoryRead;
+    Assignment::Ptr memLoc;
     AST::Ptr jumpTargetExpr;
 
 
@@ -55,12 +57,14 @@ public:
 		jumpTableFormat = true;
 		unknownInstruction = false;
 		findIndex = false;
+		firstMemoryRead = true;
 	    }
 
     virtual bool modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g);
     std::string format();
     bool isJumpTableFormat() { return jumpTableFormat && findIndex; }
-
+    bool findSpillRead(Graph::Ptr g, SliceNode::Ptr &);
+    void adjustActiveMap(Slicer::SliceFrame &frame, SliceNode::Ptr);
 };
 
 #endif
