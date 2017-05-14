@@ -316,103 +316,146 @@ bool JumpTableFormatVisitor::PotentialIndexing(AST::Ptr ast) {
     return false;
 }
 
-/*
-bool PerformTableRead(StridedInterval &target, set<int64_t> & jumpTargets, CodeSource *cs) {
-    if (target.tableReadSize > 0 && target.interval.stride == 0) {
-        // This is a PC-relative read to variable, not a table read
-        return false;
+JumpTableReadVisitor::JumpTableReadVisitor(AbsRegion i, int v, CodeSource *c, bool ze, int m) {
+    index = i;
+    indexValue = v;
+    cs = c;
+    isZeroExtend = ze;
+    valid = true;
+    memoryReadSize = m;
+}
+
+AST::Ptr JumpTableReadVisitor::visit(DataflowAPI::RoseAST *ast) {
+    unsigned totalChildren = ast->numChildren();
+    for (unsigned i = 0 ; i < totalChildren; ++i) {
+        ast->child(i)->accept(this);
+	if (!valid) return AST::Ptr();
     }
-    Address tableBase = (Address)target.interval.low;
-    Address tableLastEntry = (Address)target.interval.high;
+
+    // As soon as we do not know the value of one child, we will return.
+    // So, we will always have good values for each child at this point.
+    switch (ast->val().op) {
+        case ROSEOperation::addOp:
+	    results.insert(make_pair(ast, results[ast->child(0).get()] + results[ast->child(1).get()]));
+	    break;
+	case ROSEOperation::invertOp:
+	    results.insert(make_pair(ast, ~results[ast->child(0).get()]));
+	    break;
+	case ROSEOperation::andOp: 
+	    results.insert(make_pair(ast, results[ast->child(0).get()] & results[ast->child(1).get()]));
+	    break;
+	case ROSEOperation::sMultOp:
+	case ROSEOperation::uMultOp:
+	    results.insert(make_pair(ast, results[ast->child(0).get()] * results[ast->child(1).get()]));
+	    break;
+	case ROSEOperation::shiftLOp:
+	    results.insert(make_pair(ast, results[ast->child(0).get()] << results[ast->child(1).get()]));
+	    break;
+	case ROSEOperation::shiftROp:
+	    results.insert(make_pair(ast, results[ast->child(0).get()] >> results[ast->child(1).get()]));
+	    break;
+	case ROSEOperation::derefOp: {
+	        int64_t v;
+	        bool validRead = PerformMemoryRead(results[ast->child(0).get()], v);
+		if (!validRead) {
+		    valid = false;
+		    // We encounter an invalid table entry
+		    parsing_printf("WARNING: invalid table entry for index value %ld\n", indexValue);
+		    return AST::Ptr();
+		}
+		results.insert(make_pair(ast, v));
+	    }
+	    break;
+	case ROSEOperation::orOp: 
+	    results.insert(make_pair(ast, results[ast->child(0).get()] | results[ast->child(1).get()]));
+	    break;
+	default:
+	    parsing_printf("WARNING: unhandled operation in the jump table format AST!\n");
+	    valid = false;
+	    break;
+    }
+    targetAddress = results[ast];
+    if (cs->getAddressWidth() == 4) {
+        targetAddress &= 0xffffffff;
+    }
+#if defined(os_windows)
+    targetAddress -= cs->loadAddress();
+#endif
+
+    return AST::Ptr();
+   
+}
+
+AST::Ptr JumpTableReadVisitor::visit(DataflowAPI::ConstantAST *ast) {
+    const Constant &v = ast->val();
+    int64_t value = v.val;
+    if (v.size != 1 && v.size != 64 && (value & (1ULL << (v.size - 1)))) {
+        // Compute the two complements in bits of v.size
+	// and change it to a negative number
+        value = -(((~value) & ((1ULL << v.size) - 1)) + 1);
+    }
+    results.insert(make_pair(ast, value));
+    return AST::Ptr();
+}
+
+
+AST::Ptr JumpTableReadVisitor::visit(DataflowAPI::VariableAST * var) {
+    if (var->val().reg != index) {
+        // The only variable in the jump table format AST should the index.
+	// If it is not the case, something is wrong
+	parsing_printf("WARNING: the jump table format AST contains a variable that is not the index\n");
+        valid = false;
+    }
+    results.insert(make_pair(var, indexValue));
+    return AST::Ptr();
+}
+
+
+bool JumpTableReadVisitor::PerformMemoryRead(Address addr, int64_t &v) {
     int addressWidth = cs->getAddressWidth();
     if (addressWidth == 4) {
-        tableBase &= 0xffffffff;
-	tableLastEntry &= 0xffffffff;
+        addr &= 0xffffffff;
     }
 
 #if defined(os_windows)
-    tableBase -= cs->loadAddress();
-    tableLastEntry -= cs->loadAddress();
+    addr -= cs->loadAddress();
 #endif
-
-    if (!cs->isCode(tableBase) && !cs->isData(tableBase)) {
-        parsing_printf("\ttableBase 0x%lx invalid, returning false\n", tableBase);
-	parsing_printf("Not jump table format!\n");
-	return false;
-    }
-    if (!cs->isReadOnly(tableBase)) {
-        parsing_printf("\ttableBase 0x%lx not read only, returning false\n", tableBase);
-	parsing_printf("Not jump table format!\n");
-        return false;
-    }
-
-
-    for (Address tableEntry = tableBase; tableEntry <= tableLastEntry; tableEntry += target.interval.stride) {
-	if (!cs->isCode(tableEntry) && !cs->isData(tableEntry)) continue;
-	if (!cs->isReadOnly(tableEntry)) continue;
-	int64_t targetAddress = 0;
-	if (target.tableReadSize > 0) {
-	    switch (target.tableReadSize) {
-	        case 8:
-		    targetAddress = *(const uint64_t *) cs->getPtrToInstruction(tableEntry);
-		    break;
-		case 4:
-		    targetAddress = *(const uint32_t *) cs->getPtrToInstruction(tableEntry);
-		    if (target.isZeroExtend) break;
-		    if ((addressWidth == 8) && (targetAddress & 0x80000000)) {
-		        targetAddress |= SIGNEX_64_32;
-		    }
-		    break;
-		case 2:
-		    targetAddress = *(const uint16_t *) cs->getPtrToInstruction(tableEntry);
-		    if (target.isZeroExtend) break;
-		    if ((addressWidth == 8) && (targetAddress & 0x8000)) {
-		        targetAddress |= SIGNEX_64_16;
-		    }
-		    if ((addressWidth == 4) && (targetAddress & 0x8000)) {
-		        targetAddress |= SIGNEX_32_16;
-		    }
-
-		    break;
-		case 1:
-		    targetAddress = *(const uint8_t *) cs->getPtrToInstruction(tableEntry);
-		    if (target.isZeroExtend) break;
-		    if ((addressWidth == 8) && (targetAddress & 0x80)) {
-		        targetAddress |= SIGNEX_64_8;
-		    }
-		    if ((addressWidth == 4) && (targetAddress & 0x80)) {
-		        targetAddress |= SIGNEX_32_8;
-		    }
-
-		    break;
-
-		default:
-		    parsing_printf("Invalid memory read size %d\n", target.tableReadSize);
-		    return false;
+    if (!cs->isCode(addr) && !cs->isData(addr)) return false;
+    if (!cs->isReadOnly(addr)) return false;
+    switch (memoryReadSize) {
+        case 8:
+	    v = *(const uint64_t *) cs->getPtrToInstruction(addr);
+	    break;
+	case 4:
+	    v = *(const uint32_t *) cs->getPtrToInstruction(addr);
+	    if (isZeroExtend) break;
+	    if ((addressWidth == 8) && (v & 0x80000000)) {
+	        v |= SIGNEX_64_32;
 	    }
-	    targetAddress *= target.multiply;
-	    if (target.targetBase != 0) {
-	        if (target.isSubReadContent) 
-		    targetAddress = target.targetBase - targetAddress;
-		else 
-		    targetAddress += target.targetBase; 
-
+	    break;
+	case 2:
+	    v = *(const uint16_t *) cs->getPtrToInstruction(addr);
+	    if (isZeroExtend) break;
+	    if ((addressWidth == 8) && (v & 0x8000)) {
+	        v |= SIGNEX_64_16;
 	    }
-#if defined(os_windows)
-            targetAddress -= cs->loadAddress();
-#endif
-	} else targetAddress = tableEntry;
-
-	if (addressWidth == 4) targetAddress &= 0xffffffff;
-	parsing_printf("Jumping to target %lx,", targetAddress);
-	if (cs->isCode(targetAddress)) {
-	    // Jump tables may contain may repetitious entries.
-	    // We only want to create one edge for disctinct each jump target.
-	    jumpTargets.insert(targetAddress);
-	}
-	// If the jump target is resolved to be a constant, 
-	if (target.interval.stride == 0) break;
+	    if ((addressWidth == 4) && (v & 0x8000)) {
+	        v |= SIGNEX_32_16;
+	    }
+	    break;
+	case 1:
+	    v = *(const uint8_t *) cs->getPtrToInstruction(addr);
+	    if (isZeroExtend) break;
+	    if ((addressWidth == 8) && (v & 0x80)) {
+	        v |= SIGNEX_64_8;
+	    }
+	    if ((addressWidth == 4) && (v & 0x80)) {
+	        v |= SIGNEX_32_8;
+	    }
+	    break;	    
+	default:
+	    parsing_printf("Invalid memory read size %d\n", memoryReadSize);
+	    return false;
     }
     return true;
 }
-*/

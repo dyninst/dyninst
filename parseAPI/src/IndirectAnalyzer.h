@@ -17,11 +17,12 @@ class IndirectControlFlowAnalyzer {
 
     void GetAllReachableBlock();  
     void FindAllThunks();
-    bool IsJumpTable(GraphPtr slice, BoundFactsCalculator &bfc, StridedInterval &target);
-    bool FillInOutEdges(StridedInterval &target, std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges);
-    GraphPtr CalcBackwardSlice(ParseAPI::Block *b, 
-                               Address addr,
-			       string filename);
+    void ReadTable(AST::Ptr, 
+                   AbsRegion, 
+		   StridedInterval &,  
+		   int ,
+		   std::vector<std::pair<Address, Dyninst::ParseAPI::EdgeTypeEnum> > &);
+    int GetMemoryReadSize(Assignment::Ptr loc);
 
 
 public:

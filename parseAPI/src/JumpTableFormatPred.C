@@ -8,6 +8,14 @@ using namespace Dyninst::DataflowAPI;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InstructionAPI;
 
+static int CountInDegree(SliceNode::Ptr n) {
+    NodeIterator nbegin, nend; 
+    int count = 0;
+    n->ins(nbegin, nend);
+    for (; nbegin != nend; ++count, ++nbegin);
+    return count;
+}
+
 bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g) {
     if (!jumpTableFormat) return false;
     if (unknownInstruction) return false;
@@ -25,15 +33,57 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
     NodeIterator nbegin, nend; 
 
     g->adjustEntryAndExitNodes();
+    // We do not try to slice on the heap absregion,
+    // as it will not help us determine the jump table format.
+    // But we record this memory read, so that later we can determine
+    // whether the size of the read and whether it is zero extended or sign extended
+    for (auto rit = frame.active.begin(); rit != frame.active.end(); ++rit)
+        if (rit->first.type() == Absloc::Heap || rit->first.type() == Absloc::Stack) {
+	    // If this is the first memory read we encoutered,
+	    // this is likely to be a jump table read and we need to keep
+	    // slice on its address.
+	    if (firstMemoryRead) {
+	        memLoc = rit->second[0].ptr;
+		firstMemoryRead = false;
+		frame.active.erase(rit);
+	    } else {
+	        // For a later memory read, if we have not disqualified this indirect,
+		// it is likely to be a jump table. This memory read is assumed 
+		// and likely to be a spill for a certain register.
+		// We keep slicing on the register.
+		SliceNode::Ptr readNode;
+		parsing_printf("\t\tfind another memory read %s %s\n", rit->first.format().c_str(), rit->second[0].ptr->format().c_str());
+		if (!findSpillRead(g, readNode)) {
+		    parsing_printf("\tWARNING: a potential memory spill cannot be handled.\n");
+		    jumpTableFormat = false;
+		    return false;
+		}
+		// We then delete all absregions introduced by this read node from the active map
+		// and add back the original absregion
+		adjustActiveMap(frame, readNode);
+		g->deleteNode(readNode);
+		return true;
+
+	    }
+	    break;
+	}
+
+
     g->entryNodes(nbegin, nend);
 
     // This map trakcs the expanded and substituted ASTs for each assignment in the current slice
     std::unordered_map<Assignment::Ptr, AST::Ptr, Assignment::AssignmentPtrHasher> exprs;
-
+    std::unordered_map<Assignment::Ptr, int, Assignment::AssignmentPtrHasher> inDegree;
     for (; nbegin != nend; ++nbegin) {
         SliceNode::Ptr n = boost::static_pointer_cast<SliceNode>(*nbegin);
 	working_list.push(n);
 	inQueue.insert(n->assign());
+    }
+    
+    g->allNodes(nbegin, nend);
+    for (; nbegin != nend; ++nbegin) {
+        SliceNode::Ptr n = boost::static_pointer_cast<SliceNode>(*nbegin);
+	inDegree[n->assign()] = CountInDegree(n);
     }
     AST::Ptr jumpTarget;
     while (!working_list.empty()) {
@@ -77,7 +127,7 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	for (; nbegin != nend; ++nbegin) {
 	    SliceNode::Ptr p = boost::static_pointer_cast<SliceNode>(*nbegin);
 	    if (exprs.find(p->assign()) == exprs.end()) {
-	        parsing_printf("\tWARNING: predecessor does not have an expression\n");
+	        parsing_printf("\tWARNING: For %s, its predecessor %s does not have an expression\n", n->assign()->format().c_str(), p->assign()->format().c_str());
 		jumpTableFormat = false;
 		return false;
 	    }
@@ -94,7 +144,8 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	n->outs(nbegin, nend);
 	for (; nbegin != nend; ++nbegin) {
 	    SliceNode::Ptr p = boost::static_pointer_cast<SliceNode>(*nbegin);
-	    if (inQueue.find(p->assign()) == inQueue.end()) {
+	    inDegree[p->assign()] --;
+	    if (inDegree[p->assign()] == 0 && inQueue.find(p->assign()) == inQueue.end()) {
 	        inQueue.insert(p->assign());
 		working_list.push(p);
 	    }
@@ -110,14 +161,6 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	return false;
     }
     
-    // We do not try to slice on the heap absregion,
-    // as it will not help us determine the jump table format.
-    for (auto rit = frame.active.begin(); rit != frame.active.end(); ++rit)
-        if (rit->first.type() == Absloc::Heap) {
-	    frame.active.erase(rit);
-	    break;
-	}
-
     if (!findIndex && jtfv.findIndex) {
 	if (frame.active.find(jtfv.index) == frame.active.end()) {
 	    parsing_printf("\tWARNING: found index variable %s, but it is not in the active map of the slice frame!\n", index.format().c_str());
@@ -149,3 +192,37 @@ string JumpTableFormatPred::format() {
     if (jumpTargetExpr) return jumpTargetExpr->format();
     return string("");
 }
+
+bool JumpTableFormatPred::findSpillRead(Graph::Ptr g, SliceNode::Ptr &readNode) {
+    NodeIterator gbegin, gend;
+    g->allNodes(gbegin, gend);
+    for (; gbegin != gend; ++gbegin) {
+        SliceNode::Ptr n = boost::static_pointer_cast<SliceNode>(*gbegin);
+	if (n->assign() == memLoc) {
+	    continue;
+	}
+	if (n->assign()->insn()->readsMemory()) {
+	    readNode = n;
+	    return true;
+	}
+    }
+    return false;
+}
+
+void JumpTableFormatPred::adjustActiveMap(Slicer::SliceFrame &frame, SliceNode::Ptr n) {
+    std::vector<AbsRegion>& inputs = n->assign()->inputs();
+    for (auto iit = inputs.begin(); iit != inputs.end(); ++iit) {
+        parsing_printf("\tdelete %s from active map\n", iit->format().c_str());
+        frame.active.erase(*iit);
+    }
+
+    NodeIterator nbegin, nend;
+    n->outs(nbegin, nend);
+    parsing_printf("\tadd %s to active map\n", n->assign()->out().format().c_str());
+    for (; nbegin != nend; ++nbegin) {
+        SliceNode::Ptr next = boost::static_pointer_cast<SliceNode>(*nbegin);
+	frame.active[n->assign()->out()].push_back(Slicer::Element(next->block(), next->func(), n->assign()->out(), next->assign()));
+    }
+}
+
+
