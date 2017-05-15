@@ -50,10 +50,10 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     //parsing_printf("\tJump table format: %s\n", jtfp.format().c_str());
     // If the jump target expression is not in a form we recognize,
     // we do not try to resolve it
-    fprintf(stderr, "Address %lx, jump target format %s, index loc %s,", block->last(), jtfp.format().c_str(), jtfp.indexLoc ? jtfp.indexLoc->format().c_str() : "");
+    parsing_printf("In function %s, Address %lx, jump target format %s, index loc %s,", func->name().c_str(), block->last(), jtfp.format().c_str(), jtfp.indexLoc ? jtfp.indexLoc->format().c_str() : "");
 
     if (!jtfp.isJumpTableFormat()) {
-        fprintf(stderr, " not jump table\n");
+        parsing_printf(" not jump table\n");
         return false;
     }
 
@@ -74,26 +74,21 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
 	StridedInterval target;
 	jtip.IsIndexBounded(g, bfc, target);
     }
+    StridedInterval b;
     if (jtip.findBound) {
-        fprintf(stderr, " bound %s", jtip.bound.format().c_str());
+        parsing_printf(" bound %s", jtip.bound.format().c_str());
+	b = jtip.bound;
     } else {
-        fprintf(stderr, " Cannot find bound\n");
-	return false;
+        parsing_printf(" Cannot find bound, assume there are at most 256 entries and scan the table\n");
+	b = StridedInterval(1, 0, 255);
     }
-/* 
-    if (!jtip.findBound()) {
-         indexBound = ScanTable(jtfp);
-    } else {
-         indexBound = jtip.indexBound();
-    }
-*/
     std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > > jumpTableOutEdges;
     ReadTable(jtfp.jumpTargetExpr, 
               jtfp.index, 
-	      jtip.bound, 
+	      b, 
 	      GetMemoryReadSize(jtfp.memLoc), 
 	      jumpTableOutEdges);
-    fprintf(stderr, ", find %d edges\n", jumpTableOutEdges.size());	      
+    parsing_printf(", find %d edges\n", jumpTableOutEdges.size());	      
     outEdges.insert(outEdges.end(), jumpTableOutEdges.begin(), jumpTableOutEdges.end());
     return !jumpTableOutEdges.empty();
 }						       
