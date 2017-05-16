@@ -318,7 +318,7 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
 	//exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + insn->size()))) {
       // Bind succeeded, eval to get target address
       Result res = exp->eval();
-      //assert(res.defined);
+      assert(res.defined);
       target = res.convert<Address>();
       return true;
     }
