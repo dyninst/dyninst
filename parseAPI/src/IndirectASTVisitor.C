@@ -312,6 +312,16 @@ bool JumpTableFormatVisitor::PotentialIndexing(AST::Ptr ast) {
     if (ast->getID() == AST::V_RoseAST) {
         RoseAST::Ptr r = boost::static_pointer_cast<RoseAST>(ast);
 	if (r->val().op == ROSEOperation::uMultOp || r->val().op == ROSEOperation::sMultOp) return true;
+	if (r->val().op == ROSEOperation::addOp) {
+	    // The index can be subtracted 
+	    if (r->child(0)->getID() == AST::V_RoseAST && r->child(1)->getID() == AST::V_ConstantAST) {
+	        RoseAST::Ptr lc = boost::static_pointer_cast<RoseAST>(r->child(0));
+		ConstantAST::Ptr rc = boost::static_pointer_cast<ConstantAST>(r->child(1));
+		if (lc->val().op == ROSEOperation::invertOp && rc->val().val == 1) {
+		    return PotentialIndexing(lc->child(0));
+		}
+	    }
+	}
     }
     return false;
 }

@@ -206,6 +206,7 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
 }					    
 
 int IndirectControlFlowAnalyzer::GetMemoryReadSize(Assignment::Ptr memLoc) {
+    if (!memLoc) return 0;
     Instruction::Ptr i = memLoc->insn();
     std::vector<Operand> ops;
     i->getOperands(ops);
