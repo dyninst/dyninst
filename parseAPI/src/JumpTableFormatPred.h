@@ -18,18 +18,6 @@ public:
     ThunkData &thunks;
     SymbolicExpression &se;
 
-    Address targetBase;    
-    // If tableReadSize == 0, this does not represent a memory access
-    // Otherwise, tableReadSize reprenents the number bytes of the access
-    int tableReadSize;
-    int tableStride;
-
-    // On ARM, the table content is often multiplied by 4 before adding with targetBase
-    int tcMultiply;
-    bool isInverted;
-    bool isSubReadContent;
-    bool isZeroExtend;
-
     bool jumpTableFormat;
     bool unknownInstruction;
     bool findIndex;
@@ -48,13 +36,7 @@ public:
 			ThunkData &t,
 			SymbolicExpression &sym):
             func(f), block(b), rf(r), thunks(t), se(sym) {
-	        targetBase = 0;
-		tableReadSize = 0;
-		tcMultiply = 1;
-		isInverted = false;
-		isSubReadContent = false;
-		isZeroExtend = false;
-		jumpTableFormat = true;
+	        jumpTableFormat = true;
 		unknownInstruction = false;
 		findIndex = false;
 		firstMemoryRead = true;
@@ -62,7 +44,7 @@ public:
 
     virtual bool modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g);
     std::string format();
-    bool isJumpTableFormat() { return jumpTableFormat && findIndex; }
+    bool isJumpTableFormat() { return jumpTableFormat && findIndex && jumpTargetExpr;}
     bool findSpillRead(Graph::Ptr g, SliceNode::Ptr &);
     void adjustActiveMap(Slicer::SliceFrame &frame, SliceNode::Ptr);
 };

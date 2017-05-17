@@ -154,6 +154,7 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	// The last expression should be the jump target
 	jumpTarget = exp;
     }
+    parsing_printf("Check expression %s\n", jumpTarget->format().c_str());
     JumpTableFormatVisitor jtfv(block);
     jumpTarget->accept(&jtfv);
     if (jtfv.findIncorrectFormat) {
@@ -178,6 +179,7 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	findIndex = true;
     }
     if (jtfv.findIndex && jtfv.findTableBase) { 
+        parsing_printf("\tRecord jump target expr\n");
         jumpTargetExpr = jumpTarget;
         return false;
     }
