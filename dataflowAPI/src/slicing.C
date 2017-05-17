@@ -185,7 +185,7 @@ Slicer::sliceInternal(
 
     // add to graph
     insertInitialNode(ret, dir, aP);
-    if (p.addNodeCallback(a_,visitedEdges)) {
+    if (p.addNodeCallback(a_,visitedEdges) && p.modifyCurrentFrame(initFrame, ret)) {
         // initialize slice stack and set for loop detection.
         // the set may be redundant, but speeds up the loopless case.
         addrStack.push_back(initFrame.addr());
@@ -446,7 +446,7 @@ bool Slicer::updateAndLink(
           cand.active[matches[i].reg].push_back(matches[i]);
        }
     }
-    return true;
+    return p.modifyCurrentFrame(cand, g);
 }
 
 // similar to updateAndLink, but this version only looks at the
@@ -806,7 +806,6 @@ Slicer::getPredecessors(
     // We force finalizing if necessary
     //cand.loc.func->num_blocks();
     SingleContextOrInterproc epred(cand.loc.func, true, true);
-    boost::lock_guard<Block> g(*(cand.loc.block));
     const Block::edgelist & sources = cand.loc.block->sources();
     std::for_each(boost::make_filter_iterator(epred, sources.begin(), sources.end()),
 		  boost::make_filter_iterator(epred, sources.end(), sources.end()),
@@ -1489,7 +1488,7 @@ bool Slicer::kills(AbsRegion const&reg, Assignment::Ptr &assign) {
       ABI* abi = ABI::getABI(b_->obj()->cs()->getAddressWidth());
       int index = abi->getIndex(r);
       if (index >= 0)
-          if (abi->getCallWrittenRegisters()[abi->getIndex(r)]) return true;
+          if (abi->getCallWrittenRegisters()[abi->getIndex(r)] && r != x86_64::r11) return true;
   }
   return reg.contains(assign->out());
 }

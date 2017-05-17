@@ -4,7 +4,7 @@
 
 #include "debug_parse.h"
 #include "CodeObject.h"
-#include "JumpTablePred.h"
+#include "JumpTableIndexPred.h"
 #include "IndirectASTVisitor.h"
 
 #include "Instruction.h"
@@ -99,20 +99,7 @@ static bool IsPushAndChangeSP(Assignment::Ptr a) {
 
 }
 
-static int AdjustGraphEntryAndExit(GraphPtr gp) {
-    int nodeCount = 0;
-    NodeIterator gbegin, gend;
-    gp->allNodes(gbegin, gend);
-    for (; gbegin != gend; ++gbegin) {
-        ++nodeCount;
-        Node::Ptr ptr = *gbegin;
-	if (!ptr->hasInEdges()) gp->insertEntryNode(ptr);
-	if (!ptr->hasOutEdges()) gp->insertExitNode(ptr);
-    }
-    return nodeCount;
-}
-
-GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
+GraphPtr JumpTableIndexPred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
     GraphPtr newG = Graph::createGraph();
     
     NodeIterator gbegin, gend;
@@ -160,7 +147,7 @@ GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
 	BuildEdges(node, targetMap, newG, visitedEdges);
     }
     parsing_printf("\t\t calculate edges in the new graph\n");
-
+/*
     // Build a virtual exit node
     SliceNode::Ptr virtualExit = SliceNode::create(Assignment::Ptr(), NULL, NULL);
     newG->addNode(virtualExit);
@@ -172,17 +159,15 @@ GraphPtr JumpTablePred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdges) {
 	}
     }
     parsing_printf("\t\t calculate virtual nodes in the new graph\n");
-
-    AdjustGraphEntryAndExit(newG);
-
+*/
+    newG->adjustEntryAndExitNodes();
 
     return newG;
 
 }
 
 
-bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visitedEdges) {
-    if (!jumpTableFormat) return false;
+bool JumpTableIndexPred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visitedEdges) {
     if (unknownInstruction) return false;
     if (currentAssigns.find(ap) != currentAssigns.end()) return true;
     if (currentAssigns.size() > 50) return false; 
@@ -193,7 +178,7 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
 	    return true;
 	}
     }
-    pair<AST::Ptr, bool> expandRet = ExpandAssignment(ap);
+    pair<AST::Ptr, bool> expandRet = se.ExpandAssignment(ap);
 
     currentAssigns.insert(ap);
 
@@ -237,16 +222,15 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
 
     // We create the CFG based on the found nodes
     GraphPtr g = BuildAnalysisGraph(visitedEdges);
-    BoundFactsCalculator bfc(func, g, func->entry() == block, rf, thunks, false, expandCache);
+    BoundFactsCalculator bfc(func, g, func->entry() == block, false, se);
     bfc.CalculateBoundedFacts();
 
-    BoundValue target;
-    bool ijt = IsJumpTable(g, bfc, target);
+    StridedInterval target;
+    bool ijt = IsIndexBounded(g, bfc, target);
     if (ijt) {
-        bool ret = !FillInOutEdges(target, outEdges) || outEdges.empty();
-	// Now we have stopped slicing in advance, so the cache contents are not complete any more.
-	if (!ret) setClearCache(true);
-        return ret;
+	// Now we have stopped slicing, so the cache contents may not be complete any more.
+	setClearCache(true);
+        return false;
     } else {
         return true;
     }	
@@ -254,15 +238,9 @@ bool JumpTablePred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> &visi
 
 
 }
-bool JumpTablePred::FillInOutEdges(BoundValue &target, 
+bool JumpTableIndexPred::FillInOutEdges(StridedInterval &target, 
                                                  vector<pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
-    if (target.values != NULL) {
-        outEdges.clear();
-        for (auto tit = target.values->begin(); tit != target.values->end(); ++tit) {
-            outEdges.push_back(make_pair(*tit, INDIRECT));
-        }
-	return true;
-    }
+/*
     set<int64_t> jumpTargets;						 
     if (!PerformTableRead(target, jumpTargets, block->obj()->cs())) {
         jumpTableFormat = false;
@@ -272,51 +250,39 @@ bool JumpTablePred::FillInOutEdges(BoundValue &target,
     for (auto tit = jumpTargets.begin(); tit != jumpTargets.end(); ++tit) {
         outEdges.push_back(make_pair(*tit, INDIRECT));
     }
+*/
     return true;
 }
-bool JumpTablePred::IsJumpTable(GraphPtr slice, 
-					      BoundFactsCalculator &bfc,
-					      BoundValue &target) {
+bool JumpTableIndexPred::IsIndexBounded(GraphPtr slice,
+                                       BoundFactsCalculator &bfc,
+                                       StridedInterval &target) {
     NodeIterator exitBegin, exitEnd, srcBegin, srcEnd;
     slice->exitNodes(exitBegin, exitEnd);
     SliceNode::Ptr virtualExit = boost::static_pointer_cast<SliceNode>(*exitBegin);
     virtualExit->ins(srcBegin, srcEnd);
     SliceNode::Ptr jumpNode = boost::static_pointer_cast<SliceNode>(*srcBegin);
     
-    const Absloc &loc = jumpNode->assign()->out().absloc();
-    parsing_printf("Checking final bound fact for %s\n",loc.format().c_str()); 
     BoundFact *bf = bfc.GetBoundFactOut(virtualExit);
-    VariableAST::Ptr ip = VariableAST::create(Variable(loc));
-    BoundValue *tarBoundValue = bf->GetBound(ip);
+    VariableAST::Ptr i = VariableAST::create(Variable(index));
+    StridedInterval *tarBoundValue = bf->GetBound(i);
     if (tarBoundValue != NULL) {
         target = *(tarBoundValue);
-	uint64_t s;
-	if (target.values == NULL)
-	    s = target.interval.size();
-	else
-	    s = target.values->size();
-	if (s > 0 && s <= MAX_TABLE_ENTRY) return true;
-    }
-    AST::Ptr ipExp = bf->GetAlias(ip);
-    if (ipExp) {
-        parsing_printf("\t jump target expression %s\n", ipExp->format().c_str());
-	JumpTableFormatVisitor jtfv(block);
-	ipExp->accept(&jtfv);
-	if (!jtfv.format) {
-	    parsing_printf("\t Not jump table format!\n");
-	    jumpTableFormat = false;
+	uint64_t s = target.size();
+	if (s > 0 && s <= MAX_TABLE_ENTRY) {
+	    findBound = true;
+	    bound = target;
+	    return true;
 	}
     }
-
     return false;
 }
 
-bool JumpTablePred::MatchReadAST(Assignment::Ptr a) {
-    pair<AST::Ptr, bool> expandRet = ExpandAssignment(a);
+bool JumpTableIndexPred::MatchReadAST(Assignment::Ptr a) {
+    pair<AST::Ptr, bool> expandRet = se.ExpandAssignment(a);
     if (!expandRet.second || expandRet.first == NULL) return false;
     if (a->out().generator() == NULL) return false;
-    AST::Ptr write = SimplifyAnAST(RoseAST::create(ROSEOperation(ROSEOperation::derefOp, a->out().size()), a->out().generator()), 
-                                   PCValue(a->addr(),
+    AST::Ptr write = SymbolicExpression::SimplifyAnAST(RoseAST::create(ROSEOperation(ROSEOperation::derefOp, a->out().size()), a->out().generator()), 
+                                   SymbolicExpression::PCValue(a->addr(),
 				           a->insn()->size(),
 					   a->block()->obj()->cs()->getArch()));
 
@@ -326,26 +292,25 @@ bool JumpTablePred::MatchReadAST(Assignment::Ptr a) {
     return false;
 }
 
-pair<AST::Ptr, bool> JumpTablePred::ExpandAssignment(Assignment::Ptr assign) {
-    if (expandCache.find(assign) != expandCache.end()) {
-        AST::Ptr ast = expandCache[assign];
-        if (ast) return make_pair(ast, true); else return make_pair(ast, false);
-
-    } else {
-		parsing_printf("\t\tExpanding instruction @ %x: %s\n", assign->addr(), assign->insn()->format().c_str());
-        pair<AST::Ptr, bool> expandRet = SymEval::expand(assign, false);
-	if (expandRet.second && expandRet.first) {
-parsing_printf("Original expand: %s\n", expandRet.first->format().c_str());
-
-	    AST::Ptr calculation = SimplifyAnAST(expandRet.first, 
-	                                         PCValue(assign->addr(),
-						         assign->insn()->size(),
-							 assign->block()->obj()->cs()->getArch()));
-	    expandCache[assign] = calculation;
-	} else {
-	    expandCache[assign] = AST::Ptr();
+bool JumpTableIndexPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g) {
+    if (g->size() == 1) {
+        /* This is the start of the jump table index slice.
+	 * As the slicing interface only works with an assignment, 
+	 * we wants to only keep the index AbsRegion in the current active map
+	 */
+	Slicer::SliceFrame::ActiveMap::iterator it1, it2;
+	it1 = frame.active.begin();
+	while (it1 != frame.active.end()) {
+	    if (it1->first != index) {
+	        it2 = it1;
+		++it2;
+		frame.active.erase(it1);
+		it1 = it2;
+	    } else {
+	        it1++;
+	    }
 	}
-	return make_pair( expandCache[assign], expandRet.second );
     }
+    return true;
 }
 

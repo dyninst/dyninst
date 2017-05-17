@@ -204,7 +204,7 @@ class ParseWorkElem
     void                mark_call()     { _call_processed = true; }
 
     Block*          cur()           const { return _cur; }
-    boost::shared_ptr<InsnAdapter::IA_IAPI>  ah()        const { return _ah; }
+    InsnAdapter::IA_IAPI*  ah()        const { return _ah; }
 
     /* 
      * Note that compare treats the parse_work_order as `lowest is
@@ -238,7 +238,7 @@ class ParseWorkElem
 
     // Data for continuing parsing jump tables
     Block* _cur;
-    boost::shared_ptr<InsnAdapter::IA_IAPI> _ah;
+    InsnAdapter::IA_IAPI* _ah;
 };
 
 // ParseWorkElem container

@@ -92,7 +92,8 @@ func_instance::func_instance(parse_func *f,
     _tmpObjects = new set<tmpObject, less_tmpObject>();
     _tMap = new TMap();
     _accessMap = new std::map<Address, Accesses*>();
-    assert(_modifications && _offVec && _tMap && _accessMap);
+    _definitionMap = new std::map<Address, StackAccess *>();
+    assert(_modifications && _offVec && _tMap && _accessMap && _definitionMap);
 #endif
 }
 
@@ -137,7 +138,8 @@ func_instance::func_instance(const func_instance *parFunc,
    _tmpObjects = new set<tmpObject, less_tmpObject>();
    _tMap = new TMap();
    _accessMap = new std::map<Address, Accesses*>();
-   assert(_modifications && _offVec && _tMap && _accessMap);
+   _definitionMap = new std::map<Address, StackAccess *>();
+   assert(_modifications && _offVec && _tMap && _accessMap && _definitionMap);
 #endif
 }
 
@@ -1000,6 +1002,53 @@ bool func_instance::createOffsetVector()
         }
     }
 
+    // Now that createOffsetVector_Analysis has created entries in
+    // _definitionMap for all the definitions we need to modify, we can now fill
+    // out the entries with all the information we need.
+    for (auto defIter = _definitionMap->begin();
+        defIter != _definitionMap->end(); defIter++) {
+        const Address defAddr = defIter->first;
+        StackAccess *&defAccess = defIter->second;
+
+        // Get the appropriate block and instruction for the definition
+        ParseAPI::Block *defBlock = NULL;
+        InstructionAPI::Instruction::Ptr defInsn;
+        for (auto blockIter = blocks.begin(); blockIter != blocks.end();
+            blockIter++) {
+            ParseAPI::Block *block = *blockIter;
+            Address tmp;
+            if (block->start() <= defAddr &&
+                defAddr < block->end() &&
+                block->consistent(defAddr, tmp)) {
+                defBlock = block;
+                defInsn = block->getInsn(defAddr);
+                break;
+            }
+        }
+        assert(defBlock != NULL);
+
+        // Populate definition information in defAccess
+        Accesses tmpDefAccesses;
+        std::set<Address> tmp;
+        if (::getAccesses(func, defBlock, defAddr, defInsn, &tmpDefAccesses,
+            tmp, true)) {
+            assert(tmpDefAccesses.size() == 1);
+            std::set<StackAccess *> &defAccessSet =
+                tmpDefAccesses.begin()->second;
+            assert(defAccessSet.size() == 1);
+            defAccess = *defAccessSet.begin();
+
+            _tmpObjects->insert(tmpObject(defAccess->readHeight().height(),
+                getAccessSize(defInsn), defAccess->type()));
+        } else {
+            // If any definition can't be understood sufficiently, we can't do
+            // stack modifications safely.
+            stackmods_printf("\t\t\t INVALID: getAccesses failed\n");
+            ret = false;
+            break;
+        }
+    }
+
     // Populate offset vector
     for (auto iter = _tmpObjects->begin(); iter != _tmpObjects->end(); ++iter) {
         if (!addToOffsetVector((*iter).offset(), (*iter).size(), (*iter).type(), false, (*iter).valid())) {
@@ -1304,27 +1353,44 @@ bool func_instance::createOffsetVector_Analysis(ParseAPI::Function* func,
     int accessSize = getAccessSize(insn);
     Accesses* accesses = new Accesses();
     assert(accesses);
-    if (::getAccesses(func, block, addr, insn, accesses)) {
+    std::set<Address> defAddrsToMod;
+    if (::getAccesses(func, block, addr, insn, accesses, defAddrsToMod)) {
         _accessMap->insert(make_pair(addr, accesses));
+
+        // Create entries in our definition map for any definitions that need
+        // to be modified.  We will fill out the entries after we've collected
+        // all the definitions.
+        for (auto addrIter = defAddrsToMod.begin();
+            addrIter != defAddrsToMod.end(); addrIter++) {
+            const Address defAddr = *addrIter;
+            if (_definitionMap->find(defAddr) == _definitionMap->end()) {
+                (*_definitionMap)[defAddr] = NULL;
+            }
+        }
 
         for (auto accessIter = accesses->begin(); accessIter != accesses->end();
             ++accessIter) {
-            StackAccess* access = (*accessIter).second;
+            const std::set<StackAccess *> &saSet = accessIter->second;
+            for (auto saIter = saSet.begin(); saIter != saSet.end(); saIter++) {
+                StackAccess *access = *saIter;
 
-            stackmods_printf("\t\t Processing %s, size %d\n",
-                access->format().c_str(), accessSize);
+                stackmods_printf("\t\t Processing %s, size %d\n",
+                    access->format().c_str(), accessSize);
 
-            assert(!access->skipReg());
-            if (!addToOffsetVector(access->regHeight(), 1,
-                StackAccess::REGHEIGHT, true, NULL, access->reg())) {
-                stackmods_printf("\t\t\t INVALID: addToOffsetVector failed\n");
-                return false;
+                assert(!access->skipReg());
+                if (!addToOffsetVector(access->regHeight(), 1,
+                    StackAccess::REGHEIGHT, true, NULL, access->reg())) {
+                    stackmods_printf("\t\t\t INVALID: addToOffsetVector "
+                        "failed\n");
+                    return false;
+                }
+                _tmpObjects->insert(tmpObject(access->readHeight().height(),
+                    accessSize, access->type()));
             }
-            _tmpObjects->insert(tmpObject(access->readHeight().height(),
-                accessSize, access->type()));
         }
     } else {
         stackmods_printf("\t\t\t INVALID: getAccesses failed\n");
+        delete accesses;
         // Once we've found a bad access, stop looking!
         return false;
     }
@@ -1514,18 +1580,10 @@ void func_instance::createTMap_internal(StackMod* mod, StackLocation* loc, TMap*
                           StackAnalysis::Height c(insertMod->low());
                           StackAnalysis::Height d(insertMod->high());
 
-                          if (!loc->isRegisterHeight()) {
-                              if (off < d || off == d) {
-                                  stackmods_printf("\t\t Processing interaction with %s\n", loc->format().c_str());
-                                  int delta = c.height() - d.height();
-                                tMap->update(loc, delta);
-                              }
-                          } else {
-                              if (off < d || off == d) {
-                                  stackmods_printf("\t\t Processing interaction with %s\n", loc->format().c_str());
-                                  int delta = c.height() - d.height();
-                                  tMap->update(loc, delta);
-                              }
+                          if (off < d || off == d) {
+                              stackmods_printf("\t\t Processing interaction with %s\n", loc->format().c_str());
+                              int delta = c.height() - d.height();
+                              tMap->update(loc, delta);
                           }
                           break;
                       }

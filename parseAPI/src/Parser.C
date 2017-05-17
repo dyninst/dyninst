@@ -906,6 +906,7 @@ namespace {
 
 void
 Parser::parse_frame(ParseFrame & frame, bool recursive) {
+    boost::make_lock_guard(*frame.func);
     /** Persistent intermediate state **/
     boost::shared_ptr<InstructionAdapter_t> ahPtr;
     ParseFrame::worklist_t & worklist = frame.worklist;
@@ -1549,8 +1550,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 void
 Parser::end_block(Block * b, InstructionAdapter_t & ah)
 {
-//    ScopeLock<Mutex<true> > l(work_mutex);
-    boost::lock_guard<Block> g(*b);
     b->_lastInsn = ah.getAddr();
     b->updateEnd(ah.getNextAddr());
 
@@ -1560,7 +1559,6 @@ Parser::end_block(Block * b, InstructionAdapter_t & ah)
 void
 Parser::record_block(Block *b)
 {
-    boost::lock_guard<Block> g(*b);
     parsing_printf("[%s:%d] recording block [%lx,%lx)\n",
         FILE__,__LINE__,b->start(),b->end());
     _parse_data->record_block(b->region(),b);
@@ -1722,7 +1720,6 @@ Parser::split_block(
     // move out edges
 
     {
-        boost::lock_guard<Block> block_guard(*b);
 
         vector<Edge *> &trgs = b->_trglist;
         vector<Edge *>::iterator tit = trgs.begin();
@@ -1895,9 +1892,6 @@ int Parser::findCurrentBlocks(CodeRegion* cr, Address addr,
 Edge*
 Parser::link(Block *src, Block *dst, EdgeTypeEnum et, bool sink)
 {
-    boost::lock((src->lockable()), (dst->lockable()));
-    boost::lock_guard<Block> srclock(*src, boost::adopt_lock);
-    boost::lock_guard<Block> dstlock(*dst, boost::adopt_lock);
     assert(et != NOEDGE);
     Edge * e = factory()._mkedge(src,dst,et);
     e->_type._sink = sink;
@@ -1925,8 +1919,6 @@ Parser::link(Block *src, Block *dst, EdgeTypeEnum et, bool sink)
 Edge*
 Parser::link_tempsink(Block *src, EdgeTypeEnum et)
 {
-//    ScopeLock<Mutex<true> > l(work_mutex);
-    boost::lock_guard<Block> srclock(*src);
     Edge * e = factory()._mkedge(src,_sink,et);
     e->_type._sink = true;
     src->_trglist.push_back(e);
@@ -1936,10 +1928,7 @@ Parser::link_tempsink(Block *src, EdgeTypeEnum et)
 void
 Parser::relink(Edge * e, Block *src, Block *dst)
 {
-    boost::lock(*src, *dst, *_parse_data);
-    boost::lock_guard<Block> srclock(*src, boost::adopt_lock);
-    boost::lock_guard<Block> dstlock(*dst, boost::adopt_lock);
-    boost::lock_guard<ParseData> guard(*_parse_data, boost::adopt_lock);
+    boost::lock_guard<ParseData> guard(*_parse_data);
     bool addSrcAndDest = true;
     if(src != e->src()) {
         e->src()->removeTarget(e);
@@ -2008,8 +1997,6 @@ Parser::remove_func(Function *func)
 void
 Parser::remove_block(Dyninst::ParseAPI::Block *block)
 {
-    boost::lock(block->lockable(), *_parse_data);
-    boost::lock_guard<Block>(*block, boost::adopt_lock);
     boost::lock_guard<ParseData>(*_parse_data, boost::adopt_lock);
     _parse_data->remove_block(block);
 }

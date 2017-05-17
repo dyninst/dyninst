@@ -285,7 +285,7 @@ class Function;
 };
 
 class CodeRegion;
-class PARSER_EXPORT Block : public boost::lockable_adapter<boost::recursive_mutex>,
+class PARSER_EXPORT Block :
                             public Dyninst::SimpleInterval<Address, int>,
               public allocatable  {
     friend class CFGModifier;
@@ -442,7 +442,7 @@ class FuncExtent;
 class Loop;
 class LoopTreeNode;
 
-class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
+class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, public boost::lockable_adapter<boost::recursive_mutex> {
    friend class CFGModifier;
    friend class LoopAnalyzer;
  protected:
@@ -502,6 +502,7 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     const_blocklist blocks() const;
     size_t num_blocks()
     {
+        boost::make_lock_guard(*this);
       if(!_cache_valid) finalize();
       return _bmap.size();
     }

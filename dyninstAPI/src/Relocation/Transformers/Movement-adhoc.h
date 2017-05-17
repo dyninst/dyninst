@@ -83,6 +83,8 @@ class adhocMovementTransformer : public Transformer {
 
   // Used for finding call targets
   AddressSpace *addrSpace;
+  // Map of definition addresses to (origDisp, delta) pairs
+  std::map<Address, std::pair<Offset, signed long> > definitionDeltas;
 };
 
 };

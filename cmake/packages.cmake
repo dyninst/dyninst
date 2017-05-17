@@ -39,7 +39,7 @@ if (UNIX)
       URL http://www.paradyn.org/libdwarf/libdwarf-20130126.tar.gz
       #	GIT_REPOSITORY git://git.code.sf.net/p/libdwarf/code libdwarf-code
       #	GIT_TAG 20130126
-      CONFIGURE_COMMAND CFLAGS=-I${LIBELF_INCLUDE_DIR} LDFLAGS=-L${CMAKE_BINARY_DIR}/libelf/lib <SOURCE_DIR>/libdwarf/configure --enable-shared
+      CONFIGURE_COMMAND env CFLAGS=${CMAKE_C_FLAGS}\ -I${LIBELF_INCLUDE_DIR} LDFLAGS=-L${CMAKE_BINARY_DIR}/libelf/lib <SOURCE_DIR>/libdwarf/configure --enable-shared
       BUILD_COMMAND make
       INSTALL_DIR ${CMAKE_BINARY_DIR}/libdwarf
       INSTALL_COMMAND mkdir -p <INSTALL_DIR>/include && mkdir -p <INSTALL_DIR>/lib && install <SOURCE_DIR>/libdwarf/libdwarf.h <INSTALL_DIR>/include && install <SOURCE_DIR>/libdwarf/dwarf.h <INSTALL_DIR>/include && install <BINARY_DIR>/libdwarf.so <INSTALL_DIR>/lib
@@ -56,6 +56,9 @@ if (UNIX)
   add_library(libdwarf_imp SHARED IMPORTED)
   set_property(TARGET libdwarf_imp 
     PROPERTY IMPORTED_LOCATION ${LIBDWARF_LIBRARIES})
+  if(NOT LIBDWARF_FOUND)
+    add_dependencies(libdwarf_imp LibDwarf)
+  endif()
 
   if (NOT USE_GNU_DEMANGLER)
     find_package (LibIberty)
@@ -66,19 +69,23 @@ if (UNIX)
       ExternalProject_Add(LibIberty
 	PREFIX ${CMAKE_BINARY_DIR}/binutils
 	URL http://ftp.gnu.org/gnu/binutils/binutils-2.23.tar.gz
-	CONFIGURE_COMMAND CFLAGS=-fPIC CPPFLAGS=-fPIC PICFLAG=-fPIC <SOURCE_DIR>/libiberty/configure --prefix=${CMAKE_BINARY_DIR}/libiberty --enable-shared
+	CONFIGURE_COMMAND env CFLAGS=${CMAKE_C_FLAGS}\ -fPIC CPPFLAGS=-fPIC PICFLAG=-fPIC <SOURCE_DIR>/libiberty/configure --prefix=${CMAKE_BINARY_DIR}/libiberty --enable-shared
 	BUILD_COMMAND make all
 	INSTALL_DIR ${CMAKE_BINARY_DIR}/libiberty
 	INSTALL_COMMAND install <BINARY_DIR>/libiberty.a <INSTALL_DIR>
 	)
       set(IBERTY_LIBRARIES ${CMAKE_BINARY_DIR}/libiberty/libiberty.a)
       set(IBERTY_FOUND TRUE)
+      set(IBERTY_BUILD TRUE)
     endif()
 
     message(STATUS "Using libiberty ${IBERTY_LIBRARIES}")
     add_library(libiberty_imp STATIC IMPORTED)
     set_property(TARGET libiberty_imp
       PROPERTY IMPORTED_LOCATION ${IBERTY_LIBRARIES})
+    if(IBERTY_BUILD)
+      add_dependencies(libiberty_imp LibIberty)
+    endif()
   endif()
 
   find_package (ThreadDB)

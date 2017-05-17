@@ -48,6 +48,7 @@ class StackAccess {
             READ,
             READWRITE,
             REGHEIGHT,
+            DEFINITION,
             MISUNDERSTOOD
         };
 
@@ -64,10 +65,13 @@ class StackAccess {
         void setReg(MachRegister r) { _reg = r; }
 
         StackAnalysis::Height regHeight() const { return _regHeight; }
-        void setRegHeight(StackAnalysis::Height h) { _regHeight = h; }
+        void setRegHeight(const StackAnalysis::Height &h) { _regHeight = h; }
+
+        StackAnalysis::Definition regDef() const { return _regDef; }
+        void setRegDef(const StackAnalysis::Definition &d) { _regDef = d; }
 
         StackAnalysis::Height readHeight() const { return _readHeight; }
-        void setReadHeight(StackAnalysis::Height h) { _readHeight = h; }
+        void setReadHeight(const StackAnalysis::Height &h) { _readHeight = h; }
 
         StackAccessType type() const { return _type; }
         void setType(StackAccessType t) { _type = t; }
@@ -82,13 +86,14 @@ class StackAccess {
     private:
         MachRegister _reg;
         StackAnalysis::Height _regHeight;
+        StackAnalysis::Definition _regDef;
         StackAnalysis::Height _readHeight;
         StackAccessType _type;
         signed long _disp;
         bool _skipReg;
 };
 
-typedef std::map<MachRegister,StackAccess*> Accesses;
+typedef std::map<MachRegister, std::set<StackAccess*> > Accesses;
 
 bool isDebugType(StackAccess::StackAccessType t);
 
@@ -98,16 +103,20 @@ bool getAccesses(ParseAPI::Function* func,
         ParseAPI::Block* block,
         Address addr,
         InstructionAPI::Instruction::Ptr insn,
-        Accesses*& accesses);
+        Accesses* accesses,
+        std::set<Address> &defPointsToMod,
+        bool analyzeDefinition = false);
 
 bool getMemoryOffset(ParseAPI::Function* func,
         ParseAPI::Block* block,
         InstructionAPI::Instruction::Ptr insn,
         Address addr,
-        MachRegister reg,
-        StackAnalysis::Height height,
+        const MachRegister &reg,
+        const StackAnalysis::Height &height,
+        const StackAnalysis::Definition &def,
         StackAccess*& ret,
-        Architecture arch);
+        Architecture arch,
+        bool analyzeDefintion = false);
 
 
 #endif
