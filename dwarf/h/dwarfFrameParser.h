@@ -55,14 +55,6 @@ typedef enum {
     FE_No_Error
 } FrameErrors_t;
 
-/*typedef struct {
-    Dwarf_FDE *fde_data;
-    Dwarf_Sword fde_count;
-    Dwarf_CIE *cie_data;
-    Dwarf_Sword cie_count;   
-} fde_cie_data;*/
-
-
 class DYNDWARF_EXPORT DwarfFrameParser {
 public:
 
@@ -162,7 +154,12 @@ private:
 
     dwarf_status_t fde_dwarf_status;
     
-    std::vector<Dwarf_CFI *> cfi_data;
+    typedef struct {
+        std::vector<Dwarf_CFI_Entry> cfi_entries;
+        Dwarf_CFI * cfi;
+    }CFI_data;
+
+    std::vector<CFI_data> cfi_data;
 
 };
 

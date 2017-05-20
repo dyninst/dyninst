@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <iostream>
 #include "debug_common.h" // dwarf_printf
+#include <libelf.h>
 
 //#define DW_FRAME_CFA_COL3 ((Dwarf_Half) -1)
 #define DW_FRAME_CFA_COL3               1036
@@ -43,20 +44,6 @@ using namespace Dyninst;
 using namespace DwarfDyninst;
 using namespace std;
 
-/*struct frameParser_key
-{
-    Dwarf * dbg;
-    Architecture arch;
-    frameParser_key(Dwarf * d, Architecture a) : dbg(d), arch(a)
-    {
-    }
-
-    bool operator< (const frameParser_key& rhs) const
-    {
-        return (dbg < rhs.dbg) || (dbg == rhs.dbg && arch < rhs.arch);
-    }
-
-};*/
 
 std::map<DwarfFrameParser::frameParser_key, DwarfFrameParser::Ptr> DwarfFrameParser::frameParsers;
 
@@ -200,7 +187,7 @@ bool DwarfFrameParser::getRegsForFunction(
 
     dwarf_printf("\t Got FDE range 0x%lx..0x%lx\n", low, high);
 
-    unique_ptr<Dwarf_Frame, decltype(std::free)*> frame_ptr(frame, &std::free);
+    //unique_ptr<Dwarf_Frame, decltype(std::free)*> frame_ptr(frame, &std::free);
 
     Dwarf_Half dwarf_reg;
     if (!getDwarfReg(reg, frame, dwarf_reg, err_result)) {
@@ -263,7 +250,7 @@ bool DwarfFrameParser::getRegAtFrame(Address pc,
         return false;
     }
 
-    unique_ptr<Dwarf_Frame, decltype(std::free)*> frame_ptr(frame, &std::free);
+    //unique_ptr<Dwarf_Frame, decltype(std::free)*> frame_ptr(frame, &std::free);
 
     Dwarf_Half dwarf_reg;
     if (!getDwarfReg(reg, frame, dwarf_reg, err_result)) {
@@ -383,6 +370,28 @@ bool DwarfFrameParser::getRegAtFrame_aux(Address pc,
     return true;
 }
 
+int section_id(Elf * elf)
+{
+    char *identp = elf_getident(elf, NULL);
+    bool is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
+
+    auto shstrtab_idx = !is64 ? elf32_getehdr(elf)->e_shstrndx : elf64_getehdr(elf)->e_shstrndx;
+    Elf_Scn *scn= elf_getscn(elf, shstrtab_idx); 
+    //void *shdr = !is64 ? (void *)elf32_getshdr(scn) : (void *)elf64_getshdr(scn);
+    Elf_Data *data = elf_getdata(scn, NULL); 
+    const char *shnames = (const char *)data->d_buf;
+
+    unsigned short num_sections = !is64 ? elf32_getehdr(elf)->e_shnum : elf64_getehdr(elf)->e_shnum;
+    for (unsigned i = 0; i < num_sections; i++) {
+        Elf_Scn *scn = elf_getscn(elf, i); 
+        unsigned long name_idx = !is64 ? elf32_getshdr(scn)->sh_name : elf64_getshdr(scn)->sh_name;
+        //if (shdr.sh_type() == SHT_NOBITS) continue;
+        if (strcmp(".eh_frame", shnames + name_idx) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
 
 void DwarfFrameParser::setupFdeData()
 {
@@ -399,16 +408,41 @@ void DwarfFrameParser::setupFdeData()
     dwarf_set_frame_cfa_value(dbg, DW_FRAME_CFA_COL3);
 #endif
 
+    // Try to get dwarf data from .debug_frame
     Dwarf_CFI * cfi = dwarf_getcfi(dbg);
     if (cfi) {
-        cfi_data.push_back(cfi);
+        //cfi_data.push_back(cfi);
     }
+    
+    // Try to get dwarf data from .eh_frame
+    Elf * elf = dwarf_getelf(dbg);
+    cfi = dwarf_getcfi_elf(elf);
+    if (cfi) 
+    {
+        CFI_data cfiData;
+        cfiData.cfi = cfi;
 
-    cfi = dwarf_getcfi_elf( dwarf_getelf(dbg) );
-    if (cfi) {
-        cfi_data.push_back(cfi);
+        Dwarf_Off offset = 0, next_offset;
+        int res = 0;
+
+        auto e_ident = reinterpret_cast<const unsigned char*>(elf_getident(elf, NULL));
+        int i = section_id(elf);
+        assert(i!=-1);
+
+        do
+        {
+            Dwarf_CFI_Entry entry;
+            res = dwarf_next_cfi(e_ident, elf_getdata(elf_getscn(elf, i), NULL), 
+                    true, offset, &next_offset, &entry);
+            offset = next_offset;
+            if(res==0) cfiData.cfi_entries.push_back(entry);
+        }
+        while(res != 1);
+
+        cfi_data.push_back(cfiData);
     }
-
+    
+    // Verify if it got any dwarf data
     if (!cfi_data.size()) {
         fde_dwarf_status = dwarf_status_error;
     }
@@ -419,34 +453,44 @@ void DwarfFrameParser::setupFdeData()
 
 
 bool DwarfFrameParser::getFDE(Address pc, Dwarf_Frame* &frame,
-        Address &low, Address &high,
-        FrameErrors_t &err_result) 
+        Address &low, Address &high, FrameErrors_t &err_result) 
 {
-    Dwarf_Addr lowpc = 0, hipc = 0;
     dwarf_printf("Getting Frame for 0x%lx\n", pc);
+
+    Dwarf_Addr lowpc = 0, hipc = 0;
     bool found = false;
-    unsigned cur_fde;
-    for (cur_fde=0; cur_fde<cfi_data.size(); cur_fde++) {
-        int result = dwarf_cfi_addrframe(cfi_data[cur_fde],
-                (Dwarf_Addr) pc, &frame);
 
-        if (result == -1) {
-            dwarf_printf("\t Got ERROR return\n");
-            err_result = FE_Bad_Frame_Data;
-            return false;
-        }
+    for (size_t cur_cfi=0; cur_cfi < cfi_data.size(); cur_cfi++)
+    {
+        for (size_t cur_entry =0; cur_entry < cfi_data[cur_cfi].cfi_entries.size(); cur_entry++)
+        {
+            auto& cfi_entry = cfi_data[cur_cfi].cfi_entries[cur_entry];
+            if(dwarf_cfi_cie_p(&cfi_entry))
+            {
+                continue;
+            }
+            lowpc = *cfi_entry.fde.start;
+            hipc = *cfi_entry.fde.end;
 
-        dwarf_frame_info(frame, &lowpc, &hipc, NULL);
-        if (pc < lowpc || pc > hipc)
-        {
-            continue;
-        }
-        else 
-        {
+            if (pc < lowpc || pc > hipc)
+            {
+                continue;
+            }
+
             dwarf_printf("\t Got range 0x%lx..0x%lx\n", lowpc, hipc);
+
             low = (Address) lowpc;
             high = (Address) hipc;
+            if(!dwarf_cfi_addrframe(cfi_data[cur_cfi].cfi, pc, &frame))
+            {
+                continue;
+            }
             found = true;
+            break;
+        }
+
+        if (found)
+        {
             break;
         }
     }
@@ -460,10 +504,9 @@ bool DwarfFrameParser::getFDE(Address pc, Dwarf_Frame* &frame,
     return true;
 }
 
-bool DwarfFrameParser::getDwarfReg(Dyninst::MachRegister reg,
-        Dwarf_Frame* frame,
-        Dwarf_Half &dwarf_reg,
-        FrameErrors_t & /*err_result*/)
+bool DwarfFrameParser::getDwarfReg(
+        Dyninst::MachRegister reg, Dwarf_Frame* frame, 
+        Dwarf_Half &dwarf_reg, FrameErrors_t & /*err_result*/)
 {
     if (reg == Dyninst::ReturnAddr) {
         dwarf_reg = dwarf_frame_info(frame, NULL, NULL, NULL); 
