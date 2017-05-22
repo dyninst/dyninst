@@ -1,0 +1,12 @@
+Debug
+resumelog
+mutatee_resumelog
+binaries/
+*.obj
+*.pdb
+*.exe
+*.manifest
+*.ilk
+*.dll
+*.lib
+*.exp

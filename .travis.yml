@@ -22,6 +22,7 @@ addons:
             - libelf1
             - libelf-dev
             - g++-4.9
+            - g++-multilib
 
 compiler:
     - gcc
@@ -43,5 +44,5 @@ script:
     - find /usr -name 'libelf.*'
     - mkdir work
     - cd work
-    - cmake ..
-    - make
+    - cmake .. -DBUILD_TESTS=1
+    - make -j2 tests
