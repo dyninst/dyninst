@@ -70,12 +70,7 @@ using namespace std;
 
 #include <fstream>
 
-#include <boost/assign/list_of.hpp>
-#include <boost/assign/std/set.hpp>
-
 #include "SymReader.h"
-
-using namespace boost::assign;
 
 // add some space to avoid looking for functions in data regions
 #define EXTRA_SPACE 8
@@ -327,8 +322,7 @@ class Dyninst::SymtabAPI::emitElf<ElfTypes32>;
 extern template
 class Dyninst::SymtabAPI::emitElf<ElfTypes64>;
 
-set<string> debugInfoSections = list_of(string(SYMTAB_NAME))
-        (string(STRTAB_NAME));
+set<string> debugInfoSections { SYMTAB_NAME, STRTAB_NAME };
 
 // loaded_elf(): populate elf section pointers
 // for EEL rewritten code, also populate "code_*_" members

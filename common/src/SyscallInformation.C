@@ -4,3195 +4,2580 @@
 SyscallInformation::SyscallInformation() {
 
 /* Linux Arch_ppc64 Numbers */
-Platform Linux_Arch_ppc64(Arch_ppc64, Linux);
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_restart_syscall, 0));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(0, "restart_syscall"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_exit, 1));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(1, "exit"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fork, 2));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(2, "fork"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_read, 3));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(3, "read"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_write, 4));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(4, "write"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_open, 5));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(5, "open"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_close, 6));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(6, "close"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_waitpid, 7));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(7, "waitpid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_creat, 8));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(8, "creat"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_link, 9));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(9, "link"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_unlink, 10));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(10, "unlink"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_execve, 11));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(11, "execve"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_chdir, 12));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(12, "chdir"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_time, 13));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(13, "time"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mknod, 14));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(14, "mknod"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_chmod, 15));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(15, "chmod"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lchown, 16));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(16, "lchown"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_break, 17));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(17, "break"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_oldstat, 18));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(18, "oldstat"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lseek, 19));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(19, "lseek"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpid, 20));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(20, "getpid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mount, 21));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(21, "mount"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_umount, 22));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(22, "umount"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setuid, 23));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(23, "setuid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getuid, 24));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(24, "getuid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_stime, 25));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(25, "stime"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ptrace, 26));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(26, "ptrace"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_alarm, 27));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(27, "alarm"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_oldfstat, 28));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(28, "oldfstat"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pause, 29));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(29, "pause"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_utime, 30));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(30, "utime"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_stty, 31));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(31, "stty"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_gtty, 32));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(32, "gtty"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_access, 33));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(33, "access"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_nice, 34));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(34, "nice"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ftime, 35));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(35, "ftime"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sync, 36));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(36, "sync"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_kill, 37));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(37, "kill"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rename, 38));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(38, "rename"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mkdir, 39));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(39, "mkdir"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rmdir, 40));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(40, "rmdir"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_dup, 41));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(41, "dup"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pipe, 42));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(42, "pipe"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_times, 43));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(43, "times"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_prof, 44));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(44, "prof"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_brk, 45));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(45, "brk"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setgid, 46));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(46, "setgid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getgid, 47));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(47, "getgid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_signal, 48));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(48, "signal"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_geteuid, 49));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(49, "geteuid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getegid, 50));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(50, "getegid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_acct, 51));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(51, "acct"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_umount2, 52));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(52, "umount2"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lock, 53));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(53, "lock"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ioctl, 54));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(54, "ioctl"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fcntl, 55));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(55, "fcntl"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mpx, 56));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(56, "mpx"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setpgid, 57));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(57, "setpgid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ulimit, 58));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(58, "ulimit"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_oldolduname, 59));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(59, "oldolduname"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_umask, 60));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(60, "umask"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_chroot, 61));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(61, "chroot"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ustat, 62));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(62, "ustat"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_dup2, 63));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(63, "dup2"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getppid, 64));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(64, "getppid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpgrp, 65));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(65, "getpgrp"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setsid, 66));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(66, "setsid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sigaction, 67));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(67, "sigaction"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sgetmask, 68));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(68, "sgetmask"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ssetmask, 69));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(69, "ssetmask"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setreuid, 70));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(70, "setreuid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setregid, 71));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(71, "setregid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sigsuspend, 72));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(72, "sigsuspend"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sigpending, 73));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(73, "sigpending"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sethostname, 74));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(74, "sethostname"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setrlimit, 75));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(75, "setrlimit"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getrlimit, 76));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(76, "getrlimit"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getrusage, 77));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(77, "getrusage"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_gettimeofday, 78));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(78, "gettimeofday"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_settimeofday, 79));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(79, "settimeofday"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getgroups, 80));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(80, "getgroups"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setgroups, 81));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(81, "setgroups"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_select, 82));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(82, "select"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_symlink, 83));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(83, "symlink"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_oldlstat, 84));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(84, "oldlstat"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readlink, 85));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(85, "readlink"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_uselib, 86));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(86, "uselib"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_swapon, 87));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(87, "swapon"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_reboot, 88));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(88, "reboot"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readdir, 89));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(89, "readdir"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mmap, 90));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(90, "mmap"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_munmap, 91));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(91, "munmap"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_truncate, 92));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(92, "truncate"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ftruncate, 93));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(93, "ftruncate"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchmod, 94));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(94, "fchmod"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchown, 95));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(95, "fchown"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpriority, 96));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(96, "getpriority"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setpriority, 97));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(97, "setpriority"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_profil, 98));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(98, "profil"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_statfs, 99));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(99, "statfs"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fstatfs, 100));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(100, "fstatfs"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ioperm, 101));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(101, "ioperm"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_socketcall, 102));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(102, "socketcall"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_syslog, 103));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(103, "syslog"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setitimer, 104));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(104, "setitimer"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getitimer, 105));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(105, "getitimer"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_stat, 106));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(106, "stat"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lstat, 107));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(107, "lstat"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fstat, 108));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(108, "fstat"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_olduname, 109));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(109, "olduname"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_iopl, 110));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(110, "iopl"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_vhangup, 111));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(111, "vhangup"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_idle, 112));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(112, "idle"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_vm86, 113));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(113, "vm86"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_wait4, 114));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(114, "wait4"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_swapoff, 115));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(115, "swapoff"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sysinfo, 116));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(116, "sysinfo"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ipc, 117));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(117, "ipc"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fsync, 118));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(118, "fsync"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sigreturn, 119));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(119, "sigreturn"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clone, 120));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(120, "clone"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setdomainname, 121));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(121, "setdomainname"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_uname, 122));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(122, "uname"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_modify_ldt, 123));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(123, "modify_ldt"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_adjtimex, 124));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(124, "adjtimex"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mprotect, 125));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(125, "mprotect"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sigprocmask, 126));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(126, "sigprocmask"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_create_module, 127));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(127, "create_module"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_init_module, 128));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(128, "init_module"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_delete_module, 129));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(129, "delete_module"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_get_kernel_syms, 130));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(130, "get_kernel_syms"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_quotactl, 131));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(131, "quotactl"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpgid, 132));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(132, "getpgid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchdir, 133));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(133, "fchdir"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_bdflush, 134));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(134, "bdflush"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sysfs, 135));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(135, "sysfs"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_personality, 136));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(136, "personality"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_afs_syscall, 137));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(137, "afs_syscall"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setfsuid, 138));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(138, "setfsuid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setfsgid, 139));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(139, "setfsgid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn__llseek, 140));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(140, "_llseek"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getdents, 141));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(141, "getdents"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn__newselect, 142));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(142, "_newselect"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_flock, 143));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(143, "flock"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_msync, 144));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(144, "msync"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readv, 145));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(145, "readv"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_writev, 146));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(146, "writev"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getsid, 147));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(147, "getsid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fdatasync, 148));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(148, "fdatasync"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn__sysctl, 149));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(149, "_sysctl"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mlock, 150));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(150, "mlock"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_munlock, 151));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(151, "munlock"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mlockall, 152));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(152, "mlockall"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_munlockall, 153));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(153, "munlockall"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_setparam, 154));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(154, "sched_setparam"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_getparam, 155));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(155, "sched_getparam"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_setscheduler, 156));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(156, "sched_setscheduler"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_getscheduler, 157));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(157, "sched_getscheduler"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_yield, 158));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(158, "sched_yield"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_get_priority_max, 159));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(159, "sched_get_priority_max"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_get_priority_min, 160));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(160, "sched_get_priority_min"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_rr_get_interval, 161));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(161, "sched_rr_get_interval"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_nanosleep, 162));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(162, "nanosleep"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mremap, 163));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(163, "mremap"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setresuid, 164));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(164, "setresuid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getresuid, 165));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(165, "getresuid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_query_module, 166));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(166, "query_module"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_poll, 167));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(167, "poll"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_nfsservctl, 168));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(168, "nfsservctl"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setresgid, 169));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(169, "setresgid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getresgid, 170));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(170, "getresgid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_prctl, 171));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(171, "prctl"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigreturn, 172));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(172, "rt_sigreturn"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigaction, 173));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(173, "rt_sigaction"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigprocmask, 174));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(174, "rt_sigprocmask"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigpending, 175));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(175, "rt_sigpending"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigtimedwait, 176));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(176, "rt_sigtimedwait"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigqueueinfo, 177));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(177, "rt_sigqueueinfo"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigsuspend, 178));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(178, "rt_sigsuspend"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pread64, 179));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(179, "pread64"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pwrite64, 180));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(180, "pwrite64"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_chown, 181));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(181, "chown"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getcwd, 182));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(182, "getcwd"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_capget, 183));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(183, "capget"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_capset, 184));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(184, "capset"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sigaltstack, 185));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(185, "sigaltstack"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sendfile, 186));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(186, "sendfile"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpmsg, 187));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(187, "getpmsg"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_putpmsg, 188));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(188, "putpmsg"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_vfork, 189));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(189, "vfork"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ugetrlimit, 190));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(190, "ugetrlimit"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readahead, 191));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(191, "readahead"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pciconfig_read, 198));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(198, "pciconfig_read"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pciconfig_write, 199));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(199, "pciconfig_write"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pciconfig_iobase, 200));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(200, "pciconfig_iobase"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_multiplexer, 201));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(201, "multiplexer"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getdents64, 202));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(202, "getdents64"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pivot_root, 203));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(203, "pivot_root"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_madvise, 205));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(205, "madvise"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mincore, 206));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(206, "mincore"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_gettid, 207));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(207, "gettid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_tkill, 208));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(208, "tkill"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setxattr, 209));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(209, "setxattr"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lsetxattr, 210));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(210, "lsetxattr"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fsetxattr, 211));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(211, "fsetxattr"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getxattr, 212));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(212, "getxattr"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lgetxattr, 213));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(213, "lgetxattr"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fgetxattr, 214));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(214, "fgetxattr"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_listxattr, 215));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(215, "listxattr"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_llistxattr, 216));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(216, "llistxattr"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_flistxattr, 217));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(217, "flistxattr"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_removexattr, 218));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(218, "removexattr"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lremovexattr, 219));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(219, "lremovexattr"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fremovexattr, 220));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(220, "fremovexattr"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_futex, 221));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(221, "futex"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_setaffinity, 222));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(222, "sched_setaffinity"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_getaffinity, 223));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(223, "sched_getaffinity"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_tuxcall, 225));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(225, "tuxcall"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_setup, 227));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(227, "io_setup"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_destroy, 228));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(228, "io_destroy"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_getevents, 229));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(229, "io_getevents"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_submit, 230));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(230, "io_submit"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_cancel, 231));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(231, "io_cancel"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_set_tid_address, 232));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(232, "set_tid_address"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fadvise64, 233));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(233, "fadvise64"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_exit_group, 234));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(234, "exit_group"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lookup_dcookie, 235));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(235, "lookup_dcookie"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_create, 236));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(236, "epoll_create"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_ctl, 237));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(237, "epoll_ctl"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_wait, 238));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(238, "epoll_wait"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_remap_file_pages, 239));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(239, "remap_file_pages"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_create, 240));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(240, "timer_create"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_settime, 241));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(241, "timer_settime"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_gettime, 242));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(242, "timer_gettime"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_getoverrun, 243));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(243, "timer_getoverrun"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_delete, 244));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(244, "timer_delete"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_settime, 245));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(245, "clock_settime"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_gettime, 246));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(246, "clock_gettime"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_getres, 247));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(247, "clock_getres"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_nanosleep, 248));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(248, "clock_nanosleep"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_swapcontext, 249));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(249, "swapcontext"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_tgkill, 250));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(250, "tgkill"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_utimes, 251));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(251, "utimes"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_statfs64, 252));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(252, "statfs64"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fstatfs64, 253));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(253, "fstatfs64"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rtas, 255));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(255, "rtas"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sys_debug_setcontext, 256));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(256, "sys_debug_setcontext"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_migrate_pages, 258));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(258, "migrate_pages"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mbind, 259));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(259, "mbind"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_get_mempolicy, 260));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(260, "get_mempolicy"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_set_mempolicy, 261));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(261, "set_mempolicy"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_open, 262));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(262, "mq_open"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_unlink, 263));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(263, "mq_unlink"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_timedsend, 264));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(264, "mq_timedsend"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_timedreceive, 265));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(265, "mq_timedreceive"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_notify, 266));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(266, "mq_notify"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_getsetattr, 267));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(267, "mq_getsetattr"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_kexec_load, 268));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(268, "kexec_load"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_add_key, 269));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(269, "add_key"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_request_key, 270));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(270, "request_key"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_keyctl, 271));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(271, "keyctl"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_waitid, 272));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(272, "waitid"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ioprio_set, 273));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(273, "ioprio_set"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ioprio_get, 274));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(274, "ioprio_get"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_inotify_init, 275));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(275, "inotify_init"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_inotify_add_watch, 276));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(276, "inotify_add_watch"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_inotify_rm_watch, 277));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(277, "inotify_rm_watch"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_spu_run, 278));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(278, "spu_run"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_spu_create, 279));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(279, "spu_create"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pselect6, 280));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(280, "pselect6"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ppoll, 281));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(281, "ppoll"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_unshare, 282));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(282, "unshare"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_splice, 283));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(283, "splice"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_tee, 284));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(284, "tee"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_vmsplice, 285));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(285, "vmsplice"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_openat, 286));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(286, "openat"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mkdirat, 287));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(287, "mkdirat"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mknodat, 288));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(288, "mknodat"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchownat, 289));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(289, "fchownat"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_futimesat, 290));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(290, "futimesat"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_newfstatat, 291));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(291, "newfstatat"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_unlinkat, 292));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(292, "unlinkat"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_renameat, 293));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(293, "renameat"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_linkat, 294));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(294, "linkat"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_symlinkat, 295));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(295, "symlinkat"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readlinkat, 296));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(296, "readlinkat"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchmodat, 297));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(297, "fchmodat"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_faccessat, 298));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(298, "faccessat"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_get_robust_list, 299));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(299, "get_robust_list"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_set_robust_list, 300));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(300, "set_robust_list"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_move_pages, 301));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(301, "move_pages"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getcpu, 302));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(302, "getcpu"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_pwait, 303));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(303, "epoll_pwait"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_utimensat, 304));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(304, "utimensat"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_signalfd, 305));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(305, "signalfd"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timerfd_create, 306));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(306, "timerfd_create"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_eventfd, 307));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(307, "eventfd"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sync_file_range2, 308));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(308, "sync_file_range2"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fallocate, 309));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(309, "fallocate"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_subpage_prot, 310));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(310, "subpage_prot"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timerfd_settime, 311));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(311, "timerfd_settime"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timerfd_gettime, 312));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(312, "timerfd_gettime"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_signalfd4, 313));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(313, "signalfd4"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_eventfd2, 314));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(314, "eventfd2"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_create1, 315));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(315, "epoll_create1"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_dup3, 316));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(316, "dup3"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pipe2, 317));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(317, "pipe2"));
-Linux_Arch_ppc64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_inotify_init1, 318));
-Linux_Arch_ppc64_syscallNames.insert(make_pair(318, "inotify_init1"));
+Linux_Arch_ppc64_syscallNumbers.insert({
+	{ Syscall::dyn_restart_syscall, 0 },
+	{ Syscall::dyn_exit, 1 },
+	{ Syscall::dyn_fork, 2 },
+	{ Syscall::dyn_read, 3 },
+	{ Syscall::dyn_write, 4 },
+	{ Syscall::dyn_open, 5 },
+	{ Syscall::dyn_close, 6 },
+	{ Syscall::dyn_waitpid, 7 },
+	{ Syscall::dyn_creat, 8 },
+	{ Syscall::dyn_link, 9 },
+	{ Syscall::dyn_unlink, 10 },
+	{ Syscall::dyn_execve, 11 },
+	{ Syscall::dyn_chdir, 12 },
+	{ Syscall::dyn_time, 13 },
+	{ Syscall::dyn_mknod, 14 },
+	{ Syscall::dyn_chmod, 15 },
+	{ Syscall::dyn_lchown, 16 },
+	{ Syscall::dyn_break, 17 },
+	{ Syscall::dyn_oldstat, 18 },
+	{ Syscall::dyn_lseek, 19 },
+	{ Syscall::dyn_getpid, 20 },
+	{ Syscall::dyn_mount, 21 },
+	{ Syscall::dyn_umount, 22 },
+	{ Syscall::dyn_setuid, 23 },
+	{ Syscall::dyn_getuid, 24 },
+	{ Syscall::dyn_stime, 25 },
+	{ Syscall::dyn_ptrace, 26 },
+	{ Syscall::dyn_alarm, 27 },
+	{ Syscall::dyn_oldfstat, 28 },
+	{ Syscall::dyn_pause, 29 },
+	{ Syscall::dyn_utime, 30 },
+	{ Syscall::dyn_stty, 31 },
+	{ Syscall::dyn_gtty, 32 },
+	{ Syscall::dyn_access, 33 },
+	{ Syscall::dyn_nice, 34 },
+	{ Syscall::dyn_ftime, 35 },
+	{ Syscall::dyn_sync, 36 },
+	{ Syscall::dyn_kill, 37 },
+	{ Syscall::dyn_rename, 38 },
+	{ Syscall::dyn_mkdir, 39 },
+	{ Syscall::dyn_rmdir, 40 },
+	{ Syscall::dyn_dup, 41 },
+	{ Syscall::dyn_pipe, 42 },
+	{ Syscall::dyn_times, 43 },
+	{ Syscall::dyn_prof, 44 },
+	{ Syscall::dyn_brk, 45 },
+	{ Syscall::dyn_setgid, 46 },
+	{ Syscall::dyn_getgid, 47 },
+	{ Syscall::dyn_signal, 48 },
+	{ Syscall::dyn_geteuid, 49 },
+	{ Syscall::dyn_getegid, 50 },
+	{ Syscall::dyn_acct, 51 },
+	{ Syscall::dyn_umount2, 52 },
+	{ Syscall::dyn_lock, 53 },
+	{ Syscall::dyn_ioctl, 54 },
+	{ Syscall::dyn_fcntl, 55 },
+	{ Syscall::dyn_mpx, 56 },
+	{ Syscall::dyn_setpgid, 57 },
+	{ Syscall::dyn_ulimit, 58 },
+	{ Syscall::dyn_oldolduname, 59 },
+	{ Syscall::dyn_umask, 60 },
+	{ Syscall::dyn_chroot, 61 },
+	{ Syscall::dyn_ustat, 62 },
+	{ Syscall::dyn_dup2, 63 },
+	{ Syscall::dyn_getppid, 64 },
+	{ Syscall::dyn_getpgrp, 65 },
+	{ Syscall::dyn_setsid, 66 },
+	{ Syscall::dyn_sigaction, 67 },
+	{ Syscall::dyn_sgetmask, 68 },
+	{ Syscall::dyn_ssetmask, 69 },
+	{ Syscall::dyn_setreuid, 70 },
+	{ Syscall::dyn_setregid, 71 },
+	{ Syscall::dyn_sigsuspend, 72 },
+	{ Syscall::dyn_sigpending, 73 },
+	{ Syscall::dyn_sethostname, 74 },
+	{ Syscall::dyn_setrlimit, 75 },
+	{ Syscall::dyn_getrlimit, 76 },
+	{ Syscall::dyn_getrusage, 77 },
+	{ Syscall::dyn_gettimeofday, 78 },
+	{ Syscall::dyn_settimeofday, 79 },
+	{ Syscall::dyn_getgroups, 80 },
+	{ Syscall::dyn_setgroups, 81 },
+	{ Syscall::dyn_select, 82 },
+	{ Syscall::dyn_symlink, 83 },
+	{ Syscall::dyn_oldlstat, 84 },
+	{ Syscall::dyn_readlink, 85 },
+	{ Syscall::dyn_uselib, 86 },
+	{ Syscall::dyn_swapon, 87 },
+	{ Syscall::dyn_reboot, 88 },
+	{ Syscall::dyn_readdir, 89 },
+	{ Syscall::dyn_mmap, 90 },
+	{ Syscall::dyn_munmap, 91 },
+	{ Syscall::dyn_truncate, 92 },
+	{ Syscall::dyn_ftruncate, 93 },
+	{ Syscall::dyn_fchmod, 94 },
+	{ Syscall::dyn_fchown, 95 },
+	{ Syscall::dyn_getpriority, 96 },
+	{ Syscall::dyn_setpriority, 97 },
+	{ Syscall::dyn_profil, 98 },
+	{ Syscall::dyn_statfs, 99 },
+	{ Syscall::dyn_fstatfs, 100 },
+	{ Syscall::dyn_ioperm, 101 },
+	{ Syscall::dyn_socketcall, 102 },
+	{ Syscall::dyn_syslog, 103 },
+	{ Syscall::dyn_setitimer, 104 },
+	{ Syscall::dyn_getitimer, 105 },
+	{ Syscall::dyn_stat, 106 },
+	{ Syscall::dyn_lstat, 107 },
+	{ Syscall::dyn_fstat, 108 },
+	{ Syscall::dyn_olduname, 109 },
+	{ Syscall::dyn_iopl, 110 },
+	{ Syscall::dyn_vhangup, 111 },
+	{ Syscall::dyn_idle, 112 },
+	{ Syscall::dyn_vm86, 113 },
+	{ Syscall::dyn_wait4, 114 },
+	{ Syscall::dyn_swapoff, 115 },
+	{ Syscall::dyn_sysinfo, 116 },
+	{ Syscall::dyn_ipc, 117 },
+	{ Syscall::dyn_fsync, 118 },
+	{ Syscall::dyn_sigreturn, 119 },
+	{ Syscall::dyn_clone, 120 },
+	{ Syscall::dyn_setdomainname, 121 },
+	{ Syscall::dyn_uname, 122 },
+	{ Syscall::dyn_modify_ldt, 123 },
+	{ Syscall::dyn_adjtimex, 124 },
+	{ Syscall::dyn_mprotect, 125 },
+	{ Syscall::dyn_sigprocmask, 126 },
+	{ Syscall::dyn_create_module, 127 },
+	{ Syscall::dyn_init_module, 128 },
+	{ Syscall::dyn_delete_module, 129 },
+	{ Syscall::dyn_get_kernel_syms, 130 },
+	{ Syscall::dyn_quotactl, 131 },
+	{ Syscall::dyn_getpgid, 132 },
+	{ Syscall::dyn_fchdir, 133 },
+	{ Syscall::dyn_bdflush, 134 },
+	{ Syscall::dyn_sysfs, 135 },
+	{ Syscall::dyn_personality, 136 },
+	{ Syscall::dyn_afs_syscall, 137 },
+	{ Syscall::dyn_setfsuid, 138 },
+	{ Syscall::dyn_setfsgid, 139 },
+	{ Syscall::dyn__llseek, 140 },
+	{ Syscall::dyn_getdents, 141 },
+	{ Syscall::dyn__newselect, 142 },
+	{ Syscall::dyn_flock, 143 },
+	{ Syscall::dyn_msync, 144 },
+	{ Syscall::dyn_readv, 145 },
+	{ Syscall::dyn_writev, 146 },
+	{ Syscall::dyn_getsid, 147 },
+	{ Syscall::dyn_fdatasync, 148 },
+	{ Syscall::dyn__sysctl, 149 },
+	{ Syscall::dyn_mlock, 150 },
+	{ Syscall::dyn_munlock, 151 },
+	{ Syscall::dyn_mlockall, 152 },
+	{ Syscall::dyn_munlockall, 153 },
+	{ Syscall::dyn_sched_setparam, 154 },
+	{ Syscall::dyn_sched_getparam, 155 },
+	{ Syscall::dyn_sched_setscheduler, 156 },
+	{ Syscall::dyn_sched_getscheduler, 157 },
+	{ Syscall::dyn_sched_yield, 158 },
+	{ Syscall::dyn_sched_get_priority_max, 159 },
+	{ Syscall::dyn_sched_get_priority_min, 160 },
+	{ Syscall::dyn_sched_rr_get_interval, 161 },
+	{ Syscall::dyn_nanosleep, 162 },
+	{ Syscall::dyn_mremap, 163 },
+	{ Syscall::dyn_setresuid, 164 },
+	{ Syscall::dyn_getresuid, 165 },
+	{ Syscall::dyn_query_module, 166 },
+	{ Syscall::dyn_poll, 167 },
+	{ Syscall::dyn_nfsservctl, 168 },
+	{ Syscall::dyn_setresgid, 169 },
+	{ Syscall::dyn_getresgid, 170 },
+	{ Syscall::dyn_prctl, 171 },
+	{ Syscall::dyn_rt_sigreturn, 172 },
+	{ Syscall::dyn_rt_sigaction, 173 },
+	{ Syscall::dyn_rt_sigprocmask, 174 },
+	{ Syscall::dyn_rt_sigpending, 175 },
+	{ Syscall::dyn_rt_sigtimedwait, 176 },
+	{ Syscall::dyn_rt_sigqueueinfo, 177 },
+	{ Syscall::dyn_rt_sigsuspend, 178 },
+	{ Syscall::dyn_pread64, 179 },
+	{ Syscall::dyn_pwrite64, 180 },
+	{ Syscall::dyn_chown, 181 },
+	{ Syscall::dyn_getcwd, 182 },
+	{ Syscall::dyn_capget, 183 },
+	{ Syscall::dyn_capset, 184 },
+	{ Syscall::dyn_sigaltstack, 185 },
+	{ Syscall::dyn_sendfile, 186 },
+	{ Syscall::dyn_getpmsg, 187 },
+	{ Syscall::dyn_putpmsg, 188 },
+	{ Syscall::dyn_vfork, 189 },
+	{ Syscall::dyn_ugetrlimit, 190 },
+	{ Syscall::dyn_readahead, 191 },
+	{ Syscall::dyn_pciconfig_read, 198 },
+	{ Syscall::dyn_pciconfig_write, 199 },
+	{ Syscall::dyn_pciconfig_iobase, 200 },
+	{ Syscall::dyn_multiplexer, 201 },
+	{ Syscall::dyn_getdents64, 202 },
+	{ Syscall::dyn_pivot_root, 203 },
+	{ Syscall::dyn_madvise, 205 },
+	{ Syscall::dyn_mincore, 206 },
+	{ Syscall::dyn_gettid, 207 },
+	{ Syscall::dyn_tkill, 208 },
+	{ Syscall::dyn_setxattr, 209 },
+	{ Syscall::dyn_lsetxattr, 210 },
+	{ Syscall::dyn_fsetxattr, 211 },
+	{ Syscall::dyn_getxattr, 212 },
+	{ Syscall::dyn_lgetxattr, 213 },
+	{ Syscall::dyn_fgetxattr, 214 },
+	{ Syscall::dyn_listxattr, 215 },
+	{ Syscall::dyn_llistxattr, 216 },
+	{ Syscall::dyn_flistxattr, 217 },
+	{ Syscall::dyn_removexattr, 218 },
+	{ Syscall::dyn_lremovexattr, 219 },
+	{ Syscall::dyn_fremovexattr, 220 },
+	{ Syscall::dyn_futex, 221 },
+	{ Syscall::dyn_sched_setaffinity, 222 },
+	{ Syscall::dyn_sched_getaffinity, 223 },
+	{ Syscall::dyn_tuxcall, 225 },
+	{ Syscall::dyn_io_setup, 227 },
+	{ Syscall::dyn_io_destroy, 228 },
+	{ Syscall::dyn_io_getevents, 229 },
+	{ Syscall::dyn_io_submit, 230 },
+	{ Syscall::dyn_io_cancel, 231 },
+	{ Syscall::dyn_set_tid_address, 232 },
+	{ Syscall::dyn_fadvise64, 233 },
+	{ Syscall::dyn_exit_group, 234 },
+	{ Syscall::dyn_lookup_dcookie, 235 },
+	{ Syscall::dyn_epoll_create, 236 },
+	{ Syscall::dyn_epoll_ctl, 237 },
+	{ Syscall::dyn_epoll_wait, 238 },
+	{ Syscall::dyn_remap_file_pages, 239 },
+	{ Syscall::dyn_timer_create, 240 },
+	{ Syscall::dyn_timer_settime, 241 },
+	{ Syscall::dyn_timer_gettime, 242 },
+	{ Syscall::dyn_timer_getoverrun, 243 },
+	{ Syscall::dyn_timer_delete, 244 },
+	{ Syscall::dyn_clock_settime, 245 },
+	{ Syscall::dyn_clock_gettime, 246 },
+	{ Syscall::dyn_clock_getres, 247 },
+	{ Syscall::dyn_clock_nanosleep, 248 },
+	{ Syscall::dyn_swapcontext, 249 },
+	{ Syscall::dyn_tgkill, 250 },
+	{ Syscall::dyn_utimes, 251 },
+	{ Syscall::dyn_statfs64, 252 },
+	{ Syscall::dyn_fstatfs64, 253 },
+	{ Syscall::dyn_rtas, 255 },
+	{ Syscall::dyn_sys_debug_setcontext, 256 },
+	{ Syscall::dyn_migrate_pages, 258 },
+	{ Syscall::dyn_mbind, 259 },
+	{ Syscall::dyn_get_mempolicy, 260 },
+	{ Syscall::dyn_set_mempolicy, 261 },
+	{ Syscall::dyn_mq_open, 262 },
+	{ Syscall::dyn_mq_unlink, 263 },
+	{ Syscall::dyn_mq_timedsend, 264 },
+	{ Syscall::dyn_mq_timedreceive, 265 },
+	{ Syscall::dyn_mq_notify, 266 },
+	{ Syscall::dyn_mq_getsetattr, 267 },
+	{ Syscall::dyn_kexec_load, 268 },
+	{ Syscall::dyn_add_key, 269 },
+	{ Syscall::dyn_request_key, 270 },
+	{ Syscall::dyn_keyctl, 271 },
+	{ Syscall::dyn_waitid, 272 },
+	{ Syscall::dyn_ioprio_set, 273 },
+	{ Syscall::dyn_ioprio_get, 274 },
+	{ Syscall::dyn_inotify_init, 275 },
+	{ Syscall::dyn_inotify_add_watch, 276 },
+	{ Syscall::dyn_inotify_rm_watch, 277 },
+	{ Syscall::dyn_spu_run, 278 },
+	{ Syscall::dyn_spu_create, 279 },
+	{ Syscall::dyn_pselect6, 280 },
+	{ Syscall::dyn_ppoll, 281 },
+	{ Syscall::dyn_unshare, 282 },
+	{ Syscall::dyn_splice, 283 },
+	{ Syscall::dyn_tee, 284 },
+	{ Syscall::dyn_vmsplice, 285 },
+	{ Syscall::dyn_openat, 286 },
+	{ Syscall::dyn_mkdirat, 287 },
+	{ Syscall::dyn_mknodat, 288 },
+	{ Syscall::dyn_fchownat, 289 },
+	{ Syscall::dyn_futimesat, 290 },
+	{ Syscall::dyn_newfstatat, 291 },
+	{ Syscall::dyn_unlinkat, 292 },
+	{ Syscall::dyn_renameat, 293 },
+	{ Syscall::dyn_linkat, 294 },
+	{ Syscall::dyn_symlinkat, 295 },
+	{ Syscall::dyn_readlinkat, 296 },
+	{ Syscall::dyn_fchmodat, 297 },
+	{ Syscall::dyn_faccessat, 298 },
+	{ Syscall::dyn_get_robust_list, 299 },
+	{ Syscall::dyn_set_robust_list, 300 },
+	{ Syscall::dyn_move_pages, 301 },
+	{ Syscall::dyn_getcpu, 302 },
+	{ Syscall::dyn_epoll_pwait, 303 },
+	{ Syscall::dyn_utimensat, 304 },
+	{ Syscall::dyn_signalfd, 305 },
+	{ Syscall::dyn_timerfd_create, 306 },
+	{ Syscall::dyn_eventfd, 307 },
+	{ Syscall::dyn_sync_file_range2, 308 },
+	{ Syscall::dyn_fallocate, 309 },
+	{ Syscall::dyn_subpage_prot, 310 },
+	{ Syscall::dyn_timerfd_settime, 311 },
+	{ Syscall::dyn_timerfd_gettime, 312 },
+	{ Syscall::dyn_signalfd4, 313 },
+	{ Syscall::dyn_eventfd2, 314 },
+	{ Syscall::dyn_epoll_create1, 315 },
+	{ Syscall::dyn_dup3, 316 },
+	{ Syscall::dyn_pipe2, 317 },
+	{ Syscall::dyn_inotify_init1, 318 },
+});
+Linux_Arch_ppc64_syscallNames.insert({
+	{ 0, "restart_syscall" },
+	{ 1, "exit" },
+	{ 2, "fork" },
+	{ 3, "read" },
+	{ 4, "write" },
+	{ 5, "open" },
+	{ 6, "close" },
+	{ 7, "waitpid" },
+	{ 8, "creat" },
+	{ 9, "link" },
+	{ 10, "unlink" },
+	{ 11, "execve" },
+	{ 12, "chdir" },
+	{ 13, "time" },
+	{ 14, "mknod" },
+	{ 15, "chmod" },
+	{ 16, "lchown" },
+	{ 17, "break" },
+	{ 18, "oldstat" },
+	{ 19, "lseek" },
+	{ 20, "getpid" },
+	{ 21, "mount" },
+	{ 22, "umount" },
+	{ 23, "setuid" },
+	{ 24, "getuid" },
+	{ 25, "stime" },
+	{ 26, "ptrace" },
+	{ 27, "alarm" },
+	{ 28, "oldfstat" },
+	{ 29, "pause" },
+	{ 30, "utime" },
+	{ 31, "stty" },
+	{ 32, "gtty" },
+	{ 33, "access" },
+	{ 34, "nice" },
+	{ 35, "ftime" },
+	{ 36, "sync" },
+	{ 37, "kill" },
+	{ 38, "rename" },
+	{ 39, "mkdir" },
+	{ 40, "rmdir" },
+	{ 41, "dup" },
+	{ 42, "pipe" },
+	{ 43, "times" },
+	{ 44, "prof" },
+	{ 45, "brk" },
+	{ 46, "setgid" },
+	{ 47, "getgid" },
+	{ 48, "signal" },
+	{ 49, "geteuid" },
+	{ 50, "getegid" },
+	{ 51, "acct" },
+	{ 52, "umount2" },
+	{ 53, "lock" },
+	{ 54, "ioctl" },
+	{ 55, "fcntl" },
+	{ 56, "mpx" },
+	{ 57, "setpgid" },
+	{ 58, "ulimit" },
+	{ 59, "oldolduname" },
+	{ 60, "umask" },
+	{ 61, "chroot" },
+	{ 62, "ustat" },
+	{ 63, "dup2" },
+	{ 64, "getppid" },
+	{ 65, "getpgrp" },
+	{ 66, "setsid" },
+	{ 67, "sigaction" },
+	{ 68, "sgetmask" },
+	{ 69, "ssetmask" },
+	{ 70, "setreuid" },
+	{ 71, "setregid" },
+	{ 72, "sigsuspend" },
+	{ 73, "sigpending" },
+	{ 74, "sethostname" },
+	{ 75, "setrlimit" },
+	{ 76, "getrlimit" },
+	{ 77, "getrusage" },
+	{ 78, "gettimeofday" },
+	{ 79, "settimeofday" },
+	{ 80, "getgroups" },
+	{ 81, "setgroups" },
+	{ 82, "select" },
+	{ 83, "symlink" },
+	{ 84, "oldlstat" },
+	{ 85, "readlink" },
+	{ 86, "uselib" },
+	{ 87, "swapon" },
+	{ 88, "reboot" },
+	{ 89, "readdir" },
+	{ 90, "mmap" },
+	{ 91, "munmap" },
+	{ 92, "truncate" },
+	{ 93, "ftruncate" },
+	{ 94, "fchmod" },
+	{ 95, "fchown" },
+	{ 96, "getpriority" },
+	{ 97, "setpriority" },
+	{ 98, "profil" },
+	{ 99, "statfs" },
+	{ 100, "fstatfs" },
+	{ 101, "ioperm" },
+	{ 102, "socketcall" },
+	{ 103, "syslog" },
+	{ 104, "setitimer" },
+	{ 105, "getitimer" },
+	{ 106, "stat" },
+	{ 107, "lstat" },
+	{ 108, "fstat" },
+	{ 109, "olduname" },
+	{ 110, "iopl" },
+	{ 111, "vhangup" },
+	{ 112, "idle" },
+	{ 113, "vm86" },
+	{ 114, "wait4" },
+	{ 115, "swapoff" },
+	{ 116, "sysinfo" },
+	{ 117, "ipc" },
+	{ 118, "fsync" },
+	{ 119, "sigreturn" },
+	{ 120, "clone" },
+	{ 121, "setdomainname" },
+	{ 122, "uname" },
+	{ 123, "modify_ldt" },
+	{ 124, "adjtimex" },
+	{ 125, "mprotect" },
+	{ 126, "sigprocmask" },
+	{ 127, "create_module" },
+	{ 128, "init_module" },
+	{ 129, "delete_module" },
+	{ 130, "get_kernel_syms" },
+	{ 131, "quotactl" },
+	{ 132, "getpgid" },
+	{ 133, "fchdir" },
+	{ 134, "bdflush" },
+	{ 135, "sysfs" },
+	{ 136, "personality" },
+	{ 137, "afs_syscall" },
+	{ 138, "setfsuid" },
+	{ 139, "setfsgid" },
+	{ 140, "_llseek" },
+	{ 141, "getdents" },
+	{ 142, "_newselect" },
+	{ 143, "flock" },
+	{ 144, "msync" },
+	{ 145, "readv" },
+	{ 146, "writev" },
+	{ 147, "getsid" },
+	{ 148, "fdatasync" },
+	{ 149, "_sysctl" },
+	{ 150, "mlock" },
+	{ 151, "munlock" },
+	{ 152, "mlockall" },
+	{ 153, "munlockall" },
+	{ 154, "sched_setparam" },
+	{ 155, "sched_getparam" },
+	{ 156, "sched_setscheduler" },
+	{ 157, "sched_getscheduler" },
+	{ 158, "sched_yield" },
+	{ 159, "sched_get_priority_max" },
+	{ 160, "sched_get_priority_min" },
+	{ 161, "sched_rr_get_interval" },
+	{ 162, "nanosleep" },
+	{ 163, "mremap" },
+	{ 164, "setresuid" },
+	{ 165, "getresuid" },
+	{ 166, "query_module" },
+	{ 167, "poll" },
+	{ 168, "nfsservctl" },
+	{ 169, "setresgid" },
+	{ 170, "getresgid" },
+	{ 171, "prctl" },
+	{ 172, "rt_sigreturn" },
+	{ 173, "rt_sigaction" },
+	{ 174, "rt_sigprocmask" },
+	{ 175, "rt_sigpending" },
+	{ 176, "rt_sigtimedwait" },
+	{ 177, "rt_sigqueueinfo" },
+	{ 178, "rt_sigsuspend" },
+	{ 179, "pread64" },
+	{ 180, "pwrite64" },
+	{ 181, "chown" },
+	{ 182, "getcwd" },
+	{ 183, "capget" },
+	{ 184, "capset" },
+	{ 185, "sigaltstack" },
+	{ 186, "sendfile" },
+	{ 187, "getpmsg" },
+	{ 188, "putpmsg" },
+	{ 189, "vfork" },
+	{ 190, "ugetrlimit" },
+	{ 191, "readahead" },
+	{ 198, "pciconfig_read" },
+	{ 199, "pciconfig_write" },
+	{ 200, "pciconfig_iobase" },
+	{ 201, "multiplexer" },
+	{ 202, "getdents64" },
+	{ 203, "pivot_root" },
+	{ 205, "madvise" },
+	{ 206, "mincore" },
+	{ 207, "gettid" },
+	{ 208, "tkill" },
+	{ 209, "setxattr" },
+	{ 210, "lsetxattr" },
+	{ 211, "fsetxattr" },
+	{ 212, "getxattr" },
+	{ 213, "lgetxattr" },
+	{ 214, "fgetxattr" },
+	{ 215, "listxattr" },
+	{ 216, "llistxattr" },
+	{ 217, "flistxattr" },
+	{ 218, "removexattr" },
+	{ 219, "lremovexattr" },
+	{ 220, "fremovexattr" },
+	{ 221, "futex" },
+	{ 222, "sched_setaffinity" },
+	{ 223, "sched_getaffinity" },
+	{ 225, "tuxcall" },
+	{ 227, "io_setup" },
+	{ 228, "io_destroy" },
+	{ 229, "io_getevents" },
+	{ 230, "io_submit" },
+	{ 231, "io_cancel" },
+	{ 232, "set_tid_address" },
+	{ 233, "fadvise64" },
+	{ 234, "exit_group" },
+	{ 235, "lookup_dcookie" },
+	{ 236, "epoll_create" },
+	{ 237, "epoll_ctl" },
+	{ 238, "epoll_wait" },
+	{ 239, "remap_file_pages" },
+	{ 240, "timer_create" },
+	{ 241, "timer_settime" },
+	{ 242, "timer_gettime" },
+	{ 243, "timer_getoverrun" },
+	{ 244, "timer_delete" },
+	{ 245, "clock_settime" },
+	{ 246, "clock_gettime" },
+	{ 247, "clock_getres" },
+	{ 248, "clock_nanosleep" },
+	{ 249, "swapcontext" },
+	{ 250, "tgkill" },
+	{ 251, "utimes" },
+	{ 252, "statfs64" },
+	{ 253, "fstatfs64" },
+	{ 255, "rtas" },
+	{ 256, "sys_debug_setcontext" },
+	{ 258, "migrate_pages" },
+	{ 259, "mbind" },
+	{ 260, "get_mempolicy" },
+	{ 261, "set_mempolicy" },
+	{ 262, "mq_open" },
+	{ 263, "mq_unlink" },
+	{ 264, "mq_timedsend" },
+	{ 265, "mq_timedreceive" },
+	{ 266, "mq_notify" },
+	{ 267, "mq_getsetattr" },
+	{ 268, "kexec_load" },
+	{ 269, "add_key" },
+	{ 270, "request_key" },
+	{ 271, "keyctl" },
+	{ 272, "waitid" },
+	{ 273, "ioprio_set" },
+	{ 274, "ioprio_get" },
+	{ 275, "inotify_init" },
+	{ 276, "inotify_add_watch" },
+	{ 277, "inotify_rm_watch" },
+	{ 278, "spu_run" },
+	{ 279, "spu_create" },
+	{ 280, "pselect6" },
+	{ 281, "ppoll" },
+	{ 282, "unshare" },
+	{ 283, "splice" },
+	{ 284, "tee" },
+	{ 285, "vmsplice" },
+	{ 286, "openat" },
+	{ 287, "mkdirat" },
+	{ 288, "mknodat" },
+	{ 289, "fchownat" },
+	{ 290, "futimesat" },
+	{ 291, "newfstatat" },
+	{ 292, "unlinkat" },
+	{ 293, "renameat" },
+	{ 294, "linkat" },
+	{ 295, "symlinkat" },
+	{ 296, "readlinkat" },
+	{ 297, "fchmodat" },
+	{ 298, "faccessat" },
+	{ 299, "get_robust_list" },
+	{ 300, "set_robust_list" },
+	{ 301, "move_pages" },
+	{ 302, "getcpu" },
+	{ 303, "epoll_pwait" },
+	{ 304, "utimensat" },
+	{ 305, "signalfd" },
+	{ 306, "timerfd_create" },
+	{ 307, "eventfd" },
+	{ 308, "sync_file_range2" },
+	{ 309, "fallocate" },
+	{ 310, "subpage_prot" },
+	{ 311, "timerfd_settime" },
+	{ 312, "timerfd_gettime" },
+	{ 313, "signalfd4" },
+	{ 314, "eventfd2" },
+	{ 315, "epoll_create1" },
+	{ 316, "dup3" },
+	{ 317, "pipe2" },
+	{ 318, "inotify_init1" },
+});
 
 /* Linux Arch_ppc32 Numbers */
-Platform Linux_Arch_ppc32_plat(Arch_ppc32, Linux);
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_restart_syscall, 0));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(0, "restart_syscall"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_exit, 1));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(1, "exit"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fork, 2));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(2, "fork"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_read, 3));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(3, "read"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_write, 4));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(4, "write"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_open, 5));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(5, "open"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_close, 6));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(6, "close"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_waitpid, 7));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(7, "waitpid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_creat, 8));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(8, "creat"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_link, 9));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(9, "link"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_unlink, 10));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(10, "unlink"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_execve, 11));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(11, "execve"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_chdir, 12));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(12, "chdir"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_time, 13));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(13, "time"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mknod, 14));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(14, "mknod"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_chmod, 15));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(15, "chmod"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lchown, 16));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(16, "lchown"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_break, 17));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(17, "break"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_oldstat, 18));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(18, "oldstat"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lseek, 19));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(19, "lseek"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpid, 20));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(20, "getpid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mount, 21));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(21, "mount"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_umount, 22));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(22, "umount"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setuid, 23));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(23, "setuid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getuid, 24));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(24, "getuid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_stime, 25));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(25, "stime"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ptrace, 26));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(26, "ptrace"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_alarm, 27));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(27, "alarm"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_oldfstat, 28));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(28, "oldfstat"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pause, 29));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(29, "pause"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_utime, 30));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(30, "utime"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_stty, 31));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(31, "stty"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_gtty, 32));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(32, "gtty"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_access, 33));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(33, "access"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_nice, 34));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(34, "nice"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ftime, 35));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(35, "ftime"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sync, 36));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(36, "sync"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_kill, 37));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(37, "kill"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rename, 38));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(38, "rename"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mkdir, 39));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(39, "mkdir"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rmdir, 40));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(40, "rmdir"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_dup, 41));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(41, "dup"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pipe, 42));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(42, "pipe"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_times, 43));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(43, "times"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_prof, 44));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(44, "prof"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_brk, 45));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(45, "brk"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setgid, 46));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(46, "setgid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getgid, 47));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(47, "getgid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_signal, 48));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(48, "signal"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_geteuid, 49));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(49, "geteuid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getegid, 50));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(50, "getegid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_acct, 51));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(51, "acct"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_umount2, 52));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(52, "umount2"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lock, 53));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(53, "lock"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ioctl, 54));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(54, "ioctl"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fcntl, 55));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(55, "fcntl"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mpx, 56));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(56, "mpx"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setpgid, 57));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(57, "setpgid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ulimit, 58));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(58, "ulimit"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_oldolduname, 59));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(59, "oldolduname"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_umask, 60));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(60, "umask"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_chroot, 61));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(61, "chroot"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ustat, 62));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(62, "ustat"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_dup2, 63));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(63, "dup2"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getppid, 64));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(64, "getppid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpgrp, 65));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(65, "getpgrp"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setsid, 66));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(66, "setsid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sigaction, 67));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(67, "sigaction"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sgetmask, 68));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(68, "sgetmask"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ssetmask, 69));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(69, "ssetmask"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setreuid, 70));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(70, "setreuid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setregid, 71));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(71, "setregid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sigsuspend, 72));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(72, "sigsuspend"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sigpending, 73));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(73, "sigpending"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sethostname, 74));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(74, "sethostname"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setrlimit, 75));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(75, "setrlimit"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getrlimit, 76));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(76, "getrlimit"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getrusage, 77));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(77, "getrusage"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_gettimeofday, 78));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(78, "gettimeofday"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_settimeofday, 79));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(79, "settimeofday"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getgroups, 80));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(80, "getgroups"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setgroups, 81));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(81, "setgroups"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_select, 82));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(82, "select"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_symlink, 83));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(83, "symlink"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_oldlstat, 84));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(84, "oldlstat"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readlink, 85));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(85, "readlink"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_uselib, 86));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(86, "uselib"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_swapon, 87));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(87, "swapon"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_reboot, 88));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(88, "reboot"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readdir, 89));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(89, "readdir"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mmap, 90));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(90, "mmap"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_munmap, 91));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(91, "munmap"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_truncate, 92));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(92, "truncate"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ftruncate, 93));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(93, "ftruncate"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchmod, 94));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(94, "fchmod"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchown, 95));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(95, "fchown"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpriority, 96));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(96, "getpriority"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setpriority, 97));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(97, "setpriority"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_profil, 98));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(98, "profil"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_statfs, 99));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(99, "statfs"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fstatfs, 100));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(100, "fstatfs"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ioperm, 101));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(101, "ioperm"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_socketcall, 102));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(102, "socketcall"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_syslog, 103));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(103, "syslog"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setitimer, 104));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(104, "setitimer"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getitimer, 105));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(105, "getitimer"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_stat, 106));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(106, "stat"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lstat, 107));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(107, "lstat"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fstat, 108));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(108, "fstat"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_olduname, 109));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(109, "olduname"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_iopl, 110));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(110, "iopl"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_vhangup, 111));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(111, "vhangup"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_idle, 112));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(112, "idle"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_vm86, 113));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(113, "vm86"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_wait4, 114));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(114, "wait4"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_swapoff, 115));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(115, "swapoff"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sysinfo, 116));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(116, "sysinfo"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ipc, 117));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(117, "ipc"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fsync, 118));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(118, "fsync"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sigreturn, 119));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(119, "sigreturn"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clone, 120));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(120, "clone"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setdomainname, 121));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(121, "setdomainname"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_uname, 122));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(122, "uname"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_modify_ldt, 123));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(123, "modify_ldt"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_adjtimex, 124));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(124, "adjtimex"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mprotect, 125));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(125, "mprotect"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sigprocmask, 126));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(126, "sigprocmask"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_create_module, 127));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(127, "create_module"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_init_module, 128));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(128, "init_module"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_delete_module, 129));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(129, "delete_module"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_get_kernel_syms, 130));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(130, "get_kernel_syms"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_quotactl, 131));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(131, "quotactl"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpgid, 132));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(132, "getpgid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchdir, 133));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(133, "fchdir"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_bdflush, 134));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(134, "bdflush"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sysfs, 135));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(135, "sysfs"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_personality, 136));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(136, "personality"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_afs_syscall, 137));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(137, "afs_syscall"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setfsuid, 138));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(138, "setfsuid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setfsgid, 139));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(139, "setfsgid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn__llseek, 140));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(140, "_llseek"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getdents, 141));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(141, "getdents"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn__newselect, 142));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(142, "_newselect"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_flock, 143));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(143, "flock"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_msync, 144));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(144, "msync"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readv, 145));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(145, "readv"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_writev, 146));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(146, "writev"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getsid, 147));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(147, "getsid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fdatasync, 148));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(148, "fdatasync"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn__sysctl, 149));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(149, "_sysctl"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mlock, 150));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(150, "mlock"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_munlock, 151));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(151, "munlock"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mlockall, 152));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(152, "mlockall"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_munlockall, 153));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(153, "munlockall"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_setparam, 154));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(154, "sched_setparam"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_getparam, 155));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(155, "sched_getparam"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_setscheduler, 156));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(156, "sched_setscheduler"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_getscheduler, 157));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(157, "sched_getscheduler"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_yield, 158));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(158, "sched_yield"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_get_priority_max, 159));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(159, "sched_get_priority_max"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_get_priority_min, 160));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(160, "sched_get_priority_min"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_rr_get_interval, 161));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(161, "sched_rr_get_interval"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_nanosleep, 162));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(162, "nanosleep"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mremap, 163));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(163, "mremap"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setresuid, 164));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(164, "setresuid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getresuid, 165));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(165, "getresuid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_query_module, 166));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(166, "query_module"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_poll, 167));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(167, "poll"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_nfsservctl, 168));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(168, "nfsservctl"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setresgid, 169));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(169, "setresgid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getresgid, 170));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(170, "getresgid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_prctl, 171));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(171, "prctl"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigreturn, 172));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(172, "rt_sigreturn"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigaction, 173));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(173, "rt_sigaction"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigprocmask, 174));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(174, "rt_sigprocmask"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigpending, 175));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(175, "rt_sigpending"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigtimedwait, 176));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(176, "rt_sigtimedwait"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigqueueinfo, 177));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(177, "rt_sigqueueinfo"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigsuspend, 178));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(178, "rt_sigsuspend"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pread64, 179));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(179, "pread64"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pwrite64, 180));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(180, "pwrite64"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_chown, 181));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(181, "chown"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getcwd, 182));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(182, "getcwd"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_capget, 183));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(183, "capget"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_capset, 184));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(184, "capset"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sigaltstack, 185));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(185, "sigaltstack"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sendfile, 186));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(186, "sendfile"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpmsg, 187));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(187, "getpmsg"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_putpmsg, 188));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(188, "putpmsg"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_vfork, 189));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(189, "vfork"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ugetrlimit, 190));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(190, "ugetrlimit"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readahead, 191));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(191, "readahead"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mmap2, 192));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(192, "mmap2"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_truncate64, 193));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(193, "truncate64"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ftruncate64, 194));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(194, "ftruncate64"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_stat64, 195));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(195, "stat64"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lstat64, 196));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(196, "lstat64"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fstat64, 197));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(197, "fstat64"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pciconfig_read, 198));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(198, "pciconfig_read"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pciconfig_write, 199));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(199, "pciconfig_write"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pciconfig_iobase, 200));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(200, "pciconfig_iobase"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_multiplexer, 201));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(201, "multiplexer"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getdents64, 202));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(202, "getdents64"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pivot_root, 203));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(203, "pivot_root"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fcntl64, 204));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(204, "fcntl64"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_madvise, 205));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(205, "madvise"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mincore, 206));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(206, "mincore"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_gettid, 207));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(207, "gettid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_tkill, 208));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(208, "tkill"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setxattr, 209));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(209, "setxattr"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lsetxattr, 210));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(210, "lsetxattr"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fsetxattr, 211));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(211, "fsetxattr"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getxattr, 212));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(212, "getxattr"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lgetxattr, 213));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(213, "lgetxattr"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fgetxattr, 214));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(214, "fgetxattr"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_listxattr, 215));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(215, "listxattr"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_llistxattr, 216));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(216, "llistxattr"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_flistxattr, 217));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(217, "flistxattr"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_removexattr, 218));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(218, "removexattr"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lremovexattr, 219));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(219, "lremovexattr"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fremovexattr, 220));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(220, "fremovexattr"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_futex, 221));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(221, "futex"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_setaffinity, 222));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(222, "sched_setaffinity"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_getaffinity, 223));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(223, "sched_getaffinity"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_tuxcall, 225));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(225, "tuxcall"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sendfile64, 226));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(226, "sendfile64"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_setup, 227));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(227, "io_setup"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_destroy, 228));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(228, "io_destroy"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_getevents, 229));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(229, "io_getevents"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_submit, 230));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(230, "io_submit"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_cancel, 231));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(231, "io_cancel"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_set_tid_address, 232));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(232, "set_tid_address"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fadvise64, 233));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(233, "fadvise64"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_exit_group, 234));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(234, "exit_group"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lookup_dcookie, 235));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(235, "lookup_dcookie"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_create, 236));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(236, "epoll_create"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_ctl, 237));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(237, "epoll_ctl"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_wait, 238));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(238, "epoll_wait"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_remap_file_pages, 239));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(239, "remap_file_pages"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_create, 240));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(240, "timer_create"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_settime, 241));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(241, "timer_settime"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_gettime, 242));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(242, "timer_gettime"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_getoverrun, 243));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(243, "timer_getoverrun"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_delete, 244));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(244, "timer_delete"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_settime, 245));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(245, "clock_settime"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_gettime, 246));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(246, "clock_gettime"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_getres, 247));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(247, "clock_getres"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_nanosleep, 248));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(248, "clock_nanosleep"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_swapcontext, 249));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(249, "swapcontext"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_tgkill, 250));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(250, "tgkill"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_utimes, 251));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(251, "utimes"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_statfs64, 252));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(252, "statfs64"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fstatfs64, 253));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(253, "fstatfs64"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fadvise64_64, 254));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(254, "fadvise64_64"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rtas, 255));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(255, "rtas"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sys_debug_setcontext, 256));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(256, "sys_debug_setcontext"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_migrate_pages, 258));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(258, "migrate_pages"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mbind, 259));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(259, "mbind"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_get_mempolicy, 260));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(260, "get_mempolicy"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_set_mempolicy, 261));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(261, "set_mempolicy"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_open, 262));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(262, "mq_open"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_unlink, 263));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(263, "mq_unlink"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_timedsend, 264));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(264, "mq_timedsend"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_timedreceive, 265));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(265, "mq_timedreceive"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_notify, 266));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(266, "mq_notify"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_getsetattr, 267));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(267, "mq_getsetattr"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_kexec_load, 268));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(268, "kexec_load"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_add_key, 269));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(269, "add_key"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_request_key, 270));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(270, "request_key"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_keyctl, 271));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(271, "keyctl"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_waitid, 272));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(272, "waitid"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ioprio_set, 273));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(273, "ioprio_set"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ioprio_get, 274));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(274, "ioprio_get"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_inotify_init, 275));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(275, "inotify_init"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_inotify_add_watch, 276));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(276, "inotify_add_watch"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_inotify_rm_watch, 277));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(277, "inotify_rm_watch"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_spu_run, 278));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(278, "spu_run"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_spu_create, 279));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(279, "spu_create"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pselect6, 280));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(280, "pselect6"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ppoll, 281));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(281, "ppoll"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_unshare, 282));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(282, "unshare"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_splice, 283));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(283, "splice"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_tee, 284));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(284, "tee"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_vmsplice, 285));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(285, "vmsplice"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_openat, 286));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(286, "openat"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mkdirat, 287));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(287, "mkdirat"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mknodat, 288));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(288, "mknodat"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchownat, 289));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(289, "fchownat"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_futimesat, 290));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(290, "futimesat"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fstatat64, 291));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(291, "fstatat64"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_unlinkat, 292));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(292, "unlinkat"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_renameat, 293));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(293, "renameat"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_linkat, 294));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(294, "linkat"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_symlinkat, 295));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(295, "symlinkat"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readlinkat, 296));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(296, "readlinkat"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchmodat, 297));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(297, "fchmodat"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_faccessat, 298));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(298, "faccessat"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_get_robust_list, 299));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(299, "get_robust_list"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_set_robust_list, 300));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(300, "set_robust_list"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_move_pages, 301));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(301, "move_pages"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getcpu, 302));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(302, "getcpu"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_pwait, 303));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(303, "epoll_pwait"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_utimensat, 304));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(304, "utimensat"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_signalfd, 305));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(305, "signalfd"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timerfd_create, 306));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(306, "timerfd_create"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_eventfd, 307));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(307, "eventfd"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sync_file_range2, 308));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(308, "sync_file_range2"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fallocate, 309));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(309, "fallocate"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_subpage_prot, 310));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(310, "subpage_prot"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timerfd_settime, 311));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(311, "timerfd_settime"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timerfd_gettime, 312));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(312, "timerfd_gettime"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_signalfd4, 313));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(313, "signalfd4"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_eventfd2, 314));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(314, "eventfd2"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_create1, 315));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(315, "epoll_create1"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_dup3, 316));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(316, "dup3"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pipe2, 317));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(317, "pipe2"));
-Linux_Arch_ppc32_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_inotify_init1, 318));
-Linux_Arch_ppc32_syscallNames.insert(make_pair(318, "inotify_init1"));
-
-/* Linux Arch_x86 Numbers */
-Platform Linux_Arch_x86_plat(Arch_x86, Linux);
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_restart_syscall, 0));
-Linux_Arch_x86_syscallNames.insert(make_pair(0, "restart_syscall"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_exit, 1));
-Linux_Arch_x86_syscallNames.insert(make_pair(1, "exit"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fork, 2));
-Linux_Arch_x86_syscallNames.insert(make_pair(2, "fork"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_read, 3));
-Linux_Arch_x86_syscallNames.insert(make_pair(3, "read"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_write, 4));
-Linux_Arch_x86_syscallNames.insert(make_pair(4, "write"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_open, 5));
-Linux_Arch_x86_syscallNames.insert(make_pair(5, "open"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_close, 6));
-Linux_Arch_x86_syscallNames.insert(make_pair(6, "close"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_waitpid, 7));
-Linux_Arch_x86_syscallNames.insert(make_pair(7, "waitpid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_creat, 8));
-Linux_Arch_x86_syscallNames.insert(make_pair(8, "creat"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_link, 9));
-Linux_Arch_x86_syscallNames.insert(make_pair(9, "link"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_unlink, 10));
-Linux_Arch_x86_syscallNames.insert(make_pair(10, "unlink"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_execve, 11));
-Linux_Arch_x86_syscallNames.insert(make_pair(11, "execve"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_chdir, 12));
-Linux_Arch_x86_syscallNames.insert(make_pair(12, "chdir"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_time, 13));
-Linux_Arch_x86_syscallNames.insert(make_pair(13, "time"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mknod, 14));
-Linux_Arch_x86_syscallNames.insert(make_pair(14, "mknod"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_chmod, 15));
-Linux_Arch_x86_syscallNames.insert(make_pair(15, "chmod"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lchown, 16));
-Linux_Arch_x86_syscallNames.insert(make_pair(16, "lchown"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_break, 17));
-Linux_Arch_x86_syscallNames.insert(make_pair(17, "break"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_oldstat, 18));
-Linux_Arch_x86_syscallNames.insert(make_pair(18, "oldstat"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lseek, 19));
-Linux_Arch_x86_syscallNames.insert(make_pair(19, "lseek"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpid, 20));
-Linux_Arch_x86_syscallNames.insert(make_pair(20, "getpid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mount, 21));
-Linux_Arch_x86_syscallNames.insert(make_pair(21, "mount"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_umount, 22));
-Linux_Arch_x86_syscallNames.insert(make_pair(22, "umount"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setuid, 23));
-Linux_Arch_x86_syscallNames.insert(make_pair(23, "setuid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getuid, 24));
-Linux_Arch_x86_syscallNames.insert(make_pair(24, "getuid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_stime, 25));
-Linux_Arch_x86_syscallNames.insert(make_pair(25, "stime"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ptrace, 26));
-Linux_Arch_x86_syscallNames.insert(make_pair(26, "ptrace"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_alarm, 27));
-Linux_Arch_x86_syscallNames.insert(make_pair(27, "alarm"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_oldfstat, 28));
-Linux_Arch_x86_syscallNames.insert(make_pair(28, "oldfstat"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pause, 29));
-Linux_Arch_x86_syscallNames.insert(make_pair(29, "pause"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_utime, 30));
-Linux_Arch_x86_syscallNames.insert(make_pair(30, "utime"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_stty, 31));
-Linux_Arch_x86_syscallNames.insert(make_pair(31, "stty"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_gtty, 32));
-Linux_Arch_x86_syscallNames.insert(make_pair(32, "gtty"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_access, 33));
-Linux_Arch_x86_syscallNames.insert(make_pair(33, "access"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_nice, 34));
-Linux_Arch_x86_syscallNames.insert(make_pair(34, "nice"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ftime, 35));
-Linux_Arch_x86_syscallNames.insert(make_pair(35, "ftime"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sync, 36));
-Linux_Arch_x86_syscallNames.insert(make_pair(36, "sync"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_kill, 37));
-Linux_Arch_x86_syscallNames.insert(make_pair(37, "kill"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rename, 38));
-Linux_Arch_x86_syscallNames.insert(make_pair(38, "rename"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mkdir, 39));
-Linux_Arch_x86_syscallNames.insert(make_pair(39, "mkdir"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rmdir, 40));
-Linux_Arch_x86_syscallNames.insert(make_pair(40, "rmdir"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_dup, 41));
-Linux_Arch_x86_syscallNames.insert(make_pair(41, "dup"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pipe, 42));
-Linux_Arch_x86_syscallNames.insert(make_pair(42, "pipe"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_times, 43));
-Linux_Arch_x86_syscallNames.insert(make_pair(43, "times"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_prof, 44));
-Linux_Arch_x86_syscallNames.insert(make_pair(44, "prof"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_brk, 45));
-Linux_Arch_x86_syscallNames.insert(make_pair(45, "brk"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setgid, 46));
-Linux_Arch_x86_syscallNames.insert(make_pair(46, "setgid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getgid, 47));
-Linux_Arch_x86_syscallNames.insert(make_pair(47, "getgid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_signal, 48));
-Linux_Arch_x86_syscallNames.insert(make_pair(48, "signal"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_geteuid, 49));
-Linux_Arch_x86_syscallNames.insert(make_pair(49, "geteuid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getegid, 50));
-Linux_Arch_x86_syscallNames.insert(make_pair(50, "getegid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_acct, 51));
-Linux_Arch_x86_syscallNames.insert(make_pair(51, "acct"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_umount2, 52));
-Linux_Arch_x86_syscallNames.insert(make_pair(52, "umount2"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lock, 53));
-Linux_Arch_x86_syscallNames.insert(make_pair(53, "lock"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ioctl, 54));
-Linux_Arch_x86_syscallNames.insert(make_pair(54, "ioctl"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fcntl, 55));
-Linux_Arch_x86_syscallNames.insert(make_pair(55, "fcntl"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mpx, 56));
-Linux_Arch_x86_syscallNames.insert(make_pair(56, "mpx"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setpgid, 57));
-Linux_Arch_x86_syscallNames.insert(make_pair(57, "setpgid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ulimit, 58));
-Linux_Arch_x86_syscallNames.insert(make_pair(58, "ulimit"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_oldolduname, 59));
-Linux_Arch_x86_syscallNames.insert(make_pair(59, "oldolduname"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_umask, 60));
-Linux_Arch_x86_syscallNames.insert(make_pair(60, "umask"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_chroot, 61));
-Linux_Arch_x86_syscallNames.insert(make_pair(61, "chroot"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ustat, 62));
-Linux_Arch_x86_syscallNames.insert(make_pair(62, "ustat"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_dup2, 63));
-Linux_Arch_x86_syscallNames.insert(make_pair(63, "dup2"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getppid, 64));
-Linux_Arch_x86_syscallNames.insert(make_pair(64, "getppid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpgrp, 65));
-Linux_Arch_x86_syscallNames.insert(make_pair(65, "getpgrp"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setsid, 66));
-Linux_Arch_x86_syscallNames.insert(make_pair(66, "setsid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sigaction, 67));
-Linux_Arch_x86_syscallNames.insert(make_pair(67, "sigaction"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sgetmask, 68));
-Linux_Arch_x86_syscallNames.insert(make_pair(68, "sgetmask"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ssetmask, 69));
-Linux_Arch_x86_syscallNames.insert(make_pair(69, "ssetmask"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setreuid, 70));
-Linux_Arch_x86_syscallNames.insert(make_pair(70, "setreuid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setregid, 71));
-Linux_Arch_x86_syscallNames.insert(make_pair(71, "setregid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sigsuspend, 72));
-Linux_Arch_x86_syscallNames.insert(make_pair(72, "sigsuspend"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sigpending, 73));
-Linux_Arch_x86_syscallNames.insert(make_pair(73, "sigpending"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sethostname, 74));
-Linux_Arch_x86_syscallNames.insert(make_pair(74, "sethostname"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setrlimit, 75));
-Linux_Arch_x86_syscallNames.insert(make_pair(75, "setrlimit"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getrlimit, 76));
-Linux_Arch_x86_syscallNames.insert(make_pair(76, "getrlimit"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getrusage, 77));
-Linux_Arch_x86_syscallNames.insert(make_pair(77, "getrusage"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_gettimeofday, 78));
-Linux_Arch_x86_syscallNames.insert(make_pair(78, "gettimeofday"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_settimeofday, 79));
-Linux_Arch_x86_syscallNames.insert(make_pair(79, "settimeofday"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getgroups, 80));
-Linux_Arch_x86_syscallNames.insert(make_pair(80, "getgroups"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setgroups, 81));
-Linux_Arch_x86_syscallNames.insert(make_pair(81, "setgroups"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_select, 82));
-Linux_Arch_x86_syscallNames.insert(make_pair(82, "select"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_symlink, 83));
-Linux_Arch_x86_syscallNames.insert(make_pair(83, "symlink"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_oldlstat, 84));
-Linux_Arch_x86_syscallNames.insert(make_pair(84, "oldlstat"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readlink, 85));
-Linux_Arch_x86_syscallNames.insert(make_pair(85, "readlink"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_uselib, 86));
-Linux_Arch_x86_syscallNames.insert(make_pair(86, "uselib"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_swapon, 87));
-Linux_Arch_x86_syscallNames.insert(make_pair(87, "swapon"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_reboot, 88));
-Linux_Arch_x86_syscallNames.insert(make_pair(88, "reboot"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readdir, 89));
-Linux_Arch_x86_syscallNames.insert(make_pair(89, "readdir"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mmap, 90));
-Linux_Arch_x86_syscallNames.insert(make_pair(90, "mmap"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_munmap, 91));
-Linux_Arch_x86_syscallNames.insert(make_pair(91, "munmap"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_truncate, 92));
-Linux_Arch_x86_syscallNames.insert(make_pair(92, "truncate"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ftruncate, 93));
-Linux_Arch_x86_syscallNames.insert(make_pair(93, "ftruncate"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchmod, 94));
-Linux_Arch_x86_syscallNames.insert(make_pair(94, "fchmod"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchown, 95));
-Linux_Arch_x86_syscallNames.insert(make_pair(95, "fchown"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpriority, 96));
-Linux_Arch_x86_syscallNames.insert(make_pair(96, "getpriority"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setpriority, 97));
-Linux_Arch_x86_syscallNames.insert(make_pair(97, "setpriority"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_profil, 98));
-Linux_Arch_x86_syscallNames.insert(make_pair(98, "profil"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_statfs, 99));
-Linux_Arch_x86_syscallNames.insert(make_pair(99, "statfs"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fstatfs, 100));
-Linux_Arch_x86_syscallNames.insert(make_pair(100, "fstatfs"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ioperm, 101));
-Linux_Arch_x86_syscallNames.insert(make_pair(101, "ioperm"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_socketcall, 102));
-Linux_Arch_x86_syscallNames.insert(make_pair(102, "socketcall"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_syslog, 103));
-Linux_Arch_x86_syscallNames.insert(make_pair(103, "syslog"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setitimer, 104));
-Linux_Arch_x86_syscallNames.insert(make_pair(104, "setitimer"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getitimer, 105));
-Linux_Arch_x86_syscallNames.insert(make_pair(105, "getitimer"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_stat, 106));
-Linux_Arch_x86_syscallNames.insert(make_pair(106, "stat"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lstat, 107));
-Linux_Arch_x86_syscallNames.insert(make_pair(107, "lstat"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fstat, 108));
-Linux_Arch_x86_syscallNames.insert(make_pair(108, "fstat"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_olduname, 109));
-Linux_Arch_x86_syscallNames.insert(make_pair(109, "olduname"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_iopl, 110));
-Linux_Arch_x86_syscallNames.insert(make_pair(110, "iopl"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_vhangup, 111));
-Linux_Arch_x86_syscallNames.insert(make_pair(111, "vhangup"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_idle, 112));
-Linux_Arch_x86_syscallNames.insert(make_pair(112, "idle"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_vm86old, 113));
-Linux_Arch_x86_syscallNames.insert(make_pair(113, "vm86old"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_wait4, 114));
-Linux_Arch_x86_syscallNames.insert(make_pair(114, "wait4"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_swapoff, 115));
-Linux_Arch_x86_syscallNames.insert(make_pair(115, "swapoff"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sysinfo, 116));
-Linux_Arch_x86_syscallNames.insert(make_pair(116, "sysinfo"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ipc, 117));
-Linux_Arch_x86_syscallNames.insert(make_pair(117, "ipc"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fsync, 118));
-Linux_Arch_x86_syscallNames.insert(make_pair(118, "fsync"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sigreturn, 119));
-Linux_Arch_x86_syscallNames.insert(make_pair(119, "sigreturn"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clone, 120));
-Linux_Arch_x86_syscallNames.insert(make_pair(120, "clone"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setdomainname, 121));
-Linux_Arch_x86_syscallNames.insert(make_pair(121, "setdomainname"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_uname, 122));
-Linux_Arch_x86_syscallNames.insert(make_pair(122, "uname"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_modify_ldt, 123));
-Linux_Arch_x86_syscallNames.insert(make_pair(123, "modify_ldt"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_adjtimex, 124));
-Linux_Arch_x86_syscallNames.insert(make_pair(124, "adjtimex"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mprotect, 125));
-Linux_Arch_x86_syscallNames.insert(make_pair(125, "mprotect"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sigprocmask, 126));
-Linux_Arch_x86_syscallNames.insert(make_pair(126, "sigprocmask"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_create_module, 127));
-Linux_Arch_x86_syscallNames.insert(make_pair(127, "create_module"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_init_module, 128));
-Linux_Arch_x86_syscallNames.insert(make_pair(128, "init_module"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_delete_module, 129));
-Linux_Arch_x86_syscallNames.insert(make_pair(129, "delete_module"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_get_kernel_syms, 130));
-Linux_Arch_x86_syscallNames.insert(make_pair(130, "get_kernel_syms"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_quotactl, 131));
-Linux_Arch_x86_syscallNames.insert(make_pair(131, "quotactl"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpgid, 132));
-Linux_Arch_x86_syscallNames.insert(make_pair(132, "getpgid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchdir, 133));
-Linux_Arch_x86_syscallNames.insert(make_pair(133, "fchdir"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_bdflush, 134));
-Linux_Arch_x86_syscallNames.insert(make_pair(134, "bdflush"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sysfs, 135));
-Linux_Arch_x86_syscallNames.insert(make_pair(135, "sysfs"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_personality, 136));
-Linux_Arch_x86_syscallNames.insert(make_pair(136, "personality"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_afs_syscall, 137));
-Linux_Arch_x86_syscallNames.insert(make_pair(137, "afs_syscall"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setfsuid, 138));
-Linux_Arch_x86_syscallNames.insert(make_pair(138, "setfsuid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setfsgid, 139));
-Linux_Arch_x86_syscallNames.insert(make_pair(139, "setfsgid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn__llseek, 140));
-Linux_Arch_x86_syscallNames.insert(make_pair(140, "_llseek"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getdents, 141));
-Linux_Arch_x86_syscallNames.insert(make_pair(141, "getdents"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn__newselect, 142));
-Linux_Arch_x86_syscallNames.insert(make_pair(142, "_newselect"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_flock, 143));
-Linux_Arch_x86_syscallNames.insert(make_pair(143, "flock"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_msync, 144));
-Linux_Arch_x86_syscallNames.insert(make_pair(144, "msync"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readv, 145));
-Linux_Arch_x86_syscallNames.insert(make_pair(145, "readv"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_writev, 146));
-Linux_Arch_x86_syscallNames.insert(make_pair(146, "writev"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getsid, 147));
-Linux_Arch_x86_syscallNames.insert(make_pair(147, "getsid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fdatasync, 148));
-Linux_Arch_x86_syscallNames.insert(make_pair(148, "fdatasync"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn__sysctl, 149));
-Linux_Arch_x86_syscallNames.insert(make_pair(149, "_sysctl"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mlock, 150));
-Linux_Arch_x86_syscallNames.insert(make_pair(150, "mlock"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_munlock, 151));
-Linux_Arch_x86_syscallNames.insert(make_pair(151, "munlock"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mlockall, 152));
-Linux_Arch_x86_syscallNames.insert(make_pair(152, "mlockall"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_munlockall, 153));
-Linux_Arch_x86_syscallNames.insert(make_pair(153, "munlockall"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_setparam, 154));
-Linux_Arch_x86_syscallNames.insert(make_pair(154, "sched_setparam"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_getparam, 155));
-Linux_Arch_x86_syscallNames.insert(make_pair(155, "sched_getparam"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_setscheduler, 156));
-Linux_Arch_x86_syscallNames.insert(make_pair(156, "sched_setscheduler"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_getscheduler, 157));
-Linux_Arch_x86_syscallNames.insert(make_pair(157, "sched_getscheduler"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_yield, 158));
-Linux_Arch_x86_syscallNames.insert(make_pair(158, "sched_yield"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_get_priority_max, 159));
-Linux_Arch_x86_syscallNames.insert(make_pair(159, "sched_get_priority_max"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_get_priority_min, 160));
-Linux_Arch_x86_syscallNames.insert(make_pair(160, "sched_get_priority_min"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_rr_get_interval, 161));
-Linux_Arch_x86_syscallNames.insert(make_pair(161, "sched_rr_get_interval"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_nanosleep, 162));
-Linux_Arch_x86_syscallNames.insert(make_pair(162, "nanosleep"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mremap, 163));
-Linux_Arch_x86_syscallNames.insert(make_pair(163, "mremap"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setresuid, 164));
-Linux_Arch_x86_syscallNames.insert(make_pair(164, "setresuid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getresuid, 165));
-Linux_Arch_x86_syscallNames.insert(make_pair(165, "getresuid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_vm86, 166));
-Linux_Arch_x86_syscallNames.insert(make_pair(166, "vm86"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_query_module, 167));
-Linux_Arch_x86_syscallNames.insert(make_pair(167, "query_module"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_poll, 168));
-Linux_Arch_x86_syscallNames.insert(make_pair(168, "poll"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_nfsservctl, 169));
-Linux_Arch_x86_syscallNames.insert(make_pair(169, "nfsservctl"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setresgid, 170));
-Linux_Arch_x86_syscallNames.insert(make_pair(170, "setresgid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getresgid, 171));
-Linux_Arch_x86_syscallNames.insert(make_pair(171, "getresgid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_prctl, 172));
-Linux_Arch_x86_syscallNames.insert(make_pair(172, "prctl"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigreturn, 173));
-Linux_Arch_x86_syscallNames.insert(make_pair(173, "rt_sigreturn"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigaction, 174));
-Linux_Arch_x86_syscallNames.insert(make_pair(174, "rt_sigaction"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigprocmask, 175));
-Linux_Arch_x86_syscallNames.insert(make_pair(175, "rt_sigprocmask"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigpending, 176));
-Linux_Arch_x86_syscallNames.insert(make_pair(176, "rt_sigpending"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigtimedwait, 177));
-Linux_Arch_x86_syscallNames.insert(make_pair(177, "rt_sigtimedwait"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigqueueinfo, 178));
-Linux_Arch_x86_syscallNames.insert(make_pair(178, "rt_sigqueueinfo"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigsuspend, 179));
-Linux_Arch_x86_syscallNames.insert(make_pair(179, "rt_sigsuspend"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pread64, 180));
-Linux_Arch_x86_syscallNames.insert(make_pair(180, "pread64"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pwrite64, 181));
-Linux_Arch_x86_syscallNames.insert(make_pair(181, "pwrite64"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_chown, 182));
-Linux_Arch_x86_syscallNames.insert(make_pair(182, "chown"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getcwd, 183));
-Linux_Arch_x86_syscallNames.insert(make_pair(183, "getcwd"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_capget, 184));
-Linux_Arch_x86_syscallNames.insert(make_pair(184, "capget"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_capset, 185));
-Linux_Arch_x86_syscallNames.insert(make_pair(185, "capset"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sigaltstack, 186));
-Linux_Arch_x86_syscallNames.insert(make_pair(186, "sigaltstack"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sendfile, 187));
-Linux_Arch_x86_syscallNames.insert(make_pair(187, "sendfile"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpmsg, 188));
-Linux_Arch_x86_syscallNames.insert(make_pair(188, "getpmsg"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_putpmsg, 189));
-Linux_Arch_x86_syscallNames.insert(make_pair(189, "putpmsg"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_vfork, 190));
-Linux_Arch_x86_syscallNames.insert(make_pair(190, "vfork"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ugetrlimit, 191));
-Linux_Arch_x86_syscallNames.insert(make_pair(191, "ugetrlimit"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mmap2, 192));
-Linux_Arch_x86_syscallNames.insert(make_pair(192, "mmap2"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_truncate64, 193));
-Linux_Arch_x86_syscallNames.insert(make_pair(193, "truncate64"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ftruncate64, 194));
-Linux_Arch_x86_syscallNames.insert(make_pair(194, "ftruncate64"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_stat64, 195));
-Linux_Arch_x86_syscallNames.insert(make_pair(195, "stat64"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lstat64, 196));
-Linux_Arch_x86_syscallNames.insert(make_pair(196, "lstat64"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fstat64, 197));
-Linux_Arch_x86_syscallNames.insert(make_pair(197, "fstat64"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lchown32, 198));
-Linux_Arch_x86_syscallNames.insert(make_pair(198, "lchown32"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getuid32, 199));
-Linux_Arch_x86_syscallNames.insert(make_pair(199, "getuid32"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getgid32, 200));
-Linux_Arch_x86_syscallNames.insert(make_pair(200, "getgid32"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_geteuid32, 201));
-Linux_Arch_x86_syscallNames.insert(make_pair(201, "geteuid32"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getegid32, 202));
-Linux_Arch_x86_syscallNames.insert(make_pair(202, "getegid32"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setreuid32, 203));
-Linux_Arch_x86_syscallNames.insert(make_pair(203, "setreuid32"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setregid32, 204));
-Linux_Arch_x86_syscallNames.insert(make_pair(204, "setregid32"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getgroups32, 205));
-Linux_Arch_x86_syscallNames.insert(make_pair(205, "getgroups32"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setgroups32, 206));
-Linux_Arch_x86_syscallNames.insert(make_pair(206, "setgroups32"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchown32, 207));
-Linux_Arch_x86_syscallNames.insert(make_pair(207, "fchown32"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setresuid32, 208));
-Linux_Arch_x86_syscallNames.insert(make_pair(208, "setresuid32"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getresuid32, 209));
-Linux_Arch_x86_syscallNames.insert(make_pair(209, "getresuid32"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setresgid32, 210));
-Linux_Arch_x86_syscallNames.insert(make_pair(210, "setresgid32"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getresgid32, 211));
-Linux_Arch_x86_syscallNames.insert(make_pair(211, "getresgid32"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_chown32, 212));
-Linux_Arch_x86_syscallNames.insert(make_pair(212, "chown32"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setuid32, 213));
-Linux_Arch_x86_syscallNames.insert(make_pair(213, "setuid32"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setgid32, 214));
-Linux_Arch_x86_syscallNames.insert(make_pair(214, "setgid32"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setfsuid32, 215));
-Linux_Arch_x86_syscallNames.insert(make_pair(215, "setfsuid32"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setfsgid32, 216));
-Linux_Arch_x86_syscallNames.insert(make_pair(216, "setfsgid32"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pivot_root, 217));
-Linux_Arch_x86_syscallNames.insert(make_pair(217, "pivot_root"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mincore, 218));
-Linux_Arch_x86_syscallNames.insert(make_pair(218, "mincore"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_madvise, 219));
-Linux_Arch_x86_syscallNames.insert(make_pair(219, "madvise"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_madvise1, 219));
-Linux_Arch_x86_syscallNames.insert(make_pair(219, "madvise1"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getdents64, 220));
-Linux_Arch_x86_syscallNames.insert(make_pair(220, "getdents64"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fcntl64, 221));
-Linux_Arch_x86_syscallNames.insert(make_pair(221, "fcntl64"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_gettid, 224));
-Linux_Arch_x86_syscallNames.insert(make_pair(224, "gettid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readahead, 225));
-Linux_Arch_x86_syscallNames.insert(make_pair(225, "readahead"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setxattr, 226));
-Linux_Arch_x86_syscallNames.insert(make_pair(226, "setxattr"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lsetxattr, 227));
-Linux_Arch_x86_syscallNames.insert(make_pair(227, "lsetxattr"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fsetxattr, 228));
-Linux_Arch_x86_syscallNames.insert(make_pair(228, "fsetxattr"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getxattr, 229));
-Linux_Arch_x86_syscallNames.insert(make_pair(229, "getxattr"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lgetxattr, 230));
-Linux_Arch_x86_syscallNames.insert(make_pair(230, "lgetxattr"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fgetxattr, 231));
-Linux_Arch_x86_syscallNames.insert(make_pair(231, "fgetxattr"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_listxattr, 232));
-Linux_Arch_x86_syscallNames.insert(make_pair(232, "listxattr"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_llistxattr, 233));
-Linux_Arch_x86_syscallNames.insert(make_pair(233, "llistxattr"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_flistxattr, 234));
-Linux_Arch_x86_syscallNames.insert(make_pair(234, "flistxattr"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_removexattr, 235));
-Linux_Arch_x86_syscallNames.insert(make_pair(235, "removexattr"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lremovexattr, 236));
-Linux_Arch_x86_syscallNames.insert(make_pair(236, "lremovexattr"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fremovexattr, 237));
-Linux_Arch_x86_syscallNames.insert(make_pair(237, "fremovexattr"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_tkill, 238));
-Linux_Arch_x86_syscallNames.insert(make_pair(238, "tkill"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sendfile64, 239));
-Linux_Arch_x86_syscallNames.insert(make_pair(239, "sendfile64"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_futex, 240));
-Linux_Arch_x86_syscallNames.insert(make_pair(240, "futex"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_setaffinity, 241));
-Linux_Arch_x86_syscallNames.insert(make_pair(241, "sched_setaffinity"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_getaffinity, 242));
-Linux_Arch_x86_syscallNames.insert(make_pair(242, "sched_getaffinity"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_set_thread_area, 243));
-Linux_Arch_x86_syscallNames.insert(make_pair(243, "set_thread_area"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_get_thread_area, 244));
-Linux_Arch_x86_syscallNames.insert(make_pair(244, "get_thread_area"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_setup, 245));
-Linux_Arch_x86_syscallNames.insert(make_pair(245, "io_setup"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_destroy, 246));
-Linux_Arch_x86_syscallNames.insert(make_pair(246, "io_destroy"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_getevents, 247));
-Linux_Arch_x86_syscallNames.insert(make_pair(247, "io_getevents"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_submit, 248));
-Linux_Arch_x86_syscallNames.insert(make_pair(248, "io_submit"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_cancel, 249));
-Linux_Arch_x86_syscallNames.insert(make_pair(249, "io_cancel"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fadvise64, 250));
-Linux_Arch_x86_syscallNames.insert(make_pair(250, "fadvise64"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_exit_group, 252));
-Linux_Arch_x86_syscallNames.insert(make_pair(252, "exit_group"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lookup_dcookie, 253));
-Linux_Arch_x86_syscallNames.insert(make_pair(253, "lookup_dcookie"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_create, 254));
-Linux_Arch_x86_syscallNames.insert(make_pair(254, "epoll_create"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_ctl, 255));
-Linux_Arch_x86_syscallNames.insert(make_pair(255, "epoll_ctl"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_wait, 256));
-Linux_Arch_x86_syscallNames.insert(make_pair(256, "epoll_wait"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_remap_file_pages, 257));
-Linux_Arch_x86_syscallNames.insert(make_pair(257, "remap_file_pages"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_set_tid_address, 258));
-Linux_Arch_x86_syscallNames.insert(make_pair(258, "set_tid_address"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_create, 259));
-Linux_Arch_x86_syscallNames.insert(make_pair(259, "timer_create"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_settime, 260));
-Linux_Arch_x86_syscallNames.insert(make_pair(260, "timer_settime"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_gettime, 261));
-Linux_Arch_x86_syscallNames.insert(make_pair(261, "timer_gettime"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_getoverrun, 262));
-Linux_Arch_x86_syscallNames.insert(make_pair(262, "timer_getoverrun"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_delete, 263));
-Linux_Arch_x86_syscallNames.insert(make_pair(263, "timer_delete"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_settime, 264));
-Linux_Arch_x86_syscallNames.insert(make_pair(264, "clock_settime"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_gettime, 265));
-Linux_Arch_x86_syscallNames.insert(make_pair(265, "clock_gettime"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_getres, 266));
-Linux_Arch_x86_syscallNames.insert(make_pair(266, "clock_getres"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_nanosleep, 267));
-Linux_Arch_x86_syscallNames.insert(make_pair(267, "clock_nanosleep"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_statfs64, 268));
-Linux_Arch_x86_syscallNames.insert(make_pair(268, "statfs64"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fstatfs64, 269));
-Linux_Arch_x86_syscallNames.insert(make_pair(269, "fstatfs64"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_tgkill, 270));
-Linux_Arch_x86_syscallNames.insert(make_pair(270, "tgkill"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_utimes, 271));
-Linux_Arch_x86_syscallNames.insert(make_pair(271, "utimes"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fadvise64_64, 272));
-Linux_Arch_x86_syscallNames.insert(make_pair(272, "fadvise64_64"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_vserver, 273));
-Linux_Arch_x86_syscallNames.insert(make_pair(273, "vserver"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mbind, 274));
-Linux_Arch_x86_syscallNames.insert(make_pair(274, "mbind"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_get_mempolicy, 275));
-Linux_Arch_x86_syscallNames.insert(make_pair(275, "get_mempolicy"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_set_mempolicy, 276));
-Linux_Arch_x86_syscallNames.insert(make_pair(276, "set_mempolicy"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_open, 277));
-Linux_Arch_x86_syscallNames.insert(make_pair(277, "mq_open"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_unlink, 278));
-Linux_Arch_x86_syscallNames.insert(make_pair(278, "mq_unlink"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_timedsend, 279));
-Linux_Arch_x86_syscallNames.insert(make_pair(279, "mq_timedsend"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_timedreceive, 280));
-Linux_Arch_x86_syscallNames.insert(make_pair(280, "mq_timedreceive"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_notify, 281));
-Linux_Arch_x86_syscallNames.insert(make_pair(281, "mq_notify"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_getsetattr, 282));
-Linux_Arch_x86_syscallNames.insert(make_pair(282, "mq_getsetattr"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_kexec_load, 283));
-Linux_Arch_x86_syscallNames.insert(make_pair(283, "kexec_load"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_waitid, 284));
-Linux_Arch_x86_syscallNames.insert(make_pair(284, "waitid"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_add_key, 286));
-Linux_Arch_x86_syscallNames.insert(make_pair(286, "add_key"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_request_key, 287));
-Linux_Arch_x86_syscallNames.insert(make_pair(287, "request_key"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_keyctl, 288));
-Linux_Arch_x86_syscallNames.insert(make_pair(288, "keyctl"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ioprio_set, 289));
-Linux_Arch_x86_syscallNames.insert(make_pair(289, "ioprio_set"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ioprio_get, 290));
-Linux_Arch_x86_syscallNames.insert(make_pair(290, "ioprio_get"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_inotify_init, 291));
-Linux_Arch_x86_syscallNames.insert(make_pair(291, "inotify_init"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_inotify_add_watch, 292));
-Linux_Arch_x86_syscallNames.insert(make_pair(292, "inotify_add_watch"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_inotify_rm_watch, 293));
-Linux_Arch_x86_syscallNames.insert(make_pair(293, "inotify_rm_watch"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_migrate_pages, 294));
-Linux_Arch_x86_syscallNames.insert(make_pair(294, "migrate_pages"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_openat, 295));
-Linux_Arch_x86_syscallNames.insert(make_pair(295, "openat"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mkdirat, 296));
-Linux_Arch_x86_syscallNames.insert(make_pair(296, "mkdirat"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mknodat, 297));
-Linux_Arch_x86_syscallNames.insert(make_pair(297, "mknodat"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchownat, 298));
-Linux_Arch_x86_syscallNames.insert(make_pair(298, "fchownat"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_futimesat, 299));
-Linux_Arch_x86_syscallNames.insert(make_pair(299, "futimesat"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fstatat64, 300));
-Linux_Arch_x86_syscallNames.insert(make_pair(300, "fstatat64"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_unlinkat, 301));
-Linux_Arch_x86_syscallNames.insert(make_pair(301, "unlinkat"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_renameat, 302));
-Linux_Arch_x86_syscallNames.insert(make_pair(302, "renameat"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_linkat, 303));
-Linux_Arch_x86_syscallNames.insert(make_pair(303, "linkat"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_symlinkat, 304));
-Linux_Arch_x86_syscallNames.insert(make_pair(304, "symlinkat"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readlinkat, 305));
-Linux_Arch_x86_syscallNames.insert(make_pair(305, "readlinkat"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchmodat, 306));
-Linux_Arch_x86_syscallNames.insert(make_pair(306, "fchmodat"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_faccessat, 307));
-Linux_Arch_x86_syscallNames.insert(make_pair(307, "faccessat"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pselect6, 308));
-Linux_Arch_x86_syscallNames.insert(make_pair(308, "pselect6"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ppoll, 309));
-Linux_Arch_x86_syscallNames.insert(make_pair(309, "ppoll"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_unshare, 310));
-Linux_Arch_x86_syscallNames.insert(make_pair(310, "unshare"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_set_robust_list, 311));
-Linux_Arch_x86_syscallNames.insert(make_pair(311, "set_robust_list"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_get_robust_list, 312));
-Linux_Arch_x86_syscallNames.insert(make_pair(312, "get_robust_list"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_splice, 313));
-Linux_Arch_x86_syscallNames.insert(make_pair(313, "splice"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sync_file_range, 314));
-Linux_Arch_x86_syscallNames.insert(make_pair(314, "sync_file_range"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_tee, 315));
-Linux_Arch_x86_syscallNames.insert(make_pair(315, "tee"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_vmsplice, 316));
-Linux_Arch_x86_syscallNames.insert(make_pair(316, "vmsplice"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_move_pages, 317));
-Linux_Arch_x86_syscallNames.insert(make_pair(317, "move_pages"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getcpu, 318));
-Linux_Arch_x86_syscallNames.insert(make_pair(318, "getcpu"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_pwait, 319));
-Linux_Arch_x86_syscallNames.insert(make_pair(319, "epoll_pwait"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_utimensat, 320));
-Linux_Arch_x86_syscallNames.insert(make_pair(320, "utimensat"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_signalfd, 321));
-Linux_Arch_x86_syscallNames.insert(make_pair(321, "signalfd"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timerfd_create, 322));
-Linux_Arch_x86_syscallNames.insert(make_pair(322, "timerfd_create"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_eventfd, 323));
-Linux_Arch_x86_syscallNames.insert(make_pair(323, "eventfd"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fallocate, 324));
-Linux_Arch_x86_syscallNames.insert(make_pair(324, "fallocate"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timerfd_settime, 325));
-Linux_Arch_x86_syscallNames.insert(make_pair(325, "timerfd_settime"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timerfd_gettime, 326));
-Linux_Arch_x86_syscallNames.insert(make_pair(326, "timerfd_gettime"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_signalfd4, 327));
-Linux_Arch_x86_syscallNames.insert(make_pair(327, "signalfd4"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_eventfd2, 328));
-Linux_Arch_x86_syscallNames.insert(make_pair(328, "eventfd2"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_create1, 329));
-Linux_Arch_x86_syscallNames.insert(make_pair(329, "epoll_create1"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_dup3, 330));
-Linux_Arch_x86_syscallNames.insert(make_pair(330, "dup3"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pipe2, 331));
-Linux_Arch_x86_syscallNames.insert(make_pair(331, "pipe2"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_inotify_init1, 332));
-Linux_Arch_x86_syscallNames.insert(make_pair(332, "inotify_init1"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_preadv, 333));
-Linux_Arch_x86_syscallNames.insert(make_pair(333, "preadv"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pwritev, 334));
-Linux_Arch_x86_syscallNames.insert(make_pair(334, "pwritev"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_tgsigqueueinfo, 335));
-Linux_Arch_x86_syscallNames.insert(make_pair(335, "rt_tgsigqueueinfo"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_perf_event_open, 336));
-Linux_Arch_x86_syscallNames.insert(make_pair(336, "perf_event_open"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_recvmmsg, 337));
-Linux_Arch_x86_syscallNames.insert(make_pair(337, "recvmmsg"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_adjtime, 343));
-Linux_Arch_x86_syscallNames.insert(make_pair(343, "clock_adjtime"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_syncfs, 344));
-Linux_Arch_x86_syscallNames.insert(make_pair(344, "syncfs"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sendmmsg, 345));
-Linux_Arch_x86_syscallNames.insert(make_pair(345, "sendmmsg"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_process_vm_readv, 347));
-Linux_Arch_x86_syscallNames.insert(make_pair(347, "process_vm_readv"));
-Linux_Arch_x86_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_process_vm_writev, 348));
-Linux_Arch_x86_syscallNames.insert(make_pair(348, "process_vm_writev"));
+Linux_Arch_ppc32_syscallNumbers.insert({
+	{ Syscall::dyn_restart_syscall, 0 },
+	{ Syscall::dyn_exit, 1 },
+	{ Syscall::dyn_fork, 2 },
+	{ Syscall::dyn_read, 3 },
+	{ Syscall::dyn_write, 4 },
+	{ Syscall::dyn_open, 5 },
+	{ Syscall::dyn_close, 6 },
+	{ Syscall::dyn_waitpid, 7 },
+	{ Syscall::dyn_creat, 8 },
+	{ Syscall::dyn_link, 9 },
+	{ Syscall::dyn_unlink, 10 },
+	{ Syscall::dyn_execve, 11 },
+	{ Syscall::dyn_chdir, 12 },
+	{ Syscall::dyn_time, 13 },
+	{ Syscall::dyn_mknod, 14 },
+	{ Syscall::dyn_chmod, 15 },
+	{ Syscall::dyn_lchown, 16 },
+	{ Syscall::dyn_break, 17 },
+	{ Syscall::dyn_oldstat, 18 },
+	{ Syscall::dyn_lseek, 19 },
+	{ Syscall::dyn_getpid, 20 },
+	{ Syscall::dyn_mount, 21 },
+	{ Syscall::dyn_umount, 22 },
+	{ Syscall::dyn_setuid, 23 },
+	{ Syscall::dyn_getuid, 24 },
+	{ Syscall::dyn_stime, 25 },
+	{ Syscall::dyn_ptrace, 26 },
+	{ Syscall::dyn_alarm, 27 },
+	{ Syscall::dyn_oldfstat, 28 },
+	{ Syscall::dyn_pause, 29 },
+	{ Syscall::dyn_utime, 30 },
+	{ Syscall::dyn_stty, 31 },
+	{ Syscall::dyn_gtty, 32 },
+	{ Syscall::dyn_access, 33 },
+	{ Syscall::dyn_nice, 34 },
+	{ Syscall::dyn_ftime, 35 },
+	{ Syscall::dyn_sync, 36 },
+	{ Syscall::dyn_kill, 37 },
+	{ Syscall::dyn_rename, 38 },
+	{ Syscall::dyn_mkdir, 39 },
+	{ Syscall::dyn_rmdir, 40 },
+	{ Syscall::dyn_dup, 41 },
+	{ Syscall::dyn_pipe, 42 },
+	{ Syscall::dyn_times, 43 },
+	{ Syscall::dyn_prof, 44 },
+	{ Syscall::dyn_brk, 45 },
+	{ Syscall::dyn_setgid, 46 },
+	{ Syscall::dyn_getgid, 47 },
+	{ Syscall::dyn_signal, 48 },
+	{ Syscall::dyn_geteuid, 49 },
+	{ Syscall::dyn_getegid, 50 },
+	{ Syscall::dyn_acct, 51 },
+	{ Syscall::dyn_umount2, 52 },
+	{ Syscall::dyn_lock, 53 },
+	{ Syscall::dyn_ioctl, 54 },
+	{ Syscall::dyn_fcntl, 55 },
+	{ Syscall::dyn_mpx, 56 },
+	{ Syscall::dyn_setpgid, 57 },
+	{ Syscall::dyn_ulimit, 58 },
+	{ Syscall::dyn_oldolduname, 59 },
+	{ Syscall::dyn_umask, 60 },
+	{ Syscall::dyn_chroot, 61 },
+	{ Syscall::dyn_ustat, 62 },
+	{ Syscall::dyn_dup2, 63 },
+	{ Syscall::dyn_getppid, 64 },
+	{ Syscall::dyn_getpgrp, 65 },
+	{ Syscall::dyn_setsid, 66 },
+	{ Syscall::dyn_sigaction, 67 },
+	{ Syscall::dyn_sgetmask, 68 },
+	{ Syscall::dyn_ssetmask, 69 },
+	{ Syscall::dyn_setreuid, 70 },
+	{ Syscall::dyn_setregid, 71 },
+	{ Syscall::dyn_sigsuspend, 72 },
+	{ Syscall::dyn_sigpending, 73 },
+	{ Syscall::dyn_sethostname, 74 },
+	{ Syscall::dyn_setrlimit, 75 },
+	{ Syscall::dyn_getrlimit, 76 },
+	{ Syscall::dyn_getrusage, 77 },
+	{ Syscall::dyn_gettimeofday, 78 },
+	{ Syscall::dyn_settimeofday, 79 },
+	{ Syscall::dyn_getgroups, 80 },
+	{ Syscall::dyn_setgroups, 81 },
+	{ Syscall::dyn_select, 82 },
+	{ Syscall::dyn_symlink, 83 },
+	{ Syscall::dyn_oldlstat, 84 },
+	{ Syscall::dyn_readlink, 85 },
+	{ Syscall::dyn_uselib, 86 },
+	{ Syscall::dyn_swapon, 87 },
+	{ Syscall::dyn_reboot, 88 },
+	{ Syscall::dyn_readdir, 89 },
+	{ Syscall::dyn_mmap, 90 },
+	{ Syscall::dyn_munmap, 91 },
+	{ Syscall::dyn_truncate, 92 },
+	{ Syscall::dyn_ftruncate, 93 },
+	{ Syscall::dyn_fchmod, 94 },
+	{ Syscall::dyn_fchown, 95 },
+	{ Syscall::dyn_getpriority, 96 },
+	{ Syscall::dyn_setpriority, 97 },
+	{ Syscall::dyn_profil, 98 },
+	{ Syscall::dyn_statfs, 99 },
+	{ Syscall::dyn_fstatfs, 100 },
+	{ Syscall::dyn_ioperm, 101 },
+	{ Syscall::dyn_socketcall, 102 },
+	{ Syscall::dyn_syslog, 103 },
+	{ Syscall::dyn_setitimer, 104 },
+	{ Syscall::dyn_getitimer, 105 },
+	{ Syscall::dyn_stat, 106 },
+	{ Syscall::dyn_lstat, 107 },
+	{ Syscall::dyn_fstat, 108 },
+	{ Syscall::dyn_olduname, 109 },
+	{ Syscall::dyn_iopl, 110 },
+	{ Syscall::dyn_vhangup, 111 },
+	{ Syscall::dyn_idle, 112 },
+	{ Syscall::dyn_vm86, 113 },
+	{ Syscall::dyn_wait4, 114 },
+	{ Syscall::dyn_swapoff, 115 },
+	{ Syscall::dyn_sysinfo, 116 },
+	{ Syscall::dyn_ipc, 117 },
+	{ Syscall::dyn_fsync, 118 },
+	{ Syscall::dyn_sigreturn, 119 },
+	{ Syscall::dyn_clone, 120 },
+	{ Syscall::dyn_setdomainname, 121 },
+	{ Syscall::dyn_uname, 122 },
+	{ Syscall::dyn_modify_ldt, 123 },
+	{ Syscall::dyn_adjtimex, 124 },
+	{ Syscall::dyn_mprotect, 125 },
+	{ Syscall::dyn_sigprocmask, 126 },
+	{ Syscall::dyn_create_module, 127 },
+	{ Syscall::dyn_init_module, 128 },
+	{ Syscall::dyn_delete_module, 129 },
+	{ Syscall::dyn_get_kernel_syms, 130 },
+	{ Syscall::dyn_quotactl, 131 },
+	{ Syscall::dyn_getpgid, 132 },
+	{ Syscall::dyn_fchdir, 133 },
+	{ Syscall::dyn_bdflush, 134 },
+	{ Syscall::dyn_sysfs, 135 },
+	{ Syscall::dyn_personality, 136 },
+	{ Syscall::dyn_afs_syscall, 137 },
+	{ Syscall::dyn_setfsuid, 138 },
+	{ Syscall::dyn_setfsgid, 139 },
+	{ Syscall::dyn__llseek, 140 },
+	{ Syscall::dyn_getdents, 141 },
+	{ Syscall::dyn__newselect, 142 },
+	{ Syscall::dyn_flock, 143 },
+	{ Syscall::dyn_msync, 144 },
+	{ Syscall::dyn_readv, 145 },
+	{ Syscall::dyn_writev, 146 },
+	{ Syscall::dyn_getsid, 147 },
+	{ Syscall::dyn_fdatasync, 148 },
+	{ Syscall::dyn__sysctl, 149 },
+	{ Syscall::dyn_mlock, 150 },
+	{ Syscall::dyn_munlock, 151 },
+	{ Syscall::dyn_mlockall, 152 },
+	{ Syscall::dyn_munlockall, 153 },
+	{ Syscall::dyn_sched_setparam, 154 },
+	{ Syscall::dyn_sched_getparam, 155 },
+	{ Syscall::dyn_sched_setscheduler, 156 },
+	{ Syscall::dyn_sched_getscheduler, 157 },
+	{ Syscall::dyn_sched_yield, 158 },
+	{ Syscall::dyn_sched_get_priority_max, 159 },
+	{ Syscall::dyn_sched_get_priority_min, 160 },
+	{ Syscall::dyn_sched_rr_get_interval, 161 },
+	{ Syscall::dyn_nanosleep, 162 },
+	{ Syscall::dyn_mremap, 163 },
+	{ Syscall::dyn_setresuid, 164 },
+	{ Syscall::dyn_getresuid, 165 },
+	{ Syscall::dyn_query_module, 166 },
+	{ Syscall::dyn_poll, 167 },
+	{ Syscall::dyn_nfsservctl, 168 },
+	{ Syscall::dyn_setresgid, 169 },
+	{ Syscall::dyn_getresgid, 170 },
+	{ Syscall::dyn_prctl, 171 },
+	{ Syscall::dyn_rt_sigreturn, 172 },
+	{ Syscall::dyn_rt_sigaction, 173 },
+	{ Syscall::dyn_rt_sigprocmask, 174 },
+	{ Syscall::dyn_rt_sigpending, 175 },
+	{ Syscall::dyn_rt_sigtimedwait, 176 },
+	{ Syscall::dyn_rt_sigqueueinfo, 177 },
+	{ Syscall::dyn_rt_sigsuspend, 178 },
+	{ Syscall::dyn_pread64, 179 },
+	{ Syscall::dyn_pwrite64, 180 },
+	{ Syscall::dyn_chown, 181 },
+	{ Syscall::dyn_getcwd, 182 },
+	{ Syscall::dyn_capget, 183 },
+	{ Syscall::dyn_capset, 184 },
+	{ Syscall::dyn_sigaltstack, 185 },
+	{ Syscall::dyn_sendfile, 186 },
+	{ Syscall::dyn_getpmsg, 187 },
+	{ Syscall::dyn_putpmsg, 188 },
+	{ Syscall::dyn_vfork, 189 },
+	{ Syscall::dyn_ugetrlimit, 190 },
+	{ Syscall::dyn_readahead, 191 },
+	{ Syscall::dyn_mmap2, 192 },
+	{ Syscall::dyn_truncate64, 193 },
+	{ Syscall::dyn_ftruncate64, 194 },
+	{ Syscall::dyn_stat64, 195 },
+	{ Syscall::dyn_lstat64, 196 },
+	{ Syscall::dyn_fstat64, 197 },
+	{ Syscall::dyn_pciconfig_read, 198 },
+	{ Syscall::dyn_pciconfig_write, 199 },
+	{ Syscall::dyn_pciconfig_iobase, 200 },
+	{ Syscall::dyn_multiplexer, 201 },
+	{ Syscall::dyn_getdents64, 202 },
+	{ Syscall::dyn_pivot_root, 203 },
+	{ Syscall::dyn_fcntl64, 204 },
+	{ Syscall::dyn_madvise, 205 },
+	{ Syscall::dyn_mincore, 206 },
+	{ Syscall::dyn_gettid, 207 },
+	{ Syscall::dyn_tkill, 208 },
+	{ Syscall::dyn_setxattr, 209 },
+	{ Syscall::dyn_lsetxattr, 210 },
+	{ Syscall::dyn_fsetxattr, 211 },
+	{ Syscall::dyn_getxattr, 212 },
+	{ Syscall::dyn_lgetxattr, 213 },
+	{ Syscall::dyn_fgetxattr, 214 },
+	{ Syscall::dyn_listxattr, 215 },
+	{ Syscall::dyn_llistxattr, 216 },
+	{ Syscall::dyn_flistxattr, 217 },
+	{ Syscall::dyn_removexattr, 218 },
+	{ Syscall::dyn_lremovexattr, 219 },
+	{ Syscall::dyn_fremovexattr, 220 },
+	{ Syscall::dyn_futex, 221 },
+	{ Syscall::dyn_sched_setaffinity, 222 },
+	{ Syscall::dyn_sched_getaffinity, 223 },
+	{ Syscall::dyn_tuxcall, 225 },
+	{ Syscall::dyn_sendfile64, 226 },
+	{ Syscall::dyn_io_setup, 227 },
+	{ Syscall::dyn_io_destroy, 228 },
+	{ Syscall::dyn_io_getevents, 229 },
+	{ Syscall::dyn_io_submit, 230 },
+	{ Syscall::dyn_io_cancel, 231 },
+	{ Syscall::dyn_set_tid_address, 232 },
+	{ Syscall::dyn_fadvise64, 233 },
+	{ Syscall::dyn_exit_group, 234 },
+	{ Syscall::dyn_lookup_dcookie, 235 },
+	{ Syscall::dyn_epoll_create, 236 },
+	{ Syscall::dyn_epoll_ctl, 237 },
+	{ Syscall::dyn_epoll_wait, 238 },
+	{ Syscall::dyn_remap_file_pages, 239 },
+	{ Syscall::dyn_timer_create, 240 },
+	{ Syscall::dyn_timer_settime, 241 },
+	{ Syscall::dyn_timer_gettime, 242 },
+	{ Syscall::dyn_timer_getoverrun, 243 },
+	{ Syscall::dyn_timer_delete, 244 },
+	{ Syscall::dyn_clock_settime, 245 },
+	{ Syscall::dyn_clock_gettime, 246 },
+	{ Syscall::dyn_clock_getres, 247 },
+	{ Syscall::dyn_clock_nanosleep, 248 },
+	{ Syscall::dyn_swapcontext, 249 },
+	{ Syscall::dyn_tgkill, 250 },
+	{ Syscall::dyn_utimes, 251 },
+	{ Syscall::dyn_statfs64, 252 },
+	{ Syscall::dyn_fstatfs64, 253 },
+	{ Syscall::dyn_fadvise64_64, 254 },
+	{ Syscall::dyn_rtas, 255 },
+	{ Syscall::dyn_sys_debug_setcontext, 256 },
+	{ Syscall::dyn_migrate_pages, 258 },
+	{ Syscall::dyn_mbind, 259 },
+	{ Syscall::dyn_get_mempolicy, 260 },
+	{ Syscall::dyn_set_mempolicy, 261 },
+	{ Syscall::dyn_mq_open, 262 },
+	{ Syscall::dyn_mq_unlink, 263 },
+	{ Syscall::dyn_mq_timedsend, 264 },
+	{ Syscall::dyn_mq_timedreceive, 265 },
+	{ Syscall::dyn_mq_notify, 266 },
+	{ Syscall::dyn_mq_getsetattr, 267 },
+	{ Syscall::dyn_kexec_load, 268 },
+	{ Syscall::dyn_add_key, 269 },
+	{ Syscall::dyn_request_key, 270 },
+	{ Syscall::dyn_keyctl, 271 },
+	{ Syscall::dyn_waitid, 272 },
+	{ Syscall::dyn_ioprio_set, 273 },
+	{ Syscall::dyn_ioprio_get, 274 },
+	{ Syscall::dyn_inotify_init, 275 },
+	{ Syscall::dyn_inotify_add_watch, 276 },
+	{ Syscall::dyn_inotify_rm_watch, 277 },
+	{ Syscall::dyn_spu_run, 278 },
+	{ Syscall::dyn_spu_create, 279 },
+	{ Syscall::dyn_pselect6, 280 },
+	{ Syscall::dyn_ppoll, 281 },
+	{ Syscall::dyn_unshare, 282 },
+	{ Syscall::dyn_splice, 283 },
+	{ Syscall::dyn_tee, 284 },
+	{ Syscall::dyn_vmsplice, 285 },
+	{ Syscall::dyn_openat, 286 },
+	{ Syscall::dyn_mkdirat, 287 },
+	{ Syscall::dyn_mknodat, 288 },
+	{ Syscall::dyn_fchownat, 289 },
+	{ Syscall::dyn_futimesat, 290 },
+	{ Syscall::dyn_fstatat64, 291 },
+	{ Syscall::dyn_unlinkat, 292 },
+	{ Syscall::dyn_renameat, 293 },
+	{ Syscall::dyn_linkat, 294 },
+	{ Syscall::dyn_symlinkat, 295 },
+	{ Syscall::dyn_readlinkat, 296 },
+	{ Syscall::dyn_fchmodat, 297 },
+	{ Syscall::dyn_faccessat, 298 },
+	{ Syscall::dyn_get_robust_list, 299 },
+	{ Syscall::dyn_set_robust_list, 300 },
+	{ Syscall::dyn_move_pages, 301 },
+	{ Syscall::dyn_getcpu, 302 },
+	{ Syscall::dyn_epoll_pwait, 303 },
+	{ Syscall::dyn_utimensat, 304 },
+	{ Syscall::dyn_signalfd, 305 },
+	{ Syscall::dyn_timerfd_create, 306 },
+	{ Syscall::dyn_eventfd, 307 },
+	{ Syscall::dyn_sync_file_range2, 308 },
+	{ Syscall::dyn_fallocate, 309 },
+	{ Syscall::dyn_subpage_prot, 310 },
+	{ Syscall::dyn_timerfd_settime, 311 },
+	{ Syscall::dyn_timerfd_gettime, 312 },
+	{ Syscall::dyn_signalfd4, 313 },
+	{ Syscall::dyn_eventfd2, 314 },
+	{ Syscall::dyn_epoll_create1, 315 },
+	{ Syscall::dyn_dup3, 316 },
+	{ Syscall::dyn_pipe2, 317 },
+	{ Syscall::dyn_inotify_init1, 318 },
+});
+Linux_Arch_ppc32_syscallNames.insert({
+	{ 0, "restart_syscall" },
+	{ 1, "exit" },
+	{ 2, "fork" },
+	{ 3, "read" },
+	{ 4, "write" },
+	{ 5, "open" },
+	{ 6, "close" },
+	{ 7, "waitpid" },
+	{ 8, "creat" },
+	{ 9, "link" },
+	{ 10, "unlink" },
+	{ 11, "execve" },
+	{ 12, "chdir" },
+	{ 13, "time" },
+	{ 14, "mknod" },
+	{ 15, "chmod" },
+	{ 16, "lchown" },
+	{ 17, "break" },
+	{ 18, "oldstat" },
+	{ 19, "lseek" },
+	{ 20, "getpid" },
+	{ 21, "mount" },
+	{ 22, "umount" },
+	{ 23, "setuid" },
+	{ 24, "getuid" },
+	{ 25, "stime" },
+	{ 26, "ptrace" },
+	{ 27, "alarm" },
+	{ 28, "oldfstat" },
+	{ 29, "pause" },
+	{ 30, "utime" },
+	{ 31, "stty" },
+	{ 32, "gtty" },
+	{ 33, "access" },
+	{ 34, "nice" },
+	{ 35, "ftime" },
+	{ 36, "sync" },
+	{ 37, "kill" },
+	{ 38, "rename" },
+	{ 39, "mkdir" },
+	{ 40, "rmdir" },
+	{ 41, "dup" },
+	{ 42, "pipe" },
+	{ 43, "times" },
+	{ 44, "prof" },
+	{ 45, "brk" },
+	{ 46, "setgid" },
+	{ 47, "getgid" },
+	{ 48, "signal" },
+	{ 49, "geteuid" },
+	{ 50, "getegid" },
+	{ 51, "acct" },
+	{ 52, "umount2" },
+	{ 53, "lock" },
+	{ 54, "ioctl" },
+	{ 55, "fcntl" },
+	{ 56, "mpx" },
+	{ 57, "setpgid" },
+	{ 58, "ulimit" },
+	{ 59, "oldolduname" },
+	{ 60, "umask" },
+	{ 61, "chroot" },
+	{ 62, "ustat" },
+	{ 63, "dup2" },
+	{ 64, "getppid" },
+	{ 65, "getpgrp" },
+	{ 66, "setsid" },
+	{ 67, "sigaction" },
+	{ 68, "sgetmask" },
+	{ 69, "ssetmask" },
+	{ 70, "setreuid" },
+	{ 71, "setregid" },
+	{ 72, "sigsuspend" },
+	{ 73, "sigpending" },
+	{ 74, "sethostname" },
+	{ 75, "setrlimit" },
+	{ 76, "getrlimit" },
+	{ 77, "getrusage" },
+	{ 78, "gettimeofday" },
+	{ 79, "settimeofday" },
+	{ 80, "getgroups" },
+	{ 81, "setgroups" },
+	{ 82, "select" },
+	{ 83, "symlink" },
+	{ 84, "oldlstat" },
+	{ 85, "readlink" },
+	{ 86, "uselib" },
+	{ 87, "swapon" },
+	{ 88, "reboot" },
+	{ 89, "readdir" },
+	{ 90, "mmap" },
+	{ 91, "munmap" },
+	{ 92, "truncate" },
+	{ 93, "ftruncate" },
+	{ 94, "fchmod" },
+	{ 95, "fchown" },
+	{ 96, "getpriority" },
+	{ 97, "setpriority" },
+	{ 98, "profil" },
+	{ 99, "statfs" },
+	{ 100, "fstatfs" },
+	{ 101, "ioperm" },
+	{ 102, "socketcall" },
+	{ 103, "syslog" },
+	{ 104, "setitimer" },
+	{ 105, "getitimer" },
+	{ 106, "stat" },
+	{ 107, "lstat" },
+	{ 108, "fstat" },
+	{ 109, "olduname" },
+	{ 110, "iopl" },
+	{ 111, "vhangup" },
+	{ 112, "idle" },
+	{ 113, "vm86" },
+	{ 114, "wait4" },
+	{ 115, "swapoff" },
+	{ 116, "sysinfo" },
+	{ 117, "ipc" },
+	{ 118, "fsync" },
+	{ 119, "sigreturn" },
+	{ 120, "clone" },
+	{ 121, "setdomainname" },
+	{ 122, "uname" },
+	{ 123, "modify_ldt" },
+	{ 124, "adjtimex" },
+	{ 125, "mprotect" },
+	{ 126, "sigprocmask" },
+	{ 127, "create_module" },
+	{ 128, "init_module" },
+	{ 129, "delete_module" },
+	{ 130, "get_kernel_syms" },
+	{ 131, "quotactl" },
+	{ 132, "getpgid" },
+	{ 133, "fchdir" },
+	{ 134, "bdflush" },
+	{ 135, "sysfs" },
+	{ 136, "personality" },
+	{ 137, "afs_syscall" },
+	{ 138, "setfsuid" },
+	{ 139, "setfsgid" },
+	{ 140, "_llseek" },
+	{ 141, "getdents" },
+	{ 142, "_newselect" },
+	{ 143, "flock" },
+	{ 144, "msync" },
+	{ 145, "readv" },
+	{ 146, "writev" },
+	{ 147, "getsid" },
+	{ 148, "fdatasync" },
+	{ 149, "_sysctl" },
+	{ 150, "mlock" },
+	{ 151, "munlock" },
+	{ 152, "mlockall" },
+	{ 153, "munlockall" },
+	{ 154, "sched_setparam" },
+	{ 155, "sched_getparam" },
+	{ 156, "sched_setscheduler" },
+	{ 157, "sched_getscheduler" },
+	{ 158, "sched_yield" },
+	{ 159, "sched_get_priority_max" },
+	{ 160, "sched_get_priority_min" },
+	{ 161, "sched_rr_get_interval" },
+	{ 162, "nanosleep" },
+	{ 163, "mremap" },
+	{ 164, "setresuid" },
+	{ 165, "getresuid" },
+	{ 166, "query_module" },
+	{ 167, "poll" },
+	{ 168, "nfsservctl" },
+	{ 169, "setresgid" },
+	{ 170, "getresgid" },
+	{ 171, "prctl" },
+	{ 172, "rt_sigreturn" },
+	{ 173, "rt_sigaction" },
+	{ 174, "rt_sigprocmask" },
+	{ 175, "rt_sigpending" },
+	{ 176, "rt_sigtimedwait" },
+	{ 177, "rt_sigqueueinfo" },
+	{ 178, "rt_sigsuspend" },
+	{ 179, "pread64" },
+	{ 180, "pwrite64" },
+	{ 181, "chown" },
+	{ 182, "getcwd" },
+	{ 183, "capget" },
+	{ 184, "capset" },
+	{ 185, "sigaltstack" },
+	{ 186, "sendfile" },
+	{ 187, "getpmsg" },
+	{ 188, "putpmsg" },
+	{ 189, "vfork" },
+	{ 190, "ugetrlimit" },
+	{ 191, "readahead" },
+	{ 192, "mmap2" },
+	{ 193, "truncate64" },
+	{ 194, "ftruncate64" },
+	{ 195, "stat64" },
+	{ 196, "lstat64" },
+	{ 197, "fstat64" },
+	{ 198, "pciconfig_read" },
+	{ 199, "pciconfig_write" },
+	{ 200, "pciconfig_iobase" },
+	{ 201, "multiplexer" },
+	{ 202, "getdents64" },
+	{ 203, "pivot_root" },
+	{ 204, "fcntl64" },
+	{ 205, "madvise" },
+	{ 206, "mincore" },
+	{ 207, "gettid" },
+	{ 208, "tkill" },
+	{ 209, "setxattr" },
+	{ 210, "lsetxattr" },
+	{ 211, "fsetxattr" },
+	{ 212, "getxattr" },
+	{ 213, "lgetxattr" },
+	{ 214, "fgetxattr" },
+	{ 215, "listxattr" },
+	{ 216, "llistxattr" },
+	{ 217, "flistxattr" },
+	{ 218, "removexattr" },
+	{ 219, "lremovexattr" },
+	{ 220, "fremovexattr" },
+	{ 221, "futex" },
+	{ 222, "sched_setaffinity" },
+	{ 223, "sched_getaffinity" },
+	{ 225, "tuxcall" },
+	{ 226, "sendfile64" },
+	{ 227, "io_setup" },
+	{ 228, "io_destroy" },
+	{ 229, "io_getevents" },
+	{ 230, "io_submit" },
+	{ 231, "io_cancel" },
+	{ 232, "set_tid_address" },
+	{ 233, "fadvise64" },
+	{ 234, "exit_group" },
+	{ 235, "lookup_dcookie" },
+	{ 236, "epoll_create" },
+	{ 237, "epoll_ctl" },
+	{ 238, "epoll_wait" },
+	{ 239, "remap_file_pages" },
+	{ 240, "timer_create" },
+	{ 241, "timer_settime" },
+	{ 242, "timer_gettime" },
+	{ 243, "timer_getoverrun" },
+	{ 244, "timer_delete" },
+	{ 245, "clock_settime" },
+	{ 246, "clock_gettime" },
+	{ 247, "clock_getres" },
+	{ 248, "clock_nanosleep" },
+	{ 249, "swapcontext" },
+	{ 250, "tgkill" },
+	{ 251, "utimes" },
+	{ 252, "statfs64" },
+	{ 253, "fstatfs64" },
+	{ 254, "fadvise64_64" },
+	{ 255, "rtas" },
+	{ 256, "sys_debug_setcontext" },
+	{ 258, "migrate_pages" },
+	{ 259, "mbind" },
+	{ 260, "get_mempolicy" },
+	{ 261, "set_mempolicy" },
+	{ 262, "mq_open" },
+	{ 263, "mq_unlink" },
+	{ 264, "mq_timedsend" },
+	{ 265, "mq_timedreceive" },
+	{ 266, "mq_notify" },
+	{ 267, "mq_getsetattr" },
+	{ 268, "kexec_load" },
+	{ 269, "add_key" },
+	{ 270, "request_key" },
+	{ 271, "keyctl" },
+	{ 272, "waitid" },
+	{ 273, "ioprio_set" },
+	{ 274, "ioprio_get" },
+	{ 275, "inotify_init" },
+	{ 276, "inotify_add_watch" },
+	{ 277, "inotify_rm_watch" },
+	{ 278, "spu_run" },
+	{ 279, "spu_create" },
+	{ 280, "pselect6" },
+	{ 281, "ppoll" },
+	{ 282, "unshare" },
+	{ 283, "splice" },
+	{ 284, "tee" },
+	{ 285, "vmsplice" },
+	{ 286, "openat" },
+	{ 287, "mkdirat" },
+	{ 288, "mknodat" },
+	{ 289, "fchownat" },
+	{ 290, "futimesat" },
+	{ 291, "fstatat64" },
+	{ 292, "unlinkat" },
+	{ 293, "renameat" },
+	{ 294, "linkat" },
+	{ 295, "symlinkat" },
+	{ 296, "readlinkat" },
+	{ 297, "fchmodat" },
+	{ 298, "faccessat" },
+	{ 299, "get_robust_list" },
+	{ 300, "set_robust_list" },
+	{ 301, "move_pages" },
+	{ 302, "getcpu" },
+	{ 303, "epoll_pwait" },
+	{ 304, "utimensat" },
+	{ 305, "signalfd" },
+	{ 306, "timerfd_create" },
+	{ 307, "eventfd" },
+	{ 308, "sync_file_range2" },
+	{ 309, "fallocate" },
+	{ 310, "subpage_prot" },
+	{ 311, "timerfd_settime" },
+	{ 312, "timerfd_gettime" },
+	{ 313, "signalfd4" },
+	{ 314, "eventfd2" },
+	{ 315, "epoll_create1" },
+	{ 316, "dup3" },
+	{ 317, "pipe2" },
+	{ 318, "inotify_init1" },
+});
 
 /* Linux Arch_x86_64 Numbers */
-Platform Linux_Arch_x86_64_plat(Arch_x86_64, Linux);
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_read, 0));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(0, "read"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_write, 1));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(1, "write"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_open, 2));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(2, "open"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_close, 3));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(3, "close"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_stat, 4));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(4, "stat"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fstat, 5));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(5, "fstat"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lstat, 6));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(6, "lstat"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_poll, 7));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(7, "poll"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lseek, 8));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(8, "lseek"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mmap, 9));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(9, "mmap"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mprotect, 10));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(10, "mprotect"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_munmap, 11));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(11, "munmap"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_brk, 12));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(12, "brk"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigaction, 13));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(13, "rt_sigaction"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigprocmask, 14));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(14, "rt_sigprocmask"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigreturn, 15));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(15, "rt_sigreturn"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ioctl, 16));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(16, "ioctl"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pread64, 17));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(17, "pread64"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pwrite64, 18));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(18, "pwrite64"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readv, 19));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(19, "readv"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_writev, 20));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(20, "writev"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_access, 21));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(21, "access"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pipe, 22));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(22, "pipe"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_select, 23));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(23, "select"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_yield, 24));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(24, "sched_yield"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mremap, 25));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(25, "mremap"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_msync, 26));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(26, "msync"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mincore, 27));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(27, "mincore"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_madvise, 28));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(28, "madvise"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_shmget, 29));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(29, "shmget"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_shmat, 30));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(30, "shmat"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_shmctl, 31));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(31, "shmctl"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_dup, 32));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(32, "dup"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_dup2, 33));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(33, "dup2"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pause, 34));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(34, "pause"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_nanosleep, 35));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(35, "nanosleep"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getitimer, 36));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(36, "getitimer"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_alarm, 37));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(37, "alarm"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setitimer, 38));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(38, "setitimer"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpid, 39));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(39, "getpid"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sendfile, 40));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(40, "sendfile"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_socket, 41));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(41, "socket"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_connect, 42));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(42, "connect"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_accept, 43));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(43, "accept"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sendto, 44));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(44, "sendto"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_recvfrom, 45));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(45, "recvfrom"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sendmsg, 46));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(46, "sendmsg"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_recvmsg, 47));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(47, "recvmsg"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_shutdown, 48));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(48, "shutdown"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_bind, 49));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(49, "bind"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_listen, 50));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(50, "listen"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getsockname, 51));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(51, "getsockname"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpeername, 52));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(52, "getpeername"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_socketpair, 53));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(53, "socketpair"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setsockopt, 54));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(54, "setsockopt"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getsockopt, 55));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(55, "getsockopt"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clone, 56));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(56, "clone"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fork, 57));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(57, "fork"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_vfork, 58));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(58, "vfork"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_execve, 59));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(59, "execve"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_exit, 60));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(60, "exit"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_wait4, 61));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(61, "wait4"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_kill, 62));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(62, "kill"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_uname, 63));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(63, "uname"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_semget, 64));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(64, "semget"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_semop, 65));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(65, "semop"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_semctl, 66));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(66, "semctl"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_shmdt, 67));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(67, "shmdt"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_msgget, 68));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(68, "msgget"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_msgsnd, 69));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(69, "msgsnd"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_msgrcv, 70));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(70, "msgrcv"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_msgctl, 71));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(71, "msgctl"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fcntl, 72));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(72, "fcntl"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_flock, 73));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(73, "flock"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fsync, 74));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(74, "fsync"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fdatasync, 75));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(75, "fdatasync"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_truncate, 76));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(76, "truncate"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ftruncate, 77));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(77, "ftruncate"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getdents, 78));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(78, "getdents"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getcwd, 79));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(79, "getcwd"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_chdir, 80));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(80, "chdir"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchdir, 81));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(81, "fchdir"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rename, 82));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(82, "rename"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mkdir, 83));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(83, "mkdir"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rmdir, 84));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(84, "rmdir"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_creat, 85));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(85, "creat"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_link, 86));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(86, "link"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_unlink, 87));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(87, "unlink"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_symlink, 88));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(88, "symlink"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readlink, 89));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(89, "readlink"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_chmod, 90));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(90, "chmod"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchmod, 91));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(91, "fchmod"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_chown, 92));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(92, "chown"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchown, 93));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(93, "fchown"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lchown, 94));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(94, "lchown"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_umask, 95));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(95, "umask"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_gettimeofday, 96));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(96, "gettimeofday"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getrlimit, 97));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(97, "getrlimit"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getrusage, 98));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(98, "getrusage"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sysinfo, 99));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(99, "sysinfo"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_times, 100));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(100, "times"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ptrace, 101));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(101, "ptrace"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getuid, 102));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(102, "getuid"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_syslog, 103));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(103, "syslog"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getgid, 104));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(104, "getgid"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setuid, 105));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(105, "setuid"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setgid, 106));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(106, "setgid"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_geteuid, 107));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(107, "geteuid"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getegid, 108));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(108, "getegid"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setpgid, 109));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(109, "setpgid"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getppid, 110));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(110, "getppid"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpgrp, 111));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(111, "getpgrp"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setsid, 112));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(112, "setsid"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setreuid, 113));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(113, "setreuid"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setregid, 114));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(114, "setregid"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getgroups, 115));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(115, "getgroups"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setgroups, 116));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(116, "setgroups"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setresuid, 117));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(117, "setresuid"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getresuid, 118));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(118, "getresuid"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setresgid, 119));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(119, "setresgid"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getresgid, 120));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(120, "getresgid"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpgid, 121));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(121, "getpgid"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setfsuid, 122));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(122, "setfsuid"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setfsgid, 123));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(123, "setfsgid"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getsid, 124));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(124, "getsid"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_capget, 125));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(125, "capget"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_capset, 126));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(126, "capset"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigpending, 127));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(127, "rt_sigpending"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigtimedwait, 128));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(128, "rt_sigtimedwait"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigqueueinfo, 129));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(129, "rt_sigqueueinfo"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigsuspend, 130));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(130, "rt_sigsuspend"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sigaltstack, 131));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(131, "sigaltstack"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_utime, 132));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(132, "utime"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mknod, 133));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(133, "mknod"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_uselib, 134));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(134, "uselib"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_personality, 135));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(135, "personality"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ustat, 136));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(136, "ustat"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_statfs, 137));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(137, "statfs"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fstatfs, 138));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(138, "fstatfs"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sysfs, 139));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(139, "sysfs"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpriority, 140));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(140, "getpriority"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setpriority, 141));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(141, "setpriority"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_setparam, 142));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(142, "sched_setparam"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_getparam, 143));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(143, "sched_getparam"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_setscheduler, 144));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(144, "sched_setscheduler"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_getscheduler, 145));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(145, "sched_getscheduler"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_get_priority_max, 146));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(146, "sched_get_priority_max"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_get_priority_min, 147));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(147, "sched_get_priority_min"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_rr_get_interval, 148));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(148, "sched_rr_get_interval"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mlock, 149));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(149, "mlock"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_munlock, 150));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(150, "munlock"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mlockall, 151));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(151, "mlockall"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_munlockall, 152));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(152, "munlockall"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_vhangup, 153));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(153, "vhangup"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_modify_ldt, 154));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(154, "modify_ldt"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pivot_root, 155));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(155, "pivot_root"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn__sysctl, 156));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(156, "_sysctl"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_prctl, 157));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(157, "prctl"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_arch_prctl, 158));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(158, "arch_prctl"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_adjtimex, 159));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(159, "adjtimex"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setrlimit, 160));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(160, "setrlimit"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_chroot, 161));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(161, "chroot"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sync, 162));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(162, "sync"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_acct, 163));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(163, "acct"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_settimeofday, 164));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(164, "settimeofday"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mount, 165));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(165, "mount"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_umount2, 166));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(166, "umount2"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_swapon, 167));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(167, "swapon"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_swapoff, 168));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(168, "swapoff"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_reboot, 169));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(169, "reboot"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sethostname, 170));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(170, "sethostname"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setdomainname, 171));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(171, "setdomainname"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_iopl, 172));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(172, "iopl"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ioperm, 173));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(173, "ioperm"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_create_module, 174));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(174, "create_module"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_init_module, 175));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(175, "init_module"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_delete_module, 176));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(176, "delete_module"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_get_kernel_syms, 177));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(177, "get_kernel_syms"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_query_module, 178));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(178, "query_module"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_quotactl, 179));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(179, "quotactl"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_nfsservctl, 180));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(180, "nfsservctl"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpmsg, 181));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(181, "getpmsg"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_putpmsg, 182));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(182, "putpmsg"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_afs_syscall, 183));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(183, "afs_syscall"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_tuxcall, 184));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(184, "tuxcall"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_security, 185));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(185, "security"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_gettid, 186));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(186, "gettid"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readahead, 187));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(187, "readahead"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setxattr, 188));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(188, "setxattr"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lsetxattr, 189));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(189, "lsetxattr"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fsetxattr, 190));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(190, "fsetxattr"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getxattr, 191));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(191, "getxattr"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lgetxattr, 192));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(192, "lgetxattr"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fgetxattr, 193));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(193, "fgetxattr"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_listxattr, 194));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(194, "listxattr"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_llistxattr, 195));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(195, "llistxattr"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_flistxattr, 196));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(196, "flistxattr"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_removexattr, 197));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(197, "removexattr"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lremovexattr, 198));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(198, "lremovexattr"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fremovexattr, 199));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(199, "fremovexattr"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_tkill, 200));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(200, "tkill"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_time, 201));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(201, "time"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_futex, 202));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(202, "futex"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_setaffinity, 203));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(203, "sched_setaffinity"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_getaffinity, 204));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(204, "sched_getaffinity"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_set_thread_area, 205));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(205, "set_thread_area"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_setup, 206));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(206, "io_setup"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_destroy, 207));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(207, "io_destroy"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_getevents, 208));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(208, "io_getevents"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_submit, 209));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(209, "io_submit"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_cancel, 210));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(210, "io_cancel"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_get_thread_area, 211));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(211, "get_thread_area"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lookup_dcookie, 212));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(212, "lookup_dcookie"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_create, 213));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(213, "epoll_create"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_ctl_old, 214));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(214, "epoll_ctl_old"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_wait_old, 215));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(215, "epoll_wait_old"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_remap_file_pages, 216));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(216, "remap_file_pages"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getdents64, 217));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(217, "getdents64"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_set_tid_address, 218));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(218, "set_tid_address"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_restart_syscall, 219));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(219, "restart_syscall"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_semtimedop, 220));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(220, "semtimedop"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fadvise64, 221));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(221, "fadvise64"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_create, 222));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(222, "timer_create"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_settime, 223));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(223, "timer_settime"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_gettime, 224));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(224, "timer_gettime"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_getoverrun, 225));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(225, "timer_getoverrun"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_delete, 226));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(226, "timer_delete"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_settime, 227));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(227, "clock_settime"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_gettime, 228));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(228, "clock_gettime"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_getres, 229));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(229, "clock_getres"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_nanosleep, 230));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(230, "clock_nanosleep"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_exit_group, 231));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(231, "exit_group"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_wait, 232));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(232, "epoll_wait"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_ctl, 233));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(233, "epoll_ctl"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_tgkill, 234));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(234, "tgkill"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_utimes, 235));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(235, "utimes"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_vserver, 236));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(236, "vserver"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mbind, 237));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(237, "mbind"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_set_mempolicy, 238));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(238, "set_mempolicy"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_get_mempolicy, 239));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(239, "get_mempolicy"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_open, 240));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(240, "mq_open"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_unlink, 241));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(241, "mq_unlink"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_timedsend, 242));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(242, "mq_timedsend"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_timedreceive, 243));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(243, "mq_timedreceive"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_notify, 244));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(244, "mq_notify"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_getsetattr, 245));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(245, "mq_getsetattr"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_kexec_load, 246));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(246, "kexec_load"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_waitid, 247));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(247, "waitid"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_add_key, 248));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(248, "add_key"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_request_key, 249));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(249, "request_key"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_keyctl, 250));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(250, "keyctl"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ioprio_set, 251));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(251, "ioprio_set"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ioprio_get, 252));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(252, "ioprio_get"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_inotify_init, 253));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(253, "inotify_init"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_inotify_add_watch, 254));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(254, "inotify_add_watch"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_inotify_rm_watch, 255));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(255, "inotify_rm_watch"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_migrate_pages, 256));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(256, "migrate_pages"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_openat, 257));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(257, "openat"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mkdirat, 258));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(258, "mkdirat"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mknodat, 259));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(259, "mknodat"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchownat, 260));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(260, "fchownat"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_futimesat, 261));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(261, "futimesat"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_newfstatat, 262));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(262, "newfstatat"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_unlinkat, 263));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(263, "unlinkat"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_renameat, 264));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(264, "renameat"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_linkat, 265));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(265, "linkat"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_symlinkat, 266));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(266, "symlinkat"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readlinkat, 267));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(267, "readlinkat"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchmodat, 268));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(268, "fchmodat"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_faccessat, 269));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(269, "faccessat"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pselect6, 270));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(270, "pselect6"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ppoll, 271));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(271, "ppoll"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_unshare, 272));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(272, "unshare"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_set_robust_list, 273));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(273, "set_robust_list"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_get_robust_list, 274));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(274, "get_robust_list"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_splice, 275));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(275, "splice"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_tee, 276));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(276, "tee"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sync_file_range, 277));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(277, "sync_file_range"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_vmsplice, 278));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(278, "vmsplice"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_move_pages, 279));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(279, "move_pages"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_utimensat, 280));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(280, "utimensat"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_pwait, 281));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(281, "epoll_pwait"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_signalfd, 282));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(282, "signalfd"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timerfd_create, 283));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(283, "timerfd_create"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_eventfd, 284));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(284, "eventfd"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fallocate, 285));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(285, "fallocate"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timerfd_settime, 286));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(286, "timerfd_settime"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timerfd_gettime, 287));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(287, "timerfd_gettime"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_accept4, 288));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(288, "accept4"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_signalfd4, 289));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(289, "signalfd4"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_eventfd2, 290));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(290, "eventfd2"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_create1, 291));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(291, "epoll_create1"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_dup3, 292));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(292, "dup3"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pipe2, 293));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(293, "pipe2"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_inotify_init1, 294));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(294, "inotify_init1"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_preadv, 295));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(295, "preadv"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pwritev, 296));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(296, "pwritev"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_tgsigqueueinfo, 297));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(297, "rt_tgsigqueueinfo"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_perf_event_open, 298));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(298, "perf_event_open"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_recvmmsg, 299));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(299, "recvmmsg"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fanotify_init, 300));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(300, "fanotify_init"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fanotify_mark, 301));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(301, "fanotify_mark"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_prlimit64, 302));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(302, "prlimit64"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_name_to_handle_at, 303));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(303, "name_to_handle_at"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_open_by_handle_at, 304));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(304, "open_by_handle_at"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_adjtime, 305));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(305, "clock_adjtime"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_syncfs, 306));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(306, "syncfs"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sendmmsg, 307));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(307, "sendmmsg"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_set_ns, 308));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(308, "set_ns"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_get_cpu, 309));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(309, "get_cpu"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_process_vm_readv, 310));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(310, "process_vm_readv"));
-Linux_Arch_x86_64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_process_vm_writev, 311));
-Linux_Arch_x86_64_syscallNames.insert(make_pair(311, "process_vm_writev"));
+Linux_Arch_x86_64_syscallNumbers.insert({
+	{ Syscall::dyn_read, 0 },
+	{ Syscall::dyn_write, 1 },
+	{ Syscall::dyn_open, 2 },
+	{ Syscall::dyn_close, 3 },
+	{ Syscall::dyn_stat, 4 },
+	{ Syscall::dyn_fstat, 5 },
+	{ Syscall::dyn_lstat, 6 },
+	{ Syscall::dyn_poll, 7 },
+	{ Syscall::dyn_lseek, 8 },
+	{ Syscall::dyn_mmap, 9 },
+	{ Syscall::dyn_mprotect, 10 },
+	{ Syscall::dyn_munmap, 11 },
+	{ Syscall::dyn_brk, 12 },
+	{ Syscall::dyn_rt_sigaction, 13 },
+	{ Syscall::dyn_rt_sigprocmask, 14 },
+	{ Syscall::dyn_rt_sigreturn, 15 },
+	{ Syscall::dyn_ioctl, 16 },
+	{ Syscall::dyn_pread64, 17 },
+	{ Syscall::dyn_pwrite64, 18 },
+	{ Syscall::dyn_readv, 19 },
+	{ Syscall::dyn_writev, 20 },
+	{ Syscall::dyn_access, 21 },
+	{ Syscall::dyn_pipe, 22 },
+	{ Syscall::dyn_select, 23 },
+	{ Syscall::dyn_sched_yield, 24 },
+	{ Syscall::dyn_mremap, 25 },
+	{ Syscall::dyn_msync, 26 },
+	{ Syscall::dyn_mincore, 27 },
+	{ Syscall::dyn_madvise, 28 },
+	{ Syscall::dyn_shmget, 29 },
+	{ Syscall::dyn_shmat, 30 },
+	{ Syscall::dyn_shmctl, 31 },
+	{ Syscall::dyn_dup, 32 },
+	{ Syscall::dyn_dup2, 33 },
+	{ Syscall::dyn_pause, 34 },
+	{ Syscall::dyn_nanosleep, 35 },
+	{ Syscall::dyn_getitimer, 36 },
+	{ Syscall::dyn_alarm, 37 },
+	{ Syscall::dyn_setitimer, 38 },
+	{ Syscall::dyn_getpid, 39 },
+	{ Syscall::dyn_sendfile, 40 },
+	{ Syscall::dyn_socket, 41 },
+	{ Syscall::dyn_connect, 42 },
+	{ Syscall::dyn_accept, 43 },
+	{ Syscall::dyn_sendto, 44 },
+	{ Syscall::dyn_recvfrom, 45 },
+	{ Syscall::dyn_sendmsg, 46 },
+	{ Syscall::dyn_recvmsg, 47 },
+	{ Syscall::dyn_shutdown, 48 },
+	{ Syscall::dyn_bind, 49 },
+	{ Syscall::dyn_listen, 50 },
+	{ Syscall::dyn_getsockname, 51 },
+	{ Syscall::dyn_getpeername, 52 },
+	{ Syscall::dyn_socketpair, 53 },
+	{ Syscall::dyn_setsockopt, 54 },
+	{ Syscall::dyn_getsockopt, 55 },
+	{ Syscall::dyn_clone, 56 },
+	{ Syscall::dyn_fork, 57 },
+	{ Syscall::dyn_vfork, 58 },
+	{ Syscall::dyn_execve, 59 },
+	{ Syscall::dyn_exit, 60 },
+	{ Syscall::dyn_wait4, 61 },
+	{ Syscall::dyn_kill, 62 },
+	{ Syscall::dyn_uname, 63 },
+	{ Syscall::dyn_semget, 64 },
+	{ Syscall::dyn_semop, 65 },
+	{ Syscall::dyn_semctl, 66 },
+	{ Syscall::dyn_shmdt, 67 },
+	{ Syscall::dyn_msgget, 68 },
+	{ Syscall::dyn_msgsnd, 69 },
+	{ Syscall::dyn_msgrcv, 70 },
+	{ Syscall::dyn_msgctl, 71 },
+	{ Syscall::dyn_fcntl, 72 },
+	{ Syscall::dyn_flock, 73 },
+	{ Syscall::dyn_fsync, 74 },
+	{ Syscall::dyn_fdatasync, 75 },
+	{ Syscall::dyn_truncate, 76 },
+	{ Syscall::dyn_ftruncate, 77 },
+	{ Syscall::dyn_getdents, 78 },
+	{ Syscall::dyn_getcwd, 79 },
+	{ Syscall::dyn_chdir, 80 },
+	{ Syscall::dyn_fchdir, 81 },
+	{ Syscall::dyn_rename, 82 },
+	{ Syscall::dyn_mkdir, 83 },
+	{ Syscall::dyn_rmdir, 84 },
+	{ Syscall::dyn_creat, 85 },
+	{ Syscall::dyn_link, 86 },
+	{ Syscall::dyn_unlink, 87 },
+	{ Syscall::dyn_symlink, 88 },
+	{ Syscall::dyn_readlink, 89 },
+	{ Syscall::dyn_chmod, 90 },
+	{ Syscall::dyn_fchmod, 91 },
+	{ Syscall::dyn_chown, 92 },
+	{ Syscall::dyn_fchown, 93 },
+	{ Syscall::dyn_lchown, 94 },
+	{ Syscall::dyn_umask, 95 },
+	{ Syscall::dyn_gettimeofday, 96 },
+	{ Syscall::dyn_getrlimit, 97 },
+	{ Syscall::dyn_getrusage, 98 },
+	{ Syscall::dyn_sysinfo, 99 },
+	{ Syscall::dyn_times, 100 },
+	{ Syscall::dyn_ptrace, 101 },
+	{ Syscall::dyn_getuid, 102 },
+	{ Syscall::dyn_syslog, 103 },
+	{ Syscall::dyn_getgid, 104 },
+	{ Syscall::dyn_setuid, 105 },
+	{ Syscall::dyn_setgid, 106 },
+	{ Syscall::dyn_geteuid, 107 },
+	{ Syscall::dyn_getegid, 108 },
+	{ Syscall::dyn_setpgid, 109 },
+	{ Syscall::dyn_getppid, 110 },
+	{ Syscall::dyn_getpgrp, 111 },
+	{ Syscall::dyn_setsid, 112 },
+	{ Syscall::dyn_setreuid, 113 },
+	{ Syscall::dyn_setregid, 114 },
+	{ Syscall::dyn_getgroups, 115 },
+	{ Syscall::dyn_setgroups, 116 },
+	{ Syscall::dyn_setresuid, 117 },
+	{ Syscall::dyn_getresuid, 118 },
+	{ Syscall::dyn_setresgid, 119 },
+	{ Syscall::dyn_getresgid, 120 },
+	{ Syscall::dyn_getpgid, 121 },
+	{ Syscall::dyn_setfsuid, 122 },
+	{ Syscall::dyn_setfsgid, 123 },
+	{ Syscall::dyn_getsid, 124 },
+	{ Syscall::dyn_capget, 125 },
+	{ Syscall::dyn_capset, 126 },
+	{ Syscall::dyn_rt_sigpending, 127 },
+	{ Syscall::dyn_rt_sigtimedwait, 128 },
+	{ Syscall::dyn_rt_sigqueueinfo, 129 },
+	{ Syscall::dyn_rt_sigsuspend, 130 },
+	{ Syscall::dyn_sigaltstack, 131 },
+	{ Syscall::dyn_utime, 132 },
+	{ Syscall::dyn_mknod, 133 },
+	{ Syscall::dyn_uselib, 134 },
+	{ Syscall::dyn_personality, 135 },
+	{ Syscall::dyn_ustat, 136 },
+	{ Syscall::dyn_statfs, 137 },
+	{ Syscall::dyn_fstatfs, 138 },
+	{ Syscall::dyn_sysfs, 139 },
+	{ Syscall::dyn_getpriority, 140 },
+	{ Syscall::dyn_setpriority, 141 },
+	{ Syscall::dyn_sched_setparam, 142 },
+	{ Syscall::dyn_sched_getparam, 143 },
+	{ Syscall::dyn_sched_setscheduler, 144 },
+	{ Syscall::dyn_sched_getscheduler, 145 },
+	{ Syscall::dyn_sched_get_priority_max, 146 },
+	{ Syscall::dyn_sched_get_priority_min, 147 },
+	{ Syscall::dyn_sched_rr_get_interval, 148 },
+	{ Syscall::dyn_mlock, 149 },
+	{ Syscall::dyn_munlock, 150 },
+	{ Syscall::dyn_mlockall, 151 },
+	{ Syscall::dyn_munlockall, 152 },
+	{ Syscall::dyn_vhangup, 153 },
+	{ Syscall::dyn_modify_ldt, 154 },
+	{ Syscall::dyn_pivot_root, 155 },
+	{ Syscall::dyn__sysctl, 156 },
+	{ Syscall::dyn_prctl, 157 },
+	{ Syscall::dyn_arch_prctl, 158 },
+	{ Syscall::dyn_adjtimex, 159 },
+	{ Syscall::dyn_setrlimit, 160 },
+	{ Syscall::dyn_chroot, 161 },
+	{ Syscall::dyn_sync, 162 },
+	{ Syscall::dyn_acct, 163 },
+	{ Syscall::dyn_settimeofday, 164 },
+	{ Syscall::dyn_mount, 165 },
+	{ Syscall::dyn_umount2, 166 },
+	{ Syscall::dyn_swapon, 167 },
+	{ Syscall::dyn_swapoff, 168 },
+	{ Syscall::dyn_reboot, 169 },
+	{ Syscall::dyn_sethostname, 170 },
+	{ Syscall::dyn_setdomainname, 171 },
+	{ Syscall::dyn_iopl, 172 },
+	{ Syscall::dyn_ioperm, 173 },
+	{ Syscall::dyn_create_module, 174 },
+	{ Syscall::dyn_init_module, 175 },
+	{ Syscall::dyn_delete_module, 176 },
+	{ Syscall::dyn_get_kernel_syms, 177 },
+	{ Syscall::dyn_query_module, 178 },
+	{ Syscall::dyn_quotactl, 179 },
+	{ Syscall::dyn_nfsservctl, 180 },
+	{ Syscall::dyn_getpmsg, 181 },
+	{ Syscall::dyn_putpmsg, 182 },
+	{ Syscall::dyn_afs_syscall, 183 },
+	{ Syscall::dyn_tuxcall, 184 },
+	{ Syscall::dyn_security, 185 },
+	{ Syscall::dyn_gettid, 186 },
+	{ Syscall::dyn_readahead, 187 },
+	{ Syscall::dyn_setxattr, 188 },
+	{ Syscall::dyn_lsetxattr, 189 },
+	{ Syscall::dyn_fsetxattr, 190 },
+	{ Syscall::dyn_getxattr, 191 },
+	{ Syscall::dyn_lgetxattr, 192 },
+	{ Syscall::dyn_fgetxattr, 193 },
+	{ Syscall::dyn_listxattr, 194 },
+	{ Syscall::dyn_llistxattr, 195 },
+	{ Syscall::dyn_flistxattr, 196 },
+	{ Syscall::dyn_removexattr, 197 },
+	{ Syscall::dyn_lremovexattr, 198 },
+	{ Syscall::dyn_fremovexattr, 199 },
+	{ Syscall::dyn_tkill, 200 },
+	{ Syscall::dyn_time, 201 },
+	{ Syscall::dyn_futex, 202 },
+	{ Syscall::dyn_sched_setaffinity, 203 },
+	{ Syscall::dyn_sched_getaffinity, 204 },
+	{ Syscall::dyn_set_thread_area, 205 },
+	{ Syscall::dyn_io_setup, 206 },
+	{ Syscall::dyn_io_destroy, 207 },
+	{ Syscall::dyn_io_getevents, 208 },
+	{ Syscall::dyn_io_submit, 209 },
+	{ Syscall::dyn_io_cancel, 210 },
+	{ Syscall::dyn_get_thread_area, 211 },
+	{ Syscall::dyn_lookup_dcookie, 212 },
+	{ Syscall::dyn_epoll_create, 213 },
+	{ Syscall::dyn_epoll_ctl_old, 214 },
+	{ Syscall::dyn_epoll_wait_old, 215 },
+	{ Syscall::dyn_remap_file_pages, 216 },
+	{ Syscall::dyn_getdents64, 217 },
+	{ Syscall::dyn_set_tid_address, 218 },
+	{ Syscall::dyn_restart_syscall, 219 },
+	{ Syscall::dyn_semtimedop, 220 },
+	{ Syscall::dyn_fadvise64, 221 },
+	{ Syscall::dyn_timer_create, 222 },
+	{ Syscall::dyn_timer_settime, 223 },
+	{ Syscall::dyn_timer_gettime, 224 },
+	{ Syscall::dyn_timer_getoverrun, 225 },
+	{ Syscall::dyn_timer_delete, 226 },
+	{ Syscall::dyn_clock_settime, 227 },
+	{ Syscall::dyn_clock_gettime, 228 },
+	{ Syscall::dyn_clock_getres, 229 },
+	{ Syscall::dyn_clock_nanosleep, 230 },
+	{ Syscall::dyn_exit_group, 231 },
+	{ Syscall::dyn_epoll_wait, 232 },
+	{ Syscall::dyn_epoll_ctl, 233 },
+	{ Syscall::dyn_tgkill, 234 },
+	{ Syscall::dyn_utimes, 235 },
+	{ Syscall::dyn_vserver, 236 },
+	{ Syscall::dyn_mbind, 237 },
+	{ Syscall::dyn_set_mempolicy, 238 },
+	{ Syscall::dyn_get_mempolicy, 239 },
+	{ Syscall::dyn_mq_open, 240 },
+	{ Syscall::dyn_mq_unlink, 241 },
+	{ Syscall::dyn_mq_timedsend, 242 },
+	{ Syscall::dyn_mq_timedreceive, 243 },
+	{ Syscall::dyn_mq_notify, 244 },
+	{ Syscall::dyn_mq_getsetattr, 245 },
+	{ Syscall::dyn_kexec_load, 246 },
+	{ Syscall::dyn_waitid, 247 },
+	{ Syscall::dyn_add_key, 248 },
+	{ Syscall::dyn_request_key, 249 },
+	{ Syscall::dyn_keyctl, 250 },
+	{ Syscall::dyn_ioprio_set, 251 },
+	{ Syscall::dyn_ioprio_get, 252 },
+	{ Syscall::dyn_inotify_init, 253 },
+	{ Syscall::dyn_inotify_add_watch, 254 },
+	{ Syscall::dyn_inotify_rm_watch, 255 },
+	{ Syscall::dyn_migrate_pages, 256 },
+	{ Syscall::dyn_openat, 257 },
+	{ Syscall::dyn_mkdirat, 258 },
+	{ Syscall::dyn_mknodat, 259 },
+	{ Syscall::dyn_fchownat, 260 },
+	{ Syscall::dyn_futimesat, 261 },
+	{ Syscall::dyn_newfstatat, 262 },
+	{ Syscall::dyn_unlinkat, 263 },
+	{ Syscall::dyn_renameat, 264 },
+	{ Syscall::dyn_linkat, 265 },
+	{ Syscall::dyn_symlinkat, 266 },
+	{ Syscall::dyn_readlinkat, 267 },
+	{ Syscall::dyn_fchmodat, 268 },
+	{ Syscall::dyn_faccessat, 269 },
+	{ Syscall::dyn_pselect6, 270 },
+	{ Syscall::dyn_ppoll, 271 },
+	{ Syscall::dyn_unshare, 272 },
+	{ Syscall::dyn_set_robust_list, 273 },
+	{ Syscall::dyn_get_robust_list, 274 },
+	{ Syscall::dyn_splice, 275 },
+	{ Syscall::dyn_tee, 276 },
+	{ Syscall::dyn_sync_file_range, 277 },
+	{ Syscall::dyn_vmsplice, 278 },
+	{ Syscall::dyn_move_pages, 279 },
+	{ Syscall::dyn_utimensat, 280 },
+	{ Syscall::dyn_epoll_pwait, 281 },
+	{ Syscall::dyn_signalfd, 282 },
+	{ Syscall::dyn_timerfd_create, 283 },
+	{ Syscall::dyn_eventfd, 284 },
+	{ Syscall::dyn_fallocate, 285 },
+	{ Syscall::dyn_timerfd_settime, 286 },
+	{ Syscall::dyn_timerfd_gettime, 287 },
+	{ Syscall::dyn_accept4, 288 },
+	{ Syscall::dyn_signalfd4, 289 },
+	{ Syscall::dyn_eventfd2, 290 },
+	{ Syscall::dyn_epoll_create1, 291 },
+	{ Syscall::dyn_dup3, 292 },
+	{ Syscall::dyn_pipe2, 293 },
+	{ Syscall::dyn_inotify_init1, 294 },
+	{ Syscall::dyn_preadv, 295 },
+	{ Syscall::dyn_pwritev, 296 },
+	{ Syscall::dyn_rt_tgsigqueueinfo, 297 },
+	{ Syscall::dyn_perf_event_open, 298 },
+	{ Syscall::dyn_recvmmsg, 299 },
+	{ Syscall::dyn_fanotify_init, 300 },
+	{ Syscall::dyn_fanotify_mark, 301 },
+	{ Syscall::dyn_prlimit64, 302 },
+	{ Syscall::dyn_name_to_handle_at, 303 },
+	{ Syscall::dyn_open_by_handle_at, 304 },
+	{ Syscall::dyn_clock_adjtime, 305 },
+	{ Syscall::dyn_syncfs, 306 },
+	{ Syscall::dyn_sendmmsg, 307 },
+	{ Syscall::dyn_set_ns, 308 },
+	{ Syscall::dyn_get_cpu, 309 },
+	{ Syscall::dyn_process_vm_readv, 310 },
+	{ Syscall::dyn_process_vm_writev, 311 },
+});
+Linux_Arch_x86_64_syscallNames.insert({
+	{ 0, "read" },
+	{ 1, "write" },
+	{ 2, "open" },
+	{ 3, "close" },
+	{ 4, "stat" },
+	{ 5, "fstat" },
+	{ 6, "lstat" },
+	{ 7, "poll" },
+	{ 8, "lseek" },
+	{ 9, "mmap" },
+	{ 10, "mprotect" },
+	{ 11, "munmap" },
+	{ 12, "brk" },
+	{ 13, "rt_sigaction" },
+	{ 14, "rt_sigprocmask" },
+	{ 15, "rt_sigreturn" },
+	{ 16, "ioctl" },
+	{ 17, "pread64" },
+	{ 18, "pwrite64" },
+	{ 19, "readv" },
+	{ 20, "writev" },
+	{ 21, "access" },
+	{ 22, "pipe" },
+	{ 23, "select" },
+	{ 24, "sched_yield" },
+	{ 25, "mremap" },
+	{ 26, "msync" },
+	{ 27, "mincore" },
+	{ 28, "madvise" },
+	{ 29, "shmget" },
+	{ 30, "shmat" },
+	{ 31, "shmctl" },
+	{ 32, "dup" },
+	{ 33, "dup2" },
+	{ 34, "pause" },
+	{ 35, "nanosleep" },
+	{ 36, "getitimer" },
+	{ 37, "alarm" },
+	{ 38, "setitimer" },
+	{ 39, "getpid" },
+	{ 40, "sendfile" },
+	{ 41, "socket" },
+	{ 42, "connect" },
+	{ 43, "accept" },
+	{ 44, "sendto" },
+	{ 45, "recvfrom" },
+	{ 46, "sendmsg" },
+	{ 47, "recvmsg" },
+	{ 48, "shutdown" },
+	{ 49, "bind" },
+	{ 50, "listen" },
+	{ 51, "getsockname" },
+	{ 52, "getpeername" },
+	{ 53, "socketpair" },
+	{ 54, "setsockopt" },
+	{ 55, "getsockopt" },
+	{ 56, "clone" },
+	{ 57, "fork" },
+	{ 58, "vfork" },
+	{ 59, "execve" },
+	{ 60, "exit" },
+	{ 61, "wait4" },
+	{ 62, "kill" },
+	{ 63, "uname" },
+	{ 64, "semget" },
+	{ 65, "semop" },
+	{ 66, "semctl" },
+	{ 67, "shmdt" },
+	{ 68, "msgget" },
+	{ 69, "msgsnd" },
+	{ 70, "msgrcv" },
+	{ 71, "msgctl" },
+	{ 72, "fcntl" },
+	{ 73, "flock" },
+	{ 74, "fsync" },
+	{ 75, "fdatasync" },
+	{ 76, "truncate" },
+	{ 77, "ftruncate" },
+	{ 78, "getdents" },
+	{ 79, "getcwd" },
+	{ 80, "chdir" },
+	{ 81, "fchdir" },
+	{ 82, "rename" },
+	{ 83, "mkdir" },
+	{ 84, "rmdir" },
+	{ 85, "creat" },
+	{ 86, "link" },
+	{ 87, "unlink" },
+	{ 88, "symlink" },
+	{ 89, "readlink" },
+	{ 90, "chmod" },
+	{ 91, "fchmod" },
+	{ 92, "chown" },
+	{ 93, "fchown" },
+	{ 94, "lchown" },
+	{ 95, "umask" },
+	{ 96, "gettimeofday" },
+	{ 97, "getrlimit" },
+	{ 98, "getrusage" },
+	{ 99, "sysinfo" },
+	{ 100, "times" },
+	{ 101, "ptrace" },
+	{ 102, "getuid" },
+	{ 103, "syslog" },
+	{ 104, "getgid" },
+	{ 105, "setuid" },
+	{ 106, "setgid" },
+	{ 107, "geteuid" },
+	{ 108, "getegid" },
+	{ 109, "setpgid" },
+	{ 110, "getppid" },
+	{ 111, "getpgrp" },
+	{ 112, "setsid" },
+	{ 113, "setreuid" },
+	{ 114, "setregid" },
+	{ 115, "getgroups" },
+	{ 116, "setgroups" },
+	{ 117, "setresuid" },
+	{ 118, "getresuid" },
+	{ 119, "setresgid" },
+	{ 120, "getresgid" },
+	{ 121, "getpgid" },
+	{ 122, "setfsuid" },
+	{ 123, "setfsgid" },
+	{ 124, "getsid" },
+	{ 125, "capget" },
+	{ 126, "capset" },
+	{ 127, "rt_sigpending" },
+	{ 128, "rt_sigtimedwait" },
+	{ 129, "rt_sigqueueinfo" },
+	{ 130, "rt_sigsuspend" },
+	{ 131, "sigaltstack" },
+	{ 132, "utime" },
+	{ 133, "mknod" },
+	{ 134, "uselib" },
+	{ 135, "personality" },
+	{ 136, "ustat" },
+	{ 137, "statfs" },
+	{ 138, "fstatfs" },
+	{ 139, "sysfs" },
+	{ 140, "getpriority" },
+	{ 141, "setpriority" },
+	{ 142, "sched_setparam" },
+	{ 143, "sched_getparam" },
+	{ 144, "sched_setscheduler" },
+	{ 145, "sched_getscheduler" },
+	{ 146, "sched_get_priority_max" },
+	{ 147, "sched_get_priority_min" },
+	{ 148, "sched_rr_get_interval" },
+	{ 149, "mlock" },
+	{ 150, "munlock" },
+	{ 151, "mlockall" },
+	{ 152, "munlockall" },
+	{ 153, "vhangup" },
+	{ 154, "modify_ldt" },
+	{ 155, "pivot_root" },
+	{ 156, "_sysctl" },
+	{ 157, "prctl" },
+	{ 158, "arch_prctl" },
+	{ 159, "adjtimex" },
+	{ 160, "setrlimit" },
+	{ 161, "chroot" },
+	{ 162, "sync" },
+	{ 163, "acct" },
+	{ 164, "settimeofday" },
+	{ 165, "mount" },
+	{ 166, "umount2" },
+	{ 167, "swapon" },
+	{ 168, "swapoff" },
+	{ 169, "reboot" },
+	{ 170, "sethostname" },
+	{ 171, "setdomainname" },
+	{ 172, "iopl" },
+	{ 173, "ioperm" },
+	{ 174, "create_module" },
+	{ 175, "init_module" },
+	{ 176, "delete_module" },
+	{ 177, "get_kernel_syms" },
+	{ 178, "query_module" },
+	{ 179, "quotactl" },
+	{ 180, "nfsservctl" },
+	{ 181, "getpmsg" },
+	{ 182, "putpmsg" },
+	{ 183, "afs_syscall" },
+	{ 184, "tuxcall" },
+	{ 185, "security" },
+	{ 186, "gettid" },
+	{ 187, "readahead" },
+	{ 188, "setxattr" },
+	{ 189, "lsetxattr" },
+	{ 190, "fsetxattr" },
+	{ 191, "getxattr" },
+	{ 192, "lgetxattr" },
+	{ 193, "fgetxattr" },
+	{ 194, "listxattr" },
+	{ 195, "llistxattr" },
+	{ 196, "flistxattr" },
+	{ 197, "removexattr" },
+	{ 198, "lremovexattr" },
+	{ 199, "fremovexattr" },
+	{ 200, "tkill" },
+	{ 201, "time" },
+	{ 202, "futex" },
+	{ 203, "sched_setaffinity" },
+	{ 204, "sched_getaffinity" },
+	{ 205, "set_thread_area" },
+	{ 206, "io_setup" },
+	{ 207, "io_destroy" },
+	{ 208, "io_getevents" },
+	{ 209, "io_submit" },
+	{ 210, "io_cancel" },
+	{ 211, "get_thread_area" },
+	{ 212, "lookup_dcookie" },
+	{ 213, "epoll_create" },
+	{ 214, "epoll_ctl_old" },
+	{ 215, "epoll_wait_old" },
+	{ 216, "remap_file_pages" },
+	{ 217, "getdents64" },
+	{ 218, "set_tid_address" },
+	{ 219, "restart_syscall" },
+	{ 220, "semtimedop" },
+	{ 221, "fadvise64" },
+	{ 222, "timer_create" },
+	{ 223, "timer_settime" },
+	{ 224, "timer_gettime" },
+	{ 225, "timer_getoverrun" },
+	{ 226, "timer_delete" },
+	{ 227, "clock_settime" },
+	{ 228, "clock_gettime" },
+	{ 229, "clock_getres" },
+	{ 230, "clock_nanosleep" },
+	{ 231, "exit_group" },
+	{ 232, "epoll_wait" },
+	{ 233, "epoll_ctl" },
+	{ 234, "tgkill" },
+	{ 235, "utimes" },
+	{ 236, "vserver" },
+	{ 237, "mbind" },
+	{ 238, "set_mempolicy" },
+	{ 239, "get_mempolicy" },
+	{ 240, "mq_open" },
+	{ 241, "mq_unlink" },
+	{ 242, "mq_timedsend" },
+	{ 243, "mq_timedreceive" },
+	{ 244, "mq_notify" },
+	{ 245, "mq_getsetattr" },
+	{ 246, "kexec_load" },
+	{ 247, "waitid" },
+	{ 248, "add_key" },
+	{ 249, "request_key" },
+	{ 250, "keyctl" },
+	{ 251, "ioprio_set" },
+	{ 252, "ioprio_get" },
+	{ 253, "inotify_init" },
+	{ 254, "inotify_add_watch" },
+	{ 255, "inotify_rm_watch" },
+	{ 256, "migrate_pages" },
+	{ 257, "openat" },
+	{ 258, "mkdirat" },
+	{ 259, "mknodat" },
+	{ 260, "fchownat" },
+	{ 261, "futimesat" },
+	{ 262, "newfstatat" },
+	{ 263, "unlinkat" },
+	{ 264, "renameat" },
+	{ 265, "linkat" },
+	{ 266, "symlinkat" },
+	{ 267, "readlinkat" },
+	{ 268, "fchmodat" },
+	{ 269, "faccessat" },
+	{ 270, "pselect6" },
+	{ 271, "ppoll" },
+	{ 272, "unshare" },
+	{ 273, "set_robust_list" },
+	{ 274, "get_robust_list" },
+	{ 275, "splice" },
+	{ 276, "tee" },
+	{ 277, "sync_file_range" },
+	{ 278, "vmsplice" },
+	{ 279, "move_pages" },
+	{ 280, "utimensat" },
+	{ 281, "epoll_pwait" },
+	{ 282, "signalfd" },
+	{ 283, "timerfd_create" },
+	{ 284, "eventfd" },
+	{ 285, "fallocate" },
+	{ 286, "timerfd_settime" },
+	{ 287, "timerfd_gettime" },
+	{ 288, "accept4" },
+	{ 289, "signalfd4" },
+	{ 290, "eventfd2" },
+	{ 291, "epoll_create1" },
+	{ 292, "dup3" },
+	{ 293, "pipe2" },
+	{ 294, "inotify_init1" },
+	{ 295, "preadv" },
+	{ 296, "pwritev" },
+	{ 297, "rt_tgsigqueueinfo" },
+	{ 298, "perf_event_open" },
+	{ 299, "recvmmsg" },
+	{ 300, "fanotify_init" },
+	{ 301, "fanotify_mark" },
+	{ 302, "prlimit64" },
+	{ 303, "name_to_handle_at" },
+	{ 304, "open_by_handle_at" },
+	{ 305, "clock_adjtime" },
+	{ 306, "syncfs" },
+	{ 307, "sendmmsg" },
+	{ 308, "set_ns" },
+	{ 309, "get_cpu" },
+	{ 310, "process_vm_readv" },
+	{ 311, "process_vm_writev" },
+});
 
-/* Linux Arch_aarch64 Numbers */
-Platform Linux_Arch_aarch64_plat(Arch_aarch64, Linux);
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_read, 0));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(0, "read"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_write, 1));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(1, "write"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_open, 2));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(2, "open"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_close, 3));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(3, "close"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_stat, 4));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(4, "stat"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fstat, 5));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(5, "fstat"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lstat, 6));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(6, "lstat"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_poll, 7));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(7, "poll"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lseek, 8));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(8, "lseek"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mmap, 9));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(9, "mmap"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mprotect, 10));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(10, "mprotect"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_munmap, 11));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(11, "munmap"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_brk, 12));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(12, "brk"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigaction, 13));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(13, "rt_sigaction"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigprocmask, 14));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(14, "rt_sigprocmask"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigreturn, 15));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(15, "rt_sigreturn"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ioctl, 16));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(16, "ioctl"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pread64, 17));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(17, "pread64"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pwrite64, 18));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(18, "pwrite64"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readv, 19));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(19, "readv"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_writev, 20));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(20, "writev"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_access, 21));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(21, "access"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pipe, 22));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(22, "pipe"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_select, 23));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(23, "select"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_yield, 24));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(24, "sched_yield"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mremap, 25));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(25, "mremap"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_msync, 26));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(26, "msync"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mincore, 27));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(27, "mincore"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_madvise, 28));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(28, "madvise"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_shmget, 29));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(29, "shmget"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_shmat, 30));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(30, "shmat"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_shmctl, 31));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(31, "shmctl"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_dup, 32));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(32, "dup"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_dup2, 33));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(33, "dup2"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pause, 34));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(34, "pause"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_nanosleep, 35));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(35, "nanosleep"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getitimer, 36));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(36, "getitimer"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_alarm, 37));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(37, "alarm"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setitimer, 38));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(38, "setitimer"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpid, 39));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(39, "getpid"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sendfile, 40));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(40, "sendfile"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_socket, 41));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(41, "socket"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_connect, 42));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(42, "connect"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_accept, 43));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(43, "accept"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sendto, 44));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(44, "sendto"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_recvfrom, 45));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(45, "recvfrom"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sendmsg, 46));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(46, "sendmsg"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_recvmsg, 47));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(47, "recvmsg"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_shutdown, 48));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(48, "shutdown"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_bind, 49));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(49, "bind"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_listen, 50));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(50, "listen"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getsockname, 51));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(51, "getsockname"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpeername, 52));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(52, "getpeername"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_socketpair, 53));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(53, "socketpair"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setsockopt, 54));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(54, "setsockopt"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getsockopt, 55));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(55, "getsockopt"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clone, 220));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(220, "clone"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fork, 57));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(57, "fork"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_vfork, 58));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(58, "vfork"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_execve, 59));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(59, "execve"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_exit, 60));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(60, "exit"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_wait4, 61));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(61, "wait4"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_kill, 62));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(62, "kill"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_uname, 63));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(63, "uname"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_semget, 64));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(64, "semget"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_semop, 65));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(65, "semop"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_semctl, 66));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(66, "semctl"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_shmdt, 67));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(67, "shmdt"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_msgget, 68));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(68, "msgget"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_msgsnd, 69));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(69, "msgsnd"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_msgrcv, 70));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(70, "msgrcv"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_msgctl, 71));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(71, "msgctl"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fcntl, 72));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(72, "fcntl"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_flock, 73));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(73, "flock"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fsync, 74));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(74, "fsync"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fdatasync, 75));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(75, "fdatasync"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_truncate, 76));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(76, "truncate"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ftruncate, 77));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(77, "ftruncate"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getdents, 78));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(78, "getdents"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getcwd, 79));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(79, "getcwd"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_chdir, 80));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(80, "chdir"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchdir, 81));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(81, "fchdir"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rename, 82));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(82, "rename"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mkdir, 83));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(83, "mkdir"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rmdir, 84));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(84, "rmdir"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_creat, 85));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(85, "creat"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_link, 86));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(86, "link"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_unlink, 87));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(87, "unlink"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_symlink, 88));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(88, "symlink"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readlink, 89));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(89, "readlink"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_chmod, 90));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(90, "chmod"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchmod, 91));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(91, "fchmod"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_chown, 92));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(92, "chown"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchown, 93));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(93, "fchown"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lchown, 94));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(94, "lchown"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_umask, 95));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(95, "umask"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_gettimeofday, 96));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(96, "gettimeofday"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getrlimit, 97));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(97, "getrlimit"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getrusage, 98));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(98, "getrusage"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sysinfo, 99));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(99, "sysinfo"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_times, 100));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(100, "times"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ptrace, 101));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(101, "ptrace"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getuid, 102));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(102, "getuid"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_syslog, 103));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(103, "syslog"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getgid, 104));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(104, "getgid"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setuid, 105));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(105, "setuid"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setgid, 106));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(106, "setgid"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_geteuid, 107));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(107, "geteuid"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getegid, 108));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(108, "getegid"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setpgid, 109));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(109, "setpgid"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getppid, 110));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(110, "getppid"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpgrp, 111));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(111, "getpgrp"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setsid, 112));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(112, "setsid"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setreuid, 113));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(113, "setreuid"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setregid, 114));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(114, "setregid"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getgroups, 115));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(115, "getgroups"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setgroups, 116));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(116, "setgroups"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setresuid, 117));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(117, "setresuid"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getresuid, 118));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(118, "getresuid"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setresgid, 119));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(119, "setresgid"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getresgid, 120));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(120, "getresgid"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpgid, 121));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(121, "getpgid"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setfsuid, 122));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(122, "setfsuid"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setfsgid, 123));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(123, "setfsgid"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getsid, 124));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(124, "getsid"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_capget, 125));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(125, "capget"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_capset, 126));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(126, "capset"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigpending, 127));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(127, "rt_sigpending"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigtimedwait, 128));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(128, "rt_sigtimedwait"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigqueueinfo, 129));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(129, "rt_sigqueueinfo"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_sigsuspend, 130));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(130, "rt_sigsuspend"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sigaltstack, 131));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(131, "sigaltstack"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_utime, 132));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(132, "utime"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mknod, 133));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(133, "mknod"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_uselib, 134));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(134, "uselib"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_personality, 135));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(135, "personality"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ustat, 136));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(136, "ustat"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_statfs, 137));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(137, "statfs"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fstatfs, 138));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(138, "fstatfs"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sysfs, 139));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(139, "sysfs"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpriority, 140));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(140, "getpriority"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setpriority, 141));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(141, "setpriority"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_setparam, 142));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(142, "sched_setparam"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_getparam, 143));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(143, "sched_getparam"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_setscheduler, 144));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(144, "sched_setscheduler"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_getscheduler, 145));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(145, "sched_getscheduler"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_get_priority_max, 146));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(146, "sched_get_priority_max"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_get_priority_min, 147));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(147, "sched_get_priority_min"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_rr_get_interval, 148));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(148, "sched_rr_get_interval"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mlock, 149));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(149, "mlock"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_munlock, 150));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(150, "munlock"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mlockall, 151));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(151, "mlockall"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_munlockall, 152));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(152, "munlockall"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_vhangup, 153));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(153, "vhangup"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_modify_ldt, 154));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(154, "modify_ldt"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pivot_root, 155));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(155, "pivot_root"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn__sysctl, 156));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(156, "_sysctl"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_prctl, 157));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(157, "prctl"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_arch_prctl, 158));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(158, "arch_prctl"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_adjtimex, 159));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(159, "adjtimex"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setrlimit, 160));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(160, "setrlimit"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_chroot, 161));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(161, "chroot"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sync, 162));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(162, "sync"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_acct, 163));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(163, "acct"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_settimeofday, 164));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(164, "settimeofday"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mount, 165));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(165, "mount"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_umount2, 166));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(166, "umount2"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_swapon, 167));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(167, "swapon"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_swapoff, 168));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(168, "swapoff"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_reboot, 169));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(169, "reboot"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sethostname, 170));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(170, "sethostname"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setdomainname, 171));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(171, "setdomainname"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_iopl, 172));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(172, "iopl"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ioperm, 173));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(173, "ioperm"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_create_module, 174));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(174, "create_module"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_init_module, 175));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(175, "init_module"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_delete_module, 176));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(176, "delete_module"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_get_kernel_syms, 177));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(177, "get_kernel_syms"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_query_module, 178));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(178, "query_module"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_quotactl, 179));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(179, "quotactl"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_nfsservctl, 180));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(180, "nfsservctl"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getpmsg, 181));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(181, "getpmsg"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_putpmsg, 182));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(182, "putpmsg"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_afs_syscall, 183));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(183, "afs_syscall"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_tuxcall, 184));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(184, "tuxcall"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_security, 185));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(185, "security"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_gettid, 186));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(186, "gettid"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readahead, 187));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(187, "readahead"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_setxattr, 188));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(188, "setxattr"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lsetxattr, 189));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(189, "lsetxattr"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fsetxattr, 190));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(190, "fsetxattr"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getxattr, 191));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(191, "getxattr"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lgetxattr, 192));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(192, "lgetxattr"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fgetxattr, 193));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(193, "fgetxattr"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_listxattr, 194));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(194, "listxattr"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_llistxattr, 195));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(195, "llistxattr"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_flistxattr, 196));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(196, "flistxattr"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_removexattr, 197));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(197, "removexattr"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lremovexattr, 198));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(198, "lremovexattr"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fremovexattr, 199));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(199, "fremovexattr"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_tkill, 200));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(200, "tkill"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_time, 201));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(201, "time"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_futex, 202));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(202, "futex"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_setaffinity, 203));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(203, "sched_setaffinity"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sched_getaffinity, 204));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(204, "sched_getaffinity"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_set_thread_area, 205));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(205, "set_thread_area"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_setup, 206));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(206, "io_setup"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_destroy, 207));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(207, "io_destroy"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_getevents, 208));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(208, "io_getevents"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_submit, 209));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(209, "io_submit"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_io_cancel, 210));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(210, "io_cancel"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_get_thread_area, 211));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(211, "get_thread_area"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_lookup_dcookie, 212));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(212, "lookup_dcookie"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_create, 213));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(213, "epoll_create"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_ctl_old, 214));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(214, "epoll_ctl_old"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_wait_old, 215));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(215, "epoll_wait_old"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_remap_file_pages, 216));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(216, "remap_file_pages"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_getdents64, 217));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(217, "getdents64"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_set_tid_address, 218));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(218, "set_tid_address"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_restart_syscall, 219));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(219, "restart_syscall"));
-////Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_semtimedop, 220));
-////Linux_Arch_aarch64_syscallNames.insert(make_pair(220, "semtimedop"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fadvise64, 221));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(221, "fadvise64"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_create, 222));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(222, "timer_create"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_settime, 223));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(223, "timer_settime"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_gettime, 224));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(224, "timer_gettime"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_getoverrun, 225));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(225, "timer_getoverrun"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timer_delete, 226));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(226, "timer_delete"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_settime, 227));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(227, "clock_settime"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_gettime, 228));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(228, "clock_gettime"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_getres, 229));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(229, "clock_getres"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_nanosleep, 230));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(230, "clock_nanosleep"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_exit_group, 231));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(231, "exit_group"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_wait, 232));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(232, "epoll_wait"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_ctl, 233));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(233, "epoll_ctl"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_tgkill, 234));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(234, "tgkill"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_utimes, 235));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(235, "utimes"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_vserver, 236));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(236, "vserver"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mbind, 237));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(237, "mbind"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_set_mempolicy, 238));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(238, "set_mempolicy"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_get_mempolicy, 239));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(239, "get_mempolicy"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_open, 240));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(240, "mq_open"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_unlink, 241));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(241, "mq_unlink"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_timedsend, 242));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(242, "mq_timedsend"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_timedreceive, 243));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(243, "mq_timedreceive"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_notify, 244));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(244, "mq_notify"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mq_getsetattr, 245));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(245, "mq_getsetattr"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_kexec_load, 246));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(246, "kexec_load"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_waitid, 247));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(247, "waitid"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_add_key, 248));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(248, "add_key"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_request_key, 249));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(249, "request_key"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_keyctl, 250));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(250, "keyctl"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ioprio_set, 251));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(251, "ioprio_set"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ioprio_get, 252));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(252, "ioprio_get"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_inotify_init, 253));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(253, "inotify_init"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_inotify_add_watch, 254));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(254, "inotify_add_watch"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_inotify_rm_watch, 255));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(255, "inotify_rm_watch"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_migrate_pages, 256));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(256, "migrate_pages"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_openat, 257));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(257, "openat"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mkdirat, 258));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(258, "mkdirat"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_mknodat, 259));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(259, "mknodat"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchownat, 260));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(260, "fchownat"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_futimesat, 261));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(261, "futimesat"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_newfstatat, 262));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(262, "newfstatat"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_unlinkat, 263));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(263, "unlinkat"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_renameat, 264));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(264, "renameat"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_linkat, 265));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(265, "linkat"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_symlinkat, 266));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(266, "symlinkat"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_readlinkat, 267));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(267, "readlinkat"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fchmodat, 268));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(268, "fchmodat"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_faccessat, 269));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(269, "faccessat"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pselect6, 270));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(270, "pselect6"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_ppoll, 271));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(271, "ppoll"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_unshare, 272));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(272, "unshare"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_set_robust_list, 273));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(273, "set_robust_list"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_get_robust_list, 274));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(274, "get_robust_list"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_splice, 275));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(275, "splice"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_tee, 276));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(276, "tee"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sync_file_range, 277));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(277, "sync_file_range"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_vmsplice, 278));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(278, "vmsplice"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_move_pages, 279));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(279, "move_pages"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_utimensat, 280));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(280, "utimensat"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_pwait, 281));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(281, "epoll_pwait"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_signalfd, 282));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(282, "signalfd"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timerfd_create, 283));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(283, "timerfd_create"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_eventfd, 284));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(284, "eventfd"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fallocate, 285));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(285, "fallocate"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timerfd_settime, 286));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(286, "timerfd_settime"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_timerfd_gettime, 287));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(287, "timerfd_gettime"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_accept4, 288));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(288, "accept4"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_signalfd4, 289));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(289, "signalfd4"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_eventfd2, 290));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(290, "eventfd2"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_epoll_create1, 291));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(291, "epoll_create1"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_dup3, 292));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(292, "dup3"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pipe2, 293));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(293, "pipe2"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_inotify_init1, 294));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(294, "inotify_init1"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_preadv, 295));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(295, "preadv"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_pwritev, 296));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(296, "pwritev"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_rt_tgsigqueueinfo, 297));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(297, "rt_tgsigqueueinfo"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_perf_event_open, 298));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(298, "perf_event_open"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_recvmmsg, 299));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(299, "recvmmsg"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fanotify_init, 300));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(300, "fanotify_init"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_fanotify_mark, 301));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(301, "fanotify_mark"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_prlimit64, 302));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(302, "prlimit64"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_name_to_handle_at, 303));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(303, "name_to_handle_at"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_open_by_handle_at, 304));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(304, "open_by_handle_at"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_clock_adjtime, 305));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(305, "clock_adjtime"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_syncfs, 306));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(306, "syncfs"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_sendmmsg, 307));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(307, "sendmmsg"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_set_ns, 308));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(308, "set_ns"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_get_cpu, 309));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(309, "get_cpu"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_process_vm_readv, 310));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(310, "process_vm_readv"));
-//Linux_Arch_aarch64_syscallNumbers.insert(make_pair<MachSyscall::SyscallIDIndependent, MachSyscall::SyscallIDPlatform>(Syscall::dyn_process_vm_writev, 311));
-//Linux_Arch_aarch64_syscallNames.insert(make_pair(311, "process_vm_writev"));
+/* Linux Arch_x86 Numbers */
+Linux_Arch_x86_syscallNumbers.insert({
+	{ Syscall::dyn_restart_syscall, 0 },
+	{ Syscall::dyn_exit, 1 },
+	{ Syscall::dyn_fork, 2 },
+	{ Syscall::dyn_read, 3 },
+	{ Syscall::dyn_write, 4 },
+	{ Syscall::dyn_open, 5 },
+	{ Syscall::dyn_close, 6 },
+	{ Syscall::dyn_waitpid, 7 },
+	{ Syscall::dyn_creat, 8 },
+	{ Syscall::dyn_link, 9 },
+	{ Syscall::dyn_unlink, 10 },
+	{ Syscall::dyn_execve, 11 },
+	{ Syscall::dyn_chdir, 12 },
+	{ Syscall::dyn_time, 13 },
+	{ Syscall::dyn_mknod, 14 },
+	{ Syscall::dyn_chmod, 15 },
+	{ Syscall::dyn_lchown, 16 },
+	{ Syscall::dyn_break, 17 },
+	{ Syscall::dyn_oldstat, 18 },
+	{ Syscall::dyn_lseek, 19 },
+	{ Syscall::dyn_getpid, 20 },
+	{ Syscall::dyn_mount, 21 },
+	{ Syscall::dyn_umount, 22 },
+	{ Syscall::dyn_setuid, 23 },
+	{ Syscall::dyn_getuid, 24 },
+	{ Syscall::dyn_stime, 25 },
+	{ Syscall::dyn_ptrace, 26 },
+	{ Syscall::dyn_alarm, 27 },
+	{ Syscall::dyn_oldfstat, 28 },
+	{ Syscall::dyn_pause, 29 },
+	{ Syscall::dyn_utime, 30 },
+	{ Syscall::dyn_stty, 31 },
+	{ Syscall::dyn_gtty, 32 },
+	{ Syscall::dyn_access, 33 },
+	{ Syscall::dyn_nice, 34 },
+	{ Syscall::dyn_ftime, 35 },
+	{ Syscall::dyn_sync, 36 },
+	{ Syscall::dyn_kill, 37 },
+	{ Syscall::dyn_rename, 38 },
+	{ Syscall::dyn_mkdir, 39 },
+	{ Syscall::dyn_rmdir, 40 },
+	{ Syscall::dyn_dup, 41 },
+	{ Syscall::dyn_pipe, 42 },
+	{ Syscall::dyn_times, 43 },
+	{ Syscall::dyn_prof, 44 },
+	{ Syscall::dyn_brk, 45 },
+	{ Syscall::dyn_setgid, 46 },
+	{ Syscall::dyn_getgid, 47 },
+	{ Syscall::dyn_signal, 48 },
+	{ Syscall::dyn_geteuid, 49 },
+	{ Syscall::dyn_getegid, 50 },
+	{ Syscall::dyn_acct, 51 },
+	{ Syscall::dyn_umount2, 52 },
+	{ Syscall::dyn_lock, 53 },
+	{ Syscall::dyn_ioctl, 54 },
+	{ Syscall::dyn_fcntl, 55 },
+	{ Syscall::dyn_mpx, 56 },
+	{ Syscall::dyn_setpgid, 57 },
+	{ Syscall::dyn_ulimit, 58 },
+	{ Syscall::dyn_oldolduname, 59 },
+	{ Syscall::dyn_umask, 60 },
+	{ Syscall::dyn_chroot, 61 },
+	{ Syscall::dyn_ustat, 62 },
+	{ Syscall::dyn_dup2, 63 },
+	{ Syscall::dyn_getppid, 64 },
+	{ Syscall::dyn_getpgrp, 65 },
+	{ Syscall::dyn_setsid, 66 },
+	{ Syscall::dyn_sigaction, 67 },
+	{ Syscall::dyn_sgetmask, 68 },
+	{ Syscall::dyn_ssetmask, 69 },
+	{ Syscall::dyn_setreuid, 70 },
+	{ Syscall::dyn_setregid, 71 },
+	{ Syscall::dyn_sigsuspend, 72 },
+	{ Syscall::dyn_sigpending, 73 },
+	{ Syscall::dyn_sethostname, 74 },
+	{ Syscall::dyn_setrlimit, 75 },
+	{ Syscall::dyn_getrlimit, 76 },
+	{ Syscall::dyn_getrusage, 77 },
+	{ Syscall::dyn_gettimeofday, 78 },
+	{ Syscall::dyn_settimeofday, 79 },
+	{ Syscall::dyn_getgroups, 80 },
+	{ Syscall::dyn_setgroups, 81 },
+	{ Syscall::dyn_select, 82 },
+	{ Syscall::dyn_symlink, 83 },
+	{ Syscall::dyn_oldlstat, 84 },
+	{ Syscall::dyn_readlink, 85 },
+	{ Syscall::dyn_uselib, 86 },
+	{ Syscall::dyn_swapon, 87 },
+	{ Syscall::dyn_reboot, 88 },
+	{ Syscall::dyn_readdir, 89 },
+	{ Syscall::dyn_mmap, 90 },
+	{ Syscall::dyn_munmap, 91 },
+	{ Syscall::dyn_truncate, 92 },
+	{ Syscall::dyn_ftruncate, 93 },
+	{ Syscall::dyn_fchmod, 94 },
+	{ Syscall::dyn_fchown, 95 },
+	{ Syscall::dyn_getpriority, 96 },
+	{ Syscall::dyn_setpriority, 97 },
+	{ Syscall::dyn_profil, 98 },
+	{ Syscall::dyn_statfs, 99 },
+	{ Syscall::dyn_fstatfs, 100 },
+	{ Syscall::dyn_ioperm, 101 },
+	{ Syscall::dyn_socketcall, 102 },
+	{ Syscall::dyn_syslog, 103 },
+	{ Syscall::dyn_setitimer, 104 },
+	{ Syscall::dyn_getitimer, 105 },
+	{ Syscall::dyn_stat, 106 },
+	{ Syscall::dyn_lstat, 107 },
+	{ Syscall::dyn_fstat, 108 },
+	{ Syscall::dyn_olduname, 109 },
+	{ Syscall::dyn_iopl, 110 },
+	{ Syscall::dyn_vhangup, 111 },
+	{ Syscall::dyn_idle, 112 },
+	{ Syscall::dyn_vm86old, 113 },
+	{ Syscall::dyn_wait4, 114 },
+	{ Syscall::dyn_swapoff, 115 },
+	{ Syscall::dyn_sysinfo, 116 },
+	{ Syscall::dyn_ipc, 117 },
+	{ Syscall::dyn_fsync, 118 },
+	{ Syscall::dyn_sigreturn, 119 },
+	{ Syscall::dyn_clone, 120 },
+	{ Syscall::dyn_setdomainname, 121 },
+	{ Syscall::dyn_uname, 122 },
+	{ Syscall::dyn_modify_ldt, 123 },
+	{ Syscall::dyn_adjtimex, 124 },
+	{ Syscall::dyn_mprotect, 125 },
+	{ Syscall::dyn_sigprocmask, 126 },
+	{ Syscall::dyn_create_module, 127 },
+	{ Syscall::dyn_init_module, 128 },
+	{ Syscall::dyn_delete_module, 129 },
+	{ Syscall::dyn_get_kernel_syms, 130 },
+	{ Syscall::dyn_quotactl, 131 },
+	{ Syscall::dyn_getpgid, 132 },
+	{ Syscall::dyn_fchdir, 133 },
+	{ Syscall::dyn_bdflush, 134 },
+	{ Syscall::dyn_sysfs, 135 },
+	{ Syscall::dyn_personality, 136 },
+	{ Syscall::dyn_afs_syscall, 137 },
+	{ Syscall::dyn_setfsuid, 138 },
+	{ Syscall::dyn_setfsgid, 139 },
+	{ Syscall::dyn__llseek, 140 },
+	{ Syscall::dyn_getdents, 141 },
+	{ Syscall::dyn__newselect, 142 },
+	{ Syscall::dyn_flock, 143 },
+	{ Syscall::dyn_msync, 144 },
+	{ Syscall::dyn_readv, 145 },
+	{ Syscall::dyn_writev, 146 },
+	{ Syscall::dyn_getsid, 147 },
+	{ Syscall::dyn_fdatasync, 148 },
+	{ Syscall::dyn__sysctl, 149 },
+	{ Syscall::dyn_mlock, 150 },
+	{ Syscall::dyn_munlock, 151 },
+	{ Syscall::dyn_mlockall, 152 },
+	{ Syscall::dyn_munlockall, 153 },
+	{ Syscall::dyn_sched_setparam, 154 },
+	{ Syscall::dyn_sched_getparam, 155 },
+	{ Syscall::dyn_sched_setscheduler, 156 },
+	{ Syscall::dyn_sched_getscheduler, 157 },
+	{ Syscall::dyn_sched_yield, 158 },
+	{ Syscall::dyn_sched_get_priority_max, 159 },
+	{ Syscall::dyn_sched_get_priority_min, 160 },
+	{ Syscall::dyn_sched_rr_get_interval, 161 },
+	{ Syscall::dyn_nanosleep, 162 },
+	{ Syscall::dyn_mremap, 163 },
+	{ Syscall::dyn_setresuid, 164 },
+	{ Syscall::dyn_getresuid, 165 },
+	{ Syscall::dyn_vm86, 166 },
+	{ Syscall::dyn_query_module, 167 },
+	{ Syscall::dyn_poll, 168 },
+	{ Syscall::dyn_nfsservctl, 169 },
+	{ Syscall::dyn_setresgid, 170 },
+	{ Syscall::dyn_getresgid, 171 },
+	{ Syscall::dyn_prctl, 172 },
+	{ Syscall::dyn_rt_sigreturn, 173 },
+	{ Syscall::dyn_rt_sigaction, 174 },
+	{ Syscall::dyn_rt_sigprocmask, 175 },
+	{ Syscall::dyn_rt_sigpending, 176 },
+	{ Syscall::dyn_rt_sigtimedwait, 177 },
+	{ Syscall::dyn_rt_sigqueueinfo, 178 },
+	{ Syscall::dyn_rt_sigsuspend, 179 },
+	{ Syscall::dyn_pread64, 180 },
+	{ Syscall::dyn_pwrite64, 181 },
+	{ Syscall::dyn_chown, 182 },
+	{ Syscall::dyn_getcwd, 183 },
+	{ Syscall::dyn_capget, 184 },
+	{ Syscall::dyn_capset, 185 },
+	{ Syscall::dyn_sigaltstack, 186 },
+	{ Syscall::dyn_sendfile, 187 },
+	{ Syscall::dyn_getpmsg, 188 },
+	{ Syscall::dyn_putpmsg, 189 },
+	{ Syscall::dyn_vfork, 190 },
+	{ Syscall::dyn_ugetrlimit, 191 },
+	{ Syscall::dyn_mmap2, 192 },
+	{ Syscall::dyn_truncate64, 193 },
+	{ Syscall::dyn_ftruncate64, 194 },
+	{ Syscall::dyn_stat64, 195 },
+	{ Syscall::dyn_lstat64, 196 },
+	{ Syscall::dyn_fstat64, 197 },
+	{ Syscall::dyn_lchown32, 198 },
+	{ Syscall::dyn_getuid32, 199 },
+	{ Syscall::dyn_getgid32, 200 },
+	{ Syscall::dyn_geteuid32, 201 },
+	{ Syscall::dyn_getegid32, 202 },
+	{ Syscall::dyn_setreuid32, 203 },
+	{ Syscall::dyn_setregid32, 204 },
+	{ Syscall::dyn_getgroups32, 205 },
+	{ Syscall::dyn_setgroups32, 206 },
+	{ Syscall::dyn_fchown32, 207 },
+	{ Syscall::dyn_setresuid32, 208 },
+	{ Syscall::dyn_getresuid32, 209 },
+	{ Syscall::dyn_setresgid32, 210 },
+	{ Syscall::dyn_getresgid32, 211 },
+	{ Syscall::dyn_chown32, 212 },
+	{ Syscall::dyn_setuid32, 213 },
+	{ Syscall::dyn_setgid32, 214 },
+	{ Syscall::dyn_setfsuid32, 215 },
+	{ Syscall::dyn_setfsgid32, 216 },
+	{ Syscall::dyn_pivot_root, 217 },
+	{ Syscall::dyn_mincore, 218 },
+	{ Syscall::dyn_madvise, 219 },
+	{ Syscall::dyn_madvise1, 219 },
+	{ Syscall::dyn_getdents64, 220 },
+	{ Syscall::dyn_fcntl64, 221 },
+	{ Syscall::dyn_gettid, 224 },
+	{ Syscall::dyn_readahead, 225 },
+	{ Syscall::dyn_setxattr, 226 },
+	{ Syscall::dyn_lsetxattr, 227 },
+	{ Syscall::dyn_fsetxattr, 228 },
+	{ Syscall::dyn_getxattr, 229 },
+	{ Syscall::dyn_lgetxattr, 230 },
+	{ Syscall::dyn_fgetxattr, 231 },
+	{ Syscall::dyn_listxattr, 232 },
+	{ Syscall::dyn_llistxattr, 233 },
+	{ Syscall::dyn_flistxattr, 234 },
+	{ Syscall::dyn_removexattr, 235 },
+	{ Syscall::dyn_lremovexattr, 236 },
+	{ Syscall::dyn_fremovexattr, 237 },
+	{ Syscall::dyn_tkill, 238 },
+	{ Syscall::dyn_sendfile64, 239 },
+	{ Syscall::dyn_futex, 240 },
+	{ Syscall::dyn_sched_setaffinity, 241 },
+	{ Syscall::dyn_sched_getaffinity, 242 },
+	{ Syscall::dyn_set_thread_area, 243 },
+	{ Syscall::dyn_get_thread_area, 244 },
+	{ Syscall::dyn_io_setup, 245 },
+	{ Syscall::dyn_io_destroy, 246 },
+	{ Syscall::dyn_io_getevents, 247 },
+	{ Syscall::dyn_io_submit, 248 },
+	{ Syscall::dyn_io_cancel, 249 },
+	{ Syscall::dyn_fadvise64, 250 },
+	{ Syscall::dyn_exit_group, 252 },
+	{ Syscall::dyn_lookup_dcookie, 253 },
+	{ Syscall::dyn_epoll_create, 254 },
+	{ Syscall::dyn_epoll_ctl, 255 },
+	{ Syscall::dyn_epoll_wait, 256 },
+	{ Syscall::dyn_remap_file_pages, 257 },
+	{ Syscall::dyn_set_tid_address, 258 },
+	{ Syscall::dyn_timer_create, 259 },
+	{ Syscall::dyn_timer_settime, 260 },
+	{ Syscall::dyn_timer_gettime, 261 },
+	{ Syscall::dyn_timer_getoverrun, 262 },
+	{ Syscall::dyn_timer_delete, 263 },
+	{ Syscall::dyn_clock_settime, 264 },
+	{ Syscall::dyn_clock_gettime, 265 },
+	{ Syscall::dyn_clock_getres, 266 },
+	{ Syscall::dyn_clock_nanosleep, 267 },
+	{ Syscall::dyn_statfs64, 268 },
+	{ Syscall::dyn_fstatfs64, 269 },
+	{ Syscall::dyn_tgkill, 270 },
+	{ Syscall::dyn_utimes, 271 },
+	{ Syscall::dyn_fadvise64_64, 272 },
+	{ Syscall::dyn_vserver, 273 },
+	{ Syscall::dyn_mbind, 274 },
+	{ Syscall::dyn_get_mempolicy, 275 },
+	{ Syscall::dyn_set_mempolicy, 276 },
+	{ Syscall::dyn_mq_open, 277 },
+	{ Syscall::dyn_mq_unlink, 278 },
+	{ Syscall::dyn_mq_timedsend, 279 },
+	{ Syscall::dyn_mq_timedreceive, 280 },
+	{ Syscall::dyn_mq_notify, 281 },
+	{ Syscall::dyn_mq_getsetattr, 282 },
+	{ Syscall::dyn_kexec_load, 283 },
+	{ Syscall::dyn_waitid, 284 },
+	{ Syscall::dyn_add_key, 286 },
+	{ Syscall::dyn_request_key, 287 },
+	{ Syscall::dyn_keyctl, 288 },
+	{ Syscall::dyn_ioprio_set, 289 },
+	{ Syscall::dyn_ioprio_get, 290 },
+	{ Syscall::dyn_inotify_init, 291 },
+	{ Syscall::dyn_inotify_add_watch, 292 },
+	{ Syscall::dyn_inotify_rm_watch, 293 },
+	{ Syscall::dyn_migrate_pages, 294 },
+	{ Syscall::dyn_openat, 295 },
+	{ Syscall::dyn_mkdirat, 296 },
+	{ Syscall::dyn_mknodat, 297 },
+	{ Syscall::dyn_fchownat, 298 },
+	{ Syscall::dyn_futimesat, 299 },
+	{ Syscall::dyn_fstatat64, 300 },
+	{ Syscall::dyn_unlinkat, 301 },
+	{ Syscall::dyn_renameat, 302 },
+	{ Syscall::dyn_linkat, 303 },
+	{ Syscall::dyn_symlinkat, 304 },
+	{ Syscall::dyn_readlinkat, 305 },
+	{ Syscall::dyn_fchmodat, 306 },
+	{ Syscall::dyn_faccessat, 307 },
+	{ Syscall::dyn_pselect6, 308 },
+	{ Syscall::dyn_ppoll, 309 },
+	{ Syscall::dyn_unshare, 310 },
+	{ Syscall::dyn_set_robust_list, 311 },
+	{ Syscall::dyn_get_robust_list, 312 },
+	{ Syscall::dyn_splice, 313 },
+	{ Syscall::dyn_sync_file_range, 314 },
+	{ Syscall::dyn_tee, 315 },
+	{ Syscall::dyn_vmsplice, 316 },
+	{ Syscall::dyn_move_pages, 317 },
+	{ Syscall::dyn_getcpu, 318 },
+	{ Syscall::dyn_epoll_pwait, 319 },
+	{ Syscall::dyn_utimensat, 320 },
+	{ Syscall::dyn_signalfd, 321 },
+	{ Syscall::dyn_timerfd_create, 322 },
+	{ Syscall::dyn_eventfd, 323 },
+	{ Syscall::dyn_fallocate, 324 },
+	{ Syscall::dyn_timerfd_settime, 325 },
+	{ Syscall::dyn_timerfd_gettime, 326 },
+	{ Syscall::dyn_signalfd4, 327 },
+	{ Syscall::dyn_eventfd2, 328 },
+	{ Syscall::dyn_epoll_create1, 329 },
+	{ Syscall::dyn_dup3, 330 },
+	{ Syscall::dyn_pipe2, 331 },
+	{ Syscall::dyn_inotify_init1, 332 },
+	{ Syscall::dyn_preadv, 333 },
+	{ Syscall::dyn_pwritev, 334 },
+	{ Syscall::dyn_rt_tgsigqueueinfo, 335 },
+	{ Syscall::dyn_perf_event_open, 336 },
+	{ Syscall::dyn_recvmmsg, 337 },
+	{ Syscall::dyn_clock_adjtime, 343 },
+	{ Syscall::dyn_syncfs, 344 },
+	{ Syscall::dyn_sendmmsg, 345 },
+	{ Syscall::dyn_process_vm_readv, 347 },
+	{ Syscall::dyn_process_vm_writev, 348 },
+});
+Linux_Arch_x86_syscallNames.insert({
+	{ 0, "restart_syscall" },
+	{ 1, "exit" },
+	{ 2, "fork" },
+	{ 3, "read" },
+	{ 4, "write" },
+	{ 5, "open" },
+	{ 6, "close" },
+	{ 7, "waitpid" },
+	{ 8, "creat" },
+	{ 9, "link" },
+	{ 10, "unlink" },
+	{ 11, "execve" },
+	{ 12, "chdir" },
+	{ 13, "time" },
+	{ 14, "mknod" },
+	{ 15, "chmod" },
+	{ 16, "lchown" },
+	{ 17, "break" },
+	{ 18, "oldstat" },
+	{ 19, "lseek" },
+	{ 20, "getpid" },
+	{ 21, "mount" },
+	{ 22, "umount" },
+	{ 23, "setuid" },
+	{ 24, "getuid" },
+	{ 25, "stime" },
+	{ 26, "ptrace" },
+	{ 27, "alarm" },
+	{ 28, "oldfstat" },
+	{ 29, "pause" },
+	{ 30, "utime" },
+	{ 31, "stty" },
+	{ 32, "gtty" },
+	{ 33, "access" },
+	{ 34, "nice" },
+	{ 35, "ftime" },
+	{ 36, "sync" },
+	{ 37, "kill" },
+	{ 38, "rename" },
+	{ 39, "mkdir" },
+	{ 40, "rmdir" },
+	{ 41, "dup" },
+	{ 42, "pipe" },
+	{ 43, "times" },
+	{ 44, "prof" },
+	{ 45, "brk" },
+	{ 46, "setgid" },
+	{ 47, "getgid" },
+	{ 48, "signal" },
+	{ 49, "geteuid" },
+	{ 50, "getegid" },
+	{ 51, "acct" },
+	{ 52, "umount2" },
+	{ 53, "lock" },
+	{ 54, "ioctl" },
+	{ 55, "fcntl" },
+	{ 56, "mpx" },
+	{ 57, "setpgid" },
+	{ 58, "ulimit" },
+	{ 59, "oldolduname" },
+	{ 60, "umask" },
+	{ 61, "chroot" },
+	{ 62, "ustat" },
+	{ 63, "dup2" },
+	{ 64, "getppid" },
+	{ 65, "getpgrp" },
+	{ 66, "setsid" },
+	{ 67, "sigaction" },
+	{ 68, "sgetmask" },
+	{ 69, "ssetmask" },
+	{ 70, "setreuid" },
+	{ 71, "setregid" },
+	{ 72, "sigsuspend" },
+	{ 73, "sigpending" },
+	{ 74, "sethostname" },
+	{ 75, "setrlimit" },
+	{ 76, "getrlimit" },
+	{ 77, "getrusage" },
+	{ 78, "gettimeofday" },
+	{ 79, "settimeofday" },
+	{ 80, "getgroups" },
+	{ 81, "setgroups" },
+	{ 82, "select" },
+	{ 83, "symlink" },
+	{ 84, "oldlstat" },
+	{ 85, "readlink" },
+	{ 86, "uselib" },
+	{ 87, "swapon" },
+	{ 88, "reboot" },
+	{ 89, "readdir" },
+	{ 90, "mmap" },
+	{ 91, "munmap" },
+	{ 92, "truncate" },
+	{ 93, "ftruncate" },
+	{ 94, "fchmod" },
+	{ 95, "fchown" },
+	{ 96, "getpriority" },
+	{ 97, "setpriority" },
+	{ 98, "profil" },
+	{ 99, "statfs" },
+	{ 100, "fstatfs" },
+	{ 101, "ioperm" },
+	{ 102, "socketcall" },
+	{ 103, "syslog" },
+	{ 104, "setitimer" },
+	{ 105, "getitimer" },
+	{ 106, "stat" },
+	{ 107, "lstat" },
+	{ 108, "fstat" },
+	{ 109, "olduname" },
+	{ 110, "iopl" },
+	{ 111, "vhangup" },
+	{ 112, "idle" },
+	{ 113, "vm86old" },
+	{ 114, "wait4" },
+	{ 115, "swapoff" },
+	{ 116, "sysinfo" },
+	{ 117, "ipc" },
+	{ 118, "fsync" },
+	{ 119, "sigreturn" },
+	{ 120, "clone" },
+	{ 121, "setdomainname" },
+	{ 122, "uname" },
+	{ 123, "modify_ldt" },
+	{ 124, "adjtimex" },
+	{ 125, "mprotect" },
+	{ 126, "sigprocmask" },
+	{ 127, "create_module" },
+	{ 128, "init_module" },
+	{ 129, "delete_module" },
+	{ 130, "get_kernel_syms" },
+	{ 131, "quotactl" },
+	{ 132, "getpgid" },
+	{ 133, "fchdir" },
+	{ 134, "bdflush" },
+	{ 135, "sysfs" },
+	{ 136, "personality" },
+	{ 137, "afs_syscall" },
+	{ 138, "setfsuid" },
+	{ 139, "setfsgid" },
+	{ 140, "_llseek" },
+	{ 141, "getdents" },
+	{ 142, "_newselect" },
+	{ 143, "flock" },
+	{ 144, "msync" },
+	{ 145, "readv" },
+	{ 146, "writev" },
+	{ 147, "getsid" },
+	{ 148, "fdatasync" },
+	{ 149, "_sysctl" },
+	{ 150, "mlock" },
+	{ 151, "munlock" },
+	{ 152, "mlockall" },
+	{ 153, "munlockall" },
+	{ 154, "sched_setparam" },
+	{ 155, "sched_getparam" },
+	{ 156, "sched_setscheduler" },
+	{ 157, "sched_getscheduler" },
+	{ 158, "sched_yield" },
+	{ 159, "sched_get_priority_max" },
+	{ 160, "sched_get_priority_min" },
+	{ 161, "sched_rr_get_interval" },
+	{ 162, "nanosleep" },
+	{ 163, "mremap" },
+	{ 164, "setresuid" },
+	{ 165, "getresuid" },
+	{ 166, "vm86" },
+	{ 167, "query_module" },
+	{ 168, "poll" },
+	{ 169, "nfsservctl" },
+	{ 170, "setresgid" },
+	{ 171, "getresgid" },
+	{ 172, "prctl" },
+	{ 173, "rt_sigreturn" },
+	{ 174, "rt_sigaction" },
+	{ 175, "rt_sigprocmask" },
+	{ 176, "rt_sigpending" },
+	{ 177, "rt_sigtimedwait" },
+	{ 178, "rt_sigqueueinfo" },
+	{ 179, "rt_sigsuspend" },
+	{ 180, "pread64" },
+	{ 181, "pwrite64" },
+	{ 182, "chown" },
+	{ 183, "getcwd" },
+	{ 184, "capget" },
+	{ 185, "capset" },
+	{ 186, "sigaltstack" },
+	{ 187, "sendfile" },
+	{ 188, "getpmsg" },
+	{ 189, "putpmsg" },
+	{ 190, "vfork" },
+	{ 191, "ugetrlimit" },
+	{ 192, "mmap2" },
+	{ 193, "truncate64" },
+	{ 194, "ftruncate64" },
+	{ 195, "stat64" },
+	{ 196, "lstat64" },
+	{ 197, "fstat64" },
+	{ 198, "lchown32" },
+	{ 199, "getuid32" },
+	{ 200, "getgid32" },
+	{ 201, "geteuid32" },
+	{ 202, "getegid32" },
+	{ 203, "setreuid32" },
+	{ 204, "setregid32" },
+	{ 205, "getgroups32" },
+	{ 206, "setgroups32" },
+	{ 207, "fchown32" },
+	{ 208, "setresuid32" },
+	{ 209, "getresuid32" },
+	{ 210, "setresgid32" },
+	{ 211, "getresgid32" },
+	{ 212, "chown32" },
+	{ 213, "setuid32" },
+	{ 214, "setgid32" },
+	{ 215, "setfsuid32" },
+	{ 216, "setfsgid32" },
+	{ 217, "pivot_root" },
+	{ 218, "mincore" },
+	{ 219, "madvise" },
+	{ 219, "madvise1" },
+	{ 220, "getdents64" },
+	{ 221, "fcntl64" },
+	{ 224, "gettid" },
+	{ 225, "readahead" },
+	{ 226, "setxattr" },
+	{ 227, "lsetxattr" },
+	{ 228, "fsetxattr" },
+	{ 229, "getxattr" },
+	{ 230, "lgetxattr" },
+	{ 231, "fgetxattr" },
+	{ 232, "listxattr" },
+	{ 233, "llistxattr" },
+	{ 234, "flistxattr" },
+	{ 235, "removexattr" },
+	{ 236, "lremovexattr" },
+	{ 237, "fremovexattr" },
+	{ 238, "tkill" },
+	{ 239, "sendfile64" },
+	{ 240, "futex" },
+	{ 241, "sched_setaffinity" },
+	{ 242, "sched_getaffinity" },
+	{ 243, "set_thread_area" },
+	{ 244, "get_thread_area" },
+	{ 245, "io_setup" },
+	{ 246, "io_destroy" },
+	{ 247, "io_getevents" },
+	{ 248, "io_submit" },
+	{ 249, "io_cancel" },
+	{ 250, "fadvise64" },
+	{ 252, "exit_group" },
+	{ 253, "lookup_dcookie" },
+	{ 254, "epoll_create" },
+	{ 255, "epoll_ctl" },
+	{ 256, "epoll_wait" },
+	{ 257, "remap_file_pages" },
+	{ 258, "set_tid_address" },
+	{ 259, "timer_create" },
+	{ 260, "timer_settime" },
+	{ 261, "timer_gettime" },
+	{ 262, "timer_getoverrun" },
+	{ 263, "timer_delete" },
+	{ 264, "clock_settime" },
+	{ 265, "clock_gettime" },
+	{ 266, "clock_getres" },
+	{ 267, "clock_nanosleep" },
+	{ 268, "statfs64" },
+	{ 269, "fstatfs64" },
+	{ 270, "tgkill" },
+	{ 271, "utimes" },
+	{ 272, "fadvise64_64" },
+	{ 273, "vserver" },
+	{ 274, "mbind" },
+	{ 275, "get_mempolicy" },
+	{ 276, "set_mempolicy" },
+	{ 277, "mq_open" },
+	{ 278, "mq_unlink" },
+	{ 279, "mq_timedsend" },
+	{ 280, "mq_timedreceive" },
+	{ 281, "mq_notify" },
+	{ 282, "mq_getsetattr" },
+	{ 283, "kexec_load" },
+	{ 284, "waitid" },
+	{ 286, "add_key" },
+	{ 287, "request_key" },
+	{ 288, "keyctl" },
+	{ 289, "ioprio_set" },
+	{ 290, "ioprio_get" },
+	{ 291, "inotify_init" },
+	{ 292, "inotify_add_watch" },
+	{ 293, "inotify_rm_watch" },
+	{ 294, "migrate_pages" },
+	{ 295, "openat" },
+	{ 296, "mkdirat" },
+	{ 297, "mknodat" },
+	{ 298, "fchownat" },
+	{ 299, "futimesat" },
+	{ 300, "fstatat64" },
+	{ 301, "unlinkat" },
+	{ 302, "renameat" },
+	{ 303, "linkat" },
+	{ 304, "symlinkat" },
+	{ 305, "readlinkat" },
+	{ 306, "fchmodat" },
+	{ 307, "faccessat" },
+	{ 308, "pselect6" },
+	{ 309, "ppoll" },
+	{ 310, "unshare" },
+	{ 311, "set_robust_list" },
+	{ 312, "get_robust_list" },
+	{ 313, "splice" },
+	{ 314, "sync_file_range" },
+	{ 315, "tee" },
+	{ 316, "vmsplice" },
+	{ 317, "move_pages" },
+	{ 318, "getcpu" },
+	{ 319, "epoll_pwait" },
+	{ 320, "utimensat" },
+	{ 321, "signalfd" },
+	{ 322, "timerfd_create" },
+	{ 323, "eventfd" },
+	{ 324, "fallocate" },
+	{ 325, "timerfd_settime" },
+	{ 326, "timerfd_gettime" },
+	{ 327, "signalfd4" },
+	{ 328, "eventfd2" },
+	{ 329, "epoll_create1" },
+	{ 330, "dup3" },
+	{ 331, "pipe2" },
+	{ 332, "inotify_init1" },
+	{ 333, "preadv" },
+	{ 334, "pwritev" },
+	{ 335, "rt_tgsigqueueinfo" },
+	{ 336, "perf_event_open" },
+	{ 337, "recvmmsg" },
+	{ 343, "clock_adjtime" },
+	{ 344, "syncfs" },
+	{ 345, "sendmmsg" },
+	{ 347, "process_vm_readv" },
+	{ 348, "process_vm_writev" },
+});
 }

@@ -40,15 +40,12 @@
 // This include *must* come first in the file.
 #include "common/src/Types.h"
 
-#include <assert.h>
-#include <stdio.h>
+#include <cassert>
+#include <cstdio>
+#include <cstring>
 #include <map>
 #include <string>
 #include <iostream>
-
-#include "boost/assign/list_of.hpp"
-#include "boost/assign/std/vector.hpp"
-#include "boost/assign/std/set.hpp"
 
 #include "common/src/arch-x86.h"
 #include "dyn_regs.h"
@@ -61,7 +58,6 @@
 // #define VEX_PEDANTIC
 
 using namespace std;
-using namespace boost::assign;
 
 namespace NS_x86 {
 
@@ -741,1171 +737,1171 @@ enum {
   fCMPS
 };
 
-COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
-  (e_aaa, "aaa")
-  (e_aad, "aad")
-  (e_aam, "aam")
-  (e_aas, "aas")
-  (e_adc, "adc")
-  (e_add, "add")
-  (e_addpd, "addpd")
-  (e_addps, "addps")
-  (e_addsd, "addsd")
-  (e_addss, "addss")
-  (e_addsubpd, "addsubpd")
-  (e_addsubps, "addsubps")
-  (e_aesenc, "aesenc")
-  (e_aesenclast, "aesenclast")
-  (e_aesdec, "aesdec")
-  (e_aesdeclast, "aesdeclast")
-  (e_aeskeygenassist, "aeskeygenassist")
-  (e_aesimc, "aesimc")
-  (e_pclmullqlqdq, "pclmullqlqdq")
-  (e_and, "and")
-  (e_andnpd, "andnpd")
-  (e_andnps, "andnps")
-  (e_andpd, "andpd")
-  (e_andps, "andps")
-  (e_arpl, "arpl")
-  (e_blendpd,"blendpd")
-  (e_blendps, "blendps")
-  (e_blendvpd, "blendvpd")
-  (e_blendvps, "blendvps")
-  (e_bound, "bound")
-  (e_bsf, "bsf")
-  (e_bsr, "bsr")
-  (e_bswap, "bswap")
-  (e_bt, "bt")
-  (e_btc, "btc")
-  (e_btr, "btr")
-  (e_bts, "bts")
-  (e_call, "call")
-  (e_cbw, "cbw")
-  (e_cdq, "cdq")
-  (e_clc, "clc")
-  (e_cld, "cld")
-  (e_clflush, "clflush")
-  (e_cli, "cli")
-  (e_clts, "clts")
-  (e_cmc, "cmc")
-  (e_cmovbe, "cmovbe")
-  (e_cmove, "cmove")
-  (e_cmovnae, "cmovnae")
-  (e_cmovnb, "cmovnb")
-  (e_cmovnbe, "cmovnbe")
-  (e_cmovne, "cmovne")
-  (e_cmovng, "cmovng")
-  (e_cmovnge, "cmovnge")
-  (e_cmovnl, "cmovnl")
-  (e_cmovno, "cmovno")
-  (e_cmovns, "cmovns")
-  (e_cmovo, "cmovo")
-  (e_cmovpe, "cmovpe")
-  (e_cmovpo, "cmovpo")
-  (e_cmovs, "cmovs")
-  (e_cmp, "cmp")
-  (e_cmppd, "cmppd")
-  (e_cmpps, "cmpps")
-  (e_cmpsb, "cmpsb")
-  (e_cmpsd, "cmpsd")
-  (e_cmpsd_sse, "cmpsd")
-  (e_cmpss, "cmpss")
-  (e_cmpsw, "cmpsw")
-  (e_cmpxch, "cmpxch")
-  (e_cmpxch8b, "cmpxch8b")
-  (e_comisd, "comisd")
-  (e_comiss, "comiss")
-  (e_cpuid, "cpuid")
-  (e_crc32, "crc32")
-  (e_cvtdq2pd, "cvtdq2pd")
-  (e_cvtdq2ps, "cvtdq2ps")
-  (e_cvtpd2dq, "cvtpd2dq")
-  (e_cvtpd2pi, "cvtpd2pi")
-  (e_cvtpd2ps, "cvtpd2ps")
-  (e_cvtpi2pd, "cvtpi2pd")
-  (e_cvtpi2ps, "cvtpi2ps")
-  (e_cvtps2dq, "cvtps2dq")
-  (e_cvtps2pd, "cvtps2pd")
-  (e_cvtps2pi, "cvtps2pi")
-  (e_cvtsd2si, "cvtsd2si")
-  (e_cvtsd2ss, "cvtsd2ss")
-  (e_cvtsi2sd, "cvtsi2sd")
-  (e_cvtsi2ss, "cvtsi2ss")
-  (e_cvtss2sd, "cvtss2sd")
-  (e_cvtss2si, "cvtss2si")
-  (e_cvttpd2dq, "cvttpd2dq")
-  (e_cvttpd2pi, "cvttpd2pi")
-  (e_cvttps2dq, "cvttps2dq")
-  (e_cvttps2pi, "cvttps2pi")
-  (e_cvttsd2si, "cvttsd2si")
-  (e_cvttss2si, "cvttss2si")
-  (e_cwd, "cwd")
-  (e_cwde, "cwde")
-  (e_daa, "daa")
-  (e_das, "das")
-  (e_dec, "dec")
-  (e_div, "div")
-  (e_divpd, "divpd")
-  (e_divps, "divps")
-  (e_divsd, "divsd")
-  (e_divss, "divss")
-  (e_dppd, "dppd")
-  (e_vdppd, "vdppd")
-  (e_dpps, "dpps")
-  (e_emms, "emms")
-  (e_enter, "enter")
-  (e_extractps, "extractps")
-  (e_extrq, "extrq")
-  (e_fadd, "fadd")
-  (e_faddp, "faddp")
- (e_f2xm1, "f2xm1")
-  (e_fbld, "fbld")
-  (e_fbstp, "fbstp")
- (e_fchs, "fchs")
- (e_fcmovb, "fcmovb")
- (e_fcmovbe, "fcmovbe")
- (e_fcmove, "fcmove")
- (e_fcmovne, "fcmovne")
- (e_fcmovu, "fcmovu")
- (e_fcmovnu, "fcmovnu")
- (e_fcmovnb, "fcmovnb")
- (e_fcmovnbe, "fcmovnbe")
-  (e_fcom, "fcom")
-  (e_fcomi, "fcomi")
-  (e_fcomip, "fcomip")
-  (e_fcomp, "fcomp")
-  (e_fcompp, "fcompp")
-  (e_fdiv, "fdiv")
-  (e_fdivp, "fdivp")
-  (e_fdivr, "fdivr")
-  (e_fdivrp, "fdivrp")
-  (e_femms, "femms")
- (e_ffree, "ffree")
- (e_ffreep, "ffreep")
-  (e_fiadd, "fiadd")
-  (e_ficom, "ficom")
-  (e_ficomp, "ficomp")
-  (e_fidiv, "fidiv")
-  (e_fidivr, "fidivr")
-  (e_fild, "fild")
-  (e_fimul, "fimul")
-  (e_fist, "fist")
-  (e_fistp, "fistp")
-  (e_fisttp, "fisttp")
-  (e_fisub, "fisub")
-  (e_fisubr, "fisubr")
-  (e_fld, "fld")
- (e_fld1, "fld1")
-  (e_fldcw, "fldcw")
-  (e_fldenv, "fldenv")
-  (e_fmul, "fmul")
-  (e_fmulp, "fmulp")
-  (e_fnop, "fnop")
- (e_fprem, "fprem")
-  (e_frstor, "frstor")
-  (e_fsave, "fsave")
-  (e_fst, "fst")
-  (e_fstcw, "fstcw")
-  (e_fstenv, "fstenv")
-  (e_fstp, "fstp")
-  (e_fstsw, "fstsw")
-  (e_fsub, "fsub")
-  (e_fsubp, "fsubp")
-  (e_fsubr, "fsubr")
-  (e_fsubrp, "fsubrp")
-  (e_fucom, "fucom")
-  (e_fucomp, "fucomp")
-  (e_fucomi, "fucomi")
-  (e_fucomip, "fucomip")
-  (e_fucompp, "fucompp")
- (e_fxch, "fxch")
-  (e_fxrstor, "fxrstor")
-  (e_fxsave, "fxsave")
-  (e_xbegin, "xbegin")
-  (e_xabort, "xabort")
-  (e_haddpd, "haddpd")
-  (e_haddps, "haddps")
-  (e_hlt, "hlt")
-  (e_hsubpd, "hsubpd")
-  (e_hsubps, "hsubps")
-  (e_idiv, "idiv")
-  (e_imul, "imul")
-  (e_in, "in")
-  (e_inc, "inc")
-  (e_insb, "insb")
-  (e_insd, "insd")
-  (e_insertps, "insertps")
-  (e_insertq, "insertq")
-  (e_insw, "insw")
-  (e_int, "int")
-  (e_int3, "int 3")
-  (e_int1, "int1")
-  (e_int80, "int 80")
-  (e_into, "into")
-  (e_invd, "invd")
-  (e_invlpg, "invlpg")
-  (e_iret, "iret")
-  (e_jb, "jb")
-  (e_jb_jnaej_j, "jb")
-  (e_jbe, "jbe")
-  (e_jcxz_jec, "jcxz")
-  (e_jl, "jl")
-  (e_jle, "jle")
-  (e_jmp, "jmp")
-  (e_jnb, "jnb")
-  (e_jnb_jae_j, "jnb")
-  (e_jnbe, "jnbe")
-  (e_jnl, "jnl")
-  (e_jnle, "jnle")
-  (e_jno, "jno")
-  (e_jnp, "jnp")
-  (e_jns, "jns")
-  (e_jnz, "jnz")
-  (e_jo, "jo")
-  (e_jp, "jp")
-  (e_js, "js")
-  (e_jz, "jz")
-  (e_lahf, "lahf")
-  (e_lar, "lar")
-  (e_ldmxcsr, "ldmxcsr")
-  (e_lds, "lds")
-  (e_lddqu, "lddqu")
-  (e_lea, "lea")
-  (e_leave, "leave")
-  (e_les, "les")
-  (e_lfence, "lfence")
-  (e_lfs, "lfs")
-  (e_lgdt, "lgdt")
-  (e_lgs, "lgs")
-  (e_lidt, "lidt")
-  (e_lldt, "lldt")
-  (e_lmsw, "lmsw")
-  (e_lodsb, "lodsb")
-  (e_lodsd, "lodsd")
-  (e_lodsw, "lodsw")
-  (e_loop, "loop")
-  (e_loope, "loope")
-  (e_loopn, "loopn")
-  (e_lsl, "lsl")
-  (e_lss, "lss")
-  (e_ltr, "ltr")
-  (e_maskmovdqu, "maskmovdqu")
-  (e_maskmovq, "maskmovq")
-  (e_maxpd, "maxpd")
-  (e_maxps, "maxps")
-  (e_maxsd, "maxsd")
-  (e_maxss, "maxss")
-  (e_mfence, "mfence")
-  (e_minpd, "minpd")
-  (e_minps, "minps")
-  (e_minsd, "minsd")
-  (e_minss, "minss")
-  (e_mmxud, "mmxud")
-  (e_mov, "mov")
-  (e_movapd, "movapd")
-  (e_movaps, "movaps")
-  (e_movd, "movd")
-  (e_movddup, "movddup")
-  (e_movdq2q, "movdq2q")
-  (e_movdqa, "movdqa")
-  (e_movdqu, "movdqu")
-  (e_movhpd, "movhpd")
-  (e_movhps, "movhps")
-  (e_movhps_movlhps, "movhps/movlhps")
-  (e_movlpd, "movlpd")
-  (e_movlps, "movlps")
-  (e_movlps_movhlps, "movlps/movhlps")
-  (e_movmskpd, "movmskpd")
-  (e_movmskps, "movmskps")
-  (e_movntdq, "movntdq")
-  (e_movntdqa, "movntdqa")
-  (e_movnti, "movnti")
-  (e_movntpd, "movntpd")
-  (e_movntps, "movntps")
-  (e_movntq, "movntq")
-  (e_movq, "movq")
-  (e_movq2dq, "movq2dq")
-  (e_movsb, "movsb")
-  (e_movsd, "movsd")
-  (e_movsd_sse, "movsd")
-  (e_movshdup, "movshdup")
-  (e_movsldup, "movsldup")
-  (e_movslq, "movslq")
-  (e_movss, "movss")
-  (e_movsw, "movsw")
-  (e_movsx, "movsx")
-  (e_movsxd, "movsxd")
-  (e_movupd, "movupd")
-  (e_movups, "movups")
-  (e_movzx, "movzx")
-  (e_mpsadbw, "mpsadbw")
-  (e_mul, "mul")
-  (e_mulpd, "mulpd")
-  (e_mulps, "mulps")
-  (e_mulsd, "mulsd")
-  (e_mulss, "mulss")
-  (e_neg, "neg")
-  (e_nop, "nop")
-  (e_not, "not")
-  (e_or, "or")
-  (e_orpd, "orpd")
-  (e_orps, "orps")
-  (e_out, "out")
-  (e_outsb, "outsb")
-  (e_outsd, "outsd")
-  (e_outsw, "outsw")
-  (e_pabsb, "pabsb")
-  (e_pabsd, "pabsd")
-  (e_pabsw, "pabsw")
-  (e_packssdw, "packssdw")
-  (e_packsswb, "packsswb")
-  (e_packusdw, "packusdw")
-  (e_packuswb, "packuswb")
-  (e_paddb, "paddb")
-  (e_paddd, "paddd")
-  (e_paddq, "paddq")
-  (e_paddsb, "paddsb")
-  (e_paddsw, "paddsw")
-  (e_paddusb, "paddusb")
-  (e_paddusw, "paddusw")
-  (e_paddw, "paddw")
-  (e_palignr, "palignr")
-  (e_pand, "pand")
-  (e_pandn, "pandn")
-  (e_pavgb, "pavgb")
-  (e_pavgw, "pavgw")
-  (e_pblendvb, "pblendvb")
-  (e_pblendw, "pblendw")
-  (e_pcmpeqb, "pcmpeqb")
-  (e_pcmpeqd, "pcmpeqd")
-  (e_pcmpeqq, "pcmpeqq")
-  (e_pcmpeqw, "pcmpeqw")
-  (e_pcmpestri, "pcmpestri")
-  (e_pcmpestrm, "pcmpestrm")
-  (e_pcmpgdt, "pcmpgdt")
-  (e_pcmpgtb, "pcmpgtb")
-  (e_pcmpgtq, "pcmpgtq")
-  (e_pcmpgtw, "pcmpgtw")
-  (e_pcmpistri, "pcmpistri")
-  (e_pcmpistrm, "pcmpistrm")
-  (e_pextrb, "pextrb")
-  (e_pextrd_pextrq, "pextrd/pextrq")
-  (e_pextrw, "pextrw")
-  (e_phaddd, "phaddd")
-  (e_phaddsw, "phaddsw")
-  (e_phaddw, "phaddw")
-  (e_phminposuw, "phminposuw")
-  (e_phsubd, "phsubd")
-  (e_phsubsw, "phsubsw")
-  (e_phsubw, "phsubw")
-  (e_phsubsw, "phsubsw")
-  (e_pinsrb, "pinsrb")
-  (e_pinsrd_pinsrq, "pinsrd/pinsrq")
-  (e_pinsrw, "pinsrw")
-  (e_pmaddubsw, "pmaddubsw")
-  (e_pmaddwd, "pmaddwd")
-  (e_pmaxsb, "pmaxsb")
-  (e_pmaxsd, "pmaxsd")
-  (e_pmaxsw, "pmaxsw")
-  (e_pmaxub, "pmaxub")
-  (e_pmaxud, "pmaxud")
-  (e_pmaxuw, "pmaxuw")
-  (e_pminsb, "pminsb")
-  (e_pminsd, "pminsd")
-  (e_pminsw, "pminsw")
-  (e_pminub, "pminub")
-  (e_pminud, "pminud")
-  (e_pminuw, "pminuw")
-  (e_pmovmskb, "pmovmskb")
-  (e_pmovsxbd, "pmovsxbd")
-  (e_pmovsxbq, "pmovsxbq")
-  (e_pmovsxbw, "pmovsxbw")
-  (e_pmovsxdq, "pmovsxdq")
-  (e_pmovsxwd, "pmovsxwd")
-  (e_pmovsxwq, "pmovsxwq")
-  (e_pmovzxbd, "pmovzxbd")
-  (e_pmovzxbq, "pmovzxbq")
-  (e_pmovzxbw, "pmovzxbw")
-  (e_pmovzxdq, "pmovzxdq")
-  (e_pmovzxwd, "pmovzxwd")
-  (e_pmovzxwq, "pmovzxwq")
-  (e_pmuldq, "pmuldq")
-  (e_pmulhrsw, "pmulhrsw")
-  (e_pmulhuw, "pmulhuw")
-  (e_pmulhw, "pmulhw")
-  (e_pmullw, "pmullw")
-  (e_pmulld, "pmulld")
-  (e_pmuludq, "pmuludq")
-  (e_pop, "pop")
-  (e_popa, "popa")
-  (e_popad, "popad")
-  (e_popcnt, "popcnt")
-  (e_popf, "popf")
-  (e_popfd, "popfd")
-  (e_por, "por")
-  (e_prefetch, "prefetch")
-  (e_prefetchNTA, "prefetchNTA")
-  (e_prefetchT0, "prefetchT0")
-  (e_prefetchT1, "prefetchT1")
-  (e_prefetchT2, "prefetchT2")
-  (e_prefetch_w, "prefetch(w)")
-  (e_prefetchw, "prefetchw")
-  (e_prefetchwt1, "prefetchwt1")
-  (e_psadbw, "psadbw")
-  (e_pshufb, "pshufb")
-  (e_pshufd, "pshufd")
-  (e_pshufhw, "pshufhw")
-  (e_pshuflw, "pshuflw")
-  (e_pshufw, "pshufw")
-  (e_psignb, "psignb")
-  (e_psignd, "psignd")
-  (e_psignw, "psignw")
-  (e_pslld, "pslld")
-  (e_pslldq, "pslldq")
-  (e_psllq, "psllq")
-  (e_psllw, "psllw")
-  (e_psrad, "psrad")
-  (e_psraw, "psraw")
-  (e_psrld, "psrld")
-  (e_psrldq, "psrldq")
-  (e_psrlq, "psrlq")
-  (e_psrlw, "psrlw")
-  (e_psubb, "psubb")
-  (e_psubd, "psubd")
-  (e_psubsb, "psubsb")
-  (e_psubsw, "psubsw")
-  (e_psubusb, "psubusb")
-  (e_psubusw, "psubusw")
-  (e_psubw, "psubw")
-  (e_ptest, "ptest")
-  (e_punpckhbw, "punpckhbw")
-  (e_punpckhdq, "punpckhdq")
-  (e_punpckhqd, "punpckhqd")
-  (e_punpckhwd, "punpckhwd")
-  (e_punpcklbw, "punpcklbw")
-  (e_punpcklqd, "punpcklqd")
-  (e_punpcklqld, "punpcklqld")
-  (e_punpcklwd, "punpcklwd")
-  (e_push, "push")
-  (e_pusha, "pusha")
-  (e_pushad, "pushad")
-  (e_pushf, "pushf")
-  (e_pushfd, "pushfd")
-  (e_pxor, "pxor")
-  (e_rcl, "rcl")
-  (e_rcpps, "rcpps")
-  (e_rcpss, "rcpss")
-  (e_rcr, "rcr")
-  (e_rdmsr, "rdmsr")
-  (e_rdpmc, "rdpmc")
-  (e_rdtsc, "rdtsc")
-  (e_rdrand, "rdrand")
-  (e_ret_far, "ret far")
-  (e_ret_near, "ret near")
-  (e_rol, "rol")
-  (e_ror, "ror")
-  (e_roundpd, "roundpd")
-  (e_roundps, "roundps")
-  (e_roundsd, "roundsd")
-  (e_roundss, "roundss")
-  (e_rsm, "rsm")
-  (e_rsqrtps, "rsqrtps")
-  (e_rsqrtss, "rsqrtss")
-  (e_sahf, "sahf")
-  (e_salc, "salc")
-  (e_sar, "sar")
-  (e_sbb, "sbb")
-  (e_scasb, "scasb")
-  (e_scasd, "scasd")
-  (e_scasw, "scasw")
-  (e_setb, "setb")
-  (e_setbe, "setbe")
-  (e_setl, "setl")
-  (e_setle, "setle")
-  (e_setnb, "setnb")
-  (e_setnbe, "setnbe")
-  (e_setnl, "setnl")
-  (e_setnle, "setnle")
-  (e_setno, "setno")
-  (e_setnp, "setnp")
-  (e_setns, "setns")
-  (e_setnz, "setnz")
-  (e_seto, "seto")
-  (e_setp, "setp")
-  (e_sets, "sets")
-  (e_setz, "setz")
-  (e_sfence, "sfence")
-  (e_sgdt, "sgdt")
-  (e_shl_sal, "shl/sal")
-  (e_shld, "shld")
-  (e_shr, "shr")
-  (e_shrd, "shrd")
-  (e_shufpd, "shufpd")
-  (e_shufps, "shufps")
-  (e_sha1rnds4, "sha1rnds4")
-  (e_sha1nexte, "sha1nexte")
-  (e_sha1msg1, "sha1msg1")
-  (e_sha1msg2, "sha1msg2")
-  (e_sha256rnds2, "sha256rnds2")
-  (e_sha256msg1, "sha256msg1")
-  (e_sha256msg2, "sha256msg2")
-  (e_shlx, "shlx")
-  (e_sarx, "sarx")
-  (e_prefetchwt1, "prefetchwt1")
-  (e_clflushopt, "clflushopt")
-  (e_clwb, "clwb")
-  (e_pcommit, "pcommit")
-  (e_sidt, "sidt")
-  (e_sldt, "sldt")
-  (e_smsw, "smsw")
-  (e_sqrtpd, "sqrtpd")
-  (e_sqrtps, "sqrtps")
-  (e_sqrtsd, "sqrtsd")
-  (e_sqrtss, "sqrtss")
-  (e_stc, "stc")
-  (e_std, "std")
-  (e_sti, "sti")
-  (e_stmxcsr, "stmxcsr")
-  (e_stosb, "stosb")
-  (e_stosd, "stosd")
-  (e_stosw, "stosw")
-  (e_str, "str")
-  (e_sub, "sub")
-  (e_subpd, "subpd")
-  (e_subps, "subps")
-  (e_subsd, "subsd")
-  (e_subss, "subss")
-  (e_syscall, "syscall")
-  (e_sysenter, "sysenter")
-  (e_sysexit, "sysexit")
-  (e_sysret, "sysret")
-  (e_test, "test")
-  (e_ucomisd, "ucomisd")
-  (e_ucomiss, "ucomiss")
-  (e_ud2, "ud2")
-  (e_ud2grp10, "ud2grp10")
-  (e_unpckhpd, "unpckhpd")
-  (e_unpckhps, "unpckhps")
-  (e_unpcklpd, "unpcklpd")
-  (e_unpcklps, "unpcklps")
-  (e_verr, "verr")
-  (e_verw, "verw")
-  (e_wait, "wait")
-  (e_wbinvd, "wbinvd")
-  (e_wrmsr, "wrmsr")
-  (e_xadd, "xadd")
-  (e_xchg, "xchg")
-  (e_xlat, "xlat")
-  (e_xor, "xor")
-  (e_xorpd, "xorpd")
-  (e_xorps, "xorps")
-  (e_vaesenc, "vaesenc")
-  (e_vaesenclast, "vaesenclast")
-  (e_vaesdec, "vaesdec")
-  (e_vaesdeclast, "vaesdeclast")
-  (e_vaeskeygenassist, "vaeskeygenassist")
-  (e_vaesimc, "vaesimc")
-  (e_vpclmullqlqdq, "vpclmullqlqdq")
-  (e_vmpsadbw, "vmpsadbw") 
-  (e_vmwrite, "vmwrite") 
-  (e_vmread, "vmread") 
-  (e_vphaddw, "vphaddw")
-  (e_vphaddd, "vphaddd")
-  (e_vphaddsw, "vpaddsw")
-  (e_vphsubw, "vphsubw")
-  (e_vphsubd, "vphsubd")
-  (e_vpmovb2m, "vpmovb2m")
-  (e_vpmaddubsw, "vpmaddubsw")
-  (e_vpmaddwd, "vpmaddwd")
-  (e_vpmovm2d, "vpmovm2d")
-  (e_vpmovmskb, "vpmovmskb")
-  (e_vpmovm2b, "vpmovm2b")
-  (e_andn, "andn")
-  (e_bextr, "bextr")
-  (e_blsi, "blsi")
-  (e_blsmsk, "blsmsk")
-  (e_blsr, "blsr")
-  (e_bzhi, "bzhi")
-  (e_lzcnt, "lzcnt")
-  (e_mulx, "mulx")
-  (e_pdep, "pdep")
-  (e_pext, "pext")
-  (e_rorx, "rorx")
-  (e_sarx, "sarx")
-  (e_shlx, "shlx")
-  (e_shrx, "shrx")
-  (e_tzcnt, "tzcnt")
-  (e_vaddpd, "vaddpd")
-  (e_vaddps, "vaddps")
-  (e_vaddsd, "vaddsd")
-  (e_vaddss, "vaddss")
-  (e_vandnpd, "vandnpd")
-  (e_vandnps, "vandnps")
-  (e_vandpd, "vandpd")
-  (e_vandps, "vandps")
-  (e_valignd, "valignd")
-  (e_valignq, "valignq")
-  (e_vbroadcastf128, "vbroadcastf128")
-  (e_vbroadcasti128, "vbroadcasti128")
-  (e_vbroadcastsd, "vbroadcastsd")
-  (e_vbroadcastss, "vbroadcastss")
-  (e_vblendmps, "vblendmps")
-  (e_vblendmpd, "vblendmpd")
-  (e_vblendps, "vblendps")
-  (e_vblendvpd, "vblendpd")
-  (e_vblendvps, "vblendvps")
-  (e_vblendvpd, "vblendvpd")
-  (e_vpblendmb, "vpblendmb")
-  (e_vpblendmw, "vpblendmw")
-  (e_vpblendvb, "vpblendvb")
-  (e_vcmppd, "vcmppd")
-  (e_vcmpps, "vcmpps")
-  (e_vcmpsd, "vcmpsd")
-  (e_vcmpss, "vcmpss")
-  (e_vcomisd, "vcomisd")
-  (e_vcomiss, "vcomiss")
-  (e_vcvtudq2pd, "vcvtudq2pd")
-  (e_vcvtudq2ps, "vcvtudq2ps")
-  (e_vcvtps2uqq, "vcvtps2uqq")
-  (e_vcvtpd2qq, "vcvtpd2qq")
-  (e_vcvtdq2pd, "vcvtdq2pd")
-  (e_vcvtdq2ps, "vcvtdq2ps")
-  (e_vcvtpd2dq, "vcvtpd2dq")
-  (e_vcvtpd2ps, "vcvtpd2ps")
-  (e_vcvtph2ps, "vcvtph2ps")
-  (e_vcvtps2dq, "vcvtps2dq")
-  (e_vcvtps2pd, "vcvtps2pd")
-  (e_vcvtps2ph, "vcvtps2ph")
-  (e_vcvtsd2si, "vcvtsd2si")
-  (e_vcvtsd2ss, "vcvtsd2ss")
-  (e_vcvtsi2sd, "vcvtsi2sd")
-  (e_vcvtsi2ss, "vcvtsi2ss")
-  (e_vcvtss2sd, "vcvtss2sd")
-  (e_vcvtss2si, "vcvtss2si")
-  (e_vcvttpd2udq, "vcvttpd2udq")
-  (e_vcvttpd2uqq, "vcvttpd2uqq")
-  (e_vcvttpd2qq, "vcvttpd2qq")
-  (e_vcvttpd2dq, "vcvttpd2dq")
-  (e_vcvttps2dq, "vcvttps2dq")
-  (e_vcvttsd2si, "vcvttsd2si")
-  (e_vcvttss2si, "vcvttss2si")
-  (e_vcvtpd2udq, "vcvtpd2udq")
-  (e_vcvtpd2uqq, "vcvtpd2uqq")
-  (e_vdivpd, "vdivpd")
-  (e_vdivps, "vdivps")
-  (e_vdivsd, "vdivsd")
-  (e_vdivss, "vdivss")
-  (e_vexpandpd, "vexpandpd")
-  (e_vexpandps, "vexpandps")
-  (e_vextractf128, "vextractf128")
-  (e_vextracti128, "vextracti128")
-  (e_vextractf32x4, "vextractf32x4")
-  (e_vextractf64x2, "vextractf64x2")
-  (e_vextractf32x8, "vextractf32x8")
-  (e_vextractf64x4, "vextractf64x4")
-  (e_vextracti32x4, "vextracti32x4")
-  (e_vextracti64x2, "vextracti64x2")
-  (e_vextracti32x8, "vextracti32x8")
-  (e_vextracti64x4, "vextracti64x4")
-  (e_vextractps, "vextractps")
-  (e_vexp2pd, "vexp2pd")
-  (e_vexp2ps, "vexp2ps")
-  (e_vroundpd, "vroundpd")
-  (e_vroundps, "vroundps")
-  (e_vroundsd, "vroundsd")
-  (e_vroundss, "vroundss")
-  (e_vrcp28pd, "vrcp28pd")
-  (e_vrcp28sd, "vrcp28sd")
-  (e_vrcp28ps, "vrcp28ps")
-  (e_vrcp28ss, "vrcp28ss")
-  (e_vrsqrt28pd, "vrsqrt28pd")
-  (e_vrsqrt28sd, "vrsqrt28sd")
-  (e_vrsqrt28ps, "vrsqrt28ps")
-  (e_vrsqrt28ss, "vrsqrt28ss")
-  (e_vfixupimmpd, "vfixupimmpd")
-  (e_vfixupimmps, "vfixupimmps")
-  (e_vfixupimmsd, "vfixupimmsd")
-  (e_vfixupimmss, "vfixupimmss")
-  (e_vfmaddpd, "vfmaddpd")
-  (e_vfmaddps, "vfmaddps")
-  (e_vfmadd132pd, "vfmadd132pd")
-  (e_vfmadd132ps, "vfmadd132ps")
-  (e_vfmadd132sd, "vfmadd132sd")
-  (e_vfmadd132ss, "vfmadd132ss")
-  (e_vfmadd213pd, "vfmadd213pd")
-  (e_vfmadd213ps, "vfmadd213ps")
-  (e_vfmadd213sd, "vfmadd213sd")
-  (e_vfmadd213ss, "vfmadd213ss")
-  (e_vfmadd231pd, "vfmadd231pd")
-  (e_vfmadd231ps, "vfmadd231ps")
-  (e_vfmadd231sd, "vfmadd231sd")
-  (e_vfmadd231ss, "vfmadd231ss")
-  (e_vfmaddsub132pd, "vfmaddsub132pd")
-  (e_vfmaddsub132ps, "vfmaddsub132ps")
-  (e_vfmaddsub213pd, "vfmaddsub213pd")
-  (e_vfmaddsub213ps, "vfmaddsub213ps")
-  (e_vfmaddsub231pd, "vfmaddsub231pd")
-  (e_vfmaddsub231ps, "vfmaddsub231ps")
-  (e_vfpclassps, "vfpclassps")
-  (e_vfpclasspd, "vfpclasspd")
-  (e_vfpclassss, "vfpclassss")
-  (e_vfpclasssd, "vfpclasssd")
-  (e_vfmsub132pd, "vfmsub132pd")
-  (e_vfmsub132ps, "vfmsub132ps")
-  (e_vfmsub132sd, "vfmsub132sd")
-  (e_vfmsub132ss, "vfmsub132ss")
-  (e_vfmsub213pd, "vfmsub213pd")
-  (e_vfmsub213ps, "vfmsub213ps")
-  (e_vfmsub213sd, "vfmsub213sd")
-  (e_vfmsub213ss, "vfmsub213ss")
-  (e_vfmsub231pd, "vfmsub231pd")
-  (e_vfmsub231ps, "vfmsub231ps")
-  (e_vfmsub231sd, "vfmsub231sd")
-  (e_vfmsub231ss, "vfmsub231ss")
-  (e_vfmsubadd132pd, "vfmsubadd132pd")
-  (e_vfmsubadd132ps, "vfmsubadd132ps")
-  (e_vfmsubadd213pd, "vfmsubadd213pd")
-  (e_vfmsubadd213ps, "vfmsubadd213ps")
-  (e_vfmsubadd231pd, "vfmsubadd231pd")
-  (e_vfmsubadd231ps, "vfmsubadd231ps")
-  (e_vfnmadd132pd, "vfnmadd132pd")
-  (e_vfnmadd132ps, "vfnmadd132ps")
-  (e_vfnmadd132sd, "vfnmadd132sd")
-  (e_vfnmadd132ss, "vfnmadd132ss")
-  (e_vfnmadd213pd, "vfnmadd213pd")
-  (e_vfnmadd213ps, "vfnmadd213ps")
-  (e_vfnmadd213sd, "vfnmadd213sd")
-  (e_vfnmadd213ss, "vfnmadd213ss")
-  (e_vfnmadd231pd, "vfnmadd231pd")
-  (e_vfnmadd231ps, "vfnmadd231ps")
-  (e_vfnmadd231sd, "vfnmadd231sd")
-  (e_vfnmadd231ss, "vfnmadd231ss")
-  (e_vfnmsub132pd, "vfnmsub132pd")
-  (e_vfnmsub132ps, "vfnmsub132ps")
-  (e_vfnmsub132sd, "vfnmsub132sd")
-  (e_vfnmsub132ss, "vfnmsub132ss")
-  (e_vfnmsub213pd, "vfnmsub213pd")
-  (e_vfnmsub213ps, "vfnmsub213ps")
-  (e_vfnmsub213sd, "vfnmsub213sd")
-  (e_vfnmsub213ss, "vfnmsub213ss")
-  (e_vfnmsub231pd, "vfnmsub231pd")
-  (e_vfnmsub231ps, "vfnmsub231ps")
-  (e_vfnmsub231sd, "vfnmsub231sd")
-  (e_vfnmsub231ss, "vfnmsub231ss")
-  (e_vgatherpf0dps, "vgatherpf0dps")
-  (e_vgatherpf0dpd, "vgatherpf0dpd")
-  (e_vgatherpf1qps ,"vgatherpf1qps")
-  (e_vgatherpf1dpd ,"vgatherpf1dpd")
-  (e_vgatherpf0qps ,"vgatherpf0qps")
-  (e_vscatterpf0dps ,"vscatterpf0dps")
-  (e_vscatterpf0qpd ,"vscatterpf0qpd")
-  (e_vscatterpf1qps ,"vscatterpf1qps")
-  (e_vscatterpf1qpd ,"vscatterpf1qpd")
-  (e_vgatherdpd, "vgatherdpd")
-  (e_vgatherdps, "vgatherdps")
-  (e_vgatherqpd, "vgatherqpd")
-  (e_vgatherqps, "vgatherqps")
-  (e_vgetexpps, "vgetexpps")
-  (e_vgetexppd, "vgetexppd")
-  (e_vgetexpss, "vgetexpss")
-  (e_vgetexpsd, "vgetexpsd")
-  (e_vgetmantps, "vgetmantps")
-  (e_vgetmantpd, "vgetmantpd")
-  (e_vgetmantss, "vgetmantss")
-  (e_vgetmantsd, "vgetmantsd")
-  (e_vinsertf128, "vinsertf128")
-  (e_vinserti128, "vinserti128")
-  (e_vinsertps, "vinsertps")
-  (e_vinsertf32x4, "vinsertf32x4")
-  (e_vinsertf64x2, "vinsertf64x2")
-  (e_vinsertf32x8, "vinsertf32x8")
-  (e_vinsertf64x4, "vinsertf64x4")
-  (e_vinserti32x4, "vinserti32x4")
-  (e_vinserti64x2, "vinserti64x2")
-  (e_vinserti32x8, "vinserti32x8")
-  (e_vinserti64x4, "vinserti64x4")
-  (e_vmaskmovpd, "vmaskmovpd")
-  (e_vmaskmovps, "vmaskmovps")
-  (e_vmaxpd, "vmaxpd")
-  (e_vmaxps, "vmaxps")
-  (e_vmaxsd, "vmaxsd")
-  (e_vmaxss, "vmaxss")
-  (e_vminpd, "vminpd")
-  (e_vminps, "vminps")
-  (e_vminsd, "vminsd")
-  (e_vminss, "vminss")
-  (e_vmovapd, "vmovapd")
-  (e_vmovaps, "vmovaps")
-  (e_vmovddup, "vmovddup")
-  (e_vmovdqa, "vmovdqa")
-  (e_vmovdqa32, "vmovdqa32")
-  (e_vmovdqa64, "vmovdqa64")
-  (e_vmovdqu32, "vmovdqu32")
-  (e_vmovdqu64, "vmovdqu64")
-  (e_vmovdqu, "vmovdqu")
-  (e_vmovdqu8, "vmovdqu8")
-  (e_vmovdqu16, "vmovdqu16")
-  (e_vmovhlps, "vmovhlps")
-  (e_vmovhpd, "vmovhpd")
-  (e_vmovhps, "vmovhps")
-  (e_vmovlhps, "vmovlhps")
-  (e_vmovlpd, "vmovlpd")
-  (e_vmovlps, "vmovlps")
-  (e_vmovntps, "vmovntps")
-  (e_vmovq, "vmovq")
-  (e_vmovsd, "vmovsd")
-  (e_vmovshdup, "vmovshdup")
-  (e_vmovsldup, "vmovsldup")
-  (e_vmovss, "vmovss")
-  (e_vmovupd, "vmovupd")
-  (e_vmovups, "vmovups")
-  (e_vmulpd, "vmulpd")
-  (e_vmulps, "vmulps")
-  (e_vmulsd, "vmulsd")
-  (e_vmulss, "vmulss")
-  (e_vorpd, "vorpd")
-  (e_vorps, "vorps")
-  (e_vpabsb, "vpabsb")
-  (e_vpabsd, "vpabsd")
-  (e_vpabsw, "vpabsw")
-  (e_vpackssdw, "vpackssdw")
-  (e_vpacksswb, "vpacksswb")
-  (e_vpackusdw, "vpackusdw")
-  (e_vpackuswb, "vpackuswb")
-  (e_vpaddb, "vpaddb")
-  (e_vpaddd, "vpaddd")
-  (e_vpaddq, "vpaddq")
-  (e_vpaddsb, "vpaddsb")
-  (e_vpaddsw, "vpaddsw")
-  (e_vpaddusb, "vpaddusb")
-  (e_vpaddusw, "vpaddusw")
-  (e_vpaddw, "vpaddw")
-  (e_vpalignr, "vpalignr")
-  (e_vpand, "vpand")
-  (e_vpandn, "vpandn")
-  (e_vpandd, "vpandd")
-  (e_vpandq, "vpandq")
-  (e_vpandnd, "vpandnd")
-  (e_vpandnq, "vpandnq")
-  (e_vpavgb, "vpavgb")
-  (e_vpavgw, "vpavgw")
-  (e_vpblendd, "vpblendd")
-  (e_vpbroadcastb, "vpbroadcastb")
-  (e_vpbroadcastd, "vpbroadcastd")
-  (e_vpbroadcastq, "vpbroadcastq")
-  (e_vpbroadcastw, "vpbroadcastw")
-  (e_vpcmpub, "vpcmpub")
-  (e_vpcmpb, "vpcmpb")
-  (e_vpcmpequd, "vpcmpequd")
-  (e_vpcmpeqb, "vpcmpeqb")
-  (e_vpcmpeqd, "vpcmpeqd")
-  (e_vpcmpeqq, "vpcmpeqq")
-  (e_vpcmpeqw, "vpcmpeqw")
-  (e_vpcmpgtb, "vpcmpgtb")
-  (e_vpcmpgtd, "vpcmpgtd")
-  (e_vpcmpgtq, "vpcmpgtq")
-  (e_vpcmpgtw, "vpcmpgtw")
-  (e_vpcompressd, "vpcompressd")
-  (e_vpcompressq, "vpcompressq")
-  (e_vpconflictd, "vpconflictd")
-  (e_vpconflictq, "vpconflictq")
-  (e_vperm2f128, "vperm2f128")
-  (e_vperm2i128, "vperm2i128")
-  (e_vpermd, "vpermd")
-  (e_vpermilpd, "vpermilpd")
-  (e_vpermilps, "vpermilps")
-  (e_vpermi2b, "vpermi2b")
-  (e_vpermi2w, "vpermi2w")
-  (e_vpermi2d, "vpermi2d")
-  (e_vpermi2q, "vpermi2q")
-  (e_vpermi2ps, "vpermi2ps")
-  (e_vpermi2pd, "vpermi2pd")
-  (e_vpermt2b, "vpermt2b")
-  (e_vpermt2w, "vpermt2w")
-  (e_vpermt2d, "vpermt2d")
-  (e_vpermt2q, "vpermt2q")
-  (e_vpermt2ps, "vpermt2ps")
-  (e_vpermt2pd, "vpermt2pd")
-  (e_vpermpd, "vpermpd")
-  (e_vpermps, "vpermps")
-  (e_vpermq, "vpermq")
-  (e_vpermb, "vpermb")
-  (e_vpermw, "vpermw")
-  (e_vpextrb, "vpextrb")
-  (e_vpextrd, "vpextrd")
-  (e_vpextrq, "vpextrq")
-  (e_vpextrw, "vpextrw")
-  (e_vpexpandd, "vpexpandd")
-  (e_vpexpandq, "vpexpandq")
-  (e_vplzcntd, "vplzcntd")
-  (e_vplzcntq, "vplzcntq")
-  (e_vpgatherdd, "vpgatherdd")
-  (e_vpgatherdq, "vpgatherdq")
-  (e_vpgatherqd, "vpgatherqd")
-  (e_vpgatherqq, "vpgatherqq")
-  (e_vpinsrb, "vpinsrb")
-  (e_vpinsrd, "vpinsrd")
-  (e_vpinsrq, "vpinsrq")
-  (e_vpinsrw, "vpinsrw")
-  (e_vpmaddubsw, "vpmaddubsw")
-  (e_vpmaddwd, "vpmaddwd")
-  (e_vpmaskmovd, "vpmaskmovd")
-  (e_vpmaskmovq, "vpmaskmovq")
-  (e_vpmaxsq, "vpmaxsq")
-  (e_vpmaxuq, "vpmaxuq")
-  (e_vpmaxsb, "vpmaxsb")
-  (e_vpmaxsd, "vpmaxsd")
-  (e_vpmaxsw, "vpmaxsw")
-  (e_vpmaxub, "vpmaxub")
-  (e_vpmaxud, "vpmaxud")
-  (e_vpmaxuw, "vpmaxuw")
-  (e_vpminsq, "vpminsq")
-  (e_vpminuq, "vpminuq")
-  (e_vpminsb, "vpminsb")
-  (e_vpminsd, "vpminsd")
-  (e_vpminsw, "vpminsw")
-  (e_vpminub, "vpminub")
-  (e_vpminud, "vpminud")
-  (e_vpminuw, "vpminuw")
-  (e_vpmovsdb, "vpmovsdb")
-  (e_vpmovsdw, "vpmovsdw")
-  (e_vpmovsqb, "vpmovsqb")
-  (e_vpmovsqd, "vpmovsqd")
-  (e_vpmovsqw, "vpmovsqw")
-  (e_vpmovswb, "vpmovswb")
-  (e_vpmovsxbd, "vpmovsxbd")
-  (e_vpmovsxbq, "vpmovsxbq")
-  (e_vpmovsxbw, "vpmovsxbw")
-  (e_vpmovsxdq, "vpmovsxdq")
-  (e_vpmovsxwd, "vpmovsxwd")
-  (e_vpmovsxwq, "vpmovsxwq")
-  (e_vpmovzxbd, "vpmovzxbd")
-  (e_vpmovzxbq, "vpmovzxbq")
-  (e_vpmovzxbw, "vpmovzxbw")
-  (e_vpmovzxdq, "vpmovzxdq")
-  (e_vpmovzxwd, "vpmovzxwd")
-  (e_vpmovzxwq, "vpmovzxwq")
-  (e_vpmuldq, "vpmuldq")
-  (e_vpmulhrsw, "vpmulhrsw")
-  (e_vpmulhuw, "vpmulhuw")
-  (e_vpmulhw, "vpmulhw")
-  (e_vpmulld, "vpmulld")
-  (e_vpmullw, "vpmullw")
-  (e_vpmuludq, "vpmuludq")
-  (e_vpor, "vpor")
-  (e_vpord, "vpord")
-  (e_vporq, "vporq")
-  (e_vprolvd, "vporlvd")
-  (e_vprolvq, "vporlvq")
-  (e_vprold, "vprold")
-  (e_vprolq, "vprolq")
-  (e_vprorvd, "vprorvd")
-  (e_vprorvq, "vprorvq")
-  (e_vprord, "vprord")
-  (e_vprorq, "vprorq")
-  (e_vrsqrt14ps, "vrsqrt14ps")
-  (e_vrsqrt14pd, "vrsqrt14pd")
-  (e_vrsqrt14ss, "vrsqrt14ss")
-  (e_vrsqrt14sd, "vrsqrt14sd")
-  (e_vscatterdps, "vscatterdps")
-  (e_vscatterdpd, "vscatterdpd")
-  (e_vscatterqps, "vscatterqps")
-  (e_vscatterqpd, "vscatterqpd")
-  (e_vpscatterdd, "vpscatterdd")
-  (e_vpscatterdq, "vpscatterdq")
-  (e_vpscatterqd, "vpscatterqd")
-  (e_vpscatterqq, "vpscatterqq")
-  (e_vpsadbw, "vpsadbw")
-  (e_vpshufb, "vpshufb")
-  (e_vpshufd, "vpshufd")
-  (e_vpshufhw, "vpshufhw")
-  (e_vpshuflw, "vpshuflw")
-  (e_vpslldq, "vpslldq")
-  (e_vpslld, "vpslld")
-  (e_vpsllq, "vpsllq")
-  (e_vpsllvd, "vpsllvd")
-  (e_vpsllvq, "vpsllvq")
-  (e_vpsllw, "vpsllw")
-  (e_vpsrad, "vpsrad")
-  (e_vpsravd, "vpsravd")
-  (e_vpsraw, "vpsraw")
-  (e_vpsrldq, "vpsrldq")
-  (e_vpsrld, "vpsrld")
-  (e_vpsrlq, "vpsrlq")
-  (e_vpsrlvd, "vpsrlvd")
-  (e_vpsrlvq, "vprlvq")
-  (e_vpsrlvq, "vpsrlvq")
-  (e_vpsrlw, "vpsrlw")
-  (e_vpsubb, "vpsubb")
-  (e_vpsubd, "vpsubd")
-  (e_vpsubq, "vpsubq")
-  (e_vpsubsb, "vpsubsb")
-  (e_vpsubsw, "vpsubsw")
-  (e_vpsubusb, "vpsubusb")
-  (e_vpsubusw, "vpsubusw")
-  (e_vpsubw, "vpsubw")
-  (e_vptestmd, "vptestmd")
-  (e_vptestnmd, "vptestnmd")
-  (e_vptestnmb, "vptestnmb")
-  (e_vpternlogd, "vpternlogd")
-  (e_vpternlogq, "vpternlogq")
-  (e_vpunpckhbw, "vpunpckhbw")
-  (e_vpunpckhdq, "vpunpckhdq")
-  (e_vpunpckhqdq, "vpunpckhqdq")
-  (e_vpunpckhwd, "vpunpckhwd")
-  (e_vpunpcklbw, "vpunpcklbw")
-  (e_vpunpckldq, "vpunpckldq")
-  (e_vpunpcklqdq, "vpunpcklqdq")
-  (e_vpunpcklwd, "vpunpcklwd")
-  (e_vpxord, "vpxord")
-  (e_vpxorq, "vpxorq")
-  (e_vrangeps, "vrangeps")
-  (e_vrangepd, "vrangepd")
-  (e_vrangess, "vrangess")
-  (e_vrangesd, "vrangesd")
-  (e_vrcp14ps, "vrcp14ps")
-  (e_vrcp14pd, "vrcp14pd")
-  (e_vrcp14ss, "vrcp14ss")
-  (e_vrcp14sd, "vrcp14sd")
-  (e_vreduceps, "vreduceps")
-  (e_vreducepd, "vreducepd")
-  (e_vreducess, "vreducess")
-  (e_vreducesd, "vreducesd")
-  (e_vpxor, "vpxor")
-  (e_vshufpd, "vshufpd")
-  (e_vshufps, "vshufps")
-  (e_vshuff32x4, "vshuff32x4")
-  (e_vshuff64x2, "vshuff64x2")
-  (e_vsqrtpd, "vsqrtpd")
-  (e_vsqrtps, "vsqrtps")
-  (e_vsqrtsd, "vsqrtsd")
-  (e_vsqrtss, "vsqrtss")
-  (e_vsubpd, "vsubpd")
-  (e_vsubps, "vsubps")
-  (e_vsubsd, "vsubsd")
-  (e_vsubss, "vsubss")
-  (e_vtestpd, "vtestpd")
-  (e_vtestps, "vtestps")
-  (e_vucomisd, "vucomisd")
-  (e_vucomiss, "vucomiss")
-  (e_vunpckhpd, "vunpckhpd")
-  (e_vunpckhps, "vunpckhps")
-  (e_vunpcklpd, "vunpcklpd")
-  (e_vunpcklps, "vunpcklps")
-  (e_vxorpd, "vxorpd")
-  (e_vxorps, "vxorps")
-  (e_vzeroall, "vzeroall")
-  (e_vzeroupper, "vzeroupper")
-  (e_kandb, "kandb")
-  (e_kandd, "kandd")
-  (e_kandw, "kandw")
-  (e_kandq, "kandq")
-  (e_kandnb, "kandnb")
-  (e_kandnd, "kandnd")
-  (e_kandnw, "kandnw")
-  (e_kandnq, "kandnq")
-  (e_knotb, "knotb")
-  (e_knotd, "knotd")
-  (e_knotw, "knotw")
-  (e_knotq, "knotq")
-  (e_korb, "korb")
-  (e_kord, "kord")
-  (e_korw, "korw")
-  (e_korq, "korq")
-  (e_kxnorb, "kxnorb")
-  (e_kxnord, "kxnord")
-  (e_kxnorw, "kxnorw")
-  (e_kxnorq, "kxnorq")
-  (e_kxorb, "kxorb")
-  (e_kxord, "kxord")
-  (e_kxorw, "kxorw")
-  (e_kxorq, "kxorq")
-  (e_kaddb, "kaddb")
-  (e_kaddd, "kaddd")
-  (e_kaddw, "kaddw")
-  (e_kaddq, "kaddq")
-  (e_kshiftlw, "kshiftlw")
-  (e_kshiftlb, "kshiftlb")
-  (e_kshiftlq, "kshiftlq")
-  (e_kshiftld, "kshiftld")
-  (e_kshiftrw, "kshiftrw")
-  (e_kshiftrb, "kshiftrb")
-  (e_kshiftrq, "kshiftrq")
-  (e_kshiftrd, "kshiftrd")
-  (e_kunpckbw, "kunpckbw")
-  (e_kunpckwd, "kunpckwd")
-  (e_kunpckdq, "kunpckdq")
-  (e_kmovb, "kmovb")
-  (e_kmovd, "kmovd")
-  (e_kmovw, "kmovw")
-  (e_kmovq, "kmovq")
-  (e_kortestb, "kortestb")
-  (e_kortestd, "kortestd")
-  (e_kortestw, "kortestw")
-  (e_kortestq, "kortestq")
-  (e_ktestb, "ktestb")
-  (e_ktestd, "ktestd")
-  (e_ktestw, "ktestw")
-  (e_ktestq, "ktestq")
-  (e_vcmppd, "vcmppd")
-  (e_vcmpps, "vcmpps")
-  (e_vcmpsd, "vcmpsd")
-  (e_vcmpss, "vcmpss")
-  (e_vmovntpd, "vmovntpd")
-  (e_vcvttsd2usi, "vcvttsd2usi")
-  (e_vcvttss2usi, "vcvttss2usi")
-  (e_vcvtsd2usi, "vcvtsd2usi")
-  (e_vcvtss2usi, "vcvtss2usi")
-  (e_vcvtusi2sd, "vcvtusi2sd")
-  (e_vcvtusi2ss, "vcvtusi2ss")
-  (e_vmovntdq, "vmovntdq")
-  (e_vpsrlvw, "vpsrlvw")
-  (e_vpmovuswb, "vpmovuswb")
-  (e_vpsravw, "vpsravw")
-  (e_vpsravq, "vpsravq")
-  (e_vpmovusdb, "vpmovusdb")
-  (e_vpsllvw, "vpsllvw")
-  (e_vpmovusqb, "vpmovusqb")
-  (e_vpmovusdw, "vpmovusdw")
-  (e_vpmovusqw, "vpmovusqw")
-  (e_vpmovusqd, "vpmovusqd")
-  (e_vbroadcastf32x4, "vbroadcastf32x4")
-  (e_vpabsq, "vpabsq")
-  (e_vmovntdqa, "vmovntdqa")
-  (e_vpbroadcastmb2q, "vpbroadcastmb2q")
-  (e_vpmovwb, "vpmovwb")
-  (e_vpmovdb, "vpmovdb")
-  (e_vpmovqb, "vpmovqb")
-  (e_vpmovdw, "vpmovdw")
-  (e_vpmovqw, "vpmovqw")
-  (e_vpmovqd, "vpmovqd")
-  (e_vpmultishiftqb, "vpmultishiftqb")
-  (e_vpmadd52luq, "vpmadd52luq")
-  (e_vpmadd52huq, "vpmadd52huq")
-  (e_vrndscaleps, "vrndscaleps")
-  (e_vrndscalepd, "vrndscalepd")
-  (e_vrndscaless, "vrndscaless")
-  (e_vrndscalesd, "vrndscalesd")
-  (e_vdbpsadbw, "vdbpsadbw")
-  (e_vphsubsw, "vphsubsw")
+COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI {
+  {e_aaa, "aaa"},
+  {e_aad, "aad"},
+  {e_aam, "aam"},
+  {e_aas, "aas"},
+  {e_adc, "adc"},
+  {e_add, "add"},
+  {e_addpd, "addpd"},
+  {e_addps, "addps"},
+  {e_addsd, "addsd"},
+  {e_addss, "addss"},
+  {e_addsubpd, "addsubpd"},
+  {e_addsubps, "addsubps"},
+  {e_aesenc, "aesenc"},
+  {e_aesenclast, "aesenclast"},
+  {e_aesdec, "aesdec"},
+  {e_aesdeclast, "aesdeclast"},
+  {e_aeskeygenassist, "aeskeygenassist"},
+  {e_aesimc, "aesimc"},
+  {e_pclmullqlqdq, "pclmullqlqdq"},
+  {e_and, "and"},
+  {e_andnpd, "andnpd"},
+  {e_andnps, "andnps"},
+  {e_andpd, "andpd"},
+  {e_andps, "andps"},
+  {e_arpl, "arpl"},
+  {e_blendpd,"blendpd"},
+  {e_blendps, "blendps"},
+  {e_blendvpd, "blendvpd"},
+  {e_blendvps, "blendvps"},
+  {e_bound, "bound"},
+  {e_bsf, "bsf"},
+  {e_bsr, "bsr"},
+  {e_bswap, "bswap"},
+  {e_bt, "bt"},
+  {e_btc, "btc"},
+  {e_btr, "btr"},
+  {e_bts, "bts"},
+  {e_call, "call"},
+  {e_cbw, "cbw"},
+  {e_cdq, "cdq"},
+  {e_clc, "clc"},
+  {e_cld, "cld"},
+  {e_clflush, "clflush"},
+  {e_cli, "cli"},
+  {e_clts, "clts"},
+  {e_cmc, "cmc"},
+  {e_cmovbe, "cmovbe"},
+  {e_cmove, "cmove"},
+  {e_cmovnae, "cmovnae"},
+  {e_cmovnb, "cmovnb"},
+  {e_cmovnbe, "cmovnbe"},
+  {e_cmovne, "cmovne"},
+  {e_cmovng, "cmovng"},
+  {e_cmovnge, "cmovnge"},
+  {e_cmovnl, "cmovnl"},
+  {e_cmovno, "cmovno"},
+  {e_cmovns, "cmovns"},
+  {e_cmovo, "cmovo"},
+  {e_cmovpe, "cmovpe"},
+  {e_cmovpo, "cmovpo"},
+  {e_cmovs, "cmovs"},
+  {e_cmp, "cmp"},
+  {e_cmppd, "cmppd"},
+  {e_cmpps, "cmpps"},
+  {e_cmpsb, "cmpsb"},
+  {e_cmpsd, "cmpsd"},
+  {e_cmpsd_sse, "cmpsd"},
+  {e_cmpss, "cmpss"},
+  {e_cmpsw, "cmpsw"},
+  {e_cmpxch, "cmpxch"},
+  {e_cmpxch8b, "cmpxch8b"},
+  {e_comisd, "comisd"},
+  {e_comiss, "comiss"},
+  {e_cpuid, "cpuid"},
+  {e_crc32, "crc32"},
+  {e_cvtdq2pd, "cvtdq2pd"},
+  {e_cvtdq2ps, "cvtdq2ps"},
+  {e_cvtpd2dq, "cvtpd2dq"},
+  {e_cvtpd2pi, "cvtpd2pi"},
+  {e_cvtpd2ps, "cvtpd2ps"},
+  {e_cvtpi2pd, "cvtpi2pd"},
+  {e_cvtpi2ps, "cvtpi2ps"},
+  {e_cvtps2dq, "cvtps2dq"},
+  {e_cvtps2pd, "cvtps2pd"},
+  {e_cvtps2pi, "cvtps2pi"},
+  {e_cvtsd2si, "cvtsd2si"},
+  {e_cvtsd2ss, "cvtsd2ss"},
+  {e_cvtsi2sd, "cvtsi2sd"},
+  {e_cvtsi2ss, "cvtsi2ss"},
+  {e_cvtss2sd, "cvtss2sd"},
+  {e_cvtss2si, "cvtss2si"},
+  {e_cvttpd2dq, "cvttpd2dq"},
+  {e_cvttpd2pi, "cvttpd2pi"},
+  {e_cvttps2dq, "cvttps2dq"},
+  {e_cvttps2pi, "cvttps2pi"},
+  {e_cvttsd2si, "cvttsd2si"},
+  {e_cvttss2si, "cvttss2si"},
+  {e_cwd, "cwd"},
+  {e_cwde, "cwde"},
+  {e_daa, "daa"},
+  {e_das, "das"},
+  {e_dec, "dec"},
+  {e_div, "div"},
+  {e_divpd, "divpd"},
+  {e_divps, "divps"},
+  {e_divsd, "divsd"},
+  {e_divss, "divss"},
+  {e_dppd, "dppd"},
+  {e_vdppd, "vdppd"},
+  {e_dpps, "dpps"},
+  {e_emms, "emms"},
+  {e_enter, "enter"},
+  {e_extractps, "extractps"},
+  {e_extrq, "extrq"},
+  {e_fadd, "fadd"},
+  {e_faddp, "faddp"},
+  {e_f2xm1, "f2xm1"},
+  {e_fbld, "fbld"},
+  {e_fbstp, "fbstp"},
+  {e_fchs, "fchs"},
+  {e_fcmovb, "fcmovb"},
+  {e_fcmovbe, "fcmovbe"},
+  {e_fcmove, "fcmove"},
+  {e_fcmovne, "fcmovne"},
+  {e_fcmovu, "fcmovu"},
+  {e_fcmovnu, "fcmovnu"},
+  {e_fcmovnb, "fcmovnb"},
+  {e_fcmovnbe, "fcmovnbe"},
+  {e_fcom, "fcom"},
+  {e_fcomi, "fcomi"},
+  {e_fcomip, "fcomip"},
+  {e_fcomp, "fcomp"},
+  {e_fcompp, "fcompp"},
+  {e_fdiv, "fdiv"},
+  {e_fdivp, "fdivp"},
+  {e_fdivr, "fdivr"},
+  {e_fdivrp, "fdivrp"},
+  {e_femms, "femms"},
+  {e_ffree, "ffree"},
+  {e_ffreep, "ffreep"},
+  {e_fiadd, "fiadd"},
+  {e_ficom, "ficom"},
+  {e_ficomp, "ficomp"},
+  {e_fidiv, "fidiv"},
+  {e_fidivr, "fidivr"},
+  {e_fild, "fild"},
+  {e_fimul, "fimul"},
+  {e_fist, "fist"},
+  {e_fistp, "fistp"},
+  {e_fisttp, "fisttp"},
+  {e_fisub, "fisub"},
+  {e_fisubr, "fisubr"},
+  {e_fld, "fld"},
+  {e_fld1, "fld1"},
+  {e_fldcw, "fldcw"},
+  {e_fldenv, "fldenv"},
+  {e_fmul, "fmul"},
+  {e_fmulp, "fmulp"},
+  {e_fnop, "fnop"},
+  {e_fprem, "fprem"},
+  {e_frstor, "frstor"},
+  {e_fsave, "fsave"},
+  {e_fst, "fst"},
+  {e_fstcw, "fstcw"},
+  {e_fstenv, "fstenv"},
+  {e_fstp, "fstp"},
+  {e_fstsw, "fstsw"},
+  {e_fsub, "fsub"},
+  {e_fsubp, "fsubp"},
+  {e_fsubr, "fsubr"},
+  {e_fsubrp, "fsubrp"},
+  {e_fucom, "fucom"},
+  {e_fucomp, "fucomp"},
+  {e_fucomi, "fucomi"},
+  {e_fucomip, "fucomip"},
+  {e_fucompp, "fucompp"},
+  {e_fxch, "fxch"},
+  {e_fxrstor, "fxrstor"},
+  {e_fxsave, "fxsave"},
+  {e_xbegin, "xbegin"},
+  {e_xabort, "xabort"},
+  {e_haddpd, "haddpd"},
+  {e_haddps, "haddps"},
+  {e_hlt, "hlt"},
+  {e_hsubpd, "hsubpd"},
+  {e_hsubps, "hsubps"},
+  {e_idiv, "idiv"},
+  {e_imul, "imul"},
+  {e_in, "in"},
+  {e_inc, "inc"},
+  {e_insb, "insb"},
+  {e_insd, "insd"},
+  {e_insertps, "insertps"},
+  {e_insertq, "insertq"},
+  {e_insw, "insw"},
+  {e_int, "int"},
+  {e_int3, "int 3"},
+  {e_int1, "int1"},
+  {e_int80, "int 80"},
+  {e_into, "into"},
+  {e_invd, "invd"},
+  {e_invlpg, "invlpg"},
+  {e_iret, "iret"},
+  {e_jb, "jb"},
+  {e_jb_jnaej_j, "jb"},
+  {e_jbe, "jbe"},
+  {e_jcxz_jec, "jcxz"},
+  {e_jl, "jl"},
+  {e_jle, "jle"},
+  {e_jmp, "jmp"},
+  {e_jnb, "jnb"},
+  {e_jnb_jae_j, "jnb"},
+  {e_jnbe, "jnbe"},
+  {e_jnl, "jnl"},
+  {e_jnle, "jnle"},
+  {e_jno, "jno"},
+  {e_jnp, "jnp"},
+  {e_jns, "jns"},
+  {e_jnz, "jnz"},
+  {e_jo, "jo"},
+  {e_jp, "jp"},
+  {e_js, "js"},
+  {e_jz, "jz"},
+  {e_lahf, "lahf"},
+  {e_lar, "lar"},
+  {e_ldmxcsr, "ldmxcsr"},
+  {e_lds, "lds"},
+  {e_lddqu, "lddqu"},
+  {e_lea, "lea"},
+  {e_leave, "leave"},
+  {e_les, "les"},
+  {e_lfence, "lfence"},
+  {e_lfs, "lfs"},
+  {e_lgdt, "lgdt"},
+  {e_lgs, "lgs"},
+  {e_lidt, "lidt"},
+  {e_lldt, "lldt"},
+  {e_lmsw, "lmsw"},
+  {e_lodsb, "lodsb"},
+  {e_lodsd, "lodsd"},
+  {e_lodsw, "lodsw"},
+  {e_loop, "loop"},
+  {e_loope, "loope"},
+  {e_loopn, "loopn"},
+  {e_lsl, "lsl"},
+  {e_lss, "lss"},
+  {e_ltr, "ltr"},
+  {e_maskmovdqu, "maskmovdqu"},
+  {e_maskmovq, "maskmovq"},
+  {e_maxpd, "maxpd"},
+  {e_maxps, "maxps"},
+  {e_maxsd, "maxsd"},
+  {e_maxss, "maxss"},
+  {e_mfence, "mfence"},
+  {e_minpd, "minpd"},
+  {e_minps, "minps"},
+  {e_minsd, "minsd"},
+  {e_minss, "minss"},
+  {e_mmxud, "mmxud"},
+  {e_mov, "mov"},
+  {e_movapd, "movapd"},
+  {e_movaps, "movaps"},
+  {e_movd, "movd"},
+  {e_movddup, "movddup"},
+  {e_movdq2q, "movdq2q"},
+  {e_movdqa, "movdqa"},
+  {e_movdqu, "movdqu"},
+  {e_movhpd, "movhpd"},
+  {e_movhps, "movhps"},
+  {e_movhps_movlhps, "movhps/movlhps"},
+  {e_movlpd, "movlpd"},
+  {e_movlps, "movlps"},
+  {e_movlps_movhlps, "movlps/movhlps"},
+  {e_movmskpd, "movmskpd"},
+  {e_movmskps, "movmskps"},
+  {e_movntdq, "movntdq"},
+  {e_movntdqa, "movntdqa"},
+  {e_movnti, "movnti"},
+  {e_movntpd, "movntpd"},
+  {e_movntps, "movntps"},
+  {e_movntq, "movntq"},
+  {e_movq, "movq"},
+  {e_movq2dq, "movq2dq"},
+  {e_movsb, "movsb"},
+  {e_movsd, "movsd"},
+  {e_movsd_sse, "movsd"},
+  {e_movshdup, "movshdup"},
+  {e_movsldup, "movsldup"},
+  {e_movslq, "movslq"},
+  {e_movss, "movss"},
+  {e_movsw, "movsw"},
+  {e_movsx, "movsx"},
+  {e_movsxd, "movsxd"},
+  {e_movupd, "movupd"},
+  {e_movups, "movups"},
+  {e_movzx, "movzx"},
+  {e_mpsadbw, "mpsadbw"},
+  {e_mul, "mul"},
+  {e_mulpd, "mulpd"},
+  {e_mulps, "mulps"},
+  {e_mulsd, "mulsd"},
+  {e_mulss, "mulss"},
+  {e_neg, "neg"},
+  {e_nop, "nop"},
+  {e_not, "not"},
+  {e_or, "or"},
+  {e_orpd, "orpd"},
+  {e_orps, "orps"},
+  {e_out, "out"},
+  {e_outsb, "outsb"},
+  {e_outsd, "outsd"},
+  {e_outsw, "outsw"},
+  {e_pabsb, "pabsb"},
+  {e_pabsd, "pabsd"},
+  {e_pabsw, "pabsw"},
+  {e_packssdw, "packssdw"},
+  {e_packsswb, "packsswb"},
+  {e_packusdw, "packusdw"},
+  {e_packuswb, "packuswb"},
+  {e_paddb, "paddb"},
+  {e_paddd, "paddd"},
+  {e_paddq, "paddq"},
+  {e_paddsb, "paddsb"},
+  {e_paddsw, "paddsw"},
+  {e_paddusb, "paddusb"},
+  {e_paddusw, "paddusw"},
+  {e_paddw, "paddw"},
+  {e_palignr, "palignr"},
+  {e_pand, "pand"},
+  {e_pandn, "pandn"},
+  {e_pavgb, "pavgb"},
+  {e_pavgw, "pavgw"},
+  {e_pblendvb, "pblendvb"},
+  {e_pblendw, "pblendw"},
+  {e_pcmpeqb, "pcmpeqb"},
+  {e_pcmpeqd, "pcmpeqd"},
+  {e_pcmpeqq, "pcmpeqq"},
+  {e_pcmpeqw, "pcmpeqw"},
+  {e_pcmpestri, "pcmpestri"},
+  {e_pcmpestrm, "pcmpestrm"},
+  {e_pcmpgdt, "pcmpgdt"},
+  {e_pcmpgtb, "pcmpgtb"},
+  {e_pcmpgtq, "pcmpgtq"},
+  {e_pcmpgtw, "pcmpgtw"},
+  {e_pcmpistri, "pcmpistri"},
+  {e_pcmpistrm, "pcmpistrm"},
+  {e_pextrb, "pextrb"},
+  {e_pextrd_pextrq, "pextrd/pextrq"},
+  {e_pextrw, "pextrw"},
+  {e_phaddd, "phaddd"},
+  {e_phaddsw, "phaddsw"},
+  {e_phaddw, "phaddw"},
+  {e_phminposuw, "phminposuw"},
+  {e_phsubd, "phsubd"},
+  {e_phsubsw, "phsubsw"},
+  {e_phsubw, "phsubw"},
+  {e_phsubsw, "phsubsw"},
+  {e_pinsrb, "pinsrb"},
+  {e_pinsrd_pinsrq, "pinsrd/pinsrq"},
+  {e_pinsrw, "pinsrw"},
+  {e_pmaddubsw, "pmaddubsw"},
+  {e_pmaddwd, "pmaddwd"},
+  {e_pmaxsb, "pmaxsb"},
+  {e_pmaxsd, "pmaxsd"},
+  {e_pmaxsw, "pmaxsw"},
+  {e_pmaxub, "pmaxub"},
+  {e_pmaxud, "pmaxud"},
+  {e_pmaxuw, "pmaxuw"},
+  {e_pminsb, "pminsb"},
+  {e_pminsd, "pminsd"},
+  {e_pminsw, "pminsw"},
+  {e_pminub, "pminub"},
+  {e_pminud, "pminud"},
+  {e_pminuw, "pminuw"},
+  {e_pmovmskb, "pmovmskb"},
+  {e_pmovsxbd, "pmovsxbd"},
+  {e_pmovsxbq, "pmovsxbq"},
+  {e_pmovsxbw, "pmovsxbw"},
+  {e_pmovsxdq, "pmovsxdq"},
+  {e_pmovsxwd, "pmovsxwd"},
+  {e_pmovsxwq, "pmovsxwq"},
+  {e_pmovzxbd, "pmovzxbd"},
+  {e_pmovzxbq, "pmovzxbq"},
+  {e_pmovzxbw, "pmovzxbw"},
+  {e_pmovzxdq, "pmovzxdq"},
+  {e_pmovzxwd, "pmovzxwd"},
+  {e_pmovzxwq, "pmovzxwq"},
+  {e_pmuldq, "pmuldq"},
+  {e_pmulhrsw, "pmulhrsw"},
+  {e_pmulhuw, "pmulhuw"},
+  {e_pmulhw, "pmulhw"},
+  {e_pmullw, "pmullw"},
+  {e_pmulld, "pmulld"},
+  {e_pmuludq, "pmuludq"},
+  {e_pop, "pop"},
+  {e_popa, "popa"},
+  {e_popad, "popad"},
+  {e_popcnt, "popcnt"},
+  {e_popf, "popf"},
+  {e_popfd, "popfd"},
+  {e_por, "por"},
+  {e_prefetch, "prefetch"},
+  {e_prefetchNTA, "prefetchNTA"},
+  {e_prefetchT0, "prefetchT0"},
+  {e_prefetchT1, "prefetchT1"},
+  {e_prefetchT2, "prefetchT2"},
+  {e_prefetch_w, "prefetch(w)"},
+  {e_prefetchw, "prefetchw"},
+  {e_prefetchwt1, "prefetchwt1"},
+  {e_psadbw, "psadbw"},
+  {e_pshufb, "pshufb"},
+  {e_pshufd, "pshufd"},
+  {e_pshufhw, "pshufhw"},
+  {e_pshuflw, "pshuflw"},
+  {e_pshufw, "pshufw"},
+  {e_psignb, "psignb"},
+  {e_psignd, "psignd"},
+  {e_psignw, "psignw"},
+  {e_pslld, "pslld"},
+  {e_pslldq, "pslldq"},
+  {e_psllq, "psllq"},
+  {e_psllw, "psllw"},
+  {e_psrad, "psrad"},
+  {e_psraw, "psraw"},
+  {e_psrld, "psrld"},
+  {e_psrldq, "psrldq"},
+  {e_psrlq, "psrlq"},
+  {e_psrlw, "psrlw"},
+  {e_psubb, "psubb"},
+  {e_psubd, "psubd"},
+  {e_psubsb, "psubsb"},
+  {e_psubsw, "psubsw"},
+  {e_psubusb, "psubusb"},
+  {e_psubusw, "psubusw"},
+  {e_psubw, "psubw"},
+  {e_ptest, "ptest"},
+  {e_punpckhbw, "punpckhbw"},
+  {e_punpckhdq, "punpckhdq"},
+  {e_punpckhqd, "punpckhqd"},
+  {e_punpckhwd, "punpckhwd"},
+  {e_punpcklbw, "punpcklbw"},
+  {e_punpcklqd, "punpcklqd"},
+  {e_punpcklqld, "punpcklqld"},
+  {e_punpcklwd, "punpcklwd"},
+  {e_push, "push"},
+  {e_pusha, "pusha"},
+  {e_pushad, "pushad"},
+  {e_pushf, "pushf"},
+  {e_pushfd, "pushfd"},
+  {e_pxor, "pxor"},
+  {e_rcl, "rcl"},
+  {e_rcpps, "rcpps"},
+  {e_rcpss, "rcpss"},
+  {e_rcr, "rcr"},
+  {e_rdmsr, "rdmsr"},
+  {e_rdpmc, "rdpmc"},
+  {e_rdtsc, "rdtsc"},
+  {e_rdrand, "rdrand"},
+  {e_ret_far, "ret far"},
+  {e_ret_near, "ret near"},
+  {e_rol, "rol"},
+  {e_ror, "ror"},
+  {e_roundpd, "roundpd"},
+  {e_roundps, "roundps"},
+  {e_roundsd, "roundsd"},
+  {e_roundss, "roundss"},
+  {e_rsm, "rsm"},
+  {e_rsqrtps, "rsqrtps"},
+  {e_rsqrtss, "rsqrtss"},
+  {e_sahf, "sahf"},
+  {e_salc, "salc"},
+  {e_sar, "sar"},
+  {e_sbb, "sbb"},
+  {e_scasb, "scasb"},
+  {e_scasd, "scasd"},
+  {e_scasw, "scasw"},
+  {e_setb, "setb"},
+  {e_setbe, "setbe"},
+  {e_setl, "setl"},
+  {e_setle, "setle"},
+  {e_setnb, "setnb"},
+  {e_setnbe, "setnbe"},
+  {e_setnl, "setnl"},
+  {e_setnle, "setnle"},
+  {e_setno, "setno"},
+  {e_setnp, "setnp"},
+  {e_setns, "setns"},
+  {e_setnz, "setnz"},
+  {e_seto, "seto"},
+  {e_setp, "setp"},
+  {e_sets, "sets"},
+  {e_setz, "setz"},
+  {e_sfence, "sfence"},
+  {e_sgdt, "sgdt"},
+  {e_shl_sal, "shl/sal"},
+  {e_shld, "shld"},
+  {e_shr, "shr"},
+  {e_shrd, "shrd"},
+  {e_shufpd, "shufpd"},
+  {e_shufps, "shufps"},
+  {e_sha1rnds4, "sha1rnds4"},
+  {e_sha1nexte, "sha1nexte"},
+  {e_sha1msg1, "sha1msg1"},
+  {e_sha1msg2, "sha1msg2"},
+  {e_sha256rnds2, "sha256rnds2"},
+  {e_sha256msg1, "sha256msg1"},
+  {e_sha256msg2, "sha256msg2"},
+  {e_shlx, "shlx"},
+  {e_sarx, "sarx"},
+  {e_prefetchwt1, "prefetchwt1"},
+  {e_clflushopt, "clflushopt"},
+  {e_clwb, "clwb"},
+  {e_pcommit, "pcommit"},
+  {e_sidt, "sidt"},
+  {e_sldt, "sldt"},
+  {e_smsw, "smsw"},
+  {e_sqrtpd, "sqrtpd"},
+  {e_sqrtps, "sqrtps"},
+  {e_sqrtsd, "sqrtsd"},
+  {e_sqrtss, "sqrtss"},
+  {e_stc, "stc"},
+  {e_std, "std"},
+  {e_sti, "sti"},
+  {e_stmxcsr, "stmxcsr"},
+  {e_stosb, "stosb"},
+  {e_stosd, "stosd"},
+  {e_stosw, "stosw"},
+  {e_str, "str"},
+  {e_sub, "sub"},
+  {e_subpd, "subpd"},
+  {e_subps, "subps"},
+  {e_subsd, "subsd"},
+  {e_subss, "subss"},
+  {e_syscall, "syscall"},
+  {e_sysenter, "sysenter"},
+  {e_sysexit, "sysexit"},
+  {e_sysret, "sysret"},
+  {e_test, "test"},
+  {e_ucomisd, "ucomisd"},
+  {e_ucomiss, "ucomiss"},
+  {e_ud2, "ud2"},
+  {e_ud2grp10, "ud2grp10"},
+  {e_unpckhpd, "unpckhpd"},
+  {e_unpckhps, "unpckhps"},
+  {e_unpcklpd, "unpcklpd"},
+  {e_unpcklps, "unpcklps"},
+  {e_verr, "verr"},
+  {e_verw, "verw"},
+  {e_wait, "wait"},
+  {e_wbinvd, "wbinvd"},
+  {e_wrmsr, "wrmsr"},
+  {e_xadd, "xadd"},
+  {e_xchg, "xchg"},
+  {e_xlat, "xlat"},
+  {e_xor, "xor"},
+  {e_xorpd, "xorpd"},
+  {e_xorps, "xorps"},
+  {e_vaesenc, "vaesenc"},
+  {e_vaesenclast, "vaesenclast"},
+  {e_vaesdec, "vaesdec"},
+  {e_vaesdeclast, "vaesdeclast"},
+  {e_vaeskeygenassist, "vaeskeygenassist"},
+  {e_vaesimc, "vaesimc"},
+  {e_vpclmullqlqdq, "vpclmullqlqdq"},
+  {e_vmpsadbw, "vmpsadbw"}, 
+  {e_vmwrite, "vmwrite"}, 
+  {e_vmread, "vmread"}, 
+  {e_vphaddw, "vphaddw"},
+  {e_vphaddd, "vphaddd"},
+  {e_vphaddsw, "vpaddsw"},
+  {e_vphsubw, "vphsubw"},
+  {e_vphsubd, "vphsubd"},
+  {e_vpmovb2m, "vpmovb2m"},
+  {e_vpmaddubsw, "vpmaddubsw"},
+  {e_vpmaddwd, "vpmaddwd"},
+  {e_vpmovm2d, "vpmovm2d"},
+  {e_vpmovmskb, "vpmovmskb"},
+  {e_vpmovm2b, "vpmovm2b"},
+  {e_andn, "andn"},
+  {e_bextr, "bextr"},
+  {e_blsi, "blsi"},
+  {e_blsmsk, "blsmsk"},
+  {e_blsr, "blsr"},
+  {e_bzhi, "bzhi"},
+  {e_lzcnt, "lzcnt"},
+  {e_mulx, "mulx"},
+  {e_pdep, "pdep"},
+  {e_pext, "pext"},
+  {e_rorx, "rorx"},
+  {e_sarx, "sarx"},
+  {e_shlx, "shlx"},
+  {e_shrx, "shrx"},
+  {e_tzcnt, "tzcnt"},
+  {e_vaddpd, "vaddpd"},
+  {e_vaddps, "vaddps"},
+  {e_vaddsd, "vaddsd"},
+  {e_vaddss, "vaddss"},
+  {e_vandnpd, "vandnpd"},
+  {e_vandnps, "vandnps"},
+  {e_vandpd, "vandpd"},
+  {e_vandps, "vandps"},
+  {e_valignd, "valignd"},
+  {e_valignq, "valignq"},
+  {e_vbroadcastf128, "vbroadcastf128"},
+  {e_vbroadcasti128, "vbroadcasti128"},
+  {e_vbroadcastsd, "vbroadcastsd"},
+  {e_vbroadcastss, "vbroadcastss"},
+  {e_vblendmps, "vblendmps"},
+  {e_vblendmpd, "vblendmpd"},
+  {e_vblendps, "vblendps"},
+  {e_vblendvpd, "vblendpd"},
+  {e_vblendvps, "vblendvps"},
+  {e_vblendvpd, "vblendvpd"},
+  {e_vpblendmb, "vpblendmb"},
+  {e_vpblendmw, "vpblendmw"},
+  {e_vpblendvb, "vpblendvb"},
+  {e_vcmppd, "vcmppd"},
+  {e_vcmpps, "vcmpps"},
+  {e_vcmpsd, "vcmpsd"},
+  {e_vcmpss, "vcmpss"},
+  {e_vcomisd, "vcomisd"},
+  {e_vcomiss, "vcomiss"},
+  {e_vcvtudq2pd, "vcvtudq2pd"},
+  {e_vcvtudq2ps, "vcvtudq2ps"},
+  {e_vcvtps2uqq, "vcvtps2uqq"},
+  {e_vcvtpd2qq, "vcvtpd2qq"},
+  {e_vcvtdq2pd, "vcvtdq2pd"},
+  {e_vcvtdq2ps, "vcvtdq2ps"},
+  {e_vcvtpd2dq, "vcvtpd2dq"},
+  {e_vcvtpd2ps, "vcvtpd2ps"},
+  {e_vcvtph2ps, "vcvtph2ps"},
+  {e_vcvtps2dq, "vcvtps2dq"},
+  {e_vcvtps2pd, "vcvtps2pd"},
+  {e_vcvtps2ph, "vcvtps2ph"},
+  {e_vcvtsd2si, "vcvtsd2si"},
+  {e_vcvtsd2ss, "vcvtsd2ss"},
+  {e_vcvtsi2sd, "vcvtsi2sd"},
+  {e_vcvtsi2ss, "vcvtsi2ss"},
+  {e_vcvtss2sd, "vcvtss2sd"},
+  {e_vcvtss2si, "vcvtss2si"},
+  {e_vcvttpd2udq, "vcvttpd2udq"},
+  {e_vcvttpd2uqq, "vcvttpd2uqq"},
+  {e_vcvttpd2qq, "vcvttpd2qq"},
+  {e_vcvttpd2dq, "vcvttpd2dq"},
+  {e_vcvttps2dq, "vcvttps2dq"},
+  {e_vcvttsd2si, "vcvttsd2si"},
+  {e_vcvttss2si, "vcvttss2si"},
+  {e_vcvtpd2udq, "vcvtpd2udq"},
+  {e_vcvtpd2uqq, "vcvtpd2uqq"},
+  {e_vdivpd, "vdivpd"},
+  {e_vdivps, "vdivps"},
+  {e_vdivsd, "vdivsd"},
+  {e_vdivss, "vdivss"},
+  {e_vexpandpd, "vexpandpd"},
+  {e_vexpandps, "vexpandps"},
+  {e_vextractf128, "vextractf128"},
+  {e_vextracti128, "vextracti128"},
+  {e_vextractf32x4, "vextractf32x4"},
+  {e_vextractf64x2, "vextractf64x2"},
+  {e_vextractf32x8, "vextractf32x8"},
+  {e_vextractf64x4, "vextractf64x4"},
+  {e_vextracti32x4, "vextracti32x4"},
+  {e_vextracti64x2, "vextracti64x2"},
+  {e_vextracti32x8, "vextracti32x8"},
+  {e_vextracti64x4, "vextracti64x4"},
+  {e_vextractps, "vextractps"},
+  {e_vexp2pd, "vexp2pd"},
+  {e_vexp2ps, "vexp2ps"},
+  {e_vroundpd, "vroundpd"},
+  {e_vroundps, "vroundps"},
+  {e_vroundsd, "vroundsd"},
+  {e_vroundss, "vroundss"},
+  {e_vrcp28pd, "vrcp28pd"},
+  {e_vrcp28sd, "vrcp28sd"},
+  {e_vrcp28ps, "vrcp28ps"},
+  {e_vrcp28ss, "vrcp28ss"},
+  {e_vrsqrt28pd, "vrsqrt28pd"},
+  {e_vrsqrt28sd, "vrsqrt28sd"},
+  {e_vrsqrt28ps, "vrsqrt28ps"},
+  {e_vrsqrt28ss, "vrsqrt28ss"},
+  {e_vfixupimmpd, "vfixupimmpd"},
+  {e_vfixupimmps, "vfixupimmps"},
+  {e_vfixupimmsd, "vfixupimmsd"},
+  {e_vfixupimmss, "vfixupimmss"},
+  {e_vfmaddpd, "vfmaddpd"},
+  {e_vfmaddps, "vfmaddps"},
+  {e_vfmadd132pd, "vfmadd132pd"},
+  {e_vfmadd132ps, "vfmadd132ps"},
+  {e_vfmadd132sd, "vfmadd132sd"},
+  {e_vfmadd132ss, "vfmadd132ss"},
+  {e_vfmadd213pd, "vfmadd213pd"},
+  {e_vfmadd213ps, "vfmadd213ps"},
+  {e_vfmadd213sd, "vfmadd213sd"},
+  {e_vfmadd213ss, "vfmadd213ss"},
+  {e_vfmadd231pd, "vfmadd231pd"},
+  {e_vfmadd231ps, "vfmadd231ps"},
+  {e_vfmadd231sd, "vfmadd231sd"},
+  {e_vfmadd231ss, "vfmadd231ss"},
+  {e_vfmaddsub132pd, "vfmaddsub132pd"},
+  {e_vfmaddsub132ps, "vfmaddsub132ps"},
+  {e_vfmaddsub213pd, "vfmaddsub213pd"},
+  {e_vfmaddsub213ps, "vfmaddsub213ps"},
+  {e_vfmaddsub231pd, "vfmaddsub231pd"},
+  {e_vfmaddsub231ps, "vfmaddsub231ps"},
+  {e_vfpclassps, "vfpclassps"},
+  {e_vfpclasspd, "vfpclasspd"},
+  {e_vfpclassss, "vfpclassss"},
+  {e_vfpclasssd, "vfpclasssd"},
+  {e_vfmsub132pd, "vfmsub132pd"},
+  {e_vfmsub132ps, "vfmsub132ps"},
+  {e_vfmsub132sd, "vfmsub132sd"},
+  {e_vfmsub132ss, "vfmsub132ss"},
+  {e_vfmsub213pd, "vfmsub213pd"},
+  {e_vfmsub213ps, "vfmsub213ps"},
+  {e_vfmsub213sd, "vfmsub213sd"},
+  {e_vfmsub213ss, "vfmsub213ss"},
+  {e_vfmsub231pd, "vfmsub231pd"},
+  {e_vfmsub231ps, "vfmsub231ps"},
+  {e_vfmsub231sd, "vfmsub231sd"},
+  {e_vfmsub231ss, "vfmsub231ss"},
+  {e_vfmsubadd132pd, "vfmsubadd132pd"},
+  {e_vfmsubadd132ps, "vfmsubadd132ps"},
+  {e_vfmsubadd213pd, "vfmsubadd213pd"},
+  {e_vfmsubadd213ps, "vfmsubadd213ps"},
+  {e_vfmsubadd231pd, "vfmsubadd231pd"},
+  {e_vfmsubadd231ps, "vfmsubadd231ps"},
+  {e_vfnmadd132pd, "vfnmadd132pd"},
+  {e_vfnmadd132ps, "vfnmadd132ps"},
+  {e_vfnmadd132sd, "vfnmadd132sd"},
+  {e_vfnmadd132ss, "vfnmadd132ss"},
+  {e_vfnmadd213pd, "vfnmadd213pd"},
+  {e_vfnmadd213ps, "vfnmadd213ps"},
+  {e_vfnmadd213sd, "vfnmadd213sd"},
+  {e_vfnmadd213ss, "vfnmadd213ss"},
+  {e_vfnmadd231pd, "vfnmadd231pd"},
+  {e_vfnmadd231ps, "vfnmadd231ps"},
+  {e_vfnmadd231sd, "vfnmadd231sd"},
+  {e_vfnmadd231ss, "vfnmadd231ss"},
+  {e_vfnmsub132pd, "vfnmsub132pd"},
+  {e_vfnmsub132ps, "vfnmsub132ps"},
+  {e_vfnmsub132sd, "vfnmsub132sd"},
+  {e_vfnmsub132ss, "vfnmsub132ss"},
+  {e_vfnmsub213pd, "vfnmsub213pd"},
+  {e_vfnmsub213ps, "vfnmsub213ps"},
+  {e_vfnmsub213sd, "vfnmsub213sd"},
+  {e_vfnmsub213ss, "vfnmsub213ss"},
+  {e_vfnmsub231pd, "vfnmsub231pd"},
+  {e_vfnmsub231ps, "vfnmsub231ps"},
+  {e_vfnmsub231sd, "vfnmsub231sd"},
+  {e_vfnmsub231ss, "vfnmsub231ss"},
+  {e_vgatherpf0dps, "vgatherpf0dps"},
+  {e_vgatherpf0dpd, "vgatherpf0dpd"},
+  {e_vgatherpf1qps ,"vgatherpf1qps"},
+  {e_vgatherpf1dpd ,"vgatherpf1dpd"},
+  {e_vgatherpf0qps ,"vgatherpf0qps"},
+  {e_vscatterpf0dps ,"vscatterpf0dps"},
+  {e_vscatterpf0qpd ,"vscatterpf0qpd"},
+  {e_vscatterpf1qps ,"vscatterpf1qps"},
+  {e_vscatterpf1qpd ,"vscatterpf1qpd"},
+  {e_vgatherdpd, "vgatherdpd"},
+  {e_vgatherdps, "vgatherdps"},
+  {e_vgatherqpd, "vgatherqpd"},
+  {e_vgatherqps, "vgatherqps"},
+  {e_vgetexpps, "vgetexpps"},
+  {e_vgetexppd, "vgetexppd"},
+  {e_vgetexpss, "vgetexpss"},
+  {e_vgetexpsd, "vgetexpsd"},
+  {e_vgetmantps, "vgetmantps"},
+  {e_vgetmantpd, "vgetmantpd"},
+  {e_vgetmantss, "vgetmantss"},
+  {e_vgetmantsd, "vgetmantsd"},
+  {e_vinsertf128, "vinsertf128"},
+  {e_vinserti128, "vinserti128"},
+  {e_vinsertps, "vinsertps"},
+  {e_vinsertf32x4, "vinsertf32x4"},
+  {e_vinsertf64x2, "vinsertf64x2"},
+  {e_vinsertf32x8, "vinsertf32x8"},
+  {e_vinsertf64x4, "vinsertf64x4"},
+  {e_vinserti32x4, "vinserti32x4"},
+  {e_vinserti64x2, "vinserti64x2"},
+  {e_vinserti32x8, "vinserti32x8"},
+  {e_vinserti64x4, "vinserti64x4"},
+  {e_vmaskmovpd, "vmaskmovpd"},
+  {e_vmaskmovps, "vmaskmovps"},
+  {e_vmaxpd, "vmaxpd"},
+  {e_vmaxps, "vmaxps"},
+  {e_vmaxsd, "vmaxsd"},
+  {e_vmaxss, "vmaxss"},
+  {e_vminpd, "vminpd"},
+  {e_vminps, "vminps"},
+  {e_vminsd, "vminsd"},
+  {e_vminss, "vminss"},
+  {e_vmovapd, "vmovapd"},
+  {e_vmovaps, "vmovaps"},
+  {e_vmovddup, "vmovddup"},
+  {e_vmovdqa, "vmovdqa"},
+  {e_vmovdqa32, "vmovdqa32"},
+  {e_vmovdqa64, "vmovdqa64"},
+  {e_vmovdqu32, "vmovdqu32"},
+  {e_vmovdqu64, "vmovdqu64"},
+  {e_vmovdqu, "vmovdqu"},
+  {e_vmovdqu8, "vmovdqu8"},
+  {e_vmovdqu16, "vmovdqu16"},
+  {e_vmovhlps, "vmovhlps"},
+  {e_vmovhpd, "vmovhpd"},
+  {e_vmovhps, "vmovhps"},
+  {e_vmovlhps, "vmovlhps"},
+  {e_vmovlpd, "vmovlpd"},
+  {e_vmovlps, "vmovlps"},
+  {e_vmovntps, "vmovntps"},
+  {e_vmovq, "vmovq"},
+  {e_vmovsd, "vmovsd"},
+  {e_vmovshdup, "vmovshdup"},
+  {e_vmovsldup, "vmovsldup"},
+  {e_vmovss, "vmovss"},
+  {e_vmovupd, "vmovupd"},
+  {e_vmovups, "vmovups"},
+  {e_vmulpd, "vmulpd"},
+  {e_vmulps, "vmulps"},
+  {e_vmulsd, "vmulsd"},
+  {e_vmulss, "vmulss"},
+  {e_vorpd, "vorpd"},
+  {e_vorps, "vorps"},
+  {e_vpabsb, "vpabsb"},
+  {e_vpabsd, "vpabsd"},
+  {e_vpabsw, "vpabsw"},
+  {e_vpackssdw, "vpackssdw"},
+  {e_vpacksswb, "vpacksswb"},
+  {e_vpackusdw, "vpackusdw"},
+  {e_vpackuswb, "vpackuswb"},
+  {e_vpaddb, "vpaddb"},
+  {e_vpaddd, "vpaddd"},
+  {e_vpaddq, "vpaddq"},
+  {e_vpaddsb, "vpaddsb"},
+  {e_vpaddsw, "vpaddsw"},
+  {e_vpaddusb, "vpaddusb"},
+  {e_vpaddusw, "vpaddusw"},
+  {e_vpaddw, "vpaddw"},
+  {e_vpalignr, "vpalignr"},
+  {e_vpand, "vpand"},
+  {e_vpandn, "vpandn"},
+  {e_vpandd, "vpandd"},
+  {e_vpandq, "vpandq"},
+  {e_vpandnd, "vpandnd"},
+  {e_vpandnq, "vpandnq"},
+  {e_vpavgb, "vpavgb"},
+  {e_vpavgw, "vpavgw"},
+  {e_vpblendd, "vpblendd"},
+  {e_vpbroadcastb, "vpbroadcastb"},
+  {e_vpbroadcastd, "vpbroadcastd"},
+  {e_vpbroadcastq, "vpbroadcastq"},
+  {e_vpbroadcastw, "vpbroadcastw"},
+  {e_vpcmpub, "vpcmpub"},
+  {e_vpcmpb, "vpcmpb"},
+  {e_vpcmpequd, "vpcmpequd"},
+  {e_vpcmpeqb, "vpcmpeqb"},
+  {e_vpcmpeqd, "vpcmpeqd"},
+  {e_vpcmpeqq, "vpcmpeqq"},
+  {e_vpcmpeqw, "vpcmpeqw"},
+  {e_vpcmpgtb, "vpcmpgtb"},
+  {e_vpcmpgtd, "vpcmpgtd"},
+  {e_vpcmpgtq, "vpcmpgtq"},
+  {e_vpcmpgtw, "vpcmpgtw"},
+  {e_vpcompressd, "vpcompressd"},
+  {e_vpcompressq, "vpcompressq"},
+  {e_vpconflictd, "vpconflictd"},
+  {e_vpconflictq, "vpconflictq"},
+  {e_vperm2f128, "vperm2f128"},
+  {e_vperm2i128, "vperm2i128"},
+  {e_vpermd, "vpermd"},
+  {e_vpermilpd, "vpermilpd"},
+  {e_vpermilps, "vpermilps"},
+  {e_vpermi2b, "vpermi2b"},
+  {e_vpermi2w, "vpermi2w"},
+  {e_vpermi2d, "vpermi2d"},
+  {e_vpermi2q, "vpermi2q"},
+  {e_vpermi2ps, "vpermi2ps"},
+  {e_vpermi2pd, "vpermi2pd"},
+  {e_vpermt2b, "vpermt2b"},
+  {e_vpermt2w, "vpermt2w"},
+  {e_vpermt2d, "vpermt2d"},
+  {e_vpermt2q, "vpermt2q"},
+  {e_vpermt2ps, "vpermt2ps"},
+  {e_vpermt2pd, "vpermt2pd"},
+  {e_vpermpd, "vpermpd"},
+  {e_vpermps, "vpermps"},
+  {e_vpermq, "vpermq"},
+  {e_vpermb, "vpermb"},
+  {e_vpermw, "vpermw"},
+  {e_vpextrb, "vpextrb"},
+  {e_vpextrd, "vpextrd"},
+  {e_vpextrq, "vpextrq"},
+  {e_vpextrw, "vpextrw"},
+  {e_vpexpandd, "vpexpandd"},
+  {e_vpexpandq, "vpexpandq"},
+  {e_vplzcntd, "vplzcntd"},
+  {e_vplzcntq, "vplzcntq"},
+  {e_vpgatherdd, "vpgatherdd"},
+  {e_vpgatherdq, "vpgatherdq"},
+  {e_vpgatherqd, "vpgatherqd"},
+  {e_vpgatherqq, "vpgatherqq"},
+  {e_vpinsrb, "vpinsrb"},
+  {e_vpinsrd, "vpinsrd"},
+  {e_vpinsrq, "vpinsrq"},
+  {e_vpinsrw, "vpinsrw"},
+  {e_vpmaddubsw, "vpmaddubsw"},
+  {e_vpmaddwd, "vpmaddwd"},
+  {e_vpmaskmovd, "vpmaskmovd"},
+  {e_vpmaskmovq, "vpmaskmovq"},
+  {e_vpmaxsq, "vpmaxsq"},
+  {e_vpmaxuq, "vpmaxuq"},
+  {e_vpmaxsb, "vpmaxsb"},
+  {e_vpmaxsd, "vpmaxsd"},
+  {e_vpmaxsw, "vpmaxsw"},
+  {e_vpmaxub, "vpmaxub"},
+  {e_vpmaxud, "vpmaxud"},
+  {e_vpmaxuw, "vpmaxuw"},
+  {e_vpminsq, "vpminsq"},
+  {e_vpminuq, "vpminuq"},
+  {e_vpminsb, "vpminsb"},
+  {e_vpminsd, "vpminsd"},
+  {e_vpminsw, "vpminsw"},
+  {e_vpminub, "vpminub"},
+  {e_vpminud, "vpminud"},
+  {e_vpminuw, "vpminuw"},
+  {e_vpmovsdb, "vpmovsdb"},
+  {e_vpmovsdw, "vpmovsdw"},
+  {e_vpmovsqb, "vpmovsqb"},
+  {e_vpmovsqd, "vpmovsqd"},
+  {e_vpmovsqw, "vpmovsqw"},
+  {e_vpmovswb, "vpmovswb"},
+  {e_vpmovsxbd, "vpmovsxbd"},
+  {e_vpmovsxbq, "vpmovsxbq"},
+  {e_vpmovsxbw, "vpmovsxbw"},
+  {e_vpmovsxdq, "vpmovsxdq"},
+  {e_vpmovsxwd, "vpmovsxwd"},
+  {e_vpmovsxwq, "vpmovsxwq"},
+  {e_vpmovzxbd, "vpmovzxbd"},
+  {e_vpmovzxbq, "vpmovzxbq"},
+  {e_vpmovzxbw, "vpmovzxbw"},
+  {e_vpmovzxdq, "vpmovzxdq"},
+  {e_vpmovzxwd, "vpmovzxwd"},
+  {e_vpmovzxwq, "vpmovzxwq"},
+  {e_vpmuldq, "vpmuldq"},
+  {e_vpmulhrsw, "vpmulhrsw"},
+  {e_vpmulhuw, "vpmulhuw"},
+  {e_vpmulhw, "vpmulhw"},
+  {e_vpmulld, "vpmulld"},
+  {e_vpmullw, "vpmullw"},
+  {e_vpmuludq, "vpmuludq"},
+  {e_vpor, "vpor"},
+  {e_vpord, "vpord"},
+  {e_vporq, "vporq"},
+  {e_vprolvd, "vporlvd"},
+  {e_vprolvq, "vporlvq"},
+  {e_vprold, "vprold"},
+  {e_vprolq, "vprolq"},
+  {e_vprorvd, "vprorvd"},
+  {e_vprorvq, "vprorvq"},
+  {e_vprord, "vprord"},
+  {e_vprorq, "vprorq"},
+  {e_vrsqrt14ps, "vrsqrt14ps"},
+  {e_vrsqrt14pd, "vrsqrt14pd"},
+  {e_vrsqrt14ss, "vrsqrt14ss"},
+  {e_vrsqrt14sd, "vrsqrt14sd"},
+  {e_vscatterdps, "vscatterdps"},
+  {e_vscatterdpd, "vscatterdpd"},
+  {e_vscatterqps, "vscatterqps"},
+  {e_vscatterqpd, "vscatterqpd"},
+  {e_vpscatterdd, "vpscatterdd"},
+  {e_vpscatterdq, "vpscatterdq"},
+  {e_vpscatterqd, "vpscatterqd"},
+  {e_vpscatterqq, "vpscatterqq"},
+  {e_vpsadbw, "vpsadbw"},
+  {e_vpshufb, "vpshufb"},
+  {e_vpshufd, "vpshufd"},
+  {e_vpshufhw, "vpshufhw"},
+  {e_vpshuflw, "vpshuflw"},
+  {e_vpslldq, "vpslldq"},
+  {e_vpslld, "vpslld"},
+  {e_vpsllq, "vpsllq"},
+  {e_vpsllvd, "vpsllvd"},
+  {e_vpsllvq, "vpsllvq"},
+  {e_vpsllw, "vpsllw"},
+  {e_vpsrad, "vpsrad"},
+  {e_vpsravd, "vpsravd"},
+  {e_vpsraw, "vpsraw"},
+  {e_vpsrldq, "vpsrldq"},
+  {e_vpsrld, "vpsrld"},
+  {e_vpsrlq, "vpsrlq"},
+  {e_vpsrlvd, "vpsrlvd"},
+  {e_vpsrlvq, "vprlvq"},
+  {e_vpsrlvq, "vpsrlvq"},
+  {e_vpsrlw, "vpsrlw"},
+  {e_vpsubb, "vpsubb"},
+  {e_vpsubd, "vpsubd"},
+  {e_vpsubq, "vpsubq"},
+  {e_vpsubsb, "vpsubsb"},
+  {e_vpsubsw, "vpsubsw"},
+  {e_vpsubusb, "vpsubusb"},
+  {e_vpsubusw, "vpsubusw"},
+  {e_vpsubw, "vpsubw"},
+  {e_vptestmd, "vptestmd"},
+  {e_vptestnmd, "vptestnmd"},
+  {e_vptestnmb, "vptestnmb"},
+  {e_vpternlogd, "vpternlogd"},
+  {e_vpternlogq, "vpternlogq"},
+  {e_vpunpckhbw, "vpunpckhbw"},
+  {e_vpunpckhdq, "vpunpckhdq"},
+  {e_vpunpckhqdq, "vpunpckhqdq"},
+  {e_vpunpckhwd, "vpunpckhwd"},
+  {e_vpunpcklbw, "vpunpcklbw"},
+  {e_vpunpckldq, "vpunpckldq"},
+  {e_vpunpcklqdq, "vpunpcklqdq"},
+  {e_vpunpcklwd, "vpunpcklwd"},
+  {e_vpxord, "vpxord"},
+  {e_vpxorq, "vpxorq"},
+  {e_vrangeps, "vrangeps"},
+  {e_vrangepd, "vrangepd"},
+  {e_vrangess, "vrangess"},
+  {e_vrangesd, "vrangesd"},
+  {e_vrcp14ps, "vrcp14ps"},
+  {e_vrcp14pd, "vrcp14pd"},
+  {e_vrcp14ss, "vrcp14ss"},
+  {e_vrcp14sd, "vrcp14sd"},
+  {e_vreduceps, "vreduceps"},
+  {e_vreducepd, "vreducepd"},
+  {e_vreducess, "vreducess"},
+  {e_vreducesd, "vreducesd"},
+  {e_vpxor, "vpxor"},
+  {e_vshufpd, "vshufpd"},
+  {e_vshufps, "vshufps"},
+  {e_vshuff32x4, "vshuff32x4"},
+  {e_vshuff64x2, "vshuff64x2"},
+  {e_vsqrtpd, "vsqrtpd"},
+  {e_vsqrtps, "vsqrtps"},
+  {e_vsqrtsd, "vsqrtsd"},
+  {e_vsqrtss, "vsqrtss"},
+  {e_vsubpd, "vsubpd"},
+  {e_vsubps, "vsubps"},
+  {e_vsubsd, "vsubsd"},
+  {e_vsubss, "vsubss"},
+  {e_vtestpd, "vtestpd"},
+  {e_vtestps, "vtestps"},
+  {e_vucomisd, "vucomisd"},
+  {e_vucomiss, "vucomiss"},
+  {e_vunpckhpd, "vunpckhpd"},
+  {e_vunpckhps, "vunpckhps"},
+  {e_vunpcklpd, "vunpcklpd"},
+  {e_vunpcklps, "vunpcklps"},
+  {e_vxorpd, "vxorpd"},
+  {e_vxorps, "vxorps"},
+  {e_vzeroall, "vzeroall"},
+  {e_vzeroupper, "vzeroupper"},
+  {e_kandb, "kandb"},
+  {e_kandd, "kandd"},
+  {e_kandw, "kandw"},
+  {e_kandq, "kandq"},
+  {e_kandnb, "kandnb"},
+  {e_kandnd, "kandnd"},
+  {e_kandnw, "kandnw"},
+  {e_kandnq, "kandnq"},
+  {e_knotb, "knotb"},
+  {e_knotd, "knotd"},
+  {e_knotw, "knotw"},
+  {e_knotq, "knotq"},
+  {e_korb, "korb"},
+  {e_kord, "kord"},
+  {e_korw, "korw"},
+  {e_korq, "korq"},
+  {e_kxnorb, "kxnorb"},
+  {e_kxnord, "kxnord"},
+  {e_kxnorw, "kxnorw"},
+  {e_kxnorq, "kxnorq"},
+  {e_kxorb, "kxorb"},
+  {e_kxord, "kxord"},
+  {e_kxorw, "kxorw"},
+  {e_kxorq, "kxorq"},
+  {e_kaddb, "kaddb"},
+  {e_kaddd, "kaddd"},
+  {e_kaddw, "kaddw"},
+  {e_kaddq, "kaddq"},
+  {e_kshiftlw, "kshiftlw"},
+  {e_kshiftlb, "kshiftlb"},
+  {e_kshiftlq, "kshiftlq"},
+  {e_kshiftld, "kshiftld"},
+  {e_kshiftrw, "kshiftrw"},
+  {e_kshiftrb, "kshiftrb"},
+  {e_kshiftrq, "kshiftrq"},
+  {e_kshiftrd, "kshiftrd"},
+  {e_kunpckbw, "kunpckbw"},
+  {e_kunpckwd, "kunpckwd"},
+  {e_kunpckdq, "kunpckdq"},
+  {e_kmovb, "kmovb"},
+  {e_kmovd, "kmovd"},
+  {e_kmovw, "kmovw"},
+  {e_kmovq, "kmovq"},
+  {e_kortestb, "kortestb"},
+  {e_kortestd, "kortestd"},
+  {e_kortestw, "kortestw"},
+  {e_kortestq, "kortestq"},
+  {e_ktestb, "ktestb"},
+  {e_ktestd, "ktestd"},
+  {e_ktestw, "ktestw"},
+  {e_ktestq, "ktestq"},
+  {e_vcmppd, "vcmppd"},
+  {e_vcmpps, "vcmpps"},
+  {e_vcmpsd, "vcmpsd"},
+  {e_vcmpss, "vcmpss"},
+  {e_vmovntpd, "vmovntpd"},
+  {e_vcvttsd2usi, "vcvttsd2usi"},
+  {e_vcvttss2usi, "vcvttss2usi"},
+  {e_vcvtsd2usi, "vcvtsd2usi"},
+  {e_vcvtss2usi, "vcvtss2usi"},
+  {e_vcvtusi2sd, "vcvtusi2sd"},
+  {e_vcvtusi2ss, "vcvtusi2ss"},
+  {e_vmovntdq, "vmovntdq"},
+  {e_vpsrlvw, "vpsrlvw"},
+  {e_vpmovuswb, "vpmovuswb"},
+  {e_vpsravw, "vpsravw"},
+  {e_vpsravq, "vpsravq"},
+  {e_vpmovusdb, "vpmovusdb"},
+  {e_vpsllvw, "vpsllvw"},
+  {e_vpmovusqb, "vpmovusqb"},
+  {e_vpmovusdw, "vpmovusdw"},
+  {e_vpmovusqw, "vpmovusqw"},
+  {e_vpmovusqd, "vpmovusqd"},
+  {e_vbroadcastf32x4, "vbroadcastf32x4"},
+  {e_vpabsq, "vpabsq"},
+  {e_vmovntdqa, "vmovntdqa"},
+  {e_vpbroadcastmb2q, "vpbroadcastmb2q"},
+  {e_vpmovwb, "vpmovwb"},
+  {e_vpmovdb, "vpmovdb"},
+  {e_vpmovqb, "vpmovqb"},
+  {e_vpmovdw, "vpmovdw"},
+  {e_vpmovqw, "vpmovqw"},
+  {e_vpmovqd, "vpmovqd"},
+  {e_vpmultishiftqb, "vpmultishiftqb"},
+  {e_vpmadd52luq, "vpmadd52luq"},
+  {e_vpmadd52huq, "vpmadd52huq"},
+  {e_vrndscaleps, "vrndscaleps"},
+  {e_vrndscalepd, "vrndscalepd"},
+  {e_vrndscaless, "vrndscaless"},
+  {e_vrndscalesd, "vrndscalesd"},
+  {e_vdbpsadbw, "vdbpsadbw"},
+  {e_vphsubsw, "vphsubsw"},
 
 /* What are these? */
- (e_vpmovswb, "vpmovswb")
- (e_vpmovsdb, "vpmovsdb")
- (e_vpmovsqb, "vpmovsqb")
- (e_vpmovsdw, "vpmovsdw")
- (e_vpmovsqw, "vpmovsqw")
- (e_vpmovsqd, "vpmovsqd")
+  {e_vpmovswb, "vpmovswb"},
+  {e_vpmovsdb, "vpmovsdb"},
+  {e_vpmovsqb, "vpmovsqb"},
+  {e_vpmovsdw, "vpmovsdw"},
+  {e_vpmovsqw, "vpmovsqw"},
+  {e_vpmovsqd, "vpmovsqd"},
 
- (e_fp_generic, "[FIXME: GENERIC FPU INSN]")
- (e_3dnow_generic, "[FIXME: GENERIC 3DNow INSN]")
- (e_No_Entry, "No_Entry")
-        ;
+  {e_fp_generic, "[FIXME: GENERIC FPU INSN]"},
+  {e_3dnow_generic, "[FIXME: GENERIC 3DNow INSN]"},
+  {e_No_Entry, "No_Entry"},
+};
 
-dyn_hash_map<prefixEntryID, std::string> prefixEntryNames_IAPI = map_list_of
-  (prefix_rep, "REP")
-  (prefix_repnz, "REPNZ")
-        ;
+dyn_hash_map<prefixEntryID, std::string> prefixEntryNames_IAPI {
+  {prefix_rep, "REP"},
+  {prefix_repnz, "REPNZ"},
+};
 
 COMMON_EXPORT dyn_hash_map<entryID, flagInfo> const& ia32_instruction::getFlagTable()
 {
@@ -1919,160 +1915,161 @@ COMMON_EXPORT dyn_hash_map<entryID, flagInfo> const& ia32_instruction::getFlagTa
   
 void ia32_instruction::initFlagTable(dyn_hash_map<entryID, flagInfo>& flagTable)
 {
-  static const vector<Dyninst::MachRegister> standardFlags = list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf);
+  static const vector<Dyninst::MachRegister> standardFlags {
+    x86::of, x86::sf, x86::zf, x86::af, x86::pf, x86::cf,
+  };
+  static const vector<Dyninst::MachRegister> condFlags {
+    x86::of, x86::sf, x86::zf, x86::pf, x86::cf,
+  };
 
-  flagTable[e_aaa] = flagInfo(list_of(x86::af), standardFlags);
-  flagTable[e_aad] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_aam] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_aas] = flagInfo(list_of(x86::af), standardFlags);
-  flagTable[e_adc] = flagInfo(list_of(x86::cf), standardFlags);
-  flagTable[e_add] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_and] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_arpl] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
-  flagTable[e_bsf] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_bsr] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_bt] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_bts] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_btr] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_btc] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_clc] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::cf));
-  flagTable[e_cld] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::df));
-  flagTable[e_cli] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::if_));
-  flagTable[e_cmc] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::cf));
-  flagTable[e_cmovbe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_cmove] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_cmovnae] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_cmovnb] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_cmovnbe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_cmovne] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_cmovng] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_cmovnge] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_cmovnl] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_cmovno] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_cmovns] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_cmovo] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_cmovpe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_cmovpo] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_cmovs] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_cmp] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_cmpsb] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_cmpsd] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_cmpss] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_cmpsw] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_cmpxch] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_cmpxch8b] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
-  flagTable[e_comisd] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_comiss] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_daa] = flagInfo(list_of(x86::af)(x86::cf), standardFlags);
-  flagTable[e_das] = flagInfo(list_of(x86::af)(x86::cf), standardFlags);
-  flagTable[e_dec] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf));
-  flagTable[e_div] = flagInfo(list_of(x86::af)(x86::cf), standardFlags);
-  // TODO: FCMOVcc (not in our entry table) (reads zf/pf/cf)
-  // TODO: FCOMI/FCOMIP/FUCOMI/FUCOMIP (writes/zf/pf/cf)
-  flagTable[e_idiv] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_imul] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_inc] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf));
-  flagTable[e_insb] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
-  flagTable[e_insw] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
-  flagTable[e_insd] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
-  flagTable[e_int] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::tf)(x86::nt_));
-  flagTable[e_int3] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::tf)(x86::nt_));
-  flagTable[e_int80] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::tf)(x86::nt_));
-  flagTable[e_into] = flagInfo(list_of(x86::of), list_of(x86::tf)(x86::nt_));
-  flagTable[e_ucomisd] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_ucomiss] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_iret] = flagInfo(list_of(x86::nt_),
-list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)(x86::df));
-  flagTable[e_jb] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_jb_jnaej_j] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_jbe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_jl] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_jle] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_jnb] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_jnb_jae_j] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_jnbe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_jnl] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_jnle] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_jno] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_jnp] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_jns] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_jnz] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_jo] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_jp] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_js] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_jz] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_lar] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
-  flagTable[e_lodsb] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
-  flagTable[e_lodsd] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
-  flagTable[e_lodsw] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
-  flagTable[e_loope] = flagInfo(list_of(x86::zf), vector<Dyninst::MachRegister>());
-  flagTable[e_loopn] = flagInfo(list_of(x86::zf), vector<Dyninst::MachRegister>());
-  flagTable[e_lsl] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
-  // I'd expect that mov control/debug/test gets handled when we do operand analysis
-  // If it doesn't, fix later
-  flagTable[e_mul] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_neg] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_or] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_outsb] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
-  flagTable[e_outsw] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
-  flagTable[e_outsd] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
-  flagTable[e_popf] = flagInfo(vector<Dyninst::MachRegister>(),
-list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)(x86::df)(x86::nt_));
-  flagTable[e_popfd] = flagInfo(vector<Dyninst::MachRegister>(),
-list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)(x86::df)(x86::nt_));
-  flagTable[e_rcl] = flagInfo(list_of(x86::cf), list_of(x86::of)(x86::cf));
-  flagTable[e_rcr] = flagInfo(list_of(x86::cf), list_of(x86::of)(x86::cf));
-  flagTable[e_rol] = flagInfo(list_of(x86::cf), list_of(x86::of)(x86::cf));
-  flagTable[e_ror] = flagInfo(list_of(x86::cf), list_of(x86::of)(x86::cf));
-  flagTable[e_rsm] = flagInfo(vector<Dyninst::MachRegister>(),
-list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)(x86::df)(x86::nt_)(x86::rf));
-  flagTable[e_sahf] = flagInfo(list_of(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_sar] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_shr] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_salc] = flagInfo(list_of(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_sbb] = flagInfo(list_of(x86::cf), standardFlags);
-  flagTable[e_setb] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_setbe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_setl] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_setle] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_setnb] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_setnbe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_setnl] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_setnle] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_setno] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_setnp] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_setns] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_setnz] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_seto] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_setp] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_sets] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_setz] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
-  flagTable[e_shld] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_shrd] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_shl_sal] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_stc] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::cf));
-  flagTable[e_std] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::df));
-  flagTable[e_sti] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::if_));
-  flagTable[e_stosb] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
-  flagTable[e_stosd] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
-  flagTable[e_stosw] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
-  flagTable[e_sub] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_test] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_verr] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
-  flagTable[e_verw] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
-  flagTable[e_xadd] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_xor] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_scasb] = flagInfo(list_of(x86::df), standardFlags);
-  flagTable[e_scasw] = flagInfo(list_of(x86::df), standardFlags);
-  flagTable[e_scasd] = flagInfo(list_of(x86::df), standardFlags);
-  flagTable[e_pcmpestri] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_pcmpestrm] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_pcmpistri] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_pcmpistrm] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_popcnt] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::cf)(x86::pf), vector<Dyninst::MachRegister>());
-  flagTable[e_ptest] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-
-//  flagTable[e_ptest] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::cf)(x86::pf), vector<Dyninst::MachRegister>());
+  flagTable = {
+    {e_aaa, flagInfo({x86::af}, standardFlags)},
+    {e_aad, flagInfo({}, standardFlags)},
+    {e_aam, flagInfo({}, standardFlags)},
+    {e_aas, flagInfo({x86::af}, standardFlags)},
+    {e_adc, flagInfo({x86::cf}, standardFlags)},
+    {e_add, flagInfo({}, standardFlags)},
+    {e_and, flagInfo({}, standardFlags)},
+    {e_arpl, flagInfo({}, {x86::zf})},
+    {e_bsf, flagInfo({}, standardFlags)},
+    {e_bsr, flagInfo({}, standardFlags)},
+    {e_bt, flagInfo({}, standardFlags)},
+    {e_bts, flagInfo({}, standardFlags)},
+    {e_btr, flagInfo({}, standardFlags)},
+    {e_btc, flagInfo({}, standardFlags)},
+    {e_clc, flagInfo({}, {x86::cf})},
+    {e_cld, flagInfo({}, {x86::df})},
+    {e_cli, flagInfo({}, {x86::if_})},
+    {e_cmc, flagInfo({}, {x86::cf})},
+    {e_cmovbe, flagInfo(condFlags, {})},
+    {e_cmove, flagInfo(condFlags, {})},
+    {e_cmovnae, flagInfo(condFlags, {})},
+    {e_cmovnb, flagInfo(condFlags, {})},
+    {e_cmovnbe, flagInfo(condFlags, {})},
+    {e_cmovne, flagInfo(condFlags, {})},
+    {e_cmovng, flagInfo(condFlags, {})},
+    {e_cmovnge, flagInfo(condFlags, {})},
+    {e_cmovnl, flagInfo(condFlags, {})},
+    {e_cmovno, flagInfo(condFlags, {})},
+    {e_cmovns, flagInfo(condFlags, {})},
+    {e_cmovo, flagInfo(condFlags, {})},
+    {e_cmovpe, flagInfo(condFlags, {})},
+    {e_cmovpo, flagInfo(condFlags, {})},
+    {e_cmovs, flagInfo(condFlags, {})},
+    {e_cmp, flagInfo({}, standardFlags)},
+    {e_cmpsb, flagInfo({}, standardFlags)},
+    {e_cmpsd, flagInfo({}, standardFlags)},
+    {e_cmpss, flagInfo({}, standardFlags)},
+    {e_cmpsw, flagInfo({}, standardFlags)},
+    {e_cmpxch, flagInfo({}, standardFlags)},
+    {e_cmpxch8b, flagInfo({}, {x86::zf})},
+    {e_comisd, flagInfo({}, standardFlags)},
+    {e_comiss, flagInfo({}, standardFlags)},
+    {e_daa, flagInfo({x86::af, x86::cf}, standardFlags)},
+    {e_das, flagInfo({x86::af, x86::cf}, standardFlags)},
+    {e_dec, flagInfo({}, {x86::of, x86::sf, x86::zf, x86::af, x86::pf})},
+    {e_div, flagInfo({x86::af, x86::cf}, standardFlags)},
+    // TODO: FCMOVcc (not in our entry table) (reads zf/pf/cf)
+    // TODO: FCOMI/FCOMIP/FUCOMI/FUCOMIP (writes/zf/pf/cf)
+    {e_idiv, flagInfo({}, standardFlags)},
+    {e_imul, flagInfo({}, standardFlags)},
+    {e_inc, flagInfo({}, {x86::of, x86::sf, x86::zf, x86::af, x86::pf})},
+    {e_insb, flagInfo({x86::df}, {})},
+    {e_insw, flagInfo({x86::df}, {})},
+    {e_insd, flagInfo({x86::df}, {})},
+    {e_int, flagInfo({}, {x86::tf, x86::nt_})},
+    {e_int3, flagInfo({}, {x86::tf, x86::nt_})},
+    {e_int80, flagInfo({}, {x86::tf, x86::nt_})},
+    {e_into, flagInfo({x86::of}, {x86::tf, x86::nt_})},
+    {e_ucomisd, flagInfo({}, standardFlags)},
+    {e_ucomiss, flagInfo({}, standardFlags)},
+    {e_iret, flagInfo({x86::nt_}, {x86::of, x86::sf, x86::zf, x86::af, x86::pf, x86::cf, x86::tf, x86::if_, x86::df})},
+    {e_jb, flagInfo(condFlags, {})},
+    {e_jb_jnaej_j, flagInfo(condFlags, {})},
+    {e_jbe, flagInfo(condFlags, {})},
+    {e_jl, flagInfo(condFlags, {})},
+    {e_jle, flagInfo(condFlags, {})},
+    {e_jnb, flagInfo(condFlags, {})},
+    {e_jnb_jae_j, flagInfo(condFlags, {})},
+    {e_jnbe, flagInfo(condFlags, {})},
+    {e_jnl, flagInfo(condFlags, {})},
+    {e_jnle, flagInfo(condFlags, {})},
+    {e_jno, flagInfo(condFlags, {})},
+    {e_jnp, flagInfo(condFlags, {})},
+    {e_jns, flagInfo(condFlags, {})},
+    {e_jnz, flagInfo(condFlags, {})},
+    {e_jo, flagInfo(condFlags, {})},
+    {e_jp, flagInfo(condFlags, {})},
+    {e_js, flagInfo(condFlags, {})},
+    {e_jz, flagInfo(condFlags, {})},
+    {e_lar, flagInfo({}, {x86::zf})},
+    {e_lodsb, flagInfo({x86::df}, {})},
+    {e_lodsd, flagInfo({x86::df}, {})},
+    {e_lodsw, flagInfo({x86::df}, {})},
+    {e_loope, flagInfo({x86::zf}, {})},
+    {e_loopn, flagInfo({x86::zf}, {})},
+    {e_lsl, flagInfo({}, {x86::zf})},
+    // I'd expect that mov control/debug/test gets handled when we do operand analysis
+    // If it doesn't, fix later
+    {e_mul, flagInfo({}, standardFlags)},
+    {e_neg, flagInfo({}, standardFlags)},
+    {e_or, flagInfo({}, standardFlags)},
+    {e_outsb, flagInfo({x86::df}, {})},
+    {e_outsw, flagInfo({x86::df}, {})},
+    {e_outsd, flagInfo({x86::df}, {})},
+    {e_popf, flagInfo({}, {x86::of, x86::sf, x86::zf, x86::af, x86::pf, x86::cf, x86::tf, x86::if_, x86::df, x86::nt_})},
+    {e_popfd, flagInfo({}, {x86::of, x86::sf, x86::zf, x86::af, x86::pf, x86::cf, x86::tf, x86::if_, x86::df, x86::nt_})},
+    {e_rcl, flagInfo({x86::cf}, {x86::of, x86::cf})},
+    {e_rcr, flagInfo({x86::cf}, {x86::of, x86::cf})},
+    {e_rol, flagInfo({x86::cf}, {x86::of, x86::cf})},
+    {e_ror, flagInfo({x86::cf}, {x86::of, x86::cf})},
+    {e_rsm, flagInfo({}, {x86::of, x86::sf, x86::zf, x86::af, x86::pf, x86::cf, x86::tf, x86::if_, x86::df, x86::nt_, x86::rf})},
+    {e_sahf, flagInfo({x86::sf, x86::zf, x86::af, x86::pf, x86::cf}, {})},
+    {e_sar, flagInfo({}, standardFlags)},
+    {e_shr, flagInfo({}, standardFlags)},
+    {e_salc, flagInfo({x86::cf}, {})},
+    {e_sbb, flagInfo({x86::cf}, standardFlags)},
+    {e_setb, flagInfo(condFlags, {})},
+    {e_setbe, flagInfo(condFlags, {})},
+    {e_setl, flagInfo(condFlags, {})},
+    {e_setle, flagInfo(condFlags, {})},
+    {e_setnb, flagInfo(condFlags, {})},
+    {e_setnbe, flagInfo(condFlags, {})},
+    {e_setnl, flagInfo(condFlags, {})},
+    {e_setnle, flagInfo(condFlags, {})},
+    {e_setno, flagInfo(condFlags, {})},
+    {e_setnp, flagInfo(condFlags, {})},
+    {e_setns, flagInfo(condFlags, {})},
+    {e_setnz, flagInfo(condFlags, {})},
+    {e_seto, flagInfo(condFlags, {})},
+    {e_setp, flagInfo(condFlags, {})},
+    {e_sets, flagInfo(condFlags, {})},
+    {e_setz, flagInfo(condFlags, {})},
+    {e_shld, flagInfo({}, standardFlags)},
+    {e_shrd, flagInfo({}, standardFlags)},
+    {e_shl_sal, flagInfo({}, standardFlags)},
+    {e_stc, flagInfo({}, {x86::cf})},
+    {e_std, flagInfo({}, {x86::df})},
+    {e_sti, flagInfo({}, {x86::if_})},
+    {e_stosb, flagInfo({x86::df}, {})},
+    {e_stosd, flagInfo({x86::df}, {})},
+    {e_stosw, flagInfo({x86::df}, {})},
+    {e_sub, flagInfo({}, standardFlags)},
+    {e_test, flagInfo({}, standardFlags)},
+    {e_verr, flagInfo({}, {x86::zf})},
+    {e_verw, flagInfo({}, {x86::zf})},
+    {e_xadd, flagInfo({}, standardFlags)},
+    {e_xor, flagInfo({}, standardFlags)},
+    {e_scasb, flagInfo({x86::df}, standardFlags)},
+    {e_scasw, flagInfo({x86::df}, standardFlags)},
+    {e_scasd, flagInfo({x86::df}, standardFlags)},
+    {e_pcmpestri, flagInfo({}, standardFlags)},
+    {e_pcmpestrm, flagInfo({}, standardFlags)},
+    {e_pcmpistri, flagInfo({}, standardFlags)},
+    {e_pcmpistrm, flagInfo({}, standardFlags)},
+    {e_popcnt, flagInfo(standardFlags, {})},
+    {e_ptest, flagInfo({}, standardFlags)},
+  };
 }
 
 bool ia32_entry::flagsUsed(std::set<MachRegister>& flagsRead, std::set<MachRegister>& flagsWritten, ia32_locations* locs)

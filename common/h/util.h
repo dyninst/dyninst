@@ -223,14 +223,11 @@
 #include <string>
 #include "dyntypes.h"
 
-/* GCC 4.7.0 and 4.7.1 broke ABI compatibility between C++11 and C++98
- * code in a MAJOR way. Disallow that combination; other versions of
- * the compiler are fine. 
+/* Dyninst has required C++11 internally for a while, but we'll now require
+ * it of users too, so we can use those features in public headers.
  */
-#if !((__cplusplus >= 201103L) || defined(__GXX_EXPERIMENTAL_CXX0X__))
-#if defined(__GLIBCXX__) && (__GLIBCXX__ >= 20120322) && (__GLIBCXX__ < 20120920)
-#error "Using GCC 4.7.0 or 4.7.1 with Dyninst requires the -std:c++0x or -std:c++11 flag. Other versions do not."
-#endif
+#if !((__cplusplus >= 201103L) || defined(__GXX_EXPERIMENTAL_CXX0X__) || (_MSC_VER >= 1800))
+#error "Dyninst requires C++11 features -- try adding the -std=c++0x or -std=c++11 flag."
 #endif
 
 #if defined(_MSC_VER)
