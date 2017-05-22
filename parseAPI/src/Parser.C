@@ -773,13 +773,14 @@ Parser::init_frame(ParseFrame & frame)
     }
 
     // FIXME these operations should move into the actual parsing
-    Address ia_start = frame.func->addr();
+    Architecture arch = frame.codereg->getArch();
+    Address cleanAddr = stripAddrEncoding(frame.func->addr(), arch);
     unsigned size = 
-     frame.codereg->offset() + frame.codereg->length() - ia_start;
+     frame.codereg->offset() + frame.codereg->length() - cleanAddr;
     const unsigned char* bufferBegin =
-     (const unsigned char *)(frame.func->isrc()->getPtrToInstruction(ia_start));
-    InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
-    InstructionAdapter_t ah(dec, ia_start, frame.func->obj(),
+     (const unsigned char *)(frame.func->isrc()->getPtrToInstruction(cleanAddr));
+    InstructionDecoder dec(bufferBegin, size, arch);
+    InstructionAdapter_t ah(dec, frame.func->addr(), frame.func->obj(),
         frame.codereg, frame.func->isrc(), b);
 	if(ah.isStackFramePreamble()) {
         frame.func->_no_stack_frame = false;
@@ -1065,9 +1066,11 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 		    // there is possibility that the exception table entry points a nop.
 		    // Therefore, we need to check for every nop and first non-nop instruction after the call for catch blocks
 
-		    unsigned size = caller->region()->offset() + caller->region()->length() - caller->end();
-		    const unsigned char* bufferBegin = (const unsigned char *)(func->isrc()->getPtrToInstruction(caller->end()));
-		    InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
+            Architecture arch = frame.codereg->getArch();
+            Address cleanAddr = stripAddrEncoding(caller->end(), arch);
+		    unsigned size = caller->region()->offset() + caller->region()->length() - cleanAddr;
+		    const unsigned char* bufferBegin = (const unsigned char *)(func->isrc()->getPtrToInstruction(cleanAddr));
+		    InstructionDecoder dec(bufferBegin, size, arch);
 		    if (!ahPtr)
 		        ahPtr.reset(new InstructionAdapter_t(dec, caller->end(), func->obj(), 
 			            caller->region(), func->isrc(), NULL));
@@ -1196,11 +1199,13 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 
         // NB Using block's region() here because it may differ from the
         //    function's if control flow has jumped to another region
+        Architecture arch = frame.codereg->getArch();
+        Address cleanAddr = stripAddrEncoding(curAddr, arch);
         unsigned size = 
-            cur->region()->offset() + cur->region()->length() - curAddr;
+            cur->region()->offset() + cur->region()->length() - cleanAddr;
         const unsigned char* bufferBegin =
-          (const unsigned char *)(func->isrc()->getPtrToInstruction(curAddr));
-        InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
+          (const unsigned char *)(func->isrc()->getPtrToInstruction(cleanAddr));
+        InstructionDecoder dec(bufferBegin, size, arch);
 
         if (!ahPtr)
             ahPtr.reset(new InstructionAdapter_t(dec, curAddr, func->obj(), 
@@ -1397,12 +1402,14 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     // instruction to be parsed correctly
                     mal_printf("Nop jump at %lx, changing it to nop\n",ah.getAddr());
                     _pcb.patch_nop_jump(ah.getAddr());
+                    Architecture arch = frame.codereg->getArch();
+                    Address cleanAddr = stripAddrEncoding(ah.getAddr(), arch);
                     unsigned bufsize = 
-                        func->region()->offset() + func->region()->length() - ah.getAddr();
+                        func->region()->offset() + func->region()->length() - cleanAddr;
                     const unsigned char* bufferBegin = (const unsigned char *)
-                        (func->isrc()->getPtrToInstruction(ah.getAddr()));
+                        (func->isrc()->getPtrToInstruction(cleanAddr));
                     dec = InstructionDecoder
-                        (bufferBegin, bufsize, frame.codereg->getArch());
+                        (bufferBegin, bufsize, arch);
                     ah = InstructionAdapter_t(dec, curAddr, func->obj(), 
                                               func->region(), func->isrc(), cur);
                 } else {

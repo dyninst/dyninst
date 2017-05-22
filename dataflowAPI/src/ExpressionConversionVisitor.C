@@ -288,6 +288,7 @@ SgAsmExpression *ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
                                                                regNum,
                                                                (PowerpcConditionRegisterAccessGranularity) regGran);
         }
+        case Arch_ARMv6M:
         case Arch_aarch64: {
             int regClass;
             int regNum;

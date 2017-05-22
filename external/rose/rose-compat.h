@@ -508,6 +508,7 @@ enum VariantT {
     V_SgSymbol = 628,
     V_SgAsmArmInstruction = 14,
     V_SgAsmArmv8Instruction = 250,
+    V_SgAsmARMv6MInstruction = 234,
     V_SgAsmX86Instruction = 249,
     V_SgAsmPowerpcInstruction = 227,
     V_SgAsmMipsInstruction = 195,

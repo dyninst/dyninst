@@ -76,9 +76,11 @@ typedef std::vector<std::pair<InstructionAPI::Instruction::Ptr, Offset> > InsnVe
 static void getInsnInstances(Block *block,
 			     InsnVec &insns) {
   Offset off = block->start();
-  const unsigned char *ptr = (const unsigned char *)block->region()->getPtrToInstruction(off);
+  Architecture arch = block->obj()->cs()->getArch();
+  Address cleanAddr = stripAddrEncoding(off, arch);
+  const unsigned char *ptr = (const unsigned char *)block->region()->getPtrToInstruction(cleanAddr);
   if (ptr == NULL) return;
-  InstructionAPI::InstructionDecoder d(ptr, block->size(), block->obj()->cs()->getArch());
+  InstructionAPI::InstructionDecoder d(ptr, block->size(), arch);
   while (off < block->end()) {
     insns.push_back(std::make_pair(d.decode(), off));
     off += insns.back().first->size();

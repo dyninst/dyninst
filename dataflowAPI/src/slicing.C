@@ -1346,10 +1346,12 @@ bool containsRet(ParseAPI::Block *block) {
 
 static void getInsnInstances(ParseAPI::Block *block,
 		      Slicer::InsnVec &insns) {
+  Architecture arch = block->obj()->cs()->getArch();
   Offset off = block->start();
-  const unsigned char *ptr = (const unsigned char *)block->region()->getPtrToInstruction(off);
+  Address cleanAddr = stripAddrEncoding(off, arch);
+  const unsigned char *ptr = (const unsigned char *)block->region()->getPtrToInstruction(cleanAddr);
   if (ptr == NULL) return;
-  InstructionDecoder d(ptr, block->size(), block->obj()->cs()->getArch());
+  InstructionDecoder d(ptr, block->size(), arch);
   while (off < block->end()) {
     insns.push_back(std::make_pair(d.decode(), off));
     off += insns.back().first->size();

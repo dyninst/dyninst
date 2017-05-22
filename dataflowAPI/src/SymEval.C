@@ -503,8 +503,31 @@ bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
             BaseSemantics::RiscOperatorsPtr ops = SymEvalSemantics::RiscOperatorsARM64::instance(state);
 
             exp.expandAarch64(roseInsn, ops, insn->format());
+
+            break;
         }
-        break;
+        case Arch_ARMv6M: {
+            // not implemented yet.
+            return false;
+
+            SymEvalPolicy policy(res, addr, insn->getArch(), insn);
+            RoseInsnARMv6MFactory fac(Arch_ARMv6M);
+            roseInsn = fac.convert(insn, addr);
+
+            SymbolicExpansion exp;
+            const RegisterDictionary *reg_dict = RegisterDictionary::dictionary_ARMv6M();
+
+            //BaseSemantics::SValuePtr protoval = SymEvalSemantics::SValue::instance(1, 0);
+            //BaseSemantics::RegisterStatePtr registerState = //SymEvalSemantics::RegisterStateARMv6M::instance(protoval, reg_dict);
+
+            exp.expandARMv6M(roseInsn, policy);
+            if (policy.failedTranslate()) {
+                cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
+                return false;
+            }
+
+            break;
+        }
         default:
             assert(0 && "Unimplemented symbolic expansion architecture");
             break;

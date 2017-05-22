@@ -72,6 +72,85 @@ map<pair<string, char *>, Elf_X *> Elf_X::elf_x_by_ptr;
 #define USES_ELFUTILS
 #endif
 
+
+// Add definitions that may not be in all elf.h files
+#if !defined(EM_K10M)
+#define EM_K10M 180
+#endif
+#if !defined(EM_L10M)
+#define EM_L10M 181
+#endif
+#if !defined(EM_AARCH64)
+#define EM_AARCH64 183
+#endif
+#if !defined(PT_ARM_ARCHEXT)
+#define PT_ARM_ARCHEXT 0x70000000
+#endif
+#if !defined(PT_ARM_ARCHEXT_ARCHMSK)
+#define PT_ARM_ARCHEXT_ARCHMSK 0x000000ff
+#endif
+#if !defined(PT_ARM_ARCHEXT_ARCH_UNKN)
+#define PT_ARM_ARCHEXT_ARCH_UNKN    0x00
+#define PT_ARM_ARCHEXT_ARCHv4       0x01
+#define PT_ARM_ARCHEXT_ARCHv4T      0x02
+#define PT_ARM_ARCHEXT_ARCHv5T      0x03
+#define PT_ARM_ARCHEXT_ARCHv5TE     0x04
+#define PT_ARM_ARCHEXT_ARCHv5TEJ    0x05
+#define PT_ARM_ARCHEXT_ARCHv6       0x06
+#define PT_ARM_ARCHEXT_ARCHv6KZ     0x07
+#define PT_ARM_ARCHEXT_ARCHv6T2     0x08
+#define PT_ARM_ARCHEXT_ARCHv6K      0x09
+#define PT_ARM_ARCHEXT_ARCHv7       0x0a
+#define PT_ARM_ARCHEXT_ARCHv6M      0x0b
+#define PT_ARM_ARCHEXT_ARCHv6SM     0x0c
+#define PT_ARM_ARCHEXT_ARCHv7EM     0x0d
+#endif
+static Dyninst::Architecture GetArch(Elf_X *elf)
+{
+    switch(elf->e_machine())
+    {
+    case EM_PPC:
+        return Dyninst::Arch_ppc32;
+    case EM_PPC64:
+        return Dyninst::Arch_ppc64;
+    case EM_386:
+        return Dyninst::Arch_x86;
+    case EM_X86_64:
+    case EM_K10M:
+    case EM_L10M:
+        return Dyninst::Arch_x86_64;
+    case EM_ARM:
+    {
+        // http://infocenter.arm.com/help/topic/com.arm.doc.ihi0044f/IHI0044F_aaelf.pdf
+        // 5.2.1
+        /*for (int i = 0; i < elf->e_phnum(); i++) {
+            Elf_X_Phdr& phdr = elf->get_phdr(i);
+            if (!phdr.isValid()) {
+                continue;
+            }
+            
+            if (phdr.p_type() == PT_ARM_ARCHEXT) {
+                uint32_t platformCompat = *(uint32_t*)(BASE + phdr.p_offset());
+                if ((platformCompat & PT_ARM_ARCHEXT_ARCHMSK) <= PT_ARM_ARCHEXT_ARCHv6M) {
+                    return Dyninst::Arch_ARMv6M;
+                }
+            }
+        }*/
+
+        // TODO binutils does not currently generate the above section.
+        // Could read the arch specific attribute section: readelf -A <file>
+        // Tag_CPU_arch: v4T
+
+        // Default to currently only implemented arch.
+        return Dyninst::Arch_ARMv6M;
+    }
+    case EM_AARCH64:
+        return Dyninst::Arch_aarch64;
+    default:
+        return Dyninst::Arch_none;
+    }
+}
+
 Elf_X *Elf_X::newElf_X(int input, Elf_Cmd cmd, Elf_X *ref, string name)
 {
 #if defined(USES_ELFUTILS)
@@ -130,31 +209,14 @@ Elf_X::Elf_X(int input, Elf_Cmd cmd, Elf_X *ref)
     if (elf_version(EV_CURRENT) == EV_NONE) {
        return;
     }
+
     elf_errno(); // Reset elf_errno to zero.
     if (ref)
        elf = elf_begin(input, cmd, ref->e_elfp());
     else {
        elf = elf_begin(input, cmd, NULL);
     }
-    if (elf) {
-       char *identp = elf_getident(elf, NULL);
-       is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
-       isBigEndian = (identp && identp[EI_DATA] == ELFDATA2MSB);
-       isArchive = (elf_kind(elf) == ELF_K_AR);
-       
-       if (!is64)  ehdr32 = elf32_getehdr(elf);
-       else       ehdr64 = elf64_getehdr(elf);
-       
-       if (!is64) phdr32 = elf32_getphdr(elf);
-       else       phdr64 = elf64_getphdr(elf);
-    }
-
-    if (elf_kind(elf) == ELF_K_ELF) {
-       size_t phdrnum = e_phnum();
-       size_t shdrnum = e_shnum();
-       shdrs.resize(shdrnum);
-       phdrs.resize(phdrnum);
-    }
+    load();
 }
 
 unsigned short Elf_X::e_endian() const {
@@ -173,31 +235,33 @@ Elf_X::Elf_X(char *mem_image, size_t mem_size)
 
     elf_errno(); // Reset elf_errno to zero.
     elf = elf_memory(mem_image, mem_size);
-    
-    int err;
-    if ( (err = elf_errno()) != 0) {
-       //const char *msg = elf_errmsg(err);
-    }
-    
-    if (elf) {
-       if (elf_kind(elf) == ELF_K_ELF) {
-          char *identp = elf_getident(elf, NULL);
-          is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
-       }
-       
-       if (!is64) ehdr32 = elf32_getehdr(elf);
-       else       ehdr64 = elf64_getehdr(elf);
-       
-       if (!is64) phdr32 = elf32_getphdr(elf);
-       else       phdr64 = elf64_getphdr(elf);
-    }
 
-    if (elf_kind(elf) == ELF_K_ELF) {
-       size_t phdrnum = e_phnum();
-       size_t shdrnum = e_shnum();
-       shdrs.resize(shdrnum);
-       phdrs.resize(phdrnum);
+    load();
+}
+
+void Elf_X::load()
+{
+    if (elf) {
+        char *identp = elf_getident(elf, NULL);
+        is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
+        isBigEndian = (identp && identp[EI_DATA] == ELFDATA2MSB);
+        isArchive = (elf_kind(elf) == ELF_K_AR);
+        
+        if (!is64)  ehdr32 = elf32_getehdr(elf);
+        else        ehdr64 = elf64_getehdr(elf);
+        
+        if (!is64)  phdr32 = elf32_getphdr(elf);
+        else        phdr64 = elf64_getphdr(elf);
     }
+    
+    if (elf_kind(elf) == ELF_K_ELF) {
+        size_t phdrnum = e_phnum();
+        size_t shdrnum = e_shnum();
+        shdrs.resize(shdrnum);
+        phdrs.resize(phdrnum);
+    }
+    
+    arch = GetArch(this);
 }
 
 void Elf_X::end()
@@ -829,7 +893,7 @@ Elf_X_Data::Elf_X_Data(bool is64_, Elf_Data *input)
 // Read Interface
 void *Elf_X_Data::d_buf() const
 {
-    return data->d_buf;
+    return data ? data->d_buf : NULL;
 }
 
 Elf_Type Elf_X_Data::d_type() const
@@ -1747,37 +1811,9 @@ bool Elf_X::findDebugFile(std::string origfilename, string &output_name, char* &
   return false;
 }
 
-// Add definitions that may not be in all elf.h files
-#if !defined(EM_K10M)
-#define EM_K10M 180
-#endif
-#if !defined(EM_L10M)
-#define EM_L10M 181
-#endif
-#if !defined(EM_AARCH64)
-#define EM_AARCH64 183
-#endif
 Dyninst::Architecture Elf_X::getArch() const
 {
-    switch(e_machine())
-    {
-        case EM_PPC:
-            return Dyninst::Arch_ppc32;
-        case EM_PPC64:
-            return Dyninst::Arch_ppc64;
-        case EM_386:
-            return Dyninst::Arch_x86;
-        case EM_X86_64:
-        case EM_K10M:
-        case EM_L10M:
-            return Dyninst::Arch_x86_64;
-        case EM_ARM:
-            return Dyninst::Arch_aarch32;
-        case EM_AARCH64:
-            return Dyninst::Arch_aarch64;
-        default:
-            return Dyninst::Arch_none;
-    }
+    return arch;
 }
 
 // ------------------------------------------------------------------------

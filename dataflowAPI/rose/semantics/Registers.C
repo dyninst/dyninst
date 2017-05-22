@@ -2,6 +2,7 @@
 //#include "sage3basic.h"
 #include "Registers.h"
 #include "external/rose/armv8InstructionEnum.h"
+#include "external/rose/ARMv6MInstructionEnum.h"
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
 #include <boost/foreach.hpp>
@@ -703,6 +704,96 @@ RegisterDictionary::dictionary_armv8() {
     }
     return regs;
 }
+
+// This content was generated on Mon Nov 28 16:25:22 CET 2016
+// Do not edit directly.
+// Contact: eda@tum
+
+// Begin registers for ARMv6M.
+const RegisterDictionary *RegisterDictionary::dictionary_ARMv6M()
+{
+	static RegisterDictionary *regs = NULL;
+	
+	if (!regs)
+	{
+		regs = new RegisterDictionary("ARMv6M");
+		
+		regs->insert("R", ARMv6M_regclass_r, 0, 0, 512);
+		regs->insert("R0", ARMv6M_regclass_r, 1, 0, 32);
+		regs->insert("R1", ARMv6M_regclass_r, 2, 0, 32);
+		regs->insert("R2", ARMv6M_regclass_r, 3, 0, 32);
+		regs->insert("R3", ARMv6M_regclass_r, 4, 0, 32);
+		regs->insert("R4", ARMv6M_regclass_r, 5, 0, 32);
+		regs->insert("R5", ARMv6M_regclass_r, 6, 0, 32);
+		regs->insert("R6", ARMv6M_regclass_r, 7, 0, 32);
+		regs->insert("R7", ARMv6M_regclass_r, 8, 0, 32);
+		regs->insert("R8", ARMv6M_regclass_r, 9, 0, 32);
+		regs->insert("R9", ARMv6M_regclass_r, 10, 0, 32);
+		regs->insert("R10", ARMv6M_regclass_r, 11, 0, 32);
+		regs->insert("R11", ARMv6M_regclass_r, 12, 0, 32);
+		regs->insert("R12", ARMv6M_regclass_r, 13, 0, 32);
+		regs->insert("R13", ARMv6M_regclass_r, 14, 0, 32);
+		regs->insert("R14", ARMv6M_regclass_r, 15, 0, 32);
+		regs->insert("R15", ARMv6M_regclass_r, 16, 0, 32);
+		regs->insert("SP", ARMv6M_regclass_r, 14, 0, 32);
+		regs->insert("LR", ARMv6M_regclass_r, 15, 0, 32);
+		regs->insert("PC", ARMv6M_regclass_r, 16, 0, 32);
+		regs->insert("PSR", ARMv6M_regclass_r, 20, 0, 32);
+		regs->insert("PSR0", ARMv6M_regclass_r, 21, 0, 1);
+		regs->insert("PSR1", ARMv6M_regclass_r, 22, 0, 1);
+		regs->insert("PSR2", ARMv6M_regclass_r, 23, 0, 1);
+		regs->insert("PSR3", ARMv6M_regclass_r, 24, 0, 1);
+		regs->insert("PSR4", ARMv6M_regclass_r, 25, 0, 1);
+		regs->insert("PSR5", ARMv6M_regclass_r, 26, 0, 1);
+		regs->insert("PSR6", ARMv6M_regclass_r, 27, 0, 1);
+		regs->insert("PSR7", ARMv6M_regclass_r, 28, 0, 1);
+		regs->insert("PSR8", ARMv6M_regclass_r, 29, 0, 1);
+		regs->insert("PSR9", ARMv6M_regclass_r, 30, 0, 1);
+		regs->insert("PSR10", ARMv6M_regclass_r, 31, 0, 1);
+		regs->insert("PSR11", ARMv6M_regclass_r, 32, 0, 1);
+		regs->insert("PSR12", ARMv6M_regclass_r, 33, 0, 1);
+		regs->insert("PSR13", ARMv6M_regclass_r, 34, 0, 1);
+		regs->insert("PSR14", ARMv6M_regclass_r, 35, 0, 1);
+		regs->insert("PSR15", ARMv6M_regclass_r, 36, 0, 1);
+		regs->insert("PSR16", ARMv6M_regclass_r, 37, 0, 1);
+		regs->insert("PSR17", ARMv6M_regclass_r, 38, 0, 1);
+		regs->insert("PSR18", ARMv6M_regclass_r, 39, 0, 1);
+		regs->insert("PSR19", ARMv6M_regclass_r, 40, 0, 1);
+		regs->insert("PSR20", ARMv6M_regclass_r, 41, 0, 1);
+		regs->insert("PSR21", ARMv6M_regclass_r, 42, 0, 1);
+		regs->insert("PSR22", ARMv6M_regclass_r, 43, 0, 1);
+		regs->insert("PSR23", ARMv6M_regclass_r, 44, 0, 1);
+		regs->insert("PSR24", ARMv6M_regclass_r, 45, 0, 1);
+		regs->insert("PSR25", ARMv6M_regclass_r, 46, 0, 1);
+		regs->insert("PSR26", ARMv6M_regclass_r, 47, 0, 1);
+		regs->insert("PSR27", ARMv6M_regclass_r, 48, 0, 1);
+		regs->insert("PSR28", ARMv6M_regclass_r, 49, 0, 1);
+		regs->insert("PSR29", ARMv6M_regclass_r, 50, 0, 1);
+		regs->insert("PSR30", ARMv6M_regclass_r, 51, 0, 1);
+		regs->insert("PSR31", ARMv6M_regclass_r, 52, 0, 1);
+		regs->insert("APSR", ARMv6M_regclass_r, 53, 0, 4);
+		regs->insert("APSR0", ARMv6M_regclass_r, 49, 0, 1);
+		regs->insert("APSR1", ARMv6M_regclass_r, 50, 0, 1);
+		regs->insert("APSR2", ARMv6M_regclass_r, 51, 0, 1);
+		regs->insert("APSR3", ARMv6M_regclass_r, 52, 0, 1);
+		regs->insert("N", ARMv6M_regclass_r, 52, 0, 1);
+		regs->insert("Z", ARMv6M_regclass_r, 51, 0, 1);
+		regs->insert("C", ARMv6M_regclass_r, 50, 0, 1);
+		regs->insert("V", ARMv6M_regclass_r, 49, 0, 1);
+		regs->insert("EPSR", ARMv6M_regclass_r, 45, 0, 1);
+		regs->insert("T", ARMv6M_regclass_r, 45, 0, 1);
+		regs->insert("IPSR", ARMv6M_regclass_r, 64, 0, 6);
+		regs->insert("IPSR0", ARMv6M_regclass_r, 21, 0, 1);
+		regs->insert("IPSR1", ARMv6M_regclass_r, 22, 0, 1);
+		regs->insert("IPSR2", ARMv6M_regclass_r, 23, 0, 1);
+		regs->insert("IPSR3", ARMv6M_regclass_r, 24, 0, 1);
+		regs->insert("IPSR4", ARMv6M_regclass_r, 25, 0, 1);
+		regs->insert("IPSR5", ARMv6M_regclass_r, 26, 0, 1);
+	}
+	
+	return regs;
+}
+// End registers for ARMv6M.
 
 /** PowerPC registers. */
 //const RegisterDictionary *

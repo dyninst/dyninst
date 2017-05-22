@@ -56,12 +56,18 @@ namespace Dyninst
         Arch_ppc32  = 0x24000000,
         Arch_ppc64  = 0x28000000,
 		Arch_aarch32 = 0x44000000, //for later use
-		Arch_aarch64 = 0x48000000
+		Arch_aarch64 = 0x48000000,
+        Arch_ARMv6M = 0x4c000000
     } Architecture;
 
 
     COMMON_EXPORT bool isSegmentRegister(int regClass);
+
     COMMON_EXPORT unsigned getArchAddressWidth(Dyninst::Architecture arch);
+
+    // Return actual address without any encoded information. E.g: ARM Thumb bit.
+    COMMON_EXPORT Address stripAddrEncoding(Address addr, Dyninst::Architecture arch);
+
     class COMMON_EXPORT MachRegister {
         friend struct ::Dyninst::x86OperandParser;
         friend struct ::Dyninst::ppcOperandParser;
@@ -1390,6 +1396,98 @@ namespace Dyninst
       DEF_REGISTER(fpsr,     5 | D_REG  |SPR | Arch_aarch64, "aarch64");
 
 	}	//end of aarch64 namespace
+    
+    // This content was generated on Thu Nov 03 14:13:54 CET 2016
+    // Do not edit directly.
+    // Contact: eda@tum
+
+    // Begin generated registers.
+    namespace ARMv6M {
+
+    // Register classes.
+    const signed int GPR = 0x00010000;
+    const signed int SPR = 0x00020000;
+
+    // Register sizes.
+    const signed int WIDTH_1	= 0x00000100;
+    const signed int WIDTH_8	= 0x00000800;
+    const signed int WIDTH_16	= 0x00001000;
+    const signed int WIDTH_32	= 0x00002000;
+    const signed int WIDTH_64	= 0x00004000;
+
+    DEF_REGISTER(R0, 1 | WIDTH_32 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(R1, 2 | WIDTH_32 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(R2, 3 | WIDTH_32 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(R3, 4 | WIDTH_32 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(R4, 5 | WIDTH_32 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(R5, 6 | WIDTH_32 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(R6, 7 | WIDTH_32 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(R7, 8 | WIDTH_32 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(R8, 9 | WIDTH_32 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(R9, 10 | WIDTH_32 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(R10, 11 | WIDTH_32 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(R11, 12 | WIDTH_32 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(R12, 13 | WIDTH_32 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(R13, 14 | WIDTH_32 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(R14, 15 | WIDTH_32 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(R15, 16 | WIDTH_32 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(SP, 14 | WIDTH_32 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(LR, 15 | WIDTH_32 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PC, 16 | WIDTH_32 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR, 20 | WIDTH_32 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR0, 21 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR1, 22 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR2, 23 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR3, 24 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR4, 25 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR5, 26 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR6, 27 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR7, 28 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR8, 29 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR9, 30 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR10, 31 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR11, 32 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR12, 33 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR13, 34 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR14, 35 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR15, 36 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR16, 37 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR17, 38 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR18, 39 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR19, 40 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR20, 41 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR21, 42 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR22, 43 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR23, 44 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR24, 45 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR25, 46 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR26, 47 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR27, 48 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR28, 49 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR29, 50 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR30, 51 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(PSR31, 52 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(APSR0, 49 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(APSR1, 50 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(APSR2, 51 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(APSR3, 52 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(N, 52 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(Z, 51 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(C, 50 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(V, 49 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(EPSR, 45 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(T, 45 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(IPSR0, 21 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(IPSR1, 22 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(IPSR2, 23 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(IPSR3, 24 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(IPSR4, 25 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+    DEF_REGISTER(IPSR5, 26 | WIDTH_1 | Arch_ARMv6M, "ARMv6M");
+
+    } // namespace ARMv6M
+    // End generated registers.
+
+
 }
 
 #endif

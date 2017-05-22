@@ -103,12 +103,14 @@ verbose_log(Address currAddr, Edges_t::iterator & curEdge)
 static void 
 getBlockInsns(Block &blk, std::set<Address> &addrs)
 {
+    Architecture arch = blk.region()->getArch();
+    Address cleanAddr = stripAddrEncoding(blk.start(), arch);
     unsigned bufSize = blk.size();
     using namespace InstructionAPI;
     const unsigned char* bufferBegin = (const unsigned char *)
-        (blk.obj()->cs()->getPtrToInstruction(blk.start()));
+        (blk.obj()->cs()->getPtrToInstruction(cleanAddr));
     InstructionDecoder dec = InstructionDecoder
-        (bufferBegin, bufSize, blk.region()->getArch());
+        (bufferBegin, bufSize, arch);
     InstructionAdapter_t ah(dec, blk.start(), blk.obj(), blk.region(), blk.obj()->cs(), &blk);
 
 	for (; ah.getAddr() < blk.end(); ah.advance()) {

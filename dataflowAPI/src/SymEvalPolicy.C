@@ -90,10 +90,17 @@ void SymEvalPolicy::startInstruction(SgAsmx86Instruction *) {
 
 void SymEvalPolicy::finishInstruction(SgAsmx86Instruction *) {
 }
+
 void SymEvalPolicy::startInstruction(SgAsmPowerpcInstruction *) {
 }
 
 void SymEvalPolicy::finishInstruction(SgAsmPowerpcInstruction *) {
+}
+
+void SymEvalPolicy::startInstruction(SgAsmARMv6MInstruction *) {
+}
+
+void SymEvalPolicy::finishInstruction(SgAsmARMv6MInstruction *) {
 }
 
 Absloc SymEvalPolicy::convert(PowerpcRegisterClass regtype, int regNum)

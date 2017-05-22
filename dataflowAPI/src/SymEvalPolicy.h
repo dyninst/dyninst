@@ -69,6 +69,7 @@
 
 #include "../rose/SgAsmx86Instruction.h"
 #include "../rose/SgAsmPowerpcInstruction.h"
+#include "../rose/SgAsmARMv6MInstruction.h"
 // Also need ROSE header files... argh. 
 
 // For typedefs
@@ -141,9 +142,11 @@ struct Handle {
   
    void startInstruction(SgAsmx86Instruction *);
    void startInstruction(SgAsmPowerpcInstruction *);
+   void startInstruction(SgAsmARMv6MInstruction *);
 
    void finishInstruction(SgAsmx86Instruction *);
    void finishInstruction(SgAsmPowerpcInstruction *);
+   void finishInstruction(SgAsmARMv6MInstruction *);
     
    // Policy classes must implement the following methods:
    Handle<32> readGPR(X86GeneralPurposeRegister r) {

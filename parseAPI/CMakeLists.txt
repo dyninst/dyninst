@@ -22,6 +22,7 @@ set (SRC_LIST
         src/IA_x86Details.C 
         src/IA_powerDetails.C 
         src/IA_aarch64Details.C 
+        src/IA_ARMv6MDetails.C
         src/IA_platformDetailsFactory.C 
         src/CFGModifier.C
         src/StackTamperVisitor.C

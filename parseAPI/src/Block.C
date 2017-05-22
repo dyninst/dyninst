@@ -73,9 +73,11 @@ Block::consistent(Address addr, Address & prev_insn)
         isrc = _obj->cs();
     else
         isrc = region();
+    Architecture arch = isrc->getArch();
+    Address cleanAddrStart = stripAddrEncoding(_start, arch);
     const unsigned char * buf =
-        (const unsigned char*)(region()->getPtrToInstruction(_start));
-    InstructionDecoder dec(buf,size(),isrc->getArch());
+        (const unsigned char*)(region()->getPtrToInstruction(cleanAddrStart));
+    InstructionDecoder dec(buf, size(), arch);
     InstructionAdapter_t ah(dec,_start,_obj,region(),isrc, this);
 
     Address cur = ah.getAddr();
@@ -233,14 +235,17 @@ bool ParseAPI::Block::wasUserAdded() const {
 void
 Block::getInsns(Insns &insns) const {
  Offset off = start();
+ Architecture arch = obj()->cs()->getArch();
+ Address cleanAddr = stripAddrEncoding(off, arch);
   const unsigned char *ptr =
-    (const unsigned char *)region()->getPtrToInstruction(off);
+    (const unsigned char *)region()->getPtrToInstruction(cleanAddr);
   if (ptr == NULL) return;
-  InstructionDecoder d(ptr, size(), obj()->cs()->getArch());
-  while (off < end()) {
+  InstructionDecoder d(ptr, size(), arch);
+  Address cleanAddrEnd = stripAddrEncoding(end(), arch);
+  while (cleanAddr < cleanAddrEnd) {
     Instruction::Ptr insn = d.decode();
-    insns[off] = insn;
-    off += insn->size();
+    insns[cleanAddr] = insn;
+    cleanAddr += insn->size();
   }
 }
 

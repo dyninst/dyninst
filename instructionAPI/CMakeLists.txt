@@ -19,6 +19,7 @@ set (SRC_LIST
      src/InstructionDecoder-x86.C
      src/InstructionDecoder-power.C 
      src/InstructionDecoder-aarch64.C 
+     src/InstructionDecoder-ARMv6M.C
      src/InstructionDecoderImpl.C
   )
 SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)

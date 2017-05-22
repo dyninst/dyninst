@@ -90,6 +90,7 @@ namespace Dyninst
         friend class InstructionDecoder_x86;
         friend class InstructionDecoder_power;
         friend class InstructionDecoder_aarch64;
+        friend class InstructionDecoder_ARMv6M;
 
         struct CFT
         {
@@ -288,6 +289,7 @@ namespace Dyninst
       bool m_Valid;
       raw_insn_T m_RawInsn;
       unsigned int m_size;
+      InsnCategory m_category = c_NoCategory;
       Architecture arch_decoded_from;
       mutable std::list<CFT> m_Successors;
       static int numInsnsAllocated;

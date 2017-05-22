@@ -85,14 +85,23 @@ namespace Dyninst
 					addResult() : funcT("+") 
 					{
 					}
-	
-					virtual ~addResult()
+					
+					Result operator()(const Result& arg1, const Result& arg2) const
+					{
+						return arg1 + arg2;
+					}
+			};
+            
+            class INSTRUCTION_EXPORT subResult : public funcT
+			{
+				public:
+					subResult() : funcT("-") 
 					{
 					}
 					
 					Result operator()(const Result& arg1, const Result& arg2) const
 					{
-						return arg1 + arg2;
+						return arg1 - arg2;
 					}
 			};
 			
@@ -100,10 +109,6 @@ namespace Dyninst
 			{
 				public:
 					multResult() : funcT("*")
-					{
-					}
-					
-					virtual ~multResult()
 					{
 					}
 	
@@ -120,10 +125,6 @@ namespace Dyninst
 					{
 					}
 	
-					virtual ~leftShiftResult()
-					{
-					}
-	
 					Result operator()(const Result& arg1, const Result& arg2) const
 					{
 						return arg1 << arg2;
@@ -134,10 +135,6 @@ namespace Dyninst
 			{
 				public:
 					rightArithmeticShiftResult() : funcT("ASR")
-					{
-					}
-	
-					virtual ~rightArithmeticShiftResult()
 					{
 					}
 	
@@ -154,10 +151,6 @@ namespace Dyninst
 					{
 					}
 	
-					virtual ~andResult()
-					{
-					}
-	
 					Result operator()(const Result& arg1, const Result& arg2) const
 					{
 						return arg1 & arg2;
@@ -171,10 +164,6 @@ namespace Dyninst
 					{
 					}
 	
-					virtual ~orResult()
-					{
-					}
-	
 					Result operator()(const Result& arg1, const Result& arg2) const
 					{
 						return arg1 | arg2;
@@ -185,10 +174,6 @@ namespace Dyninst
 			{
 				public:
 					rightLogicalShiftResult() : funcT("LSR")
-					{
-					}
-	
-					virtual ~rightLogicalShiftResult()
 					{
 					}
 	
@@ -224,10 +209,6 @@ namespace Dyninst
 			{
 				public:
 					rightRotateResult() : funcT("ROR")
-					{
-					}
-	
-					virtual ~rightRotateResult()
 					{
 					}
 	
@@ -267,6 +248,19 @@ namespace Dyninst
 						rightLogicalShiftResult lhsRightShift;
 						Result arg2mod = Result(arg2.type, arg2val);
 						return lhsRightShift(arg1, arg2mod) | (rot << leftShiftAmount);
+					}
+			};
+
+			class INSTRUCTION_EXPORT bitwiseXorResult : public funcT
+			{
+				public:
+					bitwiseXorResult() : funcT("^") 
+					{
+					}
+					
+					Result operator()(const Result& arg1, const Result& arg2) const
+					{
+						return arg1 ^ arg2;
 					}
 			};
 			
@@ -363,6 +357,7 @@ namespace Dyninst
 			virtual void apply(Visitor* v);
 			
 			bool isAdd() const;
+			bool isSubtraction() const;
 			bool isMultiply() const;
 			bool isLeftShift() const;
 			bool isRightArithmeticShift() const;
@@ -370,6 +365,7 @@ namespace Dyninst
 			bool isOrResult() const;
 			bool isRightLogicalShift() const;
 			bool isRightRotate() const;
+			bool isBitwiseXor() const;
 			
 		protected:
 			virtual bool isStrictEqual(const InstructionAST& rhs) const

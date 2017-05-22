@@ -111,6 +111,7 @@ void IA_IAPI::initASTs()
         framePtr[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ppc32)));
         framePtr[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ppc64)));
         framePtr[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_aarch64)));
+        framePtr[Arch_ARMv6M] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ARMv6M)));
     }
     if(stackPtr.empty())
     {
@@ -119,6 +120,7 @@ void IA_IAPI::initASTs()
         stackPtr[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ppc32)));
         stackPtr[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ppc64)));
         stackPtr[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_aarch64)));
+        stackPtr[Arch_ARMv6M] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ARMv6M)));
     }
     if(thePC.empty())
     {
@@ -127,6 +129,7 @@ void IA_IAPI::initASTs()
         thePC[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
         thePC[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ppc64)));
         thePC[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_aarch64)));
+        thePC[Arch_ARMv6M] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ARMv6M)));
     }
 }
 
@@ -842,9 +845,10 @@ std::pair<bool, Address> IA_IAPI::getCFT() const
     Expression::Ptr callTarget = curInsn()->getControlFlowTarget();
 	if (!callTarget) return make_pair(false, 0);
        // FIXME: templated bind(),dammit!
-    callTarget->bind(thePC[_isrc->getArch()].get(), Result(s64, current));
+    Dyninst::InstructionAPI::RegisterAST::Ptr pcExpr = thePC[_isrc->getArch()];
+    callTarget->bind(pcExpr.get(), Result(Result::makeIntType(pcExpr->getID().size(), false), current));
     parsing_printf("%s[%d]: binding PC %s in %s to 0x%x...", FILE__, __LINE__,
-                   thePC[_isrc->getArch()]->format().c_str(), curInsn()->format().c_str(), current);
+                   pcExpr->format().c_str(), curInsn()->format().c_str(), current);
 
     Result actualTarget = callTarget->eval();
 #if defined(os_vxworks)

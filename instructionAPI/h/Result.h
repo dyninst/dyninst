@@ -595,14 +595,47 @@ namespace Dyninst
 	  return 0;
 	};
       }
+      
+      // Returns an integral Result_Type that matches the arguments.
+      static Result_Type makeIntType(int size, bool sign)
+      {
+          switch (size)
+          {
+          case 1:
+              return sign ? s8 : u8;
+          case 2:
+              return sign ? s16 : u16;
+          case 3:
+              assert(!sign && "Invalid arguments");
+              return u24;
+          case 4:
+              return sign ? s32 : u32;
+          case 6:
+              return sign ? s48 : u48;
+          case 8:
+              return sign ? s64 : u64;
+          case 16:
+              return dbl128;
+          case 192:
+              return m192;
+          case 256:
+              return m256;
+          case 512:
+              return m512;
+          default:
+              assert(0 && "Invalid arguments");
+          }
+      }
     };
 
     INSTRUCTION_EXPORT Result operator+(const Result& arg1, const Result& arg2);
+    INSTRUCTION_EXPORT Result operator-(const Result& arg1, const Result& arg2);
     INSTRUCTION_EXPORT Result operator*(const Result& arg1, const Result& arg2);
     INSTRUCTION_EXPORT Result operator<<(const Result& arg1, const Result& arg2);
     INSTRUCTION_EXPORT Result operator>>(const Result& arg1, const Result& arg2);
     INSTRUCTION_EXPORT Result operator&(const Result& arg1, const Result& arg2);
     INSTRUCTION_EXPORT Result operator|(const Result& arg1, const Result& arg2);
+    INSTRUCTION_EXPORT Result operator^(const Result& arg1, const Result& arg2);
 
   };
 };

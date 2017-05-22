@@ -606,7 +606,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    Object *getObject();
    const Object *getObject() const;
    ModRangeLookup* mod_lookup();
-
  private:
    Object *obj_private;
 

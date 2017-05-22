@@ -34,10 +34,12 @@
 #include "../rose/SgAsmInstruction.h"
 #include "../rose/SgAsmPowerpcInstruction.h"
 #include "../rose/SgAsmx86Instruction.h"
+#include "../rose/SgAsmARMv6MInstruction.h"
 
 #include "../rose/x86InstructionSemantics.h"
 #include "../rose/x86_64InstructionSemantics.h"
 #include "../rose/powerpcInstructionSemantics.h"
+#include "../rose/ARMv6MInstructionSemantics.h"
 
 #include "../rose/semantics/DispatcherARM64.h"
 
@@ -93,5 +95,13 @@ bool SymbolicExpansion::expandAarch64(SgAsmInstruction *rose_insn, BaseSemantics
     }
 
     return false;
+}
+
+bool SymbolicExpansion::expandARMv6M(SgAsmInstruction *rose_insn, SymEvalPolicy &policy) {
+    SgAsmARMv6MInstruction *insn = static_cast<SgAsmARMv6MInstruction *>(rose_insn);
+
+    ARMv6MInstructionSemantics<SymEvalPolicy, Handle> t(policy);
+    t.processInstruction(insn);
+    return true;
 }
 
