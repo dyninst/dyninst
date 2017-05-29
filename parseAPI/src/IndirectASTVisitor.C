@@ -272,11 +272,13 @@ AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
 		findIncorrectFormat = true;
 		return AST::Ptr();
 	    }
+/*
 	    if (!b->obj()->cs()->isReadOnly(tableBase)) {
 	        parsing_printf("\ttableBase 0x%lx not read only, not jump table format\n", tableBase);
 		findIncorrectFormat = true;
 		return AST::Ptr();
 	    }
+*/	    
 	    // Note that this table base may not be within a memory read.
 	    // Functions with variable arguments often have an indirect jump with form:
 	    // targetBase - index * 4
@@ -431,7 +433,7 @@ bool JumpTableReadVisitor::PerformMemoryRead(Address addr, int64_t &v) {
     addr -= cs->loadAddress();
 #endif
     if (!cs->isCode(addr) && !cs->isData(addr)) return false;
-    if (!cs->isReadOnly(addr)) return false;
+//    if (!cs->isReadOnly(addr)) return false;
     switch (memoryReadSize) {
         case 8:
 	    v = *(const uint64_t *) cs->getPtrToInstruction(addr);

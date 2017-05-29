@@ -22,7 +22,8 @@ using namespace Dyninst::InstructionAPI;
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
     parsing_printf("Looking for thunk\n");
-//    if (block->last() == 0x526e74) dyn_debug_parsing=1; else dyn_debug_parsing=0;
+    
+//    if (block->last() == 0xaa5be9) dyn_debug_parsing=1; else dyn_debug_parsing=0;
 
 //  Find all blocks that reach the block containing the indirect jump
 //  This is a prerequisit for finding thunks
@@ -87,6 +88,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
               jtfp.index, 
 	      b, 
 	      GetMemoryReadSize(jtfp.memLoc), 
+	      jtfp.constAddr,
 	      jumpTableOutEdges);
     parsing_printf(", find %d edges\n", jumpTableOutEdges.size());	      
     outEdges.insert(outEdges.end(), jumpTableOutEdges.begin(), jumpTableOutEdges.end());
@@ -183,6 +185,7 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
                                             AbsRegion index,
 					    StridedInterval &indexBound,   
 					    int memoryReadSize,
+					    set<Address> &constAddr,
 					    std::vector<std::pair<Address, Dyninst::ParseAPI::EdgeTypeEnum> > &targetEdges) {
     CodeSource *cs = block->obj()->cs();					    
     set<Address> jumpTargets;
@@ -191,6 +194,17 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
         JumpTableReadVisitor jtrv(index, v, cs, false, memoryReadSize);
 	jumpTargetExpr->accept(&jtrv);
 	if (jtrv.valid && cs->isCode(jtrv.targetAddress)) {
+	    bool overlap = false;
+	    set<Block*> blocks;
+	    block->obj()->findCurrentBlocks(block->region(), jtrv.targetAddress, blocks);
+	    for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
+	        if ((*bit)->start() < jtrv.targetAddress && jtrv.targetAddress <= (*bit)->end()) {
+		    overlap = true;
+	            parsing_printf("WARNING: resolving jump tables leads to an address wihtin existing basic blocks (%lx)\n", jtrv.targetAddress);
+		    break;
+		}
+	    }
+	    if (overlap) break;
 	    jumpTargets.insert(jtrv.targetAddress);
 	} else {
 	    // We have a bad entry. We stop here, as we have wrong information
@@ -199,6 +213,11 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
 	    break;
 	}
 	if (indexBound.stride == 0) break;
+    }
+    for (auto ait = constAddr.begin(); ait != constAddr.end(); ++ait) {
+        if (cs->isCode(*ait)) {
+	    jumpTargets.insert(*ait);
+	}
     }
     for (auto tit = jumpTargets.begin(); tit != jumpTargets.end(); ++tit) {
         targetEdges.push_back(make_pair(*tit, INDIRECT));
@@ -215,7 +234,7 @@ int IndirectControlFlowAnalyzer::GetMemoryReadSize(Assignment::Ptr memLoc) {
 	if (o.readsMemory()) {
 	    Expression::Ptr exp = o.getValue();
 	    return exp->size();
-	    break;
 	}
     }
+    return 0;
 }

@@ -133,9 +133,46 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	    }
 	    AST::Ptr rhs = exprs[p->assign()];	    
 	    AST::Ptr lhs = VariableAST::create(Variable(p->assign()->out())); 
-	    
 	    // TODO: there may be more than one expression for a single variable
-	    inputs[lhs] = rhs;
+	    inputs.insert(make_pair(lhs,  rhs));
+	}
+	if (g->isExitNode(n)) {
+	    // Here we try to detect the case where there are multiple
+	    // paths to the indirect jump, and on some of the paths, the jump
+	    // target has constnt values, and on some other path, the jump target
+	    // may have a jump table format
+	    int nonConstant = 0;
+	    int match = 0;
+	    for (auto iit = inputs.begin(); iit != inputs.end(); ++iit) {
+	        AST::Ptr lhs = iit->first;
+		AST::Ptr rhs = iit->second;
+	        if (*lhs == *exp) {
+		    match++;
+		    if (rhs->getID() == AST::V_ConstantAST) {
+		        ConstantAST::Ptr c = boost::static_pointer_cast<ConstantAST>(rhs);
+			constAddr.insert(c->val().val);
+		    } else {
+		        nonConstant++;
+			jumpTarget = rhs;
+		    }
+		}
+	    }
+	    if (match == 0) {
+	        // Thiw will happen when the indirect jump directly reads from memory,
+		// instead of jumping to the value of a register.
+		exp = SymbolicExpression::SubstituteAnAST(exp, inputs);
+	        jumpTarget = exp;
+		break;
+	    }
+	    if (nonConstant > 1) {
+	        parsing_printf("Find %d different jump target formats\n", nonConstant);
+		jumpTableFormat = false;
+		return false;
+	    } else if (nonConstant == 0) {
+	        parsing_printf("Only constant target values found so far, no need to check jump target format\n");
+		return true;
+	    }
+	    break;
 	}
 	// TODO: need to consider thunk
 	exp = SymbolicExpression::SubstituteAnAST(exp, inputs);
@@ -150,12 +187,16 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 		working_list.push(p);
 	    }
 	}
+    }
+    if (!jumpTarget) {
+        parsing_printf("\t Do not find a potential jump target expression\n");
+	jumpTableFormat = false;
+	return false;
 
-	// The last expression should be the jump target
-	jumpTarget = exp;
     }
     parsing_printf("Check expression %s\n", jumpTarget->format().c_str());
     JumpTableFormatVisitor jtfv(block);
+    assert(jumpTarget);
     jumpTarget->accept(&jtfv);
     if (jtfv.findIncorrectFormat) {
         jumpTableFormat = false;

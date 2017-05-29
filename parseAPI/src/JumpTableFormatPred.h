@@ -28,7 +28,7 @@ public:
     Assignment::Ptr memLoc;
     AST::Ptr jumpTargetExpr;
 
-
+    set<Address> constAddr;
 
     JumpTableFormatPred(ParseAPI::Function *f,
                         ParseAPI::Block *b,
