@@ -23,7 +23,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
     parsing_printf("Looking for thunk\n");
     
-//    if (block->last() == 0xaa5be9) dyn_debug_parsing=1; else dyn_debug_parsing=0;
+    if (block->last() == 0x4f709c) dyn_debug_parsing=1; else dyn_debug_parsing=0;
 
 //  Find all blocks that reach the block containing the indirect jump
 //  This is a prerequisit for finding thunks
@@ -199,9 +199,13 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
 	    block->obj()->findCurrentBlocks(block->region(), jtrv.targetAddress, blocks);
 	    for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
 	        if ((*bit)->start() < jtrv.targetAddress && jtrv.targetAddress <= (*bit)->end()) {
-		    overlap = true;
-	            parsing_printf("WARNING: resolving jump tables leads to an address wihtin existing basic blocks (%lx)\n", jtrv.targetAddress);
-		    break;
+		    Block::Insns insns;
+		    (*bit)->getInsns(insns);
+		    if (insns.find(jtrv.targetAddress) == insns.end()) {
+		        overlap = true;
+			parsing_printf("WARNING: resolving jump tables leads to address %lx, which causes overlapping instructions in basic blocks [%lx,%lx)\n", jtrv.targetAddress, (*bit)->start(), (*bit)->end());
+			break;
+		    }
 		}
 	    }
 	    if (overlap) break;

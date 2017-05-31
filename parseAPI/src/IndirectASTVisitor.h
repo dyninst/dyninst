@@ -73,10 +73,12 @@ public:
     using ASTVisitor::visit;
     AbsRegion index;
     int numOfVar;
+    int memoryReadLayer;
     ParseAPI::Block *b;
     bool findIncorrectFormat;
-    bool findTableBase;
+    bool findTableBase;    
     bool findIndex;
+    bool firstAdd;
     virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
     virtual ASTPtr visit(DataflowAPI::VariableAST *ast);
     JumpTableFormatVisitor(ParseAPI::Block *bl);

@@ -194,9 +194,10 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	return false;
 
     }
-    parsing_printf("Check expression %s\n", jumpTarget->format().c_str());
     JumpTableFormatVisitor jtfv(block);
     assert(jumpTarget);
+    jumpTarget = SymbolicExpression::SimplifyAnAST(jumpTarget, 0);
+    parsing_printf("Check expression %s\n", jumpTarget->format().c_str());    
     jumpTarget->accept(&jtfv);
     if (jtfv.findIncorrectFormat) {
         jumpTableFormat = false;

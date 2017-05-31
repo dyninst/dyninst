@@ -922,7 +922,13 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                }
                    break;
                default:
-                   assert(!"unknown register type!");
+	           // We do not want to assert here.
+		   // Set these output variable to invalid values and let the
+		   // semantics code to throw exceptions
+	           p = -1;
+		   c = -1;
+		   n = -1;
+//                   assert(!"unknown register type!");
                    break;
            }
            return;

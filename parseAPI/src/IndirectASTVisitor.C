@@ -227,29 +227,28 @@ AST::Ptr ComparisonVisitor::visit(DataflowAPI::RoseAST *ast) {
 JumpTableFormatVisitor::JumpTableFormatVisitor(ParseAPI::Block *bl) {
     b = bl;
     numOfVar = 0;
+    memoryReadLayer = 0; 
     findIncorrectFormat = false;
     findTableBase = false;
     findIndex = false;
+    firstAdd = true;
 }
 
 AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
-    unsigned totalChildren = ast->numChildren();
-    for (unsigned i = 0 ; i < totalChildren; ++i) {
-        ast->child(i)->accept(this);
+    if (ast->val().op == ROSEOperation::derefOp) {
+        memoryReadLayer++;
+	if (memoryReadLayer > 1) {
+	    parsing_printf("More than one layer of memory accesses, not jump table format\n");
+	    findIncorrectFormat = true;
+	    return AST::Ptr();
+	}
+	ast->child(0)->accept(this);
+	memoryReadLayer--;
+	return AST::Ptr();
     }
 
-    if (ast->val().op == ROSEOperation::derefOp) {
-        // We only check the first memory read
-	if (ast->child(0)->getID() == AST::V_RoseAST) {
-	    RoseAST::Ptr roseAST = boost::static_pointer_cast<RoseAST>(ast->child(0));
-	    if (roseAST->val().op == ROSEOperation::derefOp) {
-	        // Two directly nested memory accesses cannot be jump tables
-		parsing_printf("Two directly nested memory access, not jump table format\n");
-	        findIncorrectFormat = true;
-		return AST::Ptr();
-	    }
-	}
-    } else if (ast->val().op == ROSEOperation::addOp) {
+    if (ast->val().op == ROSEOperation::addOp && memoryReadLayer > 0 && firstAdd) {
+        firstAdd = false;
         Address tableBase = 0;
 	if (ast->child(0)->getID() == AST::V_ConstantAST && PotentialIndexing(ast->child(1))) {
 	    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(ast->child(0));
@@ -279,13 +278,11 @@ AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
 		return AST::Ptr();
 	    }
 */	    
-	    // Note that this table base may not be within a memory read.
-	    // Functions with variable arguments often have an indirect jump with form:
-	    // targetBase - index * 4
-	    // We merge this special case with other general jump table cases.
 	    findTableBase = true;
        }
-    } else if (ast->val().op == ROSEOperation::uMultOp || ast->val().op == ROSEOperation::sMultOp) {
+    } 
+    
+    if ((ast->val().op == ROSEOperation::uMultOp || ast->val().op == ROSEOperation::sMultOp || ast->val().op == ROSEOperation::shiftLOp) && memoryReadLayer > 0) {
 	if (ast->child(0)->getID() == AST::V_ConstantAST && ast->child(1)->getID() == AST::V_VariableAST) {
 	    findIndex = true;
 	    numOfVar++;
@@ -301,6 +298,12 @@ AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
 	    return AST::Ptr();
 	}
     }
+
+    unsigned totalChildren = ast->numChildren();
+    for (unsigned i = 0 ; i < totalChildren; ++i) {
+        ast->child(i)->accept(this);
+    }
+
     return AST::Ptr();
 }
 
@@ -313,7 +316,12 @@ bool JumpTableFormatVisitor::PotentialIndexing(AST::Ptr ast) {
     if (ast->getID() == AST::V_VariableAST) return true;
     if (ast->getID() == AST::V_RoseAST) {
         RoseAST::Ptr r = boost::static_pointer_cast<RoseAST>(ast);
-	if (r->val().op == ROSEOperation::uMultOp || r->val().op == ROSEOperation::sMultOp) return true;
+	if (r->val().op == ROSEOperation::uMultOp || r->val().op == ROSEOperation::sMultOp || r->val().op == ROSEOperation::shiftLOp) {
+	    if (r->child(0)->getID() == AST::V_RoseAST) {
+	        return false;
+	    }
+	    return true;
+	}
 	if (r->val().op == ROSEOperation::addOp) {
 	    // The index can be subtracted 
 	    if (r->child(0)->getID() == AST::V_RoseAST && r->child(1)->getID() == AST::V_ConstantAST) {
