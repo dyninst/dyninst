@@ -1813,6 +1813,10 @@ int Parser::findCurrentBlocks(CodeRegion* cr, Address addr,
     return _parse_data->findBlocks(cr, addr, blocks);
 }
 
+int Parser::findCurrentFuncs(CodeRegion * cr, Address addr, std::set<Function*> &funcs) {
+    return _parse_data->findFuncs(cr, addr, funcs);
+}
+
 Edge*
 Parser::link(Block *src, Block *dst, EdgeTypeEnum et, bool sink)
 {

@@ -27,7 +27,7 @@ public:
     StridedInterval bound;
     std::set<Assignment::Ptr> currentAssigns;
     virtual bool addNodeCallback(AssignmentPtr ap, std::set<ParseAPI::Edge*> &visitedEdges);
-    virtual bool modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g);
+    virtual bool modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g, Slicer*);
     GraphPtr BuildAnalysisGraph(std::set<ParseAPI::Edge*> &visitedEdges);
     bool IsIndexBounded(GraphPtr slice, BoundFactsCalculator &bfc, StridedInterval &target);
     bool FillInOutEdges(StridedInterval &target, std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges);

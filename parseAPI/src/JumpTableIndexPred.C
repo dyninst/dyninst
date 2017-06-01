@@ -292,7 +292,9 @@ bool JumpTableIndexPred::MatchReadAST(Assignment::Ptr a) {
     return false;
 }
 
-bool JumpTableIndexPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g) {
+bool JumpTableIndexPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g, Slicer *) {
+    parsing_printf("\tIn JumpTableIndexPred::modifyCurrentFrame, size %d\n", g->size());
+
     if (g->size() == 1) {
         /* This is the start of the jump table index slice.
 	 * As the slicing interface only works with an assignment, 
@@ -301,6 +303,7 @@ bool JumpTableIndexPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Pt
 	Slicer::SliceFrame::ActiveMap::iterator it1, it2;
 	it1 = frame.active.begin();
 	while (it1 != frame.active.end()) {
+	    parsing_printf("\t\tactive region %s\n", it1->first.format().c_str());
 	    if (it1->first != index) {
 	        it2 = it1;
 		++it2;

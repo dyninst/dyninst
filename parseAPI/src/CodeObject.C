@@ -147,6 +147,11 @@ int CodeObject::findCurrentBlocks(CodeRegion * cr, Address addr, set<Block*> & b
     return parser->findCurrentBlocks(cr,addr,blocks);
 }
 
+int CodeObject::findCurrentFuncs(CodeRegion * cr, Address addr, set<Function*> & funcs)
+{
+    return parser->findCurrentFuncs(cr,addr,funcs);
+}
+
 void
 CodeObject::parse() {
     if(!parser) {

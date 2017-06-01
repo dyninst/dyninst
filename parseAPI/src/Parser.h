@@ -126,6 +126,8 @@ class Parser {
     int findBlocks(CodeRegion * cr, Address addr, set<Block*> & blocks);
     // returns current blocks without parsing.
     int findCurrentBlocks(CodeRegion* cr, Address addr, std::set<Block*>& blocks);
+    int findCurrentFuncs(CodeRegion * cr, Address addr, set<Function*> & funcs);
+
     Block * findNextBlock(CodeRegion * cr, Address addr);
 
     void parse();

@@ -29,6 +29,7 @@ public:
     AST::Ptr jumpTargetExpr;
 
     set<Address> constAddr;
+    dyn_hash_map<Assignment::Ptr, std::pair<AST::Ptr, AST::Ptr>, Assignment::AssignmentPtrHasher> aliases;
 
     JumpTableFormatPred(ParseAPI::Function *f,
                         ParseAPI::Block *b,
@@ -42,11 +43,11 @@ public:
 		firstMemoryRead = true;
 	    }
 
-    virtual bool modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g);
+    virtual bool modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g, Slicer*);
     std::string format();
     bool isJumpTableFormat() { return jumpTableFormat && findIndex && jumpTargetExpr;}
     bool findSpillRead(Graph::Ptr g, SliceNode::Ptr &);
-    void adjustActiveMap(Slicer::SliceFrame &frame, SliceNode::Ptr);
+    bool adjustSliceFrame(Slicer::SliceFrame &frame, SliceNode::Ptr, Slicer*);
 };
 
 #endif

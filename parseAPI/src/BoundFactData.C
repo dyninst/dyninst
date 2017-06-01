@@ -153,7 +153,7 @@ void StridedInterval::Sub(const StridedInterval& minuend) {
 void StridedInterval::And(const StridedInterval &rhs) {
     // Currently only consider the case where at least one of them is constant
     if (stride == 0) {
-       // CONSTANT and any thing ==> 1[1, CONSTANT]
+       // CONSTANT and any thing ==> 1[0, CONSTANT]
        low = 0;
        stride = 1;
     } else if (rhs.stride == 0) {

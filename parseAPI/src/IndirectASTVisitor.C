@@ -57,6 +57,7 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 	    // a cmp bound not found yet. So we only apply and
 	    // bound when this is the last attempt
 	    if (handleOneByteRead) {
+	        parsing_printf("\tTry to generate bound for AND\n");
 	        StridedInterval *val = NULL;
 		if (IsResultBounded(ast->child(0)))
 		    val = new StridedInterval(*GetResultBound(ast->child(0)));
@@ -136,6 +137,7 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::ConstantAST *ast) {
 	// and change it to a negative number
         value = -(((~value) & ((1ULL << v.size) - 1)) + 1);
     }
+    parsing_printf("\t\tGet a constant %ld\n", value);
     bound.insert(make_pair(ast, new StridedInterval(value)));
     return AST::Ptr();
 }

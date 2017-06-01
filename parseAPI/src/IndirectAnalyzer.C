@@ -23,7 +23,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
     parsing_printf("Looking for thunk\n");
     
-    if (block->last() == 0x4f709c) dyn_debug_parsing=1; else dyn_debug_parsing=0;
+//    if (block->last() == 0x4c6dcc) dyn_debug_parsing=1; else dyn_debug_parsing=0;
 
 //  Find all blocks that reach the block containing the indirect jump
 //  This is a prerequisit for finding thunks
@@ -51,7 +51,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     //parsing_printf("\tJump table format: %s\n", jtfp.format().c_str());
     // If the jump target expression is not in a form we recognize,
     // we do not try to resolve it
-    parsing_printf("In function %s, Address %lx, jump target format %s, index loc %s,", func->name().c_str(), block->last(), jtfp.format().c_str(), jtfp.indexLoc ? jtfp.indexLoc->format().c_str() : "");
+    parsing_printf("In function %s, Address %lx, jump target format %s, index loc %s, index variable %s", func->name().c_str(), block->last(), jtfp.format().c_str(), jtfp.indexLoc ? jtfp.indexLoc->format().c_str() : "" , jtfp.index.format().c_str() );
 
     if (!jtfp.isJumpTableFormat()) {
         parsing_printf(" not jump table\n");
@@ -63,7 +63,9 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     jtip.setSearchForControlFlowDep(true);
     slice = indexSlicer.backwardSlice(jtip);
     
-    if (!jtip.findBound && block->obj()->cs()->getArch() != Arch_aarch64) {
+//    if (!jtip.findBound && block->obj()->cs()->getArch() != Arch_aarch64) {
+    if (!jtip.findBound ) {
+
         // After the slicing is done, we do one last check to 
         // see if we can resolve the indirect jump by assuming 
         // one byte read is in bound [0,255]
@@ -206,6 +208,14 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
 			parsing_printf("WARNING: resolving jump tables leads to address %lx, which causes overlapping instructions in basic blocks [%lx,%lx)\n", jtrv.targetAddress, (*bit)->start(), (*bit)->end());
 			break;
 		    }
+		}
+	    }
+	    set<Function*> funcs;
+	    block->obj()->findCurrentFuncs(block->region(), jtrv.targetAddress, funcs);
+	    for (auto fit = funcs.begin(); fit != funcs.end(); ++fit) {
+	        if (*fit != func) {
+		    overlap = true;
+		    parsing_printf("WARNING: resolving jump tables leads to address %lx in another function at %lx\n", jtrv.targetAddress, (*fit)->addr());
 		}
 	    }
 	    if (overlap) break;

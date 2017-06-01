@@ -16,7 +16,7 @@ static int CountInDegree(SliceNode::Ptr n) {
     return count;
 }
 
-bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g) {
+bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g, Slicer* s) {
     if (!jumpTableFormat) return false;
     if (unknownInstruction) return false;
 
@@ -47,10 +47,10 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 		firstMemoryRead = false;
 		frame.active.erase(rit);
 	    } else {
-	        // For a later memory read, if we have not disqualified this indirect,
+	        // For a later memory read, if we have not disqualified this indirect jump,
 		// it is likely to be a jump table. This memory read is assumed 
-		// and likely to be a spill for a certain register.
-		// We keep slicing on the register.
+		// and likely to be a spill for a certain register. We syntactically find the location
+		// where the memory is written and keep slicing on the source register
 		SliceNode::Ptr readNode;
 		parsing_printf("\t\tfind another memory read %s %s\n", rit->first.format().c_str(), rit->second[0].ptr->format().c_str());
 		if (!findSpillRead(g, readNode)) {
@@ -58,9 +58,16 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 		    jumpTableFormat = false;
 		    return false;
 		}
-		// We then delete all absregions introduced by this read node from the active map
-		// and add back the original absregion
-		adjustActiveMap(frame, readNode);
+		// We then do the following things
+		// 1. delete all absregions introduced by this read node from the active map
+		// 2. search for the closest instruction that writes the same memory location,
+		//    through memoery operand ast matching
+		// 3. change the slicing location and add back the source
+		if (!adjustSliceFrame(frame, readNode, s)) {
+		    parsing_printf("Cannot track through the memory read\n");
+		    jumpTableFormat = false;
+		    return false;
+		}
 		g->deleteNode(readNode);
 		return true;
 
@@ -124,6 +131,12 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	// We start plug in ASTs from predecessors
 	n->ins(nbegin, nend);
 	map<AST::Ptr, AST::Ptr> inputs;
+	if (aliases.find(n->assign()) != aliases.end()) {
+	    inputs.insert(aliases[n->assign()]);
+	    parsing_printf("\t Replacing %s with %s\n", aliases[n->assign()].first->format().c_str(),aliases[n->assign()].second->format().c_str());
+	    exp = SymbolicExpression::SubstituteAnAST(exp, inputs);
+	    inputs.clear();
+	}
 	for (; nbegin != nend; ++nbegin) {
 	    SliceNode::Ptr p = boost::static_pointer_cast<SliceNode>(*nbegin);
 	    if (exprs.find(p->assign()) == exprs.end()) {
@@ -253,20 +266,123 @@ bool JumpTableFormatPred::findSpillRead(Graph::Ptr g, SliceNode::Ptr &readNode) 
     return false;
 }
 
-void JumpTableFormatPred::adjustActiveMap(Slicer::SliceFrame &frame, SliceNode::Ptr n) {
+static Assignment::Ptr SearchForWrite(SliceNode::Ptr n, AbsRegion &src, Slicer::Location &loc, Slicer *s) {
+    
+
+    queue<Block*> workingList;
+    set<Block*> inQueue;
+    workingList.push(n->block());
+    inQueue.insert(n->block());
+
+    set<Expression::Ptr> memReads;
+    n->assign()->insn()->getMemoryReadOperands(memReads);
+    if (memReads.size() != 1) {
+        parsing_printf("\tThe instruction has %d memory read operands, Should have only one\n", memReads.size());
+	return Assignment::Ptr();
+    }
+    Expression::Ptr memRead = *memReads.begin();
+    parsing_printf("\tsearch for memory operand %s\n", memRead->format().c_str());
+    Block* targetBlock = NULL;
+    Instruction::Ptr targetInsn;
+    Address targetAddr;
+
+    while (!workingList.empty() && targetBlock == NULL) {
+        Block* curBlock = workingList.front();
+	workingList.pop();
+	// If the current block is the starting block,
+	// we need to make sure we only inspect instructions before the starting instruction
+	Address addr = 0;
+	if (curBlock == n->block()) {
+	    addr = n->addr();
+	}
+
+	Block::Insns insns;
+	curBlock->getInsns(insns);
+
+	for (auto iit = insns.rbegin(); iit != insns.rend(); ++iit) {
+	    if (addr > 0 && iit->first > addr) continue;
+	    Instruction::Ptr i = iit->second;
+	    // We find an the first instruction that only writes to memory
+	    // and the memory operand has the exact AST as the memory read
+	    if (!i->readsMemory() && i->writesMemory()) {
+	        set<Expression::Ptr> memWrites;
+		i->getMemoryWriteOperands(memWrites);
+		if (memWrites.size() == 1 && *memRead == *(*memWrites.begin())) {
+		    targetBlock = curBlock;
+		    targetInsn = i;
+		    targetAddr = iit->first;
+		    parsing_printf("\t\tFind matching at %lx\n", targetAddr);
+
+                    // Now we try to identify the source register
+		    std::vector<Operand> ops;
+		    i->getOperands(ops);
+		    for (auto oit = ops.begin(); oit != ops.end(); ++oit) {
+		        if (!(*oit).writesMemory() && !(*oit).readsMemory()) {
+			    std::set<RegisterAST::Ptr> regsRead;
+			    oit->getReadSet(regsRead);
+			    src = AbsRegion(Absloc( (*regsRead.begin())->getID() ));
+			    parsing_printf("\t\tContinue to slice on %s\n", src.format().c_str());
+			    break;
+			}
+		    }
+
+		    loc.block = curBlock;
+		    s->getInsnsBackward(loc);
+		    while (loc.addr() > targetAddr) {
+		        loc.rcurrent++;
+		    }
+		    break;
+		}
+	    }
+	}
+
+	for (auto eit = curBlock->sources().begin(); eit != curBlock->sources().end(); ++eit) {
+	    ParseAPI::Edge *e = *eit;
+	    if (e->interproc()) continue;
+	    if (e->type() == CATCH) continue;
+	    if (inQueue.find(e->src()) != inQueue.end()) continue;
+	    inQueue.insert(e->src());
+	    workingList.push(e->src());	    
+	}
+    }
+    
+    if (targetBlock == NULL) {
+        parsing_printf("\t\t Cannot find match\n");
+        return Assignment::Ptr();
+    }
+
+    AssignmentConverter ac(true, false);
+    vector<Assignment::Ptr> assignments;
+    ac.convert(targetInsn, targetAddr, n->func(), targetBlock, assignments);    
+    return assignments[0];
+}
+
+bool JumpTableFormatPred::adjustSliceFrame(Slicer::SliceFrame &frame, SliceNode::Ptr n, Slicer* s) {
+    // Delete all active regions introduce by this memory read,
+    // such as memory region, stack pointer, frame pointer
     std::vector<AbsRegion>& inputs = n->assign()->inputs();
     for (auto iit = inputs.begin(); iit != inputs.end(); ++iit) {
         parsing_printf("\tdelete %s from active map\n", iit->format().c_str());
         frame.active.erase(*iit);
     }
 
+    // Search backward for the instruction that writes to the memory location
+    AbsRegion src;
+    Assignment::Ptr assign = SearchForWrite(n, src, frame.loc, s);
+    if (!assign) return false;
+    
     NodeIterator nbegin, nend;
     n->outs(nbegin, nend);
-    parsing_printf("\tadd %s to active map\n", n->assign()->out().format().c_str());
+    parsing_printf("\tadd %s to active map\n", src.format().c_str());
     for (; nbegin != nend; ++nbegin) {
         SliceNode::Ptr next = boost::static_pointer_cast<SliceNode>(*nbegin);
-	frame.active[n->assign()->out()].push_back(Slicer::Element(next->block(), next->func(), n->assign()->out(), next->assign()));
+	frame.active[src].push_back(Slicer::Element(next->block(), next->func(), src, next->assign()));
+	if (n->assign()->out() != src) {
+	    aliases[next->assign()] = make_pair(VariableAST::create(Variable(n->assign()->out())), VariableAST::create(Variable(src)));
+	}   
+
     }
+    return true;
 }
 
 

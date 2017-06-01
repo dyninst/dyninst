@@ -298,7 +298,7 @@ class Slicer {
     // This function allows users to inspect the current slice graph and determine which abslocs
     // need further slicing and which abslocs are no longer interesting, by modifying the current
     // SliceFrame.
-    DATAFLOW_EXPORT virtual bool modifyCurrentFrame(SliceFrame &, GraphPtr) {return true;} 						
+    DATAFLOW_EXPORT virtual bool modifyCurrentFrame(SliceFrame &, GraphPtr, Slicer*) {return true;} 						
     DATAFLOW_EXPORT Predicates() : clearCache(false), controlFlowDep(false) {}						
 
   };
@@ -666,7 +666,10 @@ class Slicer {
 
   void getInsns(Location &loc);
 
+public:
   void getInsnsBackward(Location &loc);
+
+private:  
 
   void setAliases(Assignment::Ptr, Element &);
 
