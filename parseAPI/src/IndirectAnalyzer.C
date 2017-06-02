@@ -18,12 +18,49 @@
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InstructionAPI;
 
+static bool IsIndexing(AST::Ptr node, AbsRegion &index) {
+    RoseAST::Ptr n = boost::static_pointer_cast<RoseAST>(node);
+    if (n->val().op != ROSEOperation::sMultOp &&
+        n->val().op != ROSEOperation::uMultOp &&
+	n->val().op != ROSEOperation::shiftLOp) return false;
+    if (n->child(0)->getID() != AST::V_VariableAST) return false;
+    if (n->child(1)->getID() != AST::V_ConstantAST) return false;
+    VariableAST::Ptr var = boost::static_pointer_cast<VariableAST>(n->child(0));
+    index = var->val().reg;
+    return true;
+}
+
+static bool IsVariableArgumentFormat(AST::Ptr t, AbsRegion &index) {
+    if (t->getID() != AST::V_RoseAST) {
+        return false;
+    }
+    RoseAST::Ptr rt = boost::static_pointer_cast<RoseAST>(t);
+    if (rt->val().op != ROSEOperation::addOp) {
+        return false;
+    }
+    if (rt->child(0)->getID() != AST::V_ConstantAST || rt->child(1)->getID() != AST::V_RoseAST) {
+        return false;
+    }
+    RoseAST::Ptr c1 = boost::static_pointer_cast<RoseAST>(rt->child(1));
+    if (c1->val().op == ROSEOperation::addOp) {
+        if (c1->child(0)->getID() == AST::V_RoseAST && c1->child(1)->getID() == AST::V_ConstantAST) {
+	    RoseAST::Ptr lc = boost::static_pointer_cast<RoseAST>(c1->child(0));
+	    ConstantAST::Ptr rc = boost::static_pointer_cast<ConstantAST>(c1->child(1));
+	    if (lc->val().op == ROSEOperation::invertOp && rc->val().val == 1) {
+	        return IsIndexing(lc->child(0), index);
+	    }
+	}
+	return false;
+    }
+    return IsIndexing(rt->child(1), index);
+
+}
 
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
     parsing_printf("Looking for thunk\n");
     
-//    if (block->last() == 0x4c6dcc) dyn_debug_parsing=1; else dyn_debug_parsing=0;
+//    if (block->last() == 0xa8d7c9) dyn_debug_parsing=1; else dyn_debug_parsing=0;
 
 //  Find all blocks that reach the block containing the indirect jump
 //  This is a prerequisit for finding thunks
@@ -53,37 +90,45 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     // we do not try to resolve it
     parsing_printf("In function %s, Address %lx, jump target format %s, index loc %s, index variable %s", func->name().c_str(), block->last(), jtfp.format().c_str(), jtfp.indexLoc ? jtfp.indexLoc->format().c_str() : "" , jtfp.index.format().c_str() );
 
+    bool variableArguFormat = false;
     if (!jtfp.isJumpTableFormat()) {
         parsing_printf(" not jump table\n");
-        return false;
+	if (jtfp.jumpTargetExpr && func->entry() == block && IsVariableArgumentFormat(jtfp.jumpTargetExpr, jtfp.index)) {
+	    parsing_printf("\tVariable number of arguments format, index %s\n", jtfp.index.format().c_str());
+	    variableArguFormat = true;
+	} else {
+            return false;
+	}
     }
 
-    Slicer indexSlicer(jtfp.indexLoc, jtfp.indexLoc->block(), func, false, false); 
-    JumpTableIndexPred jtip(func, block, jtfp.index, se);
-    jtip.setSearchForControlFlowDep(true);
-    slice = indexSlicer.backwardSlice(jtip);
-    
-//    if (!jtip.findBound && block->obj()->cs()->getArch() != Arch_aarch64) {
-    if (!jtip.findBound ) {
-
-        // After the slicing is done, we do one last check to 
-        // see if we can resolve the indirect jump by assuming 
-        // one byte read is in bound [0,255]
-        GraphPtr g = jtip.BuildAnalysisGraph(indexSlicer.visitedEdges);
-	
-	BoundFactsCalculator bfc(func, g, func->entry() == block,  true, se);
-	bfc.CalculateBoundedFacts();
-	
-	StridedInterval target;
-	jtip.IsIndexBounded(g, bfc, target);
-    }
     StridedInterval b;
-    if (jtip.findBound) {
-        parsing_printf(" bound %s", jtip.bound.format().c_str());
-	b = jtip.bound;
+    if (!variableArguFormat) {
+        Slicer indexSlicer(jtfp.indexLoc, jtfp.indexLoc->block(), func, false, false); 
+	JumpTableIndexPred jtip(func, block, jtfp.index, se);
+	jtip.setSearchForControlFlowDep(true);
+	slice = indexSlicer.backwardSlice(jtip);
+    
+        if (!jtip.findBound && block->obj()->cs()->getArch() != Arch_aarch64) {
+
+            // After the slicing is done, we do one last check to 
+            // see if we can resolve the indirect jump by assuming 
+            // one byte read is in bound [0,255]
+            GraphPtr g = jtip.BuildAnalysisGraph(indexSlicer.visitedEdges);
+	    BoundFactsCalculator bfc(func, g, func->entry() == block,  true, se);
+	    bfc.CalculateBoundedFacts();
+	
+	    StridedInterval target;
+	    jtip.IsIndexBounded(g, bfc, target);
+        }
+        if (jtip.findBound) {
+            parsing_printf(" bound %s", jtip.bound.format().c_str());
+	    b = jtip.bound;
+        } else {
+            parsing_printf(" Cannot find bound, assume there are at most 256 entries and scan the table\n");
+	    b = StridedInterval(1, 0, 255);
+        }
     } else {
-        parsing_printf(" Cannot find bound, assume there are at most 256 entries and scan the table\n");
-	b = StridedInterval(1, 0, 255);
+        b = StridedInterval(1, 0, 8);
     }
     std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > > jumpTableOutEdges;
     ReadTable(jtfp.jumpTargetExpr, 

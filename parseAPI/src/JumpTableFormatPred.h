@@ -21,6 +21,7 @@ public:
     bool jumpTableFormat;
     bool unknownInstruction;
     bool findIndex;
+    bool findTableBase;
 
     AbsRegion index;
     Assignment::Ptr indexLoc;
@@ -40,12 +41,13 @@ public:
 	        jumpTableFormat = true;
 		unknownInstruction = false;
 		findIndex = false;
+		findTableBase = false;
 		firstMemoryRead = true;
 	    }
 
     virtual bool modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g, Slicer*);
     std::string format();
-    bool isJumpTableFormat() { return jumpTableFormat && findIndex && jumpTargetExpr;}
+    bool isJumpTableFormat() { return jumpTableFormat && findIndex && findTableBase;}
     bool findSpillRead(Graph::Ptr g, SliceNode::Ptr &);
     bool adjustSliceFrame(Slicer::SliceFrame &frame, SliceNode::Ptr, Slicer*);
 };

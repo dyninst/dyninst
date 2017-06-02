@@ -233,9 +233,10 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	index = jtfv.index;
 	findIndex = true;
     }
+    jumpTargetExpr = jumpTarget;
     if (jtfv.findIndex && jtfv.findTableBase) { 
-        parsing_printf("\tRecord jump target expr\n");
-        jumpTargetExpr = jumpTarget;
+        findTableBase = true;
+        parsing_printf("\tFind both table index and table base, current jump target %s\n", jumpTargetExpr->format().c_str());
         return false;
     }
 
@@ -303,8 +304,10 @@ static Assignment::Ptr SearchForWrite(SliceNode::Ptr n, AbsRegion &src, Slicer::
 	    if (addr > 0 && iit->first > addr) continue;
 	    Instruction::Ptr i = iit->second;
 	    // We find an the first instruction that only writes to memory
-	    // and the memory operand has the exact AST as the memory read
-	    if (!i->readsMemory() && i->writesMemory()) {
+	    // and the memory operand has the exact AST as the memory read.
+	    // Ideally, we need an architecture independent way to check whether this is a move instruction.
+	    // Category c_NoCategory excludes lots of non-move instructions
+	    if (!i->readsMemory() && i->writesMemory() && i->getCategory() == c_NoCategory) {
 	        set<Expression::Ptr> memWrites;
 		i->getMemoryWriteOperands(memWrites);
 		if (memWrites.size() == 1 && *memRead == *(*memWrites.begin())) {
