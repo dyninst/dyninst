@@ -60,7 +60,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
     parsing_printf("Looking for thunk\n");
     
-//    if (block->last() == 0xa8d7c9) dyn_debug_parsing=1; else dyn_debug_parsing=0;
+//    if (block->last() == 0x549cf9) dyn_debug_parsing=1; else dyn_debug_parsing=0;
 
 //  Find all blocks that reach the block containing the indirect jump
 //  This is a prerequisit for finding thunks
@@ -241,7 +241,7 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
         JumpTableReadVisitor jtrv(index, v, cs, false, memoryReadSize);
 	jumpTargetExpr->accept(&jtrv);
 	if (jtrv.valid && cs->isCode(jtrv.targetAddress)) {
-	    bool overlap = false;
+	    bool stop = false;
 	    set<Block*> blocks;
 	    block->obj()->findCurrentBlocks(block->region(), jtrv.targetAddress, blocks);
 	    for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
@@ -249,21 +249,28 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
 		    Block::Insns insns;
 		    (*bit)->getInsns(insns);
 		    if (insns.find(jtrv.targetAddress) == insns.end()) {
-		        overlap = true;
+		        stop = true;
 			parsing_printf("WARNING: resolving jump tables leads to address %lx, which causes overlapping instructions in basic blocks [%lx,%lx)\n", jtrv.targetAddress, (*bit)->start(), (*bit)->end());
 			break;
 		    }
 		}
 	    }
-	    set<Function*> funcs;
-	    block->obj()->findCurrentFuncs(block->region(), jtrv.targetAddress, funcs);
-	    for (auto fit = funcs.begin(); fit != funcs.end(); ++fit) {
-	        if (*fit != func) {
-		    overlap = true;
-		    parsing_printf("WARNING: resolving jump tables leads to address %lx in another function at %lx\n", jtrv.targetAddress, (*fit)->addr());
+	    // Assume that indirect jump should not jump beyond the function range.
+	    // This assumption is shaky in terms of non-contiguous functions.
+	    // But non-contiguous blocks tend not be reach by indirect jumps
+	    if (func->src() == HINT) {
+	        Hint h(func->addr(), 0 , NULL, "");
+		auto range = equal_range(cs->hints().begin(), cs->hints().end(), h);
+		if (range.first != range.second && range.first != cs->hints().end()) {
+		    Address startAddr = range.first->_addr;
+		    int size = range.first->_size;
+		    if (jtrv.targetAddress < startAddr || jtrv.targetAddress >= startAddr + size) {
+		        stop = true;
+			parsing_printf("WARNING: resolving jump tables leads to address %lx, which is not in the function range specified in the symbol table\n", jtrv.targetAddress);			
+		    }
 		}
 	    }
-	    if (overlap) break;
+	    if (stop) break;
 	    jumpTargets.insert(jtrv.targetAddress);
 	} else {
 	    // We have a bad entry. We stop here, as we have wrong information

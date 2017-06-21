@@ -77,6 +77,7 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr) {
 		    }
 		} 
 		break;
+/*		
 	    case ROSEOperation::sMultOp:
 	    case ROSEOperation::uMultOp:
 	        if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
@@ -89,7 +90,7 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr) {
 		    if (child1->val().val == 1) return roseAST->child(0);
 		}
 	        break;
-
+*/
 	    case ROSEOperation::xorOp:
 	        if (roseAST->child(0)->getID() == AST::V_VariableAST && roseAST->child(1)->getID() == AST::V_VariableAST) {
 		    VariableAST::Ptr child0 = boost::static_pointer_cast<VariableAST>(roseAST->child(0)); 

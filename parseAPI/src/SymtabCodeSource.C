@@ -505,6 +505,7 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
                 sr->getMemOffset()+sr->getDiskSize());
         } else {
             _hints.push_back( Hint((*fsit)->getOffset(),
+	                       (*fsit)->getSize(),
                                cr,
                                (*fsit)->getFirstSymbol()->getPrettyName()) );
             parsing_printf("\t<%lx,%s,[%lx,%lx)>\n",

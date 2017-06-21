@@ -323,6 +323,7 @@ static Assignment::Ptr SearchForWrite(SliceNode::Ptr n, AbsRegion &src, Slicer::
 		        if (!(*oit).writesMemory() && !(*oit).readsMemory()) {
 			    std::set<RegisterAST::Ptr> regsRead;
 			    oit->getReadSet(regsRead);
+			    if (regsRead.empty()) continue;
 			    src = AbsRegion(Absloc( (*regsRead.begin())->getID() ));
 			    parsing_printf("\t\tContinue to slice on %s\n", src.format().c_str());
 			    break;
