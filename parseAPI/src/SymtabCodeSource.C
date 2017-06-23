@@ -69,7 +69,7 @@ SymtabCodeRegion::SymtabCodeRegion(
             for (auto dupit = symbols.begin(); dupit != symbols.end(); ++dupit) {
                 if ((*dupit)->getRegion() == reg
                     && (*dupit)->getOffset() == (*sit)->getOffset()
-                    && (*dupit)->getType == SymtabAPI::Symbol::ST_FUNCTION) {
+                    && (*dupit)->getType() == SymtabAPI::Symbol::ST_FUNCTION) {
                     skip = true;
                     break;
                 }
@@ -77,7 +77,7 @@ SymtabCodeRegion::SymtabCodeRegion(
             if (true == skip) continue;
 
             knownData[(*sit)->getOffset()] = (*sit)->getOffset() + (*sit)->getSize();
-	    }
+        }
 }
 
 void
