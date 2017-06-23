@@ -238,8 +238,7 @@ void FunctionBase::expandLocation(const VariableLocation &loc,
    std::vector<VariableLocation> FDEs;
    Dyninst::DwarfDyninst::FrameErrors_t err;
    if(!frameParser) return;
-   frameParser->getRegsForFunction(getOffset(), Dyninst::CFA, FDEs, err);
-
+   frameParser->getRegsForFunction(std::make_pair(loc.lowPC, loc.hiPC), Dyninst::CFA, FDEs, err);
 
    if (FDEs.empty()) {
       // Odd, but happens

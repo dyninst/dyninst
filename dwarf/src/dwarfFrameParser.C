@@ -153,13 +153,13 @@ bool DwarfFrameParser::getRegRepAtFrame(
 }
 
 bool DwarfFrameParser::getRegsForFunction(
-        Address entryPC,
+        std::pair<Address, Address> range,
         Dyninst::MachRegister reg,
         std::vector<VariableLocation> &locs,
         FrameErrors_t &err_result) 
 {
     locs.clear();
-    dwarf_printf("Entry to getRegsForFunction at 0x%lx, reg %s\n", entryPC, reg.name().c_str());
+    dwarf_printf("Entry to getRegsForFunction at 0x%lx, reg %s\n", range.first, reg.name().c_str());
     err_result = FE_No_Error;
 
     /**
@@ -168,57 +168,47 @@ bool DwarfFrameParser::getRegsForFunction(
      **/
     setupFdeData();
     if (!cfi_data.size()) {
+        dwarf_printf("\t No FDE data, ret false\n");
         err_result = FE_Bad_Frame_Data;
-        dwarf_printf("\t No FDE data, returning error\n");
         return false;
     }
+    
+    for(size_t i=0; i<cfi_data.size(); i++)
+    {
+        auto next_pc = range.first;
+        while(next_pc < range.second)
+        {
+            Dwarf_Frame * frame = NULL;
+            int result = dwarf_cfi_addrframe(cfi_data[i], next_pc, &frame);
+            if(result==-1) return false;
 
-    /**
-     * Get the FDE at this PC.  The FDE contains the rules for getting
-     * registers at the given PC in this frame.
-     **/
-    Dwarf_Frame * frame;
-    Address low, high;
-    if (!getFDE(entryPC, frame, low, high, err_result)) {
-        dwarf_printf("\t Failed to find FDE for 0x%lx, returning error\n", entryPC);
-        assert(err_result != FE_No_Error);
-        return false;
-    }
+            Dwarf_Addr start_pc, end_pc;
+            dwarf_frame_info(frame, &start_pc, &end_pc, NULL); 
 
-    dwarf_printf("\t Got FDE range 0x%lx..0x%lx\n", low, high);
+            Dwarf_Op * ops;
+            size_t nops;
+            result = dwarf_frame_cfa(frame, &ops, &nops);
+            if (result != 0) return false;
 
-    //unique_ptr<Dwarf_Frame, decltype(std::free)*> frame_ptr(frame, &std::free);
+            VariableLocation loc2;
+            DwarfDyninst::SymbolicDwarfResult cons(loc2, arch);
+            if (!DwarfDyninst::decodeDwarfExpression(ops, nops, NULL, cons, arch)) {
+                //dwarf_printf("\t Failed to decode dwarf expr, ret false\n");
+                return false;
+            }
+            loc2.lowPC = next_pc;
+            loc2.hiPC = end_pc;
 
-    Dwarf_Half dwarf_reg;
-    if (!getDwarfReg(reg, frame, dwarf_reg, err_result)) {
-        assert(err_result != FE_No_Error);
-        dwarf_printf("\t Failed to get dwarf register for %s\n", reg.name().c_str());
-        return false;
-    }
-
-    Address worker = high;
-    while (worker > low) {
-        dwarf_printf("\t Getting register representation for 0x%lx (reg %s)\n", worker, reg.name().c_str());
-        VariableLocation loc;
-        SymbolicDwarfResult cons(loc, arch);
-        Address next;
-        if (!getRegAtFrame_aux(worker, frame, dwarf_reg, reg, cons, next, err_result)) {
-            assert(err_result != FE_No_Error);
-            dwarf_printf("\t Failed to get register representation, ret false\n");
-            return false;
+            locs.push_back(cons.val());
+            next_pc = end_pc;
         }
-        loc.lowPC = next;
-        loc.hiPC = worker;
-
-        worker = next - 1;
-        locs.push_back(cons.val());
     }
 
-    std::reverse(locs.begin(), locs.end());
     return true;
 }
 
-bool DwarfFrameParser::getRegAtFrame(Address pc,
+bool DwarfFrameParser::getRegAtFrame(
+        Address pc,
         Dyninst::MachRegister reg,
         DwarfResult &cons,
         FrameErrors_t &err_result) 
@@ -238,11 +228,32 @@ bool DwarfFrameParser::getRegAtFrame(Address pc,
         return false;
     }
 
+    for(size_t i=0; i<cfi_data.size(); i++)
+    {
+        Dwarf_Frame * frame = NULL;
+        dwarf_cfi_addrframe(cfi_data[i], pc, &frame);
+
+        Dwarf_Addr start_pc, end_pc;
+        dwarf_frame_info(frame, &start_pc, &end_pc, NULL); 
+
+        Dwarf_Op * ops;
+        size_t nops;
+        int result = dwarf_frame_cfa(frame, &ops, &nops);
+        if (result != 0) return false;
+
+        if (!DwarfDyninst::decodeDwarfExpression(ops, nops, NULL, cons, arch)) {
+            //dwarf_printf("\t Failed to decode dwarf expr, ret false\n");
+            return false;
+        }
+    }
+
+    return true;
+
     /**
      * Get the FDE at this PC.  The FDE contains the rules for getting
      * registers at the given PC in this frame.
      **/
-    Dwarf_Frame * frame;
+    /*Dwarf_Frame * frame;
     Address u1, u2;
     if (!getFDE(pc, frame, u1, u2, err_result)) {
         dwarf_printf("\t No FDE at 0x%lx, ret false\n", pc);
@@ -263,6 +274,7 @@ bool DwarfFrameParser::getRegAtFrame(Address pc,
     Address ignored;
     return getRegAtFrame_aux(pc, frame, dwarf_reg, reg, cons, 
             ignored, err_result);
+            */
 }
 
 bool DwarfFrameParser::getRegAtFrame_aux(Address pc,
@@ -370,28 +382,6 @@ bool DwarfFrameParser::getRegAtFrame_aux(Address pc,
     return true;
 }
 
-int section_id(Elf * elf)
-{
-    char *identp = elf_getident(elf, NULL);
-    bool is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
-
-    auto shstrtab_idx = !is64 ? elf32_getehdr(elf)->e_shstrndx : elf64_getehdr(elf)->e_shstrndx;
-    Elf_Scn *scn= elf_getscn(elf, shstrtab_idx); 
-    //void *shdr = !is64 ? (void *)elf32_getshdr(scn) : (void *)elf64_getshdr(scn);
-    Elf_Data *data = elf_getdata(scn, NULL); 
-    const char *shnames = (const char *)data->d_buf;
-
-    unsigned short num_sections = !is64 ? elf32_getehdr(elf)->e_shnum : elf64_getehdr(elf)->e_shnum;
-    for (unsigned i = 0; i < num_sections; i++) {
-        Elf_Scn *scn = elf_getscn(elf, i); 
-        unsigned long name_idx = !is64 ? elf32_getshdr(scn)->sh_name : elf64_getshdr(scn)->sh_name;
-        //if (shdr.sh_type() == SHT_NOBITS) continue;
-        if (strcmp(".eh_frame", shnames + name_idx) == 0) {
-            return i;
-        }
-    }
-    return -1;
-}
 
 void DwarfFrameParser::setupFdeData()
 {
@@ -410,8 +400,9 @@ void DwarfFrameParser::setupFdeData()
 
     // Try to get dwarf data from .debug_frame
     Dwarf_CFI * cfi = dwarf_getcfi(dbg);
-    if (cfi) {
-        //cfi_data.push_back(cfi);
+    if (cfi)
+    {
+        cfi_data.push_back(cfi);
     }
     
     // Try to get dwarf data from .eh_frame
@@ -419,27 +410,7 @@ void DwarfFrameParser::setupFdeData()
     cfi = dwarf_getcfi_elf(elf);
     if (cfi) 
     {
-        CFI_data cfiData;
-        cfiData.cfi = cfi;
-
-        Dwarf_Off offset = 0, next_offset;
-        int res = 0;
-
-        auto e_ident = reinterpret_cast<const unsigned char*>(elf_getident(elf, NULL));
-        int i = section_id(elf);
-        assert(i!=-1);
-
-        do
-        {
-            Dwarf_CFI_Entry entry;
-            res = dwarf_next_cfi(e_ident, elf_getdata(elf_getscn(elf, i), NULL), 
-                    true, offset, &next_offset, &entry);
-            offset = next_offset;
-            if(res==0) cfiData.cfi_entries.push_back(entry);
-        }
-        while(res != 1);
-
-        cfi_data.push_back(cfiData);
+        cfi_data.push_back(cfi);
     }
     
     // Verify if it got any dwarf data
@@ -455,6 +426,7 @@ void DwarfFrameParser::setupFdeData()
 bool DwarfFrameParser::getFDE(Address pc, Dwarf_Frame* &frame,
         Address &low, Address &high, FrameErrors_t &err_result) 
 {
+    /*
     dwarf_printf("Getting Frame for 0x%lx\n", pc);
 
     Dwarf_Addr lowpc = 0, hipc = 0;
@@ -465,13 +437,15 @@ bool DwarfFrameParser::getFDE(Address pc, Dwarf_Frame* &frame,
         for (size_t cur_entry =0; cur_entry < cfi_data[cur_cfi].cfi_entries.size(); cur_entry++)
         {
             auto& cfi_entry = cfi_data[cur_cfi].cfi_entries[cur_entry];
+            
+            // if this entry is a CIE, skip
             if(dwarf_cfi_cie_p(&cfi_entry))
             {
                 continue;
             }
+
             lowpc = *cfi_entry.fde.start;
             hipc = *cfi_entry.fde.end;
-
             if (pc < lowpc || pc > hipc)
             {
                 continue;
@@ -502,6 +476,7 @@ bool DwarfFrameParser::getFDE(Address pc, Dwarf_Frame* &frame,
         return false;
     }
     return true;
+    */
 }
 
 bool DwarfFrameParser::getDwarfReg(

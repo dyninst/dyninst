@@ -88,7 +88,8 @@ public:
     // We use an entryPC (actually, can be any PC in the function)
     // because common has no idea what a Function is and I don't want
     // to move this to Symtab. 
-    bool getRegsForFunction(Address entryPC,
+    bool getRegsForFunction(
+            std::pair<Address, Address> range,
             MachRegister reg,
             std::vector<VariableLocation> &locs,
             FrameErrors_t &err_result);
@@ -154,12 +155,7 @@ private:
 
     dwarf_status_t fde_dwarf_status;
     
-    typedef struct {
-        std::vector<Dwarf_CFI_Entry> cfi_entries;
-        Dwarf_CFI * cfi;
-    }CFI_data;
-
-    std::vector<CFI_data> cfi_data;
+    std::vector<Dwarf_CFI *> cfi_data;
 
 };
 
@@ -167,3 +163,4 @@ private:
 
 }
 #endif
+

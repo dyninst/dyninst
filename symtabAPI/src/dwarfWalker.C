@@ -1730,26 +1730,16 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
     }
     else {
         dwarf_printf("(0x%lx) Decoding loclist location\n", id());
-
-        /*Dwarf_Op *locationList;
-        size_t listLength;
-        int status = dwarf_getlocation(&locationAttribute, &locationList, &listLength);
-        if (status != 0) {
-            dwarf_printf("(0x%lx) Failed loclist decode: %d\n", id(), status);
-            return true;
-        }
-
-        dwarf_printf("(0x%lx) location list with %d entries found\n", id(), (int) listLength);
-        */
-
+        
         Dwarf_Op * exprs = NULL;
         size_t exprlen = 0; 
         std::vector<LocDesc> locDescs;
         ptrdiff_t offset = 0; 
-        Dwarf_Addr *basep = NULL, start, end;
+        Dwarf_Addr basep, start, end;
         do {
-            offset = dwarf_getlocations(&locationAttribute, offset, basep, 
+            offset = dwarf_getlocations(&locationAttribute, offset, &basep, 
                     &start, &end, &exprs, &exprlen);
+            if(offset==-1) return false;
             LocDesc ld;
             ld.ld_lopc = start;
             ld.ld_hipc = end;
@@ -1762,16 +1752,11 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
             return true;
         }
 
-
-        if(decodeLocationListForStaticOffsetOrAddress(locDescs, locDescs.size(), 
+        if(!decodeLocationListForStaticOffsetOrAddress(locDescs, locDescs.size(), 
                 locs, locationAttribute, initialStackValue))
         {
             return false;
         }
-        /*if (!decodeLocationListForStaticOffsetOrAddress(&locationList,
-                    (Dwarf_Sword) listLength, locs, locationAttribute, initialStackValue)) {
-            return false;
-        }*/
     }
 
     return true;
@@ -2286,16 +2271,18 @@ bool DwarfWalker::decodeExpression(Dwarf_Attribute &locationAttribute,
 
     std::vector<LocDesc> locDescs;
     ptrdiff_t offset = 0; 
-    Dwarf_Addr *basep = NULL, start, end;
+    Dwarf_Addr basep, start, end;
     do {
-        offset = dwarf_getlocations(&locationAttribute, offset, basep, 
+        offset = dwarf_getlocations(&locationAttribute, offset, &basep, 
                 &start, &end, &exprs, &exprlen);
+        if(offset==-1) return false;
         LocDesc ld;
         ld.ld_lopc = start;
         ld.ld_hipc = end;
         ld.dwarfOp = exprs;
         ld.opLen = exprlen;
         locDescs.push_back(ld);
+        //if(start==0 && end==-1) break;
     }while(offset > 0);
 
     //assert(locDescs.size()!=1);
