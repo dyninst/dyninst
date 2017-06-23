@@ -65,8 +65,19 @@ SymtabCodeRegion::SymtabCodeRegion(
     st->getAllSymbols(symbols);
     for (auto sit = symbols.begin(); sit != symbols.end(); ++sit)
         if ( (*sit)->getRegion() == reg && (*sit)->getType() != SymtabAPI::Symbol::ST_FUNCTION) {
-	    knownData[(*sit)->getOffset()] = (*sit)->getOffset() + (*sit)->getSize();
-	}
+            bool skip = false;
+            for (auto dupit = symbols.begin(); dupit != symbos.end(); ++dupit) {
+                if ((*dupit)->getRegion() == reg
+                    && (*dupit)->getOffset() == (*sit)->getOffset()
+                    && (*dupit)->getType == SymtabAPI::Symbol::ST_FUNCTION) {
+                    skip = true;
+                    break;
+                }
+            }
+            if (true == skip) continue;
+
+            knownData[(*sit)->getOffset()] = (*sit)->getOffset() + (*sit)->getSize();
+	    }
 }
 
 void
