@@ -457,7 +457,7 @@ Event::const_ptr PCEventMailbox::dequeue(bool block) {
     Event::const_ptr ret = eventQueue.front();
     eventQueue.pop();
     PCProcess *evProc = static_cast<PCProcess *>(ret->getProcess()->getData());
-    procCount[evProc]--;
+    if(evProc) procCount[evProc]--;
     assert(procCount[evProc] >= 0);
     queueCond.unlock();
 
