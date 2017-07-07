@@ -285,6 +285,8 @@ PCProcess::~PCProcess() {
     signalHandlerLocations_.clear();
 
     trapMapping.clearTrapMappings();
+
+    if(pcProc_) pcProc_->setData(NULL);
 }
 
 void PCProcess::initSymtabReader()
