@@ -352,7 +352,9 @@ bool IA_IAPI::isTailCall(const Function *context, EdgeTypeEnum type, unsigned in
             if(prevInsn->isWritten(stackPtr[_isrc->getArch()]))
             {
 				bool call_fallthrough = false;
-				if (_curBlk->start() == prevIter->first) {				
+                boost::lock_guard<Block> g(*_curBlk);
+
+				if (_curBlk->start() == prevIter->first) {
 					for (auto eit = _curBlk->sources().begin(); eit != _curBlk->sources().end(); ++eit) {						
 						if ((*eit)->type() == CALL_FT) {
 							call_fallthrough = true;

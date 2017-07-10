@@ -264,6 +264,7 @@ void StackAnalysis::summarizeBlocks(bool verbose) {
       }
 
       // Add blocks reachable from this one to the work stack
+      boost::lock_guard<Block> g(*block);
       const Block::edgelist &targs = block->targets();
       std::for_each(
          boost::make_filter_iterator(epred, targs.begin(), targs.end()),
@@ -338,6 +339,7 @@ void StackAnalysis::fixpoint(bool verbose) {
       }
 
       // Step 4: push all children on the worklist.
+      boost::lock_guard<Block> g(*block);
       const Block::edgelist &outEdges = block->targets();
       std::for_each(
          boost::make_filter_iterator(epred2, outEdges.begin(), outEdges.end()),
@@ -365,6 +367,7 @@ void getRetAndTailCallBlocks(Function *func, std::set<Block *> &retBlocks) {
       Block *currBlock = workstack.top();
       workstack.pop();
 
+      boost::lock_guard<Block> g(*currBlock);
       const Block::edgelist &targs = currBlock->targets();
       for (auto iter = targs.begin(); iter != targs.end(); iter++) {
          Edge *currEdge = *iter;
@@ -492,6 +495,7 @@ void StackAnalysis::summaryFixpoint() {
       (*blockEffects)[block].accumulate(input, blockSummaryOutputs[block]);
 
       // Step 4: push all children on the worklist.
+      boost::lock_guard<Block> g(*block);
       const Block::edgelist &outEdges = block->targets();
       std::for_each(
          boost::make_filter_iterator(epred2, outEdges.begin(), outEdges.end()),
@@ -2453,6 +2457,7 @@ bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block,
    if (off != block->lastInsnAddr()) return false;
 
    Address calledAddr = 0;
+   boost::lock_guard<Block> g(*block);
    const Block::edgelist &outs = block->targets();
    for (auto eit = outs.begin(); eit != outs.end(); eit++) {
       Edge *edge = *eit;
@@ -2623,6 +2628,7 @@ bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block,
 bool StackAnalysis::handleJump(Instruction::Ptr insn, Block *block, Offset off,
    TransferFuncs &xferFuncs, TransferSet &funcSummary) {
    Address calledAddr = 0;
+   boost::lock_guard<Block> g(*block);
    const Block::edgelist &outs = block->targets();
    for (auto eit = outs.begin(); eit != outs.end(); eit++) {
       Edge *edge = *eit;
@@ -2876,6 +2882,8 @@ void StackAnalysis::meetInputs(Block *block, AbslocState &blockInput,
    intra_nosink_nocatch epred2;
 
    stackanalysis_printf("\t ... In edges: ");
+   boost::lock_guard<Block> g(*block);
+
    const Block::edgelist & inEdges = block->sources();
    std::for_each(
       boost::make_filter_iterator(epred2, inEdges.begin(), inEdges.end()),
@@ -2893,6 +2901,7 @@ void StackAnalysis::meetSummaryInputs(Block *block, TransferSet &blockInput,
    TransferSet &input) {
    input.clear();
    intra_nosink_nocatch epred2;
+   boost::lock_guard<Block> g(*block);
 
    const Block::edgelist & inEdges = block->sources();
    std::for_each(

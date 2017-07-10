@@ -105,6 +105,7 @@ void IndirectControlFlowAnalyzer::GetAllReachableBlock() {
 	q.pop();
 	if (reachable.find(cur) != reachable.end()) continue;
 	reachable.insert(cur);
+    boost::lock_guard<Block> g(*cur);
 	for (auto eit = cur->sources().begin(); eit != cur->sources().end(); ++eit)
 	    if ((*eit)->intraproc()) 
 	        q.push((*eit)->src());

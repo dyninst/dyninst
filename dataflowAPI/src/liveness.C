@@ -101,6 +101,7 @@ const bitArray& LivenessAnalyzer::getLivenessOut(Block *block, bitArray &allRegs
 	
 
     // OUT(X) = UNION(IN(Y)) for all successors Y of X
+    boost::lock_guard<Block> g(*block);
     const Block::edgelist & target_edges = block -> targets();
 
     liveness_cerr << "getLivenessOut for block [" << hex << block->start() << "," << block->end() << "]" << dec << endl;
@@ -587,6 +588,7 @@ void *LivenessAnalyzer::getPtrToInstruction(Block *block, Address addr) const{
 }
 bool LivenessAnalyzer::isExitBlock(Block *block)
 {
+    boost::lock_guard<Block> g(*block);
     const Block::edgelist & trgs = block->targets();
 
     bool interprocEdge = false;

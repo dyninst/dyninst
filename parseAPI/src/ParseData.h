@@ -88,7 +88,7 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
     ParseWorkElem * mkWork(
         ParseWorkBundle * b,
 	Block* block,
-        const InsnAdapter::IA_IAPI &ah);
+        boost::shared_ptr<InsnAdapter::IA_IAPI> ahPtr);
 
     void pushWork(ParseWorkElem * elem) {
         boost::lock_guard<ParseFrame> g(*this);

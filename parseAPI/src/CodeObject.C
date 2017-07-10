@@ -229,6 +229,7 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
             // don't add edges that already exist 
             // (this could happen because of shared code)
             bool edgeExists = false;
+            boost::lock_guard<Block> g(*worklist[idx].source);
             const Block::edgelist & existingTs = worklist[idx].source->targets();
             for (Block::edgelist::const_iterator tit = existingTs.begin();
                  tit != existingTs.end();
@@ -251,6 +252,7 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
                         fit != funcs.end();
                         fit++) 
                     {
+                        boost::lock_guard<Block> g(*worklist[idx].source);
                         const Block::edgelist & tedges = worklist[idx].source->targets();
                         for(Block::edgelist::const_iterator eit = tedges.begin();
                             eit != tedges.end();

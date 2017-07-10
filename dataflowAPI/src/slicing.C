@@ -671,6 +671,7 @@ Slicer::getSuccessors(
         // case may produce multiple new frames, but it
         // will not transform any of them (besides changing
         // the location)
+        boost::lock_guard<Block> g(*cand.loc.block);
 
         const Block::edgelist & targets = cand.loc.block->targets();
         Block::edgelist::const_iterator eit = targets.begin();
@@ -806,6 +807,8 @@ Slicer::getPredecessors(
     // We force finalizing if necessary
     //cand.loc.func->num_blocks();
     SingleContextOrInterproc epred(cand.loc.func, true, true);
+    boost::lock_guard<Block> g(*cand.loc.block);
+
     const Block::edgelist & sources = cand.loc.block->sources();
     std::for_each(boost::make_filter_iterator(epred, sources.begin(), sources.end()),
 		  boost::make_filter_iterator(epred, sources.end(), sources.end()),
@@ -836,6 +839,7 @@ Slicer::handleCall(
     ParseAPI::Block * callee = NULL;
     ParseAPI::Edge * funlink = NULL;
     bool widen = false;
+    boost::lock_guard<Block> g(*cur.loc.block);
 
     const Block::edgelist & targets = cur.loc.block->targets();
     Block::edgelist::const_iterator eit = targets.begin();
@@ -1029,7 +1033,8 @@ Slicer::handleReturn(
 
     // Find successor
     ParseAPI::Block * retBlock = NULL;
-    
+    boost::lock_guard<Block> g(*cur.loc.block);
+
     const Block::edgelist & targets = cur.loc.block->targets();
     Block::edgelist::const_iterator eit = targets.begin();
     for(; eit != targets.end(); ++eit) {
@@ -1079,6 +1084,7 @@ Slicer::handleReturnDetails(
 
 static bool EndsWithConditionalJump(ParseAPI::Block *b) {
     bool cond = false;
+    boost::lock_guard<Block> g(*b);
     for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit)
         if ((*eit)->type() == COND_TAKEN) cond = true;
     return cond;
@@ -1323,6 +1329,7 @@ Address SliceNode::addr() const {
 bool containsCall(ParseAPI::Block *block) {
   // We contain a call if the out-edges include
   // either a CALL or a CALL_FT edge
+    boost::lock_guard<Block> g(*block);
   const Block::edgelist &targets = block->targets();
   Block::edgelist::const_iterator eit = targets.begin();
   for (; eit != targets.end(); ++eit) {
@@ -1335,6 +1342,7 @@ bool containsCall(ParseAPI::Block *block) {
 bool containsRet(ParseAPI::Block *block) {
   // We contain a call if the out-edges include
   // either a CALL or a CALL_FT edge
+    boost::lock_guard<Block> g(*block);
   const Block::edgelist &targets = block->targets();
   Block::edgelist::const_iterator eit = targets.begin();
   for (; eit != targets.end(); ++eit) {

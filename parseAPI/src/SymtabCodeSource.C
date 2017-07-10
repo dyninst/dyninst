@@ -116,13 +116,8 @@ SymtabCodeRegion::getPtrToInstruction(const Address addr) const
 {
     if(!contains(addr)) return NULL;
 
-    if(isCode(addr))
-        return (void*)((Address)_region->getPtrToRawData() + 
-                       addr - _region->getMemOffset());
-    else if(isData(addr))
-        return getPtrToData(addr);
-    else
-        return NULL;
+    return (void*)((Address)_region->getPtrToRawData() +
+                   addr - _region->getMemOffset());
 }
 
 void *
@@ -130,11 +125,8 @@ SymtabCodeRegion::getPtrToData(const Address addr) const
 {
     if(!contains(addr)) return NULL;
 
-    if(isData(addr))
-        return (void*)((Address)_region->getPtrToRawData() +
-                        addr - _region->getMemOffset());
-    else
-        return NULL;
+    return (void*)((Address)_region->getPtrToRawData() +
+                    addr - _region->getMemOffset());
 }
 
 unsigned int
@@ -589,6 +581,7 @@ SymtabCodeSource::getTOC(Address addr) const
 inline CodeRegion *
 SymtabCodeSource::lookup_region(const Address addr) const
 {
+    boost::lock_guard<const SymtabCodeSource> g(*this);
     CodeRegion * ret = NULL;
     if(_lookup_cache && _lookup_cache->contains(addr))
         ret = _lookup_cache;

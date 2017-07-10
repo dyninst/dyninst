@@ -56,6 +56,7 @@ static void BuildEdgesAux(SliceNode::Ptr srcNode,
 
     if (visit.find(curBlock) != visit.end()) return;
     visit.insert(curBlock);
+    boost::lock_guard<Block> g(*curBlock);
     for (auto eit = curBlock->targets().begin(); eit != curBlock->targets().end(); ++eit) {
 	// Xiaozhu:
 	// Our current slicing code ignores tail calls 

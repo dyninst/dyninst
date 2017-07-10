@@ -38,7 +38,6 @@
 #include <regex.h>
 #endif
 
-#include <boost/functional/hash.hpp>
 
 /* This doesn't actually belong here. */
 void dedemangle( char * demangled, char * result ) 

@@ -285,9 +285,11 @@ class Function;
 };
 
 class CodeRegion;
+
 class PARSER_EXPORT Block :
-                            public Dyninst::SimpleInterval<Address, int>,
-              public allocatable  {
+        public Dyninst::SimpleInterval<Address, int>,
+        public allocatable,
+        public boost::lockable_adapter<boost::recursive_mutex> {
     friend class CFGModifier;
     friend class Parser;
  public:
@@ -381,16 +383,19 @@ private:
 
 inline void Block::addSource(Edge * e) 
 {
+    boost::lock_guard<Block> g(*this);
     _srclist.push_back(e);
 }
 
 inline void Block::addTarget(Edge * e)
 {
+    boost::lock_guard<Block> g(*this);
     _trglist.push_back(e);
 }
 
 inline void Block::removeTarget(Edge * e)
 {
+    boost::lock_guard<Block> g(*this);
     for(unsigned i=0;i<_trglist.size();++i) {
         if(_trglist[i] == e) {
             _trglist[i] = _trglist.back();
@@ -401,6 +406,8 @@ inline void Block::removeTarget(Edge * e)
 }
 
 inline void Block::removeSource(Edge * e) {
+
+    boost::lock_guard<Block> g(*this);
     for(unsigned i=0;i<_srclist.size();++i) {
         if(_srclist[i] == e) {
             _srclist[i] = _srclist.back();

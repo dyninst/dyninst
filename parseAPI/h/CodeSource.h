@@ -244,7 +244,7 @@ class PARSER_EXPORT SymtabCodeRegion : public CodeRegion {
     SymtabAPI::Region * symRegion() const { return _region; }
 };
 
-class PARSER_EXPORT SymtabCodeSource : public CodeSource {
+class PARSER_EXPORT SymtabCodeSource : public CodeSource, public boost::lockable_adapter<boost::recursive_mutex> {
  private:
     SymtabAPI::Symtab * _symtab;
     bool owns_symtab;

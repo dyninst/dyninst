@@ -48,6 +48,7 @@ static void BuildEdgeFromVirtualEntry(SliceNode::Ptr virtualEntry,
     }
     if (visit.find(curBlock) != visit.end()) return;
     visit.insert(curBlock);
+	boost::lock_guard<Block> g(*curBlock);
     for (auto eit = curBlock->targets().begin(); eit != curBlock->targets().end(); ++eit)
         if ((*eit)->type() != CALL && (*eit)->type() != RET) {
 	    BuildEdgeFromVirtualEntry(virtualEntry, (*eit)->trg(), targetMap, visit, slice);

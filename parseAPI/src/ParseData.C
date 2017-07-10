@@ -62,13 +62,13 @@ ParseWorkElem * ParseFrame::mkWork(
 ParseWorkElem * ParseFrame::mkWork(
     ParseWorkBundle * b,
     Block *block,
-    const InsnAdapter::IA_IAPI &ah)
+    boost::shared_ptr<InsnAdapter::IA_IAPI> ahPtr)
 {
     if(!b) {
         b = new ParseWorkBundle();
         work_bundles.push_back(b); 
     }
-    ParseWorkElem * ret = new ParseWorkElem(b,block,ah);
+    ParseWorkElem * ret = new ParseWorkElem(b,block,ahPtr);
     b->add( ret );
     return ret;
 }

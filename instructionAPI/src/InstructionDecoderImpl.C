@@ -74,23 +74,9 @@ namespace Dyninst
                 case Arch_aarch64:
                     return Ptr(new InstructionDecoder_aarch64(a));
                 default:
+                    assert(0);
                     return Ptr();
             }
-//            static TLS_VAR std::map<Architecture, InstructionDecoderImpl::Ptr> impls;
-//            if(impls.empty())
-//            {
-//                impls[Arch_x86] = Ptr(new InstructionDecoder_x86(Arch_x86));
-//                impls[Arch_x86_64] = Ptr(new InstructionDecoder_x86(Arch_x86_64));
-//                impls[Arch_ppc32] = Ptr(new InstructionDecoder_power(Arch_ppc32));
-//                impls[Arch_ppc64] = Ptr(new InstructionDecoder_power(Arch_ppc64));
-//                impls[Arch_aarch64] = Ptr(new InstructionDecoder_aarch64(Arch_aarch64));
-//            }
-//            std::map<Architecture, Ptr>::const_iterator foundImpl = impls.find(a);
-//            if(foundImpl == impls.end())
-//            {
-//                return Ptr();
-//            }
-//            return foundImpl->second;
         }
         Expression::Ptr InstructionDecoderImpl::makeAddExpression(Expression::Ptr lhs,
                 Expression::Ptr rhs, Result_Type resultType)

@@ -66,6 +66,7 @@ bool CFGModifier::redirect(Edge *edge, Block *target) {
    // if the source block has a sink edge of the same type, remove this edge
    bool hasSink = false;
    if (linkToSink) {
+      boost::lock_guard<Block> g(*edge->src());
       const Block::edgelist & trgs = edge->src()->targets();
       for (Block::edgelist::const_iterator titer = trgs.begin(); titer != trgs.end(); titer++) {
          if ((*titer)->sinkEdge() && (*titer)->type() == edge->type()) {

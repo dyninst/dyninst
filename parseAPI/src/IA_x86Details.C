@@ -706,6 +706,7 @@ boost::tuple<Instruction::Ptr,
                 condBranchInsn = i;
                 foundCondBranch = true;
 
+                boost::lock_guard<Block> g(*curBlk);
                 Block::edgelist::const_iterator tit = curBlk->targets().begin();
                 bool taken_hit = false;
                 bool fallthrough_hit = false;
