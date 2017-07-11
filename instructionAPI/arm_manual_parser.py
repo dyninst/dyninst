@@ -17,11 +17,17 @@ from array import *
 #VEC_SIMD_SWITCH = False
 VEC_SIMD_SWITCH = True
 
-####################################
-# dir to store aarch64 ISA xml files
-####################################
-ISA_dir = '/p/paradyn/arm/arm-download-1350222/AR100-DA-70000-r0p0-00rel10/AR100-DA-70000-r0p0-00rel10/ISA_xml/ISA_xml_v2_00rel11/'
+###############################################################
+# First argument should be a directory containing ISA xml files
+###############################################################
+if len(sys.argv) <= 1:
+    sys.stderr.write('Usage: '+sys.argv[0]+' [ISA_xml_dir]')
+    sys.stderr.write(os.linesep * 2)
+    sys.exit(-1)
+
+ISA_dir = sys.argv[1] + os.sep
 files_dir = os.listdir(ISA_dir)
+arch_name = 'ARM_ARCH_UNKNOWN'
 
 flagFieldsSet = set(['S', 'imm', 'option', 'opt', 'N', 'cond', 'sz', 'size', 'type'])
 #forwardFieldsSet = set([ ])
@@ -44,7 +50,8 @@ class Opcode:
 
     # to get op IDs
     def printP(self, op):
-        print '  aarch64_op_'+op+','
+        global arch_name
+        print '  '+arch_name+'_op_'+op+','
 
     ##############################
     # parse xml files
@@ -52,7 +59,15 @@ class Opcode:
     ##############################
     def getOpcodes(self):
         for lines in self.base_insn_file:
-            if lines.startswith("    <iform"):
+            if lines.startswith("  <toptitle "):
+                toptitle_iset = lines.split('"')[1]
+                global arch_name
+                if toptitle_iset == 'A64':
+                    arch_name = 'aarch64'
+                elif toptitle_iset == 'AArch32':
+                    arch_name = 'aarch32'
+
+            elif lines.startswith("    <iform"):
                 self.op_set.add(lines.split('"')[1].split('.xml')[0].split('_')[0])
                 self.insn_set.add(lines.split('"')[1].split('.xml')[0])
 
@@ -410,8 +425,9 @@ class OpTable:
 
                     operands += ') )'
 
-            #print '\tmain_insn_table.push_back(aarch64_insn_entry(aarch64_op_'+ self.insnArray[i]+', \t\"'+ self.insnArray[i].split('_')[0]+'\",\t'+ operands +' ));'
-            print '\tmain_insn_table.push_back(aarch64_insn_entry(aarch64_op_'+ self.insnArray[i]+', \t\"'+ self.insnArray[i].split('_')[0]+'\",\t'+ operands +', ' \
+            global arch_name
+            #print '\tmain_insn_table.push_back('+arch_name+'_insn_entry('+arch_name+'_op_'+ self.insnArray[i]+', \t\"'+ self.insnArray[i].split('_')[0]+'\",\t'+ operands +' ));'
+            print '\tmain_insn_table.push_back('+arch_name+'_insn_entry('+arch_name+'_op_'+ self.insnArray[i]+', \t\"'+ self.insnArray[i].split('_')[0]+'\",\t'+ operands +', ' \
                 + str(self.encodingsArray[i]) + ', ' + str(self.masksArray[i]) + ') );'
 
 ##################
@@ -439,7 +455,8 @@ def printDecodertable(entryToPlace, curMask=0, entryList=list(), index=-1 ):
         for ent in entryList:
             entries += '('+str(ent[0])+','+str(ent[1])+')'
 
-    print '\tmain_decoder_table['+str(entryToPlace)+']=aarch64_mask_entry('+str(hex(curMask))+', '+entries+','+str(index)+');'
+    global arch_name
+    print '\tmain_decoder_table['+str(entryToPlace)+']='+arch_name+'_mask_entry('+str(hex(curMask))+', '+entries+','+str(index)+');'
 
 def printDecodertable_list(entryToPlace, curMask=0, entryList=list(), index=list() ):
     entries = 'map_list_of'
@@ -453,7 +470,8 @@ def printDecodertable_list(entryToPlace, curMask=0, entryList=list(), index=list
     for i in index:
         index_list += '('+ str(i) +')'
 
-    print '\tmain_decoder_table['+str(entryToPlace)+']=aarch64_mask_entry('+str(hex(curMask))+', '+entries+', list_of'+ index_list+');'
+    global arch_name
+    print '\tmain_decoder_table['+str(entryToPlace)+']='+arch_name+'_mask_entry('+str(hex(curMask))+', '+entries+', list_of'+ index_list+');'
 
 def num1sInMask(x):
     mask = masksArray[x]
@@ -700,9 +718,9 @@ def getOperandValues(line, instruction, isRnUp):
                 name = token.split('\"')[1]
                 if name.find('imm') != -1:
                     name = 'imm'
-            if token.find('hibit')!=-1:
+            if token.find('hibit=')!=-1:
                 bit = int(token.split('\"')[1])
-            if token.find('width') != -1:
+            if token.find('width=') != -1:
                 width = int(token.split('\"')[1])
     else:
         #print '*** [WARN] Blank operand field ***'

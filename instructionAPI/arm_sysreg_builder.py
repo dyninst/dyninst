@@ -1,18 +1,38 @@
-import os
+#!/usr/bin/env python
+# encoding: utf-8
+
+import os, sys
 from os import path
 from xml.dom.minidom import parse
 import xml.dom.minidom
 from collections import OrderedDict
 
-sys_reg_dir = "/p/paradyn/arm/arm-download-1350222/AR100-DA-70000-r0p0-00rel10/AR100-DA-70000-r0p0-00rel10/SysReg_xml/ARMv8-SysReg-00bet12/SysReg_xml-00bet12"
+################################################
+# Arguments should be:
+# 1) A directory containing ARM SysReg xml files
+# 2) Target architecture name
+################################################
+arch_list = ["AArch32", "AArch64"]
+
+if len(sys.argv) <= 2 or sys.argv[2] not in arch_list:
+    sys.stderr.write('Usage: ' + sys.argv[0] + ' [sys_reg_dir] [arch_name]')
+    sys.stderr.write(os.linesep * 2)
+    sys.stderr.write(
+        "Valid values for arch_name are:" + os.linesep
+        + "".join(['\t' + arch + os.linesep for arch in arch_list])
+    )
+    sys.exit(-1)
+
+sys_reg_dir = sys.argv[1] + os.sep
+arch_name = sys.argv[2]
 reg_names = list()
 reg_encodings = OrderedDict()
 reg_sizes = dict()
 
-reg_names = [f.split('.')[0].split("AArch64-")[1] for f in os.listdir(sys_reg_dir) if (path.isfile(sys_reg_dir + os.sep + f) and f.find("AArch64") != -1)]
+reg_names = [f.split('.')[0].split(arch_name + '-')[1] for f in os.listdir(sys_reg_dir) if (path.isfile(sys_reg_dir + f) and f.find(arch_name) != -1)]
 
 for name in reg_names:
-    DOMTree = xml.dom.minidom.parse(sys_reg_dir + "/AArch64-" + name + ".xml")
+    DOMTree = xml.dom.minidom.parse(sys_reg_dir + arch_name + "-" + name + ".xml")
     collection = DOMTree.documentElement
 
     encodings = collection.getElementsByTagName("encoding_param")
@@ -82,7 +102,8 @@ for name in reg_names:
 	    reg_sizes[name.replace("n_", str(idx) + "_")] = size
 
 for elem in reg_encodings:
-    print("sysRegMap[" + reg_encodings[elem] + "] = aarch64::" + elem + ";");
+    print("sysRegMap[" + reg_encodings[elem] + "] = "
+          + arch_name.lower() + "::" + elem + ";")
 
 print()
 ct = 0
@@ -92,5 +113,7 @@ for elem in reg_encodings:
 	size_str = "D_REG"
     else:
 	size_str = "FULL"
-    print("DEF_REGISTER(" + elem + ",\t\t" + str(ct) + " | " + size_str + " |SYSREG | Arch_aarch64, \"aarch64\");");
+    print("DEF_REGISTER(" + elem + ",\t\t" + str(ct)
+          + " | " + size_str + " |SYSREG | Arch_" + arch_name.lower()
+          + ", \"" + arch_name.lower() + "\");")
     ct += 1
