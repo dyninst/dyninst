@@ -494,6 +494,7 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, pub
     virtual ~Function();
 
     virtual const std::string & name() const;
+    void rename(std::string n) { _name = n; }
 
     Address addr() const { return _start; }
     CodeRegion * region() const { return _region; }

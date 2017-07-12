@@ -231,6 +231,11 @@ void ParseCallbackManager::split_block_cb(Block *a, Block *b) {
       (*iter)->split_block_cb(a, b);
 };
 
+void ParseCallbackManager::discover_function(Function* f) {
+   for (iterator iter = begin(); iter != end(); ++iter)
+      (*iter)->function_discovery_cb(f);
+};
+
 void ParseCallbackManager::destroy_cb(Block *b) {
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->destroy_cb(b);

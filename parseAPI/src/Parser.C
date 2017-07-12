@@ -1023,6 +1023,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 // check for system call FT
                 Edge* edge = work->edge();
                 Block::Insns blockInsns;
+                boost::lock_guard<Block> src_guard(*edge->src());
                 edge->src()->getInsns(blockInsns);
                 auto prev = blockInsns.rbegin();
                 InstructionAPI::InstructionPtr prevInsn = prev->second;
@@ -1777,6 +1778,7 @@ Parser::bind_call(ParseFrame & frame, Address target, Block * cur, Edge * exist)
             FILE__,__LINE__,target);
         return pair<Function*,Edge*>((Function *) NULL,exist);
     }
+    _pcb.discover_function(tfunc);
 
     // add an edge
     pair<Block*,Edge*> ret = add_edge(frame,tfunc,cur,target,CALL,exist);
@@ -1886,8 +1888,8 @@ Parser::link(Block *src, Block *dst, EdgeTypeEnum et, bool sink)
     assert(et != NOEDGE);
     Edge * e = factory()._mkedge(src,dst,et);
     e->_type._sink = sink;
-    src->_trglist.push_back(e);
-    dst->_srclist.push_back(e);
+    src->addTarget(e);
+    dst->addSource(e);
     _pcb.addEdge(src, e, ParseCallback::target);
     _pcb.addEdge(dst, e, ParseCallback::source);
     return e;
