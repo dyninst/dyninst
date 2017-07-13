@@ -4324,7 +4324,6 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
     {
         return;
     }
-
     StringTablePtr strings(li_for_module->getStrings());
     Dwarf_Files * files;
     size_t offset = strings->size();
@@ -4354,7 +4353,6 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         }
     }
     li_for_module->setStrings(strings);
-
     /* The 'lines' returned are actually interval markers; the code
      generated from lineNo runs from lineAddr up to but not including
      the lineAddr of the next line. */
@@ -4395,13 +4393,28 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
             if (result)
                 current_statement.start_addr = new_lineAddr;
         }
-        //TODO
+        
         //status = dwarf_line_srcfileno(line, &current_statement.string_table_index);
-        //if ( status != 0 ) {
-        //    cout << "dwarf_line_srcfileno failed" << endl;
-        //    continue;
-        //}
-        //current_statement.string_table_index += offset;
+        const char * file_name = dwarf_linesrc(line, NULL, NULL);
+        if ( !file_name ) {
+            cout << "dwarf_line_srcfileno failed" << endl;
+            continue;
+        }
+        std::string file_name_str(file_name);
+        int index = -1;
+        for(size_t idx = offset; idx < strings->size(); ++idx)
+        {
+            if((*strings)[idx].str==file_name_str) 
+            {  
+                index = idx; 
+                break;
+            }
+        }
+        if( index == -1 ) {
+            cout << "dwarf_line_srcfileno failed" << endl;
+            continue;
+        }
+        current_statement.string_table_index = index;
 
         bool isEndOfSequence;
         status = dwarf_lineendsequence(line, &isEndOfSequence);
