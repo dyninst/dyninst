@@ -70,10 +70,11 @@ bool PCEventHandler::handle_internal(EventPtr ev) {
 		return true;
 	}
     PCProcess *evProc = static_cast<PCProcess *>(ev->getProcess()->getData());
+
     if( evProc == NULL ) {
         proccontrol_printf("%s[%d]: ERROR: handle to Dyninst process is invalid\n",
                 FILE__, __LINE__);
-        return false;
+        return true;
     }
 
 

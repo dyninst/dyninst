@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include <stdio.h>
+#include <boost/bind/placeholders.hpp>
 
 #include "InstructionDecoder.h"
 #include "Instruction.h"
@@ -95,6 +96,40 @@ DynCFGFactory::DynCFGFactory(image * im) :
 
 }
 
+class PLTFunction : public Dyninst::SymtabAPI::Function {
+public:
+    PLTFunction(Dyninst::SymtabAPI::relocationEntry r) :
+            SymtabAPI::Function(r.getDynSym()),
+            name(r.name()),
+            entry(r.target_addr()),
+            size(0),
+            module(NULL)
+    {
+    }
+
+    string getName() const  {
+        return name;
+    }
+
+    Offset getOffset() const  {
+        return entry;
+    }
+
+    unsigned int getSize() const  {
+        return size;
+    }
+
+    SymtabAPI::Module *getModule() const  {
+        return module;
+    }
+private:
+    string name;
+    Offset entry;
+    unsigned int size;
+    SymtabAPI::Module* module;
+    SymtabAPI::Symbol* dynsym;
+};
+
 Function *
 DynCFGFactory::mkfunc(
     Address addr, 
@@ -106,24 +141,41 @@ DynCFGFactory::mkfunc(
 {
     parse_func * ret;
     SymtabAPI::Symtab * st;
-    SymtabAPI::Function * stf;
+    SymtabAPI::Function * stf = NULL;
     pdmodule * pdmod;
-
     record_func_alloc(src);
 
     st = _img->getObject();
+    auto found = obj->cs()->linkage().find(addr);
+    // PLT stub
+    if(found != obj->cs()->linkage().end()) {
+        name = found->second;
+        pdmod = _img->getOrCreateModule(st->getDefaultModule());
+        std::vector<SymtabAPI::relocationEntry> relocs;
+        st->getFuncBindingTable(relocs);
+        for(auto i = relocs.begin(); i != relocs.end(); i++)
+        {
+            if(i->target_addr() == found->first)
+            {
+                stf = new PLTFunction(*i);
+                break;
+            }
+        }
+        ret = new parse_func(stf, pdmod,_img,obj,reg,isrc,src);
+        ret->isPLTFunction_ = true;
+        return ret;
+    }
     if(!st->findFuncByEntryOffset(stf,addr)) {
         pdmod = _img->getOrCreateModule(st->getDefaultModule());
         stf = st->createFunction(
-            name,addr,std::numeric_limits<size_t>::max(),pdmod->mod());
-    } else
+            name,addr,0,pdmod->mod());
+    } else {
         pdmod = _img->getOrCreateModule(stf->getModule());
+    }
     assert(stf);
 
     ret = new parse_func(stf,pdmod,_img,obj,reg,isrc,src);
 
-    if(obj->cs()->linkage().find(ret->addr()) != obj->cs()->linkage().end())
-        ret->isPLTFunction_ = true;
 
     return ret;
 }
