@@ -432,9 +432,11 @@ MachRegister MachRegister::getZeroFlag(Dyninst::Architecture arch)
       case Arch_aarch64: 
          return aarch64::z;
       case Arch_aarch32:
+         assert(!"Not implemented");
       case Arch_ppc32:
+         return ppc32::cr0e;
       case Arch_ppc64:
-         assert(0);
+         return ppc64::cr0e;
       case Arch_none:
          return InvalidReg;
       default:
@@ -495,6 +497,38 @@ bool MachRegister::isFlag() const
          return regC == x86_64::FLAG;
       case Arch_aarch64:
          return regC == aarch64::FLAG;
+      case Arch_ppc32: 
+      case Arch_ppc64:{
+         // For power, we have a different register representation.
+	 // We do not use the subrange field for MachReigsters
+	 // and all lower 32 bits are base ID
+	 int baseID = reg & 0x0000FFFF;
+         return (baseID <= 731 && baseID >= 700) || (baseID <= 629 && baseID >= 621); 
+      }
+      default:
+         assert(!"Not implemented!");
+   }
+   return false;
+}
+
+bool MachRegister::isZeroFlag() const
+{
+    switch (getArchitecture())
+    {
+      case Arch_x86:
+         return *this == x86::zf;
+      case Arch_x86_64:
+         return *this == x86_64::zf;
+      case Arch_aarch64:
+         return *this == aarch64::z;
+      case Arch_ppc32: 
+      case Arch_ppc64:{
+         // For power, we have a different register representation.
+	 // We do not use the subrange field for MachReigsters
+	 // and all lower 32 bits are base ID
+	 int baseID = reg & 0x0000FFFF;
+         return baseID <= 731 && baseID >= 700 && baseID % 4 == 2; 
+      }
       default:
          assert(!"Not implemented!");
    }

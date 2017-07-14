@@ -52,7 +52,7 @@ namespace rose {
 
                 public:
                     virtual BaseSemantics::SValuePtr undefined_(size_t nbits) const {
-                        return SValuePtr(new SValue(Dyninst::DataflowAPI::BottomAST::create(false)));
+                        return SValuePtr(new SValue(32, nbits));
                     }
 
                     virtual BaseSemantics::SValuePtr unspecified_(size_t nbits) const {
@@ -123,6 +123,7 @@ namespace rose {
                 typedef boost::shared_ptr<class RegisterStateAST> RegisterStateASTPtr;
                 typedef boost::shared_ptr<class RegisterStateASTARM64> RegisterStateASTARM64Ptr;
                 typedef boost::shared_ptr<class RegisterStateASTPPC32> RegisterStateASTPPC32Ptr;
+                typedef boost::shared_ptr<class RegisterStateASTPPC64> RegisterStateASTPPC64Ptr;
 
                 class RegisterStateAST : public BaseSemantics::RegisterState {
                 public:
@@ -216,7 +217,25 @@ namespace rose {
                         ASSERT_not_null(retval);
                         return retval;
                     }
+		private:
+		    virtual Dyninst::Absloc convert(const RegisterDescriptor &reg);
 
+                };
+		class RegisterStateASTPPC64 : public RegisterStateAST {
+		public:
+		    RegisterStateASTPPC64(const BaseSemantics::SValuePtr &protoval,
+                                          const RegisterDictionary *regdict) : RegisterStateAST(protoval, regdict) { }
+
+                    static RegisterStateASTPPC64Ptr instance(const BaseSemantics::SValuePtr &protoval,
+                                                             const RegisterDictionary *regdict) {
+                        return RegisterStateASTPPC64Ptr(new RegisterStateASTPPC64(protoval, regdict));
+                    }
+
+                    static RegisterStateASTPPC64Ptr promote(const BaseSemantics::RegisterStatePtr &from) {
+                        RegisterStateASTPPC64Ptr retval = boost::dynamic_pointer_cast<RegisterStateASTPPC64>(from);
+                        ASSERT_not_null(retval);
+                        return retval;
+                    }
 
 		private:
 		    virtual Dyninst::Absloc convert(const RegisterDescriptor &reg);
@@ -346,7 +365,9 @@ namespace rose {
                     virtual BaseSemantics::SValuePtr readMemory(const BaseSemantics::SValuePtr &address, const BaseSemantics::SValuePtr &dflt,
                                                                 BaseSemantics::RiscOperators *addrOps, BaseSemantics::RiscOperators *valOps, size_t readSize = 0);
                     virtual void writeMemory(const BaseSemantics::SValuePtr &addr, const BaseSemantics::SValuePtr &value, BaseSemantics::RiscOperators *addrOps,
-                                             BaseSemantics::RiscOperators *valOps, size_t writeSize = 0);
+                                             BaseSemantics::RiscOperators *valOps, size_t writeSize);
+                    virtual void writeMemory(const BaseSemantics::SValuePtr &addr, const BaseSemantics::SValuePtr &value, BaseSemantics::RiscOperators *addrOps,
+                                             BaseSemantics::RiscOperators *valOps);
 
                 protected:
                     Dyninst::DataflowAPI::Result_t &res;

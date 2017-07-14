@@ -71,18 +71,18 @@ SgAsmInstruction *RoseInsnFactory::convert(const InstructionAPI::Instruction::Pt
   // operand list
   SgAsmOperandList *roperands = new SgAsmOperandList;
   
-//   std::cerr << "Converting " << insn->format(addr) << " @" << std::hex << addr << std::dec << std::endl;
+   //std::cerr << "Converting " << insn->format(addr) << " @" << std::hex << addr << std::dec << std::endl;
   
-//   std::cerr << "checking instruction: " << insn->format(addr) << " for special handling" << std::endl;
+   //std::cerr << "checking instruction: " << insn->format(addr) << " for special handling" << std::endl;
   if (handleSpecialCases(insn->getOperation().getID(), rinsn, roperands)) {
       rinsn->set_operandList(roperands);
       return rinsn;
   }
 
-//   std::cerr << "no special handling by opcode, checking if we should mangle operands..." << std::endl;
+   //std::cerr << "no special handling by opcode, checking if we should mangle operands..." << std::endl;
   std::vector<InstructionAPI::Operand> operands;
   insn->getOperands(operands);
-//   std::cerr << "\t " << operands.size() << " operands" << std::endl;
+   //std::cerr << "\t " << operands.size() << " operands" << std::endl;
   massageOperands(insn, operands);
   int i = 0;
 //   std::cerr << "converting insn " << insn->format(addr) << std::endl;
@@ -297,11 +297,19 @@ bool RoseInsnPPCFactory::handleSpecialCases(entryID iapi_opcode,
 	//cerr << "14-bit branch target: " << branch_target << endl;
       }
       bo = ((raw >> 21) & 0x0000001F);
+      // bi field specifies which condition register bit to test.
+      // bi has a 5-bit value. The top 3 bit specifies which condition register to use
+      // The bottom 2 bit specifies which bit within the given condition register
       bi = ((raw >> 16) & 0x0000001F);
-      rose_operands->append_operand(new SgAsmByteValueExpression(bo));
-      rose_operands->append_operand(new SgAsmPowerpcRegisterReferenceExpression(powerpc_regclass_cr, bi,
-										powerpc_condreggranularity_bit));
+      rose_operands->append_operand(new SgAsmIntegerValueExpression(bo, new SgAsmIntegerType(ByteOrder::ORDER_LSB, 8, false)));
+      
+      SgAsmDirectRegisterExpression *dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(powerpc_regclass_cr, bi >> 2, bi & 0x3, 1));
+      dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, 1, false));
+      rose_operands->append_operand(dre);
     }
+
+    // It looks like the ROSE semantics code will infer the target from 
+    // the bo field. So, what is passed in as the third operands does not matter
     if(branch_target) {
       rose_operands->append_operand(new SgAsmDoubleWordValueExpression(branch_target));
     } else if(power_op_bcctr == iapi_opcode) {
@@ -323,7 +331,7 @@ bool RoseInsnPPCFactory::handleSpecialCases(entryID iapi_opcode,
       raw |= bytes[i];
     }
     unsigned int lev = (raw >> 5) & 0x7F;
-    rose_operands->append_operand(new SgAsmByteValueExpression(lev));
+    rose_operands->append_operand(new SgAsmIntegerValueExpression(lev, new SgAsmIntegerType(ByteOrder::ORDER_LSB, 8, false)));
     //cerr << "LEV = " << lev << endl;
     return true;
   }

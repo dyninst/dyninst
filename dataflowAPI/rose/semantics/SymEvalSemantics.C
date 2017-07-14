@@ -47,6 +47,18 @@ void SymEvalSemantics::StateAST::writeMemory(const BaseSemantics::SValuePtr &add
     memory->writeMemory(addr, value, res, aaMap, writeSize);
 }
 
+void SymEvalSemantics::StateAST::writeMemory(const BaseSemantics::SValuePtr &addr, 
+                                             const BaseSemantics::SValuePtr &value,
+					     BaseSemantics::RiscOperators *addrOps, 
+					     BaseSemantics::RiscOperators *valOps) {
+    ASSERT_not_null(addr);
+    ASSERT_not_null(value);
+    SymEvalSemantics::MemoryStateASTPtr memory = SymEvalSemantics::MemoryStateAST::promote(memoryState());
+    memory->writeMemory(addr, value, res, aaMap, value->get_width());
+}					    
+
+
+
 ///////////////////////////////////////////////////////
 //                                   RegisterStateAST
 ///////////////////////////////////////////////////////
@@ -185,19 +197,14 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateASTPPC32::convert(const RegisterD
 	    
 	case powerpc_regclass_cr: {
 	    unsigned int offset = reg.get_offset();
-	    if (size == 4) {
+	    if (size == 32) {
+	        mreg = Dyninst::ppc32::cr;
+	    }if (size == 4) {
 	        Dyninst::MachRegister base = Dyninst::ppc32::cr0;
 		mreg = Dyninst::MachRegister(base.val() + offset / 4);
 	    } else if (size == 1) {
-	        Dyninst::MachRegister base;
-		if (offset < 4) {
-		    base = Dyninst::ppc32::cr0l;
-		} else if (offset < 8) {
-		    base = Dyninst::ppc32::cr1l;
-		} else {
-		    assert(!"not implemented cr fields");
-		}
-		mreg = Dyninst::MachRegister(base.val() + offset % 4);
+	        Dyninst::MachRegister base = Dyninst::ppc32::cr0l;
+		mreg = Dyninst::MachRegister(base.val() + offset);
 	    } else {
 	        assert(!"bad cr register size");
 	    }
@@ -260,6 +267,100 @@ Dyninst::Absloc SymEvalSemantics::RegisterStateASTPPC32::convert(const RegisterD
     return Dyninst::Absloc(mreg);
 }
 
+Dyninst::Absloc SymEvalSemantics::RegisterStateASTPPC64::convert(const RegisterDescriptor &reg) {
+    Dyninst::MachRegister mreg;
+
+    unsigned int major = reg.get_major();
+    unsigned int size = reg.get_nbits();
+
+    switch (major) {
+        case powerpc_regclass_gpr: {
+            unsigned int minor = reg.get_minor();
+	    Dyninst::MachRegister base = Dyninst::ppc64::r0;
+
+	    // For some reason, ROSE does not provide a enum representation for power registers
+	    mreg = Dyninst::MachRegister(base.val() + minor);
+        }
+            break;
+        case powerpc_regclass_fpr: {
+            Dyninst::MachRegister base = Dyninst::ppc64::fpr0;
+            unsigned int minor = reg.get_minor();
+            mreg = Dyninst::MachRegister(base.val() + minor);
+        }
+            break;
+	    
+	case powerpc_regclass_cr: {
+	    unsigned int offset = reg.get_offset();
+	    if (size == 32) {
+	        mreg = Dyninst::ppc64::cr;
+	    } else if (size == 4) {
+	        Dyninst::MachRegister base = Dyninst::ppc64::cr0;
+		mreg = Dyninst::MachRegister(base.val() + offset / 4);
+	    } else if (size == 1) {
+	        Dyninst::MachRegister base = Dyninst::ppc64::cr0l;
+		mreg = Dyninst::MachRegister(base.val() + offset);
+	    } else {
+	        assert(!"bad cr register size");
+	    }
+	}
+	    break;
+	
+	case powerpc_regclass_fpscr:
+	    assert(!"not implemented register class fpscr");
+	    break;
+
+	case powerpc_regclass_spr: {
+	    unsigned int minor = reg.get_minor();
+	    switch (minor) {
+	        case powerpc_spr_xer: 
+		    mreg = Dyninst::ppc64::xer;
+		    break;
+		case powerpc_spr_lr:
+		    mreg = Dyninst::ppc64::lr;
+		    break;
+		case powerpc_spr_ctr:
+		    mreg = Dyninst::ppc64::ctr;
+		    break;
+		case powerpc_spr_dsisr:
+		    mreg = Dyninst::ppc64::dsisr;
+		    break;
+		case powerpc_spr_dar:
+		    mreg = Dyninst::ppc64::dar;
+		    break;
+		case powerpc_spr_dec:
+		    mreg = Dyninst::ppc64::dec;
+		    break;
+		default:
+		    assert(!"not implemented special register");
+	    }
+	}
+	    break;
+	case powerpc_regclass_tbr:
+	    assert(!"not implemented regclass tbr");
+	    break;
+	
+	case powerpc_regclass_msr:
+	    mreg = Dyninst::ppc64::msr;
+	    break;
+	    
+	case powerpc_regclass_sr:
+	    assert(!"not implemented regclass sr");
+	    break;
+
+        case powerpc_regclass_iar:
+            mreg = Dyninst::ppc64::pc;
+            break;
+	    
+	case powerpc_regclass_pvr:
+	    mreg = Dyninst::ppc64::pvr;
+	    break;
+        default:
+            ASSERT_always_forbid("Unexpected register major type.");
+    }
+
+    return Dyninst::Absloc(mreg);
+}
+
 
 ///////////////////////////////////////////////////////
 //                                     MemoryStateAST
@@ -276,10 +377,14 @@ BaseSemantics::SValuePtr SymEvalSemantics::MemoryStateAST::readMemory(const Base
 }
 
 BaseSemantics::SValuePtr SymEvalSemantics::MemoryStateAST::readMemory(const BaseSemantics::SValuePtr &address,
-                                                                        const BaseSemantics::SValuePtr &/*dflt*/,
+                                                                        const BaseSemantics::SValuePtr &dflt,
                                                                         BaseSemantics::RiscOperators */*addrOps*/,
                                                                         BaseSemantics::RiscOperators */*valOps*/) {
-    ASSERT_always_forbid("overridden MemoryState::readMemory() should never be called for AST, always use the non-virtual readMemory that also takes additional parameters.");
+    SymEvalSemantics::SValuePtr addr = SymEvalSemantics::SValue::promote(address);
+    return SymEvalSemantics::SValue::instance(Dyninst::DataflowAPI::RoseAST::create(Dyninst::DataflowAPI::ROSEOperation(Dyninst::DataflowAPI::ROSEOperation::derefOp, dflt->get_number()),
+                                                                                    addr->get_expression(),
+                                                                                    Dyninst::DataflowAPI::ConstantAST::create(Dyninst::DataflowAPI::Constant(1, 1))));
+
 }
 
 void SymEvalSemantics::MemoryStateAST::writeMemory(const BaseSemantics::SValuePtr &address,
@@ -299,11 +404,11 @@ void SymEvalSemantics::MemoryStateAST::writeMemory(const BaseSemantics::SValuePt
     }
 }
 
-void SymEvalSemantics::MemoryStateAST::writeMemory(const BaseSemantics::SValuePtr &/*addr*/,
-                                                     const BaseSemantics::SValuePtr &/*value*/,
+void SymEvalSemantics::MemoryStateAST::writeMemory(const BaseSemantics::SValuePtr &addr,
+                                                     const BaseSemantics::SValuePtr &value,
                                                      BaseSemantics::RiscOperators */*addrOps*/,
                                                      BaseSemantics::RiscOperators */*valOps*/) {
-    ASSERT_always_forbid("overridden MemoryState::writeMemory() should never be called for AST, always use the non-virtual writeMemory that also takes additional parameters.");
+     ASSERT_always_forbid("overridden MemoryState::writeMemory() should never be called for AST, always use the non-virtual writeMemory that also takes additional parameters.");
 }
 
 ///////////////////////////////////////////////////////

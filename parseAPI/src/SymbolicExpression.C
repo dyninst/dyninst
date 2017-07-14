@@ -246,10 +246,10 @@ Address SymbolicExpression::PCValue(Address cur, size_t insnSize, Architecture a
 	case Arch_x86_64:
 	    return cur + insnSize;
 	case Arch_aarch64:
-	    return cur;
-        case Arch_aarch32:
         case Arch_ppc32:
         case Arch_ppc64:
+	    return cur;
+        case Arch_aarch32:
         case Arch_none:
             assert(0);
     }    

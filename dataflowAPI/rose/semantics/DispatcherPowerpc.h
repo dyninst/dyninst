@@ -27,7 +27,7 @@ protected:
 
     DispatcherPowerpc(const BaseSemantics::RiscOperatorsPtr &ops, size_t addrWidth, const RegisterDictionary *regs)
         : BaseSemantics::Dispatcher(ops, addrWidth, regs ? regs : RegisterDictionary::dictionary_powerpc()) {
-        ASSERT_require(32==addrWidth);
+//        ASSERT_require(32==addrWidth);
         regcache_init();
         iproc_init();
         memory_init();

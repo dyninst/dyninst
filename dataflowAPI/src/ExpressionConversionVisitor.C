@@ -53,7 +53,7 @@ void ExpressionConversionVisitor::visit(InstructionAPI::Immediate *immed) {
     // TODO rose doesn't handle large values (XMM?)
 
     // build different kind of rose value object based on type
-    if(arch == Arch_aarch64) {
+    if(arch == Arch_aarch64 || arch == Arch_ppc32 || arch == Arch_ppc64) {
         bool isSigned = false;
         switch (value.type) {
             case s8:
@@ -163,7 +163,7 @@ void ExpressionConversionVisitor::visit(Dereference *deref) {
 
     // TODO fix some mismatched types?
     // pick correct type
-    if(arch == Arch_aarch64) {
+    if(arch == Arch_aarch64 || arch == Arch_ppc32 || arch == Arch_ppc64) {
         bool isSigned = false;
         switch (deref->eval().type) {
             case s8:
@@ -272,16 +272,20 @@ SgAsmExpression *ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
                                                            regNum,
                                                            (X86PositionInRegister) regPos);
         }
-        case Arch_ppc32: {
+        case Arch_ppc32: 
+	case Arch_ppc64: {
             int regClass;
             int regNum;
-            int regGran = powerpc_condreggranularity_whole;
-
-            machReg.getROSERegister(regClass, regNum, regGran);
-
-            return new SgAsmPowerpcRegisterReferenceExpression((PowerpcRegisterClass) regClass,
-                                                               regNum,
-                                                               (PowerpcConditionRegisterAccessGranularity) regGran);
+            int regPos;
+	    SgAsmDirectRegisterExpression *dre;
+            machReg.getROSERegister(regClass, regNum, regPos);
+	    if (regClass == powerpc_regclass_cr) {
+	        dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(regClass, regNum, regPos, 4));
+	    } else {
+	        dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(regClass, regNum, regPos, machReg.size() * 8));
+	    }
+            dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
+	    return dre;
         }
         case Arch_aarch64: {
             int regClass;

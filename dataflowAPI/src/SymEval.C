@@ -460,8 +460,7 @@ bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
             break;
 
         }
-	case Arch_ppc32:
-        case Arch_ppc64: {
+	case Arch_ppc32: {
             RoseInsnPPCFactory fac;
             roseInsn = fac.convert(insn, addr);
 
@@ -478,6 +477,24 @@ bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
 
             break;
         }
+	case Arch_ppc64: {
+            RoseInsnPPCFactory fac;
+            roseInsn = fac.convert(insn, addr);
+
+            SymbolicExpansion exp;
+            const RegisterDictionary *reg_dict = RegisterDictionary::dictionary_powerpc();
+
+            BaseSemantics::SValuePtr protoval = SymEvalSemantics::SValue::instance(1, 0);
+            BaseSemantics::RegisterStatePtr registerState = SymEvalSemantics::RegisterStateASTPPC64::instance(protoval, reg_dict);
+            BaseSemantics::MemoryStatePtr memoryState = SymEvalSemantics::MemoryStateAST::instance(protoval, protoval);
+            BaseSemantics::StatePtr state = SymEvalSemantics::StateAST::instance(res, addr, insn->getArch(), insn, registerState, memoryState);
+            BaseSemantics::RiscOperatorsPtr ops = SymEvalSemantics::RiscOperatorsAST::instance(state);
+
+            exp.expandPPC64(roseInsn, ops, insn->format());
+
+            break;
+
+	}
         case Arch_aarch64: {
             RoseInsnArmv8Factory fac(Arch_aarch64);
             roseInsn = fac.convert(insn, addr);

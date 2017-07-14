@@ -80,7 +80,17 @@ bool SymbolicExpansion::expandPPC32(SgAsmInstruction *rose_insn,
 bool SymbolicExpansion::expandPPC64(SgAsmInstruction *rose_insn,
                                     BaseSemantics::RiscOperatorsPtr ops, 
 				    const std::string &insn_dump) {
-     return expandPPC32(rose_insn, ops, insn_dump);
+    SgAsmPowerpcInstruction *insn = static_cast<SgAsmPowerpcInstruction *>(rose_insn);
+
+    BaseSemantics::DispatcherPtr cpu = DispatcherPowerpc::instance(ops, 64);
+
+    try {
+        cpu->processInstruction(insn);
+    } catch (rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception &e) {
+        // fprintf(stderr, "Instruction processing threw exception for instruction: %s\n", insn_dump.c_str());
+    }
+
+    return true;
 }
 
 bool SymbolicExpansion::expandAarch64(SgAsmInstruction *rose_insn, BaseSemantics::RiscOperatorsPtr ops, const std::string &insn_dump) {
