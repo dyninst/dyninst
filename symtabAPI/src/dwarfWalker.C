@@ -1753,7 +1753,7 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
         }
 
         if(!decodeLocationListForStaticOffsetOrAddress(locDescs, locDescs.size(), 
-                locs, locationAttribute, initialStackValue))
+                locs, initialStackValue))
         {
             return false;
         }
@@ -2286,8 +2286,7 @@ bool DwarfWalker::decodeExpression(Dwarf_Attribute &locationAttribute,
     }while(offset > 0);
 
     //assert(locDescs.size()!=1);
-    bool ret = decodeLocationListForStaticOffsetOrAddress(locDescs, 1, 
-            locs, locationAttribute);
+    bool ret = decodeLocationListForStaticOffsetOrAddress(locDescs, 1, locs);
     return ret;
 }
 
@@ -2296,7 +2295,6 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress(
         std::vector<LocDesc>& locationList,
         Dwarf_Sword listLength,
         std::vector<VariableLocation>& locs,
-        Dwarf_Attribute &attr,
         Address * initialStackValue)
 {
     locs.clear();

@@ -3160,7 +3160,6 @@ bool parseCompilerType(Object *objPtr)
 
 #if (defined(os_linux) || defined(os_freebsd))
 
-#if 0 // TODO
 static unsigned long read_uleb128(const unsigned char *data, unsigned *bytes_read)
 {
     unsigned long result = 0;
@@ -3322,6 +3321,28 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
     return size;
 }
 
+
+int section_id(Elf * elf)
+{
+    char *identp = elf_getident(elf, NULL);
+    bool is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
+
+    auto shstrtab_idx = !is64 ? elf32_getehdr(elf)->e_shstrndx : elf64_getehdr(elf)->e_shstrndx;
+    Elf_Scn *scn= elf_getscn(elf, shstrtab_idx); 
+    Elf_Data *data = elf_getdata(scn, NULL); 
+    const char *shnames = (const char *)data->d_buf;
+
+    unsigned short num_sections = !is64 ? elf32_getehdr(elf)->e_shnum : elf64_getehdr(elf)->e_shnum;
+    for (unsigned i = 0; i < num_sections; i++) {
+        Elf_Scn *scn = elf_getscn(elf, i); 
+        unsigned long name_idx = !is64 ? elf32_getshdr(scn)->sh_name : elf64_getshdr(scn)->sh_name;
+        if (strcmp(".eh_frame", shnames + name_idx) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 /**
  * On GCC 3.x/x86 we find catch blocks as follows:
  *   1. We start with a list of FDE entries in the .eh_frame
@@ -3343,27 +3364,60 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
 #define SHORT_FDE_HLEN 4
 #define LONG_FDE_HLEN 12
 static
-int read_except_table_gcc3(Dwarf_FDE *fde_data, Dwarf_Sword fde_count,
-                           mach_relative_info &mi,
-                           Elf_X_Shdr *eh_frame, Elf_X_Shdr *except_scn,
-                           std::vector<ExceptionBlock> &addresses)
+int read_except_table_gcc3(
+        Dwarf* dbg, mach_relative_info &mi,
+        Elf_X_Shdr *eh_frame, Elf_X_Shdr *except_scn,
+        std::vector<ExceptionBlock> &addresses)
 {
-    Dwarf_Error err = (Dwarf_Error) NULL;
-    Dwarf_Addr low_pc;
-    unsigned long long bytes_in_cie;
+    Dwarf_Addr low_pc = 0;
     Dwarf_Off fde_offset, cie_offset;
-    Dwarf_FDE fde;
-    Dwarf_CIE cie;
-    int status, result, ptr_size;
-    char *augmentor;
+    int result, ptr_size;
+    const char *augmentor;
     unsigned char lpstart_format, ttype_format, table_format;
     unsigned long value, table_end, region_start, region_size, landingpad_base;
     unsigned long catch_block, action, augmentor_len;
-    Dwarf_Small *fde_augdata, *cie_augdata;
-    unsigned long long fde_augdata_len, cie_augdata_len;
 
-    //For each FDE
-    for (int i = 0; i < fde_count; i++) {
+    Elf * elf = dwarf_getelf(dbg);
+    Dwarf_CFI * cfi = dwarf_getcfi_elf(elf);
+    std::vector<Dwarf_CFI_Entry> cfi_entries;
+    if (!cfi) 
+    {
+        return false;
+    }
+
+    Dwarf_Off offset = 0, next_offset, saved_cur_offset;
+    int res = 0;
+
+    auto e_ident = reinterpret_cast<const unsigned char*>(elf_getident(elf, NULL));
+    int i = section_id(elf);
+    assert(i!=-1);
+    auto elf_data = elf_getdata(elf_getscn(elf, i), NULL);
+
+    Dwarf_CFI_Entry *last_cie = NULL; 
+
+    //For each CFI entry 
+    do
+    {
+        Dwarf_CFI_Entry entry;
+        res = dwarf_next_cfi(e_ident, elf_data, true, offset, &next_offset, &entry);
+        saved_cur_offset = offset; //saved in case needed later 
+        offset = next_offset;
+        
+        // If no more CFI entries left in the section 
+        if(res==1 && next_offset==(Dwarf_Off)-1) break;
+        
+        // On error, skip to the next CFI entry 
+        if(res==-1) continue;
+
+        if(dwarf_cfi_cie_p(&entry))
+        {
+            last_cie = &entry;
+            cie_offset = saved_cur_offset;
+            continue;
+        }
+        
+        assert(last_cie!=NULL);
+
         unsigned int j;
         unsigned char lsda_encoding = 0xff, personality_encoding = 0xff;
         unsigned char *lsda_ptr = NULL;
@@ -3372,45 +3426,31 @@ int read_except_table_gcc3(Dwarf_FDE *fde_data, Dwarf_Sword fde_count,
         unsigned long fde_addr, cie_addr;
         unsigned char *fde_bytes, *cie_bytes;
 
-        //Get the FDE
-        status = dwarf_get_fde_n(fde_data, (unsigned long long) i, &fde, &err);
-        if (status != DW_DLV_OK) {
-            pd_dwarf_handler();
-            return false;
-        }
-
         //After this set of computations we should have:
         // low_pc = mi.func = the address of the function that contains this FDE
         // fde_bytes = the start of the FDE in our memory space
         // cie_bytes = the start of the CIE in our memory space
-        status = dwarf_get_fde_range(fde, &low_pc, NULL, (void **) &fde_bytes,
-                                     NULL, &cie_offset, NULL,
-                                     &fde_offset, &err);
-        if (status != DW_DLV_OK) {
-            pd_dwarf_handler();
-            return false;
-        }
+        //
+        //status = dwarf_get_fde_range(fde, &low_pc, NULL, (void **) &fde_bytes,
+        //                             NULL, &cie_offset, NULL,
+        //                             &fde_offset, &err);
+        //if (status != 0) {
+        //    pd_dwarf_handler();
+        //    return false;
+        //}
+        //low_pc = reinterpret_cast<Dwarf_Addr>(entry.fde.start); 
+        fde_offset = saved_cur_offset;
+        fde_bytes = (unsigned char *) eh_frame->get_data().d_buf() + fde_offset;
+
         //The LSB strays from the DWARF here, when parsing the except_eh section
         // the cie_offset is relative to the FDE rather than the start of the
         // except_eh section.
-        cie_offset = fde_offset - cie_offset +
-                     (*(uint32_t*)fde_bytes == 0xffffffff ? LONG_FDE_HLEN : SHORT_FDE_HLEN);
+        //cie_offset = fde_offset - cie_offset +
+        //             (*(uint32_t*)fde_bytes == 0xffffffff ? LONG_FDE_HLEN : SHORT_FDE_HLEN);
         cie_bytes = (unsigned char *)eh_frame->get_data().d_buf() + cie_offset;
 
-        //Get the CIE for the FDE
-        status = dwarf_get_cie_of_fde(fde, &cie, &err);
-        if (status != DW_DLV_OK) {
-            pd_dwarf_handler();
-            return false;
-        }
-
         //Get the Augmentation string for the CIE
-        status = dwarf_get_cie_info(cie, &bytes_in_cie, NULL, &augmentor,
-                                    NULL, NULL, NULL, NULL, NULL, &err);
-        if (status != DW_DLV_OK) {
-            pd_dwarf_handler();
-            return false;
-        }
+        augmentor = last_cie->cie.augmentation;  
 
         //Check that the string pointed to by augmentor has a 'L',
         // meaning we have a LSDA
@@ -3437,16 +3477,17 @@ int read_except_table_gcc3(Dwarf_FDE *fde_data, Dwarf_Sword fde_count,
         // Linux Standard Base. The augmentation string tells us how
         // which augmentation data is present.  We only care about one
         // field, a byte telling how the LSDA pointer is encoded.
-        status = dwarf_get_cie_augmentation_data(cie,
-                                                 &cie_augdata,
-                                                 &cie_augdata_len,
-                                                 &err);
-        if (status != DW_DLV_OK) {
-            pd_dwarf_handler();
-            return false;
-        }
+        //
+        //status = dwarf_get_cie_augmentation_data(cie,
+        //                                         &cie_augdata,
+        //                                         &cie_augdata_len,
+        //                                         &err);
+        //if (status != 0) {
+        //    pd_dwarf_handler();
+        //    return false;
+        //}
 
-        cur_augdata = (unsigned char *) cie_augdata;
+        cur_augdata = const_cast<unsigned char *>(last_cie->cie.augmentation_data);
         lsda_encoding = DW_EH_PE_omit;
         for (j=0; j<augmentor_len; j++)
         {
@@ -3487,15 +3528,20 @@ int read_except_table_gcc3(Dwarf_FDE *fde_data, Dwarf_Sword fde_count,
         // The FDE has an augmentation area, similar to the above one in the CIE.
         // Where-as the CIE augmentation tends to contain things like bytes describing
         // pointer encodings, the FDE contains the actual pointers.
-        status = dwarf_get_fde_augmentation_data(fde,
-                                                 &fde_augdata,
-                                                 &fde_augdata_len,
-                                                 &err);
-        if (status != DW_DLV_OK) {
-            pd_dwarf_handler();
-            return false;
-        }
-        cur_augdata = (unsigned char *) fde_augdata;
+        //
+        //status = dwarf_get_fde_augmentation_data(fde,
+        //                                         &fde_augdata,
+        //                                         &fde_augdata_len,
+        //                                         &err);
+        //if (status != 0) {
+        //    pd_dwarf_handler();
+        //    return false;
+        //}
+        
+        /* Skip 13 bytes for CIE Pointer, Length, PC Begin, PC Range, and iugmentation Length*/ 
+        cur_augdata = fde_bytes + 13 
+            + (*(uint32_t*)fde_bytes == 0xffffffff ? LONG_FDE_HLEN : SHORT_FDE_HLEN); 
+                
         for (j=0; j<augmentor_len; j++)
         {
             if (augmentor[j] == 'L')
@@ -3610,11 +3656,12 @@ int read_except_table_gcc3(Dwarf_FDE *fde_data, Dwarf_Sword fde_count,
 
             addresses.push_back(eb);
         }
-    }
-
+    } while(true);
+    
     return true;
 }
 
+#if 0 // TODO
 /**
  * Things were much simpler in the old days.  On gcc 2.x
  * the gcc_except_table looks like:
@@ -3669,26 +3716,27 @@ struct  exception_compare: public binary_function<const ExceptionBlock &, const 
     }
 };
 
+
+
 /**
  * Finds the addresses of catch blocks in a g++ generated elf file.
  *  'except_scn' should point to the .gcc_except_table section
  *  'eh_frame' should point to the .eh_frame section
  *  the addresses will be pushed into 'addresses'
  **/
-bool Object::find_catch_blocks(Elf_X_Shdr * /*eh_frame*/,
-                               Elf_X_Shdr * /*except_scn*/,
-                               Address /*txtaddr*/, Address /*dataaddr*/,
-                               std::vector<ExceptionBlock> & /*catch_addrs*/)
+bool Object::find_catch_blocks(Elf_X_Shdr * eh_frame,
+                               Elf_X_Shdr * except_scn,
+                               Address txtaddr, Address dataaddr,
+                               std::vector<ExceptionBlock> & catch_addrs)
 {
-#if 0 // TODO
-    Dwarf_CIE *cie_data;
-    Dwarf_FDE *fde_data;
-    Dwarf_Sword cie_count, fde_count;
-    Dwarf_Error err = (Dwarf_Error) NULL;
-    unsigned long long bytes_in_cie;
-    char *augmentor;
-    int status, gcc_ver = 3;
-    unsigned i;
+    //Dwarf_CIE *cie_data;
+    //Dwarf_FDE *fde_data;
+    //Dwarf_Sword cie_count, fde_count;
+    //Dwarf_Error err = (Dwarf_Error) NULL;
+    //unsigned long long bytes_in_cie;
+    //char *augmentor;
+    //int status, gcc_ver = 3;
+    //unsigned i;
     bool result = false;
 
     if (except_scn == NULL) {
@@ -3696,20 +3744,22 @@ bool Object::find_catch_blocks(Elf_X_Shdr * /*eh_frame*/,
         return true;
     }
 
-    ::Dwarf *dbg_ptr = dwarf->frame_dbg();
-    if (!dbg_ptr) {
+    Dwarf ** dbg_ptr = dwarf->frame_dbg();
+    if (!dbg_ptr) 
+    {
         pd_dwarf_handler();
         return false;
     }
-    ::Dwarf &dbg = *dbg_ptr;
+    Dwarf * dbg = *dbg_ptr;
+    if(!dbg) return false;
 
     //Read the FDE and CIE information
-    status = dwarf_get_fde_list_eh(dbg, &cie_data, &cie_count,
-                                   &fde_data, &fde_count, &err);
-    if (status != DW_DLV_OK) {
-        //No actual stackwalk info in this object
-        return false;
-    }
+    //status = dwarf_get_fde_list_eh(dbg, &cie_data, &cie_count,
+    //                               &fde_data, &fde_count, &err);
+    //if (status != 0) {
+    //    //No actual stackwalk info in this object
+    //    return false;
+    //}
 
     mach_relative_info mi;
     mi.text = txtaddr;
@@ -3720,43 +3770,39 @@ bool Object::find_catch_blocks(Elf_X_Shdr * /*eh_frame*/,
 
 
     //GCC 2.x has "eh" as its augmentor string in the CIEs
-    for (i = 0; i < cie_count; i++) {
-        status = dwarf_get_cie_info(cie_data[i], &bytes_in_cie, NULL,
-                                    &augmentor, NULL, NULL, NULL, NULL, NULL, &err);
-        if (status != DW_DLV_OK) {
-            pd_dwarf_handler();
-            goto cleanup;
-        }
-        if (augmentor[0] == 'e' && augmentor[1] == 'h') {
-            gcc_ver = 2;
-        }
-    }
+    //for (i = 0; i < cie_count; i++) {
+    //    status = dwarf_get_cie_info(cie_data[i], &bytes_in_cie, NULL,
+    //                                &augmentor, NULL, NULL, NULL, NULL, NULL, &err);
+    //    if (status != DW_DLV_OK) {
+    //        pd_dwarf_handler();
+    //        goto cleanup;
+    //    }
+    //    if (augmentor[0] == 'e' && augmentor[1] == 'h') {
+    //        gcc_ver = 2;
+    //    }
+    //}
 
     //Parse the gcc_except_table
-    if (gcc_ver == 2) {
-        result = read_except_table_gcc2(except_scn, catch_addrs, mi);
+    //if (gcc_ver == 2) {
+    //    result = read_except_table_gcc2(except_scn, catch_addrs, mi);
 
-    } else if (gcc_ver == 3) {
-        result = read_except_table_gcc3(fde_data, fde_count, mi,
-                                        eh_frame, except_scn,
+    //} else if (gcc_ver == 3) {
+        result = read_except_table_gcc3(dbg, mi, eh_frame, except_scn,
                                         catch_addrs);
-    }
+    //}
     sort(catch_addrs.begin(),catch_addrs.end(),exception_compare());
     //VECTOR_SORT(catch_addrs, exception_compare);
 
-    cleanup:
-    //Unallocate fde and cie information
-    for (i = 0; i < cie_count; i++)
-        dwarf_dealloc(dbg, cie_data[i], DW_DLA_CIE);
-    for (i = 0; i < fde_count; i++)
-        dwarf_dealloc(dbg, fde_data[i], DW_DLA_FDE);
-    dwarf_dealloc(dbg, cie_data, DW_DLA_LIST);
-    dwarf_dealloc(dbg, fde_data, DW_DLA_LIST);
+    //cleanup:
+    ////Unallocate fde and cie information
+    //for (i = 0; i < cie_count; i++)
+    //    dwarf_dealloc(dbg, cie_data[i], DW_DLA_CIE);
+    //for (i = 0; i < fde_count; i++)
+    //    dwarf_dealloc(dbg, fde_data[i], DW_DLA_FDE);
+    //dwarf_dealloc(dbg, cie_data, DW_DLA_LIST);
+    //dwarf_dealloc(dbg, fde_data, DW_DLA_LIST);
 
     return result;
-#else //TODO
-    return false;
-#endif // TODO
 }
 
 #endif

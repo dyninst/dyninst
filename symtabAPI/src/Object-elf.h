@@ -261,14 +261,15 @@ class Symtab;
 class Region;
 class Object;
 
-        class Object : public AObject {
-            friend class Module;
+class Object : public AObject 
+{
+  friend class Module;
 
   // declared but not implemented; no copying allowed
   Object(const Object &);
   const Object& operator=(const Object &);
 
- public:
+public:
 
   Object(MappedFile *, bool, void (*)(const char *) = log_msg, bool alloc_syms = true, Symtab* st = NULL);
   virtual ~Object();

@@ -316,7 +316,6 @@ private:
             std::vector<LocDesc>& locationList,
             Dwarf_Sword listLength,
             std::vector<VariableLocation>& locs,
-            Dwarf_Attribute &attr,
             Address * initialStackValue = NULL);
     void deallocateLocationList(Dwarf_Op **locationList,
             Dwarf_Sword listLength);
