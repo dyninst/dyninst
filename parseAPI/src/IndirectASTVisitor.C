@@ -22,6 +22,7 @@ Address PCValue(Address cur, size_t insnSize, Architecture a) {
         case Arch_ppc32:
         case Arch_ppc64:
         case Arch_none:
+        case Arch_cuda:
             assert(0);
     }    
     return cur + insnSize;

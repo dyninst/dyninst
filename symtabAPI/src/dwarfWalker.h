@@ -251,6 +251,7 @@ namespace Dyninst {
             bool handleSpecification(bool &hasSpec);
             bool findFuncName();
             bool setFunctionFromRange(inline_t func_type);
+            bool setFunctionFromName(const std::string &name);
             virtual void setEntry(Dwarf_Die e);
             bool getFrameBase();
             bool getReturnType(bool hasSpecification, Type *&returnType);

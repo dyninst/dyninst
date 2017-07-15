@@ -139,8 +139,10 @@ bool DwarfHandle::init_dbg()
       case EM_X86_64:
       case EM_K10M:
       case EM_L10M:
-      case EM_CUDA:
          arch = Arch_x86_64;
+         break;
+      case EM_CUDA:
+         arch = Arch_cuda;
          break;
       case EM_PPC:
          arch = Arch_ppc32;

@@ -85,6 +85,8 @@ MachRegister MachRegister::getBaseRegister() const {
       case Arch_ppc64:
       case Arch_none:
          return *this;
+      case Arch_cuda:
+	 assert(0);
 		case Arch_aarch32:
 		case Arch_aarch64:
 				  //not verified
@@ -185,6 +187,7 @@ unsigned int MachRegister::size() const {
           return 16;
         return 8;
       case Arch_aarch32:
+      case Arch_cuda:
         assert(0);
       case Arch_aarch64:
 		if((reg & 0x00ff0000) == aarch64::FPR)
@@ -251,6 +254,7 @@ MachRegister MachRegister::getPC(Dyninst::Architecture arch)
       case Arch_aarch64:  //aarch64: pc is not writable
          return aarch64::pc;
       case Arch_aarch32:
+      case Arch_cuda:
          assert(0);
       case Arch_none:
          return InvalidReg;
@@ -274,6 +278,7 @@ MachRegister MachRegister::getReturnAddress(Dyninst::Architecture arch)
       case Arch_aarch64:  //aarch64: x30 stores the RA for current frame
          return aarch64::x30;
       case Arch_aarch32:
+      case Arch_cuda:
          assert(0);
       case Arch_none:
          return InvalidReg;
@@ -319,6 +324,7 @@ MachRegister MachRegister::getStackPointer(Dyninst::Architecture arch)
       case Arch_aarch64:
          return aarch64::sp; //aarch64: stack pointer is an independent register
       case Arch_aarch32:
+      case Arch_cuda:
          assert(0);
       case Arch_none:
          return InvalidReg;
@@ -344,6 +350,7 @@ MachRegister MachRegister::getSyscallNumberReg(Dyninst::Architecture arch)
         case Arch_aarch64:
             return aarch64::x8;
         case Arch_aarch32:
+        case Arch_cuda:
             assert(0);
         case Arch_none:
             return InvalidReg;
@@ -433,6 +440,7 @@ MachRegister MachRegister::getZeroFlag(Dyninst::Architecture arch)
       case Arch_aarch32:
       case Arch_ppc32:
       case Arch_ppc64:
+      case Arch_cuda:
          assert(0);
       case Arch_none:
          return InvalidReg;
@@ -1456,6 +1464,10 @@ MachRegister MachRegister::DwarfEncToReg(int encoding, Dyninst::Architecture arc
          }
          return Dyninst::InvalidReg;
          }
+      case Arch_cuda:
+         // ignore CUDA register encodings for now
+         return Dyninst::InvalidReg;
+         break;
       case Arch_none:
          return Dyninst::InvalidReg;
          break;
@@ -1902,6 +1914,7 @@ unsigned Dyninst::getArchAddressWidth(Dyninst::Architecture arch)
       case Arch_x86_64:
       case Arch_ppc64:
       case Arch_aarch64:
+      case Arch_cuda:
          return 8;
       default:
          assert(0);

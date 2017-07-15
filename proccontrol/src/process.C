@@ -1954,6 +1954,7 @@ int int_process::getAddressWidth()
       case Arch_x86_64:
       case Arch_ppc64:
       case Arch_aarch64:
+      case Arch_cuda:
          return 8;
       case Arch_none:
          assert(0);
