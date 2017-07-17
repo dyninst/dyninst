@@ -444,7 +444,10 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
 {
     vector<SymtabAPI::Function *> fsyms;
     vector<SymtabAPI::Function *>::iterator fsit;
-    dyn_hash_map<Address,bool> seen;
+
+    typedef std::pair<SymtabAPI::Region *, Offset> RegionOffsetPair;
+    set<RegionOffsetPair> seen;
+
     int dupes = 0;
 
     if(!_symtab->getAllFunctions(fsyms))
@@ -472,15 +475,9 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
 		}
 		/*Achin added code ends*/
 
-#if 0
-        if(HASHDEF(seen,(*fsit)->getOffset())) {
-#else
-	  // the above hashtable doesn't work right because function
-	  // addresses are not necessarily unique across code regions
-	  // need to replace this with a membership test in a set of
-	  // (region, offset) pairs
-	  if (0) {
-#endif
+        SymtabAPI::Region * sr = (*fsit)->getRegion();
+        Offset so = (*fsit)->getOffset();
+        if (seen.find(RegionOffsetPair(sr, so)) != seen.end()) {
             // XXX it looks as though symtabapi now does de-duplication
             //     of function symbols automatically, so this code should
             //     never be reached, except in the case of overlapping
@@ -491,9 +488,8 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
                 (*fsit)->getFirstSymbol()->getPrettyName().c_str());
             ++dupes;
         }
-        seen[(*fsit)->getOffset()] = true;
+        seen.insert(RegionOffsetPair(sr, so));
 
-        SymtabAPI::Region * sr = (*fsit)->getRegion();
         if(!sr) {
             parsing_printf("[%s:%d] missing Region in function at %lx\n",
                 FILE__,__LINE__,(*fsit)->getOffset());
