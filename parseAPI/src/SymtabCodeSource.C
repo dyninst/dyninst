@@ -472,7 +472,15 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
 		}
 		/*Achin added code ends*/
 
+#if 0
         if(HASHDEF(seen,(*fsit)->getOffset())) {
+#else
+	  // the above hashtable doesn't work right because function
+	  // addresses are not necessarily unique across code regions
+	  // need to replace this with a membership test in a set of
+	  // (region, offset) pairs
+	  if (0) {
+#endif
             // XXX it looks as though symtabapi now does de-duplication
             //     of function symbols automatically, so this code should
             //     never be reached, except in the case of overlapping
