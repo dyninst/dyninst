@@ -85,10 +85,10 @@ CFGFactory::~CFGFactory()
 
 // ParseAPI call...
 Function *
-CFGFactory::_mkfunc(Address addr, FuncSource src, string name, 
+CFGFactory::_mkfunc(Address addr, FuncSource src, string name, string mangledName,  
     CodeObject * obj, CodeRegion * reg, Dyninst::InstructionSource * isrc)
 {
-   Function * ret = mkfunc(addr,src,name,obj,reg,isrc);
+  Function * ret = mkfunc(addr,src,name,mangledName,obj,reg,isrc);
    funcs_.add(*ret);
    ret->_src =  src;
    return ret;
@@ -96,10 +96,10 @@ CFGFactory::_mkfunc(Address addr, FuncSource src, string name,
 
 // And user-overriden create
 Function *
-CFGFactory::mkfunc(Address addr, FuncSource, string name, 
+CFGFactory::mkfunc(Address addr, FuncSource, string name, string mangledName,
     CodeObject * obj, CodeRegion * reg, Dyninst::InstructionSource * isrc)
 {
-    Function * ret = new Function(addr,name,obj,reg,isrc);
+    Function * ret = new Function(addr,name,mangledName,obj,reg,isrc);
     return ret;
 }
 

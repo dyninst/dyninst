@@ -121,7 +121,7 @@ class PARSER_EXPORT CFGFactory {
      * around the user-overridden creation/destruction methods.
      */
     Function *_mkfunc(Address addr, FuncSource src,
-                                    std::string name, CodeObject *obj,
+                                    std::string name, std::string mangledName, CodeObject *obj,
                                     CodeRegion *region, InstructionSource *isrc);
     Block *_mkblock(Function *f, CodeRegion *r, Address addr);
     Edge *_mkedge(Block *src, Block *trg, EdgeTypeEnum type);
@@ -136,7 +136,7 @@ class PARSER_EXPORT CFGFactory {
 
  protected:
     virtual Function * mkfunc(Address addr, FuncSource src, 
-            std::string name, CodeObject * obj, CodeRegion * region, 
+	    std::string name, std::string mangledName, CodeObject * obj, CodeRegion * region, 
             Dyninst::InstructionSource * isrc);
     virtual Block * mkblock(Function * f, CodeRegion * r, 
             Address addr);

@@ -87,10 +87,10 @@ CodeObject::process_hints()
         CodeRegion * cr = (*hit)._reg;
         if(!cs()->regionsOverlap())
             f = parser->factory()._mkfunc(
-               (*hit)._addr,HINT,(*hit)._name,this,cr,cs());
+               (*hit)._addr,HINT,(*hit)._name,(*hit)._mangledName,this,cr,cs());
         else
             f = parser->factory()._mkfunc(
-                (*hit)._addr,HINT,(*hit)._name,this,cr,cr);
+                (*hit)._addr,HINT,(*hit)._name,(*hit)._mangledName,this,cr,cr);
         if(f) {
             parsing_printf("[%s] adding hint %lx\n",FILE__,f->addr());
             parser->add_hint(f);
