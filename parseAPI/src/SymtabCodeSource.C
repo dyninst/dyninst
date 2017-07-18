@@ -514,7 +514,8 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
             _hints.push_back( Hint((*fsit)->getOffset(),
 	                       (*fsit)->getSize(),
                                cr,
-                               (*fsit)->getFirstSymbol()->getPrettyName()) );
+			       (*fsit)->getFirstSymbol()->getPrettyName(),
+                               (*fsit)->getFirstSymbol()->getMangledName()) );
             parsing_printf("\t<%lx,%s,[%lx,%lx)>\n",
                 (*fsit)->getOffset(),
                 (*fsit)->getFirstSymbol()->getPrettyName().c_str(),

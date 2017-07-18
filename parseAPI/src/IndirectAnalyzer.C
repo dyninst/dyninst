@@ -264,7 +264,7 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
 	    // This assumption is shaky in terms of non-contiguous functions.
 	    // But non-contiguous blocks tend not be reach by indirect jumps
 	    if (func->src() == HINT) {
-	        Hint h(func->addr(), 0 , NULL, "");
+	        Hint h(func->addr(), 0 , NULL, "", "");
 		auto range = equal_range(cs->hints().begin(), cs->hints().end(), h);
 		if (range.first != range.second && range.first != cs->hints().end()) {
 		    Address startAddr = range.first->_addr;
