@@ -347,10 +347,11 @@ bool CodeObject::isIATcall(Address insnAddr, std::string &calleeName)
    using namespace InstructionAPI;
    InstructionDecoder dec = InstructionDecoder(bufferBegin,
       InstructionDecoder::maxInstructionLength, reg->getArch());
-   InstructionAdapter_t ah = InstructionAdapter_t(
-      dec, insnAddr, this, reg, cs(), blk);
-
-   return ah.isIATcall(calleeName);
+   InstructionAdapter_t* ah = InstructionAdapter_t::makePlatformIA_IAPI(
+      cs()->getArch(), dec, insnAddr, this, reg, cs(), blk);
+   bool ret = ah->isIATcall(calleeName);
+   delete ah;
+   return ret;
 }
 
 void CodeObject::startCallbackBatch() {

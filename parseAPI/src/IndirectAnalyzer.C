@@ -58,7 +58,7 @@ static bool IsVariableArgumentFormat(AST::Ptr t, AbsRegion &index) {
 }
 
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
-    if (block->last() == 0x100813b4) dyn_debug_parsing=1; else dyn_debug_parsing=0;
+//    if (block->last() == 0x100813b4) dyn_debug_parsing=1; else dyn_debug_parsing=0;
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
     parsing_printf("Looking for thunk\n");
     
@@ -199,13 +199,13 @@ void IndirectControlFlowAnalyzer::FindAllThunks() {
 	    return;
 	}
 	InstructionDecoder dec(buf, b->end() - b->start(), b->obj()->cs()->getArch());
-	InsnAdapter::IA_IAPI block(dec, b->start(), b->obj() , b->region(), b->obj()->cs(), b);
+	InsnAdapter::IA_IAPI* block = InsnAdapter::IA_IAPI::makePlatformIA_IAPI(b->obj()->cs()->getArch(), dec, b->start(), b->obj() , b->region(), b->obj()->cs(), b);
 	Address cur = b->start();
 	while (cur < b->end()) {
-	    if (block.getInstruction()->getCategory() == c_CallInsn && block.isThunk()) {
+	    if (block->getInstruction()->getCategory() == c_CallInsn && block->isThunk()) {
 	        bool valid;
 		Address addr;
-		boost::tie(valid, addr) = block.getCFT();
+		boost::tie(valid, addr) = block->getCFT();
 		const unsigned char *target = (const unsigned char *) b->obj()->cs()->getPtrToInstruction(addr);
 		InstructionDecoder targetChecker(target, InstructionDecoder::maxInstructionLength, b->obj()->cs()->getArch());
 		Instruction::Ptr thunkFirst = targetChecker.decode();
@@ -215,16 +215,17 @@ void IndirectControlFlowAnalyzer::FindAllThunks() {
 		for (auto curReg = thunkTargetRegs.begin(); curReg != thunkTargetRegs.end(); ++curReg) {
 		    ThunkInfo t;
 		    t.reg = (*curReg)->getID();
-		    t.value = block.getAddr() + block.getInstruction()->size();
+		    t.value = block->getAddr() + block->getInstruction()->size();
 		    t.value += ThunkAdjustment(t.value, t.reg, b);
 		    t.block = b;
-		    thunks.insert(make_pair(block.getAddr(), t));
-		    parsing_printf("\tfind thunk at %lx, storing value %lx to %s\n", block.getAddr(), t.value , t.reg.name().c_str());
+		    thunks.insert(make_pair(block->getAddr(), t));
+		    parsing_printf("\tfind thunk at %lx, storing value %lx to %s\n", block->getAddr(), t.value , t.reg.name().c_str());
 		}
 	    }
-	    cur += block.getInstruction()->size();
-	    if (cur < b->end()) block.advance();
+	    cur += block->getInstruction()->size();
+	    if (cur < b->end()) block->advance();
 	}
+	delete block;
     }
 }
 
