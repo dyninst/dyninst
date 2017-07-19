@@ -280,11 +280,16 @@ SgAsmExpression *ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
 	    SgAsmDirectRegisterExpression *dre;
             machReg.getROSERegister(regClass, regNum, regPos);
 	    if (regClass == powerpc_regclass_cr) {
-	        dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(regClass, regNum, regPos, 4));
+	        // ROSE treats CR as one register, so regNum is always 0. 
+		// CR0 to CR7 are 8 subfields within CR.
+		// CR0 has register offset 0
+		// CR1 has register offset 4
+	        dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(regClass, regNum, regPos * 4, 4));
+		dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, 4, false));
 	    } else {
 	        dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(regClass, regNum, regPos, machReg.size() * 8));
+		dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
 	    }
-            dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
 	    return dre;
         }
         case Arch_aarch64: {

@@ -87,7 +87,8 @@ bool SymbolicExpansion::expandPPC64(SgAsmInstruction *rose_insn,
     try {
         cpu->processInstruction(insn);
     } catch (rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception &e) {
-        // fprintf(stderr, "Instruction processing threw exception for instruction: %s\n", insn_dump.c_str());
+//         fprintf(stderr, "Instruction processing threw exception for instruction: %s\n", insn_dump.c_str());
+//	 std::cerr << e << std::endl;
     }
 
     return true;

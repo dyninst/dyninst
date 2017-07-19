@@ -5,12 +5,6 @@
 #include <algorithm>
 #include "SymbolicExpression.h"
 using namespace Dyninst::ParseAPI;
-#define SIGNEX_64_32 0xffffffff00000000LL
-#define SIGNEX_64_16 0xffffffffffff0000LL
-#define SIGNEX_64_8  0xffffffffffffff00LL
-#define SIGNEX_32_16 0xffff0000
-#define SIGNEX_32_8 0xffffff00
-
 
 AST::Ptr SimplifyVisitor::visit(DataflowAPI::RoseAST *ast) {
         unsigned totalChildren = ast->numChildren();
@@ -84,6 +78,7 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 	    }
 	    break;
 	case ROSEOperation::shiftLOp:
+	case ROSEOperation::rotateLOp:
 	    if (IsResultBounded(ast->child(0)) && IsResultBounded(ast->child(1))) {
 	        StridedInterval *val = new StridedInterval(*GetResultBound(ast->child(0)));
 	        val->ShiftLeft(*GetResultBound(ast->child(1)));
@@ -92,6 +87,7 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 	    }
 	    break;
 	case ROSEOperation::shiftROp:
+	case ROSEOperation::rotateROp:
 	    if (IsResultBounded(ast->child(0)) && IsResultBounded(ast->child(1))) {
 	        StridedInterval *val = new StridedInterval(*GetResultBound(ast->child(0)));
 	        val->ShiftRight(*GetResultBound(ast->child(1)));
@@ -181,7 +177,11 @@ AST::Ptr ComparisonVisitor::visit(DataflowAPI::RoseAST *ast) {
     // For cmp type instruction setting zf
     // Looking like <eqZero?>(<add>(<V([x86_64::rbx])>,<Imm:8>,),)
     // Assuming ast has been simplified
-    if (ast->val().op == ROSEOperation::equalToZeroOp) {
+    unsigned totalChildren = ast->numChildren();
+    for (unsigned i = 0 ; i < totalChildren; ++i) {
+        ast->child(i)->accept(this);
+    }
+    if (ast->val().op == ROSEOperation::equalToZeroOp && !subtrahend) {
         bool minuendIsZero = true;
         AST::Ptr child = ast->child(0);	
 	if (child->getID() == AST::V_RoseAST) {
@@ -216,6 +216,12 @@ AST::Ptr ComparisonVisitor::visit(DataflowAPI::RoseAST *ast) {
 		    }
 		}
 	    } 	
+	    if (childRose->val().op == ROSEOperation::xorOp) {
+	        minuendIsZero = false;
+	        subtrahend = childRose->child(0);
+		minuend = childRose->child(1);
+	    }
+
 	} 
 	if (minuendIsZero) {
             // The minuend is 0, thus the add operation is subsume.
@@ -284,7 +290,10 @@ AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
        }
     } 
     
-    if ((ast->val().op == ROSEOperation::uMultOp || ast->val().op == ROSEOperation::sMultOp || ast->val().op == ROSEOperation::shiftLOp) && memoryReadLayer > 0) {
+    if ((ast->val().op == ROSEOperation::uMultOp || 
+         ast->val().op == ROSEOperation::sMultOp || 
+	 ast->val().op == ROSEOperation::shiftLOp ||
+	 ast->val().op == ROSEOperation::rotateLOp) && memoryReadLayer > 0) {
 	if (ast->child(0)->getID() == AST::V_ConstantAST && ast->child(1)->getID() == AST::V_VariableAST) {
 	    findIndex = true;
 	    numOfVar++;
@@ -318,7 +327,10 @@ bool JumpTableFormatVisitor::PotentialIndexing(AST::Ptr ast) {
     if (ast->getID() == AST::V_VariableAST) return true;
     if (ast->getID() == AST::V_RoseAST) {
         RoseAST::Ptr r = boost::static_pointer_cast<RoseAST>(ast);
-	if (r->val().op == ROSEOperation::uMultOp || r->val().op == ROSEOperation::sMultOp || r->val().op == ROSEOperation::shiftLOp) {
+	if (r->val().op == ROSEOperation::uMultOp || 
+	    r->val().op == ROSEOperation::sMultOp || 
+	    r->val().op == ROSEOperation::shiftLOp || 
+	    r->val().op == ROSEOperation::rotateLOp) {
 	    if (r->child(0)->getID() == AST::V_RoseAST) {
 	        return false;
 	    }
@@ -371,9 +383,11 @@ AST::Ptr JumpTableReadVisitor::visit(DataflowAPI::RoseAST *ast) {
 	    results.insert(make_pair(ast, results[ast->child(0).get()] * results[ast->child(1).get()]));
 	    break;
 	case ROSEOperation::shiftLOp:
+	case ROSEOperation::rotateLOp:
 	    results.insert(make_pair(ast, results[ast->child(0).get()] << results[ast->child(1).get()]));
 	    break;
 	case ROSEOperation::shiftROp:
+	case ROSEOperation::rotateROp:
 	    results.insert(make_pair(ast, results[ast->child(0).get()] >> results[ast->child(1).get()]));
 	    break;
 	case ROSEOperation::derefOp: {

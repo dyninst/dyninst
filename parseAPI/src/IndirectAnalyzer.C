@@ -22,7 +22,8 @@ static bool IsIndexing(AST::Ptr node, AbsRegion &index) {
     RoseAST::Ptr n = boost::static_pointer_cast<RoseAST>(node);
     if (n->val().op != ROSEOperation::sMultOp &&
         n->val().op != ROSEOperation::uMultOp &&
-	n->val().op != ROSEOperation::shiftLOp) return false;
+	n->val().op != ROSEOperation::shiftLOp &&
+	n->val().op != ROSEOperation::rotateLOp) return false;
     if (n->child(0)->getID() != AST::V_VariableAST) return false;
     if (n->child(1)->getID() != AST::V_ConstantAST) return false;
     VariableAST::Ptr var = boost::static_pointer_cast<VariableAST>(n->child(0));
@@ -57,11 +58,10 @@ static bool IsVariableArgumentFormat(AST::Ptr t, AbsRegion &index) {
 }
 
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
+    if (block->last() == 0x100813b4) dyn_debug_parsing=1; else dyn_debug_parsing=0;
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
     parsing_printf("Looking for thunk\n");
     
-//    if (block->last() == 0x549cf9) dyn_debug_parsing=1; else dyn_debug_parsing=0;
-
 //  Find all blocks that reach the block containing the indirect jump
 //  This is a prerequisit for finding thunks
     GetAllReachableBlock();
@@ -267,6 +267,7 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
 		    if (jtrv.targetAddress < startAddr || jtrv.targetAddress >= startAddr + size) {
 		        stop = true;
 			parsing_printf("WARNING: resolving jump tables leads to address %lx, which is not in the function range specified in the symbol table\n", jtrv.targetAddress);			
+			parsing_printf("\tSymbol at %lx, end at %lx\n", startAddr, startAddr + size);
 		    }
 		}
 	    }

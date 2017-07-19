@@ -203,7 +203,7 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 	    BoundFact* oldFactIn = GetBoundFactIn(curNode);
 	    parsing_printf("Calculate Meet for %lx", node->addr());
 	    if (node->assign()) {
-	        parsing_printf(", insn: %s\n", node->assign()->insn()->format().c_str());
+	        parsing_printf(", insn: %s, assignment %s\n", node->assign()->insn()->format().c_str(), node->assign()->format().c_str());
 	    }
 	    else {
 	        if (node->block() == NULL)
@@ -322,6 +322,7 @@ static bool IsConditionalJump(Instruction::Ptr insn) {
 	id == e_jle || id == e_jl ||
 	id == e_jnl || id == e_jnle) return true;
     if (id == aarch64_op_b_cond) return true;
+    if (id == power_op_bc || id == power_op_bcctr || id == power_op_bclr) return true;
     return false;
 }
 
@@ -401,7 +402,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     if (!node->assign()) return;
     if (node->assign() && 
         node->assign()->out().absloc().type() == Absloc::Register &&
-	node->assign()->out().absloc().reg() == MachRegister::getZeroFlag(func->obj()->cs()->getArch())) {
+	node->assign()->out().absloc().reg().isZeroFlag()) {
 	    // zf should be only predecessor of this node
         parsing_printf("\t\tThe predecessor node is zf assignment!\n");
 	newFact->SetPredicate(node->assign(), se.ExpandAssignment(node->assign()) );

@@ -31,12 +31,49 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr) {
 		    return ConstantAST::create(Constant(val, size));
 		}
 		break;
-	    case ROSEOperation::extendMSBOp:
-	    case ROSEOperation::extractOp:
-	    case ROSEOperation::signExtendOp:
-	    case ROSEOperation::concatOp:
+	    case ROSEOperation::extendMSBOp: {
 	        return roseAST->child(0);
-
+	    }
+	    case ROSEOperation::extractOp: {
+	        if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
+		    size_t size = roseAST->val().size;
+		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    return ConstantAST::create(Constant(child0->val().val,size));
+		}
+		return roseAST->child(0);
+	    }
+	    case ROSEOperation::signExtendOp: {
+	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    uint64_t val = child0->val().val;
+		    if (val & (1 << (child0->val().size - 1))) {
+		        switch (child0->val().size) {
+			   case 16:
+			       val = val | SIGNEX_64_16;
+			       break;
+			   case 32:
+			       val = val | SIGNEX_64_32;
+			       break;
+			   default:
+			       break;
+			}
+		    } 
+		    size_t size = child1->val().val;
+		    return ConstantAST::create(Constant(val,size));
+                }		    
+	        return roseAST->child(0);
+	    }
+	    case ROSEOperation::concatOp: {	    
+	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    uint64_t val = (child1->val().val << child0->val().size) + child0->val().val;
+		    size_t size = child1->val().size + child0->val().size;
+		    return ConstantAST::create(Constant(val,size));
+                }		    
+		break;
+	    }
 	    case ROSEOperation::addOp:
 	        // We simplify the addition as much as we can
 		// Case 1: two constants
@@ -110,10 +147,15 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr) {
 		    return RoseAST::create(ROSEOperation(ROSEOperation::derefOp), ast->child(0));
 		break;
 	    case ROSEOperation::shiftLOp:
+	    case ROSEOperation::rotateLOp:
 	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
 		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
 		    return ConstantAST::create(Constant(child0->val().val << child1->val().val, 64));
+		}
+	        if (roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    if (child1->val().val == 0) return roseAST->child(0);
 		}
 		break;
 	    case ROSEOperation::andOp:
@@ -130,7 +172,17 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr) {
 		    return ConstantAST::create(Constant(child0->val().val | child1->val().val, 64));
 		}
 		break;
+	    case ROSEOperation::ifOp:
+	        if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr c = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    if (c->val().val != 0) {
+		        return roseAST->child(1);
+		    } else {
+		        return roseAST->child(2);
+		    }
 
+		}
+		break;
 	    default:
 	        break;
 
@@ -206,7 +258,7 @@ pair<AST::Ptr, bool> SymbolicExpression::ExpandAssignment(Assignment::Ptr assign
         AST::Ptr ast = expandCache[assign];
         if (ast) return make_pair(ast, true); else return make_pair(ast, false);
     } else {
-        parsing_printf("\t\tExpanding instruction @ %x: %s\n", assign->addr(), assign->insn()->format().c_str());
+        parsing_printf("\t\tExpanding instruction @ %x: %s, assignment %s\n", assign->addr(), assign->insn()->format().c_str(), assign->format().c_str());
         pair<AST::Ptr, bool> expandRet = SymEval::expand(assign, false);
 	if (expandRet.second && expandRet.first) {
 	    parsing_printf("Original expand: %s\n", expandRet.first->format().c_str());
@@ -216,6 +268,12 @@ pair<AST::Ptr, bool> SymbolicExpression::ExpandAssignment(Assignment::Ptr assign
 							 assign->block()->obj()->cs()->getArch()));
 	    expandCache[assign] = calculation;
 	} else {
+	    if (expandRet.first == NULL) {
+	        parsing_printf("\t\t\t expansion returned null ast\n");
+	    }
+	    if (expandRet.second == false) {
+	        parsing_printf("\t\t\t expansion returned false\n");
+	    }
 	    expandCache[assign] = AST::Ptr();
 	}
 	return make_pair( expandCache[assign], expandRet.second );

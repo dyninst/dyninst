@@ -14,6 +14,12 @@ using namespace Dyninst::DataflowAPI;
 
 //bool PerformTableRead(StridedInterval &target, set<int64_t> & jumpTargets, CodeSource*);
 
+#define SIGNEX_64_32 0xffffffff00000000LL
+#define SIGNEX_64_16 0xffffffffffff0000LL
+#define SIGNEX_64_8  0xffffffffffffff00LL
+#define SIGNEX_32_16 0xffff0000
+#define SIGNEX_32_8 0xffffff00
+
 
 
 class SimplifyVisitor: public ASTVisitor {

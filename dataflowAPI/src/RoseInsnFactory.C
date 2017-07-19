@@ -303,7 +303,7 @@ bool RoseInsnPPCFactory::handleSpecialCases(entryID iapi_opcode,
       bi = ((raw >> 16) & 0x0000001F);
       rose_operands->append_operand(new SgAsmIntegerValueExpression(bo, new SgAsmIntegerType(ByteOrder::ORDER_LSB, 8, false)));
       
-      SgAsmDirectRegisterExpression *dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(powerpc_regclass_cr, bi >> 2, bi & 0x3, 1));
+      SgAsmDirectRegisterExpression *dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(powerpc_regclass_cr, 0, bi , 1));
       dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, 1, false));
       rose_operands->append_operand(dre);
     }
@@ -347,11 +347,13 @@ void RoseInsnPPCFactory::massageOperands(const InstructionAPI::Instruction::Ptr 
   if(insn->writesMemory())
     std::swap(operands[0], operands[1]);
   */
-  entryID opcode = insn->getOperation().getID();
-  // Anything that's writing RA, ROSE expects in RA, RS, RB/immediates form.
-  // Any store, however, ROSE expects in RS, RA, RB/displacement form.  Very confusing,
+  entryID opcode = insn->getOperation().getID(); 
+  // Anything that's writing RA, ROSE sometimes expects in RA, RS, RB/immediates form.
+  // Any store, however, Dyninst expects in RS, RA, RB/displacement form.  Very confusing,
   // but we handle it cleanly here.
-  if(!operands[0].isWritten() && operands.size() >= 2 &&
+  if( opcode != power_op_rldicr &&
+      opcode != power_op_rldic && 
+      !operands[0].isWritten() && operands.size() >= 2 &&
      operands[1].isWritten() && !operands[1].writesMemory()) {
     //std::cerr << "swapping RS and RA in " << insn->format() << std::endl;
     std::swap(operands[0], operands[1]);

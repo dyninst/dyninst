@@ -714,6 +714,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		break;
 	    }
 	    case aarch64_op_b_cond:
+	    case power_op_bc:
 	    case e_jbe: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
@@ -903,6 +904,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		break;
 	    }
 	    case aarch64_op_b_cond:
+	    case power_op_bc:
 	    case e_jnbe: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {

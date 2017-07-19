@@ -161,7 +161,8 @@ struct IP_addis: P {
         assert_args(insn, args, 3);
         BaseSemantics::SValuePtr v1 = ops->extract(d->read(args[2], 32), 0, 16);
         BaseSemantics::SValuePtr v2 = ops->concat(ops->number_(16, 0), v1);
-        d->write(args[0], ops->add(d->read(args[1], 32), v2));
+	BaseSemantics::SValuePtr v3 = ops->signExtend(v2, d->addressWidth());
+        d->write(args[0], ops->add(d->read(args[1], 32), v3));
     }
 };
 
@@ -694,6 +695,30 @@ struct IP_oris: P {
     }
 };
 
+// Rotate left double word immediate then clear right
+struct IP_rldicr: P {
+    void p(D d, Ops ops, I insn, A args) {
+        assert_args(insn, args, 5);
+        BaseSemantics::SValuePtr rs = d->read(args[0], 32);
+        BaseSemantics::SValuePtr ra = d->read(args[1], 32);
+        BaseSemantics::SValuePtr sh = ops->extract(d->read(args[2], 32), 0, 5);
+        SgAsmIntegerValueExpression *mb = isSgAsmIntegerValueExpression(args[3]);
+        ASSERT_not_null(mb);
+        int mb_value = mb->get_value();
+        SgAsmIntegerValueExpression *me = isSgAsmIntegerValueExpression(args[4]);
+        ASSERT_not_null(me);
+        int me_value = me->get_value();
+        uint32_t mask = build_mask(mb_value, me_value);
+        BaseSemantics::SValuePtr rotatedReg = ops->rotateLeft(rs, sh);
+        BaseSemantics::SValuePtr bitMask = ops->number_(32, mask);
+        BaseSemantics::SValuePtr v1 = ops->and_(ra, ops->invert(bitMask));
+        BaseSemantics::SValuePtr result = ops->or_(ops->and_(rotatedReg, bitMask), v1);
+        //d->write(args[0], result);
+	d->write(args[1], rotatedReg);
+    }
+};
+
+
 // Rotate left word immediate then mask insert
 struct IP_rlwimi: P {
     void p(D d, Ops ops, I insn, A args) {
@@ -712,7 +737,7 @@ struct IP_rlwimi: P {
         BaseSemantics::SValuePtr bitMask = ops->number_(32, mask);
         BaseSemantics::SValuePtr v1 = ops->and_(ra, ops->invert(bitMask));
         BaseSemantics::SValuePtr result = ops->or_(ops->and_(rotatedReg, bitMask), v1);
-        d->write(args[0], result);
+        d->write(args[1], result);
     }
 };
 
@@ -734,7 +759,8 @@ struct IP_rlwinm: P {
         BaseSemantics::SValuePtr rotatedReg = ops->rotateLeft(rs, sh);
         BaseSemantics::SValuePtr bitMask = ops->number_(32, mask);
         BaseSemantics::SValuePtr result = ops->and_(rotatedReg, bitMask);
-        d->write(args[0], result);
+        //d->write(args[0], result);
+	d->write(args[0], rotatedReg);
         if (record)
             d->record(result);
     }
@@ -1027,6 +1053,7 @@ DispatcherPowerpc::iproc_init()
     iproc_set(powerpc_lhzx,             new Powerpc::IP_lhz);
     iproc_set(powerpc_lmw,              new Powerpc::IP_lmw);
     iproc_set(powerpc_lwarx,            new Powerpc::IP_move);
+    iproc_set(powerpc_lwax,             new Powerpc::IP_move);
     iproc_set(powerpc_lwz,              new Powerpc::IP_move);
     iproc_set(powerpc_lwzu,             new Powerpc::IP_lwzu);
     iproc_set(powerpc_lwzx,             new Powerpc::IP_move);
@@ -1044,6 +1071,8 @@ DispatcherPowerpc::iproc_init()
     iproc_set(powerpc_orc,              new Powerpc::IP_orc);
     iproc_set(powerpc_ori,              new Powerpc::IP_or(false));
     iproc_set(powerpc_oris,             new Powerpc::IP_oris);
+    iproc_set(powerpc_rldic,            new Powerpc::IP_rldicr);
+    iproc_set(powerpc_rldicr,           new Powerpc::IP_rldicr);
     iproc_set(powerpc_rlwimi,           new Powerpc::IP_rlwimi);
     iproc_set(powerpc_rlwinm,           new Powerpc::IP_rlwinm(false));
     iproc_set(powerpc_rlwinm_record,    new Powerpc::IP_rlwinm(true));

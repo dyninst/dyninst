@@ -32,24 +32,21 @@ public:
     set<Address> constAddr;
     dyn_hash_map<Assignment::Ptr, std::pair<AST::Ptr, AST::Ptr>, Assignment::AssignmentPtrHasher> aliases;
 
-    JumpTableFormatPred(ParseAPI::Function *f,
-                        ParseAPI::Block *b,
-			ReachFact &r,
-			ThunkData &t,
-			SymbolicExpression &sym):
-            func(f), block(b), rf(r), thunks(t), se(sym) {
-	        jumpTableFormat = true;
-		unknownInstruction = false;
-		findIndex = false;
-		findTableBase = false;
-		firstMemoryRead = true;
-	    }
+    // On ppc 64, r2 is reserved for storing the address of the global offset table 
+    Address toc_address;
 
     virtual bool modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g, Slicer*);
     std::string format();
     bool isJumpTableFormat() { return jumpTableFormat && findIndex && findTableBase;}
     bool findSpillRead(Graph::Ptr g, SliceNode::Ptr &);
     bool adjustSliceFrame(Slicer::SliceFrame &frame, SliceNode::Ptr, Slicer*);
+    void FindTOC();
+    JumpTableFormatPred(ParseAPI::Function *f,
+                        ParseAPI::Block *b,
+			ReachFact &r,
+			ThunkData &t,
+			SymbolicExpression &sym);
+
 };
 
 #endif

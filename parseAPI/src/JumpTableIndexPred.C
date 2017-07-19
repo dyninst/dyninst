@@ -87,7 +87,7 @@ static void BuildEdges(SliceNode::Ptr curNode,
 
 static bool AssignIsZF(Assignment::Ptr a) {
     return a->out().absloc().type() == Absloc::Register &&
-	   (a->out().absloc().reg() == MachRegister::getZeroFlag(a->out().absloc().reg().getArchitecture()));
+	   a->out().absloc().reg().isZeroFlag();
 }
 
 static bool IsPushAndChangeSP(Assignment::Ptr a) {
@@ -174,7 +174,7 @@ bool JumpTableIndexPred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> 
     // For flags, we only analyze zf
     if (ap->out().absloc().type() == Absloc::Register) {
         MachRegister reg = ap->out().absloc().reg();
-	if (reg.isFlag() && reg != MachRegister::getZeroFlag(reg.getArchitecture())) {
+	if (reg.isFlag() && !reg.isZeroFlag()) {
 	    return true;
 	}
     }

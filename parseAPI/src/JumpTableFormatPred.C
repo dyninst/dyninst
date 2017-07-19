@@ -2,11 +2,51 @@
 #include "SymbolicExpression.h"
 #include "IndirectASTVisitor.h"
 #include "SymEval.h"
+#include "CodeObject.h"
+#include "CodeSource.h"
 #include "debug_parse.h"
 using namespace Dyninst;
 using namespace Dyninst::DataflowAPI;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InstructionAPI;
+
+JumpTableFormatPred::JumpTableFormatPred(ParseAPI::Function *f,
+                                         ParseAPI::Block *b,
+					 ReachFact &r,
+					 ThunkData &t,
+					 SymbolicExpression &sym):
+      func(f), block(b), rf(r), thunks(t), se(sym){
+    jumpTableFormat = true;
+    unknownInstruction = false;
+    findIndex = false;
+    findTableBase = false;
+    firstMemoryRead = true;
+    if (b->obj()->cs()->getArch() == Arch_ppc64) {
+        FindTOC();
+    }
+}
+
+void JumpTableFormatPred::FindTOC() {
+    parsing_printf("Try to find TOC address in R2\n");
+    Address entry = 0;
+    if (func->src() == HINT) {
+        entry = func->addr();
+    } else if (func->src() == RT) {
+        entry = func->addr() - 8; 
+    } else {
+        parsing_printf("\tUnhandled type of function for getting TOC address\n");
+	return;
+    }
+    parsing_printf("\tLook at address %x\n", entry);
+    const unsigned char * buf = (const unsigned char*) block->obj()->cs()->getPtrToInstruction(entry);
+    if (buf == NULL) return;
+    if (buf[2] != 0x40 || buf[3] != 0x3c || buf[6] != 0x42 || buf[7] != 0x38) return;
+    toc_address = buf[1];
+    toc_address = (toc_address << 8) | buf[0];
+    toc_address = (toc_address << 8) | buf[5];
+    toc_address = (toc_address << 8) | buf[4];
+    parsing_printf("\t TOC address %lx in R2\n", toc_address);
+}
 
 static int CountInDegree(SliceNode::Ptr n) {
     NodeIterator nbegin, nend; 
@@ -131,6 +171,10 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	// We start plug in ASTs from predecessors
 	n->ins(nbegin, nend);
 	map<AST::Ptr, AST::Ptr> inputs;
+	if (block->obj()->cs()->getArch() == Arch_ppc64) {
+	    inputs.insert(make_pair(VariableAST::create(Variable(AbsRegion(Absloc(ppc64::r2)))),
+	                  ConstantAST::create(Constant(toc_address, 64))));
+	}
 	if (aliases.find(n->assign()) != aliases.end()) {
 	    inputs.insert(aliases[n->assign()]);
 	    parsing_printf("\t Replacing %s with %s\n", aliases[n->assign()].first->format().c_str(),aliases[n->assign()].second->format().c_str());

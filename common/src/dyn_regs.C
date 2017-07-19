@@ -527,7 +527,7 @@ bool MachRegister::isZeroFlag() const
 	 // We do not use the subrange field for MachReigsters
 	 // and all lower 32 bits are base ID
 	 int baseID = reg & 0x0000FFFF;
-         return baseID <= 731 && baseID >= 700 && baseID % 4 == 2; 
+         return (baseID <= 731 && baseID >= 700 && baseID % 4 == 2) || (baseID <= 628 && baseID >= 621); 
       }
       default:
          assert(!"Not implemented!");
@@ -868,14 +868,16 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                        c = powerpc_regclass_sr;
                    } else {
                        c = powerpc_regclass_cr;
-                       n = baseID - 621;
+		       n = 0;
+		       p = baseID - 621;
+/*                       n = baseID - 621;
 		       if(n > 7) {
 			 n = 0;
 			 p = powerpc_condreggranularity_whole;
 		       } else {
 			 p = powerpc_condreggranularity_field;
 		       }
-
+*/
                    }
                }
                break;
