@@ -135,7 +135,7 @@ bool LineInformation::getAddressRanges( const char * lineSource,
 {
     auto found_statements = equal_range(lineSource, lineNo);
     for(auto i = found_statements.first;
-            i != found_statements.second;
+            i == found_statements.second;
             ++i)
     {
         ranges.push_back(AddressRange(**i));
@@ -207,9 +207,11 @@ std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line
 LineInformation::equal_range(std::string file, const unsigned int lineNo) const {
     auto found = strings_->get<1>().find(file);
     unsigned index = strings_->project<0>(found) - strings_->begin();
+    std::cerr << "String index: " << index << std::endl;
     std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line_info_iterator > bounds;
     auto idx = boost::make_tuple(index, lineNo);
     bounds =  get<Statement::line_info>().equal_range(idx);
+    std::cerr << "Bounds: " << *bounds.first << " " << *bounds.second << std::endl;
     return bounds;
 }
 
