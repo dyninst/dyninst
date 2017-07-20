@@ -3419,7 +3419,7 @@ int read_except_table_gcc3(
         assert(last_cie!=NULL);
 
         unsigned int j;
-        unsigned char lsda_encoding = 0xff, personality_encoding = 0xff;
+        unsigned char lsda_encoding = 0xff, personality_encoding = 0xff, range_encoding = 0xff;
         unsigned char *lsda_ptr = NULL;
         unsigned char *cur_augdata;
         unsigned long except_off;
@@ -3428,25 +3428,15 @@ int read_except_table_gcc3(
 
         //After this set of computations we should have:
         // low_pc = mi.func = the address of the function that contains this FDE
+        // (low_pc not being gotten here because it depends on augmentation string)
         // fde_bytes = the start of the FDE in our memory space
         // cie_bytes = the start of the CIE in our memory space
-        //
-        //status = dwarf_get_fde_range(fde, &low_pc, NULL, (void **) &fde_bytes,
-        //                             NULL, &cie_offset, NULL,
-        //                             &fde_offset, &err);
-        //if (status != 0) {
-        //    pd_dwarf_handler();
-        //    return false;
-        //}
-        //low_pc = reinterpret_cast<Dwarf_Addr>(entry.fde.start); 
         fde_offset = saved_cur_offset;
         fde_bytes = (unsigned char *) eh_frame->get_data().d_buf() + fde_offset;
 
         //The LSB strays from the DWARF here, when parsing the except_eh section
         // the cie_offset is relative to the FDE rather than the start of the
         // except_eh section.
-        //cie_offset = fde_offset - cie_offset +
-        //             (*(uint32_t*)fde_bytes == 0xffffffff ? LONG_FDE_HLEN : SHORT_FDE_HLEN);
         cie_bytes = (unsigned char *)eh_frame->get_data().d_buf() + cie_offset;
 
         //Get the Augmentation string for the CIE
@@ -3477,16 +3467,6 @@ int read_except_table_gcc3(
         // Linux Standard Base. The augmentation string tells us how
         // which augmentation data is present.  We only care about one
         // field, a byte telling how the LSDA pointer is encoded.
-        //
-        //status = dwarf_get_cie_augmentation_data(cie,
-        //                                         &cie_augdata,
-        //                                         &cie_augdata_len,
-        //                                         &err);
-        //if (status != 0) {
-        //    pd_dwarf_handler();
-        //    return false;
-        //}
-
         cur_augdata = const_cast<unsigned char *>(last_cie->cie.augmentation_data);
         lsda_encoding = DW_EH_PE_omit;
         for (j=0; j<augmentor_len; j++)
@@ -3507,7 +3487,12 @@ int read_except_table_gcc3(
                 cur_augdata += read_val_of_type(personality_encoding,
                                                 &personality_val, cur_augdata, mi);
             }
-            else if (augmentor[j] == 'z' || augmentor[j] == 'R')
+            else if (augmentor[j] == 'R')
+            {
+                range_encoding = *cur_augdata;
+                cur_augdata++;
+            }
+            else if (augmentor[j] == 'z' )
             {
                 //Do nothing, these don't affect the CIE encoding.
             }
@@ -3528,19 +3513,10 @@ int read_except_table_gcc3(
         // The FDE has an augmentation area, similar to the above one in the CIE.
         // Where-as the CIE augmentation tends to contain things like bytes describing
         // pointer encodings, the FDE contains the actual pointers.
-        //
-        //status = dwarf_get_fde_augmentation_data(fde,
-        //                                         &fde_augdata,
-        //                                         &fde_augdata_len,
-        //                                         &err);
-        //if (status != 0) {
-        //    pd_dwarf_handler();
-        //    return false;
-        //}
-        
+        //TODO should use mi.word_size to calculate the 13? Wait for libdw
         /* Skip 13 bytes for CIE Pointer, Length, PC Begin, PC Range, and iugmentation Length*/ 
-        cur_augdata = fde_bytes + 13 
-            + (*(uint32_t*)fde_bytes == 0xffffffff ? LONG_FDE_HLEN : SHORT_FDE_HLEN); 
+        cur_augdata = fde_bytes + 13 + 
+            (*(uint32_t*)fde_bytes == 0xffffffff ? LONG_FDE_HLEN : SHORT_FDE_HLEN); 
                 
         for (j=0; j<augmentor_len; j++)
         {
@@ -3555,10 +3531,17 @@ int read_except_table_gcc3(
                 cur_augdata += ptr_size;
             }
             else if (augmentor[j] == 'P' ||
-                     augmentor[j] == 'z' ||
-                     augmentor[j] == 'R')
+                     augmentor[j] == 'z')
             {
                 //These don't affect the FDE augmentation data, do nothing
+            }
+            else if (augmentor[j] == 'R')
+            {
+                auto range_begin = reinterpret_cast<const unsigned char*>(entry.fde.start); 
+                unsigned long low_pc_val;
+                mi.pc = fde_addr + (unsigned long) (range_begin - fde_bytes);
+                read_val_of_type(range_encoding, &low_pc_val, range_begin, mi);
+                low_pc = low_pc_val;
             }
             else
             {
