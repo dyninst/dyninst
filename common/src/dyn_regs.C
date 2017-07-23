@@ -417,6 +417,7 @@ MachRegister MachRegister::getArchRegFromAbstractReg(MachRegister abstract,
         default:
             assert(0);
     }
+
     return Dyninst::InvalidReg;
 }
 
@@ -436,7 +437,10 @@ MachRegister MachRegister::getZeroFlag(Dyninst::Architecture arch)
          assert(0);
       case Arch_none:
          return InvalidReg;
+      default:
+         return InvalidReg;
    }
+
    return InvalidReg;
 }
 
@@ -861,7 +865,7 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                    n = 0;
                    if (baseID == (aarch64::pstate & 0xFF)) {
                        c = armv8_regclass_pstate;
-                   } else if(baseID == (aarch64::zr & 0xFF) || baseID == (aarch64::wzr & 0xFF)) {
+                   } else if(baseID == (aarch64::xzr & 0xFF) || baseID == (aarch64::wzr & 0xFF)) {
                        c = armv8_regclass_gpr;
                        n = armv8_gpr_zr;
                    } else if (baseID == (aarch64::pc & 0xFF)) {
@@ -1949,7 +1953,7 @@ MachRegister MachRegister::getArchReg(unsigned int regNum, Dyninst::Architecture
             case 100: return Dyninst::aarch64::sp;
             case 101: return Dyninst::aarch64::pc;
             case 102: return Dyninst::aarch64::pstate;
-            case 103: return Dyninst::aarch64::zr;
+            case 103: return Dyninst::aarch64::xzr;
          }
       default:
          return InvalidReg;

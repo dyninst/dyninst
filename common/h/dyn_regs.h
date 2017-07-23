@@ -1380,11 +1380,11 @@ namespace Dyninst
       DEF_REGISTER(wsp,      0 | D_REG  |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(pc,       1 | FULL   |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(pstate,   2 | D_REG  |SPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(xzr,		 3 | FULL   |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(n,   N_FLAG | BIT    |FLAG| Arch_aarch64, "aarch64");
       DEF_REGISTER(z,   Z_FLAG | BIT    |FLAG| Arch_aarch64, "aarch64");
       DEF_REGISTER(c,   C_FLAG | BIT    |FLAG| Arch_aarch64, "aarch64");
       DEF_REGISTER(v,   V_FLAG | BIT    |FLAG| Arch_aarch64, "aarch64");
-      DEF_REGISTER(zr,		 3 | FULL   |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(wzr,		 3 | D_REG  |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(fpcr,     4 | D_REG  |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(fpsr,     5 | D_REG  |SPR | Arch_aarch64, "aarch64");

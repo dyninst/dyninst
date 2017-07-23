@@ -304,25 +304,25 @@ namespace Dyninst
     void InstructionDecoder_power::LU()
     {
         L<size>();
-        insn_in_progress->appendOperand(makeRAExpr(), false, true);
+        insn_in_progress->appendOperand(makeRAExpr(), false, true, true);
     }
     template <Result_Type size>
     void InstructionDecoder_power::STU()
     {
         ST<size>();
-        insn_in_progress->appendOperand(makeRAExpr(), false, true);
+        insn_in_progress->appendOperand(makeRAExpr(), false, true, true);
     }
     template <Result_Type size>
     void InstructionDecoder_power::LUX()
     {
         LX<size>();
-        insn_in_progress->appendOperand(makeRAExpr(), false, true);
+        insn_in_progress->appendOperand(makeRAExpr(), false, true, true);
     }
     template <Result_Type size>
     void InstructionDecoder_power::STUX()
     {
         STX<size>();
-        insn_in_progress->appendOperand(makeRAExpr(), false, true);
+        insn_in_progress->appendOperand(makeRAExpr(), false, true, true);
     }
     void InstructionDecoder_power::LK()
     {
@@ -810,7 +810,7 @@ using namespace boost::assign;
         {
             if(isFPInsn)
             {
-                insn_in_progress->appendOperand(makeRegisterExpression(ppc32::fpscw), false, true);
+                insn_in_progress->appendOperand(makeRegisterExpression(ppc32::fpscw), false, true, true);
             }
             else
             {
