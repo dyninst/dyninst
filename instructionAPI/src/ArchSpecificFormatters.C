@@ -229,11 +229,11 @@ std::string x86Formatter::getInstructionString(std::vector<std::string> operands
     {
         std::string op = *itr;
 
-        /* If we still have a leading ##, it's an indirect call */
+        /* If we still have a leading ##, it's an indirect call or SIB expression */
         if(!op.compare(0, 2, "##"))
         {
             std::stringstream ss;
-            ss << "*(" << op.substr(2) << ")";
+            ss << "0x0(" << op.substr(2) << ")";
             op = ss.str();
         }
 
@@ -269,7 +269,7 @@ std::string x86Formatter::formatBinaryFunc(std::string left, std::string func, s
     // fprintf(stderr, "left: %s  func: %s  right: %s\n", left.c_str(), func.c_str(), right.c_str());
 
     /**
-     * Prefixing a retval with ## deonstrates that additional processing
+     * Prefixing a retval with ## demonstrates that additional processing
      * needs to be performed on that operand before it is complete. This
      * is only used for complex derefereces.
      */
@@ -331,6 +331,8 @@ std::string x86Formatter::formatBinaryFunc(std::string left, std::string func, s
         assert(!"Unknown syntax function");
     }
 
+
+    // fprintf(stderr, "Retval: %s\n", retval.c_str());
     return retval;
 }
 
