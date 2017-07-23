@@ -529,13 +529,13 @@ void StackAnalysis::summarize() {
          for (TransferFuncs::iterator iter2 = xferFuncs.begin();
             iter2 != xferFuncs.end(); ++iter2) {
             input[iter2->target] = iter2->apply(input);
-            std::set<DefHeight> &s = input[iter2->target];
-            const Definition &def = s.begin()->first;
-            const Height &h = s.begin()->second;
+            DefHeightSet &s = input[iter2->target];
+            const Definition &def = s.begin()->def;
+            const Height &h = s.begin()->height;
             if (def.type == Definition::DEF && def.block == NULL) {
                // New definition
                STACKANALYSIS_ASSERT(iter2->target == def.origLoc);
-               makeNewSet(block, off, iter2->target, h, s);
+               s.makeNewSet(block, off, iter2->target, h);
                defAddrs[block][iter2->target] = off;
             }
             if (h.isTop()) {
@@ -553,13 +553,13 @@ void StackAnalysis::summarize() {
                const Absloc &target = summaryIter->first;
                const TransferFunc &tf = summaryIter->second;
                newInput[target] = tf.apply(input);
-               std::set<DefHeight> &s = newInput[target];
-               const Definition &def = s.begin()->first;
-               const Height &h = s.begin()->second;
+               DefHeightSet &s = newInput[target];
+               const Definition &def = s.begin()->def;
+               const Height &h = s.begin()->height;
                if (def.type == Definition::DEF && def.block == NULL) {
                   // New definition
                   STACKANALYSIS_ASSERT(target == def.origLoc);
-                  makeNewSet(block, off, target, h, s);
+                  s.makeNewSet(block, off, target, h);
                   defAddrs[block][target] = off;
                }
                if (h.isTop()) {
@@ -587,11 +587,11 @@ void StackAnalysis::summarize() {
          AbslocState &as = aIter->second;
          for (auto tIter = as.begin(); tIter != as.end(); tIter++) {
             const Absloc &target = tIter->first;
-            std::set<DefHeight> &dhSet = tIter->second;
-            std::set<DefHeight> dhSetNew;
+            DefHeightSet &dhSet = tIter->second;
+            DefHeightSet dhSetNew;
             for (auto dIter = dhSet.begin(); dIter != dhSet.end(); dIter++) {
-               const Definition &def = dIter->first;
-               const Height &h = dIter->second;
+               const Definition &def = dIter->def;
+               const Height &h = dIter->height;
                if (def.addr == 0 &&
                   defAddrs.find(def.block) != defAddrs.end() &&
                   defAddrs[def.block].find(def.origLoc) !=
@@ -599,9 +599,9 @@ void StackAnalysis::summarize() {
                   // Update this definition using our map
                   Definition defNew(def.block, defAddrs[def.block][def.origLoc],
                      def.origLoc);
-                  dhSetNew.insert(std::make_pair(defNew, h));
+                  dhSetNew.insert(DefHeight(defNew, h));
                } else {
-                  dhSetNew.insert(std::make_pair(def, h));
+                  dhSetNew.insert(DefHeight(def, h));
                }
             }
             as[target] = dhSetNew;
@@ -903,15 +903,15 @@ void StackAnalysis::findDefinedHeights(ParseAPI::Block* b, Address addr,
    STACKANALYSIS_ASSERT(intervals_);
    for (AbslocState::iterator i = (*intervals_)[b][addr].begin();
       i != (*intervals_)[b][addr].end(); ++i) {
-      if (isTopSet(i->second)) continue;
+      if (i->second.isTopSet()) continue;
 
-      heights.push_back(std::make_pair(i->first, getHeightSet(i->second)));
+      heights.push_back(std::make_pair(i->first, i->second.getHeightSet()));
    }
 }
 
 
 void StackAnalysis::findDefHeightPairs(Block *b, Address addr,
-   std::vector<std::pair<Absloc, std::set<DefHeight> > > &defHeights) {
+   std::vector<std::pair<Absloc, DefHeightSet> > &defHeights) {
    if (func == NULL) return;
 
    if (!intervals_) {
@@ -925,17 +925,16 @@ void StackAnalysis::findDefHeightPairs(Block *b, Address addr,
    STACKANALYSIS_ASSERT(intervals_);
    for (AbslocState::iterator i = (*intervals_)[b][addr].begin();
       i != (*intervals_)[b][addr].end(); ++i) {
-      if (isTopSet(i->second)) continue;
+      if (i->second.isTopSet()) continue;
 
       defHeights.push_back(std::make_pair(i->first, i->second));
    }
 }
 
 
-std::set<StackAnalysis::DefHeight> StackAnalysis::findDefHeight(Block *b,
-   Address addr, Absloc loc) {
-   std::set<DefHeight> ret;
-   makeTopSet(ret);
+StackAnalysis::DefHeightSet StackAnalysis::findDefHeight(Block *b, Address addr, Absloc loc) {
+   DefHeightSet ret;
+   ret.makeTopSet();
 
    if (func == NULL) return ret;
 
@@ -954,13 +953,13 @@ std::set<StackAnalysis::DefHeight> StackAnalysis::findDefHeight(Block *b,
    Intervals::iterator iter = intervals_->find(b);
    if (iter == intervals_->end()) {
       // How do we return "you stupid idiot"?
-      makeBottomSet(ret);
+      ret.makeBottomSet();
       return ret;
    }
 
    StateIntervals &sintervals = iter->second;
    if (sintervals.empty()) {
-      makeBottomSet(ret);
+      ret.makeBottomSet();
       return ret;
    }
    // Find the last instruction that is <= addr
@@ -970,7 +969,7 @@ std::set<StackAnalysis::DefHeight> StackAnalysis::findDefHeight(Block *b,
       i--;
    }
    if (i == sintervals.end()) {
-      makeBottomSet(ret);
+      ret.makeBottomSet();
       return ret;
    }
 
@@ -1014,7 +1013,7 @@ StackAnalysis::Height StackAnalysis::find(Block *b, Address addr, Absloc loc) {
    }
    if (i == sintervals.end()) return Height::bottom;
 
-   ret = getHeightSet(i->second[loc]);
+   ret = i->second[loc].getHeightSet();
    return ret;
 }
 
@@ -1099,12 +1098,12 @@ public:
          auto regState = state->find(Absloc(reg));
          if (regState == state->end() ||
             regState->second.size() != 1 ||
-            regState->second.begin()->second.isTop() ||
-            regState->second.begin()->second.isBottom()) {
+            regState->second.begin()->height.isTop() ||
+            regState->second.begin()->height.isBottom()) {
             defined = false;
          } else {
             results.push_back(make_pair(
-               regState->second.begin()->second.height(), true));
+               regState->second.begin()->height.height(), true));
          }
       } else {
          defined = false;
@@ -1391,8 +1390,8 @@ void StackAnalysis::handlePushPop(Instruction::Ptr insn, Block *block,
       // possible.
       if (intervals_ != NULL) {
          Absloc sploc(sp());
-         const std::set<DefHeight> &spSet = (*intervals_)[block][off][sploc];
-         const Height &spHeight = getHeightSet(spSet);
+         const DefHeightSet &spSet = (*intervals_)[block][off][sploc];
+         const Height &spHeight = spSet.getHeightSet();
          if (!spHeight.isTop() && !spHeight.isBottom()) {
             // Get written stack slot
             long writtenSlotHeight = spHeight.height() - word_size;
@@ -1457,8 +1456,8 @@ void StackAnalysis::handlePushPop(Instruction::Ptr insn, Block *block,
 
       if (intervals_ != NULL) {
          Absloc sploc(sp());
-         const std::set<DefHeight> &spSet = (*intervals_)[block][off][sploc];
-         const Height &spHeight = getHeightSet(spSet);
+         const DefHeightSet &spSet = (*intervals_)[block][off][sploc];
+         const Height &spHeight = spSet.getHeightSet();
          if (spHeight.isTop()) {
             // Load from a topped location. Since StackMod fails when storing
             // to an undetermined topped location, it is safe to assume the
@@ -1876,8 +1875,8 @@ void StackAnalysis::handleLeave(Block *block, const Offset off,
       // use the height of the frame pointer at the start of this instruction to
       // track the memory location read by the pop.
       Absloc sploc(fp());
-      const std::set<DefHeight> &spSet = (*intervals_)[block][off][sploc];
-      const Height &spHeight = getHeightSet(spSet);
+      const DefHeightSet &spSet = (*intervals_)[block][off][sploc];
+      const Height &spHeight = spSet.getHeightSet();
       if (spHeight.isTop()) {
          // Load from a topped location. Since StackMod fails when storing
          // to an undetermined topped location, it is safe to assume the
@@ -2480,8 +2479,8 @@ bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block,
          // Update stack slots in the summary to line up with this stack frame,
          // and then add the modified transfer functions to xferFuncs.
          Absloc sploc(sp());
-         const std::set<DefHeight> &spSet = (*intervals_)[block][off][sploc];
-         const Height &spHeight = getHeightSet(spSet);
+         const DefHeightSet &spSet = (*intervals_)[block][off][sploc];
+         const Height &spHeight = spSet.getHeightSet();
          const TransferSet &fs = functionSummaries[calledAddr];
          for (auto fsIter = fs.begin(); fsIter != fs.end(); fsIter++) {
             Absloc summaryLoc = fsIter->first;
@@ -2648,8 +2647,8 @@ bool StackAnalysis::handleJump(Instruction::Ptr insn, Block *block, Offset off,
          // Update stack slots in the summary to line up with this stack frame,
          // and then add the modified transfer functions to xferFuncs.
          Absloc sploc(sp());
-         const std::set<DefHeight> &spSet = (*intervals_)[block][off][sploc];
-         const Height &spHeight = getHeightSet(spSet);
+         const DefHeightSet &spSet = (*intervals_)[block][off][sploc];
+         const Height &spHeight = spSet.getHeightSet();
          const TransferSet &fs = functionSummaries[calledAddr];
          for (auto fsIter = fs.begin(); fsIter != fs.end(); fsIter++) {
             Absloc summaryLoc = fsIter->first;
@@ -2817,11 +2816,11 @@ void StackAnalysis::createEntryInput(AbslocState &input) {
    // is <wordsize>
    // POWER - the in height is 0
 #if defined(arch_power)
-   addInitSet(Height(0), input[Absloc(sp())]);
+   input[Absloc(sp())].addInitSet(Height(0));
 #elif (defined(arch_x86) || defined(arch_x86_64))
-   addInitSet(Height(-word_size), input[Absloc(sp())]);
+   input[Absloc(sp())].addInitSet(Height(-word_size));
    if (sp() == x86_64::rsp) {
-      addInitSet(Height(-word_size), input[Absloc(x86_64::esp)]);
+      input[Absloc(x86_64::esp)].addInitSet(Height(-word_size));
    }
 #else
    STACKANALYSIS_ASSERT(0 && "Unimplemented architecture");
@@ -2910,14 +2909,14 @@ void StackAnalysis::meetSummaryInputs(Block *block, TransferSet &blockInput,
 
 
 // Keep track of up to DEF_LIMIT multiple definitions/heights, then bottom
-std::set<StackAnalysis::DefHeight> StackAnalysis::meetDefHeights(
-   const std::set<DefHeight> &s1, const std::set<DefHeight> &s2) {
-   std::set<DefHeight> newSet;
-   if (s1.size() == 1 && s1.begin()->second.isTop()) return s2;
-   if (s2.size() == 1 && s2.begin()->second.isTop()) return s1;
-   if ((s1.size() == 1 && s1.begin()->second.isBottom()) ||
-      (s2.size() == 1 && s2.begin()->second.isBottom())) {
-      makeBottomSet(newSet);
+StackAnalysis::DefHeightSet StackAnalysis::meetDefHeights(
+   const DefHeightSet &s1, const DefHeightSet &s2) {
+   DefHeightSet newSet;
+   if (s1.size() == 1 && s1.begin()->height.isTop()) return s2;
+   if (s2.size() == 1 && s2.begin()->height.isTop()) return s1;
+   if ((s1.size() == 1 && s1.begin()->height.isBottom()) ||
+      (s2.size() == 1 && s2.begin()->height.isBottom())) {
+      newSet.makeBottomSet();
       return newSet;
    }
 
@@ -2929,7 +2928,7 @@ std::set<StackAnalysis::DefHeight> StackAnalysis::meetDefHeights(
       newSet.insert(*iter);
    }
    if (newSet.size() > DEF_LIMIT) {
-      makeBottomSet(newSet);
+      newSet.makeBottomSet();
    }
    return newSet;
 }
@@ -2939,7 +2938,7 @@ void StackAnalysis::meet(const AbslocState &input, AbslocState &accum) {
    for (auto iter = input.begin(); iter != input.end(); ++iter) {
       const Absloc &loc = iter->first;
       accum[loc] = meetDefHeights(iter->second, accum[loc]);
-      if (accum[loc].begin()->second.isTop()) {
+      if (accum[loc].begin()->height.isTop()) {
          accum.erase(loc);
       }
    }
@@ -3208,86 +3207,85 @@ bool StackAnalysis::TransferFunc::isSIB() const {
    return (fromRegs.size() > 0);
 }
 
-
-void StackAnalysis::makeTopSet(std::set<DefHeight> &s) {
-   s.clear();
-   s.insert(std::make_pair(Definition(), Height::top));
+void StackAnalysis::DefHeightSet::makeTopSet() {
+   defHeights.clear();
+   defHeights.insert(DefHeight(Definition(), Height::top));
 }
 
-void StackAnalysis::makeBottomSet(std::set<DefHeight> &s) {
-   s.clear();
+void StackAnalysis::DefHeightSet::makeBottomSet() {
+   defHeights.clear();
    Definition d;
    d.type = Definition::BOTTOM;
-   s.insert(std::make_pair(d, Height::bottom));
+   defHeights.insert(DefHeight(d, Height::bottom));
 }
 
-void StackAnalysis::makeNewSet(Block *b, Address addr, const Absloc &origLoc,
-   const Height &h, std::set<DefHeight> &s) {
-   s.clear();
-   s.insert(std::make_pair(Definition(b, addr, origLoc), h));
+void StackAnalysis::DefHeightSet::makeNewSet(Block *b, Address addr,
+   const Absloc &origLoc, const Height &h) {
+   defHeights.clear();
+   defHeights.insert(DefHeight(Definition(b, addr, origLoc), h));
 }
 
-void StackAnalysis::addInitSet(const Height &h, std::set<DefHeight> &s) {
-   s.insert(std::make_pair(Definition(), h));
+void StackAnalysis::DefHeightSet::addInitSet(const Height &h) {
+   defHeights.insert(DefHeight(Definition(), h));
 }
 
-void StackAnalysis::addDeltaSet(long delta, std::set<DefHeight> &s) {
-   std::set<DefHeight> temp = s;
-   s.clear();
+void StackAnalysis::DefHeightSet::addDeltaSet(long delta) {
+   std::set<DefHeight> temp = defHeights;
+   defHeights.clear();
    for (auto iter = temp.begin(); iter != temp.end(); iter++) {
-      const Definition &d = iter->first;
-      const Height &h = iter->second;
-      s.insert(std::make_pair(d, h + delta));
+      const Definition &d = iter->def;
+      const Height &h = iter->height;
+      defHeights.insert(DefHeight(d, h + delta));
    }
 }
 
-StackAnalysis::Height StackAnalysis::getHeightSet(
-   const std::set<DefHeight> &s) {
+StackAnalysis::Height StackAnalysis::DefHeightSet::getHeightSet() const {
    Height h;
-   if (s.size() == 0) {
+   if (defHeights.size() == 0) {
       h = Height::top;
-   } else if (s.size() == 1) {
-      h = s.begin()->second;
+   } else if (defHeights.size() == 1) {
+      h = defHeights.begin()->height;
    } else {
       h = Height::bottom;
    }
    return h;
 }
 
-StackAnalysis::Definition StackAnalysis::getDefSet(
-   const std::set<DefHeight> &s) {
+StackAnalysis::Definition StackAnalysis::DefHeightSet::getDefSet() const {
    Definition d;
-   if (s.size() == 0) {
+   if (defHeights.size() == 0) {
       d.type = Definition::TOP;
-   } else if (s.size() == 1) {
-      d = s.begin()->first;
+   } else if (defHeights.size() == 1) {
+      d = defHeights.begin()->def;
    } else {
       d.type = Definition::BOTTOM;
    }
    return d;
 }
 
-bool StackAnalysis::isTopSet(const std::set<DefHeight> &s) {
-   if (s.size() == 0) return true;
-   return s.size() == 1 && s.begin()->first.type == Definition::TOP &&
-      s.begin()->second.isTop();
+bool StackAnalysis::DefHeightSet::isTopSet() const {
+   if (defHeights.size() == 0) return true;
+   return defHeights.size() == 1 &&
+      defHeights.begin()->def.type == Definition::TOP &&
+      defHeights.begin()->height.isTop();
 }
 
-bool StackAnalysis::isBottomSet(const std::set<DefHeight> &s) {
-   return s.size() == 1 && s.begin()->first.type == Definition::BOTTOM &&
-      s.begin()->second.isBottom();
+bool StackAnalysis::DefHeightSet::isBottomSet() const {
+   return defHeights.size() == 1 &&
+      defHeights.begin()->def.type == Definition::BOTTOM &&
+      defHeights.begin()->height.isBottom();
 }
 
 
 // Destructive update of the input map. Assumes inputs are absolute,
 // uninitialized, or bottom; no deltas.
-std::set<StackAnalysis::DefHeight> StackAnalysis::TransferFunc::apply(
+StackAnalysis::DefHeightSet StackAnalysis::TransferFunc::apply(
    const AbslocState &inputs) const {
    STACKANALYSIS_ASSERT(target.isValid());
-   std:set<DefHeight> inputSet;
+   DefHeightSet inputSet;
    // Bottom stomps everything
    if (isBottom()) {
-      makeBottomSet(inputSet);
+      inputSet.makeBottomSet();
       return inputSet;
    }
 
@@ -3295,13 +3293,13 @@ std::set<StackAnalysis::DefHeight> StackAnalysis::TransferFunc::apply(
    if (iter != inputs.end()) {
       inputSet = iter->second;
    } else {
-      makeTopSet(inputSet);
+      inputSet.makeTopSet();
    }
 
    bool isTopBottomOrig = isTopBottom();
 
    if (isSIB()) {
-      makeTopSet(inputSet);  // SIB overwrites, so start at TOP
+      inputSet.makeTopSet();  // SIB overwrites, so start at TOP
       for (auto iter = fromRegs.begin(); iter != fromRegs.end(); ++iter) {
          Absloc curLoc = (*iter).first;
          long curScale = (*iter).second.first;
@@ -3311,7 +3309,7 @@ std::set<StackAnalysis::DefHeight> StackAnalysis::TransferFunc::apply(
          if (findLoc == inputs.end()) {
             locInput = Height::top;
          } else {
-            locInput = getHeightSet(findLoc->second);
+            locInput = findLoc->second.getHeightSet();
          }
 
          if (locInput == Height::top) {
@@ -3321,7 +3319,7 @@ std::set<StackAnalysis::DefHeight> StackAnalysis::TransferFunc::apply(
             if (curScale == 1) {
                // If the scale isn't 1, then any stack height is obfuscated,
                // and we can safely ignore the term.
-               makeBottomSet(inputSet);
+               inputSet.makeBottomSet();
                break;
             }
          }
@@ -3334,7 +3332,7 @@ std::set<StackAnalysis::DefHeight> StackAnalysis::TransferFunc::apply(
       // Apply the absolute
       // NOTE: an absolute is not a stack height, set input to top
       //input = abs;
-      makeTopSet(inputSet);
+      inputSet.makeTopSet();
    }
    if (isCopy()) {
       // Cannot be absolute
@@ -3342,38 +3340,38 @@ std::set<StackAnalysis::DefHeight> StackAnalysis::TransferFunc::apply(
       // Copy the input value from whatever we're a copy of.
       AbslocState::const_iterator iter2 = inputs.find(from);
       if (iter2 != inputs.end()) {
-         const Definition &def = getDefSet(iter2->second);
-         const Height &h = getHeightSet(iter2->second);
+         const Definition &def = iter2->second.getDefSet();
+         const Height &h = iter2->second.getHeightSet();
          if (!h.isBottom() && !h.isTop()) {
             if ((from.isSP() || from.isFP()) &&
                (target.type() != Absloc::Register ||
                   (!target.reg().getBaseRegister().isStackPointer() &&
                      !target.reg().getBaseRegister().isFramePointer()))) {
                // Create new definitions when based on SP or FP
-               makeNewSet(NULL, 0, target, h, inputSet);
+               inputSet.makeNewSet(NULL, 0, target, h);
             } else {
                // Reuse base definition otherwise
                inputSet = iter2->second;
             }
          } else if (h.isBottom()) {
-            makeBottomSet(inputSet);
+            inputSet.makeBottomSet();
          } else {
-            makeTopSet(inputSet);
+            inputSet.makeTopSet();
          }
       } else {
-         makeTopSet(inputSet);
+         inputSet.makeTopSet();
       }
    }
    if (isDelta()) {
-      addDeltaSet(delta, inputSet);
+      inputSet.addDeltaSet(delta);
    }
    if (isRetop()) {
-      makeTopSet(inputSet);
+      inputSet.makeTopSet();
    }
    if (isTopBottomOrig) {
       auto iter = inputSet.begin();
-      if (!iter->second.isTop()) {
-         makeBottomSet(inputSet);
+      if (!iter->height.isTop()) {
+         inputSet.makeBottomSet();
       }
    }
    return inputSet;
@@ -3669,12 +3667,12 @@ void StackAnalysis::SummaryFunc::apply(Block *block, const AbslocState &in,
       iter != accumFuncs.end(); ++iter) {
       STACKANALYSIS_ASSERT(iter->first.isValid());
       out[iter->first] = iter->second.apply(in);
-      std::set<DefHeight> &s = out[iter->first];
-      const Definition &def = s.begin()->first;
-      const Height &h = s.begin()->second;
+      DefHeightSet &s = out[iter->first];
+      const Definition &def = s.begin()->def;
+      const Height &h = s.begin()->height;
       if (def.type == Definition::DEF && def.block == NULL) {
          // New definition
-         makeNewSet(block, 0, def.origLoc, h, s);
+         s.makeNewSet(block, 0, def.origLoc, h);
       }
       if (h.isTop()) {
          out.erase(iter->first);
@@ -3743,11 +3741,11 @@ MachRegister StackAnalysis::fp() {
 std::string StackAnalysis::format(const AbslocState &input) const {
    std::stringstream ret;
    for (auto iter = input.begin(); iter != input.end(); ++iter) {
-      const std::set<DefHeight> &s = iter->second;
+      const DefHeightSet &s = iter->second;
       ret << iter->first.format() << " := {";
       for (auto iter2 = s.begin(); iter2 != s.end(); iter2++) {
-         ret << "(" << iter2->first.format() << ", " <<
-            iter2->second.format() << "), ";
+         ret << "(" << iter2->def.format() << ", " <<
+            iter2->height.format() << "), ";
       }
       ret << "}, ";
    }

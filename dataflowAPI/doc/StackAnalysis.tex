@@ -26,6 +26,15 @@ The StackAnalysis interface is used to determine the possible stack heights of a
 }
 
 \begin{apient}
+StackAnalysis(ParseAPI::Function *f,
+              const std::map<Address, Address> &crm,
+              const std::map<Address, TransferSet> &fs)
+\end{apient}
+\apidesc{
+	Constructs a StackAnalysis object for function \code{f} with interprocedural analysis activated. A call resolution map is passed in \code{crm} mapping addresses of call sites to the resolved inter-module target address of the call.  Generally the call resolution map is created with DyninstAPI where PLT resolution is done.  Function summaries are passed in \code{fs} which maps function entry addresses to summaries.  The function summaries are then used at all call sites to those functions.
+}
+
+\begin{apient}
 	StackAnalysis::Height find(ParseAPI::Block *b, Address addr, Absloc loc)
 \end{apient}
 \apidesc{
@@ -49,6 +58,24 @@ void findDefinedHeights(ParseAPI::Block *b,
 \apidesc{
 	Writes to the vector \code{heights} all defined <abstract location, stack height> pairs before execution of the instruction with address \code{addr} contained in basic block \code{b}. Note that abstract locations with stack heights of TOP (i.e. they do not point to the stack) are not written to \code{heights}.  The address \code{addr} must be contained in block \code{b}, and block \code{b} must be contained in the function used to create this StackAnalysis object.
 }
+
+
+\begin{apient}
+	bool canGetFunctionSummary()
+\end{apient}
+\apidesc{
+	Returns true if the function associated with this StackAnalysis object returns on some execution path.
+}
+
+\begin{apient}
+	bool getFunctionSummary(TransferSet &summary)
+\end{apient}
+\apidesc{
+	Returns in \code{summary} a summary for the function associated with this StackAnalysis object.  Function summaries can then be passed to the constructors for other StackAnalysis objects to enable interprocedural analysis.  Returns true on success.
+}
+
+
+
 
 \subsection{Class StackAnalysis::Height}
 \definedin{stackanalysis.h}
@@ -118,4 +145,6 @@ const Height operator-(const Height &rhs) const
 
 	The \code{operator+} and \code{operator-} methods leave this Height object unmodified while the \code{operator+=} methods update this Height object with the result of the computation.  For the methods where \code{rhs} is a \code{const signed long}, it is not possible to set \code{rhs} to TOP or BOTTOM.
 }
+
+
 
