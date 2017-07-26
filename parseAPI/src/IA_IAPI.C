@@ -608,6 +608,14 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             outEdges.push_back(std::make_pair(target, CALL));
         if (ftEdge)
             outEdges.push_back(std::make_pair(getAddr() + getSize(), CALL_FT));
+
+	// Any call site could be in try blocks
+	set<Address> catchStarts;
+	if (_obj->cs()->findCatchBlockByTryRange(getAddr(), catchStarts)) {
+	    for (auto ait = catchStarts.begin(); ait != catchStarts.end(); ++ait) {
+	        outEdges.push_back(std::make_pair(*ait, CATCH));
+	    }
+	}
         return;
     }
     else if(ci->getCategory() == c_BranchInsn)
@@ -619,26 +627,6 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             outEdges.push_back(std::make_pair(getNextAddr(), COND_NOT_TAKEN));
             return;
         }
-
-        // Catch blocks can appear after either direct jumps or indirect jumps
-	// There may be nops between this jump and the catch block and
-	// there is possibility that the exception table entry points a nop.
-	// Therefore, we need to check for every nop and first non-nop instruction after the jump for catch blocks
-        IA_IAPI* tmp_ah = this->clone();
-	tmp_ah->advance();
-	Address catchStart;
-	bool found = false;
-	while (tmp_ah->curInsn() && tmp_ah->isNop()) {
-	    if(_cr->findCatchBlock(tmp_ah->getAddr(),catchStart))  {
-	        found = true;
-		break;
-	    }
-	    tmp_ah->advance();
-	}
-	if(found || (tmp_ah->curInsn() &&_cr->findCatchBlock(tmp_ah->getAddr(),catchStart)))
-	{
-	    outEdges.push_back(std::make_pair(catchStart, CATCH));
-	}
 
         bool valid;
         Address target;
@@ -737,27 +725,6 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             }
 	}
 	
-	// Check potential catch blocks after return instructions
-	// There may be nops between this return instruction and the catch block and
-	// there is possibility that the exception table entry points a nop.
-	// Therefore, we need to check for every nop and first non-nop instruction after the return for catch blocks
-
-        IA_IAPI* tmp_ah = this->clone();
-	tmp_ah->advance();
-	Address catchStart;
-	bool found = false;
-	while (tmp_ah->curInsn() && tmp_ah->isNop()) {
-	    if(_cr->findCatchBlock(tmp_ah->getAddr(),catchStart))  {
-	        found = true;
-		break;
-	    }
-	    tmp_ah->advance();
-	}
-	if(found || (tmp_ah->curInsn() &&_cr->findCatchBlock(tmp_ah->getAddr(),catchStart)))
-	{
-	    outEdges.push_back(std::make_pair(catchStart, CATCH));
-	}
-	delete tmp_ah;
 	parsing_printf("Returning from parse out edges\n");
 	return;
     }

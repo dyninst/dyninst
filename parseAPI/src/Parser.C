@@ -1055,53 +1055,11 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                         Edge * remove = work->edge();
                         remove->src()->removeTarget(remove);
                         factory().destroy_edge(remove);
+			continue;
                     } else
 		        // Invalidate cache_valid for all sharing functions
                         invalidateContainingFuncs(func, ce->src());                
                 }
-		
-		// Check catch blocks after non-returning calls
-		if (is_nonret) {
-		    Address catchStart;
-		    Block * caller = ce->src();
-		    // There may be nops between this non-returning call and the catch block and
-		    // there is possibility that the exception table entry points a nop.
-		    // Therefore, we need to check for every nop and first non-nop instruction after the call for catch blocks
-
-		    unsigned size = caller->region()->offset() + caller->region()->length() - caller->end();
-		    const unsigned char* bufferBegin = (const unsigned char *)(func->isrc()->getPtrToInstruction(caller->end()));
-		    InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
-		    if (!ahPtr)
-		        ahPtr = InstructionAdapter_t::makePlatformIA_IAPI(func->obj()->cs()->getArch(), dec, caller->end(), func->obj(), 
-			            caller->region(), func->isrc(), NULL);
-         	    else
-		        ahPtr->reset(dec, caller->end(),func->obj(),
-			             caller->region(), func->isrc(), NULL);
- 		    InstructionAdapter_t * ah = ahPtr; 
-		    bool found = false;
-		    while (ah->getInstruction() && ah->isNop()) {
-		        if (frame.codereg->findCatchBlock(ah->getAddr(),catchStart)) {
-			    found = true;
-			    break;
-			}
-		        ah->advance();
-		    }		   
-		    if (found || (ah->getInstruction() && frame.codereg->findCatchBlock(ah->getAddr(),catchStart))) {
-		        parsing_printf("[%s] found post-return catch block %lx\n", FILE__,catchStart);
-			// make an edge
-			Edge * catch_edge = link_tempsink(caller,CATCH);                
-			
-			// push on worklist
-			frame.pushWork(
-			    frame.mkWork(
-			        work->bundle(),
-				catch_edge,
-				catchStart,
-				true,
-				false));
-		    }
-		    continue;
-		}
             }
         } else if (work->order() == ParseWorkElem::seed_addr) {
             cur = leadersToBlock[work->target()];
@@ -1325,7 +1283,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             ++num_insns; 
 
             if(ah->hasCFT()) {
-//	       if (false) {
 	       if (ah->isIndirectJump()) {
 	           // Create a work element to represent that
 		   // we will resolve the jump table later

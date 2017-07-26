@@ -1544,14 +1544,14 @@ void Object::load_object(bool alloc_syms)
         get_valid_memory_areas(*elfHdr);
 
 #if (defined(os_linux) || defined(os_freebsd))
-        if(getArch() == Dyninst::Arch_x86 || getArch() == Dyninst::Arch_x86_64)
-        {
+//        if(getArch() == Dyninst::Arch_x86 || getArch() == Dyninst::Arch_x86_64)
+//        {
             if (eh_frame_scnp != 0 && gcc_except != 0)
             {
                 find_catch_blocks(eh_frame_scnp, gcc_except,
                                   txtaddr, dataddr, catch_addrs_);
             }
-        }
+//        }
 #endif
         if (interp_scnp) {
             interpreter_name_ = (char *) interp_scnp->get_data().d_buf();
@@ -1735,12 +1735,12 @@ void Object::load_shared_object(bool alloc_syms)
         get_valid_memory_areas(*elfHdr);
 
 #if (defined(os_linux) || defined(os_freebsd))
-        if(getArch() == Dyninst::Arch_x86 || getArch() == Dyninst::Arch_x86_64) {
+//        if(getArch() == Dyninst::Arch_x86 || getArch() == Dyninst::Arch_x86_64) {
             if (eh_frame_scnp != 0 && gcc_except != 0) {
                 find_catch_blocks(eh_frame_scnp, gcc_except,
                                   txtaddr, dataddr, catch_addrs_);
             }
-        }
+//        }
 #endif
 
 #if defined(TIMED_PARSE)

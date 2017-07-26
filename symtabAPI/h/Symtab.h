@@ -623,7 +623,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
 /**
  * Used to represent something like a C++ try/catch block.  
- * Currently only used on Linux/x86
+ * Currently only used on Linux
  **/
 SYMTAB_EXPORT  std::ostream &operator<<(std::ostream &os, const ExceptionBlock &q);
 

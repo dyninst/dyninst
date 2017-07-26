@@ -196,6 +196,7 @@ class PARSER_EXPORT CodeSource : public Dyninst::InstructionSource {
     virtual void decrementCounter(const std::string& /*name*/) const { return; }
     virtual void startTimer(const std::string& /*name*/) const { return; } 
     virtual void stopTimer(const std::string& /*name*/) const { return; }
+    virtual bool findCatchBlockByTryRange(Address /*given try address*/, std::set<Address> & /* catch start */)  const { return false; }
    
  protected:
     CodeSource() : _regions_overlap(false),
@@ -261,6 +262,15 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource {
         virtual bool operator()(SymtabAPI::Function * f) =0;
     };
 
+    struct try_block {
+        Address tryStart;
+	Address tryEnd;
+	Address catchStart;
+	try_block(Address ts, Address te, Address c):
+	    tryStart(ts), tryEnd(te), catchStart(c) {}
+	bool operator< (const try_block &t) const { return tryStart < t.tryStart; }
+    };
+
     SymtabCodeSource(SymtabAPI::Symtab *, 
                                    hint_filt *, 
                                    bool allLoadedRegions=false);
@@ -305,12 +315,13 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource {
     void decrementCounter(const std::string& name) const;
     void startTimer(const std::string& /*name*/) const; 
     void stopTimer(const std::string& /*name*/) const;
-
+    bool findCatchBlockByTryRange(Address /*given try address*/, std::set<Address> & /* catch start */)  const;
  private:
     void init(hint_filt *, bool);
     void init_regions(hint_filt *, bool);
     void init_hints(dyn_hash_map<void*, CodeRegion*> &, hint_filt*);
     void init_linkage();
+    void init_try_blocks();
 
     CodeRegion * lookup_region(const Address addr) const;
     void removeRegion(CodeRegion &); // removes from region tree
@@ -319,7 +330,7 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource {
     
     // statistics
     bool init_stats();
- 
+    std::vector<try_block> try_blocks;
 };
 
 inline bool CodeRegion::contains(const Address addr) const

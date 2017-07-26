@@ -156,8 +156,12 @@ void IndirectControlFlowAnalyzer::GetAllReachableBlock() {
 	if (reachable.find(cur) != reachable.end()) continue;
 	reachable.insert(cur);
 	for (auto eit = cur->sources().begin(); eit != cur->sources().end(); ++eit)
-	    if ((*eit)->intraproc()) 
+	    if ((*eit)->intraproc()) {
+	        if ((*eit)->src() == NULL) {
+		    fprintf(stderr, "edge type = %d, target block [%lx, %lx)\n", (*eit)->type(), cur->start(), cur->end());
+		}
 	        q.push((*eit)->src());
+	    }
     }
 
 }
