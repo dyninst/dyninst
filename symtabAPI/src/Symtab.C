@@ -2230,17 +2230,12 @@ SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<AddressRange > &ranges,
        StringTablePtr s = (*i)->getStrings();
        // Only check modules that have this filename present
        if(s->get<1>().find(lineSource) == s->get<1>().end()) {
-            cerr << "No " << lineSource << " in " << (*i)->fileName() << endl;
-           cerr << "String table is: " << *s << endl;
            continue;
        }
        LineInformation *lineInformation = (*i)->parseLineInformation();
        if (lineInformation) {
            lineInformation->getAddressRanges( lineSource.c_str(), lineNo, ranges );
-       } else {
-           cerr << "No line information for " << (*i)->fileName() << endl;
        }
-
    } /* end iteration over modules */
 
    if ( ranges.size() != originalSize )
