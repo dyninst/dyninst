@@ -591,8 +591,8 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
 //   common_debug_dwarf = 1;
    dwarf_printf("(0x%lx) parseSubprogram entry\n", id());
 
+#if 0
    parseRangeTypes(dbg(), entry());
-#if 1
    if (func_type == NormalFunc) {
      std::string fname;
      findName(fname);
@@ -604,6 +604,9 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    } else if (func_type == InlinedFunc) {
       createInlineFunc();
    }
+#else
+   parseRangeTypes(dbg(), entry());
+   setFunctionFromRange(func_type);
 #endif
 
    // Name first
