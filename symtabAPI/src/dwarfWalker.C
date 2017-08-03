@@ -473,25 +473,6 @@ bool DwarfWalker::parseCallsite()
    return true;
 }
 
-
-bool DwarfWalker::setFunctionFromName(const std::string &name)
-{
-  std::vector<Function *> fns;
-  bool found = symtab()->findFunctionsByName(fns, name, mangledName);
-  if (found) {
-    Function *f = fns[0];
-    if (fns.size() == 1) {
-      setFunc(f);
-      dwarf_printf("(0x%lx) Lookup by function name %s identifies %p\n",
-		   id(), name.c_str(), curFunc());
-      return true;
-    } 
-  }
-  dwarf_printf("(0x%lx) Lookup by function name %s failed\n",
-	       id(), name.c_str());
-  return false;
-}
-
 bool DwarfWalker::setFunctionFromRange(inline_t func_type)
 {
    //Use the lowest range as an entry for symbol matching
@@ -574,23 +555,8 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
 //   common_debug_dwarf = 1;
    dwarf_printf("(0x%lx) parseSubprogram entry\n", id());
 
-#if 0
-   parseRangeTypes(dbg(), entry());
-   if (func_type == NormalFunc) {
-     std::string fname;
-     findName(fname);
-     if (!setFunctionFromName(fname))  {
-       // this does the wrong thing for cuda where the functions all overlap
-       // in their address range
-       setFunctionFromRange(func_type);
-     }
-   } else if (func_type == InlinedFunc) {
-      createInlineFunc();
-   }
-#else
    parseRangeTypes(dbg(), entry());
    setFunctionFromRange(func_type);
-#endif
 
    // Name first
    FunctionBase *func = curFunc();
