@@ -372,6 +372,7 @@ OverlappingParseData::record_block(CodeRegion *cr, Block *b)
         rd = rmap[cr];
 
     }
+    boost::lock_guard<Block> block_guard(*b);
     boost::lock_guard<region_data> g(*rd);
     rd->blocksByAddr[b->start()] = b;
     rd->blocksByRange.insert(b); 

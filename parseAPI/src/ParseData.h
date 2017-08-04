@@ -344,6 +344,7 @@ inline void StandardParseData::record_func(Function *f)
 }
 inline void StandardParseData::record_block(CodeRegion * /* cr */, Block *b)
 {
+    boost::lock_guard<Block> block_guard(*b);
     boost::lock_guard<region_data> g(_rdata);
     _rdata.blocksByAddr[b->start()] = b;
     _rdata.blocksByRange.insert(b);

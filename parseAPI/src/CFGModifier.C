@@ -165,7 +165,7 @@ Block *CFGModifier::split(Block *b, Address a, bool trust, Address newlast) {
 
 
    // 2b)
-   for (vector<Edge *>::iterator iter = b->_trglist.begin(); 
+   for (Block::edgelist::iterator iter = b->_trglist.begin();
         iter != b->_trglist.end(); ++iter) {
       b->obj()->_pcb->removeEdge(b, *iter, ParseCallback::target);
       (*iter)->_source = ret;
@@ -254,7 +254,7 @@ bool CFGModifier::remove(vector<Block*> &blks, bool force) {
       if (!b->_srclist.empty()) {
          if (!force) return false;
 
-         for (std::vector<Edge *>::iterator iter = b->_srclist.begin();
+         for (Block::edgelist::iterator iter = b->_srclist.begin();
               iter != b->_srclist.end(); ++iter) 
          {
             Edge *edge = *iter;
@@ -276,7 +276,7 @@ bool CFGModifier::remove(vector<Block*> &blks, bool force) {
       }
 
       // 3)
-      for (std::vector<Edge *>::iterator iter = b->_trglist.begin();
+      for (Block::edgelist::iterator iter = b->_trglist.begin();
            iter != b->_trglist.end(); ++iter) 
       {
          Edge *edge = *iter;

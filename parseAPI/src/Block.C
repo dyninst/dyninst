@@ -253,6 +253,8 @@ Block::getInsn(Offset a) const {
 
 
 bool Block::operator==(const Block &rhs) const {
+    boost::lock_guard<const Block> g1(*this);
+    boost::lock_guard<const Block> g2(rhs);
     return _obj == rhs._obj &&
            _region == rhs._region &&
            _start == rhs._start &&

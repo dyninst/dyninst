@@ -908,7 +908,7 @@ namespace {
 
 void
 Parser::parse_frame(ParseFrame & frame, bool recursive) {
-    boost::make_lock_guard(*frame.func);
+    boost::lock_guard<Function> g(*frame.func);
     /** Persistent intermediate state **/
     boost::shared_ptr<InstructionAdapter_t> ahPtr;
     ParseFrame::worklist_t & worklist = frame.worklist;
@@ -1535,8 +1535,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
        // we finalize the function we'll actually save the results and won't 
        // re-finalize it
        func->tampersStack(); 
-       _pcb.newfunction_retstatus( func );
     }
+    _pcb.newfunction_retstatus( func );
+
 }
 
 void
@@ -1713,8 +1714,8 @@ Parser::split_block(
 
     {
 
-        vector<Edge *> &trgs = b->_trglist;
-        vector<Edge *>::iterator tit = trgs.begin();
+        Block::edgelist &trgs = b->_trglist;
+        Block::edgelist::iterator tit = trgs.begin();
         for (; tit != trgs.end(); ++tit) {
             Edge *e = *tit;
             e->_source = ret;
@@ -1990,7 +1991,7 @@ Parser::remove_func(Function *func)
 void
 Parser::remove_block(Dyninst::ParseAPI::Block *block)
 {
-    boost::lock_guard<ParseData>(*_parse_data, boost::adopt_lock);
+    boost::lock_guard<ParseData> g(*_parse_data, boost::adopt_lock);
     _parse_data->remove_block(block);
 }
 

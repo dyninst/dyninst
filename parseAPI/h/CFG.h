@@ -46,6 +46,8 @@
 #include <iostream>
 #include <boost/thread/lockable_adapter.hpp>
 #include <boost/thread/recursive_mutex.hpp>
+#include <list>
+
 namespace Dyninst {
 
    namespace InstructionAPI {
@@ -294,22 +296,22 @@ class PARSER_EXPORT Block :
     friend class Parser;
  public:
     typedef std::map<Offset, InstructionAPI::InstructionPtr> Insns;
-    typedef std::vector<Edge*> edgelist;
+    typedef std::list<Edge*> edgelist;
 
     Block(CodeObject * o, CodeRegion * r, Address start);
     virtual ~Block();
 
-    inline Address start() const { return _start; }
-    inline Address end() const { return _end; }
-    inline Address lastInsnAddr() const { return _lastInsn; }
-    inline Address last() const { return lastInsnAddr(); }
-    inline Address size() const { return _end - _start; }
-    bool containsAddr(Address addr) const { return addr >= _start && addr < _end; }
+    inline Address start() const { boost::lock_guard<const Block> g(*this); return _start; }
+    inline Address end() const { boost::lock_guard<const Block> g(*this); return _end; }
+    inline Address lastInsnAddr() const { boost::lock_guard<const Block> g(*this); return _lastInsn; }
+    inline Address last() const {  boost::lock_guard<const Block> g(*this); return lastInsnAddr(); }
+    inline Address size() const { boost::lock_guard<const Block> g(*this); return _end - _start; }
+    bool containsAddr(Address addr) const {  boost::lock_guard<const Block> g(*this); return addr >= _start && addr < _end; }
 
-    bool parsed() const { return _parsed; }
+    bool parsed() const { boost::lock_guard<const Block> g(*this); return _parsed; }
 
-    CodeObject * obj() const { return _obj; }
-    CodeRegion * region() const { return _region; }
+    CodeObject * obj() const { boost::lock_guard<const Block> g(*this); return _obj; }
+    CodeRegion * region() const { boost::lock_guard<const Block> g(*this); return _region; }
 
     /* Edge access */
     const edgelist & sources() const { return _srclist; }
@@ -327,11 +329,13 @@ class PARSER_EXPORT Block :
     bool wasUserAdded() const;
 
     /* interval implementation */
-    Address low() const { return start(); }
-    Address high() const { return end(); }
+    Address low() const { boost::lock_guard<const Block> g(*this); return start(); }
+    Address high() const {  boost::lock_guard<const Block> g(*this); return end(); }
 
     struct compare {
         bool operator()(Block * const & b1, Block * const & b2) const {
+            boost::lock_guard<const Block> g1(*b1);
+            boost::lock_guard<const Block> g2(*b2);
             if(b1->start() < b2->start()) return true;
             if(b1->start() > b2->start()) return false;
             
@@ -396,25 +400,13 @@ inline void Block::addTarget(Edge * e)
 inline void Block::removeTarget(Edge * e)
 {
     boost::lock_guard<Block> g(*this);
-    for(unsigned i=0;i<_trglist.size();++i) {
-        if(_trglist[i] == e) {
-            _trglist[i] = _trglist.back();
-            _trglist.pop_back();    
-            break;
-        }
-    }
+    _trglist.remove(e);
 }
 
 inline void Block::removeSource(Edge * e) {
 
     boost::lock_guard<Block> g(*this);
-    for(unsigned i=0;i<_srclist.size();++i) {
-        if(_srclist[i] == e) {
-            _srclist[i] = _srclist.back();
-            _srclist.pop_back();    
-            break;
-        }
-    }
+    _srclist.remove(e);
 }
 
 enum FuncReturnStatus {

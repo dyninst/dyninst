@@ -186,6 +186,7 @@ void ParseCallbackManager::overlapping_blocks(Block *a, Block *b) {
 };
 
 void ParseCallbackManager::newfunction_retstatus(Function *f) {
+   boost::lock_guard <Function> g(*f);
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->newfunction_retstatus(f);
 };
