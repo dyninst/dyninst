@@ -253,9 +253,6 @@ private:
     bool handleSpecification(bool &hasSpec);
     bool findFuncName();
     bool setFunctionFromRange(inline_t func_type);
-#if 0
-    bool setFunctionFromName(const std::string &name);
-#endif
     virtual void setEntry(Dwarf_Die e);
     bool getFrameBase();
     bool getReturnType(bool hasSpecification, Type *&returnType);
