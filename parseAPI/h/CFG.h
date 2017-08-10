@@ -300,6 +300,7 @@ class PARSER_EXPORT Block :
 
     Block(CodeObject * o, CodeRegion * r, Address start);
     virtual ~Block();
+    boost::recursive_mutex& lockable() { return boost::lockable_adapter<boost::recursive_mutex>::lockable(); }
 
     inline Address start() const { boost::lock_guard<const Block> g(*this); return _start; }
     inline Address end() const { boost::lock_guard<const Block> g(*this); return _end; }
@@ -484,6 +485,7 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, pub
         CodeRegion * region, InstructionSource * isource);
 
     virtual ~Function();
+    boost::recursive_mutex& lockable() { return boost::lockable_adapter<boost::recursive_mutex>::lockable(); }
 
     virtual const std::string & name() const;
     void rename(std::string n) { _name = n; }

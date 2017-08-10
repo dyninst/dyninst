@@ -170,6 +170,7 @@ public:
     Block * findBlock(Address entry);
     int findFuncs(Address addr, set<Function *> & funcs);
     int findBlocks(Address addr, set<Block *> & blocks);
+    boost::recursive_mutex& lockable() { return boost::lockable_adapter<boost::recursive_mutex>::lockable(); }
 
     /* 
      * Look up the next block for detection of straight-line
@@ -344,8 +345,9 @@ inline void StandardParseData::record_func(Function *f)
 }
 inline void StandardParseData::record_block(CodeRegion * /* cr */, Block *b)
 {
-    boost::lock_guard<Block> block_guard(*b);
-    boost::lock_guard<region_data> g(_rdata);
+    boost::lock(b->lockable(), _rdata.lockable());
+    boost::lock_guard<Block> block_guard(*b, boost::adopt_lock);
+    boost::lock_guard<region_data> g(_rdata, boost::adopt_lock);
     _rdata.blocksByAddr[b->start()] = b;
     _rdata.blocksByRange.insert(b);
 }
