@@ -6170,7 +6170,7 @@ ia32_entry sseMapMult[][3] =
   }, { /* SSE16_NO */
     { e_vmovhps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
     { e_vmovhps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
+    { e_vmovhps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
   }, { /* SSE28_66 */
     { e_vmovapd, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
     { e_vmovapd, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
@@ -6182,7 +6182,7 @@ ia32_entry sseMapMult[][3] =
   }, { /* SSE2A_F2 */
     { e_vcvtsi2sd, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R, 0 },
     { e_vcvtsi2sd, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R, 0 },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
+    { e_vcvtsi2sd, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
   }, { /* SSE2A_F3 */
     { e_vcvtsi2ss, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R, 0 },
     { e_vcvtsi2ss, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R, 0 },
