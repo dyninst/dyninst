@@ -6170,7 +6170,7 @@ ia32_entry sseMapMult[][3] =
   }, { /* SSE16_NO */
     { e_vmovhps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
     { e_vmovhps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
+    { e_vmovhps, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
   }, { /* SSE28_66 */
     { e_vmovapd, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
     { e_vmovapd, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
@@ -6182,7 +6182,7 @@ ia32_entry sseMapMult[][3] =
   }, { /* SSE2A_F2 */
     { e_vcvtsi2sd, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R, 0 },
     { e_vcvtsi2sd, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R, 0 },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
+    { e_vcvtsi2sd, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R, 0 },
   }, { /* SSE2A_F3 */
     { e_vcvtsi2ss, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R, 0 },
     { e_vcvtsi2ss, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R, 0 },
@@ -9479,9 +9479,10 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
     return instruct;
 }
 
-#define MODRM_MOD(x) ((x) >> 6)
+
+#define MODRM_MOD(x) (((x) >> 6) & 3)
 #define MODRM_RM(x) ((x) & 7)
-#define MODRM_REG(x) (((x) & (7 << 3)) >> 3)
+#define MODRM_REG(x) (((x) >> 3) & 7)
 #define MODRM_SET_MOD(x, y) ((x) |= ((y) << 6))
 #define MODRM_SET_RM(x, y) ((x) |= (y))
 #define MODRM_SET_REG(x, y) ((x) |= ((y) << 3))
@@ -9492,699 +9493,782 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
                                       const ia32_prefixes* pref,
                                       ia32_locations *loc)
 {
- 
-  unsigned char modrm = addr[0];
-  unsigned char mod = MODRM_MOD(modrm);
-  unsigned char rm  = MODRM_RM(modrm);
-  unsigned char reg = MODRM_REG(modrm);
+   /** 
+    * ModR/M Format:
+    * 11  111  111 
+    *  |   |    +-> R/M bits
+    *  |   +------> REG bits
+    *  +----------> MOD bits
+    */
 
-  if (loc) {
-     loc->modrm_byte = modrm;
-     loc->modrm_mod = mod;
-     loc->modrm_rm = rm;
-     loc->modrm_reg = reg;
-     loc->address_size = addrSzAttr;
-  }
-  ++addr;
+   unsigned char modrm = addr[0];
+   unsigned char mod = MODRM_MOD(modrm);
+   unsigned char rm  = MODRM_RM(modrm);
+   unsigned char reg = MODRM_REG(modrm);
 
-  if(addrSzAttr == 1) { // 16-bit, cannot have SIB
-    //bperr( "16bit addr!\n");
-    switch(mod) {
-    case 0:
-      //bperr( "16bit addr - case 0, rm = %d!\n", rm);
-      if(macadr)
-        switch (rm) {
-        case 0: // [BX+SI]
-          macadr->set16(mBX, mSI, 0);
-          break;
-        case 1:
-          macadr->set16(mBX, mDI, 0);
-          break;
-        case 2:
-          macadr->set16(mBP, mSI, 0);
-          break;
-        case 3:
-          macadr->set16(mBP, mDI, 0);
-          break;
-        case 4:
-          macadr->set16(mSI, -1, 0);
-          break;
-        case 5:
-          macadr->set16(mDI, -1, 0);
-          break;
-        case 6: { 
-           // disp16
-           const short int *pdisp16 = (const short int*)addr;
-           //bperr( "16bit addr - case6!\n");
-           macadr->set16(-1, -1, *pdisp16);
-           if (loc) { 
-              loc->disp_position = loc->modrm_position + 1;
-              loc->disp_size = 2;
-           }
-           break; 
-        }
-        case 7:
-          macadr->set16(mBX, -1, 0);
-          break;
-        }
-      return rm==6 ? wordSzB : 0;
-    case 1:
-      //bperr( "16bit addr - case1!\n");
-      if(macadr) {
-        const char *pdisp8 = (const char*)addr;
-        if (loc) { 
-           loc->disp_position = loc->modrm_position + 1;
-           loc->disp_size = 1;
-        }
-        switch (rm) {
-        case 0: 
-          macadr->set16(mBX, mSI, *pdisp8);
-          break;
-        case 1:
-          macadr->set16(mBX, mDI, *pdisp8);
-          break;
-        case 2:
-          macadr->set16(mBP, mSI, *pdisp8);
-          break;
-        case 3:
-          macadr->set16(mBP, mDI, *pdisp8);
-          break;
-        case 4:
-          macadr->set16(mSI, -1, *pdisp8);
-          break;
-        case 5:
-          macadr->set16(mDI, -1, *pdisp8);
-          break;
-        case 6:
-          macadr->set16(mBP, -1, *pdisp8);
-          break;
-        case 7:
-          macadr->set16(mBX, -1, *pdisp8);
-          break;
-        }
-      }
-      return byteSzB;
-    case 2:
-      //bperr( "16bit addr - case2!\n");
-      if(macadr) {
-        const short int *pdisp16 = (const short int*)addr;
-        if (loc) { 
-           loc->disp_position = loc->modrm_position + 1;
-           loc->disp_size = 2;
-        }
-        switch (rm) {
-        case 0: 
-          macadr->set16(mBX, mSI, *pdisp16);
-          break;
-        case 1:
-          macadr->set16(mBX, mDI, *pdisp16);
-          break;
-        case 2:
-          macadr->set16(mBP, mSI, *pdisp16);
-          break;
-        case 3:
-          macadr->set16(mBP, mDI, *pdisp16);
-          break;
-        case 4:
-          macadr->set16(mSI, -1, *pdisp16);
-          break;
-        case 5:
-          macadr->set16(mDI, -1, *pdisp16);
-          break;
-        case 6:
-          macadr->set16(mBP, -1, *pdisp16);
-          break;
-        case 7:
-          macadr->set16(mBX, -1, *pdisp16);
-          break;
-        }
-      }
+   /* If locations are provided, configure them */
+   if (loc) 
+   {
+      loc->modrm_byte = modrm;
+      loc->modrm_mod = mod;
+      loc->modrm_rm = rm;
+      loc->modrm_reg = reg;
+      loc->address_size = addrSzAttr;
+   }
 
-      return wordSzB;
-    case 3:
-      return 0; // register
-    default:
-      assert(0);
-    }
-  }
-  else { // 32-bit or 64-bit, may have SIB
-     if(mod == 3)
-        return 0; // only registers, no SIB
-    bool hassib = rm == 4;
-    unsigned int nsib = 0;
-    unsigned char sib;
-    int base = 0, scale = -1, index = -1;  // prevent g++ from whining.
-    if(hassib) {
-      nsib = byteSzB;
-      sib = addr[0];
-      if (loc) { 
-         loc->sib_position = loc->modrm_position + 1;
-         loc->sib_byte = sib;
-      }
-      ++addr;
-      base = sib & 7;
-      if(macadr) {
-        scale = sib >> 6;
-        index = (sib >> 3) & 7;
+   /* Move past the ModR/M byte */
+   addr++;
 
-	// stack pointer can't be used as an index - supports base-only addressing w/ SIB
-        if(index == 4 && !pref->rexX())
-          index = -1;
+   /* Get displacements we're going to use */
+   const unsigned char* disp8 = (const unsigned char*)addr;
+   const unsigned short* disp16 = (const unsigned short*)addr;
+   const unsigned int* disp32 = (const unsigned int*)addr;
+
+   if(addrSzAttr == 1)  // 16-bit, cannot have SIB
+   {
+      /* This mode can only occur when running in 32 bit mode. */
+      switch(mod) 
+      {
+         case 0:
+            if(macadr)
+            {
+               switch (rm) 
+               {
+                  case 0: // [BX+SI]
+                     macadr->set16(mBX, mSI, 0);
+                     break;
+                  case 1:
+                     macadr->set16(mBX, mDI, 0);
+                     break;
+                  case 2:
+                     macadr->set16(mBP, mSI, 0);
+                     break;
+                  case 3:
+                     macadr->set16(mBP, mDI, 0);
+                     break;
+                  case 4:
+                     macadr->set16(mSI, -1, 0);
+                     break;
+                  case 5:
+                     macadr->set16(mDI, -1, 0);
+                     break;
+                  case 6: 
+                     macadr->set16(-1, -1, *disp16);
+                     if (loc) 
+                     { 
+                        loc->disp_position = loc->modrm_position + 1;
+                        loc->disp_size = 2; /* 16 bit displacement */
+                     }
+                     break; 
+                  case 7:
+                     macadr->set16(mBX, -1, 0);
+                     break;
+                  default:
+                     assert(0);
+                     return 0;
+               }
+            }
+
+            return rm == 6 ? wordSzB : 0;
+         case 1:
+            if(macadr) 
+            {
+               if (loc)
+               {
+                  loc->disp_position = loc->modrm_position + 1;
+                  loc->disp_size = 1;
+               }
+
+               switch (rm) 
+               {
+                  case 0: 
+                     macadr->set16(mBX, mSI, *disp8);
+                     break;
+                  case 1:
+                     macadr->set16(mBX, mDI, *disp8);
+                     break;
+                  case 2:
+                     macadr->set16(mBP, mSI, *disp8);
+                     break;
+                  case 3:
+                     macadr->set16(mBP, mDI, *disp8);
+                     break;
+                  case 4:
+                     macadr->set16(mSI, -1, *disp8);
+                     break;
+                  case 5:
+                     macadr->set16(mDI, -1, *disp8);
+                     break;
+                  case 6:
+                     macadr->set16(mBP, -1, *disp8);
+                     break;
+                  case 7:
+                     macadr->set16(mBX, -1, *disp8);
+                     break;
+                  default:
+                     assert(0);
+                     return 0;
+               }
+            }
+
+            return byteSzB;
+         case 2:
+            if(macadr) 
+            {
+               if (loc) 
+               { 
+                  loc->disp_position = loc->modrm_position + 1;
+                  loc->disp_size = 2;
+               }
+
+               switch (rm) 
+               {
+                  case 0: 
+                     macadr->set16(mBX, mSI, *disp16);
+                     break;
+                  case 1:
+                     macadr->set16(mBX, mDI, *disp16);
+                     break;
+                  case 2:
+                     macadr->set16(mBP, mSI, *disp16);
+                     break;
+                  case 3:
+                     macadr->set16(mBP, mDI, *disp16);
+                     break;
+                  case 4:
+                     macadr->set16(mSI, -1, *disp16);
+                     break;
+                  case 5:
+                     macadr->set16(mDI, -1, *disp16);
+                     break;
+                  case 6:
+                     macadr->set16(mBP, -1, *disp16);
+                     break;
+                  case 7:
+                     macadr->set16(mBX, -1, *disp16);
+                     break;
+                  default:
+                     assert(0);
+                     return 0;
+               }
+            }
+
+            return wordSzB;
+         case 3:
+            /* This is a register */
+            return 0;
+         default:
+            assert(0);
+            return 0;
       }
-    }
-    switch(mod) {
-    case 0: {
+   } else { // 32-bit or 64-bit, may have SIB
+
+      /* When bits are 0b11, only a register can be provided */
+      if(mod == 3)
+         return 0;
+
+      /* We have an additional sib if the RM bits are 0b100 */
+      bool hassib = rm == 4;
+      unsigned int nsib = 0;
+      unsigned char sib;
+      int base = 0, scale = -1, index = -1;  // prevent g++ from whining.
+
+      /* Do we have an sib? */
+      if(hassib) 
+      {
+         /* Grab the sib */
+         sib = addr[0];
+         nsib = byteSzB;
+
+         /* Update locations if needed */
+         if (loc) 
+         { 
+            loc->sib_position = loc->modrm_position + 1;
+            loc->sib_byte = sib;
+         }
+
+         /* We have consumed the sib bite */
+         addr++;
+
+         base = sib & 7;
+         if(macadr) 
+         {
+            scale = sib >> 6;
+            index = (sib >> 3) & 7;
+
+            // stack pointer can't be used as an index - supports base-only addressing w/ SIB
+            if(index == 4 && !pref->rexX())
+               index = -1;
+         }
+      }
+      
+      /* Update displacement pointers  */
+      disp8 = (const unsigned char*)addr;
+      disp16 = (const unsigned short*)addr;
+      disp32 = (const unsigned int*)addr;
+
       /* this is tricky: there is a disp32 iff (1) rm == 5  or  (2) hassib && base == 5 */
       unsigned char check5 = hassib ? base : rm;
-      if(macadr)
-        switch (rm) {
-        case 0:
-          macadr->set(apply_rex_bit(mEAX, pref->rexB()), 0, addrSzAttr);
-          break;
-        case 1:
-          macadr->set(apply_rex_bit(mECX, pref->rexB()), 0, addrSzAttr);
-          break;
-        case 2:
-          macadr->set(apply_rex_bit(mEDX, pref->rexB()), 0, addrSzAttr);
-          break;
-        case 3:
-          macadr->set(apply_rex_bit(mEBX, pref->rexB()), 0, addrSzAttr);
-          break;
-        case 4: // SIB
-          if(base == 5) 
-          { 
-             // disp32[index<<scale]
-             const int *pdisp32 = (const int*)addr;
-             if (loc) { 
-                loc->disp_position = loc->sib_position + 1;
-                loc->disp_size = 4;
-             }
-             macadr->set_sib(-1, scale, apply_rex_bit(index, pref->rexX()), 
-                             *pdisp32, addrSzAttr);
-          }
-          else
-            macadr->set_sib(apply_rex_bit(base, pref->rexB()), scale, 
-                            apply_rex_bit(index, pref->rexX()),
-                            0, addrSzAttr);
-          break;
-        case 5: { 
-           // disp32 (or [RIP + disp32] for 64-bit mode)
-           if (loc) { 
-              loc->disp_position = loc->modrm_position + 1;
-              loc->disp_size = 4;
-           }
-           const int *pdisp32 = (const int*)addr;
-           if (mode_64)
-              macadr->set(mRIP, *pdisp32, addrSzAttr);
-           else
-              macadr->set(-1, *pdisp32, addrSzAttr);
-           break; 
-        }
-        case 6:
-           macadr->set(apply_rex_bit(mESI, pref->rexB()), 0, addrSzAttr);
-           break;
-        case 7:
-           macadr->set(apply_rex_bit(mEDI, pref->rexB()), 0, addrSzAttr);
-           break;
+
+      switch(mod) 
+      {
+         case 0: 
+            if(macadr)
+            {
+               switch (rm) 
+               {
+                  case 0:
+                     macadr->set(apply_rex_bit(mEAX, pref->rexB()), 0, addrSzAttr);
+                     break;
+                  case 1:
+                     macadr->set(apply_rex_bit(mECX, pref->rexB()), 0, addrSzAttr);
+                     break;
+                  case 2:
+                     macadr->set(apply_rex_bit(mEDX, pref->rexB()), 0, addrSzAttr);
+                     break;
+                  case 3:
+                     macadr->set(apply_rex_bit(mEBX, pref->rexB()), 0, addrSzAttr);
+                     break;
+                  case 4: // SIB
+                     if(base == 5) 
+                     { 
+                        // disp32[index<<scale]
+                        if (loc) 
+                        {
+                           loc->disp_position = loc->sib_position + 1;
+                           loc->disp_size = 4;
+                        }
+
+                        macadr->set_sib(-1, scale, apply_rex_bit(index, pref->rexX()), 
+                              *disp32, addrSzAttr);
+                     } else {
+                        macadr->set_sib(apply_rex_bit(base, pref->rexB()), scale, 
+                              apply_rex_bit(index, pref->rexX()), 0, addrSzAttr);
+                     }
+                     break;
+                  case 5: 
+                     { 
+                        // disp32 (or [RIP + disp32] for 64-bit mode)
+                        if (loc) 
+                        { 
+                           loc->disp_position = loc->modrm_position + 1;
+                           loc->disp_size = 4;
+                        }
+
+                        if (mode_64)
+                           macadr->set(mRIP, *disp32, addrSzAttr);
+                        else
+                           macadr->set(-1, *disp32, addrSzAttr);
+                        break; 
+                     }
+                  case 6:
+                     macadr->set(apply_rex_bit(mESI, pref->rexB()), 0, addrSzAttr);
+                     break;
+                  case 7:
+                     macadr->set(apply_rex_bit(mEDI, pref->rexB()), 0, addrSzAttr);
+                     break;
+                  default:
+                     assert(0);
+                     return 0;
+               }
+            }
+
+            return nsib + ((check5 == 5) ? dwordSzB : 0);
+         case 1:
+            if(macadr) 
+            {
+               if (loc) 
+               { 
+                  loc->disp_position = loc->modrm_position + 1;
+                  loc->disp_size = 1;
+               }
+
+               switch (rm) 
+               {
+                  case 0:
+                     macadr->set(apply_rex_bit(mEAX, pref->rexB()), *disp8, addrSzAttr);
+                     break;
+                  case 1:
+                     macadr->set(apply_rex_bit(mECX, pref->rexB()), *disp8, addrSzAttr);
+                     break;
+                  case 2:
+                     macadr->set(apply_rex_bit(mEDX, pref->rexB()), *disp8, addrSzAttr);
+                     break;
+                  case 3:
+                     macadr->set(apply_rex_bit(mEBX, pref->rexB()), *disp8, addrSzAttr);
+                     break;
+                  case 4:
+                     // disp8[EBP + index<<scale] happens naturally here when base=5
+                     if (loc) { 
+                        loc->disp_position = loc->sib_position + 1;
+                        loc->disp_size = 1;
+                     }           
+                     macadr->set_sib(apply_rex_bit(base, pref->rexB()), scale, apply_rex_bit(index, pref->rexX()),
+                           *disp8, addrSzAttr);
+                     break;
+                  case 5:
+                     macadr->set(apply_rex_bit(mEBP, pref->rexB()), *disp8, addrSzAttr);
+                     break;
+                  case 6:
+                     macadr->set(apply_rex_bit(mESI, pref->rexB()), *disp8, addrSzAttr);
+                     break;
+                  case 7:
+                     macadr->set(apply_rex_bit(mEDI, pref->rexB()), *disp8, addrSzAttr);
+                     break;
+               }
+            }
+
+            return nsib + byteSzB;
+         case 2:
+            if(macadr) 
+            {
+               if (loc) 
+               { 
+                  loc->disp_position = loc->modrm_position + 1;
+                  loc->disp_size = 4;
+               }
+
+               switch (rm) 
+               {
+                  case 0:
+                     macadr->set(apply_rex_bit(mEAX, pref->rexB()), *disp32, addrSzAttr);
+                     break;
+                  case 1:
+                     macadr->set(apply_rex_bit(mECX, pref->rexB()), *disp32, addrSzAttr);
+                     break;
+                  case 2:
+                     macadr->set(apply_rex_bit(mEDX, pref->rexB()), *disp32, addrSzAttr);
+                     break;
+                  case 3:
+                     macadr->set(apply_rex_bit(mEBX, pref->rexB()), *disp32, addrSzAttr);
+                     break;
+                  case 4:
+                     // disp32[EBP + index<<scale] happens naturally here when base=5
+                     if (loc) { 
+                        loc->disp_position = loc->sib_position + 1;
+                        loc->disp_size = 4;
+                     }
+                     macadr->set_sib(apply_rex_bit(base, pref->rexB()), scale, apply_rex_bit(index, pref->rexX()),
+                           *disp32, addrSzAttr);
+                     break;
+                  case 5:
+                     macadr->set(apply_rex_bit(mEBP, pref->rexB()), *disp32, addrSzAttr);
+                     break;
+                  case 6:
+                     macadr->set(apply_rex_bit(mESI, pref->rexB()), *disp32, addrSzAttr);
+                     break;
+                  case 7:
+                     macadr->set(apply_rex_bit(mEDI, pref->rexB()), *disp32, addrSzAttr);
+                     break;
+                  default:
+                     assert(0);
+                     return 0;
+               }
+            }
+
+            return nsib + dwordSzB;
+         default:
+            assert(0);
+            return 0;
       }
-      return nsib + ((check5 == 5) ? dwordSzB : 0);
-    }
-    case 1:
-      if(macadr) {
-         const char *pdisp8 = (const char*)addr;
-         if (loc) { 
-            loc->disp_position = loc->modrm_position + 1;
-            loc->disp_size = 1;
-         }
-        switch (rm) {
-        case 0:
-           macadr->set(apply_rex_bit(mEAX, pref->rexB()), *pdisp8, addrSzAttr);
-          break;
-        case 1:
-          macadr->set(apply_rex_bit(mECX, pref->rexB()), *pdisp8, addrSzAttr);
-          break;
-        case 2:
-          macadr->set(apply_rex_bit(mEDX, pref->rexB()), *pdisp8, addrSzAttr);
-          break;
-        case 3:
-          macadr->set(apply_rex_bit(mEBX, pref->rexB()), *pdisp8, addrSzAttr);
-          break;
-        case 4:
-          // disp8[EBP + index<<scale] happens naturally here when base=5
-           if (loc) { 
-              loc->disp_position = loc->sib_position + 1;
-              loc->disp_size = 1;
-           }           
-          macadr->set_sib(apply_rex_bit(base, pref->rexB()), scale, apply_rex_bit(index, pref->rexX()),
-			  *pdisp8, addrSzAttr);
-          break;
-        case 5:
-          macadr->set(apply_rex_bit(mEBP, pref->rexB()), *pdisp8, addrSzAttr);
-          break;
-        case 6:
-          macadr->set(apply_rex_bit(mESI, pref->rexB()), *pdisp8, addrSzAttr);
-          break;
-        case 7:
-          macadr->set(apply_rex_bit(mEDI, pref->rexB()), *pdisp8, addrSzAttr);
-          break;
-        }
-      }
-      return nsib + byteSzB;
-    case 2:
-      if(macadr) {
-        const int *pdisp32 = (const int*)addr;
-        if (loc) { 
-           loc->disp_position = loc->modrm_position + 1;
-           loc->disp_size = 4;
-        }
-        switch (rm) {
-        case 0:
-          macadr->set(apply_rex_bit(mEAX, pref->rexB()), *pdisp32, addrSzAttr);
-          break;
-        case 1:
-          macadr->set(apply_rex_bit(mECX, pref->rexB()), *pdisp32, addrSzAttr);
-          break;
-        case 2:
-          macadr->set(apply_rex_bit(mEDX, pref->rexB()), *pdisp32, addrSzAttr);
-          break;
-        case 3:
-          macadr->set(apply_rex_bit(mEBX, pref->rexB()), *pdisp32, addrSzAttr);
-          break;
-        case 4:
-          // disp32[EBP + index<<scale] happens naturally here when base=5
-           if (loc) { 
-              loc->disp_position = loc->sib_position + 1;
-              loc->disp_size = 4;
-           }
-          macadr->set_sib(apply_rex_bit(base, pref->rexB()), scale, apply_rex_bit(index, pref->rexX()),
-			  *pdisp32, addrSzAttr);
-          break;
-        case 5:
-          macadr->set(apply_rex_bit(mEBP, pref->rexB()), *pdisp32, addrSzAttr);
-          break;
-        case 6:
-          macadr->set(apply_rex_bit(mESI, pref->rexB()), *pdisp32, addrSzAttr);
-          break;
-        case 7:
-          macadr->set(apply_rex_bit(mEDI, pref->rexB()), *pdisp32, addrSzAttr);
-          break;
-        }
-      }
-      return nsib + dwordSzB;
-    default:
+
+      /* We shouldn't get out of the above switch */
       assert(0);
-    }
-  }
-  return 0; // MS compiler from VS 6.0 wants this
+   }
+
+   return 0; // MS compiler from VS 6.0 wants this
 }
 
 
 static inline int type2size(unsigned int optype, unsigned int operSzAttr)
 {
-  switch(optype) {
-  case op_a:
-    return 2 * wordSzB * operSzAttr;
-  case op_b:
-    return byteSzB;
-  case op_c:
-    assert(!"Where is this used, Intel?");
-    return byteSzB * operSzAttr;
-  case op_d:
-    return dwordSzB;
-  case op_dq:
-    return dqwordSzB;
-  case op_p:
-    return wordSzB + wordSzB * operSzAttr; // XXX book says operand size...
-  case op_pd:  // Intel "forgot" to define this in book, but uses it
-    return dqwordSzB;
-  case op_pi:
-    return qwordSzB;
-  case op_ps:
-    return dqwordSzB;
-  case op_q:
-    return qwordSzB;
-  case op_s:
-    return 6;
-  case op_sd:  // another Intel amnesia case
-    return qwordSzB;
-  case op_ss:
-    return dwordSzB;
-  case op_si:
-    assert(!"Where is this used, Intel?");
-    return dwordSzB;
-  case op_v:
-    return wordSzB * operSzAttr;
-  case op_w:
-    return wordSzB;
-  case op_y:
-	  return operSzAttr == 4 ? qwordSzB : dwordSzB;
-  case op_z:
-      return operSzAttr == 1 ? wordSzB : dwordSzB;
-  case op_lea:
-    //    assert(!"Should not be evaluated");
-    // We might be called, if we don't know this is an lea ahead of time
-    // It's okay to return 0 here, because we really don't load/store
-    return 0;
-  case op_allgprs:
-    return 8 * wordSzB * operSzAttr;
-  case op_512:
-    return 512;
-  default:
-      assert(0);
-      return 0;
-//    RegisterAST reg(optype);
-//    return reg.eval().size();
-  }
+   switch(optype) {
+      case op_a:
+         return 2 * wordSzB * operSzAttr;
+      case op_b:
+         return byteSzB;
+      case op_c:
+         assert(!"Where is this used, Intel?");
+         return byteSzB * operSzAttr;
+      case op_d:
+         return dwordSzB;
+      case op_dq:
+         return dqwordSzB;
+      case op_p:
+         return wordSzB + wordSzB * operSzAttr; // XXX book says operand size...
+      case op_pd:  // Intel "forgot" to define this in book, but uses it
+         return dqwordSzB;
+      case op_pi:
+         return qwordSzB;
+      case op_ps:
+         return dqwordSzB;
+      case op_q:
+         return qwordSzB;
+      case op_s:
+         return 6;
+      case op_sd:  // another Intel amnesia case
+         return qwordSzB;
+      case op_ss:
+         return dwordSzB;
+      case op_si:
+         assert(!"Where is this used, Intel?");
+         return dwordSzB;
+      case op_v:
+         return wordSzB * operSzAttr;
+      case op_w:
+         return wordSzB;
+      case op_y:
+         return operSzAttr == 4 ? qwordSzB : dwordSzB;
+      case op_z:
+         return operSzAttr == 1 ? wordSzB : dwordSzB;
+      case op_lea:
+         //    assert(!"Should not be evaluated");
+         // We might be called, if we don't know this is an lea ahead of time
+         // It's okay to return 0 here, because we really don't load/store
+         return 0;
+      case op_allgprs:
+         return 8 * wordSzB * operSzAttr;
+      case op_512:
+         return 512;
+      default:
+         assert(0);
+         return 0;
+         //    RegisterAST reg(optype);
+         //    return reg.eval().size();
+   }
 }
 
 unsigned int ia32_decode_operands (const ia32_prefixes& pref, 
-                                   const ia32_entry& gotit, 
-                                   const unsigned char* addr, 
-                                   ia32_instruction& instruct,
-                                   ia32_memacc *mac)
+      const ia32_entry& gotit, 
+      const unsigned char* addr, 
+      ia32_instruction& instruct,
+      ia32_memacc *mac)
 {
-    unsigned int nib = 0; /* # of bytes in instruction */
-    ia32_locations *loc = instruct.loc;
+   /* # of bytes in instruction */
+   unsigned int nib = 0; 
+   ia32_locations *loc = instruct.loc;
 
-    if(loc) 
-        loc->imm_cnt = 0;
+   if(loc) 
+      loc->imm_cnt = 0;
 
-    int addrSzAttr = (pref.getPrefix(3) == PREFIX_SZADDR ? 1 : 2);
+   /* If the prefix is present, the address size changes to 16 bit */
+   int addrSzAttr = (pref.getPrefix(3) == PREFIX_SZADDR ? 1 : 2);
 
-    if(mode_64)
-        addrSzAttr *= 2;
+   /* If the prefix is present in 64 bit mode, the address changes to 32 bit */
+   if(mode_64)
+      addrSzAttr *= 2;
 
-    int operSzAttr = getOperSz(pref);
+   int operSzAttr = getOperSz(pref);
 
-    if(gotit.hasModRM)
-        nib += byteSzB;
+   if(gotit.hasModRM)
+      nib += byteSzB;
 
-    for(int i = 0; i < 3; i++)
-    {
-        const ia32_operand& op = gotit.operands[i];
+   for(int i = 0; i < 3; i++)
+   {
+      const ia32_operand& op = gotit.operands[i];
 
-        if(op.admet) 
-        {
-            // At most two operands can be memory, the third is register or immediate
-            //assert(i<2 || op.admet == am_reg || op.admet == am_I);
-            switch(op.admet) 
-            {
-                case am_A: /* address = segment + offset (word or dword or qword) */
-                    nib += wordSzB; // segment
-                    nib += wordSzB * addrSzAttr;  // + offset (1 or 2 words, depending on prefix)
-                    break;
-                case am_O: /* operand offset */
-                    nib += wordSzB * addrSzAttr;
-                    if(mac) 
-                    {
-                        int offset = 0;
-                        switch(addrSzAttr) 
-                        {
-                            case 1: // 16-bit offset
-                                offset = *((const short int*)addr);
-                                break;
-                            case 2: // 32-bit offset
-                                offset = *((const int*)addr);
-                                break;
-                            case 4: // 64-bit
-                                offset = *((const long*)addr);
-                                break;
-                            default:
-                                assert(0);
-                                break;
-                        }
-
-                        mac[i].set(-1, offset, addrSzAttr);
-                        mac[i].size = type2size(op.optype, operSzAttr);
-                    }
-                    break;
-                case am_tworeghack:
-                case am_ImplImm:
-                case am_B:   /* General register selected by VEX.vvvv*/
-                case am_C:   /* control register */
-                case am_D:   /* debug register */
-                case am_F:   /* flags register */
-                case am_G:   /* general purpose register, selecteb by reg field */
-                case am_P:   /* MMX register */
-                case am_R:   /* general purpose register, selected by r/m field */
-                case am_S:   /* segment register */
-                case am_T:   /* test register */
-                case am_XV:  /* XMM register (From reg of ModR/M) */
-                case am_XU:  /* XMM register (from R/M of ModR/M) */
-                case am_XH:  /* XMM register (vvvv of prefix) */
-                case am_YV:  /* XMM or YMM register (From reg of ModR/M) */
-                case am_YU:  /* XMM or YMM register (from R/M of ModR/M) */
-                case am_YH:  /* XMM or YMM register (vvvv of prefix) */
-                case am_V:   /* XMM, YMM or ZMM register (From reg of ModR/M) */
-                case am_U:   /* XMM, YMM or ZMM register (from R/M of ModR/M) */
-                case am_H:   /* XMM, YMM or ZMM register (vvvv of prefix) */
-                case am_HK:  /* K register (vvvv of prefix) */
-                case am_VK:  /* K register (vvvv of prefix) */
-                case am_reg: /* register implicitely encoded in opcode */ 
-                case am_allgprs:
-                    break;
-                case am_E:  /* register or memory location, so decoding needed */
-                case am_M:  /* memory operand, decoding needed; size includes modRM byte */
-                case am_Q:  /* MMX register or memory location */
-                case am_RM: /* register or memory location, so decoding needed */
-                case am_UM: /* XMM register or memory location */
-                case am_XW: /* XMM register or memory location */
-                case am_YW: /* XMM or YMM register or memory location */
-                case am_W:  /* XMM, YMM or ZMM register or memory location */
-                case am_WK:  /* K register (vvvv of prefix) */
-                    if (loc) 
-                    {
-                        loc->modrm_position = loc->opcode_size + loc->opcode_position;
-                        loc->modrm_operand = i;
-                    }
-
-                    if(mac)
-                    {
-                        nib += ia32_decode_modrm(addrSzAttr, addr, &mac[i], &pref, loc);
-                        mac[i].size = type2size(op.optype, operSzAttr);
-
-                        if (loc) 
-                            loc->address_size = mac[i].size;
-                    } else {
-                        nib += ia32_decode_modrm(addrSzAttr, addr, NULL, &pref, loc);
-                    }
-                
-                    // also need to check for AMD64 rip-relative data addressing
-                    // occurs when mod == 0 and r/m == 101
-                    if (mode_64 && (addr[0] & 0xc7) == 0x05)
-                        instruct.rip_relative_data = true;
-
-                    break;
-                case am_I: /* immediate data */
-                case am_J: /* instruction pointer offset */
-                    { 
-                        int imm_size = type2size(op.optype, operSzAttr);
-                        if (loc) 
-                        {
-                            // sanity
-                            if(loc->imm_cnt > 1) 
-                            {
-                                fprintf(stderr,"Oops, more than two immediate operands\n");
-                            } else {
-                                loc->imm_position[loc->imm_cnt] = 
-                                nib + loc->opcode_position + loc->opcode_size;
-                                loc->imm_size[loc->imm_cnt] = imm_size;
-                                ++loc->imm_cnt;
-                            }
-                        }
-                        nib += imm_size;
+      if(op.admet) 
+      {
+         // At most two operands can be memory, the third is register or immediate
+         //assert(i<2 || op.admet == am_reg || op.admet == am_I);
+         switch(op.admet) 
+         {
+            case am_A: /* address = segment + offset (word or dword or qword) */
+               nib += wordSzB; // segment
+               nib += wordSzB * addrSzAttr;  // + offset (1 or 2 words, depending on prefix)
+               break;
+            case am_O: /* operand offset */
+               nib += wordSzB * addrSzAttr;
+               if(mac) 
+               {
+                  int offset = 0;
+                  switch(addrSzAttr) 
+                  {
+                     case 1: // 16-bit offset
+                        offset = *((const short int*)addr);
                         break;
-                    }
-                    /* TODO: rep prefixes, deal with them here? */
+                     case 2: // 32-bit offset
+                        offset = *((const int*)addr);
+                        break;
+                     case 4: // 64-bit
+                        offset = *((const long*)addr);
+                        break;
+                     default:
+                        assert(0);
+                        break;
+                  }
 
-                case am_X: /* memory at DS:(E)SI*/
-                    if(mac)
-                        mac[i].setXY(mESI, type2size(op.optype, operSzAttr), addrSzAttr);
-                    break;
-                case am_Y: /* memory at ES:(E)DI*/
-                    if(mac)
-                        mac[i].setXY(mEDI, type2size(op.optype, operSzAttr), addrSzAttr);
-                    break;
-                case am_stackH: /* stack push */
-                case am_stackP: /* stack pop */
-                    assert(0 && "Wrong table!");
-                    break;
-                default:
+                  mac[i].set(-1, offset, addrSzAttr);
+                  mac[i].size = type2size(op.optype, operSzAttr);
+               }
+               break;
+            case am_tworeghack:
+            case am_ImplImm:
+            case am_B:   /* General register selected by VEX.vvvv*/
+            case am_C:   /* control register */
+            case am_D:   /* debug register */
+            case am_F:   /* flags register */
+            case am_G:   /* general purpose register, selecteb by reg field */
+            case am_P:   /* MMX register */
+            case am_R:   /* general purpose register, selected by r/m field */
+            case am_S:   /* segment register */
+            case am_T:   /* test register */
+            case am_XV:  /* XMM register (From reg of ModR/M) */
+            case am_XU:  /* XMM register (from R/M of ModR/M) */
+            case am_XH:  /* XMM register (vvvv of prefix) */
+            case am_YV:  /* XMM or YMM register (From reg of ModR/M) */
+            case am_YU:  /* XMM or YMM register (from R/M of ModR/M) */
+            case am_YH:  /* XMM or YMM register (vvvv of prefix) */
+            case am_V:   /* XMM, YMM or ZMM register (From reg of ModR/M) */
+            case am_U:   /* XMM, YMM or ZMM register (from R/M of ModR/M) */
+            case am_H:   /* XMM, YMM or ZMM register (vvvv of prefix) */
+            case am_HK:  /* K register (vvvv of prefix) */
+            case am_VK:  /* K register (vvvv of prefix) */
+            case am_reg: /* register implicitely encoded in opcode */ 
+            case am_allgprs:
+               break;
+            case am_E:  /* register or memory location, so decoding needed */
+            case am_M:  /* memory operand, decoding needed; size includes modRM byte */
+            case am_Q:  /* MMX register or memory location */
+            case am_RM: /* register or memory location, so decoding needed */
+            case am_UM: /* XMM register or memory location */
+            case am_XW: /* XMM register or memory location */
+            case am_YW: /* XMM or YMM register or memory location */
+            case am_W:  /* XMM, YMM or ZMM register or memory location */
+            case am_WK:  /* K register (vvvv of prefix) */
+               if (loc) 
+               {
+                  loc->modrm_position = loc->opcode_size + loc->opcode_position;
+                  loc->modrm_operand = i;
+               }
+
+               if(mac)
+               {
+                  nib += ia32_decode_modrm(addrSzAttr, addr, &mac[i], &pref, loc);
+                  mac[i].size = type2size(op.optype, operSzAttr);
+
+                  if (loc) 
+                     loc->address_size = mac[i].size;
+               } else {
+                  nib += ia32_decode_modrm(addrSzAttr, addr, NULL, &pref, loc);
+               }
+
+               // also need to check for AMD64 rip-relative data addressing
+               // occurs when mod == 0 and r/m == 101
+               if (mode_64 && (addr[0] & 0xc7) == 0x05)
+                  instruct.rip_relative_data = true;
+
+               break;
+            case am_I: /* immediate data */
+            case am_J: /* instruction pointer offset */
+               { 
+                  int imm_size = type2size(op.optype, operSzAttr);
+                  if (loc) 
+                  {
+                     // sanity
+                     if(loc->imm_cnt > 1) 
+                     {
+                        fprintf(stderr,"Oops, more than two immediate operands\n");
+                     } else {
+                        loc->imm_position[loc->imm_cnt] = 
+                           nib + loc->opcode_position + loc->opcode_size;
+                        loc->imm_size[loc->imm_cnt] = imm_size;
+                        ++loc->imm_cnt;
+                     }
+                  }
+                  nib += imm_size;
+                  break;
+               }
+               /* TODO: rep prefixes, deal with them here? */
+
+            case am_X: /* memory at DS:(E)SI*/
+               if(mac)
+                  mac[i].setXY(mESI, type2size(op.optype, operSzAttr), addrSzAttr);
+               break;
+            case am_Y: /* memory at ES:(E)DI*/
+               if(mac)
+                  mac[i].setXY(mEDI, type2size(op.optype, operSzAttr), addrSzAttr);
+               break;
+            case am_stackH: /* stack push */
+            case am_stackP: /* stack pop */
+               assert(0 && "Wrong table!");
+               break;
+            default:
 #ifdef VEX_DEBUG
-                    printf("mode: %d  %x\n", op.admet, op.admet);
+               printf("mode: %d  %x\n", op.admet, op.admet);
 #endif
-                    assert(0 && "Bad addressing mode!");
-            }
-        } else {    
-            break;
-        }
-    }
-            
-    /* Are there 4 operands? */
-    if((gotit.opsema &  0xffff) >= s4OP)
-    {
-        /* This last one is always Ib */
-        int imm_size = type2size(op_b, operSzAttr);
+               assert(0 && "Bad addressing mode!");
+         }
+      } else {    
+         break;
+      }
+   }
 
-        if (loc) 
-        {
-            if(loc->imm_cnt > 1) 
-            {
-                fprintf(stderr,"Oops, more than two immediate operands\n");
-            } else {
-                loc->imm_position[loc->imm_cnt] = nib + loc->opcode_position + loc->opcode_size;
-                loc->imm_size[loc->imm_cnt] = imm_size;
-                ++loc->imm_cnt;
-            }
-        }
-    
-        nib += imm_size;
-    }
+   /* Are there 4 operands? */
+   if((gotit.opsema &  0xffff) >= s4OP)
+   {
+      /* This last one is always Ib */
+      int imm_size = type2size(op_b, operSzAttr);
 
-    if((gotit.id == e_push) && mac)
-    {
-        // assuming 32-bit (64-bit for AMD64) stack segment
-        // AMD64: push defaults to 64-bit operand size
-        if (mode_64 && operSzAttr == 2)
-            operSzAttr = 4;
+      if (loc) 
+      {
+         if(loc->imm_cnt > 1) 
+         {
+            fprintf(stderr,"Oops, more than two immediate operands\n");
+         } else {
+            loc->imm_position[loc->imm_cnt] = nib + loc->opcode_position + loc->opcode_size;
+            loc->imm_size[loc->imm_cnt] = imm_size;
+            ++loc->imm_cnt;
+         }
+      }
 
-        mac[1].set(mESP, -2 * operSzAttr, addrSzAttr);
+      nib += imm_size;
+   }
 
-        if(gotit.operands[0].admet == am_reg)
-        {
-            mac[1].size = type2size(op_v, operSzAttr);
-        } else {
-            mac[1].size = type2size(gotit.operands[0].optype, operSzAttr);
-        }
+   if((gotit.id == e_push) && mac)
+   {
+      // assuming 32-bit (64-bit for AMD64) stack segment
+      // AMD64: push defaults to 64-bit operand size
+      if (mode_64 && operSzAttr == 2)
+         operSzAttr = 4;
 
-        mac[1].write = true;
-    }
+      mac[1].set(mESP, -2 * operSzAttr, addrSzAttr);
 
-    if((gotit.id == e_pop) && mac)
-    {
-        // assuming 32-bit (64-bit for AMD64) stack segment
-        // AMD64: pop defaults to 64-bit operand size
-        if (mode_64 && operSzAttr == 2)
-            operSzAttr = 4;
-        mac[1].set(mESP, 0, addrSzAttr);
-        if(gotit.operands[0].admet == am_reg)
-        {
-            mac[1].size = type2size(op_v, operSzAttr);
-        } else {
-            mac[1].size = type2size(gotit.operands[0].optype, operSzAttr);
-        }
-        mac[1].read = true;
-    }
+      if(gotit.operands[0].admet == am_reg)
+      {
+         mac[1].size = type2size(op_v, operSzAttr);
+      } else {
+         mac[1].size = type2size(gotit.operands[0].optype, operSzAttr);
+      }
 
-    if((gotit.id == e_leave) && mac)
-    {
-        // assuming 32-bit (64-bit for AMD64) stack segment
-        // AMD64: push defaults to 64-bit operand size
-        if (mode_64 && operSzAttr == 2)
-            operSzAttr = 4;
-        mac[0].set(mESP, 0, addrSzAttr);
-        mac[0].size = type2size(op_v, operSzAttr);
-        mac[0].read = true;
-    }
+      mac[1].write = true;
+   }
 
-    if((gotit.id == e_ret_near || gotit.id == e_ret_far) && mac)
-    {
-        mac[0].set(mESP, 0, addrSzAttr);
-        mac[0].size = type2size(op_v, addrSzAttr);
-        mac[0].read = true;
-    }
+   if((gotit.id == e_pop) && mac)
+   {
+      // assuming 32-bit (64-bit for AMD64) stack segment
+      // AMD64: pop defaults to 64-bit operand size
+      if (mode_64 && operSzAttr == 2)
+         operSzAttr = 4;
+      mac[1].set(mESP, 0, addrSzAttr);
+      if(gotit.operands[0].admet == am_reg)
+      {
+         mac[1].size = type2size(op_v, operSzAttr);
+      } else {
+         mac[1].size = type2size(gotit.operands[0].optype, operSzAttr);
+      }
+      mac[1].read = true;
+   }
 
-    if((gotit.id == e_call) && mac)
-    {
-        int index = 0;
-        while((mac[index].regs[0] != -1) ||
-                (mac[index].regs[1] != -1) ||
-                (mac[index].scale != 0) ||
-                (mac[index].imm != 0)) 
-        {
-            index++;
-            assert(index < 3);
-        }
+   if((gotit.id == e_leave) && mac)
+   {
+      // assuming 32-bit (64-bit for AMD64) stack segment
+      // AMD64: push defaults to 64-bit operand size
+      if (mode_64 && operSzAttr == 2)
+         operSzAttr = 4;
+      mac[0].set(mESP, 0, addrSzAttr);
+      mac[0].size = type2size(op_v, operSzAttr);
+      mac[0].read = true;
+   }
 
-        mac[index].set(mESP, -2 * addrSzAttr, addrSzAttr);
-        mac[index].size = type2size(op_v, addrSzAttr);
-        mac[index].write = true;
-    }
+   if((gotit.id == e_ret_near || gotit.id == e_ret_far) && mac)
+   {
+      mac[0].set(mESP, 0, addrSzAttr);
+      mac[0].size = type2size(op_v, addrSzAttr);
+      mac[0].read = true;
+   }
 
-    instruct.size += nib;
-    return nib;
+   if((gotit.id == e_call) && mac)
+   {
+      int index = 0;
+      while((mac[index].regs[0] != -1) ||
+            (mac[index].regs[1] != -1) ||
+            (mac[index].scale != 0) ||
+            (mac[index].imm != 0)) 
+      {
+         index++;
+         assert(index < 3);
+      }
+
+      mac[index].set(mESP, -2 * addrSzAttr, addrSzAttr);
+      mac[index].size = type2size(op_v, addrSzAttr);
+      mac[index].write = true;
+   }
+
+   instruct.size += nib;
+   return nib;
 }
 
 
 static const unsigned char sse_prefix[256] = {
-  /*       0 1 2 3 4 5 6 7 8 9 A B C D E F  */
-  /* 0x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* 1x */ 1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,
-  /* 2x */ 0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,
-  /* 3x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* 4x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* 5x */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  /* 6x */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  /* 7x */ 1,1,1,1,1,1,1,0,1,1,0,0,1,1,1,1, // Grp12-14 are SSE groups
-  /* 8x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* 9x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* Ax */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* Bx */ 0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,
-  /* Cx */ 0,0,1,0,1,1,1,0,0,0,0,0,0,0,0,0,
-  /* Dx */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  /* Ex */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  /* Fx */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+   /*       0 1 2 3 4 5 6 7 8 9 A B C D E F  */
+   /* 0x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* 1x */ 1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,
+   /* 2x */ 0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,
+   /* 3x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* 4x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* 5x */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+   /* 6x */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+   /* 7x */ 1,1,1,1,1,1,1,0,1,1,0,0,1,1,1,1, // Grp12-14 are SSE groups
+   /* 8x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* 9x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* Ax */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* Bx */ 0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,
+   /* Cx */ 0,0,1,0,1,1,1,0,0,0,0,0,0,0,0,0,
+   /* Dx */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+   /* Ex */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+   /* Fx */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 };
 
 static const unsigned char sse_prefix_bis[256] = {
-  /*       0 1 2 3 4 5 6 7 8 9 A B C D E F  */
-  /* 0x */ 1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,
-  /* 1x */ 1,0,0,0,1,1,0,1,0,0,0,0,1,1,1,0,
-  /* 2x */ 1,1,1,1,1,1,0,0,1,1,1,1,0,0,0,0,
-  /* 3x */ 1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,
-  /* 4x */ 1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* 5x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* 6x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* 7x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* 8x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* 9x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* Ax */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* Bx */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* Cx */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* Dx */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* Ex */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* Fx */ 1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /*       0 1 2 3 4 5 6 7 8 9 A B C D E F  */
+   /* 0x */ 1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,
+   /* 1x */ 1,0,0,0,1,1,0,1,0,0,0,0,1,1,1,0,
+   /* 2x */ 1,1,1,1,1,1,0,0,1,1,1,1,0,0,0,0,
+   /* 3x */ 1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,
+   /* 4x */ 1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* 5x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* 6x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* 7x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* 8x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* 9x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* Ax */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* Bx */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* Cx */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* Dx */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* Ex */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* Fx */ 1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 };
 
 static const unsigned char sse_prefix_ter[256] = {
-  /*       0 1 2 3 4 5 6 7 8 9 A B C D E F  */
-  /* 0x */ 0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,
-  /* 1x */ 0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,
-  /* 2x */ 1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* 3x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* 4x */ 1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* 5x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* 6x */ 1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* 7x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* 8x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* 9x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* Ax */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* Bx */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* Cx */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* Dx */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* Ex */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* Fx */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /*       0 1 2 3 4 5 6 7 8 9 A B C D E F  */
+   /* 0x */ 0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,
+   /* 1x */ 0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,
+   /* 2x */ 1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* 3x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* 4x */ 1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* 5x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* 6x */ 1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* 7x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* 8x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* 9x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* Ax */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* Bx */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* Cx */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* Dx */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* Ex */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+   /* Fx */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 };
 
 #define REX_ISREX(x) (((x) >> 4) == 4)
 
 bool is_sse_opcode(unsigned char byte1, unsigned char byte2, unsigned char byte3) {
-	if((byte1==0x0F && sse_prefix[byte2])
-			|| (byte1==0x0F && byte2==0x38 && sse_prefix_bis[byte3])
-			|| (byte1==0x0F && byte2==0x3A && sse_prefix_ter[byte3]))
-		return true;
-	
-	return false;
+   if((byte1==0x0F && sse_prefix[byte2])
+         || (byte1==0x0F && byte2==0x38 && sse_prefix_bis[byte3])
+         || (byte1==0x0F && byte2==0x3A && sse_prefix_ter[byte3]))
+      return true;
+
+   return false;
 }
 
 
@@ -10199,307 +10283,307 @@ bool is_sse_opcode(unsigned char byte1, unsigned char byte2, unsigned char byte3
  */
 bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& instruct)
 {
-    ia32_prefixes& pref = instruct.prf;
-    ia32_locations* loc = instruct.loc; 
+   ia32_prefixes& pref = instruct.prf;
+   ia32_locations* loc = instruct.loc; 
 
-    /* Initilize the prefix */
-    memset(pref.prfx, 0, 5);
-    pref.count = 0;
-    pref.opcode_prefix = 0;
-    bool in_prefix = true;
+   /* Initilize the prefix */
+   memset(pref.prfx, 0, 5);
+   pref.count = 0;
+   pref.opcode_prefix = 0;
+   bool in_prefix = true;
 
-    /* Clear all of the VEX information */
-    pref.vex_present = false;
-    pref.vex_type = VEX_TYPE_NONE;
-    memset(pref.vex_prefix, 0, 5);
-    pref.vex_sse_mult = -1;
-    pref.vex_vvvv_reg = -1;
-    pref.vex_ll = -1;
-    pref.vex_pp = -1;
-    pref.vex_m_mmmm = -1;
-    pref.vex_w = -1;
-    pref.vex_V = 0;
-    pref.vex_r = 0;
-    pref.vex_R = 0;
-    pref.vex_x = 0;
-    pref.vex_b = 0;
-    pref.vex_aaa = 0;
+   /* Clear all of the VEX information */
+   pref.vex_present = false;
+   pref.vex_type = VEX_TYPE_NONE;
+   memset(pref.vex_prefix, 0, 5);
+   pref.vex_sse_mult = -1;
+   pref.vex_vvvv_reg = -1;
+   pref.vex_ll = -1;
+   pref.vex_pp = -1;
+   pref.vex_m_mmmm = -1;
+   pref.vex_w = -1;
+   pref.vex_V = 0;
+   pref.vex_r = 0;
+   pref.vex_R = 0;
+   pref.vex_x = 0;
+   pref.vex_b = 0;
+   pref.vex_aaa = 0;
 
-    bool err = false;
+   bool err = false;
 
-    while(in_prefix && !err) 
-    {
-        /**
-         * Switch based on the current byte. If the current byte
-         * is a valid prefix, we will consume the byte and keep
-         * trying to decode more prefixes. All of the prefix
-         * constants for this switch are defined in arch-x86.h.
-         *
-         * NOTE: Some prefixes need to be in a certain order and
-         * some prefixes cannot go together.
-         */
+   while(in_prefix && !err) 
+   {
+      /**
+       * Switch based on the current byte. If the current byte
+       * is a valid prefix, we will consume the byte and keep
+       * trying to decode more prefixes. All of the prefix
+       * constants for this switch are defined in arch-x86.h.
+       *
+       * NOTE: Some prefixes need to be in a certain order and
+       * some prefixes cannot go together.
+       */
 
-        switch(addr[0]) 
-        {
-            case PREFIX_REPNZ:
-            case PREFIX_REP:
-                if(mode_64 && REX_ISREX(addr[1]) 
-                        && is_sse_opcode(addr[2],addr[3],addr[4])) 
-                {
-                    ++pref.count;
-                    pref.opcode_prefix = addr[0];
-                } else if(is_sse_opcode(addr[1],addr[2],addr[3])) 
-                {
-                    ++pref.count;
-                    pref.opcode_prefix = addr[0];
-                } else {
-                    ++pref.count;
-                    pref.prfx[0] = addr[0];
-                }
-                break;
+      switch(addr[0]) 
+      {
+         case PREFIX_REPNZ:
+         case PREFIX_REP:
+            if(mode_64 && REX_ISREX(addr[1]) 
+                  && is_sse_opcode(addr[2],addr[3],addr[4])) 
+            {
+               ++pref.count;
+               pref.opcode_prefix = addr[0];
+            } else if(is_sse_opcode(addr[1],addr[2],addr[3])) 
+            {
+               ++pref.count;
+               pref.opcode_prefix = addr[0];
+            } else {
+               ++pref.count;
+               pref.prfx[0] = addr[0];
+            }
+            break;
 
-            case PREFIX_LOCK:
-                ++pref.count;
-                pref.prfx[0] = addr[0];
-                break;
+         case PREFIX_LOCK:
+            ++pref.count;
+            pref.prfx[0] = addr[0];
+            break;
 
-            case PREFIX_SEGCS:
-            case PREFIX_SEGSS:
-            case PREFIX_SEGDS:
-            case PREFIX_SEGES:
-            case PREFIX_SEGFS:
-            case PREFIX_SEGGS:
-                ++pref.count;
-                pref.prfx[1] = addr[0];
-                break;
+         case PREFIX_SEGCS:
+         case PREFIX_SEGSS:
+         case PREFIX_SEGDS:
+         case PREFIX_SEGES:
+         case PREFIX_SEGFS:
+         case PREFIX_SEGGS:
+            ++pref.count;
+            pref.prfx[1] = addr[0];
+            break;
 
-            case PREFIX_SZOPER:
-                pref.opcode_prefix = addr[0];
-                ++pref.count;
-                pref.prfx[2] = addr[0];
-                break;
+         case PREFIX_SZOPER:
+            pref.opcode_prefix = addr[0];
+            ++pref.count;
+            pref.prfx[2] = addr[0];
+            break;
 
-            case PREFIX_SZADDR:
-                ++pref.count;
-                pref.prfx[3] = addr[0];
-                break;
+         case PREFIX_SZADDR:
+            ++pref.count;
+            pref.prfx[3] = addr[0];
+            break;
 
-            case PREFIX_XOP:
-                /* FIXME: XOP instruction are not supported! */
-                err = true;
-                break;
+         case PREFIX_XOP:
+            /* FIXME: XOP instruction are not supported! */
+            err = true;
+            break;
 
-            case PREFIX_EVEX:
-                pref.vex_present = true;
-                pref.vex_type = VEX_TYPE_EVEX;
-                memmove(&pref.vex_prefix, addr + 1, 3);
-                pref.vex_sse_mult = 2;
-                pref.vex_vvvv_reg = EVEXGET_VVVV(pref.vex_prefix[1], pref.vex_prefix[2]);
-                pref.vex_ll = EVEXGET_LL(pref.vex_prefix[2]);
-                pref.vex_pp = EVEXGET_PP(pref.vex_prefix[1]);
-                pref.vex_m_mmmm = EVEXGET_MM(pref.vex_prefix[0]);
-                pref.vex_w = EVEXGET_W(pref.vex_prefix[1]);
-                pref.vex_V = EVEXGET_V(pref.vex_prefix[2]);
-                pref.vex_r = EVEXGET_r(pref.vex_prefix[0]);
-                pref.vex_R = EVEXGET_R(pref.vex_prefix[0]);
-                pref.vex_x = EVEXGET_x(pref.vex_prefix[0]);
-                pref.vex_b = EVEXGET_b(pref.vex_prefix[0]);
-                pref.vex_aaa = EVEXGET_AAA(pref.vex_prefix[2]);
-                pref.count += 4;
+         case PREFIX_EVEX:
+            pref.vex_present = true;
+            pref.vex_type = VEX_TYPE_EVEX;
+            memmove(&pref.vex_prefix, addr + 1, 3);
+            pref.vex_sse_mult = 2;
+            pref.vex_vvvv_reg = EVEXGET_VVVV(pref.vex_prefix[1], pref.vex_prefix[2]);
+            pref.vex_ll = EVEXGET_LL(pref.vex_prefix[2]);
+            pref.vex_pp = EVEXGET_PP(pref.vex_prefix[1]);
+            pref.vex_m_mmmm = EVEXGET_MM(pref.vex_prefix[0]);
+            pref.vex_w = EVEXGET_W(pref.vex_prefix[1]);
+            pref.vex_V = EVEXGET_V(pref.vex_prefix[2]);
+            pref.vex_r = EVEXGET_r(pref.vex_prefix[0]);
+            pref.vex_R = EVEXGET_R(pref.vex_prefix[0]);
+            pref.vex_x = EVEXGET_x(pref.vex_prefix[0]);
+            pref.vex_b = EVEXGET_b(pref.vex_prefix[0]);
+            pref.vex_aaa = EVEXGET_AAA(pref.vex_prefix[2]);
+            pref.count += 4;
 
-                /* VEX_LL must be 0, 1, or 2 */
-                if(pref.vex_ll >= 3 || pref.vex_ll < 0)
-                {
-                    err = true;
-                    break;
-                }
+            /* VEX_LL must be 0, 1, or 2 */
+            if(pref.vex_ll >= 3 || pref.vex_ll < 0)
+            {
+               err = true;
+               break;
+            }
 
-                switch(pref.vex_pp)
-                {
-                    case 0:
-                        pref.opcode_prefix = 0x00;
-                        break;
-                    case 1:
-                        pref.opcode_prefix = 0x66;
-                        break;
-                    case 2:
-                        pref.opcode_prefix = 0xF3;
-                        break;
-                    case 3:
-                        pref.opcode_prefix = 0xF2;
-                        break;
-                    default:
-                        assert(!"Can't happen: value & 0x03 not in 0...3");
-                }
+            switch(pref.vex_pp)
+            {
+               case 0:
+                  pref.opcode_prefix = 0x00;
+                  break;
+               case 1:
+                  pref.opcode_prefix = 0x66;
+                  break;
+               case 2:
+                  pref.opcode_prefix = 0xF3;
+                  break;
+               case 3:
+                  pref.opcode_prefix = 0xF2;
+                  break;
+               default:
+                  assert(!"Can't happen: value & 0x03 not in 0...3");
+            }
 
-                /* There are a couple of constant bits for this prefix */
-                if(((pref.vex_prefix[0] & (unsigned int)(0x03 << 2)) != 0)
-                        || ((pref.vex_prefix[1] & (unsigned int)(1 << 2)) == 0))
-                {
+            /* There are a couple of constant bits for this prefix */
+            if(((pref.vex_prefix[0] & (unsigned int)(0x03 << 2)) != 0)
+                  || ((pref.vex_prefix[1] & (unsigned int)(1 << 2)) == 0))
+            {
 #ifdef VEX_DEBUG
-                    printf("EVEX PREFIX INVALID!\n");
+               printf("EVEX PREFIX INVALID!\n");
 #endif
-                    err = true;
-                    break;
-                }
+               err = true;
+               break;
+            }
 
-                /* VEX prefix excludes all others */
-                in_prefix = false;
-                break;
+            /* VEX prefix excludes all others */
+            in_prefix = false;
+            break;
 
-            case PREFIX_VEX3:
-                pref.vex_present = true;
-                pref.vex_type = VEX_TYPE_VEX3;
-                memmove(&pref.vex_prefix, addr + 1, 2);
-                pref.vex_sse_mult = 1;
-                pref.vex_vvvv_reg = VEXGET_VVVV(pref.vex_prefix[1]);
-                pref.vex_ll = VEXGET_L(pref.vex_prefix[1]);
-                pref.vex_pp = VEXGET_PP(pref.vex_prefix[1]);
-                pref.vex_m_mmmm = VEX3GET_M(pref.vex_prefix[0]);
-                pref.vex_w = VEX3GET_W(pref.vex_prefix[1]);
-                pref.vex_V = 0;
-                pref.vex_r = VEXGET_R(pref.vex_prefix[0]);
-                pref.vex_x = VEX3GET_X(pref.vex_prefix[0]);
-                pref.vex_b = VEX3GET_B(pref.vex_prefix[0]);
-                pref.count += 3;
+         case PREFIX_VEX3:
+            pref.vex_present = true;
+            pref.vex_type = VEX_TYPE_VEX3;
+            memmove(&pref.vex_prefix, addr + 1, 2);
+            pref.vex_sse_mult = 1;
+            pref.vex_vvvv_reg = VEXGET_VVVV(pref.vex_prefix[1]);
+            pref.vex_ll = VEXGET_L(pref.vex_prefix[1]);
+            pref.vex_pp = VEXGET_PP(pref.vex_prefix[1]);
+            pref.vex_m_mmmm = VEX3GET_M(pref.vex_prefix[0]);
+            pref.vex_w = VEX3GET_W(pref.vex_prefix[1]);
+            pref.vex_V = 0;
+            pref.vex_r = VEXGET_R(pref.vex_prefix[0]);
+            pref.vex_x = VEX3GET_X(pref.vex_prefix[0]);
+            pref.vex_b = VEX3GET_B(pref.vex_prefix[0]);
+            pref.count += 3;
 
-                switch(pref.vex_pp)
-                {
-                    case 0:
-                        pref.opcode_prefix = 0x00;
-                        break;
-                    case 1:
-                        pref.opcode_prefix = 0x66;
-                        break;
-                    case 2:
-                        pref.opcode_prefix = 0xF3;
-                        break;
-                    case 3:
-                        pref.opcode_prefix = 0xF2;
-                        break;
-                    default:
-                        assert(!"Can't happen: value & 0x03 not in 0...3");
-                }
+            switch(pref.vex_pp)
+            {
+               case 0:
+                  pref.opcode_prefix = 0x00;
+                  break;
+               case 1:
+                  pref.opcode_prefix = 0x66;
+                  break;
+               case 2:
+                  pref.opcode_prefix = 0xF3;
+                  break;
+               case 3:
+                  pref.opcode_prefix = 0xF2;
+                  break;
+               default:
+                  assert(!"Can't happen: value & 0x03 not in 0...3");
+            }
 
-                /* VEX prefix excludes all others */
-                in_prefix = false;
-                break;
-            case PREFIX_VEX2:
-                pref.vex_present = true;
-                pref.vex_type = VEX_TYPE_VEX2;
-                pref.vex_prefix[0] = addr[1]; /* Only 1 byte for VEX2 */
-                pref.vex_sse_mult = 0;
-                pref.vex_vvvv_reg = VEXGET_VVVV(pref.vex_prefix[0]);
+            /* VEX prefix excludes all others */
+            in_prefix = false;
+            break;
+         case PREFIX_VEX2:
+            pref.vex_present = true;
+            pref.vex_type = VEX_TYPE_VEX2;
+            pref.vex_prefix[0] = addr[1]; /* Only 1 byte for VEX2 */
+            pref.vex_sse_mult = 0;
+            pref.vex_vvvv_reg = VEXGET_VVVV(pref.vex_prefix[0]);
 
-                pref.vex_ll = VEXGET_L(pref.vex_prefix[0]);
-                pref.vex_pp = VEXGET_PP(pref.vex_prefix[0]);
-                pref.vex_m_mmmm = -1; /* No W bit for VEX2 */
-                pref.vex_w = -1; /* No W bit for VEX2 */
-                pref.vex_r = VEXGET_R(pref.vex_prefix[0]);
-                pref.count += 2;
+            pref.vex_ll = VEXGET_L(pref.vex_prefix[0]);
+            pref.vex_pp = VEXGET_PP(pref.vex_prefix[0]);
+            pref.vex_m_mmmm = -1; /* No W bit for VEX2 */
+            pref.vex_w = -1; /* No W bit for VEX2 */
+            pref.vex_r = VEXGET_R(pref.vex_prefix[0]);
+            pref.count += 2;
 
-                switch(pref.vex_pp)
-                {
-                    case 0:
-                        pref.opcode_prefix = 0x00;
-                        break;
-                    case 1:
-                        pref.opcode_prefix = 0x66;
-                        break;
-                    case 2:
-                        pref.opcode_prefix = 0xF3;
-                        break;
-                    case 3:
-                        pref.opcode_prefix = 0xF2;
-                        break;
-                    default:
-                        assert(!"Can't happen: value & 0x03 not in 0...3");
-                }
+            switch(pref.vex_pp)
+            {
+               case 0:
+                  pref.opcode_prefix = 0x00;
+                  break;
+               case 1:
+                  pref.opcode_prefix = 0x66;
+                  break;
+               case 2:
+                  pref.opcode_prefix = 0xF3;
+                  break;
+               case 3:
+                  pref.opcode_prefix = 0xF2;
+                  break;
+               default:
+                  assert(!"Can't happen: value & 0x03 not in 0...3");
+            }
 
-                /* VEX prefixes exclude all others */
-                in_prefix = false; 
-                break;
-            default:
-                // If we hit a REX prefix, keep going and process other potential prefixes.
-                // The only one *used* is one in the last position, but others are ignored,
-                // not illegal.
+            /* VEX prefixes exclude all others */
+            in_prefix = false; 
+            break;
+         default:
+            // If we hit a REX prefix, keep going and process other potential prefixes.
+            // The only one *used* is one in the last position, but others are ignored,
+            // not illegal.
 
-                if(mode_64)
-                {
-                    if(ia32_decode_rex(addr, pref, loc))
-                    {
-                        in_prefix = false;
-                        break;
-                    }
+            if(mode_64)
+            {
+               if(ia32_decode_rex(addr, pref, loc))
+               {
+                  in_prefix = false;
+                  break;
+               }
 
-                    if(!REX_ISREX(addr[0])) 
-                    {
-                        /* We probably hit the opcode now */
-                        in_prefix = false;
-                    } else  {
-                        /* We hit a REX prefix, but we are skipping it. */
-                        ++pref.count;
-                    }
-                } else {
-                    in_prefix = false;
-                }
-                break;
-        }  
+               if(!REX_ISREX(addr[0])) 
+               {
+                  /* We probably hit the opcode now */
+                  in_prefix = false;
+               } else  {
+                  /* We hit a REX prefix, but we are skipping it. */
+                  ++pref.count;
+               }
+            } else {
+               in_prefix = false;
+            }
+            break;
+      }  
 
-        /* Move to the next byte */
-        ++addr;
-    }
+      /* Move to the next byte */
+      ++addr;
+   }
 
-    /* If there was no error, set prefix count and correct instruction length */
-    if(!err)
-    {
-        if(loc)
-            loc->num_prefixes = pref.count;
-        instruct.size = pref.count;
-    }
+   /* If there was no error, set prefix count and correct instruction length */
+   if(!err)
+   {
+      if(loc)
+         loc->num_prefixes = pref.count;
+      instruct.size = pref.count;
+   }
 
-    /* Print debug information that is super helpful for VEX debugging. */
+   /* Print debug information that is super helpful for VEX debugging. */
 
 #ifdef VEX_DEBUG /* Print out prefix information (very verbose) */
-    fprintf(stderr, "Prefix buffer: %x %x %x %x %x\n", pref.prfx[0], pref.prfx[1], 
-            pref.prfx[2], pref.prfx[3], pref.prfx[4]);
-    fprintf(stderr, "opcode prefix: 0x%x\n", pref.opcode_prefix);
-    fprintf(stderr, "REX  W: %s  R: %s  X: %s  B: %s\n",
-            pref.rexW() ? "yes" : "no", pref.rexR() ? "yes" : "no", 
-            pref.rexX() ? "yes" : "no", pref.rexB() ? "yes" : "no");
+   fprintf(stderr, "Prefix buffer: %x %x %x %x %x\n", pref.prfx[0], pref.prfx[1], 
+         pref.prfx[2], pref.prfx[3], pref.prfx[4]);
+   fprintf(stderr, "opcode prefix: 0x%x\n", pref.opcode_prefix);
+   fprintf(stderr, "REX  W: %s  R: %s  X: %s  B: %s\n",
+         pref.rexW() ? "yes" : "no", pref.rexR() ? "yes" : "no", 
+         pref.rexX() ? "yes" : "no", pref.rexB() ? "yes" : "no");
 
-    fprintf(stderr, "IS VEX PRESENT?  %s\n", pref.vex_present ? "YES" : "NO");
-    if(pref.vex_present)
-    {
-        fprintf(stderr, "VEX IS PRESENT: %d\n", 
-                pref.vex_type);
-        fprintf(stderr, "VEX BYTES:      %x %x %x %x %x\n",
-                pref.vex_prefix[0], pref.vex_prefix[1], pref.vex_prefix[2],
-                pref.vex_prefix[3], pref.vex_prefix[4]);
-        fprintf(stderr, "VEX SSE MULT:   %d  0x%x\n", 
-                pref.vex_sse_mult, pref.vex_sse_mult);
-        fprintf(stderr, "VEX_VVVV:       %d  0x%x\n", 
-                pref.vex_vvvv_reg, pref.vex_vvvv_reg);
-        fprintf(stderr, "VEX_LL:         %d  0x%x\n", 
-                pref.vex_ll, pref.vex_ll);
-        fprintf(stderr, "VEX_PP:         %d  0x%x\n", 
-                pref.vex_pp, pref.vex_pp);
-        fprintf(stderr, "VEX_M-MMMM:     %d  0x%x\n", 
-                pref.vex_m_mmmm, pref.vex_m_mmmm);
-        fprintf(stderr, "VEX_W:          %d  0x%x\n", 
-                pref.vex_w, pref.vex_w);
-        fprintf(stderr, "VEX_r:          %d  0x%x\n", 
-                pref.vex_r, pref.vex_r);
-        fprintf(stderr, "VEX_R:          %d  0x%x\n", 
-                pref.vex_R, pref.vex_R);
-        fprintf(stderr, "VEX_x:          %d  0x%x\n", 
-                pref.vex_x, pref.vex_x);
-        fprintf(stderr, "VEX_b:          %d  0x%x\n", 
-                pref.vex_b, pref.vex_b);
-	}
+   fprintf(stderr, "IS VEX PRESENT?  %s\n", pref.vex_present ? "YES" : "NO");
+   if(pref.vex_present)
+   {
+      fprintf(stderr, "VEX IS PRESENT: %d\n", 
+            pref.vex_type);
+      fprintf(stderr, "VEX BYTES:      %x %x %x %x %x\n",
+            pref.vex_prefix[0], pref.vex_prefix[1], pref.vex_prefix[2],
+            pref.vex_prefix[3], pref.vex_prefix[4]);
+      fprintf(stderr, "VEX SSE MULT:   %d  0x%x\n", 
+            pref.vex_sse_mult, pref.vex_sse_mult);
+      fprintf(stderr, "VEX_VVVV:       %d  0x%x\n", 
+            pref.vex_vvvv_reg, pref.vex_vvvv_reg);
+      fprintf(stderr, "VEX_LL:         %d  0x%x\n", 
+            pref.vex_ll, pref.vex_ll);
+      fprintf(stderr, "VEX_PP:         %d  0x%x\n", 
+            pref.vex_pp, pref.vex_pp);
+      fprintf(stderr, "VEX_M-MMMM:     %d  0x%x\n", 
+            pref.vex_m_mmmm, pref.vex_m_mmmm);
+      fprintf(stderr, "VEX_W:          %d  0x%x\n", 
+            pref.vex_w, pref.vex_w);
+      fprintf(stderr, "VEX_r:          %d  0x%x\n", 
+            pref.vex_r, pref.vex_r);
+      fprintf(stderr, "VEX_R:          %d  0x%x\n", 
+            pref.vex_R, pref.vex_R);
+      fprintf(stderr, "VEX_x:          %d  0x%x\n", 
+            pref.vex_x, pref.vex_x);
+      fprintf(stderr, "VEX_b:          %d  0x%x\n", 
+            pref.vex_b, pref.vex_b);
+   }
 #endif
 
-    return !err;
+   return !err;
 }
 
 #define REX_W(x) ((x) & 0x8)
@@ -10514,465 +10598,465 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& instruct)
 #define REX_SET_B(x, v) ((x) |= ((v) ? 0x1 : 0))
 
 bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes& pref,
-                     ia32_locations *loc)
+      ia32_locations *loc)
 {
-	if (REX_ISREX(addr[0])) 
-	{
-        /**
-		 * it is an error to have legacy prefixes after a REX prefix
-      	 * in particular, ia32_decode will get confused if a prefix
-      	 * that could be used as an SSE opcode extension follows our
-      	 * REX
-         */
+   if (REX_ISREX(addr[0])) 
+   {
+      /**
+       * it is an error to have legacy prefixes after a REX prefix
+       * in particular, ia32_decode will get confused if a prefix
+       * that could be used as an SSE opcode extension follows our
+       * REX
+       */
 
-       	switch(addr[1])
-       	{
-       		case PREFIX_SZOPER:
-       		case PREFIX_REPNZ:
-       		case PREFIX_REP:
-       		case PREFIX_SEGCS:
-       		case PREFIX_SEGSS:
-       		case PREFIX_SEGDS:
-       		case PREFIX_SEGES:
-       		case PREFIX_SEGFS:
-       		case PREFIX_SEGGS:
-       		case PREFIX_LOCK:
-       		case PREFIX_SZADDR:
-	   			return false;
-       	}
+      switch(addr[1])
+      {
+         case PREFIX_SZOPER:
+         case PREFIX_REPNZ:
+         case PREFIX_REP:
+         case PREFIX_SEGCS:
+         case PREFIX_SEGSS:
+         case PREFIX_SEGDS:
+         case PREFIX_SEGES:
+         case PREFIX_SEGFS:
+         case PREFIX_SEGGS:
+         case PREFIX_LOCK:
+         case PREFIX_SZADDR:
+            return false;
+      }
 
-        /* We also must ignore all but the last REX prefix. */
-		if(REX_ISREX(addr[1])) 
-			return false;
-     
-        /* Set the locations for this REX prefix. */
-      	if (loc) 
-		{
-         	loc->rex_byte = addr[0];
-         	loc->rex_w = REX_W(addr[0]);
-         	loc->rex_r = REX_R(addr[0]);
-         	loc->rex_x = REX_X(addr[0]);
-         	loc->rex_b = REX_B(addr[0]);
-         	loc->rex_position = pref.count - 1;
-      	}
+      /* We also must ignore all but the last REX prefix. */
+      if(REX_ISREX(addr[1])) 
+         return false;
 
-        /**
-         * VEX Prefixes are valid after the REX prefix because VEX
-         * prefixes must be the last prefix before the opcode.
-         */
-        switch(addr[1])
-        {
-            case PREFIX_VEX2:
-            case PREFIX_VEX3:
-            case PREFIX_EVEX:
-                return false;
-            default: break;
-        }
+      /* Set the locations for this REX prefix. */
+      if (loc) 
+      {
+         loc->rex_byte = addr[0];
+         loc->rex_w = REX_W(addr[0]);
+         loc->rex_r = REX_R(addr[0]);
+         loc->rex_x = REX_X(addr[0]);
+         loc->rex_b = REX_B(addr[0]);
+         loc->rex_position = pref.count - 1;
+      }
 
-        /* We should be done parsing all prefixes if we get here. */
-      	++pref.count;
-      	pref.prfx[4] = addr[0];
-   	}
+      /**
+       * VEX Prefixes are valid after the REX prefix because VEX
+       * prefixes must be the last prefix before the opcode.
+       */
+      switch(addr[1])
+      {
+         case PREFIX_VEX2:
+         case PREFIX_VEX3:
+         case PREFIX_EVEX:
+            return false;
+         default: break;
+      }
 
-   	return true;
+      /* We should be done parsing all prefixes if we get here. */
+      ++pref.count;
+      pref.prfx[4] = addr[0];
+   }
+
+   return true;
 }
 
 unsigned int ia32_emulate_old_type(ia32_instruction& instruct)
 {
-  const ia32_prefixes& pref = instruct.prf;
-  unsigned int& insnType = instruct.legacy_type;
+   const ia32_prefixes& pref = instruct.prf;
+   unsigned int& insnType = instruct.legacy_type;
 
-  unsigned int operSzAttr = getOperSz(pref);
+   unsigned int operSzAttr = getOperSz(pref);
 
-  if (pref.getPrefix(0)) // no distinction between these
-    insnType |= PREFIX_INST;
-  if (pref.getPrefix(3) == PREFIX_SZADDR)
-    insnType |= PREFIX_ADDR;
-  if (pref.getPrefix(2) == PREFIX_SZOPER)
-    insnType |= PREFIX_OPR;
-  if (pref.getPrefix(1))
-    insnType |= PREFIX_SEG; // no distinction between segments
-  if (mode_64 && pref.getPrefix(4))
-    insnType |= PREFIX_REX;
-  if (pref.getOpcodePrefix())
+   if (pref.getPrefix(0)) // no distinction between these
+      insnType |= PREFIX_INST;
+   if (pref.getPrefix(3) == PREFIX_SZADDR)
+      insnType |= PREFIX_ADDR;
+   if (pref.getPrefix(2) == PREFIX_SZOPER)
+      insnType |= PREFIX_OPR;
+   if (pref.getPrefix(1))
+      insnType |= PREFIX_SEG; // no distinction between segments
+   if (mode_64 && pref.getPrefix(4))
+      insnType |= PREFIX_REX;
+   if (pref.getOpcodePrefix())
       insnType |= PREFIX_OPCODE;
 
-  if(pref.vex_present)
-  {
-    switch(pref.vex_type)
-    {
-        case VEX_TYPE_VEX2:
+   if(pref.vex_present)
+   {
+      switch(pref.vex_type)
+      {
+         case VEX_TYPE_VEX2:
             insnType |= PREFIX_AVX;
             break;
-        case VEX_TYPE_VEX3:
+         case VEX_TYPE_VEX3:
             insnType |= PREFIX_AVX2;
             break;
-        case VEX_TYPE_EVEX:
+         case VEX_TYPE_EVEX:
             insnType |= PREFIX_AVX512;
             break;
-        default:
+         default:
             assert(!"VEX prefixed instruction with no VEX prefix!");
-    }
-  }
+      }
+   }
 
-  // this still works for AMD64, since there is no "REL_Q"
-  // actually, it will break if there is both a REX.W and operand
-  // size prefix, since REX.W takes precedence (FIXME)
-  if (insnType & REL_X) {
-    if (operSzAttr == 1)
-      insnType |= REL_W;
-    else
-      insnType |= REL_D;
-  }
-  else if (insnType & PTR_WX) {
-    if (operSzAttr == 1)
-      insnType |= PTR_WW;
-    else
-      insnType |= PTR_WD;
-  }
+   // this still works for AMD64, since there is no "REL_Q"
+   // actually, it will break if there is both a REX.W and operand
+   // size prefix, since REX.W takes precedence (FIXME)
+   if (insnType & REL_X) {
+      if (operSzAttr == 1)
+         insnType |= REL_W;
+      else
+         insnType |= REL_D;
+   }
+   else if (insnType & PTR_WX) {
+      if (operSzAttr == 1)
+         insnType |= PTR_WW;
+      else
+         insnType |= PTR_WD;
+   }
 
-  // AMD64 rip-relative data
-  if (instruct.hasRipRelativeData())
+   // AMD64 rip-relative data
+   if (instruct.hasRipRelativeData())
       insnType |= REL_D_DATA;
 
-  return insnType;
+   return insnType;
 }
 
 /* decode instruction at address addr, return size of instruction */
 unsigned get_instruction(const unsigned char* addr, unsigned &insnType,
-			 const unsigned char** op_ptr)
+      const unsigned char** op_ptr)
 {
-  int r1;
+   int r1;
 
-  ia32_instruction i;
-  ia32_decode(0, addr, i);
+   ia32_instruction i;
+   ia32_decode(0, addr, i);
 
-  r1 = i.getSize();
-  insnType = ia32_emulate_old_type(i);
-  if (op_ptr)
+   r1 = i.getSize();
+   insnType = ia32_emulate_old_type(i);
+   if (op_ptr)
       *op_ptr = addr + i.getPrefixCount();
 
-  return r1;
+   return r1;
 }
 
 // find the target of a jump or call
 Address get_target(const unsigned char *instr, unsigned type, unsigned size,
-		   Address addr) {
+      Address addr) {
 #if defined(os_vxworks)
-    Address ret;
-    // FIXME requires vxworks in Dyninst
-    if (relocationTarget(addr+1, &ret))
-        return ret;
+   Address ret;
+   // FIXME requires vxworks in Dyninst
+   if (relocationTarget(addr+1, &ret))
+      return ret;
 #endif
-  int disp = displacement(instr, type);
-  return (Address)(addr + size + disp);
+   int disp = displacement(instr, type);
+   return (Address)(addr + size + disp);
 }
 
 // get the displacement of a jump or call
 int displacement(const unsigned char *instr, unsigned type) {
 
-  int disp = 0;
-  //skip prefix
-  instr = skip_headers( instr );
+   int disp = 0;
+   //skip prefix
+   instr = skip_headers( instr );
 
-  if (type & REL_D_DATA) {
-    // Some SIMD instructions have a mandatory 0xf2 prefix; the call to skip_headers
-    // doesn't skip it and I don't feel confident in changing that - bernat, 22MAY06
+   if (type & REL_D_DATA) {
+      // Some SIMD instructions have a mandatory 0xf2 prefix; the call to skip_headers
+      // doesn't skip it and I don't feel confident in changing that - bernat, 22MAY06
       // 0xf3 as well...
       // Some 3-byte opcodes start with 0x66... skip
       if (*instr == 0x66) instr++;
       if (*instr == 0xf2) instr++;
       else if (*instr == 0xf3) instr++;
-    // And the "0x0f is a 2-byte opcode" skip
-    if (*instr == 0x0F) {
-        instr++;
-        // And the "0x38 or 0x3A is a 3-byte opcode" skip
-        if(*instr == 0x38 || *instr == 0x3A)  instr++;
-    }
-    // Skip the instr opcode and the MOD/RM byte
-    disp = *(const int *)(instr+2);
-  } else if (type & IS_JUMP) {
-    if (type & REL_B) {
-      disp = *(const char *)(instr+1);
-    } else if (type & REL_W) {
-      disp = *(const short *)(instr+1); // skip opcode
-    } else if (type & REL_D) {
-      disp = *(const int *)(instr+1);
-    }
-  } else if (type & IS_JCC) {
-    if (type & REL_B) {
-      disp = *(const char *)(instr+1);
-    } else if (type & REL_W) {
-      disp = *(const short *)(instr+2); // skip two byte opcode
-    } else if (type & REL_D) {
-      disp = *(const int *)(instr+2);   // skip two byte opcode
-    }
-  } else if (type & IS_CALL) {
-    if (type & REL_W) {
-      disp = *(const short *)(instr+1); // skip opcode
-    } else if (type & REL_D) {
-      disp = *(const int *)(instr+1);
-    }
-  }  
+      // And the "0x0f is a 2-byte opcode" skip
+      if (*instr == 0x0F) {
+         instr++;
+         // And the "0x38 or 0x3A is a 3-byte opcode" skip
+         if(*instr == 0x38 || *instr == 0x3A)  instr++;
+      }
+      // Skip the instr opcode and the MOD/RM byte
+      disp = *(const int *)(instr+2);
+   } else if (type & IS_JUMP) {
+      if (type & REL_B) {
+         disp = *(const char *)(instr+1);
+      } else if (type & REL_W) {
+         disp = *(const short *)(instr+1); // skip opcode
+      } else if (type & REL_D) {
+         disp = *(const int *)(instr+1);
+      }
+   } else if (type & IS_JCC) {
+      if (type & REL_B) {
+         disp = *(const char *)(instr+1);
+      } else if (type & REL_W) {
+         disp = *(const short *)(instr+2); // skip two byte opcode
+      } else if (type & REL_D) {
+         disp = *(const int *)(instr+2);   // skip two byte opcode
+      }
+   } else if (type & IS_CALL) {
+      if (type & REL_W) {
+         disp = *(const short *)(instr+1); // skip opcode
+      } else if (type & REL_D) {
+         disp = *(const int *)(instr+1);
+      }
+   }  
 
-  return disp;
+   return disp;
 }
 
 int count_prefixes(unsigned insnType) {
-    int nPrefixes = 0;
-    if (insnType & PREFIX_OPR)
-        nPrefixes++;
-    if (insnType & PREFIX_SEG)
-        nPrefixes++;
-    if (insnType & PREFIX_OPCODE)
-        nPrefixes++;
-    if (insnType & PREFIX_REX)
-        nPrefixes++;
-    if (insnType & PREFIX_INST)
-        nPrefixes++;
-    if (insnType & PREFIX_ADDR)
-        nPrefixes++;
+   int nPrefixes = 0;
+   if (insnType & PREFIX_OPR)
+      nPrefixes++;
+   if (insnType & PREFIX_SEG)
+      nPrefixes++;
+   if (insnType & PREFIX_OPCODE)
+      nPrefixes++;
+   if (insnType & PREFIX_REX)
+      nPrefixes++;
+   if (insnType & PREFIX_INST)
+      nPrefixes++;
+   if (insnType & PREFIX_ADDR)
+      nPrefixes++;
 
-    if(insnType & PREFIX_AVX) /* VEX2 */
-        nPrefixes += 2;
-    else if(insnType & PREFIX_AVX2) /* VEX3 */
-        nPrefixes += 3;
-    else if(insnType & PREFIX_AVX512) /* EVEX */
-        nPrefixes += 4;
+   if(insnType & PREFIX_AVX) /* VEX2 */
+      nPrefixes += 2;
+   else if(insnType & PREFIX_AVX2) /* VEX3 */
+      nPrefixes += 3;
+   else if(insnType & PREFIX_AVX512) /* EVEX */
+      nPrefixes += 4;
 
-    /* Make sure dyninst didn't decode more than one VEX prefix. */
-    if(((insnType & PREFIX_AVX) && (insnType & PREFIX_AVX2))
-            || ((insnType & PREFIX_AVX2) && (insnType & PREFIX_AVX512))
-            || ((insnType & PREFIX_AVX512) && (insnType & PREFIX_AVX))
-            || ((insnType & PREFIX_AVX) && (insnType & PREFIX_AVX2) && (insnType & PREFIX_AVX512)))
-        assert(!"An instruction can only have one type of VEX prefix!\n");
+   /* Make sure dyninst didn't decode more than one VEX prefix. */
+   if(((insnType & PREFIX_AVX) && (insnType & PREFIX_AVX2))
+         || ((insnType & PREFIX_AVX2) && (insnType & PREFIX_AVX512))
+         || ((insnType & PREFIX_AVX512) && (insnType & PREFIX_AVX))
+         || ((insnType & PREFIX_AVX) && (insnType & PREFIX_AVX2) && (insnType & PREFIX_AVX512)))
+      assert(!"An instruction can only have one type of VEX prefix!\n");
 
-    return nPrefixes;
+   return nPrefixes;
 }
 
 unsigned copy_prefixes(const unsigned char *&origInsn, unsigned char *&newInsn, unsigned insnType) {
-  unsigned nPrefixes = count_prefixes(insnType);
+   unsigned nPrefixes = count_prefixes(insnType);
 
-  for (unsigned u = 0; u < nPrefixes; u++)
-     *newInsn++ = *origInsn++;
+   for (unsigned u = 0; u < nPrefixes; u++)
+      *newInsn++ = *origInsn++;
 
-  return nPrefixes;
+   return nPrefixes;
 }
 
 //Copy all prefixes but the Operand-Size and Address-Size prefixes (0x66 and 0x67)
 unsigned copy_prefixes_nosize(const unsigned char *&origInsn, unsigned char *&newInsn, 
-                              unsigned insnType) 
+      unsigned insnType) 
 {
-  unsigned nPrefixes = count_prefixes(insnType);
+   unsigned nPrefixes = count_prefixes(insnType);
 
-  for (unsigned u = 0; u < nPrefixes; u++) {
-     if (*origInsn == 0x66 || *origInsn == 0x67)
-     {
-        origInsn++;
-        continue;
-     }
-     *newInsn++ = *origInsn++;
-  }
-  return nPrefixes;
+   for (unsigned u = 0; u < nPrefixes; u++) {
+      if (*origInsn == 0x66 || *origInsn == 0x67)
+      {
+         origInsn++;
+         continue;
+      }
+      *newInsn++ = *origInsn++;
+   }
+   return nPrefixes;
 }
 
 bool convert_to_rel8(const unsigned char*&origInsn, unsigned char *&newInsn) {
-  if (*origInsn == 0x0f)
-    origInsn++;
+   if (*origInsn == 0x0f)
+      origInsn++;
 
-  // We think that an opcode in the 0x8? range can be mapped to an equivalent
-  // opcode in the 0x7? range...
+   // We think that an opcode in the 0x8? range can be mapped to an equivalent
+   // opcode in the 0x7? range...
 
-  if ((*origInsn >= 0x70) &&
-      (*origInsn < 0x80)) {
-    *newInsn++ = *origInsn++;
-    return true;
-  }
+   if ((*origInsn >= 0x70) &&
+         (*origInsn < 0x80)) {
+      *newInsn++ = *origInsn++;
+      return true;
+   }
 
-  if ((*origInsn >= 0x80) &&
-      (*origInsn < 0x90)) {
-    *newInsn++ = *origInsn++ - 0x10;
-    return true;
-  }
+   if ((*origInsn >= 0x80) &&
+         (*origInsn < 0x90)) {
+      *newInsn++ = *origInsn++ - 0x10;
+      return true;
+   }
 
-  if (*origInsn == 0xE3) {
-    *newInsn++ = *origInsn++;
-    return true;
-  }
+   if (*origInsn == 0xE3) {
+      *newInsn++ = *origInsn++;
+      return true;
+   }
 
-  // Oops...
-  fprintf(stderr, "Unhandled jump conversion case: opcode is 0x%x\n", *origInsn);
-  assert(0 && "Unhandled jump conversion case!");
-  return false;
+   // Oops...
+   fprintf(stderr, "Unhandled jump conversion case: opcode is 0x%x\n", *origInsn);
+   assert(0 && "Unhandled jump conversion case!");
+   return false;
 }
 
 bool convert_to_rel32(const unsigned char*&origInsn, unsigned char *&newInsn) {
-  if (*origInsn == 0x0f)
-    origInsn++;
-  *newInsn++ = 0x0f;
+   if (*origInsn == 0x0f)
+      origInsn++;
+   *newInsn++ = 0x0f;
 
-  // We think that an opcode in the 0x7? range can be mapped to an equivalent
-  // opcode in the 0x8? range...
+   // We think that an opcode in the 0x7? range can be mapped to an equivalent
+   // opcode in the 0x8? range...
 
-  if ((*origInsn >= 0x70) &&
-      (*origInsn < 0x80)) {
-    *newInsn++ = *origInsn++ + 0x10;
-    return true;
-  }
+   if ((*origInsn >= 0x70) &&
+         (*origInsn < 0x80)) {
+      *newInsn++ = *origInsn++ + 0x10;
+      return true;
+   }
 
-  if ((*origInsn >= 0x80) &&
-      (*origInsn < 0x90)) {
-    *newInsn++ = *origInsn++;
-    return true;
-  }
+   if ((*origInsn >= 0x80) &&
+         (*origInsn < 0x90)) {
+      *newInsn++ = *origInsn++;
+      return true;
+   }
 
-  // Oops...
-  fprintf(stderr, "Unhandled jump conversion case: opcode is 0x%x\n", *origInsn);
-  assert(0 && "Unhandled jump conversion case!");
-  return false;
+   // Oops...
+   fprintf(stderr, "Unhandled jump conversion case: opcode is 0x%x\n", *origInsn);
+   assert(0 && "Unhandled jump conversion case!");
+   return false;
 }
-  
+
 
 
 //Determine appropriate scale, index, and base given SIB byte.
 void decode_SIB(unsigned sib, unsigned& scale, Register& index_reg, Register& base_reg){
-  scale = sib >> 6;
-  
-  //scale = 2^scale
-  if(scale == 0)
-    scale = 1;
-  else if(scale == 1)
-    scale = 2;
-  else if(scale == 2)
-    scale = 4;
-  else if(scale == 3)
-    scale = 8;
+   scale = sib >> 6;
 
-  index_reg = (sib >> 3) & 0x07;
-  base_reg = sib & 0x07;
+   //scale = 2^scale
+   if(scale == 0)
+      scale = 1;
+   else if(scale == 1)
+      scale = 2;
+   else if(scale == 2)
+      scale = 4;
+   else if(scale == 3)
+      scale = 8;
+
+   index_reg = (sib >> 3) & 0x07;
+   base_reg = sib & 0x07;
 }
 
-const unsigned char*
+   const unsigned char*
 skip_headers(const unsigned char* addr, ia32_instruction* instruct)
 {
-    ia32_instruction tmp;
-    if(!instruct)
-        instruct = &tmp;
-    ia32_decode_prefixes(addr, *instruct);
-    return addr + instruct->getSize();
+   ia32_instruction tmp;
+   if(!instruct)
+      instruct = &tmp;
+   ia32_decode_prefixes(addr, *instruct);
+   return addr + instruct->getSize();
 }
 
 bool insn_hasSIB(unsigned ModRMbyte,unsigned& Mod,unsigned& Reg,unsigned& RM){
-    Mod = (ModRMbyte >> 6) & 0x03;
-    Reg = (ModRMbyte >> 3) & 0x07;
-    RM = ModRMbyte & 0x07;
-    return ((Mod != 3) && (RM == 4));
+   Mod = (ModRMbyte >> 6) & 0x03;
+   Reg = (ModRMbyte >> 3) & 0x07;
+   RM = ModRMbyte & 0x07;
+   return ((Mod != 3) && (RM == 4));
 }
 
 bool insn_hasDisp8(unsigned ModRMbyte){
-    unsigned Mod = (ModRMbyte >> 6) & 0x03;
-    return (Mod == 1);
+   unsigned Mod = (ModRMbyte >> 6) & 0x03;
+   return (Mod == 1);
 }
 
 bool insn_hasDisp32(unsigned ModRMbyte){
-    unsigned Mod = (ModRMbyte >> 6) & 0x03;
-    /* unsigned Reg = (ModRMbyte >> 3) & 0x07; */
-    unsigned RM = ModRMbyte & 0x07;
-    return (Mod == 0 && RM == 5) || (Mod == 2);
+   unsigned Mod = (ModRMbyte >> 6) & 0x03;
+   /* unsigned Reg = (ModRMbyte >> 3) & 0x07; */
+   unsigned RM = ModRMbyte & 0x07;
+   return (Mod == 0 && RM == 5) || (Mod == 2);
 }
 
 const char* ia32_entry::name(ia32_locations* loc)
 {
-  dyn_hash_map<entryID, string>::const_iterator found = entryNames_IAPI.find(id);
-  if(found != entryNames_IAPI.end())
-  {
-    return found->second.c_str();
-  }
-  if(loc)
-  {
-    if(otable == t_grp && (tabidx == Grp2 || tabidx == Grp11))
-    {
-      int reg = loc->modrm_reg;
-      found = entryNames_IAPI.find(groupMap[tabidx][reg].id);
-      if(found != entryNames_IAPI.end())
+   dyn_hash_map<entryID, string>::const_iterator found = entryNames_IAPI.find(id);
+   if(found != entryNames_IAPI.end())
+   {
+      return found->second.c_str();
+   }
+   if(loc)
+   {
+      if(otable == t_grp && (tabidx == Grp2 || tabidx == Grp11))
       {
-	return found->second.c_str();
+         int reg = loc->modrm_reg;
+         found = entryNames_IAPI.find(groupMap[tabidx][reg].id);
+         if(found != entryNames_IAPI.end())
+         {
+            return found->second.c_str();
+         }
       }
-    }
-  }
-  return NULL;
+   }
+   return NULL;
 }
 
 entryID ia32_entry::getID(ia32_locations* l) const
 {
-  if((id != e_No_Entry) || (tabidx == t_done) || (l == NULL))
-  {
-    return id;
-  }
-  int reg = l->modrm_reg;
-  switch(otable)
-  {
-  case t_grp:
-    switch(tabidx)
-    {
-    case Grp2:
-    case Grp11:
-      return groupMap[tabidx][reg].id;
-      break;
-    default:
-      break;
-    }
-  case t_coprocEsc:
-      return e_fp_generic;
+   if((id != e_No_Entry) || (tabidx == t_done) || (l == NULL))
+   {
+      return id;
+   }
+   int reg = l->modrm_reg;
+   switch(otable)
+   {
+      case t_grp:
+         switch(tabidx)
+         {
+            case Grp2:
+            case Grp11:
+               return groupMap[tabidx][reg].id;
+               break;
+            default:
+               break;
+         }
+      case t_coprocEsc:
+         return e_fp_generic;
       case t_3dnow:
-          return e_3dnow_generic;
+         return e_3dnow_generic;
       default:
-    break;
-  }
-  return id;
+         break;
+   }
+   return id;
 }
 
 Address get_immediate_operand(instruction *instr)
 {
-    ia32_memacc mac[3];
-    ia32_condition cond;
-    ia32_locations loc;
-    ia32_instruction detail(mac,&cond,&loc);
+   ia32_memacc mac[3];
+   ia32_condition cond;
+   ia32_locations loc;
+   ia32_instruction detail(mac,&cond,&loc);
 
-    ia32_decode(IA32_FULL_DECODER,(const unsigned char *)(instr->ptr()),detail);
+   ia32_decode(IA32_FULL_DECODER,(const unsigned char *)(instr->ptr()),detail);
 
-    if (loc.imm_cnt < 1)
+   if (loc.imm_cnt < 1)
       return 0;
 
-    // now find the immediate value in the locations
-    Address immediate = 0;
+   // now find the immediate value in the locations
+   Address immediate = 0;
 
-    switch(loc.imm_size[0]) {
-        case 8:
-            immediate = *(const unsigned long*)(instr->ptr()+loc.imm_position[0]);
-            break;
-        case 4:
-            immediate = *(const unsigned int*)(instr->ptr()+loc.imm_position[0]);
-            break;
-        case 2:
-            immediate = *(const unsigned short*)(instr->ptr()+loc.imm_position[0]);
-            break;
-        case 1:
-            immediate = *(const unsigned char*)(instr->ptr()+loc.imm_position[0]);
-            break;
-        default:
-//            fprintf(stderr,"%s[%u]:  invalid immediate size %d in insn\n",
-//                FILE__,__LINE__,loc.imm_size[0]);
-            break;
-    }
+   switch(loc.imm_size[0]) {
+      case 8:
+         immediate = *(const unsigned long*)(instr->ptr()+loc.imm_position[0]);
+         break;
+      case 4:
+         immediate = *(const unsigned int*)(instr->ptr()+loc.imm_position[0]);
+         break;
+      case 2:
+         immediate = *(const unsigned short*)(instr->ptr()+loc.imm_position[0]);
+         break;
+      case 1:
+         immediate = *(const unsigned char*)(instr->ptr()+loc.imm_position[0]);
+         break;
+      default:
+         //            fprintf(stderr,"%s[%u]:  invalid immediate size %d in insn\n",
+         //                FILE__,__LINE__,loc.imm_size[0]);
+         break;
+   }
 
-    return immediate;
+   return immediate;
 }
 
 // get the displacement of a relative jump or call
 
 int get_disp(instruction *insn) {
-  return displacement(insn->ptr(), insn->type());
+   return displacement(insn->ptr(), insn->type());
 }
 
 bool isStackFramePrecheck_gcc( const unsigned char *buffer )
@@ -10980,22 +11064,22 @@ bool isStackFramePrecheck_gcc( const unsigned char *buffer )
    //Currently enabled entry bytes for gaps:
    //  0x55 - push %ebp
    static char gap_initial_bytes[] =
-      { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+   { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
    return (gap_initial_bytes[*buffer] != 0);
 }  
 
@@ -11004,110 +11088,110 @@ bool isStackFramePrecheck_msvs( const unsigned char *buffer )
    //Currently enabled entry bytes for gaps:
    //  0x55 - push %ebp
    static char gap_initial_bytes[] =
-      { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+   { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
    return (gap_initial_bytes[*buffer] != 0);
 }  
 
 /*
-bool isStackFramePreamble( instruction& insn1 )
-{       
-    instruction insn2, insn3;
-    insn2.setInstruction( insn1.ptr() + insn1.size() );       
-    insn3.setInstruction( insn2.ptr() + insn2.size() );
+   bool isStackFramePreamble( instruction& insn1 )
+   {       
+   instruction insn2, insn3;
+   insn2.setInstruction( insn1.ptr() + insn1.size() );       
+   insn3.setInstruction( insn2.ptr() + insn2.size() );
 
-    const unsigned char* p = insn1.op_ptr();
-    const unsigned char* q = insn2.op_ptr();
-    const unsigned char* r = insn3.op_ptr();
-    
-    unsigned Mod1_1 =  ( q[ 1 ] >> 3 ) & 0x07;
-    unsigned Mod1_2 =  q[ 1 ] & 0x07;
-    unsigned Mod2_1 =  ( r[ 1 ] >> 3 ) & 0x07;
-    unsigned Mod2_2 =  r[ 1 ] & 0x07;
+   const unsigned char* p = insn1.op_ptr();
+   const unsigned char* q = insn2.op_ptr();
+   const unsigned char* r = insn3.op_ptr();
 
-    if( insn1.size() != 1 )
-    {
-        return false;  //shouldn't need this, but you never know
-    }
-    
-    if( p[ 0 ] == PUSHEBP  )
-    {   
-        // Looking for mov %esp -> %ebp in one of the two
-        // following instructions.  There are two ways to encode 
-        // mov %esp -> %ebp: as '0x8b 0xec' or as '0x89 0xe5'.  
-        if( insn2.isMoveRegMemToRegMem() && 
-            ((Mod1_1 == 0x05 && Mod1_2 == 0x04) ||
-             (Mod1_1 == 0x04 && Mod1_2 == 0x05)))
-            return true;
+   unsigned Mod1_1 =  ( q[ 1 ] >> 3 ) & 0x07;
+   unsigned Mod1_2 =  q[ 1 ] & 0x07;
+   unsigned Mod2_1 =  ( r[ 1 ] >> 3 ) & 0x07;
+   unsigned Mod2_2 =  r[ 1 ] & 0x07;
 
-        if( insn3.isMoveRegMemToRegMem() && 
-            ((Mod2_1 == 0x05 && Mod2_2 == 0x04) ||
-             (Mod2_1 == 0x04 && Mod2_2 == 0x05)))
-            return true;
-    }
-    
-    return false;
+   if( insn1.size() != 1 )
+   {
+   return false;  //shouldn't need this, but you never know
+   }
+
+   if( p[ 0 ] == PUSHEBP  )
+   {   
+// Looking for mov %esp -> %ebp in one of the two
+// following instructions.  There are two ways to encode 
+// mov %esp -> %ebp: as '0x8b 0xec' or as '0x89 0xe5'.  
+if( insn2.isMoveRegMemToRegMem() && 
+((Mod1_1 == 0x05 && Mod1_2 == 0x04) ||
+(Mod1_1 == 0x04 && Mod1_2 == 0x05)))
+return true;
+
+if( insn3.isMoveRegMemToRegMem() && 
+((Mod2_1 == 0x05 && Mod2_2 == 0x04) ||
+(Mod2_1 == 0x04 && Mod2_2 == 0x05)))
+return true;
+}
+
+return false;
 }
 */
 
 instruction *instruction::copy() const {
-    // Or should we copy? I guess it depends on who allocated
-    // the memory...
-    return new instruction(*this);
+   // Or should we copy? I guess it depends on who allocated
+   // the memory...
+   return new instruction(*this);
 }
 
 unsigned instruction::spaceToRelocate() const {
-    // List of instructions that might be painful:
-    // jumps (displacement will change)
-    // call (displacement will change)
-    // PC-relative ops
+   // List of instructions that might be painful:
+   // jumps (displacement will change)
+   // call (displacement will change)
+   // PC-relative ops
 
-    // TODO: pc-relative ops
+   // TODO: pc-relative ops
 
-    // longJumpSize == size of code needed to get
-    // anywhere in memory space.
+   // longJumpSize == size of code needed to get
+   // anywhere in memory space.
 #if defined(arch_x86_64)
-    const int longJumpSize = JUMP_ABS64_SZ;
+   const int longJumpSize = JUMP_ABS64_SZ;
 #else
-    const int longJumpSize = JUMP_ABS32_SZ;
+   const int longJumpSize = JUMP_ABS32_SZ;
 #endif
 
 
-    // Assumption: rewriting calls into immediates will
-    // not be larger than rewriting a call into a call...
+   // Assumption: rewriting calls into immediates will
+   // not be larger than rewriting a call into a call...
 
-    if (!((type() & REL_B) ||
-	  (type() & REL_W) ||
-	  (type() & REL_D) ||
-	  (type() & REL_D_DATA))) {
+   if (!((type() & REL_B) ||
+            (type() & REL_W) ||
+            (type() & REL_D) ||
+            (type() & REL_D_DATA))) {
       return size();
-    }
-    
-    // Now that the easy case is out of the way...
-    
-    if (type() & IS_JUMP) {
+   }
+
+   // Now that the easy case is out of the way...
+
+   if (type() & IS_JUMP) {
       // Worst-case: prefixes + max-displacement branch
       return count_prefixes(type()) + longJumpSize;
-    }
-    if (type() & IS_JCC) {
+   }
+   if (type() & IS_JCC) {
       // Jump conditional; jump past jump; long jump
       return count_prefixes(type()) + 2 + 2 + longJumpSize;
-    }
-    if (type() & IS_CALL) {
+   }
+   if (type() & IS_CALL) {
       // Worst case is approximated by two long jumps (AMD64) or a REL32 (x86)
       unsigned size;
 #if defined(arch_x86_64)
@@ -11117,17 +11201,17 @@ unsigned instruction::spaceToRelocate() const {
 #endif
       size = (size > CALL_RELOC_THUNK) ? size : CALL_RELOC_THUNK;
       return size;
-    }
+   }
 #if defined(arch_x86_64)
-    if (type() & REL_D_DATA) {
+   if (type() & REL_D_DATA) {
       // Worst-case: replace RIP with push of IP, use, and cleanup
       // 8: unknown; previous constant
       return count_prefixes(type()) + size() + 8;
-    }
+   }
 #endif
 
-    assert(0);
-    return 0;
+   assert(0);
+   return 0;
 }
 
 #if defined(arch_x86_64)
@@ -11146,8 +11230,8 @@ unsigned instruction::jumpSize(long /*disp*/, unsigned /*addr_width*/)
 
 unsigned instruction::jumpSize(Address from, Address to, unsigned addr_width) 
 {
-    long disp = to - (from + JUMP_SZ);
-    return jumpSize(disp, addr_width);
+   long disp = to - (from + JUMP_SZ);
+   return jumpSize(disp, addr_width);
 }
 
 #if defined(arch_x86_64)
@@ -11165,23 +11249,23 @@ unsigned instruction::maxJumpSize(unsigned /*addr_width*/)
 #endif
 
 bool instruction::isCmp() const {
-    if(*op_ptr_ == CMP_EB_GB || *op_ptr_ == CMP_EV_GV ||
-       *op_ptr_ == CMP_GB_EB || *op_ptr_ == CMP_GV_EV ||
-       *op_ptr_ == CMP_AL_LB || *op_ptr_ == CMP_RAX_LZ)
-    {
-        return true;
-    }
+   if(*op_ptr_ == CMP_EB_GB || *op_ptr_ == CMP_EV_GV ||
+         *op_ptr_ == CMP_GB_EB || *op_ptr_ == CMP_GV_EV ||
+         *op_ptr_ == CMP_AL_LB || *op_ptr_ == CMP_RAX_LZ)
+   {
+      return true;
+   }
 
-    if(*op_ptr_ == 0x80 || *op_ptr_ == 0x81 || *op_ptr_ == 0x83) 
-    {
-        // group 1 opcodes -- operation depends on reg (bits 3-5) of
-        // modr/m byte
-        const unsigned char *p = op_ptr_+1;
-        if( (*p & (7<<3)) == (7<<3))
-            return true;
-    }
+   if(*op_ptr_ == 0x80 || *op_ptr_ == 0x81 || *op_ptr_ == 0x83) 
+   {
+      // group 1 opcodes -- operation depends on reg (bits 3-5) of
+      // modr/m byte
+      const unsigned char *p = op_ptr_+1;
+      if( (*p & (7<<3)) == (7<<3))
+         return true;
+   }
 
-    return false;
+   return false;
 }
 
 #define SIB_SET_REG(x, y) ((x) |= ((y) & 7))
@@ -11197,13 +11281,13 @@ bool instruction::getUsedRegs(pdvector<int> &regs) {
    ia32_entry *entry;
    ia32_instruction orig_instr(memacc, &cond, &loc);
    ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION,
-               insn_ptr, orig_instr);
+         insn_ptr, orig_instr);
    entry = orig_instr.getEntry();
 
    if (orig_instr.getPrefix()->getPrefix(1) != 0)
       //The instruction accesses memory via segment registers.  Disallow.
       return false;
-   
+
    if (loc.modrm_position == -1)
       //Only supporting MOD/RM instructions now
       return false; 
@@ -11227,59 +11311,59 @@ bool instruction::getUsedRegs(pdvector<int> &regs) {
          //The MOD/RM specifies a register that's used
          int regused = loc.modrm_reg;
          if (loc.address_size == 4 && loc.rex_r) {
-             regused |= 0x8;
+            regused |= 0x8;
          }
          regs.push_back(regused);
       }
       else if (op.admet == am_reg) {
-	//using namespace Dyninst::InstructionAPI;
+         //using namespace Dyninst::InstructionAPI;
          //The instruction implicitely references a memory instruction
          switch (op.optype) {
-             case x86::iah:   
-             case x86::ial:
-             case x86::iax:   
-             case x86::ieax:
+            case x86::iah:   
+            case x86::ial:
+            case x86::iax:   
+            case x86::ieax:
                regs.push_back(REGNUM_RAX);
                if (loc.rex_byte) regs.push_back(REGNUM_R8);
                break;
-             case x86::ibh:
-             case x86::ibl:
-             case x86::ibx:
-             case x86::iebx:
+            case x86::ibh:
+            case x86::ibl:
+            case x86::ibx:
+            case x86::iebx:
                regs.push_back(REGNUM_RBX);
                if (loc.rex_byte) regs.push_back(REGNUM_R11);
                break;
-             case x86::ich:
-             case x86::icl:
-             case x86::icx:
-             case x86::iecx:
-                 regs.push_back(REGNUM_RCX);
+            case x86::ich:
+            case x86::icl:
+            case x86::icx:
+            case x86::iecx:
+               regs.push_back(REGNUM_RCX);
                if (loc.rex_byte) regs.push_back(REGNUM_R9);
                break;
-             case x86::idh:
-             case x86::idl:
-             case x86::idx:
-             case x86::iedx:
-                 regs.push_back(REGNUM_RDX);
+            case x86::idh:
+            case x86::idl:
+            case x86::idx:
+            case x86::iedx:
+               regs.push_back(REGNUM_RDX);
                if (loc.rex_byte) regs.push_back(REGNUM_R10);
                break;
-             case x86::isp:
-             case x86::iesp:
-                regs.push_back(REGNUM_RSP);
+            case x86::isp:
+            case x86::iesp:
+               regs.push_back(REGNUM_RSP);
                if (loc.rex_byte) regs.push_back(REGNUM_R12);
                break;
-             case x86::ibp:
-             case x86::iebp:
+            case x86::ibp:
+            case x86::iebp:
                regs.push_back(REGNUM_RBP);
                if (loc.rex_byte) regs.push_back(REGNUM_R13);
                break;
-             case x86::isi:
-             case x86::iesi:
+            case x86::isi:
+            case x86::iesi:
                regs.push_back(REGNUM_RSI);
                if (loc.rex_byte) regs.push_back(REGNUM_R14);
                break;
-             case x86::idi:
-             case x86::iedi:
+            case x86::idi:
+            case x86::iedi:
                regs.push_back(REGNUM_RDI);
                if (loc.rex_byte) regs.push_back(REGNUM_R15);
                break;
@@ -11325,7 +11409,7 @@ int instruction::getStackDelta()
       //Add byte
       return (signed char) p[2];
    }
-   
+
    return 0;
 }
 
@@ -11373,12 +11457,12 @@ bool instruction::isNop() const
          }
       }
    }
-   
+
    if (loc.modrm_rm == 4) {
       unsigned scale;
       Register index, base;
       decode_SIB(loc.sib_byte, scale, index, base);
-      
+
       if (index != 4) {
          return false;
       }

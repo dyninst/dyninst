@@ -201,84 +201,90 @@ namespace Dyninst
         return makeAddExpression(baseAST, makeMultiplyExpression(indexAST, scaleAST, registerType), registerType);
     }
 
-      Expression::Ptr InstructionDecoder_x86::makeModRMExpression(const InstructionDecoder::buffer& b,
+     Expression::Ptr InstructionDecoder_x86::makeModRMExpression(const InstructionDecoder::buffer& b,
 								  unsigned int opType)
     {
-        unsigned int regType = op_d;
-        Result_Type aw;
-        if(ia32_is_mode_64())
-        {
-            if(addrSizePrefixPresent) 
-            {
-                aw = u32;
-            } else {
-                aw = u64;
-                regType = op_q;
-            }
-        } else {
-            if(!addrSizePrefixPresent) 
-            {
-                aw = u32;
-            } else {
-                aw = u16;
-                regType = op_w;
-            }
-        }
+       unsigned int regType = op_d;
+       Result_Type aw;
+       if(ia32_is_mode_64())
+       {
+          if(addrSizePrefixPresent) 
+          {
+             aw = u32;
+          } else {
+             aw = u64;
+             regType = op_q;
+          }
+       } else {
+          if(!addrSizePrefixPresent) 
+          {
+             aw = u32;
+          } else {
+             aw = u16;
+             regType = op_w;
+          }
+       }
 
-        if (opType == op_lea) 
-        {
-            // For an LEA, aw (address width) is insufficient, use makeSizeType
-            aw = makeSizeType(opType);
-        }
+       if (opType == op_lea) 
+       {
+          // For an LEA, aw (address width) is insufficient, use makeSizeType
+          aw = makeSizeType(opType);
+       }
 
-        Expression::Ptr e =
-            makeRegisterExpression(makeRegisterID(locs->modrm_rm, regType, locs->rex_b));
-        switch(locs->modrm_mod)
-        {
-            case 0:
-                /* modrm_rm == 0x4 is use SIB */
-                if(locs->modrm_rm == modrm_use_sib) 
-                    e = makeSIBExpression(b);
-                else if(locs->modrm_rm == 0x5 && !addrSizePrefixPresent)
+       Expression::Ptr e =
+          makeRegisterExpression(makeRegisterID(locs->modrm_rm, regType, locs->rex_b));
+       switch(locs->modrm_mod)
+       {
+          case 0:
+             /* modrm_rm == 0x4 is use SIB */
+             if(locs->modrm_rm == modrm_use_sib) 
+                e = makeSIBExpression(b);
+             else if(locs->modrm_rm == 0x5 && !addrSizePrefixPresent)
+             {
+                /* modrm_rm 00 0x5 is use 32 bit displacement only */
+                assert(locs->opcode_position > -1);
+                if(ia32_is_mode_64())
                 {
-                    /* modrm_rm 00 0x5 is use 32 bit displacement only */
-                    assert(locs->opcode_position > -1);
-                    if(ia32_is_mode_64())
-                    {
-                        e = makeAddExpression(makeRegisterExpression(x86_64::rip),
-                                getModRMDisplacement(b), aw);
-                    } else {
-                        e = getModRMDisplacement(b);
-                    }
-
-                } else{
-                    e = makeRegisterExpression(makeRegisterID(locs->modrm_rm, op_d, locs->rex_r));
+                   e = makeAddExpression(makeRegisterExpression(x86_64::rip),
+                         getModRMDisplacement(b), aw);
+                } else {
+                   e = getModRMDisplacement(b);
                 }
-                    
-                if(opType == op_lea)
-                    return e;
 
-                return makeDereferenceExpression(e, makeSizeType(opType));
-            case 1:
-            case 2:
-                // if(locs->modrm_rm == modrm_use_sib)
-                    // e = makeSIBExpression(b);
-                // Expression::Ptr disp_e = makeAddExpression(e, getModRMDisplacement(b), aw);
-                e = makeAddExpression(e, getModRMDisplacement(b), aw);
+             } else{
+                e = makeRegisterExpression(makeRegisterID(locs->modrm_rm, op_d, locs->rex_r));
+             }
 
-                if(opType == op_lea)
-                    return e;
+             if(opType == op_lea)
+                return e;
 
-                return makeDereferenceExpression(e, makeSizeType(opType));
-            case 3:
-                return makeRegisterExpression(makeRegisterID(locs->modrm_rm, opType, locs->rex_b));
-            default:
-                return Expression::Ptr();
+             return makeDereferenceExpression(e, makeSizeType(opType));
 
-        };
-        // can't get here, but make the compiler happy...
-        assert(0);
-        return Expression::Ptr();
+          case 1:
+          case 2:
+             // Expression::Ptr disp_e = makeAddExpression(e, getModRMDisplacement(b), aw);
+
+             /* Both MOD values 0b01 and 0b10 can have sibs */
+             if(locs->modrm_rm == modrm_use_sib)
+                e = makeSIBExpression(b);
+             else e = makeAddExpression(e, getModRMDisplacement(b), aw);
+
+             if(opType == op_lea)
+                return e;
+
+             return makeDereferenceExpression(e, makeSizeType(opType));
+          case 3:
+             return makeRegisterExpression(makeRegisterID(locs->modrm_rm, opType, locs->rex_b));
+          default:
+             /* This should never happen */
+             assert(0);
+             return Expression::Ptr();
+
+       };
+
+       // can't get here, but make the compiler happy...
+       assert(0);
+       return Expression::Ptr();
     }
 
     Expression::Ptr InstructionDecoder_x86::decodeImmediate(unsigned int opType, const unsigned char* immStart, 
