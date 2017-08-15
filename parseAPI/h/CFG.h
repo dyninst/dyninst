@@ -61,6 +61,7 @@ class LoopAnalyzer;
 class dominatorCFG;
 class CodeObject;
 class CFGModifier;
+class ParseData;
 
 enum EdgeTypeEnum {
     CALL = 0,
@@ -146,7 +147,8 @@ class PARSER_EXPORT Edge : public allocatable {
    friend class CFGModifier;
  protected:
     Block * _source;
-    Block * _target;
+    ParseData* index;
+    Offset _target_off;
 
  private:
 
@@ -176,7 +178,7 @@ class PARSER_EXPORT Edge : public allocatable {
      virtual ~Edge();
 
     Block * src() const { return _source; }
-    Block * trg() const { return _target; }
+    Block * trg() const;
     EdgeTypeEnum type() const { 
         return static_cast<EdgeTypeEnum>(_type._type_enum); 
     }
@@ -297,6 +299,8 @@ class PARSER_EXPORT Block :
  public:
     typedef std::map<Offset, InstructionAPI::InstructionPtr> Insns;
     typedef std::list<Edge*> edgelist;
+public:
+    static Block * sink_block;
 
     Block(CodeObject * o, CodeRegion * r, Address start);
     virtual ~Block();

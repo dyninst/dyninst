@@ -103,7 +103,7 @@ bool CFGModifier::redirect(Edge *edge, Block *target) {
          edge->_type._sink = 0;
       }
 
-      edge->_target = target;
+      edge->_target_off = target->low();
       target->addSource(edge);
       target->obj()->_pcb->addEdge(target, edge, ParseCallback::source);
       edge->src()->obj()->_pcb->modifyEdge(edge, target, ParseCallback::target);

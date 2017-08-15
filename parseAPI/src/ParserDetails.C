@@ -361,7 +361,7 @@ void Parser::ProcessReturnInsn(
         boost::shared_ptr<InstructionAdapter_t> ahPtr)
 {
     // returns always target the sink block
-    link(cur,_sink,RET,true);
+    link(cur,Block::sink_block,RET,true);
 
     ParseCallback::interproc_details det;
     det.ibuf = (unsigned char*)
@@ -532,7 +532,7 @@ void Parser::ProcessCFInsn(
                  newedge = link_tempsink(cur,CALL);
             }
             else { 
-                newedge = link(cur,_sink,CALL,true);
+                newedge = link(cur,Block::sink_block,CALL,true);
             }
             if(!ahPtr->isCall()) {
                parsing_printf("Setting edge 0x%lx (0x%lx/0x%lx) to interproc\n",
@@ -551,7 +551,7 @@ void Parser::ProcessCFInsn(
                 newedge = link_tempsink(cur,curEdge->second);
             }
             else
-                newedge = link(cur,_sink,curEdge->second,true);
+                newedge = link(cur,Block::sink_block,curEdge->second,true);
         }
 
         if (ahPtr->isTailCall(frame.func, curEdge->second, frame.num_insns, frame.knownTargets)) {
@@ -586,6 +586,7 @@ void Parser::ProcessCFInsn(
         if(resolvable_edge) {
             parsing_printf("[%s:%d] pushing %lx onto worklist\n",
                 FILE__,__LINE__,we->target());
+            parsing_printf("[%s:%d] new edge is %p\n", FILE__, __LINE__, newedge);
             frame.pushWork(we);
 
             if (unlikely(_obj.defensiveMode())) {
@@ -606,7 +607,7 @@ void Parser::ProcessCFInsn(
     }
 
     if (unlikely(has_unres && edges_out.empty())) {
-        link(cur, _sink, INDIRECT, true);
+        link(cur, Block::sink_block, INDIRECT, true);
         ProcessUnresBranchEdge(frame, cur, ahPtr, -1);
 	 }
 

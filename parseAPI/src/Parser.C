@@ -77,7 +77,6 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
     _cfgfact(fact),
     _pcb(pcb),
     _parse_data(NULL),
-    _sink(NULL),
     _parse_state(UNPARSED),
     _in_parse(false),
     _in_finalize(false)
@@ -105,7 +104,6 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
     sort(copy.begin(),copy.end(),less_cr());
 
     // allocate a sink block -- region is arbitrary
-    _sink = _cfgfact._mksink(&_obj,copy[0]);
 
     bool overlap = false;
     CodeRegion * prev = copy[0], *cur = NULL;
@@ -1023,7 +1021,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 // check for system call FT
                 Edge* edge = work->edge();
                 Block::Insns blockInsns;
-                boost::lock_guard<Block> src_guard(*edge->src());
+//                boost::lock_guard<Block> src_guard(*edge->src());
                 edge->src()->getInsns(blockInsns);
                 auto prev = blockInsns.rbegin();
                 InstructionAPI::InstructionPtr prevInsn = prev->second;
@@ -1403,12 +1401,12 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             } else if ( ahPtr->isAbort() ) {
                 // 4. `abort-causing' instructions
                 end_block(cur,ahPtr);
-                //link(cur, _sink, DIRECT, true);
+                //link(cur, sink_block, DIRECT, true);
                 break; 
             } else if ( ahPtr->isInvalidInsn() ) {
                 // 4. Invalid or `abort-causing' instructions
                 end_block(cur,ahPtr);
-                link(cur, _sink, DIRECT, true);
+                link(cur, Block::sink_block, DIRECT, true);
                 break; 
             } else if ( ahPtr->isInterruptOrSyscall() ) {
                 // 5. Raising instructions
@@ -1450,7 +1448,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     _pcb.foundWeirdInsns(func);
                     end_block(cur,ahPtr);
                     // allow invalid instructions to end up as a sink node.
-		    link(cur, _sink, DIRECT, true);
+		    link(cur, Block::sink_block, DIRECT, true);
                     break;
                 } else if (ahPtr->isNopJump()) {
                     // patch the jump to make it a nop, and re-set the 
@@ -1491,7 +1489,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 
                 end_block(cur,ahPtr);
                 // We need to tag the block with a sink edge
-                link(cur, _sink, DIRECT, true);
+                link(cur, Block::sink_block, DIRECT, true);
                 break;
             } else if (!cur->region()->contains(ahPtr->getNextAddr())) {
                 parsing_printf("[%s] next address %lx is outside [%lx,%lx)\n",
@@ -1500,7 +1498,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     cur->region()->offset()+cur->region()->length());
                 end_block(cur,ahPtr);
                 // We need to tag the block with a sink edge
-                link(cur, _sink, DIRECT, true);
+                link(cur, Block::sink_block, DIRECT, true);
                 break;
             }
             ahPtr->advance();
@@ -1653,6 +1651,8 @@ Parser::add_edge(
     EdgeTypeEnum et,
     Edge * exist)
 {
+    // adjust anything pointing to zero to force it to sink
+    if(dst == 0) { dst = -1; }
     Block * split = NULL;
     Block * ret = NULL;
     Edge * newedge = NULL;
@@ -1913,7 +1913,7 @@ Parser::link(Block *src, Block *dst, EdgeTypeEnum et, bool sink)
 Edge*
 Parser::link_tempsink(Block *src, EdgeTypeEnum et)
 {
-    Edge * e = factory()._mkedge(src,_sink,et);
+    Edge * e = factory()._mkedge(src,Block::sink_block,et);
     e->_type._sink = true;
     src->_trglist.push_back(e);
     return e;
@@ -1922,23 +1922,29 @@ Parser::link_tempsink(Block *src, EdgeTypeEnum et)
 void
 Parser::relink(Edge * e, Block *src, Block *dst)
 {
+    assert(e);
     boost::lock_guard<ParseData> guard(*_parse_data);
     bool addSrcAndDest = true;
     if(src != e->src()) {
+        assert(e);
         e->src()->removeTarget(e);
         _pcb.removeEdge(e->src(), e, ParseCallback::target);
+        assert(e);
         e->_source = src;
         src->addTarget(e);
         _pcb.addEdge(src, e, ParseCallback::target);
         addSrcAndDest = false;
     }
-    if(dst != e->trg()) { 
-        if(e->trg() != _sink) {
-            e->trg()->removeSource(e);
+    if(dst != e->trg()) {
+        assert(e);
+        if(e->trg() != Block::sink_block) {
+            assert(e);
+            if(e->trg()) {
+                e->trg()->removeSource(e);
+            }
             _pcb.removeEdge(e->trg(), e, ParseCallback::source);
             addSrcAndDest = false;
         }
-        e->_target = dst;
         dst->addSource(e);
         _pcb.addEdge(dst, e, ParseCallback::source);
         if (addSrcAndDest) {
@@ -1949,7 +1955,7 @@ Parser::relink(Edge * e, Block *src, Block *dst)
         }
     }
 
-    e->_type._sink = (dst == _sink);
+    e->_type._sink = (dst == Block::sink_block);
 }
 
 ParseFrame::Status

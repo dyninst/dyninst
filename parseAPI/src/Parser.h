@@ -154,6 +154,7 @@ class Parser {
     void init_frame(ParseFrame & frame);
 
     void finalize(Function *f);
+    ParseData* parse_data() { return _parse_data; }
 
  private:
     void parse_vanilla();

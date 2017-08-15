@@ -92,6 +92,7 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
 
     void pushWork(ParseWorkElem * elem) {
         boost::lock_guard<ParseFrame> g(*this);
+        parsing_printf("\t pushing work element for block %p, edge %p, target %p\n", elem->cur(), elem->edge(), elem->target());
         worklist.push(elem);
     }
     ParseWorkElem * popWork() {
@@ -345,9 +346,7 @@ inline void StandardParseData::record_func(Function *f)
 }
 inline void StandardParseData::record_block(CodeRegion * /* cr */, Block *b)
 {
-    boost::lock(b->lockable(), _rdata.lockable());
-    boost::lock_guard<Block> block_guard(*b, boost::adopt_lock);
-    boost::lock_guard<region_data> g(_rdata, boost::adopt_lock);
+    boost::lock_guard<region_data> g(_rdata);
     _rdata.blocksByAddr[b->start()] = b;
     _rdata.blocksByRange.insert(b);
 }

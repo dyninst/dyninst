@@ -70,7 +70,7 @@ bool
 Block::consistent(Address addr, Address & prev_insn) 
 {
     InstructionSource * isrc;
-    if(!_obj->cs()->regionsOverlap())
+    if(_obj && !_obj->cs()->regionsOverlap())
         isrc = _obj->cs();
     else
         isrc = region();
@@ -94,6 +94,7 @@ Block::consistent(Address addr, Address & prev_insn)
 void
 Block::getFuncs(vector<Function *> & funcs)
 {
+    if(!_obj) return; // universal sink
     set<Function *> stab;
     _obj->findFuncs(region(),start(),stab);
     set<Function *>::iterator sit = stab.begin();
@@ -147,13 +148,13 @@ SingleContextOrInterproc::pred_impl(Edge * e) const
 }
 
 int Block::containingFuncs() const {
-    _obj->finalize();
+    if(_obj) _obj->finalize();
     return _func_cnt;
 }
 
 void Block::removeFunc(Function *) 
 {
-    if (0 == _func_cnt) {
+    if ((0 == _func_cnt) && _obj) {
         _obj->finalize();
     }
     assert(0 != _func_cnt);
@@ -162,6 +163,7 @@ void Block::removeFunc(Function *)
 
 void Block::updateEnd(Address addr)
 {
+    if(!_obj) return;
     _obj->cs()->addCounter(PARSE_BLOCK_SIZE, -1*size());   
     _end = addr;
     _obj->cs()->addCounter(PARSE_BLOCK_SIZE, size());
@@ -180,7 +182,7 @@ void Edge::install()
 void Edge::uninstall()
 {
     mal_printf("Uninstalling edge [%lx]->[%lx]\n", 
-               _source->lastInsnAddr(), _target->start());
+               _source->lastInsnAddr(), _target_off);
     // if it's a call edge, it's cached in the function object, remove it
     if (CALL == type()) {
         vector<Function*> srcFs;
@@ -203,11 +205,19 @@ void Edge::uninstall()
     }
     // remove from source and target blocks
     _source->removeTarget(this);
-    _target->removeSource(this);
+    trg()->removeSource(this);
 }
 
 void Edge::destroy(Edge *e, CodeObject *o) {
    o->destroy(e);
+}
+
+Block* Block::sink_block = new Block(NULL, NULL, std::numeric_limits<Address>::max());
+
+Block *Edge::trg() const {
+    Block* found = index->findBlock(_source->region(), _target_off);
+    if(found) return found;
+    return Block::sink_block;
 }
 
 std::string format(EdgeTypeEnum e) {

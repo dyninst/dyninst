@@ -115,35 +115,41 @@ CodeObject::findFuncByEntry(CodeRegion * cr, Address entry)
 int
 CodeObject::findFuncs(CodeRegion * cr, Address addr, set<Function*> & funcs)
 {
+    assert(parser);
     return parser->findFuncs(cr,addr,funcs);
 }
 int
 CodeObject::findFuncs(CodeRegion * cr, Address start, Address end, set<Function*> & funcs)
 {
+    assert(parser);
 	return parser->findFuncs(cr,start,end,funcs);
 }
 
 Block *
 CodeObject::findBlockByEntry(CodeRegion * cr, Address addr)
 {
+    assert(parser);
     return parser->findBlockByEntry(cr, addr);
 }
 
 Block *
 CodeObject::findNextBlock(CodeRegion * cr, Address addr)
 {
+    assert(parser);
     return parser->findNextBlock(cr, addr);
 }
 
 int
 CodeObject::findBlocks(CodeRegion * cr, Address addr, set<Block*> & blocks)
 {
+    assert(parser);
     return parser->findBlocks(cr,addr,blocks);
 }
 
 // find without parsing.
 int CodeObject::findCurrentBlocks(CodeRegion * cr, Address addr, set<Block*> & blocks)
 {
+    assert(parser);
     return parser->findCurrentBlocks(cr,addr,blocks);
 }
 
@@ -397,3 +403,5 @@ Address CodeObject::getFreeAddr() const {
    }
    return hi;
 }
+
+ParseData *CodeObject::parse_data() { return parser->parse_data(); }
