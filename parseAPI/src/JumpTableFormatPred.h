@@ -38,8 +38,9 @@ public:
     virtual bool modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g, Slicer*);
     std::string format();
     bool isJumpTableFormat() { return jumpTableFormat && findIndex && findTableBase;}
-    bool findSpillRead(Graph::Ptr g, SliceNode::Ptr &);
+    bool findRead(Graph::Ptr g, SliceNode::Ptr &);
     bool adjustSliceFrame(Slicer::SliceFrame &frame, SliceNode::Ptr, Slicer*);
+    bool isTOCRead(Slicer::SliceFrame &frame, SliceNode::Ptr);
     void FindTOC();
     JumpTableFormatPred(ParseAPI::Function *f,
                         ParseAPI::Block *b,

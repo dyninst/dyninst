@@ -3,6 +3,7 @@
 
 #include "DynAST.h"
 #include "Absloc.h"
+#include "CodeSource.h"
 #include <map>
 using Dyninst::AST;
 using namespace Dyninst;
@@ -19,7 +20,8 @@ public:
     static AST::Ptr SubstituteAnAST(AST::Ptr ast, const std::map<AST::Ptr, AST::Ptr>& aliasMap);
     static AST::Ptr DeepCopyAnAST(AST::Ptr ast);
     static bool ContainAnAST(AST::Ptr root, AST::Ptr check);
-
+    static bool ReadMemory(Address addr, uint64_t &val, int size);
+    static ParseAPI::CodeSource* cs; 
     std::pair<AST::Ptr, bool> ExpandAssignment(Assignment::Ptr);
 
     //On x86 and x86-64, the value of PC is post-instruction, 

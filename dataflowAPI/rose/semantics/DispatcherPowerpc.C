@@ -1047,6 +1047,7 @@ DispatcherPowerpc::iproc_init()
     iproc_set(powerpc_lbzu,             new Powerpc::IP_lbzu);
     iproc_set(powerpc_lbzux,            new Powerpc::IP_lbzu);
     iproc_set(powerpc_lbzx,             new Powerpc::IP_lbz);
+    iproc_set(powerpc_ld,               new Powerpc::IP_move);
     iproc_set(powerpc_lha,              new Powerpc::IP_lha);
     iproc_set(powerpc_lhax,             new Powerpc::IP_lha);
     iproc_set(powerpc_lhz,              new Powerpc::IP_lhz);

@@ -10,6 +10,43 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::DataflowAPI;
+
+CodeSource* SymbolicExpression::cs = NULL;
+
+bool SymbolicExpression::ReadMemory(Address addr, uint64_t &v, int ) {
+    int addressWidth = cs->getAddressWidth();
+    if (addressWidth == 4) {
+        addr &= 0xffffffff;
+    }
+
+#if defined(os_windows)
+    addr -= cs->loadAddress();
+#endif
+    if (!cs->isCode(addr) && !cs->isData(addr)) return false;
+    v = *(const uint64_t *) cs->getPtrToInstruction(addr);
+/*
+    switch (memoryReadSize) {
+        case 0:
+        case 8:
+	    v = *(const uint64_t *) cs->getPtrToInstruction(addr);
+	    break;
+	case 4:
+	    v = *(const uint32_t *) cs->getPtrToInstruction(addr);
+	    break;
+	case 2:
+	    v = *(const uint16_t *) cs->getPtrToInstruction(addr);
+	    break;
+	case 1:
+	    v = *(const uint8_t *) cs->getPtrToInstruction(addr);
+	    break;	    
+	default:
+	    parsing_printf("Invalid memory read size %d\n", memoryReadSize);
+	    return false;
+    }
+*/
+    return true;
+}
+
 AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr) {
     if (ast->getID() == AST::V_RoseAST) {
         RoseAST::Ptr roseAST = boost::static_pointer_cast<RoseAST>(ast); 
@@ -141,6 +178,14 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr) {
 	        // Any 8-bit value is bounded in [0,255].
 		// Need to keep the length of the dereference if it is 8-bit.
 		// However, dereference longer than 8-bit should be regarded the same.
+		if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
+		    uint64_t val = 0;
+		    ConstantAST::Ptr c = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    Address addr = c->val().val;
+		    if (ReadMemory(addr, val, roseAST->val().size / 8)) {
+		        return ConstantAST::create(Constant(val, 64));
+		    }
+		}
 	        if (roseAST->val().size == 8)
 		    return ast;
 		else
@@ -153,10 +198,12 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr) {
 		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
 		    return ConstantAST::create(Constant(child0->val().val << child1->val().val, 64));
 		}
+		/*
 	        if (roseAST->child(1)->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
 		    if (child1->val().val == 0) return roseAST->child(0);
 		}
+		*/
 		break;
 	    case ROSEOperation::andOp:
 	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {

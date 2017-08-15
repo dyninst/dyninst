@@ -27,24 +27,32 @@ JumpTableFormatPred::JumpTableFormatPred(ParseAPI::Function *f,
 }
 
 void JumpTableFormatPred::FindTOC() {
-    parsing_printf("Try to find TOC address in R2\n");
-    Address entry = 0;
-    if (func->src() == HINT) {
-        entry = func->addr();
-    } else if (func->src() == RT) {
-        entry = func->addr() - 8; 
-    } else {
-        parsing_printf("\tUnhandled type of function for getting TOC address\n");
-	return;
+    toc_address = block->obj()->cs()->getTOC(func->addr());
+    if (!toc_address) {
+        // Little endian powerpc changes its ABI, which does not have .opd section, but often load R2 at function entry
+	Address entry = 0;
+	if (func->src() == HINT) {
+	    entry = func->addr();
+	} else if (func->src() == RT) {
+	    entry = func->addr() - 8; 
+	} else {
+	    parsing_printf("\tUnhandled type of function for getting TOC address\n");
+	    return;
+	}
+	const uint32_t * buf = (const uint32_t*) block->obj()->cs()->getPtrToInstruction(entry);
+	if (buf == NULL) return;
+	if ((buf[0] >> 16) != 0x3c40 || (buf[1] >> 16) != 0x3842) return;
+	if (buf[0] & 0x8000) {
+	    toc_address = (buf[0] & 0xffff) | SIGNEX_64_16;
+	} else {
+	    toc_address = buf[0] & 0xffff;
+	}
+	if (buf[1] & 0x8000) {
+	    toc_address = (toc_address << 16) + ((buf[1] & 0xffff) | SIGNEX_64_16);
+	} else {
+	    toc_address = (toc_address << 16) + (buf[1] & 0xffff);
+	}
     }
-    parsing_printf("\tLook at address %x\n", entry);
-    const unsigned char * buf = (const unsigned char*) block->obj()->cs()->getPtrToInstruction(entry);
-    if (buf == NULL) return;
-    if (buf[2] != 0x40 || buf[3] != 0x3c || buf[6] != 0x42 || buf[7] != 0x38) return;
-    toc_address = buf[1];
-    toc_address = (toc_address << 8) | buf[0];
-    toc_address = (toc_address << 8) | buf[5];
-    toc_address = (toc_address << 8) | buf[4];
     parsing_printf("\t TOC address %lx in R2\n", toc_address);
 }
 
@@ -88,15 +96,20 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 		frame.active.erase(rit);
 	    } else {
 	        // For a later memory read, if we have not disqualified this indirect jump,
-		// it is likely to be a jump table. This memory read is assumed 
+		// it is likely to be a jump table. There are two cases to be handled:
+		// 1) On ppc, this could be a read from TOC (read from a constant address)
+		// 2) This memory read is assumed 
 		// and likely to be a spill for a certain register. We syntactically find the location
 		// where the memory is written and keep slicing on the source register
 		SliceNode::Ptr readNode;
 		parsing_printf("\t\tfind another memory read %s %s\n", rit->first.format().c_str(), rit->second[0].ptr->format().c_str());
-		if (!findSpillRead(g, readNode)) {
+		if (!findRead(g, readNode)) {
 		    parsing_printf("\tWARNING: a potential memory spill cannot be handled.\n");
 		    jumpTableFormat = false;
 		    return false;
+		}
+		if (isTOCRead(frame, readNode)) {
+		    break;
 		}
 		// We then do the following things
 		// 1. delete all absregions introduced by this read node from the active map
@@ -295,7 +308,7 @@ string JumpTableFormatPred::format() {
     return string("");
 }
 
-bool JumpTableFormatPred::findSpillRead(Graph::Ptr g, SliceNode::Ptr &readNode) {
+bool JumpTableFormatPred::findRead(Graph::Ptr g, SliceNode::Ptr &readNode) {
     NodeIterator gbegin, gend;
     g->allNodes(gbegin, gend);
     for (; gbegin != gend; ++gbegin) {
@@ -429,6 +442,26 @@ bool JumpTableFormatPred::adjustSliceFrame(Slicer::SliceFrame &frame, SliceNode:
 	    aliases[next->assign()] = make_pair(VariableAST::create(Variable(n->assign()->out())), VariableAST::create(Variable(src)));
 	}   
 
+    }
+    return true;
+}
+
+bool JumpTableFormatPred::isTOCRead(Slicer::SliceFrame &frame, SliceNode::Ptr n) {
+    // Delete all active regions introduce by this memory read,
+    // such as memory region, er
+    std::vector<AbsRegion>& inputs = n->assign()->inputs();
+    bool findR2 = false;
+    for (auto iit = inputs.begin(); iit != inputs.end(); ++iit) {
+        if (*iit == AbsRegion(Absloc(ppc32::r2)) || *iit == AbsRegion(Absloc(ppc64::r2))) {
+	    findR2 = true;
+	    break;
+	}
+    }
+    if (!findR2) return false;
+    parsing_printf("\tTOC Read\n");
+    for (auto iit = inputs.begin(); iit != inputs.end(); ++iit) {
+        parsing_printf("\tdelete %s from active map\n", iit->format().c_str());
+        frame.active.erase(*iit);
     }
     return true;
 }

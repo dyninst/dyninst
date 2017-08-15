@@ -247,13 +247,7 @@ namespace Dyninst
       isRAWritten = false;
       isFPInsn = false;
       bcIsConditional = false;
-#if !defined(arch_ppc_little_endian)
-      insn = b.start[0] << 24 | b.start[1] << 16 |
-      b.start[2] << 8 | b.start[3];
-#else
-        insn = b.start[0] | b.start[1] << 8 |
-      b.start[2] << 16 | b.start[3] << 24;
-#endif
+      insn = *((const uint32_t*)b.start);
 #if defined(DEBUG_RAW_INSN)        
         cout.width(0);
         cout << "0x";

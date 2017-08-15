@@ -58,7 +58,8 @@ static bool IsVariableArgumentFormat(AST::Ptr t, AbsRegion &index) {
 }
 
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
-//    if (block->last() == 0x100813b4) dyn_debug_parsing=1; else dyn_debug_parsing=0;
+//    if (block->last() == 0x15890bc) dyn_debug_parsing=1; else dyn_debug_parsing=0;
+
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
     parsing_printf("Looking for thunk\n");
     
@@ -83,6 +84,7 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     Slicer formatSlicer(assignments[0], block, func, false, false);
 
     SymbolicExpression se;
+    se.cs = block->obj()->cs();
     JumpTableFormatPred jtfp(func, block, rf, thunks, se);
     GraphPtr slice = formatSlicer.backwardSlice(jtfp);
     //parsing_printf("\tJump table format: %s\n", jtfp.format().c_str());
