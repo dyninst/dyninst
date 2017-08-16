@@ -577,6 +577,9 @@ namespace Dyninst
         {
             current = &(std::mem_fun(current->next_table)(this));
         }
+	if (findRAAndRS(current)) {
+	    isRAWritten = true;
+	}
         insn_in_progress = const_cast<Instruction*>(insn_to_complete);
         if(current->op == power_op_b ||
            current->op == power_op_bc ||
@@ -925,6 +928,16 @@ using namespace boost::assign;
         isRAWritten = true;
         (translateBitFieldToCR<7, 14, ppc32::ifpscw0, 7>(*this))();
         return;
+    }
+    
+    bool InstructionDecoder_power::findRAAndRS(const power_entry* cur) {
+        bool findRA = false;
+	bool findRS = false;
+	for (auto oit = cur->operands.begin(); oit != cur->operands.end(); ++oit) {
+	    if ((*oit) == &InstructionDecoder_power::RA) findRA = true;
+	    if ((*oit) == &InstructionDecoder_power::RS) findRS = true;
+	}
+	return findRA && findRS;
     }
 
     void InstructionDecoder_power::mainDecode()

@@ -698,23 +698,22 @@ struct IP_oris: P {
 // Rotate left double word immediate then clear right
 struct IP_rldicr: P {
     void p(D d, Ops ops, I insn, A args) {
-        assert_args(insn, args, 5);
-        BaseSemantics::SValuePtr rs = d->read(args[0], 32);
-        BaseSemantics::SValuePtr ra = d->read(args[1], 32);
+        assert_args(insn, args, 4);
+        BaseSemantics::SValuePtr rs = d->read(args[1], 32);
+        BaseSemantics::SValuePtr ra = d->read(args[0], 32);
         BaseSemantics::SValuePtr sh = ops->extract(d->read(args[2], 32), 0, 5);
+	/*
         SgAsmIntegerValueExpression *mb = isSgAsmIntegerValueExpression(args[3]);
         ASSERT_not_null(mb);
         int mb_value = mb->get_value();
-        SgAsmIntegerValueExpression *me = isSgAsmIntegerValueExpression(args[4]);
-        ASSERT_not_null(me);
-        int me_value = me->get_value();
         uint32_t mask = build_mask(mb_value, me_value);
+	*/
         BaseSemantics::SValuePtr rotatedReg = ops->rotateLeft(rs, sh);
-        BaseSemantics::SValuePtr bitMask = ops->number_(32, mask);
-        BaseSemantics::SValuePtr v1 = ops->and_(ra, ops->invert(bitMask));
-        BaseSemantics::SValuePtr result = ops->or_(ops->and_(rotatedReg, bitMask), v1);
+        //BaseSemantics::SValuePtr bitMask = ops->number_(32, mask);
+        //BaseSemantics::SValuePtr v1 = ops->and_(ra, ops->invert(bitMask));
+        //BaseSemantics::SValuePtr result = ops->or_(ops->and_(rotatedReg, bitMask), v1);
         //d->write(args[0], result);
-	d->write(args[1], rotatedReg);
+	d->write(args[0], rotatedReg);
     }
 };
 
@@ -723,8 +722,8 @@ struct IP_rldicr: P {
 struct IP_rlwimi: P {
     void p(D d, Ops ops, I insn, A args) {
         assert_args(insn, args, 5);
-        BaseSemantics::SValuePtr rs = d->read(args[0], 32);
-        BaseSemantics::SValuePtr ra = d->read(args[1], 32);
+        BaseSemantics::SValuePtr rs = d->read(args[1], 32);
+        BaseSemantics::SValuePtr ra = d->read(args[0], 32);
         BaseSemantics::SValuePtr sh = ops->extract(d->read(args[2], 32), 0, 5);
         SgAsmIntegerValueExpression *mb = isSgAsmIntegerValueExpression(args[3]);
         ASSERT_not_null(mb);
@@ -737,7 +736,7 @@ struct IP_rlwimi: P {
         BaseSemantics::SValuePtr bitMask = ops->number_(32, mask);
         BaseSemantics::SValuePtr v1 = ops->and_(ra, ops->invert(bitMask));
         BaseSemantics::SValuePtr result = ops->or_(ops->and_(rotatedReg, bitMask), v1);
-        d->write(args[1], result);
+        d->write(args[0], result);
     }
 };
 

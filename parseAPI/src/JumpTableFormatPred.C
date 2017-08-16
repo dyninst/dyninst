@@ -316,7 +316,7 @@ bool JumpTableFormatPred::findRead(Graph::Ptr g, SliceNode::Ptr &readNode) {
 	if (n->assign() == memLoc) {
 	    continue;
 	}
-	if (n->assign()->insn()->readsMemory()) {
+	if (n->assign() && n->assign()->insn() && n->assign()->insn()->readsMemory()) {
 	    readNode = n;
 	    return true;
 	}
