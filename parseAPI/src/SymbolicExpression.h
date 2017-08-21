@@ -15,8 +15,8 @@ class SymbolicExpression {
 
 public:
 
-    static AST::Ptr SimplifyRoot(AST::Ptr ast, Address addr);
-    static AST::Ptr SimplifyAnAST(AST::Ptr ast, Address addr);
+    static AST::Ptr SimplifyRoot(AST::Ptr ast, Address addr, bool keepMultiOne = false);
+    static AST::Ptr SimplifyAnAST(AST::Ptr ast, Address addr, bool keepMultiOne = false);
     static AST::Ptr SubstituteAnAST(AST::Ptr ast, const std::map<AST::Ptr, AST::Ptr>& aliasMap);
     static AST::Ptr DeepCopyAnAST(AST::Ptr ast);
     static bool ContainAnAST(AST::Ptr root, AST::Ptr check);
