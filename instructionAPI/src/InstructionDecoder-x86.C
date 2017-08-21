@@ -267,7 +267,7 @@ namespace Dyninst
              /* Both MOD values 0b01 and 0b10 can have sibs */
              if(locs->modrm_rm == modrm_use_sib)
                 e = makeSIBExpression(b);
-             else e = makeAddExpression(e, getModRMDisplacement(b), aw);
+             e = makeAddExpression(e, getModRMDisplacement(b), aw);
 
              if(opType == op_lea)
                 return e;
