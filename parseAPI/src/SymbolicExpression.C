@@ -109,7 +109,21 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr) {
 		    size_t size = child1->val().size + child0->val().size;
 		    return ConstantAST::create(Constant(val,size));
                 }		    
+		if (roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    if (child1->val().val == 0) {
+		        return roseAST->child(0);
+		    }
+		}
+	        if (roseAST->child(0)->getID() == AST::V_VariableAST && roseAST->child(1)->getID() == AST::V_VariableAST) {
+		    VariableAST::Ptr child0 = boost::static_pointer_cast<VariableAST>(roseAST->child(0));
+		    VariableAST::Ptr child1 = boost::static_pointer_cast<VariableAST>(roseAST->child(1));
+		    if (child0->val() == child1->val()) {
+		        return roseAST->child(0);
+		    }
+                }		    
 		break;
+
 	    }
 	    case ROSEOperation::addOp:
 	        // We simplify the addition as much as we can

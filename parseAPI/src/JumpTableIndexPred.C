@@ -258,6 +258,10 @@ bool JumpTableIndexPred::IsIndexBounded(GraphPtr slice,
                                        StridedInterval &target) {
     NodeIterator exitBegin, exitEnd, srcBegin, srcEnd;
     slice->exitNodes(exitBegin, exitEnd);
+    if (exitBegin == exitEnd) {
+        parsing_printf("WARNING: Do not find exit node for analyzing indirect jump at %lx ....\n", block->last());
+	return false;
+    }
     SliceNode::Ptr virtualExit = boost::static_pointer_cast<SliceNode>(*exitBegin);
     virtualExit->ins(srcBegin, srcEnd);
     SliceNode::Ptr jumpNode = boost::static_pointer_cast<SliceNode>(*srcBegin);
@@ -265,6 +269,7 @@ bool JumpTableIndexPred::IsIndexBounded(GraphPtr slice,
     BoundFact *bf = bfc.GetBoundFactOut(virtualExit);
     VariableAST::Ptr i = VariableAST::create(Variable(index));
     StridedInterval *tarBoundValue = bf->GetBound(i);
+    parsing_printf("\t checking index bound for %s, %s", index.format().c_str(), tarBoundValue ? "found bound" : "no bound");
     if (tarBoundValue != NULL) {
         target = *(tarBoundValue);
 	uint64_t s = target.size();
