@@ -24,10 +24,11 @@ using namespace Dyninst::DataflowAPI;
 
 class SimplifyVisitor: public ASTVisitor {
     Address addr;
+    bool keepMultiOne;
 public:
     using ASTVisitor::visit;
     virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
-    SimplifyVisitor(Address a): addr(a) {}
+    SimplifyVisitor(Address a, bool k): addr(a), keepMultiOne(k) {}
 };
 
 

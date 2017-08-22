@@ -58,7 +58,7 @@ static bool IsVariableArgumentFormat(AST::Ptr t, AbsRegion &index) {
 }
 
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
-//    if (block->last() == 0x1042a6ac) dyn_debug_parsing=1; else dyn_debug_parsing=0;
+//    if (block->last() == 0x55121c) dyn_debug_parsing=1; else dyn_debug_parsing=0;
 
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
     parsing_printf("Looking for thunk\n");

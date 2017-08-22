@@ -211,6 +211,7 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
 		    return ConstantAST::create(Constant(child0->val().val << child1->val().val, 64));
 		}
 	        if (roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    parsing_printf("keep multi one %d\n", keepMultiOne);
 		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
 		    if (child1->val().val == 0 && !keepMultiOne) return roseAST->child(0);
 		}
@@ -270,7 +271,7 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
 
 
 AST::Ptr SymbolicExpression::SimplifyAnAST(AST::Ptr ast, Address addr, bool keepMultiOne) {
-    SimplifyVisitor sv(addr);
+    SimplifyVisitor sv(addr, keepMultiOne);
     ast->accept(&sv);
     return SimplifyRoot(ast, addr, keepMultiOne);
 }
@@ -310,10 +311,16 @@ AST::Ptr SymbolicExpression::DeepCopyAnAST(AST::Ptr ast) {
 	return AST::Ptr();
 }
 
-pair<AST::Ptr, bool> SymbolicExpression::ExpandAssignment(Assignment::Ptr assign) {
+pair<AST::Ptr, bool> SymbolicExpression::ExpandAssignment(Assignment::Ptr assign, bool keepMultiOne) {
     if (expandCache.find(assign) != expandCache.end()) {
         AST::Ptr ast = expandCache[assign];
-        if (ast) return make_pair(ast, true); else return make_pair(ast, false);
+        if (ast) {
+	    if (!keepMultiOne) ast = SimplifyAnAST(ast, 0, keepMultiOne);
+	    return make_pair(ast, true);
+	} 
+	else {
+	    return make_pair(ast, false);
+	}
     } else {
         parsing_printf("\t\tExpanding instruction @ %x: %s, assignment %s\n", assign->addr(), assign->insn()->format().c_str(), assign->format().c_str());
         pair<AST::Ptr, bool> expandRet = SymEval::expand(assign, false);
@@ -322,7 +329,8 @@ pair<AST::Ptr, bool> SymbolicExpression::ExpandAssignment(Assignment::Ptr assign
 	    AST::Ptr calculation = SimplifyAnAST(expandRet.first, 
 	                                         PCValue(assign->addr(),
 						         assign->insn()->size(),
-							 assign->block()->obj()->cs()->getArch()));
+							 assign->block()->obj()->cs()->getArch()),
+					         true);
 	    expandCache[assign] = calculation;
 	} else {
 	    if (expandRet.first == NULL) {
@@ -333,7 +341,9 @@ pair<AST::Ptr, bool> SymbolicExpression::ExpandAssignment(Assignment::Ptr assign
 	    }
 	    expandCache[assign] = AST::Ptr();
 	}
-	return make_pair( expandCache[assign], expandRet.second );
+	AST::Ptr ast = expandCache[assign];
+	if (ast && !keepMultiOne) ast = SimplifyAnAST(ast, 0, keepMultiOne);
+	return make_pair( ast, expandRet.second );
     }
 }
 

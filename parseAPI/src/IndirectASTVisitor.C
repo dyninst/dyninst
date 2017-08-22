@@ -10,7 +10,7 @@ AST::Ptr SimplifyVisitor::visit(DataflowAPI::RoseAST *ast) {
         unsigned totalChildren = ast->numChildren();
 	for (unsigned i = 0 ; i < totalChildren; ++i) {
 	    ast->child(i)->accept(this);
-	    ast->setChild(i, SymbolicExpression::SimplifyRoot(ast->child(i), addr));
+	    ast->setChild(i, SymbolicExpression::SimplifyRoot(ast->child(i), addr, keepMultiOne));
 	}
 	return AST::Ptr();
 }

@@ -22,7 +22,7 @@ public:
     static bool ContainAnAST(AST::Ptr root, AST::Ptr check);
     static bool ReadMemory(Address addr, uint64_t &val, int size);
     static ParseAPI::CodeSource* cs; 
-    std::pair<AST::Ptr, bool> ExpandAssignment(Assignment::Ptr);
+    std::pair<AST::Ptr, bool> ExpandAssignment(Assignment::Ptr, bool keepMultiOne = false);
 
     //On x86 and x86-64, the value of PC is post-instruction, 
     // which is the current address plus the length of the instruction.

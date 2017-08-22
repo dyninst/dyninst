@@ -4447,97 +4447,22 @@ namespace rose {
                     }
                 };
 
-                struct IP_csinv_execute : P {
-                    void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr result;
-                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
-                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-
-                        if (isTrue(d->ConditionHolds(ops->number_(32, d->getConditionVal(raw))))) {
-                            result = operand1;
-                        } else {
-                            result = operand2;
-
-                            if ((EXTR(30, 30) == 1)) {
-                                result = d->NOT(result);
-                            }
-
-                            if ((EXTR(10, 10) == 1)) {
-                                result = ops->add(result, ops->number_(32, 1));
-                            }
-                        }
-                        d->write(args[0], result);
-
-                    }
-                };
-
-                struct IP_csinc_execute : P {
-                    void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr result;
-                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
-                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-
-                        if (isTrue(d->ConditionHolds(ops->number_(32, d->getConditionVal(raw))))) {
-                            result = operand1;
-                        } else {
-                            result = operand2;
-
-                            if ((EXTR(30, 30) == 1)) {
-                                result = d->NOT(result);
-                            }
-
-                            if ((EXTR(10, 10) == 1)) {
-                                result = ops->add(result, ops->number_(32, 1));
-                            }
-                        }
-                        d->write(args[0], result);
-
-                    }
-                };
-
-                struct IP_csneg_execute : P {
-                    void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr result;
-                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
-                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-
-                        if (isTrue(d->ConditionHolds(ops->number_(32, d->getConditionVal(raw))))) {
-                            result = operand1;
-                        } else {
-                            result = operand2;
-
-                            if ((EXTR(30, 30) == 1)) {
-                                result = d->NOT(result);
-                            }
-
-                            if ((EXTR(10, 10) == 1)) {
-                                result = ops->add(result, ops->number_(32, 1));
-                            }
-                        }
-                        d->write(args[0], result);
-
-                    }
-                };
-
                 struct IP_csel_execute : P {
                     void p(D d, Ops ops, I insn, A args, B raw) {
                         BaseSemantics::SValuePtr result;
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-
-                        if (isTrue(d->ConditionHolds(ops->number_(32, d->getConditionVal(raw))))) {
-                            result = operand1;
-                        } else {
-                            result = operand2;
-
-                            if ((EXTR(30, 30) == 1)) {
-                                result = d->NOT(result);
-                            }
-
-                            if ((EXTR(10, 10) == 1)) {
-                                result = ops->add(result, ops->number_(32, 1));
-                            }
-                        }
+			BaseSemantics::SValuePtr op2 = operand2;
+			if ((EXTR(30, 30) == 1)) {
+			    op2 = d->NOT(op2);
+			}
+			if ((EXTR(10, 10) == 1)) {
+			    op2 = ops->add(op2, ops->number_(32, 1));
+			}
+			result = ops->ite(
+                                ops->isEqual(d->ConditionHolds(ops->number_(32, d->getConditionVal(raw))), ops->boolean_(true)),
+                                operand1,
+				op2);
                         d->write(args[0], result);
 
                     }
@@ -4960,30 +4885,13 @@ namespace rose {
                         BaseSemantics::SValuePtr operand1 = d->read(args[1]);
                         BaseSemantics::SValuePtr operand2 = d->read(args[2]);
                         BaseSemantics::SValuePtr result;
+			result = d->RoundTowardsZero(ops->unsignedDivide(d->Int(operand1, true), d->Int(operand2, true)));
 
-                        if (isTrue(d->isZero(operand2))) {
-                            result = d->Zeros(64);
-                        } else {
-                            result = d->RoundTowardsZero(
-                                    ops->unsignedDivide(d->Int(operand1, true), d->Int(operand2, true)));
-                        }
-                        d->write(args[0], ops->extract(result, 0, d->getDatasize(raw) - 1 + 1));
+			result = ops->ite(
+                                ops->isEqual(d->isZero(operand2), ops->boolean_(true)),
+                                d->Zeros(64),
+				result);
 
-                    }
-                };
-
-                struct IP_sdiv_execute : P {                    //
-                    void p(D d, Ops ops, I insn, A args, B raw) {
-                        BaseSemantics::SValuePtr operand1 = d->read(args[1]);
-                        BaseSemantics::SValuePtr operand2 = d->read(args[2]);
-                        BaseSemantics::SValuePtr result;
-
-                        if (isTrue(d->isZero(operand2))) {
-                            result = d->Zeros(64);
-                        } else {
-                            result = d->RoundTowardsZero(
-                                    ops->unsignedDivide(d->Int(operand1, true), d->Int(operand2, true)));
-                        }
                         d->write(args[0], ops->extract(result, 0, d->getDatasize(raw) - 1 + 1));
 
                     }
@@ -5127,9 +5035,9 @@ namespace rose {
                 iproc_set(rose_aarch64_op_negs_subs_addsub_shift, new ARM64::IP_negs_subs_addsub_shift_execute);
                 iproc_set(rose_aarch64_op_mvn_orn_log_shift, new ARM64::IP_mvn_orn_log_shift_execute);
                 iproc_set(rose_aarch64_op_mov_add_addsub_imm, new ARM64::IP_mov_add_addsub_imm_execute);
-                iproc_set(rose_aarch64_op_csinv, new ARM64::IP_csinv_execute);
-                iproc_set(rose_aarch64_op_csinc, new ARM64::IP_csinc_execute);
-                iproc_set(rose_aarch64_op_csneg, new ARM64::IP_csneg_execute);
+                iproc_set(rose_aarch64_op_csinv, new ARM64::IP_csel_execute);
+                iproc_set(rose_aarch64_op_csinc, new ARM64::IP_csel_execute);
+                iproc_set(rose_aarch64_op_csneg, new ARM64::IP_csel_execute);
                 iproc_set(rose_aarch64_op_csel, new ARM64::IP_csel_execute);
                 iproc_set(rose_aarch64_op_cls_int, new ARM64::IP_cls_int_execute);
                 iproc_set(rose_aarch64_op_clz_int, new ARM64::IP_clz_int_execute);
@@ -5154,21 +5062,7 @@ namespace rose {
                 iproc_set(rose_aarch64_op_stlrb, new ARM64::IP_stlrb_execute);
                 iproc_set(rose_aarch64_op_stlrh, new ARM64::IP_stlrh_execute);
                 iproc_set(rose_aarch64_op_udiv, new ARM64::IP_udiv_execute);
-                iproc_set(rose_aarch64_op_sdiv, new ARM64::IP_sdiv_execute);
-            }
-
-            bool
-            isTrue(const BaseSemantics::SValuePtr &expr) {
-                ASSERT_not_null(expr);
-                Dyninst::AST::Ptr astPtr = SymEvalSemantics::SValue::promote(expr)->get_expression();
-                Dyninst::DataflowAPI::ConstantAST *
-                constAST = dynamic_cast<Dyninst::DataflowAPI::ConstantAST *>(astPtr.get());
-                ASSERT_not_null(constAST);
-
-                Dyninst::DataflowAPI::Constant constVal = constAST->val();
-                uint64_t condVal = constVal.val;
-
-                return condVal == 1;
+                iproc_set(rose_aarch64_op_sdiv, new ARM64::IP_udiv_execute);
             }
 
             void

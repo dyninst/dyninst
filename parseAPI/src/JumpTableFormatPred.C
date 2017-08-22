@@ -165,7 +165,7 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	 * If we encounter an instruction that we do not have semantics,
 	 * we should inspect this case.
 	 */
-	pair<AST::Ptr, bool> expandRet = se.ExpandAssignment(n->assign());
+	pair<AST::Ptr, bool> expandRet = se.ExpandAssignment(n->assign(), true);
 	if (!expandRet.second || expandRet.first == NULL) {
 	    parsing_printf("\tWARNING: Jump table format slice contains unknown instructions: %s\n", n->assign()->insn()->format().c_str());
 	    unknownInstruction = true;
