@@ -127,7 +127,7 @@ int getAccessSize(InstructionAPI::Instruction::Ptr insn)
 #endif
 class detectToppedLoc : public InstructionAPI::Visitor {
 private:
-    typedef std::vector<std::pair<Absloc, std::set<StackAnalysis::DefHeight> > >
+    typedef std::vector<std::pair<Absloc, StackAnalysis::DefHeightSet> >
         DefHeights;
     bool defined;
     bool containsToppedReg;
@@ -211,7 +211,7 @@ public:
         Absloc regLoc(reg);
         for (auto iter = defHeights.begin(); iter != defHeights.end(); iter++) {
             if (regLoc == iter->first) {
-                if (StackAnalysis::isTopSet(iter->second)) {
+                if (iter->second.isTopSet()) {
                     containsToppedReg = true;
                     results.push_back((long) top);
                 } else {
@@ -231,11 +231,11 @@ public:
 };
 
 
-bool defsSameHeights(const std::set<StackAnalysis::DefHeight> &dhSet) {
+bool defsSameHeights(const StackAnalysis::DefHeightSet &dhSet) {
     if (dhSet.size() == 0) return true;
-    const StackAnalysis::Height &h = dhSet.begin()->second;
+    const StackAnalysis::Height &h = dhSet.begin()->height;
     for (auto iter = dhSet.begin(); iter != dhSet.end(); iter++) {
-        if (h != iter->second) return false;
+        if (h != iter->height) return false;
     }
     return true;
 }
@@ -257,8 +257,7 @@ bool getAccesses(ParseAPI::Function* func,
     insn->getReadSet(readRegs);
     StackAnalysis sa(func);
     std::vector<std::pair<Absloc, StackAnalysis::Height> > heights;
-    std::vector<std::pair<Absloc, std::set<StackAnalysis::DefHeight> > >
-        defHeights;
+    std::vector<std::pair<Absloc, StackAnalysis::DefHeightSet> > defHeights;
     sa.findDefinedHeights(block, addr, heights);
     sa.findDefHeightPairs(block, addr, defHeights);
 
@@ -276,6 +275,8 @@ bool getAccesses(ParseAPI::Function* func,
         assert(0);
     }
 
+    std::set<long> extraStackOffsetsToCheck;
+
     int word_size = func->isrc()->getAddressWidth();
 
     // If this instruction is a call, check if any stack pointers are possibly
@@ -291,14 +292,22 @@ bool getAccesses(ParseAPI::Function* func,
             if (reg.regClass() == gpr && callParamRegs.test(iter->second)) {
                 // This register is used as a parameter. Check if it contains a
                 // stack pointer.
-                const std::set<StackAnalysis::DefHeight> &dhSet =
+                const StackAnalysis::DefHeightSet &dhSet =
                     sa.findDefHeight(block, addr, Absloc(reg));
-                if (!StackAnalysis::isTopSet(dhSet)) {
+                if (!dhSet.isTopSet()) {
                     for (auto dhIter = dhSet.begin(); dhIter != dhSet.end();
                         dhIter++) {
-                        const StackAnalysis::Definition &def = dhIter->first;
+                        const StackAnalysis::Definition &def = dhIter->def;
+                        const StackAnalysis::Height &h = dhIter->height;
                         if (def.addr != 0) {
                             defPointsToMod.insert(def.addr);
+                            if (!h.isTop() && !h.isBottom()) {
+                                // Check another level of indirection.
+                                // If the location this pointer points to also
+                                // contains a stack height, we need to modify
+                                // its definition as well.
+                                extraStackOffsetsToCheck.insert(h.height());
+                            }
                         } else {
                             return false;
                         }
@@ -323,12 +332,15 @@ bool getAccesses(ParseAPI::Function* func,
                 if (loc.type() != Absloc::Stack) continue;
                 long stackOff = loc.off();
 
-                if (stackOff < ub && stackOff >= lb && !h.isTop()) {
-                    const std::set<StackAnalysis::DefHeight> &dhSet =
+                if ((extraStackOffsetsToCheck.find(stackOff) !=
+                    extraStackOffsetsToCheck.end() ||
+                    (stackOff < ub && stackOff >= lb))
+                    && !h.isTop()) {
+                    const StackAnalysis::DefHeightSet &dhSet =
                         sa.findDefHeight(block, addr, loc);
                     for (auto dhIter = dhSet.begin(); dhIter != dhSet.end();
                         dhIter++) {
-                        const StackAnalysis::Definition &def = dhIter->first;
+                        const StackAnalysis::Definition &def = dhIter->def;
                         if (def.addr != 0) {
                             defPointsToMod.insert(def.addr);
                         } else {
@@ -344,11 +356,11 @@ bool getAccesses(ParseAPI::Function* func,
                 const Absloc &loc = iter->first;
                 const StackAnalysis::Height &h = iter->second;
                 if (loc.type() == Absloc::Stack && !h.isTop()) {
-                    const std::set<StackAnalysis::DefHeight> &dhSet =
+                    const StackAnalysis::DefHeightSet &dhSet =
                         sa.findDefHeight(block, addr, loc);
                     for (auto dhIter = dhSet.begin(); dhIter != dhSet.end();
                         dhIter++) {
-                        const StackAnalysis::Definition &def = dhIter->first;
+                        const StackAnalysis::Definition &def = dhIter->def;
                         if (def.addr != 0) {
                             defPointsToMod.insert(def.addr);
                         } else {
@@ -375,10 +387,10 @@ bool getAccesses(ParseAPI::Function* func,
             continue;
         }
 
-        const std::set<StackAnalysis::DefHeight> &dhSet = iter->second;
+        const StackAnalysis::DefHeightSet &dhSet = iter->second;
         for (auto dhIter = dhSet.begin(); dhIter != dhSet.end(); dhIter++) {
-            const StackAnalysis::Definition &curDef = dhIter->first;
-            const StackAnalysis::Height &curHeight = dhIter->second;
+            const StackAnalysis::Definition &curDef = dhIter->def;
+            const StackAnalysis::Height &curHeight = dhIter->height;
             StackAccess* access = NULL;
             if (getMemoryOffset(func,
                         block,
@@ -417,7 +429,7 @@ bool getAccesses(ParseAPI::Function* func,
             if (!defsSameHeights(dhSet)) {
                 for (auto dhIter = dhSet.begin(); dhIter != dhSet.end();
                     dhIter++) {
-                    const StackAnalysis::Definition &d = dhIter->first;
+                    const StackAnalysis::Definition &d = dhIter->def;
                     if (d.type != StackAnalysis::Definition::DEF ||
                         d.addr == 0) {
                         stackmods_printf("\t\t\t\t INVALID: Multiple accesses "
@@ -454,7 +466,7 @@ bool getAccesses(ParseAPI::Function* func,
                 for (auto hIter = defHeights.begin(); hIter != defHeights.end();
                     hIter++) {
                     if (hIter->first == regLoc &&
-                        !StackAnalysis::isTopSet(hIter->second)) {
+                        !hIter->second.isTopSet()) {
                         stackmods_printf("\t\t\t\tINVALID: Writing stack "
                             "height to topped location\n");
                         return false;
@@ -624,7 +636,7 @@ bool getMemoryOffset(ParseAPI::Function* func,
 
     for (unsigned i = 0; i < operands.size(); i++) {
         stackmods_printf("\t\t\t\t operand[%d] = %s\n", i,
-            operands[i].getValue()->format().c_str());
+            operands[i].getValue()->format(insn->getFormatter()).c_str());
 
         // Set match if reg is read or written
         bool match = false;

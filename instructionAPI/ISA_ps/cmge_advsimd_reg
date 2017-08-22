@@ -1,0 +1,18 @@
+##cmge_advsimd_reg_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize) operand1 = V[n];
+bits(datasize) operand2 = V[m];
+bits(datasize) result;
+integer element1;
+integer element2;
+boolean test_passed;
+
+for e = 0 to elements-1
+    element1 = Int(Elem[operand1, e, esize], unsigned);
+    element2 = Int(Elem[operand2, e, esize], unsigned);
+    test_passed = if cmp_eq then element1 >= element2 else element1 > element2;
+    Elem[result, e, esize] = if test_passed then Ones() else Zeros(64);
+
+    end
+V[d] = result;
+@@

@@ -31,7 +31,6 @@
 #define _PARSER_DETAILS_H_
 
 #include "IA_IAPI.h"
-#include <boost/shared_ptr.hpp>
 
 namespace Dyninst {
 namespace ParseAPI {
@@ -175,7 +174,7 @@ class ParseWorkElem
 
     // This work element is a continuation of
     // parsing jump tables
-    ParseWorkElem(ParseWorkBundle *bundle, Block *b, boost::shared_ptr<InsnAdapter::IA_IAPI> ah)
+    ParseWorkElem(ParseWorkBundle *bundle, Block *b, const InsnAdapter::IA_IAPI* ah)
          : _bundle(bundle),
           _edge(NULL),
           _targ((Address)-1),
@@ -183,8 +182,8 @@ class ParseWorkElem
           _tailcall(false),
           _order(resolve_jump_table),
           _call_processed(false),
-	  _cur(b),
-        _ah(ah){
+	  _cur(b) {	      
+	      _ah = ah->clone();
 	  }
 
     ~ParseWorkElem() {

@@ -1,0 +1,18 @@
+##prfm_lit_execute
+bits(64) address = PC[] + offset;
+bits(size*8) data;
+
+case memop of
+    when MemOp_LOAD
+        data = Mem[address, size, AccType_NORMAL];
+        if signed then
+            X[t] = SignExtend(data, 64);
+        else
+            X[t] = data;
+        end
+
+    end
+    when MemOp_PREFETCH
+        Prefetch(address, t<4:0>);
+    end
+@@

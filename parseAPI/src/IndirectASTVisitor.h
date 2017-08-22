@@ -14,14 +14,21 @@ using namespace Dyninst::DataflowAPI;
 
 //bool PerformTableRead(StridedInterval &target, set<int64_t> & jumpTargets, CodeSource*);
 
+#define SIGNEX_64_32 0xffffffff00000000LL
+#define SIGNEX_64_16 0xffffffffffff0000LL
+#define SIGNEX_64_8  0xffffffffffffff00LL
+#define SIGNEX_32_16 0xffff0000
+#define SIGNEX_32_8 0xffffff00
+
 
 
 class SimplifyVisitor: public ASTVisitor {
     Address addr;
+    bool keepMultiOne;
 public:
     using ASTVisitor::visit;
     virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
-    SimplifyVisitor(Address a): addr(a) {}
+    SimplifyVisitor(Address a, bool k): addr(a), keepMultiOne(k) {}
 };
 
 
@@ -73,10 +80,12 @@ public:
     using ASTVisitor::visit;
     AbsRegion index;
     int numOfVar;
+    int memoryReadLayer;
     ParseAPI::Block *b;
     bool findIncorrectFormat;
-    bool findTableBase;
+    bool findTableBase;    
     bool findIndex;
+    bool firstAdd;
     virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
     virtual ASTPtr visit(DataflowAPI::VariableAST *ast);
     JumpTableFormatVisitor(ParseAPI::Block *bl);

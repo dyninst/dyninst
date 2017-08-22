@@ -135,7 +135,8 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
         Absloc dest;
 
         AssignList sensitiveAssignments;
-        if (insnIsThunkCall(insn, addr, dest)) {
+        if (insn->getOperation().getID() == e_call &&
+            insnIsThunkCall(insn, addr, dest)) {
             relocation_cerr << "\tThunk @ " << hex << addr << dec << endl;
             handleThunkCall(reloc, g, iter, dest);
             intSens_++;

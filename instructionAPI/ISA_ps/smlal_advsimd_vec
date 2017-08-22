@@ -1,0 +1,24 @@
+##smlal_advsimd_vec_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize)   operand1 = Vpart[n, part];
+bits(datasize)   operand2 = Vpart[m, part];
+bits(2*datasize) operand3 = V[d];
+bits(2*datasize) result;
+integer element1;
+integer element2;
+bits(2*esize) product;
+bits(2*esize) accum;
+
+for e = 0 to elements-1
+    element1 = Int(Elem[operand1, e, esize], unsigned);
+    element2 = Int(Elem[operand2, e, esize], unsigned);
+    product = (element1 * element2)<2*esize-1:0>;
+    if sub_op then
+        accum = Elem[operand3, e, 2*esize] - product;
+    else
+        accum = Elem[operand3, e, 2*esize] + product;
+    end
+    Elem[result, e, 2*esize] = accum;
+
+V[d] = result;
+@@

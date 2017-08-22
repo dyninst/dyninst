@@ -17,10 +17,11 @@ class IndirectControlFlowAnalyzer {
 
     void GetAllReachableBlock();  
     void FindAllThunks();
-    void ReadTable(AST::Ptr, 
-                   AbsRegion, 
-		   StridedInterval &,  
+    void ReadTable(AST::Ptr,
+                   AbsRegion,
+		   StridedInterval &,
 		   int ,
+		   std::set<Address> &,
 		   std::vector<std::pair<Address, Dyninst::ParseAPI::EdgeTypeEnum> > &);
     int GetMemoryReadSize(Assignment::Ptr loc);
 

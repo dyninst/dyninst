@@ -1,0 +1,26 @@
+##ushl_advsimd_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize) operand1 = V[n];
+bits(datasize) operand2 = V[m];
+bits(datasize) result;
+
+integer round_const = 0;
+integer shift;
+integer element;
+boolean sat;
+
+for e = 0 to elements-1
+    shift = SInt(Elem[operand2, e, esize]<7:0>);
+    if rounding then
+        round_const = 1 << (-shift - 1); // 0 for left shift, 2^(n-1) for right shift 
+    element = (Int(Elem[operand1, e, esize], unsigned) + round_const) << shift;
+    if saturating then
+        (Elem[result, e, esize], sat) = SatQ(element, esize, unsigned);
+        if sat then FPSR.QC = 1;
+    else
+        end
+        Elem[result, e, esize] = element<esize-1:0>;
+    end
+
+V[d] = result;
+@@

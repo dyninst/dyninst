@@ -77,17 +77,18 @@ Block::consistent(Address addr, Address & prev_insn)
     const unsigned char * buf =
         (const unsigned char*)(region()->getPtrToInstruction(_start));
     InstructionDecoder dec(buf,size(),isrc->getArch());
-    InstructionAdapter_t ah(dec,_start,_obj,region(),isrc, this);
+    InstructionAdapter_t* ah = InstructionAdapter_t::makePlatformIA_IAPI(_obj->cs()->getArch(), dec,_start,_obj,region(),isrc, this);
 
-    Address cur = ah.getAddr();
+    Address cur = ah->getAddr();
     //parsing_printf("consistency check for [%lx,%lx), start: %lx addr: %lx\n",
         //start(),end(),cur,addr);
     while(cur < addr) {
-        ah.advance();
+        ah->advance();
         prev_insn = cur;
-        cur = ah.getAddr();
+        cur = ah->getAddr();
         //parsing_printf(" cur: %lx\n",cur);
     }
+    delete ah;
     return cur == addr;
 }
 

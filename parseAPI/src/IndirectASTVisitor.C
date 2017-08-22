@@ -5,18 +5,12 @@
 #include <algorithm>
 #include "SymbolicExpression.h"
 using namespace Dyninst::ParseAPI;
-#define SIGNEX_64_32 0xffffffff00000000LL
-#define SIGNEX_64_16 0xffffffffffff0000LL
-#define SIGNEX_64_8  0xffffffffffffff00LL
-#define SIGNEX_32_16 0xffff0000
-#define SIGNEX_32_8 0xffffff00
-
 
 AST::Ptr SimplifyVisitor::visit(DataflowAPI::RoseAST *ast) {
         unsigned totalChildren = ast->numChildren();
 	for (unsigned i = 0 ; i < totalChildren; ++i) {
 	    ast->child(i)->accept(this);
-	    ast->setChild(i, SymbolicExpression::SimplifyRoot(ast->child(i), addr));
+	    ast->setChild(i, SymbolicExpression::SimplifyRoot(ast->child(i), addr, keepMultiOne));
 	}
 	return AST::Ptr();
 }
@@ -57,6 +51,7 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 	    // a cmp bound not found yet. So we only apply and
 	    // bound when this is the last attempt
 	    if (handleOneByteRead) {
+	        parsing_printf("\tTry to generate bound for AND\n");
 	        StridedInterval *val = NULL;
 		if (IsResultBounded(ast->child(0)))
 		    val = new StridedInterval(*GetResultBound(ast->child(0)));
@@ -83,6 +78,7 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 	    }
 	    break;
 	case ROSEOperation::shiftLOp:
+	case ROSEOperation::rotateLOp:
 	    if (IsResultBounded(ast->child(0)) && IsResultBounded(ast->child(1))) {
 	        StridedInterval *val = new StridedInterval(*GetResultBound(ast->child(0)));
 	        val->ShiftLeft(*GetResultBound(ast->child(1)));
@@ -91,6 +87,7 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::RoseAST *ast) {
 	    }
 	    break;
 	case ROSEOperation::shiftROp:
+	case ROSEOperation::rotateROp:
 	    if (IsResultBounded(ast->child(0)) && IsResultBounded(ast->child(1))) {
 	        StridedInterval *val = new StridedInterval(*GetResultBound(ast->child(0)));
 	        val->ShiftRight(*GetResultBound(ast->child(1)));
@@ -136,6 +133,7 @@ AST::Ptr BoundCalcVisitor::visit(DataflowAPI::ConstantAST *ast) {
 	// and change it to a negative number
         value = -(((~value) & ((1ULL << v.size) - 1)) + 1);
     }
+    parsing_printf("\t\tGet a constant %ld\n", value);
     bound.insert(make_pair(ast, new StridedInterval(value)));
     return AST::Ptr();
 }
@@ -179,7 +177,11 @@ AST::Ptr ComparisonVisitor::visit(DataflowAPI::RoseAST *ast) {
     // For cmp type instruction setting zf
     // Looking like <eqZero?>(<add>(<V([x86_64::rbx])>,<Imm:8>,),)
     // Assuming ast has been simplified
-    if (ast->val().op == ROSEOperation::equalToZeroOp) {
+    unsigned totalChildren = ast->numChildren();
+    for (unsigned i = 0 ; i < totalChildren; ++i) {
+        ast->child(i)->accept(this);
+    }
+    if (ast->val().op == ROSEOperation::equalToZeroOp && !subtrahend) {
         bool minuendIsZero = true;
         AST::Ptr child = ast->child(0);	
 	if (child->getID() == AST::V_RoseAST) {
@@ -214,6 +216,12 @@ AST::Ptr ComparisonVisitor::visit(DataflowAPI::RoseAST *ast) {
 		    }
 		}
 	    } 	
+	    if (childRose->val().op == ROSEOperation::xorOp) {
+	        minuendIsZero = false;
+	        subtrahend = childRose->child(0);
+		minuend = childRose->child(1);
+	    }
+
 	} 
 	if (minuendIsZero) {
             // The minuend is 0, thus the add operation is subsume.
@@ -227,29 +235,28 @@ AST::Ptr ComparisonVisitor::visit(DataflowAPI::RoseAST *ast) {
 JumpTableFormatVisitor::JumpTableFormatVisitor(ParseAPI::Block *bl) {
     b = bl;
     numOfVar = 0;
+    memoryReadLayer = 0; 
     findIncorrectFormat = false;
     findTableBase = false;
     findIndex = false;
+    firstAdd = true;
 }
 
 AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
-    unsigned totalChildren = ast->numChildren();
-    for (unsigned i = 0 ; i < totalChildren; ++i) {
-        ast->child(i)->accept(this);
+    if (ast->val().op == ROSEOperation::derefOp) {
+        memoryReadLayer++;
+	if (memoryReadLayer > 1) {
+	    parsing_printf("More than one layer of memory accesses, not jump table format\n");
+	    findIncorrectFormat = true;
+	    return AST::Ptr();
+	}
+	ast->child(0)->accept(this);
+	memoryReadLayer--;
+	return AST::Ptr();
     }
 
-    if (ast->val().op == ROSEOperation::derefOp) {
-        // We only check the first memory read
-	if (ast->child(0)->getID() == AST::V_RoseAST) {
-	    RoseAST::Ptr roseAST = boost::static_pointer_cast<RoseAST>(ast->child(0));
-	    if (roseAST->val().op == ROSEOperation::derefOp) {
-	        // Two directly nested memory accesses cannot be jump tables
-		parsing_printf("Two directly nested memory access, not jump table format\n");
-	        findIncorrectFormat = true;
-		return AST::Ptr();
-	    }
-	}
-    } else if (ast->val().op == ROSEOperation::addOp) {
+    if (ast->val().op == ROSEOperation::addOp && memoryReadLayer > 0 && firstAdd) {
+        firstAdd = false;
         Address tableBase = 0;
 	if (ast->child(0)->getID() == AST::V_ConstantAST && PotentialIndexing(ast->child(1))) {
 	    ConstantAST::Ptr constAST = boost::static_pointer_cast<ConstantAST>(ast->child(0));
@@ -272,18 +279,21 @@ AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
 		findIncorrectFormat = true;
 		return AST::Ptr();
 	    }
+/*
 	    if (!b->obj()->cs()->isReadOnly(tableBase)) {
 	        parsing_printf("\ttableBase 0x%lx not read only, not jump table format\n", tableBase);
 		findIncorrectFormat = true;
 		return AST::Ptr();
 	    }
-	    // Note that this table base may not be within a memory read.
-	    // Functions with variable arguments often have an indirect jump with form:
-	    // targetBase - index * 4
-	    // We merge this special case with other general jump table cases.
+*/	    
 	    findTableBase = true;
        }
-    } else if (ast->val().op == ROSEOperation::uMultOp || ast->val().op == ROSEOperation::sMultOp) {
+    } 
+    
+    if ((ast->val().op == ROSEOperation::uMultOp || 
+         ast->val().op == ROSEOperation::sMultOp || 
+	 ast->val().op == ROSEOperation::shiftLOp ||
+	 ast->val().op == ROSEOperation::rotateLOp) && memoryReadLayer > 0) {
 	if (ast->child(0)->getID() == AST::V_ConstantAST && ast->child(1)->getID() == AST::V_VariableAST) {
 	    findIndex = true;
 	    numOfVar++;
@@ -299,6 +309,12 @@ AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
 	    return AST::Ptr();
 	}
     }
+
+    unsigned totalChildren = ast->numChildren();
+    for (unsigned i = 0 ; i < totalChildren; ++i) {
+        ast->child(i)->accept(this);
+    }
+
     return AST::Ptr();
 }
 
@@ -311,7 +327,15 @@ bool JumpTableFormatVisitor::PotentialIndexing(AST::Ptr ast) {
     if (ast->getID() == AST::V_VariableAST) return true;
     if (ast->getID() == AST::V_RoseAST) {
         RoseAST::Ptr r = boost::static_pointer_cast<RoseAST>(ast);
-	if (r->val().op == ROSEOperation::uMultOp || r->val().op == ROSEOperation::sMultOp) return true;
+	if (r->val().op == ROSEOperation::uMultOp || 
+	    r->val().op == ROSEOperation::sMultOp || 
+	    r->val().op == ROSEOperation::shiftLOp || 
+	    r->val().op == ROSEOperation::rotateLOp) {
+	    if (r->child(0)->getID() == AST::V_RoseAST) {
+	        return false;
+	    }
+	    return true;
+	}
 	if (r->val().op == ROSEOperation::addOp) {
 	    // The index can be subtracted 
 	    if (r->child(0)->getID() == AST::V_RoseAST && r->child(1)->getID() == AST::V_ConstantAST) {
@@ -359,9 +383,11 @@ AST::Ptr JumpTableReadVisitor::visit(DataflowAPI::RoseAST *ast) {
 	    results.insert(make_pair(ast, results[ast->child(0).get()] * results[ast->child(1).get()]));
 	    break;
 	case ROSEOperation::shiftLOp:
+	case ROSEOperation::rotateLOp:
 	    results.insert(make_pair(ast, results[ast->child(0).get()] << results[ast->child(1).get()]));
 	    break;
 	case ROSEOperation::shiftROp:
+	case ROSEOperation::rotateROp:
 	    results.insert(make_pair(ast, results[ast->child(0).get()] >> results[ast->child(1).get()]));
 	    break;
 	case ROSEOperation::derefOp: {
@@ -431,7 +457,7 @@ bool JumpTableReadVisitor::PerformMemoryRead(Address addr, int64_t &v) {
     addr -= cs->loadAddress();
 #endif
     if (!cs->isCode(addr) && !cs->isData(addr)) return false;
-    if (!cs->isReadOnly(addr)) return false;
+//    if (!cs->isReadOnly(addr)) return false;
     switch (memoryReadSize) {
         case 8:
 	    v = *(const uint64_t *) cs->getPtrToInstruction(addr);

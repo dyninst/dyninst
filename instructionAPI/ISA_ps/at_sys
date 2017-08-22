@@ -1,0 +1,6 @@
+##at_sys_execute
+if has_result then
+    X[t] = SysOp_R(sys_op0, sys_op1, sys_crn, sys_crm, sys_op2);
+else
+    SysOp_W(sys_op0, sys_op1, sys_crn, sys_crm, sys_op2, X[t]);
+@@

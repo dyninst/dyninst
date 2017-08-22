@@ -1,0 +1,11 @@
+##rev16_advsimd_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize) operand = V[n];
+bits(datasize) result;
+integer e_rev;
+for e = 0 to elements-1
+    e_rev = UInt(e<3:0> EOR revmask);
+    Elem[result, e_rev, esize] = Elem[operand, e, esize];
+
+V[d] = result;
+@@

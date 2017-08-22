@@ -169,6 +169,9 @@ private:
             assert(cellSize_ == 0);
             assert(cellSize > 0);
             cellSize_ = cellSize;
+	    for (int i = 0; i < N_FREE_LISTS; ++i) {
+	        freeLists_[i] = NULL;
+	    }
         }
         
     public:

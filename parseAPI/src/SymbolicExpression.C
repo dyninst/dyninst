@@ -10,7 +10,44 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::DataflowAPI;
-AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr) {
+
+CodeSource* SymbolicExpression::cs = NULL;
+
+bool SymbolicExpression::ReadMemory(Address addr, uint64_t &v, int ) {
+    int addressWidth = cs->getAddressWidth();
+    if (addressWidth == 4) {
+        addr &= 0xffffffff;
+    }
+
+#if defined(os_windows)
+    addr -= cs->loadAddress();
+#endif
+    if (!cs->isCode(addr) && !cs->isData(addr)) return false;
+    v = *(const uint64_t *) cs->getPtrToInstruction(addr);
+/*
+    switch (memoryReadSize) {
+        case 0:
+        case 8:
+	    v = *(const uint64_t *) cs->getPtrToInstruction(addr);
+	    break;
+	case 4:
+	    v = *(const uint32_t *) cs->getPtrToInstruction(addr);
+	    break;
+	case 2:
+	    v = *(const uint16_t *) cs->getPtrToInstruction(addr);
+	    break;
+	case 1:
+	    v = *(const uint8_t *) cs->getPtrToInstruction(addr);
+	    break;	    
+	default:
+	    parsing_printf("Invalid memory read size %d\n", memoryReadSize);
+	    return false;
+    }
+*/
+    return true;
+}
+
+AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepMultiOne) {
     if (ast->getID() == AST::V_RoseAST) {
         RoseAST::Ptr roseAST = boost::static_pointer_cast<RoseAST>(ast); 
 	
@@ -31,12 +68,63 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr) {
 		    return ConstantAST::create(Constant(val, size));
 		}
 		break;
-	    case ROSEOperation::extendMSBOp:
-	    case ROSEOperation::extractOp:
-	    case ROSEOperation::signExtendOp:
-	    case ROSEOperation::concatOp:
+	    case ROSEOperation::extendMSBOp: {
 	        return roseAST->child(0);
+	    }
+	    case ROSEOperation::extractOp: {
+	        if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
+		    size_t size = roseAST->val().size;
+		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    return ConstantAST::create(Constant(child0->val().val,size));
+		}
+		return roseAST->child(0);
+	    }
+	    case ROSEOperation::signExtendOp: {
+	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    uint64_t val = child0->val().val;
+		    if (val & (1 << (child0->val().size - 1))) {
+		        switch (child0->val().size) {
+			   case 16:
+			       val = val | SIGNEX_64_16;
+			       break;
+			   case 32:
+			       val = val | SIGNEX_64_32;
+			       break;
+			   default:
+			       break;
+			}
+		    } 
+		    size_t size = child1->val().val;
+		    return ConstantAST::create(Constant(val,size));
+                }		    
+	        return roseAST->child(0);
+	    }
+	    case ROSEOperation::concatOp: {	    
+	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    uint64_t val = (child1->val().val << child0->val().size) + child0->val().val;
+		    size_t size = child1->val().size + child0->val().size;
+		    return ConstantAST::create(Constant(val,size));
+                }		    
+		if (roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    if (child1->val().val == 0) {
+		        return roseAST->child(0);
+		    }
+		}
+	        if (roseAST->child(0)->getID() == AST::V_VariableAST && roseAST->child(1)->getID() == AST::V_VariableAST) {
+		    VariableAST::Ptr child0 = boost::static_pointer_cast<VariableAST>(roseAST->child(0));
+		    VariableAST::Ptr child1 = boost::static_pointer_cast<VariableAST>(roseAST->child(1));
+		    if (child0->val() == child1->val()) {
+		        return roseAST->child(0);
+		    }
+                }		    
+		break;
 
+	    }
 	    case ROSEOperation::addOp:
 	        // We simplify the addition as much as we can
 		// Case 1: two constants
@@ -81,15 +169,14 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr) {
 	    case ROSEOperation::uMultOp:
 	        if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
-		    if (child0->val().val == 1) return roseAST->child(1);
+		    if (child0->val().val == 1 && !keepMultiOne) return roseAST->child(1);
 		}
 
 	        if (roseAST->child(1)->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
-		    if (child1->val().val == 1) return roseAST->child(0);
+		    if (child1->val().val == 1 && !keepMultiOne) return roseAST->child(0);
 		}
 	        break;
-
 	    case ROSEOperation::xorOp:
 	        if (roseAST->child(0)->getID() == AST::V_VariableAST && roseAST->child(1)->getID() == AST::V_VariableAST) {
 		    VariableAST::Ptr child0 = boost::static_pointer_cast<VariableAST>(roseAST->child(0)); 
@@ -103,16 +190,30 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr) {
 	        // Any 8-bit value is bounded in [0,255].
 		// Need to keep the length of the dereference if it is 8-bit.
 		// However, dereference longer than 8-bit should be regarded the same.
+		if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
+		    uint64_t val = 0;
+		    ConstantAST::Ptr c = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    Address addr = c->val().val;
+		    if (ReadMemory(addr, val, roseAST->val().size / 8)) {
+		        return ConstantAST::create(Constant(val, 64));
+		    }
+		}
 	        if (roseAST->val().size == 8)
 		    return ast;
 		else
 		    return RoseAST::create(ROSEOperation(ROSEOperation::derefOp), ast->child(0));
 		break;
 	    case ROSEOperation::shiftLOp:
+	    case ROSEOperation::rotateLOp:
 	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
 		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
 		    return ConstantAST::create(Constant(child0->val().val << child1->val().val, 64));
+		}
+	        if (roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    parsing_printf("keep multi one %d\n", keepMultiOne);
+		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    if (child1->val().val == 0 && !keepMultiOne) return roseAST->child(0);
 		}
 		break;
 	    case ROSEOperation::andOp:
@@ -129,7 +230,17 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr) {
 		    return ConstantAST::create(Constant(child0->val().val | child1->val().val, 64));
 		}
 		break;
+	    case ROSEOperation::ifOp:
+	        if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr c = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    if (c->val().val != 0) {
+		        return roseAST->child(1);
+		    } else {
+		        return roseAST->child(2);
+		    }
 
+		}
+		break;
 	    default:
 	        break;
 
@@ -159,10 +270,10 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr) {
 }
 
 
-AST::Ptr SymbolicExpression::SimplifyAnAST(AST::Ptr ast, Address addr) {
-    SimplifyVisitor sv(addr);
+AST::Ptr SymbolicExpression::SimplifyAnAST(AST::Ptr ast, Address addr, bool keepMultiOne) {
+    SimplifyVisitor sv(addr, keepMultiOne);
     ast->accept(&sv);
-    return SimplifyRoot(ast, addr);
+    return SimplifyRoot(ast, addr, keepMultiOne);
 }
 
 bool SymbolicExpression::ContainAnAST(AST::Ptr root, AST::Ptr check) {
@@ -200,24 +311,39 @@ AST::Ptr SymbolicExpression::DeepCopyAnAST(AST::Ptr ast) {
 	return AST::Ptr();
 }
 
-pair<AST::Ptr, bool> SymbolicExpression::ExpandAssignment(Assignment::Ptr assign) {
+pair<AST::Ptr, bool> SymbolicExpression::ExpandAssignment(Assignment::Ptr assign, bool keepMultiOne) {
     if (expandCache.find(assign) != expandCache.end()) {
         AST::Ptr ast = expandCache[assign];
-        if (ast) return make_pair(ast, true); else return make_pair(ast, false);
+        if (ast) {
+	    if (!keepMultiOne) ast = SimplifyAnAST(ast, 0, keepMultiOne);
+	    return make_pair(ast, true);
+	} 
+	else {
+	    return make_pair(ast, false);
+	}
     } else {
-        parsing_printf("\t\tExpanding instruction @ %x: %s\n", assign->addr(), assign->insn()->format().c_str());
+        parsing_printf("\t\tExpanding instruction @ %x: %s, assignment %s\n", assign->addr(), assign->insn()->format().c_str(), assign->format().c_str());
         pair<AST::Ptr, bool> expandRet = SymEval::expand(assign, false);
 	if (expandRet.second && expandRet.first) {
 	    parsing_printf("Original expand: %s\n", expandRet.first->format().c_str());
 	    AST::Ptr calculation = SimplifyAnAST(expandRet.first, 
 	                                         PCValue(assign->addr(),
 						         assign->insn()->size(),
-							 assign->block()->obj()->cs()->getArch()));
+							 assign->block()->obj()->cs()->getArch()),
+					         true);
 	    expandCache[assign] = calculation;
 	} else {
+	    if (expandRet.first == NULL) {
+	        parsing_printf("\t\t\t expansion returned null ast\n");
+	    }
+	    if (expandRet.second == false) {
+	        parsing_printf("\t\t\t expansion returned false\n");
+	    }
 	    expandCache[assign] = AST::Ptr();
 	}
-	return make_pair( expandCache[assign], expandRet.second );
+	AST::Ptr ast = expandCache[assign];
+	if (ast && !keepMultiOne) ast = SimplifyAnAST(ast, 0, keepMultiOne);
+	return make_pair( ast, expandRet.second );
     }
 }
 
@@ -245,10 +371,10 @@ Address SymbolicExpression::PCValue(Address cur, size_t insnSize, Architecture a
 	case Arch_x86_64:
 	    return cur + insnSize;
 	case Arch_aarch64:
-	    return cur;
-        case Arch_aarch32:
         case Arch_ppc32:
         case Arch_ppc64:
+	    return cur;
+        case Arch_aarch32:
         case Arch_none:
             assert(0);
     }    

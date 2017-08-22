@@ -13,7 +13,8 @@ set (SRC_LIST
      src/Register.C 
      src/Expression.C 
      src/BinaryFunction.C 
-     src/InstructionCategories.C 
+     src/InstructionCategories.C
+     src/ArchSpecificFormatters.C
      src/Immediate.C 
      src/InstructionDecoder.C 
      src/InstructionDecoder-x86.C

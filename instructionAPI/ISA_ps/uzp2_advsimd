@@ -1,0 +1,13 @@
+##uzp2_advsimd_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize) operandl = V[n];
+bits(datasize) operandh = V[m];
+bits(datasize) result;
+integer e;
+
+bits(datasize*2) zipped = operandh:operandl;
+for e = 0 to elements-1
+    Elem[result, e, esize] = Elem[zipped, 2*e+part, esize];
+
+V[d] = result;
+@@

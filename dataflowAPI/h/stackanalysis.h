@@ -76,6 +76,9 @@ public:
    typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
    typedef boost::shared_ptr<InstructionAPI::Expression> ExpressionPtr;
 
+   // This class represents a stack pointer definition by recording the block
+   // and address of the definition, as well as the original absloc that was
+   // defined by the definition.
    class DATAFLOW_EXPORT Definition {
    public:
       typedef enum {TOP, BOTTOM, DEF} Type;
@@ -126,6 +129,7 @@ public:
       }
    };
 
+   // This class represents offsets on the stack, which we call heights.
    class DATAFLOW_EXPORT Height {
    public:
       typedef signed long Height_t;
@@ -227,9 +231,104 @@ public:
       Type type_;
    };
 
-   typedef std::pair<Definition, Height> DefHeight;
-   DATAFLOW_EXPORT static bool isTopSet(const std::set<DefHeight> &s);
-   DATAFLOW_EXPORT static bool isBottomSet(const std::set<DefHeight> &s);
+   // This class represents pairs of Definitions and Heights.  During our stack
+   // pointer analysis, we keep track of any stack pointers in registers or
+   // memory, as well as the instruction addresses at which those pointers were
+   // defined. This is useful for StackMod, where we sometimes want to modify
+   // pointer definitions to adjust the locations of variables on the stack.
+   // Thus, it makes sense to associate each stack pointer (Height) to the point
+   // at which it was defined (Definition).
+   class DATAFLOW_EXPORT DefHeight {
+   public:
+      DefHeight(const Definition &d, const Height &h) : def(d), height(h) {}
+
+      bool operator==(const DefHeight &other) const {
+         return def == other.def && height == other.height;
+      }
+
+      bool operator<(const DefHeight &other) const {
+         return def < other.def;
+      }
+
+      Definition def;
+      Height height;
+   };
+
+   // In some programs, it is possible for a register or memory location to
+   // contain different stack pointers depending on the path taken to the
+   // current instruction.  When this happens, our stack pointer analysis tries
+   // to keep track of the different possible stack pointers, up to a maximum
+   // number per instruction (specified by the DEF_LIMIT constant).  As a
+   // result, we need a structure to hold sets of DefHeights.  This class fills
+   // that role, providing several useful methods to build, modify, and
+   // extract information from such sets.
+   class DATAFLOW_EXPORT DefHeightSet {
+   public:
+      bool operator==(const DefHeightSet &other) const {
+         return defHeights == other.defHeights;
+      }
+
+      // Returns an iterator to the set of DefHeights
+      std::set<DefHeight>::iterator begin() {
+         return defHeights.begin();
+      }
+
+      // Returns a constant iterator to the set of DefHeights
+      std::set<DefHeight>::const_iterator begin() const {
+         return defHeights.begin();
+      }
+
+      // Returns an iterator to the end of the set of DefHeights
+      std::set<DefHeight>::iterator end() {
+         return defHeights.end();
+      }
+
+      // Returns a constant iterator to the end of the set of DefHeights
+      std::set<DefHeight>::const_iterator end() const {
+         return defHeights.end();
+      }
+
+      // Returns the size of this set
+      std::set<DefHeight>::size_type size() const {
+         return defHeights.size();
+      }
+
+      // Inserts a DefHeight into this set
+      void insert(const DefHeight &dh) {
+         defHeights.insert(dh);
+      }
+
+      // Returns true if this DefHeightSet is TOP
+      bool isTopSet() const;
+
+      // Returns true if this DefHeightSet is BOTTOM
+      bool isBottomSet() const;
+
+      // Sets this DefHeightSet to TOP
+      void makeTopSet();
+
+      // Sets this DefHeightSet to BOTTOM
+      void makeBottomSet();
+
+      // Populates this DefHeightSet with the corresponding information
+      void makeNewSet(ParseAPI::Block *b, Address addr,
+         const Absloc &origLoc, const Height &h);
+
+      // Adds to this DefHeightSet a new definition with height h
+      void addInitSet(const Height &h);
+
+      // Updates all Heights in this set by the delta amount
+      void addDeltaSet(long delta);
+
+      // Returns the result of computing a meet on all Heights in this set
+      Height getHeightSet() const;
+
+      // Returns the result of computing a meet on all Definitions in this set
+      Definition getDefSet() const;
+
+   private:
+      std::set<DefHeight> defHeights;
+   };
 
    // We need to represent the effects of instructions. We do this in terms of
    // transfer functions. We recognize the following effects on the stack.
@@ -251,7 +350,7 @@ public:
    // they are fixed) and RV as a parameter. Note that a transfer function is a
    // function T : (RegisterVector, RegisterID, RegisterID, value) ->
    // (RegisterVector).
-   typedef std::map<Absloc, std::set<DefHeight> > AbslocState;
+   typedef std::map<Absloc, DefHeightSet> AbslocState;
    class DATAFLOW_EXPORT TransferFunc {
    public:
       typedef enum {TOP, BOTTOM, OTHER} Type;
@@ -307,7 +406,7 @@ public:
          return !(*this == rhs);
       }
 
-      std::set<DefHeight> apply(const AbslocState &inputs) const;
+      DefHeightSet apply(const AbslocState &inputs) const;
       void accumulate(std::map<Absloc, TransferFunc> &inputs);
       TransferFunc summaryAccumulate(
          const std::map<Absloc, TransferFunc> &inputs) const;
@@ -395,7 +494,6 @@ public:
 
    DATAFLOW_EXPORT StackAnalysis();
    DATAFLOW_EXPORT StackAnalysis(ParseAPI::Function *f);
-   // TODO: Update DataflowAPI manual
    DATAFLOW_EXPORT StackAnalysis(ParseAPI::Function *f,
       const std::map<Address, Address> &crm,
       const std::map<Address, TransferSet> &fs,
@@ -404,7 +502,7 @@ public:
     DATAFLOW_EXPORT virtual ~StackAnalysis();
 
     DATAFLOW_EXPORT Height find(ParseAPI::Block *, Address addr, Absloc loc);
-    DATAFLOW_EXPORT std::set<DefHeight> findDefHeight(ParseAPI::Block *block,
+    DATAFLOW_EXPORT DefHeightSet findDefHeight(ParseAPI::Block *block,
         Address addr, Absloc loc);
    DATAFLOW_EXPORT Height findSP(ParseAPI::Block *, Address addr);
    DATAFLOW_EXPORT Height findFP(ParseAPI::Block *, Address addr);
@@ -412,9 +510,8 @@ public:
       std::vector<std::pair<Absloc, Height> >& heights);
    // TODO: Update DataflowAPI manual
    DATAFLOW_EXPORT void findDefHeightPairs(ParseAPI::Block *b, Address addr,
-      std::vector<std::pair<Absloc, std::set<DefHeight> > > &defHeights);
+      std::vector<std::pair<Absloc, DefHeightSet> > &defHeights);
 
-   // TODO: Update DataflowAPI manual
    DATAFLOW_EXPORT bool canGetFunctionSummary();
    DATAFLOW_EXPORT bool getFunctionSummary(TransferSet &summary);
 
@@ -444,8 +541,8 @@ private:
    void meetSummaryInputs(ParseAPI::Block *b, TransferSet &blockInput,
       TransferSet &input);
    DefHeight meetDefHeight(const DefHeight &dh1, const DefHeight &dh2);
-   std::set<DefHeight> meetDefHeights(const std::set<DefHeight> &s1,
-      const std::set<DefHeight> &s2);
+   DefHeightSet meetDefHeights(const DefHeightSet &s1,
+      const DefHeightSet &s2);
    void meet(const AbslocState &source, AbslocState &accum);
    void meetSummary(const TransferSet &source, TransferSet &accum);
    AbslocState getSrcOutputLocs(ParseAPI::Edge* e);
@@ -496,15 +593,6 @@ private:
    void retopBaseSubReg(const MachRegister &reg, TransferFuncs &xferFuncs);
    void copyBaseSubReg(const MachRegister &reg, TransferFuncs &xferFuncs);
    void bottomBaseSubReg(const MachRegister &reg, TransferFuncs &xferFuncs);
-
-   static void makeTopSet(std::set<DefHeight> &s);
-   static void makeBottomSet(std::set<DefHeight> &s);
-   static void makeNewSet(ParseAPI::Block *b, Address addr,
-      const Absloc &origLoc, const Height &h, std::set<DefHeight> &s);
-   static void addInitSet(const Height &h, std::set<DefHeight> &s);
-   static void addDeltaSet(long delta, std::set<DefHeight> &s);
-   static Height getHeightSet(const std::set<DefHeight> &s);
-   static Definition getDefSet(const std::set<DefHeight> &s);
 
 
    Height getStackCleanAmount(ParseAPI::Function *func);

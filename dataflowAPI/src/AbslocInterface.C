@@ -122,7 +122,6 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
     // Defined time
     std::set<RegisterAST::Ptr> regsWritten;
     insn->getWriteSet(regsWritten);
-    
     for (std::set<RegisterAST::Ptr>::const_iterator i = regsWritten.begin();
 	 i != regsWritten.end(); ++i) {
       if(insn->getArch() == Arch_aarch64) {

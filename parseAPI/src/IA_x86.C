@@ -29,7 +29,7 @@
  */
 
 
-#include "IA_IAPI.h"
+#include "IA_x86.h"
 #include "Register.h"
 #include "Dereference.h"
 #include "Immediate.h"
@@ -47,8 +47,22 @@ using namespace InstructionAPI;
 using namespace Dyninst::InsnAdapter;
 using namespace Dyninst::ParseAPI;
 
+IA_x86::IA_x86(Dyninst::InstructionAPI::InstructionDecoder dec_,
+               Address start_,
+	       Dyninst::ParseAPI::CodeObject* o,
+	       Dyninst::ParseAPI::CodeRegion* r,
+	       Dyninst::InstructionSource *isrc,
+	       Dyninst::ParseAPI::Block * curBlk_):
+	           IA_IAPI(dec_, start_, o, r, isrc, curBlk_) {
+}
 
-bool IA_IAPI::isFrameSetupInsn(Instruction::Ptr i) const
+IA_x86::IA_x86(const IA_x86& rhs): IA_IAPI(rhs) {}
+
+IA_x86* IA_x86::clone() const {
+    return new IA_x86(*this);
+}
+
+bool IA_x86::isFrameSetupInsn(Instruction::Ptr i) const
 {
     if(i->getOperation().getID() == e_mov)
     {
@@ -137,7 +151,7 @@ bool isNopInsn(Instruction::Ptr insn)
     return false;
 }
 
-bool IA_IAPI::isNop() const
+bool IA_x86::isNop() const
 {
     Instruction::Ptr ci = curInsn();
 
@@ -179,7 +193,7 @@ namespace {
         Address offset_;
     };
 }
-bool IA_IAPI::isThunk() const {
+bool IA_x86::isThunk() const {
   // Before we go a-wandering, check the target
    bool valid; Address addr;
    boost::tie(valid, addr) = getCFT();
@@ -214,7 +228,7 @@ bool IA_IAPI::isThunk() const {
     return false;
 }
 
-bool IA_IAPI::isTailCall(const Function *context, EdgeTypeEnum type, unsigned int, const set<Address> &knownTargets) const
+bool IA_x86::isTailCall(const Function *context, EdgeTypeEnum type, unsigned int, const set<Address> &knownTargets) const
 {
    // Collapse down to "branch" or "fallthrough"
     switch(type) {
@@ -232,7 +246,7 @@ bool IA_IAPI::isTailCall(const Function *context, EdgeTypeEnum type, unsigned in
           return false;
     }
 
-    parsing_printf("Checking for Tail Call \n");
+    parsing_printf("Checking for Tail Call for x86\n");
     context->obj()->cs()->incrementCounter(PARSE_TAILCALL_COUNT); 
     if (tailCalls.find(type) != tailCalls.end()) {
         parsing_printf("\tReturning cached tail call check result: %d\n", tailCalls[type]);
@@ -248,7 +262,6 @@ bool IA_IAPI::isTailCall(const Function *context, EdgeTypeEnum type, unsigned in
 
     Function* callee = _obj->findFuncByEntry(_cr, addr);
     Block* target = _obj->findBlockByEntry(_cr, addr);
-
     // check if addr is in a block if it is not entry.
     if (target == NULL) {
         std::set<Block*> blocks;
@@ -379,7 +392,7 @@ bool IA_IAPI::isTailCall(const Function *context, EdgeTypeEnum type, unsigned in
     return false;
 }
 
-bool IA_IAPI::savesFP() const
+bool IA_x86::savesFP() const
 {
 	std::vector<Instruction::Ptr> insns;
 	insns.push_back(curInsn());
@@ -401,7 +414,7 @@ bool IA_IAPI::savesFP() const
 	return false;
 }
 
-bool IA_IAPI::isStackFramePreamble() const
+bool IA_x86::isStackFramePreamble() const
 {
 #if defined(os_windows)
 	// Windows pads with a noop
@@ -421,7 +434,7 @@ bool IA_IAPI::isStackFramePreamble() const
 	return false;
 }
 
-bool IA_IAPI::cleansStack() const
+bool IA_x86::cleansStack() const
 {
     Instruction::Ptr ci = curInsn();
 	if (ci->getCategory() != c_ReturnInsn) return false;
@@ -430,7 +443,7 @@ bool IA_IAPI::cleansStack() const
 	return (ops.size() > 1);
 }
 
-bool IA_IAPI::isReturn(Dyninst::ParseAPI::Function * /*context*/, 
+bool IA_x86::isReturn(Dyninst::ParseAPI::Function * /*context*/,
 			Dyninst::ParseAPI::Block* /*currBlk*/) const
 {
     // For x86, we check if an instruction is return based on the category. 
@@ -440,13 +453,13 @@ bool IA_IAPI::isReturn(Dyninst::ParseAPI::Function * /*context*/,
     return curInsn()->getCategory() == c_ReturnInsn;
 }
 
-bool IA_IAPI::isReturnAddrSave(Dyninst::Address&) const
+bool IA_x86::isReturnAddrSave(Dyninst::Address&) const
 {
     // not implemented on non-power
     return false;
 }
 
-bool IA_IAPI::sliceReturn(ParseAPI::Block* /*bit*/, Address /*ret_addr*/, ParseAPI::Function * /*func*/) const {
+bool IA_x86::sliceReturn(ParseAPI::Block* /*bit*/, Address /*ret_addr*/, ParseAPI::Function * /*func*/) const {
    return true;
 }
 
@@ -458,7 +471,7 @@ bool IA_IAPI::sliceReturn(ParseAPI::Block* /*bit*/, Address /*ret_addr*/, ParseA
  * -a block not ending in a return instruction that pops the return address 
  *  off of the stack
  */
-bool IA_IAPI::isFakeCall() const
+bool IA_x86::isFakeCall() const
 {
     assert(_obj->defensiveMode());
 
@@ -491,7 +504,7 @@ bool IA_IAPI::isFakeCall() const
     InstructionDecoder newdec( bufPtr,
                               _cr->length() - entryOff,
                               _cr->getArch() );
-    IA_IAPI *ah = new IA_IAPI(newdec, entry, _obj, _cr, _isrc, _curBlk);
+    IA_x86 *ah = new IA_x86(newdec, entry, _obj, _cr, _isrc, _curBlk);
     Instruction::Ptr insn = ah->curInsn();
 
     // follow ctrl transfers until you get a block containing non-ctrl 
@@ -512,7 +525,7 @@ bool IA_IAPI::isFakeCall() const
         newdec = InstructionDecoder(bufPtr, 
                                     _cr->length() - entryOff, 
                                     _cr->getArch());
-        ah = new IA_IAPI(newdec, entry, _obj, _cr, _isrc, _curBlk);
+        ah = new IA_x86(newdec, entry, _obj, _cr, _isrc, _curBlk);
         insn = ah->curInsn();
     }
 
@@ -683,7 +696,7 @@ bool IA_IAPI::isFakeCall() const
     return false;
 }
 
-bool IA_IAPI::isIATcall(std::string &calleeName) const
+bool IA_x86::isIATcall(std::string &calleeName) const
 {
     if (!isDynamicCall()) {
         return false;
@@ -747,7 +760,7 @@ bool IA_IAPI::isIATcall(std::string &calleeName) const
     return true;
 }
 
-bool IA_IAPI::isNopJump() const
+bool IA_x86::isNopJump() const
 {
     InsnCategory cat = curInsn()->getCategory();
     if (c_BranchInsn != cat) {
@@ -761,7 +774,7 @@ bool IA_IAPI::isNopJump() const
     return false;
 }
 
-bool IA_IAPI::isLinkerStub() const
+bool IA_x86::isLinkerStub() const
 {
     // No need for linker stubs on x86 platforms.
     return false;

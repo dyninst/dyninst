@@ -81,7 +81,8 @@ namespace Dyninst
                 bool decodeOneOperand(const InstructionDecoder::buffer& b,
 				      const NS_x86::ia32_operand& operand,
                                       int & imm_index,
-                                      const Instruction* insn_to_complete, bool isRead, bool isWritten);
+                                      const Instruction* insn_to_complete, 
+                                      bool isRead, bool isWritten, bool isImplicit);
                 virtual void decodeOpcode(InstructionDecoder::buffer& b);
       
                 Expression::Ptr makeSIBExpression(const InstructionDecoder::buffer& b);

@@ -153,7 +153,7 @@ void StridedInterval::Sub(const StridedInterval& minuend) {
 void StridedInterval::And(const StridedInterval &rhs) {
     // Currently only consider the case where at least one of them is constant
     if (stride == 0) {
-       // CONSTANT and any thing ==> 1[1, CONSTANT]
+       // CONSTANT and any thing ==> 1[0, CONSTANT]
        low = 0;
        stride = 1;
     } else if (rhs.stride == 0) {
@@ -714,6 +714,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		break;
 	    }
 	    case aarch64_op_b_cond:
+	    case power_op_bc:
 	    case e_jbe: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {
@@ -903,6 +904,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 		break;
 	    }
 	    case aarch64_op_b_cond:
+	    case power_op_bc:
 	    case e_jnbe: {
 	        if (pred.e1->getID() == AST::V_ConstantAST) {
 		    if (pred.e2->getID() == AST::V_ConstantAST) {

@@ -56,7 +56,6 @@ static void BuildEdgesAux(SliceNode::Ptr srcNode,
 
     if (visit.find(curBlock) != visit.end()) return;
     visit.insert(curBlock);
-    boost::lock_guard<Block> g(*curBlock);
     for (auto eit = curBlock->targets().begin(); eit != curBlock->targets().end(); ++eit) {
 	// Xiaozhu:
 	// Our current slicing code ignores tail calls 
@@ -88,7 +87,7 @@ static void BuildEdges(SliceNode::Ptr curNode,
 
 static bool AssignIsZF(Assignment::Ptr a) {
     return a->out().absloc().type() == Absloc::Register &&
-	   (a->out().absloc().reg() == MachRegister::getZeroFlag(a->out().absloc().reg().getArchitecture()));
+	   a->out().absloc().reg().isZeroFlag();
 }
 
 static bool IsPushAndChangeSP(Assignment::Ptr a) {
@@ -175,7 +174,7 @@ bool JumpTableIndexPred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> 
     // For flags, we only analyze zf
     if (ap->out().absloc().type() == Absloc::Register) {
         MachRegister reg = ap->out().absloc().reg();
-	if (reg.isFlag() && reg != MachRegister::getZeroFlag(reg.getArchitecture())) {
+	if (reg.isFlag() && !reg.isZeroFlag()) {
 	    return true;
 	}
     }
@@ -259,6 +258,10 @@ bool JumpTableIndexPred::IsIndexBounded(GraphPtr slice,
                                        StridedInterval &target) {
     NodeIterator exitBegin, exitEnd, srcBegin, srcEnd;
     slice->exitNodes(exitBegin, exitEnd);
+    if (exitBegin == exitEnd) {
+        parsing_printf("WARNING: Do not find exit node for analyzing indirect jump at %lx ....\n", block->last());
+	return false;
+    }
     SliceNode::Ptr virtualExit = boost::static_pointer_cast<SliceNode>(*exitBegin);
     virtualExit->ins(srcBegin, srcEnd);
     SliceNode::Ptr jumpNode = boost::static_pointer_cast<SliceNode>(*srcBegin);
@@ -266,6 +269,7 @@ bool JumpTableIndexPred::IsIndexBounded(GraphPtr slice,
     BoundFact *bf = bfc.GetBoundFactOut(virtualExit);
     VariableAST::Ptr i = VariableAST::create(Variable(index));
     StridedInterval *tarBoundValue = bf->GetBound(i);
+    parsing_printf("\t checking index bound for %s, %s", index.format().c_str(), tarBoundValue ? "found bound" : "no bound");
     if (tarBoundValue != NULL) {
         target = *(tarBoundValue);
 	uint64_t s = target.size();
@@ -293,7 +297,9 @@ bool JumpTableIndexPred::MatchReadAST(Assignment::Ptr a) {
     return false;
 }
 
-bool JumpTableIndexPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g) {
+bool JumpTableIndexPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g, Slicer *) {
+    parsing_printf("\tIn JumpTableIndexPred::modifyCurrentFrame, size %d\n", g->size());
+
     if (g->size() == 1) {
         /* This is the start of the jump table index slice.
 	 * As the slicing interface only works with an assignment, 
@@ -302,6 +308,7 @@ bool JumpTableIndexPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Pt
 	Slicer::SliceFrame::ActiveMap::iterator it1, it2;
 	it1 = frame.active.begin();
 	while (it1 != frame.active.end()) {
+	    parsing_printf("\t\tactive region %s\n", it1->first.format().c_str());
 	    if (it1->first != index) {
 	        it2 = it1;
 		++it2;
