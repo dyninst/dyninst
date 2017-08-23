@@ -1197,7 +1197,7 @@ bool DwarfWalker::parseStructUnionClass() {
    if (!findName(curName())) return false;
    if (!nameDefined()) {
       /* anonymous unions, structs and classes are explicitely labelled */
-      Dwarf_Unsigned lineNumber;
+      Dwarf_Word lineNumber;
       bool hasLineNumber = false;
       std::string fileName;  
       if (!getLineInformation(lineNumber, hasLineNumber, fileName)) return false;

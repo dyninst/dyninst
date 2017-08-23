@@ -4082,7 +4082,7 @@ bool AObject::getSegments(vector<Segment> &segs) const
 }
 
 
-bool Object::emitDriver(string fName, std::vector<Symbol *> &allSymbols, unsigned)
+bool Object::emitDriver(string fName, std::set<Symbol *> &allSymbols, unsigned)
 {
 #ifdef BINEDIT_DEBUG
     printf("emitting...\n");
