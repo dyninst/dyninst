@@ -261,7 +261,12 @@ protected:
 
   // INTERNAL DATA MEMBERS
 
+<<<<<<< ours
 	unsigned int refCount;
+=======
+  bool owns_typ;
+  unsigned int refCount;
+>>>>>>> theirs
 
  protected:
   // Simple Destructor
