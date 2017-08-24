@@ -42,7 +42,7 @@
 #include "ProcReader.h"
 #include "IBSTree.h"
 
-#include "version.h"
+#include "dyninstversion.h"
 
 #include "boost/shared_ptr.hpp"
 #include "boost/multi_index_container.hpp"
@@ -557,8 +557,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
                             boost::multi_index::const_mem_fun<Module, const std::string&, &Module::fileName> >,
                     boost::multi_index::ordered_non_unique<
                             boost::multi_index::const_mem_fun<Module, const std::string&, &Module::fullName> >
-//                    boost::multi_index::ordered_non_unique<
-//                            boost::multi_index::const_mem_fun<Module, Module::DebugInfoT, &Module::getDebugInfo> >
                     >
             >
             indexed_modules;

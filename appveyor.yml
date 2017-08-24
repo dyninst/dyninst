@@ -2,6 +2,9 @@ build:
     parallel: true
     project: Dyninst.sln
     verbosity: normal
+    
+cache:
+    C:/projects/dyninst/boost -> appveyor.yml
 
 clone_depth: 5
 

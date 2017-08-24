@@ -192,7 +192,10 @@ void getMemoryReadOperands(std::set<Expression::Ptr> & memAccessors) const
     not address accesses. For instance, an instruction accessing memory through
     a register dereference would return an \code{Expression} tree containing
     just the register that determines the address being accessed, not a tree
-    representing a dereference of that register.
+    representing a dereference of that register. Also note that the type of this
+    \code{Expression} is the type of an effective address (generally a word or
+    double word), not the type of the memory being accessed. For the memory being
+    accessed, use \code{getOperands} directly.
 }
 
 \begin{apient}

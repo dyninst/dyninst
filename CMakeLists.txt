@@ -16,7 +16,7 @@ set(RT_BINARY_DIR ${PROJECT_BINARY_DIR}/dyninstAPI_RT)
 
 include (${DYNINST_ROOT}/cmake/shared.cmake)
 
-configure_file(cmake/version.h.in common/h/version.h)
+configure_file(cmake/version.h.in common/h/dyninstversion.h)
 include_directories(${PROJECT_BINARY_DIR})
 include_directories(${PROJECT_BINARY_DIR}/common/h)
 set (HEADER_DIRS common
