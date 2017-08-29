@@ -276,6 +276,9 @@ PCProcess *PCProcess::setupExecedProcess(PCProcess *oldProc, std::string execPat
 }
 
 PCProcess::~PCProcess() {
+        proccontrol_printf("%s[%d]: destructing PCProcess %d\n",
+                FILE__, __LINE__, getPid());
+
     if( tracedSyscalls_ ) delete tracedSyscalls_;
     tracedSyscalls_ = NULL;
 
@@ -286,7 +289,7 @@ PCProcess::~PCProcess() {
 
     trapMapping.clearTrapMappings();
 
-    if(pcProc_) pcProc_->setData(NULL);
+    if(pcProc_ && pcProc_->getData() == this) pcProc_->setData(NULL);
 }
 
 void PCProcess::initSymtabReader()
