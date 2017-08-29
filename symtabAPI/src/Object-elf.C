@@ -622,16 +622,16 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
         if (!scn.isFromDebugFile()) {
             allRegionHdrs.push_back(&scn);
             Elf_X_Data data = scn.get_data();
-            if(strcmp(name, OPD_NAME) == 0 || strcmp(name, GOT_NAME) == 0)
-            {
-                data.d_type(ELF_T_XWORD);
-                data.xlatetom(elfHdr->e_endian() ? ELFDATA2MSB : ELFDATA2LSB);
-            }
-            if(strcmp(name, TEXT_NAME) == 0 || strcmp(name, ".rodata") == 0)
-            {
-                data.d_type(ELF_T_WORD);
-                data.xlatetom(elfHdr->e_endian() ? ELFDATA2MSB : ELFDATA2LSB);
-            }
+	    if (elfHdr->e_machine() == EM_PPC || elfHdr->e_machine() == EM_PPC64) {
+	        if(strcmp(name, OPD_NAME) == 0 || strcmp(name, GOT_NAME) == 0) {
+		    data.d_type(ELF_T_XWORD);
+		    data.xlatetom(elfHdr->e_endian() ? ELFDATA2MSB : ELFDATA2LSB);
+		}
+		if(strcmp(name, TEXT_NAME) == 0 || strcmp(name, ".rodata") == 0) {
+		    data.d_type(ELF_T_WORD);
+		    data.xlatetom(elfHdr->e_endian() ? ELFDATA2MSB : ELFDATA2LSB);
+		}
+	    }
 
             if(scn.sh_flags() & SHF_ALLOC) {
                 // .bss, etc. have a disk size of 0
