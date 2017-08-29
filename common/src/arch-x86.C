@@ -9520,9 +9520,9 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
    addr++;
 
    /* Get displacements we're going to use */
-   const unsigned char* disp8 = (const unsigned char*)addr;
-   const unsigned short* disp16 = (const unsigned short*)addr;
-   const unsigned int* disp32 = (const unsigned int*)addr;
+   const char* disp8 = (const char*)addr;
+   const short* disp16 = (const short*)addr;
+   const int* disp32 = (const int*)addr;
 
    if(addrSzAttr == 1)  // 16-bit, cannot have SIB
    {
@@ -9703,9 +9703,9 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
       }
       
       /* Update displacement pointers  */
-      disp8 = (const unsigned char*)addr;
-      disp16 = (const unsigned short*)addr;
-      disp32 = (const unsigned int*)addr;
+      disp8 = (const char*)addr;
+      disp16 = (const short*)addr;
+      disp32 = (const int*)addr;
 
       /* this is tricky: there is a disp32 iff (1) rm == 5  or  (2) hassib && base == 5 */
       unsigned char check5 = hassib ? base : rm;
