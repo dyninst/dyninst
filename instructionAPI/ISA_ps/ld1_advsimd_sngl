@@ -1,0 +1,52 @@
+##ld1_advsimd_sngl_execute
+CheckFPAdvSIMDEnabled64();
+
+bits(64) address;
+bits(64) offs;
+bits(128) rval;
+bits(esize) element;
+integer s;
+constant integer ebytes = esize / 8;
+
+if n == 31 then
+    address = SP[];
+else
+    address = X[n];
+end
+
+offs = Zeros(64);
+if replicate then
+    // load and replicate to all elements
+    for s = 0 to selem-1
+        element = Mem[address + offs, ebytes, AccType_VEC];
+        // replicate to fill 128- or 64-bit register
+        V[t] = Replicate(element, datasize / esize);
+        offs = offs + ebytes;
+        t = (t + 1) MOD 32;
+else
+    // load/store one element per register
+    for s = 0 to selem-1
+        rval = V[t];
+        if memop == MemOp_LOAD then
+            // insert into one lane of 128-bit register
+            Elem[rval, index, esize] = Mem[address + offs, ebytes, AccType_VEC];
+            V[t] = rval;
+        else // memop == MemOp_STORE
+            // extract from one lane of 128-bit register
+            Mem[address + offs, ebytes, AccType_VEC] = Elem[rval, index, esize];
+        end
+        offs = offs + ebytes;
+        t = (t + 1) MOD 32;
+end
+
+if wback then
+    if m != 31 then
+        offs = X[m];
+    end
+    if n == 31 then
+        SP[] = address + offs;
+    else
+        X[n] = address + offs;
+    end
+end
+@@

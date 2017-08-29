@@ -33,6 +33,7 @@
 #include "dataflowAPI/h/Absloc.h"
 #include "dataflowAPI/h/SymEval.h"
 #include "dataflowAPI/h/slicing.h"
+#include "IA_IAPI.h"
 
 
 namespace Dyninst {
@@ -73,6 +74,33 @@ class PPC_BLR_Visitor: public ASTVisitor
   ReturnState return_;
 
 };
+
+class IA_power : public IA_IAPI {
+    public:
+        IA_power(Dyninst::InstructionAPI::InstructionDecoder dec_,
+               Address start_, 
+               Dyninst::ParseAPI::CodeObject* o,
+               Dyninst::ParseAPI::CodeRegion* r,
+               Dyninst::InstructionSource *isrc,
+	       Dyninst::ParseAPI::Block * curBlk_);
+	IA_power(const IA_power &);
+	virtual IA_power* clone() const;
+        virtual bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction::Ptr) const;
+	virtual bool isNop() const;
+	virtual bool isThunk() const;
+	virtual bool isTailCall(ParseAPI::Function* context, ParseAPI::EdgeTypeEnum type, unsigned int, const set<Address>& knownTargets) const;
+	virtual bool savesFP() const;
+	virtual bool isStackFramePreamble() const;
+	virtual bool cleansStack() const;
+	virtual bool sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const;
+	virtual bool isReturnAddrSave(Address& retAddr) const;
+	virtual bool isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const;
+	virtual bool isFakeCall() const;
+	virtual bool isIATcall(std::string &) const;
+	virtual bool isLinkerStub() const;
+	virtual bool isNopJump() const;
+};
+
 }
 }
 #endif

@@ -1,0 +1,13 @@
+##sri_advsimd_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize) operand  = V[n];
+bits(datasize) operand2 = V[d];
+bits(datasize) result;
+bits(esize) mask = LSR(Ones(esize), shift);
+bits(esize) shifted;
+
+for e = 0 to elements-1
+    shifted = LSR(Elem[operand, e, esize], shift);
+    Elem[result, e, esize] = (Elem[operand2, e, esize] AND NOT(mask)) OR shifted;
+V[d] = result;
+@@

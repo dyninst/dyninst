@@ -62,7 +62,7 @@ ParseWorkElem * ParseFrame::mkWork(
 ParseWorkElem * ParseFrame::mkWork(
     ParseWorkBundle * b,
     Block *block,
-    const InsnAdapter::IA_IAPI &ah)
+    const InsnAdapter::IA_IAPI *ah)
 {
     if(!b) {
         b = new ParseWorkBundle();

@@ -804,7 +804,6 @@ void BPatch_function::constructVarsAndParams()
     }
 
     std::vector<SymtabAPI::localVar *>parameters;
-
     if (lowlevel_func()->ifunc()->getSymtabFunction()->getParams(parameters)) 
 	{
         for (unsigned i = 0; i< parameters.size(); i++) 

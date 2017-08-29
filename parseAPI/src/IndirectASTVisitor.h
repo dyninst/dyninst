@@ -12,35 +12,31 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::DataflowAPI;
 
-AST::Ptr SimplifyRoot(AST::Ptr ast, Address addr);
-AST::Ptr SimplifyAnAST(AST::Ptr ast, Address addr);
-AST::Ptr SubstituteAnAST(AST::Ptr ast, const BoundFact::AliasMap &aliasMap);
-AST::Ptr DeepCopyAnAST(AST::Ptr ast);
-bool ContainAnAST(AST::Ptr root, AST::Ptr check);
-bool PerformTableRead(BoundValue &target, set<int64_t> & jumpTargets, CodeSource*);
+//bool PerformTableRead(StridedInterval &target, set<int64_t> & jumpTargets, CodeSource*);
+
+#define SIGNEX_64_32 0xffffffff00000000LL
+#define SIGNEX_64_16 0xffffffffffff0000LL
+#define SIGNEX_64_8  0xffffffffffffff00LL
+#define SIGNEX_32_16 0xffff0000
+#define SIGNEX_32_8 0xffffff00
 
 
-// On x86 and x86-64, the value of PC is post-instruction, 
-// which is the current address plus the length of the instruction.
-// On ARMv8, the value of PC is pre-instruction,
-// which is the current address
-Address PCValue(Address cur, size_t insnSize, Architecture a);
 
 class SimplifyVisitor: public ASTVisitor {
     Address addr;
+    bool keepMultiOne;
 public:
     using ASTVisitor::visit;
     virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
-    SimplifyVisitor(Address a): addr(a) {}
+    SimplifyVisitor(Address a, bool k): addr(a), keepMultiOne(k) {}
 };
-
 
 
 class BoundCalcVisitor: public ASTVisitor {
      
 public:
     using ASTVisitor::visit;
-    map<AST*, BoundValue*> bound;
+    map<AST*, StridedInterval*> bound;
     BoundFact &boundFact;
     ParseAPI::Block *block;
     bool handleOneByteRead;
@@ -55,7 +51,7 @@ public:
     bool IsResultBounded(AST::Ptr ast) {
         return bound.find(ast.get()) != bound.end();
     }
-    BoundValue* GetResultBound(AST::Ptr ast); 
+    StridedInterval* GetResultBound(AST::Ptr ast); 
 };
 
 class JumpCondVisitor: public ASTVisitor {
@@ -79,11 +75,40 @@ public:
 
 class JumpTableFormatVisitor: public ASTVisitor {
 
+    bool PotentialIndexing(AST::Ptr);
 public:
     using ASTVisitor::visit;
+    AbsRegion index;
+    int numOfVar;
+    int memoryReadLayer;
     ParseAPI::Block *b;
-    bool format;
+    bool findIncorrectFormat;
+    bool findTableBase;    
+    bool findIndex;
+    bool firstAdd;
     virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
-    JumpTableFormatVisitor(ParseAPI::Block *bl): b(bl), format(true) {}
+    virtual ASTPtr visit(DataflowAPI::VariableAST *ast);
+    JumpTableFormatVisitor(ParseAPI::Block *bl);
+};
+
+class JumpTableReadVisitor: public ASTVisitor {
+public:
+    using ASTVisitor::visit;
+    AbsRegion index;
+    int64_t indexValue;
+    CodeSource* cs;
+    Address targetAddress;
+    int memoryReadSize;
+    bool valid;
+    bool isZeroExtend;
+
+
+    // This tracks the results of computation for each sub AST
+    map<AST*, int64_t> results;
+    JumpTableReadVisitor(AbsRegion i, int v, CodeSource *c, bool ze, int m);
+    virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
+    virtual ASTPtr visit(DataflowAPI::ConstantAST *ast);
+    virtual ASTPtr visit(DataflowAPI::VariableAST *ast);
+    bool PerformMemoryRead(Address addr, int64_t &v);
 };
 #endif

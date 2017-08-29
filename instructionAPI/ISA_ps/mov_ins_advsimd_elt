@@ -1,0 +1,9 @@
+##mov_ins_advsimd_elt_execute
+CheckFPAdvSIMDEnabled64();
+bits(idxdsize) operand = V[n];
+bits(128) result;
+
+result = V[d];
+Elem[result, dst_index, esize] = Elem[operand, src_index, esize];
+V[d] = result;
+@@

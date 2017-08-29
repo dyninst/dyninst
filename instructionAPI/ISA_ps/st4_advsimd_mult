@@ -1,0 +1,41 @@
+##st4_advsimd_mult_execute
+CheckFPAdvSIMDEnabled64();
+
+bits(64) address;
+bits(64) offs;
+bits(datasize) rval;
+integer e, r, s, tt;
+constant integer ebytes = esize / 8;
+
+if n == 31 then
+    address = SP[];
+else
+    address = X[n];
+end
+
+offs = Zeros(64);
+for r = 0 to rpt-1
+    for e = 0 to elements-1
+        tt = (t + r) MOD 32;
+        for s = 0 to selem-1
+            rval = V[tt];
+            if memop == MemOp_LOAD then
+                Elem[rval, e, esize] = Mem[address + offs, ebytes, AccType_VEC];
+                V[tt] = rval;
+            else // memop == MemOp_STORE
+                Mem[address + offs, ebytes, AccType_VEC] = Elem[rval, e, esize];
+            end
+            offs = offs + ebytes;
+            tt = (tt + 1) MOD 32;
+
+if wback then
+    if m != 31 then
+        offs = X[m];
+    end
+    if n == 31 then
+        SP[] = address + offs;
+    else
+        X[n] = address + offs;
+    end
+end
+@@

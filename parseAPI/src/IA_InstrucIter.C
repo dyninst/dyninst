@@ -229,11 +229,6 @@ void IA_InstrucIter::getNewEdges(
     else if(ii.isAJumpInstruction())
     {
         Address target = ii.getBranchTargetAddress(NULL);
-        Address catchStart;
-        if(_cr->findCatchBlock(current + getSize(), catchStart))
-        {
-            outEdges.push_back(std::make_pair(catchStart, CATCH));
-        }
         
         if(!ii.isTailCall(context))
         {

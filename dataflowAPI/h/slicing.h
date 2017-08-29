@@ -145,6 +145,116 @@ class Slicer {
     
   DATAFLOW_EXPORT static bool isWidenNode(Node::Ptr n);
 
+  struct DATAFLOW_EXPORT ContextElement {
+    // We can implicitly find the callsite given a block,
+    // since calls end blocks. It's easier to look up 
+    // the successor this way than with an address.
+
+    ParseAPI::Function *func;
+
+    // If non-NULL this must be an internal context
+    // element, since we have an active call site.
+    ParseAPI::Block *block;
+
+    // To enter or leave a function we must be able to
+    // map corresponding abstract regions. 
+    // In particular, we need to know the depth of the 
+    // stack in the caller.
+     int stackDepth;
+
+  ContextElement(ParseAPI::Function *f) : 
+    func(f), block(NULL), stackDepth(-1) {};
+  ContextElement(ParseAPI::Function *f, long depth) :
+    func(f), block(NULL), stackDepth(depth) {};
+  };
+
+  // This should be sufficient...
+  typedef std::deque<ContextElement> Context;
+
+
+  // Where we are in a particular search...
+  struct DATAFLOW_EXPORT Location {
+    // The block we're looking through
+    ParseAPI::Function *func;
+    ParseAPI::Block *block; // current block
+
+    // Where we are in the block
+    InsnVec::iterator current;
+    InsnVec::iterator end;
+
+    bool fwd;
+
+    InsnVec::reverse_iterator rcurrent;
+    InsnVec::reverse_iterator rend;
+
+    Address addr() const { if(fwd) return (*current).second; else return (*rcurrent).second;}
+
+  Location(ParseAPI::Function *f,
+	   ParseAPI::Block *b) : func(f), block(b), fwd(true){};
+  Location() : func(NULL), block(NULL), fwd(true) {};
+  };
+    
+  // Describes an abstract region, a minimal context
+  // (block and function), and the assignment that
+  // relates to that region (uses or defines it, 
+  // depending on slice direction)
+  //
+  // A slice is composed of Elements; SliceFrames 
+  // keep a list of the currently active elements
+  // that are at the `leading edge' of the 
+  // under-construction slice
+  struct DATAFLOW_EXPORT Element {
+    Element(ParseAPI::Block * b,
+        ParseAPI::Function * f,
+        AbsRegion const& r,
+        Assignment::Ptr p)
+      : block(b),
+        func(f),
+        reg(r),
+        ptr(p)
+    { }
+
+    // basic comparator for ordering
+    bool operator<(const Element& el) const { 
+        if (ptr->addr() < el.ptr->addr()) { return true; }
+        if (el.ptr->addr() < ptr->addr()) { return false; }
+        if (ptr->out() < el.ptr->out()) { return true; }
+        return false;
+    }
+
+    ParseAPI::Block * block;
+    ParseAPI::Function * func;
+
+    AbsRegion reg;
+    Assignment::Ptr ptr;
+  };
+
+  // State for recursive slicing is a context, location pair
+  // and a list of AbsRegions that are being searched for.
+  struct DATAFLOW_EXPORT SliceFrame {
+    SliceFrame(
+        Location const& l,
+        Context const& c)
+      : loc(l),
+        con(c),
+        valid(true)
+    { }
+    SliceFrame() : valid(true) { }
+    SliceFrame(bool v) : valid(v) { }
+
+    // Active slice nodes -- describe regions
+    // that are currently under scrutiny
+    std::map<AbsRegion, std::vector<Element> > active;
+    typedef std::map<AbsRegion, std::vector<Element> > ActiveMap;
+
+    Location loc;
+    Context con;
+    bool valid;
+
+    Address addr() const { return loc.addr(); }
+  };
+
+
   class Predicates {
     bool clearCache, controlFlowDep;
 
@@ -184,6 +294,11 @@ class Slicer {
     // Return true if we want to continue slicing
     DATAFLOW_EXPORT virtual bool addNodeCallback(AssignmentPtr,
                                                  std::set<ParseAPI::Edge*> &) { return true;}
+    // Callback function after we have added new a node and corresponding new edges to the slice.
+    // This function allows users to inspect the current slice graph and determine which abslocs
+    // need further slicing and which abslocs are no longer interesting, by modifying the current
+    // SliceFrame.
+    DATAFLOW_EXPORT virtual bool modifyCurrentFrame(SliceFrame &, GraphPtr, Slicer*) {return true;} 						
     DATAFLOW_EXPORT Predicates() : clearCache(false), controlFlowDep(false) {}						
 
   };
@@ -208,32 +323,6 @@ class Slicer {
   // with the image_instPoint data structure, but hopefully that
   // one will be going away. 
 
-  struct ContextElement {
-    // We can implicitly find the callsite given a block,
-    // since calls end blocks. It's easier to look up 
-    // the successor this way than with an address.
-
-    ParseAPI::Function *func;
-
-    // If non-NULL this must be an internal context
-    // element, since we have an active call site.
-    ParseAPI::Block *block;
-
-    // To enter or leave a function we must be able to
-    // map corresponding abstract regions. 
-    // In particular, we need to know the depth of the 
-    // stack in the caller.
-     int stackDepth;
-
-  ContextElement(ParseAPI::Function *f) : 
-    func(f), block(NULL), stackDepth(-1) {};
-  ContextElement(ParseAPI::Function *f, long depth) :
-    func(f), block(NULL), stackDepth(depth) {};
-  };
-
-  // This should be sufficient...
-  typedef std::deque<ContextElement> Context;
-
   bool getStackDepth(ParseAPI::Function *func, ParseAPI::Block *block, Address callAddr, long &height);
 
   // Add the newly called function to the given Context.
@@ -245,90 +334,9 @@ class Slicer {
   // And remove it as appropriate
   void popContext(Context &context);
 
-  // Where we are in a particular search...
-  struct Location {
-    // The block we're looking through
-    ParseAPI::Function *func;
-    ParseAPI::Block *block; // current block
-
-    // Where we are in the block
-    InsnVec::iterator current;
-    InsnVec::iterator end;
-
-    bool fwd;
-
-    InsnVec::reverse_iterator rcurrent;
-    InsnVec::reverse_iterator rend;
-
-    Address addr() const { if(fwd) return (*current).second; else return (*rcurrent).second;}
-
-  Location(ParseAPI::Function *f,
-	   ParseAPI::Block *b) : func(f), block(b), fwd(true){};
-  Location() : func(NULL), block(NULL), fwd(true) {};
-  };
-    
   typedef std::queue<Location> LocList;
  
-  // Describes an abstract region, a minimal context
-  // (block and function), and the assignment that
-  // relates to that region (uses or defines it, 
-  // depending on slice direction)
-  //
-  // A slice is composed of Elements; SliceFrames 
-  // keep a list of the currently active elements
-  // that are at the `leading edge' of the 
-  // under-construction slice
-  struct Element {
-    Element(ParseAPI::Block * b,
-        ParseAPI::Function * f,
-        AbsRegion const& r,
-        Assignment::Ptr p)
-      : block(b),
-        func(f),
-        reg(r),
-        ptr(p)
-    { }
-
-    // basic comparator for ordering
-    bool operator<(const Element& el) const { 
-        if (ptr->addr() < el.ptr->addr()) { return true; }
-        if (el.ptr->addr() < ptr->addr()) { return false; }
-        if (ptr->out() < el.ptr->out()) { return true; }
-        return false;
-    }
-
-    ParseAPI::Block * block;
-    ParseAPI::Function * func;
-
-    AbsRegion reg;
-    Assignment::Ptr ptr;
-  };
   bool ReachableFromBothBranches(ParseAPI::Edge *e, std::vector<Element> &newE);
-
-  // State for recursive slicing is a context, location pair
-  // and a list of AbsRegions that are being searched for.
-  struct SliceFrame {
-    SliceFrame(
-        Location const& l,
-        Context const& c)
-      : loc(l),
-        con(c),
-        valid(true)
-    { }
-    SliceFrame() : valid(true) { }
-    SliceFrame(bool v) : valid(v) { }
-
-    // Active slice nodes -- describe regions
-    // that are currently under scrutiny
-    std::map<AbsRegion, std::vector<Element> > active;
-    typedef std::map<AbsRegion, std::vector<Element> > ActiveMap;
-
-    Location loc;
-    Context con;
-    bool valid;
-
-    Address addr() const { return loc.addr(); }
-  };
 
   // Used for keeping track of visited edges in the
   // slicing search
@@ -658,7 +666,10 @@ class Slicer {
 
   void getInsns(Location &loc);
 
+public:
   void getInsnsBackward(Location &loc);
+
+private:  
 
   void setAliases(Assignment::Ptr, Element &);
 

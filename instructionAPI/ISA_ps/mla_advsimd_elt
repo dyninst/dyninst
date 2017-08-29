@@ -1,0 +1,21 @@
+##mla_advsimd_elt_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize) operand1 = V[n];
+bits(idxdsize) operand2 = V[m];
+bits(datasize) operand3 = V[d];
+bits(datasize) result;
+integer element1;
+integer element2;
+bits(esize) product;
+
+element2 = UInt(Elem[operand2, index, esize]);
+for e = 0 to elements-1
+    element1 = UInt(Elem[operand1, e, esize]);
+    product = (element1 * element2)<esize-1:0>;
+    if sub_op then
+        Elem[result, e, esize] = Elem[operand3, e, esize] - product;
+    else
+        Elem[result, e, esize] = Elem[operand3, e, esize] + product;
+    end
+V[d] = result;
+@@

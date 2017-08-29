@@ -189,9 +189,10 @@ namespace hd {
             cr->offset() + cr->length() - addr, 
             cr->getArch());
 	Block * blk = NULL;
-	InstructionAdapter_t ah(dec, addr, co, cr, cr, blk);
-
-        return ah.isStackFramePreamble();
+	InstructionAdapter_t* ah = InstructionAdapter_t::makePlatformIA_IAPI(co->cs()->getArch(),dec, addr, co, cr, cr, blk);
+	bool ret = ah->isStackFramePreamble();
+	delete ah;
+        return ret;
     }
 
     bool gap_heuristic_MSVS(CodeObject *co, CodeRegion *cr, Address addr)
@@ -209,14 +210,10 @@ namespace hd {
             cr->offset()+cr->length()-addr,
             cr->getArch());
 	Block * blk = NULL;
-        InstructionAdapter_t ah(dec, addr, co, cr, cr, blk);
-    
-        if(ah.isStackFramePreamble()) {
-            return true;
-        } else {
-            // XXX need to write alternative 
-            return false;
-        }
+    	InstructionAdapter_t* ah = InstructionAdapter_t::makePlatformIA_IAPI(co->cs()->getArch(),dec, addr, co, cr, cr, blk);
+	bool ret = ah->isStackFramePreamble();
+	delete ah;
+        return ret;
     }
 
     bool gap_heuristics(CodeObject *co,CodeRegion *cr,Address addr)
@@ -245,8 +242,10 @@ namespace hd {
             cr->offset() + cr->length() - addr, 
             cr->getArch());
 	Block * blk = NULL;
-	InstructionAdapter_t ah(dec, addr, co, cr, cr, blk);
-	return ah.isNop();
+    	InstructionAdapter_t* ah = InstructionAdapter_t::makePlatformIA_IAPI(co->cs()->getArch(),dec, addr, co, cr, cr, blk);
+	bool ret = ah->isNop();
+	delete ah;
+        return ret;
     }
 };
 

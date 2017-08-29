@@ -1,0 +1,13 @@
+##smc_execute
+if !HaveEL(EL3) || PSTATE.EL == EL0 then
+    UnallocatedEncoding();
+
+AArch64.CheckForSMCTrap(imm);
+
+if SCR_EL3.SMD == 1 then
+    // SMC disabled
+    AArch64.UndefinedFault();
+else
+    AArch64.CallSecureMonitor(imm);
+end
+@@

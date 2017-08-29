@@ -114,7 +114,7 @@ DyninstAPI*.tgz
 common/h/version.h
 Doxyfile
 doxyfiles/*
-*/*.dir/
+*.dir/
 */Debug/
 */Release/
 cotire/

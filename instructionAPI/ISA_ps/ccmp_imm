@@ -1,0 +1,14 @@
+##ccmp_imm_execute
+bits(datasize) operand1 = X[n];
+bits(datasize) operand2 = imm;
+bit carry_in = 0;
+
+if ConditionHolds(condition) then
+    if sub_op then
+        operand2 = NOT(operand2);
+        carry_in = 1;
+    end
+    (-, flags) = AddWithCarry(operand1, operand2, carry_in);
+end
+PSTATE.<N,Z,C,V> = flags;
+@@

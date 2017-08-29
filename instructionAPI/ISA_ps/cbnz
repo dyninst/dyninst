@@ -1,0 +1,7 @@
+##cbnz_execute
+bits(datasize) operand1 = X[t];
+
+if IsZero(operand1) == iszero then
+    BranchTo(PC[] + offset, BranchType_JMP);
+end
+@@

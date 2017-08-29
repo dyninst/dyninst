@@ -1,0 +1,19 @@
+##sqabs_advsimd_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize) operand = V[n];
+bits(datasize) result;
+integer element;
+boolean sat;
+
+for e = 0 to elements-1
+    element = SInt(Elem[operand, e, esize]);
+    if neg then
+        element = -element;
+    else
+        element = Abs(element);
+    end
+    (Elem[result, e, esize], sat) = SignedSatQ(element, esize);         
+    if sat then FPSR.QC = 1;
+
+V[d] = result;
+@@

@@ -1,0 +1,10 @@
+##fcvtxn_advsimd_execute
+CheckFPAdvSIMDEnabled64();
+bits(2*datasize) operand = V[n];
+bits(datasize) result;
+
+for e = 0 to elements-1
+    Elem[result, e, esize] = FPConvert(Elem[operand, e, 2*esize], FPCR, FPRounding_ODD);
+
+Vpart[d, part] = result;
+@@

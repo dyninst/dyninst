@@ -431,7 +431,7 @@ namespace Dyninst
 	  {
 	  case u8:
 	    // Type promote the characters so that they're treated as integral, not as strings
-	    ret << (unsigned long)(val.u8val);
+	    ret << (long)(val.u8val);
 	    break;
 	  case s8:
 	    ret << (long)(val.s8val);

@@ -179,7 +179,7 @@ void EmitterIA32::emitRelOp(unsigned op, Register dest, Register src1, Register 
    RealRegister scratch_r = gen.rs()->loadVirtualForWrite(scratch, gen);
 
    emitOpRegReg(XOR_R32_RM32, dest_r, dest_r, gen); //XOR dest,dest
-   emitMovImmToReg(scratch_r, 0x1, gen);            //MOV $1,scratch
+   emitMovImmToReg(scratch_r, 0x1, gen);            //MOV $2,scratch
    emitOpRegReg(CMP_GV_EV, src1_r, src2_r, gen);    //CMP src1, src2
    
    unsigned char opcode = cmovOpcodeFromRelOp(op); 
@@ -1330,7 +1330,7 @@ void EmitterAMD64::emitRelOp(unsigned op, Register dest, Register src1, Register
     codeBufIndex_t jcc_disp = gen.used();
     gen.fill(1, codeGen::cgNOP);
     codeBufIndex_t after_jcc = gen.used();
-    // mov $1,  %dest
+    // mov $2,  %dest
 
     emitMovImmToReg64(dest, 1, false, gen);
     codeBufIndex_t after_mov = gen.used();
@@ -1374,7 +1374,7 @@ void EmitterAMD64::emitRelOpImm(unsigned op, Register dest, Register src1, RegVa
    gen.fill(1, codeGen::cgNOP);
    codeBufIndex_t after_jcc = gen.used();
 
-   // mov $1,  %dest
+   // mov $2,  %dest
    emitMovImmToReg64(dest, 1, false, gen);
    codeBufIndex_t after_mov = gen.used();
 

@@ -2234,7 +2234,7 @@ void Object::getSegmentsSymReader(std::vector<SymSegment> & sym_segs)
 	}
 }
 
-bool Object::emitDriver(string fName, std::vector<Symbol *> &allSymbols, unsigned flag)
+bool Object::emitDriver(string fName, std::set<Symbol *> &allSymbols, unsigned flag)
 {
 	emitWin *em = new emitWin((PCHAR)GetMapAddr(), this, err_func_);
 	return em -> driver(associated_symtab, fName);

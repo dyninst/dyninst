@@ -1,0 +1,13 @@
+##ubfx_ubfm_execute
+bits(datasize) dst = if inzero then Zeros(64) else X[d];
+bits(datasize) src = X[n];
+
+// perform bitfield move on low bits
+bits(datasize) bot = (dst AND NOT(wmask)) OR (ROR(src, R) AND wmask);
+
+// determine extension bits (sign, zero or dest register)
+bits(datasize) top = if extend then Replicate(src<S>) else dst;
+
+// combine extension bits and result bits
+X[d] = (top AND NOT(tmask)) OR (bot AND tmask);
+@@
