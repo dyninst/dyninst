@@ -2535,13 +2535,12 @@ bool Object::fix_global_symbol_modules_static_dwarf()
                     {
                         if((dwarf_lineaddr(lines[i], &low, NULL) == DW_DLV_OK) && low)
                         {
-                            Dwarf_Bool is_end = false;
                             Dwarf_Addr high = low;
                             int result = DW_DLV_OK;
                             for(; (i < num_lines) &&
-                                  (is_end == false) &&
                                   (result == DW_DLV_OK); ++i)
                             {
+                                Dwarf_Bool is_end = false;
                                 result = dwarf_lineendsequence(lines[i], &is_end, NULL);
                                 if(result == DW_DLV_OK && is_end) {
                                     result = dwarf_lineaddr(lines[i], &high, NULL);
