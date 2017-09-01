@@ -2545,6 +2545,7 @@ bool Object::fix_global_symbol_modules_static_dwarf()
                                 result = dwarf_lineendsequence(lines[i], &is_end, NULL);
                                 if(result == DW_DLV_OK && is_end) {
                                     result = dwarf_lineaddr(lines[i], &high, NULL);
+				    break;
                                 }
 
                             }
