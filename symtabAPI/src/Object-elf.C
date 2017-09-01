@@ -2537,16 +2537,15 @@ bool Object::fix_global_symbol_modules_static_dwarf()
                     Dwarf_Line *line = dwarf_onesrcline(lines, i);
                     if((dwarf_lineaddr(line, &low) == 0) && low)
                     {
-                        bool is_end = false;
                         Dwarf_Addr high = low;
                         int result = 0;
                         for(; (i < num_lines) &&
-                                      (is_end == false) &&
-                                      (result == 0); ++i)
+                                (result == 0); ++i)
                         {
                             line = dwarf_onesrcline(lines, i);
                             if(!line) continue;
 
+                            bool is_end = false;
                             result = dwarf_lineendsequence(line, &is_end);
                             if(result == 0 && is_end) {
                                 result = dwarf_lineaddr(line, &high);
