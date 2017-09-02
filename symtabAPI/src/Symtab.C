@@ -3562,3 +3562,8 @@ ModRangeLookup *Symtab::mod_lookup() {
     return mod_lookup_;
 
 }
+
+
+void Symtab::dumpModRanges() {
+  mod_lookup()->PrintPreorder();
+}

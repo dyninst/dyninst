@@ -90,6 +90,8 @@ public:
 
       unsigned getSize() const;
 
+      void dump();
+
       virtual ~LineInformation();
         StringTablePtr strings_;
    protected:
