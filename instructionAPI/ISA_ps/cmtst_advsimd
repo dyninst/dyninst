@@ -1,0 +1,21 @@
+##cmtst_advsimd_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize) operand1 = V[n];
+bits(datasize) operand2 = V[m];
+bits(datasize) result;
+bits(esize) element1;
+bits(esize) element2;
+boolean test_passed;
+
+for e = 0 to elements-1
+    element1 = Elem[operand1, e, esize];
+    element2 = Elem[operand2, e, esize];
+    if and_test then
+        test_passed = !IsZero(element1 AND element2);
+    else
+        test_passed = (element1 == element2);
+    Elem[result, e, esize] = if test_passed then Ones() else Zeros(64);
+
+    end
+V[d] = result;
+@@

@@ -35,7 +35,7 @@
 #include "Parser.h"
 #include "debug_parse.h"
 
-#include "version.h"
+#include "dyninstversion.h"
 
 using namespace std;
 using namespace Dyninst;
@@ -145,6 +145,11 @@ CodeObject::findBlocks(CodeRegion * cr, Address addr, set<Block*> & blocks)
 int CodeObject::findCurrentBlocks(CodeRegion * cr, Address addr, set<Block*> & blocks)
 {
     return parser->findCurrentBlocks(cr,addr,blocks);
+}
+
+int CodeObject::findCurrentFuncs(CodeRegion * cr, Address addr, set<Function*> & funcs)
+{
+    return parser->findCurrentFuncs(cr,addr,funcs);
 }
 
 void
@@ -342,10 +347,11 @@ bool CodeObject::isIATcall(Address insnAddr, std::string &calleeName)
    using namespace InstructionAPI;
    InstructionDecoder dec = InstructionDecoder(bufferBegin,
       InstructionDecoder::maxInstructionLength, reg->getArch());
-   InstructionAdapter_t ah = InstructionAdapter_t(
-      dec, insnAddr, this, reg, cs(), blk);
-
-   return ah.isIATcall(calleeName);
+   InstructionAdapter_t* ah = InstructionAdapter_t::makePlatformIA_IAPI(
+      cs()->getArch(), dec, insnAddr, this, reg, cs(), blk);
+   bool ret = ah->isIATcall(calleeName);
+   delete ah;
+   return ret;
 }
 
 void CodeObject::startCallbackBatch() {

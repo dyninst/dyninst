@@ -19,17 +19,18 @@ set (SRC_LIST
         src/Parser-speculative.C
         src/ParseCallback.C 
         src/IA_IAPI.C
-        src/IA_x86Details.C 
-        src/IA_powerDetails.C 
-        src/IA_aarch64Details.C 
-        src/IA_platformDetailsFactory.C 
+	src/IA_x86.C
+	src/IA_power.C
+	src/IA_aarch64.C
         src/CFGModifier.C
         src/StackTamperVisitor.C
-	src/JumpTablePred.C
-	src/BoundFactCalculator.C
-	src/BoundFactData.C
+	src/JumpTableFormatPred.C
+	src/JumpTableIndexPred.C
 	src/IndirectAnalyzer.C
 	src/IndirectASTVisitor.C
+	src/SymbolicExpression.C
+	src/BoundFactCalculator.C
+	src/BoundFactData.C
 	src/ThunkData.C
 	../dataflowAPI/src/ABI.C 
 	src/dominator.C
@@ -75,6 +76,7 @@ set(ROSE_SRC
         ../dataflowAPI/rose/semantics/BaseSemantics2.C
         #../dataflowAPI/rose/semantics/ConcreteSemantics2.C
         ../dataflowAPI/rose/semantics/DispatcherARM64.C
+	../dataflowAPI/rose/semantics/DispatcherPowerpc.C
         ../dataflowAPI/rose/semantics/RegisterParts.C
         ../dataflowAPI/rose/semantics/Registers.C
         #../dataflowAPI/rose/semantics/SMTSolver.C
@@ -96,24 +98,6 @@ set (SRC_LIST ${SRC_LIST}
 else()
 set (SRC_LIST ${SRC_LIST}
     src/SymtabCodeSource.C
-)
-endif()
-
-if (PLATFORM MATCHES amd64 OR PLATFORM MATCHES i386 OR PLATFORM
-MATCHES x86_64)
-set (SRC_LIST ${SRC_LIST}
-     src/InstructionSource-x86.C
-     src/IA_x86.C
-)
-elseif (PLATFORM MATCHES ppc)
-set (SRC_LIST ${SRC_LIST}
-     src/InstructionSource-power.C
-     src/IA_power.C
-)
-elseif (PLATFORM MATCHES aarch64)
-set (SRC_LIST ${SRC_LIST}
-     src/InstructionSource-aarch64.C
-     src/IA_aarch64.C
 )
 endif()
 

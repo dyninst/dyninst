@@ -160,7 +160,6 @@ LineInformation::const_iterator LineInformation::end() const
 
 LineInformation::const_iterator LineInformation::find(Offset addressInRange) const
 {
-    ++num_queries;
     const_iterator start_addr_valid = project<Statement::addr_range>(get<Statement::upper_bound>().lower_bound(addressInRange ));
     if(start_addr_valid == end()) return end();
     const_iterator end_addr_valid = impl_t::upper_bound(addressInRange + 1);
@@ -169,10 +168,6 @@ LineInformation::const_iterator LineInformation::find(Offset addressInRange) con
         if(*(*start_addr_valid) == addressInRange)
         {
             return start_addr_valid;
-        }
-        else
-        {
-            ++wasted_compares;
         }
         ++start_addr_valid;
     }
@@ -190,12 +185,6 @@ unsigned LineInformation::getSize() const
 
 LineInformation::~LineInformation() 
 {
-//    std::cerr << "Line information with " << getSize() << " entries queried " << num_queries << " times";
-//    if(num_queries)
-//    {
-//        std::cerr << " with " << wasted_compares << " extra compares (" << (float)(wasted_compares) / (num_queries) << " per query)";
-//    }
-//    std::cerr << std::endl;
 }
 
 LineInformation::const_line_info_iterator LineInformation::begin_by_source() const {
@@ -210,11 +199,18 @@ LineInformation::const_line_info_iterator LineInformation::end_by_source() const
 
 std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line_info_iterator>
 LineInformation::equal_range(std::string file, const unsigned int lineNo) const {
-    auto found = strings_->get<1>().find(file);
-    unsigned index = strings_->project<0>(found) - strings_->begin();
+    auto found_range = strings_->get<1>().equal_range(file);
     std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line_info_iterator > bounds;
-    auto idx = boost::make_tuple(index, lineNo);
-    bounds =  get<Statement::line_info>().equal_range(idx);
+    for(auto found = found_range.first; ((found != found_range.second) && (found != strings_->get<1>().end())); ++found)
+    {
+        unsigned index = strings_->project<0>(found) - strings_->begin();
+        auto idx = boost::make_tuple(index, lineNo);
+        bounds =  get<Statement::line_info>().equal_range(idx);
+        if(bounds.first != bounds.second) {
+            return bounds;
+        }
+    }
+    bounds = make_pair(get<Statement::line_info>().end(), get<Statement::line_info>().end());
     return bounds;
 }
 

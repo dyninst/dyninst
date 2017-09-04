@@ -377,6 +377,9 @@ SymtabCodeSource::init(hint_filt * filt , bool allLoadedRegions)
     // external linkage
     init_linkage();
 
+    // Fetch and sort exception blocks
+    init_try_blocks();
+
     // table of contents (only exists for some binary types)
     _table_of_contents = _symtab->getTOCoffset();
 }
@@ -509,6 +512,7 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
                 sr->getMemOffset()+sr->getDiskSize());
         } else {
             _hints.push_back( Hint((*fsit)->getOffset(),
+	                       (*fsit)->getSize(),
                                cr,
 			       (*fsit)->getFirstSymbol()->getPrettyName(),
                                (*fsit)->getFirstSymbol()->getMangledName()) );
@@ -533,6 +537,23 @@ SymtabCodeSource::init_linkage()
 
     for(fbtit = fbt.begin(); fbtit != fbt.end(); ++fbtit)
         _linkage[(*fbtit).target_addr()] = (*fbtit).name(); 
+}
+
+void
+SymtabCodeSource::init_try_blocks()
+{
+    vector<SymtabAPI::ExceptionBlock *> exBlks;
+    _symtab->getAllExceptions(exBlks);
+    for (auto bit = exBlks.begin(); bit != exBlks.end(); ++bit) {
+        SymtabAPI::ExceptionBlock* b = *bit;
+	try_blocks.push_back(try_block(b->tryStart(), b->tryEnd(), b->catchStart()));
+    }
+    sort(try_blocks.begin(), try_blocks.end());
+    for (size_t i = 1; i < try_blocks.size(); ++i) {
+        if (try_blocks[i].tryStart < try_blocks[i-1].tryEnd) {
+	    assert(!"WARNING: overlapping try blocks\n");
+	}
+    }
 }
 
 bool
@@ -771,3 +792,16 @@ SymtabCodeSource::addNonReturning(std::string func_name)
 {
     non_returning_funcs[func_name] = true;
 }
+
+bool 
+SymtabCodeSource::findCatchBlockByTryRange(Address addr, std::set<Address> & catchStarts) const {
+    try_block target(addr, 0, 0);
+    catchStarts.clear();
+    std::vector<try_block>::const_iterator bit = upper_bound(try_blocks.begin(), try_blocks.end(), target);
+    if (bit == try_blocks.begin()) return false;
+    --bit;
+    if (bit->tryStart <= addr && addr < bit->tryEnd)
+        catchStarts.insert(bit->catchStart); 
+    return true;
+}
+

@@ -1,0 +1,12 @@
+##aesimc_advsimd_execute
+CheckCryptoEnabled64();
+
+bits(128) operand = V[n];
+bits(128) result;
+if decrypt then
+    result = AESInvMixColumns(operand);
+else
+    result = AESMixColumns(operand);
+end
+V[d] = result;
+@@

@@ -42,7 +42,7 @@
 #include "BPatch_callbacks.h"
 #include <set>
 
-#include "version.h"
+#include "dyninstversion.h"
 
 class BPatch_typeCollection;
 class BPatch_libInfo;

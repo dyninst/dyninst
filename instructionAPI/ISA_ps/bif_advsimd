@@ -1,0 +1,31 @@
+##bif_advsimd_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize) operand1;
+bits(datasize) operand2;
+bits(datasize) operand3;
+bits(datasize) operand4 = V[n];
+
+case op of
+    when VBitOp_VEOR
+        operand1 = V[m];
+        operand2 = Zeros(64);
+        operand3 = Ones();
+    end
+    when VBitOp_VBSL
+        operand1 = V[m];
+        operand2 = operand1;
+        operand3 = V[d];
+    end
+    when VBitOp_VBIT
+        operand1 = V[d];
+        operand2 = operand1;
+        operand3 = V[m];
+    end
+    when VBitOp_VBIF
+        operand1 = V[d];
+        operand2 = operand1;
+        operand3 = NOT(V[m]);
+    end
+
+V[d] = operand1 EOR ((operand2 EOR operand4) AND operand3);
+@@

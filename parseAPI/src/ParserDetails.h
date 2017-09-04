@@ -178,7 +178,7 @@ class ParseWorkElem
 
     // This work element is a continuation of
     // parsing jump tables
-    ParseWorkElem(ParseWorkBundle *bundle, Block *b, const InsnAdapter::IA_IAPI& ah)
+    ParseWorkElem(ParseWorkBundle *bundle, Block *b, const InsnAdapter::IA_IAPI* ah)
          : _bundle(bundle),
           _edge(NULL),
           _targ((Address)-1),
@@ -187,7 +187,7 @@ class ParseWorkElem
           _order(resolve_jump_table),
           _call_processed(false),
 	  _cur(b) {	      
-	      _ah = new InsnAdapter::IA_IAPI(ah);
+	      _ah = ah->clone();
 	  }
 
     ~ParseWorkElem() {

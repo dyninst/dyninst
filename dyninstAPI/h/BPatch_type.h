@@ -261,7 +261,6 @@ protected:
 
   // INTERNAL DATA MEMBERS
 
-  bool owns_typ;
   unsigned int refCount;
 
  protected:

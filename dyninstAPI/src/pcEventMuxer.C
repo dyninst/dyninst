@@ -112,7 +112,6 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
 }
 
 bool PCEventMuxer::handle_internal(PCProcess *proc) {
-   assert(proc == NULL); // not implemented yet
    bool ret = true;
    while (mailbox_.size()) {
       EventPtr ev = dequeue(false);
@@ -457,7 +456,7 @@ Event::const_ptr PCEventMailbox::dequeue(bool block) {
     Event::const_ptr ret = eventQueue.front();
     eventQueue.pop();
     PCProcess *evProc = static_cast<PCProcess *>(ret->getProcess()->getData());
-    procCount[evProc]--;
+    if(evProc) procCount[evProc]--;
     assert(procCount[evProc] >= 0);
     queueCond.unlock();
 

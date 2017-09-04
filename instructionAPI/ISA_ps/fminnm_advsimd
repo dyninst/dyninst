@@ -1,0 +1,26 @@
+##fminnm_advsimd_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize) operand1 = V[n];
+bits(datasize) operand2 = V[m];
+bits(datasize) result;
+bits(2*datasize) concat = operand2:operand1;
+bits(esize) element1;
+bits(esize) element2;
+
+for e = 0 to elements-1
+    if pair then
+        element1 = Elem[concat, 2*e, esize];
+        element2 = Elem[concat, (2*e)+1, esize];
+    else
+        element1 = Elem[operand1, e, esize];
+        element2 = Elem[operand2, e, esize];
+    end
+
+    if minimum then
+        Elem[result, e, esize] = FPMinNum(element1, element2, FPCR);
+    else
+        Elem[result, e, esize] = FPMaxNum(element1, element2, FPCR);
+    end
+
+V[d] = result;
+@@

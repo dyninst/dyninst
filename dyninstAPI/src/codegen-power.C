@@ -179,8 +179,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     
     Register scratch = rs->getScratchRegister(gen, true);
 
-    bool mustRestore = false;
-    
+
     if (scratch == REG_NULL) { 
         // On Linux we save under the stack and hope it doesn't
         // cause problems.
@@ -197,8 +196,12 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     if (liveRegs[registerSpace::lr] == false) {
         branchRegister = registerSpace::lr;
     }
-    else if (liveRegs[registerSpace::ctr] == false) {
-        branchRegister = registerSpace::ctr;
+    else {
+        // live LR means we need to save/restore somewhere
+        if(isCall) return generateBranchViaTrap(gen, from, to, isCall);
+        if (liveRegs[registerSpace::ctr] == false) {
+            branchRegister = registerSpace::ctr;
+        }
     }
 
     if (!branchRegister) {
@@ -207,7 +210,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     }
     
     assert(branchRegister);
-    
+
     instruction moveToBr;
     moveToBr.clear();
     XFXFORM_OP_SET(moveToBr, MTSPRop);
@@ -223,14 +226,6 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     }
     XFXFORM_XO_SET(moveToBr, MTSPRxop); // From assembly manual
     insnCodeGen::generate(gen,moveToBr);
-
-    if (mustRestore) {
-        if (gen.addrSpace()->getAddressWidth() == 4)
-            insnCodeGen::generateImm(gen, Lop, 0, 1, 4*4);
-        else /* gen.addrSpace()->getAddressWidth() == 8 */
-            insnCodeGen::generateMemAccess64(gen, LDop, LDxop, 0, 1, 4*8);
-    }
-    
     // Aaaand now branch, linking if appropriate
     instruction branchToBr;
     branchToBr.clear();
@@ -764,19 +759,11 @@ void insnCodeGen::generateMoveToCR(codeGen &gen, Register rs) {
 bool insnCodeGen::modifyJump(Address target,
 			     NS_power::instruction &insn,
 			     codeGen &gen) {
-  // For now, we're not doing calculated (long)
-  // branches
-  long disp = target - gen.currAddr();
-  if (ABS(disp) > MAX_BRANCH) {
-    generateBranchViaTrap(gen, gen.currAddr(), target, IFORM_LK(insn));
-    return true;
-  }
-
   generateBranch(gen,
 		 gen.currAddr(),
 		 target,
 		 IFORM_LK(insn));
-  return true;
+    return true;
 }
 
 bool insnCodeGen::modifyJcc(Address target,
@@ -793,13 +780,8 @@ bool insnCodeGen::modifyJcc(Address target,
       // Make sure to use the (to, from) version of generateBranch()
       // in case the branch is too far, and trap-based instrumentation
       // is needed.
-      if (ABS(disp) > MAX_BRANCH) { 
-	return false;
-      }
-      else {
-	insnCodeGen::generateBranch(gen, gen.currAddr(), target, BFORM_LK(insn));
-	return true;
-      }
+	    insnCodeGen::generateBranch(gen, gen.currAddr(), target, BFORM_LK(insn));
+        return true;
     } else {
       // Figure out if the original branch was predicted as taken or not
       // taken.  We'll set up our new branch to be predicted the same way

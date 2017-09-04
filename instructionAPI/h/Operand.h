@@ -33,6 +33,8 @@
 
 #include "Expression.h"
 #include "Register.h"
+#include "BinaryFunction.h"
+#include "Immediate.h"
 #include <set>
 #include <string>
 
@@ -42,7 +44,6 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
-
     /// An %Operand object contains an AST built from %RegisterAST and %Immediate leaves,
     /// and information about whether the %Operand
     /// is read, written, or both. This allows us to determine which of the registers
@@ -59,29 +60,34 @@ namespace Dyninst
     {
     public:
         typedef boost::shared_ptr<Operand> Ptr;
-    Operand() : m_isRead(false), m_isWritten(false) {}
+    Operand() : m_isRead(false), m_isWritten(false), m_isImplicit(false) {}
       /// \brief Create an operand from a %Expression and flags describing whether the %ValueComputation
       /// is read, written or both.
       /// \param val Reference-counted pointer to the %Expression that will be contained in the %Operand being constructed
       /// \param read True if this operand is read
       /// \param written True if this operand is written
-      Operand(Expression::Ptr val, bool read, bool written) : op_value(val), m_isRead(read), m_isWritten(written) 
-      {
-      }
+      Operand(Expression::Ptr val, bool read, bool written) : 
+          op_value(val), m_isRead(read), m_isWritten(written), m_isImplicit(false) {}
+      Operand(Expression::Ptr val, bool read, bool written, bool implicit) : 
+          op_value(val), m_isRead(read), m_isWritten(written), m_isImplicit(implicit) {}
       virtual ~Operand()
       {
-	op_value.reset();
+	    op_value.reset();
       }
+
       Operand(const Operand& o) :
-      op_value(o.op_value), m_isRead(o.m_isRead), m_isWritten(o.m_isWritten)
+        op_value(o.op_value), m_isRead(o.m_isRead), 
+        m_isWritten(o.m_isWritten), m_isImplicit(o.m_isImplicit)
       {
       }
+
       const Operand& operator=(const Operand& rhs)
       {
-	op_value = rhs.op_value;
-	m_isRead = rhs.m_isRead;
-	m_isWritten = rhs.m_isWritten;
-	return *this;
+          op_value = rhs.op_value;
+          m_isRead = rhs.m_isRead;
+          m_isWritten = rhs.m_isWritten;
+          m_isImplicit = rhs.m_isImplicit;
+          return *this;
       }
       
 
@@ -97,10 +103,11 @@ namespace Dyninst
       /// Returns true if this operand is written
       INSTRUCTION_EXPORT bool isWritten(Expression::Ptr candidate) const;
 
-      INSTRUCTION_EXPORT bool isRead() const {
-	return m_isRead; }
-      INSTRUCTION_EXPORT bool isWritten() const {
-	return m_isWritten; }
+      INSTRUCTION_EXPORT bool isRead() const { return m_isRead; }
+      INSTRUCTION_EXPORT bool isWritten() const { return m_isWritten; }
+
+      INSTRUCTION_EXPORT bool isImplicit() const { return m_isImplicit; }
+      INSTRUCTION_EXPORT void setImplicit(bool i) { m_isImplicit = i; }
       
       /// Returns true if this operand reads memory
       INSTRUCTION_EXPORT bool readsMemory() const;
@@ -114,9 +121,14 @@ namespace Dyninst
       /// \param memAccessors If this is a memory write operand, insert the \c %Expression::Ptr representing
       /// the address being written into \c memAccessors.
       INSTRUCTION_EXPORT void addEffectiveWriteAddresses(std::set<Expression::Ptr>& memAccessors) const;
-      /// \brief Return a printable string representation of the operand
+      /// \brief Return a printable string representation of the operand.
       /// \return The operand in a disassembly format
+      INSTRUCTION_EXPORT std::string format(ArchSpecificFormatter *formatter, Architecture arch, Address addr = 0) const;
+
+      /// \brief Return a printable string representation of the operand. Please use the updated function instead.
+      /// \return The operand in a dissassembly format.
       INSTRUCTION_EXPORT std::string format(Architecture arch, Address addr = 0) const;
+
       /// The \c getValue method returns an %Expression::Ptr to the AST contained by the operand.
       INSTRUCTION_EXPORT Expression::Ptr getValue() const;
       
@@ -124,6 +136,7 @@ namespace Dyninst
       Expression::Ptr op_value;
       bool m_isRead;
       bool m_isWritten;
+      bool m_isImplicit;
     };
   };
 };

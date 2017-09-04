@@ -705,109 +705,109 @@ RegisterDictionary::dictionary_armv8() {
 }
 
 /** PowerPC registers. */
-//const RegisterDictionary *
-//RegisterDictionary::dictionary_powerpc()
-//{
-//    static RegisterDictionary *regs = NULL;
-//    if (!regs) {
-//        regs = new RegisterDictionary("powerpc");
-//
-//        /**********************************************************************************************************************
-//         * General purpose and floating point registers
-//         **********************************************************************************************************************/
-//        for (unsigned i=0; i<32; i++) {
-//            regs->insert("r"+StringUtility::numberToString(i), powerpc_regclass_gpr, i, 0, 32);
-//            regs->insert("f"+StringUtility::numberToString(i), powerpc_regclass_fpr, i, 0, 64);
-//        }
-//
-//        /**********************************************************************************************************************
-//         * State, status, condition, control registers
-//         **********************************************************************************************************************/
-//
-//        /* Machine state register */
-//        regs->insert("msr", powerpc_regclass_msr, 0, 0, 32);
-//
-//        /* Floating point status and control register */
-//        regs->insert("fpscr", powerpc_regclass_fpscr, 0, 0, 32);
-//
-//        /* Condition Register. This register is grouped into eight fields, where each field is 4 bits. Many PowerPC
-//         * instructions define bit 31 of the instruction encoding as the Rc bit, and some instructions imply an Rc value equal
-//         * to 1. When Rc is equal to 1 for integer operations, the CR field 0 is set to reflect the result of the instruction's
-//         * operation: Equal (EQ), Greater Than (GT), Less Than (LT), and Summary Overflow (SO). When Rc is equal to 1 for
-//         * floating-point operations, the CR field 1 is set to reflect the state of the exception status bits in the FPSCR: FX,
-//         * FEX, VX, and OX. Any CR field can be the target of an integer or floating-point comparison instruction. The CR field
-//         * 0 is also set to reflect the result of a conditional store instruction (stwcx or stdcx). There is also a set of
-//         * instructions that can manipulate a specific CR bit, a specific CR field, or the entire CR, usually to combine
-//         * several conditions into a single bit for testing. */
-//        regs->insert("cr", powerpc_regclass_cr, 0, 0, 32);
-//        for (unsigned i=0; i<32; i++) {
-//            switch (i%4) {
-//                case 0:
-//                    regs->insert("cr"+StringUtility::numberToString(i/4), powerpc_regclass_cr, 0, i, 4);
-//                    regs->insert("cr"+StringUtility::numberToString(i/4)+"*4+lt", powerpc_regclass_cr, 0, i, 1);
-//                    break;
-//                case 1:
-//                    regs->insert("cr"+StringUtility::numberToString(i/4)+"*4+gt", powerpc_regclass_cr, 0, i, 1);
-//                    break;
-//                case 2:
-//                    regs->insert("cr"+StringUtility::numberToString(i/4)+"*4+eq", powerpc_regclass_cr, 0, i, 1);
-//                    break;
-//                case 3:
-//                    regs->insert("cr"+StringUtility::numberToString(i/4)+"*4+so", powerpc_regclass_cr, 0, i, 1);
-//                    break;
-//            }
-//        }
-//
-//        /* The processor version register is a 32-bit read-only register that identifies the version and revision level of the
-//         * processor. Processor versions are assigned by the PowerPC architecture process. Revision levels are implementation
-//         * defined. Access to the register is privileged, so that an application program can determine the processor version
-//         * only with the help of an operating system function. */
-//        regs->insert("pvr", powerpc_regclass_pvr, 0, 0, 32);
-//
-//        /**********************************************************************************************************************
-//         * The instruction address register is a pseudo register. It is not directly available to the user other than through a
-//         * "branch and link" instruction. It is primarily used by debuggers to show the next instruction to be executed.
-//         **********************************************************************************************************************/
-//        regs->insert("iar", powerpc_regclass_iar, 0, 0, 32);
-//
-//        /**********************************************************************************************************************
-//         * Special purpose registers. There are 1024 of these, some of which have special names.  We name all 1024 consistently
-//         * and create aliases for the special ones. This allows the disassembler to look them up generically.  Because the
-//         * special names appear after the generic names, a reverse lookup will return the special name.
-//         **********************************************************************************************************************/
-//        /* Generic names for them all */
-//        for (unsigned i=0; i<1024; i++)
-//            regs->insert("spr"+StringUtility::numberToString(i), powerpc_regclass_spr, i, 0, 32);
-//
-//        /* The link register contains the address to return to at the end of a function call.  Each branch instruction encoding
-//         * has an LK bit. If the LK bit is 1, the branch instruction moves the program counter to the link register. Also, the
-//         * conditional branch instruction BCLR branches to the value in the link register. */
-//        regs->insert("lr", powerpc_regclass_spr, powerpc_spr_lr, 0, 32);
-//
-//        /* The fixed-point exception register contains carry and overflow information from integer arithmetic operations. It
-//         * also contains carry input to certain integer arithmetic operations and the number of bytes to transfer during load
-//         * and store string instructions, lswx and stswx. */
-//        regs->insert("xer", powerpc_regclass_spr, powerpc_spr_xer, 0, 32);
-//
-//        /* The count register contains a loop counter that is decremented on certain branch operations. Also, the conditional
-//         * branch instruction bcctr branches to the value in the CTR. */
-//        regs->insert("ctr", powerpc_regclass_spr, powerpc_spr_ctr, 0, 32);
-//
-//        /* Other special purpose registers. */
-//        regs->insert("dsisr", powerpc_regclass_spr, powerpc_spr_dsisr, 0, 32);
-//        regs->insert("dar", powerpc_regclass_spr, powerpc_spr_dar, 0, 32);
-//        regs->insert("dec", powerpc_regclass_spr, powerpc_spr_dec, 0, 32);
-//
-//        /**********************************************************************************************************************
-//         * Time base registers. There are 1024 of these, some of which have special names. We name all 1024 consistently and
-//         * create aliases for the special ones. This allows the disassembler to look them up generically.  Because the special
-//         * names appear after the generic names, a reverse lookup will return the special name.
-//         **********************************************************************************************************************/
-//        for (unsigned i=0; i<1024; i++)
-//            regs->insert("tbr"+StringUtility::numberToString(i), powerpc_regclass_tbr, i, 0, 32);
-//
-//        regs->insert("tbl", powerpc_regclass_tbr, powerpc_tbr_tbl, 0, 32);      /* time base lower */
-//        regs->insert("tbu", powerpc_regclass_tbr, powerpc_tbr_tbu, 0, 32);      /* time base upper */
-//    }
-//    return regs;
-//}
+const RegisterDictionary *
+RegisterDictionary::dictionary_powerpc()
+{
+    static RegisterDictionary *regs = NULL;
+    if (!regs) {
+        regs = new RegisterDictionary("powerpc");
+
+        /**********************************************************************************************************************
+         * General purpose and floating point registers
+         **********************************************************************************************************************/
+        for (unsigned i=0; i<32; i++) {
+            regs->insert("r"+StringUtility::numberToString(i), powerpc_regclass_gpr, i, 0, 32);
+            regs->insert("f"+StringUtility::numberToString(i), powerpc_regclass_fpr, i, 0, 64);
+        }
+
+        /**********************************************************************************************************************
+         * State, status, condition, control registers
+         **********************************************************************************************************************/
+
+        /* Machine state register */
+        regs->insert("msr", powerpc_regclass_msr, 0, 0, 32);
+
+        /* Floating point status and control register */
+        regs->insert("fpscr", powerpc_regclass_fpscr, 0, 0, 32);
+
+        /* Condition Register. This register is grouped into eight fields, where each field is 4 bits. Many PowerPC
+         * instructions define bit 31 of the instruction encoding as the Rc bit, and some instructions imply an Rc value equal
+         * to 1. When Rc is equal to 1 for integer operations, the CR field 0 is set to reflect the result of the instruction's
+         * operation: Equal (EQ), Greater Than (GT), Less Than (LT), and Summary Overflow (SO). When Rc is equal to 1 for
+         * floating-point operations, the CR field 1 is set to reflect the state of the exception status bits in the FPSCR: FX,
+         * FEX, VX, and OX. Any CR field can be the target of an integer or floating-point comparison instruction. The CR field
+         * 0 is also set to reflect the result of a conditional store instruction (stwcx or stdcx). There is also a set of
+         * instructions that can manipulate a specific CR bit, a specific CR field, or the entire CR, usually to combine
+         * several conditions into a single bit for testing. */
+        regs->insert("cr", powerpc_regclass_cr, 0, 0, 32);
+        for (unsigned i=0; i<32; i++) {
+            switch (i%4) {
+                case 0:
+                    regs->insert("cr"+StringUtility::numberToString(i/4), powerpc_regclass_cr, 0, i, 4);
+                    regs->insert("cr"+StringUtility::numberToString(i/4)+"*4+lt", powerpc_regclass_cr, 0, i, 1);
+                    break;
+                case 1:
+                    regs->insert("cr"+StringUtility::numberToString(i/4)+"*4+gt", powerpc_regclass_cr, 0, i, 1);
+                    break;
+                case 2:
+                    regs->insert("cr"+StringUtility::numberToString(i/4)+"*4+eq", powerpc_regclass_cr, 0, i, 1);
+                    break;
+                case 3:
+                    regs->insert("cr"+StringUtility::numberToString(i/4)+"*4+so", powerpc_regclass_cr, 0, i, 1);
+                    break;
+            }
+        }
+
+        /* The processor version register is a 32-bit read-only register that identifies the version and revision level of the
+         * processor. Processor versions are assigned by the PowerPC architecture process. Revision levels are implementation
+         * defined. Access to the register is privileged, so that an application program can determine the processor version
+         * only with the help of an operating system function. */
+        regs->insert("pvr", powerpc_regclass_pvr, 0, 0, 32);
+
+        /**********************************************************************************************************************
+         * The instruction address register is a pseudo register. It is not directly available to the user other than through a
+         * "branch and link" instruction. It is primarily used by debuggers to show the next instruction to be executed.
+         **********************************************************************************************************************/
+        regs->insert("iar", powerpc_regclass_iar, 0, 0, 32);
+
+        /**********************************************************************************************************************
+         * Special purpose registers. There are 1024 of these, some of which have special names.  We name all 1024 consistently
+         * and create aliases for the special ones. This allows the disassembler to look them up generically.  Because the
+         * special names appear after the generic names, a reverse lookup will return the special name.
+         **********************************************************************************************************************/
+        /* Generic names for them all */
+        for (unsigned i=0; i<1024; i++)
+            regs->insert("spr"+StringUtility::numberToString(i), powerpc_regclass_spr, i, 0, 32);
+
+        /* The link register contains the address to return to at the end of a function call.  Each branch instruction encoding
+         * has an LK bit. If the LK bit is 1, the branch instruction moves the program counter to the link register. Also, the
+         * conditional branch instruction BCLR branches to the value in the link register. */
+        regs->insert("lr", powerpc_regclass_spr, powerpc_spr_lr, 0, 32);
+
+        /* The fixed-point exception register contains carry and overflow information from integer arithmetic operations. It
+         * also contains carry input to certain integer arithmetic operations and the number of bytes to transfer during load
+         * and store string instructions, lswx and stswx. */
+        regs->insert("xer", powerpc_regclass_spr, powerpc_spr_xer, 0, 32);
+
+        /* The count register contains a loop counter that is decremented on certain branch operations. Also, the conditional
+         * branch instruction bcctr branches to the value in the CTR. */
+        regs->insert("ctr", powerpc_regclass_spr, powerpc_spr_ctr, 0, 32);
+
+        /* Other special purpose registers. */
+        regs->insert("dsisr", powerpc_regclass_spr, powerpc_spr_dsisr, 0, 32);
+        regs->insert("dar", powerpc_regclass_spr, powerpc_spr_dar, 0, 32);
+        regs->insert("dec", powerpc_regclass_spr, powerpc_spr_dec, 0, 32);
+
+        /**********************************************************************************************************************
+         * Time base registers. There are 1024 of these, some of which have special names. We name all 1024 consistently and
+         * create aliases for the special ones. This allows the disassembler to look them up generically.  Because the special
+         * names appear after the generic names, a reverse lookup will return the special name.
+         **********************************************************************************************************************/
+        for (unsigned i=0; i<1024; i++)
+            regs->insert("tbr"+StringUtility::numberToString(i), powerpc_regclass_tbr, i, 0, 32);
+
+        regs->insert("tbl", powerpc_regclass_tbr, powerpc_tbr_tbl, 0, 32);      /* time base lower */
+        regs->insert("tbu", powerpc_regclass_tbr, powerpc_tbr_tbu, 0, 32);      /* time base upper */
+    }
+    return regs;
+}

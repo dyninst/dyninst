@@ -194,3 +194,16 @@ bool Graph::isExitNode(NodePtr node) {
 unsigned Graph::size() const {
    return nodes_.size();
 }
+
+void Graph::adjustEntryAndExitNodes() {
+    entryNodes_.clear();
+    exitNodes_.clear();
+    NodeIterator gbegin, gend;
+    allNodes(gbegin, gend);
+    for (; gbegin != gend; ++gbegin) {
+        Node::Ptr ptr = *gbegin;
+	if (!ptr->hasInEdges()) insertEntryNode(ptr);
+	if (!ptr->hasOutEdges()) insertExitNode(ptr);
+    }
+
+}

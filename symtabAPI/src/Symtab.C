@@ -63,7 +63,7 @@
 #include <iomanip>
 #include <stdarg.h>
 
-#include "version.h"
+#include "dyninstversion.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -864,20 +864,10 @@ bool Symtab::addSymbolToIndices(Symbol *&sym, bool undefined)
    if (!undefined) {
      if(everyDefinedSymbol.find(sym) == everyDefinedSymbol.end())
        everyDefinedSymbol.insert(sym);
-      //      symsByMangledName[sym->getMangledName()].push_back(sym);
-      //symsByPrettyName[sym->getPrettyName()].push_back(sym);
-      //symsByTypedName[sym->getTypedName()].push_back(sym);
-#if !defined(os_vxworks)    
-      // VxWorks doesn't know symbol addresses until object is loaded.
-      //symsByOffset[sym->getOffset()].push_back(sym);
-#endif
    }
    else {
-      // We keep a different index for undefined symbols
-      //undefDynSymsByMangledName[sym->getMangledName()].push_back(sym);
-      //undefDynSymsByPrettyName[sym->getPrettyName()].push_back(sym);
-      //undefDynSymsByTypedName[sym->getTypedName()].push_back(sym);
-      // And undefDynSyms is already filled in
+       // multi-index container should handle duplication
+       undefDynSyms.insert(sym);
    }
    
     return true;
@@ -1006,7 +996,8 @@ bool Symtab::doNotAggregate(const Symbol* sym) {
       return true;
   }
 #endif
-  return false;
+  // return !isDefined(sym);
+    return false;
 }
 
 /* Add the new name to the appropriate symbol index */
@@ -1544,32 +1535,13 @@ bool Symtab::extractInfo(Object *linkedFile)
     linkedFile->getModuleLanguageInfo(&mod_langs);
     setModuleLanguages(&mod_langs);
 	
-    // Be sure that module languages are set before demangling, or
-    // we won't get very far.
-
-    /*    if (!demangleSymbols(raw_syms)) 
-    {
-        serr = Syms_To_Functions;
-        return false;
-    }
-    
-    if (!demangleSymbols(undefDynSyms)) {
-       serr = Syms_To_Functions;
-       return false;
-    }
-    */
-    if (!createIndices(raw_syms, false)) 
+    if (!createIndices(raw_syms, false))
     {
         serr = Syms_To_Functions;
         return false;
     }
 
-    //if (!createIndices(undefDynSyms, true)) 
-    //{
-    //    serr = Syms_To_Functions;
-    //    return false;
-    //}
-    
+
     if (!createAggregates()) 
     {
         serr = Syms_To_Functions;
@@ -1654,7 +1626,7 @@ Symtab::Symtab(const Symtab& obj) :
       indexed_modules.push_back(m);
    }
 
-   for (i=0; i<relocation_table_.size();i++) 
+   for (i=0; i<obj.relocation_table_.size();i++)
    {
       relocation_table_.push_back(relocationEntry(obj.relocation_table_[i]));
    }
@@ -2257,11 +2229,13 @@ SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<AddressRange > &ranges,
    {
        StringTablePtr s = (*i)->getStrings();
        // Only check modules that have this filename present
-       if(s->get<1>().find(lineSource) == s->get<1>().end()) continue;
+       if(s->get<1>().find(lineSource) == s->get<1>().end()) {
+           continue;
+       }
        LineInformation *lineInformation = (*i)->parseLineInformation();
-       if (lineInformation)
+       if (lineInformation) {
            lineInformation->getAddressRanges( lineSource.c_str(), lineNo, ranges );
-
+       }
    } /* end iteration over modules */
 
    if ( ranges.size() != originalSize )
@@ -2539,12 +2513,12 @@ bool Symtab::setDefaultNamespacePrefix(string &str)
 SYMTAB_EXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, unsigned flag)
 {
     // Start with all the defined symbols
-  std::vector<Symbol* > allSyms;
-    allSyms.insert(allSyms.end(), everyDefinedSymbol.begin(), everyDefinedSymbol.end());
+    std::set<Symbol* > allSyms;
+    allSyms.insert(everyDefinedSymbol.begin(), everyDefinedSymbol.end());
 
     // Add the undefined dynamic symbols
 
-    allSyms.insert(allSyms.end(), undefDynSyms.begin(), undefDynSyms.end());
+    allSyms.insert(undefDynSyms.begin(), undefDynSyms.end());
 
     // Write the new file
     return linkedFile->emitDriver(filename, allSyms, flag);
@@ -3180,7 +3154,7 @@ ostream & Dyninst::SymtabAPI::operator<< (ostream &os, const relocationEntry &r)
        << "(" << r.getRelType() << ")";
     if( r.getDynSym() != NULL ) {
         os << " Symbol Offset: " << std::hex << std::setfill('0') << setw(8) << r.getDynSym()->getOffset();
-        os << std::setfill(' ');
+        os << std::dec << std::setfill(' ');
         if( r.getDynSym()->isCommonStorage() ) {
             os << " COM";
         }else if( r.getDynSym()->getRegion() == NULL ) {

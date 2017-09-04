@@ -28,8 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "RoseInsnFactory.h"
-//#include "../rose/x86InstructionSemantics.h"
-//#include "../rose/powerpcInstructionSemantics.h"
 
 #include "Instruction.h"
 #include "Dereference.h"
@@ -73,18 +71,18 @@ SgAsmInstruction *RoseInsnFactory::convert(const InstructionAPI::Instruction::Pt
   // operand list
   SgAsmOperandList *roperands = new SgAsmOperandList;
   
-//   std::cerr << "Converting " << insn->format(addr) << " @" << std::hex << addr << std::dec << std::endl;
+   //std::cerr << "Converting " << insn->format(addr) << " @" << std::hex << addr << std::dec << std::endl;
   
-//   std::cerr << "checking instruction: " << insn->format(addr) << " for special handling" << std::endl;
+   //std::cerr << "checking instruction: " << insn->format(addr) << " for special handling" << std::endl;
   if (handleSpecialCases(insn->getOperation().getID(), rinsn, roperands)) {
       rinsn->set_operandList(roperands);
       return rinsn;
   }
 
-//   std::cerr << "no special handling by opcode, checking if we should mangle operands..." << std::endl;
+   //std::cerr << "no special handling by opcode, checking if we should mangle operands..." << std::endl;
   std::vector<InstructionAPI::Operand> operands;
   insn->getOperands(operands);
-//   std::cerr << "\t " << operands.size() << " operands" << std::endl;
+   //std::cerr << "\t " << operands.size() << " operands" << std::endl;
   massageOperands(insn, operands);
   int i = 0;
 //   std::cerr << "converting insn " << insn->format(addr) << std::endl;
@@ -299,11 +297,19 @@ bool RoseInsnPPCFactory::handleSpecialCases(entryID iapi_opcode,
 	//cerr << "14-bit branch target: " << branch_target << endl;
       }
       bo = ((raw >> 21) & 0x0000001F);
+      // bi field specifies which condition register bit to test.
+      // bi has a 5-bit value. The top 3 bit specifies which condition register to use
+      // The bottom 2 bit specifies which bit within the given condition register
       bi = ((raw >> 16) & 0x0000001F);
-      rose_operands->append_operand(new SgAsmByteValueExpression(bo));
-      rose_operands->append_operand(new SgAsmPowerpcRegisterReferenceExpression(powerpc_regclass_cr, bi,
-										powerpc_condreggranularity_bit));
+      rose_operands->append_operand(new SgAsmIntegerValueExpression(bo, new SgAsmIntegerType(ByteOrder::ORDER_LSB, 8, false)));
+      
+      SgAsmDirectRegisterExpression *dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(powerpc_regclass_cr, 0, bi , 1));
+      dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, 1, false));
+      rose_operands->append_operand(dre);
     }
+
+    // It looks like the ROSE semantics code will infer the target from 
+    // the bo field. So, what is passed in as the third operands does not matter
     if(branch_target) {
       rose_operands->append_operand(new SgAsmDoubleWordValueExpression(branch_target));
     } else if(power_op_bcctr == iapi_opcode) {
@@ -325,7 +331,7 @@ bool RoseInsnPPCFactory::handleSpecialCases(entryID iapi_opcode,
       raw |= bytes[i];
     }
     unsigned int lev = (raw >> 5) & 0x7F;
-    rose_operands->append_operand(new SgAsmByteValueExpression(lev));
+    rose_operands->append_operand(new SgAsmIntegerValueExpression(lev, new SgAsmIntegerType(ByteOrder::ORDER_LSB, 8, false)));
     //cerr << "LEV = " << lev << endl;
     return true;
   }
@@ -341,11 +347,13 @@ void RoseInsnPPCFactory::massageOperands(const InstructionAPI::Instruction::Ptr 
   if(insn->writesMemory())
     std::swap(operands[0], operands[1]);
   */
-  entryID opcode = insn->getOperation().getID();
-  // Anything that's writing RA, ROSE expects in RA, RS, RB/immediates form.
-  // Any store, however, ROSE expects in RS, RA, RB/displacement form.  Very confusing,
+  entryID opcode = insn->getOperation().getID(); 
+  // Anything that's writing RA, ROSE sometimes expects in RA, RS, RB/immediates form.
+  // Any store, however, Dyninst expects in RS, RA, RB/displacement form.  Very confusing,
   // but we handle it cleanly here.
-  if(!operands[0].isWritten() && operands.size() >= 2 &&
+  if( opcode != power_op_rldicr &&
+      opcode != power_op_rldic && 
+      !operands[0].isWritten() && operands.size() >= 2 &&
      operands[1].isWritten() && !operands[1].writesMemory()) {
     //std::cerr << "swapping RS and RA in " << insn->format() << std::endl;
     std::swap(operands[0], operands[1]);

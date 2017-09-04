@@ -1,0 +1,15 @@
+##umaddl_execute
+bits(datasize) operand1 = X[n];
+bits(datasize) operand2 = X[m];
+bits(destsize) operand3 = X[a];
+
+integer result;
+
+if sub_op then
+    result = Int(operand3, true) - (Int(operand1, true) * Int(operand2, true));
+else
+    result = Int(operand3, true) + (Int(operand1, true) * Int(operand2, true));
+end
+
+X[d] = result<63:0>;
+@@
