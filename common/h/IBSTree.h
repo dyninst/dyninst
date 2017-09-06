@@ -161,7 +161,8 @@ class IBSNode {
 template<class ITYPE = SimpleInterval<> >
  std::ostream &operator<<(std::ostream &os, std::set<ITYPE *> &s) {
   for (auto i = s.begin(); i != s.end(); i++) {
-    std::cerr << "[0x" << (*i)->low() << ", 0x" << (*i)->high() << ")  ";
+    std::cerr << "[0x" << std::hex << (*i)->low() 
+              << ", 0x" << (*i)->high() << std::dec << ")  ";
   }
   return os;
 };
@@ -907,7 +908,7 @@ void IBSTree<ITYPE>::PrintPreorder(IBSNode<ITYPE> *n, int indent)
     if(n == nil) return;
 
     // print self
-    doIndent(indent) << "node: " << n->value() << " (0x" << std::hex << n->value() << std::dec << ")" << std::endl;
+    doIndent(indent) << "node: 0x" << std::hex << n->value() << std::dec << " (" << n->value() << ")" << std::endl;
     if (!n->less.empty())
       doIndent(indent) << "  <: " << n->less << std::endl;
     if (!n->equal.empty())
