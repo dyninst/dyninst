@@ -1515,7 +1515,7 @@ bool DwarfWalker::getFrameBase() {
         return false;
     dwarf_printf("(0x%lx) After frame base decode, %d entries\n", id(), (int) funlocs.size());
 
-    return !funlocs.empty();
+    return true || !funlocs.empty(); // johnmc added true
 }
 
 bool DwarfWalker::getReturnType(bool hasSpecification, Type *&returnType) {
