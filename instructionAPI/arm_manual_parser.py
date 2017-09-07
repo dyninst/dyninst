@@ -1045,7 +1045,7 @@ void InstructionDecoder_aarch32::OPRfunc_%s()
                                          insn.info['mnemonic'])
                 entry = '    {aarch32_op_%s, "%s", %s, 0x%08x, 0x%08x}' % (
                     insn.id,
-                    mnemonic.lower() + ' ' + insn.id,
+                    mnemonic.lower(), # + ' ' + insn.id,
                     self.join_instruction_operands(insn),
                     int(insn.bitList),
                     int(insn.bitList.get_mask())
@@ -1158,7 +1158,7 @@ static const char* bit_rep[] = {
 //
 // Static functions for use in this file only.
 //
-#define DEBUG_AARCH32_DECODE 1
+#define DEBUG_AARCH32_DECODE 0
 
 #if DEBUG_AARCH32_DECODE
 static void print_bin(FILE* fp, uint32_t insn)
