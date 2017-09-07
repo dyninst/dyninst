@@ -43,6 +43,9 @@ using namespace NS_power;
    || defined(arch_x86_64)
 #include "codegen-x86.h"
 using namespace NS_x86;
+#elif defined(arch_aarch32)
+#include "codegen-aarch32.h"
+using namespace NS_aarch32;
 #elif defined(arch_aarch64)
 #include "codegen-aarch64.h"
 using namespace NS_aarch64;

@@ -102,18 +102,21 @@ for name in reg_names:
 	    reg_sizes[name.replace("n_", str(idx) + "_")] = size
 
 for elem in reg_encodings:
+    reg_name = elem.split('-')[0]
     print("sysRegMap[" + reg_encodings[elem] + "] = "
-          + arch_name.lower() + "::" + elem + ";")
+          + arch_name.lower() + "::" + reg_name + ";")
 
 print()
 ct = 0
 for elem in reg_encodings:
+    reg_name = elem.split('-')[0]
     size_str = ""
     if reg_sizes[elem] == "32":
 	size_str = "D_REG"
     else:
 	size_str = "FULL"
-    print("DEF_REGISTER(" + elem + ",\t\t" + str(ct)
+
+    print("DEF_REGISTER(" + reg_name + ",\t\t" + str(ct)
           + " | " + size_str + " |SYSREG | Arch_" + arch_name.lower()
           + ", \"" + arch_name.lower() + "\");")
     ct += 1

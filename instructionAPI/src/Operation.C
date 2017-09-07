@@ -454,34 +454,34 @@ namespace Dyninst
 	  for(unsigned i = 0; i < found->second.readFlags.size(); i++)
 	  {
             switch(found->second.readFlags[i]) {
-	    case x86::icf:
+	    case x86::_icf:
 	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::cf : x86_64::cf));
 	      break;
-	    case x86::ipf:
+	    case x86::_ipf:
 	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::pf : x86_64::pf));
 	      break;
-	    case x86::iaf:
+	    case x86::_iaf:
 	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::af : x86_64::af));
 	      break;
-	    case x86::izf:
+	    case x86::_izf:
 	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
 	      break;
-	    case x86::isf:
+	    case x86::_isf:
 	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::sf : x86_64::sf));
 	      break;
-	    case x86::itf:
+	    case x86::_itf:
 	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::tf : x86_64::tf));
 	      break;
-	    case x86::idf:
+	    case x86::_idf:
 	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
 	      break;
-	    case x86::iof:
+	    case x86::_iof:
 	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::of : x86_64::of));
 	      break;
-	    case x86::int_:
+	    case x86::_int_:
 	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::nt_ : x86_64::nt_));
 	      break;
-            case x86::iif_:
+            case x86::_iif_:
               otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::if_ : x86_64::if_));
               break;
             default:
@@ -491,34 +491,34 @@ namespace Dyninst
 	  for(unsigned j = 0; j < found->second.writtenFlags.size(); j++)
 	    {
             switch(found->second.writtenFlags[j]) {
-	    case x86::icf:
+	    case x86::_icf:
 	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::cf : x86_64::cf));
 	      break;
-	    case x86::ipf:
+	    case x86::_ipf:
 	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::pf : x86_64::pf));
 	      break;
-	    case x86::iaf:
+	    case x86::_iaf:
 	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::af : x86_64::af));
 	      break;
-	    case x86::izf:
+	    case x86::_izf:
 	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
 	      break;
-	    case x86::isf:
+	    case x86::_isf:
 	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::sf : x86_64::sf));
 	      break;
-	    case x86::itf:
+	    case x86::_itf:
 	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::tf : x86_64::tf));
 	      break;
-	    case x86::idf:
+	    case x86::_idf:
 	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
 	      break;
-	    case x86::iof:
+	    case x86::_iof:
 	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::of : x86_64::of));
 	      break;
-	    case x86::int_:
+	    case x86::_int_:
 	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::nt_ : x86_64::nt_));
 	      break;
-	    case x86::iif_:
+	    case x86::_iif_:
 	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::if_ : x86_64::if_));
 	      break;
 	    default:

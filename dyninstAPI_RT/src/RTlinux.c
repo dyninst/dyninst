@@ -379,6 +379,8 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
   #else // 32-bit
     #define UC_PC(x) x->uc_mcontext.uc_regs->gregs[32]
   #endif // power
+#elif defined(arch_aarch32)
+  #define UC_PC(x) x->uc_mcontext.pc
 #elif defined(arch_aarch64)
 	//#warning "UC_PC: in aarch64, pc is not directly accessable."
 	//aarch64 pc is not one of 31 GPRs, but an independent reg

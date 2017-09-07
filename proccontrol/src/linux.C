@@ -2934,8 +2934,8 @@ bool linux_thread::getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegist
 
          switch (reg.val())
          {
-            case x86::ifsbase: segmentSelectorReg = x86::fs; break;
-            case x86::igsbase: segmentSelectorReg = x86::gs; break;
+            case x86::_ifsbase: segmentSelectorReg = x86::fs; break;
+            case x86::_igsbase: segmentSelectorReg = x86::gs; break;
             default: {
                pthrd_printf("Failed to get unrecognized segment base\n");
                return false;

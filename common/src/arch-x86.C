@@ -659,56 +659,56 @@ static int vex3_simdop_convert[3][4] = {
 
 #define GPRS { am_allgprs, op_allgprs }
 
-#define AH   { am_reg, x86::iah }
-#define AX   { am_reg, x86::iax }
-#define BH   { am_reg, x86::ibh }
-#define CH   { am_reg, x86::ich }
-#define DH   { am_reg, x86::idh }
-#define AL   { am_reg, x86::ial }
-#define BL   { am_reg, x86::ibl }
-#define CL   { am_reg, x86::icl }
-#define CS   { am_reg, x86::ics }
-#define DL   { am_reg, x86::idl }
-#define DX   { am_reg, x86::idx }
-#define eAX  { am_reg, x86::ieax }
-#define eBX  { am_reg, x86::iebx }
-#define eCX  { am_reg, x86::iecx }
-#define eDX  { am_reg, x86::iedx }
-#define EAX  { am_reg, x86::ieax }
-#define EBX  { am_reg, x86::iebx }
-#define ECX  { am_reg, x86::iecx }
-#define EDX  { am_reg, x86::iedx }
-#define DS   { am_reg, x86::ids }
-#define ES   { am_reg, x86::ies }
-#define FS   { am_reg, x86::ifs }
-#define GS   { am_reg, x86::igs }
-#define SS   { am_reg, x86::iss }
-#define eSP  { am_reg, x86::iesp }
-#define eBP  { am_reg, x86::iebp }
-#define eSI  { am_reg, x86::iesi }
-#define eDI  { am_reg, x86::iedi }
-#define ESP  { am_reg, x86::iesp }
-#define EBP  { am_reg, x86::iebp }
-#define ESI  { am_reg, x86::iesi }
-#define EDI  { am_reg, x86::iedi }
+#define AH   { am_reg, x86::_iah }
+#define AX   { am_reg, x86::_iax }
+#define BH   { am_reg, x86::_ibh }
+#define CH   { am_reg, x86::_ich }
+#define DH   { am_reg, x86::_idh }
+#define AL   { am_reg, x86::_ial }
+#define BL   { am_reg, x86::_ibl }
+#define CL   { am_reg, x86::_icl }
+#define CS   { am_reg, x86::_ics }
+#define DL   { am_reg, x86::_idl }
+#define DX   { am_reg, x86::_idx }
+#define eAX  { am_reg, x86::_ieax }
+#define eBX  { am_reg, x86::_iebx }
+#define eCX  { am_reg, x86::_iecx }
+#define eDX  { am_reg, x86::_iedx }
+#define EAX  { am_reg, x86::_ieax }
+#define EBX  { am_reg, x86::_iebx }
+#define ECX  { am_reg, x86::_iecx }
+#define EDX  { am_reg, x86::_iedx }
+#define DS   { am_reg, x86::_ids }
+#define ES   { am_reg, x86::_ies }
+#define FS   { am_reg, x86::_ifs }
+#define GS   { am_reg, x86::_igs }
+#define SS   { am_reg, x86::_iss }
+#define eSP  { am_reg, x86::_iesp }
+#define eBP  { am_reg, x86::_iebp }
+#define eSI  { am_reg, x86::_iesi }
+#define eDI  { am_reg, x86::_iedi }
+#define ESP  { am_reg, x86::_iesp }
+#define EBP  { am_reg, x86::_iebp }
+#define ESI  { am_reg, x86::_iesi }
+#define EDI  { am_reg, x86::_iedi }
 #define ECXEBX { am_tworeghack, op_ecxebx }
 #define EDXEAX { am_tworeghack, op_edxeax }
-#define rAX  { am_reg, x86::ieax }
-#define rBX  { am_reg, x86::iebx }
-#define rCX  { am_reg, x86::iecx }
-#define rDX  { am_reg, x86::iedx }
-#define rSP  { am_reg, x86::iesp }
-#define rBP  { am_reg, x86::iebp }
-#define rSI  { am_reg, x86::iesi }
-#define rDI  { am_reg, x86::iedi }
-#define ST0  { am_reg, x86::ist0 }
-#define ST1  { am_reg, x86::ist1 }
-#define ST2  { am_reg, x86::ist2 }
-#define ST3  { am_reg, x86::ist3 }
-#define ST4  { am_reg, x86::ist4 }
-#define ST5  { am_reg, x86::ist5 }
-#define ST6  { am_reg, x86::ist6 }
-#define ST7  { am_reg, x86::ist7 }
+#define rAX  { am_reg, x86::_ieax }
+#define rBX  { am_reg, x86::_iebx }
+#define rCX  { am_reg, x86::_iecx }
+#define rDX  { am_reg, x86::_iedx }
+#define rSP  { am_reg, x86::_iesp }
+#define rBP  { am_reg, x86::_iebp }
+#define rSI  { am_reg, x86::_iesi }
+#define rDI  { am_reg, x86::_iedi }
+#define ST0  { am_reg, x86::_ist0 }
+#define ST1  { am_reg, x86::_ist1 }
+#define ST2  { am_reg, x86::_ist2 }
+#define ST3  { am_reg, x86::_ist3 }
+#define ST4  { am_reg, x86::_ist4 }
+#define ST5  { am_reg, x86::_ist5 }
+#define ST6  { am_reg, x86::_ist6 }
+#define ST7  { am_reg, x86::_ist7 }
 #define FPOS 17
 
 enum {
@@ -10981,51 +10981,51 @@ bool instruction::getUsedRegs(pdvector<int> &regs) {
 	//using namespace Dyninst::InstructionAPI;
          //The instruction implicitely references a memory instruction
          switch (op.optype) {
-             case x86::iah:   
-             case x86::ial:
-             case x86::iax:   
-             case x86::ieax:
+             case x86::_iah:
+             case x86::_ial:
+             case x86::_iax:
+             case x86::_ieax:
                regs.push_back(REGNUM_RAX);
                if (loc.rex_byte) regs.push_back(REGNUM_R8);
                break;
-             case x86::ibh:
-             case x86::ibl:
-             case x86::ibx:
-             case x86::iebx:
+             case x86::_ibh:
+             case x86::_ibl:
+             case x86::_ibx:
+             case x86::_iebx:
                regs.push_back(REGNUM_RBX);
                if (loc.rex_byte) regs.push_back(REGNUM_R11);
                break;
-             case x86::ich:
-             case x86::icl:
-             case x86::icx:
-             case x86::iecx:
+             case x86::_ich:
+             case x86::_icl:
+             case x86::_icx:
+             case x86::_iecx:
                  regs.push_back(REGNUM_RCX);
                if (loc.rex_byte) regs.push_back(REGNUM_R9);
                break;
-             case x86::idh:
-             case x86::idl:
-             case x86::idx:
-             case x86::iedx:
+             case x86::_idh:
+             case x86::_idl:
+             case x86::_idx:
+             case x86::_iedx:
                  regs.push_back(REGNUM_RDX);
                if (loc.rex_byte) regs.push_back(REGNUM_R10);
                break;
-             case x86::isp:
-             case x86::iesp:
+             case x86::_isp:
+             case x86::_iesp:
                 regs.push_back(REGNUM_RSP);
                if (loc.rex_byte) regs.push_back(REGNUM_R12);
                break;
-             case x86::ibp:
-             case x86::iebp:
+             case x86::_ibp:
+             case x86::_iebp:
                regs.push_back(REGNUM_RBP);
                if (loc.rex_byte) regs.push_back(REGNUM_R13);
                break;
-             case x86::isi:
-             case x86::iesi:
+             case x86::_isi:
+             case x86::_iesi:
                regs.push_back(REGNUM_RSI);
                if (loc.rex_byte) regs.push_back(REGNUM_R14);
                break;
-             case x86::idi:
-             case x86::iedi:
+             case x86::_idi:
+             case x86::_iedi:
                regs.push_back(REGNUM_RDI);
                if (loc.rex_byte) regs.push_back(REGNUM_R15);
                break;

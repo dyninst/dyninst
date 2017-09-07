@@ -73,10 +73,12 @@ using namespace Dyninst::SymtabAPI;
 #include "inst-x86.h"
 #elif defined(arch_power)
 #include "inst-power.h"
+#elif defined(arch_aarch32)
+#include "inst-aarch32.h"
 #elif defined(arch_aarch64)
 #include "inst-aarch64.h"
 #else
-#error "Unknown architecture, expected x86, x86_64, power or aarch64"
+#error "Unknown architecture, expected x86, x86_64, power, aarch32 or aarch64"
 #endif
 
 

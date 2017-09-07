@@ -540,6 +540,12 @@ void ABI::initialize64(){
 }
 #endif
 
+#if defined(arch_aarch32)
+void ABI::initialize32(){
+	assert(0);
+}
+#endif
+
 //#warning "This is not verified!"
 #if defined(arch_aarch64)
 void ABI::initialize32(){

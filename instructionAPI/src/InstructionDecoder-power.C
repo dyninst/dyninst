@@ -902,7 +902,7 @@ using namespace boost::assign;
 
     void InstructionDecoder_power::FXM()
     {
-        (translateBitFieldToCR<12, 19, ppc32::icr0, 7>(*this))();
+        (translateBitFieldToCR<12, 19, ppc32::_icr0, 7>(*this))();
         return;
     }
     void InstructionDecoder_power::spr()
@@ -929,7 +929,7 @@ using namespace boost::assign;
     void InstructionDecoder_power::FLM()
     {
         isRAWritten = true;
-        (translateBitFieldToCR<7, 14, ppc32::ifpscw0, 7>(*this))();
+        (translateBitFieldToCR<7, 14, ppc32::_ifpscw0, 7>(*this))();
         return;
     }
 

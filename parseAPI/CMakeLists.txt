@@ -21,6 +21,7 @@ set (SRC_LIST
         src/IA_IAPI.C
         src/IA_x86Details.C 
         src/IA_powerDetails.C 
+        src/IA_aarch32Details.C
         src/IA_aarch64Details.C 
         src/IA_platformDetailsFactory.C 
         src/CFGModifier.C
@@ -109,6 +110,11 @@ elseif (PLATFORM MATCHES ppc)
 set (SRC_LIST ${SRC_LIST}
      src/InstructionSource-power.C
      src/IA_power.C
+)
+elseif (PLATFORM MATCHES aarch32)
+set (SRC_LIST ${SRC_LIST}
+     src/InstructionSource-aarch32.C
+     src/IA_aarch32.C
 )
 elseif (PLATFORM MATCHES aarch64)
 set (SRC_LIST ${SRC_LIST}

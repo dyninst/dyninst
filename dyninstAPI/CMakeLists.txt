@@ -132,6 +132,15 @@ set (SRC_LIST ${SRC_LIST}
      src/stackwalk-ppc.C
      src/Relocation/Widgets/CFWidget-ppc.C
 )
+elseif (PLATFORM MATCHES aarch32)
+set (SRC_LIST ${SRC_LIST}
+     src/inst-aarch32.C
+     src/codegen-aarch32.C
+     src/parse-aarch32.C
+     src/RegisterConversion-aarch32.C
+     src/stackwalk-aarch32.C
+     src/Relocation/Widgets/CFWidget-aarch32.C
+)
 elseif (PLATFORM MATCHES aarch64)
 set (SRC_LIST ${SRC_LIST}
      src/inst-aarch64.C 
@@ -163,6 +172,8 @@ set (SRC_LIST ${SRC_LIST}
     set (SRC_LIST ${SRC_LIST} src/linux-x86.C)
   elseif (PLATFORM MATCHES ppc)
     set (SRC_LIST ${SRC_LIST} src/linux-power.C)
+  elseif (PLATFORM MATCHES aarch32)
+    set (SRC_LIST ${SRC_LIST} src/linux-aarch32.C)
   elseif (PLATFORM MATCHES aarch64)
     set (SRC_LIST ${SRC_LIST} src/linux-aarch64.C)
   endif()

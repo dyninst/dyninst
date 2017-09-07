@@ -47,6 +47,9 @@ using namespace NS_power;
    || defined(arch_x86_64)
 using namespace NS_x86;
 
+#elif defined(arch_aarch32)
+using namespace NS_aarch32;
+
 #elif defined(arch_aarch64)
 using namespace NS_aarch64;
 

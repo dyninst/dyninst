@@ -54,6 +54,10 @@ elseif (PLATFORM MATCHES ppc64)
               -Darch_ppc_little_endian
           )
    endif (SYSPLATFORM MATCHES ppc64le)
+elseif (PLATFORM MATCHES aarch32)
+  #set (ARCH_DEFINES -Daarch_64 -Darch_64bit)
+  set (ARCH_DEFINES -Darch_aarch32 -Darch_32bit)
+  set (CAP_DEFINES ${CAP_DEFINES} -Dcap_registers)
 elseif (PLATFORM MATCHES aarch64)
   #set (ARCH_DEFINES -Daarch_64 -Darch_64bit)
   set (ARCH_DEFINES -Darch_aarch64 -Darch_64bit)
@@ -144,10 +148,16 @@ set (OLD_DEFINES -Damd64_unknown_freebsd7_0)
 
 elseif (PLATFORM STREQUAL i386-unknown-nt4.0)
 set (OLD_DEFINES -Di386_unknown_nt4_0)
+
+elseif (PLATFORM STREQUAL aarch32-unknown-linux)
+set (OLD_DEFINES -Daarch32_unknown_linux)
+
 elseif (PLATFORM STREQUAL aarch64-unknown-linux)
-  set (OLD_DEFINES -Daarch64_unknown_linux)
+set (OLD_DEFINES -Daarch64_unknown_linux)
+
 else (PLATFORM STREQUAL i386-unknown-linux2.4)
-  message (FATAL_ERROR "Unknown platform: ${PLATFORM}")
+message (FATAL_ERROR "Unknown platform: ${PLATFORM}")
+
 endif (PLATFORM STREQUAL i386-unknown-linux2.4)
 
 if (THREAD_DB_FOUND)
