@@ -3536,3 +3536,14 @@ ModRangeLookup *Symtab::mod_lookup() {
     return mod_lookup_;
 
 }
+
+
+void Symtab::dumpModRanges() {
+  mod_lookup()->PrintPreorder();
+}
+
+void Symtab::dumpFuncRanges() {
+  if (func_lookup) {
+    func_lookup->PrintPreorder();
+  }
+}

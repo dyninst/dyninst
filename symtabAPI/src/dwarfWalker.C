@@ -531,9 +531,9 @@ void DwarfWalker::setFuncFromLowest(Address lowest) {
    Function *f = NULL;
    bool result = symtab()->findFuncByEntryOffset(f, lowest);
    if (result) {
+      setFunc(f);
       dwarf_printf("(0x%lx) Lookup by offset 0x%lx identifies %p\n",
                    id(), lowest, curFunc());
-      setFunc(f);
    } else {
      dwarf_printf("(0x%lx) Lookup by offset 0x%lx failed\n", id(), lowest);
    }
@@ -572,7 +572,7 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
 //   common_debug_dwarf = 1;
    dwarf_printf("(0x%lx) parseSubprogram entry\n", id());
 
-    parseRangeTypes(dbg(), entry());
+   parseRangeTypes(dbg(), entry());
    setFunctionFromRange(func_type);
 
    // Name first

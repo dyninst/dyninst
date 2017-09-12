@@ -80,7 +80,7 @@ Function::Function() :
     fprintf(stderr,"PROBABLE ERROR, default ParseAPI::Function constructor\n");
 }
 
-Function::Function(Address addr, string name, CodeObject * obj, 
+Function::Function(Address addr, string name, string mangledName, CodeObject * obj, 
     CodeRegion * region, InstructionSource * isrc) :
         _start(addr),
         _obj(obj),
@@ -89,6 +89,7 @@ Function::Function(Address addr, string name, CodeObject * obj,
         _src(RT),
         _rs(UNSET),
         _name(name),
+        _mangledName(mangledName),
         _entry(NULL),
 	 _is_leaf_function(true),
 	 _ret_addr(0),
@@ -440,6 +441,12 @@ const string &
 Function::name() const
 {
     return _name;
+}
+
+const string &
+Function::mangledName() const
+{
+    return _mangledName;
 }
 
 bool
