@@ -1169,17 +1169,13 @@ static Value_Entry_t valueTable[] = {
 %(valueTable)s
 };
 
+#ifdef DEBUG_AARCH32_DECODE
+
 static const char* bit_rep[] = {
     "0000", "0001", "0010", "0011", "0100", "0101", "0110", "0111",
     "1000", "1001", "1010", "1011", "1100", "1101", "1110", "1111"
 };
 
-//
-// Static functions for use in this file only.
-//
-#define DEBUG_AARCH32_DECODE 0
-
-#if DEBUG_AARCH32_DECODE
 static void print_bin(FILE* fp, uint32_t insn)
 {
     fprintf(fp, "%%s %%s %%s %%s %%s %%s %%s %%s",
@@ -1245,6 +1241,10 @@ static void identify_trace(uint32_t rawInsn)
         fprintf(stderr, "Decode failure: No instruction matched.\\n");
 }
 #endif
+
+//
+// Static functions for use in this file only.
+//
 
 static Insn_Entry_t* identify(uint32_t rawInsn)
 {
