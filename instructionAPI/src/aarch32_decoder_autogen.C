@@ -79,6 +79,25 @@ typedef enum Condition_t {
     COND_xx = 0xf, // Not a conditional instruction
 } Condition_t;
 
+static const char insnSuffix[][3] = {
+    "eq",
+    "ne",
+    "cs",
+    "cc",
+    "mi",
+    "pl",
+    "vs",
+    "vc",
+    "hi",
+    "ls",
+    "ge",
+    "lt",
+    "gt",
+    "le",
+    "",
+    "??"
+};
+
 typedef struct Insn_Entry {
     entryID op;
     const char* mnemonic;

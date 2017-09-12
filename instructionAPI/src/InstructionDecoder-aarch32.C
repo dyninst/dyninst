@@ -177,9 +177,11 @@ InstructionDecoder_aarch32::mainDecode(void)
 {
     unsigned char* rawPtr = reinterpret_cast<unsigned char*>(&rawInsn);
     Insn_Entry* insnInfo = identify(rawInsn);
+    std::string mnemonic(insnInfo->mnemonic);
 
+    mnemonic += insnSuffix[get_condition_field(rawInsn)];
     decodedInsn = makeInstruction(insnInfo->op,
-                                  insnInfo->mnemonic,
+                                  mnemonic.c_str(),
                                   4,
                                   rawPtr);
     decodedInsn->arch_decoded_from = Arch_aarch32;
