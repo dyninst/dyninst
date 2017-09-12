@@ -150,9 +150,6 @@ bool DwarfHandle::init_dbg()
         case EM_L10M:
             arch = Arch_x86_64;
             break;
-        case EM_CUDA:
-            arch = Arch_cuda;
-            break;
         case EM_PPC:
             arch = Arch_ppc32;
             break;
@@ -164,6 +161,9 @@ bool DwarfHandle::init_dbg()
             break;
         case EM_AARCH64:
             arch = Arch_aarch64;
+            break;
+        case EM_CUDA:
+            arch = Arch_cuda;
             break;
         default:
             assert(0 && "Unsupported archiecture in ELF file.");
