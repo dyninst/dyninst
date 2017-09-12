@@ -1757,6 +1757,9 @@ bool Elf_X::findDebugFile(std::string origfilename, string &output_name, char* &
 #if !defined(EM_AARCH64)
 #define EM_AARCH64 183
 #endif
+#if !defined(EM_CUDA)
+#define EM_CUDA 190
+#endif
 Dyninst::Architecture Elf_X::getArch() const
 {
     switch(e_machine())

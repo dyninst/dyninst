@@ -49,6 +49,9 @@ using namespace std;
 #if !defined(EM_AARCH64)
 #define EM_AARCH64 183
 #endif
+#if !defined(EM_CUDA)
+#define EM_CUDA 190
+#endif
 
 /*void DwarfHandle::defaultDwarfError(Dwarf_Error err, Dwarf_Ptr p) {
   dwarf_dealloc(*(Dwarf*)(p), err, DW_DLA_ERROR);
