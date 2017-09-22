@@ -3168,7 +3168,7 @@ void InstructionDecoder_aarch32::OPRfunc_imm_label_2()
       (field<23,  0>(rawInsn) << 2)
     );
     bool isCall = field<24, 24>(rawInsn);
-    imm = SignExtend(imm, 24+2);
+    imm = SignExtend(imm, 24+2) + 8;  // +8 for AArch32 instruction prefetch.
     Expression::Ptr regPC    = make_pc_expr();
     Expression::Ptr offset   = Immediate::makeImmediate(Result(s32, imm));
     Expression::Ptr targAddr = makeAddExpression(regPC, offset, u32);
@@ -3182,7 +3182,7 @@ void InstructionDecoder_aarch32::OPRfunc_imm_label_3()
       | (field<23,  0>(rawInsn) << 2)
     );
     bool isCall = true;
-    imm = SignExtend(imm, 24+2);
+    imm = SignExtend(imm, 24+2) + 8;  // +8 for AArch32 instruction prefetch.
     Expression::Ptr regPC    = make_pc_expr();
     Expression::Ptr offset   = Immediate::makeImmediate(Result(s32, imm));
     Expression::Ptr targAddr = makeAddExpression(regPC, offset, u32);
