@@ -1333,7 +1333,7 @@ void InstructionDecoder_aarch32::handle_branch_target(Expression::Ptr targAddr,
                                                       bool isIndirect)
 {
     Condition_t condField = get_condition_field(rawInsn);
-    bool isConditional = (condField == COND_al || condField == COND_xx);
+    bool isConditional = (condField != COND_al && condField != COND_xx);
 
     decodedInsn->addSuccessor(targAddr,
                               isCall,
