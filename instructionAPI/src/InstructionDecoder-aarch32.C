@@ -180,8 +180,10 @@ InstructionDecoder_aarch32::mainDecode(void)
     std::string mnemonic(insnInfo->mnemonic);
 
     mnemonic += insnSuffix[get_condition_field(rawInsn)];
+    char* mnemonicCopy = (char*)malloc(mnemonic.length() + 1);
+    strcpy(mnemonicCopy, mnemonic.c_str());
     decodedInsn = makeInstruction(insnInfo->op,
-                                  mnemonic.c_str(),
+                                  mnemonicCopy,
                                   4,
                                   rawPtr);
     decodedInsn->arch_decoded_from = Arch_aarch32;
