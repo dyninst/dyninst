@@ -18,12 +18,11 @@ endif (LIBDWARF_LIBRARIES AND LIBDWARF_INCLUDE_DIRS)
 
 find_path (LIBDWARF_INCLUDE_DIR
   NAMES
-  libdwarf.h
+  elfutils/libdw.h
   HINTS
   ${LIBDWARF_INCLUDE_DIRS}
   PATHS
   /usr/include
-  /usr/include/libdwarf
   /usr/local/include
   /opt/local/include
   /sw/include
@@ -31,7 +30,7 @@ find_path (LIBDWARF_INCLUDE_DIR
 
 find_library (LIBDWARF_LIBRARIES
   NAMES
-  dwarf
+  dw
   HINTS
   ${LIBDWARF_LIBRARIES}
   PATHS

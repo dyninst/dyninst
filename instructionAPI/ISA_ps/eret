@@ -1,0 +1,3 @@
+##eret_execute
+AArch64.ExceptionReturn(ELR[], SPSR[]);
+@@

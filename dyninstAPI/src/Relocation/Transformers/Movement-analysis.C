@@ -135,16 +135,14 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
         Absloc dest;
 
         AssignList sensitiveAssignments;
-        if (insn->getOperation().getID() == e_call &&
-            insnIsThunkCall(insn, addr, dest)) {
+        if (insnIsThunkCall(insn, addr, dest)) {
             relocation_cerr << "\tThunk @ " << hex << addr << dec << endl;
             handleThunkCall(reloc, g, iter, dest);
             intSens_++;
             extSens_++;
             thunk_++;
             continue;
-        } else if (insn->getOperation().getID() == e_call &&
-                   exceptionSensitive(addr+insn->size(), block)) {
+        } else if (insn->getCategory() == c_CallInsn && exceptionSensitive(addr+insn->size(), block)) {
             extSens = true;
             sensitivity_cerr << "\tException sensitive @ " << hex << addr << dec << endl;
         }
@@ -570,7 +568,10 @@ void PCSensitiveTransformer::emulateInsn(RelocBlock *reloc,
   // We emulate calls by replacing them with push/jump combinations. The jump will be handled
   // by a CFWidget, so we just need a "push" (and then to create everything else).  
 
-  assert(insn->getOperation().getID() == e_call);
+  if(insn->getOperation().getID() != e_call) {
+        // emulating a non-call is a no-op
+      return;
+  }
 
   // Construct a new Widget that will emulate the original instruction here. 
   static Absloc stack_loc(0, 0, NULL);

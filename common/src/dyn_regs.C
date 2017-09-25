@@ -446,6 +446,7 @@ MachRegister MachRegister::getArchRegFromAbstractReg(MachRegister abstract,
         default:
             assert(0);
     }
+
     return Dyninst::InvalidReg;
 }
 
@@ -460,12 +461,17 @@ MachRegister MachRegister::getZeroFlag(Dyninst::Architecture arch)
       case Arch_aarch64: 
          return aarch64::z;
       case Arch_aarch32:
+         assert(!"Not implemented");
       case Arch_ppc32:
+         return ppc32::cr0e;
       case Arch_ppc64:
-         assert(0);
+         return ppc64::cr0e;
       case Arch_none:
          return InvalidReg;
+      default:
+         return InvalidReg;
    }
+
    return InvalidReg;
 }
 
@@ -520,6 +526,38 @@ bool MachRegister::isFlag() const
          return regC == aarch32::FLAG;
       case Arch_aarch64:
          return regC == aarch64::FLAG;
+      case Arch_ppc32: 
+      case Arch_ppc64:{
+         // For power, we have a different register representation.
+	 // We do not use the subrange field for MachReigsters
+	 // and all lower 32 bits are base ID
+	 int baseID = reg & 0x0000FFFF;
+         return (baseID <= 731 && baseID >= 700) || (baseID <= 629 && baseID >= 621); 
+      }
+      default:
+         assert(!"Not implemented!");
+   }
+   return false;
+}
+
+bool MachRegister::isZeroFlag() const
+{
+    switch (getArchitecture())
+    {
+      case Arch_x86:
+         return *this == x86::zf;
+      case Arch_x86_64:
+         return *this == x86_64::zf;
+      case Arch_aarch64:
+         return *this == aarch64::z;
+      case Arch_ppc32: 
+      case Arch_ppc64:{
+         // For power, we have a different register representation.
+	 // We do not use the subrange field for MachReigsters
+	 // and all lower 32 bits are base ID
+	 int baseID = reg & 0x0000FFFF;
+         return (baseID <= 731 && baseID >= 700 && baseID % 4 == 2) || (baseID <= 628 && baseID >= 621); 
+      }
       default:
          assert(!"Not implemented!");
    }
@@ -859,14 +897,16 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                        c = powerpc_regclass_sr;
                    } else {
                        c = powerpc_regclass_cr;
-                       n = baseID - 621;
+		       n = 0;
+		       p = baseID - 621;
+/*                       n = baseID - 621;
 		       if(n > 7) {
 			 n = 0;
 			 p = powerpc_condreggranularity_whole;
 		       } else {
 			 p = powerpc_condreggranularity_field;
 		       }
-
+*/
                    }
                }
                break;
@@ -931,7 +971,7 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                    n = 0;
                    if (baseID == (aarch64::pstate & 0xFF)) {
                        c = armv8_regclass_pstate;
-                   } else if(baseID == (aarch64::zr & 0xFF) || baseID == (aarch64::wzr & 0xFF)) {
+                   } else if(baseID == (aarch64::xzr & 0xFF) || baseID == (aarch64::wzr & 0xFF)) {
                        c = armv8_regclass_gpr;
                        n = armv8_gpr_zr;
                    } else if (baseID == (aarch64::pc & 0xFF)) {
@@ -988,7 +1028,13 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                }
                    break;
                default:
-                   assert(!"unknown register type!");
+	           // We do not want to assert here.
+		   // Set these output variable to invalid values and let the
+		   // semantics code to throw exceptions
+	           p = -1;
+		   c = -1;
+		   n = -1;
+//                   assert(!"unknown register type!");
                    break;
            }
            return;
@@ -2084,7 +2130,7 @@ MachRegister MachRegister::getArchReg(unsigned int regNum, Dyninst::Architecture
             case 100: return Dyninst::aarch64::sp;
             case 101: return Dyninst::aarch64::pc;
             case 102: return Dyninst::aarch64::pstate;
-            case 103: return Dyninst::aarch64::zr;
+            case 103: return Dyninst::aarch64::xzr;
          }
       default:
          return InvalidReg;

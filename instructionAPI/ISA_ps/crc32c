@@ -1,0 +1,15 @@
+##crc32c_execute
+if !HaveCRCExt() then
+    UnallocatedEncoding();
+end
+
+bits(32)      acc     = X[n];   // accumulator
+bits(size)    val     = X[m];   // input value
+bits(32)      poly    = (if crc32c then 0x1EDC6F41 else 0x04C11DB7)<31:0>;
+
+bits(32+size) tempacc = BitReverse(acc) : Zeros(size);
+bits(size+32) tempval = BitReverse(val) : Zeros(32);
+
+// Poly32Mod2 on a bitstring does a polynomial Modulus over {0,1} operation
+X[d] = BitReverse(Poly32Mod2(tempacc EOR tempval, poly));
+@@

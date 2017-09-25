@@ -1,0 +1,23 @@
+##raddhn_advsimd_execute
+CheckFPAdvSIMDEnabled64();
+bits(2*datasize) operand1 = V[n];
+bits(2*datasize) operand2 = V[m];
+bits(datasize)   result;
+integer round_const = if round then 1 << (esize - 1) else 0;
+bits(2*esize) element1;
+bits(2*esize) element2;
+bits(2*esize) sum;
+
+for e = 0 to elements-1
+    element1 = Elem[operand1, e, 2*esize];
+    element2 = Elem[operand2, e, 2*esize];
+    if sub_op then
+        sum = element1 - element2;
+    else
+        sum = element1 + element2;
+    end
+    sum = sum + round_const;
+    Elem[result, e, esize] = sum<2*esize-1:esize>;
+
+Vpart[d, part] = result;
+@@

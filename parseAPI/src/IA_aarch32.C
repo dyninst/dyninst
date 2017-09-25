@@ -28,7 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "IA_IAPI.h"
+#include "IA_aarch32.h"
 
 #include "Register.h"
 #include "Dereference.h"
@@ -51,22 +51,42 @@ using namespace InstructionAPI;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::InsnAdapter;
 
-bool IA_IAPI::isFrameSetupInsn(Instruction::Ptr i) const
+IA_aarch32::IA_aarch32(Dyninst::InstructionAPI::InstructionDecoder dec_,
+                       Address start_,
+                       Dyninst::ParseAPI::CodeObject* o,
+                       Dyninst::ParseAPI::CodeRegion* r,
+                       Dyninst::InstructionSource *isrc,
+                       Dyninst::ParseAPI::Block * curBlk_)
+    : IA_IAPI(dec_, start_, o, r, isrc, curBlk_)
+{
+}
+
+IA_aarch32::IA_aarch32(const IA_aarch32& rhs)
+    : IA_IAPI(rhs)
+{
+}
+
+IA_aarch32* IA_aarch32::clone() const
+{
+    return new IA_aarch32(*this);
+}
+
+bool IA_aarch32::isFrameSetupInsn(Instruction::Ptr i) const
 {
     return false;
 }
 
-bool IA_IAPI::isNop() const
+bool IA_aarch32::isNop() const
 {
     return false;
 }
 
-bool IA_IAPI::isThunk() const
+bool IA_aarch32::isThunk() const
 {
     return false;
 }
 
-bool IA_IAPI::isTailCall(Function* context,
+bool IA_aarch32::isTailCall(Function* context,
                          EdgeTypeEnum type,
                          unsigned int,
                          const std::set<Address>& knownTargets ) const
@@ -74,47 +94,47 @@ bool IA_IAPI::isTailCall(Function* context,
     return false;
 }
 
-bool IA_IAPI::savesFP() const
+bool IA_aarch32::savesFP() const
 {
     return false;
 }
 
-bool IA_IAPI::isStackFramePreamble() const
+bool IA_aarch32::isStackFramePreamble() const
 {
     return false;
 }
 
-bool IA_IAPI::cleansStack() const
+bool IA_aarch32::cleansStack() const
 {
     return false;
 }
 
-bool IA_IAPI::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const
+bool IA_aarch32::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const
 {
     return true;
 }
 
-bool IA_IAPI::isReturnAddrSave(Address& retAddr) const
+bool IA_aarch32::isReturnAddrSave(Address& retAddr) const
 {
   return false;
 }
 
-bool IA_IAPI::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const
+bool IA_aarch32::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const
 {
     return false;
 }
 
-bool IA_IAPI::isFakeCall() const
+bool IA_aarch32::isFakeCall() const
 {
     return false;
 }
 
-bool IA_IAPI::isIATcall(std::string &) const
+bool IA_aarch32::isIATcall(std::string &) const
 {
     return false;
 }
 
-bool IA_IAPI::isLinkerStub() const
+bool IA_aarch32::isLinkerStub() const
 {
   // Disabling this code because it ends with an
     // incorrect CFG.
@@ -123,13 +143,13 @@ bool IA_IAPI::isLinkerStub() const
 
 #if 0
 ParseAPI::StackTamper
-IA_IAPI::tampersStack(ParseAPI::Function *, Address &) const
+IA_aarch32::tampersStack(ParseAPI::Function *, Address &) const
 {
     return TAMPER_NONE;
 }
 #endif
 
-bool IA_IAPI::isNopJump() const
+bool IA_aarch32::isNopJump() const
 {
     return false;
 }

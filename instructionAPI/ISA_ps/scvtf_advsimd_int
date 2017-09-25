@@ -1,0 +1,13 @@
+##scvtf_advsimd_int_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize) operand = V[n];
+bits(datasize) result;
+FPRounding rounding = FPRoundingMode(FPCR);
+bits(esize) element;
+
+for e = 0 to elements-1
+    element = Elem[operand, e, esize];
+    Elem[result, e, esize] = FixedToFP(element, 0, unsigned, FPCR, rounding);
+
+V[d] = result;
+@@

@@ -25,7 +25,7 @@ CMAKE_CXX_COMPILER: C++ compiler to use
 CMAKE_C_COMPILER: C compiler to use
 LIBELF_INCLUDE_DIR: location of elf.h and libelf.h
 LIBELF_LIBRARIES: full path of libelf.so
-LIBDWARF_INCLUDE_DIR: location of libdwarf.h
+LIBDWARF_INCLUDE_DIR: location of libdw.h
 LIBDWARF_LIBRARIES: full path of libdwarf.so
 IBERTY_LIBRARIES: full path of libiberty.[a|so]; libiberty.a must be built with -fPIC
 CMAKE_[C|CXX]_COMPILER_FLAGS: additional C/C++ compiler flags to use

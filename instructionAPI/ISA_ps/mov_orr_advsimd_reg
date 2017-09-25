@@ -1,0 +1,18 @@
+##mov_orr_advsimd_reg_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize) operand1 = V[n];
+bits(datasize) operand2 = V[m];
+bits(datasize) result;
+
+if invert then operand2 = NOT(operand2);
+
+case op of
+    when LogicalOp_AND
+        result = operand1 AND operand2;
+    end
+    when LogicalOp_ORR
+        result = operand1 OR operand2;
+    end
+
+V[d] = result;
+@@

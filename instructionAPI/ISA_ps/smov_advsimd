@@ -1,0 +1,6 @@
+##smov_advsimd_execute
+CheckFPAdvSIMDEnabled64();
+bits(idxdsize) operand = V[n];
+
+X[d] = SignExtend(Elem[operand, index, esize], datasize);
+@@

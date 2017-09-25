@@ -39,7 +39,7 @@
 
 #if defined(cap_dwarf)
 //#include "dwarf.h"
-#include "libdwarf.h"
+#include "elfutils/libdw.h"
 #include "dwarfHandle.h"
 #endif
 
@@ -66,7 +66,7 @@
 
 namespace Dyninst{
 
-namespace Dwarf {
+namespace DwarfDyninst {
    class DwarfFrameParser;
    typedef boost::shared_ptr<DwarfFrameParser> DwarfFrameParserPtr;
 }
@@ -261,19 +261,20 @@ class Symtab;
 class Region;
 class Object;
 
-        class Object : public AObject {
-            friend class Module;
+class Object : public AObject 
+{
+  friend class Module;
 
   // declared but not implemented; no copying allowed
   Object(const Object &);
   const Object& operator=(const Object &);
 
- public:
+public:
 
   Object(MappedFile *, bool, void (*)(const char *) = log_msg, bool alloc_syms = true, Symtab* st = NULL);
   virtual ~Object();
 
-  bool emitDriver(std::string fName, std::vector<Symbol *> &allSymbols, unsigned flag);
+  bool emitDriver(std::string fName, std::set<Symbol *> &allSymbols, unsigned flag);
   
   const char *elf_vaddr_to_ptr(Offset vaddr) const;
   bool hasStabInfo() const { return ! ( !stab_off_ || !stab_size_ || !stabstr_off_ ); }
@@ -474,7 +475,7 @@ class Object;
   std::map<Offset, Offset> TOC_table_;
 
   public:
-  Dyninst::Dwarf::DwarfHandle::ptr dwarf;
+  Dyninst::DwarfDyninst::DwarfHandle::ptr dwarf;
   private:
 
   bool      EEL;                 // true if EEL rewritten
@@ -522,10 +523,10 @@ class Object;
  public:
   void parseDwarfFileLineInfo();
   void parseLineInfoForAddr(Offset addr_to_find);
-  
- private:
-            void parseLineInfoForCU(Module::DebugInfoT cuDIE, LineInformation* li);
-            bool dwarf_parse_aranges(Dwarf_Debug dbg, std::set<Dwarf_Off>& dies_seen);
+
+private:
+    void parseLineInfoForCU(Module::DebugInfoT cuDIE, LineInformation* li);
+    bool dwarf_parse_aranges(::Dwarf *dbg, std::set<Dwarf_Off>& dies_seen);
 
   void parseDwarfTypes(Symtab *obj);
   void parseStabTypes();

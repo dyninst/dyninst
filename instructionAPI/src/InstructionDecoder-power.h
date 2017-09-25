@@ -264,6 +264,7 @@ namespace Dyninst {
                 bool invertBranchCondition;
                 bool isFPInsn;
                 bool bcIsConditional;
+		bool findRAAndRS(const struct power_entry*);
         };
     }
 }
