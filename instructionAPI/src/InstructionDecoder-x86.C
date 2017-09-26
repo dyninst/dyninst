@@ -556,7 +556,7 @@ namespace Dyninst
 
       bool InstructionDecoder_x86::isDefault64Insn()
       {
-	switch(m_Operation->getID())
+	switch(m_Operation.getID())
 	{
 	case e_jmp:
 	case e_pop:
@@ -941,7 +941,7 @@ namespace Dyninst
             }
         }
 
-        if(cat == c_BranchInsn && insn_to_complete->getOperation().getID() != e_jmp) 
+        if(cat == c_BranchInsn && insn_to_complete->getOperation().getID() != e_jmp)
         {
             isConditional = true;
         }
@@ -1781,13 +1781,13 @@ namespace Dyninst
                     case e_xchg:
                         break;
                     default:
-                        m_Operation =make_shared(singleton_object_pool<Operation>::construct(&invalid,
-                                    decodedInstruction->getPrefix(), locs, m_Arch));
+                        m_Operation = Operation(&invalid,
+                                    decodedInstruction->getPrefix(), locs, m_Arch);
                         return;
                 }
             }
-            m_Operation = make_shared(singleton_object_pool<Operation>::construct(decodedInstruction->getEntry(),
-                        decodedInstruction->getPrefix(), locs, m_Arch));
+            m_Operation = Operation(decodedInstruction->getEntry(),
+                        decodedInstruction->getPrefix(), locs, m_Arch);
 
         } else {
             // Gap parsing can trigger this case; in particular, when it encounters prefixes in an invalid order.
@@ -1795,8 +1795,8 @@ namespace Dyninst
             // we'll reject the instruction as invalid and send it back with no entry.  Since this is a common
             // byte sequence to see in, for example, ASCII strings, we want to simply accept this and move on, not
             // yell at the user.
-            m_Operation = make_shared(singleton_object_pool<Operation>::construct(&invalid,
-                        decodedInstruction->getPrefix(), locs, m_Arch));
+            m_Operation = Operation(&invalid,
+                        decodedInstruction->getPrefix(), locs, m_Arch);
         }
 
     }
@@ -1870,7 +1870,7 @@ namespace Dyninst
     }
 
     
-      INSTRUCTION_EXPORT Instruction::Ptr InstructionDecoder_x86::decode(InstructionDecoder::buffer& b)
+      INSTRUCTION_EXPORT Instruction InstructionDecoder_x86::decode(InstructionDecoder::buffer& b)
     {
         return InstructionDecoderImpl::decode(b);
     }

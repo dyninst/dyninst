@@ -78,7 +78,7 @@ void AbsRegionConverter::convertAll(InstructionAPI::Expression::Ptr expr,
   }
 }
 
-void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
+void AbsRegionConverter::convertAll(InstructionAPI::Instruction insn,
 				    Address addr,
 				    ParseAPI::Function *func,
                                     ParseAPI::Block *block,
@@ -87,12 +87,12 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
                         
                         if (!usedCache(addr, func, used)) {
     std::set<RegisterAST::Ptr> regsRead;
-    insn->getReadSet(regsRead);
+    insn.getReadSet(regsRead);
 
 
     for (std::set<RegisterAST::Ptr>::const_iterator i = regsRead.begin();
 	 i != regsRead.end(); ++i) {
-        if(insn->getArch() == Arch_aarch64) {
+        if(insn.getArch() == Arch_aarch64) {
             MachRegister machReg = (*i)->getID();
             std::vector<MachRegister> flagRegs = {aarch64::n, aarch64::z, aarch64::c, aarch64::v};
 
@@ -108,9 +108,9 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
         }
     }
     
-    if (insn->readsMemory()) {
+    if (insn.readsMemory()) {
       std::set<Expression::Ptr> memReads;
-      insn->getMemoryReadOperands(memReads);
+      insn.getMemoryReadOperands(memReads);
       for (std::set<Expression::Ptr>::const_iterator r = memReads.begin();
 	   r != memReads.end();
 	   ++r) {
@@ -121,10 +121,10 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
   if (!definedCache(addr, func, defined)) {
     // Defined time
     std::set<RegisterAST::Ptr> regsWritten;
-    insn->getWriteSet(regsWritten);
+    insn.getWriteSet(regsWritten);
     for (std::set<RegisterAST::Ptr>::const_iterator i = regsWritten.begin();
 	 i != regsWritten.end(); ++i) {
-      if(insn->getArch() == Arch_aarch64) {
+      if(insn.getArch() == Arch_aarch64) {
             MachRegister machReg = (*i)->getID();
             std::vector<MachRegister> flagRegs = {aarch64::n, aarch64::z, aarch64::c, aarch64::v};
 
@@ -142,17 +142,17 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
 
     // special case for repeat-prefixed instructions on x86
     // may disappear if Dyninst's representation of these instructions changes
-    if (insn->getArch() == Arch_x86) {
-      prefixEntryID insnPrefix = insn->getOperation().getPrefixID();
+    if (insn.getArch() == Arch_x86) {
+      prefixEntryID insnPrefix = insn.getOperation().getPrefixID();
       if ( (prefix_rep == insnPrefix) || (prefix_repnz == insnPrefix) ) {
         defined.push_back(AbsRegionConverter::convert(RegisterAST::Ptr(
           new RegisterAST(MachRegister::getPC(Arch_x86)))));
       }
     }
     
-    if (insn->writesMemory()) {
+    if (insn.writesMemory()) {
       std::set<Expression::Ptr> memWrites;
-      insn->getMemoryWriteOperands(memWrites);
+      insn.getMemoryWriteOperands(memWrites);
       for (std::set<Expression::Ptr>::const_iterator r = memWrites.begin();
 	   r != memWrites.end();
 	   ++r) {
@@ -504,7 +504,7 @@ bool AbsRegionConverter::definedCache(Address addr,
 // Instruction.
 ///////////////////////////////////////////////////////
 
-void AssignmentConverter::convert(const Instruction::Ptr I, 
+void AssignmentConverter::convert(const Instruction& I, 
                                   const Address &addr,
 				  ParseAPI::Function *func,
                                   ParseAPI::Block *block,
@@ -521,13 +521,13 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
   // 2) Generic handling for things like flags and the PC. 
 
   // Non-PC handling section
-  switch(I->getOperation().getID()) {
+  switch(I.getOperation().getID()) {
   case e_push: {
     // SP = SP - 4 
     // *SP = <register>
  
     std::vector<Operand> operands;
-    I->getOperands(operands);
+    I.getOperands(operands);
 
     // According to the InstructionAPI, the first operand will be the argument, the second will be ESP.
     assert(operands.size() == 2);
@@ -601,7 +601,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     // As with push, eSP shows up as operand 1. 
 
     std::vector<Operand> operands;
-    I->getOperands(operands);
+    I.getOperands(operands);
 
     // According to the InstructionAPI, the first operand will be the explicit register, the second will be ESP.
     assert(operands.size() == 2);
@@ -695,7 +695,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     // xchg defines two abslocs, and uses them as appropriate...
 
     std::vector<Operand> operands;
-    I->getOperands(operands);
+    I.getOperands(operands);
 
     // According to the InstructionAPI, the first operand will be the argument, the second will be ESP.
     assert(operands.size() == 2);
@@ -734,7 +734,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
 
   case power_op_stwu: {
     std::vector<Operand> operands;
-    I->getOperands(operands);
+    I.getOperands(operands);
 
     // stwu <a>, <b>, <c>
     // <a> = R1
@@ -746,7 +746,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     // deref(b) <= c
 
     std::set<Expression::Ptr> writes;
-    I->getMemoryWriteOperands(writes);
+    I.getMemoryWriteOperands(writes);
     assert(writes.size() == 1);
 
     Expression::Ptr tmp = *(writes.begin());
@@ -825,7 +825,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
 
 }
 
-void AssignmentConverter::handlePushEquivalent(const Instruction::Ptr I,
+void AssignmentConverter::handlePushEquivalent(const Instruction I,
 					       Address addr,
 					       ParseAPI::Function *func,
                                                ParseAPI::Block *block,
@@ -852,7 +852,7 @@ void AssignmentConverter::handlePushEquivalent(const Instruction::Ptr I,
   assignments.push_back(spB);
 }
 
-void AssignmentConverter::handlePopEquivalent(const Instruction::Ptr I,
+void AssignmentConverter::handlePopEquivalent(const Instruction I,
 					      Address addr,
 					      ParseAPI::Function *func,
                                               ParseAPI::Block *block,

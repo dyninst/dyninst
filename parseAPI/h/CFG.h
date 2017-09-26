@@ -62,7 +62,7 @@ class dominatorCFG;
 class CodeObject;
 class CFGModifier;
 class ParseData;
-
+class region_data;
 enum EdgeTypeEnum {
     CALL = 0,
     COND_TAKEN,
@@ -297,7 +297,7 @@ class PARSER_EXPORT Block :
     friend class CFGModifier;
     friend class Parser;
  public:
-    typedef std::map<Offset, InstructionAPI::InstructionPtr> Insns;
+    typedef std::map<Offset, InstructionAPI::Instruction> Insns;
     typedef std::list<Edge*> edgelist;
 public:
     static Block * sink_block;
@@ -306,17 +306,17 @@ public:
     virtual ~Block();
     boost::recursive_mutex& lockable() { return boost::lockable_adapter<boost::recursive_mutex>::lockable(); }
 
-    inline Address start() const { boost::lock_guard<const Block> g(*this); return _start; }
-    inline Address end() const { boost::lock_guard<const Block> g(*this); return _end; }
-    inline Address lastInsnAddr() const { boost::lock_guard<const Block> g(*this); return _lastInsn; }
-    inline Address last() const {  boost::lock_guard<const Block> g(*this); return lastInsnAddr(); }
-    inline Address size() const { boost::lock_guard<const Block> g(*this); return _end - _start; }
-    bool containsAddr(Address addr) const {  boost::lock_guard<const Block> g(*this); return addr >= _start && addr < _end; }
+    inline Address start() const { return _start; }
+    inline Address end() const { return _end; }
+    inline Address lastInsnAddr() const {  return _lastInsn; }
+    inline Address last() const {  return lastInsnAddr(); }
+    inline Address size() const {  return _end - _start; }
+    bool containsAddr(Address addr) const {   return addr >= _start && addr < _end; }
 
-    bool parsed() const { boost::lock_guard<const Block> g(*this); return _parsed; }
+    bool parsed() const {  return _parsed; }
 
-    CodeObject * obj() const { boost::lock_guard<const Block> g(*this); return _obj; }
-    CodeRegion * region() const { boost::lock_guard<const Block> g(*this); return _region; }
+    CodeObject * obj() const {  return _obj; }
+    CodeRegion * region() const {  return _region; }
 
     /* Edge access */
     const edgelist & sources() const { return _srclist; }
@@ -329,18 +329,16 @@ public:
     template<class OutputIterator> void getFuncs(OutputIterator result); 
 
     void getInsns(Insns &insns) const;
-    InstructionAPI::InstructionPtr getInsn(Offset o) const;
+    InstructionAPI::Instruction getInsn(Offset o) const;
 
     bool wasUserAdded() const;
 
     /* interval implementation */
-    Address low() const { boost::lock_guard<const Block> g(*this); return start(); }
-    Address high() const {  boost::lock_guard<const Block> g(*this); return end(); }
+    Address low() const override {  return start(); }
+    Address high() const override {   return end(); }
 
     struct compare {
         bool operator()(Block * const & b1, Block * const & b2) const {
-            boost::lock_guard<const Block> g1(*b1);
-            boost::lock_guard<const Block> g2(*b2);
             if(b1->start() < b2->start()) return true;
             if(b1->start() > b2->start()) return false;
             
@@ -367,6 +365,7 @@ private:
     void removeTarget(Edge * e);
     void removeSource(Edge * e);
     void removeFunc(Function *);
+    friend class region_data;
     void updateEnd(Address addr);
 
  private:
@@ -569,9 +568,11 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, pub
     /* This should not remain here - this is an experimental fix for
        defensive mode CFG inconsistency */
     void invalidateCache() { _cache_valid = false; }
+    inline std::pair<Address, Block*> get_next_block(
+            Address addr,
+            CodeRegion *codereg) const;
 
     static void destroy(Function *f);
-
  private:
     void delayed_link_return(CodeObject * co, Block * retblk);
     void finalize();
@@ -664,6 +665,25 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, pub
     friend class CodeObject;
     friend class dominatorCFG;
 };
+inline std::pair<Address, Block*> Function::get_next_block(
+        Address addr,
+        CodeRegion *codereg) const
+{
+    Block * nextBlock = NULL;
+    Address nextBlockAddr;
+    nextBlockAddr = std::numeric_limits<Address>::max();
+    for(auto i = _bmap.begin();
+        i != _bmap.end();
+        ++i)
+    {
+        if(i->first > addr && i->first < nextBlockAddr) {
+            nextBlockAddr = i->first;
+            nextBlock = i->second;
+        }
+    }
+
+    return std::pair<Address,Block*>(nextBlockAddr,nextBlock);
+}
 
 /* Describes a contiguous extent of a Function object */
 class PARSER_EXPORT FuncExtent : public Dyninst::SimpleInterval<Address, Function* > {

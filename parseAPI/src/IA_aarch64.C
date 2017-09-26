@@ -71,17 +71,18 @@ IA_aarch64* IA_aarch64::clone() const {
     return new IA_aarch64(*this);
 }
 
-bool IA_aarch64::isFrameSetupInsn(Instruction::Ptr i) const
+bool IA_aarch64::isFrameSetupInsn(Instruction i) const
 {
-    if(i->getOperation().getID() == aarch64_op_mov_add_addsub_imm)
+    if(i.getOperation().getID() == aarch64_op_mov_add_addsub_imm)
     {
-	if(i->readsMemory() || i->writesMemory())
+	if(i.readsMemory() || i.writesMemory())
 	{
-	    parsing_printf("%s[%d]: discarding insn %s as stack frame preamble, not a reg-reg move\n", FILE__, __LINE__, i->format().c_str());
+	    parsing_printf("%s[%d]: discarding insn %s as stack frame preamble, not a reg-reg move\n", FILE__, __LINE__,
+                       i.format().c_str());
 
 	    return false;
 	}
-	if(i->isRead(stackPtr[_isrc->getArch()]) && i->isWritten(framePtr[_isrc->getArch()]))
+	if(i.isRead(stackPtr[_isrc->getArch()]) && i.isWritten(framePtr[_isrc->getArch()]))
 	{
 	    return true;
 	}
@@ -90,9 +91,9 @@ bool IA_aarch64::isFrameSetupInsn(Instruction::Ptr i) const
 
 bool IA_aarch64::isNop() const
 {
-    Instruction::Ptr ci = curInsn();
+    Instruction ci = curInsn();
 
-    if(ci->getOperation().getID() == aarch64_op_nop_hint)
+    if(ci.getOperation().getID() == aarch64_op_nop_hint)
 	return true;
 
     return false;
@@ -103,7 +104,7 @@ bool IA_aarch64::isThunk() const
     return false;
 }
 
-bool IA_aarch64::isTailCall(Function* context, EdgeTypeEnum type, unsigned int,
+bool IA_aarch64::isTailCall(const Function* context, EdgeTypeEnum type, unsigned int,
         const std::set<Address>& knownTargets ) const
 {
     switch(type) {
@@ -162,7 +163,7 @@ bool IA_aarch64::isTailCall(Function* context, EdgeTypeEnum type, unsigned int,
 	}
     }
 
-    if(curInsn()->getCategory() == c_BranchInsn &&
+    if(curInsn().getCategory() == c_BranchInsn &&
        valid &&
        callee && 
        callee != context &&
@@ -174,7 +175,7 @@ bool IA_aarch64::isTailCall(Function* context, EdgeTypeEnum type, unsigned int,
       return true;
     }
 
-    if (curInsn()->getCategory() == c_BranchInsn &&
+    if (curInsn().getCategory() == c_BranchInsn &&
             valid &&
             !callee) {
 	if (target) {
@@ -203,15 +204,15 @@ bool IA_aarch64::isTailCall(Function* context, EdgeTypeEnum type, unsigned int,
 
 bool IA_aarch64::savesFP() const
 {
-    Instruction::Ptr insn = curInsn();
+    Instruction insn = curInsn();
     RegisterAST::Ptr returnAddrReg(new RegisterAST(aarch64::x30));
 
     //stp x29, x30, [sp, imm]!
-    if(insn->getOperation().getID() == aarch64_op_stp_gen &&
-       insn->isRead(framePtr[_isrc->getArch()]) &&
-       insn->isRead(returnAddrReg) &&
-       insn->isRead(stackPtr[_isrc->getArch()]) &&
-       insn->isWritten(stackPtr[_isrc->getArch()]))
+    if(insn.getOperation().getID() == aarch64_op_stp_gen &&
+       insn.isRead(framePtr[_isrc->getArch()]) &&
+       insn.isRead(returnAddrReg) &&
+       insn.isRead(stackPtr[_isrc->getArch()]) &&
+       insn.isWritten(stackPtr[_isrc->getArch()]))
         return true;
 
     return false;
@@ -231,15 +232,15 @@ bool IA_aarch64::isStackFramePreamble() const
 
 bool IA_aarch64::cleansStack() const
 {
-    Instruction::Ptr insn = curInsn();
+    Instruction insn = curInsn();
     RegisterAST::Ptr returnAddrReg(new RegisterAST(aarch64::x30));
 
     //ldp x29, x30, [sp], imm
-    if(insn->getOperation().getID() == aarch64_op_ldp_gen &&
-       insn->isWritten(framePtr[_isrc->getArch()]) &&
-       insn->isWritten(returnAddrReg) &&
-       insn->isRead(stackPtr[_isrc->getArch()]) &&
-       insn->isWritten(stackPtr[_isrc->getArch()]))
+    if(insn.getOperation().getID() == aarch64_op_ldp_gen &&
+       insn.isWritten(framePtr[_isrc->getArch()]) &&
+       insn.isWritten(returnAddrReg) &&
+       insn.isRead(stackPtr[_isrc->getArch()]) &&
+       insn.isWritten(stackPtr[_isrc->getArch()]))
         return true;
 
     return false;
@@ -257,7 +258,7 @@ bool IA_aarch64::isReturnAddrSave(Address& retAddr) const
 
 bool IA_aarch64::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const
 {
-    return curInsn()->getCategory() == c_ReturnInsn;
+    return curInsn().getCategory() == c_ReturnInsn;
 }
 
 bool IA_aarch64::isFakeCall() const

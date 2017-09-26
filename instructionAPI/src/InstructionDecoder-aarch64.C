@@ -164,9 +164,9 @@ namespace Dyninst {
 
         using namespace std;
 
-        Instruction::Ptr InstructionDecoder_aarch64::decode(InstructionDecoder::buffer &b) {
+        Instruction InstructionDecoder_aarch64::decode(InstructionDecoder::buffer &b) {
             if (b.start > b.end)
-                return Instruction::Ptr();
+                return Instruction();
 
             isPstateRead = isPstateWritten = false;
             isFPInsn = false;
@@ -214,7 +214,7 @@ namespace Dyninst {
             mainDecode();
             b.start += 4;
 
-            return make_shared(insn_in_progress);
+            return *insn_in_progress;
         }
 
         /* replace this function with a more generic function, which is setRegWidth

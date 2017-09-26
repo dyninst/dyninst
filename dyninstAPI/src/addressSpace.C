@@ -1007,9 +1007,9 @@ func_instance *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
    InstructionDecoder decoder((const unsigned char*)getPtrToInstruction(addr),
                               InstructionDecoder::maxInstructionLength,
                               getArch());
-   Instruction::Ptr curInsn = decoder.decode();
+   Instruction curInsn = decoder.decode();
     
-   Expression::Ptr target = curInsn->getControlFlowTarget();
+   Expression::Ptr target = curInsn.getControlFlowTarget();
    RegisterAST thePC = RegisterAST::makePC(getArch());
    target->bind(&thePC, Result(u32, addr));
    Result cft = target->eval();
@@ -1776,10 +1776,10 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
       Address base = baseAddr;
       InstructionDecoder deco
         (cm->ptr(),cm->size(),getArch());
-      Instruction::Ptr insn = deco.decode();
-      while(insn) {
-         cerr << "\t" << hex << base << ": " << insn->format(base) << dec << endl;
-        base += insn->size();
+      Instruction insn = deco.decode();
+      while(insn.isValid()) {
+         cerr << "\t" << hex << base << ": " << insn.format(base) << dec << endl;
+        base += insn.size();
         insn = deco.decode();
       }
       cerr << dec;

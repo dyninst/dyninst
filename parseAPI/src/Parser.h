@@ -49,6 +49,8 @@
 #include "common/src/dthread.h"
 #include <boost/thread/lockable_adapter.hpp>
 #include <boost/thread/shared_mutex.hpp>
+#include <unordered_map>
+#include <atomic>
 
 using namespace std;
 
@@ -101,7 +103,7 @@ class Parser {
 
     // a sink block for unbound edges
     Block * _sink;
-
+    tbb::concurrent_hash_map<unsigned int, unsigned int > time_histogram;
     enum ParseState {
         UNPARSED,       // raw state
         PARTIAL,        // parsing has started
@@ -155,6 +157,7 @@ class Parser {
 
     void init_frame(ParseFrame & frame);
 
+    void finalize_block(Block* b, Function* f);
     void finalize(Function *f);
     ParseData* parse_data() { return _parse_data; }
 
@@ -232,7 +235,7 @@ class Parser {
     friend class CodeObject;
 
     Mutex<true> parse_mutex;
-    boost::upgrade_mutex finalize_mutex;
+    boost::mutex finalize_mutex;
     vector<ParseFrame *> ProcessOneFrame(ParseFrame *pf, bool recursive);
 
     void cleanup_frames() ;
@@ -242,6 +245,8 @@ class Parser {
     void processFixedPoint(vector<ParseFrame *> &work, bool recursive);
 
     vector<ParseFrame *> postProcessFrame(ParseFrame *pf, bool recursive);
+
+    void updateBlockEnd(Block *b, Address addr, Address previnsn, region_data *rd) const;
 };
 
 }

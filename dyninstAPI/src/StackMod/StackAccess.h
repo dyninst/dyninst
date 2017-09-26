@@ -97,26 +97,26 @@ typedef std::map<MachRegister, std::set<StackAccess*> > Accesses;
 
 bool isDebugType(StackAccess::StackAccessType t);
 
-int getAccessSize(InstructionAPI::Instruction::Ptr insn);
+int getAccessSize(InstructionAPI::Instruction insn);
 
-bool getAccesses(ParseAPI::Function* func,
-        ParseAPI::Block* block,
-        Address addr,
-        InstructionAPI::Instruction::Ptr insn,
-        Accesses* accesses,
-        std::set<Address> &defPointsToMod,
-        bool analyzeDefinition = false);
+bool getAccesses(ParseAPI::Function *func,
+                 ParseAPI::Block *block,
+                 Address addr,
+                 InstructionAPI::Instruction insn,
+                 Accesses *accesses,
+                 std::set<Address> &defPointsToMod,
+                 bool analyzeDefinition = false);
 
-bool getMemoryOffset(ParseAPI::Function* func,
-        ParseAPI::Block* block,
-        InstructionAPI::Instruction::Ptr insn,
-        Address addr,
-        const MachRegister &reg,
-        const StackAnalysis::Height &height,
-        const StackAnalysis::Definition &def,
-        StackAccess*& ret,
-        Architecture arch,
-        bool analyzeDefintion = false);
+bool getMemoryOffset(ParseAPI::Function *func,
+                     ParseAPI::Block *block,
+                     InstructionAPI::Instruction insn,
+                     Address addr,
+                     const MachRegister &reg,
+                     const StackAnalysis::Height &height,
+                     const StackAnalysis::Definition &def,
+                     StackAccess *&ret,
+                     Architecture arch,
+                     bool analyzeDefintion = false);
 
 
 #endif

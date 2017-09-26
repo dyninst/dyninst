@@ -40,6 +40,7 @@ using namespace Dyninst::ParseAPI;
 
 void ParseFrame::set_status(Status s)
 {
+    boost::lock_guard<ParseFrame> g(*this);
     _status = s;
     _pd->setFrameStatus(codereg,func->addr(),s);
 }
@@ -68,7 +69,7 @@ ParseWorkElem * ParseFrame::mkWork(
         b = new ParseWorkBundle();
         work_bundles.push_back(b); 
     }
-    ParseWorkElem * ret = new ParseWorkElem(b,block,ahPtr);
+    ParseWorkElem * ret = new ParseWorkElem(b,block,ah);
     b->add( ret );
     return ret;
 }
@@ -117,12 +118,12 @@ int StandardParseData::findBlocks(CodeRegion * /* cr */, Address addr,
 Function *
 StandardParseData::get_func(CodeRegion * cr, Address entry, FuncSource src)
 {
-    boost::lock_guard<ParseData> g(*this);
     CodeRegion * reg = NULL;
     Function * ret = NULL;
     char name[32];
 
     if(!(ret = findFunc(cr,entry))) {
+        boost::lock_guard<ParseData> g(*this);
         reg = reglookup(cr,entry); // get the *correct* CodeRegion
         if(reg && reg->isCode(entry)) {
            if (src == MODIFICATION) {
@@ -142,40 +143,32 @@ StandardParseData::get_func(CodeRegion * cr, Address entry, FuncSource src)
 void
 StandardParseData::record_frame(ParseFrame * pf)
 {
-    boost::lock_guard<region_data> g(_rdata);
-    _rdata.frame_map[pf->func->addr()] = pf;
+    _rdata.record_frame(pf);
 }
 void
 StandardParseData::remove_frame(ParseFrame * pf)
 {
-    boost::lock_guard<region_data> g(_rdata);
-    _rdata.frame_map.erase(pf->func->addr());
+    tbb::concurrent_hash_map<Address, ParseFrame*>::accessor a;
+    if(_rdata.frame_map.find(a, pf->func->addr()))
+    {
+        _rdata.frame_map.erase(a);
+    }
 }
 
 ParseFrame *
 StandardParseData::findFrame(CodeRegion * /* cr */, Address addr)
 {
-    boost::lock_guard<region_data> g(_rdata);
-    if(HASHDEF(_rdata.frame_map,addr))
-        return _rdata.frame_map[addr];
-    else
-        return NULL;
+    return _rdata.findFrame(addr);
 }
 ParseFrame::Status
 StandardParseData::frameStatus(CodeRegion * /* cr */, Address addr)
 {
-    boost::lock_guard<region_data> g(_rdata);
-    if(HASHDEF(_rdata.frame_status,addr))
-        return _rdata.frame_status[addr];
-    else
-        return ParseFrame::BAD_LOOKUP;
 }
 void
 StandardParseData::setFrameStatus(CodeRegion * /* cr */, Address addr,
     ParseFrame::Status status)
 {
-    boost::lock_guard<region_data> g(_rdata);
-    _rdata.frame_status[addr] = status;
+    _rdata.setFrameStatus(addr, status);
 }
 
 CodeRegion *
@@ -201,7 +194,6 @@ StandardParseData::reglookup(CodeRegion * /* cr */, Address addr)
 void
 StandardParseData::remove_func(Function *f)
 {
-    boost::lock_guard<region_data> g(_rdata);
     remove_extents(f->extents());
     _rdata.frame_status.erase(f->addr());
     _rdata.funcsByAddr.erase(f->addr());
@@ -209,14 +201,12 @@ StandardParseData::remove_func(Function *f)
 void
 StandardParseData::remove_block(Block *b)
 {
-    boost::lock_guard<region_data> g(_rdata);
     _rdata.blocksByAddr.erase(b->start());
     _rdata.blocksByRange.remove(b);
 }
 void
 StandardParseData::remove_extents(const std::vector<FuncExtent*> & extents)
 {
-    boost::lock_guard<region_data> g(_rdata);
     for (unsigned idx=0; idx < extents.size(); idx++) {
         _rdata.funcsByRange.remove( extents[idx] );
     }
@@ -290,21 +280,7 @@ OverlappingParseData::findFrame(CodeRegion *cr, Address addr)
     boost::lock_guard<ParseData> g(*this);
     if(!HASHDEF(rmap,cr)) return NULL;
     region_data * rd = rmap[cr];
-    if(HASHDEF(rd->frame_map,addr))
-        return rd->frame_map[addr];
-    else
-        return NULL;
-}
-ParseFrame::Status
-OverlappingParseData::frameStatus(CodeRegion *cr, Address addr)
-{
-    boost::lock_guard<ParseData> g(*this);
-    if(!HASHDEF(rmap,cr)) return ParseFrame::BAD_LOOKUP;
-    region_data * rd = rmap[cr];
-    if(HASHDEF(rd->frame_status,addr))
-        return rd->frame_status[addr];
-    else
-        return ParseFrame::BAD_LOOKUP;
+    return rd->findFrame(addr);
 }
 void
 OverlappingParseData::setFrameStatus(CodeRegion *cr, Address addr, 
@@ -313,7 +289,7 @@ OverlappingParseData::setFrameStatus(CodeRegion *cr, Address addr,
     boost::lock_guard<ParseData> g(*this);
     if(!HASHDEF(rmap,cr)) return;
     region_data * rd = rmap[cr];
-    rd->frame_status[addr] = status;
+    rd->setFrameStatus(addr, status);
 }
 Function * 
 OverlappingParseData::get_func(CodeRegion * cr, Address addr, FuncSource src)
@@ -356,7 +332,7 @@ OverlappingParseData::record_func(Function *f)
         return;
     }
     region_data * rd = rmap[cr];
-    rd->funcsByAddr[f->addr()] = f;
+    rd->record_func(f);
 }
 void
 OverlappingParseData::record_block(CodeRegion *cr, Block *b)
@@ -372,9 +348,7 @@ OverlappingParseData::record_block(CodeRegion *cr, Block *b)
         rd = rmap[cr];
 
     }
-    boost::lock_guard<region_data> g(*rd);
-    rd->blocksByAddr[b->start()] = b;
-    rd->blocksByRange.insert(b); 
+    rd->record_block(b);
 }
 void
 OverlappingParseData::remove_func(Function *f)
@@ -437,7 +411,7 @@ OverlappingParseData::record_frame(ParseFrame *pf)
         return;
     }
     region_data * rd = rmap[cr];
-    rd->frame_map[pf->func->addr()] = pf; 
+    rd->record_frame(pf);
 }
 void
 OverlappingParseData::remove_frame(ParseFrame *pf)

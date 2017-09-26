@@ -38,7 +38,9 @@
 #include <set>
 
 #include "util.h"
-
+#include <boost/thread/lockable_adapter.hpp>
+#include <boost/thread/recursive_mutex.hpp>
+#include <boost/flyweight.hpp>
 // OpCode = operation + encoding
 // contents:
 // hex value
@@ -90,23 +92,22 @@ namespace Dyninst
     /// %Operations are constructed by the %InstructionDecoder as part of the process
     /// of constructing an %Instruction.
     
-    class Operation
+    class Operation_impl : public boost::lockable_adapter<boost::recursive_mutex>
     {
     public:
       typedef std::set<RegisterAST::Ptr> registerSet;
       typedef std::set<Expression::Ptr> VCSet;
-      typedef boost::shared_ptr<Operation> Ptr;
       friend class InstructionDecoder_power; // for editing mnemonics after creation
       friend class InstructionDecoder_aarch64;
       
     public:
-      INSTRUCTION_EXPORT Operation(NS_x86::ia32_entry* e, NS_x86::ia32_prefixes* p = NULL, ia32_locations* l = NULL,
+      INSTRUCTION_EXPORT Operation_impl(NS_x86::ia32_entry* e, NS_x86::ia32_prefixes* p = NULL, ia32_locations* l = NULL,
                                   Architecture arch = Arch_none);
-      INSTRUCTION_EXPORT Operation(const Operation& o);
-      INSTRUCTION_EXPORT Operation();
-      INSTRUCTION_EXPORT Operation(entryID id, const char* mnem, Architecture arch);
+      INSTRUCTION_EXPORT Operation_impl(const Operation_impl& o);
+      INSTRUCTION_EXPORT Operation_impl();
+      INSTRUCTION_EXPORT Operation_impl(entryID id, Architecture arch);
       
-      INSTRUCTION_EXPORT const Operation& operator=(const Operation& o);
+      INSTRUCTION_EXPORT const Operation_impl& operator=(const Operation_impl& o);
       
       /// Returns the set of registers implicitly read (i.e. those not included in the operands, but read anyway)
       INSTRUCTION_EXPORT const registerSet& implicitReads() const;
@@ -130,6 +131,18 @@ namespace Dyninst
       INSTRUCTION_EXPORT const VCSet& getImplicitMemReads() const;
       /// Returns the set of memory locations implicitly written.
       INSTRUCTION_EXPORT const VCSet& getImplicitMemWrites() const;
+      friend std::size_t hash_value(Operation_impl const& op)
+      {
+        size_t seed = 0;
+        boost::hash_combine(seed, op.operationID);
+        boost::hash_combine(seed, op.prefixID);
+        boost::hash_combine(seed, op.archDecodedFrom);
+        boost::hash_combine(seed, op.addrWidth);
+        return seed;
+      }
+      bool operator==(const Operation_impl& rhs) const {
+        return hash_value(*this) == hash_value(rhs);
+      }
 
     private:
       void SetUpNonOperandData(bool doFlags = false) const;
@@ -139,13 +152,23 @@ namespace Dyninst
       mutable VCSet otherEffAddrsRead;
       mutable VCSet otherEffAddrsWritten;
       mutable std::string mnemonic;
-      mutable entryID operationID;
+
+    protected:
+        mutable entryID operationID;
       mutable bool doneOtherSetup;
       mutable bool doneFlagsSetup;
       Architecture archDecodedFrom;
       prefixEntryID prefixID;
       Result_Type addrWidth;
       
+    };
+    struct Operation: public Operation_impl {
+        Operation(entryID id, std::string m, Architecture arch)
+                : Operation_impl(id, arch), mnemonic(m)  {}
+        std::string mnemonic;
+        Operation(NS_x86::ia32_entry* e, NS_x86::ia32_prefixes* p = NULL, ia32_locations* l = NULL,
+                Architecture arch = Arch_none) : Operation_impl(e, p, l, arch) {}
+        Operation() : Operation_impl() {}
     };
   };
 };

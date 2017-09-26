@@ -47,7 +47,7 @@ using namespace Relocation;
 using namespace InstructionAPI;
 
 ////////////////////////
-PCWidget::Ptr PCWidget::create(Instruction::Ptr insn,
+PCWidget::Ptr PCWidget::create(Instruction insn,
 			 Address addr,
 			 Absloc a,
 			 Address thunk) {
@@ -80,7 +80,7 @@ bool PCWidget::PCtoReturnAddr(const codeGen &templ, const RelocBlock *t, CodeBuf
     std::vector<unsigned char> newInsn;
 #if defined(arch_x86) || defined(arch_x86_64)
     newInsn.push_back(0x68); // push
-    Address EIP = addr_ + insn_->size();
+    Address EIP = addr_ + insn_.size();
     unsigned char *tmp = (unsigned char *) &EIP;
     newInsn.insert(newInsn.end(),
 		   tmp,
@@ -139,7 +139,7 @@ bool PCWidget::PCtoReg(const codeGen &templ, const RelocBlock *t, CodeBuffer &bu
      // MOV family, destination of the register encoded by
      // 'reg', source is an Iv immediate
      
-     Address EIP = addr_ + insn_->size();
+     Address EIP = addr_ + insn_.size();
      unsigned char *tmp = (unsigned char *) &EIP;
      newInsn.insert(newInsn.end(),
                     tmp,
@@ -185,7 +185,7 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
     *temp = 0;
     newInsn += sizeof(uint32_t);
     SET_PTR(newInsn, gen);
-    Address offset = addr - gen.currAddr() + insn->size();
+    Address offset = addr - gen.currAddr() + insn.size();
     REGET_PTR(newInsn, gen);
     *newInsn = 0x81;
     newInsn++;

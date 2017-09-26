@@ -37,7 +37,7 @@
 #include "../h/InstructionCategories.h"
 #include "../h/Instruction.h"
 #include "../h/Register.h"
-#include "../h/Operation.h"
+#include "Operation_impl.h"
 #include "InstructionDecoder.h"
 #include "Dereference.h"
 #include <boost/iterator/indirect_iterator.hpp>
@@ -54,6 +54,7 @@ using namespace std;
 using namespace NS_x86;
 
 #include "../../common/src/singleton_object_pool.h"
+#include "ArchSpecificFormatters.h"
 
 namespace Dyninst
 {
@@ -72,25 +73,12 @@ namespace Dyninst
       }
 
       int Instruction::numInsnsAllocated = 0;
-    INSTRUCTION_EXPORT Instruction::Instruction(Operation::Ptr what,
+    INSTRUCTION_EXPORT Instruction::Instruction(Operation what,
 			     size_t size, const unsigned char* raw,
                              Dyninst::Architecture arch)
       : m_InsnOp(what), m_Valid(true), arch_decoded_from(arch)
     {
-        switch(arch_decoded_from) {
-            case Arch_aarch64: 
-                formatter = new ArmFormatter();
-                break;
-            case Arch_x86_64:
-            case Arch_x86:
-                formatter = new x86Formatter();
-                break;
-            case Arch_ppc64:
-                formatter = new PPCFormatter();
-                break;
-            default:formatter = NULL;
-                break;
-        }
+        formatter = ArchSpecificFormatter::getFormatter(arch);
         copyRaw(size, raw);
 
 #if defined(DEBUG_INSN_ALLOCATIONS)
@@ -134,7 +122,7 @@ namespace Dyninst
     }
     
     INSTRUCTION_EXPORT Instruction::Instruction() :
-      m_Valid(false), m_size(0), arch_decoded_from(Arch_none), formatter(NULL)
+      m_Valid(false), m_size(0), arch_decoded_from(Arch_none), formatter()
     {
 #if defined(DEBUG_INSN_ALLOCATIONS)
         numInsnsAllocated++;
@@ -153,8 +141,6 @@ namespace Dyninst
 	delete[] m_RawInsn.large_insn;
       }
 
-        if(formatter)
-            delete formatter;
 #if defined(DEBUG_INSN_ALLOCATIONS)
       numInsnsAllocated--;
       if((numInsnsAllocated % 1000) == 0)
@@ -226,11 +212,15 @@ namespace Dyninst
       return m_Valid;
     }
     
-    INSTRUCTION_EXPORT const Operation& Instruction::getOperation() const
+    INSTRUCTION_EXPORT Operation& Instruction::getOperation()
     {
-      return *m_InsnOp;
+      return m_InsnOp;
     }
-    
+      INSTRUCTION_EXPORT const Operation& Instruction::getOperation() const
+      {
+          return m_InsnOp;
+      }
+
     INSTRUCTION_EXPORT void Instruction::getOperands(std::vector<Operand>& operands) const
     {
       if(m_Operands.empty())
@@ -300,7 +290,8 @@ namespace Dyninst
       {
           curOperand->getReadSet(regsRead);
       }
-      std::copy(m_InsnOp->implicitReads().begin(), m_InsnOp->implicitReads().end(), std::inserter(regsRead, regsRead.begin()));
+      std::copy(m_InsnOp.implicitReads().begin(), m_InsnOp.implicitReads().end(),
+                std::inserter(regsRead, regsRead.begin()));
       
     }
     
@@ -316,8 +307,8 @@ namespace Dyninst
       {
           curOperand->getWriteSet(regsWritten);
       }
-      std::copy(m_InsnOp->implicitWrites().begin(), m_InsnOp->implicitWrites().end(), std::inserter(regsWritten,
-regsWritten.begin()));
+      std::copy(m_InsnOp.implicitWrites().begin(), m_InsnOp.implicitWrites().end(),
+                std::inserter(regsWritten, regsWritten.begin()));
       
     }
     
@@ -336,7 +327,7 @@ regsWritten.begin()));
 	  return true;
 	}
       }
-      return m_InsnOp->isRead(candidate);
+      return m_InsnOp.isRead(candidate);
     }
 
     INSTRUCTION_EXPORT bool Instruction::isWritten(Expression::Ptr candidate) const
@@ -354,7 +345,7 @@ regsWritten.begin()));
 	  return true;
 	}
       }
-      return m_InsnOp->isWritten(candidate);
+      return m_InsnOp.isWritten(candidate);
     }
     
     INSTRUCTION_EXPORT bool Instruction::readsMemory() const
@@ -376,7 +367,7 @@ regsWritten.begin()));
 	  return true;
 	}
       }
-      return !m_InsnOp->getImplicitMemReads().empty();
+      return !m_InsnOp.getImplicitMemReads().empty();
     }
     
     INSTRUCTION_EXPORT bool Instruction::writesMemory() const
@@ -394,7 +385,7 @@ regsWritten.begin()));
 	  return true;
 	}
       }
-      return !m_InsnOp->getImplicitMemWrites().empty();
+      return !m_InsnOp.getImplicitMemWrites().empty();
     }
     
     INSTRUCTION_EXPORT void Instruction::getMemoryReadOperands(std::set<Expression::Ptr>& memAccessors) const
@@ -409,7 +400,7 @@ regsWritten.begin()));
       {
           curOperand->addEffectiveReadAddresses(memAccessors);
       }  
-      std::copy(m_InsnOp->getImplicitMemReads().begin(), m_InsnOp->getImplicitMemReads().end(), std::inserter(memAccessors,
+      std::copy(m_InsnOp.getImplicitMemReads().begin(), m_InsnOp.getImplicitMemReads().end(), std::inserter(memAccessors,
 memAccessors.begin()));
     }
     
@@ -425,7 +416,7 @@ memAccessors.begin()));
       {
           curOperand->addEffectiveWriteAddresses(memAccessors);
       }  
-      std::copy(m_InsnOp->getImplicitMemWrites().begin(), m_InsnOp->getImplicitMemWrites().end(), std::inserter(memAccessors,
+      std::copy(m_InsnOp.getImplicitMemWrites().begin(), m_InsnOp.getImplicitMemWrites().end(), std::inserter(memAccessors,
 memAccessors.begin()));
     }
     
@@ -456,7 +447,7 @@ memAccessors.begin()));
         return m_Successors.front().target;
     }
 
-    INSTRUCTION_EXPORT ArchSpecificFormatter *Instruction::getFormatter() const {
+    INSTRUCTION_EXPORT boost::shared_ptr<ArchSpecificFormatter> Instruction::getFormatter() const {
         return formatter;
     }
 
@@ -471,7 +462,7 @@ memAccessors.begin()));
         if(formatter == NULL)
             return "";
 
-        std::string opstr = m_InsnOp->format();
+        std::string opstr = m_InsnOp.format();
         opstr += " ";
         std::list<Operand>::const_iterator currOperand;
         std::vector<std::string> formattedOperands;
@@ -484,7 +475,7 @@ memAccessors.begin()));
             if(currOperand->isImplicit())
                 continue;
 
-            formattedOperands.push_back(currOperand->format(formatter, getArch(), addr));
+            formattedOperands.push_back(currOperand->format(getArch(), addr));
         }
 
 #if defined(DEBUG_READ_WRITE)      
@@ -535,7 +526,7 @@ memAccessors.begin()));
 
     INSTRUCTION_EXPORT bool Instruction::allowsFallThrough() const
     {
-      switch(m_InsnOp->getID())
+      switch(m_InsnOp.getID())
       {
       case e_ret_far:
       case e_ret_near:
@@ -579,11 +570,12 @@ memAccessors.begin()));
           return m_Successors.empty();
       }
       }
-      
+        // can't happen but make the compiler happy
+      return false;
     }
     INSTRUCTION_EXPORT bool Instruction::isLegalInsn() const
     {
-      return (m_InsnOp->getID() != e_No_Entry);
+      return (m_InsnOp.getID() != e_No_Entry);
     }
 
     INSTRUCTION_EXPORT Architecture Instruction::getArch() const {
@@ -599,7 +591,7 @@ memAccessors.begin()));
     }
     INSTRUCTION_EXPORT InsnCategory Instruction::getCategory() const
     {
-       InsnCategory c = entryToCategory(m_InsnOp->getID());
+       InsnCategory c = entryToCategory(m_InsnOp.getID());
        if(c == c_BranchInsn && (arch_decoded_from == Arch_ppc32 || arch_decoded_from == Arch_ppc64))
        {
           if(m_Operands.empty()) decodeOperands();
@@ -612,7 +604,7 @@ memAccessors.begin()));
                 return c_CallInsn;
              }
           }
-          if(m_InsnOp->getID() == power_op_bclr)
+          if(m_InsnOp.getID() == power_op_bclr)
           {
              return c_ReturnInsn;
           }

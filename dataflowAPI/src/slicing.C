@@ -378,7 +378,7 @@ bool Slicer::updateAndLink(
     vector<bool> killed;
     vector<Element> matches;
     vector<Element> newactive;
-    Instruction::Ptr insn;
+    Instruction insn;
     bool change = false;
 
     killed.resize(cand.active.size(),false);
@@ -1352,7 +1352,7 @@ static void getInsnInstances(ParseAPI::Block *block,
   InstructionDecoder d(ptr, block->size(), block->obj()->cs()->getArch());
   while (off < block->end()) {
     insns.push_back(std::make_pair(d.decode(), off));
-    off += insns.back().first->size();
+    off += insns.back().first.size();
   }
 }
 
@@ -1483,7 +1483,7 @@ bool Slicer::kills(AbsRegion const&reg, Assignment::Ptr &assign) {
     return false; 
   }
 
-  if (assign->insn()->getOperation().getID() == e_call && reg.absloc().type() == Absloc::Register) {
+  if (assign->insn().getOperation().getID() == e_call && reg.absloc().type() == Absloc::Register) {
       MachRegister r = reg.absloc().reg();
       ABI* abi = ABI::getABI(b_->obj()->cs()->getAddressWidth());
       int index = abi->getIndex(r);
@@ -1524,11 +1524,11 @@ std::string SliceNode::format() const {
 // Note that we CANNOT use a global cache based on the address
 // of the instruction to convert because the block that contains
 // the instructino may change during parsing.
-void Slicer::convertInstruction(Instruction::Ptr insn,
-				Address addr,
-				ParseAPI::Function *func,
+void Slicer::convertInstruction(Instruction insn,
+                                Address addr,
+                                ParseAPI::Function *func,
                                 ParseAPI::Block *block,
-				std::vector<Assignment::Ptr> &ret) {
+                                std::vector<Assignment::Ptr> &ret) {
   converter.convert(insn,
 		    addr,
 		    func,
@@ -1786,7 +1786,7 @@ void Slicer::constructInitialFrame(
     Direction dir,
     SliceFrame & initFrame)
 {
-    Instruction::Ptr init_instruction;
+    Instruction init_instruction;
     initFrame.con.push_front(ContextElement(f_));
     initFrame.loc = Location(f_,b_);
 

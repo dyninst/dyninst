@@ -43,7 +43,7 @@ using namespace Dyninst;
 using namespace InstructionAPI;
 
 
-BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction::Ptr insn,
+BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
 							 Address current, bool is64)
 {
 #if defined(arch_x86) || defined(arch_x86_64)
@@ -57,7 +57,7 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction::Ptr insn,
   ia32_condition cnd;
   ia32_instruction i(mac, &cnd);
     
-  const unsigned char* addr = reinterpret_cast<const unsigned char*>(insn->ptr());
+  const unsigned char* addr = reinterpret_cast<const unsigned char*>(insn.ptr());
   BPatch_memoryAccess* bmap = BPatch_memoryAccess::none;
 
 
@@ -73,7 +73,7 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction::Ptr insn,
 
       // here, we can set the correct address for RIP-relative addressing
       if (mac.regs[0] == mRIP) {
-	mac.imm = current + insn->size() + mac.imm;
+	mac.imm = current + insn.size() + mac.imm;
       }
 
       if(first) {

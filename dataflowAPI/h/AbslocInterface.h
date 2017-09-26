@@ -64,7 +64,7 @@ class AbsRegionConverter {
                                   ParseAPI::Block *block,
 				  std::vector<AbsRegion> &regions);
   
-  DATAFLOW_EXPORT void convertAll(InstructionAPI::Instruction::Ptr insn,
+  DATAFLOW_EXPORT void convertAll(InstructionAPI::Instruction insn,
 				  Address addr,
 				  ParseAPI::Function *func,
                                   ParseAPI::Block *block,
@@ -124,7 +124,7 @@ class AssignmentConverter {
  public:  
  DATAFLOW_EXPORT AssignmentConverter(bool cache, bool stack) : cacheEnabled_(cache), aConverter(false, stack) {};
 
-  DATAFLOW_EXPORT void convert(InstructionAPI::Instruction::Ptr insn,
+  DATAFLOW_EXPORT void convert(const InstructionAPI::Instruction& insn,
                                const Address &addr,
                                ParseAPI::Function *func,
                                ParseAPI::Block *block,
@@ -132,13 +132,13 @@ class AssignmentConverter {
 
 
  private:
-  void handlePushEquivalent(const InstructionAPI::Instruction::Ptr I,
+  void handlePushEquivalent(const InstructionAPI::Instruction I,
 			    Address addr,
 			    ParseAPI::Function *func,
                             ParseAPI::Block *block,
 			    std::vector<AbsRegion> &operands,
 			    std::vector<Assignment::Ptr> &assignments);
-  void handlePopEquivalent(const InstructionAPI::Instruction::Ptr I,
+  void handlePopEquivalent(const InstructionAPI::Instruction I,
 			   Address addr,
 			   ParseAPI::Function *func,
                            ParseAPI::Block *block,

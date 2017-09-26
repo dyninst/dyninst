@@ -83,7 +83,7 @@ RelocBlock *RelocBlock::createReloc(block_instance *block, func_instance *func) 
        iter != insns.end(); ++iter) {
     relocation_cerr << "  Adding instruction @" 
 		    << std::hex << iter->first << std::dec
-		    << ": " << iter->second->format(iter->first) << endl;
+		    << ": " << iter->second.format(iter->first) << endl;
     Widget::Ptr ptr = InsnWidget::create(iter->second, iter->first);
 
     if (!ptr) {
@@ -161,7 +161,7 @@ void RelocBlock::getPredecessors(RelocGraph *cfg) {
 
 }
 
-// There's some tricky logic going on here. We want to create the following 
+// There's some tricky logic going on here. We want to create the following
 // edges:
 // 1) All out-edges, as _someone_ has to create them
 // 2) In-edges that aren't from RelocBlocks; if it's from a RelocBlock we assume we'll
@@ -315,11 +315,11 @@ void RelocBlock::createCFWidget() {
 
    bool hasCF = false;
 
-   InstructionAPI::Instruction::Ptr insn = elements_.back()->insn();
-   if (insn) {
-      if (insn->getCategory() == c_CallInsn ||
-          insn->getCategory() == c_ReturnInsn ||
-          insn->getCategory() == c_BranchInsn) {
+   InstructionAPI::Instruction insn = elements_.back()->insn();
+   if (insn.isValid()) {
+      if (insn.getCategory() == c_CallInsn ||
+          insn.getCategory() == c_ReturnInsn ||
+          insn.getCategory() == c_BranchInsn) {
          hasCF = true;
       }
    }
@@ -397,13 +397,13 @@ void RelocBlock::preserveBlockGap() {
 // jump instruction that we may not have encoded in ParseAPI.
 
 std::pair<bool, Address> RelocBlock::getJumpTarget() {
-   InstructionAPI::Instruction::Ptr insn = cfWidget()->insn();
-   if (!insn) return std::make_pair(false, 0);
+   InstructionAPI::Instruction insn = cfWidget()->insn();
+   if (!insn.isValid()) return std::make_pair(false, 0);
 
-   Expression::Ptr cft = insn->getControlFlowTarget();
+   Expression::Ptr cft = insn.getControlFlowTarget();
    if (!cft) return std::make_pair(false, 0);
 
-   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn->getArch())));
+   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn.getArch())));
    
    cft->bind(thePC.get(), Result(u64, cfWidget()->addr()));
    Result res = cft->eval();

@@ -46,6 +46,9 @@
 #include <boost/thread/lockable_adapter.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 
+
+#include "tbb/concurrent_hash_map.h"
+
 using namespace std;
 
 namespace Dyninst {
@@ -153,25 +156,24 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
 };
 
 /* per-CodeRegion parsing data */
-class region_data : public boost::lockable_adapter<boost::recursive_mutex> {
+class region_data {
 public:
   // Function lookups
   Dyninst::IBSTree_fast<FuncExtent> funcsByRange;
-    dyn_hash_map<Address, Function *> funcsByAddr;
+    tbb::concurrent_hash_map<Address, Function *> funcsByAddr;
 
     // Block lookups
     Dyninst::IBSTree_fast<Block > blocksByRange;
-    dyn_hash_map<Address, Block *> blocksByAddr;
+    tbb::concurrent_hash_map<Address, Block *> blocksByAddr;
 
     // Parsing internals 
-    dyn_hash_map<Address, ParseFrame *> frame_map;
-    dyn_hash_map<Address, ParseFrame::Status> frame_status;
+    tbb::concurrent_hash_map<Address, ParseFrame *> frame_map;
+    tbb::concurrent_hash_map<Address, ParseFrame::Status> frame_status;
 
     Function * findFunc(Address entry);
     Block * findBlock(Address entry);
     int findFuncs(Address addr, set<Function *> & funcs);
     int findBlocks(Address addr, set<Block *> & blocks);
-    boost::recursive_mutex& lockable() { return boost::lockable_adapter<boost::recursive_mutex>::lockable(); }
 
     /* 
      * Look up the next block for detection of straight-line
@@ -179,7 +181,6 @@ public:
      */
     inline std::pair<Address, Block*> get_next_block(Address addr)
     {
-        boost::lock_guard<region_data> g(*this);
         Block * nextBlock = NULL;
         Address nextBlockAddr = numeric_limits<Address>::max();
 
@@ -191,6 +192,37 @@ public:
 
         return std::pair<Address,Block*>(nextBlockAddr,nextBlock);
     }
+    ParseFrame* findFrame(Address addr) const {
+        tbb::concurrent_hash_map<Address, ParseFrame*>::const_accessor a;
+        if(frame_map.find(a, addr)) return a->second;
+        return NULL;
+    }
+    void setFrameStatus(Address addr, ParseFrame::Status status)
+    {
+        tbb::concurrent_hash_map<Address, ParseFrame::Status>::accessor a;
+        frame_status.insert(a, make_pair(addr, status));
+    }
+    void record_func(Function* f) {
+        tbb::concurrent_hash_map<Address, Function*>::accessor a;
+        funcsByAddr.insert(a, std::make_pair(f->addr(), f));
+
+    }
+    void record_block(Block* b) {
+        tbb::concurrent_hash_map<Address, Block*>::accessor a;
+        blocksByAddr.insert(a, std::make_pair(b->start(), b));
+        blocksByRange.insert(b);
+    }
+    void updateBlockEnd(Block* b, Address addr, Address previnsn) {
+        blocksByRange.remove(b);
+        b->updateEnd(addr);
+        b->_lastInsn = previnsn;
+        blocksByRange.insert(b);
+    }
+    void record_frame(ParseFrame* pf) {
+        tbb::concurrent_hash_map<Address, ParseFrame*>::accessor a;
+        frame_map.insert(a, make_pair(pf->func->addr(), pf));
+
+    }
     
 	 // Find functions within [start,end)
 	 int findFuncs(Address start, Address end, set<Function *> & funcs);
@@ -201,27 +233,28 @@ public:
 inline Function *
 region_data::findFunc(Address entry)
 {
-    boost::lock_guard<region_data> g(*this);
-    dyn_hash_map<Address, Function *>::iterator fit;
-    if((fit = funcsByAddr.find(entry)) != funcsByAddr.end())
-        return fit->second;
-    else
+    tbb::concurrent_hash_map<Address, Function *>::const_accessor a;
+    if(funcsByAddr.find(a, entry)) {
+        return a->second;
+    }
+    else {
         return NULL;
+    }
 }
 inline Block *
 region_data::findBlock(Address entry)
 {
-    boost::lock_guard<region_data> g(*this);
-    dyn_hash_map<Address, Block *>::iterator bit;
-    if((bit = blocksByAddr.find(entry)) != blocksByAddr.end())
-        return bit->second;
-    else
+    tbb::concurrent_hash_map<Address, Block *>::const_accessor a;
+    if(blocksByAddr.find(a, entry)) {
+        return a->second;
+    }
+    else {
         return NULL;
+    }
 }
 inline int
 region_data::findFuncs(Address addr, set<Function *> & funcs)
 {
-    boost::lock_guard<region_data> g(*this);
     int sz = funcs.size();
 
     set<FuncExtent *> extents;
@@ -236,7 +269,6 @@ region_data::findFuncs(Address addr, set<Function *> & funcs)
 inline int
 region_data::findFuncs(Address start, Address end, set<Function *> & funcs)
 {
-    boost::lock_guard<region_data> g(*this);
 	 FuncExtent dummy(NULL,start,end);
     int sz = funcs.size();
 
@@ -252,7 +284,6 @@ region_data::findFuncs(Address start, Address end, set<Function *> & funcs)
 inline int
 region_data::findBlocks(Address addr, set<Block *> & blocks)
 {
-    boost::lock_guard<region_data> g(*this);
     int sz = blocks.size();
     blocksByRange.find(addr,blocks);
     return blocks.size() - sz;
@@ -275,7 +306,11 @@ class ParseData : public boost::lockable_adapter<boost::recursive_mutex>  {
     virtual int findFuncs(CodeRegion *, Address, Address, set<Function*> &) =0;
     virtual int findBlocks(CodeRegion *, Address, set<Block*> &) =0;
     virtual ParseFrame * findFrame(CodeRegion *, Address) = 0;
-    virtual ParseFrame::Status frameStatus(CodeRegion *, Address) = 0;
+    ParseFrame::Status frameStatus(CodeRegion *, Address addr) {
+        ParseFrame* f = nullptr;
+        if((f = findFrame(nullptr, addr))) return f->status();
+        return ParseFrame::BAD_LOOKUP;
+    }
     virtual void setFrameStatus(CodeRegion*,Address,ParseFrame::Status) = 0;
 
     // creation (if non-existing)
@@ -341,14 +376,11 @@ inline region_data * StandardParseData::findRegion(CodeRegion * /* cr */)
 }
 inline void StandardParseData::record_func(Function *f)
 {
-    boost::lock_guard<region_data> g(_rdata);
-    _rdata.funcsByAddr[f->addr()] = f;
+    _rdata.record_func(f);
 }
 inline void StandardParseData::record_block(CodeRegion * /* cr */, Block *b)
 {
-    boost::lock_guard<region_data> g(_rdata);
-    _rdata.blocksByAddr[b->start()] = b;
-    _rdata.blocksByRange.insert(b);
+    _rdata.record_block(b);
 }
 
 /* OverlappingParseData handles binary code objects like .o files
@@ -368,7 +400,6 @@ class OverlappingParseData : public ParseData {
     int findFuncs(CodeRegion *, Address, Address, set<Function*> &);
     int findBlocks(CodeRegion *, Address, set<Block*> &);
     ParseFrame * findFrame(CodeRegion *, Address);
-    ParseFrame::Status frameStatus(CodeRegion *, Address);
     void setFrameStatus(CodeRegion*,Address,ParseFrame::Status);
 
     Function * get_func(CodeRegion * cr, Address addr, FuncSource src);

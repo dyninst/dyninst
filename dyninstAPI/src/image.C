@@ -723,7 +723,8 @@ int image::findMain()
                 {
                     /* expand failed */
                     mainAddress = 0x0;
-		    startup_printf("%s[%u]:  cannot expand %s from instruction %s\n", FILE__, __LINE__, assignment->format().c_str(), assignment->insn()->format().c_str());
+		    startup_printf("%s[%u]:  cannot expand %s from instruction %s\n", FILE__, __LINE__, assignment->format().c_str(),
+                           assignment->insn().format().c_str());
                 } else { 
 		    startup_printf("%s[%u]:  try to visit  %s\n", FILE__, __LINE__, ast->format().c_str());   
                     FindMainVisitor fmv;

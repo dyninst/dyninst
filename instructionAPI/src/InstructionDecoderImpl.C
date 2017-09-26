@@ -44,20 +44,19 @@ namespace Dyninst
         Instruction* InstructionDecoderImpl::makeInstruction(entryID opcode, const char* mnem,
             unsigned int decodedSize, const unsigned char* raw)
         {
-            Operation::Ptr tmp(make_shared(singleton_object_pool<Operation>::construct(opcode, mnem, m_Arch)));
+            Operation tmp(opcode, mnem, m_Arch);
             return singleton_object_pool<Instruction>::construct(tmp, decodedSize, raw, m_Arch);
         }
 
 
-        Instruction::Ptr InstructionDecoderImpl::decode(InstructionDecoder::buffer& b)
+        Instruction InstructionDecoderImpl::decode(InstructionDecoder::buffer& b)
         {
             //setMode(m_Arch == Arch_x86_64);
             const unsigned char* start = b.start;
             decodeOpcode(b);
             unsigned int decodedSize = b.start - start;
 
-            return make_shared(singleton_object_pool<Instruction>::construct(
-                                   m_Operation, decodedSize, start, m_Arch));
+            return Instruction(m_Operation, decodedSize, start, m_Arch);
         }
 
         InstructionDecoderImpl::Ptr InstructionDecoderImpl::makeDecoderImpl(Architecture a)

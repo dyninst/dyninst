@@ -55,6 +55,7 @@ class singleton_object_pool
     {
         cilkscreen::lock_guard<cilkscreen::fake_mutex> g(m);
         parent_t::free(free_me);
+        __cilkscreen_clean(free_me, free_me + 1);
     }
 
     inline static T* malloc()

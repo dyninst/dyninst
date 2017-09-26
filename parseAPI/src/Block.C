@@ -249,13 +249,13 @@ Block::getInsns(Insns &insns) const {
   if (ptr == NULL) return;
   InstructionDecoder d(ptr, size(), obj()->cs()->getArch());
   while (off < end()) {
-    Instruction::Ptr insn = d.decode();
+    Instruction insn = d.decode();
     insns[off] = insn;
-    off += insn->size();
+    off += insn.size();
   }
 }
 
-InstructionAPI::Instruction::Ptr
+InstructionAPI::Instruction
 Block::getInsn(Offset a) const {
    Insns insns;
    getInsns(insns);

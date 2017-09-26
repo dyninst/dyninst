@@ -41,6 +41,9 @@
 
 #include "InstructionSource.h"
 
+#include <boost/thread/recursive_mutex.hpp>
+#include <boost/thread/lockable_adapter.hpp>
+
 class StatContainer;
 
 namespace Dyninst {

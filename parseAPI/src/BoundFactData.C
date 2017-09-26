@@ -646,13 +646,13 @@ BoundFact::BoundFact(const BoundFact &bf) {
 }   
 
 
-bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
+bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
     if (!pred.valid) {
         parsing_printf("WARNING: We reach a conditional jump, but have not tracked the flag! Do nothing and return\n");
 	return true;
     }
-    entryID id = insn->getOperation().getID();
-    parsing_printf("\t\tproduce conditional bound for %s, edge type %d\n", insn->format().c_str(), type);
+    entryID id = insn.getOperation().getID();
+    parsing_printf("\t\tproduce conditional bound for %s, edge type %d\n", insn.format().c_str(), type);
     if (type == COND_TAKEN) {
         switch (id) {
 	    // unsigned 
@@ -1033,7 +1033,7 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 	}
 
     } else {
-        fprintf(stderr, "Instruction %s\n", insn->format().c_str());
+        fprintf(stderr, "Instruction %s\n", insn.format().c_str());
 	fprintf(stderr, "type should be either COND_TAKEN or COND_NOT_TAKEN, but it is %d\n", type);
 	return false;
     }
@@ -1059,10 +1059,10 @@ bool BoundFact::ConditionalJumpBound(Instruction::Ptr insn, EdgeTypeEnum type) {
 
 
 void BoundFact::SetPredicate(Assignment::Ptr assign,std::pair<AST::Ptr, bool> expandRet ) {   
-    Instruction::Ptr insn = assign->insn();
-    entryID id = insn->getOperation().getID();
+    Instruction insn = assign->insn();
+    entryID id = insn.getOperation().getID();
     pred.valid = true;
-    parsing_printf("\t\tLook for predicates for instruction %s, assign %s\n", insn->format().c_str(), assign->format().c_str());
+    parsing_printf("\t\tLook for predicates for instruction %s, assign %s\n", insn.format().c_str(), assign->format().c_str());
     if (expandRet.first == NULL) {
         // If the instruction is outside the set of instrutions we
         // add instruction semantics. We assume this instruction

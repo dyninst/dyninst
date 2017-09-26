@@ -53,6 +53,11 @@
 #include <cilk/cilk.h>
 #include <cilk/reducer_list.h>
 
+#include <boost/heap/priority_queue.hpp>
+#include <boost/timer/timer.hpp>
+#include <fstream>
+#include <gperftools/profiler.h>
+
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
@@ -65,21 +70,21 @@ typedef vector< edge_pair_t > Edges_t;
 
 namespace {
     struct less_cr {
-     bool operator()(CodeRegion * x, CodeRegion * y) 
-     { 
-         return x->offset() < y->offset();
-     }
+        bool operator()(CodeRegion * x, CodeRegion * y)
+        {
+            return x->offset() < y->offset();
+        }
     };
 }
 
 Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) :
-    _obj(obj),
-    _cfgfact(fact),
-    _pcb(pcb),
-    _parse_data(NULL),
-    _parse_state(UNPARSED),
-    _in_parse(false),
-    _in_finalize(false)
+        _obj(obj),
+        _cfgfact(fact),
+        _pcb(pcb),
+        _parse_data(NULL),
+        _parse_state(UNPARSED),
+        _in_parse(false),
+        _in_finalize(false)
 {
     delayed_frames.size = 0;
     // cache plt entries for fast lookup
@@ -92,8 +97,8 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
 
     if(obj.cs()->regions().empty()) {
         parsing_printf("[%s:%d] CodeSource provides no CodeRegions"
-                       " -- unparesable\n",
-            FILE__,__LINE__);
+                               " -- unparesable\n",
+                       FILE__,__LINE__);
         _parse_state = UNPARSEABLE;
         return;
     }
@@ -111,8 +116,8 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
         cur = copy[i];
         if(cur->offset() < prev->offset() + prev->length()) {
             parsing_printf("Overlapping code regions [%lx,%lx) and [%lx,%lx)\n",
-                prev->offset(),prev->offset()+prev->length(),
-                cur->offset(),cur->offset()+cur->length());
+                           prev->offset(),prev->offset()+prev->length(),
+                           cur->offset(),cur->offset()+cur->length());
             overlap = true;
             break;
         }
@@ -135,7 +140,7 @@ Parser::~Parser()
         delete _parse_data;
 
     vector<ParseFrame *>::iterator fit = frames.begin();
-    for( ; fit != frames.end(); ++fit) 
+    for( ; fit != frames.end(); ++fit)
         delete *fit;
     frames.clear();
 }
@@ -146,6 +151,15 @@ Parser::add_hint(Function * f)
     if(!_parse_data->findFunc(f->region(),f->addr()))
         record_func(f);
 }
+
+template <typename T>
+std::string pair_to_string(T pr)
+{
+    std::stringstream s;
+    s << pr.first << ", " << pr.second;
+    return s.str();
+}
+
 
 void
 Parser::parse()
@@ -169,24 +183,30 @@ Parser::parse()
 
     if(_parse_state < COMPLETE)
         _parse_state = COMPLETE;
-    
+
     _in_parse = false;
     parsing_printf("[%s:%d] parsing complete for Parser %p with state %d\n", FILE__, __LINE__, this, _parse_state);
+    std::ofstream stat_log("functions.csv");
+    stat_log << "Results for " << time_histogram.size() << " buckets\n";
+    stat_log << "usecs,count\n";
+    std::transform(time_histogram.begin(), time_histogram.end(),
+                   std::ostream_iterator<std::string >(stat_log, "\n"),
+                   pair_to_string<std::pair<unsigned int, unsigned int> >);
 }
 
 void
 Parser::parse_at(
-    CodeRegion * region,
-    Address target,
-    bool recursive,
-    FuncSource src)
+        CodeRegion * region,
+        Address target,
+        bool recursive,
+        FuncSource src)
 {
     Function *f;
     ParseFrame *pf;
     vector<ParseFrame *> work;
 
     parsing_printf("[%s:%d] entered parse_at([%lx,%lx),%lx)\n",
-        FILE__,__LINE__,region->low(),region->high(),target);
+                   FILE__,__LINE__,region->low(),region->high(),target);
 
     if(!region->contains(target)) {
         parsing_printf("\tbad address, bailing\n");
@@ -205,7 +225,7 @@ Parser::parse_at(
     ParseFrame::Status exist = _parse_data->frameStatus(region,target);
     if(exist != ParseFrame::BAD_LOOKUP && exist != ParseFrame::UNPARSED) {
         parsing_printf("   function at %lx already parsed, status %d\n",
-            target, exist);
+                       target, exist);
         return;
     }
 
@@ -214,7 +234,7 @@ Parser::parse_at(
         init_frame(*pf);
         frames.push_back(pf);
         _parse_data->record_frame(pf);
-    } 
+    }
 
     work.push_back(pf);
     parse_frames(work,recursive);
@@ -264,7 +284,7 @@ Parser::parse_vanilla()
         _parse_state = PARTIAL;
     else
         parsing_printf("\tparse state is %d, some parsing already done\n",
-            _parse_state);
+                       _parse_state);
 
     /* Initialize parse frames from hints */
     for(fit=hint_funcs.begin();fit!=hint_funcs.end();++fit) {
@@ -274,7 +294,7 @@ Parser::parse_vanilla()
            test != ParseFrame::UNPARSED)
         {
             parsing_printf("\tskipping repeat parse of %lx [%s]\n",
-                hf->addr(),hf->name().c_str());
+                           hf->addr(),hf->name().c_str());
             continue;
         }
 
@@ -308,14 +328,14 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
             Edge *callEdge = NULL;
             boost::lock_guard<Block> g(*src);
             Block::edgelist trgs = src->targets();
-            for (Block::edgelist::iterator eit = trgs.begin(); 
-                 eit != trgs.end(); 
-                 eit++) 
+            for (Block::edgelist::iterator eit = trgs.begin();
+                 eit != trgs.end();
+                 eit++)
             {
                 if ((*eit)->type() == CALL) {
                     callEdge = *eit;
                     if (!(*eit)->sinkEdge()) // if it's a sink edge, look for nonsink CALL
-                        break; 
+                        break;
                 }
             }
             // create a call work elem so that the bundle is complete
@@ -330,32 +350,32 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
             // Also, in the case I saw, the callee was _not_ returning. Not directly. It 
             // led into a big case with a longjmp() equivalent. 
 
-            if (callEdge) 
+            if (callEdge)
             {
                 bool isResolvable = false;
                 Address callTarget = 0;
-                if ( ! callEdge->sinkEdge() ) 
+                if ( ! callEdge->sinkEdge() )
                 {
                     isResolvable = true;
                     callTarget = callEdge->trg()->start();
                     // the call target may be in another Code Object
                     Function *callee = callEdge->trg()->obj()->findFuncByEntry(
-                        callEdge->trg()->region(), callTarget);
+                            callEdge->trg()->region(), callTarget);
                     assert(callee);
                     callee->set_retstatus(RETURN);
                     callee->_tamper = TAMPER_NONE;
                 }
                 elem->bundle()->add(new ParseWorkElem
-                    ( elem->bundle(), 
-                    callEdge,
-                    callTarget,
-                    isResolvable,
-                    false ));
+                                            ( elem->bundle(),
+                                              callEdge,
+                                              callTarget,
+                                              isResolvable,
+                                              false ));
             }
         }
         ParseFrame *frame = _parse_data->findFrame
-            ( src->region(), 
-              src->lastInsnAddr() );
+                ( src->region(),
+                  src->lastInsnAddr() );
         bool isNewFrame = false;
         if (!frame) {
             vector<Function*> funcs;
@@ -401,13 +421,26 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
 
 
 vector<ParseFrame*> Parser::ProcessOneFrame(ParseFrame* pf, bool recursive) {
-    boost::shared_lock<boost::shared_mutex> finalize_read_lock(finalize_mutex);
+    boost::timer::cpu_timer t;
+    t.start();
+    if(pf->func->name() == "darpm") {
+        ProfilerStart("ProcessOneFrame(darpm)");
+    }
     parse_frame(*pf,recursive);
+    if(pf->func->name() == "darpm") {
+        ProfilerStop();
+    }
+    t.stop();
+    unsigned int msecs = floor(t.elapsed().wall / 1000000.0);
+    tbb::concurrent_hash_map<unsigned int, unsigned int>::accessor a;
+    time_histogram.insert(a, msecs);
+    ++(a->second);
     return postProcessFrame(pf, recursive);
 }
 
 vector<ParseFrame *> Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
     vector<ParseFrame*> work;
+    boost::lock_guard<ParseFrame> g(*pf);
     switch(pf->status()) {
         case ParseFrame::CALL_BLOCKED: {
             parsing_printf("[%s] frame %lx blocked at %lx\n",
@@ -421,7 +454,6 @@ vector<ParseFrame *> Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
 
                 CodeRegion * cr = pf->call_target->region();
                 Address targ = pf->call_target->addr();
-                boost::lock_guard<ParseData> g(*_parse_data);
                 ParseFrame * tf = _parse_data->findFrame(cr,targ);
                 if(!tf)
                 {
@@ -450,8 +482,8 @@ vector<ParseFrame *> Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
                            FILE__,pf->func->addr(),pf->func->_rs);
 
             if (unlikely(_obj.defensiveMode() &&
-                          TAMPER_NONE != pf->func->tampersStack() &&
-                          TAMPER_NONZERO != pf->func->tampersStack() ))
+                         TAMPER_NONE != pf->func->tampersStack() &&
+                         TAMPER_NONZERO != pf->func->tampersStack() ))
             {   // may adjust CALL_FT targets, add a frame to the worklist,
                 // or trigger parsing in a separate target CodeObject
                 tamper_post_processing(work,pf);
@@ -462,16 +494,17 @@ vector<ParseFrame *> Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
 
             pf->cleanup();
             break;
-}        case ParseFrame::FRAME_ERROR:
+        }        case ParseFrame::FRAME_ERROR:
             parsing_printf("[%s] frame %lx error at %lx\n",
                            FILE__,pf->func->addr(),pf->curAddr);
             break;
         case ParseFrame::FRAME_DELAYED:
         {
-            boost::lock_guard<DelayedFrames> g(delayed_frames);    parsing_printf("[%s] frame %lx delayed at %lx\n",
-                           FILE__,
-                           pf->func->addr(),
-                           pf->curAddr);
+            boost::lock_guard<DelayedFrames> g(delayed_frames);
+            parsing_printf("[%s] frame %lx delayed at %lx\n",
+                                                                                  FILE__,
+                                                                                  pf->func->addr(),
+                                                                                  pf->curAddr);
 
             if (pf->delayedWork.size()) {
                 // Add frame to global delayed list
@@ -480,10 +513,10 @@ vector<ParseFrame *> Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
                      iter != pf->delayedWork.end();
                      ++iter) {
 
-                        Function * ct = iter->second;
-                        parsing_printf("[%s] waiting on %s\n",
-                                __FILE__,
-                                ct->name().c_str());
+                    Function * ct = iter->second;
+                    parsing_printf("[%s] waiting on %s\n",
+                                   __FILE__,
+                                   ct->name().c_str());
                     {
 
                         auto fIter = delayed_frames.frames.find(ct);
@@ -506,39 +539,51 @@ vector<ParseFrame *> Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
             resumeFrames(pf->func, work);
             break;
         }
+        case ParseFrame::PROGRESS:
+            // another thread is working on this already; possibly something else unblocked.
+            break;
+
         default:
             assert(0 && "invalid parse frame status");
     }
     return work;
 
-    }
+}
 
+
+struct NewFrames : public std::vector<ParseFrame*>, public boost::lockable_adapter<boost::mutex>
+{
+
+};
 
 void
 Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
 {
     while(!work.empty())
     {
-        cilk::reducer<cilk::op_list_append<ParseFrame*> > all_new_frames;
+        std::cout << "Begin cilk_for, worklist size is " << work.size() << endl;
+        NewFrames all_new_frames;
         /* Recursive traversal parsing */
+//        for(size_t i = 0;
         cilk_for(size_t i = 0;
-        i < work.size();
-        ++i)
+            i < work.size();
+            ++i)
         {
             std::vector<ParseFrame*> new_frames = ProcessOneFrame(work[i], recursive);
+            boost::lock_guard<NewFrames> g(all_new_frames);
             for(size_t j = 0; j < new_frames.size(); ++j)
             {
                 if(new_frames[j]) {
-                    all_new_frames->push_back(new_frames[j]);
+                    all_new_frames.push_back(new_frames[j]);
                 }
             }
         }
-        work.clear();
-        std::list<ParseFrame*> new_work = all_new_frames.get_value();
-        new_work.sort();
-        new_work.unique();
-        std::copy(new_work.begin(), new_work.end(),
-                  std::back_inserter(work));
+        work.swap(all_new_frames);
+//        work.clear();
+////        all_new_frames.sort();
+////        all_new_frames.unique();
+//        std::copy(all_new_frames.begin(), all_new_frames.end(),
+//        std::back_inserter(work));
 
     }
 
@@ -598,8 +643,8 @@ void Parser::processFixedPoint(vector<ParseFrame *> &work, bool recursive) {// W
     }
     // Recurse through parse_frames
     parsing_printf("[%s] Calling parse_frames again, work.size() = %d\n",
-                       __FILE__,
-                       work.size());
+                   __FILE__,
+                   work.size());
     parse_frames(work, recursive);
 }
 
@@ -663,7 +708,7 @@ void Parser::processCycle(vector<ParseFrame *> &work, bool recursive) {// If we'
         parsing_printf("[%s] No more work can be done (%d funcs with unknown return status)\n",
                        __FILE__,
                        delayed_frames.frames.size());
-            assert(0);
+        assert(0);
     }
 }
 
@@ -684,39 +729,87 @@ void Parser::cleanup_frames()  {
 // Could set cache_valid depending on whether the function is currently
 // being parsed somewhere. 
 
+void Parser::finalize_block(Block* b, Function* owner)
+{
+    Address addr = b->start();
+    Address prev_insn = b->lastInsnAddr();
+    set<Block *> overlap;
+    CodeRegion *cr;
+    if(owner->region()->contains(addr))
+        cr = owner->region();
+    else
+        cr = _parse_data->reglookup(owner->region(),addr);
+
+    Block* exist = _parse_data->findBlock(cr, addr);
+    if(NULL == exist)
+    {
+        _parse_data->findBlocks(cr,addr,overlap);
+        if(overlap.size() > 1)
+            parsing_printf("[%s] address %lx overlapped by %d blocks\n",
+                           FILE__,addr,overlap.size());
+
+        /* Platform specific consistency test:
+           generally checking for whether the address is an
+           instruction boundary in a block */
+        for(set<Block *>::iterator sit=overlap.begin();sit!=overlap.end();++sit)
+        {
+            Block * ob = *sit;
+
+            // consistent will fill in prev_insn with the address of the
+            // instruction preceeding addr if addr is consistent
+            if(ob->consistent(addr,prev_insn)) {
+                exist = b;
+                break;
+            } else {
+                parsing_printf("[%s] %lx is inconsistent with [%lx,%lx)\n",
+                               FILE__,addr,b->start(),b->end());
+                _pcb.overlapping_blocks(ob,b);
+            }
+        }
+
+    }
+    if(exist) {
+        if(exist->start() != addr) {
+            Block* ret = split_block(owner, b, addr, prev_insn);
+            record_block(ret);
+        }
+    }
+    _pcb.addBlock(owner, b);
+
+}
+
 void
 Parser::finalize(Function *f)
 {
+    boost::unique_lock<boost::mutex> finalize_write_lock(finalize_mutex);
     if(f->_cache_valid) {
         return;
     }
 
     if(!f->_parsed) {
         parsing_printf("[%s:%d] Parser::finalize(f[%lx]) "
-                       "forced parsing\n",
-            FILE__,__LINE__,f->addr());
+                               "forced parsing\n",
+                       FILE__,__LINE__,f->addr());
         parse_at(f->addr(), true, f->src());
     }
 
-	bool cache_value = true;
-	/* this is commented out to prevent a failure in tampersStack, but
+    bool cache_value = true;
+    /* this is commented out to prevent a failure in tampersStack, but
            this may be an incorrect approach to fixing the problem.
-	if(frame_status(f->region(), f->addr()) < ParseFrame::PARSED) {
-		// XXX prevent caching of blocks, extents for functions that
-		// are actively being parsed. This prevents callbacks and other
-		// functions called from within, e.g. parse_frame from setting
-		// the caching flag and preventing later updates to the blocks()
-		// vector during finalization.
-		cache_value = false;
-	}*/
+    if(frame_status(f->region(), f->addr()) < ParseFrame::PARSED) {
+        // XXX prevent caching of blocks, extents for functions that
+        // are actively being parsed. This prevents callbacks and other
+        // functions called from within, e.g. parse_frame from setting
+        // the caching flag and preventing later updates to the blocks()
+        // vector during finalization.
+        cache_value = false;
+    }*/
 
     parsing_printf("[%s] finalizing %s (%lx)\n",
-        FILE__,f->name().c_str(),f->addr());
+                   FILE__,f->name().c_str(),f->addr());
 
-    boost::lock_guard<ParseData> parse_guard(*_parse_data);
     region_data * rd = _parse_data->findRegion(f->region());
     assert(rd);
-    boost::lock_guard<region_data> region_guard(*rd);
 
     // finish delayed parsing and sorting
     Function::blocklist blocks = f->blocks_int();
@@ -726,13 +819,13 @@ Parser::finalize(Function *f)
         _parse_data->remove_extents(f->_extents);
         f->_extents.clear();
     }
-    
+
 
     if(blocks.empty()) {
         f->_cache_valid = cache_value; // see above
         return;
     }
-    
+
     auto bit = blocks.begin();
     FuncExtent * ext = NULL;
     Address ext_s = (*bit)->start();
@@ -740,6 +833,7 @@ Parser::finalize(Function *f)
 
     for( ; bit != blocks.end(); ++bit) {
         Block * b = *bit;
+        finalize_block(b, f);
         if(b->start() > ext_e) {
             ext = new FuncExtent(f,ext_s,ext_e);
             parsing_printf("%lx extent [%lx,%lx)\n",f->addr(),ext_s,ext_e);
@@ -749,12 +843,12 @@ Parser::finalize(Function *f)
         }
         ext_e = b->end();
     }
-        ext = new FuncExtent(f,ext_s,ext_e);
-        parsing_printf("%lx extent [%lx,%lx)\n",f->addr(),ext_s,ext_e);
-        rd->funcsByRange.insert(ext);
-        f->_extents.push_back(ext);
+    ext = new FuncExtent(f,ext_s,ext_e);
+    parsing_printf("%lx extent [%lx,%lx)\n",f->addr(),ext_s,ext_e);
+    rd->funcsByRange.insert(ext);
+    f->_extents.push_back(ext);
 
-        f->_cache_valid = cache_value; // see comment at function entry
+    f->_cache_valid = cache_value; // see comment at function entry
 
     if (unlikely( f->obj()->defensiveMode())) {
         // add fallthrough edges for calls assumed not to be returning
@@ -762,7 +856,7 @@ Parser::finalize(Function *f)
         // the FT block is also a branch target)
         Function::edgelist & edges = f->_call_edge_list;
         for (Function::edgelist::iterator eit = edges.begin();
-             eit != edges.end(); 
+             eit != edges.end();
              eit++)
         {
             boost::lock_guard<Block> g(*(*eit)->src());
@@ -780,9 +874,6 @@ Parser::finalize(Function *f)
 void
 Parser::finalize()
 {
-    boost::upgrade_lock<boost::shared_mutex> finalize_upgrade_lock(finalize_mutex);
-    finalize_mutex.unlock_upgrade_and_lock();
-    boost::unique_lock<boost::shared_mutex> finalize_write_lock(finalize_mutex, boost::adopt_lock);
     if(_parse_state < FINALIZED) {
         finalize_funcs(hint_funcs);
         finalize_funcs(discover_funcs);
@@ -796,7 +887,7 @@ Parser::finalize_funcs(vector<Function *> &funcs)
     vector<Function *>::iterator fit = funcs.begin();
     for( ; fit != funcs.end(); ++fit) {
         finalize(*fit);
-    } 
+    }
 }
 
 void
@@ -817,10 +908,10 @@ Parser::record_func(Function *f)
 void
 Parser::init_frame(ParseFrame & frame)
 {
-   Block * b = NULL;
+    Block * b = NULL;
     Block * split = NULL;
 
-    if ( ! frame.func->_entry ) 
+    if ( ! frame.func->_entry )
     {
         // Find or create a block
         b = block_at(frame.func, frame.func->addr(),split);
@@ -831,7 +922,7 @@ Parser::init_frame(ParseFrame & frame)
             frame.pushWork(frame.seed);
         } else {
             parsing_printf("[%s] failed to initialize parsing frame\n",
-                FILE__);
+                           FILE__);
             return;
         }
         if (split) {
@@ -841,17 +932,17 @@ Parser::init_frame(ParseFrame & frame)
 
     // FIXME these operations should move into the actual parsing
     Address ia_start = frame.func->addr();
-    unsigned size = 
-     frame.codereg->offset() + frame.codereg->length() - ia_start;
+    unsigned size =
+            frame.codereg->offset() + frame.codereg->length() - ia_start;
     const unsigned char* bufferBegin =
-     (const unsigned char *)(frame.func->isrc()->getPtrToInstruction(ia_start));
+            (const unsigned char *)(frame.func->isrc()->getPtrToInstruction(ia_start));
     InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
     InstructionAdapter_t* ah = InstructionAdapter_t::makePlatformIA_IAPI(b->obj()->cs()->getArch(),
                                                                          dec, ia_start, frame.func->obj(),
-									 frame.codereg, frame.func->isrc(), b);
-	if(ah->isStackFramePreamble()) {
+                                                                         frame.codereg, frame.func->isrc(), b);
+    if(ah->isStackFramePreamble()) {
         frame.func->_no_stack_frame = false;
-	}
+    }
     frame.func->_saves_fp = ah->savesFP();
     delete ah;
 }
@@ -885,25 +976,6 @@ namespace {
      * Look up the next block for detection of straight-line
      * fallthrough edges into existing blocks.
      */
-    inline std::pair<Address, Block*> get_next_block(
-        Address addr,
-        CodeRegion * codereg, 
-        ParseData * _parse_data)
-    {
-        Block * nextBlock = NULL;
-        Address nextBlockAddr;
-
-        nextBlockAddr = numeric_limits<Address>::max();
-        region_data * rd = _parse_data->findRegion(codereg);
-
-        if((nextBlock = rd->blocksByRange.successor(addr)) &&
-           nextBlock->start() > addr)
-        {
-            nextBlockAddr = nextBlock->start();   
-        }
-
-        return std::pair<Address,Block*>(nextBlockAddr,nextBlock);
-    }
 }
 
 void
@@ -925,21 +997,21 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 
     if (frame.status() == ParseFrame::UNPARSED) {
         parsing_printf("[%s] ==== starting to parse frame %lx ====\n",
-            FILE__,frame.func->addr());
+                       FILE__,frame.func->addr());
         // prevents recursion of parsing
         frame.func->_parsed = true;
     } else {
         parsing_printf("[%s] ==== resuming parse of frame %lx ====\n",
-            FILE__,frame.func->addr());
+                       FILE__,frame.func->addr());
         // Pull work that can be resumed off the delayedWork list
         std::map<ParseWorkElem *, Function *>::iterator iter;
-        
+
         vector<ParseWorkElem *> updated;
         vector<ParseWorkElem *>::iterator uIter;
 
         for (iter = frame.delayedWork.begin();
-                iter != frame.delayedWork.end();
-                ++iter) {
+             iter != frame.delayedWork.end();
+             ++iter) {
             if (iter->second->_rs != UNSET) {
                 frame.pushWork(iter->first);
                 updated.push_back(iter->first);
@@ -954,33 +1026,33 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
     frame.set_status(ParseFrame::PROGRESS);
 
     while(!worklist.empty()) {
-        
+
         Block * cur = NULL;
         ParseWorkElem * work = frame.popWork();
         if (work->order() == ParseWorkElem::call) {
             Function * ct = NULL;
 
             if (!work->callproc()) {
-	      // If we're not doing recursive traversal, skip *all* of the call edge processing.
-	      // We don't want to create a stub. We'll handle the assumption of a fallthrough
-	      // target for the fallthrough work element, not the call work element. Catch blocks
-	      // will get excluded but that's okay; our heuristic is not reliable enough that I'm willing to deploy
-	      // it when we'd only be detecting a non-returning callee by name anyway.
-	      // --BW 12/2012
-				if (!recursive) {
-				    parsing_printf("[%s] non-recursive parse skipping call %lx->%lx\n",
-								   FILE__, work->edge()->src()->lastInsnAddr(), work->target());
-					continue;
-				}
-	      
+                // If we're not doing recursive traversal, skip *all* of the call edge processing.
+                // We don't want to create a stub. We'll handle the assumption of a fallthrough
+                // target for the fallthrough work element, not the call work element. Catch blocks
+                // will get excluded but that's okay; our heuristic is not reliable enough that I'm willing to deploy
+                // it when we'd only be detecting a non-returning callee by name anyway.
+                // --BW 12/2012
+                if (!recursive) {
+                    parsing_printf("[%s] non-recursive parse skipping call %lx->%lx\n",
+                                   FILE__, work->edge()->src()->lastInsnAddr(), work->target());
+                    continue;
+                }
+
                 parsing_printf("[%s] binding call %lx->%lx\n",
                                FILE__,work->edge()->src()->lastInsnAddr(),work->target());
-            
+
                 pair<Function*,Edge*> ctp =
-                    bind_call(frame,
-                              work->target(),
-                              work->edge()->src(),
-                              work->edge());
+                        bind_call(frame,
+                                  work->target(),
+                                  work->edge()->src(),
+                                  work->edge());
                 ct = ctp.first;
 
                 work->mark_call();
@@ -989,15 +1061,15 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             }
 
             if (recursive && ct &&
-               (frame_status(ct->region(),ct->addr())==ParseFrame::UNPARSED || 
-                frame_status(ct->region(),ct->addr())==ParseFrame::BAD_LOOKUP)) {
+                (frame_status(ct->region(),ct->addr())==ParseFrame::UNPARSED ||
+                 frame_status(ct->region(),ct->addr())==ParseFrame::BAD_LOOKUP)) {
                 // suspend this frame and parse the next
-                parsing_printf("    [suspend frame %lx]\n", func->addr()); 
+                parsing_printf("    [suspend frame %lx]\n", func->addr());
                 frame.call_target = ct;
                 frame.set_status(ParseFrame::CALL_BLOCKED);
                 // need to re-visit this edge
                 frame.pushWork(work);
-		if (ahPtr) delete ahPtr;
+                if (ahPtr) delete ahPtr;
                 return;
             } else if (ct && work->tailcall()) {
                 // XXX The target has been or is currently being parsed (else
@@ -1006,9 +1078,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 //     function has to take UNKNOWN
                 if (func->_rs != RETURN) {
                     if (ct->_rs > NORETURN)
-                      func->set_retstatus(ct->_rs);
+                        func->set_retstatus(ct->_rs);
                     else if (ct->_rs == UNSET)
-                      func->set_retstatus(UNKNOWN);
+                        func->set_retstatus(UNKNOWN);
                 }
             }
 
@@ -1019,7 +1091,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             if (!ce) {
                 // odd; no call edge in this bundle
                 parsing_printf("[%s] unexpected missing call edge at %lx\n",
-                        FILE__,work->edge()->src()->lastInsnAddr());
+                               FILE__,work->edge()->src()->lastInsnAddr());
             } else {
                 // check for system call FT
                 Edge* edge = work->edge();
@@ -1027,10 +1099,10 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 //                boost::lock_guard<Block> src_guard(*edge->src());
                 edge->src()->getInsns(blockInsns);
                 auto prev = blockInsns.rbegin();
-                InstructionAPI::InstructionPtr prevInsn = prev->second;
+                InstructionAPI::Instruction prevInsn = prev->second;
                 bool is_nonret = false;
 
-                if (prevInsn->getOperation().getID() == e_syscall) {
+                if (prevInsn.getOperation().getID() == e_syscall) {
                     Address src = edge->src()->lastInsnAddr();
 
 
@@ -1040,15 +1112,15 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                         // If we cannot retrieve a syscall number, assume the syscall returns
                         parsing_printf("[%s] could not retrieve syscall edge, assuming returns\n", FILE__);
                     } else {
-		        if (obj().cs()->nonReturningSyscall(syscallNumber)) {
-			    is_nonret = true;
-			}
-		    }
+                        if (obj().cs()->nonReturningSyscall(syscallNumber)) {
+                            is_nonret = true;
+                        }
+                    }
 
                     if (is_nonret) {
                         parsing_printf("[%s] no fallthrough for non-returning syscall\n",
-                                FILE__,
-                                work->edge()->src()->lastInsnAddr());
+                                       FILE__,
+                                       work->edge()->src()->lastInsnAddr());
 
                         // unlink tempsink fallthrough edge
                         Edge * remove = work->edge();
@@ -1065,15 +1137,15 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     if (ct && (ct->_rs == UNSET) ) {
                         // Delay parsing until we've finished the corresponding call edge
                         parsing_printf("[%s] Parsing FT edge %lx, corresponding callee (%s) return status unknown; delaying work\n",
-                                __FILE__,
-                                work->edge()->src()->lastInsnAddr(),
-                                ct->name().c_str());
+                                       __FILE__,
+                                       work->edge()->src()->lastInsnAddr(),
+                                       ct->name().c_str());
 
                         // Add work to ParseFrame's delayed list
                         frame.pushDelayedWork(work, ct);
 
                         // Continue other work for this frame
-                        continue; 
+                        continue;
                     }
 
                     is_plt = HASHDEF(plt_entries,target);
@@ -1101,95 +1173,95 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                         is_nonret |= (ct->retstatus() == UNKNOWN);
                         if (is_nonret) {
                             parsing_printf("\t Disallowing FT edge: function in "
-                                    "defensive binary may not return\n");
+                                                   "defensive binary may not return\n");
                             mal_printf("Disallowing FT edge: function %lx in "
-                                    "defensive binary may not return\n", ct->addr());
+                                               "defensive binary may not return\n", ct->addr());
                         } else {
                             StackTamper ct_tamper = ct->tampersStack();
                             is_nonret |= (TAMPER_NONZERO == ct_tamper);
                             is_nonret |= (TAMPER_ABS == ct_tamper);
                             if (is_nonret) {
                                 mal_printf("Disallowing FT edge: function at %lx "
-                                        "tampers with its stack\n", ct->addr());
+                                                   "tampers with its stack\n", ct->addr());
                                 parsing_printf("\t Disallowing FT edge: function "
-                                        "tampers with its stack\n");
+                                                       "tampers with its stack\n");
                             }
                         }
                     }
                     if (is_nonret) {
                         parsing_printf("[%s] no fallthrough for non-returning call "
-                                "to %lx at %lx\n",FILE__,target,
-                                work->edge()->src()->lastInsnAddr());
+                                               "to %lx at %lx\n",FILE__,target,
+                                       work->edge()->src()->lastInsnAddr());
 
                         // unlink tempsink fallthrough edge
                         Edge * remove = work->edge();
                         remove->src()->removeTarget(remove);
                         factory().destroy_edge(remove);
-			continue;
+                        continue;
                     } else
-		        // Invalidate cache_valid for all sharing functions
-                        invalidateContainingFuncs(func, ce->src());                
+                        // Invalidate cache_valid for all sharing functions
+                        invalidateContainingFuncs(func, ce->src());
                 }
             }
         } else if (work->order() == ParseWorkElem::seed_addr) {
             cur = leadersToBlock[work->target()];
         } else if (work->order() == ParseWorkElem::resolve_jump_table) {
-	    // resume to resolve jump table 
+            // resume to resolve jump table
             auto work_ah = work->ah();
             parsing_printf("... continue parse indirect jump at %lx\n", work_ah->getAddr());
-	    Block *nextBlock = work->cur();
-	    if (nextBlock->last() != work_ah->getAddr()) {
-	        // The block has been split
-	        region_data * rd = _parse_data->findRegion(frame.codereg);
-		set<Block*> blocks;
-		rd->blocksByRange.find(work_ah->getAddr(), blocks);
-		for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
-		    if ((*bit)->last() == work_ah->getAddr()) {
-		        nextBlock = (*bit);
-			break;
-		    }
-		}
+            Block *nextBlock = work->cur();
+            if (nextBlock->last() != work_ah->getAddr()) {
+                // The block has been split
+                region_data * rd = _parse_data->findRegion(frame.codereg);
+                set<Block*> blocks;
+                rd->blocksByRange.find(work_ah->getAddr(), blocks);
+                for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
+                    if ((*bit)->last() == work_ah->getAddr()) {
+                        nextBlock = (*bit);
+                        break;
+                    }
+                }
 
-	    }
-	    ProcessCFInsn(frame,nextBlock,work->ah());
+            }
+            ProcessCFInsn(frame,nextBlock,work->ah());
             continue;
-	}
-        // call fallthrough case where we have already checked that
-        // the target returns. this is used in defensive mode.
+        }
+            // call fallthrough case where we have already checked that
+            // the target returns. this is used in defensive mode.
         else if (work->order() == ParseWorkElem::checked_call_ft) {
             Edge* ce = bundle_call_edge(work->bundle());
             if (ce != NULL) {
                 invalidateContainingFuncs(func, ce->src());
             } else {
                 parsing_printf("[%s] unexpected missing call edge at %lx\n",
-                        FILE__,work->edge()->src()->lastInsnAddr());
+                               FILE__,work->edge()->src()->lastInsnAddr());
             }
         }
-        
+
         if (NULL == cur) {
             pair<Block*,Edge*> newedge =
-                add_edge(frame,
-                         frame.func,
-                         work->edge()->src(),
-                         work->target(),
-                         work->edge()->type(),
-                         work->edge());
+                    add_edge(frame,
+                             frame.func,
+                             work->edge()->src(),
+                             work->target(),
+                             work->edge()->type(),
+                             work->edge());
             cur = newedge.first;
         }
 
         if (HASHDEF(visited,cur->start()))
         {
             parsing_printf("[%s] skipping locally parsed target at %lx\n",
-                FILE__,work->target());
+                           FILE__,work->target());
             continue;
-        } 
+        }
         visited[cur->start()] = true;
         leadersToBlock[cur->start()] = cur;
 
         if (!cur->_parsed)
         {
             parsing_printf("[%s] parsing block %lx\n",
-                FILE__,cur->start());
+                           FILE__,cur->start());
             if (frame.func->obj()->defensiveMode()) {
                 mal_printf("new block at %lx (0x%lx)\n",cur->start(), cur);
             }
@@ -1198,23 +1270,23 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             curAddr = cur->start();
         } else {
             parsing_printf("[%s] deferring parse of shared block %lx\n",
-                FILE__,cur->start());
+                           FILE__,cur->start());
             if (func->_rs < UNKNOWN) {
                 // we've parsed into another function, if we've parsed
                 // into it's entry point, set retstatus to match it
                 Function * other_func = _parse_data->findFunc(
-                    func->region(), cur->start());
+                        func->region(), cur->start());
                 if (other_func && other_func->retstatus() > UNKNOWN) {
-                  func->set_retstatus(other_func->retstatus());
+                    func->set_retstatus(other_func->retstatus());
                 } else {
-                  func->set_retstatus(UNKNOWN);
+                    func->set_retstatus(UNKNOWN);
                 }
             }
-	    // The edge to this shared block is changed from 
-	    // "going to sink" to going to this shared block.
-	    // This changes the function boundary, so we need to
-	    // invalidate the cache.
-	    func->_cache_valid = false;
+            // The edge to this shared block is changed from
+            // "going to sink" to going to this shared block.
+            // This changes the function boundary, so we need to
+            // invalidate the cache.
+            func->_cache_valid = false;
             continue;
         }
 
@@ -1228,15 +1300,15 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 
         // NB Using block's region() here because it may differ from the
         //    function's if control flow has jumped to another region
-        unsigned size = 
-            cur->region()->offset() + cur->region()->length() - curAddr;
+        unsigned size =
+                cur->region()->offset() + cur->region()->length() - curAddr;
         const unsigned char* bufferBegin =
-          (const unsigned char *)(func->isrc()->getPtrToInstruction(curAddr));
+                (const unsigned char *)(func->isrc()->getPtrToInstruction(curAddr));
         InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
 
         if (!ahPtr)
             ahPtr = InstructionAdapter_t::makePlatformIA_IAPI(func->obj()->cs()->getArch(), dec, curAddr, func->obj(),
-                        cur->region(), func->isrc(), cur);
+                                                              cur->region(), func->isrc(), cur);
         else
             ahPtr->reset(dec,curAddr,func->obj(),
                          cur->region(), func->isrc(), cur);
@@ -1244,8 +1316,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         InstructionAdapter_t * ah = ahPtr;
 
         using boost::tuples::tie;
-        tie(nextBlockAddr,nextBlock) = get_next_block(
-            frame.curAddr, frame.codereg, _parse_data);
+        tie(nextBlockAddr,nextBlock) = func->get_next_block(
+                frame.curAddr, frame.codereg);
 
         bool isNopBlock = ah->isNop();
 
@@ -1254,7 +1326,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             /** Check for straight-line fallthrough **/
             if (curAddr == nextBlockAddr) {
                 parsing_printf("[%s] straight-line parse into block at %lx\n",
-                    FILE__,curAddr);
+                               FILE__,curAddr);
                 if (frame.func->obj()->defensiveMode()) {
                     mal_printf("straight-line parse into block at %lx\n",curAddr);
                 }
@@ -1263,21 +1335,21 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 
                 end_block(cur,ahPtr);
                 pair<Block*,Edge*> newedge =
-                    add_edge(frame,frame.func,cur,
-                             nextBlockAddr,FALLTHROUGH,NULL);
-        
+                        add_edge(frame,frame.func,cur,
+                                 nextBlockAddr,FALLTHROUGH,NULL);
+
                 if (!HASHDEF(visited,nextBlockAddr) &&
-                   !HASHDEF(leadersToBlock,nextBlockAddr)) {
+                    !HASHDEF(leadersToBlock,nextBlockAddr)) {
                     parsing_printf("[%s:%d] pushing %lx onto worklist\n",
                                    FILE__,__LINE__,nextBlockAddr);
 
                     frame.pushWork(
-                        frame.mkWork(
-                            NULL,
-                            newedge.second,
-                            nextBlockAddr,
-                            true,
-                            false)
+                            frame.mkWork(
+                                    NULL,
+                                    newedge.second,
+                                    nextBlockAddr,
+                                    true,
+                                    false)
                     );
                     /* preserved as example of leaky code; use mkWork instead
                     frame.pushWork(
@@ -1294,33 +1366,33 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 break;
             } else if (curAddr > nextBlockAddr) {
                 parsing_printf("[%s:%d] inconsistent instruction stream: "
-                               "%lx is within [%lx,%lx)\n",
-                    FILE__,__LINE__,curAddr,
-                    nextBlock->start(),nextBlock->end());
+                                       "%lx is within [%lx,%lx)\n",
+                               FILE__,__LINE__,curAddr,
+                               nextBlock->start(),nextBlock->end());
 
                 // NB "cur" hasn't ended, so its range may
                 // not look like it overlaps with nextBlock
                 _pcb.overlapping_blocks(cur,nextBlock);
 
-                tie(nextBlockAddr,nextBlock) = 
-                    get_next_block(frame.curAddr, frame.codereg, _parse_data);
+                tie(nextBlockAddr,nextBlock) =
+                        func->get_next_block(frame.curAddr, frame.codereg);
             }
 
             // per-instruction callback notification
             ParseCallback::insn_details insn_det;
             insn_det.insn = ah;
-	     
-                parsing_printf("[%s:%d] curAddr 0x%lx: %s \n",
-                    FILE__,__LINE__,curAddr, insn_det.insn->getInstruction()->format().c_str() );
+
+            parsing_printf("[%s:%d] curAddr 0x%lx: %s \n",
+                           FILE__,__LINE__,curAddr, insn_det.insn->getInstruction().format().c_str() );
 
             if (func->_is_leaf_function) {
                 Address ret_addr;
-    	        func->_is_leaf_function = !(insn_det.insn->isReturnAddrSave(ret_addr));
-                    parsing_printf("[%s:%d] leaf %d funcname %s \n",
-                        FILE__,__LINE__,func->_is_leaf_function, func->name().c_str());
-                if (!func->_is_leaf_function) func->_ret_addr = ret_addr;	
+                func->_is_leaf_function = !(insn_det.insn->isReturnAddrSave(ret_addr));
+                parsing_printf("[%s:%d] leaf %d funcname %s \n",
+                               FILE__,__LINE__,func->_is_leaf_function, func->name().c_str());
+                if (!func->_is_leaf_function) func->_ret_addr = ret_addr;
             }
-		
+
             _pcb.instruction_cb(func,cur,curAddr,&insn_det);
 
             if (isNopBlock && !ah->isNop()) {
@@ -1328,79 +1400,79 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 
                 end_block(cur,ahPtr);
                 pair<Block*,Edge*> newedge =
-                    add_edge(frame,frame.func,cur,curAddr,FALLTHROUGH,NULL);
+                        add_edge(frame,frame.func,cur,curAddr,FALLTHROUGH,NULL);
                 Block * targ = newedge.first;
-  
+
                 parsing_printf("[%s:%d] nop-block ended at %lx\n",
-                    FILE__,__LINE__,curAddr); 
+                               FILE__,__LINE__,curAddr);
                 if (targ && !HASHDEF(visited,targ->start())) {
                     parsing_printf("[%s:%d] pushing %lx onto worklist\n",
-                        FILE__,__LINE__,targ->start());
+                                   FILE__,__LINE__,targ->start());
 
                     frame.pushWork(
-                        frame.mkWork(
-                            NULL,
-                            newedge.second,
-                            targ->start(),
-                            true,
-                            false)
-                        );
-                    leadersToBlock[targ->start()] = targ; 
+                            frame.mkWork(
+                                    NULL,
+                                    newedge.second,
+                                    targ->start(),
+                                    true,
+                                    false)
+                    );
+                    leadersToBlock[targ->start()] = targ;
                 }
                 break;
             }
-            
+
             /** Particular instruction handling (calls, branches, etc) **/
-            ++num_insns; 
+            ++num_insns;
 
             if(ah->hasCFT()) {
-	       if (ah->isIndirectJump()) {
-	           // Create a work element to represent that
-		   // we will resolve the jump table later
-                   end_block(cur,ahPtr);
-                   frame.pushWork( frame.mkWork( work->bundle(), cur, ahPtr));
-	       } else {
-	           ProcessCFInsn(frame,cur,ahPtr);
-	       }
-               break;
+                if (ah->isIndirectJump()) {
+                    // Create a work element to represent that
+                    // we will resolve the jump table later
+                    end_block(cur,ahPtr);
+                    frame.pushWork( frame.mkWork( work->bundle(), cur, ahPtr));
+                } else {
+                    ProcessCFInsn(frame,cur,ahPtr);
+                }
+                break;
             } else if (func->_saves_fp &&
                        func->_no_stack_frame &&
                        ah->isFrameSetupInsn()) { // isframeSetup is expensive
-               func->_no_stack_frame = false;
+                func->_no_stack_frame = false;
             } else if (ah->isLeave()) {
                 func->_no_stack_frame = false;
             } else if ( ah->isAbort() ) {
                 // 4. `abort-causing' instructions
                 end_block(cur,ahPtr);
                 //link(cur, sink_block, DIRECT, true);
-                break; 
+                break;
             } else if ( ah->isInvalidInsn() ) {
                 // 4. Invalid or `abort-causing' instructions
                 end_block(cur,ahPtr);
                 link(cur, Block::sink_block, DIRECT, true);
-                break; 
+                break;
             } else if ( ah->isInterruptOrSyscall() ) {
                 // 5. Raising instructions
                 end_block(cur,ahPtr);
 
                 pair<Block*,Edge*> newedge =
-                    add_edge(frame,frame.func,cur,ah->getNextAddr(),FALLTHROUGH,NULL);
+                        add_edge(frame,frame.func,cur,ah->getNextAddr(),FALLTHROUGH,NULL);
                 Block * targ = newedge.first;
-   
+
                 if (targ && !HASHDEF(visited,targ->start()) &&
-                            !HASHDEF(leadersToBlock,targ->start())) {
+                    !HASHDEF(leadersToBlock,targ->start())) {
                     parsing_printf("[%s:%d] pushing %lx onto worklist\n",
                                    FILE__,__LINE__,targ->start());
 
                     frame.pushWork(
-                        frame.mkWork(
-                            NULL,
-                            newedge.second,
-                            targ->start(),
-                            true,
-                            false)
-                        );
-                    leadersToBlock[targ->start()] = targ; 
+                            frame.mkWork(
+                                    NULL,
+                                    newedge.second,
+                                    targ->start(),
+                                    true,
+                                    false)
+                    );
+                    leadersToBlock[targ->start()] = targ;
                 }
                 if (unlikely(func->obj()->defensiveMode())) {
                     fprintf(stderr,"parsed bluepill insn sysenter or syscall "
@@ -1412,14 +1484,14 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     // add instrumentation at this addr so we can
                     // extend the function if this really executes
                     ParseCallback::default_details det(
-                        (unsigned char*) cur->region()->getPtrToInstruction(cur->lastInsnAddr()),
-                        cur->end() - cur->lastInsnAddr(),
-                        true);
+                            (unsigned char*) cur->region()->getPtrToInstruction(cur->lastInsnAddr()),
+                            cur->end() - cur->lastInsnAddr(),
+                            true);
                     _pcb.abruptEnd_cf(cur->lastInsnAddr(),cur,&det);
                     _pcb.foundWeirdInsns(func);
                     end_block(cur,ahPtr);
                     // allow invalid instructions to end up as a sink node.
-		    link(cur, Block::sink_block, DIRECT, true);
+                    link(cur, Block::sink_block, DIRECT, true);
                     break;
                 } else if (ah->isNopJump()) {
                     // patch the jump to make it a nop, and re-set the 
@@ -1428,17 +1500,17 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     // instruction to be parsed correctly
                     mal_printf("Nop jump at %lx, changing it to nop\n",ah->getAddr());
                     _pcb.patch_nop_jump(ah->getAddr());
-                    unsigned bufsize = 
-                        func->region()->offset() + func->region()->length() - ah->getAddr();
-                        func->region()->offset() + func->region()->length() - ahPtr->getAddr();
+                    unsigned bufsize =
+                            func->region()->offset() + func->region()->length() - ah->getAddr();
+                    func->region()->offset() + func->region()->length() - ahPtr->getAddr();
                     const unsigned char* bufferBegin = (const unsigned char *)
-                        (func->isrc()->getPtrToInstruction(ah->getAddr()));
+                            (func->isrc()->getPtrToInstruction(ah->getAddr()));
                     dec = InstructionDecoder
-                        (bufferBegin, bufsize, frame.codereg->getArch());
+                            (bufferBegin, bufsize, frame.codereg->getArch());
                     ah->reset(dec, curAddr, func->obj(),
-		              func->region(), func->isrc(), cur);
+                              func->region(), func->isrc(), cur);
                 } else {
-                    entryID id = ah->getInstruction()->getOperation().getID();
+                    entryID id = ah->getInstruction().getOperation().getID();
                     switch (id) {
                         case e_rdtsc:
                             fprintf(stderr,"parsed bluepill insn rdtsc at %lx\n",curAddr);
@@ -1465,9 +1537,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 break;
             } else if (!cur->region()->contains(ah->getNextAddr())) {
                 parsing_printf("[%s] next address %lx is outside [%lx,%lx)\n",
-                    FILE__,ah->getNextAddr(),
-                    cur->region()->offset(),
-                    cur->region()->offset()+cur->region()->length());
+                               FILE__,ah->getNextAddr(),
+                               cur->region()->offset(),
+                               cur->region()->offset()+cur->region()->length());
                 end_block(cur,ahPtr);
                 // We need to tag the block with a sink edge
                 link(cur, Block::sink_block, DIRECT, true);
@@ -1480,13 +1552,13 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
     // Check if parsing is complete
     if (!frame.delayedWork.empty()) {
         frame.set_status(ParseFrame::FRAME_DELAYED);
-        return; 
+        return;
     }
 
     /** parsing complete **/
     if (HASHDEF(plt_entries,frame.func->addr())) {
 //        if (obj().cs()->nonReturning(frame.func->addr())) {
-        if (obj().cs()->nonReturning(plt_entries[frame.func->addr()])) {        
+        if (obj().cs()->nonReturning(plt_entries[frame.func->addr()])) {
             frame.func->set_retstatus(NORETURN);
         } else {
             frame.func->set_retstatus(UNKNOWN);
@@ -1501,10 +1573,10 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
     frame.set_status(ParseFrame::PARSED);
 
     if (unlikely(obj().defensiveMode())) {
-       // calculate this after setting the function to PARSED, so that when
-       // we finalize the function we'll actually save the results and won't 
-       // re-finalize it
-       func->tampersStack(); 
+        // calculate this after setting the function to PARSED, so that when
+        // we finalize the function we'll actually save the results and won't
+        // re-finalize it
+        func->tampersStack();
     }
     _pcb.newfunction_retstatus( func );
 
@@ -1516,112 +1588,66 @@ Parser::end_block(Block * b, InstructionAdapter_t * ah)
     b->_lastInsn = ah->getAddr();
     b->updateEnd(ah->getNextAddr());
 
-    record_block(b);
+//    record_block(b);
 }
 
 void
 Parser::record_block(Block *b)
 {
     parsing_printf("[%s:%d] recording block [%lx,%lx)\n",
-        FILE__,__LINE__,b->start(),b->end());
+                   FILE__,__LINE__,b->start(),b->end());
     _parse_data->record_block(b->region(),b);
 }
 
 
 Block *
 Parser::block_at(
-    Function * owner,
-    Address addr,
-    Block * & split)
+        Function * owner,
+        Address addr,
+        Block * & split)
 {
 //    ScopeLock<Mutex<true> > l(work_mutex);
 
-    set<Block *> overlap;
     Block * exist = NULL;
     Block * ret = NULL;
     Block * inconsistent = NULL;
     Address prev_insn = 0;
 
     split = NULL;
-
     CodeRegion *cr;
     if(owner->region()->contains(addr))
         cr = owner->region();
     else
         cr = _parse_data->reglookup(owner->region(),addr);
 
+
     if(!is_code(owner,addr)) {
         parsing_printf("[%s] block address %lx rejected by isCode()\n",
-            FILE__,addr);
+                       FILE__,addr);
         return NULL;
     }
 
-    if(NULL == (exist = _parse_data->findBlock(cr,addr))) {
-        _parse_data->findBlocks(cr,addr,overlap);
-        if(overlap.size() > 1)
-            parsing_printf("[%s] address %lx overlapped by %d blocks\n",
-                FILE__,addr,overlap.size());
-
-        /* Platform specific consistency test: 
-           generally checking for whether the address is an
-           instruction boundary in a block */
-        for(set<Block *>::iterator sit=overlap.begin();sit!=overlap.end();++sit)
-        {
-            Block * b = *sit;
-
-            // consistent will fill in prev_insn with the address of the
-            // instruction preceeding addr if addr is consistent
-            if(b->consistent(addr,prev_insn)) {
-                exist = b;
-                break;   
-            } else {
-                parsing_printf("[%s] %lx is inconsistent with [%lx,%lx)\n", 
-                    FILE__,addr,b->start(),b->end());
-                if(inconsistent) {
-                    parsing_printf("   multiple inconsistent blocks!\n");
-                }
-                inconsistent = b;
-            }
+    for(auto i = owner->blocks_begin();
+        i != owner->blocks_end();
+        ++i)
+    {
+        if((*i)->start() == addr) return *i;
+        if((*i)->start() < addr && addr < (*i)->end()) {
+            return split_block(owner, *i, addr, prev_insn);
         }
     }
+    return _cfgfact._mkblock(owner, cr, addr);
 
-    if(exist) {
-        if(exist->start() == addr) {
-            parsing_printf("[%s] block %lx exists\n",
-                FILE__,addr);
-            ret = exist;
-        }
-        else {
-            parsing_printf("[%s] address %lx splits [%lx,%lx) (%p)\n",
-               FILE__,addr,exist->start(),exist->end(),exist);
-            if (owner->obj()->defensiveMode()) {
-                mal_printf("new block at %lx splits [%lx %lx)\n",
-                           addr, exist->start(), exist->end());
-            }
-            split = exist;
-            ret = split_block(owner,exist,addr,prev_insn);
-        }
-    } else {
-        ret = factory()._mkblock(owner,cr,addr);
-        record_block(ret);
-        _pcb.addBlock(owner, ret);
-    }
-
-    if(unlikely(inconsistent)) {
-       _pcb.overlapping_blocks(ret,inconsistent); 
-    }
-
-    return ret;
 }
 
 pair<Block *,Edge *>
 Parser::add_edge(
-    ParseFrame & frame,
-    Function * owner,
-    Block * src,
-    Address dst,
-    EdgeTypeEnum et,
-    Edge * exist)
+        ParseFrame & frame,
+        Function * owner,
+        Block * src,
+        Address dst,
+        EdgeTypeEnum et,
+        Edge * exist)
 {
     // adjust anything pointing to zero to force it to sink
     if(dst == 0) { dst = -1; }
@@ -1663,10 +1689,10 @@ Parser::add_edge(
 
 Block *
 Parser::split_block(
-    Function * owner, 
-    Block *b, 
-    Address addr, 
-    Address previnsn)
+        Function * owner,
+        Block *b,
+        Address addr,
+        Address previnsn)
 {
     Block * ret;
     CodeRegion * cr;
@@ -1705,10 +1731,7 @@ Parser::split_block(
         record_block(ret);
 
         // b's range has changed
-        rd->blocksByRange.remove(b);
-        b->updateEnd(addr);
-        b->_lastInsn = previnsn;
-        rd->blocksByRange.insert(b);
+        //rd->updateBlockEnd(b, addr, previnsn);
         // Any functions holding b that have already been finalized
         // need to have their caches invalidated so that they will
         // find out that they have this new 'ret' block
@@ -1719,13 +1742,13 @@ Parser::split_block(
         {
             Function * po = *oit;
             if (po->_cache_valid) {
-               po->_cache_valid = false;
-               parsing_printf("[%s:%d] split of [%lx,%lx) invalidates cache of "
-                       "func at %lx\n",
-               FILE__,__LINE__,b->start(),b->end(),po->addr());
+                po->_cache_valid = false;
+                parsing_printf("[%s:%d] split of [%lx,%lx) invalidates cache of "
+                                       "func at %lx\n",
+                               FILE__,__LINE__,b->start(),b->end(),po->addr());
             }
             if (isRetBlock) {
-               po->_retBL.clear(); //could remove b from the vector instead of clearing it, not sure what's cheaper
+                po->_retBL.clear(); //could remove b from the vector instead of clearing it, not sure what's cheaper
             }
         }
         // KEVINTODO: study performance impact of this callback
@@ -1733,7 +1756,8 @@ Parser::split_block(
     }
 
     return ret;
- }
+}
+
 
 pair<Function *,Edge*>
 Parser::bind_call(ParseFrame & frame, Address target, Block * cur, Edge * exist)
@@ -1748,7 +1772,7 @@ Parser::bind_call(ParseFrame & frame, Address target, Block * cur, Edge * exist)
     tfunc = _parse_data->get_func(frame.codereg,target,how);
     if(!tfunc) {
         parsing_printf("[%s:%d] can't bind call to %lx\n",
-            FILE__,__LINE__,target);
+                       FILE__,__LINE__,target);
         return pair<Function*,Edge*>((Function *) NULL,exist);
     }
     _pcb.discover_function(tfunc);
@@ -1758,7 +1782,7 @@ Parser::bind_call(ParseFrame & frame, Address target, Block * cur, Edge * exist)
     tblock = ret.first;
     if(!tblock) {
         parsing_printf("[%s:%d] can't bind call to %lx\n",
-            FILE__,__LINE__,target);
+                       FILE__,__LINE__,target);
         return pair<Function*,Edge*>((Function *) NULL,exist);
     }
 
@@ -1770,44 +1794,44 @@ Parser::findFuncByEntry(CodeRegion *r, Address entry)
 {
     if(_parse_state < PARTIAL) {
         parsing_printf("[%s:%d] Parser::findFuncByEntry([%lx,%lx),%lx) "
-                       "forced parsing\n",
-            FILE__,__LINE__,r->low(),r->high(),entry);
+                               "forced parsing\n",
+                       FILE__,__LINE__,r->low(),r->high(),entry);
         parse();
     }
     return _parse_data->findFunc(r,entry);
 }
 
-int 
+int
 Parser::findFuncs(CodeRegion *r, Address addr, set<Function *> & funcs)
 {
     if(_parse_state < COMPLETE) {
         parsing_printf("[%s:%d] Parser::findFuncs([%lx,%lx),%lx,...) "
-                       "forced parsing\n",
-            FILE__,__LINE__,r->low(),r->high(),addr);
+                               "forced parsing\n",
+                       FILE__,__LINE__,r->low(),r->high(),addr);
         parse();
     }
     if(_parse_state < FINALIZED) {
         parsing_printf("[%s:%d] Parser::findFuncs([%lx,%lx),%lx,...) "
-                       "forced finalization\n",
-            FILE__,__LINE__,r->low(),r->high(),addr);
+                               "forced finalization\n",
+                       FILE__,__LINE__,r->low(),r->high(),addr);
         finalize();
     }
     return _parse_data->findFuncs(r,addr,funcs);
 }
 
-int 
+int
 Parser::findFuncs(CodeRegion *r, Address start, Address end, set<Function *> & funcs)
 {
     if(_parse_state < COMPLETE) {
         parsing_printf("[%s:%d] Parser::findFuncs([%lx,%lx),%lx,%lx) "
-                       "forced parsing\n",
-            FILE__,__LINE__,r->low(),r->high(),start,end);
+                               "forced parsing\n",
+                       FILE__,__LINE__,r->low(),r->high(),start,end);
         parse();
     }
     if(_parse_state < FINALIZED) {
         parsing_printf("[%s:%d] Parser::findFuncs([%lx,%lx),%lx,%lx) "
-                       "forced finalization\n",
-            FILE__,__LINE__,r->low(),r->high(),start,end);
+                               "forced finalization\n",
+                       FILE__,__LINE__,r->low(),r->high(),start,end);
         finalize();
     }
     return _parse_data->findFuncs(r,start,end,funcs);
@@ -1818,8 +1842,8 @@ Parser::findBlockByEntry(CodeRegion *r, Address entry)
 {
     if(_parse_state < PARTIAL) {
         parsing_printf("[%s:%d] Parser::findBlockByEntry([%lx,%lx),%lx) "
-                       "forced parsing\n",
-            FILE__,__LINE__,r->low(),r->high(),entry);
+                               "forced parsing\n",
+                       FILE__,__LINE__,r->low(),r->high(),entry);
         parse();
     }
     return _parse_data->findBlock(r,entry);
@@ -1830,8 +1854,8 @@ Parser::findNextBlock(CodeRegion *r, Address addr)
 {
     if(_parse_state < PARTIAL) {
         parsing_printf("[%s:%d] Parser::findBlockByEntry([%lx,%lx),%lx) "
-                       "forced parsing\n",
-            FILE__,__LINE__,r->low(),r->high(),addr);
+                               "forced parsing\n",
+                       FILE__,__LINE__,r->low(),r->high(),addr);
         parse();
     }
     return _parse_data->findRegion(r)->get_next_block(addr).second;
@@ -1842,16 +1866,16 @@ Parser::findBlocks(CodeRegion *r, Address addr, set<Block *> & blocks)
 {
     if(_parse_state < COMPLETE) {
         parsing_printf("[%s:%d] Parser::findBlocks([%lx,%lx),%lx,...) "
-                       "forced parsing\n",
-            FILE__,__LINE__,r->low(),r->high(),addr);
+                               "forced parsing\n",
+                       FILE__,__LINE__,r->low(),r->high(),addr);
         parse();
     }
-    return _parse_data->findBlocks(r,addr,blocks); 
+    return _parse_data->findBlocks(r,addr,blocks);
 }
 
 // find blocks without parsing.
-int Parser::findCurrentBlocks(CodeRegion* cr, Address addr, 
-                                std::set<Block*>& blocks) {
+int Parser::findCurrentBlocks(CodeRegion* cr, Address addr,
+                              std::set<Block*>& blocks) {
     return _parse_data->findBlocks(cr, addr, blocks);
 }
 
@@ -1899,7 +1923,6 @@ void
 Parser::relink(Edge * e, Block *src, Block *dst)
 {
     assert(e);
-    boost::lock_guard<ParseData> guard(*_parse_data);
     bool addSrcAndDest = true;
     if(src != e->src()) {
         assert(e);
@@ -1980,10 +2003,15 @@ Parser::remove_block(Dyninst::ParseAPI::Block *block)
 void Parser::move_func(Function *func, Address new_entry, CodeRegion *new_reg)
 {
     region_data *reg_data = _parse_data->findRegion(func->region());
-    reg_data->funcsByAddr.erase(func->addr());
+    tbb::concurrent_hash_map<Address, Function*>::accessor a;
+    if(reg_data->funcsByAddr.find(a, func->addr()))
+    {
+        reg_data->funcsByAddr.erase(a);
+    }
+
 
     reg_data = _parse_data->findRegion(new_reg);
-    reg_data->funcsByAddr[new_entry] = func;
+    reg_data->funcsByAddr.insert(a, make_pair(new_entry, func));
 }
 
 void Parser::invalidateContainingFuncs(Function *owner, Block *b)
@@ -1994,7 +2022,7 @@ void Parser::invalidateContainingFuncs(Function *owner, Block *b)
     else
         cr = _parse_data->reglookup(owner->region(),b->start());
     region_data * rd = _parse_data->findRegion(cr);
-    
+
 
     // Any functions holding b that have already been finalized
     // need to have their caches invalidated so that they will
@@ -2007,20 +2035,20 @@ void Parser::invalidateContainingFuncs(Function *owner, Block *b)
         Function * po = *oit;
         po->_cache_valid = false;
         parsing_printf("[%s:%d] split of [%lx,%lx) invalidates cache of "
-                       "func at %lx\n",
+                               "func at %lx\n",
                        FILE__,__LINE__,b->start(),b->end(),po->addr());
-    }   
+    }
 }
 
 /* Add ParseFrames waiting on func back to the work queue */
 void Parser::resumeFrames(Function * func, vector<ParseFrame *> & work)
 {
     // If we do not know the function's return status, don't put its waiters back on the worklist
-    if (func->_rs == UNSET) { 
+    if (func->_rs == UNSET) {
         parsing_printf("[%s] %s return status unknown, cannot resume waiters\n",
-                __FILE__,
-                func->name().c_str());
-        return; 
+                       __FILE__,
+                       func->name().c_str());
+        return;
     }
     boost::lock_guard<DelayedFrames> g(delayed_frames);
 
@@ -2029,20 +2057,20 @@ void Parser::resumeFrames(Function * func, vector<ParseFrame *> & work)
     if (iter == delayed_frames.frames.end()) {
         // There were no frames waiting, ignore
         parsing_printf("[%s] %s return status %d, no waiters\n",
-                __FILE__,
-                func->name().c_str(),
-                func->_rs);
+                       __FILE__,
+                       func->name().c_str(),
+                       func->_rs);
         return;
     } else {
         parsing_printf("[%s] %s return status %d, undelaying waiting functions\n",
-                __FILE__,
-                func->name().c_str(),
-                func->_rs);
+                       __FILE__,
+                       func->name().c_str(),
+                       func->_rs);
         // Add each waiting frame back to the worklist
         set<ParseFrame *> vec = iter->second;
-        for (set<ParseFrame *>::iterator fIter = vec.begin(); 
-                fIter != vec.end();
-                ++fIter) {
+        for (set<ParseFrame *>::iterator fIter = vec.begin();
+             fIter != vec.end();
+             ++fIter) {
             work.push_back(*fIter);
         }
         // remove func from delayedFrames map
@@ -2051,10 +2079,10 @@ void Parser::resumeFrames(Function * func, vector<ParseFrame *> & work)
 }
 
 bool Parser::getSyscallNumber(Function * /*func*/,
-        Block * block,
-        Address /*addr*/,
-        Architecture arch,
-        long int & val)
+                              Block * block,
+                              Address /*addr*/,
+                              Architecture arch,
+                              long int & val)
 {
     val = -1;
 
@@ -2065,8 +2093,8 @@ bool Parser::getSyscallNumber(Function * /*func*/,
     Block::Insns blockInsns;
     block->getInsns(blockInsns);
     auto prevPair = ++(blockInsns.rbegin());
-    InstructionAPI::InstructionPtr prevInsn = prevPair->second;
-    if (prevInsn->getOperation().getID() != e_mov) {
+    InstructionAPI::Instruction prevInsn = prevPair->second;
+    if (prevInsn.getOperation().getID() != e_mov) {
         return false;
     }
 
@@ -2078,7 +2106,7 @@ bool Parser::getSyscallNumber(Function * /*func*/,
     InstructionAPI::RegisterAST::Ptr regASTPtr = InstructionAPI::RegisterAST::Ptr(regAST);
 
     std::vector<InstructionAPI::Operand> operands;
-    prevInsn->getOperands(operands);
+    prevInsn.getOperands(operands);
     for (unsigned i = 0; i < operands.size(); i++) {
         if (!operands[i].isWritten(regASTPtr)) {
             InstructionAPI::Expression::Ptr value = operands[i].getValue();

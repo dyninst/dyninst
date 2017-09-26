@@ -322,13 +322,14 @@ pair<AST::Ptr, bool> SymbolicExpression::ExpandAssignment(Assignment::Ptr assign
 	    return make_pair(ast, false);
 	}
     } else {
-        parsing_printf("\t\tExpanding instruction @ %x: %s, assignment %s\n", assign->addr(), assign->insn()->format().c_str(), assign->format().c_str());
+        parsing_printf("\t\tExpanding instruction @ %x: %s, assignment %s\n",
+					   assign->addr(), assign->insn().format().c_str(), assign->format().c_str());
         pair<AST::Ptr, bool> expandRet = SymEval::expand(assign, false);
 	if (expandRet.second && expandRet.first) {
 	    parsing_printf("Original expand: %s\n", expandRet.first->format().c_str());
 	    AST::Ptr calculation = SimplifyAnAST(expandRet.first, 
 	                                         PCValue(assign->addr(),
-						         assign->insn()->size(),
+						         assign->insn().size(),
 							 assign->block()->obj()->cs()->getArch()),
 					         true);
 	    expandCache[assign] = calculation;

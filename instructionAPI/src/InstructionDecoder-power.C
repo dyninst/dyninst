@@ -241,9 +241,9 @@ namespace Dyninst
     }
     
     using namespace std;
-    Instruction::Ptr InstructionDecoder_power::decode(InstructionDecoder::buffer& b)
+    Instruction InstructionDecoder_power::decode(InstructionDecoder::buffer& b)
     {
-      if(b.start > b.end) return Instruction::Ptr();
+      if(b.start > b.end) return Instruction();
       isRAWritten = false;
       isFPInsn = false;
       bcIsConditional = false;
@@ -257,7 +257,7 @@ namespace Dyninst
 #endif
         mainDecode();
         b.start += 4;
-        return make_shared(insn_in_progress);
+        return *insn_in_progress;
     }
 
     bool InstructionDecoder_power::decodeOperands(const Instruction*)

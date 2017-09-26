@@ -167,7 +167,8 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	 */
 	pair<AST::Ptr, bool> expandRet = se.ExpandAssignment(n->assign(), true);
 	if (!expandRet.second || expandRet.first == NULL) {
-	    parsing_printf("\tWARNING: Jump table format slice contains unknown instructions: %s\n", n->assign()->insn()->format().c_str());
+	    parsing_printf("\tWARNING: Jump table format slice contains unknown instructions: %s\n",
+					   n->assign()->insn().format().c_str());
 	    unknownInstruction = true;
 	    jumpTableFormat = false;
 	    return false;
@@ -316,7 +317,7 @@ bool JumpTableFormatPred::findRead(Graph::Ptr g, SliceNode::Ptr &readNode) {
 	if (n->assign() == memLoc) {
 	    continue;
 	}
-	if (n->assign() && n->assign()->insn() && n->assign()->insn()->readsMemory()) {
+	if (n->assign() && n->assign()->insn().isValid() && n->assign()->insn().readsMemory()) {
 	    readNode = n;
 	    return true;
 	}
@@ -333,7 +334,7 @@ static Assignment::Ptr SearchForWrite(SliceNode::Ptr n, AbsRegion &src, Slicer::
     inQueue.insert(n->block());
 
     set<Expression::Ptr> memReads;
-    n->assign()->insn()->getMemoryReadOperands(memReads);
+    n->assign()->insn().getMemoryReadOperands(memReads);
     if (memReads.size() != 1) {
         parsing_printf("\tThe instruction has %d memory read operands, Should have only one\n", memReads.size());
 	return Assignment::Ptr();
@@ -341,7 +342,7 @@ static Assignment::Ptr SearchForWrite(SliceNode::Ptr n, AbsRegion &src, Slicer::
     Expression::Ptr memRead = *memReads.begin();
     parsing_printf("\tsearch for memory operand %s\n", memRead->format().c_str());
     Block* targetBlock = NULL;
-    Instruction::Ptr targetInsn;
+    Instruction targetInsn;
     Address targetAddr;
 
     while (!workingList.empty() && targetBlock == NULL) {
@@ -359,14 +360,14 @@ static Assignment::Ptr SearchForWrite(SliceNode::Ptr n, AbsRegion &src, Slicer::
 
 	for (auto iit = insns.rbegin(); iit != insns.rend(); ++iit) {
 	    if (addr > 0 && iit->first > addr) continue;
-	    Instruction::Ptr i = iit->second;
+	    Instruction i = iit->second;
 	    // We find an the first instruction that only writes to memory
 	    // and the memory operand has the exact AST as the memory read.
 	    // Ideally, we need an architecture independent way to check whether this is a move instruction.
 	    // Category c_NoCategory excludes lots of non-move instructions
-	    if (!i->readsMemory() && i->writesMemory() && i->getCategory() == c_NoCategory) {
+	    if (!i.readsMemory() && i.writesMemory() && i.getCategory() == c_NoCategory) {
 	        set<Expression::Ptr> memWrites;
-		i->getMemoryWriteOperands(memWrites);
+		i.getMemoryWriteOperands(memWrites);
 		if (memWrites.size() == 1 && *memRead == *(*memWrites.begin())) {
 		    targetBlock = curBlock;
 		    targetInsn = i;
@@ -375,7 +376,7 @@ static Assignment::Ptr SearchForWrite(SliceNode::Ptr n, AbsRegion &src, Slicer::
 
                     // Now we try to identify the source register
 		    std::vector<Operand> ops;
-		    i->getOperands(ops);
+		    i.getOperands(ops);
 		    for (auto oit = ops.begin(); oit != ops.end(); ++oit) {
 		        if (!(*oit).writesMemory() && !(*oit).readsMemory()) {
 			    std::set<RegisterAST::Ptr> regsRead;

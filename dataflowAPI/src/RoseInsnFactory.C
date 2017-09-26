@@ -51,12 +51,12 @@ using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace DataflowAPI;
 
-SgAsmInstruction *RoseInsnFactory::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr) {
+SgAsmInstruction *RoseInsnFactory::convert(const Instruction &insn, uint64_t addr) {
   SgAsmInstruction *rinsn = createInsn();
   
   rinsn->set_address(addr);
-  rinsn->set_mnemonic(insn->format());
-  setOpcode(rinsn, insn->getOperation().getID(), insn->getOperation().getPrefixID(), insn->getOperation().format());
+  rinsn->set_mnemonic(insn.format());
+  setOpcode(rinsn, insn.getOperation().getID(), insn.getOperation().getPrefixID(), insn.getOperation().format());
 
   // semantics don't support 64-bit code
   setSizes(rinsn);
@@ -65,33 +65,33 @@ SgAsmInstruction *RoseInsnFactory::convert(const InstructionAPI::Instruction::Pt
   //rinsn->set_addressSize(x86_insnsize_32);
   
   std::vector<unsigned char> rawBytes;
-  for (unsigned i = 0; i < insn->size(); ++i) rawBytes.push_back(insn->rawByte(i));
+  for (unsigned i = 0; i < insn.size(); ++i) rawBytes.push_back(insn.rawByte(i));
   rinsn->set_raw_bytes(rawBytes);
   
   // operand list
   SgAsmOperandList *roperands = new SgAsmOperandList;
   
-   //std::cerr << "Converting " << insn->format(addr) << " @" << std::hex << addr << std::dec << std::endl;
+   //std::cerr << "Converting " << insn.format(addr) << " @" << std::hex << addr << std::dec << std::endl;
   
-   //std::cerr << "checking instruction: " << insn->format(addr) << " for special handling" << std::endl;
-  if (handleSpecialCases(insn->getOperation().getID(), rinsn, roperands)) {
+   //std::cerr << "checking instruction: " << insn.format(addr) << " for special handling" << std::endl;
+  if (handleSpecialCases(insn.getOperation().getID(), rinsn, roperands)) {
       rinsn->set_operandList(roperands);
       return rinsn;
   }
 
    //std::cerr << "no special handling by opcode, checking if we should mangle operands..." << std::endl;
   std::vector<InstructionAPI::Operand> operands;
-  insn->getOperands(operands);
+  insn.getOperands(operands);
    //std::cerr << "\t " << operands.size() << " operands" << std::endl;
   massageOperands(insn, operands);
   int i = 0;
-//   std::cerr << "converting insn " << insn->format(addr) << std::endl;
+//   std::cerr << "converting insn " << insn.format(addr) << std::endl;
   for (std::vector<InstructionAPI::Operand>::iterator opi = operands.begin();
        opi != operands.end();
        ++opi, ++i) {
       InstructionAPI::Operand &currOperand = *opi;
 //       std::cerr << "Converting operand " << currOperand.format(arch(), addr) << std::endl;
-      roperands->append_operand(convertOperand(currOperand.getValue(), addr, insn->size()));
+      roperands->append_operand(convertOperand(currOperand.getValue(), addr, insn.size()));
   }  
   rinsn->set_operandList(roperands);
   return rinsn;
@@ -135,9 +135,9 @@ bool RoseInsnX86Factory::handleSpecialCases(entryID, SgAsmInstruction *, SgAsmOp
   return false;
 }
 
-void RoseInsnX86Factory::massageOperands(const InstructionAPI::Instruction::Ptr &insn, 
-					 std::vector<InstructionAPI::Operand> &operands) {
-  switch (insn->getOperation().getID()) {
+void RoseInsnX86Factory::massageOperands(const Instruction &insn,
+                                         std::vector<InstructionAPI::Operand> &operands) {
+  switch (insn.getOperation().getID()) {
   case e_lea: {
     // ROSE expects there to be a "memory reference" statement wrapping the
     // address calculation. It then unwraps it. 
@@ -341,13 +341,13 @@ bool RoseInsnPPCFactory::handleSpecialCases(entryID iapi_opcode,
   
 }  
 
-void RoseInsnPPCFactory::massageOperands(const InstructionAPI::Instruction::Ptr &insn, 
-					 std::vector<InstructionAPI::Operand> &operands) {
+void RoseInsnPPCFactory::massageOperands(const Instruction &insn,
+                                         std::vector<InstructionAPI::Operand> &operands) {
   /*
-  if(insn->writesMemory())
+  if(insn.writesMemory())
     std::swap(operands[0], operands[1]);
   */
-  entryID opcode = insn->getOperation().getID(); 
+  entryID opcode = insn.getOperation().getID();
   // Anything that's writing RA, ROSE sometimes expects in RA, RS, RB/immediates form.
   // Any store, however, Dyninst expects in RS, RA, RB/displacement form.  Very confusing,
   // but we handle it cleanly here.
@@ -355,7 +355,7 @@ void RoseInsnPPCFactory::massageOperands(const InstructionAPI::Instruction::Ptr 
       opcode != power_op_rldic && 
       !operands[0].isWritten() && operands.size() >= 2 &&
      operands[1].isWritten() && !operands[1].writesMemory()) {
-    //std::cerr << "swapping RS and RA in " << insn->format() << std::endl;
+    //std::cerr << "swapping RS and RA in " << insn.format() << std::endl;
     std::swap(operands[0], operands[1]);
   }
   if(opcode == power_op_cmp ||
@@ -366,8 +366,8 @@ void RoseInsnPPCFactory::massageOperands(const InstructionAPI::Instruction::Ptr 
     std::swap(operands[2], operands[3]);
     std::swap(operands[1], operands[2]);
   }
-  if(insn->getOperation().format().find(".") != std::string::npos &&
-     insn->getOperation().getID() != power_op_stwcx_rc) {
+  if(insn.getOperation().format().find(".") != std::string::npos &&
+     insn.getOperation().getID() != power_op_stwcx_rc) {
     operands.pop_back();
   }
 
@@ -400,7 +400,7 @@ bool RoseInsnArmv8Factory::handleSpecialCases(entryID, SgAsmInstruction *, SgAsm
   return false;
 }
 
-void RoseInsnArmv8Factory::massageOperands(const InstructionAPI::Instruction::Ptr &,
-                                           std::vector <InstructionAPI::Operand> &) {
+void RoseInsnArmv8Factory::massageOperands(const Instruction &,
+                                           std::vector<InstructionAPI::Operand> &) {
   return;
 }

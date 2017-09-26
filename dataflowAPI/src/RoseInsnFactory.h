@@ -37,6 +37,7 @@
 #include "external/rose/powerpcInstructionEnum.h"
 #include "external/rose/armv8InstructionEnum.h"
 #include "Visitor.h"
+#include "Instruction.h"
 #include "common/h/util.h"
 #include "boost/shared_ptr.hpp"
 #include <vector>
@@ -90,7 +91,7 @@ namespace Dyninst {
 
             DATAFLOW_EXPORT virtual ~RoseInsnFactory(void) { };
 
-            DATAFLOW_EXPORT virtual SgAsmInstruction *convert(const InstructionPtr &insn, uint64_t addr);
+            DATAFLOW_EXPORT virtual SgAsmInstruction *convert(const InstructionAPI::Instruction &insn, uint64_t addr);
 
         protected:
             virtual SgAsmInstruction *createInsn() = 0;
@@ -101,7 +102,7 @@ namespace Dyninst {
 
             virtual bool handleSpecialCases(entryID opcode, SgAsmInstruction *rinsn, SgAsmOperandList *roperands) = 0;
 
-            virtual void massageOperands(const InstructionPtr &insn,
+            virtual void massageOperands(const InstructionAPI::Instruction &insn,
                                          std::vector<InstructionAPI::Operand> &operands) = 0;
 
             virtual SgAsmExpression *convertOperand(const ExpressionPtr expression, int64_t addr, size_t insnSize);
@@ -128,7 +129,8 @@ namespace Dyninst {
 
             virtual bool handleSpecialCases(entryID opcode, SgAsmInstruction *rinsn, SgAsmOperandList *roperands);
 
-            virtual void massageOperands(const InstructionPtr &insn, std::vector<InstructionAPI::Operand> &operands);
+            virtual void massageOperands(const InstructionAPI::Instruction &insn,
+                                         std::vector<InstructionAPI::Operand> &operands);
 
             X86InstructionKind convertKind(entryID opcode, prefixEntryID prefix);
 
@@ -150,7 +152,8 @@ namespace Dyninst {
 
             virtual bool handleSpecialCases(entryID opcode, SgAsmInstruction *rinsn, SgAsmOperandList *roperands);
 
-            virtual void massageOperands(const InstructionPtr &insn, std::vector<InstructionAPI::Operand> &operands);
+            virtual void massageOperands(const InstructionAPI::Instruction &insn,
+                                         std::vector<InstructionAPI::Operand> &operands);
 
             PowerpcInstructionKind convertKind(entryID opcode, std::string mnem);
 
@@ -175,7 +178,8 @@ namespace Dyninst {
 
             virtual bool handleSpecialCases(entryID opcode, SgAsmInstruction *rinsn, SgAsmOperandList *roperands);
 
-            virtual void massageOperands(const InstructionPtr &insn, std::vector<InstructionAPI::Operand> &operands);
+            virtual void massageOperands(const InstructionAPI::Instruction &insn,
+                                         std::vector<InstructionAPI::Operand> &operands);
 
             virtual void setSizes(SgAsmInstruction *insn);
 

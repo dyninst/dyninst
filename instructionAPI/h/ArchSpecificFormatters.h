@@ -34,6 +34,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <dyn_regs.h>
 
 namespace Dyninst {
     namespace InstructionAPI {
@@ -46,6 +47,8 @@ namespace Dyninst {
             virtual std::string formatRegister(std::string) = 0;
             virtual std::string formatBinaryFunc(std::string, std::string, std::string);
             virtual ~ArchSpecificFormatter() {}
+            static INSTRUCTION_EXPORT boost::shared_ptr<ArchSpecificFormatter> getFormatter(Dyninst::Architecture a);
+
         };
 
         class PPCFormatter : public ArchSpecificFormatter {
@@ -87,6 +90,7 @@ namespace Dyninst {
             virtual std::string formatBinaryFunc(std::string, std::string, std::string);
             virtual ~x86Formatter() {}
         };
+
     };
 };
 

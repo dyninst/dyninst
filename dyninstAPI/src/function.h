@@ -280,11 +280,11 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   instPoint *postCallPoint(block_instance* blk, bool create);
   instPoint *blockEntryPoint(block_instance* blk, bool create);
   instPoint *blockExitPoint(block_instance* b, bool create);
-  instPoint *preInsnPoint(block_instance* b, Address a,
-                          InstructionAPI::Instruction::Ptr ptr,
+  instPoint *preInsnPoint(block_instance *b, Address a,
+                          InstructionAPI::Instruction insn,
                           bool trusted, bool create);
-  instPoint *postInsnPoint(block_instance* b, Address a,
-                           InstructionAPI::Instruction::Ptr ptr,
+  instPoint *postInsnPoint(block_instance *b, Address a,
+                           InstructionAPI::Instruction insn,
                            bool trusted, bool create);
   instPoint *edgePoint(edge_instance* eg, bool create);
 
@@ -395,10 +395,10 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   // Stack modification
   bool createOffsetVector_Symbols();
 
-  bool createOffsetVector_Analysis(ParseAPI::Function* func,
-          ParseAPI::Block* block,
-          InstructionAPI::Instruction::Ptr insn,
-          Address addr);
+  bool createOffsetVector_Analysis(ParseAPI::Function *func,
+                                   ParseAPI::Block *block,
+                                   InstructionAPI::Instruction insn,
+                                   Address addr);
 
   bool addToOffsetVector(StackAnalysis::Height off,
           int size,

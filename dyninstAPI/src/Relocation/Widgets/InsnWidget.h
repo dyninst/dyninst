@@ -49,23 +49,23 @@ class InsnWidget : public Widget {
 
   TrackerElement *tracker(const RelocBlock *trace) const;
 
-  static Ptr create(InstructionAPI::Instruction::Ptr insn,
-		    Address addr);
+  static Ptr create(InstructionAPI::Instruction insn,
+                    Address addr);
 
   virtual ~InsnWidget() {};
 
   virtual std::string format() const;
 
-  virtual InstructionAPI::Instruction::Ptr insn() const { return insn_; }
+  virtual InstructionAPI::Instruction insn() const { return insn_; }
   virtual Address addr() const { return addr_; }
   virtual unsigned size() const;
 
  private:
-  InsnWidget(InstructionAPI::Instruction::Ptr insn,
-	    Address addr);
+  InsnWidget(InstructionAPI::Instruction insn,
+             Address addr);
 
   // Pointer to the instruction we represent
-  InstructionAPI::Instruction::Ptr insn_;
+  InstructionAPI::Instruction insn_;
 
   // Original address of this instruction
   Address addr_;

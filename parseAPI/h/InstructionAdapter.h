@@ -68,7 +68,7 @@ class InstructionAdapter
         ParseAPI::CodeRegion *r, InstructionSource *isrc, ParseAPI::Block *);
 
     // Implemented
-    virtual InstructionAPI::Instruction::Ptr getInstruction() const = 0;
+    virtual const InstructionAPI::Instruction& getInstruction() const = 0;
     virtual bool hasCFT() const = 0;
     virtual size_t getSize() const = 0;
     virtual bool isFrameSetupInsn() const = 0;

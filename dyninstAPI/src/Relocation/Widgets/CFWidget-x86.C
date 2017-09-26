@@ -57,9 +57,9 @@ using namespace InstructionAPI;
 using namespace NS_x86;
 
 bool CFWidget::generateIndirect(CodeBuffer &buffer,
-                              Register reg,
-                              const RelocBlock *trace,
-                              Instruction::Ptr insn) {
+                                Register reg,
+                                const RelocBlock *trace,
+                                Instruction insn) {
    // Two possibilities here: either copying an indirect jump w/o
    // changes, or turning an indirect call into an indirect jump because
    // we've had the isCall_ flag overridden.
@@ -82,11 +82,11 @@ bool CFWidget::generateIndirect(CodeBuffer &buffer,
    ia32_condition cond;
 
    ia32_instruction orig_instr(memacc, &cond, &loc);
-   ia32_decode(IA32_FULL_DECODER, (const unsigned char *) insn->ptr(), orig_instr, (buffer.gen().width() == 8));
-   const unsigned char *ptr = (const unsigned char *)insn->ptr();
+   ia32_decode(IA32_FULL_DECODER, (const unsigned char *) insn.ptr(), orig_instr, (buffer.gen().width() == 8));
+   const unsigned char *ptr = (const unsigned char *)insn.ptr();
 
    std::vector<unsigned char> raw (ptr,
-                                   ptr + insn->size());
+                                   ptr + insn.size());
 
    // Opcode might get modified;
    // 0xe8 -> 0xe9 (call Jz -> jmp Jz)
@@ -110,7 +110,7 @@ bool CFWidget::generateIndirect(CodeBuffer &buffer,
    }
 
    for (int i = loc.num_prefixes + (int) loc.opcode_size; 
-        i < (int) insn->size(); 
+        i < (int) insn.size();
         ++i) {
       if ((i == loc.modrm_position) &&
           fiddle_mod_rm) {
@@ -131,7 +131,7 @@ bool CFWidget::generateIndirect(CodeBuffer &buffer,
 
 bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
                                     Register reg,
-                                    Instruction::Ptr insn,
+                                    Instruction insn,
                                     const RelocBlock *trace,
                                     Address /*origAddr*/)
 {
@@ -139,7 +139,7 @@ bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
    // turned into a push/jump combo already. 
    assert(reg == Null_Register);
    // Check this to see if it's RIP-relative
-   NS_x86::instruction ugly_insn(insn->ptr(), (buffer.gen().width() == 8));
+   NS_x86::instruction ugly_insn(insn.ptr(), (buffer.gen().width() == 8));
    if (ugly_insn.type() & REL_D_DATA) {
       // This was an IP-relative call that we moved to a new location.
       assert(origTarget_);
@@ -151,7 +151,7 @@ bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
       buffer.addPatch(newPatch, tracker(trace));
    }
    else {
-      buffer.addPIC(insn->ptr(), insn->size(), tracker(trace));
+      buffer.addPIC(insn.ptr(), insn.size(), tracker(trace));
    }
    
    return true;
@@ -172,13 +172,13 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
    // Otherwise this is a classic, and therefore easy.
    int targetLabel = target->label(buf);
 
-   relocation_cerr << "\t\t CFPatch::apply, type " << type << ", origAddr " << hex << origAddr_ 
+   relocation_cerr << "\t\t CFPatch::apply, type " << type << ", origAddr " << hex << origAddr_
                    << ", and label " << dec << targetLabel << endl;
-   if (orig_insn) {
+   if (orig_insn.isValid()) {
       relocation_cerr << "\t\t\t Currently at " << hex << gen.currAddr() << " and targeting predicted " << buf->predictedAddr(targetLabel) << dec << endl;
       switch(type) {
          case CFPatch::Jump: {
-            relocation_cerr << "\t\t\t Generating CFPatch::Jump from " 
+            relocation_cerr << "\t\t\t Generating CFPatch::Jump from "
                             << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;
             if (!insnCodeGen::modifyJump(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
                cerr << "Failed to modify jump" << endl;
@@ -187,7 +187,7 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
             return true;
          }
          case CFPatch::JCC: {
-            relocation_cerr << "\t\t\t Generating CFPatch::JCC from " 
+            relocation_cerr << "\t\t\t Generating CFPatch::JCC from "
                             << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;            
             if (!insnCodeGen::modifyJcc(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
                cerr << "Failed to modify conditional jump" << endl;

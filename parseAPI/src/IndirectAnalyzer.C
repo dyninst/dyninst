@@ -75,7 +75,7 @@ boost::make_lock_guard(*func);
     // to determine the format of the (potential) jump table
     const unsigned char * buf = (const unsigned char*) block->obj()->cs()->getPtrToInstruction(block->last());
     InstructionDecoder dec(buf, InstructionDecoder::maxInstructionLength, block->obj()->cs()->getArch());
-    Instruction::Ptr insn = dec.decode();
+    Instruction insn = dec.decode();
     AssignmentConverter ac(true, false);
     vector<Assignment::Ptr> assignments;
     ac.convert(insn, block->last(), func, block, assignments);
@@ -175,11 +175,11 @@ static Address ThunkAdjustment(Address afterThunk, MachRegister reg, ParseAPI::B
    
     const unsigned char* buf = (const unsigned char*) (b->obj()->cs()->getPtrToInstruction(afterThunk));
     InstructionDecoder dec(buf, b->end() - b->start(), b->obj()->cs()->getArch());
-    Instruction::Ptr nextInsn = dec.decode();
+    Instruction nextInsn = dec.decode();
     // It has to be an add
-    if (nextInsn->getOperation().getID() != e_add) return 0;
+    if (nextInsn.getOperation().getID() != e_add) return 0;
     vector<Operand> operands;
-    nextInsn->getOperands(operands);
+    nextInsn.getOperands(operands);
     RegisterAST::Ptr regAST = boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue());
     // The first operand should be a register
     if (regAST == 0) return 0;
@@ -207,27 +207,27 @@ void IndirectControlFlowAnalyzer::FindAllThunks() {
 	InsnAdapter::IA_IAPI* block = InsnAdapter::IA_IAPI::makePlatformIA_IAPI(b->obj()->cs()->getArch(), dec, b->start(), b->obj() , b->region(), b->obj()->cs(), b);
 	Address cur = b->start();
 	while (cur < b->end()) {
-	    if (block->getInstruction()->getCategory() == c_CallInsn && block->isThunk()) {
+	    if (block->getInstruction().getCategory() == c_CallInsn && block->isThunk()) {
 	        bool valid;
 		Address addr;
 		boost::tie(valid, addr) = block->getCFT();
 		const unsigned char *target = (const unsigned char *) b->obj()->cs()->getPtrToInstruction(addr);
 		InstructionDecoder targetChecker(target, InstructionDecoder::maxInstructionLength, b->obj()->cs()->getArch());
-		Instruction::Ptr thunkFirst = targetChecker.decode();
+		Instruction thunkFirst = targetChecker.decode();
 		set<RegisterAST::Ptr> thunkTargetRegs;
-		thunkFirst->getWriteSet(thunkTargetRegs);
+		thunkFirst.getWriteSet(thunkTargetRegs);
 		
 		for (auto curReg = thunkTargetRegs.begin(); curReg != thunkTargetRegs.end(); ++curReg) {
 		    ThunkInfo t;
 		    t.reg = (*curReg)->getID();
-		    t.value = block->getAddr() + block->getInstruction()->size();
+		    t.value = block->getAddr() + block->getInstruction().size();
 		    t.value += ThunkAdjustment(t.value, t.reg, b);
 		    t.block = b;
 		    thunks.insert(make_pair(block->getAddr(), t));
 		    parsing_printf("\tfind thunk at %lx, storing value %lx to %s\n", block->getAddr(), t.value , t.reg.name().c_str());
 		}
 	    }
-	    cur += block->getInstruction()->size();
+	    cur += block->getInstruction().size();
 	    if (cur < b->end()) block->advance();
 	}
 	delete block;
@@ -299,9 +299,9 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
 
 int IndirectControlFlowAnalyzer::GetMemoryReadSize(Assignment::Ptr memLoc) {
     if (!memLoc) return 0;
-    Instruction::Ptr i = memLoc->insn();
+    Instruction i = memLoc->insn();
     std::vector<Operand> ops;
-    i->getOperands(ops);
+    i.getOperands(ops);
     for (auto oit = ops.begin(); oit != ops.end(); ++oit) {
         Operand o = *oit;
 	if (o.readsMemory()) {

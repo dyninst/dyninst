@@ -778,11 +778,11 @@ std::string codeGen::format() const {
    Address base = (addr_ != (Address)-1) ? addr_ : 0;
    InstructionDecoder deco
       (buffer_,used(),aSpace_->getArch());
-   Instruction::Ptr insn = deco.decode();
+   Instruction insn = deco.decode();
    ret << hex;
-   while(insn) {
-     ret << "\t" << base << ": " << insn->format(base) << " / " << *((const unsigned *)insn->ptr()) << endl;
-      base += insn->size();
+   while(insn.isValid()) {
+     ret << "\t" << base << ": " << insn.format(base) << " / " << *((const unsigned *)insn.ptr()) << endl;
+      base += insn.size();
       insn = deco.decode();
    }
    ret << dec;

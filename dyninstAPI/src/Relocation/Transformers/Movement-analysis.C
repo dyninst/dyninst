@@ -99,8 +99,8 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
 
         // Get the instruction contained by this element; might be from
         // an original instruction (RelocInsn) or the CF wrapper (CFWidget)
-        Instruction::Ptr insn = (*iter)->insn();
-        if (!insn) continue;
+        Instruction insn = (*iter)->insn();
+        if (!insn.isValid()) continue;
         Address addr = (*iter)->addr();
 
         // We want to identify all PC-sensitive instructions and 
@@ -135,7 +135,7 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
         Absloc dest;
 
         AssignList sensitiveAssignments;
-        if (insn->getOperation().getID() == e_call &&
+        if (insn.getOperation().getID() == e_call &&
             insnIsThunkCall(insn, addr, dest)) {
             relocation_cerr << "\tThunk @ " << hex << addr << dec << endl;
             handleThunkCall(reloc, g, iter, dest);
@@ -143,7 +143,7 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
             extSens_++;
             thunk_++;
             continue;
-        } else if (insn->getCategory() == c_CallInsn && exceptionSensitive(addr+insn->size(), block)) {
+        } else if (insn.getCategory() == c_CallInsn && exceptionSensitive(addr+insn.size(), block)) {
             extSens = true;
             sensitivity_cerr << "\tException sensitive @ " << hex << addr << dec << endl;
         }
@@ -237,7 +237,7 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
                     // original instruction, which means the internally sensitive target will
                     // be transferring back to the original instruction address. Go ahead and
                     // record this...
-                    recordIntSensitive(addr+insn->size());
+                    recordIntSensitive(addr+insn.size());
                 }
             }
 
@@ -270,12 +270,12 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
     return true;
 }
 
-bool PCSensitiveTransformer::isPCSensitive(Instruction::Ptr insn,
-					   Address addr,
-					   const func_instance *func,
-					   const block_instance *block,
-					   AssignList &sensitiveAssignments) {
-  if (!(insn->getOperation().getID() == e_call)) return false;
+bool PCSensitiveTransformer::isPCSensitive(Instruction insn,
+                                           Address addr,
+                                           const func_instance *func,
+                                           const block_instance *block,
+                                           AssignList &sensitiveAssignments) {
+  if (!(insn.getOperation().getID() == e_call)) return false;
     if(func->obj()->hybridMode() == BPatch_normalMode) return false;
   // FIXME for loopnz instruction
   Absloc pc = Absloc::makePC(func->ifunc()->isrc()->getArch());
@@ -435,12 +435,12 @@ bool PCSensitiveTransformer::determineSensitivity(Graph::Ptr slice,
 // An example of a group transformation. If this is a call to a thunk
 // function then record both that (as in return true) and where the return
 // address gets put...
-bool PCSensitiveTransformer::insnIsThunkCall(InstructionAPI::Instruction::Ptr insn,
-					     Address addr,
-					     Absloc &destination) {
+bool PCSensitiveTransformer::insnIsThunkCall(Instruction insn,
+                                             Address addr,
+                                             Absloc &destination) {
   // Should be able to handle this much more efficiently by following the CFG
 
-  Expression::Ptr CFT = insn->getControlFlowTarget();
+  Expression::Ptr CFT = insn.getControlFlowTarget();
   if (!CFT) {
     return false;
   }
@@ -463,7 +463,7 @@ bool PCSensitiveTransformer::insnIsThunkCall(InstructionAPI::Instruction::Ptr in
   Address target = res.convert<Address>();
 
   // Check for a call to a thunk function
-  if (target == (addr + insn->size())) {
+  if (target == (addr + insn.size())) {
     destination = Absloc(0, 0, NULL);
     return true;
   }
@@ -478,19 +478,19 @@ bool PCSensitiveTransformer::insnIsThunkCall(InstructionAPI::Instruction::Ptr in
 			       2*InstructionDecoder::maxInstructionLength,
 			       addrSpace->getArch());
 
-    Instruction::Ptr firstInsn = decoder.decode();
-    Instruction::Ptr secondInsn = decoder.decode();
+    Instruction firstInsn = decoder.decode();
+    Instruction secondInsn = decoder.decode();
     //relocation_cerr << "      ... decoded target insns "
 		    //<< firstInsn->format() << ", " 
 		    //<< secondInsn->format() << endl;
 
-    if(firstInsn && firstInsn->getOperation().getID() == e_mov
-       && firstInsn->readsMemory() && !firstInsn->writesMemory()
-       && secondInsn && secondInsn->getCategory() == c_ReturnInsn) {
+    if(firstInsn.isValid() && firstInsn.getOperation().getID() == e_mov
+       && firstInsn.readsMemory() && !firstInsn.writesMemory()
+       && secondInsn.isValid() && secondInsn.getCategory() == c_ReturnInsn) {
 
       // Check to be sure we're reading memory
       std::set<RegisterAST::Ptr> reads;
-      firstInsn->getReadSet(reads);
+      firstInsn.getReadSet(reads);
       bool found = false;
       for (std::set<RegisterAST::Ptr>::iterator iter = reads.begin();
 	   iter != reads.end(); ++iter) {
@@ -503,7 +503,7 @@ bool PCSensitiveTransformer::insnIsThunkCall(InstructionAPI::Instruction::Ptr in
       if (!found) return false;
       
       std::set<RegisterAST::Ptr> writes;
-      firstInsn->getWriteSet(writes);
+      firstInsn.getWriteSet(writes);
       assert(writes.size() == 1);
       destination = Absloc((*(writes.begin()))->getID());
       return true;
@@ -562,14 +562,14 @@ void PCSensitiveTransformer::recordIntSensitive(Address addr) {
 
 void PCSensitiveTransformer::emulateInsn(RelocBlock *reloc,
                                          RelocGraph *cfg,
-					 RelocBlock::WidgetList::iterator &iter,
-					 InstructionAPI::Instruction::Ptr insn,
-					 Address addr) {
+                                         RelocBlock::WidgetList::iterator &iter,
+                                         Instruction insn,
+                                         Address addr) {
   //cerr << "Emulating @" << std::hex << addr << std::dec  << endl;
   // We emulate calls by replacing them with push/jump combinations. The jump will be handled
-  // by a CFWidget, so we just need a "push" (and then to create everything else).  
+  // by a CFWidget, so we just need a "push" (and then to create everything else).
 
-  if(insn->getOperation().getID() != e_call) {
+  if(insn.getOperation().getID() != e_call) {
         // emulating a non-call is a no-op
       return;
   }
@@ -907,12 +907,12 @@ bool ExtPCSensVisitor::isExtSens(AST::Ptr a) {
   }
 }
 
-bool PCSensitiveTransformer::isSyscall(InstructionAPI::Instruction::Ptr insn, Address) {
+bool PCSensitiveTransformer::isSyscall(Instruction insn, Address) {
   // call *%gs:0x10
   // Build a GS
   static Expression::Ptr x86_gs(new RegisterAST(x86::gs));
 
-  if (insn->isRead(x86_gs)) {
+  if (insn.isRead(x86_gs)) {
     //relocation_cerr << "Skipping syscall " << insn->format() << hex << "@ " << addr << dec << endl;
     return true;
   }

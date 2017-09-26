@@ -2238,8 +2238,8 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
        gen.point()->type() != instPoint::PreInsn)
        return false;
 
-   InstructionAPI::Instruction::Ptr insn = gen.point()->block()->getInsn(gen.point()->block()->last());
-   if (insn->getCategory() == c_ReturnInsn) {
+   InstructionAPI::Instruction insn = gen.point()->block()->getInsn(gen.point()->block()->last());
+   if (insn.getCategory() == c_ReturnInsn) {
       // if this is a return instruction our AST reads the top stack value
       if (retReg == REG_NULL) {
          retReg = allocateAndKeep(gen, noCost);

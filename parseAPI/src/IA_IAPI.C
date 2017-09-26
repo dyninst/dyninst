@@ -213,23 +213,23 @@ IA_IAPI::reset(
 
 void IA_IAPI::advance()
 {
-    if(!curInsn()) {
-        parsing_printf("..... WARNING: failed to advance InstructionAdapter at 0x%lx, allInsns.size() = %d\n", current,
-                       allInsns.size());
-        return;
-    }
+//    if(!curInsn()) {
+//        parsing_printf("..... WARNING: failed to advance InstructionAdapter at 0x%lx, allInsns.size() = %d\n", current,
+//                       allInsns.size());
+//        return;
+//    }
     InstructionAdapter::advance();
-    current += curInsn()->size();
+    current += curInsn().size();
 
     curInsnIter =
         allInsns.insert(
             allInsns.end(),
             std::make_pair(current, dec.decode()));
 
-    if(!curInsn())
-    {
-        parsing_printf("......WARNING: after advance at 0x%lx, curInsn() NULL\n", current);
-    }
+//    if(!curInsn())
+//    {
+//        parsing_printf("......WARNING: after advance at 0x%lx, curInsn() NULL\n", current);
+//    }
     validCFT = false;
     validLinkerStubState = false;
     hascftstatus.first = false;
@@ -238,11 +238,11 @@ void IA_IAPI::advance()
 
 bool IA_IAPI::retreat()
 {
-    if(!curInsn()) {
-        parsing_printf("..... WARNING: failed to retreat InstructionAdapter at 0x%lx, allInsns.size() = %d\n", current,
-                       allInsns.size());
-        return false;
-    }
+//    if(!curInsn()) {
+//        parsing_printf("..... WARNING: failed to retreat InstructionAdapter at 0x%lx, allInsns.size() = %d\n", current,
+//                       allInsns.size());
+//        return false;
+//    }
     InstructionAdapter::retreat();
     allInsns_t::iterator remove = curInsnIter;
     if(curInsnIter != allInsns.begin()) {
@@ -273,9 +273,8 @@ bool IA_IAPI::retreat()
 
 size_t IA_IAPI::getSize() const
 {
-    Instruction::Ptr ci = curInsn();
-    assert(ci);
-    return ci->size();
+    assert(curInsn().isValid());
+    return curInsn().size();
 }
 
 bool IA_IAPI::hasCFT() const
@@ -285,7 +284,7 @@ bool IA_IAPI::hasCFT() const
     parsing_cerr << "\t Returning cached entry: " << hascftstatus.second << endl;
     return hascftstatus.second;
   }
-  InsnCategory c = curInsn()->getCategory();
+  InsnCategory c = curInsn().getCategory();
   hascftstatus.second = false;
   if(c == c_BranchInsn ||
      c == c_ReturnInsn) {
@@ -320,14 +319,14 @@ bool IA_IAPI::hasCFT() const
 
 bool IA_IAPI::isAbort() const
 {
-    entryID e = curInsn()->getOperation().getID();
+    entryID e = curInsn().getOperation().getID();
     return e == e_int3 ||
        e == e_hlt;
 }
 
 bool IA_IAPI::isInvalidInsn() const
 {
-    entryID e = curInsn()->getOperation().getID();
+    entryID e = curInsn().getOperation().getID();
     if(e == e_No_Entry)
     {
        parsing_printf("...WARNING: un-decoded instruction at 0x%x\n", current);
@@ -348,7 +347,7 @@ bool IA_IAPI::isGarbageInsn() const
     bool ret = false;
     // GARBAGE PARSING HEURISTIC
     if (unlikely(_obj->defensiveMode())) {
-        entryID e = curInsn()->getOperation().getID();
+        entryID e = curInsn().getOperation().getID();
         switch (e) {
         case e_arpl:
             cerr << "REACHED AN ARPL AT "<< std::hex << current 
@@ -367,7 +366,7 @@ bool IA_IAPI::isGarbageInsn() const
             break;
         case e_mov: {
             set<RegisterAST::Ptr> regs;
-            curInsn()->getWriteSet(regs);
+            curInsn().getWriteSet(regs);
             for (set<RegisterAST::Ptr>::iterator rit = regs.begin();
                  rit != regs.end(); rit++) 
             {
@@ -381,9 +380,9 @@ bool IA_IAPI::isGarbageInsn() const
             break;
         }
         case e_add:
-            if (2 == curInsn()->size() && 
-                0 == curInsn()->rawByte(0) && 
-                0 == curInsn()->rawByte(1)) 
+            if (2 == curInsn().size() &&
+                0 == curInsn().rawByte(0) &&
+                0 == curInsn().rawByte(1))
             {
                 cerr << "REACHED A 0x0000 INSTRUCTION "<< std::hex << current 
                      << std::dec <<" COUNTING AS INVALID" << endl;
@@ -405,7 +404,7 @@ bool IA_IAPI::isGarbageInsn() const
                 }
             }
 #else // faster raw-byte implementation 
-            switch (curInsn()->rawByte(0)) {
+            switch (curInsn().rawByte(0)) {
                 case 0x06:
                 case 0x0e:
                 case 0x16:
@@ -415,8 +414,8 @@ bool IA_IAPI::isGarbageInsn() const
                          << std::dec <<" COUNTING AS INVALID" << endl;
                     break;
                 case 0x0f:
-                    if (2 == curInsn()->size() && 
-                        ((0xa0 == curInsn()->rawByte(1)) || (0xa8 == curInsn()->rawByte(1))))
+                    if (2 == curInsn().size() &&
+                        ((0xa0 == curInsn().rawByte(1)) || (0xa8 == curInsn().rawByte(1))))
                     {
                         ret = true;
                         cerr << "REACHED A 2-BYTE PUSH OF A SEGMENT REGISTER "<< std::hex << current 
@@ -440,8 +439,8 @@ bool IA_IAPI::isFrameSetupInsn() const
 
 bool IA_IAPI::isDynamicCall() const
 {
-    Instruction::Ptr ci = curInsn();
-    if(ci && (ci->getCategory() == c_CallInsn))
+    Instruction ci = curInsn();
+    if(ci.isValid() && (ci.getCategory() == c_CallInsn))
     {
        Address addr;
        bool success;
@@ -456,10 +455,10 @@ bool IA_IAPI::isDynamicCall() const
 
 bool IA_IAPI::isAbsoluteCall() const
 {
-    Instruction::Ptr ci = curInsn();
-    if(ci->getCategory() == c_CallInsn)
+    Instruction ci = curInsn();
+    if(ci.getCategory() == c_CallInsn)
     {
-        Expression::Ptr cft = ci->getControlFlowTarget();
+        Expression::Ptr cft = ci.getControlFlowTarget();
         if(cft && boost::dynamic_pointer_cast<Immediate>(cft))
         {
             return true;
@@ -474,11 +473,11 @@ bool IA_IAPI::isAbsoluteCall() const
 
 bool IA_IAPI::isBranch() const
 {
-    return curInsn()->getCategory() == c_BranchInsn;
+    return curInsn().getCategory() == c_BranchInsn;
 }
 bool IA_IAPI::isCall() const
 {
-    return curInsn()->getCategory() == c_CallInsn;
+    return curInsn().getCategory() == c_CallInsn;
 }
 
 bool IA_IAPI::isInterruptOrSyscall() const
@@ -490,34 +489,34 @@ bool IA_IAPI::isSyscall() const
 {
     static RegisterAST::Ptr gs(new RegisterAST(x86::gs));
     
-    Instruction::Ptr ci = curInsn();
+    Instruction ci = curInsn();
 
-    return (((ci->getOperation().getID() == e_call) &&
-                (curInsn()->getOperation().isRead(gs)) &&
-                (ci->getOperand(0).format(ci->getFormatter(), ci->getArch()) == "16")) ||
-            (ci->getOperation().getID() == e_syscall) || 
-            (ci->getOperation().getID() == e_int) || 
-            (ci->getOperation().getID() == power_op_sc));
+    return (((ci.getOperation().getID() == e_call) &&
+                (curInsn().getOperation().isRead(gs)) &&
+                (ci.getOperand(0).format(ci.getArch()) == "16")) ||
+            (ci.getOperation().getID() == e_syscall) ||
+            (ci.getOperation().getID() == e_int) ||
+            (ci.getOperation().getID() == power_op_sc));
 }
 
 
 bool IA_IAPI::isInterrupt() const
 {
-    Instruction::Ptr ci = curInsn();
-    return ((ci->getOperation().getID() == e_int) ||
-            (ci->getOperation().getID() == e_int3));
+    Instruction ci = curInsn();
+    return ((ci.getOperation().getID() == e_int) ||
+            (ci.getOperation().getID() == e_int3));
 }
 
 bool IA_IAPI::isSysEnter() const
 {
-  Instruction::Ptr ci = curInsn();
-  return (ci->getOperation().getID() == e_sysenter);
+  Instruction ci = curInsn();
+  return (ci.getOperation().getID() == e_sysenter);
 }
 
 bool IA_IAPI::isIndirectJump() const {
-    Instruction::Ptr ci = curInsn();
-    if(ci->getCategory() != c_BranchInsn) return false;
-    if(ci->allowsFallThrough()) return false;
+    Instruction ci = curInsn();
+    if(ci.getCategory() != c_BranchInsn) return false;
+    if(ci.allowsFallThrough()) return false;
     bool valid;
     Address target;
     boost::tie(valid, target) = getCFT(); 
@@ -541,7 +540,7 @@ void IA_IAPI::parseSysEnter(std::vector<std::pair<Address, EdgeTypeEnum> >& outE
   do {
     scratch->advance();
   } while(scratch->isNop());
-  if(scratch->curInsn()->getCategory() == c_BranchInsn)
+  if(scratch->curInsn().getCategory() == c_BranchInsn)
   {
     parsing_printf("[%s:%d] Detected Linux-ish sysenter idiom at 0x%lx\n",
 		   FILE__, __LINE__, getAddr());
@@ -567,10 +566,10 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
 			  dyn_hash_map<Address, std::string> *plt_entries,
 			  const set<Address>& knownTargets) const
 {
-    Instruction::Ptr ci = curInsn();
+    Instruction ci = curInsn();
 
     // Only call this on control flow instructions!
-    if(ci->getCategory() == c_CallInsn)
+    if(ci.getCategory() == c_CallInsn)
     {
        bool success; 
        Address target;
@@ -618,9 +617,9 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
 	}
         return;
     }
-    else if(ci->getCategory() == c_BranchInsn)
+    else if(ci.getCategory() == c_BranchInsn)
     {
-        if(ci->allowsFallThrough())
+        if(ci.allowsFallThrough())
         {
             outEdges.push_back(std::make_pair(getCFT().second,
                                               COND_TAKEN));
@@ -670,7 +669,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
 	      {
 		parsing_printf("\tIndirect branch as 2nd insn of entry block, treating as tail call\n");
                 parsing_printf("%s[%d]: indirect tail call %s at 0x%lx\n", FILE__, __LINE__,
-                               ci->format().c_str(), current);
+                               ci.format().c_str(), current);
 		outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
 		tailCalls[INDIRECT]=true;
 		// Fix the cache, because we're dumb.
@@ -685,29 +684,29 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             }
             if(isTailCall(context, INDIRECT, num_insns, knownTargets)) {
                 parsing_printf("%s[%d]: indirect tail call %s at 0x%lx\n", FILE__, __LINE__,
-                               ci->format().c_str(), current);
+                               ci.format().c_str(), current);
                 outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
                 tailCalls[INDIRECT] = true;
                 return;
             }
             parsing_printf("%s[%d]: jump table candidate %s at 0x%lx\n", FILE__, __LINE__,
-                           ci->format().c_str(), current);
+                           ci.format().c_str(), current);
             parsedJumpTable = true;
             successfullyParsedJumpTable = parseJumpTable(context, currBlk, outEdges);
 	    parsing_printf("Parsed jump table\n");
             if(!successfullyParsedJumpTable || outEdges.empty()) {
                 outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
             	parsing_printf("%s[%d]: unparsed jump table %s at 0x%lx in function %s UNINSTRUMENTABLE\n", FILE__, __LINE__,
-                           ci->format().c_str(), current, context->name().c_str());
+                           ci.format().c_str(), current, context->name().c_str());
             }
             return;
         }
     }
-    else if(ci->getCategory() == c_ReturnInsn)
+    else if(ci.getCategory() == c_ReturnInsn)
     {
         parsing_printf("%s[%d]: return candidate %s at 0x%lx\n", FILE__, __LINE__,
-                           ci->format().c_str(), current);
-        if(ci->allowsFallThrough())
+                           ci.format().c_str(), current);
+        if(ci.allowsFallThrough())
         {
             outEdges.push_back(std::make_pair(getNextAddr(), FALLTHROUGH));
         }
@@ -715,12 +714,12 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
 	    // If BLR is not a return, then it is a jump table
             parsedJumpTable = true;
             parsing_printf("%s[%d]: BLR jump table candidate %s at 0x%lx\n", FILE__, __LINE__,
-                           ci->format().c_str(), current);
+                           ci.format().c_str(), current);
             successfullyParsedJumpTable = parseJumpTable(context, currBlk, outEdges);
 	    parsing_printf("Parsed BLR jump table\n");
             if(!successfullyParsedJumpTable || outEdges.empty()) {
             	parsing_printf("%s[%d]: BLR unparsed jump table %s at 0x%lx in function %s UNINSTRUMENTABLE\n", 
-			       FILE__, __LINE__, ci->format().c_str(), current, context->name().c_str());
+			       FILE__, __LINE__, ci.format().c_str(), current, context->name().c_str());
                 outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
             }
 	}
@@ -737,7 +736,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
         return;
     }
     
-    fprintf(stderr, "Unhandled instruction %s\n", ci->format().c_str());
+    fprintf(stderr, "Unhandled instruction %s\n", ci.format().c_str());
     assert(0);
 }
 
@@ -747,19 +746,19 @@ bool IA_IAPI::isIPRelativeBranch() const
 #if !defined(arch_x86_64)
     return false;
 #endif
-    Instruction::Ptr ci = curInsn();
+    Instruction ci = curInsn();
 
     bool valid;
     Address target;
     boost::tie(valid, target) = getCFT();
     
-    if(ci->getCategory() == c_BranchInsn &&
+    if(ci.getCategory() == c_BranchInsn &&
        !valid) {
-       Expression::Ptr cft = ci->getControlFlowTarget();
+       Expression::Ptr cft = ci.getControlFlowTarget();
        if(cft->isUsed(thePC[_isrc->getArch()]))
        {
           parsing_printf("\tIP-relative indirect jump to %s at 0x%lx\n",
-                         cft->format(ci->getFormatter()).c_str(), current);
+                         cft->format(ci.getArch()).c_str(), current);
           return true;
        }
     }
@@ -767,15 +766,15 @@ bool IA_IAPI::isIPRelativeBranch() const
     
 }
 
-Instruction::Ptr IA_IAPI::curInsn() const
+const Instruction & IA_IAPI::curInsn() const
 {
     return curInsnIter->second;
 }
 
 bool IA_IAPI::isLeave() const
 {
-    Instruction::Ptr ci = curInsn();
-    return ci && (ci->getOperation().getID() == e_leave);
+    Instruction ci = curInsn();
+    return ci.isValid() && (ci.getOperation().getID() == e_leave);
 }
 
 bool IA_IAPI::isDelaySlot() const
@@ -783,7 +782,7 @@ bool IA_IAPI::isDelaySlot() const
     return false;
 }
 
-Instruction::Ptr IA_IAPI::getInstruction() const
+const Instruction& IA_IAPI::getInstruction() const
 {
     return curInsn();
 }
@@ -810,7 +809,7 @@ std::map<Address, bool> IA_IAPI::thunkAtTarget;
 
 bool IA_IAPI::isConditional() const
 {
-    return curInsn()->allowsFallThrough();
+    return curInsn().allowsFallThrough();
 }
 
 bool IA_IAPI::simulateJump() const
@@ -827,18 +826,18 @@ bool IA_IAPI::simulateJump() const
 
 std::pair<bool, Address> IA_IAPI::getFallthrough() const 
 {
-   return make_pair(true, curInsnIter->first + curInsnIter->second->size());
+   return make_pair(true, curInsnIter->first + curInsnIter->second.size());
 }
 
 std::pair<bool, Address> IA_IAPI::getCFT() const
 {
    if(validCFT) return cachedCFT;
-    Expression::Ptr callTarget = curInsn()->getControlFlowTarget();
+    Expression::Ptr callTarget = curInsn().getControlFlowTarget();
 	if (!callTarget) return make_pair(false, 0);
        // FIXME: templated bind(),dammit!
     callTarget->bind(thePC[_isrc->getArch()].get(), Result(s64, current));
     parsing_printf("%s[%d]: binding PC %s in %s to 0x%x...", FILE__, __LINE__,
-                   thePC[_isrc->getArch()]->format(curInsn()->getFormatter()).c_str(), curInsn()->format().c_str(), current);
+                   thePC[_isrc->getArch()]->format(curInsn().getArch()).c_str(), curInsn().format().c_str(), current);
 
     Result actualTarget = callTarget->eval();
 #if defined(os_vxworks)
@@ -905,7 +904,7 @@ std::pair<bool, Address> IA_IAPI::getCFT() const
     {
        cachedCFT = std::make_pair(false, 0); 
         parsing_printf("FAIL (CFT=0x%x), callTarget exp: %s\n",
-                       cachedCFT.second,callTarget->format(curInsn()->getFormatter()).c_str());
+                       cachedCFT.second,callTarget->format(curInsn().getArch()).c_str());
     }
     validCFT = true;
 
@@ -919,8 +918,8 @@ std::pair<bool, Address> IA_IAPI::getCFT() const
 
 bool IA_IAPI::isRelocatable(InstrumentableLevel lvl) const
 {
-    Instruction::Ptr ci = curInsn();
-    if(ci && (ci->getCategory() == c_CallInsn))
+    Instruction ci = curInsn();
+    if(ci.isValid() && (ci.getCategory() == c_CallInsn))
     {
         if(!isDynamicCall())
         {

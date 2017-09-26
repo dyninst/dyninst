@@ -69,7 +69,7 @@ namespace Dyninst
             private:
                 INSTRUCTION_EXPORT InstructionDecoder_x86(const InstructionDecoder_x86& o);
             public:
-                INSTRUCTION_EXPORT virtual Instruction::Ptr decode(InstructionDecoder::buffer& b);
+                INSTRUCTION_EXPORT virtual Instruction decode(InstructionDecoder::buffer& b);
       
                 INSTRUCTION_EXPORT virtual void setMode(bool is64);
                 virtual void doDelayedDecode(const Instruction* insn_to_complete);

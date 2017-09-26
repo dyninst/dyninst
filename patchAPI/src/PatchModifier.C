@@ -96,7 +96,7 @@ bool PatchModifier::redirect(PatchEdge *edge, PatchBlock *target) {
 
 PatchBlock *PatchModifier::split(PatchBlock *block, Address addr, bool trust, Address newlast) {
    if (!trust) {
-      if (!block->getInsn(addr)) return NULL;
+      if (!block->getInsn(addr).isValid()) return NULL;
       newlast = -1; // If we don't trust the address, don't
       // trust the new last instruction addr.
    }

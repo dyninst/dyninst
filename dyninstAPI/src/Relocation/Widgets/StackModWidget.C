@@ -41,10 +41,10 @@ using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
 
-StackModWidget::Ptr StackModWidget::create(Instruction::Ptr insn,
-					   Address addr,
-                       signed long newDisp,
-                       Architecture arch) {
+StackModWidget::Ptr StackModWidget::create(Instruction insn,
+                                           Address addr,
+                                           signed long newDisp,
+                                           Architecture arch) {
   assert(addr);
   return Ptr(new StackModWidget(insn, addr, newDisp, arch));
 }
@@ -57,7 +57,7 @@ TrackerElement *StackModWidget::tracker(const RelocBlock *t) const {
 bool StackModWidget::generate(const codeGen &, 
                               const RelocBlock *t, 
                               CodeBuffer &buffer) {
-    relocation_cerr << "  Generating a stackframe-sensitive memory access (" << insn_->format()
+    relocation_cerr << "  Generating a stackframe-sensitive memory access (" << insn_.format()
         << "," << std::hex << addr_ 
         <<", newDisp " << newDisp_ << std::dec << ")" << endl;
 
@@ -69,13 +69,13 @@ bool StackModWidget::generate(const codeGen &,
 
 string StackModWidget::format() const {
   stringstream ret;
-  ret << "MemRel(" << insn_->format() << ")";
+  ret << "MemRel(" << insn_.format() << ")";
   return ret.str();
 }
 
 bool StackModPatch::apply(codeGen &gen, CodeBuffer *) {
 #if defined(cap_stack_mods)
-    instruction ugly_insn(orig_insn->ptr(), (gen.width() == 8));
+    instruction ugly_insn(orig_insn.ptr(), (gen.width() == 8));
     if (gen.modifiedStackFrame()) {
         relocation_cerr << "  Calling modifyDisp" << endl;
         if (!insnCodeGen::modifyDisp(newDisp, ugly_insn, gen, arch, addr)) 
@@ -99,5 +99,5 @@ bool StackModPatch::apply(codeGen &gen, CodeBuffer *) {
 
 unsigned StackModPatch::estimate(codeGen &) {
    // Underestimate if possible
-   return orig_insn->size();
+   return orig_insn.size();
 }

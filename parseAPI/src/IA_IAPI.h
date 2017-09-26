@@ -71,7 +71,7 @@ class IA_IAPI : public InstructionAdapter {
           Address start, ParseAPI::CodeObject *o,
           ParseAPI::CodeRegion *r, InstructionSource *isrc, ParseAPI::Block *);
 
-        virtual Dyninst::InstructionAPI::Instruction::Ptr getInstruction() const;
+        virtual const Dyninst::InstructionAPI::Instruction& getInstruction() const;
     
         virtual bool hasCFT() const;
         virtual size_t getSize() const;
@@ -124,7 +124,7 @@ protected:
 	                            Dyninst::ParseAPI::Block* currBlk,
 				    std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) const;
         virtual bool isIPRelativeBranch() const;
-        virtual bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const = 0;
+        virtual bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction i) const = 0;
         virtual bool isReturn(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block* currBlk) const = 0;
         virtual bool isFakeCall() const = 0;
         virtual bool isLinkerStub() const = 0;
@@ -146,11 +146,11 @@ protected:
 public:
         typedef std::vector< 
             std::pair<Address, 
-            Dyninst::InstructionAPI::Instruction::Ptr> 
+            Dyninst::InstructionAPI::Instruction> 
         > allInsns_t;
 protected:
         allInsns_t allInsns;
-        Dyninst::InstructionAPI::Instruction::Ptr curInsn() const;
+        const InstructionAPI::Instruction & curInsn() const;
         allInsns_t::iterator curInsnIter;
 
         mutable bool validCFT;

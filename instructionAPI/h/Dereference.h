@@ -37,6 +37,7 @@
 #include "Immediate.h"
 #include "Register.h"
 #include "Visitor.h"
+#include "ArchSpecificFormatters.h"
 
 #include <sstream>
 
@@ -154,7 +155,7 @@ namespace Dyninst
         return retVal.str();
       }
 
-        virtual std::string format(ArchSpecificFormatter *formatter, formatStyle) const
+        virtual std::string format(Architecture arch, formatStyle) const
         {
 #if defined(DEBUG_MEMORY_ACCESS_WIDTH)
             switch(Expression::userSetValue.type)
@@ -211,7 +212,7 @@ namespace Dyninst
                 std::cout << "\tDisplacement: " << list.displacement << std::endl;
 #endif
 
-            return formatter->formatDeref(addressToDereference->format(formatter));
+            return ArchSpecificFormatter::getFormatter(arch)->formatDeref(addressToDereference->format(arch));
         }
 
       virtual bool bind(Expression* expr, const Result& value)

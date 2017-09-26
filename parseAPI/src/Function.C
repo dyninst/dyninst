@@ -596,7 +596,7 @@ Function::tampersStack(bool recalculate)
         InstructionDecoder retdec(this->isrc()->getPtrToInstruction(retnAddr), 
                                   InstructionDecoder::maxInstructionLength, 
                                   this->region()->getArch() );
-        Instruction::Ptr retn = retdec.decode();
+        Instruction retn = retdec.decode();
         converter.convert(retn, retnAddr, this, *bit, assgns);
         vector<Assignment::Ptr>::iterator ait;
         AST::Ptr sliceAtRet;

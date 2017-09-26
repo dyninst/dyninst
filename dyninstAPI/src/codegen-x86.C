@@ -1294,10 +1294,10 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
     unsigned newInsnSz = 0;
 
     InstructionAPI::InstructionDecoder d2(origInsn, insnSz, arch);
-    InstructionAPI::Instruction::Ptr origInsnPtr = d2.decode();
+    InstructionAPI::Instruction origInsnPtr = d2.decode();
 
     bool modifyDefinition = false;
-    if (!origInsnPtr->readsMemory() && !origInsnPtr->writesMemory()) {
+    if (!origInsnPtr.readsMemory() && !origInsnPtr.writesMemory()) {
         // This instruction should be a definition
         modifyDefinition = true;
     }
@@ -1478,7 +1478,7 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
     /******************************** done ************************************/
 
     InstructionAPI::InstructionDecoder d(newInsnStart, newInsnSz, arch);
-    InstructionAPI::Instruction::Ptr newInsnPtr = d.decode();
+    InstructionAPI::Instruction i = d.decode();
 
     if ((insnSz + expectedDifference) != newInsnSz) {
         relocation_cerr << "\t\tERROR: Old Size: " << std::dec << insnSz << " New size: " << newInsnSz << " Expected size: " << (insnSz + expectedDifference) << std::endl;
@@ -1487,7 +1487,7 @@ bool insnCodeGen::modifyDisp(signed long newDisp, instruction &insn, codeGen &ge
 
     // Validate
     StackAccess* newAccess = NULL;
-    getMemoryOffset(NULL, NULL, newInsnPtr, addr, MachRegister(),
+    getMemoryOffset(NULL, NULL, i, addr, MachRegister(),
         StackAnalysis::Height(0), StackAnalysis::Definition(),  newAccess,
         arch, modifyDefinition);
     if (!newAccess) {

@@ -34,6 +34,7 @@
 #include "Expression.h"
 #include "Register.h"
 #include "Result.h"
+#include "ArchSpecificFormatters.h"
 #include <sstream>
 
 #if defined(_MSC_VER)
@@ -359,16 +360,17 @@ namespace Dyninst
                 return retVal.str();
             }
 			
-			virtual std::string format(ArchSpecificFormatter *formatter, formatStyle how) const
+			virtual std::string format(Architecture arch, formatStyle how) const
 			{
                 std::stringstream retVal;
                 if(how == memoryAccessStyle)
                 {
-                    retVal << m_arg2->format(formatter) << "(" << m_arg1->format(formatter) << ")";
+                    retVal << m_arg2->format(arch) << "(" << m_arg1->format(arch) << ")";
                 }
                 else
                 {
-                    return formatter->formatBinaryFunc(m_arg1->format(formatter), m_funcPtr->format(), m_arg2->format(formatter));
+                    return ArchSpecificFormatter::getFormatter(arch)->formatBinaryFunc(
+							m_arg1->format(arch), m_funcPtr->format(), m_arg2->format(arch));
                 }
 
                 return retVal.str();

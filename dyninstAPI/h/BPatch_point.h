@@ -35,7 +35,6 @@
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
 #include "BPatch_enums.h"
-
 class InstrucIter;
 class instPoint;
 class miniTramp;
@@ -229,7 +228,7 @@ public:
 
     const BPatch_memoryAccess * getMemoryAccess();
 
-    Dyninst::InstructionAPI::Instruction::Ptr getInsnAtPoint();
+    Dyninst::InstructionAPI::Instruction getInsnAtPoint();
 
 
     //  BPatch_point::getCurrentSnippets

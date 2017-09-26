@@ -33,7 +33,7 @@
 
 #include "Expression.h"
 #include "dyn_regs.h"
-#include "Operation.h"
+#include "Operation_impl.h"
 #include "entryIDs.h"
 #include "Instruction.h"
 #include "InstructionDecoder.h" // buffer...anything else?
@@ -49,7 +49,7 @@ class InstructionDecoderImpl
       
         InstructionDecoderImpl(Architecture a) : m_Arch(a) {}
         virtual ~InstructionDecoderImpl() {}
-        virtual Instruction::Ptr decode(InstructionDecoder::buffer& b);
+        virtual Instruction decode(InstructionDecoder::buffer& b);
         virtual void doDelayedDecode(const Instruction* insn_to_complete) = 0;
         virtual void setMode(bool is64) = 0;
         static Ptr makeDecoderImpl(Architecture a);
@@ -75,7 +75,7 @@ class InstructionDecoderImpl
                                      const unsigned char* raw);
       
     protected:
-        Operation::Ptr m_Operation;
+        Operation m_Operation;
         Architecture m_Arch;
 
 };
