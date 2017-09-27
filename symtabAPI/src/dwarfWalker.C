@@ -43,6 +43,8 @@
 #include "debug_common.h"
 #include "Type-mem.h"
 #include <boost/bind.hpp>
+#include <cilk/cilk.h>
+
 using namespace Dyninst;
 using namespace SymtabAPI;
 using namespace Dwarf;
@@ -133,13 +135,19 @@ bool DwarfWalker::parse() {
                                     &signature,
                                     &typeoffset,
                                     &next_cu_header, &err) == DW_DLV_OK ) {
-         push();
-         bool ret = parseModule(is_info, fixUnknownMod);
-         pop();
-         if (!ret) return false;
+         DwarfWalker mod_walker(*this);
+         mod_walker.push();
+
+         bool ret = cilk_spawn(mod_walker.parseModule(is_info, fixUnknownMod));
+         mod_walker.pop();
+         if (!ret) {
+             cilk_sync;
+             return false;
+         }
          compile_offset = next_cu_header;
       }
    }
+    cilk_sync;
 
    if (!fixUnknownMod)
       return true;
@@ -149,7 +157,7 @@ bool DwarfWalker::parse() {
    /* Fix type list. */
    typeCollection *moduleTypes = typeCollection::getModTypeCollection(fixUnknownMod);
    if(!moduleTypes) return false;
-   dyn_hash_map< int, Type * >::iterator typeIter =  moduleTypes->typesByID.begin();
+   auto typeIter =  moduleTypes->typesByID.begin();
    for (;typeIter!=moduleTypes->typesByID.end();typeIter++)
    {
       typeIter->second->fixupUnknowns(fixUnknownMod);
@@ -157,14 +165,14 @@ bool DwarfWalker::parse() {
 
    /* Fix the types of variables. */
    std::string variableName;
-   dyn_hash_map< std::string, Type * >::iterator variableIter = moduleTypes->globalVarsByName.begin();
+   auto variableIter = moduleTypes->globalVarsByName.begin();
    for (;variableIter!=moduleTypes->globalVarsByName.end();variableIter++)
    {
       if (variableIter->second->getDataClass() == dataUnknownType &&
           moduleTypes->findType( variableIter->second->getID() ) != NULL )
       {
-         moduleTypes->globalVarsByName[ variableIter->first ]
-            = moduleTypes->findType( variableIter->second->getID() );
+         moduleTypes->globalVarsByName.insert(std::make_pair(variableIter->first,
+               moduleTypes->findType(variableIter->second->getID())));
       } /* end if data class is unknown but the type exists. */
    } /* end iteration over variables. */
 

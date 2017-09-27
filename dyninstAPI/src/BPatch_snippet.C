@@ -341,12 +341,11 @@ AstNodePtr generateFieldRef(const BPatch_snippet &lOperand,
                 return AstNodePtr();
         }
 
-        vector<Field *> *fields;
         Field *field = NULL;
 
         // check that the name of the right operand is a field of the left operand
 
-        fields = structType->getComponents();
+        auto fields = structType->getComponents();
 
         unsigned int i;
 

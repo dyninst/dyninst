@@ -114,52 +114,13 @@ std::vector<localVar *> *localVarCollection::getAllVars()
     return &localVars;
 }
 
-#if !defined(SERIALIZATION_DISABLED)
-Serializable *localVarCollection::ac_serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
-{
-	unsigned short lvmagic = 72;
-	serialize_printf("%s[%d]:  welcome to localVarCollection: ac_serialize_impl\n", 
-			FILE__, __LINE__);
-	ifxml_start_element(s, tag);
-	gtranslate(s, lvmagic, "LocalVarMagicID");
-	gtranslate(s, localVars, "LocalVariables");
-	s->magic_check(FILE__, __LINE__);
-	ifxml_end_element(s, tag);
-
-	if (lvmagic != 72)
-	{
-           create_printf("\n\n%s[%d]: FIXME:  out-of-sync\n\n\n", FILE__, __LINE__);
-	}
-
-	serialize_printf("%s[%d]:  localVarCollection: ac_serialize_impl, translate done\n", FILE__, __LINE__);
-
-	if (s->isInput())
-	{
-		//  rebuild name->variable mapping
-		for (unsigned int i = 0; i < localVars.size(); ++i)
-		{
-			localVar *lv = localVars[i];
-			assert(lv);
-		}
-		serialize_printf("%s[%d]:  deserialized %ld local vars\n", FILE__, __LINE__, localVars.size());
-	}
-	else
-		serialize_printf("%s[%d]:  serialized %ld local vars\n", FILE__, __LINE__, localVars.size());
-
-	return NULL;
-}
-#else
 Serializable *localVarCollection::ac_serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
 {
    return NULL;
 }
-#endif
 
 // Could be somewhere else... for DWARF-work.
 dyn_hash_map<void *, typeCollection *> typeCollection::fileToTypesMap;
-#if 0
-dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > > typeCollection::deferred_lookups;
-#endif
 dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > *> *deferred_lookups_p = NULL;
 
 void typeCollection::addDeferredLookup(int tid, dataClass tdc,Type **th)
@@ -253,17 +214,11 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
  * Reference count
  */
 
-#if 0
-typeCollection *typeCollection::getGlobalTypeCollection() 
-{
-    typeCollection *tc = new typeCollection();
-    //tc->refcount++;
-    return tc;
-}
-#endif
 
 typeCollection *typeCollection::getModTypeCollection(Module *mod) 
 {
+	static boost::mutex create_lock;
+	boost::lock_guard<boost::mutex> g(create_lock);
 	if (!mod) return NULL;
 	dyn_hash_map<void *, typeCollection *>::iterator iter = fileToTypesMap.find((void *)mod);
 
@@ -277,22 +232,6 @@ typeCollection *typeCollection::getModTypeCollection(Module *mod)
     return newTC;
 }
 
-#if 0
-void typeCollection::freeTypeCollection(typeCollection *tc) {
-    assert(tc);
-    tc->refcount--;
-    if (tc->refcount == 0) {
-        dyn_hash_map<Module *, typeCollection *>::iterator iter = fileToTypesMap.begin();
-        for (; iter!= fileToTypesMap.end(); iter++) {
-            if (iter->second == tc) {
-                fileToTypesMap.erase(iter->first);
-                break;
-            }
-        }
-        delete tc;
-    }
-}
-#endif
 
 /*
  * typeCollection::typeCollection
@@ -339,8 +278,10 @@ typeCollection::~typeCollection()
  */
 Type *typeCollection::findType(std::string name)
 {
-    if (typesByName.find(name) != typesByName.end())
-    	return typesByName[name];
+	tbb::concurrent_hash_map<std::string, Type *>::const_accessor a;
+
+    if (typesByName.find(a, name))
+    	return a->second;
 	else if (Symtab::builtInTypes())
         return Symtab::builtInTypes()->findBuiltInType(name);
     else
@@ -349,16 +290,19 @@ Type *typeCollection::findType(std::string name)
 
 Type *typeCollection::findTypeLocal(std::string name)
 {
-   if (typesByName.find(name) != typesByName.end())
-      return typesByName[name];
+	tbb::concurrent_hash_map<std::string, Type *>::const_accessor a;
+
+	if (typesByName.find(a, name))
+		return a->second;
    else
       return NULL;
 }
 
 Type *typeCollection::findTypeLocal(const int ID)
 {
-   if (typesByID.find(ID) != typesByID.end())
-      return typesByID[ID];
+	tbb::concurrent_hash_map<int, Type*>::const_accessor a;
+   if (typesByID.find(a, ID))
+      return a->second;
    else
       return NULL;
 }
@@ -366,9 +310,11 @@ Type *typeCollection::findTypeLocal(const int ID)
 
 Type * typeCollection::findOrCreateType( const int ID ) 
 {
-	if ( typesByID.find(ID) != typesByID.end()) 
-	{ 
-		return typesByID[ID]; 
+    boost::lock_guard<boost::mutex> g(placeholder_mutex);
+	tbb::concurrent_hash_map<int, Type*>::const_accessor a;
+	if (typesByID.find(a, ID))
+	{
+		return a->second;
 	}
 
 	Type * returnType = NULL;
@@ -386,16 +332,17 @@ Type * typeCollection::findOrCreateType( const int ID )
 	assert( returnType != NULL );
 
 	/* Having created the type, add it. */
-	addType( returnType );
+	addType( returnType, g );
 
     return returnType;
 } /* end findOrCreateType() */
 
 Type *typeCollection::findType(const int ID)
 {
-	if (typesByID.find(ID) != typesByID.end())
-		return typesByID[ID];
-	else 
+	tbb::concurrent_hash_map<int, Type*>::const_accessor a;
+	if (typesByID.find(a, ID))
+		return a->second;
+	else
 	{
 		Type *ret = NULL;
 
@@ -417,8 +364,9 @@ Type *typeCollection::findType(const int ID)
  */
 Type *typeCollection::findVariableType(std::string &name)
 {
-	if (globalVarsByName.find(name) != globalVarsByName.end())
-		return globalVarsByName[name];
+	tbb::concurrent_hash_map<std::string, Type *>::const_accessor a;
+	if (globalVarsByName.find(a, name))
+		return a->second;
 	else
 		return (Type *) NULL;
 }
@@ -433,29 +381,32 @@ Type *typeCollection::findVariableType(std::string &name)
  */
 void typeCollection::addType(Type *type)
 {
-	if(type->getName() != "") { //Type could have no name.
-    typesByName[type->getName()] = type;
+    boost::lock_guard<boost::mutex> g(placeholder_mutex);
+    addType(type, g);
+
+}
+void typeCollection::addType(Type *type, boost::lock_guard<boost::mutex>& g)
+{
+    if(type->getName() != "") { //Type could have no name.
+        tbb::concurrent_hash_map<std::string, Type*>::accessor a;
+        typesByName.insert(a, make_pair(type->getName(), type));
+        type->incrRefCount();
+    }
+    tbb::concurrent_hash_map<int, Type*>::accessor id_a;
+    typesByID.insert(id_a, make_pair(type->getID(), type));
     type->incrRefCount();
-  }
 
-  //Types can share the same ID for typedef, thus not adding types with
-  //same ID to the collection
-
-  // XXX - Fortran seems to restart type numbers for each subroutine
-  // if(!(this->findType(type->getID())))
-       typesByID[type->getID()] = type;
-  type->incrRefCount();
 }
 
 void typeCollection::addGlobalVariable(std::string &name, Type *type) 
 {
-   
-   globalVarsByName[name] = type;
+	tbb::concurrent_hash_map<std::string, Type*>::accessor a;
+	globalVarsByName.insert(a, make_pair(type->getName(), type));
 }
 
 void typeCollection::clearNumberedTypes() 
 {
-   for (dyn_hash_map<int, Type *>::iterator it = typesByID.begin();
+   for (auto it = typesByID.begin();
         it != typesByID.end();
         it ++) 
    {
@@ -475,7 +426,7 @@ std::vector<Type *> *typeCollection::getAllTypes() {
    //for (dyn_hash_map<int, Type *>::iterator it = typesByID.begin();
    //     it != typesByID.end();
    //     it ++) {
-   for (dyn_hash_map<string, Type *>::iterator it = typesByName.begin();
+   for (auto it = typesByName.begin();
         it != typesByName.end();
         it ++) {
 	typesVec->push_back(it->second);
@@ -489,7 +440,7 @@ std::vector<Type *> *typeCollection::getAllTypes() {
 
 vector<pair<string, Type *> > *typeCollection::getAllGlobalVariables() {
     vector<pair<string, Type *> > *varsVec = new vector<pair<string, Type *> >;
-    for(dyn_hash_map<string, Type *>::iterator it = globalVarsByName.begin();
+    for(auto it = globalVarsByName.begin();
         it != globalVarsByName.end(); it++) {
 	varsVec->push_back(pair<string, Type *>(it->first, it->second));
    }	

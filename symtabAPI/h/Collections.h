@@ -31,6 +31,7 @@
 #ifndef _Collections_h_
 #define _Collections_h_
 
+#include <tbb/concurrent_hash_map.h>
 #include "Type.h"
 #include "Variable.h"
 #include "Serialization.h"
@@ -82,9 +83,9 @@ class SYMTAB_EXPORT typeCollection : public Serializable//, public AnnotatableSp
     friend class Type;
     friend class DwarfWalker;
 
-    dyn_hash_map<std::string, Type *> typesByName;
-    dyn_hash_map<std::string, Type *> globalVarsByName;
-    dyn_hash_map<int, Type *> typesByID;
+    tbb::concurrent_hash_map<std::string, Type *> typesByName;
+    tbb::concurrent_hash_map<std::string, Type *> globalVarsByName;
+    tbb::concurrent_hash_map<int, Type *> typesByID;
 
 
     // DWARF:
@@ -119,6 +120,7 @@ public:
     Type 	*findTypeLocal(std::string name);
     Type 	*findTypeLocal(const int ID);
     void	addType(Type *type);
+        void	addType(Type *type, boost::lock_guard<boost::mutex>&);
     void        addGlobalVariable(std::string &name, Type *type);
 
     /* Some debug formats allow forward references.  Rather than
@@ -135,6 +137,10 @@ public:
     std::vector<Type *> *getAllTypes();
     std::vector<std::pair<std::string, Type *> > *getAllGlobalVariables();
     void clearNumberedTypes();
+    private:
+        boost::mutex placeholder_mutex; // The only intermodule contention should be around
+        // typedefs/other placeholders, but we'll go ahead and lock around type add operations
+        // to be safe
 };
 
 /*
