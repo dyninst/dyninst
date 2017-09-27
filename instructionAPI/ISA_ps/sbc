@@ -1,0 +1,18 @@
+##sbc_execute
+bits(datasize) result;
+bits(datasize) operand1 = X[n];
+bits(datasize) operand2 = X[m];
+bits(4) nzcv;
+
+if sub_op then
+    operand2 = NOT(operand2);
+end
+
+(result, nzcv) = AddWithCarry(operand1, operand2, PSTATE.C);
+
+if setflags then 
+    PSTATE.<N,Z,C,V> = nzcv;
+end
+
+X[d] = result;
+@@

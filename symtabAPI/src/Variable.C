@@ -41,6 +41,8 @@
 #include "Aggregate.h"
 #include "Function.h"
 #include <iterator>
+#include "dwarfExprParser.h"
+#include "dwarfResult.h"
 
 #include "symtabAPI/src/Object.h"
 
@@ -237,19 +239,20 @@ bool localVar::addLocation(const VariableLocation &location)
    return true;
 }
 
-void localVar::expandLocation(const VariableLocation &loc,
-                              std::vector<VariableLocation> &ret) {
-   if (loc.mr_reg != Dyninst::FrameBase) {
-      ret.push_back(loc);
-      return;
-   }
+void localVar::expandLocation(
+        const VariableLocation &loc,
+        std::vector<VariableLocation> &ret)
+{
+    if (loc.mr_reg != Dyninst::FrameBase) {
+        ret.push_back(loc);
+        return;
+    }
 
+    // We're referencing a frame base; must have a function or this
+    // is corrupted data. 
+    assert(func_);
 
-   // We're referencing a frame base; must have a function or this
-   // is corrupted data. 
-   assert(func_);
-
-   std::vector<VariableLocation> &func_fp = func_->getFramePtr();
+    std::vector<VariableLocation> &func_fp = func_->getFramePtr();
 
    //#define DEBUG
 

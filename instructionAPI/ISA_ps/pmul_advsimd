@@ -1,0 +1,21 @@
+##pmul_advsimd_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize) operand1 = V[n];
+bits(datasize) operand2 = V[m];
+bits(datasize) result;
+bits(esize) element1;
+bits(esize) element2;
+bits(esize) product;
+
+for e = 0 to elements-1
+    element1 = Elem[operand1, e, esize];
+    element2 = Elem[operand2, e, esize];
+    if poly then
+        product = PolynomialMult(element1, element2)<esize-1:0>;
+    else
+        product = (UInt(element1) * UInt(element2))<esize-1:0>;
+    end
+    Elem[result, e, esize] = product;
+
+V[d] = result;
+@@

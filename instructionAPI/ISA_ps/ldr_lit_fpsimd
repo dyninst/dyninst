@@ -1,0 +1,9 @@
+##ldr_lit_fpsimd_execute
+bits(64) address = PC[] + offset;
+bits(size*8) data;
+
+CheckFPAdvSIMDEnabled64();
+
+data = Mem[address, size, AccType_VEC];
+V[t] = data;
+@@

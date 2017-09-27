@@ -1,0 +1,20 @@
+##eor_log_shift_execute
+bits(datasize) operand1 = X[n];
+bits(datasize) operand2 = ShiftReg(m, shift_type, shift_amount);
+
+if invert then operand2 = NOT(operand2) end;
+
+case op of
+    when LogicalOp_AND result = operand1 AND operand2;
+    end
+    when LogicalOp_ORR result = operand1 OR  operand2;
+    end
+    when LogicalOp_EOR result = operand1 EOR operand2;
+    end
+
+if setflags then
+    PSTATE.<N,Z,C,V> = result<datasize-1>:IsZeroBit(result):00;
+end
+
+X[d] = result;
+@@

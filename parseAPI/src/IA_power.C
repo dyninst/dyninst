@@ -29,7 +29,6 @@
  */
 
 
-#include "IA_IAPI.h"
 #include "IA_power.h"
 
 #include "Register.h"
@@ -61,21 +60,36 @@ static RegisterAST::Ptr ppc64_R11 (new RegisterAST (ppc64::r11));
 static RegisterAST::Ptr ppc64_LR  (new RegisterAST (ppc64::lr));
 static RegisterAST::Ptr ppc64_SP  (new RegisterAST (ppc64::r1));
 
-bool IA_IAPI::isFrameSetupInsn(Instruction::Ptr) const
+IA_power::IA_power(Dyninst::InstructionAPI::InstructionDecoder dec_,
+               Address start_, 
+	       Dyninst::ParseAPI::CodeObject* o,
+	       Dyninst::ParseAPI::CodeRegion* r,
+	       Dyninst::InstructionSource *isrc,
+	       Dyninst::ParseAPI::Block * curBlk_):
+	           IA_IAPI(dec_, start_, o, r, isrc, curBlk_) {
+}
+IA_power::IA_power(const IA_power& rhs): IA_IAPI(rhs) {}
+
+IA_power* IA_power::clone() const{
+    return new IA_power(*this);
+}
+
+
+bool IA_power::isFrameSetupInsn(Instruction::Ptr) const
 {
     return false;
 }
 
-bool IA_IAPI::isNop() const
+bool IA_power::isNop() const
 {
     return false;
 }
 
-bool IA_IAPI::isThunk() const {
+bool IA_power::isThunk() const {
     return false;
 }
 
-bool IA_IAPI::isTailCall(Function* context, EdgeTypeEnum type, unsigned int, const set<Address>& knownTargets) const
+bool IA_power::isTailCall(Function* context, EdgeTypeEnum type, unsigned int, const set<Address>& knownTargets) const
 {
    // Collapse down to "branch" or "fallthrough"
     switch(type) {
@@ -95,7 +109,7 @@ bool IA_IAPI::isTailCall(Function* context, EdgeTypeEnum type, unsigned int, con
           return false;
     }
 
-    parsing_printf("Checking for Tail Call \n");
+    parsing_printf("Checking for Tail Call for powerpc\n");
     context->obj()->cs()->incrementCounter(PARSE_TAILCALL_COUNT); 
 
     if (tailCalls.find(type) != tailCalls.end()) {
@@ -106,44 +120,104 @@ bool IA_IAPI::isTailCall(Function* context, EdgeTypeEnum type, unsigned int, con
         }
         return false;
     }
-    
+
     bool valid; Address addr;
-    if (type == DIRECT)
-       boost::tie(valid, addr) = getCFT();
-    else 
-       boost::tie(valid, addr) = getFallthrough();
+    boost::tie(valid, addr) = getCFT();
+
+    Function* callee = _obj->findFuncByEntry(_cr, addr);
+    Block* target = _obj->findBlockByEntry(_cr, addr);
+
+    if (callee == NULL) {
+        // It could be that this is a within linkage tail call.
+	// So, the function symbol is two instructions ahead of the call target.
+	addr -= 8;
+        callee = _obj->findFuncByEntry(_cr, addr);
+	target = _obj->findBlockByEntry(_cr, addr);	
+    }
+
+    // check if addr is in a block if it is not entry.
+    if (target == NULL) {
+        std::set<Block*> blocks;
+        _obj->findCurrentBlocks(_cr, addr, blocks);
+        if (blocks.size() == 1) {
+            target = *blocks.begin();
+        } else if (blocks.size() == 0) {
+	    // This case can happen when the jump target is a function entry,
+	    // but we have not parsed the function yet,
+	    // or when this is an indirect jump 
+	    target = NULL;
+	} else {
+	    // If this case happens, it means the jump goes into overlapping instruction streams,
+	    // it is not likely to be a tail call.
+	    parsing_printf("\tjumps into overlapping instruction streams\n");
+	    for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
+	        parsing_printf("\t block [%lx,%lx)\n", (*bit)->start(), (*bit)->end());
+	    }
+	    parsing_printf("\tjump to 0x%lx, NOT TAIL CALL\n", addr);
+	    tailCalls[type] = false;
+	    return false;
+	}
+    }
 
     if(curInsn()->getCategory() == c_BranchInsn &&
        valid &&
-       _obj->findFuncByEntry(_cr,addr))
+       callee && 
+       callee != context &&
+       target &&
+       !context->contains(target)
+       )
     {
       parsing_printf("\tjump to 0x%lx, TAIL CALL\n", addr);
       tailCalls[type] = true;
       return true;
     }
 
+    if (curInsn()->getCategory() == c_BranchInsn &&
+            valid &&
+            !callee) {
+	if (target) {
+	    parsing_printf("\tjump to 0x%lx is known block, but not func entry, NOT TAIL CALL\n", addr);
+	    tailCalls[type] = false;
+	    return false;
+	} else if (knownTargets.find(addr) != knownTargets.end()) {
+	    parsing_printf("\tjump to 0x%lx is known target in this function, NOT TAIL CALL\n", addr);
+	    tailCalls[type] = false;
+	    return false;
+	}
+    }
+
     if(allInsns.size() < 2) {
+      if(context->addr() == _curBlk->start() && curInsn()->getCategory() == c_BranchInsn)
+      {
+	parsing_printf("\tjump as only insn in entry block, TAIL CALL\n");
+	tailCalls[type] = true;
+	return true;
+      }
+      else
+      {
         parsing_printf("\ttoo few insns to detect tail call\n");
         context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
         tailCalls[type] = false;
         return false;
+      }
     }
+   
     tailCalls[type] = false;
     context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
     return false;
 }
 
-bool IA_IAPI::savesFP() const
+bool IA_power::savesFP() const
 {
     return false;
 }
 
-bool IA_IAPI::isStackFramePreamble() const
+bool IA_power::isStackFramePreamble() const
 {
     return false;
 }
 
-bool IA_IAPI::cleansStack() const
+bool IA_power::cleansStack() const
 {
     return false;
 }
@@ -161,7 +235,7 @@ class PPCReturnPredicates : public Slicer::Predicates {
 
 
 
-bool IA_IAPI::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const {
+bool IA_power::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const {
 
   parsing_printf(" sliceReturn ret 0x%lx address 0x%lx func %s addr 0x%lx \n", ret_addr, bit->lastInsnAddr(), func->name().c_str(), func->addr() );
   AST::Ptr pcDef;
@@ -207,7 +281,7 @@ bool IA_IAPI::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Func
   }
 }
 
-bool IA_IAPI::isReturnAddrSave(Address& retAddr) const
+bool IA_power::isReturnAddrSave(Address& retAddr) const
 {
   RegisterAST::Ptr regLR, regSP;
   regLR = ppc32_LR; regSP = ppc32_SP;
@@ -253,7 +327,7 @@ bool IA_IAPI::isReturnAddrSave(Address& retAddr) const
 
       // walk to first control flow transfer instruction, looking
       // for a save of destLRReg
-      IA_IAPI copy (dec, getAddr (), _obj, _cr, _isrc, _curBlk);
+      IA_power copy (dec, getAddr (), _obj, _cr, _isrc, _curBlk);
       while (!copy.hasCFT () && copy.curInsn ())
 	{
 	  ci = copy.curInsn ();
@@ -276,7 +350,7 @@ bool IA_IAPI::isReturnAddrSave(Address& retAddr) const
   return ret;
 }
 
-bool IA_IAPI::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const
+bool IA_power::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const
 {
   /* Check for leaf node or lw - mflr - blr pattern */
   if (curInsn()->getCategory() != c_ReturnInsn) {
@@ -319,7 +393,7 @@ bool IA_IAPI::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI:
 				 getPtrToInstruction (blockStart));
       InstructionDecoder decCopy (b, currBlk->size (),
 				  this->_isrc->getArch ());
-      IA_IAPI copy (decCopy, blockStart, _obj, _cr, _isrc, _curBlk);
+      IA_power copy (decCopy, blockStart, _obj, _cr, _isrc, _curBlk);
       while (copy.getInstruction () && !copy.hasCFT ())
 	{
 	  copy.advance ();
@@ -375,12 +449,12 @@ bool IA_IAPI::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI:
     }
 }
 
-bool IA_IAPI::isFakeCall() const
+bool IA_power::isFakeCall() const
 {
     return false;
 }
 
-bool IA_IAPI::isIATcall(std::string &) const
+bool IA_power::isIATcall(std::string &) const
 {
     return false;
 }
@@ -711,7 +785,7 @@ linker_stub_t checkLinkerStub(void *insn_buf, Offset &off)
     return STUB_UNKNOWN;
 }
 
-bool IA_IAPI::isLinkerStub() const
+bool IA_power::isLinkerStub() const
 {
   // Disabling this code because it ends with an
   // incorrect CFG. 
@@ -846,13 +920,15 @@ AST::Ptr PPC_BLR_Visitor::visit(DataflowAPI::RoseAST *r) {
 
 #if 0
 ParseAPI::StackTamper
-IA_IAPI::tampersStack(ParseAPI::Function *, Address &) const
+IA_power::tampersStack(ParseAPI::Function *, Address &) const
 {
     return TAMPER_NONE;
 }
 #endif
 
-bool IA_IAPI::isNopJump() const
+bool IA_power::isNopJump() const
 {
     return false;
 }
+
+

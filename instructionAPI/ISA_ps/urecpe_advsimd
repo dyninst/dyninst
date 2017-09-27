@@ -1,0 +1,12 @@
+##urecpe_advsimd_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize) operand = V[n];
+bits(datasize) result;
+bits(32) element;
+
+for e = 0 to elements-1
+    element = Elem[operand, e, 32];
+    Elem[result, e, 32] = UnsignedRecipEstimate(element);
+
+V[d] = result;
+@@

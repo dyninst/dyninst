@@ -42,7 +42,7 @@
 #include "ProcReader.h"
 #include "IBSTree.h"
 
-#include "version.h"
+#include "dyninstversion.h"
 
 #include "boost/shared_ptr.hpp"
 #include "boost/multi_index_container.hpp"
@@ -621,7 +621,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
 /**
  * Used to represent something like a C++ try/catch block.  
- * Currently only used on Linux/x86
+ * Currently only used on Linux
  **/
 SYMTAB_EXPORT  std::ostream &operator<<(std::ostream &os, const ExceptionBlock &q);
 

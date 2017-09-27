@@ -1,0 +1,24 @@
+##cmgt_advsimd_zero_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize) operand = V[n];
+bits(datasize) result;
+integer element;
+boolean test_passed;
+
+for e = 0 to elements-1
+    element = SInt(Elem[operand, e, esize]);
+    case comparison of
+        when CompareOp_GT test_passed = element > 0;
+        end
+        when CompareOp_GE test_passed = element >= 0;
+        end
+        when CompareOp_EQ test_passed = element == 0;
+        end
+        when CompareOp_LE test_passed = element <= 0;
+        end
+        when CompareOp_LT test_passed = element < 0;
+    Elem[result, e, esize] = if test_passed then Ones() else Zeros(64);
+
+        end
+V[d] = result;
+@@

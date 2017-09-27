@@ -1,0 +1,28 @@
+##rev_execute
+bits(datasize) result;
+bits(6) V;
+integer vbit;
+
+case op of
+    when RevOp_REV16 V = 001000;
+    end
+    when RevOp_REV32 V = 011000;
+    end
+    when RevOp_REV64 V = 111000;
+    when RevOp_RBIT  V = if datasize == 64 then 111111 else 011111;
+
+    end
+result = X[n];
+for vbit = 0 to 5
+    // Swap pairs of 2^vbit bits in result
+    if V<vbit> == 1 then
+        bits(datasize) tmp = result;
+        integer vsize = 1 << vbit;
+        integer base = 0;
+        while base < datasize do
+            result<base+vsize-1:base> = tmp<base+(2*vsize)-1:base+vsize>;
+            result<base+(2*vsize)-1:base+vsize> = tmp<base+vsize-1:base>;
+            base = base + (2 * vsize);
+    end
+X[d] = result;
+@@

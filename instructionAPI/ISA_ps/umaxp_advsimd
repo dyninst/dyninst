@@ -1,0 +1,18 @@
+##umaxp_advsimd_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize) operand1 = V[n];
+bits(datasize) operand2 = V[m];
+bits(datasize) result;
+bits(2*datasize) concat = operand2:operand1;
+integer element1;
+integer element2;
+integer maxmin;
+
+for e = 0 to elements-1
+    element1 = Int(Elem[concat, 2*e, esize], unsigned);
+    element2 = Int(Elem[concat, (2*e)+1, esize], unsigned);
+    maxmin = if minimum then Min(element1, element2) else Max(element1, element2);
+    Elem[result, e, esize] = maxmin<esize-1:0>;
+
+V[d] = result;
+@@

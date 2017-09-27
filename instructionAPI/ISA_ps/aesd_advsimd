@@ -1,0 +1,14 @@
+##aesd_advsimd_execute
+CheckCryptoEnabled64();
+
+bits(128) operand1 = V[d];
+bits(128) operand2 = V[n];
+bits(128) result;
+result = operand1 EOR operand2;
+if decrypt then
+    result = AESInvSubBytes(AESInvShiftRows(result));
+else
+    result = AESSubBytes(AESShiftRows(result));
+
+V[d] = result;
+@@

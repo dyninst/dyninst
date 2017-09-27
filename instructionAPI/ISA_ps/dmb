@@ -1,0 +1,12 @@
+##dmb_execute
+case op of
+    when MemBarrierOp_DSB
+        DataSynchronizationBarrier(domain, types);
+    end
+    when MemBarrierOp_DMB
+        DataMemoryBarrier(domain, types);
+    end
+    when MemBarrierOp_ISB
+        InstructionSynchronizationBarrier();
+    end
+@@

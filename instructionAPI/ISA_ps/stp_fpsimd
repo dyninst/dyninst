@@ -1,0 +1,53 @@
+##stp_fpsimd_execute
+CheckFPAdvSIMDEnabled64();
+
+bits(64) address;
+bits(datasize) data1;
+bits(datasize) data2;
+constant integer dbytes = datasize / 8;
+boolean rt_unknown = FALSE;
+
+if memop == MemOp_LOAD && t == t2 then
+    case c of
+end
+
+if n == 31 then
+    address = SP[];
+else
+    address = X[n];
+end
+
+if ! postindex then
+    address = address + offset;
+end
+
+case memop of
+    when MemOp_STORE
+        data1 = V[t];
+        data2 = V[t2];
+        Mem[address + 0     , dbytes, acctype] = data1;
+        Mem[address + dbytes, dbytes, acctype] = data2;
+    end
+
+    when MemOp_LOAD
+        data1 = Mem[address + 0     , dbytes, acctype];
+        data2 = Mem[address + dbytes, dbytes, acctype];
+        if rt_unknown then
+            data1 = bits(datasize) UNKNOWN;
+            data2 = bits(datasize) UNKNOWN;
+        end
+        V[t]  = data1;
+        V[t2] = data2;
+    end
+
+if wback then
+    if postindex then
+        address = address + offset;
+    end
+    if n == 31 then
+        SP[] = address;
+    else
+        X[n] = address;
+    end
+end
+@@

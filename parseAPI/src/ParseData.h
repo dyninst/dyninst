@@ -85,7 +85,7 @@ class ParseFrame {
     ParseWorkElem * mkWork(
         ParseWorkBundle * b,
 	Block* block,
-        const InsnAdapter::IA_IAPI &ah);
+        const InsnAdapter::IA_IAPI *ah);
 
     void pushWork(ParseWorkElem * elem) {
         worklist.push(elem);

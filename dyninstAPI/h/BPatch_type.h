@@ -261,7 +261,7 @@ protected:
 
   // INTERNAL DATA MEMBERS
 
-	unsigned int refCount;
+  unsigned int refCount;
 
  protected:
   // Simple Destructor
