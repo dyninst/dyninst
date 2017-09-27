@@ -295,18 +295,28 @@ AST::Ptr JumpTableFormatVisitor::visit(DataflowAPI::RoseAST *ast) {
 	 ast->val().op == ROSEOperation::shiftLOp ||
 	 ast->val().op == ROSEOperation::rotateLOp) && memoryReadLayer > 0) {
 	if (ast->child(0)->getID() == AST::V_ConstantAST && ast->child(1)->getID() == AST::V_VariableAST) {
-	    findIndex = true;
-	    numOfVar++;
-	    VariableAST::Ptr varAst = boost::static_pointer_cast<VariableAST>(ast->child(1));
-	    index = varAst->val().reg;
-	    return AST::Ptr();
+	    ConstantAST::Ptr constAst = boost::static_pointer_cast<ConstantAST>(ast->child(0));	   
+	    if (!((ast->val().op == ROSEOperation::uMultOp || ast->val().op == ROSEOperation::sMultOp) &&
+	        !findTableBase &&
+		constAst->val().val == 1)) {
+		findIndex = true;
+		numOfVar++;
+		VariableAST::Ptr varAst = boost::static_pointer_cast<VariableAST>(ast->child(1));
+		index = varAst->val().reg;
+		return AST::Ptr();
+	    }
 	}
 	if (ast->child(1)->getID() == AST::V_ConstantAST && ast->child(0)->getID() == AST::V_VariableAST) {
-	    findIndex = true;
-	    numOfVar++;
-	    VariableAST::Ptr varAst = boost::static_pointer_cast<VariableAST>(ast->child(0));
-	    index = varAst->val().reg;
-	    return AST::Ptr();
+	    ConstantAST::Ptr constAst = boost::static_pointer_cast<ConstantAST>(ast->child(1));	   
+	    if (!((ast->val().op == ROSEOperation::uMultOp || ast->val().op == ROSEOperation::sMultOp) &&
+	        !findTableBase &&
+		constAst->val().val == 1)) {
+		findIndex = true;
+		numOfVar++;
+		VariableAST::Ptr varAst = boost::static_pointer_cast<VariableAST>(ast->child(0));
+		index = varAst->val().reg;
+		return AST::Ptr();
+	    }
 	}
     }
 

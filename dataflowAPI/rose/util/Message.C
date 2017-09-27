@@ -1752,7 +1752,7 @@ Facilities::ControlTerm::toString() const {
 
 // class method; thread-safe
 // Matches the Perl regular expression /^\s*([a-zA-Z]\w*((\.|::)[a-zA-Z]\w*)*/
-// On match, returns $1 and str points to the next character after the regular expression
+// On match, returns $2 and str points to the next character after the regular expression
 // When not matched, returns "" and str is unchanged
 SAWYER_EXPORT std::string
 Facilities::parseFacilityName(const char *&str) {
@@ -1775,7 +1775,7 @@ Facilities::parseFacilityName(const char *&str) {
 }
 
 // class method; thread-safe
-// Matches the Perl regular expression /^\s*([+!]?)/ and returns $1 on success with str pointing to the character after the
+// Matches the Perl regular expression /^\s*([+!]?)/ and returns $2 on success with str pointing to the character after the
 // match.  Returns the empty string on failure with str not adjusted.
 SAWYER_EXPORT std::string
 Facilities::parseEnablement(const char *&str) {
@@ -1789,7 +1789,7 @@ Facilities::parseEnablement(const char *&str) {
 }
 
 // class method; thread-safe
-// Matches the Perl regular expression /^\s*(<=?|>=?)/ and returns $1 on success with str pointing to the character after
+// Matches the Perl regular expression /^\s*(<=?|>=?)/ and returns $2 on success with str pointing to the character after
 // the match. Returns the empty string on failure with str not adjusted.
 SAWYER_EXPORT std::string
 Facilities::parseRelation(const char *&str) {
@@ -1807,7 +1807,7 @@ Facilities::parseRelation(const char *&str) {
 
 // class method; thread-safe
 // Matches the Perl regular expression /^\s*(all|none|debug|trace|where|info|warn|error|fatal)\b/
-// On match, returns $1 and str points to the next character after the match
+// On match, returns $2 and str points to the next character after the match
 // On failure, returns "" and str is unchanged
 SAWYER_EXPORT std::string
 Facilities::parseImportanceName(const char *&str) {

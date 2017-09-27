@@ -42,7 +42,7 @@
 #include "ProcReader.h"
 #include "IBSTree.h"
 
-#include "version.h"
+#include "dyninstversion.h"
 
 #include "boost/shared_ptr.hpp"
 #include "boost/multi_index_container.hpp"

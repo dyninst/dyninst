@@ -49,13 +49,13 @@
 
 using namespace Dyninst;
 using namespace Stackwalker;
-using namespace Dwarf;
+using namespace DwarfDyninst;
 
 static std::map<std::string, DwarfFrameParser::Ptr> dwarf_info;
 
 #include <stdarg.h>
 #include "dwarf.h"
-#include "libdwarf.h"
+#include "elfutils/libdw.h"
 #include "Elf_X.h"
 
 static DwarfFrameParser::Ptr getAuxDwarfInfo(std::string s)
@@ -96,6 +96,7 @@ static DwarfFrameParser::Ptr getAuxDwarfInfo(std::string s)
 #endif
 
    DwarfFrameParser::Ptr dresult = DwarfFrameParser::create(*dwarf->frame_dbg(), arch);
+   if(!dresult) return NULL;
    dwarf_aux_info[s] = dresult;
    return dresult;
 }

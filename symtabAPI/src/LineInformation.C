@@ -155,7 +155,6 @@ LineInformation::const_iterator LineInformation::end() const
 
 LineInformation::const_iterator LineInformation::find(Offset addressInRange) const
 {
-    ++num_queries;
     const_iterator start_addr_valid = project<Statement::addr_range>(get<Statement::upper_bound>().lower_bound(addressInRange ));
     if(start_addr_valid == end()) return end();
     const_iterator end_addr_valid = impl_t::upper_bound(addressInRange + 1);
@@ -164,10 +163,6 @@ LineInformation::const_iterator LineInformation::find(Offset addressInRange) con
         if(*(*start_addr_valid) == addressInRange)
         {
             return start_addr_valid;
-        }
-        else
-        {
-            ++wasted_compares;
         }
         ++start_addr_valid;
     }
@@ -210,6 +205,7 @@ LineInformation::equal_range(std::string file, const unsigned int lineNo) const 
             return bounds;
         }
     }
+    bounds = make_pair(get<Statement::line_info>().end(), get<Statement::line_info>().end());
     return bounds;
 }
 

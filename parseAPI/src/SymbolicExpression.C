@@ -115,15 +115,11 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
 		        return roseAST->child(0);
 		    }
 		}
-	        if (roseAST->child(0)->getID() == AST::V_VariableAST && roseAST->child(1)->getID() == AST::V_VariableAST) {
-		    VariableAST::Ptr child0 = boost::static_pointer_cast<VariableAST>(roseAST->child(0));
-		    VariableAST::Ptr child1 = boost::static_pointer_cast<VariableAST>(roseAST->child(1));
-		    if (child0->val() == child1->val()) {
-		        return roseAST->child(0);
-		    }
-                }		    
-		break;
-
+		if (roseAST->child(1)->getID() == AST::V_RoseAST) {
+		    RoseAST::Ptr child1 = boost::static_pointer_cast<RoseAST>(roseAST->child(1));
+		    if (child1->val().op == ROSEOperation::ifOp) break;
+		}
+		return roseAST->child(0);
 	    }
 	    case ROSEOperation::addOp:
 	        // We simplify the addition as much as we can
@@ -167,6 +163,11 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
 		break;
 	    case ROSEOperation::sMultOp:
 	    case ROSEOperation::uMultOp:
+	        if (roseAST->child(0)->getID() == AST::V_ConstantAST && roseAST->child(1)->getID() == AST::V_ConstantAST) {
+		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
+		    ConstantAST::Ptr child1 = boost::static_pointer_cast<ConstantAST>(roseAST->child(1));
+		    return ConstantAST::create(Constant(child0->val().val * child1->val().val, 64));
+		}
 	        if (roseAST->child(0)->getID() == AST::V_ConstantAST) {
 		    ConstantAST::Ptr child0 = boost::static_pointer_cast<ConstantAST>(roseAST->child(0));
 		    if (child0->val().val == 1 && !keepMultiOne) return roseAST->child(1);

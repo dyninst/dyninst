@@ -35,7 +35,7 @@
 #include "Point.h"
 #include "PatchCallback.h"
 
-#include "version.h"
+#include "dyninstversion.h"
 
 using namespace Dyninst;
 using namespace PatchAPI;

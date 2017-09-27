@@ -35,7 +35,7 @@
 #include "Parser.h"
 #include "debug_parse.h"
 
-#include "version.h"
+#include "dyninstversion.h"
 
 using namespace std;
 using namespace Dyninst;
