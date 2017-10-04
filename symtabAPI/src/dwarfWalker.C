@@ -741,30 +741,18 @@ vector<AddressRange> DwarfWalker::getDieRanges(Dwarf * dbg, Dwarf_Die die, Offse
     auto highlow = parseHighPCLowPC(dbg, die);
     if(highlow.second) newRanges.push_back(highlow.first);
 
-    Address range_offset;
-    if (findConstant(DW_AT_ranges, range_offset, die, dbg))
+    Dwarf_Addr base;
+    Dwarf_Addr start, end;
+    ptrdiff_t offset = 0;
+    while(1)
     {
-        Dwarf_Aranges *ranges = NULL;
-        size_t ranges_length = 0;
-        dwarf_printf("calling ranges_a, offset 0x%lx, die %p\n", range_offset, die);
-        int status = dwarf_getaranges(dbg, &ranges, &ranges_length);
-        bool done = (status != 0);
-        for (unsigned i = 0; i < ranges_length && !done; i++) {
-            Dwarf_Arange *cur = dwarf_onearange(ranges,i);
-            Address cur_base = range_base;
-            Dwarf_Addr address;
-            Dwarf_Word length;
-            Dwarf_Off offset;
-            if(dwarf_getarangeinfo(cur, &address, &length, &offset)!=0)
-                continue;
-            Address low = address + offset + cur_base;
-            Address high = low + length;
-            dwarf_printf("Lexical block from 0x%lx to 0x%lx\n", low, high);
-            newRanges.push_back(AddressRange(low, high));
-
-        }
+        offset = dwarf_ranges(&die, offset, &base, &start, &end);
+        if(offset < 0) return newRanges;
+        newRanges.push_back(AddressRange(start, end));
+        if(offset == 0) break;
     }
     return newRanges;
+
 }
 
 bool DwarfWalker::parseLexicalBlock() {
