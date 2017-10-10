@@ -55,7 +55,7 @@ class DwarfWalker;
 
 class SYMTAB_EXPORT localVarCollection : public AnnotationContainer<localVar *> {
   
-  std::vector<localVar* > localVars;
+  tbb::concurrent_vector<localVar* > localVars;
   
   bool addItem_impl(localVar *);
 public:
@@ -64,7 +64,7 @@ public:
 
   void addLocalVar(localVar * var);
   localVar * findLocalVar(std::string &name);
-  std::vector<localVar *> *getAllVars();  
+  const tbb::concurrent_vector<localVar *> &getAllVars() const;
 
   Serializable *ac_serialize_impl(SerializerBase *, const char * = "localVarCollection") THROW_SPEC (SerializerError);
 };
@@ -104,12 +104,9 @@ class SYMTAB_EXPORT typeCollection : public Serializable//, public AnnotatableSp
     ~typeCollection();
 public:
 	static void addDeferredLookup(int, dataClass, Type **);
+    static boost::mutex create_lock;
 
     static typeCollection *getModTypeCollection(Module *mod);
-#if 0
-    static typeCollection *getGlobalTypeCollection();
-    static void freeTypeCollection(typeCollection *tc);
-#endif
 
     // DWARF...
     bool dwarfParsed() { return dwarfParsed_; }

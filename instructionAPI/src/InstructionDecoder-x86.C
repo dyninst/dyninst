@@ -145,7 +145,8 @@ namespace Dyninst
     }
     INSTRUCTION_EXPORT InstructionDecoder_x86::~InstructionDecoder_x86()
     {
-
+        free(decodedInstruction);
+        free(locs);
     }
     static const unsigned char modrm_use_sib = 4;
     

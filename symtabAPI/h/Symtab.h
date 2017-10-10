@@ -465,7 +465,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    static boost::shared_ptr<typeCollection> setupStdTypes();
    static boost::shared_ptr<builtInTypeCollection> setupBuiltinTypes();
-
+    boost::mutex symbols_mutex;
 
    std::string member_name_;
    Offset member_offset_;

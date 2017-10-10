@@ -109,7 +109,7 @@ bool FunctionBase::getLocalVariables(std::vector<localVar *> &vars)
    if (!locals)
       return false;
 
-   std::vector<localVar *> &p = *locals->getAllVars();
+   auto p = locals->getAllVars();
    std::copy(p.begin(), p.end(), back_inserter(vars));
    
    if (p.empty())
@@ -123,7 +123,7 @@ bool FunctionBase::getParams(std::vector<localVar *> &params_)
    if (!params)
       return false;
 
-   std::vector<localVar *> &p = *params->getAllVars();
+   auto p = params->getAllVars();
    std::copy(p.begin(), p.end(), back_inserter(params_));
 
    if (p.empty())

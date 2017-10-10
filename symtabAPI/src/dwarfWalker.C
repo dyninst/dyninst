@@ -44,6 +44,9 @@
 #include "Type-mem.h"
 #include <boost/bind.hpp>
 #include <cilk/cilk.h>
+#include "elfutils/libdw.h"
+#include <atomic>
+#include <elfutils/libdw.h>
 
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -81,7 +84,6 @@ using namespace std;
 
 DwarfWalker::DwarfWalker(Symtab *symtab, ::Dwarf * dbg) :
    DwarfParseActions(symtab, dbg),
-   srcFileList_(NULL),
    is_mangled_name_(false),
    modLow(0),
    modHigh(0),
@@ -137,12 +139,18 @@ bool DwarfWalker::parse() {
             continue;
 
         push();
+//        DwarfWalker mod_walker(*this);
+//        pop();
+//        bool ret = /*cilk_spawn */mod_walker.parseModule(false, fixUnknownMod);
         bool ret = parseModule(false, fixUnknownMod);
         pop();
-        if (!ret) return false;
+        if(!ret) {
+            cilk_sync;
+            return false;
+        }
         compile_offset = next_cu_header;
     }
-
+    cilk_sync;
     /* Iterate over the compilation-unit headers for .debug_info. */
     for(Dwarf_Off cu_off = 0;
             dwarf_nextcu(dbg(), cu_off, &next_cu_header, &cu_header_length,
@@ -153,12 +161,18 @@ bool DwarfWalker::parse() {
             continue;
 
         push();
+//        DwarfWalker mod_walker(*this);
+//        pop();
+//        bool ret = /*cilk_spawn */ mod_walker.parseModule(true, fixUnknownMod);
         bool ret = parseModule(true, fixUnknownMod);
         pop();
-        if (!ret) return false;
+        if(!ret) {
+            cilk_sync;
+            return false;
+        }
         compile_offset = next_cu_header;
     }
-
+    cilk_sync;
     if (!fixUnknownMod)
         return true;
 
@@ -312,7 +326,7 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
             return false;
         if (!findOffset())
             return false;
-        curName() = std::string();
+        name_.clear();
         setMangledName(false);
 
         dwarf_printf("(0x%lx) Parsing entry %p with context size %d, func %p, encl %p\n",
@@ -430,8 +444,9 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
 
         if (ret && parseChild() ) {
             // Parse children
-            Dwarf_Die childDwarf, ent = entry();
-            int status = dwarf_child( &ent, & childDwarf);
+            Dwarf_Die childDwarf;
+            Dwarf_Die e  = entry();
+            int status = dwarf_child( &e, & childDwarf);
             if(status == -1)
                 return false;
             if (status == 0) {
@@ -448,8 +463,7 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
         dwarf_printf("(0x%lx) Asking for sibling\n", id());
 
         Dwarf_Die siblingDwarf;
-        Dwarf_Die ent = entry();
-        int status = dwarf_siblingof(&ent, &siblingDwarf);
+        int status = dwarf_siblingof(&e, &siblingDwarf);
         DWARF_CHECK_RET(status == -1);
 
         if (status == 1) {
@@ -479,7 +493,7 @@ bool DwarfWalker::parseCallsite()
         return false;
 
     Dyninst::Offset inline_line;
-    result = findConstant(DW_AT_call_line, inline_line, entry(), dbg());
+    result = findConstant(DW_AT_call_line, inline_line, e, dbg());
     if (!result)
         return false;
 
@@ -573,7 +587,6 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    boost::shared_ptr<void> guard(static_cast<void*>(0), bind(restore, old));
 //   common_debug_dwarf = 1;
    dwarf_printf("(0x%lx) parseSubprogram entry\n", id());
-
     parseRangeTypes(dbg(), entry());
    setFunctionFromRange(func_type);
 
@@ -682,8 +695,9 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
 void DwarfWalker::setRanges(FunctionBase *func) {
    if(func->ranges.empty()) {
 	   Address last_low = 0, last_high = 0;
-       func->ranges.reserve(rangesSize());
+//       func->ranges.reserve(rangesSize());
 	   for (auto i = ranges_begin(); i != ranges_end(); i++) {
+//           cerr << "Adding " << rangesSize() << " ranges\n";
 	       Address low = i->first;
 	       Address high = i->second;
 	       if (last_low == low && last_high == high)
@@ -698,30 +712,39 @@ void DwarfWalker::setRanges(FunctionBase *func) {
 
 pair<AddressRange, bool> DwarfWalker::parseHighPCLowPC(::Dwarf * dbg, Dwarf_Die entry)
 {
-    Dwarf_Attribute hasLow;
+    Dwarf_Addr low, high;
+    int low_result = dwarf_lowpc(&entry, &low);
+    int high_result = dwarf_highpc(&entry, &high);
+    bool ok = (low_result == 0) &&
+            (high_result == 0) &&
+            (low != 0) &&
+            (high != 0);
 
-    Dwarf_Attribute hasHigh;
-    std::pair<AddressRange, bool> result = make_pair(AddressRange(0,0), false);
-    if(dwarf_attr(&entry, DW_AT_low_pc, &hasLow) == NULL) return result;
-    if(dwarf_attr(&entry, DW_AT_high_pc, &hasHigh) == NULL) return result;
-
-    Address low, high;
-    if (!findConstant(DW_AT_low_pc, low, entry, dbg)) return result;
-    if (!findConstant(DW_AT_high_pc, high, entry, dbg)) return result;
-    Dwarf_Half form = dwarf_whatform(&hasHigh);
-    if(form==0) return result;
-
-    if(form != DW_FORM_addr)
-    {
-        high += low;
-    }
-    // Don't add 0,0; it's not a real range but a sign something went wrong.
-    if(low || high)
-    {
-        dwarf_printf("Lexical block from 0x%lx to 0x%lx\n", low, high);
-        result = make_pair(AddressRange(low, high), true);
-    }
-    return result;
+    return make_pair(AddressRange(low, high), ok);
+//    Dwarf_Attribute hasLow;
+//
+//    Dwarf_Attribute hasHigh;
+//    std::pair<AddressRange, bool> result = make_pair(AddressRange(0,0), false);
+//    if(dwarf_attr(&entry, DW_AT_low_pc, &hasLow) == NULL) return result;
+//    if(dwarf_attr(&entry, DW_AT_high_pc, &hasHigh) == NULL) return result;
+//
+//    Address low, high;
+//    if (!findConstant(DW_AT_low_pc, low, entry, dbg)) return result;
+//    if (!findConstant(DW_AT_high_pc, high, entry, dbg)) return result;
+//    Dwarf_Half form = dwarf_whatform(&hasHigh);
+//    if(form==0) return result;
+//
+//    if(form != DW_FORM_addr)
+//    {
+//        high += low;
+//    }
+//    // Don't add 0,0; it's not a real range but a sign something went wrong.
+//    if(low || high)
+//    {
+//        dwarf_printf("Lexical block from 0x%lx to 0x%lx\n", low, high);
+//        result = make_pair(AddressRange(low, high), true);
+//    }
+//    return result;
 }
 
 bool DwarfWalker::parseRangeTypes(Dwarf * dbg, Dwarf_Die die) {
@@ -729,6 +752,8 @@ bool DwarfWalker::parseRangeTypes(Dwarf * dbg, Dwarf_Die die) {
 
    clearRanges();
     std::vector<AddressRange> newRanges = getDieRanges(dbg, die, modLow);
+//    cerr << "parseRangeTypes generating new ranges, size is " << newRanges.size()
+//         << ", DIE offset is " << die.addr << endl;
     for(auto r = newRanges.begin();
         r != newRanges.end();
         ++r)
@@ -740,31 +765,18 @@ bool DwarfWalker::parseRangeTypes(Dwarf * dbg, Dwarf_Die die) {
 
 vector<AddressRange> DwarfWalker::getDieRanges(Dwarf * dbg, Dwarf_Die die, Offset range_base) {
     std::vector<AddressRange> newRanges;
-    auto highlow = parseHighPCLowPC(dbg, die);
-    if(highlow.second) newRanges.push_back(highlow.first);
 
-    Address range_offset;
-    if (findConstant(DW_AT_ranges, range_offset, die, dbg))
+    Dwarf_Addr base;
+    Dwarf_Addr start, end;
+    ptrdiff_t offset = 0;
+    while(1)
     {
-        Dwarf_Aranges *ranges = NULL;
-        size_t ranges_length = 0;
-        dwarf_printf("calling ranges_a, offset 0x%lx, die %p\n", range_offset, die);
-        int status = dwarf_getaranges(dbg, &ranges, &ranges_length);
-        bool done = (status != 0);
-        for (unsigned i = 0; i < ranges_length && !done; i++) {
-            Dwarf_Arange *cur = dwarf_onearange(ranges,i);
-            Address cur_base = range_base;
-            Dwarf_Addr address;
-            Dwarf_Word length;
-            Dwarf_Off offset;
-            if(dwarf_getarangeinfo(cur, &address, &length, &offset)!=0)
-                continue;
-            Address low = address + offset + cur_base;
-            Address high = low + length;
-            dwarf_printf("Lexical block from 0x%lx to 0x%lx\n", low, high);
-            newRanges.push_back(AddressRange(low, high));
-
-        }
+        offset = dwarf_ranges(&die, offset, &base, &start, &end);
+        if(offset < 0) return std::vector<AddressRange>();
+        if(offset == 0) break;
+        dwarf_printf("Lexical block from 0x%lx to 0x%lx\n", start, end);
+//        printf("Lexical block from 0x%lx to 0x%lx, offset is %p, %d entries\n", start, end, offset, newRanges.size());
+        newRanges.push_back(AddressRange(start, end));
     }
     return newRanges;
 }
@@ -1107,16 +1119,16 @@ bool DwarfWalker::parseArray() {
 
    /* Find the range(s) of the elements. */
    Dwarf_Die firstRange;
+    Dwarf_Die e = entry();
+   int result = dwarf_child(&e, &firstRange);
+    if(result != 0) return false;
 
-   Dwarf_Die e = entry();
-   dwarf_child(&e, &firstRange);
+//   push();
 
-   push();
-
-   typeArray * baseArrayType = parseMultiDimensionalArray(firstRange,
+   typeArray * baseArrayType = parseMultiDimensionalArray(&firstRange,
                                                           elementType);
 
-   pop();
+//   pop();
 
    if (!baseArrayType) return false;
 
@@ -1310,6 +1322,8 @@ bool DwarfWalker::parseMember() {
    // This code changes memberSize, which is then discarded. I'm not sure why...
    if (!fixBitFields(locs, memberSize)) return false;
 
+   if(locs.empty()) return false;
+
    int offset_to_use = locs[0].frameOffset;
 
    dwarf_printf("(0x%lx) Using offset of 0x%lx\n", id(), offset_to_use);
@@ -1399,14 +1413,13 @@ bool DwarfWalker::findOffset() {
 }
 
 bool DwarfWalker::handleAbstractOrigin(bool &isAbstract) {
-    Dwarf_Die absE;
-
+    Dwarf_Die absE, e;
+    e = entry();
     dwarf_printf("(0x%lx) Checking for abstract origin\n", id());
 
     isAbstract = false;
     bool isAbstractOrigin;
 
-    Dwarf_Die e = entry();
     isAbstractOrigin = dwarf_hasattr(&e, DW_AT_abstract_origin);
 
     if (!isAbstractOrigin) return true;
@@ -1427,12 +1440,11 @@ bool DwarfWalker::handleAbstractOrigin(bool &isAbstract) {
 }
 
 bool DwarfWalker::handleSpecification(bool &hasSpec) {
-    Dwarf_Die specE;
-
+    Dwarf_Die specE, e;
+    e = entry();
     dwarf_printf("(0x%lx) Checking for separate specification\n", id());
     hasSpec = false;
 
-    Dwarf_Die e = entry();
     bool hasSpecification = dwarf_hasattr(&e, DW_AT_specification);
 
     if (!hasSpecification) return true;
@@ -1477,7 +1489,6 @@ bool DwarfWalker::findFuncName() {
     /* Prefer linkage names. */
 
     Dwarf_Attribute linkageNameAttr;
-
     Dwarf_Die e = entry();
     auto status = dwarf_attr(&e, DW_AT_MIPS_linkage_name, &linkageNameAttr);
     //if (status != 0)
@@ -1694,8 +1705,8 @@ bool DwarfWalker::getLineInformation(Dwarf_Word &variableLineNo,
         std::string &fileName)
 {
     Dwarf_Attribute fileDeclAttribute;
-    Dwarf_Die e = specEntry();
-    auto status = dwarf_attr( &e, DW_AT_decl_file, &fileDeclAttribute);
+    Dwarf_Die specE = specEntry();
+    auto status = dwarf_attr(&specE, DW_AT_decl_file, &fileDeclAttribute);
 
     if (status != 0) {
         StringTablePtr files = srcFiles();
@@ -1713,7 +1724,7 @@ bool DwarfWalker::getLineInformation(Dwarf_Word &variableLineNo,
     }
 
     Dwarf_Attribute lineNoAttribute;
-    status = dwarf_attr(&e, DW_AT_decl_line, &lineNoAttribute);
+    status = dwarf_attr(&specE, DW_AT_decl_line, &lineNoAttribute);
     if (status == 0) return true;
 
     /* We don't need to tell Dyninst a line number for C++ static variables,
@@ -1828,7 +1839,6 @@ bool DwarfWalker::findString(Dwarf_Half attr,
         str = (*srcFiles())[line_index].str;
         return true;
     }
-
     Dwarf_Die e = entry();
     auto ret_p = dwarf_attr(&e, attr, &strattr);
     if(!ret_p) return false;
@@ -1954,6 +1964,7 @@ bool DwarfWalker::constructConstantVariableLocation(Address value,
 bool DwarfWalker::findSize(unsigned &size) {
     bool hasSize;
     Dwarf_Die e = entry();
+    if(!e.addr) return false;
     hasSize = dwarf_hasattr(&e, DW_AT_byte_size);
     if (!hasSize) return false;
 
@@ -1998,7 +2009,7 @@ bool DwarfWalker::findVisibility(visibility_t &visibility) {
 bool DwarfWalker::findValue(long &value, bool &valid) {
     Dwarf_Attribute valueAttr;
     Dwarf_Die e = entry();
-    auto status = dwarf_attr( &e, DW_AT_const_value, & valueAttr);
+    auto status = dwarf_attr(&e, DW_AT_const_value, & valueAttr);
 
     if (status == 0) {
         valid = false;
@@ -2018,7 +2029,7 @@ bool DwarfWalker::findValue(long &value, bool &valid) {
 bool DwarfWalker::fixBitFields(std::vector<VariableLocation> &locs,
         long &size) {
     Dwarf_Attribute bitOffset;
-    Dwarf_Die e = entry();
+    Dwarf_Die e(entry());
     auto status = dwarf_attr( &e, DW_AT_bit_offset, & bitOffset);
 
     if ( status != 0 && locs.size() )
@@ -2154,21 +2165,26 @@ bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
     return true;
 }
 
-typeArray *DwarfWalker::parseMultiDimensionalArray(Dwarf_Die range,
-        Type * elementType)
+typeArray *DwarfWalker::parseMultiDimensionalArray(Dwarf_Die *range,
+                                                   Type *elementType)
 {
     char buf[32];
     /* Get the (negative) typeID for this range/subarray. */
     //Dwarf_Off dieOffset = dwarf_dieoffset(&range);
 
     /* Determine the range. */
-    std::string loBound;
-    std::string hiBound;
-    parseSubrangeAUX(range, loBound, hiBound);
+//    std::string loBound;
+//    std::string hiBound;
+//    parseSubrangeAUX(range, loBound, hiBound);
+    Dwarf_Attribute loAttr, hiAttr;
+    if(!dwarf_attr(range, DW_AT_lower_bound, &loAttr)) { return NULL; }
+    if(!dwarf_attr(range, DW_AT_upper_bound, &hiAttr)) {return NULL; }
+
+
 
     /* Does the recursion continue? */
     Dwarf_Die nextSibling;
-    int status = dwarf_siblingof(&range, &nextSibling);
+    int status = dwarf_siblingof(range, &nextSibling);
     DWARF_CHECK_RET_VAL(status == -1, NULL);
 
     snprintf(buf, 31, "__array%d", (int) offset());
@@ -2180,8 +2196,8 @@ typeArray *DwarfWalker::parseMultiDimensionalArray(Dwarf_Die range,
         // N.B.  I'm going to ignore the type id, and just create an anonymous type here
         std::string aName = buf;
         typeArray* innermostType = new typeArray( elementType,
-                atoi( loBound.c_str() ),
-                atoi( hiBound.c_str() ),
+                atoi( (char*)loAttr.valp ),
+                atoi( (char*)hiAttr.valp) ,
                 aName );
         Type * typ = tc()->addOrUpdateType( innermostType );
         innermostType = dynamic_cast<typeArray *>(typ);
@@ -2189,10 +2205,11 @@ typeArray *DwarfWalker::parseMultiDimensionalArray(Dwarf_Die range,
     } /* end base-case of recursion. */
 
     /* If it does, build this array type out of the array type returned from the next recusion. */
-    typeArray * innerType = parseMultiDimensionalArray( nextSibling, elementType);
+    typeArray * innerType = parseMultiDimensionalArray( &nextSibling, elementType);
+    if(!innerType) return NULL;
     // same here - type id ignored    jmo
     std::string aName = buf;
-    typeArray * outerType = new typeArray( innerType, atoi(loBound.c_str()), atoi(hiBound.c_str()), aName);
+    typeArray * outerType = new typeArray( innerType, atoi((char*)loAttr.valp ), atoi((char*)hiAttr.valp) , aName);
     Type *typ = tc()->addOrUpdateType( outerType );
     outerType = static_cast<typeArray *>(typ);
 
@@ -2489,20 +2506,21 @@ void DwarfParseActions::clearFunc() {
 
 typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info)
 {
+    static std::atomic<typeId_t> next_type_id = 0;
   auto& type_ids = is_info ? info_type_ids_ : types_type_ids_;
   auto it = type_ids.find(offset);
   if (it != type_ids.end())
     return it->second;
 
-  size_t size = info_type_ids_.size() + types_type_ids_.size();
-  typeId_t id = (typeId_t) size + 1;
-  type_ids[offset] = id;
-  return id;
+//  size_t size = info_type_ids_.size() + types_type_ids_.size();
+//  typeId_t id = (typeId_t) size + 1;
+  type_ids[offset] = ++next_type_id;
+  return next_type_id;
 }
 
 typeId_t DwarfWalker::type_id()
 {
-    Dwarf_Die e = entry();
+    Dwarf_Die e(entry());
     bool is_info = !dwarf_hasattr_integrate(&e, DW_TAG_type_unit);
     return get_type_id(offset(), is_info);
 }

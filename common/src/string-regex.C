@@ -50,7 +50,7 @@ void dedemangle( char * demangled, char * result )
       before the 'const'. */
    char * resultBegins = NULL;
    char * resultEnds = NULL;
-   
+   // starts with open paren, is a member function
    if (	demangled[0] == '(' &&
 	strstr( demangled, "::" ) != NULL) 
    {
@@ -221,13 +221,10 @@ bool regexEquiv(const char *str_,  const char *s, bool checkCase )
 
 bool prefixed_by(std::string &haystack, std::string &prefix)
 {
-   if (!haystack.c_str()) 
+   if (haystack.empty())
       return false;
 
-   const char *res = strstr(haystack.c_str(), prefix.c_str());
-
-   if (res == haystack.c_str())
-      return true;
+   if(haystack.find(prefix) == 0) return true;
 
    return false;
 }
@@ -241,20 +238,10 @@ bool prefixed_by(std::string &haystack, const char *prefix)
 
 bool suffixed_by(std::string &haystack, std::string &suffix)
 {
-   if (!haystack.c_str()) 
+   if (haystack.empty())
       return false;
-
-   int lastchar = haystack.length() - 1;
-
-   int j = 0;
-   for (int i = suffix.length() - 1; i >= 0; i--)
-   {
-      if (haystack[lastchar - i] != suffix[j])
-         return false;
-      j++;
-   }
-
-   return true;
+   if(haystack.rfind(suffix) == haystack.length() - suffix.length()) return true;
+   return false;
 }
 
 bool suffixed_by(std::string &haystack, const char *suffix)

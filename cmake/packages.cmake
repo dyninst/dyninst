@@ -114,7 +114,7 @@ if(DEFINED PATH_BOOST OR
 endif()
 
 
-find_package (Boost ${BOOST_MIN_VERSION} COMPONENTS thread system date_time timer)
+find_package (Boost ${BOOST_MIN_VERSION} COMPONENTS thread system date_time timer filesystem)
 find_library(PROFILER_LIBRARIES profiler /p/paradyn/packages/gperftools/lib)
 
 if(NOT Boost_FOUND)
@@ -165,7 +165,7 @@ if(NOT Boost_FOUND)
     list(APPEND Boost_LIBRARIES optimized libboost_system-mt debug libboost_system-mt-gd)
     list(APPEND Boost_LIBRARIES optimized libboost_date_time-mt debug libboost_date_time-mt-gd)
   else()
-    set(Boost_LIBRARIES boost_thread boost_system boost_date_time)
+    set(Boost_LIBRARIES boost_thread boost_system boost_date_time boost_filesystem)
   endif()
 endif()
 

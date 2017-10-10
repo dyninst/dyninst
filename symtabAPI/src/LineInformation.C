@@ -180,6 +180,7 @@ unsigned LineInformation::getSize() const
 
 LineInformation::~LineInformation() 
 {
+    impl_t::clear_();
 }
 
 LineInformation::const_line_info_iterator LineInformation::begin_by_source() const {

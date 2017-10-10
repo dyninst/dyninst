@@ -69,6 +69,7 @@ bool pattern_match( const char *p, const char *s, bool checkCase );
 
 std::vector<Symbol *> Symtab::findSymbolByOffset(Offset o)
 {
+    boost::lock_guard<boost::mutex> g(symbols_mutex);
   std::vector<Symbol*> ret;
    indexed_symbols::index<offset>::type& syms_by_offset = everyDefinedSymbol.get<offset>();
    std::copy(syms_by_offset.lower_bound(o), syms_by_offset.upper_bound(o), 
@@ -86,6 +87,7 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
                         Symbol::SymbolType sType, NameType nameType,
                         bool isRegex, bool checkCase, bool includeUndefined)
 {
+    boost::lock_guard<boost::mutex> g(symbols_mutex);
 
     unsigned old_size = ret.size();
 
@@ -195,6 +197,7 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
 
 bool Symtab::getAllSymbols(std::vector<Symbol *> &ret)
 {
+    boost::lock_guard<boost::mutex> g(symbols_mutex);
   std::copy(everyDefinedSymbol.begin(), everyDefinedSymbol.end(), back_inserter(ret));
   std::copy(undefDynSyms.begin(), undefDynSyms.end(), back_inserter(ret));
   
@@ -217,6 +220,7 @@ bool Symtab::getAllSymbolsByType(std::vector<Symbol *> &ret, Symbol::SymbolType 
 {
     if (sType == Symbol::ST_UNKNOWN)
         return getAllSymbols(ret);
+    boost::lock_guard<boost::mutex> g(symbols_mutex);
 
     unsigned old_size = ret.size();
     // Filter by the given type
@@ -247,6 +251,7 @@ bool Symtab::getAllSymbolsByType(std::vector<Symbol *> &ret, Symbol::SymbolType 
 bool Symtab::getAllDefinedSymbols(std::vector<Symbol *> &ret)
 {
   ret.clear();
+    boost::lock_guard<boost::mutex> g(symbols_mutex);
   std::copy(everyDefinedSymbol.begin(), everyDefinedSymbol.end(), back_inserter(ret));
   //    ret = everyDefinedSymbol;
 
@@ -258,6 +263,7 @@ bool Symtab::getAllDefinedSymbols(std::vector<Symbol *> &ret)
  
 bool Symtab::getAllUndefinedSymbols(std::vector<Symbol *> &ret){
     unsigned size = ret.size();
+    boost::lock_guard<boost::mutex> g(symbols_mutex);
     ret.insert(ret.end(), undefDynSyms.begin(), undefDynSyms.end());
     if(ret.size()>size)
         return true;

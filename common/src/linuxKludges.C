@@ -200,6 +200,9 @@ unsigned long long PDYN_mulMillion(unsigned long long in) {
 }
 
 #include <cxxabi.h>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/lock_guard.hpp>
+
 using namespace abi;
 
 char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
@@ -209,15 +212,19 @@ char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
   static __thread bool last_native = false;
   static __thread bool last_typed = false;
   static __thread char* last_demangled = NULL;
+   static boost::mutex m;
 
   if(last_symbol && last_demangled && (nativeCompiler == last_native)
       && (includeTypes == last_typed) && (strcmp(symbol, last_symbol) == 0))
   {
       return strdup(last_demangled);
   }
-
    int status;
-   char *demangled = __cxa_demangle(symbol, NULL, NULL, &status);
+   char* demangled;
+   {
+      boost::lock_guard<boost::mutex> g(m);
+      demangled = __cxa_demangle(symbol, NULL, NULL, &status);
+   }
    if (status == -1) {
       //Memory allocation failure.
       return NULL;

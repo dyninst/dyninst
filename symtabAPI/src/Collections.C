@@ -58,7 +58,7 @@ using namespace Dyninst::SymtabAPI;
  */
 localVarCollection::~localVarCollection()
 {
-   std::vector<localVar *>::iterator li = localVars.begin();    
+   auto li = localVars.begin();
    for(;li!=localVars.end();li++)
    {
 	   delete *li;
@@ -95,7 +95,7 @@ void localVarCollection::addLocalVar(localVar * var)
  */
 localVar *localVarCollection::findLocalVar(std::string &name){
 
-   std::vector<localVar *>::iterator li = localVars.begin();    
+   auto li = localVars.begin();
    for(;li!=localVars.end();li++)
    {
       if (name == (*li)->getName()) {
@@ -109,9 +109,9 @@ localVar *localVarCollection::findLocalVar(std::string &name){
  * localVarCollection::getAllVars()
  * this function returns all the local variables in the collection.
  */
-std::vector<localVar *> *localVarCollection::getAllVars() 
+const tbb::concurrent_vector<localVar *> &localVarCollection::getAllVars() const
 {
-    return &localVars;
+    return localVars;
 }
 
 Serializable *localVarCollection::ac_serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
@@ -214,10 +214,10 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
  * Reference count
  */
 
+boost::mutex typeCollection::create_lock;
 
 typeCollection *typeCollection::getModTypeCollection(Module *mod) 
 {
-	static boost::mutex create_lock;
 	boost::lock_guard<boost::mutex> g(create_lock);
 	if (!mod) return NULL;
 	dyn_hash_map<void *, typeCollection *>::iterator iter = fileToTypesMap.find((void *)mod);
