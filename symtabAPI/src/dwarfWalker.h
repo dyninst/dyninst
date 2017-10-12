@@ -53,6 +53,12 @@ public:
         dbg_(d),
         symtab_(s)
 {}
+    DwarfParseActions(const DwarfParseActions& o) :
+            mod_(o.mod_),
+            dbg_(o.dbg_),
+            symtab_(o.symtab_), c(o.c)
+            {
+            }
     typedef std::vector<std::pair<Address, Address> > range_set_t;
     typedef boost::shared_ptr<std::vector<std::pair<Address, Address> > > range_set_ptr;
 private:
@@ -74,8 +80,23 @@ private:
             func(NULL), commonBlock(NULL),
             enumType(NULL), enclosure(NULL),
             parseSibling(true), parseChild(true),
-            /*entry(NULL), specEntry(NULL), abstractEntry(NULL),
-            offset(0),*/ tag(0), base(0) {};
+            offset(0), tag(0), base(0) {
+        };
+        Context(const Context& o) :
+                func(o.func),
+                commonBlock(o.commonBlock),
+                enumType(o.enumType),
+                enclosure(o.enclosure),
+                parseSibling(o.parseSibling),
+                parseChild(o.parseChild),
+                entry(o.entry),
+                specEntry(o.specEntry),
+                abstractEntry(o.specEntry),
+                offset(o.offset),
+                tag(o.tag),
+                base(o.base)
+        {
+        }
     };
 
     std::stack<Context> c;
@@ -112,9 +133,12 @@ public:
     void setOffset(Dwarf_Off o) { c.top().offset = o; }
     void setTag(unsigned int t) { c.top().tag = t; }
     void setBase(Address a) { c.top().base = a; }
-    virtual void setRange(std::pair<Address, Address> range) {
-        if (range.first >= range.second)
+    virtual void setRange(const AddressRange& range) {
+        if (range.first >= range.second) {
+//            std:: cerr << "Discarding invalid range: "
+//                       << std::hex << range.first << " - " << range.second << std::dec << std::endl;
             return;
+        }
         if (!c.top().ranges)
             c.top().ranges = range_set_ptr(new std::vector<std::pair<Address, Address> >);
         c.top().ranges->push_back(range);
@@ -174,6 +198,27 @@ public:
 
     DwarfWalker(Symtab *symtab, Dwarf* dbg);
 
+    DwarfWalker(const DwarfWalker& o) :
+            DwarfParseActions(o),
+            current_cu_die(o.current_cu_die),
+            parsedFuncs(o.parsedFuncs),
+            name_(o.name_),
+            is_mangled_name_(o.is_mangled_name_),
+            modLow(o.modLow), modHigh(o.modHigh),
+            cu_header_length(o.cu_header_length),
+            version(o.version),
+            abbrev_offset(o.abbrev_offset),
+            addr_size(o.addr_size),
+            offset_size(o.offset_size),
+            extension_size(o.extension_size),
+            signature(o.signature),
+            typeoffset(o.typeoffset),
+            next_cu_header(o.next_cu_header),
+            compile_offset(o.compile_offset),
+            info_type_ids_(o.info_type_ids_),
+            types_type_ids_(o.types_type_ids_),
+            sig8_type_ids_(o.sig8_type_ids_) {}
+
     virtual ~DwarfWalker();
 
     bool parse();
@@ -186,11 +231,8 @@ public:
     // whereas parse creates a context.
     bool parse_int(Dwarf_Die entry, bool parseSiblings);
     
-    // FIXME: is this function needed?
-    //static std::pair<std::vector<Dyninst::SymtabAPI::AddressRange>::iterator, std::vector<Dyninst::SymtabAPI::AddressRange>::iterator>
-    //    parseRangeList(Dwarf_Ranges *ranges, Dwarf_Sword num_ranges, Offset initial_base);
 private:
-    Dwarf_Die current_cu_die; 
+    Dwarf_Die current_cu_die;
 
     enum inline_t {
         NormalFunc,
@@ -298,8 +340,8 @@ private:
             std::vector<VariableLocation> &locs);
     bool constructConstantVariableLocation(Address value,
             std::vector<VariableLocation> &locs);
-    typeArray *parseMultiDimensionalArray(Dwarf_Die firstRange,
-            Type *elementType);
+    typeArray *parseMultiDimensionalArray(Dwarf_Die *firstRange,
+                                          Type *elementType);
     bool decipherBound(Dwarf_Attribute boundAttribute, bool is_info,
             std::string &name);
 
@@ -324,8 +366,6 @@ private:
     // Header-only functions get multiple parsed.
     std::set<FunctionBase *> parsedFuncs;
 private:
-    std::vector<const char*> srcFiles_;
-    char** srcFileList_;
     std::string name_;
     bool is_mangled_name_;
 
