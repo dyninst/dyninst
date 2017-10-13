@@ -3553,11 +3553,39 @@ int read_except_table_gcc3(
         // The FDE has an augmentation area, similar to the above one in the CIE.
         // Where-as the CIE augmentation tends to contain things like bytes describing
         // pointer encodings, the FDE contains the actual pointers.
-        //TODO should use mi.word_size to calculate the 13? Wait for libdw
-        /* Skip 13 bytes for CIE Pointer, Length, PC Begin, PC Range, and iugmentation Length*/ 
-        cur_augdata = fde_bytes + 13 + 
-            (*(uint32_t*)fde_bytes == 0xffffffff ? LONG_FDE_HLEN : SHORT_FDE_HLEN); 
-                
+
+        // Calculate size in bytes of PC Begin
+        const unsigned char* pc_begin_start = fde_bytes + 4 /* CIE Pointer size is 4 bytes */ + 
+            (*(uint32_t*)fde_bytes == 0xffffffff ? LONG_FDE_HLEN : SHORT_FDE_HLEN);
+        unsigned long pc_begin_val;
+        mi.pc = fde_addr + (unsigned long) (pc_begin_start - fde_bytes);
+        int pc_begin_size = read_val_of_type(range_encoding, &pc_begin_val, pc_begin_start, mi);
+
+        // Calculate size in bytes of PC Range 
+        const unsigned char* pc_range_start = pc_begin_start + pc_begin_size;
+        unsigned long pc_range_val;
+        mi.pc = fde_addr + (unsigned long) (pc_range_start - fde_bytes);
+        int pc_range_size = read_val_of_type(range_encoding, &pc_range_val, pc_range_start, mi);
+
+        // Calculate size in bytes of the augmentation length
+        const unsigned char* aug_length_start = pc_range_start + pc_range_size;
+        unsigned long aug_length_value;
+        mi.pc = fde_addr + (unsigned long) (aug_length_start - fde_bytes);
+        auto aug_length_size = read_val_of_type(DW_EH_PE_uleb128, &aug_length_value, aug_length_start, mi);
+
+        // Confirm low_pc
+        auto pc_begin = reinterpret_cast<const unsigned char*>(entry.fde.start); 
+        unsigned long low_pc_val;
+        mi.pc = fde_addr + (unsigned long) (pc_begin - fde_bytes);
+        read_val_of_type(range_encoding, &low_pc_val, pc_begin, mi);
+        assert (low_pc_val==pc_begin_val);
+        low_pc = pc_begin_val;
+
+        // Get the augmentation data for the FDE
+        cur_augdata = fde_bytes + 4 /* CIE Pointer size is 4 bytes */ + 
+            (*(uint32_t*)fde_bytes == 0xffffffff ? LONG_FDE_HLEN : SHORT_FDE_HLEN) +
+            pc_begin_size + pc_range_size + aug_length_size; 
+
         for (j=0; j<augmentor_len; j++)
         {
             if (augmentor[j] == 'L')
@@ -3571,17 +3599,10 @@ int read_except_table_gcc3(
                 cur_augdata += ptr_size;
             }
             else if (augmentor[j] == 'P' ||
-                     augmentor[j] == 'z')
+                     augmentor[j] == 'z' ||
+                     augmentor[j] == 'R')
             {
                 //These don't affect the FDE augmentation data, do nothing
-            }
-            else if (augmentor[j] == 'R')
-            {
-                auto range_begin = reinterpret_cast<const unsigned char*>(entry.fde.start); 
-                unsigned long low_pc_val;
-                mi.pc = fde_addr + (unsigned long) (range_begin - fde_bytes);
-                read_val_of_type(range_encoding, &low_pc_val, range_begin, mi);
-                low_pc = low_pc_val;
             }
             else
             {
