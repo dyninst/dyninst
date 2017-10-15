@@ -242,7 +242,7 @@ LineInformation::const_iterator LineInformation::find(Offset addressInRange, con
 
 void LineInformation::dump()
 {
-  for (auto i = begin_by_source(); i != end_by_source(); i++) {
+  for (auto i = begin(); i != end(); i++) {
     const Statement *stmt = *i;
     std::cerr <<
       "[" <<
