@@ -86,7 +86,6 @@ namespace Dyninst{
 
 			typedef StatementLess LineNoTupleLess;
 			bool operator==(const Statement &cmp) const;
-//    bool operator==(const char* file) const {return strcmp(file, first) == 0; }
 			bool operator==(Offset addr) const {
 				return AddressRange::contains(addr);
 			}
@@ -110,8 +109,6 @@ namespace Dyninst{
 
 			typedef Statement* Ptr;
 			typedef const Statement* ConstPtr;
-//    typedef boost::shared_ptr<Statement> Ptr;
-//    typedef boost::shared_ptr<const Statement> ConstPtr;
 
 		};
 		template <typename OS>

@@ -37,9 +37,6 @@
 #include "ParseData.h"
 
 #include <cilk/cilk.h>
-#include <cilktools/cilkscreen.h>
-#include <cilktools/fake_mutex.h>
-#include <cilktools/lock_guard.h>
 
 
 using namespace std;
@@ -99,7 +96,6 @@ CFGFactory::_mkfunc(Address addr, FuncSource src, string name,
 {
     boost::lock_guard<CFGFactory> g(*this);
    Function * ret = mkfunc(addr,src,name,obj,reg,isrc);
-   __cilkscreen_clean(ret, ret + sizeof(ret));
    funcs_.add(*ret);
    ret->_src =  src;
    return ret;
@@ -120,8 +116,7 @@ CFGFactory::_mkblock(Function *  f , CodeRegion *r, Address addr)
 {
     boost::lock_guard<CFGFactory> g(*this);
 
-   Block * ret = mkblock(f, r, addr);;
-    __cilkscreen_clean(ret, ret + sizeof(ret));
+   Block * ret = mkblock(f, r, addr);
    blocks_.add(*ret);
    return ret;
 }
@@ -139,7 +134,6 @@ CFGFactory::_mksink(CodeObject * obj, CodeRegion *r) {
     boost::lock_guard<CFGFactory> g(*this);
 
    Block * ret = mksink(obj,r);
-    __cilkscreen_clean(ret, ret + sizeof(ret));
    blocks_.add(*ret);
    return ret;
 }
@@ -155,7 +149,6 @@ CFGFactory::_mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
     boost::lock_guard<CFGFactory> g(*this);
 
     Edge * ret = mkedge(src,trg,type);
-    __cilkscreen_clean(ret, ret + sizeof(ret));
     edges_.add(*ret);
     return ret;
 }

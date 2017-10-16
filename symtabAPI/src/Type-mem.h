@@ -33,7 +33,6 @@
 
 #include "symtabAPI/h/Type.h"
 #include "boost/static_assert.hpp"
-#include <cilktools/cilkscreen.h>
 
 namespace Dyninst {
   namespace SymtabAPI {
@@ -57,7 +56,6 @@ T *upgradePlaceholder(Type *placeholder, T *new_type)
   T *ret = new(mem) T();
   assert(mem == (void *) ret);
   *ret = *new_type;
-  __cilkscreen_clean(ret, ret + sizeof(T));
   return ret;
 }
 

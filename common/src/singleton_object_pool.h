@@ -37,32 +37,24 @@
 #include "pool_allocators.h"
 #include "dthread.h"
 #include <cilk/cilk.h>
-#include <cilktools/cilkscreen.h>
-#include <cilktools/fake_mutex.h>
-#include <cilktools/lock_guard.h>
 
 
 // This is only safe for objects with nothrow constructors...
 template <typename T, typename Alloc = boost::default_user_allocator_new_delete>
 class singleton_object_pool
 {
-    static cilkscreen::fake_mutex m;
 
     typedef boost::singleton_pool<T, sizeof(T), Alloc> parent_t;
     typedef singleton_object_pool<T, Alloc> pool_t;
 
     inline static void free(T* free_me)
     {
-        cilkscreen::lock_guard<cilkscreen::fake_mutex> g(m);
         parent_t::free(free_me);
-        __cilkscreen_clean(free_me, free_me + 1);
     }
 
     inline static T* malloc()
     {
-        cilkscreen::lock_guard<cilkscreen::fake_mutex> g(m);
         void* buf = parent_t::malloc();
-        __cilkscreen_clean(buf, buf + sizeof(T));
         return reinterpret_cast<T*>(buf);
     }
 
@@ -138,15 +130,12 @@ public:
 
     inline static void destroy(T* const kill_me)
     {
-        cilkscreen::lock_guard<cilkscreen::fake_mutex> g(m);
         if(!is_from(kill_me)) return;
         kill_me->~T();
         free(kill_me);
     }
 
 };
-template <typename T, typename A>
-cilkscreen::fake_mutex singleton_object_pool<T, A>::m;
 
 template <typename T>
 struct PoolDestructor

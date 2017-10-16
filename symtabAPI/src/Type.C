@@ -43,7 +43,6 @@
 #include "Type-mem.h"
 #include <iostream>
 #include <tbb/concurrent_hash_map.h>
-#include <cilktools/cilkscreen.h>
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -111,7 +110,6 @@ Type *Type::createPlaceholder(typeId_t ID, std::string name)
   type_memory.insert(a, make_pair(mem, max_size));
   
   Type *placeholder_type = new(mem) Type(name, ID, dataUnknownType);
-    __cilkscreen_clean(placeholder_type, placeholder_type + max_size);
   return placeholder_type;
 }
 
