@@ -38,13 +38,11 @@
 /*******************************************************/
 
 #include <assert.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include "dyntypes.h"
 
 #include <set>
 #include <limits>
-#include <ostream>
+#include <iostream>
 
 /** Template class for Interval Binary Search Tree. The implementation is
   * based on a red-black tree (derived from our codeRange implementation)
@@ -159,6 +157,16 @@ class IBSNode {
     IBSNode<ITYPE> *parent;
 };
 
+ 
+template<class ITYPE = SimpleInterval<> >
+ std::ostream &operator<<(std::ostream &os, std::set<ITYPE *> &s) {
+  for (auto i = s.begin(); i != s.end(); i++) {
+    std::cerr << "[0x" << std::hex << (*i)->low() 
+              << ", 0x" << (*i)->high() << std::dec << ")  ";
+  }
+  return os;
+};
+
 template<class ITYPE = SimpleInterval<> >
 class IBSTree {
 public:
@@ -219,7 +227,14 @@ public:
     void findIntervals(interval_type X, IBSNode<ITYPE> *R, std::set<ITYPE *> &S) const;
     void findIntervals(ITYPE *I, IBSNode<ITYPE> *R, std::set<ITYPE *> &S) const;
 
-    void PrintPreorder(IBSNode<ITYPE> *n);
+    void PrintPreorder(IBSNode<ITYPE> *n, int indent);
+
+    std::ostream& doIndent(int n)
+    {
+      std::cerr.width(n);
+      std::cerr << "";
+      return std::cerr;
+    };
 
     int height(IBSNode<ITYPE> *n);
     int CountMarks(IBSNode<ITYPE> *R) const;
@@ -281,7 +296,7 @@ public:
     /** Delete all entries in the tree **/
     void clear();
 
-    void PrintPreorder() { PrintPreorder(root); }
+    void PrintPreorder() { PrintPreorder(root, 0); }
 };
 
 template<class ITYPE>
@@ -888,21 +903,27 @@ int IBSTree<ITYPE>::height(IBSNode<ITYPE> *n)
 }
 
 template<class ITYPE>
-void IBSTree<ITYPE>::PrintPreorder(IBSNode<ITYPE> *n)
+void IBSTree<ITYPE>::PrintPreorder(IBSNode<ITYPE> *n, int indent)
 {
     if(n == nil) return;
 
-    PrintPreorder(n->left);
-    printf(" %d\n",n->value());
-    PrintPreorder(n->right);
+    // print self
+    doIndent(indent) << "node: 0x" << std::hex << n->value() << std::dec << " (" << n->value() << ")" << std::endl;
+    if (!n->less.empty())
+      doIndent(indent) << "  <: " << n->less << std::endl;
+    if (!n->equal.empty())
+      doIndent(indent) << "  =: " << n->equal << std::endl;
+    if (!n->greater.empty())
+      doIndent(indent) << "  >: " << n->greater << std::endl;
+
+    // print children
+    PrintPreorder(n->left, indent + 1);
+    PrintPreorder(n->right, indent + 1);
 
     if(n == root) {
-        int h = height(root);
-        printf(" tree height: %d\n", h);
+        std::cerr << "tree height: " << height(root) << std::endl;
     }
 }
-
-
 
 template<class ITYPE>
 int IBSTree<ITYPE>::CountMarks() const
