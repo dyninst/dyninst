@@ -33,6 +33,7 @@
 
 #include "symtabAPI/h/Type.h"
 #include "boost/static_assert.hpp"
+#include <pair>
 
 namespace Dyninst {
   namespace SymtabAPI {
@@ -76,9 +77,9 @@ T* typeCollection::addOrUpdateType(T *type)
 	{
 		if ( type->getName() != "" ) 
 		{
-			typesByName.insert(name_accessor, make_pair(type->getName(), type));
+			typesByName.insert(name_accessor, std::make_pair(type->getName(), type));
 		}
-		typesByID.insert(id_accessor, make_pair(type->getID(), type));
+		typesByID.insert(id_accessor, std::make_pair(type->getID(), type));
 		type->incrRefCount();
 		return type;
 	}
@@ -119,7 +120,7 @@ T* typeCollection::addOrUpdateType(T *type)
 		} 
 		else 
 		{
-			typesByName.insert(a, make_pair(existingType->getName(), existingType));
+			typesByName.insert(a, std::make_pair(existingType->getName(), existingType));
 			existingType->incrRefCount();
 		}
 	}
