@@ -33,7 +33,7 @@
 
 #include "symtabAPI/h/Type.h"
 #include "boost/static_assert.hpp"
-#include <pair>
+#include <utility>
 
 namespace Dyninst {
   namespace SymtabAPI {
