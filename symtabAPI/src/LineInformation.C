@@ -239,5 +239,25 @@ LineInformation::const_iterator LineInformation::find(Offset addressInRange, con
     return find(addressInRange);
 }
 
+
+void LineInformation::dump()
+{
+  for (auto i = begin(); i != end(); i++) {
+    const Statement *stmt = *i;
+    std::cerr <<
+      "[" <<
+      std::hex <<
+      stmt->startAddr() <<
+      "," <<
+      stmt->endAddr() <<
+      std::dec <<
+      ") " <<
+      stmt->getFile() <<
+      ":" <<
+      stmt->getLine() <<
+      std::endl;
+  }
+}
+
 /* end LineInformation destructor */
 
