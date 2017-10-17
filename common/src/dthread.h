@@ -54,8 +54,6 @@
 #define WINAPI
 #endif
 
-#include <cilktools/fake_mutex.h>
-#include <cilktools/lock_guard.h>
 
 
 class PC_EXPORT DThread {
