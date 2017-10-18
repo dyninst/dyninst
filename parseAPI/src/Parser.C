@@ -565,7 +565,7 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
         NewFrames all_new_frames;
         /* Recursive traversal parsing */
 //        for(size_t i = 0;
-        cilk_for(size_t i = 0;
+        cilk_for(unsigned int i = 0;
             i < work.size();
             ++i)
         {

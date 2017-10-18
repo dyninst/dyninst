@@ -122,6 +122,8 @@ if(NOT Boost_FOUND)
           --with-system
           --with-thread
           --with-date_time
+	  --with-filesystem
+	  --with-timer
           --ignore-site-config
           --link=static
           --runtime-link=shared
