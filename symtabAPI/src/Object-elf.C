@@ -2540,7 +2540,7 @@ bool Object::fix_global_symbol_modules_static_dwarf()
                         Dwarf_Addr high = low;
                         int result = 0;
                         for(; (i < num_lines) &&
-                              (result == 0); ++i)
+                                (result == 0); ++i)
                         {
                             line = dwarf_onesrcline(lines, i);
                             if(!line) continue;
@@ -2549,7 +2549,7 @@ bool Object::fix_global_symbol_modules_static_dwarf()
                             result = dwarf_lineendsequence(line, &is_end);
                             if(result == 0 && is_end) {
                                 result = dwarf_lineaddr(line, &high);
-				break;
+                                break;
                             }
 
                         }
