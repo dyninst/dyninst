@@ -531,9 +531,9 @@ void DwarfWalker::setFuncFromLowest(Address lowest) {
    Function *f = NULL;
    bool result = symtab()->findFuncByEntryOffset(f, lowest);
    if (result) {
+      setFunc(f);
       dwarf_printf("(0x%lx) Lookup by offset 0x%lx identifies %p\n",
                    id(), lowest, curFunc());
-      setFunc(f);
    } else {
      dwarf_printf("(0x%lx) Lookup by offset 0x%lx failed\n", id(), lowest);
    }

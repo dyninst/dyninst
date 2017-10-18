@@ -88,7 +88,8 @@ parse_func::parse_func(
     CodeRegion * reg,
     InstructionSource * isrc,
     FuncSource src):
-  Function(func->getOffset(),func->getFirstSymbol()->getMangledName(),obj,reg,isrc),
+  Function(func->getOffset(),func->getFirstSymbol()->getMangledName(),
+	   func->getFirstSymbol()->getMangledName(),obj,reg,isrc),
   func_(func),
   mod_(m),
   image_(i),

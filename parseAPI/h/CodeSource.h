@@ -92,14 +92,15 @@ template <typename OS>
 
 /* A starting point for parsing */
 struct Hint {
-    Hint() : _addr(0), _size(0), _reg(NULL), _name("") { }
-    Hint(Address a, int size, CodeRegion * r, std::string s) :
-        _addr(a), _size(size), _reg(r), _name(s) { }
+    Hint() : _addr(0), _size(0), _reg(NULL), _name(""), _mangledName("") { }
+    Hint(Address a, int size, CodeRegion * r, std::string n, std::string m) :
+        _addr(a), _size(size), _reg(r), _name(n), _mangledName(m) { }
 
     Address _addr;
     int _size;
     CodeRegion * _reg;
     std::string _name;
+    std::string _mangledName;
 
     bool operator < (const Hint &h) const {
         return _addr < h._addr;

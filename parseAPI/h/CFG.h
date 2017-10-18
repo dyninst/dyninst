@@ -452,6 +452,7 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     FuncReturnStatus _rs;
 
     std::string _name;
+    std::string _mangledName;
     Block * _entry;
  protected:
     Function(); 
@@ -478,12 +479,13 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     typedef boost::iterator_range<bmap_const_iterator> const_blocklist;
     typedef std::set<Edge*> edgelist;
     
-    Function(Address addr, std::string name, CodeObject * obj, 
+    Function(Address addr, std::string name, std::string mangledName, CodeObject * obj, 
         CodeRegion * region, InstructionSource * isource);
 
     virtual ~Function();
 
     virtual const std::string & name() const;
+    virtual const std::string & mangledName() const;
 
     Address addr() const { return _start; }
     CodeRegion * region() const { return _region; }
@@ -548,7 +550,12 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     {
         bool operator()(const Function * f1, const Function * f2) const
         {
-            return f1->addr() < f2->addr();
+	  if (f1->region() < f2->region()) return true;  
+	  else if (f1->region() == f2->region() &&
+		   f1->addr() < f2->addr()) {
+	    return true;  
+	  }
+	  return false;
         }
     };
 
