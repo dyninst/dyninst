@@ -572,7 +572,7 @@ bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
 //   common_debug_dwarf = 1;
    dwarf_printf("(0x%lx) parseSubprogram entry\n", id());
 
-   parseRangeTypes(dbg(), entry());
+    parseRangeTypes(dbg(), entry());
    setFunctionFromRange(func_type);
 
    // Name first
