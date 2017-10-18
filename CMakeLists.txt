@@ -37,7 +37,6 @@ if(NOT ${PLATFORM} MATCHES nt)
     )
 endif()
 
-set(CILKSCREEN_INCLUDES "/p/paradyn/packages/cilktools-linux-004501/include" CACHE PATH "Path to cilk tools headers")
 
 
 foreach (dir ${HEADER_DIRS})
@@ -45,8 +44,6 @@ foreach (dir ${HEADER_DIRS})
 endforeach()
 
 
-set(TBB_INCLUDES /p/paradyn/packages/tbb/include CACHE PATH "Path to Intel TBB headers")
-set(TBB_LIBRARIES /p/paradyn/packages/tbb/lib/libtbb.so CACHE FILEPATH "Intel TBB library")
 include_directories (
   ${DYNINST_ROOT}
   ${DYNINST_ROOT}/external
