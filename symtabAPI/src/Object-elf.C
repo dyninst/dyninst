@@ -2542,11 +2542,10 @@ bool Object::fix_global_symbol_modules_static_dwarf()
                         for(; (i < num_lines) &&
                               (result == 0); ++i)
                         {
-                            bool is_end = false;
-
                             line = dwarf_onesrcline(lines, i);
                             if(!line) continue;
 
+                            bool is_end = false;
                             result = dwarf_lineendsequence(line, &is_end);
                             if(result == 0 && is_end) {
                                 result = dwarf_lineaddr(line, &high);
