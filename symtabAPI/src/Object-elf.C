@@ -4345,6 +4345,7 @@ struct open_statement {
 };
 
 
+
 void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 {
     std::vector<open_statement> open_statements;

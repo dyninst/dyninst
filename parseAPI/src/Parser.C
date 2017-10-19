@@ -53,10 +53,8 @@
 #include <cilk/cilk.h>
 #include <cilk/reducer_list.h>
 
-#include <boost/heap/priority_queue.hpp>
 #include <boost/timer/timer.hpp>
 #include <fstream>
-#include <gperftools/profiler.h>
 
 using namespace std;
 using namespace Dyninst;
@@ -423,13 +421,7 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
 vector<ParseFrame*> Parser::ProcessOneFrame(ParseFrame* pf, bool recursive) {
     boost::timer::cpu_timer t;
     t.start();
-    if(pf->func->name() == "darpm") {
-        ProfilerStart("ProcessOneFrame(darpm)");
-    }
     parse_frame(*pf,recursive);
-    if(pf->func->name() == "darpm") {
-        ProfilerStop();
-    }
     t.stop();
     unsigned int msecs = floor(t.elapsed().wall / 1000000.0);
     tbb::concurrent_hash_map<unsigned int, unsigned int>::accessor a;

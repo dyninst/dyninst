@@ -48,7 +48,7 @@ include_directories (
   ${DYNINST_ROOT}
   ${DYNINST_ROOT}/external
   ${CILKSCREEN_INCLUDES}
-  ${TBB_INCLUDES}
+      ${TBB_INCLUDE_DIRS}
   )
 set(Boost_USE_STATIC_LIBS OFF)
 # Component time

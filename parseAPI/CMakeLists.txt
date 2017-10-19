@@ -118,8 +118,7 @@ endif()
 
 dyninst_library(parseAPI common instructionAPI ${SYMREADER})
 
-include_directories(/p/paradyn/packages/gperftools/include)
-target_link_private_libraries(parseAPI ${Boost_LIBRARIES} ${PROFILER_LIBRARIES} ${TBB_LIBRARIES})
+target_link_private_libraries(parseAPI ${Boost_LIBRARIES} ${TBB_LIBRARIES})
 
 if (WIN32)
 target_link_private_libraries(parseAPI shlwapi)

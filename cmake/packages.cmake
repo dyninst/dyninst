@@ -1,7 +1,7 @@
 if (UNIX)
   find_package (LibDwarf)
   find_package (LibElf)
-
+  find_package(TBB REQUIRED)
   if(NOT LIBELF_FOUND OR NOT LIBDWARF_FOUND)
     message(STATUS "Attempting to build elfutils as external project")
     cmake_minimum_required (VERSION 2.8.11)
