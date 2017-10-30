@@ -1624,7 +1624,6 @@ static bool adjustValInRegion(Region *reg, Offset offInReg, Offset addressWidth,
 
 bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int library_adjust) {
     // Currently, only verified on x86 and x86_64 -- this may work on other architectures
-#if defined(arch_x86) || defined(arch_x86_64)
     Region *targetRegion = obj->findEnclosingRegion(rel.rel_addr());
     if( NULL == targetRegion ) {
         rewrite_printf("Failed to find enclosing Region for relocation");
@@ -1632,14 +1631,40 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
     }
 
     // Used to update a Region
+    /*switch( rel.getCategory( obj->getAddressWidth() ))
+    {
+        case relocationEntry::relative:
+            rel.setAddend(rel.addend() + library_adjust);
+            break;
+
+        case relocationEntry::jump_slot:
+            if( !adjustValInRegion(targetRegion,
+                        rel.rel_addr() - targetRegion->getDiskOffset(),
+                        addressWidth, library_adjust) )
+            {
+                rewrite_printf("Failed to update relocation\n");
+                return false;
+            }
+            break;
+            
+        case relocationEntry::absolute:
+            break;
+
+        default:
+            fprintf(stderr, "Undefined relocation category.\n"); 
+            assert(0);
+    }*/
+
     unsigned addressWidth = obj->getAddressWidth();
     if( addressWidth == 8 ) {
         switch(rel.getRelType()) {
             case R_X86_64_IRELATIVE:
             case R_X86_64_RELATIVE:
+            case R_AARCH64_RELATIVE:
                 rel.setAddend(rel.addend() + library_adjust);
                 break;
             case R_X86_64_JUMP_SLOT:
+            case R_AARCH64_JUMP_SLOT:
                 if( !adjustValInRegion(targetRegion,
                            rel.rel_addr() - targetRegion->getDiskOffset(),
                            addressWidth, library_adjust) )
@@ -1648,8 +1673,11 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
                     return false;
                 }
                 break;
+            case R_AARCH64_GLOB_DAT:
+                break;
             default:
-                // Do nothing
+                //fprintf(stderr, "Unimplemented relType for architecture: %d\n", rel.getRelType()); 
+                //assert(0);
                 break;
         }
     }else{
@@ -1675,7 +1703,8 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
                 }
                 break;
             default:
-                // Do nothing
+                //fprintf(stderr, "Unimplemented relType for architecture\n"); 
+                //assert(0);
                 break;
         }
     }
@@ -1693,10 +1722,9 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
 
     // In order to implement this, would have determine the final address of a new .dynamic
     // section before outputting the patched GOT data -- this will require some refactoring.
-#else
-    rewrite_printf("WARNING: updateRelocation is not implemented on this architecture\n");
-    (void) obj; (void) rel; (void) library_adjust; //silence warnings
-#endif
+    
+    //rewrite_printf("WARNING: updateRelocation is not implemented on this architecture\n");
+    //(void) obj; (void) rel; (void) library_adjust; //silence warnings
 
     return true;
 }

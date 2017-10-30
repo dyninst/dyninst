@@ -279,6 +279,7 @@ static Region::RegionType getRelTypeByElfMachine(Elf_X *localHdr) {
         case EM_PPC64:
         case EM_X86_64:
         case EM_IA_64:
+        case EM_AARCH64:
             ret = Region::RT_RELA;
             break;
         default:
@@ -3376,7 +3377,7 @@ int read_except_table_gcc3(
         std::vector<ExceptionBlock> &addresses)
 {
     Dwarf_Addr low_pc = 0;
-    Dwarf_Off fde_offset, cie_offset;
+    Dwarf_Off fde_offset, cie_offset = 0;
     int result, ptr_size;
     const char *augmentor;
     unsigned char lpstart_format, ttype_format, table_format;

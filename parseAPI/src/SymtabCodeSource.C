@@ -527,11 +527,15 @@ SymtabCodeSource::init_linkage()
     vector<SymtabAPI::relocationEntry> fbt;
     vector<SymtabAPI::relocationEntry>::iterator fbtit;
 
-    if(!_symtab->getFuncBindingTable(fbt))
+    if(!_symtab->getFuncBindingTable(fbt)){
+        fprintf( stderr, "Cannot get function binding table. %s\n", _symtab->file().c_str());
         return;
+    }
 
-    for(fbtit = fbt.begin(); fbtit != fbt.end(); ++fbtit)
+    for(fbtit = fbt.begin(); fbtit != fbt.end(); ++fbtit){
+        //fprintf( stderr, "%lx %s\n", (*fbtit).target_addr(), (*fbtit).name().c_str());
         _linkage[(*fbtit).target_addr()] = (*fbtit).name(); 
+    }
 }
 
 void

@@ -2057,9 +2057,8 @@ bool AstCallNode::initRegisters(codeGen &gen) {
             ret = false;
     }
 
-    // Platform-specific...
-#if defined(arch_x86) || defined(arch_x86_64)
-    // Our "everything" is "floating point registers".
+    if (callReplace_) return true;
+    
     // We also need a function object.
     func_instance *callee = func_;
     if (!callee) {
@@ -2075,28 +2074,6 @@ bool AstCallNode::initRegisters(codeGen &gen) {
     assert(gen.codeEmitter());
     gen.codeEmitter()->clobberAllFuncCall(gen.rs(), callee);
 
-
-#endif
-#if defined(arch_power)
-    if (callReplace_) return true;
-
-    // This code really doesn't work right now...
-    func_instance *callee = func_;
-    if (!callee) {
-        // Painful lookup time
-        callee = gen.addrSpace()->findOnlyOneFunction(func_name_.c_str());
-        assert(callee);
-    }
-    gen.codeEmitter()->clobberAllFuncCall(gen.rs(), callee);
-    // We clobber in clobberAllFuncCall...
-
-    // Monotonically increasing...
-#endif
-
-#if defined(arch_aarch64)
-	//#warning "This function is not implemented yet!"
-	assert(false);
-#endif
     return ret;
 
 }
