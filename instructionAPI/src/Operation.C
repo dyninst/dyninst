@@ -58,7 +58,8 @@ namespace Dyninst
     }
 
     Operation::Operation(entryID id, const char* mnem, Architecture arch)
-          : mnemonic(mnem), operationID(id), doneOtherSetup(true), doneFlagsSetup(true), archDecodedFrom(arch), prefixID(prefix_none)
+          : mnemonic(mnem), operationID(id), doneOtherSetup(true), doneFlagsSetup(true),
+            archDecodedFrom(arch), prefixID(prefix_none), isVectorInsn(false)
     {
         switch(archDecodedFrom)
         {
@@ -72,8 +73,29 @@ namespace Dyninst
         }
     }
     
+
+    static bool getVectorizationInfo(ia32_entry* e)
+    {
+        bool ret = false;
+        for(int i = 0; i < 3; i++)
+        {
+            switch(e->operands[i].optype)
+            {
+                case am_V:
+                case am_W:
+                case am_P:
+                case am_Q:
+                    return true;
+                default:
+                    break;
+            }
+        }
+        return false;
+    }
+
     Operation::Operation(ia32_entry* e, ia32_prefixes* p, ia32_locations* l, Architecture arch) :
-      doneOtherSetup(false), doneFlagsSetup(false), archDecodedFrom(arch), prefixID(prefix_none)
+      doneOtherSetup(false), doneFlagsSetup(false), archDecodedFrom(arch), prefixID(prefix_none),
+      isVectorInsn(getVectorizationInfo(e))
     
     {
       operationID = e->getID(l);
