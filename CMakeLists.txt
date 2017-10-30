@@ -72,7 +72,7 @@ endif()
 
 if(BUILD_RTLIB)
   # Build the RT library as a separate project so we can change compilers
-  message(STATUS "Configuring DyninstAPI_RT")
+  message(STATUS "Configuring DyninstAPI_RT in ${RT_BINARY_DIR}")
   file(REMOVE_RECURSE ${RT_BINARY_DIR}/CMakeCache.txt ${RT_BINARY_DIR}/CMakeFiles ${RT_BINARY_DIR}/Makefile)
   file(MAKE_DIRECTORY ${RT_BINARY_DIR})
   if (PLATFORM MATCHES bgq)
@@ -96,7 +96,8 @@ if(BUILD_RTLIB)
     -DPLATFORM=${PLATFORM}
     -G ${CMAKE_GENERATOR}
     ${RT_SOURCE_DIR})
-
+  find_file(${RT_MAKEFILE} Makefile PATHS ${RT_BINARY_DIR} NO_DEFAULT_PATH)
+  message(STATUS "RTlib Makefile: ${RT_MAKEFILE}")
   if(MSVC)
       include_external_msproject(DyninstAPI_RT dyninstAPI_RT/dyninstAPI_RT.vcxproj)
 	  include_external_msproject(DyninstAPI_RT_static dyninstAPI_RT/dyninstAPI_RT_static.vcxproj)
