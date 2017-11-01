@@ -56,6 +56,14 @@
 #include <boost/timer/timer.hpp>
 #include <fstream>
 
+
+#define RAJA_ENABLE_TBB
+#define RAJA_ENABLE_OPENMP
+
+#include <RAJA/RAJA.hpp>
+
+
+
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
@@ -542,8 +550,46 @@ vector<ParseFrame *> Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
 
 }
 
+//#include <boost/make_shared.hpp>
 
-struct NewFrames : public std::vector<ParseFrame*>, public boost::lockable_adapter<boost::mutex>
+
+
+//struct FrameSet {
+//    mutable boost::shared_ptr<std::set<ParseFrame*> >m_value;
+//    FrameSet() = default;
+//    constexpr FrameSet(unsigned int) : m_value(nullptr) {}
+//    template <typename Iterator>
+//    FrameSet(Iterator begin, Iterator end) :
+//            m_value(boost::make_shared<std::set<ParseFrame*> >(begin, end))
+//    {
+//    }
+//    FrameSet operator+(const FrameSet& rhs) const {
+//        FrameSet result;
+//        if(m_value) result.insert(m_value->begin(), m_value->end());
+//        result.insert(rhs.begin(), rhs.end());
+//        return result;
+//    }
+//    std::set<ParseFrame*>::const_iterator begin() const {
+//        if(!m_value) m_value = boost::make_shared<std::set<ParseFrame*> >();
+//        return m_value->begin();
+//    }
+//    std::set<ParseFrame*>::const_iterator end() const {
+//        if(!m_value) m_value = boost::make_shared<std::set<ParseFrame*> >();
+//        return m_value->end();
+//    }
+//    template <typename Iterator>
+//    void insert(Iterator b, Iterator e) {
+//        if(!m_value) m_value = boost::make_shared<std::set<ParseFrame*> >();
+//        m_value->insert(b,e);
+//    }
+//
+//    virtual ~FrameSet() {
+//
+//    }
+//};
+//static FrameSet dummy_frameset(0);
+
+struct FrameSet : public std::set<ParseFrame*>, public boost::lockable_adapter<boost::mutex>
 {
 
 };
@@ -553,29 +599,21 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
 {
     while(!work.empty())
     {
-        std::cout << "Begin cilk_for, worklist size is " << work.size() << endl;
-        NewFrames all_new_frames;
+        std::cout << "Begin iteration, worklist size is " << work.size() << endl;
         /* Recursive traversal parsing */
 //        for(size_t i = 0;
-        cilk_for(unsigned int i = 0;
-            i < work.size();
-            ++i)
+        FrameSet all_new_frames;
+        RAJA::RangeSegment worklist(0, work.size());
+        RAJA::forall<RAJA::tbb_for_exec>(worklist, [&](RAJA::Index_type i)
         {
             std::vector<ParseFrame*> new_frames = ProcessOneFrame(work[i], recursive);
-            boost::lock_guard<NewFrames> g(all_new_frames);
-            for(size_t j = 0; j < new_frames.size(); ++j)
-            {
-                if(new_frames[j]) {
-                    all_new_frames.push_back(new_frames[j]);
-                }
-            }
-        }
-        work.swap(all_new_frames);
-//        work.clear();
-////        all_new_frames.sort();
-////        all_new_frames.unique();
-//        std::copy(all_new_frames.begin(), all_new_frames.end(),
-//        std::back_inserter(work));
+            all_new_frames.lock();
+            all_new_frames.insert(new_frames.begin(), new_frames.end());
+            all_new_frames.unlock();
+        });
+        work.clear();
+        std::copy(all_new_frames.begin(), all_new_frames.end(),
+        std::back_inserter(work));
 
     }
 
@@ -900,6 +938,7 @@ Parser::record_func(Function *f)
 void
 Parser::init_frame(ParseFrame & frame)
 {
+    boost::lock_guard<ParseFrame> g(frame);
     Block * b = NULL;
     Block * split = NULL;
 
@@ -929,7 +968,7 @@ Parser::init_frame(ParseFrame & frame)
     const unsigned char* bufferBegin =
             (const unsigned char *)(frame.func->isrc()->getPtrToInstruction(ia_start));
     InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
-    InstructionAdapter_t* ah = InstructionAdapter_t::makePlatformIA_IAPI(b->obj()->cs()->getArch(),
+    InstructionAdapter_t* ah = InstructionAdapter_t::makePlatformIA_IAPI(obj().cs()->getArch(),
                                                                          dec, ia_start, frame.func->obj(),
                                                                          frame.codereg, frame.func->isrc(), b);
     if(ah->isStackFramePreamble()) {

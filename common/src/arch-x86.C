@@ -140,7 +140,8 @@
 #include "boost/assign/list_of.hpp"
 #include "boost/assign/std/vector.hpp"
 #include "boost/assign/std/set.hpp"
-
+#include <boost/thread/lock_guard.hpp>
+#include <boost/thread/mutex.hpp>
 #include "common/src/arch-x86.h"
 #include "dyn_regs.h"
 
@@ -2011,6 +2012,8 @@ dyn_hash_map<entryID, flagInfo> ia32_instruction::flagTable;
 
 COMMON_EXPORT dyn_hash_map<entryID, flagInfo> const& ia32_instruction::getFlagTable()
 {
+  static boost::mutex m;
+  boost::lock_guard<boost::mutex> create_guard(m);
   if(flagTable.empty())
   {
     ia32_instruction::initFlagTable(flagTable);
