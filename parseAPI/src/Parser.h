@@ -241,10 +241,12 @@ class Parser {
 
     vector<ParseFrame *> ProcessOneFrame(ParseFrame *pf, bool recursive);
 
-    void SpawnProcessFrames(vector<ParseFrame *> *work, bool recursive, Parser::NewFrames *all_new_frames,
-			    unsigned int lower, unsigned int upper);
+    vector<ParseFrame *> *SpawnProcessFrames
+      (vector<ParseFrame *> *work, bool recursive, Parser::NewFrames *all_new_frames,
+       unsigned int lower, unsigned int upper);
 
-    void ProcessFrames(vector<ParseFrame *> *work, bool recursive, Parser::NewFrames *all_new_frames);
+    vector<ParseFrame *> *ProcessFrames
+      (vector<ParseFrame *> *work, bool recursive, Parser::NewFrames *all_new_frames);
 
     void cleanup_frames() ;
 
