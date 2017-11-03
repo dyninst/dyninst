@@ -662,8 +662,11 @@ bool insnCodeGen::modifyData(Address target,
 	    Address cur = gen.currAddr() & 0xFFFFF000;
 	    offset = isneg ? (cur - target) : (target - cur);
 	    offset >>= 12;
+	} else {
+	    Address cur = gen.currAddr();
+	    offset = isneg ? (cur - target) : (target - cur);
 	}
-        signed long imm = isneg ? -offset : offset;
+        signed long imm = isneg ? -((signed long)offset) : offset;
 
         //If offset is within +/- 1 MB, modify the instruction (ADR/ADRP) with the new offset
         if (offset <= (1 << 20)) {
