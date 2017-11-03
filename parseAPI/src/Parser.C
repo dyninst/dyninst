@@ -543,10 +543,48 @@ vector<ParseFrame *> Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
 }
 
 
-struct NewFrames : public std::vector<ParseFrame*>, public boost::lockable_adapter<boost::mutex>
+void
+Parser::SpawnProcessFrames
+(
+ vector<ParseFrame *> *work, 
+ bool recursive, 
+ NewFrames *all_new_frames,
+ unsigned int lower, 
+ unsigned int upper
+)
 {
+  if (upper > lower) {
+    unsigned int mid = (upper + lower) >> 1;
+#pragma omp task
+    SpawnProcessFrames(work, recursive, all_new_frames, lower, mid);
+    SpawnProcessFrames(work, recursive, all_new_frames, mid + 1, upper);
+  } else {
+    std::vector<ParseFrame*> new_frames = ProcessOneFrame((*work)[lower], recursive);
+    boost::lock_guard<NewFrames> g(*all_new_frames);
+    for (size_t j = 0; j < new_frames.size(); ++j) {
+      if (new_frames[j]) {
+	all_new_frames->insert(new_frames[j]);
+      }
+    }
+  }
+}
 
-};
+
+void
+Parser::ProcessFrames
+(
+ vector<ParseFrame *> *work, 
+ bool recursive, 
+ NewFrames *all_new_frames
+)
+{
+#pragma omp parallel
+  {
+#pragma omp master
+    SpawnProcessFrames(work, recursive, all_new_frames, 0, work->size() - 1);
+  }
+}
+
 
 void
 Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
@@ -555,28 +593,12 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
     {
         std::cout << "Begin cilk_for, worklist size is " << work.size() << endl;
         NewFrames all_new_frames;
-        /* Recursive traversal parsing */
-//        for(size_t i = 0;
-        cilk_for(unsigned int i = 0;
-            i < work.size();
-            ++i)
-        {
-            std::vector<ParseFrame*> new_frames = ProcessOneFrame(work[i], recursive);
-            boost::lock_guard<NewFrames> g(all_new_frames);
-            for(size_t j = 0; j < new_frames.size(); ++j)
-            {
-                if(new_frames[j]) {
-                    all_new_frames.push_back(new_frames[j]);
-                }
-            }
-        }
-        work.swap(all_new_frames);
-//        work.clear();
-////        all_new_frames.sort();
-////        all_new_frames.unique();
-//        std::copy(all_new_frames.begin(), all_new_frames.end(),
-//        std::back_inserter(work));
 
+	ProcessFrames(&work, recursive, &all_new_frames);
+
+        work.clear();
+        std::copy(all_new_frames.begin(), all_new_frames.end(),
+                  std::back_inserter(work));
     }
 
     bool done = false, cycle = false;
@@ -900,6 +922,7 @@ Parser::record_func(Function *f)
 void
 Parser::init_frame(ParseFrame & frame)
 {
+    boost::lock_guard<ParseFrame> g(frame);
     Block * b = NULL;
     Block * split = NULL;
 
@@ -929,7 +952,7 @@ Parser::init_frame(ParseFrame & frame)
     const unsigned char* bufferBegin =
             (const unsigned char *)(frame.func->isrc()->getPtrToInstruction(ia_start));
     InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
-    InstructionAdapter_t* ah = InstructionAdapter_t::makePlatformIA_IAPI(b->obj()->cs()->getArch(),
+    InstructionAdapter_t* ah = InstructionAdapter_t::makePlatformIA_IAPI(obj().cs()->getArch(),
                                                                          dec, ia_start, frame.func->obj(),
                                                                          frame.codereg, frame.func->isrc(), b);
     if(ah->isStackFramePreamble()) {

@@ -236,7 +236,15 @@ class Parser {
 
     Mutex<true> parse_mutex;
     boost::mutex finalize_mutex;
+
+    struct NewFrames : public std::set<ParseFrame*>, public boost::lockable_adapter<boost::mutex> {};
+
     vector<ParseFrame *> ProcessOneFrame(ParseFrame *pf, bool recursive);
+
+    void SpawnProcessFrames(vector<ParseFrame *> *work, bool recursive, Parser::NewFrames *all_new_frames,
+			    unsigned int lower, unsigned int upper);
+
+    void ProcessFrames(vector<ParseFrame *> *work, bool recursive, Parser::NewFrames *all_new_frames);
 
     void cleanup_frames() ;
 
