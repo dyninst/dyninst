@@ -243,7 +243,7 @@ class Parser {
 
     vector<ParseFrame *> *SpawnProcessFrames
       (vector<ParseFrame *> *work, bool recursive, Parser::NewFrames *all_new_frames,
-       unsigned int lower, unsigned int upper);
+       unsigned int lower, unsigned int upper); 
 
     vector<ParseFrame *> *ProcessFrames
       (vector<ParseFrame *> *work, bool recursive, Parser::NewFrames *all_new_frames);
