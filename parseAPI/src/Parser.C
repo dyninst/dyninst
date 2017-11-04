@@ -543,7 +543,7 @@ vector<ParseFrame *> Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
 }
 
 
-std::vector<ParseFrame*> *
+void
 Parser::SpawnProcessFrames
 (
  vector<ParseFrame *> *work, 
@@ -558,31 +558,20 @@ Parser::SpawnProcessFrames
   if (upper > lower) {
     unsigned int mid = (upper + lower) >> 1;
 
-#pragma omp task shared(other)
-    other = SpawnProcessFrames(work, recursive, all_new_frames, lower, mid);
-    mine = SpawnProcessFrames(work, recursive, all_new_frames, mid + 1, upper);
-
-#pragma omp taskwait
-    // add other's frames to mine
-    mine->insert(mine->end(), other->begin(), other->end());
-    delete other;
-
-    // eliminate duplicate frames
-    std::sort(mine->begin(), mine->end()); 
-    auto last = std::unique(mine->begin(), mine->end());
-    mine->erase(last, mine->end());
-
+#pragma omp task
+    SpawnProcessFrames(work, recursive, all_new_frames, lower, mid);
+    SpawnProcessFrames(work, recursive, all_new_frames, mid + 1, upper);
   } else {
     std::vector<ParseFrame*> new_frames = ProcessOneFrame((*work)[lower], recursive);
-    mine = new std::vector<ParseFrame*>;
-    *mine = new_frames;
+    boost::lock_guard<NewFrames> g(*all_new_frames);
+    for (size_t j = 0; j < new_frames.size(); ++j) {
+       all_new_frames->insert(new_frames[j]);
+    }
   }
-
-  return mine;
 }
 
 
-std::vector<ParseFrame*> *
+void
 Parser::ProcessFrames
 (
  vector<ParseFrame *> *work, 
@@ -590,34 +579,27 @@ Parser::ProcessFrames
  NewFrames *all_new_frames
 )
 {
-  std::vector<ParseFrame*> *result;
-#pragma omp parallel shared(result)
+#pragma omp parallel
   {
 #pragma omp master
-    result = SpawnProcessFrames(work, recursive, all_new_frames, 0, work->size() - 1);
+    SpawnProcessFrames(work, recursive, all_new_frames, 0, work->size() - 1);
   }
-  return result;
 }
 
 
 void
 Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
 {
-    vector<ParseFrame *> *pwork = new vector<ParseFrame *>;
+    while (!work.empty()) {
+        std::cout << "Begin cilk_for, worklist size is " << work.size() << endl;
 
-    *pwork = work;
-    work.clear();
-
-    while(! pwork->empty())
-    {
-        std::cout << "Begin cilk_for, worklist size is " << pwork->size() << endl;
         NewFrames all_new_frames;
 
-        std::vector<ParseFrame*> *new_pwork =
-	  ProcessFrames(pwork, recursive, &all_new_frames);
-	
-	delete pwork;
-	pwork = new_pwork;
+	ProcessFrames(&work, recursive, &all_new_frames);
+
+	work.clear();
+	std::copy(all_new_frames.begin(), all_new_frames.end(),
+		  std::back_inserter(work));
     }
 
     bool done = false, cycle = false;
