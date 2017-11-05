@@ -38,6 +38,8 @@
 #include "dyntypes.h"
 #include "IBSTree.h"
 
+#include "WaitFreeQueue.h"
+
 #include "IA_IAPI.h"
 #include "InstructionAdapter.h"
 
@@ -242,11 +244,11 @@ class Parser {
     vector<ParseFrame *> ProcessOneFrame(ParseFrame *pf, bool recursive);
 
     void SpawnProcessFrames
-      (vector<ParseFrame *> *work, bool recursive, Parser::NewFrames *all_new_frames,
+      (vector<ParseFrame *> *work, bool recursive, WaitFreeQueue<ParseFrame *> *all_new_frames,
        unsigned int lower, unsigned int upper); 
 
     void ProcessFrames
-      (vector<ParseFrame *> *work, bool recursive, Parser::NewFrames *all_new_frames);
+      (vector<ParseFrame *> *work, bool recursive, WaitFreeQueue<ParseFrame *> *all_new_frames);
 
     void cleanup_frames() ;
 

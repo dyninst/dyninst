@@ -548,13 +548,11 @@ Parser::SpawnProcessFrames
 (
  vector<ParseFrame *> *work, 
  bool recursive, 
- NewFrames *all_new_frames,
+ WaitFreeQueue<ParseFrame *> *all_new_frames,
  unsigned int lower, 
  unsigned int upper
 )
 {
-  std::vector<ParseFrame*> *mine;
-  std::vector<ParseFrame*> *other;
   if (upper > lower) {
     unsigned int mid = (upper + lower) >> 1;
 
@@ -563,10 +561,11 @@ Parser::SpawnProcessFrames
     SpawnProcessFrames(work, recursive, all_new_frames, mid + 1, upper);
   } else {
     std::vector<ParseFrame*> new_frames = ProcessOneFrame((*work)[lower], recursive);
-    boost::lock_guard<NewFrames> g(*all_new_frames);
+    WaitFreeQueue<ParseFrame *> myq;
     for (size_t j = 0; j < new_frames.size(); ++j) {
-       all_new_frames->insert(new_frames[j]);
+      myq.insert(new_frames[j]);
     }
+    all_new_frames->splice(myq);
   }
 }
 
@@ -576,7 +575,7 @@ Parser::ProcessFrames
 (
  vector<ParseFrame *> *work, 
  bool recursive, 
- NewFrames *all_new_frames
+ WaitFreeQueue<ParseFrame *> *all_new_frames
 )
 {
 #pragma omp parallel
@@ -593,13 +592,16 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
     while (!work.empty()) {
         std::cout << "Begin cilk_for, worklist size is " << work.size() << endl;
 
-        NewFrames all_new_frames;
+        WaitFreeQueue<ParseFrame *> all_new_frames;
 
 	ProcessFrames(&work, recursive, &all_new_frames);
 
 	work.clear();
 	std::copy(all_new_frames.begin(), all_new_frames.end(),
 		  std::back_inserter(work));
+	std::sort(work.begin(), work.end());
+	auto last = std::unique(work.begin(), work.end());
+	work.erase(last, work.end());
     }
 
     bool done = false, cycle = false;
