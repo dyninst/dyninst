@@ -602,11 +602,12 @@ SymtabCodeSource::getTOC(Address addr) const
 inline CodeRegion *
 SymtabCodeSource::lookup_region(const Address addr) const
 {
-    boost::lock_guard<const SymtabCodeSource> g(*this);
     CodeRegion * ret = NULL;
-    if(_lookup_cache && _lookup_cache->contains(addr))
-        ret = _lookup_cache;
+    CodeRegion * cache = _lookup_cache.load();
+    if(cache && cache->contains(addr))
+        ret = cache;
     else {
+        boost::lock_guard<const SymtabCodeSource> g(*this);
         set<CodeRegion *> stab;
         int rcnt = findRegions(addr,stab);
     
@@ -614,7 +615,7 @@ SymtabCodeSource::lookup_region(const Address addr) const
 
         if(rcnt) {
             ret = *stab.begin();
-            _lookup_cache = ret;
+            _lookup_cache.store(ret);
         } 
     }
     return ret;

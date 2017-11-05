@@ -30,6 +30,8 @@
 #ifndef _CODE_SOURCE_H_
 #define _CODE_SOURCE_H_
 
+#include <atomic>
+
 #include <map>
 #include <vector>
 #include <utility>
@@ -253,7 +255,7 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource, public boost::lockable
  private:
     SymtabAPI::Symtab * _symtab;
     bool owns_symtab;
-    mutable CodeRegion * _lookup_cache;
+    mutable std::atomic<CodeRegion *> _lookup_cache;
 
     // Stats information
     StatContainer * stats_parse;
