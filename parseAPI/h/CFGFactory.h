@@ -32,6 +32,7 @@
 
 #include "dyntypes.h"
 
+#include "WaitFreeQueue.h"
 #include "CFG.h"
 #include "InstructionSource.h"
 
@@ -70,7 +71,7 @@ class flist_iter {
         return (cur_ != iter.cur_);
     }
 };
-
+#if 0
 template <class T>
 class fact_list {
  public:
@@ -104,6 +105,36 @@ class fact_list {
  private:
     allocatable head;
 };
+#else
+template <class T>
+class fact_list {
+public:
+  typedef typename WaitFreeQueue<T>::iterator iterator;
+  typedef std::forward_iterator_tag iterator_category;
+  // typedef const WaitFreeQueue<T>::const_iterator;
+  typedef T elem;
+  typedef T &reference;
+
+  fact_list() {
+  }
+
+  ~fact_list() { }
+
+  void add(elem new_elem) {
+    queue.insert(new_elem);
+  }
+    
+  // iterators
+  iterator begin() { return queue.begin(); }
+  iterator end() { return queue.end(); }
+  //  const_iterator begin() const { return queue.begin(); }
+  //  const_iterator end() const { return queue.end(); }
+private:
+  WaitFreeQueue<T> queue;
+};
+
+#endif
+
 /** An implementation of CFGFactory is responsible for allocation and
     deallocation of CFG objects like Blocks, Edges, and Functions.
     Overriding the default methods of this interface allows the parsing
@@ -153,9 +184,9 @@ class PARSER_EXPORT CFGFactory : public boost::basic_lockable_adapter<boost::rec
     virtual void free_block(Block * b);
     virtual void free_edge(Edge * e);
 
-    fact_list<Edge> edges_;
-    fact_list<Block> blocks_;
-    fact_list<Function> funcs_;
+    fact_list<Edge *> edges_;
+    fact_list<Block *> blocks_;
+    fact_list<Function *> funcs_;
 };
 
 

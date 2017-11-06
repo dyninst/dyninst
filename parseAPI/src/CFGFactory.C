@@ -94,9 +94,9 @@ Function *
 CFGFactory::_mkfunc(Address addr, FuncSource src, string name, 
     CodeObject * obj, CodeRegion * reg, Dyninst::InstructionSource * isrc)
 {
-    boost::lock_guard<CFGFactory> g(*this);
+  // boost::lock_guard<CFGFactory> g(*this);
    Function * ret = mkfunc(addr,src,name,obj,reg,isrc);
-   funcs_.add(*ret);
+   funcs_.add(ret);
    ret->_src =  src;
    return ret;
 }
@@ -114,10 +114,10 @@ CFGFactory::mkfunc(Address addr, FuncSource, string name,
 Block *
 CFGFactory::_mkblock(Function *  f , CodeRegion *r, Address addr)
 {
-    boost::lock_guard<CFGFactory> g(*this);
+  // boost::lock_guard<CFGFactory> g(*this);
 
    Block * ret = mkblock(f, r, addr);
-   blocks_.add(*ret);
+   blocks_.add(ret);
    return ret;
 }
 
@@ -131,10 +131,10 @@ CFGFactory::mkblock(Function *  f , CodeRegion *r, Address addr) {
 
 Block *
 CFGFactory::_mksink(CodeObject * obj, CodeRegion *r) {
-    boost::lock_guard<CFGFactory> g(*this);
+  // boost::lock_guard<CFGFactory> g(*this);
 
    Block * ret = mksink(obj,r);
-   blocks_.add(*ret);
+   blocks_.add(ret);
    return ret;
 }
 
@@ -146,10 +146,10 @@ CFGFactory::mksink(CodeObject * obj, CodeRegion *r) {
 
 Edge *
 CFGFactory::_mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
-    boost::lock_guard<CFGFactory> g(*this);
+  // boost::lock_guard<CFGFactory> g(*this);
 
     Edge * ret = mkedge(src,trg,type);
-    edges_.add(*ret);
+    edges_.add(ret);
     return ret;
 }
 
@@ -200,20 +200,20 @@ CFGFactory::destroy_all() {
     // XXX carefully calling free_* routines; could be faster and just
     // call delete
 
-    fact_list<Edge>::iterator eit = edges_.begin();
+    fact_list<Edge *>::iterator eit = edges_.begin();
     while(eit != edges_.end()) {
-        fact_list<Edge>::iterator cur = eit++;
-        destroy_edge(&*cur);
+        fact_list<Edge *>::iterator cur = eit++;
+        destroy_edge(*cur);
     }
-    fact_list<Block>::iterator bit = blocks_.begin();
+    fact_list<Block *>::iterator bit = blocks_.begin();
     while(bit != blocks_.end()) {
-        fact_list<Block>::iterator cur = bit++;
-        destroy_block(&*cur);
+        fact_list<Block *>::iterator cur = bit++;
+        destroy_block(*cur);
     }
-    fact_list<Function>::iterator fit = funcs_.begin();
+    fact_list<Function *>::iterator fit = funcs_.begin();
     while(fit != funcs_.end()) {
-        fact_list<Function>::iterator cur = fit++;
-        destroy_func(&*cur);
+        fact_list<Function *>::iterator cur = fit++;
+        destroy_func(*cur);
     }
 }
 
