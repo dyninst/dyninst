@@ -730,6 +730,7 @@ void Parser::processCycle(vector<ParseFrame *> &work, bool recursive) {// If we'
 }
 
 void Parser::cleanup_frames()  {
+#pragma parallel omp for schedule(auto)
     for(unsigned i=0; i < frames.size(); ++i) {
         _parse_data->remove_frame(frames[i]);
         delete frames[i];
