@@ -30,6 +30,7 @@
 #ifndef _PARSE_DATA_H_
 #define _PARSE_DATA_H_
 
+#include <atomic>
 #include <set>
 #include <vector>
 #include <queue>
@@ -144,14 +145,20 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
         _pd(pd)
     {
         set_status(UNPARSED);
+	busy.store(false);
     }
 
     ~ParseFrame();
 
     Status status() const { return _status; }
     void set_status(Status);
+    bool swap_busy(bool value) {
+      return busy.exchange(value);
+    }
+;
  private:
     Status _status;
+    std::atomic<bool> busy;
     ParseData * _pd;
 };
 

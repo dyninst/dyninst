@@ -80,39 +80,54 @@ private:
 //    insert: either an value or a chain of items can be concurrently added to the front of the queue
 //    splice: an entire queue of items can be concurrently added to the front of the destination queue
 //       note: it is unsafe to concurrenty insert into the source for splice while it is being spliced
+
+
 template<typename T>
 class WaitFreeQueue {
 public:
   typedef WaitFreeQueueIterator<T> iterator;
   typedef WaitFreeQueueItem<T> item_type; 
+ private:
+  item_type *PENDING = (item_type *) ~0;
 public:
-  WaitFreeQueue() : head(0), tail(0) {};
+  WaitFreeQueue(item_type *_head = 0) : head(_head) {};
   void insert(T value) {
     item_type *entry = new item_type(value);
-    item_type *oldhead = head.exchange(entry);
-    entry->setNext(oldhead);
-    if (!oldhead) tail = entry;
+    insert(entry, entry);
   };
-  void insert(item_type *seqFirst, item_type *seqLast) { 
-    item_type *oldhead = head.exchange(seqFirst);
-    seqLast->setNext(oldhead);
-    if (!oldhead) tail = seqLast;
+  void insert(item_type *first, item_type *last) { 
+    last->setNext(PENDING);
+    item_type *oldhead = head.exchange(first);
+    last->setNext(oldhead);
   };
   void splice(WaitFreeQueue<T> &other) {
     if (other.head) {
-      insert(other.head, other.tail);
+      item_type *n = other.head;
+      item_type *nn;
+      while ((nn = n->next())) n = nn;
+      insert(other.head, n);
       other.reset();
     }
   }
+  item_type *peek() { return head.load(); };
+  item_type *steal() { return head.exchange(0); };
   iterator begin() { return iterator(head.load()); };
   iterator end() { return iterator(0); };
   ~WaitFreeQueue() { clear(); };
-private:
   item_type *pop() { 
     item_type *first = head.load();
-    if (first) head.store(first->next());
+    if (first) {
+      item_type *succ;
+      do { 
+	succ = first->next(); 
+      } while (succ == PENDING);
+
+      head.store(succ);
+      first->setNext(0);
+    }
     return first;
   };
+private:
   void clear() { 
     item_type *first;
     while((first = pop())) { 
@@ -121,11 +136,9 @@ private:
   };
   void reset() {
     head.store(0);
-    tail = 0;
   };
 private:
   std::atomic<item_type *> head;
-  item_type * tail;
 };
 
 #endif

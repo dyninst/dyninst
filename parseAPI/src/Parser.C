@@ -28,6 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <omp.h>
+
 #include <vector>
 #include <limits>
 
@@ -419,6 +421,8 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
 
 
 vector<ParseFrame*> Parser::ProcessOneFrame(ParseFrame* pf, bool recursive) {
+  vector<ParseFrame*> more_frames;
+  if (pf->func && !pf->swap_busy(true)) {
     boost::timer::cpu_timer t;
     t.start();
     parse_frame(*pf,recursive);
@@ -427,7 +431,10 @@ vector<ParseFrame*> Parser::ProcessOneFrame(ParseFrame* pf, bool recursive) {
     tbb::concurrent_hash_map<unsigned int, unsigned int>::accessor a;
     time_histogram.insert(a, msecs);
     ++(a->second);
-    return postProcessFrame(pf, recursive);
+    more_frames = postProcessFrame(pf, recursive);
+    pf->swap_busy(false);
+  }
+  return more_frames;
 }
 
 vector<ParseFrame *> Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
@@ -543,30 +550,36 @@ vector<ParseFrame *> Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
 }
 
 
-void
-Parser::SpawnProcessFrames
+static void
+InsertFrames
 (
- vector<ParseFrame *> *work, 
- bool recursive, 
- WaitFreeQueue<ParseFrame *> *all_new_frames,
- unsigned int lower, 
- unsigned int upper
+ vector<ParseFrame *> *frames, 
+ WaitFreeQueue<ParseFrame *> *q
 )
 {
-  if (upper > lower) {
-    unsigned int mid = (upper + lower) >> 1;
-
-#pragma omp task
-    SpawnProcessFrames(work, recursive, all_new_frames, lower, mid);
-    SpawnProcessFrames(work, recursive, all_new_frames, mid + 1, upper);
-  } else {
-    std::vector<ParseFrame*> new_frames = ProcessOneFrame((*work)[lower], recursive);
+  if (frames->size() > 0) {
     WaitFreeQueue<ParseFrame *> myq;
-    for (size_t j = 0; j < new_frames.size(); ++j) {
-      myq.insert(new_frames[j]);
+    for (size_t j = 0; j < frames->size(); ++j) {
+      ParseFrame *f = (*frames)[j]; 
+      if (f) myq.insert(f);
     }
-    all_new_frames->splice(myq);
+    q->splice(myq);
   }
+}
+
+
+void
+Parser::SpawnProcessFrame
+(
+ ParseFrame *pf, 
+ bool recursive, 
+ WaitFreeQueue<ParseFrame *> *work_queue,
+ std::atomic<int> *in_progress
+)
+{
+  vector<ParseFrame*> new_frames = ProcessOneFrame(pf, recursive);
+  InsertFrames(&new_frames, work_queue);
+  in_progress->fetch_add(-1);
 }
 
 
@@ -574,14 +587,35 @@ void
 Parser::ProcessFrames
 (
  vector<ParseFrame *> *work, 
- bool recursive, 
- WaitFreeQueue<ParseFrame *> *all_new_frames
+ bool recursive 
 )
 {
-#pragma omp parallel
+  WaitFreeQueue<ParseFrame *> work_queue;
+  InsertFrames(work, &work_queue);
+  std::atomic<int> in_progress(0);
+#pragma omp parallel shared(work_queue, in_progress)
   {
+    int nthreads = omp_get_num_threads();
 #pragma omp master
-    SpawnProcessFrames(work, recursive, all_new_frames, 0, work->size() - 1);
+    for (;;) {
+      if (work_queue.peek() == 0) {
+	if (in_progress.load() == 0) break;
+	if (nthreads < 10) {
+#pragma omp taskwait
+	}
+      } else {
+	WaitFreeQueue<ParseFrame *> private_queue(work_queue.steal());
+	for(;;) {
+	  WaitFreeQueueItem<ParseFrame *> *first = private_queue.pop();
+	  if (first == 0) break;
+	  ParseFrame *frame = first->value();
+	  delete first;
+	  in_progress.fetch_add(1);
+#pragma omp task shared(work_queue, in_progress)
+	  SpawnProcessFrame(frame, recursive, &work_queue, &in_progress);
+	}
+      }
+    }
   }
 }
 
@@ -589,20 +623,8 @@ Parser::ProcessFrames
 void
 Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
 {
-    while (!work.empty()) {
-        std::cout << "Begin cilk_for, worklist size is " << work.size() << endl;
-
-        WaitFreeQueue<ParseFrame *> all_new_frames;
-
-	ProcessFrames(&work, recursive, &all_new_frames);
-
-	work.clear();
-	std::copy(all_new_frames.begin(), all_new_frames.end(),
-		  std::back_inserter(work));
-	std::sort(work.begin(), work.end());
-	auto last = std::unique(work.begin(), work.end());
-	work.erase(last, work.end());
-    }
+    ProcessFrames(&work, recursive);
+    work.clear();
 
     bool done = false, cycle = false;
     {
@@ -730,7 +752,7 @@ void Parser::processCycle(vector<ParseFrame *> &work, bool recursive) {// If we'
 }
 
 void Parser::cleanup_frames()  {
-#pragma parallel omp for schedule(auto)
+#pragma omp parallel for schedule(auto)
     for(unsigned i=0; i < frames.size(); ++i) {
         _parse_data->remove_frame(frames[i]);
         delete frames[i];
@@ -1598,7 +1620,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         func->tampersStack();
     }
     _pcb.newfunction_retstatus( func );
-
 }
 
 void
