@@ -230,20 +230,20 @@ Parser::getTamperAbsFrame(Function *tamperFunc) {
 // In the second case, add a new ParseFrame to the worklist or 
 // trigger parsing in the target object. 
 void
-Parser::tamper_post_processing(vector<ParseFrame *> &work, ParseFrame *pf) {
+Parser::tamper_post_processing(FrameSet &work, ParseFrame *pf) {
     // tampers with stack by relative amount: 
     // adjust CALL_FT target edge if there is one
-    for (unsigned widx = 0;
+    for (auto widx = work.begin();
          pf->func->tampersStack() == TAMPER_REL &&
-         widx < work.size();
+         widx != work.end();
          widx++) {
-        if (work[widx]->status() == ParseFrame::CALL_BLOCKED &&
-            pf->func == work[widx]->call_target) {
+        if ((*widx)->status() == ParseFrame::CALL_BLOCKED &&
+            pf->func == (*widx)->call_target) {
             for (unsigned bidx = 0;
-                 bidx < work[widx]->work_bundles.size();
+                 bidx < (*widx)->work_bundles.size();
                  bidx++) {
                 const vector<ParseWorkElem *> &elems =
-                        work[widx]->work_bundles[bidx]->elems();
+                        (*widx)->work_bundles[bidx]->elems();
                 bool rightBundle = false;
                 ParseWorkElem *ftEdge = NULL;
                 for (unsigned eix = 0; eix < elems.size(); eix++) {
@@ -284,7 +284,7 @@ Parser::tamper_post_processing(vector<ParseFrame *> &work, ParseFrame *pf) {
                 if (tf) {
                     mal_printf("adding TAMPER_ABS target %lx frame\n",
                                pf->func->_tamper_addr);
-                    work.push_back(tf);
+                    work.insert(tf);
                 }
             } else { // target is in another object, parse there
                 mal_printf("adding TAMPER_ABS target %lx "

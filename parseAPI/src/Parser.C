@@ -56,9 +56,7 @@
 #include <boost/timer/timer.hpp>
 #include <fstream>
 
-
 #define RAJA_ENABLE_TBB
-#define RAJA_ENABLE_OPENMP
 
 #include <RAJA/RAJA.hpp>
 
@@ -209,7 +207,7 @@ Parser::parse_at(
 {
     Function *f;
     ParseFrame *pf;
-    vector<ParseFrame *> work;
+    FrameSet work;
 
     parsing_printf("[%s:%d] entered parse_at([%lx,%lx),%lx)\n",
                    FILE__,__LINE__,region->low(),region->high(),target);
@@ -242,7 +240,7 @@ Parser::parse_at(
         _parse_data->record_frame(pf);
     }
 
-    work.push_back(pf);
+    work.insert(pf);
     parse_frames(work,recursive);
 
     // downgrade state if necessary
@@ -280,7 +278,7 @@ void
 Parser::parse_vanilla()
 {
     ParseFrame *pf;
-    vector<ParseFrame *> work;
+    FrameSet work;
     vector<Function *>::iterator fit;
 
     parsing_printf("[%s:%d] entered parse_vanilla()\n",FILE__,__LINE__);
@@ -307,7 +305,7 @@ Parser::parse_vanilla()
         pf = new ParseFrame(hf,_parse_data);
         init_frame(*pf);
         frames.push_back(pf);
-        work.push_back(pf);
+        work.insert(pf);
         _parse_data->record_frame(pf);
     }
 
@@ -322,7 +320,7 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
 
     // build up set of needed parse frames and load them with work elements
     set<ParseFrame*> frameset; // for dup checking
-    vector<ParseFrame*> frames;
+    FrameSet frames;
 
     for (unsigned idx=0; idx < work_elems.size(); idx++) {
 
@@ -406,7 +404,7 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
 
         if (frameset.end() == frameset.find(frame)) {
             frameset.insert(frame);
-            frames.push_back(frame);
+            frames.insert(frame);
         }
     }
     ScopeLock<Mutex<true> > L(parse_mutex);
@@ -426,7 +424,7 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
 }
 
 
-vector<ParseFrame*> Parser::ProcessOneFrame(ParseFrame* pf, bool recursive) {
+FrameSet Parser::ProcessOneFrame(ParseFrame* pf, bool recursive) {
     boost::timer::cpu_timer t;
     t.start();
     parse_frame(*pf,recursive);
@@ -438,8 +436,8 @@ vector<ParseFrame*> Parser::ProcessOneFrame(ParseFrame* pf, bool recursive) {
     return postProcessFrame(pf, recursive);
 }
 
-vector<ParseFrame *> Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
-    vector<ParseFrame*> work;
+FrameSet Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
+    FrameSet work;
     boost::lock_guard<ParseFrame> g(*pf);
     switch(pf->status()) {
         case ParseFrame::CALL_BLOCKED: {
@@ -450,7 +448,7 @@ vector<ParseFrame *> Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
                 assert(pf->call_target);
 
                 parsing_printf("    call target %lx\n",pf->call_target->addr());
-                work.push_back(pf);
+                work.insert(pf);
 
                 CodeRegion * cr = pf->call_target->region();
                 Address targ = pf->call_target->addr();
@@ -467,7 +465,7 @@ vector<ParseFrame *> Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
                     _parse_data->record_frame(tf);
                 }
                 if(likely(recursive))
-                    work.push_back(tf);
+                    work.insert(tf);
                 else {
                     assert(0);
                     // XXX should never get here
@@ -550,72 +548,56 @@ vector<ParseFrame *> Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
 
 }
 
-//#include <boost/make_shared.hpp>
-
-
-
-//struct FrameSet {
-//    mutable boost::shared_ptr<std::set<ParseFrame*> >m_value;
-//    FrameSet() = default;
-//    constexpr FrameSet(unsigned int) : m_value(nullptr) {}
-//    template <typename Iterator>
-//    FrameSet(Iterator begin, Iterator end) :
-//            m_value(boost::make_shared<std::set<ParseFrame*> >(begin, end))
-//    {
-//    }
-//    FrameSet operator+(const FrameSet& rhs) const {
-//        FrameSet result;
-//        if(m_value) result.insert(m_value->begin(), m_value->end());
-//        result.insert(rhs.begin(), rhs.end());
-//        return result;
-//    }
-//    std::set<ParseFrame*>::const_iterator begin() const {
-//        if(!m_value) m_value = boost::make_shared<std::set<ParseFrame*> >();
-//        return m_value->begin();
-//    }
-//    std::set<ParseFrame*>::const_iterator end() const {
-//        if(!m_value) m_value = boost::make_shared<std::set<ParseFrame*> >();
-//        return m_value->end();
-//    }
-//    template <typename Iterator>
-//    void insert(Iterator b, Iterator e) {
-//        if(!m_value) m_value = boost::make_shared<std::set<ParseFrame*> >();
-//        m_value->insert(b,e);
-//    }
-//
-//    virtual ~FrameSet() {
-//
-//    }
-//};
-//static FrameSet dummy_frameset(0);
-
-struct FrameSet : public std::set<ParseFrame*>, public boost::lockable_adapter<boost::mutex>
+enum parallel_style
 {
-
+    serial,
+    intel_tbb,
+    openmp
+};
+#if(PARALLEL_TYPE == TBB)
+static const parallel_style the_style = intel_tbb;
+#elif(PARALLEL_TYPE == OpenMP)
+static const parallel_style the_style = openmp;
+#else
+static const parallel_style the_style = serial;
+#endif
+template <parallel_style P>
+struct parallel_policies
+{
+};
+template<>
+struct parallel_policies<serial>
+{
+    typedef RAJA::seq_exec exec_policy;
+};
+template<>
+struct parallel_policies<intel_tbb>
+{
+    typedef RAJA::tbb_for_exec exec_policy;
+};
+template<>
+struct parallel_policies<openmp>
+{
+    typedef RAJA::omp_parallel_for_exec exec_policy;
 };
 
-void
-Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
-{
-    while(!work.empty())
-    {
-        std::cout << "Begin iteration, worklist size is " << work.size() << endl;
-        /* Recursive traversal parsing */
-//        for(size_t i = 0;
-        FrameSet all_new_frames;
-        RAJA::RangeSegment worklist(0, work.size());
-        RAJA::forall<RAJA::tbb_for_exec>(worklist, [&](RAJA::Index_type i)
-        {
-            std::vector<ParseFrame*> new_frames = ProcessOneFrame(work[i], recursive);
-            all_new_frames.lock();
-            all_new_frames.insert(new_frames.begin(), new_frames.end());
-            all_new_frames.unlock();
-        });
-        work.clear();
-        std::copy(all_new_frames.begin(), all_new_frames.end(),
-        std::back_inserter(work));
+typedef parallel_policies<the_style>::exec_policy exec_policy;
 
-    }
+void
+Parser::parse_frames(FrameSet &work, bool recursive)
+{
+    std::cout << "OMP max number of threads: " << omp_get_max_threads() << endl;
+    std::vector<ParseFrame*> the_queue(work.begin(), work.end());
+    work.clear();
+    std::cout << "Begin iteration, worklist size is " << the_queue.size() << endl;
+    /* Recursive traversal parsing */
+    RAJA::forall<exec_policy>
+    (RAJA::RangeSegment(0, the_queue.size()), [&](RAJA::Index_type i)
+    {
+        FrameSet new_frames = ProcessOneFrame(the_queue[i], recursive);
+        parse_frames(new_frames, recursive);
+
+    });
 
     bool done = false, cycle = false;
     {
@@ -642,7 +624,7 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
     cleanup_frames();
 }
 
-void Parser::processFixedPoint(vector<ParseFrame *> &work, bool recursive) {// We haven't yet reached a fixedpoint; let's recurse
+void Parser::processFixedPoint(FrameSet &work, bool recursive) {// We haven't yet reached a fixedpoint; let's recurse
     {
         boost::lock_guard<DelayedFrames> g(delayed_frames);
 
@@ -678,7 +660,7 @@ void Parser::processFixedPoint(vector<ParseFrame *> &work, bool recursive) {// W
     parse_frames(work, recursive);
 }
 
-void Parser::processCycle(vector<ParseFrame *> &work, bool recursive) {// If we've reached a fixedpoint and have remaining frames, we must
+void Parser::processCycle(FrameSet &work, bool recursive) {// If we've reached a fixedpoint and have remaining frames, we must
     // have a cyclic dependency
     vector<Function *> updated;
     {
@@ -2072,7 +2054,7 @@ void Parser::invalidateContainingFuncs(Function *owner, Block *b)
 }
 
 /* Add ParseFrames waiting on func back to the work queue */
-void Parser::resumeFrames(Function * func, vector<ParseFrame *> & work)
+void Parser::resumeFrames(Function *func, FrameSet &work)
 {
     // If we do not know the function's return status, don't put its waiters back on the worklist
     if (func->_rs == UNSET) {
@@ -2102,7 +2084,7 @@ void Parser::resumeFrames(Function * func, vector<ParseFrame *> & work)
         for (set<ParseFrame *>::iterator fIter = vec.begin();
              fIter != vec.end();
              ++fIter) {
-            work.push_back(*fIter);
+            work.insert(*fIter);
         }
         // remove func from delayedFrames map
         delayed_frames.frames.erase(func);
