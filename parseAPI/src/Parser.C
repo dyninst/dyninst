@@ -58,6 +58,8 @@
 #include <boost/timer/timer.hpp>
 #include <fstream>
 
+#define USE_CILK 1
+
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
@@ -593,6 +595,7 @@ Parser::ProcessFrames
   WaitFreeQueue<ParseFrame *> work_queue;
   InsertFrames(work, &work_queue);
   std::atomic<int> in_progress(0);
+#if USE_OPENMP
 #pragma omp parallel shared(work_queue, in_progress)
   {
     int nthreads = omp_get_num_threads();
@@ -617,6 +620,47 @@ Parser::ProcessFrames
       }
     }
   }
+#elsif USE_CILK
+  {
+    int nthreads = __cilkrts_get_nworkers(); 
+    for (;;) {
+      if (work_queue.peek() == 0) {
+	if (in_progress.load() == 0) break;
+	if (nthreads < 10) {
+	  cilk_sync;
+	}
+      } else {
+	WaitFreeQueue<ParseFrame *> private_queue(work_queue.steal());
+	for(;;) {
+	  WaitFreeQueueItem<ParseFrame *> *first = private_queue.pop();
+	  if (first == 0) break;
+	  ParseFrame *frame = first->value();
+	  delete first;
+	  in_progress.fetch_add(1);
+	  cilk_spawn SpawnProcessFrame(frame, recursive, &work_queue, &in_progress);
+	}
+      }
+    }
+  }
+#else
+  {
+    for (;;) {
+      if (work_queue.peek() == 0) {
+	if (in_progress.load() == 0) break;
+      } else {
+	WaitFreeQueue<ParseFrame *> private_queue(work_queue.steal());
+	for(;;) {
+	  WaitFreeQueueItem<ParseFrame *> *first = private_queue.pop();
+	  if (first == 0) break;
+	  ParseFrame *frame = first->value();
+	  delete first;
+	  in_progress.fetch_add(1);
+	  SpawnProcessFrame(frame, recursive, &work_queue, &in_progress);
+	}
+      }
+    }
+  }
+#endif
 }
 
 
@@ -752,12 +796,33 @@ void Parser::processCycle(vector<ParseFrame *> &work, bool recursive) {// If we'
 }
 
 void Parser::cleanup_frames()  {
-#pragma omp parallel for schedule(auto)
-    for(unsigned i=0; i < frames.size(); ++i) {
-        _parse_data->remove_frame(frames[i]);
-        delete frames[i];
+#if USE_OPENMP
+#pragma omp parallel for schedule(auto) 
+  for(unsigned i=0; i < frames.size(); ++i) {
+    ParseFrame *pf = frames[i];
+    if (pf) {
+      _parse_data->remove_frame(pf);
+      delete pf;
     }
-    frames.clear();
+  }
+#elsif USE_CILK
+  cilk_for(unsigned i=0; i < frames.size(); ++i) {
+    ParseFrame *pf = frames[i];
+    if (pf) {
+      _parse_data->remove_frame(pf);
+      delete pf;
+    }
+  }
+#else 
+  for(unsigned i=0; i < frames.size(); ++i) {
+    ParseFrame *pf = frames[i];
+    if (pf) {
+      _parse_data->remove_frame(pf);
+      delete pf;
+    }
+  }
+#endif
+  frames.clear();
 }
 
 /* Finalizing all functions for consumption:

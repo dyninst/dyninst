@@ -7,7 +7,8 @@
 #  CILK_DEFINITIONS - Compiler switches required for using cilk
 #
 
-set(CILK_DEFINITIONS -fopenmp)
+#set(CILK_DEFINITIONS -fopenmp)
+set(CILK_DEFINITIONS -fcilkplus)
 
 
 #find_library (CILK_LIBRARIES
