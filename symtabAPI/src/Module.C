@@ -202,9 +202,10 @@ LineInformation *Module::parseLineInformation() {
         {
             exec()->getObject()->parseLineInfoForCU(*cu, lineInfo_);
         }
+
+        // Clear list of work to do
+        info_.clear();
     }
-    // Clear list of work to do
-    info_.clear();
     return lineInfo_;
 }
 
