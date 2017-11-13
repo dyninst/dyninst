@@ -1,18 +1,22 @@
 if (UNIX)
+  find_package (LibDwarf)
   find_package (LibElf)
-  if(NOT LIBELF_FOUND)
-    message(STATUS "No libelf found, attempting to build as external project")
+
+  if(NOT LIBELF_FOUND OR NOT LIBDWARF_FOUND)
+    message(STATUS "Attempting to build elfutils as external project")
     cmake_minimum_required (VERSION 2.8.11)
     include(ExternalProject)
     ExternalProject_Add(LibElf
-      PREFIX ${CMAKE_BINARY_DIR}/libelf
+      PREFIX ${CMAKE_BINARY_DIR}/elfutils
       URL https://sourceware.org/elfutils/ftp/0.168/elfutils-0.168.tar.bz2
-      CONFIGURE_COMMAND <SOURCE_DIR>/configure --enable-shared --prefix=${CMAKE_BINARY_DIR}/libelf
-      BUILD_COMMAND make -C libelf
-      INSTALL_COMMAND make -C libelf install
+      CONFIGURE_COMMAND CFLAGS=-g <SOURCE_DIR>/configure --enable-shared --prefix=${CMAKE_BINARY_DIR}/elfutils
+      BUILD_COMMAND make
+      INSTALL_COMMAND make install
       )
-    set(LIBELF_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libelf/include)
-    set(LIBELF_LIBRARIES ${CMAKE_BINARY_DIR}/libelf/lib/libelf.so)
+    set(LIBELF_INCLUDE_DIR ${CMAKE_BINARY_DIR}/elfutils/include)
+    set(LIBELF_LIBRARIES ${CMAKE_BINARY_DIR}/elfutils/lib/libelf.so)
+    set(LIBDWARF_INCLUDE_DIR ${CMAKE_BINARY_DIR}/elfutils/include)
+    set(LIBDWARF_LIBRARIES ${CMAKE_BINARY_DIR}/elfutils/lib/libdw.so)
     set(SHOULD_INSTALL_LIBELF 1)
   else()
     set(SHOULD_INSTALL_LIBELF 0)
@@ -23,34 +27,6 @@ if (UNIX)
     PROPERTY IMPORTED_LOCATION ${LIBELF_LIBRARIES})
   if(NOT LIBELF_FOUND)
     add_dependencies(libelf_imp LibElf)
-  endif()
-
-  find_package (LibDwarf)
-
-  if(NOT LIBDWARF_FOUND)
-    message(STATUS "No libdwarf found, attempting to build as external project")
-    cmake_minimum_required (VERSION 2.8.11)
-    include(ExternalProject)
-    ExternalProject_Add(LibDwarf
-      PREFIX ${CMAKE_BINARY_DIR}/libdwarf
-      DEPENDS libelf_imp
-      #	URL http://reality.sgiweb.org/davea/libdwarf-20130126.tar.gz
-      #	URL http://sourceforge.net/p/libdwarf/code/ci/20130126/tarball
-      URL http://www.paradyn.org/libdwarf/libdwarf-20130126.tar.gz
-      #	GIT_REPOSITORY git://git.code.sf.net/p/libdwarf/code libdwarf-code
-      #	GIT_TAG 20130126
-      CONFIGURE_COMMAND env CFLAGS=${CMAKE_C_FLAGS}\ -I${LIBELF_INCLUDE_DIR} LDFLAGS=-L${CMAKE_BINARY_DIR}/libelf/lib <SOURCE_DIR>/libdwarf/configure --enable-shared
-      BUILD_COMMAND make
-      INSTALL_DIR ${CMAKE_BINARY_DIR}/libdwarf
-      INSTALL_COMMAND mkdir -p <INSTALL_DIR>/include && mkdir -p <INSTALL_DIR>/lib && install <SOURCE_DIR>/libdwarf/libdwarf.h <INSTALL_DIR>/include && install <SOURCE_DIR>/libdwarf/dwarf.h <INSTALL_DIR>/include && install <BINARY_DIR>/libdwarf.so <INSTALL_DIR>/lib
-      )
-    add_dependencies(LibDwarf libelf_imp)
-    set(LIBDWARF_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libdwarf/include)
-    set(LIBDWARF_LIBRARIES ${CMAKE_BINARY_DIR}/libdwarf/lib/libdwarf.so)
-  else()
-    # Unfortunately, libdwarf doesn't always link to libelf itself.
-    # (e.g. https://bugzilla.redhat.com/show_bug.cgi?id=1061432)
-    set(LIBDWARF_LIBRARIES ${LIBDWARF_LIBRARIES} ${LIBELF_LIBRARIES})
   endif()
 
   add_library(libdwarf_imp SHARED IMPORTED)
@@ -174,9 +150,9 @@ if(NOT Boost_FOUND)
   include(ExternalProject)
   ExternalProject_Add(boost
     PREFIX ${CMAKE_BINARY_DIR}/boost
-    URL http://downloads.sourceforge.net/project/boost/boost/1.61.0/boost_1_61_0.7z
-    URL_MD5 bb1dad35ad069e8d7c8516209a51053c
-    BUILD_IN_SOURCE 1
+    URL http://downloads.sourceforge.net/project/boost/boost/1.61.0/boost_1_61_0.zip
+    URL_MD5 015ae4afa6f3e597232bfe1dab949ace
+          BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${CMAKE_INSTALL_PREFIX}
     BUILD_COMMAND ${BOOST_BUILD} ${BOOST_ARGS} stage
     INSTALL_COMMAND ""

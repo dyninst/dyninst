@@ -1294,6 +1294,7 @@ PowerpcInstructionKind RoseInsnPPCFactory::convertKind(entryID opcode,
         case power_op_fxcsmadd: ret = powerpc_fxcsmadd; break;
         case power_op_fpnmadd: ret = powerpc_fpnmadd; break;
         case power_op_fxnmadd: ret = powerpc_fxnmadd; break;
+	/*
         case power_op_qvfcfids: ret = powerpc_qvfcfids; break;
         case power_op_qvlfsx: ret = powerpc_qvlfsx; break;
         case power_op_qvlfsux: ret = powerpc_qvlfsux; break;
@@ -1385,6 +1386,7 @@ PowerpcInstructionKind RoseInsnPPCFactory::convertKind(entryID opcode,
         case power_op_qvlstdux: ret = powerpc_qvlstdux; break;
         case power_op_qvlstduxi: ret = powerpc_qvlstduxi; break;
         case power_op_qvflogical: ret = powerpc_qvflogical; break;
+	*/
         case power_op_fxcpnmadd: ret = powerpc_fxcpnmadd; break;
         case power_op_fxcsnmadd: ret = powerpc_fxcsnmadd; break;
         case power_op_fpmsub: ret = powerpc_fpmsub; break;
@@ -1395,7 +1397,7 @@ PowerpcInstructionKind RoseInsnPPCFactory::convertKind(entryID opcode,
         case power_op_fxnmsub: ret = powerpc_fxnmsub; break;
         case power_op_fxcpnmsub: ret = powerpc_fxcpnmsub; break;
         case power_op_fxcsnmsub: ret = powerpc_fxcsnmsub; break;
-        case power_op_qvstfiwx: ret = powerpc_qvstfiwx; break;
+//        case power_op_qvstfiwx: ret = powerpc_qvstfiwx; break;
         case power_op_fpmr: ret = powerpc_fpmr; break;
         case power_op_fpabs: ret = powerpc_fpabs; break;
         case power_op_fpneg: ret = powerpc_fpneg; break;

@@ -36,7 +36,7 @@
 
 namespace Dyninst {
 
-namespace Dwarf {
+namespace DwarfDyninst {
 class DwarfFrameParser;
 typedef boost::shared_ptr<DwarfFrameParser> DwarfFrameParserPtr;
 };
@@ -81,7 +81,7 @@ class DebugStepperImpl : public FrameStepper, public Dyninst::ProcessReader {
   virtual const char *getName() const;
  protected:
   gcframe_ret_t getCallerFrameArch(Address pc, const Frame &in, Frame &out, 
-                                   Dwarf::DwarfFrameParserPtr dinfo, bool isVsyscallPage);
+                                   DwarfDyninst::DwarfFrameParserPtr dinfo, bool isVsyscallPage);
   bool isFrameRegister(MachRegister reg);
   bool isStackRegister(MachRegister reg);
 };

@@ -1,0 +1,94 @@
+##ldaxr_execute
+bits(64) address;
+bits(datasize) data;
+constant integer dbytes = datasize / 8;
+boolean rt_unknown = FALSE;
+boolean rn_unknown = FALSE;
+
+if memop == MemOp_LOAD && pair && t == t2 then
+    case c of
+end
+
+if memop == MemOp_STORE then
+    if s == t || (pair && s == t2) then
+        case c of
+    end
+    if s == n && n != 31 then
+        case c of
+    end
+
+end
+if n == 31 then
+    address = SP[];
+elsif rn_unknown then
+    address = bits(64) UNKNOWN;
+else
+    address = X[n];
+end
+
+case memop of
+    when MemOp_STORE
+        if rt_unknown then
+            data = bits(datasize) UNKNOWN;
+        elsif pair then
+            bits(datasize / 2) el1 = X[t];
+            bits(datasize / 2) el2 = X[t2];
+            data = if BigEndian() then el1 : el2 else el2 : el1;
+        else
+            end
+            data = X[t];
+        end
+
+        bit status = 1;
+        // Check whether the Exclusive Monitors are set to include the
+        // physical memory locations corresponding to virtual address
+        // range [address, address+dbytes-1].
+        if AArch64.ExclusiveMonitorsPass(address, dbytes) then
+            // This atomic write will be rejected if it does not refer
+            // to the same physical locations after address translation.
+            Mem[address, dbytes, acctype] = data;
+            status = ExclusiveMonitorsStatus();
+        end
+        X[s] = ZeroExtend(status, 32);
+    end
+
+    when MemOp_LOAD
+        // Tell the Exclusive Monitors to record a sequence of one or more atomic
+        // memory reads from virtual address range [address, address+dbytes-1].
+        // The Exclusive Monitor will only be set if all the reads are from the
+        // same dbytes-aligned physical address, to allow for the possibility of
+        // an atomicity break if the translation is changed between reads.
+        AArch64.SetExclusiveMonitors(address, dbytes);
+    end
+
+        if pair then
+            // load exclusive pair
+            if rt_unknown then
+                X[t]  = bits(datasize) UNKNOWN;
+            elsif elsize == 32 then
+                // 32-bit load exclusive pair (atomic)
+                data = Mem[address, dbytes, acctype];
+                if BigEndian() then
+                    X[t]  = data<datasize-1:elsize>;
+                    X[t2] = data<elsize-1:0>;
+                else
+                    X[t]  = data<elsize-1:0>;
+                    X[t2] = data<datasize-1:elsize>;
+            else // elsize == 64
+                end
+                // 64-bit load exclusive pair (not atomic),
+                // but must be 128-bit aligned
+                if address != Align(address, dbytes) then
+                    iswrite = FALSE;
+                    secondstage = FALSE;
+                    AArch64.Abort(address, AArch64.AlignmentFault(acctype, iswrite, secondstage));
+                end
+                X[t]  = Mem[address + 0, 8, acctype];
+                X[t2] = Mem[address + 8, 8, acctype];
+        else
+            end
+            // load {acquire} {exclusive} single register
+            data = Mem[address, dbytes, acctype];
+            X[t] = ZeroExtend(data, regsize);
+        end
+@@

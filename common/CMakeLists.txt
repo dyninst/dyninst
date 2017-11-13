@@ -41,7 +41,8 @@ set (SRC_LIST
     src/addrtranslate.C 
     src/arch-x86.C 
     src/arch-power.C 
-	src/arch-aarch64.C
+    src/arch-aarch32.C
+    src/arch-aarch64.C
     src/debug_common.C 
     src/VariableLocation.C 
     src/Buffer.C

@@ -46,6 +46,12 @@ namespace NS_x86 {
     class instruction;
 }
 using namespace NS_x86;
+#elif defined(arch_aarch32) \
+   || defined(aarch32_unknown_linux)
+namespace NS_aarch32 {
+    class instruction;
+}
+using namespace NS_aarch32;
 #elif defined(arch_aarch64) \
 	 || defined(aarch64_unknown_linux)
 namespace NS_aarch64{

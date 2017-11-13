@@ -640,6 +640,37 @@ enum { sNONE=0, // the instruction does something that cannot be classified as r
 /* This should equal the first operand semantic where 4 operands are used. */
 #define s4OP s1W2R3R4R
 
+/* Implicit operand specifier */
+#define s1I (1 << 16) /* 1st operand is implicit */
+#define s2I (1 << 17) /* 2nd operand is implicit */
+#define s3I (1 << 18) /* 3rd operand is implicit */
+#define s4I (1 << 19) /* 4th operand is implicit */
+
+/* Implicit mask getters */
+#define sGetImplicitOP1(b) ((b) & s1I)
+#define sGetImplicitOP2(b) ((b) & s2I)
+#define sGetImplicitOP3(b) ((b) & s3I)
+#define sGetImplicitOP4(b) ((b) & s4I)
+#define sGetImplicitOPs(b) ((b) & 0xFFFF0000)
+#define sGetImplicitOP(b, i) ((b) & (1 << (16 + (i))))
+
+/* Implicit mask setters */
+#define sSetImplicitOP1(b) ((b) | s1I)
+#define sSetImplicitOP2(b) ((b) | s12)
+#define sSetImplicitOP3(b) ((b) | s13)
+#define sSetImplicitOP4(b) ((b) | s14)
+
+/* Instruction decoration descriptors */
+#define sGetDecoration(b) ((b) & 0xFFFF)
+#define sSetDecoration(b, dec) (((b) & ~0xFFFF) | (dec))
+
+enum { 
+    s1D = 1, /* Take decoration from 1st operand */
+    s1D2D /* Take decoration from 1st, 2nd operand in that order */
+};
+
+/* Masks */
+#define FPOS 17
 
 struct modRMByte {
   unsigned mod : 2;
@@ -817,7 +848,10 @@ struct ia32_entry {
   // code to decode memory access - this field should be seen as two 16 bit fields
   // the lower half gives operand semantics, e.g. s1RW2R, the upper half is a fXXX hack if needed
   // before hating me for this: it takes a LOT less time to add ONE field to ~2000 table lines!
+  // The upper 3 bits of this field (bits 29, 30, 31) are specifiers for implicit operands.
   unsigned int opsema;  
+
+  unsigned int impl_dec; /* Implicit operands and decoration descriptions */
 };
 
 using std::vector;

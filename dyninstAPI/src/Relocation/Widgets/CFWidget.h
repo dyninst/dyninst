@@ -45,6 +45,10 @@ namespace NS_power {
   class instruction;
 }
 
+namespace NS_aarch32 {
+  class instruction;
+}
+
 namespace NS_aarch64 {
   class instruction;
 }
@@ -53,6 +57,8 @@ namespace NS_aarch64 {
 typedef NS_x86::instruction arch_insn;
 #elif defined (arch_power) 
 typedef NS_power::instruction arch_insn;
+#elif defined (arch_aarch32)
+typedef NS_aarch32::instruction arch_insn;
 #elif defined (arch_aarch64)
 typedef NS_aarch64::instruction arch_insn;
 #else

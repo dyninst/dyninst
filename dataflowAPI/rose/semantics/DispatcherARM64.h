@@ -9,7 +9,6 @@ namespace rose {
     namespace BinaryAnalysis {
         namespace InstructionSemantics2 {
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                      Dispatcher
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -205,11 +204,10 @@ namespace rose {
                 /** Returns the input value right rotated by the provided amount. */
                 virtual BaseSemantics::SValuePtr ROR(const BaseSemantics::SValuePtr &expr, const BaseSemantics::SValuePtr &amt);
 
-                /** */
+                /** Replicates the value contained in expr to fill the full 64-bit width. */
                 virtual BaseSemantics::SValuePtr Replicate(const BaseSemantics::SValuePtr &expr);
 
-                /** */
-                virtual BaseSemantics::SValuePtr getBitfieldMask(int immr, int imms, int N, bool iswmask, int datasize);
+                BaseSemantics::SValuePtr getBitfieldMask(int immr, int imms, int N, bool iswmask, int datasize);
 
                 size_t getRegSize(uint32_t raw);
 
@@ -223,14 +221,42 @@ namespace rose {
 
                 bool setflags(uint32_t raw);
 
-                /** */
+                int getDatasize(uint32_t raw);
+
+                int getShiftType(uint32_t raw);
+
+                int getConditionVal(uint32_t raw);
+
+                int opcode(uint32_t raw);
+
+                bool subop(uint32_t raw);
+
+                /** Reads memory of size readSize bits from address addr. */
                 BaseSemantics::SValuePtr readMemory(const BaseSemantics::SValuePtr &addr, size_t readSize);
 
-                /** */
+                /** Writes value data of size writeSize bits to memory at address addr. */
                 void writeMemory(const BaseSemantics::SValuePtr &addr, size_t writeSize, const BaseSemantics::SValuePtr &data);
 
-                /** */
+                /** Returns the register expression containing the target address for a write-back in case of memory-access instructions. */
                 SgAsmExpression *getWriteBackTarget(SgAsmExpression *expr);
+
+                /** Returns an expression that is an unsigned representation of expr. */
+                BaseSemantics::SValuePtr UInt(const BaseSemantics::SValuePtr &expr);
+
+                /** Applies a shift operation of type shiftType (defined in enum ShiftType) and shift length of amount to src. */
+                BaseSemantics::SValuePtr ShiftReg(const BaseSemantics::SValuePtr &src, int shiftType, const BaseSemantics::SValuePtr &amount);
+
+                /** Returns an expression representing the number of leading 0s in expr. */
+                BaseSemantics::SValuePtr CountLeadingZeroBits(const BaseSemantics::SValuePtr &expr);
+
+                /** Returns an expression representing the number of leading contiguous bits that match the sign bit in expr. */
+                BaseSemantics::SValuePtr CountLeadingSignBits(const BaseSemantics::SValuePtr &expr);
+
+                /** Returns an expression that is a signed representation of expr if unSigned is false and calls UInt if unSigned is true. */
+                BaseSemantics::SValuePtr Int(const BaseSemantics::SValuePtr &expr, bool isUnsigned);
+
+                /** Rounds a number to zero (upwards if it is negative, downwards if it is positive. */
+                BaseSemantics::SValuePtr RoundTowardsZero(const BaseSemantics::SValuePtr &expr);
             };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -276,6 +302,19 @@ namespace rose {
                         LogicalOp_AND,
                         LogicalOp_ORR,
                         LogicalOp_EOR
+                    };
+
+                    enum ShiftType {
+                        ShiftType_LSL,
+                        ShiftType_LSR,
+                        ShiftType_ASR,
+                        ShiftType_ROR
+                    };
+
+                    enum CountOp {
+                        CountOp_CLZ,
+                        CountOp_CLS,
+                        CountOp_CNT
                     };
                 };
 

@@ -37,13 +37,18 @@
 #include "Immediate.h"
 #include "BinaryFunction.h"
 #include "debug_parse.h"
-#include "IA_platformDetails.h"
+#include "IndirectAnalyzer.h"
 #include "util.h"
 #include "common/src/Types.h"
 #include "dyntypes.h"
 
 #include <deque>
 #include <map>
+
+#include "IA_x86.h"
+#include "IA_power.h"
+#include "IA_aarch32.h"
+#include "IA_aarch64.h"
 
 #if defined(os_vxworks)
 #include "common/src/wtxKludges.h"
@@ -102,6 +107,30 @@ IA_IAPI &IA_IAPI::operator=(const IA_IAPI &rhs) {
    return *this;
 }
 
+IA_IAPI* IA_IAPI::makePlatformIA_IAPI(Architecture arch,
+                                      InstructionDecoder dec_, 
+				      Address where_,
+				      CodeObject * o,
+				      CodeRegion * r,
+				      InstructionSource *isrc,
+				      Block * curBlk_) {
+    switch (arch) {
+        case Arch_x86:
+	case Arch_x86_64:
+	    return new IA_x86(dec_, where_, o, r, isrc, curBlk_);	    
+	case Arch_ppc32:
+	case Arch_ppc64:
+	    return new IA_power(dec_, where_, o, r, isrc, curBlk_);
+	case Arch_aarch32:
+	    return new IA_aarch32(dec_, where_, o, r, isrc, curBlk_);
+	case Arch_aarch64:
+	    return new IA_aarch64(dec_, where_, o, r, isrc, curBlk_);
+	default:
+	    assert(!"unimplemented architecture");
+    }
+    return NULL;
+}				      
+
 void IA_IAPI::initASTs()
 {
     if(framePtr.empty())
@@ -110,6 +139,7 @@ void IA_IAPI::initASTs()
         framePtr[Arch_x86_64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_x86_64)));
         framePtr[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ppc32)));
         framePtr[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ppc64)));
+        framePtr[Arch_aarch32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_aarch32)));
         framePtr[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_aarch64)));
     }
     if(stackPtr.empty())
@@ -118,6 +148,7 @@ void IA_IAPI::initASTs()
         stackPtr[Arch_x86_64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_x86_64)));
         stackPtr[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ppc32)));
         stackPtr[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ppc64)));
+        stackPtr[Arch_aarch32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_aarch32)));
         stackPtr[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_aarch64)));
     }
     if(thePC.empty())
@@ -126,6 +157,7 @@ void IA_IAPI::initASTs()
         thePC[Arch_x86_64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
         thePC[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
         thePC[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ppc64)));
+        thePC[Arch_aarch32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_aarch32)));
         thePC[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_aarch64)));
     }
 }
@@ -468,7 +500,7 @@ bool IA_IAPI::isSyscall() const
 
     return (((ci->getOperation().getID() == e_call) &&
                 (curInsn()->getOperation().isRead(gs)) &&
-                (ci->getOperand(0).format(ci->getArch()) == "16")) ||
+                (ci->getOperand(0).format(ci->getFormatter(), ci->getArch()) == "16")) ||
             (ci->getOperation().getID() == e_syscall) || 
             (ci->getOperation().getID() == e_int) || 
             (ci->getOperation().getID() == power_op_sc));
@@ -510,18 +542,18 @@ void IA_IAPI::parseSyscall(std::vector<std::pair<Address, EdgeTypeEnum> >& outEd
 
 void IA_IAPI::parseSysEnter(std::vector<std::pair<Address, EdgeTypeEnum> >& outEdges) const
 {
-  IA_IAPI scratch(*this);
+  IA_IAPI* scratch = this->clone();
   
   do {
-    scratch.advance();
-  } while(scratch.isNop());
-  if(scratch.curInsn()->getCategory() == c_BranchInsn)
+    scratch->advance();
+  } while(scratch->isNop());
+  if(scratch->curInsn()->getCategory() == c_BranchInsn)
   {
     parsing_printf("[%s:%d] Detected Linux-ish sysenter idiom at 0x%lx\n",
 		   FILE__, __LINE__, getAddr());
-    outEdges.push_back(std::make_pair(scratch.getAddr(), COND_NOT_TAKEN));
-    scratch.advance();
-    outEdges.push_back(std::make_pair(scratch.getAddr(), CALL_FT));
+    outEdges.push_back(std::make_pair(scratch->getAddr(), COND_NOT_TAKEN));
+    scratch->advance();
+    outEdges.push_back(std::make_pair(scratch->getAddr(), CALL_FT));
   }
   else
   {
@@ -529,6 +561,7 @@ void IA_IAPI::parseSysEnter(std::vector<std::pair<Address, EdgeTypeEnum> >& outE
                   FILE__, __LINE__, getAddr());
     outEdges.push_back(std::make_pair(getNextAddr(), CALL_FT));
   }
+  delete scratch;
 }
 
 bool DEBUGGABLE(void) { return true; }
@@ -581,6 +614,14 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             outEdges.push_back(std::make_pair(target, CALL));
         if (ftEdge)
             outEdges.push_back(std::make_pair(getAddr() + getSize(), CALL_FT));
+
+	// Any call site could be in try blocks
+	set<Address> catchStarts;
+	if (_obj->cs()->findCatchBlockByTryRange(getAddr(), catchStarts)) {
+	    for (auto ait = catchStarts.begin(); ait != catchStarts.end(); ++ait) {
+	        outEdges.push_back(std::make_pair(*ait, CATCH));
+	    }
+	}
         return;
     }
     else if(ci->getCategory() == c_BranchInsn)
@@ -592,26 +633,6 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             outEdges.push_back(std::make_pair(getNextAddr(), COND_NOT_TAKEN));
             return;
         }
-
-        // Catch blocks can appear after either direct jumps or indirect jumps
-	// There may be nops between this jump and the catch block and
-	// there is possibility that the exception table entry points a nop.
-	// Therefore, we need to check for every nop and first non-nop instruction after the jump for catch blocks
-        IA_IAPI tmp_ah(*this);
-	tmp_ah.advance();
-	Address catchStart;
-	bool found = false;
-	while (tmp_ah.curInsn() && tmp_ah.isNop()) {
-	    if(_cr->findCatchBlock(tmp_ah.getAddr(),catchStart))  {
-	        found = true;
-		break;
-	    }
-	    tmp_ah.advance();
-	}
-	if(found || (tmp_ah.curInsn() &&_cr->findCatchBlock(tmp_ah.getAddr(),catchStart)))
-	{
-	    outEdges.push_back(std::make_pair(catchStart, CATCH));
-	}
 
         bool valid;
         Address target;
@@ -710,27 +731,6 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             }
 	}
 	
-	// Check potential catch blocks after return instructions
-	// There may be nops between this return instruction and the catch block and
-	// there is possibility that the exception table entry points a nop.
-	// Therefore, we need to check for every nop and first non-nop instruction after the return for catch blocks
-
-        IA_IAPI tmp_ah(*this);
-	tmp_ah.advance();
-	Address catchStart;
-	bool found = false;
-	while (tmp_ah.curInsn() && tmp_ah.isNop()) {
-	    if(_cr->findCatchBlock(tmp_ah.getAddr(),catchStart))  {
-	        found = true;
-		break;
-	    }
-	    tmp_ah.advance();
-	}
-	if(found || (tmp_ah.curInsn() &&_cr->findCatchBlock(tmp_ah.getAddr(),catchStart)))
-	{
-	    outEdges.push_back(std::make_pair(catchStart, CATCH));
-	}
-
 	parsing_printf("Returning from parse out edges\n");
 	return;
     }
@@ -765,7 +765,7 @@ bool IA_IAPI::isIPRelativeBranch() const
        if(cft->isUsed(thePC[_isrc->getArch()]))
        {
           parsing_printf("\tIP-relative indirect jump to %s at 0x%lx\n",
-                         cft->format().c_str(), current);
+                         cft->format(ci->getFormatter()).c_str(), current);
           return true;
        }
     }
@@ -844,7 +844,7 @@ std::pair<bool, Address> IA_IAPI::getCFT() const
        // FIXME: templated bind(),dammit!
     callTarget->bind(thePC[_isrc->getArch()].get(), Result(s64, current));
     parsing_printf("%s[%d]: binding PC %s in %s to 0x%x...", FILE__, __LINE__,
-                   thePC[_isrc->getArch()]->format().c_str(), curInsn()->format().c_str(), current);
+                   thePC[_isrc->getArch()]->format(curInsn()->getFormatter()).c_str(), curInsn()->format().c_str(), current);
 
     Result actualTarget = callTarget->eval();
 #if defined(os_vxworks)
@@ -911,7 +911,7 @@ std::pair<bool, Address> IA_IAPI::getCFT() const
     {
        cachedCFT = std::make_pair(false, 0); 
         parsing_printf("FAIL (CFT=0x%x), callTarget exp: %s\n",
-                       cachedCFT.second,callTarget->format().c_str());
+                       cachedCFT.second,callTarget->format(curInsn()->getFormatter()).c_str());
     }
     validCFT = true;
 
@@ -953,14 +953,17 @@ bool IA_IAPI::parseJumpTable(Dyninst::ParseAPI::Function * currFunc,
 			     std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) const
 {
 
-    // Call platform specific jump table parser
-    _obj->cs()->startTimer(PARSE_JUMPTABLE_TIME);
-    IA_platformDetails* jumpTableParser = makePlatformDetails(_isrc->getArch(), this);
-    bool ret = jumpTableParser->parseJumpTable(currFunc, currBlk, outEdges);    
-    delete jumpTableParser;
-    _obj->cs()->stopTimer(PARSE_JUMPTABLE_TIME);
+    IndirectControlFlowAnalyzer icfa(currFunc, currBlk);
+    bool ret = icfa.NewJumpTableAnalysis(outEdges);
+
+    parsing_printf("Jump table parser returned %d, %d edges\n", ret, outEdges.size());
+    for (auto oit = outEdges.begin(); oit != outEdges.end(); ++oit) parsing_printf("edge target at %lx\n", oit->first);
+    // Update statistics 
+    currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_COUNT);
+    if (!ret) currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_FAIL);
 
     return ret;
+
 }
 
 

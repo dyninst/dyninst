@@ -50,13 +50,13 @@ namespace Dyninst
     //0xff000000 is used to encode architecture
     typedef enum
     {
-        Arch_none   = 0x00000000,
-        Arch_x86    = 0x14000000,
-        Arch_x86_64 = 0x18000000,
-        Arch_ppc32  = 0x24000000,
-        Arch_ppc64  = 0x28000000,
-		Arch_aarch32 = 0x44000000, //for later use
-		Arch_aarch64 = 0x48000000
+        Arch_none    = 0x00000000,
+        Arch_x86     = 0x14000000,
+        Arch_x86_64  = 0x18000000,
+        Arch_ppc32   = 0x24000000,
+        Arch_ppc64   = 0x28000000,
+        Arch_aarch32 = 0x44000000, //for later use
+        Arch_aarch64 = 0x48000000
     } Architecture;
 
 
@@ -107,6 +107,7 @@ namespace Dyninst
         bool isSyscallNumberReg() const;
         bool isSyscallReturnValueReg() const;
 	bool isFlag() const;
+	bool isZeroFlag() const;
 
         void getROSERegister(int &c, int &n, int &p);
 
@@ -119,11 +120,11 @@ namespace Dyninst
 
    /**
     * DEF_REGISTER will define its first parameter as the name of the object
-    * it's declaring, and 'i<name>' as the integer value representing that object.
+    * it's declaring, and '_i<name>' as the integer value representing that object.
     * As an example, the name of a register may be
     *  x86::EAX
     * with that register having a value of
-    *  x86::iEAX
+    *  x86::_iEAX
     *
     * The value is mostly useful in the 'case' part switch statements.
     **/
@@ -137,11 +138,11 @@ namespace Dyninst
    //const anyways, so we'll just close our eyes and pretend they're declared
    //const.
 #define DEF_REGISTER(name, value, Arch) \
-  const signed int i##name = (value); \
-  COMMON_EXPORT MachRegister name(i##name, Arch "::" #name)
+  const signed int _i##name = (value); \
+  COMMON_EXPORT MachRegister name(_i##name, Arch "::" #name)
 #else
 #define DEF_REGISTER(name, value, Arch) \
-  const signed int i##name = (value); \
+  const signed int _i##name = (value); \
   COMMON_EXPORT extern MachRegister name
 
 #endif
@@ -889,6 +890,40 @@ namespace Dyninst
       DEF_REGISTER(cr,     629 | SPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(or3,    630 | SPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(trap,   631 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr0l,   700 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr0g,   701 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr0e,   702 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr0s,   703 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr1l,   704 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr1g,   705 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr1e,   706 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr1s,   707 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr2l,   708 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr2g,   709 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr2e,   710 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr2s,   711 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr3l,   712 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr3g,   713 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr3e,   714 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr3s,   715 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr4l,   716 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr4g,   717 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr4e,   718 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr4s,   719 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr5l,   720 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr5g,   721 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr5e,   722 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr5s,   723 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr6l,   724 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr6g,   725 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr6e,   726 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr6s,   727 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr7l,   728 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr7g,   729 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr7e,   730 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cr7s,   731 | SPR | Arch_ppc32, "ppc32");
+
+
    }
    namespace ppc64 {
       const signed int GPR   = 0x00010000;
@@ -1070,7 +1105,196 @@ namespace Dyninst
       DEF_REGISTER(cr,     629 | SPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(or3,    630 | SPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(trap,   631 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr0l,   700 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr0g,   701 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr0e,   702 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr0s,   703 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr1l,   704 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr1g,   705 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr1e,   706 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr1s,   707 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr2l,   708 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr2g,   709 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr2e,   710 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr2s,   711 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr3l,   712 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr3g,   713 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr3e,   714 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr3s,   715 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr4l,   716 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr4g,   717 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr4e,   718 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr4s,   719 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr5l,   720 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr5g,   721 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr5e,   722 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr5s,   723 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr6l,   724 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr6g,   725 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr6e,   726 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr6s,   727 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr7l,   728 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr7g,   729 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr7e,   730 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(cr7s,   731 | SPR | Arch_ppc64, "ppc64");
+
+
    }
+
+   namespace aarch32 {
+      //0xff000000  0x00ff0000      0x0000ff00      0x000000ff
+      //arch        reg cat:GPR     alias&subrange  reg ID
+      const signed int GPR    = 0x00010000;
+      const signed int FPR    = 0x00020000;
+      const signed int FLAG   = 0x00030000;
+      const signed int FSR    = 0x00040000;
+      const signed int SPR    = 0x00080000;
+      const signed int SYSREG = 0x00100000;
+
+      const signed int BIT    = 0x00008000;
+      const signed int B_REG  = 0x00000100;      //8bit  byte reg
+      const signed int W_REG  = 0x00000300;      //16bit half-wor reg
+      const signed int D_REG  = 0x00000f00;      //32bit single-word reg
+      const signed int FULL   = 0x00000000;      //64bit double-word reg
+      const signed int Q_REG  = 0x00000400;      //128bit reg
+      const signed int HQ_REG = 0x00000500;      //second 64bit in 128bit reg
+
+      // 15 GPRs, double word long registers
+      //          (name   regID| alias | cat | arch           arch    )
+      DEF_REGISTER(r0,       0 | D_REG | GPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(r1,       1 | D_REG | GPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(r2,       2 | D_REG | GPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(r3,       3 | D_REG | GPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(r4,       4 | D_REG | GPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(r5,       5 | D_REG | GPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(r6,       6 | D_REG | GPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(r7,       7 | D_REG | GPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(r8,       8 | D_REG | GPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(r9,       9 | D_REG | GPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(r10,     10 | D_REG | GPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(r11,     11 | D_REG | GPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(r12,     12 | D_REG | GPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(r13,     13 | D_REG | GPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(sp,      13 | D_REG | GPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(r14,     14 | D_REG | GPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(lr,      14 | D_REG | GPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(r15,     15 | D_REG | GPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(pc,      15 | D_REG | GPR | Arch_aarch32, "aarch32");
+
+      // VFP provides 32 single-precision (32-bit) FP registers.
+      DEF_REGISTER(s0,        0 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s1,        1 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s2,        2 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s3,        3 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s4,        4 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s5,        5 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s6,        6 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s7,        7 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s8,        8 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s9,        9 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s10,      10 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s11,      11 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s12,      12 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s13,      13 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s14,      14 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s15,      15 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s16,      16 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s17,      17 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s18,      18 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s19,      19 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s20,      20 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s21,      21 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s22,      22 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s23,      23 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s24,      24 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s25,      25 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s26,      26 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s27,      27 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s28,      28 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s29,      29 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s30,      30 | D_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(s31,      31 | D_REG  | FPR | Arch_aarch32, "aarch32");
+
+      // VFPv2, VFPv3-D16, and VFPv4-D16 provide 16 double-precision
+      // (64-bit) FP registers which overlap the single-precision FP
+      // registers provided by VFP.
+      DEF_REGISTER(d0,        0 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d1,        2 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d2,        4 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d3,        6 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d4,        8 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d5,       10 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d6,       12 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d7,       14 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d8,       16 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d9,       18 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d10,      20 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d11,      22 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d12,      24 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d13,      26 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d14,      28 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d15,      30 | FULL   | FPR | Arch_aarch32, "aarch32");
+
+      // VFPv3-D32, VFPv4-D32, and Advanced SIMD provide an additional
+      // 16 double-precision (64-bit) FP registers.
+      DEF_REGISTER(d16,      32 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d17,      34 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d18,      36 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d19,      38 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d20,      40 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d21,      42 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d22,      44 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d23,      46 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d24,      48 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d25,      50 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d26,      52 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d27,      54 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d28,      56 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d29,      58 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d30,      60 | FULL   | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(d31,      62 | FULL   | FPR | Arch_aarch32, "aarch32");
+
+      // Advanced SIMD provides 15 quad-precision (128-bit) FP registers
+      DEF_REGISTER(q0,        0 | Q_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(q1,        4 | Q_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(q2,        8 | Q_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(q3,       12 | Q_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(q4,       16 | Q_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(q5,       20 | Q_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(q6,       24 | Q_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(q7,       28 | Q_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(q8,       32 | Q_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(q9,       36 | Q_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(q10,      40 | Q_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(q11,      44 | Q_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(q12,      48 | Q_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(q13,      52 | Q_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(q14,      56 | Q_REG  | FPR | Arch_aarch32, "aarch32");
+      DEF_REGISTER(q15,      60 | Q_REG  | FPR | Arch_aarch32, "aarch32");
+
+       // Special-purpose registers
+       const signed int N_FLAG   =   31;
+       const signed int Z_FLAG   =   30;
+       const signed int C_FLAG   =   29;
+       const signed int V_FLAG   =   28;
+       const signed int Q_FLAG   =   27;
+
+       DEF_REGISTER(apsr,     3 | D_REG  |SPR | Arch_aarch32, "aarch32");
+       DEF_REGISTER(pstate,   4 | D_REG  |SPR | Arch_aarch32, "aarch32");
+       DEF_REGISTER(n,   N_FLAG | BIT    |FLAG| Arch_aarch32, "aarch32");
+       DEF_REGISTER(z,   Z_FLAG | BIT    |FLAG| Arch_aarch32, "aarch32");
+       DEF_REGISTER(c,   C_FLAG | BIT    |FLAG| Arch_aarch32, "aarch32");
+       DEF_REGISTER(v,   V_FLAG | BIT    |FLAG| Arch_aarch32, "aarch32");
+       DEF_REGISTER(q,   Q_FLAG | BIT    |FLAG| Arch_aarch32, "aarch32");
+       DEF_REGISTER(zr,	      5 | FULL   |SPR | Arch_aarch32, "aarch32");
+       DEF_REGISTER(wzr,      6 | D_REG  |SPR | Arch_aarch32, "aarch32");
+       DEF_REGISTER(fpcr,     7 | D_REG  |SPR | Arch_aarch32, "aarch32");
+       DEF_REGISTER(fpsr,     8 | D_REG  |SPR | Arch_aarch32, "aarch32");
+
+       // System registers (produced from XML platform specification).
+#include "aarch32_sys_regs.h"
+
+   } // End of aarch32 namespace
 
 	namespace aarch64{
       //0xff000000  0x00ff0000      0x0000ff00      0x000000ff
@@ -1380,11 +1604,11 @@ namespace Dyninst
       DEF_REGISTER(wsp,      0 | D_REG  |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(pc,       1 | FULL   |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(pstate,   2 | D_REG  |SPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(xzr,		 3 | FULL   |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(n,   N_FLAG | BIT    |FLAG| Arch_aarch64, "aarch64");
       DEF_REGISTER(z,   Z_FLAG | BIT    |FLAG| Arch_aarch64, "aarch64");
       DEF_REGISTER(c,   C_FLAG | BIT    |FLAG| Arch_aarch64, "aarch64");
       DEF_REGISTER(v,   V_FLAG | BIT    |FLAG| Arch_aarch64, "aarch64");
-      DEF_REGISTER(zr,		 3 | FULL   |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(wzr,		 3 | D_REG  |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(fpcr,     4 | D_REG  |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(fpsr,     5 | D_REG  |SPR | Arch_aarch64, "aarch64");

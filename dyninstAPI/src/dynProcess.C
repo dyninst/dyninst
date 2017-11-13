@@ -276,6 +276,9 @@ PCProcess *PCProcess::setupExecedProcess(PCProcess *oldProc, std::string execPat
 }
 
 PCProcess::~PCProcess() {
+        proccontrol_printf("%s[%d]: destructing PCProcess %d\n",
+                FILE__, __LINE__, getPid());
+
     if( tracedSyscalls_ ) delete tracedSyscalls_;
     tracedSyscalls_ = NULL;
 
@@ -285,6 +288,8 @@ PCProcess::~PCProcess() {
     signalHandlerLocations_.clear();
 
     trapMapping.clearTrapMappings();
+
+    if(pcProc_ && pcProc_->getData() == this) pcProc_->setData(NULL);
 }
 
 void PCProcess::initSymtabReader()
@@ -807,7 +812,7 @@ bool PCProcess::loadRTLib() {
      bootstrapState_ = bs_loadedRTLib;
      
      // Process the library load (we hope)
-     PCEventMuxer::handle();
+     PCEventMuxer::handle(this);
      
      if( runtime_lib.size() == 0 ) {
        startup_printf("%s[%d]: failed to load RT lib\n", FILE__,
@@ -1052,6 +1057,7 @@ bool PCProcess::detachProcess(bool /*cont*/) {
             if( !stopProcess() ) {
                 proccontrol_printf("%s[%d]: failed to stop process for removing syscalls\n",
                         FILE__, __LINE__);
+		return false;
             }
         }
 
@@ -1139,7 +1145,7 @@ void PCProcess::setReportingEvent(bool b) {
 }
 
 void PCProcess::markExited() {
-	if(pcProc_) pcProc_ = Process::ptr();
+    pcProc_.reset();
 }
 
 void PCProcess::writeDebugDataSpace(void *inTracedProcess, u_int amount,

@@ -41,9 +41,13 @@ namespace Dyninst
       {
       case e_ret_near:
       case e_ret_far:
+      case aarch32_op_POP_LDM_A1:
       case aarch64_op_ret:
 	return c_ReturnInsn;
       case e_call:
+      case aarch32_op_BLX_r_A1:
+      case aarch32_op_BL_i_A1:
+      case aarch32_op_BL_i_A2:
       case aarch64_op_bl:
       case aarch64_op_blr:
 	return c_CallInsn;
@@ -71,6 +75,9 @@ namespace Dyninst
       case e_loop:
       case e_loope:
       case e_loopn:
+      case aarch32_op_BXJ_A1:
+      case aarch32_op_BX_A1:
+      case aarch32_op_B_A1:
       case aarch64_op_b_uncond:
       case aarch64_op_b_cond:
       case aarch64_op_tbz:

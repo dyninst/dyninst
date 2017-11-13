@@ -71,6 +71,11 @@ set (SRC_LIST ${SRC_LIST}
     src/emitElfStatic-ppc64.C
     src/relocationEntry-elf-ppc64.C
     )
+elseif (PLATFORM MATCHES aarch32)
+set (SRC_LIST ${SRC_LIST}
+    src/emitElfStatic-aarch32.C
+    src/relocationEntry-elf-aarch32.C
+    )
 elseif (PLATFORM MATCHES aarch64)
 set (SRC_LIST ${SRC_LIST}
     src/emitElfStatic-aarch64.C

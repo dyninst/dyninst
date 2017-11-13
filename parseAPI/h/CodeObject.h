@@ -108,6 +108,11 @@ class CodeObject {
     PARSER_EXPORT int findFuncs(CodeRegion * cr,
             Address start, Address end,
             std::set<Function*> & funcs);
+    PARSER_EXPORT int findCurrentFuncs(CodeRegion * cr,
+            Address addr,
+            std::set<Function*> & funcs);
+
+
     PARSER_EXPORT const funclist & funcs() { return flist; }
 
     // blocks

@@ -181,11 +181,23 @@ unsigned int MachRegister::size() const {
          return 4;
       }
       case Arch_ppc64:
-        if((reg & 0x00ff0000) == aarch64::FPR)
+        if((reg & 0x00ff0000) == aarch64::FPR) // XXX: ppc64::FPR instead?
           return 16;
         return 8;
       case Arch_aarch32:
-        assert(0);
+          switch (reg & 0x00ff0000) {
+          case aarch32::GPR:
+          case aarch32::FPR:
+          case aarch32::SYSREG:
+              switch (reg & 0x0000ff00) {
+              case aarch32::D_REG: return  4;
+              case aarch32::FULL:  return  8;
+              case aarch32::Q_REG: return 16;
+              default:             return  0;
+              }
+          case aarch32::FLAG:      return  0;
+          default:                 return  0;
+          }
       case Arch_aarch64:
 		if((reg & 0x00ff0000) == aarch64::FPR)
 		{
@@ -248,10 +260,10 @@ MachRegister MachRegister::getPC(Dyninst::Architecture arch)
          return ppc32::pc;
       case Arch_ppc64:
          return ppc64::pc;
+      case Arch_aarch32:
+          return aarch32::pc;
       case Arch_aarch64:  //aarch64: pc is not writable
          return aarch64::pc;
-      case Arch_aarch32:
-         assert(0);
       case Arch_none:
          return InvalidReg;
    }
@@ -271,10 +283,10 @@ MachRegister MachRegister::getReturnAddress(Dyninst::Architecture arch)
           assert(0); //not implemented
       case Arch_ppc64:
           assert(0); //not implemented
+      case Arch_aarch32:
+          return aarch32::lr;
       case Arch_aarch64:  //aarch64: x30 stores the RA for current frame
          return aarch64::x30;
-      case Arch_aarch32:
-         assert(0);
       case Arch_none:
          return InvalidReg;
    }
@@ -293,6 +305,8 @@ MachRegister MachRegister::getFramePointer(Dyninst::Architecture arch)
          return ppc32::r1;
       case Arch_ppc64:
          return ppc64::r1;
+      case Arch_aarch32:
+         return InvalidReg;
       case Arch_aarch64:
          return aarch64::x29; //aarch64: frame pointer is X29 by convention
       case Arch_none:
@@ -316,10 +330,10 @@ MachRegister MachRegister::getStackPointer(Dyninst::Architecture arch)
          return ppc32::r1;
       case Arch_ppc64:
          return ppc64::r1;
+      case Arch_aarch32:
+         return aarch32::sp;
       case Arch_aarch64:
          return aarch64::sp; //aarch64: stack pointer is an independent register
-      case Arch_aarch32:
-         assert(0);
       case Arch_none:
          return InvalidReg;
       default:
@@ -341,10 +355,10 @@ MachRegister MachRegister::getSyscallNumberReg(Dyninst::Architecture arch)
             return ppc32::r0;
         case Arch_ppc64:
             return ppc64::r0;
+        case Arch_aarch32:
+            return aarch32::r7;
         case Arch_aarch64:
             return aarch64::x8;
-        case Arch_aarch32:
-            assert(0);
         case Arch_none:
             return InvalidReg;
       default:
@@ -366,6 +380,8 @@ MachRegister MachRegister::getSyscallNumberOReg(Dyninst::Architecture arch)
             return ppc32::r0;
         case Arch_ppc64:
             return ppc64::r0;
+        case Arch_aarch32:
+            return aarch32::r0;
         case Arch_aarch64:
             return aarch64::x8;
         case Arch_none:
@@ -389,6 +405,8 @@ MachRegister MachRegister::getSyscallReturnValueReg(Dyninst::Architecture arch)
             return ppc32::r3;
         case Arch_ppc64:
             return ppc64::r3;
+        case Arch_aarch32:
+            return aarch32::r0;
         case Arch_aarch64:
             return aarch64::x0; //returned value is save in x0
         case Arch_none:
@@ -403,6 +421,17 @@ MachRegister MachRegister::getSyscallReturnValueReg(Dyninst::Architecture arch)
 MachRegister MachRegister::getArchRegFromAbstractReg(MachRegister abstract,
         Dyninst::Architecture arch) {
     switch(arch){
+        case Arch_aarch32:
+            if( abstract == ReturnAddr)
+                    return aarch32::lr;
+            if( abstract == FrameBase)
+                    return aarch32::r11;
+            if( abstract == StackTop)
+                    return aarch32::sp;
+            if( abstract == CFA)
+                assert(0); //don't know what to do
+            //not abstract, return arch reg
+            return abstract;
         case Arch_aarch64:
             if( abstract == ReturnAddr)
                     return aarch64::x30;
@@ -417,6 +446,7 @@ MachRegister MachRegister::getArchRegFromAbstractReg(MachRegister abstract,
         default:
             assert(0);
     }
+
     return Dyninst::InvalidReg;
 }
 
@@ -431,12 +461,17 @@ MachRegister MachRegister::getZeroFlag(Dyninst::Architecture arch)
       case Arch_aarch64: 
          return aarch64::z;
       case Arch_aarch32:
+         assert(!"Not implemented");
       case Arch_ppc32:
+         return ppc32::cr0e;
       case Arch_ppc64:
-         assert(0);
+         return ppc64::cr0e;
       case Arch_none:
          return InvalidReg;
+      default:
+         return InvalidReg;
    }
+
    return InvalidReg;
 }
 
@@ -445,7 +480,7 @@ bool MachRegister::isPC() const
 {
    return (*this == x86_64::rip || *this == x86::eip ||
            *this == ppc32::pc || *this == ppc64::pc ||
-           *this == aarch64::pc );
+           *this == aarch32::pc || *this == aarch64::pc );
 }
 
 bool MachRegister::isFramePointer() const
@@ -459,15 +494,14 @@ bool MachRegister::isStackPointer() const
 {
    return (*this == x86_64::rsp || *this == x86::esp ||
            *this == ppc32::r1   || *this == ppc64::r1 ||
-           *this == aarch64::sp);
+           *this == aarch32::sp || *this == aarch64::sp);
 }
 
 bool MachRegister::isSyscallNumberReg() const
 {
    return ( *this == x86_64::orax || *this == x86::oeax ||
             *this == ppc32::r1    || *this == ppc64::r1 ||
-            *this == aarch64::x8
-            );
+            *this == aarch32::r7  || *this == aarch64::x8);
 }
 
 bool MachRegister::isSyscallReturnValueReg() const
@@ -476,8 +510,7 @@ bool MachRegister::isSyscallReturnValueReg() const
       assert(0);
     return (*this == x86_64::rax || *this == x86::eax ||
             *this == ppc32::r1   || *this == ppc64::r1 ||
-            *this == aarch64::x0
-            );
+            *this == aarch32::r0 || *this == aarch64::x0);
 }
 
 bool MachRegister::isFlag() const
@@ -489,8 +522,42 @@ bool MachRegister::isFlag() const
          return regC == x86::FLAG;
       case Arch_x86_64:
          return regC == x86_64::FLAG;
+      case Arch_aarch32:
+         return regC == aarch32::FLAG;
       case Arch_aarch64:
          return regC == aarch64::FLAG;
+      case Arch_ppc32: 
+      case Arch_ppc64:{
+         // For power, we have a different register representation.
+	 // We do not use the subrange field for MachReigsters
+	 // and all lower 32 bits are base ID
+	 int baseID = reg & 0x0000FFFF;
+         return (baseID <= 731 && baseID >= 700) || (baseID <= 629 && baseID >= 621); 
+      }
+      default:
+         assert(!"Not implemented!");
+   }
+   return false;
+}
+
+bool MachRegister::isZeroFlag() const
+{
+    switch (getArchitecture())
+    {
+      case Arch_x86:
+         return *this == x86::zf;
+      case Arch_x86_64:
+         return *this == x86_64::zf;
+      case Arch_aarch64:
+         return *this == aarch64::z;
+      case Arch_ppc32: 
+      case Arch_ppc64:{
+         // For power, we have a different register representation.
+	 // We do not use the subrange field for MachReigsters
+	 // and all lower 32 bits are base ID
+	 int baseID = reg & 0x0000FFFF;
+         return (baseID <= 731 && baseID >= 700 && baseID % 4 == 2) || (baseID <= 628 && baseID >= 621); 
+      }
       default:
          assert(!"Not implemented!");
    }
@@ -830,14 +897,16 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                        c = powerpc_regclass_sr;
                    } else {
                        c = powerpc_regclass_cr;
-                       n = baseID - 621;
+		       n = 0;
+		       p = baseID - 621;
+/*                       n = baseID - 621;
 		       if(n > 7) {
 			 n = 0;
 			 p = powerpc_condreggranularity_whole;
 		       } else {
 			 p = powerpc_condreggranularity_field;
 		       }
-
+*/
                    }
                }
                break;
@@ -848,6 +917,47 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
            return;
        }
        break;
+       case Arch_aarch32: {
+           p = 0;
+           switch (category) {
+           case aarch32::GPR: {
+               c = armv8_regclass_gpr;
+               int regnum = baseID - (aarch32::r0 & 0xFF);
+               n = armv8_gpr_r0 + regnum;
+               break;
+           }
+           case aarch32::SPR:
+           case aarch32::FPR:
+               assert(!"unknown register type!");
+               break;
+           case aarch32::FLAG: {
+               c = armv8_regclass_pstate;
+               n = 0;
+               switch (baseID) {
+               case aarch32::N_FLAG:
+                   p = armv8_pstatefield_n;
+                   break;
+               case aarch32::Z_FLAG:
+                   p = armv8_pstatefield_z;
+                   break;
+               case aarch32::V_FLAG:
+                   p = armv8_pstatefield_v;
+                   break;
+               case aarch32::C_FLAG:
+                   p = armv8_pstatefield_c;
+                   break;
+               default:
+                   assert(!"unknown flag type!");
+                   break;
+               }
+               break;
+           }
+           default:
+                   assert(!"unknown register type!");
+                   break;
+           }
+           return;
+       }
        case Arch_aarch64: {
            p = 0;
            switch (category) {
@@ -861,7 +971,7 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                    n = 0;
                    if (baseID == (aarch64::pstate & 0xFF)) {
                        c = armv8_regclass_pstate;
-                   } else if(baseID == (aarch64::zr & 0xFF) || baseID == (aarch64::wzr & 0xFF)) {
+                   } else if(baseID == (aarch64::xzr & 0xFF) || baseID == (aarch64::wzr & 0xFF)) {
                        c = armv8_regclass_gpr;
                        n = armv8_gpr_zr;
                    } else if (baseID == (aarch64::pc & 0xFF)) {
@@ -918,7 +1028,13 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                }
                    break;
                default:
-                   assert(!"unknown register type!");
+	           // We do not want to assert here.
+		   // Set these output variable to invalid values and let the
+		   // semantics code to throw exceptions
+	           p = -1;
+		   c = -1;
+		   n = -1;
+//                   assert(!"unknown register type!");
                    break;
            }
            return;
@@ -1378,6 +1494,30 @@ MachRegister MachRegister::DwarfEncToReg(int encoding, Dyninst::Architecture arc
             default: return Dyninst::InvalidReg;
          }
          break;
+      case Arch_aarch32:
+         {
+         // this info can be found in
+         // DWARF for the ARM Architecture (ARM IHI 0040B)
+         switch(encoding){
+            case 0:  return Dyninst::aarch32::r0;
+            case 1:  return Dyninst::aarch32::r1;
+            case 2:  return Dyninst::aarch32::r2;
+            case 3:  return Dyninst::aarch32::r3;
+            case 4:  return Dyninst::aarch32::r4;
+            case 5:  return Dyninst::aarch32::r5;
+            case 6:  return Dyninst::aarch32::r6;
+            case 7:  return Dyninst::aarch32::r7;
+            case 8:  return Dyninst::aarch32::r8;
+            case 9:  return Dyninst::aarch32::r9;
+            case 10: return Dyninst::aarch32::r10;
+            case 11: return Dyninst::aarch32::r11;
+            case 12: return Dyninst::aarch32::r12;
+            case 13: return Dyninst::aarch32::r13;
+            case 14: return Dyninst::aarch32::r14;
+            case 15: return Dyninst::aarch32::r15;
+         }
+         return Dyninst::InvalidReg;
+         }
       case Arch_aarch64:
          {
          // this info can be found in
@@ -1465,7 +1605,6 @@ MachRegister MachRegister::DwarfEncToReg(int encoding, Dyninst::Architecture arc
    }
    //Invalid Architecture passed
    return Dyninst::InvalidReg;
-
 }
 
 int MachRegister::getDwarfEnc() const
@@ -1474,408 +1613,429 @@ int MachRegister::getDwarfEnc() const
    {
       case Arch_x86:
          switch (val()) {
-            case Dyninst::x86::ieax: return 0;
-            case Dyninst::x86::iecx: return 1;
-            case Dyninst::x86::iedx: return 2;
-            case Dyninst::x86::iebx: return 3;
-            case Dyninst::x86::iesp: return 4;
-            case Dyninst::x86::iebp: return 5;
-            case Dyninst::x86::iesi: return 6;
-            case Dyninst::x86::iedi: return 7;
-            case Dyninst::x86::ieip: return 8;
-            case Dyninst::x86::iflags: return 9;
-            case Dyninst::x86::ixmm0: return 21;
-            case Dyninst::x86::ixmm1: return 22;
-            case Dyninst::x86::ixmm2: return 23;
-            case Dyninst::x86::ixmm3: return 24;
-            case Dyninst::x86::ixmm4: return 25;
-            case Dyninst::x86::ixmm5: return 26;
-            case Dyninst::x86::ixmm6: return 27;
-            case Dyninst::x86::ixmm7: return 28;
-            case Dyninst::x86::imm0: return 29;
-            case Dyninst::x86::imm1: return 30;
-            case Dyninst::x86::imm2: return 31;
-            case Dyninst::x86::imm3: return 32;
-            case Dyninst::x86::imm4: return 33;
-            case Dyninst::x86::imm5: return 34;
-            case Dyninst::x86::imm6: return 35;
-            case Dyninst::x86::imm7: return 36;
-            case Dyninst::x86::ies: return 40;
-            case Dyninst::x86::ics: return 41;
-            case Dyninst::x86::iss: return 42;
-            case Dyninst::x86::ids: return 43;
-            case Dyninst::x86::ifs: return 44;
-            case Dyninst::x86::igs: return 45;
+            case Dyninst::x86::_ieax: return 0;
+            case Dyninst::x86::_iecx: return 1;
+            case Dyninst::x86::_iedx: return 2;
+            case Dyninst::x86::_iebx: return 3;
+            case Dyninst::x86::_iesp: return 4;
+            case Dyninst::x86::_iebp: return 5;
+            case Dyninst::x86::_iesi: return 6;
+            case Dyninst::x86::_iedi: return 7;
+            case Dyninst::x86::_ieip: return 8;
+            case Dyninst::x86::_iflags: return 9;
+            case Dyninst::x86::_ixmm0: return 21;
+            case Dyninst::x86::_ixmm1: return 22;
+            case Dyninst::x86::_ixmm2: return 23;
+            case Dyninst::x86::_ixmm3: return 24;
+            case Dyninst::x86::_ixmm4: return 25;
+            case Dyninst::x86::_ixmm5: return 26;
+            case Dyninst::x86::_ixmm6: return 27;
+            case Dyninst::x86::_ixmm7: return 28;
+            case Dyninst::x86::_imm0: return 29;
+            case Dyninst::x86::_imm1: return 30;
+            case Dyninst::x86::_imm2: return 31;
+            case Dyninst::x86::_imm3: return 32;
+            case Dyninst::x86::_imm4: return 33;
+            case Dyninst::x86::_imm5: return 34;
+            case Dyninst::x86::_imm6: return 35;
+            case Dyninst::x86::_imm7: return 36;
+            case Dyninst::x86::_ies: return 40;
+            case Dyninst::x86::_ics: return 41;
+            case Dyninst::x86::_iss: return 42;
+            case Dyninst::x86::_ids: return 43;
+            case Dyninst::x86::_ifs: return 44;
+            case Dyninst::x86::_igs: return 45;
             default: return -1;
          }
          break;
       case Arch_x86_64:
          switch (val()) {
-            case Dyninst::x86_64::irax: return 0;
-            case Dyninst::x86_64::irdx: return 1;
-            case Dyninst::x86_64::ircx: return 2;
-            case Dyninst::x86_64::irbx: return 3;
-            case Dyninst::x86_64::irsi: return 4;
-            case Dyninst::x86_64::irdi: return 5;
-            case Dyninst::x86_64::irbp: return 6;
-            case Dyninst::x86_64::irsp: return 7;
-            case Dyninst::x86_64::ir8: return 8;
-            case Dyninst::x86_64::ir9: return 9;
-            case Dyninst::x86_64::ir10: return 10;
-            case Dyninst::x86_64::ir11: return 11;
-            case Dyninst::x86_64::ir12: return 12;
-            case Dyninst::x86_64::ir13: return 13;
-            case Dyninst::x86_64::ir14: return 14;
-            case Dyninst::x86_64::ir15: return 15;
-            case Dyninst::x86_64::irip: return 16;
-            case Dyninst::x86_64::ik0: return 17;
-            case Dyninst::x86_64::ik1: return 18;
-            case Dyninst::x86_64::ik2: return 19;
-            case Dyninst::x86_64::ik3: return 20;
-            case Dyninst::x86_64::ik4: return 21;
-            case Dyninst::x86_64::ik5: return 22;
-            case Dyninst::x86_64::ik6: return 23;
-            case Dyninst::x86_64::ik7: return 24;
-            case Dyninst::x86_64::izmm0: return 25;
-            case Dyninst::x86_64::izmm1: return 26;
-            case Dyninst::x86_64::izmm2: return 27;
-            case Dyninst::x86_64::izmm3: return 28;
-            case Dyninst::x86_64::izmm4: return 29;
-            case Dyninst::x86_64::izmm5: return 30;
-            case Dyninst::x86_64::izmm6: return 31;
-            case Dyninst::x86_64::izmm7: return 32;
-            case Dyninst::x86_64::izmm8: return 33;
-            case Dyninst::x86_64::izmm9: return 34;
-            case Dyninst::x86_64::izmm10: return 35;
-            case Dyninst::x86_64::izmm11: return 36;
-            case Dyninst::x86_64::izmm12: return 37;
-            case Dyninst::x86_64::izmm13: return 38;
-            case Dyninst::x86_64::izmm14: return 39;
-            case Dyninst::x86_64::izmm15: return 40;
-            case Dyninst::x86_64::izmm16: return 41;
-            case Dyninst::x86_64::izmm17: return 42;
-            case Dyninst::x86_64::izmm18: return 43;
-            case Dyninst::x86_64::izmm19: return 44;
-            case Dyninst::x86_64::izmm20: return 45;
-            case Dyninst::x86_64::izmm21: return 46;
-            case Dyninst::x86_64::izmm22: return 47;
-            case Dyninst::x86_64::izmm23: return 48;
-            case Dyninst::x86_64::izmm24: return 49;
-            case Dyninst::x86_64::izmm25: return 50;
-            case Dyninst::x86_64::izmm26: return 51;
-            case Dyninst::x86_64::izmm27: return 52;
-            case Dyninst::x86_64::izmm28: return 53;
-            case Dyninst::x86_64::izmm29: return 54;
-            case Dyninst::x86_64::izmm30: return 55;
-            case Dyninst::x86_64::izmm31: return 56;
-            case Dyninst::x86_64::iymm0: return 57;
-            case Dyninst::x86_64::iymm1: return 58;
-            case Dyninst::x86_64::iymm2: return 59;
-            case Dyninst::x86_64::iymm3: return 60;
-            case Dyninst::x86_64::iymm4: return 61;
-            case Dyninst::x86_64::iymm5: return 62;
-            case Dyninst::x86_64::iymm6: return 63;
-            case Dyninst::x86_64::iymm7: return 64;
-            case Dyninst::x86_64::iymm8: return 65;
-            case Dyninst::x86_64::iymm9: return 66;
-            case Dyninst::x86_64::iymm10: return 67;
-            case Dyninst::x86_64::iymm11: return 68;
-            case Dyninst::x86_64::iymm12: return 69;
-            case Dyninst::x86_64::iymm13: return 70;
-            case Dyninst::x86_64::iymm14: return 71;
-            case Dyninst::x86_64::iymm15: return 72;
-            case Dyninst::x86_64::iymm16: return 73;
-            case Dyninst::x86_64::iymm17: return 74;
-            case Dyninst::x86_64::iymm18: return 75;
-            case Dyninst::x86_64::iymm19: return 76;
-            case Dyninst::x86_64::iymm20: return 77;
-            case Dyninst::x86_64::iymm21: return 78;
-            case Dyninst::x86_64::iymm22: return 79;
-            case Dyninst::x86_64::iymm23: return 80;
-            case Dyninst::x86_64::iymm24: return 81;
-            case Dyninst::x86_64::iymm25: return 82;
-            case Dyninst::x86_64::iymm26: return 83;
-            case Dyninst::x86_64::iymm27: return 84;
-            case Dyninst::x86_64::iymm28: return 85;
-            case Dyninst::x86_64::iymm29: return 86;
-            case Dyninst::x86_64::iymm30: return 87;
-            case Dyninst::x86_64::iymm31: return 88;
-            case Dyninst::x86_64::ixmm0: return 89;
-            case Dyninst::x86_64::ixmm1: return 90;
-            case Dyninst::x86_64::ixmm2: return 91;
-            case Dyninst::x86_64::ixmm3: return 92;
-            case Dyninst::x86_64::ixmm4: return 93;
-            case Dyninst::x86_64::ixmm5: return 94;
-            case Dyninst::x86_64::ixmm6: return 95;
-            case Dyninst::x86_64::ixmm7: return 96;
-            case Dyninst::x86_64::ixmm8: return 97;
-            case Dyninst::x86_64::ixmm9: return 98;
-            case Dyninst::x86_64::ixmm10: return 99;
-            case Dyninst::x86_64::ixmm11: return 100;
-            case Dyninst::x86_64::ixmm12: return 101;
-            case Dyninst::x86_64::ixmm13: return 102;
-            case Dyninst::x86_64::ixmm14: return 103;
-            case Dyninst::x86_64::ixmm15: return 104;
-            case Dyninst::x86_64::ixmm16: return 105;
-            case Dyninst::x86_64::ixmm17: return 106;
-            case Dyninst::x86_64::ixmm18: return 107;
-            case Dyninst::x86_64::ixmm19: return 108;
-            case Dyninst::x86_64::ixmm20: return 109;
-            case Dyninst::x86_64::ixmm21: return 110;
-            case Dyninst::x86_64::ixmm22: return 111;
-            case Dyninst::x86_64::ixmm23: return 112;
-            case Dyninst::x86_64::ixmm24: return 113;
-            case Dyninst::x86_64::ixmm25: return 114;
-            case Dyninst::x86_64::ixmm26: return 115;
-            case Dyninst::x86_64::ixmm27: return 116;
-            case Dyninst::x86_64::ixmm28: return 117;
-            case Dyninst::x86_64::ixmm29: return 118;
-            case Dyninst::x86_64::ixmm30: return 119;
-            case Dyninst::x86_64::ixmm31: return 120;
-            //case Dyninst::x86_64::ist0: return 121;
-            //case Dyninst::x86_64::ist1: return 122;
-            //case Dyninst::x86_64::ist2: return 123;
-            //case Dyninst::x86_64::ist3: return 124;
-            //case Dyninst::x86_64::ist4: return 125;
-            //case Dyninst::x86_64::ist5: return 126;
-            //case Dyninst::x86_64::ist6: return 127;
-            //case Dyninst::x86_64::ist7: return 128;
-            case Dyninst::x86_64::imm0: return 129;
-            case Dyninst::x86_64::imm1: return 130;
-            case Dyninst::x86_64::imm2: return 131;
-            case Dyninst::x86_64::imm3: return 132;
-            case Dyninst::x86_64::imm4: return 133;
-            case Dyninst::x86_64::imm5: return 134;
-            case Dyninst::x86_64::imm6: return 135;
-            case Dyninst::x86_64::imm7: return 136;
-            case Dyninst::x86_64::iflags: return 137;
-            case Dyninst::x86_64::ies: return 138;
-            case Dyninst::x86_64::ics: return 139;
-            case Dyninst::x86_64::iss: return 140;
-            case Dyninst::x86_64::ids: return 141;
-            case Dyninst::x86_64::ifs: return 142;
-            case Dyninst::x86_64::igs: return 143;
+            case Dyninst::x86_64::_irax: return 0;
+            case Dyninst::x86_64::_irdx: return 1;
+            case Dyninst::x86_64::_ircx: return 2;
+            case Dyninst::x86_64::_irbx: return 3;
+            case Dyninst::x86_64::_irsi: return 4;
+            case Dyninst::x86_64::_irdi: return 5;
+            case Dyninst::x86_64::_irbp: return 6;
+            case Dyninst::x86_64::_irsp: return 7;
+            case Dyninst::x86_64::_ir8: return 8;
+            case Dyninst::x86_64::_ir9: return 9;
+            case Dyninst::x86_64::_ir10: return 10;
+            case Dyninst::x86_64::_ir11: return 11;
+            case Dyninst::x86_64::_ir12: return 12;
+            case Dyninst::x86_64::_ir13: return 13;
+            case Dyninst::x86_64::_ir14: return 14;
+            case Dyninst::x86_64::_ir15: return 15;
+            case Dyninst::x86_64::_irip: return 16;
+            case Dyninst::x86_64::_ik0: return 17;
+            case Dyninst::x86_64::_ik1: return 18;
+            case Dyninst::x86_64::_ik2: return 19;
+            case Dyninst::x86_64::_ik3: return 20;
+            case Dyninst::x86_64::_ik4: return 21;
+            case Dyninst::x86_64::_ik5: return 22;
+            case Dyninst::x86_64::_ik6: return 23;
+            case Dyninst::x86_64::_ik7: return 24;
+            case Dyninst::x86_64::_izmm0: return 25;
+            case Dyninst::x86_64::_izmm1: return 26;
+            case Dyninst::x86_64::_izmm2: return 27;
+            case Dyninst::x86_64::_izmm3: return 28;
+            case Dyninst::x86_64::_izmm4: return 29;
+            case Dyninst::x86_64::_izmm5: return 30;
+            case Dyninst::x86_64::_izmm6: return 31;
+            case Dyninst::x86_64::_izmm7: return 32;
+            case Dyninst::x86_64::_izmm8: return 33;
+            case Dyninst::x86_64::_izmm9: return 34;
+            case Dyninst::x86_64::_izmm10: return 35;
+            case Dyninst::x86_64::_izmm11: return 36;
+            case Dyninst::x86_64::_izmm12: return 37;
+            case Dyninst::x86_64::_izmm13: return 38;
+            case Dyninst::x86_64::_izmm14: return 39;
+            case Dyninst::x86_64::_izmm15: return 40;
+            case Dyninst::x86_64::_izmm16: return 41;
+            case Dyninst::x86_64::_izmm17: return 42;
+            case Dyninst::x86_64::_izmm18: return 43;
+            case Dyninst::x86_64::_izmm19: return 44;
+            case Dyninst::x86_64::_izmm20: return 45;
+            case Dyninst::x86_64::_izmm21: return 46;
+            case Dyninst::x86_64::_izmm22: return 47;
+            case Dyninst::x86_64::_izmm23: return 48;
+            case Dyninst::x86_64::_izmm24: return 49;
+            case Dyninst::x86_64::_izmm25: return 50;
+            case Dyninst::x86_64::_izmm26: return 51;
+            case Dyninst::x86_64::_izmm27: return 52;
+            case Dyninst::x86_64::_izmm28: return 53;
+            case Dyninst::x86_64::_izmm29: return 54;
+            case Dyninst::x86_64::_izmm30: return 55;
+            case Dyninst::x86_64::_izmm31: return 56;
+            case Dyninst::x86_64::_iymm0: return 57;
+            case Dyninst::x86_64::_iymm1: return 58;
+            case Dyninst::x86_64::_iymm2: return 59;
+            case Dyninst::x86_64::_iymm3: return 60;
+            case Dyninst::x86_64::_iymm4: return 61;
+            case Dyninst::x86_64::_iymm5: return 62;
+            case Dyninst::x86_64::_iymm6: return 63;
+            case Dyninst::x86_64::_iymm7: return 64;
+            case Dyninst::x86_64::_iymm8: return 65;
+            case Dyninst::x86_64::_iymm9: return 66;
+            case Dyninst::x86_64::_iymm10: return 67;
+            case Dyninst::x86_64::_iymm11: return 68;
+            case Dyninst::x86_64::_iymm12: return 69;
+            case Dyninst::x86_64::_iymm13: return 70;
+            case Dyninst::x86_64::_iymm14: return 71;
+            case Dyninst::x86_64::_iymm15: return 72;
+            case Dyninst::x86_64::_iymm16: return 73;
+            case Dyninst::x86_64::_iymm17: return 74;
+            case Dyninst::x86_64::_iymm18: return 75;
+            case Dyninst::x86_64::_iymm19: return 76;
+            case Dyninst::x86_64::_iymm20: return 77;
+            case Dyninst::x86_64::_iymm21: return 78;
+            case Dyninst::x86_64::_iymm22: return 79;
+            case Dyninst::x86_64::_iymm23: return 80;
+            case Dyninst::x86_64::_iymm24: return 81;
+            case Dyninst::x86_64::_iymm25: return 82;
+            case Dyninst::x86_64::_iymm26: return 83;
+            case Dyninst::x86_64::_iymm27: return 84;
+            case Dyninst::x86_64::_iymm28: return 85;
+            case Dyninst::x86_64::_iymm29: return 86;
+            case Dyninst::x86_64::_iymm30: return 87;
+            case Dyninst::x86_64::_iymm31: return 88;
+            case Dyninst::x86_64::_ixmm0: return 89;
+            case Dyninst::x86_64::_ixmm1: return 90;
+            case Dyninst::x86_64::_ixmm2: return 91;
+            case Dyninst::x86_64::_ixmm3: return 92;
+            case Dyninst::x86_64::_ixmm4: return 93;
+            case Dyninst::x86_64::_ixmm5: return 94;
+            case Dyninst::x86_64::_ixmm6: return 95;
+            case Dyninst::x86_64::_ixmm7: return 96;
+            case Dyninst::x86_64::_ixmm8: return 97;
+            case Dyninst::x86_64::_ixmm9: return 98;
+            case Dyninst::x86_64::_ixmm10: return 99;
+            case Dyninst::x86_64::_ixmm11: return 100;
+            case Dyninst::x86_64::_ixmm12: return 101;
+            case Dyninst::x86_64::_ixmm13: return 102;
+            case Dyninst::x86_64::_ixmm14: return 103;
+            case Dyninst::x86_64::_ixmm15: return 104;
+            case Dyninst::x86_64::_ixmm16: return 105;
+            case Dyninst::x86_64::_ixmm17: return 106;
+            case Dyninst::x86_64::_ixmm18: return 107;
+            case Dyninst::x86_64::_ixmm19: return 108;
+            case Dyninst::x86_64::_ixmm20: return 109;
+            case Dyninst::x86_64::_ixmm21: return 110;
+            case Dyninst::x86_64::_ixmm22: return 111;
+            case Dyninst::x86_64::_ixmm23: return 112;
+            case Dyninst::x86_64::_ixmm24: return 113;
+            case Dyninst::x86_64::_ixmm25: return 114;
+            case Dyninst::x86_64::_ixmm26: return 115;
+            case Dyninst::x86_64::_ixmm27: return 116;
+            case Dyninst::x86_64::_ixmm28: return 117;
+            case Dyninst::x86_64::_ixmm29: return 118;
+            case Dyninst::x86_64::_ixmm30: return 119;
+            case Dyninst::x86_64::_ixmm31: return 120;
+            //case Dyninst::x86_64::_ist0: return 121;
+            //case Dyninst::x86_64::_ist1: return 122;
+            //case Dyninst::x86_64::_ist2: return 123;
+            //case Dyninst::x86_64::_ist3: return 124;
+            //case Dyninst::x86_64::_ist4: return 125;
+            //case Dyninst::x86_64::_ist5: return 126;
+            //case Dyninst::x86_64::_ist6: return 127;
+            //case Dyninst::x86_64::_ist7: return 128;
+            case Dyninst::x86_64::_imm0: return 129;
+            case Dyninst::x86_64::_imm1: return 130;
+            case Dyninst::x86_64::_imm2: return 131;
+            case Dyninst::x86_64::_imm3: return 132;
+            case Dyninst::x86_64::_imm4: return 133;
+            case Dyninst::x86_64::_imm5: return 134;
+            case Dyninst::x86_64::_imm6: return 135;
+            case Dyninst::x86_64::_imm7: return 136;
+            case Dyninst::x86_64::_iflags: return 137;
+            case Dyninst::x86_64::_ies: return 138;
+            case Dyninst::x86_64::_ics: return 139;
+            case Dyninst::x86_64::_iss: return 140;
+            case Dyninst::x86_64::_ids: return 141;
+            case Dyninst::x86_64::_ifs: return 142;
+            case Dyninst::x86_64::_igs: return 143;
             // INVALID REG 144
             // INVALID REG 145
-            case Dyninst::x86_64::ifsbase: return 146;
-            case Dyninst::x86_64::igsbase: return 147;
+            case Dyninst::x86_64::_ifsbase: return 146;
+            case Dyninst::x86_64::_igsbase: return 147;
             default: return -1;
          }
          break;
       case Arch_ppc32:
          switch (val()) {
-            case Dyninst::ppc32::ir0: return 0;
-            case Dyninst::ppc32::ir1: return 1;
-            case Dyninst::ppc32::ir2: return 2;
-            case Dyninst::ppc32::ir3: return 3;
-            case Dyninst::ppc32::ir4: return 4;
-            case Dyninst::ppc32::ir5: return 5;
-            case Dyninst::ppc32::ir6: return 6;
-            case Dyninst::ppc32::ir7: return 7;
-            case Dyninst::ppc32::ir8: return 8;
-            case Dyninst::ppc32::ir9: return 9;
-            case Dyninst::ppc32::ir10: return 10;
-            case Dyninst::ppc32::ir11: return 11;
-            case Dyninst::ppc32::ir12: return 12;
-            case Dyninst::ppc32::ir13: return 13;
-            case Dyninst::ppc32::ir14: return 14;
-            case Dyninst::ppc32::ir15: return 15;
-            case Dyninst::ppc32::ir16: return 16;
-            case Dyninst::ppc32::ir17: return 17;
-            case Dyninst::ppc32::ir18: return 18;
-            case Dyninst::ppc32::ir19: return 19;
-            case Dyninst::ppc32::ir20: return 20;
-            case Dyninst::ppc32::ir21: return 21;
-            case Dyninst::ppc32::ir22: return 22;
-            case Dyninst::ppc32::ir23: return 23;
-            case Dyninst::ppc32::ir24: return 24;
-            case Dyninst::ppc32::ir25: return 25;
-            case Dyninst::ppc32::ir26: return 26;
-            case Dyninst::ppc32::ir27: return 27;
-            case Dyninst::ppc32::ir28: return 28;
-            case Dyninst::ppc32::ir29: return 29;
-            case Dyninst::ppc32::ir30: return 30;
-            case Dyninst::ppc32::ir31: return 31;
-            case Dyninst::ppc32::ifpr0: return 32;
-            case Dyninst::ppc32::ifpr1: return 33;
-            case Dyninst::ppc32::ifpr2: return 34;
-            case Dyninst::ppc32::ifpr3: return 35;
-            case Dyninst::ppc32::ifpr4: return 36;
-            case Dyninst::ppc32::ifpr5: return 37;
-            case Dyninst::ppc32::ifpr6: return 38;
-            case Dyninst::ppc32::ifpr7: return 39;
-            case Dyninst::ppc32::ifpr8: return 40;
-            case Dyninst::ppc32::ifpr9: return 41;
-            case Dyninst::ppc32::ifpr10: return 42;
-            case Dyninst::ppc32::ifpr11: return 43;
-            case Dyninst::ppc32::ifpr12: return 44;
-            case Dyninst::ppc32::ifpr13: return 45;
-            case Dyninst::ppc32::ifpr14: return 46;
-            case Dyninst::ppc32::ifpr15: return 47;
-            case Dyninst::ppc32::ifpr16: return 48;
-            case Dyninst::ppc32::ifpr17: return 49;
-            case Dyninst::ppc32::ifpr18: return 50;
-            case Dyninst::ppc32::ifpr19: return 51;
-            case Dyninst::ppc32::ifpr20: return 52;
-            case Dyninst::ppc32::ifpr21: return 53;
-            case Dyninst::ppc32::ifpr22: return 54;
-            case Dyninst::ppc32::ifpr23: return 55;
-            case Dyninst::ppc32::ifpr24: return 56;
-            case Dyninst::ppc32::ifpr25: return 57;
-            case Dyninst::ppc32::ifpr26: return 58;
-            case Dyninst::ppc32::ifpr27: return 59;
-            case Dyninst::ppc32::ifpr28: return 60;
-            case Dyninst::ppc32::ifpr29: return 61;
-            case Dyninst::ppc32::ifpr30: return 62;
-            case Dyninst::ppc32::ifpr31: return 63;
-            case Dyninst::ppc32::icr: return 64;
-            case Dyninst::ppc32::imq: return 100;
-            case Dyninst::ppc32::ixer: return 101;
-            case Dyninst::ppc32::ilr: return 108;
-            case Dyninst::ppc32::ictr: return 109;
+            case Dyninst::ppc32::_ir0: return 0;
+            case Dyninst::ppc32::_ir1: return 1;
+            case Dyninst::ppc32::_ir2: return 2;
+            case Dyninst::ppc32::_ir3: return 3;
+            case Dyninst::ppc32::_ir4: return 4;
+            case Dyninst::ppc32::_ir5: return 5;
+            case Dyninst::ppc32::_ir6: return 6;
+            case Dyninst::ppc32::_ir7: return 7;
+            case Dyninst::ppc32::_ir8: return 8;
+            case Dyninst::ppc32::_ir9: return 9;
+            case Dyninst::ppc32::_ir10: return 10;
+            case Dyninst::ppc32::_ir11: return 11;
+            case Dyninst::ppc32::_ir12: return 12;
+            case Dyninst::ppc32::_ir13: return 13;
+            case Dyninst::ppc32::_ir14: return 14;
+            case Dyninst::ppc32::_ir15: return 15;
+            case Dyninst::ppc32::_ir16: return 16;
+            case Dyninst::ppc32::_ir17: return 17;
+            case Dyninst::ppc32::_ir18: return 18;
+            case Dyninst::ppc32::_ir19: return 19;
+            case Dyninst::ppc32::_ir20: return 20;
+            case Dyninst::ppc32::_ir21: return 21;
+            case Dyninst::ppc32::_ir22: return 22;
+            case Dyninst::ppc32::_ir23: return 23;
+            case Dyninst::ppc32::_ir24: return 24;
+            case Dyninst::ppc32::_ir25: return 25;
+            case Dyninst::ppc32::_ir26: return 26;
+            case Dyninst::ppc32::_ir27: return 27;
+            case Dyninst::ppc32::_ir28: return 28;
+            case Dyninst::ppc32::_ir29: return 29;
+            case Dyninst::ppc32::_ir30: return 30;
+            case Dyninst::ppc32::_ir31: return 31;
+            case Dyninst::ppc32::_ifpr0: return 32;
+            case Dyninst::ppc32::_ifpr1: return 33;
+            case Dyninst::ppc32::_ifpr2: return 34;
+            case Dyninst::ppc32::_ifpr3: return 35;
+            case Dyninst::ppc32::_ifpr4: return 36;
+            case Dyninst::ppc32::_ifpr5: return 37;
+            case Dyninst::ppc32::_ifpr6: return 38;
+            case Dyninst::ppc32::_ifpr7: return 39;
+            case Dyninst::ppc32::_ifpr8: return 40;
+            case Dyninst::ppc32::_ifpr9: return 41;
+            case Dyninst::ppc32::_ifpr10: return 42;
+            case Dyninst::ppc32::_ifpr11: return 43;
+            case Dyninst::ppc32::_ifpr12: return 44;
+            case Dyninst::ppc32::_ifpr13: return 45;
+            case Dyninst::ppc32::_ifpr14: return 46;
+            case Dyninst::ppc32::_ifpr15: return 47;
+            case Dyninst::ppc32::_ifpr16: return 48;
+            case Dyninst::ppc32::_ifpr17: return 49;
+            case Dyninst::ppc32::_ifpr18: return 50;
+            case Dyninst::ppc32::_ifpr19: return 51;
+            case Dyninst::ppc32::_ifpr20: return 52;
+            case Dyninst::ppc32::_ifpr21: return 53;
+            case Dyninst::ppc32::_ifpr22: return 54;
+            case Dyninst::ppc32::_ifpr23: return 55;
+            case Dyninst::ppc32::_ifpr24: return 56;
+            case Dyninst::ppc32::_ifpr25: return 57;
+            case Dyninst::ppc32::_ifpr26: return 58;
+            case Dyninst::ppc32::_ifpr27: return 59;
+            case Dyninst::ppc32::_ifpr28: return 60;
+            case Dyninst::ppc32::_ifpr29: return 61;
+            case Dyninst::ppc32::_ifpr30: return 62;
+            case Dyninst::ppc32::_ifpr31: return 63;
+            case Dyninst::ppc32::_icr: return 64;
+            case Dyninst::ppc32::_imq: return 100;
+            case Dyninst::ppc32::_ixer: return 101;
+            case Dyninst::ppc32::_ilr: return 108;
+            case Dyninst::ppc32::_ictr: return 109;
             default: return -1;
          }
       case Arch_ppc64:
          switch (val()) {
-            case Dyninst::ppc64::ir0: return 0;
-            case Dyninst::ppc64::ir1: return 1;
-            case Dyninst::ppc64::ir2: return 2;
-            case Dyninst::ppc64::ir3: return 3;
-            case Dyninst::ppc64::ir4: return 4;
-            case Dyninst::ppc64::ir5: return 5;
-            case Dyninst::ppc64::ir6: return 6;
-            case Dyninst::ppc64::ir7: return 7;
-            case Dyninst::ppc64::ir8: return 8;
-            case Dyninst::ppc64::ir9: return 9;
-            case Dyninst::ppc64::ir10: return 10;
-            case Dyninst::ppc64::ir11: return 11;
-            case Dyninst::ppc64::ir12: return 12;
-            case Dyninst::ppc64::ir13: return 13;
-            case Dyninst::ppc64::ir14: return 14;
-            case Dyninst::ppc64::ir15: return 15;
-            case Dyninst::ppc64::ir16: return 16;
-            case Dyninst::ppc64::ir17: return 17;
-            case Dyninst::ppc64::ir18: return 18;
-            case Dyninst::ppc64::ir19: return 19;
-            case Dyninst::ppc64::ir20: return 20;
-            case Dyninst::ppc64::ir21: return 21;
-            case Dyninst::ppc64::ir22: return 22;
-            case Dyninst::ppc64::ir23: return 23;
-            case Dyninst::ppc64::ir24: return 24;
-            case Dyninst::ppc64::ir25: return 25;
-            case Dyninst::ppc64::ir26: return 26;
-            case Dyninst::ppc64::ir27: return 27;
-            case Dyninst::ppc64::ir28: return 28;
-            case Dyninst::ppc64::ir29: return 29;
-            case Dyninst::ppc64::ir30: return 30;
-            case Dyninst::ppc64::ir31: return 31;
-            case Dyninst::ppc64::ifpr0: return 32;
-            case Dyninst::ppc64::ifpr1: return 33;
-            case Dyninst::ppc64::ifpr2: return 34;
-            case Dyninst::ppc64::ifpr3: return 35;
-            case Dyninst::ppc64::ifpr4: return 36;
-            case Dyninst::ppc64::ifpr5: return 37;
-            case Dyninst::ppc64::ifpr6: return 38;
-            case Dyninst::ppc64::ifpr7: return 39;
-            case Dyninst::ppc64::ifpr8: return 40;
-            case Dyninst::ppc64::ifpr9: return 41;
-            case Dyninst::ppc64::ifpr10: return 42;
-            case Dyninst::ppc64::ifpr11: return 43;
-            case Dyninst::ppc64::ifpr12: return 44;
-            case Dyninst::ppc64::ifpr13: return 45;
-            case Dyninst::ppc64::ifpr14: return 46;
-            case Dyninst::ppc64::ifpr15: return 47;
-            case Dyninst::ppc64::ifpr16: return 48;
-            case Dyninst::ppc64::ifpr17: return 49;
-            case Dyninst::ppc64::ifpr18: return 50;
-            case Dyninst::ppc64::ifpr19: return 51;
-            case Dyninst::ppc64::ifpr20: return 52;
-            case Dyninst::ppc64::ifpr21: return 53;
-            case Dyninst::ppc64::ifpr22: return 54;
-            case Dyninst::ppc64::ifpr23: return 55;
-            case Dyninst::ppc64::ifpr24: return 56;
-            case Dyninst::ppc64::ifpr25: return 57;
-            case Dyninst::ppc64::ifpr26: return 58;
-            case Dyninst::ppc64::ifpr27: return 59;
-            case Dyninst::ppc64::ifpr28: return 60;
-            case Dyninst::ppc64::ifpr29: return 61;
-            case Dyninst::ppc64::ifpr30: return 62;
-            case Dyninst::ppc64::ifpr31: return 63;
-            case Dyninst::ppc64::icr: return 64;
-            case Dyninst::ppc64::imq: return 100;
-            case Dyninst::ppc64::ixer: return 101;
-            case Dyninst::ppc64::ilr: return 108;
-            case Dyninst::ppc64::ictr: return 109;
+            case Dyninst::ppc64::_ir0: return 0;
+            case Dyninst::ppc64::_ir1: return 1;
+            case Dyninst::ppc64::_ir2: return 2;
+            case Dyninst::ppc64::_ir3: return 3;
+            case Dyninst::ppc64::_ir4: return 4;
+            case Dyninst::ppc64::_ir5: return 5;
+            case Dyninst::ppc64::_ir6: return 6;
+            case Dyninst::ppc64::_ir7: return 7;
+            case Dyninst::ppc64::_ir8: return 8;
+            case Dyninst::ppc64::_ir9: return 9;
+            case Dyninst::ppc64::_ir10: return 10;
+            case Dyninst::ppc64::_ir11: return 11;
+            case Dyninst::ppc64::_ir12: return 12;
+            case Dyninst::ppc64::_ir13: return 13;
+            case Dyninst::ppc64::_ir14: return 14;
+            case Dyninst::ppc64::_ir15: return 15;
+            case Dyninst::ppc64::_ir16: return 16;
+            case Dyninst::ppc64::_ir17: return 17;
+            case Dyninst::ppc64::_ir18: return 18;
+            case Dyninst::ppc64::_ir19: return 19;
+            case Dyninst::ppc64::_ir20: return 20;
+            case Dyninst::ppc64::_ir21: return 21;
+            case Dyninst::ppc64::_ir22: return 22;
+            case Dyninst::ppc64::_ir23: return 23;
+            case Dyninst::ppc64::_ir24: return 24;
+            case Dyninst::ppc64::_ir25: return 25;
+            case Dyninst::ppc64::_ir26: return 26;
+            case Dyninst::ppc64::_ir27: return 27;
+            case Dyninst::ppc64::_ir28: return 28;
+            case Dyninst::ppc64::_ir29: return 29;
+            case Dyninst::ppc64::_ir30: return 30;
+            case Dyninst::ppc64::_ir31: return 31;
+            case Dyninst::ppc64::_ifpr0: return 32;
+            case Dyninst::ppc64::_ifpr1: return 33;
+            case Dyninst::ppc64::_ifpr2: return 34;
+            case Dyninst::ppc64::_ifpr3: return 35;
+            case Dyninst::ppc64::_ifpr4: return 36;
+            case Dyninst::ppc64::_ifpr5: return 37;
+            case Dyninst::ppc64::_ifpr6: return 38;
+            case Dyninst::ppc64::_ifpr7: return 39;
+            case Dyninst::ppc64::_ifpr8: return 40;
+            case Dyninst::ppc64::_ifpr9: return 41;
+            case Dyninst::ppc64::_ifpr10: return 42;
+            case Dyninst::ppc64::_ifpr11: return 43;
+            case Dyninst::ppc64::_ifpr12: return 44;
+            case Dyninst::ppc64::_ifpr13: return 45;
+            case Dyninst::ppc64::_ifpr14: return 46;
+            case Dyninst::ppc64::_ifpr15: return 47;
+            case Dyninst::ppc64::_ifpr16: return 48;
+            case Dyninst::ppc64::_ifpr17: return 49;
+            case Dyninst::ppc64::_ifpr18: return 50;
+            case Dyninst::ppc64::_ifpr19: return 51;
+            case Dyninst::ppc64::_ifpr20: return 52;
+            case Dyninst::ppc64::_ifpr21: return 53;
+            case Dyninst::ppc64::_ifpr22: return 54;
+            case Dyninst::ppc64::_ifpr23: return 55;
+            case Dyninst::ppc64::_ifpr24: return 56;
+            case Dyninst::ppc64::_ifpr25: return 57;
+            case Dyninst::ppc64::_ifpr26: return 58;
+            case Dyninst::ppc64::_ifpr27: return 59;
+            case Dyninst::ppc64::_ifpr28: return 60;
+            case Dyninst::ppc64::_ifpr29: return 61;
+            case Dyninst::ppc64::_ifpr30: return 62;
+            case Dyninst::ppc64::_ifpr31: return 63;
+            case Dyninst::ppc64::_icr: return 64;
+            case Dyninst::ppc64::_imq: return 100;
+            case Dyninst::ppc64::_ixer: return 101;
+            case Dyninst::ppc64::_ilr: return 108;
+            case Dyninst::ppc64::_ictr: return 109;
+            default: return -1;
+         }
+         break;
+      case Arch_aarch32:
+         switch (val()) {
+            case Dyninst::aarch32::_ir0:  return 0;
+            case Dyninst::aarch32::_ir1:  return 1;
+            case Dyninst::aarch32::_ir2:  return 2;
+            case Dyninst::aarch32::_ir3:  return 3;
+            case Dyninst::aarch32::_ir4:  return 4;
+            case Dyninst::aarch32::_ir5:  return 5;
+            case Dyninst::aarch32::_ir6:  return 6;
+            case Dyninst::aarch32::_ir7:  return 7;
+            case Dyninst::aarch32::_ir8:  return 8;
+            case Dyninst::aarch32::_ir9:  return 9;
+            case Dyninst::aarch32::_ir10: return 10;
+            case Dyninst::aarch32::_ir11: return 11;
+            case Dyninst::aarch32::_ir12: return 12;
+            case Dyninst::aarch32::_ir13: return 13;
+            case Dyninst::aarch32::_ir14: return 14;
+            case Dyninst::aarch32::_ir15: return 15;
             default: return -1;
          }
          break;
       case Arch_aarch64:
          switch (val()) {
-            case Dyninst::aarch64::ix0: 	    return 0;
-            case Dyninst::aarch64::ix1: 	    return 1;
-            case Dyninst::aarch64::ix2: 	    return 2;
-            case Dyninst::aarch64::ix3: 	    return 3;
-            case Dyninst::aarch64::ix4: 	    return 4;
-            case Dyninst::aarch64::ix5: 	    return 5;
-            case Dyninst::aarch64::ix6: 	    return 6;
-            case Dyninst::aarch64::ix7: 	    return 7;
-            case Dyninst::aarch64::ix8: 	    return 8;
-            case Dyninst::aarch64::ix9: 	    return 9;
-            case Dyninst::aarch64::ix10: 	return 10;
-            case Dyninst::aarch64::ix11: 	return 11;
-            case Dyninst::aarch64::ix12: 	return 12;
-            case Dyninst::aarch64::ix13: 	return 13;
-            case Dyninst::aarch64::ix14: 	return 14;
-            case Dyninst::aarch64::ix15: 	return 15;
-            case Dyninst::aarch64::ix16: 	return 16;
-            case Dyninst::aarch64::ix17: 	return 17;
-            case Dyninst::aarch64::ix18: 	return 18;
-            case Dyninst::aarch64::ix19: 	return 19;
-            case Dyninst::aarch64::ix20: 	return 20;
-            case Dyninst::aarch64::ix21: 	return 21;
-            case Dyninst::aarch64::ix22: 	return 22;
-            case Dyninst::aarch64::ix23: 	return 23;
-            case Dyninst::aarch64::ix24: 	return 24;
-            case Dyninst::aarch64::ix25: 	return 25;
-            case Dyninst::aarch64::ix26: 	return 26;
-            case Dyninst::aarch64::ix27: 	return 27;
-            case Dyninst::aarch64::ix28: 	return 28;
-            case Dyninst::aarch64::ix29: 	return 29;
-            case Dyninst::aarch64::ix30: 	return 30;
-            case Dyninst::aarch64::isp:      return 31;
+            case Dyninst::aarch64::_ix0:  return 0;
+            case Dyninst::aarch64::_ix1:  return 1;
+            case Dyninst::aarch64::_ix2:  return 2;
+            case Dyninst::aarch64::_ix3:  return 3;
+            case Dyninst::aarch64::_ix4:  return 4;
+            case Dyninst::aarch64::_ix5:  return 5;
+            case Dyninst::aarch64::_ix6:  return 6;
+            case Dyninst::aarch64::_ix7:  return 7;
+            case Dyninst::aarch64::_ix8:  return 8;
+            case Dyninst::aarch64::_ix9:  return 9;
+            case Dyninst::aarch64::_ix10: return 10;
+            case Dyninst::aarch64::_ix11: return 11;
+            case Dyninst::aarch64::_ix12: return 12;
+            case Dyninst::aarch64::_ix13: return 13;
+            case Dyninst::aarch64::_ix14: return 14;
+            case Dyninst::aarch64::_ix15: return 15;
+            case Dyninst::aarch64::_ix16: return 16;
+            case Dyninst::aarch64::_ix17: return 17;
+            case Dyninst::aarch64::_ix18: return 18;
+            case Dyninst::aarch64::_ix19: return 19;
+            case Dyninst::aarch64::_ix20: return 20;
+            case Dyninst::aarch64::_ix21: return 21;
+            case Dyninst::aarch64::_ix22: return 22;
+            case Dyninst::aarch64::_ix23: return 23;
+            case Dyninst::aarch64::_ix24: return 24;
+            case Dyninst::aarch64::_ix25: return 25;
+            case Dyninst::aarch64::_ix26: return 26;
+            case Dyninst::aarch64::_ix27: return 27;
+            case Dyninst::aarch64::_ix28: return 28;
+            case Dyninst::aarch64::_ix29: return 29;
+            case Dyninst::aarch64::_ix30: return 30;
+            case Dyninst::aarch64::_isp:  return 31;
 
-            case Dyninst::aarch64::iq0:      return 64;
-            case Dyninst::aarch64::iq1:      return 65;
-            case Dyninst::aarch64::iq2:      return 66;
-            case Dyninst::aarch64::iq3:      return 67;
-            case Dyninst::aarch64::iq4:      return 68;
-            case Dyninst::aarch64::iq5:      return 69;
-            case Dyninst::aarch64::iq6:      return 70;
-            case Dyninst::aarch64::iq7:      return 71;
-            case Dyninst::aarch64::iq8:      return 72;
-            case Dyninst::aarch64::iq9:      return 73;
-            case Dyninst::aarch64::iq10:     return 74;
-            case Dyninst::aarch64::iq11:     return 75;
-            case Dyninst::aarch64::iq12:     return 76;
-            case Dyninst::aarch64::iq13:     return 77;
-            case Dyninst::aarch64::iq14:     return 78;
-            case Dyninst::aarch64::iq15:     return 79;
-            case Dyninst::aarch64::iq16:     return 80;
-            case Dyninst::aarch64::iq17:     return 81;
-            case Dyninst::aarch64::iq18:     return 82;
-            case Dyninst::aarch64::iq19:     return 83;
-            case Dyninst::aarch64::iq20:     return 84;
-            case Dyninst::aarch64::iq21:     return 85;
-            case Dyninst::aarch64::iq22:     return 86;
-            case Dyninst::aarch64::iq23:     return 87;
-            case Dyninst::aarch64::iq24:     return 88;
-            case Dyninst::aarch64::iq25:     return 89;
-            case Dyninst::aarch64::iq26:     return 90;
-            case Dyninst::aarch64::iq27:     return 91;
-            case Dyninst::aarch64::iq28:     return 92;
-            case Dyninst::aarch64::iq29:     return 93;
-            case Dyninst::aarch64::iq30:     return 94;
-            case Dyninst::aarch64::iq31:     return 95;
+            case Dyninst::aarch64::_iq0:  return 64;
+            case Dyninst::aarch64::_iq1:  return 65;
+            case Dyninst::aarch64::_iq2:  return 66;
+            case Dyninst::aarch64::_iq3:  return 67;
+            case Dyninst::aarch64::_iq4:  return 68;
+            case Dyninst::aarch64::_iq5:  return 69;
+            case Dyninst::aarch64::_iq6:  return 70;
+            case Dyninst::aarch64::_iq7:  return 71;
+            case Dyninst::aarch64::_iq8:  return 72;
+            case Dyninst::aarch64::_iq9:  return 73;
+            case Dyninst::aarch64::_iq10: return 74;
+            case Dyninst::aarch64::_iq11: return 75;
+            case Dyninst::aarch64::_iq12: return 76;
+            case Dyninst::aarch64::_iq13: return 77;
+            case Dyninst::aarch64::_iq14: return 78;
+            case Dyninst::aarch64::_iq15: return 79;
+            case Dyninst::aarch64::_iq16: return 80;
+            case Dyninst::aarch64::_iq17: return 81;
+            case Dyninst::aarch64::_iq18: return 82;
+            case Dyninst::aarch64::_iq19: return 83;
+            case Dyninst::aarch64::_iq20: return 84;
+            case Dyninst::aarch64::_iq21: return 85;
+            case Dyninst::aarch64::_iq22: return 86;
+            case Dyninst::aarch64::_iq23: return 87;
+            case Dyninst::aarch64::_iq24: return 88;
+            case Dyninst::aarch64::_iq25: return 89;
+            case Dyninst::aarch64::_iq26: return 90;
+            case Dyninst::aarch64::_iq27: return 91;
+            case Dyninst::aarch64::_iq28: return 92;
+            case Dyninst::aarch64::_iq29: return 93;
+            case Dyninst::aarch64::_iq30: return 94;
+            case Dyninst::aarch64::_iq31: return 95;
 
             default: return -1;
          }
@@ -1898,6 +2058,7 @@ unsigned Dyninst::getArchAddressWidth(Dyninst::Architecture arch)
          return 0;
       case Arch_x86:
       case Arch_ppc32:
+      case Arch_aarch32:
          return 4;
       case Arch_x86_64:
       case Arch_ppc64:
@@ -1912,6 +2073,26 @@ unsigned Dyninst::getArchAddressWidth(Dyninst::Architecture arch)
 
 MachRegister MachRegister::getArchReg(unsigned int regNum, Dyninst::Architecture arch){
     switch(arch){
+      case Arch_aarch32:
+         switch(regNum){
+            case 0:  return Dyninst::aarch32::r0;
+            case 1:  return Dyninst::aarch32::r1;
+            case 2:  return Dyninst::aarch32::r2;
+            case 3:  return Dyninst::aarch32::r3;
+            case 4:  return Dyninst::aarch32::r4;
+            case 5:  return Dyninst::aarch32::r5;
+            case 6:  return Dyninst::aarch32::r6;
+            case 7:  return Dyninst::aarch32::r7;
+            case 8:  return Dyninst::aarch32::r8;
+            case 9:  return Dyninst::aarch32::r9;
+            case 10: return Dyninst::aarch32::r10;
+            case 11: return Dyninst::aarch32::r11;
+            case 12: return Dyninst::aarch32::r12;
+            case 13: return Dyninst::aarch32::r13;
+            case 14: return Dyninst::aarch32::r14;
+            case 15: return Dyninst::aarch32::r15;
+            default: return InvalidReg;
+         }
       case Arch_aarch64:
          switch(regNum){
             case 0:  return Dyninst::aarch64::x0;
@@ -1949,7 +2130,7 @@ MachRegister MachRegister::getArchReg(unsigned int regNum, Dyninst::Architecture
             case 100: return Dyninst::aarch64::sp;
             case 101: return Dyninst::aarch64::pc;
             case 102: return Dyninst::aarch64::pstate;
-            case 103: return Dyninst::aarch64::zr;
+            case 103: return Dyninst::aarch64::xzr;
          }
       default:
          return InvalidReg;

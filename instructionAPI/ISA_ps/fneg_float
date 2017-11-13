@@ -1,0 +1,18 @@
+##fneg_float_execute
+CheckFPAdvSIMDEnabled64();
+
+bits(datasize) result;
+bits(datasize) operand = V[n];
+
+case fpop of
+    when FPUnaryOp_MOV  result = operand;
+    end
+    when FPUnaryOp_ABS  result = FPAbs(operand);
+    end
+    when FPUnaryOp_NEG  result = FPNeg(operand);
+    end
+    when FPUnaryOp_SQRT result = FPSqrt(operand, FPCR);
+    end
+
+V[d] = result;
+@@

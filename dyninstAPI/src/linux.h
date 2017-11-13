@@ -57,6 +57,8 @@ class PCProcess;
 #include "linux-x86.h"
 #elif defined(os_linux) && defined(arch_power)
 #include "linux-power.h"
+#elif defined(os_linux) && defined(arch_aarch32)
+#include "linux-aarch32.h"
 #elif defined(os_linux) && defined(arch_aarch64)
 #include "linux-aarch64.h"
 #else

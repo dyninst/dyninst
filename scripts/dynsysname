@@ -2,7 +2,7 @@
 
 P=$1
 
-# i386/Linux, x86-64/Linux, ppc/Linux, ppc64/Linux
+# i386/Linux, x86-64/Linux, ppc/Linux, ppc64/Linux, arm/Linux
 if [ ${P/linux/} != ${P} ]; then
 if [ ${P/i686/} != ${P} ]; then
 PLATFORM=i386-unknown-linux2.4
@@ -33,6 +33,15 @@ PLATFORM=ppc32_linux
 fi
 if [ ${P/aarch64-/} != ${P} ]; then
 PLATFORM=aarch64-unknown-linux
+fi
+if [ ${P/armv6/} != ${P} ]; then
+PLATFORM=aarch32-unknown-linux
+fi
+if [ ${P/armv7/} != ${P} ]; then
+PLATFORM=aarch32-unknown-linux
+fi
+if [ ${P/aarch32-/} != ${P} ]; then
+PLATFORM=aarch32-unknown-linux
 fi
 # Freebsd
 elif [ ${P/freebsd/} != ${P} ]; then

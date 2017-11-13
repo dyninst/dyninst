@@ -55,6 +55,7 @@ struct StridedInterval {
     void ShiftLeft(const StridedInterval &rhs);
     void ShiftRight(const StridedInterval &rhs);
     std::string format();
+    void Print();
 
     StridedInterval & operator = (const StridedInterval &rhs);
     bool operator == (const StridedInterval &rhs) const;
@@ -69,50 +70,13 @@ struct StridedInterval {
     bool IsConst() const;
 };
 
-struct BoundValue {
-
-    static const BoundValue top;
-    static const BoundValue bottom;
-
-    StridedInterval interval;
-
-    Address targetBase;    
-    // If tableReadSize == 0, this does not represent a memory access
-    // Otherwise, tableReadSize reprenents the number bytes of the access
-    int tableReadSize;
-    int multiply;
-    std::set<int64_t> * values;
-    bool isInverted;
-    bool isSubReadContent;
-    bool isZeroExtend;
-    BoundValue(int64_t val); 
-    BoundValue(const StridedInterval& si); 
-    BoundValue();
-    BoundValue(const BoundValue & bv);
-    BoundValue& operator = (const BoundValue &bv);
-    ~BoundValue();
-    bool operator< (const BoundValue &bv) const { return interval < bv.interval; }
-    bool operator== (const BoundValue &bv) const;
-    bool operator!= (const BoundValue &bv) const;
-    void Print();
-
-    void SetToBottom();
-    void IntersectInterval(StridedInterval &si);
-    void DeleteElementFromInterval(int64_t val);
-    void Join(BoundValue &bv, ParseAPI::Block* b);
-    void ClearTableCheck();
-    void Add(const BoundValue &rhs);
-    void And(const BoundValue &rhs);
-    void Mul(const BoundValue &rhs);
-    void ShiftLeft(const BoundValue &rhs);
-    void ShiftRight(const BoundValue &rhs);
-    void Or(const BoundValue &rhs);
-    void Invert();
-    void MemoryRead(ParseAPI::Block* b, int readSize);
-};
-
 struct BoundFact {
+    typedef map<AST::Ptr, StridedInterval*> FactType;
+    FactType fact;
 
+    // Sometimes the bound of a jump table index are derived from 
+    // the difference between two values. In this case, it is useful
+    // to know that whether there is a certain relation between the two values
     typedef enum {
         Equal,
 	NotEqual, 
@@ -125,34 +89,32 @@ struct BoundFact {
 	SignedLessThanOrEqual,
 	SignedLargerThanOrEqual,
     } RelationType;
-    typedef map<AST::Ptr, BoundValue*> FactType;
-    FactType fact;
 
-    struct RelationShip {
+    struct Relation {
         AST::Ptr left;
 	AST::Ptr right;
 	RelationType type;
-	RelationShip(AST::Ptr l, AST::Ptr r, RelationType t):
+	Relation(AST::Ptr l, AST::Ptr r, RelationType t):
 	    left(l), right(r), type(t) {}
 
-        bool operator != (const RelationShip &rhs) const {
+        bool operator != (const Relation &rhs) const {
 	    if (type != rhs.type) return true;
 	    if (!(*left == *rhs.left)) return true;
 	    if (!(*right == *rhs.right)) return true;
 	    return false;
 	}
 
-	RelationShip& operator = (const RelationShip &rhs) {
+	Relation& operator = (const Relation &rhs) {
 	    left = rhs.left;
 	    right = rhs.right;
 	    type = rhs.type;
 	    return *this;
 	}
 
-	RelationShip(const RelationShip &r) { *this = r; }
+	Relation(const Relation &r) { *this = r; }
     };
 
-    vector<RelationShip*> relation;
+    vector<Relation*> relation;
 
     // We need to track aliases of each register and memory locations.
     // The left hand side represents an abstract location at the current address
@@ -216,15 +178,15 @@ struct BoundFact {
     bool operator< (const BoundFact &bf) const {return fact < bf.fact; }
     bool operator!= (const BoundFact &bf) const;
 
-    BoundValue* GetBound(const AST::Ptr ast); 
-    BoundValue* GetBound(const AST* ast);
+    StridedInterval* GetBound(const AST::Ptr ast); 
+    StridedInterval* GetBound(const AST* ast);
     AST::Ptr GetAlias(const AST::Ptr ast);
     void Meet(BoundFact &bf, ParseAPI::Block* b);
 
 
     bool ConditionalJumpBound(InstructionAPI::Instruction::Ptr insn, EdgeTypeEnum type);
     void SetPredicate(Assignment::Ptr assign, std::pair<AST::Ptr, bool> expand);
-    void GenFact(const AST::Ptr ast, BoundValue* bv, bool isConditionalJump);
+    void GenFact(const AST::Ptr ast, StridedInterval* bv, bool isConditionalJump);
     void KillFact(const AST::Ptr ast, bool isConditionalJump);
     void SetToBottom();
     void Print();
@@ -235,8 +197,8 @@ struct BoundFact {
     void InsertRelation(AST::Ptr left, AST::Ptr right, RelationType);
     void TrackAlias(AST::Ptr expr, AST::Ptr outAST, bool findBound);
 
-    BoundValue *ApplyRelations(AST::Ptr outAST);
-    BoundValue *ApplyRelations2(AST::Ptr outAST);
+    StridedInterval *ApplyRelations(AST::Ptr outAST);
+    StridedInterval *ApplyRelations2(AST::Ptr outAST);
 
     void PushAConst(int64_t value);
     bool PopAConst(AST::Ptr ast);

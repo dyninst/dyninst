@@ -1,0 +1,16 @@
+##csetm_csinv_execute
+bits(datasize) result;
+bits(datasize) operand1 = X[n];
+bits(datasize) operand2 = X[m];
+
+if ConditionHolds(condition) then
+    result = operand1;
+else
+    result = operand2;
+    if else_inv then result = NOT(result);
+    if else_inc then result = result + 1;
+
+    end
+X[d] = result;
+end
+@@

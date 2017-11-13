@@ -1,0 +1,7 @@
+##tbz_execute
+bits(datasize) operand = X[t];
+
+if operand<bit_pos> == bit_val then
+    BranchTo(PC[] + offset, BranchType_JMP);
+end
+@@

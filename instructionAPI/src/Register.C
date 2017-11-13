@@ -88,6 +88,16 @@ namespace Dyninst
       return m_Reg;
     }
 
+    std::string RegisterAST::format(ArchSpecificFormatter *formatter, formatStyle) const
+    {
+        return formatter->formatRegister(m_Reg.name());
+    }
+
+    std::string MaskRegisterAST::format(ArchSpecificFormatter* formatter, formatStyle) const
+    {
+        return formatter->formatRegister(m_Reg.name());
+    }
+
     std::string RegisterAST::format(formatStyle) const
     {
         std::string name = m_Reg.name();
@@ -104,8 +114,8 @@ namespace Dyninst
 
     std::string MaskRegisterAST::format(formatStyle) const
     {
-		std::string name = m_Reg.name();
-		std::string::size_type substr = name.rfind(':');
+        std::string name = m_Reg.name();
+        std::string::size_type substr = name.rfind(':');
         if(substr != std::string::npos)
         {
             name = name.substr(substr + 1, name.length());
@@ -117,6 +127,8 @@ namespace Dyninst
 
         return ss.str();
     }
+
+     
 
     RegisterAST RegisterAST::makePC(Dyninst::Architecture arch)
     {

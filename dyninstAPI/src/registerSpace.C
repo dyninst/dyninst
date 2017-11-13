@@ -61,9 +61,14 @@
 #elif defined(arch_x86) || defined(arch_x86_64)
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/emit-x86.h"
+#elif defined (arch_aarch32)
+#include "dyninstAPI/src/inst-aarch32.h"
+#include "dyninstAPI/src/emit-aarch32.h"
 #elif defined (arch_aarch64)
 #include "dyninstAPI/src/inst-aarch64.h"
 #include "dyninstAPI/src/emit-aarch64.h"
+#else
+#error "Unknown architecture"
 #endif
 
 registerSpace *registerSpace::globalRegSpace_ = NULL;

@@ -1,0 +1,11 @@
+##cnt_advsimd_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize) operand = V[n];
+bits(datasize) result;
+
+integer count;
+for e = 0 to elements-1
+    count = BitCount(Elem[operand, e, esize]);
+    Elem[result, e, esize] = count<esize-1:0>;
+V[d] = result;
+@@

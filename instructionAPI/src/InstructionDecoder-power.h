@@ -187,7 +187,7 @@ namespace Dyninst {
                 }
 
                 
-                template<unsigned int low, unsigned int high, unsigned int base = ppc32::icr0,
+                template<unsigned int low, unsigned int high, unsigned int base = ppc32::_icr0,
                     unsigned int curCR = high - low>
                 struct translateBitFieldToCR
                 {
@@ -264,6 +264,7 @@ namespace Dyninst {
                 bool invertBranchCondition;
                 bool isFPInsn;
                 bool bcIsConditional;
+		bool findRAAndRS(const struct power_entry*);
         };
     }
 }

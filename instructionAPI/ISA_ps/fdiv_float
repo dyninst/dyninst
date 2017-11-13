@@ -1,0 +1,10 @@
+##fdiv_float_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize) result;
+bits(datasize) operand1 = V[n];
+bits(datasize) operand2 = V[m];
+
+result = FPDiv(operand1, operand2, FPCR);
+
+V[d] = result;
+@@

@@ -1,0 +1,14 @@
+##sqshl_advsimd_imm_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize) operand  = V[n];
+bits(datasize) result;
+integer element;
+boolean sat;
+
+for e = 0 to elements-1
+    element = Int(Elem[operand, e, esize], src_unsigned) << shift;
+    (Elem[result, e, esize], sat) = SatQ(element, esize, dst_unsigned);
+    if sat then FPSR.QC = 1;
+
+V[d] = result;
+@@

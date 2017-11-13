@@ -97,6 +97,7 @@ namespace Dyninst
       typedef std::set<Expression::Ptr> VCSet;
       typedef boost::shared_ptr<Operation> Ptr;
       friend class InstructionDecoder_power; // for editing mnemonics after creation
+      friend class InstructionDecoder_aarch32;
       friend class InstructionDecoder_aarch64;
       
     public:

@@ -82,17 +82,17 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
   
   switch(reg.val())
   {
-     case Dyninst::x86_64::irip:
-     case Dyninst::x86::ieip:
-     case Dyninst::iReturnAddr:
+     case Dyninst::x86_64::_irip:
+     case Dyninst::x86::_ieip:
+     case Dyninst::_iReturnAddr:
         val = (Dyninst::MachRegisterVal) frame_pointer[1];
         break;
-     case Dyninst::iFrameBase:
+     case Dyninst::_iFrameBase:
         val = (Dyninst::MachRegisterVal) frame_pointer[0];
         break;
-     case Dyninst::x86_64::irsp:
-     case Dyninst::x86::iesp:
-     case Dyninst::iStackTop:
+     case Dyninst::x86_64::_irsp:
+     case Dyninst::x86::_iesp:
+     case Dyninst::_iStackTop:
         val = (Dyninst::MachRegisterVal) (frame_pointer + 2);
         break;      
      default:

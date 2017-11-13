@@ -1,0 +1,11 @@
+##xtn_advsimd_execute
+CheckFPAdvSIMDEnabled64();
+bits(2*datasize) operand = V[n];
+bits(datasize) result;
+bits(2*esize) element;
+
+for e = 0 to elements-1
+    element = Elem[operand, e, 2*esize];
+    Elem[result, e, esize] = element<esize-1:0>;
+Vpart[d, part] = result;
+@@

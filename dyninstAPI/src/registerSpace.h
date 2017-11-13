@@ -475,6 +475,22 @@ class registerSpace {
 #if defined(arch_x86) || defined(arch_x86_64)
     int framePointer();
 #endif
+#if defined(arch_aarch32)
+//#warning "Not verified yet!"
+	//15 GPRs, 15 FPRs
+    typedef enum {
+        r0,  r1,  r2,  r3,  r4,  r5,  r6,  r7,
+        r8,  r9,  r10, r11, r12, r13, r14, r15,
+        fpr0,  fpr1,  fpr2,  fpr3,  fpr4,  fpr5,  fpr6,  fpr7,
+        fpr8,  fpr9,  fpr10, fpr11, fpr12, fpr13, fpr14, fpr15,
+        lr, sp, pc, pstate, fpcr, fpsr, ignored
+    } aarch32Registers_t;
+
+    static unsigned GPR(Register x) { return x; }
+    static unsigned FPR(Register x) { return x - fpr0; }
+    static unsigned SPR(Register x);
+    int framePointer() { assert(0); return 0; }
+#endif
 #if defined(arch_aarch64)
 //#warning "Not verified yet!"
 	//31 GPRs, 32 FPRs

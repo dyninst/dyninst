@@ -126,6 +126,8 @@ class Parser {
     int findBlocks(CodeRegion * cr, Address addr, set<Block*> & blocks);
     // returns current blocks without parsing.
     int findCurrentBlocks(CodeRegion* cr, Address addr, std::set<Block*>& blocks);
+    int findCurrentFuncs(CodeRegion * cr, Address addr, set<Function*> & funcs);
+
     Block * findNextBlock(CodeRegion * cr, Address addr);
 
     void parse();
@@ -159,7 +161,7 @@ class Parser {
     ParseFrame::Status frame_status(CodeRegion * cr, Address addr);
 
     /** CFG structure manipulations **/
-    void end_block(Block *b, InstructionAdapter_t & ah);
+    void end_block(Block *b, InstructionAdapter_t * ah);
     Block * block_at(Function * owner, 
             Address addr, 
             Block * & split);
@@ -195,12 +197,12 @@ class Parser {
     void ProcessUnresBranchEdge(
         ParseFrame&,
         Block*,
-        InstructionAdapter_t&,
+        InstructionAdapter_t*,
         Address target);
     void ProcessCallInsn(
         ParseFrame&,
         Block*,
-        InstructionAdapter_t&,
+        InstructionAdapter_t*,
         bool,
         bool,
         bool,
@@ -208,11 +210,11 @@ class Parser {
     void ProcessReturnInsn(
         ParseFrame&,
         Block*,
-        InstructionAdapter_t&);
+        InstructionAdapter_t*);
     void ProcessCFInsn(
         ParseFrame&,
         Block*,
-        InstructionAdapter_t&);
+        InstructionAdapter_t*);
 
     void finalize();
     void finalize_funcs(vector<Function *> & funcs);

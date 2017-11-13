@@ -454,7 +454,7 @@ MemoryMap::insertProcess(const std::string &locatorString) {
         throw insertProcessError(locatorString, "cannot open " + memName + ": " + strerror(errno));
 
     // Read each line from the /proc/xxx/maps to figure out what memory is mapped in the subordinate process. The format for
-    // the part we're interested in is /^([0-9a-f]+)-([0-9a-f]+) ([-r][-w][-x])/ where $1 is the inclusive starting address, $2
+    // the part we're interested in is /^([0-9a-f]+)-([0-9a-f]+) ([-r][-w][-x])/ where $2 is the inclusive starting address, $2
     // is the exclusive ending address, and $3 are the permissions.
     int mapsFileLineNumber = 0;
     while (rose_getline(&local.buf, &local.bufsz, local.mapsFile)>0) {

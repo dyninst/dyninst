@@ -258,8 +258,12 @@ class memoryTracker : public codeRange {
     memoryTracker(Address a, unsigned s, void *b) :
     alloced(false), dirty(false), a_(a), s_(s)
         {
-            b_ = malloc(s_);
-            memcpy(b_, b, s_);
+            if(b) {
+                b_ = malloc(s_);
+                memcpy(b_, b, s_);
+            } else {
+                b_ = calloc(1, s_);
+            }
         }
     ~memoryTracker() { free(b_); }
 

@@ -1,0 +1,13 @@
+##sha1su1_advsimd_execute
+CheckCryptoEnabled64();
+
+bits(128) operand1 = V[d];
+bits(128) operand2 = V[n];
+bits(128) result;
+bits(128) T = operand1 EOR LSR(operand2, 32);
+result<31:0>   = ROL(T<31:0>,   1);
+result<63:32>  = ROL(T<63:32>,  1);
+result<95:64>  = ROL(T<95:64>,  1);
+result<127:96> = ROL(T<127:96>, 1) EOR ROL(T<31:0>, 2);
+V[d] = result;
+@@
