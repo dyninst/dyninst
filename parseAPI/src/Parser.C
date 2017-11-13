@@ -58,7 +58,8 @@
 #include <boost/timer/timer.hpp>
 #include <fstream>
 
-#define USE_CILK 1
+#define USE_CILK 0
+#define USE_OPENMP 1
 
 using namespace std;
 using namespace Dyninst;
@@ -620,7 +621,7 @@ Parser::ProcessFrames
       }
     }
   }
-#elsif USE_CILK
+#elif USE_CILK
   {
     int nthreads = __cilkrts_get_nworkers(); 
     for (;;) {
@@ -805,7 +806,7 @@ void Parser::cleanup_frames()  {
       delete pf;
     }
   }
-#elsif USE_CILK
+#elif USE_CILK
   cilk_for(unsigned i=0; i < frames.size(); ++i) {
     ParseFrame *pf = frames[i];
     if (pf) {
