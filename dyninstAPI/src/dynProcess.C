@@ -1057,6 +1057,7 @@ bool PCProcess::detachProcess(bool /*cont*/) {
             if( !stopProcess() ) {
                 proccontrol_printf("%s[%d]: failed to stop process for removing syscalls\n",
                         FILE__, __LINE__);
+		return false;
             }
         }
 
