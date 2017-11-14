@@ -55,10 +55,10 @@
 
 #if defined (_MSC_VER)
   //**************** Windows ********************
-  #include <hash_map>
-  #include <hash_set>
-  #define dyn_hash_map stdext::hash_map
-  #define dyn_hash_set stdext::hash_set
+  #include <unordered_set>
+  #include <unordered_map>  
+  #define dyn_hash_map std::unordered_map
+  #define dyn_hash_set std::unordered_set
   #define DECLTHROW(x)
 #elif defined(__GNUC__)
   #include <functional>
