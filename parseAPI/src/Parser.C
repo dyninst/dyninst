@@ -142,9 +142,9 @@ Parser::~Parser()
     if(_parse_data)
         delete _parse_data;
 
-    vector<ParseFrame *>::iterator fit = frames.begin();
-    for( ; fit != frames.end(); ++fit)
+    for(auto fit = frames.begin() ; fit != frames.end(); ++fit)
         delete *fit;
+
     frames.clear();
 }
 
@@ -235,7 +235,7 @@ Parser::parse_at(
     if(!(pf = _parse_data->findFrame(region,target))) {
         pf = new ParseFrame(f,_parse_data);
         init_frame(*pf);
-        frames.push_back(pf);
+        frames.insert(pf);
         _parse_data->record_frame(pf);
     }
 
@@ -303,7 +303,7 @@ Parser::parse_vanilla()
 
         pf = new ParseFrame(hf,_parse_data);
         init_frame(*pf);
-        frames.push_back(pf);
+        frames.insert(pf);
         work.push_back(pf);
         _parse_data->record_frame(pf);
     }
@@ -465,7 +465,7 @@ vector<ParseFrame *> Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
 
                     tf = new ParseFrame(pf->call_target,_parse_data);
                     init_frame(*tf);
-                    frames.push_back(tf);
+                    frames.insert(tf);
                     _parse_data->record_frame(tf);
                 }
                 if(likely(recursive))
@@ -798,12 +798,21 @@ void Parser::processCycle(vector<ParseFrame *> &work, bool recursive) {// If we'
 
 void Parser::cleanup_frames()  {
 #if USE_OPENMP
-#pragma omp parallel for schedule(auto) 
-  for(unsigned i=0; i < frames.size(); ++i) {
-    ParseFrame *pf = frames[i];
-    if (pf) {
-      _parse_data->remove_frame(pf);
-      delete pf;
+#pragma omp parallel 
+  {
+#pragma omp master
+    for (;;) {
+      auto entry = frames.pop(); 
+      if (!entry) break;
+#pragma omp task
+      {
+	ParseFrame *pf = entry->value();
+	if (pf) {
+	  _parse_data->remove_frame(pf);
+	  delete pf;
+	}
+	delete entry;
+      }
     }
   }
 #elif USE_CILK

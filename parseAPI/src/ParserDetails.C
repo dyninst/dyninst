@@ -277,7 +277,7 @@ Parser::tamper_post_processing(vector<ParseFrame *> &work, ParseFrame *pf) {
                 if (tf && !_parse_data->findFrame(tf->func->region(),
                                                   tf->func->addr())) {
                     init_frame(*tf);
-                    frames.push_back(tf);
+                    frames.insert(tf);
                     _parse_data->record_frame(tf);
                     _pcb.updateCodeBytes(pf->func->_tamper_addr - objLoad);
                 }

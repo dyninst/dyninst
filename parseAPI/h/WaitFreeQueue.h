@@ -127,13 +127,13 @@ public:
     }
     return first;
   };
-private:
   void clear() { 
     item_type *first;
     while((first = pop())) { 
       delete first;
     }
   };
+private:
   void reset() {
     head.store(0);
   };

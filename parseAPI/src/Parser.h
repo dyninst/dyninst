@@ -83,7 +83,7 @@ class Parser {
     ParseData * _parse_data;
 
     // All allocated frames
-    vector<ParseFrame *> frames;
+    WaitFreeQueue<ParseFrame *> frames; 
 
     // Delayed frames
     struct DelayedFrames : public boost::basic_lockable_adapter<boost::recursive_mutex> {
