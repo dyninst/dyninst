@@ -798,23 +798,17 @@ void Parser::processCycle(vector<ParseFrame *> &work, bool recursive) {// If we'
 
 void Parser::cleanup_frames()  {
 #if USE_OPENMP
-#pragma omp parallel 
-  {
-#pragma omp master
-    for (;;) {
-      auto entry = frames.pop(); 
-      if (!entry) break;
-#pragma omp task
-      {
-	ParseFrame *pf = entry->value();
-	if (pf) {
-	  _parse_data->remove_frame(pf);
-	  delete pf;
-	}
-	delete entry;
-      }
+  vector <ParseFrame *> pfv;
+  std::copy(frames.begin(), frames.end(), std::back_inserter(pfv));
+#pragma omp parallel for schedule(auto)
+  for (int i = 0; i < pfv.size(); i++) {
+    ParseFrame *pf = pfv[i];
+    if (pf) {
+      _parse_data->remove_frame(pf);
+      delete pf;
     }
   }
+  frames.clear();
 #elif USE_CILK
   cilk_for(unsigned i=0; i < frames.size(); ++i) {
     ParseFrame *pf = frames[i];
