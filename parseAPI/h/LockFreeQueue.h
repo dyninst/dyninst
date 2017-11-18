@@ -27,116 +27,156 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#ifndef _WAIT_FREE_QUEUE_H_
-#define _WAIT_FREE_QUEUE_H_
+#ifndef _LOCK_FREE_QUEUE_H_
+#define _LOCK_FREE_QUEUE_H_
 
 #include <atomic>
 #include <iterator>
 
 
 template<typename T>
-class WaitFreeQueueItem {
-  typedef WaitFreeQueueItem<T> item_type;
-public:
-  WaitFreeQueueItem(T __value) : _next(0), _value(__value) {};
-  void setNext(item_type *__next) { _next.store(__next); };
-  item_type *next() { return _next.load(); };
-  T value() { return _value; };
+class LockFreeQueueItem {
 private:
+  typedef LockFreeQueueItem<T> item_type;
+
+public:
+  LockFreeQueueItem(T __value) : _next(0), _value(__value) {};
+
+  void setNext(item_type *__next) { _next.store(__next); };
+
+  void setNextPending() { _next.store(pending()); };
+
+  item_type *next() { 
+    item_type *succ = _next.load();
+    // wait for successor to be written, if necessary
+    while (succ == pending()) succ = _next.load();
+    return succ;
+  };
+
+  T value() { return _value; };
+
+private:
+  item_type *pending() { return (item_type * const) ~0; }
+
   std::atomic<item_type *> _next;
   T _value;
 };
 
 
+// designed for use in a context where where only insert_chain operations
+// that have completed their exchange may be concurrent with iteration on
+// the queue
 template<typename T>
-class WaitFreeQueueIterator {
-  typedef WaitFreeQueueItem<T> item_type;
-  typedef WaitFreeQueueIterator<T> iterator;
+class LockFreeQueueIterator {
+private:
+  typedef LockFreeQueueItem<T> item_type;
+  typedef LockFreeQueueIterator<T> iterator;
+
 public:
   typedef T value_type;
   typedef T * pointer;
   typedef T & reference;
   typedef std::ptrdiff_t difference_type;
   typedef std::forward_iterator_tag iterator_category;
+
 public:
-  WaitFreeQueueIterator(item_type *_item) : item(_item) {};
+  LockFreeQueueIterator(item_type *_item) : item(_item) {};
+
   T operator *() { return item->value(); };
+
   bool operator != (iterator i) { return item != i.item; };
+
   iterator operator ++() { 
     if (item) item = item->next(); 
     return *this; 
   };
+
   iterator operator ++(int) { 
     iterator clone(*this);
-    if (item) item = item->next(); 
+    ++(*this);
     return clone;
   };
+
 private:
   item_type *item;
 };
 
 
-// wait-free concurrent operations:
-//    insert: either an value or a chain of items can be concurrently added to the front of the queue
-//    splice: an entire queue of items can be concurrently added to the front of the destination queue
-//       note: it is unsafe to concurrenty insert into the source for splice while it is being spliced
-
-
 template<typename T>
-class WaitFreeQueue {
+class LockFreeQueue {
 public:
-  typedef WaitFreeQueueIterator<T> iterator;
-  typedef WaitFreeQueueItem<T> item_type; 
- private:
-  item_type *PENDING = (item_type *) ~0;
+  typedef LockFreeQueueIterator<T> iterator;
+  typedef LockFreeQueueItem<T> item_type; 
+
 public:
-  WaitFreeQueue(item_type *_head = 0) : head(_head) {};
+  LockFreeQueue(item_type *_head = 0) : head(_head) {};
+
+public: 
+  // wait-free member functions designed for concurrent use
+
+  // insert a singleton at the head of the queue
+  // note: this operation is wait-free unless the allocator blocks 
   void insert(T value) {
     item_type *entry = new item_type(value);
-    insert(entry, entry);
+    insert_chain(entry, entry);
   };
-  void insert(item_type *first, item_type *last) { 
-    last->setNext(PENDING);
-    item_type *oldhead = head.exchange(first);
-    last->setNext(oldhead);
-  };
-  void splice(WaitFreeQueue<T> &other) {
-    if (other.head) {
-      item_type *n = other.head;
-      item_type *nn;
-      while ((nn = n->next())) n = nn;
-      insert(other.head, n);
-      other.reset();
+
+  // steal the linked list from q and insert it at the front of this queue
+  void splice(LockFreeQueue<T> &q) {
+    if (q.peek()) { // only empty q if it is non-empty 
+      item_type *first = q.steal();
+      item_type *last = first;
+      for (;;) {
+	item_type *next = last->next();
+	if (!next) break;
+	last = next;
+      }
+      insert_chain(first, last);
     }
-  }
+  };
+
+  // inspect the head of the queue
   item_type *peek() { return head.load(); };
+
+  // grab the contents of the queue for your own private use
   item_type *steal() { return head.exchange(0); };
-  iterator begin() { return iterator(head.load()); };
-  iterator end() { return iterator(0); };
-  ~WaitFreeQueue() { clear(); };
+
+public:
+  // designed for use in a context where where only insert_chain 
+  // operations that have completed their exchange may be concurrent
+
   item_type *pop() { 
     item_type *first = head.load();
     if (first) {
-      item_type *succ;
-      do { 
-	succ = first->next(); 
-      } while (succ == PENDING);
-
+      item_type *succ = first->next(); 
       head.store(succ);
       first->setNext(0);
     }
     return first;
   };
+
+  iterator begin() { return iterator(head.load()); };
+
+  iterator end() { return iterator(0); };
+
+  ~LockFreeQueue() { clear(); };
+
   void clear() { 
     item_type *first;
     while((first = pop())) { 
       delete first;
     }
   };
+
 private:
-  void reset() {
-    head.store(0);
+
+  // insert a chain at the head of the queue
+  void insert_chain(item_type *first, item_type *last) { 
+    last->setNextPending(); // make in-progress splice visible
+    item_type *oldhead = head.exchange(first);
+    last->setNext(oldhead);
   };
+
 private:
   std::atomic<item_type *> head;
 };

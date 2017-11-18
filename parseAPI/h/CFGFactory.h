@@ -32,7 +32,7 @@
 
 #include "dyntypes.h"
 
-#include "WaitFreeQueue.h"
+#include "LockFreeQueue.h"
 #include "CFG.h"
 #include "InstructionSource.h"
 
@@ -109,9 +109,8 @@ class fact_list {
 template <class T>
 class fact_list {
 public:
-  typedef typename WaitFreeQueue<T>::iterator iterator;
+  typedef typename LockFreeQueue<T>::iterator iterator;
   typedef std::forward_iterator_tag iterator_category;
-  // typedef const WaitFreeQueue<T>::const_iterator;
   typedef T elem;
   typedef T &reference;
 
@@ -127,10 +126,8 @@ public:
   // iterators
   iterator begin() { return queue.begin(); }
   iterator end() { return queue.end(); }
-  //  const_iterator begin() const { return queue.begin(); }
-  //  const_iterator end() const { return queue.end(); }
 private:
-  WaitFreeQueue<T> queue;
+  LockFreeQueue<T> queue;
 };
 
 #endif

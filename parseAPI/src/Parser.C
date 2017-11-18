@@ -557,11 +557,11 @@ static void
 InsertFrames
 (
  vector<ParseFrame *> *frames, 
- WaitFreeQueue<ParseFrame *> *q
+ LockFreeQueue<ParseFrame *> *q
 )
 {
   if (frames->size() > 0) {
-    WaitFreeQueue<ParseFrame *> myq;
+    LockFreeQueue<ParseFrame *> myq;
     for (size_t j = 0; j < frames->size(); ++j) {
       ParseFrame *f = (*frames)[j]; 
       if (f) myq.insert(f);
@@ -576,7 +576,7 @@ Parser::SpawnProcessFrame
 (
  ParseFrame *pf, 
  bool recursive, 
- WaitFreeQueue<ParseFrame *> *work_queue,
+ LockFreeQueue<ParseFrame *> *work_queue,
  std::atomic<int> *in_progress
 )
 {
@@ -593,7 +593,7 @@ Parser::ProcessFrames
  bool recursive 
 )
 {
-  WaitFreeQueue<ParseFrame *> work_queue;
+  LockFreeQueue<ParseFrame *> work_queue;
   InsertFrames(work, &work_queue);
   std::atomic<int> in_progress(0);
 #if USE_OPENMP
@@ -608,9 +608,9 @@ Parser::ProcessFrames
 #pragma omp taskwait
 	}
       } else {
-	WaitFreeQueue<ParseFrame *> private_queue(work_queue.steal());
+	LockFreeQueue<ParseFrame *> private_queue(work_queue.steal());
 	for(;;) {
-	  WaitFreeQueueItem<ParseFrame *> *first = private_queue.pop();
+	  LockFreeQueueItem<ParseFrame *> *first = private_queue.pop();
 	  if (first == 0) break;
 	  ParseFrame *frame = first->value();
 	  delete first;
@@ -631,9 +631,9 @@ Parser::ProcessFrames
 	  cilk_sync;
 	}
       } else {
-	WaitFreeQueue<ParseFrame *> private_queue(work_queue.steal());
+	LockFreeQueue<ParseFrame *> private_queue(work_queue.steal());
 	for(;;) {
-	  WaitFreeQueueItem<ParseFrame *> *first = private_queue.pop();
+	  LockFreeQueueItem<ParseFrame *> *first = private_queue.pop();
 	  if (first == 0) break;
 	  ParseFrame *frame = first->value();
 	  delete first;
@@ -649,9 +649,9 @@ Parser::ProcessFrames
       if (work_queue.peek() == 0) {
 	if (in_progress.load() == 0) break;
       } else {
-	WaitFreeQueue<ParseFrame *> private_queue(work_queue.steal());
+	LockFreeQueue<ParseFrame *> private_queue(work_queue.steal());
 	for(;;) {
-	  WaitFreeQueueItem<ParseFrame *> *first = private_queue.pop();
+	  LockFreeQueueItem<ParseFrame *> *first = private_queue.pop();
 	  if (first == 0) break;
 	  ParseFrame *frame = first->value();
 	  delete first;

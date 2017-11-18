@@ -38,7 +38,7 @@
 #include "dyntypes.h"
 #include "IBSTree.h"
 
-#include "WaitFreeQueue.h"
+#include "LockFreeQueue.h"
 
 #include "IA_IAPI.h"
 #include "InstructionAdapter.h"
@@ -83,7 +83,7 @@ class Parser {
     ParseData * _parse_data;
 
     // All allocated frames
-    WaitFreeQueue<ParseFrame *> frames; 
+    LockFreeQueue<ParseFrame *> frames; 
 
     // Delayed frames
     struct DelayedFrames : public boost::basic_lockable_adapter<boost::recursive_mutex> {
@@ -244,7 +244,7 @@ class Parser {
     vector<ParseFrame *> ProcessOneFrame(ParseFrame *pf, bool recursive);
 
     void SpawnProcessFrame
-      (ParseFrame *frame, bool recursive, WaitFreeQueue<ParseFrame *> *work_queue,
+      (ParseFrame *frame, bool recursive, LockFreeQueue<ParseFrame *> *work_queue,
        std::atomic<int> *inprogress);
 
     void ProcessFrames
