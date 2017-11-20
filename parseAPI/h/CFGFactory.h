@@ -71,41 +71,8 @@ class flist_iter {
         return (cur_ != iter.cur_);
     }
 };
-#if 0
-template <class T>
-class fact_list {
- public:
-    typedef flist_iter<T> iterator;
-    typedef const flist_iter<T> const_iterator;
-    typedef T elem;
 
-    fact_list() {
-        head.alloc_set_next(&head);
-        head.alloc_set_prev(&head);
-    }
 
-    ~fact_list() { }
-
-    void add(elem & new_elem) {
-        head.append(new_elem);
-    }
-    void add_tail(elem & new_elem) {
-        head.prepend(new_elem);
-    }
-    void clear() {
-        while(head.alloc_next() != &head)
-            head.alloc_next()->remove();
-    }
-    
-    // iterators
-    iterator begin() { return iterator(head.alloc_next()); }
-    iterator end() { return iterator(&head); }
-    const_iterator begin() const { return iterator(head.alloc_next()); }
-    const_iterator end() const { return iterator(&head); }
- private:
-    allocatable head;
-};
-#else
 template <class T>
 class fact_list {
 public:
@@ -130,7 +97,6 @@ private:
   LockFreeQueue<T> queue;
 };
 
-#endif
 
 /** An implementation of CFGFactory is responsible for allocation and
     deallocation of CFG objects like Blocks, Edges, and Functions.

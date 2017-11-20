@@ -94,7 +94,6 @@ Function *
 CFGFactory::_mkfunc(Address addr, FuncSource src, string name, 
     CodeObject * obj, CodeRegion * reg, Dyninst::InstructionSource * isrc)
 {
-  // boost::lock_guard<CFGFactory> g(*this);
    Function * ret = mkfunc(addr,src,name,obj,reg,isrc);
    funcs_.add(ret);
    ret->_src =  src;
@@ -114,8 +113,6 @@ CFGFactory::mkfunc(Address addr, FuncSource, string name,
 Block *
 CFGFactory::_mkblock(Function *  f , CodeRegion *r, Address addr)
 {
-  // boost::lock_guard<CFGFactory> g(*this);
-
    Block * ret = mkblock(f, r, addr);
    blocks_.add(ret);
    return ret;
@@ -131,8 +128,6 @@ CFGFactory::mkblock(Function *  f , CodeRegion *r, Address addr) {
 
 Block *
 CFGFactory::_mksink(CodeObject * obj, CodeRegion *r) {
-  // boost::lock_guard<CFGFactory> g(*this);
-
    Block * ret = mksink(obj,r);
    blocks_.add(ret);
    return ret;
@@ -146,8 +141,6 @@ CFGFactory::mksink(CodeObject * obj, CodeRegion *r) {
 
 Edge *
 CFGFactory::_mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
-  // boost::lock_guard<CFGFactory> g(*this);
-
     Edge * ret = mkedge(src,trg,type);
     edges_.add(ret);
     return ret;
