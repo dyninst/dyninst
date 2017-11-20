@@ -1043,7 +1043,8 @@ Offset emitElfStatic::layoutRegions(deque<Region *> &regions,
 bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &lmap) {
     char *newTargetData = lmap.allocatedData;
 
-#if defined(arch_x86) || defined(arch_x86_64)  || (defined(arch_power) && defined(arch_64bit))
+#if defined(arch_x86) || defined(arch_x86_64) || \
+    defined(arch_aarch64) || (defined(arch_power) && defined(arch_64bit))
     if( lmap.gotSize > 0 ) {
        buildGOT(target, lmap);
         target->addRegion(globalOffset + lmap.gotRegionOffset,

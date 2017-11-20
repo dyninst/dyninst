@@ -1804,6 +1804,9 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
         }
     }
 
+    // sort allSymbols in a way that every symmbol with index -1 are in order of offset 
+    std::sort(allDynSymbols.begin(), allDynSymbols.end(), sortByOffsetNewIndices());
+
     int max_index = -1;
     for (i = 0; i < allDynSymbols.size(); i++) {
         if (max_index < allDynSymbols[i]->getIndex())
@@ -1826,6 +1829,8 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
     // reorder allSymbols based on index
     std::sort(allDynSymbols.begin(), allDynSymbols.end(), sortByIndex());
 
+
+    std::sort(allSymSymbols.begin(), allSymSymbols.end(), sortByOffsetNewIndices());
     max_index = -1;
     for (i = 0; i < allSymSymbols.size(); i++) {
         if (max_index < allSymSymbols[i]->getIndex())
