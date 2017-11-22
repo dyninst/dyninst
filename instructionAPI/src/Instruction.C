@@ -76,9 +76,9 @@ namespace Dyninst
     INSTRUCTION_EXPORT Instruction::Instruction(Operation what,
 			     size_t size, const unsigned char* raw,
                              Dyninst::Architecture arch)
-      : m_InsnOp(what), m_Valid(true), arch_decoded_from(arch)
+      : m_InsnOp(what), m_Valid(true), arch_decoded_from(arch),
+        formatter(ArchSpecificFormatter::getFormatter(arch))
     {
-        formatter = ArchSpecificFormatter::getFormatter(arch);
         copyRaw(size, raw);
 
 #if defined(DEBUG_INSN_ALLOCATIONS)
@@ -122,7 +122,7 @@ namespace Dyninst
     }
     
     INSTRUCTION_EXPORT Instruction::Instruction() :
-      m_Valid(false), m_size(0), arch_decoded_from(Arch_none), formatter()
+      m_Valid(false), m_size(0), arch_decoded_from(Arch_none), formatter(ArchSpecificFormatter::getFormatter(Arch_x86_64))
     {
 #if defined(DEBUG_INSN_ALLOCATIONS)
         numInsnsAllocated++;
@@ -151,9 +151,13 @@ namespace Dyninst
     }
 
     INSTRUCTION_EXPORT Instruction::Instruction(const Instruction& o) :
-      arch_decoded_from(o.arch_decoded_from)
+      arch_decoded_from(o.arch_decoded_from),
+      m_Operands(o.m_Operands),
+      m_InsnOp(o.m_InsnOp),
+      m_Valid(o.m_Valid),
+      formatter(o.formatter)
+
     {
-        m_Operands = o.m_Operands;
       m_size = o.m_size;
       if(o.m_size > sizeof(m_RawInsn.small_insn))
       {
@@ -165,9 +169,6 @@ namespace Dyninst
 	m_RawInsn.small_insn = o.m_RawInsn.small_insn;
       }
 
-      m_InsnOp = o.m_InsnOp;
-      m_Valid = o.m_Valid;
-        formatter = o.formatter;
 
 #if defined(DEBUG_INSN_ALLOCATIONS)
       numInsnsAllocated++;
@@ -447,7 +448,7 @@ memAccessors.begin()));
         return m_Successors.front().target;
     }
 
-    INSTRUCTION_EXPORT boost::shared_ptr<ArchSpecificFormatter> Instruction::getFormatter() const {
+    INSTRUCTION_EXPORT ArchSpecificFormatter& Instruction::getFormatter() const {
         return formatter;
     }
 
@@ -459,8 +460,6 @@ memAccessors.begin()));
         }
 
         //remove this once ArchSpecificFormatter is extended for all architectures
-        if(formatter == NULL)
-            return "";
 
         std::string opstr = m_InsnOp.format();
         opstr += " ";
@@ -521,7 +520,7 @@ memAccessors.begin()));
         cout << endl;
 #endif // defined(DEBUG_READ_WRITE)
 
-        return opstr + formatter->getInstructionString(formattedOperands);
+        return opstr + formatter.getInstructionString(formattedOperands);
     }
 
     INSTRUCTION_EXPORT bool Instruction::allowsFallThrough() const

@@ -91,7 +91,7 @@ namespace Dyninst
 
     std::string RegisterAST::format(Architecture arch, formatStyle) const
     {
-        return ArchSpecificFormatter::getFormatter(arch)->formatRegister(m_Reg.name());
+        return ArchSpecificFormatter::getFormatter(arch).formatRegister(m_Reg.name());
     }
 
     std::string RegisterAST::format(formatStyle) const
