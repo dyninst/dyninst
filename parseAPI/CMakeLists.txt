@@ -156,7 +156,7 @@ endif()
 
 ADD_DEFINITIONS(-DPARSER_LIB)
 ADD_DEFINITIONS(-DDATAFLOW_LIB)
-
+INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR}/RAJA/include)
 if(WIN32)
 ADD_DEFINITIONS(-DROSE_UTIL_EXPORTS)
 ADD_DEFINITIONS(-DNOMINMAX)
@@ -165,7 +165,7 @@ SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX COMPILE_FLAGS ${
 dyninst_library(parseAPI common instructionAPI ${SYMREADER})
 add_dependencies(parseAPI RAJA)
 set(OPENMP_LIBRARIES gomp)
-target_link_private_libraries(parseAPI ${Boost_LIBRARIES} ${TBB_LIBRARIES} ${OPENMP_LIBRARIES})
+target_link_private_libraries(parseAPI ${Boost_LIBRARIES} ${TBB_LIBRARIES} tbbmalloc ${OPENMP_LIBRARIES})
 
 if (WIN32)
 target_link_private_libraries(parseAPI shlwapi)
