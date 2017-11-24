@@ -15,6 +15,8 @@ endif()
 
 
 set (SRC_LIST
+    src/mcs-lock.C
+    src/pfq-rwlock.C
     src/Ident.C
     src/string-regex.C 
     src/Timer.C 
