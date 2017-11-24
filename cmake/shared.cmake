@@ -97,6 +97,7 @@ include (${DYNINST_ROOT}/cmake/visibility.cmake)
 include (${DYNINST_ROOT}/cmake/warnings.cmake)
 include (${DYNINST_ROOT}/cmake/options.cmake)
 include (${DYNINST_ROOT}/cmake/optimization.cmake)
+include (${DYNINST_ROOT}/cmake/endian.cmake)
 
 # Check for cotire-gcc compatibility
 set(USE_COTIRE false)
