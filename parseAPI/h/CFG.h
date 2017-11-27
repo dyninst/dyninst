@@ -37,6 +37,7 @@
 #include <functional>
 #include <boost/iterator/transform_iterator.hpp>
 #include <boost/range.hpp>
+#include <boost/thread/lock_guard.hpp>
 #include "dyntypes.h"
 #include "IBSTree.h"
 
