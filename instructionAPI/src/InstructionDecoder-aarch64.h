@@ -59,7 +59,7 @@ namespace Dyninst {
 
             virtual void decodeOpcode(InstructionDecoder::buffer &b);
 
-            virtual Instruction::Ptr decode(InstructionDecoder::buffer &b);
+            virtual Instruction decode(InstructionDecoder::buffer &b);
 
             virtual void setMode(bool) { }
 
@@ -122,12 +122,14 @@ namespace Dyninst {
 #define    IS_INSN_SYSTEM(I)                (field<22, 31>(I) == 0x354)
 #define    IS_INSN_BRANCHING(I)            (IS_INSN_B_COND(I) || IS_INSN_B_UNCOND(I) || IS_INSN_B_UNCOND_REG(I) || IS_INSN_B_TEST(I)|| IS_INSN_B_COMPARE(I))
 
+#define IS_INSN_SIMD_3SAME(I)           (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xE && field<21, 21>(I) == 0x1 && field<10, 10>(I) == 0x1)
 #define IS_INSN_SIMD_3DIFF(I)           (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<21, 21>(I) == 0x1 && field<10, 11>(I) == 0x0)
+#define IS_INSN_SIMD_2REG_MISC(I)	(field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<17, 21>(I) == 0x10 && field<10, 11>(I) == 0x2)
 #define IS_INSN_SIMD_ACROSS(I)          (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xe && field<17, 21>(I) == 0x18 && field<10, 11>(I) == 0x2)
 #define IS_INSN_SIMD_COPY(I)            (field<31, 31>(I) == 0x0 && field<21, 28>(I) == 0x70 && field<15,15>(I) == 0x0 && field<10, 10>(I) == 0x1)
 #define IS_INSN_SIMD_VEC_INDEX(I)       (field<31, 31>(I) == 0x0 && field<24, 28>(I) == 0xf && field<10, 10>(I) == 0x0)
 #define IS_INSN_SIMD_MOD_IMM(I)         (field<31, 31>(I) == 0x0 && field<19, 28>(I) == 0x1e0 && field<10, 10>(I) == 0x1)
-#define IS_INSN_SIMD_SHIFT_IMM(I)       (field<31, 31>(I) == 0x0 && field<23, 28>(I) == 0x1e && field<19, 22>(I) != 0x0)
+#define IS_INSN_SIMD_SHIFT_IMM(I)       (field<31, 31>(I) == 0x0 && field<23, 28>(I) == 0x1e && field<19, 22>(I) != 0x0 && field<10, 10>(I) == 0x1)
 #define IS_INSN_SIMD_TAB_LOOKUP(I)      (field<31, 31>(I) == 0x0 && field<24, 29>(I) == 0xe && field<21, 21>(I) == 0x0 && field<15, 15>(I) == 0x0 && field<10, 11>(I) == 0x0)
 #define IS_INSN_SIMD_EXTR(I)            (field<31, 31>(I) == 0x0 && field<24, 29>(I) == 0x2e && field<21, 21>(I) == 0x0 && field<15, 15>(I) == 0x0 && field<10, 10>(I) == 0x0)
 #define IS_INSN_SCALAR_3SAME(I)         (field<30, 31>(I) == 0x1 && field<24, 28>(I) == 0x1e && field<21, 21>(I) == 0x1 && field<10, 10>(I) == 0x1)
@@ -137,6 +139,9 @@ namespace Dyninst {
 #define IS_INSN_SCALAR_COPY(I)          (field<30, 31>(I) == 0x1 && field<21, 28>(I) == 0xf0 && field<15, 15>(I) == 0x0 && field<10, 10>(I) == 0x1)
 #define IS_INSN_SCALAR_INDEX(I)         (field<30, 31>(I) == 0x1 && field<24, 28>(I) == 0x1f && field<10, 10>(I) == 0x0)
 #define IS_INSN_SCALAR_SHIFT_IMM(I)     (field<30, 31>(I) == 0x1 && field<23, 28>(I) == 0x3e && field<10, 10>(I) == 0x1)
+
+#define IS_INSN_CRYPT_3REG_SHA(I)       (field<24, 31>(I) == 0x5E && field<21, 21>(I) == 0 && field<15, 15>(I) == 0 && field<10, 11>(I) == 0)
+#define IS_INSN_CRYPT_2REG_SHA(I)       (field<24, 31>(I) == 0x5E && field<17, 21>(I) == 0x14 && field<10, 11>(I) == 0x2)
 
 #define    IS_FIELD_IMMR(S, E)                (S == 16 && E == 21)
 #define    IS_FIELD_IMMS(S, E)                (S == 10 && E == 15)
@@ -269,6 +274,8 @@ namespace Dyninst {
 
             bool fix_bitfieldinsn_alias(int, int);
 	    void fix_condinsn_alias_and_cond(int &);
+	    void modify_mnemonic_simd_upperhalf_insns();
+            bool pre_process_checks(aarch64_insn_entry *);
 
             MachRegister makeAarch64RegID(MachRegister, unsigned int);
 
@@ -480,7 +487,7 @@ namespace Dyninst {
 
             void OPRh();
 
-            void OPRopc() { }
+            void OPRopc();
 
             void OPRopcode() { }
 

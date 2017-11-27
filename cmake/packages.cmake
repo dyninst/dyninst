@@ -1,18 +1,22 @@
 if (UNIX)
+  find_package (LibDwarf)
   find_package (LibElf)
-  if(NOT LIBELF_FOUND)
-    message(STATUS "No libelf found, attempting to build as external project")
+  find_package(TBB REQUIRED)
+  if(NOT LIBELF_FOUND OR NOT LIBDWARF_FOUND)
+    message(STATUS "Attempting to build elfutils as external project")
     cmake_minimum_required (VERSION 2.8.11)
     include(ExternalProject)
     ExternalProject_Add(LibElf
-      PREFIX ${CMAKE_BINARY_DIR}/libelf
+      PREFIX ${CMAKE_BINARY_DIR}/elfutils
       URL https://sourceware.org/elfutils/ftp/0.168/elfutils-0.168.tar.bz2
-      CONFIGURE_COMMAND <SOURCE_DIR>/configure --enable-shared --prefix=${CMAKE_BINARY_DIR}/libelf
-      BUILD_COMMAND make -C libelf
-      INSTALL_COMMAND make -C libelf install
+      CONFIGURE_COMMAND CFLAGS=-g <SOURCE_DIR>/configure --enable-shared --prefix=${CMAKE_BINARY_DIR}/elfutils
+      BUILD_COMMAND make
+      INSTALL_COMMAND make install
       )
-    set(LIBELF_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libelf/include)
-    set(LIBELF_LIBRARIES ${CMAKE_BINARY_DIR}/libelf/lib/libelf.so)
+    set(LIBELF_INCLUDE_DIR ${CMAKE_BINARY_DIR}/elfutils/include)
+    set(LIBELF_LIBRARIES ${CMAKE_BINARY_DIR}/elfutils/lib/libelf.so)
+    set(LIBDWARF_INCLUDE_DIR ${CMAKE_BINARY_DIR}/elfutils/include)
+    set(LIBDWARF_LIBRARIES ${CMAKE_BINARY_DIR}/elfutils/lib/libdw.so)
     set(SHOULD_INSTALL_LIBELF 1)
   else()
     set(SHOULD_INSTALL_LIBELF 0)
@@ -25,37 +29,12 @@ if (UNIX)
     add_dependencies(libelf_imp LibElf)
   endif()
 
-  find_package (LibDwarf)
-
-  if(NOT LIBDWARF_FOUND)
-    message(STATUS "No libdwarf found, attempting to build as external project")
-    cmake_minimum_required (VERSION 2.8.11)
-    include(ExternalProject)
-    ExternalProject_Add(LibDwarf
-      PREFIX ${CMAKE_BINARY_DIR}/libdwarf
-      DEPENDS libelf_imp
-      #	URL http://reality.sgiweb.org/davea/libdwarf-20130126.tar.gz
-      #	URL http://sourceforge.net/p/libdwarf/code/ci/20130126/tarball
-      URL http://www.paradyn.org/libdwarf/libdwarf-20130126.tar.gz
-      #	GIT_REPOSITORY git://git.code.sf.net/p/libdwarf/code libdwarf-code
-      #	GIT_TAG 20130126
-      CONFIGURE_COMMAND CFLAGS=-I${LIBELF_INCLUDE_DIR} LDFLAGS=-L${CMAKE_BINARY_DIR}/libelf/lib <SOURCE_DIR>/libdwarf/configure --enable-shared
-      BUILD_COMMAND make
-      INSTALL_DIR ${CMAKE_BINARY_DIR}/libdwarf
-      INSTALL_COMMAND mkdir -p <INSTALL_DIR>/include && mkdir -p <INSTALL_DIR>/lib && install <SOURCE_DIR>/libdwarf/libdwarf.h <INSTALL_DIR>/include && install <SOURCE_DIR>/libdwarf/dwarf.h <INSTALL_DIR>/include && install <BINARY_DIR>/libdwarf.so <INSTALL_DIR>/lib
-      )
-    add_dependencies(LibDwarf libelf_imp)
-    set(LIBDWARF_INCLUDE_DIR ${CMAKE_BINARY_DIR}/libdwarf/include)
-    set(LIBDWARF_LIBRARIES ${CMAKE_BINARY_DIR}/libdwarf/lib/libdwarf.so)
-  else()
-    # Unfortunately, libdwarf doesn't always link to libelf itself.
-    # (e.g. https://bugzilla.redhat.com/show_bug.cgi?id=1061432)
-    set(LIBDWARF_LIBRARIES ${LIBDWARF_LIBRARIES} ${LIBELF_LIBRARIES})
-  endif()
-
   add_library(libdwarf_imp SHARED IMPORTED)
   set_property(TARGET libdwarf_imp 
     PROPERTY IMPORTED_LOCATION ${LIBDWARF_LIBRARIES})
+  if(NOT LIBDWARF_FOUND)
+    add_dependencies(libdwarf_imp LibDwarf)
+  endif()
 
   if (NOT USE_GNU_DEMANGLER)
     find_package (LibIberty)
@@ -66,19 +45,23 @@ if (UNIX)
       ExternalProject_Add(LibIberty
 	PREFIX ${CMAKE_BINARY_DIR}/binutils
 	URL http://ftp.gnu.org/gnu/binutils/binutils-2.23.tar.gz
-	CONFIGURE_COMMAND CFLAGS=-fPIC CPPFLAGS=-fPIC PICFLAG=-fPIC <SOURCE_DIR>/libiberty/configure --prefix=${CMAKE_BINARY_DIR}/libiberty --enable-shared
+	CONFIGURE_COMMAND env CFLAGS=${CMAKE_C_FLAGS}\ -fPIC CPPFLAGS=-fPIC PICFLAG=-fPIC <SOURCE_DIR>/libiberty/configure --prefix=${CMAKE_BINARY_DIR}/libiberty --enable-shared
 	BUILD_COMMAND make all
 	INSTALL_DIR ${CMAKE_BINARY_DIR}/libiberty
 	INSTALL_COMMAND install <BINARY_DIR>/libiberty.a <INSTALL_DIR>
 	)
       set(IBERTY_LIBRARIES ${CMAKE_BINARY_DIR}/libiberty/libiberty.a)
       set(IBERTY_FOUND TRUE)
+      set(IBERTY_BUILD TRUE)
     endif()
 
     message(STATUS "Using libiberty ${IBERTY_LIBRARIES}")
     add_library(libiberty_imp STATIC IMPORTED)
     set_property(TARGET libiberty_imp
       PROPERTY IMPORTED_LOCATION ${IBERTY_LIBRARIES})
+    if(IBERTY_BUILD)
+      add_dependencies(libiberty_imp LibIberty)
+    endif()
   endif()
 
   find_package (ThreadDB)
@@ -127,18 +110,20 @@ endif()
 if(DEFINED PATH_BOOST OR 
 	   DEFINED Boost_INCLUDE_DIR OR 
 	   DEFINED Boost_LIBRARY_DIR)
-  set(Boost_NO_SYSTEM_PATHS ON)
+#  set(Boost_NO_SYSTEM_PATHS ON)
 endif()
 
 
-find_package (Boost ${BOOST_MIN_VERSION} COMPONENTS thread system date_time)
-
+find_package (Boost ${BOOST_MIN_VERSION} COMPONENTS thread system date_time timer filesystem)
+find_library(PROFILER_LIBRARIES profiler /p/paradyn/packages/gperftools/lib)
 
 if(NOT Boost_FOUND)
   set (BOOST_ARGS
           --with-system
           --with-thread
           --with-date_time
+	  --with-filesystem
+	  --with-timer
           --ignore-site-config
           --link=static
           --runtime-link=shared
@@ -182,7 +167,7 @@ if(NOT Boost_FOUND)
     list(APPEND Boost_LIBRARIES optimized libboost_system-mt debug libboost_system-mt-gd)
     list(APPEND Boost_LIBRARIES optimized libboost_date_time-mt debug libboost_date_time-mt-gd)
   else()
-    set(Boost_LIBRARIES boost_thread boost_system boost_date_time)
+    set(Boost_LIBRARIES boost_thread boost_system boost_date_time boost_filesystem)
   endif()
 endif()
 
@@ -196,6 +181,8 @@ message(STATUS "Boost includes: ${Boost_INCLUDE_DIRS}")
 message(STATUS "Boost library dirs: ${Boost_LIBRARY_DIRS}")
 message(STATUS "Boost thread library: ${Boost_THREAD_LIBRARY}")
 message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
+find_package(Threads)
+set(Boost_LIBRARIES ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 include(${DYNINST_ROOT}/cmake/CheckCXX11Features.cmake)
 if(NOT HAS_CXX11_AUTO)
@@ -205,3 +192,7 @@ else()
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX11_COMPILER_FLAGS}")
+find_package(Cilk)
+if(CILK_FOUND)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CILK_DEFINITIONS}")
+endif()

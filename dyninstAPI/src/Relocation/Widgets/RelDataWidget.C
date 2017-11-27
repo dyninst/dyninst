@@ -41,9 +41,9 @@ using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
 
-RelDataWidget::Ptr RelDataWidget::create(Instruction::Ptr insn,
-					   Address addr,
-					   Address target) {
+RelDataWidget::Ptr RelDataWidget::create(Instruction insn,
+                                         Address addr,
+                                         Address target) {
   assert(addr);
   return Ptr(new RelDataWidget(insn, addr, target));
 }
@@ -62,9 +62,9 @@ bool RelDataWidget::generate(const codeGen &,
   // Fortunately, we can reuse old code to handle the
   // translation
 
-  // Find the original target of the instruction 
+  // Find the original target of the instruction
    
-  relocation_cerr << "  Generating a PC-relative data access (" << insn_->format()
+  relocation_cerr << "  Generating a PC-relative data access (" << insn_.format()
 		  << "," << std::hex << addr_ 
 		  <<"," << target_ << std::dec << ")" << endl;
 
@@ -76,17 +76,17 @@ bool RelDataWidget::generate(const codeGen &,
 
 string RelDataWidget::format() const {
   stringstream ret;
-  ret << "PCRel(" << insn_->format() << ")";
+  ret << "PCRel(" << insn_.format() << ")";
   return ret.str();
 }
 
 bool RelDataPatch::apply(codeGen &gen, CodeBuffer *) {
-  instruction ugly_insn(orig_insn->ptr());
+  instruction ugly_insn(orig_insn.ptr(), (gen.width() == 8));
   if (!insnCodeGen::modifyData(target_addr, ugly_insn, gen)) return false;
   return true;
 }
 
 unsigned RelDataPatch::estimate(codeGen &) {
    // Underestimate if possible
-   return orig_insn->size();
+   return orig_insn.size();
 }

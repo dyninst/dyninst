@@ -1,0 +1,11 @@
+##sha256h_advsimd_execute
+CheckCryptoEnabled64();
+
+bits(128) result;
+if part1 then
+    result = SHA256hash(V[d], V[n], V[m], TRUE);
+else
+    result = SHA256hash(V[n], V[d], V[m], FALSE);
+end
+V[d] = result;
+@@

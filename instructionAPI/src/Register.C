@@ -37,6 +37,7 @@
 #include "../../common/src/singleton_object_pool.h"
 #include "InstructionDecoder-power.h"
 #include "dyn_regs.h"
+#include "ArchSpecificFormatters.h"
 
 using namespace std;
 
@@ -88,6 +89,11 @@ namespace Dyninst
       return m_Reg;
     }
 
+    std::string RegisterAST::format(Architecture arch, formatStyle) const
+    {
+        return ArchSpecificFormatter::getFormatter(arch).formatRegister(m_Reg.name());
+    }
+
     std::string RegisterAST::format(formatStyle) const
     {
         std::string name = m_Reg.name();
@@ -101,11 +107,15 @@ namespace Dyninst
         std::transform(name.begin(), name.end(), name.begin(), ::toupper);
         return name;
     }
+      std::string MaskRegisterAST::format(Architecture, formatStyle f) const
+      {
+          return format(f);
+      }
 
     std::string MaskRegisterAST::format(formatStyle) const
     {
-		std::string name = m_Reg.name();
-		std::string::size_type substr = name.rfind(':');
+        std::string name = m_Reg.name();
+        std::string::size_type substr = name.rfind(':');
         if(substr != std::string::npos)
         {
             name = name.substr(substr + 1, name.length());
@@ -117,6 +127,8 @@ namespace Dyninst
 
         return ss.str();
     }
+
+     
 
     RegisterAST RegisterAST::makePC(Dyninst::Architecture arch)
     {

@@ -103,7 +103,6 @@ std::string print(const Dyninst::SymtabAPI::Statement& stmt)
 bool LineInformation::getSourceLines(Offset addressInRange,
                                      vector<Statement_t> &lines)
 {
-    ++num_queries;
     const_iterator start_addr_valid = project<Statement::addr_range>(get<Statement::upper_bound>().lower_bound(addressInRange ));
     const_iterator end_addr_valid = impl_t::upper_bound(addressInRange );
     while(start_addr_valid != end_addr_valid && start_addr_valid != end())
@@ -111,10 +110,6 @@ bool LineInformation::getSourceLines(Offset addressInRange,
         if(*(*start_addr_valid) == addressInRange)
         {
             lines.push_back(*start_addr_valid);
-        }
-        else
-        {
-            ++wasted_compares;
         }
         ++start_addr_valid;
     }
@@ -185,6 +180,7 @@ unsigned LineInformation::getSize() const
 
 LineInformation::~LineInformation() 
 {
+    impl_t::clear_();
 }
 
 LineInformation::const_line_info_iterator LineInformation::begin_by_source() const {

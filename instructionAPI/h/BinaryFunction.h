@@ -34,6 +34,7 @@
 #include "Expression.h"
 #include "Register.h"
 #include "Result.h"
+#include "ArchSpecificFormatters.h"
 #include <sstream>
 
 #if defined(_MSC_VER)
@@ -75,7 +76,7 @@ namespace Dyninst
 					typedef boost::shared_ptr<funcT> Ptr;
 	
 					private:
-						std::string m_name;
+                        std::string m_name;
 			};
       
       
@@ -343,20 +344,36 @@ namespace Dyninst
 				return m_arg1->isUsed(findMe) || m_arg2->isUsed(findMe) 
 									|| (*m_arg1 == *findMe) || (*m_arg2 == *findMe) || (*findMe == *this);
 			}
+
+            virtual std::string format(formatStyle how) const
+            {
+                std::stringstream retVal;
+                if(how == memoryAccessStyle)
+                {
+                    retVal << m_arg2->format() << "(" << m_arg1->format() << ")";
+                }
+                else
+                {
+                    retVal << m_arg1->format() << " " << m_funcPtr->format() << " " << m_arg2->format();
+                }
+
+                return retVal.str();
+            }
 			
-			virtual std::string format(formatStyle how) const
+			virtual std::string format(Architecture arch, formatStyle how) const
 			{
-				std::stringstream retVal;
-				if(how == memoryAccessStyle)
-				{
-					retVal << m_arg2->format() << "(" << m_arg1->format() << ")";
-				}
-				else
-				{
-					retVal << m_arg1->format() << " " << m_funcPtr->format() << " " << m_arg2->format();
-				}
-				
-				return retVal.str();
+                std::stringstream retVal;
+                if(how == memoryAccessStyle)
+                {
+                    retVal << m_arg2->format(arch) << "(" << m_arg1->format(arch) << ")";
+                }
+                else
+                {
+                    return ArchSpecificFormatter::getFormatter(arch).formatBinaryFunc(
+							m_arg1->format(arch), m_funcPtr->format(), m_arg2->format(arch));
+                }
+
+                return retVal.str();
 			}
    		    
    		    virtual bool bind(Expression* expr, const Result& value);

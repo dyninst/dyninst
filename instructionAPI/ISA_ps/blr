@@ -1,0 +1,6 @@
+##blr_execute
+bits(64) target = X[n];
+
+if branch_type == BranchType_CALL then X[30] = PC[] + 4;
+BranchTo(target, branch_type);
+@@

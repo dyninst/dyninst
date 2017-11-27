@@ -37,10 +37,9 @@
 
 #include "../rose/x86InstructionSemantics.h"
 #include "../rose/x86_64InstructionSemantics.h"
-#include "../rose/powerpcInstructionSemantics.h"
 
 #include "../rose/semantics/DispatcherARM64.h"
-
+#include "../rose/semantics/DispatcherPowerpc.h"
 
 using namespace Dyninst;
 using namespace DataflowAPI;
@@ -64,20 +63,34 @@ bool SymbolicExpansion::expandX86_64(SgAsmInstruction *rose_insn,
 }
 
 bool SymbolicExpansion::expandPPC32(SgAsmInstruction *rose_insn,
-                                    SymEvalPolicy &policy) {
+                                    BaseSemantics::RiscOperatorsPtr ops, 
+				    const std::string &insn_dump) {
     SgAsmPowerpcInstruction *insn = static_cast<SgAsmPowerpcInstruction *>(rose_insn);
 
-    PowerpcInstructionSemantics<SymEvalPolicy, Handle, 32> t(policy);
-    t.processInstruction(insn);
+    BaseSemantics::DispatcherPtr cpu = DispatcherPowerpc::instance(ops, 32);
+
+    try {
+        cpu->processInstruction(insn);
+    } catch (rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception &e) {
+        // fprintf(stderr, "Instruction processing threw exception for instruction: %s\n", insn_dump.c_str());
+    }
+
     return true;
 }
-
 bool SymbolicExpansion::expandPPC64(SgAsmInstruction *rose_insn,
-                                    SymEvalPolicy_64 &policy) {
+                                    BaseSemantics::RiscOperatorsPtr ops, 
+				    const std::string &insn_dump) {
     SgAsmPowerpcInstruction *insn = static_cast<SgAsmPowerpcInstruction *>(rose_insn);
 
-    PowerpcInstructionSemantics<SymEvalPolicy_64, Handle, 64> t(policy);
-    t.processInstruction(insn);
+    BaseSemantics::DispatcherPtr cpu = DispatcherPowerpc::instance(ops, 64);
+
+    try {
+        cpu->processInstruction(insn);
+    } catch (rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception &e) {
+//         fprintf(stderr, "Instruction processing threw exception for instruction: %s\n", insn_dump.c_str());
+//	 std::cerr << e << std::endl;
+    }
+
     return true;
 }
 

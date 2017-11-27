@@ -32,7 +32,7 @@
 
 #include "common/src/Types.h"
 
-#include "Operation.h"
+#include "Operation_impl.h"
 #include "common/src/arch-x86.h"
 #include "entryIDs.h"
 #include "common/src/Singleton.h"
@@ -57,8 +57,8 @@ namespace Dyninst
         return make_shared(singleton_object_pool<RegisterAST>::construct(regID, 0, regID.size() * 8));
     }
 
-    Operation::Operation(entryID id, const char* mnem, Architecture arch)
-          : mnemonic(mnem), operationID(id), doneOtherSetup(true), doneFlagsSetup(true), archDecodedFrom(arch), prefixID(prefix_none)
+    Operation_impl::Operation_impl(entryID id, Architecture arch)
+          : operationID(id), doneOtherSetup(true), doneFlagsSetup(true), archDecodedFrom(arch), prefixID(prefix_none)
     {
         switch(archDecodedFrom)
         {
@@ -72,7 +72,7 @@ namespace Dyninst
         }
     }
     
-    Operation::Operation(ia32_entry* e, ia32_prefixes* p, ia32_locations* l, Architecture arch) :
+    Operation_impl::Operation_impl(ia32_entry* e, ia32_prefixes* p, ia32_locations* l, Architecture arch) :
       doneOtherSetup(false), doneFlagsSetup(false), archDecodedFrom(arch), prefixID(prefix_none)
     
     {
@@ -139,7 +139,7 @@ namespace Dyninst
       }
     }
 
-    Operation::Operation(const Operation& o)
+    Operation_impl::Operation_impl(const Operation_impl& o)
     {
       otherRead = o.otherRead;
       otherWritten = o.otherWritten;
@@ -153,7 +153,7 @@ namespace Dyninst
       addrWidth = o.addrWidth;
       
     }
-    const Operation& Operation::operator=(const Operation& o)
+    const Operation_impl& Operation_impl::operator=(const Operation_impl& o)
     {
       otherRead = o.otherRead;
       otherWritten = o.otherWritten;
@@ -167,7 +167,7 @@ namespace Dyninst
       addrWidth = o.addrWidth;
       return *this;
     }
-    Operation::Operation()
+    Operation_impl::Operation_impl()
     {
       operationID = e_No_Entry;
       doneOtherSetup = false;
@@ -177,19 +177,19 @@ namespace Dyninst
       addrWidth = u64;
     }
     
-    const Operation::registerSet&  Operation::implicitReads() const
+    const Operation_impl::registerSet&  Operation_impl::implicitReads() const
     {
       SetUpNonOperandData(true);
       
       return otherRead;
     }
-    const Operation::registerSet&  Operation::implicitWrites() const
+    const Operation_impl::registerSet&  Operation_impl::implicitWrites() const
     {
       SetUpNonOperandData(true);
 
       return otherWritten;
     }
-    bool Operation::isRead(Expression::Ptr candidate) const
+    bool Operation_impl::isRead(Expression::Ptr candidate) const
     {
      
 	SetUpNonOperandData(candidate->isFlag());
@@ -214,18 +214,18 @@ namespace Dyninst
       }
       return false;
     }
-    const Operation::VCSet& Operation::getImplicitMemReads() const
+    const Operation_impl::VCSet& Operation_impl::getImplicitMemReads() const
     {
       SetUpNonOperandData(true);
       return otherEffAddrsRead;
     }
-    const Operation::VCSet& Operation::getImplicitMemWrites() const
+    const Operation_impl::VCSet& Operation_impl::getImplicitMemWrites() const
     {
       SetUpNonOperandData(true);
       return otherEffAddrsWritten;
     }
 
-    bool Operation::isWritten(Expression::Ptr candidate) const
+    bool Operation_impl::isWritten(Expression::Ptr candidate) const
     {
      
 	SetUpNonOperandData(candidate->isFlag());
@@ -251,7 +251,7 @@ namespace Dyninst
       return false;
     }
 	  
-    std::string Operation::format() const
+    std::string Operation_impl::format() const
     {
         if(mnemonic != "")
         {
@@ -275,12 +275,12 @@ namespace Dyninst
       return result;
     }
 
-    entryID Operation::getID() const
+    entryID Operation_impl::getID() const
     {
       return operationID;
     }
 
-    prefixEntryID Operation::getPrefixID() const
+    prefixEntryID Operation_impl::getPrefixID() const
     {
       return prefixID;
     }
@@ -373,20 +373,20 @@ namespace Dyninst
         nonOperandRegisterWrites[e_outsw] = si;
         
       }
-      Operation::registerSet thePC;
-      Operation::registerSet pcAndSP;
-      Operation::registerSet stackPointer;
-      Operation::VCSet stackPointerAsExpr;
-      Operation::registerSet framePointer;
-      Operation::registerSet spAndBP;
-      Operation::registerSet si;
-      Operation::registerSet di;
-      Operation::registerSet si_and_di;
-      dyn_hash_map<entryID, Operation::registerSet > nonOperandRegisterReads;
-      dyn_hash_map<entryID, Operation::registerSet > nonOperandRegisterWrites;
+      Operation_impl::registerSet thePC;
+      Operation_impl::registerSet pcAndSP;
+      Operation_impl::registerSet stackPointer;
+      Operation_impl::VCSet stackPointerAsExpr;
+      Operation_impl::registerSet framePointer;
+      Operation_impl::registerSet spAndBP;
+      Operation_impl::registerSet si;
+      Operation_impl::registerSet di;
+      Operation_impl::registerSet si_and_di;
+      dyn_hash_map<entryID, Operation_impl::registerSet > nonOperandRegisterReads;
+      dyn_hash_map<entryID, Operation_impl::registerSet > nonOperandRegisterWrites;
 
-      dyn_hash_map<entryID, Operation::VCSet > nonOperandMemoryReads;
-      dyn_hash_map<entryID, Operation::VCSet > nonOperandMemoryWrites;
+      dyn_hash_map<entryID, Operation_impl::VCSet > nonOperandMemoryReads;
+      dyn_hash_map<entryID, Operation_impl::VCSet > nonOperandMemoryWrites;
     };
     OperationMaps op_data_32(Arch_x86);
     OperationMaps op_data_64(Arch_x86_64);
@@ -402,8 +402,9 @@ namespace Dyninst
                 return op_data_32;
         }
     }
-    void Operation::SetUpNonOperandData(bool needFlags) const
+    void Operation_impl::SetUpNonOperandData(bool needFlags) const
     {
+        boost::lock_guard<const Operation_impl> g(*this);
         if(doneOtherSetup && doneFlagsSetup) return;
 #if defined(arch_x86) || defined(arch_x86_64)      
         dyn_hash_map<entryID, registerSet >::const_iterator foundRegs;

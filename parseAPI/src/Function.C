@@ -47,7 +47,7 @@
 #include "StackTamperVisitor.h"
 
 #include "common/src/dthread.h"
-
+#include <boost/thread/lock_guard.hpp>
 using namespace std;
 
 using namespace Dyninst;
@@ -133,7 +133,7 @@ Function::~Function()
 Function::blocklist
 Function::blocks()
 {
-
+    boost::lock_guard<Function> g(*this);
     if(!_cache_valid)
         finalize();
     return blocklist(blocks_begin(), blocks_end());
@@ -144,11 +144,7 @@ Function::blocks()
 Function::const_blocklist
 Function::blocks() const
 {
-  /*Function* mutable_this = const_cast<Function*>(this);
-  
-  if(!_cache_valid)
-    mutable_this->finalize();
-  */
+    boost::lock_guard<const Function> g(*this);
   assert(_cache_valid);
   
   return const_blocklist(blocks_begin(), blocks_end());
@@ -157,6 +153,7 @@ Function::blocks() const
 
 const Function::edgelist & 
 Function::callEdges() {
+    boost::lock_guard<Function> g(*this);
     if(!_cache_valid)
         finalize();
     return _call_edge_list; 
@@ -164,14 +161,16 @@ Function::callEdges() {
 
 Function::const_blocklist
 Function::returnBlocks() {
-  if (!_cache_valid) 
+    boost::lock_guard<Function> g(*this);
+  if (!_cache_valid)
     finalize();
   return const_blocklist(ret_begin(), ret_end());
 }
 
 Function::const_blocklist
 Function::exitBlocks() {
-  if (!_cache_valid) 
+    boost::lock_guard<Function> g(*this);
+  if (!_cache_valid)
     finalize();
   return const_blocklist(exit_begin(), exit_end());
   
@@ -180,6 +179,7 @@ Function::exitBlocks() {
 
 Function::const_blocklist
 Function::exitBlocks() const {
+    boost::lock_guard<const Function> g(*this);
     assert(_cache_valid);
     return const_blocklist(exit_begin(), exit_end());
 
@@ -188,6 +188,7 @@ Function::exitBlocks() const {
 vector<FuncExtent *> const&
 Function::extents()
 {
+    boost::lock_guard<Function> g(*this);
     if(!_cache_valid)
         finalize(); 
     return _extents;
@@ -196,6 +197,7 @@ Function::extents()
 void
 Function::finalize()
 {
+    boost::lock_guard<Function> g(*this);
   _extents.clear();
   _exitBL.clear();
 
@@ -215,6 +217,7 @@ Function::finalize()
 Function::blocklist
 Function::blocks_int()
 {
+    boost::lock_guard<Function> g(*this);
     if(_cache_valid || !_entry)
       return blocklist(blocks_begin(), blocks_end());
 
@@ -247,6 +250,7 @@ Function::blocks_int()
 	bool exit_func = false;
         bool found_call = false;
         bool found_call_ft = false;
+        boost::lock_guard<Block> g(*cur);
 
 	if (cur->targets().empty()) exit_func = true;
 	for (auto eit = cur->targets().begin(); eit != cur->targets().end(); ++eit) {
@@ -391,15 +395,21 @@ Function::blocks_int()
 void
 Function::delayed_link_return(CodeObject * o, Block * retblk)
 {
+    boost::lock_guard<Function> g(*this);
     bool link_entry = false;
-
+    Block::edgelist::const_iterator eit;
     dyn_hash_map<Address,bool> linked;
-    Block::edgelist::const_iterator eit = retblk->targets().begin();
-    for( ; eit != retblk->targets().end(); ++eit) {
-        Edge * e = *eit;
-        linked[e->trg()->start()] = true;
+    {
+        boost::lock_guard<Block> g(*retblk);
+        eit = retblk->targets().begin();
+        for( ; eit != retblk->targets().end(); ++eit) {
+            Edge * e = *eit;
+            linked[e->trg()->start()] = true;
+        }
+
     }
 
+    boost::lock_guard<Block> g2(*_entry);
     eit = _entry->sources().begin();
     for( ; eit != _entry->sources().end(); ++eit) {
         Edge * e = *eit;
@@ -432,6 +442,7 @@ Function::delayed_link_return(CodeObject * o, Block * retblk)
 void
 Function::add_block(Block *b)
 {
+    boost::lock_guard<Function> g(*this);
   ++b->_func_cnt;            // block counts references
   _bmap[b->start()] = b;
 }
@@ -445,6 +456,7 @@ Function::name() const
 bool
 Function::contains(Block *b)
 {
+    boost::lock_guard<Function> g(*this);
     if (b == NULL) return false;
     if(!_cache_valid)
         finalize();
@@ -452,8 +464,18 @@ Function::contains(Block *b)
     return HASHDEF(_bmap,b->start());
 }
 
+bool
+Function::contains(Block *b) const
+{
+    boost::lock_guard<const Function> g(*this);
+    if (b == NULL) return false;
+    return HASHDEF(_bmap,b->start());
+}
+
+
 void Function::setEntryBlock(Block *new_entry)
 {
+    boost::lock_guard<Function> g(*this);
     obj()->parser->move_func(this, new_entry->start(), new_entry->region());
     _region = new_entry->region();
     _start = new_entry->start();
@@ -462,6 +484,7 @@ void Function::setEntryBlock(Block *new_entry)
 
 void Function::set_retstatus(FuncReturnStatus rs) 
 {
+    boost::lock_guard<Function> g(*this);
     // If we are changing the return status, update prev counter
     if (_rs != UNSET) {
         if (_rs == NORETURN) {
@@ -487,6 +510,7 @@ void Function::set_retstatus(FuncReturnStatus rs)
 void 
 Function::removeBlock(Block* dead)
 {
+    boost::lock_guard<Function> g(*this);
     _cache_valid = false;
     // specify replacement entry prior to deleting entry block, unless 
     // deleting all blocks
@@ -498,6 +522,7 @@ Function::removeBlock(Block* dead)
     }
 
     // remove dead block from _retBL and _call_edge_list
+    boost::lock_guard<Block> g2(*dead);
     const Block::edgelist & outs = dead->targets();
     for (Block::edgelist::const_iterator oit = outs.begin();
          outs.end() != oit; 
@@ -536,6 +561,7 @@ class ST_Predicates : public Slicer::Predicates {};
 StackTamper 
 Function::tampersStack(bool recalculate)
 {
+    boost::lock_guard<Function> g(*this);
     using namespace SymbolicEvaluation;
     using namespace InstructionAPI;
 
@@ -570,7 +596,7 @@ Function::tampersStack(bool recalculate)
         InstructionDecoder retdec(this->isrc()->getPtrToInstruction(retnAddr), 
                                   InstructionDecoder::maxInstructionLength, 
                                   this->region()->getArch() );
-        Instruction::Ptr retn = retdec.decode();
+        Instruction retn = retdec.decode();
         converter.convert(retn, retnAddr, this, *bit, assgns);
         vector<Assignment::Ptr>::iterator ait;
         AST::Ptr sliceAtRet;
@@ -659,6 +685,7 @@ void Function::destroy(Function *f) {
 }
 
 LoopTreeNode* Function::getLoopTree() const{
+    boost::lock_guard<const Function> g(*this);
   if (_loop_root == NULL) {
       LoopAnalyzer la(this);
       la.createLoopHierarchy();
@@ -672,6 +699,7 @@ LoopTreeNode* Function::getLoopTree() const{
 void Function::getLoopsByNestingLevel(vector<Loop*>& lbb,
                                               bool outerMostOnly) const
 {
+    boost::lock_guard<const Function> g(*this);
   if (_loop_analyzed == false) {
       LoopAnalyzer la(this);
       la.analyzeLoops();
@@ -694,6 +722,7 @@ void Function::getLoopsByNestingLevel(vector<Loop*>& lbb,
 bool
 Function::getLoops(vector<Loop*>& lbb) const
 {
+    boost::lock_guard<const Function> g(*this);
   getLoopsByNestingLevel(lbb, false);
   return true;
 }
@@ -702,12 +731,14 @@ Function::getLoops(vector<Loop*>& lbb) const
 bool
 Function::getOuterLoops(vector<Loop*>& lbb) const
 {
+    boost::lock_guard<const Function> g(*this);
   getLoopsByNestingLevel(lbb, true);
   return true;
 }
 
 Loop *Function::findLoop(const char *name) const
 {
+    boost::lock_guard<const Function> g(*this);
   return getLoopTree()->findLoop(name);
 }
 
@@ -721,6 +752,7 @@ Loop *Function::findLoop(const char *name) const
 //be called to process dominator related fields and methods.
 void Function::fillDominatorInfo() const
 {
+    boost::lock_guard<const Function> g(*this);
     if (!isDominatorInfoReady) {
         dominatorCFG domcfg(this);
 	domcfg.calcDominators();
@@ -730,6 +762,7 @@ void Function::fillDominatorInfo() const
 
 void Function::fillPostDominatorInfo() const
 {
+    boost::lock_guard<const Function> g(*this);
     if (!isPostDominatorInfoReady) {
         dominatorCFG domcfg(this);
 	domcfg.calcPostDominators();
@@ -738,6 +771,7 @@ void Function::fillPostDominatorInfo() const
 }
 
 bool Function::dominates(Block* A, Block *B) const {
+    boost::lock_guard<const Function> g(*this);
     if (A == NULL || B == NULL) return false;
     if (A == B) return true;
 
@@ -751,17 +785,20 @@ bool Function::dominates(Block* A, Block *B) const {
 }
         
 Block* Function::getImmediateDominator(Block *A) const {
+    boost::lock_guard<const Function> g(*this);
     fillDominatorInfo();
     return immediateDominator[A];
 }
 
 void Function::getImmediateDominates(Block *A, set<Block*> &imd) const {
+    boost::lock_guard<const Function> g(*this);
     fillDominatorInfo();
     if (immediateDominates[A] != NULL)
         imd.insert(immediateDominates[A]->begin(), immediateDominates[A]->end());
 }
 
 void Function::getAllDominates(Block *A, set<Block*> &d) const {
+    boost::lock_guard<const Function> g(*this);
     fillDominatorInfo();
     d.insert(A);
     if (immediateDominates[A] == NULL) return;
@@ -771,6 +808,7 @@ void Function::getAllDominates(Block *A, set<Block*> &d) const {
 }
 
 bool Function::postDominates(Block* A, Block *B) const {
+    boost::lock_guard<const Function> g(*this);
     if (A == NULL || B == NULL) return false;
     if (A == B) return true;
 
@@ -784,17 +822,20 @@ bool Function::postDominates(Block* A, Block *B) const {
 }
         
 Block* Function::getImmediatePostDominator(Block *A) const {
+    boost::lock_guard<const Function> g(*this);
     fillPostDominatorInfo();
     return immediatePostDominator[A];
 }
 
 void Function::getImmediatePostDominates(Block *A, set<Block*> &imd) const {
+    boost::lock_guard<const Function> g(*this);
     fillPostDominatorInfo();
     if (immediatePostDominates[A] != NULL)
         imd.insert(immediatePostDominates[A]->begin(), immediatePostDominates[A]->end());
 }
 
 void Function::getAllPostDominates(Block *A, set<Block*> &d) const {
+    boost::lock_guard<const Function> g(*this);
     fillPostDominatorInfo();
     d.insert(A);
     if (immediatePostDominates[A] == NULL) return;

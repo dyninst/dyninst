@@ -42,6 +42,7 @@
 
 #include "Type-mem.h"
 #include <iostream>
+#include <tbb/concurrent_hash_map.h>
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -58,7 +59,7 @@ typeId_t Type::USER_TYPE_ID = -10000;
 
 namespace Dyninst {
   namespace SymtabAPI {
-    std::map<void *, size_t> type_memory;
+    tbb::concurrent_hash_map<void *, size_t> type_memory;
   }
 }
 
@@ -105,7 +106,8 @@ Type *Type::createPlaceholder(typeId_t ID, std::string name)
 
   void *mem = malloc(max_size);
   assert(mem);
-  type_memory[mem] = max_size;
+    tbb::concurrent_hash_map<void*, size_t>::accessor a;
+  type_memory.insert(a, make_pair(mem, max_size));
   
   Type *placeholder_type = new(mem) Type(name, ID, dataUnknownType);
   return placeholder_type;
@@ -318,7 +320,7 @@ typeEnum::typeEnum(std::string name)
    size_ = sizeof(int);
 }
 
-typeEnum *typeEnum::create(std::string &name, std::vector< std::pair<std::string, int> *> &constants, Symtab *obj)
+typeEnum *typeEnum::create(std::string &name, tbb::concurrent_vector< std::pair<std::string, int> *> &constants, Symtab *obj)
 {
    typeEnum *typ = new typeEnum(name);
    for(unsigned i=0; i<constants.size();i++)
@@ -331,7 +333,7 @@ typeEnum *typeEnum::create(std::string &name, std::vector< std::pair<std::string
     return typ;	
 }
 
-typeEnum *typeEnum::create(std::string &name, std::vector<std::string> &constNames, Symtab *obj)
+typeEnum *typeEnum::create(std::string &name, tbb::concurrent_vector<std::string> &constNames, Symtab *obj)
 {
    typeEnum *typ = new typeEnum(name);
    for(unsigned i=0; i<constNames.size();i++)
@@ -343,7 +345,7 @@ typeEnum *typeEnum::create(std::string &name, std::vector<std::string> &constNam
     return typ;	
 }	
 
-std::vector<std::pair<std::string, int> > &typeEnum::getConstants()
+tbb::concurrent_vector<std::pair<std::string, int> > &typeEnum::getConstants()
 {
    return consts;
 }
@@ -369,8 +371,8 @@ bool typeEnum::isCompatible(Type *otype)
    if ( (name_ != "") &&( oEnumtype->name_ != "") && (name_ == oEnumtype->name_) && (ID_ == oEnumtype->ID_))
       return true;
    
-   const std::vector< std::pair<std::string, int> > &fields1 = this->getConstants();
-   const std::vector< std::pair<std::string, int> > &fields2 = oEnumtype->getConstants();
+   const tbb::concurrent_vector< std::pair<std::string, int> > &fields1 = this->getConstants();
+   const tbb::concurrent_vector< std::pair<std::string, int> > &fields2 = oEnumtype->getConstants();
    
    if ( fields1.size() != fields2.size()) 
    {
@@ -505,7 +507,7 @@ typeFunction::typeFunction(Type *retType, std::string name) :
      retType->incrRefCount();
 }
 
-typeFunction *typeFunction::create(std::string &name, Type *retType, std::vector<Type *> &paramTypes, Symtab *obj)
+typeFunction *typeFunction::create(std::string &name, Type *retType, tbb::concurrent_vector<Type *> &paramTypes, Symtab *obj)
 {
     typeFunction *type = new typeFunction(retType, name);
     for(unsigned i=0;i<paramTypes.size();i++)
@@ -535,7 +537,7 @@ bool typeFunction::addParam(Type *paramType){
     return true;
 }
 
-std::vector<Type *> &typeFunction::getParams(){
+tbb::concurrent_vector<Type *> &typeFunction::getParams(){
     return params_;
 }
 
@@ -553,9 +555,9 @@ bool typeFunction::isCompatible(Type *otype) {
    if (retType_ != oFunctiontype->retType_)
       return false;
 
-   std::vector<Type *> fields1 = this->getParams();
-   std::vector<Type *> fields2 = oFunctiontype->getParams();
-   //const std::vector<Field *> * fields2 = (std::vector<Field *> *) &(otype->fieldList);
+   tbb::concurrent_vector<Type *> fields1 = this->getParams();
+   tbb::concurrent_vector<Type *> fields2 = oFunctiontype->getParams();
+   //const tbb::concurrent_vector<Field *> * fields2 = (tbb::concurrent_vector<Field *> *) &(otype->fieldList);
    
    if (fields1.size() != fields2.size()) {
       //reportError(BPatchWarning, 112, 
@@ -819,7 +821,7 @@ typeStruct::typeStruct(std::string name)  :
 {
 }
 
-typeStruct *typeStruct::create(std::string &name, std::vector< std::pair<std::string, Type *> *> &flds,
+typeStruct *typeStruct::create(std::string &name, tbb::concurrent_vector< std::pair<std::string, Type *> *> &flds,
                                                                 Symtab *obj)
 {
    int offset = 0;
@@ -838,7 +840,7 @@ typeStruct *typeStruct::create(std::string &name, std::vector< std::pair<std::st
    return typ;	
 }
 
-typeStruct *typeStruct::create(std::string &name, std::vector<Field *> &flds, Symtab *obj)
+typeStruct *typeStruct::create(std::string &name, tbb::concurrent_vector<Field *> &flds, Symtab *obj)
 {
    typeStruct *typ = new typeStruct(name);
    for(unsigned i=0;i<flds.size();i++)
@@ -869,7 +871,7 @@ void typeStruct::merge(Type *other) {
    fieldList = otherstruct->fieldList;
 
    if (otherstruct->derivedFieldList) {
-      derivedFieldList = new std::vector<Field *>;
+       derivedFieldList = new tbb::concurrent_vector<Field*>;
       *derivedFieldList = *otherstruct->derivedFieldList;
    }
 }
@@ -912,9 +914,9 @@ bool typeStruct::isCompatible(Type *otype)
    if (oStructtype == NULL)
       return false;
 
-   const std::vector<Field *> * fields1 = this->getComponents();
-   const std::vector<Field *> * fields2 = oStructtype->getComponents();
-   //const std::vector<Field *> * fields2 = (std::vector<Field *> *) &(otype->fieldList);
+   const tbb::concurrent_vector<Field *> * fields1 = this->getComponents();
+   const tbb::concurrent_vector<Field *> * fields2 = oStructtype->getComponents();
+   //const tbb::concurrent_vector<Field *> * fields2 = (tbb::concurrent_vector<Field *> *) &(otype->fieldList);
    
    if (fields1->size() != fields2->size()) {
       //reportError(BPatchWarning, 112, 
@@ -959,7 +961,7 @@ typeUnion::typeUnion(std::string name)  :
 {
 }
 
-typeUnion *typeUnion::create(std::string &name, std::vector< std::pair<std::string, Type *> *> &flds,
+typeUnion *typeUnion::create(std::string &name, tbb::concurrent_vector< std::pair<std::string, Type *> *> &flds,
                                                                 Symtab *obj)
 {
    typeUnion *typ = new typeUnion(name);
@@ -973,7 +975,7 @@ typeUnion *typeUnion::create(std::string &name, std::vector< std::pair<std::stri
    return typ;	
 }
 
-typeUnion *typeUnion::create(std::string &name, std::vector<Field *> &flds, Symtab *obj)
+typeUnion *typeUnion::create(std::string &name, tbb::concurrent_vector<Field *> &flds, Symtab *obj)
 {
    typeUnion *typ = new typeUnion(name);
    for(unsigned i=0;i<flds.size();i++)
@@ -1004,7 +1006,7 @@ void typeUnion::merge(Type *other) {
    fieldList = otherunion->fieldList;
 
    if (otherunion->derivedFieldList) {
-      derivedFieldList = new std::vector<Field *>;
+      derivedFieldList = new tbb::concurrent_vector<Field*>;
       *derivedFieldList = *otherunion->derivedFieldList;
    }
 }
@@ -1047,9 +1049,9 @@ bool typeUnion::isCompatible(Type *otype) {
    if (oUniontype == NULL)
       return false;
 
-   const std::vector<Field *> * fields1 = this->getComponents();
-   const std::vector<Field *> * fields2 = oUniontype->getComponents();
-   //const std::vector<Field *> * fields2 = (std::vector<Field *> *) &(otype->fieldList);
+   const tbb::concurrent_vector<Field *> * fields1 = this->getComponents();
+   const tbb::concurrent_vector<Field *> * fields2 = oUniontype->getComponents();
+   //const tbb::concurrent_vector<Field *> * fields2 = (tbb::concurrent_vector<Field *> *) &(otype->fieldList);
    
    if (fields1->size() != fields2->size()) {
       //reportError(BPatchWarning, 112, 
@@ -1170,10 +1172,7 @@ typeCommon::typeCommon(std::string name) :
 
 void typeCommon::beginCommonBlock() 
 {
-    std::vector<Field*> emptyList;
-
-    // null out field list
-    fieldList = emptyList;
+    fieldList.clear();
 }
 
 void typeCommon::endCommonBlock(Symbol *func, void *baseAddr) 
@@ -1230,9 +1229,9 @@ void typeCommon::fixupUnknowns(Module *module) {
       cblocks[i]->fixupUnknowns(module);   
 }
 
-std::vector<CBlock *> *typeCommon::getCblocks() const 
+tbb::concurrent_vector<CBlock *> *typeCommon::getCblocks() const 
 {
-	return const_cast<std::vector<CBlock*>*>(&cblocks); 
+	return const_cast<tbb::concurrent_vector<CBlock*>*>(&cblocks); 
 }
 
 /*
@@ -1435,16 +1434,16 @@ bool fieldListType::operator==(const Type &otype) const
    }
 }
 
-std::vector<Field *> * fieldListType::getComponents() const 
+tbb::concurrent_vector<Field *> * fieldListType::getComponents() const 
 {
    if (derivedFieldList == NULL)
        const_cast<fieldListType *>(this)->fixupComponents();
    return derivedFieldList;
 }
 
-std::vector<Field *> *fieldListType::getFields() const 
+tbb::concurrent_vector<Field *> *fieldListType::getFields() const 
 {
-   return const_cast<std::vector<Field *> *>(&fieldList);
+   return const_cast<tbb::concurrent_vector<Field *> *>(&fieldList);
 }
 
 void fieldListType::fixupComponents() 
@@ -1452,7 +1451,7 @@ void fieldListType::fixupComponents()
    // bperr "Getting the %d components of '%s' at 0x%x\n", fieldList.size(), getName(), this );
    /* Iterate over the field list.  Recursively (replace)
       '{superclass}' with the superclass's non-private fields. */
-   derivedFieldList = new std::vector< Field * >();
+   derivedFieldList = new tbb::concurrent_vector< Field * >();
    for( unsigned int i = 0; i < fieldList.size(); i++ ) {
       Field * currentField = fieldList[i];
       // bperr( "Considering field '%s'\n", currentField->getName() );
@@ -1463,7 +1462,7 @@ void fieldListType::fixupComponents()
          // bperr( "Found superclass '%s'...\n", currentField->getType()->getName() );
          fieldListInterface *superclass = dynamic_cast<fieldListInterface *>(currentField->getType());
          assert (superclass != NULL);
-         const std::vector<Field *> * superClassFields = superclass->getComponents();
+         const tbb::concurrent_vector<Field *> * superClassFields = superclass->getComponents();
          // bperr( "Superclass has %d components.\n", superClassFields->size() );
          /* FIXME: do we also need to consider the visibility of the superclass itself? */
          /* FIXME: visibility can also be described on a per-name basis in the
@@ -1520,7 +1519,11 @@ void fieldListType::addField(unsigned num, std::string fieldname, Type *type, in
   if(num >fieldList.size()+1)
   	num = fieldList.size();
   // Add field to list of struct/union fields
-  fieldList.insert(fieldList.begin()+num, newField);
+    tbb::concurrent_vector<Field*> newFieldList;
+    std::copy(fieldList.begin(), fieldList.begin() + num, back_inserter(newFieldList));
+    newFieldList.push_back(newField);
+    std::copy(fieldList.begin() + num, fieldList.end(), back_inserter(newFieldList));
+    std::swap(fieldList, newFieldList);
 
   // API defined structs/union's size are defined on the fly.
   postFieldInsert(type->getSize());
@@ -1533,7 +1536,11 @@ void fieldListType::addField(unsigned num, Field *fld)
   if(num >fieldList.size()+1)
   	num = fieldList.size();
   // Add field to list of struct/union fields
-  fieldList.insert(fieldList.begin()+num, newField);
+    tbb::concurrent_vector<Field*> newFieldList;
+    std::copy(fieldList.begin(), fieldList.begin() + num, back_inserter(newFieldList));
+    newFieldList.push_back(newField);
+    std::copy(fieldList.begin() + num, fieldList.end(), back_inserter(newFieldList));
+    std::swap(fieldList, newFieldList);
 
   // API defined structs/union's size are defined on the fly.
   postFieldInsert(newField->getSize());
@@ -1772,12 +1779,12 @@ void CBlock::fixupUnknowns(Module *module)
 	}
 }
 
-std::vector<Field *> *CBlock::getComponents()
+tbb::concurrent_vector<Field *> *CBlock::getComponents()
 {
   return &fieldList;
 }
 
-std::vector<Symbol *> *CBlock::getFunctions()
+tbb::concurrent_vector<Symbol *> *CBlock::getFunctions()
 {
   return &functions;
 }
@@ -1908,7 +1915,7 @@ void typeFunction::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerE
 	int t_id = retType_ ? retType_->getID() : 0xdeadbeef;
 	int t_dc = (int) (retType_ ? retType_->getDataClass() : dataUnknownType);
 
-	std::vector<std::pair<int, int> > ptypes;
+	tbb::concurrent_vector<std::pair<int, int> > ptypes;
 	for (unsigned int i = 0; i < params_.size(); ++i)
 		ptypes.push_back(std::pair<int, int>(params_[i]->getID(), params_[i]->getDataClass()));
 
@@ -2018,7 +2025,7 @@ void fieldListType::serialize_fieldlist(SerializerBase *sb, const char *tag) THR
 	   //  TODO:  this dereference should work transparently
 	   // without requiring a manual realloc here
 	   if (sb->isInput())
-		   derivedFieldList = new std::vector<Field *>();
+		   derivedFieldList = new tbb::concurrent_vector<Field *>();
 	   gtranslate(sb, *derivedFieldList, "derivedFieldList");
    }
    ifxml_end_element(sb, tag);
@@ -2073,7 +2080,7 @@ Serializable *Field::serialize_impl(SerializerBase *sb, const char *tag) THROW_S
 
 Serializable * CBlock::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
 {
-	std::vector<Offset> f_offsets;
+	tbb::concurrent_vector<Offset> f_offsets;
 	for (unsigned int i = 0; i < functions.size(); ++i)
 		f_offsets.push_back(functions[i]->getOffset());
 

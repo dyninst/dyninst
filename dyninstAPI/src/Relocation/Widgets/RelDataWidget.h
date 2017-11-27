@@ -47,22 +47,22 @@ class RelDataWidget : public Widget {
 
    TrackerElement *tracker(const RelocBlock *t) const;
   
-   static Ptr create(InstructionAPI::Instruction::Ptr insn,
-		     Address addr,
-		     Address target);
+   static Ptr create(InstructionAPI::Instruction insn,
+                     Address addr,
+                     Address target);
 
    virtual ~RelDataWidget() {};
 
    virtual std::string format() const;
-   virtual unsigned size() const { return insn_->size(); }
+   virtual unsigned size() const { return insn_.size(); }
    virtual Address addr() const { return addr_; }
 
  private:
-   RelDataWidget(InstructionAPI::Instruction::Ptr insn,
-	       Address addr,
-	       Address target) : insn_(insn), addr_(addr), target_(target) {};
+   RelDataWidget(InstructionAPI::Instruction insn,
+				 Address addr,
+				 Address target) : insn_(insn), addr_(addr), target_(target) {};
 
-   InstructionAPI::Instruction::Ptr insn_;
+   InstructionAPI::Instruction insn_;
    Address addr_;
    Address target_;
    // Read vs. write doesn't matter now but might
@@ -71,14 +71,14 @@ class RelDataWidget : public Widget {
 
 
 struct RelDataPatch : public Patch {
-  RelDataPatch(InstructionAPI::Instruction::Ptr a, Address b, Address o) :
+  RelDataPatch(InstructionAPI::Instruction a, Address b, Address o) :
    orig_insn(a), target_addr(b), orig(o) {};
   
   virtual bool apply(codeGen &gen, CodeBuffer *buffer);
   virtual unsigned estimate(codeGen &templ);
   virtual ~RelDataPatch() {};
   
-  InstructionAPI::Instruction::Ptr orig_insn;
+  InstructionAPI::Instruction orig_insn;
   Address target_addr;
   Address orig;
 };

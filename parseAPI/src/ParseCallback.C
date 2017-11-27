@@ -186,6 +186,7 @@ void ParseCallbackManager::overlapping_blocks(Block *a, Block *b) {
 };
 
 void ParseCallbackManager::newfunction_retstatus(Function *f) {
+   boost::lock_guard <Function> g(*f);
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->newfunction_retstatus(f);
 };
@@ -229,6 +230,11 @@ void ParseCallbackManager::foundWeirdInsns(Function *f) {
 void ParseCallbackManager::split_block_cb(Block *a, Block *b) {
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->split_block_cb(a, b);
+};
+
+void ParseCallbackManager::discover_function(Function* f) {
+   for (iterator iter = begin(); iter != end(); ++iter)
+      (*iter)->function_discovery_cb(f);
 };
 
 void ParseCallbackManager::destroy_cb(Block *b) {

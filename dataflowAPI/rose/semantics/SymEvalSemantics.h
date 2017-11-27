@@ -52,7 +52,7 @@ namespace rose {
 
                 public:
                     virtual BaseSemantics::SValuePtr undefined_(size_t nbits) const {
-                        return SValuePtr(new SValue(Dyninst::DataflowAPI::BottomAST::create(false)));
+                        return SValuePtr(new SValue(32, nbits));
                     }
 
                     virtual BaseSemantics::SValuePtr unspecified_(size_t nbits) const {
@@ -120,17 +120,20 @@ namespace rose {
                 /*                                          Register State                                         */
                 /***************************************************************************************************/
 
-                typedef boost::shared_ptr<class RegisterStateARM64> RegisterStateARM64Ptr;
+                typedef boost::shared_ptr<class RegisterStateAST> RegisterStateASTPtr;
+                typedef boost::shared_ptr<class RegisterStateASTARM64> RegisterStateASTARM64Ptr;
+                typedef boost::shared_ptr<class RegisterStateASTPPC32> RegisterStateASTPPC32Ptr;
+                typedef boost::shared_ptr<class RegisterStateASTPPC64> RegisterStateASTPPC64Ptr;
 
-                class RegisterStateARM64 : public BaseSemantics::RegisterState {
+                class RegisterStateAST : public BaseSemantics::RegisterState {
                 public:
-                    RegisterStateARM64(const BaseSemantics::SValuePtr &protoval,
-                                       const RegisterDictionary *regdict) : RegisterState(protoval, regdict) { }
+                    RegisterStateAST(const BaseSemantics::SValuePtr &protoval,
+                                     const RegisterDictionary *regdict) : RegisterState(protoval, regdict) { }
 
                 public:
-                    static RegisterStateARM64Ptr instance(const BaseSemantics::SValuePtr &protoval,
+                    static RegisterStateASTPtr instance(const BaseSemantics::SValuePtr &protoval,
                                                           const RegisterDictionary *regdict) {
-                        return RegisterStateARM64Ptr(new RegisterStateARM64(protoval, regdict));
+                        return RegisterStateASTPtr(new RegisterStateAST(protoval, regdict));
                     }
 
                     virtual BaseSemantics::RegisterStatePtr create(const BaseSemantics::SValuePtr &protoval,
@@ -142,8 +145,8 @@ namespace rose {
                         ASSERT_not_implemented("RegisterState::clone() should not be called with Dyninst's SymEval policy");
                     }
 
-                    static RegisterStateARM64Ptr promote(const BaseSemantics::RegisterStatePtr &from) {
-                        RegisterStateARM64Ptr retval = boost::dynamic_pointer_cast<RegisterStateARM64>(from);
+                    static RegisterStateASTPtr promote(const BaseSemantics::RegisterStatePtr &from) {
+                        RegisterStateASTPtr retval = boost::dynamic_pointer_cast<RegisterStateAST>(from);
                         ASSERT_not_null(retval);
                         return retval;
                     }
@@ -170,37 +173,97 @@ namespace rose {
                     void writeRegister(const RegisterDescriptor &reg, const BaseSemantics::SValuePtr &value,
                                        Dyninst::DataflowAPI::Result_t &res, std::map<Dyninst::Absloc, Dyninst::Assignment::Ptr> &aaMap);
 
-                private:
                     Dyninst::AST::Ptr wrap(Dyninst::Absloc r, Dyninst::Address addr) {
                         return Dyninst::DataflowAPI::VariableAST::create(Dyninst::DataflowAPI::Variable(Dyninst::AbsRegion(r), addr));
                     }
 
-                    Dyninst::Absloc convert(const RegisterDescriptor &reg);
+                private:
+
+                    virtual Dyninst::Absloc convert(const RegisterDescriptor &reg);
                 };
+
+		class RegisterStateASTARM64 : public RegisterStateAST {
+		public:
+		    RegisterStateASTARM64(const BaseSemantics::SValuePtr &protoval,
+                                          const RegisterDictionary *regdict) : RegisterStateAST(protoval, regdict) { }
+
+                    static RegisterStateASTARM64Ptr instance(const BaseSemantics::SValuePtr &protoval,
+                                                             const RegisterDictionary *regdict) {
+                        return RegisterStateASTARM64Ptr(new RegisterStateASTARM64(protoval, regdict));
+                    }
+
+                    static RegisterStateASTARM64Ptr promote(const BaseSemantics::RegisterStatePtr &from) {
+                        RegisterStateASTARM64Ptr retval = boost::dynamic_pointer_cast<RegisterStateASTARM64>(from);
+                        ASSERT_not_null(retval);
+                        return retval;
+                    }
+
+		private:
+		    virtual Dyninst::Absloc convert(const RegisterDescriptor &reg);
+		};
+		
+		class RegisterStateASTPPC32 : public RegisterStateAST {
+		public:
+		    RegisterStateASTPPC32(const BaseSemantics::SValuePtr &protoval,
+                                          const RegisterDictionary *regdict) : RegisterStateAST(protoval, regdict) { }
+
+                    static RegisterStateASTPPC32Ptr instance(const BaseSemantics::SValuePtr &protoval,
+                                                             const RegisterDictionary *regdict) {
+                        return RegisterStateASTPPC32Ptr(new RegisterStateASTPPC32(protoval, regdict));
+                    }
+
+                    static RegisterStateASTPPC32Ptr promote(const BaseSemantics::RegisterStatePtr &from) {
+                        RegisterStateASTPPC32Ptr retval = boost::dynamic_pointer_cast<RegisterStateASTPPC32>(from);
+                        ASSERT_not_null(retval);
+                        return retval;
+                    }
+		private:
+		    virtual Dyninst::Absloc convert(const RegisterDescriptor &reg);
+
+                };
+		class RegisterStateASTPPC64 : public RegisterStateAST {
+		public:
+		    RegisterStateASTPPC64(const BaseSemantics::SValuePtr &protoval,
+                                          const RegisterDictionary *regdict) : RegisterStateAST(protoval, regdict) { }
+
+                    static RegisterStateASTPPC64Ptr instance(const BaseSemantics::SValuePtr &protoval,
+                                                             const RegisterDictionary *regdict) {
+                        return RegisterStateASTPPC64Ptr(new RegisterStateASTPPC64(protoval, regdict));
+                    }
+
+                    static RegisterStateASTPPC64Ptr promote(const BaseSemantics::RegisterStatePtr &from) {
+                        RegisterStateASTPPC64Ptr retval = boost::dynamic_pointer_cast<RegisterStateASTPPC64>(from);
+                        ASSERT_not_null(retval);
+                        return retval;
+                    }
+
+		private:
+		    virtual Dyninst::Absloc convert(const RegisterDescriptor &reg);
+		};
 
 
                 /***************************************************************************************************/
                 /*                                           Memory State                                          */
                 /***************************************************************************************************/
 
-                typedef boost::shared_ptr<class MemoryStateARM64> MemoryStateARM64Ptr;
+                typedef boost::shared_ptr<class MemoryStateAST> MemoryStateASTPtr;
 
-                class MemoryStateARM64 : public BaseSemantics::MemoryState {
+                class MemoryStateAST : public BaseSemantics::MemoryState {
                 protected:
-                    MemoryStateARM64(const BaseSemantics::SValuePtr &addrProtoval, const BaseSemantics::SValuePtr &valProtoval):
+                    MemoryStateAST(const BaseSemantics::SValuePtr &addrProtoval, const BaseSemantics::SValuePtr &valProtoval):
                             BaseSemantics::MemoryState(addrProtoval, valProtoval) { }
 
                 public:
-                    static MemoryStateARM64Ptr instance(const BaseSemantics::SValuePtr &addrProtoval, const BaseSemantics::SValuePtr &valProtoval) {
-                        return MemoryStateARM64Ptr(new MemoryStateARM64(addrProtoval, valProtoval));
+                    static MemoryStateASTPtr instance(const BaseSemantics::SValuePtr &addrProtoval, const BaseSemantics::SValuePtr &valProtoval) {
+                        return MemoryStateASTPtr(new MemoryStateAST(addrProtoval, valProtoval));
                     }
 
                     virtual BaseSemantics::MemoryStatePtr create(const BaseSemantics::SValuePtr &addrProtoval, const BaseSemantics::SValuePtr &valProtoval) const {
                         return instance(addrProtoval, valProtoval);
                     }
 
-                    static MemoryStateARM64Ptr promote(const BaseSemantics::MemoryStatePtr &from) {
-                        MemoryStateARM64Ptr retval = boost::dynamic_pointer_cast<MemoryStateARM64>(from);
+                    static MemoryStateASTPtr promote(const BaseSemantics::MemoryStatePtr &from) {
+                        MemoryStateASTPtr retval = boost::dynamic_pointer_cast<MemoryStateAST>(from);
                         ASSERT_not_null(retval);
                         return retval;
                     }
@@ -240,14 +303,14 @@ namespace rose {
                 /*                                                State                                            */
                 /***************************************************************************************************/
 
-                typedef boost::shared_ptr<class StateARM64> StateARM64Ptr;
+                typedef boost::shared_ptr<class StateAST> StateASTPtr;
 
-                class StateARM64 : public BaseSemantics::State {
+                class StateAST : public BaseSemantics::State {
                 public:
-                    StateARM64(Dyninst::DataflowAPI::Result_t &r,
+                    StateAST(Dyninst::DataflowAPI::Result_t &r,
                                Dyninst::Address a,
                                Dyninst::Architecture ac,
-                               Dyninst::InstructionAPI::Instruction::Ptr insn_,
+                               Dyninst::InstructionAPI::Instruction insn_,
                                const BaseSemantics::RegisterStatePtr &registers,
                                const BaseSemantics::MemoryStatePtr &memory): BaseSemantics::State(registers, memory), res(r), addr(a), arch(ac), insn(insn_) {
                         for (Dyninst::DataflowAPI::Result_t::iterator iter = r.begin();
@@ -272,26 +335,26 @@ namespace rose {
                     }
 
                 public:
-                    static StateARM64Ptr instance(Dyninst::DataflowAPI::Result_t &r,
+                    static StateASTPtr instance(Dyninst::DataflowAPI::Result_t &r,
                                                   Dyninst::Address a,
                                                   Dyninst::Architecture ac,
-                                                  Dyninst::InstructionAPI::Instruction::Ptr insn_,
+                                                  Dyninst::InstructionAPI::Instruction insn_,
                                                   const BaseSemantics::RegisterStatePtr &registers,
                                                   const BaseSemantics::MemoryStatePtr &memory) {
-                        return StateARM64Ptr(new StateARM64(r, a, ac, insn_, registers, memory));
+                        return StateASTPtr(new StateAST(r, a, ac, insn_, registers, memory));
                     }
 
                     virtual BaseSemantics::StatePtr create(Dyninst::DataflowAPI::Result_t &r,
                                                  Dyninst::Address a,
                                                  Dyninst::Architecture ac,
-                                                 Dyninst::InstructionAPI::Instruction::Ptr insn_,
+                                                 Dyninst::InstructionAPI::Instruction insn_,
                                                  const BaseSemantics::RegisterStatePtr &registers,
                                                  const BaseSemantics::MemoryStatePtr &memory) const {
                         return instance(r, a, ac, insn_, registers, memory);
                     }
 
-                    static StateARM64Ptr promote(const BaseSemantics::StatePtr &from) {
-                        StateARM64Ptr retval = boost::dynamic_pointer_cast<StateARM64>(from);
+                    static StateASTPtr promote(const BaseSemantics::StatePtr &from) {
+                        StateASTPtr retval = boost::dynamic_pointer_cast<StateAST>(from);
                         ASSERT_not_null(retval);
                         return retval;
                     }
@@ -302,13 +365,15 @@ namespace rose {
                     virtual BaseSemantics::SValuePtr readMemory(const BaseSemantics::SValuePtr &address, const BaseSemantics::SValuePtr &dflt,
                                                                 BaseSemantics::RiscOperators *addrOps, BaseSemantics::RiscOperators *valOps, size_t readSize = 0);
                     virtual void writeMemory(const BaseSemantics::SValuePtr &addr, const BaseSemantics::SValuePtr &value, BaseSemantics::RiscOperators *addrOps,
-                                             BaseSemantics::RiscOperators *valOps, size_t writeSize = 0);
+                                             BaseSemantics::RiscOperators *valOps, size_t writeSize);
+                    virtual void writeMemory(const BaseSemantics::SValuePtr &addr, const BaseSemantics::SValuePtr &value, BaseSemantics::RiscOperators *addrOps,
+                                             BaseSemantics::RiscOperators *valOps);
 
                 protected:
                     Dyninst::DataflowAPI::Result_t &res;
                     Dyninst::Architecture arch;
                     Dyninst::Address addr;
-                    Dyninst::InstructionAPI::Instruction::Ptr insn;
+                    Dyninst::InstructionAPI::Instruction insn;
 
                     std::map<Dyninst::Absloc, Dyninst::Assignment::Ptr> aaMap;
                 };
@@ -317,31 +382,31 @@ namespace rose {
                 /***************************************************************************************************/
                 /*                                          RiscOperators                                          */
                 /***************************************************************************************************/
-                typedef boost::shared_ptr<class RiscOperatorsARM64> RiscOperatorsARM64Ptr;
+                typedef boost::shared_ptr<class RiscOperatorsAST> RiscOperatorsASTPtr;
 
                 /** RISC operators for use by the Symbolic Semantics Domain of Dyninst.
                  *
                  */
-                class RiscOperatorsARM64 : public BaseSemantics::RiscOperators {
+                class RiscOperatorsAST : public BaseSemantics::RiscOperators {
                 protected:
-                    RiscOperatorsARM64(const BaseSemantics::SValuePtr &protoval, SMTSolver *solver = NULL)
+                    RiscOperatorsAST(const BaseSemantics::SValuePtr &protoval, SMTSolver *solver = NULL)
                             : BaseSemantics::RiscOperators(protoval, solver) {
                         (void)SValue::promote(protoval);
                     }
 
-                    RiscOperatorsARM64(const BaseSemantics::StatePtr &state, SMTSolver *solver = NULL)
+                    RiscOperatorsAST(const BaseSemantics::StatePtr &state, SMTSolver *solver = NULL)
                             : BaseSemantics::RiscOperators(state, solver) {
                         (void)SValue::promote(state->protoval());
                     }
 
                 public:
-                    static RiscOperatorsARM64Ptr instance(const BaseSemantics::SValuePtr &protoval,
+                    static RiscOperatorsASTPtr instance(const BaseSemantics::SValuePtr &protoval,
                                                      SMTSolver *solver = NULL) {
-                        return RiscOperatorsARM64Ptr(new RiscOperatorsARM64(protoval, solver));
+                        return RiscOperatorsASTPtr(new RiscOperatorsAST(protoval, solver));
                     }
 
-                    static RiscOperatorsARM64Ptr instance(const BaseSemantics::StatePtr &state, SMTSolver *solver = NULL) {
-                        return RiscOperatorsARM64Ptr(new RiscOperatorsARM64(state, solver));
+                    static RiscOperatorsASTPtr instance(const BaseSemantics::StatePtr &state, SMTSolver *solver = NULL) {
+                        return RiscOperatorsASTPtr(new RiscOperatorsAST(state, solver));
                     }
 
                 public:
@@ -358,8 +423,8 @@ namespace rose {
                 public:
                     /** Run-time promotion of a base RiscOperators pointer to symbolic operators. This is a checked conversion--it
                     *  will fail if @p x does not point to a SymbolicSemantics::RiscOperators object. */
-                    static RiscOperatorsARM64Ptr promote(const BaseSemantics::RiscOperatorsPtr &x) {
-                        RiscOperatorsARM64Ptr retval = boost::dynamic_pointer_cast<RiscOperatorsARM64>(x);
+                    static RiscOperatorsASTPtr promote(const BaseSemantics::RiscOperatorsPtr &x) {
+                        RiscOperatorsASTPtr retval = boost::dynamic_pointer_cast<RiscOperatorsAST>(x);
                         ASSERT_not_null(retval);
                         return retval;
                     }

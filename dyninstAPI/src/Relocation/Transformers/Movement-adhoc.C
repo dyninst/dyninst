@@ -84,6 +84,50 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
 
     tMap = cur->func()->getTMap();
     assert(tMap);
+
+    // Analyze definitions to figure out how their displacements need to be
+    // modified.
+    std::map<Address, StackAccess *> *definitionMap =
+      cur->func()->getDefinitionMap();
+    for (auto defIter = definitionMap->begin(); defIter != definitionMap->end();
+      defIter++) {
+      const Address defAddr = defIter->first;
+      StackAccess *defAccess = defIter->second;
+
+      // Set up parameters for call to  isStackFrameSensitive
+      Offset origDisp;
+      signed long delta;
+      Accesses tmpAccesses;
+      tmpAccesses[defAccess->reg()].insert(defAccess);
+      ParseAPI::Block *defBlock = NULL;
+      const ParseAPI::Function::blocklist &blocks =
+          cur->func()->ifunc()->blocks();
+      for (auto blockIter = blocks.begin(); blockIter != blocks.end();
+        blockIter++) {
+        ParseAPI::Block *block = *blockIter;
+        Address tmp;
+        if (block->start() <= defAddr && defAddr < block->end() &&
+          block->consistent(defAddr, tmp)) {
+          defBlock = block;
+          break;
+        }
+      }
+      assert(defBlock != NULL);
+
+      // Get origDisp, delta for this definition via isStackFrameSensitive
+      stackmods_printf("Checking isStackFrameSensitive for def @ 0x%lx\n",
+        defAddr);
+      try {
+        if (isStackFrameSensitive(origDisp, delta, &tmpAccesses, offVec, tMap,
+          defBlock, defAddr)) {
+          definitionDeltas[defAddr] = std::make_pair(origDisp, delta);
+        }
+      } catch (stackmod_exception &e) {
+        // isStackFrameSensitive throws an exception if it's unsafe to modify
+        // this function.
+        return false;
+      }
+    }
   }
 #endif
 
@@ -93,8 +137,8 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
     // first insert new (before iter) and then remove iter
 
     // Cache this so we don't re-decode...
-    InsnPtr insn = (*iter)->insn();
-    if (!insn) continue;
+    auto insn = (*iter)->insn();
+    if (!insn.isValid()) continue;
 
     Address target = 0;
     Absloc aloc;
@@ -105,7 +149,7 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
        cf->setOrigTarget(target);
     }
     if (isPCRelData(*iter, insn, target)) {
-      relocation_cerr << "  ... isPCRelData at " 
+      relocation_cerr << "  ... isPCRelData at "
 		      << std::hex << (*iter)->addr() << std::dec << endl;
       // Two options: a memory reference or a indirect call. The indirect call we 
       // just want to set target in the CFWidget, as it has the hardware to handle
@@ -157,29 +201,35 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
         // Perform check and generate StackModWidget if necessary
         Offset origDisp;
         signed long delta;
-        Architecture arch = insn->getArch();
+        Architecture arch = insn.getArch();
         stackmods_printf("Checking isStackFrameSensitive @ 0x%lx = %s\n",
-          (*iter)->addr(), insn->format().c_str());
-        if (isStackFrameSensitive(origDisp, delta, accesses, offVec, tMap,
-          cur->block()->llb(), (*iter)->addr())) {
-          signed long newDisp = origDisp + delta;
+          (*iter)->addr(), insn.format().c_str());
+        try {
+          if (isStackFrameSensitive(origDisp, delta, accesses, offVec, tMap,
+            cur->block()->llb(), (*iter)->addr())) {
+            signed long newDisp = origDisp + delta;
 
-          stackmods_printf(" ... is Stack Frame SENSITIVE at 0x%lx\n",
-            (*iter)->addr());
-          stackmods_printf("\t\t origDisp = %ld, delta = %ld, newDisp = %ld\n",
-            origDisp, delta, newDisp);
+            stackmods_printf(" ... is Stack Frame SENSITIVE at 0x%lx\n",
+              (*iter)->addr());
+            stackmods_printf("\t\t origDisp = %ld, delta = %ld, newDisp = %ld\n",
+              origDisp, delta, newDisp);
 
-          relocation_cerr << " ... is Stack Frame Sensitive at "
-            << std::hex << (*iter)->addr()
-            << std::dec
-            << ", origDisp = " << origDisp
-            << ", delta = " << delta
-            << ", newDisp = " << newDisp
-            << endl;
+            relocation_cerr << " ... is Stack Frame Sensitive at "
+              << std::hex << (*iter)->addr()
+              << std::dec
+              << ", origDisp = " << origDisp
+              << ", delta = " << delta
+              << ", newDisp = " << newDisp
+              << endl;
 
-          Widget::Ptr replacement = StackModWidget::create(insn,
-            (*iter)->addr(), newDisp, arch);
-          (*iter).swap(replacement);
+            Widget::Ptr replacement = StackModWidget::create(insn,
+              (*iter)->addr(), newDisp, arch);
+            (*iter).swap(replacement);
+          }
+        } catch (stackmod_exception &e) {
+          // isStackFrameSensitive throws an exception if it's unsafe to modify
+          // this function.
+          return false;
         }
       }
     }
@@ -189,29 +239,29 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
 }
 
 bool adhocMovementTransformer::isPCDerefCF(Widget::Ptr ptr,
-                                           InsnPtr insn,
+                                           Instruction insn,
                                            Address &target) {
-   Expression::Ptr cf = insn->getControlFlowTarget();
+   Expression::Ptr cf = insn.getControlFlowTarget();
    if (!cf) return false;
    
 //   Architecture fixme = insn->getArch();
 //   if (fixme == Arch_ppc32) fixme = Arch_ppc64;
    
-   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn->getArch())));
+   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn.getArch())));
 //   Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
 
    // Okay, see if we're memory
    set<Expression::Ptr> mems;
-   insn->getMemoryReadOperands(mems);
+   insn.getMemoryReadOperands(mems);
    
    for (set<Expression::Ptr>::const_iterator iter = mems.begin();
         iter != mems.end(); ++iter) {
       Expression::Ptr exp = *iter;
-      if (exp->bind(thePC.get(), Result(u64, ptr->addr() + insn->size()))) {
+      if (exp->bind(thePC.get(), Result(u64, ptr->addr() + insn.size()))) {
 	// Bind succeeded, eval to get target address
 	Result res = exp->eval();
 	if (!res.defined) {
-	  cerr << "ERROR: failed bind/eval at " << std::hex << ptr->addr() << endl;if (insn->getControlFlowTarget()) return false;
+	  cerr << "ERROR: failed bind/eval at " << std::hex << ptr->addr() << endl;if (insn.getControlFlowTarget()) return false;
 	}
 	assert(res.defined);
 	target = res.convert<Address>();
@@ -226,30 +276,30 @@ bool adhocMovementTransformer::isPCDerefCF(Widget::Ptr ptr,
 
 // We define this as "uses PC and is not control flow"
 bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
-                                           InsnPtr insn,
+                                           Instruction insn,
                                            Address &target) {
   target = 0;
-  if (insn->getControlFlowTarget()) return false;
+  if (insn.getControlFlowTarget()) return false;
 
   //Architecture fixme = insn->getArch();
   //if (fixme == Arch_ppc32) fixme = Arch_ppc64;
   
-  Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn->getArch())));
+  Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn.getArch())));
   //Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
 
-  if (!insn->isRead(thePC))
+  if (!insn.isRead(thePC))
     //&&
 //      !insn->isRead(thePCFixme))
     return false;
 
   // Okay, see if we're memory
   set<Expression::Ptr> mems;
-  insn->getMemoryReadOperands(mems);
-  insn->getMemoryWriteOperands(mems);
+  insn.getMemoryReadOperands(mems);
+  insn.getMemoryWriteOperands(mems);
   for (set<Expression::Ptr>::const_iterator iter = mems.begin();
        iter != mems.end(); ++iter) {
     Expression::Ptr exp = *iter;
-    if (exp->bind(thePC.get(), Result(u64, ptr->addr() + insn->size()))) {
+    if (exp->bind(thePC.get(), Result(u64, ptr->addr() + insn.size()))) {
 
     //||
 	//exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + insn->size()))) {
@@ -269,13 +319,13 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
   // all the operands. We didn't do this directly because the 
   // memory-topping deref stops eval...
   vector<Operand> operands;
-  insn->getOperands(operands);
+  insn.getOperands(operands);
   for (vector<Operand>::iterator iter = operands.begin();
        iter != operands.end(); ++iter) {
     // If we can bind the PC, then we're in the operand
     // we want.
     Expression::Ptr exp = iter->getValue();
-    if (exp->bind(thePC.get(), Result(u64, ptr->addr() + insn->size()))) {
+    if (exp->bind(thePC.get(), Result(u64, ptr->addr() + insn.size()))) {
 	//||
 	//exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + insn->size()))) {
       // Bind succeeded, eval to get target address
@@ -286,7 +336,7 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
     }
   }
   if (target == 0) {
-     cerr << "Error: failed to bind PC in " << insn->format() << endl;
+     cerr << "Error: failed to bind PC in " << insn.format() << endl;
   }
   assert(target != 0);
   return true;    
@@ -339,27 +389,27 @@ public:
 
 
 bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
-                                       InsnPtr insn,
-				       Absloc &aloc,
-				       Address &thunk) {
+                                       Instruction insn,
+                                       Absloc &aloc,
+                                       Address &thunk) {
   // TODO:
   // Check for call + size;
   // Check for call to thunk.
   // TODO: need a return register parameter.
 
-   if (insn->getCategory() != InstructionAPI::c_CallInsn) return false;
+   if (insn.getCategory() != InstructionAPI::c_CallInsn) return false;
 
   // Okay: checking for call + size
-  Expression::Ptr CFT = insn->getControlFlowTarget();
+  Expression::Ptr CFT = insn.getControlFlowTarget();
   if (!CFT) {
     relocation_cerr << "      ... no CFT, ret false from isGetPC" << endl;
     return false;
   }
    
 
-  Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn->getArch())));
+  Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn.getArch())));
 
-  switch(insn->getArch()) {
+  switch(insn.getArch()) {
      case Arch_x86:
      case Arch_ppc32:
         CFT->bind(thePC.get(), Result(u32, ptr->addr()));
@@ -382,7 +432,7 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
 
   Address target = res.convert<Address>();
 
-  if (target == (ptr->addr() + insn->size())) {
+  if (target == (ptr->addr() + insn.size())) {
     aloc = Absloc(0, 0, NULL);
     relocation_cerr << "      ... call next insn, ret true" << endl;
     return true;
@@ -398,7 +448,7 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
     const unsigned char* buf = reinterpret_cast<const unsigned char*>(addrSpace->getPtrToInstruction(target));
     if (!buf) {
        cerr << "Error: illegal pointer to buffer!" << endl;
-       cerr << "Target of " << hex << target << " from addr " << ptr->addr() << " in insn " << insn->format() << dec << endl;
+       cerr << "Target of " << hex << target << " from addr " << ptr->addr() << " in insn " << insn.format() << dec << endl;
        assert(0);
     }
 
@@ -406,20 +456,21 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
 			       2*InstructionDecoder::maxInstructionLength,
 			       addrSpace->getArch());
 
-    Instruction::Ptr firstInsn = decoder.decode();
-    Instruction::Ptr secondInsn = decoder.decode();
+    Instruction firstInsn = decoder.decode();
+    Instruction secondInsn = decoder.decode();
 
     relocation_cerr << "      ... decoded target insns "
-		    << firstInsn->format() << ", " 
-		    << secondInsn->format() << endl;
+		    << firstInsn.format() << ", "
+		    << secondInsn.format() << endl;
 
-    if(firstInsn && firstInsn->getOperation().getID() == e_mov
-       && firstInsn->readsMemory() && !firstInsn->writesMemory()
-       && secondInsn && secondInsn->getCategory() == c_ReturnInsn) {
+    if(firstInsn.isValid() && firstInsn.getOperation().getID() == e_mov
+       && firstInsn.readsMemory() && !firstInsn.writesMemory()
+       && secondInsn.isValid() && secondInsn.getCategory() == c_ReturnInsn) {
 
       thunkVisitor visitor;
-      relocation_cerr << "Checking operand " << firstInsn->getOperand(1).format(firstInsn->getArch()) << endl;
-      firstInsn->getOperand(1).getValue()->apply(&visitor);
+      relocation_cerr << "Checking operand "
+                      << firstInsn.getOperand(1).format(firstInsn.getArch()) << endl;
+      firstInsn.getOperand(1).getValue()->apply(&visitor);
       if (!visitor.isThunk) return false;
 
 #if 0
@@ -439,7 +490,7 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
 #endif
       
       std::set<RegisterAST::Ptr> writes;
-      firstInsn->getWriteSet(writes);
+      firstInsn.getWriteSet(writes);
       assert(writes.size() == 1);
       aloc = Absloc((*(writes.begin()))->getID());
       thunk = target;
@@ -464,125 +515,179 @@ bool adhocMovementTransformer::isStackFrameSensitive(Offset& origDisp,
     ParseAPI::Block* block,
     Address addr)
 {
-    // Track changes after transformations are applied
-    StackAnalysis::Height regDelta(0);  // Change in base register height
-    StackAnalysis::Height readDelta(0);  // Change in access height
+    // Short-circuit if this instruction is a definition that we already
+    // analyzed.
+    if (definitionDeltas.find(addr) != definitionDeltas.end()) {
+       origDisp = definitionDeltas[addr].first;
+       delta = definitionDeltas[addr].second;
+       return true;
+    }
 
-    bool ret = false;
-    for (auto iter = accesses->begin(); iter != accesses->end(); ++iter) {
-        MachRegister curReg = (*iter).first;
-        StackAccess* access = (*iter).second;
+    delta = 0;
 
-        // The original difference between base register height and access
-        // height
-        origDisp = access->disp();
+    assert(accesses->size() <= 1);
+    if (accesses->size() == 1) {
+        MachRegister curReg = accesses->begin()->first;
+        const std::set<StackAccess *> &accessSet = accesses->begin()->second;
+        const unsigned accessSetSize = accessSet.size();
 
-        stackmods_printf("\t %s\n", access->format().c_str());
+        // Change in base register height for each possible location accessed
+        StackAnalysis::Height *regDeltas =
+            new StackAnalysis::Height[accessSetSize];
+        // Change in access height for each possible location accessed
+        StackAnalysis::Height *readDeltas =
+            new StackAnalysis::Height[accessSetSize];
+        // Change in definition height for each possible location accessed
+        StackAnalysis::Height *defDeltas =
+            new StackAnalysis::Height[accessSetSize];
 
-        StackAnalysis::Height regHeightPrime = access->regHeight();
-        StackAnalysis::Height readHeightPrime = access->readHeight();
+        unsigned i = 0;
+        for (auto iter = accessSet.begin(); iter != accessSet.end(); iter++) {
+            StackAccess *access = *iter;
 
-        stackmods_printf("\t\t regHeight = %ld, readHeight = %ld\n",
-            access->regHeight().height(), access->readHeight().height());
+            // The original difference between base register height and access
+            // height
+            origDisp = access->disp();
 
-        // Idea: Check for exact match first, then check for overlaps.  This
-        // should fix the case where we add an exact match. However, find is
-        // going to search for any match, so we need to look ourselves.
+            stackmods_printf("\t %s\n", access->format().c_str());
 
-        bool foundReg = false;
-        bool foundRead = false;
+            StackAnalysis::Height regHeightPrime = access->regHeight();
+            StackAnalysis::Height readHeightPrime = access->readHeight();
 
-        // Find any updates to regHeight or readHeight (exact matches)
-        for (auto tIter = tMap->begin(); (!foundReg || !foundRead) &&
-            tIter != tMap->end(); ++tIter) {
-            StackLocation* src = (*tIter).first;
-            StackLocation* dest = (*tIter).second;
+            stackmods_printf("\t\t regHeight = %ld, readHeight = %ld\n",
+                access->regHeight().height(), access->readHeight().height());
 
-            stackmods_printf("\t\t\t Checking %s -> %s\n",
-                src->format().c_str(), dest->format().c_str());
+            // Idea: Check for exact match first, then check for overlaps.  This
+            // should fix the case where we add an exact match. However, find is
+            // going to search for any match, so we need to look ourselves.
 
-            if (src->isStackMemory() && dest->isStackMemory()) {
-                if (src->isRegisterHeight()) {
-                    if (src->off() == access->regHeight()) {
-                        int tmp;
-                        if (src->valid() && !src->valid()->find(addr, tmp)) {
-                            stackmods_printf("\t\t\t\t Matching src height not "
-                                "valid for this PC\n");
-                            continue;
+            bool foundReg = false;
+            bool foundRead = false;
+
+            // Find any updates to regHeight or readHeight (exact matches)
+            for (auto tIter = tMap->begin(); (!foundReg || !foundRead) &&
+                tIter != tMap->end(); ++tIter) {
+                StackLocation* src = (*tIter).first;
+                StackLocation* dest = (*tIter).second;
+
+                stackmods_printf("\t\t\t Checking %s -> %s\n",
+                    src->format().c_str(), dest->format().c_str());
+
+                if (src->isStackMemory() && dest->isStackMemory()) {
+                    if (src->isRegisterHeight()) {
+                        if (src->off() == access->regHeight()) {
+                            int tmp;
+                            if (src->valid() &&
+                                !src->valid()->find(addr, tmp)) {
+                                stackmods_printf("\t\t\t\t Matching src height "
+                                    "not valid for this PC\n");
+                                continue;
+                            }
+
+                            if (src->reg() == curReg) {
+                                foundReg = true;
+                                assert(!offVec->isSkip(curReg,
+                                    access->regHeight(), block->start(), addr));
+                                regHeightPrime = dest->off();
+                                stackmods_printf("\t\t\t\t regHeight' = %ld\n",
+                                    regHeightPrime.height());
+                            }
                         }
+                    } else {
+                        if (src->off() == access->readHeight()) {
+                            int tmp;
+                            if (src->valid() &&
+                                !src->valid()->find(addr, tmp)) {
+                                stackmods_printf("\t\t\t\t Matching src height "
+                                    "not valid for this PC\n");
+                                continue;
+                            }
 
-                        if (src->reg() == curReg) {
-                            foundReg = true;
-                            assert(!offVec->isSkip(curReg, access->regHeight(),
-                                block->start(), addr));
-                            regHeightPrime = dest->off();
-                            stackmods_printf("\t\t\t\t regHeight' = %ld\n",
-                                regHeightPrime.height());
+                            foundRead = true;
+                            readHeightPrime = dest->off();
+                            stackmods_printf("\t\t\t\t readHeight' = %ld\n",
+                                readHeightPrime.height());
                         }
                     }
+                } else if (src->isNull()) {
+                    stackmods_printf("\t\t\t\t Ignoring: insertion\n");
                 } else {
-                    if (src->off() == access->readHeight()) {
-                        int tmp;
-                        if (src->valid() && !src->valid()->find(addr, tmp)) {
-                            stackmods_printf("\t\t\t\t Matching src height not "
-                                "valid for this PC\n");
-                            continue;
-                        }
+                    assert(0);
+                }
+            }
 
-                        foundRead = true;
-                        readHeightPrime = dest->off();
-                        stackmods_printf("\t\t\t\t readHeight' = %ld\n",
-                            readHeightPrime.height());
+            // Still necessary because accesses contained inside other accesses
+            // may not have an exact offset match in O.
+            // Look for ranges that include the readHeight.
+            for (auto tIter = tMap->begin(); !foundRead && tIter != tMap->end();
+                ++tIter) {
+                StackLocation* src = (*tIter).first;
+                StackLocation* dest = (*tIter).second;
+
+                stackmods_printf("\t\t\t Checking %s -> %s\n",
+                    src->format().c_str(), dest->format().c_str());
+                if (src->isStackMemory() && dest->isStackMemory()) {
+                    if (src->isRegisterHeight()) {
+                        // Nothing to do
+                    } else {
+                        if (src->off() < access->readHeight() &&
+                            access->readHeight() < src->off() + src->size()) {
+                            int tmp;
+                            if (src->valid() &&
+                                !src->valid()->find(addr, tmp)) {
+                                stackmods_printf("\t\t\t\t Matching src height "
+                                    "not valid for this PC\n");
+                                continue;
+                            }
+                            foundRead = true;
+                            readHeightPrime = dest->off() +
+                                (access->readHeight() - src->off());
+                            stackmods_printf("\t\t\t\t readHeight' = %ld\n",
+                                readHeightPrime.height());
+                        }
                     }
                 }
-            } else if (src->isNull()) {
-                stackmods_printf("\t\t\t\t Ignoring: insertion\n");
+            }
+
+            regDeltas[i] = regHeightPrime - access->regHeight();
+            readDeltas[i] = readHeightPrime - access->readHeight();
+
+            // Check if we have a delta for this access's defintion.  Take it
+            // into account if we do.
+            const StackAnalysis::Definition &def = access->regDef();
+            if (definitionDeltas.find(def.addr) == definitionDeltas.end()) {
+                defDeltas[i] = 0;
             } else {
-                assert(0);
+                defDeltas[i] = definitionDeltas[def.addr].second;
+            }
+
+            //stackmods_printf("[isStackFrameSensitive] readD: %ld, regD: %ld, "
+            //   "defD: %ld\n", readDeltas[i].height(), regDeltas[i].height(),
+            //   defDeltas[i].height());
+            i++;
+        }
+
+        // Ensure that this access always needs the same change in displacement
+        // regardless of which location is being accessed.  If accesses to
+        // different locations require different displacements, we can't fix
+        // this instruction for all locations.  In that case, we fail by
+        // throwing an exception.
+        delta = readDeltas[0].height() - regDeltas[0].height() -
+            defDeltas[0].height();
+        for (unsigned i = 1; i < accessSetSize; i++) {
+            if (delta != readDeltas[i].height() - regDeltas[i].height() -
+                defDeltas[i].height()) {
+                fprintf(stderr, "Access to multiple locations is unresolvable: "
+                    "different displacements required\n");
+                STACKMOD_ASSERT(false);
             }
         }
 
-        // Still necessary because accesses contained inside other accesses may
-        // not have an exact offset match in O.
-        // Look for ranges that include the readHeight.
-        for (auto tIter = tMap->begin(); !foundRead && tIter != tMap->end();
-            ++tIter) {
-            StackLocation* src = (*tIter).first;
-            StackLocation* dest = (*tIter).second;
-
-            stackmods_printf("\t\t\t Checking %s -> %s\n",
-                src->format().c_str(), dest->format().c_str());
-            if (src->isStackMemory() && dest->isStackMemory()) {
-                if (src->isRegisterHeight()) {
-                    // Nothing to do
-                } else {
-                    if (src->off() < access->readHeight() &&
-                        access->readHeight() < src->off() + src->size()) {
-                        int tmp;
-                        if (src->valid() && !src->valid()->find(addr, tmp)) {
-                            stackmods_printf("\t\t\t\t Matching src height not "
-                                "valid for this PC\n");
-                            continue;
-                        }
-                        foundRead = true;
-                        readHeightPrime = dest->off() +
-                            (access->readHeight() - src->off());
-                        stackmods_printf("\t\t\t\t readHeight' = %ld\n",
-                            readHeightPrime.height());
-                    }
-                }
-            }
-        }
-
-        regDelta += access->regHeight() - regHeightPrime;
-        readDelta += access->readHeight() - readHeightPrime;
+        delete[] regDeltas;
+        delete[] readDeltas;
+        delete[] defDeltas;
     }
 
-    if (regDelta != readDelta) {
-        ret = true;
-        delta = regDelta.height() - readDelta.height();
-    }
-
-    return ret;
+    return delta != 0;
 }
 #endif

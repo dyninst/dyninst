@@ -1,0 +1,12 @@
+##shll_advsimd_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize) operand = Vpart[n, part];
+bits(2*datasize) result;
+integer element;
+
+for e = 0 to elements-1
+    element = Int(Elem[operand, e, esize], unsigned) << shift;
+    Elem[result, e, 2*esize] = element<2*esize-1:0>;
+
+V[d] = result;
+@@

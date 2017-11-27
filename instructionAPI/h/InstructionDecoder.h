@@ -66,12 +66,12 @@ namespace Dyninst
       /// machine language of the type understood by this %InstructionDecoder.
       /// If the buffer does not contain a valid instruction stream, a null %Instruction pointer
       /// will be returned.  The %Instruction's \c size field will contain the size of the instruction decoded.
-      Instruction::Ptr decode();
+      Instruction decode();
       /// Decode the instruction at \c buffer, interpreting it as machine language of the type
       /// understood by this %InstructionDecoder.  If the buffer does not contain a valid instruction stream,
       /// a null %Instruction pointer will be returned.  The %Instruction's \c size field will contain
       /// the size of the instruction decoded.
-      Instruction::Ptr decode(const unsigned char* buffer);
+      Instruction decode(const unsigned char *buffer);
       void doDelayedDecode(const Instruction* insn_to_complete);
       struct INSTRUCTION_EXPORT buffer
       {

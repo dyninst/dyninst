@@ -38,7 +38,6 @@
 #include "external/rose/rose-compat.h"
 #include "../rose/RegisterDescriptor.h"
 #include "../rose/x86InstructionSemantics.h"
-#include "../rose/powerpcInstructionSemantics.h"
 
 // defs for SgAsmNode
 std::string SgAsmNode::class_name() const {
@@ -1605,6 +1604,10 @@ SgAsmFloatValueExpression *isSgAsmFloatValueExpression(SgNode *s) {
 
 SgAsmArmv8Instruction *isSgAsmArmv8Instruction(SgNode *s) {
     return dynamic_cast<SgAsmArmv8Instruction *>(s);
+}
+
+SgAsmPowerpcInstruction *isSgAsmPowerpcInstruction(SgNode *s) {
+    return dynamic_cast<SgAsmPowerpcInstruction *>(s);
 }
 
 SgAsmNode *isSgAsmNode(SgNode *s) {

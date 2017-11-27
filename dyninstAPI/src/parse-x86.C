@@ -120,30 +120,31 @@ bool parse_func::writesFPRs(unsigned level) {
                 return true; 
             }
             InstructionDecoder d(buf,fe->end()-fe->start(),isrc()->getArch());
-            Instruction::Ptr i;
+            Instruction i = d.decode();
 
-            while((i = d.decode())) {
-                if(i->isWritten(st0) ||
-                    i->isWritten(st1) ||
-                    i->isWritten(st2) ||
-                    i->isWritten(st3) ||
-                    i->isWritten(st4) ||
-                    i->isWritten(st5) ||
-                    i->isWritten(st6) ||
-                    i->isWritten(st7) ||
-                   i->isWritten(xmm0) ||
-                   i->isWritten(xmm1) ||
-                   i->isWritten(xmm2) ||
-                   i->isWritten(xmm3) ||
-                   i->isWritten(xmm4) ||
-                   i->isWritten(xmm5) ||
-                   i->isWritten(xmm6) ||
-                   i->isWritten(xmm7)
+            while((i.isValid())) {
+                if(i.isWritten(st0) ||
+                    i.isWritten(st1) ||
+                    i.isWritten(st2) ||
+                    i.isWritten(st3) ||
+                    i.isWritten(st4) ||
+                    i.isWritten(st5) ||
+                    i.isWritten(st6) ||
+                    i.isWritten(st7) ||
+                   i.isWritten(xmm0) ||
+                   i.isWritten(xmm1) ||
+                   i.isWritten(xmm2) ||
+                   i.isWritten(xmm3) ||
+                   i.isWritten(xmm4) ||
+                   i.isWritten(xmm5) ||
+                   i.isWritten(xmm6) ||
+                   i.isWritten(xmm7)
                   )
                 {
                     containsFPRWrites_ = used;
                     return true;
                 }
+                i = d.decode();
             }
         }
         // No kids do, and we don't. Impressive.

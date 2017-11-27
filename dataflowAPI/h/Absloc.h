@@ -294,7 +294,7 @@ class Assignment {
   DATAFLOW_EXPORT const std::vector<AbsRegion> &inputs() const { return inputs_; }
   DATAFLOW_EXPORT std::vector<AbsRegion> &inputs() { return inputs_; }
 
-  DATAFLOW_EXPORT InstructionAPI::Instruction::Ptr insn() const { return insn_; }
+  DATAFLOW_EXPORT InstructionAPI::Instruction insn() const { return insn_; }
   DATAFLOW_EXPORT Address addr() const { return addr_; }
 
   DATAFLOW_EXPORT const AbsRegion &out() const { return out_; }
@@ -306,10 +306,10 @@ class Assignment {
   Aliases aliases;
 
   // Factory functions. 
-  DATAFLOW_EXPORT static std::set<Assignment::Ptr> create(InstructionAPI::Instruction::Ptr insn,
+  DATAFLOW_EXPORT static std::set<Assignment::Ptr> create(InstructionAPI::Instruction insn,
 					  Address addr);
 
-  DATAFLOW_EXPORT Assignment(const InstructionAPI::Instruction::Ptr i,
+  DATAFLOW_EXPORT Assignment(const InstructionAPI::Instruction& i,
                              const Address a,
                              ParseAPI::Function *f,
                              ParseAPI::Block *b,
@@ -322,7 +322,7 @@ class Assignment {
        inputs_(ins),
        out_(o) {};
 
-  DATAFLOW_EXPORT Assignment(const InstructionAPI::Instruction::Ptr i,
+  DATAFLOW_EXPORT Assignment(const InstructionAPI::Instruction& i,
                              const Address a,
                              ParseAPI::Function *f,
                              ParseAPI::Block *b,
@@ -333,14 +333,14 @@ class Assignment {
        block_(b),
        out_(o) {};
 
-  DATAFLOW_EXPORT static Assignment::Ptr makeAssignment(const InstructionAPI::Instruction::Ptr i,
+  DATAFLOW_EXPORT static Assignment::Ptr makeAssignment(const InstructionAPI::Instruction& i,
                              const Address a,
                              ParseAPI::Function *f,
                              ParseAPI::Block *b,
                              const std::vector<AbsRegion> &ins,
                              const AbsRegion &o);
 
-  DATAFLOW_EXPORT static Assignment::Ptr makeAssignment(const InstructionAPI::Instruction::Ptr i,
+  DATAFLOW_EXPORT static Assignment::Ptr makeAssignment(const InstructionAPI::Instruction& i,
                              const Address a,
                              ParseAPI::Function *f,
                              ParseAPI::Block *b,
@@ -364,7 +364,7 @@ class Assignment {
   }
 
  private:
-  InstructionAPI::Instruction::Ptr insn_;
+  InstructionAPI::Instruction insn_;
   Address addr_;
 
   ParseAPI::Function *func_;

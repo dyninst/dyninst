@@ -348,7 +348,7 @@ public:
   // We assume the assignments are prepped in the input; whatever
   // they point to is discarded.
   DATAFLOW_EXPORT static bool expand(Result_t &res, 
-                                     std::set<InstructionPtr> &failedInsns,
+                                     std::set<InstructionAPI::Instruction> &failedInsns,
                                      bool applyVisitors = true);
 
   // Hand in a Graph (of SliceNodes, natch) and get back a Result;
@@ -360,9 +360,9 @@ public:
 
   // Symbolically evaluate an instruction and assign 
   // an AST representation to every written absloc
- static bool expandInsn(const InstructionPtr insn,
-			 const uint64_t addr,
-			 Result_t& res);
+ static bool expandInsn(const InstructionAPI::Instruction &insn,
+                        const uint64_t addr,
+                        Result_t &res);
 
  static Retval_t process(SliceNodePtr ptr, Result_t &dbase, std::set<Edge::Ptr> &skipEdges);
   

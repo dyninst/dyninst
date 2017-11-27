@@ -61,16 +61,16 @@ class adhocMovementTransformer : public Transformer {
 
  private:
   bool isPCDerefCF(WidgetPtr ptr,
-                   InsnPtr insn,
+                   InstructionAPI::Instruction insn,
                    Address &destPtr);
   bool isPCRelData(WidgetPtr ptr,
-                   InsnPtr insn,
-		   Address &target);
+                   InstructionAPI::Instruction insn,
+                   Address &target);
   // Records where PC was stored
   bool isGetPC(WidgetPtr ptr,
-               InsnPtr insn,
-	       Absloc &aloc,
-	       Address &thunkAddr);
+               InstructionAPI::Instruction insn,
+               Absloc &aloc,
+               Address &thunkAddr);
 #if defined(cap_stack_mods)
   bool isStackFrameSensitive(Offset& origOffset,
           signed long& delta,
@@ -83,6 +83,8 @@ class adhocMovementTransformer : public Transformer {
 
   // Used for finding call targets
   AddressSpace *addrSpace;
+  // Map of definition addresses to (origDisp, delta) pairs
+  std::map<Address, std::pair<Offset, signed long> > definitionDeltas;
 };
 
 };

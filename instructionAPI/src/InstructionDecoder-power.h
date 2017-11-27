@@ -47,7 +47,7 @@ namespace Dyninst {
                 InstructionDecoder_power(Architecture a);
                 virtual ~InstructionDecoder_power();
                 virtual void decodeOpcode(InstructionDecoder::buffer& b);
-                virtual Instruction::Ptr decode(InstructionDecoder::buffer& b);
+                virtual Instruction decode(InstructionDecoder::buffer& b);
 		virtual void setMode(bool) 
 		{
 		}
@@ -264,6 +264,7 @@ namespace Dyninst {
                 bool invertBranchCondition;
                 bool isFPInsn;
                 bool bcIsConditional;
+		bool findRAAndRS(const struct power_entry*);
         };
     }
 }

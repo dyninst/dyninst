@@ -3,8 +3,54 @@
 include_directories (
     ${PROJECT_SOURCE_DIR}/parseAPI/src
   )
+cmake_policy(PUSH)
+cmake_policy(SET CMP0012 OLD)
+find_package(OpenMP REQUIRED)
+cmake_policy(POP)
 
+set(RAJA_CMAKE_FLAGS
+		-DENABLE_OPENMP=${OPENMP_FOUND}
+		-DENABLE_TBB=${TBB_FOUND}
+		-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/RAJA)
 
+set(PARALLEL_OPTIONS serial)
+if(OPENMP_FOUND)
+	message(STATUS "OpenMP available")
+	list(APPEND PARALLEL_OPTIONS OpenMP)
+endif()
+if(TBB_FOUND)
+	message(STATUS "TBB available")
+	list(APPEND PARALLEL_OPTIONS TBB)
+endif()
+
+set(DEFAULT_PARALLEL_TYPE serial)
+if(OPENMP_FOUND)
+	set(DEFAULT_PARALLEL_TYPE OpenMP)
+endif()
+if(TBB_FOUND)
+	set(DEFAULT_PARALLEL_TYPE TBB)
+endif()
+message(STATUS "Available parallelization kits: ${PARALLEL_OPTIONS}")
+if(NOT PARALLEL_TYPE)
+	set(PARALLEL_TYPE ${DEFAULT_PARALLEL_TYPE}
+			CACHE STRING "Type of parallelism to use in ParseAPI"
+			FORCE)
+endif()
+set_property(CACHE PARALLEL_TYPE
+		PROPERTY STRINGS ${PARALLEL_OPTIONS})
+message(STATUS "Using ${PARALLEL_TYPE} for ParseAPI...")
+
+include(ExternalProject)
+ExternalProject_Add(RAJA
+		PREFIX ${CMAKE_BINARY_DIR}/RAJA
+		GIT_REPOSITORY https://github.com/LLNL/RAJA.git
+		GIT_SUBMODULES blt
+		CONFIGURE_COMMAND cmake ${RAJA_CMAKE_FLAGS} <SOURCE_DIR>
+		BUILD_COMMAND make
+		INSTALL_COMMAND make install
+		)
+
+message(STATUS "Flags for OpenMP: ${OpenMP_CXX_FLAGS}")
 set (SRC_LIST
         src/ParserDetails.C 
         src/Parser.C 
@@ -19,17 +65,18 @@ set (SRC_LIST
         src/Parser-speculative.C
         src/ParseCallback.C 
         src/IA_IAPI.C
-        src/IA_x86Details.C 
-        src/IA_powerDetails.C 
-        src/IA_aarch64Details.C 
-        src/IA_platformDetailsFactory.C 
+	src/IA_x86.C
+	src/IA_power.C
+	src/IA_aarch64.C
         src/CFGModifier.C
         src/StackTamperVisitor.C
-	src/JumpTablePred.C
-	src/BoundFactCalculator.C
-	src/BoundFactData.C
+	src/JumpTableFormatPred.C
+	src/JumpTableIndexPred.C
 	src/IndirectAnalyzer.C
 	src/IndirectASTVisitor.C
+	src/SymbolicExpression.C
+	src/BoundFactCalculator.C
+	src/BoundFactData.C
 	src/ThunkData.C
 	../dataflowAPI/src/ABI.C 
 	src/dominator.C
@@ -75,6 +122,7 @@ set(ROSE_SRC
         ../dataflowAPI/rose/semantics/BaseSemantics2.C
         #../dataflowAPI/rose/semantics/ConcreteSemantics2.C
         ../dataflowAPI/rose/semantics/DispatcherARM64.C
+	../dataflowAPI/rose/semantics/DispatcherPowerpc.C
         ../dataflowAPI/rose/semantics/RegisterParts.C
         ../dataflowAPI/rose/semantics/Registers.C
         #../dataflowAPI/rose/semantics/SMTSolver.C
@@ -99,24 +147,6 @@ set (SRC_LIST ${SRC_LIST}
 )
 endif()
 
-if (PLATFORM MATCHES amd64 OR PLATFORM MATCHES i386 OR PLATFORM
-MATCHES x86_64)
-set (SRC_LIST ${SRC_LIST}
-     src/InstructionSource-x86.C
-     src/IA_x86.C
-)
-elseif (PLATFORM MATCHES ppc)
-set (SRC_LIST ${SRC_LIST}
-     src/InstructionSource-power.C
-     src/IA_power.C
-)
-elseif (PLATFORM MATCHES aarch64)
-set (SRC_LIST ${SRC_LIST}
-     src/InstructionSource-aarch64.C
-     src/IA_aarch64.C
-)
-endif()
-
 if (ENABLE_PARSE_API_GRAPHS)
 set (SRC_LIST ${SRC_LIST}
      src/GraphAdapter.C
@@ -126,20 +156,21 @@ endif()
 
 ADD_DEFINITIONS(-DPARSER_LIB)
 ADD_DEFINITIONS(-DDATAFLOW_LIB)
-
+INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR}/RAJA/include)
 if(WIN32)
 ADD_DEFINITIONS(-DROSE_UTIL_EXPORTS)
 ADD_DEFINITIONS(-DNOMINMAX)
 endif()
-
+SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
 dyninst_library(parseAPI common instructionAPI ${SYMREADER})
-
-target_link_private_libraries(parseAPI ${Boost_LIBRARIES})
+add_dependencies(parseAPI RAJA)
+set(OPENMP_LIBRARIES gomp)
+target_link_private_libraries(parseAPI ${Boost_LIBRARIES} ${TBB_LIBRARIES} tbbmalloc ${OPENMP_LIBRARIES})
 
 if (WIN32)
 target_link_private_libraries(parseAPI shlwapi)
 endif()
-
+message(STATUS "Architecture is: ${CMAKE_LIBRARY_ARCHITECTURE}")
 FILE (GLOB headers "h/*.h")
 FILE (GLOB dataflowheaders "../dataflowAPI/h/*.h")
 set_target_properties (parseAPI PROPERTIES PUBLIC_HEADER "${headers};${dataflowheaders}")

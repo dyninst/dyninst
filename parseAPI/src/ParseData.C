@@ -40,6 +40,7 @@ using namespace Dyninst::ParseAPI;
 
 void ParseFrame::set_status(Status s)
 {
+    boost::lock_guard<ParseFrame> g(*this);
     _status = s;
     _pd->setFrameStatus(codereg,func->addr(),s);
 }
@@ -62,7 +63,7 @@ ParseWorkElem * ParseFrame::mkWork(
 ParseWorkElem * ParseFrame::mkWork(
     ParseWorkBundle * b,
     Block *block,
-    const InsnAdapter::IA_IAPI &ah)
+    const InsnAdapter::IA_IAPI *ah)
 {
     if(!b) {
         b = new ParseWorkBundle();
@@ -111,19 +112,6 @@ int StandardParseData::findBlocks(CodeRegion * /* cr */, Address addr,
     set<Block *> & blocks)
 {
     int ret = _rdata.findBlocks(addr,blocks);
-#if 0 // old sanity check that discovered blocks at a given address are all 
-      // in the same region, the problem with the check is that it blocks
-      // has to be empty when you call this function, so with the sanity 
-      // check in place you can't call findBlocks on a range of addresses
-      // accumulating the results in the blocks set.  Copying would allow
-      // the sanity check to work, but it seems unnecessary
-    CodeRegion *check = 0;
-    for (std::set<Block *>::iterator iter = blocks.begin(); iter != blocks.end(); ++iter)
-    {
-        if (!check) check = (*iter)->region();
-        else assert(check == (*iter)->region());
-    }
-#endif
     return ret;
 }
 
@@ -135,6 +123,7 @@ StandardParseData::get_func(CodeRegion * cr, Address entry, FuncSource src)
     char name[32];
 
     if(!(ret = findFunc(cr,entry))) {
+        boost::lock_guard<ParseData> g(*this);
         reg = reglookup(cr,entry); // get the *correct* CodeRegion
         if(reg && reg->isCode(entry)) {
            if (src == MODIFICATION) {
@@ -154,35 +143,32 @@ StandardParseData::get_func(CodeRegion * cr, Address entry, FuncSource src)
 void
 StandardParseData::record_frame(ParseFrame * pf)
 {
-    _rdata.frame_map[pf->func->addr()] = pf; 
+    _rdata.record_frame(pf);
 }
 void
 StandardParseData::remove_frame(ParseFrame * pf)
 {
-    _rdata.frame_map.erase(pf->func->addr());
+    tbb::concurrent_hash_map<Address, ParseFrame*>::accessor a;
+    if(_rdata.frame_map.find(a, pf->func->addr()))
+    {
+        _rdata.frame_map.erase(a);
+    }
 }
 
 ParseFrame *
 StandardParseData::findFrame(CodeRegion * /* cr */, Address addr)
 {
-    if(HASHDEF(_rdata.frame_map,addr))
-        return _rdata.frame_map[addr];
-    else
-        return NULL;
+    return _rdata.findFrame(addr);
 }
 ParseFrame::Status
 StandardParseData::frameStatus(CodeRegion * /* cr */, Address addr)
 {
-    if(HASHDEF(_rdata.frame_status,addr))
-        return _rdata.frame_status[addr];
-    else
-        return ParseFrame::BAD_LOOKUP;
 }
 void
 StandardParseData::setFrameStatus(CodeRegion * /* cr */, Address addr,
     ParseFrame::Status status)
 {
-    _rdata.frame_status[addr] = status;
+    _rdata.setFrameStatus(addr, status);
 }
 
 CodeRegion *
@@ -231,6 +217,7 @@ OverlappingParseData::OverlappingParseData(
         Parser *p, vector<CodeRegion *> & regions) :
     ParseData(p)
 {
+    boost::lock_guard<ParseData> g(*this);
     for(unsigned i=0;i<regions.size();++i) {
         rmap[regions[i]] = new region_data(); 
     } 
@@ -238,6 +225,7 @@ OverlappingParseData::OverlappingParseData(
 
 OverlappingParseData::~OverlappingParseData()
 {
+    boost::lock_guard<ParseData> g(*this);
     reg_map_t::iterator it = rmap.begin();
     for( ; it != rmap.end(); ++it)
         delete it->second;
@@ -246,6 +234,7 @@ OverlappingParseData::~OverlappingParseData()
 Function *
 OverlappingParseData::findFunc(CodeRegion * cr, Address entry)
 {
+    boost::lock_guard<ParseData> g(*this);
     if(!HASHDEF(rmap,cr)) return NULL;
     region_data * rd = rmap[cr];
     return rd->findFunc(entry);
@@ -253,6 +242,7 @@ OverlappingParseData::findFunc(CodeRegion * cr, Address entry)
 Block *
 OverlappingParseData::findBlock(CodeRegion * cr, Address entry)
 {
+    boost::lock_guard<ParseData> g(*this);
     if(!HASHDEF(rmap,cr)) return NULL;
     region_data * rd = rmap[cr];
     return rd->findBlock(entry);
@@ -261,6 +251,7 @@ int
 OverlappingParseData::findFuncs(CodeRegion * cr, Address addr, 
     set<Function *> & funcs)
 {
+    boost::lock_guard<ParseData> g(*this);
     if(!HASHDEF(rmap,cr)) return 0;
     region_data * rd = rmap[cr];
     return rd->findFuncs(addr,funcs);
@@ -269,6 +260,7 @@ int
 OverlappingParseData::findFuncs(CodeRegion * cr, Address start, 
     Address end, set<Function *> & funcs)
 {
+    boost::lock_guard<ParseData> g(*this);
     if(!HASHDEF(rmap,cr)) return 0;
     region_data * rd = rmap[cr];
     return rd->findFuncs(start,end,funcs);
@@ -277,6 +269,7 @@ int
 OverlappingParseData::findBlocks(CodeRegion * cr, Address addr,
     set<Block *> & blocks)
 {
+    boost::lock_guard<ParseData> g(*this);
     if(!HASHDEF(rmap,cr)) return 0;
     region_data * rd = rmap[cr];
     return rd->findBlocks(addr,blocks);
@@ -284,34 +277,24 @@ OverlappingParseData::findBlocks(CodeRegion * cr, Address addr,
 ParseFrame *
 OverlappingParseData::findFrame(CodeRegion *cr, Address addr)
 {
+    boost::lock_guard<ParseData> g(*this);
     if(!HASHDEF(rmap,cr)) return NULL;
     region_data * rd = rmap[cr];
-    if(HASHDEF(rd->frame_map,addr))
-        return rd->frame_map[addr];
-    else
-        return NULL;
-}
-ParseFrame::Status
-OverlappingParseData::frameStatus(CodeRegion *cr, Address addr)
-{
-    if(!HASHDEF(rmap,cr)) return ParseFrame::BAD_LOOKUP;
-    region_data * rd = rmap[cr];
-    if(HASHDEF(rd->frame_status,addr))
-        return rd->frame_status[addr];
-    else
-        return ParseFrame::BAD_LOOKUP;
+    return rd->findFrame(addr);
 }
 void
 OverlappingParseData::setFrameStatus(CodeRegion *cr, Address addr, 
     ParseFrame::Status status)
 {
+    boost::lock_guard<ParseData> g(*this);
     if(!HASHDEF(rmap,cr)) return;
     region_data * rd = rmap[cr];
-    rd->frame_status[addr] = status;
+    rd->setFrameStatus(addr, status);
 }
 Function * 
 OverlappingParseData::get_func(CodeRegion * cr, Address addr, FuncSource src)
 {
+    boost::lock_guard<ParseData> g(*this);
     Function * ret = NULL;
     char name[32];
 
@@ -334,12 +317,14 @@ OverlappingParseData::get_func(CodeRegion * cr, Address addr, FuncSource src)
 region_data * 
 OverlappingParseData::findRegion(CodeRegion *cr)
 {
+    boost::lock_guard<ParseData> g(*this);
     if(!HASHDEF(rmap,cr)) return NULL;
     return rmap[cr];
 }
 void
 OverlappingParseData::record_func(Function *f)
 {
+    boost::lock_guard<ParseData> g(*this);
     CodeRegion * cr = f->region();
     if(!HASHDEF(rmap,cr)) {
         fprintf(stderr,"Error, invalid code region [%lx,%lx) in record_func\n",
@@ -347,23 +332,28 @@ OverlappingParseData::record_func(Function *f)
         return;
     }
     region_data * rd = rmap[cr];
-    rd->funcsByAddr[f->addr()] = f;
+    rd->record_func(f);
 }
 void
 OverlappingParseData::record_block(CodeRegion *cr, Block *b)
 {
-    if(!HASHDEF(rmap,cr)) {
-        fprintf(stderr,"Error, invalid code region [%lx,%lx) in record_block\n",
-            cr->offset(),cr->offset()+cr->length());
-        return;
+    region_data* rd = NULL;
+    {
+        boost::lock_guard<ParseData> g(*this);
+        if(!HASHDEF(rmap,cr)) {
+            fprintf(stderr,"Error, invalid code region [%lx,%lx) in record_block\n",
+                    cr->offset(),cr->offset()+cr->length());
+            return;
+        }
+        rd = rmap[cr];
+
     }
-    region_data * rd = rmap[cr];
-    rd->blocksByAddr[b->start()] = b;
-    rd->blocksByRange.insert(b); 
+    rd->record_block(b);
 }
 void
 OverlappingParseData::remove_func(Function *f)
 {
+    boost::lock_guard<ParseData> g(*this);
     remove_extents(f->extents());
 
     CodeRegion * cr = f->region();
@@ -379,6 +369,7 @@ OverlappingParseData::remove_func(Function *f)
 void
 OverlappingParseData::remove_block(Block *b)
 {
+    boost::lock_guard<ParseData> g(*this);
     CodeRegion * cr = b->region();
     if(!HASHDEF(rmap,cr)) {
         fprintf(stderr,"Error, invalid code region [%lx,%lx) in record_block\n",
@@ -392,6 +383,7 @@ OverlappingParseData::remove_block(Block *b)
 void //extents should all belong to the same code region
 OverlappingParseData::remove_extents(const vector<FuncExtent*> & extents)
 {
+    boost::lock_guard<ParseData> g(*this);
     if (0 == extents.size()) {
         return;
     }
@@ -411,6 +403,7 @@ OverlappingParseData::remove_extents(const vector<FuncExtent*> & extents)
 void
 OverlappingParseData::record_frame(ParseFrame *pf)
 {
+    boost::lock_guard<ParseData> g(*this);
     CodeRegion * cr = pf->codereg;
     if(!HASHDEF(rmap,cr)) {
         fprintf(stderr,"Error, invalid code region [%lx,%lx) in record_frame\n",
@@ -418,11 +411,12 @@ OverlappingParseData::record_frame(ParseFrame *pf)
         return;
     }
     region_data * rd = rmap[cr];
-    rd->frame_map[pf->func->addr()] = pf; 
+    rd->record_frame(pf);
 }
 void
 OverlappingParseData::remove_frame(ParseFrame *pf)
 {
+    boost::lock_guard<ParseData> g(*this);
     CodeRegion * cr = pf->codereg;
     if(!HASHDEF(rmap,cr)) {
         fprintf(stderr,"Error, invalid code region [%lx,%lx) in remove_frame\n",

@@ -71,12 +71,65 @@ namespace Dyninst {
       class Expression;
    };
 
-
 class StackAnalysis {
 public:
    typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
    typedef boost::shared_ptr<InstructionAPI::Expression> ExpressionPtr;
 
+   // This class represents a stack pointer definition by recording the block
+   // and address of the definition, as well as the original absloc that was
+   // defined by the definition.
+   class DATAFLOW_EXPORT Definition {
+   public:
+      typedef enum {TOP, BOTTOM, DEF} Type;
+      Address addr;
+      ParseAPI::Block *block;
+      Absloc origLoc;
+      Type type;
+
+      Definition(ParseAPI::Block *b, Address a, Absloc l) : addr(a),
+         block(b), origLoc(l), type(DEF) {}
+      Definition(ParseAPI::Block *b, Absloc l) : addr(0), block(b),
+         origLoc(l), type(DEF) {}
+      Definition(Address a, Absloc l) : addr(a), block(NULL), origLoc(l),
+         type(DEF) {}
+      Definition() : addr(0), block(NULL), type(TOP) {}
+
+      bool operator==(const Definition &other) const {
+         // FIXME: To pass checks in StackAnalysis::summarize(), we consider
+         // definitions equivalent as long as one is not BOTTOM and the other
+         // something else.  This is not proper.
+         //return type == other.type && block == other.block;
+         if (type == BOTTOM && other.type != BOTTOM) return false;
+         if (type != BOTTOM && other.type == BOTTOM) return false;
+         return true;
+      }
+
+      bool operator<(const Definition &rhs) const {
+         if (type == TOP) return false;
+         if (type == BOTTOM && rhs.type == BOTTOM) return false;
+         if (type == BOTTOM) return true;
+
+         if (rhs.type == TOP) return true;
+         if (rhs.type == BOTTOM) return false;
+
+         // At this point we know both are DEFs
+         return block < rhs.block;
+      }
+
+      std::string format() const;
+
+      static Definition meet(const Definition &lhs, const Definition &rhs) {
+         if (lhs.type == TOP) return rhs;
+         if (rhs.type == TOP) return lhs;
+         if (lhs == rhs) return rhs;
+         Definition bottom;
+         bottom.type = BOTTOM;
+         return bottom;
+      }
+   };
+
+   // This class represents offsets on the stack, which we call heights.
    class DATAFLOW_EXPORT Height {
    public:
       typedef signed long Height_t;
@@ -178,6 +231,104 @@ public:
       Type type_;
    };
 
+   // This class represents pairs of Definitions and Heights.  During our stack
+   // pointer analysis, we keep track of any stack pointers in registers or
+   // memory, as well as the instruction addresses at which those pointers were
+   // defined. This is useful for StackMod, where we sometimes want to modify
+   // pointer definitions to adjust the locations of variables on the stack.
+   // Thus, it makes sense to associate each stack pointer (Height) to the point
+   // at which it was defined (Definition).
+   class DATAFLOW_EXPORT DefHeight {
+   public:
+      DefHeight(const Definition &d, const Height &h) : def(d), height(h) {}
+
+      bool operator==(const DefHeight &other) const {
+         return def == other.def && height == other.height;
+      }
+
+      bool operator<(const DefHeight &other) const {
+         return def < other.def;
+      }
+
+      Definition def;
+      Height height;
+   };
+
+   // In some programs, it is possible for a register or memory location to
+   // contain different stack pointers depending on the path taken to the
+   // current instruction.  When this happens, our stack pointer analysis tries
+   // to keep track of the different possible stack pointers, up to a maximum
+   // number per instruction (specified by the DEF_LIMIT constant).  As a
+   // result, we need a structure to hold sets of DefHeights.  This class fills
+   // that role, providing several useful methods to build, modify, and
+   // extract information from such sets.
+   class DATAFLOW_EXPORT DefHeightSet {
+   public:
+      bool operator==(const DefHeightSet &other) const {
+         return defHeights == other.defHeights;
+      }
+
+      // Returns an iterator to the set of DefHeights
+      std::set<DefHeight>::iterator begin() {
+         return defHeights.begin();
+      }
+
+      // Returns a constant iterator to the set of DefHeights
+      std::set<DefHeight>::const_iterator begin() const {
+         return defHeights.begin();
+      }
+
+      // Returns an iterator to the end of the set of DefHeights
+      std::set<DefHeight>::iterator end() {
+         return defHeights.end();
+      }
+
+      // Returns a constant iterator to the end of the set of DefHeights
+      std::set<DefHeight>::const_iterator end() const {
+         return defHeights.end();
+      }
+
+      // Returns the size of this set
+      std::set<DefHeight>::size_type size() const {
+         return defHeights.size();
+      }
+
+      // Inserts a DefHeight into this set
+      void insert(const DefHeight &dh) {
+         defHeights.insert(dh);
+      }
+
+      // Returns true if this DefHeightSet is TOP
+      bool isTopSet() const;
+
+      // Returns true if this DefHeightSet is BOTTOM
+      bool isBottomSet() const;
+
+      // Sets this DefHeightSet to TOP
+      void makeTopSet();
+
+      // Sets this DefHeightSet to BOTTOM
+      void makeBottomSet();
+
+      // Populates this DefHeightSet with the corresponding information
+      void makeNewSet(ParseAPI::Block *b, Address addr,
+         const Absloc &origLoc, const Height &h);
+
+      // Adds to this DefHeightSet a new definition with height h
+      void addInitSet(const Height &h);
+
+      // Updates all Heights in this set by the delta amount
+      void addDeltaSet(long delta);
+
+      // Returns the result of computing a meet on all Heights in this set
+      Height getHeightSet() const;
+
+      // Returns the result of computing a meet on all Definitions in this set
+      Definition getDefSet() const;
+
+   private:
+      std::set<DefHeight> defHeights;
+   };
 
    // We need to represent the effects of instructions. We do this in terms of
    // transfer functions. We recognize the following effects on the stack.
@@ -199,8 +350,8 @@ public:
    // they are fixed) and RV as a parameter. Note that a transfer function is a
    // function T : (RegisterVector, RegisterID, RegisterID, value) ->
    // (RegisterVector).
-   typedef std::map<Absloc, Height> AbslocState;
-   class TransferFunc {
+   typedef std::map<Absloc, DefHeightSet> AbslocState;
+   class DATAFLOW_EXPORT TransferFunc {
    public:
       typedef enum {TOP, BOTTOM, OTHER} Type;
 
@@ -255,7 +406,7 @@ public:
          return !(*this == rhs);
       }
 
-      Height apply(const AbslocState &inputs) const;
+      DefHeightSet apply(const AbslocState &inputs) const;
       void accumulate(std::map<Absloc, TransferFunc> &inputs);
       TransferFunc summaryAccumulate(
          const std::map<Absloc, TransferFunc> &inputs) const;
@@ -302,7 +453,8 @@ public:
 
       SummaryFunc() {};
 
-      void apply(const AbslocState &in, AbslocState &out) const;
+      void apply(ParseAPI::Block *block, const AbslocState &in,
+         AbslocState &out) const;
       void accumulate(const TransferSet &in, TransferSet &out) const;
 
       std::string format() const;
@@ -342,7 +494,6 @@ public:
 
    DATAFLOW_EXPORT StackAnalysis();
    DATAFLOW_EXPORT StackAnalysis(ParseAPI::Function *f);
-   // TODO: Update DataflowAPI manual
    DATAFLOW_EXPORT StackAnalysis(ParseAPI::Function *f,
       const std::map<Address, Address> &crm,
       const std::map<Address, TransferSet> &fs,
@@ -351,12 +502,16 @@ public:
     DATAFLOW_EXPORT virtual ~StackAnalysis();
 
     DATAFLOW_EXPORT Height find(ParseAPI::Block *, Address addr, Absloc loc);
+    DATAFLOW_EXPORT DefHeightSet findDefHeight(ParseAPI::Block *block,
+        Address addr, Absloc loc);
    DATAFLOW_EXPORT Height findSP(ParseAPI::Block *, Address addr);
    DATAFLOW_EXPORT Height findFP(ParseAPI::Block *, Address addr);
    DATAFLOW_EXPORT void findDefinedHeights(ParseAPI::Block* b, Address addr,
       std::vector<std::pair<Absloc, Height> >& heights);
-
    // TODO: Update DataflowAPI manual
+   DATAFLOW_EXPORT void findDefHeightPairs(ParseAPI::Block *b, Address addr,
+      std::vector<std::pair<Absloc, DefHeightSet> > &defHeights);
+
    DATAFLOW_EXPORT bool canGetFunctionSummary();
    DATAFLOW_EXPORT bool getFunctionSummary(TransferSet &summary);
 
@@ -385,47 +540,53 @@ private:
       AbslocState &input);
    void meetSummaryInputs(ParseAPI::Block *b, TransferSet &blockInput,
       TransferSet &input);
+   DefHeight meetDefHeight(const DefHeight &dh1, const DefHeight &dh2);
+   DefHeightSet meetDefHeights(const DefHeightSet &s1,
+      const DefHeightSet &s2);
    void meet(const AbslocState &source, AbslocState &accum);
    void meetSummary(const TransferSet &source, TransferSet &accum);
    AbslocState getSrcOutputLocs(ParseAPI::Edge* e);
    TransferSet getSummarySrcOutputLocs(ParseAPI::Edge *e);
-   void computeInsnEffects(ParseAPI::Block *block, InstructionPtr insn,
-      const Offset off, TransferFuncs &xferFunc, TransferSet &funcSummary);
+   void computeInsnEffects(ParseAPI::Block *block, InstructionAPI::Instruction insn,
+                           const Offset off, TransferFuncs &xferFunc, TransferSet &funcSummary);
 
-   bool isCall(InstructionPtr insn);
-   bool isJump(InstructionPtr insn);
-   bool handleNormalCall(InstructionPtr insn, ParseAPI::Block *block,
-      Offset off, TransferFuncs &xferFuncs, TransferSet &funcSummary);
-   bool handleThunkCall(InstructionPtr insn, TransferFuncs &xferFuncs);
-   bool handleJump(InstructionPtr insn, ParseAPI::Block *block,
-      Offset off, TransferFuncs &xferFuncs, TransferSet &funcSummary);
-   void handlePushPop(InstructionPtr insn, ParseAPI::Block *block,
-      const Offset off, int sign, TransferFuncs &xferFuncs);
-   void handleReturn(InstructionPtr insn, TransferFuncs &xferFuncs);
-   void handleAddSub(InstructionPtr insn, ParseAPI::Block *block,
-      const Offset off, int sign, TransferFuncs &xferFuncs);
-   void handleLEA(InstructionPtr insn, TransferFuncs &xferFuncs);
+   bool isCall(InstructionAPI::Instruction insn);
+   bool isJump(InstructionAPI::Instruction insn);
+   bool handleNormalCall(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                         Offset off, TransferFuncs &xferFuncs, TransferSet &funcSummary);
+   bool handleThunkCall(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                        const Offset off, TransferFuncs &xferFuncs);
+   bool handleJump(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                   Offset off, TransferFuncs &xferFuncs, TransferSet &funcSummary);
+   void handlePushPop(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                      const Offset off, int sign, TransferFuncs &xferFuncs);
+   void handleReturn(InstructionAPI::Instruction insn, TransferFuncs &xferFuncs);
+   void handleAddSub(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                     const Offset off, int sign, TransferFuncs &xferFuncs);
+   void handleLEA(InstructionAPI::Instruction insn, TransferFuncs &xferFuncs);
    void handleLeave(ParseAPI::Block *block, const Offset off,
       TransferFuncs &xferFuncs);
    void handlePushPopFlags(int sign, TransferFuncs &xferFuncs);
    void handlePushPopRegs(int sign, TransferFuncs &xferFuncs);
-   void handlePowerAddSub(InstructionPtr insn, ParseAPI::Block *block,
-      const Offset off, int sign, TransferFuncs &xferFuncs);
-   void handlePowerStoreUpdate(InstructionPtr insn, ParseAPI::Block *block,
-      const Offset off, TransferFuncs &xferFuncs);
-   void handleMov(InstructionPtr insn, ParseAPI::Block *block,
-      const Offset off, TransferFuncs &xferFuncs);
-   void handleZeroExtend(InstructionPtr insn, ParseAPI::Block *block,
-      const Offset off, TransferFuncs &xferFuncs);
-   void handleSignExtend(InstructionPtr insn, ParseAPI::Block *block,
-      const Offset off, TransferFuncs &xferFuncs);
-   void handleSpecialSignExtend(InstructionPtr insn, TransferFuncs &xferFuncs);
-   void handleXor(InstructionPtr insn, ParseAPI::Block *block, const Offset off,
-      TransferFuncs &xferFuncs);
-   void handleDiv(InstructionPtr insn, TransferFuncs &xferFuncs);
-   void handleMul(InstructionPtr insn, TransferFuncs &xferFuncs);
-   void handleDefault(InstructionPtr insn, ParseAPI::Block *block,
-      const Offset off, TransferFuncs &xferFuncs);
+   void handlePowerAddSub(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                          const Offset off, int sign, TransferFuncs &xferFuncs);
+   void handlePowerStoreUpdate(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                               const Offset off, TransferFuncs &xferFuncs);
+   void handleMov(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                  const Offset off, TransferFuncs &xferFuncs);
+   void handleZeroExtend(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                         const Offset off, TransferFuncs &xferFuncs);
+   void handleSignExtend(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                         const Offset off, TransferFuncs &xferFuncs);
+   void handleSpecialSignExtend(InstructionAPI::Instruction insn, TransferFuncs &xferFuncs);
+   void handleXor(InstructionAPI::Instruction insn, ParseAPI::Block *block, const Offset off,
+                  TransferFuncs &xferFuncs);
+   void handleDiv(InstructionAPI::Instruction insn, TransferFuncs &xferFuncs);
+   void handleMul(InstructionAPI::Instruction insn, TransferFuncs &xferFuncs);
+   void handleSyscall(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                      const Offset off, TransferFuncs &xferFuncs);
+   void handleDefault(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                      const Offset off, TransferFuncs &xferFuncs);
 
    long extractDelta(InstructionAPI::Result deltaRes);
    bool getSubReg(const MachRegister &reg, MachRegister &subreg);
@@ -433,8 +594,13 @@ private:
    void copyBaseSubReg(const MachRegister &reg, TransferFuncs &xferFuncs);
    void bottomBaseSubReg(const MachRegister &reg, TransferFuncs &xferFuncs);
 
+
    Height getStackCleanAmount(ParseAPI::Function *func);
 
+   // This constant limits the number of definitions we track per register. If
+   // more than this many definitions are found, the register is considered to
+   // be BOTTOM, and the definitions tracked so far are dropped.
+   static const unsigned DEF_LIMIT = 2;
 
    ParseAPI::Function *func;
 

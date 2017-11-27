@@ -74,7 +74,7 @@ class BPATCH_DLL_EXPORT BPatch_parRegion {
 
   BPatch_Vector<BPatch_instruction *> * getInstructions();
 
-  bool  getInstructions(std::vector<Dyninst::InstructionAPI::Instruction::Ptr>& insns);
+  bool  getInstructions(std::vector<Dyninst::InstructionAPI::Instruction>& insns);
 
 
   /** BPatch_parRegion::size   */

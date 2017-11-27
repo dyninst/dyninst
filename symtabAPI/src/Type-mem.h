@@ -33,10 +33,11 @@
 
 #include "symtabAPI/h/Type.h"
 #include "boost/static_assert.hpp"
+#include <utility>
 
 namespace Dyninst {
   namespace SymtabAPI {
-    extern std::map<void *, size_t> type_memory;
+    extern tbb::concurrent_hash_map<void *, size_t> type_memory;
   }
 }
 
@@ -47,9 +48,9 @@ template<class T>
 T *upgradePlaceholder(Type *placeholder, T *new_type)
 {
   void *mem = (void *) placeholder;
-  assert(type_memory.count(mem));
-  size_t size = type_memory[mem];
-
+	tbb::concurrent_hash_map<void*, size_t>::accessor a;
+  assert(type_memory.find(a, placeholder));
+	size_t size = a->second;
   assert(sizeof(T) < size);
   memset(mem, 0, size);
 
@@ -67,15 +68,18 @@ T* typeCollection::addOrUpdateType(T *type)
 	//then a caller to this function is likely using 'Type'.  Change
 	//this to a more specific call, e.g. typeFunction instead of Type
 	BOOST_STATIC_ASSERT(sizeof(T) != sizeof(Type));
+    boost::lock_guard<boost::mutex> g(placeholder_mutex);
 
 	Type *existingType = findTypeLocal(type->getID());
+    tbb::concurrent_hash_map<int, Type*>::accessor id_accessor;
+    tbb::concurrent_hash_map<std::string, Type*>::accessor name_accessor;
 	if (!existingType) 
 	{
 		if ( type->getName() != "" ) 
 		{
-			typesByName[ type->getName() ] = type;
+			typesByName.insert(name_accessor, std::make_pair(type->getName(), type));
 		}
-		typesByID[ type->getID() ] = type;
+		typesByID.insert(id_accessor, std::make_pair(type->getID(), type));
 		type->incrRefCount();
 		return type;
 	}
@@ -103,18 +107,20 @@ T* typeCollection::addOrUpdateType(T *type)
 	/* The type may have gained a name. */
 	if ( existingType->getName() != "") 
 	{
-		if (typesByName.find(existingType->getName()) != typesByName.end()) 
+		tbb::concurrent_hash_map<std::string, Type*>::accessor a;
+		bool found = typesByName.find(a, existingType->getName());
+		if (found)
 		{
-			if (typesByName[ existingType->getName() ] != existingType) 
+			if (a->second != existingType)
 			{
-				typesByName[ existingType->getName() ]->decrRefCount();
-				typesByName[ existingType->getName() ] = existingType;
+				a->second->decrRefCount();
+				a->second = existingType;
 				existingType->incrRefCount();
 			}
 		} 
 		else 
 		{
-			typesByName[ existingType->getName() ] = existingType;
+			typesByName.insert(a, std::make_pair(existingType->getName(), existingType));
 			existingType->incrRefCount();
 		}
 	}

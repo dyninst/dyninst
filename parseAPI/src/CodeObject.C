@@ -35,7 +35,7 @@
 #include "Parser.h"
 #include "debug_parse.h"
 
-#include "version.h"
+#include "dyninstversion.h"
 
 using namespace std;
 using namespace Dyninst;
@@ -115,36 +115,47 @@ CodeObject::findFuncByEntry(CodeRegion * cr, Address entry)
 int
 CodeObject::findFuncs(CodeRegion * cr, Address addr, set<Function*> & funcs)
 {
+    assert(parser);
     return parser->findFuncs(cr,addr,funcs);
 }
 int
 CodeObject::findFuncs(CodeRegion * cr, Address start, Address end, set<Function*> & funcs)
 {
+    assert(parser);
 	return parser->findFuncs(cr,start,end,funcs);
 }
 
 Block *
 CodeObject::findBlockByEntry(CodeRegion * cr, Address addr)
 {
+    assert(parser);
     return parser->findBlockByEntry(cr, addr);
 }
 
 Block *
 CodeObject::findNextBlock(CodeRegion * cr, Address addr)
 {
+    assert(parser);
     return parser->findNextBlock(cr, addr);
 }
 
 int
 CodeObject::findBlocks(CodeRegion * cr, Address addr, set<Block*> & blocks)
 {
+    assert(parser);
     return parser->findBlocks(cr,addr,blocks);
 }
 
 // find without parsing.
 int CodeObject::findCurrentBlocks(CodeRegion * cr, Address addr, set<Block*> & blocks)
 {
+    assert(parser);
     return parser->findCurrentBlocks(cr,addr,blocks);
+}
+
+int CodeObject::findCurrentFuncs(CodeRegion * cr, Address addr, set<Function*> & funcs)
+{
+    return parser->findCurrentFuncs(cr,addr,funcs);
 }
 
 void
@@ -196,7 +207,7 @@ void
 CodeObject::add_edge(Block * src, Block * trg, EdgeTypeEnum et)
 {
     if (trg == NULL) {
-        parser->link(src, parser->_sink, et, true);
+        parser->link(src, Block::sink_block, et, true);
     } else {
         parser->link(src,trg,et,false);
     }
@@ -229,6 +240,7 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
             // don't add edges that already exist 
             // (this could happen because of shared code)
             bool edgeExists = false;
+            boost::lock_guard<Block> g(*worklist[idx].source);
             const Block::edgelist & existingTs = worklist[idx].source->targets();
             for (Block::edgelist::const_iterator tit = existingTs.begin();
                  tit != existingTs.end();
@@ -251,6 +263,7 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
                         fit != funcs.end();
                         fit++) 
                     {
+                        boost::lock_guard<Block> g(*worklist[idx].source);
                         const Block::edgelist & tedges = worklist[idx].source->targets();
                         for(Block::edgelist::const_iterator eit = tedges.begin();
                             eit != tedges.end();
@@ -342,10 +355,11 @@ bool CodeObject::isIATcall(Address insnAddr, std::string &calleeName)
    using namespace InstructionAPI;
    InstructionDecoder dec = InstructionDecoder(bufferBegin,
       InstructionDecoder::maxInstructionLength, reg->getArch());
-   InstructionAdapter_t ah = InstructionAdapter_t(
-      dec, insnAddr, this, reg, cs(), blk);
-
-   return ah.isIATcall(calleeName);
+   InstructionAdapter_t* ah = InstructionAdapter_t::makePlatformIA_IAPI(
+      cs()->getArch(), dec, insnAddr, this, reg, cs(), blk);
+   bool ret = ah->isIATcall(calleeName);
+   delete ah;
+   return ret;
 }
 
 void CodeObject::startCallbackBatch() {
@@ -395,3 +409,5 @@ Address CodeObject::getFreeAddr() const {
    }
    return hi;
 }
+
+ParseData *CodeObject::parse_data() { return parser->parse_data(); }

@@ -69,7 +69,7 @@ namespace Dyninst
             private:
                 INSTRUCTION_EXPORT InstructionDecoder_x86(const InstructionDecoder_x86& o);
             public:
-                INSTRUCTION_EXPORT virtual Instruction::Ptr decode(InstructionDecoder::buffer& b);
+                INSTRUCTION_EXPORT virtual Instruction decode(InstructionDecoder::buffer& b);
       
                 INSTRUCTION_EXPORT virtual void setMode(bool is64);
                 virtual void doDelayedDecode(const Instruction* insn_to_complete);
@@ -81,7 +81,8 @@ namespace Dyninst
                 bool decodeOneOperand(const InstructionDecoder::buffer& b,
 				      const NS_x86::ia32_operand& operand,
                                       int & imm_index,
-                                      const Instruction* insn_to_complete, bool isRead, bool isWritten);
+                                      const Instruction* insn_to_complete, 
+                                      bool isRead, bool isWritten, bool isImplicit);
                 virtual void decodeOpcode(InstructionDecoder::buffer& b);
       
                 Expression::Ptr makeSIBExpression(const InstructionDecoder::buffer& b);
@@ -94,12 +95,13 @@ namespace Dyninst
 
             private:
                 void doIA32Decode(InstructionDecoder::buffer& b);
-		bool isDefault64Insn();
+		        bool isDefault64Insn();
 		
-                static TLS_VAR ia32_locations* locs;
-                static TLS_VAR NS_x86::ia32_instruction* decodedInstruction;
-                static TLS_VAR bool sizePrefixPresent;
-                static TLS_VAR bool addrSizePrefixPresent;
+                ia32_locations* locs;
+                NS_x86::ia32_instruction* decodedInstruction;
+                bool sizePrefixPresent;
+                bool addrSizePrefixPresent;
+                bool is64BitMode;
         };
     };
 };

@@ -1,0 +1,15 @@
+##msub_execute
+bits(datasize) operand1 = X[n];
+bits(datasize) operand2 = X[m];
+bits(destsize) operand3 = X[a];
+
+integer result;
+
+if sub_op then
+    result = UInt(operand3) - (UInt(operand1) * UInt(operand2));
+else
+    result = UInt(operand3) + (UInt(operand1) * UInt(operand2));
+end
+
+X[d] = result<destsize-1:0>;
+@@

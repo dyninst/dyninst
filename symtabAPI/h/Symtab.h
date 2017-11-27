@@ -42,7 +42,7 @@
 #include "ProcReader.h"
 #include "IBSTree.h"
 
-#include "version.h"
+#include "dyninstversion.h"
 
 #include "boost/shared_ptr.hpp"
 #include "boost/multi_index_container.hpp"
@@ -465,7 +465,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    static boost::shared_ptr<typeCollection> setupStdTypes();
    static boost::shared_ptr<builtInTypeCollection> setupBuiltinTypes();
-
+    boost::mutex symbols_mutex;
 
    std::string member_name_;
    Offset member_offset_;
@@ -621,7 +621,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
 /**
  * Used to represent something like a C++ try/catch block.  
- * Currently only used on Linux/x86
+ * Currently only used on Linux
  **/
 SYMTAB_EXPORT  std::ostream &operator<<(std::ostream &os, const ExceptionBlock &q);
 

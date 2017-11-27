@@ -101,7 +101,7 @@ class CFWidget : public Widget {
   virtual std::string format() const;
 
   virtual Address addr() const { return addr_; }
-  virtual InstructionAPI::Instruction::Ptr insn() const { return insn_; }
+  virtual InstructionAPI::Instruction insn() const { return insn_; }
 
   void setGap(unsigned gap) { gap_ = gap; }
   void setOrigTarget(Address a) { origTarget_ = a; }
@@ -122,7 +122,7 @@ class CFWidget : public Widget {
      addr_(a), 
      origTarget_(0) {};
 
-   CFWidget(InstructionAPI::Instruction::Ptr insn,
+   CFWidget(InstructionAPI::Instruction insn,
           Address addr);
 
    TrackerElement *tracker(const RelocBlock *) const;
@@ -139,7 +139,7 @@ class CFWidget : public Widget {
 
   unsigned gap_;
 
-  InstructionAPI::Instruction::Ptr insn_;
+  InstructionAPI::Instruction insn_;
   Address addr_;
 
   // If we were a PC-relative indirect store that data here
@@ -161,32 +161,32 @@ class CFWidget : public Widget {
   // The Instruction input allows pulling out ancillary data (e.g.,
   // conditions, prediction, etc.
   bool generateBranch(CodeBuffer &gens,
-		      TargetInt *to,
-		      InstructionAPI::Instruction::Ptr insn,
-                      const RelocBlock *trace,
-		      bool fallthrough);
+					  TargetInt *to,
+					  InstructionAPI::Instruction insn,
+					  const RelocBlock *trace,
+					  bool fallthrough);
 
   bool generateCall(CodeBuffer &gens,
-		    TargetInt *to,
-                    const RelocBlock *trace,
-		    InstructionAPI::Instruction::Ptr insn); 
+					TargetInt *to,
+					const RelocBlock *trace,
+					InstructionAPI::Instruction insn);
 
   bool generateConditionalBranch(CodeBuffer &gens,
-				 TargetInt *to,
-                                 const RelocBlock *trace,
-				 InstructionAPI::Instruction::Ptr insn); 
+								 TargetInt *to,
+								 const RelocBlock *trace,
+								 InstructionAPI::Instruction insn);
   // The Register holds the translated destination (if any)
   // TODO replace with the register IDs that Bill's building
   typedef unsigned Register;
   bool generateIndirect(CodeBuffer &gens,
-			Register reg,
-                        const RelocBlock *trace,
-			InstructionAPI::Instruction::Ptr insn);
+						Register reg,
+						const RelocBlock *trace,
+						InstructionAPI::Instruction insn);
   bool generateIndirectCall(CodeBuffer &gens,
-			    Register reg,
-			    InstructionAPI::Instruction::Ptr insn,
-                            const RelocBlock *trace,
-			    Address origAddr);
+							Register reg,
+							InstructionAPI::Instruction insn,
+							const RelocBlock *trace,
+							Address origAddr);
   
   bool generateAddressTranslator(CodeBuffer &buffer,
                                  const codeGen &templ,
@@ -204,18 +204,18 @@ struct CFPatch : public Patch {
     Data } Type;
   // Data: RIP-relative expression for the destination
 
- CFPatch(Type a, 
-         InstructionAPI::Instruction::Ptr b, 
-         TargetInt *c,
-	 const func_instance *d,
-	 Address e = 0);
+ CFPatch(Type a,
+		 InstructionAPI::Instruction b,
+		 TargetInt *c,
+		 const func_instance *d,
+		 Address e = 0);
   
   virtual bool apply(codeGen &gen, CodeBuffer *buf);
   virtual unsigned estimate(codeGen &templ);
   virtual ~CFPatch();
 
   Type type;
-  InstructionAPI::Instruction::Ptr orig_insn;
+  InstructionAPI::Instruction orig_insn;
   TargetInt *target;
   const func_instance *func;
   Address origAddr_;  

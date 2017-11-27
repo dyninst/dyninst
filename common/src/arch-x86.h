@@ -541,7 +541,6 @@ enum VEX_TYPE
 #endif
 
 COMMON_EXPORT void ia32_set_mode_64(bool mode);
-COMMON_EXPORT bool ia32_is_mode_64();
 
 /**
  * AVX/AVX2/EVEX addressing modes (not in manual).
@@ -640,6 +639,37 @@ enum { sNONE=0, // the instruction does something that cannot be classified as r
 /* This should equal the first operand semantic where 4 operands are used. */
 #define s4OP s1W2R3R4R
 
+/* Implicit operand specifier */
+#define s1I (1 << 16) /* 1st operand is implicit */
+#define s2I (1 << 17) /* 2nd operand is implicit */
+#define s3I (1 << 18) /* 3rd operand is implicit */
+#define s4I (1 << 19) /* 4th operand is implicit */
+
+/* Implicit mask getters */
+#define sGetImplicitOP1(b) ((b) & s1I)
+#define sGetImplicitOP2(b) ((b) & s2I)
+#define sGetImplicitOP3(b) ((b) & s3I)
+#define sGetImplicitOP4(b) ((b) & s4I)
+#define sGetImplicitOPs(b) ((b) & 0xFFFF0000)
+#define sGetImplicitOP(b, i) ((b) & (1 << (16 + (i))))
+
+/* Implicit mask setters */
+#define sSetImplicitOP1(b) ((b) | s1I)
+#define sSetImplicitOP2(b) ((b) | s12)
+#define sSetImplicitOP3(b) ((b) | s13)
+#define sSetImplicitOP4(b) ((b) | s14)
+
+/* Instruction decoration descriptors */
+#define sGetDecoration(b) ((b) & 0xFFFF)
+#define sSetDecoration(b, dec) (((b) & ~0xFFFF) | (dec))
+
+enum { 
+    s1D = 1, /* Take decoration from 1st operand */
+    s1D2D /* Take decoration from 1st, 2nd operand in that order */
+};
+
+/* Masks */
+#define FPOS 17
 
 struct modRMByte {
   unsigned mod : 2;
@@ -657,7 +687,7 @@ class ia32_instruction;
 
 class ia32_prefixes
 {
-  friend COMMON_EXPORT bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& insn);
+  friend COMMON_EXPORT bool ia32_decode_prefixes(const unsigned char *addr, ia32_instruction &insn, bool mode_64);
   friend bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes&,
                               ia32_locations *loc);
  private:
@@ -817,7 +847,10 @@ struct ia32_entry {
   // code to decode memory access - this field should be seen as two 16 bit fields
   // the lower half gives operand semantics, e.g. s1RW2R, the upper half is a fXXX hack if needed
   // before hating me for this: it takes a LOT less time to add ONE field to ~2000 table lines!
+  // The upper 3 bits of this field (bits 29, 30, 31) are specifiers for implicit operands.
   unsigned int opsema;  
+
+  unsigned int impl_dec; /* Implicit operands and decoration descriptions */
 };
 
 using std::vector;
@@ -840,24 +873,20 @@ class ia32_instruction
                                             const ia32_entry& gotit, 
                                             const char* addr, 
                                             ia32_instruction& instruct);
-  friend COMMON_EXPORT bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& insn);
-  friend COMMON_EXPORT ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr,
-		  		       ia32_instruction& instruct);
-  friend COMMON_EXPORT int ia32_decode_opcode(unsigned int capa,
-                        const unsigned char* addr, ia32_instruction& instruct, 
-                        ia32_entry** gotit_ret);
-  friend unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& gotit, 
-                                            const unsigned char* addr, ia32_instruction& instruct,
-                                            ia32_memacc *mac);
+  friend COMMON_EXPORT bool ia32_decode_prefixes(const unsigned char *addr, ia32_instruction &insn, bool mode_64);
+  friend COMMON_EXPORT ia32_instruction &
+  ia32_decode(unsigned int capa, const unsigned char *addr, ia32_instruction &instruct, bool mode_64);
+  friend COMMON_EXPORT int
+  ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instruction &instruct, ia32_entry **gotit_ret,
+                       bool mode_64);
+  friend unsigned int ia32_decode_operands(const ia32_prefixes &pref, const ia32_entry &gotit, const unsigned char *addr,
+                                             ia32_instruction &instruct, ia32_memacc *mac, bool mode_64);
   friend ia32_instruction& ia32_decode_FP(const ia32_prefixes& pref, const unsigned char* addr,
                                           ia32_instruction& instruct);
-  friend unsigned int ia32_emulate_old_type(ia32_instruction& instruct);
-  friend ia32_instruction& ia32_decode_FP(unsigned int opcode, 
-                                          const ia32_prefixes& pref,
-                                          const unsigned char* addr, 
-                                          ia32_instruction& instruct,
-					  ia32_entry * entry,
-                                          ia32_memacc *mac);
+  friend unsigned int ia32_emulate_old_type(ia32_instruction &instruct, bool mode_64);
+  friend ia32_instruction &
+  ia32_decode_FP(unsigned int opcode, const ia32_prefixes &pref, const unsigned char *addr, ia32_instruction &instruct,
+                   ia32_entry *entry, ia32_memacc *mac, bool mode_64);
 
   unsigned int   size;
   ia32_prefixes  prf;
@@ -888,6 +917,8 @@ class ia32_instruction
 
   COMMON_EXPORT static dyn_hash_map<entryID, flagInfo> const& getFlagTable();
   static void initFlagTable(dyn_hash_map<entryID, flagInfo>&);
+private:
+    static dyn_hash_map<entryID, flagInfo> flagTable;
   
 };
 
@@ -914,7 +945,7 @@ class ia32_instruction
 #define IA32_SIZE_DECODER 0
 
 /* TODO: documentation*/
-COMMON_EXPORT bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& insn);
+COMMON_EXPORT bool ia32_decode_prefixes(const unsigned char *addr, ia32_instruction &insn, bool mode_64);
 
 /**
  * Decode just the opcode of the given instruction. This implies that
@@ -922,9 +953,9 @@ COMMON_EXPORT bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruct
  * and addr has been moved past the prefix bytes. Returns zero on success,
  * non zero otherwise.
  */
-COMMON_EXPORT int ia32_decode_opcode(unsigned int capa, 
-        const unsigned char* addr, ia32_instruction& instruct, 
-        ia32_entry** gotit_ret);
+COMMON_EXPORT int
+ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instruction &instruct, ia32_entry **gotit_ret,
+                   bool mode_64);
 
 /**
  * Do a complete decoding of the instruction at the given address. This
@@ -934,8 +965,8 @@ COMMON_EXPORT int ia32_decode_opcode(unsigned int capa,
  * is not defined. capabilities is a mask of the above flags (IA32_DECODE_*).
  * The mask determines what part of the instruction should be decoded.
  */
-COMMON_EXPORT ia32_instruction& ia32_decode(unsigned int capabilities,
-        const unsigned char* addr, ia32_instruction&);
+COMMON_EXPORT ia32_instruction &
+ia32_decode(unsigned int capabilities, const unsigned char *addr, ia32_instruction &, bool mode_64);
 
 
 enum dynamic_call_address_mode {
@@ -948,8 +979,8 @@ enum dynamic_call_address_mode {
    get_instruction: get the instruction that starts at instr.
    return the size of the instruction and set instType to a type descriptor
 */
-COMMON_EXPORT unsigned get_instruction(const unsigned char *instr, unsigned &instType,
-			 const unsigned char** op_ptr = NULL);
+COMMON_EXPORT unsigned
+get_instruction(const unsigned char *instr, unsigned &instType, const unsigned char **op_ptr, bool mode_64);
 
 /* get the target of a jump or call */
 COMMON_EXPORT Address get_target(const unsigned char *instr, unsigned type, unsigned size,
@@ -1015,14 +1046,14 @@ class instruction {
   
   COMMON_EXPORT instruction *copy() const;
 
-  instruction(const void *ptr) :
+  instruction(const void *ptr, bool mode_64) :
       type_(0), size_(0), ptr_(NULL), op_ptr_(0) {
-      setInstruction((const unsigned char*)ptr);
+      setInstruction((const unsigned char *) ptr, 0, mode_64);
   }
 
-  unsigned setInstruction(const unsigned char *p, Address = 0) {
+  unsigned setInstruction(const unsigned char *p, Address, bool mode_64) {
       ptr_ = p;
-      size_ = get_instruction(ptr_, type_, &op_ptr_);
+      size_ = get_instruction(ptr_, type_, &op_ptr_, mode_64);
       return size_;
   }
 
@@ -1057,9 +1088,7 @@ class instruction {
   COMMON_EXPORT static unsigned jumpSize(long disp, unsigned addr_width);
   COMMON_EXPORT static unsigned maxJumpSize(unsigned addr_width);
 
-  COMMON_EXPORT bool getUsedRegs(pdvector<int> &regs);
-  
-  bool isCall() const { return type_ & IS_CALL; }
+    bool isCall() const { return type_ & IS_CALL; }
   bool isCallIndir() const { return (type_ & IS_CALL) && (type_ & INDIR); }
   bool isReturn() const { return (type_ & IS_RET) || (type_ & IS_RETF); }
   bool isRetFar() const { return type_ & IS_RETF; }
@@ -1069,8 +1098,8 @@ class instruction {
     { return !(type_ & INDIR) && ((type_ & IS_JUMP) || (type_ & IS_JCC)); }
   bool isUncondJump() const
     { return ((type_ & IS_JUMP) && !(type_ & IS_JCC)); }
-  bool isNop() const;
-  bool isIndir() const { return type_ & INDIR; }
+
+    bool isIndir() const { return type_ & INDIR; }
   bool isIllegal() const { return type_ & ILLEGAL; }
   bool isLeave() const { return *ptr_ == 0xC9; }  
   bool isPrivileged() const { return (type_ & PRVLGD); }
@@ -1092,18 +1121,14 @@ class instruction {
 
   static bool isAligned(const Address ) { return true; }
 
-  bool isCmp() const;
-
-  void print()
+    void print()
   {
       for (unsigned i = 0; i < size_; i++)
 	  fprintf(stderr, " %02x", *(ptr_ + i));
       fprintf(stderr, "\n");
   }
-		  
-  int getStackDelta();
 
- private:
+private:
   unsigned type_;   // type of the instruction (e.g. IS_CALL | INDIR)
   unsigned size_;   // size in bytes
   const unsigned char *ptr_;       // pointer to the instruction
@@ -1111,14 +1136,12 @@ class instruction {
 };
 
 /** Only appropriate for call/jump functions **/
-COMMON_EXPORT int get_disp(instruction *insn);
-int set_disp(bool setDisp, instruction *insn, int newOffset, bool outOfFunc);
+    int set_disp(bool setDisp, instruction *insn, int newOffset, bool outOfFunc);
 int displacement(const unsigned char *instr, unsigned type);
 
 /** Returns the immediate operand of an instruction **/
-COMMON_EXPORT Address get_immediate_operand(instruction *instr);
 
-COMMON_EXPORT int count_prefixes(unsigned insnType);
+    COMMON_EXPORT int count_prefixes(unsigned insnType);
 
 inline bool is_disp8(long disp) {
    return (disp >= -128 && disp < 127);

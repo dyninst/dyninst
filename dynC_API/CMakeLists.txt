@@ -14,6 +14,7 @@ add_definitions(-DYY_NO_UNISTD_H)
 endif()
 
 dyninst_library(dynC_API dyninstAPI)
+target_link_private_libraries(dynC_API ${Boost_LIBRARIES})
 if (USE_COTIRE)
     cotire(dynC_API)
 endif()

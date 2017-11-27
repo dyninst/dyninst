@@ -35,114 +35,51 @@
 
 #include <boost/pool/pool.hpp>
 #include "pool_allocators.h"
-
+#include "dthread.h"
+#include <cilk/cilk.h>
+#include <tbb/scalable_allocator.h>
 
 // This is only safe for objects with nothrow constructors...
-template <typename T, typename Alloc = boost::default_user_allocator_new_delete>
-class singleton_object_pool : private boost::singleton_pool<T, sizeof(T), Alloc>
+template <typename T, typename Alloc = tbb::scalable_allocator<T> >
+class singleton_object_pool : public Alloc
 {
-  typedef boost::singleton_pool<T, sizeof(T), Alloc> parent_t;
+    using typename Alloc::pointer;
+    using typename Alloc::size_type;
+public:
+    static typename Alloc::pointer allocate( size_type n ) {
+        return  Alloc().allocate(n);
+    }
+    static void deallocate( typename Alloc::pointer p ) {
+        Alloc().deallocate(p, 1);
+    }
 
- inline static void free(T* free_me)
- {
-   parent_t::free(free_me);
- }
-
- inline static T* malloc()
-  {
-    return reinterpret_cast<T*>(parent_t::malloc());
-  }
- public:
-  inline static bool is_from(T* t)
-  {
-    return parent_t::is_from(t);
-  }
-
-  static T* construct()
-  {
-    T* const temp = malloc();
-    if(temp == 0) return temp;
-    new(temp) T();
-    return temp;
-  }
-  template <typename A1>
-  static T* construct(const A1& a1)
-  {
-    T* const temp = malloc();
-    if(temp == 0) return temp;
-    new(temp) T(a1);
-    return temp;
-  }
-  template <typename A1, typename A2>
-  static T* construct(const A1& a1, const A2& a2)
-  {
-    T* const temp = malloc();
-    if(temp == 0) return temp;
-    new(temp) T(a1, a2);
-    return temp;
-  }
-  template <typename A1, typename A2, typename A3>
-  static T* construct(const A1& a1, const A2& a2, const A3& a3)
-  {
-    T* const temp = malloc();
-    if(temp == 0) return temp;
-    new(temp) T(a1, a2, a3);
-    return temp;
-  }
-  template <typename A1, typename A2, typename A3, typename A4>
-  static T* construct(const A1& a1, const A2& a2, const A3& a3, const A4& a4)
-  {
-    T* const temp = malloc();
-    if(temp == 0) return temp;
-    new(temp) T(a1, a2, a3, a4);
-    return temp;
-  }
-  template <typename A1, typename A2, typename A3, typename A4, typename A5>
-  static T* construct(const A1& a1, const A2& a2, const A3& a3, const A4& a4, const A5& a5)
-  {
-    T* const temp = malloc();
-    if(temp == 0) return temp;
-    new(temp) T(a1, a2, a3, a4, a5);
-    return temp;
-  }
-  template <typename A1, typename A2, typename A3, typename A4, typename A5, typename A6>
-  static T* construct(const A1& a1, const A2& a2, const A3& a3, const A4& a4, const A5& a5, const A6& a6)
-  {
-    T* const temp = malloc();
-    if(temp == 0) return temp;
-    new(temp) T(a1, a2, a3, a4, a5, a6);
-    return temp;
-  }
-
-  inline static void destroy(T* const kill_me)
-  {
-
-    kill_me->~T();
-    free(kill_me);
-  }
-
+    template<typename... Args>
+    static T* construct(Args&&... args)
+    {
+        T* p = allocate(1);
+        Alloc().construct(p, std::forward<Args>(args)...);
+        return p;
+    };
+    static void destroy(typename Alloc::pointer p)
+    {
+        Alloc().destroy(p);
+    };
 
 };
 
-
-template <typename T> 
+template <typename T>
 struct PoolDestructor
 {
-  inline void operator()(T* e) 
-  {
-    // We'll see if this kills performance or not...
-    if(singleton_object_pool<T>::is_from(e)) {
+  inline void operator()(T* e) {
       singleton_object_pool<T>::destroy(e);
-    }
-    
   }
 };
 
 template <typename T> inline
 boost::shared_ptr<T> make_shared(T* t)
 {
-	return boost::shared_ptr<T>(t, PoolDestructor<T>()/*, typename unlocked_fast_alloc<T>::type()*/);
+    return boost::shared_ptr<T>(t, PoolDestructor<T>()/*, typename unlocked_fast_alloc<T>::type()*/);
 }
- 
+
 
 #endif //!defined(SINGLETON_OBJECT_POOL_H)

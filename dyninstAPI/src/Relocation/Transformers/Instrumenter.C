@@ -168,7 +168,7 @@ bool Instrumenter::insnInstrumentation(RelocBlock *trace) {
             RelocBlock::WidgetList::iterator tmp = elem;
             while ((tmp != trace->elements().end()) &&
                    ((*tmp)->addr() == postAddr) &&
-                   ((*tmp)->insn())) ++tmp;
+                   ((*tmp)->insn().isValid())) ++tmp;
             Widget::Ptr inst = makeInstrumentation(post->second);
             if (!inst) {
 	      relocation_cerr << "Failed to make post-instrumentation at " << hex << postAddr << ", ret failed" << dec << endl;
@@ -202,8 +202,8 @@ bool Instrumenter::preCallInstrumentation(RelocBlock *trace) {
    if (!inst) return false;
 
    RelocBlock::WidgetList::reverse_iterator riter = elements.rbegin();
-   InstructionAPI::Instruction::Ptr call_insn = (*riter)->insn();
-   if (call_insn) {
+   InstructionAPI::Instruction call_insn = (*riter)->insn();
+   if (call_insn.isValid()) {
       while (riter != elements.rend() && (*riter)->insn() == call_insn) ++riter;
    }
    elements.insert(riter.base(), inst);
@@ -242,7 +242,7 @@ bool Instrumenter::funcExitInstrumentation(RelocBlock *trace, RelocGraph *cfg) {
    CFWidget::Ptr retcc = trace->cfWidget();
    assert(retcc);
 
-   relocation_cerr << "Checking return statement " << (retcc->insn() ? retcc->insn()->format() : "<no insn>") << ": "
+   relocation_cerr << "Checking return statement " << (retcc->insn().isValid() ? retcc->insn().format() : "<no insn>") << ": "
 		   << (retcc->isConditional() ? "<cond>" : "")
 		   << (retcc->isIndirect() ? "<ind>" : "")
 		   << endl;
@@ -336,7 +336,7 @@ bool Instrumenter::handleCondDirExits(RelocBlock *trace, RelocGraph *cfg, instPo
    CFWidget::Ptr retcc = trace->cfWidget();
    assert(retcc);
 
-   relocation_cerr << "Checking return statement " << (retcc->insn() ? retcc->insn()->format() : "<no insn>") << ": "
+   relocation_cerr << "Checking return statement " << (retcc->insn().isValid() ? retcc->insn().format() : "<no insn>") << ": "
 		   << (retcc->isConditional() ? "<cond>" : "")
 		   << (retcc->isIndirect() ? "<ind>" : "")
 		   << endl;

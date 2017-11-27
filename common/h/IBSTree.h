@@ -77,6 +77,11 @@
 #undef min
 #undef max
 
+#include <boost/thread/locks.hpp>
+#include <boost/thread/lockable_adapter.hpp>
+#include <boost/thread/shared_mutex.hpp>
+#include <boost/thread/shared_lock_guard.hpp>
+
 namespace Dyninst {
 
 namespace IBS {
@@ -160,7 +165,8 @@ class IBSNode {
 };
 
 template<class ITYPE = SimpleInterval<> >
-class IBSTree {
+class IBSTree : public boost::upgrade_lockable_adapter<boost::upgrade_mutex>
+{
 public:
     typedef typename ITYPE::type interval_type;
     typedef IBSNode<ITYPE>* iterator;
@@ -173,6 +179,7 @@ public:
 
     IBSNode<ITYPE> *nil;
 
+private:
     /** size of tree **/
     int treeSize;
 
@@ -185,8 +192,6 @@ public:
     /** RB-tree right rotation with modification to enforce IBS invariants **/
     void rightRotate(IBSNode<ITYPE> *);
 
-    /** Node deletion **/
-    void deleteFixup(IBSNode<ITYPE> *);
 
     void removeInterval(IBSNode<ITYPE> *R, ITYPE *range);
 
@@ -224,7 +229,7 @@ public:
     int height(IBSNode<ITYPE> *n);
     int CountMarks(IBSNode<ITYPE> *R) const;
 
-    unsigned MemUse() const;
+public:
     friend std::ostream& operator<<(std::ostream& stream, const IBSTree<ITYPE>& tree)
     {
         return stream << *(tree.root);
@@ -235,9 +240,11 @@ public:
     /** public for debugging purposes **/
     //StatContainer stats_;
 
-    IBSTree() : treeSize(0) {
-        nil = new IBSNode<ITYPE>;
-        root = nil;
+    IBSTree() :
+        nil(new IBSNode<ITYPE>),
+        treeSize(0),
+        root(nil)
+    {
         //stats_.add("insert",TimerStat);
         //stats_.add("remove",TimerStat);
     }     
@@ -247,21 +254,36 @@ public:
         delete nil;
     }
 
-    size_type size() const { return treeSize; }
-    const_iterator begin() const {
+    size_type size() const {
+        boost::shared_lock_guard<const IBSTree<ITYPE> > g(*this);
+        return treeSize;
+    }
+
+    const_iterator begin(boost::shared_lock_guard<const IBSTree<ITYPE> >& g) const {
         iterator b = root;
         while(root->left) b = root->left;
         return b;
     }
-    const_iterator end() const {
+
+    const_iterator begin() const {
+        boost::shared_lock_guard<const IBSTree<ITYPE> > g(*this);
+        return begin(g);
+    }
+    const_iterator end(boost::shared_lock_guard<const IBSTree<ITYPE> >& g) const {
         iterator e = root;
         while(root->right) e = root->right;
         return e;
-
+    }
+    const_iterator end() {
+        boost::shared_lock_guard<const IBSTree<ITYPE> > g(*this);
+        return end(g);
     }
     int CountMarks() const;
     
-    bool empty() const { return (root == nil); }
+    bool empty() const {
+        boost::shared_lock_guard<const IBSTree<ITYPE> > g(*this);
+        return (root == nil);
+    }
 
     void insert(ITYPE *);
 
@@ -281,7 +303,10 @@ public:
     /** Delete all entries in the tree **/
     void clear();
 
-    void PrintPreorder() { PrintPreorder(root); }
+    void PrintPreorder() {
+        boost::lock_guard<mutex_type> g(lockable());
+        PrintPreorder(root);
+    }
 };
 
 template<class ITYPE>
@@ -751,6 +776,7 @@ int IBSTree<ITYPE>::CountMarks(IBSNode<ITYPE> *R) const
 template<class ITYPE>
 void IBSTree<ITYPE>::insert(ITYPE *range)
 {
+    boost::lock_guard<IBSTree<ITYPE> > g(*this);
     //stats_.startTimer("insert");
 
     // Insert the endpoints of the range, rebalancing if new
@@ -770,6 +796,7 @@ void IBSTree<ITYPE>::insert(ITYPE *range)
 template<class ITYPE>
 void IBSTree<ITYPE>::remove(ITYPE * range)
 {
+    boost::lock_guard<IBSTree<ITYPE> > g(*this);
     //stats_.startTimer("remove");
 
     // 1. Remove all interval markers corresponding to range from the tree,
@@ -794,6 +821,7 @@ void IBSTree<ITYPE>::remove(ITYPE * range)
 template<class ITYPE>
 int IBSTree<ITYPE>::find(interval_type X, std::set<ITYPE *> &out) const
 {
+    boost::shared_lock_guard<const IBSTree<ITYPE> > g(*this);
     unsigned size = out.size();
     findIntervals(X,root,out);
     return out.size() - size;
@@ -802,6 +830,7 @@ int IBSTree<ITYPE>::find(interval_type X, std::set<ITYPE *> &out) const
 template<class ITYPE>
 int IBSTree<ITYPE>::find(ITYPE * I, std::set<ITYPE *> &out) const
 {
+    boost::shared_lock_guard<const IBSTree<ITYPE> > g(*this);
     unsigned size = out.size();
     findIntervals(I,root,out);
     return out.size() - size;
@@ -810,6 +839,7 @@ int IBSTree<ITYPE>::find(ITYPE * I, std::set<ITYPE *> &out) const
 template<class ITYPE>
 void IBSTree<ITYPE>::successor(interval_type X, std::set<ITYPE *> &out) const
 {
+    boost::shared_lock_guard<const IBSTree<ITYPE> > g(*this);
     IBSNode<ITYPE> *n = root;
     IBSNode<ITYPE> *last = nil;
 
@@ -855,6 +885,7 @@ void IBSTree<ITYPE>::successor(interval_type X, std::set<ITYPE *> &out) const
 template<class ITYPE>
 ITYPE * IBSTree<ITYPE>::successor(interval_type X) const
 {
+    boost::shared_lock_guard<const IBSTree<ITYPE> > g(*this);
     std::set<ITYPE *> out;
     successor(X,out);
     assert( out.size() <= 1 );
@@ -866,6 +897,7 @@ ITYPE * IBSTree<ITYPE>::successor(interval_type X) const
 
 template<class ITYPE>
 void IBSTree<ITYPE>::clear() {
+    boost::lock_guard<IBSTree<ITYPE> > g(*this);
     if(root == nil) return;
     destroy(root);
     root = nil;
@@ -875,6 +907,7 @@ void IBSTree<ITYPE>::clear() {
 template<class ITYPE>
 int IBSTree<ITYPE>::height(IBSNode<ITYPE> *n)
 {
+    boost::shared_lock_guard<const IBSTree<ITYPE> > g(*this);
     if(!n)
         return 0;
     
@@ -890,6 +923,7 @@ int IBSTree<ITYPE>::height(IBSNode<ITYPE> *n)
 template<class ITYPE>
 void IBSTree<ITYPE>::PrintPreorder(IBSNode<ITYPE> *n)
 {
+    boost::shared_lock_guard<const IBSTree<ITYPE> > g(*this);
     if(n == nil) return;
 
     PrintPreorder(n->left);
@@ -907,6 +941,7 @@ void IBSTree<ITYPE>::PrintPreorder(IBSNode<ITYPE> *n)
 template<class ITYPE>
 int IBSTree<ITYPE>::CountMarks() const
 {
+    boost::shared_lock_guard<const IBSTree<ITYPE> > g(*this);
     return CountMarks(root);
 }
 }/* Dyninst */

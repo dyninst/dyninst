@@ -45,35 +45,35 @@ class StackModWidget : public Widget {
 
    TrackerElement *tracker(const RelocBlock *t) const;
   
-   static Ptr create(InstructionAPI::Instruction::Ptr insn,
-		     Address addr,
-             signed long newDisp,
-             Architecture arch);
+   static Ptr create(InstructionAPI::Instruction insn,
+                     Address addr,
+                     signed long newDisp,
+                     Architecture arch);
 
    virtual ~StackModWidget() {};
 
    virtual std::string format() const;
-   virtual unsigned size() const { return insn_->size(); }
+   virtual unsigned size() const { return insn_.size(); }
    virtual Address addr() const { return addr_; }
 
  private:
-   StackModWidget(InstructionAPI::Instruction::Ptr insn,
-	       Address addr,
-           signed long newDisp,
-           Architecture arch) : 
+   StackModWidget(InstructionAPI::Instruction insn,
+                  Address addr,
+                  signed long newDisp,
+                  Architecture arch) :
        insn_(insn), 
        addr_(addr), 
        newDisp_(newDisp),
        arch_(arch) {};
 
-   InstructionAPI::Instruction::Ptr insn_;
+   InstructionAPI::Instruction insn_;
    Address addr_;
    signed long newDisp_;
    Architecture arch_;
 };
 
 struct StackModPatch : public Patch {
-  StackModPatch(InstructionAPI::Instruction::Ptr a, signed long d, Architecture ar, Address ad) :
+  StackModPatch(InstructionAPI::Instruction a, signed long d, Architecture ar, Address ad) :
    orig_insn(a), 
     newDisp(d),
     arch(ar), 
@@ -83,7 +83,7 @@ struct StackModPatch : public Patch {
   virtual unsigned estimate(codeGen &templ);
   virtual ~StackModPatch() {};
   
-  InstructionAPI::Instruction::Ptr orig_insn;
+  InstructionAPI::Instruction orig_insn;
   signed long newDisp;
   Architecture arch;
   Address addr;

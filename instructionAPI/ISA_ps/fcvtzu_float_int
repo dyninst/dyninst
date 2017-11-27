@@ -1,0 +1,26 @@
+##fcvtzu_float_int_execute
+CheckFPAdvSIMDEnabled64();
+
+bits(fltsize) fltval;
+bits(intsize) intval;
+
+case op of
+    when FPConvOp_CVT_FtoI
+        fltval = V[n];
+        intval = FPToFixed(fltval, 0, unsigned, FPCR, rounding);
+        X[d] = intval;
+    end
+    when FPConvOp_CVT_ItoF
+        intval = X[n];
+        fltval = FixedToFP(intval, 0, unsigned, FPCR, rounding);
+        V[d] = fltval;
+    end
+    when FPConvOp_MOV_FtoI
+        intval = Vpart[n,part];
+        X[d] = intval;
+    end
+    when FPConvOp_MOV_ItoF
+        intval = X[n];
+        Vpart[d,part] = intval;
+    end
+@@

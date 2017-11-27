@@ -67,7 +67,7 @@
 
 #if defined( cap_dwarf )
 #include "dwarf.h"
-#include "libdwarf.h"
+#include "elfutils/libdw.h"
 #endif
 
 #if defined(_MSC_VER)
@@ -621,22 +621,22 @@ int image::findMain()
                 // p += (eAddr - eStart);
             // }
 
-            switch(linkedFile->getAddressWidth()) {
-                case 4:
-                    // 32-bit...
-                    startup_printf("%s[%u]:  setting 32-bit mode\n",
-                            FILE__,__LINE__);
-                    ia32_set_mode_64(false);
-                    break;
-                case 8:
-                    startup_printf("%s[%u]:  setting 64-bit mode\n",
-                            FILE__,__LINE__);
-                    ia32_set_mode_64(true);
-                    break;
-                default:
-                    assert(0 && "Illegal address width");
-                    break;
-            }
+//            switch(linkedFile->getAddressWidth()) {
+//                case 4:
+//                    // 32-bit...
+//                    startup_printf("%s[%u]:  setting 32-bit mode\n",
+//                            FILE__,__LINE__);
+//                    ia32_set_mode_64(false);
+//                    break;
+//                case 8:
+//                    startup_printf("%s[%u]:  setting 64-bit mode\n",
+//                            FILE__,__LINE__);
+//                    ia32_set_mode_64(true);
+//                    break;
+//                default:
+//                    assert(0 && "Illegal address width");
+//                    break;
+//            }
 
             Address mainAddress = 0;
 
@@ -704,7 +704,7 @@ int image::findMain()
 		return -1;
 	    }
 
-	    // To get the secont to last instruction, which loads the address of main 
+	    // To get the secont to last instruction, which loads the address of main
 	    auto iit = insns.end();
 	    --iit;
 	    --iit;	    
@@ -723,7 +723,8 @@ int image::findMain()
                 {
                     /* expand failed */
                     mainAddress = 0x0;
-		    startup_printf("%s[%u]:  cannot expand %s from instruction %s\n", FILE__, __LINE__, assignment->format().c_str(), assignment->insn()->format().c_str());   
+		    startup_printf("%s[%u]:  cannot expand %s from instruction %s\n", FILE__, __LINE__, assignment->format().c_str(),
+                           assignment->insn().format().c_str());
                 } else { 
 		    startup_printf("%s[%u]:  try to visit  %s\n", FILE__, __LINE__, ast->format().c_str());   
                     FindMainVisitor fmv;
@@ -1329,10 +1330,6 @@ void image::analyzeImage() {
 #endif
     stats_parse.startTimer(PARSE_ANALYZE_TIMER);
 
-// FIXME necessary?
-#if defined(arch_x86_64)
-    ia32_set_mode_64(getObject()->getAddressWidth() == 8);
-#endif
 
     assert(parseState_ < analyzed);
     if(parseState_ < symtab){

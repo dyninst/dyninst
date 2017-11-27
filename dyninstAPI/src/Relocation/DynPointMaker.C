@@ -47,8 +47,8 @@ Point *DynPointMaker::mkBlockPoint(Point::Type t, PatchMgrPtr m, PatchBlock *b, 
    return new instPoint(t, m, SCAST_BI(b), SCAST_FI(context));
 }
 
-Point *DynPointMaker::mkInsnPoint(Point::Type t, PatchMgrPtr m, PatchBlock *b, Address a, 
-                                  InstructionAPI::Instruction::Ptr i, PatchFunction *context) {
+Point *DynPointMaker::mkInsnPoint(Point::Type t, PatchMgrPtr m, PatchBlock *b, Address a,
+                                  InstructionAPI::Instruction i, PatchFunction *context) {
    return new instPoint(t, m, SCAST_BI(b), a, i, SCAST_FI(context));
 }
 

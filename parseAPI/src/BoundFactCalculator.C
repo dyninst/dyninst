@@ -5,9 +5,8 @@
 #include "BoundFactCalculator.h"
 #include "IndirectASTVisitor.h"
 #include "debug_parse.h"
-#include "JumpTablePred.h"
 #include "Instruction.h"
-
+#include "JumpTableIndexPred.h"
 using namespace Dyninst::InstructionAPI;
 
 void BoundFactsCalculator::NaturalDFS(Node::Ptr cur) {
@@ -49,6 +48,7 @@ static void BuildEdgeFromVirtualEntry(SliceNode::Ptr virtualEntry,
     }
     if (visit.find(curBlock) != visit.end()) return;
     visit.insert(curBlock);
+	boost::lock_guard<Block> g(*curBlock);
     for (auto eit = curBlock->targets().begin(); eit != curBlock->targets().end(); ++eit)
         if ((*eit)->type() != CALL && (*eit)->type() != RET) {
 	    BuildEdgeFromVirtualEntry(virtualEntry, (*eit)->trg(), targetMap, visit, slice);
@@ -204,7 +204,7 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 	    BoundFact* oldFactIn = GetBoundFactIn(curNode);
 	    parsing_printf("Calculate Meet for %lx", node->addr());
 	    if (node->assign()) {
-	        parsing_printf(", insn: %s\n", node->assign()->insn()->format().c_str());
+	        parsing_printf(", insn: %s, assignment %s\n", node->assign()->insn().format().c_str(), node->assign()->format().c_str());
 	    }
 	    else {
 	        if (node->block() == NULL)
@@ -234,7 +234,8 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 
 		// The current node has a transfer function
 		// that changes the analysis results
-		CalcTransferFunction(curNode, newFactOut);
+		if (!slice->isExitNode(curNode))
+		    CalcTransferFunction(curNode, newFactOut);
 
 		if (boundFactsOut.find(curNode) != boundFactsOut.end() && boundFactsOut[curNode] != NULL)
 		    delete boundFactsOut[curNode];
@@ -265,6 +266,7 @@ void BoundFactsCalculator::ThunkBound( BoundFact*& curFact, Node::Ptr src, Node:
     // This function checks whether any found thunk is between
     // the src node and the trg node. If there is any, then we have
     // extra bound information to be added.
+/*    
     ParseAPI::Block *srcBlock;
     Address srcAddr = 0;
     if (src == Node::Ptr())
@@ -297,7 +299,7 @@ void BoundFactsCalculator::ThunkBound( BoundFact*& curFact, Node::Ptr src, Node:
 	}
 
 	parsing_printf("\t\t\tfind thunk at %lx between the source and the target. Add fact", tit->first);
-	BoundValue *bv = new BoundValue(tit->second.value);
+	StridedInterval *bv = new StridedInterval(tit->second.value);
 	bv->Print();
 	if (first && !newCopy) {
 	    newCopy = true;
@@ -306,13 +308,13 @@ void BoundFactsCalculator::ThunkBound( BoundFact*& curFact, Node::Ptr src, Node:
 	curFact->GenFact(VariableAST::create(Variable(AbsRegion(Absloc(tit->second.reg)))), bv, false);
 	first = false;
     }
-
+*/
 
 }
 
 
-static bool IsConditionalJump(Instruction::Ptr insn) {
-    entryID id = insn->getOperation().getID();
+static bool IsConditionalJump(Instruction insn) {
+    entryID id = insn.getOperation().getID();
 
     if (id == e_jz || id == e_jnz ||
         id == e_jb || id == e_jnb ||
@@ -321,6 +323,7 @@ static bool IsConditionalJump(Instruction::Ptr insn) {
 	id == e_jle || id == e_jl ||
 	id == e_jnl || id == e_jnle) return true;
     if (id == aarch64_op_b_cond) return true;
+    if (id == power_op_bc || id == power_op_bcctr || id == power_op_bclr) return true;
     return false;
 }
 
@@ -365,7 +368,7 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	        else
 	            // DOES THIS REALLY SHOW UP IN 32-BIT CODE???
 	            axAST = VariableAST::create(Variable(AbsRegion(Absloc(x86::eax))));
-	        prevFact->GenFact(axAST, new BoundValue(StridedInterval(1,0,8)), false);
+	        prevFact->GenFact(axAST, new StridedInterval(1,0,8), false);
 	    }
 	} else if (srcNode->assign() && IsConditionalJump(srcNode->assign()->insn())) {
 	    // If the predecessor is a conditional jump,
@@ -376,7 +379,7 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 		assert(0);
 	    }
 	}
-	ThunkBound(prevFact, srcNode, node, newCopy);
+	//ThunkBound(prevFact, srcNode, node, newCopy);
 	parsing_printf("\t\tFact from %lx after applying transfer function\n", srcNode->addr());
 	prevFact->Print();
         if (first) {
@@ -400,21 +403,21 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     if (!node->assign()) return;
     if (node->assign() && 
         node->assign()->out().absloc().type() == Absloc::Register &&
-	node->assign()->out().absloc().reg() == MachRegister::getZeroFlag(func->obj()->cs()->getArch())) {
+	node->assign()->out().absloc().reg().isZeroFlag()) {
 	    // zf should be only predecessor of this node
         parsing_printf("\t\tThe predecessor node is zf assignment!\n");
-	newFact->SetPredicate(node->assign(), ExpandAssignment(node->assign()) );
+	newFact->SetPredicate(node->assign(), se.ExpandAssignment(node->assign()) );
 	return;
     }
-    entryID id = node->assign()->insn()->getOperation().getID();
+    entryID id = node->assign()->insn().getOperation().getID();
     // The predecessor is not a conditional jump,
     // then we can determine buond fact based on the src assignment
     parsing_printf("\t\tThe predecessor node is normal node\n");
     parsing_printf("\t\t\tentry id %d\n", id);
 
     AbsRegion &ar = node->assign()->out();
-    Instruction::Ptr insn = node->assign()->insn();
-    pair<AST::Ptr, bool> expandRet = ExpandAssignment(node->assign());
+    Instruction insn = node->assign()->insn();
+    pair<AST::Ptr, bool> expandRet = se.ExpandAssignment(node->assign());
 
     if (expandRet.first == NULL) {
         parsing_printf("\t\t\t No semantic support for this instruction. Assume it does not affect jump target calculation. Ignore it (Treat as identity function) except for ptest. ptest should kill the current predicate\n");
@@ -429,10 +432,10 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 
     AST::Ptr calculation = expandRet.first;
     int derefSize = 0;
-    if (node->assign() && node->assign()->insn() && node->assign()->insn()->readsMemory()) {
-        Instruction::Ptr i = node->assign()->insn();
+    if (node->assign() && node->assign()->insn().isValid() && node->assign()->insn().readsMemory()) {
+        Instruction i = node->assign()->insn();
 	std::vector<Operand> ops;
-	i->getOperands(ops);
+	i.getOperands(ops);
 	for (auto oit = ops.begin(); oit != ops.end(); ++oit) {
 	    Operand o = *oit;
 	    if (o.readsMemory()) {
@@ -454,9 +457,10 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     // In other cases, if the AbsRegion represents a register,
     // the generator is not set.
     if (ar.generator() != NULL)
-        outAST = SimplifyAnAST(RoseAST::create(ROSEOperation(ROSEOperation::derefOp, ar.size()), ar.generator()), 
-	                       PCValue(node->assign()->addr(), 
-			               insn->size(), 
+        outAST = SymbolicExpression::SimplifyAnAST(
+	                       RoseAST::create(ROSEOperation(ROSEOperation::derefOp, ar.size()), ar.generator()), 
+	                       SymbolicExpression::PCValue(node->assign()->addr(), 
+			               insn.size(),
 				       node->assign()->block()->obj()->cs()->getArch()));
 
     else
@@ -476,7 +480,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
  * It is important to further anaylze the operand in bsf rather than directly conclude the bound
     if (id == e_bsf || id == e_bsr) {
 	int size = node->assign()->insn()->getOperand(0).getValue()->size();
-	newFact->GenFact(outAST, new BoundValue(StridedInterval(1,0, size * 8 - 1)), false);
+	newFact->GenFact(outAST, new StridedInterval(StridedInterval(1,0, size * 8 - 1)), false);
         parsing_printf("\t\t\tCalculating transfer function: Output facts\n");
 	newFact->Print();
 	return;
@@ -510,7 +514,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 
     // Assume all SETxx entry ids are contiguous
     if (id >= e_setb && id <= e_setz) {
-        newFact->GenFact(outAST, new BoundValue(StridedInterval(1,0,1)), false);
+        newFact->GenFact(outAST, new StridedInterval(1,0,1), false);
 	parsing_printf("\t\t\tCalculating transfer function: Output facts\n");
 	newFact->Print();
 	return;
@@ -520,7 +524,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     if (bcv.IsResultBounded(calculation)) {
         findBound = true;
         parsing_printf("\t\t\tGenerate bound fact for %s\n", outAST->format().c_str());
-	newFact->GenFact(outAST, new BoundValue(*bcv.GetResultBound(calculation)), false);
+	newFact->GenFact(outAST, new StridedInterval(*bcv.GetResultBound(calculation)), false);
     }
     else {
         parsing_printf("\t\t\tKill bound fact for %s\n", outAST->format().c_str());
@@ -531,19 +535,19 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 	parsing_printf("\t\t\t%s and %s are equal\n", calculation->format().c_str(), outAST->format().c_str());
 	newFact->InsertRelation(calculation, outAST, BoundFact::Equal);
     }
-    if (id == e_movzx)
-        newFact->CheckZeroExtend(outAST);
+//    if (id == e_movzx)
+//        newFact->CheckZeroExtend(outAST);
     newFact->AdjustPredicate(outAST, calculation);
 
     // Now try to track all aliasing.
     // Currently, all variables in the slice are presented as an AST
     // consists of input variables to the slice (the variables that
     // we do not know the sources of their values).
-    newFact->TrackAlias(DeepCopyAnAST(calculation), outAST, findBound);
+    newFact->TrackAlias(SymbolicExpression::DeepCopyAnAST(calculation), outAST, findBound);
 
     // Apply tracking relations to the calculation to generate a
     // potentially stricter bound
-    BoundValue *strictValue = newFact->ApplyRelations(outAST);
+    StridedInterval *strictValue = newFact->ApplyRelations(outAST);
     if (strictValue != NULL) {
         parsing_printf("\t\t\tGenerate stricter bound fact for %s\n", outAST->format().c_str());
 	newFact->GenFact(outAST, strictValue, false);
@@ -587,25 +591,4 @@ BoundFactsCalculator::~BoundFactsCalculator() {
 
 }
 
-pair<AST::Ptr, bool> BoundFactsCalculator::ExpandAssignment(Assignment::Ptr assign) {
-    parsing_printf("Expand assignment : %s Instruction: %s\n", assign->format().c_str(), assign->insn()->format().c_str());
-    if (expandCache.find(assign) != expandCache.end()) {
-        AST::Ptr ast = expandCache[assign];
-        if (ast) return make_pair(ast, true); else return make_pair(ast, false);
-
-    } else {
-        pair<AST::Ptr, bool> expandRet = SymEval::expand(assign, false);
-	if (expandRet.second && expandRet.first) {
-	    parsing_printf("Original expand: %s\n", expandRet.first->format().c_str());
-	    AST::Ptr calculation = SimplifyAnAST(expandRet.first, 
-	                                         PCValue(assign->addr(), 
-						         assign->insn()->size(), 
-							 assign->block()->obj()->cs()->getArch()));
-	    expandCache[assign] = calculation;
-	} else {
-	    expandCache[assign] = AST::Ptr();
-	}
-	return make_pair( expandCache[assign], expandRet.second );
-    }
-}
 

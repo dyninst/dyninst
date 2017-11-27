@@ -3,7 +3,7 @@ set (DYNINST_MINOR_VERSION 3)
 set (DYNINST_PATCH_VERSION 2)
 
 # Debugging
-# set(Boost_DEBUG 1)
+set(Boost_DEBUG 1)
 
 add_definitions(-DBOOST_ALL_NO_LIB=1)
 set (SOVERSION "${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}")
@@ -99,7 +99,7 @@ include (${DYNINST_ROOT}/cmake/options.cmake)
 include (${DYNINST_ROOT}/cmake/optimization.cmake)
 
 # Check for cotire-gcc compatibility
-set(USE_COTIRE true)
+set(USE_COTIRE false)
 IF(CMAKE_COMPILER_IS_GNUCC)
     execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
     string(REGEX MATCHALL "[0-9]+" GCC_VERSION_COMPONENTS ${GCC_VERSION})

@@ -38,6 +38,15 @@ class BPatch_function;
 class StackModChecker;
 class StackAccess;
 
+struct stackmod_exception : public std::runtime_error {
+    stackmod_exception(std::string what) : std::runtime_error(std::string("StackMod failure: ") + what) {}
+};
+
+#define STACKMOD_ASSERT(X) \
+if(!(X)) { \
+    throw(stackmod_exception(#X));\
+}
+
 class BPATCH_DLL_EXPORT StackMod
 {
     public:

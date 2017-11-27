@@ -142,6 +142,7 @@ bool Symtab::deleteSymbolFromIndices(Symbol *sym) {
 
 bool Symtab::deleteSymbol(Symbol *sym)
 {
+    boost::lock_guard<boost::mutex> g(symbols_mutex);
     if (sym->aggregate_) {
         sym->aggregate_->removeSymbol(sym);
     }
@@ -243,6 +244,7 @@ bool Symtab::addSymbol(Symbol *newSym, Symbol *referringSymbol)
 
 bool Symtab::addSymbol(Symbol *newSym) 
 {
+    boost::lock_guard<boost::mutex> g(symbols_mutex);
    if (!newSym) {
     	return false;
    }

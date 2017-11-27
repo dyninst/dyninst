@@ -49,7 +49,7 @@ bool CFGModifier::redirect(Edge *edge, Block *target) {
    bool linkToSink = false;
    if (!edge) return false;
    if (!target) {
-      target = edge->src()->obj()->parser->_sink;
+      target = Block::sink_block;
       linkToSink = true;
    }
    if (edge->trg() == target) return true;
@@ -66,6 +66,7 @@ bool CFGModifier::redirect(Edge *edge, Block *target) {
    // if the source block has a sink edge of the same type, remove this edge
    bool hasSink = false;
    if (linkToSink) {
+      boost::lock_guard<Block> g(*edge->src());
       const Block::edgelist & trgs = edge->src()->targets();
       for (Block::edgelist::const_iterator titer = trgs.begin(); titer != trgs.end(); titer++) {
          if ((*titer)->sinkEdge() && (*titer)->type() == edge->type()) {
@@ -102,7 +103,7 @@ bool CFGModifier::redirect(Edge *edge, Block *target) {
          edge->_type._sink = 0;
       }
 
-      edge->_target = target;
+      edge->_target_off = target->low();
       target->addSource(edge);
       target->obj()->_pcb->addEdge(target, edge, ParseCallback::source);
       edge->src()->obj()->_pcb->modifyEdge(edge, target, ParseCallback::target);
@@ -164,7 +165,7 @@ Block *CFGModifier::split(Block *b, Address a, bool trust, Address newlast) {
 
 
    // 2b)
-   for (vector<Edge *>::iterator iter = b->_trglist.begin(); 
+   for (Block::edgelist::iterator iter = b->_trglist.begin();
         iter != b->_trglist.end(); ++iter) {
       b->obj()->_pcb->removeEdge(b, *iter, ParseCallback::target);
       (*iter)->_source = ret;
@@ -253,7 +254,7 @@ bool CFGModifier::remove(vector<Block*> &blks, bool force) {
       if (!b->_srclist.empty()) {
          if (!force) return false;
 
-         for (std::vector<Edge *>::iterator iter = b->_srclist.begin();
+         for (Block::edgelist::iterator iter = b->_srclist.begin();
               iter != b->_srclist.end(); ++iter) 
          {
             Edge *edge = *iter;
@@ -275,7 +276,7 @@ bool CFGModifier::remove(vector<Block*> &blks, bool force) {
       }
 
       // 3)
-      for (std::vector<Edge *>::iterator iter = b->_trglist.begin();
+      for (Block::edgelist::iterator iter = b->_trglist.begin();
            iter != b->_trglist.end(); ++iter) 
       {
          Edge *edge = *iter;

@@ -199,28 +199,32 @@ unsigned long long PDYN_mulMillion(unsigned long long in) {
    return result;
 }
 
-#if defined(cap_gnu_demangler)
 #include <cxxabi.h>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/lock_guard.hpp>
+
 using namespace abi;
-#endif
 
 char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
 				bool includeTypes )
 {
-  static char* last_symbol = NULL;
-  static bool last_native = false;
-  static bool last_typed = false;
-  static char* last_demangled = NULL;
+  static __thread char* last_symbol = NULL;
+  static __thread bool last_native = false;
+  static __thread bool last_typed = false;
+  static __thread char* last_demangled = NULL;
+   static boost::mutex m;
 
   if(last_symbol && last_demangled && (nativeCompiler == last_native)
       && (includeTypes == last_typed) && (strcmp(symbol, last_symbol) == 0))
   {
       return strdup(last_demangled);
   }
-
-#if defined(cap_gnu_demangler)
    int status;
-   char *demangled = __cxa_demangle(symbol, NULL, NULL, &status);
+   char* demangled;
+   {
+      boost::lock_guard<boost::mutex> g(m);
+      demangled = __cxa_demangle(symbol, NULL, NULL, &status);
+   }
    if (status == -1) {
       //Memory allocation failure.
       return NULL;
@@ -230,16 +234,6 @@ char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
       return NULL;
    }
    assert(status == 0); //Success
-#else
-   int opts = 0;
-   opts |= includeTypes ? DMGL_PARAMS | DMGL_ANSI : 0;
-   //   [ pgcc/CC are the "native" compilers on Linux. Go figure. ]
-   // pgCC's mangling scheme most closely resembles that of the Annotated
-   // C++ Reference Manual, only with "some exceptions" (to quote the PGI
-   // documentation). I guess we'll demangle names with "some exceptions".
-   opts |= nativeCompiler ? DMGL_ARM : 0;
-   char * demangled = cplus_demangle( const_cast< char *>(symbol), opts);
-#endif
 
    if( demangled == NULL ) { return NULL; }
 

@@ -31,11 +31,13 @@
 #include "../h/Operand.h"
 #include "../h/Dereference.h"
 #include "../h/Register.h"
+#include "../h/Immediate.h"
 #include "../h/Expression.h"
+#include "../h/BinaryFunction.h"
+#include "../h/Result.h"
 #include <iostream>
 
 using namespace std;
-
 
 namespace Dyninst
 {
@@ -111,6 +113,8 @@ namespace Dyninst
 	}
       }
     }
+
+
     INSTRUCTION_EXPORT std::string Operand::format(Architecture arch, Address addr) const
     {
       if(!op_value) return "ERROR: format() called on empty operand!";
@@ -124,8 +128,9 @@ namespace Dyninst
               return ret.str();
           }
       }
-      return op_value->format();
+      return op_value->format(arch);
     }
+
     INSTRUCTION_EXPORT Expression::Ptr Operand::getValue() const
     {
       return op_value;

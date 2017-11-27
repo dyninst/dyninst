@@ -35,7 +35,7 @@
 #include "Point.h"
 #include "PatchCallback.h"
 
-#include "version.h"
+#include "dyninstversion.h"
 
 using namespace Dyninst;
 using namespace PatchAPI;
@@ -441,7 +441,7 @@ bool PatchMgr::verify(Location &loc) {
          if (loc.addr < loc.block->start()) return false;
          if (loc.addr > loc.block->last()) return false;
          loc.insn = loc.block->getInsn(loc.addr);
-         if (!loc.insn) return false;
+         if (!loc.insn.isValid()) return false;
          break;
       case Location::Edge_:
          break;

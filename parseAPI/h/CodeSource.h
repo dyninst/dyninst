@@ -41,6 +41,9 @@
 
 #include "InstructionSource.h"
 
+#include <boost/thread/recursive_mutex.hpp>
+#include <boost/thread/lockable_adapter.hpp>
+
 class StatContainer;
 
 namespace Dyninst {
@@ -92,11 +95,12 @@ template <typename OS>
 
 /* A starting point for parsing */
 struct Hint {
-    Hint() : _addr(0), _reg(NULL), _name("") { }
-    Hint(Address a, CodeRegion * r, std::string s) :
-        _addr(a), _reg(r), _name(s) { }
+    Hint() : _addr(0), _size(0), _reg(NULL), _name("") { }
+    Hint(Address a, int size, CodeRegion * r, std::string s) :
+        _addr(a), _size(size), _reg(r), _name(s) { }
 
     Address _addr;
+    int _size;
     CodeRegion * _reg;
     std::string _name;
 
@@ -195,6 +199,7 @@ class PARSER_EXPORT CodeSource : public Dyninst::InstructionSource {
     virtual void decrementCounter(const std::string& /*name*/) const { return; }
     virtual void startTimer(const std::string& /*name*/) const { return; } 
     virtual void stopTimer(const std::string& /*name*/) const { return; }
+    virtual bool findCatchBlockByTryRange(Address /*given try address*/, std::set<Address> & /* catch start */)  const { return false; }
    
  protected:
     CodeSource() : _regions_overlap(false),
@@ -244,7 +249,7 @@ class PARSER_EXPORT SymtabCodeRegion : public CodeRegion {
     SymtabAPI::Region * symRegion() const { return _region; }
 };
 
-class PARSER_EXPORT SymtabCodeSource : public CodeSource {
+class PARSER_EXPORT SymtabCodeSource : public CodeSource, public boost::lockable_adapter<boost::recursive_mutex> {
  private:
     SymtabAPI::Symtab * _symtab;
     bool owns_symtab;
@@ -258,6 +263,15 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource {
     struct hint_filt {
         virtual ~hint_filt() { }
         virtual bool operator()(SymtabAPI::Function * f) =0;
+    };
+
+    struct try_block {
+        Address tryStart;
+	Address tryEnd;
+	Address catchStart;
+	try_block(Address ts, Address te, Address c):
+	    tryStart(ts), tryEnd(te), catchStart(c) {}
+	bool operator< (const try_block &t) const { return tryStart < t.tryStart; }
     };
 
     SymtabCodeSource(SymtabAPI::Symtab *, 
@@ -304,12 +318,13 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource {
     void decrementCounter(const std::string& name) const;
     void startTimer(const std::string& /*name*/) const; 
     void stopTimer(const std::string& /*name*/) const;
-
+    bool findCatchBlockByTryRange(Address /*given try address*/, std::set<Address> & /* catch start */)  const;
  private:
     void init(hint_filt *, bool);
     void init_regions(hint_filt *, bool);
     void init_hints(dyn_hash_map<void*, CodeRegion*> &, hint_filt*);
     void init_linkage();
+    void init_try_blocks();
 
     CodeRegion * lookup_region(const Address addr) const;
     void removeRegion(CodeRegion &); // removes from region tree
@@ -318,7 +333,7 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource {
     
     // statistics
     bool init_stats();
- 
+    std::vector<try_block> try_blocks;
 };
 
 inline bool CodeRegion::contains(const Address addr) const

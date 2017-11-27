@@ -47,184 +47,249 @@
 
 #include "ParseData.h"
 #include "common/src/dthread.h"
+#include <boost/thread/lockable_adapter.hpp>
+#include <boost/thread/shared_mutex.hpp>
+#include <unordered_map>
+#include <atomic>
+#include <tbb/concurrent_unordered_set.h>
 
 using namespace std;
 
 typedef Dyninst::InsnAdapter::IA_IAPI InstructionAdapter_t;
 
 namespace Dyninst {
-namespace ParseAPI {
+    namespace ParseAPI {
 
-   class CFGModifier;
+        class CFGModifier;
+
+        struct FrameSet : public tbb::concurrent_unordered_set<ParseFrame *> {
+            template<typename ContainerT>
+            FrameSet &operator+=(const ContainerT &c) {
+                insert(c.begin(), c.end());
+                return *this;
+            }
+        };
+
 
 /** This is the internal parser **/
-class Parser {
-   // The CFG modifier needs to manipulate the lookup structures,
-   // which are internal Parser data. 
-   friend class CFGModifier;
- private:
-    Mutex<false> finalize_lock;
+        class Parser {
+            // The CFG modifier needs to manipulate the lookup structures,
+            // which are internal Parser data.
+            friend class CFGModifier;
 
-    // Owning code object
-    CodeObject & _obj;
+        private:
 
-    // CFG object factory
-    CFGFactory & _cfgfact;
+            // Owning code object
+            CodeObject &_obj;
 
-    // Callback notifications
-    ParseCallbackManager & _pcb;
+            // CFG object factory
+            CFGFactory &_cfgfact;
 
-    // region data store
-    ParseData * _parse_data;
+            // Callback notifications
+            ParseCallbackManager &_pcb;
 
-    // All allocated frames
-    vector<ParseFrame *> frames;
+            // region data store
+            ParseData *_parse_data;
 
-    // Delayed frames
-    unsigned num_delayedFrames;
-    std::map<Function *, std::set<ParseFrame *> > delayedFrames;
+            // All allocated frames
+            vector<ParseFrame *> frames;
 
-    // differentiate those provided via hints and
-    // those found through RT or speculative parsing
-    vector<Function *> hint_funcs;
-    vector<Function *> discover_funcs;
+            // Delayed frames
+            struct DelayedFrames : public boost::basic_lockable_adapter<boost::recursive_mutex> {
+                unsigned size;
+                std::map<Function *, std::set<ParseFrame *> > frames;
 
-    set<Function*,Function::less> sorted_funcs;
+            };
+            DelayedFrames delayed_frames;
 
-    // PLT, IAT entries
-    dyn_hash_map<Address, string> plt_entries;
+            // differentiate those provided via hints and
+            // those found through RT or speculative parsing
+            vector<Function *> hint_funcs;
+            vector<Function *> discover_funcs;
 
-    // a sink block for unbound edges
-    Block * _sink;
+            set<Function *, Function::less> sorted_funcs;
 
-    enum ParseState {
-        UNPARSED,       // raw state
-        PARTIAL,        // parsing has started
-        COMPLETE,       // full parsing -- range queries are invalid
-        FINALIZED,
-        UNPARSEABLE     // error condition
-    };
-    ParseState _parse_state;
-    // XXX sanity checking
-    bool _in_parse;
-    bool _in_finalize;
+            // PLT, IAT entries
+            dyn_hash_map<Address, string> plt_entries;
 
- public:
-    Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb);
-    ~Parser();
+            // a sink block for unbound edges
+            Block *_sink;
+            tbb::concurrent_hash_map<unsigned int, unsigned int> time_histogram;
+            enum ParseState {
+                UNPARSED,       // raw state
+                PARTIAL,        // parsing has started
+                COMPLETE,       // full parsing -- range queries are invalid
+                FINALIZED,
+                UNPARSEABLE     // error condition
+            };
+            ParseState _parse_state;
+            // XXX sanity checking
+            bool _in_parse;
+            bool _in_finalize;
 
-    /** Initialization & hints **/
-    void add_hint(Function * f);
+        public:
+            Parser(CodeObject &obj, CFGFactory &fact, ParseCallbackManager &pcb);
 
-    // functions
-    Function * findFuncByEntry(CodeRegion * cr, Address entry);
-    int findFuncs(CodeRegion * cr, Address addr, set<Function*> & funcs);
-    int findFuncs(CodeRegion * cr, Address start, Address end, set<Function*> & funcs);
+            ~Parser();
 
-    // blocks
-    Block * findBlockByEntry(CodeRegion * cr, Address entry);
-    int findBlocks(CodeRegion * cr, Address addr, set<Block*> & blocks);
-    // returns current blocks without parsing.
-    int findCurrentBlocks(CodeRegion* cr, Address addr, std::set<Block*>& blocks);
-    Block * findNextBlock(CodeRegion * cr, Address addr);
+            /** Initialization & hints **/
+            void add_hint(Function *f);
 
-    void parse();
-    void parse_at(CodeRegion *cr, Address addr, bool recursive, FuncSource src);
-    void parse_at(Address addr, bool recursive, FuncSource src);
-    void parse_edges(vector< ParseWorkElem * > & work_elems);
+            // functions
+            Function *findFuncByEntry(CodeRegion *cr, Address entry);
 
-    CFGFactory & factory() const { return _cfgfact; }
-    CodeObject & obj() { return _obj; }
+            int findFuncs(CodeRegion *cr, Address addr, set<Function *> &funcs);
 
-    // removal
-    void remove_block(Block *);
-    void remove_func(Function *);
-    void move_func(Function *, Address new_entry, CodeRegion *new_reg);
+            int findFuncs(CodeRegion *cr, Address start, Address end, set<Function *> &funcs);
 
- public: 
-    /** XXX all strictly internals below this point **/
-    void record_block(Block *b);
-    void record_func(Function *f);
+            // blocks
+            Block *findBlockByEntry(CodeRegion *cr, Address entry);
 
-    void init_frame(ParseFrame & frame);
+            int findBlocks(CodeRegion *cr, Address addr, set<Block *> &blocks);
 
-    void finalize(Function *f);
+            // returns current blocks without parsing.
+            int findCurrentBlocks(CodeRegion *cr, Address addr, std::set<Block *> &blocks);
 
- private:
-    void parse_vanilla();
-    void parse_gap_heuristic(CodeRegion *cr);
-    void probabilistic_gap_parsing(CodeRegion* cr);
-    //void parse_sbp();
+            int findCurrentFuncs(CodeRegion *cr, Address addr, set<Function *> &funcs);
 
-    ParseFrame::Status frame_status(CodeRegion * cr, Address addr);
+            Block *findNextBlock(CodeRegion *cr, Address addr);
 
-    /** CFG structure manipulations **/
-    void end_block(Block *b, InstructionAdapter_t & ah);
-    Block * block_at(Function * owner, 
-            Address addr, 
-            Block * & split);
-    pair<Block*,Edge*> add_edge(
-            ParseFrame & frame,
-            Function * owner,
-            Block * src,
-            Address dst,
-            EdgeTypeEnum et,
-            Edge * exist);
-    Block * split_block(Function * owner,
-            Block *b, 
-            Address addr,
-            Address previnsn);
-    
-    Edge* link(Block *src, Block *dst, EdgeTypeEnum et, bool sink);
-    Edge* link_tempsink(Block *src, EdgeTypeEnum et);
-    void relink(Edge *exist, Block *src, Block *dst);
+            void parse();
 
-    pair<Function*,Edge*> bind_call(
-        ParseFrame & frame, Address target,Block *cur,Edge *exist);
+            void parse_at(CodeRegion *cr, Address addr, bool recursive, FuncSource src);
 
-    void parse_frames(std::vector<ParseFrame *> &, bool);
-    void parse_frame(ParseFrame & frame,bool);
+            void parse_at(Address addr, bool recursive, FuncSource src);
 
-    void resumeFrames(Function * func, vector<ParseFrame *> & work);
-    
-    // defensive parsing details
-    void tamper_post_processing(std::vector<ParseFrame *>&, ParseFrame *);
-    ParseFrame * getTamperAbsFrame(Function *tamperFunc);
+            void parse_edges(vector<ParseWorkElem *> &work_elems);
 
-    /* implementation of the parsing loop */
-    void ProcessUnresBranchEdge(
-        ParseFrame&,
-        Block*,
-        InstructionAdapter_t&,
-        Address target);
-    void ProcessCallInsn(
-        ParseFrame&,
-        Block*,
-        InstructionAdapter_t&,
-        bool,
-        bool,
-        bool,
-        Address);
-    void ProcessReturnInsn(
-        ParseFrame&,
-        Block*,
-        InstructionAdapter_t&);
-    void ProcessCFInsn(
-        ParseFrame&,
-        Block*,
-        InstructionAdapter_t&);
+            CFGFactory &factory() const { return _cfgfact; }
 
-    void finalize();
-    void finalize_funcs(vector<Function *> & funcs);
+            CodeObject &obj() { return _obj; }
 
-    void invalidateContainingFuncs(Function *, Block *);
+            // removal
+            void remove_block(Block *);
 
-    bool getSyscallNumber(Function *, Block *, Address, Architecture, long int &);
+            void remove_func(Function *);
 
-    friend class CodeObject;
-};
+            void move_func(Function *, Address new_entry, CodeRegion *new_reg);
 
-}
+        public:
+            /** XXX all strictly internals below this point **/
+            void record_block(Block *b);
+
+            void record_func(Function *f);
+
+            void init_frame(ParseFrame &frame);
+
+            void finalize_block(Block *b, Function *f);
+
+            void finalize(Function *f);
+
+            ParseData *parse_data() { return _parse_data; }
+
+        private:
+            void parse_vanilla();
+
+            void parse_gap_heuristic(CodeRegion *cr);
+
+            void probabilistic_gap_parsing(CodeRegion *cr);
+            //void parse_sbp();
+
+            ParseFrame::Status frame_status(CodeRegion *cr, Address addr);
+
+            /** CFG structure manipulations **/
+            void end_block(Block *b, InstructionAdapter_t *ah);
+
+            Block *block_at(Function *owner,
+                            Address addr,
+                            Block *&split);
+
+            pair<Block *, Edge *> add_edge(
+                    ParseFrame &frame,
+                    Function *owner,
+                    Block *src,
+                    Address dst,
+                    EdgeTypeEnum et,
+                    Edge *exist);
+
+            Block *split_block(Function *owner,
+                               Block *b,
+                               Address addr,
+                               Address previnsn);
+
+            Edge *link(Block *src, Block *dst, EdgeTypeEnum et, bool sink);
+
+            Edge *link_tempsink(Block *src, EdgeTypeEnum et);
+
+            void relink(Edge *exist, Block *src, Block *dst);
+
+            pair<Function *, Edge *> bind_call(
+                    ParseFrame &frame, Address target, Block *cur, Edge *exist);
+
+            void parse_frames(FrameSet &, bool);
+
+            void parse_frame(ParseFrame &frame, bool);
+
+            void resumeFrames(Function *func, FrameSet &work);
+
+            // defensive parsing details
+            void tamper_post_processing(FrameSet &, ParseFrame *);
+
+            ParseFrame *getTamperAbsFrame(Function *tamperFunc);
+
+            /* implementation of the parsing loop */
+            void ProcessUnresBranchEdge(
+                    ParseFrame &,
+                    Block *,
+                    InstructionAdapter_t *,
+                    Address target);
+
+            void ProcessCallInsn(
+                    ParseFrame &,
+                    Block *,
+                    InstructionAdapter_t *,
+                    bool,
+                    bool,
+                    bool,
+                    Address);
+
+            void ProcessReturnInsn(
+                    ParseFrame &,
+                    Block *,
+                    InstructionAdapter_t *);
+
+            void ProcessCFInsn(
+                    ParseFrame &,
+                    Block *,
+                    InstructionAdapter_t *);
+
+            void finalize();
+
+            void finalize_funcs(vector<Function *> &funcs);
+
+            void invalidateContainingFuncs(Function *, Block *);
+
+            bool getSyscallNumber(Function *, Block *, Address, Architecture, long int &);
+
+            friend class CodeObject;
+
+            Mutex<true> parse_mutex;
+            boost::mutex finalize_mutex;
+
+            FrameSet ProcessOneFrame(ParseFrame *pf, bool recursive);
+
+            void cleanup_frames();
+
+            void processCycle(FrameSet &work, bool recursive);
+
+            void processFixedPoint(FrameSet &work, bool recursive);
+
+            FrameSet postProcessFrame(ParseFrame *pf, bool recursive);
+
+            void updateBlockEnd(Block *b, Address addr, Address previnsn, region_data *rd) const;
+        };
+
+    }
 }
 
 

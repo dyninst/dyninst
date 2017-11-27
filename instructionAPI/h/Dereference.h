@@ -31,10 +31,15 @@
 #if !defined(DEREFERENCE_H)
 #define DEREFERENCE_H
 
+#include "Operand.h"
 #include "Expression.h"
+#include "BinaryFunction.h"
+#include "Immediate.h"
 #include "Register.h"
-#include <sstream>
 #include "Visitor.h"
+#include "ArchSpecificFormatters.h"
+
+#include <sstream>
 
 namespace Dyninst
 {
@@ -94,15 +99,16 @@ namespace Dyninst
 	addressToDereference->getUses(uses);
 	return;
       }
-      /// An %InstructionAST is used by a %Dereference if it is equivalent to the 
-      /// %Dereference or it is used by the lone child of the %Dereference
-      virtual bool isUsed(InstructionAST::Ptr findMe) const
-      {
-	return addressToDereference->isUsed(findMe) || *findMe == *this;
-      }
+        /// An %InstructionAST is used by a %Dereference if it is equivalent to the 
+        /// %Dereference or it is used by the lone child of the %Dereference
+        virtual bool isUsed(InstructionAST::Ptr findMe) const
+        {
+            return addressToDereference->isUsed(findMe) || *findMe == *this;
+        }
+
       virtual std::string format(formatStyle) const
       {
-	std::stringstream retVal;
+    std::stringstream retVal;
 #if defined(DEBUG_MEMORY_ACCESS_WIDTH)
         switch(Expression::userSetValue.type)
         {
@@ -144,10 +150,70 @@ namespace Dyninst
                 break;
         }
 #endif
-	retVal << "[" << addressToDereference->format() << "]";
+    retVal << "[" << addressToDereference->format() << "]";
 //        retVal << addressToDereference->format(memoryAccessStyle);
         return retVal.str();
       }
+
+        virtual std::string format(Architecture arch, formatStyle) const
+        {
+#if defined(DEBUG_MEMORY_ACCESS_WIDTH)
+            switch(Expression::userSetValue.type)
+            {
+                case u8:
+                    retVal << "u8 @ ";
+                    break;
+                case s8:
+                    retVal << "s8 @ ";
+                    break;
+                case u16:
+                    retVal << "u16 @ ";
+                    break;
+                case s16:
+                    retVal << "s16 @ ";
+                    break;
+                case u32:
+                    retVal << "u32 @ ";
+                    break;
+                case s32:
+                    retVal << "s32 @ ";
+                    break;
+                case u64:
+                    retVal << "u64 @ ";
+                    break;
+                case s64:
+                    retVal << "s64 @ ";
+                    break;
+                case sp_float:
+                    retVal << "float @ ";
+                    break;
+                case dp_float:
+                    retVal << "double @ ";
+                    break;
+                case dbl128:
+                    retVal << "packed double @ ";
+                    break;
+                default:
+                    retVal << "UNKNOWN SIZE @ ";
+                    break;
+            }
+#endif
+
+#if 0 /* Which parts of the operand are available? */
+            if(list.base)
+                std::cout << "\tBase:         " << list.base << std::endl;
+            if(list.offset)
+                std::cout << "\tOffset:       " << list.offset << std::endl;
+            if(list.segment)
+                std::cout << "\tSegment:      " << list.segment << std::endl;
+            if(list.scale)
+                std::cout << "\tScale:        " << list.scale << std::endl;
+            if(list.displacement)
+                std::cout << "\tDisplacement: " << list.displacement << std::endl;
+#endif
+
+            return ArchSpecificFormatter::getFormatter(arch).formatDeref(addressToDereference->format(arch));
+        }
 
       virtual bool bind(Expression* expr, const Result& value)
       {

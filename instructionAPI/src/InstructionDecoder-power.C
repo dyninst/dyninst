@@ -241,19 +241,13 @@ namespace Dyninst
     }
     
     using namespace std;
-    Instruction::Ptr InstructionDecoder_power::decode(InstructionDecoder::buffer& b)
+    Instruction InstructionDecoder_power::decode(InstructionDecoder::buffer& b)
     {
-      if(b.start > b.end) return Instruction::Ptr();
+      if(b.start > b.end) return Instruction();
       isRAWritten = false;
       isFPInsn = false;
       bcIsConditional = false;
-#if !defined(arch_ppc_little_endian)
-      insn = b.start[0] << 24 | b.start[1] << 16 |
-      b.start[2] << 8 | b.start[3];
-#else
-        insn = b.start[0] | b.start[1] << 8 |
-      b.start[2] << 16 | b.start[3] << 24;
-#endif
+      insn = *((const uint32_t*)b.start);
 #if defined(DEBUG_RAW_INSN)        
         cout.width(0);
         cout << "0x";
@@ -263,7 +257,7 @@ namespace Dyninst
 #endif
         mainDecode();
         b.start += 4;
-        return make_shared(insn_in_progress);
+        return *insn_in_progress;
     }
 
     bool InstructionDecoder_power::decodeOperands(const Instruction*)
@@ -304,25 +298,25 @@ namespace Dyninst
     void InstructionDecoder_power::LU()
     {
         L<size>();
-        insn_in_progress->appendOperand(makeRAExpr(), false, true);
+        insn_in_progress->appendOperand(makeRAExpr(), false, true, true);
     }
     template <Result_Type size>
     void InstructionDecoder_power::STU()
     {
         ST<size>();
-        insn_in_progress->appendOperand(makeRAExpr(), false, true);
+        insn_in_progress->appendOperand(makeRAExpr(), false, true, true);
     }
     template <Result_Type size>
     void InstructionDecoder_power::LUX()
     {
         LX<size>();
-        insn_in_progress->appendOperand(makeRAExpr(), false, true);
+        insn_in_progress->appendOperand(makeRAExpr(), false, true, true);
     }
     template <Result_Type size>
     void InstructionDecoder_power::STUX()
     {
         STX<size>();
-        insn_in_progress->appendOperand(makeRAExpr(), false, true);
+        insn_in_progress->appendOperand(makeRAExpr(), false, true, true);
     }
     void InstructionDecoder_power::LK()
     {
@@ -583,6 +577,9 @@ namespace Dyninst
         {
             current = &(std::mem_fun(current->next_table)(this));
         }
+	if (findRAAndRS(current)) {
+	    isRAWritten = true;
+	}
         insn_in_progress = const_cast<Instruction*>(insn_to_complete);
         if(current->op == power_op_b ||
            current->op == power_op_bc ||
@@ -810,7 +807,7 @@ using namespace boost::assign;
         {
             if(isFPInsn)
             {
-                insn_in_progress->appendOperand(makeRegisterExpression(ppc32::fpscw), false, true);
+                insn_in_progress->appendOperand(makeRegisterExpression(ppc32::fpscw), false, true, true);
             }
             else
             {
@@ -931,6 +928,16 @@ using namespace boost::assign;
         isRAWritten = true;
         (translateBitFieldToCR<7, 14, ppc32::ifpscw0, 7>(*this))();
         return;
+    }
+    
+    bool InstructionDecoder_power::findRAAndRS(const power_entry* cur) {
+        bool findRA = false;
+	bool findRS = false;
+	for (auto oit = cur->operands.begin(); oit != cur->operands.end(); ++oit) {
+	    if ((*oit) == &InstructionDecoder_power::RA) findRA = true;
+	    if ((*oit) == &InstructionDecoder_power::RS) findRS = true;
+	}
+	return findRA && findRS;
     }
 
     void InstructionDecoder_power::mainDecode()

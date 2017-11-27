@@ -1,0 +1,18 @@
+##fminnm_float_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize) result;
+bits(datasize) operand1 = V[n];
+bits(datasize) operand2 = V[m];
+
+case operation of
+    when FPMaxMinOp_MAX    result = FPMax(operand1, operand2, FPCR);
+    end
+    when FPMaxMinOp_MIN    result = FPMin(operand1, operand2, FPCR);
+    end
+    when FPMaxMinOp_MAXNUM result = FPMaxNum(operand1, operand2, FPCR);
+    end
+    when FPMaxMinOp_MINNUM result = FPMinNum(operand1, operand2, FPCR);
+    end
+
+V[d] = result;
+@@

@@ -171,7 +171,7 @@ bool StackAnalysis::genInsnEffects() {
    return true;
 }
 
-typedef std::vector<std::pair<Instruction::Ptr, Offset> > InsnVec;
+typedef std::vector<std::pair<Instruction, Offset> > InsnVec;
 static void getInsnInstances(Block *block, InsnVec &insns) {
    Offset off = block->start();
    const unsigned char *ptr = (const unsigned char *)
@@ -180,7 +180,7 @@ static void getInsnInstances(Block *block, InsnVec &insns) {
    InstructionDecoder d(ptr, block->size(), block->obj()->cs()->getArch());
    while (off < block->end()) {
       insns.push_back(std::make_pair(d.decode(), off));
-      off += insns.back().first->size();
+      off += insns.back().first.size();
    }
 }
 
@@ -238,7 +238,7 @@ void StackAnalysis::summarizeBlocks(bool verbose) {
       InsnVec instances;
       getInsnInstances(block, instances);
       for (unsigned j = 0; j < instances.size(); j++) {
-         const InstructionAPI::Instruction::Ptr insn = instances[j].first;
+         const InstructionAPI::Instruction& insn = instances[j].first;
          const Offset &off = instances[j].second;
 
          // Fills in insnEffects[off]
@@ -264,6 +264,7 @@ void StackAnalysis::summarizeBlocks(bool verbose) {
       }
 
       // Add blocks reachable from this one to the work stack
+      boost::lock_guard<Block> g(*block);
       const Block::edgelist &targs = block->targets();
       std::for_each(
          boost::make_filter_iterator(epred, targs.begin(), targs.end()),
@@ -331,13 +332,14 @@ void StackAnalysis::fixpoint(bool verbose) {
       blockInputs[block] = input;
 
       // Step 3: calculate our new outs
-      (*blockEffects)[block].apply(input, blockOutputs[block]);
+      (*blockEffects)[block].apply(block, input, blockOutputs[block]);
       if (verbose) {
          stackanalysis_printf("\t ... output from block: %s\n",
             format(blockOutputs[block]).c_str());
       }
 
       // Step 4: push all children on the worklist.
+      boost::lock_guard<Block> g(*block);
       const Block::edgelist &outEdges = block->targets();
       std::for_each(
          boost::make_filter_iterator(epred2, outEdges.begin(), outEdges.end()),
@@ -365,6 +367,7 @@ void getRetAndTailCallBlocks(Function *func, std::set<Block *> &retBlocks) {
       Block *currBlock = workstack.top();
       workstack.pop();
 
+      boost::lock_guard<Block> g(*currBlock);
       const Block::edgelist &targs = currBlock->targets();
       for (auto iter = targs.begin(); iter != targs.end(); iter++) {
          Edge *currEdge = *iter;
@@ -492,6 +495,7 @@ void StackAnalysis::summaryFixpoint() {
       (*blockEffects)[block].accumulate(input, blockSummaryOutputs[block]);
 
       // Step 4: push all children on the worklist.
+      boost::lock_guard<Block> g(*block);
       const Block::edgelist &outEdges = block->targets();
       std::for_each(
          boost::make_filter_iterator(epred2, outEdges.begin(), outEdges.end()),
@@ -510,6 +514,9 @@ void StackAnalysis::summarize() {
    if (intervals_ != NULL) delete intervals_;
    intervals_ = new Intervals();
 
+   // Map to record definition addresses as they are resolved.
+   std::map<Block *, std::map<Absloc, Address> > defAddrs;
+
    for (auto bit = blockInputs.begin(); bit != blockInputs.end(); ++bit) {
       Block *block = bit->first;
       AbslocState input = bit->second;
@@ -526,7 +533,16 @@ void StackAnalysis::summarize() {
          for (TransferFuncs::iterator iter2 = xferFuncs.begin();
             iter2 != xferFuncs.end(); ++iter2) {
             input[iter2->target] = iter2->apply(input);
-            if (input[iter2->target].isTop()) {
+            DefHeightSet &s = input[iter2->target];
+            const Definition &def = s.begin()->def;
+            const Height &h = s.begin()->height;
+            if (def.type == Definition::DEF && def.block == NULL) {
+               // New definition
+               STACKANALYSIS_ASSERT(iter2->target == def.origLoc);
+               s.makeNewSet(block, off, iter2->target, h);
+               defAddrs[block][iter2->target] = off;
+            }
+            if (h.isTop()) {
                input.erase(iter2->target);
             }
          }
@@ -541,22 +557,69 @@ void StackAnalysis::summarize() {
                const Absloc &target = summaryIter->first;
                const TransferFunc &tf = summaryIter->second;
                newInput[target] = tf.apply(input);
-               if (newInput[target].isTop()) {
+               DefHeightSet &s = newInput[target];
+               const Definition &def = s.begin()->def;
+               const Height &h = s.begin()->height;
+               if (def.type == Definition::DEF && def.block == NULL) {
+                  // New definition
+                  STACKANALYSIS_ASSERT(target == def.origLoc);
+                  s.makeNewSet(block, off, target, h);
+                  defAddrs[block][target] = off;
+               }
+               if (h.isTop()) {
                   newInput.erase(target);
                }
             }
             input = newInput;
          }
+         //stackanalysis_printf("\tSummary %lx: %s\n", off,
+         //   format(input).c_str());
       }
+
       (*intervals_)[block][block->end()] = input;
+      //stackanalysis_printf("blockOutputs: %s\n",
+      //   format(blockOutputs[block]).c_str());
       STACKANALYSIS_ASSERT(input == blockOutputs[block]);
+   }
+
+   // Resolve addresses in all propagated definitions using our map.
+   for (auto bIter = intervals_->begin(); bIter != intervals_->end(); bIter++) {
+      Block *block = bIter->first;
+      for (auto aIter = (*intervals_)[block].begin();
+         aIter != (*intervals_)[block].end(); aIter++) {
+         Address addr = aIter->first;
+         AbslocState &as = aIter->second;
+         for (auto tIter = as.begin(); tIter != as.end(); tIter++) {
+            const Absloc &target = tIter->first;
+            DefHeightSet &dhSet = tIter->second;
+            DefHeightSet dhSetNew;
+            for (auto dIter = dhSet.begin(); dIter != dhSet.end(); dIter++) {
+               const Definition &def = dIter->def;
+               const Height &h = dIter->height;
+               if (def.addr == 0 &&
+                  defAddrs.find(def.block) != defAddrs.end() &&
+                  defAddrs[def.block].find(def.origLoc) !=
+                     defAddrs[def.block].end()) {
+                  // Update this definition using our map
+                  Definition defNew(def.block, defAddrs[def.block][def.origLoc],
+                     def.origLoc);
+                  dhSetNew.insert(DefHeight(defNew, h));
+               } else {
+                  dhSetNew.insert(DefHeight(def, h));
+               }
+            }
+            as[target] = dhSetNew;
+         }
+         //stackanalysis_printf("Final defs %lx: %s\n\n", addr,
+         //   format((*intervals_)[block][addr]).c_str());
+      }
    }
 }
 
 void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
-   Instruction::Ptr insn, const Offset off, TransferFuncs &xferFuncs,
-   TransferSet &funcSummary) {
-   entryID what = insn->getOperation().getID();
+                                       Instruction insn, const Offset off, TransferFuncs &xferFuncs,
+                                       TransferSet &funcSummary) {
+   entryID what = insn.getOperation().getID();
 
    // Reminder: what we're interested in:
    // a) Use of the stack pointer to define another register
@@ -580,7 +643,7 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
    // Cases we handle
    if (isCall(insn)) {
       if (handleNormalCall(insn, block, off, xferFuncs, funcSummary)) return;
-      else if (handleThunkCall(insn, xferFuncs)) return;
+      else if (handleThunkCall(insn, block, off, xferFuncs)) return;
       else return handleDefault(insn, block, off, xferFuncs);
    }
 
@@ -661,6 +724,9 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
       case e_imul:
          handleMul(insn, xferFuncs);
          break;
+      case e_syscall:
+         handleSyscall(insn, block, off, xferFuncs);
+         break;
       default:
          handleDefault(insn, block, off, xferFuncs);
    }
@@ -688,14 +754,14 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(Function *func) {
       Block *ret = *rets;
       cur = (unsigned char *) ret->region()->getPtrToInstruction(
          ret->lastInsnAddr());
-      Instruction::Ptr insn = decoder.decode(cur);
+      Instruction insn = decoder.decode(cur);
 
-      entryID what = insn->getOperation().getID();
+      entryID what = insn.getOperation().getID();
       if (what != e_ret_near) continue;
 
       int val;
       std::vector<Operand> ops;
-      insn->getOperands(ops);
+      insn.getOperands(ops);
       if (ops.size() == 1) {
          val = 0;
       } else {
@@ -802,6 +868,29 @@ std::string StackAnalysis::SummaryFunc::format() const {
    return ret.str();
 }
 
+std::string StackAnalysis::Definition::format() const {
+   std::stringstream ret;
+   if (type == TOP) {
+      ret << "TOP";
+   } else if (type == BOTTOM) {
+      ret << "BOTTOM";
+   } else if (addr != 0) {
+      STACKANALYSIS_ASSERT(block != NULL);
+      ret << "0x" << std::hex << block->start() << "-0x" << std::hex <<
+         block->last() << "(";
+      ret << "0x" << std::hex << addr;
+      ret << ", " << origLoc.format();
+      ret << ")";
+   } else if (block != NULL) {
+      ret << "0x" << std::hex << block->start() << "-0x" << std::hex <<
+         block->last() << "(" << origLoc.format() << ")";
+   } else {
+      ret << "BAD";
+   }
+   return ret.str();
+}
+
+
 
 void StackAnalysis::findDefinedHeights(ParseAPI::Block* b, Address addr,
    std::vector<std::pair<Absloc, Height> >& heights) {
@@ -818,11 +907,80 @@ void StackAnalysis::findDefinedHeights(ParseAPI::Block* b, Address addr,
    STACKANALYSIS_ASSERT(intervals_);
    for (AbslocState::iterator i = (*intervals_)[b][addr].begin();
       i != (*intervals_)[b][addr].end(); ++i) {
-      if (i->second.isTop()) continue;
+      if (i->second.isTopSet()) continue;
 
-      heights.push_back(*i);
+      heights.push_back(std::make_pair(i->first, i->second.getHeightSet()));
    }
 }
+
+
+void StackAnalysis::findDefHeightPairs(Block *b, Address addr,
+   std::vector<std::pair<Absloc, DefHeightSet> > &defHeights) {
+   if (func == NULL) return;
+
+   if (!intervals_) {
+      // Check annotation
+      func->getAnnotation(intervals_, Stack_Anno_Intervals);
+   }
+   if (!intervals_) {
+      // Analyze?
+      if (!analyze()) return;
+   }
+   STACKANALYSIS_ASSERT(intervals_);
+   for (AbslocState::iterator i = (*intervals_)[b][addr].begin();
+      i != (*intervals_)[b][addr].end(); ++i) {
+      if (i->second.isTopSet()) continue;
+
+      defHeights.push_back(std::make_pair(i->first, i->second));
+   }
+}
+
+
+StackAnalysis::DefHeightSet StackAnalysis::findDefHeight(Block *b, Address addr, Absloc loc) {
+   DefHeightSet ret;
+   ret.makeTopSet();
+
+   if (func == NULL) return ret;
+
+   if (!intervals_) {
+      // Check annotation
+      func->getAnnotation(intervals_, Stack_Anno_Intervals);
+   }
+   if (!intervals_) {
+      // Analyze?
+      if (!analyze()) return ret;
+   }
+   STACKANALYSIS_ASSERT(intervals_);
+
+   //(*intervals_)[b].find(addr, state);
+   //  ret = (*intervals_)[b][addr][reg];
+   Intervals::iterator iter = intervals_->find(b);
+   if (iter == intervals_->end()) {
+      // How do we return "you stupid idiot"?
+      ret.makeBottomSet();
+      return ret;
+   }
+
+   StateIntervals &sintervals = iter->second;
+   if (sintervals.empty()) {
+      ret.makeBottomSet();
+      return ret;
+   }
+   // Find the last instruction that is <= addr
+   StateIntervals::iterator i = sintervals.lower_bound(addr);
+   if ((i == sintervals.end() && !sintervals.empty()) ||
+      (i->first != addr && i != sintervals.begin())) {
+      i--;
+   }
+   if (i == sintervals.end()) {
+      ret.makeBottomSet();
+      return ret;
+   }
+
+   ret = i->second[loc];
+   return ret;
+}
+
 
 StackAnalysis::Height StackAnalysis::find(Block *b, Address addr, Absloc loc) {
    Height ret; // Defaults to "top"
@@ -859,11 +1017,7 @@ StackAnalysis::Height StackAnalysis::find(Block *b, Address addr, Absloc loc) {
    }
    if (i == sintervals.end()) return Height::bottom;
 
-   ret = i->second[loc];
-
-   if (ret.isTop()) {
-      return Height::bottom;
-   }
+   ret = i->second[loc].getHeightSet();
    return ret;
 }
 
@@ -890,9 +1044,9 @@ class StateEvalVisitor : public Visitor {
 public:
    // addr is the starting address of instruction insn.
    // insn is the instruction containing the expression to evaluate.
-   StateEvalVisitor(Address addr, Instruction::Ptr insn,
+   StateEvalVisitor(Address addr, Instruction insn,
       StackAnalysis::AbslocState *s) : defined(true), state(s) {
-      rip = addr + insn->size();
+      rip = addr + insn.size();
    }
 
    StateEvalVisitor() : defined(false), state(NULL), rip(0) {}
@@ -946,11 +1100,14 @@ public:
          results.push_back(make_pair(rip, false));
       } else if (state != NULL) {
          auto regState = state->find(Absloc(reg));
-         if (regState == state->end() || regState->second.isTop() ||
-            regState->second.isBottom()) {
+         if (regState == state->end() ||
+            regState->second.size() != 1 ||
+            regState->second.begin()->height.isTop() ||
+            regState->second.begin()->height.isBottom()) {
             defined = false;
          } else {
-            results.push_back(make_pair(regState->second.height(), true));
+            results.push_back(make_pair(
+               regState->second.begin()->height.height(), true));
          }
       } else {
          defined = false;
@@ -968,14 +1125,14 @@ private:
 
    // Stack for calculations
    // bool is true if the value in Address is a stack height
-   std::deque<std::pair<Address, bool>> results;
+   std::deque<std::pair<Address, bool> > results;
 
 };
 
-void StackAnalysis::handleXor(Instruction::Ptr insn, Block *block,
-   const Offset off, TransferFuncs &xferFuncs) {
+void StackAnalysis::handleXor(Instruction insn, Block *block,
+                              const Offset off, TransferFuncs &xferFuncs) {
    std::vector<Operand> operands;
-   insn->getOperands(operands);
+   insn.getOperands(operands);
    STACKANALYSIS_ASSERT(operands.size() == 2);
 
    // Handle the case where a register is being zeroed out.
@@ -1004,7 +1161,7 @@ void StackAnalysis::handleXor(Instruction::Ptr insn, Block *block,
    }
 
 
-   if (insn->writesMemory()) {
+   if (insn.writesMemory()) {
       // xor mem1, reg2/imm2
       STACKANALYSIS_ASSERT(writtenSet.size() == 0);
 
@@ -1040,7 +1197,7 @@ void StackAnalysis::handleXor(Instruction::Ptr insn, Block *block,
          // xor mem1, reg2
          STACKANALYSIS_ASSERT(readSet.size() == 1);
          Absloc from((*readSet.begin())->getID());
-         std::map<Absloc, std::pair<long, bool>> fromRegs;
+         std::map<Absloc, std::pair<long, bool> > fromRegs;
          fromRegs[writtenLoc] = std::make_pair(1, true);
          fromRegs[from] = std::make_pair(1, true);
          xferFuncs.push_back(TransferFunc::sibFunc(fromRegs, 0, writtenLoc));
@@ -1060,7 +1217,7 @@ void StackAnalysis::handleXor(Instruction::Ptr insn, Block *block,
    MachRegister written = (*writtenSet.begin())->getID();
    Absloc writtenLoc(written);
 
-   if (insn->readsMemory()) {
+   if (insn.readsMemory()) {
       // xor reg1, mem2
       // Extract the expression inside the dereference
       std::vector<Expression::Ptr> &addrExpr = children1;
@@ -1084,7 +1241,7 @@ void StackAnalysis::handleXor(Instruction::Ptr insn, Block *block,
             // We have a static address
             readLoc = Absloc(resultPair.first);
          }
-         std::map<Absloc, std::pair<long, bool>> fromRegs;
+         std::map<Absloc, std::pair<long, bool> > fromRegs;
          fromRegs[writtenLoc] = std::make_pair(1, true);
          fromRegs[readLoc] = std::make_pair(1, true);
          xferFuncs.push_back(TransferFunc::sibFunc(fromRegs, 0, writtenLoc));
@@ -1109,7 +1266,7 @@ void StackAnalysis::handleXor(Instruction::Ptr insn, Block *block,
 
    if (read.isValid()) {
       // xor reg1, reg2
-      std::map<Absloc, std::pair<long, bool>> fromRegs;
+      std::map<Absloc, std::pair<long, bool> > fromRegs;
       fromRegs[writtenLoc] = std::make_pair(1, true);
       fromRegs[readLoc] = std::make_pair(1, true);
       xferFuncs.push_back(TransferFunc::sibFunc(fromRegs, 0, writtenLoc));
@@ -1124,10 +1281,10 @@ void StackAnalysis::handleXor(Instruction::Ptr insn, Block *block,
 }
 
 
-void StackAnalysis::handleDiv(Instruction::Ptr insn,
-   TransferFuncs &xferFuncs) {
+void StackAnalysis::handleDiv(Instruction insn,
+                              TransferFuncs &xferFuncs) {
    std::vector<Operand> operands;
-   insn->getOperands(operands);
+   insn.getOperands(operands);
    STACKANALYSIS_ASSERT(operands.size() == 3);
 
    Expression::Ptr quotient = operands[1].getValue();
@@ -1149,8 +1306,8 @@ void StackAnalysis::handleDiv(Instruction::Ptr insn,
 }
 
 
-void StackAnalysis::handleMul(Instruction::Ptr insn,
-   TransferFuncs &xferFuncs) {
+void StackAnalysis::handleMul(Instruction insn,
+                              TransferFuncs &xferFuncs) {
    // MULs have a few forms:
    //   1. mul reg1, reg2/mem2
    //     -- reg1 = reg1 * reg2/mem2
@@ -1159,7 +1316,7 @@ void StackAnalysis::handleMul(Instruction::Ptr insn,
    //   3. mul reg1, reg2, reg3/mem3
    //     -- reg1:reg2 = reg2 * reg3/mem3
    std::vector<Operand> operands;
-   insn->getOperands(operands);
+   insn.getOperands(operands);
    STACKANALYSIS_ASSERT(operands.size() == 2 || operands.size() == 3);
 
    Expression::Ptr target = operands[0].getValue();
@@ -1219,10 +1376,10 @@ void StackAnalysis::handleMul(Instruction::Ptr insn,
 }
 
 
-void StackAnalysis::handlePushPop(Instruction::Ptr insn, Block *block,
-   const Offset off, int sign, TransferFuncs &xferFuncs) {
+void StackAnalysis::handlePushPop(Instruction insn, Block *block,
+                                  const Offset off, int sign, TransferFuncs &xferFuncs) {
    long delta = 0;
-   Operand arg = insn->getOperand(0);
+   Operand arg = insn.getOperand(0);
    // Why was this here? bernat, 12JAN11
    if (arg.getValue()->eval().defined) {
       delta = sign * word_size;
@@ -1232,18 +1389,19 @@ void StackAnalysis::handlePushPop(Instruction::Ptr insn, Block *block,
    xferFuncs.push_back(TransferFunc::deltaFunc(Absloc(sp()), delta));
    copyBaseSubReg(sp(), xferFuncs);
 
-   if (insn->getOperation().getID() == e_push && insn->writesMemory()) {
+   if (insn.getOperation().getID() == e_push && insn.writesMemory()) {
       // This is a push.  Let's record the value pushed on the stack if
       // possible.
       if (intervals_ != NULL) {
          Absloc sploc(sp());
-         Height spHeight = (*intervals_)[block][off][sploc];
+         const DefHeightSet &spSet = (*intervals_)[block][off][sploc];
+         const Height &spHeight = spSet.getHeightSet();
          if (!spHeight.isTop() && !spHeight.isBottom()) {
             // Get written stack slot
             long writtenSlotHeight = spHeight.height() - word_size;
             Absloc writtenLoc(writtenSlotHeight, 0, NULL);
 
-            Expression::Ptr readExpr = insn->getOperand(0).getValue();
+            Expression::Ptr readExpr = insn.getOperand(0).getValue();
             if (dynamic_cast<RegisterAST*>(readExpr.get())) {
                // Get copied register
                MachRegister readReg = boost::dynamic_pointer_cast<RegisterAST>(
@@ -1258,7 +1416,7 @@ void StackAnalysis::handlePushPop(Instruction::Ptr insn, Block *block,
                // Extract the read address expression
                std::vector<Expression::Ptr> addrExpr;
                readExpr->getChildren(addrExpr);
-               assert(addrExpr.size() == 1);
+               STACKANALYSIS_ASSERT(addrExpr.size() == 1);
 
                // Try to determine the read memory address
                StateEvalVisitor visitor;
@@ -1290,11 +1448,11 @@ void StackAnalysis::handlePushPop(Instruction::Ptr insn, Block *block,
             }
          }
       }
-   } else if (insn->getOperation().getID() == e_pop && !insn->writesMemory()) {
+   } else if (insn.getOperation().getID() == e_pop && !insn.writesMemory()) {
       // This is a pop.  Let's record the value popped if possible.
 
       // Get target register
-      Expression::Ptr targExpr = insn->getOperand(0).getValue();
+      Expression::Ptr targExpr = insn.getOperand(0).getValue();
       STACKANALYSIS_ASSERT(dynamic_cast<RegisterAST*>(targExpr.get()));
       MachRegister targReg = boost::dynamic_pointer_cast<RegisterAST>(
          targExpr)->getID();
@@ -1302,7 +1460,8 @@ void StackAnalysis::handlePushPop(Instruction::Ptr insn, Block *block,
 
       if (intervals_ != NULL) {
          Absloc sploc(sp());
-         Height spHeight = (*intervals_)[block][off][sploc];
+         const DefHeightSet &spSet = (*intervals_)[block][off][sploc];
+         const Height &spHeight = spSet.getHeightSet();
          if (spHeight.isTop()) {
             // Load from a topped location. Since StackMod fails when storing
             // to an undetermined topped location, it is safe to assume the
@@ -1329,17 +1488,18 @@ void StackAnalysis::handlePushPop(Instruction::Ptr insn, Block *block,
    }
 }
 
-void StackAnalysis::handleReturn(Instruction::Ptr insn,
-   TransferFuncs &xferFuncs) {
+void StackAnalysis::handleReturn(Instruction insn,
+                                 TransferFuncs &xferFuncs) {
    long delta = 0;
    std::vector<Operand> operands;
-   insn->getOperands(operands);
+   insn.getOperands(operands);
    if (operands.size() < 2) {
       delta = word_size;
    } else {
-      fprintf(stderr, "Unhandled RET instruction: %s\n",
-         insn->format().c_str());
-      STACKANALYSIS_ASSERT(false);
+      STACKANALYSIS_ASSERT(operands.size() == 2);
+      Result imm = operands[1].getValue()->eval();
+      STACKANALYSIS_ASSERT(imm.defined);
+      delta = word_size + imm.convert<long>();
    }
 /*   else if (operands.size() == 1) {
       // Ret immediate
@@ -1358,8 +1518,8 @@ void StackAnalysis::handleReturn(Instruction::Ptr insn,
 }
 
 
-void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
-   const Offset off, int sign, TransferFuncs &xferFuncs) {
+void StackAnalysis::handleAddSub(Instruction insn, Block *block,
+                                 const Offset off, int sign, TransferFuncs &xferFuncs) {
    // Possible forms for add/sub:
    //   1. add reg1, reg2
    //     -- reg1 = reg1 + reg2
@@ -1388,7 +1548,7 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
    //      b. Otherwise, nothing happens.
 
    std::vector<Operand> operands;
-   insn->getOperands(operands);
+   insn.getOperands(operands);
    STACKANALYSIS_ASSERT(operands.size() == 2);
 
    std::set<RegisterAST::Ptr> readSet;
@@ -1396,7 +1556,7 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
    operands[1].getReadSet(readSet);
    operands[0].getWriteSet(writeSet);
 
-   if (insn->writesMemory()) {
+   if (insn.writesMemory()) {
       // Cases 3 and 5
       STACKANALYSIS_ASSERT(writeSet.size() == 0);
 
@@ -1438,7 +1598,7 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
             xferFuncs.push_back(TransferFunc::copyFunc(writtenLoc, writtenLoc,
                true));
          } else {
-            std::map<Absloc, std::pair<long, bool>> terms;
+            std::map<Absloc, std::pair<long, bool> > terms;
             Absloc src(srcReg);
             Absloc &dest = writtenLoc;
             terms[src] = make_pair(sign, false);
@@ -1468,7 +1628,7 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
       return;
    }
 
-   if (insn->readsMemory()) {
+   if (insn.readsMemory()) {
       // Case 2
       // Extract the expression inside the dereference
       std::vector<Expression::Ptr> addrExpr;
@@ -1494,7 +1654,7 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
             // We have a static address
             readLoc = Absloc(resultPair.first);
          }
-         std::map<Absloc, std::pair<long, bool>> terms;
+         std::map<Absloc, std::pair<long, bool> > terms;
          terms[readLoc] = make_pair(sign, false);
          terms[writtenLoc] = make_pair(1, false);
          xferFuncs.push_back(TransferFunc::sibFunc(terms, 0, writtenLoc));
@@ -1523,7 +1683,7 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
          xferFuncs.push_back(TransferFunc::copyFunc(writtenLoc, writtenLoc,
             true));
       } else {
-         std::map<Absloc, std::pair<long, bool>> terms;
+         std::map<Absloc, std::pair<long, bool> > terms;
          Absloc src(srcReg);
          Absloc &dest = writtenLoc;
          terms[src] = make_pair(sign, false);
@@ -1534,8 +1694,8 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
    }
 }
 
-void StackAnalysis::handleLEA(Instruction::Ptr insn,
-   TransferFuncs &xferFuncs) {
+void StackAnalysis::handleLEA(Instruction insn,
+                              TransferFuncs &xferFuncs) {
    // LEA has a few patterns:
    //   op0: target register
    //-------------------------------
@@ -1553,14 +1713,14 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn,
    //
    std::set<RegisterAST::Ptr> readSet;
    std::set<RegisterAST::Ptr> writtenSet;
-   insn->getOperand(0).getWriteSet(writtenSet);
-   insn->getOperand(1).getReadSet(readSet);
+   insn.getOperand(0).getWriteSet(writtenSet);
+   insn.getOperand(1).getReadSet(readSet);
    STACKANALYSIS_ASSERT(writtenSet.size() == 1);
    STACKANALYSIS_ASSERT(readSet.size() == 0 || readSet.size() == 1 || readSet.size() == 2);
    MachRegister written = (*writtenSet.begin())->getID();
    Absloc writeloc(written);
 
-   InstructionAPI::Operand srcOperand = insn->getOperand(1);
+   InstructionAPI::Operand srcOperand = insn.getOperand(1);
    InstructionAPI::Expression::Ptr srcExpr = srcOperand.getValue();
    std::vector<InstructionAPI::Expression::Ptr> children;
    srcExpr->getChildren(children);
@@ -1716,7 +1876,8 @@ void StackAnalysis::handleLeave(Block *block, const Offset off,
       // use the height of the frame pointer at the start of this instruction to
       // track the memory location read by the pop.
       Absloc sploc(fp());
-      Height spHeight = (*intervals_)[block][off][sploc];
+      const DefHeightSet &spSet = (*intervals_)[block][off][sploc];
+      const Height &spHeight = spSet.getHeightSet();
       if (spHeight.isTop()) {
          // Load from a topped location. Since StackMod fails when storing
          // to an undetermined topped location, it is safe to assume the
@@ -1758,15 +1919,15 @@ void StackAnalysis::handlePushPopRegs(int sign, TransferFuncs &xferFuncs) {
    copyBaseSubReg(sp(), xferFuncs);
 }
 
-void StackAnalysis::handlePowerAddSub(Instruction::Ptr insn, Block *block,
-   const Offset off, int sign, TransferFuncs &xferFuncs) {
+void StackAnalysis::handlePowerAddSub(Instruction insn, Block *block,
+                                      const Offset off, int sign, TransferFuncs &xferFuncs) {
    // Add/subtract are op0 = op1 +/- op2; we'd better read the stack pointer as
    // well as writing it
-   if (!insn->isRead(theStackPtr) || !insn->isWritten(theStackPtr)) {
+   if (!insn.isRead(theStackPtr) || !insn.isWritten(theStackPtr)) {
       return handleDefault(insn, block, off, xferFuncs);
    }
    
-   Operand arg = insn->getOperand(2);
+   Operand arg = insn.getOperand(2);
    Result res = arg.getValue()->eval();
    Absloc sploc(sp());
    if (res.defined) {
@@ -1779,14 +1940,14 @@ void StackAnalysis::handlePowerAddSub(Instruction::Ptr insn, Block *block,
    }
 }
 
-void StackAnalysis::handlePowerStoreUpdate(Instruction::Ptr insn, Block *block,
-   const Offset off, TransferFuncs &xferFuncs) {
-   if (!insn->isWritten(theStackPtr)) {
+void StackAnalysis::handlePowerStoreUpdate(Instruction insn, Block *block,
+                                           const Offset off, TransferFuncs &xferFuncs) {
+   if (!insn.isWritten(theStackPtr)) {
       return handleDefault(insn, block, off, xferFuncs);
    }
    
    std::set<Expression::Ptr> memWriteAddrs;
-   insn->getMemoryWriteOperands(memWriteAddrs);
+   insn.getMemoryWriteOperands(memWriteAddrs);
    Expression::Ptr stackWrite = *(memWriteAddrs.begin());
    stackWrite->bind(theStackPtr.get(), Result(u32, 0));
    Result res = stackWrite->eval();
@@ -1802,8 +1963,8 @@ void StackAnalysis::handlePowerStoreUpdate(Instruction::Ptr insn, Block *block,
 }
 
 
-void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
-   const Offset off, TransferFuncs &xferFuncs) {
+void StackAnalysis::handleMov(Instruction insn, Block *block,
+                              const Offset off, TransferFuncs &xferFuncs) {
    // Some cases:
    //   1. mov reg, reg
    //   2. mov imm, reg
@@ -1831,7 +1992,7 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
 
    // Extract operands
    std::vector<Operand> operands;
-   insn->getOperands(operands);
+   insn.getOperands(operands);
    STACKANALYSIS_ASSERT(operands.size() == 2);
 
    // Extract written/read register sets
@@ -1841,7 +2002,7 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
    operands[1].getReadSet(readRegs);
 
 
-   if (insn->writesMemory()) {
+   if (insn.writesMemory()) {
       STACKANALYSIS_ASSERT(writtenRegs.size() == 0);
 
       // Extract the expression inside the dereference
@@ -1908,7 +2069,7 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
       return;
    }
 
-   if (insn->readsMemory()) {
+   if (insn.readsMemory()) {
       // Extract the expression inside the dereference
       std::vector<Expression::Ptr> addrExpr;
       operands[1].getValue()->getChildren(addrExpr);
@@ -1974,14 +2135,14 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
    }
 }
 
-void StackAnalysis::handleZeroExtend(Instruction::Ptr insn, Block *block,
-   const Offset off, TransferFuncs &xferFuncs) {
+void StackAnalysis::handleZeroExtend(Instruction insn, Block *block,
+                                     const Offset off, TransferFuncs &xferFuncs) {
    // In x86/x86_64, zero extends can't write to memory
-   STACKANALYSIS_ASSERT(!insn->writesMemory());
+   STACKANALYSIS_ASSERT(!insn.writesMemory());
 
    // Extract operands
    std::vector<Operand> operands;
-   insn->getOperands(operands);
+   insn.getOperands(operands);
    STACKANALYSIS_ASSERT(operands.size() == 2);
 
    // Extract written/read register sets
@@ -1995,7 +2156,7 @@ void StackAnalysis::handleZeroExtend(Instruction::Ptr insn, Block *block,
    Absloc writtenLoc(written);
 
    // Handle memory loads
-   if (insn->readsMemory()) {
+   if (insn.readsMemory()) {
       // Extract the expression inside the dereference
       std::vector<Expression::Ptr> addrExpr;
       operands[1].getValue()->getChildren(addrExpr);
@@ -2037,18 +2198,18 @@ void StackAnalysis::handleZeroExtend(Instruction::Ptr insn, Block *block,
    copyBaseSubReg(written, xferFuncs);
 }
 
-void StackAnalysis::handleSignExtend(Instruction::Ptr insn, Block *block,
-   const Offset off, TransferFuncs &xferFuncs) {
+void StackAnalysis::handleSignExtend(Instruction insn, Block *block,
+                                     const Offset off, TransferFuncs &xferFuncs) {
    // This instruction sign extends the read register into the written
    // register. Copying insn't really correct here...sign extension is going
    // to change the value...
 
    // In x86/x86_64, sign extends can't write to memory
-   STACKANALYSIS_ASSERT(!insn->writesMemory());
+   STACKANALYSIS_ASSERT(!insn.writesMemory());
 
    // Extract operands
    std::vector<Operand> operands;
-   insn->getOperands(operands);
+   insn.getOperands(operands);
    STACKANALYSIS_ASSERT(operands.size() == 2);
 
    // Extract written/read register sets
@@ -2062,7 +2223,7 @@ void StackAnalysis::handleSignExtend(Instruction::Ptr insn, Block *block,
    Absloc writtenLoc(written);
 
    // Handle memory loads
-   if (insn->readsMemory()) {
+   if (insn.readsMemory()) {
       // Extract the expression inside the dereference
       std::vector<Expression::Ptr> addrExpr;
       operands[1].getValue()->getChildren(addrExpr);
@@ -2105,15 +2266,15 @@ void StackAnalysis::handleSignExtend(Instruction::Ptr insn, Block *block,
    copyBaseSubReg(written, xferFuncs);
 }
 
-void StackAnalysis::handleSpecialSignExtend(Instruction::Ptr insn,
-   TransferFuncs &xferFuncs) {
+void StackAnalysis::handleSpecialSignExtend(Instruction insn,
+                                            TransferFuncs &xferFuncs) {
    // This instruction sign extends the read register into the written
    // register. Copying insn't really correct here...sign extension is going
    // to change the value...
 
    // Extract written/read register sets
    std::set<RegisterAST::Ptr> writtenRegs;
-   insn->getWriteSet(writtenRegs);
+   insn.getWriteSet(writtenRegs);
    STACKANALYSIS_ASSERT(writtenRegs.size() == 1);
    MachRegister writtenReg = (*writtenRegs.begin())->getID();
    MachRegister readReg;
@@ -2131,15 +2292,34 @@ void StackAnalysis::handleSpecialSignExtend(Instruction::Ptr insn,
    copyBaseSubReg(writtenReg, xferFuncs);
 }
 
+void StackAnalysis::handleSyscall(Instruction insn, Block *block,
+                                  const Offset off, TransferFuncs &xferFuncs) {
+   Architecture arch = insn.getArch();
+   if (arch == Arch_x86) {
+      // x86 returns an error code in EAX
+      xferFuncs.push_back(TransferFunc::retopFunc(Absloc(x86::eax)));
+   } else if (arch == Arch_x86_64) {
+      // x86_64 returns an error code in RAX and destroys RCX and R11
+      xferFuncs.push_back(TransferFunc::retopFunc(Absloc(x86_64::rax)));
+      retopBaseSubReg(x86_64::rax, xferFuncs);
+      xferFuncs.push_back(TransferFunc::retopFunc(Absloc(x86_64::rcx)));
+      retopBaseSubReg(x86_64::rcx, xferFuncs);
+      xferFuncs.push_back(TransferFunc::retopFunc(Absloc(x86_64::r11)));
+      retopBaseSubReg(x86_64::r11, xferFuncs);
+   } else {
+      handleDefault(insn, block, off, xferFuncs);
+   }
+}
+
 // Handle instructions for which we have no special handling implemented.  Be
 // conservative for safety.
-void StackAnalysis::handleDefault(Instruction::Ptr insn, Block *block,
-   const Offset off, TransferFuncs &xferFuncs) {
+void StackAnalysis::handleDefault(Instruction insn, Block *block,
+                                  const Offset off, TransferFuncs &xferFuncs) {
    // Form sets of read/written Abslocs
    std::set<RegisterAST::Ptr> writtenRegs;
    std::set<RegisterAST::Ptr> readRegs;
-   insn->getWriteSet(writtenRegs);
-   insn->getReadSet(readRegs);
+   insn.getWriteSet(writtenRegs);
+   insn.getReadSet(readRegs);
    std::set<Absloc> writtenLocs;
    std::set<Absloc> readLocs;
    for (auto iter = writtenRegs.begin(); iter != writtenRegs.end(); iter++) {
@@ -2156,10 +2336,10 @@ void StackAnalysis::handleDefault(Instruction::Ptr insn, Block *block,
          readLocs.insert(Absloc(reg));
       }
    }
-   if (insn->readsMemory()) {
+   if (insn.readsMemory()) {
       // Add any determinable read locations to readLocs
       std::set<Expression::Ptr> memExprs;
-      insn->getMemoryReadOperands(memExprs);
+      insn.getMemoryReadOperands(memExprs);
       for (auto iter = memExprs.begin(); iter != memExprs.end(); iter++) {
          const Expression::Ptr &memExpr = *iter;
          StateEvalVisitor visitor;
@@ -2184,10 +2364,10 @@ void StackAnalysis::handleDefault(Instruction::Ptr insn, Block *block,
          }
       }
    }
-   if (insn->writesMemory()) {
+   if (insn.writesMemory()) {
       // Add any determinable written locations to writtenLocs
       std::set<Expression::Ptr> memExprs;
-      insn->getMemoryWriteOperands(memExprs);
+      insn.getMemoryWriteOperands(memExprs);
       for (auto iter = memExprs.begin(); iter != memExprs.end(); iter++) {
          const Expression::Ptr &memExpr = *iter;
          StateEvalVisitor visitor;
@@ -2233,7 +2413,7 @@ void StackAnalysis::handleDefault(Instruction::Ptr insn, Block *block,
          xferFuncs.push_back(TransferFunc::retopFunc(writtenLoc));
          continue;
       }
-      std::map<Absloc, std::pair<long, bool>> fromRegs;
+      std::map<Absloc, std::pair<long, bool> > fromRegs;
       for (auto rIter = readLocs.begin(); rIter != readLocs.end(); rIter++) {
          const Absloc &readLoc = *rIter;
          fromRegs[readLoc] = std::make_pair(1, true);
@@ -2245,23 +2425,38 @@ void StackAnalysis::handleDefault(Instruction::Ptr insn, Block *block,
    }
 }
 
-bool StackAnalysis::isCall(Instruction::Ptr insn) {
-   return insn->getCategory() == c_CallInsn;
+bool StackAnalysis::isCall(Instruction insn) {
+   return insn.getCategory() == c_CallInsn;
 }
 
-bool StackAnalysis::isJump(Instruction::Ptr insn) {
-   return insn->getCategory() == c_BranchInsn;
+bool StackAnalysis::isJump(Instruction insn) {
+   return insn.getCategory() == c_BranchInsn;
 }
 
-bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block,
-   Offset off, TransferFuncs &xferFuncs, TransferSet &funcSummary) {
+bool StackAnalysis::handleNormalCall(Instruction insn, Block *block,
+                                     Offset off, TransferFuncs &xferFuncs, TransferSet &funcSummary) {
 
-   if (!insn->getControlFlowTarget()) return false;
+   // Identify syscalls of the form: call *%gs:0x10
+   Expression::Ptr callAddrExpr = insn.getOperand(0).getValue();
+   if (dynamic_cast<Dereference *>(callAddrExpr.get())) {
+      std::vector<Expression::Ptr> children;
+      callAddrExpr->getChildren(children);
+      if (children.size() == 1 &&
+         dynamic_cast<Immediate *>(children[0].get()) &&
+         children[0]->eval().convert<long>() == 16) {
+         // We have a syscall
+         handleSyscall(insn, block, off, xferFuncs);
+         return true;
+      }
+   }
+
+   if (!insn.getControlFlowTarget()) return false;
 
    // Must be a thunk based on parsing.
    if (off != block->lastInsnAddr()) return false;
 
    Address calledAddr = 0;
+   boost::lock_guard<Block> g(*block);
    const Block::edgelist &outs = block->targets();
    for (auto eit = outs.begin(); eit != outs.end(); eit++) {
       Edge *edge = *eit;
@@ -2285,7 +2480,9 @@ bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block,
 
          // Update stack slots in the summary to line up with this stack frame,
          // and then add the modified transfer functions to xferFuncs.
-         Height spHeight = (*intervals_)[block][off][Absloc(sp())];
+         Absloc sploc(sp());
+         const DefHeightSet &spSet = (*intervals_)[block][off][sploc];
+         const Height &spHeight = spSet.getHeightSet();
          const TransferSet &fs = functionSummaries[calledAddr];
          for (auto fsIter = fs.begin(); fsIter != fs.end(); fsIter++) {
             Absloc summaryLoc = fsIter->first;
@@ -2315,7 +2512,7 @@ bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block,
                tf.target = Absloc(newOff, 0, NULL);
                summaryLoc = tf.target;
             }
-            std::map<Absloc, std::pair<long, bool>> newFromRegs;
+            std::map<Absloc, std::pair<long, bool> > newFromRegs;
             for (auto frIter = tf.fromRegs.begin(); frIter != tf.fromRegs.end();
                frIter++) {
                const Absloc &loc = frIter->first;
@@ -2355,7 +2552,7 @@ bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block,
         ++iter) {
        // We only care about GPRs right now
       unsigned int gpr;
-      Architecture arch = insn->getArch();
+      Architecture arch = insn.getArch();
       switch(arch) {
          case Arch_x86:
             gpr = x86::GPR;
@@ -2427,9 +2624,10 @@ bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block,
 }
 
 // Create transfer functions for tail calls
-bool StackAnalysis::handleJump(Instruction::Ptr insn, Block *block, Offset off,
-   TransferFuncs &xferFuncs, TransferSet &funcSummary) {
+bool StackAnalysis::handleJump(Instruction insn, Block *block, Offset off,
+                               TransferFuncs &xferFuncs, TransferSet &funcSummary) {
    Address calledAddr = 0;
+   boost::lock_guard<Block> g(*block);
    const Block::edgelist &outs = block->targets();
    for (auto eit = outs.begin(); eit != outs.end(); eit++) {
       Edge *edge = *eit;
@@ -2451,7 +2649,9 @@ bool StackAnalysis::handleJump(Instruction::Ptr insn, Block *block, Offset off,
 
          // Update stack slots in the summary to line up with this stack frame,
          // and then add the modified transfer functions to xferFuncs.
-         Height spHeight = (*intervals_)[block][off][Absloc(sp())];
+         Absloc sploc(sp());
+         const DefHeightSet &spSet = (*intervals_)[block][off][sploc];
+         const Height &spHeight = spSet.getHeightSet();
          const TransferSet &fs = functionSummaries[calledAddr];
          for (auto fsIter = fs.begin(); fsIter != fs.end(); fsIter++) {
             Absloc summaryLoc = fsIter->first;
@@ -2481,7 +2681,7 @@ bool StackAnalysis::handleJump(Instruction::Ptr insn, Block *block, Offset off,
                tf.target = Absloc(newOff, 0, NULL);
                summaryLoc = tf.target;
             }
-            std::map<Absloc, std::pair<long, bool>> newFromRegs;
+            std::map<Absloc, std::pair<long, bool> > newFromRegs;
             for (auto frIter = tf.fromRegs.begin(); frIter != tf.fromRegs.end();
                frIter++) {
                const Absloc &loc = frIter->first;
@@ -2531,7 +2731,7 @@ bool StackAnalysis::handleJump(Instruction::Ptr insn, Block *block, Offset off,
         ++iter) {
        // We only care about GPRs right now
       unsigned int gpr;
-      Architecture arch = insn->getArch();
+      Architecture arch = insn.getArch();
       switch(arch) {
          case Arch_x86:
             gpr = x86::GPR;
@@ -2574,28 +2774,41 @@ bool StackAnalysis::handleJump(Instruction::Ptr insn, Block *block, Offset off,
    return true;
 }
 
-bool StackAnalysis::handleThunkCall(Instruction::Ptr insn,
-   TransferFuncs &xferFuncs) {
+bool StackAnalysis::handleThunkCall(Instruction insn, Block *block,
+                                    const Offset off, TransferFuncs &xferFuncs) {
 
    // We know that we're not a normal call, so it depends on whether the CFT is
    // "next instruction" or not.
-   if (insn->getCategory() != c_CallInsn || !insn->getControlFlowTarget()) {
+   if (insn.getCategory() != c_CallInsn || !insn.getControlFlowTarget()) {
       return false;
    }
 
    // Eval of getCFT(0) == size?
-   Expression::Ptr cft = insn->getControlFlowTarget();
+   Expression::Ptr cft = insn.getControlFlowTarget();
    cft->bind(thePC.get(), Result(u32, 0));
    Result res = cft->eval();
    if (!res.defined) return false;
-   if (res.convert<unsigned>() == insn->size()) {
+   if (res.convert<unsigned>() == insn.size()) {
       Absloc sploc(sp());
       xferFuncs.push_back(TransferFunc::deltaFunc(sploc, -1 * word_size));
       copyBaseSubReg(sp(), xferFuncs);
-      return true;
    }
    // Else we're calling a mov, ret thunk that has no effect on the stack
    // pointer
+
+   // Check the next instruction to see which register is holding the PC.
+   // Assumes next instruction is add thunk_reg, offset.
+   const Address pc = off + insn.size();
+   Instruction thunkAddInsn = block->getInsn(pc);
+   if (!thunkAddInsn.isValid()) return true;
+   if (thunkAddInsn.getOperation().getID() != e_add) return true;
+   std::set<RegisterAST::Ptr> writtenRegs;
+   thunkAddInsn.getOperand(0).getWriteSet(writtenRegs);
+   if (writtenRegs.size() != 1) return true;
+   const MachRegister &thunkTarget = (*writtenRegs.begin())->getID();
+
+   xferFuncs.push_back(TransferFunc::absFunc(Absloc(thunkTarget), pc));
+   copyBaseSubReg(thunkTarget, xferFuncs);
    return true;
 }
 
@@ -2606,10 +2819,12 @@ void StackAnalysis::createEntryInput(AbslocState &input) {
    // is <wordsize>
    // POWER - the in height is 0
 #if defined(arch_power)
-   input[Absloc(sp())] = Height(0);
+   input[Absloc(sp())].addInitSet(Height(0));
 #elif (defined(arch_x86) || defined(arch_x86_64))
-   input[Absloc(sp())] = Height(-1 * word_size);
-   if (sp() == x86_64::rsp) input[Absloc(x86_64::esp)] = Height(-word_size);
+   input[Absloc(sp())].addInitSet(Height(-word_size));
+   if (sp() == x86_64::rsp) {
+      input[Absloc(x86_64::esp)].addInitSet(Height(-word_size));
+   }
 #else
    STACKANALYSIS_ASSERT(0 && "Unimplemented architecture");
 #endif
@@ -2660,12 +2875,14 @@ StackAnalysis::TransferSet StackAnalysis::getSummarySrcOutputLocs(Edge* e) {
    return blockSummaryOutputs[b];
 }
 
-void StackAnalysis::meetInputs(Block *block, AbslocState& blockInput,
+void StackAnalysis::meetInputs(Block *block, AbslocState &blockInput,
    AbslocState &input) {
    input.clear();
    intra_nosink_nocatch epred2;
 
    stackanalysis_printf("\t ... In edges: ");
+   boost::lock_guard<Block> g(*block);
+
    const Block::edgelist & inEdges = block->sources();
    std::for_each(
       boost::make_filter_iterator(epred2, inEdges.begin(), inEdges.end()),
@@ -2683,6 +2900,7 @@ void StackAnalysis::meetSummaryInputs(Block *block, TransferSet &blockInput,
    TransferSet &input) {
    input.clear();
    intra_nosink_nocatch epred2;
+   boost::lock_guard<Block> g(*block);
 
    const Block::edgelist & inEdges = block->sources();
    std::for_each(
@@ -2696,12 +2914,38 @@ void StackAnalysis::meetSummaryInputs(Block *block, TransferSet &blockInput,
 }
 
 
+// Keep track of up to DEF_LIMIT multiple definitions/heights, then bottom
+StackAnalysis::DefHeightSet StackAnalysis::meetDefHeights(
+   const DefHeightSet &s1, const DefHeightSet &s2) {
+   DefHeightSet newSet;
+   if (s1.size() == 1 && s1.begin()->height.isTop()) return s2;
+   if (s2.size() == 1 && s2.begin()->height.isTop()) return s1;
+   if ((s1.size() == 1 && s1.begin()->height.isBottom()) ||
+      (s2.size() == 1 && s2.begin()->height.isBottom())) {
+      newSet.makeBottomSet();
+      return newSet;
+   }
+
+   // At this point, we know that both sets contain only heights since we ensure
+   // that all sets containing TOP/BOTTOM are size 1.
+   newSet = s1;
+   for (auto iter = s2.begin();
+      iter != s2.end() && newSet.size() <= DEF_LIMIT; iter++) {
+      newSet.insert(*iter);
+   }
+   if (newSet.size() > DEF_LIMIT) {
+      newSet.makeBottomSet();
+   }
+   return newSet;
+}
+
+
 void StackAnalysis::meet(const AbslocState &input, AbslocState &accum) {
-   for (AbslocState::const_iterator iter = input.begin();
-      iter != input.end(); ++iter) {
-      accum[iter->first] = Height::meet(iter->second, accum[iter->first]);
-      if (accum[iter->first].isTop()) {
-         accum.erase(iter->first);
+   for (auto iter = input.begin(); iter != input.end(); ++iter) {
+      const Absloc &loc = iter->first;
+      accum[loc] = meetDefHeights(iter->second, accum[loc]);
+      if (accum[loc].begin()->height.isTop()) {
+         accum.erase(loc);
       }
    }
 }
@@ -2844,7 +3088,7 @@ StackAnalysis::TransferFunc StackAnalysis::TransferFunc::meet(
             // possible bases.  Note that current SIB function handling doesn't
             // actually add the terms together.
             // FIXME if SIB function handling changes.
-            std::map<Absloc, std::pair<long, bool>> fromRegs;
+            std::map<Absloc, std::pair<long, bool> > fromRegs;
             fromRegs[lhs.from] = std::make_pair(1, true);
             fromRegs[rhs.from] = std::make_pair(1, true);
             ret = sibFunc(fromRegs, 0, lhs.target);
@@ -2966,32 +3210,102 @@ bool StackAnalysis::TransferFunc::isDelta() const {
 }
 
 bool StackAnalysis::TransferFunc::isSIB() const {
-    return (fromRegs.size() > 0);
+   return (fromRegs.size() > 0);
+}
+
+void StackAnalysis::DefHeightSet::makeTopSet() {
+   defHeights.clear();
+   defHeights.insert(DefHeight(Definition(), Height::top));
+}
+
+void StackAnalysis::DefHeightSet::makeBottomSet() {
+   defHeights.clear();
+   Definition d;
+   d.type = Definition::BOTTOM;
+   defHeights.insert(DefHeight(d, Height::bottom));
+}
+
+void StackAnalysis::DefHeightSet::makeNewSet(Block *b, Address addr,
+   const Absloc &origLoc, const Height &h) {
+   defHeights.clear();
+   defHeights.insert(DefHeight(Definition(b, addr, origLoc), h));
+}
+
+void StackAnalysis::DefHeightSet::addInitSet(const Height &h) {
+   defHeights.insert(DefHeight(Definition(), h));
+}
+
+void StackAnalysis::DefHeightSet::addDeltaSet(long delta) {
+   std::set<DefHeight> temp = defHeights;
+   defHeights.clear();
+   for (auto iter = temp.begin(); iter != temp.end(); iter++) {
+      const Definition &d = iter->def;
+      const Height &h = iter->height;
+      defHeights.insert(DefHeight(d, h + delta));
+   }
+}
+
+StackAnalysis::Height StackAnalysis::DefHeightSet::getHeightSet() const {
+   Height h;
+   if (defHeights.size() == 0) {
+      h = Height::top;
+   } else if (defHeights.size() == 1) {
+      h = defHeights.begin()->height;
+   } else {
+      h = Height::bottom;
+   }
+   return h;
+}
+
+StackAnalysis::Definition StackAnalysis::DefHeightSet::getDefSet() const {
+   Definition d;
+   if (defHeights.size() == 0) {
+      d.type = Definition::TOP;
+   } else if (defHeights.size() == 1) {
+      d = defHeights.begin()->def;
+   } else {
+      d.type = Definition::BOTTOM;
+   }
+   return d;
+}
+
+bool StackAnalysis::DefHeightSet::isTopSet() const {
+   if (defHeights.size() == 0) return true;
+   return defHeights.size() == 1 &&
+      defHeights.begin()->def.type == Definition::TOP &&
+      defHeights.begin()->height.isTop();
+}
+
+bool StackAnalysis::DefHeightSet::isBottomSet() const {
+   return defHeights.size() == 1 &&
+      defHeights.begin()->def.type == Definition::BOTTOM &&
+      defHeights.begin()->height.isBottom();
 }
 
 
 // Destructive update of the input map. Assumes inputs are absolute,
 // uninitialized, or bottom; no deltas.
-StackAnalysis::Height StackAnalysis::TransferFunc::apply(
+StackAnalysis::DefHeightSet StackAnalysis::TransferFunc::apply(
    const AbslocState &inputs) const {
    STACKANALYSIS_ASSERT(target.isValid());
+   DefHeightSet inputSet;
    // Bottom stomps everything
    if (isBottom()) {
-      return Height::bottom;
+      inputSet.makeBottomSet();
+      return inputSet;
    }
 
    AbslocState::const_iterator iter = inputs.find(target);
-   Height input;
    if (iter != inputs.end()) {
-      input = iter->second;
+      inputSet = iter->second;
    } else {
-      input = Height::top;
+      inputSet.makeTopSet();
    }
 
    bool isTopBottomOrig = isTopBottom();
 
    if (isSIB()) {
-      input = Height::top; // SIB overwrites, so start at TOP
+      inputSet.makeTopSet();  // SIB overwrites, so start at TOP
       for (auto iter = fromRegs.begin(); iter != fromRegs.end(); ++iter) {
          Absloc curLoc = (*iter).first;
          long curScale = (*iter).second.first;
@@ -3001,29 +3315,18 @@ StackAnalysis::Height StackAnalysis::TransferFunc::apply(
          if (findLoc == inputs.end()) {
             locInput = Height::top;
          } else {
-            locInput = findLoc->second;
+            locInput = findLoc->second.getHeightSet();
          }
 
          if (locInput == Height::top) {
             // This term doesn't affect our end result, so it can be safely
             // ignored.
-         } else if (locInput == Height::bottom) {
-            if (curScale == 1) {
-               // Must bottom everything only if the scale is 1.  Otherwise,
-               // any stack height will be obfuscated.
-               input = Height::bottom;
-               break;
-            }
          } else {
             if (curScale == 1) {
                // If the scale isn't 1, then any stack height is obfuscated,
                // and we can safely ignore the term.
-               if (curTopBottom) {
-                  input = Height::bottom;
-                  break;
-               } else {
-                  input += locInput; // Matt: Always results in bottom?
-               }
+               inputSet.makeBottomSet();
+               break;
             }
          }
       }
@@ -3035,28 +3338,49 @@ StackAnalysis::Height StackAnalysis::TransferFunc::apply(
       // Apply the absolute
       // NOTE: an absolute is not a stack height, set input to top
       //input = abs;
-      input = Height::top;
+      inputSet.makeTopSet();
    }
    if (isCopy()) {
       // Cannot be absolute
       STACKANALYSIS_ASSERT(!isAbs());
       // Copy the input value from whatever we're a copy of.
       AbslocState::const_iterator iter2 = inputs.find(from);
-      if (iter2 != inputs.end()) input = iter2->second;
-      else input = Height::top;
-   }
-   if (isDelta()) {
-      input += delta;
-   }
-   if (isRetop()) {
-      input = Height::top;
-   }
-   if (isTopBottomOrig) {
-      if (!input.isTop()) {
-         input = Height::bottom;
+      if (iter2 != inputs.end()) {
+         const Definition &def = iter2->second.getDefSet();
+         const Height &h = iter2->second.getHeightSet();
+         if (!h.isBottom() && !h.isTop()) {
+            if ((from.isSP() || from.isFP()) &&
+               (target.type() != Absloc::Register ||
+                  (!target.reg().getBaseRegister().isStackPointer() &&
+                     !target.reg().getBaseRegister().isFramePointer()))) {
+               // Create new definitions when based on SP or FP
+               inputSet.makeNewSet(NULL, 0, target, h);
+            } else {
+               // Reuse base definition otherwise
+               inputSet = iter2->second;
+            }
+         } else if (h.isBottom()) {
+            inputSet.makeBottomSet();
+         } else {
+            inputSet.makeTopSet();
+         }
+      } else {
+         inputSet.makeTopSet();
       }
    }
-   return input;
+   if (isDelta()) {
+      inputSet.addDeltaSet(delta);
+   }
+   if (isRetop()) {
+      inputSet.makeTopSet();
+   }
+   if (isTopBottomOrig) {
+      auto iter = inputSet.begin();
+      if (!iter->height.isTop()) {
+         inputSet.makeBottomSet();
+      }
+   }
+   return inputSet;
 }
 
 // Returns accumulated transfer function without modifying inputs
@@ -3339,9 +3663,8 @@ void StackAnalysis::TransferFunc::accumulate(TransferSet &inputs) {
 }
 
 
-void StackAnalysis::SummaryFunc::apply(const AbslocState &in,
+void StackAnalysis::SummaryFunc::apply(Block *block, const AbslocState &in,
    AbslocState &out) const {
-
    // Copy all the elements we don't have xfer funcs for.
    out = in;
 
@@ -3350,7 +3673,14 @@ void StackAnalysis::SummaryFunc::apply(const AbslocState &in,
       iter != accumFuncs.end(); ++iter) {
       STACKANALYSIS_ASSERT(iter->first.isValid());
       out[iter->first] = iter->second.apply(in);
-      if (out[iter->first].isTop()) {
+      DefHeightSet &s = out[iter->first];
+      const Definition &def = s.begin()->def;
+      const Height &h = s.begin()->height;
+      if (def.type == Definition::DEF && def.block == NULL) {
+         // New definition
+         s.makeNewSet(block, 0, def.origLoc, h);
+      }
+      if (h.isTop()) {
          out.erase(iter->first);
       }
    }
@@ -3416,9 +3746,14 @@ MachRegister StackAnalysis::fp() {
 
 std::string StackAnalysis::format(const AbslocState &input) const {
    std::stringstream ret;
-   for (AbslocState::const_iterator iter = input.begin();
-      iter != input.end(); ++iter) {
-      ret << iter->first.format() << " := " << iter->second.format() << ", ";
+   for (auto iter = input.begin(); iter != input.end(); ++iter) {
+      const DefHeightSet &s = iter->second;
+      ret << iter->first.format() << " := {";
+      for (auto iter2 = s.begin(); iter2 != s.end(); iter2++) {
+         ret << "(" << iter2->def.format() << ", " <<
+            iter2->height.format() << "), ";
+      }
+      ret << "}, ";
    }
    return ret.str();
 }

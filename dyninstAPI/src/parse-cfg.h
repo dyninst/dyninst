@@ -131,7 +131,7 @@ class parse_block : public codeRange, public ParseAPI::Block  {
     // This is copied from the union of all successor blocks
     const bitArray getLivenessOut(parse_func * context);
 
-    typedef std::map<Offset, InstructionAPI::Instruction::Ptr> Insns;
+    typedef std::map<Offset, InstructionAPI::Instruction> Insns;
     // The provided parameter is a magic offset to add to each instruction's
     // address; we do this to avoid a copy when getting Insns from block_instances
     void getInsns(Insns &instances, Address offset = 0);
@@ -191,8 +191,8 @@ class image_edge : public ParseAPI::Edge {
     // MSVC++ 2003 does not properly support covariant return types
     // in overloaded methods
 #if !defined _MSC_VER || _MSC_VER > 1310 
-   virtual parse_block * src() const { return (parse_block*)_source; }
-   virtual parse_block * trg() const { return (parse_block*)_target; }
+   virtual parse_block * src() const { return (parse_block*)src(); }
+   virtual parse_block * trg() const { return (parse_block*)trg(); }
 #endif
 
    const char * getTypeString();

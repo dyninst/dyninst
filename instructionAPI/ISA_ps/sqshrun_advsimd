@@ -1,0 +1,15 @@
+##sqshrun_advsimd_execute
+CheckFPAdvSIMDEnabled64();
+bits(datasize*2) operand = V[n];
+bits(datasize) result;
+integer round_const = if round then (1 << (shift - 1)) else 0;
+integer element;
+boolean sat;
+
+for e = 0 to elements-1
+    element = (SInt(Elem[operand, e, 2*esize]) + round_const) >> shift;
+    (Elem[result, e, esize], sat) = UnsignedSatQ(element, esize);
+    if sat then FPSR.QC = 1;
+
+Vpart[d, part] = result;
+@@
