@@ -52,14 +52,17 @@
 
 #include <boost/thread/thread.hpp>
 
-#include <cilk/cilk.h>
-#include <cilk/reducer_list.h>
-
 #include <boost/timer/timer.hpp>
 #include <fstream>
 
-#define USE_CILK 0
-#define USE_OPENMP 1
+#define USE_CILK 1
+#define USE_OPENMP 0
+
+#if USE_CILK
+#include <cilk/cilk.h>
+#include <cilk/cilk_api.h>
+#include <cilk/reducer_list.h>
+#endif
 
 using namespace std;
 using namespace Dyninst;
@@ -797,9 +800,9 @@ void Parser::processCycle(vector<ParseFrame *> &work, bool recursive) {// If we'
 }
 
 void Parser::cleanup_frames()  {
-#if USE_OPENMP
   vector <ParseFrame *> pfv;
   std::copy(frames.begin(), frames.end(), std::back_inserter(pfv));
+#if USE_OPENMP
 #pragma omp parallel for schedule(auto)
   for (int i = 0; i < pfv.size(); i++) {
     ParseFrame *pf = pfv[i];
@@ -810,16 +813,16 @@ void Parser::cleanup_frames()  {
   }
   frames.clear();
 #elif USE_CILK
-  cilk_for(unsigned i=0; i < frames.size(); ++i) {
-    ParseFrame *pf = frames[i];
+  cilk_for(unsigned i=0; i < pfv.size(); ++i) {
+    ParseFrame *pf = pfv[i];
     if (pf) {
       _parse_data->remove_frame(pf);
       delete pf;
     }
   }
 #else 
-  for(unsigned i=0; i < frames.size(); ++i) {
-    ParseFrame *pf = frames[i];
+  for(unsigned i=0; i < pfv.size(); ++i) {
+    ParseFrame *pf = pfv[i];
     if (pf) {
       _parse_data->remove_frame(pf);
       delete pf;
