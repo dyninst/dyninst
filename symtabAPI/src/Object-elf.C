@@ -1451,6 +1451,24 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
                     if (fbt_iter == -1) { // Create new relocation entry.
                         relocationEntry re( next_plt_entry_addr, offset, targ_name,
                                             NULL, type );
+                	if (type == R_X86_64_IRELATIVE) {
+                	    vector<Symbol *> funcs;
+                	    dyn_hash_map<std::string, std::vector<Symbol *> >::iterator iter;
+                	    // find the resolver function and use that as the
+			    // caller function symbol.  The resolver has not run
+			    // so we don't know the ultimate destination.
+			    // Since the funcsByOffset map hasn't been setup yet
+			    // we cannot call associated_symtab->findFuncByEntryOffset
+                	    for (iter = symbols_.begin(); iter != symbols_.end(); ++iter) {
+                		std::string name = iter->first;
+                		Symbol *sym = iter->second[0];
+                		if (sym->getOffset() == (Offset)addend) {
+                		    // Use dynsym_list.push_back(sym) instead?
+                		    re.addDynSym(sym);
+                		    break;
+                		}
+                	    }
+                	}
                         re.setAddend(addend);
                         re.setRegionType(rtype);
                         if (dynsym_list.size() > 0)
@@ -4380,7 +4398,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         auto tmp = strrchr(filename, '/');
         if(truncateLineFilenames && tmp)
         {
-            strings->push_back(tmp);
+            strings->push_back(++tmp);
         }
         else
         {
