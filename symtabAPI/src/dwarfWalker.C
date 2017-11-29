@@ -43,9 +43,6 @@
 #include "debug_common.h"
 #include "Type-mem.h"
 #include <boost/bind.hpp>
-#include <cilk/cilk.h>
-#include "elfutils/libdw.h"
-#include <atomic>
 #include <elfutils/libdw.h>
 
 using namespace Dyninst;
@@ -139,18 +136,12 @@ bool DwarfWalker::parse() {
             continue;
 
         push();
-//        DwarfWalker mod_walker(*this);
-//        pop();
-//        bool ret = /*cilk_spawn */mod_walker.parseModule(false, fixUnknownMod);
         bool ret = parseModule(false, fixUnknownMod);
         pop();
-        if(!ret) {
-//            cilk_sync;
-            return false;
-        }
+        if (!ret) return false;
         compile_offset = next_cu_header;
     }
-//    cilk_sync;
+
     /* Iterate over the compilation-unit headers for .debug_info. */
     for(Dwarf_Off cu_off = 0;
             dwarf_nextcu(dbg(), cu_off, &next_cu_header, &cu_header_length,
@@ -161,17 +152,11 @@ bool DwarfWalker::parse() {
             continue;
 
         push();
-//        DwarfWalker mod_walker(*this);
-//        pop();
-//        bool ret = /*cilk_spawn */ mod_walker.parseModule(true, fixUnknownMod);
         bool ret = parseModule(true, fixUnknownMod);
         pop();
-        if(!ret) {
-//            cilk_sync;
-            return false;
-        }
+        if (!ret) return false;
         compile_offset = next_cu_header;
-    }
+    }       
 //    cilk_sync;
     if (!fixUnknownMod)
         return true;
@@ -2506,7 +2491,6 @@ void DwarfParseActions::clearFunc() {
 
 typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info)
 {
-    static std::atomic<typeId_t> next_type_id(0);
   auto& type_ids = is_info ? info_type_ids_ : types_type_ids_;
   auto it = type_ids.find(offset);
   if (it != type_ids.end())

@@ -800,6 +800,7 @@ bool AddressTranslateSysV::refresh()
          continue;
       }
       if (obj_name == "linux-vdso.so.1" ||
+	  obj_name == "linux-vdso64.so.1" ||
           obj_name == "linux-gate.so.1") 
       {
          continue;
