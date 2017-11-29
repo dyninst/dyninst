@@ -33,6 +33,7 @@
 #include <set>
 #include <vector>
 #include <queue>
+#include <atomic>
 
 #include "dyntypes.h"
 #include "IBSTree.h"
@@ -141,7 +142,8 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
         func(f),
         codereg(f->region()),
         seed(NULL),
-        _pd(pd)
+        _pd(pd),
+        inProcess(false)
     {
         set_status(UNPARSED);
     }
@@ -150,6 +152,7 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
 
     Status status() const { return _status; }
     void set_status(Status);
+    std::atomic<bool> inProcess;
  private:
     Status _status;
     ParseData * _pd;

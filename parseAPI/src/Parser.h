@@ -278,7 +278,7 @@ namespace Dyninst {
 
             FrameSet ProcessOneFrame(ParseFrame *pf, bool recursive);
 
-            void cleanup_frames();
+            void cleanup_frames(FrameSet& to_clean);
 
             void processCycle(FrameSet &work, bool recursive);
 

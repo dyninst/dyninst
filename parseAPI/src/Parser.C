@@ -45,13 +45,9 @@
 #include "util.h"
 #include "debug_parse.h"
 
-#include <boost/tuple/tuple.hpp>
 #include <boost/bind/bind.hpp>
 
-#include <boost/thread/thread.hpp>
 
-#include <cilk/cilk.h>
-#include <cilk/reducer_list.h>
 
 #include <boost/timer/timer.hpp>
 #include <fstream>
@@ -544,6 +540,7 @@ FrameSet Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
         default:
             assert(0 && "invalid parse frame status");
     }
+    pf->inProcess = false;
     return work;
 
 }
@@ -586,18 +583,31 @@ typedef parallel_policies<the_style>::exec_policy exec_policy;
 void
 Parser::parse_frames(FrameSet &work, bool recursive)
 {
-    std::cout << "OMP max number of threads: " << omp_get_max_threads() << endl;
     std::vector<ParseFrame*> the_queue(work.begin(), work.end());
-    work.clear();
-    std::cout << "Begin iteration, worklist size is " << the_queue.size() << endl;
     /* Recursive traversal parsing */
-    RAJA::forall<exec_policy>
-    (RAJA::RangeSegment(0, the_queue.size()), [&](RAJA::Index_type i)
+    while(!the_queue.empty())
     {
-        FrameSet new_frames = ProcessOneFrame(the_queue[i], recursive);
-        parse_frames(new_frames, recursive);
+        // RAJA version
+        FrameSet new_frames;
+        std::cout << "Begin iteration, worklist size is " << the_queue.size() << endl;
+        RAJA::forall<exec_policy>
+        (RAJA::RangeSegment(0, the_queue.size()), [&](RAJA::Index_type i)
+        {
+            new_frames += ProcessOneFrame(the_queue[i], recursive);
 
-    });
+        });
+        the_queue.clear();
+        std::copy(new_frames.begin(), new_frames.end(), std::back_inserter(the_queue));
+        // Native TBB
+//        FrameSet new_frames;
+//        std::cout << "Begin iteration, worklist size is " << the_queue.size() << endl;
+//        tbb::parallel_for_each(the_queue, [&](ParseFrame* pf) {
+//            new_frames += ProcessOneFrame(pf, recursive);
+//        });
+//        the_queue.clear();
+//        std::copy(new_frames.begin(), new_frames.end(), std::back_inserter(the_queue));
+
+    }
 
     bool done = false, cycle = false;
     {
@@ -621,7 +631,7 @@ Parser::parse_frames(FrameSet &work, bool recursive)
         }
     }
 
-    cleanup_frames();
+    cleanup_frames(work);
 }
 
 void Parser::processFixedPoint(FrameSet &work, bool recursive) {// We haven't yet reached a fixedpoint; let's recurse
@@ -724,12 +734,11 @@ void Parser::processCycle(FrameSet &work, bool recursive) {// If we've reached a
     }
 }
 
-void Parser::cleanup_frames()  {
-    for(unsigned i=0; i < frames.size(); ++i) {
-        _parse_data->remove_frame(frames[i]);
-        delete frames[i];
+void Parser::cleanup_frames(FrameSet& to_clean)  {
+    for(ParseFrame* frame : to_clean) {
+        _parse_data->remove_frame(frame);
+        delete frame;
     }
-    frames.clear();
 }
 
 /* Finalizing all functions for consumption:
@@ -993,6 +1002,8 @@ namespace {
 
 void
 Parser::parse_frame(ParseFrame & frame, bool recursive) {
+    bool already_processing = frame.inProcess.exchange(true);
+    if(already_processing) return;
     boost::lock_guard<Function> g(*frame.func);
     /** Persistent intermediate state **/
     InstructionAdapter_t *ahPtr = NULL;
