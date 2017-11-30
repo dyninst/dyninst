@@ -1,7 +1,7 @@
 if (UNIX)
   find_package (LibDwarf)
   find_package (LibElf)
-  find_package(TBB REQUIRED)
+  find_package(TBB)
   if(NOT LIBELF_FOUND OR NOT LIBDWARF_FOUND)
     message(STATUS "Attempting to build elfutils as external project")
     cmake_minimum_required (VERSION 2.8.11)
@@ -21,7 +21,19 @@ if (UNIX)
   else()
     set(SHOULD_INSTALL_LIBELF 0)
   endif()
-
+  if(NOT TBB_FOUND)
+    message(STATUS "Attempting to build TBB as external project")
+    cmake_minimum_required (VERSION 2.8.11)
+    include(ExternalProject)
+    ExternalProject_Add(LibElf
+            PREFIX ${CMAKE_BINARY_DIR}/tbb
+            GIT_REPOSITORY https://github.com/01org/tbb
+            BUILD_COMMAND make
+            )
+    set(TBB_INCLUDE_DIR ${CMAKE_BINARY_DIR}/tbb/include)
+    set(TBB_LIBRARIES ${CMAKE_BINARY_DIR}/tbb/libtbb.so ${CMAKE_BINARY_DIR}/tbb/libtbbmalloc_proxy.so)
+    set(TBB_FOUND 1)
+  endif()
   add_library(libelf_imp SHARED IMPORTED)
   set_property(TARGET libelf_imp
     PROPERTY IMPORTED_LOCATION ${LIBELF_LIBRARIES})
