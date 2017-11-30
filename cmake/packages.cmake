@@ -25,7 +25,7 @@ if (UNIX)
     message(STATUS "Attempting to build TBB as external project")
     cmake_minimum_required (VERSION 2.8.11)
     include(ExternalProject)
-    ExternalProject_Add(LibElf
+    ExternalProject_Add(TBB
             PREFIX ${CMAKE_BINARY_DIR}/tbb
             GIT_REPOSITORY https://github.com/01org/tbb
             BUILD_COMMAND make
