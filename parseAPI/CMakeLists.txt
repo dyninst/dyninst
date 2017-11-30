@@ -5,7 +5,7 @@ include_directories (
   )
 cmake_policy(PUSH)
 cmake_policy(SET CMP0012 OLD)
-find_package(OpenMP REQUIRED)
+find_package(OpenMP)
 cmake_policy(POP)
 
 set(RAJA_CMAKE_FLAGS
