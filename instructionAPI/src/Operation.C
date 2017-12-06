@@ -38,6 +38,7 @@
 #include "common/src/Singleton.h"
 #include "Register.h"
 #include <map>
+#include <tbb/concurrent_hash_map.h>
 #include "common/src/singleton_object_pool.h"
 
 using namespace NS_x86;
@@ -287,6 +288,8 @@ namespace Dyninst
 
     struct OperationMaps
     {
+        typedef tbb::concurrent_hash_map<entryID, Operation_impl::registerSet > reg_info_t;
+        typedef tbb::concurrent_hash_map<entryID, Operation_impl::VCSet > mem_info_t;
     public:
       OperationMaps(Architecture arch)
       {
@@ -303,75 +306,77 @@ namespace Dyninst
           si_and_di.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::esi : x86::esi)));
           si_and_di.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::edi : x86::edi)));
 	
-          nonOperandRegisterReads[e_call] = pcAndSP;
-          nonOperandRegisterReads[e_ret_near] = stackPointer;
-          nonOperandRegisterReads[e_ret_far] = stackPointer;
-          nonOperandRegisterReads[e_leave] = framePointer;
-          nonOperandRegisterReads[e_enter] = spAndBP;
-	
-          nonOperandRegisterWrites[e_call] = pcAndSP;
-          nonOperandRegisterWrites[e_ret_near] = pcAndSP;
-          nonOperandRegisterWrites[e_ret_far] = pcAndSP;
-          nonOperandRegisterWrites[e_leave] = spAndBP;
-          nonOperandRegisterWrites[e_enter] = spAndBP;
-          nonOperandRegisterWrites[e_loop] = thePC;
-          nonOperandRegisterWrites[e_loope] = thePC;
-          nonOperandRegisterWrites[e_loopn] = thePC;
-          nonOperandRegisterWrites[e_jb] = thePC;
-          nonOperandRegisterWrites[e_jb_jnaej_j] = thePC;
-        nonOperandRegisterWrites[e_jbe] = thePC;
-        nonOperandRegisterWrites[e_jcxz_jec] = thePC;
-        nonOperandRegisterWrites[e_jl] = thePC;
-        nonOperandRegisterWrites[e_jle] = thePC;
-        nonOperandRegisterWrites[e_jmp] = thePC;
-        nonOperandRegisterWrites[e_jnb] = thePC;
-        nonOperandRegisterWrites[e_jnb_jae_j] = thePC;
-        nonOperandRegisterWrites[e_jnbe] = thePC;
-        nonOperandRegisterWrites[e_jnl] = thePC;
-        nonOperandRegisterWrites[e_jnle] = thePC;
-        nonOperandRegisterWrites[e_jno] = thePC;
-        nonOperandRegisterWrites[e_jnp] = thePC;
-        nonOperandRegisterWrites[e_jns] = thePC;
-        nonOperandRegisterWrites[e_jnz] = thePC;
-        nonOperandRegisterWrites[e_jo] = thePC;
-        nonOperandRegisterWrites[e_jp] = thePC;
-        nonOperandRegisterWrites[e_js] = thePC;
-        nonOperandRegisterWrites[e_jz] = thePC;
-        nonOperandMemoryReads[e_pop] = stackPointerAsExpr;
-        nonOperandMemoryReads[e_popa] = stackPointerAsExpr;
-        nonOperandMemoryReads[e_popad] = stackPointerAsExpr;
-        nonOperandMemoryWrites[e_push] = stackPointerAsExpr;
-        nonOperandMemoryWrites[e_pusha] = stackPointerAsExpr;
-        nonOperandMemoryWrites[e_pushad] = stackPointerAsExpr;
-        nonOperandMemoryWrites[e_call] = stackPointerAsExpr;
-        nonOperandMemoryReads[e_ret_near] = stackPointerAsExpr;
-        nonOperandMemoryReads[e_ret_far] = stackPointerAsExpr;
-	nonOperandMemoryReads[e_leave] = stackPointerAsExpr;
-        nonOperandRegisterWrites[e_cmpsb] = si_and_di;
-        nonOperandRegisterWrites[e_cmpsd] = si_and_di;
-        nonOperandRegisterWrites[e_cmpsw] = si_and_di;
-        nonOperandRegisterWrites[e_movsb] = si_and_di;
-        nonOperandRegisterWrites[e_movsd] = si_and_di;
-        nonOperandRegisterWrites[e_movsw] = si_and_di;
-        nonOperandRegisterWrites[e_cmpsb] = si_and_di;
-        nonOperandRegisterWrites[e_cmpsd] = si_and_di;
-        nonOperandRegisterWrites[e_cmpsw] = si_and_di;
-        nonOperandRegisterWrites[e_insb] = di;
-        nonOperandRegisterWrites[e_insd] = di;
-        nonOperandRegisterWrites[e_insw] = di;
-        nonOperandRegisterWrites[e_stosb] = di;
-        nonOperandRegisterWrites[e_stosd] = di;
-        nonOperandRegisterWrites[e_stosw] = di;
-        nonOperandRegisterWrites[e_scasb] = di;
-        nonOperandRegisterWrites[e_scasd] = di;
-        nonOperandRegisterWrites[e_scasw] = di;
-        nonOperandRegisterWrites[e_lodsb] = si;
-        nonOperandRegisterWrites[e_lodsd] = si;
-        nonOperandRegisterWrites[e_lodsw] = si;
-        nonOperandRegisterWrites[e_outsb] = si;
-        nonOperandRegisterWrites[e_outsd] = si;
-        nonOperandRegisterWrites[e_outsw] = si;
-        
+          nonOperandRegisterReads.insert(make_pair(e_call, pcAndSP));
+          nonOperandRegisterReads.insert(make_pair(e_ret_near, stackPointer));
+          nonOperandRegisterReads.insert(make_pair(e_ret_far, stackPointer));
+          nonOperandRegisterReads.insert(make_pair(e_leave, framePointer));
+          nonOperandRegisterReads.insert(make_pair(e_enter, spAndBP));
+
+          nonOperandRegisterWrites.insert(make_pair(e_call, pcAndSP));
+          nonOperandRegisterWrites.insert(make_pair(e_ret_near, pcAndSP));
+          nonOperandRegisterWrites.insert(make_pair(e_ret_far, pcAndSP));
+          nonOperandRegisterWrites.insert(make_pair(e_leave, spAndBP));
+          nonOperandRegisterWrites.insert(make_pair(e_enter, spAndBP));
+
+          nonOperandRegisterWrites.insert(make_pair(e_loop, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_loope, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_loopn, thePC));
+
+          nonOperandRegisterWrites.insert(make_pair(e_jb, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jb_jnaej_j, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jbe, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jcxz_jec, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jl, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jle, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jmp, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jnb, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jnb_jae_j, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jnbe, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jnl, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jnle, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jno, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jnp, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jns, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jnz, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jo, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jp, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_js, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jz, thePC));
+
+          nonOperandMemoryReads.insert(make_pair(e_pop, stackPointerAsExpr));
+          nonOperandMemoryReads.insert(make_pair(e_popa, stackPointerAsExpr));
+          nonOperandMemoryReads.insert(make_pair(e_popad, stackPointerAsExpr));
+          nonOperandMemoryWrites.insert(make_pair(e_push, stackPointerAsExpr));
+          nonOperandMemoryWrites.insert(make_pair(e_pusha, stackPointerAsExpr));
+          nonOperandMemoryWrites.insert(make_pair(e_pushad, stackPointerAsExpr));
+          nonOperandMemoryWrites.insert(make_pair(e_call, stackPointerAsExpr));
+          nonOperandMemoryReads.insert(make_pair(e_ret_near, stackPointerAsExpr));
+          nonOperandMemoryReads.insert(make_pair(e_ret_far, stackPointerAsExpr));
+          nonOperandMemoryReads.insert(make_pair(e_leave, stackPointerAsExpr));
+
+          nonOperandRegisterWrites.insert(make_pair(e_cmpsb, si_and_di));
+          nonOperandRegisterWrites.insert(make_pair(e_cmpsd, si_and_di));
+          nonOperandRegisterWrites.insert(make_pair(e_cmpsw, si_and_di));
+          nonOperandRegisterWrites.insert(make_pair(e_movsb, si_and_di));
+          nonOperandRegisterWrites.insert(make_pair(e_movsd, si_and_di));
+          nonOperandRegisterWrites.insert(make_pair(e_movsw, si_and_di));
+          nonOperandRegisterWrites.insert(make_pair(e_insb, di));
+          nonOperandRegisterWrites.insert(make_pair(e_insd, di));
+          nonOperandRegisterWrites.insert(make_pair(e_insw, di));
+          nonOperandRegisterWrites.insert(make_pair(e_stosb, di));
+          nonOperandRegisterWrites.insert(make_pair(e_stosd, di));
+          nonOperandRegisterWrites.insert(make_pair(e_stosw, di));
+          nonOperandRegisterWrites.insert(make_pair(e_scasb, di));
+          nonOperandRegisterWrites.insert(make_pair(e_scasd, di));
+          nonOperandRegisterWrites.insert(make_pair(e_scasw, di));
+          nonOperandRegisterWrites.insert(make_pair(e_lodsb, di));
+          nonOperandRegisterWrites.insert(make_pair(e_lodsd, di));
+          nonOperandRegisterWrites.insert(make_pair(e_lodsw, di));
+          nonOperandRegisterWrites.insert(make_pair(e_outsb, di));
+          nonOperandRegisterWrites.insert(make_pair(e_outsd, di));
+          nonOperandRegisterWrites.insert(make_pair(e_outsw, di));
+
+
       }
       Operation_impl::registerSet thePC;
       Operation_impl::registerSet pcAndSP;
@@ -382,11 +387,12 @@ namespace Dyninst
       Operation_impl::registerSet si;
       Operation_impl::registerSet di;
       Operation_impl::registerSet si_and_di;
-      dyn_hash_map<entryID, Operation_impl::registerSet > nonOperandRegisterReads;
-      dyn_hash_map<entryID, Operation_impl::registerSet > nonOperandRegisterWrites;
 
-      dyn_hash_map<entryID, Operation_impl::VCSet > nonOperandMemoryReads;
-      dyn_hash_map<entryID, Operation_impl::VCSet > nonOperandMemoryWrites;
+      reg_info_t nonOperandRegisterReads;
+      reg_info_t nonOperandRegisterWrites;
+
+      mem_info_t nonOperandMemoryReads;
+      mem_info_t nonOperandMemoryWrites;
     };
     OperationMaps op_data_32(Arch_x86);
     OperationMaps op_data_64(Arch_x86_64);
@@ -404,25 +410,21 @@ namespace Dyninst
     }
     void Operation_impl::SetUpNonOperandData(bool needFlags) const
     {
-        boost::lock_guard<const Operation_impl> g(*this);
         if(doneOtherSetup && doneFlagsSetup) return;
-#if defined(arch_x86) || defined(arch_x86_64)      
-        dyn_hash_map<entryID, registerSet >::const_iterator foundRegs;
-      foundRegs = op_data(archDecodedFrom).nonOperandRegisterReads.find(operationID);
-      if(foundRegs != op_data(archDecodedFrom).nonOperandRegisterReads.end())
+#if defined(arch_x86) || defined(arch_x86_64)
+        OperationMaps::reg_info_t::const_accessor a, b;
+      if(op_data(archDecodedFrom).nonOperandRegisterReads.find(a, operationID))
       {
-          otherRead.insert(foundRegs->second.begin(), foundRegs->second.end());
+          otherRead.insert(a->second.begin(), a->second.end());
       }
-      foundRegs = op_data(archDecodedFrom).nonOperandRegisterWrites.find(operationID);
-      if(foundRegs != op_data(archDecodedFrom).nonOperandRegisterWrites.end())
+      if(op_data(archDecodedFrom).nonOperandRegisterWrites.find(b, operationID))
       {
-          otherWritten.insert(foundRegs->second.begin(), foundRegs->second.end());
+          otherWritten.insert(b->second.begin(), b->second.end());
       }
-      dyn_hash_map<entryID, VCSet >::const_iterator foundMem;
-      foundMem = op_data(archDecodedFrom).nonOperandMemoryReads.find(operationID);
-      if(foundMem != op_data(archDecodedFrom).nonOperandMemoryReads.end())
+        OperationMaps::mem_info_t::const_accessor c, d;
+      if(op_data(archDecodedFrom).nonOperandMemoryReads.find(c, operationID))
       {
-          otherEffAddrsRead.insert(foundMem->second.begin(), foundMem->second.end());
+          otherEffAddrsRead.insert(c->second.begin(), c->second.end());
       }
       if(operationID == e_push)
       {
@@ -440,10 +442,9 @@ namespace Dyninst
       }
       else
       {
-          foundMem = op_data(archDecodedFrom).nonOperandMemoryWrites.find(operationID);
-          if(foundMem != op_data(archDecodedFrom).nonOperandMemoryWrites.end())
+          if(op_data(archDecodedFrom).nonOperandMemoryWrites.find(d, operationID))
           {
-              otherEffAddrsWritten.insert(foundMem->second.begin(), foundMem->second.end());
+              otherEffAddrsWritten.insert(d->second.begin(), d->second.end());
           }
       }
       if(needFlags && !doneFlagsSetup)
