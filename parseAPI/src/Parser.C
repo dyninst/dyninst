@@ -52,11 +52,7 @@
 #include <boost/timer/timer.hpp>
 #include <fstream>
 
-#define RAJA_ENABLE_TBB
-
-#include <RAJA/RAJA.hpp>
-
-
+#include <tbb/parallel_for_each.h>
 
 using namespace std;
 using namespace Dyninst;
@@ -545,40 +541,6 @@ FrameSet Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
 
 }
 
-enum parallel_style
-{
-    serial,
-    intel_tbb,
-    openmp
-};
-#if(PARALLEL_TYPE == TBB)
-static const parallel_style the_style = intel_tbb;
-#elif(PARALLEL_TYPE == OpenMP)
-static const parallel_style the_style = openmp;
-#else
-static const parallel_style the_style = serial;
-#endif
-template <parallel_style P>
-struct parallel_policies
-{
-};
-template<>
-struct parallel_policies<serial>
-{
-    typedef RAJA::seq_exec exec_policy;
-};
-template<>
-struct parallel_policies<intel_tbb>
-{
-    typedef RAJA::tbb_for_exec exec_policy;
-};
-template<>
-struct parallel_policies<openmp>
-{
-    typedef RAJA::omp_parallel_for_exec exec_policy;
-};
-
-typedef parallel_policies<the_style>::exec_policy exec_policy;
 
 void
 Parser::parse_frames(FrameSet &work, bool recursive)
@@ -587,25 +549,14 @@ Parser::parse_frames(FrameSet &work, bool recursive)
     /* Recursive traversal parsing */
     while(!the_queue.empty())
     {
-        // RAJA version
+        // Native TBB
         FrameSet new_frames;
         std::cout << "Begin iteration, worklist size is " << the_queue.size() << endl;
-        RAJA::forall<exec_policy>
-        (RAJA::RangeSegment(0, the_queue.size()), [&](RAJA::Index_type i)
-        {
-            new_frames += ProcessOneFrame(the_queue[i], recursive);
-
+        tbb::parallel_for_each(the_queue, [&](ParseFrame* pf) {
+            new_frames += ProcessOneFrame(pf, recursive);
         });
         the_queue.clear();
         std::copy(new_frames.begin(), new_frames.end(), std::back_inserter(the_queue));
-        // Native TBB
-//        FrameSet new_frames;
-//        std::cout << "Begin iteration, worklist size is " << the_queue.size() << endl;
-//        tbb::parallel_for_each(the_queue, [&](ParseFrame* pf) {
-//            new_frames += ProcessOneFrame(pf, recursive);
-//        });
-//        the_queue.clear();
-//        std::copy(new_frames.begin(), new_frames.end(), std::back_inserter(the_queue));
 
     }
 

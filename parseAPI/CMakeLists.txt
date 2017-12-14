@@ -8,11 +8,6 @@ cmake_policy(SET CMP0012 OLD)
 find_package(OpenMP)
 cmake_policy(POP)
 
-set(RAJA_CMAKE_FLAGS
-		-DENABLE_OPENMP=${OPENMP_FOUND}
-		-DENABLE_TBB=${TBB_FOUND}
-		-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/RAJA)
-
 set(PARALLEL_OPTIONS serial)
 if(OPENMP_FOUND)
 	message(STATUS "OpenMP available")
@@ -43,15 +38,6 @@ set_property(CACHE PARALLEL_TYPE
 		PROPERTY STRINGS ${PARALLEL_OPTIONS})
 message(STATUS "Using ${PARALLEL_TYPE} for ParseAPI...")
 
-include(ExternalProject)
-ExternalProject_Add(RAJA
-		PREFIX ${CMAKE_BINARY_DIR}/RAJA
-		GIT_REPOSITORY https://github.com/LLNL/RAJA.git
-		GIT_SUBMODULES blt
-		CONFIGURE_COMMAND cmake ${RAJA_CMAKE_FLAGS} <SOURCE_DIR>
-		BUILD_COMMAND make
-		INSTALL_COMMAND make install
-		)
 
 message(STATUS "Flags for OpenMP: ${OpenMP_CXX_FLAGS}")
 set (SRC_LIST
