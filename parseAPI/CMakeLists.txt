@@ -3,43 +3,7 @@
 include_directories (
     ${PROJECT_SOURCE_DIR}/parseAPI/src
   )
-cmake_policy(PUSH)
-cmake_policy(SET CMP0012 OLD)
-find_package(OpenMP)
-cmake_policy(POP)
 
-set(PARALLEL_OPTIONS serial)
-if(OPENMP_FOUND)
-	message(STATUS "OpenMP available")
-	list(APPEND PARALLEL_OPTIONS OpenMP)
-endif()
-if(TBB_FOUND)
-	message(STATUS "TBB available")
-	list(APPEND PARALLEL_OPTIONS TBB)
-	list(APPEND RAJA_CMAKE_FLAGS -DTBB_ROOT_DIR=${TBB_ROOT_DIR})
-	list(APPEND RAJA_CMAKE_FLAGS -DTBB_INCLUDE_DIR=${TBB_INCLUDE_DIR})
-	list(APPEND RAJA_CMAKE_FLAGS -DTBB_LIBRARY=${TBB_LIBRARY})
-endif()
-
-set(DEFAULT_PARALLEL_TYPE serial)
-if(OPENMP_FOUND)
-	set(DEFAULT_PARALLEL_TYPE OpenMP)
-endif()
-if(TBB_FOUND)
-	set(DEFAULT_PARALLEL_TYPE TBB)
-endif()
-message(STATUS "Available parallelization kits: ${PARALLEL_OPTIONS}")
-if(NOT PARALLEL_TYPE)
-	set(PARALLEL_TYPE ${DEFAULT_PARALLEL_TYPE}
-			CACHE STRING "Type of parallelism to use in ParseAPI"
-			FORCE)
-endif()
-set_property(CACHE PARALLEL_TYPE
-		PROPERTY STRINGS ${PARALLEL_OPTIONS})
-message(STATUS "Using ${PARALLEL_TYPE} for ParseAPI...")
-
-
-message(STATUS "Flags for OpenMP: ${OpenMP_CXX_FLAGS}")
 set (SRC_LIST
         src/ParserDetails.C 
         src/Parser.C 
@@ -145,16 +109,13 @@ endif()
 
 ADD_DEFINITIONS(-DPARSER_LIB)
 ADD_DEFINITIONS(-DDATAFLOW_LIB)
-INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR}/RAJA/include)
 if(WIN32)
 ADD_DEFINITIONS(-DROSE_UTIL_EXPORTS)
 ADD_DEFINITIONS(-DNOMINMAX)
 endif()
-SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
 dyninst_library(parseAPI common instructionAPI ${SYMREADER})
-add_dependencies(parseAPI RAJA)
 set(OPENMP_LIBRARIES gomp)
-target_link_private_libraries(parseAPI ${Boost_LIBRARIES} ${TBB_LIBRARIES} tbbmalloc ${OPENMP_LIBRARIES})
+target_link_private_libraries(parseAPI ${Boost_LIBRARIES} ${TBB_LIBRARIES} tbbmalloc)
 
 if (WIN32)
 target_link_private_libraries(parseAPI shlwapi)
