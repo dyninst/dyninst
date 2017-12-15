@@ -9,6 +9,7 @@ option (BUILD_RTLIB_32 "Build 32-bit runtime library on mixed 32/64 systems" OFF
 
 option(BUILD_RTLIB "Building runtime library (can be disabled safely for component-level builds)" ON)
 option(BUILD_DOCS "Build manuals from LaTeX sources" ON)
+option(USE_COTIRE "Enable Cotire precompiled headers")
 
 # Some global on/off switches
 if (LIGHTWEIGHT_SYMTAB)
