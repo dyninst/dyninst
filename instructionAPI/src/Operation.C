@@ -76,7 +76,6 @@ namespace Dyninst
 
     static bool getVectorizationInfo(ia32_entry* e)
     {
-        bool ret = false;
         for(int i = 0; i < 3; i++)
         {
             switch(e->operands[i].optype)
@@ -85,6 +84,21 @@ namespace Dyninst
                 case am_W:
                 case am_P:
                 case am_Q:
+                case am_HK:
+                case am_H:
+                case am_X:
+                case am_XH:
+                case am_XU:
+                case am_XV:
+                case am_XW:
+                case am_Y:
+                case am_YH:
+                case am_YU:
+                case am_YV:
+                case am_YW:
+                case am_VK:
+                case am_WK:
+
                     return true;
                 default:
                     break;
