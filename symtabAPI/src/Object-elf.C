@@ -485,6 +485,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
                     case DT_STRTAB:
                     case DT_VERSYM:
                     case DT_VERNEED:
+                    case DT_VERDEF:
                         secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
                         break;
                     case DT_HASH:
@@ -532,6 +533,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
                 case DT_STRTAB:
                 case DT_VERSYM:
                 case DT_VERNEED:
+                case DT_VERDEF:
                 case DT_HASH:
                 case  0x6ffffef5: // DT_GNU_HASH (not defined on all platforms)
 
