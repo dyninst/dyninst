@@ -647,8 +647,9 @@ bool insnCodeGen::modifyCall(Address target,
 }
 
 bool insnCodeGen::modifyData(Address target,
-                             NS_aarch64::instruction &insn,
-                             codeGen &gen) {
+        NS_aarch64::instruction &insn,
+        codeGen &gen) 
+{
     int raw = insn.asInt();
     bool isneg = false;
 
@@ -656,51 +657,68 @@ bool insnCodeGen::modifyData(Address target,
         isneg = true;
 
     if (((raw >> 24) & 0x1F) == 0x10) {
-	Address offset;
-	if((raw >> 31) & 0x1) {
-	    target &= 0xFFFFF000;
-	    Address cur = gen.currAddr() & 0xFFFFF000;
-	    offset = isneg ? (cur - target) : (target - cur);
-	    offset >>= 12;
-	} else {
-	    Address cur = gen.currAddr();
-	    offset = isneg ? (cur - target) : (target - cur);
-	}
+        Address offset;
+        if((raw >> 31) & 0x1) {
+            target &= 0xFFFFF000;
+            Address cur = gen.currAddr() & 0xFFFFF000;
+            offset = isneg ? (cur - target) : (target - cur);
+            offset >>= 12;
+        } else {
+            Address cur = gen.currAddr();
+            offset = isneg ? (cur - target) : (target - cur);
+        }
         signed long imm = isneg ? -((signed long)offset) : offset;
 
         //If offset is within +/- 1 MB, modify the instruction (ADR/ADRP) with the new offset
         if (offset <= (1 << 20)) {
             instruction newInsn(insn);
-
             INSN_SET(newInsn, 5, 23, ((imm >> 2) & 0x7FFFF));
             INSN_SET(newInsn, 29, 30, (imm & 0x3));
-
             generate(gen, newInsn);
         }
-            //Else, generate move instructions to move the value to the same register
+        //Else, generate move instructions to move the value to the same register
         else {
-            Register rd = raw & 0x1F;
-            loadImmIntoReg<Address>(gen, rd, target);
+            //Register rd = raw & 0x1F;
+            //loadImmIntoReg<Address>(gen, rd, target);
+            instruction newInsn;
+            instruction newInsn2;
+            newInsn.clear();
+            signed long page_rel = ((long)(target >> 12)) - ((long)(gen.currAddr() >> 12));
+            signed long off = target & 0xFFFF;
+            INSN_SET(newInsn, 0, 4, raw & 0x1F);
+            INSN_SET(newInsn, 5, 23, ((page_rel >> 2) & 0x7FFFF));
+            INSN_SET(newInsn, 24, 28, 0x10);
+            INSN_SET(newInsn, 29, 30, (page_rel & 0x3));
+            INSN_SET(newInsn, 31, 31, 1);
+            generate(gen, newInsn);
+            newInsn2.clear();
+            INSN_SET(newInsn2, 0, 4, raw & 0x1F);
+            INSN_SET(newInsn2, 5, 9, raw & 0x1F);
+            INSN_SET(newInsn2, 10, 21, off);
+            INSN_SET(newInsn2, 22, 31, 0x244);
+            generate(gen , newInsn2);
+
         }
     } else if (((raw >> 24) & 0x3F) == 0x18 || ((raw >> 24) & 0x3F) == 0x1C) {
-    	Address offset = !isneg ? (target - gen.currAddr()) : (gen.currAddr() - target);
+        Address offset = !isneg ? (target - gen.currAddr()) : (gen.currAddr() - target);
         //If offset is within +/- 1 MB, modify the instruction (LDR/LDRSW) with the new offset
         if (offset <= (1 << 20)) {
             instruction newInsn(insn);
 
             isneg ? (offset += 4) : (offset -= 4);
-	    signed long imm = isneg ? -(offset >> 2) : (offset >> 2);
+            signed long imm = isneg ? -(offset >> 2) : (offset >> 2);
             INSN_SET(newInsn, 5, 23, (imm & 0x7FFFF));
 
             generate(gen, newInsn);
         }
-            //Else, generate move instructions to move the value to the same register
+        //Else, generate move instructions to move the value to the same register
         else {
             //Get scratch register for loading the target address in
             Register immReg = gen.rs()->getScratchRegister(gen, true);
             if(immReg == REG_NULL)
                 assert(!"No scratch register available to load the target address into for a PC-relative data access using LDR/LDRSW!");
             //Generate sequence of instructions for loading the target address in scratch register
+            assert(!"DDDD");
             loadImmIntoReg<Address>(gen, immReg, target);
 
             Register rt = raw & 0x1F;
