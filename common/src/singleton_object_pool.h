@@ -36,25 +36,30 @@
 #include <boost/pool/pool.hpp>
 #include "pool_allocators.h"
 #include "dthread.h"
-#include <cilk/cilk.h>
+#include "race-detector-annotations.h"
 
 
 // This is only safe for objects with nothrow constructors...
 template <typename T, typename Alloc = boost::default_user_allocator_new_delete>
 class singleton_object_pool
 {
-
     typedef boost::singleton_pool<T, sizeof(T), Alloc> parent_t;
     typedef singleton_object_pool<T, Alloc> pool_t;
 
     inline static void free(T* free_me)
     {
+        race_detector_fake_lock_acquire();
         parent_t::free(free_me);
+        race_detector_forget_access_history(free_me, sizeof(T));
+        race_detector_fake_lock_release();
     }
 
     inline static T* malloc()
     {
+        race_detector_fake_lock_acquire();
         void* buf = parent_t::malloc();
+        race_detector_forget_access_history(buf, sizeof(T));
+        race_detector_fake_lock_release();
         return reinterpret_cast<T*>(buf);
     }
 
@@ -130,9 +135,12 @@ public:
 
     inline static void destroy(T* const kill_me)
     {
-        if(!is_from(kill_me)) return;
-        kill_me->~T();
-        free(kill_me);
+        if(is_from(kill_me)) {
+          race_detector_fake_lock_acquire();
+	  kill_me->~T();
+          race_detector_fake_lock_release();
+	  free(kill_me);
+        }
     }
 
 };
