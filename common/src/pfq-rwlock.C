@@ -26,6 +26,7 @@
 //******************************************************************************
 
 #include "pfq-rwlock.h"
+#include "race-detector-annotations.h"
 
 
 
@@ -79,6 +80,7 @@ pfq_rwlock_init(pfq_rwlock_t &l)
 void
 pfq_rwlock_read_lock(pfq_rwlock_t &l)
 {
+  race_detector_fake_lock_acquire();
   uint32_t ticket = atomic_fetch_add_explicit(&l.rin, READER_INCREMENT, std::memory_order_acq_rel);
 
   if (ticket & WRITER_PRESENT) {
@@ -100,6 +102,7 @@ pfq_rwlock_read_unlock(pfq_rwlock_t &l)
     if (ticket == atomic_load_explicit(&l.last, std::memory_order_acquire))
       atomic_store_explicit(&l.whead->blocked, false, std::memory_order_release);
   }
+  race_detector_fake_lock_release();
 }
 
 

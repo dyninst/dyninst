@@ -20,6 +20,7 @@
 //******************************************************************************
 
 #include "mcs-lock.h"
+#include "race-detector-annotations.h"
 
 //******************************************************************************
 // private operations
@@ -32,6 +33,8 @@
 void
 mcs_lock(mcs_lock_t &l, mcs_node_t &me)
 {
+  race_detector_fake_lock_acquire();
+
   //--------------------------------------------------------------------
   // initialize my queue node
   //--------------------------------------------------------------------
@@ -77,6 +80,7 @@ mcs_lock(mcs_lock_t &l, mcs_node_t &me)
 bool
 mcs_trylock(mcs_lock_t &l, mcs_node_t &me)
 {
+  race_detector_fake_lock_acquire();
   //--------------------------------------------------------------------
   // initialize my queue node
   //--------------------------------------------------------------------
@@ -91,10 +95,14 @@ mcs_trylock(mcs_lock_t &l, mcs_node_t &me)
   //     the exchange completes.
   //--------------------------------------------------------------------
   mcs_node_t *oldme = mcs_nil;
-  return
+  bool locked = 
     atomic_compare_exchange_strong_explicit(&l.tail, &oldme, &me,
 					    std::memory_order_acq_rel,
 					    std::memory_order_relaxed);
+  if (!locked) {
+    race_detector_fake_lock_release();
+  }
+  return locked;
 }
 
 
@@ -123,6 +131,7 @@ mcs_unlock(mcs_lock_t &l, mcs_node_t &me)
       // I removed myself from the queue; I will never have a
       // successor, so I'm done
       //------------------------------------------------------------------
+      race_detector_fake_lock_release();
       return;
     }
 
@@ -134,4 +143,5 @@ mcs_unlock(mcs_lock_t &l, mcs_node_t &me)
   }
 
   atomic_store_explicit(&successor->blocked, false, std::memory_order_release);
+  race_detector_fake_lock_release();
 }
