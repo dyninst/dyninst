@@ -36,6 +36,8 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
+    static DummyExpr dummyExpr;
+
     InstructionAST::InstructionAST()
     {
     }
@@ -48,9 +50,8 @@ namespace Dyninst
     {
       // isStrictEqual assumes rhs and this to be of the same derived type
       // so isSameType enforces this restriction
-        static DummyExpr d;
-        if((typeid(*this) == typeid(d)) ||
-            (typeid(rhs) == typeid(d)))
+        if((typeid(*this) == typeid(dummyExpr)) ||
+            (typeid(rhs) == typeid(dummyExpr)))
         {
             return true;
         }
