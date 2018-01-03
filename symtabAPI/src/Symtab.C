@@ -91,19 +91,24 @@ void symtab_log_perror(const char *msg)
 };
 
 
-SymtabError serr;
+static thread_local SymtabError serr;
 
 std::vector<Symtab *> Symtab::allSymtabs;
 
  
 SymtabError Symtab::getLastSymtabError()
 {
-    return serr;
+  race_detector_fake_lock_acquire();
+  SymtabError last = serr;
+  race_detector_fake_lock_release();
+  return last;
 }
 
-void setSymtabError(SymtabError new_err)
+void Symtab::setSymtabError(SymtabError new_err)
 {
+   race_detector_fake_lock_acquire();
    serr = new_err;
+   race_detector_fake_lock_release();
 }
 
 std::string Symtab::printError(SymtabError serr)
@@ -1401,7 +1406,7 @@ bool Symtab::extractInfo(Object *linkedFile)
            if( object_type_ != obj_RelocatableFile ||
                linkedFile->code_ptr() == 0)
            {
-                serr = Obj_Parsing;
+	        setSymtabError(Obj_Parsing);
                 return false;
            }
        }
@@ -1507,13 +1512,13 @@ bool Symtab::extractInfo(Object *linkedFile)
 
     if (!extractSymbolsFromFile(linkedFile, raw_syms)) 
     {
-        serr = Syms_To_Functions;
+        setSymtabError(Syms_To_Functions);
         return false;
     }
 
     if (!fixSymModules(raw_syms)) 
     {
-        serr = Syms_To_Functions;
+        setSymtabError(Syms_To_Functions);
         return false;
     }
 	Object *obj = getObject();
@@ -1537,14 +1542,14 @@ bool Symtab::extractInfo(Object *linkedFile)
 	
     if (!createIndices(raw_syms, false))
     {
-        serr = Syms_To_Functions;
+        setSymtabError(Syms_To_Functions);
         return false;
     }
 
 
     if (!createAggregates()) 
     {
-        serr = Syms_To_Functions;
+        setSymtabError(Syms_To_Functions);
         return false;
     }
 	

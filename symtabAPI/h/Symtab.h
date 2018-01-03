@@ -368,6 +368,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    /***** Error Handling *****/
    static SymtabError getLastSymtabError();
+   static void setSymtabError(SymtabError new_err);
    static std::string printError(SymtabError serr);
 
    ~Symtab();
