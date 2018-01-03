@@ -110,6 +110,7 @@ Type *Type::createPlaceholder(typeId_t ID, std::string name)
   type_memory.insert(a, make_pair(mem, max_size));
   
   Type *placeholder_type = new(mem) Type(name, ID, dataUnknownType);
+    race_detector_forget_access_history(placeholder_type, max_size);
   return placeholder_type;
 }
 
