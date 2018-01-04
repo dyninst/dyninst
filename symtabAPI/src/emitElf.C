@@ -1435,7 +1435,7 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
             newshdr->sh_entsize = 0;
             newshdr->sh_addralign = 4;
             newdata->d_type = ELF_T_VNEED;
-            newdata->d_align = 4;
+            newdata->d_align = 8;
             updateStrLinkShdr.push_back(newshdr);
             newshdr->sh_flags = SHF_ALLOC;
             newshdr->sh_info = verneednum;
@@ -1445,9 +1445,10 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
             newshdr->sh_type = SHT_GNU_verdef;
             newshdr->sh_entsize = 0;
             newdata->d_type = ELF_T_VDEF;
-            newdata->d_align = 4;
+            newdata->d_align = 8;
             updateStrLinkShdr.push_back(newshdr);
             newshdr->sh_flags = SHF_ALLOC;
+            newshdr->sh_info = verdefnum;
             updateDynamic(DT_VERDEF, newshdr->sh_addr);
         }
 
@@ -2299,6 +2300,7 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
     verdefSecData = (char *) malloc(verdefSecSize);
     curpos = 0;
     verdefnum = 0;
+
     for (iter = verdefEntries.begin(); iter != verdefEntries.end(); iter++) {
         Elf_Verdef *verdef = reinterpret_cast<Elf_Verdef *>(verdefSecData + curpos);
         verdef->vd_version = 1;
@@ -2314,7 +2316,7 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
         for (unsigned i = 0; i < verdauxEntries[iter->second].size(); i++) {
             Elf_Verdaux *verdaux = reinterpret_cast<Elf_Verdaux *>(
                     verdefSecData + curpos + verdef->vd_aux + i * sizeof(Elf_Verdaux));
-            verdaux->vda_name = versionNames[verdauxEntries[iter->second][0]];
+            verdaux->vda_name = versionNames[verdauxEntries[iter->second][i]];
             if ((signed) i == verdef->vd_cnt - 1)
                 verdaux->vda_next = 0;
             else
@@ -2322,6 +2324,7 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
         }
         curpos += verdef->vd_next;
     }
+    
     return;
 }
 
