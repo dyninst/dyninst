@@ -775,7 +775,7 @@ Slicer::getPredecessors(
             slicing_printf("\t\t\t\t Adding intra-block predecessor %lx\n",
                 nf.loc.addr());
             slicing_printf("\t\t\t\t Current regions are:\n");
-            if(slicing_debug_on()) {
+            if(df_debug_slicing_on()) {
                 SliceFrame::ActiveMap::const_iterator ait = cand.active.begin();
                 for( ; ait != cand.active.end(); ++ait) {
                     slicing_printf("\t\t\t\t%s\n",
@@ -1373,7 +1373,6 @@ Slicer::Slicer(Assignment::Ptr a,
   b_(block),
   f_(func),
   converter(cache, stackAnalysis) {
-  df_init_debug();
 };
 
 Graph::Ptr Slicer::forwardSlice(Predicates &predicates) {

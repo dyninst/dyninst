@@ -100,8 +100,6 @@ if(!(X)) { \
 
 
 bool StackAnalysis::analyze() {
-   df_init_debug();
-
    genInsnEffects();
 
    stackanalysis_printf("\tPerforming fixpoint analysis\n");
@@ -111,7 +109,7 @@ bool StackAnalysis::analyze() {
 
    func->addAnnotation(intervals_, Stack_Anno_Intervals);
 
-   if (df_debug_stackanalysis) {
+   if (df_debug_stackanalysis_on()) {
       debug();
    }
 
@@ -398,7 +396,6 @@ bool StackAnalysis::canGetFunctionSummary() {
 
 
 bool StackAnalysis::getFunctionSummary(TransferSet &summary) {
-   df_init_debug();
     try {
         genInsnEffects();
 
