@@ -267,7 +267,7 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
     }
     JumpTableFormatVisitor jtfv(block);
     assert(jumpTarget);
-    jumpTarget = SymbolicExpression::SimplifyAnAST(jumpTarget, 0, true);
+    jumpTarget = se.SimplifyAnAST(jumpTarget, 0, true);
     parsing_printf("Check expression %s\n", jumpTarget->format().c_str());    
     jumpTarget->accept(&jtfv);
     if (jtfv.findIncorrectFormat) {

@@ -11,8 +11,6 @@ using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::DataflowAPI;
 
-CodeSource* SymbolicExpression::cs = NULL;
-
 bool SymbolicExpression::ReadMemory(Address addr, uint64_t &v, int ) {
     int addressWidth = cs->getAddressWidth();
     if (addressWidth == 4) {
@@ -272,7 +270,7 @@ AST::Ptr SymbolicExpression::SimplifyRoot(AST::Ptr ast, Address addr, bool keepM
 
 
 AST::Ptr SymbolicExpression::SimplifyAnAST(AST::Ptr ast, Address addr, bool keepMultiOne) {
-    SimplifyVisitor sv(addr, keepMultiOne);
+    SimplifyVisitor sv(addr, keepMultiOne, *this);
     ast->accept(&sv);
     return SimplifyRoot(ast, addr, keepMultiOne);
 }

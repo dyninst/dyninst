@@ -286,7 +286,7 @@ bool JumpTableIndexPred::MatchReadAST(Assignment::Ptr a) {
     pair<AST::Ptr, bool> expandRet = se.ExpandAssignment(a);
     if (!expandRet.second || expandRet.first == NULL) return false;
     if (a->out().generator() == NULL) return false;
-    AST::Ptr write = SymbolicExpression::SimplifyAnAST(RoseAST::create(ROSEOperation(ROSEOperation::derefOp, a->out().size()), a->out().generator()), 
+    AST::Ptr write = se.SimplifyAnAST(RoseAST::create(ROSEOperation(ROSEOperation::derefOp, a->out().size()), a->out().generator()), 
                                    SymbolicExpression::PCValue(a->addr(),
 				           a->insn().size(),
 					   a->block()->obj()->cs()->getArch()));
