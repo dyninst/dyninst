@@ -499,7 +499,10 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, pub
     InstructionSource * isrc() const { return _isrc; }
     CodeObject * obj() const { return _obj; }
     FuncSource src() const { return _src; }
-    FuncReturnStatus retstatus() const { return _rs; }
+    FuncReturnStatus retstatus() const { 
+      boost::lock_guard<const Function> g(*this);
+      return _rs; 
+    }
     Block * entry() const { return _entry; }
     bool parsed() const { return _parsed; }
 
@@ -508,7 +511,7 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, pub
     const_blocklist blocks() const;
     size_t num_blocks()
     {
-        boost::make_lock_guard(*this);
+      boost::lock_guard<Function> g(*this);
       if(!_cache_valid) finalize();
       return _bmap.size();
     }
