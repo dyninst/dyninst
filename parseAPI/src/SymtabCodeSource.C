@@ -42,6 +42,7 @@
 #include "CodeSource.h"
 #include "debug_parse.h"
 #include "util.h"
+#include "race-detector-annotations.h"
 
 using namespace std;
 using namespace Dyninst;
@@ -603,7 +604,9 @@ inline CodeRegion *
 SymtabCodeSource::lookup_region(const Address addr) const
 {
     CodeRegion * ret = NULL;
+    race_detector_fake_lock_acquire();
     CodeRegion * cache = _lookup_cache.load();
+    race_detector_fake_lock_release();
     if(cache && cache->contains(addr))
         ret = cache;
     else {
@@ -615,7 +618,9 @@ SymtabCodeSource::lookup_region(const Address addr) const
 
         if(rcnt) {
             ret = *stab.begin();
+	    race_detector_fake_lock_acquire();
             _lookup_cache.store(ret);
+	    race_detector_fake_lock_release();
         } 
     }
     return ret;
