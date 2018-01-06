@@ -36,8 +36,8 @@
 
 #include "ParseData.h"
 
-#include <cilk/cilk.h>
 
+#include <race-detector-annotations.h>
 
 using namespace std;
 using namespace Dyninst;
@@ -95,6 +95,12 @@ CFGFactory::_mkfunc(Address addr, FuncSource src, string name,
     CodeObject * obj, CodeRegion * reg, Dyninst::InstructionSource * isrc)
 {
    Function * ret = mkfunc(addr,src,name,obj,reg,isrc);
+
+   // forget about initialization of this function descriptor by this thread
+   // before making it available to others. the initialization will not race
+   // with a later access by another thread.
+   race_detector_forget_access_history(ret, sizeof(*ret));
+
    funcs_.add(ret);
    ret->_src =  src;
    return ret;
