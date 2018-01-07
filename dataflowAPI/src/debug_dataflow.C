@@ -64,7 +64,7 @@ static int check_debug_flag(int &flag)
   // use a fake lock to suppress reports about races associated with 
   // concurrent setting and checking of the initialized flag by 
   // code generated for the implementation of call_once. 
-  race_detector_fake_lock_acquire();
+  race_detector_fake_lock_acquire(race_detector_fake_lock(df_debug_slicing));
   static std::once_flag initialized;
 
 #if defined(_MSC_VER)
@@ -101,7 +101,7 @@ static int check_debug_flag(int &flag)
 
   });
 
-  race_detector_fake_lock_release();
+  race_detector_fake_lock_release(race_detector_fake_lock(df_debug_slicing));
 
 #if defined(_MSC_VER)
 #pragma warning(pop)    

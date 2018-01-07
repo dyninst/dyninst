@@ -40,9 +40,13 @@ using namespace Dyninst::ParseAPI;
 
 void ParseFrame::set_status(Status s)
 {
-    boost::lock_guard<ParseFrame> g(*this);
-    _status = s;
-    _pd->setFrameStatus(codereg,func->addr(),s);
+    race_detector_fake_lock_acquire(race_detector_fake_lock(_status));
+    {
+      boost::lock_guard<ParseFrame> g(*this);
+      _status.store(s);
+      _pd->setFrameStatus(codereg,func->addr(),s);
+    }
+    race_detector_fake_lock_release(race_detector_fake_lock(_status));
 }
 
 ParseWorkElem * ParseFrame::mkWork(
@@ -111,7 +115,9 @@ StandardParseData::findFuncs(CodeRegion * /* cr */, Address start,
 int StandardParseData::findBlocks(CodeRegion * /* cr */, Address addr,
     set<Block *> & blocks)
 {
+    race_detector_fake_lock_acquire(race_detector_fake_lock(_rdata));
     int ret = _rdata.findBlocks(addr,blocks);
+    race_detector_fake_lock_release(race_detector_fake_lock(_rdata));
     return ret;
 }
 
@@ -148,11 +154,12 @@ StandardParseData::record_frame(ParseFrame * pf)
 void
 StandardParseData::remove_frame(ParseFrame * pf)
 {
-    tbb::concurrent_hash_map<Address, ParseFrame*>::accessor a;
-    if(_rdata.frame_map.find(a, pf->func->addr()))
+    race_detector_fake_lock_acquire(race_detector_fake_lock(_rdata));
     {
-        _rdata.frame_map.erase(a);
+      tbb::concurrent_hash_map<Address, ParseFrame*>::accessor a;
+      if(_rdata.frame_map.find(a, pf->func->addr())) _rdata.frame_map.erase(a);
     }
+    race_detector_fake_lock_release(race_detector_fake_lock(_rdata));
 }
 
 ParseFrame *

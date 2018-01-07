@@ -47,34 +47,24 @@
 
 
 //****************************************************************************
-// private data
-//****************************************************************************
-
-#ifdef __INTEL_COMPILER
-static int fake_lock; // this is a placeholder only 
-#endif
-
-
-
-//****************************************************************************
 // public operations
 //****************************************************************************
 
 
 void 
-race_detector_fake_lock_acquire(void)
+race_detector_fake_lock_acquire(void *fake_lock)
 {
 #ifdef __INTEL_COMPILER
-  __cilkscreen_acquire_lock(&fake_lock);
+  __cilkscreen_acquire_lock(fake_lock);
 #endif
 }
 
 
 void 
-race_detector_fake_lock_release(void)
+race_detector_fake_lock_release(void *fake_lock)
 {
 #ifdef __INTEL_COMPILER
-  __cilkscreen_release_lock(&fake_lock);
+  __cilkscreen_release_lock(fake_lock);
 #endif
 }
 

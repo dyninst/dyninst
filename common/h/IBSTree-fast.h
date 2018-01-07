@@ -47,6 +47,7 @@
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/shared_lock_guard.hpp>
 
+#include <race-detector-annotations.h>
 
 namespace Dyninst
 {
@@ -105,59 +106,76 @@ namespace Dyninst
     template <class ITYPE>
     void IBSTree_fast<ITYPE>::insert(ITYPE* entry)
     {
+      // suppress race reports from shared lock guard initialization inside boost
+      race_detector_fake_lock_acquire(race_detector_fake_lock(*this));
+      {
         boost::lock_guard<IBSTree_fast<ITYPE> > u(*this);
         // find in overlapping first
         std::set<ITYPE*> dummy;
         if(overlapping_intervals.find(entry, dummy))
         {
             overlapping_intervals.insert(entry);
-            return;
-        }
-        typename interval_set::iterator lower =
-                unique_intervals.upper_bound(entry->low());
-        // lower.high first >= entry.low
-        if(lower != unique_intervals.end() && (**lower == *entry)) return;
-        typename interval_set::iterator upper = lower;
-        while(upper != unique_intervals.end() &&
-              (*upper)->low() <= entry->high())
-        {
-            overlapping_intervals.insert(*upper);
-            ++upper;
-        }
-        if(upper != lower)
-        {
-            unique_intervals.erase(lower, upper);
-            overlapping_intervals.insert(entry);
-        }
-        else
-        {
-            unique_intervals.insert(entry);
-        }
+        } else { 
+	  typename interval_set::iterator lower =
+	    unique_intervals.upper_bound(entry->low());
+	  // lower.high first >= entry.low
+	  if(lower != unique_intervals.end() && (**lower == *entry)) return;
+	  typename interval_set::iterator upper = lower;
+	  while(upper != unique_intervals.end() &&
+		(*upper)->low() <= entry->high())
+	    {
+	      overlapping_intervals.insert(*upper);
+	      ++upper;
+	    }
+	  if(upper != lower)
+	    {
+	      unique_intervals.erase(lower, upper);
+	      overlapping_intervals.insert(entry);
+	    }
+	  else
+	    {
+	      unique_intervals.insert(entry);
+	    }
+	}
+      }
+      race_detector_fake_lock_release(race_detector_fake_lock(*this));
     }
     template <class ITYPE>
     void IBSTree_fast<ITYPE>::remove(ITYPE* entry)
     {
+      // race_detector_fake_lock_acquire(race_detector_fake_lock(*this));
+      {
         boost::lock_guard<IBSTree_fast<ITYPE> > u(*this);
         overlapping_intervals.remove(entry);
         typename interval_set::iterator found = unique_intervals.find(entry->high());
         if(found != unique_intervals.end() && *found == entry) unique_intervals.erase(found);
+      }
+      // race_detector_fake_lock_release(race_detector_fake_lock(*this));
     }
     template<class ITYPE>
     int IBSTree_fast<ITYPE>::find(interval_type X, std::set<ITYPE*> &results) const
     {
+      int count = 0;
+      // suppress race reports from shared lock guard initialization inside boost
+      race_detector_fake_lock_acquire(race_detector_fake_lock(*this));
+      do 
+      {
         boost::shared_lock_guard<const IBSTree_fast<ITYPE> > g(*this);
         int num_old_results = results.size();
 
         int num_overlapping = overlapping_intervals.find(X, results);
-        if(num_overlapping > 0) return num_overlapping;
+        if(num_overlapping > 0) { count = num_overlapping; break; }
 
         typename interval_set::const_iterator found_unique = unique_intervals.upper_bound(X);
         if(found_unique != unique_intervals.end())
         {
-            if((*found_unique)->low() > X) return 0;
+	  if((*found_unique)->low() > X) { count = 0; break; }
             results.insert(*found_unique);
         }
-        return results.size() - num_old_results;
+        count = results.size() - num_old_results;
+      } while (0);
+      race_detector_fake_lock_release(race_detector_fake_lock(*this));
+      return count;
     }
     template <typename ITYPE>
     int IBSTree_fast<ITYPE>::find(ITYPE* I, std::set<ITYPE*>&results) const
@@ -209,9 +227,13 @@ namespace Dyninst
     template <typename ITYPE>
     void IBSTree_fast<ITYPE>::clear()
     {
+      // race_detector_fake_lock_acquire(race_detector_fake_lock(*this));
+      {
         boost::lock_guard<IBSTree_fast<ITYPE> > u(*this);
         overlapping_intervals.clear();
         unique_intervals.clear();
+      }
+      // race_detector_fake_lock_release(race_detector_fake_lock(*this));
     }
 
 }

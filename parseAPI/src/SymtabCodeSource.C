@@ -604,9 +604,9 @@ inline CodeRegion *
 SymtabCodeSource::lookup_region(const Address addr) const
 {
     CodeRegion * ret = NULL;
-    race_detector_fake_lock_acquire();
+    race_detector_fake_lock_acquire(race_detector_fake_lock(_lookup_cache));
     CodeRegion * cache = _lookup_cache.load();
-    race_detector_fake_lock_release();
+    race_detector_fake_lock_release(race_detector_fake_lock(_lookup_cache));
     if(cache && cache->contains(addr))
         ret = cache;
     else {
@@ -617,10 +617,10 @@ SymtabCodeSource::lookup_region(const Address addr) const
         assert(rcnt <= 1 || regionsOverlap());
 
         if(rcnt) {
-            ret = *stab.begin();
-	    race_detector_fake_lock_acquire();
-            _lookup_cache.store(ret);
-	    race_detector_fake_lock_release();
+          ret = *stab.begin();
+	  race_detector_fake_lock_acquire(race_detector_fake_lock(_lookup_cache));
+          _lookup_cache.store(ret);
+	  race_detector_fake_lock_release(race_detector_fake_lock(_lookup_cache));
         } 
     }
     return ret;

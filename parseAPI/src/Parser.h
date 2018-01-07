@@ -105,7 +105,9 @@ class Parser {
 
     // a sink block for unbound edges
     Block * _sink;
+#ifdef ADD_PARSE_FRAME_TIMERS
     tbb::concurrent_hash_map<unsigned int, unsigned int > time_histogram;
+#endif
     enum ParseState {
         UNPARSED,       // raw state
         PARTIAL,        // parsing has started

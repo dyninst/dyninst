@@ -8770,7 +8770,9 @@ ia32_instruction &ia32_decode(unsigned int capa, const unsigned char *addr, ia32
             default: break;
         }
 
+#if STUB_OUT_TO_AVOID_RACE
         gotit->id = newID;
+#endif
     }
 
     instruct.entry = gotit;

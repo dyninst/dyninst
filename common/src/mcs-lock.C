@@ -33,7 +33,7 @@
 void
 mcs_lock(mcs_lock_t &l, mcs_node_t &me)
 {
-  race_detector_fake_lock_acquire();
+  race_detector_fake_lock_acquire(&l);
 
   //--------------------------------------------------------------------
   // initialize my queue node
@@ -80,7 +80,7 @@ mcs_lock(mcs_lock_t &l, mcs_node_t &me)
 bool
 mcs_trylock(mcs_lock_t &l, mcs_node_t &me)
 {
-  race_detector_fake_lock_acquire();
+  race_detector_fake_lock_acquire(&l);
   //--------------------------------------------------------------------
   // initialize my queue node
   //--------------------------------------------------------------------
@@ -100,7 +100,7 @@ mcs_trylock(mcs_lock_t &l, mcs_node_t &me)
 					    std::memory_order_acq_rel,
 					    std::memory_order_relaxed);
   if (!locked) {
-    race_detector_fake_lock_release();
+    race_detector_fake_lock_release(&l);
   }
   return locked;
 }
@@ -131,7 +131,7 @@ mcs_unlock(mcs_lock_t &l, mcs_node_t &me)
       // I removed myself from the queue; I will never have a
       // successor, so I'm done
       //------------------------------------------------------------------
-      race_detector_fake_lock_release();
+      race_detector_fake_lock_release(&l);
       return;
     }
 
@@ -143,5 +143,5 @@ mcs_unlock(mcs_lock_t &l, mcs_node_t &me)
   }
 
   atomic_store_explicit(&successor->blocked, false, std::memory_order_release);
-  race_detector_fake_lock_release();
+  race_detector_fake_lock_release(&l);
 }
