@@ -985,11 +985,14 @@ Parser::finalize(Function *f)
         Block * b = *bit;
         finalize_block(b, f);
         if(b->start() > ext_e) {
-	    race_detector_fake_lock_acquire(race_detector_fake_lock(f->_extents));
-	    race_detector_fake_lock_acquire(race_detector_fake_lock(rd->funcsByRange));
             ext = new FuncExtent(f,ext_s,ext_e);
-	    race_detector_fake_lock_release(race_detector_fake_lock(f->_extents));
-	    race_detector_fake_lock_release(race_detector_fake_lock(rd->funcsByRange));
+
+            // remove access history for ext before publishing it
+            // to concurrent readers to avoid false race reports.
+            // ext is written before it is published and only read
+            // thereafter.
+	    race_detector_forget_access_history(ext, sizeof(*ext));
+
             parsing_printf("%lx extent [%lx,%lx)\n",f->addr(),ext_s,ext_e);
             f->_extents.push_back(ext);
             rd->funcsByRange.insert(ext);
@@ -997,11 +1000,14 @@ Parser::finalize(Function *f)
         }
         ext_e = b->end();
     }
-    race_detector_fake_lock_acquire(race_detector_fake_lock(f->_extents));
-    race_detector_fake_lock_acquire(race_detector_fake_lock(rd->funcsByRange));
     ext = new FuncExtent(f,ext_s,ext_e);
-    race_detector_fake_lock_release(race_detector_fake_lock(f->_extents));
-    race_detector_fake_lock_release(race_detector_fake_lock(rd->funcsByRange));
+ 
+    // remove access history for ext before publishing it
+    // to concurrent readers to avoid false race reports.
+    // ext is written before it is published and only read
+    // thereafter.
+    race_detector_forget_access_history(ext, sizeof(*ext));
+
     parsing_printf("%lx extent [%lx,%lx)\n",f->addr(),ext_s,ext_e);
     rd->funcsByRange.insert(ext);
     f->_extents.push_back(ext);
