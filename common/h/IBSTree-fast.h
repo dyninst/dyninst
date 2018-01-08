@@ -42,19 +42,17 @@
 #include <boost/mpl/inherit.hpp>
 #include <iostream>
 
-#include <boost/thread/locks.hpp>
-#include <boost/thread/lockable_adapter.hpp>
-#include <boost/thread/shared_mutex.hpp>
-#include <boost/thread/shared_lock_guard.hpp>
-
-#include <race-detector-annotations.h>
+#include "pfq-rwlock.h"
 
 namespace Dyninst
 {
 
     template <typename ITYPE >
-    class IBSTree_fast : public boost::upgrade_lockable_adapter<boost::upgrade_mutex>
-    {
+    class IBSTree_fast {
+    private:
+        // reader-writer lock to coordinate concurrent operations
+        mutable pfq_rwlock_t rwlock;
+
     public:
         typedef typename ITYPE::type interval_type;
 
@@ -70,6 +68,7 @@ namespace Dyninst
 
         IBSTree_fast()
         {
+            pfq_rwlock_init(rwlock);
         }
         ~IBSTree_fast()
         {
@@ -77,13 +76,17 @@ namespace Dyninst
         }
         int size() const
         {
-            boost::shared_lock_guard<const IBSTree_fast<ITYPE> > g(*this);
-            return overlapping_intervals.size() + unique_intervals.size();
+            pfq_rwlock_read_lock(rwlock);
+            int result = overlapping_intervals.size() + unique_intervals.size();
+            pfq_rwlock_read_unlock(rwlock);
+	    return result;
         }
         bool empty() const
         {
-            boost::shared_lock_guard<const IBSTree_fast<ITYPE> > g(*this);
-            return unique_intervals.empty() && overlapping_intervals.empty();
+            pfq_rwlock_read_lock(rwlock);
+            result = unique_intervals.empty() && overlapping_intervals.empty();
+            pfq_rwlock_read_unlock(rwlock);
+	    return result;
         }
         void insert(ITYPE*);
         void remove(ITYPE*);
@@ -94,10 +97,11 @@ namespace Dyninst
         void clear();
         friend std::ostream& operator<<(std::ostream& stream, const IBSTree_fast<ITYPE>& tree)
         {
-            boost::shared_lock_guard<const IBSTree_fast<ITYPE> > g(tree);
+            pfq_rwlock_read_lock(tree.rwlock);
             std::copy(tree.unique_intervals.begin(), tree.unique_intervals.end(),
                       std::ostream_iterator<typename Dyninst::IBSTree_fast<ITYPE>::interval_set::value_type>(stream, "\n"));
             stream << tree.overlapping_intervals;
+            pfq_rwlock_read_unlock(tree.rwlock);
             return stream;
         }
 
@@ -106,10 +110,9 @@ namespace Dyninst
     template <class ITYPE>
     void IBSTree_fast<ITYPE>::insert(ITYPE* entry)
     {
-      // suppress race reports from shared lock guard initialization inside boost
-      race_detector_fake_lock_acquire(race_detector_fake_lock(*this));
-      {
-        boost::lock_guard<IBSTree_fast<ITYPE> > u(*this);
+        pfq_rwlock_node_t me;
+        pfq_rwlock_write_lock(rwlock, me);
+
         // find in overlapping first
         std::set<ITYPE*> dummy;
         if(overlapping_intervals.find(entry, dummy))
@@ -137,30 +140,26 @@ namespace Dyninst
 	      unique_intervals.insert(entry);
 	    }
 	}
-      }
-      race_detector_fake_lock_release(race_detector_fake_lock(*this));
+
+        pfq_rwlock_write_unlock(rwlock, me);
     }
     template <class ITYPE>
     void IBSTree_fast<ITYPE>::remove(ITYPE* entry)
     {
-      // race_detector_fake_lock_acquire(race_detector_fake_lock(*this));
-      {
-        boost::lock_guard<IBSTree_fast<ITYPE> > u(*this);
+        pfq_rwlock_node_t me;
+        pfq_rwlock_write_lock(rwlock, me);
+
         overlapping_intervals.remove(entry);
         typename interval_set::iterator found = unique_intervals.find(entry->high());
         if(found != unique_intervals.end() && *found == entry) unique_intervals.erase(found);
-      }
-      // race_detector_fake_lock_release(race_detector_fake_lock(*this));
+        pfq_rwlock_write_unlock(rwlock, me);
     }
     template<class ITYPE>
     int IBSTree_fast<ITYPE>::find(interval_type X, std::set<ITYPE*> &results) const
     {
       int count = 0;
-      // suppress race reports from shared lock guard initialization inside boost
-      race_detector_fake_lock_acquire(race_detector_fake_lock(*this));
-      do 
-      {
-        boost::shared_lock_guard<const IBSTree_fast<ITYPE> > g(*this);
+      pfq_rwlock_read_lock(rwlock);
+      do {
         int num_old_results = results.size();
 
         int num_overlapping = overlapping_intervals.find(X, results);
@@ -174,13 +173,13 @@ namespace Dyninst
         }
         count = results.size() - num_old_results;
       } while (0);
-      race_detector_fake_lock_release(race_detector_fake_lock(*this));
+      pfq_rwlock_read_unlock(rwlock);
       return count;
     }
     template <typename ITYPE>
     int IBSTree_fast<ITYPE>::find(ITYPE* I, std::set<ITYPE*>&results) const
     {
-        boost::shared_lock_guard<const IBSTree_fast<ITYPE> > g(*this);
+        pfq_rwlock_read_lock(rwlock);
         int num_old_results = results.size();
         int num_overlapping = overlapping_intervals.find(I, results);
         if(num_overlapping) return num_overlapping;
@@ -191,12 +190,14 @@ namespace Dyninst
             results.insert(*ub);
             ++ub;
         }
-        return results.size() - num_old_results;
+        int result = results.size() - num_old_results;
+        pfq_rwlock_read_unlock(rwlock);
+	return result;
     }
     template<typename ITYPE>
     void IBSTree_fast<ITYPE>::successor(interval_type X, std::set<ITYPE*>& results) const
     {
-        boost::shared_lock_guard<const IBSTree_fast<ITYPE> > g(*this);
+        pfq_rwlock_read_lock(rwlock);
         ITYPE* overlapping_ub = overlapping_intervals.successor(X);
 
         typename interval_set::const_iterator unique_ub = unique_intervals.upper_bound(X);
@@ -212,28 +213,25 @@ namespace Dyninst
         {
             results.insert(*unique_ub);
         }
+        pfq_rwlock_read_unlock(rwlock);
     }
     template <typename ITYPE>
     ITYPE* IBSTree_fast<ITYPE>::successor(interval_type X) const
     {
-        boost::shared_lock_guard<const IBSTree_fast<ITYPE> > g(*this);
         std::set<ITYPE*> tmp;
         successor(X, tmp);
         assert(tmp.size() <= 1);
         if(tmp.empty()) return NULL;
         return *tmp.begin();
-
     }
     template <typename ITYPE>
     void IBSTree_fast<ITYPE>::clear()
     {
-      // race_detector_fake_lock_acquire(race_detector_fake_lock(*this));
-      {
-        boost::lock_guard<IBSTree_fast<ITYPE> > u(*this);
+        pfq_rwlock_node_t me;
+        pfq_rwlock_write_lock(rwlock, me);
         overlapping_intervals.clear();
         unique_intervals.clear();
-      }
-      // race_detector_fake_lock_release(race_detector_fake_lock(*this));
+        pfq_rwlock_write_unlock(rwlock, me);
     }
 
 }
