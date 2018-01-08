@@ -38,9 +38,6 @@
 #include "dthread.h"
 #include "race-detector-annotations.h"
 
-#define fake_singleton_pool_lock \
-  race_detector_fake_lock(singleton_object_pool::malloc)
-
 // This is only safe for objects with nothrow constructors...
 template <typename T, typename Alloc = boost::default_user_allocator_new_delete>
 class singleton_object_pool
@@ -50,18 +47,14 @@ class singleton_object_pool
 
     inline static void free(T* free_me)
     {
-        race_detector_fake_lock_acquire(fake_singleton_pool_lock);
         parent_t::free(free_me);
         race_detector_forget_access_history(free_me, sizeof(T));
-        race_detector_fake_lock_release(fake_singleton_pool_lock);
     }
 
     inline static T* malloc()
     {
-        race_detector_fake_lock_acquire(fake_singleton_pool_lock);
         void* buf = parent_t::malloc();
         race_detector_forget_access_history(buf, sizeof(T));
-        race_detector_fake_lock_release(fake_singleton_pool_lock);
         return reinterpret_cast<T*>(buf);
     }
 
@@ -138,9 +131,7 @@ public:
     inline static void destroy(T* const kill_me)
     {
         if(is_from(kill_me)) {
-          race_detector_fake_lock_acquire(fake_singleton_pool_lock);
 	  kill_me->~T();
-          race_detector_fake_lock_release(fake_singleton_pool_lock);
 	  free(kill_me);
         }
     }
