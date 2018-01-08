@@ -36,6 +36,8 @@
 #include <iomanip>
 #include <sstream>
 
+#include "common/h/race-detector-annotations.h"
+
 #include "common/src/Timer.h"
 #include "common/src/debugOstream.h"
 #include "common/src/serialize.h"
@@ -53,6 +55,7 @@
 #include "debug.h"
 
 #include "symtabAPI/src/Object.h"
+
 
 #if !defined(os_windows)
 #include <dlfcn.h>
