@@ -217,10 +217,9 @@ void ABI::initialize32(){
    callRead_[machRegIndex_x86()[x86::ebx]] = true;
 
    // TODO: Fix this for platform-specific calling conventions
-
+   
+   callWritten_ = getBitArray(machRegIndex_x86().size());
    // Assume calls write flags
-   callWritten_ = callRead_;
-
    callWritten_[machRegIndex_x86()[x86::of]] = true;
    callWritten_[machRegIndex_x86()[x86::sf]] = true;
    callWritten_[machRegIndex_x86()[x86::zf]] = true;
@@ -233,11 +232,11 @@ void ABI::initialize32(){
    callWritten_[machRegIndex_x86()[x86::nt_]] = true;
    callWritten_[machRegIndex_x86()[x86::rf]] = true;
 
-
-
-    // And eax...
+    // And scratch registers: eax, ecx, edx
     callWritten_[machRegIndex_x86()[x86::eax]] = true;
-
+    callWritten_[machRegIndex_x86()[x86::ecx]] = true;
+    callWritten_[machRegIndex_x86()[x86::edx]] = true;
+	
 
     // And assume a syscall reads or writes _everything_
     syscallRead_ = getBitArray(machRegIndex_x86().size()).set();
