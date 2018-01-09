@@ -218,6 +218,7 @@ void ABI::initialize32(){
 
    // TODO: Fix this for platform-specific calling conventions
 
+   // Assume calls write flags
    callWritten_[machRegIndex_x86()[x86::of]] = true;
    callWritten_[machRegIndex_x86()[x86::sf]] = true;
    callWritten_[machRegIndex_x86()[x86::zf]] = true;
