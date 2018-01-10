@@ -696,7 +696,14 @@ Symbol *func_instance::getRelocSymbol() {
    return referring;
 }
 
+// Used by BPatch_AddressSpace::wrapFunction to set the symbol for which
+// this function will be known by after relocation. 
+void func_instance::SetWrapperSym(Dyninst::SymtabAPI::Symbol * s) {
+   wrapperSym_ = s;
+}
+
 void func_instance::createWrapperSymbol(Address entry, std::string name) {
+
    if (wrapperSym_) {
       // Just update the address
       wrapperSym_->setOffset(entry);

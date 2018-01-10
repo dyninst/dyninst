@@ -266,7 +266,7 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     void setEmulInsnVal(Address insnAddr, void * val);
     int codeByteUpdates() { return codeByteUpdates_; }
 
-    void replacePLTStub(SymtabAPI::Symbol *PLTsym, 
+    bool replacePLTStub(SymtabAPI::Symbol *PLTsym, 
                         func_instance *func, 
                         Address newAddr);
 private:

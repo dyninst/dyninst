@@ -1565,9 +1565,21 @@ bool Symtab::extractInfo(Object *linkedFile)
 
     vector<relocationEntry >fbt;
     linkedFile->get_func_binding_table(fbt);
+
+    // Grab a copy of all relocations. 
+    linkedFile->getRelocationTable(all_relocations_);
+
     for(unsigned i=0; i<fbt.size();i++)
         relocation_table_.push_back(fbt[i]);
     return true;
+}
+
+bool Symtab::getAllRelocations(std::vector<relocationEntry> & relocs) {
+  relocs = all_relocations_;
+  // Return false if for some reason no relocation entries exist. 
+  if (all_relocations_.size() == 0)
+    return false;
+  return true; 
 }
 
 Symtab::Symtab(const Symtab& obj) :

@@ -218,6 +218,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool getFuncBindingTable(std::vector<relocationEntry> &fbt) const;
    bool updateFuncBindingTable(Offset stub_addr, Offset plt_addr);
 
+   bool getAllRelocations(std::vector<relocationEntry> & relocs);
+
    /**************************************
     *** SYMBOL ADDING FUNCS **************
     **************************************/
@@ -563,6 +565,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
 
    std::vector<relocationEntry > relocation_table_;
+   std::vector<relocationEntry > all_relocations_;
    std::vector<ExceptionBlock *> excpBlocks;
 
    std::vector<std::string> deps_;

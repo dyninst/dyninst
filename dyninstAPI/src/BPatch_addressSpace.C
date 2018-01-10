@@ -507,6 +507,11 @@ bool BPatch_addressSpace::wrapFunction(BPatch_function *original,
       return true;
    }
 
+   // Assign the clone to the lower level function. This is done here so that
+   // dyninst does not recreate the clone symbol (causing issues with dynamic function
+   // wrapping). Ideally this should take place in wrapFunction, however the entire call
+   // chain will need to be changed for this to occur. 
+   original->lowlevel_func()->SetWrapperSym(clone);
    if (!original->lowlevel_func()->proc()->wrapFunction(original->lowlevel_func(), 
                                                       wrapper->lowlevel_func(),
                                                       clone))

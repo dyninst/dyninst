@@ -1619,11 +1619,14 @@ void AddressSpace::wrapFunctionPostPatch(func_instance *func, Dyninst::SymtabAPI
       // newAddr. We now need to update any references calling the clone
       // symbol and point them at newAddr. Effectively, we're acting as
       // a proactive loader. 
-      
+      bool found = false;
       for (unsigned i = 0; i < mapped_objects.size(); ++i) {
          // Need original to get intermodule working right. 
-         mapped_objects[i]->replacePLTStub(clone, func, newAddr);
-      }
+         if (mapped_objects[i]->replacePLTStub(clone, func, newAddr))
+            found = true;
+      } 
+      if (found == false)
+        inst_printf("WrapFunction could not find clone symbol %s\n",clone->getPrettyName().c_str());
    }
 }
 

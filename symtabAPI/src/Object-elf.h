@@ -293,7 +293,7 @@ public:
   std::vector<std::string> &libsRMd();
 
   bool addRelocationEntry(relocationEntry &re);
-
+  bool getRelocationTable(std::vector<relocationEntry> & reloc);
   //getLoadAddress may return 0 on shared objects
   Offset getLoadAddress() const { return loadAddress_; }
 
