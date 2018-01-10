@@ -260,14 +260,14 @@ public:
     const_iterator begin() const {
         pfq_rwlock_read_lock(rwlock);
         iterator b = root;
-        while(b->left) b = root->left;
+        while(b->left) b = b->left;
         pfq_rwlock_read_unlock(rwlock);
         return b;
     }
     const_iterator end() const {
         pfq_rwlock_read_lock(rwlock);
         iterator e = root;
-        while(e->right) e = root->right;
+        while(e->right) e = e->right;
         pfq_rwlock_read_unlock(rwlock);
         return e;
     }
