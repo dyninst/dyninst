@@ -115,9 +115,7 @@ StandardParseData::findFuncs(CodeRegion * /* cr */, Address start,
 int StandardParseData::findBlocks(CodeRegion * /* cr */, Address addr,
     set<Block *> & blocks)
 {
-    race_detector_fake_lock_acquire(race_detector_fake_lock(_rdata));
     int ret = _rdata.findBlocks(addr,blocks);
-    race_detector_fake_lock_release(race_detector_fake_lock(_rdata));
     return ret;
 }
 
@@ -154,12 +152,12 @@ StandardParseData::record_frame(ParseFrame * pf)
 void
 StandardParseData::remove_frame(ParseFrame * pf)
 {
-    race_detector_fake_lock_acquire(race_detector_fake_lock(_rdata));
+    race_detector_fake_lock_acquire(race_detector_fake_lock(_rdata.frame_map));
     {
       tbb::concurrent_hash_map<Address, ParseFrame*>::accessor a;
       if(_rdata.frame_map.find(a, pf->func->addr())) _rdata.frame_map.erase(a);
     }
-    race_detector_fake_lock_release(race_detector_fake_lock(_rdata));
+    race_detector_fake_lock_release(race_detector_fake_lock(_rdata.frame_map));
 }
 
 ParseFrame *
@@ -431,7 +429,9 @@ OverlappingParseData::remove_frame(ParseFrame *pf)
         return;
     }
     region_data * rd = rmap[cr];
+    race_detector_fake_lock_acquire(race_detector_fake_lock(rd->frame_map));
     rd->frame_map.erase(pf->func->addr());
+    race_detector_fake_lock_release(race_detector_fake_lock(rd->frame_map));
 }
 CodeRegion * 
 OverlappingParseData::reglookup(CodeRegion *cr, Address /* addr */) 

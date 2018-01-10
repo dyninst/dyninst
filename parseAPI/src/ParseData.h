@@ -172,8 +172,8 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
 /* per-CodeRegion parsing data */
 class region_data {
 public:
-  // Function lookups
-  Dyninst::IBSTree_fast<FuncExtent> funcsByRange;
+    // Function lookups
+    Dyninst::IBSTree_fast<FuncExtent> funcsByRange;
     tbb::concurrent_hash_map<Address, Function *> funcsByAddr;
 
     // Block lookups
@@ -239,19 +239,15 @@ public:
 	{
 	  tbb::concurrent_hash_map<Address, Block*>::accessor a;
 	  blocksByAddr.insert(a, std::make_pair(b->start(), b));
-	  blocksByRange.insert(b);
 	}
         race_detector_fake_lock_release(race_detector_fake_lock(blocksByAddr));
+	blocksByRange.insert(b);
     }
     void updateBlockEnd(Block* b, Address addr, Address previnsn) {
-        race_detector_fake_lock_acquire(race_detector_fake_lock(blocksByRange));
         blocksByRange.remove(b);
-        race_detector_fake_lock_release(race_detector_fake_lock(blocksByRange));
         b->updateEnd(addr);
         b->_lastInsn = previnsn;
-        race_detector_fake_lock_acquire(race_detector_fake_lock(blocksByRange));
         blocksByRange.insert(b);
-        race_detector_fake_lock_release(race_detector_fake_lock(blocksByRange));
     }
     void record_frame(ParseFrame* pf) {
         race_detector_fake_lock_acquire(race_detector_fake_lock(frame_map));
@@ -271,7 +267,6 @@ public:
 inline Function *
 region_data::findFunc(Address entry)
 {
-    
     Function *result = NULL;
     race_detector_fake_lock_acquire(race_detector_fake_lock(funcsByAddr));
     {
