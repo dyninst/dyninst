@@ -78,7 +78,7 @@ namespace Dyninst
     {
         for(int i = 0; i < 3; i++)
         {
-            switch(e->operands[i].optype)
+            switch(e->operands[i].admet)
             {
                 case am_V:
                 case am_W:
