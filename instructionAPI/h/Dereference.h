@@ -212,7 +212,7 @@ namespace Dyninst
                 std::cout << "\tDisplacement: " << list.displacement << std::endl;
 #endif
 
-            return ArchSpecificFormatter::getFormatter(arch)->formatDeref(addressToDereference->format(arch));
+            return ArchSpecificFormatter::getFormatter(arch).formatDeref(addressToDereference->format(arch));
         }
 
       virtual bool bind(Expression* expr, const Result& value)

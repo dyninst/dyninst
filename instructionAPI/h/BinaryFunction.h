@@ -369,7 +369,7 @@ namespace Dyninst
                 }
                 else
                 {
-                    return ArchSpecificFormatter::getFormatter(arch)->formatBinaryFunc(
+                    return ArchSpecificFormatter::getFormatter(arch).formatBinaryFunc(
 							m_arg1->format(arch), m_funcPtr->format(), m_arg2->format(arch));
                 }
 

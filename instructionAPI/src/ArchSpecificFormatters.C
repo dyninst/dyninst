@@ -337,11 +337,11 @@ std::string x86Formatter::formatBinaryFunc(std::string left, std::string func, s
 }
 
 ///////////////////////////
-boost::shared_ptr<ArchSpecificFormatter> ArchSpecificFormatter::getFormatter(Architecture a)
+ArchSpecificFormatter& ArchSpecificFormatter::getFormatter(Architecture a)
 {
     static std::map<Dyninst::Architecture, boost::shared_ptr<ArchSpecificFormatter> > theFormatters;
     auto found = theFormatters.find(a);
-    if(found != theFormatters.end()) return found->second;
+    if(found != theFormatters.end()) return *found->second;
     switch(a) {
         case Arch_aarch32:
         case Arch_aarch64:
@@ -357,5 +357,5 @@ boost::shared_ptr<ArchSpecificFormatter> ArchSpecificFormatter::getFormatter(Arc
             theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new x86Formatter());
             break;
     }
-    return theFormatters[a];
+    return *theFormatters[a];
 }

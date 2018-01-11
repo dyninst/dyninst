@@ -199,7 +199,7 @@ namespace Dyninst
       /// \c readsMemory will return true for a pop operation.
       INSTRUCTION_EXPORT bool readsMemory() const;
 
-      INSTRUCTION_EXPORT boost::shared_ptr<ArchSpecificFormatter> getFormatter() const;
+      INSTRUCTION_EXPORT ArchSpecificFormatter& getFormatter() const;
 
       /// \return Returns true if the instruction writes at least one memory address.
       ///
@@ -311,7 +311,7 @@ namespace Dyninst
       Architecture arch_decoded_from;
       mutable std::list<CFT> m_Successors;
       static int numInsnsAllocated;
-      boost::shared_ptr<ArchSpecificFormatter> formatter;
+      ArchSpecificFormatter& formatter;
     };
   };
 };

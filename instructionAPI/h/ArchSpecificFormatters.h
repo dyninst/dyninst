@@ -47,7 +47,7 @@ namespace Dyninst {
             virtual std::string formatRegister(std::string) = 0;
             virtual std::string formatBinaryFunc(std::string, std::string, std::string);
             virtual ~ArchSpecificFormatter() {}
-            static INSTRUCTION_EXPORT boost::shared_ptr<ArchSpecificFormatter> getFormatter(Dyninst::Architecture a);
+            static INSTRUCTION_EXPORT ArchSpecificFormatter& getFormatter(Dyninst::Architecture a);
 
         };
 

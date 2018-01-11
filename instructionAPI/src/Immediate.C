@@ -69,7 +69,7 @@ namespace Dyninst {
         }
 
         std::string Immediate::format(Architecture arch, formatStyle) const {
-            return ArchSpecificFormatter::getFormatter(arch)->formatImmediate(eval().format());
+            return ArchSpecificFormatter::getFormatter(arch).formatImmediate(eval().format());
         }
 
         std::string Immediate::format(formatStyle) const {

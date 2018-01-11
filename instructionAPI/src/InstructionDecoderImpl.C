@@ -35,6 +35,7 @@
 #include "InstructionDecoder-aarch64.h"
 #include "BinaryFunction.h"
 #include "Dereference.h"
+#include <tbb/scalable_allocator.h>
 
 using namespace std;
 namespace Dyninst
