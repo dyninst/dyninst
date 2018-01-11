@@ -30,13 +30,8 @@
 #if !defined(SINGLETON_OBJECT_POOL_H)
 #define SINGLETON_OBJECT_POOL_H
 
-//#define BOOST_POOL_NO_MT
-//#undef BOOST_HAS_THREADS
-
-#include <boost/pool/pool.hpp>
 #include "pool_allocators.h"
 #include "dthread.h"
-#include <cilk/cilk.h>
 #include <tbb/scalable_allocator.h>
 
 // This is only safe for objects with nothrow constructors...
