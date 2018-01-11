@@ -107,8 +107,9 @@ namespace NS_aarch64 {
 #define INSN_GET_ISCALL(I)          ((unsigned int) ((I).asInt() & 0x80000000))
 #define INSN_GET_CBRANCH_OFFSET(I)  ((unsigned int) (((I).asInt() >> 5) & 0x7ffff))
 
-#define MAX_BRANCH_OFFSET      0x01ffffff
-#define MAX_CBRANCH_OFFSET     0x0003ffff
+#define MAX_BRANCH_OFFSET      0x07ffffff  // 128MB  Used for B
+#define MAX_CBRANCH_OFFSET     0x000fffff  //   1MB  Used for B.cond, CBZ and CBNZ
+#define MAX_TBRANCH_OFFSET     0x0007ffff  //  32KB  Used for TBZ and TBNZ
 
 #define CHECK_INST(isInst) \
     !((insn_.raw&isInst##_MASK)^isInst)
@@ -144,9 +145,9 @@ public:
     static insn_mask CB_MASK = 0x7e000000; // comp&B
     static insn_mask TB_MASK = 0x7e000000; // test&B
 
+    static insn_mask BR =      0x54000000; // Conditional B
     static insn_mask CB =      0x34000000; // Compare & B
     static insn_mask TB =      0x36000000; // Test & B
-    static insn_mask BR  =     0x54000000; // Conditional B
 
     static insn_mask CB_OFFSET_MASK = 0x07fffff0;
     static insn_mask TB_OFFSET_MASK = 0x0007fff0;

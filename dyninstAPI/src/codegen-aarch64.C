@@ -578,41 +578,53 @@ bool insnCodeGen::modifyJump(Address target,
 }
 
 /* TODO and/or FIXME
- * The logic used by this function is common across architectures but is replicated in architecture-specific manner in all codegen-* files.
- * This means that the logic itself needs to be refactored into the (platform independent) codegen.C file. Appropriate architecture-specific,
- * bit-twiddling functions can then be defined if necessary in the codegen-* files and called as necessary by the common, refactored logic.
+ * The logic used by this function is common across architectures but is replicated 
+ * in architecture-specific manner in all codegen-* files.
+ * This means that the logic itself needs to be refactored into the (platform 
+ * independent) codegen.C file. Appropriate architecture-specific,
+ * bit-twiddling functions can then be defined if necessary in the codegen-* files 
+ * and called as necessary by the common, refactored logic.
 */
 bool insnCodeGen::modifyJcc(Address target,
 			    NS_aarch64::instruction &insn,
 			    codeGen &gen) {
     long disp = target - gen.currAddr();
-
-    if(abs(disp) > MAX_CBRANCH_OFFSET) {
+    auto isTB = insn.isInsnType(COND_BR_t::TB_MASK, COND_BR_t::TB);
+    
+    if(abs(disp) > MAX_CBRANCH_OFFSET ||
+            (isTB && abs(disp) > MAX_TBRANCH_OFFSET))
+    {
         const unsigned char *origInsn = insn.ptr();
         Address origFrom = gen.currAddr();
 
         /*
-         * A conditional branch of the form
+         * A conditional branch of the form:
          *    b.cond A
-	 * [Note that b.cond could also be cbz, cbnz, tbz or tbnz -- all valid conditional branch instructions]
          * C: ...next insn...:
-         *  gets converted to
+         * [Note that b.cond could also be cbz, cbnz, tbz or tbnz -- all valid conditional branch instructions]
+         *
+         * Gets converted to:
          *    b.cond B
          *    b      C
          * B: b      A
          * C: ...next insn...
          */
 
-        //Store start index of code buffer to later calculate how much the original instruction's will have moved
+        // Store start index of code buffer to later calculate how much the original instruction's will have moved
         codeBufIndex_t startIdx = gen.getIndex();
 
-        /* Generate the --b.cond B-- instruction. Directly modifying the offset bits of the instruction passed since other bits are to remain the same anyway.
-           B will be 4 bytes from the next instruction. */
+        /* Generate the --b.cond B-- instruction. Directly modifying the offset 
+         * bits of the instruction passed since other bits are to remain the same anyway.
+           B will be 4 bytes from the next instruction. (it will get multiplied by 4 by the CPU) */
         instruction newInsn(insn);
-        INSN_SET(newInsn, 5, 23, 0x1);
+        if(insn.isInsnType(COND_BR_t::TB_MASK, COND_BR_t::TB))
+            INSN_SET(newInsn, 5, 18, 0x1);
+        else
+            INSN_SET(newInsn, 5, 23, 0x1);
         generate(gen, newInsn);
 
-        /* Generate the --b C-- instruction. C will be 4 bytes from the next instruction, hence offset for this instruction is set to 1.
+        /* Generate the --b C-- instruction. C will be 4 bytes from the next 
+         * instruction, hence offset for this instruction is set to 1.
           (it will get multiplied by 4 by the CPU) */
         newInsn.clear();
         INSN_SET(newInsn, 0, 25, 0x1);
@@ -620,16 +632,22 @@ bool insnCodeGen::modifyJcc(Address target,
         generate(gen, newInsn);
 
         /* Generate the final --b A-- instruction.
-         * The 'from' address to be passed in to generateBranch is now several bytes (8 actually, but I'm not hardcoding this) ahead of the original 'from' address.
+         * The 'from' address to be passed in to generateBranch is now several
+         * bytes (8 actually, but I'm not hardcoding this) ahead of the original 'from' address.
          * So adjust it accordingly.*/
         codeBufIndex_t curIdx = gen.getIndex();
         Address newFrom = origFrom + (unsigned)(curIdx - startIdx);
         insnCodeGen::generateBranch(gen, newFrom, target);
-    } else {
+    } 
+    else
+    {
         instruction condBranchInsn(insn);
 
-        //Set the displacement immediate
-        INSN_SET(condBranchInsn, 5, 23, disp >> 2);
+        // Set the displacement immediate
+        if(isTB)
+            INSN_SET(condBranchInsn, 5, 18, disp >> 2);
+        else
+            INSN_SET(condBranchInsn, 5, 23, disp >> 2);
 
         generate(gen, condBranchInsn);
     }
