@@ -55,8 +55,8 @@
 #include <boost/timer/timer.hpp>
 #include <fstream>
 
-#define USE_CILK 1
-#define USE_OPENMP 0
+#define USE_CILK 0
+#define USE_OPENMP 1
 
 #if USE_CILK
 #include <cilk/cilk.h>
@@ -1793,7 +1793,9 @@ Parser::block_at(
 
 
     {
+#ifdef JOHNMC_REMOVE_DEADLOCK
     boost::lock_guard<Function> g(*owner);
+#endif
     for(auto i = owner->blocks_begin();
         i != owner->blocks_end();
         ++i)
