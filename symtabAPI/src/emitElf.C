@@ -1435,19 +1435,20 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
             newshdr->sh_entsize = 0;
             newshdr->sh_addralign = 4;
             newdata->d_type = ELF_T_VNEED;
-            newdata->d_align = 4;
+            newdata->d_align = 8;
             updateStrLinkShdr.push_back(newshdr);
             newshdr->sh_flags = SHF_ALLOC;
-            newshdr->sh_info = 2;
+            newshdr->sh_info = verneednum;
             updateDynamic(DT_VERNEED, newshdr->sh_addr);
         }
         else if (newSecs[i]->getRegionType() == Region::RT_SYMVERDEF) {
             newshdr->sh_type = SHT_GNU_verdef;
             newshdr->sh_entsize = 0;
             newdata->d_type = ELF_T_VDEF;
-            newdata->d_align = 4;
+            newdata->d_align = 8;
             updateStrLinkShdr.push_back(newshdr);
             newshdr->sh_flags = SHF_ALLOC;
+            newshdr->sh_info = verdefnum;
             updateDynamic(DT_VERDEF, newshdr->sh_addr);
         }
 
