@@ -84,7 +84,7 @@ namespace Dyninst
         bool empty() const
         {
             pfq_rwlock_read_lock(rwlock);
-            result = unique_intervals.empty() && overlapping_intervals.empty();
+            bool result = unique_intervals.empty() && overlapping_intervals.empty();
             pfq_rwlock_read_unlock(rwlock);
 	    return result;
         }
@@ -113,6 +113,7 @@ namespace Dyninst
         pfq_rwlock_node_t me;
         pfq_rwlock_write_lock(rwlock, me);
 
+        do {
         // find in overlapping first
         std::set<ITYPE*> dummy;
         if(overlapping_intervals.find(entry, dummy))
@@ -122,7 +123,7 @@ namespace Dyninst
 	  typename interval_set::iterator lower =
 	    unique_intervals.upper_bound(entry->low());
 	  // lower.high first >= entry.low
-	  if(lower != unique_intervals.end() && (**lower == *entry)) return;
+	  if (lower != unique_intervals.end() && (**lower == *entry)) break;
 	  typename interval_set::iterator upper = lower;
 	  while(upper != unique_intervals.end() &&
 		(*upper)->low() <= entry->high())
@@ -140,6 +141,7 @@ namespace Dyninst
 	      unique_intervals.insert(entry);
 	    }
 	}
+        } while(0);
 
         pfq_rwlock_write_unlock(rwlock, me);
     }
