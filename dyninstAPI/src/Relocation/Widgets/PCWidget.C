@@ -221,6 +221,7 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
     gen.setRegisterSpace(rs);
 
 #if defined(arch_aarch64)
+    /*
     instruction adrInsn;
     adrInsn.clear();
 
@@ -237,6 +238,11 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
     exclude.push_back(reg);
     Register scratchReg = insnCodeGen::moveValueToReg(gen, offset, &exclude);
     insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, 0, 0, scratchReg, reg, reg, true);
+    */
+
+    insnCodeGen::generateBranch(gen, gen.currAddr(), addr, false);
+
+    //insnCodeGen::modifyJump(target, NS_aarch64::instruction &insn, gen); 
 #else
     // Must be in LR
     if (reg == (Register) -1) reg = registerSpace::lr;
