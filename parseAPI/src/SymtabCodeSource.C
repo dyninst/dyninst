@@ -610,7 +610,6 @@ SymtabCodeSource::lookup_region(const Address addr) const
     if(cache && cache->contains(addr))
         ret = cache;
     else {
-        boost::lock_guard<const SymtabCodeSource> g(*this);
         set<CodeRegion *> stab;
         int rcnt = findRegions(addr,stab);
     
