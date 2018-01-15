@@ -44,6 +44,8 @@
 
 #include "dyninstversion.h"
 
+#include "pfq-rwlock.h"
+
 #include "boost/shared_ptr.hpp"
 #include "boost/multi_index_container.hpp"
 #include <boost/multi_index/member.hpp>
@@ -466,7 +468,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    static boost::shared_ptr<typeCollection> setupStdTypes();
    static boost::shared_ptr<builtInTypeCollection> setupBuiltinTypes();
-    boost::mutex symbols_mutex;
+   pfq_rwlock_t symbols_rwlock;
+   // boost::mutex symbols_mutex;
 
    std::string member_name_;
    Offset member_offset_;

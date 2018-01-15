@@ -69,11 +69,16 @@ bool pattern_match( const char *p, const char *s, bool checkCase );
 
 std::vector<Symbol *> Symtab::findSymbolByOffset(Offset o)
 {
-    boost::lock_guard<boost::mutex> g(symbols_mutex);
-  std::vector<Symbol*> ret;
+   std::vector<Symbol*> ret;
+
+   pfq_rwlock_read_lock(symbols_rwlock);
+
    indexed_symbols::index<offset>::type& syms_by_offset = everyDefinedSymbol.get<offset>();
    std::copy(syms_by_offset.lower_bound(o), syms_by_offset.upper_bound(o), 
 	     std::back_inserter(ret));
+
+   pfq_rwlock_read_unlock(symbols_rwlock);
+
    return ret;
    
    /*	//Symbol *s = NULL;
@@ -87,7 +92,7 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
                         Symbol::SymbolType sType, NameType nameType,
                         bool isRegex, bool checkCase, bool includeUndefined)
 {
-    boost::lock_guard<boost::mutex> g(symbols_mutex);
+    pfq_rwlock_read_lock(symbols_rwlock);
 
     unsigned old_size = ret.size();
 
@@ -184,6 +189,9 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
           matches.insert(*iter);
        }
     }
+
+    pfq_rwlock_read_unlock(symbols_rwlock);
+
     ret.insert(ret.end(), matches.begin(), matches.end());
 
     if (ret.size() == old_size) {
@@ -197,9 +205,13 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
 
 bool Symtab::getAllSymbols(std::vector<Symbol *> &ret)
 {
-    boost::lock_guard<boost::mutex> g(symbols_mutex);
+  pfq_rwlock_read_lock(symbols_rwlock);
+
   std::copy(everyDefinedSymbol.begin(), everyDefinedSymbol.end(), back_inserter(ret));
   std::copy(undefDynSyms.begin(), undefDynSyms.end(), back_inserter(ret));
+
+  pfq_rwlock_read_unlock(symbols_rwlock);
+
   
   //    ret = everyDefinedSymbol;
 
@@ -210,19 +222,23 @@ bool Symtab::getAllSymbols(std::vector<Symbol *> &ret)
     //for (it = temp.begin(); it != temp.end(); it++)
     //    ret.push_back(*it);
 
-    if(ret.size() > 0)
-        return true;
+  if(ret.size() > 0) {
+    return true;
+  } else {
     setSymtabError(No_Such_Symbol);
     return false;
+  }
 }
 
 bool Symtab::getAllSymbolsByType(std::vector<Symbol *> &ret, Symbol::SymbolType sType)
 {
     if (sType == Symbol::ST_UNKNOWN)
         return getAllSymbols(ret);
-    boost::lock_guard<boost::mutex> g(symbols_mutex);
 
     unsigned old_size = ret.size();
+
+    pfq_rwlock_read_lock(symbols_rwlock);
+
     // Filter by the given type
     for (auto i = everyDefinedSymbol.begin(); i != everyDefinedSymbol.end(); i++) {
       if ((*i)->getType() == sType) 
@@ -239,6 +255,8 @@ bool Symtab::getAllSymbolsByType(std::vector<Symbol *> &ret, Symbol::SymbolType 
       
     }
 
+    pfq_rwlock_read_unlock(symbols_rwlock);
+
     if (ret.size() > old_size) {
         return true;
     }
@@ -251,8 +269,13 @@ bool Symtab::getAllSymbolsByType(std::vector<Symbol *> &ret, Symbol::SymbolType 
 bool Symtab::getAllDefinedSymbols(std::vector<Symbol *> &ret)
 {
   ret.clear();
-    boost::lock_guard<boost::mutex> g(symbols_mutex);
+
+  pfq_rwlock_read_lock(symbols_rwlock);
+
   std::copy(everyDefinedSymbol.begin(), everyDefinedSymbol.end(), back_inserter(ret));
+
+  pfq_rwlock_read_unlock(symbols_rwlock);
+
   //    ret = everyDefinedSymbol;
 
     if(ret.size() > 0)
@@ -263,8 +286,13 @@ bool Symtab::getAllDefinedSymbols(std::vector<Symbol *> &ret)
  
 bool Symtab::getAllUndefinedSymbols(std::vector<Symbol *> &ret){
     unsigned size = ret.size();
-    boost::lock_guard<boost::mutex> g(symbols_mutex);
+
+    pfq_rwlock_read_lock(symbols_rwlock);
+
     ret.insert(ret.end(), undefDynSyms.begin(), undefDynSyms.end());
+
+    pfq_rwlock_read_unlock(symbols_rwlock);
+
     if(ret.size()>size)
         return true;
     setSymtabError(No_Such_Symbol);
