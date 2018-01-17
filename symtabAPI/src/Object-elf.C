@@ -111,7 +111,8 @@ const char *pdelf_get_shnames(Elf_X *elf)
 {
     const char *result = NULL;
     size_t shstrndx = elf->e_shstrndx();
-
+    // NULL on failure
+    if(shstrndx >= elf->e_shnum()) return result;
     Elf_X_Shdr &shstrscn = elf->get_shdr(shstrndx);
     if (shstrscn.isValid()) {
         Elf_X_Data shstrdata = shstrscn.get_data();
@@ -2028,6 +2029,7 @@ void Object::handle_opd_relocations(){
         }
         i++;
     }
+    if(i == regions_.size()) return;
 
     vector<relocationEntry> region_rels = (regions_[opdregion])->getRelocations();
     vector<relocationEntry>::iterator rel_it;

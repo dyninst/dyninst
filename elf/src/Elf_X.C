@@ -1656,6 +1656,8 @@ bool Elf_X::findDebugFile(std::string origfilename, string &output_name, char* &
    cached_debug = true;
 
    uint16_t shnames_idx = e_shstrndx();
+    // If we don't have names, bail.
+    if(shnames_idx >= e_shnum()) return false;
    Elf_X_Shdr shnames_hdr = get_shdr(shnames_idx);
    if (!shnames_hdr.isValid())
       return false;
