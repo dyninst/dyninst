@@ -38,7 +38,7 @@ class Type;
 class DwarfParseActions {
 
 protected:
-    Dwarf* dbg() { return dbg_; } 
+    Dwarf* dbg() { return dbg_; }
 
     Module *& mod() { return mod_; } 
 
@@ -69,9 +69,8 @@ private:
         fieldListType *enclosure;
         bool parseSibling;
         bool parseChild;
-        Dwarf_Die entry;
-        Dwarf_Die specEntry;
-        Dwarf_Die abstractEntry;
+        Dwarf_Off specEntry;
+        Dwarf_Off abstractEntry;
         Dwarf_Off offset;
         unsigned int tag;
         Address base;
@@ -89,7 +88,6 @@ private:
                 enclosure(o.enclosure),
                 parseSibling(o.parseSibling),
                 parseChild(o.parseChild),
-                entry(o.entry),
                 specEntry(o.specEntry),
                 abstractEntry(o.specEntry),
                 offset(o.offset),
@@ -113,9 +111,21 @@ public:
     fieldListType *curEnclosure() { return c.top().enclosure; }
     bool parseSibling() { return c.top().parseSibling; }
     bool parseChild() { return c.top().parseChild; }
-    Dwarf_Die entry() { return c.top().entry; }
-    Dwarf_Die specEntry() { return c.top().specEntry; }
-    Dwarf_Die abstractEntry() { return c.top().abstractEntry; }
+    Dwarf_Die entry() {
+        Dwarf_Die ret;
+        dwarf_offdie(dbg(), c.top().offset, &ret);
+        return ret;
+    }
+    Dwarf_Die specEntry() {
+        Dwarf_Die ret;
+        dwarf_offdie(dbg(), c.top().specEntry, &ret);
+        return ret;
+    }
+    Dwarf_Die abstractEntry() {
+        Dwarf_Die ret;
+        dwarf_offdie(dbg(), c.top().abstractEntry, &ret);
+        return ret;
+    }
     Dwarf_Off offset() { return c.top().offset; }
     unsigned int tag() { return c.top().tag; }
     Address base() { return c.top().base; }
@@ -127,9 +137,9 @@ public:
     void setEnclosure(fieldListType *f) { c.top().enclosure = f; }
     void setParseSibling(bool p) { c.top().parseSibling = p; }
     void setParseChild(bool p) { c.top().parseChild = p; }
-    virtual void setEntry(Dwarf_Die e) { c.top().entry = e; }
-    void setSpecEntry(Dwarf_Die e) { c.top().specEntry = e; }
-    void setAbstractEntry(Dwarf_Die e) { c.top().abstractEntry = e; }
+    virtual void setEntry(Dwarf_Die e) { c.top().offset = dwarf_dieoffset(&e); }
+    void setSpecEntry(Dwarf_Die e) { c.top().specEntry = dwarf_dieoffset(&e); }
+    void setAbstractEntry(Dwarf_Die e) { c.top().abstractEntry = dwarf_dieoffset(&e); }
     void setOffset(Dwarf_Off o) { c.top().offset = o; }
     void setTag(unsigned int t) { c.top().tag = t; }
     void setBase(Address a) { c.top().base = a; }
@@ -224,7 +234,7 @@ public:
     bool parse();
 
     // Takes current debug state as represented by dbg_;
-    bool parseModule(bool is_info, Module *&fixUnknownMod);
+    bool parseModule(Dwarf_Die is_info, Module *&fixUnknownMod);
 
     // Non-recursive version of parse
     // A Context must be provided as an _input_ to this function,
