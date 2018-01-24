@@ -33,6 +33,13 @@
 #include <atomic>
 #include <iterator>
 
+#define DEBUG_LOCKFREEQUEUE 0
+
+#if DEBUG_LOCKFREEQUEUE
+#define LFQ_DEBUG(x) x
+#else
+#define LFQ_DEBUG(x) 
+#endif
 
 template<typename T>
 class LockFreeQueueItem {
@@ -40,26 +47,45 @@ private:
   typedef LockFreeQueueItem<T> item_type;
 
 public:
-  LockFreeQueueItem(T __value) : _next(0), _value(__value) {};
+  LockFreeQueueItem(T __value) : _next(0), _value(__value) {
+    LFQ_DEBUG(validate = this); 
+  };
+  ~LockFreeQueueItem() { 
+    LFQ_DEBUG(validate = 0); 
+  };
 
-  void setNext(item_type *__next) { _next.store(__next); };
+  void setNext(item_type *__next) { 
+    LFQ_DEBUG(assert(validate == this));
+    _next.store(__next); 
+  };
 
-  void setNextPending() { _next.store(pending()); };
+  void setNextPending() { 
+    LFQ_DEBUG(assert(validate == this));
+    _next.store(pending()); 
+  };
 
   item_type *next() { 
+    LFQ_DEBUG(assert(validate == this));
     item_type *succ = _next.load();
     // wait for successor to be written, if necessary
     while (succ == pending()) succ = _next.load();
     return succ;
   };
 
-  T value() { return _value; };
+  T value() { 
+    LFQ_DEBUG(assert(validate == this));
+    return _value; 
+  };
 
 private:
-  item_type *pending() { return (item_type * const) ~0; }
+  item_type *pending() { 
+    LFQ_DEBUG(assert(validate == this));
+    return (item_type * const) ~0; 
+  }
 
   std::atomic<item_type *> _next;
   T _value;
+  LFQ_DEBUG(item_type *validate);
 };
 
 
