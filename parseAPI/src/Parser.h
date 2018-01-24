@@ -197,13 +197,13 @@ class Parser {
     pair<Function*,Edge*> bind_call(
         ParseFrame & frame, Address target,Block *cur,Edge *exist);
 
-    void parse_frames(std::vector<ParseFrame *> &, bool);
+    void parse_frames(LockFreeQueue<ParseFrame *> &, bool);
     void parse_frame(ParseFrame & frame,bool);
 
-    void resumeFrames(Function * func, vector<ParseFrame *> & work);
+    void resumeFrames(Function * func, LockFreeQueue<ParseFrame *> & work);
     
     // defensive parsing details
-    void tamper_post_processing(std::vector<ParseFrame *>&, ParseFrame *);
+    void tamper_post_processing(LockFreeQueue<ParseFrame *>&, ParseFrame *);
     ParseFrame * getTamperAbsFrame(Function *tamperFunc);
 
     /* implementation of the parsing loop */
@@ -243,22 +243,22 @@ class Parser {
 
     struct NewFrames : public std::set<ParseFrame*>, public boost::lockable_adapter<boost::mutex> {};
 
-    vector<ParseFrame *> ProcessOneFrame(ParseFrame *pf, bool recursive);
+    LockFreeQueueItem<ParseFrame *> *ProcessOneFrame(ParseFrame *pf, bool recursive);
 
     void SpawnProcessFrame
       (ParseFrame *frame, bool recursive, LockFreeQueue<ParseFrame *> *work_queue,
        std::atomic<int> *inprogress);
 
     void ProcessFrames
-      (vector<ParseFrame *> *work, bool recursive);
+      (LockFreeQueue<ParseFrame *> *work_queue, bool recursive);
 
     void cleanup_frames() ;
 
-    void processCycle(vector<ParseFrame *> &work, bool recursive);
+    void processCycle(LockFreeQueue<ParseFrame *> &work, bool recursive);
 
-    void processFixedPoint(vector<ParseFrame *> &work, bool recursive);
+    void processFixedPoint(LockFreeQueue<ParseFrame *> &work, bool recursive);
 
-    vector<ParseFrame *> postProcessFrame(ParseFrame *pf, bool recursive);
+    LockFreeQueueItem<ParseFrame *> *postProcessFrame(ParseFrame *pf, bool recursive);
 
     void updateBlockEnd(Block *b, Address addr, Address previnsn, region_data *rd) const;
 };
