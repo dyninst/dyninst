@@ -346,7 +346,8 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource, public boost::lockable
 
 inline bool CodeRegion::contains(const Address addr) const
 {
-    return addr >= offset() && addr < (offset() + length());
+    Address start = offset(); 
+    return addr >= start && addr < (start + length());
 }
 
 }
