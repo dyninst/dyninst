@@ -46,7 +46,7 @@
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/lockable_adapter.hpp>
 
-#include "tbb/concurrent_hash_map.h"
+#include <tbb/concurrent_hash_map.h>
 
 class StatContainer;
 
