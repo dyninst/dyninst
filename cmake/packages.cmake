@@ -127,7 +127,6 @@ endif()
 
 
 find_package (Boost ${BOOST_MIN_VERSION} COMPONENTS thread system date_time timer filesystem)
-find_library(PROFILER_LIBRARIES profiler /p/paradyn/packages/gperftools/lib)
 
 if(NOT Boost_FOUND)
   set (BOOST_ARGS
