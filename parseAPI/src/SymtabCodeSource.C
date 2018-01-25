@@ -44,6 +44,12 @@
 #include "util.h"
 #include "race-detector-annotations.h"
 
+
+#ifdef ENABLE_RACE_DETECTION
+#include <cilk/cilk.h>
+#include <cilk/cilk_api.h>
+#endif
+
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
@@ -417,8 +423,13 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
 
     _symtab->getAllSymbols(symbols);
 
+#ifdef ENABLE_RACE_DETECTION
+    cilk_for
+#else
 #pragma omp parallel for shared(regs,dregs,symbols,reg_lock) schedule(auto)
-    for(unsigned int i = 0; i < regs.size(); i++) {
+    for
+#endif
+        (unsigned int i = 0; i < regs.size(); i++) {
         SymtabAPI::Region *r = regs[i];
         parsing_printf("   %lx %s",r->getMemOffset(),
             r->getRegionName().c_str());
@@ -482,8 +493,14 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
 
     parsing_printf("[%s:%d] processing %d symtab hints\n",FILE__,__LINE__,
         fsyms.size());
+
+#ifdef ENABLE_RACE_DETECTION
+    cilk_for
+#else
 #pragma omp parallel for shared(hint_lock)
-    for(unsigned int i = 0; i < fsyms.size(); i++) {
+    for
+#endif
+       (unsigned int i = 0; i < fsyms.size(); i++) {
         SymtabAPI::Function *f = fsyms[i];
         string fname_s = f->getFirstSymbol()->getPrettyName();
         const char *fname = fname_s.c_str();
@@ -514,8 +531,10 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
 
         race_detector_fake_lock_acquire(race_detector_fake_lock(seen));
         {
-        SeenMap::accessor a;
-        present = seen.insert(a, std::make_pair(f->getOffset(),true));
+          SeenMap::accessor a;
+          Offset offset = f->getOffset(); 
+          present = seen.find(a, offset); 
+          if (!present) seen.insert(a, std::make_pair(offset, true));
         }
         race_detector_fake_lock_release(race_detector_fake_lock(seen));
 
