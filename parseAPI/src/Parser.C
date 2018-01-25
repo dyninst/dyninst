@@ -285,9 +285,7 @@ Parser::parse_at(Address target, bool recursive, FuncSource src)
 void
 Parser::parse_vanilla()
 {
-    ParseFrame *pf;
     LockFreeQueue<ParseFrame *> work;
-    vector<Function *>::iterator fit;
 
     parsing_printf("[%s:%d] entered parse_vanilla()\n",FILE__,__LINE__);
     parsing_printf("\t%d function hints\n",hint_funcs.size());
@@ -299,8 +297,10 @@ Parser::parse_vanilla()
                        _parse_state);
 
     /* Initialize parse frames from hints */
-#pragma omp parallel for
-    for(unsigned int i = 0; i < hint_funcs.size(); i++) {
+
+    // Note: there is no fundamental obstacle to parallelizing this loop. However, 
+    // race conditions need to be resolved in supporting laysrs first.
+    for (unsigned int i = 0; i < hint_funcs.size(); i++) {
         Function * hf = hint_funcs[i];
         ParseFrame::Status test = frame_status(hf->region(),hf->addr());
         if(test != ParseFrame::BAD_LOOKUP &&
@@ -311,7 +311,7 @@ Parser::parse_vanilla()
             continue;
         }
 
-        pf = new ParseFrame(hf,_parse_data);
+	ParseFrame *pf = new ParseFrame(hf,_parse_data);
         init_frame(*pf);
         frames.insert(pf);
         work.insert(pf);
@@ -607,6 +607,7 @@ Parser::SpawnProcessFrame
   InsertFrames(new_frames, work_queue);
   in_progress->fetch_add(-1);
 }
+
 void print_work_queue(LockFreeQueue<ParseFrame *> *work_queue) 
 {
   LockFreeQueueItem<ParseFrame *> *current = work_queue->peek();
@@ -689,14 +690,14 @@ Parser::ProcessFrames
 {
     int nthreads = __cilkrts_get_nworkers(); 
     for (;;) {
-      if (work_queue.peek() == 0) break;
+      if (work_queue->peek() == 0) break;
       vector <ParseFrame *> pfv;
-      std::copy(work_queue.begin(), work_queue.end(), std::back_inserter(pfv));
-      work_queue.clear();
+      std::copy(work_queue->begin(), work_queue->end(), std::back_inserter(pfv));
+      work_queue->clear();
       cilk_for (int i = 0; i < pfv.size(); i++) {
 	ParseFrame *frame = pfv[i];
 	in_progress.fetch_add(1);
-	SpawnProcessFrame(frame, recursive, &work_queue, &in_progress);
+	SpawnProcessFrame(frame, recursive, work_queue, &in_progress);
       }
     }
   }
@@ -1809,7 +1810,9 @@ Parser::block_at(
 
 
     {
-#ifdef JOHNMC_REMOVE_DEADLOCK
+#ifdef ENABLE_RACE_DETECTION 
+    // this lock causes deadlock when running in parallel, but it is
+    // useful for suppressing unimportant races on the iterator
     boost::lock_guard<Function> g(*owner);
 #endif
     for(auto i = owner->blocks_begin();
