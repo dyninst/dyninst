@@ -47,6 +47,8 @@
 #include "elfutils/libdw.h"
 #include <atomic>
 #include <elfutils/libdw.h>
+#include <tbb/parallel_for_each.h>
+#include <cilk/cilk.h>
 
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -129,6 +131,7 @@ bool DwarfWalker::parse() {
 
     /* Iterate over the compilation-unit headers for .debug_types. */
     uint64_t type_signaturep;
+    std::vector<Dwarf_Die> module_dies;
     for(Dwarf_Off cu_off = 0;
             dwarf_next_unit(dbg(), cu_off, &next_cu_header, &cu_header_length,
                 NULL, &abbrev_offset, &addr_size, &offset_size,
@@ -138,16 +141,13 @@ bool DwarfWalker::parse() {
         if(!dwarf_offdie_types(dbg(), cu_off + cu_header_length, &current_cu_die))
             continue;
 
+#if 0
         push();
-//        DwarfWalker mod_walker(*this);
-//        pop();
-//        bool ret = /*cilk_spawn */mod_walker.parseModule(false, fixUnknownMod);
         bool ret = parseModule(false, fixUnknownMod);
         pop();
-        if(!ret) {
-//            cilk_sync;
-            return false;
-        }
+        if(!ret) return false;
+#endif
+        module_dies.push_back(current_cu_die);
         compile_offset = next_cu_header;
     }
 //    cilk_sync;
@@ -160,19 +160,35 @@ bool DwarfWalker::parse() {
         if(!dwarf_offdie(dbg(), cu_off + cu_header_length, &current_cu_die))
             continue;
 
+#if 0
         push();
-//        DwarfWalker mod_walker(*this);
-//        pop();
-//        bool ret = /*cilk_spawn */ mod_walker.parseModule(true, fixUnknownMod);
         bool ret = parseModule(true, fixUnknownMod);
         pop();
-        if(!ret) {
-//            cilk_sync;
-            return false;
-        }
+        if(!ret) return false;
+#endif
+        module_dies.push_back(current_cu_die);
         compile_offset = next_cu_header;
     }
-//    cilk_sync;
+
+//    std::for_each(module_dies.begin(), module_dies.end(), [&](Dwarf_Die cur) {
+#ifdef ENABLE_RACE_DETECTION
+    cilk_for
+#else
+#pragma omp parallel for
+    for
+#endif
+      (unsigned int i = 0; i < module_dies.size(); i++) {
+	Dwarf_Die cur = module_dies[i];
+        int local_fd = open(symtab()->file().c_str(), O_RDONLY);
+        Dwarf* temp_dwarf = dwarf_begin(local_fd, DWARF_C_READ);
+        DwarfWalker w(symtab_, temp_dwarf);
+        w.push();
+        bool ok = w.parseModule(cur, fixUnknownMod);
+        w.pop();
+        dwarf_end(temp_dwarf);
+        close(local_fd);
+    }
+
     if (!fixUnknownMod)
         return true;
 
@@ -204,18 +220,7 @@ bool DwarfWalker::parse() {
     return true;
 }
 
-bool DwarfWalker::parseModule(bool /*is_info*/, Module *&fixUnknownMod) {
-    /* Obtain the module DIE. */
-    Dwarf_Die moduleDIE = current_cu_die;
-    /*Dwarf_Die * cu_die_p = 0;
-    if(is_info){
-        cu_die_p = dwarf_offdie(dbg(), compile_offset, &moduleDIE);
-    }else{
-        cu_die_p = dwarf_offdie_types(dbg(), compile_offset, &moduleDIE);
-    }
-    if (cu_die_p == 0) {
-        return false;
-    }*/
+bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
 
     /* Make sure we've got the right one. */
     Dwarf_Half moduleTag;
