@@ -595,17 +595,37 @@ InsertFrames
 
 
 void
+Parser::LaunchWork
+(
+ LockFreeQueueItem<ParseFrame*> *frame_list,
+ bool recursive 
+)
+{
+  LockFreeQueue<ParseFrame *> private_queue(frame_list);
+  for(;;) {
+    LockFreeQueueItem<ParseFrame *> *first = private_queue.pop();
+    if (first == 0) break;
+    ParseFrame *frame = first->value();
+    delete first;
+#if USE_OPENMP
+#pragma omp task firstprivate(frame, recursive)
+    SpawnProcessFrame(frame, recursive);
+#else
+    cilk_spawn SpawnProcessFrame(frame, recursive);
+#endif
+  }
+}
+
+
+void
 Parser::SpawnProcessFrame
 (
  ParseFrame *pf, 
- bool recursive, 
- LockFreeQueue<ParseFrame *> *work_queue,
- std::atomic<int> *in_progress
+ bool recursive
 )
 {
   LockFreeQueueItem<ParseFrame*> *new_frames = ProcessOneFrame(pf, recursive);
-  InsertFrames(new_frames, work_queue);
-  in_progress->fetch_add(-1);
+  LaunchWork(new_frames, recursive);
 }
 
 void print_work_queue(LockFreeQueue<ParseFrame *> *work_queue) 
@@ -628,98 +648,14 @@ Parser::ProcessFrames
  bool recursive 
 )
 {
-
-  // print_work_queue(work_queue);
-#if 0
-  LockFreeQueue<ParseFrame *> work_queue;
-  InsertFrames(work, &work_queue);
-#endif
-  std::atomic<int> in_progress(0);
 #if USE_OPENMP
-#pragma omp parallel shared(work_queue, in_progress)
+#pragma omp parallel shared(work_queue)
   {
-    int nthreads = omp_get_num_threads();
 #pragma omp master
-    {
-      // print_work_queue(work_queue);
-    for (;;) {
-      if (work_queue->peek() == 0) {
-	if (in_progress.load() == 0) break;
-	if (nthreads < 10) {
-#pragma omp taskwait
-	}
-      } else {
-	LockFreeQueue<ParseFrame *> private_queue(work_queue->steal());
-	for(;;) {
-	  LockFreeQueueItem<ParseFrame *> *first = private_queue.pop();
-	  if (first == 0) break;
-	  ParseFrame *frame = first->value();
-	  // delete first;
-	  in_progress.fetch_add(1);
-#pragma omp task shared(work_queue, in_progress) firstprivate(frame)
-	  SpawnProcessFrame(frame, recursive, work_queue, &in_progress);
-	}
-      }
-    }
-    }
-  }
-#elif USE_CILK
-#if 0
-  {
-    int nthreads = __cilkrts_get_nworkers(); 
-    for (;;) {
-      if (work_queue.peek() == 0) {
-	if (in_progress.load() == 0) break;
-	if (nthreads < 10) {
-	  cilk_sync;
-	}
-      } else {
-	LockFreeQueue<ParseFrame *> private_queue(work_queue.steal());
-	for(;;) {
-	  LockFreeQueueItem<ParseFrame *> *first = private_queue.pop();
-	  if (first == 0) break;
-	  ParseFrame *frame = first->value();
-	  delete first;
-	  in_progress.fetch_add(1);
-	  cilk_spawn SpawnProcessFrame(frame, recursive, &work_queue, &in_progress);
-	}
-      }
-    }
+    LaunchWork(work_queue->steal(), recursive);
   }
 #else
-{
-    int nthreads = __cilkrts_get_nworkers(); 
-    for (;;) {
-      if (work_queue->peek() == 0) break;
-      vector <ParseFrame *> pfv;
-      std::copy(work_queue->begin(), work_queue->end(), std::back_inserter(pfv));
-      work_queue->clear();
-      cilk_for (int i = 0; i < pfv.size(); i++) {
-	ParseFrame *frame = pfv[i];
-	in_progress.fetch_add(1);
-	SpawnProcessFrame(frame, recursive, work_queue, &in_progress);
-      }
-    }
-  }
-#endif
-#else
-  {
-    for (;;) {
-      if (work_queue.peek() == 0) {
-	if (in_progress.load() == 0) break;
-      } else {
-	LockFreeQueue<ParseFrame *> private_queue(work_queue.steal());
-	for(;;) {
-	  LockFreeQueueItem<ParseFrame *> *first = private_queue.pop();
-	  if (first == 0) break;
-	  ParseFrame *frame = first->value();
-	  delete first;
-	  in_progress.fetch_add(1);
-	  SpawnProcessFrame(frame, recursive, &work_queue, &in_progress);
-	}
-      }
-    }
-  }
+  LaunchWork(work_queue->steal(), recursive);
 #endif
 }
 
@@ -728,9 +664,6 @@ void
 Parser::parse_frames(LockFreeQueue<ParseFrame *> &work, bool recursive)
 {
     ProcessFrames(&work, recursive);
-#if 0
-    work.clear();
-#endif
 
     bool done = false, cycle = false;
     {

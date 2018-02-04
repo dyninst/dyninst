@@ -245,12 +245,11 @@ class Parser {
 
     LockFreeQueueItem<ParseFrame *> *ProcessOneFrame(ParseFrame *pf, bool recursive);
 
-    void SpawnProcessFrame
-      (ParseFrame *frame, bool recursive, LockFreeQueue<ParseFrame *> *work_queue,
-       std::atomic<int> *inprogress);
+    void SpawnProcessFrame(ParseFrame *frame, bool recursive);
 
-    void ProcessFrames
-      (LockFreeQueue<ParseFrame *> *work_queue, bool recursive);
+    void ProcessFrames(LockFreeQueue<ParseFrame *> *work_queue, bool recursive);
+
+    void LaunchWork(LockFreeQueueItem<ParseFrame*> *frame_list, bool recursive);
 
     void cleanup_frames() ;
 
