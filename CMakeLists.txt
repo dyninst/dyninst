@@ -19,6 +19,7 @@ include (${DYNINST_ROOT}/cmake/shared.cmake)
 configure_file(cmake/version.h.in common/h/dyninstversion.h)
 include_directories(${PROJECT_BINARY_DIR})
 include_directories(${PROJECT_BINARY_DIR}/common/h)
+include_directories("/usr/include/tirpc/")
 set (HEADER_DIRS common
     dataflowAPI
     dyninstAPI
