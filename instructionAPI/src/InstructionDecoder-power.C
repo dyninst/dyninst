@@ -31,7 +31,7 @@
 #include "InstructionDecoder-power.h"
 #include <boost/assign/list_of.hpp>
 #include "../../common/src/singleton_object_pool.h"
-
+#include <mutex>
 namespace Dyninst
 {
   namespace InstructionAPI
@@ -69,7 +69,6 @@ namespace Dyninst
                 nextTableFunc next_table;
                 operandSpec operands;
                 static void buildTables();
-                static bool built_tables;
                 static std::vector<power_entry> main_opcode_table;
                 static power_table extended_op_0;
                 static power_table extended_op_4;

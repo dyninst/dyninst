@@ -15,23 +15,19 @@ endif()
 
 
 set (SRC_LIST
-    src/Ident.C
-    src/string-regex.C 
+    src/string-regex.C
     src/Timer.C 
     src/Types.C 
-    src/debugOstream.C 
-    src/lprintf.C 
+    src/lprintf.C
     src/pathName.C 
     src/Time.C 
-    src/fraction.C 
+    src/fraction.C
     src/timing.C 
     src/stats.C 
     src/Annotatable.C 
     src/MappedFile.C 
     src/sha1.C 
-    src/serialize-bin.C 
-    src/serialize-xml.C 
-    src/util.C 
+    src/util.C
     src/Node.C 
     src/Graph.C 
     src/Edge.C 

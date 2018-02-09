@@ -38,6 +38,7 @@
 #include "common/src/Singleton.h"
 #include "Register.h"
 #include <map>
+#include <mutex>
 #include <tbb/concurrent_hash_map.h>
 #include "common/src/singleton_object_pool.h"
 
@@ -410,131 +411,117 @@ namespace Dyninst
     }
     void Operation_impl::SetUpNonOperandData(bool needFlags) const
     {
-        if(doneOtherSetup && doneFlagsSetup) return;
+        std::once_flag data_initialized;
+        std::call_once(data_initialized, [&]() {
 #if defined(arch_x86) || defined(arch_x86_64)
-        OperationMaps::reg_info_t::const_accessor a, b;
-      if(op_data(archDecodedFrom).nonOperandRegisterReads.find(a, operationID))
-      {
-          otherRead.insert(a->second.begin(), a->second.end());
-      }
-      if(op_data(archDecodedFrom).nonOperandRegisterWrites.find(b, operationID))
-      {
-          otherWritten.insert(b->second.begin(), b->second.end());
-      }
-        OperationMaps::mem_info_t::const_accessor c, d;
-      if(op_data(archDecodedFrom).nonOperandMemoryReads.find(c, operationID))
-      {
-          otherEffAddrsRead.insert(c->second.begin(), c->second.end());
-      }
-      if(operationID == e_push)
-      {
-          BinaryFunction::funcT::Ptr adder(new BinaryFunction::addResult());
-                    // special case for push: we write at the new value of the SP.
-          Result dummy(addrWidth, 0);
-          Expression::Ptr push_addr(new BinaryFunction(
-                  *(op_data(archDecodedFrom).stackPointerAsExpr.begin()),
-          Immediate::makeImmediate(Result(s8, -(dummy.size()))),
-          addrWidth,
-          adder));
-                
-          otherEffAddrsWritten.insert(push_addr);
-                  
-      }
-      else
-      {
-          if(op_data(archDecodedFrom).nonOperandMemoryWrites.find(d, operationID))
-          {
-              otherEffAddrsWritten.insert(d->second.begin(), d->second.end());
-          }
-      }
-      if(needFlags && !doneFlagsSetup)
-      {
-	
-	dyn_hash_map<entryID, flagInfo>::const_iterator found = ia32_instruction::getFlagTable().find(operationID);
-	if(found != ia32_instruction::getFlagTable().end())
-	{
-	  for(unsigned i = 0; i < found->second.readFlags.size(); i++)
-	  {
-            switch(found->second.readFlags[i]) {
-	    case x86::icf:
-	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::cf : x86_64::cf));
-	      break;
-	    case x86::ipf:
-	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::pf : x86_64::pf));
-	      break;
-	    case x86::iaf:
-	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::af : x86_64::af));
-	      break;
-	    case x86::izf:
-	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
-	      break;
-	    case x86::isf:
-	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::sf : x86_64::sf));
-	      break;
-	    case x86::itf:
-	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::tf : x86_64::tf));
-	      break;
-	    case x86::idf:
-	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
-	      break;
-	    case x86::iof:
-	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::of : x86_64::of));
-	      break;
-	    case x86::int_:
-	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::nt_ : x86_64::nt_));
-	      break;
-            case x86::iif_:
-              otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::if_ : x86_64::if_));
-              break;
-            default:
-	      assert(0);
-	    }
-	  }
-	  for(unsigned j = 0; j < found->second.writtenFlags.size(); j++)
-	    {
-            switch(found->second.writtenFlags[j]) {
-	    case x86::icf:
-	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::cf : x86_64::cf));
-	      break;
-	    case x86::ipf:
-	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::pf : x86_64::pf));
-	      break;
-	    case x86::iaf:
-	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::af : x86_64::af));
-	      break;
-	    case x86::izf:
-	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
-	      break;
-	    case x86::isf:
-	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::sf : x86_64::sf));
-	      break;
-	    case x86::itf:
-	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::tf : x86_64::tf));
-	      break;
-	    case x86::idf:
-	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
-	      break;
-	    case x86::iof:
-	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::of : x86_64::of));
-	      break;
-	    case x86::int_:
-	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::nt_ : x86_64::nt_));
-	      break;
-	    case x86::iif_:
-	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::if_ : x86_64::if_));
-	      break;
-	    default:
-               fprintf(stderr, "ERROR: unhandled entry %s\n", found->second.writtenFlags[j].name().c_str());
-	       assert(0);
-	    }
-	  }
-	}
-	doneFlagsSetup = true;
-      }
-      doneOtherSetup = true;
-#else
-      (void) needFlags; //Silence warnings
-#endif //defined(arch_x86) || defined(arch_x86_64)
+            OperationMaps::reg_info_t::const_accessor a, b;
+            if (op_data(archDecodedFrom).nonOperandRegisterReads.find(a, operationID)) {
+                otherRead.insert(a->second.begin(), a->second.end());
+            }
+            if (op_data(archDecodedFrom).nonOperandRegisterWrites.find(b, operationID)) {
+                otherWritten.insert(b->second.begin(), b->second.end());
+            }
+            OperationMaps::mem_info_t::const_accessor c, d;
+            if (op_data(archDecodedFrom).nonOperandMemoryReads.find(c, operationID)) {
+                otherEffAddrsRead.insert(c->second.begin(), c->second.end());
+            }
+            if (operationID == e_push) {
+                BinaryFunction::funcT::Ptr adder(new BinaryFunction::addResult());
+                // special case for push: we write at the new value of the SP.
+                Result dummy(addrWidth, 0);
+                Expression::Ptr push_addr(new BinaryFunction(
+                        *(op_data(archDecodedFrom).stackPointerAsExpr.begin()),
+                        Immediate::makeImmediate(Result(s8, -(dummy.size()))),
+                        addrWidth,
+                        adder));
+
+                otherEffAddrsWritten.insert(push_addr);
+
+            } else {
+                if (op_data(archDecodedFrom).nonOperandMemoryWrites.find(d, operationID)) {
+                    otherEffAddrsWritten.insert(d->second.begin(), d->second.end());
+                }
+            }
+
+            dyn_hash_map<entryID, flagInfo>::const_iterator found = ia32_instruction::getFlagTable().find(operationID);
+            if (found != ia32_instruction::getFlagTable().end()) {
+                for (unsigned i = 0; i < found->second.readFlags.size(); i++) {
+                    switch (found->second.readFlags[i]) {
+                        case x86::icf:
+                            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::cf : x86_64::cf));
+                            break;
+                        case x86::ipf:
+                            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::pf : x86_64::pf));
+                            break;
+                        case x86::iaf:
+                            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::af : x86_64::af));
+                            break;
+                        case x86::izf:
+                            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
+                            break;
+                        case x86::isf:
+                            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::sf : x86_64::sf));
+                            break;
+                        case x86::itf:
+                            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::tf : x86_64::tf));
+                            break;
+                        case x86::idf:
+                            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
+                            break;
+                        case x86::iof:
+                            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::of : x86_64::of));
+                            break;
+                        case x86::int_:
+                            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::nt_ : x86_64::nt_));
+                            break;
+                        case x86::iif_:
+                            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::if_ : x86_64::if_));
+                            break;
+                        default:
+                            assert(0);
+                    }
+                }
+                for (unsigned j = 0; j < found->second.writtenFlags.size(); j++) {
+                    switch (found->second.writtenFlags[j]) {
+                        case x86::icf:
+                            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::cf : x86_64::cf));
+                            break;
+                        case x86::ipf:
+                            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::pf : x86_64::pf));
+                            break;
+                        case x86::iaf:
+                            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::af : x86_64::af));
+                            break;
+                        case x86::izf:
+                            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
+                            break;
+                        case x86::isf:
+                            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::sf : x86_64::sf));
+                            break;
+                        case x86::itf:
+                            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::tf : x86_64::tf));
+                            break;
+                        case x86::idf:
+                            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
+                            break;
+                        case x86::iof:
+                            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::of : x86_64::of));
+                            break;
+                        case x86::int_:
+                            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::nt_ : x86_64::nt_));
+                            break;
+                        case x86::iif_:
+                            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::if_ : x86_64::if_));
+                            break;
+                        default:
+                            fprintf(stderr, "ERROR: unhandled entry %s\n",
+                                    found->second.writtenFlags[j].name().c_str());
+                            assert(0);
+                    }
+                }
+            }
+        });
+#endif
     return;
     }
   }

@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.6.4)
+cmake_minimum_required (VERSION 3.0.0)
 project (Dyninst)
 
 set (DYNINST_ROOT ${PROJECT_SOURCE_DIR})
