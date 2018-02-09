@@ -43,12 +43,14 @@
 #include "debug_common.h"
 #include "Type-mem.h"
 #include <boost/bind.hpp>
-#include <cilk/cilk.h>
 #include "elfutils/libdw.h"
 #include <atomic>
 #include <elfutils/libdw.h>
 #include <tbb/parallel_for_each.h>
+
+#ifdef ENABLE_RACE_DETECTION
 #include <cilk/cilk.h>
+#endif
 
 using namespace Dyninst;
 using namespace SymtabAPI;
