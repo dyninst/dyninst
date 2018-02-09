@@ -2010,10 +2010,11 @@ dyn_hash_map<prefixEntryID, std::string> prefixEntryNames_IAPI = map_list_of
 
 dyn_hash_map<entryID, flagInfo> ia32_instruction::flagTable;
 
+static boost::mutex flagTable_mutex;
+
 COMMON_EXPORT dyn_hash_map<entryID, flagInfo> const& ia32_instruction::getFlagTable()
 {
-  static boost::mutex m;
-  boost::lock_guard<boost::mutex> create_guard(m);
+  boost::lock_guard<boost::mutex> create_guard(flagTable_mutex);
   if(flagTable.empty())
   {
     ia32_instruction::initFlagTable(flagTable);
