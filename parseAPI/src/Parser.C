@@ -939,7 +939,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     if (ct->_rs > NORETURN)
                       func->set_retstatus(ct->_rs);
                     else if (ct->_rs == UNSET)
-                      func->set_retstatus(UNKNOWN);
+                      frame.pushDelayedWork(work, ct);
                 }
             }
 
