@@ -326,14 +326,7 @@ Function::blocks_int()
                     if (_tamper != TAMPER_UNSET && _tamper != TAMPER_NONE) 
                        continue;
                 }
-                // If this function is a known non-returning function,
-                // we should ignore this result.
-                // A exmaple is .Unwind_Resume, which is non-returning.
-                // But on powerpc, the function contains a BLR instruction,
-                // looking like a return instruction, but actually is not.
-                if (!obj()->cs()->nonReturning(_name)) { 
-                    set_retstatus(RETURN);
-                }
+                set_retstatus(RETURN);
                 continue;
             }
 
@@ -471,6 +464,13 @@ void Function::setEntryBlock(Block *new_entry)
 
 void Function::set_retstatus(FuncReturnStatus rs) 
 {
+    // If this function is a known non-returning function,
+    // we should ignore this result.
+    // A exmaple is .Unwind_Resume, which is non-returning.
+    // But on powerpc, the function contains a BLR instruction,
+    // looking like a return instruction, but actually is not.
+    if (obj()->cs()->nonReturning(_name) && rs != NORETURN) return;
+ 
     // If we are changing the return status, update prev counter
     if (_rs != UNSET) {
         if (_rs == NORETURN) {
