@@ -28,6 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <omp.h>
+
 #include <vector>
 #include <limits>
 
@@ -48,11 +50,21 @@
 #include <boost/bind/bind.hpp>
 
 
-
 #include <boost/timer/timer.hpp>
 #include <fstream>
 
-#include <tbb/parallel_for_each.h>
+#ifdef ENABLE_RACE_DETECTION
+#define USE_CILK 1
+#else
+#define USE_OPENMP 1
+#endif
+
+#if USE_CILK
+#include <cilk/cilk.h>
+#include <cilk/cilk_api.h>
+#endif
+
+#include "race-detector-annotations.h"
 
 using namespace std;
 using namespace Dyninst;
@@ -135,9 +147,9 @@ Parser::~Parser()
     if(_parse_data)
         delete _parse_data;
 
-    vector<ParseFrame *>::iterator fit = frames.begin();
-    for( ; fit != frames.end(); ++fit)
+    for(auto fit = frames.begin() ; fit != frames.end(); ++fit)
         delete *fit;
+
     frames.clear();
 }
 
@@ -182,12 +194,14 @@ Parser::parse()
 
     _in_parse = false;
     parsing_printf("[%s:%d] parsing complete for Parser %p with state %d\n", FILE__, __LINE__, this, _parse_state);
+#ifdef ADD_PARSE_FRAME_TIMERS
     std::ofstream stat_log("functions.csv");
     stat_log << "Results for " << time_histogram.size() << " buckets\n";
     stat_log << "usecs,count\n";
     std::transform(time_histogram.begin(), time_histogram.end(),
                    std::ostream_iterator<std::string >(stat_log, "\n"),
                    pair_to_string<std::pair<unsigned int, unsigned int> >);
+#endif
 }
 
 void
@@ -199,7 +213,7 @@ Parser::parse_at(
 {
     Function *f;
     ParseFrame *pf;
-    FrameSet work;
+    LockFreeQueue<ParseFrame *> work;
 
     parsing_printf("[%s:%d] entered parse_at([%lx,%lx),%lx)\n",
                    FILE__,__LINE__,region->low(),region->high(),target);
@@ -228,7 +242,7 @@ Parser::parse_at(
     if(!(pf = _parse_data->findFrame(region,target))) {
         pf = new ParseFrame(f,_parse_data);
         init_frame(*pf);
-        frames.push_back(pf);
+        frames.insert(pf);
         _parse_data->record_frame(pf);
     }
 
@@ -269,9 +283,7 @@ Parser::parse_at(Address target, bool recursive, FuncSource src)
 void
 Parser::parse_vanilla()
 {
-    ParseFrame *pf;
-    FrameSet work;
-    vector<Function *>::iterator fit;
+    LockFreeQueue<ParseFrame *> work;
 
     parsing_printf("[%s:%d] entered parse_vanilla()\n",FILE__,__LINE__);
     parsing_printf("\t%d function hints\n",hint_funcs.size());
@@ -283,8 +295,11 @@ Parser::parse_vanilla()
                        _parse_state);
 
     /* Initialize parse frames from hints */
-    for(fit=hint_funcs.begin();fit!=hint_funcs.end();++fit) {
-        Function * hf = *fit;
+
+    // Note: there is no fundamental obstacle to parallelizing this loop. However,
+    // race conditions need to be resolved in supporting laysrs first.
+    for (unsigned int i = 0; i < hint_funcs.size(); i++) {
+        Function * hf = hint_funcs[i];
         ParseFrame::Status test = frame_status(hf->region(),hf->addr());
         if(test != ParseFrame::BAD_LOOKUP &&
            test != ParseFrame::UNPARSED)
@@ -294,9 +309,9 @@ Parser::parse_vanilla()
             continue;
         }
 
-        pf = new ParseFrame(hf,_parse_data);
+	ParseFrame *pf = new ParseFrame(hf,_parse_data);
         init_frame(*pf);
-        frames.push_back(pf);
+        frames.insert(pf);
         work.insert(pf);
         _parse_data->record_frame(pf);
     }
@@ -312,7 +327,7 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
 
     // build up set of needed parse frames and load them with work elements
     set<ParseFrame*> frameset; // for dup checking
-    FrameSet frames;
+    LockFreeQueue<ParseFrame*> frames;
 
     for (unsigned idx=0; idx < work_elems.size(); idx++) {
 
@@ -416,20 +431,42 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
 }
 
 
-FrameSet Parser::ProcessOneFrame(ParseFrame* pf, bool recursive) {
+LockFreeQueueItem<ParseFrame*> *
+Parser::ProcessOneFrame(ParseFrame* pf, bool recursive) {
+  LockFreeQueueItem<ParseFrame*> *frame_list = 0;
+  if (pf->func && !pf->swap_busy(true)) {
+#ifdef ADD_PARSE_FRAME_TIMERS
     boost::timer::cpu_timer t;
     t.start();
+#endif
     parse_frame(*pf,recursive);
+#ifdef ADD_PARSE_FRAME_TIMERS
     t.stop();
     unsigned int msecs = floor(t.elapsed().wall / 1000000.0);
-    tbb::concurrent_hash_map<unsigned int, unsigned int>::accessor a;
-    time_histogram.insert(a, msecs);
-    ++(a->second);
-    return postProcessFrame(pf, recursive);
+    race_detector_fake_lock_acquire(race_detector_fake_lock(time_histogram));
+    {
+      tbb::concurrent_hash_map<unsigned int, unsigned int>::accessor a;
+      time_histogram.insert(a, msecs);
+      ++(a->second);
+    }
+    race_detector_fake_lock_release(race_detector_fake_lock(time_histogram));
+#endif
+    frame_list = postProcessFrame(pf, recursive);
+
+    // exclusive access to each ParseFrame is mediated by marking a frame busy.
+    // we clear evidence of our access to the ParseFrame here because a concurrent
+    // thread may try to touch it because of duplicates in the work list. that
+    // won't actually be concurrent because of swap_busy. we suppress the race
+    // report by scrubbing information about our access.
+    race_detector_forget_access_history(pf, sizeof(*pf));
+
+    pf->swap_busy(false);
+  }
+  return frame_list;
 }
 
-FrameSet Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
-    FrameSet work;
+LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
+    LockFreeQueue<ParseFrame*> work;
     boost::lock_guard<ParseFrame> g(*pf);
     switch(pf->status()) {
         case ParseFrame::CALL_BLOCKED: {
@@ -453,7 +490,7 @@ FrameSet Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
 
                     tf = new ParseFrame(pf->call_target,_parse_data);
                     init_frame(*tf);
-                    frames.push_back(tf);
+                    frames.insert(tf);
                     _parse_data->record_frame(tf);
                 }
                 if(likely(recursive))
@@ -469,7 +506,7 @@ FrameSet Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
         }
         case ParseFrame::PARSED:{
             parsing_printf("[%s] frame %lx complete, return status: %d\n",
-                           FILE__,pf->func->addr(),pf->func->_rs);
+                           FILE__,pf->func->addr(),pf->func->retstatus());
 
             if (unlikely(_obj.defensiveMode() &&
                          TAMPER_NONE != pf->func->tampersStack() &&
@@ -484,7 +521,8 @@ FrameSet Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
 
             pf->cleanup();
             break;
-        }        case ParseFrame::FRAME_ERROR:
+        }
+        case ParseFrame::FRAME_ERROR:
             parsing_printf("[%s] frame %lx error at %lx\n",
                            FILE__,pf->func->addr(),pf->curAddr);
             break;
@@ -537,28 +575,94 @@ FrameSet Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
             assert(0 && "invalid parse frame status");
     }
     pf->inProcess = false;
-    return work;
+    return work.steal();
+}
 
+
+static void
+InsertFrames
+(
+ LockFreeQueueItem<ParseFrame *> *frames,
+ LockFreeQueue<ParseFrame *> *q
+)
+{
+  if (frames) {
+    LockFreeQueue<ParseFrame *> myq(frames);
+    q->splice(myq);
+  }
 }
 
 
 void
-Parser::parse_frames(FrameSet &work, bool recursive)
+Parser::LaunchWork
+(
+ LockFreeQueueItem<ParseFrame*> *frame_list,
+ bool recursive
+)
 {
-    std::vector<ParseFrame*> the_queue(work.begin(), work.end());
-    /* Recursive traversal parsing */
-    while(!the_queue.empty())
-    {
-        // Native TBB
-        FrameSet new_frames;
-        std::cout << "Begin iteration, worklist size is " << the_queue.size() << endl;
-        tbb::parallel_for_each(the_queue, [&](ParseFrame* pf) {
-            new_frames += ProcessOneFrame(pf, recursive);
-        });
-        the_queue.clear();
-        std::copy(new_frames.begin(), new_frames.end(), std::back_inserter(the_queue));
+  LockFreeQueue<ParseFrame *> private_queue(frame_list);
+  for(;;) {
+    LockFreeQueueItem<ParseFrame *> *first = private_queue.pop();
+    if (first == 0) break;
+    ParseFrame *frame = first->value();
+    delete first;
+#if USE_OPENMP
+#pragma omp task firstprivate(frame, recursive)
+    SpawnProcessFrame(frame, recursive);
+#else
+    cilk_spawn SpawnProcessFrame(frame, recursive);
+#endif
+  }
+}
 
-    }
+
+void
+Parser::SpawnProcessFrame
+(
+ ParseFrame *pf,
+ bool recursive
+)
+{
+  LockFreeQueueItem<ParseFrame*> *new_frames = ProcessOneFrame(pf, recursive);
+  LaunchWork(new_frames, recursive);
+}
+
+void print_work_queue(LockFreeQueue<ParseFrame *> *work_queue)
+{
+  LockFreeQueueItem<ParseFrame *> *current = work_queue->peek();
+
+  std::cout << "Work Queue" << std::endl;
+  while (current) {
+    std::cout << "  parse frame " << std::hex << current->value()
+	      << std::dec << std::endl;
+    current = current->next();
+  }
+}
+
+
+void
+Parser::ProcessFrames
+(
+ LockFreeQueue<ParseFrame *> *work_queue,
+ bool recursive
+)
+{
+#if USE_OPENMP
+#pragma omp parallel shared(work_queue)
+  {
+#pragma omp master
+    LaunchWork(work_queue->steal(), recursive);
+  }
+#else
+  LaunchWork(work_queue->steal(), recursive);
+#endif
+}
+
+
+void
+Parser::parse_frames(LockFreeQueue<ParseFrame *> &work, bool recursive)
+{
+    ProcessFrames(&work, recursive);
 
     bool done = false, cycle = false;
     {
@@ -585,7 +689,7 @@ Parser::parse_frames(FrameSet &work, bool recursive)
     cleanup_frames(work);
 }
 
-void Parser::processFixedPoint(FrameSet &work, bool recursive) {// We haven't yet reached a fixedpoint; let's recurse
+void Parser::processFixedPoint(LockFreeQueue<ParseFrame *> &work, bool recursive) {// We haven't yet reached a fixedpoint; let's recurse
     {
         boost::lock_guard<DelayedFrames> g(delayed_frames);
 
@@ -601,7 +705,7 @@ void Parser::processFixedPoint(FrameSet &work, bool recursive) {// We haven't ye
         for (auto iter = delayed_frames.frames.begin();
              iter != delayed_frames.frames.end();
              ++iter) {
-            if (iter->first->_rs != UNSET) {
+            if (iter->first->retstatus() != UNSET) {
                 updated.push_back(iter->first);
             }
         }
@@ -615,13 +719,12 @@ void Parser::processFixedPoint(FrameSet &work, bool recursive) {// We haven't ye
         }
     }
     // Recurse through parse_frames
-    parsing_printf("[%s] Calling parse_frames again, work.size() = %d\n",
-                   __FILE__,
-                   work.size());
+    parsing_printf("[%s] Calling parse_frames again... \n", __FILE__);
+
     parse_frames(work, recursive);
 }
 
-void Parser::processCycle(FrameSet &work, bool recursive) {// If we've reached a fixedpoint and have remaining frames, we must
+void Parser::processCycle(LockFreeQueue<ParseFrame *> &work, bool recursive) {// If we've reached a fixedpoint and have remaining frames, we must
     // have a cyclic dependency
     vector<Function *> updated;
     {
@@ -670,10 +773,8 @@ void Parser::processCycle(FrameSet &work, bool recursive) {// If we've reached a
             resumeFrames((*uIter), work);
         }
 
-        if (work.size()) {
-            parsing_printf("[%s] Updated retstatus of delayed frames, trying again; work.size() = %d\n",
-                           __FILE__,
-                           work.size());
+        if (work.peek()) {
+            parsing_printf("[%s] Updated retstatus of delayed frames, trying again...\n", __FILE__);
             parse_frames(work, recursive);
         }
     } else {
@@ -685,11 +786,37 @@ void Parser::processCycle(FrameSet &work, bool recursive) {// If we've reached a
     }
 }
 
-void Parser::cleanup_frames(FrameSet& to_clean)  {
-    for(ParseFrame* frame : to_clean) {
-        _parse_data->remove_frame(frame);
-        delete frame;
+void Parser::cleanup_frames()  {
+  vector <ParseFrame *> pfv;
+  std::copy(frames.begin(), frames.end(), std::back_inserter(pfv));
+#if USE_OPENMP
+#pragma omp parallel for schedule(auto)
+  for (unsigned int i = 0; i < pfv.size(); i++) {
+    ParseFrame *pf = pfv[i];
+    if (pf) {
+      _parse_data->remove_frame(pf);
+      delete pf;
     }
+  }
+  frames.clear();
+#elif USE_CILK
+  cilk_for(unsigned i=0; i < pfv.size(); ++i) {
+    ParseFrame *pf = pfv[i];
+    if (pf) {
+      _parse_data->remove_frame(pf);
+      delete pf;
+    }
+  }
+#else
+  for(unsigned i=0; i < pfv.size(); ++i) {
+    ParseFrame *pf = pfv[i];
+    if (pf) {
+      _parse_data->remove_frame(pf);
+      delete pf;
+    }
+  }
+#endif
+  frames.clear();
 }
 
 /* Finalizing all functions for consumption:
@@ -808,6 +935,13 @@ Parser::finalize(Function *f)
         finalize_block(b, f);
         if(b->start() > ext_e) {
             ext = new FuncExtent(f,ext_s,ext_e);
+
+            // remove access history for ext before publishing it
+            // to concurrent readers to avoid false race reports.
+            // ext is written before it is published and only read
+            // thereafter.
+	    race_detector_forget_access_history(ext, sizeof(*ext));
+
             parsing_printf("%lx extent [%lx,%lx)\n",f->addr(),ext_s,ext_e);
             f->_extents.push_back(ext);
             rd->funcsByRange.insert(ext);
@@ -816,6 +950,13 @@ Parser::finalize(Function *f)
         ext_e = b->end();
     }
     ext = new FuncExtent(f,ext_s,ext_e);
+
+    // remove access history for ext before publishing it
+    // to concurrent readers to avoid false race reports.
+    // ext is written before it is published and only read
+    // thereafter.
+    race_detector_forget_access_history(ext, sizeof(*ext));
+
     parsing_printf("%lx extent [%lx,%lx)\n",f->addr(),ext_s,ext_e);
     rd->funcsByRange.insert(ext);
     f->_extents.push_back(ext);
@@ -987,7 +1128,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         for (iter = frame.delayedWork.begin();
              iter != frame.delayedWork.end();
              ++iter) {
-            if (iter->second->_rs != UNSET) {
+            if (iter->second->retstatus() != UNSET) {
                 frame.pushWork(iter->first);
                 updated.push_back(iter->first);
             }
@@ -1051,10 +1192,10 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 //     the previous conditional would have been taken),
                 //     so if its return status is unset then this
                 //     function has to take UNKNOWN
-                if (func->_rs != RETURN) {
-                    if (ct->_rs > NORETURN)
-                        func->set_retstatus(ct->_rs);
-                    else if (ct->_rs == UNSET)
+                if (func->retstatus() != RETURN) {
+                    if (ct->retstatus() > NORETURN)
+                        func->set_retstatus(ct->retstatus());
+                    else if (ct->retstatus() == UNSET)
                         func->set_retstatus(UNKNOWN);
                 }
             }
@@ -1109,7 +1250,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     bool is_plt = false;
 
                     // check if associated call edge's return status is still unknown
-                    if (ct && (ct->_rs == UNSET) ) {
+                    if (ct && (ct->retstatus() == UNSET) ) {
                         // Delay parsing until we've finished the corresponding call edge
                         parsing_printf("[%s] Parsing FT edge %lx, corresponding callee (%s) return status unknown; delaying work\n",
                                        __FILE__,
@@ -1246,7 +1387,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         } else {
             parsing_printf("[%s] deferring parse of shared block %lx\n",
                            FILE__,cur->start());
-            if (func->_rs < UNKNOWN) {
+            if (func->retstatus() < UNKNOWN) {
                 // we've parsed into another function, if we've parsed
                 // into it's entry point, set retstatus to match it
                 Function * other_func = _parse_data->findFunc(
@@ -1541,7 +1682,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 
         // Convenience -- adopt PLT name
         frame.func->_name = plt_entries[frame.func->addr()];
-    } else if (frame.func->_rs == UNSET) {
+    } else if (frame.func->retstatus() == UNSET) {
         frame.func->set_retstatus(NORETURN);
     }
 
@@ -1554,7 +1695,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         func->tampersStack();
     }
     _pcb.newfunction_retstatus( func );
-
 }
 
 void
@@ -1602,6 +1742,13 @@ Parser::block_at(
         return NULL;
     }
 
+
+    {
+#ifdef ENABLE_RACE_DETECTION
+    // this lock causes deadlock when running in parallel, but it is
+    // useful for suppressing unimportant races on the iterator
+    boost::lock_guard<Function> g(*owner);
+#endif
     for(auto i = owner->blocks_begin();
         i != owner->blocks_end();
         ++i)
@@ -1612,7 +1759,7 @@ Parser::block_at(
         }
     }
     return _cfgfact._mkblock(owner, cr, addr);
-
+    }
 }
 
 pair<Block *,Edge *>
@@ -1978,15 +2125,18 @@ Parser::remove_block(Dyninst::ParseAPI::Block *block)
 void Parser::move_func(Function *func, Address new_entry, CodeRegion *new_reg)
 {
     region_data *reg_data = _parse_data->findRegion(func->region());
-    tbb::concurrent_hash_map<Address, Function*>::accessor a;
-    if(reg_data->funcsByAddr.find(a, func->addr()))
+
+    race_detector_fake_lock_acquire(race_detector_fake_lock(reg_data->funcsByAddr));
     {
-        reg_data->funcsByAddr.erase(a);
+      tbb::concurrent_hash_map<Address, Function*>::accessor a;
+      if(reg_data->funcsByAddr.find(a, func->addr()))
+	{
+	  reg_data->funcsByAddr.erase(a);
+	}
+      reg_data = _parse_data->findRegion(new_reg);
+      reg_data->funcsByAddr.insert(a, make_pair(new_entry, func));
     }
-
-
-    reg_data = _parse_data->findRegion(new_reg);
-    reg_data->funcsByAddr.insert(a, make_pair(new_entry, func));
+    race_detector_fake_lock_release(race_detector_fake_lock(reg_data->funcsByAddr));
 }
 
 void Parser::invalidateContainingFuncs(Function *owner, Block *b)
@@ -2016,10 +2166,10 @@ void Parser::invalidateContainingFuncs(Function *owner, Block *b)
 }
 
 /* Add ParseFrames waiting on func back to the work queue */
-void Parser::resumeFrames(Function *func, FrameSet &work)
+void Parser::resumeFrames(Function * func, LockFreeQueue<ParseFrame *> & work)
 {
     // If we do not know the function's return status, don't put its waiters back on the worklist
-    if (func->_rs == UNSET) {
+    if (func->retstatus() == UNSET) {
         parsing_printf("[%s] %s return status unknown, cannot resume waiters\n",
                        __FILE__,
                        func->name().c_str());
@@ -2034,13 +2184,13 @@ void Parser::resumeFrames(Function *func, FrameSet &work)
         parsing_printf("[%s] %s return status %d, no waiters\n",
                        __FILE__,
                        func->name().c_str(),
-                       func->_rs);
+                       func->retstatus());
         return;
     } else {
         parsing_printf("[%s] %s return status %d, undelaying waiting functions\n",
                        __FILE__,
                        func->name().c_str(),
-                       func->_rs);
+                       func->retstatus());
         // Add each waiting frame back to the worklist
         set<ParseFrame *> vec = iter->second;
         for (set<ParseFrame *>::iterator fIter = vec.begin();

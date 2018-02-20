@@ -30,6 +30,7 @@
 #ifndef _PARSE_DATA_H_
 #define _PARSE_DATA_H_
 
+#include <atomic>
 #include <set>
 #include <vector>
 #include <queue>
@@ -42,6 +43,8 @@
 #include "CFG.h"
 #include "ParserDetails.h"
 #include "debug_parse.h"
+
+#include "race-detector-annotations.h"
 
 #include <boost/thread/locks.hpp>
 #include <boost/thread/lockable_adapter.hpp>
@@ -146,23 +149,33 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
         inProcess(false)
     {
         set_status(UNPARSED);
+	busy.store(false);
     }
 
     ~ParseFrame();
 
-    Status status() const { return _status; }
+    Status status() const {
+      race_detector_fake_lock_acquire(race_detector_fake_lock(_status));
+      Status result = _status.load();
+      race_detector_fake_lock_release(race_detector_fake_lock(_status));
+      return result;
+    }
     void set_status(Status);
-    std::atomic<bool> inProcess;
+    bool swap_busy(bool value) {
+      return busy.exchange(value);
+    }
+;
  private:
-    Status _status;
+    std::atomic<Status> _status;
+    std::atomic<bool> busy;
     ParseData * _pd;
 };
 
 /* per-CodeRegion parsing data */
 class region_data {
 public:
-  // Function lookups
-  Dyninst::IBSTree_fast<FuncExtent> funcsByRange;
+    // Function lookups
+    Dyninst::IBSTree_fast<FuncExtent> funcsByRange;
     tbb::concurrent_hash_map<Address, Function *> funcsByAddr;
 
     // Block lookups
@@ -196,24 +209,41 @@ public:
         return std::pair<Address,Block*>(nextBlockAddr,nextBlock);
     }
     ParseFrame* findFrame(Address addr) const {
-        tbb::concurrent_hash_map<Address, ParseFrame*>::const_accessor a;
-        if(frame_map.find(a, addr)) return a->second;
-        return NULL;
+        ParseFrame *result = NULL;
+        race_detector_fake_lock_acquire(race_detector_fake_lock(frame_map));
+	{
+	  tbb::concurrent_hash_map<Address, ParseFrame*>::const_accessor a;
+	  if(frame_map.find(a, addr)) result = a->second;
+	}
+        race_detector_fake_lock_release(race_detector_fake_lock(frame_map));
+        return result;
     }
     void setFrameStatus(Address addr, ParseFrame::Status status)
     {
-        tbb::concurrent_hash_map<Address, ParseFrame::Status>::accessor a;
-        frame_status.insert(a, make_pair(addr, status));
+        race_detector_fake_lock_acquire(race_detector_fake_lock(frame_status));
+	{
+	  tbb::concurrent_hash_map<Address, ParseFrame::Status>::accessor a;
+	  frame_status.insert(a, make_pair(addr, status));
+	}
+        race_detector_fake_lock_release(race_detector_fake_lock(frame_status));
     }
     void record_func(Function* f) {
-        tbb::concurrent_hash_map<Address, Function*>::accessor a;
-        funcsByAddr.insert(a, std::make_pair(f->addr(), f));
+        race_detector_fake_lock_acquire(race_detector_fake_lock(funcsByAddr));
+	{
+	  tbb::concurrent_hash_map<Address, Function*>::accessor a;
+	  funcsByAddr.insert(a, std::make_pair(f->addr(), f));
+	}
+        race_detector_fake_lock_release(race_detector_fake_lock(funcsByAddr));
 
     }
     void record_block(Block* b) {
-        tbb::concurrent_hash_map<Address, Block*>::accessor a;
-        blocksByAddr.insert(a, std::make_pair(b->start(), b));
-        blocksByRange.insert(b);
+        race_detector_fake_lock_acquire(race_detector_fake_lock(blocksByAddr));
+	{
+	  tbb::concurrent_hash_map<Address, Block*>::accessor a;
+	  blocksByAddr.insert(a, std::make_pair(b->start(), b));
+	}
+        race_detector_fake_lock_release(race_detector_fake_lock(blocksByAddr));
+	blocksByRange.insert(b);
     }
     void updateBlockEnd(Block* b, Address addr, Address previnsn) {
         blocksByRange.remove(b);
@@ -222,9 +252,12 @@ public:
         blocksByRange.insert(b);
     }
     void record_frame(ParseFrame* pf) {
-        tbb::concurrent_hash_map<Address, ParseFrame*>::accessor a;
-        frame_map.insert(a, make_pair(pf->func->addr(), pf));
-
+        race_detector_fake_lock_acquire(race_detector_fake_lock(frame_map));
+	{
+	  tbb::concurrent_hash_map<Address, ParseFrame*>::accessor a;
+	  frame_map.insert(a, make_pair(pf->func->addr(), pf));
+	}
+        race_detector_fake_lock_release(race_detector_fake_lock(frame_map));
     }
     
 	 // Find functions within [start,end)
@@ -236,24 +269,26 @@ public:
 inline Function *
 region_data::findFunc(Address entry)
 {
-    tbb::concurrent_hash_map<Address, Function *>::const_accessor a;
-    if(funcsByAddr.find(a, entry)) {
-        return a->second;
+    Function *result = NULL;
+    race_detector_fake_lock_acquire(race_detector_fake_lock(funcsByAddr));
+    {
+      tbb::concurrent_hash_map<Address, Function *>::const_accessor a;
+      if(funcsByAddr.find(a, entry)) result = a->second;
     }
-    else {
-        return NULL;
-    }
+    race_detector_fake_lock_release(race_detector_fake_lock(funcsByAddr));
+    return result;
 }
 inline Block *
 region_data::findBlock(Address entry)
 {
-    tbb::concurrent_hash_map<Address, Block *>::const_accessor a;
-    if(blocksByAddr.find(a, entry)) {
-        return a->second;
+    Block *result = NULL;
+    race_detector_fake_lock_acquire(race_detector_fake_lock(blocksByAddr));
+    {
+      tbb::concurrent_hash_map<Address, Block *>::const_accessor a;
+      if(blocksByAddr.find(a, entry)) result = a->second;
     }
-    else {
-        return NULL;
-    }
+    race_detector_fake_lock_release(race_detector_fake_lock(blocksByAddr));
+    return result;
 }
 inline int
 region_data::findFuncs(Address addr, set<Function *> & funcs)

@@ -260,8 +260,6 @@ void LivenessAnalyzer::analyze(Function *func) {
 // asked for it, we take its existence to indicate that they'll
 // also be instrumenting. 
 bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
-
-   df_init_debug();
 //TODO: consider the trustness of the location 
 
    if (!loc.isValid()){

@@ -38,6 +38,8 @@
 #include "dyntypes.h"
 #include "IBSTree.h"
 
+#include "LockFreeQueue.h"
+
 #include "IA_IAPI.h"
 #include "InstructionAdapter.h"
 
@@ -51,7 +53,6 @@
 #include <boost/thread/shared_mutex.hpp>
 #include <unordered_map>
 #include <atomic>
-#include <tbb/concurrent_unordered_set.h>
 
 using namespace std;
 
@@ -61,15 +62,6 @@ namespace Dyninst {
     namespace ParseAPI {
 
         class CFGModifier;
-
-        struct FrameSet : public tbb::concurrent_unordered_set<ParseFrame *> {
-            template<typename ContainerT>
-            FrameSet &operator+=(const ContainerT &c) {
-                insert(c.begin(), c.end());
-                return *this;
-            }
-        };
-
 
 /** This is the internal parser **/
         class Parser {
@@ -91,8 +83,8 @@ namespace Dyninst {
             // region data store
             ParseData *_parse_data;
 
-            // All allocated frames
-            vector<ParseFrame *> frames;
+    // All allocated frames
+    LockFreeQueue<ParseFrame *> frames;
 
             // Delayed frames
             struct DelayedFrames : public boost::basic_lockable_adapter<boost::recursive_mutex> {
@@ -112,20 +104,22 @@ namespace Dyninst {
             // PLT, IAT entries
             dyn_hash_map<Address, string> plt_entries;
 
-            // a sink block for unbound edges
-            Block *_sink;
-            tbb::concurrent_hash_map<unsigned int, unsigned int> time_histogram;
-            enum ParseState {
-                UNPARSED,       // raw state
-                PARTIAL,        // parsing has started
-                COMPLETE,       // full parsing -- range queries are invalid
-                FINALIZED,
-                UNPARSEABLE     // error condition
-            };
-            ParseState _parse_state;
-            // XXX sanity checking
-            bool _in_parse;
-            bool _in_finalize;
+    // a sink block for unbound edges
+    Block * _sink;
+#ifdef ADD_PARSE_FRAME_TIMERS
+    tbb::concurrent_hash_map<unsigned int, unsigned int > time_histogram;
+#endif
+    enum ParseState {
+        UNPARSED,       // raw state
+        PARTIAL,        // parsing has started
+        COMPLETE,       // full parsing -- range queries are invalid
+        FINALIZED,
+        UNPARSEABLE     // error condition
+    };
+    ParseState _parse_state;
+    // XXX sanity checking
+    bool _in_parse;
+    bool _in_finalize;
 
         public:
             Parser(CodeObject &obj, CFGFactory &fact, ParseCallbackManager &pcb);
@@ -226,16 +220,14 @@ namespace Dyninst {
             pair<Function *, Edge *> bind_call(
                     ParseFrame &frame, Address target, Block *cur, Edge *exist);
 
-            void parse_frames(FrameSet &, bool);
+    void parse_frames(LockFreeQueue<ParseFrame *> &, bool);
+    void parse_frame(ParseFrame & frame,bool);
 
-            void parse_frame(ParseFrame &frame, bool);
+    void resumeFrames(Function * func, LockFreeQueue<ParseFrame *> & work);
 
-            void resumeFrames(Function *func, FrameSet &work);
-
-            // defensive parsing details
-            void tamper_post_processing(FrameSet &, ParseFrame *);
-
-            ParseFrame *getTamperAbsFrame(Function *tamperFunc);
+    // defensive parsing details
+    void tamper_post_processing(LockFreeQueue<ParseFrame *>&, ParseFrame *);
+    ParseFrame * getTamperAbsFrame(Function *tamperFunc);
 
             /* implementation of the parsing loop */
             void ProcessUnresBranchEdge(
@@ -273,18 +265,26 @@ namespace Dyninst {
 
             friend class CodeObject;
 
-            Mutex<true> parse_mutex;
-            boost::mutex finalize_mutex;
+    Mutex<true> parse_mutex;
+    boost::mutex finalize_mutex;
+
+    struct NewFrames : public std::set<ParseFrame*>, public boost::lockable_adapter<boost::mutex> {};
+
+    LockFreeQueueItem<ParseFrame *> *ProcessOneFrame(ParseFrame *pf, bool recursive);
+
+    void SpawnProcessFrame(ParseFrame *frame, bool recursive);
+
+    void ProcessFrames(LockFreeQueue<ParseFrame *> *work_queue, bool recursive);
+
+    void LaunchWork(LockFreeQueueItem<ParseFrame*> *frame_list, bool recursive);
 
             FrameSet ProcessOneFrame(ParseFrame *pf, bool recursive);
 
-            void cleanup_frames(FrameSet& to_clean);
+    void processCycle(LockFreeQueue<ParseFrame *> &work, bool recursive);
 
-            void processCycle(FrameSet &work, bool recursive);
+    void processFixedPoint(LockFreeQueue<ParseFrame *> &work, bool recursive);
 
-            void processFixedPoint(FrameSet &work, bool recursive);
-
-            FrameSet postProcessFrame(ParseFrame *pf, bool recursive);
+    LockFreeQueueItem<ParseFrame *> *postProcessFrame(ParseFrame *pf, bool recursive);
 
             void updateBlockEnd(Block *b, Address addr, Address previnsn, region_data *rd) const;
         };

@@ -457,7 +457,7 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     // In other cases, if the AbsRegion represents a register,
     // the generator is not set.
     if (ar.generator() != NULL)
-        outAST = SymbolicExpression::SimplifyAnAST(
+        outAST = se.SimplifyAnAST(
 	                       RoseAST::create(ROSEOperation(ROSEOperation::derefOp, ar.size()), ar.generator()), 
 	                       SymbolicExpression::PCValue(node->assign()->addr(), 
 			               insn.size(),

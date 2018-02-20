@@ -43,9 +43,14 @@
 #include "debug_common.h"
 #include "Type-mem.h"
 #include <boost/bind.hpp>
+#include "elfutils/libdw.h"
+#include <atomic>
 #include <elfutils/libdw.h>
 #include <tbb/parallel_for_each.h>
+
+#ifdef ENABLE_RACE_DETECTION
 #include <cilk/cilk.h>
+#endif
 
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -137,6 +142,13 @@ bool DwarfWalker::parse() {
     {
         if(!dwarf_offdie_types(dbg(), cu_off + cu_header_length, &current_cu_die))
             continue;
+
+#if 0
+        push();
+        bool ret = parseModule(false, fixUnknownMod);
+        pop();
+        if(!ret) return false;
+#endif
         module_dies.push_back(current_cu_die);
         compile_offset = next_cu_header;
     }
@@ -149,12 +161,26 @@ bool DwarfWalker::parse() {
     {
         if(!dwarf_offdie(dbg(), cu_off + cu_header_length, &current_cu_die))
             continue;
+
+#if 0
+        push();
+        bool ret = parseModule(true, fixUnknownMod);
+        pop();
+        if(!ret) return false;
+#endif
         module_dies.push_back(current_cu_die);
         compile_offset = next_cu_header;
     }
 
 //    std::for_each(module_dies.begin(), module_dies.end(), [&](Dwarf_Die cur) {
-    tbb::parallel_for_each(module_dies, [&](Dwarf_Die cur) {
+#ifdef ENABLE_RACE_DETECTION
+    cilk_for
+#else
+#pragma omp parallel for
+    for
+#endif
+      (unsigned int i = 0; i < module_dies.size(); i++) {
+	Dwarf_Die cur = module_dies[i];
         int local_fd = open(symtab()->file().c_str(), O_RDONLY);
         Dwarf* temp_dwarf = dwarf_begin(local_fd, DWARF_C_READ);
         DwarfWalker w(symtab_, temp_dwarf);
@@ -163,8 +189,8 @@ bool DwarfWalker::parse() {
         w.pop();
         dwarf_end(temp_dwarf);
         close(local_fd);
-//        return ok;
-    });
+    }
+
     if (!fixUnknownMod)
         return true;
 

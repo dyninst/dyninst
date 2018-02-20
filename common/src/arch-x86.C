@@ -2010,14 +2010,11 @@ dyn_hash_map<prefixEntryID, std::string> prefixEntryNames_IAPI = map_list_of
 
 dyn_hash_map<entryID, flagInfo> ia32_instruction::flagTable;
 
+
 COMMON_EXPORT dyn_hash_map<entryID, flagInfo> const& ia32_instruction::getFlagTable()
 {
-  static boost::mutex m;
-  boost::lock_guard<boost::mutex> create_guard(m);
-  if(flagTable.empty())
-  {
-    ia32_instruction::initFlagTable(flagTable);
-  }
+    std::once_flag flagTableInit;
+    std::call_once(flagTableInit, [&](flagTable) {initFlagTable(flagTable);});
   return flagTable;
 }
   
@@ -8770,7 +8767,9 @@ ia32_instruction &ia32_decode(unsigned int capa, const unsigned char *addr, ia32
             default: break;
         }
 
+#if STUB_OUT_TO_AVOID_RACE
         gotit->id = newID;
+#endif
     }
 
     instruct.entry = gotit;

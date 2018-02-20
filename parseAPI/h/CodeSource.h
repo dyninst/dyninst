@@ -30,6 +30,8 @@
 #ifndef _CODE_SOURCE_H_
 #define _CODE_SOURCE_H_
 
+#include <atomic>
+
 #include <map>
 #include <vector>
 #include <utility>
@@ -43,6 +45,8 @@
 
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/lockable_adapter.hpp>
+
+#include <tbb/concurrent_hash_map.h>
 
 class StatContainer;
 
@@ -161,6 +165,8 @@ class PARSER_EXPORT CodeSource : public Dyninst::InstructionSource {
     static dyn_hash_map<int, bool> non_returning_syscalls_x86_64;
 
  public:
+    typedef tbb::concurrent_hash_map<void *, CodeRegion*> RegionMap;
+
     /* Returns true if the function at an address is known to be
        non returning (e.g., is named `exit' on Linux/ELF, etc.).
 
@@ -225,6 +231,8 @@ class PARSER_EXPORT SymtabCodeRegion : public CodeRegion {
     std::map<Address, Address> knownData;
  public:
     SymtabCodeRegion(SymtabAPI::Symtab *, SymtabAPI::Region *);
+    SymtabCodeRegion(SymtabAPI::Symtab *, SymtabAPI::Region *,
+		     std::vector<SymtabAPI::Symbol*> &symbols);
     ~SymtabCodeRegion();
 
     void names(Address, std::vector<std::string> &);
@@ -253,7 +261,7 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource, public boost::lockable
  private:
     SymtabAPI::Symtab * _symtab;
     bool owns_symtab;
-    mutable CodeRegion * _lookup_cache;
+    mutable std::atomic<CodeRegion *> _lookup_cache;
 
     // Stats information
     StatContainer * stats_parse;
@@ -322,7 +330,7 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource, public boost::lockable
  private:
     void init(hint_filt *, bool);
     void init_regions(hint_filt *, bool);
-    void init_hints(dyn_hash_map<void*, CodeRegion*> &, hint_filt*);
+    void init_hints(RegionMap &, hint_filt*);
     void init_linkage();
     void init_try_blocks();
 
@@ -338,7 +346,8 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource, public boost::lockable
 
 inline bool CodeRegion::contains(const Address addr) const
 {
-    return addr >= offset() && addr < (offset() + length());
+    Address start = offset(); 
+    return addr >= start && addr < (start + length());
 }
 
 }

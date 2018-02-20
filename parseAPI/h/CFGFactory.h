@@ -32,6 +32,7 @@
 
 #include "dyntypes.h"
 
+#include "LockFreeQueue.h"
 #include "CFG.h"
 #include "InstructionSource.h"
 
@@ -71,39 +72,32 @@ class flist_iter {
     }
 };
 
+
 template <class T>
 class fact_list {
- public:
-    typedef flist_iter<T> iterator;
-    typedef const flist_iter<T> const_iterator;
-    typedef T elem;
+public:
+  typedef typename LockFreeQueue<T>::iterator iterator;
+  typedef std::forward_iterator_tag iterator_category;
+  typedef T elem;
+  typedef T &reference;
 
-    fact_list() {
-        head.alloc_set_next(&head);
-        head.alloc_set_prev(&head);
-    }
+  fact_list() {
+  }
 
-    ~fact_list() { }
+  ~fact_list() { }
 
-    void add(elem & new_elem) {
-        head.append(new_elem);
-    }
-    void add_tail(elem & new_elem) {
-        head.prepend(new_elem);
-    }
-    void clear() {
-        while(head.alloc_next() != &head)
-            head.alloc_next()->remove();
-    }
+  void add(elem new_elem) {
+    queue.insert(new_elem);
+  }
     
-    // iterators
-    iterator begin() { return iterator(head.alloc_next()); }
-    iterator end() { return iterator(&head); }
-    const_iterator begin() const { return iterator(head.alloc_next()); }
-    const_iterator end() const { return iterator(&head); }
- private:
-    allocatable head;
+  // iterators
+  iterator begin() { return queue.begin(); }
+  iterator end() { return queue.end(); }
+private:
+  LockFreeQueue<T> queue;
 };
+
+
 /** An implementation of CFGFactory is responsible for allocation and
     deallocation of CFG objects like Blocks, Edges, and Functions.
     Overriding the default methods of this interface allows the parsing
@@ -153,9 +147,9 @@ class PARSER_EXPORT CFGFactory : public boost::basic_lockable_adapter<boost::rec
     virtual void free_block(Block * b);
     virtual void free_edge(Edge * e);
 
-    fact_list<Edge> edges_;
-    fact_list<Block> blocks_;
-    fact_list<Function> funcs_;
+    fact_list<Edge *> edges_;
+    fact_list<Block *> blocks_;
+    fact_list<Function *> funcs_;
 };
 
 

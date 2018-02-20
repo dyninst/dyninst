@@ -230,7 +230,9 @@ Parser::getTamperAbsFrame(Function *tamperFunc) {
 // In the second case, add a new ParseFrame to the worklist or 
 // trigger parsing in the target object. 
 void
-Parser::tamper_post_processing(FrameSet &work, ParseFrame *pf) {
+Parser::tamper_post_processing(LockFreeQueue<ParseFrame *> &work_queue, ParseFrame *pf) {
+    vector<ParseFrame *> work;
+    std::copy(work_queue.begin(), work_queue.end(), std::back_inserter(work));
     // tampers with stack by relative amount: 
     // adjust CALL_FT target edge if there is one
     for (auto widx = work.begin();
@@ -277,14 +279,14 @@ Parser::tamper_post_processing(FrameSet &work, ParseFrame *pf) {
                 if (tf && !_parse_data->findFrame(tf->func->region(),
                                                   tf->func->addr())) {
                     init_frame(*tf);
-                    frames.push_back(tf);
+                    frames.insert(tf);
                     _parse_data->record_frame(tf);
                     _pcb.updateCodeBytes(pf->func->_tamper_addr - objLoad);
                 }
                 if (tf) {
                     mal_printf("adding TAMPER_ABS target %lx frame\n",
                                pf->func->_tamper_addr);
-                    work.insert(tf);
+                    work_queue.insert(tf);
                 }
             } else { // target is in another object, parse there
                 mal_printf("adding TAMPER_ABS target %lx "
