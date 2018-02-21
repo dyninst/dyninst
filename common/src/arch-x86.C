@@ -136,6 +136,7 @@
 #include <map>
 #include <string>
 #include <iostream>
+#include <mutex> // once_flag, call_once
 
 #include "boost/assign/list_of.hpp"
 #include "boost/assign/std/vector.hpp"
@@ -2014,7 +2015,7 @@ dyn_hash_map<entryID, flagInfo> ia32_instruction::flagTable;
 COMMON_EXPORT dyn_hash_map<entryID, flagInfo> const& ia32_instruction::getFlagTable()
 {
     std::once_flag flagTableInit;
-    std::call_once(flagTableInit, [&](flagTable) {initFlagTable(flagTable);});
+    std::call_once(flagTableInit, [&]() {initFlagTable(flagTable);});
   return flagTable;
 }
   

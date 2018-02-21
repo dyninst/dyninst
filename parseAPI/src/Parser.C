@@ -574,7 +574,6 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
         default:
             assert(0 && "invalid parse frame status");
     }
-    pf->inProcess = false;
     return work.steal();
 }
 
@@ -686,7 +685,6 @@ Parser::parse_frames(LockFreeQueue<ParseFrame *> &work, bool recursive)
         }
     }
 
-    cleanup_frames(work);
 }
 
 void Parser::processFixedPoint(LockFreeQueue<ParseFrame *> &work, bool recursive) {// We haven't yet reached a fixedpoint; let's recurse
@@ -786,38 +784,6 @@ void Parser::processCycle(LockFreeQueue<ParseFrame *> &work, bool recursive) {//
     }
 }
 
-void Parser::cleanup_frames()  {
-  vector <ParseFrame *> pfv;
-  std::copy(frames.begin(), frames.end(), std::back_inserter(pfv));
-#if USE_OPENMP
-#pragma omp parallel for schedule(auto)
-  for (unsigned int i = 0; i < pfv.size(); i++) {
-    ParseFrame *pf = pfv[i];
-    if (pf) {
-      _parse_data->remove_frame(pf);
-      delete pf;
-    }
-  }
-  frames.clear();
-#elif USE_CILK
-  cilk_for(unsigned i=0; i < pfv.size(); ++i) {
-    ParseFrame *pf = pfv[i];
-    if (pf) {
-      _parse_data->remove_frame(pf);
-      delete pf;
-    }
-  }
-#else
-  for(unsigned i=0; i < pfv.size(); ++i) {
-    ParseFrame *pf = pfv[i];
-    if (pf) {
-      _parse_data->remove_frame(pf);
-      delete pf;
-    }
-  }
-#endif
-  frames.clear();
-}
 
 /* Finalizing all functions for consumption:
   
@@ -1094,8 +1060,6 @@ namespace {
 
 void
 Parser::parse_frame(ParseFrame & frame, bool recursive) {
-    bool already_processing = frame.inProcess.exchange(true);
-    if(already_processing) return;
     boost::lock_guard<Function> g(*frame.func);
     /** Persistent intermediate state **/
     InstructionAdapter_t *ahPtr = NULL;

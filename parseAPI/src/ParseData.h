@@ -145,8 +145,7 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
         func(f),
         codereg(f->region()),
         seed(NULL),
-        _pd(pd),
-        inProcess(false)
+        _pd(pd)
     {
         set_status(UNPARSED);
 	busy.store(false);

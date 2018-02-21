@@ -278,7 +278,6 @@ namespace Dyninst {
 
     void LaunchWork(LockFreeQueueItem<ParseFrame*> *frame_list, bool recursive);
 
-            FrameSet ProcessOneFrame(ParseFrame *pf, bool recursive);
 
     void processCycle(LockFreeQueue<ParseFrame *> &work, bool recursive);
 
