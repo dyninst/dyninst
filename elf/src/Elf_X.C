@@ -954,7 +954,7 @@ Elf_X_Sym Elf_X_Data::get_sym()
 
 bool Elf_X_Data::isValid() const
 {
-    return data;
+    return data != NULL;
 }
 
 // ------------------------------------------------------------------------
