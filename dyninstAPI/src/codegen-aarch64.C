@@ -565,6 +565,13 @@ bool insnCodeGen::modifyJump(Address target,
                              NS_aarch64::instruction &insn,
                              codeGen &gen) {
     long disp = target - gen.currAddr();
+
+    if(INSN_GET_ISCALL(insn))
+    {
+        generateBranch(gen, gen.currAddr(), target, INSN_GET_ISCALL(insn));
+        return true;
+    }
+
     if (abs(disp) > MAX_BRANCH_OFFSET) {
         generateBranchViaTrap(gen, gen.currAddr(), target, INSN_GET_ISCALL(insn));
         return true;

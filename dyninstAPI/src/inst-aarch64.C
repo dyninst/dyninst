@@ -175,13 +175,13 @@ void EmitterAARCH64SaveRegs::saveFPRegister(codeGen &gen, Register reg, int save
 /********************************* Public methods *********************************************/
 
 unsigned EmitterAARCH64SaveRegs::saveGPRegisters(baseTramp *bt, codeGen &gen, registerSpace *theRegSpace, int &offset, int numReqGPRs) {
-    unsigned ret = 0;
+    int ret = 0;
     if(numReqGPRs == -1)
         numReqGPRs = theRegSpace->numGPRs();
 
     pdvector<registerSlot *> &regs = theRegSpace->trampRegs();
 
-    for(int idx = 0; idx < regs.size() && ret < numReqGPRs; idx++) {
+    for(unsigned int idx = 0; idx < regs.size() && ret < numReqGPRs; idx++) {
         registerSlot *reg = regs[idx];
         if(bt->definedRegs[reg->encoding()]) {
             saveRegister(gen, reg->number, -GPRSIZE_64);
@@ -433,7 +433,8 @@ bool baseTramp::generateRestores(codeGen &gen,
 /***********************************************************************************************/
 
 //TODO: 32-/64-bit regs?
-void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, codeGen &gen, bool noCost, registerSpace * /* rs */) {
+void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
+        codeGen &gen, bool /*noCost*/, registerSpace * /* rs */) {
     switch(op) {
         case plusOp:
         case minusOp: {
@@ -461,6 +462,8 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, codeGen 
             Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
             insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::And, 0, rm, 0, src1, dest, true);
         }
+            break;
+        default:
             break;
     }
 }
@@ -526,20 +529,62 @@ Register EmitterAARCH64::emitCallReplacement(opCode ocode,
 // Instrumentation vs function call replacement
 // Static vs. dynamic
 
-Register EmitterAARCH64::emitCall(opCode ocode,
+Register EmitterAARCH64::emitCall(opCode op,
                                   codeGen &gen,
-                                  const pdvector <AstNodePtr> &operands,
+                                  const std::vector<AstNodePtr> &operands,
                                   bool noCost,
-                                  func_instance *callee) {
-    assert(0); //Not implemented
+                                  func_instance *callee) 
+{
+    if (op != callOp) {
+        cerr << "ERROR: emitCall with op == " << op << endl;
+    }
+    assert(op == callOp);
+
+    std::vector<Register> srcs;
+    std::vector<Register> saves;
+
+    //  Sanity check for NULL address arg
+    if (!callee) 
+    {
+        char msg[256];
+        sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
+                "callee argument", __FILE__, __LINE__);
+        showErrorCallback(80, msg);
+        assert(0);
+    }
+    //#sasha
+    //int param_size = emitCallParams(gen, operands, callee, saves, noCost);
+
+    //Register ret = gen.rs()->allocateRegister(gen, noCost);
+    //Register ret = REGNUM_EAX;
+
+    //emitCallInstruction(gen, callee, ret);
+
+
+    //emitCallCleanup(gen, callee, param_size, saves);
     return NULL;
 }
 
 
-codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, long dest,
-                     codeGen &gen, RegControl, bool /*noCost*/) {
-    assert(0); //Not implemented
-    return NULL;
+codeBufIndex_t emitA(opCode op, Register src1, Register src2, long dest,
+        codeGen &gen, RegControl rc, bool noCost)
+{
+    codeBufIndex_t retval = 0;
+
+    switch (op) {
+        case ifOp: 
+            {
+                // if src1 == 0 jump to dest
+                // src1 is a temporary
+                // dest is a target address
+                retval = gen.codeEmitter()->emitIf(src1, dest, rc, gen);
+                break;
+            }
+        default:
+            assert(0);        // op not implemented or not expected for this emit!
+    }
+
+    return retval;
 }
 
 Register emitR(opCode op, Register src1, Register src2, Register dest,
@@ -1062,3 +1107,19 @@ Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
     assert(0); //Not implemented
     return NULL;
 }
+
+
+codeBufIndex_t EmitterAARCH64::emitIf(Register, Register, RegControl, codeGen &gen)
+{
+    instruction insn;
+    insn.clear();
+    insnCodeGen::generate(gen,insn);
+
+    // Retval: where the jump is in this sequence
+    codeBufIndex_t retval = gen.getIndex();
+    return retval;
+}
+
+
+
+

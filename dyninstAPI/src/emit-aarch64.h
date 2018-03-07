@@ -52,10 +52,7 @@ class EmitterAARCH64 : public Emitter {
 public:
     virtual ~EmitterAARCH64() {};
 
-    virtual codeBufIndex_t emitIf(Register, Register, RegControl, codeGen &) {
-        assert(0);
-        return 0;
-    }
+    virtual codeBufIndex_t emitIf(Register, Register, RegControl, codeGen &);
 
     virtual void emitOp(unsigned, Register, Register, Register, codeGen &) { assert(0); }
 
