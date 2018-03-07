@@ -83,9 +83,9 @@ void insnCodeGen::generateTrap(codeGen &gen) {
 }
 
 void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link) {
-    if (abs(disp) > MAX_BRANCH_OFFSET) {
+    if (labs(disp) > MAX_BRANCH_OFFSET) {
         fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
-                abs(disp), (unsigned long) MAX_BRANCH_OFFSET);
+                labs(disp), (unsigned long) MAX_BRANCH_OFFSET);
         bperr( "Error: attempted a branch of 0x%lx\n", disp);
         logLine("a branch too far\n");
         showErrorCallback(52, "Internal error: branch too far");
@@ -110,12 +110,10 @@ void insnCodeGen::generateBranch(codeGen &gen, long disp, bool link) {
 void insnCodeGen::generateBranch(codeGen &gen, Address from, Address to, bool link) {
     long disp = (to - from);
 
-    if (abs(disp) > MAX_BRANCH_OFFSET) {
+    if (labs(disp) > MAX_BRANCH_OFFSET) {
         generateLongBranch(gen, from, to, link);
-    }
-
-    generateBranch(gen, disp, link);
-
+    }else
+        generateBranch(gen, disp, link);
 }
 
 void insnCodeGen::generateCall(codeGen &gen, Address from, Address to) {
@@ -162,7 +160,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
 
 void insnCodeGen::generateBranchViaTrap(codeGen &gen, Address from, Address to, bool isCall) {
     long disp = to - from;
-    if (abs(disp) <= MAX_BRANCH_OFFSET) {
+    if (labs(disp) <= MAX_BRANCH_OFFSET) {
         // We shouldn't be here, since this is an internal-called-only func.
         generateBranch(gen, disp, isCall);
     }
@@ -176,7 +174,7 @@ void insnCodeGen::generateBranchViaTrap(codeGen &gen, Address from, Address to, 
     } else {
         // Too far to branch and no proc to register trap.
         fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
-                abs(disp), (unsigned long) MAX_BRANCH_OFFSET);
+                labs(disp), (unsigned long) MAX_BRANCH_OFFSET);
         bperr( "Error: attempted a branch of 0x%lx\n", disp);
         logLine("a branch too far\n");
         showErrorCallback(52, "Internal error: branch too far");
@@ -572,7 +570,7 @@ bool insnCodeGen::modifyJump(Address target,
         return true;
     }
 
-    if (abs(disp) > MAX_BRANCH_OFFSET) {
+    if (labs(disp) > MAX_BRANCH_OFFSET) {
         generateBranchViaTrap(gen, gen.currAddr(), target, INSN_GET_ISCALL(insn));
         return true;
     }
@@ -598,8 +596,8 @@ bool insnCodeGen::modifyJcc(Address target,
     long disp = target - gen.currAddr();
     auto isTB = insn.isInsnType(COND_BR_t::TB_MASK, COND_BR_t::TB);
     
-    if(abs(disp) > MAX_CBRANCH_OFFSET ||
-            (isTB && abs(disp) > MAX_TBRANCH_OFFSET))
+    if(labs(disp) > MAX_CBRANCH_OFFSET ||
+            (isTB && labs(disp) > MAX_TBRANCH_OFFSET))
     {
         const unsigned char *origInsn = insn.ptr();
         Address origFrom = gen.currAddr();
