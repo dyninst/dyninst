@@ -64,7 +64,7 @@ SymtabCodeRegion::SymtabCodeRegion(
     vector<SymtabAPI::Symbol*> symbols;
     st->getAllSymbols(symbols);
     for (auto sit = symbols.begin(); sit != symbols.end(); ++sit)
-        if ( (*sit)->getRegion() == reg && (*sit)->getType() != SymtabAPI::Symbol::ST_FUNCTION) {
+        if ( (*sit)->getRegion() == reg && (*sit)->getType() != SymtabAPI::Symbol::ST_FUNCTION && (*sit)->getType() != SymtabAPI::Symbol::ST_INDIRECT) {
 	    knownData[(*sit)->getOffset()] = (*sit)->getOffset() + (*sit)->getSize();
 	}
 }
