@@ -161,6 +161,7 @@ namespace Dyninst {
                 void FRBS();
                 void FRCP();
                 void FRCS();
+                void WC();
                 void syscall();
                 void setFPMode();
                 void L() {}; // non-templated version for some zero fields
