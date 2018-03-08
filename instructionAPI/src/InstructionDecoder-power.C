@@ -943,7 +943,12 @@ using namespace boost::assign;
         (translateBitFieldToCR<7, 14, ppc32::ifpscw0, 7>(*this))();
         return;
     }
-    
+     void InstructionDecoder_power::WC()
+    {
+        insn_in_progress->appendOperand(Immediate::makeImmediate(Result(u8, field<9, 10>(insn))), true, false);
+        return;
+    }
+   
     bool InstructionDecoder_power::findRAAndRS(const power_entry* cur) {
         bool findRA = false;
 	bool findRS = false;

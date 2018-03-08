@@ -838,6 +838,8 @@ namespace Dyninst
       DEF_REGISTER(esr,     62 | SPR | Arch_ppc32, "ppc32");
 //      DEF_REGISTER(ivpr,    66 | SPR | Arch_ppc32, "ppc32");
 
+      DEF_REGISTER(vrsave, 256 | SPR | Arch_ppc32, "ppc32");
+
 
       DEF_REGISTER(sprg0,  272 | SPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(sprg1,  273 | SPR | Arch_ppc32, "ppc32");
@@ -1058,6 +1060,7 @@ namespace Dyninst
       DEF_REGISTER(sdr1,    25 | SPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(srr0,    26 | SPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(srr1,    27 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vrsave, 256 | SPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(sprg0,  272 | SPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(sprg1,  273 | SPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(sprg2,  274 | SPR | Arch_ppc64, "ppc64");
