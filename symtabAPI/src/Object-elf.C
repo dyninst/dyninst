@@ -289,7 +289,7 @@ static Region::RegionType getRelTypeByElfMachine(Elf_X *localHdr) {
 }
 
 const char* EDITED_TEXT_NAME = ".edited.text";
-// const char* INIT_NAME        = ".init";
+const char* INIT_NAME        = ".init";
 const char *INTERP_NAME      = ".interp";
 const char* FINI_NAME        = ".fini";
 const char* TEXT_NAME        = ".text";
@@ -627,7 +627,9 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 		    data.d_type(ELF_T_XWORD);
 		    data.xlatetom(elfHdr->e_endian() ? ELFDATA2MSB : ELFDATA2LSB);
 		}
-		if(strcmp(name, TEXT_NAME) == 0 || strcmp(name, ".rodata") == 0) {
+		if(strcmp(name, TEXT_NAME) == 0 || strcmp(name, ".rodata") == 0 || 
+           strcmp(name, INIT_NAME) == 0 || strcmp(name, FINI_NAME) == 0 ||
+           (scn.sh_flags() & SHF_EXECINSTR)) {
 		    data.d_type(ELF_T_WORD);
 		    data.xlatetom(elfHdr->e_endian() ? ELFDATA2MSB : ELFDATA2LSB);
 		}
