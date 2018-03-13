@@ -208,7 +208,7 @@ if(UNIX)
   endif()
   if(SHOULD_INSTALL_LIBELF)
     get_filename_component(ELFDIR "${LIBELF_LIBRARIES}" PATH)
-    file(GLOB LIBELF_INSTALL_FILES ${ELFDIR}/libelf.so*)
+    file(GLOB LIBELF_INSTALL_FILES ${ELFDIR}/libelf*.so*)
     message(STATUS "Libelf is ${LIBELF_LIBRARIES}")
     message(STATUS "Installing ${LIBELF_INSTALL_FILES} from ${ELFDIR}")
     install (FILES ${LIBELF_INSTALL_FILES}
