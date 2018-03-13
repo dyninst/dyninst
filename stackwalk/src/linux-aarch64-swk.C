@@ -45,7 +45,7 @@
 #include <errno.h>
 #include <string.h>
 
-#define TEST_DEBUGINFO_ALONE 1
+#define TEST_DEBUGINFO_ALONE 0
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
