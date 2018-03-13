@@ -105,7 +105,7 @@ namespace Dyninst {
             dyn_hash_map<Address, string> plt_entries;
 
     // a sink block for unbound edges
-    Block * _sink;
+    std::atomic<Block *> _sink;
 #ifdef ADD_PARSE_FRAME_TIMERS
     tbb::concurrent_hash_map<unsigned int, unsigned int > time_histogram;
 #endif
@@ -183,7 +183,7 @@ namespace Dyninst {
 
         private:
             void parse_vanilla();
-
+            void cleanup_frames();
             void parse_gap_heuristic(CodeRegion *cr);
 
             void probabilistic_gap_parsing(CodeRegion *cr);

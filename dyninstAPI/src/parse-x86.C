@@ -68,9 +68,9 @@ bool parse_func::writesFPRs(unsigned level) {
         const Function::edgelist & calls = callEdges();
         Function::edgelist::const_iterator cit = calls.begin();
         for( ; cit != calls.end(); ++cit) {
-            image_edge * ce = static_cast<image_edge*>(*cit);
-            parse_func * ct = static_cast<parse_func*>(
-                obj()->findFuncByEntry(region(),ce->trg()->start()));
+            if(!(*cit)->trg()) continue;
+            parse_func * ct = dynamic_cast<parse_func*>(
+                obj()->findFuncByEntry(region(),(*cit)->trg()->start()));
             if(ct && ct != this) {
                 if (ct->writesFPRs(level+1)) {
                     // One of our kids does... if we're top-level, cache it; in 

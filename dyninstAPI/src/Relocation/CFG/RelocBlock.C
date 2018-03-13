@@ -358,7 +358,7 @@ void RelocBlock::preserveBlockGap() {
    const PatchBlock::edgelist &targets = block_->targets();
    bool hasCall = false;
    bool hasFT = false;
-   for (PatchBlock::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
+   for (auto iter = targets.begin(); iter != targets.end(); ++iter) {
       if ((*iter)->type() == ParseAPI::CALL) {
          hasCall = true;
       }

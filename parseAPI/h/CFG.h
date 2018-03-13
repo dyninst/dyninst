@@ -146,6 +146,7 @@ class Block;
 
 class PARSER_EXPORT Edge : public allocatable {
    friend class CFGModifier;
+    friend class Block;
  protected:
     Block * _source;
     ParseData* index;
@@ -180,6 +181,7 @@ class PARSER_EXPORT Edge : public allocatable {
 
     Block * src() const { return _source; }
     Block * trg() const;
+    Address trg_addr() const { return _target_off; }
     EdgeTypeEnum type() const { 
         return static_cast<EdgeTypeEnum>(_type._type_enum); 
     }
@@ -399,6 +401,11 @@ inline void Block::addSource(Edge * e)
 inline void Block::addTarget(Edge * e)
 {
     boost::lock_guard<Block> g(*this);
+    if(e->type() == FALLTHROUGH ||
+            e->type() == COND_NOT_TAKEN)
+    {
+        assert(e->_target_off >= end());
+    }
     _trglist.push_back(e);
 }
 

@@ -263,7 +263,7 @@ Function::blocks_int()
                 found_call_ft = true;
             }
 
-	    if (e->type() == RET || t->obj() != cur->obj()) {
+	    if (e->type() == RET || !t || t->obj() != cur->obj()) {
 	        exit_func = true;
 		break;
 	    }
@@ -305,8 +305,12 @@ Function::blocks_int()
             Edge * e = *tit;
             Block * t = e->trg();
 
-            parsing_printf("\t Considering target block [0x%lx,0x%lx) from edge %p\n", 
-			   t->start(), t->end(), e); 
+            if(t)
+            {
+                parsing_printf("\t Considering target block [0x%lx,0x%lx) from edge %p\n",
+                               t->start(), t->end(), e);
+
+            }
 
             if (e->type() == CALL_FT) {
                found_call_ft = true;
@@ -341,7 +345,7 @@ Function::blocks_int()
             }
             // If we are heading to a different CodeObject, call it a return
             // and don't add target blocks.
-            if (t->obj() != cur->obj()) {
+            if (t && (t->obj() != cur->obj())) {
                // This is a jump to a different CodeObject; call it an exit
 	      parsing_printf("Block exits object\n");
                exits_func = true;
@@ -354,11 +358,13 @@ Function::blocks_int()
                 continue;
             }
 
-            if(!HASHDEF(visited,t->start())) {
-               parsing_printf("\t Adding target block [%lx,%lx) to worklist according to edge from %lx, type %d\n", t->start(), t->end(), e->src()->last(), e->type());
-                worklist.push_back(t);
-                visited[t->start()] = true;
-                add_block(t);
+            if(!HASHDEF(visited,e->trg_addr())) {
+                if(t) {
+                    parsing_printf("\t Adding target block [%lx,%lx) to worklist according to edge from %lx, type %d\n", t->start(), t->end(), e->src()->last(), e->type());
+                    worklist.push_back(t);
+                    visited[e->trg_addr()] = true;
+                    add_block(t);
+                }
             }
         }
         if (found_call && !found_call_ft && !obj()->defensiveMode()) {
@@ -404,7 +410,7 @@ Function::delayed_link_return(CodeObject * o, Block * retblk)
         eit = retblk->targets().begin();
         for( ; eit != retblk->targets().end(); ++eit) {
             Edge * e = *eit;
-            linked[e->trg()->start()] = true;
+            linked[e->trg_addr()] = true;
         }
 
     }

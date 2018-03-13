@@ -167,6 +167,7 @@ void Block::updateEnd(Address addr)
     if(!_obj) return;
     _obj->cs()->addCounter(PARSE_BLOCK_SIZE, -1*size());   
     _end = addr;
+    high_ = addr;
     _obj->cs()->addCounter(PARSE_BLOCK_SIZE, size());
 }
 
@@ -213,12 +214,15 @@ void Edge::destroy(Edge *e, CodeObject *o) {
    o->destroy(e);
 }
 
-Block* Block::sink_block = new Block(NULL, NULL, std::numeric_limits<Address>::max());
 
 Block *Edge::trg() const {
     Block* found = index->findBlock(_source->region(), _target_off);
     if(found) return found;
-    return Block::sink_block;
+    Block* newBlock = NULL;
+//    newBlock = _source->obj()->fact()->_mkblock(NULL, _source->region(), _target_off);
+//    newBlock = _source->obj()->fact()->_mksink(_source->obj(), _source->region());
+//    index->record_block(_source->region(), newBlock);
+    return newBlock;
 }
 
 std::string format(EdgeTypeEnum e) {
@@ -266,6 +270,10 @@ Block::getInsn(Offset a) const {
 bool Block::operator==(const Block &rhs) const {
     boost::lock_guard<const Block> g1(*this);
     boost::lock_guard<const Block> g2(rhs);
+    // All sinks are equal
+    if(_start == std::numeric_limits<Address>::max()) {
+        return rhs._start == _start;
+    }
     return _obj == rhs._obj &&
            _region == rhs._region &&
            _start == rhs._start &&

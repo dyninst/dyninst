@@ -577,7 +577,7 @@ bool ProbabilityCalculator::enforceOverlappingConstraints(Function *f,
     auto call_edges = f->callEdges();
     for (auto eit = call_edges.begin(); eit != call_edges.end(); ++eit) {
         if ((*eit)->type() == CALL_FT) continue;
-	Address target = (*eit)->trg()->start();
+	Address target = (*eit)->trg_addr();
 	if (reachingProb.find(target) == reachingProb.end()) continue;
 	if (double_cmp(cur_prob, getFEPProb(target)) > 0) {
 	    newFEPProb[target] = cur_prob;

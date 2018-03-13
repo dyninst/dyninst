@@ -345,7 +345,7 @@ void Parser::ProcessReturnInsn(
         Block *cur,
         InstructionAdapter_t *ah) {
     // returns always target the sink block
-    link(cur, Block::sink_block, RET, true);
+    link(cur, _sink, RET, true);
 
     ParseCallback::interproc_details det;
     det.ibuf = (unsigned char *)
@@ -507,13 +507,13 @@ void Parser::ProcessCFInsn(
             if (resolvable_edge) {
                 newedge = link_tempsink(cur, CALL);
             } else {
-                newedge = link(cur, Block::sink_block, CALL, true);
+                newedge = link(cur, _sink, CALL, true);
             }
             if (!ah->isCall()) {
                 parsing_printf("Setting edge 0x%lx (0x%lx/0x%lx) to interproc\n",
                                newedge,
                                newedge->src()->start(),
-                               newedge->trg()->start());
+                               newedge->trg_addr());
                 newedge->_type._interproc = true;
             }
         }
@@ -524,7 +524,7 @@ void Parser::ProcessCFInsn(
             if (resolvable_edge) {
                 newedge = link_tempsink(cur, curEdge->second);
             } else
-                newedge = link(cur, Block::sink_block, curEdge->second, true);
+                newedge = link(cur, _sink, curEdge->second, true);
         }
 
         if (ah->isTailCall(frame.func, curEdge->second, frame.num_insns, frame.knownTargets)) {
@@ -532,7 +532,7 @@ void Parser::ProcessCFInsn(
             parsing_printf("Setting edge 0x%lx (0x%lx/0x%lx) to interproc (tail call)\n",
                            newedge,
                            newedge->src()->start(),
-                           newedge->trg()->start());
+                           newedge->trg_addr());
             newedge->_type._interproc = true;
         }
 
@@ -577,7 +577,7 @@ void Parser::ProcessCFInsn(
     }
 
     if (unlikely(has_unres && edges_out.empty())) {
-        link(cur, Block::sink_block, INDIRECT, true);
+        link(cur, _sink, INDIRECT, true);
         ProcessUnresBranchEdge(frame, cur, ah, -1);
     }
 

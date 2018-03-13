@@ -104,6 +104,12 @@ private:
     routines to generate and work with extensions of the base types **/
 
 /** Objects created by a CFGFactory must descend from `allocatable' **/
+enum EdgeState {
+    created,
+    destroyed_cb,
+    destroyed_noreturn,
+    destroyed_all
+};
 
 class PARSER_EXPORT CFGFactory : public boost::basic_lockable_adapter<boost::recursive_mutex> {
  public:
@@ -124,7 +130,7 @@ class PARSER_EXPORT CFGFactory : public boost::basic_lockable_adapter<boost::rec
 
     void destroy_func(Function *f);
     void destroy_block(Block *b);
-    void destroy_edge(Edge *e);
+    void destroy_edge(Edge *e, EdgeState reason);
 
     void destroy_all();
 

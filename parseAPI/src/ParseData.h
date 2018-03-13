@@ -239,9 +239,16 @@ public:
         race_detector_fake_lock_acquire(race_detector_fake_lock(blocksByAddr));
 	{
 	  tbb::concurrent_hash_map<Address, Block*>::accessor a;
-	  blocksByAddr.insert(a, std::make_pair(b->start(), b));
+	  bool inserted = blocksByAddr.insert(a, std::make_pair(b->start(), b));
+        if(!inserted) {
+            blocksByAddr.erase(a);
+            assert(blocksByAddr.insert(a, std::make_pair(b->start(), b)));
+        }
 	}
         race_detector_fake_lock_release(race_detector_fake_lock(blocksByAddr));
+        tbb::concurrent_hash_map<Address, Block*>::const_accessor a1;
+        assert(blocksByAddr.find(a1, b->start()));
+        assert(a1->second == b);
 	blocksByRange.insert(b);
     }
     void updateBlockEnd(Block* b, Address addr, Address previnsn) {
@@ -261,6 +268,11 @@ public:
     
 	 // Find functions within [start,end)
 	 int findFuncs(Address start, Address end, set<Function *> & funcs);
+    region_data(CodeObject* obj, CodeRegion* reg) {
+        Block* sink = new Block(obj, reg, numeric_limits<Address>::max());
+        blocksByAddr.insert(make_pair(sink->start(),sink));
+        blocksByRange.insert(sink);
+    }
 };
 
 /** region_data inlines **/

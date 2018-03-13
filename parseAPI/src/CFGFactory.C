@@ -43,6 +43,8 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
+std::map<Edge*, EdgeState> edge_info;
+
 std::string ParseAPI::format(EdgeTypeEnum e) {
    switch(e) {
       case CALL:
@@ -149,6 +151,7 @@ Edge *
 CFGFactory::_mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
     Edge * ret = mkedge(src,trg,type);
     edges_.add(ret);
+    edge_info[ret] = created;
     return ret;
 }
 
@@ -181,11 +184,30 @@ CFGFactory::free_block(Block *b) {
     delete b;
 }
 
+std::string to_str(EdgeState e)
+{
+    switch(e)
+    {
+        case created: return "ok";
+        case destroyed_noreturn: return "destroyed fallthrough from non-returning call/syscall";
+        case destroyed_cb: return "destroyed from callback";
+        case destroyed_all: return "destroyed during global cleanup";
+        default: return "ERROR: unknown state";
+    }
+}
+
 void
-CFGFactory::destroy_edge(Edge *e) {
+CFGFactory::destroy_edge(Edge *e, Dyninst::ParseAPI::EdgeState reason) {
     boost::lock_guard<CFGFactory> g(*this);
-   e->remove();
-   free_edge(e);
+//    if(edge_info[e] != created) {
+//        cerr << "double deleting edge, first was " << to_str(edge_info[e]) << ", second is " << to_str(reason) << endl;
+//        assert(0);
+//    }
+    edge_info[e] = reason;
+    e->remove();
+    if(reason == destroyed_all) {
+        free_edge(e);
+    }
 }
 
 void
@@ -202,7 +224,7 @@ CFGFactory::destroy_all() {
     fact_list<Edge *>::iterator eit = edges_.begin();
     while(eit != edges_.end()) {
         fact_list<Edge *>::iterator cur = eit++;
-        destroy_edge(*cur);
+        destroy_edge(*cur, destroyed_all);
     }
     fact_list<Block *>::iterator bit = blocks_.begin();
     while(bit != blocks_.end()) {

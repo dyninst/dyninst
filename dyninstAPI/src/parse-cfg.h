@@ -191,8 +191,8 @@ class image_edge : public ParseAPI::Edge {
     // MSVC++ 2003 does not properly support covariant return types
     // in overloaded methods
 #if !defined _MSC_VER || _MSC_VER > 1310 
-   virtual parse_block * src() const { return (parse_block*)src(); }
-   virtual parse_block * trg() const { return (parse_block*)trg(); }
+   virtual parse_block * src() const { return (parse_block*)ParseAPI::Edge::src(); }
+   virtual parse_block * trg() const { return (parse_block*)ParseAPI::Edge::trg(); }
 #endif
 
    const char * getTypeString();

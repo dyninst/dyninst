@@ -49,7 +49,7 @@ bool CFGModifier::redirect(Edge *edge, Block *target) {
    bool linkToSink = false;
    if (!edge) return false;
    if (!target) {
-      target = Block::sink_block;
+      target = new Block(edge->src()->obj(), edge->src()->region(), std::numeric_limits<Address>::max());
       linkToSink = true;
    }
    if (edge->trg() == target) return true;

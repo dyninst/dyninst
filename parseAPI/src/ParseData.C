@@ -81,7 +81,7 @@ ParseWorkElem * ParseFrame::mkWork(
 /**** Standard [no overlapping regions] ParseData ****/
 
 StandardParseData::StandardParseData(Parser *p) :
-    ParseData(p)
+    ParseData(p), _rdata(&p->obj(), p->obj().cs()->regions()[0])
 { }
 
 StandardParseData::~StandardParseData() 
@@ -224,7 +224,7 @@ OverlappingParseData::OverlappingParseData(
 {
     boost::lock_guard<ParseData> g(*this);
     for(unsigned i=0;i<regions.size();++i) {
-        rmap[regions[i]] = new region_data(); 
+        rmap[regions[i]] = new region_data(&p->obj(), regions[i]);
     } 
 }
 
