@@ -4819,10 +4819,10 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
         result = shToRegion.insert(std::make_pair((*reg_it)->getRegionNumber(), (*reg_it)));
     }
 
-    for (auto shdr_iter = allRegionHdrsByShndx.begin();
-         shdr_iter != allRegionHdrsByShndx.end();
-            ++shdr_iter) {
-        auto shdr = *shdr_iter;
+    for (auto i = 0;
+         i < allRegionHdrsByShndx.size();
+            ++i) {
+        auto shdr = allRegionHdrsByShndx[i];
         if(!shdr) continue;
         if (shdr->sh_type() != SHT_REL && shdr->sh_type() != SHT_RELA) continue;
 
