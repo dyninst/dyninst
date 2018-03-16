@@ -221,8 +221,8 @@ Block* LoopAnalyzer::WMZC_DFS(Block* b0, int pos) {
     edge_sort es;
     visitOrder.insert(visitOrder.end(), b0->targets().begin(), b0->targets().end());
     sort(visitOrder.begin(), visitOrder.end(), es);
-    for (auto eit = b0->targets().begin(); eit != b0->targets().end(); ++eit) {
-        if ((*eit)->interproc() || (*eit)->sinkEdge()) continue;
+    for (auto eit = visitOrder.begin(); eit != visitOrder.end(); ++eit) {
+        if ((*eit)->interproc() || (*eit)->sinkEdge() || (*eit)->type() == CATCH) continue;
 	Block* b = (*eit)->trg();	
 	if (visited.find(b) == visited.end()) {
 	    // case A, new
