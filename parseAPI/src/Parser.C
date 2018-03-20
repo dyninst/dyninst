@@ -1554,7 +1554,8 @@ Parser::add_edge(
     pair<Block *, Edge *> retpair((Block *) NULL, (Edge *) NULL);
 
     if(!is_code(owner,dst)) {
-        parsing_printf("[%s] target address %lx rejected by isCode()\n",dst);
+        parsing_printf("[%s:%d] target address %lx rejected by isCode()\n",
+            FILE__, __LINE__, dst);
         return retpair;
     }
 
