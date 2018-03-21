@@ -473,14 +473,14 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
           "bad_cast::`vftable'",
           "exception::`vftable'",
           "bad_typeid::`vftable'" ,
-          "sys_errlist"
+          "sys_errlist",
           "std::_non_rtti_object::`vftable'",
           "std::__non_rtti_object::`vftable'",
           "std::bad_cast::`vftable'",
           "std::exception::`vftable'",
           "std::bad_typeid::`vftable'" };
         if (std::find(skipped_symbols.begin(), skipped_symbols.end(),
-          (*fsit)->getFirstSymbol()->getPrettyName() != skipped_symbols.end()) {
+          (*fsit)->getFirstSymbol()->getPrettyName()) != skipped_symbols.end()) {
           continue;
         }
         /*Achin added code ends*/
