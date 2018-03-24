@@ -2017,6 +2017,10 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
             opcode = 0x2B; // SUB
             break;
             
+        case xorOp:
+            opcode = 0x33; // XOR
+            break;
+            
         case timesOp:
             opcode = 0x0FAF; // IMUL
             break;
@@ -2081,6 +2085,10 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
          case minusOp:
             opcode1 = 0x81;
             opcode2 = 0x5; // SUB
+            break;            
+         case xorOp:
+            opcode1 = 0x81;
+            opcode2 = 0x6; // XOR
             break;            
          case timesOp:
             gen.codeEmitter()->emitTimesImm(dest, src1, src2imm, gen);
@@ -2173,6 +2181,7 @@ int getInsnCost(opCode op)
            return(1+10+1);
         case plusOp:
         case minusOp:
+        case xorOp:
         case orOp:
         case andOp:
            return(1+2+1);
