@@ -434,6 +434,9 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
                 case BPatch_minus:
                         astOp = minusOp;
                         break;
+                case BPatch_xor:
+                        astOp = xorOp;
+                        break;
                 case BPatch_divide:
                         astOp = divOp;
                         break;
