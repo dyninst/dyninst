@@ -91,6 +91,7 @@ bool syscallNotification::installPreFork() {
    instReqs.push_back(preForkInst);
    
    proc->installInstrRequests(instReqs);
+   proc->trapMapping.flush();
 
    return true;
 }
@@ -111,6 +112,7 @@ bool syscallNotification::installPostFork() {
    instReqs.push_back(postForkInst);
    
    proc->installInstrRequests(instReqs);
+   proc->trapMapping.flush();
 
    return true;
 }    
@@ -129,6 +131,8 @@ bool syscallNotification::installPreExec() {
    instReqs.push_back(preExecInst);
    
    proc->installInstrRequests(instReqs);
+   proc->trapMapping.flush();
+
    return true;
 }    
 
@@ -156,6 +160,7 @@ bool syscallNotification::installPreExit() {
    instReqs.push_back(preExitInst);
    
    proc->installInstrRequests(instReqs);
+   proc->trapMapping.flush();
 
    return true;
 }    
