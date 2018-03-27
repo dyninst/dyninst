@@ -4405,13 +4405,37 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 	// but there is no line in the table
         return;
     }
+
+    // get comp_dir in case need to make absolute paths
+    Dwarf_Attribute attr;
+    const char * comp_dir = dwarf_formstring( dwarf_attr(&cuDIE, DW_AT_comp_dir, &attr) );
+    std::string comp_dir_str( comp_dir ? comp_dir : "" );
+    
+    // lambda function to convert relative to absolute path
+    auto convert_to_absolute = [&comp_dir_str](const char * &filename) -> std::string
+    {
+        if(!filename) return "";
+        std::string s_name(filename);
+
+        // change to absolute if it's relative
+        if(filename[0]!='/')
+        {
+            s_name = comp_dir_str + "/" + s_name;
+        }
+        return s_name;
+    };
+
     // dwarf_line_srcfileno == 0 means unknown; 1...n means files[0...n-1]
     // so we ensure that we're adding a block of unknown, 1...n to the string table
     // and that offset + dwarf_line_srcfileno points to the correct string
     strings->push_back("<Unknown file>");
-    for(size_t i = 0; i < filecount; i++)
+    for(size_t i = 1; i < filecount; i++)
     {
         auto filename = dwarf_filesrc(files, i, nullptr, nullptr);
+        if(!filename) continue;
+        auto result = convert_to_absolute(filename);
+        filename = result.c_str();
+
         auto tmp = strrchr(filename, '/');
         if(truncateLineFilenames && tmp)
         {
@@ -4467,10 +4491,12 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         //status = dwarf_line_srcfileno(line, &current_statement.string_table_index);
         const char * file_name = dwarf_linesrc(line, NULL, NULL);
         if ( !file_name ) {
-            cout << "dwarf_line_srcfileno failed" << endl;
+            cout << "dwarf_linesrc - empty name" << endl;
             continue;
         }
-        std::string file_name_str(file_name);
+
+        // search filename index
+        std::string file_name_str(convert_to_absolute(file_name));
         int index = -1;
         for(size_t idx = offset; idx < strings->size(); ++idx)
         {
@@ -4481,7 +4507,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
             }
         }
         if( index == -1 ) {
-            cout << "dwarf_line_srcfileno failed" << endl;
+            cout << "dwarf_linesrc didn't find index" << endl;
             continue;
         }
         current_statement.string_table_index = index;
