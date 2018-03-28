@@ -59,16 +59,12 @@
 #include <sys/un.h>
 #include <sys/syscall.h>
 
-#if defined(HAVE_XDR_IN_GLIBC)
 #include <rpc/types.h>
 #include <rpc/xdr.h>
-#endif
 
 #define PDSOCKET_ERROR (-1)
 typedef int PDSOCKET;
-#if defined(HAVE_XDR_IN_GLIBC)
 typedef int (*P_xdrproc_t)(XDR*, ...);
-#endif
 /* Not going to use on Linux Platform - already declared in /usr/include/errno.h
 extern const char *sys_errlist[];
 */
@@ -268,7 +264,6 @@ extern void dedemangle( char * demangled, char * dedemangled );
 extern COMMON_EXPORT char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
 				bool includeTypes = false );
 
-#if defined(HAVE_XDR_IN_GLIBC)
 inline void   P_xdr_destroy(XDR *x) { xdr_destroy(x);}
 inline bool_t P_xdr_u_char(XDR *x, u_char *uc) { return (xdr_u_char(x, uc));}
 inline bool_t P_xdr_int(XDR *x, int *i) { return (xdr_int(x, i));}
@@ -291,8 +286,6 @@ inline bool_t P_xdrrec_endofrecord(XDR *x, int now) {
   return (xdrrec_endofrecord(x, now));}
 inline bool_t P_xdrrec_skiprecord(XDR *x) { return (xdrrec_skiprecord(x));}
 inline bool_t P_xdrrec_eof(XDR *x) { return (xdrrec_eof(x)); }
-#endif
-
 inline int P_mkdir(const char *pathname, mode_t mode) {
 	return mkdir(pathname, mode);
 }
