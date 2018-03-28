@@ -939,7 +939,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     if (ct->_rs > NORETURN)
                       func->set_retstatus(ct->_rs);
                     else if (ct->_rs == UNSET)
-                      func->set_retstatus(UNKNOWN);
+                      frame.pushDelayedWork(work, ct);
                 }
             }
 
@@ -1554,7 +1554,8 @@ Parser::add_edge(
     pair<Block *, Edge *> retpair((Block *) NULL, (Edge *) NULL);
 
     if(!is_code(owner,dst)) {
-        parsing_printf("[%s] target address %lx rejected by isCode()\n",dst);
+        parsing_printf("[%s:%d] target address %lx rejected by isCode()\n",
+            FILE__, __LINE__, dst);
         return retpair;
     }
 

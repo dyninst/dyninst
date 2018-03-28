@@ -1649,6 +1649,10 @@ enum entryID {
   power_op_fsneg,
   power_op_fsnabs,
   power_op_lwa,
+  power_op_popcntb,
+  power_op_popcntw,
+  power_op_popcntd,
+  power_op_wait,
 
   // ***********
   // Steve note:

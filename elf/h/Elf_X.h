@@ -38,6 +38,10 @@
 #include "util.h"
 #include "dyn_regs.h"
 
+#ifndef EM_CUDA
+#define EM_CUDA		190	/* NVIDIA CUDA */
+#endif
+
 namespace Dyninst {
 
 // Forward declarations

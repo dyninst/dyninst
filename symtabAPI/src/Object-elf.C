@@ -74,7 +74,7 @@ using namespace std;
 #include <boost/assign/std/set.hpp>
 
 #include "SymReader.h"
-
+#include <endian.h>
 using namespace boost::assign;
 
 // add some space to avoid looking for functions in data regions
@@ -289,7 +289,7 @@ static Region::RegionType getRelTypeByElfMachine(Elf_X *localHdr) {
 }
 
 const char* EDITED_TEXT_NAME = ".edited.text";
-// const char* INIT_NAME        = ".init";
+const char* INIT_NAME        = ".init";
 const char *INTERP_NAME      = ".interp";
 const char* FINI_NAME        = ".fini";
 const char* TEXT_NAME        = ".text";
@@ -627,7 +627,9 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 		    data.d_type(ELF_T_XWORD);
 		    data.xlatetom(elfHdr->e_endian() ? ELFDATA2MSB : ELFDATA2LSB);
 		}
-		if(strcmp(name, TEXT_NAME) == 0 || strcmp(name, ".rodata") == 0) {
+		if(strcmp(name, TEXT_NAME) == 0 || strcmp(name, ".rodata") == 0 || 
+           strcmp(name, INIT_NAME) == 0 || strcmp(name, FINI_NAME) == 0 ||
+           (scn.sh_flags() & SHF_EXECINSTR)) {
 		    data.d_type(ELF_T_WORD);
 		    data.xlatetom(elfHdr->e_endian() ? ELFDATA2MSB : ELFDATA2LSB);
 		}
@@ -3242,7 +3244,21 @@ typedef struct {
     unsigned long text;
     unsigned long data;
     unsigned long func;
+    bool big_input;
 } mach_relative_info;
+
+static uint16_t endian_16bit(const uint16_t value, bool big) {
+    if (big) return be16toh(value);
+    else return le16toh(value);
+}
+static uint32_t endian_32bit(const uint32_t value, bool big) {
+    if (big) return be32toh(value);
+    else return le32toh(value);
+}
+static uint64_t endian_64bit(const uint64_t value, bool big) {
+    if (big) return be64toh(value);
+    else return le64toh(value);
+}
 
 static int read_val_of_type(int type, unsigned long *value, const unsigned char *addr,
                             const mach_relative_info &mi)
@@ -3289,11 +3305,11 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
     {
         case DW_EH_PE_absptr:
             if (mi.word_size == 4) {
-                *value = (unsigned long) *((const uint32_t *) addr);
+                *value = (unsigned long) endian_32bit(*((const uint32_t *) addr), mi.big_input);
                 size = 4;
             }
             else if (mi.word_size == 8) {
-                *value = (unsigned long) *((const uint64_t *) addr);
+                *value = (unsigned long) endian_64bit(*((const uint64_t *) addr), mi.big_input);
                 size = 8;
             }
             break;
@@ -3304,27 +3320,27 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
             *value = read_sleb128(addr, &size);
             break;
         case DW_EH_PE_udata2:
-            *value = *((const uint16_t *) addr);
+            *value = endian_16bit(*((const uint16_t *) addr), mi.big_input);
             size = 2;
             break;
         case DW_EH_PE_sdata2:
-            *value = *((const int16_t *) addr);
+            *value = (const int16_t) endian_16bit(*((const uint16_t *) addr), mi.big_input);
             size = 2;
             break;
         case DW_EH_PE_udata4:
-            *value = *((const uint32_t *) addr);
+            *value = endian_32bit(*((const uint32_t *) addr), mi.big_input);
             size = 4;
             break;
         case DW_EH_PE_sdata4:
-            *value = *((const int32_t *) addr);
+            *value = (const int32_t) endian_32bit(*((const uint32_t *) addr), mi.big_input);
             size = 4;
             break;
         case DW_EH_PE_udata8:
-            *value = *((const uint64_t *) addr);
+            *value = endian_64bit(*((const uint64_t *) addr), mi.big_input);
             size = 8;
             break;
         case DW_EH_PE_sdata8:
-            *value = *((const int64_t *) addr);
+            *value = (const int64_t) endian_64bit(*((const uint64_t *) addr), mi.big_input);
             size = 8;
             break;
         default:
@@ -3774,6 +3790,7 @@ bool Object::find_catch_blocks(Elf_X_Shdr * eh_frame,
     mi.pc = 0x0;
     mi.func = 0x0;
     mi.word_size = eh_frame->wordSize();
+    mi.big_input = elfHdr->e_endian();
 
 
     //GCC 2.x has "eh" as its augmentor string in the CIEs
@@ -4388,13 +4405,37 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 	// but there is no line in the table
         return;
     }
+
+    // get comp_dir in case need to make absolute paths
+    Dwarf_Attribute attr;
+    const char * comp_dir = dwarf_formstring( dwarf_attr(&cuDIE, DW_AT_comp_dir, &attr) );
+    std::string comp_dir_str( comp_dir ? comp_dir : "" );
+    
+    // lambda function to convert relative to absolute path
+    auto convert_to_absolute = [&comp_dir_str](const char * &filename) -> std::string
+    {
+        if(!filename) return "";
+        std::string s_name(filename);
+
+        // change to absolute if it's relative
+        if(filename[0]!='/')
+        {
+            s_name = comp_dir_str + "/" + s_name;
+        }
+        return s_name;
+    };
+
     // dwarf_line_srcfileno == 0 means unknown; 1...n means files[0...n-1]
     // so we ensure that we're adding a block of unknown, 1...n to the string table
     // and that offset + dwarf_line_srcfileno points to the correct string
     strings->push_back("<Unknown file>");
-    for(size_t i = 0; i < filecount; i++)
+    for(size_t i = 1; i < filecount; i++)
     {
         auto filename = dwarf_filesrc(files, i, nullptr, nullptr);
+        if(!filename) continue;
+        auto result = convert_to_absolute(filename);
+        filename = result.c_str();
+
         auto tmp = strrchr(filename, '/');
         if(truncateLineFilenames && tmp)
         {
@@ -4450,10 +4491,12 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         //status = dwarf_line_srcfileno(line, &current_statement.string_table_index);
         const char * file_name = dwarf_linesrc(line, NULL, NULL);
         if ( !file_name ) {
-            cout << "dwarf_line_srcfileno failed" << endl;
+            cout << "dwarf_linesrc - empty name" << endl;
             continue;
         }
-        std::string file_name_str(file_name);
+
+        // search filename index
+        std::string file_name_str(convert_to_absolute(file_name));
         int index = -1;
         for(size_t idx = offset; idx < strings->size(); ++idx)
         {
@@ -4464,7 +4507,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
             }
         }
         if( index == -1 ) {
-            cout << "dwarf_line_srcfileno failed" << endl;
+            cout << "dwarf_linesrc didn't find index" << endl;
             continue;
         }
         current_statement.string_table_index = index;
