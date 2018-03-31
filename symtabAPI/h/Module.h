@@ -163,6 +163,8 @@ namespace Dyninst{
 			bool isShared() const;
 			~Module();
 
+            std::string getCompDir();
+
 			// Symbol output methods
 			virtual bool findSymbol(std::vector<Symbol *> &ret,
 									const std::string& name,

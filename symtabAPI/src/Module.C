@@ -49,6 +49,7 @@
 
 #if defined(cap_dwarf)
 #include "dwarfWalker.h"
+#include "dwarf.h"
 #endif
 
 using namespace Dyninst;
@@ -74,6 +75,35 @@ std::string Statement::getFile() const {
 
     }
     return "";
+}
+
+
+string Module::getCompDir()
+{
+    static std::string comp_dir_str = "";
+    if(!comp_dir_str.empty()) return comp_dir_str;
+
+#if defined(cap_dwarf)
+    if(info_.empty())
+    {
+        return "";
+    }
+
+    auto& cu = info_[0];
+    if(!dwarf_hasattr(&cu, DW_AT_comp_dir))
+    {
+        return "";
+    }
+
+    Dwarf_Attribute attr;
+    auto comp_dir = dwarf_formstring( dwarf_attr(&cu, DW_AT_comp_dir, &attr) );
+    comp_dir_str = std::string( comp_dir ? comp_dir : "" );
+    return comp_dir_str;
+
+#else
+    // TODO Implement this for non-dwarf format
+    return comp_dir_str;
+#endif
 }
 
 
@@ -203,6 +233,11 @@ LineInformation *Module::parseLineInformation() {
             exec()->getObject()->parseLineInfoForCU(*cu, lineInfo_);
         }
     }
+
+    // Before clearing the CU list (why is it even done anyway?), make sure to
+    // call getCompDir so the comp_dir is stored in a static variable.
+    getCompDir();
+
     // Clear list of work to do
     info_.clear();
     return lineInfo_;
