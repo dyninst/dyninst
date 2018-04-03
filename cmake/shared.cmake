@@ -123,13 +123,14 @@ endif()
 
 set (BUILD_SHARED_LIBS ON)
 
+set (INSTALL_BIN_DIR bin CACHE PATH "Installation directory for executables")
 set (INSTALL_LIB_DIR lib CACHE PATH "Installation directory for libraries")
 set (INSTALL_INCLUDE_DIR include CACHE PATH "Installation directory for header files")
 set (INSTALL_CMAKE_DIR lib/cmake/${PROJECT_NAME} CACHE PATH "Installation directory for CMake files")
 set (INSTALL_DOC_DIR share/doc CACHE PATH "Installation directory for manuals")
 
 # Make the above absolute paths if necessary
-foreach (p LIB INCLUDE CMAKE)
+foreach (p BIN LIB INCLUDE CMAKE)
   set (var INSTALL_${p}_DIR)
   if (NOT IS_ABSOLUTE "${${var}}")
      set (${var} "${CMAKE_INSTALL_PREFIX}/${${var}}")
