@@ -80,8 +80,7 @@ std::string Statement::getFile() const {
 
 string Module::getCompDir()
 {
-    static std::string comp_dir_str = "";
-    if(!comp_dir_str.empty()) return comp_dir_str;
+    if(!compDir_.empty()) return compDir_;
 
 #if defined(cap_dwarf)
     if(info_.empty())
@@ -97,12 +96,12 @@ string Module::getCompDir()
 
     Dwarf_Attribute attr;
     auto comp_dir = dwarf_formstring( dwarf_attr(&cu, DW_AT_comp_dir, &attr) );
-    comp_dir_str = std::string( comp_dir ? comp_dir : "" );
-    return comp_dir_str;
+    compDir_ = std::string( comp_dir ? comp_dir : "" );
+    return compDir_;
 
 #else
     // TODO Implement this for non-dwarf format
-    return comp_dir_str;
+    return compDir_;
 #endif
 }
 
@@ -347,6 +346,7 @@ Module::Module(supportedLanguages lang, Offset adr,
    lineInfo_(NULL),
    typeInfo_(NULL),
    fullName_(fullNm),
+   compDir_(""),
    language_(lang),
    addr_(adr),
    exec_(img),
@@ -361,6 +361,7 @@ Module::Module() :
    typeInfo_(NULL),
    fileName_(""),
    fullName_(""),
+   compDir_(""),
    language_(lang_Unknown),
    addr_(0),
    exec_(NULL),
@@ -376,6 +377,7 @@ Module::Module(const Module &mod) :
    info_(mod.info_),
    fileName_(mod.fileName_),
    fullName_(mod.fullName_),
+   compDir_(mod.compDir_),
    language_(mod.language_),
    addr_(mod.addr_),
    exec_(mod.exec_),
