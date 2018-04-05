@@ -168,6 +168,12 @@ StandardParseData::findFrame(CodeRegion * /* cr */, Address addr)
 ParseFrame::Status
 StandardParseData::frameStatus(CodeRegion * /* cr */, Address addr)
 {
+    tbb::concurrent_hash_map<Address, ParseFrame::Status>::const_accessor a;
+    if(_rdata.frame_status.find(a, addr)) {
+        return a->second;
+    } else {
+        return ParseFrame::BAD_LOOKUP;
+    }
 }
 void
 StandardParseData::setFrameStatus(CodeRegion * /* cr */, Address addr,

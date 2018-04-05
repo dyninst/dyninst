@@ -581,7 +581,7 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction curInsn, Block *blk, Addr
 void *LivenessAnalyzer::getPtrToInstruction(Block *block, Address addr) const{
 
 	if (addr < block->start()) return NULL;
-	if (addr >= block->end()) return NULL;
+	if (addr > block->end()) return NULL;
 	return block->region()->getPtrToInstruction(addr);
 }
 bool LivenessAnalyzer::isExitBlock(Block *block)

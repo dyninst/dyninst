@@ -2469,7 +2469,7 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
         //cerr << "Processing CU DIE for " << modname << " offset: " << next_cu_off << endl;
         Address tempModLow;
         Address modLow = 0;
-        if (DwarfWalker::findConstant(DW_AT_low_pc, tempModLow, cu_die, dbg)) {
+        if (DwarfWalker::findConstant(DW_AT_low_pc, tempModLow, &cu_die, dbg)) {
             convertDebugOffset(tempModLow, modLow);
         }
         std::vector<AddressRange> mod_ranges = DwarfWalker::getDieRanges(dbg, cu_die, modLow);

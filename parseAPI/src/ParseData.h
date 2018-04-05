@@ -217,6 +217,13 @@ public:
         race_detector_fake_lock_release(race_detector_fake_lock(frame_map));
         return result;
     }
+    ParseFrame::Status getFrameStatus(Address addr) {
+        tbb::concurrent_hash_map<Address, ParseFrame::Status>::const_accessor a;
+        frame_status.find(a, addr);
+        return a->second;
+    }
+
+
     void setFrameStatus(Address addr, ParseFrame::Status status)
     {
         race_detector_fake_lock_acquire(race_detector_fake_lock(frame_status));
@@ -265,7 +272,7 @@ public:
 	}
         race_detector_fake_lock_release(race_detector_fake_lock(frame_map));
     }
-    
+
 	 // Find functions within [start,end)
 	 int findFuncs(Address start, Address end, set<Function *> & funcs);
     region_data(CodeObject* obj, CodeRegion* reg) {

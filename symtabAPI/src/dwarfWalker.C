@@ -261,10 +261,14 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
     // These may not be set.
     Address tempModLow, tempModHigh;
     modLow = modHigh = 0;
-    if (findConstant(DW_AT_low_pc, tempModLow, entry(), dbg())) {
+    Dwarf_Die e;
+    bool found_entry = dwarf_offdie(dbg(),offset(), &e);
+    if(!found_entry) return false;
+
+    if (findConstant(DW_AT_low_pc, tempModLow, &e, dbg())) {
         modLow = convertDebugOffset(tempModLow);
     }
-    if (findConstant(DW_AT_high_pc, tempModHigh, entry(), dbg())) {
+    if (findConstant(DW_AT_high_pc, tempModHigh, &e, dbg())) {
         modHigh = convertDebugOffset(tempModHigh);
     }
 
@@ -500,7 +504,7 @@ bool DwarfWalker::parseCallsite()
         return false;
 
     Dyninst::Offset inline_line;
-    result = findConstant(DW_AT_call_line, inline_line, e, dbg());
+    result = findConstant(DW_AT_call_line, inline_line, &e, dbg());
     if (!result)
         return false;
 
@@ -1832,9 +1836,10 @@ bool DwarfWalker::findString(Dwarf_Half attr,
     Dwarf_Half form;
     Dwarf_Attribute strattr;
 
+    Dwarf_Die e = entry();
     if (attr == DW_AT_call_file || attr == DW_AT_decl_file) {
         unsigned long line_index;
-        bool result = findConstant(attr, line_index, entry(), dbg());
+        bool result = findConstant(attr, line_index, &e, dbg());
         if (!result)
             return false;
         if (line_index >= mod()->getStrings()->size()) {
@@ -1846,7 +1851,6 @@ bool DwarfWalker::findString(Dwarf_Half attr,
         str = (*srcFiles())[line_index].str;
         return true;
     }
-    Dwarf_Die e = entry();
     auto ret_p = dwarf_attr(&e, attr, &strattr);
     if(!ret_p) return false;
     form = dwarf_whatform(&strattr);
@@ -1884,13 +1888,13 @@ bool DwarfWalker::findString(Dwarf_Half attr,
     return result;
 }
 
-bool DwarfWalker::findConstant(Dwarf_Half attr, Address &value, Dwarf_Die entry, Dwarf * /*dbg*/) {
-    bool has = dwarf_hasattr(&entry, attr);
+bool DwarfWalker::findConstant(Dwarf_Half attr, Address &value, Dwarf_Die *entry, Dwarf * /*dbg*/) {
+    bool has = dwarf_hasattr(entry, attr);
     if (!has) return false;
 
     // Get the attribute
     Dwarf_Attribute d_attr;
-    auto ret_p = dwarf_attr(&entry, attr, &d_attr);
+    auto ret_p = dwarf_attr(entry, attr, &d_attr);
     if(!ret_p) return false;
 
     // Get the form (datatype) for this particular attribute

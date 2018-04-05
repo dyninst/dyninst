@@ -279,17 +279,19 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
                                            Instruction insn,
                                            Address &target) {
   target = 0;
+  switch(insn.getCategory())
+  {
+      case c_CallInsn:
+      case c_BranchInsn:
+      case c_ReturnInsn:
+          return false;
+  }
   if (insn.getControlFlowTarget()) return false;
 
-  //Architecture fixme = insn->getArch();
-  //if (fixme == Arch_ppc32) fixme = Arch_ppc64;
-  
+
   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn.getArch())));
-  //Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
 
   if (!insn.isRead(thePC))
-    //&&
-//      !insn->isRead(thePCFixme))
     return false;
 
   // Okay, see if we're memory
