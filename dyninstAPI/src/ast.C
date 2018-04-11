@@ -1482,20 +1482,20 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          codeBufIndex_t fromIndex = emitA(ifOp, src1, 0, 0, gen, rc_before_jump, noCost);
          size_t postif_patches_size = gen.allPatches().size();
 
-	 // See comment in ifOp
-	 Register src1_copy = src1;
+         // See comment in ifOp
+         Register src1_copy = src1;
 
          if (loperand->decRefCount())
             gen.rs()->freeRegister(src1);
 
          if (roperand) {
-	   // The flow of control forks. We need to add the forked node to
-	   // the path
-	   gen.tracker()->increaseConditionalLevel();
-	   if (!roperand->generateCode_phase2(gen, noCost, addr, src2)) ERROR_RETURN;
-	   if (roperand->decRefCount())
-	     gen.rs()->freeRegister(src2);
-	 }
+             // The flow of control forks. We need to add the forked node to
+             // the path
+             gen.tracker()->increaseConditionalLevel();
+             if (!roperand->generateCode_phase2(gen, noCost, addr, src2)) ERROR_RETURN;
+             if (roperand->decRefCount())
+                 gen.rs()->freeRegister(src2);
+         }
 
          gen.tracker()->decreaseAndClean(gen);
          gen.rs()->unifyTopRegStates(gen); //Join the registerState for the if
@@ -1529,7 +1529,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
             gen.setIndex(endIndex);
          }
-	 break;
+         break;
       }
       case doOp: {
          fprintf(stderr, "[%s:%d] WARNING: do AST node unimplemented!\n", __FILE__, __LINE__);

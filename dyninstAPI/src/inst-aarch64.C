@@ -439,10 +439,14 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         case plusOp:
         case minusOp: {
             if(src2imm >= -(1 << 11) && src2imm < (long int)((1 << 11) - 1))
-                insnCodeGen::generateAddSubImmediate(gen, op == plusOp ? insnCodeGen::Add : insnCodeGen::Sub, 0, src2imm, src1, dest, false);
+                insnCodeGen::generateAddSubImmediate(gen, 
+                        op == plusOp ? insnCodeGen::Add : insnCodeGen::Sub, 0, 
+                        src2imm, src1, dest, false);
             else if(src2imm >= MIN_IMM16 && src2imm < MAX_IMM16) {
                 Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-                insnCodeGen::generateAddSubShifted(gen, op == plusOp ? insnCodeGen::Add : insnCodeGen::Sub, 0, 0, rm, src1, dest, true);
+                insnCodeGen::generateAddSubShifted(gen, 
+                        op == plusOp ? insnCodeGen::Add : insnCodeGen::Sub, 
+                        0, 0, rm, src1, dest, true);
             }
         }
             break;
@@ -554,6 +558,40 @@ Register EmitterAARCH64::emitCall(opCode op,
     }
     //#sasha
     //int param_size = emitCallParams(gen, operands, callee, saves, noCost);
+    //assert(operands.size()==0);
+
+    //instPoint *point = gen.point();
+    //assert(point);
+    assert(gen.rs());
+
+    //#sasha get correct register
+    //Register scratch = gen.rs()->getScratchRegister(gen);
+    Register scratch = 11;
+    insnCodeGen::loadImmIntoReg<Address>(gen, scratch, callee->addr());
+
+    instruction branchInsn;
+    branchInsn.clear();
+
+    //Set bits which are 0 for both BR and BLR
+    INSN_SET(branchInsn, 0, 4, 0);
+    INSN_SET(branchInsn, 10, 15, 0);
+
+    //Set register
+    INSN_SET(branchInsn, 5, 9, scratch);
+
+    //Set other bits. Basically, these are the opcode bits.
+    //The only difference between BR and BLR is that bit 21 is 1 for BLR.
+    INSN_SET(branchInsn, 16, 31, BRegOp);
+    INSN_SET(branchInsn, 21, 21, 1);
+
+    insnCodeGen::generate(gen, branchInsn);
+
+
+    INSN_SET(branchInsn, 16, 31, BRegOp);
+    INSN_SET(branchInsn, 21, 21, 1);
+
+    insnCodeGen::generate(gen, branchInsn);
+
 
     //Register ret = gen.rs()->allocateRegister(gen, noCost);
     //Register ret = REGNUM_EAX;
@@ -649,22 +687,50 @@ void emitCSload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,
 void emitVload(opCode op, Address src1, Register src2, Register dest,
                codeGen &gen, bool /*noCost*/,
                registerSpace * /*rs*/, int size,
-               const instPoint * /* location */, AddressSpace *proc) {
-    assert(0); //Not implemented
+               const instPoint * /* location */, AddressSpace *proc)
+{
+    switch(op)
+    {
+        case loadConstOp:
+            // dest is a temporary
+            // src1 is an immediate value
+            // dest = src1:imm32
+            gen.codeEmitter()->emitLoadConst(dest, src1, gen);
+            break;
+        case loadOp:
+            // dest is a temporary
+            // src1 is the address of the operand
+            // dest = [src1]
+            gen.codeEmitter()->emitLoad(dest, src1, size, gen);
+            break;
+        default:
+            assert(0); //Not implemented
+            break;
+    }
 }
 
 void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
                 codeGen &gen, bool noCost,
                 registerSpace * /* rs */, int size,
-                const instPoint * /* location */, AddressSpace *proc) {
-    assert(0); //Not implemented
+                const instPoint * /* location */, AddressSpace *proc)
+{
+    if (op ==  storeOp) {
+        // [dest] = src1
+        // dest has the address where src1 is to be stored
+        // src1 is a temporary
+        // src2 is a "scratch" register, we don't need it in this architecture
+        gen.codeEmitter()->emitStore(dest, src1, size, gen);
+    }else{
+        assert(0); //Not implemented
+    }
     return;
 }
 
 void emitV(opCode op, Register src1, Register src2, Register dest,
            codeGen &gen, bool /*noCost*/,
            registerSpace * /*rs*/, int size,
-           const instPoint * /* location */, AddressSpace *proc) {
+           const instPoint * /* location */, AddressSpace *proc) 
+{
     assert(0); //not implemented
     return;
 }
@@ -755,10 +821,16 @@ void registerSpace::saveClobberInfo(const instPoint *location)
 
 
 bool doNotOverflow(int value) {
-    assert(0); //Not implemented
+    // This function seems irrelevant for aarch64 two reasons:
+    // 1) it's used only once in Operator AST node and
+    // 2) when value is passed to emitImm, it ends in a moveValueToReg or it's 
+    //    checked before calling generateAddSubImmediate or moveValueToReg.
+    return true;
+
+    // (old code that seems to be copied from power implementation)
     // we are assuming that we have 15 bits to store the immediate operand.
-    if ((value <= 32767) && (value >= -32768)) return (true);
-    else return (false);
+    //if ((value <= 32767) && (value >= -32768)) return (true);
+    //else return (false);
 }
 
 #if !defined(os_vxworks)
@@ -1109,10 +1181,19 @@ Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
 }
 
 
-codeBufIndex_t EmitterAARCH64::emitIf(Register, Register, RegControl, codeGen &gen)
+codeBufIndex_t EmitterAARCH64::emitIf(
+        Register expr_reg, Register target, RegControl /*rc*/, codeGen &gen)
 {
     instruction insn;
     insn.clear();
+
+    // compare to 0 and branch
+    // register number, its value is compared to 0.
+    INSN_SET(insn, 0, 4, expr_reg);
+    INSN_SET(insn, 5, 23, (target+4)/4);
+    INSN_SET(insn, 25, 30, 0x1a); // CBZ
+    INSN_SET(insn, 31, 31, 1);
+
     insnCodeGen::generate(gen,insn);
 
     // Retval: where the jump is in this sequence
@@ -1120,6 +1201,35 @@ codeBufIndex_t EmitterAARCH64::emitIf(Register, Register, RegControl, codeGen &g
     return retval;
 }
 
+
+void EmitterAARCH64::emitLoadConst(Register dest, Address imm, codeGen &gen)
+{
+    insnCodeGen::loadImmIntoReg<Address>(gen, dest, imm);
+}
+
+
+void EmitterAARCH64::emitLoad(Register dest, Address addr, int size, codeGen &gen)
+{
+    Register scratch = gen.rs()->getScratchRegister(gen);
+
+    insnCodeGen::loadImmIntoReg<Address>(gen, scratch, addr);
+    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, dest, scratch, 0, false); 
+
+    gen.rs()->freeRegister(scratch);
+    gen.markRegDefined(dest);
+}
+
+
+void EmitterAARCH64::emitStore(Address addr, Register src, int size, codeGen &gen)
+{
+    Register scratch = gen.rs()->getScratchRegister(gen);
+
+    insnCodeGen::loadImmIntoReg<Address>(gen, scratch, addr);
+    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, src, scratch, 0, false); 
+
+    gen.rs()->freeRegister(scratch);
+    gen.markRegDefined(src);
+}
 
 
 

@@ -69,9 +69,9 @@ public:
 
     virtual void emitDivImm(Register, Register, RegValue, codeGen &) { assert(0); }
 
-    virtual void emitLoad(Register, Address, int, codeGen &) { assert(0); }
+    virtual void emitLoad(Register, Address, int, codeGen &);
 
-    virtual void emitLoadConst(Register, Address, codeGen &) { assert(0); }
+    virtual void emitLoadConst(Register, Address, codeGen &);
 
     virtual void emitLoadIndir(Register, Register, int, codeGen &) { assert(0); }
 
@@ -92,7 +92,7 @@ public:
 
     virtual void emitLoadOrigRegister(Address, Register, codeGen &) { assert(0); }
 
-    virtual void emitStore(Address, Register, int, codeGen &) { assert(0); }
+    virtual void emitStore(Address, Register, int, codeGen &);
 
     virtual void emitStoreIndir(Register, Register, int, codeGen &) { assert(0); }
 

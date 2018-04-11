@@ -124,18 +124,34 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
                                      Address from,
                                      Address to,
                                      bool isCall) {
+    Register scratch = 0;
+
     instPoint *point = gen.point();
     if(!point)
-        generateBranchViaTrap(gen, from, to, isCall);
-    assert(point);
+    {
+        if(!isCall)
+        {
+            scratch = 12; //#sasha  test for springboard
+            //scratch = gen.rs()->getScratchRegister(gen);
+        }
+        else
+        {
+            generateBranchViaTrap(gen, from, to, isCall);
+            return;
+        }
+    }
+    else
+    {
+        registerSpace *rs = registerSpace::actualRegSpace(point);
+        gen.setRegisterSpace(rs);
 
-    registerSpace *rs = registerSpace::actualRegSpace(point);
-    gen.setRegisterSpace(rs);
-
-    Register scratch = rs->getScratchRegister(gen, true);
-    if (scratch == REG_NULL) {
-        fprintf(stderr, " %s[%d] No registers. Calling generateBranchViaTrap...\n", FILE__, __LINE__);
-        generateBranchViaTrap(gen, from, to, isCall);
+        scratch = rs->getScratchRegister(gen, true);
+        if (scratch == REG_NULL)
+        {
+            fprintf(stderr, " %s[%d] No registers. Calling generateBranchViaTrap...\n", FILE__, __LINE__);
+            generateBranchViaTrap(gen, from, to, isCall);
+            return;
+        }
     }
 
     insnCodeGen::loadImmIntoReg<Address>(gen, scratch, to);
@@ -150,7 +166,8 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     //Set register
     INSN_SET(branchInsn, 5, 9, scratch);
 
-    //Set other bits . Basically, these are the opcode bits. The only difference between BR and BLR is that bit 21 is 1 for BLR.
+    // Set other bits . Basically, these are the opcode bits. 
+    // The only difference between BR and BLR is that bit 21 is 1 for BLR.
     INSN_SET(branchInsn, 16, 31, BRegOp);
     if(isCall)
         INSN_SET(branchInsn, 21, 21, 1);
