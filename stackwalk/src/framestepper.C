@@ -321,6 +321,116 @@ DyninstDynamicStepperImpl::~DyninstDynamicStepperImpl()
 {
 }
 
+DyninstInstFrameStepperImpl::DyninstInstFrameStepperImpl(Walker *w, DyninstInstFrameStepper *p) :
+  FrameStepper(w),
+  parent(p)
+{
+}
+
+gcframe_ret_t DyninstInstFrameStepperImpl::getCallerFrame(const Frame &in, Frame &out)
+{
+    // Magic word inserted into the stack by dyninst instrimentation frame creation.
+    // If the magic word is present at in.getFP()[1], accept this frame
+    uint64_t magicWord = 0xBEEFDEAD;
+
+    Address ret;
+    Address framePtr = in.getFP();
+    Address stackPtr = in.getSP();
+    uint64_t diff = uint64_t(framePtr) - uint64_t(stackPtr);
+
+    // Get the address width for the architecture
+    const unsigned addr_width = getProcessState()->getAddressWidth();
+
+    // Check if the FP is close to the SP. If it is not, the FP is likely invalid and this
+    // isn't an instrimentation frame. This check is required to prevent a deref of an invalid FP. 
+    if ( diff >= (addr_width * 500) ) {
+      sw_printf("[%s:%u] - I am Rejecting frame because (FP - stackPtr) > 500 stack positions - FP: %lx , SP: %lx, DIFF: %llu, Check: %u\n",
+          FILE__, __LINE__, framePtr, stackPtr, diff,  (addr_width * 500));          
+      return gcf_not_me;
+    }
+
+    sw_printf("[%s:%u] - %lx reading from memory at location %lx with framePtr %lx\n",
+        FILE__, __LINE__, ret, framePtr + addr_width);    
+
+    // Read the location in the stack where the Special Value should be.
+    // This value was inserted into the stack at inst frame creation. 
+    if (getWord(ret, framePtr + addr_width)) {    
+        // check the return 
+        sw_printf("[%s:%u] - %lx read from memory at location %lx\n",
+            FILE__, __LINE__, ret, framePtr + addr_width);
+        // Check if that value is equal to the magic word, if its not we are not in 
+        // an instrimentation frame
+        if ((uint64_t)ret == magicWord) {
+            // Accept the frame
+            Address sp, ra, fp;
+            // Read SP and FP for the next frame.
+            if (!getWord(fp, framePtr) || !getWord(sp, framePtr + (addr_width * 2))){
+                sw_printf("[%s:%u] - unable to read SP or FP from frame\n",
+                    FILE__, __LINE__);           
+                return gcf_not_me;
+            }
+            // Get the return address by reading the SP.
+            if (!getWord(ra, sp)) {
+                sw_printf("[%s:%u] - unable to read return address from %lx\n",
+                    FILE__, __LINE__, sp);           
+                return gcf_not_me;
+            }
+            // Offset sp by addr_width to account for where the frame truely ends
+            // without this, debugsteppers will not function on the out frame.
+            sp = sp + addr_width;
+            out.setRA(ra);
+            out.setFP(fp);
+            out.setSP(sp);
+            sw_printf("[%s:%u] - Accepted frame, output new frame with SP: %lx\n",
+                    FILE__, __LINE__, sp);           
+            return gcf_success;
+        }
+    } 
+    return gcf_not_me;
+}
+
+bool DyninstInstFrameStepperImpl::getWord(Address &word_out, Address start)
+{
+   const unsigned addr_width = getProcessState()->getAddressWidth();
+   if (start < 1024) {
+      sw_printf("[%s:%u] - %lx too low to be valid memory\n",
+                FILE__, __LINE__, start);
+      return false;
+   }
+   word_out = 0x0;
+   bool result = getProcessState()->readMem(&word_out, start, addr_width);
+   if (!result) {
+      sw_printf("[%s:%u] - DyninstInstFrameStepperImpl couldn't read from stack at 0x%lx\n",
+                FILE__, __LINE__, start);
+      return false;
+   }
+
+   return true;
+}
+
+unsigned DyninstInstFrameStepperImpl::getPriority() const
+{
+  return dyninstr_priority;
+}
+
+void DyninstInstFrameStepperImpl::registerStepperGroup(StepperGroup *group)
+{
+  unsigned addr_width = group->getWalker()->getProcessState()->getAddressWidth();
+  if (addr_width == 4)
+    group->addStepper(parent, 0, 0xffffffff);
+#if defined(arch_64bit)
+  else if (addr_width == 8)
+    group->addStepper(parent, 0, 0xffffffffffffffff);
+#endif
+  else
+    assert(0 && "Unknown architecture word size");
+}
+
+DyninstInstFrameStepperImpl::~DyninstInstFrameStepperImpl()
+{
+}
+
+
 //FrameFuncStepper defined here
 #define PIMPL_IMPL_CLASS FrameFuncStepperImpl
 #define PIMPL_CLASS FrameFuncStepper
@@ -421,3 +531,11 @@ DyninstDynamicStepperImpl::~DyninstDynamicStepperImpl()
 #undef PIMPL_NAME
 #undef PIMPL_ARG1
 
+//DyninstInstFrameStepper defined here
+#define PIMPL_IMPL_CLASS DyninstInstFrameStepperImpl
+#define PIMPL_CLASS DyninstInstFrameStepper
+#define PIMPL_NAME "DyninstInstFrameStepper"
+#include "framestepper_pimple.h"
+#undef PIMPL_CLASS
+#undef PIMPL_IMPL_CLASS
+#undef PIMPL_NAME
