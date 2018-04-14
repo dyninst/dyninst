@@ -49,7 +49,7 @@ public:
         Store
     };
 
-    enum AddSubOp {
+    enum ArithOp {
         Add,
         Sub
     };
@@ -151,15 +151,23 @@ public:
 
     /** *** **/
 
-    static void generateAddSubShifted(codeGen &gen, AddSubOp op, int shift, int imm6, Register rm, Register rn, Register rd, bool is64bit);
+    static void generateAddSubShifted(
+            codeGen &gen, ArithOp op, int shift, int imm6, Register rm, Register rn, Register rd, bool is64bit);
 
-    static void generateAddSubImmediate(codeGen &gen, AddSubOp op, int shift, int imm12, Register rn, Register rd, bool is64bit);
+    static void generateAddSubImmediate(
+            codeGen &gen, ArithOp op, int shift, int imm12, Register rn, Register rd, bool is64bit);
 
     static void generateMul(codeGen &gen, Register rm, Register rn, Register rd, bool is64bit);
 
+    static void generateDiv(codeGen &gen, Register rm, Register rn, Register rd, bool is64bit);
+
     static void generateBitwiseOpShifted(codeGen &gen, BitwiseOp op, int shift, Register rm, int imm6, Register rn, Register rd, bool is64bit);
 
+    // This is for MOVK, MOVN, and MOVZ. For MOV use generateMoveToReg()
     static void generateMove(codeGen &gen, int imm16, int shift, Register rd, MoveOp movOp);
+
+    // This is for MOV, which is an alias for ORR. See ARMv8 Documentation.
+    static void generateMove(codeGen &gen, Register rd, Register rm, bool is64bit = true);
 
     static void generateMoveSP(codeGen &gen, Register rn, Register rd, bool is64bit);
 

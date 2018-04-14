@@ -67,6 +67,7 @@ namespace NS_aarch64 {
 #define SUBShiftOp      0x4B
 #define SUBImmOp        0x51
 #define MULOp           0xD8
+#define SDIVOp          0xE71
 
 #define ORRShiftOp      0x2A
 #define ANDShiftOp      0x0A

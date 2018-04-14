@@ -123,7 +123,8 @@ void insnCodeGen::generateCall(codeGen &gen, Address from, Address to) {
 void insnCodeGen::generateLongBranch(codeGen &gen,
                                      Address from,
                                      Address to,
-                                     bool isCall) {
+                                     bool isCall) 
+{
     Register scratch = 0;
 
     instPoint *point = gen.point();
@@ -131,8 +132,8 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     {
         if(!isCall)
         {
-            scratch = 12; //#sasha  test for springboard
-            //scratch = gen.rs()->getScratchRegister(gen);
+            //scratch = 12; //#sasha  test for springboard
+            scratch = gen.rs()->getScratchRegister(gen);
         }
         else
         {
@@ -200,7 +201,10 @@ void insnCodeGen::generateBranchViaTrap(codeGen &gen, Address from, Address to, 
     }
 }
 
-void insnCodeGen::generateAddSubShifted(codeGen &gen, insnCodeGen::AddSubOp op, int shift, int imm6, Register rm, Register rn, Register rd, bool is64bit) {
+void insnCodeGen::generateAddSubShifted(
+        codeGen &gen, insnCodeGen::ArithOp op, int shift, int imm6, Register rm, 
+        Register rn, Register rd, bool is64bit) 
+{
     instruction insn;
     insn.clear();
 
@@ -226,7 +230,9 @@ void insnCodeGen::generateAddSubShifted(codeGen &gen, insnCodeGen::AddSubOp op, 
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateAddSubImmediate(codeGen &gen, insnCodeGen::AddSubOp op, int shift, int imm12, Register rn, Register rd, bool is64bit) {
+void insnCodeGen::generateAddSubImmediate(
+        codeGen &gen, insnCodeGen::ArithOp op, int shift, int imm12, Register rn, Register rd, bool is64bit) 
+{
     instruction insn;
     insn.clear();
 
@@ -271,7 +277,34 @@ void insnCodeGen::generateMul(codeGen &gen, Register rm, Register rn, Register r
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateBitwiseOpShifted(codeGen &gen, insnCodeGen::BitwiseOp op, int shift, Register rm, int imm6, Register rn, Register rd, bool is64bit) {
+//#sasha is rm or rn the denominator?
+void insnCodeGen::generateDiv(
+        codeGen &gen, Register rm, Register rn, Register rd, bool is64bit)
+{
+    instruction insn;
+    insn.clear();
+
+    // Set opcode
+    INSN_SET(insn, 20, 31, SDIVOp);
+
+    // Bits 12 to 15 are 1 
+    INSN_SET(insn, 12, 15, 0xF);
+    // Bit 4 to 7 range has 0x1
+    INSN_SET(insn, 4, 7, 0x1);
+
+    //Set registers
+    INSN_SET(insn, 16, 19, rd);
+    INSN_SET(insn, 8, 11, rm);
+    INSN_SET(insn, 0, 3, rn);
+
+    insnCodeGen::generate(gen, insn);
+
+}
+
+void insnCodeGen::generateBitwiseOpShifted(
+        codeGen &gen, insnCodeGen::BitwiseOp op, int shift, Register rm, int imm6, 
+        Register rn, Register rd, bool is64bit) 
+{
     instruction insn;
     insn.clear();
 
@@ -356,6 +389,12 @@ void insnCodeGen::generateMove(codeGen &gen, int imm16, int shift, Register rd, 
     INSN_SET(insn, 21, 22, (shift & 0x3));
 
     insnCodeGen::generate(gen, insn);
+}
+
+void insnCodeGen::generateMove(
+        codeGen &gen, Register rd, Register rm, bool is64bit)
+{
+    insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Or, 0, rm, 0, 0x1f, rd, is64bit);  
 }
 
 void insnCodeGen::generateMoveSP(codeGen &gen, Register rn, Register rd, bool is64bit) {

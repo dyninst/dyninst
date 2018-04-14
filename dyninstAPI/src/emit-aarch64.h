@@ -54,7 +54,7 @@ public:
 
     virtual codeBufIndex_t emitIf(Register, Register, RegControl, codeGen &);
 
-    virtual void emitOp(unsigned, Register, Register, Register, codeGen &) { assert(0); }
+    virtual void emitOp(unsigned, Register, Register, Register, codeGen &);
 
     virtual void emitOpImm(unsigned, unsigned, Register, Register, RegValue,
                            codeGen &) { assert(0); }

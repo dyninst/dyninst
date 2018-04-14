@@ -565,8 +565,8 @@ Register EmitterAARCH64::emitCall(opCode op,
     assert(gen.rs());
 
     //#sasha get correct register
-    //Register scratch = gen.rs()->getScratchRegister(gen);
-    Register scratch = 11;
+    Register scratch = gen.rs()->getScratchRegister(gen);
+    //Register scratch = 11;
     insnCodeGen::loadImmIntoReg<Address>(gen, scratch, callee->addr());
 
     instruction branchInsn;
@@ -731,7 +731,18 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
            registerSpace * /*rs*/, int size,
            const instPoint * /* location */, AddressSpace *proc) 
 {
-    assert(0); //not implemented
+    switch(op){
+        case plusOp:
+        case minusOp:
+        case divOp:
+        case timesOp:
+            gen.codeEmitter()->emitOp(op, dest, src1, src2, gen);
+            break;
+        default:
+            //std::cout << "operation= " << op << endl;
+            assert(0); // Not implemented
+            break;
+    }
     return;
 }
 
@@ -1200,36 +1211,5 @@ codeBufIndex_t EmitterAARCH64::emitIf(
     codeBufIndex_t retval = gen.getIndex();
     return retval;
 }
-
-
-void EmitterAARCH64::emitLoadConst(Register dest, Address imm, codeGen &gen)
-{
-    insnCodeGen::loadImmIntoReg<Address>(gen, dest, imm);
-}
-
-
-void EmitterAARCH64::emitLoad(Register dest, Address addr, int size, codeGen &gen)
-{
-    Register scratch = gen.rs()->getScratchRegister(gen);
-
-    insnCodeGen::loadImmIntoReg<Address>(gen, scratch, addr);
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, dest, scratch, 0, false); 
-
-    gen.rs()->freeRegister(scratch);
-    gen.markRegDefined(dest);
-}
-
-
-void EmitterAARCH64::emitStore(Address addr, Register src, int size, codeGen &gen)
-{
-    Register scratch = gen.rs()->getScratchRegister(gen);
-
-    insnCodeGen::loadImmIntoReg<Address>(gen, scratch, addr);
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, src, scratch, 0, false); 
-
-    gen.rs()->freeRegister(scratch);
-    gen.markRegDefined(src);
-}
-
 
 
