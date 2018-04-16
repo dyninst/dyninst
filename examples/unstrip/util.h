@@ -72,9 +72,9 @@ using namespace Dyninst;
 
 void getInsnInstances(ParseAPI::Block *block, Slicer::InsnVec &insns);
 
-bool isSyscall(InstructionAPI::Instruction::Ptr & insn, Address & syscallTrampStore);
+bool isSyscall(InstructionAPI::Instruction  insn, Address & syscallTrampStore);
 
-bool isCallToSyscallTrampStore(InstructionAPI::Instruction::Ptr & insn, Address & _syscallTramp);
+bool isCallToSyscallTrampStore(InstructionAPI::Instruction  insn, Address & _syscallTramp);
 
 Address getSyscallTrampStore(SymtabAPI::Symtab * symtab);
 

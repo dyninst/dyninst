@@ -111,17 +111,7 @@ bool DebugStepperImpl::isStackRegister(MachRegister reg)
       return (reg == aarch64::sp);
 }
 
-gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &/*in*/,
-                                                    Frame &/*out*/)
-{
-   /**
-    * TODO: Implement me on non-x86 platforms.
-    **/
-   return gcf_not_me;
-}
-// what the hell are these numbers?
-// could the last developers leave any comments?
-/*
+
 static const int fp_offset_64 = 120;
 static const int pc_offset_64 = 168;
 static const int frame_size_64 = 1088;
@@ -223,4 +213,3 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & in,
    return gcf_not_me;
    return gcf_not_me;
 }
-*/

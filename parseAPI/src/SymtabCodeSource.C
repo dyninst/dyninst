@@ -526,7 +526,7 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
           "std::exception::`vftable'",
           "std::bad_typeid::`vftable'" };
         if (std::find(skipped_symbols.begin(), skipped_symbols.end(),
-          (*fsit)->getFirstSymbol()->getPrettyName()) != skipped_symbols.end()) {
+          fsyms[i]->getFirstSymbol()->getPrettyName()) != skipped_symbols.end()) {
           continue;
         }
         /*Achin added code ends*/

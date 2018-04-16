@@ -438,7 +438,7 @@ bool PCSensitiveTransformer::insnIsThunkCall(Instruction insn,
                                              Address addr,
                                              Absloc &destination) {
   // Should be able to handle this much more efficiently by following the CFG
-  if (insn->getCategory() != c_CallInsn) {
+  if (insn.getCategory() != c_CallInsn) {
     return false;
   }
   Expression::Ptr CFT = insn.getControlFlowTarget();

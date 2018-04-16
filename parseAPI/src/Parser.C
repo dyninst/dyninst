@@ -32,7 +32,7 @@
 
 #include <vector>
 #include <limits>
-
+#include <algorithm>
 // For Mutex
 #define PROCCONTROL_EXPORTS
 
@@ -2058,7 +2058,8 @@ Parser::link(Block *src, Block *dst, EdgeTypeEnum et, bool sink)
 Edge*
 Parser::link_tempsink(Block *src, EdgeTypeEnum et)
 {
-    Edge * e = factory()._mkedge(src,_sink,et);
+    Block* tmpsink = parse_data()->findBlock(src->region(), std::numeric_limits<Address>::max());
+    Edge * e = factory()._mkedge(src, tmpsink,et);
     e->_type._sink = true;
     src->_trglist.push_back(e);
     return e;
@@ -2068,6 +2069,11 @@ void
 Parser::relink(Edge * e, Block *src, Block *dst)
 {
     assert(e);
+    unsigned long srcOut = 0, dstIn = 0, oldDstIn = 0;
+    Block* oldDst = NULL;
+    if(e->trg() && e->trg_addr() != std::numeric_limits<Address>::max()) {
+        oldDst = e->trg();
+    }
     bool addSrcAndDest = true;
     if(src != e->src()) {
         e->src()->removeTarget(e);
@@ -2075,15 +2081,14 @@ Parser::relink(Edge * e, Block *src, Block *dst)
         e->_source = src;
         src->addTarget(e);
         _pcb.addEdge(src, e, ParseCallback::target);
-        addSrcAndDest = false;
     }
-    if(!e->trg()) {
-        e->_target_off = dst->start();
-        dst->addSource(e);
-        _pcb.addEdge(src, e, ParseCallback::target);
-    } else if(e->trg() != dst) {
-        _pcb.removeEdge(e->trg(), e, ParseCallback::source);
-        addSrcAndDest = false;
+    if(dst != e->trg()) {
+        if(oldDst) // old edge was not sink
+        {
+            oldDst->removeSource(e);
+            _pcb.removeEdge(e->trg(), e, ParseCallback::source);
+            addSrcAndDest = false;
+        }
         e->_target_off = dst->start();
         dst->addSource(e);
         _pcb.addEdge(dst, e, ParseCallback::source);
@@ -2097,13 +2102,7 @@ Parser::relink(Edge * e, Block *src, Block *dst)
     if(parse_data()->findBlock(dst->region(), dst->start()) != dst) {
         record_block(dst);
     }
-    assert(e->index == parse_data());
-    assert(parse_data()->findBlock(dst->region(), dst->start()) == dst);
-    assert(e->trg_addr() == dst->start());
-    assert(e->trg()->start() == dst->start());
-    assert(e->trg() == dst);
-
-    e->_type._sink = (dst == _sink);
+    e->_type._sink = (dst->start() == std::numeric_limits<Address>::max());
 }
 
 ParseFrame::Status
