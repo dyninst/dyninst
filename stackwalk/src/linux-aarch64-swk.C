@@ -33,6 +33,7 @@
 #include "stackwalk/h/basetypes.h"
 #include "stackwalk/h/procstate.h"
 #include "stackwalk/h/framestepper.h"
+#include "stackwalk/h/frame.h"
 
 #include "stackwalk/src/linuxbsd-swk.h"
 #include "stackwalk/src/dbgstepper-impl.h"
@@ -45,16 +46,31 @@
 #include <assert.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/ucontext.h>
 
-#define TEST_DEBUGINFO_ALONE 0
+
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
 bool Walker::createDefaultSteppers()
 {
-  FrameStepper *stepper;
-  bool result;
+    FrameStepper *stepper;
+    bool result;
+
+
+    // ARM: this works on ARM.
+    // Need to adjust a variable that stores the length of _start
+    stepper = new BottomOfStackStepper(this);
+    result = addStepper(stepper);
+    if (!result){
+        sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
+                  stepper);
+        return false;
+    }else{
+        sw_printf("[%s:%u] - Stepper %p is BottomOfStackStepper\n",
+                  FILE__, __LINE__, stepper);
+    }
 
     stepper = new DebugStepper(this);
     result = addStepper(stepper);
@@ -62,34 +78,32 @@ bool Walker::createDefaultSteppers()
         sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
                   stepper);
         return false;
-    }else{
+    } else{
         sw_printf("[%s:%u] - Stepper %p is DebugStepper\n",
                   FILE__, __LINE__, stepper);
     }
+    stepper = new FrameFuncStepper(this);
+    result = addStepper(stepper);
+    if (!result) {
+        sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
+                  stepper);
+        return false;
+    } else {
+        sw_printf("[%s:%u] - Stepper %p is FrameFuncStepper\n",
+                  FILE__, __LINE__, stepper);
+    }
+    stepper = new SigHandlerStepper(this);
+    result = addStepper(stepper);
+    if (!result) {
+        sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
+                  stepper);
+        return false;
+    }else {
+        sw_printf("[%s:%u] - Stepper %p is SigHandlerStepper\n",
+                  FILE__, __LINE__, stepper);
+    }
 
-  stepper = new FrameFuncStepper(this);
-  result = addStepper(stepper);
-  if (!result) {
-    sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
-	      stepper);
-    return false;
-  }
-
-  // ARM: this works on ARM.
-  // Need to adjust a variable that stores the length of _start
-  stepper = new BottomOfStackStepper(this);
-  result = addStepper(stepper);
-  if (!result){
-    sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
-	      stepper);
-    return false;
-  }else{
-    sw_printf("[%s:%u] - Stepper %p is BottomOfStackStepper\n",
-            FILE__, __LINE__, stepper);
-  }
-
-
-  return true;
+    return true;
 }
 
 bool DebugStepperImpl::isFrameRegister(MachRegister reg)
@@ -112,105 +126,73 @@ bool DebugStepperImpl::isStackRegister(MachRegister reg)
       return (reg == aarch64::sp);
 }
 
-
-static const int fp_offset_64 = 120;
-static const int pc_offset_64 = 168;
-static const int frame_size_64 = 1088;
-
-struct sigframe_offsets {
-   int fp_offset;
-   int pc_offset;
-   int sp_offset;
-   int frame_size;
-};
-
-int frames_64_size = 6;
-sigframe_offsets frames_64[] = { {120, 168, 160, 568},
-                                 {120, 168, 160, 1096},
-                                 {120, 168, 160, 1112},
-                                 {120, 168, 160, 1180},
-                                 {120, 168, 160, 1120},
-                                 {120, 168, 160, 0} };
-
+// This assumes that a ucontext_t is on top of the signal handler's stack.
+static     ucontext_t dummy_context;
+static int sp_offset = (char*)&(dummy_context.uc_mcontext.sp)       - (char*)&dummy_context;
+static int fp_offset = (char*)&(dummy_context.uc_mcontext.regs[29]) - (char*)&dummy_context;
+static int pc_offset = (char*)&(dummy_context.uc_mcontext.pc)       - (char*)&dummy_context;
 
 gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & in,
                                                     Frame & out)
 {
-   bool result;
-   int addr_size = getProcessState()->getAddressWidth();
+    bool result;
 
-   unsigned frames_size;
-   sigframe_offsets *frames;
-   frames_size = frames_64_size;
-   frames = frames_64;
-
-   Address last_read_sp_addr = 0;
-   Address last_read_sp_val = 0;
-
-   for (unsigned i = 0; i < frames_size; i++) {
-      location_t sp_loc;
-      sp_loc.location = loc_address;
-      sp_loc.val.addr = in.getSP() + frames[i].sp_offset;
-      Address sp = 0;
-      if (last_read_sp_addr != sp_loc.val.addr)
-      {
-         result = getProcessState()->readMem(&sp, sp_loc.val.addr, addr_size);
-         if (!result) {
+    Address last_read_sp_addr = 0;
+    Address last_read_sp_val = 0;
+    int addr_size = 8;
+    location_t sp_loc;
+    sp_loc.location = loc_address;
+    sp_loc.val.addr = in.getSP() + sp_offset;
+    Address sp = 0;
+    if (last_read_sp_addr != sp_loc.val.addr)
+    {
+        result = getProcessState()->readMem(&sp, sp_loc.val.addr, addr_size);
+        if (!result) {
             sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
                       FILE__, __LINE__);
             return gcf_error;
-         }
-         last_read_sp_addr = sp_loc.val.addr;
-         last_read_sp_val = sp;
-      }
-      else {
-         sp = last_read_sp_val;
-      }
+        }
+        last_read_sp_addr = sp_loc.val.addr;
+        last_read_sp_val = sp;
+    }
+    else {
+        sp = last_read_sp_val;
+    }
 
-      if (frames[i].frame_size && (sp != in.getSP() + frames[i].frame_size)) {
-         sw_printf("[%s:%u] - Signal frame candidate %d does not fit (%lx != %lx). Trying another.\n",
-                   FILE__, __LINE__, i, sp, in.getSP() + frames[i].frame_size);
-         continue;
-      }
-      sw_printf("[%s:%u] - Using signal frame candidate %d\n", FILE__, __LINE__, i);
 
-      location_t fp_loc;
-      Address fp = 0x0;
-      fp_loc.location = loc_address;
-      fp_loc.val.addr = in.getSP() + frames[i].fp_offset;
-      sw_printf("[%s:%u] - SigHandler Reading FP from %lx\n",
-                FILE__, __LINE__, fp_loc.val.addr);
-      result = getProcessState()->readMem(&fp, fp_loc.val.addr, addr_size);
-      if (!result) {
-         sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
-                   FILE__, __LINE__);
-         return gcf_error;
-      }
+    location_t fp_loc;
+    Address fp = 0x0;
+    fp_loc.location = loc_address;
+    fp_loc.val.addr = in.getSP() + fp_offset;
+    sw_printf("[%s:%u] - SigHandler Reading FP from %lx\n",
+              FILE__, __LINE__, fp_loc.val.addr);
+    result = getProcessState()->readMem(&fp, fp_loc.val.addr, addr_size);
+    if (!result) {
+        sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
+                  FILE__, __LINE__);
+        return gcf_error;
+    }
 
-      location_t pc_loc;
-      Address pc = 0x0;
-      pc_loc.location = loc_address;
-      pc_loc.val.addr = in.getSP() + frames[i].pc_offset;
-      sw_printf("[%s:%u] - SigHandler Reading PC from %lx\n",
-                FILE__, __LINE__, pc_loc.val.addr);
-      result = getProcessState()->readMem(&pc, pc_loc.val.addr, addr_size);
-      if (!result) {
-         sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
-                   FILE__, __LINE__);
-         return gcf_error;
-      }
+    location_t pc_loc;
+    Address pc = 0x0;
+    pc_loc.location = loc_address;
+    pc_loc.val.addr = in.getSP() + pc_offset;
+    sw_printf("[%s:%u] - SigHandler Reading PC from %lx\n",
+              FILE__, __LINE__, pc_loc.val.addr);
+    result = getProcessState()->readMem(&pc, pc_loc.val.addr, addr_size);
+    if (!result) {
+        sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
+                  FILE__, __LINE__);
+        return gcf_error;
+    }
 
-      out.setRA((Dyninst::MachRegisterVal) pc);
-      out.setFP((Dyninst::MachRegisterVal) fp);
-      out.setSP((Dyninst::MachRegisterVal) sp);
-      out.setRALocation(pc_loc);
-      out.setFPLocation(fp_loc);
-      out.setSPLocation(sp_loc);
-      out.setNonCall();
-      return gcf_success;
-   }
+    out.setRA((Dyninst::MachRegisterVal) pc);
+    out.setFP((Dyninst::MachRegisterVal) fp);
+    out.setSP((Dyninst::MachRegisterVal) sp);
+    out.setRALocation(pc_loc);
+    out.setFPLocation(fp_loc);
+    out.setSPLocation(sp_loc);
+    out.setNonCall();
+    return gcf_success;
 
-   sw_printf("[%s:%u] - Could not find matching candidate for signal frame\n", FILE__, __LINE__);
-   return gcf_not_me;
-   return gcf_not_me;
 }
