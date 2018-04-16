@@ -160,6 +160,8 @@ namespace Dyninst{
 			bool isShared() const;
 			~Module();
 
+            std::string getCompDir();
+
 			// Symbol output methods
 			virtual bool findSymbol(std::vector<Symbol *> &ret,
 									const std::string& name,
@@ -238,6 +240,7 @@ namespace Dyninst{
 
 			std::string fileName_;                   // short file
 			std::string fullName_;                   // full path to file
+			std::string compDir_;
 			supportedLanguages language_;
 			Offset addr_;                      // starting address of module
 			Symtab *exec_;

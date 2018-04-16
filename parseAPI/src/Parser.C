@@ -1203,9 +1203,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 //     function has to take UNKNOWN
                 if (func->retstatus() != RETURN) {
                     if (ct->retstatus() > NORETURN)
-                        func->set_retstatus(ct->retstatus());
+                      func->set_retstatus(ct->retstatus());
                     else if (ct->retstatus() == UNSET)
-                        func->set_retstatus(UNKNOWN);
+                      frame.pushDelayedWork(work, ct);
                 }
             }
 
@@ -1494,6 +1494,19 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                                        "%lx is within [%lx,%lx)\n",
                                FILE__,__LINE__,curAddr,
                                nextBlock->start(),nextBlock->end());
+                Address prev_insn;
+                if (nextBlock->consistent(curAddr, prev_insn)) {
+                    // The two overlapping blocks aligned.
+                    // We need to split the large block, and create new edge to the later block
+                    Block* new_block = split_block(frame.func, nextBlock, curAddr, prev_insn);
+                    ah->retreat();
+                    end_block(cur, ah);
+                    add_edge(frame, frame.func, cur, curAddr, FALLTHROUGH, NULL);
+                    leadersToBlock[curAddr] = new_block;
+
+                    // We break from this loop because no need more stright-line parsing
+                    break;
+                }
 
                 // NB "cur" hasn't ended, so its range may
                 // not look like it overlaps with nextBlock
@@ -1788,7 +1801,8 @@ Parser::add_edge(
     pair<Block *, Edge *> retpair((Block *) NULL, (Edge *) NULL);
 
     if(!is_code(owner,dst)) {
-        parsing_printf("[%s] target address %lx rejected by isCode()\n",dst);
+        parsing_printf("[%s:%d] target address %lx rejected by isCode()\n",
+            FILE__, __LINE__, dst);
         return retpair;
     }
 

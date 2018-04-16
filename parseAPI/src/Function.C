@@ -112,6 +112,9 @@ Function::Function(Address addr, string name, CodeObject * obj,
     if (obj && obj->cs()) {
         obj->cs()->incrementCounter(PARSE_FUNCTION_COUNT);
     }
+    if (obj && obj->cs() && obj->cs()->nonReturning(name)) {
+        set_retstatus(NORETURN);
+    }
 }
 
 ParseAPI::Edge::~Edge() {
@@ -331,7 +334,6 @@ Function::blocks_int()
                     if (_tamper != TAMPER_UNSET && _tamper != TAMPER_NONE) 
                        continue;
                 }
-                
                 set_retstatus(RETURN);
                 continue;
             }
@@ -491,6 +493,13 @@ void Function::setEntryBlock(Block *new_entry)
 void Function::set_retstatus(FuncReturnStatus rs) 
 {
     boost::lock_guard<Function> g(*this);
+    // If this function is a known non-returning function,
+    // we should ignore this result.
+    // A exmaple is .Unwind_Resume, which is non-returning.
+    // But on powerpc, the function contains a BLR instruction,
+    // looking like a return instruction, but actually is not.
+    if (obj()->cs()->nonReturning(_name) && rs != NORETURN) return;
+ 
     // If we are changing the return status, update prev counter
     if (_rs != UNSET) {
         if (_rs == NORETURN) {

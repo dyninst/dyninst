@@ -72,7 +72,7 @@ SymtabCodeRegion::SymtabCodeRegion(
     vector<SymtabAPI::Symbol*> symbols;
     st->getAllSymbols(symbols);
     for (auto sit = symbols.begin(); sit != symbols.end(); ++sit)
-        if ( (*sit)->getRegion() == reg && (*sit)->getType() != SymtabAPI::Symbol::ST_FUNCTION) {
+        if ( (*sit)->getRegion() == reg && (*sit)->getType() != SymtabAPI::Symbol::ST_FUNCTION && (*sit)->getType() != SymtabAPI::Symbol::ST_INDIRECT) {
 	    knownData[(*sit)->getOffset()] = (*sit)->getOffset() + (*sit)->getSize();
 	}
 }
@@ -509,20 +509,24 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
                 FILE__,__LINE__,f->getOffset(), fname);
             continue;
         }
-        /*Achin added code starts 12/15/2014*/
-        if (!strcmp(fname,"_non_rtti_object::`vftable'") || 
-            !strcmp(fname,"bad_cast::`vftable'") || 
-            !strcmp(fname,"exception::`vftable'") || 
-            !strcmp(fname,"bad_typeid::`vftable'") || 
-            !strcmp(fname,"sys_errlist")) {
-          continue;
-        }
 
-        if (!strcmp(fname,"std::_non_rtti_object::`vftable'") || 
-            !strcmp(fname,"std::__non_rtti_object::`vftable'") || 
-            !strcmp(fname,"std::bad_cast::`vftable'") || 
-            !strcmp(fname,"std::exception::`vftable'") || 
-            !strcmp(fname,"std::bad_typeid::`vftable'")) {
+        // Cleaned-up version of a rather ugly series of strcmp's. Is this the
+        // right place to do this? Should these symbols not be filtered by the
+        // loop above?
+        /*Achin added code starts 12/15/2014*/
+        static const vector<std::string> skipped_symbols = {
+          "_non_rtti_object::`vftable'",
+          "bad_cast::`vftable'",
+          "exception::`vftable'",
+          "bad_typeid::`vftable'" ,
+          "sys_errlist",
+          "std::_non_rtti_object::`vftable'",
+          "std::__non_rtti_object::`vftable'",
+          "std::bad_cast::`vftable'",
+          "std::exception::`vftable'",
+          "std::bad_typeid::`vftable'" };
+        if (std::find(skipped_symbols.begin(), skipped_symbols.end(),
+          (*fsit)->getFirstSymbol()->getPrettyName()) != skipped_symbols.end()) {
           continue;
         }
         /*Achin added code ends*/
@@ -532,8 +536,8 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
         race_detector_fake_lock_acquire(race_detector_fake_lock(seen));
         {
           SeenMap::accessor a;
-          Offset offset = f->getOffset(); 
-          present = seen.find(a, offset); 
+          Offset offset = f->getOffset();
+          present = seen.find(a, offset);
           if (!present) seen.insert(a, std::make_pair(offset, true));
         }
         race_detector_fake_lock_release(race_detector_fake_lock(seen));
@@ -560,7 +564,7 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
         race_detector_fake_lock_acquire(race_detector_fake_lock(rmap));
         {
           RegionMap::accessor a;
-          present = rmap.find(a, sr); 
+          present = rmap.find(a, sr);
           if (present) cr = a->second;
         }
         race_detector_fake_lock_release(race_detector_fake_lock(rmap));
@@ -583,7 +587,7 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
           mcs_unlock(hint_lock, me);
           parsing_printf("\t<%lx,%s,[%lx,%lx)>\n",
                          f->getOffset(),
-                         fname, 
+                         fname,
                          cr->offset(),
                          cr->offset()+cr->length());
         }

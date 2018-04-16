@@ -49,6 +49,7 @@
 
 #if defined(cap_dwarf)
 #include "dwarfWalker.h"
+#include "dwarf.h"
 #endif
 
 using namespace Dyninst;
@@ -77,7 +78,35 @@ std::string Statement::getFile() const {
 }
 
 
-bool Module::findSymbol(std::vector<Symbol *> &found, 
+string Module::getCompDir()
+{
+    if(!compDir_.empty()) return compDir_;
+
+#if defined(cap_dwarf)
+    if(info_.empty())
+    {
+        return "";
+    }
+
+    auto& cu = info_[0];
+    if(!dwarf_hasattr(&cu, DW_AT_comp_dir))
+    {
+        return "";
+    }
+
+    Dwarf_Attribute attr;
+    auto comp_dir = dwarf_formstring( dwarf_attr(&cu, DW_AT_comp_dir, &attr) );
+    compDir_ = std::string( comp_dir ? comp_dir : "" );
+    return compDir_;
+
+#else
+    // TODO Implement this for non-dwarf format
+    return compDir_;
+#endif
+}
+
+
+bool Module::findSymbol(std::vector<Symbol *> &found,
                         const std::string& name,
                         Symbol::SymbolType sType, 
                         NameType nameType,
@@ -202,10 +231,14 @@ LineInformation *Module::parseLineInformation() {
         {
             exec()->getObject()->parseLineInfoForCU(*cu, lineInfo_);
         }
-
-        // Clear list of work to do
-        info_.clear();
     }
+
+    // Before clearing the CU list (why is it even done anyway?), make sure to
+    // call getCompDir so the comp_dir is stored in a static variable.
+    getCompDir();
+
+    // Clear list of work to do
+    info_.clear();
     return lineInfo_;
 }
 
@@ -313,6 +346,7 @@ Module::Module(supportedLanguages lang, Offset adr,
    lineInfo_(NULL),
    typeInfo_(NULL),
    fullName_(fullNm),
+   compDir_(""),
    language_(lang),
    addr_(adr),
    exec_(img),
@@ -327,6 +361,7 @@ Module::Module() :
    typeInfo_(NULL),
    fileName_(""),
    fullName_(""),
+   compDir_(""),
    language_(lang_Unknown),
    addr_(0),
    exec_(NULL),
@@ -342,6 +377,7 @@ Module::Module(const Module &mod) :
    info_(mod.info_),
    fileName_(mod.fileName_),
    fullName_(mod.fullName_),
+   compDir_(mod.compDir_),
    language_(mod.language_),
    addr_(mod.addr_),
    exec_(mod.exec_),

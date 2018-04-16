@@ -1437,7 +1437,7 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
             newdata->d_align = 4;
             updateStrLinkShdr.push_back(newshdr);
             newshdr->sh_flags = SHF_ALLOC;
-            newshdr->sh_info = 2;
+            newshdr->sh_info = verneednum;
             updateDynamic(DT_VERNEED, newshdr->sh_addr);
         }
         else if (newSecs[i]->getRegionType() == Region::RT_SYMVERDEF) {
