@@ -194,9 +194,11 @@ bool LibraryState::updateLibsArch(std::vector<std::pair<LibAddrPair, unsigned in
    return true;
 }
 
-#define NUM_VSYS_SIGRETURNS 3
+#define NUM_VSYS_SIGRETURNS 5
 static const char* vsys_sigreturns[] = {
+   "sigreturn",
    "_sigreturn",
+   "__sigreturn",
    "__kernel_sigreturn",
    "__kernel_rt_sigreturn"
 };
