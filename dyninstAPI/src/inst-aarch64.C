@@ -736,7 +736,17 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
         case minusOp:
         case divOp:
         case timesOp:
+        case orOp:
+        case andOp:
             gen.codeEmitter()->emitOp(op, dest, src1, src2, gen);
+            break;
+        case lessOp:
+        case leOp:
+        case greaterOp:
+        case geOp:
+        case eqOp:
+        case neOp:
+            gen.codeEmitter()->emitRelOp(op, dest, src1, src2, gen);
             break;
         default:
             //std::cout << "operation= " << op << endl;

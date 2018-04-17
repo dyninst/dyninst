@@ -201,6 +201,39 @@ void insnCodeGen::generateBranchViaTrap(codeGen &gen, Address from, Address to, 
     }
 }
 
+void insnCodeGen::generateConditionalBranch(codeGen& gen, Address to, unsigned opcode)
+{
+    instruction insn;
+    insn.clear();
+
+    //Set opcode
+    INSN_SET(insn, 25, 31, BCondOp);
+
+    //Set imm19 field
+    INSN_SET(insn, 5, 23, to >> 2);
+
+    auto getConditionCode = [&opcode]() -> unsigned
+    {
+        switch(opcode){
+            case lessOp: return 0xB; 
+            case leOp: return 0xD; 
+            case greaterOp: return 0xC;
+            case geOp: return 0xA;
+            case eqOp: return 0x0;
+            case neOp: return 0x1;
+            default:
+                assert(0); // wrong condition passed
+                break;
+        }
+    };
+
+    //Set condition 
+    INSN_SET(insn, 0, 3, getConditionCode());
+
+    insnCodeGen::generate(gen, insn);
+}
+
+
 void insnCodeGen::generateAddSubShifted(
         codeGen &gen, insnCodeGen::ArithOp op, int shift, int imm6, Register rm, 
         Register rn, Register rd, bool is64bit) 

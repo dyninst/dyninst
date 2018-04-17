@@ -92,6 +92,9 @@ public:
                                       Address to,
                                       bool isCall);
 
+    // Generate conditional branch
+    static void generateConditionalBranch(codeGen& gen, Address to, unsigned opcode);
+
     static void generateMemAccess32or64(codeGen &gen, LoadStore accType,
                                         Register r1, Register r2, int immd, bool is64bit);
 

@@ -93,9 +93,6 @@ void EmitterAARCH64::emitStore(Address addr, Register src, int size, codeGen &ge
 void EmitterAARCH64::emitOp(
         unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen)
 {
-    // dest = src1 
-    //generateMoveToReg(gen, dest, src1);
-
     // dest = src1 + src2
     if( opcode == plusOp )
         insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, 0, 0, src1, src2, dest, true);
@@ -111,8 +108,35 @@ void EmitterAARCH64::emitOp(
     // dest = src1 * src2
     else if( opcode == timesOp )
         insnCodeGen::generateMul(gen, src1, src2, dest, true);
-    
-    //gen.markRegDefined(dest); // #sasha should mark?
+
+    // dest = src1 & src2
+    else if( opcode == andOp )
+        insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::And, 0, src1, 0, src2, dest, true);  
+
+    // dest = src1 | src2
+    else if( opcode == orOp )
+        insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Or, 0, src1, 0, src2, dest, true);  
 }
+
+
+void EmitterAARCH64::emitRelOp(
+        unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen)
+{
+    // CMP is an alias to SUBS, dest here has src1-src2, which it's not important
+    insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Sub, 0, 0, src2, src1, dest, true);
+
+    // make dest = 1, assuming it is true, before conditional jump 
+    insnCodeGen::loadImmIntoReg<Address>(gen, dest, 0x1);
+
+    // insert conditional jump to skip an eventual dest=0
+    insnCodeGen::generateConditionalBranch(gen, 4, opcode);
+
+    // make dest = 0, in case it fails the branch 
+    insnCodeGen::loadImmIntoReg<Address>(gen, dest, 0x0);
+}
+
+
+
+
 
 
