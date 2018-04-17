@@ -1802,11 +1802,11 @@ image::findFuncs(const Address offset, set<Function *> & funcs) {
     else if(cnt == 1)
         return obj_->findFuncs(*match.begin(),offset,funcs);
 
-        fprintf(stderr,"[%s:%d] image::findFuncs(offset) called on "
-                       "overlapping-region object\n",
+    fprintf(stderr,"[%s:%d] image::findFuncs(offset) called on "
+            "overlapping-region object\n",
             FILE__,__LINE__);
-        assert(0);
-        return 0;
+    assert(0);
+    return 0;
 }
 
 parse_func *image::findFuncByEntry(const Address &entry) {
@@ -1838,11 +1838,11 @@ image::findBlocksByAddr(const Address addr, set<ParseAPI::Block *> & blocks )
     else if(cnt == 1)
         return obj_->findBlocks(*match.begin(),addr,blocks);
 
-        fprintf(stderr,"[%s:%d] image::findBlocks(offset) called on "
-                       "overlapping-region object\n",
+    fprintf(stderr,"[%s:%d] image::findBlocks(offset) called on "
+            "overlapping-region object\n",
             FILE__,__LINE__);
-        assert(0);
-        return 0;
+    assert(0);
+    return 0;
 }
 
 // Return the vector of functions associated with a pretty (demangled) name
