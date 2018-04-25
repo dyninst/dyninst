@@ -169,6 +169,7 @@ namespace Dyninst
 	m_RawInsn.small_insn = o.m_RawInsn.small_insn;
       }
 
+      m_Successors = o.m_Successors;
 
 #if defined(DEBUG_INSN_ALLOCATIONS)
       numInsnsAllocated++;
@@ -205,6 +206,7 @@ namespace Dyninst
       m_Valid = rhs.m_Valid;
         formatter = rhs.formatter;
       arch_decoded_from = rhs.arch_decoded_from;
+      m_Successors = rhs.m_Successors;
       return *this;
     }    
     

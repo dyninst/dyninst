@@ -8513,7 +8513,7 @@ ia32_instruction &ia32_decode(unsigned int capa, const unsigned char *addr, ia32
         assert(instruct.mac != NULL);
 
     /* First decode any prefixes for this instruction */
-    if (!ia32_decode_prefixes(addr, instruct, false))
+    if (!ia32_decode_prefixes(addr, instruct, mode_64))
     {
 #ifdef VEX_DEBUG
         fprintf(stderr, "PREFIX DECODE FAILURE\n");

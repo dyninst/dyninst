@@ -87,10 +87,11 @@ CFWidget::CFWidget(InstructionAPI::Instruction insn, Address addr)  :
    
    // HACK to be sure things are parsed...
    insn.format();
-
    for (Instruction::cftConstIter iter = insn.cft_begin(); iter != insn.cft_end(); ++iter) {
       if (iter->isCall) isCall_ = true;
-      if (iter->isIndirect) isIndirect_ = true;
+      if (iter->isIndirect) {
+          isIndirect_ = true;
+      }
       if (iter->isConditional) isConditional_ = true;
    }
 
@@ -480,14 +481,20 @@ CFPatch::CFPatch(Type a,
                  const func_instance *d,
                  Address e) :
   type(a), orig_insn(b), target(c), func(d), origAddr_(e) {
-  if (b.isValid())
-    ugly_insn = new instruction(b.ptr(), (b.getArch() == Dyninst::Arch_x86_64));
+  if (b.isValid()) {
+    insn_ptr = new unsigned char[b.size()];
+    memcpy(insn_ptr, b.ptr(), b.size());
+    ugly_insn = new instruction(insn_ptr, (b.getArch() == Dyninst::Arch_x86_64));
+  }
   else
     ugly_insn = NULL;
 }
 
 CFPatch::~CFPatch() { 
-  if (ugly_insn) delete ugly_insn;
+  if (ugly_insn) {
+    delete ugly_insn;
+    delete[] insn_ptr;
+  }
 }
 
 unsigned CFPatch::estimate(codeGen &) {

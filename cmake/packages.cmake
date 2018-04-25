@@ -30,7 +30,7 @@ if (UNIX)
             GIT_REPOSITORY https://github.com/01org/tbb
             BUILD_COMMAND make
             )
-    set(TBB_INCLUDE_DIR ${CMAKE_BINARY_DIR}/tbb/include)
+    set(TBB_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/tbb/include)
     set(TBB_LIBRARIES ${CMAKE_BINARY_DIR}/tbb/libtbb.so ${CMAKE_BINARY_DIR}/tbb/libtbbmalloc_proxy.so)
     set(TBB_FOUND 1)
   endif()
@@ -170,7 +170,7 @@ if(NOT Boost_FOUND)
     BUILD_COMMAND ${BOOST_BUILD} ${BOOST_ARGS} stage
     INSTALL_COMMAND ""
     )
-  set(Boost_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/${BOOST_BASE})
+  set(Boost_INCLUDE_DIR ${CMAKE_BINARY_DIR}/${BOOST_BASE})
   set(Boost_LIBRARY_DIRS ${CMAKE_BINARY_DIR}/${BOOST_BASE}/stage/lib)
   if(MSVC)
     # We need to specify different library names for debug vs release
@@ -178,17 +178,17 @@ if(NOT Boost_FOUND)
     list(APPEND Boost_LIBRARIES optimized libboost_system-mt debug libboost_system-mt-gd)
     list(APPEND Boost_LIBRARIES optimized libboost_date_time-mt debug libboost_date_time-mt-gd)
   else()
-    set(Boost_LIBRARIES boost_thread boost_system boost_date_time boost_filesystem)
+    set(Boost_LIBRARIES boost_thread-mt boost_system-mt boost_date_time-mt boost_filesystem-mt)
   endif()
 endif()
 
 link_directories ( ${Boost_LIBRARY_DIRS} )
 
 include_directories (
-  ${Boost_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIR}
   )
 add_definitions(-DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION)
-message(STATUS "Boost includes: ${Boost_INCLUDE_DIRS}")
+message(STATUS "Boost includes: ${Boost_INCLUDE_DIR}")
 message(STATUS "Boost library dirs: ${Boost_LIBRARY_DIRS}")
 message(STATUS "Boost thread library: ${Boost_THREAD_LIBRARY}")
 message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
@@ -203,7 +203,3 @@ else()
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX11_COMPILER_FLAGS}")
-find_package(Cilk)
-if(CILK_FOUND)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CILK_DEFINITIONS}")
-endif()

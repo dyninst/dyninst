@@ -175,7 +175,7 @@ if(NOT TBB_FOUND)
   ##################################
   
   find_path(TBB_INCLUDE_DIRS tbb/tbb.h
-      HINTS ${TBB_INCLUDE_DIR} ${TBB_SEARCH_DIR}
+      HINTS ${TBB_INCLUDE_DIRS} ${TBB_SEARCH_DIR}
       PATHS ${TBB_DEFAULT_SEARCH_DIR}
       PATH_SUFFIXES include)
 

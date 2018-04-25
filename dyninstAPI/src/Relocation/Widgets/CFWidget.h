@@ -220,6 +220,7 @@ struct CFPatch : public Patch {
   const func_instance *func;
   Address origAddr_;  
   arch_insn *ugly_insn;
+  unsigned char* insn_ptr;
 
 
 #if defined(arch_power)
