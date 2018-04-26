@@ -434,40 +434,53 @@ bool baseTramp::generateRestores(codeGen &gen,
 
 //TODO: 32-/64-bit regs?
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
-        codeGen &gen, bool /*noCost*/, registerSpace * /* rs */) {
+        codeGen &gen, bool /*noCost*/, registerSpace * /* rs */)
+{
     switch(op) {
         case plusOp:
-        case minusOp: {
-            if(src2imm >= -(1 << 11) && src2imm < (long int)((1 << 11) - 1))
-                insnCodeGen::generateAddSubImmediate(gen, 
-                        op == plusOp ? insnCodeGen::Add : insnCodeGen::Sub, 0, 
-                        src2imm, src1, dest, false);
-            else if(src2imm >= MIN_IMM16 && src2imm < MAX_IMM16) {
-                Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-                insnCodeGen::generateAddSubShifted(gen, 
-                        op == plusOp ? insnCodeGen::Add : insnCodeGen::Sub, 
-                        0, 0, rm, src1, dest, true);
+        case minusOp:
+            {
+                if(src2imm >= -(1 << 11) && src2imm < (long int)((1 << 11) - 1))
+                    insnCodeGen::generateAddSubImmediate(gen,
+                            op == plusOp ? insnCodeGen::Add : insnCodeGen::Sub, 0,
+                            src2imm, src1, dest, false);
+                else if(src2imm >= MIN_IMM16 && src2imm < MAX_IMM16) {
+                    Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
+                    insnCodeGen::generateAddSubShifted(gen,
+                            op == plusOp ? insnCodeGen::Add : insnCodeGen::Sub,
+                            0, 0, rm, src1, dest, true);
+                }
             }
-        }
             break;
-        case timesOp: {
-            Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-            insnCodeGen::generateMul(gen, rm, src1, dest, true);
-        }
+        case timesOp:
+            {
+                Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
+                insnCodeGen::generateMul(gen, rm, src1, dest, true);
+            }
             break;
         case divOp:
             break;
-        case orOp: {
-            Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-            insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Or, 0, rm, 0, src1, dest, true);
-        }
+        case orOp:
+            {
+                Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
+                insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Or, 0, rm, 0, src1, dest, true);
+            }
             break;
-        case andOp:  {
-            Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-            insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::And, 0, rm, 0, src1, dest, true);
-        }
+        case andOp:
+            {
+                Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
+                insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::And, 0, rm, 0, src1, dest, true);
+            }
+            break;
+        case eqOp:
+            {
+                Register scratch = gen.rs()->getScratchRegister(gen);
+                emitVload(loadConstOp, src2imm, NULL, scratch, gen, true);
+                emitV(op, src1, scratch, dest, gen, true);
+            }
             break;
         default:
+            assert(0); // not implemented or not valid
             break;
     }
 }
@@ -585,13 +598,6 @@ Register EmitterAARCH64::emitCall(opCode op,
     INSN_SET(branchInsn, 21, 21, 1);
 
     insnCodeGen::generate(gen, branchInsn);
-
-
-    INSN_SET(branchInsn, 16, 31, BRegOp);
-    INSN_SET(branchInsn, 21, 21, 1);
-
-    insnCodeGen::generate(gen, branchInsn);
-
 
     //Register ret = gen.rs()->allocateRegister(gen, noCost);
     //Register ret = REGNUM_EAX;

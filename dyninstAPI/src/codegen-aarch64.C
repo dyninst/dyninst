@@ -215,12 +215,12 @@ void insnCodeGen::generateConditionalBranch(codeGen& gen, Address to, unsigned o
     auto getConditionCode = [&opcode]() -> unsigned
     {
         switch(opcode){
-            case lessOp: return 0xB; 
-            case leOp: return 0xD; 
+            case lessOp:    return 0xB;
+            case leOp:      return 0xD;
             case greaterOp: return 0xC;
-            case geOp: return 0xA;
-            case eqOp: return 0x0;
-            case neOp: return 0x1;
+            case geOp:      return 0xA;
+            case eqOp:      return 0x0;
+            case neOp:      return 0x1;
             default:
                 assert(0); // wrong condition passed
                 break;

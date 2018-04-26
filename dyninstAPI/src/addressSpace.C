@@ -1778,9 +1778,20 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
         (cm->ptr(),cm->size(),getArch());
       Instruction::Ptr insn = deco.decode();
       while(insn) {
+#if defined(aarch64)
+          std::stringstream rawInsn;
+          unsigned idx = insn->size();
+          while(idx--) rawInsn << hex << setfill('0') << setw(2) << (unsigned int) insn->rawByte(idx);
+
+          cerr << "\t" << hex << base << ":   " << rawInsn.str() << "   "
+              << insn->format(base) << dec << endl;
+          base += insn->size();
+          insn = deco.decode();
+#else
          cerr << "\t" << hex << base << ": " << insn->format(base) << dec << endl;
         base += insn->size();
         insn = deco.decode();
+#endif
       }
       cerr << dec;
       cerr << endl;
