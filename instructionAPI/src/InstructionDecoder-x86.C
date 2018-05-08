@@ -252,7 +252,13 @@ namespace Dyninst
                 }
 
              } else{
-                e = makeRegisterExpression(makeRegisterID(locs->modrm_rm, op_d, locs->rex_r));
+		unsigned int regType;
+                if(ia32_is_mode_64())
+			regType = (addrSizePrefixPresent) ? op_d : op_q;
+                else
+			regType = (addrSizePrefixPresent) ? op_w : op_d;
+                e = makeRegisterExpression(makeRegisterID(locs->modrm_rm,
+                        regType, locs->rex_b));
              }
 
              if(opType == op_lea)
