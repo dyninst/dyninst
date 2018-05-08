@@ -194,7 +194,8 @@ namespace Dyninst {
             /** CFG structure manipulations **/
             void end_block(Block *b, InstructionAdapter_t *ah);
 
-            Block *block_at(Function *owner,
+            Block *block_at(ParseFrame &frame,
+                            Function *owner,
                             Address addr,
                             Block *&split);
 

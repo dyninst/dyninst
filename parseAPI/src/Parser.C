@@ -865,9 +865,14 @@ void Parser::finalize_block(Block* b, Function* owner) {
 
     }
     if (exist) {
+        record_block(exist);
         if (exist->start() != addr) {
             Block *ret = split_block(owner, b, addr, prev_insn);
             record_block(ret);
+            
+            ParseFrame * tf = _parse_data->findFrame(cr,owner->addr());
+            tf->leadersToBlock[ret->start()] = ret;
+
         }
     }
     for (auto e = b->targets().begin();
@@ -1039,7 +1044,7 @@ Parser::init_frame(ParseFrame & frame)
     if ( ! frame.func->_entry )
     {
         // Find or create a block
-        b = block_at(frame.func, frame.func->addr(),split);
+        b = block_at(frame, frame.func, frame.func->addr(),split);
         if(b) {
             frame.leadersToBlock[frame.func->addr()] = b;
             frame.func->_entry = b;
@@ -1155,39 +1160,46 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         Block * cur = NULL;
         ParseWorkElem * work = frame.popWork();
         if (work->order() == ParseWorkElem::call) {
+            parsing_printf("Handling call work element\n");
             Function * ct = NULL;
+            
+            // If we're not doing recursive traversal, skip *all* of the call edge processing.
+            // We don't want to create a stub. We'll handle the assumption of a fallthrough
+            // target for the fallthrough work element, not the call work element. Catch blocks
+            // will get excluded but that's okay; our heuristic is not reliable enough that I'm willing to deploy
+            // it when we'd only be detecting a non-returning callee by name anyway.
+            // --BW 12/2012
+            if (!recursive) {
+                parsing_printf("[%s] non-recursive parse skipping call %lx->%lx\n",
+                               FILE__, work->edge()->src()->lastInsnAddr(), work->target());
+                continue;
+            }
 
-            if (!work->callproc()) {
-                // If we're not doing recursive traversal, skip *all* of the call edge processing.
-                // We don't want to create a stub. We'll handle the assumption of a fallthrough
-                // target for the fallthrough work element, not the call work element. Catch blocks
-                // will get excluded but that's okay; our heuristic is not reliable enough that I'm willing to deploy
-                // it when we'd only be detecting a non-returning callee by name anyway.
-                // --BW 12/2012
-                if (!recursive) {
-                    parsing_printf("[%s] non-recursive parse skipping call %lx->%lx\n",
-                                   FILE__, work->edge()->src()->lastInsnAddr(), work->target());
-                    continue;
-                }
+            ct = _parse_data->findFunc(frame.codereg, work->target());
+            if (ct == NULL) {
+                FuncSource how = RT;
+                if(frame.func->_src == GAP || frame.func->_src == GAPRT)
+                    how = GAPRT;
+                
+                ct = _parse_data->get_func(frame.codereg,work->target(),how);
+                _pcb.discover_function(ct);
+            }
+            bool frame_parsing_not_started = 
+                (frame_status(ct->region(),ct->addr())==ParseFrame::UNPARSED ||
+                 frame_status(ct->region(),ct->addr())==ParseFrame::BAD_LOOKUP);
 
-                parsing_printf("[%s] binding call %lx->%lx\n",
-                               FILE__,work->edge()->src()->lastInsnAddr(),work->target());
-
+            if (!frame_parsing_not_started && !work->callproc()) {
+                parsing_printf("[%s] binding call (call target should have been parsed) %lx->%lx\n",
+                        FILE__,work->edge()->src()->lastInsnAddr(),work->target());
                 pair<Function*,Edge*> ctp =
                         bind_call(frame,
                                   work->target(),
                                   work->edge()->src(),
                                   work->edge());
-                ct = ctp.first;
-
                 work->mark_call();
-            } else {
-                ct = _parse_data->findFunc(frame.codereg,work->target());
             }
 
-            if (recursive && ct &&
-                (frame_status(ct->region(),ct->addr())==ParseFrame::UNPARSED ||
-                 frame_status(ct->region(),ct->addr())==ParseFrame::BAD_LOOKUP)) {
+            if (recursive && ct && frame_parsing_not_started) {
                 // suspend this frame and parse the next
                 parsing_printf("    [suspend frame %lx]\n", func->addr());
                 frame.call_target = ct;
@@ -1439,11 +1451,15 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                          cur->region(), func->isrc(), cur);
 
         InstructionAdapter_t * ah = ahPtr;
-
-        using boost::tuples::tie;
-        tie(nextBlockAddr,nextBlock) = func->get_next_block(
-                frame.curAddr, frame.codereg);
-
+        
+        nextBlockAddr = std::numeric_limits<Address>::max();
+        for (auto nextBlockIter = frame.leadersToBlock.begin(); 
+                nextBlockIter != frame.leadersToBlock.end();
+                ++nextBlockIter)
+            if (nextBlockIter->first > frame.curAddr && nextBlockIter->first < nextBlockAddr) {
+                nextBlockAddr = nextBlockIter->first;
+                nextBlock = nextBlockIter->second;
+            }
         bool isNopBlock = ah->isNop();
 
         while(true) {
@@ -1500,9 +1516,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     // We need to split the large block, and create new edge to the later block
                     Block* new_block = split_block(frame.func, nextBlock, curAddr, prev_insn);
                     ah->retreat();
-                    end_block(cur, ah);
-                    add_edge(frame, frame.func, cur, curAddr, FALLTHROUGH, NULL);
                     leadersToBlock[curAddr] = new_block;
+                    add_edge(frame, frame.func, cur, curAddr, FALLTHROUGH, NULL);
 
                     // We break from this loop because no need more stright-line parsing
                     break;
@@ -1724,7 +1739,6 @@ Parser::end_block(Block * b, InstructionAdapter_t * ah)
 {
     b->_lastInsn = ah->getAddr();
     b->updateEnd(ah->getNextAddr());
-
 //    record_block(b);
 }
 
@@ -1738,7 +1752,7 @@ Parser::record_block(Block *b)
 
 
 Block *
-Parser::block_at(
+Parser::block_at(ParseFrame &frame,
         Function * owner,
         Address addr,
         Block * & split)
@@ -1771,16 +1785,24 @@ Parser::block_at(
     // useful for suppressing unimportant races on the iterator
     boost::lock_guard<Function> g(*owner);
 #endif
-    for(auto i = owner->blocks_begin();
-        i != owner->blocks_end();
-        ++i)
+    for (auto iter = frame.leadersToBlock.begin(); iter != frame.leadersToBlock.end(); ++iter)
+//    for(auto i = owner->blocks_begin();
+//        i != owner->blocks_end();
+//        ++i)
     {
-        if((*i)->start() == addr) return *i;
-        if((*i)->start() < addr && addr < (*i)->end()) {
-            ret = split_block(owner, *i, addr, prev_insn);
+        Block* b = iter->second;
+        if(b->start() == addr) return b;
+        Address prev_insn;
+        if (b->consistent(addr, prev_insn)) {
+            ret = split_block(owner, b, addr, prev_insn);
+            split = ret;
+            return ret;
         }
     }
         ret = _cfgfact._mkblock(owner, cr, addr);
+        record_block(ret);
+        split = ret;
+        return ret;
     }
 }
 
@@ -1806,7 +1828,7 @@ Parser::add_edge(
         return retpair;
     }
 
-    ret = block_at(owner,dst,split);
+    ret = block_at(frame, owner,dst,split);
     retpair.first = ret;
 
     if(split == src) {
@@ -1814,11 +1836,11 @@ Parser::add_edge(
         src = ret;
     }
 
-    if(split && HASHDEF(frame.visited,split->start())) {
-        // prevent "delayed parsing" of extant block if 
-        // this frame has already visited it
-        frame.visited[ret->start()] = true;
-        frame.leadersToBlock[ret->start()] = ret;
+    if(split && et != CALL) {
+        // If we created a new block, and this is not a function call,
+        // then the new block is part of the current function.
+        // We need to mark it
+        frame.leadersToBlock[split->start()] = split;
     }
 
     if(NULL == exist) {
@@ -1871,6 +1893,8 @@ Parser::split_block(
         ret->updateEnd(b->end());
         ret->_lastInsn = b->_lastInsn;
         ret->_parsed = true;
+        b->updateEnd(addr);
+        b->_lastInsn = previnsn;
         link(b,ret,FALLTHROUGH,false);
 
         record_block(ret);
@@ -1909,29 +1933,18 @@ Parser::bind_call(ParseFrame & frame, Address target, Block * cur, Edge * exist)
 {
     Function * tfunc = NULL;
     Block * tblock = NULL;
-    FuncSource how = RT;
-    if(frame.func->_src == GAP || frame.func->_src == GAPRT)
-        how = GAPRT;
 
     // look it up
-    tfunc = _parse_data->get_func(frame.codereg,target,how);
+    tfunc = _parse_data->findFunc(frame.codereg,target);
     if(!tfunc) {
         parsing_printf("[%s:%d] can't bind call to %lx\n",
                        FILE__,__LINE__,target);
         return pair<Function*,Edge*>((Function *) NULL,exist);
     }
-    _pcb.discover_function(tfunc);
-
-    // add an edge
-    pair<Block*,Edge*> ret = add_edge(frame,tfunc,cur,target,CALL,exist);
-    tblock = ret.first;
-    if(!tblock) {
-        parsing_printf("[%s:%d] can't bind call to %lx\n",
-                       FILE__,__LINE__,target);
-        return pair<Function*,Edge*>((Function *) NULL,exist);
-    }
-
-    return pair<Function*,Edge*>(tfunc,ret.second);
+    assert(tfunc->entry());
+    
+    relink(exist,cur,tfunc->entry());
+    return pair<Function*,Edge*>(tfunc,exist);
 }
 
 Function *

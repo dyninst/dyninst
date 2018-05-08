@@ -111,7 +111,8 @@ class ParseWorkElem
           _can_resolve(resolvable),
           _tailcall(tailcall),
           _order(o),
-          _call_processed(false) { }
+          _call_processed(false),
+          _cur(NULL) { }
 
     ParseWorkElem(
             ParseWorkBundle *b, 
@@ -125,7 +126,8 @@ class ParseWorkElem
           _can_resolve(resolvable),
           _tailcall(tailcall),
           _order(__parse_work_end__),
-          _call_processed(false)
+          _call_processed(false),
+          _cur(NULL)
 
     { 
       if(e) {
@@ -133,7 +135,14 @@ class ParseWorkElem
             case CALL:
                 _order = call; break;
             case COND_TAKEN:
-                _order = cond_taken; break;
+                {
+                    if (tailcall) {
+                        _order = call;
+                    } else {
+                        _order = cond_taken; 
+                    }
+                    break;
+                }
             case COND_NOT_TAKEN:
                 _order = cond_not_taken; break;
             case INDIRECT:
@@ -169,7 +178,8 @@ class ParseWorkElem
           _can_resolve(false),
           _tailcall(false),
           _order(__parse_work_end__),
-          _call_processed(false)
+          _call_processed(false),
+          _cur(NULL)
     { } 
 
     // This work element is a continuation of
