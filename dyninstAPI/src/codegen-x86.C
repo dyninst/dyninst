@@ -1192,7 +1192,7 @@ bool insnCodeGen::modifyData(Address targetAddr, instruction &insn, codeGen &gen
      * This information is generated during ia32_decode. To make this faster
      * We are only going to do the prefix and opcode decodings
      */
-    if(!ia32_decode_prefixes(origInsn, instruct, false))
+    if(!ia32_decode_prefixes(origInsn, instruct, gen.width() == 8))
         assert(!"Couldn't decode prefix of already known instruction!\n");
 
     /* get the prefix count */
