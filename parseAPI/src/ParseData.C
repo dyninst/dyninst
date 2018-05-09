@@ -302,6 +302,22 @@ OverlappingParseData::setFrameStatus(CodeRegion *cr, Address addr,
     region_data * rd = rmap[cr];
     rd->setFrameStatus(addr, status);
 }
+
+ParseFrame::Status
+OverlappingParseData::frameStatus(CodeRegion *cr, Address addr)
+{
+    boost::lock_guard<ParseData> g(*this);
+    if(!HASHDEF(rmap,cr)) return ParseFrame::BAD_LOOKUP;
+    region_data * rd = rmap[cr];
+    tbb::concurrent_hash_map<Address, ParseFrame::Status>::const_accessor a;
+    if (rd->frame_status.find(a, addr)) {
+        return a->second;
+    } else {
+        return ParseFrame::BAD_LOOKUP;
+    }
+}
+
+
 Function * 
 OverlappingParseData::get_func(CodeRegion * cr, Address addr, FuncSource src)
 {

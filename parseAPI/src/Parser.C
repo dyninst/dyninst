@@ -872,6 +872,7 @@ void Parser::finalize_block(Block* b, Function* owner) {
             
             ParseFrame * tf = _parse_data->findFrame(cr,owner->addr());
             tf->leadersToBlock[ret->start()] = ret;
+            tf->visited[ret->start()] = true;
 
         }
     }
@@ -1187,6 +1188,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             bool frame_parsing_not_started = 
                 (frame_status(ct->region(),ct->addr())==ParseFrame::UNPARSED ||
                  frame_status(ct->region(),ct->addr())==ParseFrame::BAD_LOOKUP);
+            parsing_printf("\tframe %lx, UNPARSED: %d, BAD_LOOKUP %d\n", ct->addr(), frame_status(ct->region(),ct->addr())==ParseFrame::UNPARSED,frame_status(ct->region(),ct->addr())==ParseFrame::BAD_LOOKUP);
 
             if (!frame_parsing_not_started && !work->callproc()) {
                 parsing_printf("[%s] binding call (call target should have been parsed) %lx->%lx\n",
@@ -1515,9 +1517,14 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     // The two overlapping blocks aligned.
                     // We need to split the large block, and create new edge to the later block
                     Block* new_block = split_block(frame.func, nextBlock, curAddr, prev_insn);
-                    ah->retreat();
                     leadersToBlock[curAddr] = new_block;
+                    visited[curAddr] = true;
+                    ah->retreat();
+                    end_block(cur, ah);
+
                     add_edge(frame, frame.func, cur, curAddr, FALLTHROUGH, NULL);
+
+
 
                     // We break from this loop because no need more stright-line parsing
                     break;
@@ -1796,6 +1803,7 @@ Parser::block_at(ParseFrame &frame,
         if (b->consistent(addr, prev_insn)) {
             ret = split_block(owner, b, addr, prev_insn);
             split = ret;
+            frame.visited[ret->start()] = true;
             return ret;
         }
     }

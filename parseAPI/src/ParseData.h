@@ -230,6 +230,7 @@ public:
 	{
 	  tbb::concurrent_hash_map<Address, ParseFrame::Status>::accessor a;
 	  frame_status.insert(a, make_pair(addr, status));
+      a->second = status;
 	}
         race_detector_fake_lock_release(race_detector_fake_lock(frame_status));
     }
@@ -362,11 +363,7 @@ class ParseData : public boost::lockable_adapter<boost::recursive_mutex>  {
     virtual int findFuncs(CodeRegion *, Address, Address, set<Function*> &) =0;
     virtual int findBlocks(CodeRegion *, Address, set<Block*> &) =0;
     virtual ParseFrame * findFrame(CodeRegion *, Address) = 0;
-    ParseFrame::Status frameStatus(CodeRegion *, Address addr) {
-        ParseFrame* f = nullptr;
-        if((f = findFrame(nullptr, addr))) return f->status();
-        return ParseFrame::BAD_LOOKUP;
-    }
+    virtual ParseFrame::Status frameStatus(CodeRegion *, Address addr) = 0;
     virtual void setFrameStatus(CodeRegion*,Address,ParseFrame::Status) = 0;
 
     // creation (if non-existing)
@@ -456,6 +453,7 @@ class OverlappingParseData : public ParseData {
     int findFuncs(CodeRegion *, Address, Address, set<Function*> &);
     int findBlocks(CodeRegion *, Address, set<Block*> &);
     ParseFrame * findFrame(CodeRegion *, Address);
+    ParseFrame::Status frameStatus(CodeRegion *, Address);
     void setFrameStatus(CodeRegion*,Address,ParseFrame::Status);
 
     Function * get_func(CodeRegion * cr, Address addr, FuncSource src);
