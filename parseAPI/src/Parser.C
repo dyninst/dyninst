@@ -905,7 +905,7 @@ Parser::finalize(Function *f)
         parsing_printf("[%s:%d] Parser::finalize(f[%lx]) "
                                "forced parsing\n",
                        FILE__,__LINE__,f->addr());
-        parse_at(f->addr(), true, f->src());
+        parse_at(f->region(), f->addr(), true, f->src());
     }
 
     bool cache_value = true;
@@ -1802,14 +1802,13 @@ Parser::block_at(ParseFrame &frame,
         Address prev_insn;
         if (b->consistent(addr, prev_insn)) {
             ret = split_block(owner, b, addr, prev_insn);
-            split = ret;
+            split = b;
             frame.visited[ret->start()] = true;
             return ret;
         }
     }
         ret = _cfgfact._mkblock(owner, cr, addr);
         record_block(ret);
-        split = ret;
         return ret;
     }
 }
@@ -1827,6 +1826,7 @@ Parser::add_edge(
     if(dst == 0) { dst = -1; }
     Block * split = NULL;
     Block * ret = NULL;
+    Block * original_block = NULL;
     Edge * newedge = NULL;
     pair<Block *, Edge *> retpair((Block *) NULL, (Edge *) NULL);
 
@@ -1836,7 +1836,7 @@ Parser::add_edge(
         return retpair;
     }
 
-    ret = block_at(frame, owner,dst,split);
+    ret = block_at(frame, owner,dst, split);
     retpair.first = ret;
 
     if(split == src) {
@@ -1844,11 +1844,11 @@ Parser::add_edge(
         src = ret;
     }
 
-    if(split && et != CALL) {
+    if(et != CALL && frame.leadersToBlock.find(ret->start()) == frame.leadersToBlock.end()) {
         // If we created a new block, and this is not a function call,
         // then the new block is part of the current function.
         // We need to mark it
-        frame.leadersToBlock[split->start()] = split;
+        frame.leadersToBlock[ret->start()] = ret;
     }
 
     if(NULL == exist) {
