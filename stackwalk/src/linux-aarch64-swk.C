@@ -45,7 +45,6 @@
 #include <errno.h>
 #include <string.h>
 
-#define TEST_DEBUGINFO_ALONE 1
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
@@ -55,7 +54,17 @@ bool Walker::createDefaultSteppers()
   FrameStepper *stepper;
   bool result;
 
-#if !TEST_DEBUGINFO_ALONE
+    stepper = new DebugStepper(this);
+    result = addStepper(stepper);
+    if (!result){
+        sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
+                  stepper);
+        return false;
+    }else{
+        sw_printf("[%s:%u] - Stepper %p is DebugStepper\n",
+                  FILE__, __LINE__, stepper);
+    }
+
   stepper = new FrameFuncStepper(this);
   result = addStepper(stepper);
   if (!result) {
@@ -77,18 +86,6 @@ bool Walker::createDefaultSteppers()
             FILE__, __LINE__, stepper);
   }
 
-#else
-  stepper = new DebugStepper(this);
-  result = addStepper(stepper);
-  if (!result){
-    sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
-	      stepper);
-    return false;
-  }else{
-    sw_printf("[%s:%u] - Stepper %p is DebugStepper\n",
-            FILE__, __LINE__, stepper);
-  }
-#endif
 
   return true;
 }

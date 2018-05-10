@@ -36,7 +36,7 @@
 #include "Type.h"
 #include "Variable.h"
 #include "Object.h"
-
+#include <iostream>
 #include "Function.h"
 
 #include "debug.h"
@@ -55,13 +55,12 @@ using namespace std;
 #endif
 
 #if defined(cap_dwarf)
+
 #include "dwarf.h"
 
 #endif
 
 //#include "symutil.h"
-#include "common/src/pathName.h"
-#include "Collections.h"
 #if defined(TIMED_PARSE)
 #include <sys/time.h>
 #endif
@@ -126,78 +125,73 @@ const char *pdelf_get_shnames(Elf_X *elf)
 //
 // Compare function for use with the Vector<T> sort method.
 //
-struct  SectionHeaderSortFunction: public binary_function<Elf_X_Shdr *, Elf_X_Shdr *, bool>
-{
+struct SectionHeaderSortFunction : public binary_function<Elf_X_Shdr *, Elf_X_Shdr *, bool> {
     bool operator()(Elf_X_Shdr *hdr1, Elf_X_Shdr *hdr2) {
         return (hdr1->sh_addr() < hdr2->sh_addr());
     }
 };
 
-Region::perm_t getSegmentPerms(unsigned long flags){
-    if(flags == 7)
+Region::perm_t getSegmentPerms(unsigned long flags) {
+    if (flags == 7)
         return Region::RP_RWX;
-    else if(flags == 6)
+    else if (flags == 6)
         return Region::RP_RW;
-    else if(flags == 5)
+    else if (flags == 5)
         return Region::RP_RX;
     else
         return Region::RP_R;
 }
 
-Region::RegionType getSegmentType(unsigned long type, unsigned long flags)
-{
-    if(type == PT_DYNAMIC)
+Region::RegionType getSegmentType(unsigned long type, unsigned long flags) {
+    if (type == PT_DYNAMIC)
         return Region::RT_DYNAMIC;
-    if(flags == 7)
+    if (flags == 7)
         return Region::RT_TEXTDATA;
-    if(flags == 5)
+    if (flags == 5)
         return Region::RT_TEXT;
-    if(flags == 6)
+    if (flags == 6)
         return Region::RT_DATA;
     return Region::RT_OTHER;
 }
 
 /* binary search to find the section starting at a particular address */
-Elf_X_Shdr *Object::getRegionHdrByAddr(Offset addr)
-{
+Elf_X_Shdr *Object::getRegionHdrByAddr(Offset addr) {
     unsigned end = allRegionHdrs.size() - 1, start = 0;
     unsigned mid = 0;
-    while(start < end) {
-        mid = start + (end-start)/2;
-        if(allRegionHdrs[mid]->sh_addr() == addr)
+    while (start < end) {
+        mid = start + (end - start) / 2;
+        if (allRegionHdrs[mid]->sh_addr() == addr)
             return allRegionHdrs[mid];
-        else if(allRegionHdrs[mid]->sh_addr() < addr)
+        else if (allRegionHdrs[mid]->sh_addr() < addr)
             start = mid + 1;
         else
             end = mid;
     }
-    if(allRegionHdrs[start]->sh_addr() == addr)
+    if (allRegionHdrs[start]->sh_addr() == addr)
         return allRegionHdrs[start];
     return NULL;
 }
 
 /* binary search to find the index into the RegionHdrs vector
    of the section starting at a partidular address*/
-int Object::getRegionHdrIndexByAddr(Offset addr)
-{
+int Object::getRegionHdrIndexByAddr(Offset addr) {
     int end = allRegionHdrs.size() - 1, start = 0;
     int mid = 0;
-    while(start < end) {
-        mid = start + (end-start)/2;
-        if(allRegionHdrs[mid]->sh_addr() == addr)
+    while (start < end) {
+        mid = start + (end - start) / 2;
+        if (allRegionHdrs[mid]->sh_addr() == addr)
             return mid;
-        else if(allRegionHdrs[mid]->sh_addr() < addr)
+        else if (allRegionHdrs[mid]->sh_addr() < addr)
             start = mid + 1;
         else
             end = mid;
     }
-    if(allRegionHdrs[start]->sh_addr() == addr)
+    if (allRegionHdrs[start]->sh_addr() == addr)
         return start;
     return -1;
 }
 
-Elf_X_Shdr *Object::getRegionHdrByIndex(unsigned index)
-{
+Elf_X_Shdr *Object::getRegionHdrByIndex(unsigned index) {
     if (index >= allRegionHdrs.size())
         return NULL;
     return allRegionHdrs[index];
@@ -205,11 +199,11 @@ Elf_X_Shdr *Object::getRegionHdrByIndex(unsigned index)
 
 /* Check if there is a section which belongs to the segment and update permissions of that section.
  * Return value indicates whether the segment has to be added to the list of regions*/
-bool Object::isRegionPresent(Offset segmentStart, Offset segmentSize, unsigned segPerms){
+bool Object::isRegionPresent(Offset segmentStart, Offset segmentSize, unsigned segPerms) {
     bool present = false;
-    for(unsigned i = 0; i < regions_.size() ;i++){
-        if((regions_[i]->getDiskOffset() >= segmentStart) &&
-           ((regions_[i]->getDiskOffset()+regions_[i]->getDiskSize()) <= (segmentStart+segmentSize))){
+    for (unsigned i = 0; i < regions_.size(); i++) {
+        if ((regions_[i]->getDiskOffset() >= segmentStart) &&
+            ((regions_[i]->getDiskOffset() + regions_[i]->getDiskSize()) <= (segmentStart + segmentSize))) {
             present = true;
             regions_[i]->setRegionPermissions(getSegmentPerms(segPerms));
         }
@@ -218,19 +212,19 @@ bool Object::isRegionPresent(Offset segmentStart, Offset segmentSize, unsigned s
     return present;
 }
 
-Region::perm_t getRegionPerms(unsigned long flags){
-    if((flags & SHF_WRITE) && !(flags & SHF_EXECINSTR))
+Region::perm_t getRegionPerms(unsigned long flags) {
+    if ((flags & SHF_WRITE) && !(flags & SHF_EXECINSTR))
         return Region::RP_RW;
-    else if(!(flags & SHF_WRITE) && (flags & SHF_EXECINSTR))
+    else if (!(flags & SHF_WRITE) && (flags & SHF_EXECINSTR))
         return Region::RP_RX;
-    else if((flags & SHF_WRITE) && (flags & SHF_EXECINSTR))
+    else if ((flags & SHF_WRITE) && (flags & SHF_EXECINSTR))
         return Region::RP_RWX;
     else
         return Region::RP_R;
 }
 
-Region::RegionType getRegionType(unsigned long type, unsigned long flags, const char *reg_name){
-    switch(type){
+Region::RegionType getRegionType(unsigned long type, unsigned long flags, const char *reg_name) {
+    switch (type) {
         case SHT_SYMTAB:
         case SHT_DYNSYM:
             return Region::RT_SYMTAB;
@@ -248,9 +242,9 @@ Region::RegionType getRegionType(unsigned long type, unsigned long flags, const 
             else
                 return Region::RT_BSS;
         case SHT_PROGBITS:
-            if((flags & SHF_EXECINSTR) && (flags & SHF_WRITE))
+            if ((flags & SHF_EXECINSTR) && (flags & SHF_WRITE))
                 return Region::RT_TEXTDATA;
-            else if(flags & SHF_EXECINSTR)
+            else if (flags & SHF_EXECINSTR)
                 return Region::RT_TEXT;
             else
                 return Region::RT_DATA;
@@ -271,7 +265,7 @@ Region::RegionType getRegionType(unsigned long type, unsigned long flags, const 
 
 static Region::RegionType getRelTypeByElfMachine(Elf_X *localHdr) {
     Region::RegionType ret;
-    switch(localHdr->e_machine()) {
+    switch (localHdr->e_machine()) {
         case EM_SPARC:
         case EM_SPARC32PLUS:
         case EM_SPARCV9:
@@ -288,37 +282,37 @@ static Region::RegionType getRelTypeByElfMachine(Elf_X *localHdr) {
     return ret;
 }
 
-const char* EDITED_TEXT_NAME = ".edited.text";
+const char *EDITED_TEXT_NAME = ".edited.text";
 // const char* INIT_NAME        = ".init";
-const char *INTERP_NAME      = ".interp";
-const char* FINI_NAME        = ".fini";
-const char* TEXT_NAME        = ".text";
-const char* BSS_NAME         = ".bss";
-const char* SYMTAB_NAME      = ".symtab";
-const char* STRTAB_NAME      = ".strtab";
-const char* STAB_NAME        = ".stab";
-const char* STABSTR_NAME     = ".stabstr";
-const char* STAB_INDX_NAME   = ".stab.index";
-const char* STABSTR_INDX_NAME= ".stab.indexstr";
-const char* COMMENT_NAME= ".comment";
-const char* OPD_NAME         = ".opd"; // PPC64 Official Procedure Descriptors
+const char *INTERP_NAME = ".interp";
+const char *FINI_NAME = ".fini";
+const char *TEXT_NAME = ".text";
+const char *BSS_NAME = ".bss";
+const char *SYMTAB_NAME = ".symtab";
+const char *STRTAB_NAME = ".strtab";
+const char *STAB_NAME = ".stab";
+const char *STABSTR_NAME = ".stabstr";
+const char *STAB_INDX_NAME = ".stab.index";
+const char *STABSTR_INDX_NAME = ".stab.indexstr";
+const char *COMMENT_NAME = ".comment";
+const char *OPD_NAME = ".opd"; // PPC64 Official Procedure Descriptors
 // sections from dynamic executables and shared objects
-const char* PLT_NAME         = ".plt";
+const char *PLT_NAME = ".plt";
 #if defined(os_vxworks)
 const char* REL_PLT_NAME     = ".rela.text";
 #else
-const char* REL_PLT_NAME     = ".rela.plt"; // sparc-solaris
+const char *REL_PLT_NAME = ".rela.plt"; // sparc-solaris
 #endif
-const char* REL_PLT_NAME2    = ".rel.plt";  // x86-solaris
-const char* GOT_NAME         = ".got";
-const char* DYNSYM_NAME      = ".dynsym";
-const char* DYNSTR_NAME      = ".dynstr";
-const char* DATA_NAME        = ".data";
-const char* RO_DATA_NAME     = ".ro_data";  // mips
-const char* DYNAMIC_NAME     = ".dynamic";
-const char* EH_FRAME_NAME    = ".eh_frame";
-const char* EXCEPT_NAME      = ".gcc_except_table";
-const char* EXCEPT_NAME_ALT  = ".except_table";
+const char *REL_PLT_NAME2 = ".rel.plt";  // x86-solaris
+const char *GOT_NAME = ".got";
+const char *DYNSYM_NAME = ".dynsym";
+const char *DYNSTR_NAME = ".dynstr";
+const char *DATA_NAME = ".data";
+const char *RO_DATA_NAME = ".ro_data";  // mips
+const char *DYNAMIC_NAME = ".dynamic";
+const char *EH_FRAME_NAME = ".eh_frame";
+const char *EXCEPT_NAME = ".gcc_except_table";
+const char *EXCEPT_NAME_ALT = ".except_table";
 
 
 extern template
@@ -332,20 +326,19 @@ set<string> debugInfoSections = list_of(string(SYMTAB_NAME))
 
 // loaded_elf(): populate elf section pointers
 // for EEL rewritten code, also populate "code_*_" members
-bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
-                        Elf_X_Shdr* &bssscnp,
-                        Elf_X_Shdr*& symscnp, Elf_X_Shdr*& strscnp,
-                        Elf_X_Shdr*& stabscnp, Elf_X_Shdr*& stabstrscnp,
-                        Elf_X_Shdr*& stabs_indxcnp, Elf_X_Shdr*& stabstrs_indxcnp,
-                        Elf_X_Shdr*& rel_plt_scnp, Elf_X_Shdr*& plt_scnp,
-                        Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp,
-                        Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr* &dynamic_scnp,
-                        Elf_X_Shdr*& eh_frame, Elf_X_Shdr*& gcc_except,
-                        Elf_X_Shdr *& interp_scnp, Elf_X_Shdr *& opd_scnp,
-                        bool)
-{
+bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
+                        Elf_X_Shdr *&bssscnp,
+                        Elf_X_Shdr *&symscnp, Elf_X_Shdr *&strscnp,
+                        Elf_X_Shdr *&stabscnp, Elf_X_Shdr *&stabstrscnp,
+                        Elf_X_Shdr *&stabs_indxcnp, Elf_X_Shdr *&stabstrs_indxcnp,
+                        Elf_X_Shdr *&rel_plt_scnp, Elf_X_Shdr *&plt_scnp,
+                        Elf_X_Shdr *&got_scnp, Elf_X_Shdr *&dynsym_scnp,
+                        Elf_X_Shdr *&dynstr_scnp, Elf_X_Shdr *&dynamic_scnp,
+                        Elf_X_Shdr *&eh_frame, Elf_X_Shdr *&gcc_except,
+                        Elf_X_Shdr *&interp_scnp, Elf_X_Shdr *&opd_scnp,
+                        bool) {
     std::map<std::string, int> secnNameMap;
-    dwarf_err_func  = err_func_;
+    dwarf_err_func = err_func_;
     entryAddress_ = elfHdr->e_entry();
 
     no_of_sections_ = elfHdr->e_shnum();
@@ -415,7 +408,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 
     for (unsigned i = 0; i < phdr_max_count; i++) {
         Elf_X_Phdr &elfPhdr = elfHdr->get_phdr(i);
-        if(elfPhdr.p_type() == PT_DYNAMIC){
+        if (elfPhdr.p_type() == PT_DYNAMIC) {
             dynamic_offset_ = elfPhdr.p_offset();
             dynamic_size_ = elfPhdr.p_memsz();
         } else if (elfPhdr.p_type() == PT_INTERP) {
@@ -433,12 +426,12 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     int dynamic_section_index = -1;
     unsigned int dynamic_section_type = 0;
     size_t dynamic_section_size = 0;
-    for (int i = 0; i < elfHdr->e_shnum();++i) {
+    for (int i = 0; i < elfHdr->e_shnum(); ++i) {
         Elf_X_Shdr &scn = elfHdr->get_shdr(i);
-        if (! scn.isValid()) {  // section is malformed
+        if (!scn.isValid()) {  // section is malformed
             continue;
         }
-        if ((dynamic_offset_ !=0) && (scn.sh_offset() == dynamic_offset_)) {
+        if ((dynamic_offset_ != 0) && (scn.sh_offset() == dynamic_offset_)) {
             if (!foundDynamicSection) {
                 dynamic_section_index = i;
                 dynamic_section_size = scn.sh_size();
@@ -490,7 +483,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
                         secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
                         elf_hash_addr_ = dynsecData.d_ptr(j);
                         break;
-                    case  0x6ffffef5: //DT_GNU_HASH (not defined on all platforms)
+                    case 0x6ffffef5: //DT_GNU_HASH (not defined on all platforms)
                         secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
                         gnu_hash_addr_ = dynsecData.d_ptr(j);
                         break;
@@ -532,12 +525,12 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
                 case DT_VERSYM:
                 case DT_VERNEED:
                 case DT_HASH:
-                case  0x6ffffef5: // DT_GNU_HASH (not defined on all platforms)
+                case 0x6ffffef5: // DT_GNU_HASH (not defined on all platforms)
 
                     if (secTagSizeMapping.find(tag) != secTagSizeMapping.end()) {
                         vector<Offset> row;
                         row.push_back(it->first);
-                        row.push_back(it->first+ secTagSizeMapping[tag]);
+                        row.push_back(it->first + secTagSizeMapping[tag]);
                         moveSecAddrRange.push_back(row);
                     } else {
                         vector<Offset> row;
@@ -574,7 +567,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
         bool isFromDebugFile = (i >= elfHdr_numSections);
         Elf_X_Shdr &scn = (!isFromDebugFile) ? elfHdr->get_shdr(i) :
                           elfHdrDbg->get_shdr(i - elfHdr_numSections);
-        if (! scn.isValid()) { // section is malformed
+        if (!scn.isValid()) { // section is malformed
             continue;
         }
         Elf_X_Shdr *scnp = &scn;
@@ -583,15 +576,14 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
             name = &shnames[scn.sh_name()];
             sectionsInOriginalBinary.insert(string(name));
 
-            if(scn.sh_flags() & SHF_ALLOC) {
+            if (scn.sh_flags() & SHF_ALLOC) {
                 DbgAddrConversion_t orig;
                 orig.name = std::string(name);
                 orig.orig_offset = scn.sh_addr();
                 secnNameMap[orig.name] = DebugSectionMap.size();
                 DebugSectionMap.push_back(orig);
             }
-        }
-        else {
+        } else {
             if (!shnamesForDebugInfo)
                 break;
             name = &shnamesForDebugInfo[scn.sh_name()];
@@ -610,7 +602,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
             }
         }
 
-        if(scn.sh_type() == SHT_NOTE) {
+        if (scn.sh_type() == SHT_NOTE) {
             hasNoteSection_ = true;
         }
 
@@ -642,10 +634,9 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
                                          scn.sh_addralign());
                 reg->setFileOffset(scn.sh_offset());
                 regions_.push_back(reg);
-            }
-            else {
+            } else {
                 Region *reg = new Region(i, name, scn.sh_addr(), scn.sh_size(), 0, 0,
-                                         ((char*)data.d_buf()),
+                                         ((char *) data.d_buf()),
                                          getRegionPerms(scn.sh_flags()),
                                          getRegionType(scn.sh_type(),
                                                        scn.sh_flags(),
@@ -664,8 +655,8 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
             EEL = true;
             if (txtaddr == 0)
                 txtaddr = scn.sh_addr();
-            char *file_ptr = (char *)mf->base_addr();
-            code_ptr_ = (char *)(void*)&file_ptr[scn.sh_offset() - EXTRA_SPACE];
+            char *file_ptr = (char *) mf->base_addr();
+            code_ptr_ = (char *) (void *) &file_ptr[scn.sh_offset() - EXTRA_SPACE];
             code_off_ = scn.sh_addr() - EXTRA_SPACE;
             code_len_ = scn.sh_size() + EXTRA_SPACE;
         }
@@ -679,7 +670,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 
             // .o's don't have program headers, so these members need
             // to be populated here
-            if( !elfHdr->e_phnum() && !code_len_) {
+            if (!elfHdr->e_phnum() && !code_len_) {
                 // Populate code members
                 code_ptr_ = reinterpret_cast<char *>(scn.get_data().d_buf());
                 code_off_ = scn.sh_offset();
@@ -693,23 +684,20 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 
             // .o's don't have program headers, so these members need
             // to be populated here
-            if( !elfHdr->e_phnum() && !data_len_) {
+            if (!elfHdr->e_phnum() && !data_len_) {
                 // Populate data members
                 data_ptr_ = reinterpret_cast<char *>(scn.get_data().d_buf());
                 data_off_ = scn.sh_offset();
                 data_len_ = scn.sh_size();
             }
-        }
-        else if (strcmp(name, RO_DATA_NAME) == 0) {
+        } else if (strcmp(name, RO_DATA_NAME) == 0) {
             if (!dataddr) dataddr = scn.sh_addr();
-        }
-        else if (strcmp(name, GOT_NAME) == 0) {
+        } else if (strcmp(name, GOT_NAME) == 0) {
             got_scnp = scnp;
             got_addr_ = scn.sh_addr();
             got_size_ = scn.sh_size();
             if (!dataddr) dataddr = scn.sh_addr();
-        }
-        else if (strcmp(name, BSS_NAME) == 0) {
+        } else if (strcmp(name, BSS_NAME) == 0) {
             bssscnp = scnp;
             if (!dataddr) dataddr = scn.sh_addr();
         }
@@ -722,8 +710,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
                 symscnp = scnp;
                 symtab_addr_ = scn.sh_addr();
             }
-        }
-        else if (strcmp(name, STRTAB_NAME) == 0) {
+        } else if (strcmp(name, STRTAB_NAME) == 0) {
             if (!strscnp) {
                 strscnp = scnp;
                 strtab_addr_ = scn.sh_addr();
@@ -745,15 +732,15 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
         }
 #if defined(os_vxworks)
             else if ((strcmp(name, REL_PLT_NAME) == 0) ||
-	     (strcmp(name, REL_PLT_NAME2) == 0)) {
+         (strcmp(name, REL_PLT_NAME2) == 0)) {
       rel_plt_scnp = scnp;
       rel_plt_addr_ = scn.sh_addr();
       rel_plt_size_ = scn.sh_size();
       rel_plt_entry_size_ = scn.sh_entsize();
     }
 #else
-        else if ((secAddrTagMapping.find(scn.sh_addr()) != secAddrTagMapping.end() ) &&
-                 secAddrTagMapping[scn.sh_addr()] == DT_JMPREL ) {
+        else if ((secAddrTagMapping.find(scn.sh_addr()) != secAddrTagMapping.end()) &&
+                 secAddrTagMapping[scn.sh_addr()] == DT_JMPREL) {
             rel_plt_scnp = scnp;
             rel_plt_addr_ = scn.sh_addr();
             rel_plt_size_ = scn.sh_size();
@@ -764,12 +751,11 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
             opd_scnp = scnp;
             opd_addr_ = scn.sh_addr();
             opd_size_ = scn.sh_size();
-        }
-        else if (strcmp(name, PLT_NAME) == 0) {
+        } else if (strcmp(name, PLT_NAME) == 0) {
             plt_scnp = scnp;
             plt_addr_ = scn.sh_addr();
             plt_size_ = scn.sh_size();
-            if(getArch() == Dyninst::Arch_x86 || getArch() == Dyninst::Arch_x86_64) {
+            if (getArch() == Dyninst::Arch_x86 || getArch() == Dyninst::Arch_x86_64) {
                 //
                 // On x86, the GNU linker purposefully sets the PLT
                 // table entry size to an incorrect value to be
@@ -803,12 +789,9 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
                 //
                 //plt_entry_size_ = plt_size_ / ((rel_plt_size_ / rel_plt_entry_size_) + 1);
                 plt_entry_size_ = 16;
-            }
-            else
-            {
+            } else {
                 plt_entry_size_ = scn.sh_entsize();
-                if(getArch() == Dyninst::Arch_ppc32)
-                {
+                if (getArch() == Dyninst::Arch_ppc32) {
                     if (scn.sh_flags() & SHF_EXECINSTR) {
                         // Old style executable PLT
                         if (!plt_entry_size_)
@@ -835,59 +818,50 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
             unsigned int index = 0;
             size_t size = data.d_size();
             char *buf = (char *) data.d_buf();
-            while (buf && (index < size))
-            {
-                string comment = buf+index;
+            while (buf && (index < size)) {
+                string comment = buf + index;
                 size_t pos_p = comment.find("BGP");
                 size_t pos_q = comment.find("BGQ");
-                if (pos_p !=string::npos) {
+                if (pos_p != string::npos) {
                     isBlueGeneP_ = true;
                     break;
-                } else if (pos_q !=string::npos) {
+                } else if (pos_q != string::npos) {
                     isBlueGeneQ_ = true;
                     break;
                 }
                 index += comment.size();
                 if (comment.size() == 0) { // Skip NULL characters in the comment section
-                    index ++;
+                    index++;
                 }
             }
-        }
-
-        else if ((secAddrTagMapping.find(scn.sh_addr()) != secAddrTagMapping.end() ) &&
-                 secAddrTagMapping[scn.sh_addr()] == DT_SYMTAB ) {
+        } else if ((secAddrTagMapping.find(scn.sh_addr()) != secAddrTagMapping.end()) &&
+                   secAddrTagMapping[scn.sh_addr()] == DT_SYMTAB) {
             is_dynamic_ = true;
             dynsym_scnp = scnp;
             dynsym_addr_ = scn.sh_addr();
-            dynsym_size_ = scn.sh_size()/scn.sh_entsize();
-        }
-        else if ((secAddrTagMapping.find(scn.sh_addr()) != secAddrTagMapping.end() ) &&
-                 secAddrTagMapping[scn.sh_addr()] == DT_STRTAB ) {
+            dynsym_size_ = scn.sh_size() / scn.sh_entsize();
+        } else if ((secAddrTagMapping.find(scn.sh_addr()) != secAddrTagMapping.end()) &&
+                   secAddrTagMapping[scn.sh_addr()] == DT_STRTAB) {
             dynstr_scnp = scnp;
             dynstr_addr_ = scn.sh_addr();
-        }
-        else if (strcmp(name, ".debug_info") == 0) {
+        } else if (strcmp(name, ".debug_info") == 0) {
             dwarvenDebugInfo = true;
-        }
-        else if (strcmp(name, EH_FRAME_NAME) == 0) {
+        } else if (strcmp(name, EH_FRAME_NAME) == 0) {
             eh_frame = scnp;
-        }
-        else if ((strcmp(name, EXCEPT_NAME) == 0) ||
-                 (strcmp(name, EXCEPT_NAME_ALT) == 0)) {
+        } else if ((strcmp(name, EXCEPT_NAME) == 0) ||
+                   (strcmp(name, EXCEPT_NAME_ALT) == 0)) {
             gcc_except = scnp;
-        }
-        else if (strcmp(name, INTERP_NAME) == 0) {
+        } else if (strcmp(name, INTERP_NAME) == 0) {
             interp_scnp = scnp;
-        }
-        else if ((int) i == dynamic_section_index) {
+        } else if ((int) i == dynamic_section_index) {
             dynamic_scnp = scnp;
             dynamic_addr_ = scn.sh_addr();
         }
     }
 
-    if(!symscnp || !strscnp) {
+    if (!symscnp || !strscnp) {
         isStripped = true;
-        if(dynsym_scnp && dynstr_scnp){
+        if (dynsym_scnp && dynstr_scnp) {
             symscnp = dynsym_scnp;
             strscnp = dynstr_scnp;
         }
@@ -917,7 +891,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     // sort the section headers by base address
     sort(allRegionHdrs.begin(), allRegionHdrs.end(), SectionHeaderSortFunction());
 
-    for (unsigned j = 0 ; j < regions_.size() ; j++) {
+    for (unsigned j = 0; j < regions_.size(); j++) {
         if (secAddrTagMapping.find(regions_[j]->getDiskOffset()) != secAddrTagMapping.end()) {
             secTagRegionMapping[secAddrTagMapping[regions_[j]->getDiskOffset()]] = regions_[j];
         }
@@ -940,20 +914,18 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     return true;
 }
 
-bool Object::is_offset_in_plt(Offset offset) const
-{
+bool Object::is_offset_in_plt(Offset offset) const {
     return (offset > plt_addr_ && offset < plt_addr_ + plt_size_);
 }
 
 void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
-                          Elf_X_Shdr *&dynstr_scnp)
-{
+                          Elf_X_Shdr *&dynstr_scnp) {
     Elf_X_Data data = dyn_scnp->get_data();
     Elf_X_Dyn dyns = data.get_dyn();
     int rel_scnp_index = -1;
 
     for (unsigned i = 0; i < dyns.count(); ++i) {
-        switch(dyns.d_tag(i)) {
+        switch (dyns.d_tag(i)) {
             case DT_REL:
             case DT_RELA:
                 /*found Relocation section*/
@@ -964,11 +936,11 @@ void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
                 rel_plt_addr_ = (Offset) dyns.d_ptr(i);
                 break;
             case DT_PLTRELSZ:
-                rel_plt_size_ = dyns.d_val(i) ;
+                rel_plt_size_ = dyns.d_val(i);
                 break;
             case DT_RELSZ:
             case DT_RELASZ:
-                rel_size_ = dyns.d_val(i) ;
+                rel_size_ = dyns.d_val(i);
                 break;
             case DT_RELENT:
             case DT_RELAENT:
@@ -986,43 +958,42 @@ void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
                 break;
         }
     }
-    if (rel_scnp_index  != -1)
+    if (rel_scnp_index != -1)
         get_relocationDyn_entries(rel_scnp_index, dynsym_scnp, dynstr_scnp);
 }
 
 /* parse relocations for the sections represented by DT_REL/DT_RELA in
  * the dynamic section. This section is the one we would want to emit
  */
-bool Object::get_relocationDyn_entries( unsigned rel_scnp_index,
-                                        Elf_X_Shdr *&dynsym_scnp,
-                                        Elf_X_Shdr *&dynstr_scnp )
-{
+bool Object::get_relocationDyn_entries(unsigned rel_scnp_index,
+                                       Elf_X_Shdr *&dynsym_scnp,
+                                       Elf_X_Shdr *&dynstr_scnp) {
     Elf_X_Data symdata = dynsym_scnp->get_data();
     Elf_X_Data strdata = dynstr_scnp->get_data();
-    Elf_X_Shdr* rel_scnp = NULL;
-    if( !symdata.isValid() || !strdata.isValid())
+    Elf_X_Shdr *rel_scnp = NULL;
+    if (!symdata.isValid() || !strdata.isValid())
         return false;
     const char *strs = strdata.get_string();
     Elf_X_Sym sym = symdata.get_sym();
 
     unsigned num_rel_entries_found = 0;
-    unsigned num_rel_entries = rel_size_/rel_entry_size_;
+    unsigned num_rel_entries = rel_size_ / rel_entry_size_;
 
-    if (rel_addr_ + rel_size_ > rel_plt_addr_){
+    if (rel_addr_ + rel_size_ > rel_plt_addr_) {
         // REL/RELA section overlaps with REL PLT section
-        num_rel_entries = (rel_plt_addr_-rel_addr_)/rel_entry_size_;
+        num_rel_entries = (rel_plt_addr_ - rel_addr_) / rel_entry_size_;
     }
     while (num_rel_entries_found != num_rel_entries) {
         rel_scnp = getRegionHdrByIndex(rel_scnp_index++);
         Elf_X_Data reldata = rel_scnp->get_data();
 
-        if( ! reldata.isValid()) return false;
+        if (!reldata.isValid()) return false;
         Elf_X_Rel rel = reldata.get_rel();
         Elf_X_Rela rela = reldata.get_rela();
 
         if (sym.isValid() && (rel.isValid() || rela.isValid()) && strs) {
             /* Iterate over the entries. */
-            for( u_int i = 0; i < (reldata.d_size()/rel_entry_size_); ++i ) {
+            for (u_int i = 0; i < (reldata.d_size() / rel_entry_size_); ++i) {
                 num_rel_entries_found++;
                 long offset;
                 long addend;
@@ -1050,11 +1021,11 @@ bool Object::get_relocationDyn_entries( unsigned rel_scnp_index,
                         // We should never reach this case.
                         return false;
                 };
-                relocationEntry re( offset, string( &strs[ sym.st_name(index) ] ), NULL, type );
+                relocationEntry re(offset, string(&strs[sym.st_name(index)]), NULL, type);
                 re.setAddend(addend);
                 re.setRegionType(rtype);
-                if(symbols_.find(&strs[ sym.st_name(index)]) != symbols_.end()){
-                    vector<Symbol *> &syms = symbols_[&strs[ sym.st_name(index)]];
+                if (symbols_.find(&strs[sym.st_name(index)]) != symbols_.end()) {
+                    vector<Symbol *> &syms = symbols_[&strs[sym.st_name(index)]];
                     for (vector<Symbol *>::iterator i = syms.begin(); i != syms.end(); i++) {
                         if (!(*i)->isInDynSymtab())
                             continue;
@@ -1073,367 +1044,357 @@ bool Object::get_relocationDyn_entries( unsigned rel_scnp_index,
     return true;
 }
 
-bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
-                                     Elf_X_Shdr *&dynsym_scnp,
-                                     Elf_X_Shdr *&dynstr_scnp )
-{
+bool Object::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
+                                    Elf_X_Shdr *&dynsym_scnp,
+                                    Elf_X_Shdr *&dynstr_scnp) {
     if (rel_plt_size_ && rel_plt_addr_) {
         Elf_X_Data reldata = rel_plt_scnp->get_data();
         Elf_X_Data symdata = dynsym_scnp->get_data();
         Elf_X_Data strdata = dynstr_scnp->get_data();
 
-        if( reldata.isValid() && symdata.isValid() && strdata.isValid() ) {
+        if (reldata.isValid() && symdata.isValid() && strdata.isValid()) {
             Offset next_plt_entry_addr = plt_addr_;
-        if(getArch() == Dyninst::Arch_x86 || getArch() == Dyninst::Arch_x86_64)
-        {
-            next_plt_entry_addr += plt_entry_size_;  // 1st PLT entry is special
-        }
-        else if(getArch()==Dyninst::Arch_ppc32)
-        {
-            bool extraStubs = false;
+            if (getArch() == Dyninst::Arch_x86 || getArch() == Dyninst::Arch_x86_64) {
+                next_plt_entry_addr += plt_entry_size_;  // 1st PLT entry is special
+            } else if (getArch() == Dyninst::Arch_ppc32) {
+                bool extraStubs = false;
 
-            // Sanity check.
-            if (!plt_entry_size_) {
-                create_printf("%s[%d]:  FIXME:  plt_entry_size not established\n", FILE__, __LINE__);
-                plt_entry_size_ = 8;
-            }
-
-            if (plt_entry_size_ == 8) {
-                // Old style executable PLT section
-                next_plt_entry_addr += 9*plt_entry_size_;  // 1st 9 PLT entries are special
-
-            } else if (plt_entry_size_ == 16) {
-                // New style secure PLT
-                Region *plt = NULL, *dynamic = NULL,
-                        *got = NULL, *glink = NULL;
-                unsigned int glink_addr = 0;
-                unsigned int stub_addr = 0;
-
-                // Find the GLINK section.  See ppc_elf_get_synthetic_symtab() in
-                // bfd/elf32-ppc.c of GNU's binutils for more information.
-
-                for (unsigned iter = 0; iter < regions_.size(); ++iter) {
-                    std::string name = regions_[iter]->getRegionName();
-                    if (name == PLT_NAME) plt = regions_[iter];
-                    // else if (name == REL_PLT_NAME) relplt = regions_[iter];
-                    else if (name == DYNAMIC_NAME) dynamic = regions_[iter];
-                    else if (name == GOT_NAME) got = regions_[iter];
+                // Sanity check.
+                if (!plt_entry_size_) {
+                    create_printf("%s[%d]:  FIXME:  plt_entry_size not established\n", FILE__, __LINE__);
+                    plt_entry_size_ = 8;
                 }
 
-                // Rely on .dynamic section for prelinked binaries.
-                if (dynamic != NULL) {
-                    Elf32_Dyn *dyn = (Elf32_Dyn *)dynamic->getPtrToRawData();
-                    unsigned int count = dynamic->getMemSize() / sizeof(Elf32_Dyn);
+                if (plt_entry_size_ == 8) {
+                    // Old style executable PLT section
+                    next_plt_entry_addr += 9 * plt_entry_size_;  // 1st 9 PLT entries are special
 
-                    for (unsigned int i = 0; i < count; ++i) {
-                        // Use DT_LOPROC instead of DT_PPC_GOT to circumvent problems
-                        // caused by early versions of libelf where DT_PPC_GOT has
-                        // yet to be defined.
-                        if (dyn[i].d_tag == DT_LOPROC) {
-                            unsigned int g_o_t = dyn[i].d_un.d_val;
-                            if (got != NULL) {
-                                unsigned char *data =
-                                        (unsigned char *)got->getPtrToRawData();
-                                glink_addr = *(unsigned int *)
-                                        (data + (g_o_t - got->getMemOffset() + 4));
-                                break;
+                } else if (plt_entry_size_ == 16) {
+                    // New style secure PLT
+                    Region *plt = NULL, *dynamic = NULL,
+                            *got = NULL, *glink = NULL;
+                    unsigned int glink_addr = 0;
+                    unsigned int stub_addr = 0;
+
+                    // Find the GLINK section.  See ppc_elf_get_synthetic_symtab() in
+                    // bfd/elf32-ppc.c of GNU's binutils for more information.
+
+                    for (unsigned iter = 0; iter < regions_.size(); ++iter) {
+                        std::string name = regions_[iter]->getRegionName();
+                        if (name == PLT_NAME) plt = regions_[iter];
+                            // else if (name == REL_PLT_NAME) relplt = regions_[iter];
+                        else if (name == DYNAMIC_NAME) dynamic = regions_[iter];
+                        else if (name == GOT_NAME) got = regions_[iter];
+                    }
+
+                    // Rely on .dynamic section for prelinked binaries.
+                    if (dynamic != NULL) {
+                        Elf32_Dyn *dyn = (Elf32_Dyn *) dynamic->getPtrToRawData();
+                        unsigned int count = dynamic->getMemSize() / sizeof(Elf32_Dyn);
+
+                        for (unsigned int i = 0; i < count; ++i) {
+                            // Use DT_LOPROC instead of DT_PPC_GOT to circumvent problems
+                            // caused by early versions of libelf where DT_PPC_GOT has
+                            // yet to be defined.
+                            if (dyn[i].d_tag == DT_LOPROC) {
+                                unsigned int g_o_t = dyn[i].d_un.d_val;
+                                if (got != NULL) {
+                                    unsigned char *data =
+                                            (unsigned char *) got->getPtrToRawData();
+                                    glink_addr = *(unsigned int *)
+                                            (data + (g_o_t - got->getMemOffset() + 4));
+                                    break;
+                                }
                             }
                         }
                     }
-                }
 
-                // Otherwise, first entry in .plt section holds the glink address
-                if (glink_addr == 0) {
-                    unsigned char *data = (unsigned char *)plt->getPtrToRawData();
-                    glink_addr = *(unsigned int *)(data);
-                }
-
-                // Search for region that contains glink address
-                for (unsigned iter = 0; iter < regions_.size(); ++iter) {
-                    unsigned int start = regions_[iter]->getMemOffset();
-                    unsigned int end = start + regions_[iter]->getMemSize();
-                    if (start <= glink_addr && glink_addr < end) {
-                        glink = regions_[iter];
-                        break;
+                    // Otherwise, first entry in .plt section holds the glink address
+                    if (glink_addr == 0) {
+                        unsigned char *data = (unsigned char *) plt->getPtrToRawData();
+                        glink_addr = *(unsigned int *) (data);
                     }
-                }
 
-                if (!glink) {
+                    // Search for region that contains glink address
+                    for (unsigned iter = 0; iter < regions_.size(); ++iter) {
+                        unsigned int start = regions_[iter]->getMemOffset();
+                        unsigned int end = start + regions_[iter]->getMemSize();
+                        if (start <= glink_addr && glink_addr < end) {
+                            glink = regions_[iter];
+                            break;
+                        }
+                    }
+
+                    if (!glink) {
+                        return false;
+                    }
+
+                    // Find PLT function stubs.  They preceed the glink section.
+                    stub_addr = glink_addr - (rel_plt_size_ / rel_plt_entry_size_) * 16;
+
+                    const unsigned int LWZ_11_30 = 0x817e0000;
+                    const unsigned int ADDIS_11_30 = 0x3d7e0000;
+                    const unsigned int LWZ_11_11 = 0x816b0000;
+                    const unsigned int MTCTR_11 = 0x7d6903a6;
+                    const unsigned int BCTR = 0x4e800420;
+
+                    unsigned char *sec_data = (unsigned char *) glink->getPtrToRawData();
+                    unsigned int *insn = (unsigned int *)
+                            (sec_data + (stub_addr - glink->getMemOffset()));
+
+                    // Keep moving pointer back if more -fPIC stubs are found.
+                    while (sec_data < (unsigned char *) insn) {
+                        unsigned int *back = insn - 4;
+
+                        if (((back[0] & 0xffff0000) == LWZ_11_30
+                             && back[1] == MTCTR_11
+                             && back[2] == BCTR)
+
+                            || ((back[0] & 0xffff0000) == ADDIS_11_30
+                                && (back[1] & 0xffff0000) == LWZ_11_11
+                                && back[2] == MTCTR_11
+                                && back[3] == BCTR)) {
+                            extraStubs = true;
+                            stub_addr -= 16;
+                            insn = back;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    // Okay, this is where things get hairy.  If we have a one to one
+                    // relationship between the glink stubs and plt entries (meaning
+                    // extraStubs == false), then we can generate our relocationEntry
+                    // objects normally below.
+
+                    // However, if we have extra glink stubs, then we must generate
+                    // relocations with unknown destinations for *all* stubs.  Then,
+                    // we use the loop below to store additional information about
+                    // the data plt entry keyed by plt entry address.
+
+                    // Finally, if a symbol with any of the following forms:
+                    //     [hex_addr].got2.plt_pic32.[sym_name]
+                    //     [hex_addr].plt_pic32.[sym_name]
+                    //
+                    // matches the glink stub address, then stub symbols exist and we
+                    // can rely on these tell us where the stub will eventually go.
+
+                    if (extraStubs == true) {
+                        std::string name;
+                        relocationEntry re;
+
+                        while (stub_addr < glink_addr) {
+                            if (symsByOffset_.find(stub_addr) != symsByOffset_.end()) {
+                                name = (symsByOffset_[stub_addr])[0]->getMangledName();
+                                name = name.substr(name.rfind("plt_pic32.") + 10);
+                            }
+
+                            if (!name.empty()) {
+                                re = relocationEntry(stub_addr, 0, name, NULL, 0);
+                            } else {
+                                re = relocationEntry(stub_addr, 0, "@plt", NULL, 0);
+                            }
+                            fbt_.push_back(re);
+                            stub_addr += 16;
+                        }
+
+                        // Now prepare to iterate over plt below.
+                        next_plt_entry_addr = plt_addr_;
+                        plt_entry_size_ = 4;
+
+                    } else {
+                        next_plt_entry_addr = stub_addr;
+                    }
+
+                } else {
+                    create_printf("ERROR: Can't handle %d PLT entry size\n",
+                                  plt_entry_size_);
                     return false;
                 }
 
-                // Find PLT function stubs.  They preceed the glink section.
-                stub_addr = glink_addr - (rel_plt_size_/rel_plt_entry_size_) * 16;
+                //  actually this is just fudged to make the offset value 72, which is what binutils uses
+                //  Note that binutils makes the distinction between PLT_SLOT_SIZE (8),
+                //  and PLT_ENTRY_SIZE (12).  PLT_SLOT_SIZE seems to be what we want, even though we also
+                //  have PLT_INITIAL_ENTRY_SIZE (72)
+                //  see binutils/bfd/elf32-ppc.c/h if more info is needed
+                //next_plt_entry_addr += 72;  // 1st 6 PLT entries art special
 
-                const unsigned int LWZ_11_30   = 0x817e0000;
-                const unsigned int ADDIS_11_30 = 0x3d7e0000;
-                const unsigned int LWZ_11_11   = 0x816b0000;
-                const unsigned int MTCTR_11    = 0x7d6903a6;
-                const unsigned int BCTR        = 0x4e800420;
 
-                unsigned char *sec_data = (unsigned char *)glink->getPtrToRawData();
-                unsigned int *insn = (unsigned int *)
-                        (sec_data + (stub_addr - glink->getMemOffset()));
-
-                // Keep moving pointer back if more -fPIC stubs are found.
-                while (sec_data < (unsigned char *)insn) {
-                    unsigned int *back = insn - 4;
-
-                    if ((  (back[0] & 0xffff0000) == LWZ_11_30
-                           && back[1] == MTCTR_11
-                           && back[2] == BCTR)
-
-                        || (   (back[0] & 0xffff0000) == ADDIS_11_30
-                               && (back[1] & 0xffff0000) == LWZ_11_11
-                               &&  back[2] == MTCTR_11
-                               &&  back[3] == BCTR))
-                    {
-                        extraStubs = true;
-                        stub_addr -= 16;
-                        insn = back;
-                    } else {
-                        break;
-                    }
-                }
-
-                // Okay, this is where things get hairy.  If we have a one to one
-                // relationship between the glink stubs and plt entries (meaning
-                // extraStubs == false), then we can generate our relocationEntry
-                // objects normally below.
-
-                // However, if we have extra glink stubs, then we must generate
-                // relocations with unknown destinations for *all* stubs.  Then,
-                // we use the loop below to store additional information about
-                // the data plt entry keyed by plt entry address.
-
-                // Finally, if a symbol with any of the following forms:
-                //     [hex_addr].got2.plt_pic32.[sym_name]
-                //     [hex_addr].plt_pic32.[sym_name]
+            } else if (getArch() == Dyninst::Arch_ppc64) {
+                // Unlike PPC32 Linux, we don't have a deterministic way of finding
+                // PPC64 Linux linker stubs.  So, we'll wait until the CFG is built
+                // inside Dyninst, and code read at that point.  To find them at this
+                // point would require a scan of the entire .text section.
                 //
-                // matches the glink stub address, then stub symbols exist and we
-                // can rely on these tell us where the stub will eventually go.
+                // If we're lucky, symbols may exist for these linker stubs.  They will
+                // come in the following forms:
+                //     [hex_addr].plt_call.[sym_name]
+                //     [hex_addr].plt_branch.[sym_name]
+                //     [hex_addr].long_branch.[sym_name]
+                //     [hex_addr].plt_branch_r2off.[sym_name]
+                //     [hex_addr].long_branch_r2off.[sym_name]
+                //
+                // Again unlike PPC32 above, we have no glink stub address to compare
+                // against, so we must search through all symbols to find these names.
+                //
 
-                if (extraStubs == true) {
-                    std::string name;
-                    relocationEntry re;
+                // First, build a map of the .rela.plt symbol name -> .rela.plt offset:
+                dyn_hash_map<std::string, Offset> plt_rel_map;
 
-                    while (stub_addr < glink_addr) {
-                        if (symsByOffset_.find(stub_addr) != symsByOffset_.end()) {
-                            name = (symsByOffset_[stub_addr])[0]->getMangledName();
-                            name = name.substr( name.rfind("plt_pic32.") + 10 );
-                        }
+                // I'm not a fan of code duplication, but merging this into the
+                // loop below would be ugly and difficult to maintain.
+                Elf_X_Sym _sym = symdata.get_sym();
+                Elf_X_Rel _rel = reldata.get_rel();
+                Elf_X_Rela _rela = reldata.get_rela();
+                const char *_strs = strdata.get_string();
 
-                        if (!name.empty()) {
-                            re = relocationEntry( stub_addr, 0, name, NULL, 0 );
-                        } else {
-                            re = relocationEntry( stub_addr, 0, "@plt", NULL, 0 );
-                        }
-                        fbt_.push_back(re);
-                        stub_addr += 16;
+                for (u_int i = 0; i < (rel_plt_size_ / rel_plt_entry_size_); ++i) {
+                    long _offset;
+                    long _index;
+
+                    switch (reldata.d_type()) {
+                        case ELF_T_REL:
+                            _offset = _rel.r_offset(i);
+                            _index = _rel.R_SYM(i);
+                            break;
+
+                        case ELF_T_RELA:
+                            _offset = _rela.r_offset(i);
+                            _index = _rela.R_SYM(i);
+                            break;
+
+                        default:
+                            // We should never reach this case.
+                            return false;
+                    };
+
+                    std::string _name = &_strs[_sym.st_name(_index)];
+                    // I'm interested to see if this assert will ever fail.
+                    if (!_name.length()) {
+                        create_printf("Empty name for REL/RELA entry found, ignoring\n");
+                        continue;
                     }
 
-                    // Now prepare to iterate over plt below.
-                    next_plt_entry_addr = plt_addr_;
-                    plt_entry_size_ = 4;
-
-                } else {
-                    next_plt_entry_addr = stub_addr;
+                    plt_rel_map[_name] = _offset;
                 }
+                // End code duplication.
 
-            } else {
-                create_printf("ERROR: Can't handle %d PLT entry size\n",
-                              plt_entry_size_);
-                return false;
-            }
-
-            //  actually this is just fudged to make the offset value 72, which is what binutils uses
-            //  Note that binutils makes the distinction between PLT_SLOT_SIZE (8),
-            //  and PLT_ENTRY_SIZE (12).  PLT_SLOT_SIZE seems to be what we want, even though we also
-            //  have PLT_INITIAL_ENTRY_SIZE (72)
-            //  see binutils/bfd/elf32-ppc.c/h if more info is needed
-            //next_plt_entry_addr += 72;  // 1st 6 PLT entries art special
-
-
-        } else if(getArch() == Dyninst::Arch_ppc64)
-        {
-            // Unlike PPC32 Linux, we don't have a deterministic way of finding
-            // PPC64 Linux linker stubs.  So, we'll wait until the CFG is built
-            // inside Dyninst, and code read at that point.  To find them at this
-            // point would require a scan of the entire .text section.
-            //
-            // If we're lucky, symbols may exist for these linker stubs.  They will
-            // come in the following forms:
-            //     [hex_addr].plt_call.[sym_name]
-            //     [hex_addr].plt_branch.[sym_name]
-            //     [hex_addr].long_branch.[sym_name]
-            //     [hex_addr].plt_branch_r2off.[sym_name]
-            //     [hex_addr].long_branch_r2off.[sym_name]
-            //
-            // Again unlike PPC32 above, we have no glink stub address to compare
-            // against, so we must search through all symbols to find these names.
-            //
-
-            // First, build a map of the .rela.plt symbol name -> .rela.plt offset:
-            dyn_hash_map<std::string, Offset> plt_rel_map;
-
-            // I'm not a fan of code duplication, but merging this into the
-            // loop below would be ugly and difficult to maintain.
-            Elf_X_Sym  _sym  = symdata.get_sym();
-            Elf_X_Rel  _rel  = reldata.get_rel();
-            Elf_X_Rela _rela = reldata.get_rela();
-            const char *_strs = strdata.get_string();
-
-            for( u_int i = 0; i < (rel_plt_size_/rel_plt_entry_size_); ++i ) {
-                long _offset;
-                long _index;
-
-                switch (reldata.d_type()) {
-                    case ELF_T_REL:
-                        _offset = _rel.r_offset(i);
-                        _index  = _rel.R_SYM(i);
-                        break;
-
-                    case ELF_T_RELA:
-                        _offset = _rela.r_offset(i);
-                        _index  = _rela.R_SYM(i);
-                        break;
-
-                    default:
-                        // We should never reach this case.
-                        return false;
-                };
-
-                std::string _name = &_strs[ _sym.st_name(_index) ];
-                // I'm interested to see if this assert will ever fail.
-                if(!_name.length())
-                {
-                    create_printf("Empty name for REL/RELA entry found, ignoring\n");
-                    continue;
-                }
-
-                plt_rel_map[_name] = _offset;
-            }
-            // End code duplication.
-
-            dyn_hash_map<std::string, std::vector<Symbol *> >::iterator iter;
-            for (iter = symbols_.begin(); iter != symbols_.end(); ++iter) {
-                std::string name = iter->first;
-                if (name.length() > 8) {
-                    if (name.substr(8, 10) == ".plt_call.")
-                        name = name.substr(8 + 10);
-                    else if (name.substr(8, 12) == ".plt_branch.")
-                        name = name.substr(8 + 12);
-                    else if (name.substr(8, 13) == ".long_branch.")
-                        name = name.substr(8 + 13);
-                    else if (name.substr(8, 18) == ".plt_branch_r2off.")
-                        name = name.substr(8 + 18);
-                    else if (name.substr(8, 19) == ".long_branch_r2off.")
-                        name = name.substr(8 + 19);
-                    else
-                        continue;
-
-                    // Remove possible trailing addend value.
-                    std::string::size_type pos = name.rfind('+');
-                    if (pos != std::string::npos) name.erase(pos);
-
-                    // Remove possible version number.
-                    pos = name.find('@');
-                    if (pos != std::string::npos) name.erase(pos);
-
-                    // Find the dynamic symbol this linker stub branches to.
-                    Symbol *targ_sym = NULL;
-                    if (symbols_.find(name) != symbols_.end())
-                        for (unsigned i = 0; i < symbols_[name].size(); ++i)
-                            if ( (symbols_[name])[i]->isInDynSymtab())
-                                targ_sym = (symbols_[name])[i];
-
-                    // If a corresponding target symbol cannot be found for a
-                    // named linker stub, then ignore it.  We'll find it during
-                    // parsing.
-                    if (!targ_sym) continue;
-
-                    if (iter->second.size() != 1)
-                        continue;
-                    dyn_hash_map<string, Offset>::iterator pltrel_iter = plt_rel_map.find(name);
-                    if (pltrel_iter == plt_rel_map.end())
-                        continue;
-
-                    Symbol *stub_sym = iter->second[0];
-                    relocationEntry re(stub_sym->getOffset(),
-                                       pltrel_iter->second,
-                                       name,
-                                       targ_sym);
-                    fbt_.push_back(re);
-                }
-            }
-
-            // 1st plt entry is special.
-            next_plt_entry_addr += plt_entry_size_;
-
-        } else if (getArch() == Dyninst::Arch_aarch64)
-        {
-            next_plt_entry_addr += 2 * plt_entry_size_;
-        } else {
-            next_plt_entry_addr += 4*(plt_entry_size_); //1st 4 entries are special
-        }
-
-
-        Elf_X_Sym sym = symdata.get_sym();
-        Elf_X_Rel rel = reldata.get_rel();
-        Elf_X_Rela rela = reldata.get_rela();
-        const char *strs = strdata.get_string();
-
-        if (sym.isValid() && (rel.isValid() || rela.isValid()) && strs) {
-
-            // Sometimes, PPC32 Linux may use this loop to update fbt entries.
-            // Should stay -1 for all other platforms.  See notes above.
-            int fbt_iter = -1;
-            if (fbt_.size() > 0 && !fbt_[0].rel_addr() && fbt_[0].name() != "@plt")
-                fbt_iter = 0;
-
-            for( u_int i = 0; i < (rel_plt_size_/rel_plt_entry_size_); ++i ) {
-                long offset;
-                long addend;
-                long index;
-                unsigned long type;
-                Region::RegionType rtype;
-
-                switch (reldata.d_type()) {
-                    case ELF_T_REL:
-                        offset = rel.r_offset(i);
-                        addend = 0;
-                        index = rel.R_SYM(i);
-                        type = rel.R_TYPE(i);
-                        rtype = Region::RT_REL;
-                        break;
-
-                    case ELF_T_RELA:
-                        offset = rela.r_offset(i);
-                        addend = rela.r_addend(i);
-                        index = rela.R_SYM(i);
-                        type = rela.R_TYPE(i);
-                        rtype = Region::RT_RELA;
-                        break;
-
-                    default:
-                        // We should never reach this case.
-                        return false;
-                };
-
-                std::string targ_name = &strs[ sym.st_name(index) ];
-                vector<Symbol *> dynsym_list;
-                if (symbols_.find(targ_name) != symbols_.end())
-                {
-                    vector<Symbol *> &syms = symbols_[&strs[ sym.st_name(index)]];
-                    for (vector<Symbol *>::iterator i = syms.begin(); i != syms.end(); i++) {
-                        if (!(*i)->isInDynSymtab())
+                dyn_hash_map<std::string, std::vector<Symbol *> >::iterator iter;
+                for (iter = symbols_.begin(); iter != symbols_.end(); ++iter) {
+                    std::string name = iter->first;
+                    if (name.length() > 8) {
+                        if (name.substr(8, 10) == ".plt_call.")
+                            name = name.substr(8 + 10);
+                        else if (name.substr(8, 12) == ".plt_branch.")
+                            name = name.substr(8 + 12);
+                        else if (name.substr(8, 13) == ".long_branch.")
+                            name = name.substr(8 + 13);
+                        else if (name.substr(8, 18) == ".plt_branch_r2off.")
+                            name = name.substr(8 + 18);
+                        else if (name.substr(8, 19) == ".long_branch_r2off.")
+                            name = name.substr(8 + 19);
+                        else
                             continue;
-                        dynsym_list.push_back(*i);
+
+                        // Remove possible trailing addend value.
+                        std::string::size_type pos = name.rfind('+');
+                        if (pos != std::string::npos) name.erase(pos);
+
+                        // Remove possible version number.
+                        pos = name.find('@');
+                        if (pos != std::string::npos) name.erase(pos);
+
+                        // Find the dynamic symbol this linker stub branches to.
+                        Symbol *targ_sym = NULL;
+                        if (symbols_.find(name) != symbols_.end())
+                            for (unsigned i = 0; i < symbols_[name].size(); ++i)
+                                if ((symbols_[name])[i]->isInDynSymtab())
+                                    targ_sym = (symbols_[name])[i];
+
+                        // If a corresponding target symbol cannot be found for a
+                        // named linker stub, then ignore it.  We'll find it during
+                        // parsing.
+                        if (!targ_sym) continue;
+
+                        if (iter->second.size() != 1)
+                            continue;
+                        dyn_hash_map<string, Offset>::iterator pltrel_iter = plt_rel_map.find(name);
+                        if (pltrel_iter == plt_rel_map.end())
+                            continue;
+
+                        Symbol *stub_sym = iter->second[0];
+                        relocationEntry re(stub_sym->getOffset(),
+                                           pltrel_iter->second,
+                                           name,
+                                           targ_sym);
+                        fbt_.push_back(re);
                     }
                 }
-                else {
-                    dynsym_list.clear();
-                }
+
+                // 1st plt entry is special.
+                next_plt_entry_addr += plt_entry_size_;
+
+            } else if (getArch() == Dyninst::Arch_aarch64) {
+                next_plt_entry_addr += 2 * plt_entry_size_;
+            } else {
+                next_plt_entry_addr += 4 * (plt_entry_size_); //1st 4 entries are special
+            }
+
+
+            Elf_X_Sym sym = symdata.get_sym();
+            Elf_X_Rel rel = reldata.get_rel();
+            Elf_X_Rela rela = reldata.get_rela();
+            const char *strs = strdata.get_string();
+
+            if (sym.isValid() && (rel.isValid() || rela.isValid()) && strs) {
+
+                // Sometimes, PPC32 Linux may use this loop to update fbt entries.
+                // Should stay -1 for all other platforms.  See notes above.
+                int fbt_iter = -1;
+                if (fbt_.size() > 0 && !fbt_[0].rel_addr() && fbt_[0].name() != "@plt")
+                    fbt_iter = 0;
+
+                for (u_int i = 0; i < (rel_plt_size_ / rel_plt_entry_size_); ++i) {
+                    long offset;
+                    long addend;
+                    long index;
+                    unsigned long type;
+                    Region::RegionType rtype;
+
+                    switch (reldata.d_type()) {
+                        case ELF_T_REL:
+                            offset = rel.r_offset(i);
+                            addend = 0;
+                            index = rel.R_SYM(i);
+                            type = rel.R_TYPE(i);
+                            rtype = Region::RT_REL;
+                            break;
+
+                        case ELF_T_RELA:
+                            offset = rela.r_offset(i);
+                            addend = rela.r_addend(i);
+                            index = rela.R_SYM(i);
+                            type = rela.R_TYPE(i);
+                            rtype = Region::RT_RELA;
+                            break;
+
+                        default:
+                            // We should never reach this case.
+                            return false;
+                    };
+
+                    std::string targ_name = &strs[sym.st_name(index)];
+                    vector<Symbol *> dynsym_list;
+                    if (symbols_.find(targ_name) != symbols_.end()) {
+                        vector<Symbol *> &syms = symbols_[&strs[sym.st_name(index)]];
+                        for (vector<Symbol *>::iterator i = syms.begin(); i != syms.end(); i++) {
+                            if (!(*i)->isInDynSymtab())
+                                continue;
+                            dynsym_list.push_back(*i);
+                        }
+                    } else {
+                        dynsym_list.clear();
+                    }
 
 #if defined(os_vxworks)
                     // VxWorks Kernel Images don't use PLT's, but we'll use the fbt to
@@ -1452,7 +1413,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
                         fbt_.push_back(re);
 
                     } else { // Update existing relocation entry.
-                        while ((unsigned)fbt_iter < fbt_.size() &&
+                        while ((unsigned) fbt_iter < fbt_.size() &&
                                fbt_[fbt_iter].name() == targ_name) {
 
                             fbt_[fbt_iter].setRelAddr(offset);
@@ -1478,8 +1439,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
     return false;
 }
 
-void Object::load_object(bool alloc_syms)
-{
+void Object::load_object(bool alloc_syms) {
     Elf_X_Shdr *bssscnp = 0;
     Elf_X_Shdr *symscnp = 0;
     Elf_X_Shdr *strscnp = 0;
@@ -1522,9 +1482,8 @@ void Object::load_object(bool alloc_syms)
         if (!loaded_elf(txtaddr, dataddr, bssscnp, symscnp, strscnp,
                         stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
                         rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp, dynstr_scnp,
-                        dynamic_scnp, eh_frame_scnp,gcc_except, interp_scnp,
-                        opd_scnp, true))
-        {
+                        dynamic_scnp, eh_frame_scnp, gcc_except, interp_scnp,
+                        opd_scnp, true)) {
             goto cleanup;
         }
 
@@ -1533,10 +1492,8 @@ void Object::load_object(bool alloc_syms)
         // find code and data segments....
         find_code_and_data(*elfHdr, txtaddr, dataddr);
 
-        if (elfHdr->e_type() != ET_REL)
-        {
-            if (!code_ptr_ || !code_len_)
-            {
+        if (elfHdr->e_type() != ET_REL) {
+            if (!code_ptr_ || !code_len_) {
                 //bpfatal( "no text segment\n");
                 goto cleanup;
             }
@@ -1570,8 +1527,7 @@ void Object::load_object(bool alloc_syms)
         struct timeval starttime;
     gettimeofday(&starttime, NULL);
 #endif
-        if (alloc_syms)
-        {
+        if (alloc_syms) {
             // find symbol and string data
 #if defined(os_vxworks)
             // Avoid assigning symbols to DEFAULT_MODULE on VxWorks
@@ -1579,11 +1535,10 @@ void Object::load_object(bool alloc_syms)
 #else
             string module = "DEFAULT_MODULE";
 #endif
-            string name   = "DEFAULT_NAME";
+            string name = "DEFAULT_NAME";
             Elf_X_Data symdata, strdata;
 
-            if (symscnp && strscnp)
-            {
+            if (symscnp && strscnp) {
                 symdata = symscnp->get_data();
                 strdata = strscnp->get_data();
                 parse_symbols(symdata, strdata, bssscnp, symscnp, false, module);
@@ -1601,8 +1556,7 @@ void Object::load_object(bool alloc_syms)
             // DWARF format (.debug_info section)
             fix_global_symbol_modules_static_dwarf();
 
-            if (dynamic_addr_ && dynsym_scnp && dynstr_scnp)
-            {
+            if (dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
                 symdata = dynsym_scnp->get_data();
                 strdata = dynstr_scnp->get_data();
                 parse_dynamicSymbols(dynamic_scnp, symdata, strdata, false, module);
@@ -1628,8 +1582,7 @@ void Object::load_object(bool alloc_syms)
       cout << "parsing/fixing/overriding elf took "<<dursecs <<" msecs" << endl;
 #endif
 
-            if (dynamic_addr_ && dynsym_scnp && dynstr_scnp)
-            {
+            if (dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
                 parseDynamic(dynamic_scnp, dynsym_scnp, dynstr_scnp);
             }
 
@@ -1637,16 +1590,14 @@ void Object::load_object(bool alloc_syms)
             // Load relocations like they are PLT entries.
       // Use the non-dynamic symbol tables.
       if (rel_plt_scnp && symscnp && strscnp) {
-	if (!get_relocation_entries(rel_plt_scnp, symscnp, strscnp))
-	  goto cleanup;
+    if (!get_relocation_entries(rel_plt_scnp, symscnp, strscnp))
+      goto cleanup;
       }
 #endif
 
             // populate "fbt_"
-            if (rel_plt_scnp && dynsym_scnp && dynstr_scnp)
-            {
-                if (!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp))
-                {
+            if (rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
+                if (!get_relocation_entries(rel_plt_scnp, dynsym_scnp, dynstr_scnp)) {
                     goto cleanup;
                 }
             }
@@ -1661,9 +1612,9 @@ void Object::load_object(bool alloc_syms)
 
         if (e_type == ET_DYN) {
             obj_type_ = obj_SharedLib;
-        }else if (e_type == ET_EXEC) {
+        } else if (e_type == ET_EXEC) {
             obj_type_ = obj_Executable;
-        }else if (e_type == ET_REL) {
+        } else if (e_type == ET_REL) {
             obj_type_ = obj_RelocatableFile;
         }
 
@@ -1673,8 +1624,8 @@ void Object::load_object(bool alloc_syms)
         if (opd_scnp) {
             parse_opd(opd_scnp);
         } else if (got_scnp) {
-	    // Add a single global TOC value...
-	}
+            // Add a single global TOC value...
+        }
 
         return;
     } // end binding contour (for "goto cleanup2")
@@ -1688,8 +1639,7 @@ void Object::load_object(bool alloc_syms)
     }
 }
 
-void Object::load_shared_object(bool alloc_syms)
-{
+void Object::load_shared_object(bool alloc_syms) {
     Elf_X_Shdr *bssscnp = 0;
     Elf_X_Shdr *symscnp = 0;
     Elf_X_Shdr *strscnp = 0;
@@ -1751,11 +1701,10 @@ void Object::load_shared_object(bool alloc_syms)
         if (alloc_syms) {
             // build symbol dictionary
             string module = mf->pathname();
-            string name   = "DEFAULT_NAME";
+            string name = "DEFAULT_NAME";
 
             Elf_X_Data symdata, strdata;
-            if (symscnp && strscnp)
-            {
+            if (symscnp && strscnp) {
                 symdata = symscnp->get_data();
                 strdata = strscnp->get_data();
                 if (!symdata.isValid() || !strdata.isValid()) {
@@ -1780,8 +1729,7 @@ void Object::load_shared_object(bool alloc_syms)
             // DWARF format (.debug_info section)
             fix_global_symbol_modules_static_dwarf();
 
-            if (dynamic_addr_ && dynsym_scnp && dynstr_scnp)
-            {
+            if (dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
                 symdata = dynsym_scnp->get_data();
                 strdata = dynstr_scnp->get_data();
                 parse_dynamicSymbols(dynamic_scnp, symdata, strdata, false, module);
@@ -1797,7 +1745,7 @@ void Object::load_shared_object(bool alloc_syms)
       cout << "*INSERT SYMBOLS* elf took "<<dursecs <<" msecs" << endl;
       //cout << "parsing/fixing/overriding/insertion elf took "<<dursecs <<" msecs" << endl;
 #endif
-            if(dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
+            if (dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
                 parseDynamic(dynamic_scnp, dynsym_scnp, dynstr_scnp);
             }
 
@@ -1805,13 +1753,13 @@ void Object::load_shared_object(bool alloc_syms)
             // Load relocations like they are PLT entries.
       // Use the non-dynamic symbol tables.
       if (rel_plt_scnp && symscnp && strscnp) {
-	if (!get_relocation_entries(rel_plt_scnp, symscnp, strscnp))
-	  goto cleanup2;
+    if (!get_relocation_entries(rel_plt_scnp, symscnp, strscnp))
+      goto cleanup2;
       }
 #endif
 
             if (rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
-                if (!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) {
+                if (!get_relocation_entries(rel_plt_scnp, dynsym_scnp, dynstr_scnp)) {
                     goto cleanup2;
                 }
             }
@@ -1826,10 +1774,9 @@ void Object::load_shared_object(bool alloc_syms)
         int e_type = elfHdr->e_type();
         if (e_type == ET_DYN) {
             obj_type_ = obj_SharedLib;
-        }
-        else if (e_type == ET_EXEC) {
+        } else if (e_type == ET_EXEC) {
             obj_type_ = obj_Executable;
-        }else if( e_type == ET_REL ) {
+        } else if (e_type == ET_REL) {
             obj_type_ = obj_RelocatableFile;
         }
 
@@ -1848,42 +1795,55 @@ void Object::load_shared_object(bool alloc_syms)
     }
 }
 
-static Symbol::SymbolType pdelf_type(int elf_type)
-{
+static Symbol::SymbolType pdelf_type(int elf_type) {
     switch (elf_type) {
-        case STT_FILE:   return Symbol::ST_MODULE;
-        case STT_SECTION:return Symbol::ST_SECTION;
-        case STT_OBJECT: return Symbol::ST_OBJECT;
-        case STT_TLS:    return Symbol::ST_TLS;
-        case STT_FUNC:   return Symbol::ST_FUNCTION;
-        case STT_NOTYPE: return Symbol::ST_NOTYPE;
+        case STT_FILE:
+            return Symbol::ST_MODULE;
+        case STT_SECTION:
+            return Symbol::ST_SECTION;
+        case STT_OBJECT:
+            return Symbol::ST_OBJECT;
+        case STT_TLS:
+            return Symbol::ST_TLS;
+        case STT_FUNC:
+            return Symbol::ST_FUNCTION;
+        case STT_NOTYPE:
+            return Symbol::ST_NOTYPE;
 #if defined(STT_GNU_IFUNC)
-        case STT_GNU_IFUNC: return Symbol::ST_INDIRECT;
+        case STT_GNU_IFUNC:
+            return Symbol::ST_INDIRECT;
 #endif
-        default: return Symbol::ST_UNKNOWN;
+        default:
+            return Symbol::ST_UNKNOWN;
     }
 }
 
-static Symbol::SymbolLinkage pdelf_linkage(int elf_binding)
-{
+static Symbol::SymbolLinkage pdelf_linkage(int elf_binding) {
     switch (elf_binding) {
-        case STB_LOCAL:  return Symbol::SL_LOCAL;
-        case STB_WEAK:   return Symbol::SL_WEAK;
-        case STB_GLOBAL: return Symbol::SL_GLOBAL;
-#if defined(STB_GNU_UNIQUE)        
-        case STB_GNU_UNIQUE: return Symbol::SL_UNIQUE;
+        case STB_LOCAL:
+            return Symbol::SL_LOCAL;
+        case STB_WEAK:
+            return Symbol::SL_WEAK;
+        case STB_GLOBAL:
+            return Symbol::SL_GLOBAL;
+#if defined(STB_GNU_UNIQUE)
+        case STB_GNU_UNIQUE:
+            return Symbol::SL_UNIQUE;
 #endif
     }
     return Symbol::SL_UNKNOWN;
 }
 
-static Symbol::SymbolVisibility pdelf_visibility(int elf_visibility)
-{
+static Symbol::SymbolVisibility pdelf_visibility(int elf_visibility) {
     switch (elf_visibility) {
-        case STV_DEFAULT:    return Symbol::SV_DEFAULT;
-        case STV_INTERNAL:   return Symbol::SV_INTERNAL;
-        case STV_HIDDEN:     return Symbol::SV_HIDDEN;
-        case STV_PROTECTED:  return Symbol::SV_PROTECTED;
+        case STV_DEFAULT:
+            return Symbol::SV_DEFAULT;
+        case STV_INTERNAL:
+            return Symbol::SV_INTERNAL;
+        case STV_HIDDEN:
+            return Symbol::SV_HIDDEN;
+        case STV_PROTECTED:
+            return Symbol::SV_PROTECTED;
     }
     return Symbol::SV_UNKNOWN;
 }
@@ -1897,24 +1857,18 @@ static Symbol::SymbolVisibility pdelf_visibility(int elf_visibility)
 //#include "dyninstAPI/src/rpcMgr.h"
 
 //linear search
-bool lookUpSymbol( std::vector< Symbol *>& allsymbols, Offset& addr )
-{
-    for( unsigned i = 0; i < allsymbols.size(); i++ )
-    {
-        if( allsymbols[ i ]->getOffset() == addr )
-        {
+bool lookUpSymbol(std::vector<Symbol *> &allsymbols, Offset &addr) {
+    for (unsigned i = 0; i < allsymbols.size(); i++) {
+        if (allsymbols[i]->getOffset() == addr) {
             return true;
         }
     }
     return false;
 }
 
-bool lookUpAddress( std::vector< Offset >& jumpTargets, Offset& addr )
-{
-    for( unsigned i = 0; i < jumpTargets.size(); i++ )
-    {
-        if( jumpTargets[ i ] == addr )
-        {
+bool lookUpAddress(std::vector<Offset> &jumpTargets, Offset &addr) {
+    for (unsigned i = 0; i < jumpTargets.size(); i++) {
+        if (jumpTargets[i] == addr) {
             return true;
         }
     }
@@ -1922,15 +1876,12 @@ bool lookUpAddress( std::vector< Offset >& jumpTargets, Offset& addr )
 }
 
 //utitility function to print std::vector of symbols
-void printSyms( std::vector< Symbol *>& allsymbols )
-{
-    for( unsigned i = 0; i < allsymbols.size(); i++ )
-    {
-        if( allsymbols[ i ]->getType() != Symbol::ST_FUNCTION )
-        {
+void printSyms(std::vector<Symbol *> &allsymbols) {
+    for (unsigned i = 0; i < allsymbols.size(); i++) {
+        if (allsymbols[i]->getType() != Symbol::ST_FUNCTION) {
             continue;
         }
-        cout << allsymbols[ i ] << endl;
+        cout << allsymbols[i] << endl;
     }
 }
 
@@ -1954,13 +1905,13 @@ void printSyms( std::vector< Symbol *>& allsymbols )
 
 void Object::parse_opd(Elf_X_Shdr *opd_hdr) {
     // If the OPD is filled in, parse it and fill in our TOC table
-    if(!opd_hdr) return;
+    if (!opd_hdr) return;
 
     Elf_X_Data data = opd_hdr->get_data();
-    if(!(data.isValid())) return;
+    if (!(data.isValid())) return;
 
     // Let's read this puppy
-    unsigned long *buf = (unsigned long *)data.d_buf();
+    unsigned long *buf = (unsigned long *) data.d_buf();
     // In some cases, the OPD is a set of 3-tuples: <func offset, TOC, environment ptr>.
     // In others, it's a set of 2-tuples. Since we can't tell the difference, we
     // instead look for function offsets.
@@ -1977,7 +1928,7 @@ void Object::parse_opd(Elf_X_Shdr *opd_hdr) {
     unsigned i = 0;
     while (i < (data.d_size() / sizeof(unsigned long))) {
         Offset func = buf[i];
-        Offset toc = buf[i+1];
+        Offset toc = buf[i + 1];
 
         if (func == 0 && i != 0) break;
 
@@ -2028,14 +1979,13 @@ void Object::handle_opd_relocations(){
     opdsymbols_.clear();
 }
 
-Symbol *Object::handle_opd_symbol(Region *opd, Symbol *sym)
-{
+Symbol *Object::handle_opd_symbol(Region *opd, Symbol *sym) {
     if (!sym) return NULL;
 
     Offset soffset = sym->getOffset();
-    if(!opd->isOffsetInRegion(soffset)) return NULL;  // Symbol must be in .opd section.
+    if (!opd->isOffsetInRegion(soffset)) return NULL;  // Symbol must be in .opd section.
 
-    Offset* opd_entry = (Offset*)opd->getPtrToRawData();
+    Offset *opd_entry = (Offset *) opd->getPtrToRawData();
     opd_entry += (soffset - opd->getDiskOffset()) / sizeof(Offset); // table of offsets;
     Symbol *retval = new Symbol(*sym); // Copy the .opd symbol.
     retval->setOffset(opd_entry[0]);   // Store code address for the function.
@@ -2063,10 +2013,9 @@ Symbol *Object::handle_opd_symbol(Region *opd, Symbol *sym)
 
 // parse_symbols(): populate "allsymbols"
 bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
-                           Elf_X_Shdr* bssscnp,
-                           Elf_X_Shdr* symscnp,
-                           bool /*shared*/, string smodule)
-{
+                           Elf_X_Shdr *bssscnp,
+                           Elf_X_Shdr *symscnp,
+                           bool /*shared*/, string smodule) {
 #if defined(TIMED_PARSE)
     struct timeval starttime;
   gettimeofday(&starttime, NULL);
@@ -2078,7 +2027,7 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
 
     Elf_X_Sym syms = symdata.get_sym();
     const char *strs = strdata.get_string();
-    if(syms.isValid()){
+    if (syms.isValid()) {
         for (unsigned i = 0; i < syms.count(); i++) {
             //If it is not a dynamic executable then we need undefined symbols
             //in symtab section so that we can resolve symbol references. So
@@ -2092,7 +2041,7 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
             int evisibility = syms.ST_VISIBILITY(i);
 
             // resolve symbol elements
-            string sname = &strs[ syms.st_name(i) ];
+            string sname = &strs[syms.st_name(i)];
             Symbol::SymbolType stype = pdelf_type(etype);
             Symbol::SymbolLinkage slinkage = pdelf_linkage(ebinding);
             Symbol::SymbolVisibility svisibility = pdelf_visibility(evisibility);
@@ -2110,8 +2059,7 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                         continue;
                     }
                 }
-            }
-            else {
+            } else {
                 soffset = syms.st_value(i);
             }
 
@@ -2122,30 +2070,29 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
       */
             if (bssscnp) {
                 Offset bssStart = Offset(bssscnp->sh_addr());
-                Offset bssEnd = Offset (bssStart + bssscnp->sh_size()) ;
+                Offset bssEnd = Offset(bssStart + bssscnp->sh_size());
 
-                if(( bssStart <= soffset) && ( soffset < bssEnd ) && (ssize > 0) &&
-                   (stype == Symbol::ST_NOTYPE))
-                {
+                if ((bssStart <= soffset) && (soffset < bssEnd) && (ssize > 0) &&
+                    (stype == Symbol::ST_NOTYPE)) {
                     stype = Symbol::ST_OBJECT;
                 }
             }
 
             // discard "dummy" symbol at beginning of file
-            if (i==0 && sname == "" && soffset == (Offset)0)
+            if (i == 0 && sname == "" && soffset == (Offset) 0)
                 continue;
 
 
             Region *sec;
-            if(secNumber >= 1 && secNumber < regions_.size()) {
+            if (secNumber >= 1 && secNumber < regions_.size()) {
                 sec = regions_[secNumber];
             } else {
                 sec = NULL;
             }
-            int ind = int (i);
+            int ind = int(i);
             int strindex = syms.st_name(i);
 
-            if(stype == Symbol::ST_SECTION && sec != NULL) {
+            if (stype == Symbol::ST_SECTION && sec != NULL) {
                 sname = sec->getRegionName();
                 soffset = sec->getDiskOffset();
             }
@@ -2170,7 +2117,7 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
             if (stype == Symbol::ST_UNKNOWN)
                 newsym->setInternalType(etype);
 
-            if (sec && sec->getRegionName() == OPD_NAME && stype == Symbol::ST_FUNCTION ) {
+            if (sec && sec->getRegionName() == OPD_NAME && stype == Symbol::ST_FUNCTION) {
                 newsym = handle_opd_symbol(sec, newsym);
 
                 opdsymbols_.push_back(newsym);
@@ -2201,13 +2148,11 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
 // Lazy parsing of dynamic symbol  & string tables
 // Parsing the dynamic symbols lazily would certainly
 // not increase the overhead of the entire parse
-void Object::parse_dynamicSymbols (Elf_X_Shdr *&
-dyn_scnp
-        , Elf_X_Data &symdata,
-                                   Elf_X_Data &strdata,
-                                   bool /*shared*/,
-                                   std::string smodule)
-{
+void Object::parse_dynamicSymbols(Elf_X_Shdr *&
+dyn_scnp, Elf_X_Data &symdata,
+                                  Elf_X_Data &strdata,
+                                  bool /*shared*/,
+                                  std::string smodule) {
 #if defined(TIMED_PARSE)
     struct timeval starttime;
   gettimeofday(&starttime, NULL);
@@ -2223,7 +2168,7 @@ dyn_scnp
     Elf_X_Verdef *symVersionDefs = NULL;
     Elf_X_Verneed *symVersionNeeds = NULL;
     for (unsigned i = 0; i < dyns.count(); ++i) {
-        switch(dyns.d_tag(i)) {
+        switch (dyns.d_tag(i)) {
             case DT_NEEDED:
                 deps_.push_back(&strs[dyns.d_ptr(i)]);
                 break;
@@ -2248,16 +2193,16 @@ dyn_scnp
                 break;
         }
     }
-    if(versymSec)
+    if (versymSec)
         symVersions = versymSec->get_data().get_versyms();
-    if(verdefSec)
+    if (verdefSec)
         symVersionDefs = verdefSec->get_data().get_verDefSym();
-    if(verneedSec)
+    if (verneedSec)
         symVersionNeeds = verneedSec->get_data().get_verNeedSym();
 
-    for(unsigned i = 0; i < verdefnum ;i++) {
+    for (unsigned i = 0; i < verdefnum; i++) {
         Elf_X_Verdaux *aux = symVersionDefs->get_aux();
-        for(unsigned j=0; j< symVersionDefs->vd_cnt(); j++){
+        for (unsigned j = 0; j < symVersionDefs->vd_cnt(); j++) {
             versionMapping[symVersionDefs->vd_ndx()].push_back(&strs[aux->vda_name()]);
             Elf_X_Verdaux *auxnext = aux->get_next();
             delete aux;
@@ -2268,9 +2213,9 @@ dyn_scnp
         symVersionDefs = symVersionDefsnext;
     }
 
-    for(unsigned i = 0; i < verneednum; i++){
+    for (unsigned i = 0; i < verneednum; i++) {
         Elf_X_Vernaux *aux = symVersionNeeds->get_aux();
-        for(unsigned j=0; j< symVersionNeeds->vn_cnt(); j++){
+        for (unsigned j = 0; j < symVersionNeeds->vn_cnt(); j++) {
             versionMapping[aux->vna_other()].push_back(&strs[aux->vna_name()]);
             versionFileNameMapping[aux->vna_other()] = &strs[symVersionNeeds->vn_file()];
             Elf_X_Vernaux *auxnext = aux->get_next();
@@ -2282,14 +2227,14 @@ dyn_scnp
         symVersionNeeds = symVersionNeedsnext;
     }
 
-    if(syms.isValid()) {
+    if (syms.isValid()) {
         for (unsigned i = 0; i < syms.count(); i++) {
             int etype = syms.ST_TYPE(i);
             int ebinding = syms.ST_BIND(i);
             int evisibility = syms.ST_VISIBILITY(i);
 
             // resolve symbol elements
-            string sname = &strs[ syms.st_name(i) ];
+            string sname = &strs[syms.st_name(i)];
             Symbol::SymbolType stype = pdelf_type(etype);
             Symbol::SymbolLinkage slinkage = pdelf_linkage(ebinding);
             Symbol::SymbolVisibility svisibility = pdelf_visibility(evisibility);
@@ -2298,17 +2243,17 @@ dyn_scnp
             unsigned secNumber = syms.st_shndx(i);
 
             // discard "dummy" symbol at beginning of file
-            if (i==0 && sname == "" && soffset == 0)
+            if (i == 0 && sname == "" && soffset == 0)
                 continue;
 
             Region *sec;
-            if(secNumber >= 1 && secNumber < regions_.size()) {
+            if (secNumber >= 1 && secNumber < regions_.size()) {
                 sec = regions_[secNumber];
             } else {
                 sec = NULL;
             }
 
-            int ind = int (i);
+            int ind = int(i);
             int strindex = syms.st_name(i);
 
             if (stype == Symbol::ST_MODULE) {
@@ -2332,16 +2277,16 @@ dyn_scnp
             if (stype == Symbol::ST_UNKNOWN)
                 newsym->setInternalType(etype);
 
-            if(versymSec) {
+            if (versymSec) {
                 unsigned short raw = symVersions.get(i);
                 bool hidden = raw >> 15;
                 int index = raw & 0x7fff;
-                if(versionFileNameMapping.find(index) != versionFileNameMapping.end()) {
+                if (versionFileNameMapping.find(index) != versionFileNameMapping.end()) {
                     //printf("version filename for %s: %s\n", sname.c_str(),
                     //versionFileNameMapping[index].c_str());
                     newsym->setVersionFileName(versionFileNameMapping[index]);
                 }
-                if(versionMapping.find(index) != versionMapping.end()) {
+                if (versionMapping.find(index) != versionMapping.end()) {
                     //printf("versions for %s: ", sname.c_str());
                     //for (unsigned k=0; k < versionMapping[index].size(); k++)
                     //printf(" %s", versionMapping[index][k].c_str());
@@ -2354,7 +2299,7 @@ dyn_scnp
             }
             // register symbol in dictionary
 
-            if (sec && sec->getRegionName() == OPD_NAME && stype == Symbol::ST_FUNCTION ) {
+            if (sec && sec->getRegionName() == OPD_NAME && stype == Symbol::ST_FUNCTION) {
                 newsym = handle_opd_symbol(sec, newsym);
                 opdsymbols_.push_back(newsym);
 
@@ -2382,21 +2327,20 @@ dyn_scnp
 
 #if defined(cap_dwarf)
 
-string Object::find_symbol(string name)
-{
+string Object::find_symbol(string name) {
     string name2;
 
     // pass #1: unmodified
     name2 = name;
-    if (symbols_.find(name2)!=symbols_.end()) return name2;
+    if (symbols_.find(name2) != symbols_.end()) return name2;
 
     // pass #2: leading underscore (C)
     name2 = "_" + name;
-    if (symbols_.find(name2)!=symbols_.end()) return name2;
+    if (symbols_.find(name2) != symbols_.end()) return name2;
 
     // pass #3: trailing underscore (Fortran)
     name2 = name + "_";
-    if (symbols_.find(name2)!=symbols_.end())
+    if (symbols_.find(name2) != symbols_.end())
         return name2;
 
     return "";
@@ -2477,8 +2421,7 @@ bool Object::dwarf_parse_aranges(Dwarf_Debug dbg, std::set<Dwarf_Off>& dies_seen
     return true;
 }
 
-bool Object::fix_global_symbol_modules_static_dwarf()
-{
+bool Object::fix_global_symbol_modules_static_dwarf() {
     /* Initialize libdwarf. */
     Dwarf_Debug *dbg_ptr = dwarf->type_dbg();
     if (!dbg_ptr)
@@ -2579,8 +2522,7 @@ bool Object::fix_global_symbol_modules_static_dwarf()
  *
  ********************************************************/
 
-bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_Shdr* stabstrscnp)
-{
+bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr *stabscnp, Elf_X_Shdr *stabstrscnp) {
     // Read the stab section to find the module of global symbols.
     // The symbols appear in the stab section by module. A module begins
     // with a symbol of type N_UNDF and ends with a symbol of type N_ENDM.
@@ -2594,8 +2536,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
 
     if (!stabdata.isValid() || !stabstrdata.isValid()) return false;
 
-    switch (addressWidth_nbytes)
-    {
+    switch (addressWidth_nbytes) {
         case 4:
             stabptr = new stab_entry_32(stabdata.d_buf(),
                                         stabstrdata.get_string(),
@@ -2618,10 +2559,8 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
 
     bool is_fortran = false;  // is the current module fortran code?
 
-    for (unsigned i = 0; i < stabptr->count(); i++)
-    {
-        switch(stabptr->type(i))
-        {
+    for (unsigned i = 0; i < stabptr->count(); i++) {
+        switch (stabptr->type(i)) {
             case N_UNDF: /* start of object file */
                 stabptr->setStringBase(next_stabstr);
                 next_stabstr = stabptr->getStringBase() + stabptr->val(i);
@@ -2650,32 +2589,27 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
                 // bperr("got %d type, str = %s\n", stabptr->type(i), p);
                 // if (stabptr->type(i) == N_FUN && strlen(p) == 0) {
 
-                if (strlen(p) == 0)
-                {
+                if (strlen(p) == 0) {
                     // GNU CC 2.8 and higher associate a null-named function
                     // entry with the end of a function.  Just skip it.
                     break;
                 }
 
-                const char *q = strchr(p,':');
+                const char *q = strchr(p, ':');
                 unsigned len;
 
-                if (q)
-                {
+                if (q) {
                     len = q - p;
-                }
-                else
-                {
+                } else {
                     len = strlen(p);
                 }
 
-                if (len == 0)
-                {
+                if (len == 0) {
                     // symbol name is empty.Skip it.- 02/12/07 -Giri
                     break;
                 }
 
-                char *sname = new char[len+1];
+                char *sname = new char[len + 1];
                 strncpy(sname, p, len);
                 sname[len] = 0;
 
@@ -2685,33 +2619,26 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
                 // q[1] is the symbol descriptor. We must check the symbol descriptor
                 // here to skip things we are not interested in, such as prototypes.
 
-                bool res = (symbols_.find(SymName)!=symbols_.end());
+                bool res = (symbols_.find(SymName) != symbols_.end());
 
-                if (!res && is_fortran)
-                {
+                if (!res && is_fortran) {
                     // Fortran symbols usually appear with an '_' appended in .symtab,
                     // but not on .stab
                     SymName += "_";
-                    res = (symbols_.find(SymName)!=symbols_.end());
+                    res = (symbols_.find(SymName) != symbols_.end());
                 }
 
-                if (res && (q == 0 || q[1] != SD_PROTOTYPE))
-                {
+                if (res && (q == 0 || q[1] != SD_PROTOTYPE)) {
                     unsigned int count = 0;
-                    std::vector< Symbol *> & syms = symbols_[SymName];
+                    std::vector<Symbol *> &syms = symbols_[SymName];
 
                     /* If there's only one, apply regardless. */
-                    if ( syms.size() == 1 )
-                    {
+                    if (syms.size() == 1) {
                         // TODO: set module
                         //		    symbols_[SymName][0]->setModuleName(module);
-                    }
-                    else
-                    {
-                        for ( unsigned int i = 0; i < syms.size(); i++ )
-                        {
-                            if ( syms[i]->getLinkage() == Symbol::SL_GLOBAL )
-                            {
+                    } else {
+                        for (unsigned int i = 0; i < syms.size(); i++) {
+                            if (syms[i]->getLinkage() == Symbol::SL_GLOBAL) {
                                 // TODO: set module
                                 //			    symbols_[SymName][i]->setModuleName(module);
                                 count++;
@@ -2726,46 +2653,41 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
             {
                 const char *p = stabptr->name(i);
 
-                if (strlen(p) == 0)
-                {
+                if (strlen(p) == 0) {
                     // Rumours are that GNU CC 2.8 and higher associate a
                     // null-named function entry with the end of a
                     // function. Just skip it.
                     break;
                 }
 
-                const char *q = strchr(p,':');
+                const char *q = strchr(p, ':');
 
-                if (q == 0)
-                {
+                if (q == 0) {
                     // bperr( "Unrecognized stab format: %s\n", p);
                     // Happens with the Solaris native compiler (.xstabs entries?)
                     break;
                 }
 
-                if (q[1] == SD_PROTOTYPE)
-                {
+                if (q[1] == SD_PROTOTYPE) {
                     // We see a prototype, skip it
                     break;
                 }
 
                 unsigned long entryAddr = stabptr->val(i);
 
-                if (entryAddr == 0)
-                {
+                if (entryAddr == 0) {
                     // The function stab doesn't contain a function address
                     // (happens with the Solaris native compiler). We have to
                     // look up the symbol by its name. That's unfortunate, since
                     // names may not be unique and we may end up assigning a wrong
                     // module name to the symbol.
                     unsigned len = q - p;
-                    if (len == 0)
-                    {
+                    if (len == 0) {
                         // symbol name is empty.Skip it.- 02/12/07 -Giri
                         break;
                     }
 
-                    char *sname = new char[len+1];
+                    char *sname = new char[len + 1];
                     strncpy(sname, p, len);
                     sname[len] = 0;
                     string nameFromStab = string(sname);
@@ -2774,10 +2696,8 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
                     for (unsigned i = 0; i < symbols_[nameFromStab].size(); i++) {
                         symsToModules_[symbols_[nameFromStab][i]] = module;
                     }
-                }
-                else
-                {
-                    if (symsByOffset_.find(entryAddr)==symsByOffset_.end()) {
+                } else {
+                    if (symsByOffset_.find(entryAddr) == symsByOffset_.end()) {
                         //bperr( "fix_global_symbol_modules_static_stab "
                         //	   "can't find address 0x%lx of STABS entry %s\n", entryAddr, p);
                         break;
@@ -2806,8 +2726,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
 //   data_ptr_, data_off_, data_len_
 void Object::find_code_and_data(Elf_X &elf,
                                 Offset txtaddr,
-                                Offset dataddr)
-{
+                                Offset dataddr) {
     /* Note:
    * .o's don't have program headers, so these fields are populated earlier
    * when the sections are processed -> see loaded_elf()
@@ -2816,7 +2735,7 @@ void Object::find_code_and_data(Elf_X &elf,
     for (int i = 0; i < elf.e_phnum(); ++i) {
         Elf_X_Phdr &phdr = elf.get_phdr(i);
 
-        char *file_ptr = (char *)mf->base_addr();
+        char *file_ptr = (char *) mf->base_addr();
         /*
       if(!isRegionPresent(phdr.p_paddr(), phdr.p_filesz(), phdr.p_flags())) {
       Region *reg = new Region(i, "", phdr.p_paddr(), phdr.p_filesz(),
@@ -2837,42 +2756,40 @@ void Object::find_code_and_data(Elf_X &elf,
                           (phdr.p_vaddr() + phdr.p_filesz() >= entryAddress_)))) {
 
             if (code_ptr_ == 0 && code_off_ == 0 && code_len_ == 0) {
-                code_ptr_ = (char *)(void*)&file_ptr[phdr.p_offset()];
-                code_off_ = (Offset)phdr.p_vaddr();
-                code_len_ = (unsigned)phdr.p_filesz();
+                code_ptr_ = (char *) (void *) &file_ptr[phdr.p_offset()];
+                code_off_ = (Offset) phdr.p_vaddr();
+                code_len_ = (unsigned) phdr.p_filesz();
             }
 
         } else if (((phdr.p_vaddr() <= dataddr) &&
                     (phdr.p_vaddr() + phdr.p_filesz() >= dataddr)) ||
                    (!dataddr && (phdr.p_type() == PT_LOAD))) {
             if (data_ptr_ == 0 && data_off_ == 0 && data_len_ == 0) {
-                data_ptr_ = (char *)(void *)&file_ptr[phdr.p_offset()];
-                data_off_ = (Offset)phdr.p_vaddr();
-                data_len_ = (unsigned)phdr.p_filesz();
+                data_ptr_ = (char *) (void *) &file_ptr[phdr.p_offset()];
+                data_off_ = (Offset) phdr.p_vaddr();
+                data_len_ = (unsigned) phdr.p_filesz();
             }
         }
     }
     //if (addressWidth_nbytes == 8) bperr( ">>> 64-bit find_code_and_data() successful\n");
 }
 
-const char *Object::elf_vaddr_to_ptr(Offset vaddr) const
-{
+const char *Object::elf_vaddr_to_ptr(Offset vaddr) const {
     const char *ret = NULL;
     unsigned code_size_ = code_len_;
     unsigned data_size_ = data_len_;
 
     if (vaddr >= code_off_ && vaddr < code_off_ + code_size_) {
-        ret = ((char *)code_ptr_) + (vaddr - code_off_);
+        ret = ((char *) code_ptr_) + (vaddr - code_off_);
     } else if (vaddr >= data_off_ && vaddr < data_off_ + data_size_) {
-        ret = ((char *)data_ptr_) + (vaddr - data_off_);
+        ret = ((char *) data_ptr_) + (vaddr - data_off_);
     }
 
     return ret;
 }
 
-stab_entry *Object::get_stab_info() const
-{
-    char *file_ptr = (char *)mf->base_addr();
+stab_entry *Object::get_stab_info() const {
+    char *file_ptr = (char *) mf->base_addr();
 
     // check that file has .stab info
     if (stab_off_ && stab_size_ && stabstr_off_) {
@@ -2894,7 +2811,7 @@ stab_entry *Object::get_stab_info() const
 }
 
 Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
-               bool alloc_syms, Symtab* st) :
+               bool alloc_syms, Symtab *st) :
         AObject(mf_, err_func, st),
         elfHdr(NULL),
         hasReldyn_(false),
@@ -2925,8 +2842,7 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
         EEL(false), did_open(false),
         obj_type_(obj_Unknown),
         DbgSectionMapSorted(false),
-        soname_(NULL)
-{
+        soname_(NULL) {
 
 #if defined(TIMED_PARSE)
     struct timeval starttime;
@@ -2934,40 +2850,36 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
 #endif
     is_aout_ = false;
 
-    if(mf->getFD() != -1) {
+    if (mf->getFD() != -1) {
         elfHdr = Elf_X::newElf_X(mf->getFD(), ELF_C_READ, NULL, mf_->pathname());
-    }
-    else {
-        elfHdr = Elf_X::newElf_X((char *)mf->base_addr(), mf->size(), mf_->pathname());
+    } else {
+        elfHdr = Elf_X::newElf_X((char *) mf->base_addr(), mf->size(), mf_->pathname());
     }
 
     // ELF header: sanity check
     //if (!elfHdr->isValid()|| !pdelf_check_ehdr(elfHdr))
-    if (!elfHdr->isValid())  {
+    if (!elfHdr->isValid()) {
         log_elferror(err_func_, "ELF header");
         has_error = true;
         return;
-    }
-    else if (!pdelf_check_ehdr(*elfHdr)) {
+    } else if (!pdelf_check_ehdr(*elfHdr)) {
         log_elferror(err_func_, "ELF header failed integrity check");
         has_error = true;
         return;
     }
 
     dwarf = DwarfHandle::createDwarfHandle(mf_->pathname(), elfHdr);
-    if( elfHdr->e_type() == ET_DYN ) {
+    if (elfHdr->e_type() == ET_DYN) {
 //        load_shared_object(alloc_syms);
-            load_object(alloc_syms);
-    }
-    else if( elfHdr->e_type() == ET_REL || elfHdr->e_type() == ET_EXEC ) {
+        load_object(alloc_syms);
+    } else if (elfHdr->e_type() == ET_REL || elfHdr->e_type() == ET_EXEC) {
         // Differentiate between an executable and an object file
-        if( elfHdr->e_phnum() ) is_aout_ = true;
+        if (elfHdr->e_phnum()) is_aout_ = true;
         else is_aout_ = false;
 
         load_object(alloc_syms);
-    }
-    else {
-        log_perror(err_func_,"Invalid filetype in Elf header");
+    } else {
+        log_perror(err_func_, "Invalid filetype in Elf header");
         has_error = true;
         return;
     }
@@ -2986,8 +2898,7 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
 #endif
 }
 
-Object::~Object()
-{
+Object::~Object() {
     relocation_table_.clear();
     fbt_.clear();
     allRegionHdrs.clear();
@@ -2996,36 +2907,32 @@ Object::~Object()
     deps_.clear();
 }
 
-void Object::log_elferror(void (*err_func)(const char *), const char* msg)
-{
-    const char* err = elf_errmsg(elf_errno());
-    err = err ? err: "(bad elf error)";
-    string str = string(err)+string(msg);
+void Object::log_elferror(void (*err_func)(const char *), const char *msg) {
+    const char *err = elf_errmsg(elf_errno());
+    err = err ? err : "(bad elf error)";
+    string str = string(err) + string(msg);
     err_func(str.c_str());
 }
 
-bool Object::get_func_binding_table(std::vector<relocationEntry> &fbt) const
-{
+bool Object::get_func_binding_table(std::vector<relocationEntry> &fbt) const {
 #if !defined(os_vxworks)
-    if(!plt_addr_ || (!fbt_.size())) return false;
+    if (!plt_addr_ || (!fbt_.size())) return false;
 #endif
     fbt = fbt_;
     return true;
 }
 
-bool Object::get_func_binding_table_ptr(const std::vector<relocationEntry> *&fbt) const
-{
-    if(!plt_addr_ || (!fbt_.size())) return false;
+bool Object::get_func_binding_table_ptr(const std::vector<relocationEntry> *&fbt) const {
+    if (!plt_addr_ || (!fbt_.size())) return false;
     fbt = &fbt_;
     return true;
 }
 
-void Object::getDependencies(std::vector<std::string> &deps){
+void Object::getDependencies(std::vector<std::string> &deps) {
     deps = deps_;
 }
 
-bool Object::addRelocationEntry(relocationEntry &re)
-{
+bool Object::addRelocationEntry(relocationEntry &re) {
     relocation_table_.push_back(re);
     return true;
 }
@@ -3070,14 +2977,13 @@ const ostream &Object::dump_state_info(ostream &s)
 #endif
 
 
-Offset Object::getPltSlot(string funcName) const
-{
+Offset Object::getPltSlot(string funcName) const {
     relocationEntry re;
-    Offset offset=0;
+    Offset offset = 0;
 
-    for ( unsigned int i = 0; i < fbt_.size(); i++ ){
-        if (funcName == fbt_[i].name() ){
-            offset =  fbt_[i].rel_addr();
+    for (unsigned int i = 0; i < fbt_.size(); i++) {
+        if (funcName == fbt_[i].name()) {
+            offset = fbt_[i].rel_addr();
         }
     }
 
@@ -3089,11 +2995,10 @@ Offset Object::getPltSlot(string funcName) const
 //                       sections mapped to them
 //
 
-void Object::get_valid_memory_areas(Elf_X &elf)
-{
+void Object::get_valid_memory_areas(Elf_X &elf) {
     for (unsigned i = 0; i < elf.e_shnum(); ++i) {
         Elf_X_Shdr &shdr = elf.get_shdr(i);
-        if ( !shdr.isValid()) {
+        if (!shdr.isValid()) {
             break;
         }
         if (shdr.sh_flags() & SHF_ALLOC) { // This section is in memory
@@ -3121,17 +3026,18 @@ void Object::get_valid_memory_areas(Elf_X &elf)
 //
 //
 #if defined(os_linux)
+
 // Differentiating between g++ and pgCC by stabs info (as in the solaris/
 // aix case, below) will not work; the gcc-compiled object files that
 // get included at link time will fill in the N_OPT stabs line. Instead,
 // look for "pgCC_compiled." symbols.
-bool parseCompilerType(Object *objPtr)
-{
-    dyn_hash_map<string, std::vector<Symbol *> >*syms = objPtr->getAllSymbols();
-    if(syms->find("pgCC_compiled.") != syms->end())
+bool parseCompilerType(Object *objPtr) {
+    dyn_hash_map<string, std::vector<Symbol *> > *syms = objPtr->getAllSymbols();
+    if (syms->find("pgCC_compiled.") != syms->end())
         return true;
     return false;
 }
+
 #else
 bool parseCompilerType(Object *objPtr)
 {
@@ -3162,13 +3068,11 @@ bool parseCompilerType(Object *objPtr)
 
 #if (defined(os_linux) || defined(os_freebsd))
 
-static unsigned long read_uleb128(const unsigned char *data, unsigned *bytes_read)
-{
+static unsigned long read_uleb128(const unsigned char *data, unsigned *bytes_read) {
     unsigned long result = 0;
     unsigned shift = 0;
     *bytes_read = 0;
-    while (1)
-    {
+    while (1) {
         result |= (data[*bytes_read] & 0x7f) << shift;
         if ((data[(*bytes_read)++] & 0x80) == 0)
             break;
@@ -3177,13 +3081,11 @@ static unsigned long read_uleb128(const unsigned char *data, unsigned *bytes_rea
     return result;
 }
 
-static signed long read_sleb128(const unsigned char *data, unsigned *bytes_read)
-{
+static signed long read_sleb128(const unsigned char *data, unsigned *bytes_read) {
     unsigned long result = 0;
     unsigned shift = 0;
     *bytes_read = 0;
-    while (1)
-    {
+    while (1) {
         result |= (data[*bytes_read] & 0x7f) << shift;
         shift += 7;
         if ((data[*bytes_read] & 0x80) == 0)
@@ -3223,8 +3125,7 @@ typedef struct {
 } mach_relative_info;
 
 static int read_val_of_type(int type, unsigned long *value, const unsigned char *addr,
-                            const mach_relative_info &mi)
-{
+                            const mach_relative_info &mi) {
     unsigned size = 0;
     if (type == DW_EH_PE_omit)
         return 0;
@@ -3236,8 +3137,7 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
    * and I'm finding the upper bit seems to sometimes contain garbage.
    * gcc uses the 0x70 bits in its exception parsing, so that's what we'll do.
    **/
-    switch (type & 0x70)
-    {
+    switch (type & 0x70) {
         case DW_EH_PE_pcrel:
             base = mi.pc;
             break;
@@ -3252,25 +3152,21 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
             break;
     }
 
-    if ((type & 0x70) == DW_EH_PE_aligned)
-    {
+    if ((type & 0x70) == DW_EH_PE_aligned) {
         if (mi.word_size == 4) {
-            addr = (const unsigned char*)(((unsigned long)addr + 3) & (~0x3l));
-        }
-        else if (mi.word_size == 8) {
-            addr = (const unsigned char*)(((unsigned long)addr + 7) & (~0x7l));
+            addr = (const unsigned char *) (((unsigned long) addr + 3) & (~0x3l));
+        } else if (mi.word_size == 8) {
+            addr = (const unsigned char *) (((unsigned long) addr + 7) & (~0x7l));
         }
     }
 
 
-    switch (type & 0x0f)
-    {
+    switch (type & 0x0f) {
         case DW_EH_PE_absptr:
             if (mi.word_size == 4) {
                 *value = (unsigned long) *((const uint32_t *) addr);
                 size = 4;
-            }
-            else if (mi.word_size == 8) {
+            } else if (mi.word_size == 8) {
                 *value = (unsigned long) *((const uint64_t *) addr);
                 size = 8;
             }
@@ -3449,15 +3345,11 @@ int read_except_table_gcc3(Dwarf_Fde *fde_data, Dwarf_Signed fde_count,
 
         cur_augdata = (unsigned char *) cie_augdata;
         lsda_encoding = DW_EH_PE_omit;
-        for (j=0; j<augmentor_len; j++)
-        {
-            if (augmentor[j] == 'L')
-            {
+        for (j = 0; j < augmentor_len; j++) {
+            if (augmentor[j] == 'L') {
                 lsda_encoding = *cur_augdata;
                 cur_augdata++;
-            }
-            else if (augmentor[j] == 'P')
-            {
+            } else if (augmentor[j] == 'P') {
                 //We don't actually need the personality info, but we extract it
                 // anyways to make sure we properly extract the LSDA.
                 personality_encoding = *cur_augdata;
@@ -3660,8 +3552,7 @@ static bool read_except_table_gcc2(Elf_X_Shdr *except_table,
     return true;
 }
 
-struct  exception_compare: public binary_function<const ExceptionBlock &, const ExceptionBlock &, bool>
-{
+struct exception_compare : public binary_function<const ExceptionBlock &, const ExceptionBlock &, bool> {
     bool operator()(const ExceptionBlock &e1, const ExceptionBlock &e2) {
         if (e1.tryStart() < e2.tryStart())
             return true;
@@ -3757,13 +3648,11 @@ bool Object::find_catch_blocks(Elf_X_Shdr *eh_frame,
 
 #endif
 
-ObjectType Object::objType() const
-{
+ObjectType Object::objType() const {
     return obj_type_;
 }
 
-void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod_langs)
-{
+void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod_langs) {
     string working_module;
     const char *ptr;
     // check .stabs section to get language info for modules:
@@ -3805,33 +3694,26 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
     stabptr = get_stab_info();
     next_stabstr = stabptr->getStringBase();
 
-    for( unsigned int i = 0; i < stabptr->count(); i++ )
-    {
-        if (stabptr->type(i) == N_UNDF)
-        {/* start of object file */
+    for (unsigned int i = 0; i < stabptr->count(); i++) {
+        if (stabptr->type(i) == N_UNDF) {/* start of object file */
             /* value contains offset of the next string table for next module */
             // assert(stabptr->nameIdx(i) == 1);
             stabptr->setStringBase(next_stabstr);
             next_stabstr = stabptr->getStringBase() + stabptr->val(i);
-        }
-        else if (stabptr->type(i) == N_OPT)
-        {
+        } else if (stabptr->type(i) == N_OPT) {
             //  We can use the compiler option string (in a pinch) to guess at the source file language
             //  There is possibly more useful information encoded somewhere around here, but I lack
             //  an immediate reference....
             if (working_name)
                 working_options = const_cast<char *>(stabptr->name(i));
-        }
-        else if ((stabptr->type(i) == N_SO)  || (stabptr->type(i) == N_ENDM))
-        { /* compilation source or file name */
+        } else if ((stabptr->type(i) == N_SO) || (stabptr->type(i) == N_ENDM)) { /* compilation source or file name */
             // We have arrived at the next source file, finish up with the last one and reset state
             // before starting next
 
 
             //   XXXXXXXXXXX  This block is mirrored near the end of routine, if you edit it,
             //   XXXXXXXXXXX  change it there too.
-            if  (working_name)
-            {
+            if (working_name) {
                 working_lang = pickLanguage(working_module, working_options, working_lang);
                 if (working_lang == lang_Fortran_with_pretty_debug)
                     fortran_kludge_flag = 1;
@@ -3846,37 +3728,29 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
 
             //  Now:  out with the old, in with the new
 
-            if (stabptr->type(i) == N_ENDM)
-            {
+            if (stabptr->type(i) == N_ENDM) {
                 // special case:
                 // which is most likely both broken (and ignorable ???)
                 working_name = "DEFAULT_MODULE";
-            }
-            else
-            {
+            } else {
                 working_name = stabptr->name(i);
                 ptr = strrchr(working_name, '/');
-                if (ptr)
-                {
+                if (ptr) {
                     ptr++;
                     working_name = ptr;
                 }
             }
             working_module = string(working_name);
 
-            if ((mod_langs->find(working_module) != mod_langs->end()) && (*mod_langs)[working_module] != lang_Unknown)
-            {
+            if ((mod_langs->find(working_module) != mod_langs->end()) && (*mod_langs)[working_module] != lang_Unknown) {
                 //  we already have a module with this name in the map.  If it has been given
                 //  a language assignment (not lang_Unknown), we can just skip ahead
                 working_name = NULL;
                 working_options = NULL;
                 continue;
-            }
-            else
-            {
+            } else {
                 //cerr << __FILE__ << __LINE__ << ":  Module: " <<working_module<< " has language "<< stabptr->desc(i) << endl;
-                switch (stabptr->desc(i))
-                {
+                switch (stabptr->desc(i)) {
                     case N_SO_FORTRAN:
                         working_lang = lang_Fortran;
                         break;
@@ -3908,8 +3782,7 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
     //  about
 
     //   XXXXXXXXXXX  see note above (find the X's)
-    if  (working_name)
-    {
+    if (working_name) {
         working_lang = pickLanguage(working_module, working_options, working_lang);
         if (working_lang == lang_Fortran_with_pretty_debug)
             fortran_kludge_flag = 1;
@@ -3917,19 +3790,16 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
     }
     //   XXXXXXXXXXX
 
-    if (fortran_kludge_flag)
-    {
+    if (fortran_kludge_flag) {
         //  XXX  This code does not appear to be used anymore??
         // go through map and change all lang_Fortran to lang_Fortran_with_pretty_symtab
         dyn_hash_map<string, supportedLanguages>::iterator iter = (*mod_langs).begin();
         string aname;
         supportedLanguages alang;
-        for(;iter!=(*mod_langs).end();iter++)
-        {
+        for (; iter != (*mod_langs).end(); iter++) {
             aname = iter->first;
             alang = iter->second;
-            if(lang_Fortran == alang)
-            {
+            if (lang_Fortran == alang) {
                 (*mod_langs)[aname] = lang_Fortran_with_pretty_debug;
             }
         }
@@ -4011,8 +3881,7 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
                 goto cleanup_dwarf;
             }
 
-            switch( languageConstant )
-            {
+            switch (languageConstant) {
                 case DW_LANG_C:
                 case DW_LANG_C89:
                 case DW_LANG_C99:
@@ -4112,41 +3981,37 @@ bool Object::emitDriver(string fName, set<Symbol *> &allSymbols, unsigned)
     return false;
 }
 
-const char *Object::interpreter_name() const
-{
+const char *Object::interpreter_name() const {
     return interpreter_name_;
 }
 
 /* Parse everything in the file on disk, and cache that we've done so,
    because our modules may not bear any relation to the name source files. */
-void Object::parseStabFileLineInfo()
-{
-    static dyn_hash_map< string, bool > haveParsedFileMap;
+void Object::parseStabFileLineInfo() {
+    static dyn_hash_map<string, bool> haveParsedFileMap;
 
     /* We haven't parsed this file already, so iterate over its stab entries. */
 
-    stab_entry * stabEntry = get_stab_info();
-    if( stabEntry == NULL ) return;
-    const char * nextStabString = stabEntry->getStringBase();
+    stab_entry *stabEntry = get_stab_info();
+    if (stabEntry == NULL) return;
+    const char *nextStabString = stabEntry->getStringBase();
 
-    const char * currentSourceFile = NULL;
-    const char * moduleName = NULL;
+    const char *currentSourceFile = NULL;
+    const char *moduleName = NULL;
     Function *currentFunction = NULL;
     Offset currentAddress = 0;
     unsigned currentLineBase = 0;
     unsigned functionLineToPossiblyAdd = 0;
 
     //Offset baseAddress = getBaseAddress();
-    LineInformation* li_for_module = NULL;
+    LineInformation *li_for_module = NULL;
 
-    for ( unsigned int i = 0; i < stabEntry->count(); i++ )
-    {
-        switch (stabEntry->type( i ))
-        {
+    for (unsigned int i = 0; i < stabEntry->count(); i++) {
+        switch (stabEntry->type(i)) {
             case N_UNDF: /* start of an object file */
             {
-                stabEntry->setStringBase( nextStabString );
-                nextStabString = stabEntry->getStringBase() + stabEntry->val( i );
+                stabEntry->setStringBase(nextStabString);
+                nextStabString = stabEntry->getStringBase() + stabEntry->val(i);
 
                 currentSourceFile = NULL;
             }
@@ -4154,26 +4019,22 @@ void Object::parseStabFileLineInfo()
 
             case N_SO: /* compilation source or file name */
             {
-                const char * sourceFile = stabEntry->name( i );
-                currentSourceFile = strrchr( sourceFile, '/' );
+                const char *sourceFile = stabEntry->name(i);
+                currentSourceFile = strrchr(sourceFile, '/');
 
-                if ( currentSourceFile == NULL )
-                {
+                if (currentSourceFile == NULL) {
                     currentSourceFile = sourceFile;
-                }
-                else
-                {
+                } else {
                     ++currentSourceFile;
                 }
-                Module* mod;
+                Module *mod;
 
                 moduleName = currentSourceFile;
-                if(!associated_symtab->findModuleByName(mod, moduleName)) {
+                if (!associated_symtab->findModuleByName(mod, moduleName)) {
                     mod = associated_symtab->getDefaultModule();
                 }
                 li_for_module = mod->getLineInformation();
-                if(!li_for_module)
-                {
+                if (!li_for_module) {
                     li_for_module = new LineInformation;
                     mod->setLineInfo(li_for_module);
                 }
@@ -4183,14 +4044,11 @@ void Object::parseStabFileLineInfo()
 
             case N_SOL: /* file name (possibly an include file) */
             {
-                const char * sourceFile = stabEntry->name( i );
-                currentSourceFile = strrchr( sourceFile, '/' );
-                if ( currentSourceFile == NULL )
-                {
+                const char *sourceFile = stabEntry->name(i);
+                currentSourceFile = strrchr(sourceFile, '/');
+                if (currentSourceFile == NULL) {
                     currentSourceFile = sourceFile;
-                }
-                else
-                {
+                } else {
                     ++currentSourceFile;
                 }
 
@@ -4199,8 +4057,7 @@ void Object::parseStabFileLineInfo()
 
             case N_FUN: /* a function */
             {
-                if ( *stabEntry->name( i ) == 0 )
-                {
+                if (*stabEntry->name(i) == 0) {
                     currentFunction = NULL;
                     currentLineBase = 0;
                     break;
@@ -4211,12 +4068,10 @@ void Object::parseStabFileLineInfo()
                 const char *stabstr = stabEntry->name(i);
                 unsigned iter = 0;
 
-                while (iter < 2048)
-                {
+                while (iter < 2048) {
                     char c = stabstr[iter];
 
-                    if ( (c == ':')  || (c == '\0'))
-                    {
+                    if ((c == ':') || (c == '\0')) {
                         //stabstrs use ':' as delimiter
                         stringbuf[iter] = '\0';
                         break;
@@ -4227,15 +4082,11 @@ void Object::parseStabFileLineInfo()
                     iter++;
                 }
 
-                if (iter >= 2047)
-                {
+                if (iter >= 2047) {
                     create_printf("%s[%d]:  something went horribly awry\n", FILE__, __LINE__);
                     continue;
-                }
-                else
-                {
-                    switch (stabstr[iter+1])
-                    {
+                } else {
+                    switch (stabstr[iter + 1]) {
                         case 'F':
                         case 'f':
                             //  A "good" function
@@ -4251,9 +4102,8 @@ void Object::parseStabFileLineInfo()
                     };
                 }
 
-                if (! associated_symtab->findFunctionsByName(funcs, std::string(stringbuf))
-                    || !funcs.size())
-                {
+                if (!associated_symtab->findFunctionsByName(funcs, std::string(stringbuf))
+                    || !funcs.size()) {
                     continue;
                 }
 
@@ -4261,18 +4111,16 @@ void Object::parseStabFileLineInfo()
                 currentLineBase = stabEntry->desc(i);
                 functionLineToPossiblyAdd = currentLineBase;
 
-                if(!currentFunction) continue;
+                if (!currentFunction) continue;
                 currentAddress = currentFunction->getOffset();
 
             }
                 break;
 
-            case N_SLINE:
-            {
+            case N_SLINE: {
                 unsigned current_col = 0;
 
-                if (!currentLineBase)
-                {
+                if (!currentLineBase) {
                     continue;
                 }
 
@@ -4281,8 +4129,7 @@ void Object::parseStabFileLineInfo()
                 //  Addresses specified in SLINEs are relative to the beginning of the fn
                 Offset newLineAddress = stabEntry->val(i) + currentFunction->getOffset();
 
-                if (newLineAddress <= currentAddress)
-                {
+                if (newLineAddress <= currentAddress) {
                     continue;
                 }
 
@@ -4293,24 +4140,22 @@ void Object::parseStabFileLineInfo()
                 //  the line number of the original function definition in addition
                 //  to this SLINE ( use the same address range)
 
-                if (functionLineToPossiblyAdd)
-                {
-                    if (functionLineToPossiblyAdd < newLineSpec)
-                    {
-                        if(li_for_module)
+                if (functionLineToPossiblyAdd) {
+                    if (functionLineToPossiblyAdd < newLineSpec) {
+                        if (li_for_module)
                             li_for_module->addLine(currentSourceFile,
                                                    functionLineToPossiblyAdd,
                                                    current_col, currentAddress,
-                                                   newLineAddress );
+                                                   newLineAddress);
                     }
 
                     functionLineToPossiblyAdd = 0;
                 }
 
-                if(li_for_module)
+                if (li_for_module)
                     li_for_module->addLine(currentSourceFile, newLineSpec,
                                            current_col, currentAddress,
-                                           newLineAddress );
+                                           newLineAddress);
 
                 currentAddress = newLineAddress;
                 currentLineBase = newLineSpec + 1;
@@ -4549,8 +4394,7 @@ void Object::parseTypeInfo()
 #endif
 }
 
-void Object::parseStabTypes()
-{
+void Object::parseStabTypes() {
     types_printf("Entry to parseStabTypes for %s\n", associated_symtab->name().c_str());
     stab_entry *stabptr = NULL;
     const char *next_stabstr = NULL;
@@ -4593,8 +4437,8 @@ void Object::parseStabTypes()
     // XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
     next_stabstr = stabptr->getStringBase();
     types_printf("\t Parsing %d stab entries\n", stabptr->count());
-    for (i=0; i<stabptr->count(); i++) {
-        switch(stabptr->type(i)){
+    for (i = 0; i < stabptr->count(); i++) {
+        switch (stabptr->type(i)) {
             case N_UNDF: /* start of object file */
                 /* value contains offset of the next string table for next module */
                 // assert(stabptr->nameIdx(i) == 1);
@@ -4630,7 +4474,7 @@ void Object::parseStabTypes()
                 symt_current_mangled_func_name = ""; // reset for next object file
                 symt_current_func = NULL;
 
-                modName = const_cast<char*>(stabptr->name(i));
+                modName = const_cast<char *>(stabptr->name(i));
                 // cerr << "checkpoint B" << endl;
                 ptr = strrchr(modName, '/');
                 //  cerr << "checkpoint C" << endl;
@@ -4643,19 +4487,16 @@ void Object::parseStabTypes()
                     parseActive = true;
                     if (!mod) {
                         create_printf("%s[%d]:  FIXME\n", FILE__, __LINE__);
-                    }
-                    else if (!tc)
-                    {
+                    } else if (!tc) {
                         create_printf("%s[%d]:  FIXME\n", FILE__, __LINE__);
-                    }
-                    else
+                    } else
                         tc->clearNumberedTypes();
-                }
-                else {
+                } else {
                     //parseActive = false;
                     mod = associated_symtab->getDefaultModule();
                     tc = typeCollection::getModTypeCollection(mod);
-                    types_printf("\t Warning: failed to find module name matching %s, using %s\n", modName, mod->fileName().c_str());
+                    types_printf("\t Warning: failed to find module name matching %s, using %s\n", modName,
+                                 mod->fileName().c_str());
                 }
 
 #ifdef TIMED_PARSE
@@ -4670,50 +4511,50 @@ void Object::parseStabTypes()
             default:
                 break;
         }
-        if(parseActive || !is_aout()) {
+        if (parseActive || !is_aout()) {
             std::vector<Symbol *> bpfv;
-            switch(stabptr->type(i)){
+            switch (stabptr->type(i)) {
                 case N_FUN:
 #ifdef TIMED_PARSE
                     fun_count++;
-	gettimeofday(&t1, NULL);
+    gettimeofday(&t1, NULL);
 #endif
                     //all we have to do with function stabs at this point is to assure that we have
                     //properly set the var currentFunctionName for the later case of (parseActive)
                     symt_current_func = NULL;
                     int currentEntry = i;
                     int funlen = strlen(stabptr->name(currentEntry));
-                    ptr = new char[funlen+1];
+                    ptr = new char[funlen + 1];
                     strcpy(ptr, stabptr->name(currentEntry));
-                    while(strlen(ptr) != 0 && ptr[strlen(ptr)-1] == '\\'){
-                        ptr[strlen(ptr)-1] = '\0';
+                    while (strlen(ptr) != 0 && ptr[strlen(ptr) - 1] == '\\') {
+                        ptr[strlen(ptr) - 1] = '\0';
                         currentEntry++;
-                        strcat(ptr,stabptr->name(currentEntry));
+                        strcat(ptr, stabptr->name(currentEntry));
                     }
-                    char* colonPtr = NULL;
-                    if(currentFunctionName) delete currentFunctionName;
-                    if(!ptr || !(colonPtr = strchr(ptr,':')))
+                    char *colonPtr = NULL;
+                    if (currentFunctionName) delete currentFunctionName;
+                    if (!ptr || !(colonPtr = strchr(ptr, ':')))
                         currentFunctionName = NULL;
                     else {
-                        char* tmp = new char[colonPtr-ptr+1];
-                        strncpy(tmp,ptr,colonPtr-ptr);
-                        tmp[colonPtr-ptr] = '\0';
+                        char *tmp = new char[colonPtr - ptr + 1];
+                        strncpy(tmp, ptr, colonPtr - ptr);
+                        tmp[colonPtr - ptr] = '\0';
                         currentFunctionName = new string(tmp);
                         // Shouldn't this be a function name lookup?
-                        std::vector<Symbol *>syms;
-                        if(!associated_symtab->findSymbol(syms,
-                                            *currentFunctionName,
-                                            Symbol::ST_FUNCTION,
-                                            mangledName)) {
-                            if(!associated_symtab->findSymbol(syms,
-                                                "_"+*currentFunctionName,
-                                                Symbol::ST_FUNCTION,
-                                                mangledName)) {
+                        std::vector<Symbol *> syms;
+                        if (!associated_symtab->findSymbol(syms,
+                                                           *currentFunctionName,
+                                                           Symbol::ST_FUNCTION,
+                                                           mangledName)) {
+                            if (!associated_symtab->findSymbol(syms,
+                                                               "_" + *currentFunctionName,
+                                                               Symbol::ST_FUNCTION,
+                                                               mangledName)) {
                                 string fortranName = *currentFunctionName + string("_");
                                 if (associated_symtab->findSymbol(syms,
-                                                    fortranName,
-                                                    Symbol::ST_FUNCTION,
-                                                    mangledName)) {
+                                                                  fortranName,
+                                                                  Symbol::ST_FUNCTION,
+                                                                  mangledName)) {
                                     delete currentFunctionName;
                                     currentFunctionName = new string(fortranName);
                                 }
@@ -4725,35 +4566,34 @@ void Object::parseStabTypes()
                     delete[] ptr;
 #ifdef TIMED_PARSE
                 gettimeofday(&t2, NULL);
-	fun_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
-	//fun_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000);
+    fun_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
+    //fun_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000);
 #endif
                     break;
             }
             if (!parseActive) continue;
-            switch(stabptr->type(i)){
-                case N_BCOMM:     {
+            switch (stabptr->type(i)) {
+                case N_BCOMM: {
                     // begin Fortran named common block
                     string tmp = string(stabptr->name(i));
                     commonBlockName = &tmp;
                     // find the variable for the common block
 
                     //TODO? change this. findLocalVar will cause an infinite loop
-                    std::vector<Symbol *>vars;
-                    if(!associated_symtab->findSymbol(vars,
-                                        *commonBlockName,
-                                        Symbol::ST_OBJECT,
-                                        mangledName)) {
-                        if(!associated_symtab->findSymbol(vars,
-                                            *commonBlockName,
-                                            Symbol::ST_OBJECT,
-                                            mangledName,
-                                            true))
+                    std::vector<Symbol *> vars;
+                    if (!associated_symtab->findSymbol(vars,
+                                                       *commonBlockName,
+                                                       Symbol::ST_OBJECT,
+                                                       mangledName)) {
+                        if (!associated_symtab->findSymbol(vars,
+                                                           *commonBlockName,
+                                                           Symbol::ST_OBJECT,
+                                                           mangledName,
+                                                           true))
                             commonBlockVar = NULL;
                         else
                             commonBlockVar = vars[0];
-                    }
-                    else
+                    } else
                         commonBlockVar = vars[0];
                     if (!commonBlockVar) {
                         // //bperr("unable to find variable %s\n", commonBlockName);
@@ -4771,21 +4611,20 @@ void Object::parseStabTypes()
                 }
                 case N_ECOMM: {
                     //copy this set of fields
-                    if(!currentFunctionName) break;
-                    if(!associated_symtab->findSymbol(bpfv,
-                                        *currentFunctionName,
-                                        Symbol::ST_FUNCTION,
-                                        mangledName)) {
-                        if(!associated_symtab->findSymbol(bpfv,
-                                            *currentFunctionName,
-                                            Symbol::ST_FUNCTION,
-                                            mangledName,
-                                            true)){
+                    if (!currentFunctionName) break;
+                    if (!associated_symtab->findSymbol(bpfv,
+                                                       *currentFunctionName,
+                                                       Symbol::ST_FUNCTION,
+                                                       mangledName)) {
+                        if (!associated_symtab->findSymbol(bpfv,
+                                                           *currentFunctionName,
+                                                           Symbol::ST_FUNCTION,
+                                                           mangledName,
+                                                           true)) {
                             // //bperr("unable to locate current function %s\n", currentFunctionName->c_str());
-                        }
-                        else{
+                        } else {
                             Symbol *func = bpfv[0];
-                            commonBlock->endCommonBlock(func, (void *)commonBlockVar->getOffset());
+                            commonBlock->endCommonBlock(func, (void *) commonBlockVar->getOffset());
                         }
                     } else {
                         if (bpfv.size() > 1) {
@@ -4794,7 +4633,7 @@ void Object::parseStabTypes()
                             //                     __FILE__, __LINE__, bpfv.size(), currentFunctionName->c_str());
                         }
                         Symbol *func = bpfv[0];
-                        commonBlock->endCommonBlock(func, (void *)commonBlockVar->getOffset());
+                        commonBlock->endCommonBlock(func, (void *) commonBlockVar->getOffset());
                     }
                     //TODO?? size for local variables??
                     //       // update size if needed
@@ -4815,16 +4654,16 @@ void Object::parseStabTypes()
                 case 0xc8: // position-independant external typedefs -- N_ESYM
 #ifdef TIMED_PARSE
                     pss_count++;
-	gettimeofday(&t1, NULL);
+    gettimeofday(&t1, NULL);
 #endif
                     if (stabptr->type(i) == N_FUN) symt_current_func = NULL;
                     ptr = const_cast<char *>(stabptr->name(i));
-                    while (ptr[strlen(ptr)-1] == '\\') {
+                    while (ptr[strlen(ptr) - 1] == '\\') {
                         //ptr[strlen(ptr)-1] = '\0';
-                        ptr2 =  const_cast<char *>(stabptr->name(i+1));
+                        ptr2 = const_cast<char *>(stabptr->name(i + 1));
                         ptr3 = (char *) malloc(strlen(ptr) + strlen(ptr2) + 1);
                         strcpy(ptr3, ptr);
-                        ptr3[strlen(ptr)-1] = '\0';
+                        ptr3[strlen(ptr) - 1] = '\0';
                         strcat(ptr3, ptr2);
                         ptr = ptr3;
                         i++;
@@ -4834,9 +4673,9 @@ void Object::parseStabTypes()
                     // may be nothing to parse - XXX  jdd 5/13/99
 
                     if (parseCompilerType(this))
-                        temp = parseStabString(mod, mostRecentLinenum, (char *)ptr, stabptr->val(i), commonBlock);
+                        temp = parseStabString(mod, mostRecentLinenum, (char *) ptr, stabptr->val(i), commonBlock);
                     else
-                        temp = parseStabString(mod, stabptr->desc(i), (char *)ptr, stabptr->val(i), commonBlock);
+                        temp = parseStabString(mod, stabptr->desc(i), (char *) ptr, stabptr->val(i), commonBlock);
                     if (temp.length()) {
                         //Error parsing the stabstr, return should be \0
                         // //bperr( "Stab string parsing ERROR!! More to parse: %s\n",
@@ -4845,8 +4684,8 @@ void Object::parseStabTypes()
                     }
 #ifdef TIMED_PARSE
                 gettimeofday(&t2, NULL);
-	pss_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
-	//      pss_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000);
+    pss_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
+    //      pss_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000);
 #endif
                     break;
                 default:
@@ -4873,13 +4712,11 @@ void Object::parseStabTypes()
 }
 
 bool sort_dbg_map(const Object::DbgAddrConversion_t &a,
-                  const Object::DbgAddrConversion_t &b)
-{
+                  const Object::DbgAddrConversion_t &b) {
     return (a.dbg_offset < b.dbg_offset);
 }
 
-bool Object::convertDebugOffset(Offset off, Offset &new_off)
-{
+bool Object::convertDebugOffset(Offset off, Offset &new_off) {
     if (!DbgSectionMapSorted) {
         std::sort(DebugSectionMap.begin(), DebugSectionMap.end(), sort_dbg_map);
         DbgSectionMapSorted = true;
@@ -4899,40 +4736,32 @@ bool Object::convertDebugOffset(Offset off, Offset &new_off)
 
         const DbgAddrConversion_t &cur_d = DebugSectionMap[cur];
 
-        if (off >= cur_d.dbg_offset && off < cur_d.dbg_offset+cur_d.dbg_size) {
+        if (off >= cur_d.dbg_offset && off < cur_d.dbg_offset + cur_d.dbg_size) {
             new_off = off - cur_d.dbg_offset + cur_d.orig_offset;
             return true;
-        }
-        else if (off > cur_d.dbg_offset)
-        {
+        } else if (off > cur_d.dbg_offset) {
             low = cur;
-        }
-        else if (off < cur_d.dbg_offset)
-        {
+        } else if (off < cur_d.dbg_offset) {
             hi = cur;
         }
     }
 
 }
 
-void Object::insertPrereqLibrary(std::string libname)
-{
+void Object::insertPrereqLibrary(std::string libname) {
     prereq_libs.insert(libname);
 }
 
-bool Object::removePrereqLibrary(std::string libname)
-{
+bool Object::removePrereqLibrary(std::string libname) {
     rmd_deps.push_back(libname);
     return true;
 }
 
-std::vector<std::string> &Object::libsRMd()
-{
+std::vector<std::string> &Object::libsRMd() {
     return rmd_deps;
 }
 
-void Object::insertDynamicEntry(long name, long value)
-{
+void Object::insertDynamicEntry(long name, long value) {
     new_dynamic_entries.push_back(std::pair<long, long>(name, value));
 }
 
@@ -4942,17 +4771,28 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
                                    Elf_X_Shdr *dynstr_scnp, Elf_X_Shdr *symtab_scnp,
                                    Elf_X_Shdr *strtab_scnp) {
 
+
+    std::cout << "contents of allRegionHdrsByShndx" << endl;
+    for(std::vector<Elf_X_Shdr*>::iterator it = allRegionHdrsByShndx.begin(); it!= allRegionHdrsByShndx.end(); ++it){
+	std::cout << *it << endl;
+    }
+
+    std::cout << "contents of allRegionHdrs" << endl;
+    for(std::vector<Elf_X_Shdr*>::iterator it = allRegionHdrs.begin(); it!= allRegionHdrs.end(); ++it){
+	std::cout << *it << endl;
+    }
+
     //const char *shnames = pdelf_get_shnames(*elfHdr);
     // Setup symbol table access
     Offset dynsym_offset = 0;
     Elf_X_Data dynsym_data, dynstr_data;
     Elf_X_Sym dynsym;
     const char *dynstr = NULL;
-    if( dynsym_scnp && dynstr_scnp ) {
+    if (dynsym_scnp && dynstr_scnp) {
         dynsym_offset = dynsym_scnp->sh_offset();
         dynsym_data = dynsym_scnp->get_data();
         dynstr_data = dynstr_scnp->get_data();
-        if( !(dynsym_data.isValid() && dynstr_data.isValid()) ) {
+        if (!(dynsym_data.isValid() && dynstr_data.isValid())) {
             return false;
         }
         dynsym = dynsym_data.get_sym();
@@ -4963,18 +4803,18 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
     Elf_X_Data symtab_data, strtab_data;
     Elf_X_Sym symtab;
     const char *strtab = NULL;
-    if( symtab_scnp && strtab_scnp) {
+    if (symtab_scnp && strtab_scnp) {
         symtab_offset = symtab_scnp->sh_offset();
         symtab_data = symtab_scnp->get_data();
         strtab_data = strtab_scnp->get_data();
-        if( !(symtab_data.isValid() && strtab_data.isValid()) ) {
+        if (!(symtab_data.isValid() && strtab_data.isValid())) {
             return false;
         }
         symtab = symtab_data.get_sym();
         strtab = strtab_data.get_string();
     }
 
-    if( dynstr == NULL && strtab == NULL ) return false;
+    if (dynstr == NULL && strtab == NULL) return false;
 
     // Symbols are only truly uniquely idenfitied by their index in their
     // respective symbol table (this really applies to the symbols associated
@@ -4984,43 +4824,47 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
     dyn_hash_map<int, Symbol *> dynsymByIndex;
 
     dyn_hash_map<std::string, std::vector<Symbol *> >::iterator symVec_it;
-    for(symVec_it = symbols_.begin(); symVec_it != symbols_.end(); ++symVec_it) {
+    for (symVec_it = symbols_.begin(); symVec_it != symbols_.end(); ++symVec_it) {
         std::vector<Symbol *>::iterator sym_it;
-        for(sym_it = symVec_it->second.begin(); sym_it != symVec_it->second.end(); ++sym_it) {
+        for (sym_it = symVec_it->second.begin(); sym_it != symVec_it->second.end(); ++sym_it) {
             // Skip any symbols pointing to the undefined symbol entry
-            if( (*sym_it)->getIndex() == STN_UNDEF ) {
+            if ((*sym_it)->getIndex() == STN_UNDEF) {
                 continue;
             }
-            if( (*sym_it)->tag() == Symbol::TAG_INTERNAL ) {
+            if ((*sym_it)->tag() == Symbol::TAG_INTERNAL) {
                 continue;
             }
-            if( (*sym_it)->isDebug() ) {
+            if ((*sym_it)->isDebug()) {
                 continue;
             }
 
             std::pair<dyn_hash_map<int, Symbol *>::iterator, bool> result;
-            if( (*sym_it)->isInDynSymtab() ) {
+            if ((*sym_it)->isInDynSymtab()) {
                 result = dynsymByIndex.insert(std::make_pair((*sym_it)->getIndex(), (*sym_it)));
-            }else{
+            } else {
                 result = symtabByIndex.insert(std::make_pair((*sym_it)->getIndex(), (*sym_it)));
             }
 
             // A symbol should be uniquely identified by its index in the symbol table
-            if(!result.second) continue;
+            if (!result.second) continue;
         }
     }
 
     // Build mapping from section headers to Regions
     std::vector<Region *>::iterator reg_it;
     dyn_hash_map<unsigned, Region *> shToRegion;
-    for(reg_it = regions_.begin(); reg_it != regions_.end(); ++reg_it) {
+    for (reg_it = regions_.begin(); reg_it != regions_.end(); ++reg_it) {
         std::pair<dyn_hash_map<unsigned, Region *>::iterator, bool> result;
         result = shToRegion.insert(std::make_pair((*reg_it)->getRegionNumber(), (*reg_it)));
     }
 
-    for(unsigned i = 0; i < elf.e_shnum(); ++i) {
-        Elf_X_Shdr *shdr = allRegionHdrsByShndx[i];
-        if( shdr->sh_type() != SHT_REL && shdr->sh_type() != SHT_RELA ) continue;
+    int i = 0;
+    for (auto shdr_iter = allRegionHdrsByShndx.begin(); shdr_iter != allRegionHdrsByShndx.end(); ++shdr_iter) {
+	auto shdr = *shdr_iter;
+	++i;
+	std::cout << "i= " << i << endl;
+        if(!shdr) continue;
+        if (shdr->sh_type() != SHT_REL && shdr->sh_type() != SHT_RELA) continue;
 
         Elf_X_Data reldata = shdr->get_data();
         Elf_X_Rel rel = reldata.get_rel();
@@ -5030,7 +4874,7 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
 
         // Apparently, relocation entries may not have associated symbols.
 
-        for(unsigned j = 0; j < (shdr->sh_size() / shdr->sh_entsize()); ++j) {
+        for (unsigned j = 0; j < (shdr->sh_size() / shdr->sh_entsize()); ++j) {
             // Relocation entry fields - need to be populated
 
             Offset relOff, addend = 0;
@@ -5039,7 +4883,7 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
             Region::RegionType regType;
 
             long symbol_index;
-            switch(shdr->sh_type()) {
+            switch (shdr->sh_type()) {
                 case SHT_REL:
                     relType = rel.R_TYPE(j);
                     relOff = rel.r_offset(j);
@@ -5060,24 +4904,24 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
             // Determine which symbol table to use
             Symbol *sym = NULL;
             // Use dynstr to ensure we've initialized dynsym...
-            if( dynstr && curSymHdr->sh_offset() == dynsym_offset ) {
-                name = string( &dynstr[dynsym.st_name(symbol_index)] );
+            if (dynstr && curSymHdr && curSymHdr->sh_offset() == dynsym_offset) {
+                name = string(&dynstr[dynsym.st_name(symbol_index)]);
 
                 dyn_hash_map<int, Symbol *>::iterator sym_it;
                 sym_it = dynsymByIndex.find(symbol_index);
-                if( sym_it != dynsymByIndex.end() ) {
+                if (sym_it != dynsymByIndex.end()) {
                     sym = sym_it->second;
-                    if(sym->getType() == Symbol::ST_SECTION) {
+                    if (sym->getType() == Symbol::ST_SECTION) {
                         name = sym->getRegion()->getRegionName().c_str();
                     }
                 }
-            }else if( strtab && curSymHdr->sh_offset() == symtab_offset ) {
-                name = string( &strtab[symtab.st_name(symbol_index)] );
+            } else if (strtab && curSymHdr && curSymHdr->sh_offset() == symtab_offset) {
+                name = string(&strtab[symtab.st_name(symbol_index)]);
                 dyn_hash_map<int, Symbol *>::iterator sym_it;
                 sym_it = symtabByIndex.find(symbol_index);
-                if( sym_it != symtabByIndex.end() ) {
+                if (sym_it != symtabByIndex.end()) {
                     sym = sym_it->second;
-                    if(sym->getType() == Symbol::ST_SECTION) {
+                    if (sym->getType() == Symbol::ST_SECTION) {
                         name = sym->getRegion()->getRegionName().c_str();
                     }
                 }
@@ -5086,12 +4930,11 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
             Region *region = NULL;
             dyn_hash_map<unsigned, Region *>::iterator shToReg_it;
             shToReg_it = shToRegion.find(i);
-            if( shToReg_it != shToRegion.end() ) {
+            if (shToReg_it != shToRegion.end()) {
                 region = shToReg_it->second;
             }
 
-            if(region != NULL)
-            {
+            if (region != NULL) {
                 relocationEntry newrel(0, relOff, addend, name, sym, relType, regType);
                 region->addRelocationEntry(newrel);
                 // relocations are also stored with their targets
@@ -5100,7 +4943,7 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
                     if (shdr->sh_info() != 0) {
                         Region *targetRegion = NULL;
                         shToReg_it = shToRegion.find(shdr->sh_info());
-                        if( shToReg_it != shToRegion.end() ) {
+                        if (shToReg_it != shToRegion.end()) {
                             targetRegion = shToReg_it->second;
                         }
                         assert(targetRegion != NULL);
@@ -5114,44 +4957,37 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
     return true;
 }
 
-bool Region::isStandardCode()
-{
+bool Region::isStandardCode() {
     return ((getRegionPermissions() == RP_RX || getRegionPermissions() == RP_RWX) &&
             ((name_ == std::string(".text")) ||
              (name_ == std::string(".init")) ||
              (name_ == std::string(".fini"))));
 }
 
-void Object::setTruncateLinePaths(bool value)
-{
+void Object::setTruncateLinePaths(bool value) {
     truncateLineFilenames = value;
 }
 
-bool Object::getTruncateLinePaths()
-{
+bool Object::getTruncateLinePaths() {
     return truncateLineFilenames;
 }
 
-Dyninst::Architecture Object::getArch() const
-{
+Dyninst::Architecture Object::getArch() const {
     return elfHdr->getArch();
 }
 
-bool Object::getABIVersion(int &major, int &minor) const
-{
-   if (elfHdr->e_machine() == EM_PPC64 && elfHdr->e_flags() == 0x2) {
-      major = elfHdr->e_flags();
-      minor = 0;
-      return true;
-   }
-   else {
-      return false;
-   }
+bool Object::getABIVersion(int &major, int &minor) const {
+    if (elfHdr->e_machine() == EM_PPC64 && elfHdr->e_flags() == 0x2) {
+        major = elfHdr->e_flags();
+        minor = 0;
+        return true;
+    } else {
+        return false;
+    }
 }
 
-bool Object::isBigEndianDataEncoding() const
-{
-   return (elfHdr->e_endian() != 0);
+bool Object::isBigEndianDataEncoding() const {
+    return (elfHdr->e_endian() != 0);
 }
 
 Offset Object::getTOCoffset(Offset off) const {
@@ -5188,9 +5024,8 @@ void Object::getSegmentsSymReader(vector<SymSegment> &segs) {
     }
 }
 
-std::string Object::getFileName() const
-{
-    if(soname_) {
+std::string Object::getFileName() const {
+    if (soname_) {
         return soname_;
     }
 

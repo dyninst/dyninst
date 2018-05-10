@@ -796,7 +796,7 @@ bool Elf_X_Shdr::next_data()
 
 bool Elf_X_Shdr::isValid() const
 {
-    return (shdr32 || shdr64);
+    return (shdr32 || shdr64) && data;
 }
 
 unsigned Elf_X_Shdr::wordSize() const
