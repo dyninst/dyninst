@@ -124,7 +124,7 @@ class AssignmentConverter {
  public:  
  DATAFLOW_EXPORT AssignmentConverter(bool cache, bool stack) : cacheEnabled_(cache), aConverter(false, stack) {};
 
-  DATAFLOW_EXPORT void convert(const InstructionAPI::Instruction& insn,
+  DATAFLOW_EXPORT void convert(const InstructionAPI::Instruction insn,
                                const Address &addr,
                                ParseAPI::Function *func,
                                ParseAPI::Block *block,

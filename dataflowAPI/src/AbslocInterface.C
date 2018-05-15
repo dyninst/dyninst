@@ -247,6 +247,8 @@ public:
             is_stack = true;
             return;
         }
+
+        defined = false;
         results.push_back(0);
     }
     virtual void visit(Dereference* )
@@ -305,43 +307,9 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
                                               addr,
                                               fpHeight);
 
-//    bool isStack = false;
-//    bool isFrame = false;
-
-
-//    static Expression::Ptr theStackPtr(new RegisterAST(MachRegister::getStackPointer(Arch_x86)));
-//    static Expression::Ptr theStackPtr64(new RegisterAST(MachRegister::getStackPointer(Arch_x86_64)));
-//    static Expression::Ptr theStackPtrPPC(new RegisterAST(MachRegister::getStackPointer(Arch_ppc32)));
-//
-//    static Expression::Ptr theFramePtr(new RegisterAST(MachRegister::getFramePointer(Arch_x86)));
-//    static Expression::Ptr theFramePtr64(new RegisterAST(MachRegister::getFramePointer(Arch_x86_64)));
-//
-//    static Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(Arch_x86)));
-//    static Expression::Ptr thePC64(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
-//    static Expression::Ptr thePCPPC(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
-    
-    // We currently have to try and bind _every_ _single_ _alias_
-    // of the stack pointer...
-//    if (stackDefined) {
-//      if (exp->bind(theStackPtr.get(), Result(s32, spHeight)) ||
-//	  exp->bind(theStackPtr64.get(), Result(s64, spHeight)) ||
-//	  exp->bind(theStackPtrPPC.get(), Result(s32, spHeight))) {
-//	isStack = true;
-//      }
-//    }
-//    if (frameDefined) {
-//      if (exp->bind(theFramePtr.get(), Result(s32, fpHeight)) ||
-//	  exp->bind(theFramePtr64.get(), Result(s64, fpHeight))) {
-//	isFrame = true;
-//      }
-//    }
-
-    // Bind the IP, why not...
-//    exp->bind(thePC.get(), Result(u32, addr));
-//    exp->bind(thePC64.get(), Result(u64, addr));
-//    exp->bind(thePCPPC.get(), Result(u32, addr));
-//
-//    Result res = exp->eval();
+    // Currently, we only bind sp, fp, and pc.
+    // If we decide to also bind aliases of these registers,
+    // we need to change bindKnownRegs accordingly.
     bindKnownRegs calc(spHeight, fpHeight, addr);
     exp->apply(&calc);
     bool isFrame = calc.is_frame;
@@ -504,7 +472,7 @@ bool AbsRegionConverter::definedCache(Address addr,
 // Instruction.
 ///////////////////////////////////////////////////////
 
-void AssignmentConverter::convert(const Instruction& I, 
+void AssignmentConverter::convert(const Instruction I, 
                                   const Address &addr,
 				  ParseAPI::Function *func,
                                   ParseAPI::Block *block,

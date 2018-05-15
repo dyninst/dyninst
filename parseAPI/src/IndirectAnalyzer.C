@@ -88,7 +88,13 @@ boost::make_lock_guard(*func);
     //parsing_printf("\tJump table format: %s\n", jtfp.format().c_str());
     // If the jump target expression is not in a form we recognize,
     // we do not try to resolve it
-    parsing_printf("In function %s, Address %lx, jump target format %s, index loc %s, index variable %s", func->name().c_str(), block->last(), jtfp.format().c_str(), jtfp.indexLoc ? jtfp.indexLoc->format().c_str() : "" , jtfp.index.format().c_str() );
+    parsing_printf("In function %s, Address %lx, jump target format %s, index loc %s, index variable %s, memory read loc %s", 
+            func->name().c_str(), 
+            block->last(), 
+            jtfp.format().c_str(), 
+            jtfp.indexLoc ? jtfp.indexLoc->format().c_str() : "null" , 
+            jtfp.index.format().c_str(),
+            jtfp.memLoc ? jtfp.memLoc->format().c_str() : "null");
 
     bool variableArguFormat = false;
     if (!jtfp.isJumpTableFormat()) {
@@ -298,10 +304,14 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
 }
 
 int IndirectControlFlowAnalyzer::GetMemoryReadSize(Assignment::Ptr memLoc) {
-    if (!memLoc) return 0;
+    if (!memLoc) {
+        parsing_printf("\tmemLoc is null\n");
+        return 0;
+    }
     Instruction i = memLoc->insn();
     std::vector<Operand> ops;
     i.getOperands(ops);
+    parsing_printf("\t there are %d operands\n", ops.size());
     for (auto oit = ops.begin(); oit != ops.end(); ++oit) {
         Operand o = *oit;
 	if (o.readsMemory()) {
