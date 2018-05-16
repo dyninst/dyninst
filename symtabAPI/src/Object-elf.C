@@ -4219,7 +4219,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         char* tmp = NULL;
         if(truncateLineFilenames && (tmp = strrchr(files[i], '/')))
         {
-            strings->push_back(tmp);
+            strings->push_back(++tmp);
         }
         else
         {

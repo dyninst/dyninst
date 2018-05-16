@@ -102,11 +102,11 @@ endif()
 set(Boost_ADDITIONAL_VERSIONS "1.47" "1.47.0" "1.48" "1.48.0" "1.49" "1.49.0"
   "1.50" "1.50.0" "1.51" "1.51.0" "1.52" "1.52.0"
   "1.53" "1.53.0" "1.54" "1.54.0" "1.55" "1.55.0" "1.56" "1.56.0" "1.57" "1.57.0" "1.58" "1.58.0" "1.59" "1.59.0"
-        "1.60" "1.60.0" "1.61" "1.61.0" "1.62" "1.62.0")
+        "1.60" "1.60.0" "1.61" "1.61.0" "1.62" "1.62.0" "1.63" "1.63.0" "1.64" "1.64.0")
 
 # set (Boost_DEBUG ON)
 set (PATH_BOOST "/usr" CACHE STRING "Path to boost")
-
+set (FORCE_BOOST "NO" CACHE STRING "Force Dyninst to download and build Boost?")
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 
@@ -126,7 +126,8 @@ endif()
 
 if(DEFINED PATH_BOOST OR 
 	   DEFINED Boost_INCLUDE_DIR OR 
-	   DEFINED Boost_LIBRARY_DIR)
+	   DEFINED Boost_LIBRARY_DIR OR
+        FORCE_BOOST)
   set(Boost_NO_SYSTEM_PATHS ON)
 endif()
 
@@ -134,7 +135,7 @@ endif()
 find_package (Boost ${BOOST_MIN_VERSION} COMPONENTS thread system date_time)
 
 
-if(NOT Boost_FOUND)
+if(NOT Boost_FOUND OR FORCE_BOOST)
   set (BOOST_ARGS
           --with-system
           --with-thread
@@ -144,6 +145,7 @@ if(NOT Boost_FOUND)
           --runtime-link=shared
           --layout=tagged
           --threading=multi)
+    message(INFO "Boost args: ${BOOST_ARGS}")
   set(BOOST_BUILD "./b2")
   if(WIN32)
     set(BOOST_BOOTSTRAP call bootstrap.bat)
@@ -172,7 +174,7 @@ if(NOT Boost_FOUND)
           BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${CMAKE_INSTALL_PREFIX}
     BUILD_COMMAND ${BOOST_BUILD} ${BOOST_ARGS} stage
-    INSTALL_COMMAND ""
+    INSTALL_COMMAND ${BOOST_BUILD} ${BOOST_ARGS} install
     )
   set(Boost_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/${BOOST_BASE})
   set(Boost_LIBRARY_DIRS ${CMAKE_BINARY_DIR}/${BOOST_BASE}/stage/lib)
