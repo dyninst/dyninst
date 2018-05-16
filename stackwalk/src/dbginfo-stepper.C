@@ -217,9 +217,9 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    // the input frame.
    result = getProcessState()->getLibraryTracker()->getLibraryAtAddr(in.getRA(), lib);
    if (!result) {
-      sw_printf("[%s:%u] - Stackwalking through an invalid PC at %lx\n",
+      sw_printf("[%s:%u] - Stackwalking with PC at %lx, which is not found in any known libraries\n",
                 FILE__, __LINE__, in.getRA());
-      return gcf_error;
+      return gcf_not_me;
    }
    Address pc = in.getRA() - lib.second;
    sw_printf("[%s:%u] Dwarf-based stackwalking, using local address 0x%lx from 0x%lx - 0x%lx\n",
