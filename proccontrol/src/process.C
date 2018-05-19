@@ -6623,6 +6623,10 @@ bool Process::runIRPCAsync(IRPC::ptr irpc)
       return false;
    }
 
+    //#sasha remove this afterwards
+    //cerr << "Amount of threads in process: " << proc->threadPool()->size() <<endl;
+    //auto thread = *(proc->threadPool()->begin());
+    //thread->setSingleStepMode(true);
    llproc_->throwNopEvent();
    return true;
 }

@@ -123,7 +123,7 @@ public:
 
     virtual void emitGetRetAddr(Register, codeGen &) { assert(0); }
 
-    virtual void emitGetParam(Register, Register, instPoint::Type, opCode, bool, codeGen &) { assert(0); }
+    virtual void emitGetParam(Register, Register, instPoint::Type, opCode, bool, codeGen &);
 
     virtual void emitASload(int, int, int, long, Register, int, codeGen &) { assert(0); }
 

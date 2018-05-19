@@ -61,7 +61,7 @@ codeBuf_t *insnCodeGen::ptrAndInc(codeGen &gen) {
 }
 #endif
 
-void insnCodeGen::generate(codeGen &gen, instruction&insn) {
+void insnCodeGen::generate(codeGen &gen, instruction &insn) {
 #if defined(endian_mismatch)
   // Writing an instruction.  Convert byte order if necessary.
   unsigned raw = swapBytesIfNeeded(insn.asInt());
@@ -125,15 +125,16 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
                                      Address to,
                                      bool isCall) 
 {
-    Register scratch = 0;
+    Register scratch = REG_NULL;
 
     instPoint *point = gen.point();
     if(!point)
     {
         if(!isCall)
         {
-            //scratch = 12; //#sasha  test for springboard
-            scratch = gen.rs()->getScratchRegister(gen);
+            scratch = 14; //#sasha hard coding register for springboard
+            //scratch = gen.rs()->getScratchRegister(gen);
+            //assert(gen.rs());
         }
         else
         {
@@ -471,7 +472,8 @@ Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, pdvector<Regist
 }
 
 /* Currently, I'm only considering generation of only STR/LDR and their register/immediate variants.*/
-void insnCodeGen::generateMemAccess32or64(codeGen &gen, LoadStore accType, Register r1, Register r2, int immd, bool is64bit)
+void insnCodeGen::generateMemAccess32or64(codeGen &gen, LoadStore accType,
+        Register r1, Register r2, int immd, bool is64bit)
 {
     instruction insn;
     insn.clear();
@@ -585,13 +587,26 @@ void insnCodeGen::loadImmIntoReg(codeGen &gen, Register rt, T value)
     assert(value >= 0);
 
     insnCodeGen::generateMove(gen, (value & 0xFFFF), 0, rt, MovOp_MOVZ);
-    if(value > MAX_IMM16)
+    if(value > 0xFFFF)
         insnCodeGen::generateMove(gen, ((value >> 16) & 0xFFFF), 0x1, rt, MovOp_MOVK);
-    if(value > MAX_IMM32) {
+    if(value > 0xFFFFFFFF)
         insnCodeGen::generateMove(gen, ((value >> 32) & 0xFFFF), 0x2, rt, MovOp_MOVK);
+    if(value > 0xFFFFFFFFFFFF)
         insnCodeGen::generateMove(gen, ((value >> 48) & 0xFFFF), 0x3, rt, MovOp_MOVK);
-    }
 }
+
+
+void insnCodeGen::saveRegister(codeGen &gen, Register r)
+{
+    generateMemAccess32or64(gen, insnCodeGen::Store, r, REG_SP, -2*GPRSIZE_64, true);
+}
+
+
+void insnCodeGen::restoreRegister(codeGen &gen, Register r)
+{
+    generateMemAccess32or64(gen, insnCodeGen::Load, r, REG_SP, 2*GPRSIZE_64, true);
+}
+
 
 // Helper method.  Fills register with partial value to be completed
 // by an operation with a 16-bit signed immediate.  Such as loads and
@@ -618,8 +633,8 @@ bool insnCodeGen::generate(codeGen &gen,
                            AddressSpace * /*proc*/,
                            Address /*origAddr*/,
                            Address /*relocAddr*/,
-                           patchTarget */*fallthroughOverride*/,
-                           patchTarget */*targetOverride*/) {
+                           patchTarget * /*fallthroughOverride*/,
+                           patchTarget * /*targetOverride*/) {
   assert(0 && "Deprecated!");
   return false;
 }

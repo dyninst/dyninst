@@ -1930,7 +1930,8 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
    case FrameAddr:
        addr = (Address) oValue;
        temp = gen.rs()->allocateRegister(gen, noCost);
-       emitVload(loadFrameRelativeOp, addr, temp, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+       emitVload(loadFrameRelativeOp, addr, temp, retReg, gen, noCost, gen.rs(),
+               size, gen.point(), gen.addrSpace());
        gen.rs()->freeRegister(temp);
        break;
    case RegOffset:
@@ -1938,7 +1939,8 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        // This AstNode holds the register number, and loperand holds offset.
        assert(operand_);
        addr = (Address) operand_->getOValue();
-       emitVload(loadRegRelativeOp, addr, (long)oValue, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+       emitVload(loadRegRelativeOp, addr, (long)oValue, retReg, gen, noCost,
+               gen.rs(), size, gen.point(), gen.addrSpace());
        break;
    case ConstantString:
        // XXX This is for the std::string type.  If/when we fix the std::string type
@@ -1954,7 +1956,8 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
 
        if(!gen.addrSpace()->needsPIC())
        {
-          emitVload(loadConstOp, addr, retReg, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+          emitVload(loadConstOp, addr, retReg, retReg, gen, noCost, gen.rs(),
+                  size, gen.point(), gen.addrSpace());
        }
        else
        {

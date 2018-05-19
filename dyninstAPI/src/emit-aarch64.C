@@ -59,6 +59,25 @@
 #include "dyninstAPI/src/emit-aarch64.h"
 #include "dyninstAPI/src/registerSpace.h"
 
+codeBufIndex_t EmitterAARCH64::emitIf(
+        Register expr_reg, Register target, RegControl /*rc*/, codeGen &gen)
+{
+    instruction insn;
+    insn.clear();
+
+    // compare to 0 and branch
+    // register number, its value is compared to 0.
+    INSN_SET(insn, 0, 4, expr_reg);
+    INSN_SET(insn, 5, 23, (target+4)/4);
+    INSN_SET(insn, 25, 30, 0x1a); // CBZ
+    INSN_SET(insn, 31, 31, 1);
+
+    insnCodeGen::generate(gen,insn);
+
+    // Retval: where the jump is in this sequence
+    codeBufIndex_t retval = gen.getIndex();
+    return retval;
+}
 
 void EmitterAARCH64::emitLoadConst(Register dest, Address imm, codeGen &gen)
 {
@@ -71,7 +90,7 @@ void EmitterAARCH64::emitLoad(Register dest, Address addr, int size, codeGen &ge
     Register scratch = gen.rs()->getScratchRegister(gen);
 
     insnCodeGen::loadImmIntoReg<Address>(gen, scratch, addr);
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, dest, scratch, 0, false); 
+    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, dest, scratch, 0, true);
 
     gen.rs()->freeRegister(scratch);
     gen.markRegDefined(dest);
@@ -83,7 +102,7 @@ void EmitterAARCH64::emitStore(Address addr, Register src, int size, codeGen &ge
     Register scratch = gen.rs()->getScratchRegister(gen);
 
     insnCodeGen::loadImmIntoReg<Address>(gen, scratch, addr);
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, src, scratch, 0, false); 
+    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, src, scratch, 0, true);
 
     gen.rs()->freeRegister(scratch);
     gen.markRegDefined(src);
@@ -138,6 +157,35 @@ void EmitterAARCH64::emitRelOp(
 
     // make dest = 0, in case it fails the branch
     insnCodeGen::loadImmIntoReg<Address>(gen, dest, 0x1);
+}
+
+
+void EmitterAARCH64::emitGetParam(
+        Register dest, Register param_num,
+        instPoint::Type pt_type, opCode op,
+        bool addr_of, codeGen &gen)
+{
+    registerSlot *regSlot = NULL;
+    switch (op) {
+        case getParamOp:
+            if(param_num <= 3) {
+                // param_num is 0..8 - it's a parameter number, not a register
+                regSlot = (*(gen.rs()))[registerSpace::r0 + param_num];
+                break;
+
+            } else {
+                assert(0);
+            }
+            break;
+        default:
+            assert(0);
+            break;
+    } // end of swich(op)
+
+    assert(regSlot);
+    Register reg = regSlot->number;
+
+    //return reg;
 }
 
 

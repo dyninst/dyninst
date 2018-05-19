@@ -184,10 +184,10 @@ unsigned EmitterAARCH64SaveRegs::saveGPRegisters(baseTramp *bt, codeGen &gen, re
     for(unsigned int idx = 0; idx < regs.size() && ret < numReqGPRs; idx++) {
         registerSlot *reg = regs[idx];
         if(bt->definedRegs[reg->encoding()]) {
-            saveRegister(gen, reg->number, -GPRSIZE_64);
+            saveRegister(gen, reg->number, -2*GPRSIZE_64);
             theRegSpace->markSavedRegister(reg->number, offset);
 
-            offset += GPRSIZE_64;
+            offset += 2*GPRSIZE_64;
             ret++;
         }
     }
@@ -239,10 +239,10 @@ unsigned EmitterAARCH64SaveRegs::saveSPRegisters(codeGen &gen, registerSpace *th
 
     for(pdvector<registerSlot *>::iterator itr = spRegs.begin(); itr != spRegs.end(); itr++) {
         registerSlot *cur = *itr;
-        saveSPR(gen, theRegSpace->getScratchRegister(gen, true), regMap[cur], -GPRSIZE_32);
+        saveSPR(gen, theRegSpace->getScratchRegister(gen, true), regMap[cur], -4*GPRSIZE_32);
         theRegSpace->markSavedRegister(cur->number, offset);
 
-        offset += GPRSIZE_32;
+        offset += 4*GPRSIZE_32;
         ret++;
     }
 
@@ -252,11 +252,11 @@ unsigned EmitterAARCH64SaveRegs::saveSPRegisters(codeGen &gen, registerSpace *th
 void EmitterAARCH64SaveRegs::createFrame(codeGen &gen) {
     //Save link register
     Register linkRegister = gen.rs()->getRegByName("r30");
-    saveRegister(gen, linkRegister, -GPRSIZE_64);
+    saveRegister(gen, linkRegister, -2*GPRSIZE_64);
 
     //Save frame pointer
     Register framePointer = gen.rs()->getRegByName("r29");
-    saveRegister(gen, framePointer, -GPRSIZE_64);
+    saveRegister(gen, framePointer, -2*GPRSIZE_64);
 
     //Move stack pointer to frame pointer
     Register stackPointer = gen.rs()->getRegByName("sp");
@@ -277,7 +277,7 @@ unsigned EmitterAARCH64RestoreRegs::restoreGPRegisters(codeGen &gen, registerSpa
         registerSlot *reg = theRegSpace->GPRs()[idx];
 
         if(reg->liveState == registerSlot::spilled) {
-            restoreRegister(gen, reg->number, GPRSIZE_64);
+            restoreRegister(gen, reg->number, 2*GPRSIZE_64);
             ret++;
         }
     }
@@ -326,7 +326,7 @@ unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(codeGen &gen, registerSpa
 
     for(pdvector<registerSlot *>::iterator itr = spRegs.begin(); itr != spRegs.end(); itr++) {
         registerSlot *cur = *itr;
-        restoreSPR(gen, theRegSpace->getScratchRegister(gen, true), regMap[cur], GPRSIZE_32);
+        restoreSPR(gen, theRegSpace->getScratchRegister(gen, true), regMap[cur], 4*GPRSIZE_32);
         ret++;
     }
 
@@ -336,11 +336,11 @@ unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(codeGen &gen, registerSpa
 void EmitterAARCH64RestoreRegs::tearFrame(codeGen &gen) {
     //Restore frame pointer
     Register framePointer = gen.rs()->getRegByName("r29");
-    restoreRegister(gen, framePointer, GPRSIZE_64);
+    restoreRegister(gen, framePointer, 2*GPRSIZE_64);
 
     //Restore link register
     Register linkRegister = gen.rs()->getRegByName("r30");
-    restoreRegister(gen, linkRegister, GPRSIZE_64);
+    restoreRegister(gen, linkRegister, 2*GPRSIZE_64);
 }
 
 
@@ -552,10 +552,13 @@ Register EmitterAARCH64::emitCall(opCode op,
                                   bool noCost,
                                   func_instance *callee) 
 {
+    //#sasha This function implementation is experimental.
+
     if (op != callOp) {
         cerr << "ERROR: emitCall with op == " << op << endl;
     }
     assert(op == callOp);
+    assert(operands.size()==3 || operands.size()==1 || operands.size()==0);
 
     std::vector<Register> srcs;
     std::vector<Register> saves;
@@ -569,17 +572,54 @@ Register EmitterAARCH64::emitCall(opCode op,
         showErrorCallback(80, msg);
         assert(0);
     }
-    //#sasha
-    //int param_size = emitCallParams(gen, operands, callee, saves, noCost);
-    //assert(operands.size()==0);
+
+    // save link register
+    insnCodeGen::saveRegister(gen, registerSpace::r30);
+
+    // save r1-r2 (first three register for parameter)
+    registerSlot *reg = gen.rs()->GPRs()[0];
+    reg->liveState = registerSlot::spilled;
+    for(size_t id = 1; id < operands.size(); id++)
+    {
+        registerSlot *reg = gen.rs()->GPRs()[id];
+
+       // We must save if:
+       // refCount > 0 (and not a source register)
+       // keptValue == true (keep over the call)
+       // liveState == live (technically, only if not saved by the callee)
+
+       if ((reg->refCount > 0) || reg->keptValue || (reg->liveState == registerSlot::live))
+       {
+           insnCodeGen::saveRegister(gen, registerSpace::r0 + id);
+           reg->liveState = registerSlot::spilled;
+       }
+    }
+
+    // Passing operands to registers
+    for(size_t id = 0; id < operands.size(); id++)
+    {
+        Register reg = REG_NULL;
+        if (gen.rs()->allocateSpecificRegister(gen, registerSpace::r0 + id, true))
+            reg = registerSpace::r0 + id;
+
+        Address unnecessary = ADDR_NULL;
+        cerr << "Operand value: " << operands[id]->getOValue() << endl;
+        if (!operands[id]->generateCode_phase2(gen, false, unnecessary, reg))
+            assert(0);
+        assert(reg!=REG_NULL);
+    }
 
     //instPoint *point = gen.point();
     //assert(point);
     assert(gen.rs());
 
+    //Address of function to call in r9
+    //
     //#sasha get correct register
-    Register scratch = gen.rs()->getScratchRegister(gen);
-    //Register scratch = 11;
+    //Register scratch = gen.rs()->getScratchRegister(gen);
+    //assert(scratch!=REG_NULL);
+    Register scratch = 9;
+    insnCodeGen::saveRegister(gen, registerSpace::r9);
     insnCodeGen::loadImmIntoReg<Address>(gen, scratch, callee->addr());
 
     instruction branchInsn;
@@ -599,14 +639,27 @@ Register EmitterAARCH64::emitCall(opCode op,
 
     insnCodeGen::generate(gen, branchInsn);
 
-    //Register ret = gen.rs()->allocateRegister(gen, noCost);
-    //Register ret = REGNUM_EAX;
+    //Register retReg = REG_NULL;
+    // get a register to keep the return value in.
+    //retReg = gen.rs()->allocateRegister(gen, noCost);
+    //assert(retReg!=REG_NULL);
 
-    //emitCallInstruction(gen, callee, ret);
+    /*
+     * Restoring registers
+     */
 
+    insnCodeGen::restoreRegister(gen, registerSpace::r9);
 
-    //emitCallCleanup(gen, callee, param_size, saves);
-    return NULL;
+    // r2-r1 (first three register for parameter)
+    for(signed int id = operands.size()-1; id >= 1 ; id--)
+    {
+        insnCodeGen::restoreRegister(gen, registerSpace::r0 + id);
+    }
+
+    // link register
+    insnCodeGen::restoreRegister(gen, registerSpace::r30);
+
+    return 0;
 }
 
 
@@ -633,10 +686,33 @@ codeBufIndex_t emitA(opCode op, Register src1, Register src2, long dest,
 
 Register emitR(opCode op, Register src1, Register src2, Register dest,
                codeGen &gen, bool /*noCost*/,
-               const instPoint * /*location*/, bool /*for_MT*/) {
+               const instPoint * location, bool /*for_MT*/)
+{
+    registerSlot *regSlot = NULL;
 
-    assert(0);
-    return REG_NULL;
+    switch(op){
+        case getParamOp:
+            // src1 is the number of the argument
+            // dest is a register where we can store the value
+            //gen.codeEmitter()->emitGetParam(dest, src1, location->type(), op,
+            //        false, gen);
+
+            if(src1 <= 3) {
+                // src1 is 0..8 - it's a parameter number, not a register
+                regSlot = (*(gen.rs()))[registerSpace::r0 + src1];
+                break;
+
+            } else {
+                assert(0);
+            }
+            break;
+        default:
+            assert(0);
+    }
+    assert(regSlot);
+    Register reg = regSlot->number;
+
+    return reg;
 }
 
 void emitJmpMC(int /*condition*/, int /*offset*/, codeGen &) {
@@ -1208,24 +1284,5 @@ Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
 }
 
 
-codeBufIndex_t EmitterAARCH64::emitIf(
-        Register expr_reg, Register target, RegControl /*rc*/, codeGen &gen)
-{
-    instruction insn;
-    insn.clear();
-
-    // compare to 0 and branch
-    // register number, its value is compared to 0.
-    INSN_SET(insn, 0, 4, expr_reg);
-    INSN_SET(insn, 5, 23, (target+4)/4);
-    INSN_SET(insn, 25, 30, 0x1a); // CBZ
-    INSN_SET(insn, 31, 31, 1);
-
-    insnCodeGen::generate(gen,insn);
-
-    // Retval: where the jump is in this sequence
-    codeBufIndex_t retval = gen.getIndex();
-    return retval;
-}
 
 

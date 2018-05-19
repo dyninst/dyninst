@@ -160,7 +160,7 @@ bool PCEventMuxer::registerCallbacks() {
 	ret &= Process::registerEventCallback(EventType(EventType::Any, EventType::Library), defaultCallback);
 	ret &= Process::registerEventCallback(EventType(EventType::Any, EventType::Breakpoint), breakpointCallback);
 	ret &= Process::registerEventCallback(EventType(EventType::Any, EventType::RPC), RPCCallback);
-	ret &= Process::registerEventCallback(EventType(EventType::Any, EventType::SingleStep), defaultCallback);
+	ret &= Process::registerEventCallback(EventType(EventType::Any, EventType::SingleStep), SingleStepCallback);
 
 	// Fork/exec/exit
 	if (useCallback(EventType(EventType::Pre, EventType::Exit))) {
@@ -225,6 +225,54 @@ PCEventMuxer::cb_ret_t PCEventMuxer::defaultCallback(EventPtr ev) {
 	DEFAULT_RETURN;
 }
 
+#include "InstructionDecoder.h"
+using namespace InstructionAPI;
+//#sasha Remove this callback afterwards
+PCEventMuxer::cb_ret_t PCEventMuxer::SingleStepCallback(EventPtr ev) {
+    INITIAL_MUXING;
+    cerr << "  ==== SingleStep Callback ====" << endl;
+    ret = ret_continue;
+    ev->getThread()->setSingleStepMode(true);
+
+    char command;
+    cin >> command;
+    if(command!='n')
+        return ret;
+
+    MachRegister pcReg = MachRegister::getPC(ev->getProcess()->getArchitecture());
+    MachRegisterVal loc;
+    bool result = ev->getThread()->getRegister(pcReg, loc);
+    if (!result) {
+        fprintf(stderr,"Failed to read PC register\n");
+        return Process::cbDefault;
+    }
+
+    Address pc = 0;
+    ProcControlAPI::RegisterPool regs;
+    ev->getThread()->getAllRegisters(regs);
+
+    for (ProcControlAPI::RegisterPool::iterator iter = regs.begin(); iter != regs.end(); ++iter) {
+        //cerr << "\t Reg " << (*iter).first.name() << ": " << hex << (*iter).second << dec << endl;
+        if (((*iter).first.isPC())) {
+            pc = (*iter).second;
+        }
+    }
+
+    unsigned disass[1024];
+    Address base = pc;
+    unsigned size = 4;
+    process->readDataSpace((void *) base, size, disass, false);
+    InstructionDecoder deco(disass,size,process->getArch());
+    Instruction::Ptr insn = deco.decode();
+    while(insn) {
+      cerr << "\t" << hex << base << ": " << insn->format(base) << dec << endl;
+      base += insn->size();
+      insn = deco.decode();
+    }
+
+
+    DEFAULT_RETURN;
+}
 
 PCEventMuxer::cb_ret_t PCEventMuxer::exitCallback(EventPtr ev) {
 	INITIAL_MUXING;
@@ -245,8 +293,6 @@ PCEventMuxer::cb_ret_t PCEventMuxer::crashCallback(EventPtr ev) {
 	}
 	DEFAULT_RETURN;
 }
-#include "InstructionDecoder.h"
-using namespace InstructionAPI;
 
 PCEventMuxer::cb_ret_t PCEventMuxer::signalCallback(EventPtr ev) {
   INITIAL_MUXING;

@@ -98,10 +98,15 @@ public:
     static void generateMemAccess32or64(codeGen &gen, LoadStore accType,
                                         Register r1, Register r2, int immd, bool is64bit);
 
-    static void generateMemAccessFP(codeGen &gen, LoadStore accType, Register rt, Register rn, int immd, int size, bool is128bit);
+    static void generateMemAccessFP(codeGen &gen, LoadStore accType, Register rt,
+            Register rn, int immd, int size, bool is128bit);
 
     template<typename T>
     static void loadImmIntoReg(codeGen &gen, Register rt, T value);
+
+    static void saveRegister(codeGen &gen, Register r);
+
+    static void restoreRegister(codeGen &gen, Register r);
 
     /** TODO **/
     static void generateLoadReg(codeGen &gen, Register rt,
@@ -164,9 +169,10 @@ public:
 
     static void generateDiv(codeGen &gen, Register rm, Register rn, Register rd, bool is64bit);
 
-    static void generateBitwiseOpShifted(codeGen &gen, BitwiseOp op, int shift, Register rm, int imm6, Register rn, Register rd, bool is64bit);
+    static void generateBitwiseOpShifted(codeGen &gen, BitwiseOp op, int shift,
+            Register rm, int imm6, Register rn, Register rd, bool is64bit);
 
-    // This is for MOVK, MOVN, and MOVZ. For MOV use generateMoveToReg()
+    // This is for MOVK, MOVN, and MOVZ. For MOV use the other generateMove()
     static void generateMove(codeGen &gen, int imm16, int shift, Register rd, MoveOp movOp);
 
     // This is for MOV, which is an alias for ORR. See ARMv8 Documentation.
@@ -190,8 +196,8 @@ public:
 
     //TODO
     // Routines to create/remove a new stack frame for getting scratch registers
-    static int
-    createStackFrame(codeGen &gen, int numRegs, pdvector <Register> &freeReg, pdvector <Register> &excludeReg);
+    static int createStackFrame(codeGen &gen, int numRegs, pdvector <Register> &freeReg,
+            pdvector <Register> &excludeReg);
 
     //TODO
     static void removeStackFrame(codeGen &gen);

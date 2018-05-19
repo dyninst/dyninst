@@ -124,7 +124,7 @@ public:
     static cb_ret_t execCallback(EventPtr);
 //    static cb_ret_t forceTerminateCallback(EventPtr);
 //    static cb_ret_t libraryCallback(EventPtr);
-//    static cb_ret_t singlestepCallback(EventPtr);
+    static cb_ret_t SingleStepCallback(EventPtr);
 
 	// Platform-specific capability functions
     /*
