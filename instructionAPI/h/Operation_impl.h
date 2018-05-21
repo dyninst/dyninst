@@ -36,11 +36,13 @@
 #include "entryIDs.h"
 #include "Result.h"
 #include <set>
+#include <mutex>
 
 #include "util.h"
 #include <boost/thread/lockable_adapter.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/flyweight.hpp>
+
 // OpCode = operation + encoding
 // contents:
 // hex value
@@ -110,9 +112,9 @@ namespace Dyninst
       INSTRUCTION_EXPORT const Operation_impl& operator=(const Operation_impl& o);
       
       /// Returns the set of registers implicitly read (i.e. those not included in the operands, but read anyway)
-      INSTRUCTION_EXPORT const registerSet& implicitReads() const;
+      INSTRUCTION_EXPORT const registerSet& implicitReads() ;
       /// Returns the set of registers implicitly written (i.e. those not included in the operands, but written anyway)
-      INSTRUCTION_EXPORT const registerSet& implicitWrites() const;
+      INSTRUCTION_EXPORT const registerSet& implicitWrites() ;
       /// Returns the mnemonic for the operation.  Like \c instruction::format, this is exposed for debugging
       /// and will be replaced with stream operators in the public interface.
       INSTRUCTION_EXPORT std::string format() const;
@@ -124,13 +126,13 @@ namespace Dyninst
       INSTRUCTION_EXPORT prefixEntryID getPrefixID() const;
 
       /// Returns true if the expression represented by \c candidate is read implicitly.
-      INSTRUCTION_EXPORT bool isRead(Expression::Ptr candidate) const;
+      INSTRUCTION_EXPORT bool isRead(Expression::Ptr candidate) ;
       /// Returns true if the expression represented by \c candidate is written implicitly.
-      INSTRUCTION_EXPORT bool isWritten(Expression::Ptr candidate) const;
+      INSTRUCTION_EXPORT bool isWritten(Expression::Ptr candidate) ;
       /// Returns the set of memory locations implicitly read.
-      INSTRUCTION_EXPORT const VCSet& getImplicitMemReads() const;
+      INSTRUCTION_EXPORT const VCSet& getImplicitMemReads() ;
       /// Returns the set of memory locations implicitly written.
-      INSTRUCTION_EXPORT const VCSet& getImplicitMemWrites() const;
+      INSTRUCTION_EXPORT const VCSet& getImplicitMemWrites() ;
       friend std::size_t hash_value(Operation_impl const& op)
       {
         size_t seed = 0;
@@ -145,7 +147,8 @@ namespace Dyninst
       }
 
     private:
-      void SetUpNonOperandData(bool doFlags = false) const;
+        std::once_flag data_initialized;
+      void SetUpNonOperandData(bool doFlags = false) ;
       
       mutable registerSet otherRead;
       mutable registerSet otherWritten;
@@ -155,11 +158,10 @@ namespace Dyninst
 
     protected:
         mutable entryID operationID;
-      mutable bool doneOtherSetup;
-      mutable bool doneFlagsSetup;
       Architecture archDecodedFrom;
       prefixEntryID prefixID;
       Result_Type addrWidth;
+
       
     };
     struct Operation: public Operation_impl {

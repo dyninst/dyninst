@@ -492,7 +492,7 @@ bool IA_IAPI::isSyscall() const
     Instruction ci = curInsn();
 
     return (((ci.getOperation().getID() == e_call) &&
-                (curInsn().getOperation().isRead(gs)) &&
+                (ci.getOperation().isRead(gs)) &&
                 (ci.getOperand(0).format(ci.getArch()) == "16")) ||
             (ci.getOperation().getID() == e_syscall) ||
             (ci.getOperation().getID() == e_int) ||

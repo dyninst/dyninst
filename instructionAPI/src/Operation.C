@@ -60,7 +60,7 @@ namespace Dyninst
     }
 
     Operation_impl::Operation_impl(entryID id, Architecture arch)
-          : operationID(id), doneOtherSetup(true), doneFlagsSetup(true), archDecodedFrom(arch), prefixID(prefix_none)
+          : operationID(id), archDecodedFrom(arch), prefixID(prefix_none)
     {
         switch(archDecodedFrom)
         {
@@ -75,7 +75,7 @@ namespace Dyninst
     }
     
     Operation_impl::Operation_impl(ia32_entry* e, ia32_prefixes* p, ia32_locations* l, Architecture arch) :
-      doneOtherSetup(false), doneFlagsSetup(false), archDecodedFrom(arch), prefixID(prefix_none)
+      archDecodedFrom(arch), prefixID(prefix_none)
     
     {
       operationID = e->getID(l);
@@ -143,13 +143,7 @@ namespace Dyninst
 
     Operation_impl::Operation_impl(const Operation_impl& o)
     {
-      otherRead = o.otherRead;
-      otherWritten = o.otherWritten;
-      otherEffAddrsRead = o.otherEffAddrsRead;
-      otherEffAddrsWritten = o.otherEffAddrsWritten;
       operationID = o.operationID;
-      doneOtherSetup = o.doneOtherSetup;
-      doneFlagsSetup = o.doneFlagsSetup;
       archDecodedFrom = o.archDecodedFrom;
       prefixID = prefix_none;
       addrWidth = o.addrWidth;
@@ -157,13 +151,7 @@ namespace Dyninst
     }
     const Operation_impl& Operation_impl::operator=(const Operation_impl& o)
     {
-      otherRead = o.otherRead;
-      otherWritten = o.otherWritten;
-      otherEffAddrsRead = o.otherEffAddrsRead;
-      otherEffAddrsWritten = o.otherEffAddrsWritten;
       operationID = o.operationID;
-      doneOtherSetup = o.doneOtherSetup;
-      doneFlagsSetup = o.doneFlagsSetup;
       archDecodedFrom = o.archDecodedFrom;
       prefixID = o.prefixID;
       addrWidth = o.addrWidth;
@@ -172,26 +160,24 @@ namespace Dyninst
     Operation_impl::Operation_impl()
     {
       operationID = e_No_Entry;
-      doneOtherSetup = false;
-      doneFlagsSetup = false;
       archDecodedFrom = Arch_none;
       prefixID = prefix_none;
       addrWidth = u64;
     }
     
-    const Operation_impl::registerSet&  Operation_impl::implicitReads() const
+    const Operation_impl::registerSet&  Operation_impl::implicitReads()
     {
       SetUpNonOperandData(true);
       
       return otherRead;
     }
-    const Operation_impl::registerSet&  Operation_impl::implicitWrites() const
+    const Operation_impl::registerSet&  Operation_impl::implicitWrites()
     {
       SetUpNonOperandData(true);
 
       return otherWritten;
     }
-    bool Operation_impl::isRead(Expression::Ptr candidate) const
+    bool Operation_impl::isRead(Expression::Ptr candidate)
     {
      
 	SetUpNonOperandData(candidate->isFlag());
@@ -216,18 +202,18 @@ namespace Dyninst
       }
       return false;
     }
-    const Operation_impl::VCSet& Operation_impl::getImplicitMemReads() const
+    const Operation_impl::VCSet& Operation_impl::getImplicitMemReads()
     {
       SetUpNonOperandData(true);
       return otherEffAddrsRead;
     }
-    const Operation_impl::VCSet& Operation_impl::getImplicitMemWrites() const
+    const Operation_impl::VCSet& Operation_impl::getImplicitMemWrites()
     {
       SetUpNonOperandData(true);
       return otherEffAddrsWritten;
     }
 
-    bool Operation_impl::isWritten(Expression::Ptr candidate) const
+    bool Operation_impl::isWritten(Expression::Ptr candidate)
     {
      
 	SetUpNonOperandData(candidate->isFlag());
@@ -409,9 +395,8 @@ namespace Dyninst
                 return op_data_32;
         }
     }
-    void Operation_impl::SetUpNonOperandData(bool needFlags) const
+    void Operation_impl::SetUpNonOperandData(bool needFlags)
     {
-        std::once_flag data_initialized;
         std::call_once(data_initialized, [&]() {
 #if defined(arch_x86) || defined(arch_x86_64)
             OperationMaps::reg_info_t::const_accessor a, b;
@@ -481,6 +466,7 @@ namespace Dyninst
                             assert(0);
                     }
                 }
+
                 for (unsigned j = 0; j < found->second.writtenFlags.size(); j++) {
                     switch (found->second.writtenFlags[j]) {
                         case x86::icf:
