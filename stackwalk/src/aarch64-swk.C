@@ -133,15 +133,15 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 
   Address actual_fp;
 
-  // Assume a standard frame layout if no analysis is available
-  FrameFuncHelper::alloc_frame_t alloc_frame =  make_pair(FrameFuncHelper::standard_frame,
-                                                          FrameFuncHelper::set_frame);
+  // FrameFuncStepper needs an input FP
+  if (!in.getFP())
+     return gcf_not_me;
 
-  if (helper && in.isTopFrame())
-  {
-    alloc_frame = helper->allocatesFrame(in.getRA());
-    sw_printf("[%s:%u] - FrameFuncHelper for 0x%lx reports %d, %d\n", FILE__, __LINE__,
-              in.getRA(), alloc_frame.first, alloc_frame.second);
+  // Look for function prologue to see if it is a standard frame 
+  FrameFuncHelper::alloc_frame_t alloc_frame;
+  alloc_frame = helper->allocatesFrame(in.getRA());
+  if (alloc_frame.first != FrameFuncHelper::standard_frame) {
+     return gcf_not_me;
   }
 
   if (!in.getFP())
