@@ -140,6 +140,7 @@ namespace Dyninst
         boost::hash_combine(seed, op.prefixID);
         boost::hash_combine(seed, op.archDecodedFrom);
         boost::hash_combine(seed, op.addrWidth);
+        boost::hash_combine(seed, op.segPrefix);
         return seed;
       }
       bool operator==(const Operation_impl& rhs) const {
@@ -161,6 +162,7 @@ namespace Dyninst
       Architecture archDecodedFrom;
       prefixEntryID prefixID;
       Result_Type addrWidth;
+      int segPrefix;
 
       
     };

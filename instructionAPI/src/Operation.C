@@ -72,12 +72,14 @@ namespace Dyninst
                 addrWidth = u64;
                 break;
         }
+        segPrefix = 0;
     }
     
     Operation_impl::Operation_impl(ia32_entry* e, ia32_prefixes* p, ia32_locations* l, Architecture arch) :
       archDecodedFrom(arch), prefixID(prefix_none)
     
     {
+      segPrefix = 0;
       operationID = e->getID(l);
       // Defaults for no size prefix
       switch(archDecodedFrom)
@@ -90,50 +92,11 @@ namespace Dyninst
               addrWidth = u64;
               break;
       }
-      
       if(p && p->getCount())
       {
-        if (p->getPrefix(0) == PREFIX_REP || p->getPrefix(0) == PREFIX_REPNZ)
-	{
-            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
-            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ecx : x86_64::rcx));
-            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ecx : x86_64::rcx));
-            if(p->getPrefix(0) == PREFIX_REPNZ)
-            {
-                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
-                prefixID = prefix_repnz;
-            }
-            else
-            {
-                prefixID = prefix_rep;
-            }
-        }
-        else
-        {
-          prefixID = prefix_none;
-        }
-        int segPrefix = p->getPrefix(1);
-        switch(segPrefix)
-        {
-            case PREFIX_SEGCS:
-                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::cs : x86_64::cs));
-                break;
-            case PREFIX_SEGDS:
-                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ds : x86_64::ds));
-                break;
-            case PREFIX_SEGES:
-                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::es : x86_64::es));
-                break;
-            case PREFIX_SEGFS:
-                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::fs : x86_64::fs));
-                break;
-            case PREFIX_SEGGS:
-                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::gs : x86_64::gs));
-                break;
-            case PREFIX_SEGSS:
-                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ss : x86_64::ss));
-                break;
-        }
+        if (p->getPrefix(0) == PREFIX_REP) prefixID = prefix_rep;
+        if (p->getPrefix(0) == PREFIX_REPNZ) prefixID = prefix_repnz;
+        segPrefix = p->getPrefix(1);
         if(p->getAddrSzPrefix())
         {
             addrWidth = u16;
@@ -145,9 +108,9 @@ namespace Dyninst
     {
       operationID = o.operationID;
       archDecodedFrom = o.archDecodedFrom;
-      prefixID = prefix_none;
+      prefixID = o.prefixID;
       addrWidth = o.addrWidth;
-      
+      segPrefix = o.segPrefix;
     }
     const Operation_impl& Operation_impl::operator=(const Operation_impl& o)
     {
@@ -155,6 +118,7 @@ namespace Dyninst
       archDecodedFrom = o.archDecodedFrom;
       prefixID = o.prefixID;
       addrWidth = o.addrWidth;
+      segPrefix = o.segPrefix;
       return *this;
     }
     Operation_impl::Operation_impl()
@@ -163,6 +127,7 @@ namespace Dyninst
       archDecodedFrom = Arch_none;
       prefixID = prefix_none;
       addrWidth = u64;
+      segPrefix = 0;
     }
     
     const Operation_impl::registerSet&  Operation_impl::implicitReads()
@@ -288,10 +253,10 @@ namespace Dyninst
           framePointer.insert(RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(arch))));
           spAndBP.insert(RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(arch))));
           spAndBP.insert(RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(arch))));
-          si.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::esi : x86::esi)));
-          di.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::edi : x86::edi)));
-          si_and_di.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::esi : x86::esi)));
-          si_and_di.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::edi : x86::edi)));
+          si.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::rsi : x86::esi)));
+          di.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::rdi : x86::edi)));
+          si_and_di.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::rsi : x86::esi)));
+          si_and_di.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::rdi : x86::edi)));
 	
           nonOperandRegisterReads.insert(make_pair(e_call, pcAndSP));
           nonOperandRegisterReads.insert(make_pair(e_ret_near, stackPointer));
@@ -399,6 +364,37 @@ namespace Dyninst
     {
         std::call_once(data_initialized, [&]() {
 #if defined(arch_x86) || defined(arch_x86_64)
+        if (prefixID == prefix_rep || prefixID == prefix_repnz) 	{
+            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
+            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ecx : x86_64::rcx));
+            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ecx : x86_64::rcx));
+            if(prefixID == prefix_repnz)
+            {
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
+            }
+        }
+        switch(segPrefix)
+        {
+            case PREFIX_SEGCS:
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::cs : x86_64::cs));
+                break;
+            case PREFIX_SEGDS:
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ds : x86_64::ds));
+                break;
+            case PREFIX_SEGES:
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::es : x86_64::es));
+                break;
+            case PREFIX_SEGFS:
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::fs : x86_64::fs));
+                break;
+            case PREFIX_SEGGS:
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::gs : x86_64::gs));
+                break;
+            case PREFIX_SEGSS:
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ss : x86_64::ss));
+                break;
+        }
+
             OperationMaps::reg_info_t::const_accessor a, b;
             if (op_data(archDecodedFrom).nonOperandRegisterReads.find(a, operationID)) {
                 otherRead.insert(a->second.begin(), a->second.end());

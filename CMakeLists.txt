@@ -70,7 +70,6 @@ if(${SYMREADER} MATCHES symtabAPI)
   add_subdirectory (dyninstAPI)
   add_subdirectory (dynC_API)
 endif()
-add_subdirectory(testsuite)
 
 if(BUILD_RTLIB)
   # Build the RT library as a separate project so we can change compilers
@@ -225,3 +224,6 @@ endif()
 if(TARGET boost)
     add_dependencies(common boost)
 endif()
+
+add_subdirectory(testsuite)
+
