@@ -291,9 +291,24 @@ bool DwarfWalker::buildSrcFiles(::Dwarf * /*dbg*/, Dwarf_Die entry, StringTableP
     } // already parsed, the module had better be right.
     srcFiles->push_back("Unknown file");
 
+    // get comp_dir in case need to make absolute paths
+    Dwarf_Attribute attr;
+    const char * comp_dir = dwarf_formstring( dwarf_attr(&entry, DW_AT_comp_dir, &attr) );
+    std::string comp_dir_str( comp_dir ? comp_dir : "" );
+
+    // store all file sources found by libdw
     for (unsigned i = 1; i < cnt; ++i) {
         auto filename = dwarf_filesrc(df, i, NULL, NULL);
-        srcFiles->push_back(filename);
+        if(!filename) continue;
+
+        // change to absolute if it's relative
+        std::string s_name(filename); 
+        if(filename[0]!='/')
+        {
+            s_name = comp_dir_str + "/" + s_name;
+        }
+
+        srcFiles->push_back(s_name);
     }
     return true;
 }
