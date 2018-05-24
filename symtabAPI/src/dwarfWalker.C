@@ -716,7 +716,7 @@ void DwarfWalker::setRanges(FunctionBase *func) {
     }
 }
 
-pair<AddressRange, bool> DwarfWalker::parseHighPCLowPC(::Dwarf * dbg, Dwarf_Die entry)
+pair<AddressRange, bool> DwarfWalker::parseHighPCLowPC(Dwarf * /*dbg*/, Dwarf_Die entry)
 {
     Dwarf_Addr low, high;
     int low_result = dwarf_lowpc(&entry, &low);
@@ -769,7 +769,8 @@ bool DwarfWalker::parseRangeTypes(Dwarf * dbg, Dwarf_Die die) {
    return !newRanges.empty();
 }
 
-vector<AddressRange> DwarfWalker::getDieRanges(Dwarf * dbg, Dwarf_Die die, Offset range_base) {
+vector<AddressRange> DwarfWalker::getDieRanges(Dwarf * /*dbg*/, Dwarf_Die die, Offset /*range_base*/)
+{
     std::vector<AddressRange> newRanges;
 
     Dwarf_Addr base;

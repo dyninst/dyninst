@@ -834,6 +834,11 @@ void *Elf_X_Data::d_buf() const
     return data->d_buf;
 }
 
+Elf_Data * Elf_X_Data::elf_data() const
+{
+    return data;
+}
+
 Elf_Type Elf_X_Data::d_type() const
 {
     return data->d_type;

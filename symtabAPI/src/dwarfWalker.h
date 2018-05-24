@@ -56,7 +56,7 @@ public:
     DwarfParseActions(const DwarfParseActions& o) :
             mod_(o.mod_),
             dbg_(o.dbg_),
-            symtab_(o.symtab_), c(o.c)
+            c(o.c), symtab_(o.symtab_)
             {
             }
     typedef std::vector<std::pair<Address, Address> > range_set_t;

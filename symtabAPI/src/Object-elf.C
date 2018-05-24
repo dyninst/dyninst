@@ -3362,27 +3362,6 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
 }
 
 
-int section_id(Elf * elf)
-{
-    char *identp = elf_getident(elf, NULL);
-    bool is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
-
-    auto shstrtab_idx = !is64 ? elf32_getehdr(elf)->e_shstrndx : elf64_getehdr(elf)->e_shstrndx;
-    Elf_Scn *scn= elf_getscn(elf, shstrtab_idx); 
-    Elf_Data *data = elf_getdata(scn, NULL); 
-    const char *shnames = (const char *)data->d_buf;
-
-    unsigned short num_sections = !is64 ? elf32_getehdr(elf)->e_shnum : elf64_getehdr(elf)->e_shnum;
-    for (unsigned i = 0; i < num_sections; i++) {
-        Elf_Scn *scn = elf_getscn(elf, i); 
-        unsigned long name_idx = !is64 ? elf32_getshdr(scn)->sh_name : elf64_getshdr(scn)->sh_name;
-        if (strcmp(".eh_frame", shnames + name_idx) == 0) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 /**
  * On GCC 3.x/x86 we find catch blocks as follows:
  *   1. We start with a list of FDE entries in the .eh_frame
@@ -3405,7 +3384,7 @@ int section_id(Elf * elf)
 #define LONG_FDE_HLEN 12
 static
 int read_except_table_gcc3(
-        Dwarf* dbg, mach_relative_info &mi,
+        const unsigned char e_ident[], mach_relative_info &mi,
         Elf_X_Shdr *eh_frame, Elf_X_Shdr *except_scn,
         std::vector<ExceptionBlock> &addresses)
 {
@@ -3417,29 +3396,17 @@ int read_except_table_gcc3(
     unsigned long value, table_end, region_start, region_size, landingpad_base;
     unsigned long catch_block, action, augmentor_len;
 
-    Elf * elf = dwarf_getelf(dbg);
-    Dwarf_CFI * cfi = dwarf_getcfi_elf(elf);
-    std::vector<Dwarf_CFI_Entry> cfi_entries;
-    if (!cfi) 
-    {
-        return false;
-    }
-
     Dwarf_Off offset = 0, next_offset, saved_cur_offset;
     int res = 0;
 
-    auto e_ident = reinterpret_cast<const unsigned char*>(elf_getident(elf, NULL));
-    int i = section_id(elf);
-    assert(i!=-1);
-    auto elf_data = elf_getdata(elf_getscn(elf, i), NULL);
-
+    Elf_Data * eh_frame_data = eh_frame->get_data().elf_data();
     Dwarf_CFI_Entry *last_cie = NULL; 
 
     //For each CFI entry 
     do
     {
         Dwarf_CFI_Entry entry;
-        res = dwarf_next_cfi(e_ident, elf_data, true, offset, &next_offset, &entry);
+        res = dwarf_next_cfi(e_ident, eh_frame_data, true, offset, &next_offset, &entry);
         saved_cur_offset = offset; //saved in case needed later 
         offset = next_offset;
         
@@ -3705,51 +3672,6 @@ int read_except_table_gcc3(
     return true;
 }
 
-#if 0 // TODO
-/**
- * Things were much simpler in the old days.  On gcc 2.x
- * the gcc_except_table looks like:
- *   <long> try_start
- *   <long> try_end
- *   <long> catch_start
- * Where everything is an absolute address, even when compiled
- * with PIC.  All we got to do is read the catch_start entries
- * out of it.
- **/
-static bool read_except_table_gcc2(Elf_X_Shdr *except_table,
-                                   std::vector<ExceptionBlock> &addresses,
-                                   const mach_relative_info &mi)
-{
-    Offset try_start = (Offset) -1;
-    Offset try_end = (Offset) -1;
-    Offset catch_start = 0;
-
-    Elf_X_Data data = except_table->get_data();
-    const unsigned char *datap = (const unsigned char *)data.get_string();
-    unsigned long except_size = data.d_size();
-
-    unsigned i = 0;
-    while (i < except_size) {
-        ExceptionBlock eb;
-        if (mi.word_size == 4) {
-            i += read_val_of_type(DW_EH_PE_udata4, &try_start, datap + i, mi);
-            i += read_val_of_type(DW_EH_PE_udata4, &try_end, datap + i, mi);
-            i += read_val_of_type(DW_EH_PE_udata4, &catch_start, datap + i, mi);
-        }
-        else if (mi.word_size == 8) {
-            i += read_val_of_type(DW_EH_PE_udata8, &try_start, datap + i, mi);
-            i += read_val_of_type(DW_EH_PE_udata8, &try_end, datap + i, mi);
-            i += read_val_of_type(DW_EH_PE_udata8, &catch_start, datap + i, mi);
-        }
-
-        if (try_start != (Offset) -1 && try_end != (Offset) -1) {
-            ExceptionBlock eb(try_start, (unsigned) (try_end - try_start), catch_start);
-            addresses.push_back(eb);
-        }
-    }
-    return true;
-}
-#endif // TODO
 
 struct  exception_compare: public binary_function<const ExceptionBlock &, const ExceptionBlock &, bool>
 {
@@ -3773,37 +3695,12 @@ bool Object::find_catch_blocks(Elf_X_Shdr * eh_frame,
                                Address txtaddr, Address dataaddr,
                                std::vector<ExceptionBlock> & catch_addrs)
 {
-    //Dwarf_CIE *cie_data;
-    //Dwarf_FDE *fde_data;
-    //Dwarf_Sword cie_count, fde_count;
-    //Dwarf_Error err = (Dwarf_Error) NULL;
-    //unsigned long long bytes_in_cie;
-    //char *augmentor;
-    //int status, gcc_ver = 3;
-    //unsigned i;
     bool result = false;
 
     if (except_scn == NULL) {
         //likely to happen if we're not using gcc
         return true;
     }
-
-    Dwarf ** dbg_ptr = dwarf->frame_dbg();
-    if (!dbg_ptr) 
-    {
-        pd_dwarf_handler();
-        return false;
-    }
-    Dwarf * dbg = *dbg_ptr;
-    if(!dbg) return false;
-
-    //Read the FDE and CIE information
-    //status = dwarf_get_fde_list_eh(dbg, &cie_data, &cie_count,
-    //                               &fde_data, &fde_count, &err);
-    //if (status != 0) {
-    //    //No actual stackwalk info in this object
-    //    return false;
-    //}
 
     mach_relative_info mi;
     mi.text = txtaddr;
@@ -3813,39 +3710,11 @@ bool Object::find_catch_blocks(Elf_X_Shdr * eh_frame,
     mi.word_size = eh_frame->wordSize();
     mi.big_input = elfHdr->e_endian();
 
+    Elf_X *elfHdrDbg = dwarf->debugLinkFile();
+    auto e_ident = (!eh_frame->isFromDebugFile()) ? elfHdr->e_ident() : elfHdrDbg->e_ident();
+    result = read_except_table_gcc3(e_ident, mi, eh_frame, except_scn, catch_addrs);
 
-    //GCC 2.x has "eh" as its augmentor string in the CIEs
-    //for (i = 0; i < cie_count; i++) {
-    //    status = dwarf_get_cie_info(cie_data[i], &bytes_in_cie, NULL,
-    //                                &augmentor, NULL, NULL, NULL, NULL, NULL, &err);
-    //    if (status != DW_DLV_OK) {
-    //        pd_dwarf_handler();
-    //        goto cleanup;
-    //    }
-    //    if (augmentor[0] == 'e' && augmentor[1] == 'h') {
-    //        gcc_ver = 2;
-    //    }
-    //}
-
-    //Parse the gcc_except_table
-    //if (gcc_ver == 2) {
-    //    result = read_except_table_gcc2(except_scn, catch_addrs, mi);
-
-    //} else if (gcc_ver == 3) {
-        result = read_except_table_gcc3(dbg, mi, eh_frame, except_scn,
-                                        catch_addrs);
-    //}
     sort(catch_addrs.begin(),catch_addrs.end(),exception_compare());
-    //VECTOR_SORT(catch_addrs, exception_compare);
-
-    //cleanup:
-    ////Unallocate fde and cie information
-    //for (i = 0; i < cie_count; i++)
-    //    dwarf_dealloc(dbg, cie_data[i], DW_DLA_CIE);
-    //for (i = 0; i < fde_count; i++)
-    //    dwarf_dealloc(dbg, fde_data[i], DW_DLA_FDE);
-    //dwarf_dealloc(dbg, cie_data, DW_DLA_LIST);
-    //dwarf_dealloc(dbg, fde_data, DW_DLA_LIST);
 
     return result;
 }
