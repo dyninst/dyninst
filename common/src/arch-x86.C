@@ -2014,7 +2014,7 @@ dyn_hash_map<entryID, flagInfo> ia32_instruction::flagTable;
 
 COMMON_EXPORT dyn_hash_map<entryID, flagInfo> const& ia32_instruction::getFlagTable()
 {
-    std::once_flag flagTableInit;
+    static std::once_flag flagTableInit;
     std::call_once(flagTableInit, [&]() {initFlagTable(flagTable);});
   return flagTable;
 }
