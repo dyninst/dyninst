@@ -519,7 +519,7 @@ void Function::set_retstatus(FuncReturnStatus rs)
     } else if (rs == UNKNOWN) {
         _obj->cs()->incrementCounter(PARSE_UNKNOWN_COUNT);
     }
-    _rs = rs;
+    _rs.store(rs);
 }
 
 void 

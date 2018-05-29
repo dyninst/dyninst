@@ -48,6 +48,7 @@
 #include <boost/thread/lockable_adapter.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 #include <list>
+#include <atomic>
 
 namespace Dyninst {
 
@@ -463,7 +464,7 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, pub
     InstructionSource * _isrc;
     
     FuncSource _src;
-    FuncReturnStatus _rs;
+    std::atomic<FuncReturnStatus> _rs;
 
     std::string _name;
     Block * _entry;
@@ -507,8 +508,7 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, pub
     CodeObject * obj() const { return _obj; }
     FuncSource src() const { return _src; }
     FuncReturnStatus retstatus() const { 
-      boost::lock_guard<const Function> g(*this);
-      return _rs; 
+      return _rs.load(); 
     }
     Block * entry() const { return _entry; }
     bool parsed() const { return _parsed; }
