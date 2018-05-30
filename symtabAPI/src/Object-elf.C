@@ -3389,7 +3389,7 @@ int read_except_table_gcc3(
         std::vector<ExceptionBlock> &addresses)
 {
     Dwarf_Addr low_pc = 0;
-    Dwarf_Off fde_offset, cie_offset;
+    Dwarf_Off fde_offset;
     int result, ptr_size;
     const char *augmentor;
     unsigned char lpstart_format, ttype_format, table_format;
@@ -3398,9 +3398,7 @@ int read_except_table_gcc3(
 
     Dwarf_Off offset = 0, next_offset, saved_cur_offset;
     int res = 0;
-
     Elf_Data * eh_frame_data = eh_frame->get_data().elf_data();
-    Dwarf_CFI_Entry *last_cie = NULL; 
 
     //For each CFI entry 
     do
@@ -3418,13 +3416,9 @@ int read_except_table_gcc3(
 
         if(dwarf_cfi_cie_p(&entry))
         {
-            last_cie = &entry;
-            cie_offset = saved_cur_offset;
             continue;
         }
         
-        assert(last_cie!=NULL);
-
         unsigned int j;
         unsigned char lsda_encoding = 0xff, personality_encoding = 0xff, range_encoding = 0xff;
         unsigned char *lsda_ptr = NULL;
@@ -3444,10 +3438,14 @@ int read_except_table_gcc3(
         //The LSB strays from the DWARF here, when parsing the except_eh section
         // the cie_offset is relative to the FDE rather than the start of the
         // except_eh section.
-        cie_bytes = (unsigned char *)eh_frame->get_data().d_buf() + cie_offset;
+        cie_bytes = (unsigned char *) eh_frame->get_data().d_buf() + entry.fde.CIE_pointer;
 
         //Get the Augmentation string for the CIE
-        augmentor = last_cie->cie.augmentation;  
+        Dwarf_CFI_Entry thisCIE;
+        Dwarf_Off unused;
+        dwarf_next_cfi(e_ident, eh_frame_data, true, entry.fde.CIE_pointer, &unused, &thisCIE);
+        assert(dwarf_cfi_cie_p(&thisCIE));
+        augmentor = thisCIE.cie.augmentation;
 
         //Check that the string pointed to by augmentor has a 'L',
         // meaning we have a LSDA
@@ -3467,14 +3465,14 @@ int read_except_table_gcc3(
         // We'll figure out where the FDE and CIE original load addresses
         // were and use those in pcrel computations.
         fde_addr = eh_frame->sh_addr() + fde_offset;
-        cie_addr = eh_frame->sh_addr() + cie_offset;
+        cie_addr = eh_frame->sh_addr() + entry.fde.CIE_pointer;
 
         //Extract encoding information from the CIE.
         // The CIE may have augmentation data, specified in the
         // Linux Standard Base. The augmentation string tells us how
         // which augmentation data is present.  We only care about one
         // field, a byte telling how the LSDA pointer is encoded.
-        cur_augdata = const_cast<unsigned char *>(last_cie->cie.augmentation_data);
+        cur_augdata = const_cast<unsigned char *>(thisCIE.cie.augmentation_data);
         lsda_encoding = DW_EH_PE_omit;
         for (j=0; j<augmentor_len; j++)
         {
