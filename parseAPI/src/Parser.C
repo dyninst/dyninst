@@ -503,6 +503,7 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
                 }
 
             }
+            resumeFrames(pf->func, work);
             break;
         }
         case ParseFrame::PARSED:{
@@ -667,12 +668,30 @@ Parser::parse_frames(LockFreeQueue<ParseFrame *> &work, bool recursive)
     bool done = false, cycle = false;
     {
         boost::lock_guard<DelayedFrames> g(delayed_frames);
-        if(delayed_frames.frames.empty()) {
+
+        // Check if we can resume any frames yet
+        vector<Function *> updated;
+        for (auto iter = delayed_frames.frames.begin();
+             iter != delayed_frames.frames.end();
+             ++iter) {
+            if (iter->first->retstatus() != UNSET) {
+                updated.push_back(iter->first);
+            }
+        }
+        if (updated.size()) {
+            for (auto uIter = updated.begin();
+                 uIter != updated.end();
+                 ++uIter) {
+                resumeFrames((*uIter), work);
+            }
+        }
+
+        if(delayed_frames.frames.empty() && updated.empty()) {
             parsing_printf("[%s] Fixed point reached (0 funcs with unknown return status)\n)",
                            __FILE__);
             delayed_frames.size = 0;
             done = true;
-        } else if(delayed_frames.size == delayed_frames.frames.size()) {
+        } else if(delayed_frames.size == delayed_frames.frames.size() && updated.empty()) {
             cycle = true;
         }
     }
@@ -699,24 +718,6 @@ void Parser::processFixedPoint(LockFreeQueue<ParseFrame *> &work, bool recursive
 
         // Update delayed_frames.size for next iteration
         delayed_frames.size = delayed_frames.frames.size();
-
-        // Check if we can resume any frames yet
-        vector<Function *> updated;
-        for (auto iter = delayed_frames.frames.begin();
-             iter != delayed_frames.frames.end();
-             ++iter) {
-            if (iter->first->retstatus() != UNSET) {
-                updated.push_back(iter->first);
-            }
-        }
-
-        if (updated.size()) {
-            for (auto uIter = updated.begin();
-                 uIter != updated.end();
-                 ++uIter) {
-                resumeFrames((*uIter), work);
-            }
-        }
     }
     // Recurse through parse_frames
     parsing_printf("[%s] Calling parse_frames again... \n", __FILE__);
