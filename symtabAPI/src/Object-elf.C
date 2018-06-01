@@ -3411,8 +3411,14 @@ int read_except_table_gcc3(
         // If no more CFI entries left in the section 
         if(res==1 && next_offset==(Dwarf_Off)-1) break;
         
-        // On error, skip to the next CFI entry 
-        if(res==-1) continue;
+        // CFI error
+        if(res == -1) {
+	  if (offset != saved_cur_offset) {
+            continue; // Soft error, skip to the next CFI entry
+          }
+          // Since offset didn't advance, we can't skip this CFI entry and need to quit
+          return false; 
+        }
 
         if(dwarf_cfi_cie_p(&entry))
         {
