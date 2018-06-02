@@ -4854,12 +4854,21 @@ bool sort_dbg_map(const Object::DbgAddrConversion_t &a,
 
 bool Object::convertDebugOffset(Offset off, Offset &new_off)
 {
+    int hi = DebugSectionMap.size();
+
+    if (hi == 0) {
+      // DebugSectionMap is empty; handle this case separately 
+      DbgSectionMapSorted = true;
+      return true;
+    }
+
+    // invariant: DebugSectionMap is non-empty
+
     if (!DbgSectionMapSorted) {
         std::sort(DebugSectionMap.begin(), DebugSectionMap.end(), sort_dbg_map);
         DbgSectionMapSorted = true;
     }
 
-    int hi = DebugSectionMap.size();
     int low = 0;
     int cur = -1;
 
