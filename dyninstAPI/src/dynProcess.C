@@ -1980,7 +1980,7 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
     Address base = 0;
     InstructionDecoder deco(irpcBuf.start_ptr(),irpcBuf.size(),getArch());
     Instruction::Ptr insn = deco.decode();
-    while(base<300) {
+    while(base<irpcBuf.used()+5) {
         std::stringstream rawInsn;
         unsigned idx = insn->size();
         while(idx--) rawInsn << hex << setfill('0') << setw(2) << (unsigned int) insn->rawByte(idx);

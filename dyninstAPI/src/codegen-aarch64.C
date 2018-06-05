@@ -132,9 +132,9 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     {
         if(!isCall)
         {
-            scratch = 14; //#sasha hard coding register for springboard
-            //scratch = gen.rs()->getScratchRegister(gen);
-            //assert(gen.rs());
+            //scratch = 14; //#sasha hard coding register for springboard
+            assert(gen.rs());
+            scratch = gen.rs()->getScratchRegister(gen);
         }
         else
         {

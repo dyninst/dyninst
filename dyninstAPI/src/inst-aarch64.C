@@ -142,7 +142,10 @@ void registerSpace::initialize() {
 
 /********************************* Private methods *********************************************/
 
-void EmitterAARCH64SaveRegs::saveSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset) {
+void EmitterAARCH64SaveRegs::saveSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset)
+{
+    assert(scratchReg!=REG_NULL);
+
     //TODO move map to common location
     map<int, int> sysRegCodeMap = map_list_of(SPR_NZCV, 0x5A10)(SPR_FPCR, 0x5A20)(SPR_FPSR, 0x5A21);
     if(!sysRegCodeMap.count(sprnum))
@@ -183,7 +186,8 @@ unsigned EmitterAARCH64SaveRegs::saveGPRegisters(baseTramp *bt, codeGen &gen, re
 
     for(unsigned int idx = 0; idx < regs.size() && ret < numReqGPRs; idx++) {
         registerSlot *reg = regs[idx];
-        if(bt->definedRegs[reg->encoding()]) {
+        //if(bt->definedRegs[reg->encoding()]) {
+        if (reg->liveState == registerSlot::live) {
             saveRegister(gen, reg->number, -2*GPRSIZE_64);
             theRegSpace->markSavedRegister(reg->number, offset);
 
@@ -202,10 +206,10 @@ unsigned EmitterAARCH64SaveRegs::saveFPRegisters(codeGen &gen, registerSpace *th
         registerSlot *reg = theRegSpace->FPRs()[idx];
 
         if(reg->liveState == registerSlot::live) {
-            saveFPRegister(gen, reg->number, -FPRSIZE);
+            saveFPRegister(gen, reg->number, -8*FPRSIZE);
             reg->liveState = registerSlot::spilled;
 
-            offset += FPRSIZE;
+            offset += 8*FPRSIZE;
             ret++;
         }
     }
@@ -292,7 +296,7 @@ unsigned EmitterAARCH64RestoreRegs::restoreFPRegisters(codeGen &gen, registerSpa
         registerSlot *reg = theRegSpace->FPRs()[idx];
 
         if(reg->liveState == registerSlot::spilled) {
-            restoreFPRegister(gen, reg->number, FPRSIZE);
+            restoreFPRegister(gen, reg->number, 8*FPRSIZE);
             ret++;
         }
     }
@@ -392,8 +396,21 @@ bool baseTramp::generateSaves(codeGen &gen,
         offset += (GPRSIZE_64 * 2);
     }
     bt->createdFrame = saveFrame;
-
+    /* print LSB to MSB, in order */
+    auto prinDefined = [&](){
+        for (boost::dynamic_bitset<>::size_type i = 0;
+                i < bt->definedRegs.size(); ++i)
+        {
+            std::cerr << bt->definedRegs[i];
+        }
+        std::cerr << "\tsize = " << bt->definedRegs.size();
+        std::cerr << "\tnone = " << bt->definedRegs.none();
+        std::cerr << "\tany  = " << bt->definedRegs.any();
+        std::cerr << std::endl;
+    };
+    //prinDefined();
     bt->definedRegs = gen.getRegsDefined();
+    //prinDefined();
     assert(!bt->definedRegs.empty());
     saveRegs.saveGPRegisters(bt, gen, gen.rs(), offset);
 
@@ -407,7 +424,7 @@ bool baseTramp::generateSaves(codeGen &gen,
     bt->savedFPRs = saveFPRs;
 
     saveRegs.saveSPRegisters(gen, gen.rs(), offset, false);
-
+    //gen.rs()->debugPrint();
     return true;
 }
 
@@ -573,13 +590,29 @@ Register EmitterAARCH64::emitCall(opCode op,
         assert(0);
     }
 
+    vector<int> savedRegs;
+
+    bool needToSaveLR = false;
+    /*registerSlot *regLR = (*(gen.rs()))[registerSpace::r30];
+    if (regLR && regLR->liveState == registerSlot::live) {
+        needToSaveLR = true;
+        inst_printf("... need to save LR\n");
+    }
+    if (needToSaveLR) {
+        // save link register
+        insnCodeGen::saveRegister(gen, registerSpace::r30);
+        savedRegs.push_back(30);
+        inst_printf("saved LR in 0\n");
+    }*/
+
     // save link register
     insnCodeGen::saveRegister(gen, registerSpace::r30);
+    savedRegs.push_back(30);
 
-    // save r1-r2 (first three register for parameter)
-    registerSlot *reg = gen.rs()->GPRs()[0];
-    reg->liveState = registerSlot::spilled;
-    for(size_t id = 1; id < operands.size(); id++)
+    // save r0-r2 (first three register for parameter)
+    //registerSlot *reg = gen.rs()->GPRs()[0];
+    //reg->liveState = registerSlot::spilled;
+    for(size_t id = 0; id < gen.rs()->numGPRs(); id++)
     {
         registerSlot *reg = gen.rs()->GPRs()[id];
 
@@ -591,7 +624,8 @@ Register EmitterAARCH64::emitCall(opCode op,
        if ((reg->refCount > 0) || reg->keptValue || (reg->liveState == registerSlot::live))
        {
            insnCodeGen::saveRegister(gen, registerSpace::r0 + id);
-           reg->liveState = registerSlot::spilled;
+           //reg->liveState = registerSlot::spilled;
+           savedRegs.push_back(reg->number);
        }
     }
 
@@ -616,10 +650,10 @@ Register EmitterAARCH64::emitCall(opCode op,
     //Address of function to call in r9
     //
     //#sasha get correct register
-    //Register scratch = gen.rs()->getScratchRegister(gen);
-    //assert(scratch!=REG_NULL);
-    Register scratch = 9;
-    insnCodeGen::saveRegister(gen, registerSpace::r9);
+    Register scratch = gen.rs()->getScratchRegister(gen);
+    assert(scratch!=REG_NULL);
+    //Register scratch = 9;
+    //insnCodeGen::saveRegister(gen, registerSpace::r9);
     insnCodeGen::loadImmIntoReg<Address>(gen, scratch, callee->addr());
 
     instruction branchInsn;
@@ -648,16 +682,25 @@ Register EmitterAARCH64::emitCall(opCode op,
      * Restoring registers
      */
 
-    insnCodeGen::restoreRegister(gen, registerSpace::r9);
+    //insnCodeGen::restoreRegister(gen, registerSpace::r9);
 
-    // r2-r1 (first three register for parameter)
-    for(signed int id = operands.size()-1; id >= 1 ; id--)
-    {
-        insnCodeGen::restoreRegister(gen, registerSpace::r0 + id);
+    // r2-r0 (first three register for parameter)
+    /*for(signed int id = operands.size()-1; id >= 0 ; id--)
+      {
+      insnCodeGen::restoreRegister(gen, registerSpace::r0 + id);
+      }*/
+
+    for (signed int ui = savedRegs.size()-1; ui >= 0; ui--) {
+        insnCodeGen::restoreRegister(gen, registerSpace::r0 + savedRegs[ui]);
     }
 
+    /*if (needToSaveLR) {
+        // We only use register 0 to save LR.
+        insnCodeGen::generateMoveToLR(gen, 0);
+    }*/
+
     // link register
-    insnCodeGen::restoreRegister(gen, registerSpace::r30);
+    //insnCodeGen::restoreRegister(gen, registerSpace::r30);
 
     return 0;
 }
