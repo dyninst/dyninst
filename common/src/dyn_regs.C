@@ -151,6 +151,10 @@ unsigned int MachRegister::size() const {
                return 10;
             case x86::BIT:
                return 0;
+            case x86::YMMS:
+               return 32;
+            case x86::ZMMS:
+               return 64;
             default:
                return 0;//KEVINTODO: removed sanity-check assert because of asprotect fuzz testing, could use this as a sign that the parse has gone into junk
                assert(0);
@@ -172,6 +176,11 @@ unsigned int MachRegister::size() const {
                return 10;
             case x86_64::BIT:
                return 0;
+            case x86_64::YMMS:
+               return 32;
+            case x86_64::ZMMS:
+               return 64;
+
             default:
 	       return 0; // Xiaozhu: do not assert, but return 0 as an indication of parsing junk.
                assert(0);
