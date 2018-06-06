@@ -187,8 +187,7 @@ bool DwarfWalker::parse() {
       if (variableIter->second->getDataClass() == dataUnknownType &&
           moduleTypes->findType( variableIter->second->getID() ) != NULL )
       {
-         moduleTypes->globalVarsByName.insert(std::make_pair( variableIter->first ,
-             moduleTypes->findType( variableIter->second->getID() )));
+         variableIter->second = moduleTypes->findType(variableIter->second->getID());
       } /* end if data class is unknown but the type exists. */
    } /* end iteration over variables. */
 
@@ -292,9 +291,24 @@ bool DwarfWalker::buildSrcFiles(::Dwarf * /*dbg*/, Dwarf_Die entry, StringTableP
     } // already parsed, the module had better be right.
     srcFiles->push_back("Unknown file");
 
+    // get comp_dir in case need to make absolute paths
+    Dwarf_Attribute attr;
+    const char * comp_dir = dwarf_formstring( dwarf_attr(&entry, DW_AT_comp_dir, &attr) );
+    std::string comp_dir_str( comp_dir ? comp_dir : "" );
+
+    // store all file sources found by libdw
     for (unsigned i = 1; i < cnt; ++i) {
         auto filename = dwarf_filesrc(df, i, NULL, NULL);
-        srcFiles->push_back(filename);
+        if(!filename) continue;
+
+        // change to absolute if it's relative
+        std::string s_name(filename); 
+        if(filename[0]!='/')
+        {
+            s_name = comp_dir_str + "/" + s_name;
+        }
+
+        srcFiles->push_back(s_name);
     }
     return true;
 }
@@ -702,7 +716,7 @@ void DwarfWalker::setRanges(FunctionBase *func) {
     }
 }
 
-pair<AddressRange, bool> DwarfWalker::parseHighPCLowPC(::Dwarf * dbg, Dwarf_Die entry)
+pair<AddressRange, bool> DwarfWalker::parseHighPCLowPC(Dwarf * /*dbg*/, Dwarf_Die entry)
 {
     Dwarf_Addr low, high;
     int low_result = dwarf_lowpc(&entry, &low);
@@ -755,7 +769,8 @@ bool DwarfWalker::parseRangeTypes(Dwarf * dbg, Dwarf_Die die) {
    return !newRanges.empty();
 }
 
-vector<AddressRange> DwarfWalker::getDieRanges(Dwarf * dbg, Dwarf_Die die, Offset range_base) {
+vector<AddressRange> DwarfWalker::getDieRanges(Dwarf * /*dbg*/, Dwarf_Die die, Offset /*range_base*/)
+{
     std::vector<AddressRange> newRanges;
 
     Dwarf_Addr base;
@@ -1113,7 +1128,10 @@ bool DwarfWalker::parseArray() {
    Dwarf_Die firstRange;
     Dwarf_Die e = entry();
    int result = dwarf_child(&e, &firstRange);
-    if(result != 0) return false;
+    if(result != 0) {
+        dwarf_printf("(0x%lx) parseArray return false as dwarf_child returns 0\n", id());
+        return false;
+    }
 
 //   push();
 
@@ -1122,7 +1140,10 @@ bool DwarfWalker::parseArray() {
 
 //   pop();
 
-   if (!baseArrayType) return false;
+   if (!baseArrayType) {
+       dwarf_printf("(0x%lx) parseArray returns false as baseArrayType is NULL\n", id());
+       return false;
+   }
 
    /* The baseArrayType is an anonymous type with its own typeID.  Extract
       the information and add an array type for this DIE. */
@@ -2126,7 +2147,10 @@ bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
     } /* end if we found an upper bound or count. */
 
     /* Construct the range type. */
-    if (!findName(curName())) return false;
+    if (!findName(curName())) {
+        dwarf_printf("cannot find subrange name %s\n", curName().c_str()); 
+        return false;
+    }
     if (!nameDefined()) {
         curName() = "{anonymousRange}";
     }
@@ -2165,12 +2189,12 @@ typeArray *DwarfWalker::parseMultiDimensionalArray(Dwarf_Die *range,
     //Dwarf_Off dieOffset = dwarf_dieoffset(&range);
 
     /* Determine the range. */
-//    std::string loBound;
-//    std::string hiBound;
-//    parseSubrangeAUX(range, loBound, hiBound);
-    Dwarf_Attribute loAttr, hiAttr;
-    if(!dwarf_attr(range, DW_AT_lower_bound, &loAttr)) { return NULL; }
-    if(!dwarf_attr(range, DW_AT_upper_bound, &hiAttr)) {return NULL; }
+    std::string loBound;
+    std::string hiBound;
+    if (!parseSubrangeAUX(*range, loBound, hiBound)) {
+        dwarf_printf("parseMultiDimensionalArray failed, cannot find array range\n");
+        return NULL; 
+    }
 
 
 
@@ -2188,23 +2212,27 @@ typeArray *DwarfWalker::parseMultiDimensionalArray(Dwarf_Die *range,
         // N.B.  I'm going to ignore the type id, and just create an anonymous type here
         std::string aName = buf;
         typeArray* innermostType = new typeArray( elementType,
-                atoi( (char*)loAttr.valp ),
-                atoi( (char*)hiAttr.valp) ,
+                atoi(loBound.c_str()),
+                atoi(hiBound.c_str()),
                 aName );
         Type * typ = tc()->addOrUpdateType( innermostType );
         innermostType = dynamic_cast<typeArray *>(typ);
+        dwarf_printf("\t(0x%lx)parseMultiDimentionalArray status 1, typ %p, innermosttype %p, lower bound %d, upper bound %d\n", id(), typ, innermostType, innermostType->getLow(), innermostType->getHigh());
         return innermostType;
     } /* end base-case of recursion. */
 
     /* If it does, build this array type out of the array type returned from the next recusion. */
     typeArray * innerType = parseMultiDimensionalArray( &nextSibling, elementType);
-    if(!innerType) return NULL;
+    if(!innerType) {
+        dwarf_printf("\tparseMultiDimensionalArray return Null because innerType == NULL\n");
+        return NULL;
+    }
     // same here - type id ignored    jmo
     std::string aName = buf;
-    typeArray * outerType = new typeArray( innerType, atoi((char*)loAttr.valp ), atoi((char*)hiAttr.valp) , aName);
+    typeArray * outerType = new typeArray( innerType, atoi(loBound.c_str()), atoi(hiBound.c_str()), aName);
     Type *typ = tc()->addOrUpdateType( outerType );
     outerType = static_cast<typeArray *>(typ);
-
+    dwarf_printf("\t(0x%lx)parseMultiDimentionalArray status 0, lower bound %d, upper bound %d\n",id(), outerType->getLow(), outerType->getHigh());
     return outerType;
 } /* end parseMultiDimensionalArray() */
 
