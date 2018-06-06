@@ -165,14 +165,18 @@ void EmitterAARCH64SaveRegs::saveSPR(codeGen &gen, Register scratchReg, int sprn
     insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, scratchReg, REG_SP, stkOffset, false);
 }
 
-void EmitterAARCH64SaveRegs::saveRegister(codeGen &gen, Register reg, int save_off) {
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, reg, REG_SP, save_off, true);
+void EmitterAARCH64SaveRegs::saveRegister(codeGen &gen, Register reg, int save_off)
+{
+    insnCodeGen::generateAddSubImmediate(
+        gen, insnCodeGen::Sub, 0, 16, REG_SP, REG_SP, true);
+    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, reg, REG_SP, /*save_off*/ 0, true);
 }
 
 
 void EmitterAARCH64SaveRegs::saveFPRegister(codeGen &gen, Register reg, int save_off) {
     //Always performing save of the full FP register
     insnCodeGen::generateMemAccessFP(gen, insnCodeGen::Store, reg, REG_SP, save_off, 0, true);
+
 }
 
 /********************************* Public methods *********************************************/
@@ -371,7 +375,12 @@ void EmitterAARCH64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, in
 }
 
 void EmitterAARCH64RestoreRegs::restoreRegister(codeGen &gen, Register reg, int save_off) {
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, reg, REG_SP, save_off, true);
+
+    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, reg, REG_SP, /*save_off*/ 0, true);
+    insnCodeGen::generateAddSubImmediate(
+        gen, insnCodeGen::Add, 0, 16, REG_SP, REG_SP, true);
+
+
 }
 
 void EmitterAARCH64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, int save_off) {
@@ -637,7 +646,6 @@ Register EmitterAARCH64::emitCall(opCode op,
             reg = registerSpace::r0 + id;
 
         Address unnecessary = ADDR_NULL;
-        cerr << "Operand value: " << operands[id]->getOValue() << endl;
         if (!operands[id]->generateCode_phase2(gen, false, unnecessary, reg))
             assert(0);
         assert(reg!=REG_NULL);
@@ -670,7 +678,6 @@ Register EmitterAARCH64::emitCall(opCode op,
     //The only difference between BR and BLR is that bit 21 is 1 for BLR.
     INSN_SET(branchInsn, 16, 31, BRegOp);
     INSN_SET(branchInsn, 21, 21, 1);
-
     insnCodeGen::generate(gen, branchInsn);
 
     //Register retReg = REG_NULL;
@@ -693,6 +700,8 @@ Register EmitterAARCH64::emitCall(opCode op,
     for (signed int ui = savedRegs.size()-1; ui >= 0; ui--) {
         insnCodeGen::restoreRegister(gen, registerSpace::r0 + savedRegs[ui]);
     }
+    //insnCodeGen::generateTrap(gen);
+
 
     /*if (needToSaveLR) {
         // We only use register 0 to save LR.

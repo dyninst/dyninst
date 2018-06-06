@@ -401,20 +401,23 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                break;
             }
          case SIGTRAP: {
-#if 0
             {
                //Debugging code
                Dyninst::MachRegisterVal addr;
+               Dyninst::MachRegisterVal x30_val;
+
                result = thread->plat_getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
+               result = thread->plat_getRegister(Dyninst::aarch64::x30, x30_val);
                if (!result) {
                   fprintf(stderr, "Failed to read PC address upon crash\n");
                }
                fprintf(stderr, "Got SIGTRAP at %lx\n", addr);
+	       fprintf(stderr, "X30 : %lx\n", x30_val);
+
                Dyninst::MachRegisterVal X0;
                result = thread->plat_getRegister(Dyninst::aarch64::x0 ,X0);
                pthrd_printf("ARM-debug: x0 is 0x%lx/%u\n", X0, X0);
             }
-#endif
             ext = status >> 16;
             if (ext) {
                bool postpone = false;
@@ -652,7 +655,12 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                   fprintf(stderr, "Failed to read PC address upon crash\n");
                }
                fprintf(stderr, "Got crash at %lx\n", addr);
-               while (1) sleep(1);
+	       fprintf(stderr, "ARM-debug: PC = 0x%lx\n", addr);
+	       char buffer_inst[4];
+	       proc->plat_readMem(thread, buffer_inst, addr, 4);
+	       fprintf(stderr,"0x%8x\n", *((unsigned int*)buffer_inst) );
+
+               //while (1) sleep(1);
             }
 #endif
             event = Event::ptr(new EventSignal(stopsig));

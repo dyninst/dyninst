@@ -274,7 +274,7 @@ void insnCodeGen::generateAddSubImmediate(
     if(is64bit)
         INSN_SET(insn, 31, 31, 1);
     //Set opcode
-    INSN_SET(insn, 24, 30, op == Add ? ADDImmOp : SUBShiftOp);
+    INSN_SET(insn, 24, 30, op == Add ? ADDImmOp : SUBImmOp);
 
     //Set shift field
     assert(shift >= 0 && shift <= 3);
@@ -285,7 +285,7 @@ void insnCodeGen::generateAddSubImmediate(
 
     //Set registers
     INSN_SET(insn, 5, 9, rn);
-    INSN_SET(insn, 5, 9, rd);
+    INSN_SET(insn, 0, 4, rd);
 
     insnCodeGen::generate(gen, insn);
 }
@@ -598,13 +598,15 @@ void insnCodeGen::loadImmIntoReg(codeGen &gen, Register rt, T value)
 
 void insnCodeGen::saveRegister(codeGen &gen, Register r)
 {
-    generateMemAccess32or64(gen, insnCodeGen::Store, r, REG_SP, -2*GPRSIZE_64, true);
+    generateAddSubImmediate(gen, Sub, 0, 16, REG_SP, REG_SP, true);
+    generateMemAccess32or64(gen, insnCodeGen::Store, r, REG_SP, /*-2*GPRSIZE_64*/ 0, true);
 }
 
 
 void insnCodeGen::restoreRegister(codeGen &gen, Register r)
 {
-    generateMemAccess32or64(gen, insnCodeGen::Load, r, REG_SP, 2*GPRSIZE_64, true);
+    generateMemAccess32or64(gen, insnCodeGen::Load, r, REG_SP, /*2*GPRSIZE_64*/ 0, true);
+    generateAddSubImmediate(gen, Add, 0, 16, REG_SP, REG_SP, true);
 }
 
 
