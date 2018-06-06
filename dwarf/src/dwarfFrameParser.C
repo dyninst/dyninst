@@ -159,7 +159,7 @@ bool DwarfFrameParser::getRegsForFunction(
         FrameErrors_t &err_result) 
 {
     locs.clear();
-    dwarf_printf("Entry to getRegsForFunction at 0x%lx, reg %s\n", range.first, reg.name().c_str());
+    dwarf_printf("Entry to getRegsForFunction at 0x%lx, range end 0x%lx, reg %s\n", range.first, range.second, reg.name().c_str());
     err_result = FE_No_Error;
 
     /**
@@ -180,7 +180,7 @@ bool DwarfFrameParser::getRegsForFunction(
         {
             Dwarf_Frame * frame = NULL;
             int result = dwarf_cfi_addrframe(cfi_data[i], next_pc, &frame);
-            if(result==-1) return false;
+            if(result==-1) break;
 
             Dwarf_Addr start_pc, end_pc;
             dwarf_frame_info(frame, &start_pc, &end_pc, NULL); 
@@ -188,14 +188,11 @@ bool DwarfFrameParser::getRegsForFunction(
             Dwarf_Op * ops;
             size_t nops;
             result = dwarf_frame_cfa(frame, &ops, &nops);
-            if (result != 0) return false;
+            if (result != 0) break;
 
             VariableLocation loc2;
             DwarfDyninst::SymbolicDwarfResult cons(loc2, arch);
-            if (!DwarfDyninst::decodeDwarfExpression(ops, nops, NULL, cons, arch)) {
-                //dwarf_printf("\t Failed to decode dwarf expr, ret false\n");
-                return false;
-            }
+            if (!DwarfDyninst::decodeDwarfExpression(ops, nops, NULL, cons, arch)) break;
             loc2.lowPC = next_pc;
             loc2.hiPC = end_pc;
 
@@ -204,7 +201,7 @@ bool DwarfFrameParser::getRegsForFunction(
         }
     }
 
-    return true;
+    return !locs.empty();
 }
 
 bool DwarfFrameParser::getRegAtFrame(

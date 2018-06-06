@@ -183,6 +183,8 @@ Elf_X::Elf_X(char *mem_image, size_t mem_size)
        if (elf_kind(elf) == ELF_K_ELF) {
           char *identp = elf_getident(elf, NULL);
           is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
+          isBigEndian = (identp && identp[EI_DATA] == ELFDATA2MSB);
+          isArchive = (elf_kind(elf) == ELF_K_AR);
        }
        
        if (!is64) ehdr32 = elf32_getehdr(elf);
@@ -1771,6 +1773,8 @@ Dyninst::Architecture Elf_X::getArch() const
         case EM_K10M:
         case EM_L10M:
             return Dyninst::Arch_x86_64;
+        case EM_CUDA:
+            return Dyninst::Arch_cuda;
         case EM_ARM:
             return Dyninst::Arch_aarch32;
         case EM_AARCH64:

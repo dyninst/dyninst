@@ -1,0 +1,35 @@
+This directory contains a simple code coverage tool built with DyninstAPI. The
+tool uses Dyninst to instrument every function in a program binary as well as
+optionally instrumenting every basic block to record code coverage data.  
+
+The goal of this tool is to demonstrate some of the capabilities of DyninstAPI.
+It does very little processing of the raw code coverage data, just some basic
+sorting when outputting the data. This tool should serve as the basis for
+creating a more feature-rich code coverage tool using Dyninst.
+
+The presence of debugging information in the program binary is recommended to
+acquire the most useful information about code coverage, but it is not
+required. Without debugging information, source file information will not be
+available in the code coverage output.
+
+This tool makes use of an instrumentation library, libInst, to collect the code
+coverage data. The tool adds this library as a dependency to the input
+executable and also inserts calls into this library at function entries and
+basic block entries. The dynamic linker needs to know where to find libInst in
+order for the rewritten binary to execute correctly. A simple way to ensure
+this is to add the directory containing libInst.so to LD_LIBRARY_PATH.
+
+Additionally, DyninstAPI uses its own instrumentation library,
+libdyninstAPI_RT.so. The environment variable DYNINSTAPI_RT_LIB should be set
+to the path to this library, which is included in this distribution as
+libdyninstAPI_RT.so.8.0.
+
+Executing codeCoverage without any arguments gives usage information.
+
+% ./codeCoverage
+Input binary not specified.
+Usage: ./codeCoverage [-bpsa] <binary> <output binary>
+    -b: Basic block level code coverage
+    -p: Print all functions (including functions that are never executed)
+    -s: Instrument shared libraries also
+    -a: Sort results alphabetically by function name

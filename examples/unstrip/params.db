@@ -1,0 +1,383 @@
+_llseek, i i i i i
+_newselect,  i i i i i
+_sysctl,  i
+accept, i i i
+accept4, i i i i
+access, s i
+acct, s
+add_key, s s i i i
+adjtimex, i
+alarm, i
+bdflush, i i
+bind, i i i
+brk, i
+capget, i i
+capset, i i
+chdir,  s
+chdir, s
+chmod, s i
+chown, s i i
+chown16, s i i
+chown32,  s i i
+chroot, s
+clock_getres,  i i
+clock_getres, i i
+clock_gettime, i i
+clock_nanosleep, i i i i
+clock_settime, i i
+clone,  i i i i
+close, i
+connect, i i i
+creat, s i
+create_module,  s i
+delete_module, s i
+dup, i
+dup2, i i
+dup3, i i i
+epoll_create, i
+epoll_create1, i
+epoll_ctl, i i i i
+epoll_pwait, i i i i i i
+epoll_wait, i i i i
+eventfd, i
+eventfd2, i i
+execve,  s s s
+exit, i
+exit_group, i
+faccessat, i s i
+fadvise64, i i i i
+fadvise64_64, i i i i
+fallocate, i i i i
+fchdir, i
+fchmod, i i
+fchmodat, i s i
+fchown, i i i
+fchown16, i i i
+fchown32,  i i i
+fchownat, i s i i i
+fcntl, i i i
+fcntl64, i i i
+fdatasync, i
+fgetxattr, i s i i
+flistxattr, i s i
+flock, i i
+fork,  
+fremovexattr, i s
+fsetxattr, i s i i i
+fstat, i i
+fstat64, i i
+fstatat64, i s i i
+fstatfs, i i
+fstatfs64, i i i
+fsync, i
+ftruncate, i i
+ftruncate64, i i
+futex, p i i o p i
+futimesat, i s i
+get_kernel_syms,  i
+get_mempolicy, i i i i i
+get_robust_list, i i i
+getcpu, i i i
+getcwd, s i
+getdents, i i i
+getdents64, i i i
+getegid,
+getegid16,
+getegid32, 
+geteuid,
+geteuid16,
+geteuid32, 
+getgid,
+getgid16,
+getgid32,
+getgroups, i i
+getgroups16, i i
+getgroups32,  i i
+gethostname, s i
+getitimer, i i
+getpeername, i i i
+getpgid, i
+getpgrp,
+getpid,
+getpmsg,
+getppid,
+getpriority, i i
+getresgid, i i i
+getresgid16, i i i
+getresgid32,  i i i
+getresuid, i i i
+getresuid16, i i i
+getresuid32,  i i i
+getrlimit, i i
+getrusage, i i
+getsid, i
+getsockname, i i i
+getsockopt, i i i s i
+gettid,
+gettimeofday, i i
+getuid,
+getuid16,
+getuid32, 
+getxattr, s s i i
+init_module, i i s
+inotify_add_watch, i s i
+inotify_init,
+inotify_init1, i
+inotify_rm_watch, i i
+io_cancel, i i i
+io_destroy, i
+io_getevents, i i i i i
+io_setup, i i
+io_submit, i i i
+ioctl, i i i
+ioperm, i i i
+iopl, i
+ioprio_get, i i
+ioprio_set, i i i
+ipc,  i i i i i i
+kexec_load, i i i i
+keyctl, i i i i i
+kill, i i
+lchown, s i i
+lchown16, s i i
+lchown32,  s i i
+lgetxattr, s s i i
+link, s s
+linkat, i s i s i
+listen, i i
+listxattr, s s i
+llistxattr, s s i
+llseek, i i i i i
+lookup_dcookie, i s i
+lremovexattr, s s
+lseek, i i i
+lsetxattr, s s i i i
+lstat, s i
+lstat64, s i
+madvise, i i i
+mbind, i i i i i i
+migrate_pages, i i i i
+mincore, i i s
+mkdir, s i
+mkdirat, i s i
+mknod, s i i
+mknodat, i s i i
+mlock, i i
+mlockall, i
+mmap, i i i i i i
+mmap2,  i i i i i i
+mmap_pgoff, i i i i i i
+modify_ldt,  i i i
+mount, s s s i i
+move_pages, i i i i i i
+mprotect, i i i
+mq_getsetattr, i i i
+mq_notify, i i
+mq_open, s i i i
+mq_timedreceive, i s i i i
+mq_timedsend, i s i i i
+mq_unlink, s
+mremap, i i i i i
+msgctl, i i i
+msgget, i i
+msgrcv, i i i i i
+msgsnd, i i i i
+msync, i i i
+munlock, i i
+munlockall,
+munmap, i i
+nanosleep, i i
+newfstat, i i
+newfstatat, i s i i
+newlstat, s i
+newstat, s i
+newuname, i
+nfsservctl, i i i
+ni_syscall, i
+nice, i
+old_getrlimit, i i
+old_readdir, i i i
+oldumount, s
+open, s i i
+openat, i s i i
+pause,
+pciconfig_iobase, i i i
+pciconfig_read, i i i i i
+pciconfig_write, i i i i i
+perf_event_open, i i i i i
+personality, i
+pipe, i
+pipe2, i i
+pivot_root, s s
+poll, i i i
+ppoll, i i i i i
+prctl,  i i i i i
+prctl, i i i i i
+pread64, i s i i
+preadv, i i i i i
+pselect6, i i i i i i
+ptrace, i i i i
+putpmsg,
+pwrite64, i s i i
+pwritev, i i i i i
+query_module,  s i i i i
+quotactl, i s i i
+read, i s i
+readahead, i i i
+readlink, s s i
+readlinkat, i s s i
+readv, i i i
+reboot, i i i i
+recv, i i i i
+recvfrom, i i i i i i
+recvmmsg, i i i i i
+recvmsg, i i i
+remap_file_pages, i i i i i
+removexattr, s s
+rename, s s
+renameat, i s i s
+request_key, s s s i
+restart_syscall,
+rmdir, s
+rt_sigaction,  i i i i
+rt_sigpending, i i
+rt_sigprocmask, i i i i
+rt_sigqueueinfo, i i i
+rt_sigsuspend,  i i i i
+rt_sigtimedwait, i i i i
+rt_tgsigqueueinfo, i i i i
+sched_get_priority_max, i
+sched_get_priority_min, i
+sched_getaffinity, i i i
+sched_getparam, i i
+sched_getscheduler, i
+sched_rr_get_interval, i i
+sched_setaffinity, i i i
+sched_setparam, i i
+sched_setscheduler, i i i
+sched_yield,
+select, i i i i i
+semctl, i i i i
+semget, i i i
+semop, i i i
+semtimedop, i i i i
+send, i i i i
+sendfile, i i i i
+sendfile64, i i i i
+sendmsg, i i i
+sendto, i i i i i i
+set_mempolicy, i i i
+set_robust_list, i i
+set_thread_area,  i
+set_tid_address, i
+setdomainname, s i
+setfsgid, i
+setfsgid16, i
+setfsgid32,  i
+setfsuid, i
+setfsuid16, i
+setfsuid32,  i
+setgid, i
+setgid16, i
+setgid32,  i
+setgroups, i i
+setgroups16, i i
+setgroups32,  i i
+sethostname, s i
+setitimer, i i i
+setpgid, i i
+setpriority, i i i
+setregid, i i
+setregid16, i i
+setregid32,  i i
+setresgid, i i i
+setresgid16, i i i
+setresgid32,  i i i
+setresuid, i i i
+setresuid16, i i i
+setresuid32,  i i i
+setreuid, i i
+setreuid16, i i
+setreuid32, i i
+setrlimit, i i
+setsid,
+setsockopt, i i i s i
+settimeofday, i i
+setuid, i
+setuid16, i
+setuid32,  i
+setxattr, s s i i i
+sgetmask,
+shmat, i s i
+shmctl, i i i
+shmdt, s
+shmget, i i i
+shutdown, i i
+sigaction, i i i
+sigaltstack,  i i 
+signal, i i
+signalfd, i i i
+signalfd4, i i i i
+sigpending, i
+sigprocmask, i i i
+sigsuspend, i
+socket, i i i
+socketcall, i i
+socketpair, i i i i
+splice, i i i i i i
+spu_create, s i i i
+spu_run, i i i
+ssetmask, i
+stat, s i
+stat64, s i
+statfs, s i
+statfs64, s i i
+stime, i
+swapoff, s
+swapon, s i
+symlink, s s
+symlinkat, s i s
+sync,
+sync_file_range, i i i i
+sync_file_range2, i i i i
+sysctl, i
+sysfs, i i i
+sysinfo, i
+syslog, i s i
+tee, i i i i
+tgkill, i i i
+time, i
+timer_create, i i i
+timer_delete, i
+timer_getoverrun, i
+timer_gettime, i i
+timer_settime, i i i i
+timerfd_create, i i
+timerfd_gettime, i i
+timerfd_settime, i i i i
+times, i
+tkill, i i
+truncate, s i
+truncate64, s i
+ugetrlimit,  i i
+umask, i
+umount, s i
+umount2,  s i
+uname,  i
+unlink, s
+unlinkat, i s i
+unshare, i
+uselib, s
+ustat, i i
+utime, s i
+utimensat, i s i i
+utimes, s i
+vfork,
+vhangup,
+vm86, i i
+vmsplice, i i i i
+wait4, i p i i
+waitid, i i i i i
+waitpid, i i i
+write, i s i
+writev, i i i

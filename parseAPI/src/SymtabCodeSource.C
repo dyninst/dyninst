@@ -64,7 +64,7 @@ SymtabCodeRegion::SymtabCodeRegion(
     vector<SymtabAPI::Symbol*> symbols;
     st->getAllSymbols(symbols);
     for (auto sit = symbols.begin(); sit != symbols.end(); ++sit)
-        if ( (*sit)->getRegion() == reg && (*sit)->getType() != SymtabAPI::Symbol::ST_FUNCTION) {
+        if ( (*sit)->getRegion() == reg && (*sit)->getType() != SymtabAPI::Symbol::ST_FUNCTION && (*sit)->getType() != SymtabAPI::Symbol::ST_INDIRECT) {
 	    knownData[(*sit)->getOffset()] = (*sit)->getOffset() + (*sit)->getSize();
 	}
 }
@@ -463,17 +463,27 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
                 (*fsit)->getFirstSymbol()->getPrettyName().c_str());
             continue;
         }
-		/*Achin added code starts 12/15/2014*/
-		if(!strcmp((*fsit)->getFirstSymbol()->getPrettyName().c_str(),"_non_rtti_object::`vftable'") || !strcmp((*fsit)->getFirstSymbol()->getPrettyName().c_str(),"bad_cast::`vftable'") || !strcmp((*fsit)->getFirstSymbol()->getPrettyName().c_str(),"exception::`vftable'") || !strcmp((*fsit)->getFirstSymbol()->getPrettyName().c_str(),"bad_typeid::`vftable'") || !strcmp((*fsit)->getFirstSymbol()->getPrettyName().c_str(),"sys_errlist"))
-		{
-		continue;
-		}
 
-		if(!strcmp((*fsit)->getFirstSymbol()->getPrettyName().c_str(),"std::_non_rtti_object::`vftable'") || !strcmp((*fsit)->getFirstSymbol()->getPrettyName().c_str(),"std::__non_rtti_object::`vftable'") || !strcmp((*fsit)->getFirstSymbol()->getPrettyName().c_str(),"std::bad_cast::`vftable'") || !strcmp((*fsit)->getFirstSymbol()->getPrettyName().c_str(),"std::exception::`vftable'") || !strcmp((*fsit)->getFirstSymbol()->getPrettyName().c_str(),"std::bad_typeid::`vftable'"))
-		{
-		continue;
-		}
-		/*Achin added code ends*/
+        // Cleaned-up version of a rather ugly series of strcmp's. Is this the
+        // right place to do this? Should these symbols not be filtered by the
+        // loop above?
+        /*Achin added code starts 12/15/2014*/
+        static const vector<std::string> skipped_symbols = {
+          "_non_rtti_object::`vftable'",
+          "bad_cast::`vftable'",
+          "exception::`vftable'",
+          "bad_typeid::`vftable'" ,
+          "sys_errlist",
+          "std::_non_rtti_object::`vftable'",
+          "std::__non_rtti_object::`vftable'",
+          "std::bad_cast::`vftable'",
+          "std::exception::`vftable'",
+          "std::bad_typeid::`vftable'" };
+        if (std::find(skipped_symbols.begin(), skipped_symbols.end(),
+          (*fsit)->getFirstSymbol()->getPrettyName()) != skipped_symbols.end()) {
+          continue;
+        }
+        /*Achin added code ends*/
 
         if(HASHDEF(seen,(*fsit)->getOffset())) {
             // XXX it looks as though symtabapi now does de-duplication
