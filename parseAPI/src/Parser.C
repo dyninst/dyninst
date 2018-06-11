@@ -1661,8 +1661,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 void
 Parser::end_block(Block * b, InstructionAdapter_t * ah)
 {
-    b->_lastInsn = ah->getAddr();
-    b->updateEnd(ah->getNextAddr());
+    region_data * rd = _parse_data->findRegion(b->region());
+    rd->updateBlockEnd(b, ah->getNextAddr(), ah->getAddr());
+
 //    record_block(b);
 }
 
@@ -1827,7 +1828,7 @@ Parser::split_block(
         record_block(ret);
 
         // b's range has changed
-        //rd->updateBlockEnd(b, addr, previnsn);
+        rd->updateBlockEnd(b, addr, previnsn);
         // Any functions holding b that have already been finalized
         // need to have their caches invalidated so that they will
         // find out that they have this new 'ret' block
