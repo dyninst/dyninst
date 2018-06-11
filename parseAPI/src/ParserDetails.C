@@ -141,14 +141,16 @@ Parser::getTamperAbsFrame(Function *tamperFunc) {
 
     assert(1 == targRegs.size()); // we don't do analyze stack tampering on 
     // platforms that use archive files
-    targFunc = _parse_data->get_func
+    targFunc = _parse_data->createAndRecordFunc
             (*(targRegs.begin()),
              target,
              tamperFunc->src());
 
     if (!targFunc) {
-        targFunc = _parse_data->get_func(*(targRegs.begin()), target, RT);
+        targFunc = _parse_data->createAndRecordFunc(*(targRegs.begin()), target, RT);
     }
+    if (!targFunc) 
+        targFunc = _parse_data->findFunc(*(targRegs.begin()), target);
 
     if (!targFunc) {
         mal_printf("ERROR: could not create function at tamperAbs addr %lx\n",

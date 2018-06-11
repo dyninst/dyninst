@@ -377,11 +377,13 @@ InsertedRegion *CFGModifier::insert(CodeObject *obj,
 Function *CFGModifier::makeEntry(Block *b) {
    // This is actually a really straightforward application of the existing 
    // functionality. 
-   // We want to call ParseData::get_func(CodeRegion *, Address, FuncSource)
 
    ParseData *data = b->obj()->parser->_parse_data;
-   
-   return data->get_func(b->region(), b->start(), MODIFICATION);
+
+   Function* f = data->createAndRecordFunc(b->region(), b->start(), MODIFICATION); 
+   if (f == NULL)
+       f = data->findFunc(b->region(),b->start());
+   return f;
 
 }
 

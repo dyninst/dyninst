@@ -147,7 +147,6 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
         seed(NULL),
         _pd(pd)
     {
-        set_status(UNPARSED);
 	busy.store(false);
     }
 
@@ -234,6 +233,7 @@ public:
 	}
         race_detector_fake_lock_release(race_detector_fake_lock(frame_status));
     }
+
     void record_func(Function* f) {
         race_detector_fake_lock_acquire(race_detector_fake_lock(funcsByAddr));
 	{
@@ -366,8 +366,14 @@ class ParseData : public boost::lockable_adapter<boost::recursive_mutex>  {
     virtual ParseFrame::Status frameStatus(CodeRegion *, Address addr) = 0;
     virtual void setFrameStatus(CodeRegion*,Address,ParseFrame::Status) = 0;
 
+    // Atomically lookup whether there is a frame for a Function object.
+    // If there is no frame for the Function, create a new frame and record it.
+    // Return NULL if a frame already exists;
+    // Return the pointer to the new frame if a new frame is created 
+    virtual ParseFrame* createAndRecordFrame(Function*) = 0;
+
     // creation (if non-existing)
-    virtual Function * get_func(CodeRegion *, Address, FuncSource) =0;
+    virtual Function * createAndRecordFunc(CodeRegion *, Address, FuncSource) =0;
 
     // mapping
     virtual region_data * findRegion(CodeRegion *) =0;
@@ -407,7 +413,9 @@ class StandardParseData : public ParseData {
     ParseFrame::Status frameStatus(CodeRegion *, Address);
     void setFrameStatus(CodeRegion*,Address,ParseFrame::Status);
 
-    Function * get_func(CodeRegion * cr, Address addr, FuncSource src);
+    virtual ParseFrame* createAndRecordFrame(Function*);
+
+    Function * createAndRecordFunc(CodeRegion * cr, Address addr, FuncSource src);
 
     region_data * findRegion(CodeRegion *cr);
 
@@ -433,6 +441,7 @@ inline void StandardParseData::record_func(Function *f)
 }
 inline void StandardParseData::record_block(CodeRegion * /* cr */, Block *b)
 {
+    boost::lock_guard<ParseData> g(*this);
     _rdata.record_block(b);
 }
 
@@ -456,7 +465,9 @@ class OverlappingParseData : public ParseData {
     ParseFrame::Status frameStatus(CodeRegion *, Address);
     void setFrameStatus(CodeRegion*,Address,ParseFrame::Status);
 
-    Function * get_func(CodeRegion * cr, Address addr, FuncSource src);
+    virtual ParseFrame* createAndRecordFrame(Function*);
+
+    Function * createAndRecordFunc(CodeRegion * cr, Address addr, FuncSource src);
 
     region_data * findRegion(CodeRegion *cr);
 

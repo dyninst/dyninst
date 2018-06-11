@@ -120,15 +120,13 @@ int StandardParseData::findBlocks(CodeRegion * /* cr */, Address addr,
 }
 
 Function *
-StandardParseData::get_func(CodeRegion * cr, Address entry, FuncSource src)
+StandardParseData::createAndRecordFunc(CodeRegion * cr, Address entry, FuncSource src)
 {
-    CodeRegion * reg = NULL;
+    CodeRegion * reg = reglookup(cr,entry);
     Function * ret = NULL;
     char name[32];
-
-    if(!(ret = findFunc(cr,entry))) {
-        boost::lock_guard<ParseData> g(*this);
-        reg = reglookup(cr,entry); // get the *correct* CodeRegion
+    boost::lock_guard<ParseData> g(*this);
+    if(!(ret = findFunc(reg,entry))) {
         if(reg && reg->isCode(entry)) {
            if (src == MODIFICATION) {
               snprintf(name,32,"mod%lx",entry);
@@ -181,7 +179,24 @@ StandardParseData::setFrameStatus(CodeRegion * /* cr */, Address addr,
 {
     _rdata.setFrameStatus(addr, status);
 }
-
+ParseFrame*
+StandardParseData::createAndRecordFrame(Function* f)
+{
+    boost::lock_guard<ParseData> g(*this);
+    ParseFrame * pf = findFrame(NULL, f->addr());
+    if (pf == NULL && frameStatus(NULL, f->addr()) == ParseFrame::BAD_LOOKUP) {
+        // We only create a new frame, when we currently cannot find it
+        // and the address is not parsed before.
+        pf = new ParseFrame(f, this);
+        _parser->init_frame(*pf);
+        // We have to first initialized the frame before setting the frame status
+        // and recording the frame, because these two operations make the frame public.
+        pf->set_status(ParseFrame::UNPARSED);
+        record_frame(pf);
+        return pf;
+    }
+    return NULL;
+}
 CodeRegion *
 StandardParseData::reglookup(CodeRegion * /* cr */, Address addr)
 {
@@ -317,9 +332,26 @@ OverlappingParseData::frameStatus(CodeRegion *cr, Address addr)
     }
 }
 
+ParseFrame*
+OverlappingParseData::createAndRecordFrame(Function* f)
+{
+    boost::lock_guard<ParseData> g(*this);
+    ParseFrame * pf = findFrame(f->region(), f->addr());
+    if (pf == NULL && frameStatus(f->region(), f->addr()) == ParseFrame::BAD_LOOKUP) {
+        // We only create a new frame, when we currently cannot find it
+        // and the address is not parsed before.
+        pf = new ParseFrame(f, this);
+        _parser->init_frame(*pf);
+        pf->set_status(ParseFrame::UNPARSED);
+        record_frame(pf);
+        return pf;
+    }
+    return NULL;
+}
+
 
 Function * 
-OverlappingParseData::get_func(CodeRegion * cr, Address addr, FuncSource src)
+OverlappingParseData::createAndRecordFunc(CodeRegion * cr, Address addr, FuncSource src)
 {
     boost::lock_guard<ParseData> g(*this);
     Function * ret = NULL;
@@ -365,16 +397,14 @@ void
 OverlappingParseData::record_block(CodeRegion *cr, Block *b)
 {
     region_data* rd = NULL;
-    {
-        boost::lock_guard<ParseData> g(*this);
+    boost::lock_guard<ParseData> g(*this);
+
         if(!HASHDEF(rmap,cr)) {
             fprintf(stderr,"Error, invalid code region [%lx,%lx) in record_block\n",
                     cr->offset(),cr->offset()+cr->length());
             return;
         }
         rd = rmap[cr];
-
-    }
     rd->record_block(b);
 }
 void

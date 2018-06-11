@@ -226,8 +226,9 @@ Parser::parse_at(
 
     if(_parse_state < PARTIAL)
         _parse_state = PARTIAL;
-
-    f = _parse_data->get_func(region,target,src);
+    f = _parse_data->createAndRecordFunc(region, target, src);
+    if (f == NULL)
+        f = _parse_data->findFunc(region,target);
     if(!f) {
         parsing_printf("   could not create function at %lx\n",target);
         return;
@@ -239,15 +240,14 @@ Parser::parse_at(
                        target, exist);
         return;
     }
-
-    if(!(pf = _parse_data->findFrame(region,target))) {
-        pf = new ParseFrame(f,_parse_data);
-        init_frame(*pf);
+    pf = _parse_data->createAndRecordFrame(f);
+    if (pf != NULL) {
         frames.insert(pf);
-        _parse_data->record_frame(pf);
+    } else {
+        pf = _parse_data->findFrame(region, target);
     }
-
-    work.insert(pf);
+    if (pf->func->entry())
+        work.insert(pf);
     parse_frames(work,recursive);
 
     // downgrade state if necessary
@@ -309,12 +309,15 @@ Parser::parse_vanilla()
                            hf->addr(),hf->name().c_str());
             continue;
         }
-
-	ParseFrame *pf = new ParseFrame(hf,_parse_data);
-        init_frame(*pf);
-        frames.insert(pf);
-        work.insert(pf);
-        _parse_data->record_frame(pf);
+        
+        ParseFrame *pf = _parse_data->createAndRecordFrame(hf);
+        if (pf == NULL) {
+            pf = _parse_data->findFrame(hf->region(), hf->addr());
+        } else {
+            frames.insert(pf);
+        }
+        if (pf->func->entry())
+            work.insert(pf);
     }
 
     parse_frames(work,true);
@@ -385,31 +388,31 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
                                               false ));
             }
         }
-        ParseFrame *frame = _parse_data->findFrame
-                ( src->region(),
-                  src->lastInsnAddr() );
-        bool isNewFrame = false;
-        if (!frame) {
-            vector<Function*> funcs;
-            src->getFuncs(funcs);
-            frame = new ParseFrame(*funcs.begin(),_parse_data);
-            for (unsigned fix=1; fix < funcs.size(); fix++) {
-                // if the block is shared, all of its funcs need
-                // to add the new edge
-                funcs[fix]->_cache_valid = false;
-            }
-            isNewFrame = true;
+
+        vector<Function*> funcs;
+        src->getFuncs(funcs);
+        for (unsigned fix=1; fix < funcs.size(); fix++) {
+            // if the block is shared, all of its funcs need
+            // to add the new edge
+            funcs[fix]->_cache_valid = false;
+        }
+        Function * f = NULL;
+        if (funcs.size() >  0) {
+            // Choosing any function is fine
+            f = funcs[0];
+        } else {
+            f = _parse_data->createAndRecordFunc(src->region(), src->start(), RT);
         }
 
-        // push before frame init so no seed is added
+        ParseFrame *frame = _parse_data->createAndRecordFrame(f);
+        if (frame == NULL) {
+            frame = _parse_data->findFrame(src->region(), f->addr());
+        } 
         if (elem->bundle()) {
             frame->work_bundles.push_back(elem->bundle());
         }
+        // push before frame init so no seed is added
         frame->pushWork(elem);
-        if (isNewFrame) {
-            init_frame(*frame);
-        }
-
         if (frameset.end() == frameset.find(frame)) {
             frameset.insert(frame);
             frames.insert(frame);
@@ -436,6 +439,7 @@ LockFreeQueueItem<ParseFrame*> *
 Parser::ProcessOneFrame(ParseFrame* pf, bool recursive) {
   LockFreeQueueItem<ParseFrame*> *frame_list = 0;
   if (pf->func && !pf->swap_busy(true)) {
+    boost::lock_guard<ParseFrame> g(*pf);
 #ifdef ADD_PARSE_FRAME_TIMERS
     boost::timer::cpu_timer t;
     t.start();
@@ -468,7 +472,6 @@ Parser::ProcessOneFrame(ParseFrame* pf, bool recursive) {
 
 LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
     LockFreeQueue<ParseFrame*> work;
-    boost::lock_guard<ParseFrame> g(*pf);
     switch(pf->status()) {
         case ParseFrame::CALL_BLOCKED: {
             parsing_printf("[%s] frame %lx blocked at %lx\n",
@@ -482,25 +485,21 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
 
                 CodeRegion * cr = pf->call_target->region();
                 Address targ = pf->call_target->addr();
-                ParseFrame * tf = _parse_data->findFrame(cr,targ);
-                if(!tf)
-                {
-                    // sanity
-                    if(_parse_data->frameStatus(cr,targ) == ParseFrame::PARSED)
-                        assert(0);
+                ParseFrame * tf = NULL;
 
-                    tf = new ParseFrame(pf->call_target,_parse_data);
-                    init_frame(*tf);
+                tf = _parse_data->createAndRecordFrame(pf->call_target);
+                if (tf) {
                     frames.insert(tf);
-                    _parse_data->record_frame(tf);
                 }
-                if(likely(recursive))
-                    work.insert(tf);
                 else {
-                    assert(0);
-                    // XXX should never get here
-                    //parsing_printf("    recursive parsing disabled\n");
+                    tf = _parse_data->findFrame(cr, targ);
                 }
+                // tf can still be NULL if the target frame is parsed and deleted
+
+                // We put the frame at the front of the worklist, so 
+                // the parser will parse the callee next
+                if(tf && recursive && tf->func->entry())
+                    work.insert(tf);
 
             }
             resumeFrames(pf->func, work);
@@ -865,6 +864,14 @@ void Parser::finalize_block(Block* b, Function* owner) {
         }
 
     }
+
+
+    /* TODO:
+     Blocks should be recorded at the creation time. So, the input block b 
+     should not be recorded at this moment.
+     In addition, blocks should be splited during parsing not during finalizing 
+     So, I don't see the point of this function...
+     */
     if (exist) {
         record_block(exist);
         if (exist->start() != addr) {
@@ -1112,7 +1119,6 @@ namespace {
 
 void
 Parser::parse_frame(ParseFrame & frame, bool recursive) {
-    boost::lock_guard<Function> g(*frame.func);
     /** Persistent intermediate state **/
     InstructionAdapter_t *ahPtr = NULL;
     ParseFrame::worklist_t & worklist = frame.worklist;
@@ -1154,7 +1160,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         }
     }
 
-
     frame.set_status(ParseFrame::PROGRESS);
 
     while(!worklist.empty()) {
@@ -1176,24 +1181,27 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                                FILE__, work->edge()->src()->lastInsnAddr(), work->target());
                 continue;
             }
+            
+            FuncSource how = RT;
+            if(frame.func->_src == GAP || frame.func->_src == GAPRT)
+                how = GAPRT;
 
-            ct = _parse_data->findFunc(frame.codereg, work->target());
-            if (ct == NULL) {
-                FuncSource how = RT;
-                if(frame.func->_src == GAP || frame.func->_src == GAPRT)
-                    how = GAPRT;
-                
-                ct = _parse_data->get_func(frame.codereg,work->target(),how);
+            ct = _parse_data->createAndRecordFunc(frame.codereg, work->target(), how);
+            if (ct) {
                 _pcb.discover_function(ct);
+            } else {
+                ct = _parse_data->findFunc(frame.codereg, work->target());
             }
             bool frame_parsing_not_started = 
                 (frame_status(ct->region(),ct->addr())==ParseFrame::UNPARSED ||
                  frame_status(ct->region(),ct->addr())==ParseFrame::BAD_LOOKUP);
             parsing_printf("\tframe %lx, UNPARSED: %d, BAD_LOOKUP %d\n", ct->addr(), frame_status(ct->region(),ct->addr())==ParseFrame::UNPARSED,frame_status(ct->region(),ct->addr())==ParseFrame::BAD_LOOKUP);
 
+
             if (!frame_parsing_not_started && !work->callproc()) {
                 parsing_printf("[%s] binding call (call target should have been parsed) %lx->%lx\n",
                         FILE__,work->edge()->src()->lastInsnAddr(),work->target());
+                Function *tfunc = _parse_data->findFunc(frame.codereg,work->target());
                 pair<Function*,Edge*> ctp =
                         bind_call(frame,
                                   work->target(),
@@ -1486,7 +1494,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     !HASHDEF(leadersToBlock,nextBlockAddr)) {
                     parsing_printf("[%s:%d] pushing %lx onto worklist\n",
                                    FILE__,__LINE__,nextBlockAddr);
-
                     frame.pushWork(
                             frame.mkWork(
                                     NULL,
@@ -1569,7 +1576,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 if (targ && !HASHDEF(visited,targ->start())) {
                     parsing_printf("[%s:%d] pushing %lx onto worklist\n",
                                    FILE__,__LINE__,targ->start());
-
                     frame.pushWork(
                             frame.mkWork(
                                     NULL,
@@ -1624,7 +1630,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     !HASHDEF(leadersToBlock,targ->start())) {
                     parsing_printf("[%s:%d] pushing %lx onto worklist\n",
                                    FILE__,__LINE__,targ->start());
-
                     frame.pushWork(
                             frame.mkWork(
                                     NULL,
@@ -1759,6 +1764,10 @@ Parser::record_block(Block *b)
 }
 
 
+// block_at should only be called when
+// we know the we want to create a block within the function.
+// So, we should not call this function to create the entry block
+// of a callee function.
 Block *
 Parser::block_at(ParseFrame &frame,
         Function * owner,
@@ -1823,8 +1832,6 @@ Parser::add_edge(
         EdgeTypeEnum et,
         Edge * exist)
 {
-    // adjust anything pointing to zero to force it to sink
-    if(dst == 0) { dst = -1; }
     Block * split = NULL;
     Block * ret = NULL;
     Block * original_block = NULL;
@@ -2090,7 +2097,6 @@ Parser::link_tempsink(Block *src, EdgeTypeEnum et)
 void
 Parser::relink(Edge * e, Block *src, Block *dst)
 {
-    assert(e);
     unsigned long srcOut = 0, dstIn = 0, oldDstIn = 0;
     Block* oldDst = NULL;
     if(e->trg() && e->trg_addr() != std::numeric_limits<Address>::max()) {
