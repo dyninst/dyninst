@@ -90,9 +90,7 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
         _cfgfact(fact),
         _pcb(pcb),
         _parse_data(NULL),
-        _parse_state(UNPARSED),
-        _in_parse(false),
-        _in_finalize(false)
+        _parse_state(UNPARSED)
 {
     delayed_frames.size = 0;
     // cache plt entries for fast lookup
@@ -179,13 +177,7 @@ Parser::parse()
     // For modification: once we've full-parsed once, don't do it again
     if (_parse_state >= COMPLETE) return;
 
-    if(_parse_state == UNPARSEABLE)
-        return;
-
     ScopeLock<Mutex<true> > L(parse_mutex);
-//    assert(!_in_parse);
-    _in_parse = true;
-
     parse_vanilla();
     finalize();
     // anything else by default...?
@@ -193,7 +185,6 @@ Parser::parse()
     if(_parse_state < COMPLETE)
         _parse_state = COMPLETE;
 
-    _in_parse = false;
     parsing_printf("[%s:%d] parsing complete for Parser %p with state %d\n", FILE__, __LINE__, this, _parse_state);
 #ifdef ADD_PARSE_FRAME_TIMERS
     std::ofstream stat_log("functions.csv");
@@ -422,13 +413,11 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
     // now parse
     if(_parse_state < PARTIAL)
         _parse_state = PARTIAL;
-    _in_parse = true;
 
     parse_frames( frames, true );
 
     if(_parse_state > COMPLETE)
         _parse_state = COMPLETE;
-    _in_parse = false;
 
     finalize();
 
@@ -825,83 +814,6 @@ void Parser::cleanup_frames()  {
    - Prepare and record FuncExtents for range-based lookup
 */
 
-// Could set cache_valid depending on whether the function is currently
-// being parsed somewhere. 
-
-void Parser::finalize_block(Block* b, Function* owner) {
-    Address addr = b->start();
-    Address prev_insn = b->lastInsnAddr();
-    set<Block *> overlap;
-    CodeRegion *cr;
-    if (owner->region()->contains(addr))
-        cr = owner->region();
-    else
-        cr = _parse_data->reglookup(owner->region(), addr);
-
-    Block *exist = _parse_data->findBlock(cr, addr);
-    if (NULL == exist) {
-        _parse_data->findBlocks(cr, addr, overlap);
-        if (overlap.size() > 1)
-            parsing_printf("[%s] address %lx overlapped by %d blocks\n",
-                           FILE__, addr, overlap.size());
-
-        /* Platform specific consistency test:
-           generally checking for whether the address is an
-           instruction boundary in a block */
-        for (set<Block *>::iterator sit = overlap.begin(); sit != overlap.end(); ++sit) {
-            Block *ob = *sit;
-
-            // consistent will fill in prev_insn with the address of the
-            // instruction preceeding addr if addr is consistent
-            if (ob->consistent(addr, prev_insn)) {
-                exist = b;
-                break;
-            } else {
-                parsing_printf("[%s] %lx is inconsistent with [%lx,%lx)\n",
-                               FILE__, addr, b->start(), b->end());
-                _pcb.overlapping_blocks(ob, b);
-            }
-        }
-
-    }
-
-
-    /* TODO:
-     Blocks should be recorded at the creation time. So, the input block b 
-     should not be recorded at this moment.
-     In addition, blocks should be splited during parsing not during finalizing 
-     So, I don't see the point of this function...
-     */
-    if (exist) {
-        record_block(exist);
-        if (exist->start() != addr) {
-            Block *ret = split_block(owner, b, addr, prev_insn);
-            record_block(ret);
-            
-            ParseFrame * tf = _parse_data->findFrame(cr,owner->addr());
-            tf->leadersToBlock[ret->start()] = ret;
-            tf->visited[ret->start()] = true;
-
-        }
-    }
-    for (auto e = b->targets().begin();
-         e != b->targets().end();
-         ++e)
-    {
-        auto t = (*e)->type();
-        if(t == CALL_FT ||
-           t == COND_NOT_TAKEN ||
-           t == FALLTHROUGH)
-        {
-            auto off = (*e)->_target_off;
-            assert(off >= b->end());
-            assert((*e)->trg()->start() == off);
-        }
-    }
-    _pcb.addBlock(owner, b);
-
-}
-
 void
 Parser::finalize(Function *f)
 {
@@ -957,7 +869,6 @@ Parser::finalize(Function *f)
 
     for( ; bit != blocks.end(); ++bit) {
         Block * b = *bit;
-        finalize_block(b, f);
         if(b->start() > ext_e) {
             ext = new FuncExtent(f,ext_s,ext_e);
 

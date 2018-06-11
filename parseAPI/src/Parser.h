@@ -117,10 +117,6 @@ namespace Dyninst {
         UNPARSEABLE     // error condition
     };
     ParseState _parse_state;
-    // XXX sanity checking
-    bool _in_parse;
-    bool _in_finalize;
-
         public:
             Parser(CodeObject &obj, CFGFactory &fact, ParseCallbackManager &pcb);
 
@@ -174,8 +170,6 @@ namespace Dyninst {
             void record_func(Function *f);
 
             void init_frame(ParseFrame &frame);
-
-            void finalize_block(Block *b, Function *f);
 
             void finalize(Function *f);
 
