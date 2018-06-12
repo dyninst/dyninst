@@ -1033,7 +1033,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
     /** Persistent intermediate state **/
     InstructionAdapter_t *ahPtr = NULL;
     ParseFrame::worklist_t & worklist = frame.worklist;
-    dyn_hash_map<Address, Block *> & leadersToBlock = frame.leadersToBlock;
+    map<Address, Block *> & leadersToBlock = frame.leadersToBlock;
     Address & curAddr = frame.curAddr;
     Function * func = frame.func;
     dyn_hash_map<Address, bool> & visited = frame.visited;
@@ -1375,13 +1375,11 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         InstructionAdapter_t * ah = ahPtr;
         
         nextBlockAddr = std::numeric_limits<Address>::max();
-        for (auto nextBlockIter = frame.leadersToBlock.begin(); 
-                nextBlockIter != frame.leadersToBlock.end();
-                ++nextBlockIter)
-            if (nextBlockIter->first > frame.curAddr && nextBlockIter->first < nextBlockAddr) {
-                nextBlockAddr = nextBlockIter->first;
-                nextBlock = nextBlockIter->second;
-            }
+        auto nextBlockIter = frame.leadersToBlock.upper_bound(frame.curAddr);
+        if (nextBlockIter != frame.leadersToBlock.end()) {
+            nextBlockAddr = nextBlockIter->first;
+            nextBlock = nextBlockIter->second;
+        }
         bool isNopBlock = ah->isNop();
 
         while(true) {
@@ -1714,13 +1712,18 @@ Parser::block_at(ParseFrame &frame,
     // useful for suppressing unimportant races on the iterator
     boost::lock_guard<Function> g(*owner);
 #endif
-    for (auto iter = frame.leadersToBlock.begin(); iter != frame.leadersToBlock.end(); ++iter)
-//    for(auto i = owner->blocks_begin();
-//        i != owner->blocks_end();
-//        ++i)
-    {
+    // An already existing block
+    auto iter = frame.leadersToBlock.find(addr);
+    if (iter != frame.leadersToBlock.end()) {
+        return iter->second;
+    }
+    // A block that may need to be split 
+    iter = frame.leadersToBlock.upper_bound(addr);
+    if (iter != frame.leadersToBlock.begin()) {
+        --iter;
+    }
+    if (iter != frame.leadersToBlock.end()) {
         Block* b = iter->second;
-        if(b->start() == addr) return b;
         Address prev_insn;
         if (b->consistent(addr, prev_insn)) {
             ret = split_block(owner, b, addr, prev_insn);
@@ -1729,9 +1732,9 @@ Parser::block_at(ParseFrame &frame,
             return ret;
         }
     }
-        ret = _cfgfact._mkblock(owner, cr, addr);
-        record_block(ret);
-        return ret;
+    ret = _cfgfact._mkblock(owner, cr, addr);
+    record_block(ret);
+    return ret;
     }
 }
 

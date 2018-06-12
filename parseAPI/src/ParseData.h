@@ -125,7 +125,8 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
     // Delayed work elements 
     std::map<ParseWorkElem *, Function *> delayedWork;
 
-    dyn_hash_map<Address, Block*> leadersToBlock;  // block map
+    std::map<Address, Block*> leadersToBlock;
+    //dyn_hash_map<Address, Block*> leadersToBlock;  // block map
     Address curAddr;                           // current insn address
     unsigned num_insns;
     dyn_hash_map<Address, bool> visited;
