@@ -149,14 +149,14 @@ void EmitterAARCH64::emitRelOp(
     insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Sub, 0, 0, src2, src1, dest, true);
 
     // make dest = 1, meaning true
-    insnCodeGen::loadImmIntoReg<Address>(gen, dest, 0x0);
+    insnCodeGen::loadImmIntoReg<Address>(gen, dest, 0x1);
 
     // insert conditional jump to skip dest=0 in case the comparison resulted true
     // therefore keeping dest=1
     insnCodeGen::generateConditionalBranch(gen, 8, opcode);
 
     // make dest = 0, in case it fails the branch
-    insnCodeGen::loadImmIntoReg<Address>(gen, dest, 0x1);
+    insnCodeGen::loadImmIntoReg<Address>(gen, dest, 0x0);
 }
 
 

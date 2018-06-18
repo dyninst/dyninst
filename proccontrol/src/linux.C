@@ -402,6 +402,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
             }
          case SIGTRAP: {
             {
+#if 0
                //Debugging code
                Dyninst::MachRegisterVal addr;
                Dyninst::MachRegisterVal x30_val;
@@ -413,6 +414,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                }
                fprintf(stderr, "Got SIGTRAP at %lx\n", addr);
 	       fprintf(stderr, "X30 : %lx\n", x30_val);
+#endif
 
                Dyninst::MachRegisterVal X0;
                result = thread->plat_getRegister(Dyninst::aarch64::x0 ,X0);

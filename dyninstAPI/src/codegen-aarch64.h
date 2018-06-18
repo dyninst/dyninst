@@ -60,6 +60,12 @@ public:
         Eor
     };
 
+    enum IndexMode{
+        Post,
+        Pre,
+        Offset
+    };
+
     static instructUnion *insnPtr(codeGen &gen);
     //static instructUnion *ptrAndInc(codeGen &gen);
 
@@ -95,8 +101,8 @@ public:
     // Generate conditional branch
     static void generateConditionalBranch(codeGen& gen, Address to, unsigned opcode);
 
-    static void generateMemAccess32or64(codeGen &gen, LoadStore accType,
-                                        Register r1, Register r2, int immd, bool is64bit);
+    static void generateMemAccess32or64(codeGen &gen, LoadStore accType, Register r1,
+            Register r2, int immd, bool is64bit, IndexMode im=Post);
 
     static void generateMemAccessFP(codeGen &gen, LoadStore accType, Register rt,
             Register rn, int immd, int size, bool is128bit);
@@ -183,6 +189,9 @@ public:
     static Register moveValueToReg(codeGen &gen, long int val, pdvector<Register> *exclude = NULL);
 
     static void generate(codeGen &gen, instruction &insn);
+
+    // Copy instruction at position in codeGen buffer
+    static void generate(codeGen &gen, instruction &insn, unsigned position);
 
     static void write(codeGen &gen, instruction &insn) { generate(gen, insn); }
 

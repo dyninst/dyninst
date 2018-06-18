@@ -1974,23 +1974,8 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
     irpcBuf.endTrackRegDefs();
 
     //#sasha printing code patch for DYNINSTos_malloc
-#if defined(arch_aarch64)
-#include "InstructionDecoder.h"
-    using namespace Dyninst::InstructionAPI;
-    Address base = 0;
-    InstructionDecoder deco(irpcBuf.start_ptr(),irpcBuf.size(),getArch());
-    Instruction::Ptr insn = deco.decode();
-    while(base<irpcBuf.used()+5) {
-        std::stringstream rawInsn;
-        unsigned idx = insn->size();
-        while(idx--) rawInsn << hex << setfill('0') << setw(2) << (unsigned int) insn->rawByte(idx);
-
-        cerr << "\t" << hex << base << ":   " << rawInsn.str() << "   "
-            << insn->format(base) << dec << endl;
-        base += insn->size();
-        insn = deco.decode();
-    }
-#endif
+    //cerr << "BUFFER for IRPC" << endl;
+    //cerr << irpcBuf.format() << endl;
 
     return postIRPC_internal(irpcBuf.start_ptr(),
                              irpcBuf.used(),

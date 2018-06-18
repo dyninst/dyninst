@@ -104,8 +104,6 @@ static Address trymmap(size_t len, Address beg, Address end, size_t inc, int fd)
 
 void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
 {
-    //#sasha remove prints in this function
-    fprintf(stderr, "Entry of DYNINSTos_malloc\n");
   char *heap;
   size_t size = nbytes;
   heapList_t *node = NULL;
@@ -172,7 +170,6 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
 #ifdef DEBUG
   fprintf(stderr, "new heap at %lx, size %lx\n", node->heap.ret_addr, node->heap.len);
 #endif
-    fprintf(stderr, "End of DYNINSTos_malloc\n");
   return node->heap.ret_addr;
 }
 

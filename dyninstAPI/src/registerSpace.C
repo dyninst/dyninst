@@ -153,7 +153,7 @@ registerSpace *registerSpace::optimisticRegSpace(AddressSpace *proc) {
 }
 
 registerSpace *registerSpace::irpcRegSpace(AddressSpace *proc) {
-   registerSpace *rspace = conservativeRegSpace(proc);
+   registerSpace *rspace = savedRegSpace(proc);
    rspace->initRealRegSpace();
    return rspace;
 }

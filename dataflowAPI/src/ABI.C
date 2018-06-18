@@ -555,30 +555,41 @@ void ABI::initialize64(){
     returnRegs64_[aarch64Map[aarch64::q0]] = true;
 
 	returnRead64_ = getBitArray(sz);
-    returnRegs64_[aarch64Map[aarch64::x0]] = true;
-    returnRegs64_[aarch64Map[aarch64::q0]] = true;
+    returnRead64_[aarch64Map[aarch64::x0]] = true;
+    returnRead64_[aarch64Map[aarch64::q0]] = true;
     //Callee-saved registers
     //First, GPRs...
-    returnRegs64_[aarch64Map[aarch64::x19]] = true;
-    returnRegs64_[aarch64Map[aarch64::x20]] = true;
-    returnRegs64_[aarch64Map[aarch64::x21]] = true;
-    returnRegs64_[aarch64Map[aarch64::x22]] = true;
-    returnRegs64_[aarch64Map[aarch64::x23]] = true;
-    returnRegs64_[aarch64Map[aarch64::x24]] = true;
-    returnRegs64_[aarch64Map[aarch64::x25]] = true;
-    returnRegs64_[aarch64Map[aarch64::x26]] = true;
-    returnRegs64_[aarch64Map[aarch64::x27]] = true;
-    returnRegs64_[aarch64Map[aarch64::x28]] = true;
-    returnRegs64_[aarch64Map[aarch64::x29]] = true;
+	returnRead64_ = getBitArray(sz);
+    returnRead64_[aarch64Map[aarch64::x19]] = true;
+    returnRead64_[aarch64Map[aarch64::x20]] = true;
+    returnRead64_[aarch64Map[aarch64::x21]] = true;
+    returnRead64_[aarch64Map[aarch64::x22]] = true;
+    returnRead64_[aarch64Map[aarch64::x23]] = true;
+    returnRead64_[aarch64Map[aarch64::x24]] = true;
+    returnRead64_[aarch64Map[aarch64::x25]] = true;
+    returnRead64_[aarch64Map[aarch64::x26]] = true;
+    returnRead64_[aarch64Map[aarch64::x27]] = true;
+    returnRead64_[aarch64Map[aarch64::x28]] = true;
+    returnRead64_[aarch64Map[aarch64::sp]] = true;
     //Now, SIMD regs...
-    returnRegs64_[aarch64Map[aarch64::q8]] = true;
-    returnRegs64_[aarch64Map[aarch64::q9]] = true;
-    returnRegs64_[aarch64Map[aarch64::q10]] = true;
-    returnRegs64_[aarch64Map[aarch64::q11]] = true;
-    returnRegs64_[aarch64Map[aarch64::q12]] = true;
-    returnRegs64_[aarch64Map[aarch64::q13]] = true;
-    returnRegs64_[aarch64Map[aarch64::q14]] = true;
-    returnRegs64_[aarch64Map[aarch64::q15]] = true;
+    returnRead64_[aarch64Map[aarch64::q8]] = true;
+    returnRead64_[aarch64Map[aarch64::q9]] = true;
+    returnRead64_[aarch64Map[aarch64::q10]] = true;
+    returnRead64_[aarch64Map[aarch64::q11]] = true;
+    returnRead64_[aarch64Map[aarch64::q12]] = true;
+    returnRead64_[aarch64Map[aarch64::q13]] = true;
+    returnRead64_[aarch64Map[aarch64::q14]] = true;
+    returnRead64_[aarch64Map[aarch64::q15]] = true;
+
+    callParam64_ = getBitArray(sz);
+    callParam64_[aarch64Map[aarch64::x0]] = true;
+    callParam64_[aarch64Map[aarch64::x1]] = true;
+    callParam64_[aarch64Map[aarch64::x2]] = true;
+    callParam64_[aarch64Map[aarch64::x3]] = true;
+    callParam64_[aarch64Map[aarch64::x4]] = true;
+    callParam64_[aarch64Map[aarch64::x5]] = true;
+    callParam64_[aarch64Map[aarch64::x6]] = true;
+    callParam64_[aarch64Map[aarch64::x7]] = true;
 
 	callRead64_ = getBitArray(sz);
 	//First, GPRs...

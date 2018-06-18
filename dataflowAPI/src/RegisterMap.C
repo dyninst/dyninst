@@ -788,7 +788,38 @@ RegisterMap &machRegIndex_aarch64() {
 	 {aarch64::x27, 27},
 	 {aarch64::x28, 28},
 	 {aarch64::x29, 29},
-	 {aarch64::x30, 30},
+     {aarch64::x30, 30},
+     {aarch64::w0, 0},
+     {aarch64::w1, 1},
+     {aarch64::w2, 2},
+     {aarch64::w3, 3},
+     {aarch64::w4, 4},
+     {aarch64::w5, 5},
+     {aarch64::w6, 6},
+     {aarch64::w7, 7},
+     {aarch64::w8, 8},
+     {aarch64::w9, 9},
+     {aarch64::w10, 10},
+     {aarch64::w11, 11},
+     {aarch64::w12, 12},
+     {aarch64::w13, 13},
+     {aarch64::w14, 14},
+     {aarch64::w15, 15},
+     {aarch64::w16, 16},
+     {aarch64::w17, 17},
+     {aarch64::w18, 18},
+     {aarch64::w19, 19},
+     {aarch64::w20, 20},
+     {aarch64::w21, 21},
+     {aarch64::w22, 22},
+     {aarch64::w23, 23},
+     {aarch64::w24, 24},
+     {aarch64::w25, 25},
+     {aarch64::w26, 26},
+     {aarch64::w27, 27},
+     {aarch64::w28, 28},
+     {aarch64::w29, 29},
+     {aarch64::w30, 30},
      {aarch64::q0,  31},
      {aarch64::q1,  32},
      {aarch64::q2,  33},
@@ -1477,6 +1508,37 @@ RegisterMap &machRegIndex_aarch64() {
         (aarch64::x28, 28)
         (aarch64::x29, 29)
         (aarch64::x30, 30)
+        (aarch64::w0, 0)
+        (aarch64::w1, 1)
+        (aarch64::w2, 2)
+        (aarch64::w3, 3)
+        (aarch64::w4, 4)
+        (aarch64::w5, 5)
+        (aarch64::w6, 6)
+        (aarch64::w7, 7)
+        (aarch64::w8, 8)
+        (aarch64::w9, 9)
+        (aarch64::w10, 10)
+        (aarch64::w11, 11)
+        (aarch64::w12, 12)
+        (aarch64::w13, 13)
+        (aarch64::w14, 14)
+        (aarch64::w15, 15)
+        (aarch64::w16, 16)
+        (aarch64::w17, 17)
+        (aarch64::w18, 18)
+        (aarch64::w19, 19)
+        (aarch64::w20, 20)
+        (aarch64::w21, 21)
+        (aarch64::w22, 22)
+        (aarch64::w23, 23)
+        (aarch64::w24, 24)
+        (aarch64::w25, 25)
+        (aarch64::w26, 26)
+        (aarch64::w27, 27)
+        (aarch64::w28, 28)
+        (aarch64::w29, 29)
+        (aarch64::w30, 30)
         (aarch64::q0,  31)
         (aarch64::q1,  32)
         (aarch64::q2,  33)

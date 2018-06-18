@@ -224,7 +224,8 @@ class EmitterAARCH64SaveRegs {
 public:
     virtual ~EmitterAARCH64SaveRegs() {}
 
-    unsigned saveGPRegisters(baseTramp *bt, codeGen &gen, registerSpace *theRegSpace, int &offset, int numReqGPRs = -1);
+    unsigned saveGPRegisters(baseTramp *bt, codeGen &gen, registerSpace *theRegSpace,
+            int &offset, int numReqGPRs = -1);
 
     unsigned saveFPRegisters(codeGen &gen, registerSpace *theRegSpace, int &offset);
 

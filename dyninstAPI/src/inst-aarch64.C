@@ -162,14 +162,14 @@ void EmitterAARCH64SaveRegs::saveSPR(codeGen &gen, Register scratchReg, int sprn
     INSN_SET(insn, 5, 19, sysRegCodeMap[sprnum]);
     insnCodeGen::generate(gen, insn);
 
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, scratchReg, REG_SP, stkOffset, false);
+    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, scratchReg,
+            REG_SP, stkOffset, false, insnCodeGen::Pre);
 }
 
 void EmitterAARCH64SaveRegs::saveRegister(codeGen &gen, Register reg, int save_off)
 {
-    insnCodeGen::generateAddSubImmediate(
-        gen, insnCodeGen::Sub, 0, 16, REG_SP, REG_SP, true);
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, reg, REG_SP, /*save_off*/ 0, true);
+    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, reg, REG_SP,
+            -2*GPRSIZE_64, true, insnCodeGen::Pre);
 }
 
 
@@ -181,7 +181,9 @@ void EmitterAARCH64SaveRegs::saveFPRegister(codeGen &gen, Register reg, int save
 
 /********************************* Public methods *********************************************/
 
-unsigned EmitterAARCH64SaveRegs::saveGPRegisters(baseTramp *bt, codeGen &gen, registerSpace *theRegSpace, int &offset, int numReqGPRs) {
+unsigned EmitterAARCH64SaveRegs::saveGPRegisters(
+        baseTramp *bt, codeGen &gen, registerSpace *theRegSpace, int &offset, int numReqGPRs)
+{
     int ret = 0;
     if(numReqGPRs == -1)
         numReqGPRs = theRegSpace->numGPRs();
@@ -190,9 +192,8 @@ unsigned EmitterAARCH64SaveRegs::saveGPRegisters(baseTramp *bt, codeGen &gen, re
 
     for(unsigned int idx = 0; idx < regs.size() && ret < numReqGPRs; idx++) {
         registerSlot *reg = regs[idx];
-        //if(bt->definedRegs[reg->encoding()]) {
         if (reg->liveState == registerSlot::live) {
-            saveRegister(gen, reg->number, -2*GPRSIZE_64);
+            saveRegister(gen, reg->number, offset);
             theRegSpace->markSavedRegister(reg->number, offset);
 
             offset += 2*GPRSIZE_64;
@@ -221,7 +222,9 @@ unsigned EmitterAARCH64SaveRegs::saveFPRegisters(codeGen &gen, registerSpace *th
     return ret;
 }
 
-unsigned EmitterAARCH64SaveRegs::saveSPRegisters(codeGen &gen, registerSpace *theRegSpace, int &offset, bool force_save) {
+unsigned EmitterAARCH64SaveRegs::saveSPRegisters(
+        codeGen &gen, registerSpace *theRegSpace, int &offset, bool force_save)
+{
     int ret = 0;
 
     pdvector<registerSlot *> spRegs;
@@ -278,10 +281,12 @@ void EmitterAARCH64SaveRegs::createFrame(codeGen &gen) {
 
 /********************************* Public methods *********************************************/
 
-unsigned EmitterAARCH64RestoreRegs::restoreGPRegisters(codeGen &gen, registerSpace *theRegSpace) {
+unsigned EmitterAARCH64RestoreRegs::restoreGPRegisters(
+        codeGen &gen, registerSpace *theRegSpace)
+{
     unsigned ret = 0;
 
-    for(int idx = theRegSpace->numGPRs() - 1; idx >= 0; idx--) {
+    for(int idx = theRegSpace->numGPRs()-1; idx >=0; idx--) {
         registerSlot *reg = theRegSpace->GPRs()[idx];
 
         if(reg->liveState == registerSlot::spilled) {
@@ -293,7 +298,9 @@ unsigned EmitterAARCH64RestoreRegs::restoreGPRegisters(codeGen &gen, registerSpa
     return ret;
 }
 
-unsigned EmitterAARCH64RestoreRegs::restoreFPRegisters(codeGen &gen, registerSpace *theRegSpace) {
+unsigned EmitterAARCH64RestoreRegs::restoreFPRegisters(
+        codeGen &gen, registerSpace *theRegSpace)
+{
     unsigned ret = 0;
 
     for(int idx = theRegSpace->numFPRs() - 1; idx >= 0; idx--) {
@@ -308,7 +315,9 @@ unsigned EmitterAARCH64RestoreRegs::restoreFPRegisters(codeGen &gen, registerSpa
     return ret;
 }
 
-unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(codeGen &gen, registerSpace *theRegSpace, int force_save) {
+unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(
+        codeGen &gen, registerSpace *theRegSpace, int force_save)
+{
     int ret = 0;
 
     pdvector<registerSlot *> spRegs;
@@ -354,7 +363,8 @@ void EmitterAARCH64RestoreRegs::tearFrame(codeGen &gen) {
 
 /********************************* Private methods *********************************************/
 
-void EmitterAARCH64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset) {
+void EmitterAARCH64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset)
+{
     insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, scratchReg, REG_SP, stkOffset, false);
 
     //TODO move map to common location
@@ -376,11 +386,8 @@ void EmitterAARCH64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, in
 
 void EmitterAARCH64RestoreRegs::restoreRegister(codeGen &gen, Register reg, int save_off) {
 
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, reg, REG_SP, /*save_off*/ 0, true);
-    insnCodeGen::generateAddSubImmediate(
-        gen, insnCodeGen::Add, 0, 16, REG_SP, REG_SP, true);
-
-
+    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, reg, REG_SP,
+            2*GPRSIZE_64, true);
 }
 
 void EmitterAARCH64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, int save_off) {
@@ -391,9 +398,8 @@ void EmitterAARCH64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, in
 /***********************************************************************************************/
 
 /*********************************** Base Tramp ***********************************************/
-
-bool baseTramp::generateSaves(codeGen &gen,
-                              registerSpace *) {
+bool baseTramp::generateSaves(codeGen &gen, registerSpace *)
+{
     EmitterAARCH64SaveRegs saveRegs;
 
     int offset = 0;
@@ -421,6 +427,7 @@ bool baseTramp::generateSaves(codeGen &gen,
     bt->definedRegs = gen.getRegsDefined();
     //prinDefined();
     assert(!bt->definedRegs.empty());
+
     saveRegs.saveGPRegisters(bt, gen, gen.rs(), offset);
 
     bool saveFPRs = BPatch::bpatch->isForceSaveFPROn() ||
@@ -434,11 +441,12 @@ bool baseTramp::generateSaves(codeGen &gen,
 
     saveRegs.saveSPRegisters(gen, gen.rs(), offset, false);
     //gen.rs()->debugPrint();
+
     return true;
 }
 
-bool baseTramp::generateRestores(codeGen &gen,
-                                 registerSpace *) {
+bool baseTramp::generateRestores(codeGen &gen, registerSpace *)
+{
     EmitterAARCH64RestoreRegs restoreRegs;
 
     restoreRegs.restoreSPRegisters(gen, gen.rs(), false);
@@ -584,7 +592,6 @@ Register EmitterAARCH64::emitCall(opCode op,
         cerr << "ERROR: emitCall with op == " << op << endl;
     }
     assert(op == callOp);
-    assert(operands.size()==3 || operands.size()==1 || operands.size()==0);
 
     std::vector<Register> srcs;
     std::vector<Register> saves;
@@ -601,41 +608,21 @@ Register EmitterAARCH64::emitCall(opCode op,
 
     vector<int> savedRegs;
 
-    bool needToSaveLR = false;
-    /*registerSlot *regLR = (*(gen.rs()))[registerSpace::r30];
-    if (regLR && regLR->liveState == registerSlot::live) {
-        needToSaveLR = true;
-        inst_printf("... need to save LR\n");
-    }
-    if (needToSaveLR) {
-        // save link register
-        insnCodeGen::saveRegister(gen, registerSpace::r30);
-        savedRegs.push_back(30);
-        inst_printf("saved LR in 0\n");
-    }*/
-
-    // save link register
-    insnCodeGen::saveRegister(gen, registerSpace::r30);
-    savedRegs.push_back(30);
-
-    // save r0-r2 (first three register for parameter)
-    //registerSlot *reg = gen.rs()->GPRs()[0];
-    //reg->liveState = registerSlot::spilled;
+    // save r0-r7
     for(size_t id = 0; id < gen.rs()->numGPRs(); id++)
     {
         registerSlot *reg = gen.rs()->GPRs()[id];
 
-       // We must save if:
-       // refCount > 0 (and not a source register)
-       // keptValue == true (keep over the call)
-       // liveState == live (technically, only if not saved by the callee)
+        // We must save if:
+        // refCount > 0 (and not a source register)
+        // keptValue == true (keep over the call)
+        // liveState == live (technically, only if not saved by the callee)
 
-       if ((reg->refCount > 0) || reg->keptValue || (reg->liveState == registerSlot::live))
-       {
-           insnCodeGen::saveRegister(gen, registerSpace::r0 + id);
-           //reg->liveState = registerSlot::spilled;
-           savedRegs.push_back(reg->number);
-       }
+        if ((reg->refCount > 0) || reg->keptValue || (reg->liveState == registerSlot::live))
+        {
+            insnCodeGen::saveRegister(gen, registerSpace::r0 + id);
+            savedRegs.push_back(reg->number);
+        }
     }
 
     // Passing operands to registers
@@ -655,13 +642,9 @@ Register EmitterAARCH64::emitCall(opCode op,
     //assert(point);
     assert(gen.rs());
 
-    //Address of function to call in r9
-    //
-    //#sasha get correct register
+    //Address of function to call in scratch register
     Register scratch = gen.rs()->getScratchRegister(gen);
     assert(scratch!=REG_NULL);
-    //Register scratch = 9;
-    //insnCodeGen::saveRegister(gen, registerSpace::r9);
     insnCodeGen::loadImmIntoReg<Address>(gen, scratch, callee->addr());
 
     instruction branchInsn;
@@ -680,36 +663,14 @@ Register EmitterAARCH64::emitCall(opCode op,
     INSN_SET(branchInsn, 21, 21, 1);
     insnCodeGen::generate(gen, branchInsn);
 
-    //Register retReg = REG_NULL;
-    // get a register to keep the return value in.
-    //retReg = gen.rs()->allocateRegister(gen, noCost);
-    //assert(retReg!=REG_NULL);
-
     /*
      * Restoring registers
      */
 
-    //insnCodeGen::restoreRegister(gen, registerSpace::r9);
-
-    // r2-r0 (first three register for parameter)
-    /*for(signed int id = operands.size()-1; id >= 0 ; id--)
-      {
-      insnCodeGen::restoreRegister(gen, registerSpace::r0 + id);
-      }*/
-
+    // r7-r0
     for (signed int ui = savedRegs.size()-1; ui >= 0; ui--) {
         insnCodeGen::restoreRegister(gen, registerSpace::r0 + savedRegs[ui]);
     }
-    //insnCodeGen::generateTrap(gen);
-
-
-    /*if (needToSaveLR) {
-        // We only use register 0 to save LR.
-        insnCodeGen::generateMoveToLR(gen, 0);
-    }*/
-
-    // link register
-    //insnCodeGen::restoreRegister(gen, registerSpace::r30);
 
     return 0;
 }

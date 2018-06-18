@@ -72,6 +72,17 @@ void insnCodeGen::generate(codeGen &gen, instruction &insn) {
   gen.copy(&raw, sizeof(unsigned));
 }
 
+void insnCodeGen::generate(codeGen &gen, instruction &insn, unsigned position) {
+#if defined(endian_mismatch)
+    // Writing an instruction.  Convert byte order if necessary.
+    unsigned raw = swapBytesIfNeeded(insn.asInt());
+#else
+    unsigned raw = insn.asInt();
+#endif
+
+    gen.insert(&raw, sizeof(unsigned), position);
+}
+
 void insnCodeGen::generateIllegal(codeGen &gen) { // instP.h
     instruction insn;
     generate(gen,insn);
@@ -448,6 +459,7 @@ void insnCodeGen::generateMoveSP(codeGen &gen, Register rn, Register rd, bool is
     insnCodeGen::generate(gen, insn);
 }
 
+
 Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, pdvector<Register> *exclude) {
     Register scratchReg;
     if(exclude)
@@ -473,7 +485,7 @@ Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, pdvector<Regist
 
 /* Currently, I'm only considering generation of only STR/LDR and their register/immediate variants.*/
 void insnCodeGen::generateMemAccess32or64(codeGen &gen, LoadStore accType,
-        Register r1, Register r2, int immd, bool is64bit)
+        Register r1, Register r2, int immd, bool is64bit, IndexMode im)
 {
     instruction insn;
     insn.clear();
@@ -483,13 +495,23 @@ void insnCodeGen::generateMemAccess32or64(codeGen &gen, LoadStore accType,
     if(is64bit)
         INSN_SET(insn, 30, 30, 1);
 
-    //Set opcode, index and offset bits
-    if(immd >= -256 && immd <= 255) {
-        INSN_SET(insn, 21, 29, (accType == Load) ? LDRImmOp : STRImmOp);
-        INSN_SET(insn, 10, 11, 0x1);
-        INSN_SET(insn, 12, 20, immd);
-    } else {
-        assert(!"Cannot perform a post-indexed memory access for offsets not in range [-256, 255]!");
+    switch(im){
+        case Post:
+        case Pre:
+            //Set opcode, index and offset bits
+            if(immd >= -256 && immd <= 255) {
+                INSN_SET(insn, 21, 29, (accType == Load) ? LDRImmOp : STRImmOp);
+                INSN_SET(insn, 10, 11, im==Post?0x1:0x3);
+                INSN_SET(insn, 12, 20, immd);
+            } else {
+                assert(!"Cannot perform a post/pre-indexed memory access for offsets not in range [-256, 255]!");
+            }
+            break;
+        case Offset:
+            INSN_SET(insn, 22, 29, (accType == Load) ? LDRImmUIOp : STRImmUIOp);
+            assert(immd>=0); // this offset is supposed to unsigned, i.e. positive
+            INSN_SET(insn, 10, 21, immd>>3);
+            break;
     }
 
     //Set memory access register and register for address calculation.
