@@ -561,6 +561,9 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
 
     static void destroy(Function *f);
 
+    /*** Internal parsing methods and state ***/
+    void add_block(Block *b);
+
  private:
     void delayed_link_return(CodeObject * co, Block * retblk);
     void finalize();
@@ -643,9 +646,6 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     /** same as previous two fields, but for postdominator tree */
     mutable std::map<Block*, std::set<Block*>*> immediatePostDominates;
     mutable std::map<Block*, Block*> immediatePostDominator;
-
-    /*** Internal parsing methods and state ***/
-    void add_block(Block *b);
 
     friend void Edge::uninstall();
     friend class Parser;
