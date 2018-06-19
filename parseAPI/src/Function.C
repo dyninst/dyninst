@@ -475,7 +475,7 @@ Function::contains(Block *b)
 bool
 Function::contains(Block *b) const
 {
-    boost::lock_guard<const Function> g(*this);
+//    boost::lock_guard<const Function> g(*this);
     if (b == NULL) return false;
     return HASHDEF(_bmap,b->start());
 }
