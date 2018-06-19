@@ -65,7 +65,7 @@ StringTablePtr Statement::getStrings_() const {
 void Statement::setStrings_(StringTablePtr strings) {
     Statement::strings_ = strings;
 }
-std::string Statement::getFile() const {
+const std::string& Statement::getFile() const {
     if(strings_) {
         if(file_index_ < strings_->size()) {
             // can't be ->[] on shared pointer to multi_index container or compiler gets confused
@@ -74,7 +74,9 @@ std::string Statement::getFile() const {
         }
 
     }
-    return "";
+    // This string will be pointed to, so it has to persist.
+    static std::string emptyStr;
+    return emptyStr;
 }
 
 
