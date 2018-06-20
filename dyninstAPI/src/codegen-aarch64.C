@@ -329,18 +329,20 @@ void insnCodeGen::generateDiv(
     instruction insn;
     insn.clear();
 
-    // Set opcode
-    INSN_SET(insn, 20, 31, SDIVOp);
+    // Set bit 31 to 1 if using 64-bit registers
+    if(is64bit)
+        INSN_SET(insn, 31, 31, 1);
 
-    // Bits 12 to 15 are 1 
-    INSN_SET(insn, 12, 15, 0xF);
-    // Bit 4 to 7 range has 0x1
-    INSN_SET(insn, 4, 7, 0x1);
+    // Set opcode
+    INSN_SET(insn, 21, 30, SDIVOp);
+
+    INSN_SET(insn, 11, 15, 0x1);
+    INSN_SET(insn, 10, 10, 0x0); // signed: SDIV
 
     //Set registers
-    INSN_SET(insn, 16, 19, rd);
-    INSN_SET(insn, 8, 11, rm);
-    INSN_SET(insn, 0, 3, rn);
+    INSN_SET(insn, 16, 20, rm);
+    INSN_SET(insn, 5, 9, rn);
+    INSN_SET(insn, 0, 4, rd);
 
     insnCodeGen::generate(gen, insn);
 
@@ -483,7 +485,7 @@ Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, pdvector<Regist
     return scratchReg;
 }
 
-/* Currently, I'm only considering generation of only STR/LDR and their register/immediate variants.*/
+// This is for generating STR/LDR (imediate) for indexing modes of Post, Pre and Offset
 void insnCodeGen::generateMemAccess32or64(codeGen &gen, LoadStore accType,
         Register r1, Register r2, int immd, bool is64bit, IndexMode im)
 {
@@ -521,7 +523,9 @@ void insnCodeGen::generateMemAccess32or64(codeGen &gen, LoadStore accType,
     insnCodeGen::generate(gen, insn);
 }
 
-void insnCodeGen::generateMemAccessFP(codeGen &gen, LoadStore accType, Register rt, Register rn, int immd, int size, bool is128bit) {
+void insnCodeGen::generateMemAccessFP(codeGen &gen, LoadStore accType,
+        Register rt, Register rn, int immd, int size, bool is128bit)
+{
     instruction insn;
     insn.clear();
 

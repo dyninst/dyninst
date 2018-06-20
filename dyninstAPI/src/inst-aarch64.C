@@ -478,7 +478,8 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
                     insnCodeGen::generateAddSubImmediate(gen,
                             op == plusOp ? insnCodeGen::Add : insnCodeGen::Sub, 0,
                             src2imm, src1, dest, false);
-                else if(src2imm >= MIN_IMM16 && src2imm < MAX_IMM16) {
+                else if(src2imm >= MIN_IMM16 && src2imm < MAX_IMM16)
+                {
                     Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
                     insnCodeGen::generateAddSubShifted(gen,
                             op == plusOp ? insnCodeGen::Add : insnCodeGen::Sub,
@@ -493,6 +494,10 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
             }
             break;
         case divOp:
+            {
+                Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
+                insnCodeGen::generateDiv(gen, rm, src1, dest, true);
+            }
             break;
         case orOp:
             {

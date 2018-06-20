@@ -55,7 +55,7 @@
 #include "RegisterConversion.h"
 */
 
-
+#include "dyninstAPI/src/inst-aarch64.h"
 #include "dyninstAPI/src/emit-aarch64.h"
 #include "dyninstAPI/src/registerSpace.h"
 
@@ -90,7 +90,8 @@ void EmitterAARCH64::emitLoad(Register dest, Address addr, int size, codeGen &ge
     Register scratch = gen.rs()->getScratchRegister(gen);
 
     insnCodeGen::loadImmIntoReg<Address>(gen, scratch, addr);
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, dest, scratch, 0, true);
+    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, dest,
+            scratch, 0, true, insnCodeGen::Post);
 
     gen.rs()->freeRegister(scratch);
     gen.markRegDefined(dest);
@@ -102,7 +103,8 @@ void EmitterAARCH64::emitStore(Address addr, Register src, int size, codeGen &ge
     Register scratch = gen.rs()->getScratchRegister(gen);
 
     insnCodeGen::loadImmIntoReg<Address>(gen, scratch, addr);
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, src, scratch, 0, true);
+    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, src,
+            scratch, 0, true, insnCodeGen::Pre);
 
     gen.rs()->freeRegister(scratch);
     gen.markRegDefined(src);
@@ -118,11 +120,11 @@ void EmitterAARCH64::emitOp(
 
     // dest = src1 - src2
     else if( opcode == minusOp )
-        insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Sub, 0, 0, src1, src2, dest, true);
+        insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Sub, 0, 0, src2, src1, dest, true);
     
     // dest = src1 / src2
     else if( opcode == divOp )
-        insnCodeGen::generateDiv(gen, src1, src2, dest, true);
+        insnCodeGen::generateDiv(gen, src2, src1, dest, true);
 
     // dest = src1 * src2
     else if( opcode == timesOp )
