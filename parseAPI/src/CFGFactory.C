@@ -43,8 +43,6 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
-std::map<Edge*, EdgeState> edge_info;
-
 std::string ParseAPI::format(EdgeTypeEnum e) {
    switch(e) {
       case CALL:
@@ -151,7 +149,6 @@ Edge *
 CFGFactory::_mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
     Edge * ret = mkedge(src,trg,type);
     edges_.add(ret);
-    edge_info[ret] = created;
     return ret;
 }
 
@@ -199,11 +196,6 @@ std::string to_str(EdgeState e)
 void
 CFGFactory::destroy_edge(Edge *e, Dyninst::ParseAPI::EdgeState reason) {
     boost::lock_guard<CFGFactory> g(*this);
-//    if(edge_info[e] != created) {
-//        cerr << "double deleting edge, first was " << to_str(edge_info[e]) << ", second is " << to_str(reason) << endl;
-//        assert(0);
-//    }
-    edge_info[e] = reason;
     e->remove();
     if(reason == destroyed_all) {
         free_edge(e);
