@@ -191,6 +191,33 @@ bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
       {
          result = symtab->getRegValueAtFrame(offset, reg, val, this);
       }
+      if (!result) {
+          sw_printf("Cast framestepper %p for frame %p to SigHandlerStepper at address %lx\n", prevDepthFrame->getStepper(), prevDepthFrame, prevDepthFrame->getRA());
+
+          SigHandlerStepper * ss = dynamic_cast<SigHandlerStepper*> (prevDepthFrame->getStepper());
+	  if (ss != NULL) {
+	      sw_printf("[%s:%u] - Not the first frame, cannot find dbg information, and previous frame is a signal trampoline frame. Try to get x30 from ucontext as RA\n",
+                FILE__, __LINE__);
+              static     ucontext_t dummy_context;
+	      static int lr_offset = (char*)&(dummy_context.uc_mcontext.regs[30]) - (char*)&dummy_context;
+	      // This assumes that a ucontext_t is at the following offset from the top of the signal handler's stack.
+	      static int ucontext_offset = 128;
+	      const Frame * signal_frame = depth_frame;
+	      if (signal_frame != NULL) {
+	          int addr_size = 8;
+	          Address lr_addr = signal_frame->getSP() + ucontext_offset + lr_offset;
+		  result = getProcessState()->readMem(&val, lr_addr, addr_size);
+	      sw_printf("[%s:%u] - readMem results %d, get %lx as RA\n",
+                FILE__, __LINE__, result, val);
+
+	      } else {
+	      sw_printf("[%s:%u] - the signal trampoline frame does not have a parent frame\n",
+                FILE__, __LINE__);
+	      }
+	  } else {
+	      sw_printf("Cannot cast framestepper to SigHandlerStepper\n");
+	  }
+       }
    }
 #endif
 
