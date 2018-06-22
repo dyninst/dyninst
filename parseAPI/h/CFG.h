@@ -316,7 +316,7 @@ class PARSER_EXPORT Block : public Dyninst::SimpleInterval<Address, int>,
     void getFuncs(std::vector<Function *> & funcs);
     template<class OutputIterator> void getFuncs(OutputIterator result); 
 
-    void getInsns(Insns &insns) const;
+    virtual void getInsns(Insns &insns) const;
     InstructionAPI::InstructionPtr getInsn(Offset o) const;
 
     bool wasUserAdded() const;
