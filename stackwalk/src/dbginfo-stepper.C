@@ -190,6 +190,7 @@ bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
       {
          result = symtab->getRegValueAtFrame(offset, reg, val, this);
       }
+#if defined(arch_aarch64)
       if (!result) {
           sw_printf("Cast framestepper %p for frame %p to SigHandlerStepper at address %lx\n", prevDepthFrame->getStepper(), prevDepthFrame, prevDepthFrame->getRA());
 
@@ -217,6 +218,7 @@ bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
 	      sw_printf("Cannot cast framestepper to SigHandlerStepper\n");
 	  }
        }
+#endif      
    }
 #endif
 
