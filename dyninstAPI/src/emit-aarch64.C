@@ -90,8 +90,9 @@ void EmitterAARCH64::emitLoad(Register dest, Address addr, int size, codeGen &ge
     Register scratch = gen.rs()->getScratchRegister(gen);
 
     insnCodeGen::loadImmIntoReg<Address>(gen, scratch, addr);
+    assert(size==4 || size==8);
     insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, dest,
-            scratch, 0, true, insnCodeGen::Post);
+            scratch, 0, size==8?true:false, insnCodeGen::Post);
 
     gen.rs()->freeRegister(scratch);
     gen.markRegDefined(dest);
@@ -103,8 +104,9 @@ void EmitterAARCH64::emitStore(Address addr, Register src, int size, codeGen &ge
     Register scratch = gen.rs()->getScratchRegister(gen);
 
     insnCodeGen::loadImmIntoReg<Address>(gen, scratch, addr);
+    assert(size==4 || size==8);
     insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, src,
-            scratch, 0, true, insnCodeGen::Pre);
+            scratch, 0, size==8?true:false, insnCodeGen::Pre);
 
     gen.rs()->freeRegister(scratch);
     gen.markRegDefined(src);
