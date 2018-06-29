@@ -4456,6 +4456,166 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 }
 
 
+void Object::parseLineInfo(LineInformation* li_for_module)
+{
+    std::vector<open_statement> open_statements;
+
+    /* Initialize libdwarf. */
+    Dwarf **dbg_ptr = dwarf->type_dbg();
+    if (!dbg_ptr) return;
+    Dwarf *dbg = *dbg_ptr;
+
+    Dwarf_Off off, next_off = 0;
+    Dwarf_CU *cu = NULL;
+
+    Dwarf_Files *files;
+    size_t fileCount;
+
+    Dwarf_Lines * lineBuffer;
+    size_t lineCount;
+
+    int status;
+
+    while ((status = dwarf_next_lines(dbg, off = next_off, &next_off, &cu,
+			     &files, &fileCount, &lineBuffer, &lineCount)) == 0)
+    {
+
+    StringTablePtr strings(li_for_module->getStrings());
+    size_t offset = strings->size();
+
+    // dwarf_line_srcfileno == 0 means unknown; 1...n means files[0...n-1]
+    // so we ensure that we're adding a block of unknown, 1...n to the string table
+    // and that offset + dwarf_line_srcfileno points to the correct string
+    strings->push_back("<Unknown file>");
+    for(size_t i = 1; i < fileCount; i++)
+    {
+        auto filename = dwarf_filesrc(files, i, nullptr, nullptr);
+        if(!filename) continue;
+
+        auto tmp = strrchr(filename, '/');
+        if(truncateLineFilenames && tmp)
+        {
+            strings->push_back(++tmp);
+        }
+        else
+        {
+            strings->push_back(filename);
+        }
+    }
+    li_for_module->setStrings(strings);
+    /* The 'lines' returned are actually interval markers; the code
+     generated from lineNo runs from lineAddr up to but not including
+     the lineAddr of the next line. */
+
+    Offset baseAddr = getBaseAddress();
+
+    /* Iterate over this CU's source lines. */
+    open_statement current_statement;
+    for(size_t i = 0; i < lineCount; i++ )
+    {
+        auto line = dwarf_onesrcline(lineBuffer, i); 
+
+        /* Acquire the line number, address, source, and end of sequence flag. */
+        status = dwarf_lineno(line, &current_statement.line_number);
+        if ( status != 0 ) {
+            cout << "dwarf_lineno failed" << endl;
+            continue;
+        }
+
+        status = dwarf_linecol(line, &current_statement.column_number);
+        if ( status != 0 ) { current_statement.column_number = 0; }
+
+        status = dwarf_lineaddr(line, &current_statement.start_addr);
+        if ( status != 0 )
+        {
+            cout << "dwarf_lineaddr failed" << endl;
+            continue;
+        }
+
+        current_statement.start_addr += baseAddr;
+
+        if (dwarf->debugLinkFile()) {
+            Offset new_lineAddr;
+            bool result = convertDebugOffset(current_statement.start_addr, new_lineAddr);
+            if (result)
+                current_statement.start_addr = new_lineAddr;
+        }
+        
+        //status = dwarf_line_srcfileno(line, &current_statement.string_table_index);
+        const char * file_name = dwarf_linesrc(line, NULL, NULL);
+        if ( !file_name ) {
+            cout << "dwarf_linesrc - empty name" << endl;
+            continue;
+        }
+
+        // search filename index
+        std::string file_name_str(file_name);
+        int index = -1;
+        for(size_t idx = offset; idx < strings->size(); ++idx)
+        {
+            if((*strings)[idx].str==file_name_str) 
+            {  
+                index = idx; 
+                break;
+            }
+        }
+        if( index == -1 ) {
+            cout << "dwarf_linesrc didn't find index" << endl;
+            continue;
+        }
+        current_statement.string_table_index = index;
+
+        bool isEndOfSequence;
+        status = dwarf_lineendsequence(line, &isEndOfSequence);
+        if ( status != 0 ) {
+            cout << "dwarf_lineendsequence failed" << endl;
+            continue;
+        }
+        if(i == lineCount - 1) {
+            isEndOfSequence = true;
+        }
+        bool isStatement;
+        status = dwarf_linebeginstatement(line, &isStatement);
+        if(status != 0) {
+            cout << "dwarf_linebeginstatement failed" << endl;
+            continue;
+        }
+        std::vector<open_statement> tmp;
+        for(auto stmt = open_statements.begin();
+                stmt != open_statements.end();
+                ++stmt)
+        {
+            stmt->end_addr = current_statement.start_addr;
+            if(stmt->string_table_index != current_statement.string_table_index ||
+                    stmt->line_number != current_statement.line_number ||
+                    isEndOfSequence)
+            {
+                li_for_module->addLine((unsigned int)(stmt->string_table_index),
+                                       (unsigned int)(stmt->line_number),
+                                       (unsigned int)(stmt->column_number),
+                                       stmt->start_addr,
+                                       stmt->end_addr);
+            }
+            else
+            {
+                tmp.push_back(*stmt);
+            }
+        }
+        open_statements.swap(tmp);
+        if(isEndOfSequence) {
+            open_statements.clear();
+        } else
+        if(isStatement) {
+            open_statements.push_back(current_statement);
+        }
+    } /* end iteration over source line entries. */
+
+    /* Free this CU's source lines. */
+    //dwarf_srclines_dealloc(dbg, lineBuffer, lineCount);
+    }
+}
+
+
 
 void Object::parseLineInfoForAddr(Offset addr_to_find)
 {
@@ -4475,10 +4635,18 @@ void Object::parseLineInfoForAddr(Offset addr_to_find)
 
 
 
+bool Object::hasDebugInfo()
+{
+    Region *ignore;
+    std::string debug_info = ".debug_info";
+    bool hasDebugInfo = associated_symtab->findRegion(ignore, debug_info);
+    return hasDebugInfo;
+}
 
 // Dwarf Debug Format parsing
 void Object::parseDwarfFileLineInfo()
 {
+
     vector<Module*> mods;
     associated_symtab->getAllModules(mods);
     for(auto mod = mods.begin();

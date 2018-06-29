@@ -225,22 +225,26 @@ LineInformation *Module::parseLineInformation() {
         // share our string table
         lineInfo_->setStrings(strings_);
     }
-    // Parse any CUs that have been added to our list
-    if(!info_.empty()) {
-        for(auto cu = info_.begin();
-                cu != info_.end();
-                ++cu)
-        {
-            exec()->getObject()->parseLineInfoForCU(*cu, lineInfo_);
+    if (exec()->getObject()->hasDebugInfo()) {
+        // Parse any CUs that have been added to our list
+        if(!info_.empty()) {
+            for(auto cu = info_.begin();
+                    cu != info_.end();
+                    ++cu)
+            {
+                exec()->getObject()->parseLineInfoForCU(*cu, lineInfo_);
+            }
         }
+
+        // Before clearing the CU list (why is it even done anyway?), make sure to
+        // call getCompDir so the comp_dir is stored in a static variable.
+        getCompDir();
+
+        // Clear list of work to do
+        info_.clear();
+    } else {
+        exec()->getObject()->parseLineInfo(lineInfo_);
     }
-
-    // Before clearing the CU list (why is it even done anyway?), make sure to
-    // call getCompDir so the comp_dir is stored in a static variable.
-    getCompDir();
-
-    // Clear list of work to do
-    info_.clear();
     return lineInfo_;
 }
 
