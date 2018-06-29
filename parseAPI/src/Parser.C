@@ -1665,12 +1665,12 @@ Parser::end_block(Block * b, InstructionAdapter_t * ah)
 //    record_block(b);
 }
 
-void
+Block*
 Parser::record_block(Block *b)
 {
     parsing_printf("[%s:%d] recording block [%lx,%lx)\n",
                    FILE__,__LINE__,b->start(),b->end());
-    _parse_data->record_block(b->region(),b);
+    return _parse_data->record_block(b->region(),b);
 }
 
 
@@ -1733,7 +1733,7 @@ Parser::block_at(ParseFrame &frame,
         }
     }
     ret = _cfgfact._mkblock(owner, cr, addr);
-    record_block(ret);
+    ret = record_block(ret);
     return ret;
     }
 }
@@ -1805,6 +1805,13 @@ Parser::split_block(
     // assert(b->consistent(addr);
 
     ret = factory()._mkblock(owner,cr,addr);
+    Block * exist = record_block(ret);
+    bool block_exist = false;
+    if (exist != ret) {
+        block_exist = true;
+	ret = exist;
+
+    }
 
     // move out edges
 
@@ -1821,14 +1828,15 @@ Parser::split_block(
             isRetBlock = true;
         }
         trgs.clear();
-        ret->updateEnd(b->end());
-        ret->_lastInsn = b->_lastInsn;
-        ret->_parsed = true;
+	if (!block_exist) {
+            ret->updateEnd(b->end());
+            ret->_lastInsn = b->_lastInsn;
+            ret->_parsed = true;
+	}
         b->updateEnd(addr);
         b->_lastInsn = previnsn;
         link(b,ret,FALLTHROUGH,false);
 
-        record_block(ret);
 
         // b's range has changed
         rd->updateBlockEnd(b, addr, previnsn);
@@ -2043,7 +2051,7 @@ Parser::relink(Edge * e, Block *src, Block *dst)
         _pcb.addEdge(src, e, ParseCallback::target);
     }
     if(parse_data()->findBlock(dst->region(), dst->start()) != dst) {
-        record_block(dst);
+	assert(!"another block already exist!");
     }
     e->_type._sink = (dst->start() == std::numeric_limits<Address>::max());
 }

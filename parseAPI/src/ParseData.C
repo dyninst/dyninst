@@ -393,19 +393,21 @@ OverlappingParseData::record_func(Function *f)
     region_data * rd = rmap[cr];
     rd->record_func(f);
 }
-void
+Block*
 OverlappingParseData::record_block(CodeRegion *cr, Block *b)
 {
     region_data* rd = NULL;
-    boost::lock_guard<ParseData> g(*this);
+    {
+	 boost::lock_guard<ParseData> g(*this);
 
         if(!HASHDEF(rmap,cr)) {
             fprintf(stderr,"Error, invalid code region [%lx,%lx) in record_block\n",
                     cr->offset(),cr->offset()+cr->length());
-            return;
+            return b;
         }
         rd = rmap[cr];
-    rd->record_block(b);
+    }
+    return rd->record_block(b);
 }
 void
 OverlappingParseData::remove_func(Function *f)

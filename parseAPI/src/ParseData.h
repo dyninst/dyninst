@@ -244,21 +244,21 @@ public:
         race_detector_fake_lock_release(race_detector_fake_lock(funcsByAddr));
 
     }
-    void record_block(Block* b) {
+    Block* record_block(Block* b) {
         race_detector_fake_lock_acquire(race_detector_fake_lock(blocksByAddr));
 	{
 	  tbb::concurrent_hash_map<Address, Block*>::accessor a;
 	  bool inserted = blocksByAddr.insert(a, std::make_pair(b->start(), b));
-        if(!inserted) {
-            blocksByAddr.erase(a);
-            assert(blocksByAddr.insert(a, std::make_pair(b->start(), b)));
+	  if(!inserted) {
+            // Inserting failed when another thread has inserted a block with the same starting address
+	    return a->second;
+	  } else {
+	    // Inserting succeded. So we also insert the block into interval tree
+	    blocksByRange.insert(b);
+	    return b;
+         
+	  }
         }
-	}
-        race_detector_fake_lock_release(race_detector_fake_lock(blocksByAddr));
-        tbb::concurrent_hash_map<Address, Block*>::const_accessor a1;
-        assert(blocksByAddr.find(a1, b->start()));
-        assert(a1->second == b);
-	blocksByRange.insert(b);
     }
     void updateBlockEnd(Block* b, Address addr, Address previnsn) {
         blocksByRange.remove(b);
@@ -381,7 +381,7 @@ class ParseData : public boost::lockable_adapter<boost::recursive_mutex>  {
 
     // accounting
     virtual void record_func(Function *) =0;
-    virtual void record_block(CodeRegion *, Block *) =0;
+    virtual Block* record_block(CodeRegion *, Block *) =0;
     virtual void record_frame(ParseFrame *) =0;
 
     // removal
@@ -421,7 +421,7 @@ class StandardParseData : public ParseData {
     region_data * findRegion(CodeRegion *cr);
 
     void record_func(Function *f);
-    void record_block(CodeRegion *cr, Block *b);
+    Block* record_block(CodeRegion *cr, Block *b);
     void record_frame(ParseFrame *pf);
 
     void remove_frame(ParseFrame *);
@@ -440,10 +440,9 @@ inline void StandardParseData::record_func(Function *f)
 {
     _rdata.record_func(f);
 }
-inline void StandardParseData::record_block(CodeRegion * /* cr */, Block *b)
+inline Block* StandardParseData::record_block(CodeRegion * /* cr */, Block *b)
 {
-    boost::lock_guard<ParseData> g(*this);
-    _rdata.record_block(b);
+    return _rdata.record_block(b);
 }
 
 /* OverlappingParseData handles binary code objects like .o files
@@ -473,7 +472,7 @@ class OverlappingParseData : public ParseData {
     region_data * findRegion(CodeRegion *cr);
 
     void record_func(Function *f);
-    void record_block(CodeRegion *cr, Block *b);
+    Block* record_block(CodeRegion *cr, Block *b);
     void record_frame(ParseFrame *pf);
 
     void remove_frame(ParseFrame *);

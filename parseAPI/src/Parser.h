@@ -165,7 +165,7 @@ namespace Dyninst {
 
         public:
             /** XXX all strictly internals below this point **/
-            void record_block(Block *b);
+            Block* record_block(Block *b);
 
             void record_func(Function *f);
 
