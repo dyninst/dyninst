@@ -524,8 +524,11 @@ public:
   void parseDwarfFileLineInfo();
   void parseLineInfoForAddr(Offset addr_to_find);
 
+  bool hasDebugInfo();
+
 private:
     void parseLineInfoForCU(Module::DebugInfoT cuDIE, LineInformation* li);
+    void parseLineInfo(LineInformation* li);
     bool dwarf_parse_aranges(::Dwarf *dbg, std::set<Dwarf_Off>& dies_seen);
 
   void parseDwarfTypes(Symtab *obj);
