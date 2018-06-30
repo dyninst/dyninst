@@ -4471,8 +4471,6 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 
 void Object::parseLineInfo(LineInformation* li_for_module)
 {
-    std::vector<open_statement> open_statements;
-
     /* Initialize libdwarf. */
     Dwarf **dbg_ptr = dwarf->type_dbg();
     if (!dbg_ptr) return;
@@ -4523,6 +4521,7 @@ void Object::parseLineInfo(LineInformation* li_for_module)
     Offset baseAddr = getBaseAddress();
 
     /* Iterate over this CU's source lines. */
+    open_statement current_line;
     open_statement current_statement;
     for(size_t i = 0; i < lineCount; i++ )
     {
@@ -4593,38 +4592,23 @@ void Object::parseLineInfo(LineInformation* li_for_module)
             cout << "dwarf_linebeginstatement failed" << endl;
             continue;
         }
-        std::vector<open_statement> tmp;
-        for(auto stmt = open_statements.begin();
-                stmt != open_statements.end();
-                ++stmt)
-        {
-            stmt->end_addr = current_statement.start_addr;
-            if(stmt->string_table_index != current_statement.string_table_index ||
-                    stmt->line_number != current_statement.line_number ||
-                    isEndOfSequence)
-            {
-                li_for_module->addLine((unsigned int)(stmt->string_table_index),
-                                       (unsigned int)(stmt->line_number),
-                                       (unsigned int)(stmt->column_number),
-                                       stmt->start_addr,
-                                       stmt->end_addr);
-            }
-            else
-            {
-                tmp.push_back(*stmt);
-            }
-        }
-        open_statements.swap(tmp);
-        if(isEndOfSequence) {
-            open_statements.clear();
-        } else
-        if(isStatement) {
-            open_statements.push_back(current_statement);
-        }
-    } /* end iteration over source line entries. */
-
-    /* Free this CU's source lines. */
-    //dwarf_srclines_dealloc(dbg, lineBuffer, lineCount);
+	if (current_line.uninitialized()) {
+	  current_line = current_statement;
+	} else {
+	      current_line.end_addr = current_statement.start_addr;
+	      if (!current_line.sameFileLineColumn(current_statement) ||
+		  isEndOfSequence) {
+                li_for_module->addLine((unsigned int)(current_line.string_table_index),
+                                       (unsigned int)(current_line.line_number),
+                                       (unsigned int)(current_line.column_number),
+                                       current_line.start_addr, current_line.end_addr);
+		current_line = current_statement;
+	      }
+	}
+	if (isEndOfSequence) {
+	  current_line.reset();
+	}
+    } 
     }
 }
 
