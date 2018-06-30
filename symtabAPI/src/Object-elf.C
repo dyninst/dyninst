@@ -4302,8 +4302,6 @@ public:
 
 void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 {
-    std::vector<open_statement> open_statements;
-    
     /* Acquire this CU's source lines. */
     Dwarf_Lines * lineBuffer;
     size_t lineCount;
@@ -4448,36 +4446,6 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
             cout << "dwarf_linebeginstatement failed" << endl;
             continue;
         }
-#if 0
-        std::vector<open_statement> tmp;
-        for(auto stmt = open_statements.begin();
-                stmt != open_statements.end();
-                ++stmt)
-        {
-            stmt->end_addr = current_statement.start_addr;
-            if(stmt->string_table_index != current_statement.string_table_index ||
-                    stmt->line_number != current_statement.line_number ||
-                    isEndOfSequence)
-            {
-                li_for_module->addLine((unsigned int)(stmt->string_table_index),
-                                       (unsigned int)(stmt->line_number),
-                                       (unsigned int)(stmt->column_number),
-                                       stmt->start_addr,
-                                       stmt->end_addr);
-            }
-            else
-            {
-                tmp.push_back(*stmt);
-            }
-        }
-        open_statements.swap(tmp);
-        if(isEndOfSequence) {
-            open_statements.clear();
-        } else
-        if(isStatement) {
-            open_statements.push_back(current_statement);
-        }
-#else
 	if (current_line.uninitialized()) {
 	  current_line = current_statement;
 	} else {
@@ -4494,7 +4462,6 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 	if (isEndOfSequence) {
 	  current_line.reset();
 	}
-#endif
     } /* end iteration over source line entries. */
 
 /* Free this CU's source lines. */
