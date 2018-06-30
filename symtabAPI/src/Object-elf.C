@@ -4265,19 +4265,43 @@ void Object::parseStabFileLineInfo()
     //  haveParsedFileMap[ key ] = true;
 } /* end parseStabFileLineInfo() */
 
-struct open_statement {
-    Dwarf_Word string_table_index;
-    Dwarf_Addr start_addr;
-    Dwarf_Addr end_addr;
-    int line_number;
-    int column_number;
+class open_statement {
+public:
+  open_statement() { reset(); };
+  Dwarf_Addr noAddress() { return (Dwarf_Addr) ~0; }
+  bool uninitialized() {
+    return start_addr == noAddress();
+  };
+  void reset() {
+    string_table_index = -1;
+    start_addr = noAddress();
+    end_addr = noAddress();
+    line_number = 0;
+    column_number = 0;
+  };
+  bool sameFileLineColumn(const open_statement &rhs) {
+    return ((string_table_index == rhs.string_table_index) &&
+	    (line_number == rhs.line_number) &&
+            (column_number == rhs.column_number));
+  };
+  void operator=(const open_statement &rhs) {
+    string_table_index = rhs.string_table_index;
+    start_addr = rhs.start_addr;
+    end_addr = rhs.end_addr;
+    line_number = rhs.line_number;
+    column_number = rhs.column_number;
+  };
+public:
+  Dwarf_Word string_table_index;
+  Dwarf_Addr start_addr;
+  Dwarf_Addr end_addr;
+  int line_number;
+  int column_number;
 };
 
 
 void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 {
-    std::vector<open_statement> open_statements;
-    
     /* Acquire this CU's source lines. */
     Dwarf_Lines * lineBuffer;
     size_t lineCount;
@@ -4351,6 +4375,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
     dwarf_highpc(&cuDIE, &cu_high_pc);
 
     /* Iterate over this CU's source lines. */
+    open_statement current_line;
     open_statement current_statement;
     for(size_t i = 0; i < lineCount; i++ )
     {
@@ -4421,34 +4446,22 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
             cout << "dwarf_linebeginstatement failed" << endl;
             continue;
         }
-        std::vector<open_statement> tmp;
-        for(auto stmt = open_statements.begin();
-                stmt != open_statements.end();
-                ++stmt)
-        {
-            stmt->end_addr = current_statement.start_addr;
-            if(stmt->string_table_index != current_statement.string_table_index ||
-                    stmt->line_number != current_statement.line_number ||
-                    isEndOfSequence)
-            {
-                li_for_module->addLine((unsigned int)(stmt->string_table_index),
-                                       (unsigned int)(stmt->line_number),
-                                       (unsigned int)(stmt->column_number),
-                                       stmt->start_addr,
-                                       stmt->end_addr);
-            }
-            else
-            {
-                tmp.push_back(*stmt);
-            }
-        }
-        open_statements.swap(tmp);
-        if(isEndOfSequence) {
-            open_statements.clear();
-        } else
-        if(isStatement) {
-            open_statements.push_back(current_statement);
-        }
+	if (current_line.uninitialized()) {
+	  current_line = current_statement;
+	} else {
+	      current_line.end_addr = current_statement.start_addr;
+	      if (!current_line.sameFileLineColumn(current_statement) ||
+		  isEndOfSequence) {
+                li_for_module->addLine((unsigned int)(current_line.string_table_index),
+                                       (unsigned int)(current_line.line_number),
+                                       (unsigned int)(current_line.column_number),
+                                       current_line.start_addr, current_line.end_addr);
+		current_line = current_statement;
+	      }
+	}
+	if (isEndOfSequence) {
+	  current_line.reset();
+	}
     } /* end iteration over source line entries. */
 
 /* Free this CU's source lines. */
