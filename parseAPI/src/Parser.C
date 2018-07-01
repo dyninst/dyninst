@@ -869,6 +869,7 @@ Parser::finalize(Function *f)
 
     for( ; bit != blocks.end(); ++bit) {
         Block * b = *bit;
+	rd->insertBlockByRange(b);
         if(b->start() > ext_e) {
             ext = new FuncExtent(f,ext_s,ext_e);
 
@@ -1659,10 +1660,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 void
 Parser::end_block(Block * b, InstructionAdapter_t * ah)
 {
-    region_data * rd = _parse_data->findRegion(b->region());
-    rd->updateBlockEnd(b, ah->getNextAddr(), ah->getAddr());
-
-//    record_block(b);
+    b->updateEnd(ah->getNextAddr());
+    b->_lastInsn = ah->getAddr();
 }
 
 Block*
@@ -1837,9 +1836,6 @@ Parser::split_block(
         b->_lastInsn = previnsn;
         link(b,ret,FALLTHROUGH,false);
 
-
-        // b's range has changed
-        rd->updateBlockEnd(b, addr, previnsn);
         // Any functions holding b that have already been finalized
         // need to have their caches invalidated so that they will
         // find out that they have this new 'ret' block

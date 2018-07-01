@@ -254,19 +254,6 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
 	jumpTargetExpr->accept(&jtrv);
 	if (jtrv.valid && cs->isCode(jtrv.targetAddress)) {
 	    bool stop = false;
-	    set<Block*> blocks;
-	    block->obj()->findCurrentBlocks(block->region(), jtrv.targetAddress, blocks);
-	    for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
-	        if ((*bit)->start() < jtrv.targetAddress && jtrv.targetAddress <= (*bit)->end()) {
-		    Block::Insns insns;
-		    (*bit)->getInsns(insns);
-		    if (insns.find(jtrv.targetAddress) == insns.end()) {
-		        stop = true;
-			parsing_printf("WARNING: resolving jump tables leads to address %lx, which causes overlapping instructions in basic blocks [%lx,%lx)\n", jtrv.targetAddress, (*bit)->start(), (*bit)->end());
-			break;
-		    }
-		}
-	    }
 	    // Assume that indirect jump should not jump beyond the function range.
 	    // This assumption is shaky in terms of non-contiguous functions.
 	    // But non-contiguous blocks tend not be reach by indirect jumps

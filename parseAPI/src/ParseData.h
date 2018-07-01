@@ -253,17 +253,11 @@ public:
             // Inserting failed when another thread has inserted a block with the same starting address
 	    return a->second;
 	  } else {
-	    // Inserting succeded. So we also insert the block into interval tree
-	    blocksByRange.insert(b);
 	    return b;
-         
 	  }
         }
     }
-    void updateBlockEnd(Block* b, Address addr, Address previnsn) {
-        blocksByRange.remove(b);
-        b->updateEnd(addr);
-        b->_lastInsn = previnsn;
+    void insertBlockByRange(Block* b) {
         blocksByRange.insert(b);
     }
     void record_frame(ParseFrame* pf) {
