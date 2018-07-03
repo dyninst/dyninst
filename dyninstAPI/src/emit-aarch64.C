@@ -164,6 +164,7 @@ void EmitterAARCH64::emitRelOp(
 }
 
 
+//#sasha Fix parameters number
 void EmitterAARCH64::emitGetParam(
         Register dest, Register param_num,
         instPoint::Type pt_type, opCode op,
@@ -193,7 +194,33 @@ void EmitterAARCH64::emitGetParam(
 }
 
 
+void EmitterAARCH64::emitRelOpImm(
+        unsigned opcode, Register dest, Register src1, RegValue src2imm, codeGen &gen)
+{
+    //Register src2 = gen.rs()->allocateRegister(gen, true);
+    Register src2 = gen.rs()->getScratchRegister(gen);
+    emitLoadConst(src2, src2imm, gen);
 
+    // CMP is an alias to SUBS;
+    // dest here has src1-src2, which it's not important because the flags are
+    // used for the comparison, not the subtration value.
+    // Besides that dest must contain 1 for true or 0 for false, and the content
+    // of dest is gonna be changed as follow.
+    insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Sub, 0, 0, src2, src1, dest, true);
+
+    // make dest = 1, meaning true
+    insnCodeGen::loadImmIntoReg<Address>(gen, dest, 0x1);
+
+    // insert conditional jump to skip dest=0 in case the comparison resulted true
+    // therefore keeping dest=1
+    insnCodeGen::generateConditionalBranch(gen, 8, opcode);
+
+    // make dest = 0, in case it fails the branch
+    insnCodeGen::loadImmIntoReg<Address>(gen, dest, 0x0);
+
+    gen.rs()->freeRegister(src2);
+    gen.markRegDefined(dest);
+}
 
 
 

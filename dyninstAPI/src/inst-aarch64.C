@@ -518,6 +518,15 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
                 emitV(op, src1, scratch, dest, gen, true);
             }
             break;
+        case neOp:
+        case lessOp:
+        case leOp:
+        case greaterOp:
+        case geOp:
+            // note that eqOp could be grouped here too.
+            // There's two ways to implement this.
+            gen.codeEmitter()->emitRelOpImm(op, dest, src1, src2imm, gen);
+            return;
         default:
             assert(0); // not implemented or not valid
             break;
@@ -709,13 +718,16 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
     registerSlot *regSlot = NULL;
 
     switch(op){
+        case getRetValOp:
+            regSlot = (*(gen.rs()))[registerSpace::r0];
+            break;
         case getParamOp:
             // src1 is the number of the argument
             // dest is a register where we can store the value
             //gen.codeEmitter()->emitGetParam(dest, src1, location->type(), op,
             //        false, gen);
 
-            if(src1 <= 3) {
+            if(src1 <= 7) {
                 // src1 is 0..8 - it's a parameter number, not a register
                 regSlot = (*(gen.rs()))[registerSpace::r0 + src1];
                 break;

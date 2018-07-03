@@ -61,7 +61,7 @@ public:
 
     virtual void emitRelOp(unsigned, Register, Register, Register, codeGen &);
 
-    virtual void emitRelOpImm(unsigned, Register, Register, RegValue, codeGen &) { assert(0); }
+    virtual void emitRelOpImm(unsigned, Register, Register, RegValue, codeGen &);
 
     virtual void emitDiv(Register, Register, Register, codeGen &) { assert(0); }
 
