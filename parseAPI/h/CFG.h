@@ -522,6 +522,11 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, pub
       if(!_cache_valid) finalize();
       return _bmap.size();
     }
+    size_t num_blocks() const
+    { 
+      return _bmap.size();
+    }
+
     
     bool contains(Block *b);
     bool contains(Block *b) const;

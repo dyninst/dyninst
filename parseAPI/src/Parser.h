@@ -253,6 +253,8 @@ namespace Dyninst {
             void finalize();
 
             void finalize_funcs(vector<Function *> &funcs);
+            void finalize_ranges(vector<Function *> &funcs);
+
 
             void invalidateContainingFuncs(Function *, Block *);
 
@@ -261,7 +263,6 @@ namespace Dyninst {
             friend class CodeObject;
 
     Mutex<true> parse_mutex;
-    boost::mutex finalize_mutex;
 
     struct NewFrames : public std::set<ParseFrame*>, public boost::lockable_adapter<boost::mutex> {};
 

@@ -817,6 +817,7 @@ void Parser::cleanup_frames()  {
 void
 Parser::finalize(Function *f)
 {
+    boost::lock_guard<Function> g(*f);
     if(f->_cache_valid) {
         return;
     }
@@ -829,7 +830,6 @@ Parser::finalize(Function *f)
     }
 
     bool cache_value = true;
-    boost::unique_lock<boost::mutex> finalize_write_lock(finalize_mutex);
     /* this is commented out to prevent a failure in tampersStack, but
            this may be an incorrect approach to fixing the problem.
     if(frame_status(f->region(), f->addr()) < ParseFrame::PARSED) {
@@ -844,8 +844,6 @@ Parser::finalize(Function *f)
     parsing_printf("[%s] finalizing %s (%lx)\n",
                    FILE__,f->name().c_str(),f->addr());
 
-    region_data * rd = _parse_data->findRegion(f->region());
-    assert(rd);
 
     // finish delayed parsing and sorting
     Function::blocklist blocks = f->blocks_int();
@@ -869,7 +867,6 @@ Parser::finalize(Function *f)
 
     for( ; bit != blocks.end(); ++bit) {
         Block * b = *bit;
-	rd->insertBlockByRange(b);
         if(b->start() > ext_e) {
             ext = new FuncExtent(f,ext_s,ext_e);
 
@@ -881,7 +878,6 @@ Parser::finalize(Function *f)
 
             parsing_printf("%lx extent [%lx,%lx)\n",f->addr(),ext_s,ext_e);
             f->_extents.push_back(ext);
-            rd->funcsByRange.insert(ext);
             ext_s = b->start();
         }
         ext_e = b->end();
@@ -895,7 +891,6 @@ Parser::finalize(Function *f)
     race_detector_forget_access_history(ext, sizeof(*ext));
 
     parsing_printf("%lx extent [%lx,%lx)\n",f->addr(),ext_s,ext_e);
-    rd->funcsByRange.insert(ext);
     f->_extents.push_back(ext);
 
     f->_cache_valid = cache_value; // see comment at function entry
@@ -927,6 +922,8 @@ Parser::finalize()
     if(_parse_state < FINALIZED) {
         finalize_funcs(hint_funcs);
         finalize_funcs(discover_funcs);
+	finalize_ranges(hint_funcs);
+	finalize_ranges(discover_funcs);
         _parse_state = FINALIZED;
     }
 }
@@ -934,9 +931,26 @@ Parser::finalize()
 void
 Parser::finalize_funcs(vector<Function *> &funcs)
 {
-    vector<Function *>::iterator fit = funcs.begin();
-    for( ; fit != funcs.end(); ++fit) {
-        finalize(*fit);
+    vector<Function*> thread_local_funcs;
+    std::copy(funcs.begin(), funcs.end(), std::back_inserter(thread_local_funcs));
+    #pragma omp parallel for schedule(auto)
+    for(int i = 0; i < thread_local_funcs.size(); ++i) {
+        Function *f = thread_local_funcs[i];
+        finalize(f);
+    }
+}
+
+void
+Parser::finalize_ranges(vector<Function *> &funcs)
+{
+    for (int i = 0; i < funcs.size(); ++i) {
+	Function *f = funcs[i];
+    	region_data * rd = _parse_data->findRegion(f->region());
+    	Function::blocklist blocks = f->blocks();
+	for (auto bit = blocks.begin(); bit != blocks.end(); ++bit)
+	    rd->insertBlockByRange(*bit);
+	for (auto eit = f->extents().begin(); eit != f->extents().end(); ++eit)
+	    rd->funcsByRange.insert(*eit);
     }
 }
 
