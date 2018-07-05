@@ -52,8 +52,8 @@ bitArray ABI::syscallRead64_;
 bitArray ABI::syscallWritten64_;
 bitArray ABI::allRegs_;
 bitArray ABI::allRegs64_;
-ABI* ABI::globalABI_ = NULL;
-ABI* ABI::globalABI64_ = NULL;
+__thread ABI* ABI::globalABI_ = NULL;
+__thread ABI* ABI::globalABI64_ = NULL;
 
 int ABI::getIndex(MachRegister machReg){
 	if (index->find(machReg) == index->end()){
