@@ -98,7 +98,7 @@ bool PCWidget::PCtoReturnAddr(const codeGen &templ, const RelocBlock *t, CodeBuf
     if (!point || 
 	(point->type() != instPoint::PreInsn &&
 	 point->insnAddr() != addr())) {
-      point = instPoint::preInsn(t->func(), t->block(), addr(), insn(), true);
+      point = instPoint::preInsn(t->func(), t->block(), addr(), insn_, true);
     }
     assert(point);
     
@@ -108,7 +108,7 @@ bool PCWidget::PCtoReturnAddr(const codeGen &templ, const RelocBlock *t, CodeBuf
     pdvector<Register> freeReg;
     pdvector<Register> excludeReg;
     
-    Address origRet = addr() + insn()->size();
+    Address origRet = addr() + insn_.size();
     Register scratch = gen.rs()->getScratchRegister(gen, true);
     if (scratch == REG_NULL) {
       stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);

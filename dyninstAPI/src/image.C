@@ -309,8 +309,9 @@ namespace {
         // looking for the *last* instruction in the block
         // that defines GR8
     
-        Instruction::Ptr r8_def;
+        Instruction r8_def;
         Address r8_def_addr;
+        bool find = false;
     
         InstructionDecoder dec(
             b->region()->getPtrToInstruction(b->start()),
@@ -321,22 +322,24 @@ namespace {
         RegisterAST::Ptr r8( new RegisterAST(ppc32::r8) );
 
         Address cur_addr = b->start();
-        while(Instruction::Ptr cur = dec.decode()) {
-            if(cur->isWritten(r8)) {
+        while(cur_addr < b->end()) {
+            Instruction cur = dec.decode();
+            if(cur.isWritten(r8)) {
+                find = true;
                 r8_def = cur;
                 r8_def_addr = cur_addr;  
             }
-            cur_addr += cur->size();
+            cur_addr += cur.size();
         }
-        if(!r8_def)
+        if(!find)
             return 0;
 
         Address ss_addr = 0;
 
         // Try a TOC-based lookup first
-        if (r8_def->isRead(r2)) {
+        if (r8_def.isRead(r2)) {
             set<Expression::Ptr> memReads;
-            r8_def->getMemoryReadOperands(memReads);
+            r8_def.getMemoryReadOperands(memReads);
             Address TOC = f->obj()->cs()->getTOC(r8_def_addr);
             if (TOC != 0 && memReads.size() == 1) {
                 Expression::Ptr expr = *memReads.begin();

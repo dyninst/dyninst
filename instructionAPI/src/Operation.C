@@ -362,8 +362,8 @@ namespace Dyninst
     }
     void Operation_impl::SetUpNonOperandData(bool needFlags)
     {
+        #if defined(arch_x86) || defined(arch_x86_64)
         std::call_once(data_initialized, [&]() {
-#if defined(arch_x86) || defined(arch_x86_64)
         if (prefixID == prefix_rep || prefixID == prefix_repnz) 	{
             otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
             otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ecx : x86_64::rcx));

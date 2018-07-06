@@ -178,7 +178,7 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
 #else
     (void) is64; //Silence warnings
     std::vector<Operand> operands;
-    insn->getOperands(operands);
+    insn.getOperands(operands);
     for(std::vector<Operand>::iterator op = operands.begin();
         op != operands.end();
        ++op)
@@ -188,27 +188,27 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
         if(isLoad || isStore)
         {
             op->getValue()->apply(this);
-            if(insn->getOperation().getID() == power_op_lmw ||
-               insn->getOperation().getID() == power_op_stmw)
+            if(insn.getOperation().getID() == power_op_lmw ||
+               insn.getOperation().getID() == power_op_stmw)
             {
                 RegisterAST::Ptr byteOverride =
-                        boost::dynamic_pointer_cast<RegisterAST>(insn->getOperand(0).getValue());
+                        boost::dynamic_pointer_cast<RegisterAST>(insn.getOperand(0).getValue());
                 assert(byteOverride);
                 MachRegister base = byteOverride->getID().getBaseRegister();
                 unsigned int converted = base.val() & 0xFFFF;
                 bytes = (32 - converted) << 2;
             }
-            if(insn->getOperation().getID() == power_op_lswi ||
-               insn->getOperation().getID() == power_op_stswi)
+            if(insn.getOperation().getID() == power_op_lswi ||
+               insn.getOperation().getID() == power_op_stswi)
             {
                 Immediate::Ptr byteOverride =
-                        boost::dynamic_pointer_cast<Immediate>(insn->getOperand(2).getValue());
+                        boost::dynamic_pointer_cast<Immediate>(insn.getOperand(2).getValue());
                 assert(byteOverride);
                 bytes = byteOverride->eval().convert<unsigned int>();
                 if(bytes == 0) bytes = 32;
             }
-            if(insn->getOperation().getID() == power_op_lswx ||
-               insn->getOperation().getID() == power_op_stswx)
+            if(insn.getOperation().getID() == power_op_lswx ||
+               insn.getOperation().getID() == power_op_stswx)
             {
                 return new BPatch_memoryAccess(new internal_instruction(NULL), current, isLoad, isStore, (long)0, ra, rb, (long)0, 9999, -1);
             }
