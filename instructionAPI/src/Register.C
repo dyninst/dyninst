@@ -122,10 +122,7 @@ namespace Dyninst
         }
 
         /* The syntax for a masking register is {kX} in AT&T syntax. */
-        std::stringstream ss;
-        ss << "{" << name << "}";
-
-        return ss.str();
+        return  "{" + name + "}";
     }
 
      

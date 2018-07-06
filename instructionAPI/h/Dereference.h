@@ -108,51 +108,50 @@ namespace Dyninst
 
       virtual std::string format(formatStyle) const
       {
-    std::stringstream retVal;
+    std::string retVal;
 #if defined(DEBUG_MEMORY_ACCESS_WIDTH)
         switch(Expression::userSetValue.type)
         {
             case u8:
-                retVal << "u8 @ ";
+                retVal += "u8 @ ";
                 break;
             case s8:
-                retVal << "s8 @ ";
+                retVal += "s8 @ ";
                 break;
             case u16:
-                retVal << "u16 @ ";
+                retVal += "u16 @ ";
                 break;
             case s16:
-                retVal << "s16 @ ";
+                retVal += "s16 @ ";
                 break;
             case u32:
-                retVal << "u32 @ ";
+                retVal += "u32 @ ";
                 break;
             case s32:
-                retVal << "s32 @ ";
+                retVal += "s32 @ ";
                 break;
             case u64:
-                retVal << "u64 @ ";
+                retVal += "u64 @ ";
                 break;
             case s64:
-                retVal << "s64 @ ";
+                retVal += "s64 @ ";
                 break;
             case sp_float:
-                retVal << "float @ ";
+                retVal += "float @ ";
                 break;
             case dp_float:
-                retVal << "double @ ";
+                retVal += "double @ ";
                 break;
             case dbl128:
-                retVal << "packed double @ ";
+                retVal += "packed double @ ";
                 break;
             default:
-                retVal << "UNKNOWN SIZE @ ";
+                retVal += "UNKNOWN SIZE @ ";
                 break;
         }
 #endif
-    retVal << "[" << addressToDereference->format() << "]";
-//        retVal << addressToDereference->format(memoryAccessStyle);
-        return retVal.str();
+    retVal += "[" + addressToDereference->format() + "]";
+        return retVal;
       }
 
         virtual std::string format(Architecture arch, formatStyle) const

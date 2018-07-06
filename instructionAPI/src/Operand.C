@@ -123,9 +123,9 @@ namespace Dyninst
           op_value->bind(thePC.get(), Result(u32, addr));
           Result res = op_value->eval();
           if (res.defined) {
-              stringstream ret;
-              ret << hex << res.convert<uintmax_t>() << dec;
-              return ret.str();
+              char hex[20];
+              snprintf(hex, 20, "%x", res.convert<uintmax_t>());
+              return string(hex);
           }
       }
       return op_value->format(arch);

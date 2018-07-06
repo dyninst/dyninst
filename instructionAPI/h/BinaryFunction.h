@@ -347,25 +347,25 @@ namespace Dyninst
 
             virtual std::string format(formatStyle how) const
             {
-                std::stringstream retVal;
+                std::string retVal;
                 if(how == memoryAccessStyle)
                 {
-                    retVal << m_arg2->format() << "(" << m_arg1->format() << ")";
+                    retVal = m_arg2->format() + "(" + m_arg1->format() + ")";
                 }
                 else
                 {
-                    retVal << m_arg1->format() << " " << m_funcPtr->format() << " " << m_arg2->format();
+                    retVal = m_arg1->format() + " " + m_funcPtr->format() + " " + m_arg2->format();
                 }
 
-                return retVal.str();
+                return retVal;
             }
 			
 			virtual std::string format(Architecture arch, formatStyle how) const
 			{
-                std::stringstream retVal;
+                std::string retVal;
                 if(how == memoryAccessStyle)
                 {
-                    retVal << m_arg2->format(arch) << "(" << m_arg1->format(arch) << ")";
+                    retVal = m_arg2->format(arch) + "(" + m_arg1->format(arch) + ")";
                 }
                 else
                 {
@@ -373,7 +373,7 @@ namespace Dyninst
 							m_arg1->format(arch), m_funcPtr->format(), m_arg2->format(arch));
                 }
 
-                return retVal.str();
+                return retVal;
 			}
    		    
    		    virtual bool bind(Expression* expr, const Result& value);

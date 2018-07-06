@@ -37,8 +37,8 @@
 using namespace Dyninst;
 class ABI{
 
-    static __thread ABI* globalABI_; 
-    static __thread ABI* globalABI64_;
+    static dyn_tls ABI* globalABI_; 
+    static dyn_tls ABI* globalABI64_;
     std::map<MachRegister,int> *index;
     int addr_width;
 

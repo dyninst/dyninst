@@ -514,7 +514,7 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
         // right place to do this? Should these symbols not be filtered by the
         // loop above?
         /*Achin added code starts 12/15/2014*/
-        static const vector<std::string> skipped_symbols = {
+        static dyn_tls const vector<std::string> skipped_symbols = {
           "_non_rtti_object::`vftable'",
           "bad_cast::`vftable'",
           "exception::`vftable'",

@@ -176,7 +176,7 @@ bool DwarfWalker::parse() {
 #ifdef ENABLE_RACE_DETECTION
     cilk_for
 #else
-#pragma omp parallel for
+//#pragma omp parallel for
     for
 #endif
       (unsigned int i = 0; i < module_dies.size(); i++) {
