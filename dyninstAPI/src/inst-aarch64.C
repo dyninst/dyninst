@@ -763,7 +763,7 @@ void emitStorePreviousStackFrameRegister(Address,
 }
 
 using namespace Dyninst::InstructionAPI;
-bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction::Ptr i,
+bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
 					  Address addr,
 					  pdvector<AstNodePtr> &args)
 {

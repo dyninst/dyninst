@@ -53,7 +53,7 @@ using namespace NS_aarch64;
 bool CFWidget::generateIndirect(CodeBuffer &buffer,
                               Register,
                               const RelocBlock *trace,
-                              Instruction::Ptr insn) {
+                              Instruction insn) {
 	assert(0);
    return true;
 }
@@ -62,7 +62,7 @@ bool CFWidget::generateIndirect(CodeBuffer &buffer,
 
 bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
                                   Register reg,
-                                  Instruction::Ptr insn,
+                                  Instruction insn,
                                   const RelocBlock *trace,
 				  Address origAddr)
 {

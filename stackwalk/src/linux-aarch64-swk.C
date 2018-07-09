@@ -38,6 +38,7 @@
 #include "stackwalk/src/dbgstepper-impl.h"
 
 #include "common/h/dyn_regs.h"
+#include "frame.h"
 
 #include <sys/user.h>
 #include <sys/ptrace.h>
