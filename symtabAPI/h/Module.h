@@ -100,7 +100,7 @@ namespace Dyninst{
 
 			Offset startAddr() const { return first;}
 			Offset endAddr() const {return second;}
-			std::string getFile() const;
+			const std::string& getFile() const;
 			unsigned int getFileIndex() const { return file_index_; }
 			unsigned int getLine()const {return line_;}
 			unsigned int getColumn() const { return column_; }
