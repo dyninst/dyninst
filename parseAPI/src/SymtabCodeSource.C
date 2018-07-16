@@ -56,6 +56,19 @@ using namespace Dyninst::ParseAPI;
 
 typedef tbb::concurrent_hash_map<Address, bool> SeenMap;
 
+static const vector<std::string> skipped_symbols = {
+          "_non_rtti_object::`vftable'",
+          "bad_cast::`vftable'",
+          "exception::`vftable'",
+          "bad_typeid::`vftable'" ,
+          "sys_errlist",
+          "std::_non_rtti_object::`vftable'",
+          "std::__non_rtti_object::`vftable'",
+          "std::bad_cast::`vftable'",
+          "std::exception::`vftable'",
+          "std::bad_typeid::`vftable'" };
+
+
 /** SymtabCodeRegion **/
 
 SymtabCodeRegion::~SymtabCodeRegion()
@@ -505,8 +518,8 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
         string fname_s = f->getFirstSymbol()->getPrettyName();
         const char *fname = fname_s.c_str();
         if(filt && (*filt)(f)) {
-            parsing_printf("    == filtered hint %s [%lx] ==\n",
-                FILE__,__LINE__,f->getOffset(), fname);
+            parsing_printf("[%s:%d}  == filtered hint %s [%lx] ==\n",
+                FILE__,__LINE__,fname, f->getOffset());
             continue;
         }
 
@@ -514,17 +527,6 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
         // right place to do this? Should these symbols not be filtered by the
         // loop above?
         /*Achin added code starts 12/15/2014*/
-        static dyn_tls const vector<std::string> skipped_symbols = {
-          "_non_rtti_object::`vftable'",
-          "bad_cast::`vftable'",
-          "exception::`vftable'",
-          "bad_typeid::`vftable'" ,
-          "sys_errlist",
-          "std::_non_rtti_object::`vftable'",
-          "std::__non_rtti_object::`vftable'",
-          "std::bad_cast::`vftable'",
-          "std::exception::`vftable'",
-          "std::bad_typeid::`vftable'" };
         if (std::find(skipped_symbols.begin(), skipped_symbols.end(),
           fsyms[i]->getFirstSymbol()->getPrettyName()) != skipped_symbols.end()) {
           continue;

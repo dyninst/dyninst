@@ -203,20 +203,58 @@ unsigned long long PDYN_mulMillion(unsigned long long in) {
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/lock_guard.hpp>
 
+#include <race-detector-annotations.h>
+
 using namespace abi;
+
+inline void set_thread_local_pointer(char* &var, char* val) {
+    race_detector_fake_lock_acquire(race_detector_fake_lock(var));
+    var = val;
+    race_detector_fake_lock_release(race_detector_fake_lock(var));
+}
+
+inline void set_thread_local_bool(bool &var, bool val) {
+    race_detector_fake_lock_acquire(race_detector_fake_lock(var));
+    var = val;
+    race_detector_fake_lock_release(race_detector_fake_lock(var));
+}
+
+inline char* get_thread_local_pointer(char* &var) {
+    char *ret;
+    race_detector_fake_lock_acquire(race_detector_fake_lock(var));
+    ret = var;
+    race_detector_fake_lock_release(race_detector_fake_lock(var));
+    return ret;
+}
+
+inline bool get_thread_local_bool(bool &var) {
+    bool ret;
+    race_detector_fake_lock_acquire(race_detector_fake_lock(var));
+    ret = var;
+    race_detector_fake_lock_release(race_detector_fake_lock(var));
+    return ret;
+}
+
 
 char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
 				bool includeTypes )
 {
-  static __thread char* last_symbol = NULL;
-  static __thread bool last_native = false;
-  static __thread bool last_typed = false;
-  static __thread char* last_demangled = NULL;
+  static __thread char* last_symbol;
+  set_thread_local_pointer(last_symbol, NULL);
+  static __thread bool last_native;
+  set_thread_local_bool(last_native, false);
+  static __thread bool last_typed;
+  set_thread_local_bool(last_typed, false);
+  static __thread char* last_demangled;
+  set_thread_local_pointer(last_demangled, NULL);
 
-  if(last_symbol && last_demangled && (nativeCompiler == last_native)
-      && (includeTypes == last_typed) && (strcmp(symbol, last_symbol) == 0))
+  if(get_thread_local_pointer(last_symbol) && 
+     get_thread_local_pointer(last_demangled) && 
+     (nativeCompiler == get_thread_local_bool(last_native)) && 
+     (includeTypes == get_thread_local_bool(last_typed)) && 
+     (strcmp(symbol, get_thread_local_pointer(last_symbol)) == 0))
   {
-      return strdup(last_demangled);
+      return strdup(get_thread_local_pointer(last_demangled));
   }
    int status;
    char* demangled;
@@ -246,12 +284,12 @@ char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
         demangled = dedemangled;
    }
 
-   free(last_symbol);
-   free(last_demangled);
-   last_native = nativeCompiler;
-   last_typed = includeTypes;
-   last_symbol = strdup(symbol);
-   last_demangled = strdup(demangled);
+   free(get_thread_local_pointer(last_symbol));
+   free(get_thread_local_pointer(last_demangled));
+   set_thread_local_bool(last_native, nativeCompiler);
+   set_thread_local_bool(last_typed, includeTypes);
+   set_thread_local_pointer(last_symbol, strdup(symbol));
+   set_thread_local_pointer(last_demangled, strdup(demangled));
 
    return demangled;
 } /* end P_cplus_demangle() */

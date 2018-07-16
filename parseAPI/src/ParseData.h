@@ -245,17 +245,20 @@ public:
 
     }
     Block* record_block(Block* b) {
+        Block* ret = NULL;
         race_detector_fake_lock_acquire(race_detector_fake_lock(blocksByAddr));
-	{
-	  tbb::concurrent_hash_map<Address, Block*>::accessor a;
-	  bool inserted = blocksByAddr.insert(a, std::make_pair(b->start(), b));
-	  if(!inserted) {
+	    {
+            tbb::concurrent_hash_map<Address, Block*>::accessor a;
+            bool inserted = blocksByAddr.insert(a, std::make_pair(b->start(), b));
             // Inserting failed when another thread has inserted a block with the same starting address
-	    return a->second;
-	  } else {
-	    return b;
-	  }
+            if(!inserted) {
+                ret = a->second;
+            } else {
+                ret = b;
+            }
         }
+        race_detector_fake_lock_release(race_detector_fake_lock(blocksByAddr));
+        return ret;
     }
     void insertBlockByRange(Block* b) {
         blocksByRange.insert(b);

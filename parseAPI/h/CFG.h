@@ -325,6 +325,10 @@ public:
     /* Edge access */
     const edgelist & sources() const { return _srclist; }
     const edgelist & targets() const { return _trglist; }
+    void copy_sources(edgelist & src) {
+        boost::lock_guard<Block> g(*this);
+        src = _srclist;
+    }
 
     bool consistent(Address addr, Address & prev_insn);
 

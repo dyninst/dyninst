@@ -933,11 +933,24 @@ Parser::finalize_funcs(vector<Function *> &funcs)
 {
     vector<Function*> thread_local_funcs;
     std::copy(funcs.begin(), funcs.end(), std::back_inserter(thread_local_funcs));
+#if USE_OPENMP
     #pragma omp parallel for schedule(auto)
     for(int i = 0; i < thread_local_funcs.size(); ++i) {
         Function *f = thread_local_funcs[i];
         finalize(f);
     }
+#elif USE_CILK
+    cilk_for(int i = 0; i < thread_local_funcs.size(); ++i) {
+        Function *f = thread_local_funcs[i];
+        finalize(f);
+    }
+#else
+    for(int i = 0; i < thread_local_funcs.size(); ++i) {
+        Function *f = thread_local_funcs[i];
+        finalize(f);
+    }
+#endif
+
 }
 
 void

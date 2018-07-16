@@ -806,7 +806,8 @@ Slicer::getPredecessors(
     // We force finalizing if necessary
     cand.loc.func->num_blocks();
     SingleContextOrInterproc epred(cand.loc.func, true, true);       
-    const Block::edgelist & sources = cand.loc.block->sources();
+    Block::edgelist sources;
+    cand.loc.block->copy_sources(sources);
     std::for_each(boost::make_filter_iterator(epred, sources.begin(), sources.end()),
 		  boost::make_filter_iterator(epred, sources.end(), sources.end()),
 		  boost::bind(&Slicer::handlePredecessorEdge,
