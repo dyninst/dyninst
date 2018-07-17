@@ -35,23 +35,23 @@
 using namespace Dyninst;
 using namespace DataflowAPI;
 
-bitArray ABI::callRead_;
-bitArray ABI::callWritten_;
-bitArray ABI::returnRead_;
-bitArray ABI::returnRegs_;
-bitArray ABI::callParam_;
-bitArray ABI::syscallRead_;
-bitArray ABI::syscallWritten_;
+dyn_tls bitArray ABI::callRead_;
+dyn_tls bitArray ABI::callWritten_;
+dyn_tls bitArray ABI::returnRead_;
+dyn_tls bitArray ABI::returnRegs_;
+dyn_tls bitArray ABI::callParam_;
+dyn_tls bitArray ABI::syscallRead_;
+dyn_tls bitArray ABI::syscallWritten_;
 
-bitArray ABI::callRead64_;
-bitArray ABI::callWritten64_;
-bitArray ABI::returnRead64_;
-bitArray ABI::returnRegs64_;
-bitArray ABI::callParam64_;
-bitArray ABI::syscallRead64_;
-bitArray ABI::syscallWritten64_;
-bitArray ABI::allRegs_;
-bitArray ABI::allRegs64_;
+dyn_tls bitArray ABI::callRead64_;
+dyn_tls bitArray ABI::callWritten64_;
+dyn_tls bitArray ABI::returnRead64_;
+dyn_tls bitArray ABI::returnRegs64_;
+dyn_tls bitArray ABI::callParam64_;
+dyn_tls bitArray ABI::syscallRead64_;
+dyn_tls bitArray ABI::syscallWritten64_;
+dyn_tls bitArray ABI::allRegs_;
+dyn_tls bitArray ABI::allRegs64_;
 dyn_tls ABI* ABI::globalABI_ = NULL;
 dyn_tls ABI* ABI::globalABI64_ = NULL;
 
