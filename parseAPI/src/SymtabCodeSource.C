@@ -498,8 +498,6 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
     vector<SymtabAPI::Function *> fsyms;
     SeenMap seen;
     int dupes = 0;
-    mcs_lock_t hint_lock;
-    mcs_init(hint_lock);
 
     if(!_symtab->getAllFunctions(fsyms))
         return;
@@ -507,13 +505,7 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
     parsing_printf("[%s:%d] processing %d symtab hints\n",FILE__,__LINE__,
         fsyms.size());
 
-#ifdef ENABLE_RACE_DETECTION
-    cilk_for
-#else
-#pragma omp parallel for shared(hint_lock)
-    for
-#endif
-       (unsigned int i = 0; i < fsyms.size(); i++) {
+    for (unsigned int i = 0; i < fsyms.size(); i++) {
         SymtabAPI::Function *f = fsyms[i];
         string fname_s = f->getFirstSymbol()->getPrettyName();
         const char *fname = fname_s.c_str();
@@ -534,15 +526,12 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
         /*Achin added code ends*/
 
         bool present = false;
-
-        race_detector_fake_lock_acquire(race_detector_fake_lock(seen));
         {
           SeenMap::accessor a;
           Offset offset = f->getOffset();
           present = seen.find(a, offset);
           if (!present) seen.insert(a, std::make_pair(offset, true));
         }
-        race_detector_fake_lock_release(race_detector_fake_lock(seen));
 
         if (present) {
             // XXX it looks as though symtabapi now does de-duplication
@@ -563,13 +552,11 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
 
         CodeRegion * cr = NULL;
 
-        race_detector_fake_lock_acquire(race_detector_fake_lock(rmap));
         {
           RegionMap::accessor a;
           present = rmap.find(a, sr);
           if (present) cr = a->second;
         }
-        race_detector_fake_lock_release(race_detector_fake_lock(rmap));
 
         if (!present) {
             parsing_printf("[%s:%d] unrecognized Region %lx in function %lx\n",
@@ -583,10 +570,7 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
                            sr->getMemOffset(),
                            sr->getMemOffset()+sr->getDiskSize());
         } else {
-          mcs_node_t me;
-          mcs_lock(hint_lock, me);
           _hints.push_back(Hint(f->getOffset(), f->getSize(), cr, fname_s));
-          mcs_unlock(hint_lock, me);
           parsing_printf("\t<%lx,%s,[%lx,%lx)>\n",
                          f->getOffset(),
                          fname,
