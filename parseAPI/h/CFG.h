@@ -49,6 +49,7 @@
 #include <boost/thread/recursive_mutex.hpp>
 #include <list>
 #include <atomic>
+#include "race-detector-annotations.h"
 
 namespace Dyninst {
 
@@ -512,7 +513,10 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, pub
     CodeObject * obj() const { return _obj; }
     FuncSource src() const { return _src; }
     FuncReturnStatus retstatus() const { 
-      return _rs.load(); 
+      race_detector_fake_lock_acquire(race_detector_fake_lock(_rs));
+      FuncReturnStatus ret = _rs.load();
+      race_detector_fake_lock_release(race_detector_fake_lock(_rs));
+      return ret; 
     }
     Block * entry() const { return _entry; }
     bool parsed() const { return _parsed; }

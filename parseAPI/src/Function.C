@@ -48,6 +48,7 @@
 
 #include "common/src/dthread.h"
 #include <boost/thread/lock_guard.hpp>
+
 using namespace std;
 
 using namespace Dyninst;
@@ -519,7 +520,9 @@ void Function::set_retstatus(FuncReturnStatus rs)
     } else if (rs == UNKNOWN) {
         _obj->cs()->incrementCounter(PARSE_UNKNOWN_COUNT);
     }
+    race_detector_fake_lock_acquire(race_detector_fake_lock(_rs));
     _rs.store(rs);
+    race_detector_fake_lock_release(race_detector_fake_lock(_rs));
 }
 
 void 

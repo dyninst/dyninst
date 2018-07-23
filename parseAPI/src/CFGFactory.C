@@ -120,6 +120,7 @@ Block *
 CFGFactory::_mkblock(Function *  f , CodeRegion *r, Address addr)
 {
    Block * ret = mkblock(f, r, addr);
+   race_detector_forget_access_history(ret, sizeof(*ret));
    blocks_.add(ret);
    return ret;
 }

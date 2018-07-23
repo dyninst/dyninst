@@ -166,12 +166,17 @@ StandardParseData::findFrame(CodeRegion * /* cr */, Address addr)
 ParseFrame::Status
 StandardParseData::frameStatus(CodeRegion * /* cr */, Address addr)
 {
+    ParseFrame::Status ret;
+    race_detector_fake_lock_acquire(race_detector_fake_lock(_rdata.frame_status));
     tbb::concurrent_hash_map<Address, ParseFrame::Status>::const_accessor a;
     if(_rdata.frame_status.find(a, addr)) {
-        return a->second;
+        ret = a->second;
     } else {
-        return ParseFrame::BAD_LOOKUP;
+        ret = ParseFrame::BAD_LOOKUP;
     }
+    race_detector_fake_lock_release(race_detector_fake_lock(_rdata.frame_status));
+    return ret;
+
 }
 void
 StandardParseData::setFrameStatus(CodeRegion * /* cr */, Address addr,
