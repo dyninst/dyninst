@@ -38,9 +38,9 @@
 
 #define GPRSIZE_32            4
 #define GPRSIZE_64            8
-#define FPRSIZE               16
+#define FPRSIZE_64           16
 
-#define REG_SP                31
+#define REG_SP               31
 #define REG_TOC               2   /* TOC anchor                            */
 // REG_GUARD_OFFSET and REG_GUARD_VALUE could overlap.
 #define REG_GUARD_ADDR        5   /* Arbitrary                             */
@@ -52,7 +52,9 @@
 
 #define REG_SCRATCH          10
 
-//TODO ??
+// #sasha This seemed to be copy and paste. Not sure if it all stands
+// for ARM.
+//
 // The stack grows down from high addresses toward low addresses.
 // There is a maximum number of bytes on the stack below the current
 // value of the stack frame pointer that a function can use without
@@ -68,13 +70,15 @@
 #define ALIGN_QUADWORD(x)  ( ((x) + 0xf) & ~0xf )  //x is positive or unsigned
 
 //TODO Fix for ARM
-#define GPRSAVE_64  (31*8)
-#define FPRSAVE     (32*16)
+#define GPRSAVE_64  (31*GPRSIZE_64)
+#define FPRSAVE_64  (32*FPRSIZE_64)
 #define SPRSAVE_64  (1*8+3*4)
+// #sasha Are these necessary?
 #define FUNCSAVE_64 (32*8)
 #define FUNCARGS_64 (16*8)
 #define LINKAREA_64 (6*8)
 
+// #sasha Why is PowerPC stuff here?
 #if defined(os_linux)
 #define PARAM_OFFSET(mutatee_address_width)                         \
         (                                                           \
@@ -99,19 +103,39 @@
 #endif
 
 
-#define TRAMP_FRAME_SIZE_64 ALIGN_QUADWORD(STACKSKIP + GPRSAVE_64 + FPRSAVE \
+/*
+#define TRAMP_FRAME_SIZE_64 ALIGN_QUADWORD(STACKSKIP + GPRSAVE_64 + FPRSAVE_64 \
                                            + SPRSAVE_64 \
                                            + FUNCSAVE_64 + FUNCARGS_64 + LINKAREA_64)
-#define PDYN_RESERVED_64 (LINKAREA_64 + FUNCARGS_64 + FUNCSAVE_64)
+                                           */
+#define TRAMP_FRAME_SIZE_64 ALIGN_QUADWORD(GPRSAVE_64 + FPRSAVE_64 + SPRSAVE_64)
 
-#define TRAMP_SPR_OFFSET_64 (PDYN_RESERVED_64)
+//#define PDYN_RESERVED_64 (LINKAREA_64 + FUNCARGS_64 + FUNCSAVE_64)
+
+//#define TRAMP_SPR_OFFSET_64 (PDYN_RESERVED_64)
+#define TRAMP_SPR_OFFSET_64 (0)
 #define STK_LR       (              0)
 #define STK_NZCV     (STK_SP_EL0  + 8)
 #define STK_FPCR     (STK_NZCV    + 4)
 #define STK_FPSR     (STK_FPCR    + 4)
 
 #define TRAMP_FPR_OFFSET_64 (TRAMP_SPR_OFFSET_64 + SPRSAVE_64)
-#define TRAMP_GPR_OFFSET_64 (TRAMP_FPR_OFFSET_64 + FPRSAVE)
+#define TRAMP_GPR_OFFSET_64 (TRAMP_FPR_OFFSET_64 + FPRSAVE_64)
 #define FUNC_CALL_SAVE_64   (LINKAREA_64 + FUNCARGS_64)
+
+#define TRAMP_GPR_OFFSET_32 ({assert(0); 0;})
+#define TRAMP_GPR_OFFSET(x) (((x) == 8) ? TRAMP_GPR_OFFSET_64 : TRAMP_GPR_OFFSET_32)
+
+#define TRAMP_FPR_OFFSET_32 ({assert(0); 0;})
+#define TRAMP_FPR_OFFSET(x) (((x) == 8) ? TRAMP_FPR_OFFSET_64 : TRAMP_FPR_OFFSET_32)
+
+#define TRAMP_SPR_OFFSET_32 ({assert(0); 0;})
+#define TRAMP_SPR_OFFSET(x) (((x) == 8) ? TRAMP_SPR_OFFSET_64 : TRAMP_SPR_OFFSET_32)
+
+
+class codeGen;
+
+void pushStack(codeGen &gen);
+void popStack(codeGen &gen);
 
 #endif

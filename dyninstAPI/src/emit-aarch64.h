@@ -224,12 +224,12 @@ class EmitterAARCH64SaveRegs {
 public:
     virtual ~EmitterAARCH64SaveRegs() {}
 
-    unsigned saveGPRegisters(baseTramp *bt, codeGen &gen, registerSpace *theRegSpace,
-            int &offset, int numReqGPRs = -1);
+    unsigned saveGPRegisters(codeGen &gen, registerSpace *theRegSpace,
+            int offset, int numReqGPRs = -1);
 
-    unsigned saveFPRegisters(codeGen &gen, registerSpace *theRegSpace, int &offset);
+    unsigned saveFPRegisters(codeGen &gen, registerSpace *theRegSpace, int offset);
 
-    unsigned saveSPRegisters(codeGen &gen, registerSpace *, int &offset, bool force_save);
+    unsigned saveSPRegisters(codeGen &gen, registerSpace *, int offset, bool force_save);
 
     void createFrame(codeGen &gen);
 
@@ -245,15 +245,14 @@ class EmitterAARCH64RestoreRegs {
 public:
     virtual ~EmitterAARCH64RestoreRegs() {}
 
-    unsigned restoreGPRegisters(codeGen &gen, registerSpace *theRegSpace);
+    unsigned restoreGPRegisters(codeGen &gen, registerSpace *theRegSpace, int offset);
 
-    unsigned restoreFPRegisters(codeGen &gen, registerSpace *theRegSpace);
+    unsigned restoreFPRegisters(codeGen &gen, registerSpace *theRegSpace, int offset);
 
-    unsigned restoreSPRegisters(codeGen &gen, registerSpace *, int force_save);
+    unsigned restoreSPRegisters(codeGen &gen, registerSpace *, int offset, int force_save);
 
     void tearFrame(codeGen &gen);
 
-private:
     void restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset);
 
     void restoreRegister(codeGen &gen, Register reg, int save_off);

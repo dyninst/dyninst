@@ -90,7 +90,7 @@ void registerSpace::initialize64() {
     if (done)
         return;
 
-    pdvector < registerSlot * > registers;
+    std::vector < registerSlot * > registers;
 
     //GPRs
     for (unsigned idx = r0; idx <= r28; idx++) {
@@ -169,7 +169,7 @@ void EmitterAARCH64SaveRegs::saveSPR(codeGen &gen, Register scratchReg, int sprn
 void EmitterAARCH64SaveRegs::saveRegister(codeGen &gen, Register reg, int save_off)
 {
     insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, reg, REG_SP,
-            -2*GPRSIZE_64, true, insnCodeGen::Pre);
+            save_off, true, insnCodeGen::Offset);
 }
 
 
@@ -182,21 +182,17 @@ void EmitterAARCH64SaveRegs::saveFPRegister(codeGen &gen, Register reg, int save
 /********************************* Public methods *********************************************/
 
 unsigned EmitterAARCH64SaveRegs::saveGPRegisters(
-        baseTramp *bt, codeGen &gen, registerSpace *theRegSpace, int &offset, int numReqGPRs)
+        codeGen &gen, registerSpace *theRegSpace, int offset, int numReqGPRs)
 {
     int ret = 0;
-    if(numReqGPRs == -1)
-        numReqGPRs = theRegSpace->numGPRs();
+    if(numReqGPRs == -1) numReqGPRs = theRegSpace->numGPRs();
 
-    pdvector<registerSlot *> &regs = theRegSpace->trampRegs();
-
-    for(unsigned int idx = 0; idx < regs.size() && ret < numReqGPRs; idx++) {
-        registerSlot *reg = regs[idx];
+    for(unsigned int idx = 0; idx < numReqGPRs; idx++) {
+        registerSlot *reg = theRegSpace->GPRs()[idx];
         if (reg->liveState == registerSlot::live) {
-            saveRegister(gen, reg->number, offset);
-            theRegSpace->markSavedRegister(reg->number, offset);
-
-            offset += 2*GPRSIZE_64;
+            int offset_from_sp = offset + (reg->encoding() * gen.width());
+            saveRegister(gen, reg->number, offset_from_sp);
+            theRegSpace->markSavedRegister(reg->number, offset_from_sp);
             ret++;
         }
     }
@@ -204,17 +200,15 @@ unsigned EmitterAARCH64SaveRegs::saveGPRegisters(
     return ret;
 }
 
-unsigned EmitterAARCH64SaveRegs::saveFPRegisters(codeGen &gen, registerSpace *theRegSpace, int &offset) {
+unsigned EmitterAARCH64SaveRegs::saveFPRegisters(codeGen &gen, registerSpace *theRegSpace, int offset) {
     unsigned ret = 0;
 
     for(int idx = 0; idx < theRegSpace->numFPRs(); idx++) {
         registerSlot *reg = theRegSpace->FPRs()[idx];
 
         if(reg->liveState == registerSlot::live) {
-            saveFPRegister(gen, reg->number, -8*FPRSIZE);
+            saveFPRegister(gen, reg->number, -8*FPRSIZE_64);
             reg->liveState = registerSlot::spilled;
-
-            offset += 8*FPRSIZE;
             ret++;
         }
     }
@@ -223,11 +217,11 @@ unsigned EmitterAARCH64SaveRegs::saveFPRegisters(codeGen &gen, registerSpace *th
 }
 
 unsigned EmitterAARCH64SaveRegs::saveSPRegisters(
-        codeGen &gen, registerSpace *theRegSpace, int &offset, bool force_save)
+        codeGen &gen, registerSpace *theRegSpace, int offset, bool force_save)
 {
     int ret = 0;
 
-    pdvector<registerSlot *> spRegs;
+    std::vector<registerSlot *> spRegs;
     map<registerSlot *, int> regMap;
 
     registerSlot *regNzcv = (*theRegSpace)[registerSpace::pstate];
@@ -248,7 +242,7 @@ unsigned EmitterAARCH64SaveRegs::saveSPRegisters(
     if(force_save || regFpsr->liveState == registerSlot::live)
         spRegs.push_back(regFpsr);
 
-    for(pdvector<registerSlot *>::iterator itr = spRegs.begin(); itr != spRegs.end(); itr++) {
+    for(std::vector<registerSlot *>::iterator itr = spRegs.begin(); itr != spRegs.end(); itr++) {
         registerSlot *cur = *itr;
         saveSPR(gen, theRegSpace->getScratchRegister(gen, true), regMap[cur], -4*GPRSIZE_32);
         theRegSpace->markSavedRegister(cur->number, offset);
@@ -282,7 +276,7 @@ void EmitterAARCH64SaveRegs::createFrame(codeGen &gen) {
 /********************************* Public methods *********************************************/
 
 unsigned EmitterAARCH64RestoreRegs::restoreGPRegisters(
-        codeGen &gen, registerSpace *theRegSpace)
+        codeGen &gen, registerSpace *theRegSpace, int offset)
 {
     unsigned ret = 0;
 
@@ -290,7 +284,8 @@ unsigned EmitterAARCH64RestoreRegs::restoreGPRegisters(
         registerSlot *reg = theRegSpace->GPRs()[idx];
 
         if(reg->liveState == registerSlot::spilled) {
-            restoreRegister(gen, reg->number, 2*GPRSIZE_64);
+            int offset_from_sp = offset + (reg->encoding() * gen.width());
+            restoreRegister(gen, reg->number, offset_from_sp);
             ret++;
         }
     }
@@ -299,7 +294,7 @@ unsigned EmitterAARCH64RestoreRegs::restoreGPRegisters(
 }
 
 unsigned EmitterAARCH64RestoreRegs::restoreFPRegisters(
-        codeGen &gen, registerSpace *theRegSpace)
+        codeGen &gen, registerSpace *theRegSpace, int offset)
 {
     unsigned ret = 0;
 
@@ -307,7 +302,7 @@ unsigned EmitterAARCH64RestoreRegs::restoreFPRegisters(
         registerSlot *reg = theRegSpace->FPRs()[idx];
 
         if(reg->liveState == registerSlot::spilled) {
-            restoreFPRegister(gen, reg->number, 8*FPRSIZE);
+            restoreFPRegister(gen, reg->number, 8*FPRSIZE_64);
             ret++;
         }
     }
@@ -316,11 +311,11 @@ unsigned EmitterAARCH64RestoreRegs::restoreFPRegisters(
 }
 
 unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(
-        codeGen &gen, registerSpace *theRegSpace, int force_save)
+        codeGen &gen, registerSpace *theRegSpace, int offset, int force_save)
 {
     int ret = 0;
 
-    pdvector<registerSlot *> spRegs;
+    std::vector<registerSlot *> spRegs;
     map<registerSlot *, int> regMap;
 
     registerSlot *regNzcv = (*theRegSpace)[registerSpace::pstate];
@@ -341,7 +336,7 @@ unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(
     if(force_save || regFpsr->liveState == registerSlot::spilled)
         spRegs.push_back(regFpsr);
 
-    for(pdvector<registerSlot *>::iterator itr = spRegs.begin(); itr != spRegs.end(); itr++) {
+    for(std::vector<registerSlot *>::iterator itr = spRegs.begin(); itr != spRegs.end(); itr++) {
         registerSlot *cur = *itr;
         restoreSPR(gen, theRegSpace->getScratchRegister(gen, true), regMap[cur], 4*GPRSIZE_32);
         ret++;
@@ -387,7 +382,7 @@ void EmitterAARCH64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, in
 void EmitterAARCH64RestoreRegs::restoreRegister(codeGen &gen, Register reg, int save_off) {
 
     insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, reg, REG_SP,
-            2*GPRSIZE_64, true);
+            save_off, true, insnCodeGen::Offset);
 }
 
 void EmitterAARCH64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, int save_off) {
@@ -397,49 +392,49 @@ void EmitterAARCH64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, in
 /***********************************************************************************************/
 /***********************************************************************************************/
 
+/*
+ * Emit code to push down the stack
+ */
+void pushStack(codeGen &gen)
+{
+    if (gen.width() == 8)
+        insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Sub, 0,
+                TRAMP_FRAME_SIZE_64, REG_SP, REG_SP, true);
+    else
+        assert(0); // 32 bit not implemented
+}
+
+void popStack(codeGen &gen)
+{
+    if (gen.width() == 8)
+        insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0,
+                TRAMP_FRAME_SIZE_64, REG_SP, REG_SP, true);
+    else
+        assert(0); // 32 bit not implemented
+}
+
 /*********************************** Base Tramp ***********************************************/
 bool baseTramp::generateSaves(codeGen &gen, registerSpace *)
 {
+    regalloc_printf("========== baseTramp::generateSaves\n");
+
+    // Make a stack frame.
+    pushStack(gen);
+
     EmitterAARCH64SaveRegs saveRegs;
+    unsigned int width = gen.width();
 
-    int offset = 0;
-
-    baseTramp *bt = this;
-    bool saveFrame = !bt || bt->needsFrame();
-    if(saveFrame) {
-        saveRegs.createFrame(gen);
-        offset += (GPRSIZE_64 * 2);
-    }
-    bt->createdFrame = saveFrame;
-    /* print LSB to MSB, in order */
-    auto prinDefined = [&](){
-        for (boost::dynamic_bitset<>::size_type i = 0;
-                i < bt->definedRegs.size(); ++i)
-        {
-            std::cerr << bt->definedRegs[i];
-        }
-        std::cerr << "\tsize = " << bt->definedRegs.size();
-        std::cerr << "\tnone = " << bt->definedRegs.none();
-        std::cerr << "\tany  = " << bt->definedRegs.any();
-        std::cerr << std::endl;
-    };
-    //prinDefined();
-    bt->definedRegs = gen.getRegsDefined();
-    //prinDefined();
-    assert(!bt->definedRegs.empty());
-
-    saveRegs.saveGPRegisters(bt, gen, gen.rs(), offset);
+    saveRegs.saveGPRegisters(gen, gen.rs(), TRAMP_GPR_OFFSET(width));
 
     bool saveFPRs = BPatch::bpatch->isForceSaveFPROn() ||
                    (BPatch::bpatch->isSaveFPROn()      &&
                     gen.rs()->anyLiveFPRsAtEntry()     &&
-                    bt->saveFPRs());
+                    this->saveFPRs());
 
-    if(saveFPRs)
-        saveRegs.saveFPRegisters(gen, gen.rs(), offset);
-    bt->savedFPRs = saveFPRs;
+    if(saveFPRs) saveRegs.saveFPRegisters(gen, gen.rs(), TRAMP_FPR_OFFSET(width));
+    this->savedFPRs = saveFPRs;
 
-    saveRegs.saveSPRegisters(gen, gen.rs(), offset, false);
+    saveRegs.saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), false);
     //gen.rs()->debugPrint();
 
     return true;
@@ -448,17 +443,17 @@ bool baseTramp::generateSaves(codeGen &gen, registerSpace *)
 bool baseTramp::generateRestores(codeGen &gen, registerSpace *)
 {
     EmitterAARCH64RestoreRegs restoreRegs;
+    unsigned int width = gen.width();
 
-    restoreRegs.restoreSPRegisters(gen, gen.rs(), false);
+    restoreRegs.restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), false);
 
-    baseTramp *bt = this;
-    if(bt->savedFPRs)
-        restoreRegs.restoreFPRegisters(gen, gen.rs());
+    if(this->savedFPRs)
+        restoreRegs.restoreFPRegisters(gen, gen.rs(), TRAMP_FPR_OFFSET(width));
 
-    restoreRegs.restoreGPRegisters(gen, gen.rs());
+    restoreRegs.restoreGPRegisters(gen, gen.rs(), TRAMP_GPR_OFFSET(width));
 
-    if(bt->createdFrame)
-        restoreRegs.tearFrame(gen);
+    // Tear down the stack frame.
+    popStack(gen);
 
     return true;
 }
@@ -569,14 +564,14 @@ bool EmitterAARCH64::clobberAllFuncCall(registerSpace *rs,
     return false;
 }
 
-Register emitFuncCall(opCode, codeGen &, pdvector <AstNodePtr> &, bool, Address) {
+Register emitFuncCall(opCode, codeGen &, std::vector <AstNodePtr> &, bool, Address) {
     assert(0);
     return 0;
 }
 
 Register emitFuncCall(opCode op,
                       codeGen &gen,
-                      pdvector <AstNodePtr> &operands, bool noCost,
+                      std::vector <AstNodePtr> &operands, bool noCost,
                       func_instance *callee) {
     return gen.emitter()->emitCall(op, gen, operands, noCost, callee);
 }
@@ -659,6 +654,7 @@ Register EmitterAARCH64::emitCall(opCode op,
     //Address of function to call in scratch register
     Register scratch = gen.rs()->getScratchRegister(gen);
     assert(scratch!=REG_NULL);
+    gen.markRegDefined(scratch);
     insnCodeGen::loadImmIntoReg<Address>(gen, scratch, callee->addr());
 
     instruction branchInsn;
@@ -716,6 +712,7 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
                const instPoint * location, bool /*for_MT*/)
 {
     registerSlot *regSlot = NULL;
+    unsigned addrWidth = gen.width();
 
     switch(op){
         case getRetValOp:
@@ -728,7 +725,7 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
             //        false, gen);
 
             if(src1 <= 7) {
-                // src1 is 0..8 - it's a parameter number, not a register
+                // src1 is 0..7 - it's a parameter order number, not a register
                 regSlot = (*(gen.rs()))[registerSpace::r0 + src1];
                 break;
 
@@ -739,9 +736,35 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
         default:
             assert(0);
     }
+
     assert(regSlot);
     Register reg = regSlot->number;
 
+    switch(regSlot->liveState) {
+        case registerSlot::spilled:
+            {
+                int offset = TRAMP_GPR_OFFSET(addrWidth);
+                cerr << "emitR state:" << reg << " spilled" << endl;
+                // its on the stack so load it.
+                //if (src2 != REG_NULL) saveRegister(gen, src2, reg, offset);
+                EmitterAARCH64RestoreRegs rr;
+                rr.restoreRegister(gen, dest, offset + (reg * gen.width()));
+                return(dest);
+            }
+        case registerSlot::live:
+            {
+                // its still in a register so return the register it is in.
+                cerr << "emitR state:" << reg << " live" << endl;
+                assert(0);
+                return(reg);
+            }
+        case registerSlot::dead:
+            {
+                cerr << "emitR state" << reg << ": dead" << endl;
+                // Uhhh... wha?
+                assert(0);
+            }
+    }
     return reg;
 }
 
@@ -1007,7 +1030,7 @@ using namespace Dyninst::InstructionAPI;
 
 bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction::Ptr i,
                                           Address addr,
-                                          pdvector <AstNodePtr> &args) {
+                                          std::vector <AstNodePtr> &args) {
     assert(0); //Not implemented
     return false;
 }
@@ -1080,7 +1103,7 @@ bool EmitterAARCH64::emitMoveRegToReg(registerSlot *src,
 bool EmitterAARCH6432Stat::emitPIC(codeGen& gen, Address origAddr, Address relocAddr) {
 
       Register scratchPCReg = gen.rs()->getScratchRegister(gen, true);
-      pdvector<Register> excludeReg;
+      std::vector<Register> excludeReg;
       excludeReg.push_back(scratchPCReg);
       Register scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);
       bool newStackFrame = false;
@@ -1200,8 +1223,8 @@ bool EmitterAARCH64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
   Register scratchReg = 3; // = gen.rs()->getScratchRegister(gen, true);
   int stackSize = 0;
   if (scratchReg == REG_NULL) {
-    pdvector<Register> freeReg;
-    pdvector<Register> excludeReg;
+    std::vector<Register> freeReg;
+    std::vector<Register> excludeReg;
     stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
     assert (stackSize == 1);
     scratchReg = freeReg[0];

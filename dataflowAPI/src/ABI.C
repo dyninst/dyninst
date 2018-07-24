@@ -559,7 +559,6 @@ void ABI::initialize64(){
     returnRead64_[aarch64Map[aarch64::q0]] = true;
     //Callee-saved registers
     //First, GPRs...
-	returnRead64_ = getBitArray(sz);
     returnRead64_[aarch64Map[aarch64::x19]] = true;
     returnRead64_[aarch64Map[aarch64::x20]] = true;
     returnRead64_[aarch64Map[aarch64::x21]] = true;

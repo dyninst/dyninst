@@ -624,15 +624,13 @@ void insnCodeGen::loadImmIntoReg(codeGen &gen, Register rt, T value)
 
 void insnCodeGen::saveRegister(codeGen &gen, Register r)
 {
-    generateAddSubImmediate(gen, Sub, 0, 16, REG_SP, REG_SP, true);
-    generateMemAccess32or64(gen, insnCodeGen::Store, r, REG_SP, /*-2*GPRSIZE_64*/ 0, true);
+    generateMemAccess32or64(gen, Store, r, REG_SP, -2*GPRSIZE_64, true, Pre);
 }
 
 
 void insnCodeGen::restoreRegister(codeGen &gen, Register r)
 {
-    generateMemAccess32or64(gen, insnCodeGen::Load, r, REG_SP, /*2*GPRSIZE_64*/ 0, true);
-    generateAddSubImmediate(gen, Add, 0, 16, REG_SP, REG_SP, true);
+    generateMemAccess32or64(gen, Load, r, REG_SP, 2*GPRSIZE_64, true);
 }
 
 
