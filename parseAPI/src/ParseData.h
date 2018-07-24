@@ -218,9 +218,18 @@ public:
         return result;
     }
     ParseFrame::Status getFrameStatus(Address addr) {
+        ParseFrame::Status ret;
+        race_detector_fake_lock_acquire(race_detector_fake_lock(frame_status));
+        {
         tbb::concurrent_hash_map<Address, ParseFrame::Status>::const_accessor a;
-        frame_status.find(a, addr);
-        return a->second;
+        if(frame_status.find(a, addr)) {
+            ret = a->second;
+        } else {
+            ret = ParseFrame::BAD_LOOKUP;
+        }
+        }
+        race_detector_fake_lock_release(race_detector_fake_lock(frame_status));
+        return ret;
     }
 
 

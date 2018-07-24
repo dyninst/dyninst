@@ -40,13 +40,11 @@ using namespace Dyninst::ParseAPI;
 
 void ParseFrame::set_status(Status s)
 {
-    race_detector_fake_lock_acquire(race_detector_fake_lock(_status));
-    {
-      boost::lock_guard<ParseFrame> g(*this);
-      _status.store(s);
-      _pd->setFrameStatus(codereg,func->addr(),s);
-    }
+    boost::lock_guard<ParseFrame> g(*this);
+    race_detector_fake_lock_acquire(race_detector_fake_lock(_status));  
+    _status.store(s);
     race_detector_fake_lock_release(race_detector_fake_lock(_status));
+    _pd->setFrameStatus(codereg,func->addr(),s);
 }
 
 ParseWorkElem * ParseFrame::mkWork(
@@ -166,17 +164,7 @@ StandardParseData::findFrame(CodeRegion * /* cr */, Address addr)
 ParseFrame::Status
 StandardParseData::frameStatus(CodeRegion * /* cr */, Address addr)
 {
-    ParseFrame::Status ret;
-    race_detector_fake_lock_acquire(race_detector_fake_lock(_rdata.frame_status));
-    tbb::concurrent_hash_map<Address, ParseFrame::Status>::const_accessor a;
-    if(_rdata.frame_status.find(a, addr)) {
-        ret = a->second;
-    } else {
-        ret = ParseFrame::BAD_LOOKUP;
-    }
-    race_detector_fake_lock_release(race_detector_fake_lock(_rdata.frame_status));
-    return ret;
-
+    return _rdata.getFrameStatus(addr);
 }
 void
 StandardParseData::setFrameStatus(CodeRegion * /* cr */, Address addr,
