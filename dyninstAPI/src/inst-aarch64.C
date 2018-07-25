@@ -166,12 +166,6 @@ void EmitterAARCH64SaveRegs::saveSPR(codeGen &gen, Register scratchReg, int sprn
             REG_SP, stkOffset, false, insnCodeGen::Pre);
 }
 
-void EmitterAARCH64SaveRegs::saveRegister(codeGen &gen, Register reg, int save_off)
-{
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, reg, REG_SP,
-            save_off, true, insnCodeGen::Offset);
-}
-
 
 void EmitterAARCH64SaveRegs::saveFPRegister(codeGen &gen, Register reg, int save_off) {
     //Always performing save of the full FP register
@@ -191,7 +185,7 @@ unsigned EmitterAARCH64SaveRegs::saveGPRegisters(
         registerSlot *reg = theRegSpace->GPRs()[idx];
         if (reg->liveState == registerSlot::live) {
             int offset_from_sp = offset + (reg->encoding() * gen.width());
-            saveRegister(gen, reg->number, offset_from_sp);
+            insnCodeGen::saveRegister(gen, reg->number, offset_from_sp);
             theRegSpace->markSavedRegister(reg->number, offset_from_sp);
             ret++;
         }
@@ -257,11 +251,11 @@ unsigned EmitterAARCH64SaveRegs::saveSPRegisters(
 void EmitterAARCH64SaveRegs::createFrame(codeGen &gen) {
     //Save link register
     Register linkRegister = gen.rs()->getRegByName("r30");
-    saveRegister(gen, linkRegister, -2*GPRSIZE_64);
+    insnCodeGen::saveRegister(gen, linkRegister, -2*GPRSIZE_64);
 
     //Save frame pointer
     Register framePointer = gen.rs()->getRegByName("r29");
-    saveRegister(gen, framePointer, -2*GPRSIZE_64);
+    insnCodeGen::saveRegister(gen, framePointer, -2*GPRSIZE_64);
 
     //Move stack pointer to frame pointer
     Register stackPointer = gen.rs()->getRegByName("sp");
@@ -285,7 +279,7 @@ unsigned EmitterAARCH64RestoreRegs::restoreGPRegisters(
 
         if(reg->liveState == registerSlot::spilled) {
             int offset_from_sp = offset + (reg->encoding() * gen.width());
-            restoreRegister(gen, reg->number, offset_from_sp);
+            insnCodeGen::restoreRegister(gen, reg->number, offset_from_sp);
             ret++;
         }
     }
@@ -348,11 +342,11 @@ unsigned EmitterAARCH64RestoreRegs::restoreSPRegisters(
 void EmitterAARCH64RestoreRegs::tearFrame(codeGen &gen) {
     //Restore frame pointer
     Register framePointer = gen.rs()->getRegByName("r29");
-    restoreRegister(gen, framePointer, 2*GPRSIZE_64);
+    insnCodeGen::restoreRegister(gen, framePointer, 2*GPRSIZE_64);
 
     //Restore link register
     Register linkRegister = gen.rs()->getRegByName("r30");
-    restoreRegister(gen, linkRegister, 2*GPRSIZE_64);
+    insnCodeGen::restoreRegister(gen, linkRegister, 2*GPRSIZE_64);
 }
 
 
@@ -377,12 +371,6 @@ void EmitterAARCH64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, in
     //Set bits representing destination system register
     INSN_SET(insn, 5, 19, sysRegCodeMap[sprnum]);
     insnCodeGen::generate(gen, insn);
-}
-
-void EmitterAARCH64RestoreRegs::restoreRegister(codeGen &gen, Register reg, int save_off) {
-
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, reg, REG_SP,
-            save_off, true, insnCodeGen::Offset);
 }
 
 void EmitterAARCH64RestoreRegs::restoreFPRegister(codeGen &gen, Register reg, int save_off) {
@@ -629,7 +617,8 @@ Register EmitterAARCH64::emitCall(opCode op,
 
         if ((reg->refCount > 0) || reg->keptValue || (reg->liveState == registerSlot::live))
         {
-            insnCodeGen::saveRegister(gen, registerSpace::r0 + id);
+            insnCodeGen::saveRegister(gen, registerSpace::r0 + id,
+                    -2*GPRSIZE_64, insnCodeGen::Post);
             savedRegs.push_back(reg->number);
         }
     }
@@ -679,7 +668,8 @@ Register EmitterAARCH64::emitCall(opCode op,
 
     // r7-r0
     for (signed int ui = savedRegs.size()-1; ui >= 0; ui--) {
-        insnCodeGen::restoreRegister(gen, registerSpace::r0 + savedRegs[ui]);
+        insnCodeGen::restoreRegister(gen, registerSpace::r0 + savedRegs[ui],
+                2*GPRSIZE_64, insnCodeGen::Post);
     }
 
     return 0;
@@ -744,11 +734,9 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
         case registerSlot::spilled:
             {
                 int offset = TRAMP_GPR_OFFSET(addrWidth);
-                cerr << "emitR state:" << reg << " spilled" << endl;
                 // its on the stack so load it.
                 //if (src2 != REG_NULL) saveRegister(gen, src2, reg, offset);
-                EmitterAARCH64RestoreRegs rr;
-                rr.restoreRegister(gen, dest, offset + (reg * gen.width()));
+                insnCodeGen::restoreRegister(gen, dest, offset + (reg * gen.width()));
                 return(dest);
             }
         case registerSlot::live:

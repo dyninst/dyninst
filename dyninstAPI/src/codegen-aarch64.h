@@ -110,9 +110,9 @@ public:
     template<typename T>
     static void loadImmIntoReg(codeGen &gen, Register rt, T value);
 
-    static void saveRegister(codeGen &gen, Register r);
+    static void saveRegister(codeGen &gen, Register r, int sp_offset, IndexMode im=Offset);
 
-    static void restoreRegister(codeGen &gen, Register r);
+    static void restoreRegister(codeGen &gen, Register r, int sp_offset, IndexMode im=Offset);
 
     /** TODO **/
     static void generateLoadReg(codeGen &gen, Register rt,

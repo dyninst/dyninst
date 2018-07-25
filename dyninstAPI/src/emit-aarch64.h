@@ -236,8 +236,6 @@ public:
 private:
     void saveSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset);
 
-    void saveRegister(codeGen &gen, Register reg, int save_off);
-
     void saveFPRegister(codeGen &gen, Register reg, int save_off);
 };
 
@@ -254,8 +252,6 @@ public:
     void tearFrame(codeGen &gen);
 
     void restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset);
-
-    void restoreRegister(codeGen &gen, Register reg, int save_off);
 
     void restoreFPRegister(codeGen &gen, Register reg, int save_off);
 };
