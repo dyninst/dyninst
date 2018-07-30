@@ -65,29 +65,29 @@ class ABI{
     DATAFLOW_EXPORT static ABI* getABI(int addr_width);
     DATAFLOW_EXPORT bitArray getBitArray();
  private:
-    static dyn_tls bitArray callRead_;
-    static dyn_tls bitArray callRead64_;
+    static dyn_tls bitArray* callRead_;
+    static dyn_tls bitArray* callRead64_;
 
-    static dyn_tls bitArray callWritten_;
-    static dyn_tls bitArray callWritten64_;
+    static dyn_tls bitArray* callWritten_;
+    static dyn_tls bitArray* callWritten64_;
 
-    static dyn_tls bitArray returnRead_;
-    static dyn_tls bitArray returnRead64_;
+    static dyn_tls bitArray* returnRead_;
+    static dyn_tls bitArray* returnRead64_;
 
-    static dyn_tls bitArray returnRegs_;
-    static dyn_tls bitArray returnRegs64_;
+    static dyn_tls bitArray* returnRegs_;
+    static dyn_tls bitArray* returnRegs64_;
 
-    static dyn_tls bitArray callParam_;
-    static dyn_tls bitArray callParam64_;
+    static dyn_tls bitArray* callParam_;
+    static dyn_tls bitArray* callParam64_;
 
-    static dyn_tls bitArray syscallRead_;
-    static dyn_tls bitArray syscallRead64_;
+    static dyn_tls bitArray* syscallRead_;
+    static dyn_tls bitArray* syscallRead64_;
 
-    static dyn_tls bitArray syscallWritten_;
-    static dyn_tls bitArray syscallWritten64_;
+    static dyn_tls bitArray* syscallWritten_;
+    static dyn_tls bitArray* syscallWritten64_;
 
-    static dyn_tls bitArray allRegs_;
-    static dyn_tls bitArray allRegs64_;
+    static dyn_tls bitArray* allRegs_;
+    static dyn_tls bitArray* allRegs64_;
 
     static bitArray getBitArray(int size){
     	return bitArray(size);

@@ -46,7 +46,6 @@
 #include <set>
 #include <limits>
 #include <ostream>
-#include <atomic>
 
 /** Template class for Interval Binary Search Tree. The implementation is
   * based on a red-black tree (derived from our codeRange implementation)
@@ -177,7 +176,7 @@ public:
 
 private:
     /** size of tree **/
-    std::atomic<int> treeSize;
+    boost::atomic<int> treeSize;
 
     /** pointer to the tree root **/
     IBSNode<ITYPE> *root;

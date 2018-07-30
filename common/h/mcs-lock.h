@@ -22,8 +22,7 @@
 // global includes
 //******************************************************************************
 
-#include <atomic>
-
+#include <boost/atomic.hpp>
 
 
 //******************************************************************************
@@ -39,13 +38,13 @@
 //******************************************************************************
 
 typedef struct mcs_node_s {
-  std::atomic<struct mcs_node_s*> next;
-  std::atomic<bool> blocked;
+  boost::atomic<struct mcs_node_s*> next;
+  boost::atomic<bool> blocked;
 } mcs_node_t;
 
 
 typedef struct {
-  std::atomic<mcs_node_t *> tail;
+  boost::atomic<mcs_node_t *> tail;
 } mcs_lock_t;
 
 
@@ -63,7 +62,7 @@ typedef struct {
 static inline void
 mcs_init(mcs_lock_t &l)
 {
-  atomic_init(&l.tail, mcs_nil);
+  l.tail.store(mcs_nil);
 }
 
 COMMON_EXPORT void

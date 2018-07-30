@@ -52,7 +52,6 @@
 #include <boost/thread/lockable_adapter.hpp>
 #include <boost/thread/shared_mutex.hpp>
 #include <unordered_map>
-#include <atomic>
 
 using namespace std;
 
@@ -105,7 +104,7 @@ namespace Dyninst {
             dyn_hash_map<Address, string> plt_entries;
 
     // a sink block for unbound edges
-    std::atomic<Block *> _sink;
+    boost::atomic<Block *> _sink;
 #ifdef ADD_PARSE_FRAME_TIMERS
     tbb::concurrent_hash_map<unsigned int, unsigned int > time_histogram;
 #endif

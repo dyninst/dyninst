@@ -68,11 +68,11 @@
 void
 pfq_rwlock_init(pfq_rwlock_t &l)
 {
-  atomic_init(&l.rin, 0U);
-  atomic_init(&l.rout, 0U);
-  atomic_init(&l.last, 0U);
-  atomic_init(&l.writer_blocking_readers[0].bit, false);
-  atomic_init(&l.writer_blocking_readers[1].bit, false);
+  l.rin.store(0U);
+  l.rout.store(0U);
+  l.last.store(0U);
+  l.writer_blocking_readers[0].bit.store(false);
+  l.writer_blocking_readers[1].bit.store(false);
   mcs_init(l.wtail);
   l.whead = mcs_nil;
 }
@@ -81,11 +81,11 @@ void
 pfq_rwlock_read_lock(pfq_rwlock_t &l)
 {
   race_detector_fake_lock_acquire(&l.wtail);
-  uint32_t ticket = atomic_fetch_add_explicit(&l.rin, READER_INCREMENT, std::memory_order_acq_rel);
+  uint32_t ticket = l.rin.fetch_add(READER_INCREMENT, boost::memory_order_acq_rel);
 
   if (ticket & WRITER_PRESENT) {
     uint32_t phase = ticket & PHASE_BIT;
-    while (atomic_load_explicit(&l.writer_blocking_readers[phase].bit, std::memory_order_acquire));
+    while (l.writer_blocking_readers[phase].bit.load(boost::memory_order_acquire));
   }
 }
 
@@ -93,14 +93,14 @@ pfq_rwlock_read_lock(pfq_rwlock_t &l)
 void
 pfq_rwlock_read_unlock(pfq_rwlock_t &l)
 {
-  uint32_t ticket = atomic_fetch_add_explicit(&l.rout, READER_INCREMENT, std::memory_order_acq_rel);
+  uint32_t ticket = l.rout.fetch_add(READER_INCREMENT, boost::memory_order_acq_rel);
 
   if (ticket & WRITER_PRESENT) {
     //----------------------------------------------------------------------------
     // finish reading counter before reading last
     //----------------------------------------------------------------------------
-    if (ticket == atomic_load_explicit(&l.last, std::memory_order_acquire))
-      atomic_store_explicit(&l.whead->blocked, false, std::memory_order_release);
+    if (ticket == l.last.load(boost::memory_order_acquire))
+      l.whead->blocked.store(false, boost::memory_order_release);
   }
   race_detector_fake_lock_release(&l.wtail);
 }
@@ -117,7 +117,7 @@ pfq_rwlock_write_lock(pfq_rwlock_t &l, pfq_rwlock_node_t &me)
   //--------------------------------------------------------------------
   // this may be false when at the head of the mcs queue
   //--------------------------------------------------------------------
-  atomic_store_explicit(&me.blocked, true, std::memory_order_relaxed);
+  me.blocked.store(true, boost::memory_order_relaxed);
 
   //--------------------------------------------------------------------
   // announce myself as next writer
@@ -127,8 +127,8 @@ pfq_rwlock_write_lock(pfq_rwlock_t &l, pfq_rwlock_node_t &me)
   //--------------------------------------------------------------------
   // set writer_blocking_readers to block any readers in the next batch
   //--------------------------------------------------------------------
-  uint32_t phase = atomic_load_explicit(&l.rin, std::memory_order_relaxed) & PHASE_BIT;
-  atomic_store_explicit(&l.writer_blocking_readers[phase].bit, true, std::memory_order_release); 
+  uint32_t phase = l.rin.load(boost::memory_order_relaxed) & PHASE_BIT;
+  l.writer_blocking_readers[phase].bit.store(true, boost::memory_order_release); 
 
   //----------------------------------------------------------------------------
   // store to writer_blocking_headers bit must complete before incrementing rin
@@ -138,12 +138,12 @@ pfq_rwlock_write_lock(pfq_rwlock_t &l, pfq_rwlock_node_t &me)
   // acquire an "in" sequence number to see how many readers arrived
   // set the WRITER_PRESENT bit so subsequent readers will wait
   //--------------------------------------------------------------------
-  uint32_t in = atomic_fetch_or_explicit(&l.rin, WRITER_PRESENT, std::memory_order_acq_rel);
+  uint32_t in = l.rin.fetch_or(WRITER_PRESENT, boost::memory_order_acq_rel);
 
   //--------------------------------------------------------------------
   // save the ticket that the last reader will see
   //--------------------------------------------------------------------
-  atomic_store_explicit(&l.last, in - READER_INCREMENT + WRITER_PRESENT, std::memory_order_release);
+  l.last.store(in - READER_INCREMENT + WRITER_PRESENT, boost::memory_order_release);
 
   //-------------------------------------------------------------
   // update to 'last' must complete before others see changed value of rout.
@@ -151,13 +151,13 @@ pfq_rwlock_write_lock(pfq_rwlock_t &l, pfq_rwlock_node_t &me)
   // set the WRITER_PRESENT bit so the last reader will know to signal
   // it is responsible for signaling the waiting writer
   //-------------------------------------------------------------
-  uint32_t out = atomic_fetch_or_explicit(&l.rout, WRITER_PRESENT, std::memory_order_acq_rel);
+  uint32_t out = l.rout.fetch_or(WRITER_PRESENT, boost::memory_order_acq_rel);
 
   //--------------------------------------------------------------------
   // if any reads are active, wait for last reader to signal me
   //--------------------------------------------------------------------
   if (in != out) {
-    while (atomic_load_explicit(&me.blocked, std::memory_order_acquire));
+    while (me.blocked.load(boost::memory_order_acquire));
     // wait for active reads to drain
 
     //--------------------------------------------------------------------------
@@ -195,7 +195,7 @@ pfq_rwlock_write_unlock(pfq_rwlock_t &l, pfq_rwlock_node_t &me)
   //--------------------------------------------------------------------
   // clear writer_blocking_readers to release waiting readers in the current read phase
   //--------------------------------------------------------------------
-  atomic_store_explicit(&l.writer_blocking_readers[phase].bit, false, std::memory_order_release);
+  l.writer_blocking_readers[phase].bit.store(false, boost::memory_order_release);
 
   //--------------------------------------------------------------------
   // pass writer lock to next writer

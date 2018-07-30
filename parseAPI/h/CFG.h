@@ -47,8 +47,8 @@
 #include <iostream>
 #include <boost/thread/lockable_adapter.hpp>
 #include <boost/thread/recursive_mutex.hpp>
+#include <boost/atomic.hpp>
 #include <list>
-#include <atomic>
 #include "race-detector-annotations.h"
 
 namespace Dyninst {
@@ -469,7 +469,7 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, pub
     InstructionSource * _isrc;
     
     FuncSource _src;
-    std::atomic<FuncReturnStatus> _rs;
+    boost::atomic<FuncReturnStatus> _rs;
 
     std::string _name;
     Block * _entry;

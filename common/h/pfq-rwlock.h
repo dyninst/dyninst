@@ -31,7 +31,6 @@
 #include <inttypes.h>
 
 
-
 //******************************************************************************
 // local includes
 //******************************************************************************
@@ -55,16 +54,16 @@
 typedef mcs_node_t pfq_rwlock_node_t;
 
 typedef struct bigbool {
-  std::atomic<bool> bit cache_aligned;
+  boost::atomic<bool> bit cache_aligned;
 } bigbool;
 
 typedef struct {
   //----------------------------------------------------------------------------
   // reader management
   //----------------------------------------------------------------------------
-  std::atomic<uint_least32_t> rin cache_aligned;  // = 0
-  std::atomic<uint_least32_t> rout cache_aligned;  // = 0
-  std::atomic<uint_least32_t> last cache_aligned;  // = WRITER_PRESENT
+  boost::atomic<uint_least32_t> rin cache_aligned;  // = 0
+  boost::atomic<uint_least32_t> rout cache_aligned;  // = 0
+  boost::atomic<uint_least32_t> last cache_aligned;  // = WRITER_PRESENT
   bigbool writer_blocking_readers[2]; // false
 
   //----------------------------------------------------------------------------

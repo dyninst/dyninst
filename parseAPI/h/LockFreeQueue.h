@@ -30,9 +30,9 @@
 #ifndef _LOCK_FREE_QUEUE_H_
 #define _LOCK_FREE_QUEUE_H_
 
-#include <atomic>
 #include <iterator>
 #include "race-detector-annotations.h"
+#include <boost/atomic.hpp>
 
 #define DEBUG_LOCKFREEQUEUE 0
 
@@ -94,7 +94,7 @@ private:
     return (item_type * const) ~0; 
   }
 
-  std::atomic<item_type *> _next;
+  boost::atomic<item_type *> _next;
   T _value;
   LFQ_DEBUG(item_type *validate);
 };
@@ -236,7 +236,7 @@ private:
   };
 
 private:
-  std::atomic<item_type *> head;
+  boost::atomic<item_type *> head;
 };
 
 #endif

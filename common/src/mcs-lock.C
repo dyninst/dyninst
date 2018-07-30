@@ -22,6 +22,8 @@
 #include "mcs-lock.h"
 #include "race-detector-annotations.h"
 
+#include <boost/memory_order.hpp>
+
 //******************************************************************************
 // private operations
 //******************************************************************************
@@ -38,7 +40,7 @@ mcs_lock(mcs_lock_t &l, mcs_node_t &me)
   //--------------------------------------------------------------------
   // initialize my queue node
   //--------------------------------------------------------------------
-  atomic_init(&me.next, mcs_nil);
+  me.next.store(mcs_nil);
 
   //--------------------------------------------------------------------
   // install my node at the tail of the lock queue.
@@ -47,8 +49,7 @@ mcs_lock(mcs_lock_t &l, mcs_node_t &me)
   // note: the rel aspect of the ordering below ensures that
   // initialization of me->next completes before anyone sees my node
   //--------------------------------------------------------------------
-  mcs_node_t *predecessor =
-    atomic_exchange_explicit(&l.tail, &me, std::memory_order_acq_rel);
+  mcs_node_t *predecessor = l.tail.exchange(&me, boost::memory_order_acq_rel);
 
   //--------------------------------------------------------------------
   // if I have a predecessor, wait until it signals me
@@ -57,14 +58,14 @@ mcs_lock(mcs_lock_t &l, mcs_node_t &me)
     //------------------------------------------------------------------
     // prepare to block until signaled by my predecessor
     //------------------------------------------------------------------
-    atomic_init(&me.blocked, true);
+    me.blocked.store(true);
 
     //------------------------------------------------------------------
     // link behind my predecessor
     // note: use release to ensure that prior assignment to blocked
     //       occurs first
     //------------------------------------------------------------------
-    atomic_store_explicit(&predecessor->next, &me, std::memory_order_release);
+    predecessor->next.store(&me, boost::memory_order_release);
 
     //------------------------------------------------------------------
     // wait for my predecessor to clear my flag
@@ -72,7 +73,7 @@ mcs_lock(mcs_lock_t &l, mcs_node_t &me)
     //       critical section will not occur until after blocked is
     //       cleared
     //------------------------------------------------------------------
-    while (atomic_load_explicit(&me.blocked, std::memory_order_acquire));
+    while (me.blocked.load(boost::memory_order_acquire));
   }
 }
 
@@ -84,7 +85,7 @@ mcs_trylock(mcs_lock_t &l, mcs_node_t &me)
   //--------------------------------------------------------------------
   // initialize my queue node
   //--------------------------------------------------------------------
-  atomic_store_explicit(&me.next, mcs_nil, std::memory_order_relaxed);
+  me.next.store(mcs_nil, boost::memory_order_relaxed);
 
   //--------------------------------------------------------------------
   // if the tail pointer is nil, swap it with a pointer to me, which
@@ -95,10 +96,9 @@ mcs_trylock(mcs_lock_t &l, mcs_node_t &me)
   //     the exchange completes.
   //--------------------------------------------------------------------
   mcs_node_t *oldme = mcs_nil;
-  bool locked = 
-    atomic_compare_exchange_strong_explicit(&l.tail, &oldme, &me,
-					    std::memory_order_acq_rel,
-					    std::memory_order_relaxed);
+  bool locked = l.tail.compare_exchange_strong(oldme, &me,
+					    boost::memory_order_acq_rel,
+					    boost::memory_order_relaxed);
   if (!locked) {
     race_detector_fake_lock_release(&l);
   }
@@ -109,7 +109,7 @@ mcs_trylock(mcs_lock_t &l, mcs_node_t &me)
 void
 mcs_unlock(mcs_lock_t &l, mcs_node_t &me)
 {
-  mcs_node_t *successor = atomic_load_explicit(&me.next, std::memory_order_acquire);
+  mcs_node_t *successor = me.next.load(boost::memory_order_acquire);
 
   if (successor == mcs_nil) {
     //--------------------------------------------------------------------
@@ -124,9 +124,9 @@ mcs_unlock(mcs_lock_t &l, mcs_node_t &me)
     //--------------------------------------------------------------------
     mcs_node_t *oldme = &me;
 
-    if (atomic_compare_exchange_strong_explicit(&l.tail, &oldme, mcs_nil,
-						std::memory_order_release,
-						std::memory_order_relaxed)) {
+    if (l.tail.compare_exchange_strong(oldme, mcs_nil,
+						boost::memory_order_release,
+						boost::memory_order_relaxed)) {
       //------------------------------------------------------------------
       // I removed myself from the queue; I will never have a
       // successor, so I'm done
@@ -139,9 +139,9 @@ mcs_unlock(mcs_lock_t &l, mcs_node_t &me)
     // another thread is writing me->next to define itself as our successor;
     // wait for it to finish that
     //------------------------------------------------------------------
-    while (mcs_nil == (successor = atomic_load_explicit(&me.next, std::memory_order_acquire)));
+    while (mcs_nil == (successor = me.next.load(boost::memory_order_acquire)));
   }
 
-  atomic_store_explicit(&successor->blocked, false, std::memory_order_release);
+  successor->blocked.store(false, boost::memory_order_release);
   race_detector_fake_lock_release(&l);
 }

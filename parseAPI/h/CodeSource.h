@@ -30,8 +30,6 @@
 #ifndef _CODE_SOURCE_H_
 #define _CODE_SOURCE_H_
 
-#include <atomic>
-
 #include <map>
 #include <vector>
 #include <utility>
@@ -45,7 +43,7 @@
 
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/lockable_adapter.hpp>
-
+#include <boost/atomic.hpp>
 #include <tbb/concurrent_hash_map.h>
 
 class StatContainer;
@@ -261,7 +259,7 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource, public boost::lockable
  private:
     SymtabAPI::Symtab * _symtab;
     bool owns_symtab;
-    mutable std::atomic<CodeRegion *> _lookup_cache;
+    mutable boost::atomic<CodeRegion *> _lookup_cache;
 
     // Stats information
     StatContainer * stats_parse;

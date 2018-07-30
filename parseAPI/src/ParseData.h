@@ -30,11 +30,9 @@
 #ifndef _PARSE_DATA_H_
 #define _PARSE_DATA_H_
 
-#include <atomic>
 #include <set>
 #include <vector>
 #include <queue>
-#include <atomic>
 
 #include "dyntypes.h"
 #include "IBSTree.h"
@@ -49,7 +47,7 @@
 #include <boost/thread/locks.hpp>
 #include <boost/thread/lockable_adapter.hpp>
 #include <boost/thread/recursive_mutex.hpp>
-
+#include <boost/atomic.hpp>
 
 #include "tbb/concurrent_hash_map.h"
 
@@ -165,8 +163,8 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
     }
 ;
  private:
-    std::atomic<Status> _status;
-    std::atomic<bool> busy;
+    boost::atomic<Status> _status;
+    boost::atomic<bool> busy;
     ParseData * _pd;
 };
 

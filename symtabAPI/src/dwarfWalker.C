@@ -44,7 +44,6 @@
 #include "Type-mem.h"
 #include <boost/bind.hpp>
 #include "elfutils/libdw.h"
-#include <atomic>
 #include <elfutils/libdw.h>
 #include <tbb/parallel_for_each.h>
 
