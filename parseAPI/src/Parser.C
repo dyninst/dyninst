@@ -848,6 +848,27 @@ Parser::finalize(Function *f)
     // finish delayed parsing and sorting
     Function::blocklist blocks = f->blocks_int();
 
+    // Check whether there are tail calls to blocks within the same function
+    dyn_hash_map<Block*, bool> visited;
+    for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
+        Block * b = *bit;
+	visited[b] = true;
+    }
+    for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
+        Block * b = *bit;
+	for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit) {
+	    Edge *e = *eit;
+	    if (e->interproc() && (e->type() == DIRECT || e->type() == COND_TAKEN)) {
+	        if (visited.find(e->trg()) != visited.end()) {
+		    // Find a tail call targeting a block within the same function
+		    // So, this edge is not a tail call
+		    e->_type._interproc = false;
+		}
+	    }
+	}
+    }
+
+
     // is this the first time we've parsed this function?
     if (unlikely( !f->_extents.empty() )) {
         _parse_data->remove_extents(f->_extents);
@@ -922,6 +943,7 @@ Parser::finalize()
     if(_parse_state < FINALIZED) {
         finalize_funcs(hint_funcs);
         finalize_funcs(discover_funcs);
+	clean_bogus_funcs(discover_funcs);
 	finalize_ranges(hint_funcs);
 	finalize_ranges(discover_funcs);
         _parse_state = FINALIZED;
@@ -964,6 +986,34 @@ Parser::finalize_ranges(vector<Function *> &funcs)
 	    rd->insertBlockByRange(*bit);
 	for (auto eit = f->extents().begin(); eit != f->extents().end(); ++eit)
 	    rd->funcsByRange.insert(*eit);
+    }
+}
+
+void
+Parser::clean_bogus_funcs(vector<Function*> &funcs)
+{
+    for (auto fit = funcs.begin(); fit != funcs.end(); ) {
+        Function *f = *fit;
+	if (f->src() == HINT) {
+	    fit++;
+	    continue;
+	}
+        bool interprocEdge = false;
+	for (auto eit = f->entry()->sources().begin(); !interprocEdge && eit != f->entry()->sources().end(); ++eit)
+	    if ((*eit)->interproc()) interprocEdge = true;
+	if (!interprocEdge) {
+	    // This is a discovered function that has no inter-procedural entry edge.
+	    // This function should be created because tail call heuristic makes a mistake
+	    // We have already fixed such bogos tail calls in the previous step of finalizing,
+	    // so now we should remove such bogus function
+            if (sorted_funcs.end() != sorted_funcs.find(f)) {
+                sorted_funcs.erase(f);
+            }
+	    fit = funcs.erase(fit);
+	    _parse_data->remove_func(f);
+	} else {
+	    fit++;
+	}
     }
 }
 

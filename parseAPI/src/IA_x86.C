@@ -265,6 +265,8 @@ bool IA_x86::isTailCall(const Function *context, EdgeTypeEnum type, unsigned int
        valid &&
        callee && 
        callee != context &&
+       // We can only trust entry points from hints
+       callee->src() == HINT &&
        /* the target can either be not parsed or not within the current context */
        ((target == NULL) || (target && !context->contains(target)))
        )

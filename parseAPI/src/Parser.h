@@ -252,6 +252,7 @@ namespace Dyninst {
             void finalize();
 
             void finalize_funcs(vector<Function *> &funcs);
+	    void clean_bogus_funcs(vector<Function*> &funcs);
             void finalize_ranges(vector<Function *> &funcs);
 
 

@@ -139,8 +139,10 @@ bool IA_power::isTailCall(const Function* context, EdgeTypeEnum type, unsigned i
        valid &&
        callee && 
        callee != context &&
-       target &&
-       !context->contains(target)
+       // We can only trust entry points from hints
+       callee->src() == HINT &&
+       /* the target can either be not parsed or not within the current context */
+       ((target == NULL) || (target && !context->contains(target)))
        )
     {
       parsing_printf("\tjump to 0x%lx, TAIL CALL\n", addr);
