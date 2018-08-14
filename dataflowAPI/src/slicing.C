@@ -798,13 +798,6 @@ Slicer::getPredecessors(
     bool err = false;
     SliceFrame nf;
     
-    // The curernt function may have an invalid cache status.
-    // We may have to first finalize this function before
-    // iteratingover the src edges of the current block.
-    // Otherwise, the iterator in the for_each loop can get
-    // invalidated during the loop.
-    // We force finalizing if necessary
-    cand.loc.func->num_blocks();
     SingleContextOrInterproc epred(cand.loc.func, true, true);       
     Block::edgelist sources;
     cand.loc.block->copy_sources(sources);
