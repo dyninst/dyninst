@@ -173,8 +173,9 @@ namespace Dyninst
       const signed int L_REG = 0x00000100; //8-bit, first byte
       const signed int H_REG = 0x00000200; //8-bit, second byte
       const signed int W_REG = 0x00000300; //16-bit, first word
-      const signed int FULL  = 0x00000400; //32 bits
-      const signed int QUAD  = 0x00000500; //64 bits
+      // MachRegister::getBaseRegister clears the bit field for size,
+      // so the full register size has to be 0
+      const signed int FULL  = 0x00000000; //32 bits
       const signed int OCT   = 0x00000600; //128 bits
       const signed int FPDBL = 0x00000700; // 80 bits
       const signed int BIT   = 0x00000800; // 1 bit
@@ -429,8 +430,9 @@ namespace Dyninst
       const signed int H_REG = 0x00000200;  //8-bit, second byte
       const signed int W_REG = 0x00000300; //16 bit, first work
       const signed int D_REG = 0x00000F00; //32 bit, first double word
-      const signed int FULL  = 0x00000400; //32 bits
-      const signed int QUAD  = 0x00000500; //64 bits
+      // MachRegister::getBaseRegister clears the bit field for size,
+      // so the full register size has to be 0
+      const signed int FULL  = 0x00000000; //64 bits
       const signed int OCT   = 0x00000600; //128 bits
       const signed int FPDBL = 0x00000700; // 80 bits
       const signed int BIT   = 0x00000800; // 1 bit
