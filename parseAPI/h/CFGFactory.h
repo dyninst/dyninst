@@ -124,6 +124,7 @@ class PARSER_EXPORT CFGFactory : public boost::basic_lockable_adapter<boost::rec
                                     std::string name, CodeObject *obj,
                                     CodeRegion *region, InstructionSource *isrc);
     Block *_mkblock(Function *f, CodeRegion *r, Address addr);
+    Block *_mkblock(CodeObject *co, CodeRegion *r, Address addr);
     Edge *_mkedge(Block *src, Block *trg, EdgeTypeEnum type);
     
     Block *_mksink(CodeObject *obj, CodeRegion *r);

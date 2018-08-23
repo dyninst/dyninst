@@ -48,9 +48,10 @@ static void BuildEdgeFromVirtualEntry(SliceNode::Ptr virtualEntry,
     }
     if (visit.find(curBlock) != visit.end()) return;
     visit.insert(curBlock);
-	boost::lock_guard<Block> g(*curBlock);
-    for (auto eit = curBlock->targets().begin(); eit != curBlock->targets().end(); ++eit)
-        if ((*eit)->type() != CALL && (*eit)->type() != RET) {
+    Block::edgelist targets;
+    curBlock->copy_targets(targets);
+    for (auto eit = targets.begin(); eit != targets.end(); ++eit)
+        if ((*eit)->type() != CALL && (*eit)->type() != RET && (*eit)->type() != CATCH && !(*eit)->interproc()) {
 	    BuildEdgeFromVirtualEntry(virtualEntry, (*eit)->trg(), targetMap, visit, slice);
 	}
 }
@@ -124,7 +125,6 @@ void BoundFactsCalculator::DetermineAnalysisOrder() {
 	    }
 	}
     }
-
     slice->clearEntryNodes();
     slice->markAsEntryNode(virtualEntry);
 }

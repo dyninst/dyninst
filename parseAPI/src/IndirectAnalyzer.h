@@ -21,9 +21,12 @@ class IndirectControlFlowAnalyzer {
                    AbsRegion,
 		   StridedInterval &,
 		   int ,
+		   bool, 
+		   bool, 
 		   std::set<Address> &,
 		   std::vector<std::pair<Address, Dyninst::ParseAPI::EdgeTypeEnum> > &);
     int GetMemoryReadSize(Assignment::Ptr loc);
+    bool IsZeroExtend(Assignment::Ptr loc);
 
 
 public:

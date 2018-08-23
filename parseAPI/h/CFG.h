@@ -330,6 +330,10 @@ public:
         boost::lock_guard<Block> g(*this);
         src = _srclist;
     }
+    void copy_targets(edgelist & trg) {
+        boost::lock_guard<Block> g(*this);
+	trg = _trglist;
+    }
 
     bool consistent(Address addr, Address & prev_insn);
 

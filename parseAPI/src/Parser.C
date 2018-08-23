@@ -859,10 +859,13 @@ Parser::finalize(Function *f)
 	for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit) {
 	    Edge *e = *eit;
 	    if (e->interproc() && (e->type() == DIRECT || e->type() == COND_TAKEN)) {
-	        if (visited.find(e->trg()) != visited.end()) {
-		    // Find a tail call targeting a block within the same function
-		    // So, this edge is not a tail call
+	        if (visited.find(e->trg()) != visited.end() && e->trg() != f->entry()) {
+		    // Find a tail call targeting a block within the same function.
+		    // If the jump target is the function entry,
+		    // it is a recursive tail call.
+		    // Otherwise,  this edge is not a tail call
 		    e->_type._interproc = false;
+		    parsing_printf("from %lx to %lx, marked as not tail call\n", b->last(), e->trg()->start());
 		}
 	    }
 	}
@@ -944,8 +947,34 @@ Parser::finalize()
         finalize_funcs(hint_funcs);
         finalize_funcs(discover_funcs);
 	clean_bogus_funcs(discover_funcs);
-	finalize_ranges(hint_funcs);
-	finalize_ranges(discover_funcs);
+
+	map<Address, Block*> allBlocks;
+	finalize_ranges(hint_funcs, allBlocks);
+	finalize_ranges(discover_funcs, allBlocks);
+
+	set<Block*> splited_blocks;
+	split_overlapped_blocks(allBlocks, splited_blocks); 
+
+
+	if (splited_blocks.size() > 0) {
+            vector<Function*> splited_funcs;
+	    for (auto fit = hint_funcs.begin(); fit != hint_funcs.end(); ++fit) {
+	        bool need_refinalize = false;
+		const Function * const  f = *fit;
+		for (auto bit = splited_blocks.begin(); bit != splited_blocks.end(); ++bit) {
+		    Block * b = *bit;
+		    if (f->contains(b)) {
+		        need_refinalize = true;
+			break;
+		    }
+		}
+		if (need_refinalize) {
+		    splited_funcs.push_back(*fit);
+		    (*fit)->_cache_valid = false;
+		}
+	    }
+	    finalize_funcs(splited_funcs);
+	}
         _parse_state = FINALIZED;
     }
 }
@@ -976,14 +1005,17 @@ Parser::finalize_funcs(vector<Function *> &funcs)
 }
 
 void
-Parser::finalize_ranges(vector<Function *> &funcs)
+Parser::finalize_ranges(vector<Function *> &funcs, map<Address,Block*> &allBlocks)
 {
     for (int i = 0; i < funcs.size(); ++i) {
 	Function *f = funcs[i];
     	region_data * rd = _parse_data->findRegion(f->region());
     	Function::blocklist blocks = f->blocks();
-	for (auto bit = blocks.begin(); bit != blocks.end(); ++bit)
-	    rd->insertBlockByRange(*bit);
+	for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
+	    Block * b = *bit;
+	    allBlocks[b->start()] = b;
+	    rd->insertBlockByRange(b);
+	}
 	for (auto eit = f->extents().begin(); eit != f->extents().end(); ++eit)
 	    rd->funcsByRange.insert(*eit);
     }
@@ -1015,6 +1047,125 @@ Parser::clean_bogus_funcs(vector<Function*> &funcs)
 	    fit++;
 	}
     }
+}
+
+void
+Parser::split_overlapped_blocks(map<Address, Block*>& allBlocks, set<Block*> &splited_blocks)
+{
+   // First split consistent overlapping blocks.
+   // We do not need to create new blocks in such cases
+   for (auto bit = allBlocks.begin(); bit != allBlocks.end(); ++bit) {
+        Block* b = bit->second;
+	set<Block*> overlappingBlocks;
+	region_data *rd = _parse_data->findRegion(b->region());
+	rd->findBlocks(b->start(), overlappingBlocks);
+	if (overlappingBlocks.size() > 1) {
+	    for (auto obit = overlappingBlocks.begin(); obit != overlappingBlocks.end(); ++obit) {
+		Block * ob = *obit;
+		if (ob == b) continue;
+		Address previnsn;
+		if (ob->consistent(b->start(), previnsn)) {
+		    // For consistent blocks,
+		    // we only need to create a new fall through edge
+		    // and delete duplicated outgoing edges
+		    rd->blocksByRange.remove(ob);
+		    Block::edgelist &trgs = ob ->_trglist;
+		    Block::edgelist::iterator tit = trgs.begin();
+		    for (; tit != trgs.end(); ++tit) {
+		        Edge *e = *tit;
+			Block* trgBlock = e->trg();
+		        trgBlock->removeSource(e);	
+		    }
+                    trgs.clear();
+                    ob->updateEnd(b->start());
+                    ob->_lastInsn = previnsn;
+                    link(ob, b,FALLTHROUGH,false);
+		    rd->insertBlockByRange(ob);
+		    splited_blocks.insert(ob);
+		}
+	    } 
+	}
+   }
+
+   // Now, let's deal with inconsistent overlapping blocks
+   // We will need to create new blocks
+   for (auto bit = allBlocks.begin(); bit != allBlocks.end(); ++bit) {
+        Block* b = bit->second;
+	set<Block*> overlappingBlocks;
+	region_data *rd = _parse_data->findRegion(b->region());
+	rd->findBlocks(b->start(), overlappingBlocks);
+	if (overlappingBlocks.size() > 1) {
+	    for (auto obit = overlappingBlocks.begin(); obit != overlappingBlocks.end(); ++obit) {
+		Block * ob = *obit;
+		if (ob == b) continue;
+		Address previnsn;
+		if (!ob->consistent(b->start(), previnsn)) {
+		    if (ob->end() == b->end()) {
+		        Block::Insns b1_insns;
+			Block::Insns b2_insns;
+			b->getInsns(b1_insns);
+			ob->getInsns(b2_insns);
+			Address cur;
+			for (auto iit = b1_insns.begin(); iit != b1_insns.end(); ++iit) {
+			    cur = iit->first;
+			    if (b2_insns.find(cur) != b2_insns.end()) {
+				// The two blocks align
+			        rd->blocksByRange.remove(ob);
+				rd->blocksByRange.remove(b);
+	    
+				// We only need to keep one copy of the outgoing edges
+				Block::edgelist &trgs = ob ->_trglist;
+		    		Block::edgelist::iterator tit = trgs.begin();
+			       	for (; tit != trgs.end(); ++tit) {
+		                    Edge *e = *tit;
+			            Block* trgBlock = e->trg();
+		                    trgBlock->removeSource(e);	
+		                }
+                                trgs.clear();
+
+				Block * newB = factory()._mkblock(b->obj(), b->region(), cur);
+			
+				Block::edgelist &trgs2 = b->_trglist;
+				tit = trgs2.begin();
+				
+				// Copy the outgoing edges to the new block
+				for (; tit != trgs2.end(); ++tit) {
+				    Edge *e = *tit;
+                                    e->_source = newB;
+                                    newB->_trglist.push_back(e);
+				}
+                                trgs2.clear();
+
+                                newB->updateEnd(b->end());
+                                newB->_lastInsn = b->_lastInsn;
+                                newB->_parsed = true;
+        
+				b->updateEnd(cur);
+				auto iter = b1_insns.find(cur);
+				--iter;
+                                b->_lastInsn = iter ->first;
+                                link(b,newB,FALLTHROUGH,false);
+
+				iter = b2_insns.find(cur);
+				--iter;
+				ob->updateEnd(cur);
+				ob->_lastInsn = iter->first; 
+				record_block(newB);
+
+				rd->insertBlockByRange(b);
+				rd->insertBlockByRange(ob);
+				rd->insertBlockByRange(newB);
+				break;
+	                    }
+			}
+		    } else {
+		        parsing_printf("TODO: handle  the case where inconsistent blocks do not align\n");
+		    }
+		} 
+	    } 
+	}
+   }
+
 }
 
 void

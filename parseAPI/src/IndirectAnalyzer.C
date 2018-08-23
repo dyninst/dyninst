@@ -108,6 +108,7 @@ boost::make_lock_guard(*func);
     }
 
     StridedInterval b;
+    bool scanTable = false;
     if (!variableArguFormat) {
         Slicer indexSlicer(jtfp.indexLoc, jtfp.indexLoc->block(), func, false, false);
 	JumpTableIndexPred jtip(func, block, jtfp.index, se);
@@ -132,6 +133,7 @@ boost::make_lock_guard(*func);
         } else {
             parsing_printf(" Cannot find bound, assume there are at most 256 entries and scan the table\n");
 	    b = StridedInterval(1, 0, 255);
+	    scanTable = true;
         }
     } else {
         b = StridedInterval(1, 0, 8);
@@ -141,6 +143,8 @@ boost::make_lock_guard(*func);
               jtfp.index,
 	      b,
 	      GetMemoryReadSize(jtfp.memLoc),
+	      IsZeroExtend(jtfp.memLoc),
+	      scanTable,
 	      jtfp.constAddr,
 	      jumpTableOutEdges);
     parsing_printf(", find %d edges\n", jumpTableOutEdges.size());
@@ -244,13 +248,14 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
                                             AbsRegion index,
 					    StridedInterval &indexBound,
 					    int memoryReadSize,
+					    bool isZeroExtend,
+					    bool scanTable,
 					    set<Address> &constAddr,
 					    std::vector<std::pair<Address, Dyninst::ParseAPI::EdgeTypeEnum> > &targetEdges) {
     CodeSource *cs = block->obj()->cs();
     set<Address> jumpTargets;
     for (int v = indexBound.low; v <= indexBound.high; v += indexBound.stride) {
-        // TODO: need to detect whether the memory is a zero extend or a sign extend
-        JumpTableReadVisitor jtrv(index, v, cs, false, memoryReadSize);
+        JumpTableReadVisitor jtrv(index, v, cs, isZeroExtend, memoryReadSize);
 	jumpTargetExpr->accept(&jtrv);
 	if (jtrv.valid && cs->isCode(jtrv.targetAddress)) {
 	    bool stop = false;
@@ -268,6 +273,18 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
 			parsing_printf("WARNING: resolving jump tables leads to address %lx, which is not in the function range specified in the symbol table\n", jtrv.targetAddress);
 			parsing_printf("\tSymbol at %lx, end at %lx\n", startAddr, startAddr + size);
 		    }
+		}
+	    }
+	    if (scanTable && jumpTargets.size() > 0) {
+	        // This is a tentative scan of the table, where we do not know the index size.
+		// Typically, the table is layout in a way that the target address is increasing
+		// or decreasing.
+		auto smallIt = jumpTargets.begin();
+		auto largeIt = jumpTargets.end();
+		--largeIt;
+		if (jtrv.targetAddress < *largeIt && jtrv.targetAddress > *smallIt) {
+		    stop = true;
+		    parsing_printf("WARNING: we do not know the index size and we are scanning the table. We stop now because the jump target seems to not increasing or decreasing\n");
 		}
 	    }
 	    if (stop) break;
@@ -307,4 +324,15 @@ int IndirectControlFlowAnalyzer::GetMemoryReadSize(Assignment::Ptr memLoc) {
 	}
     }
     return 0;
+}
+
+bool IndirectControlFlowAnalyzer::IsZeroExtend(Assignment::Ptr memLoc) {
+    if (!memLoc) {
+        parsing_printf("\tmemLoc is null\n");
+        return false;
+    }
+    Instruction i = memLoc->insn();
+    parsing_printf("check zero extend %s\n", i.format().c_str());
+    if (i.format().find("movz") != string::npos) return true;
+    return false;
 }

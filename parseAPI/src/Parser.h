@@ -253,7 +253,8 @@ namespace Dyninst {
 
             void finalize_funcs(vector<Function *> &funcs);
 	    void clean_bogus_funcs(vector<Function*> &funcs);
-            void finalize_ranges(vector<Function *> &funcs);
+            void finalize_ranges(vector<Function *> &funcs, map<Address, Block*>& blocks);
+	    void split_overlapped_blocks(map<Address, Block*> &, set<Block*> &);
 
 
             void invalidateContainingFuncs(Function *, Block *);
