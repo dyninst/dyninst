@@ -2951,6 +2951,7 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
         DbgSectionMapSorted(false),
         soname_(NULL)
 {
+    li_for_object = NULL; 
 
 #if defined(TIMED_PARSE)
     struct timeval starttime;
@@ -3018,6 +3019,10 @@ Object::~Object()
     versionMapping.clear();
     versionFileNameMapping.clear();
     deps_.clear();
+    if (li_for_object) {
+        delete li_for_object;
+        li_for_object = NULL;
+    }
 }
 
 void Object::log_elferror(void (*err_func)(const char *), const char* msg)
@@ -4469,11 +4474,17 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 }
 
 
-void Object::parseLineInfo(LineInformation* li_for_module)
+LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
 {
+    if (!li_for_object) {
+        // The line information for this object has been parsed.
+        return li_for_object;
+    }
+    li_for_object = new LineInformation(); 
+    li_for_object->setStrings(strings);
     /* Initialize libdwarf. */
     Dwarf **dbg_ptr = dwarf->type_dbg();
-    if (!dbg_ptr) return;
+    if (!dbg_ptr) return li_for_object;
     Dwarf *dbg = *dbg_ptr;
 
     Dwarf_Off off, next_off = 0;
@@ -4491,7 +4502,7 @@ void Object::parseLineInfo(LineInformation* li_for_module)
 			     &files, &fileCount, &lineBuffer, &lineCount)) == 0)
     {
 
-    StringTablePtr strings(li_for_module->getStrings());
+    StringTablePtr strings(li_for_object->getStrings());
     size_t offset = strings->size();
 
     // dwarf_line_srcfileno == 0 means unknown; 1...n means files[0...n-1]
@@ -4513,7 +4524,7 @@ void Object::parseLineInfo(LineInformation* li_for_module)
             strings->push_back(filename);
         }
     }
-    li_for_module->setStrings(strings);
+    li_for_object->setStrings(strings);
     /* The 'lines' returned are actually interval markers; the code
      generated from lineNo runs from lineAddr up to but not including
      the lineAddr of the next line. */
@@ -4598,7 +4609,7 @@ void Object::parseLineInfo(LineInformation* li_for_module)
 	      current_line.end_addr = current_statement.start_addr;
 	      if (!current_line.sameFileLineColumn(current_statement) ||
 		  isEndOfSequence) {
-                li_for_module->addLine((unsigned int)(current_line.string_table_index),
+                li_for_object->addLine((unsigned int)(current_line.string_table_index),
                                        (unsigned int)(current_line.line_number),
                                        (unsigned int)(current_line.column_number),
                                        current_line.start_addr, current_line.end_addr);
@@ -4610,6 +4621,7 @@ void Object::parseLineInfo(LineInformation* li_for_module)
 	}
     } 
     }
+    return li_for_object;
 }
 
 

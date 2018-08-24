@@ -236,6 +236,7 @@ namespace Dyninst{
 			void finalizeRanges();
 
 		private:
+            bool objectLevelLineInfo;
 			Dyninst::SymtabAPI::LineInformation* lineInfo_;
 			typeCollection* typeInfo_;
 			std::vector<Module::DebugInfoT> info_;

@@ -218,14 +218,14 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
 }
 
 LineInformation *Module::parseLineInformation() {
-    // Allocate if none
-    if (!lineInfo_)
-    {
-        lineInfo_ = new LineInformation;
-        // share our string table
-        lineInfo_->setStrings(strings_);
-    }
     if (exec()->getObject()->hasDebugInfo()) {
+        // Allocate if none
+        if (!lineInfo_) {
+            lineInfo_ = new LineInformation;
+            // share our string table
+            lineInfo_->setStrings(strings_);
+        }
+
         // Parse any CUs that have been added to our list
         if(!info_.empty()) {
             for(auto cu = info_.begin();
@@ -243,7 +243,8 @@ LineInformation *Module::parseLineInformation() {
         // Clear list of work to do
         info_.clear();
     } else {
-        exec()->getObject()->parseLineInfo(lineInfo_);
+        objectLevelLineInfo = true;
+        lineInfo_ = exec()->getObject()->parseLineInfoForObject(strings_);
     }
     return lineInfo_;
 }
@@ -363,6 +364,7 @@ Module::Module(supportedLanguages lang, Offset adr,
 }
 
 Module::Module() :
+   objectLevelLineInfo(false),
    lineInfo_(NULL),
    typeInfo_(NULL),
    fileName_(""),
@@ -378,6 +380,7 @@ Module::Module() :
 
 Module::Module(const Module &mod) :
    LookupInterface(),
+   objectLevelLineInfo(mod.objectLevelLineInfo),
    lineInfo_(mod.lineInfo_),
    typeInfo_(mod.typeInfo_),
    info_(mod.info_),
@@ -395,7 +398,8 @@ Module::Module(const Module &mod) :
 
 Module::~Module()
 {
-  delete lineInfo_;
+  if (!objectLevelLineInfo)
+    delete lineInfo_;
   delete typeInfo_;
   
 }
