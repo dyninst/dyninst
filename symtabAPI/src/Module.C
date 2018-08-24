@@ -218,7 +218,7 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
 }
 
 LineInformation *Module::parseLineInformation() {
-    if (exec()->getObject()->hasDebugInfo()) {
+    if (exec()->getObject()->hasDebugInfo() || !info_.empty()) {
         // Allocate if none
         if (!lineInfo_) {
             lineInfo_ = new LineInformation;
@@ -242,7 +242,7 @@ LineInformation *Module::parseLineInformation() {
 
         // Clear list of work to do
         info_.clear();
-    } else {
+    } else if (!lineInfo_) {
         objectLevelLineInfo = true;
         lineInfo_ = exec()->getObject()->parseLineInfoForObject(strings_);
     }
