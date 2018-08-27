@@ -2226,8 +2226,29 @@ struct X86_64InstructionSemantics {
                 ROSE_ASSERT(insn->get_operandSize() == x86_insnsize_64);
                 Word(64) oldSp = policy.readGPR(x86_gpr_sp);
                 Word(64) newSp = policy.add(oldSp, number<64>(8));
-                write64(operands[0], readMemory<64>(x86_segreg_ss, oldSp, policy.true_()));
+                switch (numBytesInAsmType(operands[0]->get_type())) {
+                    case 1: {
+                        write8(operands[0], readMemory<8>(x86_segreg_ss, oldSp, policy.true_()));
+                        break;
+                    }
+                    case 2: {
+                        write16(operands[0], readMemory<16>(x86_segreg_ss, oldSp, policy.true_()));
+                        break;
+                    }
+                    case 4: {
+                        write32(operands[0], readMemory<32>(x86_segreg_ss, oldSp, policy.true_()));
+                        break;
+                    }
+                    case 8: {
+                        write64(operands[0], readMemory<64>(x86_segreg_ss, oldSp, policy.true_()));
+                        break;
+                    }
+                    default:
+                        ROSE_ASSERT(!"Bad size");
+                        break;
+                }
                 policy.writeGPR(x86_gpr_sp, newSp);
+
                 break;
             }
 /*
