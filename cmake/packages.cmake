@@ -126,7 +126,7 @@ if(DEFINED PATH_BOOST OR
 endif()
 
 
-find_package (Boost ${BOOST_MIN_VERSION} COMPONENTS thread system date_time timer filesystem)
+find_package (Boost ${BOOST_MIN_VERSION} COMPONENTS thread system date_time timer filesystem atomic)
 
 if(NOT Boost_FOUND)
   set (BOOST_ARGS
@@ -135,6 +135,7 @@ if(NOT Boost_FOUND)
           --with-date_time
 	  --with-filesystem
 	  --with-timer
+          --with-atomic
           --ignore-site-config
           --link=static
           --runtime-link=shared
@@ -177,8 +178,10 @@ if(NOT Boost_FOUND)
     set(Boost_LIBRARIES optimized libboost_thread-mt debug libboost_thread-mt-gd)
     list(APPEND Boost_LIBRARIES optimized libboost_system-mt debug libboost_system-mt-gd)
     list(APPEND Boost_LIBRARIES optimized libboost_date_time-mt debug libboost_date_time-mt-gd)
+    list(APPEND Boost_LIBRARIES optimized libboost_atomic-mt debug libboost_atomic-mt-gd)
+
   else()
-    set(Boost_LIBRARIES boost_thread-mt boost_system-mt boost_date_time-mt boost_filesystem-mt)
+    set(Boost_LIBRARIES boost_thread-mt boost_system-mt boost_date_time-mt boost_filesystem-mt boost_atomic-mt)
   endif()
 endif()
 
