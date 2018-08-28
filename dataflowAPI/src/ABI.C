@@ -378,7 +378,7 @@ void ABI::initialize32(){
     (*callParam_)[machRegIndex_ppc()[ppc32::r10]] = true;
 
 
-    (*returnRead_) = new bitArray(machRegIndex_ppc().size());
+    returnRead_ = new bitArray(machRegIndex_ppc().size());
     // Return reads r3, r4, fpr1, fpr2
     (*returnRead_)[machRegIndex_ppc()[ppc32::r3]] = true;
     (*returnRead_)[machRegIndex_ppc()[ppc32::r4]] = true;
@@ -455,7 +455,7 @@ void ABI::initialize32(){
     //syscallRead_ = new bitArray().set();
     //syscallWritten_ = new bitArray().set();
     syscallRead_ = new bitArray(machRegIndex_ppc().size());
-    (*syscallRead)_ = (*callRead_);
+    (*syscallRead_) = (*callRead_);
     (*syscallRead_)[machRegIndex_ppc()[ppc32::r0]] = true;
     syscallWritten_ = new bitArray(machRegIndex_ppc().size());
     *syscallWritten_ = (*callWritten_);
