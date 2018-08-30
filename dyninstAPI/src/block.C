@@ -45,14 +45,14 @@ using namespace Dyninst::ParseAPI;
 
 block_instance::block_instance(ParseAPI::Block *ib,
                                mapped_object *obj)
-  : PatchBlock(ib, obj) {
+  : PatchBlock(ib, obj), _ignorePowerPreamble(false) {
   // We create edges lazily
 };
 
 // Fork constructor
 block_instance::block_instance(const block_instance *parent,
                                mapped_object *childObj)
-  : PatchBlock(parent, childObj) {
+  : PatchBlock(parent, childObj), _ignorePowerPreamble(false) {
   // We also need to copy edges.
   // Thing is, those blocks may not exist yet...
   // So we wait, and do edges after all blocks have
@@ -102,6 +102,11 @@ edge_instance *block_instance::getTarget() {
 int block_instance::id() const {
   return llb()->id();
 }
+
+Address block_instance::GetBlockStartingAddress() {
+  return llb()->firstInsnOffset();
+}
+
 
 using namespace Dyninst::Relocation;
 void block_instance::triggerModified() {

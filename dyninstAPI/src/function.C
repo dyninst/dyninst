@@ -68,7 +68,9 @@ func_instance::func_instance(parse_func *f,
   , callingConv(unknown_call)
   , paramSize(0)
 #endif
-   , wrapperSym_(NULL)
+   , wrapperSym_(NULL),
+     _noPowerPreambleFunc(NULL),
+     _powerPreambleFunc(NULL)
 {
   assert(f);
 #if defined(ROUGH_MEMORY_PROFILE)
@@ -118,7 +120,10 @@ func_instance::func_instance(const func_instance *parFunc,
   , callingConv(parFunc->callingConv)
   , paramSize(parFunc->paramSize)
 #endif
-   , wrapperSym_(NULL)
+   , wrapperSym_(NULL),
+     _noPowerPreambleFunc(NULL),
+     _powerPreambleFunc(NULL)
+
 {
    assert(ifunc());
    // According to contract /w/ the mapped_object

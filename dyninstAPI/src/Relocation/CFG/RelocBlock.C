@@ -72,8 +72,12 @@ RelocBlock *RelocBlock::createReloc(block_instance *block, func_instance *func) 
   if (!block) return NULL;
 
   relocation_cerr << "Creating new RelocBlock" << endl;
-
-  RelocBlock *newRelocBlock = new RelocBlock(block, func);
+  RelocBlock *newRelocBlock;
+  if (block->_ignorePowerPreamble) {
+    newRelocBlock = new RelocBlock(block->start() + 0x8, block, func, true);
+  } else {
+    newRelocBlock = new RelocBlock(block, func);
+  }
 
   // Get the list of instructions in the block
   block_instance::Insns insns;

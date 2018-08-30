@@ -60,13 +60,13 @@ int instruction::signExtend(unsigned int i, unsigned int pos)
 
 instructUnion &instruction::swapBytes(instructUnion &i)
 {
-    i.byte[0] = i.byte[0] ^ i.byte[3];
-    i.byte[3] = i.byte[0] ^ i.byte[3];
-    i.byte[0] = i.byte[0] ^ i.byte[3];
+    unsigned char tmp = i.byte[0];
+    i.byte[0] = i.byte[3];
+    i.byte[3] = tmp;
 
-    i.byte[1] = i.byte[1] ^ i.byte[2];
-    i.byte[2] = i.byte[1] ^ i.byte[2];
-    i.byte[1] = i.byte[1] ^ i.byte[2];
+    tmp = i.byte[1];
+    i.byte[1] = i.byte[2];
+    i.byte[2] = tmp;
 
     return i;
 }
@@ -124,13 +124,7 @@ void instruction::setInstruction(codeBuf_t *ptr, Address) {
     // We don't need the addr on this platform
 
     instructUnion *insnPtr = (instructUnion *)ptr;
-
-#if defined(endian_mismatch)
-    // Read an instruction from source.  Convert byte order if necessary.
-    insn_.raw = swapBytesIfNeeded((*insnPtr).raw);
-#else
     insn_.raw = (*insnPtr).raw;
-#endif
 }
 void instruction::setInstruction(unsigned char *ptr, Address) {
     // We don't need the addr on this platform

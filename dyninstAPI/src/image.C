@@ -1322,6 +1322,21 @@ void image::analyzeIfNeeded() {
   }
 }
 
+static bool CheckForPowerPreamble(parse_block* entryBlock) {
+    std::vector<std::string> retString;
+    entryBlock->GetBlockInstructions(retString);
+    if (retString.size() < 2)
+      return false;
+    // Power Preambles
+    if ((retString[0].find("lis r2") != std::string::npos && retString[1].find("addi r2") != std::string::npos) ||
+        (retString[0].find("addis r2") != std::string::npos && retString[1].find("addi r2") != std::string::npos)) {
+        return true; 
+    }
+    return false;
+}
+
+
+
 void image::analyzeImage() {
 #if defined(TIMED_PARSE)
     struct timeval starttime;
@@ -1343,6 +1358,7 @@ void image::analyzeImage() {
 
     obj_->parse();
 
+
 #if defined(cap_stripped_binaries)
    {
        vector<CodeRegion *>::const_iterator rit = cs_->regions().begin();
@@ -1355,6 +1371,7 @@ void image::analyzeImage() {
        } 
    }
 #endif // cap_stripped_binaries
+   
     
     parseState_ = analyzed;
   done:
@@ -1529,9 +1546,30 @@ image::image(fileDescriptor &desc,
    cs_ = new SymtabCodeSource(linkedFile,filt,parseInAllLoadableRegions);
 
    // Continue ParseAPI init
+//   fprintf(stderr, "#### create CodeObject for %s\n", desc.file().c_str());
    img_fact_ = new DynCFGFactory(this);
    parse_cb_ = new DynParseCallback(this);
    obj_ = new CodeObject(cs_,img_fact_,parse_cb_,BPatch_defensiveMode == mode);
+
+     if (obj_->cs()->getArch() == Arch_ppc64) {
+        // The PowerPC new ABI typically generate two entries per function.
+        // Need special hanlding for them
+        std::map<uint64_t, parse_func *> _findPower8Overlaps;
+        for (auto fit = obj_->funcs().begin(); fit != obj_->funcs().end(); ++fit) {
+            parse_func* funct = static_cast<parse_func*>(*fit);
+            _findPower8Overlaps[funct->addr()] = funct;
+        }
+        for (auto fit = obj_->funcs().begin(); fit != obj_->funcs().end(); ++fit) {
+            parse_func* funct = static_cast<parse_func*>(*fit);
+            if(CheckForPowerPreamble(static_cast<parse_block*>(funct->entry()))){
+                funct->setContainsPowerPreamble(true);
+                auto iter = _findPower8Overlaps.find(funct->addr() + 0x8);
+                if (iter != _findPower8Overlaps.end()) {
+                    funct->setNoPowerPreambleFunc(iter->second);
+                } 
+            }
+        }
+    }
 
    string msg;
    // give user some feedback....
