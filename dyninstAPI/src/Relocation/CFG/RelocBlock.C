@@ -72,12 +72,7 @@ RelocBlock *RelocBlock::createReloc(block_instance *block, func_instance *func) 
   if (!block) return NULL;
 
   relocation_cerr << "Creating new RelocBlock" << endl;
-  RelocBlock *newRelocBlock;
-  if (block->_ignorePowerPreamble) {
-    newRelocBlock = new RelocBlock(block->start() + 0x8, block, func, true);
-  } else {
-    newRelocBlock = new RelocBlock(block, func);
-  }
+  RelocBlock *newRelocBlock = new RelocBlock(block, func);
 
   // Get the list of instructions in the block
   block_instance::Insns insns;
@@ -85,6 +80,7 @@ RelocBlock *RelocBlock::createReloc(block_instance *block, func_instance *func) 
 
   for (block_instance::Insns::iterator iter = insns.begin();
        iter != insns.end(); ++iter) {
+    if (block->_ignorePowerPreamble && iter->first < block->block()->start() + 0x8) continue;
     relocation_cerr << "  Adding instruction @" 
 		    << std::hex << iter->first << std::dec
 		    << ": " << iter->second->format(iter->first) << endl;

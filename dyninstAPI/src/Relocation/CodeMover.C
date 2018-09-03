@@ -236,8 +236,10 @@ SpringboardMap &CodeMover::sBoardMap(AddressSpace *) {
          if (!trace) continue;
          int labelID = trace->getLabel();
          Address to = buffer_.getLabelAddr(labelID);
-         
-         sboardMap_.addFromOrigCode(bbl->start(), to, p, func, bbl);
+         if (bbl->_ignorePowerPreamble)  
+             sboardMap_.addFromOrigCode(bbl->start() + 0x8, to, p, func, bbl);
+         else
+             sboardMap_.addFromOrigCode(bbl->start(), to, p, func, bbl);
       }
       
       // And instrumentation that needs updating
