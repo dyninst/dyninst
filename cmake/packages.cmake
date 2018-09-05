@@ -114,7 +114,7 @@ if(DEFINED PATH_BOOST OR
 endif()
 
 
-find_package (Boost ${BOOST_MIN_VERSION} COMPONENTS thread system date_time)
+find_package (Boost ${BOOST_MIN_VERSION} COMPONENTS thread system date_time filesystem)
 
 
 if(NOT Boost_FOUND)

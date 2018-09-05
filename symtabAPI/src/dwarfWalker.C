@@ -289,7 +289,7 @@ bool DwarfWalker::buildSrcFiles(::Dwarf * /*dbg*/, Dwarf_Die entry, StringTableP
     if(!srcFiles->empty()) {
         return true;
     } // already parsed, the module had better be right.
-    srcFiles->push_back("Unknown file");
+    srcFiles->emplace_back("Unknown file","");
 
     // get comp_dir in case need to make absolute paths
     Dwarf_Attribute attr;
@@ -308,7 +308,7 @@ bool DwarfWalker::buildSrcFiles(::Dwarf * /*dbg*/, Dwarf_Die entry, StringTableP
             s_name = comp_dir_str + "/" + s_name;
         }
 
-        srcFiles->push_back(s_name);
+        srcFiles->emplace_back(s_name,"");
     }
     return true;
 }

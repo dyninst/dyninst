@@ -72,6 +72,7 @@ using namespace std;
 
 #include <boost/assign/list_of.hpp>
 #include <boost/assign/std/set.hpp>
+#include <boost/filesystem.hpp>
 
 #include "SymReader.h"
 #include <endian.h>
@@ -4271,37 +4272,43 @@ void Object::parseStabFileLineInfo()
 } /* end parseStabFileLineInfo() */
 
 class open_statement {
-public:
-  open_statement() { reset(); };
-  Dwarf_Addr noAddress() { return (Dwarf_Addr) ~0; }
-  bool uninitialized() {
-    return start_addr == noAddress();
-  };
-  void reset() {
-    string_table_index = -1;
-    start_addr = noAddress();
-    end_addr = noAddress();
-    line_number = 0;
-    column_number = 0;
-  };
-  bool sameFileLineColumn(const open_statement &rhs) {
-    return ((string_table_index == rhs.string_table_index) &&
-	    (line_number == rhs.line_number) &&
-            (column_number == rhs.column_number));
-  };
-  void operator=(const open_statement &rhs) {
-    string_table_index = rhs.string_table_index;
-    start_addr = rhs.start_addr;
-    end_addr = rhs.end_addr;
-    line_number = rhs.line_number;
-    column_number = rhs.column_number;
-  };
-public:
-  Dwarf_Word string_table_index;
-  Dwarf_Addr start_addr;
-  Dwarf_Addr end_addr;
-  int line_number;
-  int column_number;
+    public:
+        open_statement() { reset(); };
+        Dwarf_Addr noAddress() { return (Dwarf_Addr) ~0; }
+        bool uninitialized() {
+            return start_addr == noAddress();
+        };
+        void reset() {
+            string_table_index = -1;
+            start_addr = noAddress();
+            end_addr = noAddress();
+            line_number = 0;
+            column_number = 0;
+        };
+        bool sameFileLineColumn(const open_statement &rhs) {
+            return ((string_table_index == rhs.string_table_index) &&
+                    (line_number == rhs.line_number) &&
+                    (column_number == rhs.column_number));
+        };
+        void operator=(const open_statement &rhs) {
+            string_table_index = rhs.string_table_index;
+            start_addr = rhs.start_addr;
+            end_addr = rhs.end_addr;
+            line_number = rhs.line_number;
+            column_number = rhs.column_number;
+        };
+        friend std::ostream& operator<<(std::ostream& os, const open_statement& st)
+        {
+            os << st.start_addr << " " << st.end_addr << " "
+                << st.line_number << " " << st.string_table_index << std::endl;
+            return os;
+        }
+    public:
+        Dwarf_Word string_table_index;
+        Dwarf_Addr start_addr;
+        Dwarf_Addr end_addr;
+        int line_number;
+        int column_number;
 };
 
 
@@ -4351,7 +4358,8 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
     // dwarf_line_srcfileno == 0 means unknown; 1...n means files[0...n-1]
     // so we ensure that we're adding a block of unknown, 1...n to the string table
     // and that offset + dwarf_line_srcfileno points to the correct string
-    strings->push_back("<Unknown file>");
+    using namespace boost::filesystem;
+    strings->emplace_back("<Unknown file>","");
     for(size_t i = 1; i < filecount; i++)
     {
         auto filename = dwarf_filesrc(files, i, nullptr, nullptr);
@@ -4359,17 +4367,21 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         auto result = convert_to_absolute(filename);
         filename = result.c_str();
 
+        string f = path(filename).filename().string();
         auto tmp = strrchr(filename, '/');
+        if(tmp) ++tmp;
+
         if(truncateLineFilenames && tmp)
         {
-            strings->push_back(++tmp);
+            strings->emplace_back(tmp, tmp);
         }
         else
         {
-            strings->push_back(filename);
+            strings->emplace_back(filename,f);
         }
     }
     li_for_module->setStrings(strings);
+    //std::cerr << *strings.get();
     /* The 'lines' returned are actually interval markers; the code
      generated from lineNo runs from lineAddr up to but not including
      the lineAddr of the next line. */
@@ -4508,20 +4520,24 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
     // dwarf_line_srcfileno == 0 means unknown; 1...n means files[0...n-1]
     // so we ensure that we're adding a block of unknown, 1...n to the string table
     // and that offset + dwarf_line_srcfileno points to the correct string
-    strings->push_back("<Unknown file>");
+    using namespace boost::filesystem;
+    strings->emplace_back("<Unknown file>","");
     for(size_t i = 1; i < fileCount; i++)
     {
         auto filename = dwarf_filesrc(files, i, nullptr, nullptr);
         if(!filename) continue;
 
+        string f = path(filename).filename().string();
         auto tmp = strrchr(filename, '/');
+        if(tmp) ++tmp;
+
         if(truncateLineFilenames && tmp)
         {
-            strings->push_back(++tmp);
+            strings->emplace_back(tmp,tmp);
         }
         else
         {
-            strings->push_back(filename);
+            strings->emplace_back(filename,f);
         }
     }
     li_for_object->setStrings(strings);
