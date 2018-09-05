@@ -77,10 +77,10 @@ RelocBlock *RelocBlock::createReloc(block_instance *block, func_instance *func) 
   // Get the list of instructions in the block
   block_instance::Insns insns;
   block->getInsns(insns);
-
+  int cnt = 0;
   for (block_instance::Insns::iterator iter = insns.begin();
-       iter != insns.end(); ++iter) {
-    if (block->_ignorePowerPreamble && iter->first < block->block()->start() + 0x8) continue;
+       iter != insns.end(); ++iter, ++cnt) {
+    if (block->_ignorePowerPreamble && cnt < 2) continue;
     relocation_cerr << "  Adding instruction @" 
 		    << std::hex << iter->first << std::dec
 		    << ": " << iter->second->format(iter->first) << endl;

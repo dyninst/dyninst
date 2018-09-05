@@ -121,8 +121,8 @@ func_instance::func_instance(const func_instance *parFunc,
   , paramSize(parFunc->paramSize)
 #endif
    , wrapperSym_(NULL),
-     _noPowerPreambleFunc(NULL),
-     _powerPreambleFunc(NULL)
+     _noPowerPreambleFunc(parFunc->_noPowerPreambleFunc),
+     _powerPreambleFunc(parFunc->_powerPreambleFunc)
 
 {
    assert(ifunc());

@@ -52,7 +52,7 @@ block_instance::block_instance(ParseAPI::Block *ib,
 // Fork constructor
 block_instance::block_instance(const block_instance *parent,
                                mapped_object *childObj)
-  : PatchBlock(parent, childObj), _ignorePowerPreamble(false) {
+  : PatchBlock(parent, childObj), _ignorePowerPreamble(parent->_ignorePowerPreamble) {
   // We also need to copy edges.
   // Thing is, those blocks may not exist yet...
   // So we wait, and do edges after all blocks have
