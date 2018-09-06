@@ -3432,7 +3432,9 @@ int read_except_table_gcc3(
         }
         
         unsigned int j;
-        unsigned char lsda_encoding = 0xff, personality_encoding = 0xff, range_encoding = 0xff;
+        unsigned char lsda_encoding = DW_EH_PE_absptr;
+        unsigned char personality_encoding = DW_EH_PE_absptr;
+        unsigned char range_encoding = DW_EH_PE_absptr;
         unsigned char *lsda_ptr = NULL;
         unsigned char *cur_augdata;
         unsigned long except_off;
