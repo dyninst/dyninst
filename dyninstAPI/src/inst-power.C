@@ -3163,7 +3163,6 @@ bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
   //
   // TODO: the large model where everything is a 32-bit reference off the TOC. 
 
-
   const unsigned TOCreg = 2;
   const unsigned wordsize = gen.width();
   assert(wordsize == 8);
@@ -3214,7 +3213,7 @@ bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
   insnCodeGen::generateMoveToLR(gen, r_tmp);
 
   // Restore r_tmp to be sure
-  insnCodeGen::generateMemAccess64(gen, LDop, LDxop, r_tmp, REG_SP, 3*wordsize);
+  //insnCodeGen::generateMemAccess64(gen, LDop, LDxop, r_tmp, REG_SP, 3*wordsize);
 
   // blrl
   instruction branch_insn(BRLraw);
@@ -3238,89 +3237,6 @@ bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
  
   return true;
 }
-
-#if 0
-bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen &gen) {
-  // In PPC64 Linux, function descriptors are used in place of direct
-  // function pointers.  The descriptors have the following layout:
-  //
-  // Function Descriptor --> + 0: <Function Text Address>
-  //                         + 8: <TOC Pointer Value>
-  //                         +16: <Environment Pointer [Optional]>
-  //
-  // Additionally, this should be able to stomp on the link register (LR)
-  // and TOC register (r2), as they were saved by Emitter::emitCall() if
-  // necessary.
-  //
-  // So here's a brief sketch of the code this function generates:
-  // 
-  //   Set up new branch target in LR from function descriptor
-  //   Set up new TOC in R2 from function descriptor + 8
-  //   Call
-  bool isStaticBinary = false;
-  
-  if(gen.addrSpace()->edit()->getMappedObject()->parse_img()->getObject()->isStaticBinary()) {
-    isStaticBinary = true;
-  }
-  
-  const unsigned TOCreg = 2;
-  const unsigned wordsize = gen.width();
-  assert(wordsize == 8);
-  Address dest = getInterModuleFuncAddr(callee, gen);
-  Address caller_toc = 0;
-  Address toc_anchor = gen.addrSpace()->getTOCoffsetInfo(callee);
-  // Instead of saving the TOC (if we can't), just reset it afterwards.
-  if (gen.func()) {
-    caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.func());
-  }
-  else if (gen.point()) {
-    caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.point()->func());
-  }
-  else {
-    // Don't need it, and this might be an iRPC
-  }
-  
-  if(isStaticBinary)
-    caller_toc = 0;
-  
-  //Offset destOff = dest - gen.currAddr();
-  Offset destOff = dest - caller_toc;
-  
-  //    insnCodeGen::loadPartialImmIntoReg(gen, TOCreg, destOff);
-  // Broken to see if any of this generates intellible code.
-
-  Register scratchReg = 3; // = gen.rs()->getScratchRegister(gen, true);
-  int stackSize = 0;
-  if (scratchReg == REG_NULL) {
-    pdvector<Register> freeReg;
-    pdvector<Register> excludeReg;
-    stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
-    assert (stackSize == 1);
-    scratchReg = freeReg[0];
-  }
-  insnCodeGen::loadImmIntoReg(gen, scratchReg, destOff);
-
-  if(!isStaticBinary) {
-    insnCodeGen::generateLoadReg64(gen, scratchReg, scratchReg, TOCreg);
-    
-    insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
-				     TOCreg, scratchReg, 8);
-  } 
-  insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
-				   scratchReg, scratchReg, 0);
-  
-  insnCodeGen::generateMoveToCR(gen, scratchReg);
-
-  if (stackSize > 0)
-    insnCodeGen::removeStackFrame(gen);
-  
-  
-  instruction branch_insn(call ? BCTRLraw : BCTRraw);
-  insnCodeGen::generate(gen, branch_insn);
-  
-  return true;
-}
-#endif
 
 bool EmitterPOWER64Dyn::emitTOCCommon(block_instance *block, bool call, codeGen &gen) {
   // This code is complicated by the need to set the new TOC and restore it
@@ -3431,14 +3347,14 @@ bool EmitterPOWER64Stat::emitCallInstruction(codeGen &gen,
                                              func_instance *callee,
                                              bool setTOC, Address) {
     // if the TOC changes, generate a PIC call
-
     Address dest =  callee->addr();
     if( dest == 0)
     	dest = getInterModuleFuncAddr(callee, gen);
 
  
 
-    if (setTOC) {
+//    if (setTOC) {
+    if (gen.func()->obj() != callee->obj()) {
         return emitPLTCall(callee, gen);
     }
 
@@ -3625,8 +3541,9 @@ void EmitterPOWER::emitStoreShared(Register source, const image_variable * var, 
    Address varOffset = addr - gen.currAddr()+4;
    
    if(!is_local) {
-
-   	Register scratchReg1 = gen.rs()->getScratchRegister(gen, true);
+        pdvector<Register> exclude;
+        exclude.push_back(scratchReg);
+   	Register scratchReg1 = gen.rs()->getScratchRegister(gen, exclude, true);
    	if (scratchReg1 == REG_NULL) {
    		pdvector<Register> freeReg;
         	pdvector<Register> excludeReg;
