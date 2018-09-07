@@ -50,7 +50,7 @@
 
 #define GPRSIZE_32            4
 #define GPRSIZE_64            8
-#define FPRSIZE               8
+#define FPRSIZE               16
 
 #define REG_SP		      1		
 #define REG_TOC               2   /* TOC anchor                            */
@@ -89,6 +89,8 @@
 #define GPRSAVE_32  (32*4)
 #define GPRSAVE_64  (32*8)
 #define FPRSAVE     (14*8)
+#define VECSAVE     (33*16)
+
 #define SPRSAVE_32  (6*4+8)
 #define SPRSAVE_64  (6*8+8)
 #define FUNCSAVE_32 (32*4)
@@ -123,10 +125,10 @@
 
 
 // Okay, now that we have those defined, let's define the offsets upwards
-#define TRAMP_FRAME_SIZE_32 ALIGN_QUADWORD(STACKSKIP + GPRSAVE_32 + FPRSAVE \
+#define TRAMP_FRAME_SIZE_32 ALIGN_QUADWORD(STACKSKIP + GPRSAVE_32 + VECSAVE \
                                            + SPRSAVE_32 \
                                            + FUNCSAVE_32 + FUNCARGS_32 + LINKAREA_32)
-#define TRAMP_FRAME_SIZE_64 ALIGN_QUADWORD(STACKSKIP + GPRSAVE_64 + FPRSAVE \
+#define TRAMP_FRAME_SIZE_64 ALIGN_QUADWORD(STACKSKIP + GPRSAVE_64 + VECSAVE \
                                            + SPRSAVE_64 \
                                            + FUNCSAVE_64 + FUNCARGS_64 + LINKAREA_64)
 #define PDYN_RESERVED_32 (LINKAREA_32 + FUNCARGS_32 + FUNCSAVE_32)
@@ -153,8 +155,8 @@
 #define TRAMP_FPR_OFFSET_64 (TRAMP_SPR_OFFSET_64 + SPRSAVE_64)
 #define TRAMP_FPR_OFFSET(x) (((x) == 8) ? TRAMP_FPR_OFFSET_64 : TRAMP_FPR_OFFSET_32)
 
-#define TRAMP_GPR_OFFSET_32 (TRAMP_FPR_OFFSET_32 + FPRSAVE)
-#define TRAMP_GPR_OFFSET_64 (TRAMP_FPR_OFFSET_64 + FPRSAVE)
+#define TRAMP_GPR_OFFSET_32 (TRAMP_FPR_OFFSET_32 + VECSAVE)
+#define TRAMP_GPR_OFFSET_64 (TRAMP_FPR_OFFSET_64 + VECSAVE)
 #define TRAMP_GPR_OFFSET(x) (((x) == 8) ? TRAMP_GPR_OFFSET_64 : TRAMP_GPR_OFFSET_32)
 
 #define FUNC_CALL_SAVE_32 (LINKAREA_32 + FUNCARGS_32)

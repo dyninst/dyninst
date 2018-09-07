@@ -702,7 +702,6 @@ void resetBR(AddressSpace  *p,    //Process to write instruction into
 	     Address   loc)  //Address in process to write into
 {
     instruction i = BRraw;
-
     if (!p->writeDataSpace((void *)loc, instruction::size(), i.ptr()))
         fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
 }
@@ -770,8 +769,11 @@ void saveFPRegister(codeGen &gen,
                     Register reg,
                     int save_off)
 {
+    assert("WE SHOULD NOT BE HERE" == 0);
+
     insnCodeGen::generateImm(gen, STFDop, 
                              reg, REG_SP, save_off + reg*FPRSIZE);
+    //fprintf(stderr, "Save offset: %d\n", save_off + reg*FPRSIZE);
     //bperr( "Saving FP reg %d at 0x%x off the stack\n", 
     //  reg, offset + reg*FPRSIZE);
 }
@@ -781,6 +783,8 @@ void restoreFPRegister(codeGen &gen,
                        Register dest,
                        int save_off)
 {
+    assert("WE SHOULD NOT BE HERE" == 0);
+    
     insnCodeGen::generateImm(gen, LFDop, 
                              dest, REG_SP, save_off + source*FPRSIZE);
     //  bperr("Loading FP reg %d (into %d) at 0x%x off the stack\n", 
@@ -887,16 +891,18 @@ unsigned saveFPRegisters(codeGen &gen,
                          int save_off)
 {
   unsigned numRegs = 0;
-  for(int i = 0; i < theRegSpace->numFPRs(); i++) {
-      registerSlot *reg = theRegSpace->FPRs()[i];
-      if (reg->liveState == registerSlot::live) {
-          saveFPRegister(gen, reg->encoding(), save_off);
-          reg->liveState = registerSlot::spilled;
-          numRegs++;
-      }
-  }  
+  insnCodeGen::saveVectors(gen, save_off);
+
+  // for(int i = 0; i < theRegSpace->numFPRs(); i++) {
+  //     registerSlot *reg = theRegSpace->FPRs()[i];
+  //     if (reg->liveState == registerSlot::live) {
+  //         saveFPRegister(gen, reg->encoding(), save_off);
+  //         reg->liveState = registerSlot::spilled;
+  //         numRegs++;
+  //     }
+  // }  
   
-  return numRegs;
+  return 32;
 }
 
 /*
@@ -911,15 +917,16 @@ unsigned restoreFPRegisters(codeGen &gen,
 {
   
   unsigned numRegs = 0;
-  for(int i = 0; i < theRegSpace->numFPRs(); i++) {
-      registerSlot *reg = theRegSpace->FPRs()[i];
-      if (reg->liveState == registerSlot::spilled) {
-          restoreFPRegister(gen, reg->encoding(), save_off);
-          numRegs++;
-      }
-  }
+  insnCodeGen::restoreVectors(gen, save_off);
+  // for(int i = 0; i < theRegSpace->numFPRs(); i++) {
+  //     registerSlot *reg = theRegSpace->FPRs()[i];
+  //     if (reg->liveState == registerSlot::spilled) {
+  //         restoreFPRegister(gen, reg->encoding(), save_off);
+  //         numRegs++;
+  //     }
+  // }
   
-  return numRegs;
+  return 32;
 }
 
 /*
@@ -1241,8 +1248,28 @@ Register emitFuncCall(opCode op,
                       codeGen &gen,
                       pdvector<AstNodePtr> &operands, bool noCost,
                       func_instance *callee) {
+    //fprintf(stderr, "[DEBUG_CRAP] Generaating function call to %p\n", callee->entryBlock()->GetBlockStartingAddress());
     return gen.emitter()->emitCall(op, gen, operands, noCost, callee);
 }
+
+void EmitterPOWER::emitCallWithSaves(codeGen &gen, Address dest, bool saveToc, bool saveLR, bool saveR12) {
+    // Save the values onto the stack.... (might be needed).
+    if (saveToc) {}
+    if (saveLR) {}
+    if (saveR12) {}
+
+    emitVload(loadConstOp, dest, 0, 0, gen, false);
+    insnCodeGen::generateMoveToLR(gen, 0);
+    emitVload(loadConstOp, dest, 12, 12, gen, false);
+    instruction brl(BRLraw);
+    insnCodeGen::generate(gen,brl);
+    inst_printf("Generated BRL\n");
+    // Retore the original
+    if (saveToc) {}
+    if (saveLR) {}
+    if (saveR12) {}
+}
+
 
 Register EmitterPOWER::emitCallReplacement(opCode ocode,
                                            codeGen &gen,
@@ -1297,6 +1324,59 @@ Register EmitterPOWER::emitCallReplacement(opCode ocode,
     return REG_NULL;
 }
 
+
+// Register EmitterPOWER::emitCallReplacementLR(opCode ocode,
+//                                            codeGen &gen,
+//                                            bool /* noCost */,
+//                                            func_instance *callee) {
+//     // This takes care of the special case where we are replacing an existing
+//     // linking branch instruction.
+//     //
+//     // This code makes two crucial assumptions:
+//     // 1) LR is free: Linking branch instructions place pre-branch IP in LR.
+//     // 2) TOC (r2) is free: r2 should hold TOC of destination.  So use it
+//     //    as scratch, and set it to destination module's TOC upon return.
+//     //    This works for both the inter and intra module call cases.
+//     // In the 32-bit case where we can't use r2, stomp on r0 and pray...
+
+//     //  Sanity check for opcode.
+//     assert(ocode == funcJumpOp);
+
+//     Register freeReg = 0;
+//     instruction mtlr(MTLR0raw);
+
+//     // 64-bit Mutatees
+//     if (gen.addrSpace()->proc()->getAddressWidth() == 8) {
+//         freeReg = 2;
+//         mtlr = instruction(MTLR2raw);
+//     }
+
+//     // Load register with address.
+//     emitVload(loadConstOp, callee->addr(), freeReg, freeReg, gen, false);
+
+//     // Move to link register.
+//     insnCodeGen::generate(gen,mtlr);
+
+//     Address toc_new = gen.addrSpace()->proc()->getTOCoffsetInfo(callee);
+//     if (toc_new) {
+//         // Set up the new TOC value
+//         emitVload(loadConstOp, toc_new, freeReg, freeReg, gen, false);
+//     }
+
+//     // blr - branch through the link reg.
+//     instruction blr(BRraw);
+//     insnCodeGen::generate(gen,blr);
+
+//     func_instance *caller = gen.point()->func();
+//     Address toc_orig = gen.addrSpace()->proc()->getTOCoffsetInfo(caller);
+//     if (toc_new) {
+//         // Restore the original TOC value.
+//         emitVload(loadConstOp, toc_orig, freeReg, freeReg, gen, false);
+//     }
+
+//     // What to return here?
+//     return REG_NULL;
+// }
 // There are four "axes" going on here:
 // 32 bit vs 64 bit  
 // Instrumentation vs function call replacement
@@ -1309,8 +1389,11 @@ Register EmitterPOWER::emitCall(opCode ocode,
                                 func_instance *callee) {
     bool inInstrumentation = true;
 
+    //fprintf(stderr, "[EmitterPOWER::emitCall] making call to: %llx\n", callee-> );
     // If inInstrumentation is true we're in instrumentation;
     // if false we're in function call replacement
+
+    //fprintf(stderr, "%s %p\n", "[DEBUG_CRAP] In emit call for ", callee->entryBlock()->GetBlockStartingAddress());
     if (ocode == funcJumpOp)
 	return emitCallReplacement(ocode, gen, noCost, callee);
 
@@ -1339,9 +1422,11 @@ Register EmitterPOWER::emitCall(opCode ocode,
     
     // Instead of saving the TOC (if we can't), just reset it afterwards.
     if (gen.func()) {
+//      fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
       caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.func());
     }
     else if (gen.point()) {
+      //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__);
       caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.point()->func());
     }
     else {
@@ -1355,6 +1440,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
     registerSlot *regLR = (*(gen.rs()))[registerSpace::lr];
     if (regLR && regLR->liveState == registerSlot::live) {
         needToSaveLR = true;
+        //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__);
         inst_printf("... need to save LR\n");
     }
 
@@ -1369,6 +1455,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
     // mflr r0
     // Linux, 32/64, stat/dynamic, instrumentation
     if (needToSaveLR) {
+        //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__);
         assert(inInstrumentation);
         insnCodeGen::generateMoveFromLR(gen, 0);
         saveRegister(gen, 0, FUNC_CALL_SAVE(gen.width()));
@@ -1379,12 +1466,14 @@ Register EmitterPOWER::emitCall(opCode ocode,
     if (inInstrumentation &&
         (toc_anchor != caller_toc)) {
         // Save register 2 (TOC)
+        //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
       saveRegister(gen, 2, FUNC_CALL_SAVE(gen.width()));
         savedRegs.push_back(2);
     }
 
     // see what others we need to save.
     for (int i = 0; i < gen.rs()->numGPRs(); i++) {
+        //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__);
        registerSlot *reg = gen.rs()->GPRs()[i];
 
        // We must save if:
@@ -1396,6 +1485,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
            ((reg->refCount > 0) || 
             reg->keptValue ||
             (reg->liveState == registerSlot::live))) {
+        //fprintf(stderr, "info: %s:%d: Register: %d \n", __FILE__, __LINE__, reg->number); 
 	 saveRegister(gen, reg->number, FUNC_CALL_SAVE(gen.width()));
           savedRegs.push_back(reg->number);
        }
@@ -1422,7 +1512,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
         // Try to allocate the correct parameter register
         if (gen.rs()->allocateSpecificRegister(gen, registerSpace::r3 + u, true))
             reg = registerSpace::r3 + u;
-
+             //fprintf(stderr, "info: %s:%d: Register: %d \n", __FILE__, __LINE__, reg); 
 	Address unused = ADDR_NULL;
 	if (!operands[u]->generateCode_phase2( gen, false, unused, reg)) assert(0);
 	assert(reg != REG_NULL);
@@ -1454,6 +1544,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
         // Parameters start at register 3 - so we're already done
         // in this case
 	if (srcs[u] == (registerSpace::r3+u)) {
+         //fprintf(stderr, "info: %s:%d: Register: %d \n", __FILE__, __LINE__, srcs[u]); 
 	    gen.rs()->freeRegister(srcs[u]);
 	    continue;
 	}
@@ -1464,6 +1555,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
 
         // If the parameter we want exists in a scratch register...
 	if (scratchRegs[u] != -1) {
+         //fprintf(stderr, "info: %s:%d: Register: %d \n", __FILE__, __LINE__,u+3); 
 	    insnCodeGen::generateImm(gen, ORILop, scratchRegs[u], u+3, 0);
 	    gen.rs()->freeRegister(scratchRegs[u]);
             // We should check to make sure the one we want isn't occupied?
@@ -1502,11 +1594,11 @@ Register EmitterPOWER::emitCall(opCode ocode,
 
 	// Linux, 64, stat/dyn, inst/repl
     if (toc_anchor != caller_toc) {
+         //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
         setTOC = true;
     }
     
     emitCallInstruction(gen, callee, setTOC, toc_anchor);
-    
     // ALL instrumentation
     Register retReg = REG_NULL;
     if (inInstrumentation) {
@@ -2381,10 +2473,14 @@ bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &entry,
 
 #endif
 
-bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &, Address, 
-                           func_instance *, Address) {
-   assert(0 && "TODO!");
-   return false;
+bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 
+                           func_instance * origFunc, Address target_addr) {
+   fprintf(stderr, "[PCProcess::bindPLTEntry] Relocation Entry location target: %llx, relocation: %llx - base_addr: %llx, original_function: %llx, original_name: %s, new_target: %llx\n", entry.target_addr(), entry.rel_addr(), base_addr, origFunc->getPtrAddress(), origFunc->name().c_str(), target_addr);
+   Address got_entry = entry.rel_addr() + base_addr;
+   return true;//writeDataSpace((void *)got_entry, sizeof(Address), &target_addr);
+
+   //assert(0 && "TODO!");
+   // return false;
 }
 void emitLoadPreviousStackFrameRegister(Address register_num, 
                                         Register dest,
@@ -2902,7 +2998,7 @@ bool EmitterPOWER32Stat::emitCallInstruction(codeGen& gen, func_instance* callee
   if (gen.func()->obj() != callee->obj()) {
     return emitPLTCall(callee, gen);
   }
-
+  //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
   insnCodeGen::generateCall(gen, gen.currAddr(), callee->addr());
   return true;
 }
@@ -3067,7 +3163,6 @@ bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
   //
   // TODO: the large model where everything is a 32-bit reference off the TOC. 
 
-
   const unsigned TOCreg = 2;
   const unsigned wordsize = gen.width();
   assert(wordsize == 8);
@@ -3118,7 +3213,7 @@ bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
   insnCodeGen::generateMoveToLR(gen, r_tmp);
 
   // Restore r_tmp to be sure
-  insnCodeGen::generateMemAccess64(gen, LDop, LDxop, r_tmp, REG_SP, 3*wordsize);
+  //insnCodeGen::generateMemAccess64(gen, LDop, LDxop, r_tmp, REG_SP, 3*wordsize);
 
   // blrl
   instruction branch_insn(BRLraw);
@@ -3142,89 +3237,6 @@ bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
  
   return true;
 }
-
-#if 0
-bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen &gen) {
-  // In PPC64 Linux, function descriptors are used in place of direct
-  // function pointers.  The descriptors have the following layout:
-  //
-  // Function Descriptor --> + 0: <Function Text Address>
-  //                         + 8: <TOC Pointer Value>
-  //                         +16: <Environment Pointer [Optional]>
-  //
-  // Additionally, this should be able to stomp on the link register (LR)
-  // and TOC register (r2), as they were saved by Emitter::emitCall() if
-  // necessary.
-  //
-  // So here's a brief sketch of the code this function generates:
-  // 
-  //   Set up new branch target in LR from function descriptor
-  //   Set up new TOC in R2 from function descriptor + 8
-  //   Call
-  bool isStaticBinary = false;
-  
-  if(gen.addrSpace()->edit()->getMappedObject()->parse_img()->getObject()->isStaticBinary()) {
-    isStaticBinary = true;
-  }
-  
-  const unsigned TOCreg = 2;
-  const unsigned wordsize = gen.width();
-  assert(wordsize == 8);
-  Address dest = getInterModuleFuncAddr(callee, gen);
-  Address caller_toc = 0;
-  Address toc_anchor = gen.addrSpace()->getTOCoffsetInfo(callee);
-  // Instead of saving the TOC (if we can't), just reset it afterwards.
-  if (gen.func()) {
-    caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.func());
-  }
-  else if (gen.point()) {
-    caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.point()->func());
-  }
-  else {
-    // Don't need it, and this might be an iRPC
-  }
-  
-  if(isStaticBinary)
-    caller_toc = 0;
-  
-  //Offset destOff = dest - gen.currAddr();
-  Offset destOff = dest - caller_toc;
-  
-  //    insnCodeGen::loadPartialImmIntoReg(gen, TOCreg, destOff);
-  // Broken to see if any of this generates intellible code.
-
-  Register scratchReg = 3; // = gen.rs()->getScratchRegister(gen, true);
-  int stackSize = 0;
-  if (scratchReg == REG_NULL) {
-    pdvector<Register> freeReg;
-    pdvector<Register> excludeReg;
-    stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
-    assert (stackSize == 1);
-    scratchReg = freeReg[0];
-  }
-  insnCodeGen::loadImmIntoReg(gen, scratchReg, destOff);
-
-  if(!isStaticBinary) {
-    insnCodeGen::generateLoadReg64(gen, scratchReg, scratchReg, TOCreg);
-    
-    insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
-				     TOCreg, scratchReg, 8);
-  } 
-  insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
-				   scratchReg, scratchReg, 0);
-  
-  insnCodeGen::generateMoveToCR(gen, scratchReg);
-
-  if (stackSize > 0)
-    insnCodeGen::removeStackFrame(gen);
-  
-  
-  instruction branch_insn(call ? BCTRLraw : BCTRraw);
-  insnCodeGen::generate(gen, branch_insn);
-  
-  return true;
-}
-#endif
 
 bool EmitterPOWER64Dyn::emitTOCCommon(block_instance *block, bool call, codeGen &gen) {
   // This code is complicated by the need to set the new TOC and restore it
@@ -3335,14 +3347,14 @@ bool EmitterPOWER64Stat::emitCallInstruction(codeGen &gen,
                                              func_instance *callee,
                                              bool setTOC, Address) {
     // if the TOC changes, generate a PIC call
-
     Address dest =  callee->addr();
     if( dest == 0)
     	dest = getInterModuleFuncAddr(callee, gen);
 
  
 
-    if (setTOC) {
+//    if (setTOC) {
+    if (gen.func()->obj() != callee->obj()) {
         return emitPLTCall(callee, gen);
     }
 
@@ -3357,9 +3369,11 @@ bool EmitterPOWER64Stat::emitCallInstruction(codeGen &gen,
 // register (r2), as they were saved by Emitter::emitCall() as necessary.
 bool EmitterPOWER::emitCallInstruction(codeGen &gen, func_instance *callee, bool setTOC, Address toc_anchor) {
 
+    //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
     bool needLongBranch = false;
     if (gen.startAddr() == (Address) -1) { // Unset...
         needLongBranch = true;
+        //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
         inst_printf("Unknown generation addr, long call required\n");
     }
     else {
@@ -3367,40 +3381,62 @@ bool EmitterPOWER::emitCallInstruction(codeGen &gen, func_instance *callee, bool
         // Increase the displacement to be conservative. 
         // We use fewer than 6 instructions, too. But again,
         // conservative.
-
+        //fprintf(stderr, "info: %s:%d: %lu\n", __FILE__, __LINE__, displacement); 
         if ((ABS(displacement) + 6*instruction::size()) > MAX_BRANCH) {
             needLongBranch = true;
+            //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
             inst_printf("Need long call to get from 0x%lx to 0x%lx\n",
                     gen.currAddr(), callee->addr());
         }
     }
-
+    bool shouldJumpToCMOD = false;
     // Need somewhere to put the destination calculation...
     int scratchReg = 0;
     if (needLongBranch) {
         // Use scratchReg to set destination of the call...
+        shouldJumpToCMOD = true;
+        inst_printf("[EmitterPOWER::EmitCallInstruction] needLongBranch, Emitting VLOAD  Callee: 0x%lx, ScratchReg: %u\n",
+                    callee->addr(), (unsigned) scratchReg);
         emitVload(loadConstOp, callee->addr(), scratchReg, scratchReg, gen, false);
+        //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
         insnCodeGen::generateMoveToLR(gen, scratchReg);
+
         inst_printf("Generated LR value in %d\n", scratchReg);
     }
 
 
     // Linux 64
     if (setTOC) {
+        inst_printf("[EmitterPOWER::EmitCallInstruction] Setting TOC anchor, toc_anchor: %lx, register: 2(fixed)\n",
+                    (uint64_t)toc_anchor);
         // Set up the new TOC value
         emitVload(loadConstOp, toc_anchor, 2, 2, gen, false);
+        //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
         //inst_printf("toc setup (%d)...");
         inst_printf("Set new TOC\n");
     }
 
     // ALL dynamic; call instruction generation
     if (needLongBranch) {
+        //insnCodeGen::generateCall(gen, gen.currAddr(), callee->addr());
+        //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
+        emitVload(loadConstOp, callee->addr(), 12, 12, gen, false);
         instruction brl(BRLraw);
         insnCodeGen::generate(gen,brl);
         inst_printf("Generated BRL\n");
     }
     else {
+        inst_printf("[EmitterPOWER::EmitCallInstruction] Generating Call, curAddress: %lx, calleeAddr: %lx\n",
+                     gen.currAddr(), callee->addr());
+        //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
+        emitVload(loadConstOp, callee->addr(), 12, 12, gen, false);
+        // if (gen.currAddr() == 0x100000120f80) {
+        //     fprintf(stderr, "we are here, break now\n");
+        // } else {
+        //     emitVload(loadConstOp, callee->addr(), 12, 12, gen, false);
+        // }
         insnCodeGen::generateCall(gen, gen.currAddr(), callee->addr());
+
         inst_printf("Generated short call from 0x%lx to 0x%lx\n",
                 gen.currAddr(), callee->addr());
     }
@@ -3505,8 +3541,9 @@ void EmitterPOWER::emitStoreShared(Register source, const image_variable * var, 
    Address varOffset = addr - gen.currAddr()+4;
    
    if(!is_local) {
-
-   	Register scratchReg1 = gen.rs()->getScratchRegister(gen, true);
+        pdvector<Register> exclude;
+        exclude.push_back(scratchReg);
+   	Register scratchReg1 = gen.rs()->getScratchRegister(gen, exclude, true);
    	if (scratchReg1 == REG_NULL) {
    		pdvector<Register> freeReg;
         	pdvector<Register> excludeReg;

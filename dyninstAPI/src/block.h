@@ -113,8 +113,9 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
 
     func_instance *callee();
     std::string calleeName();
-
+    bool _ignorePowerPreamble;
     int id() const;
+    void GetBlockInstructions(std::vector<std::string> & ret){llb()->GetBlockInstructions(ret); return;};
 
     // Functions to avoid
     // These are convinence wrappers for really expensive
@@ -122,7 +123,7 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
     func_instance *entryOfFunc() const;
     bool isFuncExit() const;
     // static void destroy(block_instance *b); // doesn't need to do anything
-
+    Address GetBlockStartingAddress();
     virtual void markModified();
 
  private:
