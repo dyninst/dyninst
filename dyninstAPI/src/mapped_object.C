@@ -339,7 +339,6 @@ bool mapped_object::isData(Address addr) const {
 
 bool mapped_object::analyze()
 {
-    fprintf(stderr, "enter mapped_object::analyze()\n");
     if (analyzed_) return true;
   // Create a process-specific version of the image; all functions and
   // variables at an absolute address (and modifiable).
