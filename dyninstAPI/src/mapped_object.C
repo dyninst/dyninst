@@ -201,7 +201,8 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
    // Adds exported functions and variables..
    startup_printf("%s[%d]:  creating mapped object\n", FILE__, __LINE__);
    mapped_object *obj = new mapped_object(desc, img, p, analysisMode);
-  const CodeObject::funclist & allFuncs = img->getAllFunctions();
+   if (img->codeObject()->cs()->getArch() == Arch_ppc64) { 
+  const CodeObject::funclist & allFuncs = img->codeObject()->funcs();
   CodeObject::funclist::const_iterator fit = allFuncs.begin();
   for( ; fit != allFuncs.end(); ++fit) {
       parse_func * f = (parse_func*)*fit;
@@ -212,7 +213,7 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
           noPreambleFunc->setPowerPreambleFunc(preambleFunc);
       }
   }
-
+   }
    if (BPatch_defensiveMode == analysisMode) {
        img->register_codeBytesUpdateCB(obj);
    }

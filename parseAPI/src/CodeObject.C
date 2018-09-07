@@ -74,7 +74,8 @@ CodeObject::CodeObject(CodeSource *cs,
     flist(parser->sorted_funcs)
 {
     process_hints(); // if any
-    parse();
+    if (cs->getArch() == Arch_ppc64)
+        parse();
 }
 
 void
