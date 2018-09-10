@@ -1627,11 +1627,11 @@ static bool loadDebugFileFromDisk(string name, char* &output_buffer, unsigned lo
       return false;
    if (S_ISDIR(fileStat.st_mode))
       return false;
-   int fd = open(name.c_str(), O_RDONLY);
+   int fd = open(name.c_str(), O_RDWR);
    if (fd == -1)
       return false;
 
-   char *buffer = (char *) mmap(NULL, fileStat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+   char *buffer = (char *) mmap(NULL, fileStat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
    close(fd);
    if (!buffer)
       return false;
