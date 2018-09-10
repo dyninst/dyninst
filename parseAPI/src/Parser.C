@@ -1034,6 +1034,7 @@ Parser::clean_bogus_funcs(vector<Function*> &funcs)
 	for (auto eit = f->entry()->sources().begin(); !interprocEdge && eit != f->entry()->sources().end(); ++eit)
 	    if ((*eit)->interproc()) interprocEdge = true;
 	if (!interprocEdge) {
+            parsing_printf("Removing function %lx with name %s\n", f->addr(), f->name().c_str());
 	    // This is a discovered function that has no inter-procedural entry edge.
 	    // This function should be created because tail call heuristic makes a mistake
 	    // We have already fixed such bogos tail calls in the previous step of finalizing,
@@ -1360,10 +1361,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 if (ahPtr) delete ahPtr;
                 return;
             } else if (ct && work->tailcall()) {
-                // XXX The target has been or is currently being parsed (else
-                //     the previous conditional would have been taken),
-                //     so if its return status is unset then this
-                //     function has to take UNKNOWN
+                // If func's return status is RETURN, 
+                // then this tail callee does not impact the func's return status
                 if (func->retstatus() != RETURN) {
                     if (ct->retstatus() > NORETURN)
                       func->set_retstatus(ct->retstatus());
@@ -1560,14 +1559,21 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             parsing_printf("[%s] deferring parse of shared block %lx\n",
                            FILE__,cur->start());
             if (func->retstatus() < UNKNOWN) {
-                // we've parsed into another function, if we've parsed
-                // into it's entry point, set retstatus to match it
-                Function * other_func = _parse_data->findFunc(
-                        func->region(), cur->start());
-                if (other_func && other_func->retstatus() > UNKNOWN) {
-                    func->set_retstatus(other_func->retstatus());
-                } else {
-                    func->set_retstatus(UNKNOWN);
+                // The current function shares code with the function
+                // that created the block. So, the return status of the
+                // current function on this control flow path is the same
+                // as the shared function.
+                //
+                // This code is designed for the new POWER ABI,
+                // where each function has two entries. But this code
+                // also works if the functions that share the code
+                // have the same return blocks.
+                Function * other_func = cur->createdByFunc(); 
+                if (other_func->retstatus() == RETURN) {
+                    func->set_retstatus(RETURN);
+                } else if (other_func->retstatus() == UNSET) {
+                    frame.pushDelayedWork(work, other_func);
+                    visited.erase(cur->start());
                 }
             }
             // The edge to this shared block is changed from
@@ -1861,11 +1867,12 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 
     /** parsing complete **/
     if (HASHDEF(plt_entries,frame.func->addr())) {
-//        if (obj().cs()->nonReturning(frame.func->addr())) {
+        // For PLT entries, they are either NORETURN or RETURN.
+        // They should not be in any cyclic dependency
         if (obj().cs()->nonReturning(plt_entries[frame.func->addr()])) {
             frame.func->set_retstatus(NORETURN);
         } else {
-            frame.func->set_retstatus(UNKNOWN);
+            frame.func->set_retstatus(RETURN);
         }
 
         // Convenience -- adopt PLT name

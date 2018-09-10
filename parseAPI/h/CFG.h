@@ -307,7 +307,7 @@ class PARSER_EXPORT Block :
 public:
     static Block * sink_block;
 
-    Block(CodeObject * o, CodeRegion * r, Address start);
+    Block(CodeObject * o, CodeRegion * r, Address start, Function* f = NULL);
     virtual ~Block();
     boost::recursive_mutex& lockable() { return boost::lockable_adapter<boost::recursive_mutex>::lockable(); }
 
@@ -371,6 +371,7 @@ public:
     bool operator==(const Block &rhs) const;
 
     bool operator!=(const Block &rhs) const;
+    Function * createdByFunc() { return _createdByFunc; }
 
 private:
     void addSource(Edge * e);
@@ -394,6 +395,8 @@ private:
     edgelist _trglist;
     int _func_cnt;
     bool _parsed;
+
+    Function * _createdByFunc;
 
 
  friend class Edge;

@@ -365,7 +365,7 @@ Function::blocks_int()
                 if(t) {
                     parsing_printf("\t Adding target block [%lx,%lx) to worklist according to edge from %lx, type %d\n", t->start(), t->end(), e->src()->last(), e->type());
                     worklist.push_back(t);
-                    visited[e->trg_addr()] = true;
+                    visited[e->trg_addr()] = 1;
                     add_block(t);
                 }
             }

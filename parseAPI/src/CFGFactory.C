@@ -137,7 +137,7 @@ CFGFactory::_mkblock(CodeObject* co, CodeRegion *r, Address addr)
 Block *
 CFGFactory::mkblock(Function *  f , CodeRegion *r, Address addr) {
 
-    Block * ret = new Block(f->obj(),r,addr);
+    Block * ret = new Block(f->obj(),r,addr, f);
     return ret;
 }
 
