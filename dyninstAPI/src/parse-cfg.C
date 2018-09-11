@@ -212,7 +212,7 @@ parse_block::parse_block(
         parse_func * func, 
         CodeRegion * reg,
         Address firstOffset) :
-    Block(func->obj(),reg,firstOffset),
+    Block(func->obj(),reg,firstOffset, func),
     needsRelocation_(false),
     blockNumber_(0),
     unresolvedCF_(false),
