@@ -74,12 +74,15 @@ unsigned int MachRegister::regClass() const
 }
 
 MachRegister MachRegister::getBaseRegister() const {
+   signed int category = (reg & 0x00ff0000);
    switch (getArchitecture()) {
       case Arch_x86:
-         if (reg & x86::GPR) return MachRegister(reg & 0xfffff0ff);
+         if (category == x86::GPR) return MachRegister(reg & 0xfffff0ff);
+         else if (category == x86::FLAG) return x86::flags;
          else return *this;
       case Arch_x86_64:
-         if (reg & x86_64::GPR) return MachRegister(reg & 0xfffff0ff);
+         if (category == x86_64::GPR) return MachRegister(reg & 0xfffff0ff);
+         else if (category == x86_64::FLAG) return x86_64::flags;
          else return *this;
       case Arch_ppc32:
       case Arch_ppc64:
@@ -143,14 +146,20 @@ unsigned int MachRegister::size() const {
                return 2;
             case x86::FULL: //FULL
                return 4;
-            case x86::QUAD:
-               return 8;
+            // Commented out because no register
+            // is defined with this size type
+            //case x86::QUAD:
+            //   return 8;
             case x86::OCT:
                return 16;
             case x86::FPDBL:
                return 10;
             case x86::BIT:
                return 0;
+            case x86::YMMS:
+               return 32;
+            case x86::ZMMS:
+               return 64;
             default:
                return 0;//KEVINTODO: removed sanity-check assert because of asprotect fuzz testing, could use this as a sign that the parse has gone into junk
                assert(0);
@@ -172,6 +181,11 @@ unsigned int MachRegister::size() const {
                return 10;
             case x86_64::BIT:
                return 0;
+            case x86_64::YMMS:
+               return 32;
+            case x86_64::ZMMS:
+               return 64;
+
             default:
 	       return 0; // Xiaozhu: do not assert, but return 0 as an indication of parsing junk.
                assert(0);

@@ -80,7 +80,7 @@ public:
       bool getAddressRanges( const char * lineSource, unsigned int LineNo, std::vector< AddressRange > & ranges );
       const_line_info_iterator begin_by_source() const;
       const_line_info_iterator end_by_source() const;
-      std::pair<const_line_info_iterator, const_line_info_iterator> equal_range(std::string file,
+      std::pair<const_line_info_iterator, const_line_info_iterator> range(std::string file,
                                                                                 const unsigned int lineNo) const;
       std::pair<const_line_info_iterator, const_line_info_iterator> equal_range(std::string file) const;
       const_iterator begin() const;
@@ -89,6 +89,8 @@ public:
       const_iterator find(Offset addressInRange, const_iterator hint) const;
 
       unsigned getSize() const;
+
+      void dump();
 
       virtual ~LineInformation();
         StringTablePtr strings_;

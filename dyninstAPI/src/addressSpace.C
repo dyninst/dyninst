@@ -1713,7 +1713,25 @@ bool AddressSpace::relocate() {
            repeat = true;
         }
      } while (repeat);
-     
+
+     if (getArch() == Arch_ppc64) {
+         // The PowerPC new ABI typically generate two entries per function.
+         // Need special hanlding for them
+         FuncSet actualModFuncs;
+         for (auto fit = modFuncs.begin(); fit != modFuncs.end(); ++fit) {
+             func_instance* funct = *fit;
+             if (funct->getPowerPreambleFunc() != NULL) {
+                 relocation_cerr << "Ignore function " << funct->name() << " at " << hex << funct->entryBlock()->GetBlockStartingAddress() << " as it has the power preabmle" << endl;
+                 continue;
+             }
+             actualModFuncs.insert(funct);
+             if (funct->ifunc()->containsPowerPreamble()) {
+                 funct->entryBlock()->_ignorePowerPreamble = true;
+             }
+         }
+         modFuncs = actualModFuncs;
+     }
+
      addModifiedRegion(iter->first);
      
      Address middle = (iter->first->codeAbs() + (iter->first->imageSize() / 2));
@@ -1721,8 +1739,11 @@ bool AddressSpace::relocate() {
      if (!relocateInt(iter->second.begin(), iter->second.end(), middle)) {
         ret = false;
      }
-     
   }
+
+
+     
+  
 
   updateMemEmulator();
 

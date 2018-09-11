@@ -135,6 +135,7 @@ class parse_block : public codeRange, public ParseAPI::Block  {
     // The provided parameter is a magic offset to add to each instruction's
     // address; we do this to avoid a copy when getting Insns from block_instances
     void getInsns(Insns &instances, Address offset = 0);
+    void GetBlockInstructions(std::vector<std::string> & ret);
 
  private:
     bool needsRelocation_;
@@ -386,6 +387,12 @@ class parse_func : public ParseAPI::Function
 
    const SymtabAPI::Function *func() const { return func_; }
 
+   bool containsPowerPreamble() { return containsPowerPreamble_; }
+   void setContainsPowerPreamble(bool c) { containsPowerPreamble_ = c; }
+   parse_func* getNoPowerPreambleFunc() { return noPowerPreambleFunc_; }
+   void setNoPowerPreambleFunc(parse_func* f) { noPowerPreambleFunc_ = f; }
+
+
  private:
    void calcUsedRegs();/* Does one time calculation of registers used in a function, if called again
                           it just refers to the stored values and returns that */
@@ -428,6 +435,10 @@ class parse_func : public ParseAPI::Function
 
    bool livenessCalculated_;
    bool isPLTFunction_;
+
+   bool containsPowerPreamble_;
+   // If the function contains the power preamble, this field points the corresponding function that does not contain the preamble
+   parse_func* noPowerPreambleFunc_;
 };
 
 typedef parse_func *ifuncPtr;

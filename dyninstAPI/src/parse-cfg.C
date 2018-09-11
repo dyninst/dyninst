@@ -104,7 +104,9 @@ parse_func::parse_func(
   o7_live(false),
   ppc_saves_return_addr_(false),
   livenessCalculated_(false),
-  isPLTFunction_(false)
+  isPLTFunction_(false),
+  containsPowerPreamble_(false),
+  noPowerPreambleFunc_(NULL)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     parse_func_count++;
@@ -528,6 +530,15 @@ parse_func *parse_block::getCallee() {
       }
    }
    return NULL;
+}
+
+void parse_block::GetBlockInstructions(std::vector<std::string> & ret) {
+  Insns tmp;
+  getInsns(tmp, 0);
+  for (auto iit = tmp.begin(); iit != tmp.end(); ++iit) {
+    ret.push_back(iit->second.format());
+  }
+  return;
 }
 
 std::pair<bool, Address> parse_block::callTarget() {

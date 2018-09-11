@@ -8,7 +8,7 @@ if (UNIX)
     include(ExternalProject)
     ExternalProject_Add(LibElf
       PREFIX ${CMAKE_BINARY_DIR}/elfutils
-      URL https://sourceware.org/elfutils/ftp/0.168/elfutils-0.168.tar.bz2
+      URL https://sourceware.org/elfutils/ftp/elfutils-latest.tar.bz2
       CONFIGURE_COMMAND CFLAGS=-g <SOURCE_DIR>/configure --enable-shared --prefix=${CMAKE_BINARY_DIR}/elfutils
       BUILD_COMMAND make
       INSTALL_COMMAND make install

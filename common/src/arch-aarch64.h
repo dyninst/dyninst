@@ -148,7 +148,7 @@ class COMMON_EXPORT instruction {
     void setBits(unsigned int pos, unsigned int len, unsigned int value) {
         unsigned int mask;
 
-        mask = ~(~0 << len);
+        mask = ~(~0u << len);
         value = value & mask;
 
         mask = ~(mask << pos);

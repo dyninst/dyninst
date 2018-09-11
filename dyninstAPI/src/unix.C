@@ -495,10 +495,16 @@ bool PCProcess::hasPassedMain()
 
    entry_addr += ldso_start_addr;
 
-   if( !getOPDFunctionAddr(entry_addr) ) {
-       startup_printf("[%s:%u] - failed to read entry addr function pointer\n",
-               FILE__, __LINE__);
-       return false;
+   Region* reg = NULL;
+   if (ld_file->findRegion(reg, ".opd") && reg) {  
+     startup_printf("{%s:%u] - there is a .opd section. The entry offset points to the pointer to the real entry\n");
+     if( !getOPDFunctionAddr(entry_addr) ) {
+        startup_printf("[%s:%u] - failed to read entry addr function pointer\n",
+                FILE__, __LINE__);
+        return false;
+     }
+   } else {
+     startup_printf("{%s:%u] - there is no .opd section. The entry offset is the entry\n");
    }
 
    if( entry_addr < ldso_start_addr ) {

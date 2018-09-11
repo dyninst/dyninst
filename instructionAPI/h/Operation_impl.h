@@ -141,11 +141,14 @@ namespace Dyninst
         boost::hash_combine(seed, op.archDecodedFrom);
         boost::hash_combine(seed, op.addrWidth);
         boost::hash_combine(seed, op.segPrefix);
+        boost::hash_combine(seed, op.isVectorInsn);
         return seed;
       }
       bool operator==(const Operation_impl& rhs) const {
         return hash_value(*this) == hash_value(rhs);
       }
+      INSTRUCTION_EXPORT const VCSet& getImplicitMemWrites() const;
+      bool isVectorInsn;
 
     private:
         std::once_flag data_initialized;

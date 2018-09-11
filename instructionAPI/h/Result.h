@@ -577,13 +577,13 @@ namespace Dyninst
 	case bit_flag:
 	  return 1;
    case m512:
-      return 512;
+      return 64;
    case dbl128:
       return 16;
    case m192:
-      return 192;
+      return 24;
    case m256:
-      return 256;
+      return 32;
 	default:
 	  // In probabilistic gap parsing,
 	  // we could start to decode at any byte and reach here.

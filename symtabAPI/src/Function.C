@@ -480,7 +480,7 @@ void InlinedFunction::setFile(string filename) {
     // Get index 1 (unique by name). Insert the filename on that index (which defaults to push_back if empty).
     // Returns an <iterator, bool>; get the iterator (we don't care if it's new). Project to random access (index 0).
     // Difference from begin == array index in string table.
-    callsite_file_number = strs->project<0>(strs->get<1>().insert(filename).first) - strs->begin();
+    callsite_file_number = strs->project<0>(strs->get<1>().insert(StringTableEntry(filename,"")).first) - strs->begin();
 }
 
 Module* Function::getModule() const {

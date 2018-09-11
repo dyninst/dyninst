@@ -114,11 +114,14 @@ class EmitterPOWER : public Emitter {
     
     virtual bool clobberAllFuncCall(registerSpace *rs,func_instance *callee);
 
+    virtual Register emitCallReplacement(opCode, codeGen &, bool,
+                                         func_instance *);
+    void emitCallWithSaves(codeGen &gen, Address dest, bool saveToc, bool saveLR, bool saveR12);
+    
  protected:
     virtual bool emitCallInstruction(codeGen &, func_instance *,
                                      bool, Address);
-    virtual Register emitCallReplacement(opCode, codeGen &, bool,
-                                         func_instance *);
+
 };
 
 class EmitterPOWER32Dyn : public EmitterPOWER

@@ -253,7 +253,7 @@ namespace Dyninst
                 }
 
              } else{
-                e = makeRegisterExpression(makeRegisterID(locs->modrm_rm, op_d, locs->rex_r));
+                e = makeRegisterExpression(makeRegisterID(locs->modrm_rm, regType, locs->rex_b));
              }
 
              if(opType == op_lea)

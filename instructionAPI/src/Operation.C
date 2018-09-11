@@ -60,7 +60,7 @@ namespace Dyninst
     }
 
     Operation_impl::Operation_impl(entryID id, Architecture arch)
-          : operationID(id), archDecodedFrom(arch), prefixID(prefix_none)
+        : operationID(id), archDecodedFrom(arch), prefixID(prefix_none)
     {
         switch(archDecodedFrom)
         {
@@ -73,13 +73,47 @@ namespace Dyninst
                 break;
         }
         segPrefix = 0;
+        isVectorInsn = false;
+    }
+
+    static bool getVectorizationInfo(ia32_entry* e)
+    {
+        for(int i = 0; i < 3; i++)
+        {
+            switch(e->operands[i].admet)
+            {
+                case am_V:
+                case am_W:
+                case am_P:
+                case am_Q:
+                case am_HK:
+                case am_H:
+                case am_X:
+                case am_XH:
+                case am_XU:
+                case am_XV:
+                case am_XW:
+                case am_Y:
+                case am_YH:
+                case am_YU:
+                case am_YV:
+                case am_YW:
+                case am_VK:
+                case am_WK:
+
+                    return true;
+                default:
+                    break;
+            }
+        }
+        return false;
     }
     
     Operation_impl::Operation_impl(ia32_entry* e, ia32_prefixes* p, ia32_locations* l, Architecture arch) :
-      archDecodedFrom(arch), prefixID(prefix_none)
-    
+        archDecodedFrom(arch), prefixID(prefix_none)
     {
       segPrefix = 0;
+      isVectorInsn = getVectorizationInfo(e);
       operationID = e->getID(l);
       // Defaults for no size prefix
       switch(archDecodedFrom)
@@ -111,6 +145,7 @@ namespace Dyninst
       prefixID = o.prefixID;
       addrWidth = o.addrWidth;
       segPrefix = o.segPrefix;
+      isVectorInsn = o.isVectorInsn;
     }
     const Operation_impl& Operation_impl::operator=(const Operation_impl& o)
     {
@@ -119,6 +154,7 @@ namespace Dyninst
       prefixID = o.prefixID;
       addrWidth = o.addrWidth;
       segPrefix = o.segPrefix;
+      isVectorInsn = o.isVectorInsn;
       return *this;
     }
     Operation_impl::Operation_impl()
@@ -128,6 +164,7 @@ namespace Dyninst
       prefixID = prefix_none;
       addrWidth = u64;
       segPrefix = 0;
+      isVectorInsn = false;
     }
     
     const Operation_impl::registerSet&  Operation_impl::implicitReads()

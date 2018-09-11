@@ -61,6 +61,12 @@ namespace Dyninst
             case 16:
                 userSetValue = Result(dbl128);
                 break;
+            case 32:
+                userSetValue = Result(m256);
+                break;
+            case 64:
+                userSetValue = Result(m512);
+                break;
 	case 0:
 	  // Special case for bitfields
 	  userSetValue = Result(bit_flag);

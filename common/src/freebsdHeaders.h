@@ -59,12 +59,9 @@
 #include <sys/un.h>
 #include <sys/syscall.h>
 
-#include <rpc/types.h>
-#include <rpc/xdr.h>
 
 #define PDSOCKET_ERROR (-1)
 typedef int PDSOCKET;
-typedef int (*P_xdrproc_t)(XDR*, ...);
 /* Not going to use on Linux Platform - already declared in /usr/include/errno.h
 extern const char *sys_errlist[];
 */
@@ -253,31 +250,6 @@ extern void dedemangle( char * demangled, char * dedemangled );
 extern char * COMMON_EXPORT P_cplus_demangle( const char * symbol, bool nativeCompiler,
 				bool includeTypes = false );
 
-inline void   P_xdr_destroy(XDR *x) { xdr_destroy(x);}
-inline bool_t P_xdr_u_char(XDR *x, u_char *uc) { return (xdr_u_char(x, uc));}
-inline bool_t P_xdr_int(XDR *x, int *i) { return (xdr_int(x, i));}
-inline bool_t P_xdr_double(XDR *x, double *d) {
-  return (xdr_double(x, d));}
-inline bool_t P_xdr_u_int(XDR *x, u_int *u){
-  return (xdr_u_int(x, u));}
-inline bool_t P_xdr_float(XDR *x, float *f) {
-  return (xdr_float(x, f));}
-inline bool_t P_xdr_char(XDR *x, char *c) {
-  return (xdr_char(x, c));}
-inline bool_t P_xdr_string(XDR *x, char **h, const u_int maxsize) {
-  return (xdr_string(x, h, maxsize));}
-
-#if 0
-// xdr not initially needed
-inline void P_xdrrec_create(XDR *x, const u_int send_sz, const u_int rec_sz,
-			    const caddr_t handle, 
-			    xdr_rd_func read_r, xdr_wr_func write_f) {
-  xdrrec_create(x, send_sz, rec_sz, handle, (int(*)(char*, char*, int))read_r, (int(*)(char*, char*, int))write_f);}
-#endif
-inline bool_t P_xdrrec_endofrecord(XDR *x, int now) { 
-  return (xdrrec_endofrecord(x, now));}
-inline bool_t P_xdrrec_skiprecord(XDR *x) { return (xdrrec_skiprecord(x));}
-inline bool_t P_xdrrec_eof(XDR *x) { return (xdrrec_eof(x)); }
 inline int P_mkdir(const char *pathname, mode_t mode) {
 	return mkdir(pathname, mode);
 }

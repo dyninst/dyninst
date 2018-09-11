@@ -80,7 +80,7 @@ bool SpringboardBuilder::generateInt(std::list<codeGen> &springboards,
       
       switch (generateSpringboard(springboards, req, input)) {
          case Failed:
-            if (p == Required) {
+            if (p == OffLimits) {
                return false;
             }
             // Otherwise we didn't need it anyway.
@@ -107,6 +107,9 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
 
   // Currently we use a greedy algorithm rather than some sort of scheduling thing.
   // It's a heck of a lot easier that way. 
+
+   if (!generateInt(springboards, input, OffLimits))
+      return false;
 
    if (!generateInt(springboards, input, Required))
       return false;
