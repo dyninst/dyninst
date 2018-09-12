@@ -988,17 +988,17 @@ Parser::finalize_funcs(vector<Function *> &funcs)
     #pragma omp parallel for schedule(auto)
     for(int i = 0; i < thread_local_funcs.size(); ++i) {
         Function *f = thread_local_funcs[i];
-        finalize(f);
+        f->finalize();
     }
 #elif USE_CILK
     cilk_for(int i = 0; i < thread_local_funcs.size(); ++i) {
         Function *f = thread_local_funcs[i];
-        finalize(f);
+        f->finalize();
     }
 #else
     for(int i = 0; i < thread_local_funcs.size(); ++i) {
         Function *f = thread_local_funcs[i];
-        finalize(f);
+        f->finalize();
     }
 #endif
 

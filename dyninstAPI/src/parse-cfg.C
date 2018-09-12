@@ -532,15 +532,6 @@ parse_func *parse_block::getCallee() {
    return NULL;
 }
 
-void parse_block::GetBlockInstructions(std::vector<std::string> & ret) {
-  Insns tmp;
-  getInsns(tmp, 0);
-  for (auto iit = tmp.begin(); iit != tmp.end(); ++iit) {
-    ret.push_back(iit->second.format());
-  }
-  return;
-}
-
 std::pair<bool, Address> parse_block::callTarget() {
    using namespace InstructionAPI;
    Offset off = lastInsnOffset();

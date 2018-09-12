@@ -27,7 +27,7 @@ JumpTableFormatPred::JumpTableFormatPred(ParseAPI::Function *f,
 }
 
 void JumpTableFormatPred::FindTOC() {
-    toc_address = block->obj()->cs()->getTOC(func->addr());
+    //toc_address = block->obj()->cs()->getTOC(func->addr());
     if (!toc_address) {
         // Little endian powerpc changes its ABI, which does not have .opd section, but often load R2 at function entry
 	Address entry = 0;

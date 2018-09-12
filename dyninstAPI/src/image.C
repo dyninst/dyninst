@@ -1327,15 +1327,32 @@ void image::analyzeIfNeeded() {
 }
 
 static bool CheckForPowerPreamble(parse_block* entryBlock) {
-    std::vector<std::string> retString;
-    entryBlock->GetBlockInstructions(retString);
-    if (retString.size() < 2)
+    ParseAPI::Block::Insns insns;
+    entryBlock->getInsns(insns);
+    if (insns.size() < 2)
       return false;
-    // Power Preambles
-    if ((retString[0].find("lis r2") != std::string::npos && retString[1].find("addi r2") != std::string::npos) ||
-        (retString[0].find("addis r2") != std::string::npos && retString[1].find("addi r2") != std::string::npos)) {
-        return true; 
-    }
+    // Get the first two instructions
+    auto iter = insns.begin();
+    InstructionAPI::Instruction i1 = iter->second;
+    ++iter;
+    InstructionAPI::Instruction i2 = iter->second;
+
+    const uint32_t * buf1 = (const uint32_t*) i1.ptr();
+    const uint32_t * buf2 = (const uint32_t*) i2.ptr();
+
+    uint32_t p1 = buf1[0] >> 16;
+    uint32_t p2 = buf2[0] >> 16;
+
+    // Check for two types of preamble
+    // Preamble 1: used in executables
+    // lis r2, IMM       bytes: IMM1 IMM2 40 3c 
+    // addi r2, r2, IMM  bytes: IMM1 IMM2 42 38
+    if (p1 == 0x3c40 && p2 == 0x3842) return true;
+    
+    // Preamble 2: used in libraries
+    // addis r2, r12, IMM   bytes: IMM1 IMM2 4c 3c
+    // addi r2, r2,IMM      bytes: IMM1 IMM2 42 38
+    if (p1 == 0x3c4c && p2 == 0x3842) return true;
     return false;
 }
 

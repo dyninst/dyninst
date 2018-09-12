@@ -59,7 +59,7 @@ namespace Dyninst
         return make_shared(singleton_object_pool<RegisterAST>::construct(regID, 0, regID.size() * 8));
     }
 
-    Operation_impl::Operation_impl(entryID id, Architecture arch)
+    Operation_impl::Operation_impl(entryID id, std::string m, Architecture arch)
         : operationID(id), archDecodedFrom(arch), prefixID(prefix_none)
     {
         switch(archDecodedFrom)
@@ -74,6 +74,7 @@ namespace Dyninst
         }
         segPrefix = 0;
         isVectorInsn = false;
+        mnemonic = m;
     }
 
     static bool getVectorizationInfo(ia32_entry* e)
@@ -146,6 +147,7 @@ namespace Dyninst
       addrWidth = o.addrWidth;
       segPrefix = o.segPrefix;
       isVectorInsn = o.isVectorInsn;
+      mnemonic = o.mnemonic;
     }
     const Operation_impl& Operation_impl::operator=(const Operation_impl& o)
     {
@@ -155,6 +157,7 @@ namespace Dyninst
       addrWidth = o.addrWidth;
       segPrefix = o.segPrefix;
       isVectorInsn = o.isVectorInsn;
+      mnemonic = o.mnemonic;
       return *this;
     }
     Operation_impl::Operation_impl()
