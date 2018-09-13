@@ -397,8 +397,9 @@ static Assignment::Ptr SearchForWrite(SliceNode::Ptr n, AbsRegion &src, Slicer::
 		}
 	    }
 	}
-
-	for (auto eit = curBlock->sources().begin(); eit != curBlock->sources().end(); ++eit) {
+        Block::edgelist sources;
+        curBlock->copy_sources(sources); 
+	for (auto eit = sources.begin(); eit != sources.end(); ++eit) {
 	    ParseAPI::Edge *e = *eit;
 	    if (e->interproc()) continue;
 	    if (e->type() == CATCH) continue;

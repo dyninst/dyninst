@@ -1031,6 +1031,8 @@ Parser::clean_bogus_funcs(vector<Function*> &funcs)
 	    continue;
 	}
         bool interprocEdge = false;
+        // Here we do not need locking because we
+        // are single-threaded during finalizing
 	for (auto eit = f->entry()->sources().begin(); !interprocEdge && eit != f->entry()->sources().end(); ++eit)
 	    if ((*eit)->interproc()) interprocEdge = true;
 	if (!interprocEdge) {
@@ -1545,7 +1547,10 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         visited[cur->start()] = true;
         leadersToBlock[cur->start()] = cur;
 
-        if (!cur->_parsed)
+        // Multiple functions can get accesses to a block,
+        // but only the function that creates the block should
+        // parse the block
+        if (cur->createdByFunc() == frame.func && !cur->_parsed)
         {
             parsing_printf("[%s] parsing block %lx\n",
                            FILE__,cur->start());
@@ -1555,7 +1560,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 
             cur->_parsed = true;
             curAddr = cur->start();
-        } else {
+        } if (cur->createdByFunc() != frame.func) {
             parsing_printf("[%s] deferring parse of shared block %lx\n",
                            FILE__,cur->start());
             if (func->retstatus() < UNKNOWN) {
@@ -1581,6 +1586,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             // This changes the function boundary, so we need to
             // invalidate the cache.
             func->_cache_valid = false;
+            continue;
+        } else {
             continue;
         }
 
