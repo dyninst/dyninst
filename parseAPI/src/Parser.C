@@ -854,8 +854,10 @@ Parser::finalize(Function *f)
         Block * b = *bit;
 	visited[b] = true;
     }
+    int block_cnt = 0;
     for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
         Block * b = *bit;
+	block_cnt++;
 	for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit) {
 	    Edge *e = *eit;
 	    if (e->interproc() && (e->type() == DIRECT || e->type() == COND_TAKEN)) {
@@ -871,6 +873,29 @@ Parser::finalize(Function *f)
 	}
     }
 
+    // Check whether the function contains only one block,
+    // and the block contains only an unresolve indirect jump.
+    // If it is the case, change the edge to tail call if necessary.
+    //
+    // This is part of the tail call heuristics.
+    // However, during parsing, the entry block may be created by
+    // the function, or may be created by another function sharing code.
+    // If the block is created by a larger function, the heuristic will
+    // not mark the edge as tail call
+    if (block_cnt == 1) {
+        Block *b = f->entry();
+	Block::Insns insns;
+	b->getInsns(insns);
+	if (insns.size() == 1 && insns.begin()->second.getCategory() == c_BranchInsn) {
+	    for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit) {
+                Edge *e = *eit;
+		if (e->type() == INDIRECT || e->type() == DIRECT) {
+		    e->_type._interproc = true;
+    		    parsing_printf("from %lx to %lx, marked as not tail call\n", b->last(), e->trg()->start());
+    		}
+	    }
+	}
+    }
 
     // is this the first time we've parsed this function?
     if (unlikely( !f->_extents.empty() )) {
@@ -2060,11 +2085,15 @@ Parser::split_block(
 
         Block::edgelist &trgs = b->_trglist;
         Block::edgelist::iterator tit = trgs.begin();
-        for (; tit != trgs.end(); ++tit) {
-            Edge *e = *tit;
-            e->_source = ret;
-            ret->_trglist.push_back(e);
-        }
+	if (!block_exist) {
+	    // For existing blocks, edges are already there. 
+	    // No need to move edges, which will lead to duplicated edges
+            for (; tit != trgs.end(); ++tit) {
+                Edge *e = *tit;
+                e->_source = ret;
+                ret->_trglist.push_back(e);
+            }
+	}
         if (!trgs.empty() && RET == (*trgs.begin())->type()) {
             isRetBlock = true;
         }
