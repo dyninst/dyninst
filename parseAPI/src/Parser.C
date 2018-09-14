@@ -1560,7 +1560,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 
             cur->_parsed = true;
             curAddr = cur->start();
-        } if (cur->createdByFunc() != frame.func) {
+        } else if (cur->createdByFunc() != frame.func) {
             parsing_printf("[%s] deferring parse of shared block %lx\n",
                            FILE__,cur->start());
             if (func->retstatus() < UNKNOWN) {
