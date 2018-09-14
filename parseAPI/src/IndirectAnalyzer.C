@@ -88,17 +88,17 @@ boost::make_lock_guard(*func);
     //parsing_printf("\tJump table format: %s\n", jtfp.format().c_str());
     // If the jump target expression is not in a form we recognize,
     // we do not try to resolve it
-    parsing_printf("In function %s, Address %lx, jump target format %s, index loc %s, index variable %s, memory read loc %s", 
+    parsing_printf("In function %s, Address %lx, jump target format %s, index loc %s, index variable %s, memory read loc %s, isJumpTableFormat %d\n", 
             func->name().c_str(), 
             block->last(), 
             jtfp.format().c_str(), 
             jtfp.indexLoc ? jtfp.indexLoc->format().c_str() : "null" , 
             jtfp.index.format().c_str(),
-            jtfp.memLoc ? jtfp.memLoc->format().c_str() : "null");
+            jtfp.memLoc ? jtfp.memLoc->format().c_str() : "null",
+	    jtfp.isJumpTableFormat());
 
     bool variableArguFormat = false;
     if (!jtfp.isJumpTableFormat()) {
-        parsing_printf(" not jump table\n");
 	if (jtfp.jumpTargetExpr && func->entry() == block && IsVariableArgumentFormat(jtfp.jumpTargetExpr, jtfp.index)) {
 	    parsing_printf("\tVariable number of arguments format, index %s\n", jtfp.index.format().c_str());
 	    variableArguFormat = true;
@@ -128,10 +128,10 @@ boost::make_lock_guard(*func);
 	    jtip.IsIndexBounded(g, bfc, target);
         }
         if (jtip.findBound) {
-            parsing_printf(" bound %s", jtip.bound.format().c_str());
+            parsing_printf(" find bound %s for %lx\n", jtip.bound.format().c_str(), block->last());
 	    b = jtip.bound;
         } else {
-            parsing_printf(" Cannot find bound, assume there are at most 256 entries and scan the table\n");
+            parsing_printf(" Cannot find bound, assume there are at most 256 entries and scan the table for indirect jump at %lx\n", block->last());
 	    b = StridedInterval(1, 0, 255);
 	    scanTable = true;
         }
@@ -263,11 +263,12 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
 	    // This assumption is shaky in terms of non-contiguous functions.
 	    // But non-contiguous blocks tend not be reach by indirect jumps
 	    if (func->src() == HINT) {
-	        Hint h(func->addr(), 0 , NULL, "");
-		auto range = equal_range(cs->hints().begin(), cs->hints().end(), h);
-		if (range.first != range.second && range.first != cs->hints().end()) {
-		    Address startAddr = range.first->_addr;
-		    int size = range.first->_size;
+	        Hint h(block->last(), 0 , NULL, "");
+		auto iter = upper_bound(cs->hints().begin(), cs->hints().end(), h);
+		if (iter != cs->hints().begin()) {
+		    iter--;
+		    Address startAddr = iter->_addr;
+		    int size = iter->_size;
 		    if (jtrv.targetAddress < startAddr || jtrv.targetAddress >= startAddr + size) {
 		        stop = true;
 			parsing_printf("WARNING: resolving jump tables leads to address %lx, which is not in the function range specified in the symbol table\n", jtrv.targetAddress);

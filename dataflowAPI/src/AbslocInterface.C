@@ -168,13 +168,14 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction insn,
 }
 
 AbsRegion AbsRegionConverter::convert(RegisterAST::Ptr reg) {
-  // FIXME:
-  // Upcast register so we can be sure to match things later
-  AbsRegion tmp = AbsRegion(Absloc(reg->getID().getBaseRegister()));
-
-  //std::cerr << "ARC::convert from " << reg->format() << " to "
-  //    << tmp.format() << std::endl;
-  return tmp;
+  // We do not distinguish partial registers from full register.
+  // So, eax and rax are treated the same.
+  // But for flags, we want to separate CF, ZF, and so on
+  if (reg->getID().isFlag()) {
+    return AbsRegion(Absloc(reg->getID()));
+  } else {
+    return AbsRegion(Absloc(reg->getID().getBaseRegister()));
+  }		   
 }
 
 class bindKnownRegs : public InstructionAPI::Visitor
