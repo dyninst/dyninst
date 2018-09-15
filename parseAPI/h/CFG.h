@@ -297,7 +297,7 @@ class PARSER_EXPORT Block : public Dyninst::SimpleInterval<Address, int>,
     Address start() const { return _start; }
     Address end() const { return _end; }
     Address lastInsnAddr() const { return _lastInsn; } 
-    Address last() const { return lastInsnAddr(); }
+    virtual Address last() const { return lastInsnAddr(); }
     Address size() const { return _end - _start; }
     bool containsAddr(Address addr) const { return addr >= _start && addr < _end; }
 
