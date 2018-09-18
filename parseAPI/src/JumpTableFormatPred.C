@@ -21,39 +21,56 @@ JumpTableFormatPred::JumpTableFormatPred(ParseAPI::Function *f,
     findIndex = false;
     findTableBase = false;
     firstMemoryRead = true;
+    toc_address = 0;
     if (b->obj()->cs()->getArch() == Arch_ppc64) {
         FindTOC();
     }
 }
 
-void JumpTableFormatPred::FindTOC() {
-    //toc_address = block->obj()->cs()->getTOC(func->addr());
-    if (!toc_address) {
-        // Little endian powerpc changes its ABI, which does not have .opd section, but often load R2 at function entry
-	Address entry = 0;
-	if (func->src() == HINT) {
-	    entry = func->addr();
-	} else if (func->src() == RT) {
-	    entry = func->addr() - 8; 
-	} else {
-	    parsing_printf("\tUnhandled type of function for getting TOC address\n");
-	    return;
-	}
-	const uint32_t * buf = (const uint32_t*) block->obj()->cs()->getPtrToInstruction(entry);
-	if (buf == NULL) return;
-	if ((buf[0] >> 16) != 0x3c40 || (buf[1] >> 16) != 0x3842) return;
-	if (buf[0] & 0x8000) {
-	    toc_address = (buf[0] & 0xffff) | SIGNEX_64_16;
-	} else {
-	    toc_address = buf[0] & 0xffff;
-	}
-	if (buf[1] & 0x8000) {
-	    toc_address = (toc_address << 16) + ((buf[1] & 0xffff) | SIGNEX_64_16);
-	} else {
-	    toc_address = (toc_address << 16) + (buf[1] & 0xffff);
-	}
+static bool ComputeTOC(Address &ret, Address entry, Block* b) {
+    if (!b->region()->isCode(entry)) return false;
+    const uint32_t * buf = (const uint32_t*) b->region()->getPtrToInstruction(entry);
+    if (buf == NULL) return false;
+
+    uint32_t i1 = buf[0];
+    uint32_t i2 = buf[1];
+
+    uint32_t p1 = i1 >> 16;
+    uint32_t p2 = i2 >> 16;
+
+    // lis and addis treat imm unsigned
+    Address a1 = i1 & 0xffff;
+    // addi treats imm signed
+    Address a2 = i2 & 0xffff;
+    if (a2 & 0x8000) a2 = a2 | SIGNEX_64_16;
+
+    // Check for two types of preamble
+    // Preamble 1: used in executables
+    // lis r2, IMM       bytes: IMM1 IMM2 40 3c 
+    // addi r2, r2, IMM  bytes: IMM1 IMM2 42 38
+    if (p1 == 0x3c40 && p2 == 0x3842) {
+        ret = (a1 << 16) + a2;
+        return true;
     }
-    parsing_printf("\t TOC address %lx in R2\n", toc_address);
+    
+    // Preamble 2: used in libraries
+    // addis r2, r12, IMM   bytes: IMM1 IMM2 4c 3c
+    // addi r2, r2,IMM      bytes: IMM1 IMM2 42 38
+    if (p1 == 0x3c4c && p2 == 0x3842) {
+        ret = entry + (a1 << 16) + a2;
+        return true;
+    }
+    return false;
+}
+
+void JumpTableFormatPred::FindTOC() {
+        // Little endian powerpc changes its ABI, which does not have .opd section, but often load R2 at function entry
+    if (ComputeTOC(toc_address, func->addr(), block) || 
+        ComputeTOC(toc_address, func->addr() - 8, block)) {
+        parsing_printf("\t find TOC address %lx in R2\n", toc_address);
+        return;        
+    }
+    parsing_printf("\tDid not find TOC\n");
 }
 
 static int CountInDegree(SliceNode::Ptr n) {
