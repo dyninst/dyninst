@@ -375,65 +375,6 @@ static bool IsTableIndex(set<uint64_t> &values) {
 	return true;
 }
 
-/*
-void StridedInterval::MemoryRead(Block* b, int readSize) {
-        if (interval.stride == 0) {
-            // This is a read to variable, not a table read
-	    *this = StridedInterval::top;
-            return;
-        }
-
-	if (interval != StridedInterval::top) {
-		Address memAddrLow = (Address)interval.low;
-		Address memAddrHigh = (Address)interval.high;
-#if defined(os_windows)
-                memAddrLow -= b->obj()->cs()->loadAddress();
-		memAddrHigh -= b->obj()->cs()->loadAddress();
-#endif
-		if (IsInReadOnlyRegion(memAddrLow, memAddrHigh)) {
-		    set<uint64_t> values;
-		    if (interval.size() <= MAX_TABLE_ENTRY && b->obj()->cs()->isReadOnly(memAddrLow)) {
-		        for (Address memAddr = memAddrLow ; memAddr <= memAddrHigh; memAddr += interval.stride) {
-                            if (!b->obj()->cs()->isReadOnly(memAddr)) {
-                                parsing_printf("NOT READ ONLY SECTION %lx\n", memAddr);
-                                continue;                       
-                            }
-			    uint64_t val;
-			    switch (readSize) {
-			        case 8:
-				    val = *(const uint64_t *) b->obj()->cs()->getPtrToInstruction(memAddr);
-				    break;
-				case 4:
-				    val = *(const uint32_t *) b->obj()->cs()->getPtrToInstruction(memAddr);
-				    break;
-				case 2:
-				    val = *(const uint16_t *) b->obj()->cs()->getPtrToInstruction(memAddr);
-				    break;
-				case 1:
-				    val = *(const uint8_t *) b->obj()->cs()->getPtrToInstruction(memAddr);
-				    break;
-				default:
-				    parsing_printf("Invalid table stride %d\n", readSize);
-				    *this = top;
-				    return;
-			    }
-			    values.insert(val);
-			}	  				    
-		    }
-		    if (IsTableIndex(values)) {
-		        // This is a table for indexing a next level table
-			interval.low = *(values.begin());
-			interval.high = *(values.rbegin());
-			interval.stride = 1;
-			ClearTableCheck();
-		    } else {
-		        tableReadSize = readSize;
-		    }
-	    } else
-	        tableReadSize = readSize;
-	}	
-}
-*/
 void BoundFact::Meet(BoundFact &bf, Block* b) {
         for (auto fit = fact.begin(); fit != fact.end();) {
 	    StridedInterval *val2 = bf.GetBound(fit->first);

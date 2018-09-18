@@ -359,10 +359,11 @@ bool JumpTableFormatVisitor::PotentialIndexing(AST::Ptr ast) {
     return false;
 }
 
-JumpTableReadVisitor::JumpTableReadVisitor(AbsRegion i, int v, CodeSource *c, bool ze, int m) {
+JumpTableReadVisitor::JumpTableReadVisitor(AbsRegion i, int v, CodeSource *c, CodeRegion *r, bool ze, int m) {
     index = i;
     indexValue = v;
     cs = c;
+    cr = r;
     isZeroExtend = ze;
     valid = true;
     memoryReadSize = m;

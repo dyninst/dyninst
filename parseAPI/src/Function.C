@@ -212,6 +212,7 @@ Function::finalize()
   _bmap.clear();
   _retBL.clear(); 
   _call_edge_list.clear();
+  _cache_valid = false;
 
     // The Parser knows how to finalize
     // a Function's parse data

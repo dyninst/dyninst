@@ -1524,18 +1524,17 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             auto work_ah = work->ah();
             parsing_printf("... continue parse indirect jump at %lx\n", work_ah->getAddr());
             Block *nextBlock = work->cur();
-            if (nextBlock->last() != work_ah->getAddr()) {
+            while (nextBlock->last() != work_ah->getAddr()) {
                 // The block has been split
-                region_data * rd = _parse_data->findRegion(frame.codereg);
-                set<Block*> blocks;
-                rd->blocksByRange.find(work_ah->getAddr(), blocks);
-                for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
-                    if ((*bit)->last() == work_ah->getAddr()) {
-                        nextBlock = (*bit);
+                // We keep following the fall-through edges
+                Block::edgelist targets;
+                nextBlock->copy_targets(targets);
+                for (auto eit = targets.begin(); eit != targets.end(); ++eit) {
+                    if ((*eit)->type() == FALLTHROUGH) {
+                        nextBlock = (*eit)->trg();
                         break;
                     }
                 }
-
             }
             ProcessCFInsn(frame,nextBlock,work->ah());
             continue;

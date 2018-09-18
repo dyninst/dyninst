@@ -73,7 +73,7 @@ boost::make_lock_guard(*func);
 
     // Now we start with the indirect jump instruction,
     // to determine the format of the (potential) jump table
-    const unsigned char * buf = (const unsigned char*) block->obj()->cs()->getPtrToInstruction(block->last());
+    const unsigned char * buf = (const unsigned char*) block->region()->getPtrToInstruction(block->last());
     InstructionDecoder dec(buf, InstructionDecoder::maxInstructionLength, block->obj()->cs()->getArch());
     Instruction insn = dec.decode();
     AssignmentConverter ac(true, false);
@@ -83,6 +83,7 @@ boost::make_lock_guard(*func);
 
     SymbolicExpression se;
     se.cs = block->obj()->cs();
+    se.cr = block->region();
     JumpTableFormatPred jtfp(func, block, rf, thunks, se);
     GraphPtr slice = formatSlicer.backwardSlice(jtfp);
     //parsing_printf("\tJump table format: %s\n", jtfp.format().c_str());
@@ -183,7 +184,7 @@ static Address ThunkAdjustment(Address afterThunk, MachRegister reg, ParseAPI::B
     // an add insturction like ADD ebx, OFFSET to adjust
     // the value coming out of thunk.
    
-    const unsigned char* buf = (const unsigned char*) (b->obj()->cs()->getPtrToInstruction(afterThunk));
+    const unsigned char* buf = (const unsigned char*) (b->region()->getPtrToInstruction(afterThunk));
     InstructionDecoder dec(buf, b->end() - b->start(), b->obj()->cs()->getArch());
     Instruction nextInsn = dec.decode();
     // It has to be an add
@@ -208,7 +209,7 @@ void IndirectControlFlowAnalyzer::FindAllThunks() {
 	// end a basic block. So, we need to check every instruction to find all thunks
         ParseAPI::Block *b = *bit;
 	const unsigned char* buf =
-            (const unsigned char*)(b->obj()->cs()->getPtrToInstruction(b->start()));
+            (const unsigned char*)(b->region()->getPtrToInstruction(b->start()));
 	if( buf == NULL ) {
 	    parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",FILE__, __LINE__);
 	    return;
@@ -221,7 +222,7 @@ void IndirectControlFlowAnalyzer::FindAllThunks() {
 	        bool valid;
 		Address addr;
 		boost::tie(valid, addr) = block->getCFT();
-		const unsigned char *target = (const unsigned char *) b->obj()->cs()->getPtrToInstruction(addr);
+		const unsigned char *target = (const unsigned char *) b->region()->getPtrToInstruction(addr);
 		InstructionDecoder targetChecker(target, InstructionDecoder::maxInstructionLength, b->obj()->cs()->getArch());
 		Instruction thunkFirst = targetChecker.decode();
 		set<RegisterAST::Ptr> thunkTargetRegs;
@@ -255,7 +256,7 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
     CodeSource *cs = block->obj()->cs();
     set<Address> jumpTargets;
     for (int v = indexBound.low; v <= indexBound.high; v += indexBound.stride) {
-        JumpTableReadVisitor jtrv(index, v, cs, isZeroExtend, memoryReadSize);
+        JumpTableReadVisitor jtrv(index, v, cs, block->region(), isZeroExtend, memoryReadSize);
 	jumpTargetExpr->accept(&jtrv);
 	if (jtrv.valid && cs->isCode(jtrv.targetAddress)) {
 	    bool stop = false;
@@ -299,7 +300,7 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
 	if (indexBound.stride == 0) break;
     }
     for (auto ait = constAddr.begin(); ait != constAddr.end(); ++ait) {
-        if (cs->isCode(*ait)) {
+        if (block->region()->isCode(*ait)) {
 	    jumpTargets.insert(*ait);
 	}
     }
