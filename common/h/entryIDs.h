@@ -1653,7 +1653,21 @@ enum entryID {
   power_op_popcntw,
   power_op_popcntd,
   power_op_wait,
-  power_op_lxsdx,
+  
+	power_op_lxsd,
+	power_op_lxsdx,
+	power_op_lxsibzx,
+	power_op_lxsihzx,
+	power_op_lxsiwax,
+	power_op_lxsiwzx,
+	power_op_lxssp,
+	power_op_lxsspx,
+	power_op_lxvb16x,
+	power_op_lxvd2x,
+	power_op_lxvl,
+	power_op_lxvll,
+	power_op_lxv,
+
 
   // ***********
   // Steve note:
