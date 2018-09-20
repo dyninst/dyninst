@@ -60,9 +60,11 @@ BPatch_loopTreeNode::BPatch_loopTreeNode(BPatch_flowGraph* fg,
 
     vector<PatchFunction*> patchCallees;
     tree->getCallees(patchCallees);
-    for (auto fit = patchCallees.begin(); fit != patchCallees.end(); ++fit)
-        callees.push_back(SCAST_FI(*fit));
-
+    for (auto fit = patchCallees.begin(); fit != patchCallees.end(); ++fit) {
+        func_instance * func = SCAST_FI(*fit);
+        if (func->getPowerPreambleFunc() != NULL) continue; 
+        callees.push_back(func);
+    }
 }
  
 

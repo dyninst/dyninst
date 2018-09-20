@@ -131,7 +131,13 @@ class insnCodeGen {
    static void removeStackFrame(codeGen &gen);
 
 
+   static void generateVectorLoad(codeGen &gen, unsigned vectorReg, Register RegAddress);
+   static void generateVectorStore(codeGen & gen, unsigned vectorReg, Register RegAddress);
+
   static bool modifyJump(Address target,
+                         NS_power::instruction &insn, 
+                         codeGen &gen);
+  static bool modifyJumpCall(Address target,
                          NS_power::instruction &insn, 
                          codeGen &gen);
   static bool modifyJcc(Address target,
@@ -143,6 +149,21 @@ class insnCodeGen {
   static bool modifyData(Address target,
                          NS_power::instruction &insn, 
                          codeGen &gen);
+  static void generateMoveToSPR(codeGen &gen,Register toSPR, unsigned sprReg);
+  static void generateMoveFromSPR(codeGen &gen,Register toSPR,
+                                    unsigned sprReg);
+  static bool generateBranchTar(codeGen &gen,Register scratch, 
+                         Address dest, 
+                         bool isCall);
+  static bool generateBranchLR(codeGen &gen, Register scratch, 
+                         Address dest, 
+                         bool isCall);
+  static bool generateBranchCTR(codeGen &gen,Register scratch, 
+                         Address dest, 
+                         bool isCall);
+  static void saveVectors(codeGen & gen, int startStackOffset);
+  static void restoreVectors(codeGen & gen, int startStackOffset);
+
 };
 
 #endif

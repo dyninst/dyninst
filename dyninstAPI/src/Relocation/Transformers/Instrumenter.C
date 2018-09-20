@@ -117,7 +117,7 @@ bool Instrumenter::insnInstrumentation(RelocBlock *trace) {
 
 
    RelocBlock::WidgetList::iterator elem = trace->elements().begin();
-
+   if (elem == trace->elements().end()) return true;
    while ((instPre && (pre != preEnd)) ||
           (instPost && (post != postEnd))) {
       Address preAddr = 0;
@@ -138,7 +138,7 @@ bool Instrumenter::insnInstrumentation(RelocBlock *trace) {
       while ((*elem)->addr() == 0 ||
              (*elem)->addr() < next) {
          ++elem;
-         assert(elem != trace->elements().end());
+         if (elem == trace->elements().end()) return true;
       }
 
       if ((preAddr != 0) &&

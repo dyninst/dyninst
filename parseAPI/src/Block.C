@@ -68,6 +68,7 @@ Block::~Block()
 bool
 Block::consistent(Address addr, Address & prev_insn) 
 {
+    if (addr >= end() || addr < start()) return false;
     InstructionSource * isrc;
     if(!_obj->cs()->regionsOverlap())
         isrc = _obj->cs();

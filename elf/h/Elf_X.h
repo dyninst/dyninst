@@ -38,6 +38,10 @@
 #include "util.h"
 #include "dyn_regs.h"
 
+#ifndef EM_CUDA
+#define EM_CUDA		190	/* NVIDIA CUDA */
+#endif
+
 namespace Dyninst {
 
 // Forward declarations
@@ -257,6 +261,7 @@ class DYNELF_EXPORT Elf_X_Data {
 
     // Read Interface
     void *d_buf() const;
+    Elf_Data * elf_data() const;
     Elf_Type d_type() const;
     unsigned int d_version() const;
     size_t d_size() const;

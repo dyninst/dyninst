@@ -130,6 +130,7 @@ namespace Dyninst
       INSTRUCTION_EXPORT const VCSet& getImplicitMemReads() const;
       /// Returns the set of memory locations implicitly written.
       INSTRUCTION_EXPORT const VCSet& getImplicitMemWrites() const;
+      bool isVectorInsn;
 
     private:
       void SetUpNonOperandData(bool doFlags = false) const;

@@ -31,10 +31,12 @@
 #include <assert.h>
 #include <list>
 #include <cstring>
+#include <boost/filesystem.hpp>
 #include "boost/functional/hash.hpp"
 #include "common/src/headers.h"
 #include "Module.h"
 #include "Serialization.h"
+
 
 #include <functional>
 #include <iostream>
@@ -69,7 +71,7 @@ bool LineInformation::addLine( std::string lineSource,
                                Offset lowInclusiveAddr,
                                Offset highExclusiveAddr )
 {
-    auto index = strings_->get<1>().insert(lineSource).first;
+    auto index = strings_->get<1>().insert(StringTableEntry(lineSource,"")).first;
 
     return addLine(index->str, lineNo, lineOffset, lowInclusiveAddr, highExclusiveAddr);
 }
@@ -138,13 +140,14 @@ bool LineInformation::getSourceLines( Offset addressInRange,
 bool LineInformation::getAddressRanges( const char * lineSource, 
       unsigned int lineNo, vector< AddressRange > & ranges )
 {
-    auto found_statements = equal_range(lineSource, lineNo);
+    auto found_statements = range(lineSource, lineNo);
     for(auto i = found_statements.first;
             i != found_statements.second;
             ++i)
     {
         ranges.push_back(AddressRange(**i));
     }
+
     return found_statements.first != found_statements.second;
 } /* end getAddressRangesFromLine() */
 
@@ -198,10 +201,13 @@ LineInformation::const_line_info_iterator LineInformation::end_by_source() const
 }
 
 std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line_info_iterator>
-LineInformation::equal_range(std::string file, const unsigned int lineNo) const {
-    auto found_range = strings_->get<1>().equal_range(file);
-    std::pair<LineInformation::const_line_info_iterator, LineInformation::const_line_info_iterator > bounds;
-    for(auto found = found_range.first; ((found != found_range.second) && (found != strings_->get<1>().end())); ++found)
+LineInformation::range(std::string file, const unsigned int lineNo) const
+{
+    using namespace boost::filesystem;
+    auto found_range = strings_->get<2>().equal_range(path(file).filename().string());
+
+    std::pair<const_line_info_iterator, const_line_info_iterator > bounds;
+    for(auto found = found_range.first; ((found != found_range.second) && (found != strings_->get<2>().end())); ++found)
     {
         unsigned index = strings_->project<0>(found) - strings_->begin();
         auto idx = boost::make_tuple(index, lineNo);
@@ -237,6 +243,26 @@ LineInformation::const_iterator LineInformation::find(Offset addressInRange, con
         ++hint;
     }
     return find(addressInRange);
+}
+
+
+void LineInformation::dump()
+{
+  for (auto i = begin(); i != end(); i++) {
+    const Statement *stmt = *i;
+    std::cerr <<
+      "[" <<
+      std::hex <<
+      stmt->startAddr() <<
+      "," <<
+      stmt->endAddr() <<
+      std::dec <<
+      ") " <<
+      stmt->getFile() <<
+      ":" <<
+      stmt->getLine() <<
+      std::endl;
+  }
 }
 
 /* end LineInformation destructor */

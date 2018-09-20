@@ -109,7 +109,7 @@ else()
 endif()
 
 dyninst_library(symtabAPI ${DEPS})
-target_link_private_libraries(symtabAPI ${Boost_LIBRARIES})
+target_link_private_libraries(symtabAPI ${Boost_LIBRARIES} -lboost_filesystem)
 
 if (USE_COTIRE)
     cotire(symtabAPI)

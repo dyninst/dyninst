@@ -100,7 +100,7 @@ namespace Dyninst{
 
 			Offset startAddr() const { return first;}
 			Offset endAddr() const {return second;}
-			std::string getFile() const;
+			const std::string& getFile() const;
 			unsigned int getFileIndex() const { return file_index_; }
 			unsigned int getLine()const {return line_;}
 			unsigned int getColumn() const { return column_; }
@@ -162,6 +162,8 @@ namespace Dyninst{
 
 			bool isShared() const;
 			~Module();
+
+            std::string getCompDir();
 
 			// Symbol output methods
 			virtual bool findSymbol(std::vector<Symbol *> &ret,
@@ -234,6 +236,7 @@ namespace Dyninst{
 			void finalizeRanges();
 
 		private:
+            bool objectLevelLineInfo;
 			Dyninst::SymtabAPI::LineInformation* lineInfo_;
 			typeCollection* typeInfo_;
 			std::vector<Module::DebugInfoT> info_;
@@ -241,6 +244,7 @@ namespace Dyninst{
 
 			std::string fileName_;                   // short file
 			std::string fullName_;                   // full path to file
+			std::string compDir_;
 			supportedLanguages language_;
 			Offset addr_;                      // starting address of module
 			Symtab *exec_;

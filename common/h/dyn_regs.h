@@ -55,8 +55,9 @@ namespace Dyninst
         Arch_x86_64 = 0x18000000,
         Arch_ppc32  = 0x24000000,
         Arch_ppc64  = 0x28000000,
-		Arch_aarch32 = 0x44000000, //for later use
-		Arch_aarch64 = 0x48000000
+        Arch_aarch32 = 0x44000000, //for later use
+        Arch_aarch64 = 0x48000000,
+        Arch_cuda  = 0x88000000
     } Architecture;
 
 
@@ -172,11 +173,14 @@ namespace Dyninst
       const signed int L_REG = 0x00000100; //8-bit, first byte
       const signed int H_REG = 0x00000200; //8-bit, second byte
       const signed int W_REG = 0x00000300; //16-bit, first word
+      // MachRegister::getBaseRegister clears the bit field for size,
+      // so the full register size has to be 0
       const signed int FULL  = 0x00000000; //32 bits
-      const signed int QUAD  = 0x00004000; //64 bits
-      const signed int OCT   = 0x00002000; //128 bits
-      const signed int FPDBL = 0x00001000; // 80 bits
-      const signed int BIT   = 0x00008000; // 1 bit
+      const signed int OCT   = 0x00000600; //128 bits
+      const signed int FPDBL = 0x00000700; // 80 bits
+      const signed int BIT   = 0x00000800; // 1 bit
+      const signed int YMMS  = 0x00000900; // YMM are 256 bits
+      const signed int ZMMS  = 0x00000A00; // ZMM are 512 bits
       const signed int GPR   = 0x00010000;
       const signed int SEG   = 0x00020000;
       const signed int FLAG  = 0x00030000;
@@ -313,71 +317,71 @@ namespace Dyninst
       DEF_REGISTER(xmm31, 0x1F    | OCT   | XMM  | Arch_x86, "x86");
 
 
-      DEF_REGISTER(ymm0,  0x00    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm1,  0x01    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm2,  0x02    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm3,  0x03    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm4,  0x04    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm5,  0x05    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm6,  0x06    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm7,  0x07    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm8,  0x08    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm9,  0x09    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm10, 0x0A    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm11, 0x0B    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm12, 0x0C    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm13, 0x0D    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm14, 0x0E    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm15, 0x0F    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm16, 0x10    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm17, 0x11    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm18, 0x12    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm19, 0x13    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm20, 0x14    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm21, 0x15    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm22, 0x16    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm23, 0x17    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm24, 0x18    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm25, 0x19    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm26, 0x1A    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm27, 0x1B    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm28, 0x1C    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm29, 0x1D    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm30, 0x1E    | OCT   | YMM  | Arch_x86, "x86");
-      DEF_REGISTER(ymm31, 0x1F    | OCT   | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm0,  0x00    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm1,  0x01    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm2,  0x02    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm3,  0x03    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm4,  0x04    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm5,  0x05    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm6,  0x06    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm7,  0x07    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm8,  0x08    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm9,  0x09    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm10, 0x0A    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm11, 0x0B    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm12, 0x0C    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm13, 0x0D    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm14, 0x0E    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm15, 0x0F    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm16, 0x10    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm17, 0x11    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm18, 0x12    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm19, 0x13    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm20, 0x14    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm21, 0x15    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm22, 0x16    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm23, 0x17    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm24, 0x18    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm25, 0x19    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm26, 0x1A    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm27, 0x1B    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm28, 0x1C    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm29, 0x1D    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm30, 0x1E    | YMMS  | YMM  | Arch_x86, "x86");
+      DEF_REGISTER(ymm31, 0x1F    | YMMS  | YMM  | Arch_x86, "x86");
 
-      DEF_REGISTER(zmm0,  0x00    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm1,  0x01    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm2,  0x02    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm3,  0x03    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm4,  0x04    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm5,  0x05    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm6,  0x06    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm7,  0x07    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm8,  0x08    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm9,  0x09    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm10, 0x0A    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm11, 0x0B    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm12, 0x0C    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm13, 0x0D    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm14, 0x0E    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm15, 0x0F    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm16, 0x10    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm17, 0x11    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm18, 0x12    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm19, 0x13    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm20, 0x14    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm21, 0x15    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm22, 0x16    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm23, 0x17    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm24, 0x18    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm25, 0x19    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm26, 0x1A    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm27, 0x1B    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm28, 0x1C    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm29, 0x1D    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm30, 0x1E    | OCT   | ZMM  | Arch_x86, "x86");
-      DEF_REGISTER(zmm31, 0x1F    | OCT   | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm0,  0x00    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm1,  0x01    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm2,  0x02    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm3,  0x03    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm4,  0x04    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm5,  0x05    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm6,  0x06    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm7,  0x07    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm8,  0x08    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm9,  0x09    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm10, 0x0A    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm11, 0x0B    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm12, 0x0C    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm13, 0x0D    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm14, 0x0E    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm15, 0x0F    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm16, 0x10    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm17, 0x11    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm18, 0x12    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm19, 0x13    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm20, 0x14    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm21, 0x15    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm22, 0x16    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm23, 0x17    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm24, 0x18    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm25, 0x19    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm26, 0x1A    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm27, 0x1B    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm28, 0x1C    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm29, 0x1D    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm30, 0x1E    | ZMMS  | ZMM  | Arch_x86, "x86");
+      DEF_REGISTER(zmm31, 0x1F    | ZMMS  | ZMM  | Arch_x86, "x86");
 
       DEF_REGISTER(mm0,   0x0     | FPDBL | MMX  | Arch_x86, "x86");
       DEF_REGISTER(mm1,   0x1     | FPDBL | MMX  | Arch_x86, "x86");
@@ -425,11 +429,15 @@ namespace Dyninst
       const signed int L_REG = 0x00000100;  //8-bit, first byte
       const signed int H_REG = 0x00000200;  //8-bit, second byte
       const signed int W_REG = 0x00000300; //16 bit, first work
-      const signed int D_REG = 0x00000f00; //32 bit, first double word
-      const signed int FULL  = 0x00000000; //64 bit
-      const signed int FPDBL = 0x00001000; // 80 bits
-      const signed int OCT   = 0x00002000; //128 bits
-      const signed int BIT   = 0x00008000; // 1 bit
+      const signed int D_REG = 0x00000F00; //32 bit, first double word
+      // MachRegister::getBaseRegister clears the bit field for size,
+      // so the full register size has to be 0
+      const signed int FULL  = 0x00000000; //64 bits
+      const signed int OCT   = 0x00000600; //128 bits
+      const signed int FPDBL = 0x00000700; // 80 bits
+      const signed int BIT   = 0x00000800; // 1 bit
+      const signed int YMMS  = 0x00000900; // YMM are 256 bits
+      const signed int ZMMS  = 0x00000A00; // ZMM are 512 bits
       const signed int GPR   = 0x00010000;
       const signed int SEG   = 0x00020000;
       const signed int FLAG  = 0x00030000;
@@ -603,70 +611,70 @@ namespace Dyninst
       DEF_REGISTER(xmm29, 0x1D    | OCT   | XMM  | Arch_x86_64, "x86_64");
       DEF_REGISTER(xmm30, 0x1E    | OCT   | XMM  | Arch_x86_64, "x86_64");
       DEF_REGISTER(xmm31, 0x1F    | OCT   | XMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm0,  0x00    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm1,  0x01    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm2,  0x02    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm3,  0x03    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm4,  0x04    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm5,  0x05    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm6,  0x06    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm7,  0x07    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm8,  0x08    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm9,  0x09    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm10, 0x0A    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm11, 0x0B    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm12, 0x0C    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm13, 0x0D    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm14, 0x0E    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm15, 0x0F    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm16, 0x10    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm17, 0x11    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm18, 0x12    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm19, 0x13    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm20, 0x14    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm21, 0x15    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm22, 0x16    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm23, 0x17    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm24, 0x18    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm25, 0x19    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm26, 0x1A    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm27, 0x1B    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm28, 0x1C    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm29, 0x1D    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm30, 0x1E    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(ymm31, 0x1F    | OCT   | YMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm0,  0x00    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm1,  0x01    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm2,  0x02    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm3,  0x03    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm4,  0x04    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm5,  0x05    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm6,  0x06    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm7,  0x07    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm8,  0x08    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm9,  0x09    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm10, 0x0A    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm11, 0x0B    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm12, 0x0C    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm13, 0x0D    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm14, 0x0E    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm15, 0x0F    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm16, 0x10    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm17, 0x11    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm18, 0x12    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm19, 0x13    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm20, 0x14    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm21, 0x15    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm22, 0x16    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm23, 0x17    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm24, 0x18    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm25, 0x19    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm26, 0x1A    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm27, 0x1B    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm28, 0x1C    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm29, 0x1D    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm30, 0x1E    | OCT   | ZMM  | Arch_x86_64, "x86_64");
-      DEF_REGISTER(zmm31, 0x1F    | OCT   | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm0,  0x00    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm1,  0x01    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm2,  0x02    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm3,  0x03    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm4,  0x04    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm5,  0x05    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm6,  0x06    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm7,  0x07    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm8,  0x08    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm9,  0x09    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm10, 0x0A    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm11, 0x0B    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm12, 0x0C    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm13, 0x0D    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm14, 0x0E    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm15, 0x0F    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm16, 0x10    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm17, 0x11    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm18, 0x12    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm19, 0x13    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm20, 0x14    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm21, 0x15    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm22, 0x16    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm23, 0x17    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm24, 0x18    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm25, 0x19    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm26, 0x1A    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm27, 0x1B    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm28, 0x1C    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm29, 0x1D    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm30, 0x1E    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(ymm31, 0x1F    | YMMS  | YMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm0,  0x00    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm1,  0x01    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm2,  0x02    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm3,  0x03    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm4,  0x04    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm5,  0x05    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm6,  0x06    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm7,  0x07    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm8,  0x08    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm9,  0x09    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm10, 0x0A    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm11, 0x0B    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm12, 0x0C    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm13, 0x0D    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm14, 0x0E    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm15, 0x0F    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm16, 0x10    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm17, 0x11    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm18, 0x12    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm19, 0x13    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm20, 0x14    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm21, 0x15    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm22, 0x16    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm23, 0x17    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm24, 0x18    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm25, 0x19    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm26, 0x1A    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm27, 0x1B    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm28, 0x1C    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm29, 0x1D    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm30, 0x1E    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zmm31, 0x1F    | ZMMS  | ZMM  | Arch_x86_64, "x86_64");
       DEF_REGISTER(mm0,   0x0     | FPDBL | MMX  | Arch_x86_64, "x86_64");
       DEF_REGISTER(mm1,   0x1     | FPDBL | MMX  | Arch_x86_64, "x86_64");
       DEF_REGISTER(mm2,   0x2     | FPDBL | MMX  | Arch_x86_64, "x86_64");
@@ -814,12 +822,32 @@ namespace Dyninst
       DEF_REGISTER(xer,      1 | SPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(lr,       8 | SPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(ctr,      9 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(amr,     13 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(dscr,    17 | SPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(dsisr,   18 | SPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(dar,     19 | SPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(dec,     22 | SPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(sdr1,    25 | SPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(srr0,    26 | SPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(srr1,    27 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(cfar,    28 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(amr_pri, 29 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(pid,     48 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(gdecar,  53 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(decar,   54 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(mcivpr,  55 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(lper,    56 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(lperu,   57 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(csrr0,   58 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(csrr1,   59 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(gtsrwr,  60 | SPR | Arch_ppc32, "ppc32");
+//      DEF_REGISTER(iamr,    61 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(esr,     62 | SPR | Arch_ppc32, "ppc32");
+//      DEF_REGISTER(ivpr,    66 | SPR | Arch_ppc32, "ppc32");
+
+      DEF_REGISTER(vrsave, 256 | SPR | Arch_ppc32, "ppc32");
+
+
       DEF_REGISTER(sprg0,  272 | SPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(sprg1,  273 | SPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(sprg2,  274 | SPR | Arch_ppc32, "ppc32");
@@ -922,6 +950,8 @@ namespace Dyninst
       DEF_REGISTER(cr7g,   729 | SPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(cr7e,   730 | SPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(cr7s,   731 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(ppr,    896 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(ppr32,  898 | SPR | Arch_ppc32, "ppc32");
 
 
    }
@@ -1037,6 +1067,7 @@ namespace Dyninst
       DEF_REGISTER(sdr1,    25 | SPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(srr0,    26 | SPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(srr1,    27 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vrsave, 256 | SPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(sprg0,  272 | SPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(sprg1,  273 | SPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(sprg2,  274 | SPR | Arch_ppc64, "ppc64");
@@ -1137,6 +1168,8 @@ namespace Dyninst
       DEF_REGISTER(cr7g,   729 | SPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(cr7e,   730 | SPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(cr7s,   731 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(ppr,    896 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(ppr32,  898 | SPR | Arch_ppc64, "ppc64");
 
 
    }

@@ -1748,6 +1748,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
       }
       case plusOp:
       case minusOp:
+      case xorOp:
       case timesOp:
       case divOp:
       case orOp:
@@ -2383,6 +2384,7 @@ std::string getOpString(opCode op)
     switch (op) {
 	case plusOp: return("+");
 	case minusOp: return("-");
+	case xorOp: return("^");
 	case timesOp: return("*");
 	case divOp: return("/");
 	case lessOp: return("<");
@@ -2916,6 +2918,7 @@ bool AstOperatorNode::canBeKept() const {
     switch (op) {
     case plusOp:
     case minusOp:
+    case xorOp:
     case timesOp:
     case divOp:
     case neOp:
@@ -3818,6 +3821,7 @@ std::string AstNode::convert(opCode op) {
       case invalidOp: return "invalid";
       case plusOp: return "plus";
       case minusOp: return "minus";
+      case xorOp: return "xor";
       case timesOp: return "times";
       case divOp: return "div";
       case lessOp: return "less";

@@ -86,6 +86,7 @@ namespace Dyninst
                 formatter = new x86Formatter();
                 break;
             case Arch_ppc64:
+            case Arch_ppc32:
                 formatter = new PPCFormatter();
                 break;
             default:formatter = NULL;
@@ -599,6 +600,7 @@ memAccessors.begin()));
     }
     INSTRUCTION_EXPORT InsnCategory Instruction::getCategory() const
     {
+        if(m_InsnOp->isVectorInsn) return c_VectorInsn;
        InsnCategory c = entryToCategory(m_InsnOp->getID());
        if(c == c_BranchInsn && (arch_decoded_from == Arch_ppc32 || arch_decoded_from == Arch_ppc64))
        {

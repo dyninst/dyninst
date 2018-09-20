@@ -41,8 +41,6 @@
 #include "Aggregate.h"
 #include "Function.h"
 #include <iterator>
-#include "dwarfExprParser.h"
-#include "dwarfResult.h"
 
 #include "symtabAPI/src/Object.h"
 

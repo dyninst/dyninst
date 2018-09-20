@@ -2521,8 +2521,8 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData, unsigned size, Elf_D
 
     if (!object->hasReldyn() && !object->hasReladyn()) {
         if (object->getRelType() == Region::RT_REL) {
-            new_dynamic_entries.push_back(make_pair(DT_REL, 0));
-            new_dynamic_entries.push_back(make_pair(DT_RELSZ, 0));
+ 	    new_dynamic_entries.push_back(pair<long,long>(DT_REL, 0));
+            new_dynamic_entries.push_back(pair<long,long>(DT_RELSZ, 0));
 
             dynamicSecData[DT_REL].push_back(dynsecData + curpos);
             dynsecData[curpos].d_tag = DT_NULL;

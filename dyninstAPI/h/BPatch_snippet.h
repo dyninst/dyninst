@@ -92,6 +92,7 @@ typedef enum {
     BPatch_ref,
     BPatch_fieldref,
     BPatch_seq,
+    BPatch_xor,
     BPatch_bit_and,		// not supported yet
     BPatch_bit_or,		// not supported yet
     BPatch_bit_xor,		// not supported yet

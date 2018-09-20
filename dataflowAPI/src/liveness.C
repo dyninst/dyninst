@@ -447,7 +447,7 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction::Ptr curInsn, Block* blk,
 	cur = MachRegister((cur.val() & ~Arch_ppc64) | Arch_ppc32);
     liveness_printf("\t%s \n", cur.name().c_str());
     MachRegister base = cur.getBaseRegister();
-    if (cur == x86::flags || cur == x86_64::flags){
+    if (base == x86::flags || base == x86_64::flags){
       if (width == 4){
         ret.read[getIndex(x86::of)] = true;
         ret.read[getIndex(x86::cf)] = true;
@@ -486,7 +486,7 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction::Ptr curInsn, Block* blk,
 	cur = MachRegister((cur.val() & ~Arch_ppc64) | Arch_ppc32);
     liveness_printf("\t%s \n", cur.name().c_str());
     MachRegister base = cur.getBaseRegister();
-    if (cur == x86::flags || cur == x86_64::flags){
+    if (base == x86::flags || base == x86_64::flags){
       if (width == 4){
         ret.written[getIndex(x86::of)] = true;
         ret.written[getIndex(x86::cf)] = true;

@@ -185,6 +185,11 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   bool hasNoStackFrame() const {return ifunc()->hasNoStackFrame();}
   bool savesFramePointer() const {return ifunc()->savesFramePointer();}
 
+  func_instance* getNoPowerPreambleFunc() { return _noPowerPreambleFunc; }
+  void setNoPowerPreambleFunc(func_instance* f) { _noPowerPreambleFunc = f; }
+  func_instance* getPowerPreambleFunc() { return _powerPreambleFunc; }
+  void setPowerPreambleFunc(func_instance* f) { _powerPreambleFunc = f; }
+
   ////////////////////////////////////////////////
   // Legacy/inter-module calls. Arguably should be an
   // interprocedural edge, but I expect that would
@@ -439,6 +444,8 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   // modifications.
   std::map<Address, StackAccess *> *_definitionMap;
 #endif
+  func_instance* _noPowerPreambleFunc;
+  func_instance* _powerPreambleFunc;
 };
 
 template <class OutputIterator>

@@ -85,7 +85,7 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
     
       // Add the function entry as Required in the priority map
       block_instance *entry = func->entryBlock();
-      priorityMap_[std::make_pair(entry, func)] = Required;
+      priorityMap_[std::make_pair(entry, func)] = OffLimits;
       relocation_cerr << "\t Added required entry for " << func->symTabName() << " / " << hex << entry->start() << dec << endl;
    }
 
@@ -118,7 +118,6 @@ void CodeMover::finalizeRelocBlocks() {
    if (finalized_) return;
 
    finalized_ = true;
-   
    for (RelocBlock *iter = cfg_->begin(); iter != cfg_->end(); iter = iter->next()) {
       iter->linkRelocBlocks(cfg_);
       iter->determineSpringboards(priorityMap_);
@@ -236,8 +235,14 @@ SpringboardMap &CodeMover::sBoardMap(AddressSpace *) {
          if (!trace) continue;
          int labelID = trace->getLabel();
          Address to = buffer_.getLabelAddr(labelID);
-         
-         sboardMap_.addFromOrigCode(bbl->start(), to, p, func, bbl);
+         if (bbl->_ignorePowerPreamble) { 
+             relocation_cerr << "\t" << hex << "springboard target " << bbl->start() + 0x8 << endl;
+             sboardMap_.addFromOrigCode(bbl->start() + 0x8, to, p, func, bbl);
+         }
+         else {
+             relocation_cerr << "\t" << hex << "springboard target " << bbl->start() << endl;
+             sboardMap_.addFromOrigCode(bbl->start(), to, p, func, bbl);
+         }
       }
       
       // And instrumentation that needs updating
