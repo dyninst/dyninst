@@ -437,6 +437,10 @@ extended_op_31[566] = power_entry(power_op_tlbsync, "tlbsync", NULL, operandSpec
 extended_op_31[567] = power_entry(power_op_lfsux, "lfsux", NULL, list_of(fn(FRT))(fn(LUX<sp_float>)));
 extended_op_31[582] = power_entry(power_op_qvlpcldx, "qvlpcldx", NULL, list_of(fn(QFRTP))(fn(LX<dbl128>)));
 extended_op_31[583] = power_entry(power_op_qvlfdx, "qvlfdx", NULL, list_of(fn(QFRTP))(fn(LX<dbl128>)));
+
+// fn(STU<u64>) = RA+DS
+extended_op_31[588] = power_entry(power_op_lxsdx, "lxsdx", NULL, list_of(fn(XT))(fn(RA))(fn(RB)));
+
 extended_op_31[595] = power_entry(power_op_mfsr, "mfsr", NULL, list_of(fn(RT))(fn(SR)));
 extended_op_31[597] = power_entry(power_op_lswi, "lswi", NULL, list_of(fn(RT))(fn(L<u8>))(fn(NB)));
 extended_op_31[598] = power_entry(power_op_sync, "sync", NULL, operandSpec());
