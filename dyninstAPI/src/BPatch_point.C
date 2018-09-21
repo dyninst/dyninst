@@ -220,16 +220,17 @@ BPatch_function *BPatch_point::getCalledFunction()
            return NULL;
    }
 
+   assert(point->block());
    func_instance *_func = point->block()->callee();
+   if (!_func) {
+       parsing_printf("findCallee failed in getCalledFunction\n");
+           return NULL;
+   }
    if (_func->getPowerPreambleFunc() != NULL) {
        func_instance * preambleFunc = _func->getPowerPreambleFunc();
        return addSpace->findOrCreateBPFunc(preambleFunc, NULL);
    }
 
-   if (!_func) {
-       parsing_printf("findCallee failed in getCalledFunction\n");
-           return NULL;
-   }
    return addSpace->findOrCreateBPFunc(_func, NULL);
 }
 
