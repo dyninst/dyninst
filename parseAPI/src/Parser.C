@@ -374,6 +374,7 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
                 elem->bundle()->add(new ParseWorkElem
                                             ( elem->bundle(),
                                               callEdge,
+                                              callEdge->src()->last(),
                                               callTarget,
                                               isResolvable,
                                               false ));
@@ -969,37 +970,15 @@ void
 Parser::finalize()
 {
     if(_parse_state < FINALIZED) {
+	split_overlapped_blocks(); 
+
         finalize_funcs(hint_funcs);
         finalize_funcs(discover_funcs);
 	clean_bogus_funcs(discover_funcs);
 
-	map<Address, Block*> allBlocks;
-	finalize_ranges(hint_funcs, allBlocks);
-	finalize_ranges(discover_funcs, allBlocks);
+	finalize_ranges(hint_funcs);
+	finalize_ranges(discover_funcs);
 
-	set<Block*> splited_blocks;
-	split_overlapped_blocks(allBlocks, splited_blocks); 
-
-
-	if (splited_blocks.size() > 0) {
-            vector<Function*> splited_funcs;
-	    for (auto fit = hint_funcs.begin(); fit != hint_funcs.end(); ++fit) {
-	        bool need_refinalize = false;
-		const Function * const  f = *fit;
-		for (auto bit = splited_blocks.begin(); bit != splited_blocks.end(); ++bit) {
-		    Block * b = *bit;
-		    if (f->contains(b)) {
-		        need_refinalize = true;
-			break;
-		    }
-		}
-		if (need_refinalize) {
-		    splited_funcs.push_back(*fit);
-		    (*fit)->_cache_valid = false;
-		}
-	    }
-	    finalize_funcs(splited_funcs);
-	}
         _parse_state = FINALIZED;
     }
 }
@@ -1030,17 +1009,11 @@ Parser::finalize_funcs(vector<Function *> &funcs)
 }
 
 void
-Parser::finalize_ranges(vector<Function *> &funcs, map<Address,Block*> &allBlocks)
+Parser::finalize_ranges(vector<Function *> &funcs)
 {
     for (int i = 0; i < funcs.size(); ++i) {
 	Function *f = funcs[i];
     	region_data * rd = _parse_data->findRegion(f->region());
-    	Function::blocklist blocks = f->blocks();
-	for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
-	    Block * b = *bit;
-	    allBlocks[b->start()] = b;
-	    rd->insertBlockByRange(b);
-	}
 	for (auto eit = f->extents().begin(); eit != f->extents().end(); ++eit)
 	    rd->funcsByRange.insert(*eit);
     }
@@ -1078,14 +1051,33 @@ Parser::clean_bogus_funcs(vector<Function*> &funcs)
 }
 
 void
-Parser::split_overlapped_blocks(map<Address, Block*>& allBlocks, set<Block*> &splited_blocks)
+Parser::split_overlapped_blocks()
 {
-   // First split consistent overlapping blocks.
+    vector<region_data*> regData;
+    _parse_data->getAllRegionData(regData);
+    for (auto rit = regData.begin(); rit != regData.end(); ++rit) {
+        region_data *rd = *rit;
+        // First get all basic blocks in this region data
+        map<Address, Block*> allBlocks;
+        rd->getAllBlocks(allBlocks);
+        // Split blocks needs to do range lookup
+	for (auto bit = allBlocks.begin(); bit != allBlocks.end(); ++bit) {
+	    Block * b = bit->second;
+	    rd->insertBlockByRange(b);
+	}
+        split_consistent_blocks(rd, allBlocks);
+        split_inconsistent_blocks(rd, allBlocks);
+    }
+
+}
+
+void
+Parser::split_consistent_blocks(region_data* rd, map<Address, Block*> &allBlocks) {
    // We do not need to create new blocks in such cases
    for (auto bit = allBlocks.begin(); bit != allBlocks.end(); ++bit) {
         Block* b = bit->second;
+        Block* edge_b = b;
 	set<Block*> overlappingBlocks;
-	region_data *rd = _parse_data->findRegion(b->region());
 	rd->findBlocks(b->start(), overlappingBlocks);
 	if (overlappingBlocks.size() > 1) {
 	    for (auto obit = overlappingBlocks.begin(); obit != overlappingBlocks.end(); ++obit) {
@@ -1093,34 +1085,49 @@ Parser::split_overlapped_blocks(map<Address, Block*>& allBlocks, set<Block*> &sp
 		if (ob == b) continue;
 		Address previnsn;
 		if (ob->consistent(b->start(), previnsn)) {
+                    parsing_printf("in finalizing , split block [%lx, %lx), at %lx\n", ob->start(), ob->end(), b->start());
+                    if (b->end() < ob->end()) {
+                        edge_b = follow_fallthrough(b, ob->last());
+                    }
+                    if (b->end() <= ob->end()) {
+  		        Block::edgelist &trgs = ob ->_trglist;
+		        Block::edgelist::iterator tit = trgs.begin();
+		        for (; tit != trgs.end(); ++tit) {
+		            Edge *e = *tit;
+                            e->_source = edge_b;
+                            edge_b->_trglist.push_back(e);
+		        }
+                        trgs.clear();
+                    } else {
+  		        Block::edgelist &trgs = ob ->_trglist;
+		        Block::edgelist::iterator tit = trgs.begin();
+		        for (; tit != trgs.end(); ++tit) {
+		            Edge *e = *tit;
+                            e->trg()->removeSource(e);
+		        }
+                        trgs.clear();
+                    }
 		    // For consistent blocks,
 		    // we only need to create a new fall through edge
-		    // and delete duplicated outgoing edges
+		    // and move edges 
 		    rd->blocksByRange.remove(ob);
-		    Block::edgelist &trgs = ob ->_trglist;
-		    Block::edgelist::iterator tit = trgs.begin();
-		    for (; tit != trgs.end(); ++tit) {
-		        Edge *e = *tit;
-			Block* trgBlock = e->trg();
-		        trgBlock->removeSource(e);	
-		    }
-                    trgs.clear();
                     ob->updateEnd(b->start());
                     ob->_lastInsn = previnsn;
                     link(ob, b,FALLTHROUGH,false);
 		    rd->insertBlockByRange(ob);
-		    splited_blocks.insert(ob);
 		}
 	    } 
 	}
    }
+}
 
+void
+Parser::split_inconsistent_blocks(region_data* rd, map<Address, Block*> &allBlocks) {
    // Now, let's deal with inconsistent overlapping blocks
    // We will need to create new blocks
    for (auto bit = allBlocks.begin(); bit != allBlocks.end(); ++bit) {
         Block* b = bit->second;
 	set<Block*> overlappingBlocks;
-	region_data *rd = _parse_data->findRegion(b->region());
 	rd->findBlocks(b->start(), overlappingBlocks);
 	if (overlappingBlocks.size() > 1) {
 	    for (auto obit = overlappingBlocks.begin(); obit != overlappingBlocks.end(); ++obit) {
@@ -1193,9 +1200,7 @@ Parser::split_overlapped_blocks(map<Address, Block*>& allBlocks, set<Block*> &sp
 	    } 
 	}
    }
-
 }
-
 void
 Parser::record_func(Function *f)
 {
@@ -1225,7 +1230,7 @@ Parser::init_frame(ParseFrame & frame)
         if(b) {
             frame.leadersToBlock[frame.func->addr()] = b;
             frame.func->_entry = b;
-            frame.seed = new ParseWorkElem(NULL,NULL,frame.func->addr(),true,false);
+            frame.seed = new ParseWorkElem(NULL,NULL,0, frame.func->addr(),true,false);
             frame.pushWork(frame.seed);
         } else {
             parsing_printf("[%s] failed to initialize parsing frame\n",
@@ -1336,6 +1341,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         ParseWorkElem * work = frame.popWork();
         if (work->order() == ParseWorkElem::call) {
             parsing_printf("Handling call work element\n");
+            cur = work->edge()->src();
+            cur = follow_fallthrough(cur, work->source());
             Function * ct = NULL;
             
             // If we're not doing recursive traversal, skip *all* of the call edge processing.
@@ -1346,7 +1353,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             // --BW 12/2012
             if (!recursive) {
                 parsing_printf("[%s] non-recursive parse skipping call %lx->%lx\n",
-                               FILE__, work->edge()->src()->lastInsnAddr(), work->target());
+                               FILE__, cur->lastInsnAddr(), work->target());
                 continue;
             }
             
@@ -1368,12 +1375,12 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 
             if (!frame_parsing_not_started && !work->callproc()) {
                 parsing_printf("[%s] binding call (call target should have been parsed) %lx->%lx\n",
-                        FILE__,work->edge()->src()->lastInsnAddr(),work->target());
+                        FILE__,cur->lastInsnAddr(),work->target());
                 Function *tfunc = _parse_data->findFunc(frame.codereg,work->target());
                 pair<Function*,Edge*> ctp =
                         bind_call(frame,
                                   work->target(),
-                                  work->edge()->src(),
+                                  cur,
                                   work->edge());
                 work->mark_call();
             }
@@ -1524,18 +1531,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             auto work_ah = work->ah();
             parsing_printf("... continue parse indirect jump at %lx\n", work_ah->getAddr());
             Block *nextBlock = work->cur();
-            while (nextBlock->last() != work_ah->getAddr()) {
-                // The block has been split
-                // We keep following the fall-through edges
-                Block::edgelist targets;
-                nextBlock->copy_targets(targets);
-                for (auto eit = targets.begin(); eit != targets.end(); ++eit) {
-                    if ((*eit)->type() == FALLTHROUGH) {
-                        nextBlock = (*eit)->trg();
-                        break;
-                    }
-                }
-            }
+            nextBlock = follow_fallthrough(nextBlock, work_ah->getAddr());
             ProcessCFInsn(frame,nextBlock,work->ah());
             continue;
         }
@@ -1549,6 +1545,21 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 parsing_printf("[%s] unexpected missing call edge at %lx\n",
                                FILE__,work->edge()->src()->lastInsnAddr());
             }
+        } else if (work->order() == ParseWorkElem::func_shared_code) {
+            if (func->retstatus() < UNKNOWN) {
+                // The current function shares code with another function.
+                // current function on this control flow path is the same
+                // as the shared function.
+                //
+                if (work->shared_func()->retstatus() == RETURN) {
+                    func->set_retstatus(RETURN);
+                } else if (work->shared_func()->retstatus() == UNSET) {
+                    frame.pushDelayedWork(work, work->shared_func());
+                }
+            }
+            func->_cache_valid = false;
+            continue;
+
         }
 
         if (NULL == cur) {
@@ -1556,6 +1567,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     add_edge(frame,
                              frame.func,
                              work->edge()->src(),
+                             work->source(),
                              work->target(),
                              work->edge()->type(),
                              work->edge());
@@ -1564,8 +1576,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 
         if (HASHDEF(visited,cur->start()))
         {
-            parsing_printf("[%s] skipping locally parsed target at %lx\n",
-                           FILE__,work->target());
+            parsing_printf("[%s] skipping locally parsed target at %lx, [%lx, %lx)\n",
+                           FILE__,work->target(), cur->start(), cur->end());
             continue;
         }
         visited[cur->start()] = true;
@@ -1661,8 +1673,10 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 curAddr = ah->getAddr();
 
                 end_block(cur,ahPtr);
+                if (!set_edge_parsing_status(frame, cur->last())) break;
+
                 pair<Block*,Edge*> newedge =
-                        add_edge(frame,frame.func,cur,
+                        add_edge(frame,frame.func,cur, cur->last(),
                                  nextBlockAddr,FALLTHROUGH,NULL);
 
                 if (!HASHDEF(visited,nextBlockAddr) &&
@@ -1673,20 +1687,11 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                             frame.mkWork(
                                     NULL,
                                     newedge.second,
+                                    curAddr,
                                     nextBlockAddr,
                                     true,
                                     false)
                     );
-                    /* preserved as example of leaky code; use mkWork instead
-                    frame.pushWork(
-                        new ParseWorkElem(
-                            NULL,
-                            newedge.second,
-                            nextBlockAddr,
-                            true,
-                            false)
-                        );
-                    */
                     leadersToBlock[nextBlockAddr] = nextBlock;
                 }
                 break;
@@ -1704,11 +1709,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     visited[curAddr] = true;
                     ah->retreat();
                     end_block(cur, ah);
-
-                    add_edge(frame, frame.func, cur, curAddr, FALLTHROUGH, NULL);
-
-
-
+                    if (!set_edge_parsing_status(frame ,cur->last())) break; 
+                    add_edge(frame, frame.func, cur, cur->last(), curAddr, FALLTHROUGH, NULL);
                     // We break from this loop because no need more stright-line parsing
                     break;
                 }
@@ -1742,8 +1744,10 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 ah->retreat();
 
                 end_block(cur,ahPtr);
+                if (!set_edge_parsing_status(frame,cur->last())) break; 
+
                 pair<Block*,Edge*> newedge =
-                        add_edge(frame,frame.func,cur,curAddr,FALLTHROUGH,NULL);
+                        add_edge(frame,frame.func,cur,cur->last(), curAddr,FALLTHROUGH,NULL);
                 Block * targ = newedge.first;
 
                 parsing_printf("[%s:%d] nop-block ended at %lx\n",
@@ -1755,6 +1759,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                             frame.mkWork(
                                     NULL,
                                     newedge.second,
+                                    cur->last(),
                                     targ->start(),
                                     true,
                                     false)
@@ -1772,8 +1777,11 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     // Create a work element to represent that
                     // we will resolve the jump table later
                     end_block(cur,ahPtr);
+                    if (!set_edge_parsing_status(frame,cur->last())) break;
                     frame.pushWork( frame.mkWork( work->bundle(), cur, ahPtr));
                 } else {
+                    end_block(cur,ahPtr);
+                    if (!set_edge_parsing_status(frame,cur->last())) break; 
                     ProcessCFInsn(frame,cur,ahPtr);
                 }
                 break;
@@ -1791,14 +1799,15 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             } else if ( ah->isInvalidInsn() ) {
                 // 4. Invalid or `abort-causing' instructions
                 end_block(cur,ahPtr);
+                if (!set_edge_parsing_status(frame,cur->last())) break;
                 link(cur, _sink, DIRECT, true);
                 break;
             } else if ( ah->isInterruptOrSyscall() ) {
                 // 5. Raising instructions
                 end_block(cur,ahPtr);
-
+                if (!set_edge_parsing_status(frame,cur->last())) break; 
                 pair<Block*,Edge*> newedge =
-                        add_edge(frame,frame.func,cur,ah->getNextAddr(),FALLTHROUGH,NULL);
+                        add_edge(frame,frame.func,cur,cur->last(), ah->getNextAddr(),FALLTHROUGH,NULL);
                 Block * targ = newedge.first;
 
                 if (targ && !HASHDEF(visited,targ->start()) &&
@@ -1809,6 +1818,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                             frame.mkWork(
                                     NULL,
                                     newedge.second,
+                                    cur->last(),
                                     targ->start(),
                                     true,
                                     false)
@@ -1831,6 +1841,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     _pcb.abruptEnd_cf(cur->lastInsnAddr(),cur,&det);
                     _pcb.foundWeirdInsns(func);
                     end_block(cur,ahPtr);
+                    if (!set_edge_parsing_status(frame,cur->last())) break; 
                     // allow invalid instructions to end up as a sink node.
                     link(cur, _sink, DIRECT, true);
                     break;
@@ -1873,8 +1884,10 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                                FILE__,ah->getNextAddr());
 
                 end_block(cur,ahPtr);
+                if (!set_edge_parsing_status(frame, cur->last())) break;
                 // We need to tag the block with a sink edge
                 link(cur, _sink, DIRECT, true);
+
                 break;
             } else if (!cur->region()->contains(ah->getNextAddr())) {
                 parsing_printf("[%s] next address %lx is outside [%lx,%lx)\n",
@@ -1882,6 +1895,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                                cur->region()->offset(),
                                cur->region()->offset()+cur->region()->length());
                 end_block(cur,ahPtr);
+                if (!set_edge_parsing_status(frame, cur->last())) break;
                 // We need to tag the block with a sink edge
                 link(cur, _sink, DIRECT, true);
                 break;
@@ -2008,6 +2022,7 @@ Parser::add_edge(
         ParseFrame & frame,
         Function * owner,
         Block * src,
+        Address src_addr,
         Address dst,
         EdgeTypeEnum et,
         Edge * exist)
@@ -2023,7 +2038,11 @@ Parser::add_edge(
             FILE__, __LINE__, dst);
         return retpair;
     }
-
+    // The source block of the edge may have been split
+    // since adding into the worklist. We use the edge
+    // source address and follow fall-througth edge
+    // to find the correct block object
+    src = follow_fallthrough(src, src_addr);
     ret = block_at(frame, owner,dst, split);
     retpair.first = ret;
 
@@ -2050,6 +2069,29 @@ Parser::add_edge(
     return retpair;
 }
 
+Block*
+Parser::follow_fallthrough(Block *b, Address addr)
+{
+    if (addr == 0) return b;
+    while (b->last() != addr) {
+        bool find_ft = false;
+        Block::edgelist targets;
+        b->copy_targets(targets);
+        for (auto eit = targets.begin(); eit != targets.end(); ++eit) {
+            if ((*eit)->type() == FALLTHROUGH) {
+                b = (*eit)->trg();
+                find_ft = true;
+                break;
+            }
+        }
+        if (!find_ft) {
+            fprintf(stderr, "WARNING: Block [%lx, %lx) with last %lx does not align with address %lx, and cannot find fall-through edge\n", b->start(), b->end(), b->last(), addr);
+            return NULL;
+        } 
+    }
+    return b;
+}
+
 Block *
 Parser::split_block(
         Function * owner,
@@ -2057,6 +2099,7 @@ Parser::split_block(
         Address addr,
         Address previnsn)
 {
+    parsing_printf("split_block split block [%lx, %lx) at %lx\n", b->start(), b->end(), addr);
     Block * ret;
     CodeRegion * cr;
     bool isRetBlock = false;
@@ -2070,65 +2113,58 @@ Parser::split_block(
     // assert(b->consistent(addr);
 
     ret = factory()._mkblock(owner,cr,addr);
+    ret->updateEnd(b->end());
+    ret->_lastInsn = b->_lastInsn;
+    ret->_parsed = true;
+
+
+    // Should only publish this block after range is set
     Block * exist = record_block(ret);
     bool block_exist = false;
     if (exist != ret) {
         block_exist = true;
 	ret = exist;
-
+    }
+    Block::edgelist &trgs = b->_trglist;
+    for (auto tit = trgs.begin() ; tit != trgs.end(); ++tit) {
+        Edge *e = *tit;
+        e->_source = ret;
+        ret->_trglist.push_back(e);
     }
 
-    // move out edges
+    if (!trgs.empty() && RET == (*trgs.begin())->type()) {
+        isRetBlock = true;
+    }
+    
+    trgs.clear();
+    b->updateEnd(addr);
+    b->_lastInsn = previnsn;
+    if (!_parse_data->setEdgeParsingStatus(b->region(), b->last(), owner)) {
+        parsing_printf("Spliting block [%lx, %lx) at %lx. However, %lx already has edge parsed. This Should not happen\n", b->start(), ret->end(), ret->start());
+    }
+    link(b,ret,FALLTHROUGH,false);
 
+    // Any functions holding b that have already been finalized
+    // need to have their caches invalidated so that they will
+    // find out that they have this new 'ret' block
+    std::set<Function*> prev_owners;
+    rd->findFuncs(b->start(),prev_owners);
+    for(std::set<Function*>::iterator oit = prev_owners.begin();
+        oit != prev_owners.end(); ++oit)
     {
-
-        Block::edgelist &trgs = b->_trglist;
-        Block::edgelist::iterator tit = trgs.begin();
-	if (!block_exist) {
-	    // For existing blocks, edges are already there. 
-	    // No need to move edges, which will lead to duplicated edges
-            for (; tit != trgs.end(); ++tit) {
-                Edge *e = *tit;
-                e->_source = ret;
-                ret->_trglist.push_back(e);
-            }
-	}
-        if (!trgs.empty() && RET == (*trgs.begin())->type()) {
-            isRetBlock = true;
+        Function * po = *oit;
+        if (po->_cache_valid) {
+            po->_cache_valid = false;
+            parsing_printf("[%s:%d] split of [%lx,%lx) invalidates cache of "
+                                   "func at %lx\n",
+                           FILE__,__LINE__,b->start(),b->end(),po->addr());
         }
-        trgs.clear();
-	if (!block_exist) {
-            ret->updateEnd(b->end());
-            ret->_lastInsn = b->_lastInsn;
-            ret->_parsed = true;
-	}
-        b->updateEnd(addr);
-        b->_lastInsn = previnsn;
-        link(b,ret,FALLTHROUGH,false);
-
-        // Any functions holding b that have already been finalized
-        // need to have their caches invalidated so that they will
-        // find out that they have this new 'ret' block
-        std::set<Function*> prev_owners;
-        rd->findFuncs(b->start(),prev_owners);
-        for(std::set<Function*>::iterator oit = prev_owners.begin();
-            oit != prev_owners.end(); ++oit)
-        {
-            Function * po = *oit;
-            if (po->_cache_valid) {
-                po->_cache_valid = false;
-                parsing_printf("[%s:%d] split of [%lx,%lx) invalidates cache of "
-                                       "func at %lx\n",
-                               FILE__,__LINE__,b->start(),b->end(),po->addr());
-            }
-            if (isRetBlock) {
-                po->_retBL.clear(); //could remove b from the vector instead of clearing it, not sure what's cheaper
-            }
+        if (isRetBlock) {
+            po->_retBL.clear(); //could remove b from the vector instead of clearing it, not sure what's cheaper
         }
-        // KEVINTODO: study performance impact of this callback
-        _pcb.splitBlock(b,ret);
     }
-
+    // KEVINTODO: study performance impact of this callback
+    _pcb.splitBlock(b,ret);
     return ret;
 }
 
@@ -2488,3 +2524,11 @@ bool Parser::getSyscallNumber(Function * /*func*/,
     return (val != -1);
 }
 
+bool Parser::set_edge_parsing_status(ParseFrame& frame, Address addr) {
+    Function *f = frame.func;
+    Function *succeeded_func = _parse_data->setEdgeParsingStatus(f->region(), addr, f);
+    if (succeeded_func == f) return true;
+    parsing_printf("[%s:%d] parsing edge at %lx has started by another thread\n",FILE__, __LINE__, addr); 
+    frame.pushWork(frame.mkWork(NULL, succeeded_func));
+    return false;
+}

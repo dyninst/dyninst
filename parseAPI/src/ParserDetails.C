@@ -209,7 +209,7 @@ Parser::getTamperAbsFrame(Function *tamperFunc) {
             leak-free idiom, but I don't know whether this is intended
             or a bug. You might want to wrap the call in a frame.pushWork.
          */
-        (void) pf->mkWork(NULL, edge, target, true, true);
+        (void) pf->mkWork(NULL, edge, edge->src()->last(), target, true, true);
         /*
         ParseWorkBundle *bundle = new ParseWorkBundle();
         pf->work_bundles.push_back(bundle);
@@ -400,10 +400,6 @@ void Parser::ProcessCFInsn(
     Edges_t edges_out;
     ParseWorkBundle *bundle = NULL;
 
-
-    // terminate the block at this address
-    end_block(cur, ah);
-
     // Instruction adapter provides edge estimates from an instruction
     parsing_printf("Getting edges\n");
     ah->getNewEdges(edges_out, frame.func, cur, frame.num_insns, &plt_entries, frame.knownTargets);
@@ -556,6 +552,7 @@ void Parser::ProcessCFInsn(
                         new ParseWorkElem(
                                 bundle,
                                 newedge,
+                                cur->last(),
                                 curEdge->first,
                                 resolvable_edge,
                                 tailcall)

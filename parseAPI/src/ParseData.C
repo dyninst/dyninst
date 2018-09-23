@@ -50,6 +50,7 @@ void ParseFrame::set_status(Status s)
 ParseWorkElem * ParseFrame::mkWork(
     ParseWorkBundle * b,
     Edge * e,
+    Address source,
     Address target,
     bool resolvable,
     bool tailcall)
@@ -58,7 +59,7 @@ ParseWorkElem * ParseFrame::mkWork(
         b = new ParseWorkBundle();
         work_bundles.push_back(b); 
     }
-    ParseWorkElem * ret = new ParseWorkElem(b,e,target,resolvable,tailcall);
+    ParseWorkElem * ret = new ParseWorkElem(b,e,source, target,resolvable,tailcall);
     b->add( ret );
     return ret;
 }
@@ -76,6 +77,19 @@ ParseWorkElem * ParseFrame::mkWork(
     return ret;
 }
 
+ParseWorkElem * ParseFrame::mkWork(
+    ParseWorkBundle *b,
+    Function * shared_func)
+{
+    if(!b) {
+        b = new ParseWorkBundle();
+        work_bundles.push_back(b); 
+    }
+    ParseWorkElem * ret = new ParseWorkElem(b,shared_func);
+    b->add( ret );
+    return ret;
+
+}
 /**** Standard [no overlapping regions] ParseData ****/
 
 StandardParseData::StandardParseData(Parser *p) :
@@ -484,4 +498,23 @@ CodeRegion *
 OverlappingParseData::reglookup(CodeRegion *cr, Address /* addr */) 
 {
     return cr;
+}
+
+Function*
+OverlappingParseData::setEdgeParsingStatus(CodeRegion *cr, Address addr, Function *f)
+{
+    boost::lock_guard<ParseData> g(*this);
+    if(!HASHDEF(rmap,cr)) {
+        fprintf(stderr,"Error, invalid code region [%lx,%lx) in remove_frame\n",
+            cr->offset(),cr->offset()+cr->length());
+        return NULL;
+    }
+    region_data * rd = rmap[cr];
+    return rd->set_edge_parsed(addr,f);
+}
+
+void
+OverlappingParseData::getAllRegionData(vector<region_data*> &rds) {
+    for (auto rit = rmap.begin(); rit != rmap.end(); ++rit)
+        rds.push_back(rit->second);
 }

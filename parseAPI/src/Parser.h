@@ -196,10 +196,12 @@ namespace Dyninst {
                     ParseFrame &frame,
                     Function *owner,
                     Block *src,
+                    Address src_addr,
                     Address dst,
                     EdgeTypeEnum et,
                     Edge *exist);
 
+            Block *follow_fallthrough(Block *b, Address addr);
             Block *split_block(Function *owner,
                                Block *b,
                                Address addr,
@@ -253,8 +255,12 @@ namespace Dyninst {
 
             void finalize_funcs(vector<Function *> &funcs);
 	    void clean_bogus_funcs(vector<Function*> &funcs);
-            void finalize_ranges(vector<Function *> &funcs, map<Address, Block*>& blocks);
-	    void split_overlapped_blocks(map<Address, Block*> &, set<Block*> &);
+            void finalize_ranges(vector<Function *> &funcs);
+	    void split_overlapped_blocks();
+            void split_consistent_blocks(region_data *, map<Address, Block*> &);
+            void split_inconsistent_blocks(region_data *, map<Address, Block*> &);
+            bool set_edge_parsing_status(ParseFrame&, Address addr);
+
 
 
             void invalidateContainingFuncs(Function *, Block *);
