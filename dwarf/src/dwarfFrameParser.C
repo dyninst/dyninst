@@ -47,15 +47,15 @@ using namespace std;
 
 std::map<DwarfFrameParser::frameParser_key, DwarfFrameParser::Ptr> DwarfFrameParser::frameParsers;
 
-DwarfFrameParser::Ptr DwarfFrameParser::create(Dwarf * dbg, Architecture arch) 
+DwarfFrameParser::Ptr DwarfFrameParser::create(Dwarf * dbg, Elf * eh_frame, Architecture arch)
 {
-    if(!dbg) return NULL;
+    if(!dbg && !eh_frame) return NULL;
 
-    frameParser_key k(dbg, arch);
+    frameParser_key k(dbg, eh_frame, arch);
 
     auto iter = frameParsers.find(k);
     if (iter == frameParsers.end()) {
-        Ptr newParser = Ptr(new DwarfFrameParser(dbg, arch));
+        Ptr newParser = Ptr(new DwarfFrameParser(dbg, eh_frame, arch));
         frameParsers[k] = newParser;
         return newParser;
     }
@@ -65,8 +65,9 @@ DwarfFrameParser::Ptr DwarfFrameParser::create(Dwarf * dbg, Architecture arch)
 }
 
 
-DwarfFrameParser::DwarfFrameParser(Dwarf * dbg_, Architecture arch_) :
+DwarfFrameParser::DwarfFrameParser(Dwarf * dbg_, Elf * eh_frame, Architecture arch_) :
     dbg(dbg_),
+    dbg_eh_frame(eh_frame),
     arch(arch_),
     fde_dwarf_status(dwarf_status_uninitialized)
 {
@@ -107,7 +108,7 @@ bool DwarfFrameParser::getRegValueAtFrame(
             reg.name().c_str(), pc);
     if (!getRegAtFrame(pc, reg, cons, err_result)) {
         assert(err_result != FE_No_Error);
-        dwarf_printf("\t Returning error from getRegValueAtFrame\n");
+        dwarf_printf("\t Returning error from getRegValueAtFrame: %d\n", err_result);
         return false;
     }
     if (cons.err()) {
@@ -183,7 +184,7 @@ bool DwarfFrameParser::getRegsForFunction(
             if(result==-1) break;
 
             Dwarf_Addr start_pc, end_pc;
-            dwarf_frame_info(frame, &start_pc, &end_pc, NULL); 
+            dwarf_frame_info(frame, &start_pc, &end_pc, NULL);
 
             Dwarf_Op * ops;
             size_t nops;
@@ -225,23 +226,37 @@ bool DwarfFrameParser::getRegAtFrame(
         return false;
     }
 
+    int not_found = 0; // if not found FDE covering PC, increment
     for(size_t i=0; i<cfi_data.size(); i++)
     {
         Dwarf_Frame * frame = NULL;
-        dwarf_cfi_addrframe(cfi_data[i], pc, &frame);
+        int result = dwarf_cfi_addrframe(cfi_data[i], pc, &frame);
+        if (result != 0) // 0 is success, not found FDE covering PC is returned -1
+        {
+            not_found++;
+            continue;
+        }
+        // FDE found so make not_found=0
+        not_found=0;
 
         Dwarf_Addr start_pc, end_pc;
         dwarf_frame_info(frame, &start_pc, &end_pc, NULL); 
 
         Dwarf_Op * ops;
         size_t nops;
-        int result = dwarf_frame_cfa(frame, &ops, &nops);
-        if (result != 0) return false;
+        result = dwarf_frame_cfa(frame, &ops, &nops);
+        if (result != 0)
+            return false;
 
         if (!DwarfDyninst::decodeDwarfExpression(ops, nops, NULL, cons, arch)) {
             //dwarf_printf("\t Failed to decode dwarf expr, ret false\n");
             return false;
         }
+    }
+
+    if(not_found){
+        err_result = FE_No_Frame_Entry;
+        return false;
     }
 
     return true;
@@ -386,7 +401,7 @@ void DwarfFrameParser::setupFdeData()
         fde_dwarf_status == dwarf_status_error)
         return;
 
-    if (!dbg) {
+    if (!dbg && !dbg_eh_frame) {
         fde_dwarf_status = dwarf_status_error;
         return;
     }
@@ -395,17 +410,19 @@ void DwarfFrameParser::setupFdeData()
     dwarf_set_frame_cfa_value(dbg, DW_FRAME_CFA_COL3);
 #endif
 
+    Dwarf_CFI * cfi = nullptr;
+
     // Try to get dwarf data from .debug_frame
-    Dwarf_CFI * cfi = dwarf_getcfi(dbg);
-    if (cfi)
+    cfi = dwarf_getcfi(dbg);
+    if (dbg && cfi)
     {
         cfi_data.push_back(cfi);
     }
     
     // Try to get dwarf data from .eh_frame
-    Elf * elf = dwarf_getelf(dbg);
-    cfi = dwarf_getcfi_elf(elf);
-    if (cfi) 
+    cfi = nullptr;
+    cfi = dwarf_getcfi_elf(dbg_eh_frame);
+    if (dbg_eh_frame && cfi)
     {
         cfi_data.push_back(cfi);
     }

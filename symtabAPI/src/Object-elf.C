@@ -2252,7 +2252,7 @@ dyn_scnp
     for (unsigned i = 0; i < dyns.count(); ++i) {
         switch(dyns.d_tag(i)) {
             case DT_NEEDED:
-                deps_.push_back(&strs[dyns.d_ptr(i)]);
+                if(strs) deps_.push_back(&strs[dyns.d_ptr(i)]);
                 break;
             case DT_VERSYM:
                 versymSec = getRegionHdrByAddr(dyns.d_ptr(i));
@@ -2270,7 +2270,7 @@ dyn_scnp
                 verdefnum = dyns.d_ptr(i);
                 break;
             case DT_SONAME:
-                soname_ = &strs[dyns.d_ptr(i)];
+                if(strs) soname_ = &strs[dyns.d_ptr(i)];
             default:
                 break;
         }
@@ -2285,7 +2285,7 @@ dyn_scnp
     for(unsigned i = 0; i < verdefnum ;i++) {
         Elf_X_Verdaux *aux = symVersionDefs->get_aux();
         for(unsigned j=0; j< symVersionDefs->vd_cnt(); j++){
-            versionMapping[symVersionDefs->vd_ndx()].push_back(&strs[aux->vda_name()]);
+            if(strs) versionMapping[symVersionDefs->vd_ndx()].push_back(&strs[aux->vda_name()]);
             Elf_X_Verdaux *auxnext = aux->get_next();
             delete aux;
             aux = auxnext;
@@ -2298,8 +2298,8 @@ dyn_scnp
     for(unsigned i = 0; i < verneednum; i++){
         Elf_X_Vernaux *aux = symVersionNeeds->get_aux();
         for(unsigned j=0; j< symVersionNeeds->vn_cnt(); j++){
-            versionMapping[aux->vna_other()].push_back(&strs[aux->vna_name()]);
-            versionFileNameMapping[aux->vna_other()] = &strs[symVersionNeeds->vn_file()];
+            if(strs) versionMapping[aux->vna_other()].push_back(&strs[aux->vna_name()]);
+            if(strs) versionFileNameMapping[aux->vna_other()] = &strs[symVersionNeeds->vn_file()];
             Elf_X_Vernaux *auxnext = aux->get_next();
             delete aux;
             aux = auxnext;
@@ -2308,7 +2308,7 @@ dyn_scnp
         delete symVersionNeeds;
         symVersionNeeds = symVersionNeedsnext;
     }
-
+    if(!strs) return;
     if(syms.isValid()) {
         for (unsigned i = 0; i < syms.count(); i++) {
             int etype = syms.ST_TYPE(i);

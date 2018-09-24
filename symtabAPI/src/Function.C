@@ -231,9 +231,10 @@ void FunctionBase::expandLocation(const VariableLocation &loc,
       return;
    }
 
-   Dyninst::DwarfDyninst::DwarfFrameParser::Ptr frameParser =
-   Dyninst::DwarfDyninst::DwarfFrameParser::create(*getModule()->exec()->getObject()->dwarf->frame_dbg(),
-					    getModule()->exec()->getObject()->getArch());
+   using namespace Dyninst::DwarfDyninst;
+   auto obj = getModule()->exec()->getObject();
+   DwarfFrameParser::Ptr frameParser =
+		   DwarfFrameParser::create(*obj->dwarf->frame_dbg(), obj->dwarf->origFile()->e_elfp(), obj->getArch());
    
    std::vector<VariableLocation> FDEs;
    Dyninst::DwarfDyninst::FrameErrors_t err;
