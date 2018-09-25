@@ -1666,7 +1666,49 @@ enum entryID {
 	power_op_lxvd2x,
 	power_op_lxvl,
 	power_op_lxvll,
-	power_op_lxv,
+	//--skipped: lxv (new keyword DQ; TX not at the last bit),
+	//--         lxvx (a slash in the memory map)
+	//power_op_lxv,	
+	//power_op_lxvx,
+	power_op_lxvdsx,
+	power_op_lxvh8x,
+	power_op_lxvw4x,
+	power_op_lxvwsx,
+	//--skipped: stxsd (new keyword VRS, stands for VSR[VSR+32].dword[0])
+	//power_op_stxsd,
+	//included new keywords "XS", it should be the storing version of "XT")
+	power_op_stxsdx,
+	power_op_stxsibx,
+	power_op_stxsihx,
+	power_op_stxsiwx,
+	//--skipped: stxssp (VRS)
+	//power_op_stxssp
+	power_op_stxsspx,
+	power_op_stvb16x,
+	power_op_stxvd2x,
+	power_op_stxvh8x,
+	power_op_stxvw4x,
+	//--skipped: stxv (DQ(RA))
+	//power_op_stxv,
+	power_op_stxvl,	
+	power_op_stxvll,
+	power_op_stxvx,
+	//included XA, XB (page 512 of manual, using the same pattern as RA, RB but XA and XB are for VSR, and there are AX & BX bits at the end of the instruction)
+	//ignored the slashes in it
+	power_op_xsabsdp,
+	
+	//--skipped xsabsqp (0 in it)
+	//power_op_xsabsqp
+	
+	power_op_xsadddp,
+	power_op_xsaddsp,
+	//included VRA, VRB (page 520 of manual)
+	//--xsaddqp and xsaddqpo are sharing the same opcode, treated it as frsp and frsp.(page 520 of manual)
+	power_op_xsaddqp,
+	power_op_xscmpexpdp,
+	power_op_xscmpexpqp,
+
+
 
 
   // ***********
