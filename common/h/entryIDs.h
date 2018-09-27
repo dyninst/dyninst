@@ -1653,7 +1653,8 @@ enum entryID {
   power_op_popcntw,
   power_op_popcntd,
   power_op_wait,
-  
+ 
+	//Yuhan: started from here	
 	power_op_lxsd,
 	power_op_lxsdx,
 	power_op_lxsibzx,
@@ -1666,23 +1667,24 @@ enum entryID {
 	power_op_lxvd2x,
 	power_op_lxvl,
 	power_op_lxvll,
-	//--skipped: lxv (new keyword DQ; TX not at the last bit),
-	//--         lxvx (a slash in the memory map)
+	//--skipped: lxv (page 492, new keyword DQ; TX not at the last bit),
 	//power_op_lxv,	
-	//power_op_lxvx,
+
+	//lxvx: page 492, a slash inside the extened opcode.
+	//two entries in the opcode table are included: 31-268 & 31-300
+	power_op_lxvx,
 	power_op_lxvdsx,
 	power_op_lxvh8x,
 	power_op_lxvw4x,
 	power_op_lxvwsx,
-	//--skipped: stxsd (new keyword VRS, stands for VSR[VSR+32].dword[0])
-	//power_op_stxsd,
-	//included new keywords "XS", it should be the storing version of "XT")
+	//stxsd: page498, included new keyword "VRS", it stands for VSR[VRS+32].dword[0]
+	power_op_stxsd,
+	//included new keywords "XS", it should be the storing version of "XT"
 	power_op_stxsdx,
 	power_op_stxsibx,
 	power_op_stxsihx,
 	power_op_stxsiwx,
-	//--skipped: stxssp (VRS)
-	//power_op_stxssp
+	power_op_stxssp,
 	power_op_stxsspx,
 	power_op_stvb16x,
 	power_op_stxvd2x,
@@ -1693,12 +1695,11 @@ enum entryID {
 	power_op_stxvl,	
 	power_op_stxvll,
 	power_op_stxvx,
-	//included XA, XB (page 512 of manual, using the same pattern as RA, RB but XA and XB are for VSR, and there are AX & BX bits at the end of the instruction)
+	//included XA, XB (page 2 of manual, using the same pattern as RA, RB but XA and XB are for VSR, and there are AX & BX bits at the end of the instruction)
 	//ignored the slashes in it
 	power_op_xsabsdp,
-	
-	//--skipped xsabsqp (0 in it)
-	//power_op_xsabsqp
+	//page512, third level opcode included
+	power_op_xsabsqp,
 	
 	power_op_xsadddp,
 	power_op_xsaddsp,
@@ -1707,6 +1708,49 @@ enum entryID {
 	power_op_xsaddqp,
 	power_op_xscmpexpdp,
 	power_op_xscmpexpqp,
+	power_op_xscmpeqdp,
+	power_op_xscmpgedp,
+	power_op_xscmpgtdp,
+	power_op_xscmpodp,
+	power_op_xscmpoqp,
+  power_op_xscmpudp,
+	power_op_xscmpuqp,
+	power_op_xscpsgndp,
+	//xscvdphp (page534), third level opcode
+	power_op_xscvdphp,
+	power_op_xscvdpqp,
+	power_op_xscvdpsp,
+	power_op_xscvdpspn,
+	power_op_xscvdpsxws,
+	power_op_xscvdpsxds,
+	power_op_xscvdpuxds,
+	power_op_xscvdpuxws,
+	power_op_xscvhpdp,
+	//xscvqpdp, xscvqpdpo: two instructions sharing the same code (rounding bit included)
+	power_op_xscvqpdp,
+	power_op_xscvqpsdz,
+	power_op_xscvqpswz,
+	power_op_xscvqpudz,
+	power_op_xscvqpuwz,
+	power_op_xscvsdqp,
+	power_op_xscvspdp,
+	power_op_xscvspdpn,
+	power_op_xscvsxddp,
+	power_op_xscvsxdsp,
+	
+	//--xscvsdqp appears again in the manual (page660), exact the same on page556
+	power_op_xscvudqp,
+	power_op_xscvuxddp,
+	power_op_xscvuxdsp,
+	//xsdivqp and xsdivqpo sharing the same opcode, rounding bit included
+	power_op_xsdivdp,
+	power_op_xsdivsp,
+	power_op_xsiexpdp,
+	power_op_xsiexpqp,
+	power_op_xsmaddadp,
+	power_op_xsmaddmdp,
+	power_op_xsmaddasp,
+	power_op_xsmaddmsp,
 
 
 
@@ -1761,6 +1805,35 @@ enum entryID {
   aarch64_op_bl,
   aarch64_op_blr,
   aarch64_op_br,
+  aarch64_op_brk,
+  aarch64_op_bsl_advsimd,
+  aarch64_op_cbnz,
+  aarch64_op_cbz,
+  aarch64_op_ccmn_imm,
+  aarch64_op_ccmn_reg,
+  aarch64_op_ccmp_imm,
+  aarch64_op_ccmp_reg,
+  aarch64_op_cinc_csinc,
+  aarch64_op_cinv_csinv,
+  aarch64_op_clrex,
+  aarch64_op_cls_advsimd,
+  aarch64_op_cls_int,
+  aarch64_op_clz_advsimd,
+  aarch64_op_clz_int,
+  aarch64_op_cmeq_advsimd_reg,
+  aarch64_op_cmeq_advsimd_zero,
+  aarch64_op_cmge_advsimd_reg,
+  aarch64_op_cmge_advsimd_zero,
+  aarch64_op_cmgt_advsimd_reg,
+  aarch64_op_cmgt_advsimd_zero,
+  aarch64_op_cmhi_advsimd,
+  aarch64_op_cmhs_advsimd,
+  aarch64_op_cmle_advsimd,
+  aarch64_op_cmlt_advsimd,
+  aarch64_op_cmn_adds_addsub_ext,
+  aarch64_op_cmn_adds_addsub_imm,
+  aarch64_op_cmn_adds_addsub_shift,
+  aarch64_op_cmp_subs_addsub_ext,
   aarch64_op_brk,
   aarch64_op_bsl_advsimd,
   aarch64_op_cbnz,
@@ -2295,35 +2368,6 @@ enum entryID {
   _entry_ids_max_
 };
 
-enum prefixEntryID {
-  prefix_none,
-  prefix_rep,
-  prefix_repnz
-};
-
-#if defined(__GNUC__)
-  #if defined(_LIBCPP_VERSION)
-//***************** GCC ***********************
-  #elif !defined(cap_tr1)
-  //**************** GCC < 4.3.0 ************
-  namespace __gnu_cxx {
-
-    template<> struct hash<entryID> {
-      hash<unsigned int> h;
-      unsigned operator()(const entryID &e) const
-      {
-         return h(static_cast<unsigned int>(e));
-      };
-    };
-    template<> struct hash<prefixEntryID> {
-      hash<unsigned int> h;
-      unsigned operator()(const prefixEntryID &e) const
-      {
-         return h(static_cast<unsigned int>(e));
-      };
-    };
-  }
-	#else
   namespace std
   {
     namespace tr1
