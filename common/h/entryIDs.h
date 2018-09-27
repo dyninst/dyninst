@@ -2367,7 +2367,33 @@ enum entryID {
   aarch64_op_zip2_advsimd,
   _entry_ids_max_
 };
-
+enum prefixEntryID {
+  prefix_none,
+  prefix_rep,
+  prefix_repnz
+};
+ #if defined(__GNUC__)
+  #if defined(_LIBCPP_VERSION)
+//***************** GCC ***********************
+  #elif !defined(cap_tr1)
+  //**************** GCC < 4.3.0 ************
+  namespace __gnu_cxx {
+     template<> struct hash<entryID> {
+      hash<unsigned int> h;
+      unsigned operator()(const entryID &e) const
+      {
+         return h(static_cast<unsigned int>(e));
+      };
+    };
+    template<> struct hash<prefixEntryID> {
+      hash<unsigned int> h;
+      unsigned operator()(const prefixEntryID &e) const
+      {
+         return h(static_cast<unsigned int>(e));
+      };
+    };
+  }
+	#else
   namespace std
   {
     namespace tr1
