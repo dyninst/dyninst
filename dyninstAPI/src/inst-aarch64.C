@@ -482,6 +482,12 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
                 insnCodeGen::generateDiv(gen, rm, src1, dest, true);
             }
             break;
+        case xorOp:
+            {
+                Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
+                insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Eor, 0, rm, 0, src1, dest, true);
+            }
+            break;
         case orOp:
             {
                 Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
@@ -861,6 +867,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
         case timesOp:
         case orOp:
         case andOp:
+        case xorOp:
             gen.codeEmitter()->emitOp(op, dest, src1, src2, gen);
             break;
         case lessOp:

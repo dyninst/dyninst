@@ -139,6 +139,10 @@ void EmitterAARCH64::emitOp(
     // dest = src1 | src2
     else if( opcode == orOp )
         insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Or, 0, src1, 0, src2, dest, true);  
+
+    // dest = src1 ^ src2
+    else if( opcode == xorOp )
+        insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Eor, 0, src1, 0, src2, dest, true);
 }
 
 
