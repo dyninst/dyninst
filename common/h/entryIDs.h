@@ -1738,7 +1738,7 @@ enum entryID {
 	power_op_xscvsxddp,
 	power_op_xscvsxdsp,
 	
-	//--xscvsdqp appears again in the manual (page660), exact the same on page556
+	//--xscvsdqp appears again in the manual (page560), exact the same on page556
 	power_op_xscvudqp,
 	power_op_xscvuxddp,
 	power_op_xscvuxdsp,
@@ -1751,7 +1751,114 @@ enum entryID {
 	power_op_xsmaddmdp,
 	power_op_xsmaddasp,
 	power_op_xsmaddmsp,
-
+	power_op_xsmaddqp,
+	power_op_xsmaxdp,
+	power_op_xsmaxcdp,
+	power_op_xsmaxjdp,
+	power_op_xsmindp,
+	power_op_xsmincdp,
+	power_op_xsminjdp,
+	power_op_xsmsubadp,
+	power_op_xsmsubmdp,
+	power_op_xsmsubasp,
+	power_op_xsmsubmsp,
+	power_op_xsmsubqp,
+	power_op_xsmuldp,
+	power_op_xsmulqp,
+	power_op_xsmulsp,
+	power_op_xsnabsdp,
+	power_op_xsnegdp,
+	power_op_xsnegqp,
+	power_op_xsnmaddadp,
+	power_op_xsnmaddmdp,
+	power_op_xsnmaddasp,
+	power_op_xsnmaddmsp,
+	power_op_xsnmaddqp,
+	power_op_xsnmsubadp,
+	power_op_xsnmsubmdp,
+	power_op_xsnmsubasp,
+	power_op_xsnmsubmsp,
+	power_op_xsnmsubqp,
+	power_op_xsrdpi,
+	power_op_xsrdpic,
+	power_op_xsrdpim,
+	power_op_xsrdpip,
+	power_op_xsrdpiz,
+	power_op_xsredp,
+	power_op_xsresp,
+	//--skipped xsrqpi & xsrqpix
+	//P634, two instructions sharing the same opcode, differentiated by EX bit
+	//power_op_xsrqpi,
+	//power_op_xsrqpix,
+	
+	//P636, included RMC, it always goes along with an R bit  at 15th bit.
+	power_op_xsrqpxp,
+	power_op_xsrsp,
+	power_op_xsrsqrtedp,
+	power_op_xsrsqrtesp,
+	power_op_xssqrtdp,
+	power_op_xssqrtqp,
+	//--skipped xssqrtsp
+	//P644, xssqrtsp has the exact same opcode with xscmpgtdp (P526)
+	//power_op_xssqrtsp,
+	
+	power_op_xssubdp,
+	power_op_xssubqp,
+	power_op_xssubsp,
+	power_op_xstdivdp,
+	power_op_xstsqrtdp,
+	//P653, included DCMX
+	power_op_xststdcdp,
+	power_op_xststdcqp,
+	power_op_xststdcsp,
+	power_op_xsxexpdp,
+	power_op_xsxexpqp,
+	power_op_xsxsigdp,
+	power_op_xsxsigqp,
+	power_op_xvabsdp,
+	power_op_xvabssp,
+	power_op_xvadddp,
+	power_op_xvaddsp,
+	power_op_xvcmpeqdp,
+	power_op_xvcmpeqsp,
+	power_op_xvcmpgedp,
+	power_op_xvcmpgesp,
+	//--skipped: P668 xvcmpgtdp, has exact the same opcode with xsrdpic(P628)
+	//power_op_xvcmpgtdp,
+	//--skipped: P670 xvcmpgtsp, has exact the same opcode with xssqrtdp(P641)
+	//power_op_xvcmpgtsp,
+	power_op_xvcpsgndp,
+	power_op_xvcpsgnsp,
+	power_op_xvcvdpsp,
+	power_op_xvcvdpsxds,
+	power_op_xvcvdpsxws,
+	power_op_xvcvdpuxds,
+	power_op_xvcvdpuxws,
+	//new third level opcode 60-475
+	power_op_xvcvhpsp,
+	power_op_xvcvspdp,
+	power_op_xvcvsphp,
+	power_op_xvcvspsxds,
+	//--skipped: P686 xvcvspsxws, has exact the same opcode with xsminjdp(P589)
+	//power_op_xvcvspsxws,
+	power_op_xvcvspuxds,
+	//--skipped: P690 xvcvspuxws, has exact the same opcode with xsmincdp(P587)
+  //power_op_xvcvspuxws,
+	power_op_
+	power_op_
+	power_op_
+	power_op_
+	power_op_
+	power_op_
+	power_op_
+	power_op_
+	power_op_
+	power_op_
+	power_op_
+	power_op_
+	power_op_
+	power_op_
+	power_op_
 
 
 
