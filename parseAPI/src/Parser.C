@@ -1086,30 +1086,10 @@ Parser::split_consistent_blocks(region_data* rd, map<Address, Block*> &allBlocks
 		Address previnsn;
 		if (ob->consistent(b->start(), previnsn)) {
                     parsing_printf("in finalizing , split block [%lx, %lx), at %lx\n", ob->start(), ob->end(), b->start());
-                    if (b->end() < ob->end()) {
-                        edge_b = follow_fallthrough(b, ob->last());
-                    }
-                    if (b->end() <= ob->end()) {
-  		        Block::edgelist &trgs = ob ->_trglist;
-		        Block::edgelist::iterator tit = trgs.begin();
-		        for (; tit != trgs.end(); ++tit) {
-		            Edge *e = *tit;
-                            e->_source = edge_b;
-                            edge_b->_trglist.push_back(e);
-		        }
-                        trgs.clear();
-                    } else {
-  		        Block::edgelist &trgs = ob ->_trglist;
-		        Block::edgelist::iterator tit = trgs.begin();
-		        for (; tit != trgs.end(); ++tit) {
-		            Edge *e = *tit;
-                            e->trg()->removeSource(e);
-		        }
-                        trgs.clear();
-                    }
 		    // For consistent blocks,
 		    // we only need to create a new fall through edge
 		    // and move edges 
+		    move_edges_consistent_blocks(ob, b);
 		    rd->blocksByRange.remove(ob);
                     ob->updateEnd(b->start());
                     ob->_lastInsn = previnsn;
@@ -1121,83 +1101,96 @@ Parser::split_consistent_blocks(region_data* rd, map<Address, Block*> &allBlocks
    }
 }
 
+static bool AbruptEndBlock(Block *b) {
+    for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit)
+       if ((*eit)->sinkEdge() && (*eit)->type() == DIRECT) return true;
+    return false;
+}
+
 void
 Parser::split_inconsistent_blocks(region_data* rd, map<Address, Block*> &allBlocks) {
    // Now, let's deal with inconsistent overlapping blocks
    // We will need to create new blocks
    for (auto bit = allBlocks.begin(); bit != allBlocks.end(); ++bit) {
         Block* b = bit->second;
+	if (AbruptEndBlock(b)) continue;
 	set<Block*> overlappingBlocks;
 	rd->findBlocks(b->start(), overlappingBlocks);
 	if (overlappingBlocks.size() > 1) {
 	    for (auto obit = overlappingBlocks.begin(); obit != overlappingBlocks.end(); ++obit) {
 		Block * ob = *obit;
 		if (ob == b) continue;
+		if (AbruptEndBlock(ob)) continue;
 		Address previnsn;
 		if (!ob->consistent(b->start(), previnsn)) {
-		    if (ob->end() == b->end()) {
-		        Block::Insns b1_insns;
-			Block::Insns b2_insns;
-			b->getInsns(b1_insns);
-			ob->getInsns(b2_insns);
-			Address cur;
-			for (auto iit = b1_insns.begin(); iit != b1_insns.end(); ++iit) {
-			    cur = iit->first;
-			    if (b2_insns.find(cur) != b2_insns.end()) {
-				// The two blocks align
-			        rd->blocksByRange.remove(ob);
-				rd->blocksByRange.remove(b);
+		    Block::Insns b1_insns;
+		    Block::Insns b2_insns;
+		    b->getInsns(b1_insns);
+		    ob->getInsns(b2_insns);
+		    //assert(b->end() == ob->end());
+		    Address cur = 0;
+		    for (auto iit = b1_insns.begin(); iit != b1_insns.end(); ++iit) {
+		        cur = iit->first;
+			if (b2_insns.find(cur) != b2_insns.end()) {
+		            // The two blocks align
+			    rd->blocksByRange.remove(ob);
+			    rd->blocksByRange.remove(b);
 	    
-				// We only need to keep one copy of the outgoing edges
-				Block::edgelist &trgs = ob ->_trglist;
-		    		Block::edgelist::iterator tit = trgs.begin();
-			       	for (; tit != trgs.end(); ++tit) {
-		                    Edge *e = *tit;
-			            Block* trgBlock = e->trg();
-		                    trgBlock->removeSource(e);	
-		                }
-                                trgs.clear();
+			    // We only need to keep one copy of the outgoing edges
+			    Block * newB = factory()._mkblock(b->obj(), b->region(), cur);
+                            newB->updateEnd(b->end());
+                            newB->_lastInsn = b->_lastInsn;
+                            newB->_parsed = true;
+			    newB = record_block(newB);
 
-				Block * newB = factory()._mkblock(b->obj(), b->region(), cur);
-			
-				Block::edgelist &trgs2 = b->_trglist;
-				tit = trgs2.begin();
-				
-				// Copy the outgoing edges to the new block
-				for (; tit != trgs2.end(); ++tit) {
-				    Edge *e = *tit;
+			    set<Block*> targets;
+			    Block::edgelist &trgs = ob ->_trglist;
+		    	    Block::edgelist::iterator tit = trgs.begin();
+			    for (; tit != trgs.end(); ++tit) {
+		                Edge *e = *tit;
+				e->_source = newB;
+				newB->_trglist.push_back(e);
+				targets.insert(e->trg());
+		            }
+                            trgs.clear();
+
+			    Block::edgelist &trgs2 = b->_trglist;
+			    tit = trgs2.begin();
+			    // Copy the outgoing edges to the new block
+			    for (; tit != trgs2.end(); ++tit) {
+			        Edge *e = *tit;
+				Block* trg = e->trg();
+				if (targets.find(trg) != targets.end()) {
+				    trg->removeSource(e);
+				} else {
                                     e->_source = newB;
                                     newB->_trglist.push_back(e);
+				    targets.insert(trg);
 				}
-                                trgs2.clear();
+			    }
+                            trgs2.clear();
 
-                                newB->updateEnd(b->end());
-                                newB->_lastInsn = b->_lastInsn;
-                                newB->_parsed = true;
-        
-				b->updateEnd(cur);
-				auto iter = b1_insns.find(cur);
-				--iter;
-                                b->_lastInsn = iter ->first;
-                                link(b,newB,FALLTHROUGH,false);
+       
+			    b->updateEnd(cur);
+			    auto iter = b1_insns.find(cur);
+			    --iter;
+                            b->_lastInsn = iter ->first;
+                            link(b,newB,FALLTHROUGH,false);
 
-				iter = b2_insns.find(cur);
-				--iter;
-				ob->updateEnd(cur);
-				ob->_lastInsn = iter->first; 
-				record_block(newB);
+			    iter = b2_insns.find(cur);
+			    --iter;
+			    ob->updateEnd(cur);
+			    ob->_lastInsn = iter->first; 
+			    link(ob, newB, FALLTHROUGH, false);
 
-				rd->insertBlockByRange(b);
-				rd->insertBlockByRange(ob);
-				rd->insertBlockByRange(newB);
-				break;
-	                    }
+			    rd->insertBlockByRange(b);
+			    rd->insertBlockByRange(ob);
+			    rd->insertBlockByRange(newB);
+			    break;
 			}
-		    } else {
-		        parsing_printf("TODO: handle  the case where inconsistent blocks do not align\n");
-		    }
-		} 
-	    } 
+		    } 
+	        } 
+	    }
 	}
    }
 }
@@ -2005,7 +1998,7 @@ Parser::block_at(ParseFrame &frame,
         Block* b = iter->second;
         Address prev_insn;
         if (b->consistent(addr, prev_insn)) {
-            ret = split_block(owner, b, addr, prev_insn);
+	    ret = split_block(owner, b, addr, prev_insn);
             split = b;
             frame.visited[ret->start()] = true;
             return ret;
@@ -2043,6 +2036,14 @@ Parser::add_edge(
     // source address and follow fall-througth edge
     // to find the correct block object
     src = follow_fallthrough(src, src_addr);
+    if (et == FALLTHROUGH && dst < src->end() && dst >= src->start()) {
+	    fprintf(stderr, "In add_edge, adding fallthrough, from [%lx, %lx) to %lx\n", src->start(), src->end(), dst);
+    }
+    if (et == FALLTHROUGH && dst == 0x834ea7 && src->start() == 0x834ea0) {
+	    fprintf(stderr, "In add_edge, $$$$$ WRONG EDGE adding fallthrough, from [%lx, %lx) to %lx\n", src->start(), src->end(), dst);
+    }
+
+
     ret = block_at(frame, owner,dst, split);
     retpair.first = ret;
 
@@ -2099,7 +2100,7 @@ Parser::split_block(
         Address addr,
         Address previnsn)
 {
-    parsing_printf("split_block split block [%lx, %lx) at %lx\n", b->start(), b->end(), addr);
+    parsing_printf("split_block split block [%lx, %lx) at %lx in function %s\n", b->start(), b->end(), addr, owner->name().c_str());
     Block * ret;
     CodeRegion * cr;
     bool isRetBlock = false;
@@ -2125,25 +2126,17 @@ Parser::split_block(
         block_exist = true;
 	ret = exist;
     }
-    Block::edgelist &trgs = b->_trglist;
-    for (auto tit = trgs.begin() ; tit != trgs.end(); ++tit) {
-        Edge *e = *tit;
-        e->_source = ret;
-        ret->_trglist.push_back(e);
-    }
-
+    Block::edgelist & trgs = b->_trglist;
     if (!trgs.empty() && RET == (*trgs.begin())->type()) {
         isRetBlock = true;
     }
-    
-    trgs.clear();
+    move_edges_consistent_blocks(b, ret);
     b->updateEnd(addr);
     b->_lastInsn = previnsn;
     if (!_parse_data->setEdgeParsingStatus(b->region(), b->last(), owner)) {
-        parsing_printf("Spliting block [%lx, %lx) at %lx. However, %lx already has edge parsed. This Should not happen\n", b->start(), ret->end(), ret->start());
-    }
+        parsing_printf("Spliting block [%lx, %lx) at %lx. However, %lx already has edge parsed. This Should not happen\n", b->start(), ret->end(), ret->start(), ret->start());
+    } 
     link(b,ret,FALLTHROUGH,false);
-
     // Any functions holding b that have already been finalized
     // need to have their caches invalidated so that they will
     // find out that they have this new 'ret' block
@@ -2167,7 +2160,6 @@ Parser::split_block(
     _pcb.splitBlock(b,ret);
     return ret;
 }
-
 
 pair<Function *,Edge*>
 Parser::bind_call(ParseFrame & frame, Address target, Block * cur, Edge * exist)
@@ -2285,6 +2277,8 @@ int Parser::findCurrentFuncs(CodeRegion * cr, Address addr, std::set<Function*> 
 Edge*
 Parser::link(Block *src, Block *dst, EdgeTypeEnum et, bool sink)
 {
+    if (src->start() == dst->start() && src->end() == dst->end() && et == FALLTHROUGH)
+	    assert(0);
     assert(et != NOEDGE);
     Edge * e = factory()._mkedge(src,dst,et);
     e->_type._sink = sink;
@@ -2322,6 +2316,9 @@ Parser::link_tempsink(Block *src, EdgeTypeEnum et)
 void
 Parser::relink(Edge * e, Block *src, Block *dst)
 {
+    if (src->start() == dst->start() && src->end() == dst->end() && e->type() == FALLTHROUGH)
+	    assert(0);
+
     unsigned long srcOut = 0, dstIn = 0, oldDstIn = 0;
     Block* oldDst = NULL;
     if(e->trg() && e->trg_addr() != std::numeric_limits<Address>::max()) {
@@ -2520,15 +2517,70 @@ bool Parser::getSyscallNumber(Function * /*func*/,
             }
         }
     }
-
     return (val != -1);
 }
 
 bool Parser::set_edge_parsing_status(ParseFrame& frame, Address addr) {
     Function *f = frame.func;
+    parsing_printf("Function %s tries to set parsing edge at %lx\n", frame.func->name().c_str(), addr);
     Function *succeeded_func = _parse_data->setEdgeParsingStatus(f->region(), addr, f);
-    if (succeeded_func == f) return true;
+    if (succeeded_func == NULL) return true; 
     parsing_printf("[%s:%d] parsing edge at %lx has started by another thread\n",FILE__, __LINE__, addr); 
-    frame.pushWork(frame.mkWork(NULL, succeeded_func));
+    // the same function may have created edges before,
+    // due to overlapping instructions
+    if (succeeded_func != f)
+        frame.pushWork(frame.mkWork(NULL, succeeded_func));
     return false;
+}
+
+void Parser::move_edges_consistent_blocks(Block *A, Block *B) {
+    /* We move outgoing edges from block A to block B, which is 
+     * necessary when spliting blocks.
+     * The start of block B should be consistent with block A.
+     *
+     * There are three cases:
+     *
+     * Case 1: the end of A and B are the same
+     *         A :  [     ]
+     *         B :     [  ]
+     *         In such case, we can directly move the edges from A to B
+     *
+     * Case 2: block A contains block B
+     *         A :  [          ]
+     *         B :      [    ]
+     *    edge_b :            []   
+     *         In this case, the outgoing edges of A should not be moved to B.
+     *         Instead, we need to follow the fallthrough edge of B to find a 
+     *         block (edge_b), which ends at same location as A. We then move
+     *         outgoing edges of A to edge_b.
+     * Case 3: End of A is smaller than the end of B
+     *         A : [        ]
+     *         B :      [       ]
+     *         In this case, the outgoing edges of A should only contain a 
+     *         fallthrough edge (otherwise, B's end will the same as A).
+     *         We remove this fall through edge for now and we will add the 
+     *         edge back in finalizing.
+     */
+    Block* edge_b = B;
+    if (B->end() < A->end()) {
+	// For case 2
+        edge_b = follow_fallthrough(B, A->last());
+    }
+    Block::edgelist &trgs = A ->_trglist;
+    Block::edgelist::iterator tit = trgs.begin();
+    if (B->end() <= A->end()) {
+	// In case 1 & 2, we move edges
+	for (; tit != trgs.end(); ++tit) {
+            Edge *e = *tit;
+	    e->_source = edge_b;
+	    edge_b->_trglist.push_back(e);
+	}
+    } else {
+	// In case 3, we only remove edges
+	for (; tit != trgs.end(); ++tit) {
+            Edge *e = *tit;
+            e->trg()->removeSource(e);
+	}
+    }
+    trgs.clear();
 }

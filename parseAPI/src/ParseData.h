@@ -306,9 +306,7 @@ public:
           // Otherwise, another thread has started creating edges.
           // The current thread should give up. We return
           // the function who succeeded.
-          if (edge_parsing_status.insert(a, make_pair(addr, f)))
-              ret = f;
-          else
+          if (!edge_parsing_status.insert(a, make_pair(addr, f)))
               ret = a->second;
 	}
         race_detector_fake_lock_release(race_detector_fake_lock(edge_parsing_status));

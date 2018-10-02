@@ -260,6 +260,7 @@ namespace Dyninst {
             void split_consistent_blocks(region_data *, map<Address, Block*> &);
             void split_inconsistent_blocks(region_data *, map<Address, Block*> &);
             bool set_edge_parsing_status(ParseFrame&, Address addr);
+	    void move_edges_consistent_blocks(Block *, Block *);
 
 
 
