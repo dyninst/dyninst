@@ -29,7 +29,6 @@
  */
 
 // $Id: mapped_object.C,v 1.39 2008/09/03 06:08:44 jaw Exp $
-
 #include <string>
 #include <cctype>
 #include <algorithm>
@@ -2129,18 +2128,38 @@ void mapped_object::setCallee(const block_instance *b, func_instance *f) {
 
 #include "Symtab.h"
 
-void mapped_object::replacePLTStub(SymtabAPI::Symbol *sym, func_instance *orig, Address newAddr) {
+bool mapped_object::replacePLTStub(SymtabAPI::Symbol *sym, func_instance *orig, Address newAddr) {
    // Let's play relocation games...
    vector<SymtabAPI::relocationEntry> fbt;
    bool ok = parse_img()->getObject()->getFuncBindingTable(fbt);
-   if(!ok) return;
+   if(!ok) return false;
    
-   
+   bool found = false;
+   // Original code to search PLT's
    for (unsigned i = 0; i < fbt.size(); ++i) {
       if (fbt[i].name() == sym->getMangledName()) {
          proc()->bindPLTEntry(fbt[i], codeBase(), orig, newAddr);
+         found = true;
       }
    }
+
+   // If we do not find the PLT for this symbol, search all relocations.
+   // Why? Relocations do not necessarily need to have a PLT. For example,
+   // GCC will create code that directly grabs the function address via 
+   // the GOT (without a PLT). This code handles cases where that 
+   // optimization is occuring. 
+   if (found == false){
+      vector<SymtabAPI::relocationEntry> generalRelocs;
+      ok = parse_img()->getObject()->getAllRelocations(generalRelocs);
+      if (!ok) return false;
+      for (auto i : generalRelocs) {
+        if (i.name() == sym->getMangledName()){
+          proc()->bindPLTEntry(i, codeBase(), orig, newAddr);
+          found = true;
+        }
+      }
+   }
+   return found;
 }
 
 string mapped_object::fileName() const { 

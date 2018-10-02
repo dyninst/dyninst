@@ -69,7 +69,6 @@ using namespace std;
 #include <iomanip>
 
 #include <fstream>
-
 #include <boost/assign/list_of.hpp>
 #include <boost/assign/std/set.hpp>
 #include <boost/filesystem.hpp>
@@ -3060,6 +3059,15 @@ bool Object::addRelocationEntry(relocationEntry &re)
     return true;
 }
 
+bool Object::getRelocationTable(std::vector<relocationEntry> & reloc) {
+    reloc = relocation_table_;
+    // Returns false to give a signal that parsing may not have occured 
+    // for this object.
+    if (relocation_table_.size() == 0)
+        return false;
+    return true;
+}
+
 #ifdef DEBUG
 
 // stream-based debug output
@@ -5207,7 +5215,6 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
         Elf_X_Shdr *curSymHdr = allRegionHdrsByShndx[shdr->sh_link()];
 
         // Apparently, relocation entries may not have associated symbols.
-
         for(unsigned j = 0; j < (shdr->sh_size() / shdr->sh_entsize()); ++j) {
             // Relocation entry fields - need to be populated
 
@@ -5272,6 +5279,7 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
             {
                 relocationEntry newrel(0, relOff, addend, name, sym, relType, regType);
                 region->addRelocationEntry(newrel);
+
                 // relocations are also stored with their targets
                 // Need to find target region
                 if (sym) {
