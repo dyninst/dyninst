@@ -248,6 +248,19 @@ class SW_EXPORT DyninstDynamicStepper : public FrameStepper {
    virtual const char *getName() const;
 };
 
+class DyninstInstFrameStepperImpl;
+class SW_EXPORT DyninstInstFrameStepper : public FrameStepper {
+ private:
+   DyninstInstFrameStepperImpl *impl;
+ public:
+   DyninstInstFrameStepper(Walker *w);
+   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
+   virtual unsigned getPriority() const;
+   virtual void registerStepperGroup(StepperGroup *group);
+   virtual ~DyninstInstFrameStepper();
+   virtual const char *getName() const;
+};
+
 }
 }
 
