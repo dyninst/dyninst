@@ -216,12 +216,20 @@ bool baseTramp::generateCode(codeGen &gen,
 
       gen.beginTrackRegDefs();
       gen.rs()->initRealRegSpace();
-      definedRegs = gen.getRegsDefined();
       bool result = generateCodeInlined(gen, baseInMutatee);
       if (!result)
          return false;
       gen.endTrackRegDefs();
 
+      // This is not an initialization, it's an 'assignment', which means
+      // the definedRegs are here being updated after the baseTramp had been
+      // generated in the call of generateCodeInlined, a couple lines before.
+      // During generation of the baseTramp, registers are marked as defined,
+      // and only now we get them from the codeGen object in order to verify
+      // whether we should perform optimizations or regenerate the baseTramp.
+      // Therefore this line cannot be before the generation of the baseTramp
+      // that is done in generateCodeInlined.
+      definedRegs = gen.getRegsDefined();
       optimizationInfo_ = true;
       if (spilledRegisters) {
          spilledRegisters = gen.rs()->spilledAnything();
