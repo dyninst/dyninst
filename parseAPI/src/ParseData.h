@@ -139,6 +139,7 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
     CodeRegion * codereg;
 
     ParseWorkElem * seed; // stored for cleanup
+    std::vector<Block*> value_driven_jump_tables;
 
     ParseFrame(Function * f,ParseData *pd) :
         curAddr(0),

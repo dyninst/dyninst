@@ -45,6 +45,9 @@ int Dyninst::ParseAPI::dyn_debug_initialized = 0;
 #pragma warning(disable:4996) 
 #endif
 
+#include <omp.h>
+dyn_tls FILE* log_file = NULL;
+
 int Dyninst::ParseAPI::parsing_printf_int(const char *format, ...)
 {
     if(!dyn_debug_initialized) {
@@ -57,10 +60,15 @@ int Dyninst::ParseAPI::parsing_printf_int(const char *format, ...)
 
     if(!dyn_debug_parsing) return 0;
     if(NULL == format) return -1;
+    if (log_file == NULL) {
+        char filename[128];
+        snprintf(filename, 128, "%s-%d.txt", getenv("DYNINST_DEBUG_PARSING"), omp_get_thread_num());
+        log_file = fopen(filename, "w");
+    }
 
     va_list va;
     va_start(va,format);
-    int ret = vfprintf(stderr, format, va);
+    int ret = vfprintf(log_file, format, va);
     va_end(va);
 
     return ret;

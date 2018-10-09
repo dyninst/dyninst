@@ -70,7 +70,7 @@ void JumpTableFormatPred::FindTOC() {
         parsing_printf("\t find TOC address %lx in R2\n", toc_address);
         return;        
     }
-    parsing_printf("\tDid not find TOC\n");
+    parsing_printf("\tDid not find TOC for function at %lx\n", func->addr());
 }
 
 static int CountInDegree(SliceNode::Ptr n) {
@@ -202,6 +202,7 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	// We start plug in ASTs from predecessors
 	n->ins(nbegin, nend);
 	map<AST::Ptr, AST::Ptr> inputs;
+        map<AST::Ptr, Address> input_addr;
 	if (block->obj()->cs()->getArch() == Arch_ppc64) {
 	    inputs.insert(make_pair(VariableAST::create(Variable(AbsRegion(Absloc(ppc64::r2)))),
 	                  ConstantAST::create(Constant(toc_address, 64))));
@@ -212,8 +213,10 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	    exp = SymbolicExpression::SubstituteAnAST(exp, inputs);
 	    inputs.clear();
 	}
+        parsing_printf("JumpTableFormatPred: analyze %s at %lx\n", n->assign()->format().c_str(), n->assign()->addr());
 	for (; nbegin != nend; ++nbegin) {
 	    SliceNode::Ptr p = boost::static_pointer_cast<SliceNode>(*nbegin);
+
 	    if (exprs.find(p->assign()) == exprs.end()) {
 	        parsing_printf("\tWARNING: For %s, its predecessor %s does not have an expression\n", n->assign()->format().c_str(), p->assign()->format().c_str());
 		jumpTableFormat = false;
@@ -221,9 +224,27 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	    }
 	    AST::Ptr rhs = exprs[p->assign()];	    
 	    AST::Ptr lhs = VariableAST::create(Variable(p->assign()->out())); 
-	    // TODO: there may be more than one expression for a single variable
-	    inputs.insert(make_pair(lhs,  rhs));
+            bool find = false;
+            for (auto iit = inputs.begin(); iit != inputs.end(); ++iit)
+                if (*(iit->first) == *lhs) {
+                    find = true;
+                    if (p->assign()->addr() < input_addr[iit->first]) {
+                        inputs[iit->first] = rhs;
+                        input_addr[iit->first] = p->assign()->addr();
+                    }
+                    break;
+                }
+            if (!find) {
+                inputs[lhs] = rhs;
+                input_addr[lhs] = p->assign()->addr();
+            }
+            parsing_printf("\t\t pred %s at %lx, lhs %s, rhs %s\n", p->assign()->format().c_str(), p->assign()->addr(), lhs->format().c_str(), rhs->format().c_str());
+
 	}
+        parsing_printf("Input map:\n");
+        for (auto iit = inputs.begin(); iit != inputs.end(); ++iit) {
+            parsing_printf("\t %s %s\n", iit->first->format().c_str(), iit->second->format().c_str());
+        }
 	if (g->isExitNode(n)) {
 	    // Here we try to detect the case where there are multiple
 	    // paths to the indirect jump, and on some of the paths, the jump
@@ -265,6 +286,8 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	// TODO: need to consider thunk
 	exp = SymbolicExpression::SubstituteAnAST(exp, inputs);
 	exprs[n->assign()] = exp;
+        parsing_printf("\t expression %s\n", exp->format().c_str());
+
         // Enumerate every successor and add them to the working list
 	n->outs(nbegin, nend);
 	for (; nbegin != nend; ++nbegin) {

@@ -279,9 +279,9 @@ size_t IA_IAPI::getSize() const
 
 bool IA_IAPI::hasCFT() const
 {
-    parsing_cerr << "hasCFT called" << endl;
+    parsing_printf("hasCFT called\n");
   if(hascftstatus.first) {
-    parsing_cerr << "\t Returning cached entry: " << hascftstatus.second << endl;
+    parsing_printf("\t Returning cached entry: %d\n",hascftstatus.second);
     return hascftstatus.second;
   }
   InsnCategory c = curInsn().getCategory();
@@ -289,7 +289,7 @@ bool IA_IAPI::hasCFT() const
   if(c == c_BranchInsn ||
      c == c_ReturnInsn) {
      if ( likely ( ! (_obj->defensiveMode() && isNopJump()) ) ) {
-        parsing_cerr << "\t branch or return, ret true" << endl;
+        parsing_printf("\t branch or return, ret true\n");
         hascftstatus.second = true;
      }
   }
