@@ -1317,7 +1317,10 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
     // The resolving jump tables depend on the current shape of CFG.
     // We use a fix-point analysis, where we we-analyze jump tables
     // that may need re-analysis, which may find new out-going edges
+    int count = 0;
     do {
+        count++;
+        parsing_printf("Iteration %d for function %s at %lx\n", count, frame.func->name().c_str(), frame.func->addr());
         bool ret = parse_frame_one_iteration(frame, recursive);
         if (ret) return;
     } while (inspect_value_driven_jump_tables(frame));
@@ -2035,14 +2038,6 @@ Parser::add_edge(
     // source address and follow fall-througth edge
     // to find the correct block object
     src = follow_fallthrough(src, src_addr);
-    if (et == FALLTHROUGH && dst < src->end() && dst >= src->start()) {
-	    fprintf(stderr, "In add_edge, adding fallthrough, from [%lx, %lx) to %lx\n", src->start(), src->end(), dst);
-    }
-    if (et == FALLTHROUGH && dst == 0x834ea7 && src->start() == 0x834ea0) {
-	    fprintf(stderr, "In add_edge, $$$$$ WRONG EDGE adding fallthrough, from [%lx, %lx) to %lx\n", src->start(), src->end(), dst);
-    }
-
-
     ret = block_at(frame, owner,dst, split);
     retpair.first = ret;
 
@@ -2593,14 +2588,16 @@ bool Parser::inspect_value_driven_jump_tables(ParseFrame &frame) {
         Block * block = *bit;
         std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > > outEdges;
         IndirectControlFlowAnalyzer icfa(frame.func, block);
-        bool ret = icfa.NewJumpTableAnalysis(outEdges);
+        icfa.NewJumpTableAnalysis(outEdges);
         set<Address> existing;
         for (auto eit = block->targets().begin(); eit != block->targets().end(); ++eit) {
             existing.insert((*eit)->trg_addr());
         }
+        bool new_edges = false;
         for (auto oit = outEdges.begin(); oit != outEdges.end(); ++oit) {
             if (existing.find(oit->first) != existing.end()) continue;
             ret = true;
+            new_edges = true;
             parsing_printf("Finding new target from block [%lx, %lx) to %lx\n", block->start(), block->end(), oit->first);
             ParseAPI::Edge* newedge = link_tempsink(block, oit->second);
             frame.knownTargets.insert(oit->first);
@@ -2614,6 +2611,15 @@ bool Parser::inspect_value_driven_jump_tables(ParseFrame &frame) {
                                     false)
             );
 
+        }
+        if (new_edges) {
+            for (auto eit = block->targets().begin(); eit != block->targets().end(); ++eit) {
+                ParseAPI::Edge * e = *eit;
+                if (e->sinkEdge()) {
+                    block->removeTarget(e);
+                    e->trg()->removeSource(e);
+                }
+            }
         }
     }
     return ret;
