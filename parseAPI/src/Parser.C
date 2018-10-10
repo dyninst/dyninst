@@ -93,7 +93,6 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
         _parse_data(NULL),
         _parse_state(UNPARSED)
 {
-    delayed_frames.size = 0;
     // cache plt entries for fast lookup
     const map<Address, string> & lm = obj.cs()->linkage();
     map<Address, string>::const_iterator lit = lm.begin();
@@ -654,7 +653,6 @@ void
 Parser::parse_frames(LockFreeQueue<ParseFrame *> &work, bool recursive)
 {
     ProcessFrames(&work, recursive);
-
     bool done = false, cycle = false;
     {
         boost::lock_guard<DelayedFrames> g(delayed_frames);
@@ -679,9 +677,9 @@ Parser::parse_frames(LockFreeQueue<ParseFrame *> &work, bool recursive)
         if(delayed_frames.frames.empty() && updated.empty()) {
             parsing_printf("[%s] Fixed point reached (0 funcs with unknown return status)\n)",
                            __FILE__);
-            delayed_frames.size = 0;
+            delayed_frames.prev_frames.clear();
             done = true;
-        } else if(delayed_frames.size == delayed_frames.frames.size() && updated.empty()) {
+        } else if(delayed_frames.frames.size() > 0 && delayed_frames.prev_frames == delayed_frames.frames && updated.empty()) {
             cycle = true;
         }
     }
@@ -706,8 +704,8 @@ void Parser::processFixedPoint(LockFreeQueue<ParseFrame *> &work, bool recursive
                        __FILE__,
                        delayed_frames.frames.size());
 
-        // Update delayed_frames.size for next iteration
-        delayed_frames.size = delayed_frames.frames.size();
+        // Update delayed_frames for next iteration
+        delayed_frames.prev_frames = delayed_frames.frames;
     }
     // Recurse through parse_frames
     parsing_printf("[%s] Calling parse_frames again... \n", __FILE__);
@@ -893,7 +891,7 @@ Parser::finalize(Function *f)
                 ParseAPI::Edge *e = *eit;
 		if (e->type() == INDIRECT || e->type() == DIRECT) {
 		    e->_type._interproc = true;
-    		    parsing_printf("from %lx to %lx, marked as not tail call\n", b->last(), e->trg()->start());
+    		    parsing_printf("from %lx to %lx, marked as tail call\n", b->last(), e->trg()->start());
     		}
 	    }
 	}
@@ -1428,10 +1426,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 // If func's return status is RETURN, 
                 // then this tail callee does not impact the func's return status
                 if (func->retstatus() != RETURN) {
-                    if (ct->retstatus() > NORETURN)
-                      func->set_retstatus(ct->retstatus());
-                    else if (ct->retstatus() == UNSET)
-                      frame.pushDelayedWork(work, ct);
+                    update_function_ret_status(frame, ct, work);
                 }
             }
 
@@ -1582,11 +1577,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 // current function on this control flow path is the same
                 // as the shared function.
                 //
-                if (work->shared_func()->retstatus() == RETURN) {
-                    func->set_retstatus(RETURN);
-                } else if (work->shared_func()->retstatus() == UNSET) {
-                    frame.pushDelayedWork(work, work->shared_func());
-                }
+                update_function_ret_status(frame, work->shared_func(), work);
             }
             func->_cache_valid = false;
             continue;
@@ -1611,8 +1602,6 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                            FILE__,work->target(), cur->start(), cur->end());
             continue;
         }
-        visited[cur->start()] = true;
-        leadersToBlock[cur->start()] = cur;
 
         // Multiple functions can get accesses to a block,
         // but only the function that creates the block should
@@ -1627,6 +1616,8 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
 
             cur->_parsed = true;
             curAddr = cur->start();
+            visited[cur->start()] = true;
+            leadersToBlock[cur->start()] = cur;
         } else if (cur->createdByFunc() != frame.func) {
             parsing_printf("[%s] deferring parse of shared block %lx\n",
                            FILE__,cur->start());
@@ -1641,12 +1632,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 // also works if the functions that share the code
                 // have the same return blocks.
                 Function * other_func = cur->createdByFunc(); 
-                if (other_func->retstatus() == RETURN) {
-                    func->set_retstatus(RETURN);
-                } else if (other_func->retstatus() == UNSET) {
-                    frame.pushDelayedWork(work, other_func);
-                    visited.erase(cur->start());
-                }
+                update_function_ret_status(frame, other_func, work);
             }
             // The edge to this shared block is changed from
             // "going to sink" to going to this shared block.
@@ -2631,4 +2617,32 @@ bool Parser::inspect_value_driven_jump_tables(ParseFrame &frame) {
         }
     }
     return ret;
+}
+
+
+void
+Parser::update_function_ret_status(ParseFrame &frame, Function * other_func, ParseWorkElem *work) {
+    /* The return status starts with UNSET, and increases to RETURN, and maybe NORETURN
+     * Once it is RETURN or NORETURN, it will not go back to UNSET.
+     *
+     * Therefore, it is crucial for the following if statements to be the right order:
+     * First check the smaller values, and then check the larger values.
+     *
+     * Consider that if we reverse the order. So the code looks like
+     * 1) if (other_func->retstatus() == RETURN) {
+     *       ....
+     * 2) }  else if (other_func->retstatus() == UNSET) {
+     *       ....
+     *    }
+     * In such code structure, at line 1), the other_func can be in UNSET, so the check fails.
+     * Concurrently, the other_func can be immediately set to RETURN, making the check at 
+     * line 2) failing. So, the frame.func is neither delayed, nor updates its return status
+     * to RETURN, which can lead to wrong NORETURN status. 
+     */
+
+    if (other_func->retstatus() == UNSET) {
+        frame.pushDelayedWork(work, other_func);
+    } else if (other_func->retstatus() == RETURN) {
+        frame.func->set_retstatus(RETURN);
+    }
 }

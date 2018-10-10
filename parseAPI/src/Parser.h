@@ -87,8 +87,7 @@ namespace Dyninst {
 
             // Delayed frames
             struct DelayedFrames : public boost::basic_lockable_adapter<boost::recursive_mutex> {
-                unsigned size;
-                std::map<Function *, std::set<ParseFrame *> > frames;
+                std::map<Function *, std::set<ParseFrame *> > frames, prev_frames;
 
             };
             DelayedFrames delayed_frames;
@@ -263,6 +262,7 @@ namespace Dyninst {
             void split_inconsistent_blocks(region_data *, map<Address, Block*> &);
             bool set_edge_parsing_status(ParseFrame&, Address addr);
 	    void move_edges_consistent_blocks(Block *, Block *);
+            void update_function_ret_status(ParseFrame &, Function*, ParseWorkElem* );
 
 
 
