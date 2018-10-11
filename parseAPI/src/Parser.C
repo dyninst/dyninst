@@ -2597,7 +2597,6 @@ bool Parser::inspect_value_driven_jump_tables(ParseFrame &frame) {
         for (auto oit = outEdges.begin(); oit != outEdges.end(); ++oit) {
             if (existing.find(oit->first) != existing.end()) continue;
             ret = true;
-            new_edges = true;
             parsing_printf("Finding new target from block [%lx, %lx) to %lx\n", block->start(), block->end(), oit->first);
             ParseAPI::Edge* newedge = link_tempsink(block, oit->second);
             frame.knownTargets.insert(oit->first);
@@ -2611,15 +2610,6 @@ bool Parser::inspect_value_driven_jump_tables(ParseFrame &frame) {
                                     false)
             );
 
-        }
-        if (new_edges) {
-            for (auto eit = block->targets().begin(); eit != block->targets().end(); ++eit) {
-                ParseAPI::Edge * e = *eit;
-                if (e->sinkEdge()) {
-                    block->removeTarget(e);
-                    e->trg()->removeSource(e);
-                }
-            }
         }
     }
     return ret;
