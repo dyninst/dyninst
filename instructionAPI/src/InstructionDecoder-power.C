@@ -578,6 +578,19 @@ namespace Dyninst
     }
     void InstructionDecoder_power::doDelayedDecode(const Instruction* insn_to_complete)
     {
+
+				/* Yuhan's notes for implementation
+					 For all instructions in opcode 60, the extended opcode is 21-29th bit.
+					 special case for opcode 60: (Opcode table on Page 1190)
+			  I. Decision Tree:
+				  (1) For XX4 format, the 26&27 bits are 1. (only for opcde "xxsel" P773)
+			    (2) Two special XX3 cases: 0..00 010.. & 0..01 010.., started from 21th bit. (manual 1208)
+				  (3) Other instruction are all implemented normally, 
+				    the "." bits are treated as 0 and 1 respectively in the opcode table
+				II. The Rc bit for opcode 60 is the 21st bit
+
+			   **	There are 2 XX1 instructions, the last bit of the extended opcodes are ignored (30th bit, which are both 0).
+				*/
         isRAWritten = false;
         isFPInsn = false;
         bcIsConditional = false;

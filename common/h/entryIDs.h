@@ -1704,7 +1704,6 @@ enum entryID {
 	power_op_xsadddp,
 	power_op_xsaddsp,
 	//included VRA, VRB (page 520 of manual)
-	//--xsaddqp and xsaddqpo are sharing the same opcode, treated it as frsp and frsp.(page 520 of manual)
 	power_op_xsaddqp,
 	power_op_xscmpexpdp,
 	power_op_xscmpexpqp,
@@ -1726,7 +1725,6 @@ enum entryID {
 	power_op_xscvdpuxds,
 	power_op_xscvdpuxws,
 	power_op_xscvhpdp,
-	//xscvqpdp, xscvqpdpo: two instructions sharing the same code (rounding bit included)
 	power_op_xscvqpdp,
 	power_op_xscvqpsdz,
 	power_op_xscvqpswz,
@@ -1738,11 +1736,9 @@ enum entryID {
 	power_op_xscvsxddp,
 	power_op_xscvsxdsp,
 	
-	//--xscvsdqp appears again in the manual (page560), exact the same on page556
 	power_op_xscvudqp,
 	power_op_xscvuxddp,
 	power_op_xscvuxdsp,
-	//xsdivqp and xsdivqpo sharing the same opcode, rounding bit included
 	power_op_xsdivdp,
 	power_op_xsdivsp,
 	power_op_xsiexpdp,
@@ -1798,9 +1794,7 @@ enum entryID {
 	power_op_xsrsqrtesp,
 	power_op_xssqrtdp,
 	power_op_xssqrtqp,
-	//--skipped xssqrtsp
-	//P644, xssqrtsp has the exact same opcode with xscmpgtdp (P526)
-	//power_op_xssqrtsp,
+	power_op_xssqrtsp,
 	
 	power_op_xssubdp,
 	power_op_xssubqp,
@@ -1821,12 +1815,11 @@ enum entryID {
 	power_op_xvaddsp,
 	power_op_xvcmpeqdp,
 	power_op_xvcmpeqsp,
+	power_op_xvcmpeqsp.,
 	power_op_xvcmpgedp,
 	power_op_xvcmpgesp,
-	//--skipped: P668 xvcmpgtdp, has exact the same opcode with xsrdpic(P628)
-	//power_op_xvcmpgtdp,
-	//--skipped: P670 xvcmpgtsp, has exact the same opcode with xssqrtdp(P641)
-	//power_op_xvcmpgtsp,
+	power_op_xvcmpgtdp,
+	power_op_xvcmpgtsp,
 	power_op_xvcpsgndp,
 	power_op_xvcpsgnsp,
 	power_op_xvcvdpsp,
@@ -1839,26 +1832,108 @@ enum entryID {
 	power_op_xvcvspdp,
 	power_op_xvcvsphp,
 	power_op_xvcvspsxds,
-	//--skipped: P686 xvcvspsxws, has exact the same opcode with xsminjdp(P589)
-	//power_op_xvcvspsxws,
+	power_op_xvcvspsxws,
 	power_op_xvcvspuxds,
-	//--skipped: P690 xvcvspuxws, has exact the same opcode with xsmincdp(P587)
-  //power_op_xvcvspuxws,
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
+  power_op_xvcvspuxws,
+	power_op_xvcvsxddp,
+	power_op_xvcvsxdsp,
+	power_op_xvcvsxwdp,
+	power_op_xvcvsxwsp,
+	power_op_xvcvuxddp,
+	power_op_xvcvuxdsp,
+	power_op_xvcvuxwdp,
+	power_op_xvcvuxwsp,
+	power_op_xvdivdp,
+	power_op_xvdivsp,
+	power_op_xviexpdp,
+	power_op_xviexpsp,
+	power_op_xvmaddadp,
+	power_op_xvmaddmdp,
+	power_op_xvmaddasp,
+	power_op_xvmaddmsp,
+	power_op_xvmaxdp,
+	power_op_xvmaxsp,
+	power_op_xvmindp,
+	power_op_xvminsp,
+	power_op_xvmsubadp,
+	power_op_xvmsubmdp,
+	power_op_xvmsubasp,
+	power_op_xvmsubmsp,
+	power_op_xvmuldp,
+	power_op_xvmulsp,
+	power_op_xvnabsdp,
+	power_op_xvnabssp,
+	power_op_xvnegdp,
+	power_op_xvnegsp,
+	power_op_xvnmaddadp,
+	power_op_xvnmaddmdp,
+	power_op_xvnmaddasp,
+	power_op_xvnmaddmsp,
+	power_op_xvnmsubadp,
+	power_op_xvnmsubmdp,
+	power_op_xvnmsubasp,
+	power_op_xvnmsubmsp,
+	power_op_xvrdpi,
+	power_op_xvrdpic,
+	power_op_xvrdpim,
+	power_op_xvrdpip,
+	power_op_xvrdpiz,
+	power_op_xvredp,
+	power_op_xvresp,
+	power_op_xvrspi,
+	power_op_xvrspic,
+	power_op_xvrspim,
+	power_op_xvrspip,
+	power_op_xvrspiz,
+	power_op_xvrsqrtedp,
+	power_op_xvrsqrtesp,
+	power_op_xvsqrtdp,
+	power_op_xvsqrtsp,
+	power_op_xvsubdp,
+	power_op_xvsubsp,
+	power_op_xvtdivdp,
+	power_op_xvtdivsp,
+	power_op_xvtsqrtdp,
+	power_op_xvtsqrtsp,
+	power_op_xvtstdcdp,
+	//xvtstdcdp, xvtstdcsp: DCMX is chopped into 3 parts
+	power_op_xvtstdcdp,
+	power_op_xvtstdcsp,
+	power_op_xvxexpdp,
+	power_op_xvxexpsp,
+	power_op_xvxsigdp,
+	power_op_xvxsigsp,
+	power_op_xxbrd,
+	power_op_xxbrh,
+	power_op_xxbrq,
+	power_op_xxbrw,
+	//included: UIM (immediate number), bit 12-15 (P766)
+	power_op_xxextractuw,
+	power_op_xxinsertw,
+	power_op_xxland,
+	power_op_xxlandc,
+	power_op_xxleqv,
+	power_op_xxlnand,
+	power_op_xxlorc,
+	power_op_xxlnor,
+	power_op_xxlor,
+	power_op_xxlxor,
+	power_op_xxmrghw,
+	power_op_xxmrglw,
+	power_op_xxperm,
+	power_op_xxpermr,
+	power_op_xxpermdi,
+	//--skipped: xxpermdi (P773), three arbitrary digits
+	//power_op_xxpermdi,
+
+	//--skipped: xxsel (P773), XX4 form
+	//power_op_xxsel,
+	
+	//--skipped: xxsldwi (P774), three arbitrary digits
+	power_op_xxsldwi,
+
+	//included: UIM (immediate number), bit 14-15 (P774)
+	power_op_xxspltw,
 
 
 
