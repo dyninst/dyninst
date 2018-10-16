@@ -189,7 +189,8 @@ namespace Dyninst {
             Block *block_at(ParseFrame &frame,
                             Function *owner,
                             Address addr,
-                            Block *&split);
+                            Block *&split,
+			    Block* src);
 
             pair<Block *, Edge *> add_edge(
                     ParseFrame &frame,
@@ -260,7 +261,7 @@ namespace Dyninst {
 	    void split_overlapped_blocks();
             void split_consistent_blocks(region_data *, map<Address, Block*> &);
             void split_inconsistent_blocks(region_data *, map<Address, Block*> &);
-            bool set_edge_parsing_status(ParseFrame&, Address addr);
+            bool set_edge_parsing_status(ParseFrame&, Address addr, Block *b);
 	    void move_edges_consistent_blocks(Block *, Block *);
             void update_function_ret_status(ParseFrame &, Function*, ParseWorkElem* );
 

@@ -417,7 +417,10 @@ inline void Block::addTarget(Edge * e)
     if(e->type() == FALLTHROUGH ||
             e->type() == COND_NOT_TAKEN)
     {
-        assert(e->_target_off >= end());
+        assert(e->_target_off == end());
+    }
+    for (auto eit = _trglist.begin(); eit != _trglist.end(); ++eit) {
+	assert( (*eit)->trg_addr() != e->trg_addr() || (*eit)->type() != e->type());
     }
     _trglist.push_back(e);
 }

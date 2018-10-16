@@ -500,9 +500,27 @@ OverlappingParseData::reglookup(CodeRegion *cr, Address /* addr */)
     return cr;
 }
 
-Function*
-OverlappingParseData::setEdgeParsingStatus(CodeRegion *cr, Address addr, Function *f)
+edge_parsing_data
+OverlappingParseData::setEdgeParsingStatus(CodeRegion *cr, Address addr, Function *f, Block *b)
 {
+    boost::lock_guard<ParseData> g(*this);
+    if(!HASHDEF(rmap,cr)) {
+        fprintf(stderr,"Error, invalid code region [%lx,%lx) in remove_frame\n",
+            cr->offset(),cr->offset()+cr->length());
+        return edge_parsing_data();
+    }
+    region_data * rd = rmap[cr];
+    return rd->set_edge_parsed(addr,f, b);
+}
+
+void
+OverlappingParseData::getAllRegionData(vector<region_data*> &rds) {
+    for (auto rit = rmap.begin(); rit != rmap.end(); ++rit)
+        rds.push_back(rit->second);
+}
+
+region_data::edge_data_map*
+OverlappingParseData::get_edge_data_map(CodeRegion *cr) {
     boost::lock_guard<ParseData> g(*this);
     if(!HASHDEF(rmap,cr)) {
         fprintf(stderr,"Error, invalid code region [%lx,%lx) in remove_frame\n",
@@ -510,11 +528,5 @@ OverlappingParseData::setEdgeParsingStatus(CodeRegion *cr, Address addr, Functio
         return NULL;
     }
     region_data * rd = rmap[cr];
-    return rd->set_edge_parsed(addr,f);
-}
-
-void
-OverlappingParseData::getAllRegionData(vector<region_data*> &rds) {
-    for (auto rit = rmap.begin(); rit != rmap.end(); ++rit)
-        rds.push_back(rit->second);
+    return rd->get_edge_data_map();
 }
