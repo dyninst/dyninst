@@ -406,6 +406,10 @@ void Parser::ProcessCFInsn(
     parsing_printf("Returned %d edges\n", edges_out.size());
     if (unlikely(_obj.defensiveMode() && !ah->isCall() && edges_out.size())) {
         // only parse branch edges that align with existing blocks
+        //
+        // Xiaozhu: The person who works on defensive mode needs to
+        // revisit this code. In parallel parsing, the block boundary (cur->end())
+        // is not reliable because it can be split by another thread
         bool hasUnalignedEdge = false;
         set<CodeRegion *> tregs;
         set<Block *> tblocks;
@@ -552,7 +556,7 @@ void Parser::ProcessCFInsn(
                         new ParseWorkElem(
                                 bundle,
                                 newedge,
-                                cur->last(),
+                                ah->getAddr(),
                                 curEdge->first,
                                 resolvable_edge,
                                 tailcall)

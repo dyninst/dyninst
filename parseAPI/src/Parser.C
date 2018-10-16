@@ -1705,7 +1705,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                         frame.mkWork(
                                     NULL,
                                     newedge,
-                                    cur->last(),
+                                    ahPtr->getAddr(),
                                     nextBlockAddr,
                                     true,
                                     false)
@@ -1726,7 +1726,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                     ah->retreat();
                     end_block(cur, ah);
                     if (!set_edge_parsing_status(frame ,cur->last(), cur)) break; 
-                    add_edge(frame, frame.func, cur, cur->last(), curAddr, FALLTHROUGH, NULL);
+                    add_edge(frame, frame.func, cur, ah->getAddr(), curAddr, FALLTHROUGH, NULL);
                     // We break from this loop because no need more stright-line parsing
                     break;
                 }
@@ -1771,7 +1771,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                         frame.mkWork(
                                     NULL,
                                     newedge,
-                                    cur->last(),
+                                    ah->getAddr(),
                                     curAddr,
                                     true,
                                     false)
@@ -1823,7 +1823,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                         frame.mkWork(
                                     NULL,
                                     newedge,
-                                    cur->last(),
+                                    ahPtr->getAddr(),
                                     curAddr,
                                     true,
                                     false)
@@ -2065,6 +2065,12 @@ Parser::add_edge(
         retpair.second = newedge;
     } else {
         assert(src->last() == src_addr);
+    if (exist->type() == FALLTHROUGH || exist->type() == COND_NOT_TAKEN || exist->type() == CALL_FT) {
+        if (src->end() != ret->start()) {
+fprintf(stderr, "src_addr %lx, src: [%lx, %lx), dst [%lx, %lx), target %lx, edge type %d\n", src_addr, src->start(), src->end(), ret->start(), src->end(), dst, et);
+        }
+    }
+
         relink(exist,src,ret);
         retpair.second = exist;
     }
@@ -2320,8 +2326,12 @@ Parser::link_tempsink(Block *src, EdgeTypeEnum et)
 void
 Parser::relink(ParseAPI::Edge * e, Block *src, Block *dst)
 {
-    if (e->type() == FALLTHROUGH || e->type() == COND_NOT_TAKEN)
-        assert(src->end() == dst->start());
+    if (e->type() == FALLTHROUGH || e->type() == COND_NOT_TAKEN || e->type() == CALL_FT) {
+        if (src->end() != dst->start()) {
+fprintf(stderr, "In relink : src [%lx, %lx) dst [%lx, %lx)\n", src->start(), src->end(), dst->start(), dst->end());
+assert(src->end() == dst->start());
+        }
+    }
     unsigned long srcOut = 0, dstIn = 0, oldDstIn = 0;
     Block* oldDst = NULL;
     if(e->trg() && e->trg_addr() != std::numeric_limits<Address>::max()) {
