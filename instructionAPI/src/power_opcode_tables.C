@@ -850,9 +850,8 @@ extended_op_60[507] = power_entry(power_op_xvtstdcdp, "xvtstdcdp", NULL, list_of
     
 		extended_op_63[0] = power_entry(power_op_fcmpu, "fcmpu", NULL, list_of(fn(setFPMode))(fn(BF))(fn(FRA))(fn(FRB)));
 
-//two instructions: xsaddqp and xsaddqpp sharing the same opcode, RO is used for rounding
 extended_op_63[4] = power_entry(power_op_xsaddqp, "xsaddqp", NULL, list_of(fn(VRT))(fn(VRA))(fn(VRB))(fn(RO)));
-
+extended_op_63[5] = power_entry(power_op_xsrqpi, "xsrqpi", NULL, list_of(fn(R))(fn(VRT))(fn(VRB))(fn(RMC))(fn(EX)));
 extended_op_63[12] = power_entry(power_op_frsp, "frsp", NULL, list_of(fn(setFPMode))(fn(FRT))(fn(FRB))(fn(Rc)));
 extended_op_63[14] = power_entry(power_op_fctiw, "fctiw", NULL, list_of(fn(setFPMode))(fn(FRT))(fn(FRB))(fn(Rc)));
 extended_op_63[15] = power_entry(power_op_fctiwz, "fctiwz", NULL, list_of(fn(setFPMode))(fn(FRT))(fn(FRB))(fn(Rc)));
@@ -873,7 +872,7 @@ extended_op_63[31] = power_entry(power_op_fnmadd, "fnmadd", NULL,
 list_of(fn(setFPMode))(fn(FRT))(fn(FRA))(fn(FRB))(fn(FRC))(fn(Rc)));
 extended_op_63[32] = power_entry(power_op_fcmpo, "fcmpo", NULL, list_of(fn(setFPMode))(fn(BF))(fn(FRA))(fn(FRB)));
 extended_op_63[36] = power_entry(power_op_xsmulqp, "xsmulqp", NULL, list_of(fn(VRT))(fn(VRA))(fn(VRB))(fn(RO)));
-extended_op_63[37] = power_entry(power_op_xsrqpxp, "xsrqpxp", NULL, list_of(fn(VRT))(fn(VRB))(fn(RMC)));
+extended_op_63[37] = power_entry(power_op_xsrqpxp, "xsrqpxp", NULL, list_of((fn(R))fn(VRT))(fn(VRB))(fn(RMC)));
 extended_op_63[38] = power_entry(power_op_mtfsb1, "mtfsb1", NULL, list_of(fn(setFPMode))(fn(BT))(fn(Rc)));
 extended_op_63[40] = power_entry(power_op_fneg, "fneg", NULL, list_of(fn(setFPMode))(fn(FRT))(fn(FRB))(fn(Rc)));
 extended_op_63[64] = power_entry(power_op_mcrfs, "mcrfs", NULL, list_of(fn(BF))(fn(BFA)));

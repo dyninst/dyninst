@@ -1784,7 +1784,7 @@ enum entryID {
 	power_op_xsresp,
 	//--skipped xsrqpi & xsrqpix
 	//P634, two instructions sharing the same opcode, differentiated by EX bit
-	//power_op_xsrqpi,
+	power_op_xsrqpi,
 	//power_op_xsrqpix,
 	
 	//P636, included RMC, it always goes along with an R bit  at 15th bit.
