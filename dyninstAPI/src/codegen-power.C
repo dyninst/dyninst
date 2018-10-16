@@ -205,35 +205,6 @@ void insnCodeGen::generateCall(codeGen &gen, Address from, Address to) {
     generateBranch(gen, from, to, true);
 }
 
-void insnCodeGen::generateInterFunctionBranch(codeGen &gen,
-                                              Address from,
-                                              Address to,
-                                              bool link) {
-     //fprintf(stderr, "[insnCodeGen::generateInterFunctionBranch] Generating branch from %p to %p\n", from, to);
-    long disp = to - from;
-
-    if (ABS(disp) <= MAX_BRANCH) {
-        // We got lucky...
-        return generateBranch(gen, from, to);
-    }
-    instPoint *point = gen.point();
-    if (!point) {
-        return generateBranchViaTrap(gen, from, to, false);
-    }
-    assert(point);
-    bitArray liveRegs = point->liveRegisters();
-    if (liveRegs[registerSpace::ctr] == true) 
-    {
-	fprintf(stderr, " COUNT REGISTER NOT AVAILABLE. We cannot insterument this point. skipping ...\n");
-	return;
-    }
-
-    insnCodeGen::loadImmIntoReg(gen, 0, to);
-    insnCodeGen::generateMoveToCR(gen, 0);
-    // And branch to CTR
-    instruction btctr(link ? BCTRLraw : BCTRraw);
-    insnCodeGen::generate(gen,btctr);
-}
 
 void GenerateSavesBaseTrampStyle(codeGen &gen) {
   // Save everything, then all things are scratch registers...
