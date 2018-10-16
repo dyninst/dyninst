@@ -39,6 +39,8 @@ power_table power_entry::extended_op_58;
 power_table power_entry::extended_op_59;
 power_table power_entry::extended_op_63;
 
+power_entry invalid_entry;
+
 void power_entry::buildTables()
 {
     std::call_once(built_tables, [&]() {
