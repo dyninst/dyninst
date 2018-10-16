@@ -1670,8 +1670,6 @@ enum entryID {
 	//--skipped: lxv (page 492, new keyword DQ; TX not at the last bit),
 	//power_op_lxv,	
 
-	//lxvx: page 492, a slash inside the extened opcode.
-	//two entries in the opcode table are included: 31-268 & 31-300
 	power_op_lxvx,
 	power_op_lxvdsx,
 	power_op_lxvh8x,
@@ -1679,7 +1677,6 @@ enum entryID {
 	power_op_lxvwsx,
 	//stxsd: page498, included new keyword "VRS", it stands for VSR[VRS+32].dword[0]
 	power_op_stxsd,
-	//included new keywords "XS", it should be the storing version of "XT"
 	power_op_stxsdx,
 	power_op_stxsibx,
 	power_op_stxsihx,
@@ -1695,7 +1692,6 @@ enum entryID {
 	power_op_stxvl,	
 	power_op_stxvll,
 	power_op_stxvx,
-	//included XA, XB (page 2 of manual, using the same pattern as RA, RB but XA and XB are for VSR, and there are AX & BX bits at the end of the instruction)
 	//ignored the slashes in it
 	power_op_xsabsdp,
 	//page512, third level opcode included
@@ -1782,10 +1778,8 @@ enum entryID {
 	power_op_xsrdpiz,
 	power_op_xsredp,
 	power_op_xsresp,
-	//--skipped xsrqpi & xsrqpix
-	//P634, two instructions sharing the same opcode, differentiated by EX bit
+	//P634, xsrqpi & xsrqpix sharing the same opcode, differentiated by EX bit
 	power_op_xsrqpi,
-	//power_op_xsrqpix,
 	
 	//P636, included RMC, it always goes along with an R bit  at 15th bit.
 	power_op_xsrqpxp,
@@ -1930,7 +1924,7 @@ enum entryID {
 	//power_op_xxsel,
 	
 	//--skipped: xxsldwi (P774), three arbitrary digits
-	power_op_xxsldwi,
+	//power_op_xxsldwi,
 
 	//included: UIM (immediate number), bit 14-15 (P774)
 	power_op_xxspltw,
