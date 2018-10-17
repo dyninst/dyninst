@@ -35,6 +35,8 @@ set(ALL_DYNINST_TARGETS "" CACHE INTERNAL "")
 
 function (dyninst_library target)
   add_library (${target} ${SRC_LIST})
+  # add boost as a universal dependencies for all sub libraries
+  add_dependencies (${target} boost)
   target_link_private_libraries (${target} ${ARGN})
   FILE (GLOB headers "h/*.h" "${CMAKE_CURRENT_BINARY_DIR}/h/*.h")
   set (ACTUAL_TARGETS ${target})
