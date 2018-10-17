@@ -107,7 +107,9 @@ if(BUILD_RTLIB)
       add_dependencies(dyninstAPI-static DyninstRT)
     endif()
   endif()
-  add_dependencies(DyninstRT boost)
+  if(TARGET boost)
+    add_dependencies(DyninstRT boost)
+  endif()
 
   install(SCRIPT "${RT_BINARY_DIR}/cmake_install.cmake")
 
