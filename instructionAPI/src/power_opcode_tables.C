@@ -325,7 +325,7 @@ void power_entry::buildTables()
         extended_op_30[8] = power_entry(power_op_rldcl, "rldcl", NULL, list_of(fn(RA))(fn(RS))(fn(RB))(fn(MB))(fn(Rc)));
         extended_op_30[9] = power_entry(power_op_rldcr, "rldcr", NULL, list_of(fn(RA))(fn(RS))(fn(RB))(fn(ME))(fn(Rc)));
         extended_op_30[0] = power_entry(power_op_rldicl, "rldicl", NULL,
-                                        list_of(fn(RA))(fn(RS))(fn(SH))(fn(MB))(fn(SH))(fn(Rc)));
+                                        list_of(fn(RA))(fn(RS))(fn(SH))(fn(MB))(fn(Rc)));
 
     power_entry::extended_op_31[0] = power_entry(power_op_cmp, "cmp", NULL, list_of(fn(BF))(fn(L))(fn(RA))(fn(RB)));
 extended_op_31[4] = power_entry(power_op_tw, "tw", NULL, list_of(fn(TO))(fn(RA))(fn(RB)));

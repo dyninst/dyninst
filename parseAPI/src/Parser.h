@@ -207,7 +207,9 @@ namespace Dyninst {
                                Address addr,
                                Address previnsn);
 
-            Edge *link(Block *src, Block *dst, EdgeTypeEnum et, bool sink);
+            Edge *link_addr(Address src, Block *dst, EdgeTypeEnum et, bool sink, Function* func);
+            Edge *link_block(Block* src, Block *dst, EdgeTypeEnum et, bool sink);
+
 
             Edge *link_tempsink(Block *src, EdgeTypeEnum et);
 

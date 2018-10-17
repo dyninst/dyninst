@@ -958,7 +958,7 @@ Parser::finalize(Function *f)
                 Block *ft = _parse_data->findBlock((*eit)->src()->region(),
                                                    (*eit)->src()->end());
                 if (ft && HASHDEF(f->_bmap,ft->start())) {
-                    link((*eit)->src(),ft,CALL_FT,false);
+                    link_block((*eit)->src(),ft,CALL_FT,false);
                 }
             }
         }
@@ -1092,7 +1092,7 @@ Parser::split_consistent_blocks(region_data* rd, map<Address, Block*> &allBlocks
 		    rd->blocksByRange.remove(ob);
                     ob->updateEnd(b->start());
                     ob->_lastInsn = previnsn;
-                    link(ob, b,FALLTHROUGH,false);
+                    link_block(ob, b,FALLTHROUGH,false);
 		    rd->insertBlockByRange(ob);
 		}
 	    } 
@@ -1174,13 +1174,13 @@ Parser::split_inconsistent_blocks(region_data* rd, map<Address, Block*> &allBloc
 			    auto iter = b1_insns.find(cur);
 			    --iter;
                             b->_lastInsn = iter ->first;
-                            link(b,newB,FALLTHROUGH,false);
+                            link_block(b,newB,FALLTHROUGH,false);
 
 			    iter = b2_insns.find(cur);
 			    --iter;
 			    ob->updateEnd(cur);
 			    ob->_lastInsn = iter->first; 
-			    link(ob, newB, FALLTHROUGH, false);
+			    link_block(ob, newB, FALLTHROUGH, false);
 
 			    rd->insertBlockByRange(b);
 			    rd->insertBlockByRange(ob);
@@ -1560,12 +1560,8 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
             // resume to resolve jump table
             auto work_ah = work->ah();
             parsing_printf("... continue parse indirect jump at %lx\n", work_ah->getAddr());
-	    region_data::edge_data_map::accessor a;
-	    region_data::edge_data_map* edm = _parse_data->get_edge_data_map(func->region());
-	    assert(edm->find(a, work_ah->getAddr()));
-            Block *nextBlock = a->second.b;
-            ProcessCFInsn(frame,nextBlock,work->ah());
-            frame.value_driven_jump_tables.insert(nextBlock->last());
+            ProcessCFInsn(frame,NULL,work->ah());
+            frame.value_driven_jump_tables.insert(work_ah->getAddr());
             continue;
         }
             // call fallthrough case where we have already checked that
@@ -1810,7 +1806,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 // 4. Invalid or `abort-causing' instructions
                 end_block(cur,ahPtr);
                 if (!set_edge_parsing_status(frame,cur->last(), cur)) break;
-                link(cur, _sink, DIRECT, true);
+                link_addr(ahPtr->getAddr(), _sink, DIRECT, true, func);
                 break;
             } else if ( ah->isInterruptOrSyscall() ) {
                 // 5. Raising instructions
@@ -1846,7 +1842,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                     end_block(cur,ahPtr);
                     if (!set_edge_parsing_status(frame,cur->last(), cur)) break; 
                     // allow invalid instructions to end up as a sink node.
-                    link(cur, _sink, DIRECT, true);
+                    link_addr(ahPtr->getAddr(), _sink, DIRECT, true, func);
                     break;
                 } else if (ah->isNopJump()) {
                     // patch the jump to make it a nop, and re-set the 
@@ -1889,7 +1885,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 end_block(cur,ahPtr);
                 if (!set_edge_parsing_status(frame, cur->last(), cur)) break;
                 // We need to tag the block with a sink edge
-                link(cur, _sink, DIRECT, true);
+                link_addr(ahPtr->getAddr(), _sink, DIRECT, true, func);
 
                 break;
             } else if (!cur->region()->contains(ah->getNextAddr())) {
@@ -1900,7 +1896,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 end_block(cur,ahPtr);
                 if (!set_edge_parsing_status(frame, cur->last(), cur)) break;
                 // We need to tag the block with a sink edge
-                link(cur, _sink, DIRECT, true);
+                link_addr(ahPtr->getAddr(), _sink, DIRECT, true, func);
                 break;
             }
             ah->advance();
@@ -2061,7 +2057,7 @@ Parser::add_edge(
     }
 
     if(NULL == exist) {
-        newedge = link(src,ret,et,false);
+        newedge = link_block(src,ret,et,false);
         retpair.second = newedge;
     } else {
         assert(src->last() == src_addr);
@@ -2145,7 +2141,7 @@ Parser::split_block(
     if (epd.f != owner || epd.b != b) {
         parsing_printf("Spliting block [%lx, %lx) at %lx. However, %lx already has edge parsed. This Should not happen\n", b->start(), ret->end(), ret->start(), ret->start());
     } 
-    link(b,ret,FALLTHROUGH,false);
+    link_block(b,ret,FALLTHROUGH,false);
     // Any functions holding b that have already been finalized
     // need to have their caches invalidated so that they will
     // find out that they have this new 'ret' block
@@ -2283,8 +2279,33 @@ int Parser::findCurrentFuncs(CodeRegion * cr, Address addr, std::set<Function*> 
     return _parse_data->findFuncs(cr, addr, funcs);
 }
 
+/* This function creates an edge by specifying
+ * the source address. This function will look
+ * up the source address in the block end map.
+ * So, any function that calls this function should
+ * not acquire an accessor to the source address
+ */
+
 ParseAPI::Edge*
-Parser::link(Block *src, Block *dst, EdgeTypeEnum et, bool sink)
+Parser::link_addr(Address src_addr, Block *dst, EdgeTypeEnum et, bool sink, Function * func)
+{
+    region_data::edge_data_map::accessor a;
+    region_data::edge_data_map* edm = _parse_data->get_edge_data_map(func->region());
+    assert(edm->find(a, src_addr));
+    Block * src = a->second.b;
+    return link_block(src, dst, et, sink);
+}
+
+/* This function creates an edge by specifying
+ * the source Block. Any function that calls this 
+ * function should first acquire an accessor to 
+ * the source address and lookup the block object.
+ * 
+ * Otherwise, the source block may be split and cause
+ * wrong edges.
+ */
+ParseAPI::Edge*
+Parser::link_block(Block* src, Block *dst, EdgeTypeEnum et, bool sink)
 {
     if (et == FALLTHROUGH)
         assert(src->end() == dst->start());
@@ -2297,6 +2318,7 @@ Parser::link(Block *src, Block *dst, EdgeTypeEnum et, bool sink)
     _pcb.addEdge(dst, e, ParseCallback::source);
     return e;
 }
+
 
 /* 
  * During parsing, all edges are temporarily linked to the _tempsink
@@ -2614,7 +2636,7 @@ bool Parser::set_edge_parsing_status(ParseFrame& frame, Address addr, Block* b) 
             }
             if (cont) {
                 assert(A->end() == B->start());
-                link(A,B,FALLTHROUGH,false);
+                link_block(A,B,FALLTHROUGH,false);
                 a2->second.f = fA;
                 a2->second.b = A;
             }

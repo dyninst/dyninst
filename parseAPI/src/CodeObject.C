@@ -208,9 +208,9 @@ void
 CodeObject::add_edge(Block * src, Block * trg, EdgeTypeEnum et)
 {
     if (trg == NULL) {
-        parser->link(src, parser->_sink, et, true);
+        parser->link_block(src, parser->_sink, et, true);
     } else {
-        parser->link(src,trg,et,false);
+        parser->link_block(src,trg,et,false);
     }
 }
 

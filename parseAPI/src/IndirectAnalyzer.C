@@ -277,7 +277,7 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
 		    }
 		}
 	    }
-	    if (scanTable && jumpTargets.size() > 0) {
+	    if (scanTable && jumpTargets.size() > 0 && cs->getArch() != Arch_ppc64) {
 	        // This is a tentative scan of the table, where we do not know the index size.
 		// Typically, the table is layout in a way that the target address is increasing
 		// or decreasing.

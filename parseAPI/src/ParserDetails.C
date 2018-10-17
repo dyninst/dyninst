@@ -347,7 +347,7 @@ void Parser::ProcessReturnInsn(
         Block *cur,
         InstructionAdapter_t *ah) {
     // returns always target the sink block
-    link(cur, _sink, RET, true);
+    link_block(cur, _sink, RET, true);
 
     ParseCallback::interproc_details det;
     det.ibuf = (unsigned char *)
@@ -399,6 +399,12 @@ void Parser::ProcessCFInsn(
     FuncReturnStatus insn_ret;
     Edges_t edges_out;
     ParseWorkBundle *bundle = NULL;
+
+    region_data::edge_data_map::accessor a;
+    region_data::edge_data_map* edm = _parse_data->get_edge_data_map(frame.func->region());
+    assert(edm->find(a, ah->getAddr()));
+    cur = a->second.b;
+
 
     // Instruction adapter provides edge estimates from an instruction
     parsing_printf("Getting edges\n");
@@ -515,7 +521,7 @@ void Parser::ProcessCFInsn(
             if (resolvable_edge) {
                 newedge = link_tempsink(cur, CALL);
             } else {
-                newedge = link(cur, _sink, CALL, true);
+                newedge = link_block(cur, _sink, CALL, true);
             }
             if (!ah->isCall()) {
                 parsing_printf("Setting edge 0x%lx (0x%lx/0x%lx) to interproc\n",
@@ -532,7 +538,7 @@ void Parser::ProcessCFInsn(
             if (resolvable_edge) {
                 newedge = link_tempsink(cur, curEdge->second);
             } else
-                newedge = link(cur, _sink, curEdge->second, true);
+                newedge = link_block(cur, _sink, curEdge->second, true);
         }
 
         if (ah->isTailCall(frame.func, curEdge->second, frame.num_insns, frame.knownTargets)) {
@@ -586,7 +592,7 @@ void Parser::ProcessCFInsn(
     }
 
     if (unlikely(has_unres && edges_out.empty())) {
-        link(cur, _sink, INDIRECT, true);
+        link_block(cur, _sink, INDIRECT, true);
         ProcessUnresBranchEdge(frame, cur, ah, -1);
     }
 
