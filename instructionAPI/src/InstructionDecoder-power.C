@@ -76,8 +76,11 @@ namespace Dyninst
                 static power_table extended_op_19;
                 static power_table extended_op_30;
                 static power_table extended_op_31;
+                static power_table extended_op_57;
                 static power_table extended_op_58;
                 static power_table extended_op_59;
+                static power_table extended_op_60;
+                static power_table extended_op_61;
                 static power_table extended_op_63;
       };
 
@@ -486,6 +489,68 @@ namespace Dyninst
     {
         SI();
     }
+
+
+    /***** BEGIN: For new vector instructions *****/
+    void InstructionDecoder_power::XT()
+    {
+        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+    }
+    void InstructionDecoder_power::XS()
+    {
+        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+    }
+    void InstructionDecoder_power::XA()
+    {
+        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+    }
+    void InstructionDecoder_power::XB()
+    {
+        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+    }
+    void InstructionDecoder_power::VRT()
+    {
+        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+    }
+    void InstructionDecoder_power::VRA()
+    {
+        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+    }
+    void InstructionDecoder_power::VRB()
+    {
+        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+    }
+    void InstructionDecoder_power::UIM()
+    {
+        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+    }
+    void InstructionDecoder_power::DCMX()
+    {
+        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+    }
+    void InstructionDecoder_power::VRS()
+    {
+        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+    }
+    void InstructionDecoder_power::RO()
+    {
+        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+    }
+    void InstructionDecoder_power::R()
+    {
+        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+    }
+    void InstructionDecoder_power::RMC()
+    {
+        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+    }
+    void InstructionDecoder_power::EX()
+    {
+        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+    }
+
+    /***** END: For new vector instructions *****/
+
     Expression::Ptr InstructionDecoder_power::makeBTExpr()
     {
         return makeRegisterExpression(makePowerRegID(ppc32::cr0, field<6, 10>(insn) >> 2));
@@ -707,6 +772,11 @@ using namespace boost::assign;
         }
         return power_entry::extended_op_31[field<21, 30>(insn)];
     }
+    // extended_op_57 needs revisiting
+    const power_entry& InstructionDecoder_power::extended_op_57()
+    {
+        return power_entry::extended_op_57[field<30, 31>(insn)];
+    }
     const power_entry& InstructionDecoder_power::extended_op_58()
     {
         return power_entry::extended_op_58[field<30, 31>(insn)];
@@ -715,6 +785,31 @@ using namespace boost::assign;
     {
         return power_entry::extended_op_59[field<26, 30>(insn)];
     }
+    // extended_op_60 needs revisiting
+    const power_entry& InstructionDecoder_power::extended_op_60()
+    {
+        unsigned int xo = field<26, 30>(insn);
+        if(xo <= 31)
+        {
+            power_table::const_iterator found = power_entry::extended_op_60.find(xo);
+            if(found != power_entry::extended_op_60.end())
+                return found->second;
+        }
+        return power_entry::extended_op_60[field<21, 30>(insn)];
+    }
+    // extended_op_61 needs revisiting
+    const power_entry& InstructionDecoder_power::extended_op_61()
+    {
+        unsigned int xo = field<26, 30>(insn);
+        if(xo <= 31)
+        {
+            power_table::const_iterator found = power_entry::extended_op_61.find(xo);
+            if(found != power_entry::extended_op_61.end())
+                return found->second;
+        }
+        return power_entry::extended_op_61[field<21, 30>(insn)];
+    }
+
     const power_entry& InstructionDecoder_power::extended_op_63()
     {
         unsigned int xo = field<26, 30>(insn);
