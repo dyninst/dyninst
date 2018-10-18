@@ -419,9 +419,13 @@ inline void Block::addTarget(Edge * e)
     {
         assert(e->_target_off == end());
     }
+    /* This loop checks whether duplicated edges are added.
+     * It should only be used in debugging as it can significantly
+     * slow down the performance
     for (auto eit = _trglist.begin(); eit != _trglist.end(); ++eit) {
 	assert( (*eit)->trg_addr() != e->trg_addr() || (*eit)->type() != e->type());
     }
+    */
     _trglist.push_back(e);
 }
 
