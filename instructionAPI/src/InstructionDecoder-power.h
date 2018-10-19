@@ -172,13 +172,16 @@ namespace Dyninst {
                 void VRT();
                 void VRA();
                 void VRB();
+                void VRC();
                 void UIM();
+                void SIM();
                 void DCMX();
                 void VRS();
                 void RO();
                 void R();
                 void RMC();
                 void EX();
+                void SHB();
 
 
                 const power_entry& extended_op_0();

@@ -494,58 +494,120 @@ namespace Dyninst
     /***** BEGIN: For new vector instructions *****/
     void InstructionDecoder_power::XT()
     {
-        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+        // TODO: Format DQ has a different encoding.
+        //       The single T bit is at bit 28, instaed of bit 31.
+        unsigned id = field<6, 10>(insn) + 32 * field<31, 31>(insn);
+        insn_in_progress->appendOperand(
+                        makeRegisterExpression(makePowerRegID(ppc64::vsr0, id)),
+                        false, 
+                        true);
     }
     void InstructionDecoder_power::XS()
     {
-        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+        // TODO: Format DQ has a different encoding.
+        //       The single T bit is at bit 28, instaed of bit 31.
+        unsigned id = field<6, 10>(insn) + 32 * field<31, 31>(insn);
+        insn_in_progress->appendOperand(
+                        makeRegisterExpression(makePowerRegID(ppc64::vsr0, id)),
+                        true, 
+                        false);
     }
     void InstructionDecoder_power::XA()
     {
-        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+        unsigned id = field<11, 15>(insn) + 32 * field<29, 29>(insn);
+        insn_in_progress->appendOperand(
+                        makeRegisterExpression(makePowerRegID(ppc64::vsr0, id)),
+                        true, 
+                        false);
     }
     void InstructionDecoder_power::XB()
     {
-        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+        unsigned id = field<16, 20>(insn) + 32 * field<30, 30>(insn);
+        insn_in_progress->appendOperand(
+                        makeRegisterExpression(makePowerRegID(ppc64::vsr0, id)),
+                        true, 
+                        false);
     }
     void InstructionDecoder_power::VRT()
     {
-        insn_in_progress->appendOperand(makeRTExpr(), false, true);
-    }
-    void InstructionDecoder_power::VRA()
-    {
-        insn_in_progress->appendOperand(makeRTExpr(), false, true);
-    }
-    void InstructionDecoder_power::VRB()
-    {
-        insn_in_progress->appendOperand(makeRTExpr(), false, true);
-    }
-    void InstructionDecoder_power::UIM()
-    {
-        insn_in_progress->appendOperand(makeRTExpr(), false, true);
-    }
-    void InstructionDecoder_power::DCMX()
-    {
-        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+        unsigned id = field<6, 10>(insn) + 32;
+        insn_in_progress->appendOperand(
+                        makeRegisterExpression(makePowerRegID(ppc64::vsr0, id)),
+                        false, 
+                        true);
     }
     void InstructionDecoder_power::VRS()
     {
+        unsigned id = field<6, 10>(insn) + 32;
+        insn_in_progress->appendOperand(
+                        makeRegisterExpression(makePowerRegID(ppc64::vsr0, id)),
+                        true, 
+                        false);
+    }
+    void InstructionDecoder_power::VRA()
+    {
+        unsigned id = field<11, 15>(insn) + 32;
+        insn_in_progress->appendOperand(
+                        makeRegisterExpression(makePowerRegID(ppc64::vsr0, id)),
+                        true, 
+                        false);
+    }
+    void InstructionDecoder_power::VRB()
+    {
+        unsigned id = field<16, 20>(insn) + 32 ;
+        insn_in_progress->appendOperand(
+                        makeRegisterExpression(makePowerRegID(ppc64::vsr0, id)),
+                        true, 
+                        false);
+    }
+    void InstructionDecoder_power::VRC()
+    {
+        unsigned id = field<21, 25>(insn) + 32 ;
+        insn_in_progress->appendOperand(
+                        makeRegisterExpression(makePowerRegID(ppc64::vsr0, id)),
+                        true, 
+                        false);
+    }
+
+    void InstructionDecoder_power::UIM()
+    {
+        assert(0);
+        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+    }
+    void InstructionDecoder_power::SIM()
+    {
+        assert(0);
+        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+    }
+
+    void InstructionDecoder_power::DCMX()
+    {
+        assert(0);
         insn_in_progress->appendOperand(makeRTExpr(), false, true);
     }
     void InstructionDecoder_power::RO()
     {
+        assert(0);
         insn_in_progress->appendOperand(makeRTExpr(), false, true);
     }
     void InstructionDecoder_power::R()
     {
+        assert(0);
         insn_in_progress->appendOperand(makeRTExpr(), false, true);
     }
     void InstructionDecoder_power::RMC()
     {
+        assert(0);
         insn_in_progress->appendOperand(makeRTExpr(), false, true);
     }
     void InstructionDecoder_power::EX()
     {
+        assert(0);
+        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+    }
+    void InstructionDecoder_power::SHB()
+    {
+        assert(0);
         insn_in_progress->appendOperand(makeRTExpr(), false, true);
     }
 
@@ -788,14 +850,8 @@ using namespace boost::assign;
     // extended_op_60 needs revisiting
     const power_entry& InstructionDecoder_power::extended_op_60()
     {
-        unsigned int xo = field<26, 30>(insn);
-        if(xo <= 31)
-        {
-            power_table::const_iterator found = power_entry::extended_op_60.find(xo);
-            if(found != power_entry::extended_op_60.end())
-                return found->second;
-        }
-        return power_entry::extended_op_60[field<21, 30>(insn)];
+        unsigned int xo = field<21, 29>(insn);
+        return power_entry::extended_op_60[xo];
     }
     // extended_op_61 needs revisiting
     const power_entry& InstructionDecoder_power::extended_op_61()

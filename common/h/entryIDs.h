@@ -1942,7 +1942,6 @@ enum entryID {
 	power_op_stvxl,
 	power_op_lvsl,
 	power_op_lvsr,
-	power_op_stvxl,
 	power_op_vpkpx,
 	power_op_vpksdss,
 	power_op_vpksdus,
@@ -2104,6 +2103,7 @@ enum entryID {
 	power_op_vcmpnezh,
 	power_op_vcmpnew,
 	power_op_vcmpnezw,
+/*
 	power_op_
 	power_op_
 	power_op_
@@ -2134,7 +2134,7 @@ enum entryID {
 	power_op_
 	power_op_
 	power_op_
-
+*/
 
   // ***********
   // Steve note:
