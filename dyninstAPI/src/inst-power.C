@@ -2178,7 +2178,19 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
                 XOFORM_XO_SET(insn, ANDxop);
                 insnCodeGen::generate(gen,insn);
                 return;
-                break;
+		break;
+
+	    case xorOp:
+		insn.clear();
+		XOFORM_OP_SET(insn, XORop);
+		// operation is ra <- rs ^ rb (xor rs,ra,rb)
+		XOFORM_RA_SET(insn, dest);
+		XOFORM_RT_SET(insn, src1);
+		XOFORM_RB_SET(insn, src2);
+		XOFORM_XO_SET(insn, XORxop);
+		insnCodeGen::generate(gen, insn);
+		return;
+		break;
 
             // rel ops
             case eqOp:

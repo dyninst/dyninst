@@ -522,6 +522,24 @@ void SpringboardBuilder::generateBranch(Address from, Address to, codeGen &gen) 
   insnCodeGen::generateBranch(gen, from, to);
 
   springboard_cerr << "Generated springboard branch " << hex << from << "->" << to << dec << endl;
+
+#if 0
+#include "InstructionDecoder.h"
+    using namespace Dyninst::InstructionAPI;
+    Address base = 0;
+    InstructionDecoder deco(gen.start_ptr(),gen.size(),Arch_aarch64);
+    Instruction::Ptr insn = deco.decode();
+    while(base<gen.used()+5) {
+        std::stringstream rawInsn;
+        unsigned idx = insn->size();
+        while(idx--) rawInsn << hex << setfill('0') << setw(2) << (unsigned int) insn->rawByte(idx);
+
+        cerr << "\t" << hex << base << ":   " << rawInsn.str() << "   "
+            << insn->format(base) << dec << endl;
+        base += insn->size();
+        insn = deco.decode();
+    }
+#endif
 }
 
 void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {

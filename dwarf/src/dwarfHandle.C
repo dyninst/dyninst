@@ -100,16 +100,12 @@ bool DwarfHandle::init_dbg()
         return false;
     }
 
-    //status = dwarf_elf_init(file->e_elfp(), DW_DLC_READ,
-    //                       err_func, &file_data, &file_data, &err);
+    file_data = dwarf_begin_elf(file->e_elfp(), DWARF_C_READ, NULL);
 
-    file_data = dwarf_begin_elf(file->e_elfp(), DWARF_C_READ, NULL); 
-    //int errno = dwarf_errno();
-    //cerr << "Error message:" << filename << ", " << dwarf_errmsg(-1) << endl;
     //if (!file_data /*&& errno==0*/ )  {
     //    init_dwarf_status = dwarf_status_error;
     //    return false;
-    //cerr << "Error message:" << filename << ", " << dwarf_errmsg(-1) << endl; }
+
 
     if (dbg_file) {
         dbg_file_data = dwarf_begin_elf(dbg_file->e_elfp(), DWARF_C_READ, NULL); 
@@ -128,6 +124,7 @@ bool DwarfHandle::init_dbg()
         if (hasFrameData(dbg_file))
             frame_data = &dbg_file_data;
         else
+            // file_data might also not have frame data
             frame_data = &file_data;
     }
     else {
@@ -166,8 +163,13 @@ bool DwarfHandle::init_dbg()
             assert(0 && "Unsupported archiecture in ELF file.");
             return false;
     }
-    sw = DwarfDyninst::DwarfFrameParser::create(*frame_data, arch);
 
+    // .eh_frame might be in file->e_elfp(), cause it's not stripped
+    sw = DwarfDyninst::DwarfFrameParser::create(*frame_data, file->e_elfp(), arch);
+
+    // if file is stripped and there's no dbg_file we still make dwarf_status_ok.
+    // That's why who uses line_dbg(), type_dbg(), and frame_dbg() have to
+    // check if the returned pointer is not null.
     init_dwarf_status = dwarf_status_ok;
     return true;
 }

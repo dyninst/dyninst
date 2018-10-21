@@ -793,7 +793,76 @@ RegisterMap &machRegIndex_aarch64() {
 	 {aarch64::x27, 27},
 	 {aarch64::x28, 28},
 	 {aarch64::x29, 29},
-	 {aarch64::x30, 30} };
+     {aarch64::x30, 30},
+     {aarch64::w0, 0},
+     {aarch64::w1, 1},
+     {aarch64::w2, 2},
+     {aarch64::w3, 3},
+     {aarch64::w4, 4},
+     {aarch64::w5, 5},
+     {aarch64::w6, 6},
+     {aarch64::w7, 7},
+     {aarch64::w8, 8},
+     {aarch64::w9, 9},
+     {aarch64::w10, 10},
+     {aarch64::w11, 11},
+     {aarch64::w12, 12},
+     {aarch64::w13, 13},
+     {aarch64::w14, 14},
+     {aarch64::w15, 15},
+     {aarch64::w16, 16},
+     {aarch64::w17, 17},
+     {aarch64::w18, 18},
+     {aarch64::w19, 19},
+     {aarch64::w20, 20},
+     {aarch64::w21, 21},
+     {aarch64::w22, 22},
+     {aarch64::w23, 23},
+     {aarch64::w24, 24},
+     {aarch64::w25, 25},
+     {aarch64::w26, 26},
+     {aarch64::w27, 27},
+     {aarch64::w28, 28},
+     {aarch64::w29, 29},
+     {aarch64::w30, 30},
+     {aarch64::q0,  31},
+     {aarch64::q1,  32},
+     {aarch64::q2,  33},
+     {aarch64::q3,  34},
+     {aarch64::q4,  35},
+     {aarch64::q5,  36},
+     {aarch64::q6,  37},
+     {aarch64::q7,  38},
+     {aarch64::q8,  39},
+     {aarch64::q9,  40},
+     {aarch64::q10, 41},
+     {aarch64::q11, 42},
+     {aarch64::q12, 43},
+     {aarch64::q13, 44},
+     {aarch64::q14, 45},
+     {aarch64::q15, 46},
+     {aarch64::q16, 47},
+     {aarch64::q17, 48},
+     {aarch64::q18, 49},
+     {aarch64::q19, 50},
+     {aarch64::q20, 51},
+     {aarch64::q21, 52},
+     {aarch64::q22, 53},
+     {aarch64::q23, 54},
+     {aarch64::q24, 55},
+     {aarch64::q25, 56},
+     {aarch64::q26, 57},
+     {aarch64::q27, 58},
+     {aarch64::q28, 59},
+     {aarch64::q29, 60},
+     {aarch64::q30, 61},
+     {aarch64::q31, 62},
+     {aarch64::fpcr,63},
+     {aarch64::fpsr,64},
+     {aarch64::pc,  65},
+     {aarch64::sp,  66},
+     {aarch64::pstate, 67},
+     {aarch64::xzr, 68}};
    }
    return *mrmap;
 }
@@ -1448,9 +1517,79 @@ RegisterMap &machRegIndex_aarch64() {
         (aarch64::x27, 27)
         (aarch64::x28, 28)
         (aarch64::x29, 29)
-        (aarch64::x30, 30);
-	 }
-	return *mrmap;
+        (aarch64::x30, 30)
+        (aarch64::w0, 0)
+        (aarch64::w1, 1)
+        (aarch64::w2, 2)
+        (aarch64::w3, 3)
+        (aarch64::w4, 4)
+        (aarch64::w5, 5)
+        (aarch64::w6, 6)
+        (aarch64::w7, 7)
+        (aarch64::w8, 8)
+        (aarch64::w9, 9)
+        (aarch64::w10, 10)
+        (aarch64::w11, 11)
+        (aarch64::w12, 12)
+        (aarch64::w13, 13)
+        (aarch64::w14, 14)
+        (aarch64::w15, 15)
+        (aarch64::w16, 16)
+        (aarch64::w17, 17)
+        (aarch64::w18, 18)
+        (aarch64::w19, 19)
+        (aarch64::w20, 20)
+        (aarch64::w21, 21)
+        (aarch64::w22, 22)
+        (aarch64::w23, 23)
+        (aarch64::w24, 24)
+        (aarch64::w25, 25)
+        (aarch64::w26, 26)
+        (aarch64::w27, 27)
+        (aarch64::w28, 28)
+        (aarch64::w29, 29)
+        (aarch64::w30, 30)
+        (aarch64::q0,  31)
+        (aarch64::q1,  32)
+        (aarch64::q2,  33)
+        (aarch64::q3,  34)
+        (aarch64::q4,  35)
+        (aarch64::q5,  36)
+        (aarch64::q6,  37)
+        (aarch64::q7,  38)
+        (aarch64::q8,  39)
+        (aarch64::q9,  40)
+        (aarch64::q10, 41)
+        (aarch64::q11, 42)
+        (aarch64::q12, 43)
+        (aarch64::q13, 44)
+        (aarch64::q14, 45)
+        (aarch64::q15, 46)
+        (aarch64::q16, 47)
+        (aarch64::q17, 48)
+        (aarch64::q18, 49)
+        (aarch64::q19, 50)
+        (aarch64::q20, 51)
+        (aarch64::q21, 52)
+        (aarch64::q22, 53)
+        (aarch64::q23, 54)
+        (aarch64::q24, 55)
+        (aarch64::q25, 56)
+        (aarch64::q26, 57)
+        (aarch64::q27, 58)
+        (aarch64::q28, 59)
+        (aarch64::q29, 60)
+        (aarch64::q30, 61)
+        (aarch64::q31, 62)
+        (aarch64::fpcr,63)
+        (aarch64::fpsr,64)
+        (aarch64::pc,  65)
+        (aarch64::sp,  66)
+        (aarch64::pstate, 67)
+        (aarch64::xzr, 68);
+   }
+
+   return mrmap;
 }
 
 #endif

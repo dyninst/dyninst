@@ -274,6 +274,7 @@ static Region::RegionType getRelTypeByElfMachine(Elf_X *localHdr) {
         case EM_PPC64:
         case EM_X86_64:
         case EM_IA_64:
+        case EM_AARCH64:
             ret = Region::RT_RELA;
             break;
         default:
@@ -478,6 +479,7 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
                     case DT_STRTAB:
                     case DT_VERSYM:
                     case DT_VERNEED:
+                    case DT_VERDEF:
                         secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
                         break;
                     case DT_HASH:
@@ -525,6 +527,7 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
                 case DT_STRTAB:
                 case DT_VERSYM:
                 case DT_VERNEED:
+                case DT_VERDEF:
                 case DT_HASH:
                 case 0x6ffffef5: // DT_GNU_HASH (not defined on all platforms)
 
@@ -2196,7 +2199,7 @@ dyn_scnp, Elf_X_Data &symdata,
     for (unsigned i = 0; i < dyns.count(); ++i) {
         switch (dyns.d_tag(i)) {
             case DT_NEEDED:
-                deps_.push_back(&strs[dyns.d_ptr(i)]);
+                if(strs) deps_.push_back(&strs[dyns.d_ptr(i)]);
                 break;
             case DT_VERSYM:
                 versymSec = getRegionHdrByAddr(dyns.d_ptr(i));
@@ -2214,7 +2217,7 @@ dyn_scnp, Elf_X_Data &symdata,
                 verdefnum = dyns.d_ptr(i);
                 break;
             case DT_SONAME:
-                soname_ = &strs[dyns.d_ptr(i)];
+                if(strs) soname_ = &strs[dyns.d_ptr(i)];
             default:
                 break;
         }
@@ -2228,8 +2231,8 @@ dyn_scnp, Elf_X_Data &symdata,
 
     for (unsigned i = 0; i < verdefnum; i++) {
         Elf_X_Verdaux *aux = symVersionDefs->get_aux();
-        for (unsigned j = 0; j < symVersionDefs->vd_cnt(); j++) {
-            versionMapping[symVersionDefs->vd_ndx()].push_back(&strs[aux->vda_name()]);
+        for(unsigned j=0; j< symVersionDefs->vd_cnt(); j++){
+            if(strs) versionMapping[symVersionDefs->vd_ndx()].push_back(&strs[aux->vda_name()]);
             Elf_X_Verdaux *auxnext = aux->get_next();
             delete aux;
             aux = auxnext;
@@ -2241,9 +2244,9 @@ dyn_scnp, Elf_X_Data &symdata,
 
     for (unsigned i = 0; i < verneednum; i++) {
         Elf_X_Vernaux *aux = symVersionNeeds->get_aux();
-        for (unsigned j = 0; j < symVersionNeeds->vn_cnt(); j++) {
-            versionMapping[aux->vna_other()].push_back(&strs[aux->vna_name()]);
-            versionFileNameMapping[aux->vna_other()] = &strs[symVersionNeeds->vn_file()];
+        for(unsigned j=0; j< symVersionNeeds->vn_cnt(); j++){
+            if(strs) versionMapping[aux->vna_other()].push_back(&strs[aux->vna_name()]);
+            if(strs) versionFileNameMapping[aux->vna_other()] = &strs[symVersionNeeds->vn_file()];
             Elf_X_Vernaux *auxnext = aux->get_next();
             delete aux;
             aux = auxnext;
@@ -2252,8 +2255,8 @@ dyn_scnp, Elf_X_Data &symdata,
         delete symVersionNeeds;
         symVersionNeeds = symVersionNeedsnext;
     }
-
-    if (syms.isValid()) {
+    if(!strs) return;
+    if(syms.isValid()) {
         for (unsigned i = 0; i < syms.count(); i++) {
             int etype = syms.ST_TYPE(i);
             int ebinding = syms.ST_BIND(i);

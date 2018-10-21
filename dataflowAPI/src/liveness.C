@@ -63,7 +63,8 @@ int LivenessAnalyzer::getIndex(MachRegister machReg){
 
 const bitArray& LivenessAnalyzer::getLivenessIn(Block *block) {
     // Calculate if it hasn't been done already
-   liveness_cerr << "Getting liveness for block " << hex << block->start() << dec << endl;
+    liveness_cerr << endl << "LivenessAnalyzer::getLivenessIn()" << endl;
+    liveness_cerr << "Getting liveness for block " << hex << block->start() << dec << endl;
     assert(blockLiveInfo.find(block) != blockLiveInfo.end());
     livenessData& data = blockLiveInfo[block];
     assert(data.in.size());
@@ -188,7 +189,6 @@ bool LivenessAnalyzer::updateBlockLivenessInfo(Block* block, bitArray &allRegsDe
 {
   bool change = false;
   livenessData &data = blockLiveInfo[block];
-  liveness_cerr << "Updating block info for block " << hex << block->start() << dec << endl;
 
   // old_IN = IN(X)
   bitArray oldIn = data.in;
@@ -200,6 +200,7 @@ bool LivenessAnalyzer::updateBlockLivenessInfo(Block* block, bitArray &allRegsDe
   // OUT(X) = UNION(IN(Y)) for all successors Y of X
 
   // IN(X) = USE(X) + (OUT(X) - DEF(X))
+  liveness_cerr << "Updating block info for block " << hex << block->start() << dec << endl;
   liveness_cerr << "     " << regs1 << endl;
   liveness_cerr << "     " << regs2 << endl;
   liveness_cerr << "     " << regs3 << endl;
@@ -472,8 +473,8 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction curInsn, Block *blk, Addr
     else{
       base = changeIfMMX(base);
       int index = getIndex(base);
-      assert(index >= 0);
-      ret.read[index] = true;
+      //assert(index >= 0);
+      if(index>=0) ret.read[index] = true;
     }
   }
   liveness_printf("Write Registers: \n"); 
@@ -511,9 +512,11 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction curInsn, Block *blk, Addr
     else{
       base = changeIfMMX(base);
       int index = getIndex(base);
-      assert(index >= 0);
-      ret.written[index] = true;
-      if ((cur != base && cur.size() < 4) || isMMX(base)) ret.read[index] = true;
+      //assert(index >= 0);
+      if(index>=0){
+          ret.written[index] = true;
+          if ((cur != base && cur.size() < 4) || isMMX(base)) ret.read[index] = true;
+      }
     }
   }
   InsnCategory category = curInsn.getCategory();

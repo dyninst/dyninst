@@ -1466,20 +1466,20 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          codeBufIndex_t fromIndex = emitA(ifOp, src1, 0, 0, gen, rc_before_jump, noCost);
          size_t postif_patches_size = gen.allPatches().size();
 
-	 // See comment in ifOp
-	 Register src1_copy = src1;
+         // See comment in ifOp
+         Register src1_copy = src1;
 
          if (loperand->decRefCount())
             gen.rs()->freeRegister(src1);
 
          if (roperand) {
-	   // The flow of control forks. We need to add the forked node to
-	   // the path
-	   gen.tracker()->increaseConditionalLevel();
-	   if (!roperand->generateCode_phase2(gen, noCost, addr, src2)) ERROR_RETURN;
-	   if (roperand->decRefCount())
-	     gen.rs()->freeRegister(src2);
-	 }
+             // The flow of control forks. We need to add the forked node to
+             // the path
+             gen.tracker()->increaseConditionalLevel();
+             if (!roperand->generateCode_phase2(gen, noCost, addr, src2)) ERROR_RETURN;
+             if (roperand->decRefCount())
+                 gen.rs()->freeRegister(src2);
+         }
 
          gen.tracker()->decreaseAndClean(gen);
          gen.rs()->unifyTopRegStates(gen); //Join the registerState for the if
@@ -1513,7 +1513,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
             gen.setIndex(endIndex);
          }
-	 break;
+         break;
       }
       case doOp: {
          fprintf(stderr, "[%s:%d] WARNING: do AST node unimplemented!\n", __FILE__, __LINE__);
@@ -1915,7 +1915,8 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
    case FrameAddr:
        addr = (Address) oValue;
        temp = gen.rs()->allocateRegister(gen, noCost);
-       emitVload(loadFrameRelativeOp, addr, temp, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+       emitVload(loadFrameRelativeOp, addr, temp, retReg, gen, noCost, gen.rs(),
+               size, gen.point(), gen.addrSpace());
        gen.rs()->freeRegister(temp);
        break;
    case RegOffset:
@@ -1923,7 +1924,8 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        // This AstNode holds the register number, and loperand holds offset.
        assert(operand_);
        addr = (Address) operand_->getOValue();
-       emitVload(loadRegRelativeOp, addr, (long)oValue, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+       emitVload(loadRegRelativeOp, addr, (long)oValue, retReg, gen, noCost,
+               gen.rs(), size, gen.point(), gen.addrSpace());
        break;
    case ConstantString:
        // XXX This is for the std::string type.  If/when we fix the std::string type
@@ -1939,7 +1941,8 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
 
        if(!gen.addrSpace()->needsPIC())
        {
-          emitVload(loadConstOp, addr, retReg, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+          emitVload(loadConstOp, addr, retReg, retReg, gen, noCost, gen.rs(),
+                  size, gen.point(), gen.addrSpace());
        }
        else
        {
@@ -2042,9 +2045,8 @@ bool AstCallNode::initRegisters(codeGen &gen) {
             ret = false;
     }
 
-    // Platform-specific...
-#if defined(arch_x86) || defined(arch_x86_64)
-    // Our "everything" is "floating point registers".
+    if (callReplace_) return true;
+    
     // We also need a function object.
     func_instance *callee = func_;
     if (!callee) {
@@ -2060,28 +2062,6 @@ bool AstCallNode::initRegisters(codeGen &gen) {
     assert(gen.codeEmitter());
     gen.codeEmitter()->clobberAllFuncCall(gen.rs(), callee);
 
-
-#endif
-#if defined(arch_power)
-    if (callReplace_) return true;
-
-    // This code really doesn't work right now...
-    func_instance *callee = func_;
-    if (!callee) {
-        // Painful lookup time
-        callee = gen.addrSpace()->findOnlyOneFunction(func_name_.c_str());
-        assert(callee);
-    }
-    gen.codeEmitter()->clobberAllFuncCall(gen.rs(), callee);
-    // We clobber in clobberAllFuncCall...
-
-    // Monotonically increasing...
-#endif
-
-#if defined(arch_aarch64)
-	//#warning "This function is not implemented yet!"
-	assert(false);
-#endif
     return ret;
 
 }

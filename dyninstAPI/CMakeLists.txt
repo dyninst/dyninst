@@ -135,6 +135,7 @@ set (SRC_LIST ${SRC_LIST}
 elseif (PLATFORM MATCHES aarch64)
 set (SRC_LIST ${SRC_LIST}
      src/inst-aarch64.C 
+     src/emit-aarch64.C
      src/codegen-aarch64.C 
      src/parse-aarch64.C 
      src/RegisterConversion-aarch64.C 

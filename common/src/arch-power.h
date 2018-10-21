@@ -512,6 +512,8 @@ typedef unsigned codeBufIndex_t;
 #define ANDxop          28      /* and */
 #define ORop            31      /* or */
 #define ORxop           444     /* or */
+#define XORop           31
+#define XORxop          316
 
 // -- Other extended op codes for X, XFX, & XO when op is 31
 #define EXTop           31
@@ -557,7 +559,6 @@ typedef unsigned codeBufIndex_t;
 #define DCBTxop        278
 #define EQVxop         284
 #define TLBIxop        306
-#define XORxop         316
 #define DIVxop         331
 #define ABSxop         360
 #define ORCxop         412

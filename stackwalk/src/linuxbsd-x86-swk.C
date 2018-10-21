@@ -108,6 +108,11 @@ bool Walker::createDefaultSteppers()
             FILE__, __LINE__, stepper);
 #endif
 
+  stepper = new DyninstInstFrameStepper(this);
+  result = addStepper(stepper);
+  if (!result)
+     goto error;
+
   return true;
  error:
   sw_printf("[%s:%u] - Error adding stepper %p\n", stepper);

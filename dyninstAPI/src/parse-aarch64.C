@@ -260,8 +260,42 @@ void parse_func::parseOMPFunc(bool /*hasLoop*/)
    clobbers more registers so more analysis would be needed */
 void parse_func::calcUsedRegs()
 {
-	assert(0);
-   return;
+    if (!usedRegisters)
+    {
+        usedRegisters = new parse_func_registers();
+        using namespace Dyninst::InstructionAPI;
+        std::set<RegisterAST::Ptr> writtenRegs;
+
+        auto bl = blocks();
+        auto curBlock = bl.begin();
+        for( ; curBlock != bl.end(); ++curBlock)
+        {
+            InstructionDecoder d(getPtrToInstruction((*curBlock)->start()),
+                    (*curBlock)->size(),
+                    isrc()->getArch());
+            Instruction::Ptr i;
+            while(i = d.decode())
+            {
+                i->getWriteSet(writtenRegs);
+            }
+        }
+        
+        for(std::set<RegisterAST::Ptr>::const_iterator curReg = writtenRegs.begin();
+                curReg != writtenRegs.end();
+                ++curReg)
+        {
+            MachRegister r = (*curReg)->getID();
+            if((r & aarch64::GPR) && (r <= aarch64::w30))
+            {
+                usedRegisters->generalPurposeRegisters.insert(r & 0xFF);
+            }
+            else if(((r & aarch64::FPR) && (r <= aarch64::s31)))
+            {
+                usedRegisters->floatingPointRegisters.insert(r & 0xFFFF);
+            }
+        }
+    }
+    return;
 }
 
 #include "binaryEdit.h"
