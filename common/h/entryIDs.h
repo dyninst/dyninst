@@ -2103,7 +2103,118 @@ enum entryID {
 	power_op_vcmpnezh,
 	power_op_vcmpnew,
 	power_op_vcmpnezw,
-/*
+	power_op_vand,
+	power_op_vandc,
+	power_op_veqv,
+	power_op_vnand,
+	power_op_vorc,
+	power_op_vnor,
+	power_op_vor,
+	power_op_vxor,
+	power_op_vprtybw,
+	power_op_vprtybd,
+	power_op_vprtybq,
+	power_op_vrlb,
+	power_op_vrlw,
+	power_op_vrld,
+	power_op_vslb,
+	power_op_vslh,
+	power_op_vslw,
+	power_op_vsld,
+	power_op_vsrb,
+	power_op_vsrh,
+	power_op_vsrw,
+	power_op_vsrd,
+	power_op_vsrab,
+	power_op_vsrah,
+	power_op_vsraw,
+	power_op_vsrad,
+	power_op_vrlwnm,
+	power_op_vrlwmi,
+	power_op_vrldnm,
+	power_op_vrldmi,
+	power_op_vaddfp,
+	power_op_vsubfp,
+	power_op_vmaddfp,
+	power_op_vmaxfp,
+	power_op_vctsxs,
+	power_op_vctuxs,
+	power_op_vcfsx,
+	power_op_vcfux,
+	power_op_vrfim,
+	power_op_vrfin,
+	power_op_vrfip,
+	power_op_vrfiz,
+	power_op_vcmpbfp,
+	power_op_vcmpeqfp,
+	power_op_vcmpgefp,
+	power_op_vcmpgtfp,
+	power_op_vexptefp,
+	power_op_vlogefp,
+	power_op_vrefp,
+	power_op_vrsqrtefp,
+	power_op_vcipher,
+	power_op_vcipherlast,
+	power_op_vncipher,
+	power_op_vncipherlast,
+	power_op_vsbox,
+	power_op_vshasigmad,
+	power_op_vshasigmaw,
+	power_op_vpmsumb,
+	power_op_vpmsumd,
+	power_op_vpmsumh,
+	power_op_vpmsumw,
+	power_op_vpermxor,
+	power_op_vgbbd,
+	power_op_vclzb,
+	power_op_vclzh,
+	power_op_vclzw,
+	power_op_vclzd,
+	power_op_vctzb,
+	power_op_vctzh,
+	power_op_vctzw,
+	power_op_vctzd,
+	power_op_vclzlsbb,
+	power_op_vctzlsbb,
+	power_op_vextublx,
+	power_op_vextuhlx,
+	power_op_vextubrx,
+	power_op_vextuhrx,
+	power_op_vextuwlx,
+	power_op_vextuwrx,
+	power_op_vpopcntb,
+	power_op_vpopcntd,
+	power_op_vpopcnth,
+	power_op_vpopcntw,
+	power_op_vbpermd,
+	power_op_vbpermq,
+	power_op_bcdadd,
+	power_op_bcdsub,
+	power_op_bcdcfz,
+	power_op_bcdctn,
+	power_op_bcdctz,
+	power_op_bcdcfsq,
+	power_op_bcdctsq,
+	power_op_vmul10uq,
+	power_op_vmul10cuq,
+	power_op_vmul10euq,
+	power_op_vmul10ecuq,
+	power_op_bcdcpsgn,
+	power_op_bcdsetsgn,
+	power_op_bcds,
+	power_op_bcdus,
+	power_op_bcdtrunc,
+	power_op_bcdutrunc,
+	power_op_mtvscr,
+	power_op_mfvscr,
+	power_op_addex,
+	power_op_mffs,
+	power_op_mffsce,
+	power_op_mffscdrn,
+	power_op_mffscdrni,
+	power_op_mffscrn,
+	power_op_mffscrni,
+	power_op_mffsl,
 	power_op_
 	power_op_
 	power_op_
@@ -2118,23 +2229,6 @@ enum entryID {
 	power_op_
 	power_op_
 	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-	power_op_
-*/
 
   // ***********
   // Steve note:
