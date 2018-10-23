@@ -698,6 +698,12 @@ codeBufIndex_t emitA(opCode op, Register src1, Register src2, long dest,
                 retval = gen.codeEmitter()->emitIf(src1, dest, rc, gen);
                 break;
             }
+        case branchOp:
+            {
+                insnCodeGen::generateBranch(gen, dest);
+                retval = gen.getIndex();
+                break;
+            }
         default:
             assert(0);        // op not implemented or not expected for this emit!
     }
