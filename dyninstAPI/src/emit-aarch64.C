@@ -125,8 +125,10 @@ void EmitterAARCH64::emitOp(
         insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Sub, 0, 0, src2, src1, dest, true);
     
     // dest = src1 / src2
-    else if( opcode == divOp )
+    else if( opcode == divOp ){
         insnCodeGen::generateDiv(gen, src2, src1, dest, true);
+        //insnCodeGen::generateTrap(gen);
+    }
 
     // dest = src1 * src2
     else if( opcode == timesOp )
@@ -143,6 +145,8 @@ void EmitterAARCH64::emitOp(
     // dest = src1 ^ src2
     else if( opcode == xorOp )
         insnCodeGen::generateBitwiseOpShifted(gen, insnCodeGen::Eor, 0, src1, 0, src2, dest, true);
+
+    else assert(0);
 }
 
 
@@ -227,4 +231,12 @@ void EmitterAARCH64::emitRelOpImm(
 }
 
 
+void EmitterAARCH64::emitLoadIndir(Register dest, Register addr_src, int size, codeGen &gen)
+{
+    assert(size==4 || size==8);
+    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, dest,
+            addr_src, 0, size==8?true:false, insnCodeGen::Post);
+
+    gen.markRegDefined(dest);
+}
 

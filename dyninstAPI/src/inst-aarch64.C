@@ -460,7 +460,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
                 if(src2imm >= -(1 << 11) && src2imm < (long int)((1 << 11) - 1))
                     insnCodeGen::generateAddSubImmediate(gen,
                             op == plusOp ? insnCodeGen::Add : insnCodeGen::Sub, 0,
-                            src2imm, src1, dest, false);
+                            src2imm, src1, dest, true);
                 else if(src2imm >= MIN_IMM16 && src2imm < MAX_IMM16)
                 {
                     Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
@@ -473,13 +473,15 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         case timesOp:
             {
                 Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-                insnCodeGen::generateMul(gen, rm, src1, dest, true);
+                insnCodeGen::generateMul(gen, rm, src1, dest, false);
+                //insnCodeGen::generateTrap(gen);
             }
             break;
         case divOp:
             {
                 Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
                 insnCodeGen::generateDiv(gen, rm, src1, dest, true);
+                //insnCodeGen::generateTrap(gen);
             }
             break;
         case xorOp:
@@ -878,8 +880,13 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
         case neOp:
             gen.codeEmitter()->emitRelOp(op, dest, src1, src2, gen);
             break;
+        case loadIndirOp:
+            size = !size ? proc->getAddressWidth() : size;
+            // same as loadOp, but the value to load is already in a register
+            gen.codeEmitter()->emitLoadIndir(dest, src1, size, gen);
+            break;
         default:
-            //std::cout << "operation= " << op << endl;
+            std::cout << "operation not implemented= " << op << endl;
             assert(0); // Not implemented
             break;
     }

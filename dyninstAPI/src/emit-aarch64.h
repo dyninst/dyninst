@@ -73,7 +73,7 @@ public:
 
     virtual void emitLoadConst(Register, Address, codeGen &);
 
-    virtual void emitLoadIndir(Register, Register, int, codeGen &) { assert(0); }
+    virtual void emitLoadIndir(Register, Register, int, codeGen &); 
 
     virtual bool emitCallRelative(Register, Address, Register, codeGen &);
 

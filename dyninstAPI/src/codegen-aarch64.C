@@ -474,16 +474,33 @@ Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, pdvector<Regist
         assert(0);
     }
 
-    insnCodeGen::generateMove(gen, (val & 0xFFFF), 0, scratchReg, insnCodeGen::MovOp_MOVZ);
+    /*insnCodeGen::generateMove(gen, (val & 0xFFFF), 0, scratchReg, insnCodeGen::MovOp_MOVZ);
     if (val >= MIN_IMM32 && val < MAX_IMM32)
         insnCodeGen::generateMove(gen, ((val >> 16) & 0xFFFF), 0x1, scratchReg, insnCodeGen::MovOp_MOVK);
     if (val < MIN_IMM32 || val > MAX_IMM32) {
         insnCodeGen::generateMove(gen, ((val >> 32) & 0xFFFF), 0x2, scratchReg, insnCodeGen::MovOp_MOVK);
         insnCodeGen::generateMove(gen, ((val >> 48) & 0xFFFF), 0x3, scratchReg, insnCodeGen::MovOp_MOVK);
-    }
+    }*/
+    loadImmIntoReg<long int>(gen, scratchReg, val);
 
     return scratchReg;
 }
+
+
+template <typename T>
+void insnCodeGen::loadImmIntoReg(codeGen &gen, Register rt, T value)
+{
+    assert(value >= 0);
+
+    insnCodeGen::generateMove(gen, (value & 0xFFFF), 0, rt, MovOp_MOVZ);
+    if(value > 0xFFFF)
+        insnCodeGen::generateMove(gen, ((value >> 16) & 0xFFFF), 0x1, rt, MovOp_MOVK);
+    if(value > 0xFFFFFFFF)
+        insnCodeGen::generateMove(gen, ((value >> 32) & 0xFFFF), 0x2, rt, MovOp_MOVK);
+    if(value > 0xFFFFFFFFFFFF)
+        insnCodeGen::generateMove(gen, ((value >> 48) & 0xFFFF), 0x3, rt, MovOp_MOVK);
+}
+
 
 // This is for generating STR/LDR (imediate) for indexing modes of Post, Pre and Offset
 void insnCodeGen::generateMemAccess32or64(codeGen &gen, LoadStore accType,
@@ -605,20 +622,6 @@ void insnCodeGen::generateRelOp(codeGen &gen, int cond, int mode, Register rs1,
 {
 assert(0);
 //#warning "This function is not implemented yet!"
-}
-
-template <typename T>
-void insnCodeGen::loadImmIntoReg(codeGen &gen, Register rt, T value)
-{
-    assert(value >= 0);
-
-    insnCodeGen::generateMove(gen, (value & 0xFFFF), 0, rt, MovOp_MOVZ);
-    if(value > 0xFFFF)
-        insnCodeGen::generateMove(gen, ((value >> 16) & 0xFFFF), 0x1, rt, MovOp_MOVK);
-    if(value > 0xFFFFFFFF)
-        insnCodeGen::generateMove(gen, ((value >> 32) & 0xFFFF), 0x2, rt, MovOp_MOVK);
-    if(value > 0xFFFFFFFFFFFF)
-        insnCodeGen::generateMove(gen, ((value >> 48) & 0xFFFF), 0x3, rt, MovOp_MOVK);
 }
 
 
