@@ -44,12 +44,6 @@
  * Kludges to handle broken system includes and such...
  */
 
-extern "C" {
-typedef int (*xdr_rd_func)(void *, char *, int);
-typedef int (*xdr_wr_func)(void *, char *, int);
-}
-
-
 #include "common/src/Types.h"
 
 #if defined(os_linux) || defined(os_bgp) || defined(os_bg_ion) || defined(os_bgq_ion)
