@@ -72,7 +72,7 @@
 #if defined(arch_aarch64)
 #include<sys/user.h>
 #include<sys/procfs.h>
-#include<bits/uio.h>
+#include<sys/uio.h>
 #include<linux/elf.h>
 #endif
 
