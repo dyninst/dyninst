@@ -76,8 +76,11 @@ namespace Dyninst
                 static power_table extended_op_19;
                 static power_table extended_op_30;
                 static power_table extended_op_31;
+                static power_table extended_op_57;
                 static power_table extended_op_58;
                 static power_table extended_op_59;
+                static power_table extended_op_60;
+                static power_table extended_op_61;
                 static power_table extended_op_63;
       };
 
@@ -486,6 +489,130 @@ namespace Dyninst
     {
         SI();
     }
+
+
+    /***** BEGIN: For new vector instructions *****/
+    void InstructionDecoder_power::XT()
+    {
+        // TODO: Format DQ has a different encoding.
+        //       The single T bit is at bit 28, instaed of bit 31.
+        unsigned id = field<6, 10>(insn) + 32 * field<31, 31>(insn);
+        insn_in_progress->appendOperand(
+                        makeRegisterExpression(makePowerRegID(ppc64::vsr0, id)),
+                        false, 
+                        true);
+    }
+    void InstructionDecoder_power::XS()
+    {
+        // TODO: Format DQ has a different encoding.
+        //       The single T bit is at bit 28, instaed of bit 31.
+        unsigned id = field<6, 10>(insn) + 32 * field<31, 31>(insn);
+        insn_in_progress->appendOperand(
+                        makeRegisterExpression(makePowerRegID(ppc64::vsr0, id)),
+                        true, 
+                        false);
+    }
+    void InstructionDecoder_power::XA()
+    {
+        unsigned id = field<11, 15>(insn) + 32 * field<29, 29>(insn);
+        insn_in_progress->appendOperand(
+                        makeRegisterExpression(makePowerRegID(ppc64::vsr0, id)),
+                        true, 
+                        false);
+    }
+    void InstructionDecoder_power::XB()
+    {
+        unsigned id = field<16, 20>(insn) + 32 * field<30, 30>(insn);
+        insn_in_progress->appendOperand(
+                        makeRegisterExpression(makePowerRegID(ppc64::vsr0, id)),
+                        true, 
+                        false);
+    }
+    void InstructionDecoder_power::VRT()
+    {
+        unsigned id = field<6, 10>(insn) + 32;
+        insn_in_progress->appendOperand(
+                        makeRegisterExpression(makePowerRegID(ppc64::vsr0, id)),
+                        false, 
+                        true);
+    }
+    void InstructionDecoder_power::VRS()
+    {
+        unsigned id = field<6, 10>(insn) + 32;
+        insn_in_progress->appendOperand(
+                        makeRegisterExpression(makePowerRegID(ppc64::vsr0, id)),
+                        true, 
+                        false);
+    }
+    void InstructionDecoder_power::VRA()
+    {
+        unsigned id = field<11, 15>(insn) + 32;
+        insn_in_progress->appendOperand(
+                        makeRegisterExpression(makePowerRegID(ppc64::vsr0, id)),
+                        true, 
+                        false);
+    }
+    void InstructionDecoder_power::VRB()
+    {
+        unsigned id = field<16, 20>(insn) + 32 ;
+        insn_in_progress->appendOperand(
+                        makeRegisterExpression(makePowerRegID(ppc64::vsr0, id)),
+                        true, 
+                        false);
+    }
+    void InstructionDecoder_power::VRC()
+    {
+        unsigned id = field<21, 25>(insn) + 32 ;
+        insn_in_progress->appendOperand(
+                        makeRegisterExpression(makePowerRegID(ppc64::vsr0, id)),
+                        true, 
+                        false);
+    }
+
+    void InstructionDecoder_power::UIM()
+    {
+        fprintf(stderr, "Unimplemented operand type UIM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+    void InstructionDecoder_power::SIM()
+    {
+        fprintf(stderr, "Unimplemented operand type SIM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+
+    void InstructionDecoder_power::DCMX()
+    {
+        fprintf(stderr, "Unimplemented operand type DCMX. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+    void InstructionDecoder_power::RO()
+    {
+        fprintf(stderr, "Unimplemented operand type RO. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+    void InstructionDecoder_power::R()
+    {
+        fprintf(stderr, "Unimplemented operand type R. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+    void InstructionDecoder_power::RMC()
+    {
+        fprintf(stderr, "Unimplemented operand type RMC. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+    void InstructionDecoder_power::EX()
+    {
+        fprintf(stderr, "Unimplemented operand type EX. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+    void InstructionDecoder_power::SHB()
+    {
+        fprintf(stderr, "Unimplemented operand type SHB. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+    void InstructionDecoder_power::PS()
+    {
+        fprintf(stderr, "Unimplemented operand type PS. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+    void InstructionDecoder_power::CY()
+    {
+        fprintf(stderr, "Unimplemented operand type CY. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+
+    /***** END: For new vector instructions *****/
+
     Expression::Ptr InstructionDecoder_power::makeBTExpr()
     {
         return makeRegisterExpression(makePowerRegID(ppc32::cr0, field<6, 10>(insn) >> 2));
@@ -578,6 +705,19 @@ namespace Dyninst
     }
     void InstructionDecoder_power::doDelayedDecode(const Instruction* insn_to_complete)
     {
+
+				/* Yuhan's notes for implementation
+					 For all instructions in opcode 60, the extended opcode is 21-29th bit.
+					 special case for opcode 60: (Opcode table on Page 1190)
+			  I. Decision Tree:
+				  (1) For XX4 format, the 26&27 bits are 1. (only for opcde "xxsel" P773)
+			    (2) Two special XX3 cases: 0..00 010.. & 0..01 010.., started from 21th bit. (manual 1208)
+				  (3) Other instruction are all implemented normally, 
+				    the "." bits are treated as 0 and 1 respectively in the opcode table
+				II. The Rc bit for opcode 60 is the 21st bit
+
+			   **	There are 2 XX1 instructions, the last bit of the extended opcodes are ignored (30th bit, which are both 0).
+				*/
         isRAWritten = false;
         isFPInsn = false;
         bcIsConditional = false;
@@ -694,6 +834,11 @@ using namespace boost::assign;
         }
         return power_entry::extended_op_31[field<21, 30>(insn)];
     }
+    // extended_op_57 needs revisiting
+    const power_entry& InstructionDecoder_power::extended_op_57()
+    {
+        return power_entry::extended_op_57[field<30, 31>(insn)];
+    }
     const power_entry& InstructionDecoder_power::extended_op_58()
     {
         return power_entry::extended_op_58[field<30, 31>(insn)];
@@ -702,6 +847,25 @@ using namespace boost::assign;
     {
         return power_entry::extended_op_59[field<26, 30>(insn)];
     }
+    // extended_op_60 needs revisiting
+    const power_entry& InstructionDecoder_power::extended_op_60()
+    {
+        unsigned int xo = field<21, 29>(insn);
+        return power_entry::extended_op_60[xo];
+    }
+    // extended_op_61 needs revisiting
+    const power_entry& InstructionDecoder_power::extended_op_61()
+    {
+        unsigned int xo = field<26, 30>(insn);
+        if(xo <= 31)
+        {
+            power_table::const_iterator found = power_entry::extended_op_61.find(xo);
+            if(found != power_entry::extended_op_61.end())
+                return found->second;
+        }
+        return power_entry::extended_op_61[field<21, 30>(insn)];
+    }
+
     const power_entry& InstructionDecoder_power::extended_op_63()
     {
         unsigned int xo = field<26, 30>(insn);
