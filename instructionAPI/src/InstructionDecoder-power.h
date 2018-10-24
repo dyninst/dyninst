@@ -182,6 +182,10 @@ namespace Dyninst {
                 void RMC();
                 void EX();
                 void SHB();
+                void SIX();
+                void PS();
+                void CY();
+
 
 
                 const power_entry& extended_op_0();

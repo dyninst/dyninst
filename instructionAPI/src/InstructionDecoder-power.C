@@ -571,44 +571,44 @@ namespace Dyninst
 
     void InstructionDecoder_power::UIM()
     {
-        assert(0);
-        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+        fprintf(stderr, "Unimplemented operand type UIM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::SIM()
     {
-        assert(0);
-        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+        fprintf(stderr, "Unimplemented operand type SIM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
 
     void InstructionDecoder_power::DCMX()
     {
-        assert(0);
-        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+        fprintf(stderr, "Unimplemented operand type DCMX. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::RO()
     {
-        assert(0);
-        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+        fprintf(stderr, "Unimplemented operand type RO. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::R()
     {
-        assert(0);
-        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+        fprintf(stderr, "Unimplemented operand type R. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::RMC()
     {
-        assert(0);
-        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+        fprintf(stderr, "Unimplemented operand type RMC. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::EX()
     {
-        assert(0);
-        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+        fprintf(stderr, "Unimplemented operand type EX. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::SHB()
     {
-        assert(0);
-        insn_in_progress->appendOperand(makeRTExpr(), false, true);
+        fprintf(stderr, "Unimplemented operand type SHB. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+    void InstructionDecoder_power::PS()
+    {
+        fprintf(stderr, "Unimplemented operand type PS. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+    void InstructionDecoder_power::CY()
+    {
+        fprintf(stderr, "Unimplemented operand type CY. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
 
     /***** END: For new vector instructions *****/

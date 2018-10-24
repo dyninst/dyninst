@@ -1365,7 +1365,6 @@ enum entryID {
   power_op_rfi,
   power_op_sreq,
   power_op_frsqrte,
-  power_op_mffs,
   power_op_lwz,
   power_op_lfqu,
   power_op_and,
@@ -2215,6 +2214,11 @@ enum entryID {
 	power_op_mffscrn,
 	power_op_mffscrni,
 	power_op_mffsl,
+        power_op_vnmsubfp,
+        power_op_vrlh,
+        power_op_vminfp,
+        power_op_bcdsr, 
+/*
 	power_op_
 	power_op_
 	power_op_
@@ -2229,7 +2233,7 @@ enum entryID {
 	power_op_
 	power_op_
 	power_op_
-
+*/
   // ***********
   // Steve note:
   // aarch64 opcode IDs.
