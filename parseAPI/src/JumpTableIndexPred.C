@@ -56,14 +56,20 @@ static void BuildEdgesAux(SliceNode::Ptr srcNode,
 
     if (visit.find(curBlock) != visit.end()) return;
     visit.insert(curBlock);
-    for (auto eit = curBlock->targets().begin(); eit != curBlock->targets().end(); ++eit) {
+    Block::edgelist targets;
+    curBlock->copy_targets(targets);
+    for (auto eit = targets.begin(); eit != targets.end(); ++eit) {
 	// Xiaozhu:
 	// Our current slicing code ignores tail calls 
 	// (the slice code only checks if an edge type is CALL or not)
  	// so, I should be consistent here.
 	// If the slice code considers tail calls, need to change
 	// the predicate to (*eit)->interproc()
-        if ((*eit)->type() != CALL && (*eit)->type() != RET && allowedEdges.find(*eit) != allowedEdges.end()) {
+        if ((*eit)->type() != CALL && 
+            (*eit)->type() != RET && 
+	    (*eit)->type() != CATCH && 
+	    !(*eit)->interproc() && 
+	    allowedEdges.find(*eit) != allowedEdges.end()) {
 	    EdgeTypeEnum newT = t; 
 	    if (t == _edgetype_end_) {
 	        if ((*eit)->type() == COND_TAKEN || (*eit)->type() == COND_NOT_TAKEN) 
@@ -91,7 +97,7 @@ static bool AssignIsZF(Assignment::Ptr a) {
 }
 
 static bool IsPushAndChangeSP(Assignment::Ptr a) {
-    entryID id = a->insn()->getOperation().getID();
+    entryID id = a->insn().getOperation().getID();
     if (id != e_push) return false;
     Absloc aloc = a->out().absloc();
     if (aloc.type() == Absloc::Register && aloc.reg().isStackPointer()) return true;
@@ -120,7 +126,7 @@ GraphPtr JumpTableIndexPred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdg
     set<Address> xchgCount;
     set<Assignment::Ptr> xchgAssign;
     for (auto ait = currentAssigns.begin(); ait != currentAssigns.end(); ++ait) {
-        if ((*ait)->insn()->getOperation().getID() == e_xchg) {
+        if ((*ait)->insn().getOperation().getID() == e_xchg) {
 	    if (xchgCount.find( (*ait)->addr() ) != xchgCount.end() ) continue;
 	    xchgCount.insert((*ait)->addr());
 	    xchgAssign.insert(*ait);
@@ -132,8 +138,8 @@ GraphPtr JumpTableIndexPred::BuildAnalysisGraph(set<ParseAPI::Edge*> &visitedEdg
         Assignment::Ptr a = *ait;
 	if (   (AssignIsZF(a) || shouldSkip.find(a->addr()) == shouldSkip.end()) 
 	    && !IsPushAndChangeSP(a)
-	    && (!a->insn()->writesMemory() || MatchReadAST(a))) {
-	    if (a->insn()->getOperation().getID() == e_xchg && xchgAssign.find(a) == xchgAssign.end()) continue;
+	    && (!a->insn().writesMemory() || MatchReadAST(a))) {
+	    if (a->insn().getOperation().getID() == e_xchg && xchgAssign.find(a) == xchgAssign.end()) continue;
 	    SliceNode::Ptr newNode = SliceNode::create(a, a->block(), a->func());
 	    targetMap[a->block()][a] = newNode;
 	    newG->addNode(newNode);
@@ -182,9 +188,9 @@ bool JumpTableIndexPred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> 
 
     currentAssigns.insert(ap);
 
-    parsing_printf("Adding assignment %s in instruction %s at %lx, total %d\n", ap->format().c_str(), ap->insn()->format().c_str(), ap->addr(), currentAssigns.size());
+    parsing_printf("Adding assignment %s in instruction %s at %lx, total %d\n", ap->format().c_str(), ap->insn().format().c_str(), ap->addr(), currentAssigns.size());
 /*
-    if (ap->insn() && ap->insn()->readsMemory() && firstMemoryRead) {
+    if (ap->insn() && ap->insn().readsMemory() && firstMemoryRead) {
         firstMemoryRead = false;
 	parsing_printf("\tThe first memory read, check if format is correct\n");
 	if 
@@ -202,7 +208,7 @@ bool JumpTableIndexPred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> 
     // we only want to analyze it when it writes to 
     // an AST we have seen before and potentially
     // can used for aliasing
-    if (ap->insn()->writesMemory()) {
+    if (ap->insn().writesMemory()) {
         if (!MatchReadAST(ap)) return true;
     }
 
@@ -210,7 +216,7 @@ bool JumpTableIndexPred::addNodeCallback(AssignmentPtr ap, set<ParseAPI::Edge*> 
     // we record the AST of the read so
     // that in the future we can match a
     // corresponding write to identify aliasing
-    if (ap->insn()->readsMemory() && expandRet.first->getID() == AST::V_RoseAST) {
+    if (ap->insn().readsMemory() && expandRet.first->getID() == AST::V_RoseAST) {
         RoseAST::Ptr roseAST = boost::static_pointer_cast<RoseAST>(expandRet.first);
 	if (roseAST->val().op == ROSEOperation::derefOp) {
 	    readAST.push_back(expandRet.first);
@@ -286,9 +292,9 @@ bool JumpTableIndexPred::MatchReadAST(Assignment::Ptr a) {
     pair<AST::Ptr, bool> expandRet = se.ExpandAssignment(a);
     if (!expandRet.second || expandRet.first == NULL) return false;
     if (a->out().generator() == NULL) return false;
-    AST::Ptr write = SymbolicExpression::SimplifyAnAST(RoseAST::create(ROSEOperation(ROSEOperation::derefOp, a->out().size()), a->out().generator()), 
+    AST::Ptr write = se.SimplifyAnAST(RoseAST::create(ROSEOperation(ROSEOperation::derefOp, a->out().size()), a->out().generator()), 
                                    SymbolicExpression::PCValue(a->addr(),
-				           a->insn()->size(),
+				           a->insn().size(),
 					   a->block()->obj()->cs()->getArch()));
 
     if (write == NULL) return false;

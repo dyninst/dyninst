@@ -78,7 +78,6 @@ int dwarf_get_fde_info_for_cfa_reg3(
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-void setSymtabError(SymtabError new_err);
 
 std::string convertCharToString(char *ptr)
 {
@@ -115,7 +114,7 @@ bool Object::getRegValueAtFrame(Address pc,
    dwarf->frame_dbg();
    assert(dwarf->frameParser());
    result = dwarf->frameParser()->getRegValueAtFrame(pc, reg, reg_result, reader, frame_error);
-   setSymtabError((SymtabError) frame_error);
+   Symtab::setSymtabError((SymtabError) frame_error);
    return result;
 }
 

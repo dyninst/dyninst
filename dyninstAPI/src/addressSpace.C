@@ -1007,9 +1007,9 @@ func_instance *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
    InstructionDecoder decoder((const unsigned char*)getPtrToInstruction(addr),
                               InstructionDecoder::maxInstructionLength,
                               getArch());
-   Instruction::Ptr curInsn = decoder.decode();
+   Instruction curInsn = decoder.decode();
     
-   Expression::Ptr target = curInsn->getControlFlowTarget();
+   Expression::Ptr target = curInsn.getControlFlowTarget();
    RegisterAST thePC = RegisterAST::makePC(getArch());
    target->bind(&thePC, Result(u32, addr));
    Result cft = target->eval();
@@ -1797,15 +1797,15 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
       Address base = baseAddr;
       InstructionDecoder deco
         (cm->ptr(),cm->size(),getArch());
-      Instruction::Ptr insn = deco.decode();
-      while(insn) {
+      Instruction insn = deco.decode();
+      while(insn.isValid()) {
           std::stringstream rawInsn;
-          unsigned idx = insn->size();
-          while(idx--) rawInsn << hex << setfill('0') << setw(2) << (unsigned int) insn->rawByte(idx);
+          unsigned idx = insn.size();
+          while(idx--) rawInsn << hex << ((unsigned int) insn.rawByte(idx)) / 16 << ((unsigned int) insn.rawByte(idx)) % 16 ;
 
           cerr << "\t" << hex << base << ":   " << rawInsn.str() << "   "
-              << insn->format(base) << dec << endl;
-          base += insn->size();
+              << insn.format(base) << dec << endl;
+          base += insn.size();
           insn = deco.decode();
       }
       cerr << dec;

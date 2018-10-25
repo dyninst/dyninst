@@ -563,20 +563,6 @@ class BPATCH_DLL_EXPORT BPatch_tidExpr : public BPatch_snippet {
 
 class BPatch_instruction;
 
-class BPATCH_DLL_EXPORT BPatch_insnExpr : public BPatch_snippet {
- public:
-    //
-    // BPatch_insnExpr::BPatch_insnExpr
-  BPatch_insnExpr(BPatch_instruction *insn);
-    
-    // Replace the effective address of a load with the provided snippet
-    bool  overrideLoadAddress(BPatch_snippet &l);
-    
-    // Replace the effective address of a store with the provided snippet
-    bool  overrideStoreAddress(BPatch_snippet &s);
-
-};
-
 typedef enum {
     BPatch_noInterp,
     BPatch_interpAsTarget,

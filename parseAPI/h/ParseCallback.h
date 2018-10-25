@@ -155,6 +155,7 @@ class ParseCallback {
   virtual void add_block_cb(Function *, Block *) {};
 
   virtual void modify_edge_cb(Edge *, Block *, ParseCallback::edge_type_t) {};
+    virtual void function_discovery_cb(Function*) {};
 
   private:
 };
@@ -204,7 +205,7 @@ class ParseCallbackManager {
   bool hasWeirdInsns(const Function*);
   void foundWeirdInsns(Function*);
   void split_block_cb(Block *, Block *);
-  
+  void discover_function(Function*);
 
   private:
   // Named the same as ParseCallback to make the code

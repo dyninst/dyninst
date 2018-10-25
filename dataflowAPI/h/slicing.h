@@ -134,7 +134,7 @@ class SliceEdge : public Edge {
 
 class Slicer {
  public:
-  typedef std::pair<InstructionPtr, Address> InsnInstance;
+  typedef std::pair<InstructionAPI::Instruction, Address> InsnInstance;
   typedef std::vector<InsnInstance> InsnVec;
 
   DATAFLOW_EXPORT Slicer(AssignmentPtr a,
@@ -646,11 +646,11 @@ class Slicer {
 		  SliceNode::Ptr& target,
           AbsRegion const& data);
 
-  void convertInstruction(InstructionPtr,
-			  Address,
-			  ParseAPI::Function *,
+  void convertInstruction(InstructionAPI::Instruction,
+                          Address,
+                          ParseAPI::Function *,
                           ParseAPI::Block *,
-			  std::vector<AssignmentPtr> &);
+                          std::vector<AssignmentPtr> &);
 
   void fastForward(Location &loc, Address addr);
 

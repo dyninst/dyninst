@@ -82,8 +82,8 @@ Point *PointMaker::mkFuncSitePoint(Point::Type t, PatchMgrPtr m, PatchFunction *
 Point *PointMaker::mkBlockPoint(Point::Type t, PatchMgrPtr m, PatchBlock *b, PatchFunction *f) {
    return new Point(t, m, b, f);
 }
-Point *PointMaker::mkInsnPoint(Point::Type t, PatchMgrPtr m, PatchBlock *b, 
-                               Address a, InstructionAPI::Instruction::Ptr i, PatchFunction *f) {
+Point *PointMaker::mkInsnPoint(Point::Type t, PatchMgrPtr m, PatchBlock *b,
+                               Address a, InstructionAPI::Instruction i, PatchFunction *f) {
    return new Point(t, m, b, a, i, f);
 }
 Point *PointMaker::mkEdgePoint(Point::Type t, PatchMgrPtr m, PatchEdge *e, PatchFunction *f) {

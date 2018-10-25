@@ -114,30 +114,6 @@ namespace Dyninst
       }
     }
 
-    INSTRUCTION_EXPORT std::string Operand::format(ArchSpecificFormatter *formatter, Architecture arch, Address addr) const
-    {
-        if(!op_value) return "ERROR: format() called on empty operand!";
-
-        if (addr) {
-
-            Expression::Ptr thePC = Expression::Ptr(
-                    new RegisterAST(MachRegister::getPC(arch)));
-
-            op_value->bind(thePC.get(), Result(u32, addr));
-            Result res = op_value->eval();
-            if (res.defined) {
-                stringstream ret;
-                ret << hex << res.convert<unsigned>() << dec;
-                return ret.str();
-            }
-        }
-
-        /**
-         * If this is a jump or IP relative load/store, this will be a 
-         * binary function, so we have to parse the AST from hand
-         */
-        return op_value->format(formatter);
-    }
 
     INSTRUCTION_EXPORT std::string Operand::format(Architecture arch, Address addr) const
     {
@@ -147,12 +123,12 @@ namespace Dyninst
           op_value->bind(thePC.get(), Result(u32, addr));
           Result res = op_value->eval();
           if (res.defined) {
-              stringstream ret;
-              ret << hex << res.convert<uintmax_t>() << dec;
-              return ret.str();
+              char hex[20];
+              snprintf(hex, 20, "%x", res.convert<uintmax_t>());
+              return string(hex);
           }
       }
-      return op_value->format();
+      return op_value->format(arch);
     }
 
     INSTRUCTION_EXPORT Expression::Ptr Operand::getValue() const

@@ -268,7 +268,7 @@ void AbsRegion::erase(const AbsRegion &rhs) {
 }
 */
 
-Assignment::Ptr Assignment::makeAssignment(const InstructionAPI::Instruction::Ptr i,
+Assignment::Ptr Assignment::makeAssignment(const InstructionAPI::Instruction& i,
                              const Address a,
                              ParseAPI::Function *f,
                              ParseAPI::Block *b,
@@ -277,7 +277,7 @@ Assignment::Ptr Assignment::makeAssignment(const InstructionAPI::Instruction::Pt
       return make_shared(singleton_object_pool<Assignment>::construct(i, a, f, b, ins, o));
 }
 
-Assignment::Ptr Assignment::makeAssignment(const InstructionAPI::Instruction::Ptr i,
+Assignment::Ptr Assignment::makeAssignment(const InstructionAPI::Instruction& i,
                              const Address a,
                              ParseAPI::Function *f,
                              ParseAPI::Block *b,

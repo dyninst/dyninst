@@ -83,14 +83,14 @@ void getInsnInstances(ParseAPI::Block *block,
   InstructionDecoder d(ptr, block->size(), block->obj()->cs()->getArch());
   while (off < block->end()) {
     insns.push_back(std::make_pair(d.decode(), off));
-    off += insns.back().first->size();
+    off += insns.back().first.size();
   }
 }
 
 /* 
  * Determine if insn is a system call
  */
-bool isSyscall(Instruction::Ptr & insn, Address & syscallTrampStore)
+bool isSyscall(Instruction  insn, Address & syscallTrampStore)
 {
     static RegisterAST::Ptr gs(new RegisterAST(x86::gs));
 
@@ -98,13 +98,13 @@ bool isSyscall(Instruction::Ptr & insn, Address & syscallTrampStore)
                 syscallTrampStore));
     Dereference syscallTrampCall(syscallTrampPtr, u32);
 
-    return (((insn->getOperation().getID() == e_call) &&
-                (insn->isRead(gs))) ||
-            ((insn->getOperation().getID() == e_call) &&
-             (*(insn->getControlFlowTarget()) == syscallTrampCall)) ||
-            (insn->getOperation().getID() == e_syscall) ||
-            (insn->getOperation().getID() == e_int) ||
-            (insn->getOperation().getID() == power_op_sc));
+    return (((insn.getOperation().getID() == e_call) &&
+                (insn.isRead(gs))) ||
+            ((insn.getOperation().getID() == e_call) &&
+             (*(insn.getControlFlowTarget()) == syscallTrampCall)) ||
+            (insn.getOperation().getID() == e_syscall) ||
+            (insn.getOperation().getID() == e_int) ||
+            (insn.getOperation().getID() == power_op_sc));
 }
 
 
@@ -112,10 +112,10 @@ bool isSyscall(Instruction::Ptr & insn, Address & syscallTrampStore)
  * Check if a given instruction is an indirect call through the _dl_sysinfo symbol.
  * If so, store the symbol address.
  */
-bool isCallToSyscallTrampStore(Instruction::Ptr & insn, Address & _syscallTramp) 
+bool isCallToSyscallTrampStore(Instruction insn, Address & _syscallTramp)
 {
-    if (insn->getOperation().getID() == e_call) {
-        Expression::Ptr cft = insn->getControlFlowTarget();
+    if (insn.getOperation().getID() == e_call) {
+        Expression::Ptr cft = insn.getControlFlowTarget();
         if (typeid(cft) == typeid(Dereference::Ptr)) {
             vector<InstructionAST::Ptr> children;
             cft->getChildren(children);
@@ -175,13 +175,13 @@ Address searchForSyscallTrampStore(CodeObject::funclist & procedures)
 
         ParseAPI::Function::blocklist::iterator bIter;
         for (bIter = blocks.begin(); bIter != blocks.end(); ++bIter) {
-            std::vector<std::pair<Instruction::Ptr, Address> > insns;
+            std::vector<std::pair<Instruction, Address> > insns;
             getInsnInstances(*bIter, insns);
-            std::vector<std::pair<Instruction::Ptr, Address> >::iterator insnIter;
+            std::vector<std::pair<Instruction, Address> >::iterator insnIter;
             for (insnIter= insns.begin();
                     insnIter != insns.end();
                     ++insnIter) {
-                std::pair<Instruction::Ptr, Address> insn = *insnIter;
+                std::pair<Instruction, Address> insn = *insnIter;
                 if (isCallToSyscallTrampStore(insn.first, syscallTramp)) {
                     return syscallTramp;
                 }   

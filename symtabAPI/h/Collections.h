@@ -31,6 +31,7 @@
 #ifndef _Collections_h_
 #define _Collections_h_
 
+#include <tbb/concurrent_hash_map.h>
 #include "Type.h"
 #include "Variable.h"
 #include "Serialization.h"
@@ -54,7 +55,7 @@ class DwarfWalker;
 
 class SYMTAB_EXPORT localVarCollection : public AnnotationContainer<localVar *> {
   
-  std::vector<localVar* > localVars;
+  tbb::concurrent_vector<localVar* > localVars;
   
   bool addItem_impl(localVar *);
 public:
@@ -63,7 +64,7 @@ public:
 
   void addLocalVar(localVar * var);
   localVar * findLocalVar(std::string &name);
-  std::vector<localVar *> *getAllVars();  
+  const tbb::concurrent_vector<localVar *> &getAllVars() const;
 
   Serializable *ac_serialize_impl(SerializerBase *, const char * = "localVarCollection") THROW_SPEC (SerializerError);
 };
@@ -82,9 +83,9 @@ class SYMTAB_EXPORT typeCollection : public Serializable//, public AnnotatableSp
     friend class Type;
     friend class DwarfWalker;
 
-    dyn_hash_map<std::string, Type *> typesByName;
-    dyn_hash_map<std::string, Type *> globalVarsByName;
-    dyn_hash_map<int, Type *> typesByID;
+    tbb::concurrent_hash_map<std::string, Type *> typesByName;
+    tbb::concurrent_hash_map<std::string, Type *> globalVarsByName;
+    tbb::concurrent_hash_map<int, Type *> typesByID;
 
 
     // DWARF:
@@ -103,12 +104,9 @@ class SYMTAB_EXPORT typeCollection : public Serializable//, public AnnotatableSp
     ~typeCollection();
 public:
 	static void addDeferredLookup(int, dataClass, Type **);
+    static boost::mutex create_lock;
 
     static typeCollection *getModTypeCollection(Module *mod);
-#if 0
-    static typeCollection *getGlobalTypeCollection();
-    static void freeTypeCollection(typeCollection *tc);
-#endif
 
     // DWARF...
     bool dwarfParsed() { return dwarfParsed_; }
@@ -119,6 +117,7 @@ public:
     Type 	*findTypeLocal(std::string name);
     Type 	*findTypeLocal(const int ID);
     void	addType(Type *type);
+        void	addType(Type *type, boost::lock_guard<boost::mutex>&);
     void        addGlobalVariable(std::string &name, Type *type);
 
     /* Some debug formats allow forward references.  Rather than
@@ -135,6 +134,10 @@ public:
     std::vector<Type *> *getAllTypes();
     std::vector<std::pair<std::string, Type *> > *getAllGlobalVariables();
     void clearNumberedTypes();
+    private:
+        boost::mutex placeholder_mutex; // The only intermodule contention should be around
+        // typedefs/other placeholders, but we'll go ahead and lock around type add operations
+        // to be safe
 };
 
 /*

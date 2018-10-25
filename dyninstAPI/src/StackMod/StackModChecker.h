@@ -80,7 +80,7 @@ class StackModChecker
             std::vector<BPatch_point*>* checkPoints);
         
         bool areModificationsSafe();
-        bool isAccessSafe(Dyninst::InstructionAPI::Instruction::Ptr insn, StackAccess* access);
+        bool isAccessSafe(InstructionAPI::Instruction insn, StackAccess *access);
         
         bool _unsafeStackGrowth;
         

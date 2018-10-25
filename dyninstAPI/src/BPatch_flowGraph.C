@@ -479,9 +479,9 @@ bool BPatch_flowGraph::createSourceBlocks() {
 
     BPatch_Vector<BPatch_statement> lines;
     using namespace Dyninst::InstructionAPI;
-    std::vector<std::pair< Instruction::Ptr, Address > > insnsByAddr;
+    std::vector<std::pair< Instruction, Address > > insnsByAddr;
     currentBlock->getInstructions(insnsByAddr);
-    for(std::vector<std::pair< Instruction::Ptr, Address > >::const_iterator cur = insnsByAddr.begin();
+    for(auto cur = insnsByAddr.begin();
         cur != insnsByAddr.end();
         ++cur)
       {

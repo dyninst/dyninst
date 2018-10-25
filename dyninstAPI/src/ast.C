@@ -252,15 +252,6 @@ AstNodePtr AstNode::miniTrampNode(AstNodePtr tramp) {
     return AstNodePtr(new AstMiniTrampNode(tramp));
 }
 
-AstNodePtr AstNode::insnNode(BPatch_instruction *insn) {
-    // Figure out what kind of instruction we've got...
-    if (dynamic_cast<BPatch_memoryAccess *>(insn)) {
-        return AstNodePtr(new AstInsnMemoryNode(insn->insn()->insn(), (Address) insn->getAddress()));
-    }
-
-    return AstNodePtr(new AstInsnNode(insn->insn()->insn(), (Address) insn->getAddress()));
-}
-
 AstNodePtr AstNode::originalAddrNode() {
     if (originalAddrNode_ == NULL) {
         originalAddrNode_ = AstNodePtr(new AstOriginalAddrNode());
@@ -473,12 +464,6 @@ AstVariableNode::AstVariableNode(vector<AstNodePtr>&ast_wrappers, vector<pair<Of
    for (i = ast_wrappers.begin(); i != ast_wrappers.end(); i++) {
       (*i)->referenceCount++;
    }
-}
-
-AstInsnNode::AstInsnNode(instruction *insn, Address addr) :
-    AstNode(),
-    insn_(insn),
-    origAddr_(addr) {
 }
 
 AstMemoryNode::AstMemoryNode(memoryType mem,
@@ -803,7 +788,6 @@ bool AstNode::generateCode_phase2(codeGen &, bool,
     if (dynamic_cast<AstCallNode *>(this)) fprintf(stderr, "callNode\n");
     if (dynamic_cast<AstSequenceNode *>(this)) fprintf(stderr, "seqNode\n");
     if (dynamic_cast<AstVariableNode *>(this)) fprintf(stderr, "varNode\n");
-    if (dynamic_cast<AstInsnNode *>(this)) fprintf(stderr, "insnNode\n");
     if (dynamic_cast<AstMiniTrampNode *>(this)) fprintf(stderr, "miniTrampNode\n");
     if (dynamic_cast<AstMemoryNode *>(this)) fprintf(stderr, "memoryNode\n");
     assert(0);
@@ -2192,86 +2176,6 @@ bool AstVariableNode::generateCode_phase2(codeGen &gen, bool noCost,
     return ast_wrappers_[index]->generateCode_phase2(gen, noCost, addr, retReg);
 }
 
-bool AstInsnNode::generateCode_phase2(codeGen &gen, bool,
-                                      Address &, Register &) {
-    assert(insn_);
-
-    insnCodeGen::generate(gen,*insn_,gen.addrSpace(),origAddr_,gen.currAddr());
-    decUseCount(gen);
-
-    return true;
-}
-
-bool AstInsnBranchNode::generateCode_phase2(codeGen &gen, bool noCost,
-                                            Address &, Register & ) {
-    assert(insn_);
-
-    // Generate side 2 and get the result...
-    Address targetAddr = ADDR_NULL;
-    Register targetReg = REG_NULL;
-    if (target_) {
-        // TODO: address vs. register...
-        if (!target_->generateCode_phase2(gen, noCost, targetAddr, targetReg)) ERROR_RETURN;
-    }
-    // We'd now generate a fixed or register branch. But we don't. So there.
-    assert(0 && "Unimplemented");
-    insnCodeGen::generate(gen,*insn_,gen.addrSpace(), origAddr_, gen.currAddr(), 0, 0);
-	decUseCount(gen);
-
-    return true;
-}
-
-bool AstInsnMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
-                                            Address &, Register &) {
-    Register loadReg = REG_NULL;
-    Register storeReg = REG_NULL;
-    Address loadAddr = ADDR_NULL;
-    Address storeAddr = ADDR_NULL;
-    assert(insn_);
-
-    // Step 1: save machine-specific state (AKA flags) and mark registers used in
-    // the instruction itself as off-limits.
-
-    gen.rs()->saveVolatileRegisters(gen);
-    pdvector<int> usedRegisters;
-    if (insn_->getUsedRegs(usedRegisters)) {
-        for (unsigned i = 0; i < usedRegisters.size(); i++) {
-            gen.rs()->markReadOnly(usedRegisters[i]);
-        }
-    }
-    else {
-        // We don't know who to avoid... return false?
-        fprintf(stderr, "WARNING: unknown \"off limits\" register set, returning false from memory modification\n");
-        return false;
-    }
-
-    // Step 2: generate code (this may spill registers)
-
-    if (load_)
-        if (!load_->generateCode_phase2(gen, noCost, loadAddr, loadReg)) ERROR_RETURN;
-
-    if (store_)
-        if (!store_->generateCode_phase2(gen, noCost, storeAddr, storeReg)) ERROR_RETURN;
-
-    // Step 3: restore flags (before the original instruction)
-
-    gen.rs()->restoreVolatileRegisters(gen);
-
-    // Step 4: generate the memory instruction
-    if (!insnCodeGen::generateMem(gen,*insn_,origAddr_, gen.currAddr(), loadReg, storeReg)) {
-        fprintf(stderr, "ERROR: generateMem call failed\n");
-        return false;
-    }
-
-    // Step 5: restore any registers that were st0mped.
-
-
-    gen.rs()->restoreAllRegisters(gen, true);
-
-    decUseCount(gen);
-    return true;
-}
-
 bool AstOriginalAddrNode::generateCode_phase2(codeGen &gen,
                                               bool noCost,
                                               Address &,
@@ -2315,8 +2219,8 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
        gen.point()->type() != instPoint::PreInsn)
        return false;
 
-   InstructionAPI::Instruction::Ptr insn = gen.point()->block()->getInsn(gen.point()->block()->last());
-   if (insn->getCategory() == c_ReturnInsn) {
+   InstructionAPI::Instruction insn = gen.point()->block()->getInsn(gen.point()->block()->last());
+   if (insn.getCategory() == c_ReturnInsn) {
       // if this is a return instruction our AST reads the top stack value
       if (retReg == REG_NULL) {
          retReg = allocateAndKeep(gen, noCost);
@@ -3304,15 +3208,6 @@ void AstVariableNode::setVariableAST(codeGen &gen){
     assert(found);
 }
 
-void AstInsnBranchNode::setVariableAST(codeGen &g){
-    if(target_) target_->setVariableAST(g);
-}
-
-void AstInsnMemoryNode::setVariableAST(codeGen &g){
-    if(load_) load_->setVariableAST(g);
-    if(store_) store_->setVariableAST(g);
-}
-
 void AstMiniTrampNode::setVariableAST(codeGen &g){
     if(ast_) ast_->setVariableAST(g);
 }
@@ -3352,12 +3247,6 @@ bool AstVariableNode::containsFuncCall() const
     return ast_wrappers_[index]->containsFuncCall();
 }
 
-bool AstInsnMemoryNode::containsFuncCall() const {
-    if (load_ && load_->containsFuncCall()) return true;
-    if (store_ && store_->containsFuncCall()) return true;
-    return false;
-}
-
 bool AstNullNode::containsFuncCall() const
 {
    return false;
@@ -3384,11 +3273,6 @@ bool AstLabelNode::containsFuncCall() const
 }
 
 bool AstMemoryNode::containsFuncCall() const
-{
-   return false;
-}
-
-bool AstInsnNode::containsFuncCall() const
 {
    return false;
 }
@@ -3459,12 +3343,6 @@ bool AstVariableNode::usesAppRegister() const
     return ast_wrappers_[index]->usesAppRegister();
 }
 
-bool AstInsnMemoryNode::usesAppRegister() const {
-    if (load_ && load_->usesAppRegister()) return true;
-    if (store_ && store_->usesAppRegister()) return true;
-    return false;
-}
-
 bool AstNullNode::usesAppRegister() const
 {
    return false;
@@ -3510,10 +3388,6 @@ bool AstMemoryNode::usesAppRegister() const
    return true;
 }
 
-bool AstInsnNode::usesAppRegister() const
-{
-   return true;
-}
 bool AstScrambleRegistersNode::usesAppRegister() const
 {
    return true;

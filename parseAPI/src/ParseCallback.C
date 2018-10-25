@@ -99,7 +99,7 @@ void ParseCallbackManager::batch_end(CFGFactory *fact) {
    // now that we're done with callbacks, delete dangling objects
    for (std::vector<Edge *>::iterator iter = destroyedEdges_.begin();
         iter != destroyedEdges_.end(); ++iter) {
-      fact->destroy_edge(*iter);
+      fact->destroy_edge(*iter, destroyed_cb);
    }
    destroyedEdges_.clear();
    for (std::vector<Block *>::iterator iter = destroyedBlocks_.begin();
@@ -127,7 +127,7 @@ void ParseCallbackManager::destroy(Edge *e, CFGFactory *fact) {
    if (inBatch_) destroyedEdges_.push_back(e);
    else {
       destroy_cb(e);
-      fact->destroy_edge(e);
+      fact->destroy_edge(e, destroyed_cb);
    }
 }
 
@@ -186,6 +186,7 @@ void ParseCallbackManager::overlapping_blocks(Block *a, Block *b) {
 };
 
 void ParseCallbackManager::newfunction_retstatus(Function *f) {
+   boost::lock_guard <Function> g(*f);
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->newfunction_retstatus(f);
 };
@@ -229,6 +230,11 @@ void ParseCallbackManager::foundWeirdInsns(Function *f) {
 void ParseCallbackManager::split_block_cb(Block *a, Block *b) {
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->split_block_cb(a, b);
+};
+
+void ParseCallbackManager::discover_function(Function* f) {
+   for (iterator iter = begin(); iter != end(); ++iter)
+      (*iter)->function_discovery_cb(f);
 };
 
 void ParseCallbackManager::destroy_cb(Block *b) {

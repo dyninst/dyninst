@@ -66,8 +66,8 @@ class Widget {
   // A default value to make sure things don't go wonky.
   virtual Address addr() const { return 0; }
   virtual unsigned size() const { return 0; }
-  virtual InstructionAPI::Instruction::Ptr insn() const {
-    return InstructionAPI::Instruction::Ptr();
+  virtual InstructionAPI::Instruction insn() const {
+    return InstructionAPI::Instruction();
   }
 
   // Make binary from the thing

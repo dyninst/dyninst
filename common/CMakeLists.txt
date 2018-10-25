@@ -1,6 +1,5 @@
 # CMake configuration for common directory
 
-
 if(NOT WIN32)
 include_directories (
     ${PROJECT_SOURCE_DIR}/common/h 
@@ -10,28 +9,28 @@ else()
 include_directories (
     ${PROJECT_SOURCE_DIR}/common/h # don't include common/src; anything from there can still collide with default includes.
 	# stupid Windows case-insensitive naming.
+    ${CILKSCREEN_INCLUDES}
   )
 endif()
 
 
 set (SRC_LIST
-    src/Ident.C
-    src/string-regex.C 
+    src/mcs-lock.C
+    src/pfq-rwlock.C
+    src/race-detector-annotations.C
+    src/string-regex.C
     src/Timer.C 
     src/Types.C 
-    src/debugOstream.C 
-    src/lprintf.C 
+    src/lprintf.C
     src/pathName.C 
     src/Time.C 
-    src/fraction.C 
+    src/fraction.C
     src/timing.C 
     src/stats.C 
     src/Annotatable.C 
     src/MappedFile.C 
     src/sha1.C 
-    src/serialize-bin.C 
-    src/serialize-xml.C 
-    src/util.C 
+    src/util.C
     src/Node.C 
     src/Graph.C 
     src/Edge.C 
@@ -116,7 +115,7 @@ if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
   target_link_private_libraries(common Psapi WS2_32 dbghelp)
 endif()
 target_link_private_libraries(common ${Boost_LIBRARIES})
-
+target_link_libraries(common PUBLIC ${TBB_LIBRARIES})
 
 IF (USE_COTIRE)
     cotire(common)

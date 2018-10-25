@@ -1022,12 +1022,12 @@ void emitStorePreviousStackFrameRegister(Address,
 }
 
 using namespace Dyninst::InstructionAPI;
-
-bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction::Ptr i,
-                                          Address addr,
-                                          std::vector <AstNodePtr> &args) {
-    assert(0); //Not implemented
-    return false;
+bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
+					  Address addr,
+					  pdvector<AstNodePtr> &args)
+{
+	assert(0); //Not implemented
+	return false;
 }
 
 bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f) {

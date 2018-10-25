@@ -21,39 +21,56 @@ JumpTableFormatPred::JumpTableFormatPred(ParseAPI::Function *f,
     findIndex = false;
     findTableBase = false;
     firstMemoryRead = true;
+    toc_address = 0;
     if (b->obj()->cs()->getArch() == Arch_ppc64) {
         FindTOC();
     }
 }
 
-void JumpTableFormatPred::FindTOC() {
-    toc_address = block->obj()->cs()->getTOC(func->addr());
-    if (!toc_address) {
-        // Little endian powerpc changes its ABI, which does not have .opd section, but often load R2 at function entry
-	Address entry = 0;
-	if (func->src() == HINT) {
-	    entry = func->addr();
-	} else if (func->src() == RT) {
-	    entry = func->addr() - 8; 
-	} else {
-	    parsing_printf("\tUnhandled type of function for getting TOC address\n");
-	    return;
-	}
-	const uint32_t * buf = (const uint32_t*) block->obj()->cs()->getPtrToInstruction(entry);
-	if (buf == NULL) return;
-	if ((buf[0] >> 16) != 0x3c40 || (buf[1] >> 16) != 0x3842) return;
-	if (buf[0] & 0x8000) {
-	    toc_address = (buf[0] & 0xffff) | SIGNEX_64_16;
-	} else {
-	    toc_address = buf[0] & 0xffff;
-	}
-	if (buf[1] & 0x8000) {
-	    toc_address = (toc_address << 16) + ((buf[1] & 0xffff) | SIGNEX_64_16);
-	} else {
-	    toc_address = (toc_address << 16) + (buf[1] & 0xffff);
-	}
+static bool ComputeTOC(Address &ret, Address entry, Block* b) {
+    if (!b->region()->isCode(entry)) return false;
+    const uint32_t * buf = (const uint32_t*) b->region()->getPtrToInstruction(entry);
+    if (buf == NULL) return false;
+
+    uint32_t i1 = buf[0];
+    uint32_t i2 = buf[1];
+
+    uint32_t p1 = i1 >> 16;
+    uint32_t p2 = i2 >> 16;
+
+    // lis and addis treat imm unsigned
+    Address a1 = i1 & 0xffff;
+    // addi treats imm signed
+    Address a2 = i2 & 0xffff;
+    if (a2 & 0x8000) a2 = a2 | SIGNEX_64_16;
+
+    // Check for two types of preamble
+    // Preamble 1: used in executables
+    // lis r2, IMM       bytes: IMM1 IMM2 40 3c 
+    // addi r2, r2, IMM  bytes: IMM1 IMM2 42 38
+    if (p1 == 0x3c40 && p2 == 0x3842) {
+        ret = (a1 << 16) + a2;
+        return true;
     }
-    parsing_printf("\t TOC address %lx in R2\n", toc_address);
+    
+    // Preamble 2: used in libraries
+    // addis r2, r12, IMM   bytes: IMM1 IMM2 4c 3c
+    // addi r2, r2,IMM      bytes: IMM1 IMM2 42 38
+    if (p1 == 0x3c4c && p2 == 0x3842) {
+        ret = entry + (a1 << 16) + a2;
+        return true;
+    }
+    return false;
+}
+
+void JumpTableFormatPred::FindTOC() {
+        // Little endian powerpc changes its ABI, which does not have .opd section, but often load R2 at function entry
+    if (ComputeTOC(toc_address, func->addr(), block) || 
+        ComputeTOC(toc_address, func->addr() - 8, block)) {
+        parsing_printf("\t find TOC address %lx in R2\n", toc_address);
+        return;        
+    }
+    parsing_printf("\tDid not find TOC for function at %lx\n", func->addr());
 }
 
 static int CountInDegree(SliceNode::Ptr n) {
@@ -167,7 +184,8 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	 */
 	pair<AST::Ptr, bool> expandRet = se.ExpandAssignment(n->assign(), true);
 	if (!expandRet.second || expandRet.first == NULL) {
-	    parsing_printf("\tWARNING: Jump table format slice contains unknown instructions: %s\n", n->assign()->insn()->format().c_str());
+	    parsing_printf("\tWARNING: Jump table format slice contains unknown instructions: %s\n",
+					   n->assign()->insn().format().c_str());
 	    unknownInstruction = true;
 	    jumpTableFormat = false;
 	    return false;
@@ -184,6 +202,7 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	// We start plug in ASTs from predecessors
 	n->ins(nbegin, nend);
 	map<AST::Ptr, AST::Ptr> inputs;
+        map<AST::Ptr, Address> input_addr;
 	if (block->obj()->cs()->getArch() == Arch_ppc64) {
 	    inputs.insert(make_pair(VariableAST::create(Variable(AbsRegion(Absloc(ppc64::r2)))),
 	                  ConstantAST::create(Constant(toc_address, 64))));
@@ -194,8 +213,10 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	    exp = SymbolicExpression::SubstituteAnAST(exp, inputs);
 	    inputs.clear();
 	}
+        parsing_printf("JumpTableFormatPred: analyze %s at %lx\n", n->assign()->format().c_str(), n->assign()->addr());
 	for (; nbegin != nend; ++nbegin) {
 	    SliceNode::Ptr p = boost::static_pointer_cast<SliceNode>(*nbegin);
+
 	    if (exprs.find(p->assign()) == exprs.end()) {
 	        parsing_printf("\tWARNING: For %s, its predecessor %s does not have an expression\n", n->assign()->format().c_str(), p->assign()->format().c_str());
 		jumpTableFormat = false;
@@ -203,9 +224,27 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	    }
 	    AST::Ptr rhs = exprs[p->assign()];	    
 	    AST::Ptr lhs = VariableAST::create(Variable(p->assign()->out())); 
-	    // TODO: there may be more than one expression for a single variable
-	    inputs.insert(make_pair(lhs,  rhs));
+            bool find = false;
+            for (auto iit = inputs.begin(); iit != inputs.end(); ++iit)
+                if (*(iit->first) == *lhs) {
+                    find = true;
+                    if (p->assign()->addr() < input_addr[iit->first]) {
+                        inputs[iit->first] = rhs;
+                        input_addr[iit->first] = p->assign()->addr();
+                    }
+                    break;
+                }
+            if (!find) {
+                inputs[lhs] = rhs;
+                input_addr[lhs] = p->assign()->addr();
+            }
+            parsing_printf("\t\t pred %s at %lx, lhs %s, rhs %s\n", p->assign()->format().c_str(), p->assign()->addr(), lhs->format().c_str(), rhs->format().c_str());
+
 	}
+        parsing_printf("Input map:\n");
+        for (auto iit = inputs.begin(); iit != inputs.end(); ++iit) {
+            parsing_printf("\t %s %s\n", iit->first->format().c_str(), iit->second->format().c_str());
+        }
 	if (g->isExitNode(n)) {
 	    // Here we try to detect the case where there are multiple
 	    // paths to the indirect jump, and on some of the paths, the jump
@@ -247,6 +286,8 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	// TODO: need to consider thunk
 	exp = SymbolicExpression::SubstituteAnAST(exp, inputs);
 	exprs[n->assign()] = exp;
+        parsing_printf("\t expression %s\n", exp->format().c_str());
+
         // Enumerate every successor and add them to the working list
 	n->outs(nbegin, nend);
 	for (; nbegin != nend; ++nbegin) {
@@ -266,7 +307,7 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
     }
     JumpTableFormatVisitor jtfv(block);
     assert(jumpTarget);
-    jumpTarget = SymbolicExpression::SimplifyAnAST(jumpTarget, 0, true);
+    jumpTarget = se.SimplifyAnAST(jumpTarget, 0, true);
     parsing_printf("Check expression %s\n", jumpTarget->format().c_str());    
     jumpTarget->accept(&jtfv);
     if (jtfv.findIncorrectFormat) {
@@ -316,7 +357,7 @@ bool JumpTableFormatPred::findRead(Graph::Ptr g, SliceNode::Ptr &readNode) {
 	if (n->assign() == memLoc) {
 	    continue;
 	}
-	if (n->assign() && n->assign()->insn() && n->assign()->insn()->readsMemory()) {
+	if (n->assign() && n->assign()->insn().isValid() && n->assign()->insn().readsMemory()) {
 	    readNode = n;
 	    return true;
 	}
@@ -333,7 +374,7 @@ static Assignment::Ptr SearchForWrite(SliceNode::Ptr n, AbsRegion &src, Slicer::
     inQueue.insert(n->block());
 
     set<Expression::Ptr> memReads;
-    n->assign()->insn()->getMemoryReadOperands(memReads);
+    n->assign()->insn().getMemoryReadOperands(memReads);
     if (memReads.size() != 1) {
         parsing_printf("\tThe instruction has %d memory read operands, Should have only one\n", memReads.size());
 	return Assignment::Ptr();
@@ -341,7 +382,7 @@ static Assignment::Ptr SearchForWrite(SliceNode::Ptr n, AbsRegion &src, Slicer::
     Expression::Ptr memRead = *memReads.begin();
     parsing_printf("\tsearch for memory operand %s\n", memRead->format().c_str());
     Block* targetBlock = NULL;
-    Instruction::Ptr targetInsn;
+    Instruction targetInsn;
     Address targetAddr;
 
     while (!workingList.empty() && targetBlock == NULL) {
@@ -359,14 +400,14 @@ static Assignment::Ptr SearchForWrite(SliceNode::Ptr n, AbsRegion &src, Slicer::
 
 	for (auto iit = insns.rbegin(); iit != insns.rend(); ++iit) {
 	    if (addr > 0 && iit->first > addr) continue;
-	    Instruction::Ptr i = iit->second;
+	    Instruction i = iit->second;
 	    // We find an the first instruction that only writes to memory
 	    // and the memory operand has the exact AST as the memory read.
 	    // Ideally, we need an architecture independent way to check whether this is a move instruction.
 	    // Category c_NoCategory excludes lots of non-move instructions
-	    if (!i->readsMemory() && i->writesMemory() && i->getCategory() == c_NoCategory) {
+	    if (!i.readsMemory() && i.writesMemory() && i.getCategory() == c_NoCategory) {
 	        set<Expression::Ptr> memWrites;
-		i->getMemoryWriteOperands(memWrites);
+		i.getMemoryWriteOperands(memWrites);
 		if (memWrites.size() == 1 && *memRead == *(*memWrites.begin())) {
 		    targetBlock = curBlock;
 		    targetInsn = i;
@@ -375,7 +416,7 @@ static Assignment::Ptr SearchForWrite(SliceNode::Ptr n, AbsRegion &src, Slicer::
 
                     // Now we try to identify the source register
 		    std::vector<Operand> ops;
-		    i->getOperands(ops);
+		    i.getOperands(ops);
 		    for (auto oit = ops.begin(); oit != ops.end(); ++oit) {
 		        if (!(*oit).writesMemory() && !(*oit).readsMemory()) {
 			    std::set<RegisterAST::Ptr> regsRead;
@@ -396,8 +437,9 @@ static Assignment::Ptr SearchForWrite(SliceNode::Ptr n, AbsRegion &src, Slicer::
 		}
 	    }
 	}
-
-	for (auto eit = curBlock->sources().begin(); eit != curBlock->sources().end(); ++eit) {
+        Block::edgelist sources;
+        curBlock->copy_sources(sources); 
+	for (auto eit = sources.begin(); eit != sources.end(); ++eit) {
 	    ParseAPI::Edge *e = *eit;
 	    if (e->interproc()) continue;
 	    if (e->type() == CATCH) continue;

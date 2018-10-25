@@ -190,7 +190,9 @@ class Object : public AObject
     SYMTAB_EXPORT unsigned int GetTextSectionId( void ) const         { return textSectionId;}
     SYMTAB_EXPORT PIMAGE_NT_HEADERS   GetImageHeader( void ) const    { return peHdr; }
     SYMTAB_EXPORT PVOID GetMapAddr( void ) const                      { return mf->base_addr(); }
-    SYMTAB_EXPORT Offset getEntryPoint( void ) const                { if (peHdr) return peHdr->OptionalHeader.AddressOfEntryPoint; return 0;}
+    SYMTAB_EXPORT Offset getEntryPoint( void ) const                {
+		if (peHdr) return peHdr->OptionalHeader.AddressOfEntryPoint;
+		return 0;}
     //+ desc.loadAddr(); } //laodAddr is always zero in our fake address space.
     // TODO. Change these later.
     SYMTAB_EXPORT Offset getLoadAddress() const { return imageBase; }

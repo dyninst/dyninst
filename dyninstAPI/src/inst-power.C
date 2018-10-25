@@ -2557,7 +2557,7 @@ void emitStorePreviousStackFrameRegister(Address,
 }
 
 using namespace Dyninst::InstructionAPI; 
-bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction::Ptr i,
+bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
 					  Address addr, 
 					  pdvector<AstNodePtr> &args)
 {
@@ -2569,8 +2569,8 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction::Ptr i,
 
     // Is this a branch conditional link register (BCLR)
     // BCLR uses the xlform (6,5,5,5,10,1)
-    for(Instruction::cftConstIter curCFT = i->cft_begin();
-        curCFT != i->cft_end();
+    for(Instruction::cftConstIter curCFT = i.cft_begin();
+        curCFT != i.cft_end();
         ++curCFT)
     {
       if(curCFT->target->isUsed(ctr32) ||

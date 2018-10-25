@@ -47,19 +47,6 @@ using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
 
-CFPatch::CFPatch(Type a,
-                 InstructionAPI::Instruction::Ptr b,
-                 TargetInt *c,
-                 Address d) :
-   type(a), orig_insn(b), target(c), origAddr_(d) {
-   if (b)
-      ugly_insn = new NS_x86::instruction(b->ptr());
-   else
-      ugly_insn = NULL;
-   // New branches don't get an original instruction...
-}
-
-
 bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
    // Question 1: are we doing an inter-module static control transfer?
    // If so, things get... complicated

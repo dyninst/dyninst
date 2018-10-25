@@ -199,28 +199,68 @@ unsigned long long PDYN_mulMillion(unsigned long long in) {
    return result;
 }
 
-#if defined(cap_gnu_demangler)
 #include <cxxabi.h>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/lock_guard.hpp>
+
+#include <race-detector-annotations.h>
+
 using namespace abi;
-#endif
+
+inline void set_thread_local_pointer(char* &var, char* val) {
+    race_detector_fake_lock_acquire(race_detector_fake_lock(var));
+    var = val;
+    race_detector_fake_lock_release(race_detector_fake_lock(var));
+}
+
+inline void set_thread_local_bool(bool &var, bool val) {
+    race_detector_fake_lock_acquire(race_detector_fake_lock(var));
+    var = val;
+    race_detector_fake_lock_release(race_detector_fake_lock(var));
+}
+
+inline char* get_thread_local_pointer(char* &var) {
+    char *ret;
+    race_detector_fake_lock_acquire(race_detector_fake_lock(var));
+    ret = var;
+    race_detector_fake_lock_release(race_detector_fake_lock(var));
+    return ret;
+}
+
+inline bool get_thread_local_bool(bool &var) {
+    bool ret;
+    race_detector_fake_lock_acquire(race_detector_fake_lock(var));
+    ret = var;
+    race_detector_fake_lock_release(race_detector_fake_lock(var));
+    return ret;
+}
+
 
 char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
 				bool includeTypes )
 {
-  static char* last_symbol = NULL;
-  static bool last_native = false;
-  static bool last_typed = false;
-  static char* last_demangled = NULL;
+  static __thread char* last_symbol;
+  set_thread_local_pointer(last_symbol, NULL);
+  static __thread bool last_native;
+  set_thread_local_bool(last_native, false);
+  static __thread bool last_typed;
+  set_thread_local_bool(last_typed, false);
+  static __thread char* last_demangled;
+  set_thread_local_pointer(last_demangled, NULL);
 
-  if(last_symbol && last_demangled && (nativeCompiler == last_native)
-      && (includeTypes == last_typed) && (strcmp(symbol, last_symbol) == 0))
+  if(get_thread_local_pointer(last_symbol) && 
+     get_thread_local_pointer(last_demangled) && 
+     (nativeCompiler == get_thread_local_bool(last_native)) && 
+     (includeTypes == get_thread_local_bool(last_typed)) && 
+     (strcmp(symbol, get_thread_local_pointer(last_symbol)) == 0))
   {
-      return strdup(last_demangled);
+      return strdup(get_thread_local_pointer(last_demangled));
   }
-
-#if defined(cap_gnu_demangler)
    int status;
-   char *demangled = __cxa_demangle(symbol, NULL, NULL, &status);
+   char* demangled;
+   {
+      demangled = __cxa_demangle(symbol, NULL, NULL, &status);
+   }
    if (status == -1) {
       //Memory allocation failure.
       return NULL;
@@ -230,16 +270,6 @@ char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
       return NULL;
    }
    assert(status == 0); //Success
-#else
-   int opts = 0;
-   opts |= includeTypes ? DMGL_PARAMS | DMGL_ANSI : 0;
-   //   [ pgcc/CC are the "native" compilers on Linux. Go figure. ]
-   // pgCC's mangling scheme most closely resembles that of the Annotated
-   // C++ Reference Manual, only with "some exceptions" (to quote the PGI
-   // documentation). I guess we'll demangle names with "some exceptions".
-   opts |= nativeCompiler ? DMGL_ARM : 0;
-   char * demangled = cplus_demangle( const_cast< char *>(symbol), opts);
-#endif
 
    if( demangled == NULL ) { return NULL; }
 
@@ -254,12 +284,12 @@ char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
         demangled = dedemangled;
    }
 
-   free(last_symbol);
-   free(last_demangled);
-   last_native = nativeCompiler;
-   last_typed = includeTypes;
-   last_symbol = strdup(symbol);
-   last_demangled = strdup(demangled);
+   free(get_thread_local_pointer(last_symbol));
+   free(get_thread_local_pointer(last_demangled));
+   set_thread_local_bool(last_native, nativeCompiler);
+   set_thread_local_bool(last_typed, includeTypes);
+   set_thread_local_pointer(last_symbol, strdup(symbol));
+   set_thread_local_pointer(last_demangled, strdup(demangled));
 
    return demangled;
 } /* end P_cplus_demangle() */

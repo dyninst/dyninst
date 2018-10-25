@@ -142,11 +142,14 @@ bool Symtab::deleteSymbolFromIndices(Symbol *sym) {
 
 bool Symtab::deleteSymbol(Symbol *sym)
 {
+    pfq_rwlock_node_t me;
+    pfq_rwlock_write_lock(symbols_rwlock, me);
     if (sym->aggregate_) {
         sym->aggregate_->removeSymbol(sym);
     }
-
-    return deleteSymbolFromIndices(sym);
+    bool result = deleteSymbolFromIndices(sym);
+    pfq_rwlock_write_unlock(symbols_rwlock, me);
+    return result;
 }
 
 bool Symtab::changeSymbolOffset(Symbol *sym, Offset newOffset) {
@@ -258,11 +261,14 @@ bool Symtab::addSymbol(Symbol *newSym)
       demangleSymbol(newSym);
    }
    
+   pfq_rwlock_node_t me;
+   pfq_rwlock_write_lock(symbols_rwlock, me);
    // Add to appropriate indices
    addSymbolToIndices(newSym, false);
    
    // And to aggregates
    addSymbolToAggregates(newSym);
+   pfq_rwlock_write_unlock(symbols_rwlock, me);
 
    return true;
 }

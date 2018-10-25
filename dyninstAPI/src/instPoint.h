@@ -87,14 +87,14 @@ class instPoint : public Dyninst::PatchAPI::Point {
     static instPoint *blockExit(func_instance *, block_instance *);
     static instPoint *edge(func_instance *, edge_instance *);
     static instPoint *preInsn(func_instance *,
-                        block_instance *,
-                        Address,
-                        InstructionAPI::Instruction::Ptr = InstructionAPI::Instruction::Ptr(),
-                        bool trusted = false);
+                              block_instance *,
+                              Address,
+                              InstructionAPI::Instruction = InstructionAPI::Instruction(),
+                              bool trusted = false);
     static instPoint *postInsn(func_instance *,
-                        block_instance *, Address,
-                        InstructionAPI::Instruction::Ptr = InstructionAPI::Instruction::Ptr(),
-                        bool trusted = false);
+                               block_instance *, Address,
+                               InstructionAPI::Instruction = InstructionAPI::Instruction(),
+                               bool trusted = false);
     static instPoint *preCall(func_instance *,
                               block_instance *);
     static instPoint *postCall(func_instance *,
@@ -111,7 +111,7 @@ class instPoint : public Dyninst::PatchAPI::Point {
     // (possibly func context) block
     instPoint(Type, PatchMgrPtr, block_instance *, func_instance *);
     // Insn
-    instPoint(Type, PatchMgrPtr, block_instance *, Address, InstructionAPI::Instruction::Ptr, func_instance *);
+    instPoint(Type, PatchMgrPtr, block_instance *, Address, InstructionAPI::Instruction, func_instance *);
     instPoint(Type, PatchMgrPtr, edge_instance *, func_instance *);
 
   public:
@@ -153,7 +153,7 @@ class instPoint : public Dyninst::PatchAPI::Point {
     void calcLiveness();
     // Will fill in insn if it's NULL-equivalent
     static bool checkInsn(block_instance *,
-                          InstructionAPI::Instruction::Ptr &insn,
+                          InstructionAPI::Instruction &insn,
                           Address a);
 
     baseTramp *baseTramp_;

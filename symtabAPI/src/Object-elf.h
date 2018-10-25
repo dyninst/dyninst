@@ -601,8 +601,8 @@ private:
   std::vector<std::pair<long, long> > new_dynamic_entries;
  private:
   const char* soname_;
-  
-};
+
+        };
 
 }//namespace SymtabAPI
 }//namespace Dyninst

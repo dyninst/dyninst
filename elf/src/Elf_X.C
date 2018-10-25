@@ -798,7 +798,7 @@ bool Elf_X_Shdr::next_data()
 
 bool Elf_X_Shdr::isValid() const
 {
-    return (shdr32 || shdr64);
+    return (shdr32 || shdr64) && data;
 }
 
 unsigned Elf_X_Shdr::wordSize() const
@@ -961,7 +961,7 @@ Elf_X_Sym Elf_X_Data::get_sym()
 
 bool Elf_X_Data::isValid() const
 {
-    return data;
+    return data != NULL;
 }
 
 // ------------------------------------------------------------------------
@@ -1663,6 +1663,8 @@ bool Elf_X::findDebugFile(std::string origfilename, string &output_name, char* &
    cached_debug = true;
 
    uint16_t shnames_idx = e_shstrndx();
+    // If we don't have names, bail.
+    if(shnames_idx >= e_shnum()) return false;
    Elf_X_Shdr shnames_hdr = get_shdr(shnames_idx);
    if (!shnames_hdr.isValid())
       return false;

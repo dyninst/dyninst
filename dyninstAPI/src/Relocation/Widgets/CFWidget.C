@@ -75,7 +75,7 @@ CFWidget::Ptr CFWidget::create(Widget::Ptr atom) {
    return ptr;
 }
 
-CFWidget::CFWidget(InstructionAPI::Instruction::Ptr insn, Address addr)  :
+CFWidget::CFWidget(InstructionAPI::Instruction insn, Address addr)  :
    isCall_(false), 
    isConditional_(false), 
    isIndirect_(false),
@@ -86,11 +86,12 @@ CFWidget::CFWidget(InstructionAPI::Instruction::Ptr insn, Address addr)  :
 {
    
    // HACK to be sure things are parsed...
-   insn->format();
-
-   for (Instruction::cftConstIter iter = insn->cft_begin(); iter != insn->cft_end(); ++iter) {
+   insn.format();
+   for (Instruction::cftConstIter iter = insn.cft_begin(); iter != insn.cft_end(); ++iter) {
       if (iter->isCall) isCall_ = true;
-      if (iter->isIndirect) isIndirect_ = true;
+      if (iter->isIndirect) {
+          isIndirect_ = true;
+      }
       if (iter->isConditional) isConditional_ = true;
    }
 
@@ -110,18 +111,15 @@ CFWidget::CFWidget(InstructionAPI::Instruction::Ptr insn, Address addr)  :
    // so that things work. 
 
 
-   // TODO: IAPI is recording all PPC64 instructions as PPC32. However, the
-   // registers they use are still PPC64. This is a pain to fix, and therefore
-   // I'm working around it here and in Movement-adhoc.C by checking _both_
-   // 32- and 64-bit. 
 
-   //Architecture fixme = insn_->getArch();
-   //if (fixme == Arch_ppc32) fixme = Arch_ppc64;
+   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn_.getArch())));
 
-   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn_->getArch())));
-   //Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
+   Expression::Ptr exp = insn_.getControlFlowTarget();
 
-   Expression::Ptr exp = insn_->getControlFlowTarget();
+   if(!exp) {
+      isIndirect_ = true;
+      return;
+   }
 
    exp->bind(thePC.get(), Result(u64, addr_));
    //exp->bind(thePCFixme.get(), Result(u64, addr_));
@@ -291,7 +289,7 @@ bool CFWidget::generate(const codeGen &templ,
             if (destMap_.find(Fallthrough) != destMap_.end()) {
                if (!generateBranch(buffer,
                                    destMap_[Fallthrough],
-                                   Instruction::Ptr(),
+                                   Instruction(),
                                    trace,
                                    true)) 
                   return false;
@@ -380,10 +378,10 @@ TargetInt *CFWidget::getDestination(Address dest) const {
 
 
 bool CFWidget::generateBranch(CodeBuffer &buffer,
-			    TargetInt *to,
-			    Instruction::Ptr insn,
-                            const RelocBlock *trace,
-			    bool fallthrough) {
+                              TargetInt *to,
+                              Instruction insn,
+                              const RelocBlock *trace,
+                              bool fallthrough) {
    assert(to);
    if (!to->necessary()) return true;
 
@@ -408,9 +406,9 @@ bool CFWidget::generateBranch(CodeBuffer &buffer,
 }
 
 bool CFWidget::generateCall(CodeBuffer &buffer,
-			  TargetInt *to,
-                          const RelocBlock *trace,
-			  Instruction::Ptr insn) {
+                            TargetInt *to,
+                            const RelocBlock *trace,
+                            Instruction insn) {
    if (!to) {
       // This can mean an inter-module branch...
       return true;
@@ -424,9 +422,9 @@ bool CFWidget::generateCall(CodeBuffer &buffer,
 }
 
 bool CFWidget::generateConditionalBranch(CodeBuffer &buffer,
-				       TargetInt *to,
-                                       const RelocBlock *trace,
-				       Instruction::Ptr insn) {
+                                         TargetInt *to,
+                                         const RelocBlock *trace,
+                                         Instruction insn) {
    assert(to);
    CFPatch *newPatch = new CFPatch(CFPatch::JCC, insn, to, trace->func(), addr_);
 
@@ -478,24 +476,30 @@ unsigned CFWidget::size() const
 /////////////////////////
 
 CFPatch::CFPatch(Type a,
-                 InstructionAPI::Instruction::Ptr b,
+                 Instruction b,
                  TargetInt *c,
-		 const func_instance *d,
+                 const func_instance *d,
                  Address e) :
   type(a), orig_insn(b), target(c), func(d), origAddr_(e) {
-  if (b)
-    ugly_insn = new instruction(b->ptr());
+  if (b.isValid()) {
+    insn_ptr = new unsigned char[b.size()];
+    memcpy(insn_ptr, b.ptr(), b.size());
+    ugly_insn = new instruction(insn_ptr, (b.getArch() == Dyninst::Arch_x86_64));
+  }
   else
     ugly_insn = NULL;
 }
 
 CFPatch::~CFPatch() { 
-  if (ugly_insn) delete ugly_insn;
+  if (ugly_insn) {
+    delete ugly_insn;
+    delete[] insn_ptr;
+  }
 }
 
 unsigned CFPatch::estimate(codeGen &) {
-   if (orig_insn) {
-      return orig_insn->size();
+   if (orig_insn.isValid()) {
+      return orig_insn.size();
    }
    return 0;
 }

@@ -48,7 +48,7 @@ using namespace Dyninst::InsnAdapter;
 using namespace Dyninst::ParseAPI;
 
 IA_x86::IA_x86(Dyninst::InstructionAPI::InstructionDecoder dec_,
-               Address start_, 
+               Address start_,
 	       Dyninst::ParseAPI::CodeObject* o,
 	       Dyninst::ParseAPI::CodeRegion* r,
 	       Dyninst::InstructionSource *isrc,
@@ -62,27 +62,27 @@ IA_x86* IA_x86::clone() const {
     return new IA_x86(*this);
 }
 
-bool IA_x86::isFrameSetupInsn(Instruction::Ptr i) const
+bool IA_x86::isFrameSetupInsn(Instruction i) const
 {
-    if(i->getOperation().getID() == e_mov)
+    if(i.getOperation().getID() == e_mov)
     {
-        if(i->readsMemory() || i->writesMemory())
+        if(i.readsMemory() || i.writesMemory())
         {
             parsing_printf("%s[%d]: discarding insn %s as stack frame preamble, not a reg-reg move\n",
-                           FILE__, __LINE__, i->format().c_str());
+                           FILE__, __LINE__, i.format().c_str());
             //return false;
         }
-        if(i->isRead(stackPtr[_isrc->getArch()]) &&
-           i->isWritten(framePtr[_isrc->getArch()]))
+        if(i.isRead(stackPtr[_isrc->getArch()]) &&
+           i.isWritten(framePtr[_isrc->getArch()]))
         {
-            if((unsigned) i->getOperand(0).getValue()->size() == _isrc->getAddressWidth())
+            if((unsigned) i.getOperand(0).getValue()->size() == _isrc->getAddressWidth())
             {
                 return true;
             }
             else
             {
                 parsing_printf("%s[%d]: discarding insn %s as stack frame preamble, size mismatch for %d-byte addr width\n",
-                               FILE__, __LINE__, i->format().c_str(), _isrc->getAddressWidth());
+                               FILE__, __LINE__, i.format().c_str(), _isrc->getAddressWidth());
             }
         }
     }
@@ -122,17 +122,17 @@ class nopVisitor : public InstructionAPI::Visitor
         }
 };
 
-bool isNopInsn(Instruction::Ptr insn) 
+bool isNopInsn(Instruction insn)
 {
     // TODO: add LEA no-ops
-    if(insn->getOperation().getID() == e_nop)
+    if(insn.getOperation().getID() == e_nop)
         return true;
-    if(insn->getOperation().getID() == e_lea)
+    if(insn.getOperation().getID() == e_lea)
     {
         std::set<Expression::Ptr> memReadAddr;
-        insn->getMemoryReadOperands(memReadAddr);
+        insn.getMemoryReadOperands(memReadAddr);
         std::set<RegisterAST::Ptr> writtenRegs;
-        insn->getWriteSet(writtenRegs);
+        insn.getWriteSet(writtenRegs);
 
         if(memReadAddr.size() == 1 && writtenRegs.size() == 1)
         {
@@ -145,7 +145,7 @@ bool isNopInsn(Instruction::Ptr insn)
         nopVisitor visitor;
 
 	// We need to get the src operand
-        insn->getOperand(1).getValue()->apply(&visitor);
+        insn.getOperand(1).getValue()->apply(&visitor);
         if (visitor.isNop) return true; 
     }
     return false;
@@ -153,10 +153,9 @@ bool isNopInsn(Instruction::Ptr insn)
 
 bool IA_x86::isNop() const
 {
-    Instruction::Ptr ci = curInsn();
+    Instruction ci = curInsn();
 
-    assert(ci);
-   
+
     return isNopInsn(ci);
 
 }
@@ -208,18 +207,17 @@ bool IA_x86::isThunk() const {
        (const unsigned char *)_isrc->getPtrToInstruction(addr);
     InstructionDecoder targetChecker(target,
             2*InstructionDecoder::maxInstructionLength, _isrc->getArch());
-    Instruction::Ptr thunkFirst = targetChecker.decode();
-    Instruction::Ptr thunkSecond = targetChecker.decode();
-    if(thunkFirst && thunkSecond && 
-        (thunkFirst->getOperation().getID() == e_mov) &&
-        (thunkSecond->getCategory() == c_ReturnInsn))
+    Instruction thunkFirst = targetChecker.decode();
+    Instruction thunkSecond = targetChecker.decode();
+    if((thunkFirst.getOperation().getID() == e_mov) &&
+        (thunkSecond.getCategory() == c_ReturnInsn))
     {
-        if(thunkFirst->isRead(stackPtr[_isrc->getArch()]))
+        if(thunkFirst.isRead(stackPtr[_isrc->getArch()]))
         {
             // it is not enough that the stack pointer is read; it must
             // be a zero-offset read from the stack pointer
             ThunkVisitor tv;
-            Operand op = thunkFirst->getOperand(1);
+            Operand op = thunkFirst.getOperand(1);
             op.getValue()->apply(&tv); 
     
             return tv.offset() == 0; 
@@ -228,7 +226,8 @@ bool IA_x86::isThunk() const {
     return false;
 }
 
-bool IA_x86::isTailCall(Function * context, EdgeTypeEnum type, unsigned int, const set<Address>& knownTargets) const
+bool IA_x86::isTailCall(const Function *context, EdgeTypeEnum type, unsigned int,
+                        const set<Address> &knownTargets) const
 {
    // Collapse down to "branch" or "fallthrough"
     switch(type) {
@@ -262,36 +261,14 @@ bool IA_x86::isTailCall(Function * context, EdgeTypeEnum type, unsigned int, con
 
     Function* callee = _obj->findFuncByEntry(_cr, addr);
     Block* target = _obj->findBlockByEntry(_cr, addr);
-    // check if addr is in a block if it is not entry.
-    if (target == NULL) {
-        std::set<Block*> blocks;
-        _obj->findCurrentBlocks(_cr, addr, blocks);
-        if (blocks.size() == 1) {
-            target = *blocks.begin();
-        } else if (blocks.size() == 0) {
-	    // This case can happen when the jump target is a function entry,
-	    // but we have not parsed the function yet,
-	    // or when this is an indirect jump 
-	    target = NULL;
-	} else {
-	    // If this case happens, it means the jump goes into overlapping instruction streams,
-	    // it is not likely to be a tail call.
-	    parsing_printf("\tjumps into overlapping instruction streams\n");
-	    for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
-	        parsing_printf("\t block [%lx,%lx)\n", (*bit)->start(), (*bit)->end());
-	    }
-	    parsing_printf("\tjump to 0x%lx, NOT TAIL CALL\n", addr);
-	    tailCalls[type] = false;
-	    return false;
-	}
-    }
-
-    if(curInsn()->getCategory() == c_BranchInsn &&
+    if(curInsn().getCategory() == c_BranchInsn &&
        valid &&
        callee && 
        callee != context &&
-       target &&
-       !context->contains(target)
+       // We can only trust entry points from hints
+       callee->src() == HINT &&
+       /* the target can either be not parsed or not within the current context */
+       ((target == NULL) || (target && !context->contains(target)))
        )
     {
       parsing_printf("\tjump to 0x%lx, TAIL CALL\n", addr);
@@ -299,7 +276,7 @@ bool IA_x86::isTailCall(Function * context, EdgeTypeEnum type, unsigned int, con
       return true;
     }
 
-    if (curInsn()->getCategory() == c_BranchInsn &&
+    if (curInsn().getCategory() == c_BranchInsn &&
             valid &&
             !callee) {
 	if (target) {
@@ -314,7 +291,7 @@ bool IA_x86::isTailCall(Function * context, EdgeTypeEnum type, unsigned int, con
     }
 
     if(allInsns.size() < 2) {
-      if(context->addr() == _curBlk->start() && curInsn()->getCategory() == c_BranchInsn)
+      if(context->addr() == _curBlk->start() && curInsn().getCategory() == c_BranchInsn)
       {
 	parsing_printf("\tjump as only insn in entry block, TAIL CALL\n");
 	tailCalls[type] = true;
@@ -329,7 +306,7 @@ bool IA_x86::isTailCall(Function * context, EdgeTypeEnum type, unsigned int, con
       }
     }
 
-    if ((curInsn()->getCategory() == c_BranchInsn))
+    if ((curInsn().getCategory() == c_BranchInsn))
     {
         //std::map<Address, Instruction::Ptr>::const_iterator prevIter =
                 //allInsns.find(current);
@@ -338,34 +315,36 @@ bool IA_x86::isTailCall(Function * context, EdgeTypeEnum type, unsigned int, con
        
         allInsns_t::const_iterator prevIter = curInsnIter;
         --prevIter;
-        Instruction::Ptr prevInsn = prevIter->second;
+        Instruction prevInsn = prevIter->second;
     
         while ( isNopInsn(prevInsn) && (prevIter != allInsns.begin()) ) {
            --prevIter;
            prevInsn = prevIter->second;
         }
 	prevInsn = prevIter->second;
-        if(prevInsn->getOperation().getID() == e_leave)
+        if(prevInsn.getOperation().getID() == e_leave)
         {
            parsing_printf("\tprev insn was leave, TAIL CALL\n");
            tailCalls[type] = true;
            return true;
         }
-        else if(prevInsn->getOperation().getID() == e_pop)
+        else if(prevInsn.getOperation().getID() == e_pop)
         {
-            if(prevInsn->isWritten(framePtr[_isrc->getArch()]))
+            if(prevInsn.isWritten(framePtr[_isrc->getArch()]))
             {
-                parsing_printf("\tprev insn was %s, TAIL CALL\n", prevInsn->format().c_str());
+                parsing_printf("\tprev insn was %s, TAIL CALL\n", prevInsn.format().c_str());
                 tailCalls[type] = true;
                 return true;
             }
         }
-        else if(prevInsn->getOperation().getID() == e_add)
+        else if(prevInsn.getOperation().getID() == e_add)
         {			
-            if(prevInsn->isWritten(stackPtr[_isrc->getArch()]))
+            if(prevInsn.isWritten(stackPtr[_isrc->getArch()]))
             {
 				bool call_fallthrough = false;
-				if (_curBlk->start() == prevIter->first) {				
+                boost::lock_guard<Block> g(*_curBlk);
+
+				if (_curBlk->start() == prevIter->first) {
 					for (auto eit = _curBlk->sources().begin(); eit != _curBlk->sources().end(); ++eit) {						
 						if ((*eit)->type() == CALL_FT) {
 							call_fallthrough = true;
@@ -374,14 +353,15 @@ bool IA_x86::isTailCall(Function * context, EdgeTypeEnum type, unsigned int, con
 					}
 				}
 				if (call_fallthrough) {
-					parsing_printf("\tprev insn was %s, but it is the next instruction of a function call, not a tail call %x %x\n", prevInsn->format().c_str()); 
+					parsing_printf("\tprev insn was %s, but it is the next instruction of a function call, not a tail call %x %x\n",
+                                   prevInsn.format().c_str());
 				}	else {
-					parsing_printf("\tprev insn was %s, TAIL CALL\n", prevInsn->format().c_str());
+					parsing_printf("\tprev insn was %s, TAIL CALL\n", prevInsn.format().c_str());
 					tailCalls[type] = true;
 					return true;
 				}
 			} else
-				parsing_printf("\tprev insn was %s, not tail call\n", prevInsn->format().c_str());
+				parsing_printf("\tprev insn was %s, not tail call\n", prevInsn.format().c_str());
         }
     }
 
@@ -392,7 +372,7 @@ bool IA_x86::isTailCall(Function * context, EdgeTypeEnum type, unsigned int, con
 
 bool IA_x86::savesFP() const
 {
-	std::vector<Instruction::Ptr> insns;
+	std::vector<Instruction> insns;
 	insns.push_back(curInsn());
 #if defined(os_windows)
 	// Windows functions can start with a noop...
@@ -400,10 +380,10 @@ bool IA_x86::savesFP() const
 	insns.push_back(tmp.decode());
 #endif
 	for (unsigned i = 0; i < insns.size(); ++i) {
-		InstructionAPI::Instruction::Ptr ci = insns[i];
-	    if(ci->getOperation().getID() == e_push)
+		InstructionAPI::Instruction ci = insns[i];
+	    if(ci.getOperation().getID() == e_push)
 		{
-			if (ci->isRead(framePtr[_isrc->getArch()])) {
+			if (ci.isRead(framePtr[_isrc->getArch()])) {
 				return true;
 			}
 			else return false;
@@ -424,7 +404,7 @@ bool IA_x86::isStackFramePreamble() const
     InstructionDecoder tmp(dec);
     std::vector<Instruction::Ptr> nextTwoInsns;
     for (int i = 0; i < limit; ++i) {
-       Instruction::Ptr insn = tmp.decode();
+       Instruction insn = tmp.decode();
        if (isFrameSetupInsn(insn)) {
           return true;
        }
@@ -434,21 +414,21 @@ bool IA_x86::isStackFramePreamble() const
 
 bool IA_x86::cleansStack() const
 {
-    Instruction::Ptr ci = curInsn();
-	if (ci->getCategory() != c_ReturnInsn) return false;
+    Instruction ci = curInsn();
+	if (ci.getCategory() != c_ReturnInsn) return false;
     std::vector<Operand> ops;
-	ci->getOperands(ops);
+	ci.getOperands(ops);
 	return (ops.size() > 1);
 }
 
-bool IA_x86::isReturn(Dyninst::ParseAPI::Function * /*context*/, 
+bool IA_x86::isReturn(Dyninst::ParseAPI::Function * /*context*/,
 			Dyninst::ParseAPI::Block* /*currBlk*/) const
 {
     // For x86, we check if an instruction is return based on the category. 
     // However, for powerpc, the return instruction BLR can be a return or
     // an indirect jump used for jump tables etc. Hence, we need to function and block
     // to determine if an instruction is a return. But these parameters are unused for x86. 
-    return curInsn()->getCategory() == c_ReturnInsn;
+    return curInsn().getCategory() == c_ReturnInsn;
 }
 
 bool IA_x86::isReturnAddrSave(Dyninst::Address&) const
@@ -503,12 +483,12 @@ bool IA_x86::isFakeCall() const
                               _cr->length() - entryOff,
                               _cr->getArch() );
     IA_x86 *ah = new IA_x86(newdec, entry, _obj, _cr, _isrc, _curBlk);
-    Instruction::Ptr insn = ah->curInsn();
+    Instruction insn = ah->curInsn();
 
     // follow ctrl transfers until you get a block containing non-ctrl 
     // transfer instructions, or hit a return instruction
-    while (insn->getCategory() == c_CallInsn ||
-           insn->getCategory() == c_BranchInsn) 
+    while (insn.getCategory() == c_CallInsn ||
+           insn.getCategory() == c_BranchInsn)
     {
        boost::tie(valid, entry) = ah->getCFT();
        if ( !valid || ! _cr->contains(entry) || ! _isrc->isCode(entry) ) {
@@ -539,16 +519,16 @@ bool IA_x86::isFakeCall() const
     while(true) {
 
         // exit condition 1
-        if (insn->getCategory() == c_CallInsn ||
-            insn->getCategory() == c_ReturnInsn ||
-            insn->getCategory() == c_BranchInsn) 
+        if (insn.getCategory() == c_CallInsn ||
+            insn.getCategory() == c_ReturnInsn ||
+            insn.getCategory() == c_BranchInsn)
         {
             break;
         }
 
         // calculate instruction delta
-        if(insn->isWritten(theStackPtr)) {
-            entryID what = insn->getOperation().getID();
+        if(insn.isWritten(theStackPtr)) {
+            entryID what = insn.getOperation().getID();
             int sign = 1;
             switch(what) 
             {
@@ -556,7 +536,7 @@ bool IA_x86::isFakeCall() const
                 sign = -1;
                 //FALLTHROUGH
             case e_pop: {
-                int size = insn->getOperand(0).getValue()->size();
+                int size = insn.getOperand(0).getValue()->size();
                 stackDelta += sign * size;
                 break;
             }
@@ -614,7 +594,7 @@ bool IA_x86::isFakeCall() const
                 sign = -1;
                 //FALLTHROUGH
             case e_add: {
-                Operand arg = insn->getOperand(1);
+                Operand arg = insn.getOperand(1);
                 Result delta = arg.getValue()->eval();
                 if(delta.defined) {
                     int delta_int = sign;
@@ -667,16 +647,16 @@ bool IA_x86::isFakeCall() const
 
         // exit condition 2
         ah->advance();
-        Instruction::Ptr next = ah->curInsn();
-        if (NULL == next) {
+        Instruction next = ah->curInsn();
+        if (!next.isValid()) {
             break;
         }
-        curAddr += insn->size();
+        curAddr += insn.size();
         insn = next;
     } 
 
     // not a fake call if it ends w/ a return instruction
-    if (insn->getCategory() == c_ReturnInsn) {
+    if (insn.getCategory() == c_ReturnInsn) {
         delete ah;
         return false;
     }
@@ -700,12 +680,12 @@ bool IA_x86::isIATcall(std::string &calleeName) const
         return false;
     }
 
-    if (!curInsn()->readsMemory()) {
+    if (!curInsn().readsMemory()) {
         return false;
     }
 
     std::set<Expression::Ptr> memReads;
-    curInsn()->getMemoryReadOperands(memReads);
+    curInsn().getMemoryReadOperands(memReads);
     if (memReads.size() != 1) {
         return false;
     }
@@ -760,7 +740,7 @@ bool IA_x86::isIATcall(std::string &calleeName) const
 
 bool IA_x86::isNopJump() const
 {
-    InsnCategory cat = curInsn()->getCategory();
+    InsnCategory cat = curInsn().getCategory();
     if (c_BranchInsn != cat) {
         return false;
     }

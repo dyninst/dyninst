@@ -63,7 +63,7 @@ namespace Dyninst
       /// by another %InstructionAST if and only if the first %InstructionAST is a subtree of the second one.
       virtual bool isUsed(InstructionAST::Ptr findMe) const;
 
-      virtual std::string format(ArchSpecificFormatter *, formatStyle) const;
+      virtual std::string format(Architecture, formatStyle) const;
       virtual std::string format(formatStyle) const;
       static Immediate::Ptr makeImmediate(const Result& val);
       virtual void apply(Visitor* v);
@@ -78,7 +78,7 @@ namespace Dyninst
         ArmConditionImmediate(const Result &val);
 
         static ArmConditionImmediate::Ptr makeArmConditionImmediate(const Result &val);
-        virtual std::string format(ArchSpecificFormatter *, formatStyle) const;
+        virtual std::string format(Architecture, formatStyle) const;
         virtual std::string format(formatStyle) const;
 
     private:
@@ -91,7 +91,7 @@ namespace Dyninst
 	ArmPrfmTypeImmediate(const Result &val);
 
 	static Immediate::Ptr makeArmPrfmTypeImmediate(const Result &val);
-	virtual std::string format(ArchSpecificFormatter *, formatStyle) const;
+	virtual std::string format(Architecture, formatStyle) const;
     virtual std::string format(formatStyle) const;
 
     private:

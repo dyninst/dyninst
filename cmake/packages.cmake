@@ -1,7 +1,7 @@
 if (UNIX)
   find_package (LibDwarf)
   find_package (LibElf 0.173)
-
+  find_package(TBB)
   if(NOT LIBELF_FOUND OR NOT LIBDWARF_FOUND)
     message(STATUS "Attempting to build elfutils as external project")
     cmake_minimum_required (VERSION 2.8.11)
@@ -21,7 +21,26 @@ if (UNIX)
   else()
     set(SHOULD_INSTALL_LIBELF 0)
   endif()
-
+  if(NOT TBB_FOUND)
+    message(STATUS "Attempting to build TBB as external project")
+    cmake_minimum_required (VERSION 2.8.11)
+    include(ExternalProject)
+    ExternalProject_Add(TBB
+            PREFIX ${CMAKE_BINARY_DIR}/tbb
+            STAMP_DIR ${CMAKE_BINARY_DIR}/tbb/src/TBB-stamp
+            URL https://github.com/01org/tbb/archive/2018_U6.tar.gz
+            SOURCE_DIR ${CMAKE_BINARY_DIR}/tbb/src/TBB/src
+            CONFIGURE_COMMAND ""
+            BINARY_DIR ${CMAKE_BINARY_DIR}/tbb/src/TBB/src
+            BUILD_COMMAND make -j${NCPU} tbb tbbmalloc compiler=gcc tbb_build_dir=${CMAKE_BINARY_DIR}/tbb/src/TBB-build tbb_build_prefix=tbb
+            INSTALL_COMMAND sh -c "mkdir -p ${CMAKE_BINARY_DIR}/tbb/include && mkdir -p ${CMAKE_BINARY_DIR}/tbb/lib \
+                && cp ${CMAKE_BINARY_DIR}/tbb/src/TBB-build/tbb_release/*.so* ${CMAKE_BINARY_DIR}/tbb/lib \
+                && cp -r ${CMAKE_BINARY_DIR}/tbb/src/TBB/src/include/* ${CMAKE_BINARY_DIR}/tbb/include"
+            )
+    set(TBB_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/tbb/include)
+    set(TBB_LIBRARIES ${CMAKE_BINARY_DIR}/tbb/libtbb.so ${CMAKE_BINARY_DIR}/tbb/libtbbmalloc_proxy.so)
+    set(TBB_FOUND 1)
+  endif()
   add_library(libelf_imp SHARED IMPORTED)
   set_property(TARGET libelf_imp
     PROPERTY IMPORTED_LOCATION ${LIBELF_LIBRARIES})
@@ -110,18 +129,20 @@ endif()
 if(DEFINED PATH_BOOST OR 
 	   DEFINED Boost_INCLUDE_DIR OR 
 	   DEFINED Boost_LIBRARY_DIR)
-  set(Boost_NO_SYSTEM_PATHS ON)
+#  set(Boost_NO_SYSTEM_PATHS ON)
 endif()
 
 
-find_package (Boost ${BOOST_MIN_VERSION} COMPONENTS thread system date_time filesystem)
-
+find_package (Boost ${BOOST_MIN_VERSION} COMPONENTS thread system date_time timer filesystem atomic)
 
 if(NOT Boost_FOUND)
   set (BOOST_ARGS
           --with-system
           --with-thread
           --with-date_time
+	  --with-filesystem
+	  --with-timer
+          --with-atomic
           --ignore-site-config
           --link=static
           --runtime-link=shared
@@ -157,28 +178,32 @@ if(NOT Boost_FOUND)
     BUILD_COMMAND ${BOOST_BUILD} ${BOOST_ARGS} stage
     INSTALL_COMMAND ""
     )
-  set(Boost_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/${BOOST_BASE})
+  set(Boost_INCLUDE_DIR ${CMAKE_BINARY_DIR}/${BOOST_BASE})
   set(Boost_LIBRARY_DIRS ${CMAKE_BINARY_DIR}/${BOOST_BASE}/stage/lib)
   if(MSVC)
     # We need to specify different library names for debug vs release
     set(Boost_LIBRARIES optimized libboost_thread-mt debug libboost_thread-mt-gd)
     list(APPEND Boost_LIBRARIES optimized libboost_system-mt debug libboost_system-mt-gd)
     list(APPEND Boost_LIBRARIES optimized libboost_date_time-mt debug libboost_date_time-mt-gd)
+    list(APPEND Boost_LIBRARIES optimized libboost_atomic-mt debug libboost_atomic-mt-gd)
+
   else()
-    set(Boost_LIBRARIES boost_thread boost_system boost_date_time)
+    set(Boost_LIBRARIES boost_thread-mt boost_system-mt boost_date_time-mt boost_filesystem-mt boost_atomic-mt)
   endif()
 endif()
 
 link_directories ( ${Boost_LIBRARY_DIRS} )
 
 include_directories (
-  ${Boost_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIR}
   )
 add_definitions(-DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION)
-message(STATUS "Boost includes: ${Boost_INCLUDE_DIRS}")
+message(STATUS "Boost includes: ${Boost_INCLUDE_DIR}")
 message(STATUS "Boost library dirs: ${Boost_LIBRARY_DIRS}")
 message(STATUS "Boost thread library: ${Boost_THREAD_LIBRARY}")
 message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
+find_package(Threads)
+set(Boost_LIBRARIES ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 include(${DYNINST_ROOT}/cmake/CheckCXX11Features.cmake)
 if(NOT HAS_CXX11_AUTO)

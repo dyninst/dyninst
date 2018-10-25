@@ -3,14 +3,13 @@
 #include "debug_parse.h"
 #include "CodeObject.h"
 #include <algorithm>
-#include "SymbolicExpression.h"
 using namespace Dyninst::ParseAPI;
 
 AST::Ptr SimplifyVisitor::visit(DataflowAPI::RoseAST *ast) {
         unsigned totalChildren = ast->numChildren();
 	for (unsigned i = 0 ; i < totalChildren; ++i) {
 	    ast->child(i)->accept(this);
-	    ast->setChild(i, SymbolicExpression::SimplifyRoot(ast->child(i), addr, keepMultiOne));
+	    ast->setChild(i, se.SimplifyRoot(ast->child(i), addr, keepMultiOne));
 	}
 	return AST::Ptr();
 }
@@ -360,10 +359,11 @@ bool JumpTableFormatVisitor::PotentialIndexing(AST::Ptr ast) {
     return false;
 }
 
-JumpTableReadVisitor::JumpTableReadVisitor(AbsRegion i, int v, CodeSource *c, bool ze, int m) {
+JumpTableReadVisitor::JumpTableReadVisitor(AbsRegion i, int v, CodeSource *c, CodeRegion *r, bool ze, int m) {
     index = i;
     indexValue = v;
     cs = c;
+    cr = r;
     isZeroExtend = ze;
     valid = true;
     memoryReadSize = m;

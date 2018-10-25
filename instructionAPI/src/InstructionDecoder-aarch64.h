@@ -59,7 +59,7 @@ namespace Dyninst {
 
             virtual void decodeOpcode(InstructionDecoder::buffer &b);
 
-            virtual Instruction::Ptr decode(InstructionDecoder::buffer &b);
+            virtual Instruction decode(InstructionDecoder::buffer &b);
 
             virtual void setMode(bool) { }
 

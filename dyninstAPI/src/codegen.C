@@ -783,22 +783,21 @@ void codeGen::registerDefensivePad(block_instance *callBlock, Address padStart, 
 using namespace InstructionAPI;
 
 std::string codeGen::format() const {
-    if (!aSpace_) return "<codeGen>";
+   if (!aSpace_) return "<codeGen>";
 
-    stringstream ret;
+   stringstream ret;
 
-    Address base = (addr_ != (Address)-1) ? addr_ : 0;
-    InstructionDecoder deco (buffer_,used(),aSpace_->getArch());
-    Instruction::Ptr insn = deco.decode();
-    ret << hex;
-    while(insn) {
-        ret << "\t" << base << ": "
-            << "\t" << *((const unsigned *)insn->ptr())
-            << "\t" << insn->format(base) << endl;
-        base += insn->size();
-        insn = deco.decode();
-    }
-    ret << dec;
-    return ret.str();
+   Address base = (addr_ != (Address)-1) ? addr_ : 0;
+   InstructionDecoder deco
+      (buffer_,used(),aSpace_->getArch());
+   Instruction insn = deco.decode();
+   ret << hex;
+   while(insn.isValid()) {
+     ret << "\t" << base << ": " << insn.format(base) << " / " << *((const unsigned *)insn.ptr()) << endl;
+      base += insn.size();
+      insn = deco.decode();
+   }
+   ret << dec;
+   return ret.str();
 };
    

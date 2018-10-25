@@ -123,7 +123,7 @@
  * The main objective of the decoding process is to get the length of the instruction
  * correct. Because x86 has variable length instructions, getting the instruction
  * length wrong will mess up the decoding for the instructions that follow.
- * 
+ *
  *
  */
 
@@ -136,11 +136,13 @@
 #include <map>
 #include <string>
 #include <iostream>
+#include <mutex> // once_flag, call_once
 
 #include "boost/assign/list_of.hpp"
 #include "boost/assign/std/vector.hpp"
 #include "boost/assign/std/set.hpp"
-
+#include <boost/thread/lock_guard.hpp>
+#include <boost/thread/mutex.hpp>
 #include "common/src/arch-x86.h"
 #include "dyn_regs.h"
 
@@ -2007,13 +2009,13 @@ dyn_hash_map<prefixEntryID, std::string> prefixEntryNames_IAPI = map_list_of
   (prefix_repnz, "REPNZ")
         ;
 
+dyn_hash_map<entryID, flagInfo> ia32_instruction::flagTable;
+
+
 COMMON_EXPORT dyn_hash_map<entryID, flagInfo> const& ia32_instruction::getFlagTable()
 {
-  static dyn_hash_map<entryID, flagInfo> flagTable;
-  if(flagTable.empty()) 
-  {
-    ia32_instruction::initFlagTable(flagTable);
-  }
+    static std::once_flag flagTableInit;
+    std::call_once(flagTableInit, [&]() {initFlagTable(flagTable);});
   return flagTable;
 }
   
@@ -2197,8 +2199,8 @@ bool ia32_entry::flagsUsed(std::set<MachRegister>& flagsRead, std::set<MachRegis
 
 
 /**
- * This is generally the first table in the decoding process. The row selected here 
- * is just based on the current byte we are looking at in the instruction. This 
+ * This is generally the first table in the decoding process. The row selected here
+ * is just based on the current byte we are looking at in the instruction. This
  * table contains a lot of the really basic and most common x86 instructions.
  */
 static ia32_entry oneByteMap[256] = {
@@ -2457,7 +2459,7 @@ static ia32_entry oneByteMap[256] = {
   { e_No_Entry, t_coprocEsc, GrpDE, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry, t_coprocEsc, GrpDF, true, { Zz, Zz, Zz }, 0, 0, 0 },
   /* E0 */
-  { e_loopn,    t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R, 0 }, 
+  { e_loopn,    t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R, 0 },
   { e_loope,    t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R, 0 },
   { e_loop,     t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R, 0 },
   { e_jcxz_jec, t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R, 0 },
@@ -2569,7 +2571,7 @@ static ia32_entry twoByteMap[256] = {
   { e_rdpmc, t_done, 0, false, { rAX, rDX, rCX }, 0, s1W2W3R, 0 },
   { e_sysenter, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE, 0 }, // XXX: fixme for kernel work
   { e_sysexit,  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE, 0 }, // XXX: fixme for kernel work
-  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0, 0 }, 
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_getsec, t_done, 0, false, { Zz, Zz, Zz }, 0 , sNONE, 0 },
   /* 38 */
   { e_No_Entry, t_threeB, 0, 0, { Zz, Zz, Zz }, 0, 0, 0 }, //3-Byte escape (Book Table A-4)
@@ -2695,7 +2697,7 @@ static ia32_entry twoByteMap[256] = {
   { e_bt,     t_done, 0, true, { Ev, Gv, Zz }, 0, s1R2R, 0 },
   { e_shld,   t_done, 0, true, { Ev, Gv, Ib }, 0, s1RW2R3R, 0 },
   { e_shld,   t_done, 0, true, { Ev, Gv, CL }, 0, s1RW2R3R, 0 },
-  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0, 0 }, 
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0, 0 },
   /* A8 */
   { e_push, t_done, 0, false, { GS, eSP, Zz }, 0, s1R2RW, s2I },
@@ -2704,7 +2706,7 @@ static ia32_entry twoByteMap[256] = {
   { e_bts,  t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R, 0 },
   { e_shrd, t_done, 0, true, { Ev, Gv, Ib }, 0, s1RW2R3R, 0 },
   { e_shrd, t_done, 0, true, { Ev, Gv, CL }, 0, s1RW2R3R, 0 },
-  { e_No_Entry, t_grp, Grp15, 0, { Zz, Zz, Zz }, 0, 0, 0 }, 
+  { e_No_Entry, t_grp, Grp15, 0, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_imul, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R, 0 },
   /* B0 */
   // Assuming this is used with LOCK prefix, the destination gets a write anyway
@@ -2737,14 +2739,14 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_sse, SSEC6, true, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry, t_grp, Grp9,  true, { Zz, Zz, Zz }, 0, 0, 0 },
   /* C8 */
-  { e_bswap, t_done, 0, false, { EAX, Zz, Zz }, 0, s1RW, 0 }, 
+  { e_bswap, t_done, 0, false, { EAX, Zz, Zz }, 0, s1RW, 0 },
   { e_bswap, t_done, 0, false, { ECX, Zz, Zz }, 0, s1RW, 0 },
-  { e_bswap, t_done, 0, false, { EDX, Zz, Zz }, 0, s1RW, 0 }, 
-  { e_bswap, t_done, 0, false, { EBX, Zz, Zz }, 0, s1RW, 0 }, 
+  { e_bswap, t_done, 0, false, { EDX, Zz, Zz }, 0, s1RW, 0 },
+  { e_bswap, t_done, 0, false, { EBX, Zz, Zz }, 0, s1RW, 0 },
   { e_bswap, t_done, 0, false, { ESP, Zz, Zz }, 0, s1RW, 0 },
-  { e_bswap, t_done, 0, false, { EBP, Zz, Zz }, 0, s1RW, 0 }, 
-  { e_bswap, t_done, 0, false, { ESI, Zz, Zz }, 0, s1RW, 0 }, 
-  { e_bswap, t_done, 0, false, { EDI, Zz, Zz }, 0, s1RW, 0 }, 
+  { e_bswap, t_done, 0, false, { EBP, Zz, Zz }, 0, s1RW, 0 },
+  { e_bswap, t_done, 0, false, { ESI, Zz, Zz }, 0, s1RW, 0 },
+  { e_bswap, t_done, 0, false, { EDI, Zz, Zz }, 0, s1RW, 0 },
   /* D0 */
   { e_No_Entry, t_sse, SSED0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   { e_No_Entry, t_sse, SSED1, true, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -3015,7 +3017,7 @@ static ia32_entry threeByteMap[256] = {
 		{ e_No_Entry, t_sse_bis, SSEBB4, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEBB5, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEBB6, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_sse_bis, SSEBB7, false, { Zz, Zz, Zz }, 0, 0, 0 },	
+		{ e_No_Entry, t_sse_bis, SSEBB7, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		/* B8 */
 		{ e_No_Entry, t_sse_bis, SSEBB8, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_sse_bis, SSEBB9, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -3314,7 +3316,7 @@ static ia32_entry threeByteMap2[256] = {
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },	
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		/* B8 */
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -3580,27 +3582,27 @@ static ia32_entry fpuMap[][2][8] = {
 };
 
 /**
- * This is one of the more complicated tables. Each row in this table has 
- * multiple entries. The row that is selected is based off of the previous 
- * table the decoder was in. The current byte is broken down as a ModR/M byte. 
+ * This is one of the more complicated tables. Each row in this table has
+ * multiple entries. The row that is selected is based off of the previous
+ * table the decoder was in. The current byte is broken down as a ModR/M byte.
  * Here is a quick overview of how a ModR/M byte is broken down:
  *
  * +-----+-------+-------+
  * | 8 7 | 6 5 4 | 3 2 1 |
  * +-----+-------+-------+
  * Mod   Reg     R/M
- * 
  *
- * We only care about the `Reg` part of the ModR/M byte. This value is used as 
+ *
+ * We only care about the `Reg` part of the ModR/M byte. This value is used as
  * the indexer for this table. For example, if you have a byte `0x3F`:
  *
- * 
+ *
  * Value in Hex: 0x3F
  * Value in Bin: 0 0 1 1 1 1 1 1
  * Reg bits:         1 1 1
  * Reg value: 7
- * 
- * 
+ *
+ *
  * Therefore we can see that we should choose entry 7 in this row (for this example).
  *
  */
@@ -3768,38 +3770,38 @@ static ia32_entry groupMap[][8] = {
 
 
 /**
- * This table is very similar to `groupMap`. Each row in this table actually 
- * has 2 sub rows which contain 8 entries. The row that is selected is based 
- * off of the previous table the decoder was in. The current byte is broken 
- * down as a ModR/M byte. Here is a quick overview of how a ModR/M byte is 
+ * This table is very similar to `groupMap`. Each row in this table actually
+ * has 2 sub rows which contain 8 entries. The row that is selected is based
+ * off of the previous table the decoder was in. The current byte is broken
+ * down as a ModR/M byte. Here is a quick overview of how a ModR/M byte is
  * broken down:
  *
- * 
+ *
  * +-----+-------+-------+
  * | 8 7 | 6 5 4 | 3 2 1 |
  * +-----+-------+-------+
  *  Mod   Reg     R/M
- * 
  *
- * We care about two things now: the `Mod` and the `Reg`. If the `Mod` is all 
- * 1's, then we will use the 2nd sub row. Otherwise we will use the first sub 
- * row (sub rows here contain 8 entries each). Then the entry is selected based 
- * off of the `Reg` value, just like the `groupMap` table. Here is our example 
+ *
+ * We care about two things now: the `Mod` and the `Reg`. If the `Mod` is all
+ * 1's, then we will use the 2nd sub row. Otherwise we will use the first sub
+ * row (sub rows here contain 8 entries each). Then the entry is selected based
+ * off of the `Reg` value, just like the `groupMap` table. Here is our example
  * again of using `0x3F` as our ModR/M
  *
  *
- *  
+ *
  *  Value in Hex: 0x3F
  *  Value in Bin: 0 0 1 1 1 1 1 1
  *  Reg bits:         1 1 1
  *  Mod bits:     0 0
  *  Reg value: 7
  *  Mod value: 0
- *  
  *
- * Therefore we will use the first sub row, and select the 7th entry in that sub 
- * row. If `Mod` would have been all 1's, we would have selected the second sub 
- * row. **Note: all values of mod should map to the first sub row except for 
+ *
+ * Therefore we will use the first sub row, and select the 7th entry in that sub
+ * row. If `Mod` would have been all 1's, we would have selected the second sub
+ * row. **Note: all values of mod should map to the first sub row except for
  * 3 (0b11)**
  *
  */
@@ -3961,17 +3963,17 @@ static ia32_entry groupMap2[][2][8] = {
 };
 
 /**
- * The purpose of this table is to allow our decoder to differentiate between 
- * looking at an SSE instruction or a VEX instruction. For certain instructions, 
- * there are SSE and VEX versions of the same instruction. Having a VEX prefix 
- * on the instruction instead of an SSE prefix means that we have to make a 
+ * The purpose of this table is to allow our decoder to differentiate between
+ * looking at an SSE instruction or a VEX instruction. For certain instructions,
+ * there are SSE and VEX versions of the same instruction. Having a VEX prefix
+ * on the instruction instead of an SSE prefix means that we have to make a
  * different decoding decision.
  *
- * Each row in this table has multiple entries. The entry that is selected is 
- * based on the prefix of the instruction. If the instruction has only an SSE 
- * prefix, entry 0th is selected. If the instruction has a VEX2 prefix, then 
- * the 1st entry is selected. If the instruction has a VEX3 prefix, then the 
- * 2nd entry is selected. Finally, if the instruction has an EVEX prefix, the 
+ * Each row in this table has multiple entries. The entry that is selected is
+ * based on the prefix of the instruction. If the instruction has only an SSE
+ * prefix, entry 0th is selected. If the instruction has a VEX2 prefix, then
+ * the 1st entry is selected. If the instruction has a VEX3 prefix, then the
+ * 2nd entry is selected. Finally, if the instruction has an EVEX prefix, the
  * 3rd entry is selected.
  */
 /** START_DYNINST_TABLE_VERIFICATION(sse_vex_mult_table) */
@@ -4275,7 +4277,7 @@ static ia32_entry sseMap[][4] = {
   },
   { /* SSE5B */
     { e_cvtdq2ps, t_sse_mult, SSE5B_NO, true, { Vps, Wdq, Zz }, 0, s1W2R, 0 },
-    { e_cvttps2dq, t_sse_mult, SSE5B_F3, true, { Vdq, Wps, Zz }, 0, s1W2R, 0 }, // book has this/next swapped!!! 
+    { e_cvttps2dq, t_sse_mult, SSE5B_F3, true, { Vdq, Wps, Zz }, 0, s1W2R, 0 }, // book has this/next swapped!!!
     { e_cvtps2dq, t_sse_mult, SSE5B_66, true, { Vdq, Wps, Zz }, 0, s1W2R, 0 },  // FIXME: book bug ???
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
   },
@@ -4505,13 +4507,13 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_sse_mult, SSE91_NO, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_sse_mult, SSE91_66, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 } 
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
   },
   { /* SSE92 */
     { e_No_Entry, t_sse_mult, SSE92_NO, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 } 
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
   },
   { /* SSE93 */
     { e_No_Entry, t_sse_mult, SSE93_NO, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -5508,7 +5510,7 @@ static ia32_entry sseMapBis[][5] = {
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse_bis_mult, SSEB9C_66, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 } 
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
     }, { /* SSEB9D */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -5592,7 +5594,7 @@ static ia32_entry sseMapBis[][5] = {
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse_bis_mult, SSEBAC_66, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 } 
+        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
     }, { /* SSEBAD */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -5872,7 +5874,7 @@ static ia32_entry sseMapTer[][3] =
     }, { /* SSET15 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_pextrw, t_done, 0, true, { RMw, Vdq, Ib }, 0, s1W2R3R, 0 }, 
+        { e_pextrw, t_done, 0, true, { RMw, Vdq, Ib }, 0, s1W2R3R, 0 },
     }, { /* SSET16 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_pextrd_pextrq, t_sse_ter_mult, SSET16_66, true, { Ey, Vdq, Ib }, 0, s1W2R3R, 0 },
@@ -5880,10 +5882,10 @@ static ia32_entry sseMapTer[][3] =
     }, { /* SSET17 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_vextractps, t_sse_ter_mult, SSET17_66, true, { Ev, Vps, Ib }, 0, s1W2R3R, 0 },
-        { e_extractps, t_done, 0, true, { Ed, Vdq, Ib }, 0, s1W2R3R, 0 }, 
+        { e_extractps, t_done, 0, true, { Ed, Vdq, Ib }, 0, s1W2R3R, 0 },
     }, { /* SSET18 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_vinsertf128, t_sse_ter_mult, SSET18_66, true, { Vdq, Hps, Wps }, 0, s1W2R3R4R, 0 }, 
+        { e_vinsertf128, t_sse_ter_mult, SSET18_66, true, { Vdq, Hps, Wps }, 0, s1W2R3R4R, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     }, { /* SSET19 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -5911,7 +5913,7 @@ static ia32_entry sseMapTer[][3] =
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     }, { /* SSET20 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_pinsrb, t_sse_ter_mult, SSET20_66, true, { Vdq, RMb, Ib }, 0, s1W2R3R, 0 }, 
+        { e_pinsrb, t_sse_ter_mult, SSET20_66, true, { Vdq, RMb, Ib }, 0, s1W2R3R, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     }, { /* SSET21 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -5980,15 +5982,15 @@ static ia32_entry sseMapTer[][3] =
     }, { /* SSET40 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_dpps, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1RW2R3R, 0 }, 
+        { e_dpps, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1RW2R3R, 0 },
     }, { /* SSET41 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_vdppd, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1RW2R3R, 0 }, 
-        { e_dppd, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1RW2R3R, 0 }, 
+        { e_vdppd, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1RW2R3R, 0 },
+        { e_dppd, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1RW2R3R, 0 },
     }, { /* SSET42 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse_ter_mult, SSET42_66, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_mpsadbw, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1RW2R3R, 0 }, 
+        { e_mpsadbw, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1RW2R3R, 0 },
     }, { /* SSET44 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_pclmullqlqdq, t_sse_ter_mult, SSET44_66, true, { Vps, Wps, Ib }, 0, s1RW2R3R, 0 },
@@ -6047,8 +6049,8 @@ static ia32_entry sseMapTer[][3] =
         { e_pcmpistrm, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1R2R3R, 0 }
     }, { /* SSET63 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_pcmpistri, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1R2R3R, 0 }, 
-        { e_pcmpistri, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1R2R3R, 0 }, 
+        { e_pcmpistri, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1R2R3R, 0 },
+        { e_pcmpistri, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1R2R3R, 0 },
     }, { /* SSET66 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_sse_ter_mult, SSET66_66, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -6081,19 +6083,19 @@ static ia32_entry sseMapTer[][3] =
  * mode is by looking at which vex prefix is used. This doesn't
  * affect all sse/vex instructions so some skip this table
  *
- * We are allowed to have a VEX instruction that has a decoding 
- * path that passes through one of the SSE tables (sseMap, 
- * sseMapBis, sseMapTer). However, a VEX instruction cannot end 
- * it's decoding in one of the SSE tables. Therefore when the 
- * decoder exits one of the SSE tables when it's decoding a VEX 
- * instruction, it will enter one of the SSE multiplexer tables 
- * in order to get the correct decoding for the VEX prefix that 
+ * We are allowed to have a VEX instruction that has a decoding
+ * path that passes through one of the SSE tables (sseMap,
+ * sseMapBis, sseMapTer). However, a VEX instruction cannot end
+ * it's decoding in one of the SSE tables. Therefore when the
+ * decoder exits one of the SSE tables when it's decoding a VEX
+ * instruction, it will enter one of the SSE multiplexer tables
+ * in order to get the correct decoding for the VEX prefix that
  * is on the current instruction.
  *
- * This table has 3 entries per row. The 0th entry specifies the 
- * entry that should be used for VEX2 instructions. The 1st entry 
- * specifies the entry that should be used for VEX3 instructions. 
- * Finallly, the last entry specifies the entry that should be used 
+ * This table has 3 entries per row. The 0th entry specifies the
+ * entry that should be used for VEX2 instructions. The 1st entry
+ * specifies the entry that should be used for VEX3 instructions.
+ * Finallly, the last entry specifies the entry that should be used
  * for EVEX instructions.
  *
  */
@@ -7295,7 +7297,7 @@ ia32_entry sseMapBisMult[][3] =
   }, { /* SSEB89_66 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-    { e_No_Entry, t_vexw, VEXW6F, false, { Zz, Zz, Zz }, 0, 0, 0 }, 
+    { e_No_Entry, t_vexw, VEXW6F, false, { Zz, Zz, Zz }, 0, 0, 0 },
   }, { /* SSEB8B_66 */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -7794,18 +7796,18 @@ ia32_entry sseMapTerMult[][3] =
 /** END_DYNINST_TABLE_VERIFICATION */
 
 /**
- * This is the table that typically follows after the Group Map 
- * table. This table holds the SSE version of the instructions in 
+ * This is the table that typically follows after the Group Map
+ * table. This table holds the SSE version of the instructions in
  * the Group Map. The format of the names is as follows:
  *
- * 
+ *
  * +---+----+-----+-----+-----+
  * | G | XX | SSE | XXX | (X) |
  * +---+----+-----+-----+-----+
  *       |           |     +-> If this is a B, then the Mod value was 3
  *       |           +-------> This is the value of the Reg value in binary
  *       +-------------------> This is the group number.
- *                   
+ *
  */
 
 /* rows are none or 66 prefixed in this order (see book) */
@@ -8067,7 +8069,7 @@ static struct ia32_entry vexWMap[][2] =
       { e_vgatherdpd, t_done, 0, true, { Vpd, Wpd, Hpd }, 0, s1RW2R3RW, 0 }  /* W = 1 */
     }, { /* VEXW25 */
       { e_vgatherqps, t_done, 0, true, { Vps, Wps, Hps }, 0, s1RW2R3RW, 0 }, /* W = 0 */
-      { e_vgatherqpd, t_done, 0, true, { Vpd, Wpd, Hpd }, 0, s1RW2R3RW, 0 }  /* W = 1 */ 
+      { e_vgatherqpd, t_done, 0, true, { Vpd, Wpd, Hpd }, 0, s1RW2R3RW, 0 }  /* W = 1 */
     }, { /* VEXW26 */
       { e_vpextrd, t_done, 0, true, { Vpd, Wpd, Ib }, 0, s1W2R3R, 0 }, /* W = 0 */
       { e_vpextrq, t_done, 0, true, { Vpd, Wpd, Ib }, 0, s1W2R3R, 0 }  /* W = 1 */
@@ -8418,13 +8420,9 @@ void ia32_set_mode_64(bool mode) {
   mode_64 = mode;
 }
 
-bool ia32_is_mode_64() {
-  return mode_64;
-}
-
 ia32_entry movsxd = { e_movsxd, t_done, 0, true, { Gv, Ed, Zz }, 0, s1W2R, 0 };
 ia32_entry invalid = { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0, 0 };
-ia32_entry seg_mov = { e_mov, t_done, 0, true, {Ev, Sw, Zz}, 0, s1W2R, 0 };		       
+ia32_entry seg_mov = { e_mov, t_done, 0, true, {Ev, Sw, Zz}, 0, s1W2R, 0 };
 static void ia32_translate_for_64(ia32_entry** gotit_ptr)
 {
     if (*gotit_ptr == &oneByteMap[0x63]) // APRL redefined to MOVSXD
@@ -8463,11 +8461,8 @@ static void ia32_translate_for_64(ia32_entry** gotit_ptr)
 }
 
 /* full decoding version: supports memory access information */
-static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
-                                      const unsigned char* addr,
-                                      ia32_memacc* macadr,
-                                      const ia32_prefixes* pref,
-                                      ia32_locations *pos);
+static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsigned char *addr, ia32_memacc *macadr,
+                                      const ia32_prefixes *pref, ia32_locations *pos, bool mode_64);
 
 
 void ia32_memacc::print()
@@ -8507,18 +8502,18 @@ int getOperSz(const ia32_prefixes &pref)
  * @param addr A pointer to the start of the instruction that should be decoded.
  * @param instruc A reference to an ia32_instruction that should be setup with the decoded instruction.
  */
-ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32_instruction& instruct)
+ia32_instruction &ia32_decode(unsigned int capa, const unsigned char *addr, ia32_instruction &instruct, bool mode_64)
 {
     const unsigned char* addr_orig = addr; /* The original start to this instruction (addr will change) */
     ia32_prefixes& pref = instruct.prf; /* A reference to the prefix information for this instruction */
     ia32_entry *gotit = NULL; /* A pointer to the descriptor for the decoded instruction */
 
-    /* If we are being assed to decode memory accesses, then instrut.mac must not be null. */  
+    /* If we are being assed to decode memory accesses, then instrut.mac must not be null. */
     if(capa & IA32_DECODE_MEMACCESS)
         assert(instruct.mac != NULL);
 
     /* First decode any prefixes for this instruction */
-    if (!ia32_decode_prefixes(addr, instruct)) 
+    if (!ia32_decode_prefixes(addr, instruct, mode_64))
     {
 #ifdef VEX_DEBUG
         fprintf(stderr, "PREFIX DECODE FAILURE\n");
@@ -8535,7 +8530,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
     /* Get the entry in the decoding tables */
     int opcode_decoding;
 
-    if((opcode_decoding = ia32_decode_opcode(capa, addr, instruct, &gotit)))
+    if((opcode_decoding = ia32_decode_opcode(capa, addr, instruct, &gotit, mode_64)))
     {
         if(opcode_decoding > 0)
         {
@@ -8556,7 +8551,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
     addr = addr_orig + instruct.size;
 
     /* Do the operand decoding */
-    ia32_decode_operands(pref, *gotit, addr, instruct, instruct.mac);
+    ia32_decode_operands(pref, *gotit, addr, instruct, instruct.mac, mode_64);
 
     /* Decode the memory accesses if requested */
     if(capa & IA32_DECODE_MEMACCESS) 
@@ -8773,7 +8768,9 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
             default: break;
         }
 
+#if STUB_OUT_TO_AVOID_RACE
         gotit->id = newID;
+#endif
     }
 
     instruct.entry = gotit;
@@ -8791,8 +8788,8 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
  * @return >= 0 on success. < 0 on failure. A result greater that zero usually means
  *          that it was an FPU instruction that has been fully decoded.
  */
-int ia32_decode_opcode(unsigned int capa, const unsigned char* addr, 
-        ia32_instruction& instruct, ia32_entry** gotit_ret)
+int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instruction &instruct, ia32_entry **gotit_ret,
+                       bool mode_64)
 {
     ia32_prefixes& pref = instruct.prf;
     unsigned int table, nxtab, idx;
@@ -9105,8 +9102,7 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char* addr,
                     unsigned int reg  = (addr[0] >> 3) & 7;
                     unsigned int mod = addr[0] >> 6;
                     gotit = &fpuMap[gotit->tabidx][mod==3][reg];
-                    ia32_decode_FP(idx, pref, addr, 
-                            instruct, gotit, instruct.mac);
+                    ia32_decode_FP(idx, pref, addr, instruct, gotit, instruct.mac, mode_64);
 
                     if(gotit_ret)
                         *gotit_ret = gotit;
@@ -9276,9 +9272,9 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char* addr,
     return 0;
 }
 
-ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
-                                 const unsigned char* addr, ia32_instruction& instruct,
-                                 ia32_entry * entry, ia32_memacc *mac)
+ia32_instruction &
+ia32_decode_FP(unsigned int opcode, const ia32_prefixes &pref, const unsigned char *addr, ia32_instruction &instruct,
+               ia32_entry *entry, ia32_memacc *mac, bool mode_64)
 {
     // addr points after the opcode, and the size has been adjusted accordingly
     if (instruct.loc) instruct.loc->opcode_size = instruct.size - pref.getCount();
@@ -9296,7 +9292,7 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
             instruct.loc->opcode_size;
         instruct.loc->modrm_operand = 0;
     }
-    nib += ia32_decode_modrm(addrSzAttr, addr, mac, &pref, instruct.loc);
+    nib += ia32_decode_modrm(addrSzAttr, addr, mac, &pref, instruct.loc, mode_64);
     // also need to check for AMD64 rip-relative data addressing
     // occurs when mod == 0 and r/m == 101
     if (mode_64)
@@ -9487,15 +9483,12 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
 #define MODRM_SET_RM(x, y) ((x) |= (y))
 #define MODRM_SET_REG(x, y) ((x) |= ((y) << 3))
 
-static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
-                                      const unsigned char* addr,
-                                      ia32_memacc* macadr,
-                                      const ia32_prefixes* pref,
-                                      ia32_locations *loc)
+static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsigned char *addr, ia32_memacc *macadr,
+                                     const ia32_prefixes *pref, ia32_locations *loc, bool mode_64)
 {
-   /** 
+   /**
     * ModR/M Format:
-    * 11  111  111 
+    * 11  111  111
     *  |   |    +-> R/M bits
     *  |   +------> REG bits
     *  +----------> MOD bits
@@ -9507,7 +9500,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
    unsigned char reg = MODRM_REG(modrm);
 
    /* If locations are provided, configure them */
-   if (loc) 
+   if (loc)
    {
       loc->modrm_byte = modrm;
       loc->modrm_mod = mod;
@@ -9527,12 +9520,12 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
    if(addrSzAttr == 1)  // 16-bit, cannot have SIB
    {
       /* This mode can only occur when running in 32 bit mode. */
-      switch(mod) 
+      switch(mod)
       {
          case 0:
             if(macadr)
             {
-               switch (rm) 
+               switch (rm)
                {
                   case 0: // [BX+SI]
                      macadr->set16(mBX, mSI, 0);
@@ -9552,14 +9545,14 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
                   case 5:
                      macadr->set16(mDI, -1, 0);
                      break;
-                  case 6: 
+                  case 6:
                      macadr->set16(-1, -1, *disp16);
-                     if (loc) 
-                     { 
+                     if (loc)
+                     {
                         loc->disp_position = loc->modrm_position + 1;
                         loc->disp_size = 2; /* 16 bit displacement */
                      }
-                     break; 
+                     break;
                   case 7:
                      macadr->set16(mBX, -1, 0);
                      break;
@@ -9571,7 +9564,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
 
             return rm == 6 ? wordSzB : 0;
          case 1:
-            if(macadr) 
+            if(macadr)
             {
                if (loc)
                {
@@ -9579,9 +9572,9 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
                   loc->disp_size = 1;
                }
 
-               switch (rm) 
+               switch (rm)
                {
-                  case 0: 
+                  case 0:
                      macadr->set16(mBX, mSI, *disp8);
                      break;
                   case 1:
@@ -9613,17 +9606,17 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
 
             return byteSzB;
          case 2:
-            if(macadr) 
+            if(macadr)
             {
-               if (loc) 
-               { 
+               if (loc)
+               {
                   loc->disp_position = loc->modrm_position + 1;
                   loc->disp_size = 2;
                }
 
-               switch (rm) 
+               switch (rm)
                {
-                  case 0: 
+                  case 0:
                      macadr->set16(mBX, mSI, *disp16);
                      break;
                   case 1:
@@ -9674,15 +9667,15 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
       int base = 0, scale = -1, index = -1;  // prevent g++ from whining.
 
       /* Do we have an sib? */
-      if(hassib) 
+      if(hassib)
       {
          /* Grab the sib */
          sib = addr[0];
          nsib = byteSzB;
 
          /* Update locations if needed */
-         if (loc) 
-         { 
+         if (loc)
+         {
             loc->sib_position = loc->modrm_position + 1;
             loc->sib_byte = sib;
          }
@@ -9691,7 +9684,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
          addr++;
 
          base = sib & 7;
-         if(macadr) 
+         if(macadr)
          {
             scale = sib >> 6;
             index = (sib >> 3) & 7;
@@ -9701,7 +9694,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
                index = -1;
          }
       }
-      
+
       /* Update displacement pointers  */
       disp8 = (const char*)addr;
       disp16 = (const short*)addr;
@@ -9710,12 +9703,12 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
       /* this is tricky: there is a disp32 iff (1) rm == 5  or  (2) hassib && base == 5 */
       unsigned char check5 = hassib ? base : rm;
 
-      switch(mod) 
+      switch(mod)
       {
-         case 0: 
+         case 0:
             if(macadr)
             {
-               switch (rm) 
+               switch (rm)
                {
                   case 0:
                      macadr->set(apply_rex_bit(mEAX, pref->rexB()), 0, addrSzAttr);
@@ -9730,27 +9723,27 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
                      macadr->set(apply_rex_bit(mEBX, pref->rexB()), 0, addrSzAttr);
                      break;
                   case 4: // SIB
-                     if(base == 5) 
-                     { 
+                     if(base == 5)
+                     {
                         // disp32[index<<scale]
-                        if (loc) 
+                        if (loc)
                         {
                            loc->disp_position = loc->sib_position + 1;
                            loc->disp_size = 4;
                         }
 
-                        macadr->set_sib(-1, scale, apply_rex_bit(index, pref->rexX()), 
+                        macadr->set_sib(-1, scale, apply_rex_bit(index, pref->rexX()),
                               *disp32, addrSzAttr);
                      } else {
-                        macadr->set_sib(apply_rex_bit(base, pref->rexB()), scale, 
+                        macadr->set_sib(apply_rex_bit(base, pref->rexB()), scale,
                               apply_rex_bit(index, pref->rexX()), 0, addrSzAttr);
                      }
                      break;
-                  case 5: 
-                     { 
+                  case 5:
+                     {
                         // disp32 (or [RIP + disp32] for 64-bit mode)
-                        if (loc) 
-                        { 
+                        if (loc)
+                        {
                            loc->disp_position = loc->modrm_position + 1;
                            loc->disp_size = 4;
                         }
@@ -9759,7 +9752,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
                            macadr->set(mRIP, *disp32, addrSzAttr);
                         else
                            macadr->set(-1, *disp32, addrSzAttr);
-                        break; 
+                        break;
                      }
                   case 6:
                      macadr->set(apply_rex_bit(mESI, pref->rexB()), 0, addrSzAttr);
@@ -9775,15 +9768,15 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
 
             return nsib + ((check5 == 5) ? dwordSzB : 0);
          case 1:
-            if(macadr) 
+            if(macadr)
             {
-               if (loc) 
-               { 
+               if (loc)
+               {
                   loc->disp_position = loc->modrm_position + 1;
                   loc->disp_size = 1;
                }
 
-               switch (rm) 
+               switch (rm)
                {
                   case 0:
                      macadr->set(apply_rex_bit(mEAX, pref->rexB()), *disp8, addrSzAttr);
@@ -9799,10 +9792,10 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
                      break;
                   case 4:
                      // disp8[EBP + index<<scale] happens naturally here when base=5
-                     if (loc) { 
+                     if (loc) {
                         loc->disp_position = loc->sib_position + 1;
                         loc->disp_size = 1;
-                     }           
+                     }
                      macadr->set_sib(apply_rex_bit(base, pref->rexB()), scale, apply_rex_bit(index, pref->rexX()),
                            *disp8, addrSzAttr);
                      break;
@@ -9820,15 +9813,15 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
 
             return nsib + byteSzB;
          case 2:
-            if(macadr) 
+            if(macadr)
             {
-               if (loc) 
-               { 
+               if (loc)
+               {
                   loc->disp_position = loc->modrm_position + 1;
                   loc->disp_size = 4;
                }
 
-               switch (rm) 
+               switch (rm)
                {
                   case 0:
                      macadr->set(apply_rex_bit(mEAX, pref->rexB()), *disp32, addrSzAttr);
@@ -9844,7 +9837,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
                      break;
                   case 4:
                      // disp32[EBP + index<<scale] happens naturally here when base=5
-                     if (loc) { 
+                     if (loc) {
                         loc->disp_position = loc->sib_position + 1;
                         loc->disp_size = 4;
                      }
@@ -9939,16 +9932,16 @@ static inline int type2size(unsigned int optype, unsigned int operSzAttr)
 }
 
 unsigned int ia32_decode_operands (const ia32_prefixes& pref, 
-      const ia32_entry& gotit, 
-      const unsigned char* addr, 
-      ia32_instruction& instruct,
-      ia32_memacc *mac)
+                                   const ia32_entry& gotit, 
+                                   const unsigned char* addr, 
+                                   ia32_instruction& instruct,
+                                   ia32_memacc *mac, bool mode_64)
 {
    /* # of bytes in instruction */
-   unsigned int nib = 0; 
+   unsigned int nib = 0;
    ia32_locations *loc = instruct.loc;
 
-   if(loc) 
+   if(loc)
       loc->imm_cnt = 0;
 
    /* If the prefix is present, the address size changes to 16 bit */
@@ -9967,11 +9960,11 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
    {
       const ia32_operand& op = gotit.operands[i];
 
-      if(op.admet) 
+      if(op.admet)
       {
          // At most two operands can be memory, the third is register or immediate
          //assert(i<2 || op.admet == am_reg || op.admet == am_I);
-         switch(op.admet) 
+         switch(op.admet)
          {
             case am_A: /* address = segment + offset (word or dword or qword) */
                nib += wordSzB; // segment
@@ -9979,10 +9972,10 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
                break;
             case am_O: /* operand offset */
                nib += wordSzB * addrSzAttr;
-               if(mac) 
+               if(mac)
                {
                   int offset = 0;
-                  switch(addrSzAttr) 
+                  switch(addrSzAttr)
                   {
                      case 1: // 16-bit offset
                         offset = *((const short int*)addr);
@@ -10024,7 +10017,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
             case am_H:   /* XMM, YMM or ZMM register (vvvv of prefix) */
             case am_HK:  /* K register (vvvv of prefix) */
             case am_VK:  /* K register (vvvv of prefix) */
-            case am_reg: /* register implicitely encoded in opcode */ 
+            case am_reg: /* register implicitely encoded in opcode */
             case am_allgprs:
                break;
             case am_E:  /* register or memory location, so decoding needed */
@@ -10036,7 +10029,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
             case am_YW: /* XMM or YMM register or memory location */
             case am_W:  /* XMM, YMM or ZMM register or memory location */
             case am_WK:  /* K register (vvvv of prefix) */
-               if (loc) 
+               if (loc)
                {
                   loc->modrm_position = loc->opcode_size + loc->opcode_position;
                   loc->modrm_operand = i;
@@ -10044,13 +10037,13 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
 
                if(mac)
                {
-                  nib += ia32_decode_modrm(addrSzAttr, addr, &mac[i], &pref, loc);
+                  nib += ia32_decode_modrm(addrSzAttr, addr, &mac[i], &pref, loc, mode_64);
                   mac[i].size = type2size(op.optype, operSzAttr);
 
-                  if (loc) 
+                  if (loc)
                      loc->address_size = mac[i].size;
                } else {
-                  nib += ia32_decode_modrm(addrSzAttr, addr, NULL, &pref, loc);
+                  nib += ia32_decode_modrm(addrSzAttr, addr, NULL, &pref, loc, mode_64);
                }
 
                // also need to check for AMD64 rip-relative data addressing
@@ -10061,16 +10054,16 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
                break;
             case am_I: /* immediate data */
             case am_J: /* instruction pointer offset */
-               { 
+               {
                   int imm_size = type2size(op.optype, operSzAttr);
-                  if (loc) 
+                  if (loc)
                   {
                      // sanity
-                     if(loc->imm_cnt > 1) 
+                     if(loc->imm_cnt > 1)
                      {
                         fprintf(stderr,"Oops, more than two immediate operands\n");
                      } else {
-                        loc->imm_position[loc->imm_cnt] = 
+                        loc->imm_position[loc->imm_cnt] =
                            nib + loc->opcode_position + loc->opcode_size;
                         loc->imm_size[loc->imm_cnt] = imm_size;
                         ++loc->imm_cnt;
@@ -10099,7 +10092,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
 #endif
                assert(0 && "Bad addressing mode!");
          }
-      } else {    
+      } else {
          break;
       }
    }
@@ -10110,9 +10103,9 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
       /* This last one is always Ib */
       int imm_size = type2size(op_b, operSzAttr);
 
-      if (loc) 
+      if (loc)
       {
-         if(loc->imm_cnt > 1) 
+         if(loc->imm_cnt > 1)
          {
             fprintf(stderr,"Oops, more than two immediate operands\n");
          } else {
@@ -10184,7 +10177,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
       while((mac[index].regs[0] != -1) ||
             (mac[index].regs[1] != -1) ||
             (mac[index].scale != 0) ||
-            (mac[index].imm != 0)) 
+            (mac[index].imm != 0))
       {
          index++;
          assert(index < 3);
@@ -10281,10 +10274,10 @@ bool is_sse_opcode(unsigned char byte1, unsigned char byte2, unsigned char byte3
  *
  * @return true if the prefixes were decoded successfully, false if there was a problem.
  */
-bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& instruct)
+    bool ia32_decode_prefixes(const unsigned char *addr, ia32_instruction &instruct, bool mode_64)
 {
    ia32_prefixes& pref = instruct.prf;
-   ia32_locations* loc = instruct.loc; 
+   ia32_locations* loc = instruct.loc;
 
    /* Initilize the prefix */
    memset(pref.prfx, 0, 5);
@@ -10311,7 +10304,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& instruct)
 
    bool err = false;
 
-   while(in_prefix && !err) 
+   while(in_prefix && !err)
    {
       /**
        * Switch based on the current byte. If the current byte
@@ -10323,16 +10316,16 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& instruct)
        * some prefixes cannot go together.
        */
 
-      switch(addr[0]) 
+      switch(addr[0])
       {
          case PREFIX_REPNZ:
          case PREFIX_REP:
-            if(mode_64 && REX_ISREX(addr[1]) 
-                  && is_sse_opcode(addr[2],addr[3],addr[4])) 
+            if(mode_64 && REX_ISREX(addr[1])
+                  && is_sse_opcode(addr[2],addr[3],addr[4]))
             {
                ++pref.count;
                pref.opcode_prefix = addr[0];
-            } else if(is_sse_opcode(addr[1],addr[2],addr[3])) 
+            } else if(is_sse_opcode(addr[1],addr[2],addr[3]))
             {
                ++pref.count;
                pref.opcode_prefix = addr[0];
@@ -10501,7 +10494,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& instruct)
             }
 
             /* VEX prefixes exclude all others */
-            in_prefix = false; 
+            in_prefix = false;
             break;
          default:
             // If we hit a REX prefix, keep going and process other potential prefixes.
@@ -10516,7 +10509,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& instruct)
                   break;
                }
 
-               if(!REX_ISREX(addr[0])) 
+               if(!REX_ISREX(addr[0]))
                {
                   /* We probably hit the opcode now */
                   in_prefix = false;
@@ -10528,7 +10521,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& instruct)
                in_prefix = false;
             }
             break;
-      }  
+      }
 
       /* Move to the next byte */
       ++addr;
@@ -10545,40 +10538,40 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& instruct)
    /* Print debug information that is super helpful for VEX debugging. */
 
 #ifdef VEX_DEBUG /* Print out prefix information (very verbose) */
-   fprintf(stderr, "Prefix buffer: %x %x %x %x %x\n", pref.prfx[0], pref.prfx[1], 
+   fprintf(stderr, "Prefix buffer: %x %x %x %x %x\n", pref.prfx[0], pref.prfx[1],
          pref.prfx[2], pref.prfx[3], pref.prfx[4]);
    fprintf(stderr, "opcode prefix: 0x%x\n", pref.opcode_prefix);
    fprintf(stderr, "REX  W: %s  R: %s  X: %s  B: %s\n",
-         pref.rexW() ? "yes" : "no", pref.rexR() ? "yes" : "no", 
+         pref.rexW() ? "yes" : "no", pref.rexR() ? "yes" : "no",
          pref.rexX() ? "yes" : "no", pref.rexB() ? "yes" : "no");
 
    fprintf(stderr, "IS VEX PRESENT?  %s\n", pref.vex_present ? "YES" : "NO");
    if(pref.vex_present)
    {
-      fprintf(stderr, "VEX IS PRESENT: %d\n", 
+      fprintf(stderr, "VEX IS PRESENT: %d\n",
             pref.vex_type);
       fprintf(stderr, "VEX BYTES:      %x %x %x %x %x\n",
             pref.vex_prefix[0], pref.vex_prefix[1], pref.vex_prefix[2],
             pref.vex_prefix[3], pref.vex_prefix[4]);
-      fprintf(stderr, "VEX SSE MULT:   %d  0x%x\n", 
+      fprintf(stderr, "VEX SSE MULT:   %d  0x%x\n",
             pref.vex_sse_mult, pref.vex_sse_mult);
-      fprintf(stderr, "VEX_VVVV:       %d  0x%x\n", 
+      fprintf(stderr, "VEX_VVVV:       %d  0x%x\n",
             pref.vex_vvvv_reg, pref.vex_vvvv_reg);
-      fprintf(stderr, "VEX_LL:         %d  0x%x\n", 
+      fprintf(stderr, "VEX_LL:         %d  0x%x\n",
             pref.vex_ll, pref.vex_ll);
-      fprintf(stderr, "VEX_PP:         %d  0x%x\n", 
+      fprintf(stderr, "VEX_PP:         %d  0x%x\n",
             pref.vex_pp, pref.vex_pp);
-      fprintf(stderr, "VEX_M-MMMM:     %d  0x%x\n", 
+      fprintf(stderr, "VEX_M-MMMM:     %d  0x%x\n",
             pref.vex_m_mmmm, pref.vex_m_mmmm);
-      fprintf(stderr, "VEX_W:          %d  0x%x\n", 
+      fprintf(stderr, "VEX_W:          %d  0x%x\n",
             pref.vex_w, pref.vex_w);
-      fprintf(stderr, "VEX_r:          %d  0x%x\n", 
+      fprintf(stderr, "VEX_r:          %d  0x%x\n",
             pref.vex_r, pref.vex_r);
-      fprintf(stderr, "VEX_R:          %d  0x%x\n", 
+      fprintf(stderr, "VEX_R:          %d  0x%x\n",
             pref.vex_R, pref.vex_R);
-      fprintf(stderr, "VEX_x:          %d  0x%x\n", 
+      fprintf(stderr, "VEX_x:          %d  0x%x\n",
             pref.vex_x, pref.vex_x);
-      fprintf(stderr, "VEX_b:          %d  0x%x\n", 
+      fprintf(stderr, "VEX_b:          %d  0x%x\n",
             pref.vex_b, pref.vex_b);
    }
 #endif
@@ -10600,7 +10593,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_instruction& instruct)
 bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes& pref,
       ia32_locations *loc)
 {
-   if (REX_ISREX(addr[0])) 
+   if (REX_ISREX(addr[0]))
    {
       /**
        * it is an error to have legacy prefixes after a REX prefix
@@ -10626,11 +10619,11 @@ bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes& pref,
       }
 
       /* We also must ignore all but the last REX prefix. */
-      if(REX_ISREX(addr[1])) 
+      if(REX_ISREX(addr[1]))
          return false;
 
       /* Set the locations for this REX prefix. */
-      if (loc) 
+      if (loc)
       {
          loc->rex_byte = addr[0];
          loc->rex_w = REX_W(addr[0]);
@@ -10661,7 +10654,7 @@ bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes& pref,
    return true;
 }
 
-unsigned int ia32_emulate_old_type(ia32_instruction& instruct)
+unsigned int ia32_emulate_old_type(ia32_instruction &instruct, bool mode_64)
 {
    const ia32_prefixes& pref = instruct.prf;
    unsigned int& insnType = instruct.legacy_type;
@@ -10724,15 +10717,15 @@ unsigned int ia32_emulate_old_type(ia32_instruction& instruct)
 
 /* decode instruction at address addr, return size of instruction */
 unsigned get_instruction(const unsigned char* addr, unsigned &insnType,
-      const unsigned char** op_ptr)
+			 const unsigned char** op_ptr, bool mode_64)
 {
    int r1;
 
-   ia32_instruction i;
-   ia32_decode(0, addr, i);
+  ia32_instruction i;
+  ia32_decode(0, addr, i, mode_64);
 
    r1 = i.getSize();
-   insnType = ia32_emulate_old_type(i);
+   insnType = ia32_emulate_old_type(i, mode_64);
    if (op_ptr)
       *op_ptr = addr + i.getPrefixCount();
 
@@ -10797,7 +10790,7 @@ int displacement(const unsigned char *instr, unsigned type) {
       } else if (type & REL_D) {
          disp = *(const int *)(instr+1);
       }
-   }  
+   }
 
    return disp;
 }
@@ -10845,7 +10838,7 @@ unsigned copy_prefixes(const unsigned char *&origInsn, unsigned char *&newInsn, 
 
 //Copy all prefixes but the Operand-Size and Address-Size prefixes (0x66 and 0x67)
 unsigned copy_prefixes_nosize(const unsigned char *&origInsn, unsigned char *&newInsn, 
-      unsigned insnType) 
+      unsigned insnType)
 {
    unsigned nPrefixes = count_prefixes(insnType);
 
@@ -10942,7 +10935,7 @@ skip_headers(const unsigned char* addr, ia32_instruction* instruct)
    ia32_instruction tmp;
    if(!instruct)
       instruct = &tmp;
-   ia32_decode_prefixes(addr, *instruct);
+   ia32_decode_prefixes(addr, *instruct, false);
    return addr + instruct->getSize();
 }
 
@@ -11016,49 +11009,6 @@ entryID ia32_entry::getID(ia32_locations* l) const
    return id;
 }
 
-Address get_immediate_operand(instruction *instr)
-{
-   ia32_memacc mac[3];
-   ia32_condition cond;
-   ia32_locations loc;
-   ia32_instruction detail(mac,&cond,&loc);
-
-   ia32_decode(IA32_FULL_DECODER,(const unsigned char *)(instr->ptr()),detail);
-
-   if (loc.imm_cnt < 1)
-      return 0;
-
-   // now find the immediate value in the locations
-   Address immediate = 0;
-
-   switch(loc.imm_size[0]) {
-      case 8:
-         immediate = *(const unsigned long*)(instr->ptr()+loc.imm_position[0]);
-         break;
-      case 4:
-         immediate = *(const unsigned int*)(instr->ptr()+loc.imm_position[0]);
-         break;
-      case 2:
-         immediate = *(const unsigned short*)(instr->ptr()+loc.imm_position[0]);
-         break;
-      case 1:
-         immediate = *(const unsigned char*)(instr->ptr()+loc.imm_position[0]);
-         break;
-      default:
-         //            fprintf(stderr,"%s[%u]:  invalid immediate size %d in insn\n",
-         //                FILE__,__LINE__,loc.imm_size[0]);
-         break;
-   }
-
-   return immediate;
-}
-
-// get the displacement of a relative jump or call
-
-int get_disp(instruction *insn) {
-   return displacement(insn->ptr(), insn->type());
-}
-
 bool isStackFramePrecheck_gcc( const unsigned char *buffer )
 {
    //Currently enabled entry bytes for gaps:
@@ -11109,9 +11059,9 @@ bool isStackFramePrecheck_msvs( const unsigned char *buffer )
 
 /*
    bool isStackFramePreamble( instruction& insn1 )
-   {       
+   {
    instruction insn2, insn3;
-   insn2.setInstruction( insn1.ptr() + insn1.size() );       
+   insn2.setInstruction( insn1.ptr() + insn1.size() );
    insn3.setInstruction( insn2.ptr() + insn2.size() );
 
    const unsigned char* p = insn1.op_ptr();
@@ -11129,16 +11079,16 @@ bool isStackFramePrecheck_msvs( const unsigned char *buffer )
    }
 
    if( p[ 0 ] == PUSHEBP  )
-   {   
+   {
 // Looking for mov %esp -> %ebp in one of the two
-// following instructions.  There are two ways to encode 
-// mov %esp -> %ebp: as '0x8b 0xec' or as '0x89 0xe5'.  
-if( insn2.isMoveRegMemToRegMem() && 
+// following instructions.  There are two ways to encode
+// mov %esp -> %ebp: as '0x8b 0xec' or as '0x89 0xe5'.
+if( insn2.isMoveRegMemToRegMem() &&
 ((Mod1_1 == 0x05 && Mod1_2 == 0x04) ||
 (Mod1_1 == 0x04 && Mod1_2 == 0x05)))
 return true;
 
-if( insn3.isMoveRegMemToRegMem() && 
+if( insn3.isMoveRegMemToRegMem() &&
 ((Mod2_1 == 0x05 && Mod2_2 == 0x04) ||
 (Mod2_1 == 0x04 && Mod2_2 == 0x05)))
 return true;
@@ -11222,7 +11172,7 @@ unsigned instruction::jumpSize(long disp, unsigned addr_width)
    return JUMP_SZ;
 }
 #else
-unsigned instruction::jumpSize(long /*disp*/, unsigned /*addr_width*/) 
+unsigned instruction::jumpSize(long /*disp*/, unsigned /*addr_width*/)
 {
    return JUMP_SZ;
 }
@@ -11242,241 +11192,16 @@ unsigned instruction::maxJumpSize(unsigned addr_width)
    return JUMP_SZ;
 }
 #else
-unsigned instruction::maxJumpSize(unsigned /*addr_width*/) 
+unsigned instruction::maxJumpSize(unsigned /*addr_width*/)
 {
    return JUMP_SZ;
 }
 #endif
 
-bool instruction::isCmp() const {
-   if(*op_ptr_ == CMP_EB_GB || *op_ptr_ == CMP_EV_GV ||
-         *op_ptr_ == CMP_GB_EB || *op_ptr_ == CMP_GV_EV ||
-         *op_ptr_ == CMP_AL_LB || *op_ptr_ == CMP_RAX_LZ)
-   {
-      return true;
-   }
-
-   if(*op_ptr_ == 0x80 || *op_ptr_ == 0x81 || *op_ptr_ == 0x83) 
-   {
-      // group 1 opcodes -- operation depends on reg (bits 3-5) of
-      // modr/m byte
-      const unsigned char *p = op_ptr_+1;
-      if( (*p & (7<<3)) == (7<<3))
-         return true;
-   }
-
-   return false;
-}
 
 #define SIB_SET_REG(x, y) ((x) |= ((y) & 7))
 #define SIB_SET_INDEX(x, y) ((x) |= (((y) & 7) << 3))
 #define SIB_SET_SS(x, y) ((x) | (((y) & 3) << 6))
 
-bool instruction::getUsedRegs(pdvector<int> &regs) {
-   const unsigned char *insn_ptr = ptr();
-
-   struct ia32_memacc memacc[3];
-   struct ia32_condition cond;
-   class ia32_locations loc;
-   ia32_entry *entry;
-   ia32_instruction orig_instr(memacc, &cond, &loc);
-   ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION,
-         insn_ptr, orig_instr);
-   entry = orig_instr.getEntry();
-
-   if (orig_instr.getPrefix()->getPrefix(1) != 0)
-      //The instruction accesses memory via segment registers.  Disallow.
-      return false;
-
-   if (loc.modrm_position == -1)
-      //Only supporting MOD/RM instructions now
-      return false; 
-
-   if (loc.address_size == 1)
-      //Don't support 16-bit instructions yet
-      return false;
-
-   if (loc.modrm_reg == 4 && !loc.rex_r)
-      //The non-memory access register is %rsp/%esp, we can't work with
-      // this register due to our register saving techniques.
-      return false;
-
-   if (loc.modrm_mod == 3)
-      //This instruction doesn't use the MOD/RM to access memory
-      return false;
-
-   for (unsigned i=0; i<3; i++) {
-      const ia32_operand& op = entry->operands[i];
-      if (op.admet == am_O) {
-         //The MOD/RM specifies a register that's used
-         int regused = loc.modrm_reg;
-         if (loc.address_size == 4 && loc.rex_r) {
-            regused |= 0x8;
-         }
-         regs.push_back(regused);
-      }
-      else if (op.admet == am_reg) {
-         //using namespace Dyninst::InstructionAPI;
-         //The instruction implicitely references a memory instruction
-         switch (op.optype) {
-            case x86::iah:   
-            case x86::ial:
-            case x86::iax:   
-            case x86::ieax:
-               regs.push_back(REGNUM_RAX);
-               if (loc.rex_byte) regs.push_back(REGNUM_R8);
-               break;
-            case x86::ibh:
-            case x86::ibl:
-            case x86::ibx:
-            case x86::iebx:
-               regs.push_back(REGNUM_RBX);
-               if (loc.rex_byte) regs.push_back(REGNUM_R11);
-               break;
-            case x86::ich:
-            case x86::icl:
-            case x86::icx:
-            case x86::iecx:
-               regs.push_back(REGNUM_RCX);
-               if (loc.rex_byte) regs.push_back(REGNUM_R9);
-               break;
-            case x86::idh:
-            case x86::idl:
-            case x86::idx:
-            case x86::iedx:
-               regs.push_back(REGNUM_RDX);
-               if (loc.rex_byte) regs.push_back(REGNUM_R10);
-               break;
-            case x86::isp:
-            case x86::iesp:
-               regs.push_back(REGNUM_RSP);
-               if (loc.rex_byte) regs.push_back(REGNUM_R12);
-               break;
-            case x86::ibp:
-            case x86::iebp:
-               regs.push_back(REGNUM_RBP);
-               if (loc.rex_byte) regs.push_back(REGNUM_R13);
-               break;
-            case x86::isi:
-            case x86::iesi:
-               regs.push_back(REGNUM_RSI);
-               if (loc.rex_byte) regs.push_back(REGNUM_R14);
-               break;
-            case x86::idi:
-            case x86::iedi:
-               regs.push_back(REGNUM_RDI);
-               if (loc.rex_byte) regs.push_back(REGNUM_R15);
-               break;
-            case op_edxeax:
-               regs.push_back(REGNUM_RAX);
-               regs.push_back(REGNUM_RDX);
-               break;
-            case op_ecxebx:
-               regs.push_back(REGNUM_RBX);
-               regs.push_back(REGNUM_RCX);
-               break;
-         }
-      }
-   }
-   return true;
-}
-
-int instruction::getStackDelta()
-{
-   ia32_instruction instruc;
-   const unsigned char *p = ptr();
-   ia32_decode(0, ptr(), instruc);
-
-   if (instruc.getEntry()->id == e_push)
-      return -4;
-   if (instruc.getEntry()->id == e_pop)
-      return 4;
-   if (instruc.getEntry()->id == e_pusha)
-      return (-2 * 9);
-   if (instruc.getEntry()->id == e_pushad)
-      return (-4 * 9);
-   if (instruc.getEntry()->id == e_popa)
-      return (2 * 9);
-   if (instruc.getEntry()->id == e_popad)
-      return (4 * 9);
-
-   if (p[0] == 0x83 && p[1] == 0xec) {
-      //Subtract byte
-      return -1 * (signed char) p[2];
-   }
-
-   if (p[0] == 0x83 && p[1] == 0xc4) {
-      //Add byte
-      return (signed char) p[2];
-   }
-
-   return 0;
-}
-
-bool instruction::isNop() const
-{ 
-
-   if (!(type_ & IS_NOP)) //NOP or LEA
-      return false;
-
-   if (*op_ptr_ == NOP) {
-      return true;
-   }
-
-   ia32_memacc mac[3];
-   ia32_condition cnd;
-   ia32_locations loc;
-
-   ia32_instruction instruc(mac, &cnd, &loc);
-
-   ia32_decode(IA32_FULL_DECODER, ptr(), instruc);
-
-
-   if (instruc.getEntry()->id == e_nop) {
-      return true;
-   }
-
-   if (loc.modrm_mod == 3) {
-      return false;
-   }
-   if (loc.modrm_mod == 0 && loc.modrm_rm == 5) {
-      return false;
-   }
-
-   if (loc.rex_x) {
-      return false;
-   }
-   if ((!loc.rex_r) != (!loc.rex_b)) { // Logical exclusive or
-      return false;
-   }
-
-   if (loc.disp_position != -1) {
-      for (unsigned i=0; i<loc.disp_size; i++) {
-         if (ptr_[i + loc.disp_position] != 0) {
-            return false;
-         }
-      }
-   }
-
-   if (loc.modrm_rm == 4) {
-      unsigned scale;
-      Register index, base;
-      decode_SIB(loc.sib_byte, scale, index, base);
-
-      if (index != 4) {
-         return false;
-      }
-
-      if (base != loc.modrm_reg) {
-         return false;
-      }
-   }
-   else if (loc.modrm_reg != loc.modrm_rm) {
-      return false;
-   }
-
-
-   return true;
-}
 
 } // namespace arch_x86

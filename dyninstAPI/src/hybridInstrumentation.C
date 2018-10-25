@@ -829,8 +829,8 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         {
             using namespace InstructionAPI;
             Address curFallThroughAddr = (*cIter)->getCallFallThroughAddr();
-            if (NULL != (*cIter)->getInsnAtPoint() && 
-                c_BranchInsn != (*cIter)->getInsnAtPoint()->getCategory() &&
+            if ((*cIter)->getInsnAtPoint().isValid() &&
+                c_BranchInsn != (*cIter)->getInsnAtPoint().getCategory() &&
                 BPatch_defensiveMode == (*cIter)->llpoint()->func()->obj()->hybridMode() &&
                 ! hasEdge((*cIter)->getFunction(), 
                           (Address)((*cIter)->llpoint()->block()->start()), 
@@ -1481,8 +1481,8 @@ bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
         else {
             // compute static targets with bad addresses
             using namespace InstructionAPI;
-            Instruction::Ptr insn = ipoint->block()->getInsn(ipoint->block()->last());
-            Expression::Ptr expr = insn->getControlFlowTarget();
+            Instruction insn = ipoint->block()->getInsn(ipoint->block()->last());
+            Expression::Ptr expr = insn.getControlFlowTarget();
             //Expression::Ptr expr = ipoint->insn()->getControlFlowTarget();
             Architecture arch = proc_->lowlevel_process()->getArch();
             expr->bind(RegisterAST::Ptr
@@ -1542,8 +1542,8 @@ bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
                     assert(ptr);
                     InstructionDecoder dec
                         (ptr, InstructionDecoder::maxInstructionLength, arch);
-                    Instruction::Ptr insn = dec.decode();
-                    Expression::Ptr trgExpr = insn->getControlFlowTarget();
+                    Instruction insn = dec.decode();
+                    Expression::Ptr trgExpr = insn.getControlFlowTarget();
                     trgExpr->bind(thePC.get(), 
                         Result(s64, ipoint->block()->last()));
                     Result actualTarget = trgExpr->eval();

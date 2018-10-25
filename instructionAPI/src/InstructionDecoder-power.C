@@ -31,7 +31,7 @@
 #include "InstructionDecoder-power.h"
 #include <boost/assign/list_of.hpp>
 #include "../../common/src/singleton_object_pool.h"
-
+#include <mutex>
 namespace Dyninst
 {
   namespace InstructionAPI
@@ -69,7 +69,6 @@ namespace Dyninst
                 nextTableFunc next_table;
                 operandSpec operands;
                 static void buildTables();
-                static bool built_tables;
                 static std::vector<power_entry> main_opcode_table;
                 static power_table extended_op_0;
                 static power_table extended_op_4;
@@ -244,9 +243,9 @@ namespace Dyninst
     }
     
     using namespace std;
-    Instruction::Ptr InstructionDecoder_power::decode(InstructionDecoder::buffer& b)
+    Instruction InstructionDecoder_power::decode(InstructionDecoder::buffer& b)
     {
-      if(b.start > b.end) return Instruction::Ptr();
+      if(b.start > b.end) return Instruction();
       isRAWritten = false;
       isFPInsn = false;
       bcIsConditional = false;
@@ -260,7 +259,7 @@ namespace Dyninst
 #endif
         mainDecode();
         b.start += 4;
-        return make_shared(insn_in_progress);
+        return *insn_in_progress;
     }
 
     bool InstructionDecoder_power::decodeOperands(const Instruction*)
@@ -803,36 +802,62 @@ using namespace boost::assign;
         unsigned int xo = field<26, 30>(insn);
         if(xo <= 31)
         {
-            return power_entry::extended_op_0[xo];
+            const power_table::const_iterator entry_it = power_entry::extended_op_0.find(xo);
+            if (entry_it == power_entry::extended_op_0.end())
+                return invalid_entry;
+            return entry_it->second;
         }
-        return power_entry::extended_op_0[field<21, 30>(insn)];
+        const power_table::const_iterator entry_it = power_entry::extended_op_0.find(field<21, 30>(insn));
+        if (entry_it == power_entry::extended_op_0.end())
+            return invalid_entry;
+        return entry_it->second;
     }
 
     const power_entry& InstructionDecoder_power::extended_op_4()
     {
-        return power_entry::extended_op_4[field<26, 30>(insn)];
+        const power_table::const_iterator entry_it = power_entry::extended_op_4.find(field<26, 30>(insn));
+        if (entry_it == power_entry::extended_op_4.end())
+            return invalid_entry;
+        return entry_it->second;
     }
     const power_entry& InstructionDecoder_power::extended_op_19()
     {
-        return power_entry::extended_op_19[field<21, 30>(insn)];
+        const power_table::const_iterator entry_it = power_entry::extended_op_19.find(field<21, 30>(insn));
+        if (entry_it == power_entry::extended_op_19.end())
+            return invalid_entry;
+        return entry_it->second;
     }
     const power_entry& InstructionDecoder_power::extended_op_30()
     {
-        return power_entry::extended_op_30[field<27, 29>(insn)];
+        const power_table::const_iterator entry_it = power_entry::extended_op_30.find(field<27, 29>(insn));
+        if (entry_it == power_entry::extended_op_30.end())
+            return invalid_entry;
+        return entry_it->second;
     }
     const power_entry& InstructionDecoder_power::extended_op_31()
     {
         // sradi is a special instruction. Its xop is from 21 to 29 and its xop value is 413
         if (field<21,29>(insn) == 413) {
-            return power_entry::extended_op_31[413];
+            const power_table::const_iterator entry_it = power_entry::extended_op_31.find(413);
+            if (entry_it == power_entry::extended_op_31.end())
+                return invalid_entry;
+            return entry_it->second;
         }
-        const power_entry& xoform_entry = power_entry::extended_op_31[field<22, 30>(insn)];
-        if(find(xoform_entry.operands.begin(), xoform_entry.operands.end(), &InstructionDecoder_power::OE)
-           != xoform_entry.operands.end())
+        const power_entry* xoform_entry;
+        const power_table::const_iterator entry_it = power_entry::extended_op_31.find(field<22, 30>(insn));
+        if (entry_it == power_entry::extended_op_31.end())
+            xoform_entry = &invalid_entry;
+        else
+            xoform_entry = &(entry_it->second);
+        if(find(xoform_entry->operands.begin(), xoform_entry->operands.end(), &InstructionDecoder_power::OE)
+           != xoform_entry->operands.end())
         {
-            return xoform_entry;
+            return *xoform_entry;
         }
-        return power_entry::extended_op_31[field<21, 30>(insn)];
+        const power_table::const_iterator entry_it2 = power_entry::extended_op_31.find(field<21, 30>(insn));
+        if (entry_it2 == power_entry::extended_op_31.end())
+            return invalid_entry;
+        return entry_it2->second;
     }
     // extended_op_57 needs revisiting
     const power_entry& InstructionDecoder_power::extended_op_57()
@@ -841,11 +866,17 @@ using namespace boost::assign;
     }
     const power_entry& InstructionDecoder_power::extended_op_58()
     {
-        return power_entry::extended_op_58[field<30, 31>(insn)];
+        const power_table::const_iterator entry_it = power_entry::extended_op_58.find(field<30, 31>(insn));
+        if (entry_it == power_entry::extended_op_58.end())
+            return invalid_entry;
+        return entry_it->second;
     }
     const power_entry& InstructionDecoder_power::extended_op_59()
     {
-        return power_entry::extended_op_59[field<26, 30>(insn)];
+        const power_table::const_iterator entry_it = power_entry::extended_op_59.find(field<26, 30>(insn));
+        if (entry_it == power_entry::extended_op_59.end())
+            return invalid_entry;
+        return entry_it->second;
     }
     // extended_op_60 needs revisiting
     const power_entry& InstructionDecoder_power::extended_op_60()
@@ -875,7 +906,10 @@ using namespace boost::assign;
             if(found != power_entry::extended_op_63.end())
                 return found->second;
         }
-        return power_entry::extended_op_63[field<21, 30>(insn)];
+        const power_table::const_iterator entry_it = power_entry::extended_op_63.find(field<21, 30>(insn));
+        if (entry_it == power_entry::extended_op_63.end())
+            return invalid_entry;
+        return entry_it->second;
     }
     
     void InstructionDecoder_power::BF()
@@ -1143,7 +1177,7 @@ using namespace boost::assign;
         insn_in_progress->arch_decoded_from = m_Arch;
         //insn_in_progress->arch_decoded_from = Arch_ppc32;
         if(field<0,5>(insn) == 0x04) {
-            insn_in_progress->m_InsnOp->isVectorInsn = true;
+            insn_in_progress->m_InsnOp.isVectorInsn = true;
         }
         return;
     }

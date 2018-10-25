@@ -340,7 +340,7 @@ class AddressSpace : public InstructionSource {
 
     // And this....
     typedef boost::shared_ptr<Dyninst::InstructionAPI::Instruction> InstructionPtr;
-    bool getDynamicCallSiteArgs(InstructionPtr insn,
+    bool getDynamicCallSiteArgs(InstructionAPI::Instruction insn,
                                 Address addr,
                                 pdvector<AstNodePtr> &args);
 

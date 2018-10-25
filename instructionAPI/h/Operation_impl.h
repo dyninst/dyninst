@@ -36,8 +36,12 @@
 #include "entryIDs.h"
 #include "Result.h"
 #include <set>
+#include <mutex>
 
 #include "util.h"
+#include <boost/thread/lockable_adapter.hpp>
+#include <boost/thread/recursive_mutex.hpp>
+#include <boost/flyweight.hpp>
 
 // OpCode = operation + encoding
 // contents:
@@ -90,28 +94,27 @@ namespace Dyninst
     /// %Operations are constructed by the %InstructionDecoder as part of the process
     /// of constructing an %Instruction.
     
-    class Operation
+    class Operation_impl : public boost::lockable_adapter<boost::recursive_mutex>
     {
     public:
       typedef std::set<RegisterAST::Ptr> registerSet;
       typedef std::set<Expression::Ptr> VCSet;
-      typedef boost::shared_ptr<Operation> Ptr;
       friend class InstructionDecoder_power; // for editing mnemonics after creation
       friend class InstructionDecoder_aarch64;
       
     public:
-      INSTRUCTION_EXPORT Operation(NS_x86::ia32_entry* e, NS_x86::ia32_prefixes* p = NULL, ia32_locations* l = NULL,
+      INSTRUCTION_EXPORT Operation_impl(NS_x86::ia32_entry* e, NS_x86::ia32_prefixes* p = NULL, ia32_locations* l = NULL,
                                   Architecture arch = Arch_none);
-      INSTRUCTION_EXPORT Operation(const Operation& o);
-      INSTRUCTION_EXPORT Operation();
-      INSTRUCTION_EXPORT Operation(entryID id, const char* mnem, Architecture arch);
+      INSTRUCTION_EXPORT Operation_impl(const Operation_impl& o);
+      INSTRUCTION_EXPORT Operation_impl();
+      INSTRUCTION_EXPORT Operation_impl(entryID id, std::string m, Architecture arch);
       
-      INSTRUCTION_EXPORT const Operation& operator=(const Operation& o);
+      INSTRUCTION_EXPORT const Operation_impl& operator=(const Operation_impl& o);
       
       /// Returns the set of registers implicitly read (i.e. those not included in the operands, but read anyway)
-      INSTRUCTION_EXPORT const registerSet& implicitReads() const;
+      INSTRUCTION_EXPORT const registerSet& implicitReads() ;
       /// Returns the set of registers implicitly written (i.e. those not included in the operands, but written anyway)
-      INSTRUCTION_EXPORT const registerSet& implicitWrites() const;
+      INSTRUCTION_EXPORT const registerSet& implicitWrites() ;
       /// Returns the mnemonic for the operation.  Like \c instruction::format, this is exposed for debugging
       /// and will be replaced with stream operators in the public interface.
       INSTRUCTION_EXPORT std::string format() const;
@@ -123,30 +126,55 @@ namespace Dyninst
       INSTRUCTION_EXPORT prefixEntryID getPrefixID() const;
 
       /// Returns true if the expression represented by \c candidate is read implicitly.
-      INSTRUCTION_EXPORT bool isRead(Expression::Ptr candidate) const;
+      INSTRUCTION_EXPORT bool isRead(Expression::Ptr candidate) ;
       /// Returns true if the expression represented by \c candidate is written implicitly.
-      INSTRUCTION_EXPORT bool isWritten(Expression::Ptr candidate) const;
+      INSTRUCTION_EXPORT bool isWritten(Expression::Ptr candidate) ;
       /// Returns the set of memory locations implicitly read.
-      INSTRUCTION_EXPORT const VCSet& getImplicitMemReads() const;
+      INSTRUCTION_EXPORT const VCSet& getImplicitMemReads() ;
       /// Returns the set of memory locations implicitly written.
+      INSTRUCTION_EXPORT const VCSet& getImplicitMemWrites() ;
+      friend std::size_t hash_value(Operation_impl const& op)
+      {
+        size_t seed = 0;
+        boost::hash_combine(seed, op.operationID);
+        boost::hash_combine(seed, op.prefixID);
+        boost::hash_combine(seed, op.archDecodedFrom);
+        boost::hash_combine(seed, op.addrWidth);
+        boost::hash_combine(seed, op.segPrefix);
+        boost::hash_combine(seed, op.isVectorInsn);
+        return seed;
+      }
+      bool operator==(const Operation_impl& rhs) const {
+        return hash_value(*this) == hash_value(rhs);
+      }
       INSTRUCTION_EXPORT const VCSet& getImplicitMemWrites() const;
       bool isVectorInsn;
 
     private:
-      void SetUpNonOperandData(bool doFlags = false) const;
+        std::once_flag data_initialized;
+      void SetUpNonOperandData(bool doFlags = false) ;
       
       mutable registerSet otherRead;
       mutable registerSet otherWritten;
       mutable VCSet otherEffAddrsRead;
       mutable VCSet otherEffAddrsWritten;
-      mutable std::string mnemonic;
-      mutable entryID operationID;
-      mutable bool doneOtherSetup;
-      mutable bool doneFlagsSetup;
+
+    protected:
+        mutable entryID operationID;
       Architecture archDecodedFrom;
       prefixEntryID prefixID;
       Result_Type addrWidth;
+      int segPrefix;
+      mutable std::string mnemonic;
+
       
+    };
+    struct Operation: public Operation_impl {
+        Operation(entryID id, std::string m, Architecture arch)
+                : Operation_impl(id, m, arch)  {}
+        Operation(NS_x86::ia32_entry* e, NS_x86::ia32_prefixes* p = NULL, ia32_locations* l = NULL,
+                Architecture arch = Arch_none) : Operation_impl(e, p, l, arch) {}
+        Operation() : Operation_impl() {}
     };
   };
 };

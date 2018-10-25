@@ -36,7 +36,7 @@
 #include <set>
 #include <list>
 #include "Expression.h"
-#include "Operation.h"
+#include "Operation_impl.h"
 #include "Operand.h"
 #include "InstructionCategories.h"
 #include "ArchSpecificFormatters.h"
@@ -119,7 +119,7 @@ namespace Dyninst
       /// which operands are read and written
       /// in the %Operation object \c what to the value computations in \c operandSource.
 
-      INSTRUCTION_EXPORT Instruction(Operation::Ptr what, size_t size, const unsigned char* raw,
+      INSTRUCTION_EXPORT Instruction(Operation what, size_t size, const unsigned char* raw,
                                      Dyninst::Architecture arch);
       INSTRUCTION_EXPORT Instruction();
 
@@ -132,6 +132,7 @@ namespace Dyninst
       /// \return The %Operation used by the %Instruction
       ///
       /// See Operation for details of the %Operation interface.
+      INSTRUCTION_EXPORT Operation& getOperation();
       INSTRUCTION_EXPORT const Operation& getOperation() const;
 
       /// The vector \c operands has the instruction's operands appended to it
@@ -198,7 +199,7 @@ namespace Dyninst
       /// \c readsMemory will return true for a pop operation.
       INSTRUCTION_EXPORT bool readsMemory() const;
 
-      INSTRUCTION_EXPORT ArchSpecificFormatter *getFormatter() const;
+      INSTRUCTION_EXPORT ArchSpecificFormatter& getFormatter() const;
 
       /// \return Returns true if the instruction writes at least one memory address.
       ///
@@ -275,6 +276,21 @@ namespace Dyninst
         INSTRUCTION_EXPORT cftConstIter cft_end() const {
             return m_Successors.end();
         }
+        INSTRUCTION_EXPORT bool operator<(const Instruction& rhs) const
+        {
+            if(m_size < rhs.m_size) return true;
+            if(m_size <= sizeof(m_RawInsn.small_insn)) {
+                return m_RawInsn.small_insn < rhs.m_RawInsn.small_insn;
+            }
+            return memcmp(m_RawInsn.large_insn, rhs.m_RawInsn.large_insn, m_size) < 0;
+        }
+        INSTRUCTION_EXPORT bool operator==(const Instruction& rhs) const {
+            if(m_size != rhs.m_size) return false;
+            if(m_size <= sizeof(m_RawInsn.small_insn)) {
+                return m_RawInsn.small_insn == rhs.m_RawInsn.small_insn;
+            }
+            return memcmp(m_RawInsn.large_insn, rhs.m_RawInsn.large_insn, m_size) == 0;
+        }
 
 
       typedef boost::shared_ptr<Instruction> Ptr;
@@ -288,14 +304,14 @@ namespace Dyninst
       void copyRaw(size_t size, const unsigned char* raw);
       Expression::Ptr makeReturnExpression() const;
       mutable std::list<Operand> m_Operands;
-      Operation::Ptr m_InsnOp;
+      mutable Operation m_InsnOp;
       bool m_Valid;
       raw_insn_T m_RawInsn;
       unsigned int m_size;
       Architecture arch_decoded_from;
       mutable std::list<CFT> m_Successors;
       static int numInsnsAllocated;
-      ArchSpecificFormatter *formatter;
+      ArchSpecificFormatter& formatter;
     };
   };
 };

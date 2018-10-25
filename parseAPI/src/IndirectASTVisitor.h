@@ -7,6 +7,7 @@
 #include "SymEval.h"
 #include "CodeSource.h"
 #include "BoundFactData.h"
+#include "SymbolicExpression.h"
 
 using namespace std;
 using namespace Dyninst;
@@ -25,10 +26,11 @@ using namespace Dyninst::DataflowAPI;
 class SimplifyVisitor: public ASTVisitor {
     Address addr;
     bool keepMultiOne;
+    SymbolicExpression &se;
 public:
     using ASTVisitor::visit;
     virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
-    SimplifyVisitor(Address a, bool k): addr(a), keepMultiOne(k) {}
+    SimplifyVisitor(Address a, bool k, SymbolicExpression &sym): addr(a), keepMultiOne(k), se(sym) {}
 };
 
 
@@ -97,6 +99,7 @@ public:
     AbsRegion index;
     int64_t indexValue;
     CodeSource* cs;
+    CodeRegion* cr;
     Address targetAddress;
     int memoryReadSize;
     bool valid;
@@ -105,7 +108,7 @@ public:
 
     // This tracks the results of computation for each sub AST
     map<AST*, int64_t> results;
-    JumpTableReadVisitor(AbsRegion i, int v, CodeSource *c, bool ze, int m);
+    JumpTableReadVisitor(AbsRegion i, int v, CodeSource *c, CodeRegion *r, bool ze, int m);
     virtual ASTPtr visit(DataflowAPI::RoseAST *ast);
     virtual ASTPtr visit(DataflowAPI::ConstantAST *ast);
     virtual ASTPtr visit(DataflowAPI::VariableAST *ast);
