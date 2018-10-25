@@ -62,7 +62,12 @@ int Dyninst::ParseAPI::parsing_printf_int(const char *format, ...)
     if(NULL == format) return -1;
     if (log_file == NULL) {
         char filename[128];
+#if defined(_OPENMP)
         snprintf(filename, 128, "%s-%d.txt", getenv("DYNINST_DEBUG_PARSING"), omp_get_thread_num());
+#else
+        snprintf(filename, 128, "%s-%d.txt", getenv("DYNINST_DEBUG_PARSING"), 0);
+#endif
+
         log_file = fopen(filename, "w");
     }
 

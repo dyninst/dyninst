@@ -124,6 +124,11 @@ message(STATUS "Architecture is: ${CMAKE_LIBRARY_ARCHITECTURE}")
 FILE (GLOB headers "h/*.h")
 FILE (GLOB dataflowheaders "../dataflowAPI/h/*.h")
 set_target_properties (parseAPI PROPERTIES PUBLIC_HEADER "${headers};${dataflowheaders}")
+
+if (USE_OpenMP MATCHES "ON")
+set_target_properties (parseAPI PROPERTIES COMPILE_FLAGS "-fopenmp" LINK_FLAGS "-fopenmp")
+endif()
+
 if (USE_COTIRE)
     cotire(parseAPI)
 endif()

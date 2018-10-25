@@ -29,16 +29,17 @@ if (UNIX)
             PREFIX ${CMAKE_BINARY_DIR}/tbb
             STAMP_DIR ${CMAKE_BINARY_DIR}/tbb/src/TBB-stamp
             URL https://github.com/01org/tbb/archive/2018_U6.tar.gz
+            URL_MD5 9a0f78db4f72356068b00f29f54ee6bc
             SOURCE_DIR ${CMAKE_BINARY_DIR}/tbb/src/TBB/src
             CONFIGURE_COMMAND ""
             BINARY_DIR ${CMAKE_BINARY_DIR}/tbb/src/TBB/src
-            BUILD_COMMAND make -j${NCPU} tbb tbbmalloc compiler=gcc tbb_build_dir=${CMAKE_BINARY_DIR}/tbb/src/TBB-build tbb_build_prefix=tbb
+            BUILD_COMMAND make -j${NCPU} tbb tbbmalloc tbb_build_dir=${CMAKE_BINARY_DIR}/tbb/src/TBB-build tbb_build_prefix=tbb
             INSTALL_COMMAND sh -c "mkdir -p ${CMAKE_BINARY_DIR}/tbb/include && mkdir -p ${CMAKE_BINARY_DIR}/tbb/lib \
                 && cp ${CMAKE_BINARY_DIR}/tbb/src/TBB-build/tbb_release/*.so* ${CMAKE_BINARY_DIR}/tbb/lib \
                 && cp -r ${CMAKE_BINARY_DIR}/tbb/src/TBB/src/include/* ${CMAKE_BINARY_DIR}/tbb/include"
             )
     set(TBB_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/tbb/include)
-    set(TBB_LIBRARIES ${CMAKE_BINARY_DIR}/tbb/libtbb.so ${CMAKE_BINARY_DIR}/tbb/libtbbmalloc_proxy.so)
+    set(TBB_LIBRARIES ${CMAKE_BINARY_DIR}/tbb/lib/libtbb.so ${CMAKE_BINARY_DIR}/tbb/lib/libtbbmalloc_proxy.so)
     set(TBB_FOUND 1)
   endif()
   add_library(libelf_imp SHARED IMPORTED)
