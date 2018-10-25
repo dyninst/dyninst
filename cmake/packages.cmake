@@ -1,6 +1,6 @@
 if (UNIX)
   find_package (LibDwarf)
-  find_package (LibElf)
+  find_package (LibElf 0.173)
   find_package(TBB)
   if(NOT LIBELF_FOUND OR NOT LIBDWARF_FOUND)
     message(STATUS "Attempting to build elfutils as external project")
@@ -63,7 +63,7 @@ if (UNIX)
       include(ExternalProject)
       ExternalProject_Add(LibIberty
 	PREFIX ${CMAKE_BINARY_DIR}/binutils
-	URL http://ftp.gnu.org/gnu/binutils/binutils-2.23.tar.gz
+	URL http://ftp.gnu.org/gnu/binutils/binutils-2.31.1.tar.gz
 	CONFIGURE_COMMAND env CFLAGS=${CMAKE_C_FLAGS}\ -fPIC CPPFLAGS=-fPIC PICFLAG=-fPIC <SOURCE_DIR>/libiberty/configure --prefix=${CMAKE_BINARY_DIR}/libiberty --enable-shared
 	BUILD_COMMAND make all
 	INSTALL_DIR ${CMAKE_BINARY_DIR}/libiberty

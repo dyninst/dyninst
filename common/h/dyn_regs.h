@@ -960,6 +960,7 @@ namespace Dyninst
       const signed int FPR   = 0x00020000;
       const signed int FSR   = 0x00040000;
       const signed int SPR   = 0x00080000;
+      const signed int VSR   = 0x00000000;
 
       DEF_REGISTER(r0,       0 | GPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(r1,       1 | GPR | Arch_ppc64, "ppc64");
@@ -1171,6 +1172,73 @@ namespace Dyninst
       DEF_REGISTER(ppr,    896 | SPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(ppr32,  898 | SPR | Arch_ppc64, "ppc64");
 
+      DEF_REGISTER(vsr0,   0   | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr1,   1   | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr2,   2   | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr3,   3   | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr4,   4   | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr5,   5   | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr6,   6   | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr7,   7   | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr8,   8   | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr9,   9   | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr10,  10  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr11,  11  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr12,  12  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr13,  13  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr14,  14  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr15,  15  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr16,  16  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr17,  17  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr18,  18  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr19,  19  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr20,  20  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr21,  21  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr22,  22  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr23,  23  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr24,  24  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr25,  25  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr26,  26  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr27,  27  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr28,  28  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr29,  29  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr30,  30  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr31,  31  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr32,  32  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr33,  33  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr34,  34  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr35,  35  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr36,  36  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr37,  37  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr38,  38  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr39,  39  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr40,  40  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr41,  41  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr42,  42  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr43,  43  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr44,  44  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr45,  45  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr46,  46  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr47,  47  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr48,  48  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr49,  49  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr50,  50  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr51,  51  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr52,  52  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr53,  53  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr54,  54  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr55,  55  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr56,  56  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr57,  57  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr58,  58  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr59,  59  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr60,  60  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr61,  61  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr62,  62  | VSR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(vsr63,  63  | VSR | Arch_ppc64, "ppc64");
+  
+  
+   
 
    }
 

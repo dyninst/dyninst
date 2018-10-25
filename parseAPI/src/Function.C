@@ -336,7 +336,6 @@ Function::blocks_int()
                     if (_tamper != TAMPER_UNSET && _tamper != TAMPER_NONE) 
                        continue;
                 }
-                set_retstatus(RETURN);
                 continue;
             }
 

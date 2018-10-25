@@ -1590,7 +1590,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                                FILE__,work->edge()->src()->lastInsnAddr());
             }
         } else if (work->order() == ParseWorkElem::func_shared_code) {
-            if (func->retstatus() < UNKNOWN) {
+            if (func->retstatus() != RETURN) {
                 // The current function shares code with another function.
                 // current function on this control flow path is the same
                 // as the shared function.
@@ -2555,7 +2555,7 @@ bool Parser::set_edge_parsing_status(ParseFrame& frame, Address addr, Block* b) 
         a1->second.b = b;
         return true;
     } else {
-        parsing_printf("[%s:%d] parsing edge at %lx has started by another thread\n",FILE__, __LINE__, addr); 
+        parsing_printf("[%s:%d] parsing edge at %lx has started by another thread, function %s at %lx\n",FILE__, __LINE__, addr, a1->second.f->name().c_str(), a1->second.f->addr()); 
         // the same function may have created edges before,
         // due to overlapping instructions
         if (a1->second.f != f) {
@@ -2809,10 +2809,15 @@ Parser::update_function_ret_status(ParseFrame &frame, Function * other_func, Par
      * line 2) failing. So, the frame.func is neither delayed, nor updates its return status
      * to RETURN, which can lead to wrong NORETURN status. 
      */
-
+    parsing_printf("Function %s at %lx share code with function %s at %lx\n", frame.func->name().c_str(), frame.func->addr(), other_func->name().c_str(), other_func->addr());
     if (other_func->retstatus() == UNSET) {
+        parsing_printf("\t other_func is UNSET, create delayed work\n");
         frame.pushDelayedWork(work, other_func);
     } else if (other_func->retstatus() == RETURN) {
+        parsing_printf("\t other_func is RETURN, set this function to RETURN\n");
         frame.func->set_retstatus(RETURN);
+    } else {
+        parsing_printf("\t other_func is NORETURN, this path does not impact the return status of this function\n");
     }
+
 }
