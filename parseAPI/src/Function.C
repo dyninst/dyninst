@@ -501,7 +501,9 @@ void Function::set_retstatus(FuncReturnStatus rs)
     // But on powerpc, the function contains a BLR instruction,
     // looking like a return instruction, but actually is not.
     if (obj()->cs()->nonReturning(_name) && rs != NORETURN) return;
- 
+    assert(!(_rs == RETURN && rs == NORETURN)); 
+    assert(!(_rs == NORETURN && rs == RETURN)); 
+
     // If we are changing the return status, update prev counter
     if (_rs != UNSET) {
         if (_rs == NORETURN) {

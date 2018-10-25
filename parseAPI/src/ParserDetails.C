@@ -472,7 +472,7 @@ void Parser::ProcessCFInsn(
     insn_ret = ah->getReturnStatus(frame.func, frame.num_insns);
 
     // Update function return status if possible
-    if (unlikely(insn_ret != UNSET && frame.func->_rs < RETURN)) {
+    if (unlikely(insn_ret != UNSET && frame.func->_rs < RETURN) && !HASHDEF(plt_entries, frame.func->addr())) {
         // insn_ret can only be UNSET, UNKNOWN, or RETURN
         // UNKNOWN means that there is an unresolved undirect control flow,
         // such as unresolve jump tables or indirect tail calls.

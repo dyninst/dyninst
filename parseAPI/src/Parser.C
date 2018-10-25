@@ -1275,6 +1275,18 @@ namespace {
         }
         return NULL;
     }
+    inline ParseWorkElem * bundle_call_elem(ParseWorkBundle * b)
+    {
+        if(!b) return NULL;
+
+        vector<ParseWorkElem*> const& elems = b->elems();
+        vector<ParseWorkElem*>::const_iterator it = elems.begin();
+        for( ; it != elems.end(); ++it) {
+            if((*it)->edge()->type() == CALL)
+                return (*it);
+        }
+        return NULL;
+    }
 
     /* 
      * Look up the next block for detection of straight-line
@@ -1438,8 +1450,8 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
             continue;
         } else if (work->order() == ParseWorkElem::call_fallthrough) {
             // check associated call edge's return status
-            Edge * ce = bundle_call_edge(work->bundle());
-            if (!ce) {
+            ParseWorkElem * call_elem = bundle_call_elem(work->bundle());
+            if (!call_elem) {
                 // odd; no call edge in this bundle
                 parsing_printf("[%s] unexpected missing call edge at %lx\n",
                                FILE__,work->edge()->src()->lastInsnAddr());
@@ -1479,9 +1491,12 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                         factory().destroy_edge(remove, destroyed_noreturn);
                         continue;
                     }
-                } else if (ce->trg()) {
-                    Address target = ce->trg_addr();
+                } else if (call_elem->target() > 0) {
+                    // For indirect calls, since we do not know the callee,
+                    // the call fallthrough edges are assumed to exist
+                    Address target = call_elem->target();
                     Function * ct = _parse_data->findFunc(frame.codereg,target);
+                    assert(ct);
                     bool is_plt = false;
 
                     // check if associated call edge's return status is still unknown
@@ -1551,7 +1566,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                         continue;
                     } else
                         // Invalidate cache_valid for all sharing functions
-                        invalidateContainingFuncs(func, ce->src());
+                        invalidateContainingFuncs(func, work->edge()->src());
                 }
             }
         } else if (work->order() == ParseWorkElem::seed_addr) {
@@ -1707,33 +1722,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                                     false)
                 );
                 break;
-            } else if (curAddr > nextBlockAddr) {
-                parsing_printf("[%s:%d] inconsistent instruction stream: "
-                                       "%lx is within [%lx,%lx)\n",
-                               FILE__,__LINE__,curAddr,
-                               nextBlock->start(),nextBlock->end());
-                Address prev_insn;
-                if (nextBlock->consistent(curAddr, prev_insn)) {
-                    // The two overlapping blocks aligned.
-                    // We need to split the large block, and create new edge to the later block
-                    Block* new_block = split_block(frame.func, nextBlock, curAddr, prev_insn);
-                    leadersToBlock[curAddr] = new_block;
-                    visited[curAddr] = true;
-                    ah->retreat();
-                    end_block(cur, ah);
-                    if (!set_edge_parsing_status(frame ,cur->last(), cur)) break; 
-                    add_edge(frame, frame.func, cur, ah->getAddr(), curAddr, FALLTHROUGH, NULL);
-                    // We break from this loop because no need more stright-line parsing
-                    break;
-                }
-
-                // NB "cur" hasn't ended, so its range may
-                // not look like it overlaps with nextBlock
-                _pcb.overlapping_blocks(cur,nextBlock);
-
-                tie(nextBlockAddr,nextBlock) =
-                        func->get_next_block(frame.curAddr, frame.codereg);
-            }
+            } 
 
             // per-instruction callback notification
             ParseCallback::insn_details insn_det;
@@ -2593,6 +2582,8 @@ bool Parser::set_edge_parsing_status(ParseFrame& frame, Address addr, Block* b) 
         }
         assert(A->end() == B->end());
         Address prev_insn;
+        bool inconsistent = false;
+        region_data::edge_data_map::accessor a2;
         if (A->consistent(B->start(), prev_insn)) {
             // The edge should stay with the shorter block
             move_edges_consistent_blocks(A,B);
@@ -2600,7 +2591,6 @@ bool Parser::set_edge_parsing_status(ParseFrame& frame, Address addr, Block* b) 
             a1->second.b = B;
     	    A->updateEnd(B->start());
     	    A->_lastInsn = prev_insn;
-            region_data::edge_data_map::accessor a2;
             bool cont = true;
             // Iteratively split the block
             while (!edm->insert(a2, A->last())) {
@@ -2628,9 +2618,7 @@ bool Parser::set_edge_parsing_status(ParseFrame& frame, Address addr, Block* b) 
                     }
                 }
                 if (!cont) {
-                    // This can happen when the two blocks
-                    // contain overlapping instructions.
-                    // Here, we only handle consistent block split.
+                    inconsistent = true;
                     break;
                 }
             }
@@ -2639,6 +2627,62 @@ bool Parser::set_edge_parsing_status(ParseFrame& frame, Address addr, Block* b) 
                 link_block(A,B,FALLTHROUGH,false);
                 a2->second.f = fA;
                 a2->second.b = A;
+            }
+        } else {
+            inconsistent = true;
+        }
+        if (inconsistent) {
+            Block::Insns A_insns, B_insns;
+            A->getInsns(A_insns);
+            B->getInsns(B_insns);
+            for (auto iit = B_insns.begin(); iit != B_insns.end(); ++iit) {
+                auto ait = A_insns.find(iit->first);
+                if (ait != A_insns.end()) {
+                    Address addr = iit->first;
+                    --ait;
+                    --iit;
+
+                    Block * ret = factory()._mkblock(fA, b->region(),addr);
+                    ret->updateEnd(B->end());
+                    ret->_lastInsn = B->_lastInsn;
+                    ret->_parsed = true;
+                   
+                    Block * exist = record_block(ret);
+                    bool block_exist = false;
+                    if (exist != ret) {
+                        block_exist = true;
+                        ret = exist;
+                    }
+                    
+                    move_edges_consistent_blocks(A, ret);
+                    move_edges_consistent_blocks(B, ret);
+
+                    A->updateEnd(addr);
+                    A->_lastInsn = ait->first;
+                    B->updateEnd(addr);                    
+                    B->_lastInsn = iit->first;
+
+                    if (a2.empty()) {
+                        a1->second.f = fA;
+                        a1->second.b = ret;
+                    } else {
+                        a2->second.f = fA;
+                        a2->second.b = ret;
+                    }
+                    
+                    link_block(A,ret,FALLTHROUGH,false);
+                    link_block(B,ret,FALLTHROUGH,false);
+                    
+                    region_data::edge_data_map::accessor a3;
+                    assert(edm->insert(a3, A->last()));
+                    a3->second.f = fA;
+                    a3->second.b = A;
+                    region_data::edge_data_map::accessor a4;
+                    assert(edm->insert(a4, B->last()));
+                    a4->second.f = fB;
+                    a4->second.b = B;
+                    break;
+                }
             }
         }
 	    return false;
