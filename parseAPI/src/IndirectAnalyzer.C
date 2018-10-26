@@ -255,7 +255,9 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
 					    std::vector<std::pair<Address, Dyninst::ParseAPI::EdgeTypeEnum> > &targetEdges) {
     CodeSource *cs = block->obj()->cs();
     set<Address> jumpTargets;
-    for (int v = indexBound.low; v <= indexBound.high; v += indexBound.stride) {
+    int start = 0;
+    if (indexBound.low > 0) start = indexBound.low = start;
+    for (int v = start; v <= indexBound.high; v += indexBound.stride) {
         JumpTableReadVisitor jtrv(index, v, cs, block->region(), isZeroExtend, memoryReadSize);
 	jumpTargetExpr->accept(&jtrv);
 	if (jtrv.valid && cs->isCode(jtrv.targetAddress)) {

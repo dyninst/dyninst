@@ -2433,7 +2433,7 @@ void registerSpace::saveClobberInfo(const instPoint *location)
 #endif
 
 
-bool doNotOverflow(int value)
+bool doNotOverflow(int64_t value)
 {
   // we are assuming that we have 15 bits to store the immediate operand.
   if ( (value <= 32767) && (value >= -32768) ) return(true);

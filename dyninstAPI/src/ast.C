@@ -82,7 +82,7 @@ extern int tramp_pre_frame_size_64;
 using namespace Dyninst;
 using PatchAPI::Point;
 
-extern bool doNotOverflow(int value);
+extern bool doNotOverflow(int64_t value);
 
 AstNodePtr AstNode::originalAddrNode_ = AstNodePtr();
 AstNodePtr AstNode::actualAddrNode_ = AstNodePtr();
@@ -1755,7 +1755,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
          if (roperand &&
              (roperand->getoType() == Constant) &&
-             doNotOverflow((Register) (long) roperand->getOValue())) {
+             doNotOverflow((int64_t) roperand->getOValue())) {
             if (retReg == REG_NULL) {
                retReg = allocateAndKeep(gen, noCost);
                ast_printf("Operator node, const RHS, allocated register %d\n", retReg);

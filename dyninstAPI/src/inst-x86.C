@@ -717,15 +717,10 @@ Address getMaxBranch() {
 }
 
 
-bool doNotOverflow(int)
+bool doNotOverflow(int64_t value)
 {
-   //
-   // this should be changed by the correct code. If there isn't any case to
-   // be checked here, then the function should return TRUE. If there isn't
-   // any immediate code to be generated, then it should return FALSE - naim
-   //
-   // any int value can be an immediate on the pentium
-    return(true);
+    if (value <= INT_MAX && value >= INT_MIN) return true;
+    return false;
 }
 
 

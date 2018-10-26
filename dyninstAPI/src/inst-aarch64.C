@@ -971,7 +971,7 @@ void registerSpace::saveClobberInfo(const instPoint *location)
 #endif
 
 
-bool doNotOverflow(int value) {
+bool doNotOverflow(int64_t value) {
     // This function seems irrelevant for aarch64 two reasons:
     // 1) it's used only once in Operator AST node and
     // 2) when value is passed to emitImm, it ends in a moveValueToReg or it's 

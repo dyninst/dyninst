@@ -8,7 +8,7 @@ add_executable(unstrip unstrip/unstrip.C
                        unstrip/fingerprint.C
                        unstrip/callback.C)
 add_dependencies(unstrip parseAPI symtabAPI instructionAPI common)
-target_link_libraries(unstrip parseAPI symtabAPI instructionAPI common ${Boost_LIBRARIES})
+target_link_libraries(unstrip parseAPI symtabAPI instructionAPI common dynDwarf dynElf ${Boost_LIBRARIES})
 
 add_executable(codeCoverage codeCoverage/codeCoverage.C)
 add_dependencies(codeCoverage dyninstAPI patchAPI parseAPI symtabAPI instructionAPI pcontrol common stackwalk dynDwarf dynElf)
