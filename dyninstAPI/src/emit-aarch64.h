@@ -73,7 +73,7 @@ public:
 
     virtual void emitLoadConst(Register, Address, codeGen &);
 
-    virtual void emitLoadIndir(Register, Register, int, codeGen &); 
+    virtual void emitLoadIndir(Register, Register, int, codeGen &);
 
     virtual bool emitCallRelative(Register, Address, Register, codeGen &);
 
@@ -88,7 +88,7 @@ public:
     // These implicitly use the stored original/non-inst value
     virtual void emitLoadOrigFrameRelative(Register, Address, codeGen &) { assert(0); }
 
-    virtual void emitLoadOrigRegRelative(Register, Address, Register, codeGen &, bool) { assert(0); }
+    virtual void emitLoadOrigRegRelative(Register, Address, Register, codeGen &, bool);
 
     virtual void emitLoadOrigRegister(Address, Register, codeGen &) { assert(0); }
 

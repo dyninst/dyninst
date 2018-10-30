@@ -240,3 +240,30 @@ void EmitterAARCH64::emitLoadIndir(Register dest, Register addr_src, int size, c
     gen.markRegDefined(dest);
 }
 
+
+void EmitterAARCH64::emitLoadOrigRegRelative(
+        Register dest, Address offset, Register base, codeGen &gen, bool store)
+{
+
+    Register scratch = gen.rs()->getScratchRegister(gen);
+    gen.markRegDefined(scratch);
+    gen.markRegDefined(dest);
+    // either load the address or the contents at that address
+    /*if(store) 
+    {
+        // load the stored register 'base' into RAX
+        emitLoadOrigRegister(base, scratch, gen);
+        // move offset(%rax), %dest
+        emitMovRMToReg64(dest, scratch, offset, 4, gen);
+    }
+    else
+    {
+        // load the stored register 'base' into dest
+        emitLoadOrigRegister(base, dest, gen);
+        // add $offset, %dest
+        emitOpRegImm64(0x81, 0x0, dest, offset, true, gen);
+    }*/
+}
+
+
+

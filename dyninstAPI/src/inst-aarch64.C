@@ -457,23 +457,16 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         case plusOp:
         case minusOp:
             {
-                if(src2imm >= -(1 << 11) && src2imm < (long int)((1 << 11) - 1))
-                    insnCodeGen::generateAddSubImmediate(gen,
-                            op == plusOp ? insnCodeGen::Add : insnCodeGen::Sub, 0,
-                            src2imm, src1, dest, true);
-                else if(src2imm >= MIN_IMM16 && src2imm < MAX_IMM16)
-                {
-                    Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-                    insnCodeGen::generateAddSubShifted(gen,
-                            op == plusOp ? insnCodeGen::Add : insnCodeGen::Sub,
-                            0, 0, rm, src1, dest, true);
-                }
+                Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
+                insnCodeGen::generateAddSubShifted(gen,
+                        op == plusOp ? insnCodeGen::Add : insnCodeGen::Sub,
+                        0, 0, rm, src1, dest, true);
             }
             break;
         case timesOp:
             {
                 Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-                insnCodeGen::generateMul(gen, rm, src1, dest, false);
+                insnCodeGen::generateMul(gen, rm, src1, dest, true);
                 //insnCodeGen::generateTrap(gen);
             }
             break;
@@ -698,6 +691,12 @@ codeBufIndex_t emitA(opCode op, Register src1, Register src2, long dest,
                 retval = gen.codeEmitter()->emitIf(src1, dest, rc, gen);
                 break;
             }
+        case branchOp:
+            {
+                insnCodeGen::generateBranch(gen, dest);
+                retval = gen.getIndex();
+                break;
+            }
         default:
             assert(0);        // op not implemented or not expected for this emit!
     }
@@ -834,6 +833,11 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
             // dest = [src1]
             gen.codeEmitter()->emitLoad(dest, src1, size, gen);
             break;
+        case loadRegRelativeAddr:
+            // dest is a temporary
+            // src2 is the register
+            // src1 is the offset from the address in src2
+            gen.codeEmitter()->emitLoadOrigRegRelative(dest, src1, src2, gen, false);
         default:
             assert(0); //Not implemented
             break;
@@ -841,9 +845,9 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
 }
 
 void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
-                codeGen &gen, bool noCost,
-                registerSpace * /* rs */, int size,
-                const instPoint * /* location */, AddressSpace *proc)
+        codeGen &gen, bool noCost,
+        registerSpace * /* rs */, int size,
+        const instPoint * /* location */, AddressSpace *proc)
 {
     if (op ==  storeOp) {
         // [dest] = src1
@@ -858,7 +862,7 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
 }
 
 void emitV(opCode op, Register src1, Register src2, Register dest,
-           codeGen &gen, bool /*noCost*/,
+        codeGen &gen, bool /*noCost*/,
            registerSpace * /*rs*/, int size,
            const instPoint * /* location */, AddressSpace *proc) 
 {
@@ -886,7 +890,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
             gen.codeEmitter()->emitLoadIndir(dest, src1, size, gen);
             break;
         default:
-            std::cout << "operation not implemented= " << op << endl;
+            //std::cout << "operation not implemented= " << op << endl;
             assert(0); // Not implemented
             break;
     }
@@ -978,17 +982,16 @@ void registerSpace::saveClobberInfo(const instPoint *location)
 #endif
 
 
-bool doNotOverflow(int value) {
-    // This function seems irrelevant for aarch64 two reasons:
-    // 1) it's used only once in Operator AST node and
-    // 2) when value is passed to emitImm, it ends in a moveValueToReg or it's 
-    //    checked before calling generateAddSubImmediate or moveValueToReg.
-    return true;
-
-    // (old code that seems to be copied from power implementation)
-    // we are assuming that we have 15 bits to store the immediate operand.
-    //if ((value <= 32767) && (value >= -32768)) return (true);
-    //else return (false);
+// This is used for checking wether immediate value should be encoded
+// into a instruction. In fact, only being used for loading constant
+// value into a register, and in ARMv8 there are 16 bits for immediate
+// values in the instruction MOV.
+// value here is never a negative value since constant values are saved
+// as void* in the AST operand.
+bool doNotOverflow(int value)
+{
+    if ((value >= 0) && (value <= 0xFFFF)) return true;
+    else return false;
 }
 
 #if !defined(os_vxworks)
