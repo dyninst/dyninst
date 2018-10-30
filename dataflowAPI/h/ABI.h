@@ -89,8 +89,8 @@ class ABI{
     static dyn_tls bitArray* allRegs_;
     static dyn_tls bitArray* allRegs64_;
 
-    static bitArray getBitArray(int size){
-    	return bitArray(size);
+    static bitArray * getBitArray(int size){
+        return new bitArray(size);
     }
 
     ABI(): index(NULL), addr_width(0) {}

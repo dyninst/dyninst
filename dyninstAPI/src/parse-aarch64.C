@@ -273,10 +273,12 @@ void parse_func::calcUsedRegs()
             InstructionDecoder d(getPtrToInstruction((*curBlock)->start()),
                     (*curBlock)->size(),
                     isrc()->getArch());
-            Instruction::Ptr i;
-            while(i = d.decode())
+            Instruction i;
+            i = d.decode();
+            while(i.isValid())
             {
-                i->getWriteSet(writtenRegs);
+                i.getWriteSet(writtenRegs);
+                i = d.decode();
             }
         }
         
