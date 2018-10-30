@@ -68,7 +68,7 @@ class InstructionAdapter
         ParseAPI::CodeRegion *r, InstructionSource *isrc, ParseAPI::Block *);
 
     // Implemented
-    virtual InstructionAPI::Instruction::Ptr getInstruction() const = 0;
+    virtual const InstructionAPI::Instruction& getInstruction() const = 0;
     virtual bool hasCFT() const = 0;
     virtual size_t getSize() const = 0;
     virtual bool isFrameSetupInsn() const = 0;
@@ -110,7 +110,8 @@ const;
     virtual bool isInterruptOrSyscall() const = 0;
     virtual bool isCall() const = 0;
     virtual bool isReturnAddrSave(Address &ret_addr) const = 0; // ret_addr holds the return address pushed in the stack using mflr at function entry 
-    virtual bool isTailCall(ParseAPI::Function *, ParseAPI::EdgeTypeEnum type, unsigned int num_insns, const std::set<Address>&) const = 0;
+    virtual bool isTailCall(const ParseAPI::Function *, ParseAPI::EdgeTypeEnum type, unsigned int num_insns,
+                            const std::set<Address> &) const = 0;
     protected:
     	// Uses pattern heuristics or backward slicing to determine if a blr instruction is a return or jump table
         virtual bool isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const = 0;

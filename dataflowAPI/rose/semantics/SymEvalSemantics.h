@@ -310,7 +310,7 @@ namespace rose {
                     StateAST(Dyninst::DataflowAPI::Result_t &r,
                                Dyninst::Address a,
                                Dyninst::Architecture ac,
-                               Dyninst::InstructionAPI::Instruction::Ptr insn_,
+                               Dyninst::InstructionAPI::Instruction insn_,
                                const BaseSemantics::RegisterStatePtr &registers,
                                const BaseSemantics::MemoryStatePtr &memory): BaseSemantics::State(registers, memory), res(r), addr(a), arch(ac), insn(insn_) {
                         for (Dyninst::DataflowAPI::Result_t::iterator iter = r.begin();
@@ -338,7 +338,7 @@ namespace rose {
                     static StateASTPtr instance(Dyninst::DataflowAPI::Result_t &r,
                                                   Dyninst::Address a,
                                                   Dyninst::Architecture ac,
-                                                  Dyninst::InstructionAPI::Instruction::Ptr insn_,
+                                                  Dyninst::InstructionAPI::Instruction insn_,
                                                   const BaseSemantics::RegisterStatePtr &registers,
                                                   const BaseSemantics::MemoryStatePtr &memory) {
                         return StateASTPtr(new StateAST(r, a, ac, insn_, registers, memory));
@@ -347,7 +347,7 @@ namespace rose {
                     virtual BaseSemantics::StatePtr create(Dyninst::DataflowAPI::Result_t &r,
                                                  Dyninst::Address a,
                                                  Dyninst::Architecture ac,
-                                                 Dyninst::InstructionAPI::Instruction::Ptr insn_,
+                                                 Dyninst::InstructionAPI::Instruction insn_,
                                                  const BaseSemantics::RegisterStatePtr &registers,
                                                  const BaseSemantics::MemoryStatePtr &memory) const {
                         return instance(r, a, ac, insn_, registers, memory);
@@ -373,7 +373,7 @@ namespace rose {
                     Dyninst::DataflowAPI::Result_t &res;
                     Dyninst::Architecture arch;
                     Dyninst::Address addr;
-                    Dyninst::InstructionAPI::Instruction::Ptr insn;
+                    Dyninst::InstructionAPI::Instruction insn;
 
                     std::map<Dyninst::Absloc, Dyninst::Assignment::Ptr> aaMap;
                 };

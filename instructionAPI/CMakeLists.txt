@@ -28,15 +28,15 @@ SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 # variables by default, rather then waiting until the variable tracking limit
 # is reached.
 if (${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
-set_source_files_properties(src/InstructionDecoder-aarch64.C PROPERTIES COMPILE_FLAGS
-    -fno-var-tracking-assignments)
+set_source_files_properties(src/InstructionDecoder-aarch64.C
+        PROPERTIES COMPILE_FLAGS -fno-var-tracking-assignments)
 endif()
 
 ADD_DEFINITIONS(-DINSTRUCTION_LIB)
 
 dyninst_library(instructionAPI common)
 
-target_link_private_libraries(instructionAPI ${Boost_LIBRARIES})
+target_link_private_libraries(instructionAPI ${Boost_LIBRARIES} ${TBB_LIBRARIES} tbbmalloc)
 
 if (USE_COTIRE)
     cotire(instructionAPI)

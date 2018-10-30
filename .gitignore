@@ -119,3 +119,5 @@ doxyfiles/*
 */Release/
 cotire/
 .idea/*
+build*/
+cmake-build-*/

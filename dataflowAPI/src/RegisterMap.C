@@ -48,9 +48,10 @@ namespace DataflowAPI {
    // Also on gcc 4.3.
 
 RegisterMap &machRegIndex_x86() {
-   static RegisterMap mrmap;
-   if (mrmap.empty()) {
-      mrmap = {
+   static dyn_tls RegisterMap* mrmap = NULL;
+   if (mrmap == NULL) {
+      mrmap = new RegisterMap();
+      *mrmap = {
          {x86::eax, 0},
          {x86::ecx, 1},
          {x86::edx, 2},
@@ -216,13 +217,14 @@ RegisterMap &machRegIndex_x86() {
          {x86::tr6, 162},
          {x86::tr7, 163} };
    }
-   return mrmap;
+   return *mrmap;
 }
 
 RegisterMap &machRegIndex_x86_64() {
-   static RegisterMap mrmap;
-   if (mrmap.empty()) {
-      mrmap = {
+   static dyn_tls RegisterMap* mrmap = NULL;
+   if (mrmap == NULL) {
+      mrmap = new RegisterMap();
+      *mrmap = {
          {x86_64::rax, 0},
          {x86_64::rcx, 1},
          {x86_64::rdx, 2},
@@ -391,13 +393,14 @@ RegisterMap &machRegIndex_x86_64() {
          {x86_64::tr7, 165},
       };
    }
-   return mrmap;
+   return *mrmap;
 }
 
 RegisterMap &machRegIndex_ppc() {
-   static RegisterMap mrmap;
-   if (mrmap.empty()) {
-      mrmap = {
+   static dyn_tls RegisterMap* mrmap = NULL;
+   if (mrmap == NULL) {
+      mrmap = new RegisterMap();
+      *mrmap = {
          {ppc32::r0, 0},
          {ppc32::r1, 1},
          {ppc32::r2, 2},
@@ -571,13 +574,14 @@ RegisterMap &machRegIndex_ppc() {
          {ppc32::sprg7_ro, 163}
    };
    }
-   return mrmap;
+   return *mrmap;
 }
 
 RegisterMap &machRegIndex_ppc_64() {
-   static RegisterMap mrmap;
-   if (mrmap.empty()) {
-      mrmap = {
+   static dyn_tls RegisterMap* mrmap = NULL;
+   if (mrmap == NULL) {
+      mrmap = new RegisterMap();
+      *mrmap = {
          {ppc64::r0, 0},
          {ppc64::r1, 1},
          {ppc64::r2, 2},
@@ -751,13 +755,14 @@ RegisterMap &machRegIndex_ppc_64() {
          {ppc64::sprg7_ro, 163}
    };
    }
-   return mrmap;
+   return *mrmap;
 }
 
 RegisterMap &machRegIndex_aarch64() {
-   static RegisterMap mrmap;
-   if (mrmap.empty()) {
-      mrmap = {
+   static dyn_tls RegisterMap* mrmap = NULL;
+   if (mrmap == NULL) {
+      mrmap = new RegisterMap();
+      *mrmap = {
 	 {aarch64::x0, 0},
 	 {aarch64::x1, 1},
 	 {aarch64::x2, 2},
@@ -859,15 +864,16 @@ RegisterMap &machRegIndex_aarch64() {
      {aarch64::pstate, 67},
      {aarch64::xzr, 68}};
    }
-   return mrmap;
+   return *mrmap;
 }
 
 #else
   // This fails on VS 2015... but not VS 2010...
 RegisterMap &machRegIndex_x86() {
-   static RegisterMap mrmap;
-   if (mrmap.empty()) {
-      mrmap = map_list_of
+   static dyn_tls RegisterMap* mrmap = NULL;
+   if (mrmap == NULL) {
+      mrmap = new RegisterMap();
+      *mrmap = map_list_of
          (x86::eax, 0)
          (x86::ecx, 1)
          (x86::edx, 2)
@@ -937,13 +943,14 @@ RegisterMap &machRegIndex_x86() {
          (x86::tr6, 66)
          (x86::tr7, 67);
    }
-   return mrmap;
+   return *mrmap;
 }
 
 RegisterMap &machRegIndex_x86_64() {
-   static RegisterMap mrmap;
-   if (mrmap.empty()) {
-      mrmap = map_list_of
+   static dyn_tls RegisterMap* mrmap = NULL;
+   if (mrmap == NULL) {
+      mrmap = new RegisterMap();
+      *mrmap = map_list_of
          (x86_64::rax, 0)
          (x86_64::rcx, 1)
          (x86_64::rdx, 2)
@@ -1112,13 +1119,14 @@ RegisterMap &machRegIndex_x86_64() {
          (x86_64::tr7, 164)
          ;
    }
-   return mrmap;
+   return *mrmap;
 }
 
 RegisterMap &machRegIndex_ppc() {
-   static RegisterMap mrmap;
-   if (mrmap.empty()) {
-      mrmap = map_list_of
+   static dyn_tls RegisterMap* mrmap = NULL;
+   if (mrmap == NULL) {
+      mrmap = new RegisterMap();
+      *mrmap = map_list_of
          (ppc32::r0, 0)
          (ppc32::r1, 1)
          (ppc32::r2, 2)
@@ -1291,13 +1299,14 @@ RegisterMap &machRegIndex_ppc() {
          (ppc32::sprg7, 163)
          (ppc32::sprg7_ro, 163);
    }
-   return mrmap;
+   return *mrmap;
 }
 
 RegisterMap &machRegIndex_ppc_64() {
-   static RegisterMap mrmap;
-   if (mrmap.empty()) {
-      mrmap = map_list_of
+   static dyn_tls RegisterMap* mrmap = NULL;
+   if (mrmap == NULL) {
+      mrmap = new RegisterMap();
+      *mrmap = map_list_of
          (ppc64::r0, 0)
          (ppc64::r1, 1)
          (ppc64::r2, 2)
@@ -1470,13 +1479,14 @@ RegisterMap &machRegIndex_ppc_64() {
          (ppc64::sprg7, 163)
          (ppc64::sprg7_ro, 163);
    }
-   return mrmap;
+   return *mrmap;
 }
 
 RegisterMap &machRegIndex_aarch64() {
-   static RegisterMap mrmap;
-   if (mrmap.empty()) {
-      mrmap =  map_list_of
+   static dyn_tls RegisterMap* mrmap = NULL;
+   if (mrmap == NULL) {
+      mrmap = new RegisterMap();
+      *mrmap =  map_list_of
 		(aarch64::x0, 0)
         (aarch64::x1, 1)
         (aarch64::x2, 2)

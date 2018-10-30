@@ -112,7 +112,7 @@ PatchObject *Point::obj() const {
 }
 
 /* for single instruction */
-Point::Point(Point::Type type, PatchMgrPtr mgr, PatchBlock *b, Address a, InstructionAPI::Instruction::Ptr i, PatchFunction *f)
+Point::Point(Point::Type type, PatchMgrPtr mgr, PatchBlock *b, Address a, InstructionAPI::Instruction i, PatchFunction *f)
    :addr_(a), type_(type), mgr_(mgr), the_block_(b), the_edge_(NULL), the_func_(f), insn_(i) {
 
   initCodeStructure();
@@ -280,7 +280,7 @@ bool Point::consistency() const {
    switch (type()) {
       case PreInsn:
       case PostInsn:
-         if (!insn()) return false;
+         if (!insn().isValid()) return false;
          if (!addr()) return false;
          if (!block()) return false;
          // Can have a function or not, that's okay
@@ -289,14 +289,14 @@ bool Point::consistency() const {
       case BlockEntry:
       case BlockExit:
       case BlockDuring:
-         if (insn()) return false;
+         if (insn().isValid()) return false;
          if (addr()) return false;
          if (!block()) return false;
          if (edge()) return false;
          break;
       case FuncEntry:
       case FuncDuring:
-         if (insn()) return false;
+         if (insn().isValid()) return false;
          if (addr()) return false;
          if (block()) return false;
          if (edge()) return false;
@@ -305,14 +305,14 @@ bool Point::consistency() const {
       case PreCall:
       case PostCall:
       case FuncExit:
-         if (insn()) return false;
+         if (insn().isValid()) return false;
          if (addr()) return false;
          if (!block()) return false;
          if (edge()) return false;
          if (!func()) return false;
          break;
       case EdgeDuring:
-         if (insn()) return false;
+         if (insn().isValid()) return false;
          if (addr()) return false;
          if (block()) return false;
          if (!edge()) return false;

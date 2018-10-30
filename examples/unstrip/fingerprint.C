@@ -56,14 +56,14 @@ void Fingerprint::findMain(SymtabAPI::Symtab * symtab,
     const unsigned char* textBuffer = (const unsigned char*) textsection->getPtrToRawData();
     using namespace Dyninst::InstructionAPI;
     InstructionDecoder d(textBuffer, textsection->getMemSize(), sts->getArch());
-    Instruction::Ptr curInsn, prevInsn;
+    Instruction curInsn, prevInsn;
     curInsn = d.decode();
-    while(curInsn && curInsn->getCategory() != c_CallInsn)
+    while(curInsn.isValid() && curInsn.getCategory() != c_CallInsn)
     {
         prevInsn = curInsn;
         curInsn = d.decode();
     }
-    unsigned int mainAddr = prevInsn->getOperand(0).getValue()->eval().convert<unsigned int>();
+    unsigned int mainAddr = prevInsn.getOperand(0).getValue()->eval().convert<unsigned int>();
     //fprintf(stderr, "found main at 0x%lx\n", mainAddr);
 
     using namespace SymtabAPI;
@@ -279,7 +279,7 @@ bool Fingerprint::parse(ParseAPI::Function * f,
     vector<trapLoc>::iterator tIter;    
     for (tIter = trapLocs.begin(); tIter != trapLocs.end(); ++tIter) {
 
-        InstructionAPI::Instruction::Ptr insn = (*tIter).instr();
+        InstructionAPI::Instruction insn = (*tIter).instr();
         curTrap.clear();
 
         /* Backward slice to get the value in EAX, which will dictate how we proceed */

@@ -5,6 +5,7 @@
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
 #include <boost/foreach.hpp>
+#include <mutex>
 
 // These are here temporarily until the classes in this file can be moved into rose::BinaryAnalysis
 using namespace rose;
@@ -647,8 +648,10 @@ RegisterDictionary::print(std::ostream &o) const {
  * There are a total of 32 general purpose registers each 64 bits wide. Each of these registers can be addressed as its 32-bit or 64-bit form. The former are named with the prefix W and the latter with a prefix X. The 32nd register is not a physical register but the zero register and referred to as WZR/ZR. */
 const RegisterDictionary *
 RegisterDictionary::dictionary_armv8() {
+    static std::once_flag initialized;
     static RegisterDictionary *regs = NULL;
-    if (!regs) {
+
+    std::call_once(initialized, []() {
         regs = new RegisterDictionary("armv8");
 
         /* All 60 variations (32- and 64-bit) of the 32 general purpose registers  */
@@ -700,7 +703,7 @@ RegisterDictionary::dictionary_armv8() {
         regs->insert("z", armv8_regclass_pstate, 0, armv8_pstatefield_z, 1);
         regs->insert("c", armv8_regclass_pstate, 0, armv8_pstatefield_c, 1);
         regs->insert("v", armv8_regclass_pstate, 0, armv8_pstatefield_v, 1);
-    }
+    });
     return regs;
 }
 
@@ -708,8 +711,10 @@ RegisterDictionary::dictionary_armv8() {
 const RegisterDictionary *
 RegisterDictionary::dictionary_powerpc()
 {
+    static std::once_flag initialized;
     static RegisterDictionary *regs = NULL;
-    if (!regs) {
+
+    std::call_once(initialized, []() {
         regs = new RegisterDictionary("powerpc");
 
         /**********************************************************************************************************************
@@ -808,6 +813,6 @@ RegisterDictionary::dictionary_powerpc()
 
         regs->insert("tbl", powerpc_regclass_tbr, powerpc_tbr_tbl, 0, 32);      /* time base lower */
         regs->insert("tbu", powerpc_regclass_tbr, powerpc_tbr_tbu, 0, 32);      /* time base upper */
-    }
+    });
     return regs;
 }

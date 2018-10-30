@@ -36,9 +36,9 @@ using namespace Dyninst::DataflowAPI;
 using namespace Dyninst::InstructionAPI;
 
 SymEvalPolicy::SymEvalPolicy(Result_t &r,
-			     Address a,
-			     Dyninst::Architecture ac,
-                             Instruction::Ptr insn) :
+                             Address a,
+                             Dyninst::Architecture ac,
+                             Instruction insn) :
   res(r),
   arch(ac),
   addr(a),
@@ -248,7 +248,7 @@ Absloc SymEvalPolicy::convert(X86Flag f)
 SymEvalPolicy_64::SymEvalPolicy_64(Result_t &r,
                                    Address a,
 				   Dyninst::Architecture ac,
-				   Instruction::Ptr insn) :
+				   Instruction insn) :
   res(r),
   arch(ac),
   addr(a),

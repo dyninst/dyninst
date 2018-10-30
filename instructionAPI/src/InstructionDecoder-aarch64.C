@@ -164,9 +164,9 @@ namespace Dyninst {
 
         using namespace std;
 
-        Instruction::Ptr InstructionDecoder_aarch64::decode(InstructionDecoder::buffer &b) {
+        Instruction InstructionDecoder_aarch64::decode(InstructionDecoder::buffer &b) {
             if (b.start > b.end)
-                return Instruction::Ptr();
+                return Instruction();
 
             isPstateRead = isPstateWritten = false;
             isFPInsn = false;
@@ -214,7 +214,7 @@ namespace Dyninst {
             mainDecode();
             b.start += 4;
 
-            return make_shared(insn_in_progress);
+            return *insn_in_progress;
         }
 
         /* replace this function with a more generic function, which is setRegWidth
@@ -3098,7 +3098,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             }
 
             insn_in_progress->arch_decoded_from = Arch_aarch64;
-            insn_in_progress->m_InsnOp->isVectorInsn =
+            insn_in_progress->m_InsnOp.isVectorInsn =
                     (*(insn_table_entry->operands.begin()) == &InstructionDecoder_aarch64::setSIMDMode);
             return;
         }

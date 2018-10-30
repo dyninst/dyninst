@@ -78,6 +78,11 @@ class ParseWorkElem
      * 3. Jump table analysis would like to have as much intraprocedural control flow
      * as possible to resolve an indirect jump. So resolve_jump_table is delayed.
      *
+     * 4. Parsing cond_not_taken edges over cond_taken edges. This is because cond_taken
+     * edges may split a block. In special cases, the source block of the edge is split.
+     * The cond_not_taken edge work element would still have the unsplit block, which is 
+     * now the upper portion after spliting.
+     *
      * Please make sure to update this comment 
      * if you change the order of the things appearing in the enum
      *
@@ -87,13 +92,17 @@ class ParseWorkElem
         ret_fallthrough, /* conditional returns */
         call,
         call_fallthrough,
-        cond_taken,
         cond_not_taken,
+        cond_taken,
         br_direct,
         br_indirect,
         catch_block,
         checked_call_ft,
 	resolve_jump_table, // We want to finish all possible parsing work before parsing jump tables
+        // For shared code, we only parse once. The return statuses of
+        // the functions that share code depend on the function that performs
+        // the real parsing
+        func_shared_code, 
         __parse_work_end__
     };
 
@@ -102,32 +111,40 @@ class ParseWorkElem
             ParseWorkBundle *b, 
             parse_work_order o,
             Edge *e, 
+            Address source,
             Address target, 
             bool resolvable,
             bool tailcall)
         : _bundle(b),
-          _edge(e),
+          _edge(e),   
+          _src(source),       
           _targ(target),
           _can_resolve(resolvable),
           _tailcall(tailcall),
           _order(o),
-          _call_processed(false) { }
+          _call_processed(false),
+          _cur(NULL),
+          _shared_func(NULL) { }
 
     ParseWorkElem(
             ParseWorkBundle *b, 
             Edge *e, 
+            /* We also the source address of the edge because the source block
+             * may be split */ 
+            Address source,
             Address target, 
             bool resolvable,
             bool tailcall)
         : _bundle(b),
           _edge(e),
+          _src(source),
           _targ(target),
           _can_resolve(resolvable),
           _tailcall(tailcall),
           _order(__parse_work_end__),
           _call_processed(false),
-	  _cur(NULL),
-	  _ah(NULL)
+          _cur(NULL),
+          _shared_func(NULL)
 
     { 
       if(e) {
@@ -135,7 +152,14 @@ class ParseWorkElem
             case CALL:
                 _order = call; break;
             case COND_TAKEN:
-                _order = cond_taken; break;
+                {
+                    if (tailcall) {
+                        _order = call;
+                    } else {
+                        _order = cond_taken; 
+                    }
+                    break;
+                }
             case COND_NOT_TAKEN:
                 _order = cond_not_taken; break;
             case INDIRECT:
@@ -167,13 +191,14 @@ class ParseWorkElem
     ParseWorkElem()
         : _bundle(NULL),
           _edge(NULL),
+          _src(0),
           _targ((Address)-1),
           _can_resolve(false),
           _tailcall(false),
           _order(__parse_work_end__),
           _call_processed(false),
-	  _cur(NULL),
-	  _ah(NULL)
+          _cur(NULL),
+          _shared_func(NULL)
     { } 
 
     // This work element is a continuation of
@@ -188,16 +213,31 @@ class ParseWorkElem
           _call_processed(false),
 	  _cur(b) {	      
 	      _ah = ah->clone();
+              _src = _ah->getAddr();
+              _shared_func = NULL;
 	  }
 
+    ParseWorkElem(ParseWorkBundle *bundle, Function *f):
+          _bundle(bundle),
+          _targ((Address)-1),
+          _can_resolve(false),
+          _tailcall(false),
+          _order(func_shared_code),
+          _call_processed(false),
+          _cur(NULL) {
+              _shared_func = f;
+              _src = 0;
+          }
+               
+
     ~ParseWorkElem() {
-        if (_ah != NULL) delete _ah;
     }
 
       
 
     ParseWorkBundle *   bundle()        const { return _bundle; }
     Edge *              edge()          const { return _edge; }
+    Address             source()        const { return _src; }
     Address             target()        const { return _targ; }
     bool                resolvable()    const { return _can_resolve; }
     parse_work_order    order()         const { return _order; }
@@ -207,8 +247,9 @@ class ParseWorkElem
     bool                callproc()      const { return _call_processed; }
     void                mark_call()     { _call_processed = true; }
 
-    Block *             cur()           const { return _cur; }
-    InsnAdapter::IA_IAPI *  ah()        const { return _ah; }
+    Block*          cur()           const { return _cur; }
+    InsnAdapter::IA_IAPI*  ah()        const { return _ah; }
+    Function*       shared_func()       const { return _shared_func; }
 
     /* 
      * Note that compare treats the parse_work_order as `lowest is
@@ -234,6 +275,7 @@ class ParseWorkElem
  private:
     ParseWorkBundle * _bundle;
     Edge * _edge;
+    Address _src;
     Address _targ;
     bool _can_resolve;
     bool _tailcall;
@@ -241,8 +283,9 @@ class ParseWorkElem
     bool _call_processed;
 
     // Data for continuing parsing jump tables
-    Block * _cur;
-    InsnAdapter::IA_IAPI * _ah;
+    Block* _cur;
+    InsnAdapter::IA_IAPI* _ah;
+    Function * _shared_func;
 };
 
 // ParseWorkElem container

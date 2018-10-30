@@ -75,7 +75,7 @@ IA_power* IA_power::clone() const{
 }
 
 
-bool IA_power::isFrameSetupInsn(Instruction::Ptr) const
+bool IA_power::isFrameSetupInsn(Instruction) const
 {
     return false;
 }
@@ -89,7 +89,7 @@ bool IA_power::isThunk() const {
     return false;
 }
 
-bool IA_power::isTailCall(Function* context, EdgeTypeEnum type, unsigned int, const set<Address>& knownTargets) const
+bool IA_power::isTailCall(const Function* context, EdgeTypeEnum type, unsigned int, const set<Address>& knownTargets) const
 {
    // Collapse down to "branch" or "fallthrough"
     switch(type) {
@@ -127,44 +127,21 @@ bool IA_power::isTailCall(Function* context, EdgeTypeEnum type, unsigned int, co
     Function* callee = _obj->findFuncByEntry(_cr, addr);
     Block* target = _obj->findBlockByEntry(_cr, addr);
 
-    if (callee == NULL) {
-        // It could be that this is a within linkage tail call.
-	// So, the function symbol is two instructions ahead of the call target.
-	addr -= 8;
-        callee = _obj->findFuncByEntry(_cr, addr);
-	target = _obj->findBlockByEntry(_cr, addr);	
-    }
+    Function *preambleCallee = _obj->findFuncByEntry(_cr, addr - 8);
+    Block* preambleTarget = _obj->findBlockByEntry(_cr, addr - 8);
 
-    // check if addr is in a block if it is not entry.
-    if (target == NULL) {
-        std::set<Block*> blocks;
-        _obj->findCurrentBlocks(_cr, addr, blocks);
-        if (blocks.size() == 1) {
-            target = *blocks.begin();
-        } else if (blocks.size() == 0) {
-	    // This case can happen when the jump target is a function entry,
-	    // but we have not parsed the function yet,
-	    // or when this is an indirect jump 
-	    target = NULL;
-	} else {
-	    // If this case happens, it means the jump goes into overlapping instruction streams,
-	    // it is not likely to be a tail call.
-	    parsing_printf("\tjumps into overlapping instruction streams\n");
-	    for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
-	        parsing_printf("\t block [%lx,%lx)\n", (*bit)->start(), (*bit)->end());
-	    }
-	    parsing_printf("\tjump to 0x%lx, NOT TAIL CALL\n", addr);
-	    tailCalls[type] = false;
-	    return false;
-	}
+    if (callee == NULL || (preambleCallee != NULL && callee->src() != HINT && preambleCallee->src() == HINT)) {
+        callee = preambleCallee;
+        target = preambleTarget;
     }
-
-    if(curInsn()->getCategory() == c_BranchInsn &&
+    if(curInsn().getCategory() == c_BranchInsn &&
        valid &&
        callee && 
        callee != context &&
-       target &&
-       !context->contains(target)
+       // We can only trust entry points from hints
+       callee->src() == HINT &&
+       /* the target can either be not parsed or not within the current context */
+       ((target == NULL) || (target && !context->contains(target)))
        )
     {
       parsing_printf("\tjump to 0x%lx, TAIL CALL\n", addr);
@@ -172,7 +149,7 @@ bool IA_power::isTailCall(Function* context, EdgeTypeEnum type, unsigned int, co
       return true;
     }
 
-    if (curInsn()->getCategory() == c_BranchInsn &&
+    if (curInsn().getCategory() == c_BranchInsn &&
             valid &&
             !callee) {
 	if (target) {
@@ -187,7 +164,7 @@ bool IA_power::isTailCall(Function* context, EdgeTypeEnum type, unsigned int, co
     }
 
     if(allInsns.size() < 2) {
-      if(context->addr() == _curBlk->start() && curInsn()->getCategory() == c_BranchInsn)
+      if(context->addr() == _curBlk->start() && curInsn().getCategory() == c_BranchInsn)
       {
 	parsing_printf("\tjump as only insn in entry block, TAIL CALL\n");
 	tailCalls[type] = true;
@@ -248,7 +225,7 @@ bool IA_power::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Fun
   InstructionDecoder retdec( _isrc->getPtrToInstruction( retnAddr ), 
                              InstructionDecoder::maxInstructionLength, 
                              _cr->getArch() );
-  Instruction::Ptr retn = retdec.decode();
+  Instruction retn = retdec.decode();
   converter.convert(retn, retnAddr, func, bit, assgns);
   for (ait = assgns.begin(); assgns.end() != ait; ait++) {
       AbsRegion & outReg = (*ait)->out();
@@ -301,19 +278,19 @@ bool IA_power::isReturnAddrSave(Address& retAddr) const
   bool foundMFLR = false;
   Address ret = 0;
   int cnt = 1;
-  Instruction::Ptr ci = curInsn ();
+  Instruction ci = curInsn ();
    parsing_printf(" Examining address 0x%lx to check if LR is saved on stack \n", getAddr());
-    parsing_printf("\t\tchecking insn %s \n", ci->format().c_str());
+    parsing_printf("\t\tchecking insn %s \n", ci.format().c_str());
 
-  if (ci->getOperation ().getID () == power_op_mfspr &&
-      ci->isRead (regLR))
+  if (ci.getOperation().getID () == power_op_mfspr &&
+      ci.isRead (regLR))
     {
       foundMFLR = true;
-      ci->getWriteSet (regs);
+      ci.getWriteSet (regs);
       if (regs.size () != 1)
 	{
 	  parsing_printf ("mfspr wrote %d registers instead of 1. insn: %s\n",
-			  regs.size (), ci->format ().c_str ());
+			  regs.size (), ci.format ().c_str ());
 	  return 0;
 	}
       destLRReg = *(regs.begin ());
@@ -328,16 +305,16 @@ bool IA_power::isReturnAddrSave(Address& retAddr) const
       // walk to first control flow transfer instruction, looking
       // for a save of destLRReg
       IA_power copy (dec, getAddr (), _obj, _cr, _isrc, _curBlk);
-      while (!copy.hasCFT () && copy.curInsn ())
+      while (!copy.hasCFT ())
 	{
 	  ci = copy.curInsn ();
-	  if (ci->writesMemory () &&
-	      ci->isRead (regSP) && ci->isRead (destLRReg))
+	  if (ci.writesMemory () &&
+	      ci.isRead (regSP) && ci.isRead (destLRReg))
 	    {
 	      ret = true;
 	      break;
 	    }
-	  else if (ci->isWritten (destLRReg))
+	  else if (ci.isWritten (destLRReg))
 	    {
 	      ret = false;
 	      break;
@@ -353,11 +330,11 @@ bool IA_power::isReturnAddrSave(Address& retAddr) const
 bool IA_power::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI::Block* currBlk) const
 {
   /* Check for leaf node or lw - mflr - blr pattern */
-  if (curInsn()->getCategory() != c_ReturnInsn) {
+  if (curInsn().getCategory() != c_ReturnInsn) {
 	parsing_printf(" Not BLR - returning false \n");
 	return false;
    }
-  Instruction::Ptr ci = curInsn ();
+  Instruction ci = curInsn ();
   Function *func = context;
   parsing_printf
     ("isblrReturn at 0x%lx Addr 0x%lx 0x%lx Function addr 0x%lx leaf %d \n",
@@ -384,7 +361,7 @@ bool IA_power::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI
       std::set < RegisterAST::Ptr > regs;
       RegisterAST::Ptr sourceLRReg;
 
-      Instruction::Ptr ci = curInsn ();
+      Instruction ci = curInsn ();
       bool foundMTLR = false;
       allInsns_t::reverse_iterator iter;
       Address blockStart = currBlk->start ();
@@ -394,23 +371,23 @@ bool IA_power::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI
       InstructionDecoder decCopy (b, currBlk->size (),
 				  this->_isrc->getArch ());
       IA_power copy (decCopy, blockStart, _obj, _cr, _isrc, _curBlk);
-      while (copy.getInstruction () && !copy.hasCFT ())
+      while (!copy.hasCFT ())
 	{
 	  copy.advance ();
 	}
       for(iter = copy.allInsns.rbegin(); iter != copy.allInsns.rend(); iter++)
 	{
 	  parsing_printf ("\t\tchecking insn 0x%x: %s \n", iter->first,
-		  iter->second->format ().c_str ());
-	  if (iter->second->getOperation ().getID () == power_op_mtspr &&
-	      iter->second->isWritten (regLR))
+		  iter->second.format ().c_str ());
+	  if (iter->second.getOperation().getID () == power_op_mtspr &&
+	      iter->second.isWritten (regLR))
 	    {
-	      iter->second->getReadSet (regs);
+	      iter->second.getReadSet (regs);
 	      if (regs.size () != 1)
 		{
 		  parsing_printf
 		    ("expected mtspr to read 1 register, insn is %s\n",
-		     ci->format ().c_str ());
+		     ci.format ().c_str ());
 		  return false;
 		}
 	      sourceLRReg = *(regs.begin ());
@@ -419,10 +396,10 @@ bool IA_power::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI
 	      foundMTLR = true;
 	    }
 	  else if (foundMTLR &&
-		   iter->second->readsMemory () &&
-		   (iter->second->isRead (regSP) ||
-		    (iter->second->isRead (reg11))) &&
-		   iter->second->isWritten (sourceLRReg))
+		   iter->second.readsMemory () &&
+		   (iter->second.isRead (regSP) ||
+		    (iter->second.isRead (reg11))) &&
+		   iter->second.isWritten (sourceLRReg))
 	    {
 	      parsing_printf ("\t\t\t **** Found lwz - RETURNING TRUE\n");
 	      return true;

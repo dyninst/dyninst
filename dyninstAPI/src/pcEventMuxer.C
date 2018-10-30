@@ -263,10 +263,10 @@ PCEventMuxer::cb_ret_t PCEventMuxer::SingleStepCallback(EventPtr ev) {
     unsigned size = 4;
     process->readDataSpace((void *) base, size, disass, false);
     InstructionDecoder deco(disass,size,process->getArch());
-    Instruction::Ptr insn = deco.decode();
-    while(insn) {
-      cerr << "\t" << hex << base << ": " << insn->format(base) << dec << endl;
-      base += insn->size();
+    Instruction insn = deco.decode();
+    while(insn.isValid()) {
+      cerr << "\t" << hex << base << ": " << insn.format(base) << dec << endl;
+      base += insn.size();
       insn = deco.decode();
     }
 

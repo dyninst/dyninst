@@ -45,6 +45,11 @@
 #include <boost/bind.hpp>
 #include "elfutils/libdw.h"
 #include <elfutils/libdw.h>
+#include <tbb/parallel_for_each.h>
+
+#ifdef ENABLE_RACE_DETECTION
+#include <cilk/cilk.h>
+#endif
 
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -127,6 +132,7 @@ bool DwarfWalker::parse() {
 
     /* Iterate over the compilation-unit headers for .debug_types. */
     uint64_t type_signaturep;
+    std::vector<Dwarf_Die> module_dies;
     for(Dwarf_Off cu_off = 0;
             dwarf_next_unit(dbg(), cu_off, &next_cu_header, &cu_header_length,
                 NULL, &abbrev_offset, &addr_size, &offset_size,
@@ -136,16 +142,16 @@ bool DwarfWalker::parse() {
         if(!dwarf_offdie_types(dbg(), cu_off + cu_header_length, &current_cu_die))
             continue;
 
+#if 0
         push();
-//        DwarfWalker mod_walker(*this);
-//        pop();
         bool ret = parseModule(false, fixUnknownMod);
         pop();
-        if(!ret) {
-            return false;
-        }
+        if(!ret) return false;
+#endif
+        module_dies.push_back(current_cu_die);
         compile_offset = next_cu_header;
     }
+
     /* Iterate over the compilation-unit headers for .debug_info. */
     for(Dwarf_Off cu_off = 0;
             dwarf_nextcu(dbg(), cu_off, &next_cu_header, &cu_header_length,
@@ -155,16 +161,35 @@ bool DwarfWalker::parse() {
         if(!dwarf_offdie(dbg(), cu_off + cu_header_length, &current_cu_die))
             continue;
 
+#if 0
         push();
-//        DwarfWalker mod_walker(*this);
-//        pop();
         bool ret = parseModule(true, fixUnknownMod);
         pop();
-        if(!ret) {
-            return false;
-        }
+        if(!ret) return false;
+#endif
+        module_dies.push_back(current_cu_die);
         compile_offset = next_cu_header;
     }
+
+//    std::for_each(module_dies.begin(), module_dies.end(), [&](Dwarf_Die cur) {
+#ifdef ENABLE_RACE_DETECTION
+    cilk_for
+#else
+//#pragma omp parallel for
+    for
+#endif
+      (unsigned int i = 0; i < module_dies.size(); i++) {
+	Dwarf_Die cur = module_dies[i];
+        int local_fd = open(symtab()->file().c_str(), O_RDONLY);
+        Dwarf* temp_dwarf = dwarf_begin(local_fd, DWARF_C_READ);
+        DwarfWalker w(symtab_, temp_dwarf);
+        w.push();
+        bool ok = w.parseModule(cur, fixUnknownMod);
+        w.pop();
+        dwarf_end(temp_dwarf);
+        close(local_fd);
+    }
+
     if (!fixUnknownMod)
         return true;
 
@@ -195,18 +220,7 @@ bool DwarfWalker::parse() {
     return true;
 }
 
-bool DwarfWalker::parseModule(bool /*is_info*/, Module *&fixUnknownMod) {
-    /* Obtain the module DIE. */
-    Dwarf_Die moduleDIE = current_cu_die;
-    /*Dwarf_Die * cu_die_p = 0;
-    if(is_info){
-        cu_die_p = dwarf_offdie(dbg(), compile_offset, &moduleDIE);
-    }else{
-        cu_die_p = dwarf_offdie_types(dbg(), compile_offset, &moduleDIE);
-    }
-    if (cu_die_p == 0) {
-        return false;
-    }*/
+bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
 
     /* Make sure we've got the right one. */
     Dwarf_Half moduleTag;
@@ -245,10 +259,14 @@ bool DwarfWalker::parseModule(bool /*is_info*/, Module *&fixUnknownMod) {
     // These may not be set.
     Address tempModLow, tempModHigh;
     modLow = modHigh = 0;
-    if (findConstant(DW_AT_low_pc, tempModLow, entry(), dbg())) {
+    Dwarf_Die e;
+    bool found_entry = dwarf_offdie(dbg(),offset(), &e);
+    if(!found_entry) return false;
+
+    if (findConstant(DW_AT_low_pc, tempModLow, &e, dbg())) {
         modLow = convertDebugOffset(tempModLow);
     }
-    if (findConstant(DW_AT_high_pc, tempModHigh, entry(), dbg())) {
+    if (findConstant(DW_AT_high_pc, tempModHigh, &e, dbg())) {
         modHigh = convertDebugOffset(tempModHigh);
     }
 
@@ -499,7 +517,7 @@ bool DwarfWalker::parseCallsite()
         return false;
 
     Dyninst::Offset inline_line;
-    result = findConstant(DW_AT_call_line, inline_line, e, dbg());
+    result = findConstant(DW_AT_call_line, inline_line, &e, dbg());
     if (!result)
         return false;
 
@@ -1838,9 +1856,10 @@ bool DwarfWalker::findString(Dwarf_Half attr,
     Dwarf_Half form;
     Dwarf_Attribute strattr;
 
+    Dwarf_Die e = entry();
     if (attr == DW_AT_call_file || attr == DW_AT_decl_file) {
         unsigned long line_index;
-        bool result = findConstant(attr, line_index, entry(), dbg());
+        bool result = findConstant(attr, line_index, &e, dbg());
         if (!result)
             return false;
         if (line_index >= mod()->getStrings()->size()) {
@@ -1852,7 +1871,6 @@ bool DwarfWalker::findString(Dwarf_Half attr,
         str = (*srcFiles())[line_index].str;
         return true;
     }
-    Dwarf_Die e = entry();
     auto ret_p = dwarf_attr(&e, attr, &strattr);
     if(!ret_p) return false;
     form = dwarf_whatform(&strattr);
@@ -1890,13 +1908,13 @@ bool DwarfWalker::findString(Dwarf_Half attr,
     return result;
 }
 
-bool DwarfWalker::findConstant(Dwarf_Half attr, Address &value, Dwarf_Die entry, Dwarf * /*dbg*/) {
-    bool has = dwarf_hasattr(&entry, attr);
+bool DwarfWalker::findConstant(Dwarf_Half attr, Address &value, Dwarf_Die *entry, Dwarf * /*dbg*/) {
+    bool has = dwarf_hasattr(entry, attr);
     if (!has) return false;
 
     // Get the attribute
     Dwarf_Attribute d_attr;
-    auto ret_p = dwarf_attr(&entry, attr, &d_attr);
+    auto ret_p = dwarf_attr(entry, attr, &d_attr);
     if(!ret_p) return false;
 
     // Get the form (datatype) for this particular attribute
@@ -2526,14 +2544,12 @@ void DwarfParseActions::clearFunc() {
 
 typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info)
 {
-    static typeId_t next_type_id = 0;
+    static unsigned int next_type_id = 0;
   auto& type_ids = is_info ? info_type_ids_ : types_type_ids_;
   auto it = type_ids.find(offset);
   if (it != type_ids.end())
     return it->second;
 
-//  size_t size = info_type_ids_.size() + types_type_ids_.size();
-//  typeId_t id = (typeId_t) size + 1;
   type_ids[offset] = ++next_type_id;
   return next_type_id;
 }

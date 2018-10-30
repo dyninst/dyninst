@@ -100,8 +100,6 @@ if(!(X)) { \
 
 
 bool StackAnalysis::analyze() {
-   df_init_debug();
-
    genInsnEffects();
 
    stackanalysis_printf("\tPerforming fixpoint analysis\n");
@@ -111,7 +109,7 @@ bool StackAnalysis::analyze() {
 
    func->addAnnotation(intervals_, Stack_Anno_Intervals);
 
-   if (df_debug_stackanalysis) {
+   if (df_debug_stackanalysis_on()) {
       debug();
    }
 
@@ -171,7 +169,7 @@ bool StackAnalysis::genInsnEffects() {
    return true;
 }
 
-typedef std::vector<std::pair<Instruction::Ptr, Offset> > InsnVec;
+typedef std::vector<std::pair<Instruction, Offset> > InsnVec;
 static void getInsnInstances(Block *block, InsnVec &insns) {
    Offset off = block->start();
    const unsigned char *ptr = (const unsigned char *)
@@ -180,7 +178,7 @@ static void getInsnInstances(Block *block, InsnVec &insns) {
    InstructionDecoder d(ptr, block->size(), block->obj()->cs()->getArch());
    while (off < block->end()) {
       insns.push_back(std::make_pair(d.decode(), off));
-      off += insns.back().first->size();
+      off += insns.back().first.size();
    }
 }
 
@@ -238,7 +236,7 @@ void StackAnalysis::summarizeBlocks(bool verbose) {
       InsnVec instances;
       getInsnInstances(block, instances);
       for (unsigned j = 0; j < instances.size(); j++) {
-         const InstructionAPI::Instruction::Ptr insn = instances[j].first;
+         const InstructionAPI::Instruction& insn = instances[j].first;
          const Offset &off = instances[j].second;
 
          // Fills in insnEffects[off]
@@ -264,6 +262,7 @@ void StackAnalysis::summarizeBlocks(bool verbose) {
       }
 
       // Add blocks reachable from this one to the work stack
+      boost::lock_guard<Block> g(*block);
       const Block::edgelist &targs = block->targets();
       std::for_each(
          boost::make_filter_iterator(epred, targs.begin(), targs.end()),
@@ -338,6 +337,7 @@ void StackAnalysis::fixpoint(bool verbose) {
       }
 
       // Step 4: push all children on the worklist.
+      boost::lock_guard<Block> g(*block);
       const Block::edgelist &outEdges = block->targets();
       std::for_each(
          boost::make_filter_iterator(epred2, outEdges.begin(), outEdges.end()),
@@ -365,6 +365,7 @@ void getRetAndTailCallBlocks(Function *func, std::set<Block *> &retBlocks) {
       Block *currBlock = workstack.top();
       workstack.pop();
 
+      boost::lock_guard<Block> g(*currBlock);
       const Block::edgelist &targs = currBlock->targets();
       for (auto iter = targs.begin(); iter != targs.end(); iter++) {
          Edge *currEdge = *iter;
@@ -395,7 +396,6 @@ bool StackAnalysis::canGetFunctionSummary() {
 
 
 bool StackAnalysis::getFunctionSummary(TransferSet &summary) {
-   df_init_debug();
     try {
         genInsnEffects();
 
@@ -492,6 +492,7 @@ void StackAnalysis::summaryFixpoint() {
       (*blockEffects)[block].accumulate(input, blockSummaryOutputs[block]);
 
       // Step 4: push all children on the worklist.
+      boost::lock_guard<Block> g(*block);
       const Block::edgelist &outEdges = block->targets();
       std::for_each(
          boost::make_filter_iterator(epred2, outEdges.begin(), outEdges.end()),
@@ -613,9 +614,9 @@ void StackAnalysis::summarize() {
 }
 
 void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
-   Instruction::Ptr insn, const Offset off, TransferFuncs &xferFuncs,
-   TransferSet &funcSummary) {
-   entryID what = insn->getOperation().getID();
+                                       Instruction insn, const Offset off, TransferFuncs &xferFuncs,
+                                       TransferSet &funcSummary) {
+   entryID what = insn.getOperation().getID();
 
    // Reminder: what we're interested in:
    // a) Use of the stack pointer to define another register
@@ -750,14 +751,14 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(Function *func) {
       Block *ret = *rets;
       cur = (unsigned char *) ret->region()->getPtrToInstruction(
          ret->lastInsnAddr());
-      Instruction::Ptr insn = decoder.decode(cur);
+      Instruction insn = decoder.decode(cur);
 
-      entryID what = insn->getOperation().getID();
+      entryID what = insn.getOperation().getID();
       if (what != e_ret_near) continue;
 
       int val;
       std::vector<Operand> ops;
-      insn->getOperands(ops);
+      insn.getOperands(ops);
       if (ops.size() == 1) {
          val = 0;
       } else {
@@ -1040,9 +1041,9 @@ class StateEvalVisitor : public Visitor {
 public:
    // addr is the starting address of instruction insn.
    // insn is the instruction containing the expression to evaluate.
-   StateEvalVisitor(Address addr, Instruction::Ptr insn,
+   StateEvalVisitor(Address addr, Instruction insn,
       StackAnalysis::AbslocState *s) : defined(true), state(s) {
-      rip = addr + insn->size();
+      rip = addr + insn.size();
    }
 
    StateEvalVisitor() : defined(false), state(NULL), rip(0) {}
@@ -1125,10 +1126,10 @@ private:
 
 };
 
-void StackAnalysis::handleXor(Instruction::Ptr insn, Block *block,
-   const Offset off, TransferFuncs &xferFuncs) {
+void StackAnalysis::handleXor(Instruction insn, Block *block,
+                              const Offset off, TransferFuncs &xferFuncs) {
    std::vector<Operand> operands;
-   insn->getOperands(operands);
+   insn.getOperands(operands);
    STACKANALYSIS_ASSERT(operands.size() == 2);
 
    // Handle the case where a register is being zeroed out.
@@ -1157,7 +1158,7 @@ void StackAnalysis::handleXor(Instruction::Ptr insn, Block *block,
    }
 
 
-   if (insn->writesMemory()) {
+   if (insn.writesMemory()) {
       // xor mem1, reg2/imm2
       STACKANALYSIS_ASSERT(writtenSet.size() == 0);
 
@@ -1213,7 +1214,7 @@ void StackAnalysis::handleXor(Instruction::Ptr insn, Block *block,
    MachRegister written = (*writtenSet.begin())->getID();
    Absloc writtenLoc(written);
 
-   if (insn->readsMemory()) {
+   if (insn.readsMemory()) {
       // xor reg1, mem2
       // Extract the expression inside the dereference
       std::vector<Expression::Ptr> &addrExpr = children1;
@@ -1277,10 +1278,10 @@ void StackAnalysis::handleXor(Instruction::Ptr insn, Block *block,
 }
 
 
-void StackAnalysis::handleDiv(Instruction::Ptr insn,
-   TransferFuncs &xferFuncs) {
+void StackAnalysis::handleDiv(Instruction insn,
+                              TransferFuncs &xferFuncs) {
    std::vector<Operand> operands;
-   insn->getOperands(operands);
+   insn.getOperands(operands);
    STACKANALYSIS_ASSERT(operands.size() == 3);
 
    Expression::Ptr quotient = operands[1].getValue();
@@ -1302,8 +1303,8 @@ void StackAnalysis::handleDiv(Instruction::Ptr insn,
 }
 
 
-void StackAnalysis::handleMul(Instruction::Ptr insn,
-   TransferFuncs &xferFuncs) {
+void StackAnalysis::handleMul(Instruction insn,
+                              TransferFuncs &xferFuncs) {
    // MULs have a few forms:
    //   1. mul reg1, reg2/mem2
    //     -- reg1 = reg1 * reg2/mem2
@@ -1312,7 +1313,7 @@ void StackAnalysis::handleMul(Instruction::Ptr insn,
    //   3. mul reg1, reg2, reg3/mem3
    //     -- reg1:reg2 = reg2 * reg3/mem3
    std::vector<Operand> operands;
-   insn->getOperands(operands);
+   insn.getOperands(operands);
    STACKANALYSIS_ASSERT(operands.size() == 2 || operands.size() == 3);
 
    Expression::Ptr target = operands[0].getValue();
@@ -1372,10 +1373,10 @@ void StackAnalysis::handleMul(Instruction::Ptr insn,
 }
 
 
-void StackAnalysis::handlePushPop(Instruction::Ptr insn, Block *block,
-   const Offset off, int sign, TransferFuncs &xferFuncs) {
+void StackAnalysis::handlePushPop(Instruction insn, Block *block,
+                                  const Offset off, int sign, TransferFuncs &xferFuncs) {
    long delta = 0;
-   Operand arg = insn->getOperand(0);
+   Operand arg = insn.getOperand(0);
    // Why was this here? bernat, 12JAN11
    if (arg.getValue()->eval().defined) {
       delta = sign * word_size;
@@ -1385,7 +1386,7 @@ void StackAnalysis::handlePushPop(Instruction::Ptr insn, Block *block,
    xferFuncs.push_back(TransferFunc::deltaFunc(Absloc(sp()), delta));
    copyBaseSubReg(sp(), xferFuncs);
 
-   if (insn->getOperation().getID() == e_push && insn->writesMemory()) {
+   if (insn.getOperation().getID() == e_push && insn.writesMemory()) {
       // This is a push.  Let's record the value pushed on the stack if
       // possible.
       if (intervals_ != NULL) {
@@ -1397,7 +1398,7 @@ void StackAnalysis::handlePushPop(Instruction::Ptr insn, Block *block,
             long writtenSlotHeight = spHeight.height() - word_size;
             Absloc writtenLoc(writtenSlotHeight, 0, NULL);
 
-            Expression::Ptr readExpr = insn->getOperand(0).getValue();
+            Expression::Ptr readExpr = insn.getOperand(0).getValue();
             if (dynamic_cast<RegisterAST*>(readExpr.get())) {
                // Get copied register
                MachRegister readReg = boost::dynamic_pointer_cast<RegisterAST>(
@@ -1444,11 +1445,11 @@ void StackAnalysis::handlePushPop(Instruction::Ptr insn, Block *block,
             }
          }
       }
-   } else if (insn->getOperation().getID() == e_pop && !insn->writesMemory()) {
+   } else if (insn.getOperation().getID() == e_pop && !insn.writesMemory()) {
       // This is a pop.  Let's record the value popped if possible.
 
       // Get target register
-      Expression::Ptr targExpr = insn->getOperand(0).getValue();
+      Expression::Ptr targExpr = insn.getOperand(0).getValue();
       STACKANALYSIS_ASSERT(dynamic_cast<RegisterAST*>(targExpr.get()));
       MachRegister targReg = boost::dynamic_pointer_cast<RegisterAST>(
          targExpr)->getID();
@@ -1484,11 +1485,11 @@ void StackAnalysis::handlePushPop(Instruction::Ptr insn, Block *block,
    }
 }
 
-void StackAnalysis::handleReturn(Instruction::Ptr insn,
-   TransferFuncs &xferFuncs) {
+void StackAnalysis::handleReturn(Instruction insn,
+                                 TransferFuncs &xferFuncs) {
    long delta = 0;
    std::vector<Operand> operands;
-   insn->getOperands(operands);
+   insn.getOperands(operands);
    if (operands.size() < 2) {
       delta = word_size;
    } else {
@@ -1514,8 +1515,8 @@ void StackAnalysis::handleReturn(Instruction::Ptr insn,
 }
 
 
-void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
-   const Offset off, int sign, TransferFuncs &xferFuncs) {
+void StackAnalysis::handleAddSub(Instruction insn, Block *block,
+                                 const Offset off, int sign, TransferFuncs &xferFuncs) {
    // Possible forms for add/sub:
    //   1. add reg1, reg2
    //     -- reg1 = reg1 + reg2
@@ -1544,7 +1545,7 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
    //      b. Otherwise, nothing happens.
 
    std::vector<Operand> operands;
-   insn->getOperands(operands);
+   insn.getOperands(operands);
    STACKANALYSIS_ASSERT(operands.size() == 2);
 
    std::set<RegisterAST::Ptr> readSet;
@@ -1552,8 +1553,7 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
    operands[1].getReadSet(readSet);
    operands[0].getWriteSet(writeSet);
 
-   ArchSpecificFormatter *insnFormatter = insn->getFormatter();
-   if (insn->writesMemory()) {
+   if (insn.writesMemory()) {
       // Cases 3 and 5
       STACKANALYSIS_ASSERT(writeSet.size() == 0);
 
@@ -1625,7 +1625,7 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
       return;
    }
 
-   if (insn->readsMemory()) {
+   if (insn.readsMemory()) {
       // Case 2
       // Extract the expression inside the dereference
       std::vector<Expression::Ptr> addrExpr;
@@ -1691,8 +1691,8 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, Block *block,
    }
 }
 
-void StackAnalysis::handleLEA(Instruction::Ptr insn,
-   TransferFuncs &xferFuncs) {
+void StackAnalysis::handleLEA(Instruction insn,
+                              TransferFuncs &xferFuncs) {
    // LEA has a few patterns:
    //   op0: target register
    //-------------------------------
@@ -1710,19 +1710,17 @@ void StackAnalysis::handleLEA(Instruction::Ptr insn,
    //
    std::set<RegisterAST::Ptr> readSet;
    std::set<RegisterAST::Ptr> writtenSet;
-   insn->getOperand(0).getWriteSet(writtenSet);
-   insn->getOperand(1).getReadSet(readSet);
+   insn.getOperand(0).getWriteSet(writtenSet);
+   insn.getOperand(1).getReadSet(readSet);
    STACKANALYSIS_ASSERT(writtenSet.size() == 1);
    STACKANALYSIS_ASSERT(readSet.size() == 0 || readSet.size() == 1 || readSet.size() == 2);
    MachRegister written = (*writtenSet.begin())->getID();
    Absloc writeloc(written);
 
-   InstructionAPI::Operand srcOperand = insn->getOperand(1);
+   InstructionAPI::Operand srcOperand = insn.getOperand(1);
    InstructionAPI::Expression::Ptr srcExpr = srcOperand.getValue();
    std::vector<InstructionAPI::Expression::Ptr> children;
    srcExpr->getChildren(children);
-
-   ArchSpecificFormatter *insnFormatter = insn->getFormatter();
 
    if (readSet.size() == 0) {
       // op1: imm
@@ -1918,15 +1916,15 @@ void StackAnalysis::handlePushPopRegs(int sign, TransferFuncs &xferFuncs) {
    copyBaseSubReg(sp(), xferFuncs);
 }
 
-void StackAnalysis::handlePowerAddSub(Instruction::Ptr insn, Block *block,
-   const Offset off, int sign, TransferFuncs &xferFuncs) {
+void StackAnalysis::handlePowerAddSub(Instruction insn, Block *block,
+                                      const Offset off, int sign, TransferFuncs &xferFuncs) {
    // Add/subtract are op0 = op1 +/- op2; we'd better read the stack pointer as
    // well as writing it
-   if (!insn->isRead(theStackPtr) || !insn->isWritten(theStackPtr)) {
+   if (!insn.isRead(theStackPtr) || !insn.isWritten(theStackPtr)) {
       return handleDefault(insn, block, off, xferFuncs);
    }
    
-   Operand arg = insn->getOperand(2);
+   Operand arg = insn.getOperand(2);
    Result res = arg.getValue()->eval();
    Absloc sploc(sp());
    if (res.defined) {
@@ -1939,14 +1937,14 @@ void StackAnalysis::handlePowerAddSub(Instruction::Ptr insn, Block *block,
    }
 }
 
-void StackAnalysis::handlePowerStoreUpdate(Instruction::Ptr insn, Block *block,
-   const Offset off, TransferFuncs &xferFuncs) {
-   if (!insn->isWritten(theStackPtr)) {
+void StackAnalysis::handlePowerStoreUpdate(Instruction insn, Block *block,
+                                           const Offset off, TransferFuncs &xferFuncs) {
+   if (!insn.isWritten(theStackPtr)) {
       return handleDefault(insn, block, off, xferFuncs);
    }
    
    std::set<Expression::Ptr> memWriteAddrs;
-   insn->getMemoryWriteOperands(memWriteAddrs);
+   insn.getMemoryWriteOperands(memWriteAddrs);
    Expression::Ptr stackWrite = *(memWriteAddrs.begin());
    stackWrite->bind(theStackPtr.get(), Result(u32, 0));
    Result res = stackWrite->eval();
@@ -1962,8 +1960,8 @@ void StackAnalysis::handlePowerStoreUpdate(Instruction::Ptr insn, Block *block,
 }
 
 
-void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
-   const Offset off, TransferFuncs &xferFuncs) {
+void StackAnalysis::handleMov(Instruction insn, Block *block,
+                              const Offset off, TransferFuncs &xferFuncs) {
    // Some cases:
    //   1. mov reg, reg
    //   2. mov imm, reg
@@ -1991,7 +1989,7 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
 
    // Extract operands
    std::vector<Operand> operands;
-   insn->getOperands(operands);
+   insn.getOperands(operands);
    STACKANALYSIS_ASSERT(operands.size() == 2);
 
    // Extract written/read register sets
@@ -2001,7 +1999,7 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
    operands[1].getReadSet(readRegs);
 
 
-   if (insn->writesMemory()) {
+   if (insn.writesMemory()) {
       STACKANALYSIS_ASSERT(writtenRegs.size() == 0);
 
       // Extract the expression inside the dereference
@@ -2068,7 +2066,7 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
       return;
    }
 
-   if (insn->readsMemory()) {
+   if (insn.readsMemory()) {
       // Extract the expression inside the dereference
       std::vector<Expression::Ptr> addrExpr;
       operands[1].getValue()->getChildren(addrExpr);
@@ -2134,14 +2132,14 @@ void StackAnalysis::handleMov(Instruction::Ptr insn, Block *block,
    }
 }
 
-void StackAnalysis::handleZeroExtend(Instruction::Ptr insn, Block *block,
-   const Offset off, TransferFuncs &xferFuncs) {
+void StackAnalysis::handleZeroExtend(Instruction insn, Block *block,
+                                     const Offset off, TransferFuncs &xferFuncs) {
    // In x86/x86_64, zero extends can't write to memory
-   STACKANALYSIS_ASSERT(!insn->writesMemory());
+   STACKANALYSIS_ASSERT(!insn.writesMemory());
 
    // Extract operands
    std::vector<Operand> operands;
-   insn->getOperands(operands);
+   insn.getOperands(operands);
    STACKANALYSIS_ASSERT(operands.size() == 2);
 
    // Extract written/read register sets
@@ -2155,7 +2153,7 @@ void StackAnalysis::handleZeroExtend(Instruction::Ptr insn, Block *block,
    Absloc writtenLoc(written);
 
    // Handle memory loads
-   if (insn->readsMemory()) {
+   if (insn.readsMemory()) {
       // Extract the expression inside the dereference
       std::vector<Expression::Ptr> addrExpr;
       operands[1].getValue()->getChildren(addrExpr);
@@ -2197,18 +2195,18 @@ void StackAnalysis::handleZeroExtend(Instruction::Ptr insn, Block *block,
    copyBaseSubReg(written, xferFuncs);
 }
 
-void StackAnalysis::handleSignExtend(Instruction::Ptr insn, Block *block,
-   const Offset off, TransferFuncs &xferFuncs) {
+void StackAnalysis::handleSignExtend(Instruction insn, Block *block,
+                                     const Offset off, TransferFuncs &xferFuncs) {
    // This instruction sign extends the read register into the written
    // register. Copying insn't really correct here...sign extension is going
    // to change the value...
 
    // In x86/x86_64, sign extends can't write to memory
-   STACKANALYSIS_ASSERT(!insn->writesMemory());
+   STACKANALYSIS_ASSERT(!insn.writesMemory());
 
    // Extract operands
    std::vector<Operand> operands;
-   insn->getOperands(operands);
+   insn.getOperands(operands);
    STACKANALYSIS_ASSERT(operands.size() == 2);
 
    // Extract written/read register sets
@@ -2222,7 +2220,7 @@ void StackAnalysis::handleSignExtend(Instruction::Ptr insn, Block *block,
    Absloc writtenLoc(written);
 
    // Handle memory loads
-   if (insn->readsMemory()) {
+   if (insn.readsMemory()) {
       // Extract the expression inside the dereference
       std::vector<Expression::Ptr> addrExpr;
       operands[1].getValue()->getChildren(addrExpr);
@@ -2265,15 +2263,15 @@ void StackAnalysis::handleSignExtend(Instruction::Ptr insn, Block *block,
    copyBaseSubReg(written, xferFuncs);
 }
 
-void StackAnalysis::handleSpecialSignExtend(Instruction::Ptr insn,
-   TransferFuncs &xferFuncs) {
+void StackAnalysis::handleSpecialSignExtend(Instruction insn,
+                                            TransferFuncs &xferFuncs) {
    // This instruction sign extends the read register into the written
    // register. Copying insn't really correct here...sign extension is going
    // to change the value...
 
    // Extract written/read register sets
    std::set<RegisterAST::Ptr> writtenRegs;
-   insn->getWriteSet(writtenRegs);
+   insn.getWriteSet(writtenRegs);
    STACKANALYSIS_ASSERT(writtenRegs.size() == 1);
    MachRegister writtenReg = (*writtenRegs.begin())->getID();
    MachRegister readReg;
@@ -2291,9 +2289,9 @@ void StackAnalysis::handleSpecialSignExtend(Instruction::Ptr insn,
    copyBaseSubReg(writtenReg, xferFuncs);
 }
 
-void StackAnalysis::handleSyscall(Instruction::Ptr insn, Block *block,
-   const Offset off, TransferFuncs &xferFuncs) {
-   Architecture arch = insn->getArch();
+void StackAnalysis::handleSyscall(Instruction insn, Block *block,
+                                  const Offset off, TransferFuncs &xferFuncs) {
+   Architecture arch = insn.getArch();
    if (arch == Arch_x86) {
       // x86 returns an error code in EAX
       xferFuncs.push_back(TransferFunc::retopFunc(Absloc(x86::eax)));
@@ -2312,13 +2310,13 @@ void StackAnalysis::handleSyscall(Instruction::Ptr insn, Block *block,
 
 // Handle instructions for which we have no special handling implemented.  Be
 // conservative for safety.
-void StackAnalysis::handleDefault(Instruction::Ptr insn, Block *block,
-   const Offset off, TransferFuncs &xferFuncs) {
+void StackAnalysis::handleDefault(Instruction insn, Block *block,
+                                  const Offset off, TransferFuncs &xferFuncs) {
    // Form sets of read/written Abslocs
    std::set<RegisterAST::Ptr> writtenRegs;
    std::set<RegisterAST::Ptr> readRegs;
-   insn->getWriteSet(writtenRegs);
-   insn->getReadSet(readRegs);
+   insn.getWriteSet(writtenRegs);
+   insn.getReadSet(readRegs);
    std::set<Absloc> writtenLocs;
    std::set<Absloc> readLocs;
    for (auto iter = writtenRegs.begin(); iter != writtenRegs.end(); iter++) {
@@ -2335,10 +2333,10 @@ void StackAnalysis::handleDefault(Instruction::Ptr insn, Block *block,
          readLocs.insert(Absloc(reg));
       }
    }
-   if (insn->readsMemory()) {
+   if (insn.readsMemory()) {
       // Add any determinable read locations to readLocs
       std::set<Expression::Ptr> memExprs;
-      insn->getMemoryReadOperands(memExprs);
+      insn.getMemoryReadOperands(memExprs);
       for (auto iter = memExprs.begin(); iter != memExprs.end(); iter++) {
          const Expression::Ptr &memExpr = *iter;
          StateEvalVisitor visitor;
@@ -2363,10 +2361,10 @@ void StackAnalysis::handleDefault(Instruction::Ptr insn, Block *block,
          }
       }
    }
-   if (insn->writesMemory()) {
+   if (insn.writesMemory()) {
       // Add any determinable written locations to writtenLocs
       std::set<Expression::Ptr> memExprs;
-      insn->getMemoryWriteOperands(memExprs);
+      insn.getMemoryWriteOperands(memExprs);
       for (auto iter = memExprs.begin(); iter != memExprs.end(); iter++) {
          const Expression::Ptr &memExpr = *iter;
          StateEvalVisitor visitor;
@@ -2424,19 +2422,19 @@ void StackAnalysis::handleDefault(Instruction::Ptr insn, Block *block,
    }
 }
 
-bool StackAnalysis::isCall(Instruction::Ptr insn) {
-   return insn->getCategory() == c_CallInsn;
+bool StackAnalysis::isCall(Instruction insn) {
+   return insn.getCategory() == c_CallInsn;
 }
 
-bool StackAnalysis::isJump(Instruction::Ptr insn) {
-   return insn->getCategory() == c_BranchInsn;
+bool StackAnalysis::isJump(Instruction insn) {
+   return insn.getCategory() == c_BranchInsn;
 }
 
-bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block,
-   Offset off, TransferFuncs &xferFuncs, TransferSet &funcSummary) {
+bool StackAnalysis::handleNormalCall(Instruction insn, Block *block,
+                                     Offset off, TransferFuncs &xferFuncs, TransferSet &funcSummary) {
 
    // Identify syscalls of the form: call *%gs:0x10
-   Expression::Ptr callAddrExpr = insn->getOperand(0).getValue();
+   Expression::Ptr callAddrExpr = insn.getOperand(0).getValue();
    if (dynamic_cast<Dereference *>(callAddrExpr.get())) {
       std::vector<Expression::Ptr> children;
       callAddrExpr->getChildren(children);
@@ -2449,12 +2447,13 @@ bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block,
       }
    }
 
-   if (!insn->getControlFlowTarget()) return false;
+   if (!insn.getControlFlowTarget()) return false;
 
    // Must be a thunk based on parsing.
    if (off != block->lastInsnAddr()) return false;
 
    Address calledAddr = 0;
+   boost::lock_guard<Block> g(*block);
    const Block::edgelist &outs = block->targets();
    for (auto eit = outs.begin(); eit != outs.end(); eit++) {
       Edge *edge = *eit;
@@ -2550,7 +2549,7 @@ bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block,
         ++iter) {
        // We only care about GPRs right now
       unsigned int gpr;
-      Architecture arch = insn->getArch();
+      Architecture arch = insn.getArch();
       switch(arch) {
          case Arch_x86:
             gpr = x86::GPR;
@@ -2622,9 +2621,10 @@ bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block,
 }
 
 // Create transfer functions for tail calls
-bool StackAnalysis::handleJump(Instruction::Ptr insn, Block *block, Offset off,
-   TransferFuncs &xferFuncs, TransferSet &funcSummary) {
+bool StackAnalysis::handleJump(Instruction insn, Block *block, Offset off,
+                               TransferFuncs &xferFuncs, TransferSet &funcSummary) {
    Address calledAddr = 0;
+   boost::lock_guard<Block> g(*block);
    const Block::edgelist &outs = block->targets();
    for (auto eit = outs.begin(); eit != outs.end(); eit++) {
       Edge *edge = *eit;
@@ -2728,7 +2728,7 @@ bool StackAnalysis::handleJump(Instruction::Ptr insn, Block *block, Offset off,
         ++iter) {
        // We only care about GPRs right now
       unsigned int gpr;
-      Architecture arch = insn->getArch();
+      Architecture arch = insn.getArch();
       switch(arch) {
          case Arch_x86:
             gpr = x86::GPR;
@@ -2771,21 +2771,21 @@ bool StackAnalysis::handleJump(Instruction::Ptr insn, Block *block, Offset off,
    return true;
 }
 
-bool StackAnalysis::handleThunkCall(Instruction::Ptr insn, Block *block,
-   const Offset off, TransferFuncs &xferFuncs) {
+bool StackAnalysis::handleThunkCall(Instruction insn, Block *block,
+                                    const Offset off, TransferFuncs &xferFuncs) {
 
    // We know that we're not a normal call, so it depends on whether the CFT is
    // "next instruction" or not.
-   if (insn->getCategory() != c_CallInsn || !insn->getControlFlowTarget()) {
+   if (insn.getCategory() != c_CallInsn || !insn.getControlFlowTarget()) {
       return false;
    }
 
    // Eval of getCFT(0) == size?
-   Expression::Ptr cft = insn->getControlFlowTarget();
+   Expression::Ptr cft = insn.getControlFlowTarget();
    cft->bind(thePC.get(), Result(u32, 0));
    Result res = cft->eval();
    if (!res.defined) return false;
-   if (res.convert<unsigned>() == insn->size()) {
+   if (res.convert<unsigned>() == insn.size()) {
       Absloc sploc(sp());
       xferFuncs.push_back(TransferFunc::deltaFunc(sploc, -1 * word_size));
       copyBaseSubReg(sp(), xferFuncs);
@@ -2795,12 +2795,12 @@ bool StackAnalysis::handleThunkCall(Instruction::Ptr insn, Block *block,
 
    // Check the next instruction to see which register is holding the PC.
    // Assumes next instruction is add thunk_reg, offset.
-   const Address pc = off + insn->size();
-   Instruction::Ptr thunkAddInsn = block->getInsn(pc);
-   if (thunkAddInsn == Instruction::Ptr()) return true;
-   if (thunkAddInsn->getOperation().getID() != e_add) return true;
+   const Address pc = off + insn.size();
+   Instruction thunkAddInsn = block->getInsn(pc);
+   if (!thunkAddInsn.isValid()) return true;
+   if (thunkAddInsn.getOperation().getID() != e_add) return true;
    std::set<RegisterAST::Ptr> writtenRegs;
-   thunkAddInsn->getOperand(0).getWriteSet(writtenRegs);
+   thunkAddInsn.getOperand(0).getWriteSet(writtenRegs);
    if (writtenRegs.size() != 1) return true;
    const MachRegister &thunkTarget = (*writtenRegs.begin())->getID();
 
@@ -2878,6 +2878,8 @@ void StackAnalysis::meetInputs(Block *block, AbslocState &blockInput,
    intra_nosink_nocatch epred2;
 
    stackanalysis_printf("\t ... In edges: ");
+   boost::lock_guard<Block> g(*block);
+
    const Block::edgelist & inEdges = block->sources();
    std::for_each(
       boost::make_filter_iterator(epred2, inEdges.begin(), inEdges.end()),
@@ -2895,6 +2897,7 @@ void StackAnalysis::meetSummaryInputs(Block *block, TransferSet &blockInput,
    TransferSet &input) {
    input.clear();
    intra_nosink_nocatch epred2;
+   boost::lock_guard<Block> g(*block);
 
    const Block::edgelist & inEdges = block->sources();
    std::for_each(

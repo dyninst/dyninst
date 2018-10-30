@@ -236,9 +236,7 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    static AstNodePtr funcCallNode(Address addr, pdvector<AstNodePtr > &args); // For when you absolutely need
    // to jump somewhere.
 
-   static AstNodePtr insnNode(BPatch_instruction *insn);
-
-   // Acquire the thread index value - a 0...n labelling of threads.
+    // Acquire the thread index value - a 0...n labelling of threads.
    static AstNodePtr threadIndexNode();
 
    static AstNodePtr scrambleRegistersNode();
@@ -784,76 +782,6 @@ class AstVariableNode : public AstNode {
     std::vector<std::pair<Offset, Offset> > *ranges_;
     unsigned index;
 
-};
-
-class AstInsnNode : public AstNode {
- public: 
-
-    AstInsnNode(instruction *insn, Address addr);
-
-
-    // Template methods...
-    virtual bool overrideBranchTarget(AstNodePtr) { return false; }
-    virtual bool overrideLoadAddr(AstNodePtr) { return false; }
-    virtual bool overrideStoreAddr(AstNodePtr) { return false; }
-
-	bool canBeKept() const { return false; }
-   virtual bool containsFuncCall() const;
-
-   virtual bool usesAppRegister() const;
- 
- protected:
-    virtual bool generateCode_phase2(codeGen &gen,
-                                     bool noCost,
-                                     Address &retAddr,
-                                     Register &retReg);
-
-    AstInsnNode() {};
-    instruction *insn_;
-    Address origAddr_; // The instruction class should wrap an address, but _wow_
-    // reengineering
-};
-
-class AstInsnBranchNode : public AstInsnNode {
- public:
-    AstInsnBranchNode(instruction *insn, Address addr) : AstInsnNode(insn, addr), target_() {};
-
-
-    virtual bool overrideBranchTarget(AstNodePtr t) { target_ = t; return true; }
-    virtual bool containsFuncCall() const;
-    virtual bool usesAppRegister() const;
- 
-
-    virtual void setVariableAST(codeGen &gen);
-    
- protected:
-    virtual bool generateCode_phase2(codeGen &gen,
-                                     bool noCost,
-                                     Address &retAddr,
-                                     Register &retReg);
-    
-    AstNodePtr target_;
-};
-
-class AstInsnMemoryNode : public AstInsnNode {
- public:
-    AstInsnMemoryNode(instruction *insn, Address addr) : AstInsnNode(insn, addr), load_(), store_() {};
-
-    virtual bool overrideLoadAddr(AstNodePtr l) { load_ = l; return true; }
-    virtual bool overrideStoreAddr(AstNodePtr s) { store_ = s; return true; }
-    virtual bool containsFuncCall() const;
-    virtual bool usesAppRegister() const;
- 
-    virtual void setVariableAST(codeGen &gen);
-
- protected:
-    virtual bool generateCode_phase2(codeGen &gen,
-                                     bool noCost,
-                                     Address &retAddr,
-                                     Register &retReg);
-    
-    AstNodePtr load_;
-    AstNodePtr store_;
 };
 
 

@@ -34,6 +34,11 @@
 #include "CFG.h"
 #include <iostream>
 
+#include "ParseData.h"
+
+
+#include <race-detector-annotations.h>
+
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
@@ -73,7 +78,8 @@ std::string ParseAPI::format(EdgeTypeEnum e) {
 
 Edge::Edge(Block *source, Block *target, EdgeTypeEnum type)
 : _source(source),
-  _target(target),
+  index(source->obj()->parse_data()),
+  _target_off(target->low()),
   _type(type,false) { 
       
     }
@@ -89,7 +95,13 @@ CFGFactory::_mkfunc(Address addr, FuncSource src, string name,
     CodeObject * obj, CodeRegion * reg, Dyninst::InstructionSource * isrc)
 {
    Function * ret = mkfunc(addr,src,name,obj,reg,isrc);
-   funcs_.add(*ret);
+
+   // forget about initialization of this function descriptor by this thread
+   // before making it available to others. the initialization will not race
+   // with a later access by another thread.
+   race_detector_forget_access_history(ret, sizeof(*ret));
+
+   funcs_.add(ret);
    ret->_src =  src;
    return ret;
 }
@@ -100,21 +112,32 @@ CFGFactory::mkfunc(Address addr, FuncSource, string name,
     CodeObject * obj, CodeRegion * reg, Dyninst::InstructionSource * isrc)
 {
     Function * ret = new Function(addr,name,obj,reg,isrc);
+
     return ret;
 }
 
 Block *
-CFGFactory::_mkblock(Function *  f , CodeRegion *r, Address addr) {
+CFGFactory::_mkblock(Function *  f , CodeRegion *r, Address addr)
+{
+   Block * ret = mkblock(f, r, addr);
+   race_detector_forget_access_history(ret, sizeof(*ret));
+   blocks_.add(ret);
+   return ret;
+}
 
-   Block * ret = mkblock(f, r, addr);;
-   blocks_.add(*ret);
+Block *
+CFGFactory::_mkblock(CodeObject* co, CodeRegion *r, Address addr)
+{
+   Block* ret = new Block(co, r, addr);
+   race_detector_forget_access_history(ret, sizeof(*ret));
+   blocks_.add(ret);
    return ret;
 }
 
 Block *
 CFGFactory::mkblock(Function *  f , CodeRegion *r, Address addr) {
 
-    Block * ret = new Block(f->obj(),r,addr);
+    Block * ret = new Block(f->obj(),r,addr, f);
     return ret;
 }
 
@@ -122,7 +145,7 @@ CFGFactory::mkblock(Function *  f , CodeRegion *r, Address addr) {
 Block *
 CFGFactory::_mksink(CodeObject * obj, CodeRegion *r) {
    Block * ret = mksink(obj,r);
-   blocks_.add(*ret);
+   blocks_.add(ret);
    return ret;
 }
 
@@ -135,7 +158,7 @@ CFGFactory::mksink(CodeObject * obj, CodeRegion *r) {
 Edge *
 CFGFactory::_mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
     Edge * ret = mkedge(src,trg,type);
-    edges_.add(*ret);
+    edges_.add(ret);
     return ret;
 }
 
@@ -146,6 +169,7 @@ CFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
 }
 
 void CFGFactory::destroy_func(Function *f) {
+    boost::lock_guard<CFGFactory> g(*this);
    f->remove();
    free_func(f);
 }
@@ -157,6 +181,7 @@ CFGFactory::free_func(Function *f) {
 
 void
 CFGFactory::destroy_block(Block *b) {
+    boost::lock_guard<CFGFactory> g(*this);
     b->remove();
     free_block(b);
 }
@@ -166,10 +191,25 @@ CFGFactory::free_block(Block *b) {
     delete b;
 }
 
+std::string to_str(EdgeState e)
+{
+    switch(e)
+    {
+        case created: return "ok";
+        case destroyed_noreturn: return "destroyed fallthrough from non-returning call/syscall";
+        case destroyed_cb: return "destroyed from callback";
+        case destroyed_all: return "destroyed during global cleanup";
+        default: return "ERROR: unknown state";
+    }
+}
+
 void
-CFGFactory::destroy_edge(Edge *e) {
-   e->remove();
-   free_edge(e);
+CFGFactory::destroy_edge(Edge *e, Dyninst::ParseAPI::EdgeState reason) {
+    boost::lock_guard<CFGFactory> g(*this);
+    e->remove();
+    if(reason == destroyed_all) {
+        free_edge(e);
+    }
 }
 
 void
@@ -179,23 +219,24 @@ CFGFactory::free_edge(Edge *e) {
 
 void
 CFGFactory::destroy_all() {
+    boost::lock_guard<CFGFactory> g(*this);
     // XXX carefully calling free_* routines; could be faster and just
     // call delete
 
-    fact_list<Edge>::iterator eit = edges_.begin();
+    fact_list<Edge *>::iterator eit = edges_.begin();
     while(eit != edges_.end()) {
-        fact_list<Edge>::iterator cur = eit++;
-        destroy_edge(&*cur);
+        fact_list<Edge *>::iterator cur = eit++;
+        destroy_edge(*cur, destroyed_all);
     }
-    fact_list<Block>::iterator bit = blocks_.begin();
+    fact_list<Block *>::iterator bit = blocks_.begin();
     while(bit != blocks_.end()) {
-        fact_list<Block>::iterator cur = bit++;
-        destroy_block(&*cur);
+        fact_list<Block *>::iterator cur = bit++;
+        destroy_block(*cur);
     }
-    fact_list<Function>::iterator fit = funcs_.begin();
+    fact_list<Function *>::iterator fit = funcs_.begin();
     while(fit != funcs_.end()) {
-        fact_list<Function>::iterator cur = fit++;
-        destroy_func(&*cur);
+        fact_list<Function *>::iterator cur = fit++;
+        destroy_func(*cur);
     }
 }
 

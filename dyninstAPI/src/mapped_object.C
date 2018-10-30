@@ -1247,9 +1247,9 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
             // the easy way to do things.
             block_instance::Insns insns;
             stubs[idx].src->getInsns(insns);
-            InstructionAPI::Instruction::Ptr cf = insns[stubs[idx].src->last()];
-            assert(cf);
-            switch (cf->getCategory()) {
+            InstructionAPI::Instruction cf = insns[stubs[idx].src->last()];
+            assert(cf.isValid());
+            switch (cf.getCategory()) {
             case c_CallInsn:
                 if (stubs[idx].trg == stubs[idx].src->end())
                 {
@@ -1266,11 +1266,11 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
                 edgeType = INDIRECT;
                 break;
             case c_BranchInsn:
-                if (cf->readsMemory())
+                if (cf.readsMemory())
                 {
                     edgeType = INDIRECT;
                 }
-                else if (!cf->allowsFallThrough())
+                else if (!cf.allowsFallThrough())
                 {
                     edgeType = DIRECT;
                 }

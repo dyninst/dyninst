@@ -52,12 +52,12 @@ using namespace NS_power;
 bool CFWidget::generateIndirect(CodeBuffer &buffer,
                               Register,
                               const RelocBlock *trace,
-                              Instruction::Ptr insn) {
+                              Instruction insn) {
   // Copying an indirect jump; unlike x86 we don't do
   // call -> indirect conversion yet. 
   // ... though that would be really freaking easy. 
 
-  NS_power::instruction ugly_insn(insn->ptr());
+  NS_power::instruction ugly_insn(insn.ptr());
   IFORM_LK_SET(ugly_insn, 0);
   codeGen gen(4);
   insnCodeGen::generate(gen, ugly_insn);
@@ -72,11 +72,11 @@ bool CFWidget::generateIndirect(CodeBuffer &buffer,
 
 bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
                                     Register /*reg*/,
-                                  Instruction::Ptr insn,
+                                  Instruction insn,
                                   const RelocBlock *trace,
                                     Address /*origAddr*/) 
 {
-  NS_power::instruction ugly_insn(insn->ptr());
+  NS_power::instruction ugly_insn(insn.ptr());
   IFORM_LK_SET(ugly_insn, 1);
   codeGen gen(4);
   insnCodeGen::generate(gen, ugly_insn);
@@ -116,7 +116,7 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
    relocation_cerr << "\t\t CFPatch::apply, type " << type << ", origAddr " << hex << origAddr_ 
                    << ", and label " << dec << targetLabel << endl;
 
-   if (orig_insn) {
+   if (orig_insn.isValid()) {
       relocation_cerr << "\t\t\t Currently at " << hex << gen.currAddr() << " and targeting predicted " << buf->predictedAddr(targetLabel) << dec << endl;
       switch(type) {
          case CFPatch::Jump: {

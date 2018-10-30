@@ -894,7 +894,7 @@ void StackModChecker::processBlock(StackAnalysis& sa, ParseAPI::Block* block)
     heightVec->push_back(sa.findSP(block, block->start()));
     for (auto iter = insns.begin(); iter != insns.end(); ++iter) {
         Offset off = (*iter).first;
-        InstructionAPI::Instruction::Ptr insn = (*iter).second;
+        InstructionAPI::Instruction insn = (*iter).second;
         StackAnalysis::Height curHeight = sa.findSP(block, off);
         if (curHeight != heightVec->back()) {
             heightVec->push_back(curHeight);
@@ -1292,7 +1292,7 @@ bool StackModChecker::areModificationsSafe()
         block->getInsns(insns);
         for (auto iIter = insns.begin(); iIter != insns.end(); ++iIter) {
             Offset off = (*iIter).first;
-            InstructionAPI::InstructionPtr insn = (*iIter).second; 
+            InstructionAPI::Instruction insn = (*iIter).second;
             Accesses* accesses = func->getAccesses(off);
             for (auto aIter = accesses->begin(); aIter != accesses->end();
                 ++aIter) {
@@ -1317,7 +1317,7 @@ bool StackModChecker::areModificationsSafe()
  *  - removing any part of the accessed range, or 
  *  - moving a portion (but not the whole) accessed range.
  */
-bool StackModChecker::isAccessSafe(InstructionAPI::InstructionPtr insn, StackAccess* access)
+bool StackModChecker::isAccessSafe(InstructionAPI::Instruction insn, StackAccess *access)
 {
     OffsetVector* offVec = func->getOffsetVector();
     TMap* tMap = func->getTMap();

@@ -10,6 +10,8 @@
 #include <boost/multi_index/random_access_index.hpp>
 #include <boost/multi_index/identity.hpp>
 #include <boost/multi_index/ordered_index.hpp>
+#include <boost/thread/lockable_adapter.hpp>
+#include <boost/thread/synchronized_value.hpp>
 
 namespace Dyninst {
     namespace SymtabAPI {

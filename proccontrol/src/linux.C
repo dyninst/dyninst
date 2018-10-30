@@ -414,11 +414,11 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                }
                fprintf(stderr, "Got SIGTRAP at %lx\n", addr);
 	       fprintf(stderr, "X30 : %lx\n", x30_val);
-#endif
 
                Dyninst::MachRegisterVal X0;
                result = thread->plat_getRegister(Dyninst::aarch64::x0 ,X0);
                pthrd_printf("ARM-debug: x0 is 0x%lx/%u\n", X0, X0);
+#endif
             }
             ext = status >> 16;
             if (ext) {

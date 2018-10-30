@@ -219,17 +219,17 @@ BPatch_function *BPatch_point::getCalledFunction()
        parsing_printf("findCallee failed in getCalledFunction- not a call site\n");
            return NULL;
    }
-
    func_instance *_func = point->block()->callee();
+   if (!_func) {
+       parsing_printf("findCallee failed in getCalledFunction\n");
+           return NULL;
+   }
    if (_func->getPowerPreambleFunc() != NULL) {
        func_instance * preambleFunc = _func->getPowerPreambleFunc();
        return addSpace->findOrCreateBPFunc(preambleFunc, NULL);
    }
 
-   if (!_func) {
-       parsing_printf("findCallee failed in getCalledFunction\n");
-           return NULL;
-   }
+
    return addSpace->findOrCreateBPFunc(_func, NULL);
 }
 
@@ -284,15 +284,15 @@ const BPatch_memoryAccess *BPatch_point::getMemoryAccess()
     //      point->addr());
     assert(point);
     // Try to find it... we do so through an InstrucIter
-    Dyninst::InstructionAPI::Instruction::Ptr i = getInsnAtPoint();
-    if (!i) return NULL;
+    Dyninst::InstructionAPI::Instruction i = getInsnAtPoint();
+    if (!i.isValid()) return NULL;
     BPatch_memoryAccessAdapter converter;
 
     attachMemAcc(converter.convert(i, point->insnAddr(), point->proc()->getAddressWidth() == 8));
     return memacc;
 }
 
-InstructionAPI::Instruction::Ptr BPatch_point::getInsnAtPoint()
+InstructionAPI::Instruction BPatch_point::getInsnAtPoint()
 {
     return point->insn();
 }
@@ -462,7 +462,7 @@ void *BPatch_point::monitorCalls( BPatch_function * user_cb )
   // The callback takes two arguments: the first is the (address of the) callee,
   // the second the (address of the) callsite.
 
-  InstructionAPI::Instruction::Ptr insn = point->block()->getInsn(point->block()->last());
+  InstructionAPI::Instruction insn = point->block()->getInsn(point->block()->last());
   pdvector<AstNodePtr> args;
   if (!lladdSpace->getDynamicCallSiteArgs(insn, point->block()->last(), args))
       return NULL;

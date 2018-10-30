@@ -988,7 +988,7 @@ void registerSpace::saveClobberInfo(const instPoint *location)
 // values in the instruction MOV.
 // value here is never a negative value since constant values are saved
 // as void* in the AST operand.
-bool doNotOverflow(int value)
+bool doNotOverflow(int64_t value)
 {
     if ((value >= 0) && (value <= 0xFFFF)) return true;
     else return false;
@@ -1032,12 +1032,12 @@ void emitStorePreviousStackFrameRegister(Address,
 }
 
 using namespace Dyninst::InstructionAPI;
-
-bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction::Ptr i,
-                                          Address addr,
-                                          std::vector <AstNodePtr> &args) {
-    assert(0); //Not implemented
-    return false;
+bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
+					  Address addr,
+					  pdvector<AstNodePtr> &args)
+{
+	assert(0); //Not implemented
+	return false;
 }
 
 bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f) {

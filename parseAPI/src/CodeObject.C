@@ -74,8 +74,7 @@ CodeObject::CodeObject(CodeSource *cs,
     flist(parser->sorted_funcs)
 {
     process_hints(); // if any
-    if (cs->getArch() == Arch_ppc64)
-        parse();
+    parse();
 }
 
 void
@@ -117,35 +116,41 @@ CodeObject::findFuncByEntry(CodeRegion * cr, Address entry)
 int
 CodeObject::findFuncs(CodeRegion * cr, Address addr, set<Function*> & funcs)
 {
+    assert(parser);
     return parser->findFuncs(cr,addr,funcs);
 }
 int
 CodeObject::findFuncs(CodeRegion * cr, Address start, Address end, set<Function*> & funcs)
 {
+    assert(parser);
 	return parser->findFuncs(cr,start,end,funcs);
 }
 
 Block *
 CodeObject::findBlockByEntry(CodeRegion * cr, Address addr)
 {
+    assert(parser);
     return parser->findBlockByEntry(cr, addr);
 }
 
 Block *
 CodeObject::findNextBlock(CodeRegion * cr, Address addr)
 {
+    assert(parser);
     return parser->findNextBlock(cr, addr);
 }
 
 int
 CodeObject::findBlocks(CodeRegion * cr, Address addr, set<Block*> & blocks)
 {
+    assert(parser);
     return parser->findBlocks(cr,addr,blocks);
 }
 
 // find without parsing.
 int CodeObject::findCurrentBlocks(CodeRegion * cr, Address addr, set<Block*> & blocks)
 {
+    assert(parser);
     return parser->findCurrentBlocks(cr,addr,blocks);
 }
 
@@ -203,9 +208,9 @@ void
 CodeObject::add_edge(Block * src, Block * trg, EdgeTypeEnum et)
 {
     if (trg == NULL) {
-        parser->link(src, parser->_sink, et, true);
+        parser->link_block(src, parser->_sink, et, true);
     } else {
-        parser->link(src,trg,et,false);
+        parser->link_block(src,trg,et,false);
     }
 }
 
@@ -236,6 +241,7 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
             // don't add edges that already exist 
             // (this could happen because of shared code)
             bool edgeExists = false;
+            boost::lock_guard<Block> g(*worklist[idx].source);
             const Block::edgelist & existingTs = worklist[idx].source->targets();
             for (Block::edgelist::const_iterator tit = existingTs.begin();
                  tit != existingTs.end();
@@ -258,6 +264,7 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
                         fit != funcs.end();
                         fit++) 
                     {
+                        boost::lock_guard<Block> g(*worklist[idx].source);
                         const Block::edgelist & tedges = worklist[idx].source->targets();
                         for(Block::edgelist::const_iterator eit = tedges.begin();
                             eit != tedges.end();
@@ -289,6 +296,7 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
                 ( bundle, 
                   ParseWorkElem::checked_call_ft,
                   parser->link_tempsink(worklist[idx].source, worklist[idx].edge_type),
+                  worklist[idx].source->last(),
                   worklist[idx].target,
                   true,
                   false ));
@@ -296,6 +304,7 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
                 elem = bundle->add(new ParseWorkElem
                 ( bundle, 
                   parser->link_tempsink(worklist[idx].source, worklist[idx].edge_type),
+                  worklist[idx].source->last(),
                   worklist[idx].target,
                   true,
                   false ));
@@ -403,3 +412,5 @@ Address CodeObject::getFreeAddr() const {
    }
    return hi;
 }
+
+ParseData *CodeObject::parse_data() { return parser->parse_data(); }

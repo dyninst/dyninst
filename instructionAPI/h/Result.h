@@ -424,81 +424,77 @@ namespace Dyninst
 	}
 	else
 	{
-	  std::stringstream ret;
-//	  ret << std::hex << "0x";
-	  ret << std::hex;
+      char hex[20]; 
 	  switch(type)
 	  {
 	  case u8:
-	    // Type promote the characters so that they're treated as integral, not as strings
-	    ret << (long)(val.u8val);
+	    snprintf(hex, 20, "%x", val.u8val);
 	    break;
 	  case s8:
-	    ret << (long)(val.s8val);
+	    snprintf(hex, 20, "%x", val.s8val);
 	    break;
 	  case u16:
-	    ret << val.u16val;
+	    snprintf(hex, 20, "%x", val.u16val);
 	    break;
 	  case s16:
-	    ret << val.s16val;
+	    snprintf(hex, 20, "%x", val.s16val);
 	    break;
 	  case u24:
-	    ret << val.u24val;
+	    snprintf(hex, 20, "%x", val.u24val);
 	    break;
 	  case u32:
-	    ret << val.u32val;
+	    snprintf(hex, 20, "%x", val.u32val);
 	    break;
 	  case s32:
-	    ret << val.s32val;
+	    snprintf(hex, 20, "%x", val.s32val);
 	    break;
 	  case u64:
-	    ret << val.u64val;
+	    snprintf(hex, 20, "%lx", val.u64val);
 	    break;
 	  case s64:
-	    ret << val.s64val;
+	    snprintf(hex, 20, "%lx", val.s64val);
 	    break;
 	  case sp_float:
-	    ret << val.floatval;
+	    snprintf(hex, 20, "%f", val.floatval);
 	    break;
 	  case dp_float:
-	    ret << val.dblval;
+	    snprintf(hex, 20, "%lf", val.dblval);
 	    break;
 	  case bit_flag:
-	    ret << val.bitval;
+	    snprintf(hex, 20, "%x", val.bitval);
 	    break;
 	  case u48:
-	    ret << val.u48val;
+	    snprintf(hex, 20, "%lx", val.s48val);
 	    break;
 	  case s48:
-	    ret << val.s48val;
+	    snprintf(hex, 20, "%lx", val.s48val);
 	    break;
      case m512:
-        ret << val.m512val;
+	    snprintf(hex, 20, "%p", val.m512val);
         break;
      case m14:
-        ret << val.m14val;
+	    snprintf(hex, 20, "%p", val.m14val);
         break;
      case m96:
-        ret << val.m96val;
+	    snprintf(hex, 20, "%p", val.m96val);
         break;
      case dbl128:
-       ret << val.dbl128val;
+	    snprintf(hex, 20, "%p", val.dbl128val);
          break;
      case m192:
-        ret << val.m192val;
+	    snprintf(hex, 20, "%p", val.m192val);
         break;
      case m256:
-        ret << val.m256val;
+	    snprintf(hex, 20, "%p", val.m256val);
         break;
      case m384:
-        ret << val.m384val;
+	    snprintf(hex, 20, "%p", val.m384val);
         break;
 	  default:
-	    ret << "[ERROR: invalid type value!]";
+	    snprintf(hex, 20, "[invalid type]");
 	    break;
 	  };
-      ret << std::dec;
-	  return ret.str();
+	  return std::string(hex);
 	}
       }
 

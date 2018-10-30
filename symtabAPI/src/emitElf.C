@@ -51,7 +51,6 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
 
-extern void setSymtabError(SymtabError new_err);
 
 unsigned int elfHash(const char *name) {
     unsigned int h = 0, g;
@@ -1768,7 +1767,7 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
                         std::string("Failed to link to static library code into the binary: ") +
                         emitElfStatic::printStaticLinkError(err) + std::string(" = ")
                         + errMsg;
-                setSymtabError(Emit_Error);
+		Symtab::setSymtabError(Emit_Error);
                 symtab_log_perror(linkStaticError.c_str());
                 return false;
             }

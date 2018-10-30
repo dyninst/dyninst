@@ -108,7 +108,7 @@ string Module::getCompDir()
 }
 
 
-bool Module::findSymbol(std::vector<Symbol *> &found, 
+bool Module::findSymbol(std::vector<Symbol *> &found,
                         const std::string& name,
                         Symbol::SymbolType sType, 
                         NameType nameType,

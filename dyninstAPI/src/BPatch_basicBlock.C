@@ -391,17 +391,17 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
  *              defined in BPatch_opCode (BPatch_point.h)
  */
 using namespace Dyninst::InstructionAPI;
-bool isLoad(Instruction::Ptr i)
+bool isLoad(Instruction i)
 {
-  return i->readsMemory();
+  return i.readsMemory();
 }
-bool isStore(Instruction::Ptr i)
+bool isStore(Instruction i)
 {
-  return i->writesMemory();
+  return i.writesMemory();
 }
-bool isPrefetch(Instruction::Ptr i)
+bool isPrefetch(Instruction i)
 {
-  return i->getCategory() == c_PrefetchInsn;
+  return i.getCategory() == c_PrefetchInsn;
 }
 
 struct funcPtrPredicate : public insnPredicate
@@ -517,7 +517,7 @@ BPatch_basicBlock::findPointByPredicate(insnPredicate& f)
                                                                         BPatch_locInstruction);
       if(!tmp) {
         fprintf(stderr, "WARNING: failed to create instpoint for load/store/prefetch %s at 0x%lx\n",
-                iter->second->format().c_str(), iter->first);
+                iter->second.format().c_str(), iter->first);
       }
       else {
         ret->push_back(tmp);
@@ -549,7 +549,7 @@ BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPoint(const BPatch_Set<BPat
   return findPointByPredicate(filter);
 }
 
-BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPoint(bool(*filter)(Instruction::Ptr))
+BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPoint(bool(*filter)(Instruction))
 {
 
   funcPtrPredicate filterPtr(filter);
@@ -601,7 +601,7 @@ BPatch_function * BPatch_basicBlock::getCallTarget()
  *
  */
 
-bool BPatch_basicBlock::getInstructions(std::vector<InstructionAPI::Instruction::Ptr>& insns) {
+bool BPatch_basicBlock::getInstructions(std::vector<InstructionAPI::Instruction>& insns) {
   using namespace InstructionAPI;
 
   InstructionDecoder d((const unsigned char*)
@@ -610,7 +610,7 @@ bool BPatch_basicBlock::getInstructions(std::vector<InstructionAPI::Instruction:
                        iblock->llb()->obj()->cs()->getArch());
   do {
     insns.push_back(d.decode());
-  } while (insns.back() && insns.back()->isValid());
+  } while (insns.back().isValid());
 
   // Remove final invalid instruction
   if (!insns.empty()) insns.pop_back();
@@ -618,7 +618,7 @@ bool BPatch_basicBlock::getInstructions(std::vector<InstructionAPI::Instruction:
   return !insns.empty();
 }
 
-bool BPatch_basicBlock::getInstructions(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Address> >& insnInstances) {
+bool BPatch_basicBlock::getInstructions(std::vector<std::pair<InstructionAPI::Instruction, Address> >& insnInstances) {
   using namespace InstructionAPI;
   Address addr = getStartAddress();
   const unsigned char *ptr = (const unsigned char *)iblock->proc()->getPtrToInstruction(addr);
@@ -627,7 +627,7 @@ bool BPatch_basicBlock::getInstructions(std::vector<std::pair<InstructionAPI::In
 
   while (addr < getEndAddress()) {
     insnInstances.push_back(std::make_pair(d.decode(), addr));
-    addr += insnInstances.back().first->size();
+    addr += insnInstances.back().first.size();
   }
 
   return !insnInstances.empty();

@@ -229,7 +229,7 @@ BPatch_Vector<BPatch_field *> *BPatch_type::getComponents() const{
         return NULL;	
     BPatch_Vector<BPatch_field *> *components = new BPatch_Vector<BPatch_field *>();
     if(fieldlisttype) {
-        vector<Field *> *comps = fieldlisttype->getComponents();
+       auto comps = fieldlisttype->getComponents();
     	if(!comps){
          delete components;
          return NULL;
@@ -241,7 +241,7 @@ BPatch_Vector<BPatch_field *> *BPatch_type::getComponents() const{
 
     if (enumtype) 
 	{
-        vector<pair<string, int> > &constants = enumtype->getConstants();
+        auto constants = enumtype->getConstants();
 	    for (unsigned i = 0; i < constants.size(); i++)
 		{
 	        Field *fld = new Field(constants[i].first.c_str(), NULL);
@@ -262,7 +262,7 @@ BPatch_Vector<BPatch_cblock *> *BPatch_type::getCblocks() const
 	if (!commontype)
 		return NULL;
 
-	std::vector<CBlock *> *cblocks = commontype->getCblocks();
+	auto cblocks = commontype->getCblocks();
 
 	if (!cblocks)
 		return NULL;
@@ -612,7 +612,7 @@ void BPatch_cblock::fixupUnknowns(BPatch_module *module) {
 BPatch_Vector<BPatch_field *> *BPatch_cblock::getComponents()
 {
 	BPatch_Vector<BPatch_field *> *components = new BPatch_Vector<BPatch_field *>;
-	std::vector<Field *> *vars = cBlk->getComponents();
+	auto vars = cBlk->getComponents();
 
 	if (!vars)
 		return NULL;
@@ -639,7 +639,7 @@ BPatch_Vector<BPatch_field *> *BPatch_cblock::getComponents()
 
 BPatch_Vector<BPatch_function *> *BPatch_cblock::getFunctions()
 {
-  std::vector<Symbol *> *funcs = cBlk->getFunctions();
+  auto funcs = cBlk->getFunctions();
   if(!funcs)
       return NULL;   
   assert(0);

@@ -42,6 +42,14 @@
 #include "ParserDetails.h"
 #include "debug_parse.h"
 
+#include "race-detector-annotations.h"
+
+#include <boost/thread/locks.hpp>
+#include <boost/thread/lockable_adapter.hpp>
+#include <boost/thread/recursive_mutex.hpp>
+#include <boost/atomic.hpp>
+
+#include "tbb/concurrent_hash_map.h"
 
 using namespace std;
 
@@ -53,7 +61,7 @@ class ParseData;
 
 /** Describes a saved frame during recursive parsing **/
 // Parsing data for a function. 
-class ParseFrame {
+class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
  public:
     enum Status {
         UNPARSED,
@@ -79,6 +87,7 @@ class ParseFrame {
     ParseWorkElem * mkWork(
         ParseWorkBundle * b,
         Edge * e,
+        Address source,
         Address target,
         bool resolvable,
         bool tailcall);
@@ -86,11 +95,16 @@ class ParseFrame {
         ParseWorkBundle * b,
 	Block* block,
         const InsnAdapter::IA_IAPI *ah);
-
+    ParseWorkElem * mkWork(
+        ParseWorkBundle *b,
+        Function* shared_func);
     void pushWork(ParseWorkElem * elem) {
+        boost::lock_guard<ParseFrame> g(*this);
+        parsing_printf("\t pushing work element for block %p, edge %p, target %p\n", elem->cur(), elem->edge(), elem->target());
         worklist.push(elem);
     }
     ParseWorkElem * popWork() {
+        boost::lock_guard<ParseFrame> g(*this);
         ParseWorkElem * ret = NULL;
         if(!worklist.empty()) {
             ret = worklist.top();
@@ -100,6 +114,7 @@ class ParseFrame {
     }
 
     void pushDelayedWork(ParseWorkElem * elem, Function * ct) {
+        boost::lock_guard<ParseFrame> g(*this);
         delayedWork.insert(make_pair(elem, ct));
     }
 
@@ -111,7 +126,8 @@ class ParseFrame {
     // Delayed work elements 
     std::map<ParseWorkElem *, Function *> delayedWork;
 
-    dyn_hash_map<Address, Block*> leadersToBlock;  // block map
+    std::map<Address, Block*> leadersToBlock;
+    //dyn_hash_map<Address, Block*> leadersToBlock;  // block map
     Address curAddr;                           // current insn address
     unsigned num_insns;
     dyn_hash_map<Address, bool> visited;
@@ -123,6 +139,7 @@ class ParseFrame {
     CodeRegion * codereg;
 
     ParseWorkElem * seed; // stored for cleanup
+    std::set<Address> value_driven_jump_tables;
 
     ParseFrame(Function * f,ParseData *pd) :
         curAddr(0),
@@ -133,32 +150,60 @@ class ParseFrame {
         seed(NULL),
         _pd(pd)
     {
-        set_status(UNPARSED);
+	busy.store(false);
     }
 
     ~ParseFrame();
 
-    Status status() const { return _status; }
+    Status status() const {
+      race_detector_fake_lock_acquire(race_detector_fake_lock(_status));
+      Status result = _status.load();
+      race_detector_fake_lock_release(race_detector_fake_lock(_status));
+      return result;
+    }
     void set_status(Status);
+    bool swap_busy(bool value) {
+      return busy.exchange(value);
+    }
+;
  private:
-    Status _status;
+    boost::atomic<Status> _status;
+    boost::atomic<bool> busy;
     ParseData * _pd;
 };
 
-/* per-CodeRegion parsing data */
-class region_data { 
+class edge_parsing_data {
+
  public:
-  // Function lookups
-  Dyninst::IBSTree_fast<FuncExtent> funcsByRange;
-    dyn_hash_map<Address, Function *> funcsByAddr;
+    Block* b;
+    Function *f;       
+    edge_parsing_data(Function *ff, Block *bb) {
+        b = bb;
+	f = ff;
+    }
+    edge_parsing_data() : b(NULL), f(NULL) {}
+};
+
+
+/* per-CodeRegion parsing data */
+class region_data {
+public:
+    // Function lookups
+    Dyninst::IBSTree_fast<FuncExtent> funcsByRange;
+    tbb::concurrent_hash_map<Address, Function *> funcsByAddr;
 
     // Block lookups
-    Dyninst::IBSTree_fast<Block> blocksByRange;
-    dyn_hash_map<Address, Block *> blocksByAddr;
+    Dyninst::IBSTree_fast<Block > blocksByRange;
+    tbb::concurrent_hash_map<Address, Block *> blocksByAddr;
 
     // Parsing internals 
-    dyn_hash_map<Address, ParseFrame *> frame_map;
-    dyn_hash_map<Address, ParseFrame::Status> frame_status;
+    tbb::concurrent_hash_map<Address, ParseFrame *> frame_map;
+    tbb::concurrent_hash_map<Address, ParseFrame::Status> frame_status;
+
+    // Edge parsing records
+    // We only want one thread to create edges for a location
+    typedef tbb::concurrent_hash_map<Address, edge_parsing_data> edge_data_map; 
+    edge_data_map edge_parsing_status;
 
     Function * findFunc(Address entry);
     Block * findBlock(Address entry);
@@ -182,9 +227,121 @@ class region_data {
 
         return std::pair<Address,Block*>(nextBlockAddr,nextBlock);
     }
-    
+    ParseFrame* findFrame(Address addr) const {
+        ParseFrame *result = NULL;
+        race_detector_fake_lock_acquire(race_detector_fake_lock(frame_map));
+	{
+	  tbb::concurrent_hash_map<Address, ParseFrame*>::const_accessor a;
+	  if(frame_map.find(a, addr)) result = a->second;
+	}
+        race_detector_fake_lock_release(race_detector_fake_lock(frame_map));
+        return result;
+    }
+    ParseFrame::Status getFrameStatus(Address addr) {
+        ParseFrame::Status ret;
+        race_detector_fake_lock_acquire(race_detector_fake_lock(frame_status));
+        {
+        tbb::concurrent_hash_map<Address, ParseFrame::Status>::const_accessor a;
+        if(frame_status.find(a, addr)) {
+            ret = a->second;
+        } else {
+            ret = ParseFrame::BAD_LOOKUP;
+        }
+        }
+        race_detector_fake_lock_release(race_detector_fake_lock(frame_status));
+        return ret;
+    }
+
+
+    void setFrameStatus(Address addr, ParseFrame::Status status)
+    {
+        race_detector_fake_lock_acquire(race_detector_fake_lock(frame_status));
+	{
+	  tbb::concurrent_hash_map<Address, ParseFrame::Status>::accessor a;
+	  frame_status.insert(a, make_pair(addr, status));
+      a->second = status;
+	}
+        race_detector_fake_lock_release(race_detector_fake_lock(frame_status));
+    }
+
+    void record_func(Function* f) {
+        race_detector_fake_lock_acquire(race_detector_fake_lock(funcsByAddr));
+	{
+	  tbb::concurrent_hash_map<Address, Function*>::accessor a;
+	  funcsByAddr.insert(a, std::make_pair(f->addr(), f));
+	}
+        race_detector_fake_lock_release(race_detector_fake_lock(funcsByAddr));
+
+    }
+    Block* record_block(Block* b) {
+        Block* ret = NULL;
+        race_detector_fake_lock_acquire(race_detector_fake_lock(blocksByAddr));
+	    {
+            tbb::concurrent_hash_map<Address, Block*>::accessor a;
+            bool inserted = blocksByAddr.insert(a, std::make_pair(b->start(), b));
+            // Inserting failed when another thread has inserted a block with the same starting address
+            if(!inserted) {
+                ret = a->second;
+            } else {
+                ret = b;
+            }
+        }
+        race_detector_fake_lock_release(race_detector_fake_lock(blocksByAddr));
+        return ret;
+    }
+    void insertBlockByRange(Block* b) {
+        blocksByRange.insert(b);
+    }
+    void record_frame(ParseFrame* pf) {
+        race_detector_fake_lock_acquire(race_detector_fake_lock(frame_map));
+	{
+	  tbb::concurrent_hash_map<Address, ParseFrame*>::accessor a;
+	  frame_map.insert(a, make_pair(pf->func->addr(), pf));
+	}
+        race_detector_fake_lock_release(race_detector_fake_lock(frame_map));
+    }
+
 	 // Find functions within [start,end)
 	 int findFuncs(Address start, Address end, set<Function *> & funcs);
+    region_data(CodeObject* obj, CodeRegion* reg) {
+        Block* sink = new Block(obj, reg, numeric_limits<Address>::max());
+        blocksByAddr.insert(make_pair(sink->start(),sink));
+        blocksByRange.insert(sink);
+    }
+
+    edge_data_map* get_edge_data_map() { return &edge_parsing_status; }
+
+    edge_parsing_data set_edge_parsed(Address addr, Function *f, Block *b) {
+        edge_parsing_data ret;
+        race_detector_fake_lock_acquire(race_detector_fake_lock(edge_parsing_status));
+	{
+	  tbb::concurrent_hash_map<Address, edge_parsing_data>::accessor a;
+          // A successful insertion means the thread should 
+          // continue to create edges. We return the passed in Function*
+          // as indication of successful insertion.
+          //
+          // Otherwise, another thread has started creating edges.
+          // The current thread should give up. We return
+          // the function who succeeded.
+          if (!edge_parsing_status.insert(a, addr))
+              ret = a->second;
+	  else {
+              ret.f = f;
+	      ret.b = b;
+	  }
+	}
+        race_detector_fake_lock_release(race_detector_fake_lock(edge_parsing_status));
+        return ret;
+    }
+
+    void getAllBlocks(std::map<Address, Block*> &allBlocks) {
+        // This function should be only called in single-threaded mode,
+        // such as when we are finalizing parsing
+
+        // We convert hash map to an ordered tree
+        for (auto it = blocksByAddr.begin(); it != blocksByAddr.end(); ++it)
+            allBlocks[it->first] = it->second;
+    }
 };
 
 /** region_data inlines **/
@@ -192,20 +349,26 @@ class region_data {
 inline Function *
 region_data::findFunc(Address entry)
 {
-    dyn_hash_map<Address, Function *>::iterator fit;
-    if((fit = funcsByAddr.find(entry)) != funcsByAddr.end())
-        return fit->second;
-    else
-        return NULL;
+    Function *result = NULL;
+    race_detector_fake_lock_acquire(race_detector_fake_lock(funcsByAddr));
+    {
+      tbb::concurrent_hash_map<Address, Function *>::const_accessor a;
+      if(funcsByAddr.find(a, entry)) result = a->second;
+    }
+    race_detector_fake_lock_release(race_detector_fake_lock(funcsByAddr));
+    return result;
 }
 inline Block *
 region_data::findBlock(Address entry)
 {
-    dyn_hash_map<Address, Block *>::iterator bit;
-    if((bit = blocksByAddr.find(entry)) != blocksByAddr.end())
-        return bit->second;
-    else
-        return NULL;
+    Block *result = NULL;
+    race_detector_fake_lock_acquire(race_detector_fake_lock(blocksByAddr));
+    {
+      tbb::concurrent_hash_map<Address, Block *>::const_accessor a;
+      if(blocksByAddr.find(a, entry)) result = a->second;
+    }
+    race_detector_fake_lock_release(race_detector_fake_lock(blocksByAddr));
+    return result;
 }
 inline int
 region_data::findFuncs(Address addr, set<Function *> & funcs)
@@ -240,7 +403,6 @@ inline int
 region_data::findBlocks(Address addr, set<Block *> & blocks)
 {
     int sz = blocks.size();
-
     blocksByRange.find(addr,blocks);
     return blocks.size() - sz;
 }
@@ -248,7 +410,7 @@ region_data::findBlocks(Address addr, set<Block *> & blocks)
 
 /** end region_data **/
 
-class ParseData {
+class ParseData : public boost::lockable_adapter<boost::recursive_mutex>  {
  protected:
     ParseData(Parser *p) : _parser(p) { }
     Parser * _parser;
@@ -262,18 +424,24 @@ class ParseData {
     virtual int findFuncs(CodeRegion *, Address, Address, set<Function*> &) =0;
     virtual int findBlocks(CodeRegion *, Address, set<Block*> &) =0;
     virtual ParseFrame * findFrame(CodeRegion *, Address) = 0;
-    virtual ParseFrame::Status frameStatus(CodeRegion *, Address) = 0;
+    virtual ParseFrame::Status frameStatus(CodeRegion *, Address addr) = 0;
     virtual void setFrameStatus(CodeRegion*,Address,ParseFrame::Status) = 0;
 
+    // Atomically lookup whether there is a frame for a Function object.
+    // If there is no frame for the Function, create a new frame and record it.
+    // Return NULL if a frame already exists;
+    // Return the pointer to the new frame if a new frame is created 
+    virtual ParseFrame* createAndRecordFrame(Function*) = 0;
+
     // creation (if non-existing)
-    virtual Function * get_func(CodeRegion *, Address, FuncSource) =0;
+    virtual Function * createAndRecordFunc(CodeRegion *, Address, FuncSource) =0;
 
     // mapping
     virtual region_data * findRegion(CodeRegion *) =0;
 
     // accounting
     virtual void record_func(Function *) =0;
-    virtual void record_block(CodeRegion *, Block *) =0;
+    virtual Block* record_block(CodeRegion *, Block *) =0;
     virtual void record_frame(ParseFrame *) =0;
 
     // removal
@@ -285,6 +453,10 @@ class ParseData {
     // does the Right Thing(TM) for standard- and overlapping-region 
     // object types
     virtual CodeRegion * reglookup(CodeRegion *cr, Address addr) =0;
+    virtual edge_parsing_data setEdgeParsingStatus(CodeRegion *cr, Address addr, Function *f, Block *b) = 0;
+    virtual void getAllRegionData(std::vector<region_data*>&) = 0;
+    virtual region_data::edge_data_map* get_edge_data_map(CodeRegion*) = 0;
+
 };
 
 /* StandardParseData represents parse data for Parsers that disallow
@@ -306,12 +478,14 @@ class StandardParseData : public ParseData {
     ParseFrame::Status frameStatus(CodeRegion *, Address);
     void setFrameStatus(CodeRegion*,Address,ParseFrame::Status);
 
-    Function * get_func(CodeRegion * cr, Address addr, FuncSource src);
+    virtual ParseFrame* createAndRecordFrame(Function*);
+
+    Function * createAndRecordFunc(CodeRegion * cr, Address addr, FuncSource src);
 
     region_data * findRegion(CodeRegion *cr);
 
     void record_func(Function *f);
-    void record_block(CodeRegion *cr, Block *b);
+    Block* record_block(CodeRegion *cr, Block *b);
     void record_frame(ParseFrame *pf);
 
     void remove_frame(ParseFrame *);
@@ -320,6 +494,10 @@ class StandardParseData : public ParseData {
     void remove_extents(const std::vector<FuncExtent*> &extents);
 
     CodeRegion * reglookup(CodeRegion *cr, Address addr);
+    edge_parsing_data setEdgeParsingStatus(CodeRegion *cr, Address addr, Function *f, Block *b); 
+    void getAllRegionData(std::vector<region_data*>& rds);
+    region_data::edge_data_map* get_edge_data_map(CodeRegion* cr);
+
 };
 
 inline region_data * StandardParseData::findRegion(CodeRegion * /* cr */)
@@ -328,13 +506,25 @@ inline region_data * StandardParseData::findRegion(CodeRegion * /* cr */)
 }
 inline void StandardParseData::record_func(Function *f)
 {
-    _rdata.funcsByAddr[f->addr()] = f;
+    _rdata.record_func(f);
 }
-inline void StandardParseData::record_block(CodeRegion * /* cr */, Block *b)
+inline Block* StandardParseData::record_block(CodeRegion * /* cr */, Block *b)
 {
-    _rdata.blocksByAddr[b->start()] = b;
-    _rdata.blocksByRange.insert(b);
+    return _rdata.record_block(b);
 }
+
+inline edge_parsing_data StandardParseData::setEdgeParsingStatus(CodeRegion *, Address addr, Function *f, Block *b)
+{
+    return _rdata.set_edge_parsed(addr, f, b);
+}
+
+inline void StandardParseData::getAllRegionData(std::vector<region_data*> & rds) {
+    rds.push_back(&_rdata);
+} 
+inline region_data::edge_data_map* StandardParseData::get_edge_data_map(CodeRegion*) {
+    return _rdata.get_edge_data_map();
+}
+
 
 /* OverlappingParseData handles binary code objects like .o files
    where CodeRegions may overlap on the same linear address space */
@@ -356,12 +546,14 @@ class OverlappingParseData : public ParseData {
     ParseFrame::Status frameStatus(CodeRegion *, Address);
     void setFrameStatus(CodeRegion*,Address,ParseFrame::Status);
 
-    Function * get_func(CodeRegion * cr, Address addr, FuncSource src);
+    virtual ParseFrame* createAndRecordFrame(Function*);
+
+    Function * createAndRecordFunc(CodeRegion * cr, Address addr, FuncSource src);
 
     region_data * findRegion(CodeRegion *cr);
 
     void record_func(Function *f);
-    void record_block(CodeRegion *cr, Block *b);
+    Block* record_block(CodeRegion *cr, Block *b);
     void record_frame(ParseFrame *pf);
 
     void remove_frame(ParseFrame *);
@@ -370,6 +562,10 @@ class OverlappingParseData : public ParseData {
     void remove_extents(const std::vector<FuncExtent*> &extents);
 
     CodeRegion * reglookup(CodeRegion *cr, Address addr);
+    edge_parsing_data setEdgeParsingStatus(CodeRegion *cr, Address addr, Function* f, Block *b); 
+    void getAllRegionData(std::vector<region_data*>&);
+    region_data::edge_data_map* get_edge_data_map(CodeRegion* cr);
+
 };
 
 }

@@ -36,6 +36,8 @@
 #include <iomanip>
 #include <sstream>
 
+#include "common/h/race-detector-annotations.h"
+
 #include "common/src/Timer.h"
 #include "common/src/debugOstream.h"
 #include "common/src/serialize.h"
@@ -53,6 +55,7 @@
 #include "debug.h"
 
 #include "symtabAPI/src/Object.h"
+
 
 #if !defined(os_windows)
 #include <dlfcn.h>
@@ -91,19 +94,25 @@ void symtab_log_perror(const char *msg)
 };
 
 
-SymtabError serr;
+static thread_local SymtabError serr;
 
 std::vector<Symtab *> Symtab::allSymtabs;
 
+#define fake_symtab_error_lock race_detector_fake_lock(Symtab::getLastSymtabError)
  
 SymtabError Symtab::getLastSymtabError()
 {
-    return serr;
+  race_detector_fake_lock_acquire(fake_symtab_error_lock);
+  SymtabError last = serr;
+  race_detector_fake_lock_release(fake_symtab_error_lock);
+  return last;
 }
 
-void setSymtabError(SymtabError new_err)
+void Symtab::setSymtabError(SymtabError new_err)
 {
+   race_detector_fake_lock_acquire(fake_symtab_error_lock);
    serr = new_err;
+   race_detector_fake_lock_release(fake_symtab_error_lock);
 }
 
 std::string Symtab::printError(SymtabError serr)
@@ -395,6 +404,7 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
    obj_private(NULL),
    _ref_cnt(1)
 {
+    pfq_rwlock_init(symbols_rwlock);
     init_debug_symtabAPI();
 
 #if defined(os_vxworks)
@@ -437,7 +447,8 @@ SYMTAB_EXPORT Symtab::Symtab() :
    mod_lookup_(NULL),
    obj_private(NULL),
    _ref_cnt(1)
-{
+{  
+    pfq_rwlock_init(symbols_rwlock);
     init_debug_symtabAPI();
     create_printf("%s[%d]: Created symtab via default constructor\n", FILE__, __LINE__);
 }
@@ -1236,7 +1247,8 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
    obj_private(NULL),
    _ref_cnt(1)
 {
-    init_debug_symtabAPI();
+   pfq_rwlock_init(symbols_rwlock);
+   init_debug_symtabAPI();
    // Initialize error parameter
    err = false;
    
@@ -1312,6 +1324,7 @@ Symtab::Symtab(unsigned char *mem_image, size_t image_size,
    obj_private(NULL),
    _ref_cnt(1)
 {
+   pfq_rwlock_init(symbols_rwlock);
    // Initialize error parameter
    err = false;
   
@@ -1401,7 +1414,7 @@ bool Symtab::extractInfo(Object *linkedFile)
            if( object_type_ != obj_RelocatableFile ||
                linkedFile->code_ptr() == 0)
            {
-                serr = Obj_Parsing;
+	        setSymtabError(Obj_Parsing);
                 return false;
            }
        }
@@ -1507,13 +1520,13 @@ bool Symtab::extractInfo(Object *linkedFile)
 
     if (!extractSymbolsFromFile(linkedFile, raw_syms)) 
     {
-        serr = Syms_To_Functions;
+        setSymtabError(Syms_To_Functions);
         return false;
     }
 
     if (!fixSymModules(raw_syms)) 
     {
-        serr = Syms_To_Functions;
+        setSymtabError(Syms_To_Functions);
         return false;
     }
 	Object *obj = getObject();
@@ -1537,14 +1550,14 @@ bool Symtab::extractInfo(Object *linkedFile)
 	
     if (!createIndices(raw_syms, false))
     {
-        serr = Syms_To_Functions;
+        setSymtabError(Syms_To_Functions);
         return false;
     }
 
 
     if (!createAggregates()) 
     {
-        serr = Syms_To_Functions;
+        setSymtabError(Syms_To_Functions);
         return false;
     }
 	
@@ -1604,6 +1617,7 @@ Symtab::Symtab(const Symtab& obj) :
    obj_private(NULL),
    _ref_cnt(1)
 {
+   pfq_rwlock_init(symbols_rwlock);
     create_printf("%s[%d]: Creating symtab 0x%p from symtab 0x%p\n", FILE__, __LINE__, this, &obj);
 
    unsigned i;

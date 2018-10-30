@@ -53,8 +53,8 @@ using namespace NS_aarch64;
 bool CFWidget::generateIndirect(CodeBuffer &buffer,
                                 Register,
                                 const RelocBlock *trace,
-                                Instruction::Ptr insn) {
-    NS_aarch64::instruction mod_insn(insn->ptr());
+                                Instruction insn) {
+    NS_aarch64::instruction mod_insn(insn.ptr());
     //set bit 21 to 0 (bit 21 in the unconditional branch (register) category of instructions indicates whether or not the branch is a call)
     mod_insn.setBits(21, 1, 0);
 
@@ -68,10 +68,10 @@ bool CFWidget::generateIndirect(CodeBuffer &buffer,
 
 bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
                                     Register /*reg*/,
-                                    Instruction::Ptr insn,
+                                    Instruction insn,
                                     const RelocBlock *trace,
                                     Address /*origAddr*/) {
-    NS_aarch64::instruction mod_insn(insn->ptr());
+    NS_aarch64::instruction mod_insn(insn.ptr());
     //set bit 21 to 1 (bit 21 in the unconditional branch (register) category of instructions indicates whether or not the branch is a call)
     mod_insn.setBits(21, 1, 1);
 
@@ -96,7 +96,7 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
     relocation_cerr << "\t\t CFPatch::apply, type " << type << ", origAddr " << hex << origAddr_
                     << ", and label " << dec << targetLabel << endl;
 
-    if (orig_insn) {
+    if (orig_insn.isValid()) {
         relocation_cerr << "\t\t\t Currently at " << hex << gen.currAddr() << " and targeting predicted "
                         << buf->predictedAddr(targetLabel) << dec << endl;
         switch (type) {

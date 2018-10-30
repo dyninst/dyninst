@@ -47,7 +47,7 @@ namespace Dyninst {
                 InstructionDecoder_power(Architecture a);
                 virtual ~InstructionDecoder_power();
                 virtual void decodeOpcode(InstructionDecoder::buffer& b);
-                virtual Instruction::Ptr decode(InstructionDecoder::buffer& b);
+                virtual Instruction decode(InstructionDecoder::buffer& b);
 		virtual void setMode(bool) 
 		{
 		}
@@ -165,13 +165,39 @@ namespace Dyninst {
                 void syscall();
                 void setFPMode();
                 void L() {}; // non-templated version for some zero fields
+                void XT();
+                void XS();
+                void XA();
+                void XB();
+                void VRT();
+                void VRA();
+                void VRB();
+                void VRC();
+                void UIM();
+                void SIM();
+                void DCMX();
+                void VRS();
+                void RO();
+                void R();
+                void RMC();
+                void EX();
+                void SHB();
+                void SIX();
+                void PS();
+                void CY();
+
+
+
                 const power_entry& extended_op_0();
                 const power_entry& extended_op_4();
                 const power_entry& extended_op_19();
                 const power_entry& extended_op_30();
                 const power_entry& extended_op_31();
+                const power_entry& extended_op_57();
                 const power_entry& extended_op_58();
                 const power_entry& extended_op_59();
+                const power_entry& extended_op_60();
+                const power_entry& extended_op_61();
                 const power_entry& extended_op_63();
                 template <int start, int end>
                 int field(unsigned int raw) {

@@ -102,6 +102,7 @@ const bitArray& LivenessAnalyzer::getLivenessOut(Block *block, bitArray &allRegs
 	
 
     // OUT(X) = UNION(IN(Y)) for all successors Y of X
+    boost::lock_guard<Block> g(*block);
     const Block::edgelist & target_edges = block -> targets();
 
     liveness_cerr << "getLivenessOut for block [" << hex << block->start() << "," << block->end() << "]" << dec << endl;
@@ -139,11 +140,11 @@ void LivenessAnalyzer::summarizeBlockLivenessInfo(Function* func, Block *block, 
                        reinterpret_cast<const unsigned char*>(getPtrToInstruction(block, block->start())),		     
                        block->size(),
                        block->obj()->cs()->getArch());
-   Instruction::Ptr curInsn = decoder.decode();
-   while(curInsn) {
+   Instruction curInsn = decoder.decode();
+   while(curInsn.isValid()) {
      ReadWriteInfo curInsnRW;
      liveness_printf("%s[%d] After instruction %s at address 0x%lx:\n",
-                     FILE__, __LINE__, curInsn->format().c_str(), current);
+                     FILE__, __LINE__, curInsn.format().c_str(), current);
      if(!cachedLivenessInfo.getLivenessInfo(current, func, curInsnRW))
      {
        curInsnRW = calcRWSets(curInsn, block, current);
@@ -164,7 +165,7 @@ void LivenessAnalyzer::summarizeBlockLivenessInfo(Function* func, Block *block, 
      liveness_cerr << "Used    " << data.use << endl;
      liveness_cerr << "Defined " << data.def << endl;
 
-      current += curInsn->size();
+      current += curInsn.size();
       curInsn = decoder.decode();
    }
 
@@ -260,8 +261,6 @@ void LivenessAnalyzer::analyze(Function *func) {
 // asked for it, we take its existence to indicate that they'll
 // also be instrumenting. 
 bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
-
-   df_init_debug();
 //TODO: consider the trustness of the location 
 
    if (!loc.isValid()){
@@ -371,7 +370,7 @@ bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
      ReadWriteInfo rw;
      if(!cachedLivenessInfo.getLivenessInfo(curInsnAddr, loc.func, rw))
      {
-        Instruction::Ptr tmp = decoder.decode(insnBuffer);
+        Instruction tmp = decoder.decode(insnBuffer);
         rw = calcRWSets(tmp, loc.block, curInsnAddr);
         cachedLivenessInfo.insertInstructionInfo(curInsnAddr, rw, loc.func);
      }
@@ -426,17 +425,17 @@ bool LivenessAnalyzer::query(Location loc, Type type, const MachRegister& machRe
 }
 
 
-ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction::Ptr curInsn, Block* blk, Address a)
+ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction curInsn, Block *blk, Address a)
 {
 
-  liveness_cerr << "calcRWSets for " << curInsn->format() << " @ " << hex << a << dec << endl;
+  liveness_cerr << "calcRWSets for " << curInsn.format() << " @ " << hex << a << dec << endl;
   ReadWriteInfo ret;
   ret.read = abi->getBitArray();
   ret.written = abi->getBitArray();
-  ret.insnSize = curInsn->size();
+  ret.insnSize = curInsn.size();
   std::set<RegisterAST::Ptr> cur_read, cur_written;
-  curInsn->getReadSet(cur_read);
-  curInsn->getWriteSet(cur_written);
+  curInsn.getReadSet(cur_read);
+  curInsn.getWriteSet(cur_written);
     liveness_printf("Read registers: \n");
   
   for (std::set<RegisterAST::Ptr>::const_iterator i = cur_read.begin(); 
@@ -520,7 +519,7 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction::Ptr curInsn, Block* blk,
       }
     }
   }
-  InsnCategory category = curInsn->getCategory();
+  InsnCategory category = curInsn.getCategory();
   switch(category)
   {
   case c_CallInsn:
@@ -537,7 +536,7 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction::Ptr curInsn, Block* blk,
     // Nothing written implicitly by a return
     break;
   case c_BranchInsn:
-    if(!curInsn->allowsFallThrough() && isExitBlock(blk))
+    if(!curInsn.allowsFallThrough() && isExitBlock(blk))
     {
       //Tail call, union of call and return
       ret.read |= ((abi->getCallReadRegisters()) |
@@ -551,21 +550,21 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction::Ptr curInsn, Block* blk,
       bool isSyscall = false;
 
 
-      if ((curInsn->getOperation().getID() == e_int) ||
-	  (curInsn->getOperation().getID() == e_int3)) {
+      if ((curInsn.getOperation().getID() == e_int) ||
+	  (curInsn.getOperation().getID() == e_int3)) {
 	isInterrupt = true;
       }
       static RegisterAST::Ptr gs(new RegisterAST(x86::gs));
-      if (((curInsn->getOperation().getID() == e_call) &&
+      if (((curInsn.getOperation().getID() == e_call) &&
 	   /*(curInsn()->getOperation().isRead(gs))) ||*/
-	   (curInsn->getOperand(0).format(curInsn->getFormatter(), curInsn->getArch()) == "16")) ||
-	  (curInsn->getOperation().getID() == e_syscall) || 
-	  (curInsn->getOperation().getID() == e_int) || 
-	  (curInsn->getOperation().getID() == power_op_sc)) {
+	   (curInsn.getOperand(0).format(curInsn.getArch()) == "16")) ||
+	  (curInsn.getOperation().getID() == e_syscall) ||
+	  (curInsn.getOperation().getID() == e_int) ||
+	  (curInsn.getOperation().getID() == power_op_sc)) {
 	isSyscall = true;
       }
 
-      if (curInsn->getOperation().getID() == power_op_svcs) {
+      if (curInsn.getOperation().getID() == power_op_svcs) {
 	isSyscall = true;
       }
       if (isInterrupt || isSyscall) {
@@ -581,11 +580,12 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction::Ptr curInsn, Block* blk,
 void *LivenessAnalyzer::getPtrToInstruction(Block *block, Address addr) const{
 
 	if (addr < block->start()) return NULL;
-	if (addr >= block->end()) return NULL;
+	if (addr > block->end()) return NULL;
 	return block->region()->getPtrToInstruction(addr);
 }
 bool LivenessAnalyzer::isExitBlock(Block *block)
 {
+    boost::lock_guard<Block> g(*block);
     const Block::edgelist & trgs = block->targets();
 
     bool interprocEdge = false;

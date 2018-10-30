@@ -97,10 +97,10 @@ bool isDebugType(StackAccess::StackAccessType t)
             t==StackAccess::DEBUGINFO_PARAM);
 }
 
-int getAccessSize(InstructionAPI::Instruction::Ptr insn)
+int getAccessSize(InstructionAPI::Instruction insn)
 {
     std::vector<InstructionAPI::Operand> operands;
-    insn->getOperands(operands);
+    insn.getOperands(operands);
     int accessSize = 0;
     for (unsigned i = 0; i < operands.size(); i++) {
         InstructionAPI::Expression::Ptr value = operands[i].getValue();
@@ -241,28 +241,28 @@ bool defsSameHeights(const StackAnalysis::DefHeightSet &dhSet) {
 }
 
 
-bool getAccesses(ParseAPI::Function* func,
-        ParseAPI::Block* block,
-        Address addr,
-        InstructionAPI::Instruction::Ptr insn,
-        Accesses* accesses,
-        std::set<Address> &defPointsToMod,
-        bool analyzeDefinition)
+bool getAccesses(ParseAPI::Function *func,
+                 ParseAPI::Block *block,
+                 Address addr,
+                 InstructionAPI::Instruction insn,
+                 Accesses *accesses,
+                 std::set<Address> &defPointsToMod,
+                 bool analyzeDefinition)
 {
     stackmods_printf("\t\t getAccesses %s, 0x%lx @ 0x%lx: %s\n",
-        func->name().c_str(), block->start(), addr, insn->format().c_str());
+        func->name().c_str(), block->start(), addr, insn.format().c_str());
 
-    Architecture arch = insn->getArch();
+    Architecture arch = insn.getArch();
     std::set<InstructionAPI::RegisterAST::Ptr> readRegs;
-    insn->getReadSet(readRegs);
+    insn.getReadSet(readRegs);
     StackAnalysis sa(func);
     std::vector<std::pair<Absloc, StackAnalysis::Height> > heights;
     std::vector<std::pair<Absloc, StackAnalysis::DefHeightSet> > defHeights;
     sa.findDefinedHeights(block, addr, heights);
     sa.findDefHeightPairs(block, addr, defHeights);
 
-    if (insn->getOperation().getID() == e_ret_far ||
-        insn->getOperation().getID() == e_ret_near) {
+    if (insn.getOperation().getID() == e_ret_far ||
+        insn.getOperation().getID() == e_ret_near) {
         return true;
     }
 
@@ -282,7 +282,7 @@ bool getAccesses(ParseAPI::Function* func,
     // If this instruction is a call, check if any stack pointers are possibly
     // being passed as parameters.  If so, we don't know what the callee will
     // access through that pointer and need to return false.
-    if (insn->getCategory() == InstructionAPI::c_CallInsn) {
+    if (insn.getCategory() == InstructionAPI::c_CallInsn) {
         // Check parameter registers for stack pointers
         ABI *abi = ABI::getABI(word_size);
         const bitArray &callParamRegs = abi->getParameterRegisters();
@@ -448,9 +448,9 @@ bool getAccesses(ParseAPI::Function* func,
     // Since StackAnalysis tops loads from unresolved locations, we have to
     // fail if we write out stack heights to unresolved locations. We also fail
     // if an accessed location has a stack height base and an unknown offset.
-    if (insn->writesMemory()) {
+    if (insn.writesMemory()) {
         std::set<InstructionAPI::Expression::Ptr> writeOperands;
-        insn->getMemoryWriteOperands(writeOperands);
+        insn.getMemoryWriteOperands(writeOperands);
         assert(writeOperands.size() == 1);
 
         detectToppedLoc dtl(defHeights);
@@ -478,9 +478,9 @@ bool getAccesses(ParseAPI::Function* func,
                 "location\n");
             return false;
         }
-    } else if (insn->readsMemory()) {
+    } else if (insn.readsMemory()) {
         std::set<InstructionAPI::Expression::Ptr> readOperands;
-        insn->getMemoryReadOperands(readOperands);
+        insn.getMemoryReadOperands(readOperands);
         for (auto rIter = readOperands.begin(); rIter != readOperands.end();
             rIter++) {
             detectToppedLoc dtl(defHeights);
@@ -511,7 +511,7 @@ using namespace InstructionAPI;
 class zeroAllGPRegisters : public InstructionAPI::Visitor
 {
     public:
-        zeroAllGPRegisters(Address ip, ParseAPI::Function* f, ParseAPI::Block* b, InstructionAPI::Instruction::Ptr i, bool z = false) :
+        zeroAllGPRegisters(Address ip, ParseAPI::Function* f, ParseAPI::Block* b, InstructionAPI::Instruction i, bool z = false) :
             defined(true), m_ip(ip), func(f), block(b), insn(i), zero(z) {
                 if (func) {
                     StackAnalysis tmp(func);
@@ -525,7 +525,7 @@ class zeroAllGPRegisters : public InstructionAPI::Visitor
         Address m_ip;
         ParseAPI::Function* func;
         ParseAPI::Block* block;
-        InstructionAPI::Instruction::Ptr insn;
+        InstructionAPI::Instruction insn;
         StackAnalysis sa;
         bool zero;
         long getResult() {
@@ -593,25 +593,25 @@ class zeroAllGPRegisters : public InstructionAPI::Visitor
 
 };
 
-bool getMemoryOffset(ParseAPI::Function* func,
-        ParseAPI::Block* block,
-        InstructionAPI::InstructionPtr insn,
-        Address addr,
-        const MachRegister &reg,
-        const StackAnalysis::Height &height,
-        const StackAnalysis::Definition &def,
-        StackAccess*& ret,
-        Architecture arch,
-        bool analyzeDefinition)
+bool getMemoryOffset(ParseAPI::Function *func,
+                     ParseAPI::Block *block,
+                     Instruction insn,
+                     Address addr,
+                     const MachRegister &reg,
+                     const StackAnalysis::Height &height,
+                     const StackAnalysis::Definition &def,
+                     StackAccess *&ret,
+                     Architecture arch,
+                     bool analyzeDefinition)
 {
     stackmods_printf("\t\t\t getMemoryOffset for %s; checking reg %s = %s\n",
-        insn->format().c_str(), reg.name().c_str(), height.format().c_str());
+        insn.format().c_str(), reg.name().c_str(), height.format().c_str());
 
     InstructionAPI::RegisterAST* regAST = new InstructionAPI::RegisterAST(reg);
     InstructionAPI::RegisterAST::Ptr regASTPtr = InstructionAPI::RegisterAST::Ptr(regAST);
 
     std::vector<InstructionAPI::Operand> operands;
-    insn->getOperands(operands);
+    insn.getOperands(operands);
 
     signed long disp = 0;  // Stack height of access
     signed long offset = 0;  // Offset from the base register used in the access
@@ -621,11 +621,11 @@ bool getMemoryOffset(ParseAPI::Function* func,
     StackAccess::StackAccessType type = StackAccess::UNKNOWN;
     if (analyzeDefinition) {
         type = StackAccess::DEFINITION;
-    } else if (insn->readsMemory() && insn->writesMemory()) {
+    } else if (insn.readsMemory() && insn.writesMemory()) {
         type = StackAccess::READWRITE;
-    } else if (insn->readsMemory()) {
+    } else if (insn.readsMemory()) {
         type = StackAccess::READ;
-    } else if (insn->writesMemory()) {
+    } else if (insn.writesMemory()) {
         type = StackAccess::WRITE;
     }
 
@@ -636,7 +636,7 @@ bool getMemoryOffset(ParseAPI::Function* func,
 
     for (unsigned i = 0; i < operands.size(); i++) {
         stackmods_printf("\t\t\t\t operand[%d] = %s\n", i,
-            operands[i].getValue()->format(insn->getFormatter()).c_str());
+            operands[i].getValue()->format(insn.getArch()).c_str());
 
         // Set match if reg is read or written
         bool match = false;
@@ -675,7 +675,7 @@ bool getMemoryOffset(ParseAPI::Function* func,
             // Won't find an offset for a registerAST.  However, we do want to
             // record a push (e.g., callee-saved registers).
             if (dynamic_cast<InstructionAPI::RegisterAST*>(val.get()) &&
-                insn->getOperation().getID() != e_push) {
+                insn.getOperation().getID() != e_push) {
                 continue;
             }
 
@@ -744,7 +744,7 @@ bool getMemoryOffset(ParseAPI::Function* func,
         // Stackanalysis is reporting the heights at the start of the
         // instruction, not the end; for push, we want to record the final
         // state, which is where the value is actually stored
-        if (insn->getOperation().getID() == e_push) {
+        if (insn.getOperation().getID() == e_push) {
             long width;
             if (arch == Arch_x86) width = 4;
             else width = 8;

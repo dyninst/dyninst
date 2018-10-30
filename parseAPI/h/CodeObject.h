@@ -159,6 +159,7 @@ class CodeObject {
      * Hacky "for insertion" method
      */
     PARSER_EXPORT Address getFreeAddr() const;
+    ParseData* parse_data();
 
  private:
     void process_hints();

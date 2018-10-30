@@ -108,7 +108,7 @@ endif()
 
 
 dyninst_library(stackwalk ${DEPS})
-#target_link_private_libraries(stackwalk ${Boost_LIBRARIES} -lboost_filesystem)
+target_link_private_libraries(stackwalk ${Boost_LIBRARIES})
 if (USE_COTIRE)
     cotire(stackwalk)
 endif()

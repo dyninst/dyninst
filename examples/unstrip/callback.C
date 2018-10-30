@@ -56,7 +56,7 @@ void InstrCallback::instruction_cb(ParseAPI::Function * f,
         Address addr,
         insn_details* insnDetails)
 {
-    InstructionAPI::Instruction::Ptr insn = insnDetails->insn->getInstruction();
+    InstructionAPI::Instruction insn = insnDetails->insn->getInstruction();
 
     /* If we haven't found the syscallTrampStore yet, 
      * check if this is an indirect call through it */

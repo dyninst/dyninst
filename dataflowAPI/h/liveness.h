@@ -64,7 +64,7 @@ class DATAFLOW_EXPORT LivenessAnalyzer{
 	void summarizeBlockLivenessInfo(ParseAPI::Function* func, ParseAPI::Block *block, bitArray &allRegsDefined);
 	bool updateBlockLivenessInfo(ParseAPI::Block *block, bitArray &allRegsDefined);
 	
-	ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, ParseAPI::Block* blk, Address a);
+	ReadWriteInfo calcRWSets(Instruction curInsn, ParseAPI::Block *blk, Address a);
 
 	void* getPtrToInstruction(ParseAPI::Block *block, Address addr) const;	
 	bool isExitBlock(ParseAPI::Block *block);

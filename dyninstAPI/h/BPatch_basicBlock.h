@@ -89,7 +89,7 @@ struct comparison <BPatch_basicBlock *> {
  */
 class BPatch_flowGraph;
 
-struct BPATCH_DLL_EXPORT insnPredicate : public std::unary_function<Dyninst::InstructionAPI::Instruction::Ptr, bool>
+struct BPATCH_DLL_EXPORT insnPredicate : public std::unary_function<Dyninst::InstructionAPI::Instruction, bool>
 {
   virtual result_type operator()(argument_type arg) = 0;
   virtual ~insnPredicate() {}
@@ -286,15 +286,15 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock {
   BPatch_Vector<BPatch_point*> * findPoint(const BPatch_Set<BPatch_opCode>& ops);
   BPatch_Vector<BPatch_point*> * findPoint(const std::set<BPatch_opCode>& ops);
 
-  BPatch_Vector<BPatch_point*> * findPoint(bool(*filter)(Dyninst::InstructionAPI::Instruction::Ptr));
+  BPatch_Vector<BPatch_point*> * findPoint(bool(*filter)(Dyninst::InstructionAPI::Instruction));
    
   BPatch_point *  findPoint(Dyninst::Address addr);
 
   /** BPatch_basicBlock::getInstructions   */
   /** return the instructions that belong to the block */
 
-  bool  getInstructions(std::vector<Dyninst::InstructionAPI::Instruction::Ptr>& insns);
-  bool  getInstructions(std::vector<std::pair<Dyninst::InstructionAPI::Instruction::Ptr, Dyninst::Address> >& insnInstances);
+  bool  getInstructions(std::vector<Dyninst::InstructionAPI::Instruction>& insns);
+  bool  getInstructions(std::vector<std::pair<Dyninst::InstructionAPI::Instruction, Dyninst::Address> >& insnInstances);
 
 
   /** BPatch_basicBlock::getIncomingEdges   */

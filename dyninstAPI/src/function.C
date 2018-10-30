@@ -606,7 +606,7 @@ bool func_instance::getBlocks(const Address addr, set<block_instance*> &blks) {
    if (objblks.size() > 1) { 
       // only add blocks that have an instruction at "addr"
       for (set<block_instance*>::iterator bit = objblks.begin(); bit != objblks.end(); bit++) {
-         if ((*bit)->getInsn(addr)) {
+         if ((*bit)->getInsn(addr).isValid()) {
             blks.insert(*bit);
          }
       }
@@ -623,7 +623,7 @@ block_instance *func_instance::getBlock(const Address addr) {
    std::set<block_instance *> blks;
    getBlocks(addr, blks);
    for (std::set<block_instance *>::iterator iter = blks.begin(); iter != blks.end(); ++iter) {
-      if ((*iter)->getInsn(addr)) return *iter;
+      if ((*iter)->getInsn(addr).isValid()) return *iter;
    }
    return NULL;
 }
@@ -773,19 +773,19 @@ instPoint *func_instance::blockExitPoint(block_instance* b, bool create) {
    return p;
 }
 
-instPoint *func_instance::preInsnPoint(block_instance* b, Address a,
-                                       InstructionAPI::Instruction::Ptr ptr,
+instPoint *func_instance::preInsnPoint(block_instance *b, Address a,
+                                       InstructionAPI::Instruction insn,
                                        bool trusted, bool create) {
-   Location loc = Location::InstructionInstance(this, b, a, ptr, trusted);
+   Location loc = Location::InstructionInstance(this, b, a, insn, trusted);
 
    instPoint *p = IPCONV(proc()->mgr()->findPoint(loc, Point::PreInsn, create));
    return p;
 }
 
-instPoint *func_instance::postInsnPoint(block_instance* b, Address a,
-                                        InstructionAPI::Instruction::Ptr ptr,
+instPoint *func_instance::postInsnPoint(block_instance *b, Address a,
+                                        InstructionAPI::Instruction insn,
                                         bool trusted, bool create) {
-   Location loc = Location::InstructionInstance(this, b, a, ptr, trusted);
+   Location loc = Location::InstructionInstance(this, b, a, insn, trusted);
 
    instPoint *p = IPCONV(proc()->mgr()->findPoint(loc, Point::PostInsn, create));
    return p;
@@ -999,7 +999,7 @@ bool func_instance::createOffsetVector()
 
         for (auto insnIter = insns.begin(); insnIter != insns.end(); ++insnIter) {
             Address addr = (*insnIter).first;
-            InstructionAPI::Instruction::Ptr insn = (*insnIter).second;
+            InstructionAPI::Instruction insn = (*insnIter).second;
             if (!createOffsetVector_Analysis(func, block, insn, addr)) {
                 ret = false;
                 break;
@@ -1017,7 +1017,7 @@ bool func_instance::createOffsetVector()
 
         // Get the appropriate block and instruction for the definition
         ParseAPI::Block *defBlock = NULL;
-        InstructionAPI::Instruction::Ptr defInsn;
+        InstructionAPI::Instruction defInsn;
         for (auto blockIter = blocks.begin(); blockIter != blocks.end();
             blockIter++) {
             ParseAPI::Block *block = *blockIter;
@@ -1346,14 +1346,14 @@ bool func_instance::createOffsetVector_Symbols()
 }
 
 
-bool func_instance::createOffsetVector_Analysis(ParseAPI::Function* func,
-        ParseAPI::Block* block,
-        InstructionAPI::Instruction::Ptr insn,
-        Address addr)
+bool func_instance::createOffsetVector_Analysis(ParseAPI::Function *func,
+                                                ParseAPI::Block *block,
+                                                InstructionAPI::Instruction insn,
+                                                Address addr)
 {
     bool ret = true;
 
-    stackmods_printf("\t Processing %lx: %s\n", addr, insn->format().c_str());
+    stackmods_printf("\t Processing %lx: %s\n", addr, insn.format().c_str());
 
     int accessSize = getAccessSize(insn);
     Accesses* accesses = new Accesses();
