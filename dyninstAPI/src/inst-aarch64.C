@@ -981,7 +981,6 @@ void registerSpace::saveClobberInfo(const instPoint *location)
 }
 #endif
 
-
 // This is used for checking wether immediate value should be encoded
 // into a instruction. In fact, only being used for loading constant
 // value into a register, and in ARMv8 there are 16 bits for immediate
@@ -993,6 +992,7 @@ bool doNotOverflow(int value)
     if ((value >= 0) && (value <= 0xFFFF)) return true;
     else return false;
 }
+
 
 #if !defined(os_vxworks)
 
