@@ -74,6 +74,7 @@ int Dyninst::ParseAPI::parsing_printf_int(const char *format, ...)
     va_list va;
     va_start(va,format);
     int ret = vfprintf(log_file, format, va);
+    fflush(log_file);
     va_end(va);
 
     return ret;

@@ -500,6 +500,7 @@ void Function::set_retstatus(FuncReturnStatus rs)
     // But on powerpc, the function contains a BLR instruction,
     // looking like a return instruction, but actually is not.
     if (obj()->cs()->nonReturning(_name) && rs != NORETURN) return;
+    parsing_printf("Set function %s at %lx ret status from %d to %d\n", _name.c_str(), addr(), _rs.load(), rs);
     assert(!(_rs == RETURN && rs == NORETURN)); 
     assert(!(_rs == NORETURN && rs == RETURN)); 
 

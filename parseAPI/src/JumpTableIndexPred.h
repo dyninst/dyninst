@@ -44,6 +44,7 @@ public:
 			       unknownInstruction = false;
 			       findBound = false;
 		      }
+    virtual bool ignoreEdge(ParseAPI::Edge *e);
 };
 
 

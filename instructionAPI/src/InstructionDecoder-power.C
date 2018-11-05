@@ -829,7 +829,12 @@ using namespace boost::assign;
     }
     const power_entry& InstructionDecoder_power::extended_op_30()
     {
-        const power_table::const_iterator entry_it = power_entry::extended_op_30.find(field<27, 29>(insn));
+	
+        power_table::const_iterator entry_it;
+	if (field<27,27>(insn) == 0)
+	   entry_it = power_entry::extended_op_30.find(field<27, 29>(insn));
+	else
+	   entry_it = power_entry::extended_op_30.find(field<27, 30>(insn));
         if (entry_it == power_entry::extended_op_30.end())
             return invalid_entry;
         return entry_it->second;

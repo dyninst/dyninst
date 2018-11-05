@@ -3098,8 +3098,10 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             }
 
             insn_in_progress->arch_decoded_from = Arch_aarch64;
-            insn_in_progress->m_InsnOp.isVectorInsn =
+	    if (insn_table_entry->operands.begin() != insn_table_entry->operands.end()) {
+                insn_in_progress->m_InsnOp.isVectorInsn =
                     (*(insn_table_entry->operands.begin()) == &InstructionDecoder_aarch64::setSIMDMode);
+	    }
             return;
         }
     };

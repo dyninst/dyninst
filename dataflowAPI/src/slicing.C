@@ -704,6 +704,10 @@ void Slicer::handlePredecessorEdge(ParseAPI::Edge* e,
 				   SliceFrame& nf)
 {
   visitedEdges.insert(e);
+  if (p.ignoreEdge(e)) {
+      slicing_printf("ignore edge from %lx to %lx, type %d according to predicate\n", e->src()->last(), e->trg()->start(), e->type()); 
+      return ;
+  }
   switch(e->type()) 
   {
   case CALL:
