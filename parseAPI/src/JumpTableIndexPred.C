@@ -262,6 +262,7 @@ bool JumpTableIndexPred::FillInOutEdges(StridedInterval &target,
 bool JumpTableIndexPred::IsIndexBounded(GraphPtr slice,
                                        BoundFactsCalculator &bfc,
                                        StridedInterval &target) {
+    findBound = false;
     NodeIterator exitBegin, exitEnd, srcBegin, srcEnd;
     slice->exitNodes(exitBegin, exitEnd);
     if (exitBegin == exitEnd) {
@@ -328,3 +329,8 @@ bool JumpTableIndexPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Pt
     return true;
 }
 
+bool JumpTableIndexPred::ignoreEdge(ParseAPI::Edge *e) {
+    // Assume that jump tables are independent
+    if (e->type() == INDIRECT) return true;
+    return false;
+}

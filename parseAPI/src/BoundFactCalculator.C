@@ -180,7 +180,7 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 	    }
 	}
 
-	if (!HasIncomingEdgesFromLowerLevel(curOrder, curNodes)) {
+	if (!HasIncomingEdgesFromLowerLevel(curOrder, curNodes) && !curNodes.empty()) {
 	    // If this SCC is an entry SCC,
 	    // we choose a node inside the SCC
 	    // and let it be top.
@@ -478,15 +478,15 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
  * In addition, overapproximation of the bound can lead to bogus control flow
  * that causes overlapping blocks or function.
  * It is important to further anaylze the operand in bsf rather than directly conclude the bound
+ */
     if (id == e_bsf || id == e_bsr) {
-	int size = node->assign()->insn()->getOperand(0).getValue()->size();
+	int size = node->assign()->insn().getOperand(0).getValue()->size();
 	newFact->GenFact(outAST, new StridedInterval(StridedInterval(1,0, size * 8 - 1)), false);
         parsing_printf("\t\t\tCalculating transfer function: Output facts\n");
 	newFact->Print();
 	return;
 
     }
-*/
     if (id == e_xchg) {
         newFact->SwapFact(calculation, outAST);
         parsing_printf("\t\t\tCalculating transfer function: Output facts\n");

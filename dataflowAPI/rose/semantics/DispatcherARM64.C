@@ -3632,7 +3632,7 @@ namespace rose {
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
                             } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
+                                //address = ops->add(address, d->read(args[2]));
                             }
 
                             if (EXTR(5, 9) == 31) {

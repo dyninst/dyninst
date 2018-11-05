@@ -37,6 +37,8 @@
 #include "debug_parse.h"
 #include "dataflowAPI/h/slicing.h"
 #include "dataflowAPI/h/SymEval.h"
+#include "ABI.h"
+#include "bitArray.h"
 //#include "StackTamperVisitor.h"
 #include "instructionAPI/h/Visitor.h"
 
@@ -279,11 +281,7 @@ bool IA_x86::isTailCall(const Function *context, EdgeTypeEnum type, unsigned int
     if (curInsn().getCategory() == c_BranchInsn &&
             valid &&
             !callee) {
-	if (target) {
-	    parsing_printf("\tjump to 0x%lx is known block, but not func entry, NOT TAIL CALL\n", addr);
-	    tailCalls[type] = false;
-	    return false;
-	} else if (knownTargets.find(addr) != knownTargets.end()) {
+    if (knownTargets.find(addr) != knownTargets.end()) {
 	    parsing_printf("\tjump to 0x%lx is known target in this function, NOT TAIL CALL\n", addr);
 	    tailCalls[type] = false;
 	    return false;
@@ -330,11 +328,24 @@ bool IA_x86::isTailCall(const Function *context, EdgeTypeEnum type, unsigned int
         }
         else if(prevInsn.getOperation().getID() == e_pop)
         {
-            if(prevInsn.isWritten(framePtr[_isrc->getArch()]))
-            {
-                parsing_printf("\tprev insn was %s, TAIL CALL\n", prevInsn.format().c_str());
-                tailCalls[type] = true;
-                return true;
+            std::set<RegisterAST::Ptr> regsWritten;
+            prevInsn.getWriteSet(regsWritten);
+            if (regsWritten.size() == 2) {
+                MachRegister popReg;
+                for (auto rit = regsWritten.begin(); rit != regsWritten.end(); ++rit) {
+                    if (MachRegister::getStackPointer(_isrc->getArch()) != (*rit)->getID()) {
+                        popReg = (*rit)->getID();
+                    }
+                }
+                int addrWidth = (_isrc->getArch() == Arch_x86_64) ? 8 : 4;
+                ABI* abi = ABI::getABI(addrWidth);
+                const bitArray& callWritten = abi->getCallWrittenRegisters();
+                int index = abi->getIndex(popReg);
+                if (index != -1 && callWritten[index] == false) {
+                    parsing_printf("\tprev insn was %s, TAIL CALL\n", prevInsn.format().c_str());
+                    tailCalls[type] = true;
+                    return true;
+                }
             }
         }
         else if(prevInsn.getOperation().getID() == e_add)

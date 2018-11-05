@@ -1303,6 +1303,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                        FILE__,frame.func->addr());
         // prevents recursion of parsing
         frame.func->_parsed = true;
+    	if (HASHDEF(plt_entries,frame.func->addr()))
+            frame.func->_name = plt_entries[frame.func->addr()];
     } else {
         parsing_printf("[%s] ==== resuming parse of frame %lx ====\n",
                        FILE__,frame.func->addr());
@@ -1338,7 +1340,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
     } while (inspect_value_driven_jump_tables(frame));
 
     /** parsing complete **/
-    if (HASHDEF(plt_entries,frame.func->addr())) {
+    if (frame.func->retstatus() == UNSET && HASHDEF(plt_entries,frame.func->addr())) {
         // For PLT entries, they are either NORETURN or RETURN.
         // They should not be in any cyclic dependency
         if (obj().cs()->nonReturning(plt_entries[frame.func->addr()])) {
@@ -1346,9 +1348,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         } else {
             frame.func->set_retstatus(RETURN);
         }
-
-        // Convenience -- adopt PLT name
-        frame.func->_name = plt_entries[frame.func->addr()];
     } else if (frame.func->retstatus() == UNSET) {
         frame.func->set_retstatus(NORETURN);
     }
@@ -1491,7 +1490,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                         factory().destroy_edge(remove, destroyed_noreturn);
                         continue;
                     }
-                } else if (call_elem->target() > 0) {
+                } else if (func->obj()->cs()->isCode(call_elem->target())) {
                     // For indirect calls, since we do not know the callee,
                     // the call fallthrough edges are assumed to exist
                     Address target = call_elem->target();
@@ -1809,7 +1808,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                                     NULL,
                                     newedge,
                                     ahPtr->getAddr(),
-                                    curAddr,
+                                    ahPtr->getNextAddr(),
                                     true,
                                     false)
                 );

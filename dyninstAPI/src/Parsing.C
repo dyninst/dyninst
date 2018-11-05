@@ -161,7 +161,7 @@ DynCFGFactory::mkfunc(
                 break;
             }
         }
-        if(stf->getFirstSymbol()) {
+        if(stf && stf->getFirstSymbol()) {
             ret = new parse_func(stf, pdmod,_img,obj,reg,isrc,src);
             ret->isPLTFunction_ = true;
             return ret;

@@ -261,37 +261,10 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
         JumpTableReadVisitor jtrv(index, v, cs, block->region(), isZeroExtend, memoryReadSize);
 	jumpTargetExpr->accept(&jtrv);
 	if (jtrv.valid && cs->isCode(jtrv.targetAddress)) {
-	    bool stop = false;
-	    // Assume that indirect jump should not jump beyond the function range.
-	    // This assumption is shaky in terms of non-contiguous functions.
-	    // But non-contiguous blocks tend not be reach by indirect jumps
-	    if (func->src() == HINT) {
-	        Hint h(block->last(), 0 , NULL, "");
-		auto iter = upper_bound(cs->hints().begin(), cs->hints().end(), h);
-		if (iter != cs->hints().begin()) {
-		    iter--;
-		    Address startAddr = iter->_addr;
-		    int size = iter->_size;
-		    if (jtrv.targetAddress < startAddr || jtrv.targetAddress >= startAddr + size) {
-		        stop = true;
-			parsing_printf("WARNING: resolving jump tables leads to address %lx, which is not in the function range specified in the symbol table\n", jtrv.targetAddress);
-			parsing_printf("\tSymbol at %lx, end at %lx\n", startAddr, startAddr + size);
-		    }
-		}
-	    }
-	    if (scanTable && jumpTargets.size() > 0 && cs->getArch() != Arch_ppc64) {
-	        // This is a tentative scan of the table, where we do not know the index size.
-		// Typically, the table is layout in a way that the target address is increasing
-		// or decreasing.
-		auto smallIt = jumpTargets.begin();
-		auto largeIt = jumpTargets.end();
-		--largeIt;
-		if (jtrv.targetAddress < *largeIt && jtrv.targetAddress > *smallIt) {
-		    stop = true;
-		    parsing_printf("WARNING: we do not know the index size and we are scanning the table. We stop now because the jump target seems to not increasing or decreasing\n");
-		}
-	    }
-	    if (stop) break;
+        if (cs->getArch() == Arch_x86_64 && FindJunkInstruction(jtrv.targetAddress)) {
+            parsing_printf("WARNING: resolving jump tables leads to junk instruction from %lx\n", jtrv.targetAddress);
+            break;
+        }
 	    jumpTargets.insert(jtrv.targetAddress);
 	} else {
 	    // We have a bad entry. We stop here, as we have wrong information
@@ -338,5 +311,21 @@ bool IndirectControlFlowAnalyzer::IsZeroExtend(Assignment::Ptr memLoc) {
     Instruction i = memLoc->insn();
     parsing_printf("check zero extend %s\n", i.format().c_str());
     if (i.format().find("movz") != string::npos) return true;
+    return false;
+}
+
+bool IndirectControlFlowAnalyzer::FindJunkInstruction(Address addr) {
+    unsigned size = block->region()->offset() + block->region()->length() - addr; 
+    const unsigned char* buffer = (const unsigned char *)(func->isrc()->getPtrToInstruction(addr));
+    InstructionDecoder dec(buffer,size,block->region()->getArch());
+    Dyninst::InsnAdapter::IA_IAPI* ahPtr = Dyninst::InsnAdapter::IA_IAPI::makePlatformIA_IAPI(func->obj()->cs()->getArch(), dec, addr, func->obj(), block->region(), func->isrc(), NULL);
+
+    while (!ahPtr->hasCFT()) {
+        Instruction i = ahPtr->current_instruction();
+        if (i.size() == 2 && i.rawByte(0) == 0x00 && i.rawByte(1) == 0x00) {
+            return true;
+        }
+        ahPtr->advance();
+    }
     return false;
 }

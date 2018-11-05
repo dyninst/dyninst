@@ -158,11 +158,7 @@ bool IA_aarch64::isTailCall(const Function* context, EdgeTypeEnum type, unsigned
     if (curInsn().getCategory() == c_BranchInsn &&
             valid &&
             !callee) {
-	if (target) {
-	    parsing_printf("\tjump to 0x%lx is known block, but not func entry, NOT TAIL CALL\n", addr);
-	    tailCalls[type] = false;
-	    return false;
-	} else if (knownTargets.find(addr) != knownTargets.end()) {
+    if (knownTargets.find(addr) != knownTargets.end()) {
 	    parsing_printf("\tjump to 0x%lx is known target in this function, NOT TAIL CALL\n", addr);
 	    tailCalls[type] = false;
 	    return false;
