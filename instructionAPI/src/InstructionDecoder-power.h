@@ -95,7 +95,32 @@ namespace Dyninst {
                 template <Result_Type size> void STU();
                 template <Result_Type size> void LUX();
                 template <Result_Type size> void STUX();
-                void LK();
+                
+        		void FC();
+        		void BHRBE();
+        		void CT();
+        		void RSP();
+        		void RTP();
+        		void EH();
+        		void PRS();
+        		void RIC();
+        		void A();
+        		void RC();
+        		void BC();
+                void IH();
+                void SP();
+                void S();
+                void TE();
+                void DCM();
+                void DGM();
+                void DRM();
+                void SHW();
+
+                void XC();
+                void DM();
+                void IMM8();
+
+        		void LK();
                 void LI();
                 void FRT();
                 void FRS();
@@ -190,6 +215,9 @@ namespace Dyninst {
 
                 const power_entry& extended_op_0();
                 const power_entry& extended_op_4();
+                const power_entry& extended_op_4_1409();
+                const power_entry& extended_op_4_1538();
+                const power_entry& extended_op_4_1921();
                 const power_entry& extended_op_19();
                 const power_entry& extended_op_30();
                 const power_entry& extended_op_31();
@@ -197,8 +225,15 @@ namespace Dyninst {
                 const power_entry& extended_op_58();
                 const power_entry& extended_op_59();
                 const power_entry& extended_op_60();
+                const power_entry& extended_op_60_347();
+                const power_entry& extended_op_60_475();
+		const power_entry& extended_op_60_specials_check();
                 const power_entry& extended_op_61();
                 const power_entry& extended_op_63();
+                const power_entry& extended_op_63_583();
+                const power_entry& extended_op_63_804();
+                const power_entry& extended_op_63_836();
+
                 template <int start, int end>
                 int field(unsigned int raw) {
 #if defined DEBUG_FIELD
