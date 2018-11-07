@@ -5,27 +5,21 @@
 | Branch                                  | Status        | Notes                                              |
 | --------------------------------------- |:-------------:|:--------------------------------------------------:|
 | master                                  | stable        | See below                                          |
-| arm64                                   | experimental  |                                                    |
+| aarch32                                 | experimental  | Contact Ray Chen (rchen at cs dot umd dot edu)     |
 
 ## Notes
 
 * Known issues should have open issues associated with them.
-* ARM64 support in Dataflow/ParseAPI is experimental and incomplete.
-* PPC64/little endian support in read-level interfaces 
- (symtab, stackwalker, proccontrol) is experimental.
-* PPC64/little endian support in write-level interfaces is not implemented.
-
-All non-API-breaking bug fixes should land here. All non-ABI-breaking
-bug fixes should also land on v9.2.x.
+* ARM64 support for dynamic instrumentation is experimental and incomplete.
 
 ## Build DyninstAPI and its subcomponents
 
 ### Configuration
 
-Dyninst is now built via CMake. We recommend performing an interactive
-configuration with "ccmake ." first, in order to see which options are
+Dyninst is built via CMake. We recommend performing an interactive
+configuration with "ccmake /path/to/dyninst/source" first, in order to see which options are
 relevant for your system. You may also perform a batch configuration
-with "cmake .".  Options are passed to CMake with -DVAR=VALUE. Common
+with "cmake /path/to/dyninst/source".  Options are passed to CMake with -DVAR=VALUE. Common
 options include:
 
 ```
@@ -38,6 +32,18 @@ LIBELF_INCLUDE_DIR
 LIBELF_LIBRARIES 
 IBERTY_LIBRARIES
 ```
+
+BOOST_ROOT: base directory of your boost installation
+CMAKE_CXX_COMPILER: C++ compiler to use
+CMAKE_C_COMPILER: C compiler to use
+LIBELF_INCLUDE_DIR: location of elf.h and libelf.h
+LIBELF_LIBRARIES: full path of libelf.so
+LIBDWARF_INCLUDE_DIR: location of libdw.h
+LIBDWARF_LIBRARIES: full path of libdwarf.so
+IBERTY_LIBRARIES: full path of libiberty.[a|so]; libiberty.a must be built with -fPIC
+CMAKE_[C|CXX]_COMPILER_FLAGS: additional C/C++ compiler flags to use
+CMAKE_BUILD_TYPE: may be set to Debug, Release, or RelWithDebInfo for unoptimized, optimized, and optimized with debug information builds respectively. This replaces the NO_OPT_FLAG environment variable previously used by Dyninst. Note that Debug is the default; previously, the equivalent of Release was the default.
+CMAKE_INSTALL_PREFIX: like PREFIX for autotools-based systems. Where to install things.
 
 CMake's default generator on Linux is normally "Unix Makefiles", and
 on Windows, it will normally produce project files for the most recent
@@ -57,6 +63,11 @@ locations, and the CROSS_COMPILING flag so that the build system will
 properly evaluate what can be built and linked in your environment.
 
 ### Building and installing
+CMake allows Dyninst to be built out-of-source; simply invoke CMake in your desired build location. In-source builds are still fully supported as well.
+Each component of Dyninst may be built independently: cd $component; make. Standard make options will work; we fully support parallel compilation for make -jN. Setting VERBOSE=1 will replace the beautified CMake output with raw commands and their output, which can be useful for troubleshooting.
+Libelf, libdwarf, and libiberty will be automatically downloaded and used in the build provided that they are needed, they cannot be found, and your CMake version is at least 2.8.11. With older versions of CMake, you will be required to specify the location of these libraries if they are not present in system default paths.
+Dyninst now requires the boost thread libraries in order to build proccontrolAPI. These are available from boost.org, and should be available as prebuilt packages on most Linux distributions.
+On Windows, you will need the Debug Information Access (DIA) SDK, which should be available with an MSDN subscription, in order to build Dyninst; you will not need libelf, libdwarf, binutils, or the GCC demangler. Dyninst is still built via CMake, and the NMake and Visual Studio project file generators should both work. We have not tested building Dyninst on Windows with gcc, and we do not expect this to work presently.
 
 To build Dyninst and all its components, "make && make install" from
 the top-level directory of the source tree. To build and install a
