@@ -243,8 +243,6 @@ void DYNINST_snippetBreakpoint() {
 
 /* Used to instrument (and report) the entry of fork */
 DLLEXPORT void DYNINST_instForkEntry() {
-//#warning "This function is not implemented for AARCH64 yet!"
-#if !defined(arch_aarch64)
    tc_lock_lock(&DYNINST_trace_lock);
 
    /* Set the state so the mutator knows what's up */
@@ -257,9 +255,6 @@ DLLEXPORT void DYNINST_instForkEntry() {
    DYNINST_synch_event_arg1 = NULL;
 
    tc_lock_unlock(&DYNINST_trace_lock);
-#else
-	assert(0);
-#endif
 }
 
 

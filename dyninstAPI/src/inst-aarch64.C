@@ -1041,7 +1041,8 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
 }
 
 bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f) {
-    assert(0); //Not implemented
+    Address val_to_write = f->addr();
+    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);
     return false;
 }
 

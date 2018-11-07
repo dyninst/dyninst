@@ -102,7 +102,7 @@ parse_func::parse_func(
   unresolvedCF_(UNSET_CF),
   init_retstatus_(UNSET),
   o7_live(false),
-  ppc_saves_return_addr_(false),
+  saves_return_addr_(false),
   livenessCalculated_(false),
   isPLTFunction_(false),
   containsPowerPreamble_(false),

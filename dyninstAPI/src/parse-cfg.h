@@ -353,8 +353,8 @@ class parse_func : public ParseAPI::Function
    bool isTrueCallInsn(const instruction insn);
 #endif
 
-#if defined(arch_power)
-   bool savesReturnAddr() const { return ppc_saves_return_addr_; }
+#if defined(arch_power) || defined(arch_aarch64)
+   bool savesReturnAddr() const { return saves_return_addr_; }
 #endif
 
    bool containsSharedBlocks() const { return containsSharedBlocks_; }
@@ -430,7 +430,7 @@ class parse_func : public ParseAPI::Function
 
    // Architecture specific data
    bool o7_live;
-   bool ppc_saves_return_addr_;
+   bool saves_return_addr_;
 
    bool livenessCalculated_;
    bool isPLTFunction_;

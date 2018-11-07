@@ -259,7 +259,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 
 
 
-#if defined(arch_power)
+#if defined(arch_power) || defined(arch_aarch64)
   bool savesReturnAddr() const { return ifunc()->savesReturnAddr(); }
 #endif
 
