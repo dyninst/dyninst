@@ -14,7 +14,11 @@
 
 ## Build DyninstAPI and its subcomponents
 
-### The short version
+### Install with Spack
+
+```spack install dyninst```
+
+### Build from source (the short version)
 
 1. Configure Dyninst with CMake
 
@@ -26,7 +30,7 @@
 
 If this short version does not work for you, please refer to the long version and the FAQs below.
 
-### The long version
+### Build from source (the long version)
 
 #### Configuration
 
