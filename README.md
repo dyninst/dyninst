@@ -10,7 +10,8 @@
 ## Notes
 
 * Known issues should have open issues associated with them.
-* ARM64 support for dynamic instrumentation is experimental and incomplete.
+* ARMv8 (64 bit) support for dynamic instrumentation is experimental and incomplete.
+  For more details about current supported functionality refer to [Dyninst Support for the ARMv8 (64 bit)](https://docs.google.com/document/d/1VlB6HwOXuNus2sTvKSssMbKQSvzKBWtNyRWGnKJPMto/edit?usp=sharing).
 
 ## Build DyninstAPI and its subcomponents
 
