@@ -502,7 +502,7 @@ void insnCodeGen::loadImmIntoReg(codeGen &gen, Register rt, T value)
 }
 
 
-// This is for generating STR/LDR (imediate) for indexing modes of Post, Pre and Offset
+// This is for generating STR/LDR (immediate) for indexing modes of Post, Pre and Offset
 void insnCodeGen::generateMemAccess32or64(codeGen &gen, LoadStore accType,
         Register r1, Register r2, int immd, bool is64bit, IndexMode im)
 {
@@ -521,15 +521,15 @@ void insnCodeGen::generateMemAccess32or64(codeGen &gen, LoadStore accType,
             if(immd >= -256 && immd <= 255) {
                 INSN_SET(insn, 21, 29, (accType == Load) ? LDRImmOp : STRImmOp);
                 INSN_SET(insn, 10, 11, im==Post?0x1:0x3);
-                INSN_SET(insn, 12, 20, immd);
+                INSN_SET(insn, 12, 20, immd); // can be negative so no enconding
             } else {
                 assert(!"Cannot perform a post/pre-indexed memory access for offsets not in range [-256, 255]!");
             }
             break;
         case Offset:
             INSN_SET(insn, 22, 29, (accType == Load) ? LDRImmUIOp : STRImmUIOp);
-            assert(immd>=0); // this offset is supposed to unsigned, i.e. positive
-            INSN_SET(insn, 10, 21, immd>>3);
+            assert(immd>=0); // this offset is supposed to be unsigned, i.e. positive
+            INSN_SET(insn, 10, 21, immd>>(is64bit?3:2)); // always positive so encode
             break;
     }
 
@@ -540,26 +540,40 @@ void insnCodeGen::generateMemAccess32or64(codeGen &gen, LoadStore accType,
     insnCodeGen::generate(gen, insn);
 }
 
+// This is for generating STR/LDR (SIMD&FP) (immediate) for indexing modes of Post, Pre and Offset
 void insnCodeGen::generateMemAccessFP(codeGen &gen, LoadStore accType,
-        Register rt, Register rn, int immd, int size, bool is128bit)
+        Register rt, Register rn, int immd, int size, bool is128bit, IndexMode im)
 {
     instruction insn;
     insn.clear();
 
-    if(size < 0 || size > 3)
-        assert(!"Size field for STR (immediate, SIMD&FP) variant has to be in the range [0-3]!");
+    switch(im){
+        case Post:
+        case Pre:
+            //Set opcode, index and offset bits
+            if(immd >= -256 && immd <= 255) {
+                INSN_SET(insn, 21, 29, (accType == Load) ? LDRFPImmOp : STRFPImmOp);
+                INSN_SET(insn, 10, 11, im==Post?0x1:0x3);
+                INSN_SET(insn, 12, 20, immd); // can be negative so no enconding
+            } else {
+                assert(!"Cannot perform a post/pre-indexed memory access for offsets not in range [-256, 255]!");
+            }
+            break;
+        case Offset:
+            INSN_SET(insn, 22, 29, (accType == Load) ? LDRFPImmUOp : STRFPImmUOp);
+            assert(immd>=0); // this offset is supposed to be unsigned, i.e. positive
+            INSN_SET(insn, 10, 21, immd>>4); //#sasha change encoding to appropriate
+            break;
+    }
 
-    //Set size, opcode, index and offset bits
-    INSN_SET(insn, 30, 31, size & 0x3);
-    INSN_SET(insn, 21, 29, (accType == Load) ? LDRFPImmOp : STRFPImmOp);
+    // STR/LDR can be 8, 16, 32, 64, and 128, this might need to change
+    // it's more complicated than just the bit 23. 31 and 30 also decides
     if(is128bit)
         INSN_SET(insn, 23, 23, 1);
-    INSN_SET(insn, 10, 11, 0x1);
-    if(immd >= -256 && immd <= 255) {
-        INSN_SET(insn, 12, 20, immd);
-    } else {
-        assert(!"Cannot perform a post-indexed memory access for offsets not in range [-256, 255]!");
-    }
+
+    if(size < 0 || size > 3)
+        assert(!"Size field for STR (immediate, SIMD&FP) variant has to be in the range [0-3]!");
+    INSN_SET(insn, 30, 31, size & 0x3);
 
     //Set memory access register and register for address calculation.
     INSN_SET(insn, 0, 4, rt);

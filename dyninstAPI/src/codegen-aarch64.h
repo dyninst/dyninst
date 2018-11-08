@@ -105,7 +105,7 @@ public:
             Register r2, int immd, bool is64bit, IndexMode im=Post);
 
     static void generateMemAccessFP(codeGen &gen, LoadStore accType, Register rt,
-            Register rn, int immd, int size, bool is128bit);
+            Register rn, int immd, int size, bool is128bit, IndexMode im=Offset);
 
     template<typename T>
     static void loadImmIntoReg(codeGen &gen, Register rt, T value);

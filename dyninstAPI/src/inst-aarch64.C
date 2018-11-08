@@ -183,6 +183,7 @@ unsigned EmitterAARCH64SaveRegs::saveGPRegisters(
 
     for(unsigned int idx = 0; idx < numReqGPRs; idx++) {
         registerSlot *reg = theRegSpace->GPRs()[idx];
+
         if (reg->liveState == registerSlot::live) {
             int offset_from_sp = offset + (reg->encoding() * gen.width());
             insnCodeGen::saveRegister(gen, reg->number, offset_from_sp);
@@ -194,17 +195,21 @@ unsigned EmitterAARCH64SaveRegs::saveGPRegisters(
     return ret;
 }
 
-unsigned EmitterAARCH64SaveRegs::saveFPRegisters(codeGen &gen, registerSpace *theRegSpace, int offset) {
+unsigned EmitterAARCH64SaveRegs::saveFPRegisters(
+        codeGen &gen, registerSpace *theRegSpace, int offset)
+{
     unsigned ret = 0;
 
     for(int idx = 0; idx < theRegSpace->numFPRs(); idx++) {
         registerSlot *reg = theRegSpace->FPRs()[idx];
 
-        if(reg->liveState == registerSlot::live) {
-            saveFPRegister(gen, reg->number, -8*FPRSIZE_64);
-            reg->liveState = registerSlot::spilled;
+        //if(reg->liveState == registerSlot::live) {
+            int offset_from_sp = offset + (reg->encoding() * FPRSIZE_64);
+            saveFPRegister(gen, reg->number, offset_from_sp);
+            //reg->liveState = registerSlot::spilled;
+            theRegSpace->markSavedRegister(reg->number, offset_from_sp);
             ret++;
-        }
+        //}
     }
 
     return ret;
@@ -278,6 +283,7 @@ unsigned EmitterAARCH64RestoreRegs::restoreGPRegisters(
         registerSlot *reg = theRegSpace->GPRs()[idx];
 
         if(reg->liveState == registerSlot::spilled) {
+            //#sasha this should be GPRSIZE_64 and not gen.width
             int offset_from_sp = offset + (reg->encoding() * gen.width());
             insnCodeGen::restoreRegister(gen, reg->number, offset_from_sp);
             ret++;
@@ -295,10 +301,11 @@ unsigned EmitterAARCH64RestoreRegs::restoreFPRegisters(
     for(int idx = theRegSpace->numFPRs() - 1; idx >= 0; idx--) {
         registerSlot *reg = theRegSpace->FPRs()[idx];
 
-        if(reg->liveState == registerSlot::spilled) {
-            restoreFPRegister(gen, reg->number, 8*FPRSIZE_64);
+        //if(reg->liveState == registerSlot::spilled) {
+            int offset_from_sp = offset + (reg->encoding() * FPRSIZE_64);
+            restoreFPRegister(gen, reg->number, offset_from_sp);
             ret++;
-        }
+        //}
     }
 
     return ret;
