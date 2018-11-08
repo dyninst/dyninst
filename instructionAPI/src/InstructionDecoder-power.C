@@ -87,6 +87,7 @@ namespace Dyninst
                 static power_table extended_op_60_347;
                 static power_table extended_op_60_475;
                 static power_table extended_op_61;
+                static power_table extended_op_62;
                 static power_table extended_op_63;
                 static power_table extended_op_63_583;
                 static power_table extended_op_63_804;
@@ -298,7 +299,7 @@ namespace Dyninst
     void InstructionDecoder_power::ST()
     {
         insn_in_progress->appendOperand(makeMemRefNonIndex(size), false, true);
-    }
+		}
     template <Result_Type size>
     void InstructionDecoder_power::LX()
     {
@@ -581,6 +582,101 @@ namespace Dyninst
                         false);
     }
 
+		
+
+/*
+CY 21-22, only used by addex, mode flag bit
+
+DRM 18-20, Immediate operand field used to specify new decimal floating-point rounding mode.
+
+PS 22, Field used to specify preferred sign for BCD operations.
+
+UIM 11-15, Immediate field used to specify a 2-5 bit unsigned integer.
+
+RC 21-25, Field used to specify a GPR to be used as a source.
+
+FC 16-20, Field used to specify the function code in Load/Store Atomic instructions.
+
+RO 31, Round to Odd override
+
+R 10/15, 
+  10: Field used by the tbegin. instruction to specify the start of a ROT.
+  //could treat tbegin as a special case, as it has an unique layout
+  15: Immediate field that specifies whether the RMC is specifying the primary or secondary encoding.
+
+RMC: 21-22, Immediate field used for DFP rounding mode control.
+
+EX: 31, Field used to specify Inexact form of round to quad-precision integer.
+
+DCMX: 9-15, Immediate field used to specify Data Class Mask.
+
+IMM8: 13-20, Immediate field used to specify an 8-bit integer.
+
+BH: 19-20, Field used to specify a hint in the Branch Conditional to Link Register and Branch Conditional to Count Register instructions.
+  The encoding is described in Section 2.4, “Branch Instructions”.
+
+BHRBE: 19-20, Field used to identify the BHRB entry to be used as a source by the Move From Branch History Rolling Buffer instruction.
+
+CT: 7-10, Field used in X-form instructions to specify a cache target (see Section 4.3.2 of Book II).
+
+RTP: 6-10, Field used to specify an even/odd pair of GPRs to be concatenated and used as a target.
+
+EH: 31, Field used to specify a hint in the Load and Reserve instructions.
+
+S: 11/20,
+	11: Immediate field that specifies signed versus unsigned conversion.
+  20: Immediate field that specifies whether or not the rfebb	instruction	re-enablesevent-based	branches.
+	//coult treat rfebb as special case
+
+A: 6, field used by tbegin and tend.
+
+ST: 16, flag bit used by vshasigmaw and vshasigmad
+
+SIX: 17-20, 4-bit flag used by vshasigmaw and vshasigmad
+//maybe can treat ST & SIX as a single operand
+
+EH: 31, Field used to specify a hint in the Load and Reserve instructions. 
+The meaning is described in Section 4.6.2, “Load and Reserve and Store Conditional Instructions”, in Book II.
+
+DM: 22-23, Immediate field used by xxpermdi instruction as doubleword permute control.
+
+XC: like XA and XB, lies in 21-25, and always companied with a extended bit 28.
+
+SHW: 22-23, Field used to specify a shift amount in words.
+
+SP: 11-12, Immediate field that specifies signed versus unsigned conversion.
+
+TE: 11-15, Immediate field that specifies a DFP exponent.
+
+SHB: 22-25, Field used to specify a shift amount in bytes.
+
+DCM: 16-21, Immediate field used to specify Data Class Mask.
+
+DGM: 16-21, Immediate field used as the Data Group Mask.
+
+BC: 21-25, Field used to specify a bit in the CR to be used as a source.
+
+RSP: 6-10, Field used to specify an even/odd pair of GPRs to be concatenated and used as a source.
+
+RIC: 12-13, Field used to specify what types of entries to invalidate for tlbie[l].
+PRS: 14, Field used to specify whether to invalidate process- or partition-scoped entries for tlbie[l].
+//could treat tlbie as special case
+
+IH: 8-10, Field used to specify a hint in the SLB Invalidate All instruction. 
+The meaning is described in Section 5.9.3.2, “SLB Management Instructions”,	in Book III.
+*/
+
+
+    void InstructionDecoder_power::BH()
+    {
+        fprintf(stderr, "Unimplemented operand type BH. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+		
+    void InstructionDecoder_power::SIX()
+    {
+        fprintf(stderr, "Unimplemented operand type SIX. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+
     void InstructionDecoder_power::UIM()
     {
         fprintf(stderr, "Unimplemented operand type UIM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
@@ -689,6 +785,10 @@ namespace Dyninst
     void InstructionDecoder_power::SHB()
     {
         fprintf(stderr, "Unimplemented operand type SHB. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+    void InstructionDecoder_power::STN()
+    {
+        fprintf(stderr, "Unimplemented operand type STN. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::PS()
     {
@@ -1113,7 +1213,7 @@ using namespace boost::assign;
     // extended_op_61 needs revisiting
     const power_entry& InstructionDecoder_power::extended_op_61()
     {
-        unsigned int xo = field<26, 30>(insn);
+        unsigned int xo = field<29, 31>(insn);
         if(xo <= 31)
         {
             power_table::const_iterator found = power_entry::extended_op_61.find(xo);
@@ -1121,6 +1221,18 @@ using namespace boost::assign;
                 return found->second;
         }
         return power_entry::extended_op_61[field<21, 30>(insn)];
+    }
+
+    const power_entry& InstructionDecoder_power::extended_op_62()
+    {
+        unsigned int xo = field<30, 31>(insn);
+        if(xo <= 31)
+        {
+            power_table::const_iterator found = power_entry::extended_op_62.find(xo);
+            if(found != power_entry::extended_op_62.end())
+                return found->second;
+        }
+        return power_entry::extended_op_62[field<21, 30>(insn)];
     }
 
     const power_entry& InstructionDecoder_power::extended_op_63()

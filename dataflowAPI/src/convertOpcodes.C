@@ -987,8 +987,8 @@ PowerpcInstructionKind RoseInsnPPCFactory::convertKind(entryID opcode,
         case power_op_stbux: ret = powerpc_stbux; break;
         case power_op_cmpl: ret = powerpc_cmpl; break;
         case power_op_subf: ret = powerpc_subf; break;
-        case power_op_svcs: ret = powerpc_sc; break;
         case power_op_fmuls: ret = powerpc_fmuls; break;
+        case power_op_scv: ret = powerpc_sc; break;
         case power_op_subfic: ret = powerpc_subfic; break;
         case power_op_mcrfs: ret = powerpc_mcrfs; break;
         case power_op_divs: ret = powerpc_divw; break;
@@ -1115,7 +1115,6 @@ PowerpcInstructionKind RoseInsnPPCFactory::convertKind(entryID opcode,
         case power_op_extsw: ret = powerpc_extsw; break;
         case power_op_rldicl: ret = powerpc_rldicl; break;
         case power_op_bclr: ret = powerpc_bclr; break;
-        case power_op_rfsvc: ret = powerpc_unknown_instruction; break;
         case power_op_mcrxr: ret = powerpc_mcrxr; break;
         case power_op_clcs: ret = powerpc_unknown_instruction; break;
         case power_op_srad: ret = powerpc_srad; break;

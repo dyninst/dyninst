@@ -88,9 +88,9 @@ namespace Dyninst {
                 Expression::Ptr makeDSExpr();
                 Expression::Ptr makeQFRAExpr();
                 template <Result_Type size> void L();
-                template <Result_Type size> void ST();
                 template <Result_Type size> void LX();
                 template <Result_Type size> void STX();
+                template <Result_Type size> void ST();
                 template <Result_Type size> void LU();
                 template <Result_Type size> void STU();
                 template <Result_Type size> void LUX();
@@ -210,8 +210,8 @@ namespace Dyninst {
                 void SIX();
                 void PS();
                 void CY();
-
-
+								void BH();
+								void STN();
 
                 const power_entry& extended_op_0();
                 const power_entry& extended_op_4();
@@ -229,6 +229,7 @@ namespace Dyninst {
                 const power_entry& extended_op_60_475();
 		const power_entry& extended_op_60_specials_check();
                 const power_entry& extended_op_61();
+                const power_entry& extended_op_62();
                 const power_entry& extended_op_63();
                 const power_entry& extended_op_63_583();
                 const power_entry& extended_op_63_804();
