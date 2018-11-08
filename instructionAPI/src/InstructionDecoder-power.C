@@ -583,145 +583,145 @@ namespace Dyninst
 
     void InstructionDecoder_power::UIM()
     {
-        fprintf(stderr, "Unimplemented operand type UIM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+        //fprintf(stderr, "Unimplemented operand type UIM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
 
     void InstructionDecoder_power::BHRBE()
     {
-        fprintf(stderr, "Unimplemented operand type BHRBE. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+        //fprintf(stderr, "Unimplemented operand type BHRBE. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
 
     void InstructionDecoder_power::IH()
     {
-        fprintf(stderr, "Unimplemented operand type IH. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+        //fprintf(stderr, "Unimplemented operand type IH. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
 
     void InstructionDecoder_power::SP()
     {
-        fprintf(stderr, "Unimplemented operand type SP. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+       // fprintf(stderr, "Unimplemented operand type SP. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
 
 
     void InstructionDecoder_power::S()
     {
-        fprintf(stderr, "Unimplemented operand type S. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+        //fprintf(stderr, "Unimplemented operand type S. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
 
 
     void InstructionDecoder_power::TE()
     {
-        fprintf(stderr, "Unimplemented operand type TE. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+        //fprintf(stderr, "Unimplemented operand type TE. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
 
     void InstructionDecoder_power::DGM()
     {
-        fprintf(stderr, "Unimplemented operand type DGM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+        //fprintf(stderr, "Unimplemented operand type DGM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
 
     void InstructionDecoder_power::DCM()
     {
-        fprintf(stderr, "Unimplemented operand type DCM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+        //fprintf(stderr, "Unimplemented operand type DCM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
 
 
     void InstructionDecoder_power::CT()
     {
-        fprintf(stderr, "Unimplemented operand type CT. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+//        fprintf(stderr, "Unimplemented operand type CT. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::RSP()
     {
-        fprintf(stderr, "Unimplemented operand type RSP. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+//        fprintf(stderr, "Unimplemented operand type RSP. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::RTP()
     {
-        fprintf(stderr, "Unimplemented operand type RTP. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+//        fprintf(stderr, "Unimplemented operand type RTP. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::EH()
     {
-        fprintf(stderr, "Unimplemented operand type EH. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+//        fprintf(stderr, "Unimplemented operand type EH. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::PRS()
     {
-        fprintf(stderr, "Unimplemented operand type PRS. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+//        fprintf(stderr, "Unimplemented operand type PRS. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
 
     void InstructionDecoder_power::A()
     {
-        fprintf(stderr, "Unimplemented operand type A. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+//        fprintf(stderr, "Unimplemented operand type A. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::R()
     {
-        fprintf(stderr, "Unimplemented operand type R. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+//        fprintf(stderr, "Unimplemented operand type R. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::BC()
     {
-        fprintf(stderr, "Unimplemented operand type BC. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+//        fprintf(stderr, "Unimplemented operand type BC. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::RC()
     {
-        fprintf(stderr, "Unimplemented operand type RC. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+//        fprintf(stderr, "Unimplemented operand type RC. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::RIC()
     {
-        fprintf(stderr, "Unimplemented operand type RIC. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+//        fprintf(stderr, "Unimplemented operand type RIC. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::SIM()
     {
-        fprintf(stderr, "Unimplemented operand type SIM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+//        fprintf(stderr, "Unimplemented operand type SIM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
 
     void InstructionDecoder_power::DCMX()
     {
-        fprintf(stderr, "Unimplemented operand type DCMX. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+//        fprintf(stderr, "Unimplemented operand type DCMX. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::RO()
     {
-        fprintf(stderr, "Unimplemented operand type RO. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+//        fprintf(stderr, "Unimplemented operand type RO. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::RMC()
     {
-        fprintf(stderr, "Unimplemented operand type RMC. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+//        fprintf(stderr, "Unimplemented operand type RMC. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::EX()
     {
-        fprintf(stderr, "Unimplemented operand type EX. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+//        fprintf(stderr, "Unimplemented operand type EX. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::SHB()
     {
-        fprintf(stderr, "Unimplemented operand type SHB. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+        //fprintf(stderr, "Unimplemented operand type SHB. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::PS()
     {
-        fprintf(stderr, "Unimplemented operand type PS. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+        //fprintf(stderr, "Unimplemented operand type PS. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::CY()
     {
-        fprintf(stderr, "Unimplemented operand type CY. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+        //fprintf(stderr, "Unimplemented operand type CY. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::DRM()
     {
-        fprintf(stderr, "Unimplemented operand type DRM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+        //fprintf(stderr, "Unimplemented operand type DRM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
 
     void InstructionDecoder_power::SHW()
     {
-        fprintf(stderr, "Unimplemented operand type SHW. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+        //fprintf(stderr, "Unimplemented operand type SHW. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
 
 
     void InstructionDecoder_power::XC()
     {
-        fprintf(stderr, "Unimplemented operand type XC. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+        //fprintf(stderr, "Unimplemented operand type XC. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
 
     void InstructionDecoder_power::DM()
     {
-        fprintf(stderr, "Unimplemented operand type DM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+        //fprintf(stderr, "Unimplemented operand type DM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
 
     void InstructionDecoder_power::IMM8()
     {
-        fprintf(stderr, "Unimplemented operand type IMM8. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+        //fprintf(stderr, "Unimplemented operand type IMM8. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
 
     /***** END: For new vector instructions *****/
@@ -1172,7 +1172,7 @@ using namespace boost::assign;
 	// Used by lwat/ldat but usage is confusing 
 	// 5 bits located at positions 16-21
 	    
-        fprintf(stderr, "Unimplemented operand type FC. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+//        fprintf(stderr, "Unimplemented operand type FC. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::BF()
     {
