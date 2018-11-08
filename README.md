@@ -14,9 +14,34 @@
 
 ## Build DyninstAPI and its subcomponents
 
-### Configuration
+### The short version
 
-Dyninst is built via CMake. We recommend performing an interactive
+1. Configure Dyninst with CMake
+
+```ccmake /path/to/dyninst/source```
+
+2. Build and install Dyninst in parallel
+
+```make install -jN```
+
+If this short version does not work for you, please refer to the long version and the FAQs below.
+
+### The long version
+
+#### Configuration
+
+Dyninst is built via CMake. We require CMake 3.0.0 as a minimum on all systems. CMake will automatically
+search for dependencies and download them when not found. The main dependencies of Dyninst include:
+
+1. elfutils, 0.173 minimum, https://sourceware.org/elfutils/
+
+2. Boost, 1.61.0 or later recommended, https://www.boost.org/
+
+3. The Intel Thread Building Blocks (TBB), 2018 U6 or later recommended, https://www.threadingbuildingblocks.org/
+
+4. OpenMP, optional for parallel code parsing. Note that Dyninst will not automatically download or install OpenMP
+
+We recommend performing an interactive
 configuration with "ccmake /path/to/dyninst/source" first, in order to see which options are
 relevant for your system. You may also perform a batch configuration
 with "cmake /path/to/dyninst/source".  Options are passed to CMake with -DVAR=VALUE. Common
@@ -50,8 +75,6 @@ version of Visual Studio on your system. Other generators should work
 but are not tested. After the CMake step concludes, you will have
 appropriate Makefiles or equivalent and can build Dyninst.
 
-We require CMake 3.0 as a minimum on all systems. CMake will automatically
-search for dependencies and download them when not found. 
 If you are cross-compiling Dyninst, including builds for
 various Cray and Intel MIC systems, you will either need a toolchain
 file that specifies how to properly cross-compile, or you will need to
@@ -59,7 +82,7 @@ manually define the appropriate compiler, library locations, include
 locations, and the CROSS_COMPILING flag so that the build system will
 properly evaluate what can be built and linked in your environment.
 
-### Building and installing
+#### Building and installing
 CMake allows Dyninst to be built out-of-source; simply invoke CMake in your desired build location. In-source builds are still fully supported as well.
 Each component of Dyninst may be built independently: cd $component; make. Standard make options will work; we fully support parallel compilation for make -jN. Setting VERBOSE=1 will replace the beautified CMake output with raw commands and their output, which can be useful for troubleshooting.
 
@@ -74,12 +97,27 @@ them. Components may be built and installed individually: "make
 $COMPONENT" and "make $COMPONENT-install" respectively; this will
 appropriately respect inter-component dependencies.
 
-### What's new
+### FAQs of building Dyninst
 
-## New features
+1. Q: What should I do if the build failed and showed
 
-## Bug fixes
+```"/lib64/libdw.so.1: version `ELFUTILS_0.173' not found```
 
+A: Dyninst now depends on elfutils-0.173 or later. If you are seeing this error, it means the elfutils installed on your system is older than 0.173. We recommend that you set ```LIBELF_INCLUDE_DIR```, ```LIBELF_LIBRARIES```, ```LIBDWARF_INCLUDE_DIR```, and ```LIBDWARF_LIBRARIES``` to empty, which will trigger the CMake to automatically download the correct version of elfutils.
+
+2. Q: Where are the dependency libraries downloaded by Dyninst?
+
+A: After installation, Dyninst should copy all dependencies to the install location. In case where the dependencies are not copied, they can be found in the directory where you build Dyninst. For example, suppose you configure and build Dyninst at: ```/home/user/dyninst/build```
+
+Then elfutils, TBB, boost can be found at ```/home/user/dyninst/build/elfutils/```, ```/home/user/dyninst/build/tbb/```, ```/home/user/dyninst/build/boost/```, respectively.
+
+3. Q: My system has pre-installed Boost, but the build failed due to that cannot find boost libraries.
+
+A: Boost's library naming convention is a little confusing. You probably have the non-multi-threading version installed. So your boost libraries will look like "libboost_system.so". Dyninst links against the multi-threading version of boost, so it will needs "libboost_system-mt.so". Note the "-mt" in the library name. There are two ways to work around:
+
+(1) Set ```BOOST_ROOT``` to empy which will trigger Dyninst to automaticall build Boost
+
+(2) Create symbolic links from non-multi-threading ones to multi-threading ones (https://stackoverflow.com/questions/3031768/boost-thread-linking-boost-thread-vs-boost-thread-mt)
 
 ## Known Issues
 
