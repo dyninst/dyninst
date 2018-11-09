@@ -11,7 +11,7 @@
 
 * Known issues should have open issues associated with them.
 * ARMv8 (64 bit) support for dynamic instrumentation is experimental and incomplete.
-  For more details about current supported functionality refer to [Dyninst Support for the ARMv8 (64 bit)](https://docs.google.com/document/d/1VlB6HwOXuNus2sTvKSssMbKQSvzKBWtNyRWGnKJPMto/edit?usp=sharing).
+  For more details about current supported functionality refer to [Dyninst Support for the ARMv8 (64 bit)](https://github.com/dyninst/dyninst/wiki/DyninstAPI-ARMv8-status).
 
 ## Build DyninstAPI and its subcomponents
 
@@ -52,7 +52,7 @@ relevant for your system. You may also perform a batch configuration
 with "cmake /path/to/dyninst/source".  Options are passed to CMake with -DVAR=VALUE. Common
 options include:
 
-```BOOST_ROOT```: base directory of your boost installation
+```PATH_BOOST```: base directory of your boost installation
 
 ```LIBELF_INCLUDE_DIR```: the location of elf.h and libelf.h
 
@@ -108,7 +108,11 @@ appropriately respect inter-component dependencies.
 
 ```"/lib64/libdw.so.1: version `ELFUTILS_0.173' not found```
 
-A: Dyninst now depends on elfutils-0.173 or later. If you are seeing this error, it means the elfutils installed on your system is older than 0.173. We recommend that you set ```LIBELF_INCLUDE_DIR```, ```LIBELF_LIBRARIES```, ```LIBDWARF_INCLUDE_DIR```, and ```LIBDWARF_LIBRARIES``` to empty, which will trigger the CMake to automatically download the correct version of elfutils.
+or
+
+```error: 'dwarf_next_lines' was not declared in this scope```
+
+A: Dyninst now depends on elfutils-0.173 or later. If you are seeing above errors, it means the elfutils installed on your system is older than 0.173. We recommend that you set ```LIBELF_INCLUDE_DIR```, ```LIBELF_LIBRARIES```, ```LIBDWARF_INCLUDE_DIR```, and ```LIBDWARF_LIBRARIES``` to empty, which will trigger the CMake to automatically download the correct version of elfutils. Or you can upgrade your elfutils with your system package manager.
 
 2. Q: Where are the dependency libraries downloaded by Dyninst?
 
@@ -120,7 +124,7 @@ Then elfutils, TBB, boost can be found at ```/home/user/dyninst/build/elfutils/`
 
 A: Boost's library naming convention is a little confusing. You probably have the non-multi-threading version installed. So your boost libraries will look like "libboost_system.so". Dyninst links against the multi-threading version of boost, so it will needs "libboost_system-mt.so". Note the "-mt" in the library name. There are two ways to work around:
 
-(1) Set ```BOOST_ROOT``` to empy which will trigger Dyninst to automaticall build Boost
+(1) Set ```PATH_BOOST``` to empy which will trigger Dyninst to automaticall build Boost
 
 (2) Create symbolic links from non-multi-threading ones to multi-threading ones (https://stackoverflow.com/questions/3031768/boost-thread-linking-boost-thread-vs-boost-thread-mt)
 
