@@ -55,7 +55,8 @@ namespace Dyninst
         power_entry(const power_entry& o) :
                 op(o.op), mnemonic(o.mnemonic), next_table(o.next_table), operands(o.operands)
                 {}
-                const power_entry& operator=(const power_entry& rhs)
+
+		const power_entry& operator=(const power_entry& rhs)
                 {
                     operands.reserve(rhs.operands.size());
                     op = rhs.op;
@@ -72,6 +73,9 @@ namespace Dyninst
                 static std::vector<power_entry> main_opcode_table;
                 static power_table extended_op_0;
                 static power_table extended_op_4;
+                static power_table extended_op_4_1409;
+                static power_table extended_op_4_1538;
+                static power_table extended_op_4_1921;
                 static power_table extended_op_19;
                 static power_table extended_op_30;
                 static power_table extended_op_31;
@@ -79,9 +83,18 @@ namespace Dyninst
                 static power_table extended_op_58;
                 static power_table extended_op_59;
                 static power_table extended_op_60;
+                static power_table extended_op_60_specials;
+                static power_table extended_op_60_347;
+                static power_table extended_op_60_475;
                 static power_table extended_op_61;
                 static power_table extended_op_63;
+                static power_table extended_op_63_583;
+                static power_table extended_op_63_804;
+                static power_table extended_op_63_836;
+
       };
+
+
 
     InstructionDecoder_power::InstructionDecoder_power(Architecture a)
       : InstructionDecoderImpl(a),
@@ -570,44 +583,145 @@ namespace Dyninst
 
     void InstructionDecoder_power::UIM()
     {
-        fprintf(stderr, "Unimplemented operand type UIM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+        //fprintf(stderr, "Unimplemented operand type UIM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+
+    void InstructionDecoder_power::BHRBE()
+    {
+        //fprintf(stderr, "Unimplemented operand type BHRBE. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+
+    void InstructionDecoder_power::IH()
+    {
+        //fprintf(stderr, "Unimplemented operand type IH. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+
+    void InstructionDecoder_power::SP()
+    {
+       // fprintf(stderr, "Unimplemented operand type SP. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+
+
+    void InstructionDecoder_power::S()
+    {
+        //fprintf(stderr, "Unimplemented operand type S. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+
+
+    void InstructionDecoder_power::TE()
+    {
+        //fprintf(stderr, "Unimplemented operand type TE. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+
+    void InstructionDecoder_power::DGM()
+    {
+        //fprintf(stderr, "Unimplemented operand type DGM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+
+    void InstructionDecoder_power::DCM()
+    {
+        //fprintf(stderr, "Unimplemented operand type DCM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+
+
+    void InstructionDecoder_power::CT()
+    {
+//        fprintf(stderr, "Unimplemented operand type CT. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+    void InstructionDecoder_power::RSP()
+    {
+//        fprintf(stderr, "Unimplemented operand type RSP. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+    void InstructionDecoder_power::RTP()
+    {
+//        fprintf(stderr, "Unimplemented operand type RTP. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+    void InstructionDecoder_power::EH()
+    {
+//        fprintf(stderr, "Unimplemented operand type EH. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+    void InstructionDecoder_power::PRS()
+    {
+//        fprintf(stderr, "Unimplemented operand type PRS. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+
+    void InstructionDecoder_power::A()
+    {
+//        fprintf(stderr, "Unimplemented operand type A. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+    void InstructionDecoder_power::R()
+    {
+//        fprintf(stderr, "Unimplemented operand type R. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+    void InstructionDecoder_power::BC()
+    {
+//        fprintf(stderr, "Unimplemented operand type BC. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+    void InstructionDecoder_power::RC()
+    {
+//        fprintf(stderr, "Unimplemented operand type RC. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+    void InstructionDecoder_power::RIC()
+    {
+//        fprintf(stderr, "Unimplemented operand type RIC. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::SIM()
     {
-        fprintf(stderr, "Unimplemented operand type SIM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+//        fprintf(stderr, "Unimplemented operand type SIM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
 
     void InstructionDecoder_power::DCMX()
     {
-        fprintf(stderr, "Unimplemented operand type DCMX. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+//        fprintf(stderr, "Unimplemented operand type DCMX. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::RO()
     {
-        fprintf(stderr, "Unimplemented operand type RO. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
-    }
-    void InstructionDecoder_power::R()
-    {
-        fprintf(stderr, "Unimplemented operand type R. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+//        fprintf(stderr, "Unimplemented operand type RO. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::RMC()
     {
-        fprintf(stderr, "Unimplemented operand type RMC. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+//        fprintf(stderr, "Unimplemented operand type RMC. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::EX()
     {
-        fprintf(stderr, "Unimplemented operand type EX. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+//        fprintf(stderr, "Unimplemented operand type EX. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::SHB()
     {
-        fprintf(stderr, "Unimplemented operand type SHB. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+        //fprintf(stderr, "Unimplemented operand type SHB. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::PS()
     {
-        fprintf(stderr, "Unimplemented operand type PS. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+        //fprintf(stderr, "Unimplemented operand type PS. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
     void InstructionDecoder_power::CY()
     {
-        fprintf(stderr, "Unimplemented operand type CY. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+        //fprintf(stderr, "Unimplemented operand type CY. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+    void InstructionDecoder_power::DRM()
+    {
+        //fprintf(stderr, "Unimplemented operand type DRM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+
+    void InstructionDecoder_power::SHW()
+    {
+        //fprintf(stderr, "Unimplemented operand type SHW. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+
+
+    void InstructionDecoder_power::XC()
+    {
+        //fprintf(stderr, "Unimplemented operand type XC. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+
+    void InstructionDecoder_power::DM()
+    {
+        //fprintf(stderr, "Unimplemented operand type DM. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
+
+    void InstructionDecoder_power::IMM8()
+    {
+        //fprintf(stderr, "Unimplemented operand type IMM8. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
     }
 
     /***** END: For new vector instructions *****/
@@ -815,11 +929,56 @@ using namespace boost::assign;
 
     const power_entry& InstructionDecoder_power::extended_op_4()
     {
-        const power_table::const_iterator entry_it = power_entry::extended_op_4.find(field<26, 30>(insn));
-        if (entry_it == power_entry::extended_op_4.end())
-            return invalid_entry;
-        return entry_it->second;
+        // Extended OpCode 4:
+        //     First check bits 26-31. If there is a match were done.
+        //     If not, XO is in bits 21-31. 
+        power_table::const_iterator entry_it;
+
+        switch (field<21, 31>(insn)) {
+            case 1409:
+                return extended_op_4_1409();
+            case 1538:
+                return extended_op_4_1538();
+            case 1921:
+                return extended_op_4_1921();
+            default:
+                break;
+        }
+
+        entry_it = power_entry::extended_op_4.find(field<21, 31>(insn));
+        if (entry_it != power_entry::extended_op_4.end())
+            return entry_it->second;
+
+        entry_it = power_entry::extended_op_4.find(field<26, 31>(insn));
+        if (entry_it != power_entry::extended_op_4.end())
+            return entry_it->second;
+
+        return invalid_entry;
     }
+
+    const power_entry & InstructionDecoder_power::extended_op_4_1409() {
+
+        const power_table::const_iterator entry_it = power_entry::extended_op_4_1409.find(field<11, 15>(insn));
+        if (entry_it != power_entry::extended_op_4_1409.end())
+            return entry_it->second;    
+        return invalid_entry;
+
+    }
+    const power_entry & InstructionDecoder_power::extended_op_4_1538() {
+        const power_table::const_iterator entry_it = power_entry::extended_op_4_1538.find(field<11, 15>(insn));
+        if (entry_it != power_entry::extended_op_4_1538.end())
+            return entry_it->second;    
+        return invalid_entry;
+
+    }
+
+    const power_entry & InstructionDecoder_power::extended_op_4_1921() {
+        const power_table::const_iterator entry_it = power_entry::extended_op_4_1921.find(field<11, 15>(insn));
+        if (entry_it != power_entry::extended_op_4_1921.end())
+            return entry_it->second;    
+        return invalid_entry;
+    }
+
     const power_entry& InstructionDecoder_power::extended_op_19()
     {
         const power_table::const_iterator entry_it = power_entry::extended_op_19.find(field<21, 30>(insn));
@@ -878,17 +1037,79 @@ using namespace boost::assign;
     }
     const power_entry& InstructionDecoder_power::extended_op_59()
     {
-        const power_table::const_iterator entry_it = power_entry::extended_op_59.find(field<26, 30>(insn));
+        const power_table::const_iterator entry_it = power_entry::extended_op_59.find(field<21, 30>(insn));
         if (entry_it == power_entry::extended_op_59.end())
             return invalid_entry;
         return entry_it->second;
     }
     // extended_op_60 needs revisiting
+    const power_entry& InstructionDecoder_power::extended_op_60_specials_check() {
+	// If the power decoder is ever redone. Use masking to determine the instructions for 60.
+	// Otherwise we are forced to do this fun hack....
+	
+	// Check for xxsel
+	if (field<26,27>(insn) == 3)
+		return power_entry::extended_op_60_specials[2];
+	
+	// xscmpexpdp
+	if (field<21,28>(insn) == 59)
+		return power_entry::extended_op_60_specials[5];
+	// xscvuxddp	
+	if (field<21,28>(insn) == 360)
+		return power_entry::extended_op_60_specials[6];
+	// xvdivsp
+//	if (field<21,28>(insn) == 88) 
+//		return extended_op_60_specials[1];
+
+	// xvnmaddasp
+	if (field<21,28>(insn) == 193) 
+		return power_entry::extended_op_60_specials[4];
+	// xvtdivsp
+	if (field<21,28>(insn) == 93)
+		return power_entry::extended_op_60_specials[1];
+
+	// xxpermdi
+	if (field<21,21>(insn) == 0 && field<24,28>(insn) == 10)
+		return power_entry::extended_op_60_specials[0];
+
+	if (field<21,21>(insn) == 0 && field<24,28>(insn) == 2)
+		return power_entry::extended_op_60_specials[3];
+	return invalid_entry;
+    }
     const power_entry& InstructionDecoder_power::extended_op_60()
     {
-        unsigned int xo = field<21, 29>(insn);
-        return power_entry::extended_op_60[xo];
+	if (extended_op_60_specials_check().op != power_op_INVALID)
+		return extended_op_60_specials_check();
+        switch (field<21, 29>(insn)) {
+            case 347:
+                return extended_op_60_347();
+            case 475:
+                return extended_op_60_475();
+            default:
+                break;
+        }
+
+        const power_table::const_iterator entry_it = power_entry::extended_op_60.find(field<21, 29>(insn));
+        if (entry_it == power_entry::extended_op_60.end())
+            return invalid_entry;
+        return entry_it->second;        
     }
+
+    const power_entry& InstructionDecoder_power::extended_op_60_347() {
+        const power_table::const_iterator entry_it = power_entry::extended_op_60_347.find(field<11, 15>(insn));
+        if (entry_it == power_entry::extended_op_60_347.end())
+            return invalid_entry;
+        return entry_it->second;    
+
+    }
+    const power_entry& InstructionDecoder_power::extended_op_60_475() {
+        const power_table::const_iterator entry_it = power_entry::extended_op_60_475.find(field<11, 15>(insn));
+        if (entry_it == power_entry::extended_op_60_475.end())
+            return invalid_entry;
+        return entry_it->second;    
+    }
+
+
     // extended_op_61 needs revisiting
     const power_entry& InstructionDecoder_power::extended_op_61()
     {
@@ -904,10 +1125,20 @@ using namespace boost::assign;
 
     const power_entry& InstructionDecoder_power::extended_op_63()
     {
-        unsigned int xo = field<26, 30>(insn);
-        if(xo <= 31)
+        switch (field<21, 30>(insn)) {
+            case 583:
+                return extended_op_63_583();
+            case 804:
+                return extended_op_63_804();
+            case 836:
+                return extended_op_63_836();
+            default:
+                break;
+        }
+        unsigned int xo = field<26, 26>(insn);
+        if(xo == 1)
         {
-            power_table::const_iterator found = power_entry::extended_op_63.find(xo);
+            power_table::const_iterator found = power_entry::extended_op_63.find(field<26,30>(insn));
             if(found != power_entry::extended_op_63.end())
                 return found->second;
         }
@@ -916,7 +1147,33 @@ using namespace boost::assign;
             return invalid_entry;
         return entry_it->second;
     }
-    
+    const power_entry& InstructionDecoder_power::extended_op_63_583()
+    { 
+        const power_table::const_iterator entry_it = power_entry::extended_op_63_583.find(field<11, 15>(insn));
+        if (entry_it == power_entry::extended_op_63_583.end())
+            return invalid_entry;
+        return entry_it->second;   
+    }
+    const power_entry& InstructionDecoder_power::extended_op_63_804()
+    { 
+        const power_table::const_iterator entry_it = power_entry::extended_op_63_804.find(field<11, 15>(insn));
+        if (entry_it == power_entry::extended_op_63_804.end())
+            return invalid_entry;
+        return entry_it->second;   
+    }
+    const power_entry& InstructionDecoder_power::extended_op_63_836()
+    { 
+        const power_table::const_iterator entry_it = power_entry::extended_op_63_836.find(field<11, 15>(insn));
+        if (entry_it == power_entry::extended_op_63_836.end())
+            return invalid_entry;
+        return entry_it->second;   
+    }    
+    void InstructionDecoder_power::FC() {
+	// Used by lwat/ldat but usage is confusing 
+	// 5 bits located at positions 16-21
+	    
+//        fprintf(stderr, "Unimplemented operand type FC. Please create an issue at https://github.com/dyninst/dyninst/issues\n");
+    }
     void InstructionDecoder_power::BF()
     {
         MachRegister base_reg = isFPInsn ? ppc32::fpscw0 : ppc32::cr0;

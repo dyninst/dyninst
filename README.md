@@ -5,39 +5,74 @@
 | Branch                                  | Status        | Notes                                              |
 | --------------------------------------- |:-------------:|:--------------------------------------------------:|
 | master                                  | stable        | See below                                          |
-| arm64                                   | experimental  |                                                    |
+| aarch32                                 | experimental  | Contact Ray Chen (rchen at cs dot umd dot edu)     |
 
 ## Notes
 
 * Known issues should have open issues associated with them.
-* ARM64 support in Dataflow/ParseAPI is experimental and incomplete.
-* PPC64/little endian support in read-level interfaces 
- (symtab, stackwalker, proccontrol) is experimental.
-* PPC64/little endian support in write-level interfaces is not implemented.
-
-All non-API-breaking bug fixes should land here. All non-ABI-breaking
-bug fixes should also land on v9.2.x.
+* ARMv8 (64 bit) support for dynamic instrumentation is experimental and incomplete.
+  For more details about current supported functionality refer to [Dyninst Support for the ARMv8 (64 bit)](https://docs.google.com/document/d/1VlB6HwOXuNus2sTvKSssMbKQSvzKBWtNyRWGnKJPMto/edit?usp=sharing).
 
 ## Build DyninstAPI and its subcomponents
 
-### Configuration
+### Install with Spack
 
-Dyninst is now built via CMake. We recommend performing an interactive
-configuration with "ccmake ." first, in order to see which options are
+```spack install dyninst```
+
+### Build from source (the short version)
+
+1. Configure Dyninst with CMake
+
+```ccmake /path/to/dyninst/source```
+
+2. Build and install Dyninst in parallel
+
+```make install -jN```
+
+If this short version does not work for you, please refer to the long version and the FAQs below.
+
+### Build from source (the long version)
+
+#### Configuration
+
+Dyninst is built via CMake. We require CMake 3.0.0 as a minimum on all systems. CMake will automatically
+search for dependencies and download them when not found. The main dependencies of Dyninst include:
+
+1. elfutils, 0.173 minimum, https://sourceware.org/elfutils/
+
+2. Boost, 1.61.0 or later recommended, https://www.boost.org/
+
+3. The Intel Thread Building Blocks (TBB), 2018 U6 or later recommended, https://www.threadingbuildingblocks.org/
+
+4. OpenMP, optional for parallel code parsing. Note that Dyninst will not automatically download or install OpenMP
+
+We recommend performing an interactive
+configuration with "ccmake /path/to/dyninst/source" first, in order to see which options are
 relevant for your system. You may also perform a batch configuration
-with "cmake .".  Options are passed to CMake with -DVAR=VALUE. Common
+with "cmake /path/to/dyninst/source".  Options are passed to CMake with -DVAR=VALUE. Common
 options include:
 
-```
-Boost_INCLUDE_DIR 
-CMAKE_BUILD_TYPE 
-CMAKE_INSTALL_PREFIX
-LIBDWARF_INCLUDE_DIR 
-LIBDWARF_LIBRARIES 
-LIBELF_INCLUDE_DIR
-LIBELF_LIBRARIES 
-IBERTY_LIBRARIES
-```
+```BOOST_ROOT```: base directory of your boost installation
+
+```LIBELF_INCLUDE_DIR```: the location of elf.h and libelf.h
+
+```LIBELF_LIBRARIES```: full path of libelf.so
+
+```LIBDWARF_INCLUDE_DIR```: location of libdw.h
+
+```LIBDWARF_LIBRARIES```: full path of libdw.so
+
+```TBB_INCLUDE_DIRS```: the direcory of the include files of TBB
+
+```TBB_tbb_LIBRARY_DEBUG```: full path of libtbb_debug.so
+
+```TBB_tbb_LIBRARY_RELEASE```: full path of libtbb.so
+
+```CMAKE_BUILD_TYPE```: may be set to Debug, Release, or RelWithDebInfo for unoptimized, optimized, and optimized with debug information builds respectively. Note that Debug is the default.
+
+```CMAKE_INSTALL_PREFIX```: like PREFIX for autotools-based systems. Where to install things.
+
+```USE_OpenMP```: Whether or not use OpenMP for parallel parsing. Default to be ```ON```
 
 CMake's default generator on Linux is normally "Unix Makefiles", and
 on Windows, it will normally produce project files for the most recent
@@ -45,25 +80,20 @@ version of Visual Studio on your system. Other generators should work
 but are not tested. After the CMake step concludes, you will have
 appropriate Makefiles or equivalent and can build Dyninst.
 
-We require CMake 2.6 as a minimum on all systems, and CMake 2.8.11
-allows us to automatically download and build libelf/libdwarf/binutils
-on ELF systems if they are needed. If you do not have a sufficiently
-recent CMake, you may need to manually specify the location of these
-dependencies. If you are cross-compiling Dyninst, including builds for
+If you are cross-compiling Dyninst, including builds for
 various Cray and Intel MIC systems, you will either need a toolchain
 file that specifies how to properly cross-compile, or you will need to
 manually define the appropriate compiler, library locations, include
 locations, and the CROSS_COMPILING flag so that the build system will
 properly evaluate what can be built and linked in your environment.
 
-### Building and installing
+#### Building and installing
+CMake allows Dyninst to be built out-of-source; simply invoke CMake in your desired build location. In-source builds are still fully supported as well.
+Each component of Dyninst may be built independently: cd $component; make. Standard make options will work; we fully support parallel compilation for make -jN. Setting VERBOSE=1 will replace the beautified CMake output with raw commands and their output, which can be useful for troubleshooting.
 
-To build Dyninst and all its components, "make && make install" from
-the top-level directory of the source tree. To build and install a
-single component and its dependencies, do the same thing from that
-component's subdirectory. Libraries will be installed into
-`CMAKE_INSTALL_PREFIX/INSTALL_LIB_DIR`, and headers will be installed
-into `CMAKE_INSTALL_PREFIX/INSTALL_INCLUDE_DIR`. If you wish to import
+On Windows, you will need the Debug Information Access (DIA) SDK, which should be available with an MSDN subscription, in order to build Dyninst; you will not need libelf, libdwarf, binutils, or the GCC demangler. Dyninst is still built via CMake, and the NMake and Visual Studio project file generators should both work. We have not tested building Dyninst on Windows with gcc, and we do not expect this to work presently.
+
+If you wish to import
 Dyninst into your own CMake projects, the export information is in
 `CMAKE_INSTALL_PREFIX/INSTALL_CMAKE_DIR`. PDF documentation is included
 and installed to `CMAKE_INSTALL_PREFIX/INSTALL_DOC_DIR`. If you update
@@ -72,44 +102,29 @@ them. Components may be built and installed individually: "make
 $COMPONENT" and "make $COMPONENT-install" respectively; this will
 appropriately respect inter-component dependencies.
 
-### What's new
+### FAQs of building Dyninst
 
-## New features
+1. Q: What should I do if the build failed and showed
 
-* ARM64 SIMD support in instructionAPI
+```"/lib64/libdw.so.1: version `ELFUTILS_0.173' not found```
 
-* Support for all x86 instruction sets up to Knight's Landing (AVX, AVX2, AVX512)
+A: Dyninst now depends on elfutils-0.173 or later. If you are seeing this error, it means the elfutils installed on your system is older than 0.173. We recommend that you set ```LIBELF_INCLUDE_DIR```, ```LIBELF_LIBRARIES```, ```LIBDWARF_INCLUDE_DIR```, and ```LIBDWARF_LIBRARIES``` to empty, which will trigger the CMake to automatically download the correct version of elfutils.
 
-* DataflowAPI now has an official manual
+2. Q: Where are the dependency libraries downloaded by Dyninst?
 
-* Initial ppc64/little endian support in Symtab, InstructionAPI, ProcControl, and Stackwalker. Add
--Darch_ppc64_little_endian to your CMake command line when building on little-endian ppc64 systems.
+A: After installation, Dyninst should copy all dependencies to the install location. In case where the dependencies are not copied, they can be found in the directory where you build Dyninst. For example, suppose you configure and build Dyninst at: ```/home/user/dyninst/build```
 
-## Bug fixes
+Then elfutils, TBB, boost can be found at ```/home/user/dyninst/build/elfutils/```, ```/home/user/dyninst/build/tbb/```, ```/home/user/dyninst/build/boost/```, respectively.
 
-* PIE binaries should now be rewritten correctly, even if they have a zero base address
+3. Q: My system has pre-installed Boost, but the build failed due to that cannot find boost libraries.
 
-* Symtab should now correctly file symbols into their associated modules based on the best available DWARF information
+A: Boost's library naming convention is a little confusing. You probably have the non-multi-threading version installed. So your boost libraries will look like "libboost_system.so". Dyninst links against the multi-threading version of boost, so it will needs "libboost_system-mt.so". Note the "-mt" in the library name. There are two ways to work around:
 
-* Many more fixes in x86 instruction decoding
+(1) Set ```BOOST_ROOT``` to empy which will trigger Dyninst to automaticall build Boost
 
-* Enhancements to jump table analysis
-
-* PC-relative memory accesses in VEX instructions can now be relocated correctly
-
-* Various proccontrol bug fixes
-
-* RTlib's `DYNINSTos_malloc` and `DYNINSTos_free` should now be signal-safe
-
-* RTlib's tramp guard lock/unlock functions should now avoid making implicit function calls
-(which are unsafe from tramp guard code)
-
-* ppc64 bit rot for create/attach modes is fixed
+(2) Create symbolic links from non-multi-threading ones to multi-threading ones (https://stackoverflow.com/questions/3031768/boost-thread-linking-boost-thread-vs-boost-thread-mt)
 
 ## Known Issues
-
-* ppc64 rewriter mode does not handle any code that does not conform to the "caller sets up TOC" model for intermodule
-calls
 
 * Windows 64-bit mode is not yet supported
 
@@ -122,8 +137,6 @@ sections.
 
 * Callbacks at thread or process exit that stop the process will deadlock when a SIGSEGV occurs on a thread other than
 the main thread of a process
-
-* InstructionAPI's format() method does not produce AT&T syntax output
 
 * Stackwalker is fragile on Windows
 
