@@ -136,56 +136,61 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
                                      Address to,
                                      bool isCall) 
 {
+    auto generateBReg = [&isCall, &gen](Register s) -> void
+    {
+        instruction branchInsn;
+        branchInsn.clear();
+
+        //Set bits which are 0 for both BR and BLR
+        INSN_SET(branchInsn, 0, 4, 0);
+        INSN_SET(branchInsn, 10, 15, 0);
+
+        //Set register
+        INSN_SET(branchInsn, 5, 9, s);
+
+        // Set other bits . Basically, these are the opcode bits.
+        // The only difference between BR and BLR is that bit 21 is 1 for BLR.
+        INSN_SET(branchInsn, 16, 31, BRegOp);
+        if(isCall)
+            INSN_SET(branchInsn, 21, 21, 1);
+
+        insnCodeGen::generate(gen, branchInsn);
+    };
+
     Register scratch = REG_NULL;
 
-    instPoint *point = gen.point();
-    if(!point)
+    if(isCall)
     {
-        if(!isCall)
-        {
-            //scratch = 14; //#sasha hard coding register for springboard
-            assert(gen.rs());
-            scratch = gen.rs()->getScratchRegister(gen);
-        }
-        else
-        {
-            generateBranchViaTrap(gen, from, to, isCall);
-            return;
-        }
+        scratch = 9;
+        //push r9
+        saveRegister(gen, scratch, -GPRSIZE_64, Pre);
+        //load disp to r9
+        loadImmIntoReg<Address>(gen, scratch, to);
+        //generate call
+        generateBReg(scratch);
+        //pop r9
+        restoreRegister(gen, scratch, GPRSIZE_64, Pre);
+        return;
     }
-    else
+
+    instPoint *point = gen.point();
+    if(point)
     {
         registerSpace *rs = registerSpace::actualRegSpace(point);
         gen.setRegisterSpace(rs);
 
         scratch = rs->getScratchRegister(gen, true);
-        if (scratch == REG_NULL)
-        {
-            fprintf(stderr, " %s[%d] No registers. Calling generateBranchViaTrap...\n", FILE__, __LINE__);
-            generateBranchViaTrap(gen, from, to, isCall);
-            return;
-        }
     }
 
-    insnCodeGen::loadImmIntoReg<Address>(gen, scratch, to);
+    if (scratch == REG_NULL)
+    {
+        //fprintf(stderr, " %s[%d] No registers. Calling generateBranchViaTrap...\n", FILE__, __LINE__);
+        generateBranchViaTrap(gen, from, to, isCall);
+        return;
+    }
 
-    instruction branchInsn;
-    branchInsn.clear();
-
-    //Set bits which are 0 for both BR and BLR
-    INSN_SET(branchInsn, 0, 4, 0);
-    INSN_SET(branchInsn, 10, 15, 0);
-
-    //Set register
-    INSN_SET(branchInsn, 5, 9, scratch);
-
-    // Set other bits . Basically, these are the opcode bits. 
-    // The only difference between BR and BLR is that bit 21 is 1 for BLR.
-    INSN_SET(branchInsn, 16, 31, BRegOp);
-    if(isCall)
-        INSN_SET(branchInsn, 21, 21, 1);
-
-    insnCodeGen::generate(gen, branchInsn);
+    loadImmIntoReg<Address>(gen, scratch, to);
+    generateBReg(scratch);
 }
 
 void insnCodeGen::generateBranchViaTrap(codeGen &gen, Address from, Address to, bool isCall) {
