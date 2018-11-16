@@ -298,6 +298,15 @@ bool CFWidget::generate(const codeGen &templ,
          else {
             if (!generateIndirect(buffer, reg, trace, insn_))
                return false;
+
+            if (destMap_.find(Fallthrough) != destMap_.end()) {
+               if (!generateBranch(buffer,
+                                   destMap_[Fallthrough],
+                                   Instruction(),
+                                   trace,
+                                   true)) 
+                  return false;
+            }
          }
          break;
       }
