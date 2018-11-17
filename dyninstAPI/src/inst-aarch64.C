@@ -841,10 +841,19 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
             gen.codeEmitter()->emitLoad(dest, src1, size, gen);
             break;
         case loadRegRelativeAddr:
+            // (readReg(src2) + src1)
             // dest is a temporary
             // src2 is the register
             // src1 is the offset from the address in src2
             gen.codeEmitter()->emitLoadOrigRegRelative(dest, src1, src2, gen, false);
+            break;
+        case loadRegRelativeOp:
+            // *(readReg(src2) + src1)
+            // dest is a temporary
+            // src2 is the register
+            // src1 is the offset from the address in src2
+            gen.codeEmitter()->emitLoadOrigRegRelative(dest, src1, src2, gen, true);
+            break;
         default:
             assert(0); //Not implemented
             break;
@@ -895,6 +904,10 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
             size = !size ? proc->getAddressWidth() : size;
             // same as loadOp, but the value to load is already in a register
             gen.codeEmitter()->emitLoadIndir(dest, src1, size, gen);
+            break;
+        case storeIndirOp:
+            size = !size ? proc->getAddressWidth() : size;
+            gen.codeEmitter()->emitStoreIndir(dest, src1, size, gen);
             break;
         default:
             //std::cout << "operation not implemented= " << op << endl;

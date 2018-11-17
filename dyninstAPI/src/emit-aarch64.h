@@ -94,7 +94,7 @@ public:
 
     virtual void emitStore(Address, Register, int, codeGen &);
 
-    virtual void emitStoreIndir(Register, Register, int, codeGen &) { assert(0); }
+    virtual void emitStoreIndir(Register, Register, int, codeGen &);
 
     virtual void emitStoreFrameRelative(Address, Register, Register, int, codeGen &) { assert(0); }
 
