@@ -68,11 +68,13 @@ options include:
 
 ```TBB_tbb_LIBRARY_RELEASE```: full path of libtbb.so
 
-```CMAKE_BUILD_TYPE```: may be set to Debug, Release, or RelWithDebInfo for unoptimized, optimized, and optimized with debug information builds respectively. Note that Debug is the default.
+```CMAKE_BUILD_TYPE```: may be set to Debug, Release, or RelWithDebInfo for unoptimized, optimized, and optimized with debug information builds respectively. Note that RelWithDebInfo is the default.
 
 ```CMAKE_INSTALL_PREFIX```: like PREFIX for autotools-based systems. Where to install things.
 
-```USE_OpenMP```: Whether or not use OpenMP for parallel parsing. Default to be ```ON```
+```USE_OpenMP```: whether or not use OpenMP for parallel parsing. Default to be ```ON```
+
+```ENABLE_STATIC_LIBS```: also build dyninst in static libraries. Default to be ```NO```. Set to ```YES``` to build static libraries. 
 
 CMake's default generator on Linux is normally "Unix Makefiles", and
 on Windows, it will normally produce project files for the most recent
