@@ -234,8 +234,8 @@ void EmitterAARCH64::emitRelOpImm(
 void EmitterAARCH64::emitLoadIndir(Register dest, Register addr_src, int size, codeGen &gen)
 {
     assert(size==4 || size==8);
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, addr_src,
-            dest, 0, size==8?true:false, insnCodeGen::Post);
+    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, dest,
+            addr_src, 0, size==8?true:false, insnCodeGen::Post);
 
     gen.markRegDefined(dest);
 }

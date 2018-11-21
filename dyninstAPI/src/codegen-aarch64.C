@@ -163,13 +163,13 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     {
         scratch = 9;
         //push r9
-        saveRegister(gen, scratch, -GPRSIZE_64, Pre);
+        saveRegister(gen, scratch, -GPRSIZE_64*2, Pre);
         //load disp to r9
         loadImmIntoReg<Address>(gen, scratch, to);
         //generate call
         generateBReg(scratch);
         //pop r9
-        restoreRegister(gen, scratch, GPRSIZE_64, Pre);
+        restoreRegister(gen, scratch, GPRSIZE_64*2, Post);
         return;
     }
 
@@ -479,13 +479,6 @@ Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, pdvector<Regist
         assert(0);
     }
 
-    /*insnCodeGen::generateMove(gen, (val & 0xFFFF), 0, scratchReg, insnCodeGen::MovOp_MOVZ);
-    if (val >= MIN_IMM32 && val < MAX_IMM32)
-        insnCodeGen::generateMove(gen, ((val >> 16) & 0xFFFF), 0x1, scratchReg, insnCodeGen::MovOp_MOVK);
-    if (val < MIN_IMM32 || val > MAX_IMM32) {
-        insnCodeGen::generateMove(gen, ((val >> 32) & 0xFFFF), 0x2, scratchReg, insnCodeGen::MovOp_MOVK);
-        insnCodeGen::generateMove(gen, ((val >> 48) & 0xFFFF), 0x3, scratchReg, insnCodeGen::MovOp_MOVK);
-    }*/
     loadImmIntoReg<long int>(gen, scratchReg, val);
 
     return scratchReg;

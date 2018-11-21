@@ -1021,9 +1021,40 @@ bool doNotOverflow(int64_t value)
 // specified by entry and base_addr.  If it has been bound, then the callee
 // function is returned in "target_pdf", else it returns false.
 bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &entry,
-                             func_instance *&target_pdf, Address base_addr) {
-    assert(0); //Not implemented
-    return false;
+                             func_instance *&target_pdf, Address base_addr)
+{
+	if (isTerminated()) return false;
+
+	// if the relocationEntry has not been bound yet, then the value
+	// at rel_addr is the address of the instruction immediately following
+	// the first instruction in the PLT entry (which is at the target_addr)
+	// The PLT entries are never modified, instead they use an indirrect
+	// jump to an address stored in the _GLOBAL_OFFSET_TABLE_.  When the
+	// function symbol is bound by the runtime linker, it changes the address
+	// in the _GLOBAL_OFFSET_TABLE_ corresponding to the PLT entry
+
+	Address got_entry = entry.rel_addr() + base_addr;
+	Address bound_addr = 0;
+	if (!readDataSpace((const void*)got_entry, sizeof(Address),
+				&bound_addr, true)){
+		sprintf(errorLine, "read error in PCProcess::hasBeenBound addr 0x%x, pid=%d\n (readDataSpace returns 0)",(unsigned)got_entry,getPid());
+		logLine(errorLine);
+		//print_read_error_info(entry, target_pdf, base_addr);
+		fprintf(stderr, "%s[%d]: %s\n", FILE__, __LINE__, errorLine);
+		return false;
+	}
+
+   //fprintf(stderr, "%s[%d]:  hasBeenBound:  %p ?= %p ?\n", FILE__, __LINE__, bound_addr, entry.target_addr() + 6 + base_addr);
+	if ( !( bound_addr == (entry.target_addr()+6+base_addr)) ) {
+	  // the callee function has been bound by the runtime linker
+	  // find the function and return it
+	  target_pdf = findFuncByEntry(bound_addr);
+	  if(!target_pdf){
+	    return false;
+	  }
+	  return true;
+	}
+	return false;
 }
 
 #endif
