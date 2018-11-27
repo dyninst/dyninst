@@ -1028,6 +1028,8 @@ bool int_process::waitAndHandleEvents(bool block)
                             (checkAsyncEvents)
                            )
                           );
+      if (block == false)
+	      should_block = false;
       //Entry for this print match the above tests in order and one-for-one.
       pthrd_printf("%s for events = !%c && ((%c && !%c && %c) || %c || %c || %c || %c || %c || %c || %c || %c)\n",
                    should_block ? "Blocking" : "Polling",
