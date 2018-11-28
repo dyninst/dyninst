@@ -20,3 +20,8 @@ represent the control flow graph. A simple query interface is provided for
 retrieving lower level objects like functions and basic blocks through address
 or other attribute lookups. These objects can be used to navigate the program
 structure as described below.
+
+Since Dyninst 10.0, ParseAPI is officially supporting parallel binary code analysis
+and parallel queries. We typically observe 4X speedup when analyzing binaries with
+8 threads. To control the number of threads used during parallel parsing, please
+set environment variable \code{OMP\_NUM\_THREADS}.

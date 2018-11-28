@@ -445,6 +445,13 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                             return false;
 		                }
 		                int exitcode = (int)eventmsg;
+                        if (WIFSIGNALED(exitcode)) {
+                            int termsig = WTERMSIG(exitcode);
+                            pthrd_printf("Decoded event to pre-exit due to crash/signal %d\n", termsig);
+                            event = Event::ptr(new EventCrash(termsig));
+                            break;
+                        }
+
 		                exitcode = WEXITSTATUS(exitcode);
 
 		                pthrd_printf("Decoded event to pre-exit of process %d/%d with code %i\n",
