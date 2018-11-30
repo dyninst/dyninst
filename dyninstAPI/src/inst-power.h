@@ -105,11 +105,10 @@
         (                                                           \
             ((mutatee_address_width) == sizeof(uint64_t))           \
             ? (   /* 64-bit ELF PowerPC Linux                   */  \
-                  sizeof(uint64_t) +  /* TOC save               */  \
-                  sizeof(uint64_t) +  /* link editor doubleword */  \
-                  sizeof(uint64_t) +  /* compiler doubleword    */  \
-                  sizeof(uint64_t) +  /* LR save                */  \
-                  sizeof(uint64_t) +  /* CR save                */  \
+                  sizeof(uint64_t) +  /* TOC save doubleword    */  \
+                  sizeof(uint64_t) +  /* LR save doublewordd    */  \
+                  sizeof(uint32_t) +  /* Reserved word          */  \
+                  sizeof(uint32_t) +  /* CR save word           */  \
                   sizeof(uint64_t)    /* Stack frame back chain */  \
               )                                                     \
             : (   /* 32-bit ELF PowerPC Linux                   */  \
