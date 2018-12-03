@@ -618,10 +618,12 @@ typedef unsigned codeBufIndex_t;
 #define SFxop		8       /* subtract from -- SUBFxop */
 #define MULSop          31      /* multiply short -- XFPop */
 #define MULSxop         235     /* multiply short -- MULLWxop */
+#define MULLxop         233     /* multiply long -- 64-bit integer multiplication */
 #define CAXop		31      /* compute address -- XFPop */
 #define CAXxop		266     /* compute address -- ADDxop */
 #define DIVSop          31      /* divide short -- XFPop */
 #define DIVSxop         363     /* divide short -- replacing DIVWxop */
+#define DIVLxop         489     /* divide long  -- 64-bit integer divison */
 
 // ------------- Extended Floating PointOp Codes, instruction form A ---
 // Op code - 59

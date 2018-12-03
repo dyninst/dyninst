@@ -2143,13 +2143,13 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 
             case timesOp:
                 instOp = MULSop;
-                instXop = MULSxop;
+                instXop = MULLxop;
                 break;
 
             case divOp:
                 instOp = DIVSop;   // POWER divide instruction
                                    // Same as DIVWop for PowerPC
-                instXop = DIVWxop; // PowerPC
+                instXop = DIVLxop; // PowerPC
                 break;
 
             // Bool ops
