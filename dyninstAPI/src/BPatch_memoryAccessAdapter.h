@@ -47,7 +47,7 @@ class BPatch_memoryAccessAdapter : public Dyninst::InstructionAPI::Visitor
   virtual ~BPatch_memoryAccessAdapter() {
   }
   
-  BPatch_memoryAccess* convert(Dyninst::InstructionAPI::Instruction::Ptr insn,
+  BPatch_memoryAccess* convert(Dyninst::InstructionAPI::Instruction insn,
 			       Address current, bool is64);
   virtual void visit(Dyninst::InstructionAPI::BinaryFunction* b);
   virtual void visit(Dyninst::InstructionAPI::Dereference* d);

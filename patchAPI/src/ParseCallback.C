@@ -146,6 +146,7 @@ void PatchParseCallback::remove_edge_cb(ParseAPI::Block *block, ParseAPI::Edge *
 
 void PatchParseCallback::add_edge_cb(ParseAPI::Block *block, ParseAPI::Edge *edge, edge_type_t type) {
    PatchObject *pbObj = _obj->addrSpace()->findObject(block->obj());
+    if(!pbObj) return; // e.g. sink block
    PatchBlock *pb = pbObj->getBlock(block, false);
    if (!pb) return; // We haven't created the block, so we'll get around to the edge later.
    
@@ -159,6 +160,7 @@ void PatchParseCallback::add_edge_cb(ParseAPI::Block *block, ParseAPI::Edge *edg
            return;
 
    ParseAPI::Block *block2 = (type == source) ? edge->src() : edge->trg();
+    if(!block2->obj()) return;
    PatchObject *pb2Obj = _obj->addrSpace()->findObject(block2->obj());
    PatchBlock *pb2 = pb2Obj->getBlock(block2);
    assert(pb2);

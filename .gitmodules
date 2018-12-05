@@ -1,0 +1,6 @@
+[submodule "cmake/Modules/FindTBB"]
+	path = cmake/Modules/FindTBB
+	url = https://github.com/justusc/FindTBB
+[submodule "testsuite"]
+	path = testsuite
+	url = https://github.com/dyninst/testsuite

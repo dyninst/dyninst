@@ -490,22 +490,22 @@ bool ProbabilityCalculator::decodeInstruction(DecodeData &data, Address addr) {
 	    return false;
 	}
 	InstructionDecoder dec( buf ,  30, cs->getArch()); 
-        Instruction::Ptr insn = dec.decode();
-	if (!insn) {
+        Instruction insn = dec.decode();
+	if (!insn.isValid()) {
 	    decodeCache.insert(make_pair(addr, DecodeData(JUNK_OPCODE, 0,0,0)));
 	    return false;
 	}
-	data.len = (unsigned short)insn->size();
+	data.len = (unsigned short)insn.size();
 	if (data.len == 0) {
 	    decodeCache.insert(make_pair(addr, DecodeData(JUNK_OPCODE, 0,0,0)));
 	    return false;
 	}
 	
-	const Operation & op = insn->getOperation();
+	auto op = insn.getOperation();
 	data.entry_id = op.getID();
 
 	vector<Operand> ops;
-	insn->getOperands(ops);
+	insn.getOperands(ops);
 	int args[2] = {NOARG,NOARG};
 	for(unsigned int i=0;i<2 && i<ops.size();++i) {
 	    Operand & op = ops[i];
@@ -577,7 +577,7 @@ bool ProbabilityCalculator::enforceOverlappingConstraints(Function *f,
     auto call_edges = f->callEdges();
     for (auto eit = call_edges.begin(); eit != call_edges.end(); ++eit) {
         if ((*eit)->type() == CALL_FT) continue;
-	Address target = (*eit)->trg()->start();
+	Address target = (*eit)->trg_addr();
 	if (reachingProb.find(target) == reachingProb.end()) continue;
 	if (double_cmp(cur_prob, getFEPProb(target)) > 0) {
 	    newFEPProb[target] = cur_prob;

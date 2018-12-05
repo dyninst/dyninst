@@ -130,7 +130,7 @@ class DynParseCallback : public ParseAPI::ParseCallback {
   virtual void remove_edge_cb(ParseAPI::Block *, ParseAPI::Edge *, edge_type_t);
   virtual void remove_block_cb(ParseAPI::Function *, ParseAPI::Block *);
 
-#if defined(arch_power)
+#if defined(arch_power) || defined(arch_aarch64)
   void instruction_cb(ParseAPI::Function*, ParseAPI::Block *, Address, insn_details*);
 #endif
  private:

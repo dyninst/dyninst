@@ -35,6 +35,7 @@
 #include "Immediate.h"
 #include "../../common/src/singleton_object_pool.h"
 #include "Visitor.h"
+#include "ArchSpecificFormatters.h"
 #include <boost/assign/list_of.hpp>
 
 namespace Dyninst {
@@ -67,8 +68,8 @@ namespace Dyninst {
             return;
         }
 
-        std::string Immediate::format(ArchSpecificFormatter *formatter, formatStyle) const {
-            return formatter->formatImmediate(eval().format());
+        std::string Immediate::format(Architecture arch, formatStyle) const {
+            return ArchSpecificFormatter::getFormatter(arch).formatImmediate(eval().format());
         }
 
         std::string Immediate::format(formatStyle) const {
@@ -94,12 +95,8 @@ namespace Dyninst {
             return ret;
         }
 
-        std::string ArmConditionImmediate::format(ArchSpecificFormatter *, formatStyle) const {
-            unsigned int cond_val = eval().convert<unsigned int>();
-            if(m_condLookupMap.count(cond_val) > 0)
-		return m_condLookupMap.find(cond_val)->second;
-	    else
-		return "Error: Invalid condition code for ARM64!";
+        std::string ArmConditionImmediate::format(Architecture, formatStyle f) const {
+            return format(f);
         }
 
         std::string ArmConditionImmediate::format(formatStyle) const {
@@ -119,12 +116,8 @@ namespace Dyninst {
 	    return ret;
 	}
 
-	std::string ArmPrfmTypeImmediate::format(ArchSpecificFormatter *, formatStyle) const {
-	    unsigned prfm_type = eval().convert<unsigned int>();
-	    if(m_prfmTypeLookupMap.count(prfm_type) > 0)
-		return m_prfmTypeLookupMap.find(prfm_type)->second;
-	    else
-		return "Error: Invalid prefetech memory type for ARM64!";
+	std::string ArmPrfmTypeImmediate::format(Architecture, formatStyle f) const {
+	    return format(f);
 	}
 
     std::string ArmPrfmTypeImmediate::format(formatStyle) const {

@@ -32,12 +32,14 @@
 
 #include "common/src/Types.h"
 
-#include "Operation.h"
+#include "Operation_impl.h"
 #include "common/src/arch-x86.h"
 #include "entryIDs.h"
 #include "common/src/Singleton.h"
 #include "Register.h"
 #include <map>
+#include <mutex>
+#include <tbb/concurrent_hash_map.h>
 #include "common/src/singleton_object_pool.h"
 
 using namespace NS_x86;
@@ -57,8 +59,8 @@ namespace Dyninst
         return make_shared(singleton_object_pool<RegisterAST>::construct(regID, 0, regID.size() * 8));
     }
 
-    Operation::Operation(entryID id, const char* mnem, Architecture arch)
-          : mnemonic(mnem), operationID(id), doneOtherSetup(true), doneFlagsSetup(true), archDecodedFrom(arch), prefixID(prefix_none)
+    Operation_impl::Operation_impl(entryID id, std::string m, Architecture arch)
+        : operationID(id), archDecodedFrom(arch), prefixID(prefix_none)
     {
         switch(archDecodedFrom)
         {
@@ -70,12 +72,49 @@ namespace Dyninst
                 addrWidth = u64;
                 break;
         }
+        segPrefix = 0;
+        isVectorInsn = false;
+        mnemonic = m;
+    }
+
+    static bool getVectorizationInfo(ia32_entry* e)
+    {
+        for(int i = 0; i < 3; i++)
+        {
+            switch(e->operands[i].admet)
+            {
+                case am_V:
+                case am_W:
+                case am_P:
+                case am_Q:
+                case am_HK:
+                case am_H:
+                case am_X:
+                case am_XH:
+                case am_XU:
+                case am_XV:
+                case am_XW:
+                case am_Y:
+                case am_YH:
+                case am_YU:
+                case am_YV:
+                case am_YW:
+                case am_VK:
+                case am_WK:
+
+                    return true;
+                default:
+                    break;
+            }
+        }
+        return false;
     }
     
-    Operation::Operation(ia32_entry* e, ia32_prefixes* p, ia32_locations* l, Architecture arch) :
-      doneOtherSetup(false), doneFlagsSetup(false), archDecodedFrom(arch), prefixID(prefix_none)
-    
+    Operation_impl::Operation_impl(ia32_entry* e, ia32_prefixes* p, ia32_locations* l, Architecture arch) :
+        archDecodedFrom(arch), prefixID(prefix_none)
     {
+      segPrefix = 0;
+      isVectorInsn = getVectorizationInfo(e);
       operationID = e->getID(l);
       // Defaults for no size prefix
       switch(archDecodedFrom)
@@ -88,50 +127,11 @@ namespace Dyninst
               addrWidth = u64;
               break;
       }
-      
       if(p && p->getCount())
       {
-        if (p->getPrefix(0) == PREFIX_REP || p->getPrefix(0) == PREFIX_REPNZ)
-	{
-            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
-            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ecx : x86_64::rcx));
-            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ecx : x86_64::rcx));
-            if(p->getPrefix(0) == PREFIX_REPNZ)
-            {
-                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
-                prefixID = prefix_repnz;
-            }
-            else
-            {
-                prefixID = prefix_rep;
-            }
-        }
-        else
-        {
-          prefixID = prefix_none;
-        }
-        int segPrefix = p->getPrefix(1);
-        switch(segPrefix)
-        {
-            case PREFIX_SEGCS:
-                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::cs : x86_64::cs));
-                break;
-            case PREFIX_SEGDS:
-                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ds : x86_64::ds));
-                break;
-            case PREFIX_SEGES:
-                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::es : x86_64::es));
-                break;
-            case PREFIX_SEGFS:
-                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::fs : x86_64::fs));
-                break;
-            case PREFIX_SEGGS:
-                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::gs : x86_64::gs));
-                break;
-            case PREFIX_SEGSS:
-                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ss : x86_64::ss));
-                break;
-        }
+        if (p->getPrefix(0) == PREFIX_REP) prefixID = prefix_rep;
+        if (p->getPrefix(0) == PREFIX_REPNZ) prefixID = prefix_repnz;
+        segPrefix = p->getPrefix(1);
         if(p->getAddrSzPrefix())
         {
             addrWidth = u16;
@@ -139,57 +139,50 @@ namespace Dyninst
       }
     }
 
-    Operation::Operation(const Operation& o)
+    Operation_impl::Operation_impl(const Operation_impl& o)
     {
-      otherRead = o.otherRead;
-      otherWritten = o.otherWritten;
-      otherEffAddrsRead = o.otherEffAddrsRead;
-      otherEffAddrsWritten = o.otherEffAddrsWritten;
       operationID = o.operationID;
-      doneOtherSetup = o.doneOtherSetup;
-      doneFlagsSetup = o.doneFlagsSetup;
-      archDecodedFrom = o.archDecodedFrom;
-      prefixID = prefix_none;
-      addrWidth = o.addrWidth;
-      
-    }
-    const Operation& Operation::operator=(const Operation& o)
-    {
-      otherRead = o.otherRead;
-      otherWritten = o.otherWritten;
-      otherEffAddrsRead = o.otherEffAddrsRead;
-      otherEffAddrsWritten = o.otherEffAddrsWritten;
-      operationID = o.operationID;
-      doneOtherSetup = o.doneOtherSetup;
-      doneFlagsSetup = o.doneFlagsSetup;
       archDecodedFrom = o.archDecodedFrom;
       prefixID = o.prefixID;
       addrWidth = o.addrWidth;
+      segPrefix = o.segPrefix;
+      isVectorInsn = o.isVectorInsn;
+      mnemonic = o.mnemonic;
+    }
+    const Operation_impl& Operation_impl::operator=(const Operation_impl& o)
+    {
+      operationID = o.operationID;
+      archDecodedFrom = o.archDecodedFrom;
+      prefixID = o.prefixID;
+      addrWidth = o.addrWidth;
+      segPrefix = o.segPrefix;
+      isVectorInsn = o.isVectorInsn;
+      mnemonic = o.mnemonic;
       return *this;
     }
-    Operation::Operation()
+    Operation_impl::Operation_impl()
     {
       operationID = e_No_Entry;
-      doneOtherSetup = false;
-      doneFlagsSetup = false;
       archDecodedFrom = Arch_none;
       prefixID = prefix_none;
       addrWidth = u64;
+      segPrefix = 0;
+      isVectorInsn = false;
     }
     
-    const Operation::registerSet&  Operation::implicitReads() const
+    const Operation_impl::registerSet&  Operation_impl::implicitReads()
     {
       SetUpNonOperandData(true);
       
       return otherRead;
     }
-    const Operation::registerSet&  Operation::implicitWrites() const
+    const Operation_impl::registerSet&  Operation_impl::implicitWrites()
     {
       SetUpNonOperandData(true);
 
       return otherWritten;
     }
-    bool Operation::isRead(Expression::Ptr candidate) const
+    bool Operation_impl::isRead(Expression::Ptr candidate)
     {
      
 	SetUpNonOperandData(candidate->isFlag());
@@ -214,18 +207,18 @@ namespace Dyninst
       }
       return false;
     }
-    const Operation::VCSet& Operation::getImplicitMemReads() const
+    const Operation_impl::VCSet& Operation_impl::getImplicitMemReads()
     {
       SetUpNonOperandData(true);
       return otherEffAddrsRead;
     }
-    const Operation::VCSet& Operation::getImplicitMemWrites() const
+    const Operation_impl::VCSet& Operation_impl::getImplicitMemWrites()
     {
       SetUpNonOperandData(true);
       return otherEffAddrsWritten;
     }
 
-    bool Operation::isWritten(Expression::Ptr candidate) const
+    bool Operation_impl::isWritten(Expression::Ptr candidate)
     {
      
 	SetUpNonOperandData(candidate->isFlag());
@@ -251,7 +244,7 @@ namespace Dyninst
       return false;
     }
 	  
-    std::string Operation::format() const
+    std::string Operation_impl::format() const
     {
         if(mnemonic != "")
         {
@@ -275,18 +268,20 @@ namespace Dyninst
       return result;
     }
 
-    entryID Operation::getID() const
+    entryID Operation_impl::getID() const
     {
       return operationID;
     }
 
-    prefixEntryID Operation::getPrefixID() const
+    prefixEntryID Operation_impl::getPrefixID() const
     {
       return prefixID;
     }
 
     struct OperationMaps
     {
+        typedef tbb::concurrent_hash_map<entryID, Operation_impl::registerSet > reg_info_t;
+        typedef tbb::concurrent_hash_map<entryID, Operation_impl::VCSet > mem_info_t;
     public:
       OperationMaps(Architecture arch)
       {
@@ -298,95 +293,98 @@ namespace Dyninst
           framePointer.insert(RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(arch))));
           spAndBP.insert(RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(arch))));
           spAndBP.insert(RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(arch))));
-          si.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::esi : x86::esi)));
-          di.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::edi : x86::edi)));
-          si_and_di.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::esi : x86::esi)));
-          si_and_di.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::edi : x86::edi)));
+          si.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::rsi : x86::esi)));
+          di.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::rdi : x86::edi)));
+          si_and_di.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::rsi : x86::esi)));
+          si_and_di.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::rdi : x86::edi)));
 	
-          nonOperandRegisterReads[e_call] = pcAndSP;
-          nonOperandRegisterReads[e_ret_near] = stackPointer;
-          nonOperandRegisterReads[e_ret_far] = stackPointer;
-          nonOperandRegisterReads[e_leave] = framePointer;
-          nonOperandRegisterReads[e_enter] = spAndBP;
-	
-          nonOperandRegisterWrites[e_call] = pcAndSP;
-          nonOperandRegisterWrites[e_ret_near] = pcAndSP;
-          nonOperandRegisterWrites[e_ret_far] = pcAndSP;
-          nonOperandRegisterWrites[e_leave] = spAndBP;
-          nonOperandRegisterWrites[e_enter] = spAndBP;
-          nonOperandRegisterWrites[e_loop] = thePC;
-          nonOperandRegisterWrites[e_loope] = thePC;
-          nonOperandRegisterWrites[e_loopn] = thePC;
-          nonOperandRegisterWrites[e_jb] = thePC;
-          nonOperandRegisterWrites[e_jb_jnaej_j] = thePC;
-        nonOperandRegisterWrites[e_jbe] = thePC;
-        nonOperandRegisterWrites[e_jcxz_jec] = thePC;
-        nonOperandRegisterWrites[e_jl] = thePC;
-        nonOperandRegisterWrites[e_jle] = thePC;
-        nonOperandRegisterWrites[e_jmp] = thePC;
-        nonOperandRegisterWrites[e_jnb] = thePC;
-        nonOperandRegisterWrites[e_jnb_jae_j] = thePC;
-        nonOperandRegisterWrites[e_jnbe] = thePC;
-        nonOperandRegisterWrites[e_jnl] = thePC;
-        nonOperandRegisterWrites[e_jnle] = thePC;
-        nonOperandRegisterWrites[e_jno] = thePC;
-        nonOperandRegisterWrites[e_jnp] = thePC;
-        nonOperandRegisterWrites[e_jns] = thePC;
-        nonOperandRegisterWrites[e_jnz] = thePC;
-        nonOperandRegisterWrites[e_jo] = thePC;
-        nonOperandRegisterWrites[e_jp] = thePC;
-        nonOperandRegisterWrites[e_js] = thePC;
-        nonOperandRegisterWrites[e_jz] = thePC;
-        nonOperandMemoryReads[e_pop] = stackPointerAsExpr;
-        nonOperandMemoryReads[e_popa] = stackPointerAsExpr;
-        nonOperandMemoryReads[e_popad] = stackPointerAsExpr;
-        nonOperandMemoryWrites[e_push] = stackPointerAsExpr;
-        nonOperandMemoryWrites[e_pusha] = stackPointerAsExpr;
-        nonOperandMemoryWrites[e_pushad] = stackPointerAsExpr;
-        nonOperandMemoryWrites[e_call] = stackPointerAsExpr;
-        nonOperandMemoryReads[e_ret_near] = stackPointerAsExpr;
-        nonOperandMemoryReads[e_ret_far] = stackPointerAsExpr;
-	nonOperandMemoryReads[e_leave] = stackPointerAsExpr;
-        nonOperandRegisterWrites[e_cmpsb] = si_and_di;
-        nonOperandRegisterWrites[e_cmpsd] = si_and_di;
-        nonOperandRegisterWrites[e_cmpsw] = si_and_di;
-        nonOperandRegisterWrites[e_movsb] = si_and_di;
-        nonOperandRegisterWrites[e_movsd] = si_and_di;
-        nonOperandRegisterWrites[e_movsw] = si_and_di;
-        nonOperandRegisterWrites[e_cmpsb] = si_and_di;
-        nonOperandRegisterWrites[e_cmpsd] = si_and_di;
-        nonOperandRegisterWrites[e_cmpsw] = si_and_di;
-        nonOperandRegisterWrites[e_insb] = di;
-        nonOperandRegisterWrites[e_insd] = di;
-        nonOperandRegisterWrites[e_insw] = di;
-        nonOperandRegisterWrites[e_stosb] = di;
-        nonOperandRegisterWrites[e_stosd] = di;
-        nonOperandRegisterWrites[e_stosw] = di;
-        nonOperandRegisterWrites[e_scasb] = di;
-        nonOperandRegisterWrites[e_scasd] = di;
-        nonOperandRegisterWrites[e_scasw] = di;
-        nonOperandRegisterWrites[e_lodsb] = si;
-        nonOperandRegisterWrites[e_lodsd] = si;
-        nonOperandRegisterWrites[e_lodsw] = si;
-        nonOperandRegisterWrites[e_outsb] = si;
-        nonOperandRegisterWrites[e_outsd] = si;
-        nonOperandRegisterWrites[e_outsw] = si;
-        
-      }
-      Operation::registerSet thePC;
-      Operation::registerSet pcAndSP;
-      Operation::registerSet stackPointer;
-      Operation::VCSet stackPointerAsExpr;
-      Operation::registerSet framePointer;
-      Operation::registerSet spAndBP;
-      Operation::registerSet si;
-      Operation::registerSet di;
-      Operation::registerSet si_and_di;
-      dyn_hash_map<entryID, Operation::registerSet > nonOperandRegisterReads;
-      dyn_hash_map<entryID, Operation::registerSet > nonOperandRegisterWrites;
+          nonOperandRegisterReads.insert(make_pair(e_call, pcAndSP));
+          nonOperandRegisterReads.insert(make_pair(e_ret_near, stackPointer));
+          nonOperandRegisterReads.insert(make_pair(e_ret_far, stackPointer));
+          nonOperandRegisterReads.insert(make_pair(e_leave, framePointer));
+          nonOperandRegisterReads.insert(make_pair(e_enter, spAndBP));
 
-      dyn_hash_map<entryID, Operation::VCSet > nonOperandMemoryReads;
-      dyn_hash_map<entryID, Operation::VCSet > nonOperandMemoryWrites;
+          nonOperandRegisterWrites.insert(make_pair(e_call, pcAndSP));
+          nonOperandRegisterWrites.insert(make_pair(e_ret_near, pcAndSP));
+          nonOperandRegisterWrites.insert(make_pair(e_ret_far, pcAndSP));
+          nonOperandRegisterWrites.insert(make_pair(e_leave, spAndBP));
+          nonOperandRegisterWrites.insert(make_pair(e_enter, spAndBP));
+
+          nonOperandRegisterWrites.insert(make_pair(e_loop, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_loope, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_loopn, thePC));
+
+          nonOperandRegisterWrites.insert(make_pair(e_jb, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jb_jnaej_j, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jbe, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jcxz_jec, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jl, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jle, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jmp, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jnb, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jnb_jae_j, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jnbe, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jnl, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jnle, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jno, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jnp, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jns, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jnz, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jo, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jp, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_js, thePC));
+          nonOperandRegisterWrites.insert(make_pair(e_jz, thePC));
+
+          nonOperandMemoryReads.insert(make_pair(e_pop, stackPointerAsExpr));
+          nonOperandMemoryReads.insert(make_pair(e_popa, stackPointerAsExpr));
+          nonOperandMemoryReads.insert(make_pair(e_popad, stackPointerAsExpr));
+          nonOperandMemoryWrites.insert(make_pair(e_push, stackPointerAsExpr));
+          nonOperandMemoryWrites.insert(make_pair(e_pusha, stackPointerAsExpr));
+          nonOperandMemoryWrites.insert(make_pair(e_pushad, stackPointerAsExpr));
+          nonOperandMemoryWrites.insert(make_pair(e_call, stackPointerAsExpr));
+          nonOperandMemoryReads.insert(make_pair(e_ret_near, stackPointerAsExpr));
+          nonOperandMemoryReads.insert(make_pair(e_ret_far, stackPointerAsExpr));
+          nonOperandMemoryReads.insert(make_pair(e_leave, stackPointerAsExpr));
+
+          nonOperandRegisterWrites.insert(make_pair(e_cmpsb, si_and_di));
+          nonOperandRegisterWrites.insert(make_pair(e_cmpsd, si_and_di));
+          nonOperandRegisterWrites.insert(make_pair(e_cmpsw, si_and_di));
+          nonOperandRegisterWrites.insert(make_pair(e_movsb, si_and_di));
+          nonOperandRegisterWrites.insert(make_pair(e_movsd, si_and_di));
+          nonOperandRegisterWrites.insert(make_pair(e_movsw, si_and_di));
+          nonOperandRegisterWrites.insert(make_pair(e_insb, di));
+          nonOperandRegisterWrites.insert(make_pair(e_insd, di));
+          nonOperandRegisterWrites.insert(make_pair(e_insw, di));
+          nonOperandRegisterWrites.insert(make_pair(e_stosb, di));
+          nonOperandRegisterWrites.insert(make_pair(e_stosd, di));
+          nonOperandRegisterWrites.insert(make_pair(e_stosw, di));
+          nonOperandRegisterWrites.insert(make_pair(e_scasb, di));
+          nonOperandRegisterWrites.insert(make_pair(e_scasd, di));
+          nonOperandRegisterWrites.insert(make_pair(e_scasw, di));
+          nonOperandRegisterWrites.insert(make_pair(e_lodsb, di));
+          nonOperandRegisterWrites.insert(make_pair(e_lodsd, di));
+          nonOperandRegisterWrites.insert(make_pair(e_lodsw, di));
+          nonOperandRegisterWrites.insert(make_pair(e_outsb, di));
+          nonOperandRegisterWrites.insert(make_pair(e_outsd, di));
+          nonOperandRegisterWrites.insert(make_pair(e_outsw, di));
+
+
+      }
+      Operation_impl::registerSet thePC;
+      Operation_impl::registerSet pcAndSP;
+      Operation_impl::registerSet stackPointer;
+      Operation_impl::VCSet stackPointerAsExpr;
+      Operation_impl::registerSet framePointer;
+      Operation_impl::registerSet spAndBP;
+      Operation_impl::registerSet si;
+      Operation_impl::registerSet di;
+      Operation_impl::registerSet si_and_di;
+
+      reg_info_t nonOperandRegisterReads;
+      reg_info_t nonOperandRegisterWrites;
+
+      mem_info_t nonOperandMemoryReads;
+      mem_info_t nonOperandMemoryWrites;
     };
     OperationMaps op_data_32(Arch_x86);
     OperationMaps op_data_64(Arch_x86_64);
@@ -402,137 +400,150 @@ namespace Dyninst
                 return op_data_32;
         }
     }
-    void Operation::SetUpNonOperandData(bool needFlags) const
+    void Operation_impl::SetUpNonOperandData(bool needFlags)
     {
-        if(doneOtherSetup && doneFlagsSetup) return;
-#if defined(arch_x86) || defined(arch_x86_64)      
-        dyn_hash_map<entryID, registerSet >::const_iterator foundRegs;
-      foundRegs = op_data(archDecodedFrom).nonOperandRegisterReads.find(operationID);
-      if(foundRegs != op_data(archDecodedFrom).nonOperandRegisterReads.end())
-      {
-          otherRead.insert(foundRegs->second.begin(), foundRegs->second.end());
-      }
-      foundRegs = op_data(archDecodedFrom).nonOperandRegisterWrites.find(operationID);
-      if(foundRegs != op_data(archDecodedFrom).nonOperandRegisterWrites.end())
-      {
-          otherWritten.insert(foundRegs->second.begin(), foundRegs->second.end());
-      }
-      dyn_hash_map<entryID, VCSet >::const_iterator foundMem;
-      foundMem = op_data(archDecodedFrom).nonOperandMemoryReads.find(operationID);
-      if(foundMem != op_data(archDecodedFrom).nonOperandMemoryReads.end())
-      {
-          otherEffAddrsRead.insert(foundMem->second.begin(), foundMem->second.end());
-      }
-      if(operationID == e_push)
-      {
-          BinaryFunction::funcT::Ptr adder(new BinaryFunction::addResult());
-                    // special case for push: we write at the new value of the SP.
-          Result dummy(addrWidth, 0);
-          Expression::Ptr push_addr(new BinaryFunction(
-                  *(op_data(archDecodedFrom).stackPointerAsExpr.begin()),
-          Immediate::makeImmediate(Result(s8, -(dummy.size()))),
-          addrWidth,
-          adder));
-                
-          otherEffAddrsWritten.insert(push_addr);
-                  
-      }
-      else
-      {
-          foundMem = op_data(archDecodedFrom).nonOperandMemoryWrites.find(operationID);
-          if(foundMem != op_data(archDecodedFrom).nonOperandMemoryWrites.end())
-          {
-              otherEffAddrsWritten.insert(foundMem->second.begin(), foundMem->second.end());
-          }
-      }
-      if(needFlags && !doneFlagsSetup)
-      {
-	
-	dyn_hash_map<entryID, flagInfo>::const_iterator found = ia32_instruction::getFlagTable().find(operationID);
-	if(found != ia32_instruction::getFlagTable().end())
-	{
-	  for(unsigned i = 0; i < found->second.readFlags.size(); i++)
-	  {
-            switch(found->second.readFlags[i]) {
-	    case x86::icf:
-	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::cf : x86_64::cf));
-	      break;
-	    case x86::ipf:
-	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::pf : x86_64::pf));
-	      break;
-	    case x86::iaf:
-	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::af : x86_64::af));
-	      break;
-	    case x86::izf:
-	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
-	      break;
-	    case x86::isf:
-	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::sf : x86_64::sf));
-	      break;
-	    case x86::itf:
-	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::tf : x86_64::tf));
-	      break;
-	    case x86::idf:
-	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
-	      break;
-	    case x86::iof:
-	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::of : x86_64::of));
-	      break;
-	    case x86::int_:
-	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::nt_ : x86_64::nt_));
-	      break;
-            case x86::iif_:
-              otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::if_ : x86_64::if_));
-              break;
-            default:
-	      assert(0);
-	    }
-	  }
-	  for(unsigned j = 0; j < found->second.writtenFlags.size(); j++)
-	    {
-            switch(found->second.writtenFlags[j]) {
-	    case x86::icf:
-	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::cf : x86_64::cf));
-	      break;
-	    case x86::ipf:
-	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::pf : x86_64::pf));
-	      break;
-	    case x86::iaf:
-	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::af : x86_64::af));
-	      break;
-	    case x86::izf:
-	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
-	      break;
-	    case x86::isf:
-	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::sf : x86_64::sf));
-	      break;
-	    case x86::itf:
-	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::tf : x86_64::tf));
-	      break;
-	    case x86::idf:
-	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
-	      break;
-	    case x86::iof:
-	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::of : x86_64::of));
-	      break;
-	    case x86::int_:
-	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::nt_ : x86_64::nt_));
-	      break;
-	    case x86::iif_:
-	      otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::if_ : x86_64::if_));
-	      break;
-	    default:
-               fprintf(stderr, "ERROR: unhandled entry %s\n", found->second.writtenFlags[j].name().c_str());
-	       assert(0);
-	    }
-	  }
-	}
-	doneFlagsSetup = true;
-      }
-      doneOtherSetup = true;
-#else
-      (void) needFlags; //Silence warnings
-#endif //defined(arch_x86) || defined(arch_x86_64)
+        #if defined(arch_x86) || defined(arch_x86_64)
+        std::call_once(data_initialized, [&]() {
+        if (prefixID == prefix_rep || prefixID == prefix_repnz) 	{
+            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
+            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ecx : x86_64::rcx));
+            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ecx : x86_64::rcx));
+            if(prefixID == prefix_repnz)
+            {
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
+            }
+        }
+        switch(segPrefix)
+        {
+            case PREFIX_SEGCS:
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::cs : x86_64::cs));
+                break;
+            case PREFIX_SEGDS:
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ds : x86_64::ds));
+                break;
+            case PREFIX_SEGES:
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::es : x86_64::es));
+                break;
+            case PREFIX_SEGFS:
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::fs : x86_64::fs));
+                break;
+            case PREFIX_SEGGS:
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::gs : x86_64::gs));
+                break;
+            case PREFIX_SEGSS:
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ss : x86_64::ss));
+                break;
+        }
+
+            OperationMaps::reg_info_t::const_accessor a, b;
+            if (op_data(archDecodedFrom).nonOperandRegisterReads.find(a, operationID)) {
+                otherRead.insert(a->second.begin(), a->second.end());
+            }
+            if (op_data(archDecodedFrom).nonOperandRegisterWrites.find(b, operationID)) {
+                otherWritten.insert(b->second.begin(), b->second.end());
+            }
+            OperationMaps::mem_info_t::const_accessor c, d;
+            if (op_data(archDecodedFrom).nonOperandMemoryReads.find(c, operationID)) {
+                otherEffAddrsRead.insert(c->second.begin(), c->second.end());
+            }
+            if (operationID == e_push) {
+                BinaryFunction::funcT::Ptr adder(new BinaryFunction::addResult());
+                // special case for push: we write at the new value of the SP.
+                Result dummy(addrWidth, 0);
+                Expression::Ptr push_addr(new BinaryFunction(
+                        *(op_data(archDecodedFrom).stackPointerAsExpr.begin()),
+                        Immediate::makeImmediate(Result(s8, -(dummy.size()))),
+                        addrWidth,
+                        adder));
+
+                otherEffAddrsWritten.insert(push_addr);
+
+            } else {
+                if (op_data(archDecodedFrom).nonOperandMemoryWrites.find(d, operationID)) {
+                    otherEffAddrsWritten.insert(d->second.begin(), d->second.end());
+                }
+            }
+
+            dyn_hash_map<entryID, flagInfo>::const_iterator found = ia32_instruction::getFlagTable().find(operationID);
+            if (found != ia32_instruction::getFlagTable().end()) {
+                for (unsigned i = 0; i < found->second.readFlags.size(); i++) {
+                    switch (found->second.readFlags[i]) {
+                        case x86::icf:
+                            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::cf : x86_64::cf));
+                            break;
+                        case x86::ipf:
+                            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::pf : x86_64::pf));
+                            break;
+                        case x86::iaf:
+                            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::af : x86_64::af));
+                            break;
+                        case x86::izf:
+                            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
+                            break;
+                        case x86::isf:
+                            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::sf : x86_64::sf));
+                            break;
+                        case x86::itf:
+                            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::tf : x86_64::tf));
+                            break;
+                        case x86::idf:
+                            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
+                            break;
+                        case x86::iof:
+                            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::of : x86_64::of));
+                            break;
+                        case x86::int_:
+                            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::nt_ : x86_64::nt_));
+                            break;
+                        case x86::iif_:
+                            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::if_ : x86_64::if_));
+                            break;
+                        default:
+                            assert(0);
+                    }
+                }
+
+                for (unsigned j = 0; j < found->second.writtenFlags.size(); j++) {
+                    switch (found->second.writtenFlags[j]) {
+                        case x86::icf:
+                            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::cf : x86_64::cf));
+                            break;
+                        case x86::ipf:
+                            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::pf : x86_64::pf));
+                            break;
+                        case x86::iaf:
+                            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::af : x86_64::af));
+                            break;
+                        case x86::izf:
+                            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
+                            break;
+                        case x86::isf:
+                            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::sf : x86_64::sf));
+                            break;
+                        case x86::itf:
+                            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::tf : x86_64::tf));
+                            break;
+                        case x86::idf:
+                            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
+                            break;
+                        case x86::iof:
+                            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::of : x86_64::of));
+                            break;
+                        case x86::int_:
+                            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::nt_ : x86_64::nt_));
+                            break;
+                        case x86::iif_:
+                            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::if_ : x86_64::if_));
+                            break;
+                        default:
+                            fprintf(stderr, "ERROR: unhandled entry %s\n",
+                                    found->second.writtenFlags[j].name().c_str());
+                            assert(0);
+                    }
+                }
+            }
+        });
+#endif
     return;
     }
   }

@@ -1,3 +1,6 @@
+# Use OpenMP?
+option (USE_OpenMP "Use OpenMP for parallel parsing" ON)
+
 # Use SymtabAPI or SymLite?
 option (LIGHTWEIGHT_SYMTAB "Use lightweight symtab interface for ParseAPI, ProcControl, and Stackwalker; disables DyninstAPI build" OFF)
 
@@ -9,6 +12,10 @@ option (BUILD_RTLIB_32 "Build 32-bit runtime library on mixed 32/64 systems" OFF
 
 option(BUILD_RTLIB "Building runtime library (can be disabled safely for component-level builds)" ON)
 option(BUILD_DOCS "Build manuals from LaTeX sources" ON)
+option(USE_COTIRE "Enable Cotire precompiled headers")
+option(USE_GNU_DEMANGLER "Use cxa_demangle (ON) or binutils demangle (OFF)" ON)
+
+option (ENABLE_LTO "Enable Link-Time Optimization" OFF)
 
 # Some global on/off switches
 if (LIGHTWEIGHT_SYMTAB)

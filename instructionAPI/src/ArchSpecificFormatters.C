@@ -65,18 +65,18 @@ std::string PPCFormatter::formatDeref(std::string addrString) {
 }
 
 std::string PPCFormatter::getInstructionString(std::vector<std::string> operands) {
-    std::stringstream out;
+    std::string out;
 
     for(std::vector<std::string>::iterator itr = operands.begin(); itr != operands.end(); itr++) {
         if (*itr != "") {
-            out<<*itr;
+            out += *itr;
             if(itr != operands.end() - 1) {
-                out<<", ";
+                out += ", ";
             }
         }
     }
 
-    return out.str();
+    return out;
 }
 
 std::string PPCFormatter::formatBinaryFunc(std::string left, std::string func, std::string right) {
@@ -111,32 +111,32 @@ std::string ArmFormatter::formatRegister(std::string regName) {
 }
 
 std::string ArmFormatter::formatDeref(std::string addrString) {
-    std::stringstream out;
+    std::string out;
     size_t pluspos = addrString.find("+");
 
     if(pluspos != std::string::npos && addrString.substr(0, pluspos - 1) == "PC") {
-        out<<addrString.substr(pluspos + 2);
+        out += addrString.substr(pluspos + 2);
     } else if(pluspos != std::string::npos) {
         std::string left = addrString.substr(0, pluspos - 1);
         std::string right = addrString.substr(pluspos + 2);
-        out<<"["<<left<<", "<<right<<"]";
+        out += "[" + left + ", " + right + "]";
     } else {
-        out<<"["<<addrString<<"]";
+        out += "[" + addrString + "]";
     }
 
-    return out.str();
+    return out;
 }
 
 std::string ArmFormatter::getInstructionString(std::vector<std::string> operands) {
-    std::stringstream out;
+    std::string out;
 
     for(std::vector<std::string>::iterator itr = operands.begin(); itr != operands.end(); itr++) {
-        out<<*itr;
+        out += *itr;
         if(itr != operands.end() - 1)
-            out<<", ";
+            out += ", ";
     }
 
-    return out.str();
+    return out;
 }
 
 std::string ArmFormatter::formatBinaryFunc(std::string left, std::string func, std::string right) {
@@ -181,19 +181,9 @@ std::string x86Formatter::formatRegister(std::string regName)
     /* convert to a standard string */
     regName = pointer;
     free(orig);
-
-    std::stringstream ss;
-    ss << "%" << regName;
-    regName = ss.str();
-
-    // if(!regName.compare(1, 1, "k"))
-    // {
-        // std::stringstream kss;
-        // kss << "{" << regName << "}" ;
-        // regName = kss.str();
-    // }
-
-    return ss.str();
+    std::string ss = "%" + regName;
+    regName = ss;
+    return ss;
 }
 
 std::string x86Formatter::formatDeref(std::string addrString) 
@@ -232,9 +222,7 @@ std::string x86Formatter::getInstructionString(std::vector<std::string> operands
         /* If we still have a leading ##, it's an indirect call or SIB expression */
         if(!op.compare(0, 2, "##"))
         {
-            std::stringstream ss;
-            ss << "0x0(" << op.substr(2) << ")";
-            op = ss.str();
+            op = "0x0(" + op.substr(2) + ")";
         }
 
         if(itr == operands.begin())
@@ -252,16 +240,11 @@ std::string x86Formatter::getInstructionString(std::vector<std::string> operands
     }
 
     /* Put the instruction together */
-    std::stringstream ss;
-
-    ss << source_ops;
-    if(ss.str().compare(""))
-        ss << ",";
-    ss << dest_op;
-    ss << kmask_op;
-
-    /* Return the formatted instruction */
-    return ss.str();
+    std::string ret = source_ops;
+    if (ret.compare("")) ret += ",";
+    ret += dest_op;
+    ret += kmask_op;
+    return ret;
 }
 
 std::string x86Formatter::formatBinaryFunc(std::string left, std::string func, std::string right)
@@ -311,14 +294,16 @@ std::string x86Formatter::formatBinaryFunc(std::string left, std::string func, s
             uintptr_t offset = strtoul(left.c_str() + 1, NULL, 16);
             uintptr_t result = edit_l + offset;
 
-            std::stringstream ss;
-            ss << "0x" << std::hex << result << "(%rip)";
+            std::string ss;
+            char hex[20];
+            snprintf(hex, 20, "%lx", result);
+            ss = "0x" + std::string(hex) + "(%rip)";
 
             /* Free allocations */
             free(edit_f);
 
             /* Return the processed string */
-            return ss.str();
+            return ss;
             
         } else {
             /* This is the simplest for of a dereference e.g. 0x1(%eax) */
@@ -337,3 +322,25 @@ std::string x86Formatter::formatBinaryFunc(std::string left, std::string func, s
 }
 
 ///////////////////////////
+ArchSpecificFormatter& ArchSpecificFormatter::getFormatter(Architecture a)
+{
+    static dyn_tls std::map<Dyninst::Architecture, boost::shared_ptr<ArchSpecificFormatter> > theFormatters;
+    auto found = theFormatters.find(a);
+    if(found != theFormatters.end()) return *found->second;
+    switch(a) {
+        case Arch_aarch32:
+        case Arch_aarch64:
+            theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new ArmFormatter());
+            break;
+        case Arch_ppc32:
+        case Arch_ppc64:
+            theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new PPCFormatter());
+            break;
+        case Arch_x86:
+        case Arch_x86_64:
+        default:
+            theFormatters[a] = boost::shared_ptr<ArchSpecificFormatter>(new x86Formatter());
+            break;
+    }
+    return *theFormatters[a];
+}

@@ -94,7 +94,11 @@ CodeSource::non_returning_funcs =
         ("_ZSt20__throw_out_of_rangePKc",true)
         ("__cxa_rethrow",true)
         ("__cxa_throw",true)
+        ("__cxa_call_unexpected", true)
+        ("__cxa_bad_cast", true)
+        ("_ZSt24__throw_out_of_range_fmtPKcz", true)
         ("_ZSt21__throw_runtime_errorPKc",true)
+        ("_ZSt20__throw_system_errori", true)
 	("_ZSt9terminatev",true)
         ("_gfortran_os_error",true)
         ("_gfortran_runtime_error",true)
@@ -105,7 +109,8 @@ CodeSource::non_returning_funcs =
         ("_gfortran_exit_i8", true)
         ("_gfortran_exit_i4", true)
         ("for_stop_core", true)
-        ("__sys_exit", true);
+        ("__sys_exit", true)
+	("__libc_fatal", true);
 
 dyn_hash_map<int, bool>
 CodeSource::non_returning_syscalls_x86 =

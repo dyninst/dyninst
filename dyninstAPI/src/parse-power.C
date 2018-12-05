@@ -543,10 +543,13 @@ void parse_func::calcUsedRegs()
         InstructionDecoder d(getPtrToInstruction((*curBlock)->start()),
         (*curBlock)->size(),
         isrc()->getArch());
-        Instruction::Ptr i;
-        while(i = d.decode())
+        Instruction i;
+        int size = 0;
+        while(size < (*curBlock)->size())
         {
-            i->getWriteSet(writtenRegs);
+            i = d.decode();
+            size += i.size();
+            i.getWriteSet(writtenRegs);
         }
     }
     for(std::set<RegisterAST::Ptr>::const_iterator curReg = writtenRegs.begin();
@@ -813,16 +816,16 @@ func_instance *mapped_object::findGlobalConstructorFunc(const std::string &ctorH
     InstructionDecoder decoder(p, initRegion->getDiskSize(),
         parse_img()->codeObject()->cs()->getArch()); 
 
-    Instruction::Ptr curInsn = decoder.decode();
-    while(numCalls < CTOR_NUM_CALLS && curInsn && curInsn->isValid() &&
+    Instruction curInsn = decoder.decode();
+    while(numCalls < CTOR_NUM_CALLS && curInsn.isValid() &&
           bytesSeen < initRegion->getDiskSize()) 
     {
-        InsnCategory category = curInsn->getCategory();
+        InsnCategory category = curInsn.getCategory();
         if( category == c_CallInsn ) {
             numCalls++;
         }
         if( numCalls < CTOR_NUM_CALLS ) {
-            bytesSeen += curInsn->size();
+            bytesSeen += curInsn.size();
             curInsn = decoder.decode();
         }
     }
@@ -837,7 +840,7 @@ func_instance *mapped_object::findGlobalConstructorFunc(const std::string &ctorH
     RegisterAST thePC = RegisterAST(
         Dyninst::MachRegister::getPC(parse_img()->codeObject()->cs()->getArch()));
 
-    Expression::Ptr callTarget = curInsn->getControlFlowTarget();
+    Expression::Ptr callTarget = curInsn.getControlFlowTarget();
     if( !callTarget.get() ) {
         logLine("failed to find global constructor function\n");
         return NULL;
@@ -916,23 +919,25 @@ func_instance *mapped_object::findGlobalDestructorFunc(const std::string &dtorHa
     InstructionDecoder decoder(p, finiRegion->getDiskSize(),
         parse_img()->codeObject()->cs()->getArch());
 
-    Instruction::Ptr lastCall;
-    Instruction::Ptr curInsn = decoder.decode();
+    Instruction lastCall;
+    Instruction curInsn = decoder.decode();
+    bool find = false;
 
-    while(curInsn && curInsn->isValid() &&
+    while(curInsn.isValid() &&
           bytesSeen < finiRegion->getDiskSize()) 
     {
-        InsnCategory category = curInsn->getCategory();
+        InsnCategory category = curInsn.getCategory();
         if( category == c_CallInsn ) {
+            find = true;
             lastCall = curInsn;
             break;
         }
 
-        bytesSeen += curInsn->size();
+        bytesSeen += curInsn.size();
         curInsn = decoder.decode();
     }
 
-    if( !lastCall.get() || !lastCall->isValid() ) {
+    if( !find || !lastCall.isValid() ) {
         logLine("heuristic for finding global destructor function failed\n");
         return NULL;
     }
@@ -942,7 +947,7 @@ func_instance *mapped_object::findGlobalDestructorFunc(const std::string &dtorHa
     RegisterAST thePC = RegisterAST(
         Dyninst::MachRegister::getPC(parse_img()->codeObject()->cs()->getArch()));
 
-    Expression::Ptr callTarget = lastCall->getControlFlowTarget();
+    Expression::Ptr callTarget = lastCall.getControlFlowTarget();
     if( !callTarget.get() ) {
         logLine("failed to find global destructor function\n");
         return NULL;

@@ -294,10 +294,10 @@ void CodeBuffer::disassemble() const {
                                               gen_.getArch());
    Address addr = gen_.startAddr();
 
-   Instruction::Ptr cur = decoder.decode();
-   while (cur && cur->isValid()) {
-      cerr << "\t" << std::hex << addr << std::dec << ": " << cur->format() << endl;
-      addr += cur->size();
+   Instruction cur = decoder.decode();
+   while (cur.isValid()) {
+      cerr << "\t" << std::hex << addr << std::dec << ": " << cur.format() << endl;
+      addr += cur.size();
       cur = decoder.decode();
    }
 }

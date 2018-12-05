@@ -31,8 +31,6 @@
 #ifndef INST_AARCH64_H
 #define INST_AARCH64_H
 
-#define MAX_BRANCH 0
-
 #define DEAD_REG              0
 #define LIVE_REG              1
 #define LIVE_UNCLOBBERED_REG  2
@@ -40,9 +38,9 @@
 
 #define GPRSIZE_32            4
 #define GPRSIZE_64            8
-#define FPRSIZE               8
+#define FPRSIZE_64           16
 
-#define REG_SP		      1
+#define REG_SP               31
 #define REG_TOC               2   /* TOC anchor                            */
 // REG_GUARD_OFFSET and REG_GUARD_VALUE could overlap.
 #define REG_GUARD_ADDR        5   /* Arbitrary                             */
@@ -54,10 +52,9 @@
 
 #define REG_SCRATCH          10
 
-#define REG_MT_POS           12   /* Register to reserve for MT implementation */
-#define NUM_INSN_MT_PREAMBLE 26   /* number of instructions required for   */
-                                  /* the MT preamble.                      */
-
+// #sasha This seemed to be copy and paste. Not sure if it all stands
+// for ARM.
+//
 // The stack grows down from high addresses toward low addresses.
 // There is a maximum number of bytes on the stack below the current
 // value of the stack frame pointer that a function can use without
@@ -70,24 +67,18 @@
 // AIX and Linux, 32-bit and 64-bit.
 #define STACKSKIP          288
 
-// Both 32-bit and 64-bit PowerPC ELF ABI documents for Linux state
-// that the stack frame pointer value must always be 16-byte (quadword)
-// aligned.  Use the following macro on all quantities used to
-// increment or decrement the stack frame pointer.
 #define ALIGN_QUADWORD(x)  ( ((x) + 0xf) & ~0xf )  //x is positive or unsigned
 
-#define GPRSAVE_32  (32*4)
-#define GPRSAVE_64  (32*8)
-#define FPRSAVE     (14*8)
-#define SPRSAVE_32  (6*4+8)
-#define SPRSAVE_64  (6*8+8)
-#define FUNCSAVE_32 (32*4)
+//TODO Fix for ARM
+#define GPRSAVE_64  (31*GPRSIZE_64)
+#define FPRSAVE_64  (32*FPRSIZE_64)
+#define SPRSAVE_64  (1*8+3*4)
+// #sasha Are these necessary?
 #define FUNCSAVE_64 (32*8)
-#define FUNCARGS_32 (16*4)
 #define FUNCARGS_64 (16*8)
-#define LINKAREA_32 (6*4)
 #define LINKAREA_64 (6*8)
 
+// #sasha Why is PowerPC stuff here?
 #if defined(os_linux)
 #define PARAM_OFFSET(mutatee_address_width)                         \
         (                                                           \
@@ -108,124 +99,43 @@
 #elif defined(os_vxworks)
 #define PARAM_OFFSET(bah) (0)
 #else
-#error "Unknown operating system in inst-power.h"
+#error "Unknown operating system in inst-aarch64.h"
 #endif
 
 
-// Okay, now that we have those defined, let's define the offsets upwards
-#define TRAMP_FRAME_SIZE_32 ALIGN_QUADWORD(STACKSKIP + GPRSAVE_32 + FPRSAVE \
-                                           + SPRSAVE_32 \
-                                           + FUNCSAVE_32 + FUNCARGS_32 + LINKAREA_32)
-#define TRAMP_FRAME_SIZE_64 ALIGN_QUADWORD(STACKSKIP + GPRSAVE_64 + FPRSAVE \
+/*
+#define TRAMP_FRAME_SIZE_64 ALIGN_QUADWORD(STACKSKIP + GPRSAVE_64 + FPRSAVE_64 \
                                            + SPRSAVE_64 \
                                            + FUNCSAVE_64 + FUNCARGS_64 + LINKAREA_64)
-#define PDYN_RESERVED_32 (LINKAREA_32 + FUNCARGS_32 + FUNCSAVE_32)
-#define PDYN_RESERVED_64 (LINKAREA_64 + FUNCARGS_64 + FUNCSAVE_64)
+                                           */
+#define TRAMP_FRAME_SIZE_64 ALIGN_QUADWORD(GPRSAVE_64 + FPRSAVE_64 + SPRSAVE_64)
 
-#define TRAMP_SPR_OFFSET_32 (PDYN_RESERVED_32) /* 4 for LR */
+//#define PDYN_RESERVED_64 (LINKAREA_64 + FUNCARGS_64 + FUNCSAVE_64)
+
+//#define TRAMP_SPR_OFFSET_64 (PDYN_RESERVED_64)
+#define TRAMP_SPR_OFFSET_64 (0)
 #define STK_LR       (              0)
-#define STK_CR_32    (STK_LR      + 4)
-#define STK_CTR_32   (STK_CR_32   + 4)
-#define STK_XER_32   (STK_CTR_32  + 4)
-#define STK_FP_CR_32 (STK_XER_32  + 4)
-#define STK_SPR0_32  (STK_FP_CR_32+ 8)
+#define STK_NZCV     (STK_SP_EL0  + 8)
+#define STK_FPCR     (STK_NZCV    + 4)
+#define STK_FPSR     (STK_FPCR    + 4)
 
-#define TRAMP_SPR_OFFSET_64 (PDYN_RESERVED_64)
-#define STK_CR_64    (STK_LR      + 8)
-#define STK_CTR_64   (STK_CR_64   + 8)
-#define STK_XER_64   (STK_CTR_64  + 8)
-#define STK_FP_CR_64 (STK_XER_64  + 8)
-#define STK_SPR0_64  (STK_FP_CR_64+ 8)
-
-#define TRAMP_SPR_OFFSET(x) (((x) == 8) ? TRAMP_SPR_OFFSET_64 : TRAMP_SPR_OFFSET_32)
-
-#define TRAMP_FPR_OFFSET_32 (TRAMP_SPR_OFFSET_32 + SPRSAVE_32)
 #define TRAMP_FPR_OFFSET_64 (TRAMP_SPR_OFFSET_64 + SPRSAVE_64)
-#define TRAMP_FPR_OFFSET(x) (((x) == 8) ? TRAMP_FPR_OFFSET_64 : TRAMP_FPR_OFFSET_32)
+#define TRAMP_GPR_OFFSET_64 (TRAMP_FPR_OFFSET_64 + FPRSAVE_64)
+#define FUNC_CALL_SAVE_64   (LINKAREA_64 + FUNCARGS_64)
 
-#define TRAMP_GPR_OFFSET_32 (TRAMP_FPR_OFFSET_32 + FPRSAVE)
-#define TRAMP_GPR_OFFSET_64 (TRAMP_FPR_OFFSET_64 + FPRSAVE)
+#define TRAMP_GPR_OFFSET_32 ({assert(0); 0;})
 #define TRAMP_GPR_OFFSET(x) (((x) == 8) ? TRAMP_GPR_OFFSET_64 : TRAMP_GPR_OFFSET_32)
 
-#define FUNC_CALL_SAVE_32 (LINKAREA_32 + FUNCARGS_32)
-#define FUNC_CALL_SAVE_64 (LINKAREA_64 + FUNCARGS_64)
-#define FUNC_CALL_SAVE(x) (((x) == 8) ? FUNC_CALL_SAVE_64 : FUNC_CALL_SAVE_32)
+#define TRAMP_FPR_OFFSET_32 ({assert(0); 0;})
+#define TRAMP_FPR_OFFSET(x) (((x) == 8) ? TRAMP_FPR_OFFSET_64 : TRAMP_FPR_OFFSET_32)
 
-///////////////////////////// Multi-instruction sequences
+#define TRAMP_SPR_OFFSET_32 ({assert(0); 0;})
+#define TRAMP_SPR_OFFSET(x) (((x) == 8) ? TRAMP_SPR_OFFSET_64 : TRAMP_SPR_OFFSET_32)
+
+
 class codeGen;
 
-void saveSPR(codeGen &gen,
-             Register scratchReg,
-             int sprnum,
-             int stkOffset);
-void restoreSPR(codeGen &gen,
-                Register scratchReg,
-                int sprnum,
-                int stkOffset);
-void saveLR(codeGen &gen,
-            Register scratchReg,
-            int stkOffset);
-void restoreLR(codeGen &gen,
-               Register scratchReg,
-               int stkOffset);
-void setBRL(codeGen &gen,
-            Register scratchReg,
-            long val,
-            unsigned ti); // We're lazy and hand in the next insn
-void saveCR(codeGen &gen,
-            Register scratchReg,
-            int stkOffset);
-void restoreCR(codeGen &gen,
-               Register scratchReg,
-               int stkOffset);
-void saveFPSCR(codeGen &gen,
-               Register scratchReg,
-               int stkOffset);
-void restoreFPSCR(codeGen &gen,
-                  Register scratchReg,
-                  int stkOffset);
-void saveRegister(codeGen &gen,
-                  Register reg,
-                  int save_off);
-// We may want to restore a _logical_ register N
-// (that is, the save slot for N) into a different reg.
-// This avoids using a temporary
-void restoreRegister(codeGen &gen,
-                     Register source,
-                     Register dest,
-                     int save_off);
-// Much more common case
-void restoreRegister(codeGen &gen,
-                     Register reg,
-                     int save_off);
-void saveFPRegister(codeGen &gen,
-                    Register reg,
-                    int save_off);
-// See above...
-void restoreFPRegister(codeGen &gen,
-                       Register source,
-                       Register dest,
-                       int save_off);
-void restoreFPRegister(codeGen &gen,
-                       Register reg,
-                       int save_off);
 void pushStack(codeGen &gen);
 void popStack(codeGen &gen);
-unsigned saveGPRegisters(codeGen &gen,
-                         registerSpace *theRegSpace,
-                         int save_off, int numReqGPRs=-1);
-unsigned restoreGPRegisters(codeGen &gen,
-                            registerSpace *theRegSpace,
-                            int save_off);
-unsigned saveFPRegisters(codeGen &gen,
-                         registerSpace *theRegSpace,
-                         int save_off);
-unsigned restoreFPRegisters(codeGen &gen,
-                            registerSpace *theRegSpace,
-                            int save_off);
-unsigned saveSPRegisters(codeGen &gen, registerSpace *,
-                         int save_off, int force_save);
-unsigned restoreSPRegisters(codeGen &gen, registerSpace *,
-                            int save_off, int force_save);
 
 #endif

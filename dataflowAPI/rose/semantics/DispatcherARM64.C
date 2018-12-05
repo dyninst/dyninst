@@ -486,8 +486,10 @@ namespace rose {
                                     ops->or_(ops->and_(base, ops->number_(64, 0xfffffffffffff000)),
                                              d->Zeros(12));
                         }
-
-                        d->write(args[0], ops->add(base, d->read(args[1])));
+			// args[1] is in the form of PC + offset
+			// we do not want PC to appear twice, so we extract the offset
+			SgAsmBinaryExpression * addOp = dynamic_cast<SgAsmBinaryExpression*>(args[1]);
+                        d->write(args[0], ops->add(base, d->read(addOp->get_rhs())));
                     }
                 };
 
@@ -501,8 +503,10 @@ namespace rose {
                                     ops->or_(ops->and_(base, ops->number_(64, 0xfffffffffffff000)),
                                              d->Zeros(12));
                         }
-
-                        d->write(args[0], ops->add(base, d->read(args[1])));
+			// args[1] is in the form of PC + offset
+			// we do not want PC to appear twice, so we extract the offset
+			SgAsmBinaryExpression * addOp = dynamic_cast<SgAsmBinaryExpression*>(args[1]);
+                        d->write(args[0], ops->add(base, d->read(addOp->get_rhs())));
                     }
                 };
 
@@ -3628,7 +3632,7 @@ namespace rose {
                             if (wb_unknown) {
                                 address = ops->unspecified_(1);
                             } else if ((EXTR(11, 11) == 0 && EXTR(24, 24) == 0)) {
-                                address = ops->add(address, d->read(args[2]));
+                                //address = ops->add(address, d->read(args[2]));
                             }
 
                             if (EXTR(5, 9) == 31) {

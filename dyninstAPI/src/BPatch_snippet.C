@@ -341,12 +341,11 @@ AstNodePtr generateFieldRef(const BPatch_snippet &lOperand,
                 return AstNodePtr();
         }
 
-        vector<Field *> *fields;
         Field *field = NULL;
 
         // check that the name of the right operand is a field of the left operand
 
-        fields = structType->getComponents();
+        auto fields = structType->getComponents();
 
         unsigned int i;
 
@@ -433,6 +432,9 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_binOp op,
                         break;
                 case BPatch_minus:
                         astOp = minusOp;
+                        break;
+                case BPatch_xor:
+                        astOp = xorOp;
                         break;
                 case BPatch_divide:
                         astOp = divOp;
@@ -1596,27 +1598,6 @@ BPatch_tidExpr::BPatch_tidExpr(BPatch_process *proc)
 }
 
 // BPATCH INSN EXPR
-
-BPatch_insnExpr::BPatch_insnExpr(BPatch_instruction *insn) {
-    ast_wrapper = AstNodePtr(AstNode::insnNode(insn));
-}
-
-bool BPatch_insnExpr::overrideLoadAddress(BPatch_snippet &l) {
-    // We can assert our AST is an insn type...
-    // Don't hand back insnAst to anyone else
-    AstInsnNode *insnAst = dynamic_cast<AstInsnNode *>(ast_wrapper.get());
-    assert(insnAst);
-
-    return insnAst->overrideLoadAddr(l.ast_wrapper);
-}
-
-bool BPatch_insnExpr::overrideStoreAddress(BPatch_snippet &s) {
-    // We can assert our AST is an insn type...
-    AstInsnNode *insnAst = dynamic_cast<AstInsnNode *>(ast_wrapper.get());
-    assert(insnAst);
-
-    return insnAst->overrideStoreAddr(s.ast_wrapper);
-}
 
 
 /* Causes us to create only one StopThreadCallback per

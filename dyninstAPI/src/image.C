@@ -309,8 +309,9 @@ namespace {
         // looking for the *last* instruction in the block
         // that defines GR8
     
-        Instruction::Ptr r8_def;
+        Instruction r8_def;
         Address r8_def_addr;
+        bool find = false;
     
         InstructionDecoder dec(
             b->region()->getPtrToInstruction(b->start()),
@@ -321,22 +322,24 @@ namespace {
         RegisterAST::Ptr r8( new RegisterAST(ppc32::r8) );
 
         Address cur_addr = b->start();
-        while(Instruction::Ptr cur = dec.decode()) {
-            if(cur->isWritten(r8)) {
+        while(cur_addr < b->end()) {
+            Instruction cur = dec.decode();
+            if(cur.isWritten(r8)) {
+                find = true;
                 r8_def = cur;
                 r8_def_addr = cur_addr;  
             }
-            cur_addr += cur->size();
+            cur_addr += cur.size();
         }
-        if(!r8_def)
+        if(!find)
             return 0;
 
         Address ss_addr = 0;
 
         // Try a TOC-based lookup first
-        if (r8_def->isRead(r2)) {
+        if (r8_def.isRead(r2)) {
             set<Expression::Ptr> memReads;
-            r8_def->getMemoryReadOperands(memReads);
+            r8_def.getMemoryReadOperands(memReads);
             Address TOC = f->obj()->cs()->getTOC(r8_def_addr);
             if (TOC != 0 && memReads.size() == 1) {
                 Expression::Ptr expr = *memReads.begin();
@@ -621,22 +624,22 @@ int image::findMain()
                 // p += (eAddr - eStart);
             // }
 
-            switch(linkedFile->getAddressWidth()) {
-                case 4:
-                    // 32-bit...
-                    startup_printf("%s[%u]:  setting 32-bit mode\n",
-                            FILE__,__LINE__);
-                    ia32_set_mode_64(false);
-                    break;
-                case 8:
-                    startup_printf("%s[%u]:  setting 64-bit mode\n",
-                            FILE__,__LINE__);
-                    ia32_set_mode_64(true);
-                    break;
-                default:
-                    assert(0 && "Illegal address width");
-                    break;
-            }
+//            switch(linkedFile->getAddressWidth()) {
+//                case 4:
+//                    // 32-bit...
+//                    startup_printf("%s[%u]:  setting 32-bit mode\n",
+//                            FILE__,__LINE__);
+//                    ia32_set_mode_64(false);
+//                    break;
+//                case 8:
+//                    startup_printf("%s[%u]:  setting 64-bit mode\n",
+//                            FILE__,__LINE__);
+//                    ia32_set_mode_64(true);
+//                    break;
+//                default:
+//                    assert(0 && "Illegal address width");
+//                    break;
+//            }
 
             Address mainAddress = 0;
 
@@ -704,7 +707,7 @@ int image::findMain()
 		return -1;
 	    }
 
-	    // To get the secont to last instruction, which loads the address of main 
+	    // To get the secont to last instruction, which loads the address of main
 	    auto iit = insns.end();
 	    --iit;
 	    --iit;	    
@@ -723,7 +726,8 @@ int image::findMain()
                 {
                     /* expand failed */
                     mainAddress = 0x0;
-		    startup_printf("%s[%u]:  cannot expand %s from instruction %s\n", FILE__, __LINE__, assignment->format().c_str(), assignment->insn()->format().c_str());   
+		    startup_printf("%s[%u]:  cannot expand %s from instruction %s\n", FILE__, __LINE__, assignment->format().c_str(),
+                           assignment->insn().format().c_str());
                 } else { 
 		    startup_printf("%s[%u]:  try to visit  %s\n", FILE__, __LINE__, ast->format().c_str());   
                     FindMainVisitor fmv;
@@ -1322,6 +1326,38 @@ void image::analyzeIfNeeded() {
   }
 }
 
+static bool CheckForPowerPreamble(parse_block* entryBlock) {
+    ParseAPI::Block::Insns insns;
+    entryBlock->getInsns(insns);
+    if (insns.size() < 2)
+      return false;
+    // Get the first two instructions
+    auto iter = insns.begin();
+    InstructionAPI::Instruction i1 = iter->second;
+    ++iter;
+    InstructionAPI::Instruction i2 = iter->second;
+
+    const uint32_t * buf1 = (const uint32_t*) i1.ptr();
+    const uint32_t * buf2 = (const uint32_t*) i2.ptr();
+
+    uint32_t p1 = buf1[0] >> 16;
+    uint32_t p2 = buf2[0] >> 16;
+
+    // Check for two types of preamble
+    // Preamble 1: used in executables
+    // lis r2, IMM       bytes: IMM1 IMM2 40 3c 
+    // addi r2, r2, IMM  bytes: IMM1 IMM2 42 38
+    if (p1 == 0x3c40 && p2 == 0x3842) return true;
+    
+    // Preamble 2: used in libraries
+    // addis r2, r12, IMM   bytes: IMM1 IMM2 4c 3c
+    // addi r2, r2,IMM      bytes: IMM1 IMM2 42 38
+    if (p1 == 0x3c4c && p2 == 0x3842) return true;
+    return false;
+}
+
+
+
 void image::analyzeImage() {
 #if defined(TIMED_PARSE)
     struct timeval starttime;
@@ -1329,10 +1365,6 @@ void image::analyzeImage() {
 #endif
     stats_parse.startTimer(PARSE_ANALYZE_TIMER);
 
-// FIXME necessary?
-#if defined(arch_x86_64)
-    ia32_set_mode_64(getObject()->getAddressWidth() == 8);
-#endif
 
     assert(parseState_ < analyzed);
     if(parseState_ < symtab){
@@ -1342,6 +1374,7 @@ void image::analyzeImage() {
     parseState_ = analyzing;
 
     obj_->parse();
+
 
 #if defined(cap_stripped_binaries)
    {
@@ -1355,6 +1388,7 @@ void image::analyzeImage() {
        } 
    }
 #endif // cap_stripped_binaries
+   
     
     parseState_ = analyzed;
   done:
@@ -1529,9 +1563,30 @@ image::image(fileDescriptor &desc,
    cs_ = new SymtabCodeSource(linkedFile,filt,parseInAllLoadableRegions);
 
    // Continue ParseAPI init
+//   fprintf(stderr, "#### create CodeObject for %s\n", desc.file().c_str());
    img_fact_ = new DynCFGFactory(this);
    parse_cb_ = new DynParseCallback(this);
    obj_ = new CodeObject(cs_,img_fact_,parse_cb_,BPatch_defensiveMode == mode);
+
+     if (obj_->cs()->getArch() == Arch_ppc64) {
+        // The PowerPC new ABI typically generate two entries per function.
+        // Need special hanlding for them
+        std::map<uint64_t, parse_func *> _findPower8Overlaps;
+        for (auto fit = obj_->funcs().begin(); fit != obj_->funcs().end(); ++fit) {
+            parse_func* funct = static_cast<parse_func*>(*fit);
+            _findPower8Overlaps[funct->addr()] = funct;
+        }
+        for (auto fit = obj_->funcs().begin(); fit != obj_->funcs().end(); ++fit) {
+            parse_func* funct = static_cast<parse_func*>(*fit);
+            if(CheckForPowerPreamble(static_cast<parse_block*>(funct->entry()))){
+                funct->setContainsPowerPreamble(true);
+                auto iter = _findPower8Overlaps.find(funct->addr() + 0x8);
+                if (iter != _findPower8Overlaps.end()) {
+                    funct->setNoPowerPreambleFunc(iter->second);
+                } 
+            }
+        }
+    }
 
    string msg;
    // give user some feedback....

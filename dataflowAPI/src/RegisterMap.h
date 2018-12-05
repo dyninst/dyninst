@@ -42,6 +42,7 @@ RegisterMap &machRegIndex_x86();
 RegisterMap &machRegIndex_x86_64();
 RegisterMap &machRegIndex_ppc();
 RegisterMap &machRegIndex_ppc_64();
+RegisterMap &machRegIndex_aarch64();
 
 };
 };

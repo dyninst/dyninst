@@ -39,7 +39,7 @@
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
-#if defined(arch_power)
+#if defined(arch_power) || defined(arch_aarch64)
 void 
 DynParseCallback::instruction_cb(Function*f,Block *,Address,insn_details*det)
 {
@@ -50,7 +50,7 @@ DynParseCallback::instruction_cb(Function*f,Block *,Address,insn_details*det)
     	f->_is_leaf_function = !(det->insn->isReturnAddrSave(ret_addr));
     	if (!f->_is_leaf_function) f->_ret_addr = ret_addr;
     }
-    ifunc->ppc_saves_return_addr_ = !(f->_is_leaf_function);
+    ifunc->saves_return_addr_ = !(f->_is_leaf_function);
 }
 #endif
 

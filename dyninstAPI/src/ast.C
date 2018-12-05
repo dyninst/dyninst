@@ -82,7 +82,7 @@ extern int tramp_pre_frame_size_64;
 using namespace Dyninst;
 using PatchAPI::Point;
 
-extern bool doNotOverflow(int value);
+extern bool doNotOverflow(int64_t value);
 
 AstNodePtr AstNode::originalAddrNode_ = AstNodePtr();
 AstNodePtr AstNode::actualAddrNode_ = AstNodePtr();
@@ -250,15 +250,6 @@ AstNodePtr AstNode::memoryNode(memoryType ma, int which) {
 AstNodePtr AstNode::miniTrampNode(AstNodePtr tramp) {
     if (tramp == NULL) return AstNodePtr();
     return AstNodePtr(new AstMiniTrampNode(tramp));
-}
-
-AstNodePtr AstNode::insnNode(BPatch_instruction *insn) {
-    // Figure out what kind of instruction we've got...
-    if (dynamic_cast<BPatch_memoryAccess *>(insn)) {
-        return AstNodePtr(new AstInsnMemoryNode(insn->insn()->insn(), (Address) insn->getAddress()));
-    }
-
-    return AstNodePtr(new AstInsnNode(insn->insn()->insn(), (Address) insn->getAddress()));
 }
 
 AstNodePtr AstNode::originalAddrNode() {
@@ -473,12 +464,6 @@ AstVariableNode::AstVariableNode(vector<AstNodePtr>&ast_wrappers, vector<pair<Of
    for (i = ast_wrappers.begin(); i != ast_wrappers.end(); i++) {
       (*i)->referenceCount++;
    }
-}
-
-AstInsnNode::AstInsnNode(instruction *insn, Address addr) :
-    AstNode(),
-    insn_(insn),
-    origAddr_(addr) {
 }
 
 AstMemoryNode::AstMemoryNode(memoryType mem,
@@ -803,7 +788,6 @@ bool AstNode::generateCode_phase2(codeGen &, bool,
     if (dynamic_cast<AstCallNode *>(this)) fprintf(stderr, "callNode\n");
     if (dynamic_cast<AstSequenceNode *>(this)) fprintf(stderr, "seqNode\n");
     if (dynamic_cast<AstVariableNode *>(this)) fprintf(stderr, "varNode\n");
-    if (dynamic_cast<AstInsnNode *>(this)) fprintf(stderr, "insnNode\n");
     if (dynamic_cast<AstMiniTrampNode *>(this)) fprintf(stderr, "miniTrampNode\n");
     if (dynamic_cast<AstMemoryNode *>(this)) fprintf(stderr, "memoryNode\n");
     assert(0);
@@ -1482,20 +1466,20 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          codeBufIndex_t fromIndex = emitA(ifOp, src1, 0, 0, gen, rc_before_jump, noCost);
          size_t postif_patches_size = gen.allPatches().size();
 
-	 // See comment in ifOp
-	 Register src1_copy = src1;
+         // See comment in ifOp
+         Register src1_copy = src1;
 
          if (loperand->decRefCount())
             gen.rs()->freeRegister(src1);
 
          if (roperand) {
-	   // The flow of control forks. We need to add the forked node to
-	   // the path
-	   gen.tracker()->increaseConditionalLevel();
-	   if (!roperand->generateCode_phase2(gen, noCost, addr, src2)) ERROR_RETURN;
-	   if (roperand->decRefCount())
-	     gen.rs()->freeRegister(src2);
-	 }
+             // The flow of control forks. We need to add the forked node to
+             // the path
+             gen.tracker()->increaseConditionalLevel();
+             if (!roperand->generateCode_phase2(gen, noCost, addr, src2)) ERROR_RETURN;
+             if (roperand->decRefCount())
+                 gen.rs()->freeRegister(src2);
+         }
 
          gen.tracker()->decreaseAndClean(gen);
          gen.rs()->unifyTopRegStates(gen); //Join the registerState for the if
@@ -1529,7 +1513,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
             gen.setIndex(endIndex);
          }
-	 break;
+         break;
       }
       case doOp: {
          fprintf(stderr, "[%s:%d] WARNING: do AST node unimplemented!\n", __FILE__, __LINE__);
@@ -1748,6 +1732,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
       }
       case plusOp:
       case minusOp:
+      case xorOp:
       case timesOp:
       case divOp:
       case orOp:
@@ -1770,7 +1755,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
          if (roperand &&
              (roperand->getoType() == Constant) &&
-             doNotOverflow((Register) (long) roperand->getOValue())) {
+             doNotOverflow((int64_t) roperand->getOValue())) {
             if (retReg == REG_NULL) {
                retReg = allocateAndKeep(gen, noCost);
                ast_printf("Operator node, const RHS, allocated register %d\n", retReg);
@@ -1930,7 +1915,8 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
    case FrameAddr:
        addr = (Address) oValue;
        temp = gen.rs()->allocateRegister(gen, noCost);
-       emitVload(loadFrameRelativeOp, addr, temp, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+       emitVload(loadFrameRelativeOp, addr, temp, retReg, gen, noCost, gen.rs(),
+               size, gen.point(), gen.addrSpace());
        gen.rs()->freeRegister(temp);
        break;
    case RegOffset:
@@ -1938,7 +1924,8 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        // This AstNode holds the register number, and loperand holds offset.
        assert(operand_);
        addr = (Address) operand_->getOValue();
-       emitVload(loadRegRelativeOp, addr, (long)oValue, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+       emitVload(loadRegRelativeOp, addr, (long)oValue, retReg, gen, noCost,
+               gen.rs(), size, gen.point(), gen.addrSpace());
        break;
    case ConstantString:
        // XXX This is for the std::string type.  If/when we fix the std::string type
@@ -1954,7 +1941,8 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
 
        if(!gen.addrSpace()->needsPIC())
        {
-          emitVload(loadConstOp, addr, retReg, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+          emitVload(loadConstOp, addr, retReg, retReg, gen, noCost, gen.rs(),
+                  size, gen.point(), gen.addrSpace());
        }
        else
        {
@@ -2057,9 +2045,8 @@ bool AstCallNode::initRegisters(codeGen &gen) {
             ret = false;
     }
 
-    // Platform-specific...
-#if defined(arch_x86) || defined(arch_x86_64)
-    // Our "everything" is "floating point registers".
+    if (callReplace_) return true;
+    
     // We also need a function object.
     func_instance *callee = func_;
     if (!callee) {
@@ -2075,28 +2062,6 @@ bool AstCallNode::initRegisters(codeGen &gen) {
     assert(gen.codeEmitter());
     gen.codeEmitter()->clobberAllFuncCall(gen.rs(), callee);
 
-
-#endif
-#if defined(arch_power)
-    if (callReplace_) return true;
-
-    // This code really doesn't work right now...
-    func_instance *callee = func_;
-    if (!callee) {
-        // Painful lookup time
-        callee = gen.addrSpace()->findOnlyOneFunction(func_name_.c_str());
-        assert(callee);
-    }
-    gen.codeEmitter()->clobberAllFuncCall(gen.rs(), callee);
-    // We clobber in clobberAllFuncCall...
-
-    // Monotonically increasing...
-#endif
-
-#if defined(arch_aarch64)
-	//#warning "This function is not implemented yet!"
-	assert(false);
-#endif
     return ret;
 
 }
@@ -2211,86 +2176,6 @@ bool AstVariableNode::generateCode_phase2(codeGen &gen, bool noCost,
     return ast_wrappers_[index]->generateCode_phase2(gen, noCost, addr, retReg);
 }
 
-bool AstInsnNode::generateCode_phase2(codeGen &gen, bool,
-                                      Address &, Register &) {
-    assert(insn_);
-
-    insnCodeGen::generate(gen,*insn_,gen.addrSpace(),origAddr_,gen.currAddr());
-    decUseCount(gen);
-
-    return true;
-}
-
-bool AstInsnBranchNode::generateCode_phase2(codeGen &gen, bool noCost,
-                                            Address &, Register & ) {
-    assert(insn_);
-
-    // Generate side 2 and get the result...
-    Address targetAddr = ADDR_NULL;
-    Register targetReg = REG_NULL;
-    if (target_) {
-        // TODO: address vs. register...
-        if (!target_->generateCode_phase2(gen, noCost, targetAddr, targetReg)) ERROR_RETURN;
-    }
-    // We'd now generate a fixed or register branch. But we don't. So there.
-    assert(0 && "Unimplemented");
-    insnCodeGen::generate(gen,*insn_,gen.addrSpace(), origAddr_, gen.currAddr(), 0, 0);
-	decUseCount(gen);
-
-    return true;
-}
-
-bool AstInsnMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
-                                            Address &, Register &) {
-    Register loadReg = REG_NULL;
-    Register storeReg = REG_NULL;
-    Address loadAddr = ADDR_NULL;
-    Address storeAddr = ADDR_NULL;
-    assert(insn_);
-
-    // Step 1: save machine-specific state (AKA flags) and mark registers used in
-    // the instruction itself as off-limits.
-
-    gen.rs()->saveVolatileRegisters(gen);
-    pdvector<int> usedRegisters;
-    if (insn_->getUsedRegs(usedRegisters)) {
-        for (unsigned i = 0; i < usedRegisters.size(); i++) {
-            gen.rs()->markReadOnly(usedRegisters[i]);
-        }
-    }
-    else {
-        // We don't know who to avoid... return false?
-        fprintf(stderr, "WARNING: unknown \"off limits\" register set, returning false from memory modification\n");
-        return false;
-    }
-
-    // Step 2: generate code (this may spill registers)
-
-    if (load_)
-        if (!load_->generateCode_phase2(gen, noCost, loadAddr, loadReg)) ERROR_RETURN;
-
-    if (store_)
-        if (!store_->generateCode_phase2(gen, noCost, storeAddr, storeReg)) ERROR_RETURN;
-
-    // Step 3: restore flags (before the original instruction)
-
-    gen.rs()->restoreVolatileRegisters(gen);
-
-    // Step 4: generate the memory instruction
-    if (!insnCodeGen::generateMem(gen,*insn_,origAddr_, gen.currAddr(), loadReg, storeReg)) {
-        fprintf(stderr, "ERROR: generateMem call failed\n");
-        return false;
-    }
-
-    // Step 5: restore any registers that were st0mped.
-
-
-    gen.rs()->restoreAllRegisters(gen, true);
-
-    decUseCount(gen);
-    return true;
-}
-
 bool AstOriginalAddrNode::generateCode_phase2(codeGen &gen,
                                               bool noCost,
                                               Address &,
@@ -2334,8 +2219,8 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
        gen.point()->type() != instPoint::PreInsn)
        return false;
 
-   InstructionAPI::Instruction::Ptr insn = gen.point()->block()->getInsn(gen.point()->block()->last());
-   if (insn->getCategory() == c_ReturnInsn) {
+   InstructionAPI::Instruction insn = gen.point()->block()->getInsn(gen.point()->block()->last());
+   if (insn.getCategory() == c_ReturnInsn) {
       // if this is a return instruction our AST reads the top stack value
       if (retReg == REG_NULL) {
          retReg = allocateAndKeep(gen, noCost);
@@ -2403,6 +2288,7 @@ std::string getOpString(opCode op)
     switch (op) {
 	case plusOp: return("+");
 	case minusOp: return("-");
+	case xorOp: return("^");
 	case timesOp: return("*");
 	case divOp: return("/");
 	case lessOp: return("<");
@@ -2936,6 +2822,7 @@ bool AstOperatorNode::canBeKept() const {
     switch (op) {
     case plusOp:
     case minusOp:
+    case xorOp:
     case timesOp:
     case divOp:
     case neOp:
@@ -3321,15 +3208,6 @@ void AstVariableNode::setVariableAST(codeGen &gen){
     assert(found);
 }
 
-void AstInsnBranchNode::setVariableAST(codeGen &g){
-    if(target_) target_->setVariableAST(g);
-}
-
-void AstInsnMemoryNode::setVariableAST(codeGen &g){
-    if(load_) load_->setVariableAST(g);
-    if(store_) store_->setVariableAST(g);
-}
-
 void AstMiniTrampNode::setVariableAST(codeGen &g){
     if(ast_) ast_->setVariableAST(g);
 }
@@ -3369,12 +3247,6 @@ bool AstVariableNode::containsFuncCall() const
     return ast_wrappers_[index]->containsFuncCall();
 }
 
-bool AstInsnMemoryNode::containsFuncCall() const {
-    if (load_ && load_->containsFuncCall()) return true;
-    if (store_ && store_->containsFuncCall()) return true;
-    return false;
-}
-
 bool AstNullNode::containsFuncCall() const
 {
    return false;
@@ -3401,11 +3273,6 @@ bool AstLabelNode::containsFuncCall() const
 }
 
 bool AstMemoryNode::containsFuncCall() const
-{
-   return false;
-}
-
-bool AstInsnNode::containsFuncCall() const
 {
    return false;
 }
@@ -3476,12 +3343,6 @@ bool AstVariableNode::usesAppRegister() const
     return ast_wrappers_[index]->usesAppRegister();
 }
 
-bool AstInsnMemoryNode::usesAppRegister() const {
-    if (load_ && load_->usesAppRegister()) return true;
-    if (store_ && store_->usesAppRegister()) return true;
-    return false;
-}
-
 bool AstNullNode::usesAppRegister() const
 {
    return false;
@@ -3527,10 +3388,6 @@ bool AstMemoryNode::usesAppRegister() const
    return true;
 }
 
-bool AstInsnNode::usesAppRegister() const
-{
-   return true;
-}
 bool AstScrambleRegistersNode::usesAppRegister() const
 {
    return true;
@@ -3838,6 +3695,7 @@ std::string AstNode::convert(opCode op) {
       case invalidOp: return "invalid";
       case plusOp: return "plus";
       case minusOp: return "minus";
+      case xorOp: return "xor";
       case timesOp: return "times";
       case divOp: return "div";
       case lessOp: return "less";

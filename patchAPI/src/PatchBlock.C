@@ -244,12 +244,12 @@ PatchBlock::containsDynamicCall() {
          // see if it's a static call to a bad address
          if ((*eit)->sinkEdge()) {
              using namespace InstructionAPI;
-             Instruction::Ptr insn = getInsn(last());
-             if (insn->readsMemory()) { // memory indirect
+             Instruction insn = getInsn(last());
+             if (insn.readsMemory()) { // memory indirect
                  return true;
              } else { // check for register indirect
                  set<InstructionAST::Ptr> regs;
-                 Expression::Ptr tExpr = insn->getControlFlowTarget();
+                 Expression::Ptr tExpr = insn.getControlFlowTarget();
                  if (tExpr)
                      tExpr->getUses(regs);
                  for (set<InstructionAST::Ptr>::iterator rit = regs.begin(); 
@@ -275,12 +275,12 @@ PatchBlock::disassemble() const {
   getInsns(instances);
   for (Insns::iterator iter = instances.begin();
        iter != instances.end(); ++iter) {
-    ret << "\t" << hex << iter->first << ": " << iter->second->format() << dec << endl;
+    ret << "\t" << hex << iter->first << ": " << iter->second.format() << dec << endl;
   }
   return ret.str();
 }
 
-InstructionAPI::Instruction::Ptr
+InstructionAPI::Instruction
 PatchBlock::getInsn(Address a) const {
    Insns insns;
    getInsns(insns);
@@ -296,7 +296,7 @@ PatchBlock::long_format() const {
   getInsns(insns);
   
   for (Insns::iterator iter = insns.begin(); iter != insns.end(); ++iter) {
-     ret << "\t" << hex << iter->first << " : " << iter->second->format() << dec << endl;
+     ret << "\t" << hex << iter->first << " : " << iter->second.format() << dec << endl;
   }
   return ret.str();
 }
@@ -358,7 +358,7 @@ Point *PatchBlock::findPoint(Location loc, Point::Type type, bool create) {
          return points_.during;
          break;
       case Point::PreInsn: {
-         if (!loc.addr || !loc.insn) return NULL;
+         if (!loc.addr || !loc.insn.isValid()) return NULL;
          InsnPoints::iterator iter2 = points_.preInsn.find(loc.addr);
          if (iter2 == points_.preInsn.end()) {
             if (!create) return NULL;
@@ -372,7 +372,7 @@ Point *PatchBlock::findPoint(Location loc, Point::Type type, bool create) {
          break;
       }
       case Point::PostInsn: {
-         if (!loc.addr || !loc.insn) return NULL;
+         if (!loc.addr || !loc.insn.isValid()) return NULL;
          InsnPoints::iterator iter2 = points_.postInsn.find(loc.addr);
          if (iter2 == points_.postInsn.end()) {
             if (!create) return NULL;
@@ -616,7 +616,7 @@ bool BlockPoints::consistency(const PatchBlock *b, const PatchFunction *f) const
       if (iter->second->func() != f) CONSIST_FAIL;
       if (iter->second->addr() != iter->first) CONSIST_FAIL;
       if (iter->second->type() != Point::PreInsn) CONSIST_FAIL;
-      if (!b->getInsn(iter->first)) CONSIST_FAIL;
+      if (!b->getInsn(iter->first).isValid()) CONSIST_FAIL;
    }
    for (InsnPoints::const_iterator iter = postInsn.begin(); iter != postInsn.end(); ++iter) {
       if (!iter->second->consistency()) CONSIST_FAIL;
@@ -624,7 +624,7 @@ bool BlockPoints::consistency(const PatchBlock *b, const PatchFunction *f) const
       if (iter->second->func() != f) CONSIST_FAIL;
       if (iter->second->addr() != iter->first) CONSIST_FAIL;
       if (iter->second->type() != Point::PostInsn) CONSIST_FAIL;
-      if (!b->getInsn(iter->first)) CONSIST_FAIL;
+      if (!b->getInsn(iter->first).isValid()) CONSIST_FAIL;
    }
    return true;
 }

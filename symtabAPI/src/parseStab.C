@@ -741,8 +741,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                 */
 
                bool found = false;
-               const std::vector<Field *> *fields;
-               fields = commonBlock->getFields();
+               auto fields = commonBlock->getFields();
                if (fields) 
                {
                   for (unsigned int i=0; i < fields->size(); i++) 

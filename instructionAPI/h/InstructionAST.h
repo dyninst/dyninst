@@ -111,7 +111,7 @@ namespace Dyninst
 
       /// The \c format interface returns the contents of an %InstructionAST
       /// object as a string.  By default, \c format() produces assembly language.
-      virtual std::string format(ArchSpecificFormatter *, formatStyle how = defaultStyle) const = 0;
+      virtual std::string format(Architecture arch, formatStyle how = defaultStyle) const = 0;
 
       /// The \c format interface returns the contents of an %InstructionAST
       /// object as a string.  By default, \c format() produces assembly language.

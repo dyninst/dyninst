@@ -38,13 +38,12 @@
 /*******************************************************/
 
 #include <assert.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include "dyntypes.h"
+#include "pfq-rwlock.h"
 
 #include <set>
 #include <limits>
-#include <ostream>
+#include <iostream>
 
 /** Template class for Interval Binary Search Tree. The implementation is
   * based on a red-black tree (derived from our codeRange implementation)
@@ -159,6 +158,16 @@ class IBSNode {
     IBSNode<ITYPE> *parent;
 };
 
+ 
+template<class ITYPE = SimpleInterval<> >
+ std::ostream &operator<<(std::ostream &os, std::set<ITYPE *> &s) {
+  for (auto i = s.begin(); i != s.end(); i++) {
+    std::cerr << "[0x" << std::hex << (*i)->low() 
+              << ", 0x" << (*i)->high() << std::dec << ")  ";
+  }
+  return os;
+};
+
 template<class ITYPE = SimpleInterval<> >
 class IBSTree {
 public:
@@ -173,11 +182,15 @@ public:
 
     IBSNode<ITYPE> *nil;
 
+private:
     /** size of tree **/
-    int treeSize;
+    boost::atomic<int> treeSize;
 
     /** pointer to the tree root **/
     IBSNode<ITYPE> *root;
+
+    /** reader-writer lock to coordinate concurrent operations **/
+    mutable pfq_rwlock_t rwlock;
 
     /** RB-tree left rotation with modification to enforce IBS invariants **/
     void leftRotate(IBSNode<ITYPE> *);
@@ -185,8 +198,6 @@ public:
     /** RB-tree right rotation with modification to enforce IBS invariants **/
     void rightRotate(IBSNode<ITYPE> *);
 
-    /** Node deletion **/
-    void deleteFixup(IBSNode<ITYPE> *);
 
     void removeInterval(IBSNode<ITYPE> *R, ITYPE *range);
 
@@ -219,12 +230,19 @@ public:
     void findIntervals(interval_type X, IBSNode<ITYPE> *R, std::set<ITYPE *> &S) const;
     void findIntervals(ITYPE *I, IBSNode<ITYPE> *R, std::set<ITYPE *> &S) const;
 
-    void PrintPreorder(IBSNode<ITYPE> *n);
+    void PrintPreorder(IBSNode<ITYPE> *n, int indent);
+
+    std::ostream& doIndent(int n)
+    {
+      std::cerr.width(n);
+      std::cerr << "";
+      return std::cerr;
+    };
 
     int height(IBSNode<ITYPE> *n);
     int CountMarks(IBSNode<ITYPE> *R) const;
 
-    unsigned MemUse() const;
+public:
     friend std::ostream& operator<<(std::ostream& stream, const IBSTree<ITYPE>& tree)
     {
         return stream << *(tree.root);
@@ -235,9 +253,12 @@ public:
     /** public for debugging purposes **/
     //StatContainer stats_;
 
-    IBSTree() : treeSize(0) {
-        nil = new IBSNode<ITYPE>;
-        root = nil;
+    IBSTree() :
+        nil(new IBSNode<ITYPE>),
+        treeSize(0),
+        root(nil)
+    {
+        pfq_rwlock_init(rwlock);
         //stats_.add("insert",TimerStat);
         //stats_.add("remove",TimerStat);
     }     
@@ -247,21 +268,28 @@ public:
         delete nil;
     }
 
-    size_type size() const { return treeSize; }
+    size_type size() const {
+        return treeSize.load();
+    }
     const_iterator begin() const {
+        pfq_rwlock_read_lock(rwlock);
         iterator b = root;
-        while(root->left) b = root->left;
+        while(b->left) b = b->left;
+        pfq_rwlock_read_unlock(rwlock);
         return b;
     }
     const_iterator end() const {
+        pfq_rwlock_read_lock(rwlock);
         iterator e = root;
-        while(root->right) e = root->right;
+        while(e->right) e = e->right;
+        pfq_rwlock_read_unlock(rwlock);
         return e;
-
     }
     int CountMarks() const;
     
-    bool empty() const { return (root == nil); }
+    bool empty() const {
+        return (root == nil);
+    }
 
     void insert(ITYPE *);
 
@@ -281,7 +309,11 @@ public:
     /** Delete all entries in the tree **/
     void clear();
 
-    void PrintPreorder() { PrintPreorder(root); }
+    void PrintPreorder() {
+        pfq_rwlock_read_lock(rwlock);
+        PrintPreorder(root, 0);
+        pfq_rwlock_read_unlock(rwlock);
+    }
 };
 
 template<class ITYPE>
@@ -424,7 +456,7 @@ IBSTree<ITYPE>::addLeft(ITYPE *I, IBSNode<ITYPE> *R)
         if(R == nil) {
             // create a new node
             IBSNode<ITYPE> *tmp = new IBSNode<ITYPE>( ilow, nil );
-            treeSize++;
+            treeSize.fetch_add(1);
             created = true;
            
             if(parent == NULL)  // must be the root
@@ -495,7 +527,7 @@ IBSTree<ITYPE>::addRight(ITYPE *I, IBSNode<ITYPE> *R)
         bool created = false;
         if(R == nil) {
             IBSNode<ITYPE> *tmp = new IBSNode<ITYPE>(ihigh,nil);
-            ++treeSize;
+            treeSize.fetch_add(1);
             created = true;
             if(parent == NULL) // must be the root
                 root = tmp;
@@ -753,6 +785,9 @@ void IBSTree<ITYPE>::insert(ITYPE *range)
 {
     //stats_.startTimer("insert");
 
+    pfq_rwlock_node_t me;
+    pfq_rwlock_write_lock(rwlock, me);
+
     // Insert the endpoints of the range, rebalancing if new
     // nodes were created
     IBSNode<ITYPE> *x = addLeft(range,root);
@@ -763,6 +798,8 @@ void IBSTree<ITYPE>::insert(ITYPE *range)
     if(x) {
         insertFixup(x);
     }
+
+    pfq_rwlock_write_unlock(rwlock, me);
 
     //stats_.stopTimer("insert");
 }
@@ -786,7 +823,12 @@ void IBSTree<ITYPE>::remove(ITYPE * range)
     // the tests of the insertion procedures would avoid many of these
     // O(log n) lookups
 
+    pfq_rwlock_node_t me;
+    pfq_rwlock_write_lock(rwlock, me);
+
     removeInterval(root,range);
+
+    pfq_rwlock_write_unlock(rwlock, me);
    
     //stats_.startTimer("remove"); 
 }
@@ -795,7 +837,13 @@ template<class ITYPE>
 int IBSTree<ITYPE>::find(interval_type X, std::set<ITYPE *> &out) const
 {
     unsigned size = out.size();
+
+    pfq_rwlock_read_lock(rwlock);
+
     findIntervals(X,root,out);
+
+    pfq_rwlock_read_unlock(rwlock);
+
     return out.size() - size;
 }
 
@@ -803,7 +851,13 @@ template<class ITYPE>
 int IBSTree<ITYPE>::find(ITYPE * I, std::set<ITYPE *> &out) const
 {
     unsigned size = out.size();
+
+    pfq_rwlock_read_lock(rwlock);
+
     findIntervals(I,root,out);
+
+    pfq_rwlock_read_unlock(rwlock);
+
     return out.size() - size;
 }
 
@@ -814,6 +868,8 @@ void IBSTree<ITYPE>::successor(interval_type X, std::set<ITYPE *> &out) const
     IBSNode<ITYPE> *last = nil;
 
     std::vector< IBSNode<ITYPE>* > stack;
+
+    pfq_rwlock_read_lock(rwlock);
 
     /* last will hold the node immediately greater than X */
     while(1) {
@@ -850,13 +906,21 @@ void IBSTree<ITYPE>::successor(interval_type X, std::set<ITYPE *> &out) const
             n = n->left;
         }
     }
+
+    pfq_rwlock_read_unlock(rwlock);
 }
 
 template<class ITYPE>
 ITYPE * IBSTree<ITYPE>::successor(interval_type X) const
 {
     std::set<ITYPE *> out;
+    
+    pfq_rwlock_read_lock(rwlock);
+
     successor(X,out);
+
+    pfq_rwlock_read_unlock(rwlock);
+
     assert( out.size() <= 1 );
     if(!out.empty())
         return *out.begin();
@@ -867,9 +931,15 @@ ITYPE * IBSTree<ITYPE>::successor(interval_type X) const
 template<class ITYPE>
 void IBSTree<ITYPE>::clear() {
     if(root == nil) return;
+
+    pfq_rwlock_node_t me;
+    pfq_rwlock_write_lock(rwlock, me);
+
     destroy(root);
     root = nil;
-    treeSize = 0;
+    treeSize.store(0);
+
+    pfq_rwlock_write_unlock(rwlock, me);
 }
 
 template<class ITYPE>
@@ -878,8 +948,12 @@ int IBSTree<ITYPE>::height(IBSNode<ITYPE> *n)
     if(!n)
         return 0;
     
+    pfq_rwlock_read_lock(rwlock);
+    
     int leftHeight = 1 + height(n->left);
     int rightHeight = 1 + height(n->right);
+
+    pfq_rwlock_read_unlock(rwlock);
 
     if(leftHeight > rightHeight)
         return leftHeight;
@@ -888,26 +962,38 @@ int IBSTree<ITYPE>::height(IBSNode<ITYPE> *n)
 }
 
 template<class ITYPE>
-void IBSTree<ITYPE>::PrintPreorder(IBSNode<ITYPE> *n)
+void IBSTree<ITYPE>::PrintPreorder(IBSNode<ITYPE> *n, int indent)
 {
     if(n == nil) return;
 
-    PrintPreorder(n->left);
-    printf(" %d\n",n->value());
-    PrintPreorder(n->right);
+    // print self
+    doIndent(indent) << "node: 0x" << std::hex << n->value() << std::dec << " (" << n->value() << ")" << std::endl;
+    if (!n->less.empty())
+      doIndent(indent) << "  <: " << n->less << std::endl;
+    if (!n->equal.empty())
+      doIndent(indent) << "  =: " << n->equal << std::endl;
+    if (!n->greater.empty())
+      doIndent(indent) << "  >: " << n->greater << std::endl;
+
+    // print children
+    PrintPreorder(n->left, indent + 1);
+    PrintPreorder(n->right, indent + 1);
 
     if(n == root) {
-        int h = height(root);
-        printf(" tree height: %d\n", h);
+        std::cerr << "tree height: " << height(root) << std::endl;
     }
 }
-
-
 
 template<class ITYPE>
 int IBSTree<ITYPE>::CountMarks() const
 {
-    return CountMarks(root);
+    pfq_rwlock_read_lock(rwlock);
+
+    int nmarks = CountMarks(root);
+
+    pfq_rwlock_read_unlock(rwlock);
+
+    return nmarks;
 }
 }/* Dyninst */
 

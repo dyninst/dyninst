@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.6.4)
+cmake_minimum_required (VERSION 3.0.0)
 project (Dyninst)
 
 set (DYNINST_ROOT ${PROJECT_SOURCE_DIR})
@@ -37,13 +37,18 @@ if(NOT ${PLATFORM} MATCHES nt)
     )
 endif()
 
+
+
 foreach (dir ${HEADER_DIRS})
   include_directories ( ${DYNINST_ROOT}/${dir}/h )
 endforeach()
 
+
 include_directories (
   ${DYNINST_ROOT}
   ${DYNINST_ROOT}/external
+  ${CILKSCREEN_INCLUDES}
+      ${TBB_INCLUDE_DIRS}
   )
 set(Boost_USE_STATIC_LIBS OFF)
 # Component time
@@ -68,7 +73,7 @@ endif()
 
 if(BUILD_RTLIB)
   # Build the RT library as a separate project so we can change compilers
-  message(STATUS "Configuring DyninstAPI_RT")
+  message(STATUS "Configuring DyninstAPI_RT in ${RT_BINARY_DIR}")
   file(REMOVE_RECURSE ${RT_BINARY_DIR}/CMakeCache.txt ${RT_BINARY_DIR}/CMakeFiles ${RT_BINARY_DIR}/Makefile)
   file(MAKE_DIRECTORY ${RT_BINARY_DIR})
   if (PLATFORM MATCHES bgq)
@@ -92,7 +97,8 @@ if(BUILD_RTLIB)
     -DPLATFORM=${PLATFORM}
     -G ${CMAKE_GENERATOR}
     ${RT_SOURCE_DIR})
-
+  find_file(${RT_MAKEFILE} Makefile PATHS ${RT_BINARY_DIR} NO_DEFAULT_PATH)
+  message(STATUS "RTlib Makefile: ${RT_MAKEFILE}")
   if(MSVC)
       include_external_msproject(DyninstAPI_RT dyninstAPI_RT/dyninstAPI_RT.vcxproj)
 	  include_external_msproject(DyninstAPI_RT_static dyninstAPI_RT/dyninstAPI_RT_static.vcxproj)
@@ -105,6 +111,9 @@ if(BUILD_RTLIB)
     add_dependencies(dyninstAPI DyninstRT)
     if(TARGET dyninstAPI-static)
       add_dependencies(dyninstAPI-static DyninstRT)
+    endif()
+    if(TARGET boost)
+      add_dependencies(DyninstRT boost)
     endif()
   endif()
 
@@ -202,7 +211,7 @@ if(UNIX)
   endif()
   if(SHOULD_INSTALL_LIBELF)
     get_filename_component(ELFDIR "${LIBELF_LIBRARIES}" PATH)
-    file(GLOB LIBELF_INSTALL_FILES ${ELFDIR}/libelf.so*)
+    file(GLOB LIBELF_INSTALL_FILES ${ELFDIR}/libelf*.so*)
     message(STATUS "Libelf is ${LIBELF_LIBRARIES}")
     message(STATUS "Installing ${LIBELF_INSTALL_FILES} from ${ELFDIR}")
     install (FILES ${LIBELF_INSTALL_FILES}
@@ -218,3 +227,6 @@ endif()
 if(TARGET boost)
     add_dependencies(common boost)
 endif()
+
+#add_subdirectory(testsuite)
+

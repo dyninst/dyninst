@@ -63,13 +63,13 @@ bool CallChecker::isPrevInstrACall(Address addr, Address &target)
         unsigned int aligned = 0;
 
         // Decode all instructions in the buffer
-        InstructionAPI::Instruction::Ptr tmp = d.decode();
-        InstructionAPI::Instruction::Ptr prevInsn = tmp;
+        InstructionAPI::Instruction tmp = d.decode();
+        InstructionAPI::Instruction prevInsn = tmp;
 
-        while (tmp) {
-            if (tmp->size() > size) break;
+        while (tmp.isValid()) {
+            if (tmp.size() > size) break;
         
-            aligned += tmp->size();
+            aligned += tmp.size();
             prevInsn = tmp;
             tmp = d.decode();
         }
@@ -77,8 +77,8 @@ bool CallChecker::isPrevInstrACall(Address addr, Address &target)
         // prevInsn was the last valid instruction found
         // is it (a) aligned and (b) a call?
         if ( (aligned == size) && 
-             (prevInsn->getOperation().getID() == e_call) ) {
-            int disp = *((int*)(bufferPtr+(size-prevInsn->size() + 2)));
+             (prevInsn.getOperation().getID() == e_call) ) {
+            int disp = *((int*)(bufferPtr+(size-prevInsn.size() + 2)));
             target = addr + disp;
             sw_printf("[%s:%u] - Found call encoded by %d to %lx (addr = %lx, disp = %lx)\n",
                     FILE__, __LINE__,

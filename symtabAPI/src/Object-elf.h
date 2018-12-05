@@ -528,7 +528,9 @@ public:
 
 private:
     void parseLineInfoForCU(Module::DebugInfoT cuDIE, LineInformation* li);
-    void parseLineInfo(LineInformation* li);
+    
+    LineInformation* li_for_object;
+    LineInformation* parseLineInfoForObject(StringTablePtr strings);
     bool dwarf_parse_aranges(::Dwarf *dbg, std::set<Dwarf_Off>& dies_seen);
 
   void parseDwarfTypes(Symtab *obj);
@@ -599,8 +601,8 @@ private:
   std::vector<std::pair<long, long> > new_dynamic_entries;
  private:
   const char* soname_;
-  
-};
+
+        };
 
 }//namespace SymtabAPI
 }//namespace Dyninst

@@ -38,6 +38,7 @@
 #include "stackwalk/src/dbgstepper-impl.h"
 
 #include "common/h/dyn_regs.h"
+#include "frame.h"
 
 #include <sys/user.h>
 #include <sys/ptrace.h>
@@ -45,7 +46,7 @@
 #include <errno.h>
 #include <string.h>
 
-#define TEST_DEBUGINFO_ALONE 1
+#define TEST_DEBUGINFO_ALONE 0
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
@@ -55,7 +56,17 @@ bool Walker::createDefaultSteppers()
   FrameStepper *stepper;
   bool result;
 
-#if !TEST_DEBUGINFO_ALONE
+    stepper = new DebugStepper(this);
+    result = addStepper(stepper);
+    if (!result){
+        sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
+                  stepper);
+        return false;
+    }else{
+        sw_printf("[%s:%u] - Stepper %p is DebugStepper\n",
+                  FILE__, __LINE__, stepper);
+    }
+
   stepper = new FrameFuncStepper(this);
   result = addStepper(stepper);
   if (!result) {
@@ -77,18 +88,6 @@ bool Walker::createDefaultSteppers()
             FILE__, __LINE__, stepper);
   }
 
-#else
-  stepper = new DebugStepper(this);
-  result = addStepper(stepper);
-  if (!result){
-    sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
-	      stepper);
-    return false;
-  }else{
-    sw_printf("[%s:%u] - Stepper %p is DebugStepper\n",
-            FILE__, __LINE__, stepper);
-  }
-#endif
 
   return true;
 }
@@ -113,17 +112,7 @@ bool DebugStepperImpl::isStackRegister(MachRegister reg)
       return (reg == aarch64::sp);
 }
 
-gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &/*in*/,
-                                                    Frame &/*out*/)
-{
-   /**
-    * TODO: Implement me on non-x86 platforms.
-    **/
-   return gcf_not_me;
-}
-// what the hell are these numbers?
-// could the last developers leave any comments?
-/*
+
 static const int fp_offset_64 = 120;
 static const int pc_offset_64 = 168;
 static const int frame_size_64 = 1088;
@@ -225,4 +214,3 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & in,
    return gcf_not_me;
    return gcf_not_me;
 }
-*/

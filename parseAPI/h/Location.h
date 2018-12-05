@@ -71,7 +71,7 @@ struct BlockSite{
    BlockSite(Function *f, Block *b): func(f), block(b) {};
 };
 
-typedef std::vector<std::pair<InstructionAPI::Instruction::Ptr, Offset> > InsnVec;
+typedef std::vector<std::pair<InstructionAPI::Instruction, Offset> > InsnVec;
 
 static void getInsnInstances(Block *block,
 			     InsnVec &insns) {
@@ -81,7 +81,7 @@ static void getInsnInstances(Block *block,
   InstructionAPI::InstructionDecoder d(ptr, block->size(), block->obj()->cs()->getArch());
   while (off < block->end()) {
     insns.push_back(std::make_pair(d.decode(), off));
-    off += insns.back().first->size();
+    off += insns.back().first.size();
   }
 }
 
@@ -89,8 +89,8 @@ static void getInsnInstances(Block *block,
 struct InsnLoc {
    Block *const block;
    const Offset offset;
-   const InstructionAPI::Instruction::Ptr insn;
-InsnLoc(Block *const b,  Offset o, const InstructionAPI::Instruction::Ptr i) : 
+   InstructionAPI::Instruction insn;
+InsnLoc(Block *const b,  Offset o, const InstructionAPI::Instruction& i) :
    block(b), offset(o), insn(i) {};
 };
       
@@ -111,7 +111,7 @@ Location(BlockSite b): func(b.func), block(b.block), offset(0), edge(NULL), untr
    // A trusted instruction (in a particular function)
 Location(Function *f, InsnLoc l) : func(f), block(l.block), offset(l.offset), insn(l.insn), edge(NULL), untrusted(false), type(instructionInstance_) {};
    // An untrusted (raw) instruction (in a particular function)
-Location(Function *f, Block *b, Offset o, InstructionAPI::Instruction::Ptr i) : func(f), block(b), offset(o), insn(i), edge(NULL), untrusted(true), type(instructionInstance_) {};
+Location(Function *f, Block *b, Offset o, InstructionAPI::Instruction i) : func(f), block(b), offset(o), insn(i), edge(NULL), untrusted(true), type(instructionInstance_) {};
    // An edge (in a particular function)
 Location(Function *f, Edge *e) : func(f), block(NULL), offset(0), edge(e), untrusted(true), type(edge_) {};
 Location(EdgeLoc e): func(e.func), block(NULL), offset(0), edge(e.edge), untrusted(false), type(edge_){};
@@ -187,7 +187,7 @@ Location(Edge *e) : func(NULL), block(NULL), offset(0), edge(e), untrusted(false
 Function *const func;
 Block *const block;
 const Offset offset;
-const InstructionAPI::Instruction::Ptr insn;
+InstructionAPI::Instruction insn;
 Edge *const edge;
 const bool untrusted;
 const type_t type;

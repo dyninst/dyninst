@@ -64,15 +64,15 @@ BPatch_Vector<BPatch_instruction*> *BPatch_parRegion::getInstructions(void) {
 	return NULL;
 }
 
-bool BPatch_parRegion::getInstructions(std::vector<InstructionAPI::Instruction::Ptr>& insns) {
+bool BPatch_parRegion::getInstructions(std::vector<InstructionAPI::Instruction>& insns) {
   using namespace InstructionAPI;
   const unsigned char* buffer = 
   (const unsigned char*)(lowlevel_region()->intFunc()->proc()->getPtrToInstruction(getStartAddress()));
   
   InstructionDecoder d(buffer, size(),
         lowlevel_region()->intFunc()->proc()->getArch());
-  Instruction::Ptr curInsn = d.decode();
-  while(curInsn && curInsn->isValid())
+  Instruction curInsn = d.decode();
+  while(curInsn.isValid())
   {
     insns.push_back(curInsn);
     curInsn = d.decode();

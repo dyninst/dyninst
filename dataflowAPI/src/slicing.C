@@ -378,7 +378,7 @@ bool Slicer::updateAndLink(
     vector<bool> killed;
     vector<Element> matches;
     vector<Element> newactive;
-    Instruction::Ptr insn;
+    Instruction insn;
     bool change = false;
 
     killed.resize(cand.active.size(),false);
@@ -704,6 +704,10 @@ void Slicer::handlePredecessorEdge(ParseAPI::Edge* e,
 				   SliceFrame& nf)
 {
   visitedEdges.insert(e);
+  if (p.ignoreEdge(e)) {
+      slicing_printf("ignore edge from %lx to %lx, type %d according to predicate\n", e->src()->last(), e->trg()->start(), e->type()); 
+      return ;
+  }
   switch(e->type()) 
   {
   case CALL:
@@ -727,6 +731,16 @@ void Slicer::handlePredecessorEdge(ParseAPI::Edge* e,
     slicing_printf("\t\t Ignore catch edges ... ");
     break;
   default:
+    if (e->interproc()) {
+      slicing_printf("\t\t Handling tail call... ");
+      if(handleCallBackward(p,cand,newCands,e,err)) {
+        slicing_printf("succeess, err: %d\n",err);
+      } else {
+        slicing_printf("failed, err: %d\n",err);
+      }
+      return;
+    }
+
     nf = cand;
     slicing_printf("\t\t Handling default edge type %d... ",
 		   e->type());
@@ -775,7 +789,7 @@ Slicer::getPredecessors(
             slicing_printf("\t\t\t\t Adding intra-block predecessor %lx\n",
                 nf.loc.addr());
             slicing_printf("\t\t\t\t Current regions are:\n");
-            if(slicing_debug_on()) {
+            if(df_debug_slicing_on()) {
                 SliceFrame::ActiveMap::const_iterator ait = cand.active.begin();
                 for( ; ait != cand.active.end(); ++ait) {
                     slicing_printf("\t\t\t\t%s\n",
@@ -798,26 +812,11 @@ Slicer::getPredecessors(
     bool err = false;
     SliceFrame nf;
     
-    // The curernt function may have an invalid cache status.
-    // We may have to first finalize this function before
-    // iteratingover the src edges of the current block.
-    // Otherwise, the iterator in the for_each loop can get
-    // invalidated during the loop.
-    // We force finalizing if necessary
-    cand.loc.func->num_blocks();
-    SingleContextOrInterproc epred(cand.loc.func, true, true);       
-    const Block::edgelist & sources = cand.loc.block->sources();
-    std::for_each(boost::make_filter_iterator(epred, sources.begin(), sources.end()),
-		  boost::make_filter_iterator(epred, sources.end(), sources.end()),
-		  boost::bind(&Slicer::handlePredecessorEdge,
-			      this,
-			      _1,
-			      boost::ref(p),
-			      boost::ref(cand),
-			      boost::ref(newCands),
-			      boost::ref(err),
-			      boost::ref(nf)
-			      ));
+    Block::edgelist sources;
+    cand.loc.block->copy_sources(sources);
+    for (auto eit = sources.begin(); eit != sources.end(); eit++) {
+        handlePredecessorEdge(*eit, p, cand, newCands, err, nf);
+    }
     return !err; 
 }
 
@@ -1352,7 +1351,7 @@ static void getInsnInstances(ParseAPI::Block *block,
   InstructionDecoder d(ptr, block->size(), block->obj()->cs()->getArch());
   while (off < block->end()) {
     insns.push_back(std::make_pair(d.decode(), off));
-    off += insns.back().first->size();
+    off += insns.back().first.size();
   }
 }
 
@@ -1373,7 +1372,6 @@ Slicer::Slicer(Assignment::Ptr a,
   b_(block),
   f_(func),
   converter(cache, stackAnalysis) {
-  df_init_debug();
 };
 
 Graph::Ptr Slicer::forwardSlice(Predicates &predicates) {
@@ -1483,7 +1481,7 @@ bool Slicer::kills(AbsRegion const&reg, Assignment::Ptr &assign) {
     return false; 
   }
 
-  if (assign->insn()->getOperation().getID() == e_call && reg.absloc().type() == Absloc::Register) {
+  if (assign->insn().getOperation().getID() == e_call && reg.absloc().type() == Absloc::Register) {
       MachRegister r = reg.absloc().reg();
       ABI* abi = ABI::getABI(b_->obj()->cs()->getAddressWidth());
       int index = abi->getIndex(r);
@@ -1524,11 +1522,11 @@ std::string SliceNode::format() const {
 // Note that we CANNOT use a global cache based on the address
 // of the instruction to convert because the block that contains
 // the instructino may change during parsing.
-void Slicer::convertInstruction(Instruction::Ptr insn,
-				Address addr,
-				ParseAPI::Function *func,
+void Slicer::convertInstruction(Instruction insn,
+                                Address addr,
+                                ParseAPI::Function *func,
                                 ParseAPI::Block *block,
-				std::vector<Assignment::Ptr> &ret) {
+                                std::vector<Assignment::Ptr> &ret) {
   converter.convert(insn,
 		    addr,
 		    func,
@@ -1786,7 +1784,7 @@ void Slicer::constructInitialFrame(
     Direction dir,
     SliceFrame & initFrame)
 {
-    Instruction::Ptr init_instruction;
+    Instruction init_instruction;
     initFrame.con.push_front(ContextElement(f_));
     initFrame.loc = Location(f_,b_);
 

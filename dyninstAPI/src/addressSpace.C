@@ -1007,9 +1007,9 @@ func_instance *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
    InstructionDecoder decoder((const unsigned char*)getPtrToInstruction(addr),
                               InstructionDecoder::maxInstructionLength,
                               getArch());
-   Instruction::Ptr curInsn = decoder.decode();
+   Instruction curInsn = decoder.decode();
     
-   Expression::Ptr target = curInsn->getControlFlowTarget();
+   Expression::Ptr target = curInsn.getControlFlowTarget();
    RegisterAST thePC = RegisterAST::makePC(getArch());
    target->bind(&thePC, Result(u32, addr));
    Result cft = target->eval();
@@ -1713,7 +1713,25 @@ bool AddressSpace::relocate() {
            repeat = true;
         }
      } while (repeat);
-     
+
+     if (getArch() == Arch_ppc64) {
+         // The PowerPC new ABI typically generate two entries per function.
+         // Need special hanlding for them
+         FuncSet actualModFuncs;
+         for (auto fit = modFuncs.begin(); fit != modFuncs.end(); ++fit) {
+             func_instance* funct = *fit;
+             if (funct->getPowerPreambleFunc() != NULL) {
+                 relocation_cerr << "Ignore function " << funct->name() << " at " << hex << funct->entryBlock()->GetBlockStartingAddress() << " as it has the power preabmle" << endl;
+                 continue;
+             }
+             actualModFuncs.insert(funct);
+             if (funct->ifunc()->containsPowerPreamble()) {
+                 funct->entryBlock()->_ignorePowerPreamble = true;
+             }
+         }
+         modFuncs = actualModFuncs;
+     }
+
      addModifiedRegion(iter->first);
      
      Address middle = (iter->first->codeAbs() + (iter->first->imageSize() / 2));
@@ -1721,8 +1739,11 @@ bool AddressSpace::relocate() {
      if (!relocateInt(iter->second.begin(), iter->second.end(), middle)) {
         ret = false;
      }
-     
   }
+
+
+     
+  
 
   updateMemEmulator();
 
@@ -1776,11 +1797,16 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
       Address base = baseAddr;
       InstructionDecoder deco
         (cm->ptr(),cm->size(),getArch());
-      Instruction::Ptr insn = deco.decode();
-      while(insn) {
-         cerr << "\t" << hex << base << ": " << insn->format(base) << dec << endl;
-        base += insn->size();
-        insn = deco.decode();
+      Instruction insn = deco.decode();
+      while(insn.isValid()) {
+          std::stringstream rawInsn;
+          unsigned idx = insn.size();
+          while(idx--) rawInsn << hex << ((unsigned int) insn.rawByte(idx)) / 16 << ((unsigned int) insn.rawByte(idx)) % 16 ;
+
+          cerr << "\t" << hex << base << ":   " << rawInsn.str() << "   "
+              << insn.format(base) << dec << endl;
+          base += insn.size();
+          insn = deco.decode();
       }
       cerr << dec;
       cerr << endl;

@@ -97,7 +97,7 @@ class PATCHAPI_EXPORT PatchBlock {
    friend class PatchParseCallback;
 
   public:
-   typedef std::map<Address, InstructionAPI::Instruction::Ptr> Insns;
+   typedef std::map<Address, InstructionAPI::Instruction> Insns;
     typedef std::vector<PatchEdge*> edgelist;
 
     static PatchBlock *create(ParseAPI::Block *, PatchFunction *);
@@ -115,7 +115,7 @@ class PATCHAPI_EXPORT PatchBlock {
     bool isShared();
     int containingFuncs() const;
     void getInsns(Insns &insns) const;
-    InstructionAPI::Instruction::Ptr getInsn(Address a) const;
+    InstructionAPI::Instruction getInsn(Address a) const;
     std::string disassemble() const;
     bool containsCall() const { return 0 < numCallEdges(); };
     bool containsDynamicCall();

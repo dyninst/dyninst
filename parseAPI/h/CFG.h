@@ -37,6 +37,7 @@
 #include <functional>
 #include <boost/iterator/transform_iterator.hpp>
 #include <boost/range.hpp>
+#include <boost/thread/lock_guard.hpp>
 #include "dyntypes.h"
 #include "IBSTree.h"
 
@@ -44,6 +45,11 @@
 #include "ParseContainers.h"
 #include "Annotatable.h"
 #include <iostream>
+#include <boost/thread/lockable_adapter.hpp>
+#include <boost/thread/recursive_mutex.hpp>
+#include <boost/atomic.hpp>
+#include <list>
+#include "race-detector-annotations.h"
 
 namespace Dyninst {
 
@@ -58,7 +64,8 @@ class LoopAnalyzer;
 class dominatorCFG;
 class CodeObject;
 class CFGModifier;
-
+class ParseData;
+class region_data;
 enum EdgeTypeEnum {
     CALL = 0,
     COND_TAKEN,
@@ -141,9 +148,11 @@ class Block;
 
 class PARSER_EXPORT Edge : public allocatable {
    friend class CFGModifier;
+    friend class Block;
  protected:
     Block * _source;
-    Block * _target;
+    ParseData* index;
+    Offset _target_off;
 
  private:
 
@@ -173,7 +182,8 @@ class PARSER_EXPORT Edge : public allocatable {
      virtual ~Edge();
 
     Block * src() const { return _source; }
-    Block * trg() const { return _target; }
+    Block * trg() const;
+    Address trg_addr() const { return _target_off; }
     EdgeTypeEnum type() const { 
         return static_cast<EdgeTypeEnum>(_type._type_enum); 
     }
@@ -251,11 +261,11 @@ class PARSER_EXPORT Intraproc : public EdgePredicate {
 class Function;
  class PARSER_EXPORT SingleContext : public EdgePredicate {
  private:
-    Function * _context;
+    const Function * _context;
     bool _forward;
     bool _backward;
  public:
-    SingleContext(Function * f, bool forward, bool backward) : 
+    SingleContext(const Function * f, bool forward, bool backward) :
         _context(f),
         _forward(forward),
         _backward(backward) { }
@@ -267,11 +277,11 @@ class Function;
  * Will follow interprocedural call/return edges */
  class PARSER_EXPORT SingleContextOrInterproc : public EdgePredicate {
     private:
-        Function * _context;
+        const Function * _context;
         bool _forward;
         bool _backward;
     public:
-        SingleContextOrInterproc(Function * f, bool forward, bool backward) :
+        SingleContextOrInterproc(const Function * f, bool forward, bool backward) :
             _context(f),
             _forward(forward),
             _backward(backward) { }
@@ -284,31 +294,47 @@ class Function;
 };
 
 class CodeRegion;
-class PARSER_EXPORT Block : public Dyninst::SimpleInterval<Address, int>,
-              public allocatable {
-    friend class CFGModifier;
- public:
-    typedef std::map<Offset, InstructionAPI::InstructionPtr> Insns;
-    typedef std::vector<Edge*> edgelist;
 
-    Block(CodeObject * o, CodeRegion * r, Address start);
+class PARSER_EXPORT Block :
+        public Dyninst::SimpleInterval<Address, int>,
+        public allocatable,
+        public boost::lockable_adapter<boost::recursive_mutex> {
+    friend class CFGModifier;
+    friend class Parser;
+ public:
+    typedef std::map<Offset, InstructionAPI::Instruction> Insns;
+    typedef std::list<Edge*> edgelist;
+public:
+    static Block * sink_block;
+
+    Block(CodeObject * o, CodeRegion * r, Address start, Function* f = NULL);
     virtual ~Block();
 
-    Address start() const { return _start; }
-    Address end() const { return _end; }
-    Address lastInsnAddr() const { return _lastInsn; } 
-    virtual Address last() const { return lastInsnAddr(); }
-    Address size() const { return _end - _start; }
-    bool containsAddr(Address addr) const { return addr >= _start && addr < _end; }
+    boost::recursive_mutex& lockable() { return boost::lockable_adapter<boost::recursive_mutex>::lockable(); }
 
-    bool parsed() const { return _parsed; }
+    inline Address start() const { return _start; }
+    inline Address end() const { return _end; }
+    inline Address lastInsnAddr() const {  return _lastInsn; }
+    virtual Address last() const {  return lastInsnAddr(); }
+    inline Address size() const {  return _end - _start; }
+    bool containsAddr(Address addr) const {   return addr >= _start && addr < _end; }
 
-    CodeObject * obj() const { return _obj; }
-    CodeRegion * region() const { return _region; }
+    bool parsed() const {  return _parsed; }
+
+    CodeObject * obj() const {  return _obj; }
+    CodeRegion * region() const {  return _region; }
 
     /* Edge access */
     const edgelist & sources() const { return _srclist; }
     const edgelist & targets() const { return _trglist; }
+    void copy_sources(edgelist & src) {
+        boost::lock_guard<Block> g(*this);
+        src = _srclist;
+    }
+    void copy_targets(edgelist & trg) {
+        boost::lock_guard<Block> g(*this);
+	trg = _trglist;
+    }
 
     bool consistent(Address addr, Address & prev_insn);
 
@@ -317,13 +343,13 @@ class PARSER_EXPORT Block : public Dyninst::SimpleInterval<Address, int>,
     template<class OutputIterator> void getFuncs(OutputIterator result); 
 
     virtual void getInsns(Insns &insns) const;
-    InstructionAPI::InstructionPtr getInsn(Offset o) const;
+    InstructionAPI::Instruction getInsn(Offset o) const;
 
     bool wasUserAdded() const;
 
     /* interval implementation */
-    Address low() const { return start(); }
-    Address high() const { return end(); }
+    Address low() const override {  return start(); }
+    Address high() const override {   return end(); }
 
     struct compare {
         bool operator()(Block * const & b1, Block * const & b2) const {
@@ -346,6 +372,7 @@ class PARSER_EXPORT Block : public Dyninst::SimpleInterval<Address, int>,
     bool operator==(const Block &rhs) const;
 
     bool operator!=(const Block &rhs) const;
+    Function * createdByFunc() { return _createdByFunc; }
 
 private:
     void addSource(Edge * e);
@@ -353,6 +380,7 @@ private:
     void removeTarget(Edge * e);
     void removeSource(Edge * e);
     void removeFunc(Function *);
+    friend class region_data;
     void updateEnd(Address addr);
 
  private:
@@ -369,6 +397,8 @@ private:
     int _func_cnt;
     bool _parsed;
 
+    Function * _createdByFunc;
+
 
  friend class Edge;
  friend class Function;
@@ -378,33 +408,38 @@ private:
 
 inline void Block::addSource(Edge * e) 
 {
+    boost::lock_guard<Block> g(*this);
     _srclist.push_back(e);
 }
 
 inline void Block::addTarget(Edge * e)
 {
+    boost::lock_guard<Block> g(*this);
+    if(e->type() == FALLTHROUGH ||
+            e->type() == COND_NOT_TAKEN)
+    {
+        assert(e->_target_off == end());
+    }
+    /* This loop checks whether duplicated edges are added.
+     * It should only be used in debugging as it can significantly
+     * slow down the performance
+    for (auto eit = _trglist.begin(); eit != _trglist.end(); ++eit) {
+	assert( (*eit)->trg_addr() != e->trg_addr() || (*eit)->type() != e->type());
+    }
+    */
     _trglist.push_back(e);
 }
 
 inline void Block::removeTarget(Edge * e)
 {
-    for(unsigned i=0;i<_trglist.size();++i) {
-        if(_trglist[i] == e) {
-            _trglist[i] = _trglist.back();
-            _trglist.pop_back();    
-            break;
-        }
-    }
+    boost::lock_guard<Block> g(*this);
+    _trglist.remove(e);
 }
 
 inline void Block::removeSource(Edge * e) {
-    for(unsigned i=0;i<_srclist.size();++i) {
-        if(_srclist[i] == e) {
-            _srclist[i] = _srclist.back();
-            _srclist.pop_back();    
-            break;
-        }
-    }
+
+    boost::lock_guard<Block> g(*this);
+    _srclist.remove(e);
 }
 
 enum FuncReturnStatus {
@@ -439,7 +474,7 @@ class FuncExtent;
 class Loop;
 class LoopTreeNode;
 
-class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
+class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, public boost::lockable_adapter<boost::recursive_mutex> {
    friend class CFGModifier;
    friend class LoopAnalyzer;
  protected:
@@ -449,7 +484,7 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     InstructionSource * _isrc;
     
     FuncSource _src;
-    FuncReturnStatus _rs;
+    boost::atomic<FuncReturnStatus> _rs;
 
     std::string _name;
     Block * _entry;
@@ -482,15 +517,22 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
         CodeRegion * region, InstructionSource * isource);
 
     virtual ~Function();
+    boost::recursive_mutex& lockable() { return boost::lockable_adapter<boost::recursive_mutex>::lockable(); }
 
     virtual const std::string & name() const;
+    void rename(std::string n) { _name = n; }
 
     Address addr() const { return _start; }
     CodeRegion * region() const { return _region; }
     InstructionSource * isrc() const { return _isrc; }
     CodeObject * obj() const { return _obj; }
     FuncSource src() const { return _src; }
-    FuncReturnStatus retstatus() const { return _rs; }
+    FuncReturnStatus retstatus() const { 
+      race_detector_fake_lock_acquire(race_detector_fake_lock(_rs));
+      FuncReturnStatus ret = _rs.load();
+      race_detector_fake_lock_release(race_detector_fake_lock(_rs));
+      return ret; 
+    }
     Block * entry() const { return _entry; }
     bool parsed() const { return _parsed; }
 
@@ -499,11 +541,18 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     const_blocklist blocks() const;
     size_t num_blocks()
     {
+      boost::lock_guard<Function> g(*this);
       if(!_cache_valid) finalize();
       return _bmap.size();
     }
+    size_t num_blocks() const
+    { 
+      return _bmap.size();
+    }
+
     
     bool contains(Block *b);
+    bool contains(Block *b) const;
     const edgelist & callEdges();
     const_blocklist returnBlocks() ;
     const_blocklist exitBlocks();
@@ -558,6 +607,9 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     /* This should not remain here - this is an experimental fix for
        defensive mode CFG inconsistency */
     void invalidateCache() { _cache_valid = false; }
+    inline std::pair<Address, Block*> get_next_block(
+            Address addr,
+            CodeRegion *codereg) const;
 
     static void destroy(Function *f);
 
@@ -653,6 +705,25 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse {
     friend class CodeObject;
     friend class dominatorCFG;
 };
+inline std::pair<Address, Block*> Function::get_next_block(
+        Address addr,
+        CodeRegion *codereg) const
+{
+    Block * nextBlock = NULL;
+    Address nextBlockAddr;
+    nextBlockAddr = std::numeric_limits<Address>::max();
+    for(auto i = _bmap.begin();
+        i != _bmap.end();
+        ++i)
+    {
+        if(i->first > addr && i->first < nextBlockAddr) {
+            nextBlockAddr = i->first;
+            nextBlock = i->second;
+        }
+    }
+
+    return std::pair<Address,Block*>(nextBlockAddr,nextBlock);
+}
 
 /* Describes a contiguous extent of a Function object */
 class PARSER_EXPORT FuncExtent : public Dyninst::SimpleInterval<Address, Function* > {

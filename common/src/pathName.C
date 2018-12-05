@@ -277,29 +277,12 @@ bool executableFromArgv0AndPathAndCwd(std::string &result,
 #define PATH_SEP ('/')
 #endif
 
+#include <boost/filesystem.hpp>
+
 std::string extract_pathname_tail(const std::string &path)
 {
-	if (!path.length())
-	{
-		return std::string("");
-	}
-
-   const char *path_str = path.c_str();
-   if (!path_str)
-	{
-		return std::string("");
-	}
-
-   const char *path_sep = P_strrchr(path_str, PATH_SEP);
-
-#if defined(SECOND_PATH_SEP)
-   const char *sec_path_sep = P_strrchr(path_str, SECOND_PATH_SEP);
-   if (sec_path_sep && (!path_sep || sec_path_sep > path_sep))
-      path_sep = sec_path_sep;
-#endif
-
-   std::string ret = (path_sep) ? (path_sep + 1) : (path_str);
-   return ret;
+    boost::filesystem::path p(path);
+    return p.filename().string();
 }
 
 #if !defined (os_windows)

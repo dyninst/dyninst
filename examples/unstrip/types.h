@@ -63,14 +63,14 @@ ParamType getParamType(char * type);
 class trapLoc {
     private:
         Address a;
-        InstructionAPI::Instruction::Ptr i;
+        InstructionAPI::Instruction i;
         ParseAPI::Block * b;
     public:
-        trapLoc(Address _a, InstructionAPI::Instruction::Ptr _i, ParseAPI::Block * _b) : 
+        trapLoc(Address _a, InstructionAPI::Instruction _i, ParseAPI::Block * _b) :
             a(_a), i(_i), b(_b) {}
 
         Address addr() { return a; }
-        InstructionAPI::Instruction::Ptr instr() { return i; }
+        InstructionAPI::Instruction instr() { return i; }
         ParseAPI::Block * block() { return b; }
 
         bool operator<(const trapLoc & t2) const {

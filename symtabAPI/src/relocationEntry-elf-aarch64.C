@@ -190,3 +190,34 @@ SYMTAB_EXPORT unsigned long relocationEntry::getGlobalRelType(unsigned addressWi
     return relocationEntry::dynrel;
 }
 
+
+relocationEntry::category
+relocationEntry::getCategory( unsigned addressWidth )
+{
+    if( addressWidth == 8 ) {
+       switch( getRelType() )
+       {
+           case R_AARCH64_RELATIVE:
+           case R_AARCH64_IRELATIVE:
+               return category::relative; 
+           case R_AARCH64_JUMP_SLOT:
+               return category::jump_slot; 
+           default:
+               return category::absolute;
+       }
+    }else{
+       switch( getRelType() )
+       {
+           case R_ARM_RELATIVE:
+           case R_ARM_IRELATIVE:
+               return category::relative; 
+           case R_ARM_JUMP_SLOT:
+               return category::jump_slot; 
+           default:
+               return category::absolute;
+       }
+    }
+}
+
+
+

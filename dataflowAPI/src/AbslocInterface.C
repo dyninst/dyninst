@@ -37,6 +37,8 @@
 #include "Register.h"
 #include "Result.h"
 #include "Dereference.h"
+#include "BinaryFunction.h"
+#include "Immediate.h"
 
 #include "dataflowAPI/h/stackanalysis.h"
 #include "common/src/singleton_object_pool.h"
@@ -76,7 +78,7 @@ void AbsRegionConverter::convertAll(InstructionAPI::Expression::Ptr expr,
   }
 }
 
-void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
+void AbsRegionConverter::convertAll(InstructionAPI::Instruction insn,
 				    Address addr,
 				    ParseAPI::Function *func,
                                     ParseAPI::Block *block,
@@ -85,12 +87,12 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
                         
                         if (!usedCache(addr, func, used)) {
     std::set<RegisterAST::Ptr> regsRead;
-    insn->getReadSet(regsRead);
+    insn.getReadSet(regsRead);
 
 
     for (std::set<RegisterAST::Ptr>::const_iterator i = regsRead.begin();
 	 i != regsRead.end(); ++i) {
-        if(insn->getArch() == Arch_aarch64) {
+        if(insn.getArch() == Arch_aarch64) {
             MachRegister machReg = (*i)->getID();
             std::vector<MachRegister> flagRegs = {aarch64::n, aarch64::z, aarch64::c, aarch64::v};
 
@@ -106,9 +108,9 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
         }
     }
     
-    if (insn->readsMemory()) {
+    if (insn.readsMemory()) {
       std::set<Expression::Ptr> memReads;
-      insn->getMemoryReadOperands(memReads);
+      insn.getMemoryReadOperands(memReads);
       for (std::set<Expression::Ptr>::const_iterator r = memReads.begin();
 	   r != memReads.end();
 	   ++r) {
@@ -119,10 +121,10 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
   if (!definedCache(addr, func, defined)) {
     // Defined time
     std::set<RegisterAST::Ptr> regsWritten;
-    insn->getWriteSet(regsWritten);
+    insn.getWriteSet(regsWritten);
     for (std::set<RegisterAST::Ptr>::const_iterator i = regsWritten.begin();
 	 i != regsWritten.end(); ++i) {
-      if(insn->getArch() == Arch_aarch64) {
+      if(insn.getArch() == Arch_aarch64) {
             MachRegister machReg = (*i)->getID();
             std::vector<MachRegister> flagRegs = {aarch64::n, aarch64::z, aarch64::c, aarch64::v};
 
@@ -140,17 +142,17 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
 
     // special case for repeat-prefixed instructions on x86
     // may disappear if Dyninst's representation of these instructions changes
-    if (insn->getArch() == Arch_x86) {
-      prefixEntryID insnPrefix = insn->getOperation().getPrefixID();
+    if (insn.getArch() == Arch_x86) {
+      prefixEntryID insnPrefix = insn.getOperation().getPrefixID();
       if ( (prefix_rep == insnPrefix) || (prefix_repnz == insnPrefix) ) {
         defined.push_back(AbsRegionConverter::convert(RegisterAST::Ptr(
           new RegisterAST(MachRegister::getPC(Arch_x86)))));
       }
     }
     
-    if (insn->writesMemory()) {
+    if (insn.writesMemory()) {
       std::set<Expression::Ptr> memWrites;
-      insn->getMemoryWriteOperands(memWrites);
+      insn.getMemoryWriteOperands(memWrites);
       for (std::set<Expression::Ptr>::const_iterator r = memWrites.begin();
 	   r != memWrites.end();
 	   ++r) {
@@ -166,14 +168,101 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
 }
 
 AbsRegion AbsRegionConverter::convert(RegisterAST::Ptr reg) {
-  // FIXME:
-  // Upcast register so we can be sure to match things later
-  AbsRegion tmp = AbsRegion(Absloc(reg->getID().getBaseRegister()));
-
-  //std::cerr << "ARC::convert from " << reg->format() << " to "
-  //    << tmp.format() << std::endl;
-  return tmp;
+  // We do not distinguish partial registers from full register.
+  // So, eax and rax are treated the same.
+  // But for flags, we want to separate CF, ZF, and so on
+  if (reg->getID().isFlag()) {
+    return AbsRegion(Absloc(reg->getID()));
+  } else {
+    return AbsRegion(Absloc(reg->getID().getBaseRegister()));
+  }		   
 }
+
+class bindKnownRegs : public InstructionAPI::Visitor
+{
+public:
+    bindKnownRegs(Address sp, Address fp, Address ip, bool sdef, bool fdef) :
+            defined(true),
+            is_stack(false),
+            is_frame(false),
+            m_sp(sp),
+            m_fp(fp),
+            m_ip(ip),
+            stackDefined(sdef),
+            frameDefined(fdef) {}
+    virtual ~bindKnownRegs() {}
+    bool defined;
+    bool is_stack;
+    bool is_frame;
+    std::deque<long> results;
+    Address m_sp;
+    Address m_fp;
+    Address m_ip;
+    bool stackDefined;
+    bool frameDefined;
+    long getResult() {
+        if(results.empty()) return 0;
+        return results.front();
+    }
+    bool isDefined() {
+        return defined && (results.size() == 1);
+    }
+    virtual void visit(BinaryFunction* b)
+    {
+        if(!defined) return;
+        long arg1 = results.back();
+        results.pop_back();
+        long arg2 = results.back();
+        results.pop_back();
+        if(b->isAdd())
+        {
+            results.push_back(arg1+arg2);
+        }
+        else if(b->isMultiply())
+        {
+            results.push_back(arg1*arg2);
+        }
+        else
+        {
+            defined = false;
+        }
+    }
+    virtual void visit(Immediate* i)
+    {
+        if(!defined) return;
+        results.push_back(i->eval().convert<long>());
+    }
+    virtual void visit(RegisterAST* r)
+    {
+        if(!defined) return;
+        if(r->getID().isPC())
+        {
+            results.push_back(m_ip);
+            return;
+        }
+        if(r->getID().isFramePointer() && frameDefined)
+        {
+            results.push_back(m_fp);
+            is_frame = true;
+            return;
+        }
+        if(r->getID().isStackPointer() && stackDefined)
+        {
+            results.push_back(m_sp);
+            is_stack = true;
+            return;
+        }
+
+        defined = false;
+        results.push_back(0);
+    }
+    virtual void visit(Dereference* )
+    {
+        //defined = false;
+    }
+
+};
+
 
 AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
 				      Address addr,
@@ -223,49 +312,18 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
                                               addr,
                                               fpHeight);
 
-    bool isStack = false;
-    bool isFrame = false;
-
-
-    static Expression::Ptr theStackPtr(new RegisterAST(MachRegister::getStackPointer(Arch_x86)));
-    static Expression::Ptr theStackPtr64(new RegisterAST(MachRegister::getStackPointer(Arch_x86_64)));
-    static Expression::Ptr theStackPtrPPC(new RegisterAST(MachRegister::getStackPointer(Arch_ppc32)));
-    
-    static Expression::Ptr theFramePtr(new RegisterAST(MachRegister::getFramePointer(Arch_x86)));
-    static Expression::Ptr theFramePtr64(new RegisterAST(MachRegister::getFramePointer(Arch_x86_64)));
-
-    static Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(Arch_x86)));
-    static Expression::Ptr thePC64(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
-    static Expression::Ptr thePCPPC(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
-    
-    // We currently have to try and bind _every_ _single_ _alias_
-    // of the stack pointer...
-    if (stackDefined) {
-      if (exp->bind(theStackPtr.get(), Result(s32, spHeight)) ||
-	  exp->bind(theStackPtr64.get(), Result(s64, spHeight)) ||
-	  exp->bind(theStackPtrPPC.get(), Result(s32, spHeight))) {
-	isStack = true;
-      }
-    }
-    if (frameDefined) {
-      if (exp->bind(theFramePtr.get(), Result(s32, fpHeight)) ||
-	  exp->bind(theFramePtr64.get(), Result(s64, fpHeight))) {
-	isFrame = true;
-      }
-    }
-
-    // Bind the IP, why not...
-    exp->bind(thePC.get(), Result(u32, addr));
-    exp->bind(thePC64.get(), Result(u64, addr));
-    exp->bind(thePCPPC.get(), Result(u32, addr));
-
-    Result res = exp->eval();
+    // Currently, we only bind sp, fp, and pc.
+    // If we decide to also bind aliases of these registers,
+    // we need to change bindKnownRegs accordingly.
+    bindKnownRegs calc(spHeight, fpHeight, addr, stackDefined, frameDefined);
+    exp->apply(&calc);
+    bool isFrame = calc.is_frame;
+    bool isStack = calc.is_stack;
+    Address res = calc.getResult();
 
     if (isFrame && stackAnalysisEnabled_) {
-      if (res.defined && frameDefined) {
-	return AbsRegion(Absloc(res.convert<Address>(),
-                                0,
-				func));
+      if (calc.isDefined() && frameDefined) {
+	return AbsRegion(Absloc(res, 0, func));
       }
       else {
 	return AbsRegion(Absloc::Stack);
@@ -273,8 +331,8 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
     }
 
     if (isStack && stackAnalysisEnabled_) {
-      if (res.defined && stackDefined) {
-         return AbsRegion(Absloc(res.convert<Address>(),
+      if (calc.isDefined() && stackDefined) {
+         return AbsRegion(Absloc(res,
                                  0,
                                  func));
       }
@@ -288,8 +346,8 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
     }
 
     // Otherwise we're on the heap
-    if (res.defined) {
-      return AbsRegion(Absloc(res.convert<Address>()));
+    if (calc.isDefined()) {
+      return AbsRegion(Absloc(res));
     }
     else {
       return AbsRegion(Absloc::Heap);
@@ -419,7 +477,7 @@ bool AbsRegionConverter::definedCache(Address addr,
 // Instruction.
 ///////////////////////////////////////////////////////
 
-void AssignmentConverter::convert(const Instruction::Ptr I, 
+void AssignmentConverter::convert(const Instruction I, 
                                   const Address &addr,
 				  ParseAPI::Function *func,
                                   ParseAPI::Block *block,
@@ -436,13 +494,13 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
   // 2) Generic handling for things like flags and the PC. 
 
   // Non-PC handling section
-  switch(I->getOperation().getID()) {
+  switch(I.getOperation().getID()) {
   case e_push: {
     // SP = SP - 4 
     // *SP = <register>
  
     std::vector<Operand> operands;
-    I->getOperands(operands);
+    I.getOperands(operands);
 
     // According to the InstructionAPI, the first operand will be the argument, the second will be ESP.
     assert(operands.size() == 2);
@@ -516,7 +574,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     // As with push, eSP shows up as operand 1. 
 
     std::vector<Operand> operands;
-    I->getOperands(operands);
+    I.getOperands(operands);
 
     // According to the InstructionAPI, the first operand will be the explicit register, the second will be ESP.
     assert(operands.size() == 2);
@@ -610,7 +668,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     // xchg defines two abslocs, and uses them as appropriate...
 
     std::vector<Operand> operands;
-    I->getOperands(operands);
+    I.getOperands(operands);
 
     // According to the InstructionAPI, the first operand will be the argument, the second will be ESP.
     assert(operands.size() == 2);
@@ -649,7 +707,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
 
   case power_op_stwu: {
     std::vector<Operand> operands;
-    I->getOperands(operands);
+    I.getOperands(operands);
 
     // stwu <a>, <b>, <c>
     // <a> = R1
@@ -661,7 +719,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     // deref(b) <= c
 
     std::set<Expression::Ptr> writes;
-    I->getMemoryWriteOperands(writes);
+    I.getMemoryWriteOperands(writes);
     assert(writes.size() == 1);
 
     Expression::Ptr tmp = *(writes.begin());
@@ -740,7 +798,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
 
 }
 
-void AssignmentConverter::handlePushEquivalent(const Instruction::Ptr I,
+void AssignmentConverter::handlePushEquivalent(const Instruction I,
 					       Address addr,
 					       ParseAPI::Function *func,
                                                ParseAPI::Block *block,
@@ -767,7 +825,7 @@ void AssignmentConverter::handlePushEquivalent(const Instruction::Ptr I,
   assignments.push_back(spB);
 }
 
-void AssignmentConverter::handlePopEquivalent(const Instruction::Ptr I,
+void AssignmentConverter::handlePopEquivalent(const Instruction I,
 					      Address addr,
 					      ParseAPI::Function *func,
                                               ParseAPI::Block *block,

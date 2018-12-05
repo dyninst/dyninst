@@ -37,7 +37,7 @@ public:
 
     virtual bool modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g, Slicer*);
     std::string format();
-    bool isJumpTableFormat() { return jumpTableFormat && findIndex && findTableBase;}
+    bool isJumpTableFormat() { return jumpTableFormat && findIndex && findTableBase && memLoc;}
     bool findRead(Graph::Ptr g, SliceNode::Ptr &);
     bool adjustSliceFrame(Slicer::SliceFrame &frame, SliceNode::Ptr, Slicer*);
     bool isTOCRead(Slicer::SliceFrame &frame, SliceNode::Ptr);
@@ -47,6 +47,7 @@ public:
 			ReachFact &r,
 			ThunkData &t,
 			SymbolicExpression &sym);
+    virtual bool ignoreEdge(ParseAPI::Edge *e);
 
 };
 

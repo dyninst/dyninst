@@ -146,6 +146,23 @@ class RelocBlock {
       type_(Instrumentation) { 
    };
 
+  RelocBlock(Address a, block_instance *b, func_instance *f, bool relocateType)
+      :origAddr_(a),
+      block_(b),
+      func_(f),
+      id_(RelocBlockID++),
+      label_(-1),
+      origRelocBlock_(false),
+      prev_(NULL),
+      next_(NULL),
+      type_(Relocated) { 
+         if(relocateType == true)
+            type_ = Relocated;
+         else 
+            type_ = Instrumentation;
+   };
+
+
    typedef enum {
       InEdge,
       OutEdge } EdgeDirection;
