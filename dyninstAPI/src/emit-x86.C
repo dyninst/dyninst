@@ -170,7 +170,7 @@ void EmitterIA32::emitOp(unsigned opcode, Register dest, Register src1, Register
    emitOpRegReg(opcode, dest_r, src2_r, gen);
 }
 
-void EmitterIA32::emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen)
+void EmitterIA32::emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen, bool s)
 {
    RealRegister src1_r = gen.rs()->loadVirtual(src1, gen);
    RealRegister src2_r = gen.rs()->loadVirtual(src2, gen);
@@ -182,7 +182,7 @@ void EmitterIA32::emitRelOp(unsigned op, Register dest, Register src1, Register 
    emitMovImmToReg(scratch_r, 0x1, gen);            //MOV $2,scratch
    emitOpRegReg(CMP_GV_EV, src1_r, src2_r, gen);    //CMP src1, src2
    
-   unsigned char opcode = cmovOpcodeFromRelOp(op); 
+   unsigned char opcode = cmovOpcodeFromRelOp(op, s); 
    GET_PTR(insn, gen);
    *insn++ = 0x0f;
    SET_PTR(insn, gen);
@@ -190,7 +190,7 @@ void EmitterIA32::emitRelOp(unsigned op, Register dest, Register src1, Register 
    gen.rs()->freeRegister(scratch);
 }
 
-void EmitterIA32::emitDiv(Register dest, Register src1, Register src2, codeGen &gen)
+void EmitterIA32::emitDiv(Register dest, Register src1, Register src2, codeGen &gen, bool s)
 {
    Register scratch = gen.rs()->allocateRegister(gen, true);
    gen.rs()->loadVirtualToSpecific(src1, RealRegister(REGNUM_EAX), gen);
@@ -199,7 +199,10 @@ void EmitterIA32::emitDiv(Register dest, Register src1, Register src2, codeGen &
    RealRegister src2_r = gen.rs()->loadVirtual(src2, gen);                          
    gen.rs()->makeRegisterAvail(RealRegister(REGNUM_EAX), gen);
    emitSimpleInsn(0x99, gen);            //cdq (src1 -> eax:edx)
-   emitOpExtReg(0xF7, 0x7, src2_r, gen); //idiv eax:edx,src2 -> eax
+   if (s)
+       emitOpExtReg(0xF7, 0x7, src2_r, gen); //idiv eax:edx,src2 -> eax
+   else
+       emitOpExtReg(0xF7, 0x6, src2_r, gen); //div eax:edx,src2 -> eax
    gen.rs()->noteVirtualInReal(dest, RealRegister(REGNUM_EAX));
    gen.rs()->freeRegister(scratch);
 }
@@ -215,19 +218,19 @@ void EmitterIA32::emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, R
    emitOpExtRegImm(opcode1, (char) opcode2, dest_r, src2imm, gen);
 }
 
-void EmitterIA32::emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen)
+void EmitterIA32::emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s)
 {
 
    Register src2 = gen.rs()->allocateRegister(gen, true);
    emitLoadConst(src2, src2imm, gen);
-   emitRelOp(op, dest, src1, src2, gen);
+   emitRelOp(op, dest, src1, src2, gen, s);
    gen.rs()->freeRegister(src2);
 }
 
 // where is this defined?
 extern bool isPowerOf2(int value, int &result);
 
-void EmitterIA32::emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
+void EmitterIA32::emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s)
 {
    int result;
    
@@ -252,25 +255,30 @@ void EmitterIA32::emitTimesImm(Register dest, Register src1, RegValue src2imm, c
    } 
 }
 
-void EmitterIA32::emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
+void EmitterIA32::emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s)
 {
    int result;
    if (src2imm == 1)
       return;
 
    if (isPowerOf2(src2imm, result) && result <= MAX_IMM8) {
-      // sar dest, result
       RealRegister src1_r = gen.rs()->loadVirtual(src1, gen);
       RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
 
       if (src1 != dest)
          emitMovRegToReg(dest_r, src1_r, gen);
-      emitOpExtRegImm8(0xC1, 7, dest_r, static_cast<unsigned char>(result), gen);
+      if (s)
+          // sar dest, result
+          emitOpExtRegImm8(0xC1, 7, dest_r, static_cast<unsigned char>(result), gen);
+      else
+          // shr dest, result
+          emitOpExtRegImm8(0xC1, 5, dest_r, static_cast<unsigned char>(result), gen);
+
    }
    else {
       Register src2 = gen.rs()->allocateRegister(gen, true);
       emitLoadConst(src2, src2imm, gen);
-      emitDiv(dest, src1, src2, gen);
+      emitDiv(dest, src1, src2, gen, s);
       gen.rs()->freeRegister(src2);
    }
 }
@@ -1311,7 +1319,7 @@ void EmitterAMD64::emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, 
    gen.markRegDefined(dest);
 }
 
-void EmitterAMD64::emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen)
+void EmitterAMD64::emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen, bool s)
 {
     // cmp %src2, %src1
     emitOpRegReg64(0x39, src2, src1, true, gen);
@@ -1322,7 +1330,7 @@ void EmitterAMD64::emitRelOp(unsigned op, Register dest, Register src1, Register
     gen.markRegDefined(dest);
 
     // jcc by two or three, depdending on size of mov
-    unsigned char jcc_opcode = jccOpcodeFromRelOp(op);
+    unsigned char jcc_opcode = jccOpcodeFromRelOp(op, s);
     GET_PTR(insn, gen);
     *insn++ = jcc_opcode;
     SET_PTR(insn, gen);
@@ -1344,7 +1352,7 @@ void EmitterAMD64::emitRelOp(unsigned op, Register dest, Register src1, Register
 }
 
 void EmitterAMD64::emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm,
-                                codeGen &gen)
+                                codeGen &gen, bool s)
 {
 /* disabling hack
    // HACKITY - remove before doing anything else
@@ -1366,7 +1374,7 @@ void EmitterAMD64::emitRelOpImm(unsigned op, Register dest, Register src1, RegVa
    gen.markRegDefined(dest);
 
    // jcc by two or three, depdending on size of mov
-   unsigned char opcode = jccOpcodeFromRelOp(op);
+   unsigned char opcode = jccOpcodeFromRelOp(op, s);
    GET_PTR(insn, gen);
    *insn++ = opcode;
    SET_PTR(insn, gen);
@@ -1386,7 +1394,7 @@ void EmitterAMD64::emitRelOpImm(unsigned op, Register dest, Register src1, RegVa
    gen.setIndex(after_mov);
 }
 
-void EmitterAMD64::emitDiv(Register dest, Register src1, Register src2, codeGen &gen)
+void EmitterAMD64::emitDiv(Register dest, Register src1, Register src2, codeGen &gen, bool s)
 {
    // TODO: fix so that we don't always use RAX
 
@@ -1423,9 +1431,14 @@ void EmitterAMD64::emitDiv(Register dest, Register src1, Register src2, codeGen 
    // cqo (sign extend RAX into RDX)
    emitSimpleInsn(0x48, gen); // REX.W
    emitSimpleInsn(0x99, gen);
-   
-   // idiv %src2
-   emitOpRegReg64(0xF7, 0x7, scratchReg, true, gen);
+  
+   if (s) {
+       // idiv %src2
+       emitOpRegReg64(0xF7, 0x7, scratchReg, true, gen);
+   } else {
+       // div %src2
+       emitOpRegReg64(0xF7, 0x6, scratchReg, true, gen);
+   }
    
    // mov %rax, %dest
    emitMovRegToReg64(dest, REGNUM_RAX, true, gen);
@@ -1436,7 +1449,7 @@ void EmitterAMD64::emitDiv(Register dest, Register src1, Register src2, codeGen 
       emitPopReg64(REGNUM_RDX, gen);
 }
 
-void EmitterAMD64::emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
+void EmitterAMD64::emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s)
 {
    int result = -1;
 
@@ -1448,6 +1461,7 @@ void EmitterAMD64::emitTimesImm(Register dest, Register src1, RegValue src2imm, 
          emitMovRegToReg64(dest, src1, true, gen);
       }
       // sal dest, result
+      // Note: sal and shl are the same
       emitOpRegImm8_64(0xC1, 4, dest, result, true, gen);
    }
    else {
@@ -1456,7 +1470,7 @@ void EmitterAMD64::emitTimesImm(Register dest, Register src1, RegValue src2imm, 
    } 
 }
 
-void EmitterAMD64::emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
+void EmitterAMD64::emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s)
 {
    int result = -1;
    gen.markRegDefined(dest);
@@ -1466,9 +1480,13 @@ void EmitterAMD64::emitDivImm(Register dest, Register src1, RegValue src2imm, co
       if (src1 != dest) {
          emitMovRegToReg64(dest, src1, true, gen);
       }
-      
-      // sar $result, %dest
-      emitOpRegImm8_64(0xC1, 7, dest, result, true, gen);
+      if (s) {
+          // sar $result, %dest
+          emitOpRegImm8_64(0xC1, 7, dest, result, true, gen);
+      } else {
+          // shr $result, %dest
+          emitOpRegImm8_64(0xC1, 5, dest, result, true, gen);
+      }
    }
    else {
       
@@ -1481,20 +1499,28 @@ void EmitterAMD64::emitDivImm(Register dest, Register src1, RegValue src2imm, co
       else {
          gen.markRegDefined(REGNUM_RDX);
       }
-
       // need to put dividend in RDX:RAX
       // mov %src1, %rax
-      // cqo
       emitMovRegToReg64(REGNUM_EAX, src1, true, gen);
       gen.markRegDefined(REGNUM_RAX);
-      emitSimpleInsn(0x48, gen); // REX.W
-      emitSimpleInsn(0x99, gen);
-      
+      // We either do a sign extension from RAX to RDX or clear RDX
+      if (s) {
+          emitSimpleInsn(0x48, gen); // REX.W
+          emitSimpleInsn(0x99, gen);
+      } else {
+          emitMovImmToReg64(REGNUM_RDX, 0, true, gen);
+      }
       // push immediate operand on the stack (no IDIV $imm)
       emitPushImm(src2imm, gen);
-      
-      // idiv (%rsp)
-      emitOpRegRM64(0xF7, 0x7 /* opcode extension */, REGNUM_RSP, 0, true, gen);
+     
+      if (s) {
+          // idiv (%rsp)
+          emitOpRegRM64(0xF7, 0x7 /* opcode extension */, REGNUM_RSP, 0, true, gen);
+      }
+      else {
+          // div (%rsp)
+          emitOpRegRM64(0xF7, 0x6 /* opcode extension */, REGNUM_RSP, 0, true, gen);
+      }
       
       // mov %rax, %dest ; set the result
       emitMovRegToReg64(dest, REGNUM_RAX, true, gen);
@@ -2291,7 +2317,7 @@ void EmitterAMD64::emitCSload(int ra, int rb, int sc, long imm, Register dest, c
       // shift left by the given scale
       // emitTimesImm will do the right thing
       if(sc > 0)
-         emitTimesImm(dest, scratch, 1 << sc, gen);
+         emitTimesImm(dest, scratch, 1 << sc, gen, true);
    }
    else
       emitMovImmToReg64(dest, (int)imm, true, gen);       

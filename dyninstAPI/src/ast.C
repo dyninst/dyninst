@@ -84,6 +84,14 @@ using PatchAPI::Point;
 
 extern bool doNotOverflow(int64_t value);
 
+
+static bool IsSignedOperation(BPatch_type *l, BPatch_type *r) {
+    if (l == NULL || r == NULL) return true;
+    if (strstr(l->getName(), "unsigned") == NULL) return true;
+    if (strstr(r->getName(), "unsigned") == NULL) return true;
+    return false;
+}
+
 AstNodePtr AstNode::originalAddrNode_ = AstNodePtr();
 AstNodePtr AstNode::actualAddrNode_ = AstNodePtr();
 AstNodePtr AstNode::dynamicTargetNode_ = AstNodePtr();
@@ -1745,6 +1753,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
       case geOp:
       default:
       {
+         bool signedOp = IsSignedOperation(loperand->getType(), roperand->getType());
          src1 = Null_Register;
          right_dest = Null_Register;
          if (loperand) {
@@ -1763,7 +1772,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             else
                ast_printf("Operator node, const RHS, keeping register %d\n", retReg);
 
-            emitImm(op, src1, (Register) (long) roperand->getOValue(), retReg, gen, noCost, gen.rs());
+            emitImm(op, src1, (Register) (long) roperand->getOValue(), retReg, gen, noCost, gen.rs(), signedOp);
 
             if (src1 != Null_Register && loperand->decRefCount())
                gen.rs()->freeRegister(src1);
@@ -1780,7 +1789,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             if (retReg == REG_NULL) {
                retReg = allocateAndKeep(gen, noCost);
             }
-            emitV(op, src1, right_dest, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+            emitV(op, src1, right_dest, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace(), signedOp);
             if (src1 != Null_Register && loperand->decRefCount()) {
                // Don't free inputs until afterwards; we have _no_ idea
                gen.rs()->freeRegister(src1);
@@ -2289,7 +2298,7 @@ std::string getOpString(opCode op)
 	case plusOp: return("+");
 	case minusOp: return("-");
 	case xorOp: return("^");
-	case timesOp: return("*");
+    case timesOp: return("*");
 	case divOp: return("/");
 	case lessOp: return("<");
 	case leOp: return("<=");

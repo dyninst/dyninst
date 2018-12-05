@@ -57,11 +57,11 @@ class Emitter {
     virtual void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen) = 0;
     virtual void emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
 			   codeGen &gen) = 0;
-    virtual void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen) = 0;
-    virtual void emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen) = 0;
-    virtual void emitDiv(Register dest, Register src1, Register src2, codeGen &gen) = 0;
-    virtual void emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen) = 0;
-    virtual void emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen) = 0;
+    virtual void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen, bool s) = 0;
+    virtual void emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s) = 0;
+    virtual void emitDiv(Register dest, Register src1, Register src2, codeGen &gen, bool s) = 0;
+    virtual void emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s) = 0;
+    virtual void emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s) = 0;
     virtual void emitLoad(Register dest, Address addr, int size, codeGen &gen) = 0;
     virtual void emitLoadConst(Register dest, Address imm, codeGen &gen) = 0;
     virtual void emitLoadIndir(Register dest, Register addr_reg, int size, codeGen &gen) = 0;

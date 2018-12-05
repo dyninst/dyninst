@@ -181,7 +181,7 @@ Register emitR(opCode op, Register src1, Register src2, Register dst,
 void     emitV(opCode op, Register src1, Register src2, Register dst, 
                codeGen &gen, bool noCost, 
                registerSpace *rs = NULL, int size = 4,
-               const instPoint * location = NULL, AddressSpace * proc = NULL);
+               const instPoint * location = NULL, AddressSpace * proc = NULL, bool s = true);
 
 // for loadOp and loadConstOp (reading from an Address)
 void     emitVload(opCode op, Address src1, Register src2, Register dst, 
@@ -210,7 +210,7 @@ void     emitVstore(opCode op, Register src1, Register src2, const image_variabl
 // and the retyped original emitImm companion
 void     emitImm(opCode op, Register src, RegValue src2imm, Register dst, 
                  codeGen &gen, bool noCost,
-                 registerSpace *rs = NULL);
+                 registerSpace *rs = NULL, bool s = true);
 
 
 //#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
