@@ -277,4 +277,13 @@ void EmitterAARCH64::emitLoadOrigRegRelative(
 }
 
 
+void EmitterAARCH64::emitLoadOrigRegister(Address register_num, Register destination, codeGen &gen)
+{
+    int offset = TRAMP_GPR_OFFSET(gen.width());
+    // its on the stack so load it.
+    // #sasha could it not be on the stack?
+    insnCodeGen::restoreRegister(gen, destination, offset + (register_num * gen.width()),
+            insnCodeGen::Offset);
+}
+
 

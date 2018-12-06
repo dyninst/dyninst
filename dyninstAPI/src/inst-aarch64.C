@@ -1070,8 +1070,9 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
                                         Register dest,
                                         codeGen &gen,
                                         int /*size*/,
-                                        bool noCost) {
-    assert(0); //Not implemented
+                                        bool noCost)
+{
+    gen.codeEmitter()->emitLoadOrigRegister(register_num, dest, gen);
 }
 
 void emitStorePreviousStackFrameRegister(Address,
@@ -1082,13 +1083,34 @@ void emitStorePreviousStackFrameRegister(Address,
     assert(0);
 }
 
-using namespace Dyninst::InstructionAPI;
+// First AST node: target of the call
+// Second AST node: source of the call
+// This can handle indirect control transfers as well
 bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
 					  Address addr,
 					  pdvector<AstNodePtr> &args)
 {
-	assert(0); //Not implemented
-	return false;
+    using namespace Dyninst::InstructionAPI;
+    Register branch_target = registerSpace::ignored;
+
+    for(Instruction::cftConstIter curCFT = i.cft_begin();
+            curCFT != i.cft_end(); ++curCFT)
+    {
+        auto target_reg = dynamic_cast<RegisterAST *>(curCFT->target.get());
+        if(!target_reg) return false;
+        branch_target = target_reg->getID() & 0x1f;
+        break;
+    }
+
+    if(branch_target == registerSpace::ignored) return false;
+
+    //jumping to Xn (BLR Xn)
+    args.push_back(AstNode::operandNode(AstNode::origRegister,(void *) branch_target));
+    args.push_back(AstNode::operandNode(AstNode::Constant, (void *) addr));
+
+    //inst_printf("%s[%d]:  Inserting dynamic call site instrumentation for %s\n",
+    //        FILE__, __LINE__, cft->format(insn.getArch()).c_str());
+    return true;
 }
 
 bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f) {

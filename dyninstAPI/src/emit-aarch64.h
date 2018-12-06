@@ -90,7 +90,7 @@ public:
 
     virtual void emitLoadOrigRegRelative(Register, Address, Register, codeGen &, bool);
 
-    virtual void emitLoadOrigRegister(Address, Register, codeGen &) { assert(0); }
+    virtual void emitLoadOrigRegister(Address, Register, codeGen &);
 
     virtual void emitStore(Address, Register, int, codeGen &);
 
