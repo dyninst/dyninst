@@ -84,7 +84,6 @@ using PatchAPI::Point;
 
 extern bool doNotOverflow(int64_t value);
 
-
 static bool IsSignedOperation(BPatch_type *l, BPatch_type *r) {
     if (l == NULL || r == NULL) return true;
     if (strstr(l->getName(), "unsigned") == NULL) return true;
@@ -1764,7 +1763,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
          if (roperand &&
              (roperand->getoType() == Constant) &&
-             doNotOverflow((int64_t) roperand->getOValue())) {
+             doNotOverflow((int64_t)roperand->getOValue())) {
             if (retReg == REG_NULL) {
                retReg = allocateAndKeep(gen, noCost);
                ast_printf("Operator node, const RHS, allocated register %d\n", retReg);
@@ -1772,7 +1771,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             else
                ast_printf("Operator node, const RHS, keeping register %d\n", retReg);
 
-            emitImm(op, src1, (Register) (long) roperand->getOValue(), retReg, gen, noCost, gen.rs(), signedOp);
+            emitImm(op, src1, (RegValue) roperand->getOValue(), retReg, gen, noCost, gen.rs(), signedOp);
 
             if (src1 != Null_Register && loperand->decRefCount())
                gen.rs()->freeRegister(src1);

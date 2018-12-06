@@ -1097,7 +1097,7 @@ bool baseTramp::generateRestores(codeGen &gen,
 
 
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
-             codeGen &gen, bool noCost, registerSpace * /* rs */)
+             codeGen &gen, bool noCost, registerSpace * /* rs */, bool s)
 {
         //bperr("emitImm(op=%d,src=%d,src2imm=%d,dest=%d)\n",
         //        op, src1, src2imm, dest);
@@ -1125,20 +1125,22 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         else {
             Register dest2 = gen.rs()->getScratchRegister(gen, noCost);
             emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
-            emitV(op, src1, dest2, dest, gen, noCost);
+            emitV(op, src1, dest2, dest, gen, noCost, gen.rs(), 
+                  gen.width(), gen.point(), gen.addrSpace(), s);
             return;
         }
         break;
         
     case divOp:
         if (isPowerOf2(src2imm,result) && (result < (int) (gen.width() * 8))) {
-            insnCodeGen::generateRShift(gen, src1, result, dest);
+            insnCodeGen::generateRShift(gen, src1, result, dest, s);
             return;
         }
         else {
             Register dest2 = gen.rs()->getScratchRegister(gen, noCost);
             emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
-            emitV(op, src1, dest2, dest, gen, noCost);
+            emitV(op, src1, dest2, dest, gen, noCost, gen.rs(),
+                  gen.width(), gen.point(), gen.addrSpace(), s);
             return;
         }
         break;
@@ -1160,7 +1162,8 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
     default:
         Register dest2 = gen.rs()->getScratchRegister(gen, noCost);
         emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
-        emitV(op, src1, dest2, dest, gen, noCost);
+        emitV(op, src1, dest2, dest, gen, noCost, gen.rs(),
+              gen.width(), gen.point(), gen.addrSpace(), s);
         return;
         break;
     }
@@ -2070,7 +2073,7 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
 void emitV(opCode op, Register src1, Register src2, Register dest,
            codeGen &gen, bool /*noCost*/,
            registerSpace * /*rs*/, int size,
-           const instPoint * /* location */, AddressSpace *proc)
+           const instPoint * /* location */, AddressSpace *proc, bool s)
 {
     //bperr("emitV(op=%d,src1=%d,src2=%d,dest=%d)\n",op,src1,src2,dest);
 
@@ -2143,13 +2146,21 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 
             case timesOp:
                 instOp = MULSop;
+                // For 64-bit integer multiplication, 
+                // signed and unsigned are the same.
+                //
+                // Signed and unsigned are different if we start to 
+                // psas upper 64-bit of the results back to users.
                 instXop = MULLxop;
                 break;
 
             case divOp:
                 instOp = DIVSop;   // POWER divide instruction
                                    // Same as DIVWop for PowerPC
-                instXop = DIVLxop; // PowerPC
+                if (s)
+                    instXop = DIVLSxop; // Extended opcode for signed division
+                else
+                    instXop = DIVLUxop; // Extended opcode for unsigned division
                 break;
 
             // Bool ops
@@ -2194,32 +2205,32 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 
             // rel ops
             case eqOp:
-                insnCodeGen::generateRelOp(gen, EQcond, BTRUEcond, src1, src2, dest);
+                insnCodeGen::generateRelOp(gen, EQcond, BTRUEcond, src1, src2, dest, s);
                 return;
                 break;
 
             case neOp:
-                insnCodeGen::generateRelOp(gen, EQcond, BFALSEcond, src1, src2, dest);
+                insnCodeGen::generateRelOp(gen, EQcond, BFALSEcond, src1, src2, dest, s);
                 return;
                 break;
 
             case lessOp:
-                insnCodeGen::generateRelOp(gen, LTcond, BTRUEcond, src1, src2, dest);
+                insnCodeGen::generateRelOp(gen, LTcond, BTRUEcond, src1, src2, dest, s);
                 return;
                 break;
 
             case greaterOp:
-                insnCodeGen::generateRelOp(gen, GTcond, BTRUEcond, src1, src2, dest);
+                insnCodeGen::generateRelOp(gen, GTcond, BTRUEcond, src1, src2, dest, s);
                 return;
                 break;
 
             case leOp:
-                insnCodeGen::generateRelOp(gen, GTcond, BFALSEcond, src1, src2, dest);
+                insnCodeGen::generateRelOp(gen, GTcond, BFALSEcond, src1, src2, dest, s);
                 return;
                 break;
 
             case geOp:
-                insnCodeGen::generateRelOp(gen, LTcond, BFALSEcond, src1, src2, dest);
+                insnCodeGen::generateRelOp(gen, LTcond, BFALSEcond, src1, src2, dest, s);
                 return;
                 break;
 
@@ -2432,14 +2443,11 @@ void registerSpace::saveClobberInfo(const instPoint *location)
 }
 #endif
 
+bool doNotOverflow(int64_t value) {
+    if ( (value <= 32767) && (value >= -32768) ) return(true);
+    else return(false);
 
-bool doNotOverflow(int64_t value)
-{
-  // we are assuming that we have 15 bits to store the immediate operand.
-  if ( (value <= 32767) && (value >= -32768) ) return(true);
-  else return(false);
 }
-
 #if !defined(os_vxworks)
 // hasBeenBound: returns true if the runtime linker has bound the
 // function symbol corresponding to the relocation entry in at the address
