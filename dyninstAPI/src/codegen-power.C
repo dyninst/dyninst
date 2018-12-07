@@ -910,6 +910,10 @@ void insnCodeGen::generateLShift64(codeGen &gen, Register rs, int shift, Registe
 // srd ra, rs, rb
 void insnCodeGen::generateRShift64(codeGen &gen, Register rs, int shift, Register ra, bool s)
 {
+    // This function uses rotate-left to implement right shift.
+    // Rotate left 64-n bits is rotating right n bits.
+    // However, rotation cannot correctly represent signed right shifting.
+    // So, this piece of code is wrong...
     instruction insn;
 
     assert(shift<64);

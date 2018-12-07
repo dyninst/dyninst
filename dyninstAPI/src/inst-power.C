@@ -1131,20 +1131,13 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         }
         break;
         
-    case divOp:
-        if (isPowerOf2(src2imm,result) && (result < (int) (gen.width() * 8))) {
-            insnCodeGen::generateRShift(gen, src1, result, dest, s);
-            return;
-        }
-        else {
+    case divOp: {
             Register dest2 = gen.rs()->getScratchRegister(gen, noCost);
             emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
             emitV(op, src1, dest2, dest, gen, noCost, gen.rs(),
                   gen.width(), gen.point(), gen.addrSpace(), s);
             return;
         }
-        break;
-        
         // Bool ops
     case orOp:
         iop = ORILop;
