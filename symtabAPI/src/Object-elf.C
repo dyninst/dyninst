@@ -4305,7 +4305,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 
 LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
 {
-    if (!li_for_object) {
+    if (li_for_object) {
         // The line information for this object has been parsed.
         return li_for_object;
     }

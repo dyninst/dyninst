@@ -218,7 +218,8 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
 }
 
 LineInformation *Module::parseLineInformation() {
-    if (exec()->getObject()->hasDebugInfo() || !info_.empty()) {
+    if (exec()->getArchitecture() != Arch_cuda &&
+	(exec()->getObject()->hasDebugInfo() || !info_.empty())) {
         // Allocate if none
         if (!lineInfo_) {
             lineInfo_ = new LineInformation;
