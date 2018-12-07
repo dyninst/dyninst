@@ -86,11 +86,11 @@ class insnCodeGen {
     static void generateLShift(codeGen &gen, Register rs,
                                int shift, Register ra);
     static void generateRShift(codeGen &gen, Register rs,
-                               int shift, Register ra);
+                               int shift, Register ra, bool s);
     static void generateLShift64(codeGen &gen, Register rs,
                                  int shift, Register ra);
     static void generateRShift64(codeGen &gen, Register rs,
-                                 int shift, Register ra);
+                                 int shift, Register ra, bool s);
     static void generateNOOP(codeGen &gen, unsigned size = 4);
     
     static void generateSimple(codeGen &gen,
@@ -98,7 +98,7 @@ class insnCodeGen {
                                Register src2, Register dest);
     static void generateRelOp(codeGen &gen, int cond,
                               int mode, Register rs1,
-                              Register rs2, Register rd);
+                              Register rs2, Register rd, bool s);
     static void loadImmIntoReg(codeGen &gen, Register rt,
                                long value);
     static void loadPartialImmIntoReg(codeGen &gen, Register rt,

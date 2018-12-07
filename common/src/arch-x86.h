@@ -419,6 +419,11 @@ enum AMD64_REG_NUMBERS {
 #define JG_R8    (0x7F)
 #define JGE_R8   (0x7D)
 
+#define JB_R8    (0x72)
+#define JBE_R8   (0x76)
+#define JA_R8    (0x77)
+#define JAE_R8   (0x73)
+
 #define MOVREGMEM_REG (0x8b) 
 #define MOV_R8_TO_RM8 (0x88)     //move r8 to r/m8
 #define MOV_R16_TO_RM16 (0x89)   //move r16 to r/m16
