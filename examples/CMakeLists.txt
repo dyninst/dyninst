@@ -21,6 +21,13 @@ add_dependencies(cfg_to_dot parseAPI symtabAPI instructionAPI common dynDwarf dy
 target_link_libraries(cfg_to_dot parseAPI symtabAPI instructionAPI common dynDwarf dynElf ${Boost_LIBRARIES})
 #add_executable(retee)
 
+if (USE_OpenMP MATCHES "ON")
+set_target_properties (unstrip PROPERTIES LINK_FLAGS "-fopenmp")
+set_target_properties (codeCoverage PROPERTIES LINK_FLAGS "-fopenmp")
+set_target_properties (cfg_to_dot PROPERTIES LINK_FLAGS "-fopenmp")
+endif()
+
+
 install (TARGETS cfg_to_dot unstrip codeCoverage Inst
         RUNTIME DESTINATION ${INSTALL_BIN_DIR}
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
