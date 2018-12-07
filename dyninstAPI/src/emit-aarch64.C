@@ -124,12 +124,6 @@ void EmitterAARCH64::emitOp(
     else if( opcode == minusOp )
         insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Sub, 0, 0, src2, src1, dest, true);
     
-    // dest = src1 / src2
-    else if( opcode == divOp ){
-        insnCodeGen::generateDiv(gen, src2, src1, dest, true);
-        //insnCodeGen::generateTrap(gen);
-    }
-
     // dest = src1 * src2
     else if( opcode == timesOp )
         insnCodeGen::generateMul(gen, src1, src2, dest, true);
@@ -151,7 +145,7 @@ void EmitterAARCH64::emitOp(
 
 
 void EmitterAARCH64::emitRelOp(
-        unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen)
+        unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen, bool s)
 {
     // CMP is an alias to SUBS;
     // dest here has src1-src2, which it's not important because the flags are
@@ -165,7 +159,7 @@ void EmitterAARCH64::emitRelOp(
 
     // insert conditional jump to skip dest=0 in case the comparison resulted true
     // therefore keeping dest=1
-    insnCodeGen::generateConditionalBranch(gen, 8, opcode);
+    insnCodeGen::generateConditionalBranch(gen, 8, opcode, s);
 
     // make dest = 0, in case it fails the branch
     insnCodeGen::loadImmIntoReg<Address>(gen, dest, 0x0);
@@ -203,7 +197,7 @@ void EmitterAARCH64::emitGetParam(
 
 
 void EmitterAARCH64::emitRelOpImm(
-        unsigned opcode, Register dest, Register src1, RegValue src2imm, codeGen &gen)
+        unsigned opcode, Register dest, Register src1, RegValue src2imm, codeGen &gen, bool s)
 {
     //Register src2 = gen.rs()->allocateRegister(gen, true);
     Register src2 = gen.rs()->getScratchRegister(gen);
@@ -221,7 +215,7 @@ void EmitterAARCH64::emitRelOpImm(
 
     // insert conditional jump to skip dest=0 in case the comparison resulted true
     // therefore keeping dest=1
-    insnCodeGen::generateConditionalBranch(gen, 8, opcode);
+    insnCodeGen::generateConditionalBranch(gen, 8, opcode, s);
 
     // make dest = 0, in case it fails the branch
     insnCodeGen::loadImmIntoReg<Address>(gen, dest, 0x0);
