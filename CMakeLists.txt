@@ -149,7 +149,7 @@ if(BUILD_DOCS)
   foreach(COMPONENT ${WORD_DOCS})
     add_dependencies(doc ${COMPONENT}-doc)
     set_target_properties(${COMPONENT}-doc PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD 1)
-    install(FILES ${CMAKE_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.pdf
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.pdf
       DESTINATION ${INSTALL_DOC_DIR}
       RENAME ${COMPONENT}-${VERSION_STRING}.pdf
       OPTIONAL
