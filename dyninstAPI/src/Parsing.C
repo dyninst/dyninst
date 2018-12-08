@@ -161,9 +161,11 @@ DynCFGFactory::mkfunc(
                 break;
             }
         }
-        ret = new parse_func(stf, pdmod,_img,obj,reg,isrc,src);
-        ret->isPLTFunction_ = true;
-        return ret;
+        if(stf && stf->getFirstSymbol()) {
+            ret = new parse_func(stf, pdmod,_img,obj,reg,isrc,src);
+            ret->isPLTFunction_ = true;
+            return ret;
+        }
     }
     if(!st->findFuncByEntryOffset(stf,addr)) {
         pdmod = _img->getOrCreateModule(st->getDefaultModule());

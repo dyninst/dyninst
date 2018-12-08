@@ -48,8 +48,10 @@ static void BuildEdgeFromVirtualEntry(SliceNode::Ptr virtualEntry,
     }
     if (visit.find(curBlock) != visit.end()) return;
     visit.insert(curBlock);
-    for (auto eit = curBlock->targets().begin(); eit != curBlock->targets().end(); ++eit)
-        if ((*eit)->type() != CALL && (*eit)->type() != RET) {
+    Block::edgelist targets;
+    curBlock->copy_targets(targets);
+    for (auto eit = targets.begin(); eit != targets.end(); ++eit)
+        if ((*eit)->type() != CALL && (*eit)->type() != RET && (*eit)->type() != CATCH && !(*eit)->interproc()) {
 	    BuildEdgeFromVirtualEntry(virtualEntry, (*eit)->trg(), targetMap, visit, slice);
 	}
 }
@@ -123,7 +125,6 @@ void BoundFactsCalculator::DetermineAnalysisOrder() {
 	    }
 	}
     }
-
     slice->clearEntryNodes();
     slice->markAsEntryNode(virtualEntry);
 }
@@ -179,7 +180,7 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 	    }
 	}
 
-	if (!HasIncomingEdgesFromLowerLevel(curOrder, curNodes)) {
+	if (!HasIncomingEdgesFromLowerLevel(curOrder, curNodes) && !curNodes.empty()) {
 	    // If this SCC is an entry SCC,
 	    // we choose a node inside the SCC
 	    // and let it be top.
@@ -203,7 +204,7 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 	    BoundFact* oldFactIn = GetBoundFactIn(curNode);
 	    parsing_printf("Calculate Meet for %lx", node->addr());
 	    if (node->assign()) {
-	        parsing_printf(", insn: %s, assignment %s\n", node->assign()->insn()->format().c_str(), node->assign()->format().c_str());
+	        parsing_printf(", insn: %s, assignment %s\n", node->assign()->insn().format().c_str(), node->assign()->format().c_str());
 	    }
 	    else {
 	        if (node->block() == NULL)
@@ -312,8 +313,8 @@ void BoundFactsCalculator::ThunkBound( BoundFact*& curFact, Node::Ptr src, Node:
 }
 
 
-static bool IsConditionalJump(Instruction::Ptr insn) {
-    entryID id = insn->getOperation().getID();
+static bool IsConditionalJump(Instruction insn) {
+    entryID id = insn.getOperation().getID();
 
     if (id == e_jz || id == e_jnz ||
         id == e_jb || id == e_jnb ||
@@ -408,14 +409,14 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 	newFact->SetPredicate(node->assign(), se.ExpandAssignment(node->assign()) );
 	return;
     }
-    entryID id = node->assign()->insn()->getOperation().getID();
+    entryID id = node->assign()->insn().getOperation().getID();
     // The predecessor is not a conditional jump,
     // then we can determine buond fact based on the src assignment
     parsing_printf("\t\tThe predecessor node is normal node\n");
     parsing_printf("\t\t\tentry id %d\n", id);
 
     AbsRegion &ar = node->assign()->out();
-    Instruction::Ptr insn = node->assign()->insn();
+    Instruction insn = node->assign()->insn();
     pair<AST::Ptr, bool> expandRet = se.ExpandAssignment(node->assign());
 
     if (expandRet.first == NULL) {
@@ -431,10 +432,10 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
 
     AST::Ptr calculation = expandRet.first;
     int derefSize = 0;
-    if (node->assign() && node->assign()->insn() && node->assign()->insn()->readsMemory()) {
-        Instruction::Ptr i = node->assign()->insn();
+    if (node->assign() && node->assign()->insn().isValid() && node->assign()->insn().readsMemory()) {
+        Instruction i = node->assign()->insn();
 	std::vector<Operand> ops;
-	i->getOperands(ops);
+	i.getOperands(ops);
 	for (auto oit = ops.begin(); oit != ops.end(); ++oit) {
 	    Operand o = *oit;
 	    if (o.readsMemory()) {
@@ -456,10 +457,10 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
     // In other cases, if the AbsRegion represents a register,
     // the generator is not set.
     if (ar.generator() != NULL)
-        outAST = SymbolicExpression::SimplifyAnAST(
+        outAST = se.SimplifyAnAST(
 	                       RoseAST::create(ROSEOperation(ROSEOperation::derefOp, ar.size()), ar.generator()), 
 	                       SymbolicExpression::PCValue(node->assign()->addr(), 
-			               insn->size(), 
+			               insn.size(),
 				       node->assign()->block()->obj()->cs()->getArch()));
 
     else
@@ -477,15 +478,15 @@ void BoundFactsCalculator::CalcTransferFunction(Node::Ptr curNode, BoundFact *ne
  * In addition, overapproximation of the bound can lead to bogus control flow
  * that causes overlapping blocks or function.
  * It is important to further anaylze the operand in bsf rather than directly conclude the bound
+ */
     if (id == e_bsf || id == e_bsr) {
-	int size = node->assign()->insn()->getOperand(0).getValue()->size();
+	int size = node->assign()->insn().getOperand(0).getValue()->size();
 	newFact->GenFact(outAST, new StridedInterval(StridedInterval(1,0, size * 8 - 1)), false);
         parsing_printf("\t\t\tCalculating transfer function: Output facts\n");
 	newFact->Print();
 	return;
 
     }
-*/
     if (id == e_xchg) {
         newFact->SwapFact(calculation, outAST);
         parsing_printf("\t\t\tCalculating transfer function: Output facts\n");

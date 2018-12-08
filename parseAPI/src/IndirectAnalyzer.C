@@ -60,7 +60,7 @@ static bool IsVariableArgumentFormat(AST::Ptr t, AbsRegion &index) {
 bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) {
     parsing_printf("Apply indirect control flow analysis at %lx\n", block->last());
     parsing_printf("Looking for thunk\n");
-    
+boost::make_lock_guard(*func);
 //  Find all blocks that reach the block containing the indirect jump
 //  This is a prerequisit for finding thunks
     GetAllReachableBlock();
@@ -73,9 +73,9 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
 
     // Now we start with the indirect jump instruction,
     // to determine the format of the (potential) jump table
-    const unsigned char * buf = (const unsigned char*) block->obj()->cs()->getPtrToInstruction(block->last());
+    const unsigned char * buf = (const unsigned char*) block->region()->getPtrToInstruction(block->last());
     InstructionDecoder dec(buf, InstructionDecoder::maxInstructionLength, block->obj()->cs()->getArch());
-    Instruction::Ptr insn = dec.decode();
+    Instruction insn = dec.decode();
     AssignmentConverter ac(true, false);
     vector<Assignment::Ptr> assignments;
     ac.convert(insn, block->last(), func, block, assignments);
@@ -83,16 +83,23 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
 
     SymbolicExpression se;
     se.cs = block->obj()->cs();
+    se.cr = block->region();
     JumpTableFormatPred jtfp(func, block, rf, thunks, se);
     GraphPtr slice = formatSlicer.backwardSlice(jtfp);
     //parsing_printf("\tJump table format: %s\n", jtfp.format().c_str());
     // If the jump target expression is not in a form we recognize,
     // we do not try to resolve it
-    parsing_printf("In function %s, Address %lx, jump target format %s, index loc %s, index variable %s", func->name().c_str(), block->last(), jtfp.format().c_str(), jtfp.indexLoc ? jtfp.indexLoc->format().c_str() : "" , jtfp.index.format().c_str() );
+    parsing_printf("In function %s, Address %lx, jump target format %s, index loc %s, index variable %s, memory read loc %s, isJumpTableFormat %d\n", 
+            func->name().c_str(), 
+            block->last(), 
+            jtfp.format().c_str(), 
+            jtfp.indexLoc ? jtfp.indexLoc->format().c_str() : "null" , 
+            jtfp.index.format().c_str(),
+            jtfp.memLoc ? jtfp.memLoc->format().c_str() : "null",
+	    jtfp.isJumpTableFormat());
 
     bool variableArguFormat = false;
     if (!jtfp.isJumpTableFormat()) {
-        parsing_printf(" not jump table\n");
 	if (jtfp.jumpTargetExpr && func->entry() == block && IsVariableArgumentFormat(jtfp.jumpTargetExpr, jtfp.index)) {
 	    parsing_printf("\tVariable number of arguments format, index %s\n", jtfp.index.format().c_str());
 	    variableArguFormat = true;
@@ -102,16 +109,17 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
     }
 
     StridedInterval b;
+    bool scanTable = false;
     if (!variableArguFormat) {
-        Slicer indexSlicer(jtfp.indexLoc, jtfp.indexLoc->block(), func, false, false); 
+        Slicer indexSlicer(jtfp.indexLoc, jtfp.indexLoc->block(), func, false, false);
 	JumpTableIndexPred jtip(func, block, jtfp.index, se);
 	jtip.setSearchForControlFlowDep(true);
 	slice = indexSlicer.backwardSlice(jtip);
-    
+
         if (!jtip.findBound && block->obj()->cs()->getArch() != Arch_aarch64) {
 
-            // After the slicing is done, we do one last check to 
-            // see if we can resolve the indirect jump by assuming 
+            // After the slicing is done, we do one last check to
+            // see if we can resolve the indirect jump by assuming
             // one byte read is in bound [0,255]
             GraphPtr g = jtip.BuildAnalysisGraph(indexSlicer.visitedEdges);
 	    BoundFactsCalculator bfc(func, g, func->entry() == block,  true, se);
@@ -121,23 +129,26 @@ bool IndirectControlFlowAnalyzer::NewJumpTableAnalysis(std::vector<std::pair< Ad
 	    jtip.IsIndexBounded(g, bfc, target);
         }
         if (jtip.findBound) {
-            parsing_printf(" bound %s", jtip.bound.format().c_str());
+            parsing_printf(" find bound %s for %lx\n", jtip.bound.format().c_str(), block->last());
 	    b = jtip.bound;
         } else {
-            parsing_printf(" Cannot find bound, assume there are at most 256 entries and scan the table\n");
+            parsing_printf(" Cannot find bound, assume there are at most 256 entries and scan the table for indirect jump at %lx\n", block->last());
 	    b = StridedInterval(1, 0, 255);
+	    scanTable = true;
         }
     } else {
         b = StridedInterval(1, 0, 8);
     }
     std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > > jumpTableOutEdges;
-    ReadTable(jtfp.jumpTargetExpr, 
-              jtfp.index, 
-	      b, 
-	      GetMemoryReadSize(jtfp.memLoc), 
+    ReadTable(jtfp.jumpTargetExpr,
+              jtfp.index,
+	      b,
+	      GetMemoryReadSize(jtfp.memLoc),
+	      IsZeroExtend(jtfp.memLoc),
+	      scanTable,
 	      jtfp.constAddr,
 	      jumpTableOutEdges);
-    parsing_printf(", find %d edges\n", jumpTableOutEdges.size());	      
+    parsing_printf(", find %d edges\n", jumpTableOutEdges.size());
     outEdges.insert(outEdges.end(), jumpTableOutEdges.begin(), jumpTableOutEdges.end());
     return !jumpTableOutEdges.empty();
 }						       
@@ -155,6 +166,7 @@ void IndirectControlFlowAnalyzer::GetAllReachableBlock() {
 	q.pop();
 	if (reachable.find(cur) != reachable.end()) continue;
 	reachable.insert(cur);
+    boost::lock_guard<Block> g(*cur);
 	for (auto eit = cur->sources().begin(); eit != cur->sources().end(); ++eit)
 	    if ((*eit)->intraproc()) {
 	        if ((*eit)->src() == NULL) {
@@ -172,13 +184,13 @@ static Address ThunkAdjustment(Address afterThunk, MachRegister reg, ParseAPI::B
     // an add insturction like ADD ebx, OFFSET to adjust
     // the value coming out of thunk.
    
-    const unsigned char* buf = (const unsigned char*) (b->obj()->cs()->getPtrToInstruction(afterThunk));
+    const unsigned char* buf = (const unsigned char*) (b->region()->getPtrToInstruction(afterThunk));
     InstructionDecoder dec(buf, b->end() - b->start(), b->obj()->cs()->getArch());
-    Instruction::Ptr nextInsn = dec.decode();
+    Instruction nextInsn = dec.decode();
     // It has to be an add
-    if (nextInsn->getOperation().getID() != e_add) return 0;
+    if (nextInsn.getOperation().getID() != e_add) return 0;
     vector<Operand> operands;
-    nextInsn->getOperands(operands);
+    nextInsn.getOperands(operands);
     RegisterAST::Ptr regAST = boost::dynamic_pointer_cast<RegisterAST>(operands[0].getValue());
     // The first operand should be a register
     if (regAST == 0) return 0;
@@ -197,7 +209,7 @@ void IndirectControlFlowAnalyzer::FindAllThunks() {
 	// end a basic block. So, we need to check every instruction to find all thunks
         ParseAPI::Block *b = *bit;
 	const unsigned char* buf =
-            (const unsigned char*)(b->obj()->cs()->getPtrToInstruction(b->start()));
+            (const unsigned char*)(b->region()->getPtrToInstruction(b->start()));
 	if( buf == NULL ) {
 	    parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",FILE__, __LINE__);
 	    return;
@@ -206,77 +218,53 @@ void IndirectControlFlowAnalyzer::FindAllThunks() {
 	InsnAdapter::IA_IAPI* block = InsnAdapter::IA_IAPI::makePlatformIA_IAPI(b->obj()->cs()->getArch(), dec, b->start(), b->obj() , b->region(), b->obj()->cs(), b);
 	Address cur = b->start();
 	while (cur < b->end()) {
-	    if (block->getInstruction()->getCategory() == c_CallInsn && block->isThunk()) {
+	    if (block->getInstruction().getCategory() == c_CallInsn && block->isThunk()) {
 	        bool valid;
 		Address addr;
 		boost::tie(valid, addr) = block->getCFT();
-		const unsigned char *target = (const unsigned char *) b->obj()->cs()->getPtrToInstruction(addr);
+		const unsigned char *target = (const unsigned char *) b->region()->getPtrToInstruction(addr);
 		InstructionDecoder targetChecker(target, InstructionDecoder::maxInstructionLength, b->obj()->cs()->getArch());
-		Instruction::Ptr thunkFirst = targetChecker.decode();
+		Instruction thunkFirst = targetChecker.decode();
 		set<RegisterAST::Ptr> thunkTargetRegs;
-		thunkFirst->getWriteSet(thunkTargetRegs);
+		thunkFirst.getWriteSet(thunkTargetRegs);
 		
 		for (auto curReg = thunkTargetRegs.begin(); curReg != thunkTargetRegs.end(); ++curReg) {
 		    ThunkInfo t;
 		    t.reg = (*curReg)->getID();
-		    t.value = block->getAddr() + block->getInstruction()->size();
+		    t.value = block->getAddr() + block->getInstruction().size();
 		    t.value += ThunkAdjustment(t.value, t.reg, b);
 		    t.block = b;
 		    thunks.insert(make_pair(block->getAddr(), t));
 		    parsing_printf("\tfind thunk at %lx, storing value %lx to %s\n", block->getAddr(), t.value , t.reg.name().c_str());
 		}
 	    }
-	    cur += block->getInstruction()->size();
+	    cur += block->getInstruction().size();
 	    if (cur < b->end()) block->advance();
 	}
 	delete block;
     }
 }
 
-void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr, 
+void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
                                             AbsRegion index,
-					    StridedInterval &indexBound,   
+					    StridedInterval &indexBound,
 					    int memoryReadSize,
+					    bool isZeroExtend,
+					    bool scanTable,
 					    set<Address> &constAddr,
 					    std::vector<std::pair<Address, Dyninst::ParseAPI::EdgeTypeEnum> > &targetEdges) {
-    CodeSource *cs = block->obj()->cs();					    
+    CodeSource *cs = block->obj()->cs();
     set<Address> jumpTargets;
-    for (int v = indexBound.low; v <= indexBound.high; v += indexBound.stride) {
-        // TODO: need to detect whether the memory is a zero extend or a sign extend
-        JumpTableReadVisitor jtrv(index, v, cs, false, memoryReadSize);
+    int start = 0;
+    if (indexBound.low > 0) start = indexBound.low = start;
+    for (int v = start; v <= indexBound.high; v += indexBound.stride) {
+        JumpTableReadVisitor jtrv(index, v, cs, block->region(), isZeroExtend, memoryReadSize);
 	jumpTargetExpr->accept(&jtrv);
 	if (jtrv.valid && cs->isCode(jtrv.targetAddress)) {
-	    bool stop = false;
-	    set<Block*> blocks;
-	    block->obj()->findCurrentBlocks(block->region(), jtrv.targetAddress, blocks);
-	    for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
-	        if ((*bit)->start() < jtrv.targetAddress && jtrv.targetAddress <= (*bit)->end()) {
-		    Block::Insns insns;
-		    (*bit)->getInsns(insns);
-		    if (insns.find(jtrv.targetAddress) == insns.end()) {
-		        stop = true;
-			parsing_printf("WARNING: resolving jump tables leads to address %lx, which causes overlapping instructions in basic blocks [%lx,%lx)\n", jtrv.targetAddress, (*bit)->start(), (*bit)->end());
-			break;
-		    }
-		}
-	    }
-	    // Assume that indirect jump should not jump beyond the function range.
-	    // This assumption is shaky in terms of non-contiguous functions.
-	    // But non-contiguous blocks tend not be reach by indirect jumps
-	    if (func->src() == HINT) {
-	        Hint h(func->addr(), 0 , NULL, "");
-		auto range = equal_range(cs->hints().begin(), cs->hints().end(), h);
-		if (range.first != range.second && range.first != cs->hints().end()) {
-		    Address startAddr = range.first->_addr;
-		    int size = range.first->_size;
-		    if (jtrv.targetAddress < startAddr || jtrv.targetAddress >= startAddr + size) {
-		        stop = true;
-			parsing_printf("WARNING: resolving jump tables leads to address %lx, which is not in the function range specified in the symbol table\n", jtrv.targetAddress);			
-			parsing_printf("\tSymbol at %lx, end at %lx\n", startAddr, startAddr + size);
-		    }
-		}
-	    }
-	    if (stop) break;
+        if (cs->getArch() == Arch_x86_64 && FindJunkInstruction(jtrv.targetAddress)) {
+            parsing_printf("WARNING: resolving jump tables leads to junk instruction from %lx\n", jtrv.targetAddress);
+            break;
+        }
 	    jumpTargets.insert(jtrv.targetAddress);
 	} else {
 	    // We have a bad entry. We stop here, as we have wrong information
@@ -287,20 +275,24 @@ void IndirectControlFlowAnalyzer::ReadTable(AST::Ptr jumpTargetExpr,
 	if (indexBound.stride == 0) break;
     }
     for (auto ait = constAddr.begin(); ait != constAddr.end(); ++ait) {
-        if (cs->isCode(*ait)) {
+        if (block->region()->isCode(*ait)) {
 	    jumpTargets.insert(*ait);
 	}
     }
     for (auto tit = jumpTargets.begin(); tit != jumpTargets.end(); ++tit) {
         targetEdges.push_back(make_pair(*tit, INDIRECT));
     }
-}					    
+}
 
 int IndirectControlFlowAnalyzer::GetMemoryReadSize(Assignment::Ptr memLoc) {
-    if (!memLoc) return 0;
-    Instruction::Ptr i = memLoc->insn();
+    if (!memLoc) {
+        parsing_printf("\tmemLoc is null\n");
+        return 0;
+    }
+    Instruction i = memLoc->insn();
     std::vector<Operand> ops;
-    i->getOperands(ops);
+    i.getOperands(ops);
+    parsing_printf("\t there are %d operands\n", ops.size());
     for (auto oit = ops.begin(); oit != ops.end(); ++oit) {
         Operand o = *oit;
 	if (o.readsMemory()) {
@@ -309,4 +301,31 @@ int IndirectControlFlowAnalyzer::GetMemoryReadSize(Assignment::Ptr memLoc) {
 	}
     }
     return 0;
+}
+
+bool IndirectControlFlowAnalyzer::IsZeroExtend(Assignment::Ptr memLoc) {
+    if (!memLoc) {
+        parsing_printf("\tmemLoc is null\n");
+        return false;
+    }
+    Instruction i = memLoc->insn();
+    parsing_printf("check zero extend %s\n", i.format().c_str());
+    if (i.format().find("movz") != string::npos) return true;
+    return false;
+}
+
+bool IndirectControlFlowAnalyzer::FindJunkInstruction(Address addr) {
+    unsigned size = block->region()->offset() + block->region()->length() - addr; 
+    const unsigned char* buffer = (const unsigned char *)(func->isrc()->getPtrToInstruction(addr));
+    InstructionDecoder dec(buffer,size,block->region()->getArch());
+    Dyninst::InsnAdapter::IA_IAPI* ahPtr = Dyninst::InsnAdapter::IA_IAPI::makePlatformIA_IAPI(func->obj()->cs()->getArch(), dec, addr, func->obj(), block->region(), func->isrc(), NULL);
+
+    while (!ahPtr->hasCFT()) {
+        Instruction i = ahPtr->current_instruction();
+        if (i.size() == 2 && i.rawByte(0) == 0x00 && i.rawByte(1) == 0x00) {
+            return true;
+        }
+        ahPtr->advance();
+    }
+    return false;
 }

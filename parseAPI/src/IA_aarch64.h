@@ -49,10 +49,11 @@ class IA_aarch64 : public IA_IAPI {
 	       Dyninst::ParseAPI::Block * curBlk_);
 	IA_aarch64(const IA_aarch64 &);
 	virtual IA_aarch64* clone() const;
-        virtual bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction::Ptr) const;
+        virtual bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction) const;
 	virtual bool isNop() const;
 	virtual bool isThunk() const;
-	virtual bool isTailCall(ParseAPI::Function* context, ParseAPI::EdgeTypeEnum type, unsigned int, const set<Address>& knownTargets) const;
+	virtual bool isTailCall(const ParseAPI::Function* context, ParseAPI::EdgeTypeEnum type,
+							unsigned int, const set<Address>& knownTargets) const;
 	virtual bool savesFP() const;
 	virtual bool isStackFramePreamble() const;
 	virtual bool cleansStack() const;

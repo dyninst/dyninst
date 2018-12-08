@@ -717,15 +717,10 @@ Address getMaxBranch() {
 }
 
 
-bool doNotOverflow(int)
+bool doNotOverflow(int64_t value)
 {
-   //
-   // this should be changed by the correct code. If there isn't any case to
-   // be checked here, then the function should return TRUE. If there isn't
-   // any immediate code to be generated, then it should return FALSE - naim
-   //
-   // any int value can be an immediate on the pentium
-    return(true);
+    if (value <= INT_MAX && value >= INT_MIN) return true;
+    return false;
 }
 
 
@@ -1236,29 +1231,41 @@ void emitSubRegReg(RealRegister dest, RealRegister src, codeGen &gen)
    SET_PTR(insn, gen);
 }
 
-unsigned char cmovOpcodeFromRelOp(unsigned op)
+unsigned char cmovOpcodeFromRelOp(unsigned op, bool s)
 {
    switch (op) {
       case eqOp: return 0x44; //cmove
       case neOp: return 0x45; //cmovne
-      case lessOp: return 0x4c; //cmovl
-      case leOp: return 0x4e; //cmovle
-      case greaterOp: return 0x4f; //cmovg
-      case geOp: return 0x4d; //cmovge
+      case lessOp: 
+        if (s) return 0x4c; //cmovl
+        else return 0x42; //cmovb                         
+      case leOp: 
+        if (s) return 0x4e; //cmovle
+        else return 0x46; //cmovbe        
+      case greaterOp:
+        if (s) return 0x4f; //cmovg
+        else return 0x47; //cmova                           
+      case geOp: 
+        if (s) return 0x4d; //cmovge
+        else return 0x43; //cmovae
      default: assert(0);
    }
    return 0x0;
 }
 // help function to select appropriate jcc opcode for a relOp
-unsigned char jccOpcodeFromRelOp(unsigned op)
+unsigned char jccOpcodeFromRelOp(unsigned op, bool s)
 {
    switch (op) {
      case eqOp: return JNE_R8;
      case neOp: return JE_R8;
-     case lessOp: return JGE_R8;
-     case leOp: return JG_R8;
-     case greaterOp: return JLE_R8;
-     case geOp: return JL_R8;
+     case lessOp: 
+       if (s) return JGE_R8; else return JAE_R8;
+     case leOp: 
+       if (s) return JG_R8; else return JA_R8;
+     case greaterOp: 
+       if (s) return JLE_R8; else return JBE_R8;
+     case geOp: 
+       if (s) return JL_R8; else return JB_R8;
      default: assert(0);
    }
    return 0x0;
@@ -1969,7 +1976,7 @@ void emitVstore(opCode op, Register src1, Register src2, Address dest,
 void emitV(opCode op, Register src1, Register src2, Register dest, 
            codeGen &gen, bool /*noCost*/, 
            registerSpace * /*rs*/, int size,
-           const instPoint * /* location */, AddressSpace * /* proc */)
+           const instPoint * /* location */, AddressSpace * /* proc */, bool s)
 {
     //bperr( "emitV(op=%d,src1=%d,src2=%d,dest=%d)\n", op, src1,
     //        src2, dest);
@@ -2017,15 +2024,19 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
             opcode = 0x2B; // SUB
             break;
             
-        case timesOp:
-            opcode = 0x0FAF; // IMUL
+        case xorOp:
+            opcode = 0x33; // XOR
             break;
-
+            
+        case timesOp:
+            if (s)
+                opcode = 0x0FAF; // IMUL
+            else
+                opcode = 0x0F74; // Unsigned Multiply
+            break;
         case divOp: {
-           // dest = src1 div src2
-           gen.codeEmitter()->emitDiv(dest, src1, src2, gen);
+           gen.codeEmitter()->emitDiv(dest, src1, src2, gen, s);
            return;
-           break;
         }
            // Bool ops
         case orOp:
@@ -2044,7 +2055,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
         case leOp:
         case greaterOp:
         case geOp: {
-            gen.codeEmitter()->emitRelOp(op, dest, src1, src2, gen);
+            gen.codeEmitter()->emitRelOp(op, dest, src1, src2, gen, s);
             return;
             break;
         }
@@ -2058,7 +2069,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 }
 
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
-             codeGen &gen, bool, registerSpace *)
+             codeGen &gen, bool, registerSpace *, bool s)
 {
    if (op ==  storeOp) {
        // this doesn't seem to ever be called from ast.C (or anywhere) - gq
@@ -2082,11 +2093,15 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
             opcode1 = 0x81;
             opcode2 = 0x5; // SUB
             break;            
+         case xorOp:
+            opcode1 = 0x81;
+            opcode2 = 0x6; // XOR
+            break;            
          case timesOp:
-            gen.codeEmitter()->emitTimesImm(dest, src1, src2imm, gen);
+            gen.codeEmitter()->emitTimesImm(dest, src1, src2imm, gen, s);
             return;
          case divOp:
-            gen.codeEmitter()->emitDivImm(dest, src1, src2imm, gen);
+            gen.codeEmitter()->emitDivImm(dest, src1, src2imm, gen, s);
             return;
          // Bool ops
          case orOp:
@@ -2105,7 +2120,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
          case leOp:
          case greaterOp:
          case geOp:
-            gen.codeEmitter()->emitRelOpImm(op, dest, src1, src2imm, gen);
+            gen.codeEmitter()->emitRelOpImm(op, dest, src1, src2imm, gen, s);
             return;
          default:
           abort();
@@ -2173,6 +2188,7 @@ int getInsnCost(opCode op)
            return(1+10+1);
         case plusOp:
         case minusOp:
+        case xorOp:
         case orOp:
         case andOp:
            return(1+2+1);
@@ -2253,12 +2269,12 @@ void emitStorePreviousStackFrameRegister(Address register_num,
 // First AST node: target of the call
 // Second AST node: source of the call
 // This can handle indirect control transfers as well 
-bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction::Ptr insn,
-                                          Address addr, 
+bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction insn,
+                                          Address addr,
                                           pdvector<AstNodePtr> &args)
 {
    using namespace Dyninst::InstructionAPI;        
-   Expression::Ptr cft = insn->getControlFlowTarget();
+   Expression::Ptr cft = insn.getControlFlowTarget();
    ASTFactory f;
    cft->apply(&f);
    assert(f.m_stack.size() == 1);
@@ -2266,7 +2282,7 @@ bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction::Ptr insn,
    args.push_back(AstNode::operandNode(AstNode::Constant,
                                        (void *) addr));
    inst_printf("%s[%d]:  Inserting dynamic call site instrumentation for %s\n",
-               FILE__, __LINE__, cft->format(insn->getFormatter()).c_str());
+               FILE__, __LINE__, cft->format(insn.getArch()).c_str());
    return true;
 }
 

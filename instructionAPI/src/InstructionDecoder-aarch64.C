@@ -164,9 +164,9 @@ namespace Dyninst {
 
         using namespace std;
 
-        Instruction::Ptr InstructionDecoder_aarch64::decode(InstructionDecoder::buffer &b) {
+        Instruction InstructionDecoder_aarch64::decode(InstructionDecoder::buffer &b) {
             if (b.start > b.end)
-                return Instruction::Ptr();
+                return Instruction();
 
             isPstateRead = isPstateWritten = false;
             isFPInsn = false;
@@ -214,7 +214,7 @@ namespace Dyninst {
             mainDecode();
             b.start += 4;
 
-            return make_shared(insn_in_progress);
+            return *insn_in_progress;
         }
 
         /* replace this function with a more generic function, which is setRegWidth
@@ -2726,10 +2726,10 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                     offset = offset << (page * 12);
                     int size = immloLen + immLen + (page * 12);
 
-                    insn_in_progress->appendOperand(makePCExpr(), true, false, true);
+                    //insn_in_progress->appendOperand(makePCExpr(), true, false);
                     Expression::Ptr imm = Immediate::makeImmediate(Result(s64, (offset << (64 - size)) >> (64 - size)));
 
-                    insn_in_progress->appendOperand(imm, true, false);
+                    insn_in_progress->appendOperand(makeAddExpression(makePCExpr(), imm, u64), true, false);
                 }
                 else
                     isValid = false;
@@ -3098,6 +3098,10 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             }
 
             insn_in_progress->arch_decoded_from = Arch_aarch64;
+	    if (insn_table_entry->operands.begin() != insn_table_entry->operands.end()) {
+                insn_in_progress->m_InsnOp.isVectorInsn =
+                    (*(insn_table_entry->operands.begin()) == &InstructionDecoder_aarch64::setSIMDMode);
+	    }
             return;
         }
     };

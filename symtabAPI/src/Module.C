@@ -65,7 +65,7 @@ StringTablePtr Statement::getStrings_() const {
 void Statement::setStrings_(StringTablePtr strings) {
     Statement::strings_ = strings;
 }
-std::string Statement::getFile() const {
+const std::string& Statement::getFile() const {
     if(strings_) {
         if(file_index_ < strings_->size()) {
             // can't be ->[] on shared pointer to multi_index container or compiler gets confused
@@ -74,7 +74,9 @@ std::string Statement::getFile() const {
         }
 
     }
-    return "";
+    // This string will be pointed to, so it has to persist.
+    static std::string emptyStr;
+    return emptyStr;
 }
 
 
@@ -106,7 +108,7 @@ string Module::getCompDir()
 }
 
 
-bool Module::findSymbol(std::vector<Symbol *> &found, 
+bool Module::findSymbol(std::vector<Symbol *> &found,
                         const std::string& name,
                         Symbol::SymbolType sType, 
                         NameType nameType,
@@ -216,29 +218,34 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
 }
 
 LineInformation *Module::parseLineInformation() {
-    // Allocate if none
-    if (!lineInfo_)
-    {
-        lineInfo_ = new LineInformation;
-        // share our string table
-        lineInfo_->setStrings(strings_);
-    }
-    // Parse any CUs that have been added to our list
-    if(!info_.empty()) {
-        for(auto cu = info_.begin();
-                cu != info_.end();
-                ++cu)
-        {
-            exec()->getObject()->parseLineInfoForCU(*cu, lineInfo_);
+    if (exec()->getObject()->hasDebugInfo() || !info_.empty()) {
+        // Allocate if none
+        if (!lineInfo_) {
+            lineInfo_ = new LineInformation;
+            // share our string table
+            lineInfo_->setStrings(strings_);
         }
+
+        // Parse any CUs that have been added to our list
+        if(!info_.empty()) {
+            for(auto cu = info_.begin();
+                    cu != info_.end();
+                    ++cu)
+            {
+                exec()->getObject()->parseLineInfoForCU(*cu, lineInfo_);
+            }
+        }
+
+        // Before clearing the CU list (why is it even done anyway?), make sure to
+        // call getCompDir so the comp_dir is stored in a static variable.
+        getCompDir();
+
+        // Clear list of work to do
+        info_.clear();
+    } else if (!lineInfo_) {
+        objectLevelLineInfo = true;
+        lineInfo_ = exec()->getObject()->parseLineInfoForObject(strings_);
     }
-
-    // Before clearing the CU list (why is it even done anyway?), make sure to
-    // call getCompDir so the comp_dir is stored in a static variable.
-    getCompDir();
-
-    // Clear list of work to do
-    info_.clear();
     return lineInfo_;
 }
 
@@ -357,6 +364,7 @@ Module::Module(supportedLanguages lang, Offset adr,
 }
 
 Module::Module() :
+   objectLevelLineInfo(false),
    lineInfo_(NULL),
    typeInfo_(NULL),
    fileName_(""),
@@ -372,6 +380,7 @@ Module::Module() :
 
 Module::Module(const Module &mod) :
    LookupInterface(),
+   objectLevelLineInfo(mod.objectLevelLineInfo),
    lineInfo_(mod.lineInfo_),
    typeInfo_(mod.typeInfo_),
    info_(mod.info_),
@@ -389,7 +398,8 @@ Module::Module(const Module &mod) :
 
 Module::~Module()
 {
-  delete lineInfo_;
+  if (!objectLevelLineInfo)
+    delete lineInfo_;
   delete typeInfo_;
   
 }

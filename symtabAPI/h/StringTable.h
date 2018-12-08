@@ -10,26 +10,42 @@
 #include <boost/multi_index/random_access_index.hpp>
 #include <boost/multi_index/identity.hpp>
 #include <boost/multi_index/ordered_index.hpp>
+#include <boost/thread/lockable_adapter.hpp>
+#include <boost/thread/synchronized_value.hpp>
 
 namespace Dyninst {
     namespace SymtabAPI {
+        // This is being used for storing filenames.
+        // str:         usually the full filename, it depends on what was the filename stored
+        // filename:    to be only the filename and extension without path. Ex: "foo.txt"
         struct StringTableEntry {
             std::string str;
-            StringTableEntry(const char* s) : str(s) {}
-            StringTableEntry(std::string s) : str(s) {}
+            std::string filename;
+            StringTableEntry(std::string s, std::string f) : str(s), filename(f){}
             bool operator==(std::string s) const {
                 return s == str ||
-                       s == str.substr(str.rfind("/"));
+                    s == str.substr(str.rfind("/")+1);
             }
         };
-        typedef boost::multi_index_container<StringTableEntry,
-                boost::multi_index::indexed_by<
-                        boost::multi_index::random_access<>,
-                        boost::multi_index::ordered_non_unique<
-                                boost::multi_index::member<StringTableEntry, const std::string, &StringTableEntry::str>
-                        >
-                        >
-                > StringTable;
+
+        namespace bmi = boost::multi_index;
+        typedef boost::multi_index_container
+        <
+            StringTableEntry,
+            bmi::indexed_by
+            <
+                bmi::random_access<>,
+                bmi::ordered_non_unique
+                <
+                    bmi::member<StringTableEntry, const std::string, &StringTableEntry::str>
+                >,
+                bmi::ordered_non_unique
+                <
+                    bmi::member<StringTableEntry, const std::string, &StringTableEntry::filename>
+                >
+            >
+        >
+        StringTable;
 
         typedef boost::shared_ptr<StringTable> StringTablePtr;
 
@@ -54,5 +70,5 @@ namespace Dyninst {
 }
 
 
-
 #endif //DYNINST_STRINGTABLE_H
+

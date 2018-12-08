@@ -62,17 +62,23 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
 
-extern SymtabError serr;
+// extern thread_local SymtabError serr;
 
 bool regexEquiv( const std::string &str,const std::string &them, bool checkCase );
 bool pattern_match( const char *p, const char *s, bool checkCase );
 
 std::vector<Symbol *> Symtab::findSymbolByOffset(Offset o)
 {
-  std::vector<Symbol*> ret;
+   std::vector<Symbol*> ret;
+
+   pfq_rwlock_read_lock(symbols_rwlock);
+
    indexed_symbols::index<offset>::type& syms_by_offset = everyDefinedSymbol.get<offset>();
    std::copy(syms_by_offset.lower_bound(o), syms_by_offset.upper_bound(o), 
 	     std::back_inserter(ret));
+
+   pfq_rwlock_read_unlock(symbols_rwlock);
+
    return ret;
    
    /*	//Symbol *s = NULL;
@@ -86,6 +92,7 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
                         Symbol::SymbolType sType, NameType nameType,
                         bool isRegex, bool checkCase, bool includeUndefined)
 {
+    pfq_rwlock_read_lock(symbols_rwlock);
 
     unsigned old_size = ret.size();
 
@@ -182,10 +189,13 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
           matches.insert(*iter);
        }
     }
+
+    pfq_rwlock_read_unlock(symbols_rwlock);
+
     ret.insert(ret.end(), matches.begin(), matches.end());
 
     if (ret.size() == old_size) {
-        serr = No_Such_Symbol;
+	setSymtabError(No_Such_Symbol);
         return false;
     }
     else {
@@ -195,8 +205,13 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
 
 bool Symtab::getAllSymbols(std::vector<Symbol *> &ret)
 {
+  pfq_rwlock_read_lock(symbols_rwlock);
+
   std::copy(everyDefinedSymbol.begin(), everyDefinedSymbol.end(), back_inserter(ret));
   std::copy(undefDynSyms.begin(), undefDynSyms.end(), back_inserter(ret));
+
+  pfq_rwlock_read_unlock(symbols_rwlock);
+
   
   //    ret = everyDefinedSymbol;
 
@@ -207,10 +222,12 @@ bool Symtab::getAllSymbols(std::vector<Symbol *> &ret)
     //for (it = temp.begin(); it != temp.end(); it++)
     //    ret.push_back(*it);
 
-    if(ret.size() > 0)
-        return true;
-    serr = No_Such_Symbol;
+  if(ret.size() > 0) {
+    return true;
+  } else {
+    setSymtabError(No_Such_Symbol);
     return false;
+  }
 }
 
 bool Symtab::getAllSymbolsByType(std::vector<Symbol *> &ret, Symbol::SymbolType sType)
@@ -219,6 +236,9 @@ bool Symtab::getAllSymbolsByType(std::vector<Symbol *> &ret, Symbol::SymbolType 
         return getAllSymbols(ret);
 
     unsigned old_size = ret.size();
+
+    pfq_rwlock_read_lock(symbols_rwlock);
+
     // Filter by the given type
     for (auto i = everyDefinedSymbol.begin(); i != everyDefinedSymbol.end(); i++) {
       if ((*i)->getType() == sType) 
@@ -235,11 +255,13 @@ bool Symtab::getAllSymbolsByType(std::vector<Symbol *> &ret, Symbol::SymbolType 
       
     }
 
+    pfq_rwlock_read_unlock(symbols_rwlock);
+
     if (ret.size() > old_size) {
         return true;
     }
     else {
-        serr = No_Such_Symbol;
+	setSymtabError(No_Such_Symbol);
         return false;
     }
 }
@@ -247,21 +269,33 @@ bool Symtab::getAllSymbolsByType(std::vector<Symbol *> &ret, Symbol::SymbolType 
 bool Symtab::getAllDefinedSymbols(std::vector<Symbol *> &ret)
 {
   ret.clear();
+
+  pfq_rwlock_read_lock(symbols_rwlock);
+
   std::copy(everyDefinedSymbol.begin(), everyDefinedSymbol.end(), back_inserter(ret));
+
+  pfq_rwlock_read_unlock(symbols_rwlock);
+
   //    ret = everyDefinedSymbol;
 
     if(ret.size() > 0)
         return true;
-    serr = No_Such_Symbol;
+    setSymtabError(No_Such_Symbol);
     return false;
 }
  
 bool Symtab::getAllUndefinedSymbols(std::vector<Symbol *> &ret){
     unsigned size = ret.size();
+
+    pfq_rwlock_read_lock(symbols_rwlock);
+
     ret.insert(ret.end(), undefDynSyms.begin(), undefDynSyms.end());
+
+    pfq_rwlock_read_unlock(symbols_rwlock);
+
     if(ret.size()>size)
         return true;
-    serr = No_Such_Symbol;
+    setSymtabError(No_Such_Symbol);
     return false;
 }
 
@@ -277,7 +311,7 @@ bool Symtab::findFuncByEntryOffset(Function *&ret, const Offset entry)
         ret = funcsByOffset[entry];
         return true;
     }
-    serr = No_Such_Function;
+    setSymtabError(No_Such_Symbol);
     return false;
 }
 
@@ -333,7 +367,7 @@ bool Symtab::findVariableByOffset(Variable *&ret, const Offset offset) {
         ret = varsByOffset[offset];
         return true;
     }
-    serr = No_Such_Variable;
+    setSymtabError(No_Such_Symbol);
     return false;
 }
 
@@ -378,7 +412,7 @@ bool Symtab::getAllModules(std::vector<Module *> &ret)
         return true;
     }	
 
-    serr = No_Such_Module;
+    setSymtabError(No_Such_Symbol);
     return false;
 }
 
@@ -429,7 +463,7 @@ bool Symtab::findModuleByName(Module *&ret, const std::string name)
       return true;
    }
 
-   serr = No_Such_Module;
+   setSymtabError(No_Such_Module);
    ret = NULL;
    return false;
 }
@@ -556,7 +590,7 @@ bool Symtab::findRegionByEntry(Region *&ret, const Offset offset)
         ret = regionsByEntryAddr[offset];
         return true;
     }
-    serr = No_Such_Region;
+    setSymtabError(No_Such_Region);
     return false;
 }
 
@@ -600,7 +634,7 @@ bool Symtab::findRegion(Region *&ret, const std::string secName)
             return true;
         }
     }
-    serr = No_Such_Region;
+    setSymtabError(No_Such_Region);
     return false;
 }
 
@@ -630,14 +664,14 @@ bool Symtab::findRegion(Region *&ret, const Offset addr, const unsigned long siz
 	    }
 
 
-            serr = Multiple_Region_Matches;
+	    setSymtabError(Multiple_Region_Matches);
             return false;
          }
          ret = regions_[index];
       }
    }
    if (ret) return true;
-   serr = No_Such_Region;
+   setSymtabError(No_Such_Region);
    return false;
 }
 

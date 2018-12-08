@@ -63,13 +63,6 @@ class insnCodeGen {
                                    Address to,
                                    bool isCall);
 
-    // A specialization of the above that assumes R0/CTR are dead.
-
-    static void generateInterFunctionBranch(codeGen &gen,
-                                            Address from,
-                                            Address to,
-                                            bool link = false);
-
     // Using the process trap mapping for a branch
     static void generateBranchViaTrap(codeGen &gen,
                                       Address from,
@@ -93,11 +86,11 @@ class insnCodeGen {
     static void generateLShift(codeGen &gen, Register rs,
                                int shift, Register ra);
     static void generateRShift(codeGen &gen, Register rs,
-                               int shift, Register ra);
+                               int shift, Register ra, bool s);
     static void generateLShift64(codeGen &gen, Register rs,
                                  int shift, Register ra);
     static void generateRShift64(codeGen &gen, Register rs,
-                                 int shift, Register ra);
+                                 int shift, Register ra, bool s);
     static void generateNOOP(codeGen &gen, unsigned size = 4);
     
     static void generateSimple(codeGen &gen,
@@ -105,7 +98,7 @@ class insnCodeGen {
                                Register src2, Register dest);
     static void generateRelOp(codeGen &gen, int cond,
                               int mode, Register rs1,
-                              Register rs2, Register rd);
+                              Register rs2, Register rd, bool s);
     static void loadImmIntoReg(codeGen &gen, Register rt,
                                long value);
     static void loadPartialImmIntoReg(codeGen &gen, Register rt,
@@ -138,7 +131,13 @@ class insnCodeGen {
    static void removeStackFrame(codeGen &gen);
 
 
+   static void generateVectorLoad(codeGen &gen, unsigned vectorReg, Register RegAddress);
+   static void generateVectorStore(codeGen & gen, unsigned vectorReg, Register RegAddress);
+
   static bool modifyJump(Address target,
+                         NS_power::instruction &insn, 
+                         codeGen &gen);
+  static bool modifyJumpCall(Address target,
                          NS_power::instruction &insn, 
                          codeGen &gen);
   static bool modifyJcc(Address target,
@@ -150,6 +149,21 @@ class insnCodeGen {
   static bool modifyData(Address target,
                          NS_power::instruction &insn, 
                          codeGen &gen);
+  static void generateMoveToSPR(codeGen &gen,Register toSPR, unsigned sprReg);
+  static void generateMoveFromSPR(codeGen &gen,Register toSPR,
+                                    unsigned sprReg);
+  static bool generateBranchTar(codeGen &gen,Register scratch, 
+                         Address dest, 
+                         bool isCall);
+  static bool generateBranchLR(codeGen &gen, Register scratch, 
+                         Address dest, 
+                         bool isCall);
+  static bool generateBranchCTR(codeGen &gen,Register scratch, 
+                         Address dest, 
+                         bool isCall);
+  static void saveVectors(codeGen & gen, int startStackOffset);
+  static void restoreVectors(codeGen & gen, int startStackOffset);
+
 };
 
 #endif

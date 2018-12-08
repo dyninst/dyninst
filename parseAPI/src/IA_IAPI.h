@@ -49,6 +49,8 @@ namespace InsnAdapter {
 class IA_IAPI : public InstructionAdapter {
     friend class image_func;
     public:
+        InstructionAPI::Instruction  current_instruction() { return curInsnIter->second; }
+
         IA_IAPI(Dyninst::InstructionAPI::InstructionDecoder dec_,
                 Address start_, 
                 Dyninst::ParseAPI::CodeObject* o,
@@ -56,12 +58,12 @@ class IA_IAPI : public InstructionAdapter {
                 Dyninst::InstructionSource *isrc,
 		Dyninst::ParseAPI::Block * curBlk_);
         // We have a iterator, and so can't use the implicit copiers
-	IA_IAPI(const IA_IAPI &); 
+	IA_IAPI(const IA_IAPI &);
 	IA_IAPI &operator=(const IA_IAPI &r);
 	~IA_IAPI() { }
 	static IA_IAPI* makePlatformIA_IAPI(Dyninst::Architecture arch,
 	                                    Dyninst::InstructionAPI::InstructionDecoder dec_,
-					    Address start_, 
+					    Address start_,
 					    Dyninst::ParseAPI::CodeObject* o,
 					    Dyninst::ParseAPI::CodeRegion* r,
 					    Dyninst::InstructionSource *isrc,
@@ -71,7 +73,7 @@ class IA_IAPI : public InstructionAdapter {
           Address start, ParseAPI::CodeObject *o,
           ParseAPI::CodeRegion *r, InstructionSource *isrc, ParseAPI::Block *);
 
-        virtual Dyninst::InstructionAPI::Instruction::Ptr getInstruction() const;
+        virtual const Dyninst::InstructionAPI::Instruction& getInstruction() const;
     
         virtual bool hasCFT() const;
         virtual size_t getSize() const;
@@ -97,10 +99,10 @@ class IA_IAPI : public InstructionAdapter {
         virtual bool isLeave() const;
         virtual bool isDelaySlot() const;
         virtual bool isRelocatable(InstrumentableLevel lvl) const;
-        virtual bool isTailCall(Dyninst::ParseAPI::Function *, 
-	                        Dyninst::ParseAPI::EdgeTypeEnum, 
-				unsigned int,
-				const std::set<Address> &) const = 0;
+        virtual bool isTailCall(const ParseAPI::Function *,
+                                Dyninst::ParseAPI::EdgeTypeEnum,
+                                unsigned int,
+                                const std::set<Address> &) const = 0;
         virtual std::pair<bool, Address> getCFT() const;
         virtual bool isStackFramePreamble() const = 0;
         virtual bool savesFP() const = 0;
@@ -124,7 +126,7 @@ protected:
 	                            Dyninst::ParseAPI::Block* currBlk,
 				    std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) const;
         virtual bool isIPRelativeBranch() const;
-        virtual bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const = 0;
+        virtual bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction i) const = 0;
         virtual bool isReturn(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block* currBlk) const = 0;
         virtual bool isFakeCall() const = 0;
         virtual bool isLinkerStub() const = 0;
@@ -146,11 +148,11 @@ protected:
 public:
         typedef std::vector< 
             std::pair<Address, 
-            Dyninst::InstructionAPI::Instruction::Ptr> 
+            Dyninst::InstructionAPI::Instruction> 
         > allInsns_t;
 protected:
         allInsns_t allInsns;
-        Dyninst::InstructionAPI::Instruction::Ptr curInsn() const;
+        const InstructionAPI::Instruction & curInsn() const;
         allInsns_t::iterator curInsnIter;
 
         mutable bool validCFT;

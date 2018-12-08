@@ -547,46 +547,46 @@ private:
    void meetSummary(const TransferSet &source, TransferSet &accum);
    AbslocState getSrcOutputLocs(ParseAPI::Edge* e);
    TransferSet getSummarySrcOutputLocs(ParseAPI::Edge *e);
-   void computeInsnEffects(ParseAPI::Block *block, InstructionPtr insn,
-      const Offset off, TransferFuncs &xferFunc, TransferSet &funcSummary);
+   void computeInsnEffects(ParseAPI::Block *block, InstructionAPI::Instruction insn,
+                           const Offset off, TransferFuncs &xferFunc, TransferSet &funcSummary);
 
-   bool isCall(InstructionPtr insn);
-   bool isJump(InstructionPtr insn);
-   bool handleNormalCall(InstructionPtr insn, ParseAPI::Block *block,
-      Offset off, TransferFuncs &xferFuncs, TransferSet &funcSummary);
-   bool handleThunkCall(InstructionPtr insn, ParseAPI::Block *block,
-      const Offset off, TransferFuncs &xferFuncs);
-   bool handleJump(InstructionPtr insn, ParseAPI::Block *block,
-      Offset off, TransferFuncs &xferFuncs, TransferSet &funcSummary);
-   void handlePushPop(InstructionPtr insn, ParseAPI::Block *block,
-      const Offset off, int sign, TransferFuncs &xferFuncs);
-   void handleReturn(InstructionPtr insn, TransferFuncs &xferFuncs);
-   void handleAddSub(InstructionPtr insn, ParseAPI::Block *block,
-      const Offset off, int sign, TransferFuncs &xferFuncs);
-   void handleLEA(InstructionPtr insn, TransferFuncs &xferFuncs);
+   bool isCall(InstructionAPI::Instruction insn);
+   bool isJump(InstructionAPI::Instruction insn);
+   bool handleNormalCall(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                         Offset off, TransferFuncs &xferFuncs, TransferSet &funcSummary);
+   bool handleThunkCall(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                        const Offset off, TransferFuncs &xferFuncs);
+   bool handleJump(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                   Offset off, TransferFuncs &xferFuncs, TransferSet &funcSummary);
+   void handlePushPop(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                      const Offset off, int sign, TransferFuncs &xferFuncs);
+   void handleReturn(InstructionAPI::Instruction insn, TransferFuncs &xferFuncs);
+   void handleAddSub(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                     const Offset off, int sign, TransferFuncs &xferFuncs);
+   void handleLEA(InstructionAPI::Instruction insn, TransferFuncs &xferFuncs);
    void handleLeave(ParseAPI::Block *block, const Offset off,
       TransferFuncs &xferFuncs);
    void handlePushPopFlags(int sign, TransferFuncs &xferFuncs);
    void handlePushPopRegs(int sign, TransferFuncs &xferFuncs);
-   void handlePowerAddSub(InstructionPtr insn, ParseAPI::Block *block,
-      const Offset off, int sign, TransferFuncs &xferFuncs);
-   void handlePowerStoreUpdate(InstructionPtr insn, ParseAPI::Block *block,
-      const Offset off, TransferFuncs &xferFuncs);
-   void handleMov(InstructionPtr insn, ParseAPI::Block *block,
-      const Offset off, TransferFuncs &xferFuncs);
-   void handleZeroExtend(InstructionPtr insn, ParseAPI::Block *block,
-      const Offset off, TransferFuncs &xferFuncs);
-   void handleSignExtend(InstructionPtr insn, ParseAPI::Block *block,
-      const Offset off, TransferFuncs &xferFuncs);
-   void handleSpecialSignExtend(InstructionPtr insn, TransferFuncs &xferFuncs);
-   void handleXor(InstructionPtr insn, ParseAPI::Block *block, const Offset off,
-      TransferFuncs &xferFuncs);
-   void handleDiv(InstructionPtr insn, TransferFuncs &xferFuncs);
-   void handleMul(InstructionPtr insn, TransferFuncs &xferFuncs);
-   void handleSyscall(InstructionPtr insn, ParseAPI::Block *block,
-      const Offset off, TransferFuncs &xferFuncs);
-   void handleDefault(InstructionPtr insn, ParseAPI::Block *block,
-      const Offset off, TransferFuncs &xferFuncs);
+   void handlePowerAddSub(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                          const Offset off, int sign, TransferFuncs &xferFuncs);
+   void handlePowerStoreUpdate(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                               const Offset off, TransferFuncs &xferFuncs);
+   void handleMov(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                  const Offset off, TransferFuncs &xferFuncs);
+   void handleZeroExtend(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                         const Offset off, TransferFuncs &xferFuncs);
+   void handleSignExtend(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                         const Offset off, TransferFuncs &xferFuncs);
+   void handleSpecialSignExtend(InstructionAPI::Instruction insn, TransferFuncs &xferFuncs);
+   void handleXor(InstructionAPI::Instruction insn, ParseAPI::Block *block, const Offset off,
+                  TransferFuncs &xferFuncs);
+   void handleDiv(InstructionAPI::Instruction insn, TransferFuncs &xferFuncs);
+   void handleMul(InstructionAPI::Instruction insn, TransferFuncs &xferFuncs);
+   void handleSyscall(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                      const Offset off, TransferFuncs &xferFuncs);
+   void handleDefault(InstructionAPI::Instruction insn, ParseAPI::Block *block,
+                      const Offset off, TransferFuncs &xferFuncs);
 
    long extractDelta(InstructionAPI::Result deltaRes);
    bool getSubReg(const MachRegister &reg, MachRegister &subreg);

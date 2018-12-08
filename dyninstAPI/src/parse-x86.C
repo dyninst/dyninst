@@ -68,9 +68,9 @@ bool parse_func::writesFPRs(unsigned level) {
         const Function::edgelist & calls = callEdges();
         Function::edgelist::const_iterator cit = calls.begin();
         for( ; cit != calls.end(); ++cit) {
-            image_edge * ce = static_cast<image_edge*>(*cit);
-            parse_func * ct = static_cast<parse_func*>(
-                obj()->findFuncByEntry(region(),ce->trg()->start()));
+            if(!(*cit)->trg()) continue;
+            parse_func * ct = dynamic_cast<parse_func*>(
+                obj()->findFuncByEntry(region(),(*cit)->trg()->start()));
             if(ct && ct != this) {
                 if (ct->writesFPRs(level+1)) {
                     // One of our kids does... if we're top-level, cache it; in 
@@ -120,30 +120,31 @@ bool parse_func::writesFPRs(unsigned level) {
                 return true; 
             }
             InstructionDecoder d(buf,fe->end()-fe->start(),isrc()->getArch());
-            Instruction::Ptr i;
+            Instruction i = d.decode();
 
-            while((i = d.decode())) {
-                if(i->isWritten(st0) ||
-                    i->isWritten(st1) ||
-                    i->isWritten(st2) ||
-                    i->isWritten(st3) ||
-                    i->isWritten(st4) ||
-                    i->isWritten(st5) ||
-                    i->isWritten(st6) ||
-                    i->isWritten(st7) ||
-                   i->isWritten(xmm0) ||
-                   i->isWritten(xmm1) ||
-                   i->isWritten(xmm2) ||
-                   i->isWritten(xmm3) ||
-                   i->isWritten(xmm4) ||
-                   i->isWritten(xmm5) ||
-                   i->isWritten(xmm6) ||
-                   i->isWritten(xmm7)
+            while((i.isValid())) {
+                if(i.isWritten(st0) ||
+                    i.isWritten(st1) ||
+                    i.isWritten(st2) ||
+                    i.isWritten(st3) ||
+                    i.isWritten(st4) ||
+                    i.isWritten(st5) ||
+                    i.isWritten(st6) ||
+                    i.isWritten(st7) ||
+                   i.isWritten(xmm0) ||
+                   i.isWritten(xmm1) ||
+                   i.isWritten(xmm2) ||
+                   i.isWritten(xmm3) ||
+                   i.isWritten(xmm4) ||
+                   i.isWritten(xmm5) ||
+                   i.isWritten(xmm6) ||
+                   i.isWritten(xmm7)
                   )
                 {
                     containsFPRWrites_ = used;
                     return true;
                 }
+                i = d.decode();
             }
         }
         // No kids do, and we don't. Impressive.

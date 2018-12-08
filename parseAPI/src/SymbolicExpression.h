@@ -15,13 +15,16 @@ class SymbolicExpression {
 
 public:
 
-    static AST::Ptr SimplifyRoot(AST::Ptr ast, Address addr, bool keepMultiOne = false);
-    static AST::Ptr SimplifyAnAST(AST::Ptr ast, Address addr, bool keepMultiOne = false);
+    AST::Ptr SimplifyRoot(AST::Ptr ast, Address addr, bool keepMultiOne = false);
+    AST::Ptr SimplifyAnAST(AST::Ptr ast, Address addr, bool keepMultiOne = false);
     static AST::Ptr SubstituteAnAST(AST::Ptr ast, const std::map<AST::Ptr, AST::Ptr>& aliasMap);
     static AST::Ptr DeepCopyAnAST(AST::Ptr ast);
     static bool ContainAnAST(AST::Ptr root, AST::Ptr check);
-    static bool ReadMemory(Address addr, uint64_t &val, int size);
-    static ParseAPI::CodeSource* cs; 
+    bool ReadMemory(Address addr, uint64_t &val, int size);
+    ParseAPI::CodeSource* cs; 
+    // For archive, there are overlapping regions.
+    // Need to use the right region.
+    ParseAPI::CodeRegion* cr;
     std::pair<AST::Ptr, bool> ExpandAssignment(Assignment::Ptr, bool keepMultiOne = false);
 
     //On x86 and x86-64, the value of PC is post-instruction, 

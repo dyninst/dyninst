@@ -46,7 +46,7 @@ class PCWidget : public Widget {
  public:
    typedef boost::shared_ptr<PCWidget> Ptr;
 
-   static Ptr create(InstructionAPI::Instruction::Ptr insn,
+   static Ptr create(InstructionAPI::Instruction insn,
 		     Address addr,
 		     Absloc a,
 		     Address thunk = 0);
@@ -56,12 +56,12 @@ class PCWidget : public Widget {
 
    virtual ~PCWidget() {};
    virtual std::string format() const;
-   virtual unsigned size() const { return insn_->size(); }
+   virtual unsigned size() const { return insn_.size(); }
    virtual Address addr() const { return addr_; }
-   virtual InstructionAPI::Instruction::Ptr insn() const { return insn_; }
+   virtual InstructionAPI::Instruction insn() const { return insn_; }
 
  private:
-   PCWidget(InstructionAPI::Instruction::Ptr insn,
+   PCWidget(InstructionAPI::Instruction insn,
 	 Address addr,
 	 Absloc &a,
 	 Address thunkAddr = 0) : 
@@ -74,7 +74,7 @@ class PCWidget : public Widget {
    bool PCtoReturnAddr(const codeGen &templ, const RelocBlock *, CodeBuffer &);
    bool PCtoReg(const codeGen &templ, const RelocBlock *, CodeBuffer &);
 
-   InstructionAPI::Instruction::Ptr insn_;
+   InstructionAPI::Instruction insn_;
    Address addr_;
    Absloc a_;
 
@@ -85,13 +85,13 @@ struct IPPatch : public Patch {
   typedef enum {
     Push, 
     Reg } Type;
- IPPatch(Type a, Address b, InstructionAPI::Instruction::Ptr c,
+ IPPatch(Type a, Address b, InstructionAPI::Instruction c,
 	 block_instance *d, func_instance *e) : 
   type(a), addr(b), reg((Register)-1), 
     thunk(0), 
     insn(c), block(d), func(e) {};
  IPPatch(Type a, Address b, Register c, Address d,
-	 InstructionAPI::Instruction::Ptr e, block_instance *f, func_instance *g) :
+	 InstructionAPI::Instruction e, block_instance *f, func_instance *g) :
   type(a), addr(b), reg(c), thunk(d), 
     insn(e), block(f), func(g) {};
 
@@ -104,7 +104,7 @@ struct IPPatch : public Patch {
   Register reg;
   Address thunk;
   // Necessary for live registers
-  InstructionAPI::Instruction::Ptr insn;
+  InstructionAPI::Instruction insn;
   block_instance *block;
   func_instance *func;
 };

@@ -70,13 +70,13 @@ std::pair<AST::Ptr, bool> SymEval::expand(const Assignment::Ptr &assignment, boo
   Result_t res;
   // Fill it in to mark it as existing
   res[assignment] = AST::Ptr();
-  std::set<Instruction::Ptr> ignored;
+  std::set<Instruction> ignored;
   bool succ = expand(res, ignored, applyVisitors);
   return std::make_pair(res[assignment], succ);
 }
 
 bool SymEval::expand(Result_t &res, 
-                     std::set<InstructionPtr> &failedInsns,
+                     std::set<InstructionAPI::Instruction> &failedInsns,
                      bool applyVisitors) {
   // Symbolic evaluation works off an Instruction
   // so we have something to hand to ROSE. 
@@ -424,36 +424,36 @@ SymEval::Retval_t SymEval::expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result
     else return SUCCESS;
 }
 
-bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
+bool SymEval::expandInsn(const Instruction &insn,
                          const uint64_t addr,
                          Result_t &res) {
 
 
     SgAsmInstruction *roseInsn;
-    switch (insn->getArch()) {
+    switch (insn.getArch()) {
         case Arch_x86: {
-            SymEvalPolicy policy(res, addr, insn->getArch(), insn);
+            SymEvalPolicy policy(res, addr, insn.getArch(), insn);
             RoseInsnX86Factory fac(Arch_x86);
             roseInsn = fac.convert(insn, addr);
 
             SymbolicExpansion exp;
             exp.expandX86(roseInsn, policy);
             if (policy.failedTranslate()) {
-                cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
+                cerr << "Warning: failed semantic translation of instruction " << insn.format() << endl;
                 return false;
             }
 
             break;
         }
         case Arch_x86_64: {
-            SymEvalPolicy_64 policy(res, addr, insn->getArch(), insn);
+            SymEvalPolicy_64 policy(res, addr, insn.getArch(), insn);
             RoseInsnX86Factory fac(Arch_x86_64);
             roseInsn = fac.convert(insn, addr);
 
             SymbolicExpansion exp;
             exp.expandX86_64(roseInsn, policy);
             if (policy.failedTranslate()) {
-                cerr << "Warning: failed semantic translation of instruction " << insn->format() << endl;
+                cerr << "Warning: failed semantic translation of instruction " << insn.format() << endl;
                 return false;
             }
 
@@ -470,10 +470,10 @@ bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
             BaseSemantics::SValuePtr protoval = SymEvalSemantics::SValue::instance(1, 0);
             BaseSemantics::RegisterStatePtr registerState = SymEvalSemantics::RegisterStateASTPPC32::instance(protoval, reg_dict);
             BaseSemantics::MemoryStatePtr memoryState = SymEvalSemantics::MemoryStateAST::instance(protoval, protoval);
-            BaseSemantics::StatePtr state = SymEvalSemantics::StateAST::instance(res, addr, insn->getArch(), insn, registerState, memoryState);
+            BaseSemantics::StatePtr state = SymEvalSemantics::StateAST::instance(res, addr, insn.getArch(), insn, registerState, memoryState);
             BaseSemantics::RiscOperatorsPtr ops = SymEvalSemantics::RiscOperatorsAST::instance(state);
 
-            exp.expandPPC32(roseInsn, ops, insn->format());
+            exp.expandPPC32(roseInsn, ops, insn.format());
 
             break;
         }
@@ -487,10 +487,10 @@ bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
             BaseSemantics::SValuePtr protoval = SymEvalSemantics::SValue::instance(1, 0);
             BaseSemantics::RegisterStatePtr registerState = SymEvalSemantics::RegisterStateASTPPC64::instance(protoval, reg_dict);
             BaseSemantics::MemoryStatePtr memoryState = SymEvalSemantics::MemoryStateAST::instance(protoval, protoval);
-            BaseSemantics::StatePtr state = SymEvalSemantics::StateAST::instance(res, addr, insn->getArch(), insn, registerState, memoryState);
+            BaseSemantics::StatePtr state = SymEvalSemantics::StateAST::instance(res, addr, insn.getArch(), insn, registerState, memoryState);
             BaseSemantics::RiscOperatorsPtr ops = SymEvalSemantics::RiscOperatorsAST::instance(state);
 
-            exp.expandPPC64(roseInsn, ops, insn->format());
+            exp.expandPPC64(roseInsn, ops, insn.format());
 
             break;
 
@@ -505,10 +505,10 @@ bool SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
             BaseSemantics::SValuePtr protoval = SymEvalSemantics::SValue::instance(1, 0);
             BaseSemantics::RegisterStatePtr registerState = SymEvalSemantics::RegisterStateASTARM64::instance(protoval, reg_dict);
             BaseSemantics::MemoryStatePtr memoryState = SymEvalSemantics::MemoryStateAST::instance(protoval, protoval);
-            BaseSemantics::StatePtr state = SymEvalSemantics::StateAST::instance(res, addr, insn->getArch(), insn, registerState, memoryState);
+            BaseSemantics::StatePtr state = SymEvalSemantics::StateAST::instance(res, addr, insn.getArch(), insn, registerState, memoryState);
             BaseSemantics::RiscOperatorsPtr ops = SymEvalSemantics::RiscOperatorsAST::instance(state);
 
-            exp.expandAarch64(roseInsn, ops, insn->format());
+            exp.expandAarch64(roseInsn, ops, insn.format());
         }
         break;
         default:

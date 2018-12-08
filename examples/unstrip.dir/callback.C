@@ -29,55 +29,44 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "util.h"
+#include "callback.h"
+#include "fingerprint.h"
 
-#ifndef __UTIL_H__
-#define __UTIL_H__
-
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <getopt.h>
-#include <errno.h>
-
-#include <fstream>
-#include <set>
-#include <string>
-#include <vector>
-
-// parseAPI
-#include "CodeSource.h"
+#include "dyntypes.h"
+#include "InstructionAdapter.h"
 #include "CodeObject.h"
 #include "CFG.h"
+#include "ParseCallback.h"
 
-// symtabAPI
-#include "Function.h"
-
-// instructionAPI
-#include "InstructionDecoder.h"
-#include "Register.h"
-#include "Dereference.h"
-#include "Immediate.h"
-
-// dataflowAPI
-#include "SymEval.h"
-#include "slicing.h"
-#include "types.h"
-
-class trapLoc;
-class SemanticDescriptorElem;
+#include "Instruction.h"
 
 using namespace std;
 using namespace Dyninst;
 
-void getInsnInstances(ParseAPI::Block *block, Slicer::InsnVec &insns);
+InstrCallback::InstrCallback(Address _s, Fingerprint * _f) : 
+    syscallTrampStore(_s),
+    fingerprint(_f) {}
 
-bool isSyscall(InstructionAPI::Instruction::Ptr & insn, Address & syscallTrampStore);
+/* 
+ * Record system calls found during binary parsing.
+ */
+void InstrCallback::instruction_cb(ParseAPI::Function * f,
+        ParseAPI::Block* b,
+        Address addr,
+        insn_details* insnDetails)
+{
+    InstructionAPI::Instruction insn = insnDetails->insn->getInstruction();
 
-bool isCallToSyscallTrampStore(InstructionAPI::Instruction::Ptr & insn, Address & _syscallTramp);
+    /* If we haven't found the syscallTrampStore yet, 
+     * check if this is an indirect call through it */
+    if (!syscallTrampStore) {
+        isCallToSyscallTrampStore(insn, syscallTrampStore);
+    }
 
-Address getSyscallTrampStore(SymtabAPI::Symtab * symtab);
-
-Address searchForSyscallTrampStore(ParseAPI::CodeObject::funclist & procedures);
-
-#endif
+    if (isSyscall(insn, syscallTrampStore)) {
+        /* Store trapLoc */
+        trapLoc tloc(addr, insn, NULL);
+        fingerprint->addTrapInfo(f, tloc);
+    }
+}

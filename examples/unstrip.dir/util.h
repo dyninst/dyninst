@@ -30,70 +30,54 @@
  */
 
 
-#ifndef __TYPES_H__
-#define __TYPES_H__
+#ifndef __UTIL_H__
+#define __UTIL_H__
 
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <getopt.h>
+#include <errno.h>
+
+#include <fstream>
+#include <set>
 #include <string>
 #include <vector>
 
+// parseAPI
+#include "CodeSource.h"
+#include "CodeObject.h"
 #include "CFG.h"
-#include "Instruction.h"
 
-//#include "util.h"
+// symtabAPI
+#include "Function.h"
+
+// instructionAPI
+#include "InstructionDecoder.h"
+#include "Register.h"
+#include "Dereference.h"
+#include "Immediate.h"
+
+// dataflowAPI
+#include "SymEval.h"
+#include "slicing.h"
+#include "types.h"
+
+class trapLoc;
+class SemanticDescriptorElem;
 
 using namespace std;
 using namespace Dyninst;
 
-enum Mode {
-    _learn = 1,
-    _identify,
-};
+void getInsnInstances(ParseAPI::Block *block, Slicer::InsnVec &insns);
 
-enum ParamType {
-    _i, // int
-    _s, // string
-    _p, // int *
-    _o, // other pointers
-    _u, // unknown -- won't track
-};
+bool isSyscall(InstructionAPI::Instruction  insn, Address & syscallTrampStore);
 
-ParamType getParamType(char * type);
+bool isCallToSyscallTrampStore(InstructionAPI::Instruction  insn, Address & _syscallTramp);
 
-class trapLoc {
-    private:
-        Address a;
-        InstructionAPI::Instruction::Ptr i;
-        ParseAPI::Block * b;
-    public:
-        trapLoc(Address _a, InstructionAPI::Instruction::Ptr _i, ParseAPI::Block * _b) : 
-            a(_a), i(_i), b(_b) {}
+Address getSyscallTrampStore(SymtabAPI::Symtab * symtab);
 
-        Address addr() { return a; }
-        InstructionAPI::Instruction::Ptr instr() { return i; }
-        ParseAPI::Block * block() { return b; }
-
-        bool operator<(const trapLoc & t2) const {
-            return a < t2.a;
-        }
-};
-
-class Matches {
-    private:
-        set<string> m;
-    public:
-        typedef set<string>::iterator iterator;
-
-        void insert(string str) { m.insert(str); }
-        int size() { return m.size(); }
-
-        iterator begin() { return m.begin(); }
-        iterator end() { return m.end(); }
-
-        string format();
-        void clear();
-
-        string operator[](const int pos) const;
-};
+Address searchForSyscallTrampStore(ParseAPI::CodeObject::funclist & procedures);
 
 #endif

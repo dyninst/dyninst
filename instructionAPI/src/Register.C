@@ -37,6 +37,7 @@
 #include "../../common/src/singleton_object_pool.h"
 #include "InstructionDecoder-power.h"
 #include "dyn_regs.h"
+#include "ArchSpecificFormatters.h"
 
 using namespace std;
 
@@ -88,14 +89,9 @@ namespace Dyninst
       return m_Reg;
     }
 
-    std::string RegisterAST::format(ArchSpecificFormatter *formatter, formatStyle) const
+    std::string RegisterAST::format(Architecture arch, formatStyle) const
     {
-        return formatter->formatRegister(m_Reg.name());
-    }
-
-    std::string MaskRegisterAST::format(ArchSpecificFormatter* formatter, formatStyle) const
-    {
-        return formatter->formatRegister(m_Reg.name());
+        return ArchSpecificFormatter::getFormatter(arch).formatRegister(m_Reg.name());
     }
 
     std::string RegisterAST::format(formatStyle) const
@@ -111,6 +107,10 @@ namespace Dyninst
         std::transform(name.begin(), name.end(), name.begin(), ::toupper);
         return name;
     }
+      std::string MaskRegisterAST::format(Architecture, formatStyle f) const
+      {
+          return format(f);
+      }
 
     std::string MaskRegisterAST::format(formatStyle) const
     {
@@ -122,10 +122,7 @@ namespace Dyninst
         }
 
         /* The syntax for a masking register is {kX} in AT&T syntax. */
-        std::stringstream ss;
-        ss << "{" << name << "}";
-
-        return ss.str();
+        return  "{" + name + "}";
     }
 
      

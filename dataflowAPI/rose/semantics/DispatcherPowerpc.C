@@ -1074,6 +1074,7 @@ DispatcherPowerpc::iproc_init()
     iproc_set(powerpc_oris,             new Powerpc::IP_oris);
     iproc_set(powerpc_rldic,            new Powerpc::IP_rldicr);
     iproc_set(powerpc_rldicr,           new Powerpc::IP_rldicr);
+    iproc_set(powerpc_rldicl,           new Powerpc::IP_rldicr);
     iproc_set(powerpc_rlwimi,           new Powerpc::IP_rlwimi);
     iproc_set(powerpc_rlwinm,           new Powerpc::IP_rlwinm(false));
     iproc_set(powerpc_rlwinm_record,    new Powerpc::IP_rlwinm(true));

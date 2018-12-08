@@ -121,7 +121,7 @@ namespace Dyninst
     public:
       /// \brief A type definition for a reference counted pointer to a %Expression.
       typedef boost::shared_ptr<Expression> Ptr;
-      friend class Operation;
+      friend class Operation_impl;
     protected:      
       Expression(Result_Type t);
       Expression(MachRegister r);
@@ -178,7 +178,7 @@ namespace Dyninst
             virtual void getChildren(vector<Expression::Ptr>& ) const {};
             virtual void getUses(set<InstructionAST::Ptr>& ) {};
             virtual bool isUsed(InstructionAST::Ptr ) const { return true;};
-            virtual std::string format(ArchSpecificFormatter *, formatStyle) const { return "[WILDCARD]";};
+            virtual std::string format(Architecture, formatStyle) const { return "[WILDCARD]";};
             virtual std::string format(formatStyle) const { return "[WILDCARD]";};
             DummyExpr() : Expression(u8) {}
         protected:

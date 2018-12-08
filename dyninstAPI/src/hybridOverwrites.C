@@ -1337,8 +1337,8 @@ bool HybridAnalysisOW::isRealStore(Address insnAddr, block_instance *block,
     InstructionDecoder decoder(buf,
 			                   InstructionDecoder::maxInstructionLength,
             			       proc()->lowlevel_process()->getArch());
-    Instruction::Ptr insn = decoder.decode();
-    assert(insn != NULL);
+    Instruction insn = decoder.decode();
+    assert(insn.isValid());
     parse_func *imgfunc = func->lowlevel_func()->ifunc(); 
     Address image_addr = func->lowlevel_func()->addrToOffset(insnAddr);
 

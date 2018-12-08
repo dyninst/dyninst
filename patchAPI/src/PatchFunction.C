@@ -211,7 +211,7 @@ Point *PatchFunction::findPoint(Location loc, Point::Type type, bool create) {
             return iter->second.during;
             break;
          case Point::PreInsn: {
-            if (!loc.addr || !loc.insn) {
+            if (!loc.addr || !loc.insn.isValid()) {
                assert(0);
             }
             InsnPoints::iterator iter2 = iter->second.preInsn.find(loc.addr);
@@ -227,7 +227,7 @@ Point *PatchFunction::findPoint(Location loc, Point::Type type, bool create) {
             break;
          }
          case Point::PostInsn: {
-            if (!loc.addr || !loc.insn) return NULL;
+            if (!loc.addr || !loc.insn.isValid()) return NULL;
             InsnPoints::iterator iter2 = iter->second.postInsn.find(loc.addr);
             if (iter2 == iter->second.postInsn.end()) {
                if (!create) return NULL;

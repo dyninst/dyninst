@@ -133,25 +133,26 @@ namespace Dyninst
         }
 
 
-    TLS_VAR NS_x86::ia32_instruction* InstructionDecoder_x86::decodedInstruction = NULL;
-    TLS_VAR ia32_locations* InstructionDecoder_x86::locs = NULL;
-    TLS_VAR bool InstructionDecoder_x86::sizePrefixPresent = false;
-    TLS_VAR bool InstructionDecoder_x86::addrSizePrefixPresent = false;
     INSTRUCTION_EXPORT InstructionDecoder_x86::InstructionDecoder_x86(Architecture a) :
-      InstructionDecoderImpl(a)
+      InstructionDecoderImpl(a),
+        decodedInstruction(NULL),
+        locs(NULL),
+        sizePrefixPresent(false),
+        addrSizePrefixPresent(false)
     {
       if(a == Arch_x86_64) setMode(true);
       
     }
     INSTRUCTION_EXPORT InstructionDecoder_x86::~InstructionDecoder_x86()
     {
-
+        free(decodedInstruction);
+        free(locs);
     }
     static const unsigned char modrm_use_sib = 4;
     
     INSTRUCTION_EXPORT void InstructionDecoder_x86::setMode(bool is64)
     {
-        ia32_set_mode_64(is64);
+        InstructionDecoder_x86::is64BitMode = is64;
     }
     
       Expression::Ptr InstructionDecoder_x86::makeSIBExpression(const InstructionDecoder::buffer& b)
@@ -159,9 +160,9 @@ namespace Dyninst
         unsigned scale;
         Register index;
         Register base;
-        Result_Type registerType = ia32_is_mode_64() ? u64 : u32;
+        Result_Type registerType = is64BitMode ? u64 : u32;
 
-        int op_type = ia32_is_mode_64() ? op_q : op_d;
+        int op_type = is64BitMode ? op_q : op_d;
         decode_SIB(locs->sib_byte, scale, index, base);
 
         Expression::Ptr scaleAST(make_shared(singleton_object_pool<Immediate>::construct(Result(u8, dword_t(scale)))));
@@ -177,7 +178,7 @@ namespace Dyninst
                     break;
                 case 0x01: 
                 case 0x02: 
-                    baseAST = make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(base, 
+                    baseAST = make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(base,
 											       op_type,
 											       locs->rex_b)));
                     break;
@@ -189,12 +190,12 @@ namespace Dyninst
         }
         else
         {
-            baseAST = make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(base, 
+            baseAST = make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(base,
 											       op_type,
 											       locs->rex_b)));
         }
 
-        if(index == 0x04 && (!(ia32_is_mode_64()) || !(locs->rex_x)))
+        if(index == 0x04 && (!(is64BitMode) || !(locs->rex_x)))
         {
             return baseAST;
         }
@@ -206,9 +207,9 @@ namespace Dyninst
     {
        unsigned int regType = op_d;
        Result_Type aw;
-       if(ia32_is_mode_64())
+       if(is64BitMode)
        {
-          if(addrSizePrefixPresent) 
+          if(addrSizePrefixPresent)
           {
              aw = u32;
           } else {
@@ -216,7 +217,7 @@ namespace Dyninst
              regType = op_q;
           }
        } else {
-          if(!addrSizePrefixPresent) 
+          if(!addrSizePrefixPresent)
           {
              aw = u32;
           } else {
@@ -225,7 +226,7 @@ namespace Dyninst
           }
        }
 
-       if (opType == op_lea) 
+       if (opType == op_lea)
        {
           // For an LEA, aw (address width) is insufficient, use makeSizeType
           aw = makeSizeType(opType);
@@ -237,13 +238,13 @@ namespace Dyninst
        {
           case 0:
              /* modrm_rm == 0x4 is use SIB */
-             if(locs->modrm_rm == modrm_use_sib) 
+             if(locs->modrm_rm == modrm_use_sib)
                 e = makeSIBExpression(b);
              else if(locs->modrm_rm == 0x5 && !addrSizePrefixPresent)
              {
                 /* modrm_rm 00 0x5 is use 32 bit displacement only */
                 assert(locs->opcode_position > -1);
-                if(ia32_is_mode_64())
+                if(is64BitMode)
                 {
                    e = makeAddExpression(makeRegisterExpression(x86_64::rip),
                          getModRMDisplacement(b), aw);
@@ -252,7 +253,7 @@ namespace Dyninst
                 }
 
              } else{
-                e = makeRegisterExpression(makeRegisterID(locs->modrm_rm, op_d, locs->rex_r));
+                e = makeRegisterExpression(makeRegisterID(locs->modrm_rm, regType, locs->rex_b));
              }
 
              if(opType == op_lea)
@@ -390,7 +391,7 @@ namespace Dyninst
                 break;
             case 0:
                 // In 16-bit mode, the word displacement is modrm r/m 6
-                if(sizePrefixPresent && !ia32_is_mode_64())
+                if(sizePrefixPresent && !is64BitMode)
                 {
                     if(locs->modrm_rm == 6)
                     {
@@ -414,7 +415,7 @@ namespace Dyninst
                 {
                     if(locs->modrm_rm == 5)
                     {
-                        if (b.start + disp_pos + 4 <= b.end) 
+                        if (b.start + disp_pos + 4 <= b.end)
                             return make_shared(singleton_object_pool<Immediate>::construct(Result(s32,
                                             *((const dword_t*)(b.start + disp_pos)))));
                         else
@@ -556,7 +557,7 @@ namespace Dyninst
 
       bool InstructionDecoder_x86::isDefault64Insn()
       {
-	switch(m_Operation->getID())
+	switch(m_Operation.getID())
 	{
 	case e_jmp:
 	case e_pop:
@@ -662,7 +663,7 @@ namespace Dyninst
             }
         }
 
-        if (!ia32_is_mode_64()) {
+        if (!is64BitMode) {
 	  if ((retVal.val() & 0x00ffffff) == 0x0001000c)
 	    assert(0);
 	}
@@ -695,7 +696,7 @@ namespace Dyninst
                 {
                     return u64;
                 }
-		//if(ia32_is_mode_64() || !sizePrefixPresent)
+		//if(is64BitMode || !sizePrefixPresent)
                 //{
                     return u32;
 		    //}
@@ -705,14 +706,14 @@ namespace Dyninst
 		    //}
                 break;
             case op_y:
-            	if(ia32_is_mode_64())
+            	if(is64BitMode)
             		return u64;
             	else
             		return u32;
             	break;
             case op_p:
                 // book says operand size; arch-x86 says word + word * operand size
-                if(!ia32_is_mode_64() ^ sizePrefixPresent)
+                if(!is64BitMode ^ sizePrefixPresent)
                 {
                     return u48;
                 }
@@ -924,7 +925,7 @@ namespace Dyninst
     bool InstructionDecoder_x86::decodeOneOperand(const InstructionDecoder::buffer& b,
 						  const ia32_operand& operand,
 						  int & imm_index, /* immediate operand index */
-						  const Instruction* insn_to_complete, 
+						  const Instruction* insn_to_complete,
                           bool isRead, bool isWritten, bool isImplicit)
     {
         bool isCFT = false;
@@ -941,7 +942,7 @@ namespace Dyninst
             }
         }
 
-        if(cat == c_BranchInsn && insn_to_complete->getOperation().getID() != e_jmp) 
+        if(cat == c_BranchInsn && insn_to_complete->getOperation().getID() != e_jmp)
         {
             isConditional = true;
         }
@@ -971,14 +972,14 @@ namespace Dyninst
         }
 
         if (sizePrefixPresent && ((optype == op_v) 
-                    || (optype == op_z)) && (operand.admet != am_J)) 
+                    || (optype == op_z)) && (operand.admet != am_J))
         {
             optype = op_w;
         }
 
         if(optype == op_y) 
         {
-            if(ia32_is_mode_64() && locs->rex_w)
+            if(is64BitMode && locs->rex_w)
             {
                 optype = op_q;
             } else {
@@ -1018,7 +1019,7 @@ namespace Dyninst
                     }
 
                     /* Grab the correct bank and bank index for this type of register */
-                    if(decodeAVX(bank, &bank_index, pref.vex_vvvv_reg, 
+                    if(decodeAVX(bank, &bank_index, pref.vex_vvvv_reg,
                                 avx_type, pref, operand.admet))
                         return false;
 
@@ -1057,7 +1058,7 @@ namespace Dyninst
                 // am_R is the inverse of am_M; it should only have a mod of 3
             case am_R:
                 // can be am_R or am_M	
-            case am_RM:	
+            case am_RM:
                 if(isCFT)
                 {
                     insn_to_complete->addSuccessor(
@@ -1096,7 +1097,7 @@ namespace Dyninst
 
                 /* Append the operand */
                 insn_to_complete->appendOperand(makeRegisterExpression(
-                            IntelRegTable(m_Arch, bank, bank_index)), 
+                            IntelRegTable(m_Arch, bank, bank_index)),
                         isRead, isWritten, isImplicit);
                 break;
 
@@ -1182,7 +1183,7 @@ namespace Dyninst
 
                     offset_position++;
                     insn_to_complete->appendOperand(makeDereferenceExpression(
-                                decodeImmediate(pseudoOpType, b.start + offset_position), 
+                                decodeImmediate(pseudoOpType, b.start + offset_position),
                                 makeSizeType(optype)), isRead, isWritten, isImplicit);
                 }
                 break;
@@ -1200,7 +1201,7 @@ namespace Dyninst
                     case 0x00:
                     case 0x01:
                     case 0x02:
-                        insn_to_complete->appendOperand(makeModRMExpression(b, optype), 
+                        insn_to_complete->appendOperand(makeModRMExpression(b, optype),
                                 isRead, isWritten, isImplicit);
                         break;
                     case 0x03:
@@ -1225,7 +1226,7 @@ namespace Dyninst
                 // test register in modrm reg; should only be tr6/tr7, but we'll decode any of them
                 // NOTE: this only appears in deprecated opcodes
                 insn_to_complete->appendOperand(makeRegisterExpression(
-                            IntelRegTable(m_Arch,b_tr,locs->modrm_reg)), 
+                            IntelRegTable(m_Arch,b_tr,locs->modrm_reg)),
                         isRead, isWritten, isImplicit);
                 break;
 
@@ -1251,14 +1252,14 @@ namespace Dyninst
                             }
 
                             /* Grab the register bank and index */
-                            if(decodeAVX(bank, &bank_index, locs->modrm_rm, AVX_XMM, 
+                            if(decodeAVX(bank, &bank_index, locs->modrm_rm, AVX_XMM,
                                         pref, operand.admet))
                                 return false;
 
                             /* Append the operand */
                             insn_to_complete->appendOperand(makeRegisterExpression(
-                                        IntelRegTable(m_Arch, bank, bank_index)), 
-                                    isRead, isWritten, isImplicit);	
+                                        IntelRegTable(m_Arch, bank, bank_index)),
+                                    isRead, isWritten, isImplicit);
                             break;
                         }
                     default:
@@ -1280,7 +1281,7 @@ namespace Dyninst
                     return false;
 
                 insn_to_complete->appendOperand(makeRegisterExpression(
-                            IntelRegTable(m_Arch, bank, bank_index)), 
+                            IntelRegTable(m_Arch, bank, bank_index)),
                         isRead, isWritten, isImplicit);
                 break;
 
@@ -1299,13 +1300,13 @@ namespace Dyninst
 
                 /* Append the operand */
                 insn_to_complete->appendOperand(makeRegisterExpression(
-                            IntelRegTable(m_Arch, bank, bank_index)), 
+                            IntelRegTable(m_Arch, bank, bank_index)),
                         isRead, isWritten, isImplicit);
                 break;
 
             case am_U: /* Could be XMM, YMM, or ZMM (or possibly non VEX)*/
 
-                /* Is this a vex prefixed instruction? */  
+                /* Is this a vex prefixed instruction? */
                 if(pref.vex_present)
                 {
                     if(!AVX_TYPE_OKAY(avx_type))
@@ -1318,7 +1319,7 @@ namespace Dyninst
 
                 /* Append the operand */
                 insn_to_complete->appendOperand(makeRegisterExpression(
-                            IntelRegTable(m_Arch, bank, bank_index)), 
+                            IntelRegTable(m_Arch, bank, bank_index)),
                         isRead, isWritten, isImplicit);
                 break;
             case am_XU: /* Must be XMM (must be VEX) */
@@ -1335,7 +1336,7 @@ namespace Dyninst
 
                 /* Append the operand */
                 insn_to_complete->appendOperand(makeRegisterExpression(
-                            IntelRegTable(m_Arch, bank, bank_index)), 
+                            IntelRegTable(m_Arch, bank, bank_index)),
                         isRead, isWritten, isImplicit);
                 break;
             case am_YU: /* Must be XMM or YMM (must be VEX) */
@@ -1353,7 +1354,7 @@ namespace Dyninst
 
                 /* Append the operand */
                 insn_to_complete->appendOperand(makeRegisterExpression(
-                            IntelRegTable(m_Arch, bank, bank_index)), 
+                            IntelRegTable(m_Arch, bank, bank_index)),
                         isRead, isWritten, isImplicit);
                 break;
             case am_V: /* Could be XMM, YMM or ZMM (possibly non VEX)*/
@@ -1370,7 +1371,7 @@ namespace Dyninst
 
                 /* Append the operand */
                 insn_to_complete->appendOperand(makeRegisterExpression(
-                            IntelRegTable(m_Arch, bank, bank_index)), 
+                            IntelRegTable(m_Arch, bank, bank_index)),
                         isRead, isWritten, isImplicit);
                 break;
             case am_XV: /* Must be XMM (must be VEX) */
@@ -1405,7 +1406,7 @@ namespace Dyninst
 
                 /* Append the operand */
                 insn_to_complete->appendOperand(makeRegisterExpression(
-                            IntelRegTable(m_Arch, bank, bank_index)), 
+                            IntelRegTable(m_Arch, bank, bank_index)),
                         isRead, isWritten, isImplicit);
                 break;
             case am_VK: /* A KMasking register defined in the reg of a Mod/RM*/
@@ -1422,7 +1423,7 @@ namespace Dyninst
 
                 /* Append the operand */
                 insn_to_complete->appendOperand(makeRegisterExpression(
-                            IntelRegTable(m_Arch, bank, bank_index)), 
+                            IntelRegTable(m_Arch, bank, bank_index)),
                         isRead, isWritten, isImplicit);
                 break;
             case am_WK: /* Could be a K mask register or memory address*/
@@ -1445,18 +1446,18 @@ namespace Dyninst
                     case 0x01:
                     case 0x02:
                         insn_to_complete->appendOperand(
-                                makeModRMExpression(b, makeSizeType(optype)), 
+                                makeModRMExpression(b, makeSizeType(optype)),
                                 isRead, isWritten, isImplicit);
                         break;
                     case 0x03:
                         /* Just the register is used */
-                        if(decodeAVX(bank, &bank_index, locs->modrm_rm, 
+                        if(decodeAVX(bank, &bank_index, locs->modrm_rm,
                                     avx_type, pref, operand.admet))
                             return false;
 
                         insn_to_complete->appendOperand(
                                 makeRegisterExpression(IntelRegTable(
-                                        m_Arch, bank, bank_index)), 
+                                        m_Arch, bank, bank_index)),
                                 isRead, isWritten, isImplicit);
                         break;
                     default:
@@ -1479,8 +1480,8 @@ namespace Dyninst
                     case 0x00:
                     case 0x01:
                     case 0x02:
-                        insn_to_complete->appendOperand(makeModRMExpression(b, 
-                                    makeSizeType(optype)), 
+                        insn_to_complete->appendOperand(makeModRMExpression(b,
+                                    makeSizeType(optype)),
                                 isRead, isWritten, isImplicit);
                         break;
                     case 0x03:
@@ -1489,7 +1490,7 @@ namespace Dyninst
                             return false;
                         insn_to_complete->appendOperand(
                                 makeRegisterExpression(IntelRegTable
-                                    (m_Arch, bank, bank_index)), 
+                                    (m_Arch, bank, bank_index)),
                                 isRead, isWritten, isImplicit);
                         break;
                     default:
@@ -1514,7 +1515,7 @@ namespace Dyninst
                     case 0x01:
                     case 0x02:
                         insn_to_complete->appendOperand(makeModRMExpression(
-                                    b, makeSizeType(optype)), 
+                                    b, makeSizeType(optype)),
                                 isRead, isWritten, isImplicit);
                         break;
                     case 0x03:
@@ -1524,7 +1525,7 @@ namespace Dyninst
 
                         /* Append the operand */
                         insn_to_complete->appendOperand(makeRegisterExpression(
-                                    IntelRegTable(m_Arch, bank, bank_index)), 
+                                    IntelRegTable(m_Arch, bank, bank_index)),
                                 isRead, isWritten, isImplicit);
                         break;
                     default:
@@ -1561,7 +1562,7 @@ namespace Dyninst
                             ds, segmentOffset, u32);
                     Expression::Ptr ds_si = makeAddExpression(ds_segment, si, u32);
                     insn_to_complete->appendOperand(
-                            makeDereferenceExpression(ds_si, makeSizeType(optype)), 
+                            makeDereferenceExpression(ds_si, makeSizeType(optype)),
                             isRead, isWritten, isImplicit);
                 }
                 break;
@@ -1645,12 +1646,12 @@ namespace Dyninst
                         r = MachRegister((r.val() & ~r.getArchitecture()) | m_Arch);
 
                         entryID entryid = decodedInstruction->getEntry()->getID(locs);
-                        if(insn_to_complete->m_Operands.empty() && 
+                        if(insn_to_complete->m_Operands.empty() &&
                                 (entryid == e_push || entryid == e_pop || entryid == e_xchg || ((*(b.start + locs->opcode_position) & 0xf0) == 0xb0) ) )
                         {
                             unsigned int opcode_byte = *(b.start+locs->opcode_position);
                             unsigned int reg_id = (opcode_byte & 0x07);
-                            if(locs->rex_b) 
+                            if(locs->rex_b)
                             {
                                 // FP stack registers are not affected by the rex_b bit in AM_REG.
                                 if(r.regClass() == (unsigned) x86::GPR)
@@ -1745,7 +1746,7 @@ namespace Dyninst
         locs = new(locs) ia32_locations; //reinit();
         assert(locs->sib_position == -1);
         decodedInstruction = new (decodedInstruction) ia32_instruction(NULL, NULL, locs);
-        ia32_decode(IA32_DECODE_PREFIXES, b.start, *decodedInstruction);
+        ia32_decode(IA32_DECODE_PREFIXES, b.start, *decodedInstruction, is64BitMode);
         sizePrefixPresent = (decodedInstruction->getPrefix()->getOperSzPrefix() == 0x66);
         if (decodedInstruction->getPrefix()->rexW()) {
             // as per 2.2.1.2 - rex.w overrides 66h
@@ -1781,13 +1782,13 @@ namespace Dyninst
                     case e_xchg:
                         break;
                     default:
-                        m_Operation =make_shared(singleton_object_pool<Operation>::construct(&invalid,
-                                    decodedInstruction->getPrefix(), locs, m_Arch));
+                        m_Operation = Operation(&invalid,
+                                    decodedInstruction->getPrefix(), locs, m_Arch);
                         return;
                 }
             }
-            m_Operation = make_shared(singleton_object_pool<Operation>::construct(decodedInstruction->getEntry(),
-                        decodedInstruction->getPrefix(), locs, m_Arch));
+            m_Operation = Operation(decodedInstruction->getEntry(),
+                        decodedInstruction->getPrefix(), locs, m_Arch);
 
         } else {
             // Gap parsing can trigger this case; in particular, when it encounters prefixes in an invalid order.
@@ -1795,8 +1796,8 @@ namespace Dyninst
             // we'll reject the instruction as invalid and send it back with no entry.  Since this is a common
             // byte sequence to see in, for example, ASCII strings, we want to simply accept this and move on, not
             // yell at the user.
-            m_Operation = make_shared(singleton_object_pool<Operation>::construct(&invalid,
-                        decodedInstruction->getPrefix(), locs, m_Arch));
+            m_Operation = Operation(&invalid,
+                        decodedInstruction->getPrefix(), locs, m_Arch);
         }
 
     }
@@ -1813,16 +1814,16 @@ namespace Dyninst
         if(!decodedInstruction || !decodedInstruction->getEntry()) return false;
         unsigned int opsema = decodedInstruction->getEntry()->opsema;
         unsigned int semantics = opsema & 0xFF;
-        unsigned int implicit_operands = 
+        unsigned int implicit_operands =
             sGetImplicitOPs(decodedInstruction->getEntry()->impl_dec);
         InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
 
         if (decodedInstruction->getEntry()->getID() == e_ret_near ||
-                decodedInstruction->getEntry()->getID() == e_ret_far) {
-            Expression::Ptr ret_addr = makeDereferenceExpression(makeRegisterExpression(ia32_is_mode_64() ? x86_64::rsp : x86::esp), 
-                    ia32_is_mode_64() ? u64 : u32);
-            insn_to_complete->addSuccessor(ret_addr, false, true, false, false);
-        }
+            decodedInstruction->getEntry()->getID() == e_ret_far) {
+           Expression::Ptr ret_addr = makeDereferenceExpression(makeRegisterExpression(is64BitMode ? x86_64::rsp : x86::esp),
+                                                                is64BitMode ? u64 : u32);
+           insn_to_complete->addSuccessor(ret_addr, false, true, false, false);
+	}
 
         for(int i = 0; i < 3; i++)
         {
@@ -1831,9 +1832,9 @@ namespace Dyninst
                 break;
 
             if(!decodeOneOperand(b,
-                        decodedInstruction->getEntry()->operands[i], 
-                        imm_index, 
-                        insn_to_complete, 
+                        decodedInstruction->getEntry()->operands[i],
+                        imm_index,
+                        insn_to_complete,
                         readsOperand(semantics, i),
                         writesOperand(semantics, i),
                         implicitOperand(implicit_operands, i)))
@@ -1870,7 +1871,7 @@ namespace Dyninst
     }
 
     
-      INSTRUCTION_EXPORT Instruction::Ptr InstructionDecoder_x86::decode(InstructionDecoder::buffer& b)
+      INSTRUCTION_EXPORT Instruction InstructionDecoder_x86::decode(InstructionDecoder::buffer& b)
     {
         return InstructionDecoderImpl::decode(b);
     }

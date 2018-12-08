@@ -41,14 +41,16 @@ using namespace Dyninst::ParseAPI;
 
 int HACKCOUNT = 0;
 
-Block::Block(CodeObject * o, CodeRegion *r, Address start) :
+Block::Block(CodeObject * o, CodeRegion *r, Address start, Function *f) :
+    SimpleInterval(start, start, 0),
     _obj(o),
     _region(r),
     _start(start),
     _end(start),
     _lastInsn(start),
     _func_cnt(0),
-    _parsed(false)
+    _parsed(false),
+    _createdByFunc(f)
 {
     if (_obj && _obj->cs()) {
         _obj->cs()->incrementCounter(PARSE_BLOCK_COUNT);
@@ -70,7 +72,7 @@ Block::consistent(Address addr, Address & prev_insn)
 {
     if (addr >= end() || addr < start()) return false;
     InstructionSource * isrc;
-    if(!_obj->cs()->regionsOverlap())
+    if(_obj && !_obj->cs()->regionsOverlap())
         isrc = _obj->cs();
     else
         isrc = region();
@@ -95,11 +97,12 @@ Block::consistent(Address addr, Address & prev_insn)
 void
 Block::getFuncs(vector<Function *> & funcs)
 {
+    if(!_obj) return; // universal sink
     set<Function *> stab;
     _obj->findFuncs(region(),start(),stab);
     set<Function *>::iterator sit = stab.begin();
     for( ; sit != stab.end() ;++sit) {
-        if((*sit)->contains(this))
+        if(((const Function*)(*sit))->contains(this))
             funcs.push_back(*sit);
     }
 }
@@ -148,13 +151,13 @@ SingleContextOrInterproc::pred_impl(Edge * e) const
 }
 
 int Block::containingFuncs() const {
-    _obj->finalize();
+    if(_obj) _obj->finalize();
     return _func_cnt;
 }
 
 void Block::removeFunc(Function *) 
 {
-    if (0 == _func_cnt) {
+    if ((0 == _func_cnt) && _obj) {
         _obj->finalize();
     }
     assert(0 != _func_cnt);
@@ -163,9 +166,10 @@ void Block::removeFunc(Function *)
 
 void Block::updateEnd(Address addr)
 {
+    if(!_obj) return;
     _obj->cs()->addCounter(PARSE_BLOCK_SIZE, -1*size());   
     _end = addr;
-//    assert(_end != 0x7b320f);
+    high_ = addr;
     _obj->cs()->addCounter(PARSE_BLOCK_SIZE, size());
 }
 
@@ -182,7 +186,7 @@ void Edge::install()
 void Edge::uninstall()
 {
     mal_printf("Uninstalling edge [%lx]->[%lx]\n", 
-               _source->lastInsnAddr(), _target->start());
+               _source->lastInsnAddr(), _target_off);
     // if it's a call edge, it's cached in the function object, remove it
     if (CALL == type()) {
         vector<Function*> srcFs;
@@ -205,11 +209,22 @@ void Edge::uninstall()
     }
     // remove from source and target blocks
     _source->removeTarget(this);
-    _target->removeSource(this);
+    trg()->removeSource(this);
 }
 
 void Edge::destroy(Edge *e, CodeObject *o) {
    o->destroy(e);
+}
+
+
+Block *Edge::trg() const {
+    Block* found = index->findBlock(_source->region(), _target_off);
+    if(found) return found;
+    Block* newBlock = NULL;
+//    newBlock = _source->obj()->fact()->_mkblock(NULL, _source->region(), _target_off);
+//    newBlock = _source->obj()->fact()->_mksink(_source->obj(), _source->region());
+//    index->record_block(_source->region(), newBlock);
+    return newBlock;
 }
 
 std::string format(EdgeTypeEnum e) {
@@ -240,13 +255,13 @@ Block::getInsns(Insns &insns) const {
   if (ptr == NULL) return;
   InstructionDecoder d(ptr, size(), obj()->cs()->getArch());
   while (off < end()) {
-    Instruction::Ptr insn = d.decode();
+    Instruction insn = d.decode();
     insns[off] = insn;
-    off += insn->size();
+    off += insn.size();
   }
 }
 
-InstructionAPI::Instruction::Ptr
+InstructionAPI::Instruction
 Block::getInsn(Offset a) const {
    Insns insns;
    getInsns(insns);
@@ -255,6 +270,12 @@ Block::getInsn(Offset a) const {
 
 
 bool Block::operator==(const Block &rhs) const {
+    boost::lock_guard<const Block> g1(*this);
+    boost::lock_guard<const Block> g2(rhs);
+    // All sinks are equal
+    if(_start == std::numeric_limits<Address>::max()) {
+        return rhs._start == _start;
+    }
     return _obj == rhs._obj &&
            _region == rhs._region &&
            _start == rhs._start &&

@@ -113,7 +113,7 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
 
     func_instance *callee();
     std::string calleeName();
-
+    bool _ignorePowerPreamble;
     int id() const;
 
     // Functions to avoid
@@ -122,7 +122,7 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
     func_instance *entryOfFunc() const;
     bool isFuncExit() const;
     // static void destroy(block_instance *b); // doesn't need to do anything
-
+    Address GetBlockStartingAddress();
     virtual void markModified();
 
  private:

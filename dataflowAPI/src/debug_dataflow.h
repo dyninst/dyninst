@@ -33,17 +33,17 @@
 
 #include <string>
 
-extern int df_debug_slicing;
-extern int df_debug_stackanalysis;
-extern int df_debug_convert;
-extern int df_debug_expand;
-extern int df_debug_liveness;
+extern int df_debug_slicing_on();
+extern int df_debug_stackanalysis_on();
+extern int df_debug_convert_on();
+extern int df_debug_expand_on();
+extern int df_debug_liveness_on();
 
-#define slicing_cerr       if (df_debug_slicing) cerr
-#define stackanalysis_cerr if (df_debug_stackanalysis) cerr
-#define convert_cerr       if (df_debug_convert) cerr
-#define expand_cerr        if (df_debug_expand) cerr
-#define liveness_cerr        if (df_debug_liveness) cerr
+#define slicing_cerr       if (df_debug_slicing_on()) cerr
+#define stackanalysis_cerr if (df_debug_stackanalysis_on()) cerr
+#define convert_cerr       if (df_debug_convert_on()) cerr
+#define expand_cerr        if (df_debug_expand_on()) cerr
+#define liveness_cerr      if (df_debug_liveness_on()) cerr
 
 extern int slicing_printf_int(const char *format, ...);
 extern int stackanalysis_printf_int(const char *format, ...);
@@ -52,11 +52,11 @@ extern int expand_printf_int(const char *format, ...);
 extern int liveness_printf_int(const char *format, ...);
 
 #if defined(__GNUC__)
-#define slicing_printf(format, args...) do {if (df_debug_slicing) slicing_printf_int(format, ## args); } while(0)
-#define stackanalysis_printf(format, args...) do {if (df_debug_stackanalysis) stackanalysis_printf_int(format, ## args); } while(0)
-#define convert_printf(format, args...) do {if (df_debug_convert) convert_printf_int(format, ## args); } while(0)
-#define expand_printf(format, args...) do {if (df_debug_expand) expand_printf_int(format, ## args); } while(0)
-#define liveness_printf(format, args...) do {if (df_debug_liveness) liveness_printf_int(format, ## args); } while(0)
+#define slicing_printf(format, args...) do {if (df_debug_slicing_on()) slicing_printf_int(format, ## args); } while(0)
+#define stackanalysis_printf(format, args...) do {if (df_debug_stackanalysis_on()) stackanalysis_printf_int(format, ## args); } while(0)
+#define convert_printf(format, args...) do {if (df_debug_convert_on()) convert_printf_int(format, ## args); } while(0)
+#define expand_printf(format, args...) do {if (df_debug_expand_on()) expand_printf_int(format, ## args); } while(0)
+#define liveness_printf(format, args...) do {if (df_debug_liveness_on()) liveness_printf_int(format, ## args); } while(0)
 
 #else
 // Non-GCC doesn't have the ## macro

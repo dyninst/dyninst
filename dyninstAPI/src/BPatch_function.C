@@ -497,11 +497,6 @@ void BPatch_function::getCallerPoints(std::vector<BPatch_point*>& callerPoints)
 }
 
 void BPatch_function::getCallPoints(BPatch_Vector<BPatch_point *> &callPoints) {
-  /*
-  const func_instance::BlockSet &blocks = func->callBlocks();
-  for (func_instance::BlockSet::const_iterator iter = blocks.begin();
-       iter != blocks.end(); ++iter) {
-*/
    const PatchFunction::Blockset &blocks = func->callBlocks();
   for (PatchFunction::Blockset::const_iterator iter = blocks.begin();
        iter != blocks.end(); ++iter) {

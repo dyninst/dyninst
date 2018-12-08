@@ -60,9 +60,9 @@ public:
 
     typedef boost::shared_ptr<DwarfFrameParser> Ptr;
 
-    static Ptr create(Dwarf * dbg, Architecture arch);
+    static Ptr create(Dwarf * dbg, Elf * eh_frame, Architecture arch);
 
-    DwarfFrameParser(Dwarf * dbg_, Architecture arch_);
+    DwarfFrameParser(Dwarf * dbg_, Elf * eh_frame, Architecture arch_);
 
     ~DwarfFrameParser();
 
@@ -129,14 +129,17 @@ private:
     struct frameParser_key
     {
         Dwarf * dbg;
+        Elf * eh_frame;
         Architecture arch;
-        frameParser_key(Dwarf * d, Architecture a) : dbg(d), arch(a) 
+        frameParser_key(Dwarf * d, Elf * eh_frame, Architecture a) : dbg(d), eh_frame(eh_frame), arch(a)
         {
         }
 
         bool operator< (const frameParser_key& rhs) const
         {
-            return (dbg < rhs.dbg) || (dbg == rhs.dbg && arch < rhs.arch);
+            return (dbg < rhs.dbg)
+                || (dbg == rhs.dbg && eh_frame < rhs.eh_frame)
+                || (dbg == rhs.dbg && eh_frame == rhs.eh_frame && arch == rhs.arch);
         }
 
     };
@@ -149,7 +152,26 @@ private:
     
     static std::map<frameParser_key, Ptr> frameParsers;
 
-    Dwarf * dbg;
+    // .debug_frame and .eh_frame are sections that contain frame info.
+    // They might or might not be present, but we need at least one to create a
+    // DwarfFrameParser object, otherwise it wouldn't make sense to create a
+    // frame parser to no frame data.
+    // .debug_frame will be accessed by a Dwarf handle returned by libdw, while
+    // .eh_frame will be accessed by an Elf reference.
+    // Why? Although they can be in the same binary, for the case of separate debug
+    // info, in which we have two binaries, the .eh_frame remains in the stripped binary,
+    // while the .debug_frame (if generated) will be present in the debug info binary.
+    //
+    // Therefore:
+    // dbg			: to access .debug_frame, can be NULL.
+    // dbg_eh_frame	: to access .eh_frame, can be NULL.
+    //
+    // Note: not both can be NULL.
+    // Note: dbg will be a handle to dbg_eh_frame for when we don't have separate
+    //       debug info, which is a redundancy, but necessary.
+
+    Dwarf 	* dbg;
+    Elf 	* dbg_eh_frame;
     
     Architecture arch;
 

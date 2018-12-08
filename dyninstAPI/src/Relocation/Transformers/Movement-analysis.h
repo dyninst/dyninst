@@ -107,11 +107,11 @@ class PCSensitiveTransformer : public Transformer {
  private:
   bool analysisRequired(RelocBlock *);
 
-  bool isPCSensitive(InstructionAPI::Instruction::Ptr insn,
-                     Address addr,
-                     const func_instance *func,
-                     const block_instance *block,
-                     AssignList &sensitiveAssignment);
+  bool isPCSensitive(InstructionAPI::Instruction insn,
+					 Address addr,
+					 const func_instance *func,
+					 const block_instance *block,
+					 AssignList &sensitiveAssignment);
   Graph::Ptr forwardSlice(Assignment::Ptr ptr,
 			  parse_block *block,
 			  parse_func *func);
@@ -119,23 +119,23 @@ class PCSensitiveTransformer : public Transformer {
 			    bool &intSens,
 			    bool &extSens);
 
-  bool insnIsThunkCall(InstructionAPI::Instruction::Ptr insn,
-		       Address addr,
-		       Absloc &destination);
+  bool insnIsThunkCall(InstructionAPI::Instruction insn,
+					   Address addr,
+					   Absloc &destination);
   void handleThunkCall(RelocBlock *b_iter,
                        RelocGraph *cfg,
 		       WidgetList::iterator &iter,
 		       Absloc &destination);
   void recordIntSensitive(Address addr);
   void emulateInsn(RelocBlock *b_iter,
-                   RelocGraph *cfg,
-		   WidgetList::iterator &iter,
-		   InstructionAPI::Instruction::Ptr insn,
-		   Address addr);
+				   RelocGraph *cfg,
+				   WidgetList::iterator &iter,
+				   InstructionAPI::Instruction insn,
+				   Address addr);
   
   bool exceptionSensitive(Address addr, const block_instance *bbl);
 
-  bool isSyscall(InstructionAPI::Instruction::Ptr insn, Address addr);
+  bool isSyscall(InstructionAPI::Instruction insn, Address addr);
 
   static void cacheAnalysis(const block_instance *bbl, Address addr, bool intSens, bool extSens);
   static bool queryCache(const block_instance *bbl, Address addr, bool &intSens, bool &extSens);

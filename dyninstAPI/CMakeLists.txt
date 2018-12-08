@@ -135,6 +135,7 @@ set (SRC_LIST ${SRC_LIST}
 elseif (PLATFORM MATCHES aarch64)
 set (SRC_LIST ${SRC_LIST}
      src/inst-aarch64.C 
+     src/emit-aarch64.C
      src/codegen-aarch64.C 
      src/parse-aarch64.C 
      src/RegisterConversion-aarch64.C 
@@ -194,7 +195,7 @@ endif ()
 
 dyninst_library(dyninstAPI common instructionAPI stackwalk pcontrol patchAPI parseAPI symtabAPI)
 
-target_link_private_libraries(dyninstAPI ${Boost_LIBRARIES})
+target_link_private_libraries(dyninstAPI ${Boost_LIBRARIES} ${TBB_LIBRARIES})
 if (UNIX)
   # Boost auto-links on Windows; don't double-link
   target_link_private_libraries (dyninstAPI pthread)

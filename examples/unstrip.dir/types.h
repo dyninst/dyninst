@@ -29,44 +29,71 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "util.h"
-#include "callback.h"
-#include "fingerprint.h"
 
-#include "dyntypes.h"
-#include "InstructionAdapter.h"
-#include "CodeObject.h"
+#ifndef __TYPES_H__
+#define __TYPES_H__
+
+#include <stdio.h>
+#include <string>
+#include <vector>
+
 #include "CFG.h"
-#include "ParseCallback.h"
-
 #include "Instruction.h"
+
+//#include "util.h"
 
 using namespace std;
 using namespace Dyninst;
 
-InstrCallback::InstrCallback(Address _s, Fingerprint * _f) : 
-    syscallTrampStore(_s),
-    fingerprint(_f) {}
+enum Mode {
+    _learn = 1,
+    _identify,
+};
 
-/* 
- * Record system calls found during binary parsing.
- */
-void InstrCallback::instruction_cb(ParseAPI::Function * f,
-        ParseAPI::Block* b,
-        Address addr,
-        insn_details* insnDetails)
-{
-    InstructionAPI::Instruction::Ptr insn = insnDetails->insn->getInstruction();
+enum ParamType {
+    _i, // int
+    _s, // string
+    _p, // int *
+    _o, // other pointers
+    _u, // unknown -- won't track
+};
 
-    /* If we haven't found the syscallTrampStore yet, 
-     * check if this is an indirect call through it */
-    if (!syscallTrampStore) {
-        isCallToSyscallTrampStore(insn, syscallTrampStore);
-    }
+ParamType getParamType(char * type);
 
-    if (isSyscall(insn, syscallTrampStore)) {
-        /* Store trapLoc */
-        trapLoc tloc(addr, insn, NULL);
-        fingerprint->addTrapInfo(f, tloc);
-    }
-}
+class trapLoc {
+    private:
+        Address a;
+        InstructionAPI::Instruction i;
+        ParseAPI::Block * b;
+    public:
+        trapLoc(Address _a, InstructionAPI::Instruction _i, ParseAPI::Block * _b) :
+            a(_a), i(_i), b(_b) {}
+
+        Address addr() { return a; }
+        InstructionAPI::Instruction instr() { return i; }
+        ParseAPI::Block * block() { return b; }
+
+        bool operator<(const trapLoc & t2) const {
+            return a < t2.a;
+        }
+};
+
+class Matches {
+    private:
+        set<string> m;
+    public:
+        typedef set<string>::iterator iterator;
+
+        void insert(string str) { m.insert(str); }
+        int size() { return m.size(); }
+
+        iterator begin() { return m.begin(); }
+        iterator end() { return m.end(); }
+
+        string format();
+        void clear();
+
+        string operator[](const int pos) const;
+};
+
+#endif

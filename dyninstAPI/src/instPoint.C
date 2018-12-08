@@ -96,17 +96,17 @@ instPoint *instPoint::edge(func_instance *f, edge_instance *e) {
 instPoint *instPoint::preInsn(func_instance *f,
                               block_instance *b,
                               Address a,
-                              InstructionAPI::Instruction::Ptr ptr,
+                              Instruction insn,
                               bool trusted) {
-  return f->preInsnPoint(b, a, ptr, trusted, true);
+  return f->preInsnPoint(b, a, insn, trusted, true);
 }
 
 instPoint *instPoint::postInsn(func_instance *f,
                                block_instance *b,
                                Address a,
-                               InstructionAPI::Instruction::Ptr ptr,
+                               Instruction insn,
                                bool trusted) {
-  return f->postInsnPoint(b, a, ptr, trusted, true);
+  return f->postInsnPoint(b, a, insn, trusted, true);
 }
 
 instPoint::instPoint(Type t, 
@@ -132,11 +132,11 @@ instPoint::instPoint(Type          t,
   baseTramp_(NULL) {
 };
 
-instPoint::instPoint(Type          t,
-                     PatchMgrPtr   mgr,
+instPoint::instPoint(Type t,
+                     PatchMgrPtr mgr,
                      block_instance *b,
                      Address a,
-                     InstructionAPI::Instruction::Ptr i,
+                     Instruction i,
                      func_instance *f) :
   Point(t, mgr, b, a, i, f),
   baseTramp_(NULL) {
@@ -192,7 +192,7 @@ instPoint *instPoint::fork(instPoint *parent, AddressSpace *child) {
   func_instance *f = parent->func() ? child->findFunction(parent->func()->ifunc()) : NULL;
   block_instance *b = parent->block() ? child->findBlock(parent->block()->llb()) : NULL;
   edge_instance *e = parent->edge() ? child->findEdge(parent->edge()->edge()) : NULL;
-   Instruction::Ptr i = parent->insn_;
+   Instruction i = parent->insn_;
    Address a = parent->addr_;
 
    instPoint *point = NULL;
@@ -289,7 +289,7 @@ edge_instance *instPoint::edge() const {
 }
 
 bool instPoint::checkInsn(block_instance *b,
-                          Instruction::Ptr &insn,
+                          Instruction &insn,
                           Address a) {
    block_instance::Insns insns;
    b->getInsns(insns);
@@ -358,7 +358,7 @@ Address instPoint::addr_compat() const {
          return addr_;
       case PostInsn:
          // This gets weird for things like jumps...
-         return addr_ + insn_->size();
+         return addr_ + insn_.size();
       case PreCall:
 	return block()->last();
       case PostCall: {
@@ -424,8 +424,8 @@ std::string instPoint::format() const {
    if (addr_) {
       ret << ", Addr(" << hex << addr_ << dec << ")";
    }
-   if (insn_) {
-      ret << ", Insn(" << insn_->format() << ")";
+   if (insn_.isValid()) {
+      ret << ", Insn(" << insn_.format() << ")";
    }
    ret << ")";
    return ret.str();

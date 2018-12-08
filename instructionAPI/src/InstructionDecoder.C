@@ -58,15 +58,13 @@ namespace Dyninst
     {
     }
     
-    INSTRUCTION_EXPORT Instruction::Ptr InstructionDecoder::decode()
+    INSTRUCTION_EXPORT Instruction InstructionDecoder::decode()
     {
-        if(m_buf.start >= m_buf.end) return Instruction::Ptr();
-      
-      Instruction::Ptr ret = m_Impl->decode(m_buf);
-      return ret;
+      if(m_buf.start >= m_buf.end) return Instruction();
+      return m_Impl->decode(m_buf);
     }
     
-    INSTRUCTION_EXPORT Instruction::Ptr InstructionDecoder::decode(const unsigned char* b)
+    INSTRUCTION_EXPORT Instruction InstructionDecoder::decode(const unsigned char* b)
     {
       buffer tmp(b, b+maxInstructionLength);
       

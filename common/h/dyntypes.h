@@ -121,6 +121,12 @@
    #error Unknown compiler
 #endif
 
+// TODO: when should we use thread_local?
+#if defined(_MSC_VER)
+  #define dyn_tls __declspec(thread)
+#else
+  #define dyn_tls __thread
+#endif
 
 namespace Dyninst
 {

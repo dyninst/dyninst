@@ -86,7 +86,6 @@ namespace Dyninst{
 
 			typedef StatementLess LineNoTupleLess;
 			bool operator==(const Statement &cmp) const;
-//    bool operator==(const char* file) const {return strcmp(file, first) == 0; }
 			bool operator==(Offset addr) const {
 				return AddressRange::contains(addr);
 			}
@@ -100,7 +99,7 @@ namespace Dyninst{
 
 			Offset startAddr() const { return first;}
 			Offset endAddr() const {return second;}
-			std::string getFile() const;
+			const std::string& getFile() const;
 			unsigned int getFileIndex() const { return file_index_; }
 			unsigned int getLine()const {return line_;}
 			unsigned int getColumn() const { return column_; }
@@ -110,8 +109,6 @@ namespace Dyninst{
 
 			typedef Statement* Ptr;
 			typedef const Statement* ConstPtr;
-//    typedef boost::shared_ptr<Statement> Ptr;
-//    typedef boost::shared_ptr<const Statement> ConstPtr;
 
 		};
 		template <typename OS>
@@ -236,6 +233,7 @@ namespace Dyninst{
 			void finalizeRanges();
 
 		private:
+            bool objectLevelLineInfo;
 			Dyninst::SymtabAPI::LineInformation* lineInfo_;
 			typeCollection* typeInfo_;
 			std::vector<Module::DebugInfoT> info_;

@@ -44,6 +44,8 @@
 
 #include "dyninstversion.h"
 
+#include "pfq-rwlock.h"
+
 #include "boost/shared_ptr.hpp"
 #include "boost/multi_index_container.hpp"
 #include <boost/multi_index/member.hpp>
@@ -368,6 +370,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    /***** Error Handling *****/
    static SymtabError getLastSymtabError();
+   static void setSymtabError(SymtabError new_err);
    static std::string printError(SymtabError serr);
 
    ~Symtab();
@@ -465,7 +468,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    static boost::shared_ptr<typeCollection> setupStdTypes();
    static boost::shared_ptr<builtInTypeCollection> setupBuiltinTypes();
-
+   pfq_rwlock_t symbols_rwlock;
+   // boost::mutex symbols_mutex;
 
    std::string member_name_;
    Offset member_offset_;
@@ -604,6 +608,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    Object *getObject();
    const Object *getObject() const;
    ModRangeLookup* mod_lookup();
+   void dumpModRanges();
+   void dumpFuncRanges();
 
  private:
    Object *obj_private;
@@ -725,9 +731,12 @@ class SYMTAB_EXPORT relocationEntry : public Serializable, public AnnotatableSpa
       enum {pltrel = 1, dynrel = 2};
       bool operator==(const relocationEntry &) const;
 
+      enum category { relative, jump_slot, absolute };
+
       // Architecture-specific functions
       static unsigned long getGlobalRelType(unsigned addressWidth, Symbol *sym = NULL);
       static const char *relType2Str(unsigned long r, unsigned addressWidth = sizeof(Address));
+      category getCategory( unsigned addressWidth );
 
    private:
       Offset target_addr_;	// target address of call instruction 

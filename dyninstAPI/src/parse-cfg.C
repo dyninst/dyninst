@@ -102,9 +102,11 @@ parse_func::parse_func(
   unresolvedCF_(UNSET_CF),
   init_retstatus_(UNSET),
   o7_live(false),
-  ppc_saves_return_addr_(false),
+  saves_return_addr_(false),
   livenessCalculated_(false),
-  isPLTFunction_(false)
+  isPLTFunction_(false),
+  containsPowerPreamble_(false),
+  noPowerPreambleFunc_(NULL)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     parse_func_count++;
@@ -210,7 +212,7 @@ parse_block::parse_block(
         parse_func * func, 
         CodeRegion * reg,
         Address firstOffset) :
-    Block(func->obj(),reg,firstOffset),
+    Block(func->obj(),reg,firstOffset, func),
     needsRelocation_(false),
     blockNumber_(0),
     unresolvedCF_(false),
@@ -424,10 +426,10 @@ void parse_block::getInsns(Insns &insns, Address base) {
    InstructionDecoder d(ptr, getSize(),obj()->cs()->getArch());
 
    while (off < endOffset()) {
-      Instruction::Ptr insn = d.decode();
+      Instruction insn = d.decode();
 
       insns[off + base] = insn;
-      off += insn->size();
+      off += insn.size();
    }
 }
 
@@ -536,12 +538,12 @@ std::pair<bool, Address> parse_block::callTarget() {
    const unsigned char *ptr = (const unsigned char *)getPtrToInstruction(off);
    if (ptr == NULL) return std::make_pair(false, 0);
    InstructionDecoder d(ptr, endOffset() - lastInsnOffset(), obj()->cs()->getArch());
-   Instruction::Ptr insn = d.decode();
+   Instruction insn = d.decode();
 
    // Bind PC to that insn
    // We should build a free function to do this...
    
-   Expression::Ptr cft = insn->getControlFlowTarget();
+   Expression::Ptr cft = insn.getControlFlowTarget();
    if (cft) {
       Expression::Ptr pc(new RegisterAST(MachRegister::getPC(obj()->cs()->getArch())));
       cft->bind(pc.get(), Result(u64, lastInsnAddr()));

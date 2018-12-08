@@ -71,7 +71,7 @@ int main(int argc, char * argv[])
          
          auto it = b->targets().begin();
          for( ; it != b->targets().end(); ++it) {
-            
+            if(!*it) continue;
             std::string s = "";
             if((*it)->type() == CALL)
                s = " [color=blue]";

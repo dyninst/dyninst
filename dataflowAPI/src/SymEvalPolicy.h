@@ -53,7 +53,7 @@
 #define Sym_Eval_Policy_h
 
 #include "DynAST.h"
-#include "Operation.h"
+#include "Operation_impl.h"
 #include "../h/Absloc.h"
 
 #include <iostream>
@@ -131,7 +131,7 @@ struct Handle {
      SymEvalPolicy(Result_t &r,
                    Address addr,
                    Dyninst::Architecture a,
-                   Dyninst::InstructionAPI::Instruction::Ptr insn);
+                   InstructionAPI::Instruction insn);
 
    ~SymEvalPolicy() {};
 
@@ -590,7 +590,7 @@ struct Handle {
    bool failedTranslate_;
 
    // The Dyninst version of the instruction we're translating
-   Dyninst::InstructionAPI::Instruction::Ptr insn_;
+   Dyninst::InstructionAPI::Instruction insn_;
     
 
    // The above is an Assignment::Ptr -> AST::Ptr map
@@ -651,7 +651,7 @@ struct Handle {
      SymEvalPolicy_64(Result_t &r,
                       Address addr,
 		      Dyninst::Architecture a,
-		      Dyninst::InstructionAPI::Instruction::Ptr insn);
+		      Dyninst::InstructionAPI::Instruction insn);
 
    ~SymEvalPolicy_64() {};
 
@@ -1110,7 +1110,7 @@ struct Handle {
    bool failedTranslate_;
 
    // The Dyninst version of the instruction we're translating
-   Dyninst::InstructionAPI::Instruction::Ptr insn_;
+   Dyninst::InstructionAPI::Instruction insn_;
     
 
    // The above is an Assignment::Ptr -> AST::Ptr map

@@ -34,6 +34,7 @@
 #include "Expression.h"
 #include "Register.h"
 #include "Result.h"
+#include "ArchSpecificFormatters.h"
 #include <sstream>
 
 #if defined(_MSC_VER)
@@ -346,32 +347,33 @@ namespace Dyninst
 
             virtual std::string format(formatStyle how) const
             {
-                std::stringstream retVal;
+                std::string retVal;
                 if(how == memoryAccessStyle)
                 {
-                    retVal << m_arg2->format() << "(" << m_arg1->format() << ")";
+                    retVal = m_arg2->format() + "(" + m_arg1->format() + ")";
                 }
                 else
                 {
-                    retVal << m_arg1->format() << " " << m_funcPtr->format() << " " << m_arg2->format();
+                    retVal = m_arg1->format() + " " + m_funcPtr->format() + " " + m_arg2->format();
                 }
 
-                return retVal.str();
+                return retVal;
             }
 			
-			virtual std::string format(ArchSpecificFormatter *formatter, formatStyle how) const
+			virtual std::string format(Architecture arch, formatStyle how) const
 			{
-                std::stringstream retVal;
+                std::string retVal;
                 if(how == memoryAccessStyle)
                 {
-                    retVal << m_arg2->format(formatter) << "(" << m_arg1->format(formatter) << ")";
+                    retVal = m_arg2->format(arch) + "(" + m_arg1->format(arch) + ")";
                 }
                 else
                 {
-                    return formatter->formatBinaryFunc(m_arg1->format(formatter), m_funcPtr->format(), m_arg2->format(formatter));
+                    return ArchSpecificFormatter::getFormatter(arch).formatBinaryFunc(
+							m_arg1->format(arch), m_funcPtr->format(), m_arg2->format(arch));
                 }
 
-                return retVal.str();
+                return retVal;
 			}
    		    
    		    virtual bool bind(Expression* expr, const Result& value);

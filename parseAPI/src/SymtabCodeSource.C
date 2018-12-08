@@ -42,10 +42,32 @@
 #include "CodeSource.h"
 #include "debug_parse.h"
 #include "util.h"
+#include "race-detector-annotations.h"
+
+#include "InstructionDecoder.h"
+#include "Instruction.h"
+#ifdef ENABLE_RACE_DETECTION
+#include <cilk/cilk.h>
+#include <cilk/cilk_api.h>
+#endif
 
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
+
+typedef tbb::concurrent_hash_map<Address, bool> SeenMap;
+
+static const vector<std::string> skipped_symbols = {
+          "_non_rtti_object::`vftable'",
+          "bad_cast::`vftable'",
+          "exception::`vftable'",
+          "bad_typeid::`vftable'" ,
+          "sys_errlist",
+          "std::_non_rtti_object::`vftable'",
+          "std::__non_rtti_object::`vftable'",
+          "std::bad_cast::`vftable'",
+          "std::exception::`vftable'",
+          "std::bad_typeid::`vftable'" };
 
 
 /** SymtabCodeRegion **/
@@ -63,6 +85,20 @@ SymtabCodeRegion::SymtabCodeRegion(
 {
     vector<SymtabAPI::Symbol*> symbols;
     st->getAllSymbols(symbols);
+    for (auto sit = symbols.begin(); sit != symbols.end(); ++sit)
+        if ( (*sit)->getRegion() == reg && (*sit)->getType() != SymtabAPI::Symbol::ST_FUNCTION && (*sit)->getType() != SymtabAPI::Symbol::ST_INDIRECT) {
+	    knownData[(*sit)->getOffset()] = (*sit)->getOffset() + (*sit)->getSize();
+	}
+}
+
+
+SymtabCodeRegion::SymtabCodeRegion(
+        SymtabAPI::Symtab * st,
+        SymtabAPI::Region * reg,
+	vector<SymtabAPI::Symbol*> &symbols) :
+    _symtab(st),
+    _region(reg)
+{
     for (auto sit = symbols.begin(); sit != symbols.end(); ++sit)
         if ( (*sit)->getRegion() == reg && (*sit)->getType() != SymtabAPI::Symbol::ST_FUNCTION && (*sit)->getType() != SymtabAPI::Symbol::ST_INDIRECT) {
 	    knownData[(*sit)->getOffset()] = (*sit)->getOffset() + (*sit)->getSize();
@@ -116,13 +152,8 @@ SymtabCodeRegion::getPtrToInstruction(const Address addr) const
 {
     if(!contains(addr)) return NULL;
 
-    if(isCode(addr))
-        return (void*)((Address)_region->getPtrToRawData() + 
-                       addr - _region->getMemOffset());
-    else if(isData(addr))
-        return getPtrToData(addr);
-    else
-        return NULL;
+    return (void*)((Address)_region->getPtrToRawData() +
+                   addr - _region->getMemOffset());
 }
 
 void *
@@ -130,11 +161,8 @@ SymtabCodeRegion::getPtrToData(const Address addr) const
 {
     if(!contains(addr)) return NULL;
 
-    if(isData(addr))
-        return (void*)((Address)_region->getPtrToRawData() +
-                        addr - _region->getMemOffset());
-    else
-        return NULL;
+    return (void*)((Address)_region->getPtrToRawData() +
+                    addr - _region->getMemOffset());
 }
 
 unsigned int
@@ -387,10 +415,13 @@ SymtabCodeSource::init(hint_filt * filt , bool allLoadedRegions)
 void 
 SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
 {
-    dyn_hash_map<void*,CodeRegion*> rmap;
+    RegionMap rmap;
     vector<SymtabAPI::Region *> regs;
     vector<SymtabAPI::Region *> dregs;
-    vector<SymtabAPI::Region *>::iterator rit;
+    vector<SymtabAPI::Symbol*> symbols;
+    mcs_lock_t reg_lock;
+
+    mcs_init(reg_lock);
 
     if ( ! allLoadedRegions ) {
         _symtab->getCodeRegions(regs);
@@ -403,12 +434,22 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
 
     parsing_printf("[%s:%d] processing %d symtab regions in %s\n",
         FILE__,__LINE__,regs.size(),_symtab->name().c_str());
-    for(rit = regs.begin(); rit != regs.end(); ++rit) {
-        parsing_printf("   %lx %s",(*rit)->getMemOffset(),
-            (*rit)->getRegionName().c_str());
+
+    _symtab->getAllSymbols(symbols);
+
+#ifdef ENABLE_RACE_DETECTION
+    cilk_for
+#else
+#pragma omp parallel for shared(regs,dregs,symbols,reg_lock) schedule(auto)
+    for
+#endif
+        (unsigned int i = 0; i < regs.size(); i++) {
+        SymtabAPI::Region *r = regs[i];
+        parsing_printf("   %lx %s",r->getMemOffset(),
+            r->getRegionName().c_str());
     
         // XXX only TEXT, DATA, TEXTDATA?
-        SymtabAPI::Region::RegionType rt = (*rit)->getRegionType();
+        SymtabAPI::Region::RegionType rt = r->getRegionType();
         if(false == allLoadedRegions &&
            rt != SymtabAPI::Region::RT_TEXT &&
            rt != SymtabAPI::Region::RT_DATA &&
@@ -419,20 +460,31 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
         }
 
 	//#if defined(os_vxworks)
-        if(0 == (*rit)->getMemSize()) {
+        if(0 == r->getMemSize()) {
             parsing_printf(" [skipped null region]\n");
             continue;
         }
 	//#endif
         parsing_printf("\n");
 
-        if(HASHDEF(rmap,*rit)) {
-            parsing_printf("[%s:%d] duplicate region at address %lx\n",
-                FILE__,__LINE__,(*rit)->getMemOffset());
+        CodeRegion * cr = new SymtabCodeRegion(_symtab,r, symbols);
+        bool already_present = false;
+
+        race_detector_fake_lock_acquire(race_detector_fake_lock(rmap));
+        {
+          RegionMap::accessor a;
+          already_present = rmap.insert(a, std::make_pair(r, cr));
         }
-        CodeRegion * cr = new SymtabCodeRegion(_symtab,*rit);
-        rmap[*rit] = cr;
+        race_detector_fake_lock_release(race_detector_fake_lock(rmap));
+
+        if (already_present) {
+            parsing_printf("[%s:%d] duplicate region at address %lx\n",
+                FILE__,__LINE__,r->getMemOffset());
+        }
+        mcs_node_t me;
+        mcs_lock(reg_lock, me);
         addRegion(cr);
+        mcs_unlock(reg_lock, me);
     }
 
     // Hints are initialized at the SCS level rather than the SCR level
@@ -442,12 +494,10 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
 }
 
 void
-SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
-    hint_filt * filt)
+SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
 {
     vector<SymtabAPI::Function *> fsyms;
-    vector<SymtabAPI::Function *>::iterator fsit;
-    dyn_hash_map<Address,bool> seen;
+    SeenMap seen;
     int dupes = 0;
 
     if(!_symtab->getAllFunctions(fsyms))
@@ -455,12 +505,14 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
 
     parsing_printf("[%s:%d] processing %d symtab hints\n",FILE__,__LINE__,
         fsyms.size());
-    for(fsit = fsyms.begin(); fsit != fsyms.end(); ++fsit) {
-        if(filt && (*filt)(*fsit))
-        {
-            parsing_printf("    == filtered hint %s [%lx] ==\n",
-                FILE__,__LINE__,(*fsit)->getOffset(),
-                (*fsit)->getFirstSymbol()->getPrettyName().c_str());
+
+    for (unsigned int i = 0; i < fsyms.size(); i++) {
+        SymtabAPI::Function *f = fsyms[i];
+        string fname_s = f->getFirstSymbol()->getPrettyName();
+        const char *fname = fname_s.c_str();
+        if(filt && (*filt)(f)) {
+            parsing_printf("[%s:%d}  == filtered hint %s [%lx] ==\n",
+                FILE__,__LINE__,fname, f->getOffset());
             continue;
         }
 
@@ -468,64 +520,63 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
         // right place to do this? Should these symbols not be filtered by the
         // loop above?
         /*Achin added code starts 12/15/2014*/
-        static const vector<std::string> skipped_symbols = {
-          "_non_rtti_object::`vftable'",
-          "bad_cast::`vftable'",
-          "exception::`vftable'",
-          "bad_typeid::`vftable'" ,
-          "sys_errlist",
-          "std::_non_rtti_object::`vftable'",
-          "std::__non_rtti_object::`vftable'",
-          "std::bad_cast::`vftable'",
-          "std::exception::`vftable'",
-          "std::bad_typeid::`vftable'" };
         if (std::find(skipped_symbols.begin(), skipped_symbols.end(),
-          (*fsit)->getFirstSymbol()->getPrettyName()) != skipped_symbols.end()) {
+          fsyms[i]->getFirstSymbol()->getPrettyName()) != skipped_symbols.end()) {
           continue;
         }
         /*Achin added code ends*/
 
-        if(HASHDEF(seen,(*fsit)->getOffset())) {
+        bool present = false;
+        {
+          SeenMap::accessor a;
+          Offset offset = f->getOffset();
+          present = seen.find(a, offset);
+          if (!present) seen.insert(a, std::make_pair(offset, true));
+        }
+
+        if (present) {
             // XXX it looks as though symtabapi now does de-duplication
             //     of function symbols automatically, so this code should
             //     never be reached, except in the case of overlapping
             //     regions
            parsing_printf("[%s:%d] duplicate function at address %lx: %s\n",
-                FILE__,__LINE__,
-                (*fsit)->getOffset(),
-                (*fsit)->getFirstSymbol()->getPrettyName().c_str());
+                FILE__,__LINE__, f->getOffset(), fname);
             ++dupes;
         }
-        seen[(*fsit)->getOffset()] = true;
 
-        SymtabAPI::Region * sr = (*fsit)->getRegion();
-        if(!sr) {
+        SymtabAPI::Region * sr = f->getRegion();
+        if (!sr) {
             parsing_printf("[%s:%d] missing Region in function at %lx\n",
-                FILE__,__LINE__,(*fsit)->getOffset());
+                FILE__,__LINE__,f->getOffset());
             continue;
         }
-        if(!HASHDEF(rmap,sr)) {
-            parsing_printf("[%s:%d] unrecognized Region %lx in function %lx\n",
-                FILE__,__LINE__,sr->getMemOffset(),(*fsit)->getOffset());
-            continue;
-        }
-        CodeRegion * cr = rmap[sr];
-        if(!cr->isCode((*fsit)->getOffset()))
+
+        CodeRegion * cr = NULL;
+
         {
+          RegionMap::accessor a;
+          present = rmap.find(a, sr);
+          if (present) cr = a->second;
+        }
+
+        if (!present) {
+            parsing_printf("[%s:%d] unrecognized Region %lx in function %lx\n",
+                FILE__,__LINE__,sr->getMemOffset(),f->getOffset());
+            continue;
+        }
+
+        if(!cr->isCode(f->getOffset())) {
             parsing_printf("\t<%lx> skipped non-code, region [%lx,%lx)\n",
-                (*fsit)->getOffset(),
-                sr->getMemOffset(),
-                sr->getMemOffset()+sr->getDiskSize());
+                           f->getOffset(),
+                           sr->getMemOffset(),
+                           sr->getMemOffset()+sr->getDiskSize());
         } else {
-            _hints.push_back( Hint((*fsit)->getOffset(),
-	                       (*fsit)->getSize(),
-                               cr,
-                               (*fsit)->getFirstSymbol()->getPrettyName()) );
-            parsing_printf("\t<%lx,%s,[%lx,%lx)>\n",
-                (*fsit)->getOffset(),
-                (*fsit)->getFirstSymbol()->getPrettyName().c_str(),
-                cr->offset(),
-                cr->offset()+cr->length());
+          _hints.push_back(Hint(f->getOffset(), f->getSize(), cr, fname_s));
+          parsing_printf("\t<%lx,%s,[%lx,%lx)>\n",
+                         f->getOffset(),
+                         fname,
+                         cr->offset(),
+                         cr->offset()+cr->length());
         }
     }
     sort(_hints.begin(), _hints.end());
@@ -537,11 +588,44 @@ SymtabCodeSource::init_linkage()
     vector<SymtabAPI::relocationEntry> fbt;
     vector<SymtabAPI::relocationEntry>::iterator fbtit;
 
-    if(!_symtab->getFuncBindingTable(fbt))
+    if(!_symtab->getFuncBindingTable(fbt)){
+        fprintf( stderr, "Cannot get function binding table. %s\n", _symtab->file().c_str());
         return;
+    }
 
-    for(fbtit = fbt.begin(); fbtit != fbt.end(); ++fbtit)
+    for(fbtit = fbt.begin(); fbtit != fbt.end(); ++fbtit){
+        //fprintf( stderr, "%lx %s\n", (*fbtit).target_addr(), (*fbtit).name().c_str());
         _linkage[(*fbtit).target_addr()] = (*fbtit).name(); 
+    }
+    if (getArch() != Arch_x86_64) return;
+    SymtabAPI::Region * plt_got = NULL;
+    SymtabAPI::Region * rela_dyn = NULL;
+    if (!_symtab->findRegion(plt_got, ".plt.got")) return;
+    if (!_symtab->findRegion(rela_dyn, ".rela.dyn")) return;
+    if (plt_got->getMemSize() <= 16) return ;
+
+    map<Address, string> rel_addr_to_name;
+    std::vector<SymtabAPI::relocationEntry> &relocs = rela_dyn->getRelocations();
+    for (auto re_it = relocs.begin(); re_it != relocs.end(); ++re_it) {
+        SymtabAPI::relocationEntry &r = *re_it;
+        rel_addr_to_name[r.rel_addr()] = r.name();
+    }
+    const unsigned char* buffer = (const unsigned char*)plt_got->getPtrToRawData(); 
+    InstructionAPI::InstructionDecoder dec(buffer,plt_got->getMemSize(), getArch());
+    int decoded = 0;
+    while (decoded < plt_got->getMemSize()) {
+        InstructionAPI::Instruction i = dec.decode();
+        if (buffer[decoded] == 0xff && buffer[decoded+1] == 0x25) {
+            uint64_t off = 0;
+            for (int j = 5; j >= 2; --j)
+                off = (off << 8) + buffer[decoded + j];
+            Address rel_addr = plt_got->getMemOffset() + decoded + i.size() + off;
+            if (rel_addr_to_name.find(rel_addr) != rel_addr_to_name.end()) {
+                _linkage[plt_got->getMemOffset() + decoded] = rel_addr_to_name[rel_addr];
+            }
+        }
+        decoded += i.size();
+    }
 }
 
 void
@@ -621,8 +705,11 @@ inline CodeRegion *
 SymtabCodeSource::lookup_region(const Address addr) const
 {
     CodeRegion * ret = NULL;
-    if(_lookup_cache && _lookup_cache->contains(addr))
-        ret = _lookup_cache;
+    race_detector_fake_lock_acquire(race_detector_fake_lock(_lookup_cache));
+    CodeRegion * cache = _lookup_cache.load();
+    race_detector_fake_lock_release(race_detector_fake_lock(_lookup_cache));
+    if(cache && cache->contains(addr))
+        ret = cache;
     else {
         set<CodeRegion *> stab;
         int rcnt = findRegions(addr,stab);
@@ -630,8 +717,10 @@ SymtabCodeSource::lookup_region(const Address addr) const
         assert(rcnt <= 1 || regionsOverlap());
 
         if(rcnt) {
-            ret = *stab.begin();
-            _lookup_cache = ret;
+          ret = *stab.begin();
+          race_detector_fake_lock_acquire(race_detector_fake_lock(_lookup_cache));
+          _lookup_cache.store(ret);
+          race_detector_fake_lock_release(race_detector_fake_lock(_lookup_cache));
         } 
     }
     return ret;
@@ -642,7 +731,7 @@ SymtabCodeSource::overlapping_warn(const char * file, unsigned line) const
 {
     
     if(regionsOverlap()) {
-        fprintf(stderr,"Invocation of routine at %s:%d is ambiguous for "
+        parsing_printf("Invocation of routine at %s:%d is ambiguous for "
                        "binaries with overlapping code regions\n",
             file,line);
     }

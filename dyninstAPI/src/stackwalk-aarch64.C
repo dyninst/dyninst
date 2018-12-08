@@ -40,8 +40,34 @@ using namespace Dyninst;
 
 bool PCProcess::createStackwalkerSteppers()
 {
-	assert(0);
-  return true;
+    using namespace Stackwalker;
+
+    FrameStepper *stepper = NULL;
+    StackwalkInstrumentationHelper *swInstrHelper = NULL;
+    DynFrameHelper *dynFrameHelper = NULL;
+
+    // Create steppers, adding to walker
+
+    swInstrHelper = new StackwalkInstrumentationHelper(this);
+    stepper = new DyninstDynamicStepper(stackwalker_, swInstrHelper);
+    if (!stackwalker_->addStepper(stepper))
+    {
+        startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+        return false;
+    }
+    startup_printf("Stackwalker stepper %p is a DyninstDynamicStepper\n", stepper);
+
+    // FrameFuncHelper not used on PPC
+    dynFrameHelper = new DynFrameHelper(this);
+    stepper = new FrameFuncStepper(stackwalker_, dynFrameHelper);
+    if (!stackwalker_->addStepper(stepper))
+    {
+        startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+        return false;
+    }
+    startup_printf("Stackwalker stepper %p is a FrameFuncStepper\n", stepper);
+
+    return true;
 }
 
 bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
@@ -50,17 +76,64 @@ bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
                                                        bool * /* deref */,
                                                        bool * /*entryExit*/)
 {
-	assert(0);
-	return false;
+    AddressSpace::RelocInfo ri;
+    baseTramp *base = NULL;
+
+    if (!proc_->getRelocInfo(ra, ri))
+    {
+        return false;
+    }
+
+    base = ri.bt;
+
+    if (base)
+    {
+        // set offset from instrumentation frame pointer to saved return address
+        *stack_height = TRAMP_SPR_OFFSET(proc_->getAddressWidth()) + STK_LR;
+
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 using namespace Stackwalker;
 
 FrameFuncHelper::alloc_frame_t DynFrameHelper::allocatesFrame(Address addr)
 {
-	assert(0);
-  FrameFuncHelper::alloc_frame_t result;
-  return result;
+    FrameFuncHelper::alloc_frame_t result;
+    func_instance *func = proc_->findOneFuncByAddr(addr);
+
+    result.first = FrameFuncHelper::unknown_t; // frame type
+    result.second = FrameFuncHelper::unknown_s; // frame state
+
+    // This helper will only be used on the topmost frame
+
+    if (func)
+    {
+        if (!func->savesReturnAddr())
+        {
+            // Leaf function
+            result.second = FrameFuncHelper::unset_frame;
+        }
+        else
+        {
+            result.second = FrameFuncHelper::set_frame;
+        }
+
+        if (func->hasNoStackFrame())
+        {
+            result.first = FrameFuncHelper::no_frame;
+        }
+        else
+        {
+            result.first = FrameFuncHelper::standard_frame;
+        }
+    }
+
+    return result;
 }
 
 bool DynWandererHelper::isPrevInstrACall(Address /*addr*/, Address &/*target*/)

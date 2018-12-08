@@ -51,7 +51,6 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
 
-extern void setSymtabError(SymtabError new_err);
 
 unsigned int elfHash(const char *name) {
     unsigned int h = 0, g;
@@ -1768,7 +1767,7 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
                         std::string("Failed to link to static library code into the binary: ") +
                         emitElfStatic::printStaticLinkError(err) + std::string(" = ")
                         + errMsg;
-                setSymtabError(Emit_Error);
+		Symtab::setSymtabError(Emit_Error);
                 symtab_log_perror(linkStaticError.c_str());
                 return false;
             }
@@ -1805,6 +1804,9 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
         }
     }
 
+    // sort allSymbols in a way that every symmbol with index -1 are in order of offset 
+    std::sort(allDynSymbols.begin(), allDynSymbols.end(), sortByOffsetNewIndices());
+
     int max_index = -1;
     for (i = 0; i < allDynSymbols.size(); i++) {
         if (max_index < allDynSymbols[i]->getIndex())
@@ -1827,6 +1829,8 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
     // reorder allSymbols based on index
     std::sort(allDynSymbols.begin(), allDynSymbols.end(), sortByIndex());
 
+
+    std::sort(allSymSymbols.begin(), allSymSymbols.end(), sortByOffsetNewIndices());
     max_index = -1;
     for (i = 0; i < allSymSymbols.size(); i++) {
         if (max_index < allSymSymbols[i]->getIndex())
@@ -2295,6 +2299,7 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
     verdefSecData = (char *) malloc(verdefSecSize);
     curpos = 0;
     verdefnum = 0;
+
     for (iter = verdefEntries.begin(); iter != verdefEntries.end(); iter++) {
         Elf_Verdef *verdef = reinterpret_cast<Elf_Verdef *>(verdefSecData + curpos);
         verdef->vd_version = 1;
@@ -2310,7 +2315,7 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
         for (unsigned i = 0; i < verdauxEntries[iter->second].size(); i++) {
             Elf_Verdaux *verdaux = reinterpret_cast<Elf_Verdaux *>(
                     verdefSecData + curpos + verdef->vd_aux + i * sizeof(Elf_Verdaux));
-            verdaux->vda_name = versionNames[verdauxEntries[iter->second][0]];
+            verdaux->vda_name = versionNames[verdauxEntries[iter->second][i]];
             if ((signed) i == verdef->vd_cnt - 1)
                 verdaux->vda_next = 0;
             else
@@ -2318,6 +2323,7 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
         }
         curpos += verdef->vd_next;
     }
+    
     return;
 }
 
