@@ -756,6 +756,7 @@ func_instance *AddressSpace::findOnlyOneFunction(const string &name,
 {
    assert(mapped_objects.size());
 
+   func_instance * ret;
    pdvector<func_instance *> allFuncs;
     if (name.find("DYNINST_unlock_tramp_guard") != std::string::npos) {
         std::cerr << "HEY I AM HERE" << std::endl;
@@ -763,12 +764,26 @@ func_instance *AddressSpace::findOnlyOneFunction(const string &name,
    if (!findFuncsByAll(name.c_str(), allFuncs, lib.c_str()))
       return NULL;
 
-   if (allFuncs.size() > 1) 
-   {
-      std::cerr << "Warning: multiple matches for " << name << ", returning first" << endl;
+   if (allFuncs.size() == 0)
+      return NULL;
+
+   ret = allFuncs[0];
+   uint64_t largest = allFuncs[0]->footprint();
+   if (allFuncs.size() > 1) {
+      for (auto i : allFuncs) {
+          if (i->footprint() > largest) {
+            ret = i;
+            largest = i->footprint();
+          }
+      }
    }
 
-   return allFuncs[0];
+   // if (allFuncs.size() > 1) 
+   // {
+   //    std::cerr << "Warning: multiple matches for " << name << ", returning first" << endl;
+   // }
+
+   return ret;
 }
 
 /////////////////////////////////////////
