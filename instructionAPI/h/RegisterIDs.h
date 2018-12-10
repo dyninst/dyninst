@@ -35,7 +35,7 @@
 #include <map>
 #include "util.h"
 #include "Result.h"
-#include <dyntypes.h>
+#include "dyntypes.h"
 namespace Dyninst
 {
   namespace InstructionAPI

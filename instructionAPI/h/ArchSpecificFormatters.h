@@ -34,7 +34,7 @@
 #include <map>
 #include <vector>
 #include <string>
-#include <dyn_regs.h>
+#include "dyn_regs.h"
 
 namespace Dyninst {
     namespace InstructionAPI {
