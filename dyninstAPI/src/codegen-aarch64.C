@@ -879,35 +879,20 @@ bool insnCodeGen::modifyData(Address target,
 
             generate(gen, newInsn);
         }
-        //Else, generate move instructions to move the value to the same register
+        //If it's larger than |1MB|, move target to register and generate LDR
         else {
-            //Get scratch register for loading the target address in
-            Register immReg = gen.rs()->getScratchRegister(gen, true);
-            if(immReg == REG_NULL)
-                assert(!"No scratch register available to load the target address into for a PC-relative data access using LDR/LDRSW!");
-            //Generate sequence of instructions for loading the target address in scratch register
-            assert(!"DDDD");
-            loadImmIntoReg<Address>(gen, immReg, target);
+            // Get scratch register
+            Register scratch = gen.rs()->getScratchRegister(gen, true);
+            if(scratch == REG_NULL)
+                assert(!"No scratch register available to load the target \
+                        address into for a PC-relative data access using LDR/LDRSW!");
 
-            Register rt = raw & 0x1F;
+            // Load the target address into scratch register
+            loadImmIntoReg<Address>(gen, scratch, target);
 
-            //Generate instruction for reading value at target address using unsigned-offset variant of the immediate variant of LDR/LDRSW
-            instruction newInsn;
-            newInsn.clear();
-
-            if(((raw >> 31) & 0x1) == 0) {
-                INSN_SET(newInsn, 30, 30, ((raw >> 30) & 0x1));
-                INSN_SET(newInsn, 22, 29, LDRImmUIOp);
-            } else {
-                INSN_SET(newInsn, 22, 29, LDRSWImmUIOp);
-            }
-
-            INSN_SET(newInsn, 31, 31, 0x1);
-            INSN_SET(newInsn, 10, 21, 0);
-            INSN_SET(newInsn, 5, 9, immReg);
-            INSN_SET(newInsn, 0, 4, rt);
-
-            generate(gen, newInsn);
+            // Generate LDR(immediate) to load into r the the content of [scratch]
+            Register r = raw & 0x1F;
+            generateMemAccess32or64(gen, Load, r, scratch, 0, true, Offset);
         }
     } else {
         assert(!"Got an instruction other than ADR/ADRP/LDR(literal)/LDRSW(literal) in PC-relative data access!");
