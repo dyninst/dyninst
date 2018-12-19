@@ -390,6 +390,8 @@ class parse_func : public ParseAPI::Function
    void setContainsPowerPreamble(bool c) { containsPowerPreamble_ = c; }
    parse_func* getNoPowerPreambleFunc() { return noPowerPreambleFunc_; }
    void setNoPowerPreambleFunc(parse_func* f) { noPowerPreambleFunc_ = f; }
+   Address getPowerTOCBaseAddress() { return baseTOC_; }
+   void setPowerTOCBaseAddress(Address addr) { baseTOC_ = addr; }
 
 
  private:
@@ -438,6 +440,7 @@ class parse_func : public ParseAPI::Function
    bool containsPowerPreamble_;
    // If the function contains the power preamble, this field points the corresponding function that does not contain the preamble
    parse_func* noPowerPreambleFunc_;
+   Address baseTOC_;
 };
 
 typedef parse_func *ifuncPtr;

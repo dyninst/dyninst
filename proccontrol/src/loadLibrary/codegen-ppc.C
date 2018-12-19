@@ -59,7 +59,6 @@ bool Codegen::generateCallPPC64(Address addr, const std::vector<Address> &args)
       generatePPC64(*iter, reg);
       reg++;      
    }
-
    if (abimajversion_ < 2) {
       if (toc_[addr] == 0) return false;
       generatePPC64(toc_[addr], 2);

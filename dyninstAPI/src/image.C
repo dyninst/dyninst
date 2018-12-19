@@ -1326,7 +1326,7 @@ void image::analyzeIfNeeded() {
   }
 }
 
-static bool CheckForPowerPreamble(parse_block* entryBlock) {
+static bool CheckForPowerPreamble(parse_block* entryBlock, Address &tocBase) {
     ParseAPI::Block::Insns insns;
     entryBlock->getInsns(insns);
     if (insns.size() < 2)
@@ -1347,12 +1347,24 @@ static bool CheckForPowerPreamble(parse_block* entryBlock) {
     // Preamble 1: used in executables
     // lis r2, IMM       bytes: IMM1 IMM2 40 3c 
     // addi r2, r2, IMM  bytes: IMM1 IMM2 42 38
-    if (p1 == 0x3c40 && p2 == 0x3842) return true;
+    if (p1 == 0x3c40 && p2 == 0x3842) {
+        tocBase = buf1[0] & 0xffff;
+        tocBase <<= 16;
+        tocBase += (int16_t)(buf2[0] & 0xffff);
+        return true;
+    }
     
     // Preamble 2: used in libraries
     // addis r2, r12, IMM   bytes: IMM1 IMM2 4c 3c
     // addi r2, r2,IMM      bytes: IMM1 IMM2 42 38
-    if (p1 == 0x3c4c && p2 == 0x3842) return true;
+    if (p1 == 0x3c4c && p2 == 0x3842) {
+        tocBase = buf1[0] & 0xffff;
+        tocBase <<= 16;
+        tocBase += (int16_t)(buf2[0] & 0xffff);
+        // Base on the Power ABI V2, r12 should the entry address of the function     
+        tocBase += entryBlock->start();
+        return true;
+    }
     return false;
 }
 
@@ -1578,7 +1590,9 @@ image::image(fileDescriptor &desc,
         }
         for (auto fit = obj_->funcs().begin(); fit != obj_->funcs().end(); ++fit) {
             parse_func* funct = static_cast<parse_func*>(*fit);
-            if(CheckForPowerPreamble(static_cast<parse_block*>(funct->entry()))){
+            Address tocBase = 0;
+            if(CheckForPowerPreamble(static_cast<parse_block*>(funct->entry()), tocBase)){
+                funct->setPowerTOCBaseAddress(tocBase);
                 funct->setContainsPowerPreamble(true);
                 auto iter = _findPower8Overlaps.find(funct->addr() + 0x8);
                 if (iter != _findPower8Overlaps.end()) {
