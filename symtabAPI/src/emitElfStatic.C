@@ -1662,11 +1662,16 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
         switch(rel.getRelType()) {
             case R_X86_64_IRELATIVE:
             case R_X86_64_RELATIVE:
-            case R_AARCH64_RELATIVE:
+            case R_PPC64_RELATIVE:
+            case R_AARCH64_RELATIVE:             
                 rel.setAddend(rel.addend() + library_adjust);
                 break;
             case R_X86_64_JUMP_SLOT:
-            case R_AARCH64_JUMP_SLOT:
+/*            case R_PPC64_JMP_SLOT:
+ *            For PowerPC ABI V2, .plt is a nobit section.
+ *            We do not need to adjust the relocation entry.
+ */
+            case R_AARCH64_JUMP_SLOT:          
                 if( !adjustValInRegion(targetRegion,
                            rel.rel_addr() - targetRegion->getDiskOffset(),
                            addressWidth, library_adjust) )

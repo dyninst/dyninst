@@ -134,7 +134,8 @@ Address AddressSpace::getTOCoffsetInfo(func_instance *func) {
   if (getAddressWidth() == 8 && !toc64) return 0;
   if (getAddressWidth() == 4 && !toc32) return 0;
 
-  Offset baseTOC = func->obj()->parse_img()->getObject()->getTOCoffset(func->function()->addr());
+  // In PowerABI V2, each binary has a TOC
+  Address baseTOC = func->obj()->getTOCBaseAddress();
   return baseTOC + func->obj()->dataBase();
 }
 

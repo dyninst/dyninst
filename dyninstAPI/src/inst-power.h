@@ -73,12 +73,14 @@
 // value of the stack frame pointer that a function can use without
 // first establishing a new stack frame.  When our instrumentation
 // needs to use the stack, we make sure not to write into this
-// potentially used area.  AIX documentation stated 220 bytes as
-// the maximum size of this area.  64-bit PowerPC ELF ABI Supplement,
-// Version 1.9, 2004-10-23, used by Linux, stated 288 bytes for this
-// area.  We skip the larger number of bytes (288) to be safe on both
-// AIX and Linux, 32-bit and 64-bit.
-#define STACKSKIP          288
+// potentially used area.  
+//
+// OpenPOWER ELF V2 ABI says user code can use 288 bytes underneath
+// the stack pointer and system code can further use 224 more bytes
+//
+// In case we are instrumenting signal handlers, we want to skip 
+// skip more spaces, which is 288+224=512 bytes
+#define STACKSKIP          512
 
 // Both 32-bit and 64-bit PowerPC ELF ABI documents for Linux state
 // that the stack frame pointer value must always be 16-byte (quadword)
