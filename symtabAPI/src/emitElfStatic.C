@@ -1662,6 +1662,7 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
         switch(rel.getRelType()) {
             case R_X86_64_IRELATIVE:
             case R_X86_64_RELATIVE:
+            case R_PPC64_IRELATIVE:
             case R_PPC64_RELATIVE:
             case R_AARCH64_RELATIVE:             
                 rel.setAddend(rel.addend() + library_adjust);
