@@ -162,8 +162,8 @@ void EmitterAARCH64SaveRegs::saveSPR(codeGen &gen, Register scratchReg, int sprn
     INSN_SET(insn, 5, 19, sysRegCodeMap[sprnum]);
     insnCodeGen::generate(gen, insn);
 
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, scratchReg,
-            REG_SP, stkOffset, false, insnCodeGen::Pre);
+    insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, scratchReg,
+            REG_SP, stkOffset, 4, insnCodeGen::Pre);
 }
 
 
@@ -361,7 +361,7 @@ void EmitterAARCH64RestoreRegs::tearFrame(codeGen &gen) {
 
 void EmitterAARCH64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset)
 {
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, scratchReg, REG_SP, stkOffset, false);
+    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, scratchReg, REG_SP, stkOffset, 4);
 
     //TODO move map to common location
     map<int, int> sysRegCodeMap = map_list_of(SPR_NZCV, 0x5A10)(SPR_FPCR, 0x5A20)(SPR_FPSR, 0x5A21);
@@ -474,14 +474,12 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
             {
                 Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
                 insnCodeGen::generateMul(gen, rm, src1, dest, true);
-                //insnCodeGen::generateTrap(gen);
             }
             break;
         case divOp:
             {
                 Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
                 insnCodeGen::generateDiv(gen, rm, src1, dest, true);
-                //insnCodeGen::generateTrap(gen);
             }
             break;
         case xorOp:

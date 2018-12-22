@@ -499,35 +499,36 @@ void insnCodeGen::loadImmIntoReg(codeGen &gen, Register rt, T value)
         insnCodeGen::generateMove(gen, ((value >> 48) & 0xFFFF), 0x3, rt, MovOp_MOVK);
 }
 
-
-// This is for generating STR/LDR (immediate) for indexing modes of Post, Pre and Offset
-void insnCodeGen::generateMemAccess32or64(codeGen &gen, LoadStore accType,
-        Register r1, Register r2, int immd, bool is64bit, IndexMode im)
+// Generate memory access through Load or Store
+// Instructions generated:
+//     LDR/STR (immediate) for 32-bit or 64-bit
+//     LDRB/STRB (immediate) for 8-bit
+//     LDRH/STRH  (immediate) for 16-bit
+//
+// Encoding classes allowed: Post-index, Pre-index and Unsigned Offset
+void insnCodeGen::generateMemAccess(codeGen &gen, LoadStore accType,
+        Register r1, Register r2, int immd, unsigned size, IndexMode im)
 {
     instruction insn;
     insn.clear();
 
-    //Bit 31 is always 1. Bit 30 is 1 if we're using the 64-bit variant.
-    INSN_SET(insn, 31, 31, 1);
-    if(is64bit)
-        INSN_SET(insn, 30, 30, 1);
+    assert( size==1 || size==2 || size==4 || size==8 );
+
+    static unsigned short map_size[9] = {0,0,1,0,2,0,0,0,3}; // map `size` to 00,01,10,11
+    INSN_SET(insn, 30, 31, map_size[size]);
 
     switch(im){
         case Post:
         case Pre:
-            //Set opcode, index and offset bits
-            if(immd >= -256 && immd <= 255) {
-                INSN_SET(insn, 21, 29, (accType == Load) ? LDRImmOp : STRImmOp);
-                INSN_SET(insn, 10, 11, im==Post?0x1:0x3);
-                INSN_SET(insn, 12, 20, immd); // can be negative so no enconding
-            } else {
-                assert(!"Cannot perform a post/pre-indexed memory access for offsets not in range [-256, 255]!");
-            }
+            assert(immd >= -256 && immd <= 255);
+            INSN_SET(insn, 21, 29, (accType == Load) ? LDRImmOp : STRImmOp);
+            INSN_SET(insn, 10, 11, im==Post?0x1:0x3);
+            INSN_SET(insn, 12, 20, immd); // can be negative so no enconding
             break;
         case Offset:
-            INSN_SET(insn, 22, 29, (accType == Load) ? LDRImmUIOp : STRImmUIOp);
             assert(immd>=0); // this offset is supposed to be unsigned, i.e. positive
-            INSN_SET(insn, 10, 21, immd>>(is64bit?3:2)); // always positive so encode
+            INSN_SET(insn, 22, 29, (accType == Load) ? LDRImmUIOp : STRImmUIOp);
+            INSN_SET(insn, 10, 21, immd/size); // always positive so encode
             break;
     }
 
@@ -639,13 +640,13 @@ assert(0);
 
 void insnCodeGen::saveRegister(codeGen &gen, Register r, int sp_offset, IndexMode im)
 {
-    generateMemAccess32or64(gen, Store, r, REG_SP, sp_offset, true, im);
+    generateMemAccess(gen, Store, r, REG_SP, sp_offset, 8, im);
 }
 
 
 void insnCodeGen::restoreRegister(codeGen &gen, Register r, int sp_offset, IndexMode im)
 {
-    generateMemAccess32or64(gen, Load, r, REG_SP, sp_offset, true, im);
+    generateMemAccess(gen, Load, r, REG_SP, sp_offset, 8, im);
 }
 
 
@@ -892,7 +893,7 @@ bool insnCodeGen::modifyData(Address target,
 
             // Generate LDR(immediate) to load into r the the content of [scratch]
             Register r = raw & 0x1F;
-            generateMemAccess32or64(gen, Load, r, scratch, 0, true, Offset);
+            generateMemAccess(gen, Load, r, scratch, 0, 8, Offset);
         }
     } else {
         assert(!"Got an instruction other than ADR/ADRP/LDR(literal)/LDRSW(literal) in PC-relative data access!");
