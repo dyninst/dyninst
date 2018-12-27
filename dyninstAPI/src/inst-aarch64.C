@@ -732,15 +732,15 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
                 break;
 
             } else {
-            	int stkOffset = TRAMP_FRAME_SIZE_64 + (src1 - 8) * sizeof(long);
-            	// printf("TRAMP_FRAME_SIZE_64: %d\n", TRAMP_FRAME_SIZE_64);
-            	// printf("stdOffset = TRAMP_xxx_64 + (argc - 8) * 8 = { %d }\n", stkOffset);
-            	// TODO: PARAM_OFFSET(addrWidth) is currently not used
+                int stkOffset = TRAMP_FRAME_SIZE_64 + (src1 - 8) * sizeof(long);
+                // printf("TRAMP_FRAME_SIZE_64: %d\n", TRAMP_FRAME_SIZE_64);
+                // printf("stdOffset = TRAMP_xxx_64 + (argc - 8) * 8 = { %d }\n", stkOffset);
+                // TODO: PARAM_OFFSET(addrWidth) is currently not used
                 // should delete that macro if it's useless
 
-				if (src2 != REG_NULL) insnCodeGen::saveRegister(gen, src2, stkOffset);
+                if (src2 != REG_NULL) insnCodeGen::saveRegister(gen, src2, stkOffset);
                 insnCodeGen::restoreRegister(gen, dest, stkOffset);
-                
+
                 return dest;
             }
             break;
