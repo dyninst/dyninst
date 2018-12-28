@@ -508,6 +508,7 @@ typedef unsigned codeBufIndex_t;
 // -- other X-forms
 #define CMPop           31      /* compare -- XFPop*/
 #define CMPxop		0       /* compare */
+#define CMPLxop         32      /* unsigned compare */
 #define ANDop           31      /* and */
 #define ANDxop          28      /* and */
 #define ORop            31      /* or */
@@ -618,10 +619,14 @@ typedef unsigned codeBufIndex_t;
 #define SFxop		8       /* subtract from -- SUBFxop */
 #define MULSop          31      /* multiply short -- XFPop */
 #define MULSxop         235     /* multiply short -- MULLWxop */
+#define MULLxop         233     /* multiply long -- 64-bit integer multiplication */
 #define CAXop		31      /* compute address -- XFPop */
 #define CAXxop		266     /* compute address -- ADDxop */
 #define DIVSop          31      /* divide short -- XFPop */
 #define DIVSxop         363     /* divide short -- replacing DIVWxop */
+#define DIVLSxop        489     /* divide signed long  -- 64-bit integer divison */
+#define DIVLUxop        457     /* divide unsigned long  -- 64-bit integer divison */
+
 
 // ------------- Extended Floating PointOp Codes, instruction form A ---
 // Op code - 59

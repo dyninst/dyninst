@@ -222,8 +222,8 @@ void emitCallRel32(unsigned disp32, codeGen &gen);
 void emitJmpMC(int condition, int offset, codeGen &gen);
 // helper functions for emitters
 
-unsigned char cmovOpcodeFromRelOp(unsigned op);
-unsigned char jccOpcodeFromRelOp(unsigned op);
+unsigned char cmovOpcodeFromRelOp(unsigned op, bool s);
+unsigned char jccOpcodeFromRelOp(unsigned op, bool s);
 
 
 // function that uses cpuid instruction to figure out whether the processor uses 

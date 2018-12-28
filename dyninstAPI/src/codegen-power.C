@@ -866,7 +866,7 @@ void insnCodeGen::generateLShift(codeGen &gen, Register rs, int shift, Register 
 }
 
 // rlwinm ra,rs,32-n,n,31
-void insnCodeGen::generateRShift(codeGen &gen, Register rs, int shift, Register ra)
+void insnCodeGen::generateRShift(codeGen &gen, Register rs, int shift, Register ra, bool s)
 {
     instruction insn;
 
@@ -883,7 +883,7 @@ void insnCodeGen::generateRShift(codeGen &gen, Register rs, int shift, Register 
 	insnCodeGen::generate(gen,insn);
 
     } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
-	insnCodeGen::generateRShift64(gen, rs, shift, ra);
+	insnCodeGen::generateRShift64(gen, rs, shift, ra, s);
     }
 }
 
@@ -908,8 +908,12 @@ void insnCodeGen::generateLShift64(codeGen &gen, Register rs, int shift, Registe
 }
 
 // srd ra, rs, rb
-void insnCodeGen::generateRShift64(codeGen &gen, Register rs, int shift, Register ra)
+void insnCodeGen::generateRShift64(codeGen &gen, Register rs, int shift, Register ra, bool s)
 {
+    // This function uses rotate-left to implement right shift.
+    // Rotate left 64-n bits is rotating right n bits.
+    // However, rotation cannot correctly represent signed right shifting.
+    // So, this piece of code is wrong...
     instruction insn;
 
     assert(shift<64);
@@ -966,18 +970,20 @@ void insnCodeGen::generateSimple(codeGen &gen, int op,
 }
 
 void insnCodeGen::generateRelOp(codeGen &gen, int cond, int mode, Register rs1,
-                                Register rs2, Register rd)
+                                Register rs2, Register rd, bool s)
 {
     instruction insn;
 
-    // cmp rs1, rs2
+    // cmpd rs1, rs2
     insn.clear();
     XFORM_OP_SET(insn, CMPop);
-    XFORM_RT_SET(insn, 0);    // really bf & l sub fields of rt we care about
+    XFORM_RT_SET(insn, 0x1);    // really bf & l sub fields of rt we care about. Set l = 1 for 64 bit operation
     XFORM_RA_SET(insn, rs1);
     XFORM_RB_SET(insn, rs2);
-    XFORM_XO_SET(insn, CMPxop);
-
+    if (s)
+        XFORM_XO_SET(insn, CMPxop);
+    else
+        XFORM_XO_SET(insn, CMPLxop);
     insnCodeGen::generate(gen,insn);
 
     // li rd, 1

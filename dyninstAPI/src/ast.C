@@ -84,6 +84,13 @@ using PatchAPI::Point;
 
 extern bool doNotOverflow(int64_t value);
 
+static bool IsSignedOperation(BPatch_type *l, BPatch_type *r) {
+    if (l == NULL || r == NULL) return true;
+    if (strstr(l->getName(), "unsigned") == NULL) return true;
+    if (strstr(r->getName(), "unsigned") == NULL) return true;
+    return false;
+}
+
 AstNodePtr AstNode::originalAddrNode_ = AstNodePtr();
 AstNodePtr AstNode::actualAddrNode_ = AstNodePtr();
 AstNodePtr AstNode::dynamicTargetNode_ = AstNodePtr();
@@ -1455,42 +1462,47 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          break;
       }
       case whileOp: {
-         codeBufIndex_t top = gen.getIndex();
+        codeBufIndex_t top = gen.getIndex(); 
 
-         if (!loperand->generateCode_phase2(gen, noCost, addr, src1)) ERROR_RETURN;
+        // BEGIN from ifOp       
+        if (!loperand->generateCode_phase2(gen, noCost, addr, src1)) ERROR_RETURN;
          REGISTER_CHECK(src1);
-
-         codeBufIndex_t startIndex = gen.getIndex();
+         codeBufIndex_t startIndex= gen.getIndex();
 
          size_t preif_patches_size = gen.allPatches().size();
-         codeBufIndex_t fromIndex = emitA(ifOp, src1, 0, 0, gen, rc_before_jump, noCost);
+         codeBufIndex_t thenSkipStart = emitA(ifOp, src1, 0, 0, gen, rc_before_jump, noCost);
+
          size_t postif_patches_size = gen.allPatches().size();
 
-         // See comment in ifOp
+	 // We can reuse src1 for the body of the conditional; however, keep the value here
+	 // so that we can use it for the branch fix below.
          Register src1_copy = src1;
-
          if (loperand->decRefCount())
             gen.rs()->freeRegister(src1);
 
-         if (roperand) {
-             // The flow of control forks. We need to add the forked node to
-             // the path
-             gen.tracker()->increaseConditionalLevel();
-             if (!roperand->generateCode_phase2(gen, noCost, addr, src2)) ERROR_RETURN;
-             if (roperand->decRefCount())
-                 gen.rs()->freeRegister(src2);
-         }
-
+         // The flow of control forks. We need to add the forked node to
+         // the path
+         gen.tracker()->increaseConditionalLevel();
+         if (!roperand->generateCode_phase2(gen, noCost, addr, src2)) ERROR_RETURN;
+         if (roperand->decRefCount())
+            gen.rs()->freeRegister(src2);
          gen.tracker()->decreaseAndClean(gen);
          gen.rs()->unifyTopRegStates(gen); //Join the registerState for the if
+         
+         // END from ifOp
 
-         //jump back
          (void) emitA(branchOp, 0, 0, codeGen::getDisplacement(gen.getIndex(), top),
                       gen, rc_no_control, noCost);
 
+         //BEGIN from ifOp
+
+         // Now that we've generated the "then" section, rewrite the if
+         // conditional branch.
+         codeBufIndex_t elseStartIndex = gen.getIndex();
+
          if (preif_patches_size != postif_patches_size) {
             assert(postif_patches_size > preif_patches_size);
-            ifTargetPatch if_targ(gen.getIndex() + gen.startAddr());
+            ifTargetPatch if_targ(elseStartIndex + gen.startAddr());
             for (unsigned i=preif_patches_size; i < postif_patches_size; i++) {
                gen.allPatches()[i].setTarget(&if_targ);
             }
@@ -1500,19 +1512,20 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          }
          else {
             gen.setIndex(startIndex);
-            codeBufIndex_t endIndex = gen.getIndex();
             // call emit again now with correct offset.
             // This backtracks over current code.
             // If/when we vectorize, we can do this in a two-pass arrangement
-            (void) emitA(op, src1_copy, 0,
-                         (Register) codeGen::getDisplacement(fromIndex, endIndex),
+            (void) emitA(ifOp, src1_copy, 0,
+                         (Register) codeGen::getDisplacement(thenSkipStart, elseStartIndex),
                          gen, rc_no_control, noCost);
             // Now we can free the register
             // Register has already been freed; we're just re-using it.
             //gen.rs()->freeRegister(src1);
 
-            gen.setIndex(endIndex);
+            gen.setIndex(elseStartIndex);
          }
+         // END from ifOp
+         retReg = REG_NULL;
          break;
       }
       case doOp: {
@@ -1745,6 +1758,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
       case geOp:
       default:
       {
+         bool signedOp = IsSignedOperation(loperand->getType(), roperand->getType());
          src1 = Null_Register;
          right_dest = Null_Register;
          if (loperand) {
@@ -1755,7 +1769,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
          if (roperand &&
              (roperand->getoType() == Constant) &&
-             doNotOverflow((int64_t) roperand->getOValue())) {
+             doNotOverflow((int64_t)roperand->getOValue())) {
             if (retReg == REG_NULL) {
                retReg = allocateAndKeep(gen, noCost);
                ast_printf("Operator node, const RHS, allocated register %d\n", retReg);
@@ -1763,7 +1777,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             else
                ast_printf("Operator node, const RHS, keeping register %d\n", retReg);
 
-            emitImm(op, src1, (Register) (long) roperand->getOValue(), retReg, gen, noCost, gen.rs());
+            emitImm(op, src1, (RegValue) roperand->getOValue(), retReg, gen, noCost, gen.rs(), signedOp);
 
             if (src1 != Null_Register && loperand->decRefCount())
                gen.rs()->freeRegister(src1);
@@ -1780,7 +1794,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             if (retReg == REG_NULL) {
                retReg = allocateAndKeep(gen, noCost);
             }
-            emitV(op, src1, right_dest, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+            emitV(op, src1, right_dest, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace(), signedOp);
             if (src1 != Null_Register && loperand->decRefCount()) {
                // Don't free inputs until afterwards; we have _no_ idea
                gen.rs()->freeRegister(src1);
@@ -2289,7 +2303,7 @@ std::string getOpString(opCode op)
 	case plusOp: return("+");
 	case minusOp: return("-");
 	case xorOp: return("^");
-	case timesOp: return("*");
+    case timesOp: return("*");
 	case divOp: return("/");
 	case lessOp: return("<");
 	case leOp: return("<=");

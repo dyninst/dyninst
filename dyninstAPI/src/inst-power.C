@@ -1097,7 +1097,7 @@ bool baseTramp::generateRestores(codeGen &gen,
 
 
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
-             codeGen &gen, bool noCost, registerSpace * /* rs */)
+             codeGen &gen, bool noCost, registerSpace * /* rs */, bool s)
 {
         //bperr("emitImm(op=%d,src=%d,src2imm=%d,dest=%d)\n",
         //        op, src1, src2imm, dest);
@@ -1125,24 +1125,19 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         else {
             Register dest2 = gen.rs()->getScratchRegister(gen, noCost);
             emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
-            emitV(op, src1, dest2, dest, gen, noCost);
+            emitV(op, src1, dest2, dest, gen, noCost, gen.rs(), 
+                  gen.width(), gen.point(), gen.addrSpace(), s);
             return;
         }
         break;
         
-    case divOp:
-        if (isPowerOf2(src2imm,result) && (result < (int) (gen.width() * 8))) {
-            insnCodeGen::generateRShift(gen, src1, result, dest);
-            return;
-        }
-        else {
+    case divOp: {
             Register dest2 = gen.rs()->getScratchRegister(gen, noCost);
             emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
-            emitV(op, src1, dest2, dest, gen, noCost);
+            emitV(op, src1, dest2, dest, gen, noCost, gen.rs(),
+                  gen.width(), gen.point(), gen.addrSpace(), s);
             return;
         }
-        break;
-        
         // Bool ops
     case orOp:
         iop = ORILop;
@@ -1160,7 +1155,8 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
     default:
         Register dest2 = gen.rs()->getScratchRegister(gen, noCost);
         emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
-        emitV(op, src1, dest2, dest, gen, noCost);
+        emitV(op, src1, dest2, dest, gen, noCost, gen.rs(),
+              gen.width(), gen.point(), gen.addrSpace(), s);
         return;
         break;
     }
@@ -2070,7 +2066,7 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
 void emitV(opCode op, Register src1, Register src2, Register dest,
            codeGen &gen, bool /*noCost*/,
            registerSpace * /*rs*/, int size,
-           const instPoint * /* location */, AddressSpace *proc)
+           const instPoint * /* location */, AddressSpace *proc, bool s)
 {
     //bperr("emitV(op=%d,src1=%d,src2=%d,dest=%d)\n",op,src1,src2,dest);
 
@@ -2143,13 +2139,21 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 
             case timesOp:
                 instOp = MULSop;
-                instXop = MULSxop;
+                // For 64-bit integer multiplication, 
+                // signed and unsigned are the same.
+                //
+                // Signed and unsigned are different if we start to 
+                // psas upper 64-bit of the results back to users.
+                instXop = MULLxop;
                 break;
 
             case divOp:
                 instOp = DIVSop;   // POWER divide instruction
                                    // Same as DIVWop for PowerPC
-                instXop = DIVWxop; // PowerPC
+                if (s)
+                    instXop = DIVLSxop; // Extended opcode for signed division
+                else
+                    instXop = DIVLUxop; // Extended opcode for unsigned division
                 break;
 
             // Bool ops
@@ -2194,32 +2198,32 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 
             // rel ops
             case eqOp:
-                insnCodeGen::generateRelOp(gen, EQcond, BTRUEcond, src1, src2, dest);
+                insnCodeGen::generateRelOp(gen, EQcond, BTRUEcond, src1, src2, dest, s);
                 return;
                 break;
 
             case neOp:
-                insnCodeGen::generateRelOp(gen, EQcond, BFALSEcond, src1, src2, dest);
+                insnCodeGen::generateRelOp(gen, EQcond, BFALSEcond, src1, src2, dest, s);
                 return;
                 break;
 
             case lessOp:
-                insnCodeGen::generateRelOp(gen, LTcond, BTRUEcond, src1, src2, dest);
+                insnCodeGen::generateRelOp(gen, LTcond, BTRUEcond, src1, src2, dest, s);
                 return;
                 break;
 
             case greaterOp:
-                insnCodeGen::generateRelOp(gen, GTcond, BTRUEcond, src1, src2, dest);
+                insnCodeGen::generateRelOp(gen, GTcond, BTRUEcond, src1, src2, dest, s);
                 return;
                 break;
 
             case leOp:
-                insnCodeGen::generateRelOp(gen, GTcond, BFALSEcond, src1, src2, dest);
+                insnCodeGen::generateRelOp(gen, GTcond, BFALSEcond, src1, src2, dest, s);
                 return;
                 break;
 
             case geOp:
-                insnCodeGen::generateRelOp(gen, LTcond, BFALSEcond, src1, src2, dest);
+                insnCodeGen::generateRelOp(gen, LTcond, BFALSEcond, src1, src2, dest, s);
                 return;
                 break;
 
@@ -2432,14 +2436,11 @@ void registerSpace::saveClobberInfo(const instPoint *location)
 }
 #endif
 
+bool doNotOverflow(int64_t value) {
+    if ( (value <= 32767) && (value >= -32768) ) return(true);
+    else return(false);
 
-bool doNotOverflow(int64_t value)
-{
-  // we are assuming that we have 15 bits to store the immediate operand.
-  if ( (value <= 32767) && (value >= -32768) ) return(true);
-  else return(false);
 }
-
 #if !defined(os_vxworks)
 // hasBeenBound: returns true if the runtime linker has bound the
 // function symbol corresponding to the relocation entry in at the address
@@ -3127,53 +3128,16 @@ bool EmitterPOWER32Stat::emitTOCCommon(block_instance *block, bool call, codeGen
 }
 
 bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen &gen) {
-  // Okay, I'm going to try and describe how this works. 
-  //
-  // PPC64 uses a TOC, a range of memory pointed to by R2. The TOC is full of 
-  // data pointers (64-bit pointers).
-  //
-  // For our purpose, a TOC entry _points to_ a function descriptor, which is 3 words:
-  //   1) Function addr
-  //   2) TOC value
-  //   3) Environment pointer (optional)
-  //
-  // For a dynamic binary, we need to do the following to perform a PLT jump/call:
-  //   1) Set the destination
-  //   2) Set the TOC to the destination's value
-  // We do so as follows:
-  //   1) func_desc <- getInterModuleFuncAddr(callee)  // this is an allocated function descriptor
-  //                                                   // that isn't allocated relative to the TOC,
-  //                                                   // if I'm reading things right...
-  //   2) r_tmp := func_desc
-  //   3) r2 := *(r_tmp + 8)
-  //   4) r_tmp2 := *(r_tmp)
-  //   5) ctr := r_tmp2
-  //   6) bctr/bctrl
-  // 
-  //   This code implies that we can reuse r_tmp for r_tmp2. 
-  //
-  // Now, we make things better; we also need to reset r2 when we're done. How do we do this for
-  // a branch, which doesn't return control? I'm glad you asked!
-  // If we save the LR, we can have control return to our current execution point, restore LR,
-  // and then return again. So we get code like the following:
-  //
-  //  1) save LR
-  //  2) r_tmp := func_desc
-  //  3) r2 := *(r_tmp + 8)
-  //  4) r_tmp := *(r_tmp)
-  //  5) lr := r_tmp
-  //  6) blrl
-  //  7) if (!call) restore LR
-  //  8) r2 := caller TOC value
-  //  9) (if branch) return
-  //
-
-  // Even if we're in a static binary we may need to change the TOC. Heck,
-  // we may need to change the TOC in an intra-module call no matter what.
-  // This is caused by a GOT that is larger than 64k (the only addressable
-  // distance from the TOC). 
-  //
-  // TODO: the large model where everything is a 32-bit reference off the TOC. 
+/* This function generates code to call/jump to an external function.
+ * The Power ABI v2 specifies that R12 should contain the callee address.
+ *
+ * The steps include:
+ * 1. Save registers
+ * 2. Create/Load the PLT entry for the callee
+ * 3. Make the call
+ * 4. Restore registers
+ * 5. Generate a return for jump case
+ */
 
   const unsigned TOCreg = 2;
   const unsigned wordsize = gen.width();
@@ -3181,23 +3145,19 @@ bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
 
   Address func_desc = getInterModuleFuncAddr(callee, gen);
 
-  Address caller_toc = 0;
-  if (gen.func()) {
-    caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.func());
-  }
-  else if (gen.point()) {
-    caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.point()->func());
-  }
-  else {
-    // Don't need it, and this might be an iRPC
-  }
 
-  // We need a scratch register and a place to store the LR. However, in 64-bit PPC, there
-  // are two words on the stack that are free at SP + 3W and SP + 4W. So we save r0 and LR there.
+  // We need a scratch register and a place to store the LR. 
+  // Because modification can also call this function, there may not
+  // be an instrumentation frame. So, we move down the stack before the
+  // call and move up the stack after the call
+  pushStack(gen);
 
-  // Save R0 and LR
-  unsigned r_tmp = 12; // R12 ; using R0 is dangerous since many memory operations treat it as 0. 
+  unsigned r_tmp = 12; // R12 ; We need to put callee address into R12 
+
+  // Save R12
   insnCodeGen::generateMemAccess64(gen, STDop, STDxop, r_tmp, REG_SP, 3*wordsize);
+  
+  // Save LR
   insnCodeGen::generateMoveFromLR(gen, r_tmp);
   insnCodeGen::generateMemAccess64(gen, STDop, STDxop, r_tmp, REG_SP, 4*wordsize);
 
@@ -3205,48 +3165,46 @@ bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
   insnCodeGen::generateMemAccess64(gen, STDop, STDxop, TOCreg, REG_SP, 5*wordsize);
 
   // r_tmp := func_desc
-  // We don't load func_desc directly, as it's an offset rather than an address. 
-  // What we can do though is load it relative to a different register value. Like, 
-  // say, the current TOC. 
-  Address func_desc_from_TOC = func_desc - caller_toc;
-  insnCodeGen::loadImmIntoReg(gen, r_tmp, func_desc_from_TOC);
-  if (caller_toc) {
-    // If we know what the value is in R2 and thus used it...
-    insnCodeGen::generateAddReg(gen, CAXop, r_tmp, r_tmp, TOCreg);
-  }
+  // We first load PC into R12
+  Address pcVal = emitMovePCToReg(r_tmp, gen);
 
-  // r2 := *(r_tmp + 8)
-  insnCodeGen::generateMemAccess64(gen, LDop, LDxop, TOCreg, r_tmp, wordsize);
+  Address func_desc_from_cur = func_desc - pcVal;
+
+  // Here we use R2 as a temp register:
+  // We load the offset into R2
+  insnCodeGen::loadImmIntoReg(gen, TOCreg, func_desc_from_cur);
+  
+  // Add the offset to R12, which contains the PC
+  insnCodeGen::generateAddReg(gen, CAXop, r_tmp, r_tmp, TOCreg);
 
   // r_tmp := *(r_tmp)
   insnCodeGen::generateMemAccess64(gen, LDop, LDxop, r_tmp, r_tmp, 0);
   
-  // lr := r_tmp;
+  // lr := r_tmp; Loading the call target
   insnCodeGen::generateMoveToLR(gen, r_tmp);
-
-  // Restore r_tmp to be sure
-  //insnCodeGen::generateMemAccess64(gen, LDop, LDxop, r_tmp, REG_SP, 3*wordsize);
 
   // blrl
   instruction branch_insn(BRLraw);
   insnCodeGen::generate(gen, branch_insn);
 
-  // if (!call) restore LR
-  if (!call) {
-    insnCodeGen::generateMemAccess64(gen, STDop, STDxop, r_tmp, REG_SP, 3*wordsize);
-    insnCodeGen::generateMemAccess64(gen, LDop, LDxop, r_tmp, REG_SP, 4*wordsize);
-    insnCodeGen::generateMoveToLR(gen, r_tmp);
-    insnCodeGen::generateMemAccess64(gen, LDop, LDxop, r_tmp, REG_SP, 3*wordsize);
-  }
-
-  // Restore TOC
+  // Restore LR, R2, and R12
+  insnCodeGen::generateMemAccess64(gen, LDop, LDxop, r_tmp, REG_SP, 4*wordsize);
+  insnCodeGen::generateMoveToLR(gen, r_tmp);
+  insnCodeGen::generateMemAccess64(gen, LDop, LDxop, r_tmp, REG_SP, 3*wordsize);
   insnCodeGen::generateMemAccess64(gen, LDop, LDxop, TOCreg, REG_SP, 5*wordsize);
 
+  // Move back the stack
+  popStack(gen);
+
   if (!call) {
+    // We genearte a return here for jump case, 
+    // because Dyninst will relocate the original function.
+    // We do not want to execute the original code
+    // in cases like function replacement and function wrapping.
     instruction ret(BRraw);
     insnCodeGen::generate(gen, ret);
   }
- 
+
   return true;
 }
 
@@ -3255,21 +3213,17 @@ bool EmitterPOWER64Dyn::emitTOCCommon(block_instance *block, bool call, codeGen 
   // post-(call/branch). That means we can't use a branch if asked, since we won't
   // regain control. Fun. 
   //
-  // However, we can abuse the compiler word on the stack (SP + 3W) to store temporaries.
-  //
-  // So, we use the following:
-  //
-  // IF (!call)
-  //   Save LR in <SP + 3W>
-  // LR := Address of callee (Optimization: we can use a short branch here); use TOC as it's free
-  // R2 := TOC of callee
-  // Call LR
-  // IF (!call)
-  //   Restore LR from <SP + 3W>
-  // R2 := TOC of caller
+  // 1. Move down the stack and save R12 and LR
+  // 2. R2 := TOC of callee
+  // 3. Load callee into R12 (V2 ABI requires the callee address should be in R12)
+  // 4. LR := R12 
+  // 5. Call LR
+  // 6. Restore R12 and LR
+  // 7. R2 := TOC of caller
+  // 8. Move up the stack
   // IF (!call)
   //   Return
-
+  
   const unsigned TOCreg = 2;
   const unsigned wordsize = gen.width();
   assert(wordsize == 8);
@@ -3291,16 +3245,19 @@ bool EmitterPOWER64Dyn::emitTOCCommon(block_instance *block, bool call, codeGen 
   else {
     // Don't need it, and this might be an iRPC
   }
+  unsigned r12 = 12;
 
-  if (!call) {
-    insnCodeGen::generateMoveFromLR(gen, TOCreg);
-    insnCodeGen::generateMemAccess64(gen, STDop, STDxop,
-				     TOCreg, REG_SP, 3*wordsize);
-  }
+  // Move down the stack to create space for saving registers
+  pushStack(gen);
+
+  // Save R12 and LR
+  insnCodeGen::generateMoveFromLR(gen, TOCreg);
+  insnCodeGen::generateMemAccess64(gen, STDop, STDxop, TOCreg, REG_SP, 3*wordsize);
+  insnCodeGen::generateMemAccess64(gen, STDop, STDxop, r12, REG_SP, 4*wordsize);
 				     
-  // Use the TOC to generate the destination address
-  insnCodeGen::loadImmIntoReg(gen, TOCreg, dest);
-  insnCodeGen::generateMoveToLR(gen, TOCreg);
+  // Use the R12 to generate the destination address
+  insnCodeGen::loadImmIntoReg(gen, r12, dest);
+  insnCodeGen::generateMoveToLR(gen, r12);
   
   // Load the callee TOC
   insnCodeGen::loadImmIntoReg(gen, TOCreg, callee_toc);
@@ -3308,13 +3265,16 @@ bool EmitterPOWER64Dyn::emitTOCCommon(block_instance *block, bool call, codeGen 
   instruction branch_insn(BRLraw);
   insnCodeGen::generate(gen, branch_insn);
 
-  if (!call) {
-    insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
-				     TOCreg, REG_SP, 3*wordsize);
-    insnCodeGen::generateMoveToLR(gen, TOCreg);
-  }  
+  // Restore R12 and LR
+  insnCodeGen::generateMemAccess64(gen, LDop, LDxop, TOCreg, REG_SP, 3*wordsize);
+  insnCodeGen::generateMoveToLR(gen, TOCreg);
+  insnCodeGen::generateMemAccess64(gen, LDop, LDxop, r12, REG_SP, 4*wordsize);
 
+  // Load caller TOC
   insnCodeGen::loadImmIntoReg(gen, TOCreg, caller_toc);
+
+  // Move up the stack
+  popStack(gen);
 
   if (!call) {
     instruction ret(BRraw);
@@ -3401,12 +3361,10 @@ bool EmitterPOWER::emitCallInstruction(codeGen &gen, func_instance *callee, bool
                     gen.currAddr(), callee->addr());
         }
     }
-    bool shouldJumpToCMOD = false;
     // Need somewhere to put the destination calculation...
-    int scratchReg = 0;
+    int scratchReg = 12;
     if (needLongBranch) {
         // Use scratchReg to set destination of the call...
-        shouldJumpToCMOD = true;
         inst_printf("[EmitterPOWER::EmitCallInstruction] needLongBranch, Emitting VLOAD  Callee: 0x%lx, ScratchReg: %u\n",
                     callee->addr(), (unsigned) scratchReg);
         emitVload(loadConstOp, callee->addr(), scratchReg, scratchReg, gen, false);

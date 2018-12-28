@@ -179,7 +179,7 @@ typedef unsigned long Address;
 
 typedef unsigned int Word;
 
-typedef long int RegValue;      /* register content */
+typedef long long int RegValue;      /* register content 64-bit */
 /* This needs to be an int since it is sometimes used to pass offsets
    to the code generator (i.e. if-statement) - jkh 5/24/99 */
 typedef unsigned int Register;  /* a register number, e.g., [0..31]  */

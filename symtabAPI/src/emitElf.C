@@ -2217,7 +2217,6 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
         name = std::string(new_name);
     obj->addRegion(0, buffer, reloc_size, name, rtype, true);
     updateDynamic(dsize_type, dynamic_reloc_size);
-
 }
 
 template<class ElfTypes>
@@ -2497,6 +2496,15 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData, unsigned size, Elf_D
             case DT_PLTGOT:
             case DT_INIT_ARRAY:
             case DT_FINI_ARRAY:
+#if defined(arch_power) && defined(arch_64bit)
+            // DT_PPC64_GLINK specifies the addres of the
+            // PLT resolver in Power ABI V2.
+            //
+            // DT_PPC64_GLINK may not be defined in elf.h
+            // on other platforms and has the same value as
+            // other processor sepcific entries
+            case DT_PPC64_GLINK:
+#endif
                 /**
                  * List every dynamic entry that references an address and isn't already
                  * updated here.  library_adjust will be a page size if

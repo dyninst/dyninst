@@ -119,5 +119,6 @@ doxyfiles/*
 */Release/
 cotire/
 .idea/*
+.vscode/*
 build*/
 cmake-build-*/

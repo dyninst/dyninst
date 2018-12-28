@@ -458,7 +458,7 @@ bool baseTramp::generateRestores(codeGen &gen, registerSpace *)
 
 //TODO: 32-/64-bit regs?
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
-        codeGen &gen, bool /*noCost*/, registerSpace * /* rs */)
+        codeGen &gen, bool /*noCost*/, registerSpace * /* rs */, bool s)
 {
     switch(op) {
         case plusOp:
@@ -479,7 +479,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         case divOp:
             {
                 Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
-                insnCodeGen::generateDiv(gen, rm, src1, dest, true);
+                insnCodeGen::generateDiv(gen, rm, src1, dest, true, s);
             }
             break;
         case xorOp:
@@ -514,7 +514,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         case geOp:
             // note that eqOp could be grouped here too.
             // There's two ways to implement this.
-            gen.codeEmitter()->emitRelOpImm(op, dest, src1, src2imm, gen);
+            gen.codeEmitter()->emitRelOpImm(op, dest, src1, src2imm, gen, s);
             return;
         default:
             assert(0); // not implemented or not valid
@@ -878,25 +878,27 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
 void emitV(opCode op, Register src1, Register src2, Register dest,
         codeGen &gen, bool /*noCost*/,
            registerSpace * /*rs*/, int size,
-           const instPoint * /* location */, AddressSpace *proc) 
+           const instPoint * /* location */, AddressSpace *proc, bool s) 
 {
     switch(op){
         case plusOp:
         case minusOp:
-        case divOp:
         case timesOp:
         case orOp:
         case andOp:
         case xorOp:
             gen.codeEmitter()->emitOp(op, dest, src1, src2, gen);
             break;
+        case divOp:
+	    insnCodeGen::generateDiv(gen, src2, src1, dest, true, s);
+	    break;
         case lessOp:
         case leOp:
         case greaterOp:
         case geOp:
         case eqOp:
         case neOp:
-            gen.codeEmitter()->emitRelOp(op, dest, src1, src2, gen);
+            gen.codeEmitter()->emitRelOp(op, dest, src1, src2, gen, s);
             break;
         case loadIndirOp:
             size = !size ? proc->getAddressWidth() : size;

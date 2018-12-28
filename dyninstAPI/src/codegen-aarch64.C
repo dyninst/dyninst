@@ -218,7 +218,7 @@ void insnCodeGen::generateBranchViaTrap(codeGen &gen, Address from, Address to, 
     }
 }
 
-void insnCodeGen::generateConditionalBranch(codeGen& gen, Address to, unsigned opcode)
+void insnCodeGen::generateConditionalBranch(codeGen& gen, Address to, unsigned opcode, bool s)
 {
     instruction insn;
     insn.clear();
@@ -229,13 +229,17 @@ void insnCodeGen::generateConditionalBranch(codeGen& gen, Address to, unsigned o
     //Set imm19 field
     INSN_SET(insn, 5, 23, to >> 2);
 
-    auto getConditionCode = [&opcode]() -> unsigned
+    auto getConditionCode = [&opcode, &s]() -> unsigned
     {
         switch(opcode){
-            case lessOp:    return 0xB;
-            case leOp:      return 0xD;
-            case greaterOp: return 0xC;
-            case geOp:      return 0xA;
+            case lessOp:
+	      if (s) return 0xB; else return 0x3;
+            case leOp:      
+	      if (s) return 0xD; else return 0x9;
+            case greaterOp: 
+	      if (s) return 0xC; else return 0x8;
+            case geOp:      
+	      if (s) return 0xA; else return 0x2;
             case eqOp:      return 0x0;
             case neOp:      return 0x1;
             default:
@@ -329,7 +333,7 @@ void insnCodeGen::generateMul(codeGen &gen, Register rm, Register rn, Register r
 
 //#sasha is rm or rn the denominator?
 void insnCodeGen::generateDiv(
-        codeGen &gen, Register rm, Register rn, Register rd, bool is64bit)
+        codeGen &gen, Register rm, Register rn, Register rd, bool is64bit, bool s)
 {
     instruction insn;
     insn.clear();
@@ -342,7 +346,11 @@ void insnCodeGen::generateDiv(
     INSN_SET(insn, 21, 30, SDIVOp);
 
     INSN_SET(insn, 11, 15, 0x1);
-    INSN_SET(insn, 10, 10, 0x0); // signed: SDIV
+    if (s) {
+        INSN_SET(insn, 10, 10, 0x1); // signed: SDIV
+    } else {
+        INSN_SET(insn, 10, 10, 0x0); // unsigned: UDIV
+    }
 
     //Set registers
     INSN_SET(insn, 16, 20, rm);
