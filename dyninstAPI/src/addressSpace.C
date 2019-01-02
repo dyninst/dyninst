@@ -758,9 +758,9 @@ func_instance *AddressSpace::findOnlyOneFunction(const string &name,
 
    func_instance * ret;
    pdvector<func_instance *> allFuncs;
-    if (name.find("DYNINST_unlock_tramp_guard") != std::string::npos) {
-        std::cerr << "HEY I AM HERE" << std::endl;
-    }
+//    if (name.find("DYNINST_unlock_tramp_guard") != std::string::npos) {
+//        std::cerr << "HEY I AM HERE" << std::endl;
+//    }
    if (!findFuncsByAll(name.c_str(), allFuncs, lib.c_str()))
       return NULL;
 
