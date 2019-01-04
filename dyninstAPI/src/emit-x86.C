@@ -1106,6 +1106,10 @@ static void emitMovRegToRM64(Register base, int disp, Register src, int size, co
           emitMovRegToReg(RealRegister(rax), RealRegister(tmp_src), gen);
        }
 
+       // emit prefix
+       if (size == 2)
+           emitSimpleInsn(0x66, gen);
+
        emitRex(false, NULL, NULL, &tmp_base, gen);
        GET_PTR(insn, gen);       
        if (size == 1) 

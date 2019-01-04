@@ -793,9 +793,9 @@ std::string codeGen::format() const {
    Instruction insn = deco.decode();
    ret << hex;
    while(insn.isValid()) {
-     ret << "\t" << base << ": " << insn.format(base) << " / " << *((const unsigned *)insn.ptr()) << endl;
-      base += insn.size();
-      insn = deco.decode();
+       ret << "\t" << base << ": " << insn.format(base) << " / " << *((const unsigned *)insn.ptr()) << endl;
+       base += insn.size();
+       insn = deco.decode();
    }
    ret << dec;
    return ret.str();

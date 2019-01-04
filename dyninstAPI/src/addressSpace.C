@@ -1791,30 +1791,9 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   }
 
   if (dyn_debug_reloc || dyn_debug_write) {
-      using namespace InstructionAPI;
-      // Print out the buffer we just created
       cerr << "DUMPING RELOCATION BUFFER" << endl;
-
-      Address base = baseAddr;
-      InstructionDecoder deco
-        (cm->ptr(),cm->size(),getArch());
-      Instruction insn = deco.decode();
-      while(insn.isValid()) {
-          std::stringstream rawInsn;
-          unsigned idx = insn.size();
-          while(idx--) rawInsn << hex << ((unsigned int) insn.rawByte(idx)) / 16 << ((unsigned int) insn.rawByte(idx)) % 16 ;
-
-          cerr << "\t" << hex << base << ":   " << rawInsn.str() << "   "
-              << insn.format(base) << dec << endl;
-          base += insn.size();
-          insn = deco.decode();
-      }
-      cerr << dec;
-      cerr << endl;
- //     cerr << cm->format() << endl;
-
+      cerr << cm->gen().format() << endl;
   }
-
 
   // Copy it in
   relocation_cerr << "  Writing " << cm->size() << " bytes of data into program at "
