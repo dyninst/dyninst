@@ -42,10 +42,6 @@
 
 #define S_ISDIR(x) ((x) & _S_IFDIR)
 
-std::string expand_tilde_pathname(const std::string &dir) {
-   return dir;
-}
-
 #else
 
 #include <sys/types.h>
@@ -55,6 +51,10 @@ std::string expand_tilde_pathname(const std::string &dir) {
 #include <pwd.h>
 
 std::string expand_tilde_pathname(const std::string &dir) {
+#ifdef os_windows
+	// no-op on Windows
+	return dir;
+#else
    // e.g. convert "~tamches/hello" to "/u/t/a/tamches/hello",
    // or convert "~/hello" to same.
    // In the spirit of Tcl_TildeSubst
@@ -108,8 +108,8 @@ std::string expand_tilde_pathname(const std::string &dir) {
    std::string result = std::string(pwPtr->pw_dir) + std::string(ptr);
    endpwent();
    return result;
-}
 #endif
+}
 
 static std::string concat_pathname_components_simple(const std::string &comp1, const std::string &comp2)
 {
