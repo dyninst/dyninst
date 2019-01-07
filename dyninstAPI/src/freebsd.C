@@ -223,7 +223,7 @@ bool AddressSpace::getDyninstRTLibName() {
                      std::string(modifier) +
                      std::string(suffix);
 
-    dyninstRT_name = resolve_file_path(dyninstRT_name.c_str());
+    dyninstRT_name = resolve_file_path(dyninstRT_name);
 
     startup_printf("Dyninst RT Library name set to '%s'\n",
             dyninstRT_name.c_str());

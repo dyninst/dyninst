@@ -869,7 +869,7 @@ FCNode::FCNode(string f, dev_t d, ino_t i, SymbolReaderFactory *factory_) :
    symreader(NULL),
    factory(factory_)
 {
-   filename = resolve_file_path(f.c_str());
+   filename = resolve_file_path(std::move(f));
 }
 
 string FCNode::getFilename() {
