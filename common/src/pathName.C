@@ -102,7 +102,7 @@ std::string expand_tilde_pathname(const std::string &dir) {
       return dir; // something better needed...
    }
 
-   std::string result = std::string(pwPtr->pw_dir) + std::string(ptr);
+   std::string result = std::string(pwPtr->pw_dir) + (ptr ? ptr : "");
    endpwent();
    return result;
 #endif
