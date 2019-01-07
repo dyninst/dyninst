@@ -270,13 +270,6 @@ bool executableFromArgv0AndPathAndCwd(std::string &result,
    return false;
 }
 
-#if defined(os_windows)
-#define PATH_SEP ('\\')
-#define SECOND_PATH_SEP ('/')
-#else
-#define PATH_SEP ('/')
-#endif
-
 std::string extract_pathname_tail(const std::string &path)
 {
     boost::filesystem::path p(path);
