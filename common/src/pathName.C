@@ -34,6 +34,9 @@
 #include <assert.h>
 #include <limits.h>
 #include "common/src/pathName.h"
+#include <boost/filesystem.hpp>
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
 #if defined(os_windows) //ccw 20 july 2000 : 29 mar 2001
 
@@ -276,8 +279,6 @@ bool executableFromArgv0AndPathAndCwd(std::string &result,
 #else
 #define PATH_SEP ('/')
 #endif
-
-#include <boost/filesystem.hpp>
 
 std::string extract_pathname_tail(const std::string &path)
 {
