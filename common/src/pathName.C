@@ -39,16 +39,13 @@
 #include <boost/algorithm/string/trim.hpp>
 
 #if defined(os_windows) //ccw 20 july 2000 : 29 mar 2001
-
-#define S_ISDIR(x) ((x) & _S_IFDIR)
-
+	#define S_ISDIR(x) ((x) & _S_IFDIR)
 #else
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-#include <pwd.h>
+	#include <sys/types.h>
+	#include <sys/stat.h>
+	#include <unistd.h>
+	#include <pwd.h>
+#endif
 
 std::string expand_tilde_pathname(const std::string &dir) {
 #ifdef os_windows
