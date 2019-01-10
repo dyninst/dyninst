@@ -812,7 +812,7 @@ static inline void moveGPR2531toGPR(codeGen &gen,
 // VG(03/15/02): Made functionality more obvious by adding the above functions
 static inline void emitAddOriginal(Register src, Register acc,
                                    codeGen &gen, bool noCost) {
-    assert(0); //Not implemented
+  emitV(plusOp, src, acc, acc, gen, noCost, 0);
 }
 
 // VG(11/07/01): Load in destination the effective address given
@@ -820,7 +820,32 @@ static inline void emitAddOriginal(Register src, Register acc,
 void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
                 codeGen &gen,
                 bool noCost) {
-    assert(0); //Not implemented
+
+  // Haven't implemented non-zero shifts yet
+  assert(stackShift == 0);
+  //instruction *insn = (instruction *) ((void*)&gen[base]);
+  int imm = as->getImm();
+  int ra  = as->getReg(0);
+  int rb  = as->getReg(1);
+  int sc  = as->getScale();
+
+    cout << "imm: " << imm << " ra: " << ra << " rb: " << rb << " sc: " << sc << endl;
+    // TODO: optimize this to generate the minimum number of
+  // instructions; think about schedule
+
+
+  if(ra > -1)
+      emitAddOriginal(ra, dest, gen, noCost);
+
+
+  // call adds, save 2^scale * rb to dest
+  if(rb > -1) {
+      insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, sc, 0, rb, 0, dest, 1);
+  }
+  // emit code to load the immediate (constant offset) into dest; this
+  // writes at gen+base and updates base, we must update insn...
+  emitVload(loadConstOp, (Address)imm, dest, dest, gen, noCost);
+
 }
 
 void emitCSload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,
