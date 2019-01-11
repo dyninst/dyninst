@@ -1356,3 +1356,51 @@ void emitElfStatic::createStub(unsigned *stub, Offset stubOffset, Offset newTOC,
   stub[3] = branch.asInt();
   
 }
+
+bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int library_adjust) {
+    // Currently, only verified on x86 and x86_64 -- this may work on other architectures
+    Region *targetRegion = obj->findEnclosingRegion(rel.rel_addr());
+    if( NULL == targetRegion ) {
+        rewrite_printf("Failed to find enclosing Region for relocation");
+        return false;
+    }
+
+    // Here is ppc32 so should be addressWidth==4, and other case macros
+    // But until this function was moved, it didnt have a case for 32 bit
+    unsigned addressWidth = obj->getAddressWidth();
+    if( addressWidth == 8 ) {
+        switch(rel.getRelType()) {
+            case R_PPC64_IRELATIVE:
+            case R_PPC64_RELATIVE:
+                rel.setAddend(rel.addend() + library_adjust);
+                break;
+/*          case R_PPC64_JMP_SLOT:
+ *            For PowerPC ABI V2, .plt is a nobit section.
+ *            We do not need to adjust the relocation entry.
+ */
+            default:
+                //fprintf(stderr, "Unimplemented relType for architecture: %d\n", rel.getRelType());
+                //assert(0);
+                break;
+        }
+    }
+
+    // XXX The GOT also holds a pointer to the DYNAMIC segment -- this is currently not
+    // updated. However, this appears to be unneeded for regular shared libraries.
+
+    // From the SYS V ABI x86 supplement
+    // "The table's entry zero is reserved to hold the address of the dynamic structure,
+    // referenced with the symbol _DYNAMIC. This allows a program, such as the
+    // dynamic linker, to find its own dynamic structure without having yet processed
+    // its relocation entries. This is especially important for the dynamic linker, because
+    // it must initialize itself without relying on other programs to relocate its memory
+    // image."
+
+    // In order to implement this, would have determine the final address of a new .dynamic
+    // section before outputting the patched GOT data -- this will require some refactoring.
+
+    //rewrite_printf("WARNING: updateRelocation is not implemented on this architecture\n");
+    //(void) obj; (void) rel; (void) library_adjust; //silence warnings
+
+    return true;
+}
