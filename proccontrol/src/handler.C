@@ -849,7 +849,13 @@ Handler::handler_ret_t HandlePreExit::handleEvent(Event::ptr ev)
    int_thread *thread = ev->getThread()->llthrd();
    pthrd_printf("Handling pre-exit for process %d on thread %d\n",
                 proc->getPid(), thread->getLWP());
-
+   // Sometimes when the mutator attempts to stop the mutatee,
+   // the mutatee exited before the stop is delivered to the mutatee.
+   // In such case, let the mutator not wait for the exited thread.
+   // Otherwise, the mutator can be stuck in an infinite loop waiting
+   // for a SIGSTOP that will never come 
+   if (thread->hasPendingStop())
+      thread->setPendingStop(false);
    thread->setExiting(true);
    if (proc->wasForcedTerminated()) {
       //Linux sometimes throws an extraneous exit after
