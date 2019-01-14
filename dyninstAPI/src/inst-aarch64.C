@@ -642,31 +642,56 @@ Register EmitterAARCH64::emitCall(opCode op,
         assert(reg!=REG_NULL);
     }
 
-    //instPoint *point = gen.point();
-    //assert(point);
-    assert(gen.rs());
+    // if (gen.func()->obj() != callee->obj())
+    // {
+    //     // assert(0); // inter module call
 
-    //Address of function to call in scratch register
-    Register scratch = gen.rs()->getScratchRegister(gen);
-    assert(scratch!=REG_NULL);
-    gen.markRegDefined(scratch);
-    insnCodeGen::loadImmIntoReg<Address>(gen, scratch, callee->addr());
+    //     // l: not using emitPLTCommon for now
+    //     emitPLTCall(callee, gen);
+    // }
+    // else
+    // {
 
-    instruction branchInsn;
-    branchInsn.clear();
+        //instPoint *point = gen.point();
+        //assert(point);
+        assert(gen.rs());
 
-    //Set bits which are 0 for both BR and BLR
-    INSN_SET(branchInsn, 0, 4, 0);
-    INSN_SET(branchInsn, 10, 15, 0);
+        //Address of function to call in scratch register
+        Register scratch = gen.rs()->getScratchRegister(gen);
+        // Register s1 = gen.rs()->getScratchRegister(gen, noCost);
+        assert(scratch != REG_NULL);
+        gen.markRegDefined(scratch);
+        if (gen.func()->obj() != callee->obj()) {
+            printf("Entering if-clause, InterModule Function call\n");
+            Register s1 = gen.rs()->getRegByName("r2");
+            //Register s1 = gen.rs()->getScratchRegister(gen, noCost, true);
+            assert(s1 != REG_NULL);
+            gen.markRegDefined(s1);
+            Address dest = getInterModuleFuncAddr(callee, gen);
+            insnCodeGen::loadImmIntoReg<Address>(gen, s1, dest);
 
-    //Set register
-    INSN_SET(branchInsn, 5, 9, scratch);
+            insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, scratch, s1, 0, 8, insnCodeGen::Post);
+            //insnCodeGen::generateTrap(gen);
+        } else {
+            insnCodeGen::loadImmIntoReg<Address>(gen, scratch, callee->addr());
+        }
 
-    //Set other bits. Basically, these are the opcode bits.
-    //The only difference between BR and BLR is that bit 21 is 1 for BLR.
-    INSN_SET(branchInsn, 16, 31, BRegOp);
-    INSN_SET(branchInsn, 21, 21, 1);
-    insnCodeGen::generate(gen, branchInsn);
+        instruction branchInsn;
+        branchInsn.clear();
+
+        //Set bits which are 0 for both BR and BLR
+        INSN_SET(branchInsn, 0, 4, 0);
+        INSN_SET(branchInsn, 10, 15, 0);
+
+        //Set register
+        INSN_SET(branchInsn, 5, 9, scratch);
+
+        //Set other bits. Basically, these are the opcode bits.
+        //The only difference between BR and BLR is that bit 21 is 1 for BLR.
+        INSN_SET(branchInsn, 16, 31, BRegOp);
+        INSN_SET(branchInsn, 21, 21, 1);
+        insnCodeGen::generate(gen, branchInsn);
+    // }
 
     /*
      * Restoring registers
@@ -1346,8 +1371,13 @@ bool EmitterAARCH64Dyn::emitTOCCommon(block_instance *block, bool call, codeGen 
 
 // TODO 32/64-bit?
 bool EmitterAARCH64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
-    assert(0); //Not implemented
-    return emitPLTCommon(callee, true, gen);
+    // assert(0); //Not implemented
+    // return emitPLTCommon(callee, true, gen);
+
+    // l: working on it...
+    Address dest = getInterModuleFuncAddr(callee, gen);
+    // TBD
+    return true;
 }
 
 bool EmitterAARCH64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
@@ -1418,8 +1448,65 @@ Address EmitterAARCH64::emitMovePCToReg(Register dest, codeGen &gen) {
 }
 
 Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
-    assert(0); //Not implemented
-    return NULL;
+    // assert(0); //Not implemented
+    // return NULL;
+    
+    // l: copied from POWER64 getInterModuleFuncAddr
+
+    AddressSpace *addrSpace = gen.addrSpace();
+    if (!addrSpace)
+        assert(0 && "No AddressSpace associated with codeGen object");
+
+    BinaryEdit *binEdit = addrSpace->edit();
+    Address relocation_address;
+    
+    unsigned int jump_slot_size;
+    switch (addrSpace->getAddressWidth()) {
+    case 4: jump_slot_size =  4; break; // l: not needed
+    case 8: 
+      jump_slot_size = 24;
+      break;
+    default: assert(0 && "Encountered unknown address width");
+    }
+
+    if (!binEdit || !func) {
+        assert(!"Invalid function call (function info is missing)");
+    }
+
+    // find the Symbol corresponding to the func_instance
+    std::vector<SymtabAPI::Symbol *> syms;
+    func->ifunc()->func()->getSymbols(syms);
+
+    if (syms.size() == 0) {
+        char msg[256];
+        sprintf(msg, "%s[%d]:  internal error:  cannot find symbol %s"
+                , __FILE__, __LINE__, func->symTabName().c_str());
+        showErrorCallback(80, msg);
+        assert(0);
+    }
+
+    // try to find a dynamic symbol
+    // (take first static symbol if none are found)
+    SymtabAPI::Symbol *referring = syms[0];
+    for (unsigned k=0; k<syms.size(); k++) {
+        if (syms[k]->isInDynSymtab()) {
+            referring = syms[k];
+            break;
+        }
+    }
+    // have we added this relocation already?
+    relocation_address = binEdit->getDependentRelocationAddr(referring);
+
+    if (!relocation_address) {
+        // inferiorMalloc addr location and initialize to zero
+        relocation_address = binEdit->inferiorMalloc(jump_slot_size);
+        unsigned char dat[24] = {0};
+        binEdit->writeDataSpace((void*)relocation_address, jump_slot_size, dat);
+        // add write new relocation symbol/entry
+        binEdit->addDependentRelocation(relocation_address, referring);
+    }
+    printf("passed relocation address: %llu\n", relocation_address);
+    return relocation_address;
 }
 
 
