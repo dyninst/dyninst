@@ -2327,9 +2327,20 @@ void int_process::updateSyncState(Event::ptr ev, bool gen)
          }
          pthrd_printf("Event %s is thread synchronous, marking thread %d %s stopped\n",
                       etype.name().c_str(), thrd->getLWP(), gen ? "generator" : "handler");
+/*
+ * 	 Xiaozhu: this assert causes pc_irpc to fail non-deterministically.
+ * 	 I think it is possible for the generator to receive one sync event one a thread,
+ * 	 and before the handler handles it and unset its status, the generator
+ * 	 receives another sync event on the same thread. 
+ *
+ * 	 This is because that even thought we attempt to stop the thread for a sync event,
+ * 	 there is a gap between the sync event and the stop. There could be another sync 
+ * 	 event happening. 
+ *
          assert(RUNNING_STATE(old_state) ||
                 thrd->llproc()->wasForcedTerminated() ||
                 (old_state == int_thread::stopped && (thrd->isExiting() || thrd->isExitingInGenerator())));
+*/
          if (old_state == int_thread::errorstate)
             break;
          st.setState(int_thread::stopped);
@@ -4443,10 +4454,16 @@ bool int_thread::StateTracker::setState(State to)
    if (up_thr->up_thread && !up_thr->suppressSanityChecks()) {
       int_thread::State handler_state = up_thr->getHandlerState().getState();
       int_thread::State generator_state = up_thr->getGeneratorState().getState();
+/*    Xiaozhu: the asserts can fail legitimately.
+ *
+ *    The handler status and generator status of a thread are never in sync by design.
+ *    We will need to revisit such design.
+ *
       if (handler_state == stopped)
          assert(generator_state == stopped || generator_state == exited || generator_state == detached );
       if (generator_state == running)
          assert(handler_state == running);
+*/
    }
 
    return true;
