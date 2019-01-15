@@ -1044,7 +1044,7 @@ bool PCProcess::terminateProcess() {
     return true;
 }
 
-bool PCProcess::detachProcess(bool /*cont*/) {
+bool PCProcess::detachProcess(bool cont = true) {
     if( isTerminated() ) return true;
 
     if( !isAttached() ) return false;
@@ -1057,7 +1057,7 @@ bool PCProcess::detachProcess(bool /*cont*/) {
             if( !stopProcess() ) {
                 proccontrol_printf("%s[%d]: failed to stop process for removing syscalls\n",
                         FILE__, __LINE__);
-		return false;
+		        return false;
             }
         }
 
@@ -1067,11 +1067,12 @@ bool PCProcess::detachProcess(bool /*cont*/) {
         tracedSyscalls_->removePostExec();
         tracedSyscalls_->removePreExit();
         tracedSyscalls_->removePreLwpExit();
-
-        if( needToContinue ) {
-            if( !continueProcess() ) {
-                proccontrol_printf("%s[%d]: failed to continue process after removing syscalls\n",
-                        FILE__, __LINE__);
+        if (cont) {
+            if( needToContinue ) {
+                if( !continueProcess() ) {
+                    proccontrol_printf("%s[%d]: failed to continue process after removing syscalls\n",
+                            FILE__, __LINE__);
+                }
             }
         }
     }
@@ -1081,7 +1082,7 @@ bool PCProcess::detachProcess(bool /*cont*/) {
 
     // NB: it's possible to get markExited() while handling events for the
     // tracedSyscalls_->remove* calls above, clearing pcProc_.
-    if( isTerminated() || pcProc_->detach() ) {
+    if( isTerminated() || pcProc_->detach(!cont) ) {
         attached_ = false;
         return true;
     }

@@ -90,9 +90,8 @@ void EmitterAARCH64::emitLoad(Register dest, Address addr, int size, codeGen &ge
     Register scratch = gen.rs()->getScratchRegister(gen);
 
     insnCodeGen::loadImmIntoReg<Address>(gen, scratch, addr);
-    assert(size==4 || size==8);
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, dest,
-            scratch, 0, size==8?true:false, insnCodeGen::Post);
+    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
+            scratch, 0, size, insnCodeGen::Post);
 
     gen.rs()->freeRegister(scratch);
     gen.markRegDefined(dest);
@@ -104,9 +103,8 @@ void EmitterAARCH64::emitStore(Address addr, Register src, int size, codeGen &ge
     Register scratch = gen.rs()->getScratchRegister(gen);
 
     insnCodeGen::loadImmIntoReg<Address>(gen, scratch, addr);
-    assert(size==4 || size==8);
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, src,
-            scratch, 0, size==8?true:false, insnCodeGen::Pre);
+    insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, src,
+            scratch, 0, size, insnCodeGen::Pre);
 
     gen.rs()->freeRegister(scratch);
     gen.markRegDefined(src);
@@ -227,37 +225,54 @@ void EmitterAARCH64::emitRelOpImm(
 
 void EmitterAARCH64::emitLoadIndir(Register dest, Register addr_src, int size, codeGen &gen)
 {
-    assert(size==4 || size==8);
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, dest,
-            addr_src, 0, size==8?true:false, insnCodeGen::Post);
+    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
+            addr_src, 0, size, insnCodeGen::Post);
 
     gen.markRegDefined(dest);
 }
+void EmitterAARCH64::emitStoreIndir(Register addr_reg, Register src, int size, codeGen &gen)
+{
+    insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, src,
+            addr_reg, 0, size, insnCodeGen::Pre);
 
+    gen.markRegDefined(addr_reg);
+}
 
 void EmitterAARCH64::emitLoadOrigRegRelative(
-        Register dest, Address offset, Register base, codeGen &gen, bool store)
+        Register dest, Address offset, Register base, codeGen &gen, bool deref)
 {
 
-    Register scratch = gen.rs()->getScratchRegister(gen);
-    gen.markRegDefined(scratch);
     gen.markRegDefined(dest);
+
     // either load the address or the contents at that address
-    /*if(store) 
+    if(deref)
     {
-        // load the stored register 'base' into RAX
-        emitLoadOrigRegister(base, scratch, gen);
-        // move offset(%rax), %dest
-        emitMovRMToReg64(dest, scratch, offset, 4, gen);
+        Register scratch = gen.rs()->getScratchRegister(gen);
+        assert(scratch);
+        gen.markRegDefined(scratch);
+        // load the stored register 'base' into scratch
+        insnCodeGen::generateMove(gen, scratch, base, true);
+        // move offset(%scratch), %dest
+        insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
+            scratch, offset, /*size==8?true:false*/4, insnCodeGen::Offset);
     }
     else
     {
         // load the stored register 'base' into dest
-        emitLoadOrigRegister(base, dest, gen);
+        insnCodeGen::generateMove(gen, dest, base, true);
         // add $offset, %dest
-        emitOpRegImm64(0x81, 0x0, dest, offset, true, gen);
-    }*/
+        emitImm(plusOp, dest, offset, dest, gen, false);
+    }
 }
 
+
+void EmitterAARCH64::emitLoadOrigRegister(Address register_num, Register destination, codeGen &gen)
+{
+    int offset = TRAMP_GPR_OFFSET(gen.width());
+    // its on the stack so load it.
+    // #sasha could it not be on the stack?
+    insnCodeGen::restoreRegister(gen, destination, offset + (register_num * gen.width()),
+            insnCodeGen::Offset);
+}
 
 

@@ -264,6 +264,10 @@ Region::RegionType getRegionType(unsigned long type, unsigned long flags, const 
     }
 }
 
+#if !defined(EM_AARCH64)
+#define EM_AARCH64 183
+#endif
+
 static Region::RegionType getRelTypeByElfMachine(Elf_X *localHdr) {
     Region::RegionType ret;
     switch (localHdr->e_machine()) {

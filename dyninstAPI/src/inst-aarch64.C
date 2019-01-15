@@ -162,8 +162,8 @@ void EmitterAARCH64SaveRegs::saveSPR(codeGen &gen, Register scratchReg, int sprn
     INSN_SET(insn, 5, 19, sysRegCodeMap[sprnum]);
     insnCodeGen::generate(gen, insn);
 
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Store, scratchReg,
-            REG_SP, stkOffset, false, insnCodeGen::Pre);
+    insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, scratchReg,
+            REG_SP, stkOffset, 4, insnCodeGen::Pre);
 }
 
 
@@ -361,7 +361,7 @@ void EmitterAARCH64RestoreRegs::tearFrame(codeGen &gen) {
 
 void EmitterAARCH64RestoreRegs::restoreSPR(codeGen &gen, Register scratchReg, int sprnum, int stkOffset)
 {
-    insnCodeGen::generateMemAccess32or64(gen, insnCodeGen::Load, scratchReg, REG_SP, stkOffset, false);
+    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, scratchReg, REG_SP, stkOffset, 4);
 
     //TODO move map to common location
     map<int, int> sysRegCodeMap = map_list_of(SPR_NZCV, 0x5A10)(SPR_FPCR, 0x5A20)(SPR_FPSR, 0x5A21);
@@ -474,14 +474,12 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
             {
                 Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
                 insnCodeGen::generateMul(gen, rm, src1, dest, true);
-                //insnCodeGen::generateTrap(gen);
             }
             break;
         case divOp:
             {
                 Register rm = insnCodeGen::moveValueToReg(gen, src2imm);
                 insnCodeGen::generateDiv(gen, rm, src1, dest, true, s);
-                //insnCodeGen::generateTrap(gen);
             }
             break;
         case xorOp:
@@ -734,7 +732,16 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
                 break;
 
             } else {
-                assert(0);
+                int stkOffset = TRAMP_FRAME_SIZE_64 + (src1 - 8) * sizeof(long);
+                // printf("TRAMP_FRAME_SIZE_64: %d\n", TRAMP_FRAME_SIZE_64);
+                // printf("stdOffset = TRAMP_xxx_64 + (argc - 8) * 8 = { %d }\n", stkOffset);
+                // TODO: PARAM_OFFSET(addrWidth) is currently not used
+                // should delete that macro if it's useless
+
+                if (src2 != REG_NULL) insnCodeGen::saveRegister(gen, src2, stkOffset);
+                insnCodeGen::restoreRegister(gen, dest, stkOffset);
+
+                return dest;
             }
             break;
         default:
@@ -805,7 +812,7 @@ static inline void moveGPR2531toGPR(codeGen &gen,
 // VG(03/15/02): Made functionality more obvious by adding the above functions
 static inline void emitAddOriginal(Register src, Register acc,
                                    codeGen &gen, bool noCost) {
-    assert(0); //Not implemented
+  emitV(plusOp, src, acc, acc, gen, noCost, 0);
 }
 
 // VG(11/07/01): Load in destination the effective address given
@@ -813,7 +820,32 @@ static inline void emitAddOriginal(Register src, Register acc,
 void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
                 codeGen &gen,
                 bool noCost) {
-    assert(0); //Not implemented
+
+  // Haven't implemented non-zero shifts yet
+  assert(stackShift == 0);
+  //instruction *insn = (instruction *) ((void*)&gen[base]);
+  int imm = as->getImm();
+  int ra  = as->getReg(0);
+  int rb  = as->getReg(1);
+  int sc  = as->getScale();
+
+    cout << "imm: " << imm << " ra: " << ra << " rb: " << rb << " sc: " << sc << endl;
+    // TODO: optimize this to generate the minimum number of
+  // instructions; think about schedule
+
+
+  if(ra > -1)
+      emitAddOriginal(ra, dest, gen, noCost);
+
+
+  // call adds, save 2^scale * rb to dest
+  if(rb > -1) {
+      insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, sc, 0, rb, 0, dest, 1);
+  }
+  // emit code to load the immediate (constant offset) into dest; this
+  // writes at gen+base and updates base, we must update insn...
+  emitVload(loadConstOp, (Address)imm, dest, dest, gen, noCost);
+
 }
 
 void emitCSload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,
@@ -841,10 +873,19 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
             gen.codeEmitter()->emitLoad(dest, src1, size, gen);
             break;
         case loadRegRelativeAddr:
+            // (readReg(src2) + src1)
             // dest is a temporary
             // src2 is the register
             // src1 is the offset from the address in src2
             gen.codeEmitter()->emitLoadOrigRegRelative(dest, src1, src2, gen, false);
+            break;
+        case loadRegRelativeOp:
+            // *(readReg(src2) + src1)
+            // dest is a temporary
+            // src2 is the register
+            // src1 is the offset from the address in src2
+            gen.codeEmitter()->emitLoadOrigRegRelative(dest, src1, src2, gen, true);
+            break;
         default:
             assert(0); //Not implemented
             break;
@@ -897,6 +938,10 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
             size = !size ? proc->getAddressWidth() : size;
             // same as loadOp, but the value to load is already in a register
             gen.codeEmitter()->emitLoadIndir(dest, src1, size, gen);
+            break;
+        case storeIndirOp:
+            size = !size ? proc->getAddressWidth() : size;
+            gen.codeEmitter()->emitStoreIndir(dest, src1, size, gen);
             break;
         default:
             //std::cout << "operation not implemented= " << op << endl;
@@ -1010,9 +1055,40 @@ bool doNotOverflow(int64_t value)
 // specified by entry and base_addr.  If it has been bound, then the callee
 // function is returned in "target_pdf", else it returns false.
 bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &entry,
-                             func_instance *&target_pdf, Address base_addr) {
-    assert(0); //Not implemented
-    return false;
+                             func_instance *&target_pdf, Address base_addr)
+{
+	if (isTerminated()) return false;
+
+	// if the relocationEntry has not been bound yet, then the value
+	// at rel_addr is the address of the instruction immediately following
+	// the first instruction in the PLT entry (which is at the target_addr)
+	// The PLT entries are never modified, instead they use an indirrect
+	// jump to an address stored in the _GLOBAL_OFFSET_TABLE_.  When the
+	// function symbol is bound by the runtime linker, it changes the address
+	// in the _GLOBAL_OFFSET_TABLE_ corresponding to the PLT entry
+
+	Address got_entry = entry.rel_addr() + base_addr;
+	Address bound_addr = 0;
+	if (!readDataSpace((const void*)got_entry, sizeof(Address),
+				&bound_addr, true)){
+		sprintf(errorLine, "read error in PCProcess::hasBeenBound addr 0x%x, pid=%d\n (readDataSpace returns 0)",(unsigned)got_entry,getPid());
+		logLine(errorLine);
+		//print_read_error_info(entry, target_pdf, base_addr);
+		fprintf(stderr, "%s[%d]: %s\n", FILE__, __LINE__, errorLine);
+		return false;
+	}
+
+   //fprintf(stderr, "%s[%d]:  hasBeenBound:  %p ?= %p ?\n", FILE__, __LINE__, bound_addr, entry.target_addr() + 6 + base_addr);
+	if ( !( bound_addr == (entry.target_addr()+6+base_addr)) ) {
+	  // the callee function has been bound by the runtime linker
+	  // find the function and return it
+	  target_pdf = findFuncByEntry(bound_addr);
+	  if(!target_pdf){
+	    return false;
+	  }
+	  return true;
+	}
+	return false;
 }
 
 #endif
@@ -1028,8 +1104,9 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
                                         Register dest,
                                         codeGen &gen,
                                         int /*size*/,
-                                        bool noCost) {
-    assert(0); //Not implemented
+                                        bool noCost)
+{
+    gen.codeEmitter()->emitLoadOrigRegister(register_num, dest, gen);
 }
 
 void emitStorePreviousStackFrameRegister(Address,
@@ -1040,13 +1117,34 @@ void emitStorePreviousStackFrameRegister(Address,
     assert(0);
 }
 
-using namespace Dyninst::InstructionAPI;
+// First AST node: target of the call
+// Second AST node: source of the call
+// This can handle indirect control transfers as well
 bool AddressSpace::getDynamicCallSiteArgs(InstructionAPI::Instruction i,
 					  Address addr,
 					  pdvector<AstNodePtr> &args)
 {
-	assert(0); //Not implemented
-	return false;
+    using namespace Dyninst::InstructionAPI;
+    Register branch_target = registerSpace::ignored;
+
+    for(Instruction::cftConstIter curCFT = i.cft_begin();
+            curCFT != i.cft_end(); ++curCFT)
+    {
+        auto target_reg = dynamic_cast<RegisterAST *>(curCFT->target.get());
+        if(!target_reg) return false;
+        branch_target = target_reg->getID() & 0x1f;
+        break;
+    }
+
+    if(branch_target == registerSpace::ignored) return false;
+
+    //jumping to Xn (BLR Xn)
+    args.push_back(AstNode::operandNode(AstNode::origRegister,(void *) branch_target));
+    args.push_back(AstNode::operandNode(AstNode::Constant, (void *) addr));
+
+    //inst_printf("%s[%d]:  Inserting dynamic call site instrumentation for %s\n",
+    //        FILE__, __LINE__, cft->format(insn.getArch()).c_str());
+    return true;
 }
 
 bool writeFunctionPtr(AddressSpace *p, Address addr, func_instance *f) {

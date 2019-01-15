@@ -163,13 +163,13 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     {
         scratch = 9;
         //push r9
-        saveRegister(gen, scratch, -GPRSIZE_64, Pre);
+        saveRegister(gen, scratch, -GPRSIZE_64*2, Pre);
         //load disp to r9
         loadImmIntoReg<Address>(gen, scratch, to);
         //generate call
         generateBReg(scratch);
         //pop r9
-        restoreRegister(gen, scratch, GPRSIZE_64, Pre);
+        restoreRegister(gen, scratch, GPRSIZE_64*2, Post);
         return;
     }
 
@@ -487,13 +487,6 @@ Register insnCodeGen::moveValueToReg(codeGen &gen, long int val, pdvector<Regist
         assert(0);
     }
 
-    /*insnCodeGen::generateMove(gen, (val & 0xFFFF), 0, scratchReg, insnCodeGen::MovOp_MOVZ);
-    if (val >= MIN_IMM32 && val < MAX_IMM32)
-        insnCodeGen::generateMove(gen, ((val >> 16) & 0xFFFF), 0x1, scratchReg, insnCodeGen::MovOp_MOVK);
-    if (val < MIN_IMM32 || val > MAX_IMM32) {
-        insnCodeGen::generateMove(gen, ((val >> 32) & 0xFFFF), 0x2, scratchReg, insnCodeGen::MovOp_MOVK);
-        insnCodeGen::generateMove(gen, ((val >> 48) & 0xFFFF), 0x3, scratchReg, insnCodeGen::MovOp_MOVK);
-    }*/
     loadImmIntoReg<long int>(gen, scratchReg, val);
 
     return scratchReg;
@@ -514,35 +507,36 @@ void insnCodeGen::loadImmIntoReg(codeGen &gen, Register rt, T value)
         insnCodeGen::generateMove(gen, ((value >> 48) & 0xFFFF), 0x3, rt, MovOp_MOVK);
 }
 
-
-// This is for generating STR/LDR (immediate) for indexing modes of Post, Pre and Offset
-void insnCodeGen::generateMemAccess32or64(codeGen &gen, LoadStore accType,
-        Register r1, Register r2, int immd, bool is64bit, IndexMode im)
+// Generate memory access through Load or Store
+// Instructions generated:
+//     LDR/STR (immediate) for 32-bit or 64-bit
+//     LDRB/STRB (immediate) for 8-bit
+//     LDRH/STRH  (immediate) for 16-bit
+//
+// Encoding classes allowed: Post-index, Pre-index and Unsigned Offset
+void insnCodeGen::generateMemAccess(codeGen &gen, LoadStore accType,
+        Register r1, Register r2, int immd, unsigned size, IndexMode im)
 {
     instruction insn;
     insn.clear();
 
-    //Bit 31 is always 1. Bit 30 is 1 if we're using the 64-bit variant.
-    INSN_SET(insn, 31, 31, 1);
-    if(is64bit)
-        INSN_SET(insn, 30, 30, 1);
+    assert( size==1 || size==2 || size==4 || size==8 );
+
+    static unsigned short map_size[9] = {0,0,1,0,2,0,0,0,3}; // map `size` to 00,01,10,11
+    INSN_SET(insn, 30, 31, map_size[size]);
 
     switch(im){
         case Post:
         case Pre:
-            //Set opcode, index and offset bits
-            if(immd >= -256 && immd <= 255) {
-                INSN_SET(insn, 21, 29, (accType == Load) ? LDRImmOp : STRImmOp);
-                INSN_SET(insn, 10, 11, im==Post?0x1:0x3);
-                INSN_SET(insn, 12, 20, immd); // can be negative so no enconding
-            } else {
-                assert(!"Cannot perform a post/pre-indexed memory access for offsets not in range [-256, 255]!");
-            }
+            assert(immd >= -256 && immd <= 255);
+            INSN_SET(insn, 21, 29, (accType == Load) ? LDRImmOp : STRImmOp);
+            INSN_SET(insn, 10, 11, im==Post?0x1:0x3);
+            INSN_SET(insn, 12, 20, immd); // can be negative so no enconding
             break;
         case Offset:
-            INSN_SET(insn, 22, 29, (accType == Load) ? LDRImmUIOp : STRImmUIOp);
             assert(immd>=0); // this offset is supposed to be unsigned, i.e. positive
-            INSN_SET(insn, 10, 21, immd>>(is64bit?3:2)); // always positive so encode
+            INSN_SET(insn, 22, 29, (accType == Load) ? LDRImmUIOp : STRImmUIOp);
+            INSN_SET(insn, 10, 21, immd/size); // always positive so encode
             break;
     }
 
@@ -654,13 +648,13 @@ assert(0);
 
 void insnCodeGen::saveRegister(codeGen &gen, Register r, int sp_offset, IndexMode im)
 {
-    generateMemAccess32or64(gen, Store, r, REG_SP, sp_offset, true, im);
+    generateMemAccess(gen, Store, r, REG_SP, sp_offset, 8, im);
 }
 
 
 void insnCodeGen::restoreRegister(codeGen &gen, Register r, int sp_offset, IndexMode im)
 {
-    generateMemAccess32or64(gen, Load, r, REG_SP, sp_offset, true, im);
+    generateMemAccess(gen, Load, r, REG_SP, sp_offset, 8, im);
 }
 
 
@@ -894,35 +888,20 @@ bool insnCodeGen::modifyData(Address target,
 
             generate(gen, newInsn);
         }
-        //Else, generate move instructions to move the value to the same register
+        //If it's larger than |1MB|, move target to register and generate LDR
         else {
-            //Get scratch register for loading the target address in
-            Register immReg = gen.rs()->getScratchRegister(gen, true);
-            if(immReg == REG_NULL)
-                assert(!"No scratch register available to load the target address into for a PC-relative data access using LDR/LDRSW!");
-            //Generate sequence of instructions for loading the target address in scratch register
-            assert(!"DDDD");
-            loadImmIntoReg<Address>(gen, immReg, target);
+            // Get scratch register
+            Register scratch = gen.rs()->getScratchRegister(gen, true);
+            if(scratch == REG_NULL)
+                assert(!"No scratch register available to load the target \
+                        address into for a PC-relative data access using LDR/LDRSW!");
 
-            Register rt = raw & 0x1F;
+            // Load the target address into scratch register
+            loadImmIntoReg<Address>(gen, scratch, target);
 
-            //Generate instruction for reading value at target address using unsigned-offset variant of the immediate variant of LDR/LDRSW
-            instruction newInsn;
-            newInsn.clear();
-
-            if(((raw >> 31) & 0x1) == 0) {
-                INSN_SET(newInsn, 30, 30, ((raw >> 30) & 0x1));
-                INSN_SET(newInsn, 22, 29, LDRImmUIOp);
-            } else {
-                INSN_SET(newInsn, 22, 29, LDRSWImmUIOp);
-            }
-
-            INSN_SET(newInsn, 31, 31, 0x1);
-            INSN_SET(newInsn, 10, 21, 0);
-            INSN_SET(newInsn, 5, 9, immReg);
-            INSN_SET(newInsn, 0, 4, rt);
-
-            generate(gen, newInsn);
+            // Generate LDR(immediate) to load into r the the content of [scratch]
+            Register r = raw & 0x1F;
+            generateMemAccess(gen, Load, r, scratch, 0, 8, Offset);
         }
     } else {
         assert(!"Got an instruction other than ADR/ADRP/LDR(literal)/LDRSW(literal) in PC-relative data access!");
