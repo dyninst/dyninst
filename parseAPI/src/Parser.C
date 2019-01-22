@@ -88,36 +88,36 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
         parsing_printf("[%s:%d] CodeSource provides no CodeRegions"
                        " -- unparesable\n",
             FILE__,__LINE__);
-        _parse_data = new StandardParseData(this);
         _parse_state = UNPARSEABLE;
-        return;
     }
 
-    // check whether regions overlap
-    vector<CodeRegion *> const& regs = obj.cs()->regions();
-    vector<CodeRegion *> copy(regs.begin(),regs.end());
-    sort(copy.begin(),copy.end(),less_cr());
+    if (_parse_state != UNPARSEABLE) {
+        // check whether regions overlap
+        vector<CodeRegion *> const& regs = obj.cs()->regions();
+        vector<CodeRegion *> copy(regs.begin(),regs.end());
+        sort(copy.begin(),copy.end(),less_cr());
 
-    // allocate a sink block -- region is arbitrary
-    _sink = _cfgfact._mksink(&_obj,copy[0]);
+        // allocate a sink block -- region is arbitrary
+        _sink = _cfgfact._mksink(&_obj,copy[0]);
 
-    bool overlap = false;
-    CodeRegion * prev = copy[0], *cur = NULL;
-    for(unsigned i=1;i<copy.size();++i) {
-        cur = copy[i];
-        if(cur->offset() < prev->offset() + prev->length()) {
-            parsing_printf("Overlapping code regions [%lx,%lx) and [%lx,%lx)\n",
-                prev->offset(),prev->offset()+prev->length(),
-                cur->offset(),cur->offset()+cur->length());
-            overlap = true;
-            break;
+        bool overlap = false;
+        CodeRegion * prev = copy[0], *cur = NULL;
+        for(unsigned i=1;i<copy.size();++i) {
+            cur = copy[i];
+            if(cur->offset() < prev->offset() + prev->length()) {
+                parsing_printf("Overlapping code regions [%lx,%lx) and [%lx,%lx)\n",
+                    prev->offset(),prev->offset()+prev->length(),
+                    cur->offset(),cur->offset()+cur->length());
+                overlap = true;
+                break;
+            }
         }
+
+        if(overlap)
+            _parse_data = new OverlappingParseData(this,copy);
     }
 
-    if(overlap)
-        _parse_data = new OverlappingParseData(this,copy);
-    else
-        _parse_data = new StandardParseData(this);
+    _parse_data = new StandardParseData(this);
 }
 
 ParseFrame::~ParseFrame()
