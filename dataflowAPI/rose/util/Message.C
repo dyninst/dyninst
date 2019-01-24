@@ -212,7 +212,7 @@ MesgProps::print(std::ostream &o) const {
 
     o <<", isBuffered=";
     if (!indeterminate(isBuffered)) {
-        o <<(isBuffered ? "yes" : "no");
+        o <<(((bool) isBuffered) ? "yes" : "no");
     } else {
         o <<"undef";
     }
@@ -247,7 +247,7 @@ MesgProps::print(std::ostream &o) const {
     
     o <<", useColor=";
     if (!indeterminate(useColor)) {
-        o <<(useColor ? "yes" : "no");
+        o <<(((bool) useColor) ? "yes" : "no");
     } else {
         o <<"undef";
     }
@@ -730,7 +730,7 @@ Prefix::toString(const Mesg &mesg, const MesgProps &props) const {
     std::string separator = "";
 
     std::string endColor;
-    if (props.useColor && props.importance) {
+    if (((bool) props.useColor) && props.importance) {
         const ColorSpec &cs = colorSet_[*props.importance];
         if (!cs.isDefault()) {
             const char *semi = "";
@@ -743,7 +743,7 @@ Prefix::toString(const Mesg &mesg, const MesgProps &props) const {
                 retval <<semi <<(40+cs.background);
                 semi = ";";
             }
-            if (cs.bold)
+            if ((bool) cs.bold)
                 retval <<semi <<"1";
             retval <<"m";
             endColor = "\033[m";
@@ -1123,7 +1123,7 @@ StreamBuf::bake() {
         destination_->bakeDestinations(message_.properties(), baked_/*out*/);
         anyUnbuffered_ = false;
         for (BakedDestinations::const_iterator bi=baked_.begin(); bi!=baked_.end() && !anyUnbuffered_; ++bi)
-            anyUnbuffered_ = !bi->second.isBuffered;
+            anyUnbuffered_ = (bool) !bi->second.isBuffered;
         isBaked_ = true;
     }
 }
