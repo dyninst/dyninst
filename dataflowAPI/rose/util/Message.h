@@ -386,7 +386,8 @@ struct SAWYER_EXPORT ColorSpec {
     ColorSpec(AnsiColor fg, AnsiColor bg, bool bold): foreground(fg), background(bg), bold(bold) {}
 
     /** Returns true if this object is in its default-constructed state. */
-    bool isDefault() const { return COLOR_DEFAULT==foreground && COLOR_DEFAULT==background && (bool) !bold; }
+    bool isDefault() const { return COLOR_DEFAULT==foreground && COLOR_DEFAULT==background
+                                    && static_cast<bool>(!bold); }
 };
 
 /** Colors to use for each message importance.
