@@ -68,6 +68,8 @@ unsigned int setBits(unsigned int target, unsigned int pos, unsigned int len, un
   rewrite_printf("setBits target 0x%lx value 0x%lx pos %d len %d \n", target, value, pos, len);
 // There are three parts of the target - 0:pos, pos:len, len:32 
 // We want to create a mask with 0:pos and len:32 set to 1
+
+  /*
     unsigned int mask, mask1, mask2;
     mask1 = ~(~0 << pos);
     mask1 = (mask1 << (32-pos));
@@ -78,28 +80,16 @@ unsigned int setBits(unsigned int target, unsigned int pos, unsigned int len, un
 
     if(len != 32)
     	mask = ~mask;
-
-    value = value & mask;
+*/
+    unsigned int mask;
+    mask = ((1 << len) - 1) << pos;
     rewrite_printf(" mask 0x%lx value 0x%lx \n", mask, value);
+    value = value & mask;
     target = target | value;
     rewrite_printf( "setBits target 0x%lx value 0x%lx pos %d len %d \n", target, value, pos, len);
 
     return target;
 }
-
-unsigned long setBits64(unsigned long target, unsigned int pos, unsigned int len, unsigned long value) {
-    unsigned  long mask;
-    mask = ~(~0 << len);
-    mask = (mask << pos);
-    target = target & mask;
-        if(len != 32)
-    mask = ~mask;
-    value = value & mask;
-
-    target = target | value;
-    return target;
-}
-
 
 #if defined(os_freebsd)
 #define R_X86_64_JUMP_SLOT R_X86_64_JMP_SLOT
@@ -229,11 +219,11 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
         }else if( rel.regionType() == Region::RT_RELA ) {
             addend = rel.addend();
         }
-        
+/*
 	if(!computeCtorDtorAddress(rel, globalOffset, lmap, errMsg, symbolOffset)) {
 		return false;
 	}
-
+*/
 	// Handle TOC-changing inter-module calls
 	// handleInterModule returns false if it's not its problem. 
 	if (rel.getRelType() == R_PPC64_REL24 &&
@@ -246,7 +236,8 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	}
 
 	// If symbol is .toc, we must return the got offset
-    	if(rel.getRelType() == R_PPC64_TOC16_DS || rel.getRelType() == R_PPC64_TOC16) {
+    	//if(rel.getRelType() == R_PPC64_TOC16_DS || rel.getRelType() == R_PPC64_TOC16) {
+	if (rel.name() == ".toc") {
 	  vector<Region *> allRegions;
 	  srcSymtab->getAllRegions(allRegions);
 	  vector<Region *>::iterator region_it;
@@ -263,13 +254,16 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	  }
     	}
 
+	if (rel.name() == ".TOC.")
+	  symbolOffset = newTOCoffset;
+
         rewrite_printf("\trelocation for '%s': TYPE = %s(%lu) S = %lx A = %lx P = %lx Total 0x%lx \n",
                 rel.name().c_str(), 
                 relocationEntry::relType2Str(rel.getRelType(), addressWidth_),
                 rel.getRelType(), symbolOffset, addend, relOffset, symbolOffset+addend);
 
 
-        Offset relocation = 0;
+        int64_t relocation = 0;
         map<Symbol *, Offset>::iterator result;
         stringstream tmp;
 
@@ -291,6 +285,16 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	  //rewrite_printf(" R_PPC64_REL24 S = 0x%lx A = %d relOffset = 0x%lx relocation without shift 0x%lx %ld \n", 
 	  //symbolOffset, addend, relOffset, symbolOffset + addend - relOffset, symbolOffset + addend - relOffset);
 	  break;
+	case R_PPC64_GOT_TPREL16_HA:
+	  relocation_length = 16;
+	  relocation = symbolOffset + addend ; //- relOffset;
+	  relocation = (relocation + 0x8000) >> 16;
+	  break;
+	case R_PPC64_GOT_TPREL16_LO_DS:
+	  relocation_length = 16;
+	  relocation = symbolOffset + addend ;// - relOffset;
+	  relocation = relocation & 0xffff;
+	  break;
 	case R_PPC64_REL32:
 	  //rewrite_printf("REL32\n");
 	  relocation_length = 24;
@@ -307,22 +311,57 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	case R_PPC64_TOC16:
 	  //rewrite_printf("TOC16\n");
 	  relocation_length = 16;
-	  relocation_pos = 0;
 	  relocation = symbolOffset + addend - newTOCoffset;
 	  break;
+	case R_PPC64_TOC16_HA:
+	  relocation_length = 16;
+	  relocation = symbolOffset + addend - newTOCoffset;
+	  relocation = (relocation + 0x8000) >> 16;
+	  break;
+	case R_PPC64_TOC16_LO:
+	  relocation_length = 16;
+	  relocation = symbolOffset + addend - newTOCoffset;
+	  relocation = relocation & 0xffff;
+	  break;
+
 	case R_PPC64_TOC16_DS:
 	  //rewrite_printf("TOC16_DS\n");
 	  relocation_length = 16;
-	  relocation_pos = 16;
 	  relocation = (symbolOffset + addend - newTOCoffset) >> 2 ;
 	  relocation = relocation << 2;
 	  break;
+	case R_PPC64_TOC16_LO_DS:
+	  relocation_length = 16;
+	  relocation = symbolOffset + addend - newTOCoffset;
+	  //relocation = (relocation & 0xffff) >> 2;
+	  relocation = relocation & 0xffff;
+	  break;
+
 	case R_PPC64_TOC:
 	  // I don't know how we never had to deal with these before...
 	  relocation_length = 64;
 	  relocation = newTOCoffset;
 	  break;
+
+	case R_PPC64_REL16_HA:
+	  relocation_length = 16;
+	  relocation = (symbolOffset + addend - relOffset);
+	  relocation = (relocation + 0x8000) >> 16; 
+	  break;
+	case R_PPC64_REL16_LO:
+	  relocation_length = 16;
+	  relocation = (symbolOffset + addend - relOffset) & 0xffff;
+	  break;
+	case R_PPC64_TPREL16_HA:
+	  relocation_length = 16;
+	  relocation = (symbolOffset - 0x7000 + 0x8000) >> 16;
+	  break;
+	case R_PPC64_TPREL16_LO:
+	  relocation_length = 16;
+	  relocation = (symbolOffset - 0x7000) & 0xffff;
+	  break;
 	default:
+	  fprintf(stderr, "Unhandled relocation type %d\n",rel.getRelType());
 	  assert(0);
 	}
         rewrite_printf("\tbefore: relocation = 0x%lx @ 0x%lx target data %lx %lx %lx %lx %lx %lx \n", 
@@ -330,8 +369,7 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 
 	if (relocation_length == 64) {
 		char *td = (targetData + dest - (dest%8));
-	        unsigned long target = *((unsigned long *) td);
-	        target = setBits64(target, relocation_pos, relocation_length, relocation);
+		uint64_t target = relocation;
         	memcpy(td, &target, 2*sizeof(Elf64_Word));
 	} else {
 		char *td = (targetData + dest - (dest%4));
@@ -946,8 +984,8 @@ void emitElfStatic::buildGOT(Symtab * /*target*/, LinkMap &lmap) {
  * instead of 4. So the header and trailler are the same, but extended to
  * 8 bytes.
  */
-static const string DTOR_NAME(".dtors");
-static const string CTOR_NAME(".ctors");
+static const string DTOR_NAME(".fini_array");
+static const string CTOR_NAME(".init_array");
 static const string TOC_NAME(".toc");
 
 Offset emitElfStatic::layoutNewCtorRegion(LinkMap &lmap) {

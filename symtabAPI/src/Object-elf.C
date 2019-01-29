@@ -1540,6 +1540,7 @@ void Object::load_object(bool alloc_syms) {
             find_catch_blocks(eh_frame_scnp, gcc_except,
                               txtaddr, dataddr, catch_addrs_);
         }
+
 //        }
 #endif
         if (interp_scnp) {
@@ -1593,6 +1594,8 @@ void Object::load_object(bool alloc_syms) {
                 strdata = dynstr_scnp->get_data();
                 parse_dynamicSymbols(dynamic_scnp, symdata, strdata, false, module);
             }
+
+
 
             //TODO
             //Have a hash on the symbol table. Iterate over dynamic symbol table to check if it exists
@@ -2117,8 +2120,9 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
 
 
             Region *sec;
-            if (secNumber >= 1 && secNumber < regions_.size()) {
+            if (secNumber >= 0 && secNumber < regions_.size()) {
                 sec = regions_[secNumber];
+		//fprintf(stderr, "symbol name %s, region name %s\n", sname.c_str(), sec->getRegionName().c_str());
             } else {
                 sec = NULL;
             }
@@ -2451,12 +2455,16 @@ bool Object::dwarf_parse_aranges(Dwarf *dbg, std::set<Dwarf_Off> &dies_seen) {
 
 bool Object::fix_global_symbol_modules_static_dwarf() {
     /* Initialize libdwarf. */
+
     Dwarf **dbg_ptr = dwarf->type_dbg();
+
     if (!dbg_ptr)
         return false;
     Dwarf *dbg = *dbg_ptr;
     std::set<Dwarf_Off> dies_seen;
-    dwarf_parse_aranges(dbg, dies_seen);
+    if (!dwarf_parse_aranges(dbg, dies_seen)) {
+	    return false;
+    }
 
     /* Iterate over the compilation-unit headers. */
     size_t cu_header_size;
@@ -2890,6 +2898,7 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
     }
 
     dwarf = DwarfHandle::createDwarfHandle(mf_->pathname(), elfHdr);
+
     if (elfHdr->e_type() == ET_DYN) {
 //        load_shared_object(alloc_syms);
         load_object(alloc_syms);
@@ -4915,7 +4924,7 @@ void Object::insertDynamicEntry(long name, long value) {
 bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
                                    Elf_X_Shdr *dynstr_scnp, Elf_X_Shdr *symtab_scnp,
                                    Elf_X_Shdr *strtab_scnp) {
-
+//fprintf(stderr, "enter parse_all_relocations for object %s\n", getFileName().c_str() );
     //const char *shnames = pdelf_get_shnames(*elfHdr);
     // Setup symbol table access
     Offset dynsym_offset = 0;
@@ -5029,6 +5038,7 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
                     symbol_index = rela.R_SYM(j);
                     regType = Region::RT_RELA;
                     addend = rela.r_addend(j);
+		    //fprintf(stderr, "Handle RELA symbol_index %d, type is R_PPC^$_REL16_HA %d\n", symbol_index, relType == R_PPC64_REL16_HA);
                     break;
                 default:
                     continue;
@@ -5039,6 +5049,7 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
             // Use dynstr to ensure we've initialized dynsym...
             if (dynstr && curSymHdr && curSymHdr->sh_offset() == dynsym_offset) {
                 name = string(&dynstr[dynsym.st_name(symbol_index)]);
+//		fprintf(stderr, "find DYN relocation for %s, rel offset %lx, addend %lx\n", name.c_str(), relOff, addend);
 
                 dyn_hash_map<int, Symbol *>::iterator sym_it;
                 sym_it = dynsymByIndex.find(symbol_index);
@@ -5050,6 +5061,7 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
                 }
             } else if (strtab && curSymHdr && curSymHdr->sh_offset() == symtab_offset) {
                 name = string(&strtab[symtab.st_name(symbol_index)]);
+//		fprintf(stderr, "find relocation for %s, rel offset %lx, addend %lx\n", name.c_str(), relOff, addend);
                 dyn_hash_map<int, Symbol *>::iterator sym_it;
                 sym_it = symtabByIndex.find(symbol_index);
                 if (sym_it != symtabByIndex.end()) {

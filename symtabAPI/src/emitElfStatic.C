@@ -1401,7 +1401,9 @@ Offset emitElfStatic::tlsLayoutVariant1(Offset globalOffset, Region *dataTLS, Re
     // The original init. image needs to remain in the image 1 slot because
     // the TLS data references are relative to that position
     unsigned long tlsBssSize = 0;
-    if( dataTLS != NULL ) lmap.tlsRegions.push_back(dataTLS);
+    if( dataTLS != NULL ) {
+	    lmap.tlsRegions.push_front(dataTLS);
+    }
     if( bssTLS != NULL ) tlsBssSize = bssTLS->getMemSize();
     deque<Region *> tlsRegionsVar;
 
@@ -1431,7 +1433,6 @@ Offset emitElfStatic::tlsLayoutVariant1(Offset globalOffset, Region *dataTLS, Re
     for(sym_it = lmap.tlsSymbols.begin(); sym_it != lmap.tlsSymbols.end(); ++sym_it) {
         map<Region *, LinkMap::AllocPair>::iterator result;
         result = lmap.regionAllocs.find((*sym_it)->getRegion());
-
         // It is a programming error if the region for the symbol
         // was not passed to this function
         if( result == lmap.regionAllocs.end() ) {
@@ -1442,8 +1443,7 @@ Offset emitElfStatic::tlsLayoutVariant1(Offset globalOffset, Region *dataTLS, Re
         Offset regionOffset = result->second.second;
         Offset symbolOffset = (*sym_it)->getOffset();
         lmap.origSymbols.push_back(make_pair((*sym_it), symbolOffset));
-
-        symbolOffset += (regionOffset - lmap.tlsRegionOffset) - (adjustedEnd + tlsBssSize);
+        symbolOffset += (regionOffset - lmap.tlsRegionOffset); //- (adjustedEnd + tlsBssSize);
         (*sym_it)->setOffset(symbolOffset);
     }
 
