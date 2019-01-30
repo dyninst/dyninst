@@ -662,16 +662,11 @@ Register EmitterAARCH64::emitCall(opCode op,
         assert(scratch != REG_NULL);
         gen.markRegDefined(scratch);
         if (gen.func()->obj() != callee->obj()) {
-            printf("Entering if-clause, InterModule Function call\n");
-            //Register s1 = gen.rs()->getRegByName("r2");
-            //Register s1 = gen.rs()->getScratchRegister(gen, noCost, true);
-            //assert(s1 != REG_NULL);
-            //gen.markRegDefined(s1);
+            // TODO: need to check if we are in rewriter mode
             Address dest = getInterModuleFuncAddr(callee, gen);
             insnCodeGen::loadImmIntoReg<Address>(gen, scratch, dest);
 
             insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, scratch, scratch, 0, 8, insnCodeGen::Offset);
-            //insnCodeGen::generateTrap(gen);
         } else {
             insnCodeGen::loadImmIntoReg<Address>(gen, scratch, callee->addr());
         }
@@ -1505,7 +1500,6 @@ Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
         // add write new relocation symbol/entry
         binEdit->addDependentRelocation(relocation_address, referring);
     }
-    printf("passed relocation address: %llu\n", relocation_address);
     return relocation_address;
 }
 
