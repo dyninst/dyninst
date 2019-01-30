@@ -2120,9 +2120,9 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
 
 
             Region *sec;
-            if (secNumber >= 0 && secNumber < regions_.size()) {
+	    // SecNumber 0 is a NULL section, representing undef symbols
+            if (secNumber >= 1 && secNumber < regions_.size()) {
                 sec = regions_[secNumber];
-		//fprintf(stderr, "symbol name %s, region name %s\n", sname.c_str(), sec->getRegionName().c_str());
             } else {
                 sec = NULL;
             }

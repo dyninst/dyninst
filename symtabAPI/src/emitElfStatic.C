@@ -386,6 +386,9 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
                    if( curUndefSym->getLinkage() == Symbol::SL_WEAK ) {
                       continue;
                    }
+		   if (curUndefSym->getMangledName().compare(".TOC.") == 0) {
+		      continue;
+		   }
 
                    err = Symbol_Resolution_Failure;
                    errMsg = "failed to locate symbol '" + curUndefSym->getMangledName()
@@ -419,11 +422,6 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
                                containingSymtab->getParentArchive()->name().c_str(),
                                containingSymtab->memberName().c_str());
             }
-
-	    if (extSymbol->getType() == Symbol::ST_INDIRECT) {
-	      addIndirectSymbol(extSymbol, lmap);
-	    }
-
             // Store the found symbol with the related relocations
             map<Symbol *, vector<relocationEntry *> >::iterator relMap_it;
             relMap_it = symToRels.find(curUndefSym);

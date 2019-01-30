@@ -162,12 +162,13 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	//	Offset TOCoffset = srcSymtab->getTOCoffset();
 	
 	Offset newTOCoffset = 0;
-	if (dynsym->getModule()) {
-	  newTOCoffset = dynsym->getSymtab()->getTOCoffset(dynsym->getOffset());
-	}
 
 	// This is an added file, thus there's only one TOC value, so look up @0. 
 	Offset curTOCoffset = srcSymtab->getTOCoffset((Offset) 0);
+
+	// Usually, there is only one TOC.
+	// TODO: if multiple TOCs are needed
+	newTOCoffset = curTOCoffset;
 
 	rewrite_printf(" archSpecificRelocation %s\ndynsym %s, reloc offset 0x%lx\n new TOC 0x%lx, cur TOC 0x%x\n dest 0x%lx \n", 
 		       rel.name().c_str(), 
@@ -219,11 +220,7 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
         }else if( rel.regionType() == Region::RT_RELA ) {
             addend = rel.addend();
         }
-/*
-	if(!computeCtorDtorAddress(rel, globalOffset, lmap, errMsg, symbolOffset)) {
-		return false;
-	}
-*/
+
 	// Handle TOC-changing inter-module calls
 	// handleInterModule returns false if it's not its problem. 
 	if (rel.getRelType() == R_PPC64_REL24 &&
@@ -236,7 +233,6 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	}
 
 	// If symbol is .toc, we must return the got offset
-    	//if(rel.getRelType() == R_PPC64_TOC16_DS || rel.getRelType() == R_PPC64_TOC16) {
 	if (rel.name() == ".toc") {
 	  vector<Region *> allRegions;
 	  srcSymtab->getAllRegions(allRegions);
@@ -279,9 +275,13 @@ bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymt
 	case R_PPC64_GOT_TPREL16_DS:
 	  //rewrite_printf("GOT_TPREL16_DS or REL24\n");
 	  relocation_length = 24;
-	  relocation_pos = 6;
+	  // Skip the last bit, which is 1 representing setting link register
+	  // Skip the second-last bit, which represents relative branch
+	  relocation_pos = 2;
 	  //relocation = (symbolOffset + addend - relOffset)>> 2;
-	  relocation = symbolOffset + addend - relOffset;
+	  //Relocation R_PPC64_REL24 means R2 is already set up by the caller.
+	  //So, we skip the first two instructions to the local entry
+	  relocation = symbolOffset + addend - relOffset + 8;
 	  //rewrite_printf(" R_PPC64_REL24 S = 0x%lx A = %d relOffset = 0x%lx relocation without shift 0x%lx %ld \n", 
 	  //symbolOffset, addend, relOffset, symbolOffset + addend - relOffset, symbolOffset + addend - relOffset);
 	  break;
@@ -1023,43 +1023,7 @@ Offset emitElfStatic::layoutNewCtorRegion(LinkMap &lmap) {
 }
 
 bool emitElfStatic::createNewCtorRegion(LinkMap &lmap) {
-    char *targetData = lmap.allocatedData;
-
-    if( PPC32_WIDTH != addressWidth_ && PPC64_WIDTH != addressWidth_ ) {
-        assert(!UNKNOWN_ADDRESS_WIDTH_ASSERT);
-    }
-
-    unsigned trailerSize, headerSize;
-
-    /* Give the new Region a header and trailer */
-    Offset headerOffset = lmap.ctorRegionOffset;
-    Offset trailerOffset;
-    if( PPC32_WIDTH == addressWidth_ ) {
-        memcpy(&targetData[headerOffset], &X86_HEADER, sizeof(X86_HEADER));
-        trailerOffset = lmap.ctorRegionOffset + lmap.ctorSize - sizeof(X86_TRAILER);
-        memcpy(&targetData[trailerOffset], &X86_TRAILER, sizeof(X86_TRAILER));
-        headerSize = sizeof(X86_HEADER);
-        trailerSize = sizeof(X86_TRAILER);
-    }else{
-        memcpy(&targetData[headerOffset], &X86_64_HEADER, sizeof(X86_64_HEADER));
-        trailerOffset = lmap.ctorRegionOffset + lmap.ctorSize - sizeof(X86_64_TRAILER);
-        memcpy(&targetData[trailerOffset], &X86_64_TRAILER, sizeof(X86_64_TRAILER));
-        headerSize = sizeof(X86_64_HEADER);
-        trailerSize = sizeof(X86_64_TRAILER);
-    }
-
-    if( lmap.originalCtorRegion != NULL ) {
-        /* Determine where the original .ctors section should be placed */
-        Offset originalOffset = lmap.ctorRegionOffset + lmap.ctorSize -
-            trailerSize - (lmap.originalCtorRegion->getDiskSize() - headerSize - trailerSize);
-
-        /* Copy the original .ctors section w/o the header and trailer */
-        char *rawRegionData = reinterpret_cast<char *>(lmap.originalCtorRegion->getPtrToRawData());
-        memcpy(&targetData[originalOffset], &rawRegionData[headerSize],
-                lmap.originalCtorRegion->getDiskSize() - headerSize - trailerSize);
-    }
-
-    return true;
+	return true;
 }
 
 
@@ -1097,43 +1061,7 @@ Offset emitElfStatic::layoutNewDtorRegion(LinkMap &lmap) {
 }
 
 bool emitElfStatic::createNewDtorRegion(LinkMap &lmap) {
-    char *targetData = lmap.allocatedData;
-
-    if( PPC32_WIDTH != addressWidth_ && PPC64_WIDTH != addressWidth_ ) {
-        assert(!UNKNOWN_ADDRESS_WIDTH_ASSERT);
-    }
-
-    unsigned headerSize, trailerSize;
-
-    /* Give the new Region a header and trailer */
-    Offset headerOffset = lmap.dtorRegionOffset;
-    Offset trailerOffset;
-    if( PPC32_WIDTH == addressWidth_ ) {
-        memcpy(&targetData[headerOffset], &X86_HEADER, sizeof(X86_HEADER));
-        trailerOffset = lmap.dtorRegionOffset + lmap.dtorSize - sizeof(X86_TRAILER);
-        memcpy(&targetData[trailerOffset], &X86_TRAILER, sizeof(X86_TRAILER));
-        headerSize = sizeof(X86_HEADER);
-        trailerSize = sizeof(X86_TRAILER);
-    }else{
-        memcpy(&targetData[headerOffset], &X86_64_HEADER, sizeof(X86_64_HEADER));
-        trailerOffset = lmap.dtorRegionOffset + lmap.dtorSize - sizeof(X86_64_TRAILER);
-        memcpy(&targetData[trailerOffset], &X86_64_TRAILER, sizeof(X86_64_TRAILER));
-        headerSize = sizeof(X86_64_HEADER);
-        trailerSize = sizeof(X86_64_TRAILER);
-    }
-
-    if( lmap.originalDtorRegion != NULL ) {
-        /* Determine where the original .dtors section should be placed */
-        Offset originalOffset = lmap.dtorRegionOffset + headerSize;
-
-        /* Copy the original .dtors section w/o header and trailer */
-        char *rawRegionData = reinterpret_cast<char *>(lmap.originalDtorRegion->getPtrToRawData());
-        memcpy(&targetData[originalOffset], &rawRegionData[headerSize],
-                lmap.originalDtorRegion->getDiskSize() - headerSize - trailerSize);
-    }
-
-    return true;
-
+	return true;
 }
 
 bool emitElfStatic::isConstructorRegion(Region *reg) {
