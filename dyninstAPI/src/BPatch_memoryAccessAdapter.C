@@ -175,8 +175,8 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
   }
   assert(nac < 3);
   return bmap;
-#else
-    (void) is64; //Silence warnings
+#elif defined(arch_ppc)||defined(arch_ppc64)
+	(void) is64; //Silence warnings
     std::vector<Operand> operands;
     insn.getOperands(operands);
     for(std::vector<Operand>::iterator op = operands.begin();
@@ -187,6 +187,7 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
         bool isStore = op->writesMemory();
         if(isLoad || isStore)
         {
+						/*
             op->getValue()->apply(this);
             if(insn.getOperation().getID() == power_op_lmw ||
                insn.getOperation().getID() == power_op_stmw)
@@ -212,6 +213,7 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
             {
                 return new BPatch_memoryAccess(new internal_instruction(NULL), current, isLoad, isStore, (long)0, ra, rb, (long)0, 9999, -1);
             }
+						*/
             return new BPatch_memoryAccess(new internal_instruction(NULL), current, isLoad, isStore,
                                        bytes, imm, ra, rb);
         }
