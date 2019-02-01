@@ -661,7 +661,7 @@ Register EmitterAARCH64::emitCall(opCode op,
         // Register s1 = gen.rs()->getScratchRegister(gen, noCost);
         assert(scratch != REG_NULL);
         gen.markRegDefined(scratch);
-        if (gen.func()->obj() != callee->obj() && gen.addrSpace()->edit() != NULL) {
+        if (gen.addrSpace()->edit() != NULL && gen.func()->obj() != callee->obj()) {
             // gen.as.edit() checks if we are in rewriter mode
             Address dest = getInterModuleFuncAddr(callee, gen);
             insnCodeGen::loadImmIntoReg<Address>(gen, scratch, dest);
