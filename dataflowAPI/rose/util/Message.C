@@ -1123,7 +1123,7 @@ StreamBuf::bake() {
         destination_->bakeDestinations(message_.properties(), baked_/*out*/);
         anyUnbuffered_ = false;
         for (BakedDestinations::const_iterator bi=baked_.begin(); bi!=baked_.end() && !anyUnbuffered_; ++bi)
-            anyUnbuffered_ = !bi->second.isBuffered;
+            anyUnbuffered_ = static_cast<bool>(!bi->second.isBuffered);
         isBaked_ = true;
     }
 }
