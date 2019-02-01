@@ -661,8 +661,8 @@ Register EmitterAARCH64::emitCall(opCode op,
         // Register s1 = gen.rs()->getScratchRegister(gen, noCost);
         assert(scratch != REG_NULL);
         gen.markRegDefined(scratch);
-        if (gen.func()->obj() != callee->obj()) {
-            // TODO: need to check if we are in rewriter mode
+        if (gen.func()->obj() != callee->obj() && gen.addrSpace()->edit() != NULL) {
+            // gen.as.edit() checks if we are in rewriter mode
             Address dest = getInterModuleFuncAddr(callee, gen);
             insnCodeGen::loadImmIntoReg<Address>(gen, scratch, dest);
 
@@ -1366,13 +1366,8 @@ bool EmitterAARCH64Dyn::emitTOCCommon(block_instance *block, bool call, codeGen 
 
 // TODO 32/64-bit?
 bool EmitterAARCH64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
-    // assert(0); //Not implemented
-    // return emitPLTCommon(callee, true, gen);
-
-    // l: working on it...
-    Address dest = getInterModuleFuncAddr(callee, gen);
-    // TBD
-    return true;
+    assert(0); //Not implemented
+    return emitPLTCommon(callee, true, gen);
 }
 
 bool EmitterAARCH64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
@@ -1446,7 +1441,7 @@ Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
     // assert(0); //Not implemented
     // return NULL;
     
-    // l: copied from POWER64 getInterModuleFuncAddr
+    // from POWER64 getInterModuleFuncAddr
 
     AddressSpace *addrSpace = gen.addrSpace();
     if (!addrSpace)
