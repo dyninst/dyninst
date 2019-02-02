@@ -341,7 +341,7 @@ public:
     void getFuncs(std::vector<Function *> & funcs);
     template<class OutputIterator> void getFuncs(OutputIterator result); 
 
-    virtual getInsns(Insns &insns) const;
+    virtual void getInsns(Insns &insns) const;
     InstructionAPI::Instruction getInsn(Offset o) const;
 
     bool wasUserAdded() const;
