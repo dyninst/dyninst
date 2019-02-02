@@ -829,11 +829,6 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
   int rb  = as->getReg(1);
   int sc  = as->getScale();
 
-    cout << "imm: " << imm << " ra: " << ra << " rb: " << rb << " sc: " << sc << endl;
-    // TODO: optimize this to generate the minimum number of
-  // instructions; think about schedule
-
-
   if(ra > -1)
       emitAddOriginal(ra, dest, gen, noCost);
 
