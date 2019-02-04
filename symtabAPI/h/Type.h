@@ -36,6 +36,9 @@
 #include "symutil.h"
 #include <tbb/concurrent_vector.h>
 
+#include <boost/atomic.hpp>
+#include <mutex>
+
 namespace Dyninst{
 namespace SymtabAPI{
 
@@ -172,10 +175,11 @@ class SYMTAB_EXPORT Type : public Serializable, public  TYPE_ANNOTATABLE_CLASS
     **/
    bool updatingSize;
    
-   static typeId_t USER_TYPE_ID;
+   unsigned int refCount;
+   
+   static boost::atomic<typeId_t> USER_TYPE_ID;
 
    // INTERNAL DATA MEMBERS
-   unsigned int refCount;
 
 protected:
    virtual void updateSize() {}
@@ -222,6 +226,10 @@ public:
    typeTypedef *getTypedefType();
    typeRef *getRefType();
    std::string specificType();
+
+   //Helper Functions for getting & updating unique USER_TYPE_ID
+   typeId_t getUniqueTypeId();
+   void updateUniqueTypeId(typeId_t);
 };
 
 // Interfaces to be implemented by intermediate subtypes

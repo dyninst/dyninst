@@ -50,9 +50,15 @@ template<class T>
 T *upgradePlaceholder(Type *placeholder, T *new_type)
 {
   void *mem = (void *) placeholder;
-	tbb::concurrent_hash_map<void*, size_t>::accessor a;
-  assert(type_memory.find(a, placeholder));
-	size_t size = a->second;
+  size_t size = 0;
+  race_detector_fake_lock_acquire(race_detector_fake_lock(type_memory));
+  {
+    tbb::concurrent_hash_map<void*, size_t>::accessor a;
+    assert(type_memory.find(a, placeholder));
+    size = a->second;
+  }
+  race_detector_fake_lock_release(race_detector_fake_lock(type_memory));  
+
   assert(sizeof(T) < size);
   memset(mem, 0, size);
 

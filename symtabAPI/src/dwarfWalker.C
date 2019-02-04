@@ -171,29 +171,62 @@ bool DwarfWalker::parse() {
         compile_offset = next_cu_header;
     }
 
+#if 0
+    //local fd
+    //temp dwarf
+#endif
+
+      cilk::reducer<FixUnknownModMonoid> fum_monoid;
 //    std::for_each(module_dies.begin(), module_dies.end(), [&](Dwarf_Die cur) {
 #ifdef ENABLE_RACE_DETECTION
-    cilk_for
+	 cilk_for
+	   //for
 #else
 //#pragma omp parallel for
     for
 #endif
+
+
       (unsigned int i = 0; i < module_dies.size(); i++) {
-	Dwarf_Die cur = module_dies[i];
         int local_fd = open(symtab()->file().c_str(), O_RDONLY);
         Dwarf* temp_dwarf = dwarf_begin(local_fd, DWARF_C_READ);
+	
+        Dwarf_Die cur = module_dies[i];
+        //DwarfWalker w(symtab_, dbg());
         DwarfWalker w(symtab_, temp_dwarf);
-        w.push();
-        bool ok = w.parseModule(cur, fixUnknownMod);
+	
+	w.push();
+
+        Module* fixUnknownModLocal = NULL;
+        bool ok = w.parseModule(cur,fixUnknownModLocal);
+	
+	/*
+	  Check if one of the threads already set fixUnknownMod
+	  If it has not, then make a call to calc_first procedure
+	 */
+	if(fixUnknownModLocal)
+	{
+	  fum_monoid->calc_first(i, fixUnknownModLocal);
+	}
+
         w.pop();
-        dwarf_end(temp_dwarf);
+        
         close(local_fd);
+        dwarf_end(temp_dwarf);
     }
+
+     fixUnknownMod = fum_monoid->getFixUnknownMod();
+     // exit(0);
+
+#if 0
+	 //close file
+	 //dwarf end
+#endif
 
     if (!fixUnknownMod)
         return true;
 
-    dwarf_printf("Fixing types for final module %s\n", fixUnknownMod->fileName().c_str());
+    dwarf_printf("Fiying types for final module %s\n", fixUnknownMod->fileName().c_str());
 
    /* Fix type list. */
    typeCollection *moduleTypes = typeCollection::getModTypeCollection(fixUnknownMod);
@@ -269,20 +302,18 @@ bool DwarfWalker::parseModule(Dwarf_Die moduleDIE, Module *&fixUnknownMod) {
     if (findConstant(DW_AT_high_pc, tempModHigh, &e, dbg())) {
         modHigh = convertDebugOffset(tempModHigh);
     }
-
     setModuleFromName(moduleName);
-
     //dwarf_printf("Mapped to Symtab module %s\n", mod()->fileName().c_str());
-
-    if (!fixUnknownMod)
-        fixUnknownMod = mod();
+    if(!fixUnknownMod){
+      fixUnknownMod = mod();
+    }
 
     if (!parse_int(moduleDIE, true))
         return false;
 
     return true;
-
 }
+
 
 void DwarfParseActions::setModuleFromName(std::string moduleName)
 {
@@ -602,14 +633,14 @@ void DwarfParseActions::addPrettyFuncName(std::string name)
    curFunc()->addPrettyName(name, true, true);
 }
 
-void restore(int old) {
-    common_debug_dwarf = old;
-}
+
+
+
 bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    bool name_result;
    int old = common_debug_dwarf;
-   boost::shared_ptr<void> guard(static_cast<void*>(0), bind(restore, old));
-//   common_debug_dwarf = 1;
+   
+
    dwarf_printf("(0x%lx) parseSubprogram entry\n", id());
     parseRangeTypes(dbg(), entry());
    setFunctionFromRange(func_type);
@@ -2176,6 +2207,7 @@ bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
     //DWARF_ERROR_RET(subrangeOffset);
     typeId_t type_id = get_type_id(subrangeOffset, is_info);
 
+    race_detector_fake_lock_acquire(race_detector_fake_lock(errno));
     errno = 0;
     unsigned long low_conv = strtoul(loBound.c_str(), NULL, 10);
     if (errno) {
@@ -2187,6 +2219,8 @@ bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
     if (errno)  {
         hi_conv = LONG_MAX;
     }
+    race_detector_fake_lock_release(race_detector_fake_lock(errno));
+
     dwarf_printf("(0x%lx) Adding subrange type: id %d, low %ld, high %ld, named %s\n",
             id(), type_id,
             low_conv, hi_conv, curName().c_str());
@@ -2515,7 +2549,7 @@ void DwarfParseActions::pop() {
    if(!c.empty())
    {
       c.pop();
-   }
+   }	
 }
 
 void DwarfParseActions::setFunc(FunctionBase *f) {
@@ -2541,16 +2575,43 @@ void DwarfParseActions::clearFunc() {
   }
 }
 
+unsigned int DwarfWalker::getNextTypeId(){
+
+  static boost::atomic<unsigned int> next_type_id = 0;
+  race_detector_fake_lock_acquire(race_detector_fake_lock(next_type_id));
+  unsigned int val = next_type_id.fetch_add(1);
+  race_detector_fake_lock_release(race_detector_fake_lock(next_type_id));
+  return val;
+}
+
 typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info)
 {
-    static unsigned int next_type_id = 0;
   auto& type_ids = is_info ? info_type_ids_ : types_type_ids_;
+  /*
   auto it = type_ids.find(offset);
   if (it != type_ids.end())
     return it->second;
+  */
+  typeId_t type_id = 0;
+  race_detector_fake_lock_acquire(race_detector_fake_lock(type_ids));
+  {
+    tbb::concurrent_hash_map<Dwarf_Off, typeId_t>::const_accessor a;
+    if(type_ids.find(a, offset)) type_id = a->second; 
+  }
+  race_detector_fake_lock_release(race_detector_fake_lock(type_ids));
 
-  type_ids[offset] = ++next_type_id;
-  return next_type_id;
+  if(type_id) return type_id;
+
+  unsigned int val = getNextTypeId();
+  //type_ids[offset] = val;
+  race_detector_fake_lock_acquire(race_detector_fake_lock(type_ids));
+  {
+    tbb::concurrent_hash_map<Dwarf_Off, typeId_t>::accessor a;
+    type_ids.insert(a, std::make_pair(offset, val));
+  }
+  race_detector_fake_lock_release(race_detector_fake_lock(type_ids));
+  
+  return val;
 }
 
 typeId_t DwarfWalker::type_id()
@@ -2607,18 +2668,24 @@ bool DwarfWalker::parseModuleSig8(bool is_info)
 
     if (typeTag != DW_TAG_type_unit)
         return false;
-
     /* typeoffset is relative to the type unit; we want the global offset. */
     //FIXME
     //Dwarf_Off cu_off, cu_length;
     //DWARF_FAIL_RET(dwarf_die_CU_offset_range(typeDIE, &cu_off, &cu_length, NULL ));
     //cerr << "a) " <<  dwarf_dieoffset(&typeDIE) << endl;
     //cerr << "b) " <<  dwarf_cuoffset(&typeDIE) << endl;
-
+    
     uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
     typeId_t type_id = get_type_id(/*cu_off +*/ typeoffset, is_info);
-    sig8_type_ids_[sig8] = type_id;
-
+    
+    //sig8_type_ids_[sig8] = type_id;
+    
+    race_detector_fake_lock_acquire(race_detector_fake_lock(sig8_type_ids_));
+    {
+      tbb::concurrent_hash_map<uint64_t, typeId_t>::accessor a;
+      sig8_type_ids_.insert(a, std::make_pair(sig8, type_id));
+    }
+    race_detector_fake_lock_release(race_detector_fake_lock(sig8_type_ids_));
     dwarf_printf("Mapped Sig8 {%016llx} to type id 0x%x\n", (long long) sig8, type_id);
     return true;
 }
@@ -2626,12 +2693,27 @@ bool DwarfWalker::parseModuleSig8(bool is_info)
 bool DwarfWalker::findSig8Type(Dwarf_Sig8 * signature, Type *&returnType)
 {
    uint64_t sig8 = * reinterpret_cast<uint64_t*>(signature);
+   /*
    auto it = sig8_type_ids_.find(sig8);
    if (it != sig8_type_ids_.end()) {
       typeId_t type_id = it->second;
       returnType = tc()->findOrCreateType( type_id );
       dwarf_printf("Found Sig8 {%016llx} as type id 0x%x\n", (long long) sig8, type_id);
       return true;
+   }
+   */
+   typeId_t type_id = 0;
+   race_detector_fake_lock_acquire(race_detector_fake_lock(sig8_type_ids_));
+   {
+     tbb::concurrent_hash_map<uint64_t, typeId_t>::const_accessor a;
+     if(sig8_type_ids_.find(a, sig8)) type_id = a->second;
+   }
+   race_detector_fake_lock_release(race_detector_fake_lock(sig8_type_ids_));
+
+   if(type_id){
+     returnType = tc()->findOrCreateType(type_id);
+     dwarf_printf("Found Sig8 {%016llx} as type id 0x%x\n", (long long) sig8, type_id);
+     return true;   
    }
 
    dwarf_printf("Couldn't find Sig8 {%016llx}!\n", (long long) sig8);

@@ -53,6 +53,8 @@
 #include <boost/timer/timer.hpp>
 #include <fstream>
 
+#undef ENABLE_RACE_DETECTION
+
 #ifdef ENABLE_RACE_DETECTION
 #define USE_CILK 1
 #else

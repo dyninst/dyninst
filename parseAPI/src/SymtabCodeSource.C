@@ -45,6 +45,8 @@
 #include "race-detector-annotations.h"
 
 
+#undef ENABLE_RACE_DETECTION
+
 #ifdef ENABLE_RACE_DETECTION
 #include <cilk/cilk.h>
 #include <cilk/cilk_api.h>

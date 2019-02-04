@@ -44,6 +44,8 @@
 #include <iostream>
 #include <tbb/concurrent_hash_map.h>
 
+#include <boost/atomic.hpp>
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
@@ -55,7 +57,31 @@ static int findIntrensicType(std::string &name);
 
 // This is the ID that is decremented for each type a user defines. It is
 // Global so that every type that the user defines has a unique ID.
-typeId_t Type::USER_TYPE_ID = -10000;
+boost::atomic<typeId_t> Type::USER_TYPE_ID = -10000;
+
+typeId_t Type::getUniqueTypeId()
+{
+
+  race_detector_fake_lock_acquire(race_detector_fake_lock(Type::USER_TYPE_ID));
+  typeId_t val = Type::USER_TYPE_ID.fetch_add(-1);
+  race_detector_fake_lock_release(race_detector_fake_lock(Type::USER_TYPE_ID));
+
+  return val;
+}
+
+
+void Type::updateUniqueTypeId(typeId_t ID_)
+{
+  race_detector_fake_lock_acquire(race_detector_fake_lock(Type::USER_TYPE_ID));
+
+  typeId_t val = Type::USER_TYPE_ID.load();
+  while((ID_ < 0) && (val >= ID_))
+  {
+    Type::USER_TYPE_ID.compare_exchange_weak(val, val-1);
+  }
+
+  race_detector_fake_lock_release(race_detector_fake_lock(Type::USER_TYPE_ID));
+}
 
 namespace Dyninst {
   namespace SymtabAPI {
@@ -65,7 +91,6 @@ namespace Dyninst {
 
 /* These are the wrappers for constructing a type.  Since we can create
    types six ways to Sunday, let's do them all in one centralized place. */
-
 
 Type *Type::createFake(std::string name) 
 {
@@ -85,7 +110,11 @@ Type *Type::createFake(std::string name)
 Type *Type::createPlaceholder(typeId_t ID, std::string name)
 {
   static size_t max_size = 0;
-  if (!max_size) {
+
+  race_detector_fake_lock_acquire(race_detector_fake_lock(max_size));
+  static std::once_flag initialized;
+
+  std::call_once(initialized, []() {
     max_size = sizeof(Type);
     max_size = MAX(sizeof(fieldListType), max_size);
     max_size = MAX(sizeof(rangedType), max_size);
@@ -102,15 +131,26 @@ Type *Type::createPlaceholder(typeId_t ID, std::string name)
     max_size = MAX(sizeof(typeSubrange), max_size);
     max_size = MAX(sizeof(typeArray), max_size);
     max_size += 32; //Some safey padding
-  }
+    
+    race_detector_forget_access_history(&max_size, sizeof(max_size));
+    }
+  );
+  race_detector_fake_lock_release(race_detector_fake_lock(max_size));
 
   void *mem = malloc(max_size);
   assert(mem);
-    tbb::concurrent_hash_map<void*, size_t>::accessor a;
-  type_memory.insert(a, make_pair(mem, max_size));
-  
+
+  race_detector_fake_lock_acquire(race_detector_fake_lock(type_memory));
+  {
+     tbb::concurrent_hash_map<void*, size_t>::accessor a;
+     type_memory.insert(a, make_pair(mem, max_size));
+  }
+  race_detector_fake_lock_release(race_detector_fake_lock(type_memory));
+
   Type *placeholder_type = new(mem) Type(name, ID, dataUnknownType);
+  
   race_detector_forget_access_history(placeholder_type, max_size);
+
   return placeholder_type;
 }
 
@@ -133,7 +173,7 @@ Type::Type(std::string name, typeId_t ID, dataClass dataTyp) :
 }
 
 Type::Type(std::string name, dataClass dataTyp) :
-   ID_(USER_TYPE_ID--), 
+   ID_(getUniqueTypeId()), 
    name_(name), 
    size_(sizeof(/*long*/ int)), 
    type_(dataTyp), 
@@ -316,7 +356,7 @@ typeEnum::typeEnum(int ID, std::string name)
 }
 
 typeEnum::typeEnum(std::string name)
-   : Type(name, USER_TYPE_ID--, dataEnum)
+   : Type(name, getUniqueTypeId(), dataEnum)
 {
    size_ = sizeof(int);
 }
@@ -410,7 +450,7 @@ typePointer::typePointer(int ID, Type *ptr, std::string name)
 }
 
 typePointer::typePointer(Type *ptr, std::string name) 
-   : derivedType(name, USER_TYPE_ID--, 0, dataPointer) {
+   : derivedType(name, getUniqueTypeId(), 0, dataPointer) {
    size_ = sizeof(void *);
    if (ptr)
      setPtr(ptr);
@@ -500,7 +540,7 @@ typeFunction::typeFunction(typeId_t ID, Type *retType, std::string name) :
 }
 
 typeFunction::typeFunction(Type *retType, std::string name) :
-    Type(name, USER_TYPE_ID--, dataFunction), 
+    Type(name, getUniqueTypeId(), dataFunction), 
 	retType_(retType) 
 {
    size_ = sizeof(void *);
@@ -622,7 +662,7 @@ typeSubrange::typeSubrange(typeId_t ID, int size, long low, long hi, std::string
 }
 
 typeSubrange::typeSubrange(int size, long low, long hi, std::string name)
-  : rangedType(name, USER_TYPE_ID--, dataSubrange, size, low, hi)
+  : rangedType(name, getUniqueTypeId(), dataSubrange, size, low, hi)
 {
 }
 
@@ -672,7 +712,7 @@ typeArray::typeArray(Type *base,
 		long hi,
 		std::string name,
 		unsigned int sizeHint) :
-	rangedType(name, USER_TYPE_ID--, dataArray, 0, low, hi), 
+	rangedType(name, getUniqueTypeId(), dataArray, 0, low, hi), 
 	arrayElem(base), 
 	sizeHint_(sizeHint) 
 {
@@ -818,7 +858,7 @@ typeStruct::typeStruct(typeId_t ID, std::string name) :
 }
 
 typeStruct::typeStruct(std::string name)  :
-    fieldListType(name, USER_TYPE_ID--, dataStructure) 
+    fieldListType(name, getUniqueTypeId(), dataStructure) 
 {
 }
 
@@ -958,7 +998,7 @@ typeUnion::typeUnion(typeId_t ID, std::string name) :
 }
 
 typeUnion::typeUnion(std::string name)  :
-    fieldListType(name, USER_TYPE_ID--, dataUnion) 
+    fieldListType(name, getUniqueTypeId(), dataUnion) 
 {
 }
 
@@ -1094,7 +1134,7 @@ typeScalar::typeScalar(typeId_t ID, unsigned int size, std::string name, bool is
 }
 
 typeScalar::typeScalar(unsigned int size, std::string name, bool isSigned) :
-    Type(name, USER_TYPE_ID--, dataScalar), isSigned_(isSigned) 
+    Type(name, getUniqueTypeId(), dataScalar), isSigned_(isSigned) 
 {
    size_ = size;
 }
@@ -1168,7 +1208,7 @@ typeCommon::typeCommon(int ID, std::string name) :
 {}
 
 typeCommon::typeCommon(std::string name) :
-    fieldListType(name, USER_TYPE_ID--, dataCommon) 
+    fieldListType(name, getUniqueTypeId(), dataCommon) 
 {}
 
 void typeCommon::beginCommonBlock() 
@@ -1254,7 +1294,7 @@ typeTypedef::typeTypedef(typeId_t ID, Type *base, std::string name, unsigned int
 }
 
 typeTypedef::typeTypedef(Type *base, std::string name, unsigned int sizeHint) :
-	derivedType(name, USER_TYPE_ID--, 0, dataTypedef) 
+	derivedType(name, getUniqueTypeId(), 0, dataTypedef) 
 {
    assert(base != NULL);
    baseType_ = base;
@@ -1335,7 +1375,7 @@ typeRef::typeRef(int ID, Type *refType, std::string name) :
 }
 
 typeRef::typeRef(Type *refType, std::string name) :
-    derivedType(name, USER_TYPE_ID--, 0, dataReference) 
+    derivedType(name, getUniqueTypeId(), 0, dataReference) 
 {
    baseType_ = refType;
    if(refType)
@@ -1568,7 +1608,7 @@ derivedType::derivedType(std::string &name, typeId_t id, int size, dataClass typ
 }
 
 derivedType::derivedType(std::string &name, int size, dataClass typeDes)
-   :Type(name, USER_TYPE_ID--, typeDes)
+   :Type(name, getUniqueTypeId(), typeDes)
 {
 	baseType_ = NULL; //Symtab::type_Error;
    size_ = size;
@@ -1607,7 +1647,7 @@ rangedType::rangedType(std::string &name, typeId_t ID, dataClass typeDes, int si
 }
 
 rangedType::rangedType(std::string &name, dataClass typeDes, int size, unsigned long low, unsigned long hi) :
-    Type(name, USER_TYPE_ID--, typeDes), 
+    Type(name, getUniqueTypeId(), typeDes), 
 	low_(low), 
 	hi_(hi)
 {
@@ -1885,12 +1925,9 @@ Serializable * Type::serialize_impl(SerializerBase *s, const char *tag) THROW_SP
 	{
 		updatingSize = false;
 		refCount = 0;
-		if ((ID_ < 0) && (Type::USER_TYPE_ID >= ID_))
-		{
-			//  USER_TYPE_ID is the next available (increasingly negative)
-			//  type ID available for user defined types.
-			Type::USER_TYPE_ID = ID_ -1;
-		}
+		
+		// Ensure that unique type id is the next (increasingly negative) type ID available for user defined types.
+		updateUniqueTypeId(ID_);
 	}
 	return newt;
 }

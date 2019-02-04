@@ -268,8 +268,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    bool addType(Type *typ);
 
-   static boost::shared_ptr<builtInTypeCollection> builtInTypes();
-   static boost::shared_ptr<typeCollection> stdTypes();
+   static boost::shared_ptr<builtInTypeCollection>& builtInTypes();
+   static boost::shared_ptr<typeCollection>& stdTypes();
 
    static std::vector<Type *> *getAllstdTypes();
    static std::vector<Type *> *getAllbuiltInTypes();
@@ -616,8 +616,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    std::map <std::string, std::string> dynLibSubs;
 
    public:
-   static boost::shared_ptr<Type> type_Error();
-   static boost::shared_ptr<Type> type_Untyped();
+   static boost::shared_ptr<Type>& type_Error();
+   static boost::shared_ptr<Type>& type_Untyped();
 
  private:
     unsigned _ref_cnt;

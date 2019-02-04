@@ -152,8 +152,12 @@ public:
 
 class SYMTAB_EXPORT builtInTypeCollection {
    
-    dyn_hash_map<std::string, Type *> builtInTypesByName;
-    dyn_hash_map<int, Type *> builtInTypesByID;
+  //dyn_hash_map<std::string, Type *> builtInTypesByName;
+  //dyn_hash_map<int, Type *> builtInTypesByID;
+  // tbb::concurrent_hash_map<int, BPatch_type *> builtInTypesByID;
+  //tbb::concurrent_hash_map<std::string, BPatch_type *> builtInTypesByName;
+    tbb::concurrent_hash_map<int, Type *> builtInTypesByID;
+    tbb::concurrent_hash_map<std::string, Type *> builtInTypesByName;
 public:
 
     builtInTypeCollection();

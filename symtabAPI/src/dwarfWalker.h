@@ -19,6 +19,11 @@
 #include <boost/shared_ptr.hpp>
 #include <Collections.h>
 
+//Concurrent Hash Map
+#include "tbb/concurrent_hash_map.h"
+#include <cilk/reducer.h>
+#include <bits/stdc++.h>
+
 namespace Dyninst {
 namespace SymtabAPI {
 
@@ -35,13 +40,16 @@ class fieldListType;
 class typeCollection;
 class Type;
 
+
+
+
 class DwarfParseActions {
 
 protected:
     Dwarf* dbg() { return dbg_; }
 
     Module *& mod() { return mod_; } 
-
+    friend class MyReducerView;
     typeCollection *tc() { return typeCollection::getModTypeCollection(mod()); }
 
 private:
@@ -143,6 +151,8 @@ public:
     void setOffset(Dwarf_Off o) { c.top().offset = o; }
     void setTag(unsigned int t) { c.top().tag = t; }
     void setBase(Address a) { c.top().base = a; }
+    //Helper Function for setting the next type id
+
     virtual void setRange(const AddressRange& range) {
         if (range.first >= range.second) {
 //            std:: cerr << "Discarding invalid range: "
@@ -191,6 +201,133 @@ protected:
     virtual Object * obj() const ;
 
 }; // class DwarfParseActions 
+/*
+//OpenMP Custom Reduction class
+
+class CustomReduction{
+
+  private:
+     int i;
+     Module* fixUnknownMod;
+     bool set;
+ 
+ public:
+     CustomReduction():i(INT_MAX), fixUnknownMod(NULL), set(false){}
+     CustomReduction(unsigned int ii, Module* fum):i(ii), fixUnknownMod(fum){
+         if(fum)
+	    set = true;
+	 else
+	    set = false;
+     }
+
+     Module* getFixUnknownMod(){ return fixUnknownMod;}
+     unsigned int getIteration(){ return i; }
+     bool getFlag() {return set;}
+     
+     void setFixUnknownMod(Module* fum){ fixUnknownMod = fum; }
+     void setIteration(unsigned int ii){ i = ii; }
+     void setFlag(bool flag){ set = flag; }
+
+};
+
+//Custom Reduction Function
+
+CustomReduction calc_first(CustomReduction reducedValue, CustomReduction newValue){
+
+     if ( (reducedValue.getIteration() > newValue.getIteration()) && newValue.getFixUnknownMod() )
+     {
+        return CustomReduction(newValue.getIteration(), newValue.getFixUnknownMod(), true);
+     }
+
+     return reducedValue;
+
+}
+*/
+
+/*
+#pragma omp declare rudction(customReduction : class CustomReduction : omp_out = calc_first(omp_in, omp_out))\
+initializer( omp_priv = CustomReduction)
+
+
+
+CustomReduction reducedValue = CustomReduction();
+
+#pragma omp parallel for reduction(customReduction : reducedValue)
+(unsigned int i = 0; i < module_dies.size(); i++){
+
+   //code
+   Module* fixUnknownModLocal = NULL;
+   parseModule( ... , fixUnknownModLocal);
+   newValue = CustomReduction(i, fixUnknownModLocal);
+
+   if(!newValue.getFlag()){
+      reducedValue = calc_first(reducedValue, newValue);
+   }
+   //code
+} 
+
+*/
+class FixUnknownModMonoid;
+
+class MyReducerView{
+
+ protected:
+
+  friend class FixUnknownModMonoid;
+  unsigned int i;
+  Module* fixUnknownMod;
+  bool set;
+
+ public:
+
+  MyReducerView():i(INT_MAX), fixUnknownMod(NULL), set(false){}
+
+
+  void calc_first(unsigned int ii, Module* fum){
+    if( (i > ii) & (fixUnknownMod == NULL) ){
+       i = ii;
+       fixUnknownMod = fum;
+       set = true;
+    }
+  }
+
+  unsigned int getIteration() { return i; }
+  Module* getFixUnknownMod(){ return fixUnknownMod; }
+  bool getFlag(){ return set; }
+
+  void setIteration(unsigned int ii){ i = ii; }
+  void setFixUnknownMod(Module* fum){ fixUnknownMod = fum; }
+  void setFlag(bool flag){ set = flag; }
+  
+
+};
+ 
+
+ struct FixUnknownModMonoid : public cilk::monoid_base<Module*, MyReducerView>{
+
+    static void reduce(MyReducerView* left, MyReducerView* right){
+
+      if( left->set == false && right->set == true )
+      {
+	left->setFixUnknownMod(right->getFixUnknownMod());
+        left->setIteration(right->getIteration());
+        left->setFlag(true); 
+      }  
+
+    }
+
+    static void identity(MyReducerView* reducersView){
+    
+      reducersView->setFixUnknownMod(NULL);
+      reducersView->setIteration(INT_MAX);
+      reducersView->setFlag(false);
+    
+    }
+
+
+
+ };
+
 
 struct ContextGuard {
     DwarfParseActions& c;
@@ -404,17 +541,27 @@ private:
 
     // Type IDs are just int, but Dwarf_Off is 64-bit and may be relative to
     // either .debug_info or .debug_types.
-    dyn_hash_map<Dwarf_Off, typeId_t> info_type_ids_; // .debug_info offset -> id
-    dyn_hash_map<Dwarf_Off, typeId_t> types_type_ids_; // .debug_types offset -> id
+    //dyn_hash_map<Dwarf_Off, typeId_t> info_type_ids_; // .debug_info offset -> id
+    //dyn_hash_map<Dwarf_Off, typeId_t> types_type_ids_; // .debug_types offset -> id
+			     
+    //Concurent Hash Maps
+    tbb::concurrent_hash_map<Dwarf_Off, typeId_t> info_type_ids_;
+    tbb::concurrent_hash_map<Dwarf_Off, typeId_t> types_type_ids_;
+			      
+
     typeId_t get_type_id(Dwarf_Off offset, bool is_info);
     typeId_t type_id(); // get_type_id() for the current entry
-
+    
     // Map to connect DW_FORM_ref_sig8 to type IDs.
-    dyn_hash_map<uint64_t, typeId_t> sig8_type_ids_;
+    //dyn_hash_map<uint64_t, typeId_t> sig8_type_ids_;
+
+    //Concurrent Hash Map
+    tbb::concurrent_hash_map<uint64_t, typeId_t> sig8_type_ids_;
+    
     bool parseModuleSig8(bool is_info);
     void findAllSig8Types();
     bool findSig8Type(Dwarf_Sig8 * signature, Type *&type);
-
+    unsigned int getNextTypeId();
 protected:
     virtual void setFuncReturnType();
 
