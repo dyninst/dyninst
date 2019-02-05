@@ -189,7 +189,7 @@ string AddressTranslateSysV::getExecName()
    if (exec_name.empty()) {
       char name[64];
       snprintf(name, 64, "/proc/%d/exe", pid);
-      exec_name = resolve_file_path(name);
+      exec_name = std::move(resolve_file_path(name));
    }
    return exec_name;
 }

@@ -34,24 +34,24 @@
 #include <assert.h>
 #include <limits.h>
 #include "common/src/pathName.h"
+#include <boost/filesystem.hpp>
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
 #if defined(os_windows) //ccw 20 july 2000 : 29 mar 2001
-
-#define S_ISDIR(x) ((x) & _S_IFDIR)
-
-std::string expand_tilde_pathname(const std::string &dir) {
-   return dir;
-}
-
+	#define S_ISDIR(x) ((x) & _S_IFDIR)
 #else
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-#include <pwd.h>
+	#include <sys/types.h>
+	#include <sys/stat.h>
+	#include <unistd.h>
+	#include <pwd.h>
+#endif
 
 std::string expand_tilde_pathname(const std::string &dir) {
+#ifdef os_windows
+	// no-op on Windows
+	return dir;
+#else
    // e.g. convert "~tamches/hello" to "/u/t/a/tamches/hello",
    // or convert "~/hello" to same.
    // In the spirit of Tcl_TildeSubst
@@ -102,11 +102,11 @@ std::string expand_tilde_pathname(const std::string &dir) {
       return dir; // something better needed...
    }
 
-   std::string result = std::string(pwPtr->pw_dir) + std::string(ptr);
+   std::string result = std::string(pwPtr->pw_dir) + (ptr ? ptr : "");
    endpwent();
    return result;
-}
 #endif
+}
 
 static std::string concat_pathname_components_simple(const std::string &comp1, const std::string &comp2)
 {
@@ -270,73 +270,61 @@ bool executableFromArgv0AndPathAndCwd(std::string &result,
    return false;
 }
 
-#if defined(os_windows)
-#define PATH_SEP ('\\')
-#define SECOND_PATH_SEP ('/')
-#else
-#define PATH_SEP ('/')
-#endif
-
-#include <boost/filesystem.hpp>
-
 std::string extract_pathname_tail(const std::string &path)
 {
     boost::filesystem::path p(path);
     return p.filename().string();
 }
 
-#if !defined (os_windows)
-static
-char *resolve_file_path_local(const char *fname, char *resolved_path)
-{
-   // (1) realpath doesn't always return errors when the last element
-   // of fname doesn't exist -- make sure it exists first to allow
-   // consistent results of this function across platforms
-   struct stat stat_buf;
-   if( -1 == stat(fname, &stat_buf) ) {
-       return NULL;
-   }
-
-   // (2)  use realpath() to resolve any . or ..'s, or symbolic links
-   if (NULL == realpath(fname, resolved_path)) {
-      return NULL;
-   }
-
-   // (3) if no slashes, try CWD
-   if (!strpbrk(resolved_path, "/\\")) {
-      char cwd[PATH_MAX];
-      if (NULL == getcwd(cwd, PATH_MAX)) {
-         return NULL;
-      }
-      char resolved_path_bak[PATH_MAX];
-      strcpy(resolved_path_bak, resolved_path);
-      sprintf(resolved_path, "%s/%s", cwd, resolved_path_bak);
-   }
-
-   // (4) if it has a tilde, expand tilde pathname
-   if (!strpbrk(resolved_path, "~")) {
-      std::string td_pathname = std::string(resolved_path);
-      std::string no_td_pathname = expand_tilde_pathname(td_pathname);
-      strcpy(resolved_path, no_td_pathname.c_str());
-   }
-
-   return resolved_path;
+std::string resolve_file_path(char const* path) {
+	return resolve_file_path(std::string{path});
 }
+std::string resolve_file_path(std::string path) {
+	namespace ba = boost::algorithm;
+	namespace bf = boost::filesystem;
 
-std::string resolve_file_path(const char *fname) {
-    char path_buf[PATH_MAX];
-    char *result = resolve_file_path_local(fname, path_buf);
-    if ( result == NULL ) {
-        return std::string();
-    }
-    std::string ret = result;
-    return ret;
-}
+	// Remove all leading and trailing spaces in-place.
+	ba::trim(path);
 
-#else
-std::string resolve_file_path(const char *fname) {
-    assert(!"UNIMPLEMENTED ON WINDOWS");
-    return std::string("");
-}
+#ifndef os_windows
+	// On Linux-like OSes, collapse doubled directory separators
+	// similar to POSIX `realpath`. On Windows, '//' is a (possibly)
+	// meaningful separator, so don't change it.
+	ba::replace_all(path, "//", "/");
 #endif
 
+	// If it has a tilde, expand tilde pathname
+	// This is a no-op on Windows
+	if(path.find("~") != std::string::npos) {
+		path = std::move(expand_tilde_pathname(path));
+	}
+
+	// Convert to a boost::filesystem::path
+	// This makes a copy of `path`.
+	auto boost_path = bf::path(path);
+
+	// bf::canonical (see below) requires that the path exists.
+	if(!bf::exists(boost_path)) {
+		return {};
+	}
+
+	/* Make the path canonical
+	 *
+	 * This converts the path to an absolute path (relative to the
+	 * current working directory) that has no symbolic links, '.',
+	 * or '..' elements and strips trailing directory separator.
+	 *
+	 * NOTE: makes a copy of the path.
+	 */
+	boost::system::error_code ec;
+	auto canonical_path = bf::canonical(boost_path, ec);
+	if(ec != boost::system::errc::success) {
+		return {};
+	}
+
+	/* This is a bit strange, but is most optimal as it is the only
+	 * member string-conversion function that does not inhibit moving
+	 * the return value out (required here by C++11).
+	 */
+	return canonical_path.string<std::string>();
+}
