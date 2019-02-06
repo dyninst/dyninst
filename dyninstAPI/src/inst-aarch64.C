@@ -785,15 +785,39 @@ void emitJmpMC(int /*condition*/, int /*offset*/, codeGen &) {
 
 // VG(11/16/01): Say if we have to restore a register to get its original value
 // VG(03/15/02): Sync'd with the new AIX tramp
+// Yuhan(02/05/19): 
+
 static inline bool needsRestore(Register x) {
-    assert(0); //Not implemented
-    return false;
+    
+	if(x == 31)	
+    	return false;
+	else
+		return true;
 }
 
 // VG(03/15/02): Restore mutatee value of GPR reg to dest GPR
 static inline void restoreGPRtoGPR(codeGen &gen,
                                    Register reg, Register dest) {
-    assert(0); //Not implemented
+    int frame_size, gpr_size, gpr_off;
+	if(!needsRestore(reg)){
+		assert("No need of restoring this GPR");
+		return;
+	}
+	
+	printf("restoring: %d\n", reg);
+	int offset_from_sp = 210 + reg * gen.width();
+    insnCodeGen::restoreRegister(gen, reg, offset_from_sp);
+
+	/*
+	frame_size = TRAMP_FRAME_SIZE_64;
+    gpr_size   = GPRSIZE_64;
+    gpr_off    = TRAMP_GPR_OFFSET_64;
+
+    int offset_from_sp = (reg * gen.width());
+	insnCodeGen::generateImm(gen, loadOP, dest, REG_SP,
+                                 gpr_off + reg*gpr_size);
+	*/
+	return;
 }
 
 // VG(03/15/02): Restore mutatee value of XER to dest GPR
@@ -812,35 +836,80 @@ static inline void moveGPR2531toGPR(codeGen &gen,
 // VG(03/15/02): Made functionality more obvious by adding the above functions
 static inline void emitAddOriginal(Register src, Register acc,
                                    codeGen &gen, bool noCost) {
-  emitV(plusOp, src, acc, acc, gen, noCost, 0);
+	bool nr = needsRestore(src);	
+    Register temp;
+    
+    if(nr) {
+        // this needs gen because it uses emitV...
+        temp = gen.rs()->allocateRegister(gen, noCost);
+        
+        // Emit code to restore the original ra register value in temp.
+        // The offset compensates for the gap 0, 3, 4, ...
+        // This writes at insn, and updates insn and base.
+		
+        restoreGPRtoGPR(gen, src, temp);
+    }
+    else
+        temp = src;
+    
+    // add temp to dest;
+    // writes at gen+base and updates base, we must update insn...
+    emitV(plusOp, temp, acc, acc, gen, noCost, 0);
+    
+    if(nr){
+        gen.rs()->freeRegister(temp);
+	}
 }
 
-// VG(11/07/01): Load in destination the effective address given
+// Yuhan(02/04/19): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
 void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
                 codeGen &gen,
                 bool noCost) {
 
-  // Haven't implemented non-zero shifts yet
-  assert(stackShift == 0);
-  //instruction *insn = (instruction *) ((void*)&gen[base]);
-  int imm = as->getImm();
-  int ra  = as->getReg(0);
-  int rb  = as->getReg(1);
-  int sc  = as->getScale();
+    // Haven't implemented non-zero shifts yet
+    assert(stackShift == 0);
+    //instruction *insn = (instruction *) ((void*)&gen[base]);
+    int imm = as->getImm();
+    int ra  = as->getReg(0);
+    int rb  = as->getReg(1);
+    int sc  = as->getScale();
 
-  if(ra > -1)
-      emitAddOriginal(ra, dest, gen, noCost);
+	bool restored_ra = false, restored_rb = false;
+	Register original_ra, original_rb;
+    if(ra > -1) {
+		if(needsRestore(ra)) {
+        	original_ra = gen.rs()->allocateRegister(gen, noCost);
+			restoreGPRtoGPR(gen, ra, original_ra);
+			restored_ra = true;
+			printf("the original_ra is: %d\n", original_ra);
+		}
+		else {
+			restored_ra = ra;
+		}
+		emitAddOriginal(original_ra, dest, gen, noCost);
+	}	
 
 
-  // call adds, save 2^scale * rb to dest
-  if(rb > -1) {
-      insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, sc, 0, rb, 0, dest, 1);
-  }
-  // emit code to load the immediate (constant offset) into dest; this
-  // writes at gen+base and updates base, we must update insn...
-  emitVload(loadConstOp, (Address)imm, dest, dest, gen, noCost);
-
+    if(rb > -1) {
+	    if(needsRestore(rb)) {
+        	original_rb = gen.rs()->allocateRegister(gen, noCost);
+			restoreGPRtoGPR(gen, rb, original_rb);
+			restored_rb = true;
+			printf("the original_rb is: %d\n", original_rb);
+		}
+    	// call adds, save 2^scale * rb to dest
+		insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, sc, 0, original_rb, 0, dest, 1);
+	}
+	
+    // emit code to load the immediate (constant offset) into dest; this
+    // writes at gen+base and updates base, we must update insn...
+    emitVload(loadConstOp, (Address)imm, dest, dest, gen, noCost);
+	
+	if(restored_ra)
+        gen.rs()->freeRegister(original_ra);
+	if(restored_rb)
+        gen.rs()->freeRegister(original_rb);
 }
 
 void emitCSload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,

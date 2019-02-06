@@ -280,7 +280,7 @@ void BPatch_memoryAccessAdapter::visit(Dereference* d)
 void BPatch_memoryAccessAdapter::visit(RegisterAST* r)
 {
     MachRegister base = r->getID().getBaseRegister();
-    fprintf(stderr, "base: %d\n", base.val());
+    //fprintf(stderr, "base: %d\n", base.val());
 	    
 	unsigned int converted = base.val() & 0xFFFF;
 	#if defined(arch_ppc)||defined(arch_ppc64)
