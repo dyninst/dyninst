@@ -1769,6 +1769,7 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
                         + errMsg;
 		Symtab::setSymtabError(Emit_Error);
                 symtab_log_perror(linkStaticError.c_str());
+		fprintf(stderr, "##### %s\n", linkStaticError.c_str());
                 return false;
             }
 
@@ -1788,6 +1789,7 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
             }
 
             if (!emitElfUtils::updateHeapVariables(obj, lastRegionAddr + lastRegionSize)) {
+		fprintf(stderr, "updateHeapVariables returns false\n");
                 return false;
             }
         }

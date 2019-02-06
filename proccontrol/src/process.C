@@ -2066,12 +2066,17 @@ bool int_process::addBreakpoint(Dyninst::Address addr, int_breakpoint *bp)
 bool int_process::removeAllBreakpoints() {
    if (!mem) return true;
    bool ret = true;
-
-   for (std::map<Dyninst::Address, sw_breakpoint *>::iterator iter = mem->breakpoints.begin();
-        iter != mem->breakpoints.end(); ++iter) {
+   std::map<Dyninst::Address, sw_breakpoint *>::iterator iter = mem->breakpoints.begin();
+   while (iter != mem->breakpoints.end()) { 
       std::set<response::ptr> resps;
-      if (!iter->second->uninstall(this, resps)) ret = false;
+      // uninstall will call erase to remove the item,
+      // so just keep calling begin() to iterate over all elements
+      if (!iter->second->uninstall(this, resps)) {
+         ret = false;
+	 break;
+      }
       assert(resps.empty());
+      iter = mem->breakpoints.begin();
    }
    return ret;
 }
