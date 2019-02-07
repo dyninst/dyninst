@@ -267,9 +267,9 @@ void insnCodeGen::generateBranch(codeGen &gen,
 {
    // Branches have sizes...
    if (disp32 >= 0)
-      assert ((unsigned)disp32 < unsigned(1<<31));
+      assert ((unsigned)disp32 < (unsigned(1)<<31));
    else
-      assert ((unsigned)(-disp32) < unsigned(1<<31));
+      assert ((unsigned)(-disp32) < (unsigned(1)<<31));
 
    GET_PTR(insn, gen);
    *insn++ = 0xE9;

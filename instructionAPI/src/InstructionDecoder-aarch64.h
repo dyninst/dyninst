@@ -207,7 +207,7 @@ namespace Dyninst {
 
             int highest_set_bit(int32_t val) {
                 for (int bit_index = 31; bit_index >= 0; bit_index--)
-                    if (((val >> bit_index) & 0x1) == 0x1)
+                    if (((static_cast<uint32_t>(val) >> bit_index) & 0x1) == 0x1)
                         return bit_index + 1;
 
                 return -1;
@@ -215,7 +215,7 @@ namespace Dyninst {
 
             int lowest_set_bit(int32_t val) {
                 for (int bit_index = 0; bit_index <= 31; bit_index++)
-                    if (((val >> bit_index) & 0x1) == 0x1)
+                    if (((static_cast<uint32_t>(val) >> bit_index) & 0x1) == 0x1)
                         return bit_index + 1;
 
                 return -1;
