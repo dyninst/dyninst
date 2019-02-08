@@ -1188,14 +1188,27 @@ bool EmitterAARCH64::emitCallRelative(Register dest, Address offset, Register ba
 }
 
 bool EmitterAARCH64::emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen) {
-    assert(0); //Not implemented
-    return true;
+    //assert(0); //Not implemented
+    //return true;
+    //
+    //l: need to test it
+
+    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
+            base, offset, size, insnCodeGen::Post);
+
+    gen.markRegDefined(dest);
 }
 
 
 void EmitterAARCH64::emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen) {
     //return true;
-    assert(0); //Not implemented
+    // assert(0); //Not implemented
+    //
+    // l: need to test later
+    insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, source,
+            base, offset, size, insnCodeGen::Pre);
+
+    //gen.markRegDefined(base);
 }
 
 bool EmitterAARCH64::emitMoveRegToReg(registerSlot *src,
@@ -1415,26 +1428,147 @@ void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variab
 
 void
 EmitterAARCH64::emitStoreShared(Register source, const image_variable *var, bool is_local, int size, codeGen &gen) {
-    assert(0); //Not implemented
+    //assert(0); //Not implemented
+    //return;
+    //
+    // l: from POWER
+    //
+    // create or retrieve jump slot
+    Address addr;
+    int stackSize = 0;
+    if(!is_local) {
+        addr = getInterModuleVarAddr(var, gen);
+    }
+    else {
+        addr = (Address)var->getOffset();
+    }
+
+    inst_printf("emitStoreRelative addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n",
+            addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
+
+    // load register with address from jump slot
+    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+    if (scratchReg == REG_NULL) {
+        pdvector<Register> freeReg;
+        pdvector<Register> excludeReg;
+        stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
+        assert (stackSize == 1);
+        scratchReg = freeReg[0];
+
+        inst_printf("emitStoreRelative - after new stack frame- addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n",
+                addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
+    }
+
+    emitMovePCToReg(scratchReg, gen);
+    Address varOffset = addr - gen.currAddr()+4;
+
+    if(!is_local) {
+        pdvector<Register> exclude;
+        exclude.push_back(scratchReg);
+        Register scratchReg1 = gen.rs()->getScratchRegister(gen, exclude, true);
+        if (scratchReg1 == REG_NULL) {
+            pdvector<Register> freeReg;
+            pdvector<Register> excludeReg;
+            stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
+            assert (stackSize == 1);
+            scratchReg1 = freeReg[0];
+
+            inst_printf("emitStoreRelative - after new stack frame- addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n",
+                    addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
+        }
+        emitLoadRelative(scratchReg1, varOffset, scratchReg, gen.width(), gen);
+        emitStoreRelative(source, 0, scratchReg1, size, gen);
+    } else {
+        emitStoreRelative(source, varOffset, scratchReg, size, gen);
+    }
+
+    if (stackSize > 0)
+        insnCodeGen::removeStackFrame(gen);
+
     return;
 }
 
 Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen &gen) {
-    assert(0); //Not implemented
+    // assert(0); //Not implemented
+    //
+    // l: FROM POWER
+
     AddressSpace *addrSpace = gen.addrSpace();
     if (!addrSpace)
         assert(0 && "No AddressSpace associated with codeGen object");
 
     BinaryEdit *binEdit = addrSpace->edit();
     Address relocation_address;
+
+    unsigned int jump_slot_size;
+    switch (addrSpace->getAddressWidth()) {
+        case 4: jump_slot_size = 4; break;
+        case 8: jump_slot_size = 8; break;
+        default: assert(0 && "Encountered unknown address width");
+    }
+
+    if (!binEdit || !var) {
+        assert(!"Invalid variable load (variable info is missing)");
+    }
+
+    // find the Symbol corresponding to the int_variable
+    std::vector<SymtabAPI::Symbol *> syms;
+    var->svar()->getSymbols(syms);
+
+    if (syms.size() == 0) {
+        char msg[256];
+        sprintf(msg, "%s[%d]:  internal error:  cannot find symbol %s"
+                , __FILE__, __LINE__, var->symTabName().c_str());
+        showErrorCallback(80, msg);
+        assert(0);
+    }
+
+    // try to find a dynamic symbol
+    // (take first static symbol if none are found)
+    SymtabAPI::Symbol *referring = syms[0];
+    for (unsigned k=0; k<syms.size(); k++) {
+        if (syms[k]->isInDynSymtab()) {
+            referring = syms[k];
+            break;
+        }
+    }
+
+    // have we added this relocation already?
+    relocation_address = binEdit->getDependentRelocationAddr(referring);
+
+    if (!relocation_address) {
+        // inferiorMalloc addr location and initialize to zero
+        relocation_address = binEdit->inferiorMalloc(jump_slot_size);
+        unsigned char dat[8] = {0};
+        binEdit->writeDataSpace((void*)relocation_address, jump_slot_size, dat);
+
+        // add write new relocation symbol/entry
+        binEdit->addDependentRelocation(relocation_address, referring);
+    }
+
     return relocation_address;
 }
 
 Address EmitterAARCH64::emitMovePCToReg(Register dest, codeGen &gen) {
-    assert(0); //Not implemented
-    insnCodeGen::generateBranch(gen, gen.currAddr(), gen.currAddr() + 4, true); // blrl
-    Address ret = gen.currAddr();
-    return ret;
+    //assert(0); //Not implemented
+    //insnCodeGen::generateBranch(gen, gen.currAddr(), gen.currAddr() + 4, true); // blrl
+    //Address ret = gen.currAddr();
+    //return ret;
+    //
+    //l: working on it
+
+    auto scratch = gen.getScratchRegister();
+    instruction insn;
+    insn.clear();
+
+    INSN_SET(insn, 31, 31, 0);
+    INSN_SET(insn, 29, 30, 0);
+    INSN_SET(insn, 28, 28, 1);
+    INSN_SET(insn, 5, 27, 0);
+    INSN_SET(insn, 0, 4, scratch);
+
+    insnCodeGen::generate(gen, insn);
+    // TODO: return the address
 }
 
 Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
