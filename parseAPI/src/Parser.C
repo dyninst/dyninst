@@ -106,6 +106,7 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
                                " -- unparesable\n",
                        FILE__,__LINE__);
         _parse_state = UNPARSEABLE;
+        return;
     }
     
     if (_parse_state != UNPARSEABLE) {
