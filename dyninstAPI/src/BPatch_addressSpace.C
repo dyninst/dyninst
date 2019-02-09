@@ -276,6 +276,7 @@ BPatch_function * BPatchSnippetHandle::getFunc()
 
 BPatch_image * BPatch_addressSpace::getImage()
 {
+   printf("get image\n");
    return image;
 }
 
