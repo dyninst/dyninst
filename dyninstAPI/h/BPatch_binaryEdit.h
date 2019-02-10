@@ -78,6 +78,7 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
 
     private:
     std::map<std::string, BinaryEdit *> llBinEdits;
+    std::map<std::string, BPatch_object*> loadedLibrary; 
     BinaryEdit *origBinEdit;
 
     std::vector<BinaryEdit *> rtLib;
