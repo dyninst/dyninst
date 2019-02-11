@@ -1326,6 +1326,50 @@ void image::analyzeIfNeeded() {
   }
 }
 
+static bool CheckForPowerPreamble(parse_block* entryBlock, Address &tocBase) {
+    ParseAPI::Block::Insns insns;
+    entryBlock->getInsns(insns);
+    if (insns.size() < 2)
+      return false;
+    // Get the first two instructions
+    auto iter = insns.begin();
+    InstructionAPI::Instruction i1 = iter->second;
+    ++iter;
+    InstructionAPI::Instruction i2 = iter->second;
+
+    const uint32_t * buf1 = (const uint32_t*) i1.ptr();
+    const uint32_t * buf2 = (const uint32_t*) i2.ptr();
+
+    uint32_t p1 = buf1[0] >> 16;
+    uint32_t p2 = buf2[0] >> 16;
+
+    // Check for two types of preamble
+    // Preamble 1: used in executables
+    // lis r2, IMM       bytes: IMM1 IMM2 40 3c 
+    // addi r2, r2, IMM  bytes: IMM1 IMM2 42 38
+    if (p1 == 0x3c40 && p2 == 0x3842) {
+        tocBase = buf1[0] & 0xffff;
+        tocBase <<= 16;
+        tocBase += (int16_t)(buf2[0] & 0xffff);
+        return true;
+    }
+    
+    // Preamble 2: used in libraries
+    // addis r2, r12, IMM   bytes: IMM1 IMM2 4c 3c
+    // addi r2, r2,IMM      bytes: IMM1 IMM2 42 38
+    if (p1 == 0x3c4c && p2 == 0x3842) {
+        tocBase = buf1[0] & 0xffff;
+        tocBase <<= 16;
+        tocBase += (int16_t)(buf2[0] & 0xffff);
+        // Base on the Power ABI V2, r12 should the entry address of the function     
+        tocBase += entryBlock->start();
+        return true;
+    }
+    return false;
+}
+
+
+
 void image::analyzeImage() {
 #if defined(TIMED_PARSE)
     struct timeval starttime;
@@ -1343,6 +1387,7 @@ void image::analyzeImage() {
 
     obj_->parse();
 
+
 #if defined(cap_stripped_binaries)
    {
        vector<CodeRegion *>::const_iterator rit = cs_->regions().begin();
@@ -1355,6 +1400,7 @@ void image::analyzeImage() {
        } 
    }
 #endif // cap_stripped_binaries
+   
     
     parseState_ = analyzed;
   done:
@@ -1529,9 +1575,32 @@ image::image(fileDescriptor &desc,
    cs_ = new SymtabCodeSource(linkedFile,filt,parseInAllLoadableRegions);
 
    // Continue ParseAPI init
+//   fprintf(stderr, "#### create CodeObject for %s\n", desc.file().c_str());
    img_fact_ = new DynCFGFactory(this);
    parse_cb_ = new DynParseCallback(this);
    obj_ = new CodeObject(cs_,img_fact_,parse_cb_,BPatch_defensiveMode == mode);
+
+     if (obj_->cs()->getArch() == Arch_ppc64) {
+        // The PowerPC new ABI typically generate two entries per function.
+        // Need special hanlding for them
+        std::map<uint64_t, parse_func *> _findPower8Overlaps;
+        for (auto fit = obj_->funcs().begin(); fit != obj_->funcs().end(); ++fit) {
+            parse_func* funct = static_cast<parse_func*>(*fit);
+            _findPower8Overlaps[funct->addr()] = funct;
+        }
+        for (auto fit = obj_->funcs().begin(); fit != obj_->funcs().end(); ++fit) {
+            parse_func* funct = static_cast<parse_func*>(*fit);
+            Address tocBase = 0;
+            if(CheckForPowerPreamble(static_cast<parse_block*>(funct->entry()), tocBase)){
+                funct->setPowerTOCBaseAddress(tocBase);
+                funct->setContainsPowerPreamble(true);
+                auto iter = _findPower8Overlaps.find(funct->addr() + 0x8);
+                if (iter != _findPower8Overlaps.end()) {
+                    funct->setNoPowerPreambleFunc(iter->second);
+                } 
+            }
+        }
+    }
 
    string msg;
    // give user some feedback....
@@ -1802,11 +1871,11 @@ image::findFuncs(const Address offset, set<Function *> & funcs) {
     else if(cnt == 1)
         return obj_->findFuncs(*match.begin(),offset,funcs);
 
-        fprintf(stderr,"[%s:%d] image::findFuncs(offset) called on "
-                       "overlapping-region object\n",
+    fprintf(stderr,"[%s:%d] image::findFuncs(offset) called on "
+            "overlapping-region object\n",
             FILE__,__LINE__);
-        assert(0);
-        return 0;
+    assert(0);
+    return 0;
 }
 
 parse_func *image::findFuncByEntry(const Address &entry) {
@@ -1838,11 +1907,11 @@ image::findBlocksByAddr(const Address addr, set<ParseAPI::Block *> & blocks )
     else if(cnt == 1)
         return obj_->findBlocks(*match.begin(),addr,blocks);
 
-        fprintf(stderr,"[%s:%d] image::findBlocks(offset) called on "
-                       "overlapping-region object\n",
+    fprintf(stderr,"[%s:%d] image::findBlocks(offset) called on "
+            "overlapping-region object\n",
             FILE__,__LINE__);
-        assert(0);
-        return 0;
+    assert(0);
+    return 0;
 }
 
 // Return the vector of functions associated with a pretty (demangled) name

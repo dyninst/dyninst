@@ -212,6 +212,7 @@ Function::finalize()
   _bmap.clear();
   _retBL.clear(); 
   _call_edge_list.clear();
+  _cache_valid = false;
 
     // The Parser knows how to finalize
     // a Function's parse data
@@ -335,7 +336,6 @@ Function::blocks_int()
                     if (_tamper != TAMPER_UNSET && _tamper != TAMPER_NONE) 
                        continue;
                 }
-                set_retstatus(RETURN);
                 continue;
             }
 
@@ -365,7 +365,7 @@ Function::blocks_int()
                 if(t) {
                     parsing_printf("\t Adding target block [%lx,%lx) to worklist according to edge from %lx, type %d\n", t->start(), t->end(), e->src()->last(), e->type());
                     worklist.push_back(t);
-                    visited[e->trg_addr()] = true;
+                    visited[e->trg_addr()] = 1;
                     add_block(t);
                 }
             }
@@ -500,7 +500,10 @@ void Function::set_retstatus(FuncReturnStatus rs)
     // But on powerpc, the function contains a BLR instruction,
     // looking like a return instruction, but actually is not.
     if (obj()->cs()->nonReturning(_name) && rs != NORETURN) return;
- 
+    parsing_printf("Set function %s at %lx ret status from %d to %d\n", _name.c_str(), addr(), _rs.load(), rs);
+    assert(!(_rs == RETURN && rs == NORETURN)); 
+    assert(!(_rs == NORETURN && rs == RETURN)); 
+
     // If we are changing the return status, update prev counter
     if (_rs != UNSET) {
         if (_rs == NORETURN) {

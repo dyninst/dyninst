@@ -208,9 +208,9 @@ void
 CodeObject::add_edge(Block * src, Block * trg, EdgeTypeEnum et)
 {
     if (trg == NULL) {
-        parser->link(src, parser->_sink, et, true);
+        parser->link_block(src, parser->_sink, et, true);
     } else {
-        parser->link(src,trg,et,false);
+        parser->link_block(src,trg,et,false);
     }
 }
 
@@ -296,6 +296,7 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
                 ( bundle, 
                   ParseWorkElem::checked_call_ft,
                   parser->link_tempsink(worklist[idx].source, worklist[idx].edge_type),
+                  worklist[idx].source->last(),
                   worklist[idx].target,
                   true,
                   false ));
@@ -303,6 +304,7 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
                 elem = bundle->add(new ParseWorkElem
                 ( bundle, 
                   parser->link_tempsink(worklist[idx].source, worklist[idx].edge_type),
+                  worklist[idx].source->last(),
                   worklist[idx].target,
                   true,
                   false ));

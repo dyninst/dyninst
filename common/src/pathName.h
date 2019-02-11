@@ -63,5 +63,6 @@ bool executableFromArgv0AndPathAndCwd(std::string &result,
 				      const std::string &cwd);
 COMMON_EXPORT std::string extract_pathname_tail(const std::string &path);
 
-COMMON_EXPORT std::string resolve_file_path(const char *fname);
+COMMON_EXPORT std::string resolve_file_path(char const* path);
+COMMON_EXPORT std::string resolve_file_path(std::string);
 #endif

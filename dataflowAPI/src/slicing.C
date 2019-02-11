@@ -704,6 +704,10 @@ void Slicer::handlePredecessorEdge(ParseAPI::Edge* e,
 				   SliceFrame& nf)
 {
   visitedEdges.insert(e);
+  if (p.ignoreEdge(e)) {
+      slicing_printf("ignore edge from %lx to %lx, type %d according to predicate\n", e->src()->last(), e->trg()->start(), e->type()); 
+      return ;
+  }
   switch(e->type()) 
   {
   case CALL:
@@ -727,6 +731,16 @@ void Slicer::handlePredecessorEdge(ParseAPI::Edge* e,
     slicing_printf("\t\t Ignore catch edges ... ");
     break;
   default:
+    if (e->interproc()) {
+      slicing_printf("\t\t Handling tail call... ");
+      if(handleCallBackward(p,cand,newCands,e,err)) {
+        slicing_printf("succeess, err: %d\n",err);
+      } else {
+        slicing_printf("failed, err: %d\n",err);
+      }
+      return;
+    }
+
     nf = cand;
     slicing_printf("\t\t Handling default edge type %d... ",
 		   e->type());
@@ -798,27 +812,11 @@ Slicer::getPredecessors(
     bool err = false;
     SliceFrame nf;
     
-    // The curernt function may have an invalid cache status.
-    // We may have to first finalize this function before
-    // iteratingover the src edges of the current block.
-    // Otherwise, the iterator in the for_each loop can get
-    // invalidated during the loop.
-    // We force finalizing if necessary
-    cand.loc.func->num_blocks();
-    SingleContextOrInterproc epred(cand.loc.func, true, true);       
     Block::edgelist sources;
     cand.loc.block->copy_sources(sources);
-    std::for_each(boost::make_filter_iterator(epred, sources.begin(), sources.end()),
-		  boost::make_filter_iterator(epred, sources.end(), sources.end()),
-		  boost::bind(&Slicer::handlePredecessorEdge,
-			      this,
-			      _1,
-			      boost::ref(p),
-			      boost::ref(cand),
-			      boost::ref(newCands),
-			      boost::ref(err),
-			      boost::ref(nf)
-			      ));
+    for (auto eit = sources.begin(); eit != sources.end(); eit++) {
+        handlePredecessorEdge(*eit, p, cand, newCands, err, nf);
+    }
     return !err; 
 }
 

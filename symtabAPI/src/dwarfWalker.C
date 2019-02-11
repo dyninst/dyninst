@@ -338,7 +338,7 @@ bool DwarfWalker::buildSrcFiles(::Dwarf * /*dbg*/, Dwarf_Die entry, StringTableP
     if(!srcFiles->empty()) {
         return true;
     } // already parsed, the module had better be right.
-    srcFiles->push_back("Unknown file");
+    srcFiles->emplace_back("Unknown file","");
 
     // get comp_dir in case need to make absolute paths
     Dwarf_Attribute attr;
@@ -357,7 +357,7 @@ bool DwarfWalker::buildSrcFiles(::Dwarf * /*dbg*/, Dwarf_Die entry, StringTableP
             s_name = comp_dir_str + "/" + s_name;
         }
 
-        srcFiles->push_back(s_name);
+        srcFiles->emplace_back(s_name,"");
     }
     return true;
 }
@@ -602,9 +602,9 @@ void DwarfWalker::setFuncFromLowest(Address lowest) {
    Function *f = NULL;
    bool result = symtab()->findFuncByEntryOffset(f, lowest);
    if (result) {
+      setFunc(f);
       dwarf_printf("(0x%lx) Lookup by offset 0x%lx identifies %p\n",
                    id(), lowest, curFunc());
-      setFunc(f);
    } else {
      dwarf_printf("(0x%lx) Lookup by offset 0x%lx failed\n", id(), lowest);
    }
@@ -765,7 +765,7 @@ void DwarfWalker::setRanges(FunctionBase *func) {
     }
 }
 
-pair<AddressRange, bool> DwarfWalker::parseHighPCLowPC(::Dwarf * dbg, Dwarf_Die entry)
+pair<AddressRange, bool> DwarfWalker::parseHighPCLowPC(Dwarf * /*dbg*/, Dwarf_Die entry)
 {
     Dwarf_Addr low, high;
     int low_result = dwarf_lowpc(&entry, &low);
@@ -818,7 +818,8 @@ bool DwarfWalker::parseRangeTypes(Dwarf * dbg, Dwarf_Die die) {
    return !newRanges.empty();
 }
 
-vector<AddressRange> DwarfWalker::getDieRanges(Dwarf * dbg, Dwarf_Die die, Offset range_base) {
+vector<AddressRange> DwarfWalker::getDieRanges(Dwarf * /*dbg*/, Dwarf_Die die, Offset /*range_base*/)
+{
     std::vector<AddressRange> newRanges;
 
     Dwarf_Addr base;
@@ -2577,7 +2578,7 @@ void DwarfParseActions::clearFunc() {
 
 unsigned int DwarfWalker::getNextTypeId(){
 
-  static boost::atomic<unsigned int> next_type_id = 0;
+  static boost::atomic<unsigned int> next_type_id(0);
   race_detector_fake_lock_acquire(race_detector_fake_lock(next_type_id));
   unsigned int val = next_type_id.fetch_add(1);
   race_detector_fake_lock_release(race_detector_fake_lock(next_type_id));

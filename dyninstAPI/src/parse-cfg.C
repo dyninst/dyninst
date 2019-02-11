@@ -102,9 +102,11 @@ parse_func::parse_func(
   unresolvedCF_(UNSET_CF),
   init_retstatus_(UNSET),
   o7_live(false),
-  ppc_saves_return_addr_(false),
+  saves_return_addr_(false),
   livenessCalculated_(false),
-  isPLTFunction_(false)
+  isPLTFunction_(false),
+  containsPowerPreamble_(false),
+  noPowerPreambleFunc_(NULL)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     parse_func_count++;
@@ -210,7 +212,7 @@ parse_block::parse_block(
         parse_func * func, 
         CodeRegion * reg,
         Address firstOffset) :
-    Block(func->obj(),reg,firstOffset),
+    Block(func->obj(),reg,firstOffset, func),
     needsRelocation_(false),
     blockNumber_(0),
     unresolvedCF_(false),

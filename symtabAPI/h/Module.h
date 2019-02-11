@@ -99,7 +99,7 @@ namespace Dyninst{
 
 			Offset startAddr() const { return first;}
 			Offset endAddr() const {return second;}
-			std::string getFile() const;
+			const std::string& getFile() const;
 			unsigned int getFileIndex() const { return file_index_; }
 			unsigned int getLine()const {return line_;}
 			unsigned int getColumn() const { return column_; }
@@ -233,6 +233,7 @@ namespace Dyninst{
 			void finalizeRanges();
 
 		private:
+            bool objectLevelLineInfo;
 			Dyninst::SymtabAPI::LineInformation* lineInfo_;
 			typeCollection* typeInfo_;
 			std::vector<Module::DebugInfoT> info_;

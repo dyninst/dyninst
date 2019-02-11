@@ -87,8 +87,7 @@ namespace Dyninst {
 
             // Delayed frames
             struct DelayedFrames : public boost::basic_lockable_adapter<boost::recursive_mutex> {
-                unsigned size;
-                std::map<Function *, std::set<ParseFrame *> > frames;
+                std::map<Function *, std::set<ParseFrame *> > frames, prev_frames;
 
             };
             DelayedFrames delayed_frames;
@@ -190,22 +189,27 @@ namespace Dyninst {
             Block *block_at(ParseFrame &frame,
                             Function *owner,
                             Address addr,
-                            Block *&split);
+                            Block *&split,
+			    Block* src);
 
             pair<Block *, Edge *> add_edge(
                     ParseFrame &frame,
                     Function *owner,
                     Block *src,
+                    Address src_addr,
                     Address dst,
                     EdgeTypeEnum et,
                     Edge *exist);
 
+            Block *follow_fallthrough(Block *b, Address addr);
             Block *split_block(Function *owner,
                                Block *b,
                                Address addr,
                                Address previnsn);
 
-            Edge *link(Block *src, Block *dst, EdgeTypeEnum et, bool sink);
+            Edge *link_addr(Address src, Block *dst, EdgeTypeEnum et, bool sink, Function* func);
+            Edge *link_block(Block* src, Block *dst, EdgeTypeEnum et, bool sink);
+
 
             Edge *link_tempsink(Block *src, EdgeTypeEnum et);
 
@@ -216,6 +220,8 @@ namespace Dyninst {
 
     void parse_frames(LockFreeQueue<ParseFrame *> &, bool);
     void parse_frame(ParseFrame & frame,bool);
+    bool parse_frame_one_iteration(ParseFrame & frame, bool);
+    bool inspect_value_driven_jump_tables(ParseFrame &);
 
     void resumeFrames(Function * func, LockFreeQueue<ParseFrame *> & work);
 
@@ -254,6 +260,13 @@ namespace Dyninst {
             void finalize_funcs(vector<Function *> &funcs);
 	    void clean_bogus_funcs(vector<Function*> &funcs);
             void finalize_ranges(vector<Function *> &funcs);
+	    void split_overlapped_blocks();
+            void split_consistent_blocks(region_data *, map<Address, Block*> &);
+            void split_inconsistent_blocks(region_data *, map<Address, Block*> &);
+            bool set_edge_parsing_status(ParseFrame&, Address addr, Block *b);
+	    void move_edges_consistent_blocks(Block *, Block *);
+            void update_function_ret_status(ParseFrame &, Function*, ParseWorkElem* );
+
 
 
             void invalidateContainingFuncs(Function *, Block *);

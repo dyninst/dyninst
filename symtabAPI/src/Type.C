@@ -57,7 +57,7 @@ static int findIntrensicType(std::string &name);
 
 // This is the ID that is decremented for each type a user defines. It is
 // Global so that every type that the user defines has a unique ID.
-boost::atomic<typeId_t> Type::USER_TYPE_ID = -10000;
+boost::atomic<typeId_t> Type::USER_TYPE_ID(-10000);
 
 typeId_t Type::getUniqueTypeId()
 {

@@ -50,7 +50,7 @@
 
 #define GPRSIZE_32            4
 #define GPRSIZE_64            8
-#define FPRSIZE               8
+#define FPRSIZE               16
 
 #define REG_SP		      1		
 #define REG_TOC               2   /* TOC anchor                            */
@@ -73,12 +73,14 @@
 // value of the stack frame pointer that a function can use without
 // first establishing a new stack frame.  When our instrumentation
 // needs to use the stack, we make sure not to write into this
-// potentially used area.  AIX documentation stated 220 bytes as
-// the maximum size of this area.  64-bit PowerPC ELF ABI Supplement,
-// Version 1.9, 2004-10-23, used by Linux, stated 288 bytes for this
-// area.  We skip the larger number of bytes (288) to be safe on both
-// AIX and Linux, 32-bit and 64-bit.
-#define STACKSKIP          288
+// potentially used area.  
+//
+// OpenPOWER ELF V2 ABI says user code can use 288 bytes underneath
+// the stack pointer and system code can further use 224 more bytes
+//
+// In case we are instrumenting signal handlers, we want to skip 
+// skip more spaces, which is 288+224=512 bytes
+#define STACKSKIP          512
 
 // Both 32-bit and 64-bit PowerPC ELF ABI documents for Linux state
 // that the stack frame pointer value must always be 16-byte (quadword)
@@ -89,6 +91,8 @@
 #define GPRSAVE_32  (32*4)
 #define GPRSAVE_64  (32*8)
 #define FPRSAVE     (14*8)
+#define VECSAVE     (33*16)
+
 #define SPRSAVE_32  (6*4+8)
 #define SPRSAVE_64  (6*8+8)
 #define FUNCSAVE_32 (32*4)
@@ -103,11 +107,10 @@
         (                                                           \
             ((mutatee_address_width) == sizeof(uint64_t))           \
             ? (   /* 64-bit ELF PowerPC Linux                   */  \
-                  sizeof(uint64_t) +  /* TOC save               */  \
-                  sizeof(uint64_t) +  /* link editor doubleword */  \
-                  sizeof(uint64_t) +  /* compiler doubleword    */  \
-                  sizeof(uint64_t) +  /* LR save                */  \
-                  sizeof(uint64_t) +  /* CR save                */  \
+                  sizeof(uint64_t) +  /* TOC save doubleword    */  \
+                  sizeof(uint64_t) +  /* LR save doublewordd    */  \
+                  sizeof(uint32_t) +  /* Reserved word          */  \
+                  sizeof(uint32_t) +  /* CR save word           */  \
                   sizeof(uint64_t)    /* Stack frame back chain */  \
               )                                                     \
             : (   /* 32-bit ELF PowerPC Linux                   */  \
@@ -123,10 +126,10 @@
 
 
 // Okay, now that we have those defined, let's define the offsets upwards
-#define TRAMP_FRAME_SIZE_32 ALIGN_QUADWORD(STACKSKIP + GPRSAVE_32 + FPRSAVE \
+#define TRAMP_FRAME_SIZE_32 ALIGN_QUADWORD(STACKSKIP + GPRSAVE_32 + VECSAVE \
                                            + SPRSAVE_32 \
                                            + FUNCSAVE_32 + FUNCARGS_32 + LINKAREA_32)
-#define TRAMP_FRAME_SIZE_64 ALIGN_QUADWORD(STACKSKIP + GPRSAVE_64 + FPRSAVE \
+#define TRAMP_FRAME_SIZE_64 ALIGN_QUADWORD(STACKSKIP + GPRSAVE_64 + VECSAVE \
                                            + SPRSAVE_64 \
                                            + FUNCSAVE_64 + FUNCARGS_64 + LINKAREA_64)
 #define PDYN_RESERVED_32 (LINKAREA_32 + FUNCARGS_32 + FUNCSAVE_32)
@@ -153,8 +156,8 @@
 #define TRAMP_FPR_OFFSET_64 (TRAMP_SPR_OFFSET_64 + SPRSAVE_64)
 #define TRAMP_FPR_OFFSET(x) (((x) == 8) ? TRAMP_FPR_OFFSET_64 : TRAMP_FPR_OFFSET_32)
 
-#define TRAMP_GPR_OFFSET_32 (TRAMP_FPR_OFFSET_32 + FPRSAVE)
-#define TRAMP_GPR_OFFSET_64 (TRAMP_FPR_OFFSET_64 + FPRSAVE)
+#define TRAMP_GPR_OFFSET_32 (TRAMP_FPR_OFFSET_32 + VECSAVE)
+#define TRAMP_GPR_OFFSET_64 (TRAMP_FPR_OFFSET_64 + VECSAVE)
 #define TRAMP_GPR_OFFSET(x) (((x) == 8) ? TRAMP_GPR_OFFSET_64 : TRAMP_GPR_OFFSET_32)
 
 #define FUNC_CALL_SAVE_32 (LINKAREA_32 + FUNCARGS_32)

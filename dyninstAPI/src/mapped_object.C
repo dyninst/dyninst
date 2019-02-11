@@ -123,6 +123,7 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
        startup_cerr << "Warning, running dyninstAPI_RT.dll in normal mode.\n";
        analysisMode_ = BPatch_normalMode;
    }
+   tocBase = 0;
 }
 
 mapped_object *mapped_object::createMappedObject(Library::const_ptr lib,
@@ -156,6 +157,8 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
       startup_printf("%s[%d]:  failed to parseImage\n", FILE__, __LINE__);
       return NULL;
    }
+
+
    if (img->isDyninstRTLib()) {
        parseGaps = false;
    }
@@ -199,6 +202,22 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
    // Adds exported functions and variables..
    startup_printf("%s[%d]:  creating mapped object\n", FILE__, __LINE__);
    mapped_object *obj = new mapped_object(desc, img, p, analysisMode);
+   if (img->codeObject()->cs()->getArch() == Arch_ppc64) { 
+  const CodeObject::funclist & allFuncs = img->codeObject()->funcs();
+  CodeObject::funclist::const_iterator fit = allFuncs.begin();
+  for( ; fit != allFuncs.end(); ++fit) {
+      parse_func * f = (parse_func*)*fit;
+      if (f->getNoPowerPreambleFunc() != NULL) {
+          func_instance * preambleFunc = obj->findFunction(f);
+          func_instance * noPreambleFunc = obj->findFunction(f->getNoPowerPreambleFunc());
+          preambleFunc->setNoPowerPreambleFunc(noPreambleFunc);
+          noPreambleFunc->setPowerPreambleFunc(preambleFunc);
+          if (obj->getTOCBaseAddress() == 0 && f->getPowerTOCBaseAddress() > 0) {
+              obj->setTOCBaseAddress(f->getPowerTOCBaseAddress());
+          }
+      }
+  }
+   }
    if (BPatch_defensiveMode == analysisMode) {
        img->register_codeBytesUpdateCB(obj);
    }
@@ -250,6 +269,7 @@ mapped_object::mapped_object(const mapped_object *s, AddressSpace *child) :
    assert(BPatch_defensiveMode != analysisMode_);
 
    image_ = s->image_->clone();
+   tocBase = s->tocBase;
 }
 
 
@@ -346,9 +366,11 @@ bool mapped_object::analyze()
   const CodeObject::funclist & allFuncs = parse_img()->getAllFunctions();
   CodeObject::funclist::const_iterator fit = allFuncs.begin();
   for( ; fit != allFuncs.end(); ++fit) {
+      parse_func * f = (parse_func*)*fit;
   // For each function, we want to add our base address
       if((*fit)->src() != HINT)
-        findFunction((parse_func*)*fit);
+        findFunction(f);
+      
   }
 
   // Remember: variables don't.

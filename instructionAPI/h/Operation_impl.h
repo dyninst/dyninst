@@ -107,7 +107,7 @@ namespace Dyninst
                                   Architecture arch = Arch_none);
       INSTRUCTION_EXPORT Operation_impl(const Operation_impl& o);
       INSTRUCTION_EXPORT Operation_impl();
-      INSTRUCTION_EXPORT Operation_impl(entryID id, Architecture arch);
+      INSTRUCTION_EXPORT Operation_impl(entryID id, std::string m, Architecture arch);
       
       INSTRUCTION_EXPORT const Operation_impl& operator=(const Operation_impl& o);
       
@@ -141,11 +141,14 @@ namespace Dyninst
         boost::hash_combine(seed, op.archDecodedFrom);
         boost::hash_combine(seed, op.addrWidth);
         boost::hash_combine(seed, op.segPrefix);
+        boost::hash_combine(seed, op.isVectorInsn);
         return seed;
       }
       bool operator==(const Operation_impl& rhs) const {
         return hash_value(*this) == hash_value(rhs);
       }
+      INSTRUCTION_EXPORT const VCSet& getImplicitMemWrites() const;
+      bool isVectorInsn;
 
     private:
         std::once_flag data_initialized;
@@ -155,7 +158,6 @@ namespace Dyninst
       mutable registerSet otherWritten;
       mutable VCSet otherEffAddrsRead;
       mutable VCSet otherEffAddrsWritten;
-      mutable std::string mnemonic;
 
     protected:
         mutable entryID operationID;
@@ -163,13 +165,13 @@ namespace Dyninst
       prefixEntryID prefixID;
       Result_Type addrWidth;
       int segPrefix;
+      mutable std::string mnemonic;
 
       
     };
     struct Operation: public Operation_impl {
         Operation(entryID id, std::string m, Architecture arch)
-                : Operation_impl(id, arch), mnemonic(m)  {}
-        std::string mnemonic;
+                : Operation_impl(id, m, arch)  {}
         Operation(NS_x86::ia32_entry* e, NS_x86::ia32_prefixes* p = NULL, ia32_locations* l = NULL,
                 Architecture arch = Arch_none) : Operation_impl(e, p, l, arch) {}
         Operation() : Operation_impl() {}

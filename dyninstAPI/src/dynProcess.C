@@ -1044,7 +1044,7 @@ bool PCProcess::terminateProcess() {
     return true;
 }
 
-bool PCProcess::detachProcess(bool /*cont*/) {
+bool PCProcess::detachProcess(bool cont = true) {
     if( isTerminated() ) return true;
 
     if( !isAttached() ) return false;
@@ -1057,7 +1057,7 @@ bool PCProcess::detachProcess(bool /*cont*/) {
             if( !stopProcess() ) {
                 proccontrol_printf("%s[%d]: failed to stop process for removing syscalls\n",
                         FILE__, __LINE__);
-		return false;
+		        return false;
             }
         }
 
@@ -1067,11 +1067,12 @@ bool PCProcess::detachProcess(bool /*cont*/) {
         tracedSyscalls_->removePostExec();
         tracedSyscalls_->removePreExit();
         tracedSyscalls_->removePreLwpExit();
-
-        if( needToContinue ) {
-            if( !continueProcess() ) {
-                proccontrol_printf("%s[%d]: failed to continue process after removing syscalls\n",
-                        FILE__, __LINE__);
+        if (cont) {
+            if( needToContinue ) {
+                if( !continueProcess() ) {
+                    proccontrol_printf("%s[%d]: failed to continue process after removing syscalls\n",
+                            FILE__, __LINE__);
+                }
             }
         }
     }
@@ -1081,7 +1082,7 @@ bool PCProcess::detachProcess(bool /*cont*/) {
 
     // NB: it's possible to get markExited() while handling events for the
     // tracedSyscalls_->remove* calls above, clearing pcProc_.
-    if( isTerminated() || pcProc_->detach() ) {
+    if( isTerminated() || pcProc_->detach(!cont) ) {
         attached_ = false;
         return true;
     }
@@ -1646,25 +1647,28 @@ Address PCProcess::inferiorMalloc(unsigned size, inferiorHeapType type,
     for (ntry = 0; freeIndex == -1; ntry++) {
         switch(ntry) {
         case AsIs: 
+            infmalloc_printf("%s[%d]:  (1) AsIs\n", FILE__, __LINE__);
             break;
 	    //#if defined(cap_dynamic_heap)
         case DeferredFree: 
-            infmalloc_printf("%s[%d]: garbage collecting and compacting\n",
+            infmalloc_printf("%s[%d]:  (2) garbage collecting and compacting\n",
                              FILE__, __LINE__);
             inferiorFreeCompact();
             break;
         case NewSegment1MBConstrained: 
-            infmalloc_printf("%s[%d]: inferiorMallocDynamic for %d (0x%x) bytes between 0x%lx - 0x%lx\n",
-                             FILE__, __LINE__, HEAP_DYN_BUF_SIZE, HEAP_DYN_BUF_SIZE, lo, hi);
+            infmalloc_printf("%s[%d]:  (3) inferiorMallocDynamic "
+                    "for %d (0x%x) bytes between 0x%lx - 0x%lx\n", FILE__, __LINE__,
+                    HEAP_DYN_BUF_SIZE, HEAP_DYN_BUF_SIZE, lo, hi);
             inferiorMallocDynamic(HEAP_DYN_BUF_SIZE, lo, hi);
             break;
         case NewSegmentSizedConstrained: 
-            infmalloc_printf("%s[%d]: inferiorMallocDynamic for %d (0x%x) bytes between 0x%lx - 0x%lx\n",
+            infmalloc_printf("%s[%d]:  (4) inferiorMallocDynamic "
+                    "for %d (0x%x) bytes between 0x%lx - 0x%lx\n",
                              FILE__, __LINE__, size, size, lo, hi);
             inferiorMallocDynamic(size, lo, hi);
             break;
         case RemoveRangeConstraints: 
-            infmalloc_printf("%s[%d]: inferiorMalloc: removing range constraints\n",
+            infmalloc_printf("%s[%d]:  (5) inferiorMalloc: removing range constraints\n",
                              FILE__, __LINE__);
             lo = ADDRESS_LO;
             hi = ADDRESS_HI;
@@ -1674,12 +1678,12 @@ Address PCProcess::inferiorMalloc(unsigned size, inferiorHeapType type,
             }
             break;
         case NewSegment1MBUnconstrained: 
-            infmalloc_printf("%s[%d]: inferiorMallocDynamic for %d (0x%x) bytes between 0x%lx - 0x%lx\n",
+            infmalloc_printf("%s[%d]:  (6) inferiorMallocDynamic for %d (0x%x) bytes between 0x%lx - 0x%lx\n",
                              FILE__, __LINE__, HEAP_DYN_BUF_SIZE, HEAP_DYN_BUF_SIZE, lo, hi);
             inferiorMallocDynamic(HEAP_DYN_BUF_SIZE, lo, hi);
             break;
         case NewSegmentSizedUnconstrained: 
-            infmalloc_printf("%s[%d]: inferiorMallocDynamic for %d (0x%x) bytes between 0x%lx - 0x%lx\n",
+            infmalloc_printf("%s[%d]:  (7) inferiorMallocDynamic for %d (0x%x) bytes between 0x%lx - 0x%lx\n",
                              FILE__, __LINE__, size, size, lo, hi);
             inferiorMallocDynamic(size, lo, hi);
             break;
@@ -1969,6 +1973,10 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
     insnCodeGen::generateTrap(irpcBuf);
 
     irpcBuf.endTrackRegDefs();
+
+    //#sasha printing code patch for DYNINSTos_malloc
+    //cerr << "BUFFER for IRPC" << endl;
+    //cerr << irpcBuf.format() << endl;
 
     return postIRPC_internal(irpcBuf.start_ptr(),
                              irpcBuf.used(),

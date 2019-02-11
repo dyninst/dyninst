@@ -126,9 +126,18 @@ CFGFactory::_mkblock(Function *  f , CodeRegion *r, Address addr)
 }
 
 Block *
+CFGFactory::_mkblock(CodeObject* co, CodeRegion *r, Address addr)
+{
+   Block* ret = new Block(co, r, addr);
+   race_detector_forget_access_history(ret, sizeof(*ret));
+   blocks_.add(ret);
+   return ret;
+}
+
+Block *
 CFGFactory::mkblock(Function *  f , CodeRegion *r, Address addr) {
 
-    Block * ret = new Block(f->obj(),r,addr);
+    Block * ret = new Block(f->obj(),r,addr, f);
     return ret;
 }
 

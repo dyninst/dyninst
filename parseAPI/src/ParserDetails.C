@@ -209,7 +209,7 @@ Parser::getTamperAbsFrame(Function *tamperFunc) {
             leak-free idiom, but I don't know whether this is intended
             or a bug. You might want to wrap the call in a frame.pushWork.
          */
-        (void) pf->mkWork(NULL, edge, target, true, true);
+        (void) pf->mkWork(NULL, edge, edge->src()->last(), target, true, true);
         /*
         ParseWorkBundle *bundle = new ParseWorkBundle();
         pf->work_bundles.push_back(bundle);
@@ -347,7 +347,7 @@ void Parser::ProcessReturnInsn(
         Block *cur,
         InstructionAdapter_t *ah) {
     // returns always target the sink block
-    link(cur, _sink, RET, true);
+    link_block(cur, _sink, RET, true);
 
     ParseCallback::interproc_details det;
     det.ibuf = (unsigned char *)
@@ -400,9 +400,11 @@ void Parser::ProcessCFInsn(
     Edges_t edges_out;
     ParseWorkBundle *bundle = NULL;
 
+    region_data::edge_data_map::accessor a;
+    region_data::edge_data_map* edm = _parse_data->get_edge_data_map(frame.func->region());
+    assert(edm->find(a, ah->getAddr()));
+    cur = a->second.b;
 
-    // terminate the block at this address
-    end_block(cur, ah);
 
     // Instruction adapter provides edge estimates from an instruction
     parsing_printf("Getting edges\n");
@@ -410,6 +412,10 @@ void Parser::ProcessCFInsn(
     parsing_printf("Returned %d edges\n", edges_out.size());
     if (unlikely(_obj.defensiveMode() && !ah->isCall() && edges_out.size())) {
         // only parse branch edges that align with existing blocks
+        //
+        // Xiaozhu: The person who works on defensive mode needs to
+        // revisit this code. In parallel parsing, the block boundary (cur->end())
+        // is not reliable because it can be split by another thread
         bool hasUnalignedEdge = false;
         set<CodeRegion *> tregs;
         set<Block *> tblocks;
@@ -466,8 +472,14 @@ void Parser::ProcessCFInsn(
     insn_ret = ah->getReturnStatus(frame.func, frame.num_insns);
 
     // Update function return status if possible
-    if (unlikely(insn_ret != UNSET && frame.func->_rs < RETURN))
-        frame.func->set_retstatus(insn_ret);
+    if (unlikely(insn_ret != UNSET && frame.func->_rs < RETURN) && !HASHDEF(plt_entries, frame.func->addr())) {
+        // insn_ret can only be UNSET, UNKNOWN, or RETURN
+        // UNKNOWN means that there is an unresolved undirect control flow,
+        // such as unresolve jump tables or indirect tail calls.
+        // In such cases, we do not have concrete evidence that
+        // the function cannot not return, so we mark this function as RETURN.
+        frame.func->set_retstatus(RETURN);
+    }
 
     // Return instructions need extra processing
     if (insn_ret == RETURN)
@@ -509,7 +521,7 @@ void Parser::ProcessCFInsn(
             if (resolvable_edge) {
                 newedge = link_tempsink(cur, CALL);
             } else {
-                newedge = link(cur, _sink, CALL, true);
+                newedge = link_block(cur, _sink, CALL, true);
             }
             if (!ah->isCall()) {
                 parsing_printf("Setting edge 0x%lx (0x%lx/0x%lx) to interproc\n",
@@ -526,7 +538,7 @@ void Parser::ProcessCFInsn(
             if (resolvable_edge) {
                 newedge = link_tempsink(cur, curEdge->second);
             } else
-                newedge = link(cur, _sink, curEdge->second, true);
+                newedge = link_block(cur, _sink, curEdge->second, true);
         }
 
         if (ah->isTailCall(frame.func, curEdge->second, frame.num_insns, frame.knownTargets)) {
@@ -550,6 +562,7 @@ void Parser::ProcessCFInsn(
                         new ParseWorkElem(
                                 bundle,
                                 newedge,
+                                ah->getAddr(),
                                 curEdge->first,
                                 resolvable_edge,
                                 tailcall)
@@ -579,7 +592,7 @@ void Parser::ProcessCFInsn(
     }
 
     if (unlikely(has_unres && edges_out.empty())) {
-        link(cur, _sink, INDIRECT, true);
+        link_block(cur, _sink, INDIRECT, true);
         ProcessUnresBranchEdge(frame, cur, ah, -1);
     }
 

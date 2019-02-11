@@ -168,25 +168,28 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction insn,
 }
 
 AbsRegion AbsRegionConverter::convert(RegisterAST::Ptr reg) {
-  // FIXME:
-  // Upcast register so we can be sure to match things later
-  AbsRegion tmp = AbsRegion(Absloc(reg->getID().getBaseRegister()));
-
-  //std::cerr << "ARC::convert from " << reg->format() << " to "
-  //    << tmp.format() << std::endl;
-  return tmp;
+  // We do not distinguish partial registers from full register.
+  // So, eax and rax are treated the same.
+  // But for flags, we want to separate CF, ZF, and so on
+  if (reg->getID().isFlag()) {
+    return AbsRegion(Absloc(reg->getID()));
+  } else {
+    return AbsRegion(Absloc(reg->getID().getBaseRegister()));
+  }		   
 }
 
 class bindKnownRegs : public InstructionAPI::Visitor
 {
 public:
-    bindKnownRegs(Address sp, Address fp, Address ip) :
+    bindKnownRegs(Address sp, Address fp, Address ip, bool sdef, bool fdef) :
             defined(true),
             is_stack(false),
             is_frame(false),
             m_sp(sp),
             m_fp(fp),
-            m_ip(ip) {}
+            m_ip(ip),
+            stackDefined(sdef),
+            frameDefined(fdef) {}
     virtual ~bindKnownRegs() {}
     bool defined;
     bool is_stack;
@@ -195,6 +198,8 @@ public:
     Address m_sp;
     Address m_fp;
     Address m_ip;
+    bool stackDefined;
+    bool frameDefined;
     long getResult() {
         if(results.empty()) return 0;
         return results.front();
@@ -235,13 +240,13 @@ public:
             results.push_back(m_ip);
             return;
         }
-        if(r->getID().isFramePointer())
+        if(r->getID().isFramePointer() && frameDefined)
         {
             results.push_back(m_fp);
             is_frame = true;
             return;
         }
-        if(r->getID().isStackPointer())
+        if(r->getID().isStackPointer() && stackDefined)
         {
             results.push_back(m_sp);
             is_stack = true;
@@ -310,7 +315,7 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
     // Currently, we only bind sp, fp, and pc.
     // If we decide to also bind aliases of these registers,
     // we need to change bindKnownRegs accordingly.
-    bindKnownRegs calc(spHeight, fpHeight, addr);
+    bindKnownRegs calc(spHeight, fpHeight, addr, stackDefined, frameDefined);
     exp->apply(&calc);
     bool isFrame = calc.is_frame;
     bool isStack = calc.is_stack;

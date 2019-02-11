@@ -47,6 +47,7 @@ public:
 			ReachFact &r,
 			ThunkData &t,
 			SymbolicExpression &sym);
+    virtual bool ignoreEdge(ParseAPI::Edge *e);
 
 };
 

@@ -361,7 +361,7 @@ void ConcreteDwarfResult::pushFrameBase() {
 }
 
 void ConcreteDwarfResult::pushCFA() {
-   DwarfFrameParser::Ptr cfaParser = DwarfFrameParser::create(dbg, arch);
+   DwarfFrameParser::Ptr cfaParser = DwarfFrameParser::create(dbg, dwarf_getelf(dbg), arch);
    if(!cfaParser) return; 
    MachRegisterVal cfa;
    FrameErrors_t err;

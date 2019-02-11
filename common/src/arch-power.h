@@ -180,6 +180,19 @@ namespace NS_power {
 #define XLFORM_XO_SET(x, y) ((x).setBits( 1, 10, (y)))
 #define XLFORM_LK_SET(x, y) ((x).setBits( 0,  1, (y)))
 
+/* struct xx1form {
+	unsigned op : 6;
+	unsigned t  : 5;
+	unsigned RA : 5;
+	unsigned RB : 5; 
+	unsigned xo : 10;
+	unsigned TX/SX : 1;
+};
+*/
+
+
+
+
 //struct xfxform {
 //  unsigned op : 6;
 //  unsigned rt : 5;   // rs
@@ -356,6 +369,7 @@ typedef unsigned codeBufIndex_t;
 #define SPR_XER	1
 #define SPR_LR	8
 #define SPR_CTR	9
+#define SPR_TAR 815
 #define SPR_MQ 0
 
 /*
@@ -494,10 +508,13 @@ typedef unsigned codeBufIndex_t;
 // -- other X-forms
 #define CMPop           31      /* compare -- XFPop*/
 #define CMPxop		0       /* compare */
+#define CMPLxop         32      /* unsigned compare */
 #define ANDop           31      /* and */
 #define ANDxop          28      /* and */
 #define ORop            31      /* or */
 #define ORxop           444     /* or */
+#define XORop           31
+#define XORxop          316
 
 // -- Other extended op codes for X, XFX, & XO when op is 31
 #define EXTop           31
@@ -543,7 +560,6 @@ typedef unsigned codeBufIndex_t;
 #define DCBTxop        278
 #define EQVxop         284
 #define TLBIxop        306
-#define XORxop         316
 #define DIVxop         331
 #define ABSxop         360
 #define ORCxop         412
@@ -583,13 +599,19 @@ typedef unsigned codeBufIndex_t;
 #define ICBIxop        982
 #define DCLZxop       1014
 
+// Vector Op Codes (XX1 Form, identical to XFORM)
+#define LXVD2Xop 	    31
+#define LXVD2Xxo	   844
+#define STXVD2Xop 		31
+#define STXVD2Xxo      972
 
 // ------------- Op Codes, instruction form XL  -----------------
 #define BCLRop		19	/* branch conditional link register */
 #define BCLRxop		16	/* branch conditional link register */
 #define BCCTRop         19      /* branch conditional count register */
 #define BCCTRxop        528     /* branch conditional count register */
-
+#define BCTARop			19 /* Branch conditional to TAR register */
+#define BCTARxop        560 /* Branch conditional to TAR register */ 
 
 // ------------- Op Codes, instruction form XO  -----------------
 /* #define XFPop        31      -- extendened fixed point ops */
@@ -597,10 +619,14 @@ typedef unsigned codeBufIndex_t;
 #define SFxop		8       /* subtract from -- SUBFxop */
 #define MULSop          31      /* multiply short -- XFPop */
 #define MULSxop         235     /* multiply short -- MULLWxop */
+#define MULLxop         233     /* multiply long -- 64-bit integer multiplication */
 #define CAXop		31      /* compute address -- XFPop */
 #define CAXxop		266     /* compute address -- ADDxop */
 #define DIVSop          31      /* divide short -- XFPop */
 #define DIVSxop         363     /* divide short -- replacing DIVWxop */
+#define DIVLSxop        489     /* divide signed long  -- 64-bit integer divison */
+#define DIVLUxop        457     /* divide unsigned long  -- 64-bit integer divison */
+
 
 // ------------- Extended Floating PointOp Codes, instruction form A ---
 // Op code - 59
@@ -661,8 +687,8 @@ typedef unsigned codeBufIndex_t;
 #define MR12CTR        0x7d8903a6      /* move from r12 to CTR */
 #define BCTRraw        0x4e800420      /* bctr instrunction */
 #define BCTRLraw       0x4e800421      /* bctrl instrunction */
-#define BRraw          0x4e800020      /* br instruction */
-#define BRLraw         0x4e800021      /* branch and link to link reg */
+#define BRraw          0x4e800020      /* br instruction bclr */
+#define BRLraw         0x4e800021      /* branch and link to link reg bclrl */
 #define NOOPraw        0x60000000      /* noop, d form ORIL 0, 0, 0 */
 
 // -------------------------- Branch fields ------------------------------
@@ -762,7 +788,7 @@ typedef unsigned codeBufIndex_t;
 #define MIN_IMM48      ((long)(~MAX_IMM48)) // compilers.
 
 // Helps to mitigate host/target endian mismatches
-unsigned int swapBytesIfNeeded(unsigned int i);
+COMMON_EXPORT unsigned int swapBytesIfNeeded(unsigned int i);
 
 ///////////////////////////////////////////////////////
 // Bum bum bum.....

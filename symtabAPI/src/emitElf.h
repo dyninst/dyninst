@@ -54,6 +54,17 @@ namespace Dyninst {
     namespace SymtabAPI {
 // Error reporting
 
+        struct sortByOffsetNewIndices {
+            bool operator()(Symbol *lhs, Symbol *rhs) {
+                auto lIndex = lhs->getIndex();
+                auto rIndex = rhs->getIndex();
+                if(lIndex==-1 && rIndex==-1)
+                    return lhs->getOffset() < rhs->getOffset(); 
+                lIndex = ULONG_MAX ? lIndex==-1 : lIndex;  
+                rIndex = ULONG_MAX ? rIndex==-1 : rIndex;  
+                return lIndex < rIndex;
+            }
+        };
         struct sortByIndex {
             bool operator()(Symbol *lhs, Symbol *rhs) {
                 return lhs->getIndex() < rhs->getIndex();

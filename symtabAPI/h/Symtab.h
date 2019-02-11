@@ -608,6 +608,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    Object *getObject();
    const Object *getObject() const;
    ModRangeLookup* mod_lookup();
+   void dumpModRanges();
+   void dumpFuncRanges();
 
  private:
    Object *obj_private;
@@ -729,9 +731,12 @@ class SYMTAB_EXPORT relocationEntry : public Serializable, public AnnotatableSpa
       enum {pltrel = 1, dynrel = 2};
       bool operator==(const relocationEntry &) const;
 
+      enum category { relative, jump_slot, absolute };
+
       // Architecture-specific functions
       static unsigned long getGlobalRelType(unsigned addressWidth, Symbol *sym = NULL);
       static const char *relType2Str(unsigned long r, unsigned addressWidth = sizeof(Address));
+      category getCategory( unsigned addressWidth );
 
    private:
       Offset target_addr_;	// target address of call instruction 

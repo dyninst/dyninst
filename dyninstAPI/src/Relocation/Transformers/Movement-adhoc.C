@@ -238,6 +238,15 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
   return true;
 }
 
+static Address PCValue(Address addr, Instruction insn) {
+    // ARM is for sure using pre-insnstruction PC value
+    if (insn.getArch() == Arch_aarch64 || insn.getArch() == Arch_aarch32) {
+        return addr;
+    } else {
+        return addr + insn.size();
+    }
+}
+
 bool adhocMovementTransformer::isPCDerefCF(Widget::Ptr ptr,
                                            Instruction insn,
                                            Address &target) {
@@ -257,7 +266,7 @@ bool adhocMovementTransformer::isPCDerefCF(Widget::Ptr ptr,
    for (set<Expression::Ptr>::const_iterator iter = mems.begin();
         iter != mems.end(); ++iter) {
       Expression::Ptr exp = *iter;
-      if (exp->bind(thePC.get(), Result(u64, ptr->addr() + insn.size()))) {
+      if (exp->bind(thePC.get(), Result(u64, PCValue(ptr->addr() , insn)))) {
 	// Bind succeeded, eval to get target address
 	Result res = exp->eval();
 	if (!res.defined) {
@@ -301,10 +310,7 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
   for (set<Expression::Ptr>::const_iterator iter = mems.begin();
        iter != mems.end(); ++iter) {
     Expression::Ptr exp = *iter;
-    if (exp->bind(thePC.get(), Result(u64, ptr->addr() + insn.size()))) {
-
-    //||
-	//exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + insn->size()))) {
+    if (exp->bind(thePC.get(), Result(u64, PCValue(ptr->addr(), insn)))) {
       // Bind succeeded, eval to get target address
       Result res = exp->eval();
       if (!res.defined) {
@@ -327,9 +333,7 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
     // If we can bind the PC, then we're in the operand
     // we want.
     Expression::Ptr exp = iter->getValue();
-    if (exp->bind(thePC.get(), Result(u64, ptr->addr() + insn.size()))) {
-	//||
-	//exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + insn->size()))) {
+    if (exp->bind(thePC.get(), Result(u64, PCValue(ptr->addr(), insn)))) {
       // Bind succeeded, eval to get target address
       Result res = exp->eval();
       assert(res.defined);
@@ -418,6 +422,7 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
         break;
      case Arch_x86_64:
      case Arch_ppc64:
+     case Arch_aarch64:
         CFT->bind(thePC.get(), Result(u64, ptr->addr()));
         break;
      default:

@@ -127,14 +127,13 @@ bool IA_power::isTailCall(const Function* context, EdgeTypeEnum type, unsigned i
     Function* callee = _obj->findFuncByEntry(_cr, addr);
     Block* target = _obj->findBlockByEntry(_cr, addr);
 
-    if (callee == NULL) {
-        // It could be that this is a within linkage tail call.
-	// So, the function symbol is two instructions ahead of the call target.
-	addr -= 8;
-        callee = _obj->findFuncByEntry(_cr, addr);
-	target = _obj->findBlockByEntry(_cr, addr);	
-    }
+    Function *preambleCallee = _obj->findFuncByEntry(_cr, addr - 8);
+    Block* preambleTarget = _obj->findBlockByEntry(_cr, addr - 8);
 
+    if (callee == NULL || (preambleCallee != NULL && callee->src() != HINT && preambleCallee->src() == HINT)) {
+        callee = preambleCallee;
+        target = preambleTarget;
+    }
     if(curInsn().getCategory() == c_BranchInsn &&
        valid &&
        callee && 
@@ -153,11 +152,7 @@ bool IA_power::isTailCall(const Function* context, EdgeTypeEnum type, unsigned i
     if (curInsn().getCategory() == c_BranchInsn &&
             valid &&
             !callee) {
-	if (target) {
-	    parsing_printf("\tjump to 0x%lx is known block, but not func entry, NOT TAIL CALL\n", addr);
-	    tailCalls[type] = false;
-	    return false;
-	} else if (knownTargets.find(addr) != knownTargets.end()) {
+    if (knownTargets.find(addr) != knownTargets.end()) {
 	    parsing_printf("\tjump to 0x%lx is known target in this function, NOT TAIL CALL\n", addr);
 	    tailCalls[type] = false;
 	    return false;

@@ -41,7 +41,7 @@ using namespace Dyninst::ParseAPI;
 
 int HACKCOUNT = 0;
 
-Block::Block(CodeObject * o, CodeRegion *r, Address start) :
+Block::Block(CodeObject * o, CodeRegion *r, Address start, Function *f) :
     SimpleInterval(start, start, 0),
     _obj(o),
     _region(r),
@@ -49,7 +49,8 @@ Block::Block(CodeObject * o, CodeRegion *r, Address start) :
     _end(start),
     _lastInsn(start),
     _func_cnt(0),
-    _parsed(false)
+    _parsed(false),
+    _createdByFunc(f)
 {
     if (_obj && _obj->cs()) {
         _obj->cs()->incrementCounter(PARSE_BLOCK_COUNT);

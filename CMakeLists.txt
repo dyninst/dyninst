@@ -5,6 +5,7 @@ set (DYNINST_ROOT ${PROJECT_SOURCE_DIR})
 set (CMAKE_SKIP_BUILD_RPATH FALSE)
 set (CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set (CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
 LIST(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES 
 	  "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
 IF("${isSystemDir}" STREQUAL "-1")
@@ -112,6 +113,9 @@ if(BUILD_RTLIB)
     if(TARGET dyninstAPI-static)
       add_dependencies(dyninstAPI-static DyninstRT)
     endif()
+    if(TARGET boost)
+      add_dependencies(DyninstRT boost)
+    endif()
   endif()
 
   install(SCRIPT "${RT_BINARY_DIR}/cmake_install.cmake")
@@ -146,7 +150,7 @@ if(BUILD_DOCS)
   foreach(COMPONENT ${WORD_DOCS})
     add_dependencies(doc ${COMPONENT}-doc)
     set_target_properties(${COMPONENT}-doc PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD 1)
-    install(FILES ${CMAKE_SOURCE_DIR}/${COMPONENT}/doc/${COMPONENT}.pdf
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${COMPONENT}/doc/${COMPONENT}.pdf
       DESTINATION ${INSTALL_DOC_DIR}
       RENAME ${COMPONENT}-${VERSION_STRING}.pdf
       OPTIONAL
@@ -208,7 +212,7 @@ if(UNIX)
   endif()
   if(SHOULD_INSTALL_LIBELF)
     get_filename_component(ELFDIR "${LIBELF_LIBRARIES}" PATH)
-    file(GLOB LIBELF_INSTALL_FILES ${ELFDIR}/libelf*.so*)
+    file(GLOB LIBELF_INSTALL_FILES ${ELFDIR}/libelf*.so* ${ELFDIR}/libdw*.so*)
     message(STATUS "Libelf is ${LIBELF_LIBRARIES}")
     message(STATUS "Installing ${LIBELF_INSTALL_FILES} from ${ELFDIR}")
     install (FILES ${LIBELF_INSTALL_FILES}

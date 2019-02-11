@@ -87,6 +87,7 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
     ParseWorkElem * mkWork(
         ParseWorkBundle * b,
         Edge * e,
+        Address source,
         Address target,
         bool resolvable,
         bool tailcall);
@@ -94,7 +95,9 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
         ParseWorkBundle * b,
 	Block* block,
         const InsnAdapter::IA_IAPI *ah);
-
+    ParseWorkElem * mkWork(
+        ParseWorkBundle *b,
+        Function* shared_func);
     void pushWork(ParseWorkElem * elem) {
         boost::lock_guard<ParseFrame> g(*this);
         parsing_printf("\t pushing work element for block %p, edge %p, target %p\n", elem->cur(), elem->edge(), elem->target());
@@ -136,6 +139,7 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
     CodeRegion * codereg;
 
     ParseWorkElem * seed; // stored for cleanup
+    std::set<Address> value_driven_jump_tables;
 
     ParseFrame(Function * f,ParseData *pd) :
         curAddr(0),
@@ -168,6 +172,19 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
     ParseData * _pd;
 };
 
+class edge_parsing_data {
+
+ public:
+    Block* b;
+    Function *f;       
+    edge_parsing_data(Function *ff, Block *bb) {
+        b = bb;
+	f = ff;
+    }
+    edge_parsing_data() : b(NULL), f(NULL) {}
+};
+
+
 /* per-CodeRegion parsing data */
 class region_data {
 public:
@@ -182,6 +199,11 @@ public:
     // Parsing internals 
     tbb::concurrent_hash_map<Address, ParseFrame *> frame_map;
     tbb::concurrent_hash_map<Address, ParseFrame::Status> frame_status;
+
+    // Edge parsing records
+    // We only want one thread to create edges for a location
+    typedef tbb::concurrent_hash_map<Address, edge_parsing_data> edge_data_map; 
+    edge_data_map edge_parsing_status;
 
     Function * findFunc(Address entry);
     Block * findBlock(Address entry);
@@ -285,6 +307,40 @@ public:
         Block* sink = new Block(obj, reg, numeric_limits<Address>::max());
         blocksByAddr.insert(make_pair(sink->start(),sink));
         blocksByRange.insert(sink);
+    }
+
+    edge_data_map* get_edge_data_map() { return &edge_parsing_status; }
+
+    edge_parsing_data set_edge_parsed(Address addr, Function *f, Block *b) {
+        edge_parsing_data ret;
+        race_detector_fake_lock_acquire(race_detector_fake_lock(edge_parsing_status));
+	{
+	  tbb::concurrent_hash_map<Address, edge_parsing_data>::accessor a;
+          // A successful insertion means the thread should 
+          // continue to create edges. We return the passed in Function*
+          // as indication of successful insertion.
+          //
+          // Otherwise, another thread has started creating edges.
+          // The current thread should give up. We return
+          // the function who succeeded.
+          if (!edge_parsing_status.insert(a, addr))
+              ret = a->second;
+	  else {
+              ret.f = f;
+	      ret.b = b;
+	  }
+	}
+        race_detector_fake_lock_release(race_detector_fake_lock(edge_parsing_status));
+        return ret;
+    }
+
+    void getAllBlocks(std::map<Address, Block*> &allBlocks) {
+        // This function should be only called in single-threaded mode,
+        // such as when we are finalizing parsing
+
+        // We convert hash map to an ordered tree
+        for (auto it = blocksByAddr.begin(); it != blocksByAddr.end(); ++it)
+            allBlocks[it->first] = it->second;
     }
 };
 
@@ -397,6 +453,10 @@ class ParseData : public boost::lockable_adapter<boost::recursive_mutex>  {
     // does the Right Thing(TM) for standard- and overlapping-region 
     // object types
     virtual CodeRegion * reglookup(CodeRegion *cr, Address addr) =0;
+    virtual edge_parsing_data setEdgeParsingStatus(CodeRegion *cr, Address addr, Function *f, Block *b) = 0;
+    virtual void getAllRegionData(std::vector<region_data*>&) = 0;
+    virtual region_data::edge_data_map* get_edge_data_map(CodeRegion*) = 0;
+
 };
 
 /* StandardParseData represents parse data for Parsers that disallow
@@ -434,6 +494,10 @@ class StandardParseData : public ParseData {
     void remove_extents(const std::vector<FuncExtent*> &extents);
 
     CodeRegion * reglookup(CodeRegion *cr, Address addr);
+    edge_parsing_data setEdgeParsingStatus(CodeRegion *cr, Address addr, Function *f, Block *b); 
+    void getAllRegionData(std::vector<region_data*>& rds);
+    region_data::edge_data_map* get_edge_data_map(CodeRegion* cr);
+
 };
 
 inline region_data * StandardParseData::findRegion(CodeRegion * /* cr */)
@@ -448,6 +512,19 @@ inline Block* StandardParseData::record_block(CodeRegion * /* cr */, Block *b)
 {
     return _rdata.record_block(b);
 }
+
+inline edge_parsing_data StandardParseData::setEdgeParsingStatus(CodeRegion *, Address addr, Function *f, Block *b)
+{
+    return _rdata.set_edge_parsed(addr, f, b);
+}
+
+inline void StandardParseData::getAllRegionData(std::vector<region_data*> & rds) {
+    rds.push_back(&_rdata);
+} 
+inline region_data::edge_data_map* StandardParseData::get_edge_data_map(CodeRegion*) {
+    return _rdata.get_edge_data_map();
+}
+
 
 /* OverlappingParseData handles binary code objects like .o files
    where CodeRegions may overlap on the same linear address space */
@@ -485,6 +562,10 @@ class OverlappingParseData : public ParseData {
     void remove_extents(const std::vector<FuncExtent*> &extents);
 
     CodeRegion * reglookup(CodeRegion *cr, Address addr);
+    edge_parsing_data setEdgeParsingStatus(CodeRegion *cr, Address addr, Function* f, Block *b); 
+    void getAllRegionData(std::vector<region_data*>&);
+    region_data::edge_data_map* get_edge_data_map(CodeRegion* cr);
+
 };
 
 }

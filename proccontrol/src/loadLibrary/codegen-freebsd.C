@@ -27,7 +27,7 @@ bool Codegen::generateInt() {
     if (!objSymReader) {
       return false;
     }
-    std::string interp = resolve_file_path(objSymReader->getInterpreterName().c_str());
+    std::string interp = resolve_file_path(objSymReader->getInterpreterName());
 
     objSymReader = proc_->llproc()->getSymReader()->openSymbolReader(interp);
     if (!objSymReader) {
@@ -43,7 +43,7 @@ bool Codegen::generateInt() {
     // But we still need the load addr...
     bool found = false;
     for (auto li = proc_->libraries().begin(); li != proc_->libraries().end(); ++li) {
-      std::string canonical = resolve_file_path((*li)->getName().c_str());
+      std::string canonical = resolve_file_path((*li)->getName());
       if (canonical == interp) {
 	found = true;
 	dlopenAddr += (*li)->getLoadAddress();

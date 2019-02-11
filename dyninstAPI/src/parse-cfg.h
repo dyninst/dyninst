@@ -353,8 +353,8 @@ class parse_func : public ParseAPI::Function
    bool isTrueCallInsn(const instruction insn);
 #endif
 
-#if defined(arch_power)
-   bool savesReturnAddr() const { return ppc_saves_return_addr_; }
+#if defined(arch_power) || defined(arch_aarch64)
+   bool savesReturnAddr() const { return saves_return_addr_; }
 #endif
 
    bool containsSharedBlocks() const { return containsSharedBlocks_; }
@@ -385,6 +385,14 @@ class parse_func : public ParseAPI::Function
    void calcBlockLevelLiveness();
 
    const SymtabAPI::Function *func() const { return func_; }
+
+   bool containsPowerPreamble() { return containsPowerPreamble_; }
+   void setContainsPowerPreamble(bool c) { containsPowerPreamble_ = c; }
+   parse_func* getNoPowerPreambleFunc() { return noPowerPreambleFunc_; }
+   void setNoPowerPreambleFunc(parse_func* f) { noPowerPreambleFunc_ = f; }
+   Address getPowerTOCBaseAddress() { return baseTOC_; }
+   void setPowerTOCBaseAddress(Address addr) { baseTOC_ = addr; }
+
 
  private:
    void calcUsedRegs();/* Does one time calculation of registers used in a function, if called again
@@ -424,10 +432,15 @@ class parse_func : public ParseAPI::Function
 
    // Architecture specific data
    bool o7_live;
-   bool ppc_saves_return_addr_;
+   bool saves_return_addr_;
 
    bool livenessCalculated_;
    bool isPLTFunction_;
+
+   bool containsPowerPreamble_;
+   // If the function contains the power preamble, this field points the corresponding function that does not contain the preamble
+   parse_func* noPowerPreambleFunc_;
+   Address baseTOC_;
 };
 
 typedef parse_func *ifuncPtr;

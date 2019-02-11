@@ -657,3 +657,92 @@ Offset emitElfStatic::allocStubRegions(LinkMap &lmap, Offset) {
    // Size 0
    return lmap.stubRegionOffset;
 }
+
+inline
+static bool adjustValInRegion(Region *reg, Offset offInReg, Offset addressWidth, int adjust) {
+    Offset newValue;
+    unsigned char *oldValues;
+
+    oldValues = reinterpret_cast<unsigned char *>(reg->getPtrToRawData());
+    memcpy(&newValue, &oldValues[offInReg], addressWidth);
+    newValue += adjust;
+    return reg->patchData(offInReg, &newValue, addressWidth);
+}
+
+bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int library_adjust) {
+    // Currently, only verified on x86 and x86_64 -- this may work on other architectures
+    Region *targetRegion = obj->findEnclosingRegion(rel.rel_addr());
+    if( NULL == targetRegion ) {
+        rewrite_printf("Failed to find enclosing Region for relocation");
+        return false;
+    }
+
+    unsigned addressWidth = obj->getAddressWidth();
+    if( addressWidth == 8 ) {
+        switch(rel.getRelType()) {
+            case R_X86_64_IRELATIVE:
+            case R_X86_64_RELATIVE:
+                rel.setAddend(rel.addend() + library_adjust);
+                break;
+            case R_X86_64_JUMP_SLOT:
+                if( !adjustValInRegion(targetRegion,
+                           rel.rel_addr() - targetRegion->getDiskOffset(),
+                           addressWidth, library_adjust) )
+                {
+                    rewrite_printf("Failed to update relocation\n");
+                    return false;
+                }
+                break;
+            default:
+                //fprintf(stderr, "Unimplemented relType for architecture: %d\n", rel.getRelType());
+                //assert(0);
+                break;
+        }
+    }else{
+        switch(rel.getRelType()) {
+            case R_386_IRELATIVE:
+            case R_386_RELATIVE:
+                // On x86, addends are stored in their target location
+                if( !adjustValInRegion(targetRegion,
+                           rel.rel_addr() - targetRegion->getDiskOffset(),
+                           addressWidth, library_adjust) )
+                {
+                    rewrite_printf("Failed to update relocation\n");
+                    return false;
+                }
+                break;
+            case R_386_JMP_SLOT:
+                if( !adjustValInRegion(targetRegion,
+                           rel.rel_addr() - targetRegion->getDiskOffset(),
+                           addressWidth, library_adjust) )
+                {
+                    rewrite_printf("Failed to update relocation\n");
+                    return false;
+                }
+                break;
+            default:
+                //fprintf(stderr, "Unimplemented relType for architecture\n");
+                //assert(0);
+                break;
+        }
+    }
+
+    // XXX The GOT also holds a pointer to the DYNAMIC segment -- this is currently not
+    // updated. However, this appears to be unneeded for regular shared libraries.
+
+    // From the SYS V ABI x86 supplement
+    // "The table's entry zero is reserved to hold the address of the dynamic structure,
+    // referenced with the symbol _DYNAMIC. This allows a program, such as the
+    // dynamic linker, to find its own dynamic structure without having yet processed
+    // its relocation entries. This is especially important for the dynamic linker, because
+    // it must initialize itself without relying on other programs to relocate its memory
+    // image."
+
+    // In order to implement this, would have determine the final address of a new .dynamic
+    // section before outputting the patched GOT data -- this will require some refactoring.
+
+    //rewrite_printf("WARNING: updateRelocation is not implemented on this architecture\n");
+    //(void) obj; (void) rel; (void) library_adjust; //silence warnings
+
+    return true;
+}

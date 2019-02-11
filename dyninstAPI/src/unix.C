@@ -495,10 +495,16 @@ bool PCProcess::hasPassedMain()
 
    entry_addr += ldso_start_addr;
 
-   if( !getOPDFunctionAddr(entry_addr) ) {
-       startup_printf("[%s:%u] - failed to read entry addr function pointer\n",
-               FILE__, __LINE__);
-       return false;
+   Region* reg = NULL;
+   if (ld_file->findRegion(reg, ".opd") && reg) {  
+     startup_printf("{%s:%u] - there is a .opd section. The entry offset points to the pointer to the real entry\n");
+     if( !getOPDFunctionAddr(entry_addr) ) {
+        startup_printf("[%s:%u] - failed to read entry addr function pointer\n",
+                FILE__, __LINE__);
+        return false;
+     }
+   } else {
+     startup_printf("{%s:%u] - there is no .opd section. The entry offset is the entry\n");
    }
 
    if( entry_addr < ldso_start_addr ) {
@@ -885,9 +891,19 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
 
 #elif defined (arch_power)
             static unsigned char empty[] = { 0x4e, 0x80, 0x00, 0x20};
-             emptyFunction = empty;
-             emptyFuncSize = 4;
+            emptyFunction = empty;
+            emptyFuncSize = 4;
+
+#elif defined (arch_aarch64)
+            static unsigned char empty[] = { 
+                0xfd, 0x7b, 0xbf, 0xa9, 
+                0xfd, 0x03, 0x00, 0x91, 
+                0xfd, 0x7b, 0xc1, 0xa8, 
+                0xc0, 0x03, 0x5f, 0xd6};
+            emptyFunction = empty;
+            emptyFuncSize = 16;
 #endif //defined(arch_x86) || defined(arch_x86_64)
+
             linkedFile->addRegion(highWaterMark_, (void*)(emptyFunction), emptyFuncSize, ".fini.dyninst",
                                   Dyninst::SymtabAPI::Region::RT_TEXT, true);
             highWaterMark_ += emptyFuncSize;

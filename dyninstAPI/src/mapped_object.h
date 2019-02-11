@@ -190,6 +190,8 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     Address dataBase() const { return dataBase_; }
     Address dataOffset() const { return parse_img()->dataOffset(); }
     unsigned dataSize() const { return parse_img()->dataLength(); }
+    Address getTOCBaseAddress() const {return tocBase;}
+    void setTOCBaseAddress(Address addr) {tocBase = addr;}
 
     image *parse_img() const { return image_; }
     bool isSharedLib() const;
@@ -344,6 +346,7 @@ public:
     // etc. from the image class have codeOffset built in.
 
     Address   dataBase_; // Where the data starts...
+    Address   tocBase;
 
     void set_short_name();
 

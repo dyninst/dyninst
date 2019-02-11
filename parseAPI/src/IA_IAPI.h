@@ -49,6 +49,8 @@ namespace InsnAdapter {
 class IA_IAPI : public InstructionAdapter {
     friend class image_func;
     public:
+        InstructionAPI::Instruction  current_instruction() { return curInsnIter->second; }
+
         IA_IAPI(Dyninst::InstructionAPI::InstructionDecoder dec_,
                 Address start_, 
                 Dyninst::ParseAPI::CodeObject* o,

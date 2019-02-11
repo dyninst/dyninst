@@ -107,6 +107,19 @@ unsigned registerSlot::encoding() const {
 #elif defined(arch_x86) || defined(arch_x86_64)
     // Should do a mapping here from entire register space to "expected" encodings.
     return number;
+#elif defined(arch_aarch64) 
+    switch (type) {
+        case GPR:
+            return registerSpace::GPR(number);
+            break;
+        case FPR:
+            return registerSpace::FPR(number);
+            break;
+        default:
+            assert(0);
+            return REG_NULL;
+            break;
+    }
 #else
     assert(0);
     return 0;
@@ -140,7 +153,7 @@ registerSpace *registerSpace::optimisticRegSpace(AddressSpace *proc) {
 }
 
 registerSpace *registerSpace::irpcRegSpace(AddressSpace *proc) {
-   registerSpace *rspace = conservativeRegSpace(proc);
+   registerSpace *rspace = savedRegSpace(proc);
    rspace->initRealRegSpace();
    return rspace;
 }

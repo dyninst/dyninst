@@ -1434,7 +1434,7 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
             newshdr->sh_entsize = 0;
             newshdr->sh_addralign = 4;
             newdata->d_type = ELF_T_VNEED;
-            newdata->d_align = 4;
+            newdata->d_align = 8;
             updateStrLinkShdr.push_back(newshdr);
             newshdr->sh_flags = SHF_ALLOC;
             newshdr->sh_info = verneednum;
@@ -1444,9 +1444,10 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
             newshdr->sh_type = SHT_GNU_verdef;
             newshdr->sh_entsize = 0;
             newdata->d_type = ELF_T_VDEF;
-            newdata->d_align = 4;
+            newdata->d_align = 8;
             updateStrLinkShdr.push_back(newshdr);
             newshdr->sh_flags = SHF_ALLOC;
+            newshdr->sh_info = verdefnum;
             updateDynamic(DT_VERDEF, newshdr->sh_addr);
         }
 
@@ -1803,6 +1804,9 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
         }
     }
 
+    // sort allSymbols in a way that every symmbol with index -1 are in order of offset 
+    std::sort(allDynSymbols.begin(), allDynSymbols.end(), sortByOffsetNewIndices());
+
     int max_index = -1;
     for (i = 0; i < allDynSymbols.size(); i++) {
         if (max_index < allDynSymbols[i]->getIndex())
@@ -1825,6 +1829,8 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
     // reorder allSymbols based on index
     std::sort(allDynSymbols.begin(), allDynSymbols.end(), sortByIndex());
 
+
+    std::sort(allSymSymbols.begin(), allSymSymbols.end(), sortByOffsetNewIndices());
     max_index = -1;
     for (i = 0; i < allSymSymbols.size(); i++) {
         if (max_index < allSymSymbols[i]->getIndex())
@@ -2211,7 +2217,6 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
         name = std::string(new_name);
     obj->addRegion(0, buffer, reloc_size, name, rtype, true);
     updateDynamic(dsize_type, dynamic_reloc_size);
-
 }
 
 template<class ElfTypes>
@@ -2293,6 +2298,7 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
     verdefSecData = (char *) malloc(verdefSecSize);
     curpos = 0;
     verdefnum = 0;
+
     for (iter = verdefEntries.begin(); iter != verdefEntries.end(); iter++) {
         Elf_Verdef *verdef = reinterpret_cast<Elf_Verdef *>(verdefSecData + curpos);
         verdef->vd_version = 1;
@@ -2308,7 +2314,7 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
         for (unsigned i = 0; i < verdauxEntries[iter->second].size(); i++) {
             Elf_Verdaux *verdaux = reinterpret_cast<Elf_Verdaux *>(
                     verdefSecData + curpos + verdef->vd_aux + i * sizeof(Elf_Verdaux));
-            verdaux->vda_name = versionNames[verdauxEntries[iter->second][0]];
+            verdaux->vda_name = versionNames[verdauxEntries[iter->second][i]];
             if ((signed) i == verdef->vd_cnt - 1)
                 verdaux->vda_next = 0;
             else
@@ -2316,6 +2322,7 @@ void emitElf<ElfTypes>::createSymbolVersions(Elf_Half *&symVers, char *&verneedS
         }
         curpos += verdef->vd_next;
     }
+    
     return;
 }
 
@@ -2489,6 +2496,15 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData, unsigned size, Elf_D
             case DT_PLTGOT:
             case DT_INIT_ARRAY:
             case DT_FINI_ARRAY:
+#if defined(arch_power) && defined(arch_64bit)
+            // DT_PPC64_GLINK specifies the addres of the
+            // PLT resolver in Power ABI V2.
+            //
+            // DT_PPC64_GLINK may not be defined in elf.h
+            // on other platforms and has the same value as
+            // other processor sepcific entries
+            case DT_PPC64_GLINK:
+#endif
                 /**
                  * List every dynamic entry that references an address and isn't already
                  * updated here.  library_adjust will be a page size if
@@ -2512,8 +2528,8 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData, unsigned size, Elf_D
 
     if (!object->hasReldyn() && !object->hasReladyn()) {
         if (object->getRelType() == Region::RT_REL) {
-            new_dynamic_entries.push_back(make_pair(DT_REL, 0));
-            new_dynamic_entries.push_back(make_pair(DT_RELSZ, 0));
+ 	    new_dynamic_entries.push_back(pair<long,long>(DT_REL, 0));
+            new_dynamic_entries.push_back(pair<long,long>(DT_RELSZ, 0));
 
             dynamicSecData[DT_REL].push_back(dynsecData + curpos);
             dynsecData[curpos].d_tag = DT_NULL;

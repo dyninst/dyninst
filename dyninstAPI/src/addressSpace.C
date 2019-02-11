@@ -134,7 +134,8 @@ Address AddressSpace::getTOCoffsetInfo(func_instance *func) {
   if (getAddressWidth() == 8 && !toc64) return 0;
   if (getAddressWidth() == 4 && !toc32) return 0;
 
-  Offset baseTOC = func->obj()->parse_img()->getObject()->getTOCoffset(func->function()->addr());
+  // In PowerABI V2, each binary has a TOC
+  Address baseTOC = func->obj()->getTOCBaseAddress();
   return baseTOC + func->obj()->dataBase();
 }
 
@@ -1713,7 +1714,25 @@ bool AddressSpace::relocate() {
            repeat = true;
         }
      } while (repeat);
-     
+
+     if (getArch() == Arch_ppc64) {
+         // The PowerPC new ABI typically generate two entries per function.
+         // Need special hanlding for them
+         FuncSet actualModFuncs;
+         for (auto fit = modFuncs.begin(); fit != modFuncs.end(); ++fit) {
+             func_instance* funct = *fit;
+             if (funct->getPowerPreambleFunc() != NULL) {
+                 relocation_cerr << "Ignore function " << funct->name() << " at " << hex << funct->entryBlock()->GetBlockStartingAddress() << " as it has the power preabmle" << endl;
+                 continue;
+             }
+             actualModFuncs.insert(funct);
+             if (funct->ifunc()->containsPowerPreamble()) {
+                 funct->entryBlock()->_ignorePowerPreamble = true;
+             }
+         }
+         modFuncs = actualModFuncs;
+     }
+
      addModifiedRegion(iter->first);
      
      Address middle = (iter->first->codeAbs() + (iter->first->imageSize() / 2));
@@ -1721,8 +1740,11 @@ bool AddressSpace::relocate() {
      if (!relocateInt(iter->second.begin(), iter->second.end(), middle)) {
         ret = false;
      }
-     
   }
+
+
+     
+  
 
   updateMemEmulator();
 
@@ -1769,25 +1791,9 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   }
 
   if (dyn_debug_reloc || dyn_debug_write) {
-      using namespace InstructionAPI;
-      // Print out the buffer we just created
       cerr << "DUMPING RELOCATION BUFFER" << endl;
-
-      Address base = baseAddr;
-      InstructionDecoder deco
-        (cm->ptr(),cm->size(),getArch());
-      Instruction insn = deco.decode();
-      while(insn.isValid()) {
-         cerr << "\t" << hex << base << ": " << insn.format(base) << dec << endl;
-        base += insn.size();
-        insn = deco.decode();
-      }
-      cerr << dec;
-      cerr << endl;
- //     cerr << cm->format() << endl;
-
+      cerr << cm->gen().format() << endl;
   }
-
 
   // Copy it in
   relocation_cerr << "  Writing " << cm->size() << " bytes of data into program at "

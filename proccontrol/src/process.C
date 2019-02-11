@@ -102,7 +102,7 @@ bool int_process::create(int_processSet *ps) {
       if (!result) {
          pthrd_printf("Could not create debuggee, %s\n", proc->executable.c_str());
          proc->setLastError(err_noproc, "Could not create process");
-         procs.erase(i++);
+         i = procs.erase(i);
          had_error = true;
          continue;
       }
@@ -132,13 +132,13 @@ bool int_process::create(int_processSet *ps) {
       bool result = proc->waitfor_startup();
       if (proc->getState() == int_process::exited) {
          pthrd_printf("Process %s/%d exited during create\n", proc->executable.c_str(), proc->pid);
-         procs.erase(i++);
+         i = procs.erase(i);
          had_error = true;
          continue;
       }
       if (!result) {
          pthrd_printf("Error during process create for %d\n", proc->pid);
-         procs.erase(i++);
+         i = procs.erase(i);
          had_error = true;
          continue;
       }
@@ -156,12 +156,12 @@ bool int_process::create(int_processSet *ps) {
          if (result == aret_error) {
             pthrd_printf("Error during post create for %d\n", proc->pid);
             had_error = true;
-            procs.erase(i++);
+            i = procs.erase(i);
          }
          else if (result == aret_success) {
             assert(proc->getState() == running);
             pthrd_printf("Finished post-create for %d.  Process is ready\n", proc->pid);
-            procs.erase(i++);
+            i = procs.erase(i);
          }
          else {
             pthrd_printf("post-create for %d return async\n", proc->pid);
@@ -284,13 +284,13 @@ bool int_process::attach(int_processSet *ps, bool reattach)
    for (set<int_process *>::iterator i = procs.begin(); i != procs.end();) {
 	   int_process *proc = *i;
       if (!proc) {
-         procs.erase(i++);
+         i = procs.erase(i);
          continue;
       }
       if (reattach && proc->getState() != int_process::detached) {
          perr_printf("Attempted to reattach to attached process %d\n", proc->getPid());
          proc->setLastError(err_attached, "Cannot reAttach to attached process.\n");
-         procs.erase(i++);
+         i = procs.erase(i);
          had_error = true;
          continue;
       }
@@ -299,7 +299,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
       map<Dyninst::LWP, bool> temp_runningStates;
       if (!proc->plat_getOSRunningStates(temp_runningStates)) {
          pthrd_printf("Could not get OS running states for %d\n", proc->getPid());
-         procs.erase(i++);
+         i = procs.erase(i);
          had_error = true;
          continue;
       }
@@ -319,7 +319,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
       bool result = proc->plat_attach(allStopped, local_should_sync);
       if (!result) {
          pthrd_printf("Failed to plat_attach to %d\n", proc->getPid());
-         procs.erase(i++);
+         i = procs.erase(i);
          proc->setLastError(err_noproc, "Could not attach to process");
          had_error = true;
          continue;
@@ -374,7 +374,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
       int_process *proc = *i;
       if (proc->getState() == errorstate) {
          pthrd_printf("Removing process %d in error state\n", proc->getPid());
-         procs.erase(i++);
+         i = procs.erase(i);
          had_error = true;
          continue;
       }
@@ -382,7 +382,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
       bool result = proc->attachThreads();
       if (!result) {
          pthrd_printf("Failed to attach to threads in %d\n", proc->pid);
-         procs.erase(i++);
+         i = procs.erase(i);
          had_error = true;
          continue;
       }
@@ -453,7 +453,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
       bool result = proc->waitfor_startup();
       if (!result) {
          pthrd_printf("Error waiting for attach to %d\n", proc->pid);
-         procs.erase(i++);
+         i = procs.erase(i);
          had_error = true;
          continue;
       }
@@ -469,7 +469,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
       bool result = proc->plat_attachThreadsSync();
       if (!result) {
          pthrd_printf("Failed to attach to threads in %d\n", proc->pid);
-         procs.erase(i++);
+         i = procs.erase(i);
          had_error = true;
          continue;
       }
@@ -505,12 +505,12 @@ bool int_process::attach(int_processSet *ps, bool reattach)
          if (result == aret_error) {
             pthrd_printf("Error during post attach for %d\n", proc->pid);
             had_error = true;
-            pa_procs.erase(i++);
+            i = pa_procs.erase(i);
          }
          else if (result == aret_success) {
             assert(proc->getState() == running);
             pthrd_printf("Finished post-attach for %d.  Process is ready\n", proc->pid);
-            pa_procs.erase(i++);
+            i = pa_procs.erase(i);
          }
          else {
             pthrd_printf("post-attach for %d return async\n", proc->pid);
@@ -2327,9 +2327,20 @@ void int_process::updateSyncState(Event::ptr ev, bool gen)
          }
          pthrd_printf("Event %s is thread synchronous, marking thread %d %s stopped\n",
                       etype.name().c_str(), thrd->getLWP(), gen ? "generator" : "handler");
+/*
+ * 	 Xiaozhu: this assert causes pc_irpc to fail non-deterministically.
+ * 	 I think it is possible for the generator to receive one sync event one a thread,
+ * 	 and before the handler handles it and unset its status, the generator
+ * 	 receives another sync event on the same thread. 
+ *
+ * 	 This is because that even thought we attempt to stop the thread for a sync event,
+ * 	 there is a gap between the sync event and the stop. There could be another sync 
+ * 	 event happening. 
+ *
          assert(RUNNING_STATE(old_state) ||
                 thrd->llproc()->wasForcedTerminated() ||
                 (old_state == int_thread::stopped && (thrd->isExiting() || thrd->isExitingInGenerator())));
+*/
          if (old_state == int_thread::errorstate)
             break;
          st.setState(int_thread::stopped);
@@ -4443,10 +4454,16 @@ bool int_thread::StateTracker::setState(State to)
    if (up_thr->up_thread && !up_thr->suppressSanityChecks()) {
       int_thread::State handler_state = up_thr->getHandlerState().getState();
       int_thread::State generator_state = up_thr->getGeneratorState().getState();
+/*    Xiaozhu: the asserts can fail legitimately.
+ *
+ *    The handler status and generator status of a thread are never in sync by design.
+ *    We will need to revisit such design.
+ *
       if (handler_state == stopped)
          assert(generator_state == stopped || generator_state == exited || generator_state == detached );
       if (generator_state == running)
          assert(handler_state == running);
+*/
    }
 
    return true;
@@ -5329,7 +5346,7 @@ hw_breakpoint *hw_breakpoint::create(int_process *proc, int_breakpoint *bp, Dyni
             break;
          }
          if (done)
-            hw_bps.erase(i++);
+            i = hw_bps.erase(i);
          else
             i++;
       }
@@ -6624,6 +6641,10 @@ bool Process::runIRPCAsync(IRPC::ptr irpc)
       return false;
    }
 
+    //#sasha remove this afterwards
+    //cerr << "Amount of threads in process: " << proc->threadPool()->size() <<endl;
+    //auto thread = *(proc->threadPool()->begin());
+    //thread->setSingleStepMode(true);
    llproc_->throwNopEvent();
    return true;
 }
@@ -8714,7 +8735,7 @@ void ProcStopEventManager::checkEvents()
                 ev->name().c_str(), ev->getProcess()->llproc()->getPid(),
                 ev->getThread()->llthrd()->getLWP());
 
-      held_pstop_events.erase(i++);
+      i = held_pstop_events.erase(i);
       mbox()->enqueue(ev);
    }
 }
@@ -8781,7 +8802,7 @@ async_ret_t emulated_singlestep::clear()
    for (set<response::ptr>::iterator i = clear_resps.begin(); i != clear_resps.end();) {
       response::ptr resp = *i;
       if (resp->isReady()) {
-         clear_resps.erase(i++);
+         i = clear_resps.erase(i);
          continue;
       }
       i++;

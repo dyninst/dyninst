@@ -2726,10 +2726,10 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                     offset = offset << (page * 12);
                     int size = immloLen + immLen + (page * 12);
 
-                    insn_in_progress->appendOperand(makePCExpr(), true, false, true);
+                    //insn_in_progress->appendOperand(makePCExpr(), true, false);
                     Expression::Ptr imm = Immediate::makeImmediate(Result(s64, (offset << (64 - size)) >> (64 - size)));
 
-                    insn_in_progress->appendOperand(imm, true, false);
+                    insn_in_progress->appendOperand(makeAddExpression(makePCExpr(), imm, u64), true, false);
                 }
                 else
                     isValid = false;
@@ -3098,6 +3098,10 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             }
 
             insn_in_progress->arch_decoded_from = Arch_aarch64;
+	    if (insn_table_entry->operands.begin() != insn_table_entry->operands.end()) {
+                insn_in_progress->m_InsnOp.isVectorInsn =
+                    (*(insn_table_entry->operands.begin()) == &InstructionDecoder_aarch64::setSIMDMode);
+	    }
             return;
         }
     };

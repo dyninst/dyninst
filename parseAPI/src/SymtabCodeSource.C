@@ -44,9 +44,10 @@
 #include "util.h"
 #include "race-detector-annotations.h"
 
+#include "InstructionDecoder.h"
+#include "Instruction.h"
 
 #undef ENABLE_RACE_DETECTION
-
 #ifdef ENABLE_RACE_DETECTION
 #include <cilk/cilk.h>
 #include <cilk/cilk_api.h>
@@ -589,11 +590,44 @@ SymtabCodeSource::init_linkage()
     vector<SymtabAPI::relocationEntry> fbt;
     vector<SymtabAPI::relocationEntry>::iterator fbtit;
 
-    if(!_symtab->getFuncBindingTable(fbt))
+    if(!_symtab->getFuncBindingTable(fbt)){
+        fprintf( stderr, "Cannot get function binding table. %s\n", _symtab->file().c_str());
         return;
+    }
 
-    for(fbtit = fbt.begin(); fbtit != fbt.end(); ++fbtit)
+    for(fbtit = fbt.begin(); fbtit != fbt.end(); ++fbtit){
+        //fprintf( stderr, "%lx %s\n", (*fbtit).target_addr(), (*fbtit).name().c_str());
         _linkage[(*fbtit).target_addr()] = (*fbtit).name(); 
+    }
+    if (getArch() != Arch_x86_64) return;
+    SymtabAPI::Region * plt_got = NULL;
+    SymtabAPI::Region * rela_dyn = NULL;
+    if (!_symtab->findRegion(plt_got, ".plt.got")) return;
+    if (!_symtab->findRegion(rela_dyn, ".rela.dyn")) return;
+    if (plt_got->getMemSize() <= 16) return ;
+
+    map<Address, string> rel_addr_to_name;
+    std::vector<SymtabAPI::relocationEntry> &relocs = rela_dyn->getRelocations();
+    for (auto re_it = relocs.begin(); re_it != relocs.end(); ++re_it) {
+        SymtabAPI::relocationEntry &r = *re_it;
+        rel_addr_to_name[r.rel_addr()] = r.name();
+    }
+    const unsigned char* buffer = (const unsigned char*)plt_got->getPtrToRawData(); 
+    InstructionAPI::InstructionDecoder dec(buffer,plt_got->getMemSize(), getArch());
+    int decoded = 0;
+    while (decoded < plt_got->getMemSize()) {
+        InstructionAPI::Instruction i = dec.decode();
+        if (buffer[decoded] == 0xff && buffer[decoded+1] == 0x25) {
+            uint64_t off = 0;
+            for (int j = 5; j >= 2; --j)
+                off = (off << 8) + buffer[decoded + j];
+            Address rel_addr = plt_got->getMemOffset() + decoded + i.size() + off;
+            if (rel_addr_to_name.find(rel_addr) != rel_addr_to_name.end()) {
+                _linkage[plt_got->getMemOffset() + decoded] = rel_addr_to_name[rel_addr];
+            }
+        }
+        decoded += i.size();
+    }
 }
 
 void

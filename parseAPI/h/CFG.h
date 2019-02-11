@@ -307,14 +307,14 @@ class PARSER_EXPORT Block :
 public:
     static Block * sink_block;
 
-    Block(CodeObject * o, CodeRegion * r, Address start);
+    Block(CodeObject * o, CodeRegion * r, Address start, Function* f = NULL);
     virtual ~Block();
     boost::recursive_mutex& lockable() { return boost::lockable_adapter<boost::recursive_mutex>::lockable(); }
 
     inline Address start() const { return _start; }
     inline Address end() const { return _end; }
     inline Address lastInsnAddr() const {  return _lastInsn; }
-    inline Address last() const {  return lastInsnAddr(); }
+    virtual Address last() const {  return lastInsnAddr(); }
     inline Address size() const {  return _end - _start; }
     bool containsAddr(Address addr) const {   return addr >= _start && addr < _end; }
 
@@ -330,6 +330,10 @@ public:
         boost::lock_guard<Block> g(*this);
         src = _srclist;
     }
+    void copy_targets(edgelist & trg) {
+        boost::lock_guard<Block> g(*this);
+	trg = _trglist;
+    }
 
     bool consistent(Address addr, Address & prev_insn);
 
@@ -337,7 +341,7 @@ public:
     void getFuncs(std::vector<Function *> & funcs);
     template<class OutputIterator> void getFuncs(OutputIterator result); 
 
-    void getInsns(Insns &insns) const;
+    virtual void getInsns(Insns &insns) const;
     InstructionAPI::Instruction getInsn(Offset o) const;
 
     bool wasUserAdded() const;
@@ -367,6 +371,7 @@ public:
     bool operator==(const Block &rhs) const;
 
     bool operator!=(const Block &rhs) const;
+    Function * createdByFunc() { return _createdByFunc; }
 
 private:
     void addSource(Edge * e);
@@ -391,6 +396,8 @@ private:
     int _func_cnt;
     bool _parsed;
 
+    Function * _createdByFunc;
+
 
  friend class Edge;
  friend class Function;
@@ -410,8 +417,15 @@ inline void Block::addTarget(Edge * e)
     if(e->type() == FALLTHROUGH ||
             e->type() == COND_NOT_TAKEN)
     {
-        assert(e->_target_off >= end());
+        assert(e->_target_off == end());
     }
+    /* This loop checks whether duplicated edges are added.
+     * It should only be used in debugging as it can significantly
+     * slow down the performance
+    for (auto eit = _trglist.begin(); eit != _trglist.end(); ++eit) {
+	assert( (*eit)->trg_addr() != e->trg_addr() || (*eit)->type() != e->type());
+    }
+    */
     _trglist.push_back(e);
 }
 
@@ -597,6 +611,10 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, pub
             CodeRegion *codereg) const;
 
     static void destroy(Function *f);
+
+    /*** Internal parsing methods and state ***/
+    void add_block(Block *b);
+
  private:
     void delayed_link_return(CodeObject * co, Block * retblk);
     void finalize();
@@ -679,9 +697,6 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, pub
     /** same as previous two fields, but for postdominator tree */
     mutable std::map<Block*, std::set<Block*>*> immediatePostDominates;
     mutable std::map<Block*, Block*> immediatePostDominator;
-
-    /*** Internal parsing methods and state ***/
-    void add_block(Block *b);
 
     friend void Edge::uninstall();
     friend class Parser;

@@ -57,11 +57,11 @@ class EmitterPOWER : public Emitter {
     virtual void emitOp(unsigned, Register, Register, Register, codeGen &) { assert(0); }
     virtual void emitOpImm(unsigned, unsigned, Register, Register, RegValue,
 			   codeGen &) { assert(0); }
-    virtual void emitRelOp(unsigned, Register, Register, Register, codeGen &) { assert(0); }
-    virtual void emitRelOpImm(unsigned, Register, Register, RegValue, codeGen &) { assert(0); }
-    virtual void emitDiv(Register, Register, Register, codeGen &) { assert(0); }
-    virtual void emitTimesImm(Register, Register, RegValue, codeGen &) { assert(0); }
-    virtual void emitDivImm(Register, Register, RegValue, codeGen &) { assert(0); }
+    virtual void emitRelOp(unsigned, Register, Register, Register, codeGen &, bool) { assert(0); }
+    virtual void emitRelOpImm(unsigned, Register, Register, RegValue, codeGen &, bool) { assert(0); }
+    virtual void emitDiv(Register, Register, Register, codeGen &, bool) { assert(0); }
+    virtual void emitTimesImm(Register, Register, RegValue, codeGen &, bool) { assert(0); }
+    virtual void emitDivImm(Register, Register, RegValue, codeGen &, bool) { assert(0); }
     virtual void emitLoad(Register, Address, int, codeGen &) { assert(0); }
     virtual void emitLoadConst(Register, Address, codeGen &) { assert(0); }
     virtual void emitLoadIndir(Register, Register, int, codeGen &) { assert(0); }
@@ -114,11 +114,14 @@ class EmitterPOWER : public Emitter {
     
     virtual bool clobberAllFuncCall(registerSpace *rs,func_instance *callee);
 
+    virtual Register emitCallReplacement(opCode, codeGen &, bool,
+                                         func_instance *);
+    void emitCallWithSaves(codeGen &gen, Address dest, bool saveToc, bool saveLR, bool saveR12);
+    
  protected:
     virtual bool emitCallInstruction(codeGen &, func_instance *,
                                      bool, Address);
-    virtual Register emitCallReplacement(opCode, codeGen &, bool,
-                                         func_instance *);
+
 };
 
 class EmitterPOWER32Dyn : public EmitterPOWER

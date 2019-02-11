@@ -8552,7 +8552,6 @@ ia32_instruction &ia32_decode(unsigned int capa, const unsigned char *addr, ia32
 
     /* Do the operand decoding */
     ia32_decode_operands(pref, *gotit, addr, instruct, instruct.mac, mode_64);
-
     /* Decode the memory accesses if requested */
     if(capa & IA32_DECODE_MEMACCESS) 
     {
@@ -9103,7 +9102,6 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                     unsigned int mod = addr[0] >> 6;
                     gotit = &fpuMap[gotit->tabidx][mod==3][reg];
                     ia32_decode_FP(idx, pref, addr, instruct, gotit, instruct.mac, mode_64);
-
                     if(gotit_ret)
                         *gotit_ret = gotit;
                     return 1; /* Decoding success */
@@ -9517,7 +9515,10 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
    const short* disp16 = (const short*)addr;
    const int* disp32 = (const int*)addr;
 
-   if(addrSzAttr == 1)  // 16-bit, cannot have SIB
+   // addrSzAttr equals 1 means the address size override prefix is 
+   // not present. On 64-bit platforms, this means the default address
+   // size is 64-bit. On other platforms, this means 16-bit
+   if(addrSzAttr == 1 && !mode_64)  // 16-bit, cannot have SIB
    {
       /* This mode can only occur when running in 32 bit mode. */
       switch(mod)
@@ -9665,7 +9666,6 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr, const unsig
       unsigned int nsib = 0;
       unsigned char sib;
       int base = 0, scale = -1, index = -1;  // prevent g++ from whining.
-
       /* Do we have an sib? */
       if(hassib)
       {

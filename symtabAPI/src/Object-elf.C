@@ -71,6 +71,7 @@ using namespace std;
 
 #include <boost/assign/list_of.hpp>
 #include <boost/assign/std/set.hpp>
+#include <boost/filesystem.hpp>
 
 #include "SymReader.h"
 #include <endian.h>
@@ -263,6 +264,10 @@ Region::RegionType getRegionType(unsigned long type, unsigned long flags, const 
     }
 }
 
+#if !defined(EM_AARCH64)
+#define EM_AARCH64 183
+#endif
+
 static Region::RegionType getRelTypeByElfMachine(Elf_X *localHdr) {
     Region::RegionType ret;
     switch (localHdr->e_machine()) {
@@ -273,6 +278,7 @@ static Region::RegionType getRelTypeByElfMachine(Elf_X *localHdr) {
         case EM_PPC64:
         case EM_X86_64:
         case EM_IA_64:
+        case EM_AARCH64:
             ret = Region::RT_RELA;
             break;
         default:
@@ -477,6 +483,7 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
                     case DT_STRTAB:
                     case DT_VERSYM:
                     case DT_VERNEED:
+                    case DT_VERDEF:
                         secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
                         break;
                     case DT_HASH:
@@ -524,6 +531,7 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
                 case DT_STRTAB:
                 case DT_VERSYM:
                 case DT_VERNEED:
+                case DT_VERDEF:
                 case DT_HASH:
                 case 0x6ffffef5: // DT_GNU_HASH (not defined on all platforms)
 
@@ -2195,7 +2203,7 @@ dyn_scnp, Elf_X_Data &symdata,
     for (unsigned i = 0; i < dyns.count(); ++i) {
         switch (dyns.d_tag(i)) {
             case DT_NEEDED:
-                deps_.push_back(&strs[dyns.d_ptr(i)]);
+                if(strs) deps_.push_back(&strs[dyns.d_ptr(i)]);
                 break;
             case DT_VERSYM:
                 versymSec = getRegionHdrByAddr(dyns.d_ptr(i));
@@ -2213,7 +2221,7 @@ dyn_scnp, Elf_X_Data &symdata,
                 verdefnum = dyns.d_ptr(i);
                 break;
             case DT_SONAME:
-                soname_ = &strs[dyns.d_ptr(i)];
+                if(strs) soname_ = &strs[dyns.d_ptr(i)];
             default:
                 break;
         }
@@ -2227,8 +2235,8 @@ dyn_scnp, Elf_X_Data &symdata,
 
     for (unsigned i = 0; i < verdefnum; i++) {
         Elf_X_Verdaux *aux = symVersionDefs->get_aux();
-        for (unsigned j = 0; j < symVersionDefs->vd_cnt(); j++) {
-            versionMapping[symVersionDefs->vd_ndx()].push_back(&strs[aux->vda_name()]);
+        for(unsigned j=0; j< symVersionDefs->vd_cnt(); j++){
+            if(strs) versionMapping[symVersionDefs->vd_ndx()].push_back(&strs[aux->vda_name()]);
             Elf_X_Verdaux *auxnext = aux->get_next();
             delete aux;
             aux = auxnext;
@@ -2240,9 +2248,9 @@ dyn_scnp, Elf_X_Data &symdata,
 
     for (unsigned i = 0; i < verneednum; i++) {
         Elf_X_Vernaux *aux = symVersionNeeds->get_aux();
-        for (unsigned j = 0; j < symVersionNeeds->vn_cnt(); j++) {
-            versionMapping[aux->vna_other()].push_back(&strs[aux->vna_name()]);
-            versionFileNameMapping[aux->vna_other()] = &strs[symVersionNeeds->vn_file()];
+        for(unsigned j=0; j< symVersionNeeds->vn_cnt(); j++){
+            if(strs) versionMapping[aux->vna_other()].push_back(&strs[aux->vna_name()]);
+            if(strs) versionFileNameMapping[aux->vna_other()] = &strs[symVersionNeeds->vn_file()];
             Elf_X_Vernaux *auxnext = aux->get_next();
             delete aux;
             aux = auxnext;
@@ -2251,8 +2259,8 @@ dyn_scnp, Elf_X_Data &symdata,
         delete symVersionNeeds;
         symVersionNeeds = symVersionNeedsnext;
     }
-
-    if (syms.isValid()) {
+    if(!strs) return;
+    if(syms.isValid()) {
         for (unsigned i = 0; i < syms.count(); i++) {
             int etype = syms.ST_TYPE(i);
             int ebinding = syms.ST_BIND(i);
@@ -2853,7 +2861,9 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
         EEL(false), did_open(false),
         obj_type_(obj_Unknown),
         DbgSectionMapSorted(false),
-        soname_(NULL) {
+        soname_(NULL)
+{
+    li_for_object = NULL; 
 
 #if defined(TIMED_PARSE)
     struct timeval starttime;
@@ -2916,6 +2926,10 @@ Object::~Object() {
     versionMapping.clear();
     versionFileNameMapping.clear();
     deps_.clear();
+    if (li_for_object) {
+        delete li_for_object;
+        li_for_object = NULL;
+    }
 }
 
 void Object::log_elferror(void (*err_func)(const char *), const char *msg) {
@@ -3245,26 +3259,6 @@ static int read_val_of_type(int type, unsigned long *value, const unsigned char 
 }
 
 
-int section_id(Elf *elf) {
-    char *identp = elf_getident(elf, NULL);
-    bool is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
-
-    auto shstrtab_idx = !is64 ? elf32_getehdr(elf)->e_shstrndx : elf64_getehdr(elf)->e_shstrndx;
-    Elf_Scn *scn = elf_getscn(elf, shstrtab_idx);
-    Elf_Data *data = elf_getdata(scn, NULL);
-    const char *shnames = (const char *) data->d_buf;
-
-    unsigned short num_sections = !is64 ? elf32_getehdr(elf)->e_shnum : elf64_getehdr(elf)->e_shnum;
-    for (unsigned i = 0; i < num_sections; i++) {
-        Elf_Scn *scn = elf_getscn(elf, i);
-        unsigned long name_idx = !is64 ? elf32_getshdr(scn)->sh_name : elf64_getshdr(scn)->sh_name;
-        if (strcmp(".eh_frame", shnames + name_idx) == 0) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 /**
  * On GCC 3.x/x86 we find catch blocks as follows:
  *   1. We start with a list of FDE entries in the .eh_frame
@@ -3288,57 +3282,49 @@ int section_id(Elf *elf) {
 
 static
 int read_except_table_gcc3(
-        Dwarf *dbg, mach_relative_info &mi,
+        const unsigned char e_ident[], mach_relative_info &mi,
         Elf_X_Shdr *eh_frame, Elf_X_Shdr *except_scn,
         std::vector<ExceptionBlock> &addresses) {
     Dwarf_Addr low_pc = 0;
-    Dwarf_Off fde_offset, cie_offset;
+    Dwarf_Off fde_offset;
     int result, ptr_size;
     const char *augmentor;
     unsigned char lpstart_format, ttype_format, table_format;
     unsigned long value, table_end, region_start, region_size, landingpad_base;
     unsigned long catch_block, action, augmentor_len;
 
-    Elf *elf = dwarf_getelf(dbg);
-    Dwarf_CFI *cfi = dwarf_getcfi_elf(elf);
-    std::vector<Dwarf_CFI_Entry> cfi_entries;
-    if (!cfi) {
-        return false;
-    }
-
     Dwarf_Off offset = 0, next_offset, saved_cur_offset;
     int res = 0;
-
-    auto e_ident = reinterpret_cast<const unsigned char *>(elf_getident(elf, NULL));
-    int i = section_id(elf);
-    assert(i != -1);
-    auto elf_data = elf_getdata(elf_getscn(elf, i), NULL);
-
-    Dwarf_CFI_Entry *last_cie = NULL;
+    Elf_Data * eh_frame_data = eh_frame->get_data().elf_data();
 
     //For each CFI entry 
     do {
         Dwarf_CFI_Entry entry;
-        res = dwarf_next_cfi(e_ident, elf_data, true, offset, &next_offset, &entry);
+        res = dwarf_next_cfi(e_ident, eh_frame_data, true, offset, &next_offset, &entry);
         saved_cur_offset = offset; //saved in case needed later 
         offset = next_offset;
 
         // If no more CFI entries left in the section 
-        if (res == 1 && next_offset == (Dwarf_Off) -1) break;
-
-        // On error, skip to the next CFI entry 
-        if (res == -1) continue;
-
-        if (dwarf_cfi_cie_p(&entry)) {
-            last_cie = &entry;
-            cie_offset = saved_cur_offset;
-            continue;
+        if(res==1 && next_offset==(Dwarf_Off)-1) break;
+        
+        // CFI error
+        if(res == -1) {
+	  if (offset != saved_cur_offset) {
+            continue; // Soft error, skip to the next CFI entry
+          }
+          // Since offset didn't advance, we can't skip this CFI entry and need to quit
+          return false; 
         }
 
-        assert(last_cie != NULL);
-
+        if(dwarf_cfi_cie_p(&entry))
+        {
+            continue;
+        }
+        
         unsigned int j;
-        unsigned char lsda_encoding = 0xff, personality_encoding = 0xff, range_encoding = 0xff;
+        unsigned char lsda_encoding = DW_EH_PE_absptr;
+        unsigned char personality_encoding = DW_EH_PE_absptr;
+        unsigned char range_encoding = DW_EH_PE_absptr;
         unsigned char *lsda_ptr = NULL;
         unsigned char *cur_augdata;
         unsigned long except_off;
@@ -3356,10 +3342,14 @@ int read_except_table_gcc3(
         //The LSB strays from the DWARF here, when parsing the except_eh section
         // the cie_offset is relative to the FDE rather than the start of the
         // except_eh section.
-        cie_bytes = (unsigned char *) eh_frame->get_data().d_buf() + cie_offset;
+        cie_bytes = (unsigned char *) eh_frame->get_data().d_buf() + entry.fde.CIE_pointer;
 
         //Get the Augmentation string for the CIE
-        augmentor = last_cie->cie.augmentation;
+        Dwarf_CFI_Entry thisCIE;
+        Dwarf_Off unused;
+        dwarf_next_cfi(e_ident, eh_frame_data, true, entry.fde.CIE_pointer, &unused, &thisCIE);
+        assert(dwarf_cfi_cie_p(&thisCIE));
+        augmentor = thisCIE.cie.augmentation;
 
         //Check that the string pointed to by augmentor has a 'L',
         // meaning we have a LSDA
@@ -3379,14 +3369,14 @@ int read_except_table_gcc3(
         // We'll figure out where the FDE and CIE original load addresses
         // were and use those in pcrel computations.
         fde_addr = eh_frame->sh_addr() + fde_offset;
-        cie_addr = eh_frame->sh_addr() + cie_offset;
+        cie_addr = eh_frame->sh_addr() + entry.fde.CIE_pointer;
 
         //Extract encoding information from the CIE.
         // The CIE may have augmentation data, specified in the
         // Linux Standard Base. The augmentation string tells us how
         // which augmentation data is present.  We only care about one
         // field, a byte telling how the LSDA pointer is encoded.
-        cur_augdata = const_cast<unsigned char *>(last_cie->cie.augmentation_data);
+        cur_augdata = const_cast<unsigned char *>(thisCIE.cie.augmentation_data);
         lsda_encoding = DW_EH_PE_omit;
         for (j = 0; j < augmentor_len; j++) {
             if (augmentor[j] == 'L') {
@@ -3422,13 +3412,43 @@ int read_except_table_gcc3(
         // The FDE has an augmentation area, similar to the above one in the CIE.
         // Where-as the CIE augmentation tends to contain things like bytes describing
         // pointer encodings, the FDE contains the actual pointers.
-        //TODO should use mi.word_size to calculate the 13? Wait for libdw
-        /* Skip 13 bytes for CIE Pointer, Length, PC Begin, PC Range, and iugmentation Length*/
-        cur_augdata = fde_bytes + 13 +
-                      (*(uint32_t *) fde_bytes == 0xffffffff ? LONG_FDE_HLEN : SHORT_FDE_HLEN);
 
-        for (j = 0; j < augmentor_len; j++) {
-            if (augmentor[j] == 'L') {
+        // Calculate size in bytes of PC Begin
+        const unsigned char* pc_begin_start = fde_bytes + 4 /* CIE Pointer size is 4 bytes */ + 
+            (*(uint32_t*)fde_bytes == 0xffffffff ? LONG_FDE_HLEN : SHORT_FDE_HLEN);
+        unsigned long pc_begin_val;
+        mi.pc = fde_addr + (unsigned long) (pc_begin_start - fde_bytes);
+        int pc_begin_size = read_val_of_type(range_encoding, &pc_begin_val, pc_begin_start, mi);
+
+        // Calculate size in bytes of PC Range 
+        const unsigned char* pc_range_start = pc_begin_start + pc_begin_size;
+        unsigned long pc_range_val;
+        mi.pc = fde_addr + (unsigned long) (pc_range_start - fde_bytes);
+        int pc_range_size = read_val_of_type(range_encoding, &pc_range_val, pc_range_start, mi);
+
+        // Calculate size in bytes of the augmentation length
+        const unsigned char* aug_length_start = pc_range_start + pc_range_size;
+        unsigned long aug_length_value;
+        mi.pc = fde_addr + (unsigned long) (aug_length_start - fde_bytes);
+        auto aug_length_size = read_val_of_type(DW_EH_PE_uleb128, &aug_length_value, aug_length_start, mi);
+
+        // Confirm low_pc
+        auto pc_begin = reinterpret_cast<const unsigned char*>(entry.fde.start); 
+        unsigned long low_pc_val;
+        mi.pc = fde_addr + (unsigned long) (pc_begin - fde_bytes);
+        read_val_of_type(range_encoding, &low_pc_val, pc_begin, mi);
+        assert (low_pc_val==pc_begin_val);
+        low_pc = pc_begin_val;
+
+        // Get the augmentation data for the FDE
+        cur_augdata = fde_bytes + 4 /* CIE Pointer size is 4 bytes */ + 
+            (*(uint32_t*)fde_bytes == 0xffffffff ? LONG_FDE_HLEN : SHORT_FDE_HLEN) +
+            pc_begin_size + pc_range_size + aug_length_size; 
+
+        for (j=0; j<augmentor_len; j++)
+        {
+            if (augmentor[j] == 'L')
+            {
                 unsigned long lsda_val;
                 mi.pc = fde_addr + (unsigned long) (cur_augdata - fde_bytes);
                 ptr_size = read_val_of_type(lsda_encoding, &lsda_val, cur_augdata, mi);
@@ -3436,16 +3456,15 @@ int read_except_table_gcc3(
                     break;
                 lsda_ptr = (unsigned char *) lsda_val;
                 cur_augdata += ptr_size;
-            } else if (augmentor[j] == 'P' ||
-                       augmentor[j] == 'z') {
+            }
+            else if (augmentor[j] == 'P' ||
+                     augmentor[j] == 'z' ||
+                     augmentor[j] == 'R')
+            {
                 //These don't affect the FDE augmentation data, do nothing
-            } else if (augmentor[j] == 'R') {
-                auto range_begin = reinterpret_cast<const unsigned char *>(entry.fde.start);
-                unsigned long low_pc_val;
-                mi.pc = fde_addr + (unsigned long) (range_begin - fde_bytes);
-                read_val_of_type(range_encoding, &low_pc_val, range_begin, mi);
-                low_pc = low_pc_val;
-            } else {
+            }
+            else
+            {
                 //See the comment for the 'else' case in the above CIE parsing
                 break;
             }
@@ -3545,51 +3564,6 @@ int read_except_table_gcc3(
     return true;
 }
 
-#if 0 // TODO
-/**
- * Things were much simpler in the old days.  On gcc 2.x
- * the gcc_except_table looks like:
- *   <long> try_start
- *   <long> try_end
- *   <long> catch_start
- * Where everything is an absolute address, even when compiled
- * with PIC.  All we got to do is read the catch_start entries
- * out of it.
- **/
-static bool read_except_table_gcc2(Elf_X_Shdr *except_table,
-                                   std::vector<ExceptionBlock> &addresses,
-                                   const mach_relative_info &mi)
-{
-    Offset try_start = (Offset) -1;
-    Offset try_end = (Offset) -1;
-    Offset catch_start = 0;
-
-    Elf_X_Data data = except_table->get_data();
-    const unsigned char *datap = (const unsigned char *)data.get_string();
-    unsigned long except_size = data.d_size();
-
-    unsigned i = 0;
-    while (i < except_size) {
-        ExceptionBlock eb;
-        if (mi.word_size == 4) {
-            i += read_val_of_type(DW_EH_PE_udata4, &try_start, datap + i, mi);
-            i += read_val_of_type(DW_EH_PE_udata4, &try_end, datap + i, mi);
-            i += read_val_of_type(DW_EH_PE_udata4, &catch_start, datap + i, mi);
-        }
-        else if (mi.word_size == 8) {
-            i += read_val_of_type(DW_EH_PE_udata8, &try_start, datap + i, mi);
-            i += read_val_of_type(DW_EH_PE_udata8, &try_end, datap + i, mi);
-            i += read_val_of_type(DW_EH_PE_udata8, &catch_start, datap + i, mi);
-        }
-
-        if (try_start != (Offset) -1 && try_end != (Offset) -1) {
-            ExceptionBlock eb(try_start, (unsigned) (try_end - try_start), catch_start);
-            addresses.push_back(eb);
-        }
-    }
-    return true;
-}
-#endif // TODO
 
 struct exception_compare : public binary_function<const ExceptionBlock &, const ExceptionBlock &, bool> {
     bool operator()(const ExceptionBlock &e1, const ExceptionBlock &e2) {
@@ -3609,37 +3583,14 @@ struct exception_compare : public binary_function<const ExceptionBlock &, const 
 bool Object::find_catch_blocks(Elf_X_Shdr *eh_frame,
                                Elf_X_Shdr *except_scn,
                                Address txtaddr, Address dataaddr,
-                               std::vector<ExceptionBlock> &catch_addrs) {
-    //Dwarf_CIE *cie_data;
-    //Dwarf_FDE *fde_data;
-    //Dwarf_Sword cie_count, fde_count;
-    //Dwarf_Error err = (Dwarf_Error) NULL;
-    //unsigned long long bytes_in_cie;
-    //char *augmentor;
-    //int status, gcc_ver = 3;
-    //unsigned i;
+                               std::vector<ExceptionBlock> & catch_addrs)
+{
     bool result = false;
 
     if (except_scn == NULL) {
         //likely to happen if we're not using gcc
         return true;
     }
-
-    Dwarf **dbg_ptr = dwarf->frame_dbg();
-    if (!dbg_ptr) {
-        pd_dwarf_handler();
-        return false;
-    }
-    Dwarf *dbg = *dbg_ptr;
-    if (!dbg) return false;
-
-    //Read the FDE and CIE information
-    //status = dwarf_get_fde_list_eh(dbg, &cie_data, &cie_count,
-    //                               &fde_data, &fde_count, &err);
-    //if (status != 0) {
-    //    //No actual stackwalk info in this object
-    //    return false;
-    //}
 
     mach_relative_info mi;
     mi.text = txtaddr;
@@ -3649,39 +3600,11 @@ bool Object::find_catch_blocks(Elf_X_Shdr *eh_frame,
     mi.word_size = eh_frame->wordSize();
     mi.big_input = elfHdr->e_endian();
 
+    Elf_X *elfHdrDbg = dwarf->debugLinkFile();
+    auto e_ident = (!eh_frame->isFromDebugFile()) ? elfHdr->e_ident() : elfHdrDbg->e_ident();
+    result = read_except_table_gcc3(e_ident, mi, eh_frame, except_scn, catch_addrs);
 
-    //GCC 2.x has "eh" as its augmentor string in the CIEs
-    //for (i = 0; i < cie_count; i++) {
-    //    status = dwarf_get_cie_info(cie_data[i], &bytes_in_cie, NULL,
-    //                                &augmentor, NULL, NULL, NULL, NULL, NULL, &err);
-    //    if (status != DW_DLV_OK) {
-    //        pd_dwarf_handler();
-    //        goto cleanup;
-    //    }
-    //    if (augmentor[0] == 'e' && augmentor[1] == 'h') {
-    //        gcc_ver = 2;
-    //    }
-    //}
-
-    //Parse the gcc_except_table
-    //if (gcc_ver == 2) {
-    //    result = read_except_table_gcc2(except_scn, catch_addrs, mi);
-
-    //} else if (gcc_ver == 3) {
-    result = read_except_table_gcc3(dbg, mi, eh_frame, except_scn,
-                                    catch_addrs);
-    //}
-    sort(catch_addrs.begin(), catch_addrs.end(), exception_compare());
-    //VECTOR_SORT(catch_addrs, exception_compare);
-
-    //cleanup:
-    ////Unallocate fde and cie information
-    //for (i = 0; i < cie_count; i++)
-    //    dwarf_dealloc(dbg, cie_data[i], DW_DLA_CIE);
-    //for (i = 0; i < fde_count; i++)
-    //    dwarf_dealloc(dbg, fde_data[i], DW_DLA_FDE);
-    //dwarf_dealloc(dbg, cie_data, DW_DLA_LIST);
-    //dwarf_dealloc(dbg, fde_data, DW_DLA_LIST);
+    sort(catch_addrs.begin(),catch_addrs.end(),exception_compare());
 
     return result;
 }
@@ -4175,18 +4098,49 @@ void Object::parseStabFileLineInfo() {
     //  haveParsedFileMap[ key ] = true;
 } /* end parseStabFileLineInfo() */
 
-struct open_statement {
-    Dwarf_Word string_table_index;
-    Dwarf_Addr start_addr;
-    Dwarf_Addr end_addr;
-    int line_number;
-    int column_number;
+class open_statement {
+    public:
+        open_statement() { reset(); };
+        Dwarf_Addr noAddress() { return (Dwarf_Addr) ~0; }
+        bool uninitialized() {
+            return start_addr == noAddress();
+        };
+        void reset() {
+            string_table_index = -1;
+            start_addr = noAddress();
+            end_addr = noAddress();
+            line_number = 0;
+            column_number = 0;
+        };
+        bool sameFileLineColumn(const open_statement &rhs) {
+            return ((string_table_index == rhs.string_table_index) &&
+                    (line_number == rhs.line_number) &&
+                    (column_number == rhs.column_number));
+        };
+        void operator=(const open_statement &rhs) {
+            string_table_index = rhs.string_table_index;
+            start_addr = rhs.start_addr;
+            end_addr = rhs.end_addr;
+            line_number = rhs.line_number;
+            column_number = rhs.column_number;
+        };
+        friend std::ostream& operator<<(std::ostream& os, const open_statement& st)
+        {
+            os << st.start_addr << " " << st.end_addr << " "
+                << st.line_number << " " << st.string_table_index << std::endl;
+            return os;
+        }
+    public:
+        Dwarf_Word string_table_index;
+        Dwarf_Addr start_addr;
+        Dwarf_Addr end_addr;
+        int line_number;
+        int column_number;
 };
 
 
-void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation *li_for_module) {
-    std::vector<open_statement> open_statements;
-
+void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
+{
     /* Acquire this CU's source lines. */
     Dwarf_Lines *lineBuffer;
     size_t lineCount;
@@ -4229,21 +4183,30 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation *li_for_module)
     // dwarf_line_srcfileno == 0 means unknown; 1...n means files[0...n-1]
     // so we ensure that we're adding a block of unknown, 1...n to the string table
     // and that offset + dwarf_line_srcfileno points to the correct string
-    strings->push_back("<Unknown file>");
-    for (size_t i = 1; i < filecount; i++) {
+    using namespace boost::filesystem;
+    strings->emplace_back("<Unknown file>","");
+    for(size_t i = 1; i < filecount; i++)
+    {
         auto filename = dwarf_filesrc(files, i, nullptr, nullptr);
         if(!filename) continue;
         auto result = convert_to_absolute(filename);
         filename = result.c_str();
 
+        string f = path(filename).filename().string();
         auto tmp = strrchr(filename, '/');
-        if (truncateLineFilenames && tmp) {
-            strings->push_back(++tmp);
-        } else {
-            strings->push_back(filename);
+        if(tmp) ++tmp;
+
+        if(truncateLineFilenames && tmp)
+        {
+            strings->emplace_back(tmp, tmp);
+        }
+        else
+        {
+            strings->emplace_back(filename,f);
         }
     }
     li_for_module->setStrings(strings);
+    //std::cerr << *strings.get();
     /* The 'lines' returned are actually interval markers; the code
      generated from lineNo runs from lineAddr up to but not including
      the lineAddr of the next line. */
@@ -4254,6 +4217,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation *li_for_module)
     dwarf_highpc(&cuDIE, &cu_high_pc);
 
     /* Iterate over this CU's source lines. */
+    open_statement current_line;
     open_statement current_statement;
     for (size_t i = 0; i < lineCount; i++) {
         auto line = dwarf_onesrcline(lineBuffer, i);
@@ -4320,33 +4284,181 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation *li_for_module)
             cout << "dwarf_linebeginstatement failed" << endl;
             continue;
         }
-        std::vector<open_statement> tmp;
-        for (auto stmt = open_statements.begin();
-             stmt != open_statements.end();
-             ++stmt) {
-            stmt->end_addr = current_statement.start_addr;
-            if (stmt->string_table_index != current_statement.string_table_index ||
-                stmt->line_number != current_statement.line_number ||
-                isEndOfSequence) {
-                li_for_module->addLine((unsigned int) (stmt->string_table_index),
-                                       (unsigned int) (stmt->line_number),
-                                       (unsigned int) (stmt->column_number),
-                                       stmt->start_addr,
-                                       stmt->end_addr);
-            } else {
-                tmp.push_back(*stmt);
-            }
-        }
-        open_statements.swap(tmp);
-        if (isEndOfSequence) {
-            open_statements.clear();
-        } else if (isStatement) {
-            open_statements.push_back(current_statement);
-        }
+	if (current_line.uninitialized()) {
+	  current_line = current_statement;
+	} else {
+	      current_line.end_addr = current_statement.start_addr;
+	      if (!current_line.sameFileLineColumn(current_statement) ||
+		  isEndOfSequence) {
+                li_for_module->addLine((unsigned int)(current_line.string_table_index),
+                                       (unsigned int)(current_line.line_number),
+                                       (unsigned int)(current_line.column_number),
+                                       current_line.start_addr, current_line.end_addr);
+		current_line = current_statement;
+	      }
+	}
+	if (isEndOfSequence) {
+	  current_line.reset();
+	}
     } /* end iteration over source line entries. */
 
 /* Free this CU's source lines. */
     //dwarf_srclines_dealloc(dbg, lineBuffer, lineCount);
+}
+
+
+LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
+{
+    if (li_for_object) {
+        // The line information for this object has been parsed.
+        return li_for_object;
+    }
+    li_for_object = new LineInformation(); 
+    li_for_object->setStrings(strings);
+    /* Initialize libdwarf. */
+    Dwarf **dbg_ptr = dwarf->type_dbg();
+    if (!dbg_ptr) return li_for_object;
+    Dwarf *dbg = *dbg_ptr;
+
+    Dwarf_Off off, next_off = 0;
+    Dwarf_CU *cu = NULL;
+
+    Dwarf_Files *files;
+    size_t fileCount;
+
+    Dwarf_Lines * lineBuffer;
+    size_t lineCount;
+
+    int status;
+
+    while ((status = dwarf_next_lines(dbg, off = next_off, &next_off, &cu,
+			     &files, &fileCount, &lineBuffer, &lineCount)) == 0)
+    {
+
+    StringTablePtr strings(li_for_object->getStrings());
+    size_t offset = strings->size();
+
+    // dwarf_line_srcfileno == 0 means unknown; 1...n means files[0...n-1]
+    // so we ensure that we're adding a block of unknown, 1...n to the string table
+    // and that offset + dwarf_line_srcfileno points to the correct string
+    using namespace boost::filesystem;
+    strings->emplace_back("<Unknown file>","");
+    for(size_t i = 1; i < fileCount; i++)
+    {
+        auto filename = dwarf_filesrc(files, i, nullptr, nullptr);
+        if(!filename) continue;
+
+        string f = path(filename).filename().string();
+        auto tmp = strrchr(filename, '/');
+        if(tmp) ++tmp;
+
+        if(truncateLineFilenames && tmp)
+        {
+            strings->emplace_back(tmp,tmp);
+        }
+        else
+        {
+            strings->emplace_back(filename,f);
+        }
+    }
+    li_for_object->setStrings(strings);
+    /* The 'lines' returned are actually interval markers; the code
+     generated from lineNo runs from lineAddr up to but not including
+     the lineAddr of the next line. */
+
+    Offset baseAddr = getBaseAddress();
+
+    /* Iterate over this CU's source lines. */
+    open_statement current_line;
+    open_statement current_statement;
+    for(size_t i = 0; i < lineCount; i++ )
+    {
+        auto line = dwarf_onesrcline(lineBuffer, i); 
+
+        /* Acquire the line number, address, source, and end of sequence flag. */
+        status = dwarf_lineno(line, &current_statement.line_number);
+        if ( status != 0 ) {
+            cout << "dwarf_lineno failed" << endl;
+            continue;
+        }
+
+        status = dwarf_linecol(line, &current_statement.column_number);
+        if ( status != 0 ) { current_statement.column_number = 0; }
+
+        status = dwarf_lineaddr(line, &current_statement.start_addr);
+        if ( status != 0 )
+        {
+            cout << "dwarf_lineaddr failed" << endl;
+            continue;
+        }
+
+        current_statement.start_addr += baseAddr;
+
+        if (dwarf->debugLinkFile()) {
+            Offset new_lineAddr;
+            bool result = convertDebugOffset(current_statement.start_addr, new_lineAddr);
+            if (result)
+                current_statement.start_addr = new_lineAddr;
+        }
+        
+        //status = dwarf_line_srcfileno(line, &current_statement.string_table_index);
+        const char * file_name = dwarf_linesrc(line, NULL, NULL);
+        if ( !file_name ) {
+            cout << "dwarf_linesrc - empty name" << endl;
+            continue;
+        }
+
+        // search filename index
+        std::string file_name_str(file_name);
+        int index = -1;
+        for(size_t idx = offset; idx < strings->size(); ++idx)
+        {
+            if((*strings)[idx].str==file_name_str) 
+            {  
+                index = idx; 
+                break;
+            }
+        }
+        if( index == -1 ) {
+            cout << "dwarf_linesrc didn't find index" << endl;
+            continue;
+        }
+        current_statement.string_table_index = index;
+
+        bool isEndOfSequence;
+        status = dwarf_lineendsequence(line, &isEndOfSequence);
+        if ( status != 0 ) {
+            cout << "dwarf_lineendsequence failed" << endl;
+            continue;
+        }
+        if(i == lineCount - 1) {
+            isEndOfSequence = true;
+        }
+        bool isStatement;
+        status = dwarf_linebeginstatement(line, &isStatement);
+        if(status != 0) {
+            cout << "dwarf_linebeginstatement failed" << endl;
+            continue;
+        }
+	if (current_line.uninitialized()) {
+	  current_line = current_statement;
+	} else {
+	      current_line.end_addr = current_statement.start_addr;
+	      if (!current_line.sameFileLineColumn(current_statement) ||
+		  isEndOfSequence) {
+                li_for_object->addLine((unsigned int)(current_line.string_table_index),
+                                       (unsigned int)(current_line.line_number),
+                                       (unsigned int)(current_line.column_number),
+                                       current_line.start_addr, current_line.end_addr);
+		current_line = current_statement;
+	      }
+	}
+	if (isEndOfSequence) {
+	  current_line.reset();
+	}
+    } 
+    }
+    return li_for_object;
 }
 
 
@@ -4364,10 +4476,19 @@ void Object::parseLineInfoForAddr(Offset addr_to_find) {
     // no mod for offset means no line info for sure if we've parsed all ranges...
 }
 
+bool Object::hasDebugInfo()
+{
+    Region *ignore;
+    std::string debug_info = ".debug_info";
+    bool hasDebugInfo = associated_symtab->findRegion(ignore, debug_info);
+    return hasDebugInfo;
+}
 
 // Dwarf Debug Format parsing
-void Object::parseDwarfFileLineInfo() {
-    vector<Module *> mods;
+void Object::parseDwarfFileLineInfo()
+{
+
+    vector<Module*> mods;
     associated_symtab->getAllModules(mods);
     for (auto mod = mods.begin();
          mod != mods.end();
@@ -4730,13 +4851,23 @@ bool sort_dbg_map(const Object::DbgAddrConversion_t &a,
     return (a.dbg_offset < b.dbg_offset);
 }
 
-bool Object::convertDebugOffset(Offset off, Offset &new_off) {
+bool Object::convertDebugOffset(Offset off, Offset &new_off)
+{
+    int hi = DebugSectionMap.size();
+
+    if (hi == 0) {
+      // DebugSectionMap is empty; handle this case separately 
+      DbgSectionMapSorted = true;
+      return true;
+    }
+
+    // invariant: DebugSectionMap is non-empty
+
     if (!DbgSectionMapSorted) {
         std::sort(DebugSectionMap.begin(), DebugSectionMap.end(), sort_dbg_map);
         DbgSectionMapSorted = true;
     }
 
-    int hi = DebugSectionMap.size();
     int low = 0;
     int cur = -1;
 

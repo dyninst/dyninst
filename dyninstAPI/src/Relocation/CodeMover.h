@@ -125,6 +125,8 @@ class CodeMover {
 
   std::string format() const;
 
+  codeGen &gen();
+
  private:
     
   CodeMover(CodeTracker *t);
@@ -150,7 +152,6 @@ class CodeMover {
   CodeTracker *tracker_;
 
   CodeBuffer buffer_;
-  codeGen &gen();
 
   bool finalized_;
   

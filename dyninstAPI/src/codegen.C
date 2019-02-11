@@ -316,6 +316,18 @@ void codeGen::copy(codeGen &gen) {
   assert(used() <= size_);
 }
 
+void codeGen::insert(const void *b, const unsigned size, const codeBufIndex_t index) {
+    if (size == 0) return;
+    assert(buffer_);
+
+    realloc(used() + size);
+    auto * temp = get_ptr(index);
+    memmove(temp + size, temp, used()-index);
+    memcpy(temp, b, size);
+
+    moveIndex(size);
+}
+
 void codeGen::copyAligned(const void *b, const unsigned size) {
   if (size == 0) return;
 
@@ -781,9 +793,9 @@ std::string codeGen::format() const {
    Instruction insn = deco.decode();
    ret << hex;
    while(insn.isValid()) {
-     ret << "\t" << base << ": " << insn.format(base) << " / " << *((const unsigned *)insn.ptr()) << endl;
-      base += insn.size();
-      insn = deco.decode();
+       ret << "\t" << base << ": " << insn.format(base) << " / " << *((const unsigned *)insn.ptr()) << endl;
+       base += insn.size();
+       insn = deco.decode();
    }
    ret << dec;
    return ret.str();

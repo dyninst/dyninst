@@ -56,14 +56,20 @@ static void BuildEdgesAux(SliceNode::Ptr srcNode,
 
     if (visit.find(curBlock) != visit.end()) return;
     visit.insert(curBlock);
-    for (auto eit = curBlock->targets().begin(); eit != curBlock->targets().end(); ++eit) {
+    Block::edgelist targets;
+    curBlock->copy_targets(targets);
+    for (auto eit = targets.begin(); eit != targets.end(); ++eit) {
 	// Xiaozhu:
 	// Our current slicing code ignores tail calls 
 	// (the slice code only checks if an edge type is CALL or not)
  	// so, I should be consistent here.
 	// If the slice code considers tail calls, need to change
 	// the predicate to (*eit)->interproc()
-        if ((*eit)->type() != CALL && (*eit)->type() != RET && allowedEdges.find(*eit) != allowedEdges.end()) {
+        if ((*eit)->type() != CALL && 
+            (*eit)->type() != RET && 
+	    (*eit)->type() != CATCH && 
+	    !(*eit)->interproc() && 
+	    allowedEdges.find(*eit) != allowedEdges.end()) {
 	    EdgeTypeEnum newT = t; 
 	    if (t == _edgetype_end_) {
 	        if ((*eit)->type() == COND_TAKEN || (*eit)->type() == COND_NOT_TAKEN) 
@@ -256,6 +262,7 @@ bool JumpTableIndexPred::FillInOutEdges(StridedInterval &target,
 bool JumpTableIndexPred::IsIndexBounded(GraphPtr slice,
                                        BoundFactsCalculator &bfc,
                                        StridedInterval &target) {
+    findBound = false;
     NodeIterator exitBegin, exitEnd, srcBegin, srcEnd;
     slice->exitNodes(exitBegin, exitEnd);
     if (exitBegin == exitEnd) {
@@ -322,3 +329,8 @@ bool JumpTableIndexPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Pt
     return true;
 }
 
+bool JumpTableIndexPred::ignoreEdge(ParseAPI::Edge *e) {
+    // Assume that jump tables are independent
+    if (e->type() == INDIRECT) return true;
+    return false;
+}

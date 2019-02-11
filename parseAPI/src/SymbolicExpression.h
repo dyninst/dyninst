@@ -22,6 +22,9 @@ public:
     static bool ContainAnAST(AST::Ptr root, AST::Ptr check);
     bool ReadMemory(Address addr, uint64_t &val, int size);
     ParseAPI::CodeSource* cs; 
+    // For archive, there are overlapping regions.
+    // Need to use the right region.
+    ParseAPI::CodeRegion* cr;
     std::pair<AST::Ptr, bool> ExpandAssignment(Assignment::Ptr, bool keepMultiOne = false);
 
     //On x86 and x86-64, the value of PC is post-instruction, 
