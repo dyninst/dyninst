@@ -947,7 +947,7 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
       }
       if(!expr.checkTypesAtPoint(bppoint)) 
       {
-	continue;
+	    continue;
       }
 
       /* PatchAPI stuffs */

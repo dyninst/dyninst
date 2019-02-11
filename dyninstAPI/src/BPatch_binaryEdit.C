@@ -271,6 +271,7 @@ void BPatch_binaryEdit::getAS(std::vector<AddressSpace *> &as)
 
 void BPatch_binaryEdit::beginInsertionSet()
 {
+    printf("BPatch_binaryEdit::beginInsertionSet()\n");  
     return;
 }
 
