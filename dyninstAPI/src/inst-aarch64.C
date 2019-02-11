@@ -785,14 +785,13 @@ void emitJmpMC(int /*condition*/, int /*offset*/, codeGen &) {
 
 // VG(11/16/01): Say if we have to restore a register to get its original value
 // VG(03/15/02): Sync'd with the new AIX tramp
-// Yuhan(02/05/19): 
+// Yuhan(02/05/19): Needs to implement, refering to what registers are saved during the trap
 
 static inline bool needsRestore(Register x) {
-    
-	if(x == 31)	
-    	return false;
-	else
+   	if(x>=0 && x<=2 || x>=19 && x <= 31) 
 		return true;
+	else
+		return false;
 }
 
 // VG(03/15/02): Restore mutatee value of GPR reg to dest GPR
@@ -804,19 +803,22 @@ static inline void restoreGPRtoGPR(codeGen &gen,
 		return;
 	}
 	
-	printf("restoring: %d\n", reg);
-	int offset_from_sp = 210 + reg * gen.width();
-    insnCodeGen::restoreRegister(gen, reg, offset_from_sp);
+	//printf("restoring: %d\n", reg);
 
-	/*
 	frame_size = TRAMP_FRAME_SIZE_64;
     gpr_size   = GPRSIZE_64;
     gpr_off    = TRAMP_GPR_OFFSET_64;
-
-    int offset_from_sp = (reg * gen.width());
-	insnCodeGen::generateImm(gen, loadOP, dest, REG_SP,
-                                 gpr_off + reg*gpr_size);
-	*/
+	
+	
+	//Stack Point Register
+	if(reg == 31) {
+	    insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0, frame_size, REG_SP, dest, true);	
+	}
+	else {
+		//cout << "offset " << gpr_off << endl;
+		insnCodeGen::restoreRegister(gen, dest, gpr_off + reg*gpr_size);
+	}
+	
 	return;
 }
 
@@ -836,6 +838,7 @@ static inline void moveGPR2531toGPR(codeGen &gen,
 // VG(03/15/02): Made functionality more obvious by adding the above functions
 static inline void emitAddOriginal(Register src, Register acc,
                                    codeGen &gen, bool noCost) {
+	/*
 	bool nr = needsRestore(src);	
     Register temp;
     
@@ -851,14 +854,15 @@ static inline void emitAddOriginal(Register src, Register acc,
     }
     else
         temp = src;
-    
+    */
     // add temp to dest;
     // writes at gen+base and updates base, we must update insn...
-    emitV(plusOp, temp, acc, acc, gen, noCost, 0);
+    emitV(plusOp, src, acc, acc, gen, noCost, 0);
     
+	/*
     if(nr){
         gen.rs()->freeRegister(temp);
-	}
+	}*/
 }
 
 // Yuhan(02/04/19): Load in destination the effective address given
@@ -869,20 +873,20 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
 
     // Haven't implemented non-zero shifts yet
     assert(stackShift == 0);
-    //instruction *insn = (instruction *) ((void*)&gen[base]);
     int imm = as->getImm();
     int ra  = as->getReg(0);
     int rb  = as->getReg(1);
     int sc  = as->getScale();
 
 	bool restored_ra = false, restored_rb = false;
-	Register original_ra, original_rb;
+	Register original_ra, original_rb, temp;
     if(ra > -1) {
 		if(needsRestore(ra)) {
+        	temp = gen.rs()->allocateRegister(gen, noCost);
         	original_ra = gen.rs()->allocateRegister(gen, noCost);
 			restoreGPRtoGPR(gen, ra, original_ra);
 			restored_ra = true;
-			printf("the original_ra is: %d\n", original_ra);
+			//printf("the original_ra is: %d\n", original_ra);
 		}
 		else {
 			restored_ra = ra;
@@ -893,19 +897,23 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
 
     if(rb > -1) {
 	    if(needsRestore(rb)) {
+        	temp = gen.rs()->allocateRegister(gen, noCost);	
         	original_rb = gen.rs()->allocateRegister(gen, noCost);
 			restoreGPRtoGPR(gen, rb, original_rb);
 			restored_rb = true;
-			printf("the original_rb is: %d\n", original_rb);
+			//printf("the original_rb is: %d\n", original_rb);
 		}
     	// call adds, save 2^scale * rb to dest
-		insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, sc, 0, original_rb, 0, dest, 1);
+		insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, sc, 0, original_rb, dest, dest, 1);
 	}
 	
     // emit code to load the immediate (constant offset) into dest; this
     // writes at gen+base and updates base, we must update insn...
-    emitVload(loadConstOp, (Address)imm, dest, dest, gen, noCost);
+	insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0, imm, dest, dest, true);	
+	insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Sub, 0, 0x10, dest, dest, true);	
 	
+	if(restored_ra || restored_rb)
+		gen.rs()->freeRegister(temp);
 	if(restored_ra)
         gen.rs()->freeRegister(original_ra);
 	if(restored_rb)
