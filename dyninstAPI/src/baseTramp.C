@@ -410,6 +410,7 @@ bool baseTramp::doOptimizations()
    bool usesReg = false;
 
    if (BPatch::bpatch->getInstrStackFrames()) {
+      printf("CONTAINS INSTRUMENT STACKFRAMES\n");
       usesReg = true;
    }
 
