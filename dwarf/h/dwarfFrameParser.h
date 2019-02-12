@@ -139,7 +139,7 @@ private:
         {
             return (dbg < rhs.dbg)
                 || (dbg == rhs.dbg && eh_frame < rhs.eh_frame)
-                || (dbg == rhs.dbg && eh_frame == rhs.eh_frame && arch == rhs.arch);
+                || (dbg == rhs.dbg && eh_frame == rhs.eh_frame && arch < rhs.arch);
         }
 
     };

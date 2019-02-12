@@ -178,16 +178,12 @@ bool DwarfWalker::parse() {
 //#pragma omp parallel for
     for
 #endif
-      (unsigned int i = 0; i < module_dies.size(); i++) {
-	Dwarf_Die cur = module_dies[i];
-        int local_fd = open(symtab()->file().c_str(), O_RDONLY);
-        Dwarf* temp_dwarf = dwarf_begin(local_fd, DWARF_C_READ);
-        DwarfWalker w(symtab_, temp_dwarf);
+    (unsigned int i = 0; i < module_dies.size(); i++) {
+        Dwarf_Die cur = module_dies[i];
+        DwarfWalker w(symtab_, dbg());
         w.push();
         bool ok = w.parseModule(cur, fixUnknownMod);
         w.pop();
-        dwarf_end(temp_dwarf);
-        close(local_fd);
     }
 
     if (!fixUnknownMod)
