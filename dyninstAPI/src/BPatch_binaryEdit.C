@@ -239,6 +239,7 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
        continue;
 
      std::string newname = bin->getMappedObject()->fileName();
+     printf("BPatch_binaryEdit::writeFile(), newname: %s\n", newname.c_str());
      if( !bin->writeFile(newname) ) return false;
    }
    return ret;

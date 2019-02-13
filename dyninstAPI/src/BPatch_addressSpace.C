@@ -966,6 +966,7 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippet(const BPatch_snippet &ex
    }
    if (pendingInsertions == NULL) {
      // There's no insertion set, instrument now
+     printf("no insertion set, instrument now\n");
      bool tmp;
      if (!finalizeInsertionSet(false, &tmp)) {
         return NULL;
