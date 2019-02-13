@@ -886,7 +886,6 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
         	original_ra = gen.rs()->allocateRegister(gen, noCost);
 			restoreGPRtoGPR(gen, ra, original_ra);
 			restored_ra = true;
-			//printf("the original_ra is: %d\n", original_ra);
 		}
 		else {
 			restored_ra = ra;
@@ -901,10 +900,9 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
         	original_rb = gen.rs()->allocateRegister(gen, noCost);
 			restoreGPRtoGPR(gen, rb, original_rb);
 			restored_rb = true;
-			//printf("the original_rb is: %d\n", original_rb);
 		}
     	// call adds, save 2^scale * rb to dest
-		insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, sc, 0, original_rb, dest, dest, 1);
+		insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, 0, sc, original_rb, dest, dest, 1);
 	}
 	
     // emit code to load the immediate (constant offset) into dest; this
