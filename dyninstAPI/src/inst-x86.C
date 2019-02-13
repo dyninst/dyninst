@@ -33,7 +33,7 @@
  * $Id: inst-x86.C,v 1.289 2008/09/11 20:14:14 mlam Exp $
  */
 #include <iomanip>
-
+#include <cstdint>
 #include <limits.h>
 #include "common/src/headers.h"
 #include <unordered_map>
@@ -710,7 +710,7 @@ bool can_do_relocation(PCProcess *proc,
 
 
 
-#define MAX_BRANCH	(0x1<<31)
+#define MAX_BRANCH	(static_cast<uint32_t>(1)<<31)
 
 Address getMaxBranch() {
   return (Address)MAX_BRANCH;

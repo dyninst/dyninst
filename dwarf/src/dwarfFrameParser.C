@@ -56,7 +56,7 @@ DwarfFrameParser::Ptr DwarfFrameParser::create(Dwarf * dbg, Elf * eh_frame, Arch
     auto iter = frameParsers.find(k);
     if (iter == frameParsers.end()) {
         Ptr newParser = Ptr(new DwarfFrameParser(dbg, eh_frame, arch));
-        frameParsers[k] = newParser;
+        frameParsers.insert(make_pair(k, newParser));
         return newParser;
     }
     else {

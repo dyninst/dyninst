@@ -132,13 +132,7 @@ bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *targetData,
     symbolOffset = rel.getDynSym()->getOffset();
   }
   else {
-    // Indirect; the address is the PLT entry (yes, I said PLT)
-    // associated with this symbol. 
-    auto pltEntry = lmap.pltEntries.find(rel.getDynSym()); 
-    if (pltEntry == lmap.pltEntries.end()) {
-      return false;
-    }
-    symbolOffset = pltEntry->second.first + globalOffset;
+    return true;
   }
     
     if( X86_WIDTH == addressWidth_ ) {

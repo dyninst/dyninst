@@ -293,8 +293,8 @@ extern EmitterAMD64Stat emitterAMD64Stat;
 
 /* useful functions for inter-library function/variable references
  * (used in the binary rewriter) */
-Address getInterModuleFuncAddr(func_instance *func, codeGen& gen);
-Address getInterModuleVarAddr(const image_variable *var, codeGen& gen);
+//Address getInterModuleFuncAddr(func_instance *func, codeGen& gen);
+//Address getInterModuleVarAddr(const image_variable *var, codeGen& gen);
 
 #endif
 

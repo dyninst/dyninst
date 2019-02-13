@@ -424,7 +424,7 @@ SerFile::SerFile(std::string fname, iomode_t mode, bool verbose) :
 	iomode_(mode), 
 	noisy(verbose) 
 {
-        std::string file_path = resolve_file_path(fname.c_str());
+        std::string file_path = resolve_file_path(std::move(fname));
         if( file_path.empty() )
 	{
 		char msg[1024];

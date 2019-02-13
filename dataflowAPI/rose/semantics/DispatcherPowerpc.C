@@ -54,18 +54,20 @@ public:
     // Builds mask of 1's from the bit value starting at mb_value to me_value.
     // See page 71 of PowerPC manual.
     uint32_t build_mask(uint8_t mb_value, uint8_t me_value) {
-        uint32_t mask = 0;
-        if (mb_value <= me_value) {
-            // PowerPC counts bits from the left.
-            for(int i=mb_value; i <= me_value;  i++)
-                mask |= (1 << (31-i));
-        } else {
-            for(int i=mb_value; i <= 31;  i++)
-                mask |= (1 << (31-i));
-            for(int i=0; i <= me_value; i++)
-                mask |= (1 << (31-i));
-        }
-        return mask;
+    	uint32_t mask = 0;
+    	constexpr uint32_t max_bit_pos{31}, sentinnel{1};
+
+    	if (mb_value <= me_value) {
+    		// PowerPC counts bits from the left.
+    		for (int i = mb_value; i <= me_value; i++)
+    			mask |= (sentinnel << (max_bit_pos - i));
+    	} else {
+    		for (auto i = mb_value; i <= max_bit_pos; i++)
+    			mask |= (sentinnel << (max_bit_pos - i));
+    		for (uint8_t i = 0; i <= me_value; i++)
+    			mask |= (sentinnel << (max_bit_pos - i));
+    	}
+    	return mask;
     }
 
 };

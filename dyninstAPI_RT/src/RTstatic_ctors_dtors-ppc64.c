@@ -29,55 +29,21 @@
  */
 
 #if defined(DYNINST_RT_STATIC_LIB)
-void (*DYNINSTctors_addr)(void);
-void (*DYNINSTdtors_addr)(void);
+extern void (*DYNINSTctors_begin)(void);
+extern void (*DYNINSTdtors_begin)(void);
+extern void (*DYNINSTctors_end)(void);
+extern void (*DYNINSTdtors_end)(void);
 
-//#if defined(MUTATEE64)
-static const unsigned long long CTOR_LIST_TERM = 0x0000000000000000ULL;
-static const unsigned long long CTOR_LIST_START = 0xffffffffffffffffULL;
-static const unsigned long long DTOR_LIST_TERM = 0x0000000000000000ULL;
-static const unsigned long long DTOR_LIST_START = 0xffffffffffffffffULL;
-//#else
-/*
-static const unsigned CTOR_LIST_TERM = 0x00000000;
-static const unsigned CTOR_LIST_START = 0xffffffff;
-static const unsigned DTOR_LIST_TERM = 0x00000000;
-static const unsigned DTOR_LIST_START = 0xffffffff;
-*/
-//#endif
 
 extern void DYNINSTBaseInit();
 
-/*
- * When rewritting a static binary, .ctors and .dtors sections of
- * instrumentation code needs to be combined with the existing .ctors
- * and .dtors sections of the static binary.
- *
- * The following functions process the .ctors and .dtors sections
- * that have been rewritten. The rewriter will relocate the 
- * address of DYNINSTctors_addr and DYNINSTdtors_addr to point to
- * new .ctors and .dtors sections.
- */
-
 void DYNINSTglobal_ctors_handler() {
+    void (**ctor)(void) = &DYNINSTctors_begin;
 
-    void (**ctors_array)(void) = &DYNINSTctors_addr;
-
-    // Find end of function pointer list
-    void (**tmp_ptr)(void) = ctors_array;
-    unsigned size = 0;
-//	printf(" CTOR_LIST_TERM 0x%lx tmp_ptr 0x%lx\n", CTOR_LIST_TERM, tmp_ptr);
-    while( *tmp_ptr != ( (void(*)(void))CTOR_LIST_TERM ) ) {
-        size++;
-        tmp_ptr++;
-    }
-
-//	printf(" CTOR_LIST_START 0x%lx tmp_ptr 0x%lx size %d\n", CTOR_LIST_START, tmp_ptr, size);
-    // Constructors are called in the reverse order that they are listed
-    tmp_ptr = &ctors_array[size-1]; // skip list end
-    while( *tmp_ptr != ( (void(*)(void))CTOR_LIST_START ) ) {
-        (*tmp_ptr)();
-        tmp_ptr--;
+    while( ctor != ( &DYNINSTctors_end )) {
+	if(*ctor && (*ctor != (void*)-1))
+	    (*ctor)();
+        ctor++;
     }
 
     // This ensures that instrumentation cannot execute until all global
@@ -86,15 +52,15 @@ void DYNINSTglobal_ctors_handler() {
 }
 
 void DYNINSTglobal_dtors_handler() {
-    void (**dtors_array)(void) = &DYNINSTdtors_addr;
+    void (**dtor)(void) = &DYNINSTdtors_begin;
 
     // Destructors are called in the forward order that they are listed
-    void (**tmp_ptr)(void) = &dtors_array[1]; // skip list start
-    while( *tmp_ptr != ( (void(*)(void))DTOR_LIST_TERM ) ) {
-        (*tmp_ptr)();
-        tmp_ptr++;
+    while( dtor != (&DYNINSTdtors_end )) {
+	if(*dtor && (*dtor != (void*)-1))
+	    (*dtor)();
+	dtor++;
     }
-
 }
+
 
 #endif

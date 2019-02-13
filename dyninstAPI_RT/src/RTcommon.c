@@ -122,7 +122,12 @@ int fakeTickCount;
 // recursing back to us if they're also instrumented, ad infinitum.  Static TLS
 // must be used very sparingly though, because it is a limited resource.
 // *** This case is very special -- do not use IE in general libraries! ***
+
+#if defined(DYNINST_RT_STATIC_LIB)
+#define TLS_VAR __thread __attribute__ ((tls_model("local-exec")))
+#else
 #define TLS_VAR __thread __attribute__ ((tls_model("initial-exec")))
+#endif
 #endif
 
 // It's tempting to make this a char, but glibc < 2.17 hits a bug:
