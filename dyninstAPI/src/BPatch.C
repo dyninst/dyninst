@@ -140,6 +140,7 @@ BPatch::BPatch()
     extern bool init();
 
     // Save a pointer to the one-and-only bpatch object.
+    printf("constructor for BPatch is called: %p == %p ? \n", &bpatch, &(BPatch::bpatch));
     if (bpatch == NULL){
        bpatch = this;
     }

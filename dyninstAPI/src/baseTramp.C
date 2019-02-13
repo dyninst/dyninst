@@ -408,7 +408,7 @@ bool baseTramp::doOptimizations()
 {
    bool hasFuncCall = false;
    bool usesReg = false;
-
+   printf("baseTramp::doOptimizations\n");
    if (BPatch::bpatch->getInstrStackFrames()) {
       printf("CONTAINS INSTRUMENT STACKFRAMES\n");
       usesReg = true;
