@@ -185,12 +185,17 @@ bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter begin, Bloc
     ParseAPI::CodeRegion* cr = func->ifunc()->region();
     std::set<ParseAPI::Block*> blocks;
     co->findBlocks(cr, end, blocks);
-    while (isNoneContained(blocks) && cr->contains(end)) {
+
+    // Removal of the below code limits the size of range to the size of the block
+    // Future fix is to actually do what the above comment ("int size" 
+    //  suggest and look for noop's explicitly
+/*    while (isNoneContained(blocks) && cr->contains(end)) {
         end++;
         size++;
         blocks.clear();
         co->findBlocks(cr, end, blocks);
     }
+*/
 
     SpringboardInfo* info = new SpringboardInfo(func->addr(), func);
 
@@ -258,21 +263,36 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
 					const SpringboardReq &r,
                                         SpringboardMap &input) {
    codeGen gen;
+   codeGen tmpGen;
    bool usedTrap = false;
    // Arbitrarily select the first function containing this springboard, since only one can win. 
-   generateBranch(r.from, r.destinations.begin()->second, gen);
-   unsigned size = gen.used();
-   
-   if (r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode, r.func, r.priority)) {
+   generateBranch(r.from, r.destinations.begin()->second, tmpGen);
+   unsigned size = tmpGen.used();
+
+   // Check if the size of the branch will fit   
+   if (r.useTrap || conflict(r.from, r.from + tmpGen.used(), r.fromRelocatedCode, r.func, r.priority)) {
       // Errr...
       // Fine. Let's do the trap thing. 
 
       usedTrap = true;
-      if (conflict(r.from, r.from + 1, r.fromRelocatedCode, r.func, r.priority)) { return Failed; }
+
+      // Generate the trap
+      generateTrap(r.from, r.destinations.begin()->second, gen);
+      // This check must be left in place. 
+      // Reason: Suggested springboards use generateSpringboard to create their springboards.
+      //         If a suggested springboard's block entry is used by a required springboard,
+      //         we could potentially overwrite an instruction from a required springboard.
+      if (conflict(r.from, r.from + gen.used(), r.fromRelocatedCode, r.func, r.priority)) { return Failed; }
       if(!addrSpace_->canUseTraps()) { return Failed; }
       
-      generateTrap(r.from, r.destinations.begin()->second, gen);
-      size = 1;
+      size = gen.used();
+      springboard_cerr << "\t Using a springboard trap for springboard at addr: 0x" << std::hex << r.from << std::endl;
+   } else {
+      // regenerate the branch into gen 
+      // ideally we would like to do gen = tmpGen but there is a problem with codeGen's copy constructor
+      generateBranch(r.from, r.destinations.begin()->second, gen);
+      springboard_cerr << "\t Using a branch for springboard at addr: 0x" << std::hex << r.from 
+                       << " with byte size = " << std::dec << gen.used() << std::endl;
    }
 
    if (r.includeRelocatedCopies) {
@@ -344,6 +364,17 @@ bool InstalledSpringboards::conflict(Address start, Address end, bool inRelocate
            << state->val << ", "
            << state->func->name() << ", priority " 
            << state->priority << dec << endl;
+       // BLOCK PRIORITY CHECK:
+       //    Check to see if the block we are writing to contains a required (or greater) springboard
+       //    What this check prevents is a required springboard in a block at a lower address from
+       //    overwriting a block at a higher address (that has already been written).
+       //    This check assumes that we are always generating springboards starting at the highest address
+       //    and working backwards (i.e. 0xfff... -> 0x000...) 
+       if (state->priority >= Required) {
+            springboard_cerr << "\t Trying to write a springboard that crosses into another required block, ret conflict" << std::endl;
+            return true;
+        }
+
       if (state->val == Allocated) {
 	if(LB == start && UB >= end) 
 	{
@@ -367,9 +398,9 @@ bool InstalledSpringboards::conflict(Address start, Address end, bool inRelocate
                     springboard_cerr << "\t Starting range matches already allocated springboard, equivalent priorities and different functions, ret conflict" << endl;
                     return true;
                 }
-                
-                springboard_cerr << "\t Starting range matches already allocated springboard, assuming overwrite, ret OK" << endl;
-               return false;
+                // Not sure why this was ever safe. If a springboard already exists, do not overwrite it.
+                springboard_cerr << "\t Starting range matches already allocated springboard, assuming overwrite, ret conflict" << endl;
+               return true;
            }
 
            springboard_cerr << "\t Starting range already allocated, ret conflict" << endl;
