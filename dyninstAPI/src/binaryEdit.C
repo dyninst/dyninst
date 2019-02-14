@@ -834,7 +834,7 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
         iter != newDyninstSyms_.end(); ++iter) {
       (*iter)->setModule(newMod);
       (*iter)->setRegion(newSec);
-      printf("dyninst symbol name: %s %s\n", (*iter)->getMangledName(), (*iter)->getPrettyName());
+      printf("dyninst symbol name: %s %s\n", (*iter)->getMangledName().c_str(), (*iter)->getPrettyName().c_str());
       newSyms.push_back(*iter);
    }
                                                                               
