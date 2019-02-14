@@ -538,7 +538,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       // Now, we need to copy in the memory of the new segments
       for (unsigned i = 0; i < oldSegs.size(); i++) {
          codeRange *segRange = NULL;
-         printf("old region name: %s\n", oldSegs[i]->getRegionName());
+         printf("old region name: %s\n", oldSegs[i]->getRegionName().c_str());
          if (!memoryTracker_->find(oldSegs[i]->getMemOffset(), segRange)) {
 #if 0
             // Looks like BSS
@@ -834,6 +834,7 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
         iter != newDyninstSyms_.end(); ++iter) {
       (*iter)->setModule(newMod);
       (*iter)->setRegion(newSec);
+      printf("dyninst symbol name: %s %s\n", (*iter)->getMangledName(), (*iter)->getPrettyName());
       newSyms.push_back(*iter);
    }
                                                                               
