@@ -288,6 +288,16 @@ AstNodePtr AstNode::scrambleRegistersNode(){
     return AstNodePtr(new AstScrambleRegistersNode());
 }
 
+AstNodePtr AstNode::saveAllRegsNode(){
+    return AstNodePtr(new AstsaveAllRegsNode());
+}
+
+AstNodePtr AstNode::restoreAllRegsNode(){
+    return AstNodePtr(new AstrestoreAllRegsNode());
+}
+
+
+
 bool isPowerOf2(int value, int &result)
 {
   if (value<=0) return(false);
@@ -1313,12 +1323,55 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
       case ifOp: {
          // This ast cannot be shared because it doesn't return a register
 
+    if (!gen.inInstrumentation()) {
+        pushStack(gen);
+
+        saveRegister(gen, 0, FUNC_CALL_SAVE(gen.width()));
+        insnCodeGen::generateMoveFromLR(gen, 0);
+        saveRegister(gen, 0,  1048); //FUNC_CALL_SAVE(gen.width()));
+	saveCR(gen, 0, 1056);
+        saveRegister(gen, 2, FUNC_CALL_SAVE(gen.width()));
+        saveRegister(gen, 3, FUNC_CALL_SAVE(gen.width()));
+        saveRegister(gen, 9, FUNC_CALL_SAVE(gen.width()));
+        saveRegister(gen, 12, FUNC_CALL_SAVE(gen.width()));
+	saveRegister(gen, 13, FUNC_CALL_SAVE(gen.width()));
+    }
+
+
          if (!loperand->generateCode_phase2(gen, noCost, addr, src1)) ERROR_RETURN;
          REGISTER_CHECK(src1);
          codeBufIndex_t ifIndex= gen.getIndex();
 
          size_t preif_patches_size = gen.allPatches().size();
          codeBufIndex_t thenSkipStart = emitA(op, src1, 0, 0, gen, rc_before_jump, noCost);
+
+
+    if (!gen.inInstrumentation()) {
+        //restoreRegister(gen, 0, 1048);//FUNC_CALL_SAVE(gen.width()));
+        //insnCodeGen::generateMoveToLR(gen, 0);
+	//restoreCR(gen, 0, 1056);
+        restoreRegister(gen, 0, FUNC_CALL_SAVE(gen.width()));
+        restoreRegister(gen, 2, FUNC_CALL_SAVE(gen.width()));
+        restoreRegister(gen, 3, FUNC_CALL_SAVE(gen.width()));
+        restoreRegister(gen, 9, FUNC_CALL_SAVE(gen.width()));
+        restoreRegister(gen, 12, FUNC_CALL_SAVE(gen.width()));
+
+        restoreRegister(gen, 13, FUNC_CALL_SAVE(gen.width()));
+        //popStack(gen);
+
+    }
+/*    if (!gen.inInstrumentation()) {
+        restoreRegister(gen, 0, FUNC_CALL_SAVE(gen.width()));
+        insnCodeGen::generateMoveToLR(gen, 0);
+        restoreRegister(gen, 2, FUNC_CALL_SAVE(gen.width()));
+        restoreRegister(gen, 3, FUNC_CALL_SAVE(gen.width()));
+        restoreRegister(gen, 9, FUNC_CALL_SAVE(gen.width()));
+        restoreRegister(gen, 12, FUNC_CALL_SAVE(gen.width()));
+
+        restoreRegister(gen, 13, FUNC_CALL_SAVE(gen.width()));
+        popStack(gen);
+
+    }*/
 
          size_t postif_patches_size = gen.allPatches().size();
 
@@ -1412,6 +1465,22 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             }
          }
          retReg = REG_NULL;
+
+    if (!gen.inInstrumentation()) {
+        restoreRegister(gen, 0, 1048);//FUNC_CALL_SAVE(gen.width()));
+        insnCodeGen::generateMoveToLR(gen, 0);
+	restoreCR(gen, 0, 1056);
+        restoreRegister(gen, 0, FUNC_CALL_SAVE(gen.width()));
+        restoreRegister(gen, 2, FUNC_CALL_SAVE(gen.width()));
+        restoreRegister(gen, 3, FUNC_CALL_SAVE(gen.width()));
+        restoreRegister(gen, 9, FUNC_CALL_SAVE(gen.width()));
+        restoreRegister(gen, 12, FUNC_CALL_SAVE(gen.width()));
+
+        restoreRegister(gen, 13, FUNC_CALL_SAVE(gen.width()));
+        popStack(gen);
+
+    }
+
          break;
       }
       case ifMCOp: {
@@ -3775,3 +3844,70 @@ bool AstOperandNode::initRegisters(codeGen &g) {
 
     return ret;
 }
+
+#include "inst-power.h"
+
+bool AstsaveAllRegsNode::generateCode_phase2(codeGen &gen, bool,
+                                      Address &retAddr,
+                                      Register &retReg) {
+    gen.setInInstrumentation(true);
+    unsigned int width = gen.width();
+
+    int gpr_off, fpr_off;
+    gpr_off = TRAMP_GPR_OFFSET(width);
+    fpr_off = TRAMP_FPR_OFFSET(width);
+
+    // Make a stack frame.
+    pushStack(gen);
+
+    // Save GPRs
+    saveGPRegisters(gen, gen.rs(), gpr_off);
+
+    if(BPatch::bpatch->isSaveFPROn() ||  // Save FPRs
+        BPatch::bpatch->isForceSaveFPROn() ) 
+	saveFPRegisters(gen, gen.rs(), fpr_off);
+
+    // Save LR            
+    saveLR(gen, REG_SCRATCH /* register to use */, TRAMP_SPR_OFFSET(width) + STK_LR);
+
+    saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), true); // FIXME get liveness fixed
+    return true;
+
+}
+
+bool AstrestoreAllRegsNode::generateCode_phase2(codeGen &gen, bool,
+                                      Address &retAddr,
+                                      Register &retReg) {
+    unsigned int width = gen.width();
+
+    regalloc_printf("========== baseTramp::generateRestores\n");
+
+    int gpr_off, fpr_off;
+    gpr_off = TRAMP_GPR_OFFSET(width);
+    fpr_off = TRAMP_FPR_OFFSET(width);
+
+    // Restore possible SPR saves
+    restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET(width), false);
+
+    // LR
+    restoreLR(gen, REG_SCRATCH, TRAMP_SPR_OFFSET(width) + STK_LR);
+
+    if (BPatch::bpatch->isSaveFPROn() || // FPRs
+        BPatch::bpatch->isForceSaveFPROn() ) 
+	restoreFPRegisters(gen, gen.rs(), fpr_off);
+
+    // GPRs
+    restoreGPRegisters(gen, gen.rs(), gpr_off);
+
+    /*
+    // Multithread GPR -- always save
+    restoreRegister(gen, REG_MT_POS, TRAMP_GPR_OFFSET);
+    */
+
+    popStack(gen);
+    gen.setInInstrumentation(false);
+    return true;
+
+}
+
+

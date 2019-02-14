@@ -133,6 +133,7 @@ int fakeTickCount;
 // It's tempting to make this a char, but glibc < 2.17 hits a bug:
 //   https://sourceware.org/bugzilla/show_bug.cgi?id=14898
 static TLS_VAR short DYNINST_tls_tramp_guard = 1;
+static TLS_VAR short DYNINST_tls_cond_inst = 1;
 
 DLLEXPORT int DYNINST_lock_tramp_guard()
 {
@@ -143,6 +144,21 @@ DLLEXPORT int DYNINST_lock_tramp_guard()
 DLLEXPORT void DYNINST_unlock_tramp_guard()
 {
   DYNINST_tls_tramp_guard = 1;
+}
+
+DLLEXPORT uint64_t DYNINST_checkCondInst()
+{
+  return DYNINST_tls_cond_inst;
+}
+
+void DYNINST_enableCondInst()
+{
+  DYNINST_tls_cond_inst = 1;
+}
+
+void DYNINST_disableCondInst()
+{
+  DYNINST_tls_cond_inst = 0;
 }
 
 #if defined(os_linux)

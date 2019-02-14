@@ -120,5 +120,7 @@ DLLEXPORT extern int libdyninstAPI_RT_init_maxthreads;
 DLLEXPORT extern int libdyninstAPI_RT_init_debug_flag;
 DLLEXPORT extern struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
 
+DLLEXPORT extern void DYNINST_enableCondInst();
+DLLEXPORT extern void DYNINST_disableCondInst();
 #endif
 #endif

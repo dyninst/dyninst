@@ -41,7 +41,7 @@ using namespace Dyninst;
 using namespace Relocation;
 
 extern int dyn_debug_trap;
-
+std::map<Address, uint64_t> _blockStartToSize;
 const int InstalledSpringboards::Allocated(0);
 const int InstalledSpringboards::UnallocatedStart(1);
 
@@ -160,7 +160,7 @@ bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter begin, Bloc
   // can do our thang.
   for (; begin != end; ++begin) {
      block_instance *bbl = SCAST_BI(*begin);
-
+     
      //if (bbl->wasUserAdded()) continue;
      // Don't try to springboard a user-added block...
 
@@ -169,7 +169,13 @@ bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter begin, Bloc
     SpringboardInfo *id = NULL;
     Address start = bbl->start();
     Address end = bbl->end();
+    if(_blockStartToSize.find(start) != _blockStartToSize.end())
+	    std::cerr << "[SPDEBUG][InstalledSpringboards::addBlocks] Found an existing block at start addr " << std::hex << start << std::endl;
+    else {
+	    std::cerr << "[SPDEBUG] Adding block size for block starting at - " << std::hex << start << " with size of " << end - start << "\n";
+	    _blockStartToSize[start] = end - start;
 
+	}
 #if 0
     // HACK for small, aligned functions
     if ((f->blocks().size() == 1) &&
@@ -185,12 +191,12 @@ bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter begin, Bloc
     ParseAPI::CodeRegion* cr = func->ifunc()->region();
     std::set<ParseAPI::Block*> blocks;
     co->findBlocks(cr, end, blocks);
-    while (isNoneContained(blocks) && cr->contains(end)) {
+    /*while (isNoneContained(blocks) && cr->contains(end)) {
         end++;
         size++;
         blocks.clear();
         co->findBlocks(cr, end, blocks);
-    }
+    }*/
 
     SpringboardInfo* info = new SpringboardInfo(func->addr(), func);
 
@@ -253,28 +259,65 @@ bool InstalledSpringboards::addBlocks(func_instance* func, BlockIter begin, Bloc
   return true;
 }
 
+
+
 SpringboardBuilder::generateResult_t 
 SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
 					const SpringboardReq &r,
                                         SpringboardMap &input) {
    codeGen gen;
+   bool traprequired = false;
    bool usedTrap = false;
-   // Arbitrarily select the first function containing this springboard, since only one can win. 
-   generateBranch(r.from, r.destinations.begin()->second, gen);
-   unsigned size = gen.used();
-   
-   if (r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode, r.func, r.priority)) {
-      // Errr...
-      // Fine. Let's do the trap thing. 
+   unsigned size = 0;
+   // Check if the function appears in an application function
+   if(r.func->obj()->fullName().find("cuibm") != std::string::npos)
+	   traprequired = true;
+   if(traprequired) {
+      codeGen tmpGen;
+      generateBranch(r.from, r.destinations.begin()->second, tmpGen);
+      springboard_cerr << "Generated instructions of length : " << tmpGen.used() << std::endl;
+      if (conflict(r.from, r.from + tmpGen.used(), r.fromRelocatedCode, r.func, r.priority) || r.useTrap) {
+	      usedTrap = true;
+	      if (conflict(r.from, r.from + 1, r.fromRelocatedCode, r.func, r.priority)) { return Failed; }
+	      springboard_cerr << "[SpringboardBuilder::generateSpringboard] Using Trap for address = " << r.from << std::endl;  
+	      generateTrap(r.from, r.destinations.begin()->second, gen);
+	      size = 1;
+      } else {
+	      springboard_cerr << "[SpringboardBuilder::generateSpringboard] Using normal jump for address = " << std::hex << r.from << std::endl;
 
-      usedTrap = true;
-      if (conflict(r.from, r.from + 1, r.fromRelocatedCode, r.func, r.priority)) { return Failed; }
-      if(!addrSpace_->canUseTraps()) { return Failed; }
-      
-      generateTrap(r.from, r.destinations.begin()->second, gen);
-      size = 1;
+	      generateBranch(r.from, r.destinations.begin()->second, gen);
+
+//	      gen = tmpGen;
+	      usedTrap = false;
+	      size = gen.used();
+      }
+   } else {
+	   // Arbitrarily select the first function containing this springboard, since only one can win. 
+	   generateBranch(r.from, r.destinations.begin()->second, gen);
+	   size = gen.used();
+	   springboard_cerr << "[SPDEBUG] Building springboard for " << std::hex << r.from << " with a size of " << size <<  " and priority " << r.priority << "\n";
+	   if (r.priority != Required && r.priority != RelocOffLimits && 
+	       r.priority !=  RelocRequired && r.priority != OffLimits) {
+			if (_blockStartToSize.find(r.from) != _blockStartToSize.end())
+				if (_blockStartToSize[r.from] < size)
+				{
+					springboard_cerr << "[SPDEBUG][SpringboardBuilder::generateSpringboard] Could not write springboard, too large\n";
+					return Failed;
+				}
+	   }
+
+	   if (r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode, r.func, r.priority)) {
+	      // Errr...
+	      //	 Fine. Let's do the trap thing. 
+
+	      usedTrap = true;
+	      if (conflict(r.from, r.from + 1, r.fromRelocatedCode, r.func, r.priority)) { return Failed; }
+	      if(!addrSpace_->canUseTraps()) { return Failed; }
+	      springboard_cerr << "[SpringboardBuilder::generateSpringboard] Using Trap\n";  
+	      generateTrap(r.from, r.destinations.begin()->second, gen);
+	      size = 1;
+	   }
    }
-
    if (r.includeRelocatedCopies) {
       createRelocSpringboards(r, usedTrap, input);
    }
@@ -345,6 +388,11 @@ bool InstalledSpringboards::conflict(Address start, Address end, bool inRelocate
            << state->val << ", "
            << state->func->name() << ", priority " 
            << state->priority << dec << endl;
+      if (state->priority >= Required) {
+	springboard_cerr << "[SPDEBUG] InstalledSpringboards::conflict - Trying to write a springboard that crosses into another required block, return now" << std::endl;
+	return true;
+      }
+
       if (state->val == Allocated) {
 	if(LB == start && UB >= end) 
 	{
@@ -370,7 +418,7 @@ bool InstalledSpringboards::conflict(Address start, Address end, bool inRelocate
                 }
                 
                 springboard_cerr << "\t Starting range matches already allocated springboard, assuming overwrite, ret OK" << endl;
-               return false;
+               return true;
            }
 
            springboard_cerr << "\t Starting range already allocated, ret conflict" << endl;

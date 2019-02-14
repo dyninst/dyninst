@@ -445,6 +445,34 @@ instPoint * GetInstPointPower(codeGen & gen, Address from) {
     }
     return NULL;
 }
+
+void insnCodeGen::GenerateLongBranchMiniFrame(codeGen &gen, 
+                                              Address from, 
+	                                      Address to, 
+	                                      bool isCall) {
+
+  pushStack(gen);
+  insnCodeGen::generateMemAccess64(gen, STDop, STDxop,
+                                   registerSpace::r10, REG_SP, 1096);
+
+  insnCodeGen::loadImmIntoReg(gen, registerSpace::r10, to);
+  insnCodeGen::generateMoveToSPR(gen, registerSpace::r10, SPR_TAR);
+  insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
+                                   registerSpace::r10, REG_SP, 1096);
+  popStack(gen);
+
+  assert(isCall == false);
+  instruction branchToBr;
+  branchToBr.clear();
+  XLFORM_OP_SET(branchToBr, BCTARop);
+  XLFORM_BT_SET(branchToBr, 0x14); // From architecture manual
+  XLFORM_BA_SET(branchToBr, 0); // Unused
+  XLFORM_BB_SET(branchToBr, 0); // Unused
+  XLFORM_XO_SET(branchToBr, BCTARxop);
+  XLFORM_LK_SET(branchToBr, (isCall ? 1 : 0));
+  insnCodeGen::generate(gen, branchToBr); 
+}
+
 void insnCodeGen::generateLongBranch(codeGen &gen, 
                                      Address from, 
                                      Address to, 
@@ -499,7 +527,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
         if (!point) {
           // No clue if CTR or LR are filled, use broken trap and likely fail.
             //fprintf(stderr, "%s\n", "Couldn't grab point - Using a trap instruction.....");
-            return generateBranchViaTrap(gen, from, to, isCall);
+            return GenerateLongBranchMiniFrame(gen, from, to, isCall);  //generateBranchViaTrap(gen, from, to, isCall);
         }
         // Grab the register space, and see if LR or CTR are free.
         // What we are going to do here is use the LR/CTR as temporary store for an existing register value
@@ -523,7 +551,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
           }
           if (!usingLR && !usingCTR) {
               //fprintf(stderr, "%s\n", "Couldn't grab free register - Using a trap instruction.....");
-              return generateBranchViaTrap(gen, from, to, isCall);
+              return GenerateLongBranchMiniFrame(gen, from, to, isCall); //generateBranchViaTrap(gen, from, to, isCall);
           }
         }
     } else if (scratch != REG_NULL) {

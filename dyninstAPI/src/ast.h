@@ -240,7 +240,9 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    static AstNodePtr threadIndexNode();
 
    static AstNodePtr scrambleRegistersNode();
-   
+
+   static AstNodePtr saveAllRegsNode();
+   static AstNodePtr restoreAllRegsNode();   
    // TODO...
    // Needs some way of marking what to save and restore... should be a registerSpace, really
 
@@ -937,6 +939,36 @@ class AstSnippetNode : public AstNode {
                                      Register &retReg);
     Dyninst::PatchAPI::SnippetPtr snip_;
 };
+
+class AstsaveAllRegsNode : public AstNode {
+ public:
+
+   AstsaveAllRegsNode() : AstNode() {};
+virtual bool containsFuncCall() const { return false; }
+virtual bool usesAppRegister() const {return false;}
+virtual bool canBeKept() const {return true;}
+ private:
+    virtual bool generateCode_phase2(codeGen &gen,
+                                     bool noCost,
+                                     Address &retAddr,
+                                     Register &retReg);
+};
+class AstrestoreAllRegsNode : public AstNode {
+ public:
+
+   AstrestoreAllRegsNode() : AstNode() {};
+virtual bool containsFuncCall() const { return false; }
+virtual bool usesAppRegister() const {return false;}
+virtual bool canBeKept() const {return true;}
+
+ private:
+    virtual bool generateCode_phase2(codeGen &gen,
+                                     bool noCost,
+                                     Address &retAddr,
+                                     Register &retReg);
+};
+
+
 
 void emitLoadPreviousStackFrameRegister(Address register_num,
 					Register dest,

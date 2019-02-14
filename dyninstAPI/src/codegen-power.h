@@ -152,6 +152,12 @@ class insnCodeGen {
   static void generateMoveToSPR(codeGen &gen,Register toSPR, unsigned sprReg);
   static void generateMoveFromSPR(codeGen &gen,Register toSPR,
                                     unsigned sprReg);
+
+  static void GenerateLongBranchMiniFrame(codeGen &gen, 
+                                   Address from, 
+                                   Address to, 
+                                   bool isCall);
+
   static bool generateBranchTar(codeGen &gen,Register scratch, 
                          Address dest, 
                          bool isCall);

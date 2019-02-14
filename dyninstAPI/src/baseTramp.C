@@ -346,13 +346,33 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
       baseTrampSequence.reset();
    }
 
+   if (point()->type() != PatchAPI::Point::FuncEntry && point()->type() != PatchAPI::Point::FuncExit && 
+	   point()->type() != PatchAPI::Point::PreCall && point()->type() != PatchAPI::Point::PostCall) { 
 
+   pdvector<AstNodePtr > baseTrampElements2;
+   baseTrampElements2.push_back(AstNode::saveAllRegsNode());
+   baseTrampElements2.push_back(baseTrampAST);
+   baseTrampElements2.push_back(AstNode::restoreAllRegsNode());
+   AstNodePtr baseTrampSequence2 = AstNode::sequenceNode(baseTrampElements2);
+   AstNodePtr baseTrampAST2 = AstNode::operatorNode(ifOp,
+					   AstNode::funcCallNode("DYNINST_checkCondInst", empty_args),
+                                           baseTrampSequence2);
+   bool retval = baseTrampAST2->initRegisters(gen);
+   if (!baseTrampAST2->generateCode(gen, false)) {
+      fprintf(stderr, "Gripe: base tramp creation failed\n");
+      retval = false;
+   }
+   return retval;
+
+   }
 
    // Sets up state in the codeGen object (and gen.rs())
    // that is later used when saving and restoring. This
    // MUST HAPPEN BEFORE THE SAVES, and state should not
    // be reset until AFTER THE RESTORES.
    bool retval = baseTrampAST->initRegisters(gen);
+
+
    if (!gen.insertNaked()) {
        generateSaves(gen, gen.rs());
    }
@@ -371,7 +391,6 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
    //if (trampGuardAddr) delete trampGuardAddr;
    //if (baseTrampSequence) delete baseTrampSequence;
    //if (baseTramp) delete baseTramp;
-
    return retval;
 }
 

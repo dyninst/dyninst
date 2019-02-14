@@ -230,7 +230,8 @@ class InstalledSpringboards
  private:
   // tracks relocation addresses that need trap-based springboards
   std::set<Address> relocTraps_; 
-  
+  //std::map<Address, uint64_t> _blockStartToSize; 
+   
 
   // We don't really care about the payload; I just want an "easy to look up"
   // range data structure. 

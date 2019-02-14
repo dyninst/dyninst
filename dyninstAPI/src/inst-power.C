@@ -1037,6 +1037,7 @@ unsigned restoreSPRegisters(codeGen &gen,
 bool baseTramp::generateSaves(codeGen &gen,
                               registerSpace *)
 {
+    gen.setInInstrumentation(true);
     regalloc_printf("========== baseTramp::generateSaves\n");
     unsigned int width = gen.width();
 
@@ -1091,7 +1092,7 @@ bool baseTramp::generateRestores(codeGen &gen,
     */
 
     popStack(gen);
-
+    gen.setInInstrumentation(false);
     return true;
 }
 
@@ -1383,8 +1384,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
                                 const pdvector<AstNodePtr> &operands,
                                 bool noCost,
                                 func_instance *callee) {
-    bool inInstrumentation = true;
-
+    bool inInstrumentation = gen.inInstrumentation();
     //fprintf(stderr, "[EmitterPOWER::emitCall] making call to: %llx\n", callee-> );
     // If inInstrumentation is true we're in instrumentation;
     // if false we're in function call replacement
@@ -1433,12 +1433,12 @@ Register EmitterPOWER::emitCall(opCode ocode,
 		caller_toc, toc_anchor);
     // ALL
     bool needToSaveLR = false;
-    registerSlot *regLR = (*(gen.rs()))[registerSpace::lr];
-    if (regLR && regLR->liveState == registerSlot::live) {
+//    registerSlot *regLR = (*(gen.rs()))[registerSpace::lr];
+//    if (regLR && regLR->liveState == registerSlot::live) {
         needToSaveLR = true;
         //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__);
-        inst_printf("... need to save LR\n");
-    }
+//        inst_printf("... need to save LR\n");
+//    }
 
     // Note: For 32-bit ELF PowerPC Linux (and other SYSV ABI followers)
     // r2 is described as "reserved for system use and is not to be 
@@ -1450,16 +1450,16 @@ Register EmitterPOWER::emitCall(opCode ocode,
     //  Save the link register.
     // mflr r0
     // Linux, 32/64, stat/dynamic, instrumentation
-    if (needToSaveLR) {
+    if (needToSaveLR && gen.inInstrumentation()) {
         //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__);
-        assert(inInstrumentation);
+        //assert(inInstrumentation);
         insnCodeGen::generateMoveFromLR(gen, 0);
         saveRegister(gen, 0, FUNC_CALL_SAVE(gen.width()));
         savedRegs.push_back(0);
         inst_printf("saved LR in 0\n");
     }
 
-    if (inInstrumentation &&
+    if (gen.inInstrumentation() &&
         (toc_anchor != caller_toc)) {
         // Save register 2 (TOC)
         //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
@@ -1477,7 +1477,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
        // keptValue == true (keep over the call)
        // liveState == live (technically, only if not saved by the callee) 
        
-       if (inInstrumentation &&
+       if (gen.inInstrumentation() &&
            ((reg->refCount > 0) || 
             reg->keptValue ||
             (reg->liveState == registerSlot::live))) {
@@ -1602,7 +1602,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
         retReg = gen.rs()->allocateRegister(gen, noCost);        
         // put the return value from register 3 to the newly allocated register.
         insnCodeGen::generateImm(gen, ORILop, 3, retReg, 0);
-    }
+    } else retReg = 3;
 
         
     // Otherwise we're replacing a call and so we don't want to move
@@ -1612,19 +1612,22 @@ Register EmitterPOWER::emitCall(opCode ocode,
     // If inInstrumentation == false then this vector should be empty...
  	// ALL instrumentation
  
-    if (!inInstrumentation) assert(savedRegs.size() == 0);
+    //if (!inInstrumentation) assert(savedRegs.size() == 0);
+    if (inInstrumentation) {
     for (u_int ui = 0; ui < savedRegs.size(); ui++) {
       restoreRegister(gen, savedRegs[ui], FUNC_CALL_SAVE(gen.width()));
+    }
     }
   
     // mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
     // Move to link register
     // Reused from above. instruction mtlr0(MTLR0raw);
-    if (needToSaveLR) {
+    if (needToSaveLR && inInstrumentation) {
         // We only use register 0 to save LR. 
         insnCodeGen::generateMoveToLR(gen, 0);
     }
-    
+
+    /* 
     if (!inInstrumentation && setTOC) {
         // Need to reset the TOC
         emitVload(loadConstOp, caller_toc, 2, 2, gen, false);
@@ -1633,7 +1636,7 @@ Register EmitterPOWER::emitCall(opCode ocode,
         // Subsequent code will look for it there.
         saveRegisterAtOffset(gen, 2, 40);
     }        
-
+    */
     /*
       gen = (instruction *) gen;
       for (unsigned foo = initBase/4; foo < base/4; foo++)
@@ -1658,8 +1661,7 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, long dest,
           DFORM_RA_SET(insn, src1);
           DFORM_SI_SET(insn, 0);
           insnCodeGen::generate(gen,insn);
-          retval = gen.getIndex();
-          
+          retval = gen.getIndex(); 
           // be 0, dest
           insn.clear();
           BFORM_OP_SET(insn, BCop);
@@ -1668,7 +1670,19 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, long dest,
           BFORM_BD_SET(insn, dest/4);
           BFORM_AA_SET(insn, 0);
           BFORM_LK_SET(insn, 0);
-          
+           /*   if (!gen.inInstrumentation()) {}`
+		          restoreRegister(gen, 0, FUNC_CALL_SAVE(gen.width()));
+		          insnCodeGen::generateMoveToLR(gen, 0);
+		          restoreRegister(gen, 2, FUNC_CALL_SAVE(gen.width()));
+		          restoreRegister(gen, 3, FUNC_CALL_SAVE(gen.width()));
+		          restoreRegister(gen, 9, FUNC_CALL_SAVE(gen.width()));
+		          restoreRegister(gen, 12, FUNC_CALL_SAVE(gen.width()));
+		  
+		          restoreRegister(gen, 13, FUNC_CALL_SAVE(gen.width()));
+		          popStack(gen);
+		  
+	*/	      
+
           insnCodeGen::generate(gen,insn);
           break;
       }
