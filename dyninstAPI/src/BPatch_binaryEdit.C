@@ -208,6 +208,7 @@ bool BPatch_binaryEdit::writeFile(const char * outFile)
     // in each one.
     std::vector<AddressSpace *> as;
     getAS(as);
+    printf("address space number: %d\n", as.size());   
     bool ret = true;
 
     /* PatchAPI stuffs */

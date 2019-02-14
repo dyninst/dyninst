@@ -97,6 +97,7 @@ bool BatchCommand::undo() {
 bool Patcher::run() {
 
   // We implicitly add the instrumentation engine
+  printf("Patcher::run()\n");
   Instrumenter* inst = mgr_->instrumenter();
   add(inst);
 

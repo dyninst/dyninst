@@ -523,7 +523,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
          }
       }
 
-   delayRelocation_ = false;
+      delayRelocation_ = false;
       relocate();
       
       vector<Region*> oldSegs;
@@ -538,6 +538,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       // Now, we need to copy in the memory of the new segments
       for (unsigned i = 0; i < oldSegs.size(); i++) {
          codeRange *segRange = NULL;
+         printf("old region name: %s\n", oldSegs[i]->getRegionName());
          if (!memoryTracker_->find(oldSegs[i]->getMemOffset(), segRange)) {
 #if 0
             // Looks like BSS
@@ -563,6 +564,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       // Now we need to get the new stuff. That's all the allocated memory. First, big
       // buffer to hold it.  Use calloc so gaps from inferiorFree/Realloc are just zero.
 
+      printf("highWatermark: 0x%lx lowWaterMark: 0x%lx\n", highWaterMark_, lowWaterMark_);
       void *newSectionPtr = calloc(highWaterMark_ - lowWaterMark_, 1);
 
       pdvector<codeRange *> writes;
@@ -616,6 +618,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 
       
       if (mobj == getAOut()) {
+         printf("mobj == getAOut(), add dynamic symbol relocations\n");
          // Add dynamic symbol relocations
          for (unsigned i=0; i < dependentRelocations.size(); i++) {
             Address to = dependentRelocations[i]->getAddress();
