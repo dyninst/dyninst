@@ -445,6 +445,34 @@ instPoint * GetInstPointPower(codeGen & gen, Address from) {
     }
     return NULL;
 }
+
+void insnCodeGen::GenerateLongBranchMiniFrame(codeGen &gen, 
+                                              Address from, 
+	                                      Address to, 
+	                                      bool isCall) {
+
+  pushStack(gen);
+  insnCodeGen::generateMemAccess64(gen, STDop, STDxop,
+                                   registerSpace::r10, REG_SP, 1096);
+
+  insnCodeGen::loadImmIntoReg(gen, registerSpace::r10, to);
+  insnCodeGen::generateMoveToSPR(gen, registerSpace::r10, SPR_TAR);
+  insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
+                                   registerSpace::r10, REG_SP, 1096);
+  popStack(gen);
+
+  assert(isCall == false);
+  instruction branchToBr;
+  branchToBr.clear();
+  XLFORM_OP_SET(branchToBr, BCTARop);
+  XLFORM_BT_SET(branchToBr, 0x14); // From architecture manual
+  XLFORM_BA_SET(branchToBr, 0); // Unused
+  XLFORM_BB_SET(branchToBr, 0); // Unused
+  XLFORM_XO_SET(branchToBr, BCTARxop);
+  XLFORM_LK_SET(branchToBr, (isCall ? 1 : 0));
+  insnCodeGen::generate(gen, branchToBr); 
+}
+
 void insnCodeGen::generateLongBranch(codeGen &gen, 
                                      Address from, 
                                      Address to, 
@@ -499,7 +527,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
         if (!point) {
           // No clue if CTR or LR are filled, use broken trap and likely fail.
             //fprintf(stderr, "%s\n", "Couldn't grab point - Using a trap instruction.....");
-            return generateBranchViaTrap(gen, from, to, isCall);
+            return GenerateLongBranchMiniFrame(gen, from, to, isCall);  //generateBranchViaTrap(gen, from, to, isCall);
         }
         // Grab the register space, and see if LR or CTR are free.
         // What we are going to do here is use the LR/CTR as temporary store for an existing register value
@@ -523,7 +551,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
           }
           if (!usingLR && !usingCTR) {
               //fprintf(stderr, "%s\n", "Couldn't grab free register - Using a trap instruction.....");
-              return generateBranchViaTrap(gen, from, to, isCall);
+              return GenerateLongBranchMiniFrame(gen, from, to, isCall); //generateBranchViaTrap(gen, from, to, isCall);
           }
         }
     } else if (scratch != REG_NULL) {
@@ -866,7 +894,7 @@ void insnCodeGen::generateLShift(codeGen &gen, Register rs, int shift, Register 
 }
 
 // rlwinm ra,rs,32-n,n,31
-void insnCodeGen::generateRShift(codeGen &gen, Register rs, int shift, Register ra, bool s)
+void insnCodeGen::generateRShift(codeGen &gen, Register rs, int shift, Register ra)
 {
     instruction insn;
 
@@ -883,7 +911,7 @@ void insnCodeGen::generateRShift(codeGen &gen, Register rs, int shift, Register 
 	insnCodeGen::generate(gen,insn);
 
     } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
-	insnCodeGen::generateRShift64(gen, rs, shift, ra, s);
+	insnCodeGen::generateRShift64(gen, rs, shift, ra);
     }
 }
 
@@ -908,12 +936,8 @@ void insnCodeGen::generateLShift64(codeGen &gen, Register rs, int shift, Registe
 }
 
 // srd ra, rs, rb
-void insnCodeGen::generateRShift64(codeGen &gen, Register rs, int shift, Register ra, bool s)
+void insnCodeGen::generateRShift64(codeGen &gen, Register rs, int shift, Register ra)
 {
-    // This function uses rotate-left to implement right shift.
-    // Rotate left 64-n bits is rotating right n bits.
-    // However, rotation cannot correctly represent signed right shifting.
-    // So, this piece of code is wrong...
     instruction insn;
 
     assert(shift<64);
@@ -970,20 +994,18 @@ void insnCodeGen::generateSimple(codeGen &gen, int op,
 }
 
 void insnCodeGen::generateRelOp(codeGen &gen, int cond, int mode, Register rs1,
-                                Register rs2, Register rd, bool s)
+                                Register rs2, Register rd)
 {
     instruction insn;
 
-    // cmpd rs1, rs2
+    // cmp rs1, rs2
     insn.clear();
     XFORM_OP_SET(insn, CMPop);
-    XFORM_RT_SET(insn, 0x1);    // really bf & l sub fields of rt we care about. Set l = 1 for 64 bit operation
+    XFORM_RT_SET(insn, 0);    // really bf & l sub fields of rt we care about
     XFORM_RA_SET(insn, rs1);
     XFORM_RB_SET(insn, rs2);
-    if (s)
-        XFORM_XO_SET(insn, CMPxop);
-    else
-        XFORM_XO_SET(insn, CMPLxop);
+    XFORM_XO_SET(insn, CMPxop);
+
     insnCodeGen::generate(gen,insn);
 
     // li rd, 1
