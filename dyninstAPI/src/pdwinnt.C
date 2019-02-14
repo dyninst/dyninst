@@ -885,12 +885,6 @@ bool PCProcess::hideDebugger()
     return true;
 }
 
-Address PCProcess::setAOutLoadAddress(fileDescriptor &desc)
-{
-	assert(0);
-	return 0;
-}
-
 bool PCEventMuxer::useCallback(Dyninst::ProcControlAPI::EventType et)
 {
     // This switch statement can be derived from the EventTypes and Events

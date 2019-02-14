@@ -298,8 +298,6 @@ public:
     void debugSuicide();
     bool dumpImage(std::string outFile);
 
-    Address setAOutLoadAddress(fileDescriptor &desc); // platform-specific
-
     // Stackwalking internals
     bool walkStack(pdvector<Frame> &stackWalk, PCThread *thread);
     bool getActiveFrame(Frame &frame, PCThread *thread);

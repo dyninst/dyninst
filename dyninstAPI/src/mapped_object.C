@@ -182,22 +182,6 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
       desc.setData(new_load_addr);
    }
 #endif
-   if (!desc.isSharedObject()) {
-      //We've seen a case where the a.out is a shared object (RHEL4's
-      // version of ssh).  Check if the shared object flag is set in the
-      // binary (which is different from the isSharedObject()) call above.
-      // If so, we need to update the load address.
-      if (p->proc() &&
-          (img->getObject()->getObjectType() == SymtabAPI::obj_SharedLib)) {
-         //Executable is a shared lib
-         p->proc()->setAOutLoadAddress(desc);
-      }
-      
-// Used to search for main here and enable system call tracing to find out 
-// when libc.so is loaded -- this is unnecessary now that we use ProcControlAPI
-//
-// This is now done on-demand when libc is loaded and main has yet to be found
-   }
 
    // Adds exported functions and variables..
    startup_printf("%s[%d]:  creating mapped object\n", FILE__, __LINE__);
