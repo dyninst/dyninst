@@ -175,8 +175,8 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
   }
   assert(nac < 3);
   return bmap;
-#else
-    (void) is64; //Silence warnings
+#elif defined(arch_ppc)||defined(arch_ppc64)
+	(void) is64; //Silence warnings
     std::vector<Operand> operands;
     insn.getOperands(operands);
     for(std::vector<Operand>::iterator op = operands.begin();
@@ -187,7 +187,7 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
         bool isStore = op->writesMemory();
         if(isLoad || isStore)
         {
-            op->getValue()->apply(this);
+			op->getValue()->apply(this);
             if(insn.getOperation().getID() == power_op_lmw ||
                insn.getOperation().getID() == power_op_stmw)
             {
@@ -212,18 +212,37 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
             {
                 return new BPatch_memoryAccess(new internal_instruction(NULL), current, isLoad, isStore, (long)0, ra, rb, (long)0, 9999, -1);
             }
-            return new BPatch_memoryAccess(new internal_instruction(NULL), current, isLoad, isStore,
+			return new BPatch_memoryAccess(new internal_instruction(NULL), current, isLoad, isStore,
                                        bytes, imm, ra, rb);
         }
     }
     return NULL;
+#else 
+	
+	(void) is64; //Silence warnings
+    std::vector<Operand> operands;
+    insn.getOperands(operands);
+    for(std::vector<Operand>::iterator op = operands.begin();
+        op != operands.end();
+       ++op)
+    {
+        bool isLoad = op->readsMemory();
+        bool isStore = op->writesMemory();
+        if(isLoad || isStore)
+        {
+		
+			op->getValue()->apply(this);
+			//fprintf(stderr, "instruction: %s, operand %s\n", insn.format().c_str(),op->getValue()->format().c_str());
+			//fprintf(stderr, "imm: %d, ra: %d, rb: %d, scale: %d\n", imm, ra, rb, sc);
+	
+			return new BPatch_memoryAccess(new internal_instruction(NULL), current, isLoad, isStore,
+                                       bytes, imm, ra, rb, sc);
+        }
+    }
+	return NULL;
 #endif
-}
 
 
-void BPatch_memoryAccessAdapter::visit(BinaryFunction* )
-{
-    
 }
 
 
@@ -235,7 +254,10 @@ void BPatch_memoryAccessAdapter::visit(Dereference* d)
 void BPatch_memoryAccessAdapter::visit(RegisterAST* r)
 {
     MachRegister base = r->getID().getBaseRegister();
-    unsigned int converted = base.val() & 0xFFFF;
+    //fprintf(stderr, "base: %d\n", base.val());
+	    
+	unsigned int converted = base.val() & 0xFFFF;
+	#if defined(arch_ppc)||defined(arch_ppc64)
     if((ra == -1) && !setImm) {
         ra = converted;
         return;
@@ -248,12 +270,35 @@ void BPatch_memoryAccessAdapter::visit(RegisterAST* r)
     {
         fprintf(stderr, "ASSERT: only two registers used in a power load/store calc!\n");
         assert(0);
-    }        
+    }
+	#else
+	if(ra == -1) {
+		ra = converted;
+		return;
+	}
+	else if(rb == -1) {
+		rb = converted;
+		return;
+	}
+    else
+    {
+        fprintf(stderr, "ASSERT: only two registers used in a power load/store calc!\n");
+        assert(0);
+    }
+	#endif        
 }
 
 void BPatch_memoryAccessAdapter::visit(Immediate* i)
 {
     imm = i->eval().convert<long>();
-    setImm = true;
+	setImm = true;
+}
+
+void BPatch_memoryAccessAdapter::visit(BinaryFunction* b)
+{	
+	if(b->isLeftShift() == true) {
+		sc = imm;
+		imm = 0;
+	}
 }
 
