@@ -78,7 +78,12 @@ bool PCWidget::generate(const codeGen &templ, const RelocBlock *trace, CodeBuffe
 bool PCWidget::PCtoReturnAddr(const codeGen &templ, const RelocBlock *t, CodeBuffer &buffer) {
   if(templ.addrSpace()->proc()) {
     std::vector<unsigned char> newInsn;
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(arch_x86_64)
+    codeGen gen(16);
+    Address RIP = addr_ + insn_.size();
+    insnCodeGen::generatePush64(gen, RIP);
+    buffer.addPIC(gen, tracker(t));
+#elif defined(arch_x86)
     newInsn.push_back(0x68); // push
     Address EIP = addr_ + insn_.size();
     unsigned char *tmp = (unsigned char *) &EIP;
