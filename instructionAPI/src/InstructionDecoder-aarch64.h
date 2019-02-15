@@ -167,6 +167,7 @@ namespace Dyninst {
 
             void reorderOperands();
 
+            static bool built_sysreg_map;
             static void buildSysRegMap();
 
             unsigned int insn;
