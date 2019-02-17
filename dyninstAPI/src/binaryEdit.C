@@ -311,6 +311,7 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file,
                                  PatchMgrPtr mgr, 
                                  Dyninst::PatchAPI::Patcher *patch,
                                  const std::string &member) {
+    printf("BinaryEdit::openFile: %s\n", file.c_str()); 
     if (!OS::executableExists(file)) {
         startup_printf("%s[%d]:  failed to read file %s\n", FILE__, __LINE__, file.c_str());
         std::string msg = std::string("Can't read executable file ") + file + (": ") + strerror(errno);
@@ -342,7 +343,8 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file,
                        FILE__, __LINE__, file.c_str());
         return NULL;
     }
-
+    mapped_object * tmp = newBinaryEdit->mobj;        
+    printf("mapped object file name: %s codeAbs: 0x%lx codeBase: 0x%lx imageOffset: %lu imagesSize: %u memory end: %u, is data? %s\m", tmp->fileName().c_str(), tmp->codeAbs(), tmp->codeBase(), tmp->imageOffset(), tmp->imageSize(), tmp->memoryEnd());
     /* PatchAPI stuffs */
     if (!mgr) {
        newBinaryEdit->initPatchAPI();
