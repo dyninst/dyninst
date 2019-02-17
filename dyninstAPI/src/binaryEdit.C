@@ -344,7 +344,7 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file,
         return NULL;
     }
     mapped_object * tmp = newBinaryEdit->mobj;        
-    printf("mapped object file name: %s codeAbs: 0x%lx codeBase: 0x%lx imageOffset: %lu imagesSize: %u memory end: %u, is data? %s\m", tmp->fileName().c_str(), tmp->codeAbs(), tmp->codeBase(), tmp->imageOffset(), tmp->imageSize(), tmp->memoryEnd());
+    printf("mapped object file name: %s codeAbs: 0x%lx codeBase: 0x%lx imageOffset: %lu imagesSize: %u memory end: %u \n", tmp->fileName().c_str(), tmp->codeAbs(), tmp->codeBase(), tmp->imageOffset(), tmp->imageSize(), tmp->memoryEnd());
     /* PatchAPI stuffs */
     if (!mgr) {
        newBinaryEdit->initPatchAPI();
