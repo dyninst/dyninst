@@ -673,7 +673,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       buildDyninstSymbols(newSyms, newSec, symObj->getOrCreateModule("dyninstInst",
                                                                      lowWaterMark_));
       for (unsigned i = 0; i < newSyms.size(); i++) {
-         printf("add dyninst symbols - name: %s offset: 0x%lx ptr offset: 0x%lx size: %lu\n", newSyms[i]->getPrettyName().c_str(), newSyms[i]->getOffset(), newSyms[i]->getPtrOffset(), newSyms[i]->getSize());
+         printf("add dyninst symbols - name: %s offset: 0x%lx ptr offset: 0x%lx size: %lu\n", newSyms[i]->getMangledName().c_str(), newSyms[i]->getOffset(), newSyms[i]->getPtrOffset(), newSyms[i]->getSize());
          symObj->addSymbol(newSyms[i]);
       }
       
