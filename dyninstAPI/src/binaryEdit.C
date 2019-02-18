@@ -871,7 +871,7 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
                std::vector<Statement::Ptr> lines;
                cur_func_module->getSourceLines(lines, tracker->orig());
                for (int i = 0; i < lines.size(); ++i) {
-                  printf("begin addr: 0x%lx end addr: 0x%lx path: %s line: %d col: %d\n", lines[i]->begin, lines[i]->end, (lines[i]->path).c_str(), lines[i]->line, lines[i]->column);
+                  printf("begin addr: 0x%lx end addr: 0x%lx path: %s line: %d col: %d\n", lines[i]->startAddr(), lines[i]->endAddr(), (lines[i]->getFile()).c_str(), lines[i]->getLine(), lines[i]->getColumn());
                }  
 
                Symbol *newSym = new Symbol(name.c_str(),
