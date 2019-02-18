@@ -866,7 +866,7 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
                size = tracker->reloc() - start;
                std::string name = currFunc->prettyName();
                name.append("_dyninst");
-               printf("dyninst symbol name: %s, orig: 0x%lx reloc: 0x%lx start: 0x%lx\n", name.c_str(), tracker->orig(), tracker->reloc(), start);
+               printf("dyninst symbol name: %s, orig: 0x%lx reloc: 0x%lx start: 0x%lx\n", tfunc->prettyName().c_str(), tracker->orig(), tracker->reloc(), start);
                SymtabAPI::Module* cur_func_module = tracker->func()->mod()->pmod()->mod();
                std::vector<Statement::Ptr> lines;
                cur_func_module->getSourceLines(lines, tracker->orig());
