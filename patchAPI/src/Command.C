@@ -74,6 +74,7 @@ void BatchCommand::remove(CommandList::iterator c) {
 }
 
 bool BatchCommand::run() {
+  printf("BatchCommand::run()\n");
   std::set<CommandList::iterator> remove_set;
   for (CommandList::iterator i = to_do_.begin(); i != to_do_.end();) {
     done_.push_front(*i);
@@ -124,6 +125,7 @@ bool Patcher::run() {
    snippet instance list */
 
 bool PushFrontCommand::run() {
+  printf("pushFrontCommand::run()\n");
   instance_ = pt_->pushFront(snip_);
   return true;
 }
@@ -136,6 +138,7 @@ bool PushFrontCommand::undo() {
    snippet instance list */
 
 bool PushBackCommand::run() {
+  printf("pushBackCommand::run()\n");
   instance_ = pt_->pushBack(snip_);
   return true;
 }

@@ -540,7 +540,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       // Now, we need to copy in the memory of the new segments
       for (unsigned i = 0; i < oldSegs.size(); i++) {
          codeRange *segRange = NULL;
-         printf("old region name: %s\n", oldSegs[i]->getRegionName().c_str());
+         printf("old region name: %s memory offset: 0x%lx \n", oldSegs[i]->getRegionName().c_str(), oldSegs[i]->getMemOffset());
          if (!memoryTracker_->find(oldSegs[i]->getMemOffset(), segRange)) {
 #if 0
             // Looks like BSS
@@ -555,6 +555,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 	 memoryTracker* mt = dynamic_cast<memoryTracker*>(segRange);
 	 assert(mt);
 	 if(mt->dirty) {
+         printf("mt->dirty, old region name: %s  set ptr to raw data 0x%lx, size: %lu\n", oldSegs[i]->getRegionName().c_str(),segRange->get_local_ptr(), oldSegs[i]->getMemSize());
             oldSegs[i]->setPtrToRawData(segRange->get_local_ptr(), oldSegs[i]->getMemSize());
 	 }
 	 
@@ -625,6 +626,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
          for (unsigned i=0; i < dependentRelocations.size(); i++) {
             Address to = dependentRelocations[i]->getAddress();
             Symbol *referring = dependentRelocations[i]->getReferring();
+            printf("dependent relocation - symbol name: %s address: 0x%lx\n", referring->getPrettyName().c_str(), to);
             /*
               if (!symObj->isStaticBinary() && !symObj->hasReldyn() && !symObj->hasReladyn()) {
               Address addr = referring->getOffset();
