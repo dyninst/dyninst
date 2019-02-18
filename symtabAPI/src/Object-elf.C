@@ -3888,12 +3888,12 @@ bool AObject::getSegments(vector<Segment> &segs) const {
 
 
 bool Object::emitDriver(string fName, std::set<Symbol *> &allSymbols, unsigned) {
-#ifdef BINEDIT_DEBUG
+//#ifdef BINEDIT_DEBUG
     printf("emitting...\n");
   //print_symbol_map(&symbols_);
   print_symbols(allSymbols);
   printf("%d total symbol(s)\n", allSymbols.size());
-#endif
+//#endif
     if (elfHdr->e_ident()[EI_CLASS] == ELFCLASS32) {
         Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes32> *em =
                 new Dyninst::SymtabAPI::emitElf<Dyninst::SymtabAPI::ElfTypes32>(elfHdr, isStripped, this, err_func_,
@@ -3910,6 +3910,7 @@ bool Object::emitDriver(string fName, std::set<Symbol *> &allSymbols, unsigned) 
                                                                                 associated_symtab);
         bool ok = em->createSymbolTables(allSymbols);
         if (ok) {
+            printf("createSymbolTables ok\n");
             ok = em->driver(fName);
         }
         delete em;

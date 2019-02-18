@@ -2263,6 +2263,9 @@ SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement::Ptr> &lines, Of
    unsigned int originalSize = lines.size();
     std::set<Module*> mods_for_offset;
     findModuleByOffset(mods_for_offset, addressInRange);
+    if (mods_for_offset.size() == 0) {
+        printf("Symtab::getSourceLines, findModuleByOffset gets no module\n");
+    } 
     for(auto i = mods_for_offset.begin();
             i != mods_for_offset.end();
             ++i)
