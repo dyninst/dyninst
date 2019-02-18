@@ -856,7 +856,7 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
          const Relocation::TrackerElement *tracker = *iter;
          
          func_instance *tfunc = tracker->func();
-         
+
          if (currFunc != tfunc) {
             // Starting a new function
             if (currFunc) {
@@ -864,10 +864,9 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
                // currfunc set
                // start set
                size = tracker->reloc() - start;
-               
                std::string name = currFunc->prettyName();
                name.append("_dyninst");
-               
+               printf("dyninst symbol name: %s, orig: 0x%lx reloc: 0x%lx start: 0x%lx\n", name.c_str(), tracker->orig(), tracker->reloc(), start);
                Symbol *newSym = new Symbol(name.c_str(),
                                            Symbol::ST_FUNCTION,
                                            Symbol::SL_GLOBAL,
