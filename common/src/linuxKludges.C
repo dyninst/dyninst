@@ -208,30 +208,30 @@ unsigned long long PDYN_mulMillion(unsigned long long in) {
 using namespace abi;
 
 inline void set_thread_local_pointer(char* &var, char* val) {
-    race_detector_fake_lock_acquire(race_detector_fake_lock(var));
+    // acquire(var);
     var = val;
-    race_detector_fake_lock_release(race_detector_fake_lock(var));
+    // release(var);
 }
 
 inline void set_thread_local_bool(bool &var, bool val) {
-    race_detector_fake_lock_acquire(race_detector_fake_lock(var));
+    // acquire(var);
     var = val;
-    race_detector_fake_lock_release(race_detector_fake_lock(var));
+    // release(var);
 }
 
 inline char* get_thread_local_pointer(char* &var) {
     char *ret;
-    race_detector_fake_lock_acquire(race_detector_fake_lock(var));
+    // acquire(var);
     ret = var;
-    race_detector_fake_lock_release(race_detector_fake_lock(var));
+    // release(var);
     return ret;
 }
 
 inline bool get_thread_local_bool(bool &var) {
     bool ret;
-    race_detector_fake_lock_acquire(race_detector_fake_lock(var));
+    // acquire(var);
     ret = var;
-    race_detector_fake_lock_release(race_detector_fake_lock(var));
+    // release(var);
     return ret;
 }
 

@@ -42,8 +42,6 @@
 #include "ParserDetails.h"
 #include "debug_parse.h"
 
-#include "race-detector-annotations.h"
-
 #include <boost/thread/locks.hpp>
 #include <boost/thread/lockable_adapter.hpp>
 #include <boost/thread/recursive_mutex.hpp>
@@ -156,9 +154,9 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
     ~ParseFrame();
 
     Status status() const {
-      race_detector_fake_lock_acquire(race_detector_fake_lock(_status));
+      // acquire(_status);
       Status result = _status.load();
-      race_detector_fake_lock_release(race_detector_fake_lock(_status));
+      // release(_status);
       return result;
     }
     void set_status(Status);
@@ -229,17 +227,17 @@ public:
     }
     ParseFrame* findFrame(Address addr) const {
         ParseFrame *result = NULL;
-        race_detector_fake_lock_acquire(race_detector_fake_lock(frame_map));
+        // acquire(frame_map);
 	{
 	  tbb::concurrent_hash_map<Address, ParseFrame*>::const_accessor a;
 	  if(frame_map.find(a, addr)) result = a->second;
 	}
-        race_detector_fake_lock_release(race_detector_fake_lock(frame_map));
+        // release(frame_map);
         return result;
     }
     ParseFrame::Status getFrameStatus(Address addr) {
         ParseFrame::Status ret;
-        race_detector_fake_lock_acquire(race_detector_fake_lock(frame_status));
+        // acquire(frame_status);
         {
         tbb::concurrent_hash_map<Address, ParseFrame::Status>::const_accessor a;
         if(frame_status.find(a, addr)) {
@@ -248,34 +246,34 @@ public:
             ret = ParseFrame::BAD_LOOKUP;
         }
         }
-        race_detector_fake_lock_release(race_detector_fake_lock(frame_status));
+        // release(frame_status);
         return ret;
     }
 
 
     void setFrameStatus(Address addr, ParseFrame::Status status)
     {
-        race_detector_fake_lock_acquire(race_detector_fake_lock(frame_status));
+        // acquire(frame_status);
 	{
 	  tbb::concurrent_hash_map<Address, ParseFrame::Status>::accessor a;
 	  frame_status.insert(a, make_pair(addr, status));
       a->second = status;
 	}
-        race_detector_fake_lock_release(race_detector_fake_lock(frame_status));
+        // release(frame_status);
     }
 
     void record_func(Function* f) {
-        race_detector_fake_lock_acquire(race_detector_fake_lock(funcsByAddr));
+        // acquire(funcsByAddr);
 	{
 	  tbb::concurrent_hash_map<Address, Function*>::accessor a;
 	  funcsByAddr.insert(a, std::make_pair(f->addr(), f));
 	}
-        race_detector_fake_lock_release(race_detector_fake_lock(funcsByAddr));
+        // release(funcsByAddr);
 
     }
     Block* record_block(Block* b) {
         Block* ret = NULL;
-        race_detector_fake_lock_acquire(race_detector_fake_lock(blocksByAddr));
+        // acquire(blocksByAddr);
 	    {
             tbb::concurrent_hash_map<Address, Block*>::accessor a;
             bool inserted = blocksByAddr.insert(a, std::make_pair(b->start(), b));
@@ -286,19 +284,19 @@ public:
                 ret = b;
             }
         }
-        race_detector_fake_lock_release(race_detector_fake_lock(blocksByAddr));
+        // release(blocksByAddr);
         return ret;
     }
     void insertBlockByRange(Block* b) {
         blocksByRange.insert(b);
     }
     void record_frame(ParseFrame* pf) {
-        race_detector_fake_lock_acquire(race_detector_fake_lock(frame_map));
+        // acquire(frame_map);
 	{
 	  tbb::concurrent_hash_map<Address, ParseFrame*>::accessor a;
 	  frame_map.insert(a, make_pair(pf->func->addr(), pf));
 	}
-        race_detector_fake_lock_release(race_detector_fake_lock(frame_map));
+        // release(frame_map);
     }
 
 	 // Find functions within [start,end)
@@ -313,7 +311,7 @@ public:
 
     edge_parsing_data set_edge_parsed(Address addr, Function *f, Block *b) {
         edge_parsing_data ret;
-        race_detector_fake_lock_acquire(race_detector_fake_lock(edge_parsing_status));
+        // acquire(edge_parsing_status);
 	{
 	  tbb::concurrent_hash_map<Address, edge_parsing_data>::accessor a;
           // A successful insertion means the thread should 
@@ -330,7 +328,7 @@ public:
 	      ret.b = b;
 	  }
 	}
-        race_detector_fake_lock_release(race_detector_fake_lock(edge_parsing_status));
+        // release(edge_parsing_status);
         return ret;
     }
 
@@ -350,24 +348,24 @@ inline Function *
 region_data::findFunc(Address entry)
 {
     Function *result = NULL;
-    race_detector_fake_lock_acquire(race_detector_fake_lock(funcsByAddr));
+    // acquire(funcsByAddr);
     {
       tbb::concurrent_hash_map<Address, Function *>::const_accessor a;
       if(funcsByAddr.find(a, entry)) result = a->second;
     }
-    race_detector_fake_lock_release(race_detector_fake_lock(funcsByAddr));
+    // release(funcsByAddr);
     return result;
 }
 inline Block *
 region_data::findBlock(Address entry)
 {
     Block *result = NULL;
-    race_detector_fake_lock_acquire(race_detector_fake_lock(blocksByAddr));
+    // acquire(blocksByAddr);
     {
       tbb::concurrent_hash_map<Address, Block *>::const_accessor a;
       if(blocksByAddr.find(a, entry)) result = a->second;
     }
-    race_detector_fake_lock_release(race_detector_fake_lock(blocksByAddr));
+    // release(blocksByAddr);
     return result;
 }
 inline int

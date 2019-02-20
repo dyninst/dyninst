@@ -9,7 +9,6 @@ else()
 include_directories (
     ${PROJECT_SOURCE_DIR}/common/h # don't include common/src; anything from there can still collide with default includes.
 	# stupid Windows case-insensitive naming.
-    ${CILKSCREEN_INCLUDES}
   )
 endif()
 
@@ -17,7 +16,6 @@ endif()
 set (SRC_LIST
     src/mcs-lock.C
     src/pfq-rwlock.C
-    src/race-detector-annotations.C
     src/string-regex.C
     src/Timer.C 
     src/Types.C 

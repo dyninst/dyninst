@@ -51,7 +51,6 @@
 
 #include "annotations.h"
 
-#include "common/h/race-detector-annotations.h"
 #include "debug.h"
 
 #include "symtabAPI/src/Object.h"
@@ -106,17 +105,17 @@ std::vector<Symtab *> Symtab::allSymtabs;
 
 SymtabError Symtab::getLastSymtabError()
 {
-  race_detector_fake_lock_acquire(fake_symtab_error_lock);
+  // acquire(fake_symtab_error_lock);
   SymtabError last = serr;
-  race_detector_fake_lock_release(fake_symtab_error_lock);
+  // release(fake_symtab_error_lock);
   return last;
 }
 
 void Symtab::setSymtabError(SymtabError new_err)
 {
-   race_detector_fake_lock_acquire(fake_symtab_error_lock);
+   // acquire(fake_symtab_error_lock);
    serr = new_err;
-   race_detector_fake_lock_release(fake_symtab_error_lock);
+   // release(fake_symtab_error_lock);
 }
 
 std::string Symtab::printError(SymtabError serr)
@@ -157,19 +156,19 @@ std::string Symtab::printError(SymtabError serr)
 boost::shared_ptr<Type>& Symtab::type_Error()
 {
     
-    race_detector_fake_lock_acquire(fake_type_error_lock);
+    // acquire(fake_type_error_lock);
     static boost::shared_ptr<Type> store = boost::shared_ptr<Type>(new Type(std::string("<error"),0,dataUnknownType));
-    race_detector_forget_access_history(&store, sizeof(store));
-    race_detector_fake_lock_release(fake_type_error_lock);
+    // forget(&store, sizeof(store));
+    // release(fake_type_error_lock);
     
     return store;
 }
 boost::shared_ptr<Type>& Symtab::type_Untyped()
 {
-    race_detector_fake_lock_acquire(fake_type_untyped_lock);
+    // acquire(fake_type_untyped_lock);
     static boost::shared_ptr<Type> store = boost::shared_ptr<Type>(new Type(std::string("<no type>"), 0, dataUnknownType));
-    race_detector_forget_access_history(&store, sizeof(store));
-    race_detector_fake_lock_release(fake_type_untyped_lock);
+    // forget(&store, sizeof(store));
+    // release(fake_type_untyped_lock);
     
     return store;
 }
@@ -177,20 +176,20 @@ boost::shared_ptr<Type>& Symtab::type_Untyped()
 boost::shared_ptr<builtInTypeCollection>& Symtab::builtInTypes()
 {
     
-    race_detector_fake_lock_acquire(fake_builtInTypes_lock);
+    // acquire(fake_builtInTypes_lock);
     static boost::shared_ptr<builtInTypeCollection> store = setupBuiltinTypes();
-    race_detector_forget_access_history(&store, sizeof(store));
-    race_detector_fake_lock_release(fake_builtInTypes_lock);
+    // forget(&store, sizeof(store));
+    // release(fake_builtInTypes_lock);
     
     return store;
 }
 
 boost::shared_ptr<typeCollection>& Symtab::stdTypes()
 {
-    race_detector_fake_lock_acquire(fake_stdTypes_lock);
+    // acquire(fake_stdTypes_lock);
     static boost::shared_ptr<typeCollection> store = setupStdTypes();
-    race_detector_forget_access_history(&store, sizeof(store));
-    race_detector_fake_lock_release(fake_stdTypes_lock);
+    // forget(&store, sizeof(store));
+    // release(fake_stdTypes_lock);
 
     return store;
 }

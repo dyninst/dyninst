@@ -31,7 +31,6 @@
 #define _LOCK_FREE_QUEUE_H_
 
 #include <iterator>
-#include "race-detector-annotations.h"
 #include <boost/atomic.hpp>
 
 #define DEBUG_LOCKFREEQUEUE 0
@@ -57,28 +56,28 @@ public:
 
   void setNext(item_type *__next) { 
     LFQ_DEBUG(assert(validate == this));
-    race_detector_fake_lock_acquire(race_detector_fake_lock(_next));
+    // acquire(_next);
     _next.store(__next); 
-    race_detector_fake_lock_release(race_detector_fake_lock(_next));
+    // release(_next);
   };
 
   void setNextPending() { 
     LFQ_DEBUG(assert(validate == this));
-    race_detector_fake_lock_acquire(race_detector_fake_lock(_next));
+    // acquire(_next);
     _next.store(pending()); 
-    race_detector_fake_lock_release(race_detector_fake_lock(_next));
+    // release(_next);
   };
 
   item_type *next() { 
     LFQ_DEBUG(assert(validate == this));
-    race_detector_fake_lock_acquire(race_detector_fake_lock(_next));
+    // acquire(next);
     item_type *succ = _next.load();
-    race_detector_fake_lock_release(race_detector_fake_lock(_next));
+    // release(_next);
     // wait for successor to be written, if necessary
     while (succ == pending()) {
-        race_detector_fake_lock_acquire(race_detector_fake_lock(_next));
+        // acquire(_next);
         succ = _next.load();
-        race_detector_fake_lock_release(race_detector_fake_lock(_next));
+        // release(_next);
     }
     return succ;
   };
@@ -174,17 +173,17 @@ public:
 
   // inspect the head of the queue
   item_type *peek() { 
-      race_detector_fake_lock_acquire(race_detector_fake_lock(head));
+      // acquire(head);
       item_type* ret = head.load();
-      race_detector_fake_lock_release(race_detector_fake_lock(head));
+      // release(head);
       return ret; 
   };
 
   // grab the contents of the queue for your own private use
   item_type *steal() { 
-      race_detector_fake_lock_acquire(race_detector_fake_lock(head));
+      // acquire(head);
       item_type* ret = head.exchange(0);
-      race_detector_fake_lock_release(race_detector_fake_lock(head));
+      // release(head);
       return ret; 
   };
 
@@ -193,23 +192,23 @@ public:
   // operations that have completed their exchange may be concurrent
 
   item_type *pop() { 
-    race_detector_fake_lock_acquire(race_detector_fake_lock(head));
+    // acquire(head);
     item_type *first = head.load();
-    race_detector_fake_lock_release(race_detector_fake_lock(head));
+    // release(head);
     if (first) {
       item_type *succ = first->next(); 
-      race_detector_fake_lock_acquire(race_detector_fake_lock(head));
+      // acquire(head);
       head.store(succ);
-      race_detector_fake_lock_release(race_detector_fake_lock(head));
+      // release(head);
       first->setNext(0);
     }
     return first;
   };
 
   iterator begin() { 
-      race_detector_fake_lock_acquire(race_detector_fake_lock(head));
+      // acquire(head);
       iterator ret(head.load());
-      race_detector_fake_lock_release(race_detector_fake_lock(head));     
+      // release(head);     
       return ret; 
   };
 
@@ -229,9 +228,9 @@ private:
   // insert a chain at the head of the queue
   void insert_chain(item_type *first, item_type *last) { 
     last->setNextPending(); // make in-progress splice visible
-    race_detector_fake_lock_acquire(race_detector_fake_lock(head));
+    // acquire(head);
     item_type *oldhead = head.exchange(first);
-    race_detector_fake_lock_release(race_detector_fake_lock(head));     
+    // release(head);     
     last->setNext(oldhead);
   };
 

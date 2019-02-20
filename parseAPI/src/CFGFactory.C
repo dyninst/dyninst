@@ -36,9 +36,6 @@
 
 #include "ParseData.h"
 
-
-#include <race-detector-annotations.h>
-
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
@@ -99,7 +96,7 @@ CFGFactory::_mkfunc(Address addr, FuncSource src, string name,
    // forget about initialization of this function descriptor by this thread
    // before making it available to others. the initialization will not race
    // with a later access by another thread.
-   race_detector_forget_access_history(ret, sizeof(*ret));
+   // forget(ret, sizeof(*ret));
 
    funcs_.add(ret);
    ret->_src =  src;
@@ -120,7 +117,7 @@ Block *
 CFGFactory::_mkblock(Function *  f , CodeRegion *r, Address addr)
 {
    Block * ret = mkblock(f, r, addr);
-   race_detector_forget_access_history(ret, sizeof(*ret));
+   // forget(ret, sizeof(*ret));
    blocks_.add(ret);
    return ret;
 }
@@ -129,7 +126,7 @@ Block *
 CFGFactory::_mkblock(CodeObject* co, CodeRegion *r, Address addr)
 {
    Block* ret = new Block(co, r, addr);
-   race_detector_forget_access_history(ret, sizeof(*ret));
+   // forget(ret, sizeof(*ret));
    blocks_.add(ret);
    return ret;
 }

@@ -42,7 +42,6 @@
 #include "CodeSource.h"
 #include "debug_parse.h"
 #include "util.h"
-#include "race-detector-annotations.h"
 
 #include "InstructionDecoder.h"
 #include "Instruction.h"
@@ -461,12 +460,12 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
         CodeRegion * cr = new SymtabCodeRegion(_symtab,r, symbols);
         bool already_present = false;
 
-        race_detector_fake_lock_acquire(race_detector_fake_lock(rmap));
+        // acquire(rmap);
         {
           RegionMap::accessor a;
           already_present = rmap.insert(a, std::make_pair(r, cr));
         }
-        race_detector_fake_lock_release(race_detector_fake_lock(rmap));
+        // release(rmap);
 
         if (already_present) {
             parsing_printf("[%s:%d] duplicate region at address %lx\n",
@@ -696,9 +695,9 @@ inline CodeRegion *
 SymtabCodeSource::lookup_region(const Address addr) const
 {
     CodeRegion * ret = NULL;
-    race_detector_fake_lock_acquire(race_detector_fake_lock(_lookup_cache));
+    // acquire(_lookup_cache);
     CodeRegion * cache = _lookup_cache.load();
-    race_detector_fake_lock_release(race_detector_fake_lock(_lookup_cache));
+    // release(_lookup_cache);
     if(cache && cache->contains(addr))
         ret = cache;
     else {
@@ -709,9 +708,9 @@ SymtabCodeSource::lookup_region(const Address addr) const
 
         if(rcnt) {
           ret = *stab.begin();
-          race_detector_fake_lock_acquire(race_detector_fake_lock(_lookup_cache));
+          // acquire(_lookup_cache);
           _lookup_cache.store(ret);
-          race_detector_fake_lock_release(race_detector_fake_lock(_lookup_cache));
+          // release(_lookup_cache);
         } 
     }
     return ret;

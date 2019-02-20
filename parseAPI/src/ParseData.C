@@ -41,9 +41,9 @@ using namespace Dyninst::ParseAPI;
 void ParseFrame::set_status(Status s)
 {
     boost::lock_guard<ParseFrame> g(*this);
-    race_detector_fake_lock_acquire(race_detector_fake_lock(_status));  
+    // acquire(_status);
     _status.store(s);
-    race_detector_fake_lock_release(race_detector_fake_lock(_status));
+    // release(_status);
     _pd->setFrameStatus(codereg,func->addr(),s);
 }
 
@@ -162,12 +162,12 @@ StandardParseData::record_frame(ParseFrame * pf)
 void
 StandardParseData::remove_frame(ParseFrame * pf)
 {
-    race_detector_fake_lock_acquire(race_detector_fake_lock(_rdata.frame_map));
+    // acquire(_rdata.frame_map);
     {
       tbb::concurrent_hash_map<Address, ParseFrame*>::accessor a;
       if(_rdata.frame_map.find(a, pf->func->addr())) _rdata.frame_map.erase(a);
     }
-    race_detector_fake_lock_release(race_detector_fake_lock(_rdata.frame_map));
+    // release(_rdata.frame_map);
 }
 
 ParseFrame *
@@ -490,9 +490,9 @@ OverlappingParseData::remove_frame(ParseFrame *pf)
         return;
     }
     region_data * rd = rmap[cr];
-    race_detector_fake_lock_acquire(race_detector_fake_lock(rd->frame_map));
+    // acquire(rd->frame_map);
     rd->frame_map.erase(pf->func->addr());
-    race_detector_fake_lock_release(race_detector_fake_lock(rd->frame_map));
+    // release(rd->frame_map);
 }
 CodeRegion * 
 OverlappingParseData::reglookup(CodeRegion *cr, Address /* addr */) 

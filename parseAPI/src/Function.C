@@ -523,9 +523,9 @@ void Function::set_retstatus(FuncReturnStatus rs)
     } else if (rs == UNKNOWN) {
         _obj->cs()->incrementCounter(PARSE_UNKNOWN_COUNT);
     }
-    race_detector_fake_lock_acquire(race_detector_fake_lock(_rs));
+    // acquire(_rs);
     _rs.store(rs);
-    race_detector_fake_lock_release(race_detector_fake_lock(_rs));
+    // release(_rs);
 }
 
 void 

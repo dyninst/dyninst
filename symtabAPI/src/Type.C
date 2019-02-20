@@ -62,9 +62,9 @@ boost::atomic<typeId_t> Type::USER_TYPE_ID(-10000);
 typeId_t Type::getUniqueTypeId()
 {
 
-  race_detector_fake_lock_acquire(race_detector_fake_lock(Type::USER_TYPE_ID));
+  // acquire(Type::USER_TYPE_ID);
   typeId_t val = Type::USER_TYPE_ID.fetch_add(-1);
-  race_detector_fake_lock_release(race_detector_fake_lock(Type::USER_TYPE_ID));
+  // release(Type::USER_TYPE_ID);
 
   return val;
 }
@@ -72,7 +72,7 @@ typeId_t Type::getUniqueTypeId()
 
 void Type::updateUniqueTypeId(typeId_t ID_)
 {
-  race_detector_fake_lock_acquire(race_detector_fake_lock(Type::USER_TYPE_ID));
+  // acquire(Type::USER_TYPE_ID);
 
   typeId_t val = Type::USER_TYPE_ID.load();
   while((ID_ < 0) && (val >= ID_))
@@ -80,7 +80,7 @@ void Type::updateUniqueTypeId(typeId_t ID_)
     Type::USER_TYPE_ID.compare_exchange_weak(val, val-1);
   }
 
-  race_detector_fake_lock_release(race_detector_fake_lock(Type::USER_TYPE_ID));
+  // release(Type::USER_TYPE_ID);
 }
 
 namespace Dyninst {
@@ -111,7 +111,7 @@ Type *Type::createPlaceholder(typeId_t ID, std::string name)
 {
   static size_t max_size = 0;
 
-  race_detector_fake_lock_acquire(race_detector_fake_lock(max_size));
+  // acquire(max_size);
   static std::once_flag initialized;
 
   std::call_once(initialized, []() {
@@ -132,24 +132,24 @@ Type *Type::createPlaceholder(typeId_t ID, std::string name)
     max_size = MAX(sizeof(typeArray), max_size);
     max_size += 32; //Some safey padding
     
-    race_detector_forget_access_history(&max_size, sizeof(max_size));
+    // forget(&max_size, sizeof(max_size));
     }
   );
-  race_detector_fake_lock_release(race_detector_fake_lock(max_size));
+  // release(max_size);
 
   void *mem = malloc(max_size);
   assert(mem);
 
-  race_detector_fake_lock_acquire(race_detector_fake_lock(type_memory));
+  // acquire(type_memory);
   {
      tbb::concurrent_hash_map<void*, size_t>::accessor a;
      type_memory.insert(a, make_pair(mem, max_size));
   }
-  race_detector_fake_lock_release(race_detector_fake_lock(type_memory));
+  // release(type_memory);
 
   Type *placeholder_type = new(mem) Type(name, ID, dataUnknownType);
   
-  race_detector_forget_access_history(placeholder_type, max_size);
+  // forget(placeholder_type, max_size);
 
   return placeholder_type;
 }

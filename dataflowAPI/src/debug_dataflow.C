@@ -40,8 +40,6 @@
 
 #include <iostream>
 
-#include <race-detector-annotations.h>
-
 // Internal debugging
 
 static int df_debug_slicing= 0;
@@ -56,7 +54,7 @@ void set_debug_flag(int &flag)
   
   // avoid the appearance of a race between setting the flag once here 
   // when invoked by call_once and subsequent reads by check_debug_flag.
-  race_detector_forget_access_history(&flag, sizeof(flag));
+  // forget(&flag, sizeof(flag));
 }
 
 static int check_debug_flag(int &flag)
@@ -64,7 +62,7 @@ static int check_debug_flag(int &flag)
   // use a fake lock to suppress reports about races associated with 
   // concurrent setting and checking of the initialized flag by 
   // code generated for the implementation of call_once. 
-  race_detector_fake_lock_acquire(race_detector_fake_lock(df_debug_slicing));
+  // acquire(df_debug_slicing);
   static std::once_flag initialized;
 
 #if defined(_MSC_VER)
@@ -101,7 +99,7 @@ static int check_debug_flag(int &flag)
 
   });
 
-  race_detector_fake_lock_release(race_detector_fake_lock(df_debug_slicing));
+  // release(df_debug_slicing);
 
 #if defined(_MSC_VER)
 #pragma warning(pop)    

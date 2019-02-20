@@ -2196,7 +2196,7 @@ bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
     //DWARF_ERROR_RET(subrangeOffset);
     typeId_t type_id = get_type_id(subrangeOffset, is_info);
 
-    race_detector_fake_lock_acquire(race_detector_fake_lock(errno));
+    // acquire(errno);
     errno = 0;
     unsigned long low_conv = strtoul(loBound.c_str(), NULL, 10);
     if (errno) {
@@ -2208,7 +2208,7 @@ bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
     if (errno)  {
         hi_conv = LONG_MAX;
     }
-    race_detector_fake_lock_release(race_detector_fake_lock(errno));
+    // release(errno);
 
     dwarf_printf("(0x%lx) Adding subrange type: id %d, low %ld, high %ld, named %s\n",
             id(), type_id,
@@ -2567,9 +2567,9 @@ void DwarfParseActions::clearFunc() {
 unsigned int DwarfWalker::getNextTypeId(){
 
   static boost::atomic<unsigned int> next_type_id(0);
-  race_detector_fake_lock_acquire(race_detector_fake_lock(next_type_id));
+  // acquire(next_type_id);
   unsigned int val = next_type_id.fetch_add(1);
-  race_detector_fake_lock_release(race_detector_fake_lock(next_type_id));
+  // release(next_type_id);
   return val;
 }
 
@@ -2582,23 +2582,23 @@ typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info)
     return it->second;
   */
   typeId_t type_id = 0;
-  race_detector_fake_lock_acquire(race_detector_fake_lock(type_ids));
+  // acquire(type_ids);
   {
     tbb::concurrent_hash_map<Dwarf_Off, typeId_t>::const_accessor a;
     if(type_ids.find(a, offset)) type_id = a->second; 
   }
-  race_detector_fake_lock_release(race_detector_fake_lock(type_ids));
+  // release(type_ids);
 
   if(type_id) return type_id;
 
   unsigned int val = getNextTypeId();
   //type_ids[offset] = val;
-  race_detector_fake_lock_acquire(race_detector_fake_lock(type_ids));
+  // acquire(type_ids);
   {
     tbb::concurrent_hash_map<Dwarf_Off, typeId_t>::accessor a;
     type_ids.insert(a, std::make_pair(offset, val));
   }
-  race_detector_fake_lock_release(race_detector_fake_lock(type_ids));
+  // release(type_ids);
   
   return val;
 }
@@ -2669,12 +2669,12 @@ bool DwarfWalker::parseModuleSig8(bool is_info)
     
     //sig8_type_ids_[sig8] = type_id;
     
-    race_detector_fake_lock_acquire(race_detector_fake_lock(sig8_type_ids_));
+    // acquire(sig8_type_ids_);
     {
       tbb::concurrent_hash_map<uint64_t, typeId_t>::accessor a;
       sig8_type_ids_.insert(a, std::make_pair(sig8, type_id));
     }
-    race_detector_fake_lock_release(race_detector_fake_lock(sig8_type_ids_));
+    // release(sig8_type_ids_);
     dwarf_printf("Mapped Sig8 {%016llx} to type id 0x%x\n", (long long) sig8, type_id);
     return true;
 }
@@ -2692,12 +2692,12 @@ bool DwarfWalker::findSig8Type(Dwarf_Sig8 * signature, Type *&returnType)
    }
    */
    typeId_t type_id = 0;
-   race_detector_fake_lock_acquire(race_detector_fake_lock(sig8_type_ids_));
+   // acquire(sig8_type_ids_);
    {
      tbb::concurrent_hash_map<uint64_t, typeId_t>::const_accessor a;
      if(sig8_type_ids_.find(a, sig8)) type_id = a->second;
    }
-   race_detector_fake_lock_release(race_detector_fake_lock(sig8_type_ids_));
+   // release(sig8_type_ids_);
 
    if(type_id){
      returnType = tc()->findOrCreateType(type_id);

@@ -56,8 +56,6 @@
 
 #define USE_OPENMP 1
 
-#include "race-detector-annotations.h"
-
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
@@ -432,13 +430,13 @@ Parser::ProcessOneFrame(ParseFrame* pf, bool recursive) {
 #ifdef ADD_PARSE_FRAME_TIMERS
     t.stop();
     unsigned int msecs = floor(t.elapsed().wall / 1000000.0);
-    race_detector_fake_lock_acquire(race_detector_fake_lock(time_histogram));
+    // acquire(time_histogram);
     {
       tbb::concurrent_hash_map<unsigned int, unsigned int>::accessor a;
       time_histogram.insert(a, msecs);
       ++(a->second);
     }
-    race_detector_fake_lock_release(race_detector_fake_lock(time_histogram));
+    // release(time_histogram);
 #endif
     frame_list = postProcessFrame(pf, recursive);
 
@@ -447,7 +445,7 @@ Parser::ProcessOneFrame(ParseFrame* pf, bool recursive) {
     // thread may try to touch it because of duplicates in the work list. that
     // won't actually be concurrent because of swap_busy. we suppress the race
     // report by scrubbing information about our access.
-    race_detector_forget_access_history(pf, sizeof(*pf));
+    // forget(pf, sizeof(*pf));
 
     pf->swap_busy(false);
   }
@@ -917,7 +915,7 @@ Parser::finalize(Function *f)
             // to concurrent readers to avoid false race reports.
             // ext is written before it is published and only read
             // thereafter.
-	    race_detector_forget_access_history(ext, sizeof(*ext));
+	    // forget(ext, sizeof(*ext));
 
             parsing_printf("%lx extent [%lx,%lx)\n",f->addr(),ext_s,ext_e);
             f->_extents.push_back(ext);
@@ -931,7 +929,7 @@ Parser::finalize(Function *f)
     // to concurrent readers to avoid false race reports.
     // ext is written before it is published and only read
     // thereafter.
-    race_detector_forget_access_history(ext, sizeof(*ext));
+    // forget(ext, sizeof(*ext));
 
     parsing_printf("%lx extent [%lx,%lx)\n",f->addr(),ext_s,ext_e);
     f->_extents.push_back(ext);
@@ -2418,7 +2416,7 @@ void Parser::move_func(Function *func, Address new_entry, CodeRegion *new_reg)
 {
     region_data *reg_data = _parse_data->findRegion(func->region());
 
-    race_detector_fake_lock_acquire(race_detector_fake_lock(reg_data->funcsByAddr));
+    // acquire(reg_data->funcsByAddr);
     {
       tbb::concurrent_hash_map<Address, Function*>::accessor a;
       if(reg_data->funcsByAddr.find(a, func->addr()))
@@ -2428,7 +2426,7 @@ void Parser::move_func(Function *func, Address new_entry, CodeRegion *new_reg)
       reg_data = _parse_data->findRegion(new_reg);
       reg_data->funcsByAddr.insert(a, make_pair(new_entry, func));
     }
-    race_detector_fake_lock_release(race_detector_fake_lock(reg_data->funcsByAddr));
+    // release(reg_data->funcsByAddr);
 }
 
 void Parser::invalidateContainingFuncs(Function *owner, Block *b)

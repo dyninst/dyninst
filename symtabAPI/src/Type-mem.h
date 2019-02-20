@@ -31,8 +31,6 @@
 #if !defined(TYPE_MEM_H_)
 #define TYPE_MEM_H_
 
-#include <race-detector-annotations.h>
-
 #include "symtabAPI/h/Type.h"
 #include "boost/static_assert.hpp"
 #include <utility>
@@ -51,13 +49,13 @@ T *upgradePlaceholder(Type *placeholder, T *new_type)
 {
   void *mem = (void *) placeholder;
   size_t size = 0;
-  race_detector_fake_lock_acquire(race_detector_fake_lock(type_memory));
+  // acquire(type_memory);
   {
     tbb::concurrent_hash_map<void*, size_t>::accessor a;
     assert(type_memory.find(a, placeholder));
     size = a->second;
   }
-  race_detector_fake_lock_release(race_detector_fake_lock(type_memory));  
+  // release(type_memory);
 
   assert(sizeof(T) < size);
   memset(mem, 0, size);
@@ -65,7 +63,7 @@ T *upgradePlaceholder(Type *placeholder, T *new_type)
   T *ret = new(mem) T();
   assert(mem == (void *) ret);
   *ret = *new_type;
-  race_detector_forget_access_history(ret, sizeof(T));
+  // forget(ret, sizeof(T));
   return ret;
 }
 

@@ -40,7 +40,6 @@
 #include "Serialization.h"
 
 
-#include "common/h/race-detector-annotations.h"
 #include "common/src/headers.h"
 #include "common/src/serialize.h"
 
@@ -591,13 +590,13 @@ builtInTypeCollection::~builtInTypeCollection()
 Type *builtInTypeCollection::findBuiltInType(std::string &name)
 {
     Type* temp = NULL;
-    race_detector_fake_lock_acquire(fake_builtInTypes_lock);
+    // acquire(fake_builtInTypes_lock);
     {
       tbb::concurrent_hash_map<std::string, Type *>::const_accessor a;
       if (builtInTypesByName.find(a, name))
     	  temp = a->second;
     }
-    race_detector_fake_lock_release(fake_builtInTypes_lock);
+    // release(fake_builtInTypes_lock);
 
     if(temp!=NULL)
       return temp;
@@ -610,13 +609,13 @@ Type *builtInTypeCollection::findBuiltInType(const int ID)
 {
 
     Type* temp = NULL;
-    race_detector_fake_lock_acquire(fake_builtInTypes_lock);
+    // acquire(fake_builtInTypes_lock);
     {
       tbb::concurrent_hash_map<int, Type *>::const_accessor a;
        if (builtInTypesByID.find(a, ID))
           temp = a->second;
     }
-    race_detector_fake_lock_release(fake_builtInTypes_lock);
+    // release(fake_builtInTypes_lock);
    
     if(temp!=NULL)
       return temp;
@@ -628,35 +627,33 @@ Type *builtInTypeCollection::findBuiltInType(const int ID)
 void builtInTypeCollection::addBuiltInType(Type *type)
 {
   if(type->getName() != "") { //Type could have no name.
-    race_detector_fake_lock_acquire(race_detector_fake_lock(builtInTypesByName));
+    // acquire(builtInTypesByName);
     {
       tbb::concurrent_hash_map<std::string, Type *>::const_accessor a;
       builtInTypesByName.insert(a, std::make_pair(type->getName(),type));
       type->incrRefCount();
     }
-    race_detector_fake_lock_release(race_detector_fake_lock(builtInTypesByName));
+    // release(builtInTypesByName);
 
   //All built-in types have unique IDs so far jdd 4/21/99
-    race_detector_fake_lock_acquire(race_detector_fake_lock(builtInTypesByID));
-     {  
-       tbb::concurrent_hash_map<int, Type *>::const_accessor a;
-       builtInTypesByID.insert(a, std::make_pair(type->getID(),type));
-       type->incrRefCount();
-     }
-    race_detector_fake_lock_release(race_detector_fake_lock(builtInTypesByID));
+    // acquire(builtInTypesByID);
+    {  
+      tbb::concurrent_hash_map<int, Type *>::const_accessor a;
+      builtInTypesByID.insert(a, std::make_pair(type->getID(),type));
+      type->incrRefCount();
+    }
+    // release(builtInTypesByID);
   }
 }
 
 std::vector<Type *> *builtInTypeCollection::getAllBuiltInTypes() {
    std::vector<Type *> *typesVec = new std::vector<Type *>;
 
-   //race_detector_fake_lock_acquire(race_detector_fake_lock(builtInTypesByID));
-    for (tbb::concurrent_hash_map<int, Type *>::const_iterator it = builtInTypesByID.begin();
-        it != builtInTypesByID.end();
-        it ++) {
-	typesVec->push_back(it->second);
-    }
-    //race_detector_fake_lock_release(race_detector_fake_lock(builtInTypesByID));
+   for (tbb::concurrent_hash_map<int, Type *>::const_iterator it = builtInTypesByID.begin();
+       it != builtInTypesByID.end();
+       it ++) {
+     typesVec->push_back(it->second);
+   }
    
    if(!typesVec->size()){
        delete typesVec;

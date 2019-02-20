@@ -26,7 +26,6 @@
 //******************************************************************************
 
 #include "pfq-rwlock.h"
-#include "race-detector-annotations.h"
 
 
 
@@ -80,7 +79,7 @@ pfq_rwlock_init(pfq_rwlock_t &l)
 void
 pfq_rwlock_read_lock(pfq_rwlock_t &l)
 {
-  race_detector_fake_lock_acquire(&l.wtail);
+  // acquire(&l.wtail);
   uint32_t ticket = l.rin.fetch_add(READER_INCREMENT, boost::memory_order_acq_rel);
 
   if (ticket & WRITER_PRESENT) {
@@ -102,7 +101,7 @@ pfq_rwlock_read_unlock(pfq_rwlock_t &l)
     if (ticket == l.last.load(boost::memory_order_acquire))
       l.whead->blocked.store(false, boost::memory_order_release);
   }
-  race_detector_fake_lock_release(&l.wtail);
+  // release(&l.wtail);
 }
 
 
