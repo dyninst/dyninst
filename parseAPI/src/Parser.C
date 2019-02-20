@@ -54,18 +54,7 @@
 #include <boost/timer/timer.hpp>
 #include <fstream>
 
-#undef ENABLE_RACE_DETECTION
-
-#ifdef ENABLE_RACE_DETECTION
-#define USE_CILK 1
-#else
 #define USE_OPENMP 1
-#endif
-
-#if USE_CILK
-#include <cilk/cilk.h>
-#include <cilk/cilk_api.h>
-#endif
 
 #include "race-detector-annotations.h"
 

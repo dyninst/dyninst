@@ -47,10 +47,6 @@
 #include <elfutils/libdw.h>
 #include <tbb/parallel_for_each.h>
 
-#ifdef ENABLE_RACE_DETECTION
-#include <cilk/cilk.h>
-#endif
-
 using namespace Dyninst;
 using namespace SymtabAPI;
 using namespace DwarfDyninst;
@@ -178,16 +174,8 @@ bool DwarfWalker::parse() {
 
       cilk::reducer<FixUnknownModMonoid> fum_monoid;
 //    std::for_each(module_dies.begin(), module_dies.end(), [&](Dwarf_Die cur) {
-#ifdef ENABLE_RACE_DETECTION
-	 cilk_for
-	   //for
-#else
-//#pragma omp parallel for
-    for
-#endif
-
-
-      (unsigned int i = 0; i < module_dies.size(); i++) {
+#pragma omp parallel for
+    for (unsigned int i = 0; i < module_dies.size(); i++) {
         int local_fd = open(symtab()->file().c_str(), O_RDONLY);
         Dwarf* temp_dwarf = dwarf_begin(local_fd, DWARF_C_READ);
 	

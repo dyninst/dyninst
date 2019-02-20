@@ -47,12 +47,6 @@
 #include "InstructionDecoder.h"
 #include "Instruction.h"
 
-#undef ENABLE_RACE_DETECTION
-#ifdef ENABLE_RACE_DETECTION
-#include <cilk/cilk.h>
-#include <cilk/cilk_api.h>
-#endif
-
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
@@ -439,13 +433,8 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
 
     _symtab->getAllSymbols(symbols);
 
-#ifdef ENABLE_RACE_DETECTION
-    cilk_for
-#else
 #pragma omp parallel for shared(regs,dregs,symbols,reg_lock) schedule(auto)
-    for
-#endif
-        (unsigned int i = 0; i < regs.size(); i++) {
+    for (unsigned int i = 0; i < regs.size(); i++) {
         SymtabAPI::Region *r = regs[i];
         parsing_printf("   %lx %s",r->getMemOffset(),
             r->getRegionName().c_str());

@@ -26,18 +26,6 @@
 //
 //***************************************************************************
 
-#ifdef ENABLE_RACE_DETECTION
-
-//****************************************************************************
-// system include files
-//****************************************************************************
-
-#ifdef __INTEL_COMPILER
-#include <cilktools/cilkscreen.h>
-#endif
-
-
-
 //****************************************************************************
 // local include files
 //****************************************************************************
@@ -54,27 +42,16 @@
 void 
 race_detector_fake_lock_acquire(void *fake_lock)
 {
-#ifdef __INTEL_COMPILER
-  __cilkscreen_acquire_lock(fake_lock);
-#endif
 }
 
 
 void 
 race_detector_fake_lock_release(void *fake_lock)
 {
-#ifdef __INTEL_COMPILER
-  __cilkscreen_release_lock(fake_lock);
-#endif
 }
 
 
 void 
 race_detector_forget_access_history(void *loc, unsigned int nbytes)
 {
-#ifdef __INTEL_COMPILER
-  __cilkscreen_clean(loc, ((char *) loc) + nbytes);
-#endif
 }
-
-#endif
