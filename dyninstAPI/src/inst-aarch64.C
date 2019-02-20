@@ -1194,7 +1194,7 @@ bool EmitterAARCH64::emitLoadRelative(Register dest, Address offset, Register ba
     //l: need to test it
 
     insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
-            base, offset, size, insnCodeGen::Post);
+            base, offset, size, insnCodeGen::Pre);
 
     gen.markRegDefined(dest);
 }
