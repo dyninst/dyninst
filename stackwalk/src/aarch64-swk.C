@@ -135,13 +135,17 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 
   // FrameFuncStepper needs an input FP
   if (!in.getFP())
-     return gcf_not_me;
+  {
+      sw_printf("[%s:%u] - in.getFP() %lx\n", FILE__, __LINE__, in.getFP());
+      return gcf_not_me;
+  }
 
   // Look for function prologue to see if it is a standard frame 
   FrameFuncHelper::alloc_frame_t alloc_frame;
   alloc_frame = helper->allocatesFrame(in.getRA());
   if (alloc_frame.first != FrameFuncHelper::standard_frame) {
-     return gcf_not_me;
+      sw_printf("[%s:%u] - alloc_frame.first!=standard_frame (== %lx)\n", FILE__, __LINE__, alloc_frame.first);
+      return gcf_not_me;
   }
 
   if (!in.getFP())

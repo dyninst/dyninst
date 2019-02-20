@@ -53,6 +53,7 @@ using namespace DwarfDyninst;
 
 static std::map<std::string, DwarfFrameParser::Ptr> dwarf_info;
 
+#include <sys/ucontext.h>
 #include <stdarg.h>
 #include "dwarf.h"
 #include "elfutils/libdw.h"
