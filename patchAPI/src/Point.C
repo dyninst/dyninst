@@ -148,7 +148,7 @@ Point::Point(Type type, PatchMgrPtr mgr, PatchFunction* func, PatchBlock *b) :
 /* old_instance, old_instance, <---new_instance */
 InstancePtr
 Point::pushBack(SnippetPtr snippet) {
-  printf("Point::pushBack, creating instance\n");
+  //printf("Point::pushBack, creating instance\n");
   InstancePtr instance = Instance::create(this, snippet);
   if (!instance) return instance;
   instanceList_.push_back(instance);
@@ -159,7 +159,7 @@ Point::pushBack(SnippetPtr snippet) {
 /* new_instance--->, old_instance, old_instance */
 InstancePtr
 Point::pushFront(SnippetPtr snippet) {
-  printf("Point::pushFront creating an instance (this point, snippet)\n");
+  //printf("Point::pushFront creating an instance (this point, snippet)\n");
   InstancePtr instance = Instance::create(this, snippet);
   if (!instance) return instance;
   instanceList_.push_front(instance);
