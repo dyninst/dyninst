@@ -1422,7 +1422,62 @@ bool EmitterAARCH64::emitCallInstruction(codeGen &gen, func_instance *callee, bo
 
 void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int size,
                                     codeGen &gen, Address offset) {
-    assert(0); //Not implemented
+    //assert(0); //Not implemented
+    //return;
+    
+    /*
+    // create or retrieve jump slot
+    Address addr;
+    int stackSize = 0;
+
+    if(var == NULL) {
+        addr = offset;
+    }
+    else if(!is_local) {
+        addr = getInterModuleVarAddr(var, gen);
+    }
+    else {
+        addr = (Address)var->getOffset();
+    }
+
+    // load register with address from jump slot
+
+    inst_printf("emitLoadShared addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n", 
+            addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
+    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+
+    if (scratchReg == REG_NULL) {
+        assert(0);
+    }
+
+    emitMovePCToReg(scratchReg, gen);
+    Address varOffset = addr - gen.currAddr()+4;
+
+    if (op ==loadOp) {
+        if(!is_local && (var != NULL)){
+            emitLoadRelative(dest, varOffset, scratchReg, gen.width(), gen);
+            // Deference the pointer to get the variable
+            emitLoadRelative(dest, 0, dest, size, gen);
+        } else {
+            emitLoadRelative(dest, varOffset, scratchReg, size, gen);
+        }
+    } else { //loadConstop
+        if(!is_local && (var != NULL)){
+            emitLoadRelative(dest, varOffset, scratchReg, gen.width(), gen);
+        } else {
+
+            // Move address of the variable into the register - load effective address
+            //dest = effective address of pc+offset ;
+            insnCodeGen::generateImm (gen, CAUop, dest, 0, BOT_HI (varOffset));
+            insnCodeGen::generateImm (gen, ORILop, dest, dest, BOT_LO (varOffset));
+            insnCodeGen::generateAddReg (gen, CAXop, dest, dest, scratchReg);
+        }
+    }
+
+    if (stackSize > 0)
+        assert(0);
+
+    */
     return;
 }
 
@@ -1443,38 +1498,25 @@ EmitterAARCH64::emitStoreShared(Register source, const image_variable *var, bool
         addr = (Address)var->getOffset();
     }
 
-    inst_printf("emitStoreRelative addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n",
+    printf("emitStoreRelative addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n",
             addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
 
     // load register with address from jump slot
     Register scratchReg = gen.rs()->getScratchRegister(gen, true);
     if (scratchReg == REG_NULL) {
-        pdvector<Register> freeReg;
-        pdvector<Register> excludeReg;
-        stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
-        assert (stackSize == 1);
-        scratchReg = freeReg[0];
-
-        inst_printf("emitStoreRelative - after new stack frame- addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n",
-                addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
+        assert(0);
     }
 
     emitMovePCToReg(scratchReg, gen);
     Address varOffset = addr - gen.currAddr()+4;
+    printf("varOffset: %lu\n", varOffset);
 
     if(!is_local) {
         pdvector<Register> exclude;
         exclude.push_back(scratchReg);
         Register scratchReg1 = gen.rs()->getScratchRegister(gen, exclude, true);
         if (scratchReg1 == REG_NULL) {
-            pdvector<Register> freeReg;
-            pdvector<Register> excludeReg;
-            stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
-            assert (stackSize == 1);
-            scratchReg1 = freeReg[0];
-
-            inst_printf("emitStoreRelative - after new stack frame- addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n",
-                    addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
+            assert(0);
         }
         emitLoadRelative(scratchReg1, varOffset, scratchReg, gen.width(), gen);
         emitStoreRelative(source, 0, scratchReg1, size, gen);
@@ -1483,7 +1525,8 @@ EmitterAARCH64::emitStoreShared(Register source, const image_variable *var, bool
     }
 
     if (stackSize > 0)
-        insnCodeGen::removeStackFrame(gen);
+        assert(0);
+        //insnCodeGen::removeStackFrame(gen);
 
     return;
 }
@@ -1557,18 +1600,15 @@ Address EmitterAARCH64::emitMovePCToReg(Register dest, codeGen &gen) {
     //
     //l: working on it
 
-    auto scratch = gen.getScratchRegister();
     instruction insn;
     insn.clear();
 
-    INSN_SET(insn, 31, 31, 0);
-    INSN_SET(insn, 29, 30, 0);
     INSN_SET(insn, 28, 28, 1);
-    INSN_SET(insn, 5, 27, 0);
-    INSN_SET(insn, 0, 4, scratch);
+    INSN_SET(insn, 0, 4, dest);
 
     insnCodeGen::generate(gen, insn);
-    // TODO: return the address
+    Address ret = gen.currAddr();
+    return ret;
 }
 
 Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
