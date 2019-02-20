@@ -2067,6 +2067,9 @@ bool AstCallNode::initRegisters(codeGen &gen) {
         // Painful lookup time
         callee = gen.addrSpace()->findOnlyOneFunction(func_name_.c_str());
     }
+    if (callee == NULL) {
+        printf("ERROR: in ast.C, NULL callee: %s\n", func_name_.c_str());  
+    }
     assert(callee);
 
     // Marks registers as used based on the callee's behavior
