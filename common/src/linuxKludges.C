@@ -203,7 +203,6 @@ unsigned long long PDYN_mulMillion(unsigned long long in) {
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/lock_guard.hpp>
 
-#include <race-detector-annotations.h>
 
 using namespace abi;
 

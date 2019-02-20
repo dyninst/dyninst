@@ -46,6 +46,11 @@
 
 #include <boost/atomic.hpp>
 
+#ifdef ENABLE_VG_ANNOTATIONS
+#include <valgrind/helgrind.h>
+#include <valgrind/drd.h>
+#endif
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
@@ -111,7 +116,6 @@ Type *Type::createPlaceholder(typeId_t ID, std::string name)
 {
   static size_t max_size = 0;
 
-  // acquire(max_size);
   static std::once_flag initialized;
 
   std::call_once(initialized, []() {
@@ -131,11 +135,14 @@ Type *Type::createPlaceholder(typeId_t ID, std::string name)
     max_size = MAX(sizeof(typeSubrange), max_size);
     max_size = MAX(sizeof(typeArray), max_size);
     max_size += 32; //Some safey padding
-    
-    // forget(&max_size, sizeof(max_size));
+#ifdef ENABLE_VG_ANNOTATIONS
+    ANNOTATE_HAPPENS_BEFORE(&max_size);
+#endif
     }
   );
-  // release(max_size);
+#ifdef ENABLE_VG_ANNOTATIONS
+  ANNOTATE_HAPPENS_AFTER(&max_size);
+#endif
 
   void *mem = malloc(max_size);
   assert(mem);
