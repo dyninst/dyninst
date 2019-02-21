@@ -21,8 +21,12 @@
 
 //Concurrent Hash Map
 #include "tbb/concurrent_hash_map.h"
-#include <cilk/reducer.h>
 #include <bits/stdc++.h>
+
+#ifdef ENABLE_VG_ANNOTATIONS
+#include <valgrind/helgrind.h>
+#include <valgrind/drd.h>
+#endif
 
 namespace Dyninst {
 namespace SymtabAPI {
@@ -201,133 +205,25 @@ protected:
     virtual Object * obj() const ;
 
 }; // class DwarfParseActions 
-/*
-//OpenMP Custom Reduction class
 
-class CustomReduction{
-
-  private:
-     int i;
-     Module* fixUnknownMod;
-     bool set;
- 
- public:
-     CustomReduction():i(INT_MAX), fixUnknownMod(NULL), set(false){}
-     CustomReduction(unsigned int ii, Module* fum):i(ii), fixUnknownMod(fum){
-         if(fum)
-	    set = true;
-	 else
-	    set = false;
-     }
-
-     Module* getFixUnknownMod(){ return fixUnknownMod;}
-     unsigned int getIteration(){ return i; }
-     bool getFlag() {return set;}
-     
-     void setFixUnknownMod(Module* fum){ fixUnknownMod = fum; }
-     void setIteration(unsigned int ii){ i = ii; }
-     void setFlag(bool flag){ set = flag; }
-
-};
-
-//Custom Reduction Function
-
-CustomReduction calc_first(CustomReduction reducedValue, CustomReduction newValue){
-
-     if ( (reducedValue.getIteration() > newValue.getIteration()) && newValue.getFixUnknownMod() )
-     {
-        return CustomReduction(newValue.getIteration(), newValue.getFixUnknownMod(), true);
-     }
-
-     return reducedValue;
-
+#ifndef ENABLE_VG_ANNOTATIONS
+#pragma omp declare \
+    reduction(leftmost : Module* : omp_out = omp_out == NULL ? omp_out : omp_in) \
+    initializer(omp_priv = NULL)
+#else
+// Annotations can't safely live within a reduction clause, so we use a function.
+static inline void ompc_leftmost(Module* &out, Module* &in) {
+    ANNOTATE_HAPPENS_AFTER(&in);
+    ANNOTATE_HAPPENS_AFTER(&out);
+    Module* otmp = out;
+    Module* itmp = in;
+    out = otmp == NULL ? otmp : itmp;
+    ANNOTATE_HAPPENS_BEFORE(&out);
 }
-*/
-
-/*
-#pragma omp declare rudction(customReduction : class CustomReduction : omp_out = calc_first(omp_in, omp_out))\
-initializer( omp_priv = CustomReduction)
-
-
-
-CustomReduction reducedValue = CustomReduction();
-
-#pragma omp parallel for reduction(customReduction : reducedValue)
-(unsigned int i = 0; i < module_dies.size(); i++){
-
-   //code
-   Module* fixUnknownModLocal = NULL;
-   parseModule( ... , fixUnknownModLocal);
-   newValue = CustomReduction(i, fixUnknownModLocal);
-
-   if(!newValue.getFlag()){
-      reducedValue = calc_first(reducedValue, newValue);
-   }
-   //code
-} 
-
-*/
-class FixUnknownModMonoid;
-
-class MyReducerView{
-
- protected:
-
-  friend class FixUnknownModMonoid;
-  unsigned int i;
-  Module* fixUnknownMod;
-  bool set;
-
- public:
-
-  MyReducerView():i(INT_MAX), fixUnknownMod(NULL), set(false){}
-
-
-  void calc_first(unsigned int ii, Module* fum){
-    if( (i > ii) & (fixUnknownMod == NULL) ){
-       i = ii;
-       fixUnknownMod = fum;
-       set = true;
-    }
-  }
-
-  unsigned int getIteration() { return i; }
-  Module* getFixUnknownMod(){ return fixUnknownMod; }
-  bool getFlag(){ return set; }
-
-  void setIteration(unsigned int ii){ i = ii; }
-  void setFixUnknownMod(Module* fum){ fixUnknownMod = fum; }
-  void setFlag(bool flag){ set = flag; }
-  
-
-};
- 
-
- struct FixUnknownModMonoid : public cilk::monoid_base<Module*, MyReducerView>{
-
-    static void reduce(MyReducerView* left, MyReducerView* right){
-
-      if( left->set == false && right->set == true )
-      {
-	left->setFixUnknownMod(right->getFixUnknownMod());
-        left->setIteration(right->getIteration());
-        left->setFlag(true); 
-      }  
-
-    }
-
-    static void identity(MyReducerView* reducersView){
-    
-      reducersView->setFixUnknownMod(NULL);
-      reducersView->setIteration(INT_MAX);
-      reducersView->setFlag(false);
-    
-    }
-
-
-
- };
-
+#pragma omp declare \
+    reduction(leftmost : Module* : ompc_leftmost(omp_out, omp_in)) \
+    initializer(omp_priv = NULL)
+#endif
 
 struct ContextGuard {
     DwarfParseActions& c;

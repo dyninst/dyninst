@@ -172,38 +172,28 @@ bool DwarfWalker::parse() {
     //temp dwarf
 #endif
 
-      cilk::reducer<FixUnknownModMonoid> fum_monoid;
-//    std::for_each(module_dies.begin(), module_dies.end(), [&](Dwarf_Die cur) {
-#pragma omp parallel for
-    for (unsigned int i = 0; i < module_dies.size(); i++) {
+#pragma omp for reduction(leftmost:fixUnknownMod)
+    for (unsigned int i = 0; i < module_dies.size(); i++) {	
         int local_fd = open(symtab()->file().c_str(), O_RDONLY);
         Dwarf* temp_dwarf = dwarf_begin(local_fd, DWARF_C_READ);
 	
         Dwarf_Die cur = module_dies[i];
-        //DwarfWalker w(symtab_, dbg());
         DwarfWalker w(symtab_, temp_dwarf);
 	
 	w.push();
-
-        Module* fixUnknownModLocal = NULL;
-        bool ok = w.parseModule(cur,fixUnknownModLocal);
-	
-	/*
-	  Check if one of the threads already set fixUnknownMod
-	  If it has not, then make a call to calc_first procedure
-	 */
-	if(fixUnknownModLocal)
-	{
-	  fum_monoid->calc_first(i, fixUnknownModLocal);
-	}
-
+#ifdef ENABLE_VG_ANNOTATIONS
+        ANNOTATE_HAPPENS_BEFORE(&fixUnknownMod);
+#endif
+        bool ret = w.parseModule(cur,fixUnknownMod);
         w.pop();
         
         close(local_fd);
         dwarf_end(temp_dwarf);
     }
+#ifdef ENABLE_VG_ANNOTATIONS
+    ANNOTATE_HAPPENS_AFTER(&fixUnknownMod);
+#endif
 
-     fixUnknownMod = fum_monoid->getFixUnknownMod();
      // exit(0);
 
 #if 0
