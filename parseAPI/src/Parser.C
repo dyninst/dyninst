@@ -54,8 +54,6 @@
 #include <boost/timer/timer.hpp>
 #include <fstream>
 
-#define USE_OPENMP 1
-
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
@@ -588,12 +586,8 @@ Parser::LaunchWork
     if (first == 0) break;
     ParseFrame *frame = first->value();
     delete first;
-#if USE_OPENMP
 #pragma omp task firstprivate(frame, recursive)
     SpawnProcessFrame(frame, recursive);
-#else
-    cilk_spawn SpawnProcessFrame(frame, recursive);
-#endif
   }
 }
 
@@ -629,15 +623,11 @@ Parser::ProcessFrames
  bool recursive
 )
 {
-#if USE_OPENMP
 #pragma omp parallel shared(work_queue)
   {
 #pragma omp master
     LaunchWork(work_queue->steal(), recursive);
   }
-#else
-  LaunchWork(work_queue->steal(), recursive);
-#endif
 }
 
 
@@ -770,7 +760,6 @@ void Parser::processCycle(LockFreeQueue<ParseFrame *> &work, bool recursive) {//
 void Parser::cleanup_frames()  {
   vector <ParseFrame *> pfv;
   std::copy(frames.begin(), frames.end(), std::back_inserter(pfv));
-#if USE_OPENMP
 #pragma omp parallel for schedule(auto)
   for (unsigned int i = 0; i < pfv.size(); i++) {
     ParseFrame *pf = pfv[i];
@@ -779,24 +768,6 @@ void Parser::cleanup_frames()  {
       delete pf;
     }
   }
-  frames.clear();
-#elif USE_CILK
-  cilk_for(unsigned i=0; i < pfv.size(); ++i) {
-    ParseFrame *pf = pfv[i];
-    if (pf) {
-      _parse_data->remove_frame(pf);
-      delete pf;
-    }
-  }
-#else
-  for(unsigned i=0; i < pfv.size(); ++i) {
-    ParseFrame *pf = pfv[i];
-    if (pf) {
-      _parse_data->remove_frame(pf);
-      delete pf;
-    }
-  }
-#endif
   frames.clear();
 }
 
@@ -979,24 +950,11 @@ Parser::finalize_funcs(vector<Function *> &funcs)
 {
     vector<Function*> thread_local_funcs;
     std::copy(funcs.begin(), funcs.end(), std::back_inserter(thread_local_funcs));
-#if USE_OPENMP
-    #pragma omp parallel for schedule(auto)
+#pragma omp parallel for schedule(auto)
     for(int i = 0; i < thread_local_funcs.size(); ++i) {
         Function *f = thread_local_funcs[i];
         f->finalize();
     }
-#elif USE_CILK
-    cilk_for(int i = 0; i < thread_local_funcs.size(); ++i) {
-        Function *f = thread_local_funcs[i];
-        f->finalize();
-    }
-#else
-    for(int i = 0; i < thread_local_funcs.size(); ++i) {
-        Function *f = thread_local_funcs[i];
-        f->finalize();
-    }
-#endif
-
 }
 
 void
