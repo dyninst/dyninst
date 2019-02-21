@@ -856,7 +856,7 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
          const Relocation::TrackerElement *tracker = *iter;
          
          func_instance *tfunc = tracker->func();
-
+         printf("next function: %s\n", tfunc->prettyName().c_str());
          if (currFunc != tfunc) {
             // Starting a new function
             if (currFunc) {
