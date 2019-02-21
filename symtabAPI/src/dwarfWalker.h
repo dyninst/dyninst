@@ -53,7 +53,6 @@ protected:
     Dwarf* dbg() { return dbg_; }
 
     Module *& mod() { return mod_; } 
-    friend class MyReducerView;
     typeCollection *tc() { return typeCollection::getModTypeCollection(mod()); }
 
 private:
@@ -205,25 +204,6 @@ protected:
     virtual Object * obj() const ;
 
 }; // class DwarfParseActions 
-
-#ifndef ENABLE_VG_ANNOTATIONS
-#pragma omp declare \
-    reduction(leftmost : Module* : omp_out = omp_out == NULL ? omp_out : omp_in) \
-    initializer(omp_priv = NULL)
-#else
-// Annotations can't safely live within a reduction clause, so we use a function.
-static inline void ompc_leftmost(Module* &out, Module* &in) {
-    ANNOTATE_HAPPENS_AFTER(&in);
-    ANNOTATE_HAPPENS_AFTER(&out);
-    Module* otmp = out;
-    Module* itmp = in;
-    out = otmp == NULL ? otmp : itmp;
-    ANNOTATE_HAPPENS_BEFORE(&out);
-}
-#pragma omp declare \
-    reduction(leftmost : Module* : ompc_leftmost(omp_out, omp_in)) \
-    initializer(omp_priv = NULL)
-#endif
 
 struct ContextGuard {
     DwarfParseActions& c;

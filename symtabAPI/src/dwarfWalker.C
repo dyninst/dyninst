@@ -102,6 +102,23 @@ DwarfWalker::DwarfWalker(Symtab *symtab, ::Dwarf * dbg) :
 DwarfWalker::~DwarfWalker() {
 }
 
+#ifndef ENABLE_VG_ANNOTATIONS
+#pragma omp declare \
+    reduction(leftmost : Module* : \
+        omp_out = omp_out == NULL ? omp_out : omp_in)
+    initializer(omp_priv = NULL)
+#else
+// Annotations can't live within a reduction clause, but functions are fine
+static inline void ompc_leftmost(Module* &out, Module* &in) {
+    ANNOTATE_HAPPENS_AFTER(&in);
+    ANNOTATE_HAPPENS_AFTER(&out);
+    out = out == NULL ? out : in;
+    ANNOTATE_HAPPENS_BEFORE(&out);
+}
+#pragma omp declare \
+    reduction(leftmost : Module* : ompc_leftmost(omp_out, omp_in)) \
+    initializer(omp_priv = NULL)
+#endif
 
 bool DwarfWalker::parse() {
     dwarf_printf("Parsing DWARF for %s\n",filename().c_str());
@@ -137,13 +154,6 @@ bool DwarfWalker::parse() {
     {
         if(!dwarf_offdie_types(dbg(), cu_off + cu_header_length, &current_cu_die))
             continue;
-
-#if 0
-        push();
-        bool ret = parseModule(false, fixUnknownMod);
-        pop();
-        if(!ret) return false;
-#endif
         module_dies.push_back(current_cu_die);
         compile_offset = next_cu_header;
     }
@@ -156,21 +166,9 @@ bool DwarfWalker::parse() {
     {
         if(!dwarf_offdie(dbg(), cu_off + cu_header_length, &current_cu_die))
             continue;
-
-#if 0
-        push();
-        bool ret = parseModule(true, fixUnknownMod);
-        pop();
-        if(!ret) return false;
-#endif
         module_dies.push_back(current_cu_die);
         compile_offset = next_cu_header;
     }
-
-#if 0
-    //local fd
-    //temp dwarf
-#endif
 
 #pragma omp parallel
     {
@@ -193,13 +191,6 @@ bool DwarfWalker::parse() {
     }
 #ifdef ENABLE_VG_ANNOTATIONS
     ANNOTATE_HAPPENS_AFTER(&fixUnknownMod);
-#endif
-
-     // exit(0);
-
-#if 0
-	 //close file
-	 //dwarf end
 #endif
 
     if (!fixUnknownMod)
