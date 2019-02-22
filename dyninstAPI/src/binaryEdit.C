@@ -850,11 +850,11 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
       func_instance *currFunc = NULL;
       Address start = 0;
       unsigned size = 0;
+      Address orig_loc = 0;
       
       for (Relocation::CodeTracker::TrackerList::const_iterator iter = CT->trackers().begin();
            iter != CT->trackers().end(); ++iter) {
          const Relocation::TrackerElement *tracker = *iter;
-         const Relocation::TrackerElement* currFuncTracker = NULL; 
          func_instance *tfunc = tracker->func();
          printf("next function: %s\n", tfunc->prettyName().c_str());
          if (currFunc != tfunc) {
@@ -867,10 +867,10 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
                std::string name = currFunc->prettyName();
                name.append("_dyninst");
                   
-               printf("current function dyninst version name: %s, original location: 0x%lx, relocated to: 0x%lx ?= 0x%lx size of the instrumented function: %u size of orig: %u\n", name.c_str(), currFuncTracker->orig(), start, currFuncTracker->reloc(), size, currFuncTracker->size()); 
+               printf("current function dyninst version name: %s, orig loc: %u relocated to: 0x%lx size %u \n", name.c_str(), orig_loc, start, size); 
                SymtabAPI::Module* cur_func_module = currFunc->mod()->pmod()->mod();
                std::vector<Statement::Ptr> lines;
-               cur_func_module->getSourceLines(lines, currFuncTracker->orig());
+               cur_func_module->getSourceLines(lines, orig_loc);
                for (int i = 0; i < lines.size(); ++i) {
                   printf("begin addr: 0x%lx end addr: 0x%lx path: %s line: %d col: %d\n", lines[i]->startAddr(), lines[i]->endAddr(), (lines[i]->getFile()).c_str(), lines[i]->getLine(), lines[i]->getColumn());
                }  
@@ -885,8 +885,9 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
                                            size);                                        
                newSyms.push_back(newSym);
             }
-            currFuncTracker = tracker;  
+            //currFuncTracker = tracker;  
             currFunc = tfunc;
+            orig_loc = tracker->orig();
             start = tracker->reloc();
             size = 0;
          }
