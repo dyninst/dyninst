@@ -41,6 +41,7 @@
 #include "common/src/debugOstream.h"
 #include "common/src/serialize.h"
 #include "common/src/pathName.h"
+#include "common/h/vgannotations.h"
 
 #include "Serialization.h"
 #include "Symtab.h"
@@ -175,13 +176,7 @@ boost::shared_ptr<Type>& Symtab::type_Untyped()
 
 boost::shared_ptr<builtInTypeCollection>& Symtab::builtInTypes()
 {
-    
-    // acquire(fake_builtInTypes_lock);
-    static boost::shared_ptr<builtInTypeCollection> store = setupBuiltinTypes();
-    // forget(&store, sizeof(store));
-    // release(fake_builtInTypes_lock);
-    
-    return store;
+    return STATICIFY(setupBuiltinTypes());
 }
 
 boost::shared_ptr<typeCollection>& Symtab::stdTypes()

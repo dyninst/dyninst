@@ -46,6 +46,7 @@
 #include "elfutils/libdw.h"
 #include <elfutils/libdw.h>
 #include <tbb/parallel_for_each.h>
+#include "common/h/vgannotations.h"
 
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -102,13 +103,6 @@ DwarfWalker::DwarfWalker(Symtab *symtab, ::Dwarf * dbg) :
 DwarfWalker::~DwarfWalker() {
 }
 
-#ifndef ENABLE_VG_ANNOTATIONS
-#pragma omp declare \
-    reduction(leftmost : Module* : \
-        omp_out = omp_out == NULL ? omp_out : omp_in)
-    initializer(omp_priv = NULL)
-#else
-// Annotations can't live within a reduction clause, but functions are fine
 static inline void ompc_leftmost(Module* &out, Module* &in) {
     ANNOTATE_HAPPENS_AFTER(&in);
     ANNOTATE_HAPPENS_AFTER(&out);
@@ -118,7 +112,6 @@ static inline void ompc_leftmost(Module* &out, Module* &in) {
 #pragma omp declare \
     reduction(leftmost : Module* : ompc_leftmost(omp_out, omp_in)) \
     initializer(omp_priv = NULL)
-#endif
 
 bool DwarfWalker::parse() {
     dwarf_printf("Parsing DWARF for %s\n",filename().c_str());
@@ -180,18 +173,14 @@ bool DwarfWalker::parse() {
         DwarfWalker w(symtab_, temp_dwarf);
 	
 	w.push();
-#ifdef ENABLE_VG_ANNOTATIONS
         ANNOTATE_HAPPENS_BEFORE(&fixUnknownMod);
-#endif
         bool ret = w.parseModule(cur,fixUnknownMod);
         w.pop();
     }
     close(local_fd);
     dwarf_end(temp_dwarf);
     }
-#ifdef ENABLE_VG_ANNOTATIONS
     ANNOTATE_HAPPENS_AFTER(&fixUnknownMod);
-#endif
 
     if (!fixUnknownMod)
         return true;

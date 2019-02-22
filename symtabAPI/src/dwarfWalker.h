@@ -23,11 +23,6 @@
 #include "tbb/concurrent_hash_map.h"
 #include <bits/stdc++.h>
 
-#ifdef ENABLE_VG_ANNOTATIONS
-#include <valgrind/helgrind.h>
-#include <valgrind/drd.h>
-#endif
-
 namespace Dyninst {
 namespace SymtabAPI {
 

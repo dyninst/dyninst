@@ -39,17 +39,13 @@
 #include "Collections.h"
 #include "Function.h"
 #include "common/src/serialize.h"
+#include "common/h/vgannotations.h"
 
 #include "Type-mem.h"
 #include <iostream>
 #include <tbb/concurrent_hash_map.h>
 
 #include <boost/atomic.hpp>
-
-#ifdef ENABLE_VG_ANNOTATIONS
-#include <valgrind/helgrind.h>
-#include <valgrind/drd.h>
-#endif
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -135,14 +131,10 @@ Type *Type::createPlaceholder(typeId_t ID, std::string name)
     max_size = MAX(sizeof(typeSubrange), max_size);
     max_size = MAX(sizeof(typeArray), max_size);
     max_size += 32; //Some safey padding
-#ifdef ENABLE_VG_ANNOTATIONS
     ANNOTATE_HAPPENS_BEFORE(&max_size);
-#endif
     }
   );
-#ifdef ENABLE_VG_ANNOTATIONS
   ANNOTATE_HAPPENS_AFTER(&max_size);
-#endif
 
   void *mem = malloc(max_size);
   assert(mem);
