@@ -854,7 +854,7 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
       for (Relocation::CodeTracker::TrackerList::const_iterator iter = CT->trackers().begin();
            iter != CT->trackers().end(); ++iter) {
          const Relocation::TrackerElement *tracker = *iter;
-         Relocation::TrackerElement* currFuncTracker = NULL; 
+         const Relocation::TrackerElement* currFuncTracker = NULL; 
          func_instance *tfunc = tracker->func();
          printf("next function: %s\n", tfunc->prettyName().c_str());
          if (currFunc != tfunc) {
