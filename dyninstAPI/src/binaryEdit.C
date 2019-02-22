@@ -870,7 +870,7 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
                printf("current function dyninst version name: %s, original location: 0x%lx, relocated to: 0x%lx ?= 0x%lx size of the instrumented function: %u size of orig: %u\n", name.c_str(), currFuncTracker->orig(), start, currFuncTracker->reloc(), size, currFuncTracker->size()); 
                SymtabAPI::Module* cur_func_module = currFunc->mod()->pmod()->mod();
                std::vector<Statement::Ptr> lines;
-               cur_func_module->getSourceLines(lines, currFunc->get_address());
+               cur_func_module->getSourceLines(lines, currFuncTracker->orig());
                for (int i = 0; i < lines.size(); ++i) {
                   printf("begin addr: 0x%lx end addr: 0x%lx path: %s line: %d col: %d\n", lines[i]->startAddr(), lines[i]->endAddr(), (lines[i]->getFile()).c_str(), lines[i]->getLine(), lines[i]->getColumn());
                }  
