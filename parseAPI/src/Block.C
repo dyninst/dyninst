@@ -218,6 +218,9 @@ void Edge::destroy(Edge *e, CodeObject *o) {
 
 
 Block *Edge::trg() const {
+    if (!_from_index) {
+      return _target;
+    }
     Block* found = index->findBlock(_source->region(), _target_off);
     if(found) return found;
     Block* newBlock = NULL;

@@ -68,7 +68,8 @@ class CodeObject {
     PARSER_EXPORT CodeObject(CodeSource * cs, 
                              CFGFactory * fact = NULL, 
                              ParseCallback * cb = NULL,
-                             bool defensiveMode = false);
+                             bool defensiveMode = false,
+                             bool do_parse = true);
     PARSER_EXPORT ~CodeObject();
 
     /** Parsing interface **/

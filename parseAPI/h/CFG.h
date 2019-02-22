@@ -151,8 +151,10 @@ class PARSER_EXPORT Edge : public allocatable {
     friend class Block;
  protected:
     Block * _source;
+    Block * _target;
     ParseData* index;
     Offset _target_off;
+    bool _from_index;
 
  private:
 
@@ -181,6 +183,8 @@ class PARSER_EXPORT Edge : public allocatable {
          EdgeTypeEnum type);
      virtual ~Edge();
 
+    void ignore_index() { _from_index = false; }
+    void from_index() { _from_index = true; }
     Block * src() const { return _source; }
     Block * trg() const;
     Address trg_addr() const { return _target_off; }
@@ -337,8 +341,8 @@ public:
 
     bool consistent(Address addr, Address & prev_insn);
 
-    int  containingFuncs() const;
-    void getFuncs(std::vector<Function *> & funcs);
+    virtual int  containingFuncs() const;
+    virtual void getFuncs(std::vector<Function *> & funcs);
     template<class OutputIterator> void getFuncs(OutputIterator result); 
 
     virtual void getInsns(Insns &insns) const;
@@ -481,6 +485,7 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, pub
     CodeObject * _obj;
     CodeRegion * _region;
     InstructionSource * _isrc;
+    bool _cache_valid;
     
     FuncSource _src;
     boost::atomic<FuncReturnStatus> _rs;
@@ -620,7 +625,6 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, pub
     void finalize();
 
     bool _parsed;
-    bool _cache_valid;
     //    blocklist _bl;
     std::vector<FuncExtent *> _extents;
 
