@@ -82,7 +82,7 @@ Edge::Edge(Block *source, Block *target, EdgeTypeEnum type)
   index(source->obj()->parse_data()),
   _target_off(target->low()),
   _type(type,false),
-  _from_index(false) { 
+  _from_index(true) { 
       
     }
 
