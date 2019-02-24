@@ -336,13 +336,13 @@ public:
     }
     void copy_targets(edgelist & trg) {
         boost::lock_guard<Block> g(*this);
-	trg = _trglist;
+        trg = _trglist;
     }
 
     bool consistent(Address addr, Address & prev_insn);
 
-    virtual int  containingFuncs() const;
-    virtual void getFuncs(std::vector<Function *> & funcs);
+    int  containingFuncs() const;
+    void getFuncs(std::vector<Function *> & funcs);
     template<class OutputIterator> void getFuncs(OutputIterator result); 
 
     virtual void getInsns(Insns &insns) const;
