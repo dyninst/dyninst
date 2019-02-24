@@ -852,7 +852,7 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
       unsigned size = 0;
       Address orig_loc = 0;
       unsigned orig_size = 0;
-      
+      CT->debug(); 
       for (Relocation::CodeTracker::TrackerList::const_iterator iter = CT->trackers().begin();
            iter != CT->trackers().end(); ++iter) {
          const Relocation::TrackerElement *tracker = *iter;
