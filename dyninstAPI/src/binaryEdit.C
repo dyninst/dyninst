@@ -857,7 +857,7 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
            iter != CT->trackers().end(); ++iter) {
          const Relocation::TrackerElement *tracker = *iter;
          func_instance *tfunc = tracker->func();
-         printf("next function: %s\n", tfunc->prettyName().c_str());
+         //printf("next function: %s orig addr: 0x%lx inst addr: 0x%lx\n", tfunc->prettyName().c_str(), tracker->orig(), tracker->reloc());
          if (currFunc != tfunc) {
             // Starting a new function
             if (currFunc) {
@@ -868,7 +868,7 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
                std::string name = currFunc->prettyName();
                name.append("_dyninst");
                   
-               printf("current function dyninst version name: %s, orig loc: 0x%lx relocated to: 0x%lx size %u orig size: %u\n", name.c_str(), orig_loc, start, size, orig_size); 
+          //     printf("current function dyninst version name: %s, orig loc: 0x%lx relocated to: 0x%lx size %u orig size: %u\n", name.c_str(), orig_loc, start, size, orig_size); 
                SymtabAPI::Module* cur_func_module = currFunc->mod()->pmod()->mod();
                std::vector<Statement::Ptr> lines;
                cur_func_module->getSourceLines(lines, orig_loc);
