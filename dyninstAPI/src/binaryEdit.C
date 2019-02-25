@@ -857,6 +857,7 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
            iter != CT->trackers().end(); ++iter) {
          const Relocation::TrackerElement *tracker = *iter;
          func_instance *tfunc = tracker->func();
+         cout << "\t" << hex << *tracker << dec << endl;
          //printf("next function: %s orig addr: 0x%lx inst addr: 0x%lx\n", tfunc->prettyName().c_str(), tracker->orig(), tracker->reloc());
          if (currFunc != tfunc) {
             // Starting a new function
@@ -869,13 +870,14 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
                name.append("_dyninst");
                   
           //     printf("current function dyninst version name: %s, orig loc: 0x%lx relocated to: 0x%lx size %u orig size: %u\n", name.c_str(), orig_loc, start, size, orig_size); 
+               /*
                SymtabAPI::Module* cur_func_module = currFunc->mod()->pmod()->mod();
                std::vector<Statement::Ptr> lines;
                cur_func_module->getSourceLines(lines, orig_loc);
                for (int i = 0; i < lines.size(); ++i) {
                   printf("begin addr: 0x%lx end addr: 0x%lx path: %s line: %d col: %d\n", lines[i]->startAddr(), lines[i]->endAddr(), (lines[i]->getFile()).c_str(), lines[i]->getLine(), lines[i]->getColumn());
                }  
-
+               */
                Symbol *newSym = new Symbol(name.c_str(),
                                            Symbol::ST_FUNCTION,
                                            Symbol::SL_GLOBAL,
