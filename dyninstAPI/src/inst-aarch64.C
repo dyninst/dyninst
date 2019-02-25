@@ -1425,7 +1425,6 @@ void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variab
     //assert(0); //Not implemented
     //return;
     
-    /*
     // create or retrieve jump slot
     Address addr;
     int stackSize = 0;
@@ -1442,7 +1441,7 @@ void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variab
 
     // load register with address from jump slot
 
-    inst_printf("emitLoadShared addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n", 
+    printf("emitLoadShared addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n", 
             addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
     Register scratchReg = gen.rs()->getScratchRegister(gen, true);
 
@@ -1457,7 +1456,10 @@ void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variab
         if(!is_local && (var != NULL)){
             emitLoadRelative(dest, varOffset, scratchReg, gen.width(), gen);
             // Deference the pointer to get the variable
-            emitLoadRelative(dest, 0, dest, size, gen);
+            // emitLoadRelative(dest, 0, dest, size, gen);
+            // Offset mode to load back to itself
+            printf("Fallback to offset mode\n");
+            insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest, dest, 0, 8, insnCodeGen::Offset);
         } else {
             emitLoadRelative(dest, varOffset, scratchReg, size, gen);
         }
@@ -1465,19 +1467,20 @@ void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variab
         if(!is_local && (var != NULL)){
             emitLoadRelative(dest, varOffset, scratchReg, gen.width(), gen);
         } else {
+            printf("oops, reached else branch\n");
+            assert(0);
 
             // Move address of the variable into the register - load effective address
             //dest = effective address of pc+offset ;
-            insnCodeGen::generateImm (gen, CAUop, dest, 0, BOT_HI (varOffset));
-            insnCodeGen::generateImm (gen, ORILop, dest, dest, BOT_LO (varOffset));
-            insnCodeGen::generateAddReg (gen, CAXop, dest, dest, scratchReg);
+            //insnCodeGen::generateImm (gen, CAUop, dest, 0, BOT_HI (varOffset));
+            //insnCodeGen::generateImm (gen, ORILop, dest, dest, BOT_LO (varOffset));
+            //insnCodeGen::generateAddReg (gen, CAXop, dest, dest, scratchReg);
         }
     }
 
     if (stackSize > 0)
         assert(0);
 
-    */
     return;
 }
 
