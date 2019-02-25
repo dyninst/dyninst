@@ -869,6 +869,13 @@ bool Symtab::demangleSymbol(Symbol *&sym) {
    return true;
 }
 
+void Symtab::addLineMap(std::vector<std::pair<Address, LineNoTuple>>& linemap)
+{
+    for (int i = 0; i < linemap.size(); ++i) {
+        newLineMap_.push_back(linemap[i]); 
+    }
+}
+
 bool Symtab::addSymbolToIndices(Symbol *&sym, bool undefined) 
 {
    assert(sym);

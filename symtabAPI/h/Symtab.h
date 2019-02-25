@@ -221,6 +221,11 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool updateFuncBindingTable(Offset stub_addr, Offset plt_addr);
 
    /**************************************
+    *** LineMAP ADDING FUNCS **************
+    **************************************/
+   void addLineMap(std::vector<std::pair<Address, LineNoTuple>>& linemap);
+
+   /**************************************
     *** SYMBOL ADDING FUNCS **************
     **************************************/
 
@@ -625,7 +630,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
     unsigned _ref_cnt;
 
  private:
-    std::vector<std::pair<Address, LineNoTuple>> newLineMap;
+    std::vector<std::pair<Address, LineNoTuple>> newLineMap_;
 };
 
 /**
