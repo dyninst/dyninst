@@ -45,7 +45,7 @@
 #include "parseAPI/h/InstructionSource.h"
 #include "PatchMgr.h"
 
-#include "SymtabAPI/h/Module.h"
+#include "symtabAPI/h/Module.h"
 
 class fileDescriptor;
 class func_instance;

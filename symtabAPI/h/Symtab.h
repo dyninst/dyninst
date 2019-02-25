@@ -623,6 +623,9 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
  private:
     unsigned _ref_cnt;
+
+ private:
+    std::vector<std::pair<Address, LineNoTuple>> newLineMap;
 };
 
 /**
