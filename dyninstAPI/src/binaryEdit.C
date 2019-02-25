@@ -672,8 +672,13 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       pdvector<Symbol *> newSyms;
       buildDyninstSymbols(newSyms, newSec, symObj->getOrCreateModule("dyninstInst",
                                                                      lowWaterMark_));
+      pdvector<std::pair<Address, Statement::Ptr> > newLineMap;
+      buildInstrumentedLineMap(newLineMap);
+      for (uint64_t i = 0; i < newLineMap.size(); ++i) {
+        cout << hex << "\t" << newLineMap[i].first << dec << " file: " << (newLineMap[i].second)->getFile() << " line: " <<  (newLineMap[i].second)->getLine() << " column: " << (newLineMap[i].second)->getColumn() << endl;
+      }
+
       for (unsigned i = 0; i < newSyms.size(); i++) {
-         printf("add dyninst symbols - name: %s offset: 0x%lx ptr offset: 0x%lx size: %lu\n", newSyms[i]->getMangledName().c_str(), newSyms[i]->getOffset(), newSyms[i]->getPtrOffset(), newSyms[i]->getSize());
          symObj->addSymbol(newSyms[i]);
       }
       
@@ -827,6 +832,70 @@ void BinaryEdit::addLibraryPrereq(std::string libname) {
    symObj->addLibraryPrereq(libname);
 }
 
+// Helper function to build linemap for relocated instructions 
+void BinaryEdit::buildLineMapReloc(pdvector<std::pair<Address, Statement::Ptr> > & newLineMap, Address orig_addr, Address reloc_addr, unsigned strand_size, Relocation::TrackerElement * tracker) 
+{
+    SymtabAPI::Module* module = tracker->func()->mod()->pmod()->mod();
+    std::vector<Statement::Ptr> lines;
+    for (unsigned offset = 0; offset < strand_size; ++offset) {
+        Address cur_orig_addr = (Address)((uint64_t)orig_addr + offset);
+        Address cur_reloc_addr = (Address)((uint64_t)reloc_addr + offset);
+        lines.clear();
+        module->getSourceLines(lines, cur_orig_addr);
+        if (lines.size() == 0) {
+            cerr << "error: no line info " << hex << cur_orig_addr << " \t " << *tracker << dec << endl;
+        } else {
+            newLineMap.push_back(std::make_pair(cur_reloc_addr, lines[0]));
+        }
+    }
+}
+
+void BinaryEdit::buildLineMapInst(pdvector<std::pair<Address, Statement::Ptr> > & newLineMap, Address orig_addr, Address reloc_addr, unsigned strand_size, Relocation::TrackerElement * tracker) 
+{
+
+
+}
+
+// Build a list of linemaps for instrumented binary
+// each instruction address in the instrumented binary gets its linemap in the original binary 
+
+void BinaryEdit::buildInstrumentedLineMap(pdvector<std::pair<Address, Statement::Ptr>>& newLineMap)
+{
+   for (CodeTrackers::iterator i = relocatedCode_.begin();
+        i != relocatedCode_.end(); ++i) {
+      Relocation::CodeTracker *CT = *i;
+      Address orig_addr;
+      Address reloc_addr; 
+      unsigned strand_size; // the size of the strand of the instruction to be relocated 
+      for (Relocation::CodeTracker::TrackerList::const_iterator iter = CT->trackers().begin();
+           iter != CT->trackers().end(); ++iter) {
+            const Relocation::TrackerElement *tracker = *iter;
+            func_instance *tfunc = tracker->func();
+            cout << "\t traker element: " << hex << *tracker << dec << endl;
+            orig_addr = tracker->orig(); // get the address of the start of the instruction strand in the original binary to be relocated
+            reloc_addr = tracker->reloc(); //get the start address of the relocated strand
+            strand_size = tracker->size();
+            type_t tracker_type = tracker->type();
+            switch(tracker->type()) {
+                case TrackerElement::original: 
+                    buildLineMapReloc(newLineMap, orig_addr, reloc_addr, strand_size, tracker); 
+                    break;
+                case TrackerElement::emulated:
+                    buildLineMapReloc(newLineMap, orig_addr, reloc_addr, strand_size, tracker);
+                    break;
+                case TrackerElement::instrumentation:
+                    buildLinemapInst(newLineMap, orig_addr, reloc_addr, strand_size, tracker);
+                    break;
+                case TrackerElement::padding:
+                    cerr << "padding?" << endl;
+                    break;
+                default:
+                    cout << "??" << endl;
+                    break;
+            }
+        }  
+   }
+}
 
 // Build a list of symbols describing instrumentation and relocated functions. 
 // To keep this list (somewhat) short, we're doing one symbol per extent of 
@@ -852,12 +921,13 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
       unsigned size = 0;
       Address orig_loc = 0;
       unsigned orig_size = 0;
-      CT->debug(); 
+//    CT->debug(); 
       for (Relocation::CodeTracker::TrackerList::const_iterator iter = CT->trackers().begin();
            iter != CT->trackers().end(); ++iter) {
          const Relocation::TrackerElement *tracker = *iter;
          func_instance *tfunc = tracker->func();
          cout << "\t" << hex << *tracker << dec << endl;
+         
          //printf("next function: %s orig addr: 0x%lx inst addr: 0x%lx\n", tfunc->prettyName().c_str(), tracker->orig(), tracker->reloc());
          if (currFunc != tfunc) {
             // Starting a new function

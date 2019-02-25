@@ -226,6 +226,13 @@ class BinaryEdit : public AddressSpace {
     void buildDyninstSymbols(pdvector<SymtabAPI::Symbol *> &newSyms, 
                              SymtabAPI::Region *newSec,
                              SymtabAPI::Module *newMod);
+
+    void buildInstrumentedLineMap(pdvector<std::pair<Address, Statement::Ptr> & newLineMap);  
+
+    void buildLineMapReloc(pdvector<std::pair<Address, Statement::Ptr> & newLineMap, Address orig_addr, Address reloc_addr, unsigned strand_size, Relocation::TrackerElement* tracker);
+
+    void buildLineMapInst(pdvector<std::pair<Address, Statement::Ptr> & newLineMap, Address orig_addr, Address reloc_addr, unsigned strand_size, Relocation::TrackerElement* tracker);
+
     mapped_object *mobj;
     std::vector<BinaryEdit *> rtlib;
     std::vector<BinaryEdit *> siblings;
