@@ -839,6 +839,7 @@ void BinaryEdit::buildLineMapReloc(pdvector<std::pair<Address, SymtabAPI::LineNo
     SymtabAPI::Module* module = tracker->func()->mod()->pmod()->mod();
     std::vector<SymtabAPI::LineNoTuple> lines;
     for (unsigned offset = 0; offset < strand_size; ++offset) {
+        // do for each byte?
         Address cur_orig_addr = (Address)((uint64_t)orig_addr + offset);
         Address cur_reloc_addr = (Address)((uint64_t)reloc_addr + offset);
         lines.clear();
