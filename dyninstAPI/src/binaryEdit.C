@@ -834,12 +834,15 @@ void BinaryEdit::addLibraryPrereq(std::string libname) {
 }
 
 // Helper function to build linemap for relocated instructions 
-void BinaryEdit::buildLineMapReloc(pdvector<std::pair<Address, SymtabAPI::LineNoTuple> > & newLineMap, Address orig_addr, Address reloc_addr, unsigned strand_size, Relocation::TrackerElement * tracker) 
+// The output is a vector of <address, line info> pair 
+// suppose two adjacent pairs p1, p2, then address 
+//
+void BinaryEdit::buildLineMapReloc(pdvector<std::pair<Address, SymtabAPI::LineNoTuple> > & newLineMap, Address orig_addr, Address reloc_addr, unsigned strand_size, const Relocation::TrackerElement * tracker) 
 {
     SymtabAPI::Module* module = tracker->func()->mod()->pmod()->mod();
     std::vector<SymtabAPI::LineNoTuple> lines;
     for (unsigned offset = 0; offset < strand_size; ++offset) {
-        // do for each byte?
+        // do for each byte of the instruction
         Address cur_orig_addr = (Address)((uint64_t)orig_addr + offset);
         Address cur_reloc_addr = (Address)((uint64_t)reloc_addr + offset);
         lines.clear();
@@ -852,7 +855,7 @@ void BinaryEdit::buildLineMapReloc(pdvector<std::pair<Address, SymtabAPI::LineNo
     }
 }
 
-void BinaryEdit::buildLineMapInst(pdvector<std::pair<Address, SymtabAPI::LineNoTuple> > & newLineMap, Address orig_addr, Address reloc_addr, unsigned strand_size, Relocation::TrackerElement * tracker) 
+void BinaryEdit::buildLineMapInst(pdvector<std::pair<Address, SymtabAPI::LineNoTuple> > & newLineMap, Address orig_addr, Address reloc_addr, unsigned strand_size, const Relocation::TrackerElement * tracker) 
 {
 
 
