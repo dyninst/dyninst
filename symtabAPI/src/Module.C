@@ -218,6 +218,7 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
 }
 
 LineInformation *Module::parseLineInformation() {
+    cerr << "parseLineInformation: strings_ size: " << strings_.size() << endl;
     if (exec()->getArchitecture() != Arch_cuda &&
 	(exec()->getObject()->hasDebugInfo() || !info_.empty())) {
         // Allocate if none
@@ -246,7 +247,8 @@ LineInformation *Module::parseLineInformation() {
     } else if (!lineInfo_) {
         objectLevelLineInfo = true;
         lineInfo_ = exec()->getObject()->parseLineInfoForObject(strings_);
-    }
+    } 
+    // parseDyninstLineInfo()
     return lineInfo_;
 }
 

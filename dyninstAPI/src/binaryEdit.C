@@ -876,18 +876,17 @@ void BinaryEdit::buildInstrumentedLineMap(pdvector<std::pair<Address, SymtabAPI:
             orig_addr = tracker->orig(); // get the address of the start of the instruction strand in the original binary to be relocated
             reloc_addr = tracker->reloc(); //get the start address of the relocated strand
             strand_size = tracker->size();
-            type_t tracker_type = tracker->type();
             switch(tracker->type()) {
-                case TrackerElement::original: 
+                case Relocation::TrackerElement::original: 
                     buildLineMapReloc(newLineMap, orig_addr, reloc_addr, strand_size, tracker); 
                     break;
-                case TrackerElement::emulated:
+                case Relocation::TrackerElement::emulated:
                     buildLineMapReloc(newLineMap, orig_addr, reloc_addr, strand_size, tracker);
                     break;
-                case TrackerElement::instrumentation:
-                    buildLinemapInst(newLineMap, orig_addr, reloc_addr, strand_size, tracker);
+                case Relocation::TrackerElement::instrumentation:
+                    buildLineMapInst(newLineMap, orig_addr, reloc_addr, strand_size, tracker);
                     break;
-                case TrackerElement::padding:
+                case Relocation::TrackerElement::padding:
                     cerr << "padding?" << endl;
                     break;
                 default:
