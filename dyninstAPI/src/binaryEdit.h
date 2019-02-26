@@ -231,9 +231,9 @@ class BinaryEdit : public AddressSpace {
 
     void buildInstrumentedLineMap(pdvector<std::pair<Address, SymtabAPI::LineNoTuple> >& newLineMap);  
 
-    void buildLineMapReloc(pdvector<std::pair<Address, SymtabAPI::LineNoTuple>> & newLineMap, Address orig_addr, Address reloc_addr, unsigned strand_size, Relocation::TrackerElement* tracker);
+    void buildLineMapReloc(pdvector<std::pair<Address, SymtabAPI::LineNoTuple>> & newLineMap, Address orig_addr, Address reloc_addr, unsigned strand_size, const Relocation::TrackerElement* tracker);
 
-    void buildLineMapInst(pdvector<std::pair<Address, SymtabAPI::LineNoTuple> > & newLineMap, Address orig_addr, Address reloc_addr, unsigned strand_size, Relocation::TrackerElement* tracker);
+    void buildLineMapInst(pdvector<std::pair<Address, SymtabAPI::LineNoTuple> > & newLineMap, Address orig_addr, Address reloc_addr, unsigned strand_size, const Relocation::TrackerElement* tracker);
 
     mapped_object *mobj;
     std::vector<BinaryEdit *> rtlib;

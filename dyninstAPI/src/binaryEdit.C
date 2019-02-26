@@ -835,8 +835,9 @@ void BinaryEdit::addLibraryPrereq(std::string libname) {
 
 // Helper function to build linemap for relocated instructions 
 // The output is a vector of <address, line info> pair 
-// suppose two adjacent pairs p1, p2, then address 
-//
+// suppose two adjacent pairs p1, p2, then the range of address [p1.address, p2.address) maps to p1.line_info
+// in terms of the last pair pl, the range of address [pl.address, infty) maps to pl.line_info 
+// With this additional dyninst linemap, when emitting the binary, we could add another sections to store the correspondance. And in the getSourceLines function, we implement additional piece of code to check the added section 
 void BinaryEdit::buildLineMapReloc(pdvector<std::pair<Address, SymtabAPI::LineNoTuple> > & newLineMap, Address orig_addr, Address reloc_addr, unsigned strand_size, const Relocation::TrackerElement * tracker) 
 {
     SymtabAPI::Module* module = tracker->func()->mod()->pmod()->mod();
