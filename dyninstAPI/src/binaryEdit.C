@@ -862,6 +862,7 @@ void BinaryEdit::buildLineMapCore(pdvector<std::pair<Address, SymtabAPI::LineNoT
         if (lines.size() == 0) {
             cerr << "error: no line info " << hex << cur_orig_addr << " \t " << *tracker << dec << endl;
         } else {
+            cerr << "line info found " << hex << cur_orig_addr << " \t" << *tracker << " reloc addr: " << cur_reloc_addr << dec << endl;
             SymtabAPI::LineNoTuple stmt = lines[0];
             int cur_file_index = (int)stmt.getFileIndex();
             int cur_line = (int)stmt.getLine();
