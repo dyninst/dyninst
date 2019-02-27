@@ -26,7 +26,7 @@
 //******************************************************************************
 
 #include "pfq-rwlock.h"
-
+#include "vgannotations.h"
 
 
 //******************************************************************************
@@ -74,6 +74,7 @@ pfq_rwlock_init(pfq_rwlock_t &l)
   l.writer_blocking_readers[1].bit.store(false);
   mcs_init(l.wtail);
   l.whead = mcs_nil;
+  ANNOTATE_RWLOCK_CREATE(&l);
 }
 
 void
@@ -86,12 +87,14 @@ pfq_rwlock_read_lock(pfq_rwlock_t &l)
     uint32_t phase = ticket & PHASE_BIT;
     while (l.writer_blocking_readers[phase].bit.load(boost::memory_order_acquire));
   }
+  ANNOTATE_READERLOCK_ACQUIRED(&l);
 }
 
 
 void
 pfq_rwlock_read_unlock(pfq_rwlock_t &l)
 {
+  ANNOTATE_READERLOCK_RELEASED(&l);
   uint32_t ticket = l.rout.fetch_add(READER_INCREMENT, boost::memory_order_acq_rel);
 
   if (ticket & WRITER_PRESENT) {
@@ -164,12 +167,14 @@ pfq_rwlock_write_lock(pfq_rwlock_t &l, pfq_rwlock_node_t &me)
     // readers of writer
     //--------------------------------------------------------------------------
   }
+  ANNOTATE_WRITERLOCK_ACQUIRED(&l);
 }
 
 
 void
 pfq_rwlock_write_unlock(pfq_rwlock_t &l, pfq_rwlock_node_t &me)
 {
+  ANNOTATE_WRITERLOCK_RELEASED(&l);
   //--------------------------------------------------------------------
   // toggle phase and clear WRITER_PRESENT in rin. No synch issues
   // since there are no concurrent updates of the low-order byte

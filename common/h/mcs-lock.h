@@ -59,11 +59,8 @@ typedef struct {
 // interface functions
 //******************************************************************************
 
-static inline void
-mcs_init(mcs_lock_t &l)
-{
-  l.tail.store(mcs_nil);
-}
+COMMON_EXPORT void
+mcs_init(mcs_lock_t &l);
 
 COMMON_EXPORT void
 mcs_lock(mcs_lock_t &l, mcs_node_t &me);
