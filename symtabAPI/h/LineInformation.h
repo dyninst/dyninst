@@ -47,7 +47,7 @@ class SYMTAB_EXPORT LineInformation :
 {
 public:
     typedef RangeLookupTypes< Statement> traits;
-    typedef RangeLookupTypes< Statement >::type impl_t;
+    typedef RangeLookupTypes< Statement >::type impl_t; // the impl_t is actually the multi_index_container
     typedef impl_t::index<Statement::addr_range>::type::const_iterator const_iterator;
     typedef impl_t::index<Statement::line_info>::type::const_iterator const_line_info_iterator;
     typedef traits::value_type Statement_t;

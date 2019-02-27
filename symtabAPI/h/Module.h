@@ -106,6 +106,10 @@ namespace Dyninst{
 			struct addr_range {};
 			struct line_info {};
 			struct upper_bound {};
+            
+            void setLine(unsigned int newLine) {
+                line_ = newLine;
+            }
 
 			typedef Statement* Ptr;
 			typedef const Statement* ConstPtr;

@@ -109,7 +109,7 @@ bool LineInformation::getSourceLines(Offset addressInRange,
     const_iterator end_addr_valid = impl_t::upper_bound(addressInRange );
     while(start_addr_valid != end_addr_valid && start_addr_valid != end())
     {
-        if(*(*start_addr_valid) == addressInRange)
+        if(*(*start_addr_valid) == addressInRange) // *start_addr_valid is Statement::Ptr, which is Statement*
         {
             lines.push_back(*start_addr_valid);
         }

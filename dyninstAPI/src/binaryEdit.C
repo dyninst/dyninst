@@ -833,33 +833,63 @@ void BinaryEdit::addLibraryPrereq(std::string libname) {
    symObj->addLibraryPrereq(libname);
 }
 
+
 // Helper function to build linemap for relocated instructions 
 // The output is a vector of <address, line info> pair 
 // suppose two adjacent pairs p1, p2, then the range of address [p1.address, p2.address) maps to p1.line_info
 // in terms of the last pair pl, the range of address [pl.address, infty) maps to pl.line_info 
-// With this additional dyninst linemap, when emitting the binary, we could add another sections to store the correspondance. And in the getSourceLines function, we implement additional piece of code to check the added section 
-void BinaryEdit::buildLineMapReloc(pdvector<std::pair<Address, SymtabAPI::LineNoTuple> > & newLineMap, Address orig_addr, Address reloc_addr, unsigned strand_size, const Relocation::TrackerElement * tracker) 
+// With this additional dyninst linemap, when emitting the binary, we could add another sections to store the correspondance. And in the getSourceLines function, we implement additional piece of code to check the existance of added section 
+// For added instrumentation instructions, we add an offset '10000000' to to line number to  associate it with the source file location where instrumentation is intended for 
+void BinaryEdit::buildLineMapCore(pdvector<std::pair<Address, SymtabAPI::LineNoTuple> > & newLineMap, Address orig_addr, Address reloc_addr, unsigned strand_size, const Relocation::TrackerElement * tracker, bool isInstCode) 
 {
+    unsigned int line_offset =0 ;
+    if (isInstCode)
+        line_offset = 10000000;
     SymtabAPI::Module* module = tracker->func()->mod()->pmod()->mod();
     std::vector<SymtabAPI::LineNoTuple> lines;
+    Address cur_orig_addr;
+    Address cur_reloc_addr;
+    Address key_addr;
+    int last_file_index = -1;
+    int last_line = -1;
+    int last_column = -1;
     for (unsigned offset = 0; offset < strand_size; ++offset) {
         // do for each byte of the instruction
-        Address cur_orig_addr = (Address)((uint64_t)orig_addr + offset);
-        Address cur_reloc_addr = (Address)((uint64_t)reloc_addr + offset);
+        cur_orig_addr = (Address)((uint64_t)orig_addr + offset);
+        cur_reloc_addr = (Address)((uint64_t)reloc_addr + offset);
         lines.clear();
         module->getSourceLines(lines, cur_orig_addr);
         if (lines.size() == 0) {
             cerr << "error: no line info " << hex << cur_orig_addr << " \t " << *tracker << dec << endl;
         } else {
-            newLineMap.push_back(std::make_pair(cur_reloc_addr, lines[0]));
+            SymtabAPI::LineNoTuple stmt = lines[0];
+            int cur_file_index = (int)stmt.getFileIndex();
+            int cur_line = (int)stmt.getLine();
+            int cur_column = (int)stmt.getColumn(); 
+            
+            if (cur_file_index == last_file_index && cur_line == last_line && 
+                    cur_column == last_column) {
+                // the instruction byte at curr_orig_addr is associated with the same source code location
+                continue;
+            } else {
+                last_file_index = cur_file_index;
+                last_line = cur_line;
+                last_column = cur_column;
+                stmt.setLine(cur_line + offset);
+                newLineMap.push_back(std::make_pair(cur_reloc_addr, stmt)); 
+            }
         }
     }
 }
 
+void BinaryEdit::buildLineMapReloc(pdvector<std::pair<Address, SymtabAPI::LineNoTuple> > & newLineMap, Address orig_addr, Address reloc_addr, unsigned strand_size, const Relocation::TrackerElement * tracker) 
+{
+    buildLineMapCore(newLineMap, orig_addr, reloc_addr, strand_size, tracker, false);
+}
+
 void BinaryEdit::buildLineMapInst(pdvector<std::pair<Address, SymtabAPI::LineNoTuple> > & newLineMap, Address orig_addr, Address reloc_addr, unsigned strand_size, const Relocation::TrackerElement * tracker) 
 {
-
-
+    buildLineMapCore(newLineMap, orig_addr, reloc_addr, strand_size, tracker, true);
 }
 
 // Build a list of linemaps for instrumented binary
