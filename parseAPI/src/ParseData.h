@@ -48,6 +48,7 @@
 #include <boost/atomic.hpp>
 
 #include "tbb/concurrent_hash_map.h"
+#include "common/h/vgannotations.h"
 
 using namespace std;
 
@@ -237,29 +238,25 @@ public:
     }
     ParseFrame::Status getFrameStatus(Address addr) {
         ParseFrame::Status ret;
-        // acquire(frame_status);
-        {
         tbb::concurrent_hash_map<Address, ParseFrame::Status>::const_accessor a;
         if(frame_status.find(a, addr)) {
+            ANNOTATE_HAPPENS_AFTER(&frame_status + addr + 0xFF);
             ret = a->second;
+            ANNOTATE_HAPPENS_BEFORE(&frame_status + addr + 0xFF);
         } else {
             ret = ParseFrame::BAD_LOOKUP;
         }
-        }
-        // release(frame_status);
         return ret;
     }
 
 
     void setFrameStatus(Address addr, ParseFrame::Status status)
     {
-        // acquire(frame_status);
-	{
-	  tbb::concurrent_hash_map<Address, ParseFrame::Status>::accessor a;
-	  frame_status.insert(a, make_pair(addr, status));
-      a->second = status;
-	}
-        // release(frame_status);
+        tbb::concurrent_hash_map<Address, ParseFrame::Status>::accessor a;
+        ANNOTATE_HAPPENS_AFTER(&frame_status + addr + 0xFF);
+        frame_status.insert(a, make_pair(addr, status));
+        a->second = status;
+        ANNOTATE_HAPPENS_BEFORE(&frame_status + addr + 0xFF);
     }
 
     void record_func(Function* f) {
