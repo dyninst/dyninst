@@ -158,6 +158,7 @@ location_t DebugStepperImpl::getLastComputedLocation(unsigned long value)
 
 bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
 {
+   sw_printf("Attempt to get value for reg %s\n", reg.name().c_str());
    if (reg.isFramePointer()) {
       val = static_cast<MachRegisterVal>(depth_frame->getFP());
       return true;
@@ -639,11 +640,9 @@ bool DebugStepperImpl::lookupInCache(const Frame &cur, Frame &caller) {
        assert(0);
        MAX_ADDR = 0xffffffff;
    }
-#if defined(arch_64bit)
    else if (addr_width == 8){
        MAX_ADDR = 0xffffffffffffffff;
    }
-#endif
    else {
        assert(0 && "Unknown architecture word size");
        return false;

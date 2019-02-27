@@ -128,7 +128,6 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   addrWidth = getProcessState()->getAddressWidth();
 
   ra_fp_pair_t this_frame_pair;
-  ra_fp_pair_t last_frame_pair;
   ra_fp_pair_t *actual_frame_pair_p;
 
   Address actual_fp;
@@ -139,13 +138,16 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
       sw_printf("[%s:%u] - in.getFP() %lx\n", FILE__, __LINE__, in.getFP());
       return gcf_not_me;
   }
-
   // Look for function prologue to see if it is a standard frame 
   FrameFuncHelper::alloc_frame_t alloc_frame;
   alloc_frame = helper->allocatesFrame(in.getRA());
   if (alloc_frame.first != FrameFuncHelper::standard_frame) {
       sw_printf("[%s:%u] - alloc_frame.first!=standard_frame (== %lx)\n", FILE__, __LINE__, alloc_frame.first);
-      return gcf_not_me;
+      // If we are dealing with the first frame,
+      // the frame information is in the register state.
+      // We continue this function 
+      if (in.getPrevFrame() != NULL)
+          return gcf_not_me;
   }
 
   if (!in.getFP())
@@ -170,19 +172,6 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
     return gcf_error;
   }
 
-  // Read the previous frame
-  if (sizeof(uint64_t) == addrWidth) {
-    result = getProcessState()->readMem(&last_frame_pair, this_frame_pair.FP,
-                                        sizeof(last_frame_pair));
-  }
-  else {
-      assert(0);
-  }
-  if (!result) {
-    sw_printf("[%s:%u] - Couldn't read from %lx\n", FILE__, __LINE__,
-	      out.getFP());
-    return gcf_error;
-  }
 
   // Set actual stack frame based on
   // whether the function creates a frame or not
@@ -193,11 +182,6 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   }
   else
   {
-    /*
-    actual_frame_pair_p = &last_frame_pair;
-    actual_fp = this_frame_pair.FP;
-    actual_fp = in_fp;
-    */
     actual_frame_pair_p = &this_frame_pair;
   }
 
@@ -428,7 +412,7 @@ void aarch64_LookupFuncStart::releaseMe()
 }
 
 // in bytes
-#define FUNCTION_PROLOG_TOCHECK 12
+#define FUNCTION_PROLOG_TOCHECK 20
 static const unsigned int push_fp_ra      = 0xa9807bfd ; // stp x29, x30, [sp, #x]!
 static const unsigned int mov_sp_fp       = 0x910003fd ; // mov x29(fp), sp
 static const unsigned int push_fp_ra_mask = 0xffc07fff ; // mask for push_fp_ra

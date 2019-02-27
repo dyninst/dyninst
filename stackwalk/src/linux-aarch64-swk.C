@@ -58,7 +58,6 @@ bool Walker::createDefaultSteppers()
     FrameStepper *stepper;
     bool result;
 
-
     // ARM: this works on ARM.
     // Need to adjust a variable that stores the length of _start
     stepper = new BottomOfStackStepper(this);
@@ -71,7 +70,7 @@ bool Walker::createDefaultSteppers()
         sw_printf("[%s:%u] - Stepper %p is BottomOfStackStepper\n",
                   FILE__, __LINE__, stepper);
     }
-
+/*
     stepper = new DebugStepper(this);
     result = addStepper(stepper);
     if (!result){
@@ -82,6 +81,7 @@ bool Walker::createDefaultSteppers()
         sw_printf("[%s:%u] - Stepper %p is DebugStepper\n",
                   FILE__, __LINE__, stepper);
     }
+ */
     stepper = new FrameFuncStepper(this);
     result = addStepper(stepper);
     if (!result) {
@@ -131,11 +131,11 @@ static int sp_offset = (char*)&(dummy_context.uc_mcontext.sp)       - (char*)&du
 static int fp_offset = (char*)&(dummy_context.uc_mcontext.regs[29]) - (char*)&dummy_context;
 static int pc_offset = (char*)&(dummy_context.uc_mcontext.pc)       - (char*)&dummy_context;
 
-// This assumes that a ucontext_t is at the following offset from the top of the signal handler's stack.
-static int ucontext_offset = 128;
 gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & in,
                                                     Frame & out)
 {
+    // This function assumes there is FP in "Frame in"
+    // And assumes that ucontext is the first object on the stack frame
     bool result;
 
     Address last_read_sp_addr = 0;
@@ -143,7 +143,8 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & in,
     int addr_size = 8;
     location_t sp_loc;
     sp_loc.location = loc_address;
-    sp_loc.val.addr = in.getSP() + ucontext_offset + sp_offset;
+    sp_loc.val.addr = in.getFP() + sp_offset - sizeof(dummy_context);
+
     Address sp = 0;
     sw_printf("In frame sp %lx, fp %lx, pc %lx\n", in.getSP(), in.getFP(), in.getRA());
     if (last_read_sp_addr != sp_loc.val.addr)
@@ -165,7 +166,7 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & in,
     location_t fp_loc;
     Address fp = 0x0;
     fp_loc.location = loc_address;
-    fp_loc.val.addr = in.getSP() + ucontext_offset + fp_offset;
+    fp_loc.val.addr = in.getFP() + fp_offset - sizeof(dummy_context);
     sw_printf("[%s:%u] - SigHandler Reading FP from %lx\n",
               FILE__, __LINE__, fp_loc.val.addr);
     result = getProcessState()->readMem(&fp, fp_loc.val.addr, addr_size);
@@ -178,7 +179,7 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame & in,
     location_t pc_loc;
     Address pc = 0x0;
     pc_loc.location = loc_address;
-    pc_loc.val.addr = in.getSP() + ucontext_offset + pc_offset;
+    pc_loc.val.addr = in.getFP() + pc_offset - sizeof(dummy_context);
     sw_printf("[%s:%u] - SigHandler Reading PC from %lx\n",
               FILE__, __LINE__, pc_loc.val.addr);
     result = getProcessState()->readMem(&pc, pc_loc.val.addr, addr_size);
