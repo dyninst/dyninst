@@ -107,9 +107,7 @@ namespace Dyninst{
 			struct line_info {};
 			struct upper_bound {};
             
-            void setLine(unsigned int newLine) {
-                line_ = newLine;
-            }
+            void setLine(unsigned int line) { line_ = line; }
 
 			typedef Statement* Ptr;
 			typedef const Statement* ConstPtr;
