@@ -879,6 +879,9 @@ void BinaryEdit::buildLineMapReloc(pdvector<std::pair<Address, SymtabAPI::LineNo
     }
 }
 
+/* Helper function for building the mapping of instrumentation code back to the source code. To distinguish it from 
+ * the original code, add a line offset to the line number
+ */
 void BinaryEdit::buildLineMapInst(pdvector<std::pair<Address, SymtabAPI::LineNoTuple> > & newLineMap, Address orig_addr, Address reloc_addr, unsigned strand_size, const Relocation::TrackerElement * tracker) 
 {
     SymtabAPI::Module* module = tracker->func()->mod()->pmod()->mod();
@@ -895,7 +898,7 @@ void BinaryEdit::buildLineMapInst(pdvector<std::pair<Address, SymtabAPI::LineNoT
     } else {
         SymtabAPI::LineNoTuple stmt = lines[0];
         stmt.setLine(stmt.getLine() + 10000000); 
-        newLineMap.push_back(std::make_pair(reloc_addr, stmt));
+        newLineMap.push_back(std::make_pair(reloc_addr, stmt)); 
     }  
 }
 

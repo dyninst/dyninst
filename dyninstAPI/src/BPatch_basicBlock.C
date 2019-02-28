@@ -512,7 +512,6 @@ BPatch_basicBlock::findPointByPredicate(insnPredicate& f)
        iter != insns.end(); ++iter) {
     if(f(iter->second)) {
       instPoint *p = instPoint::preInsn(ifunc(), block(), iter->first, iter->second, true);
-      printf("instPoint addr: 0x%lx\n", p->insnAddr());
       BPatch_point *tmp = flowGraph->getAddSpace()->findOrCreateBPPoint(flowGraph->getFunction(),
                                                                         p,
                                                                         BPatch_locInstruction);
