@@ -683,7 +683,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
          symObj->addSymbol(newSyms[i]);
       }
       
-      symObj->addLineMap(newLineMap);  
+      //symObj->addLineMap(newLineMap);  
 
       // Okay, now...
       // Hand textSection and newSection to DynSymtab.
