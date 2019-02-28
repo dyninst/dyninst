@@ -674,8 +674,9 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
                                                                      lowWaterMark_));
       pdvector<std::pair<Address, SymtabAPI::LineNoTuple> > newLineMap;
       buildInstrumentedLineMap(newLineMap);
+      
       for (uint64_t i = 0; i < newLineMap.size(); ++i) {
-        cout << hex << "\t" << newLineMap[i].first << dec << " file: " << newLineMap[i].second.getFile() << " line: " <<  newLineMap[i].second.getLine() << " column: " << newLineMap[i].second.getColumn() << endl;
+        cout << hex << "\t" << newLineMap[i].first << dec << " file number: " << newLineMap[i].getFileIndex() << " file: " << newLineMap[i].second.getFile() << " line: " <<  newLineMap[i].second.getLine() << " column: " << newLineMap[i].second.getColumn() << endl;
       }
 
       for (unsigned i = 0; i < newSyms.size(); i++) {
@@ -683,6 +684,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       }
       
       symObj->addLineMap(newLineMap);  
+
       // Okay, now...
       // Hand textSection and newSection to DynSymtab.
         
