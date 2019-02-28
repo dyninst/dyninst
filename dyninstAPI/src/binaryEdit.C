@@ -959,6 +959,7 @@ void BinaryEdit::buildInstrumentedLineMap(pdvector<std::pair<Address, SymtabAPI:
 void* BinaryEdit::serializeLineMap(pdvector<std::pair<Address, SymtabAPI::LineNoTuple> >& newLineMap, size_t& chunkSize) 
 {
     cerr << "serializeLineMap called " << newLineMap.size() << endl;
+    /*
     uint32_t num_records = (uint32_t) newLineMap.size();
     size_t payload_size = sizeof(uint32_t) + (sizeof(uint64_t) + sizeof(uint16_t) * 3) * num_records;
     void* chunk = calloc(1, payload_size);
@@ -984,6 +985,8 @@ void* BinaryEdit::serializeLineMap(pdvector<std::pair<Address, SymtabAPI::LineNo
         memcpy((char*)chunk + offset, (char*)&column_number, sizeof(uint16_t));
     } 
     return chunk;
+    */
+    return NULL;
 }
 
 // Build a list of symbols describing instrumentation and relocated functions. 
