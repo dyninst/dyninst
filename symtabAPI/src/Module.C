@@ -248,7 +248,7 @@ LineInformation *Module::parseLineInformation() {
         objectLevelLineInfo = true;
         lineInfo_ = exec()->getObject()->parseLineInfoForObject(strings_);
     } 
-    // parseDyninstLineInfo()
+    parseDyninstLineInfo()
     return lineInfo_;
 }
 
