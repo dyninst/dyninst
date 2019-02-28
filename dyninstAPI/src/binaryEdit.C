@@ -507,7 +507,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 {
    // Step 1: changes. 
 
-
+      cout << "write file: " << newFileName << endl;
       inst_printf(" writing %s ... \n", newFileName.c_str());
 
       Symtab *symObj = mobj->parse_img()->getObject();
@@ -680,7 +680,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       }
     
       size_t lineMapChunkSize = 0;
-      void* lineMapChunk = serializeLineMap(newLineMap, lineMapChunkSize);
+      //void* lineMapChunk = serializeLineMap(newLineMap, lineMapChunkSize);
       cout << "linemap chunk size: " << lineMapChunkSize << endl; 
       /*
       symObj->addRegion(0,
