@@ -678,13 +678,21 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       for (uint64_t i = 0; i < newLineMap.size(); ++i) {
         cout << hex << "\t" << newLineMap[i].first << dec << " file number: " << newLineMap[i].second.getFileIndex() << " file: " << newLineMap[i].second.getFile() << " line: " <<  newLineMap[i].second.getLine() << " column: " << newLineMap[i].second.getColumn() << endl;
       }
+    
+      size_t lineMapChunkSize = 0;
+      void* lineMapChunk = serializeLineMap(newLineMap, lineMapChunkSize);
+       
+      symObj->addRegion(0,
+                        lineMapChunk,
+                        lineMapChunkSize,
+                        ".dyninstLineMap",
+                        Region::RT_DATA,
+                        true);
 
       for (unsigned i = 0; i < newSyms.size(); i++) {
          symObj->addSymbol(newSyms[i]);
       }
-      
-      //symObj->addLineMap(newLineMap);  
-
+         
       // Okay, now...
       // Hand textSection and newSection to DynSymtab.
         
@@ -841,7 +849,7 @@ void BinaryEdit::addLibraryPrereq(std::string libname) {
 // suppose two adjacent pairs p1, p2, then the range of address [p1.address, p2.address) maps to p1.line_info
 // in terms of the last pair pl, the range of address [pl.address, infty) maps to pl.line_info 
 // With this additional dyninst linemap, when emitting the binary, we could add another sections to store the correspondance. And in the getSourceLines function, we implement additional piece of code to check the existance of added section 
-void BinaryEdit::buildLineMapReloc(pdvector<std::pair<Address, SymtabAPI::LineNoTuple> > & newLineMap, Address orig_addr, Address reloc_addr, unsigned strand_size, const Relocation::TrackerElement * tracker) 
+void BinaryEdit::buildLineMapReloc(pdvector<std::pair<Address, SymtabAPI::LineNoTuple> > & newLineMap, Address origAddr, Address relocAddr, unsigned strandSize, const Relocation::TrackerElement * tracker) 
 {
     SymtabAPI::Module* module = tracker->func()->mod()->pmod()->mod();
     std::vector<SymtabAPI::LineNoTuple> lines;
@@ -852,10 +860,10 @@ void BinaryEdit::buildLineMapReloc(pdvector<std::pair<Address, SymtabAPI::LineNo
     int last_line = -1;
     int last_column = -1;
     
-    for (unsigned offset = 0; offset < strand_size; ++offset) {
+    for (unsigned offset = 0; offset < strandSize; ++offset) {
         // do for each byte of the instruction
-        cur_orig_addr = (Address)((uint64_t)orig_addr + offset);
-        cur_reloc_addr = (Address)((uint64_t)reloc_addr + offset);
+        cur_orig_addr = (Address)((uint64_t)origAddr + offset);
+        cur_reloc_addr = (Address)((uint64_t)relocAddr + offset);
         lines.clear();
         module->getSourceLines(lines, cur_orig_addr);
         if (lines.size() == 0) {
@@ -869,7 +877,7 @@ void BinaryEdit::buildLineMapReloc(pdvector<std::pair<Address, SymtabAPI::LineNo
             
             if (cur_file_index == last_file_index && cur_line == last_line && 
                     cur_column == last_column) {
-                // the instruction byte at curr_orig_addr is associated with the same source code location
+                // the instruction byte at curr_origAddr is associated with the same source code location
                 continue;
             } else {
                 last_file_index = cur_file_index;
@@ -884,7 +892,7 @@ void BinaryEdit::buildLineMapReloc(pdvector<std::pair<Address, SymtabAPI::LineNo
 /* Helper function for building the mapping of instrumentation code back to the source code. To distinguish it from 
  * the original code, add a line offset to the line number
  */
-void BinaryEdit::buildLineMapInst(pdvector<std::pair<Address, SymtabAPI::LineNoTuple> > & newLineMap, Address orig_addr, Address reloc_addr, unsigned strand_size, const Relocation::TrackerElement * tracker) 
+void BinaryEdit::buildLineMapInst(pdvector<std::pair<Address, SymtabAPI::LineNoTuple> > & newLineMap, Address origAddr, Address relocAddr, unsigned strandSize, const Relocation::TrackerElement * tracker) 
 {
     SymtabAPI::Module* module = tracker->func()->mod()->pmod()->mod();
     std::vector<SymtabAPI::LineNoTuple> lines;
@@ -894,13 +902,13 @@ void BinaryEdit::buildLineMapInst(pdvector<std::pair<Address, SymtabAPI::LineNoT
     int last_file_index = -1;
     int last_line = -1;
     int last_column = -1;
-    module->getSourceLines(lines, orig_addr);
+    module->getSourceLines(lines, origAddr);
     if (lines.size() == 0) {
-        cerr << "error: no line info " << hex << orig_addr << " \t " << *tracker << dec << endl;
+        cerr << "error: no line info " << hex << origAddr << " \t " << *tracker << dec << endl;
     } else {
         SymtabAPI::LineNoTuple stmt = lines[0];
         stmt.setLine(stmt.getLine() + 10000000); 
-        newLineMap.push_back(std::make_pair(reloc_addr, stmt)); 
+        newLineMap.push_back(std::make_pair(relocAddr, stmt)); 
     }  
 }
 
@@ -942,6 +950,37 @@ void BinaryEdit::buildInstrumentedLineMap(pdvector<std::pair<Address, SymtabAPI:
             }
         }  
    }
+}
+
+/* write the new linemap info 
+ */
+void* BinaryEdit::serializeLineMap(pdvector<std::pair<Address, SymtabAPI::LineNoTuple> >& newLineMap, size_t& chunkSize) 
+{
+    uint32_t num_records = (uint32_t) newLineMap.size();
+    size_t payload_size = sizeof(uint32_t) + (sizeof(uint64_t) + sizeof(uint16_t) * 3) * num_records;
+    void* chunk = calloc(1, payload_size);
+    if (chunk == NULL) {
+        cerr << "callof for linemap failed" << endl;
+        return NULL;
+    }
+    chunkSize = payload_size;
+    memcpy(chunk, (char*)&num_records, sizeof(uint32_t));
+    int offset = sizeof(uint32_t);
+    for (int i = 0; i < newLineMap.size(); ++i) {
+        uint64_t inst_addr = (uint64_t)newLineMap[i].first;
+        SymtabAPI::LineNoTuple stmt = newLineMap[i].second;
+        uint16_t file_index = (uint16_t)stmt.getFileIndex();
+        uint16_t line_number = (uint16_t)stmt.getLine();
+        uint16_t column_number = (uint16_t)stmt.getColumn();
+        memcpy((char*)chunk + offset, (char*)&inst_addr, sizeof(uint64_t));//pack the address
+        offset += sizeof(uint64_t);
+        memcpy((char*)chunk + offset, (char*)&file_index, sizeof(uint16_t));
+        offset += sizeof(uint16_t);
+        memcpy((char*)chunk + offset, (char*)&line_number, sizeof(uint16_t));
+        offset += sizeof(uint16_t);
+        memcpy((char*)chunk + offset, (char*)&column_number, sizeof(uint16_t));
+    } 
+    return chunk;
 }
 
 // Build a list of symbols describing instrumentation and relocated functions. 
