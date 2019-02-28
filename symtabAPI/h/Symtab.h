@@ -224,6 +224,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
     *** LineMAP ADDING FUNCS **************
     **************************************/
    void addLineMap(std::vector<std::pair<Address, LineNoTuple>>& linemap);
+   void serializeLineMapInfo(); //  
 
    /**************************************
     *** SYMBOL ADDING FUNCS **************
@@ -631,6 +632,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
  private:
     std::vector<std::pair<Address, LineNoTuple>> newLineMap_;
+    v
+
 };
 
 /**
