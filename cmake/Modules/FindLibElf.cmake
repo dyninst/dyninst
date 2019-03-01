@@ -36,7 +36,7 @@ find_path (LIBELF_INCLUDE_DIR
 
 find_library (LIBELF_LIBRARIES
     NAMES
-      libelf.so.1
+      libelf.so
     HINTS
       ${LIBELF_LIBRARIES}
     PATHS
