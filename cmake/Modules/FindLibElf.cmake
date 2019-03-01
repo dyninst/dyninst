@@ -25,6 +25,7 @@ find_path (LIBELF_INCLUDE_DIR
     PATHS
       /usr/include
       /usr/include/libelf
+      /usr/include/x86_64-linux-gnu
       /usr/local/include
       /usr/local/include/libelfls 
       /opt/local/include
@@ -43,6 +44,7 @@ find_library (LIBELF_LIBRARIES
       /usr/lib64
       /usr/local/lib
       /usr/local/lib64
+      /usr/lib/x86_64-linux-gnu
       /opt/local/lib
       /opt/local/lib64
       /sw/lib
