@@ -1091,6 +1091,7 @@ func_instance *BinaryEdit::findOnlyOneFunction(const std::string &name,
 {
    func_instance *f = AddressSpace::findOnlyOneFunction(name, libname, search_rt_lib);
    if (!f && search_rt_lib) {
+      cerr << "BinaryEdit::findOnlyOneFunction, AddressSpace::findOnlyOneFunction returns null func: " << name << " lib: " << libname << endl;
       std::vector<BinaryEdit *>::iterator rtlib_it;
       for(rtlib_it = rtlib.begin(); rtlib_it != rtlib.end(); ++rtlib_it) {
           f = (*rtlib_it)->findOnlyOneFunction(name, libname, false);
