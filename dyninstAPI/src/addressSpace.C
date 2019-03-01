@@ -680,7 +680,7 @@ bool AddressSpace::findFuncsByAll(const std::string &funcname,
                                   const std::string &libname) { // = "", btw
     
    unsigned starting_entries = res.size(); // We'll return true if we find something
-   cout << "AddressSpace::findFuncsByAll func: " << funcname << " lib: " << libname << endl;
+   cout << "AddressSpace::findFuncsByAll func: " << funcname << " lib: " << libname <<  " mapped object number: " << mapped_objects.size() << endl;
    for (unsigned i = 0; i < mapped_objects.size(); i++) {
       if (libname == "" ||
           mapped_objects[i]->fileName() == libname.c_str() ||

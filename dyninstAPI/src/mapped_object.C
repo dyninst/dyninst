@@ -464,6 +464,7 @@ void mapped_object::set_short_name() {
 
 const pdvector<func_instance *> *mapped_object::findFuncVectorByPretty(const std::string &funcname)
 {
+   cout << "mapped_object::findFuncVectorByPretty " << funcname << endl;
    if (funcname.c_str() == 0) return NULL;
    // First, check the underlying image.
    const pdvector<parse_func *> *img_funcs = parse_img()->findFuncVectorByPretty(funcname);

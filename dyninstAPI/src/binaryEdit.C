@@ -683,14 +683,12 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       void* lineMapChunk = serializeLineMap(newLineMap, lineMapChunkSize);
       cout << "linemap chunk size: " << lineMapChunkSize << endl; 
 
-      /*
       symObj->addRegion(0,
                         lineMapChunk,
                         lineMapChunkSize,
                         ".dyninstLineMap",
                         Region::RT_DATA,
                         true);
-                        */
 
       for (unsigned i = 0; i < newSyms.size(); i++) {
          symObj->addSymbol(newSyms[i]);
