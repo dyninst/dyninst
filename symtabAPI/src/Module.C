@@ -247,6 +247,7 @@ bool Module::parseDyninstLineInformation()
     uint16_t file_index;
     uint16_t line_number;
     uint16_t column_number;  
+    /*
     for (int i = 0; i < num_records; ++i) { // read memory
         memcpy((char*)rawData + offset, (char*)&inst_addr, sizeof(uint64_t));
         offset += sizeof(uint64_t);
@@ -269,6 +270,7 @@ bool Module::parseDyninstLineInformation()
                            inst_addr, next_inst_addr);
                     
     }
+    */
     return true;
 }
 
