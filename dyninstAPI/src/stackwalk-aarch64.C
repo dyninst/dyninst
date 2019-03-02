@@ -99,11 +99,17 @@ bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
     }
 
     base = ri.bt;
-
     if (base)
     {
-        // set offset from instrumentation frame pointer to saved return address
-        *stack_height = TRAMP_SPR_OFFSET(proc_->getAddressWidth()) + STK_LR;
+        // By default, we are dealing with 64-bit code
+        int w = 8;
+	if (base->proc()) w = base->proc()->getAddressWidth();
+        // set offset from the SP to the saved FP and RA pair
+	// according to the instrumentation frame layout
+	//
+	// Note that aarch64 codegen aligns memory address,
+	// so here we divide by w and multiply by w
+        *stack_height = (TRAMP_GPR_OFFSET(w) + REG_FP * w) / w * w;
 
         return true;
     }

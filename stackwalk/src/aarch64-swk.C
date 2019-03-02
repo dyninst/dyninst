@@ -321,7 +321,7 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Fra
                                                             Address /*orig_ra*/, bool pEntryExit)
 {
   bool result;
-  Address in_fp, out_ra;
+  Address in_fp, out_fp_loc;
   ra_fp_pair_t ra_fp_pair;
   //uint64_t fp;
   location_t raLocation;
@@ -332,41 +332,30 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Fra
   if (!in.getFP())
     return gcf_stackbottom;
 
+  // Dyninst's instrumentation frame set up makes sure that
+  // current SP is the same as the FP retrived in the previous frame
+  // 
+  // Note: If the implementation of baseTramp::generateSaves changed
+  // in dyninstAPI/src/inst-aarch64.C. This function may need to
+  // be changed accordingly.
   in_fp = in.getFP();
   out.setSP(in_fp);
-
-  if (sizeof(uint64_t) == addrWidth) {
-    result = getProcessState()->readMem(&ra_fp_pair, in_fp,
-                                        sizeof(ra_fp_pair));
-  }
-  else {
-		//aarch32 is not supported now
-		assert(0);
-  }
-  if (!result) {
-    sw_printf("[%s:%u] - Couldn't read frame from %lx\n", FILE__, __LINE__, in_fp);
-    return gcf_error;
-  }
-
-  if (sizeof(uint64_t) == addrWidth) {
-    out.setFP(ra_fp_pair.FP);
-  }
-  else {
-      assert(0);
-  }
+  
+  // stack_height is the offset to the saved FP and RA
+  out_fp_loc = in_fp + stack_height; 
 
   raLocation.location = loc_address;
-  raLocation.val.addr = in_fp + stack_height; // stack_height is the offset to the saved RA
+  raLocation.val.addr = out_fp_loc + addrWidth;
   out.setRALocation(raLocation);
 
-  // TODO make 32-bit compatible
-  result = getProcessState()->readMem(&out_ra, raLocation.val.addr,
-                                      sizeof(out_ra));
+  result = getProcessState()->readMem(&ra_fp_pair, out_fp_loc,
+                                      sizeof(ra_fp_pair));
   if (!result) {
-    sw_printf("[%s:%u] - Couldn't read instrumentation RA from %lx\n", FILE__, __LINE__, raLocation.val.addr);
+    sw_printf("[%s:%u] - Couldn't read instrumentation FP and RA from %lx\n", FILE__, __LINE__, out_fp_loc);
     return gcf_error;
   }
-  out.setRA(out_ra);
+  out.setRA(ra_fp_pair.LR);
+  out.setFP(ra_fp_pair.FP);
 
   return gcf_success;
 }
@@ -411,6 +400,11 @@ void aarch64_LookupFuncStart::releaseMe()
       delete this;
 }
 
+
+// WARNING: this is not safe as the function prolog can be 
+// interleaved with arbitrary number of other instructions...
+// A better solution is use ParseAPI to examine the first block, 
+// but this will involve apply parseAPI to the mutatee...
 // in bytes
 #define FUNCTION_PROLOG_TOCHECK 20
 static const unsigned int push_fp_ra      = 0xa9807bfd ; // stp x29, x30, [sp, #x]!
