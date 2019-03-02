@@ -247,19 +247,18 @@ bool Module::parseDyninstLineInformation()
     uint16_t file_index;
     uint16_t line_number;
     uint16_t column_number;  
-    /*
     for (int i = 0; i < num_records; ++i) { // read memory
-        memcpy((char*)rawData + offset, (char*)&inst_addr, sizeof(uint64_t));
+        memcpy(&inst_addr, (char*)rawData + offset, sizeof(uint64_t));
         offset += sizeof(uint64_t);
-        memcpy((char*)rawData + offset, (char*)&file_index, sizeof(uint16_t));
+        memcpy(&file_index,(char*)rawData + offset, sizeof(uint16_t));
         offset += sizeof(uint16_t);
-        memcpy((char*)rawData + offset, (char*)&line_number, sizeof(uint16_t));
+        memcpy(&line_number, (char*)rawData + offset, sizeof(uint16_t));
         offset += sizeof(uint16_t);
-        memcpy((char*)rawData + offset, (char*)&column_number, sizeof(uint16_t));
+        memcpy(&column_number,(char*)rawData + offset,sizeof(uint16_t));
         offset += sizeof(uint16_t);  
         cout << "inst addr: " << hex << inst_addr << dec << " file index: " << file_index << " line number: " << line_number << " column number: " << column_number << endl;
         if (i < num_records - 1) { // not the last record 
-            memcpy((char*)rawData + offset, (char*)&next_inst_addr, sizeof(uint64_t));
+            memcpy(&next_inst_addr,(char*)rawData + offset, sizeof(uint64_t));
             // might be inefficient to peak the next instruction address and read it again
         } else {
             next_inst_addr = INT_MAX; // would it be a problem?
@@ -270,7 +269,6 @@ bool Module::parseDyninstLineInformation()
                            inst_addr, next_inst_addr);
                     
     }
-    */
     return true;
 }
 

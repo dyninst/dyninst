@@ -974,13 +974,13 @@ void* BinaryEdit::serializeLineMap(pdvector<std::pair<Address, SymtabAPI::LineNo
         uint16_t file_index = (uint16_t)stmt.getFileIndex();
         uint16_t line_number = (uint16_t)stmt.getLine();
         uint16_t column_number = (uint16_t)stmt.getColumn();
-        memcpy((char*)chunk + offset, (char*)&inst_addr, sizeof(uint64_t));//pack the address
+        memcpy((char*)chunk + offset, &inst_addr, sizeof(uint64_t));//pack the address
         offset += sizeof(uint64_t);
-        memcpy((char*)chunk + offset, (char*)&file_index, sizeof(uint16_t));
+        memcpy((char*)chunk + offset, &file_index, sizeof(uint16_t));
         offset += sizeof(uint16_t);
-        memcpy((char*)chunk + offset, (char*)&line_number, sizeof(uint16_t));
+        memcpy((char*)chunk + offset, &line_number, sizeof(uint16_t));
         offset += sizeof(uint16_t);
-        memcpy((char*)chunk + offset, (char*)&column_number, sizeof(uint16_t));
+        memcpy((char*)chunk + offset, &column_number, sizeof(uint16_t));
         offset += sizeof(uint16_t); // update the offset     
     } 
     return chunk;
