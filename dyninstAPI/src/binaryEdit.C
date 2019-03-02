@@ -958,7 +958,7 @@ void BinaryEdit::buildInstrumentedLineMap(pdvector<std::pair<Address, SymtabAPI:
 void* BinaryEdit::serializeLineMap(pdvector<std::pair<Address, SymtabAPI::LineNoTuple> >& newLineMap, size_t& chunkSize) 
 {
     uint32_t num_records = (uint32_t) newLineMap.size();
-    size_t payload_size = sizeof(uint32_t) + (sizeof(uint64_t) + sizeof(uint16_t) * 3) * num_records;
+    size_t payload_size = sizeof(uint32_t) + (sizeof(uint64_t) + sizeof(uint32_t) * 3) * num_records;
     cerr << "serializeLineMap called " << newLineMap.size() <<  " payload size: " << payload_size <<  " number of records: " << num_records << endl;
     void* chunk = calloc(1, payload_size);
     if (chunk == NULL) {
@@ -971,17 +971,17 @@ void* BinaryEdit::serializeLineMap(pdvector<std::pair<Address, SymtabAPI::LineNo
     for (int i = 0; i < num_records; ++i) {
         uint64_t inst_addr = (uint64_t)newLineMap[i].first;
         SymtabAPI::LineNoTuple stmt = newLineMap[i].second;
-        uint16_t file_index = (uint16_t)stmt.getFileIndex();
-        uint16_t line_number = (uint16_t)stmt.getLine();
-        uint16_t column_number = (uint16_t)stmt.getColumn();
+        uint32_t file_index = (uint32_t)stmt.getFileIndex();
+        uint32_t line_number = (uint32_t)stmt.getLine();
+        uint32_t column_number = (uint32_t)stmt.getColumn();
         memcpy((char*)chunk + offset, &inst_addr, sizeof(uint64_t));//pack the address
         offset += sizeof(uint64_t);
-        memcpy((char*)chunk + offset, &file_index, sizeof(uint16_t));
-        offset += sizeof(uint16_t);
-        memcpy((char*)chunk + offset, &line_number, sizeof(uint16_t));
-        offset += sizeof(uint16_t);
-        memcpy((char*)chunk + offset, &column_number, sizeof(uint16_t));
-        offset += sizeof(uint16_t); // update the offset     
+        memcpy((char*)chunk + offset, &file_index, sizeof(uint32_t));
+        offset += sizeof(uint32_t);
+        memcpy((char*)chunk + offset, &line_number, sizeof(uint32_t));
+        offset += sizeof(uint32_t);
+        memcpy((char*)chunk + offset, &column_number, sizeof(uint32_t));
+        offset += sizeof(uint32_t); // update the offset     
     } 
     return chunk;
 }

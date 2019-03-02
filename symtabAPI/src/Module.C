@@ -244,19 +244,19 @@ bool Module::parseDyninstLineInformation()
     int offset = sizeof(uint32_t); 
     uint64_t inst_addr;
     uint64_t next_inst_addr;
-    uint16_t file_index;
-    uint16_t line_number;
-    uint16_t column_number;  
+    uint32_t file_index;
+    uint32_t line_number;
+    uint32_t column_number;  
     for (int i = 0; i < num_records; ++i) { // read memory
         memcpy(&inst_addr, (char*)rawData + offset, sizeof(uint64_t));
         offset += sizeof(uint64_t);
-        memcpy(&file_index,(char*)rawData + offset, sizeof(uint16_t));
-        offset += sizeof(uint16_t);
-        memcpy(&line_number, (char*)rawData + offset, sizeof(uint16_t));
-        offset += sizeof(uint16_t);
-        memcpy(&column_number,(char*)rawData + offset,sizeof(uint16_t));
-        offset += sizeof(uint16_t);  
-        cout << "inst addr: " << hex << inst_addr << dec << " file index: " << file_index << " line number: " << line_number << " column number: " << column_number << endl;
+        memcpy(&file_index,(char*)rawData + offset, sizeof(uint32_t));
+        offset += sizeof(uint32_t);
+        memcpy(&line_number, (char*)rawData + offset, sizeof(uint32_t));
+        offset += sizeof(uint32_t);
+        memcpy(&column_number,(char*)rawData + offset,sizeof(uint32_t));
+        offset += sizeof(uint32_t);  
+        cout << "i: " << i << "/" << num_records << "inst addr: " << hex << inst_addr << dec << " file index: " << file_index << " line number: " << line_number << " column number: " << column_number << endl;
         if (i < num_records - 1) { // not the last record 
             memcpy(&next_inst_addr,(char*)rawData + offset, sizeof(uint64_t));
             // might be inefficient to peak the next instruction address and read it again
