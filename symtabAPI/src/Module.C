@@ -274,7 +274,7 @@ bool Module::parseDyninstLineInformation()
 
 
 LineInformation *Module::parseLineInformation() {
-    cerr << "parseLineInformation: strings_ size: " << strings_->size() << endl;
+    cerr << "parseLineInformation: strings_ size: " << strings_->size() << " module name: " << fileName() << endl;
     if (exec()->getArchitecture() != Arch_cuda &&
 	(exec()->getObject()->hasDebugInfo() || !info_.empty())) {
         // Allocate if none
