@@ -959,16 +959,16 @@ void* BinaryEdit::serializeLineMap(pdvector<std::pair<Address, SymtabAPI::LineNo
 {
     uint32_t num_records = (uint32_t) newLineMap.size();
     size_t payload_size = sizeof(uint32_t) + (sizeof(uint64_t) + sizeof(uint16_t) * 3) * num_records;
-    cerr << "serializeLineMap called " << newLineMap.size() <<  " payload size: " << payload_size << endl;
+    cerr << "serializeLineMap called " << newLineMap.size() <<  " payload size: " << payload_size <<  " number of records: " << num_records << endl;
     void* chunk = calloc(1, payload_size);
     if (chunk == NULL) {
-        cerr << "callof for linemap failed" << endl;
+        cerr << "calloc for linemap failed" << endl;
         return NULL;
     }
     chunkSize = payload_size;
     memcpy(chunk, (char*)&num_records, sizeof(uint32_t));
     int offset = sizeof(uint32_t);
-    for (int i = 0; i < newLineMap.size(); ++i) {
+    for (int i = 0; i < num_records; ++i) {
         uint64_t inst_addr = (uint64_t)newLineMap[i].first;
         SymtabAPI::LineNoTuple stmt = newLineMap[i].second;
         uint16_t file_index = (uint16_t)stmt.getFileIndex();
@@ -981,6 +981,7 @@ void* BinaryEdit::serializeLineMap(pdvector<std::pair<Address, SymtabAPI::LineNo
         memcpy((char*)chunk + offset, (char*)&line_number, sizeof(uint16_t));
         offset += sizeof(uint16_t);
         memcpy((char*)chunk + offset, (char*)&column_number, sizeof(uint16_t));
+        offset += sizeof(uint16_t); // update the offset     
     } 
     return chunk;
 }

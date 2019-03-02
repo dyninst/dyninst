@@ -217,6 +217,62 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
    return false;
 }
 
+// parse the line information stored in .dyninstLineMap
+bool Module::parseDyninstLineInformation()  
+{
+    Symtab* symObj = exec();
+    if (symObj == NULL) {
+        cerr << "Module::parseDyninstLineInformation - symtab is null " << endl;
+        return false;
+    }
+    Region * linemapSec = NULL;
+    symObj->findRegion(linemapSec, ".dyninstLineMap");
+    if (linemapSec == NULL) {
+        cerr << "Module::parseDyninstLineInformation - cannot find .dyninstLineMap" << endl;
+        return false;
+    } 
+    if (!linemapSec->isData()) {
+        cerr << "Module::parseDyninstLineInformation - not data section" << endl;
+        return false;
+    } 
+    void* rawData = linemapSec->getPtrToRawData();
+    cout << " disk size:  " << linemapSec->getDiskSize() << " mem size: " << linemapSec->getMemSize() << endl; 
+    uint32_t num_records = 0;
+    memcpy(&num_records, rawData, sizeof(uint32_t));
+    cout << "number of linemap records: " << num_records << endl; 
+    size_t payload_size = sizeof(uint32_t) + (sizeof(uint64_t) + sizeof(uint16_t) * 3) * num_records; 
+    int offset = sizeof(uint32_t); 
+    uint64_t inst_addr;
+    uint64_t next_inst_addr;
+    uint16_t file_index;
+    uint16_t line_number;
+    uint16_t column_number;  
+    for (int i = 0; i < num_records; ++i) { // read memory
+        memcpy((char*)rawData + offset, (char*)&inst_addr, sizeof(uint64_t));
+        offset += sizeof(uint64_t);
+        memcpy((char*)rawData + offset, (char*)&file_index, sizeof(uint16_t));
+        offset += sizeof(uint16_t);
+        memcpy((char*)rawData + offset, (char*)&line_number, sizeof(uint16_t));
+        offset += sizeof(uint16_t);
+        memcpy((char*)rawData + offset, (char*)&column_number, sizeof(uint16_t));
+        offset += sizeof(uint16_t);  
+        cout << "inst addr: " << hex << inst_addr << dec << " file index: " << file_index << " line number: " << line_number << " column number: " << column_number << endl;
+        if (i < num_records - 1) { // not the last record 
+            memcpy((char*)rawData + offset, (char*)&next_inst_addr, sizeof(uint64_t));
+            // might be inefficient to peak the next instruction address and read it again
+        } else {
+            next_inst_addr = INT_MAX; // would it be a problem?
+        }
+        lineInfo_->addLine((unsigned int)(file_index), 
+                           (unsigned int)(line_number),
+                           (unsigned int)(column_number), 
+                           inst_addr, next_inst_addr);
+                    
+    }
+    return true;
+}
+
+
 LineInformation *Module::parseLineInformation() {
     cerr << "parseLineInformation: strings_ size: " << strings_->size() << endl;
     if (exec()->getArchitecture() != Arch_cuda &&
@@ -248,7 +304,7 @@ LineInformation *Module::parseLineInformation() {
         objectLevelLineInfo = true;
         lineInfo_ = exec()->getObject()->parseLineInfoForObject(strings_);
     } 
-    //parseDyninstLineInfo()
+    parseDyninstLineInformation(); // read the extra .dyninstLineMap section, propagate the line map info into the lineInfo_ that should have already been created
     return lineInfo_;
 }
 

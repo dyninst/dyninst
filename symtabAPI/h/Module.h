@@ -214,8 +214,13 @@ namespace Dyninst{
 			bool getSourceLines(std::vector<LineNoTuple> &lines,
 								Offset addressInRange);
 			bool getStatements(std::vector<Statement::Ptr> &statements);
+
 			LineInformation *getLineInformation();
+
+            bool parseDyninstLineInformation();
+
 			LineInformation* parseLineInformation();
+            
 
 			bool setDefaultNamespacePrefix(std::string str);
 
