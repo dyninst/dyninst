@@ -262,6 +262,8 @@ namespace Dyninst{
 			bool ranges_finalized;
 
 			void finalizeOneRange(Address ext_s, Address ext_e) const;
+
+            bool dyninst_linemap_parsed;
 		};
 		template <typename OS>
 		OS& operator<<(OS& os, const Module& m)
