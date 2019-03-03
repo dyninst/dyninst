@@ -105,7 +105,6 @@ std::string print(const Dyninst::SymtabAPI::Statement& stmt)
 bool LineInformation::getSourceLines(Offset addressInRange,
                                      vector<Statement_t> &lines)
 {
-    std::cerr << "LineInforation::getSourceLines addr: " << std::hex << addressInRange << std::dec << " size of lines: " << lines.size() << std::endl;
     const_iterator start_addr_valid = project<Statement::addr_range>(get<Statement::upper_bound>().lower_bound(addressInRange ));
     const_iterator end_addr_valid = impl_t::upper_bound(addressInRange );
     while(start_addr_valid != end_addr_valid && start_addr_valid != end())
@@ -116,6 +115,7 @@ bool LineInformation::getSourceLines(Offset addressInRange,
         }
         ++start_addr_valid;
     }
+    std::cerr << "LineInforation::getSourceLines addr: " << std::hex << addressInRange << std::dec << " size of lines: " << lines.size() << std::endl;
     return true;
 } /* end getLinesFromAddress() */
 
