@@ -219,6 +219,8 @@ namespace Dyninst{
 
             bool parseDyninstLineInformation();
 
+            bool getDyninstLines(std::vector<Statement::Ptr>& dynLines) 
+
 			LineInformation* parseLineInformation();
             
 
@@ -257,6 +259,8 @@ namespace Dyninst{
 			StringTablePtr strings_;
 		public:
 			StringTablePtr & getStrings() ;
+            bool dyninstLineMapParsed() { return dyninst_linemap_parsed; } 
+            void getDyninstRelocateFunc(std::vector<Address>& funcs) { for (int i = 0; i < dyninst_relocate_funcs.size(); ++i) funcs.push_back(dyninst_relocate_funcs[i]); }
 
 		private:
 			bool ranges_finalized;
@@ -264,6 +268,8 @@ namespace Dyninst{
 			void finalizeOneRange(Address ext_s, Address ext_e) const;
 
             bool dyninst_linemap_parsed;
+
+            std::vector<Address> dyninst_relocate_funcs; 
 		};
 		template <typename OS>
 		OS& operator<<(OS& os, const Module& m)

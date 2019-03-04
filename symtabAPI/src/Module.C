@@ -268,6 +268,7 @@ bool Module::parseDyninstLineInformation()
                            (unsigned int)(column_number), 
                            inst_addr, next_inst_addr);
                     
+        dyninst_relocate_funcs.push_back(inst_addr);
     }
     return true;
 }
