@@ -274,7 +274,6 @@ bool Module::parseDyninstLineInformation()
 
 
 LineInformation *Module::parseLineInformation() {
-    cerr << "parseLineInformation: strings_ size: " << strings_->size() << " module name: " << fileName() << endl;
     if (exec()->getArchitecture() != Arch_cuda &&
 	(exec()->getObject()->hasDebugInfo() || !info_.empty())) {
         // Allocate if none
@@ -308,6 +307,7 @@ LineInformation *Module::parseLineInformation() {
         parseDyninstLineInformation(); // read the extra .dyninstLineMap section, propagate the line map info into the lineInfo_ that should have already been created
         dyninst_linemap_parsed = true;
     }
+    cerr << "parseLineInformation: strings_ size: " << strings_->size() << " module name: " << fileName() << endl;
     return lineInfo_;
 }
 
