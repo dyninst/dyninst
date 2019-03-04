@@ -219,7 +219,7 @@ namespace Dyninst{
 
             bool parseDyninstLineInformation();
 
-            bool getDyninstLines(std::vector<Statement::Ptr>& dynLines) 
+            bool getDyninstLines(std::vector<Statement::Ptr>& dynLines);
 
 			LineInformation* parseLineInformation();
             
