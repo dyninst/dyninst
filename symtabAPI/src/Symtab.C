@@ -1789,7 +1789,7 @@ SYMTAB_EXPORT Archive *Symtab::getParentArchive() const {
     return parentArchive_;
 }
 
-SYMTAB_EXPORT std::vector<Address> &Symtab::getAllRelocatedSymbols() {
+SYMTAB_EXPORT std::vector<LineMapInfoEntry> &Symtab::getAllRelocatedSymbols() {
     return vAllRelocatedSymbols_;
 }
 
