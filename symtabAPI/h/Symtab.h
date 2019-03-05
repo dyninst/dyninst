@@ -92,6 +92,21 @@ typedef IBSTree< ModRange > ModRangeLookup;
 typedef IBSTree<FuncRange> FuncRangeLookup;
 typedef Dyninst::ProcessReader MemRegReader;
 
+typedef struct LineMapInfoEntry {
+    unsigned int file_index;
+    unsigned int line_number;
+    unsigned int column_number;
+    Address low_addr_inc;
+    Address high_addr_exc;
+    LineMapInfoEntry(unsigned int fi, unsigned int ln, unsigned int cn, Address la, Address hi) {
+        file_index = fi;
+        line_number = ln;
+        column_number = cn;
+        low_addr_inc = la;
+        high_addr_exc = hi; 
+    } 
+} LineMapInfoEntry;
+
 class SYMTAB_EXPORT Symtab : public LookupInterface,
                public Serializable,
                public AnnotatableSparse
@@ -260,7 +275,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    void setTruncateLinePaths(bool value);
    bool getTruncateLinePaths();
    void forceFullLineInfoParse();
-   
+
+
    /***** Type Information *****/
    virtual bool findType(Type *&type, std::string name);
    virtual Type *findType(unsigned type_id);
@@ -368,6 +384,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    Archive *getParentArchive() const;
 
+   std::vector<LineMapInfoEntry> &getAllRelocatedSymbols();  
+
    /***** Error Handling *****/
    static SymtabError getLastSymtabError();
    static void setSymtabError(SymtabError new_err);
@@ -425,6 +443,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    bool addFunctionRange(FunctionBase *fbase, Dyninst::Offset next_start);
 
+   void extractAllRelocatedSymbols();    
    // Used by binaryEdit.C...
  public:
 
@@ -624,6 +643,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
  private:
     unsigned _ref_cnt;
 
+ private:
+    std::vector<LineMapInfoEntry> vAllRelocatedSymbols_; 
 };
 
 /**

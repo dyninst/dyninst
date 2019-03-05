@@ -413,7 +413,7 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
     object_type_ = obj_RelocatableFile;
     // (... the rest are now initialized for everyone above ...)
 #endif
-
+    extractAllRelocatedSymbols();
 }
 
 SYMTAB_EXPORT Symtab::Symtab() :
@@ -451,6 +451,7 @@ SYMTAB_EXPORT Symtab::Symtab() :
     pfq_rwlock_init(symbols_rwlock);
     init_debug_symtabAPI();
     create_printf("%s[%d]: Created symtab via default constructor\n", FILE__, __LINE__);
+    extractAllRelocatedSymbols();
 }
 
 SYMTAB_EXPORT bool Symtab::isExec() const 
@@ -1289,6 +1290,8 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
    member_name_ = mf->filename();
 
    defaultNamespacePrefix = "";
+
+   extractAllRelocatedSymbols();
 }
 
 Symtab::Symtab(unsigned char *mem_image, size_t image_size, 
@@ -1359,6 +1362,8 @@ Symtab::Symtab(unsigned char *mem_image, size_t image_size,
    member_name_ = mf->filename();
 
    defaultNamespacePrefix = "";
+
+   extractAllRelocatedSymbols();
 }
 
 bool sort_reg_by_addr(const Region* a, const Region* b)
@@ -1652,6 +1657,8 @@ Symtab::Symtab(const Symtab& obj) :
    }
 
    deps_ = obj.deps_;
+
+   extractAllRelocatedSymbols();
 }
 
 // Address must be in code or data range since some code may end up
@@ -1780,6 +1787,10 @@ SYMTAB_EXPORT std::vector<std::string> &Symtab::getDependencies(){
 
 SYMTAB_EXPORT Archive *Symtab::getParentArchive() const {
     return parentArchive_;
+}
+
+SYMTAB_EXPORT std::vector<Address> &Symtab::getAllRelocatedSymbols() {
+    return vAllRelocatedSymbols_;
 }
 
 Symtab::~Symtab()
@@ -2351,6 +2362,44 @@ bool Symtab::getTruncateLinePaths()
 {
    return getObject()->getTruncateLinePaths();
 }
+
+void Symtab::extractAllRelocatedSymbols()
+{
+   Region* linemapSec = NULL;
+   findRegion(linemapSec, ".dyninstLineMap");
+   if (linemapSec == NULL) {
+       std::cerr << "Symtab cannot find .dyninstLineMap" << std::endl;
+       return;
+   }       
+   void* rawData = linemapSec->getPtrToRawData();
+   uint32_t num_records;
+   memcpy(&num_records, rawData, sizeof(uint32_t));
+   size_t payload_size = sizeof(uint32_t) + (sizeof(uint64_t) + sizeof(uint16_t) * 3) * num_records;
+   int offset = sizeof(uint32_t);
+   uint64_t inst_addr;
+   uint64_t next_inst_addr;
+   uint32_t file_index;
+   uint32_t line_number;
+   uint32_t column_number;
+   for (int i = 0; i < num_records; ++i) {
+       memcpy(&inst_addr, (char*)rawData + offset, sizeof(uint64_t));
+       offset += sizeof(uint64_t);
+       memcpy(&file_index, (char*)rawData + offset, sizeof(uint32_t));
+       offset += sizeof(uint32_t);
+       memcpy(&line_number, (char*)rawData + offset, sizeof(uint32_t));
+       offset += sizeof(uint32_t);
+       memcpy(&column_number, (char*)rawData + offset, sizeof(uint32_t));
+       offset += sizeof(uint32_t);
+       if (i < num_records - 1) {
+           memcpy(&next_inst_addr, (char*)rawData + offset, sizeof(uint64_t));
+       } else {
+           next_inst_addr = INT_MAX;
+       }
+       LineMapInfoEntry entry(file_index, line_number, column_number, inst_addr, next_inst_addr); 
+       vAllRelocatedSymbols_.emplace_back(entry);
+   }
+}
+
 
 void Symtab::parseTypes()
 {

@@ -225,52 +225,15 @@ bool Module::parseDyninstLineInformation()
         cerr << "Module::parseDyninstLineInformation - symtab is null " << endl;
         return false;
     }
-    Region * linemapSec = NULL;
-    symObj->findRegion(linemapSec, ".dyninstLineMap");
-    if (linemapSec == NULL) {
-        cerr << "Module::parseDyninstLineInformation - cannot find .dyninstLineMap" << endl;
-        return false;
-    } 
-    if (!linemapSec->isData()) {
-        cerr << "Module::parseDyninstLineInformation - not data section" << endl;
-        return false;
-    } 
-    void* rawData = linemapSec->getPtrToRawData();
-    cout << " disk size:  " << linemapSec->getDiskSize() << " mem size: " << linemapSec->getMemSize() << endl; 
-    uint32_t num_records = 0;
-    memcpy(&num_records, rawData, sizeof(uint32_t));
-    cout << "number of linemap records: " << num_records << endl; 
-    size_t payload_size = sizeof(uint32_t) + (sizeof(uint64_t) + sizeof(uint16_t) * 3) * num_records; 
-    int offset = sizeof(uint32_t); 
-    uint64_t inst_addr;
-    uint64_t next_inst_addr;
-    uint32_t file_index;
-    uint32_t line_number;
-    uint32_t column_number;  
-    for (int i = 0; i < num_records; ++i) { // read memory
-        memcpy(&inst_addr, (char*)rawData + offset, sizeof(uint64_t));
-        offset += sizeof(uint64_t);
-        memcpy(&file_index,(char*)rawData + offset, sizeof(uint32_t));
-        offset += sizeof(uint32_t);
-        memcpy(&line_number, (char*)rawData + offset, sizeof(uint32_t));
-        offset += sizeof(uint32_t);
-        memcpy(&column_number,(char*)rawData + offset,sizeof(uint32_t));
-        offset += sizeof(uint32_t);  
-        cout << "i: " << i << "/" << num_records << "inst addr: " << hex << inst_addr << dec << " file index: " << file_index << " line number: " << line_number << " column number: " << column_number << endl;
-        if (i < num_records - 1) { // not the last record 
-            memcpy(&next_inst_addr,(char*)rawData + offset, sizeof(uint64_t));
-            // might be inefficient to peak the next instruction address and read it again
-        } else {
-            next_inst_addr = INT_MAX; // would it be a problem?
-        }
-        lineInfo_->addLine((unsigned int)(file_index), 
-                           (unsigned int)(line_number),
-                           (unsigned int)(column_number), 
-                           inst_addr, next_inst_addr);
-                    
-        dyninst_relocate_funcs.push_back(inst_addr);
+    vector<LineMapInfoEntry> linemap = symObj->getAllRelocatedSymbols();
+    for (int i = 0; i < linemap.size(); ++i) {
+       lineInfo_->addLine(linemap[i].file_index, 
+                          linemap[i].line_number,
+                          linemap[i].column_number,
+                          linemap[i].low_addr_inc,
+                          linemap[i].high_addr_exc);      
     }
-    return true;
+    return linemap.size() > 0;
 }
 
 
