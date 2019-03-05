@@ -842,9 +842,9 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
                 emptyFuncSize = 5;
             }
 #elif defined (arch_power)
-            static unsigned char empty[] = { 0x4e, 0x80, 0x00, 0x20};
-             emptyFunction = empty;
-             emptyFuncSize = 4;
+            static unsigned empty[] = {0x4e800020};
+            emptyFunction = (unsigned char*) empty;
+            emptyFuncSize = 4;
 #endif //defined(arch_x86) || defined(arch_x86_64)
             linkedFile->addRegion(highWaterMark_, (void*)(emptyFunction), emptyFuncSize, ".init.dyninst",
                                   Dyninst::SymtabAPI::Region::RT_TEXT, true);
@@ -890,8 +890,8 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
             }
 
 #elif defined (arch_power)
-            static unsigned char empty[] = { 0x4e, 0x80, 0x00, 0x20};
-            emptyFunction = empty;
+            static unsigned empty[] = {0x4e800020};
+            emptyFunction = (unsigned char*) empty;
             emptyFuncSize = 4;
 
 #elif defined (arch_aarch64)
@@ -926,67 +926,6 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
                                       UINT_MAX );
         linkedFile->addSymbol(finiSym);
     }
-}
-
-Address PCProcess::setAOutLoadAddress(fileDescriptor &desc) {
-   //The load address of the a.out isn't correct.  We can't read a
-   // correct one out of ld-x.x.x.so because it may not be initialized yet,
-   // and it won't be initialized until we reach main.  But we need the load
-   // address to find main.  Darn.
-   //
-   //Instead we'll read the entry out of /proc/pid/maps, and try to make a good
-   // effort to correctly match the fileDescriptor to an entry.  Unfortunately,
-   // symlinks can complicate this, so we'll stat the files and compare inodes
-
-   struct stat aout, maps_entry;
-   map_entries *maps = NULL;
-   unsigned maps_size = 0, i;
-   char proc_path[128];
-   int result;
-   Address loadAddr = 0;
-
-   //Get the inode for the a.out
-   startup_printf("[%s:%u] - a.out is a shared library, computing load addr\n",
-                  FILE__, __LINE__);
-   memset(&aout, 0, sizeof(aout));
-   result = stat(pcProc_->libraries().getExecutable()->getAbsoluteName().c_str(), &aout);
-   if (result == -1) {
-      startup_printf("[%s:%u] - setAOutLoadAddress couldn't stat %s: %s\n",
-                     FILE__, __LINE__, proc_path, strerror(errno));
-      goto done;
-   }
-                    
-   //Get the maps
-   maps = getVMMaps(getPid(), maps_size);
-   if (!maps) {
-      startup_printf("[%s:%u] - setAOutLoadAddress, getVMMaps return NULL\n",
-                     FILE__, __LINE__);
-      goto done;
-   }
-   
-   //Compare the inode of each map entry to the a.out's
-   for (i=0; i<maps_size; i++) {
-      memset(&maps_entry, 0, sizeof(maps_entry));
-      result = stat(maps[i].path, &maps_entry);
-      if (result == -1) {
-         startup_printf("[%s:%u] - setAOutLoadAddress couldn't stat %s: %s\n",
-                        FILE__, __LINE__, maps[i].path, strerror(errno));
-         continue;
-      }
-      if (maps_entry.st_dev == aout.st_dev && maps_entry.st_ino == aout.st_ino)
-      {
-         //We have a match
-         
-         desc.setLoadAddr(maps[i].start);
-         loadAddr = maps[i].start;
-      }
-   }
-        
- done:
-   if (maps)
-      free(maps);
-
-   return loadAddr;
 }
 
 #endif
