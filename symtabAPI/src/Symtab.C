@@ -2368,7 +2368,7 @@ void Symtab::extractAllRelocatedSymbols()
    Region* linemapSec = NULL;
    findRegion(linemapSec, ".dyninstLineMap");
    if (linemapSec == NULL) {
-       std::cerr << "Symtab cannot find .dyninstLineMap" << std::endl;
+       //std::cerr << "Symtab cannot find .dyninstLineMap" << std::endl;
        return;
    }       
    void* rawData = linemapSec->getPtrToRawData();
