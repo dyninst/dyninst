@@ -45,6 +45,8 @@
 #include "int_event.h"
 #include "Mailbox.h"
 
+#include "boost/filesystem.hpp"
+
 using namespace std;
 
 #if defined(cap_thread_db)
@@ -953,26 +955,8 @@ td_thragent_t *thread_db_process::getThreadDBAgent() {
 
 static string stripLibraryName(const char *libname)
 {
-   const char *filename_c = strrchr(libname, '/');
-   if (!filename_c)
-      filename_c = strrchr(libname, '\\');
-   if (!filename_c)
-      filename_c = libname;
-   else
-      filename_c++;
-
-   const char *lesser_ext = NULL;
-   const char *dot_ext = strchr(filename_c, '.');
-   if (dot_ext)
-      lesser_ext = dot_ext;
-   const char *dash_ext = strchr(filename_c, '-');
-   if (dash_ext && (!lesser_ext || dash_ext < lesser_ext))
-      lesser_ext = dash_ext;
-
-   if (!lesser_ext) {
-      return std::string(filename_c);
-   }
-   return std::string(filename_c, lesser_ext - filename_c);
+   boost::filesystem::path p(libname);
+   return p.filename().string();
 }
 
 ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symName,
@@ -995,7 +979,7 @@ ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symNa
 
        for (set<int_library *>::iterator i = memory()->libs.begin(); i != memory()->libs.end(); i++) {
           int_library *l = *i;
-          if (strstr(l->getName().c_str(), name.c_str())) {
+          if (stripLibraryName(l->getName().c_str()) ==  name) {
              lib = l;
              break;
           }
@@ -1672,7 +1656,7 @@ async_ret_t thread_db_process::plat_calcTLSAddress(int_thread *thread, int_libra
    }
    getMemCache()->setSyncHandling(false);
    if (err != TD_OK) {
-      perr_printf("Error return from td_thr_tls_get_addr from thread_db\n");
+      perr_printf("Error [%s] return from td_thr_tls_get_addr from thread_db\n", tdErr2Str(err));
       return aret_error;
    }
 
