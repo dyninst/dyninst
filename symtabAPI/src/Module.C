@@ -66,7 +66,7 @@ void Statement::setStrings_(StringTablePtr strings) {
     Statement::strings_ = strings;
 }
 const std::string& Statement::getFile() const {
-    cout << "calling Statement::getFile() file index: " <<  file_index << " strings size: " << strings_->size() <<  endl;
+    cout << "calling Statement::getFile() file index: " <<  file_index_ << " strings size: " << strings_->size() <<  endl;
     if(strings_) {
         if(file_index_ < strings_->size()) {
             // can't be ->[] on shared pointer to multi_index container or compiler gets confused
