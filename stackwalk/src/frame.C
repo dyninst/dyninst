@@ -241,8 +241,14 @@ void Frame::setNameValue() const {
     name_val_set = nv_err;
     return;
   }
-  
-  bool result = lookup->lookupAtAddr(getRA(), sym_name, sym_value);
+  // Here we lookup return address minus 1 to handle the following special case:
+  //
+  // Suppose A calls B and B is a non-returnning function, and the call to B in A
+  // is the last instruction of A. Then the compiler may generate code where 
+  // another function C is immediately after A. In such case, the return address
+  // will be the entry address of C. And if we look up function by the return
+  // address, we will get C rather than A. 
+  bool result = lookup->lookupAtAddr(getRA() - 1, sym_name, sym_value);
   if (!result) {
     sw_printf("[%s:%u] - Error, returned by lookupAtAddr().\n", FILE__, __LINE__);
     name_val_set = nv_err;

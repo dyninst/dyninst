@@ -140,7 +140,14 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   }
   // Look for function prologue to see if it is a standard frame 
   FrameFuncHelper::alloc_frame_t alloc_frame;
-  alloc_frame = helper->allocatesFrame(in.getRA());
+  // Here we lookup return address minus 1 to handle the following special case:
+  //
+  // Suppose A calls B and B is a non-returnning function, and the call to B in A
+  // is the last instruction of A. Then the compiler may generate code where 
+  // another function C is immediately after A. In such case, the return address
+  // will be the entry address of C. And if we look up frame type by the return
+  // address, we will get information for C rather than A. 
+  alloc_frame = helper->allocatesFrame(in.getRA() - 1);
   if (alloc_frame.first != FrameFuncHelper::standard_frame) {
       sw_printf("[%s:%u] - alloc_frame.first!=standard_frame (== %lx)\n", FILE__, __LINE__, alloc_frame.first);
       // If we are dealing with the first frame,
