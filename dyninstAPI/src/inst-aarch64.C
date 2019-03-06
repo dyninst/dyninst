@@ -642,51 +642,38 @@ Register EmitterAARCH64::emitCall(opCode op,
         assert(reg!=REG_NULL);
     }
 
-    // if (gen.func()->obj() != callee->obj())
-    // {
-    //     // assert(0); // inter module call
+    assert(gen.rs());
 
-    //     // l: not using emitPLTCommon for now
-    //     emitPLTCall(callee, gen);
-    // }
-    // else
-    // {
+    //Address of function to call in scratch register
+    Register scratch = gen.rs()->getScratchRegister(gen);
+    // Register s1 = gen.rs()->getScratchRegister(gen, noCost);
+    assert(scratch != REG_NULL && "cannot get a scratch register");
+    gen.markRegDefined(scratch);
+    if (gen.addrSpace()->edit() != NULL && gen.func()->obj() != callee->obj()) {
+        // gen.as.edit() checks if we are in rewriter mode
+        Address dest = getInterModuleFuncAddr(callee, gen);
+        insnCodeGen::loadImmIntoReg<Address>(gen, scratch, dest);
 
-        //instPoint *point = gen.point();
-        //assert(point);
-        assert(gen.rs());
+        insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, scratch, scratch, 0, 8, insnCodeGen::Offset);
+    } else {
+        insnCodeGen::loadImmIntoReg<Address>(gen, scratch, callee->addr());
+    }
 
-        //Address of function to call in scratch register
-        Register scratch = gen.rs()->getScratchRegister(gen);
-        // Register s1 = gen.rs()->getScratchRegister(gen, noCost);
-        assert(scratch != REG_NULL);
-        gen.markRegDefined(scratch);
-        if (gen.addrSpace()->edit() != NULL && gen.func()->obj() != callee->obj()) {
-            // gen.as.edit() checks if we are in rewriter mode
-            Address dest = getInterModuleFuncAddr(callee, gen);
-            insnCodeGen::loadImmIntoReg<Address>(gen, scratch, dest);
+    instruction branchInsn;
+    branchInsn.clear();
 
-            insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, scratch, scratch, 0, 8, insnCodeGen::Offset);
-        } else {
-            insnCodeGen::loadImmIntoReg<Address>(gen, scratch, callee->addr());
-        }
+    //Set bits which are 0 for both BR and BLR
+    INSN_SET(branchInsn, 0, 4, 0);
+    INSN_SET(branchInsn, 10, 15, 0);
 
-        instruction branchInsn;
-        branchInsn.clear();
+    //Set register
+    INSN_SET(branchInsn, 5, 9, scratch);
 
-        //Set bits which are 0 for both BR and BLR
-        INSN_SET(branchInsn, 0, 4, 0);
-        INSN_SET(branchInsn, 10, 15, 0);
-
-        //Set register
-        INSN_SET(branchInsn, 5, 9, scratch);
-
-        //Set other bits. Basically, these are the opcode bits.
-        //The only difference between BR and BLR is that bit 21 is 1 for BLR.
-        INSN_SET(branchInsn, 16, 31, BRegOp);
-        INSN_SET(branchInsn, 21, 21, 1);
-        insnCodeGen::generate(gen, branchInsn);
-    // }
+    //Set other bits. Basically, these are the opcode bits.
+    //The only difference between BR and BLR is that bit 21 is 1 for BLR.
+    INSN_SET(branchInsn, 16, 31, BRegOp);
+    INSN_SET(branchInsn, 21, 21, 1);
+    insnCodeGen::generate(gen, branchInsn);
 
     /*
      * Restoring registers
@@ -1197,6 +1184,7 @@ bool EmitterAARCH64::emitLoadRelative(Register dest, Address offset, Register ba
             base, offset, size, insnCodeGen::Pre);
 
     gen.markRegDefined(dest);
+    return true;
 }
 
 
@@ -1429,7 +1417,7 @@ void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variab
     Address addr;
     int stackSize = 0;
 
-    if(var == NULL) {
+    if(!var) {
         addr = offset;
     }
     else if(!is_local) {
@@ -1441,16 +1429,14 @@ void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variab
 
     // load register with address from jump slot
 
-    printf("emitLoadShared addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n", 
-            addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
+    // printf("emitLoadShared addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n", 
+    //        addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
     Register scratchReg = gen.rs()->getScratchRegister(gen, true);
 
-    if (scratchReg == REG_NULL) {
-        assert(0);
-    }
+    assert(scratchReg != REG_NULL && "cannot get a scratch register");
 
     emitMovePCToReg(scratchReg, gen);
-    Address varOffset = addr - gen.currAddr()+4;
+    Address varOffset = addr - gen.currAddr() + 4;
 
     if (op ==loadOp) {
         if(!is_local && (var != NULL)){
@@ -1458,7 +1444,6 @@ void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variab
             // Deference the pointer to get the variable
             // emitLoadRelative(dest, 0, dest, size, gen);
             // Offset mode to load back to itself
-            printf("Fallback to offset mode\n");
             insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest, dest, 0, 8, insnCodeGen::Offset);
         } else {
             emitLoadRelative(dest, varOffset, scratchReg, size, gen);
@@ -1467,8 +1452,7 @@ void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variab
         if(!is_local && (var != NULL)){
             emitLoadRelative(dest, varOffset, scratchReg, gen.width(), gen);
         } else {
-            printf("oops, reached else branch\n");
-            assert(0);
+            assert(0 && "reached invalid else branch");
 
             // Move address of the variable into the register - load effective address
             //dest = effective address of pc+offset ;
@@ -1478,8 +1462,7 @@ void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variab
         }
     }
 
-    if (stackSize > 0)
-        assert(0);
+    assert(stackSize <= 0 && "stack not empty at the end");
 
     return;
 }
@@ -1506,30 +1489,24 @@ EmitterAARCH64::emitStoreShared(Register source, const image_variable *var, bool
 
     // load register with address from jump slot
     Register scratchReg = gen.rs()->getScratchRegister(gen, true);
-    if (scratchReg == REG_NULL) {
-        assert(0);
-    }
+    assert(scratchReg != REG_NULL && "cannot get a scratch register");
 
     emitMovePCToReg(scratchReg, gen);
-    Address varOffset = addr - gen.currAddr()+4;
+    Address varOffset = addr - gen.currAddr() + 4;
     printf("varOffset: %lu\n", varOffset);
 
     if(!is_local) {
         pdvector<Register> exclude;
         exclude.push_back(scratchReg);
         Register scratchReg1 = gen.rs()->getScratchRegister(gen, exclude, true);
-        if (scratchReg1 == REG_NULL) {
-            assert(0);
-        }
+        assert(scratchReg1 != REG_NULL && "cannot get a scratch register");
         emitLoadRelative(scratchReg1, varOffset, scratchReg, gen.width(), gen);
         emitStoreRelative(source, 0, scratchReg1, size, gen);
     } else {
         emitStoreRelative(source, varOffset, scratchReg, size, gen);
     }
 
-    if (stackSize > 0)
-        assert(0);
-        //insnCodeGen::removeStackFrame(gen);
+    assert(stackSize <= 0 && "stack not empty at the end");
 
     return;
 }
