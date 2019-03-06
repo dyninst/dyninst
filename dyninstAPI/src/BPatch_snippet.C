@@ -541,7 +541,7 @@ BPatch_arithExpr::BPatch_arithExpr(BPatch_unOp op,
 
           BPatch_type *type = const_cast<BPatch_type *> (lOperand.ast_wrapper->getType());
           if (!type || (type->getDataClass() != BPatch_dataPointer)) {
-              ast_wrapper->setType(BPatch::bpatch->stdTypes->findType("int"));
+              ast_wrapper->setType(BPatch::bpatch->stdTypes->findType("long"));
           } else {
               ast_wrapper->setType(type->getConstituentType());
 //              ast_wrapper->setType(dynamic_cast<BPatch_typePointer *>(type)->getConstituentType());
@@ -793,7 +793,7 @@ BPatch_regExpr::BPatch_regExpr(unsigned int value)
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 
-    BPatch_type *type = BPatch::bpatch->stdTypes->findType("int");
+    BPatch_type *type = BPatch::bpatch->stdTypes->findType("long");
     assert(type != NULL);
 
     ast_wrapper->setType(type);
