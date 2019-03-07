@@ -74,7 +74,7 @@ void Statement::setExtraStringTable_(void* string_table) {
     Statement::extra_string_table_ = string_table;
 } 
 
-std::string& Statement::lookupExtraStringTable(uint32_t index) {
+std::string& Statement::lookupExtraStringTable(uint32_t index) const {
     uint32_t num_files = 0;
     char buf[512];
     memcpy(&num_files, extra_string_table_, sizeof(uint32_t));
@@ -91,7 +91,8 @@ std::string& Statement::lookupExtraStringTable(uint32_t index) {
     memcpy(buf, (char*)extra_string_table_ + offset, filename_length + 1);
     std::stringstream ss;
     ss << buf;
-    return std::string(ss.str().c_str());
+    std::string res(ss.str().c_str());
+    return res;
 }
 
 const std::string& Statement::getFile() const {
@@ -106,7 +107,7 @@ const std::string& Statement::getFile() const {
                  cerr << "error, pointer to string table not set " << endl; 
               } else {
                  uint32_t real_index = (uint32_t)file_index_ - DYNINST_STR_TBL_FID_OFFSET; 
-                 return Statement::lookupExtraStringTable((int)real_index);
+                 return Statement::lookupExtraStringTable(real_index);
               }
           }  
         }
