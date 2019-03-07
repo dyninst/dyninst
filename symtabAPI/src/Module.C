@@ -66,7 +66,7 @@ void Statement::setStrings_(StringTablePtr strings) {
     Statement::strings_ = strings;
 }
 
-void Statement::getExtraStringTable_() const {
+void* Statement::getExtraStringTable_() const {
     return extra_string_table_;
 }
 
@@ -79,8 +79,8 @@ std::string& Statement::lookupExtraStringTable(int index) {
     char buf[512];
     memcpy(&num_files, extra_string_table_, sizeof(uint32_t));
     if (index >= num_files) {
-       cerr << "Statement::lookupExtraStringTable query index " index << " out of range " << num_files << endl;
-       return;
+       cerr << "Statement::lookupExtraStringTable query index " << index << " out of range " << num_files << endl;
+       return ""; 
     }
     uint32_t offset = 0;
     uint32_t filename_length = 0;
@@ -88,7 +88,9 @@ std::string& Statement::lookupExtraStringTable(int index) {
     memcpy(&offset, (char*)extra_string_table_ + header_offset, sizeof(uint32_t));
     memcpy(&filename_length, (char*)extra_string_table_ + header_offset + sizeof(uint32_t), sizeof(uint32_t));
     memcpy(buf, (char*)extra_string_table_ + offset, filename_length + 1);
-    return std::string(buf);
+    std::stringstream ss;
+    ss << buf;
+    return ss.str();
 }
 
 const std::string& Statement::getFile() const {
@@ -97,12 +99,12 @@ const std::string& Statement::getFile() const {
             // can't be ->[] on shared pointer to multi_index container or compiler gets confused
             return (*strings_)[file_index_].str;
         } else { // 
-          if (file_index >= DYNINST_STR_TBL_FID_OFFSET) {
-              cout << "getFile(), for dyninst file index " << file_index  << endl;
-              if (string_table_ == NULL) {
+          if (file_index_ >= DYNINST_STR_TBL_FID_OFFSET) {
+              cout << "getFile(), for dyninst file index " << file_index_  << endl;
+              if (extra_string_table_ == NULL) {
                  cerr << "error, pointer to string table not set " << endl; 
               } else {
-                 uint32_t real_index = (uint32_t)file_index - DYNINST_STR_TBL_FID_OFFSET; 
+                 uint32_t real_index = (uint32_t)file_index_ - DYNINST_STR_TBL_FID_OFFSET; 
                  return lookupExtraStringTable(real_index);
               }
           }  
@@ -256,7 +258,7 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
       auto file_index = stmt.getFileIndex();
       if (file_index >= DYNINST_STR_TBL_FID_OFFSET) {
           cout << "we get the dyninst file index " << file_index << endl;
-          lines[originalSize].setExtraStringTable(this->string_table);  
+          lines[originalSize].setExtraStringTable_(this->string_table);  
       }
       return true;
    }
