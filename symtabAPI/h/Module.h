@@ -72,19 +72,20 @@ namespace Dyninst{
 			unsigned int line_;
 			unsigned int column_;
 			StringTablePtr strings_;
-            void * string_table_; // the string table we added
+            void * extra_string_table_; // the string table we added
 		public:
 			StringTablePtr getStrings_() const;
 
 			void setStrings_(StringTablePtr strings_);
 
-            void* getStringTable_() const;
+            void* getExtraStringTable_() const;
 
-            void setStringTable_(void* string_table_);
+            void setExtraStringTable_(void* string_table_);
 
+            std::string& lookupExtraStringTable(int index);
 		public:
 
-			Statement() : AddressRange(0,0), file_index_(0), line_(0), column_(0)  {}
+			Statement() : AddressRange(0,0), file_index_(0), line_(0), column_(0)  { string_table_ = NULL; }
 			struct StatementLess {
 				bool operator () ( const Statement &lhs, const Statement &rhs ) const;
 			};
@@ -266,7 +267,6 @@ namespace Dyninst{
 			StringTablePtr & getStrings() ;
             bool dyninstLineMapParsed() { return dyninst_linemap_parsed; } 
             void * getStringTable();    
-
 		private:
 			bool ranges_finalized;
 

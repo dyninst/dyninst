@@ -66,24 +66,48 @@ void Statement::setStrings_(StringTablePtr strings) {
     Statement::strings_ = strings;
 }
 
-void Statement::getStringTable_() const {
-    return string_table_;
+void Statement::getExtraStringTable_() const {
+    return extra_string_table_;
 }
 
-void Statement::setStringTable_(void* string_table) {
-    Statement::string_table_ = string_table;
+void Statement::setExtraStringTable_(void* string_table) {
+    Statement::extra_string_table_ = string_table;
 } 
 
+std::string& Statement::lookupExtraStringTable(int index) {
+    uint32_t num_files = 0;
+    char buf[512];
+    memcpy(&num_files, extra_string_table_, sizeof(uint32_t));
+    if (index >= num_files) {
+       cerr << "Statement::lookupExtraStringTable query index " index << " out of range " << num_files << endl;
+       return;
+    }
+    uint32_t offset = 0;
+    uint32_t filename_length = 0;
+    size_t header_offset = sizeof(uint32_t) + index * sizeof(uint32_t) * 2; 
+    memcpy(&offset, (char*)extra_string_table_ + header_offset, sizeof(uint32_t));
+    memcpy(&filename_length, (char*)extra_string_table_ + header_offset + sizeof(uint32_t), sizeof(uint32_t));
+    memcpy(buf, (char*)extra_string_table_ + offset, filename_length + 1);
+    return std::string(buf);
+}
+
 const std::string& Statement::getFile() const {
-    cout << "calling Statement::getFile() file index: " <<  file_index_ << " strings size: " << strings_->size() <<  endl;
     if(strings_) {
         if(file_index_ < strings_->size()) {
             // can't be ->[] on shared pointer to multi_index container or compiler gets confused
             return (*strings_)[file_index_].str;
-
+        } else { // 
+          if (file_index >= DYNINST_STR_TBL_FID_OFFSET) {
+              cout << "getFile(), for dyninst file index " << file_index  << endl;
+              if (string_table_ == NULL) {
+                 cerr << "error, pointer to string table not set " << endl; 
+              } else {
+                 uint32_t real_index = (uint32_t)file_index - DYNINST_STR_TBL_FID_OFFSET; 
+                 return lookupExtraStringTable(real_index);
+              }
+          }  
         }
-
-    }
+    } 
     // This string will be pointed to, so it has to persist.
     static std::string emptyStr;
     return emptyStr;
@@ -210,7 +234,7 @@ bool Module::getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressIn
       auto file_index = stmt->getFileIndex();
       if (file_index >= DYNINST_STR_TBL_FID_OFFSET) {
           cout << "we get the dyninst file index " << file_index << endl;    
-          stmt->setStringTable_(this->string_table); // set the pointer to string table chunk  
+          stmt->setExtraStringTable_(this->string_table); // set the pointer to string table chunk  
       } 
       return true;
    }
@@ -232,7 +256,7 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
       auto file_index = stmt.getFileIndex();
       if (file_index >= DYNINST_STR_TBL_FID_OFFSET) {
           cout << "we get the dyninst file index " << file_index << endl;
-          lines[originalSize].setStringTable(this->string_table);  
+          lines[originalSize].setExtraStringTable(this->string_table);  
       }
       return true;
    }
