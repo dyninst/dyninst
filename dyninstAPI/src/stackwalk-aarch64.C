@@ -44,7 +44,6 @@ bool PCProcess::createStackwalkerSteppers()
 
     FrameStepper *stepper = NULL;
     StackwalkInstrumentationHelper *swInstrHelper = NULL;
-    DynFrameHelper *dynFrameHelper = NULL;
 
     // Create steppers, adding to walker
 
@@ -57,15 +56,30 @@ bool PCProcess::createStackwalkerSteppers()
     }
     startup_printf("Stackwalker stepper %p is a DyninstDynamicStepper\n", stepper);
 
-    // FrameFuncHelper not used on PPC
-    dynFrameHelper = new DynFrameHelper(this);
-    stepper = new FrameFuncStepper(stackwalker_, dynFrameHelper);
+    stepper = new FrameFuncStepper(stackwalker_);
     if (!stackwalker_->addStepper(stepper))
     {
         startup_printf("Error adding Stackwalker stepper %p\n", stepper);
         return false;
     }
     startup_printf("Stackwalker stepper %p is a FrameFuncStepper\n", stepper);
+
+  stepper = new SigHandlerStepper(stackwalker_);
+  if (!stackwalker_->addStepper(stepper))
+  {
+    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    return false;
+  }
+  startup_printf("Stackwalker stepper %p is a SigHandlerStepper\n", stepper);
+
+  stepper = new BottomOfStackStepper(stackwalker_);
+  if (!stackwalker_->addStepper(stepper))
+  {
+    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    return false;
+  }
+  startup_printf("Stackwalker stepper %p is a BottomOfStackStepper\n", stepper);
+
 
     return true;
 }
@@ -85,11 +99,17 @@ bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
     }
 
     base = ri.bt;
-
     if (base)
     {
-        // set offset from instrumentation frame pointer to saved return address
-        *stack_height = TRAMP_SPR_OFFSET(proc_->getAddressWidth()) + STK_LR;
+        // By default, we are dealing with 64-bit code
+        int w = 8;
+	if (base->proc()) w = base->proc()->getAddressWidth();
+        // set offset from the SP to the saved FP and RA pair
+	// according to the instrumentation frame layout
+	//
+	// Note that aarch64 codegen aligns memory address,
+	// so here we divide by w and multiply by w
+        *stack_height = (TRAMP_GPR_OFFSET(w) + REG_FP * w) / w * w;
 
         return true;
     }
