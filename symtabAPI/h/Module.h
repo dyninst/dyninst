@@ -85,7 +85,7 @@ namespace Dyninst{
             std::string& lookupExtraStringTable(int index);
 		public:
 
-			Statement() : AddressRange(0,0), file_index_(0), line_(0), column_(0)  { string_table_ = NULL; }
+			Statement() : AddressRange(0,0), file_index_(0), line_(0), column_(0)  { extra_string_table_ = NULL; }
 			struct StatementLess {
 				bool operator () ( const Statement &lhs, const Statement &rhs ) const;
 			};
