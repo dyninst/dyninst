@@ -43,7 +43,6 @@
 #include "IBSTree.h"
 
 #include "dyninstversion.h"
-#include "common/src/headers.h"
 
 #include "pfq-rwlock.h"
 
@@ -71,7 +70,8 @@ class MappedFile;
 #define SYM_MAJOR DYNINST_MAJOR_VERSION
 #define SYM_MINOR DYNINST_MINOR_VERSION
 #define SYM_BETA  DYNINST_PATCH_VERSION
- 
+
+#define DYNINST_STR_TBL_FID_OFFSET 2000000
 namespace Dyninst {
 
    struct SymSegment;
