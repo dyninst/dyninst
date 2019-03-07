@@ -207,10 +207,11 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
    unsigned int originalSize = lines.size();
 
     LineInformation *lineInformation = parseLineInformation();
-
 //    cout << "Module " << fileName() << " searching for line info in " << lineInformation << endl;
-   if (lineInformation)
+   if (lineInformation) {
+      cout << *(lineInformation->getStrings()) << endl;
       lineInformation->getSourceLines( addressInRange, lines );
+   }
 
    if ( lines.size() != originalSize )
       return true;
