@@ -1406,7 +1406,6 @@ bool process::hasBeenBound(const SymtabAPI::relocationEntry &,
 // In process.C:
 // bool process::stop_(bool waitUntilStop) { assert(0); return false; }
 // bool process::continueProc_(int sig) { assert(0); return false; }
-// Address process::setAOutLoadAddress(fileDescriptor &desc) { assert(0); return 0; }
 // bool process::detachForDebugger(const EventRecord &/*crash_event*/) { assert(0); return false; }
 
 #if defined(cap_binary_rewriter)

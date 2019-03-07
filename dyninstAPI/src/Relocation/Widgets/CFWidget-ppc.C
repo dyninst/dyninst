@@ -112,17 +112,18 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
 
    // Otherwise this is a classic, and therefore easy.
    int targetLabel = target->label(buf);
+   Address targetAddr = buf->predictedAddr(targetLabel);
 
    relocation_cerr << "\t\t CFPatch::apply, type " << type << ", origAddr " << hex << origAddr_ 
                    << ", and label " << dec << targetLabel << endl;
 
    if (orig_insn.isValid()) {
-      relocation_cerr << "\t\t\t Currently at " << hex << gen.currAddr() << " and targeting predicted " << buf->predictedAddr(targetLabel) << dec << endl;
+      relocation_cerr << "\t\t\t Currently at " << hex << gen.currAddr() << " and targeting predicted " << targetAddr << dec << endl;
       switch(type) {
          case CFPatch::Jump: {
             relocation_cerr << "\t\t\t Generating CFPatch::Jump from " 
-                            << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;
-            if (!insnCodeGen::modifyJump(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
+                            << hex << gen.currAddr() << " to " << targetAddr << dec << endl;
+            if (!insnCodeGen::modifyJump(targetAddr, *ugly_insn, gen)) {
 	      relocation_cerr << "modifyJump failed, ret false" << endl;
                return false;
             }
@@ -130,22 +131,35 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
          }
          case CFPatch::JCC: {
             relocation_cerr << "\t\t\t Generating CFPatch::JCC from " 
-                            << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;            
-            if (!insnCodeGen::modifyJcc(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
+                            << hex << gen.currAddr() << " to " << targetAddr << dec << endl;            
+            if (!insnCodeGen::modifyJcc(targetAddr, *ugly_insn, gen)) {
 	      relocation_cerr << "modifyJcc failed, ret false" << endl;
                return false;
             }
             return true;            
          }
          case CFPatch::Call: {
-            if (!insnCodeGen::modifyCall(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
+            // Special handling for function call replacement:
+            //
+            // Here we are certain that we are dealing with
+            // an intra-module call. For PIE code, the global entry of 
+            // the callee will use R12 to set up R2. Since we do not
+            // set R12 to be the global entry, we should use the local entry 
+            if (target->type() == TargetInt::BlockTarget) {
+                Target<block_instance *> *t = static_cast<Target<block_instance *> *>(target);
+                block_instance *tb = t->t();
+                func_instance *callee = tb->entryOfFunc();
+                if (callee->ifunc()->containsPowerPreamble() && callee->addr() == targetAddr) targetAddr += 8;
+            }
+
+            if (!insnCodeGen::modifyCall(targetAddr, *ugly_insn, gen)) {
 	      relocation_cerr << "modifyCall failed, ret false" << endl;
                return false;
             }
             return true;
          }
          case CFPatch::Data: {
-            if (!insnCodeGen::modifyData(buf->predictedAddr(targetLabel), *ugly_insn, gen)) {
+            if (!insnCodeGen::modifyData(targetAddr, *ugly_insn, gen)) {
 	      relocation_cerr << "modifyData failed, ret false" << endl;
                return false;
             }
@@ -156,10 +170,10 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
    else {
       switch(type) {
          case CFPatch::Jump:
-            insnCodeGen::generateBranch(gen, gen.currAddr(), buf->predictedAddr(targetLabel));
+            insnCodeGen::generateBranch(gen, gen.currAddr(), targetAddr);
             break;
          case CFPatch::Call:
-            insnCodeGen::generateCall(gen, gen.currAddr(), buf->predictedAddr(targetLabel));
+            insnCodeGen::generateCall(gen, gen.currAddr(), targetAddr);
             break;
          default:
             assert(0);

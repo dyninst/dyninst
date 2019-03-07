@@ -275,6 +275,7 @@ bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *targetData,
                 break;
             case R_X86_64_PLT32:
             case R_X86_64_PC32:
+            case R_X86_64_REX_GOTPCRELX:
                 fieldSize = sizeof(Elf64_Word);
                 relocation = symbolOffset + addend - relOffset;
                 break;
