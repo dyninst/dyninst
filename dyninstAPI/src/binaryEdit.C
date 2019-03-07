@@ -993,7 +993,7 @@ std::pair<void*,void*> BinaryEdit::serializeLineMap(pdvector<std::pair<Address, 
     }
     lmChunkSize = payload_size;
     memcpy(chunk, (char*)&num_records, sizeof(uint32_t));
-    int offset = sizeof(uint32_t);
+    uint32_t offset = sizeof(uint32_t);
     for (int i = 0; i < num_records; ++i) {
         uint64_t inst_addr = (uint64_t)newLineMap[i].first;
         SymtabAPI::LineNoTuple stmt = newLineMap[i].second;
@@ -1045,7 +1045,7 @@ std::pair<void*,void*> BinaryEdit::serializeLineMap(pdvector<std::pair<Address, 
         exit(-1);
     } 
     memcpy(chunk, (char*)&num_files, sizeof(uint32_t)); 
-    uint32_t offset = (uint32_t)header_size;
+    offset = (uint32_t)header_size;
     for (int i = 0; i < num_files; ++i) {
        uint32_t current_file_size = (uint32_t)file_sizes[i];
        memcpy((char*)chunk + sizeof(uint32_t) + i * sizeof(uint32_t) * 2, (char*)&offset, sizeof(uint32_t));
