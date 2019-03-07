@@ -43,6 +43,7 @@
 #include "IBSTree.h"
 
 #include "dyninstversion.h"
+#include "common/src/headers.h"
 
 #include "pfq-rwlock.h"
 
@@ -385,6 +386,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    Archive *getParentArchive() const;
 
    std::vector<LineMapInfoEntry> &getAllRelocatedSymbols();  
+   void* getStringTable();
 
    /***** Error Handling *****/
    static SymtabError getLastSymtabError();
@@ -444,6 +446,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    bool addFunctionRange(FunctionBase *fbase, Dyninst::Offset next_start);
 
    void extractAllRelocatedSymbols();    
+   void extractDyninstStringTable();
    // Used by binaryEdit.C...
  public:
 
@@ -645,6 +648,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
  private:
     std::vector<LineMapInfoEntry> vAllRelocatedSymbols_; 
+    void* stringTablePtr_;
 };
 
 /**

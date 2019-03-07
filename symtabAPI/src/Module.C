@@ -65,6 +65,15 @@ StringTablePtr Statement::getStrings_() const {
 void Statement::setStrings_(StringTablePtr strings) {
     Statement::strings_ = strings;
 }
+
+void Statement::getStringTable_() const {
+    return string_table_;
+}
+
+void Statement::setStringTable_(void* string_table) {
+    Statement::string_table_ = string_table;
+} 
+
 const std::string& Statement::getFile() const {
     cout << "calling Statement::getFile() file index: " <<  file_index_ << " strings size: " << strings_->size() <<  endl;
     if(strings_) {
@@ -196,8 +205,15 @@ bool Module::getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressIn
    if (lineInformation)
       lineInformation->getSourceLines( addressInRange, lines );
 
-   if ( lines.size() != originalSize )
+   if ( lines.size() != originalSize ) {
+      auto stmt = lines[originalSize];  
+      auto file_index = stmt->getFileIndex();
+      if (file_index >= DYNINST_STR_TBL_FID_OFFSET) {
+          cout << "we get the dyninst file index " << file_index << endl;    
+          stmt->setStringTable_(this->string_table); // set the pointer to string table chunk  
+      } 
       return true;
+   }
 
    return false;
 }
@@ -207,15 +223,19 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
    unsigned int originalSize = lines.size();
 
     LineInformation *lineInformation = parseLineInformation();
-//    cout << "Module " << fileName() << " searching for line info in " << lineInformation << endl;
    if (lineInformation) {
-      cout << *(lineInformation->getStrings()) << endl;
       lineInformation->getSourceLines( addressInRange, lines );
    }
 
-   if ( lines.size() != originalSize )
+   if ( lines.size() != originalSize ) {
+      auto stmt = lines[originalSize]; 
+      auto file_index = stmt.getFileIndex();
+      if (file_index >= DYNINST_STR_TBL_FID_OFFSET) {
+          cout << "we get the dyninst file index " << file_index << endl;
+          lines[originalSize].setStringTable(this->string_table);  
+      }
       return true;
-   
+   }
    return false;
 }
 
@@ -228,8 +248,10 @@ bool Module::parseDyninstLineInformation()
         return false;
     }
     vector<LineMapInfoEntry> linemap = symObj->getAllRelocatedSymbols();
+    string_table = symObj->getStringTable(); // get a copy of the string table
+    // we still insert these to leverage the multi-index lookup data structure 
     for (int i = 0; i < linemap.size(); ++i) {
-       lineInfo_->addLine(linemap[i].file_index, 
+       lineInfo_->addLine(linemap[i].file_index,  // here the file index is with offset
                           linemap[i].line_number,
                           linemap[i].column_number,
                           linemap[i].low_addr_inc,
@@ -588,3 +610,6 @@ StringTablePtr & Module::getStrings() {
     return strings_;
 }
 
+void * Module::getStringTable() {
+    return string_table;
+}

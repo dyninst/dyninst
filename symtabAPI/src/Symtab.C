@@ -39,6 +39,7 @@
 #include "common/h/race-detector-annotations.h"
 
 #include "common/src/Timer.h"
+#include "common/src/headers.h"
 #include "common/src/debugOstream.h"
 #include "common/src/serialize.h"
 #include "common/src/pathName.h"
@@ -414,6 +415,7 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
     // (... the rest are now initialized for everyone above ...)
 #endif
     extractAllRelocatedSymbols();
+    extractDyninstStringTable();
 }
 
 SYMTAB_EXPORT Symtab::Symtab() :
@@ -452,6 +454,7 @@ SYMTAB_EXPORT Symtab::Symtab() :
     init_debug_symtabAPI();
     create_printf("%s[%d]: Created symtab via default constructor\n", FILE__, __LINE__);
     extractAllRelocatedSymbols();
+    extractDyninstStringTable();
 }
 
 SYMTAB_EXPORT bool Symtab::isExec() const 
@@ -1292,6 +1295,7 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
    defaultNamespacePrefix = "";
 
    extractAllRelocatedSymbols();
+   extractDyninstStringTable();
 }
 
 Symtab::Symtab(unsigned char *mem_image, size_t image_size, 
@@ -1364,6 +1368,7 @@ Symtab::Symtab(unsigned char *mem_image, size_t image_size,
    defaultNamespacePrefix = "";
 
    extractAllRelocatedSymbols();
+   extractDyninstStringTable();
 }
 
 bool sort_reg_by_addr(const Region* a, const Region* b)
@@ -1659,6 +1664,7 @@ Symtab::Symtab(const Symtab& obj) :
    deps_ = obj.deps_;
 
    extractAllRelocatedSymbols();
+   extractDyninstStringTable();
 }
 
 // Address must be in code or data range since some code may end up
@@ -1791,6 +1797,10 @@ SYMTAB_EXPORT Archive *Symtab::getParentArchive() const {
 
 SYMTAB_EXPORT std::vector<LineMapInfoEntry> &Symtab::getAllRelocatedSymbols() {
     return vAllRelocatedSymbols_;
+}
+
+SYMTAB_EXPORT void* Symtab::getStringTable() {
+    return stringTablePtr_;
 }
 
 Symtab::~Symtab()
@@ -2363,6 +2373,17 @@ bool Symtab::getTruncateLinePaths()
    return getObject()->getTruncateLinePaths();
 }
 
+void Symtab::extractDyninstStringTable()
+{
+    Region * stringTableSec = NULL;
+    findRegion(stringTableSec, ".dyninstStringTable");
+    if (stringTableSec == NULL) {
+        return;
+    }
+    stringTablePtr_ = stringTableSec->getPtrToRawData(); 
+}
+
+
 void Symtab::extractAllRelocatedSymbols()
 {
    Region* linemapSec = NULL;
@@ -2395,6 +2416,7 @@ void Symtab::extractAllRelocatedSymbols()
        } else {
            next_inst_addr = INT_MAX;
        }
+       cout << "extracting... inst_addr: " << hex << inst_addr << dec << " file index " << file_index << " adjusted: " << file_index - DYNINST_STR_TBL_FID_OFFSET << " line: " << line_number << endl;
        LineMapInfoEntry entry(file_index, line_number, column_number, inst_addr, next_inst_addr); 
        vAllRelocatedSymbols_.emplace_back(entry);
    }

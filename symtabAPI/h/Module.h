@@ -72,10 +72,15 @@ namespace Dyninst{
 			unsigned int line_;
 			unsigned int column_;
 			StringTablePtr strings_;
+            void * string_table_; // the string table we added
 		public:
 			StringTablePtr getStrings_() const;
 
 			void setStrings_(StringTablePtr strings_);
+
+            void* getStringTable_() const;
+
+            void setStringTable_(void* string_table_);
 
 		public:
 
@@ -260,7 +265,7 @@ namespace Dyninst{
 		public:
 			StringTablePtr & getStrings() ;
             bool dyninstLineMapParsed() { return dyninst_linemap_parsed; } 
-            void getDyninstRelocateFunc(std::vector<Address>& funcs) { for (int i = 0; i < dyninst_relocate_funcs.size(); ++i) funcs.push_back(dyninst_relocate_funcs[i]); }
+            void * getStringTable();    
 
 		private:
 			bool ranges_finalized;
@@ -269,8 +274,9 @@ namespace Dyninst{
 
             bool dyninst_linemap_parsed;
 
-            std::vector<Address> dyninst_relocate_funcs; 
+            void* string_table;
 		};
+
 		template <typename OS>
 		OS& operator<<(OS& os, const Module& m)
 		{

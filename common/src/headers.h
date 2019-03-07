@@ -62,6 +62,7 @@
 #include "common/src/vxworksHeaders.h"
 
 #endif  /* architecture specific */
+#define DYNINST_STR_TBL_FID_OFFSET 2000000 // anyone creates more than 2 million files in a project?
 
 typedef enum {
    RRVsuccess,
