@@ -82,7 +82,7 @@ namespace Dyninst{
 
             void setExtraStringTable_(void* string_table_);
 
-            std::string lookupExtraStringTable(uint32_t index) const;
+            void lookupExtraStringTable(uint32_t index, void* buf) const;
 		public:
 
 			Statement() : AddressRange(0,0), file_index_(0), line_(0), column_(0)  { extra_string_table_ = NULL; }

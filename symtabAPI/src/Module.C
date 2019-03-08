@@ -80,8 +80,7 @@ void Statement::lookupExtraStringTable(uint32_t index, void* buf) const {
     memcpy(&num_files, extra_string_table_, sizeof(uint32_t));
     if (index >= num_files) {
        cerr << "Statement::lookupExtraStringTable query index " << index << " out of range " << num_files << endl;
-       std::string emptyStr;
-       return emptyStr;
+       buf[0] = '\0';
     }
     uint32_t offset = 0;
     uint32_t filename_length = 0;
