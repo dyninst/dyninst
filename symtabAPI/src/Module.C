@@ -74,7 +74,7 @@ void Statement::setExtraStringTable_(void* string_table) {
     Statement::extra_string_table_ = string_table;
 } 
 
-std::string& Statement::lookupExtraStringTable(uint32_t index) const {
+std::string Statement::lookupExtraStringTable(uint32_t index) const {
     cout << "lookup extra string table -- index: " << index << " ptr: " << hex << extra_string_table_ << dec << endl;
     uint32_t num_files = 0;
     char buf[512];
