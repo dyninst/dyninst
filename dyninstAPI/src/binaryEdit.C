@@ -698,8 +698,6 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
                         Region::RT_DATA,
                         true); 
 
-      free(lineMapChunk);
-      free(stringTableChunk);
       for (unsigned i = 0; i < newSyms.size(); i++) {
          symObj->addSymbol(newSyms[i]);
       }
@@ -726,6 +724,8 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
          showErrorCallback(109, Symtab::printError(lastError));
          return false;
       }
+      free(lineMapChunk);
+      free(stringTableChunk);
    return true;
 }
 
