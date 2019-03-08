@@ -239,7 +239,7 @@ bool Module::getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressIn
       auto stmt = lines[originalSize];  
       auto file_index = stmt->getFileIndex();
       if (file_index >= DYNINST_STR_TBL_FID_OFFSET) {
-          cout << "we get the dyninst file index " << file_index << endl;    
+          cout << "[1] we get the dyninst file index " << file_index << endl;    
           stmt->setExtraStringTable_(this->string_table); // set the pointer to string table chunk  
       } 
       return true;
@@ -261,7 +261,7 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
       auto stmt = lines[originalSize]; 
       auto file_index = stmt.getFileIndex();
       if (file_index >= DYNINST_STR_TBL_FID_OFFSET) {
-          cout << "we get the dyninst file index " << file_index << endl;
+          cout << "[2] we get the dyninst file index " << file_index << endl;
           lines[originalSize].setExtraStringTable_(this->string_table);  
       }
       return true;

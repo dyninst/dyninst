@@ -2416,7 +2416,7 @@ void Symtab::extractAllRelocatedSymbols()
        } else {
            next_inst_addr = INT_MAX;
        }
-       cout << "extracting... inst_addr: " << hex << inst_addr << dec << " file index " << file_index << " adjusted: " << file_index - DYNINST_STR_TBL_FID_OFFSET << " line: " << line_number << endl;
+       cout << "extracting... inst_addr: " << hex << inst_addr << dec << " file index " << file_index << " adjusted: " << file_index - DYNINST_STR_TBL_FID_OFFSET << " line: " << line_number << " col: " << column_number << endl;
        LineMapInfoEntry entry(file_index, line_number, column_number, inst_addr, next_inst_addr); 
        vAllRelocatedSymbols_.emplace_back(entry);
    }
