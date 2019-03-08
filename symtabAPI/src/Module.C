@@ -75,6 +75,7 @@ void Statement::setExtraStringTable_(void* string_table) {
 } 
 
 std::string& Statement::lookupExtraStringTable(uint32_t index) const {
+    cout << "lookup extra string table -- index: " << index << " ptr: " << hex << extra_string_table_ << dec << endl;
     uint32_t num_files = 0;
     char buf[512];
     memcpy(&num_files, extra_string_table_, sizeof(uint32_t));
@@ -92,6 +93,7 @@ std::string& Statement::lookupExtraStringTable(uint32_t index) const {
     std::stringstream ss;
     ss << buf;
     std::string res(ss.str().c_str());
+    cout << "extra string result: " << res << endl;
     return res;
 }
 
@@ -111,7 +113,7 @@ const std::string& Statement::getFile() const {
               }
           }  
         }
-    } 
+    } // we assume that strings_ is always not null  
     // This string will be pointed to, so it has to persist.
     static std::string emptyStr;
     return emptyStr;
