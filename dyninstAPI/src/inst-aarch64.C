@@ -1175,11 +1175,6 @@ bool EmitterAARCH64::emitCallRelative(Register dest, Address offset, Register ba
 }
 
 bool EmitterAARCH64::emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen) {
-    //assert(0); //Not implemented
-    //return true;
-    //
-    //l: need to test it
-
     insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
             base, offset, size, insnCodeGen::Pre);
 
@@ -1189,14 +1184,8 @@ bool EmitterAARCH64::emitLoadRelative(Register dest, Address offset, Register ba
 
 
 void EmitterAARCH64::emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen) {
-    //return true;
-    // assert(0); //Not implemented
-    //
-    // l: need to test later
     insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, source,
             base, offset, size, insnCodeGen::Pre);
-
-    //gen.markRegDefined(base);
 }
 
 bool EmitterAARCH64::emitMoveRegToReg(registerSlot *src,
@@ -1540,7 +1529,7 @@ Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen &gen) 
 
     if (syms.size() == 0) {
         char msg[256];
-        sprintf(msg, "%s[%d]:  internal error:  cannot find symbol %s"
+        snprintf(msg, sizeof(msg), "%s[%d]:  internal error:  cannot find symbol %s"
                 , __FILE__, __LINE__, var->symTabName().c_str());
         showErrorCallback(80, msg);
         assert(0);
@@ -1573,13 +1562,6 @@ Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen &gen) 
 }
 
 Address EmitterAARCH64::emitMovePCToReg(Register dest, codeGen &gen) {
-    //assert(0); //Not implemented
-    //insnCodeGen::generateBranch(gen, gen.currAddr(), gen.currAddr() + 4, true); // blrl
-    //Address ret = gen.currAddr();
-    //return ret;
-    //
-    //l: working on it
-
     instruction insn;
     insn.clear();
 
@@ -1623,7 +1605,7 @@ Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
 
     if (syms.size() == 0) {
         char msg[256];
-        sprintf(msg, "%s[%d]:  internal error:  cannot find symbol %s"
+        snprintf(msg, sizeof(msg), "%s[%d]:  internal error:  cannot find symbol %s"
                 , __FILE__, __LINE__, func->symTabName().c_str());
         showErrorCallback(80, msg);
         assert(0);
