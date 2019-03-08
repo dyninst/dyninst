@@ -80,7 +80,7 @@ void Statement::lookupExtraStringTable(uint32_t index, void* buf) const {
     memcpy(&num_files, extra_string_table_, sizeof(uint32_t));
     if (index >= num_files) {
        cerr << "Statement::lookupExtraStringTable query index " << index << " out of range " << num_files << endl;
-       buf[0] = '\0';
+       return;
     }
     uint32_t offset = 0;
     uint32_t filename_length = 0;
@@ -103,6 +103,7 @@ const std::string& Statement::getFile() const {
               } else {
                  uint32_t real_index = (uint32_t)file_index_ - DYNINST_STR_TBL_FID_OFFSET; 
                  char buf[128];
+                 buf[0] = '\0';
                  Statement::lookupExtraStringTable(real_index, buf); 
                  std::stringstream ss;
                  ss << buf;
