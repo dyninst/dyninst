@@ -101,11 +101,11 @@ const std::string& Statement::getFile() const {
               if (extra_string_table_ == NULL) {
                  cerr << "error, pointer to string table not set " << endl; 
               } else {
-                  /*
                  uint32_t real_index = (uint32_t)file_index_ - DYNINST_STR_TBL_FID_OFFSET; 
                  char buf[128];
                  buf[0] = '\0';
                  Statement::lookupExtraStringTable(real_index, buf); 
+                  /*
                  std::string res = "";
                  std::stringstream ss;
                  ss << buf;
