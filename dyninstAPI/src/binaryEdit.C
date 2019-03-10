@@ -726,7 +726,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       }
       free(lineMapChunk);
       free(stringTableChunk);
-   return true;
+    return true;
 }
 
 Address BinaryEdit::maxAllocedAddr() {
