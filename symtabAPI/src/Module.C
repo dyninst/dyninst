@@ -107,11 +107,12 @@ const std::string& Statement::getFile() const {
                  Statement::lookupExtraStringTable(real_index, buf); 
                  string res = "";
                  int i = 0;
-                 while (i != '\0') {
+                 while (i != '\0' && i < 128) {
                      res.push_back(buf[i]);
                      i++;
                  }
                  res.push_back('\0');
+                 cout << "res: " << res << endl;
                  return res;
                   /*
                  std::string res = "";
