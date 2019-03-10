@@ -105,6 +105,14 @@ const std::string& Statement::getFile() const {
                  char buf[128];
                  buf[0] = '\0';
                  Statement::lookupExtraStringTable(real_index, buf); 
+                 string res = "";
+                 int i = 0;
+                 while (i != '\0') {
+                     res.push_back(buf[i]);
+                     i++;
+                 }
+                 res.push_back('\0');
+                 return res;
                   /*
                  std::string res = "";
                  std::stringstream ss;
@@ -113,7 +121,6 @@ const std::string& Statement::getFile() const {
                  cout << "extra string result: " << res << endl;
                  return res;
                  */
-                 return string("");
               }
           }  
         }
