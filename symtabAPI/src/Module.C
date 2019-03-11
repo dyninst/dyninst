@@ -74,27 +74,6 @@ void Statement::setExtraStringTable_(void* string_table) {
     Statement::extra_string_table_ = string_table;
 } 
 
-void Statement::lookupExtraStringTable(uint32_t index) const {
-    cout << "lookup extra string table -- index: " << index << " ptr: " << hex << extra_string_table_ << dec << endl;
-    char buf[512];
-    buf[0] = '\0';
-    uint32_t num_files = 0;
-    memcpy(&num_files, extra_string_table_, sizeof(uint32_t));
-    if (index >= num_files) {
-       cerr << "Statement::lookupExtraStringTable query index " << index << " out of range " << num_files << endl;
-       return;
-    }
-    uint32_t offset = 0;
-    uint32_t filename_length = 0;
-    size_t header_offset = sizeof(uint32_t) + index * sizeof(uint32_t) * 2; 
-    memcpy(&offset, (char*)extra_string_table_ + header_offset, sizeof(uint32_t));
-    memcpy(&filename_length, (char*)extra_string_table_ + header_offset + sizeof(uint32_t), sizeof(uint32_t));
-    memcpy(buf, (char*)extra_string_table_ + offset, filename_length + 1);
-    std::stringstream ss;
-    ss << buf;
-    std::string res(ss.str().c_str());
-    dyninst_file_name_ = res;
-}
 
 const std::string& Statement::getFile() const {
     if(strings_) {
@@ -103,16 +82,7 @@ const std::string& Statement::getFile() const {
             return (*strings_)[file_index_].str;
         } else { // 
           if (file_index_ >= DYNINST_STR_TBL_FID_OFFSET) {
-              cout << "getFile(), for dyninst file index " << file_index_  << endl;
-              if (extra_string_table_ == NULL) {
-                 cerr << "error, pointer to string table not set " << endl; 
-              } else {
-                 uint32_t real_index = (uint32_t)file_index_ - DYNINST_STR_TBL_FID_OFFSET; 
-                 dyninst_file_name_ = string("");
-                 Statement::lookupExtraStringTable(real_index); 
-                 cout << "dyninst file name: " << dyninst_file_name_ << endl;
-                 return dyninst_file_name_;
-              }
+              return dyninst_file_name_;
           }  
         }
     } // we assume that strings_ is always not null  
@@ -229,6 +199,26 @@ bool Module::getAddressRanges(std::vector<AddressRange >&ranges,
    return false;
 }
 
+string& Module::lookupExtraStringTable(uint32_t index) {
+    char buf[512];
+    buf[0] = '\0';
+    uint32_t num_files = 0;
+    memcpy(&num_files, extra_string_table_, sizeof(uint32_t));
+    if (index >= num_files) {
+       cerr << "Statement::lookupExtraStringTable query index " << index << " out of range " << num_files << endl;
+       return std::string("<unknown file>");  
+    }
+    uint32_t offset = 0;
+    uint32_t filename_length = 0;
+    size_t header_offset = sizeof(uint32_t) + index * sizeof(uint32_t) * 2; 
+    memcpy(&offset, (char*)extra_string_table_ + header_offset, sizeof(uint32_t));
+    memcpy(&filename_length, (char*)extra_string_table_ + header_offset + sizeof(uint32_t), sizeof(uint32_t));
+    memcpy(buf, (char*)extra_string_table_ + offset, filename_length + 1);
+    std::stringstream ss;
+    ss << buf;
+    return ss.str();
+}
+
 bool Module::getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressInRange)
 {
    unsigned int originalSize = lines.size();
@@ -242,7 +232,9 @@ bool Module::getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressIn
       auto file_index = stmt->getFileIndex();
       if (file_index >= DYNINST_STR_TBL_FID_OFFSET) {
           cout << "[1] we get the dyninst file index " << file_index << endl;    
-          stmt->setExtraStringTable_(this->string_table); // set the pointer to string table chunk  
+          std::string dyninst_filename = lookupExtraStringTable(file_index - DYNINST_STR_TBL_FID_OFFSET);
+          // we should set the dyninst file name here
+          stmt->setFileName(dyninst_filename);
       } 
       return true;
    }

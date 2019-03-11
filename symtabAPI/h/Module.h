@@ -66,14 +66,13 @@ namespace Dyninst{
 					line_(line),
 					column_(col)
 			{
+                dyninst_file_name_ = std::string("<unknown file>");
 			}
 
 			unsigned int file_index_; // Maybe this should be module?
 			unsigned int line_;
 			unsigned int column_;
 			StringTablePtr strings_;
-            void * extra_string_table_; // the string table we added
-
             std::string dyninst_file_name_;
 
 		public:
@@ -81,15 +80,12 @@ namespace Dyninst{
 
 			void setStrings_(StringTablePtr strings_);
 
-            void* getExtraStringTable_() const;
-
-            void setExtraStringTable_(void* string_table_);
-
-            void lookupExtraStringTable(uint32_t index) const;
+            void setFileName(string& filename_);
 
 		public:
 
-			Statement() : AddressRange(0,0), file_index_(0), line_(0), column_(0)  { extra_string_table_ = NULL; }
+			Statement() : AddressRange(0,0), file_index_(0), line_(0), column_(0)  { dyninst_file_name_ = std::string("<unknown file>"); }
+
 			struct StatementLess {
 				bool operator () ( const Statement &lhs, const Statement &rhs ) const;
 			};
@@ -279,6 +275,8 @@ namespace Dyninst{
             bool dyninst_linemap_parsed;
 
             void* string_table;
+
+            string& lookupExtraStringTable(uint32_t index);
 		};
 
 		template <typename OS>
