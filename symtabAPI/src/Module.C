@@ -191,7 +191,7 @@ bool Module::getAddressRanges(std::vector<AddressRange >&ranges,
    return false;
 }
 
-string& Module::lookupExtraStringTable(uint32_t index) {
+string Module::lookupExtraStringTable(uint32_t index) {
     char buf[512];
     buf[0] = '\0';
     uint32_t num_files = 0;

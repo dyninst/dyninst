@@ -276,7 +276,7 @@ namespace Dyninst{
 
             void* string_table;
 
-            std::string& lookupExtraStringTable(uint32_t index);
+            std::string lookupExtraStringTable(uint32_t index);
 		};
 
 		template <typename OS>
