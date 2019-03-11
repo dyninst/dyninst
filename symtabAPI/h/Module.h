@@ -80,7 +80,7 @@ namespace Dyninst{
 
 			void setStrings_(StringTablePtr strings_);
 
-            void setFileName(string& filename_);
+            void setFileName(std::string& filename_);
 
 		public:
 
@@ -276,7 +276,7 @@ namespace Dyninst{
 
             void* string_table;
 
-            string& lookupExtraStringTable(uint32_t index);
+            std::string& lookupExtraStringTable(uint32_t index);
 		};
 
 		template <typename OS>
