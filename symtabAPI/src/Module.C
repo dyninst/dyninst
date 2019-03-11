@@ -66,14 +66,6 @@ void Statement::setStrings_(StringTablePtr strings) {
     Statement::strings_ = strings;
 }
 
-void* Statement::getExtraStringTable_() const {
-    return extra_string_table_;
-}
-
-void Statement::setExtraStringTable_(void* string_table) {
-    Statement::extra_string_table_ = string_table;
-} 
-
 
 const std::string& Statement::getFile() const {
     if(strings_) {
@@ -203,7 +195,7 @@ string& Module::lookupExtraStringTable(uint32_t index) {
     char buf[512];
     buf[0] = '\0';
     uint32_t num_files = 0;
-    memcpy(&num_files, extra_string_table_, sizeof(uint32_t));
+    memcpy(&num_files, string_table, sizeof(uint32_t));
     if (index >= num_files) {
        cerr << "Statement::lookupExtraStringTable query index " << index << " out of range " << num_files << endl;
        return std::string("<unknown file>");  
@@ -211,9 +203,9 @@ string& Module::lookupExtraStringTable(uint32_t index) {
     uint32_t offset = 0;
     uint32_t filename_length = 0;
     size_t header_offset = sizeof(uint32_t) + index * sizeof(uint32_t) * 2; 
-    memcpy(&offset, (char*)extra_string_table_ + header_offset, sizeof(uint32_t));
-    memcpy(&filename_length, (char*)extra_string_table_ + header_offset + sizeof(uint32_t), sizeof(uint32_t));
-    memcpy(buf, (char*)extra_string_table_ + offset, filename_length + 1);
+    memcpy(&offset, (char*)string_table + header_offset, sizeof(uint32_t));
+    memcpy(&filename_length, (char*)string_table + header_offset + sizeof(uint32_t), sizeof(uint32_t));
+    memcpy(buf, (char*)string_table + offset, filename_length + 1);
     std::stringstream ss;
     ss << buf;
     return ss.str();
@@ -256,7 +248,8 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
       auto file_index = stmt.getFileIndex();
       if (file_index >= DYNINST_STR_TBL_FID_OFFSET) {
           cout << "[2] we get the dyninst file index " << file_index << endl;
-          lines[originalSize].setExtraStringTable_(this->string_table);  
+          std::string dyninst_filename = lookupExtraStringTable(file_index - DYNINST_STR_TBL_FID_OFFSET);
+          lines[originalSize].setFileName(dyninst_filename);  
       }
       return true;
    }
