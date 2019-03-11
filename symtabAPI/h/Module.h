@@ -83,13 +83,7 @@ namespace Dyninst{
 
             void setExtraStringTable_(void* string_table_);
 
-            void lookupExtraStringTable(uint32_t index, string& filename) const;
-
-        private:
-
-            void setDyninstFileName(std::string& name_);
-
-            const string& getDyninstFileName() const;
+            void lookupExtraStringTable(uint32_t index, std::string& filename) const;
 
 		public:
 
