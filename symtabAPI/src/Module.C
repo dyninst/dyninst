@@ -74,8 +74,10 @@ void Statement::setExtraStringTable_(void* string_table) {
     Statement::extra_string_table_ = string_table;
 } 
 
-void Statement::lookupExtraStringTable(uint32_t index, void* buf) const {
+void Statement::lookupExtraStringTable(uint32_t index, std::string& filename) const {
     cout << "lookup extra string table -- index: " << index << " ptr: " << hex << extra_string_table_ << dec << endl;
+    char buf[512];
+    buf[0] = '\0';
     uint32_t num_files = 0;
     memcpy(&num_files, extra_string_table_, sizeof(uint32_t));
     if (index >= num_files) {
@@ -88,6 +90,10 @@ void Statement::lookupExtraStringTable(uint32_t index, void* buf) const {
     memcpy(&offset, (char*)extra_string_table_ + header_offset, sizeof(uint32_t));
     memcpy(&filename_length, (char*)extra_string_table_ + header_offset + sizeof(uint32_t), sizeof(uint32_t));
     memcpy(buf, (char*)extra_string_table_ + offset, filename_length + 1);
+    std::stringstream ss;
+    ss << buf;
+    std::string res(ss.str().c_str());
+    filename = res;
 }
 
 const std::string& Statement::getFile() const {
@@ -102,26 +108,10 @@ const std::string& Statement::getFile() const {
                  cerr << "error, pointer to string table not set " << endl; 
               } else {
                  uint32_t real_index = (uint32_t)file_index_ - DYNINST_STR_TBL_FID_OFFSET; 
-                 char buf[128];
-                 buf[0] = '\0';
-                 Statement::lookupExtraStringTable(real_index, buf); 
-                 string res = "";
-                 int i = 0;
-                 while (i < 128 & buf[i] != '\0') {
-                     res.push_back(buf[i]);
-                     i++;
-                 }
-                 res.push_back('\0');
-                 cout << "res: " << res << endl;
-                 return res;
-                  /*
-                 std::string res = "";
-                 std::stringstream ss;
-                 ss << buf;
-                 std::string res(ss.str().c_str());
-                 cout << "extra string result: " << res << endl;
-                 return res;
-                 */
+                 dyninst_file_name_ = "";
+                 Statement::lookupExtraStringTable(real_index, dyninst_file_name_); 
+                 cout << "dyninst file name: " << dyninst_file_name_ << endl;
+                 return dyninst_file_name_;
               }
           }  
         }

@@ -73,6 +73,7 @@ namespace Dyninst{
 			unsigned int column_;
 			StringTablePtr strings_;
             void * extra_string_table_; // the string table we added
+            std::string dyninst_file_name_;
 		public:
 			StringTablePtr getStrings_() const;
 
@@ -82,7 +83,14 @@ namespace Dyninst{
 
             void setExtraStringTable_(void* string_table_);
 
-            void lookupExtraStringTable(uint32_t index, void* buf) const;
+            void lookupExtraStringTable(uint32_t index, string& filename) const;
+
+        private:
+
+            void setDyninstFileName(std::string& name_);
+
+            const string& getDyninstFileName() const;
+
 		public:
 
 			Statement() : AddressRange(0,0), file_index_(0), line_(0), column_(0)  { extra_string_table_ = NULL; }
