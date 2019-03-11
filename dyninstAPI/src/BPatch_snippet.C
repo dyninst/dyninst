@@ -1523,7 +1523,7 @@ BPatch_breakPointExpr::BPatch_breakPointExpr()
  *
  * Construct a snippet representing an effective address.
  */
-BPatch_effectiveAddressExpr::BPatch_effectiveAddressExpr(int _which)
+BPatch_effectiveAddressExpr::BPatch_effectiveAddressExpr(int _which, int size)
 {
 #if defined(i386_unknown_nt4_0)
   assert(_which >= 0 && _which <= 2);
@@ -1532,7 +1532,7 @@ BPatch_effectiveAddressExpr::BPatch_effectiveAddressExpr(int _which)
 #else
   assert(_which >= 0 && _which <= (int) BPatch_instruction::nmaxacc_NP);
 #endif
-  ast_wrapper = AstNodePtr(AstNode::memoryNode(AstNode::EffectiveAddr, _which));
+  ast_wrapper = AstNodePtr(AstNode::memoryNode(AstNode::EffectiveAddr, _which, size));
 };
 
 
