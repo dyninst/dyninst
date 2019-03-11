@@ -66,6 +66,9 @@ void Statement::setStrings_(StringTablePtr strings) {
     Statement::strings_ = strings;
 }
 
+void Statement::setFileName_(std::string& filename) {
+    dyninst_file_name_ = filename;     
+}
 
 const std::string& Statement::getFile() const {
     if(strings_) {
@@ -226,7 +229,7 @@ bool Module::getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressIn
           cout << "[1] we get the dyninst file index " << file_index << endl;    
           std::string dyninst_filename = lookupExtraStringTable(file_index - DYNINST_STR_TBL_FID_OFFSET);
           // we should set the dyninst file name here
-          stmt->setFileName(dyninst_filename);
+          stmt->setFileName_(dyninst_filename);
       } 
       return true;
    }
@@ -249,7 +252,7 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
       if (file_index >= DYNINST_STR_TBL_FID_OFFSET) {
           cout << "[2] we get the dyninst file index " << file_index << endl;
           std::string dyninst_filename = lookupExtraStringTable(file_index - DYNINST_STR_TBL_FID_OFFSET);
-          lines[originalSize].setFileName(dyninst_filename);  
+          lines[originalSize].setFileName_(dyninst_filename);  
       }
       return true;
    }
