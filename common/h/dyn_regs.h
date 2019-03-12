@@ -1546,7 +1546,7 @@ namespace Dyninst
       const signed int C_FLAG   =   29;
       const signed int V_FLAG   =   28;
 
-      DEF_REGISTER(sp,       0 | FULL   |SPR | Arch_aarch64, "aarch64");
+      DEF_REGISTER(sp,       31| FULL   |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(wsp,      0 | D_REG  |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(pc,       1 | FULL   |SPR | Arch_aarch64, "aarch64");
       DEF_REGISTER(pstate,   2 | D_REG  |SPR | Arch_aarch64, "aarch64");

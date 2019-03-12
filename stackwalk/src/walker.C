@@ -451,7 +451,16 @@ bool Walker::walkStackFromFrame(std::vector<Frame> &stackwalk,
         goto done;
      }
      stackwalk.back().next_stepper = cur_frame.getStepper();
-     stackwalk.push_back(cur_frame);
+     int cur_capa = stackwalk.capacity();
+     stackwalk.push_back(cur_frame);     
+     if (cur_capa != stackwalk.capacity()) {
+         // If the stackwalk vector reallocates memory,
+	 // all prev_frame points become invalid.
+	 // So, we need to update them.
+         for (int i = 1; i < stackwalk.size(); ++i) {
+	     stackwalk[i].prev_frame = &(stackwalk[i - 1]);
+	 }
+     }
    }
 
  done:

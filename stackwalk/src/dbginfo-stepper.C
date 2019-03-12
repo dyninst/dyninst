@@ -53,6 +53,7 @@ using namespace DwarfDyninst;
 
 static std::map<std::string, DwarfFrameParser::Ptr> dwarf_info;
 
+#include <sys/ucontext.h>
 #include <stdarg.h>
 #include "dwarf.h"
 #include "elfutils/libdw.h"
@@ -157,6 +158,7 @@ location_t DebugStepperImpl::getLastComputedLocation(unsigned long value)
 
 bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
 {
+   sw_printf("Attempt to get value for reg %s\n", reg.name().c_str());
    if (reg.isFramePointer()) {
       val = static_cast<MachRegisterVal>(depth_frame->getFP());
       return true;
@@ -191,6 +193,35 @@ bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
       {
          result = symtab->getRegValueAtFrame(offset, reg, val, this);
       }
+#if defined(arch_aarch64)
+      if (!result) {
+          sw_printf("Cast framestepper %p for frame %p to SigHandlerStepper at address %lx\n", prevDepthFrame->getStepper(), prevDepthFrame, prevDepthFrame->getRA());
+
+          SigHandlerStepper * ss = dynamic_cast<SigHandlerStepper*> (prevDepthFrame->getStepper());
+	  if (ss != NULL) {
+	      sw_printf("[%s:%u] - Not the first frame, cannot find dbg information, and previous frame is a signal trampoline frame. Try to get x30 from ucontext as RA\n",
+                FILE__, __LINE__);
+              static     ucontext_t dummy_context;
+	      static int lr_offset = (char*)&(dummy_context.uc_mcontext.regs[30]) - (char*)&dummy_context;
+	      // This assumes that a ucontext_t is at the following offset from the top of the signal handler's stack.
+	      static int ucontext_offset = 128;
+	      const Frame * signal_frame = depth_frame;
+	      if (signal_frame != NULL) {
+	          int addr_size = 8;
+	          Address lr_addr = signal_frame->getSP() + ucontext_offset + lr_offset;
+		  result = getProcessState()->readMem(&val, lr_addr, addr_size);
+	      sw_printf("[%s:%u] - readMem results %d, get %lx as RA\n",
+                FILE__, __LINE__, result, val);
+
+	      } else {
+	      sw_printf("[%s:%u] - the signal trampoline frame does not have a parent frame\n",
+                FILE__, __LINE__);
+	      }
+	  } else {
+	      sw_printf("Cannot cast framestepper to SigHandlerStepper\n");
+	  }
+       }
+#endif      
    }
 #endif
 
@@ -218,9 +249,9 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    // the input frame.
    result = getProcessState()->getLibraryTracker()->getLibraryAtAddr(in.getRA(), lib);
    if (!result) {
-      sw_printf("[%s:%u] - Stackwalking through an invalid PC at %lx\n",
+      sw_printf("[%s:%u] - Stackwalking with PC at %lx, which is not found in any known libraries\n",
                 FILE__, __LINE__, in.getRA());
-      return gcf_error;
+      return gcf_not_me;
    }
    Address pc = in.getRA() - lib.second;
    sw_printf("[%s:%u] Dwarf-based stackwalking, using local address 0x%lx from 0x%lx - 0x%lx\n",
@@ -609,11 +640,9 @@ bool DebugStepperImpl::lookupInCache(const Frame &cur, Frame &caller) {
        assert(0);
        MAX_ADDR = 0xffffffff;
    }
-#if defined(arch_64bit)
    else if (addr_width == 8){
        MAX_ADDR = 0xffffffffffffffff;
    }
-#endif
    else {
        assert(0 && "Unknown architecture word size");
        return false;
