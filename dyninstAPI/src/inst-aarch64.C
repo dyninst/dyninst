@@ -28,8 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-//#warning "This file is not implemented yet!"
-
 #include "common/src/headers.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/image.h"
@@ -646,7 +644,6 @@ Register EmitterAARCH64::emitCall(opCode op,
 
     //Address of function to call in scratch register
     Register scratch = gen.rs()->getScratchRegister(gen);
-    // Register s1 = gen.rs()->getScratchRegister(gen, noCost);
     assert(scratch != REG_NULL && "cannot get a scratch register");
     gen.markRegDefined(scratch);
     if (gen.addrSpace()->edit() != NULL && gen.func()->obj() != callee->obj()) {
@@ -1399,9 +1396,6 @@ bool EmitterAARCH64::emitCallInstruction(codeGen &gen, func_instance *callee, bo
 
 void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int size,
                                     codeGen &gen, Address offset) {
-    //assert(0); //Not implemented
-    //return;
-    
     // create or retrieve jump slot
     Address addr;
     int stackSize = 0;
@@ -1417,11 +1411,7 @@ void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variab
     }
 
     // load register with address from jump slot
-
-    // printf("emitLoadShared addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n", 
-    //        addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
     Register scratchReg = gen.rs()->getScratchRegister(gen, true);
-
     assert(scratchReg != REG_NULL && "cannot get a scratch register");
 
     emitMovePCToReg(scratchReg, gen);
@@ -1442,27 +1432,14 @@ void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variab
             emitLoadRelative(dest, varOffset, scratchReg, gen.width(), gen);
         } else {
             assert(0 && "reached invalid else branch");
-
-            // Move address of the variable into the register - load effective address
-            //dest = effective address of pc+offset ;
-            //insnCodeGen::generateImm (gen, CAUop, dest, 0, BOT_HI (varOffset));
-            //insnCodeGen::generateImm (gen, ORILop, dest, dest, BOT_LO (varOffset));
-            //insnCodeGen::generateAddReg (gen, CAXop, dest, dest, scratchReg);
         }
     }
 
     assert(stackSize <= 0 && "stack not empty at the end");
-
-    return;
 }
 
 void
 EmitterAARCH64::emitStoreShared(Register source, const image_variable *var, bool is_local, int size, codeGen &gen) {
-    //assert(0); //Not implemented
-    //return;
-    //
-    // l: from POWER
-    //
     // create or retrieve jump slot
     Address addr;
     int stackSize = 0;
@@ -1473,16 +1450,12 @@ EmitterAARCH64::emitStoreShared(Register source, const image_variable *var, bool
         addr = (Address)var->getOffset();
     }
 
-    printf("emitStoreRelative addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n",
-            addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
-
     // load register with address from jump slot
     Register scratchReg = gen.rs()->getScratchRegister(gen, true);
     assert(scratchReg != REG_NULL && "cannot get a scratch register");
 
     emitMovePCToReg(scratchReg, gen);
     Address varOffset = addr - gen.currAddr() + 4;
-    printf("varOffset: %lu\n", varOffset);
 
     if(!is_local) {
         pdvector<Register> exclude;
@@ -1496,15 +1469,9 @@ EmitterAARCH64::emitStoreShared(Register source, const image_variable *var, bool
     }
 
     assert(stackSize <= 0 && "stack not empty at the end");
-
-    return;
 }
 
 Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen &gen) {
-    // assert(0); //Not implemented
-    //
-    // l: FROM POWER
-
     AddressSpace *addrSpace = gen.addrSpace();
     if (!addrSpace)
         assert(0 && "No AddressSpace associated with codeGen object");
@@ -1574,9 +1541,6 @@ Address EmitterAARCH64::emitMovePCToReg(Register dest, codeGen &gen) {
 }
 
 Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
-    // assert(0); //Not implemented
-    // return NULL;
-    
     // from POWER64 getInterModuleFuncAddr
 
     AddressSpace *addrSpace = gen.addrSpace();
