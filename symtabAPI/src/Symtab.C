@@ -2373,14 +2373,14 @@ bool Symtab::getTruncateLinePaths()
 
 void Symtab::extractDyninstLineInfo()  
 {
-    DyninstLineInfoManager mngr(this, lineMap); // create the manager   
+    DyninstLineInfoManager mngr(this); // create the manager   
     vAllRelocatedSymbols_ = mngr.readLineMapInfo(); // read the line map information 
     vAllFileNames_ = mngr.readStringTable();  // read the string table 
 }
 
 
 SYMTAB_EXPORT std::pair<void*, void*> Symtab::addDyninstLineInfo(std::vector<std::pair<Address, LineNoTuple>>& lineMap) {
-    DyninstLineInfoManager mngr(this, lineMap); // create the manager  
+    DyninstLineInfoManager mngr(this, newLineMap_); // create the manager  
     void* lineMapChunk = mngr.writeLineMapInfo(); // write linemap 
     void* stringTableChunk = mngr.writeStringTable(); // write string table 
     return std::make_pair(lineMapChunk, stringTableChunk);
@@ -3609,6 +3609,10 @@ SYMTAB_EXPORT DyninstLineInfoManager::DyninstLineInfoManager() {
     symtab_ = NULL;
 }
 
+SYMTAB_EXPORT DyninstLineInfoManager::DyninstLineInfoManager(SymtabAPI::Symtab* symtab) {
+   symtab_ = symtab;
+}
+
 SYMTAB_EXPORT DyninstLineInfoManager::DyninstLineInfoManager( // Constructor 
         SymtabAPI::Symtab* symtab, 
         std::vector<std::pair<Address, SymtabAPI::LineNoTuple>>& linemap) {
@@ -3629,7 +3633,7 @@ SYMTAB_EXPORT DyninstLineInfoManager::DyninstLineInfoManager( // Constructor
 
 
 /* serialize the string table and add region */
-SYMTAB_EXPORT void* DyninstLineInfoManager::writeStringTable(const char* stringTableName = ".dyninstStringTable") {
+SYMTAB_EXPORT void* DyninstLineInfoManager::writeStringTable(const char* stringTableName) {
     //serialize the string table  
     assert(symtab_ != NULL);
     std::vector<std::pair<std::string, uint32_t> > tmp_vec;
@@ -3662,7 +3666,7 @@ SYMTAB_EXPORT void* DyninstLineInfoManager::writeStringTable(const char* stringT
     return chunk;   
 }
 
-SYMTAB_EXPORT std::vector<std::string> DyninstLineInfoManager::readStringTable(const char* stringTableName = ".dyninstStringTable") {
+SYMTAB_EXPORT std::vector<std::string> DyninstLineInfoManager::readStringTable(const char* stringTableName) {
     assert(symtab_ != NULL);
     Region* stringTableSec = NULL;
     symtab_->symtab_findRegion(stringTableSec, stringTableName);
@@ -3695,9 +3699,9 @@ SYMTAB_EXPORT std::vector<std::string> DyninstLineInfoManager::readStringTable(c
 }
 
 /* serialize the line map records and add region */
-SYMTAB_EXPORT void* DyninstLineInfoManager::writeLineMapInfo(const char* lineMapName = ".dyninstLineMap") {
+SYMTAB_EXPORT void* DyninstLineInfoManager::writeLineMapInfo(const char* lineMapName) {
     assert(symtab_ != NULL);
-    size_t num_records = newLineMap_.size();
+    size_t num_records = lm.size();
     size_t chunk_size = sizeof(uint32_t) + sizeof(DyninstLineMapRecord) * num_records;
     void* chunk = calloc(1, chunk_size);  
     if (chunk == NULL) {
@@ -3730,7 +3734,7 @@ SYMTAB_EXPORT void* DyninstLineInfoManager::writeLineMapInfo(const char* lineMap
     return chunk;
 }
 
-SYMTAB_EXPORT std::vector<LineMapInfoEntry> DyninstLineInfoManager::readLineMapInfo(const char* lineMapName = ".dyninstLineMap") {
+SYMTAB_EXPORT std::vector<LineMapInfoEntry> DyninstLineInfoManager::readLineMapInfo(const char* lineMapName) {
     assert(symtab_ != NULL);
     Region* linemapSec = NULL;
     symtab_->symtab_findRegion(linemapSec, lineMapName);

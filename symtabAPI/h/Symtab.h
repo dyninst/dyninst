@@ -657,7 +657,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
     unsigned _ref_cnt;
 
  public:
-    void addDyninstLineInfo(std::vector<std::pair<Address, LineNoTuple>>& lineMap);
+    std::pair<void*, void*> addDyninstLineInfo(std::vector<std::pair<Address, LineNoTuple>>& lineMap);
     void extractDyninstLineInfo();
 
  private:
@@ -667,7 +667,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
 class SYMTAB_EXPORT DyninstLineInfoManager {
         
-    DyninstLineInfoManager() {} 
+    DyninstLineInfoManager(); 
+    DyninstLineInfoManager(SymtabAPI::Symtab* symtab);
     DyninstLineInfoManager(SymtabAPI::Symtab* symtab, std::vector<std::pair<Address, SymtabAPI::LineNoTuple>>& lm);
     public:
         void* writeStringTable(const char* stringTableName = ".dyninstStringTable");  
