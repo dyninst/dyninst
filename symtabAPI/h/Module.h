@@ -265,8 +265,10 @@ namespace Dyninst{
 			StringTablePtr strings_;
 		public:
 			StringTablePtr & getStrings() ;
+
             bool dyninstLineMapParsed() { return dyninst_linemap_parsed; } 
-            void * getStringTable();    
+
+
 		private:
 			bool ranges_finalized;
 
@@ -274,9 +276,8 @@ namespace Dyninst{
 
             bool dyninst_linemap_parsed;
 
-            void* string_table;
+            std::string getDyninstFileName(size_t index);
 
-            std::string lookupExtraStringTable(uint32_t index);
 		};
 
 		template <typename OS>

@@ -75,10 +75,8 @@ const std::string& Statement::getFile() const {
         if(file_index_ < strings_->size()) {
             // can't be ->[] on shared pointer to multi_index container or compiler gets confused
             return (*strings_)[file_index_].str;
-        } else { // 
-          if (file_index_ >= DYNINST_STR_TBL_FID_OFFSET) {
-              return dyninst_file_name_;
-          }  
+        } else if (file_index_ >= DYNINST_STR_TBL_FID_OFFSET) {
+            return dyninst_file_name_;
         }
     } // we assume that strings_ is always not null  
     // This string will be pointed to, so it has to persist.
@@ -194,24 +192,17 @@ bool Module::getAddressRanges(std::vector<AddressRange >&ranges,
    return false;
 }
 
-string Module::lookupExtraStringTable(uint32_t index) {
-    char buf[512];
-    buf[0] = '\0';
-    uint32_t num_files = 0;
-    memcpy(&num_files, string_table, sizeof(uint32_t));
-    if (index >= num_files) {
-       cerr << "Statement::lookupExtraStringTable query index " << index << " out of range " << num_files << endl;
-       return std::string("<unknown file>");  
+std::string Module::getDyninstFileName(size_t index) {
+    Symtab* symObj = exec();
+    if (symObj == NULL) {
+        cerr << "Module::getDyninstFileName: cannot get Symtab*  " << endl;
+        return "<unknown file>";
     }
-    uint32_t offset = 0;
-    uint32_t filename_length = 0;
-    size_t header_offset = sizeof(uint32_t) + index * sizeof(uint32_t) * 2; 
-    memcpy(&offset, (char*)string_table + header_offset, sizeof(uint32_t));
-    memcpy(&filename_length, (char*)string_table + header_offset + sizeof(uint32_t), sizeof(uint32_t));
-    memcpy(buf, (char*)string_table + offset, filename_length + 1);
-    std::stringstream ss;
-    ss << buf;
-    return ss.str();
+    if (index >= symObj->getAllFileNames().size()) {
+        cerr << "Module::getDyninstFileName: " << "  index " << index << " out of range " << endl;
+        return "<unknown file>";
+    }
+    return (symObj->getAllFileNames()).at(index);
 }
 
 bool Module::getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressInRange)
@@ -223,17 +214,16 @@ bool Module::getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressIn
       lineInformation->getSourceLines( addressInRange, lines );
 
    if ( lines.size() != originalSize ) {
+       /* we check if the file index refers to our string table */
       auto stmt = lines[originalSize];  
       auto file_index = stmt->getFileIndex();
       if (file_index >= DYNINST_STR_TBL_FID_OFFSET) {
-          cout << "[1] we get the dyninst file index " << file_index << endl;    
-          std::string dyninst_filename = lookupExtraStringTable(file_index - DYNINST_STR_TBL_FID_OFFSET);
+          file_index -= DYNINST_STR_TBL_FID_OFFSET; 
           // we should set the dyninst file name here
-          stmt->setFileName_(dyninst_filename);
+          stmt->setFileName_(getDyninstFileName(file_index)); // record the file name 
       } 
       return true;
    }
-
    return false;
 }
 
@@ -250,9 +240,8 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
       auto stmt = lines[originalSize]; 
       auto file_index = stmt.getFileIndex();
       if (file_index >= DYNINST_STR_TBL_FID_OFFSET) {
-          cout << "[2] we get the dyninst file index " << file_index << endl;
-          std::string dyninst_filename = lookupExtraStringTable(file_index - DYNINST_STR_TBL_FID_OFFSET);
-          lines[originalSize].setFileName_(dyninst_filename);  
+          file_index -= DYNINST_STR_TBL_FID_OFFSET;
+          lines[originalSize].setFileName_(getDyninstFileName(file_index));  
       }
       return true;
    }
@@ -268,7 +257,6 @@ bool Module::parseDyninstLineInformation()
         return false;
     }
     vector<LineMapInfoEntry> linemap = symObj->getAllRelocatedSymbols();
-    string_table = symObj->getStringTable(); // get a copy of the string table
     // we still insert these to leverage the multi-index lookup data structure 
     for (int i = 0; i < linemap.size(); ++i) {
        lineInfo_->addLine(linemap[i].file_index,  // here the file index is with offset
@@ -315,7 +303,6 @@ LineInformation *Module::parseLineInformation() {
         parseDyninstLineInformation(); // read the extra .dyninstLineMap section, propagate the line map info into the lineInfo_ that should have already been created
         dyninst_linemap_parsed = true;
     }
-    cerr << "parseLineInformation: strings_ size: " << strings_->size() << " module name: " << fileName() << endl;
     return lineInfo_;
 }
 

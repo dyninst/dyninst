@@ -505,8 +505,6 @@ void addTrapTable_win(newSectionPtr, Address tableAddr)
 bool BinaryEdit::writeFile(const std::string &newFileName) 
 {
    // Step 1: changes. 
-
-      cout << "write file: " << newFileName << endl;
       inst_printf(" writing %s ... \n", newFileName.c_str());
 
       Symtab *symObj = mobj->parse_img()->getObject();
@@ -519,8 +517,8 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 
       if( symObj->isStaticBinary() && isDirty() ) {
          if( !doStaticBinarySpecialCases() ) {
-	   cerr << "Failed to write file " << newFileName << ": static binary handler failed" << endl;
-	   return false;
+	        cerr << "Failed to write file " << newFileName << ": static binary handler failed" << endl;
+	        return false;
          }
       }
 
@@ -539,7 +537,6 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       // Now, we need to copy in the memory of the new segments
       for (unsigned i = 0; i < oldSegs.size(); i++) {
          codeRange *segRange = NULL;
-         printf("old region name: %s memory offset: 0x%lx \n", oldSegs[i]->getRegionName().c_str(), oldSegs[i]->getMemOffset());
          if (!memoryTracker_->find(oldSegs[i]->getMemOffset(), segRange)) {
 #if 0
             // Looks like BSS
@@ -554,7 +551,6 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 	 memoryTracker* mt = dynamic_cast<memoryTracker*>(segRange);
 	 assert(mt);
 	 if(mt->dirty) {
-         printf("mt->dirty, old region name: %s  set ptr to raw data 0x%lx, size: %lu\n", oldSegs[i]->getRegionName().c_str(),segRange->get_local_ptr(), oldSegs[i]->getMemSize());
             oldSegs[i]->setPtrToRawData(segRange->get_local_ptr(), oldSegs[i]->getMemSize());
 	 }
 	 
@@ -566,7 +562,6 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       // Now we need to get the new stuff. That's all the allocated memory. First, big
       // buffer to hold it.  Use calloc so gaps from inferiorFree/Realloc are just zero.
 
-      printf("highWatermark: 0x%lx lowWaterMark: 0x%lx\n", highWaterMark_, lowWaterMark_);
       void *newSectionPtr = calloc(highWaterMark_ - lowWaterMark_, 1);
 
       pdvector<codeRange *> writes;
@@ -620,12 +615,10 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 
       
       if (mobj == getAOut()) {
-         printf("mobj == getAOut(), add dynamic symbol relocations\n");
          // Add dynamic symbol relocations
          for (unsigned i=0; i < dependentRelocations.size(); i++) {
             Address to = dependentRelocations[i]->getAddress();
             Symbol *referring = dependentRelocations[i]->getReferring();
-            printf("dependent relocation - symbol name: %s address: 0x%lx\n", referring->getPrettyName().c_str(), to);
             /*
               if (!symObj->isStaticBinary() && !symObj->hasReldyn() && !symObj->hasReladyn()) {
               Address addr = referring->getOffset();
@@ -671,37 +664,16 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       pdvector<Symbol *> newSyms;
       buildDyninstSymbols(newSyms, newSec, symObj->getOrCreateModule("dyninstInst",
                                                                      lowWaterMark_));
-      pdvector<std::pair<Address, SymtabAPI::LineNoTuple> > newLineMap;
-      buildInstrumentedLineMap(newLineMap);
       
-      for (uint64_t i = 0; i < newLineMap.size(); ++i) {
-        cout << hex << "\t" << newLineMap[i].first << dec << " file number: " << newLineMap[i].second.getFileIndex() << " file: " << newLineMap[i].second.getFile() << " line: " <<  newLineMap[i].second.getLine() << " column: " << newLineMap[i].second.getColumn() << endl;
-      }
-    
-      size_t lineMapChunkSize = 0;
-      size_t stringTableChunkSize = 0;
-      std::pair<void*,void*> chunks = serializeLineMap(newLineMap, lineMapChunkSize, stringTableChunkSize);
-      void* lineMapChunk = chunks.first;
-      void* stringTableChunk = chunks.second;
-    
-      symObj->addRegion(0,
-                        lineMapChunk,
-                        lineMapChunkSize,
-                        ".dyninstLineMap",
-                        Region::RT_DATA,
-                        true);
-
-      symObj->addRegion(0,
-                        stringTableChunk,
-                        stringTableChunkSize,
-                        ".dyninstStringTable",
-                        Region::RT_DATA,
-                        true); 
 
       for (unsigned i = 0; i < newSyms.size(); i++) {
          symObj->addSymbol(newSyms[i]);
       }
+
+      pdvector<std::pair<Address, SymtabAPI::LineNoTuple> > newLineMap;
+      buildInstrumentedLineMap(newLineMap);
          
+      auto chunks = symObj->addDyninstLineInfo(newLineMap); 
       // Okay, now...
       // Hand textSection and newSection to DynSymtab.
         
@@ -724,8 +696,8 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
          showErrorCallback(109, Symtab::printError(lastError));
          return false;
       }
-      free(lineMapChunk);
-      free(stringTableChunk);
+      free(chunks.first);
+      free(chunks.second);
     return true;
 }
 
@@ -922,6 +894,7 @@ void BinaryEdit::buildLineMapInst(pdvector<std::pair<Address, SymtabAPI::LineNoT
     }  
 }
 
+
 // Build a list of linemaps for instrumented binary
 // each instruction address in the instrumented binary gets its linemap in the original binary 
 
@@ -960,106 +933,6 @@ void BinaryEdit::buildInstrumentedLineMap(pdvector<std::pair<Address, SymtabAPI:
             }
         }  
    }
-}
-
-/* write the new linemap info 
- * because the file index is relative for each module, i.e., not a global file index inside a global string table, a safer way that ensures we get the correct (filename, line) information is to directly store the file name strings inside our seperate table, and build our own file index, which would be visible to every module
- */
-std::pair<void*,void*> BinaryEdit::serializeLineMap(pdvector<std::pair<Address, SymtabAPI::LineNoTuple> >& newLineMap, size_t& lmChunkSize, size_t& stChunkSize) 
-{
-    // first we preprocess the newLineMap vector, such that we assign each file name with our own file index
-    uint32_t file_id = DYNINST_STR_TBL_FID_OFFSET; // starting with the offset such that we know this is our own id, don't mess up with the default file index 
-    uint32_t num_records = (uint32_t) newLineMap.size();
-    std::map<std::string, uint32_t> fileMap;
-    for (const auto& item : newLineMap) {
-       auto filename = item.second.getFile(); 
-       if(fileMap.find(filename) != fileMap.end()) { // have already seen this file, lets make sure we don't create duplicate 
-           continue;    
-       } else {
-           //otherwise assign our own file id to it 
-          fileMap[filename] = file_id++;// use the current file_id and then increment the file_id 
-       }
-    }
-    /* now we prepare the memory chunk that stores the line mapping using our own file id 
-     schema for the linemap chunk: |uint32_t number of records | uint64_t: 1st record low address inclusive | uint32_t: 1st filename index | uint32_t: 1st record line no | uint32_t: 1st record column no | uint64_t: 2nd record low address inclusive | .... | 
-     */
-    size_t payload_size = sizeof(uint32_t) + (sizeof(uint64_t) + sizeof(uint32_t) * 3) * num_records; 
-    cerr << "serializeLineMap called " << newLineMap.size() <<  " payload size: " << payload_size <<  " number of records: " << num_records << endl;
-    void* chunk = calloc(1, payload_size);
-    if (chunk == NULL) {
-        cerr << "calloc for linemap failed" << endl;
-        exit(-1);
-    }
-    lmChunkSize = payload_size;
-    memcpy(chunk, (char*)&num_records, sizeof(uint32_t));
-    uint32_t offset = sizeof(uint32_t);
-    for (int i = 0; i < num_records; ++i) {
-        uint64_t inst_addr = (uint64_t)newLineMap[i].first;
-        SymtabAPI::LineNoTuple stmt = newLineMap[i].second;
-        if (fileMap.find(stmt.getFile()) == fileMap.end()) {
-            cout << "impossible: cannot find file " << stmt.getFile() << " in file map" << endl; 
-            continue;
-        } 
-        uint32_t file_index = fileMap[stmt.getFile()];
-        uint32_t line_number = (uint32_t)stmt.getLine(); 
-        uint32_t column_number = (uint32_t)stmt.getColumn();
-        cout << "serializing... inst addr: " << hex << inst_addr << dec << " file index: " << file_index << " file name: " << stmt.getFile() << endl;
-        memcpy((char*)chunk + offset, &inst_addr, sizeof(uint64_t));//pack the address
-        offset += sizeof(uint64_t);
-        memcpy((char*)chunk + offset, &file_index, sizeof(uint32_t));
-        offset += sizeof(uint32_t);
-        memcpy((char*)chunk + offset, &line_number, sizeof(uint32_t));
-        offset += sizeof(uint32_t);
-        memcpy((char*)chunk + offset, &column_number, sizeof(uint32_t));
-        offset += sizeof(uint32_t); // update the offset     
-    } 
-    void* lm_chunk = chunk; // remember the starting address, remember to release the memory afte writing to the region.
-
-    chunk = NULL; // forget about it 
-    // now we prepare the string table chunk that stores the file names, we need to subtract the offset to make it starting at 0
-    // schema: | uint32_t: num files | uint32_t: 1st filename offset | uint32_t: 1st filename length | uint32_t: 2nd filename offset | ... | uint32_t: last filename offset | uint32_t: last filename length | filename 1 | filename 2 | ... | last filename | 
-    // first we should sort the file name by the file index 
-    std::vector<std::pair<std::string, uint32_t> > tmp_vec;
-    for (auto& item : fileMap) {
-        tmp_vec.push_back(item);
-    }
-    sort(tmp_vec.begin(), tmp_vec.end(), [](const std::pair<std::string, uint32_t>& v1, const std::pair<std::string, uint32_t>& v2) { return v1.second < v2.second; });
-    uint32_t num_files = (uint32_t)fileMap.size();
-    cout << "serializing... num files: " << num_files << endl;
-    payload_size = 0;
-    vector<uint32_t> file_sizes;
-    for (auto& item : tmp_vec) { // sorted by file index
-        cout << "file: " << item.first << " index: " << item.second << endl;
-        auto file_size = item.first.size();
-        payload_size += file_size;
-        file_sizes.push_back((uint32_t)file_size);
-    }
-    payload_size += num_files; // include the '\0' terminator
-    size_t header_size = sizeof(uint32_t) * (1 + num_files * 2);
-    size_t total_byte_size = payload_size + header_size;
-    stChunkSize = total_byte_size;
-    chunk = calloc(1, total_byte_size);
-    if (chunk == NULL) {
-        cerr << "calloc for string table failed " << endl;
-        exit(-1);
-    } 
-    memcpy(chunk, (char*)&num_files, sizeof(uint32_t)); 
-    offset = (uint32_t)header_size;
-    for (int i = 0; i < num_files; ++i) {
-       uint32_t current_file_size = (uint32_t)file_sizes[i];
-       memcpy((char*)chunk + sizeof(uint32_t) + i * sizeof(uint32_t) * 2, (char*)&offset, sizeof(uint32_t));
-       memcpy((char*)chunk + sizeof(uint32_t) + i * sizeof(uint32_t) * 2 + sizeof(uint32_t), (char*)&current_file_size, sizeof(uint32_t));
-       offset += current_file_size + 1; // add '\0' 
-    }
-    offset = 0;
-    for (auto& item : tmp_vec) {
-       auto file_str = item.first.c_str();
-       size_t current_file_size = strlen(file_str);
-       memcpy((char*)chunk + header_size + offset, file_str, current_file_size + 1);
-       offset += current_file_size + 1;
-    }
-    void* st_chunk = chunk;   
-    return std::make_pair(lm_chunk, st_chunk);
 }
 
 // Build a list of symbols describing instrumentation and relocated functions. 

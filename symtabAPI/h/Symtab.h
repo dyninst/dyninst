@@ -93,6 +93,16 @@ typedef IBSTree< ModRange > ModRangeLookup;
 typedef IBSTree<FuncRange> FuncRangeLookup;
 typedef Dyninst::ProcessReader MemRegReader;
 
+typedef struct DyninstLineMapRecord {
+    DyninstLineMapRecord(uint64_t la, uint32_t fi, uint32_t ln, uint32_t cn):
+        addr(la), file_index(fi), line_number(ln), column_number(cn) { }
+    uint64_t addr; 
+    uint32_t file_index;
+    uint32_t line_number;
+    uint32_t column_number;
+} DyninstLineMapRecord;
+
+
 typedef struct LineMapInfoEntry {
     unsigned int file_index;
     unsigned int line_number;
@@ -107,6 +117,7 @@ typedef struct LineMapInfoEntry {
         high_addr_exc = hi; 
     } 
 } LineMapInfoEntry;
+
 
 class SYMTAB_EXPORT Symtab : public LookupInterface,
                public Serializable,
@@ -385,8 +396,9 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    Archive *getParentArchive() const;
 
-   std::vector<LineMapInfoEntry> &getAllRelocatedSymbols();  
-   void* getStringTable();
+   std::vector<LineMapInfoEntry>& getAllRelocatedSymbols() const;  
+
+   std::vector<std::string>& getAllFileNames() const;
 
    /***** Error Handling *****/
    static SymtabError getLastSymtabError();
@@ -445,8 +457,6 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    bool addFunctionRange(FunctionBase *fbase, Dyninst::Offset next_start);
 
-   void extractAllRelocatedSymbols();    
-   void extractDyninstStringTable();
    // Used by binaryEdit.C...
  public:
 
@@ -646,9 +656,30 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
  private:
     unsigned _ref_cnt;
 
+ public:
+    void addDyninstLineInfo(std::vector<std::pair<Address, LineNoTuple>>& lineMap);
+    void extractDyninstLineInfo();
+
  private:
     std::vector<LineMapInfoEntry> vAllRelocatedSymbols_; 
-    void* stringTablePtr_;
+    std::vector<std::string> vAllFileNames_;
+};
+
+class SYMTAB_EXPORT DyninstLineInfoManager {
+        
+    DyninstLineInfoManager() {} 
+    DyninstLineInfoManager(SymtabAPI::Symtab* symtab, std::vector<std::pair<Address, SymtabAPI::LineNoTuple>>& lm);
+    public:
+        void* writeStringTable(const char* stringTableName = ".dyninstStringTable");  
+        void* writeLineMapInfo(const char* lineMapName = ".dyninstLineMap");
+
+        std::vector<std::string> readStringTable(const char* stringTableName = ".dyninstStringTable");
+        std::vector<LineMapInfoEntry> readLineMapInfo(const char* lineMapName = ".dyninstLineMap");
+    private:
+        std::vector<std::pair<Address, SymtabAPI::LineNoTuple> > newLineMap_;
+        std::map<std::string, uint32_t> fileMap_; // initialized by constructor 
+        SymtabAPI::Symtab* symtab_;
+
 };
 
 /**
