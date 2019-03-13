@@ -3670,9 +3670,9 @@ SYMTAB_EXPORT std::vector<std::string> DyninstLineInfoManager::readStringTable(c
     assert(symtab_ != NULL);
     Region* stringTableSec = NULL;
     symtab_->findRegion(stringTableSec, stringTableName);
+    std::vector<std::string> result;
     if (stringTableSec == NULL) {
-        std::cerr << "Symtab cannot find section " << stringTableName << std::endl;
-        exit(-1);
+        return result;
     }       
     void * rawData = stringTableSec->getPtrToRawData();
     uint32_t chunk_size = 0;
@@ -3684,7 +3684,6 @@ SYMTAB_EXPORT std::vector<std::string> DyninstLineInfoManager::readStringTable(c
         exit(-1);
     }
     memcpy(buffer, (char*)rawData + sizeof(uint32_t), chunk_size);
-    std::vector<std::string> result;
     std::string bufstr = std::string((char*)buffer); // convert to string 
     std::string delimiter = "|";
     std::string filename = "";
@@ -3738,9 +3737,9 @@ SYMTAB_EXPORT std::vector<LineMapInfoEntry> DyninstLineInfoManager::readLineMapI
     assert(symtab_ != NULL);
     Region* linemapSec = NULL;
     symtab_->findRegion(linemapSec, lineMapName);
+   std::vector<LineMapInfoEntry> result;
    if (linemapSec == NULL) {
-       std::cerr << "Symtab cannot find section " << lineMapName << std::endl;
-       exit(-1);
+       return result;
    }       
    void* rawData = linemapSec->getPtrToRawData(); // get the pointer to the chunk 
    uint32_t num_records;
@@ -3748,7 +3747,6 @@ SYMTAB_EXPORT std::vector<LineMapInfoEntry> DyninstLineInfoManager::readLineMapI
    int offset = sizeof(uint32_t);
    DyninstLineMapRecord rec; 
    std::vector<DyninstLineMapRecord> tmp_vec;
-   std::vector<LineMapInfoEntry> result;
    for (int i = 0; i < num_records; ++i) {
        memcpy(&rec, (char*)rawData + offset, sizeof(DyninstLineMapRecord));
        offset += sizeof(DyninstLineMapRecord); 
