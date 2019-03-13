@@ -66,7 +66,7 @@ void Statement::setStrings_(StringTablePtr strings) {
     Statement::strings_ = strings;
 }
 
-void Statement::setFileName_(std::string& filename) {
+void Statement::setFileName_(std::string filename) {
     dyninst_file_name_ = filename;     
 }
 
