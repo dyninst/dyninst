@@ -94,6 +94,7 @@ typedef IBSTree<FuncRange> FuncRangeLookup;
 typedef Dyninst::ProcessReader MemRegReader;
 
 typedef struct DyninstLineMapRecord {
+    DyninstLineMapRecord() {} 
     DyninstLineMapRecord(uint64_t la, uint32_t fi, uint32_t ln, uint32_t cn):
         addr(la), file_index(fi), line_number(ln), column_number(cn) { }
     uint64_t addr; 
@@ -396,9 +397,9 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    Archive *getParentArchive() const;
 
-   std::vector<LineMapInfoEntry>& getAllRelocatedSymbols() const;  
+   std::vector<LineMapInfoEntry>& getAllRelocatedSymbols() ;  
 
-   std::vector<std::string>& getAllFileNames() const;
+   std::vector<std::string>& getAllFileNames();
 
    /***** Error Handling *****/
    static SymtabError getLastSymtabError();
@@ -667,6 +668,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
 class SYMTAB_EXPORT DyninstLineInfoManager {
         
+  public:
     DyninstLineInfoManager(); 
     DyninstLineInfoManager(SymtabAPI::Symtab* symtab);
     DyninstLineInfoManager(SymtabAPI::Symtab* symtab, std::vector<std::pair<Address, SymtabAPI::LineNoTuple>>& lm);

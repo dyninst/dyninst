@@ -616,7 +616,3 @@ void Module::addDebugInfo(Module::DebugInfoT info) {
 StringTablePtr & Module::getStrings() {
     return strings_;
 }
-
-void * Module::getStringTable() {
-    return string_table;
-}
