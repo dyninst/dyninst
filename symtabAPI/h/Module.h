@@ -80,7 +80,7 @@ namespace Dyninst{
 
 			void setStrings_(StringTablePtr strings_);
 
-            void setFileName_(std::string& filename_);
+            void setFileName_(std::string filename_);
 
 		public:
 
