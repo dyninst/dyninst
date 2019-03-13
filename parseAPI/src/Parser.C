@@ -101,8 +101,7 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
         plt_entries[lit->first] = lit->second;
     }
 
-    if(obj.cs()->regions().empty() ||
-      (obj.cs()->regions()[0] == NULL && obj.cs()->regions().size() == 1)) {
+    if(obj.cs()->regions().empty()) {
         parsing_printf("[%s:%d] CodeSource provides no CodeRegions"
                                " -- unparesable\n",
                        FILE__,__LINE__);
