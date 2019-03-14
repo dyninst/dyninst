@@ -2376,6 +2376,9 @@ void Symtab::extractDyninstLineInfo()
     DyninstLineInfoManager mngr(this); // create the manager   
     vAllRelocatedSymbols_ = mngr.readLineMapInfo(); // read the line map information 
     vAllFileNames_ = mngr.readStringTable();  // read the string table 
+    for (auto& filename : vAllFileNames_) { 
+      cout << "extract filename: " << filename << endl; 
+    }
 }
 
 
