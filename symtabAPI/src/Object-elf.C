@@ -2483,7 +2483,6 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
         if (!DwarfWalker::findDieName(dbg, cu_die, modname)) {
             modname = associated_symtab->file(); // default module
         }
-        cerr << "Processing CU DIE for " << modname << " offset: " << next_cu_off << endl;
         Address tempModLow;
         Address modLow = 0;
         if (DwarfWalker::findConstant(DW_AT_low_pc, tempModLow, &cu_die, dbg)) {

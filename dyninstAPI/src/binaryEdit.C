@@ -37,7 +37,7 @@
 #include "os.h"
 #include "instPoint.h"
 #include "function.h"
-
+#define INST_LINE_OFFSET 10000000
 using namespace Dyninst::SymtabAPI;
 
 // #define USE_ADDRESS_MAPS
@@ -310,7 +310,6 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file,
                                  PatchMgrPtr mgr, 
                                  Dyninst::PatchAPI::Patcher *patch,
                                  const std::string &member) {
-    printf("BinaryEdit::openFile: %s\n", file.c_str()); 
     if (!OS::executableExists(file)) {
         startup_printf("%s[%d]:  failed to read file %s\n", FILE__, __LINE__, file.c_str());
         std::string msg = std::string("Can't read executable file ") + file + (": ") + strerror(errno);
@@ -343,7 +342,6 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file,
         return NULL;
     }
     mapped_object * tmp = newBinaryEdit->mobj;        
-    printf("mapped object file name: %s codeAbs: 0x%lx codeBase: 0x%lx imageOffset: %lu imagesSize: %u memory end: %u \n", tmp->fileName().c_str(), tmp->codeAbs(), tmp->codeBase(), tmp->imageOffset(), tmp->imageSize(), tmp->memoryEnd());
     /* PatchAPI stuffs */
     if (!mgr) {
        newBinaryEdit->initPatchAPI();
@@ -849,10 +847,7 @@ void BinaryEdit::buildLineMapReloc(pdvector<std::pair<Address, SymtabAPI::LineNo
         cur_reloc_addr = (Address)((uint64_t)relocAddr + offset);
         lines.clear();
         module->getSourceLines(lines, cur_orig_addr);
-        if (lines.size() == 0) {
-            cerr << "error: no line info " << hex << cur_orig_addr << " \t " << *tracker << dec << endl;
-        } else {
-            cerr << "line info found " << hex << cur_orig_addr << " \t" << *tracker << " reloc addr: " << cur_reloc_addr << dec << endl;
+        if (lines.size() != 0) {
             SymtabAPI::LineNoTuple stmt = lines[0];
             int cur_file_index = (int)stmt.getFileIndex();
             int cur_line = (int)stmt.getLine();
@@ -885,11 +880,9 @@ void BinaryEdit::buildLineMapInst(pdvector<std::pair<Address, SymtabAPI::LineNoT
     int last_line = -1;
     int last_column = -1;
     module->getSourceLines(lines, origAddr);
-    if (lines.size() == 0) {
-        cerr << "error: no line info " << hex << origAddr << " \t " << *tracker << dec << endl;
-    } else {
+    if (lines.size() != 0) {
         SymtabAPI::LineNoTuple stmt = lines[0];
-        stmt.setLine(stmt.getLine() + 10000000); 
+        stmt.setLine(stmt.getLine() + INST_LINE_OFFSET); 
         newLineMap.push_back(std::make_pair(relocAddr, stmt)); 
     }  
 }
@@ -910,7 +903,6 @@ void BinaryEdit::buildInstrumentedLineMap(pdvector<std::pair<Address, SymtabAPI:
            iter != CT->trackers().end(); ++iter) {
             const Relocation::TrackerElement *tracker = *iter;
             func_instance *tfunc = tracker->func();
-            cout << "\t traker element: " << hex << *tracker << dec << endl;
             orig_addr = tracker->orig(); // get the address of the start of the instruction strand in the original binary to be relocated
             reloc_addr = tracker->reloc(); //get the start address of the relocated strand
             strand_size = tracker->size();
@@ -946,7 +938,6 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
         iter != newDyninstSyms_.end(); ++iter) {
       (*iter)->setModule(newMod);
       (*iter)->setRegion(newSec);
-      printf("dyninst symbol name: %s %s\n", (*iter)->getMangledName().c_str(), (*iter)->getPrettyName().c_str());
       newSyms.push_back(*iter);
    }
                                                                               
@@ -964,7 +955,6 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
            iter != CT->trackers().end(); ++iter) {
          const Relocation::TrackerElement *tracker = *iter;
          func_instance *tfunc = tracker->func();
-         cout << "\t" << hex << *tracker << dec << endl;
          
          if (currFunc != tfunc) {
             // Starting a new function
@@ -1039,7 +1029,6 @@ func_instance *BinaryEdit::findOnlyOneFunction(const std::string &name,
 {
    func_instance *f = AddressSpace::findOnlyOneFunction(name, libname, search_rt_lib);
    if (!f && search_rt_lib) {
-      cerr << "BinaryEdit::findOnlyOneFunction, AddressSpace::findOnlyOneFunction returns null func: " << name << " lib: " << libname << endl;
       std::vector<BinaryEdit *>::iterator rtlib_it;
       for(rtlib_it = rtlib.begin(); rtlib_it != rtlib.end(); ++rtlib_it) {
           f = (*rtlib_it)->findOnlyOneFunction(name, libname, false);

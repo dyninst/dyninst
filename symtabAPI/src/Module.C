@@ -259,7 +259,6 @@ bool Module::parseDyninstLineInformation()
     vector<LineMapInfoEntry> linemap = symObj->getAllRelocatedSymbols();
     // we still insert these to leverage the multi-index lookup data structure 
     for (int i = 0; i < linemap.size(); ++i) {
-       cout << "adding rec to lineInfo_ -- low_addr: " << hex << " 0x" << linemap[i].low_addr_inc << " high_addr: 0x" << linemap[i].high_addr_exc << dec << endl;
        lineInfo_->addLine(linemap[i].file_index,  // here the file index is with offset
                           linemap[i].line_number,
                           linemap[i].column_number,
@@ -604,12 +603,10 @@ void Module::finalizeRanges()
 void Module::finalizeOneRange(Address ext_s, Address ext_e) const {
     ModRange* r = new ModRange(ext_s, ext_e, const_cast<Module*>(this));
     ModRangeLookup* lookup = exec_->mod_lookup();
-//    cout << "Inserting range " << std::hex << (*r) << std::dec << endl;
     lookup->insert(r);
 }
 
 void Module::addDebugInfo(Module::DebugInfoT info) {
-//    cout << "Adding CU DIE to " << fileName() << endl;
     info_.push_back(info);
 
 }

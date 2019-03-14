@@ -116,12 +116,7 @@ bool LineInformation::getSourceLines(Offset addressInRange,
         }
         ++start_addr_valid;
     }
-    std::cerr << "LineInforation::getSourceLines addr: " << std::hex << "0x" << addressInRange << std::dec << " size of lines: " << lines.size() << std::endl;
-    if (lines.size() > 0) {
-      std::cerr << " file: " << lines[0]->getFileIndex() << " line: " << lines[0]->getLine() << " col: " << lines[0]->getColumn() <<  std::endl;
-    }
     return true;
-
 } /* end getLinesFromAddress() */
 
 bool LineInformation::getSourceLines( Offset addressInRange,
