@@ -3478,8 +3478,6 @@ SYMTAB_EXPORT bool Symtab::addExternalSymbolReference(Symbol *externalSym, Regio
         relocationEntry localRel)
 {
     // Adjust this to the correct value
-    printf("Symtab::addExternalSymbolReference - symbol name: %s target addr: 0x%lx rel addr: 0x%lx\n", 
-            externalSym->getPrettyName().c_str(), localRel.target_addr(), localRel.rel_addr());
     localRel.setRegionType(getObject()->getRelType());
 
     // Create placeholder Symbol for external Symbol reference
