@@ -856,7 +856,7 @@ void BinaryEdit::buildLineMapReloc(pdvector<std::pair<Address, SymtabAPI::LineNo
                 // the instruction byte at curr_origAddr is associated with the same source code location
                 continue;
             } else {
-                stmt.setInstPointAddr(origAddr);
+                stmt.setInstPointAddr_(origAddr);
                 last_file_index = cur_file_index;
                 last_line = cur_line;
                 last_column = cur_column;
