@@ -70,8 +70,8 @@ namespace Dyninst{
                 instrument_point_addr_ = 0;
 			}
 
-			Statement(int file_index, unsigned int line, unsigned int col = 0,
-					  Offset start_addr = (Offset) -1L, Offset end_addr = (Offset) -1L, uint64_t ipa = 0) :
+			Statement(int file_index, unsigned int line, uint64_t ipa, unsigned int col = 0,
+					  Offset start_addr = (Offset) -1L, Offset end_addr = (Offset) -1L) :
 					AddressRange(start_addr, end_addr),
 					file_index_(file_index),
 					line_(line),
