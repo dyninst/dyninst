@@ -58,7 +58,7 @@ bool LineInformation::addLine( unsigned int lineSource,
       Offset lowInclusiveAddr, 
       Offset highExclusiveAddr ) 
 {
-    Statement* the_stmt = new Statement(lineSource, lineNo, lineOffset,
+    Statement* the_stmt = new Statement(lineSource, lineNo, 0, lineOffset,
                                         lowInclusiveAddr, highExclusiveAddr);
     Statement::Ptr insert_me(the_stmt);
     insert_me->setStrings_(strings_);
