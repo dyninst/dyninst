@@ -3718,7 +3718,8 @@ SYMTAB_EXPORT void* DyninstLineInfoManager::writeLineMapInfo(const char* lineMap
         uint32_t file_index = fileMap_[filename];
         uint32_t line_number = (uint32_t)stmt.getLine();
         uint32_t column_number = (uint32_t)stmt.getColumn(); 
-        DyninstLineMapRecord rec(inst_addr, file_index, line_number, column_number);
+        uint64_t inst_point_addr = stmt.getInstPointAddr_();
+        DyninstLineMapRecord rec(inst_addr, file_index, line_number, column_number, inst_point_addr);
         memcpy((char*)chunk + offset, &rec, sizeof(DyninstLineMapRecord));  
         offset += sizeof(DyninstLineMapRecord);
     }
@@ -3755,12 +3756,13 @@ SYMTAB_EXPORT std::vector<LineMapInfoEntry> DyninstLineInfoManager::readLineMapI
        unsigned int fi = (unsigned int) rec.file_index;
        unsigned int ln = (unsigned int) rec.line_number;
        unsigned int cn = (unsigned int) rec.column_number;
+       uint64_t ipa = (uint64_t)rec.inst_point_addr;
        Address la = (Address) rec.addr;
        Address hi = INT_MAX;
        if (i < tmp_vec.size() - 1)  {
          hi = (Address)tmp_vec[i + 1].addr;
        }
-       LineMapInfoEntry entry(fi, ln, cn, la, hi);
+       LineMapInfoEntry entry(fi, ln, cn, la, hi, ipa);
        result.emplace_back(entry);
     } 
     return result;

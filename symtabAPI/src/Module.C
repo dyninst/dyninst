@@ -70,6 +70,10 @@ void Statement::setFileName_(std::string filename) {
     dyninst_file_name_ = filename;     
 }
 
+void Statement::setInstPointAddr_(uint64_t point_addr) {
+    instrument_point_addr_ = point_addr;
+}
+
 const std::string& Statement::getFile() const {
     if(strings_) {
         if(file_index_ < strings_->size()) {
@@ -217,10 +221,13 @@ bool Module::getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressIn
        /* we check if the file index refers to our string table */
       auto stmt = lines[originalSize];  
       auto file_index = stmt->getFileIndex();
+      auto inst_point_addr = stmt->getInstPointAddr();
+      std::stringstream buffer;
+      buffer << std::hex << "0x" << inst_point_addr;
       if (file_index >= DYNINST_STR_TBL_FID_OFFSET) {
           file_index -= DYNINST_STR_TBL_FID_OFFSET; 
           // we should set the dyninst file name here
-          stmt->setFileName_(getDyninstFileName(file_index)); // record the file name 
+          stmt->setFileName_(getDyninstFileName(file_index) + buffer.str()); // record the file name 
       } 
       return true;
    }
@@ -239,6 +246,7 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
    if ( lines.size() != originalSize ) {
       auto stmt = lines[originalSize]; 
       auto file_index = stmt.getFileIndex();
+      auto inst_point_addr = stmt.getInstPointAddr();
       if (file_index >= DYNINST_STR_TBL_FID_OFFSET) {
           file_index -= DYNINST_STR_TBL_FID_OFFSET;
           lines[originalSize].setFileName_(getDyninstFileName(file_index));  
@@ -263,7 +271,8 @@ bool Module::parseDyninstLineInformation()
                           linemap[i].line_number,
                           linemap[i].column_number,
                           linemap[i].low_addr_inc,
-                          linemap[i].high_addr_exc);      
+                          linemap[i].high_addr_exc,
+                          linemap[i].inst_point_addr);      
     }
     return linemap.size() > 0;
 }

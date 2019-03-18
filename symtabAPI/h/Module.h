@@ -67,6 +67,18 @@ namespace Dyninst{
 					column_(col)
 			{
                 dyninst_file_name_ = std::string("<unknown file>");
+                instrument_point_addr_ = 0;
+			}
+
+			Statement(int file_index, unsigned int line, unsigned int col = 0,
+					  Offset start_addr = (Offset) -1L, Offset end_addr = (Offset) -1L, uint64_t ipa) :
+					AddressRange(start_addr, end_addr),
+					file_index_(file_index),
+					line_(line),
+					column_(col),
+                    instrument_point_addr_(ipa)
+			{
+                dyninst_file_name_ = std::string("<unknown file>");
 			}
 
 			unsigned int file_index_; // Maybe this should be module?
@@ -74,6 +86,7 @@ namespace Dyninst{
 			unsigned int column_;
 			StringTablePtr strings_;
             std::string dyninst_file_name_;
+            uint64_t instrument_point_addr_;  
 
 		public:
 			StringTablePtr getStrings_() const;
@@ -82,9 +95,12 @@ namespace Dyninst{
 
             void setFileName_(std::string filename_);
 
+            void setInstPointAddr_(uint64_t point_addr_);
+
+
 		public:
 
-			Statement() : AddressRange(0,0), file_index_(0), line_(0), column_(0)  { dyninst_file_name_ = std::string("<unknown file>"); }
+			Statement() : AddressRange(0,0), file_index_(0), line_(0), column_(0)  { dyninst_file_name_ = std::string("<unknown file>"); instrument_point_addr_ = 0;}
 
 			struct StatementLess {
 				bool operator () ( const Statement &lhs, const Statement &rhs ) const;
@@ -109,6 +125,7 @@ namespace Dyninst{
 			unsigned int getFileIndex() const { return file_index_; }
 			unsigned int getLine()const {return line_;}
 			unsigned int getColumn() const { return column_; }
+            uint64_t getInstPointAddr() const { return instrument_point_addr_; }
 			struct addr_range {};
 			struct line_info {};
 			struct upper_bound {};

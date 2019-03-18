@@ -95,12 +95,13 @@ typedef Dyninst::ProcessReader MemRegReader;
 
 typedef struct DyninstLineMapRecord {
     DyninstLineMapRecord() {} 
-    DyninstLineMapRecord(uint64_t la, uint32_t fi, uint32_t ln, uint32_t cn):
-        addr(la), file_index(fi), line_number(ln), column_number(cn) { }
+    DyninstLineMapRecord(uint64_t la, uint32_t fi, uint32_t ln, uint32_t cn, uint64_t ipa):
+        addr(la), file_index(fi), line_number(ln), column_number(cn), inst_point_addr(ipa) { }
     uint64_t addr; 
     uint32_t file_index;
     uint32_t line_number;
     uint32_t column_number;
+    uint64_t inst_point_addr;
 } DyninstLineMapRecord;
 
 
@@ -110,13 +111,24 @@ typedef struct LineMapInfoEntry {
     unsigned int column_number;
     Address low_addr_inc;
     Address high_addr_exc;
+    uint64_t inst_point_addr;
     LineMapInfoEntry(unsigned int fi, unsigned int ln, unsigned int cn, Address la, Address hi) {
         file_index = fi;
         line_number = ln;
         column_number = cn;
         low_addr_inc = la;
         high_addr_exc = hi; 
+        inst_point_addr = 0;
     } 
+    LineMapInfoEntry(unsigned int fi, unsigned int ln, unsigned int cn, Address la, Address hi, uint64_t ipa) {
+        file_index = fi;
+        line_number = ln;
+        column_number = cn;
+        low_addr_inc = la;
+        high_addr_exc = hi; 
+        inst_point_addr = ipa;
+    } 
+
 } LineMapInfoEntry;
 
 

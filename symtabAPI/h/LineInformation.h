@@ -64,7 +64,12 @@ public:
                   unsigned int lineOffset,
                   Offset lowInclusiveAddr,
                   Offset highExclusiveAddr );
-
+      bool addLine(unsigned int fileIndex,
+                   unsigned int lineNo,
+                   unsigned int lineOffset,
+                   Offset lowInclusiveAddr,
+                   Offset highExclusiveAddr,
+                   uint64_t instPointAddr);
       void addLineInfo(LineInformation *lineInfo);	      
 
       bool addAddressRange( Offset lowInclusiveAddr, 

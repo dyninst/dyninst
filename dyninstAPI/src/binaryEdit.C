@@ -37,7 +37,6 @@
 #include "os.h"
 #include "instPoint.h"
 #include "function.h"
-#define INST_LINE_OFFSET 10000000
 using namespace Dyninst::SymtabAPI;
 
 // #define USE_ADDRESS_MAPS
@@ -857,6 +856,7 @@ void BinaryEdit::buildLineMapReloc(pdvector<std::pair<Address, SymtabAPI::LineNo
                 // the instruction byte at curr_origAddr is associated with the same source code location
                 continue;
             } else {
+                stmt.setInstPointAddr(origAddr);
                 last_file_index = cur_file_index;
                 last_line = cur_line;
                 last_column = cur_column;
@@ -882,7 +882,7 @@ void BinaryEdit::buildLineMapInst(pdvector<std::pair<Address, SymtabAPI::LineNoT
     module->getSourceLines(lines, origAddr);
     if (lines.size() != 0) {
         SymtabAPI::LineNoTuple stmt = lines[0];
-        stmt.setLine(stmt.getLine() + INST_LINE_OFFSET); 
+        stmt.setInstPointAddr_(origAddr);
         newLineMap.push_back(std::make_pair(relocAddr, stmt)); 
     }  
 }
