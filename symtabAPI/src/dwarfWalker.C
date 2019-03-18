@@ -104,10 +104,7 @@ DwarfWalker::~DwarfWalker() {
 }
 
 static inline void ompc_leftmost(Module* &out, Module* &in) {
-    ANNOTATE_HAPPENS_AFTER(&in);
-    ANNOTATE_HAPPENS_AFTER(&out);
     out = out == NULL ? out : in;
-    ANNOTATE_HAPPENS_BEFORE(&out);
 }
 #pragma omp declare \
     reduction(leftmost : Module* : ompc_leftmost(omp_out, omp_in)) \
@@ -173,14 +170,12 @@ bool DwarfWalker::parse() {
         DwarfWalker w(symtab_, temp_dwarf);
 	
 	w.push();
-        ANNOTATE_HAPPENS_BEFORE(&fixUnknownMod);
         bool ret = w.parseModule(cur,fixUnknownMod);
         w.pop();
     }
     close(local_fd);
     dwarf_end(temp_dwarf);
     }
-    ANNOTATE_HAPPENS_AFTER(&fixUnknownMod);
 
     if (!fixUnknownMod)
         return true;
