@@ -79,18 +79,11 @@ const std::string& Statement::getFile() const {
     return emptyStr;
 }
 
-
-string Module::getCompDir()
+string Module::getCompDir(Module::DebugInfoT& cu)
 {
     if(!compDir_.empty()) return compDir_;
 
 #if defined(cap_dwarf)
-    if(info_.empty())
-    {
-        return "";
-    }
-
-    auto& cu = info_[0];
     if(!dwarf_hasattr(&cu, DW_AT_comp_dir))
     {
         return "";
@@ -105,6 +98,13 @@ string Module::getCompDir()
     // TODO Implement this for non-dwarf format
     return compDir_;
 #endif
+}
+
+string Module::getCompDir()
+{
+    if(!compDir_.empty()) return compDir_;
+
+    return "";
 }
 
 
@@ -218,8 +218,10 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
 }
 
 LineInformation *Module::parseLineInformation() {
+    bool popped = false;
+    Module::DebugInfoT cu;
     if (exec()->getArchitecture() != Arch_cuda &&
-	(exec()->getObject()->hasDebugInfo() || !info_.empty())) {
+	(exec()->getObject()->hasDebugInfo() || (popped = info_.try_pop(cu)) )) {
         // Allocate if none
         if (!lineInfo_) {
             lineInfo_ = new LineInformation;
@@ -228,21 +230,17 @@ LineInformation *Module::parseLineInformation() {
         }
 
         // Parse any CUs that have been added to our list
-        if(!info_.empty()) {
-            for(auto cu = info_.begin();
-                    cu != info_.end();
-                    ++cu)
-            {
-                exec()->getObject()->parseLineInfoForCU(*cu, lineInfo_);
-            }
+        if(popped || info_.try_pop(cu)) {
+            Module::DebugInfoT cu2 = cu;
+            do {
+                exec()->getObject()->parseLineInfoForCU(cu, lineInfo_);
+            } while(info_.try_pop(cu2));
+
+            // Make sure to call getCompDir so its stored and ready.
+            getCompDir(cu);
         }
 
-        // Before clearing the CU list (why is it even done anyway?), make sure to
-        // call getCompDir so the comp_dir is stored in a static variable.
-        getCompDir();
-
-        // Clear list of work to do
-        info_.clear();
+        // Work queue has now been emptied.
     } else if (!lineInfo_) {
         objectLevelLineInfo = true;
         lineInfo_ = exec()->getObject()->parseLineInfoForObject(strings_);
@@ -551,7 +549,7 @@ void Module::finalizeOneRange(Address ext_s, Address ext_e) const {
 
 void Module::addDebugInfo(Module::DebugInfoT info) {
 //    cout << "Adding CU DIE to " << fileName() << endl;
-    info_.push_back(info);
+    info_.push(info);
 
 }
 

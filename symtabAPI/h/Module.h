@@ -43,6 +43,7 @@
 #endif
 #include <boost/shared_ptr.hpp>
 #include "RangeLookup.h"
+#include "tbb/concurrent_queue.h"
 
 #include "StringTable.h"
 
@@ -161,6 +162,7 @@ namespace Dyninst{
 			~Module();
 
             std::string getCompDir();
+            std::string getCompDir(Module::DebugInfoT&); // For internal use
 
 			// Symbol output methods
 			virtual bool findSymbol(std::vector<Symbol *> &ret,
@@ -236,7 +238,7 @@ namespace Dyninst{
             bool objectLevelLineInfo;
 			Dyninst::SymtabAPI::LineInformation* lineInfo_;
 			typeCollection* typeInfo_;
-			std::vector<Module::DebugInfoT> info_;
+			tbb::concurrent_queue<Module::DebugInfoT> info_;
 
 
 			std::string fileName_;                   // short file
