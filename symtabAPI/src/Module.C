@@ -223,7 +223,7 @@ bool Module::getSourceLines(std::vector<Statement::Ptr> &lines, Offset addressIn
       auto file_index = stmt->getFileIndex();
       auto inst_point_addr = stmt->getInstPointAddr();
       std::stringstream buffer;
-      buffer << std::hex << "0x" << inst_point_addr;
+      buffer << std::hex << ":0x" << inst_point_addr;
       if (file_index >= DYNINST_STR_TBL_FID_OFFSET) {
           file_index -= DYNINST_STR_TBL_FID_OFFSET; 
           // we should set the dyninst file name here
