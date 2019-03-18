@@ -3718,7 +3718,7 @@ SYMTAB_EXPORT void* DyninstLineInfoManager::writeLineMapInfo(const char* lineMap
         uint32_t file_index = fileMap_[filename];
         uint32_t line_number = (uint32_t)stmt.getLine();
         uint32_t column_number = (uint32_t)stmt.getColumn(); 
-        uint64_t inst_point_addr = stmt.getInstPointAddr_();
+        uint64_t inst_point_addr = stmt.getInstPointAddr();
         DyninstLineMapRecord rec(inst_addr, file_index, line_number, column_number, inst_point_addr);
         memcpy((char*)chunk + offset, &rec, sizeof(DyninstLineMapRecord));  
         offset += sizeof(DyninstLineMapRecord);
