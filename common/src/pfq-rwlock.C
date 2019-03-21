@@ -25,6 +25,7 @@
 // local includes
 //******************************************************************************
 
+#if 0
 #include "pfq-rwlock.h"
 
 
@@ -79,7 +80,6 @@ pfq_rwlock_init(pfq_rwlock_t &l)
 void
 pfq_rwlock_read_lock(pfq_rwlock_t &l)
 {
-  // acquire(&l.wtail);
   uint32_t ticket = l.rin.fetch_add(READER_INCREMENT, boost::memory_order_acq_rel);
 
   if (ticket & WRITER_PRESENT) {
@@ -101,7 +101,6 @@ pfq_rwlock_read_unlock(pfq_rwlock_t &l)
     if (ticket == l.last.load(boost::memory_order_acquire))
       l.whead->blocked.store(false, boost::memory_order_release);
   }
-  // release(&l.wtail);
 }
 
 
@@ -201,3 +200,5 @@ pfq_rwlock_write_unlock(pfq_rwlock_t &l, pfq_rwlock_node_t &me)
   //--------------------------------------------------------------------
   mcs_unlock(l.wtail, me);
 }
+
+#endif // 0

@@ -15,6 +15,7 @@
 
 
 
+#if 0
 //******************************************************************************
 // local includes
 //******************************************************************************
@@ -130,7 +131,6 @@ mcs_unlock(mcs_lock_t &l, mcs_node_t &me)
       // I removed myself from the queue; I will never have a
       // successor, so I'm done
       //------------------------------------------------------------------
-      // release(&l);
       return;
     }
 
@@ -144,3 +144,5 @@ mcs_unlock(mcs_lock_t &l, mcs_node_t &me)
   successor->blocked.store(false, boost::memory_order_release);
   // release(&l);
 }
+
+#endif // 0
