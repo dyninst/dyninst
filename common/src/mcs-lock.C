@@ -20,7 +20,6 @@
 //******************************************************************************
 
 #include "mcs-lock.h"
-#include "common/h/vgannotations.h"
 
 #include <boost/memory_order.hpp>
 
@@ -33,16 +32,9 @@
 //******************************************************************************
 
 void
-mcs_init(mcs_lock_t &l)
-{
-  l.tail.store(mcs_nil);
-  ANNOTATE_MUTEX_CREATE(&l, 0);
-}
-
-void
 mcs_lock(mcs_lock_t &l, mcs_node_t &me)
 {
-  ANNOTATE_MUTEX_LOCK_PRE(&l, 0);
+  // acquire(&l);
 
   //--------------------------------------------------------------------
   // initialize my queue node
@@ -82,16 +74,13 @@ mcs_lock(mcs_lock_t &l, mcs_node_t &me)
     //------------------------------------------------------------------
     while (me.blocked.load(boost::memory_order_acquire));
   }
-
-  ANNOTATE_MUTEX_LOCK_POST(&l);
 }
 
 
 bool
 mcs_trylock(mcs_lock_t &l, mcs_node_t &me)
 {
-  ANNOTATE_MUTEX_LOCK_PRE(&l, 1);
-
+  // acquire(&l);
   //--------------------------------------------------------------------
   // initialize my queue node
   //--------------------------------------------------------------------
@@ -109,7 +98,9 @@ mcs_trylock(mcs_lock_t &l, mcs_node_t &me)
   bool locked = l.tail.compare_exchange_strong(oldme, &me,
 					    boost::memory_order_acq_rel,
 					    boost::memory_order_relaxed);
-  if (locked) ANNOTATE_MUTEX_LOCK_POST(&l);
+  if (!locked) {
+    // release(&l);
+  }
   return locked;
 }
 
@@ -117,8 +108,6 @@ mcs_trylock(mcs_lock_t &l, mcs_node_t &me)
 void
 mcs_unlock(mcs_lock_t &l, mcs_node_t &me)
 {
-  ANNOTATE_MUTEX_UNLOCK_PRE(&l);
-
   mcs_node_t *successor = me.next.load(boost::memory_order_acquire);
 
   if (successor == mcs_nil) {
@@ -153,6 +142,5 @@ mcs_unlock(mcs_lock_t &l, mcs_node_t &me)
   }
 
   successor->blocked.store(false, boost::memory_order_release);
-
-  ANNOTATE_MUTEX_UNLOCK_POST(&l);
+  // release(&l);
 }
