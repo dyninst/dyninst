@@ -31,6 +31,7 @@
 #include <map>
 
 #include <boost/assign/list_of.hpp>
+#include <omp.h>
 
 #include "common/src/stats.h"
 #include "dyntypes.h"
@@ -239,10 +240,10 @@ SymtabCodeSource::SymtabCodeSource(SymtabAPI::Symtab * st,
                                    bool allLoadedRegions) : 
     _symtab(st),
     owns_symtab(false),
-    _lookup_cache(NULL),
     stats_parse(new ::StatContainer()),
     _have_stats(false)
 {
+    pfq_rwlock_init(_lookup_cache_lock);
     init_stats();
     init(filt,allLoadedRegions);
 }
@@ -250,10 +251,10 @@ SymtabCodeSource::SymtabCodeSource(SymtabAPI::Symtab * st,
 SymtabCodeSource::SymtabCodeSource(SymtabAPI::Symtab * st) : 
     _symtab(st),
     owns_symtab(false),
-    _lookup_cache(NULL),
     stats_parse(new ::StatContainer()),
     _have_stats(false)
 {
+    pfq_rwlock_init(_lookup_cache_lock);
     init_stats();
     init(NULL,false);
 }
@@ -261,10 +262,10 @@ SymtabCodeSource::SymtabCodeSource(SymtabAPI::Symtab * st) :
 SymtabCodeSource::SymtabCodeSource(char * file) :
     _symtab(NULL),
     owns_symtab(true),
-    _lookup_cache(NULL),
     stats_parse(new ::StatContainer()),
     _have_stats(false)
 {
+    pfq_rwlock_init(_lookup_cache_lock);
     init_stats();
     
     bool valid;
@@ -695,9 +696,22 @@ inline CodeRegion *
 SymtabCodeSource::lookup_region(const Address addr) const
 {
     CodeRegion * ret = NULL;
-    // acquire(_lookup_cache);
-    CodeRegion * cache = _lookup_cache.load();
-    // release(_lookup_cache);
+    CodeRegion * cache = NULL;
+    bool cacheood = false;
+    unsigned int tid = omp_get_thread_num();
+    pfq_rwlock_read_lock(_lookup_cache_lock);
+    if(_lookup_cache.size() > tid)
+        cache = _lookup_cache[tid];
+    else
+        cacheood = true;
+    pfq_rwlock_read_unlock(_lookup_cache_lock);
+    if(cacheood) {
+        pfq_rwlock_node_t me;
+        pfq_rwlock_write_lock(_lookup_cache_lock, me);
+        _lookup_cache.reserve(omp_get_num_threads());
+        pfq_rwlock_write_unlock(_lookup_cache_lock, me);
+    }
+
     if(cache && cache->contains(addr))
         ret = cache;
     else {
@@ -708,9 +722,9 @@ SymtabCodeSource::lookup_region(const Address addr) const
 
         if(rcnt) {
           ret = *stab.begin();
-          // acquire(_lookup_cache);
-          _lookup_cache.store(ret);
-          // release(_lookup_cache);
+          pfq_rwlock_read_lock(_lookup_cache_lock);
+          _lookup_cache[tid] = ret;
+          pfq_rwlock_read_unlock(_lookup_cache_lock);
         } 
     }
     return ret;
