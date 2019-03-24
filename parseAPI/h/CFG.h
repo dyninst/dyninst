@@ -149,7 +149,7 @@ class PARSER_EXPORT Edge : public allocatable {
    friend class CFGModifier;
     friend class Block;
  protected:
-    Block * _source;
+    boost::atomic<Block *> _source;
     ParseData* index;
     Offset _target_off;
 
@@ -180,7 +180,7 @@ class PARSER_EXPORT Edge : public allocatable {
          EdgeTypeEnum type);
      virtual ~Edge();
 
-    Block * src() const { return _source; }
+    Block * src() const { return _source.load(); }
     Block * trg() const;
     Address trg_addr() const { return _target_off; }
     EdgeTypeEnum type() const { 

@@ -186,11 +186,11 @@ void Edge::install()
 void Edge::uninstall()
 {
     mal_printf("Uninstalling edge [%lx]->[%lx]\n", 
-               _source->lastInsnAddr(), _target_off);
+               src()->lastInsnAddr(), _target_off);
     // if it's a call edge, it's cached in the function object, remove it
     if (CALL == type()) {
         vector<Function*> srcFs;
-        _source->getFuncs(srcFs);
+        src()->getFuncs(srcFs);
         for (vector<Function*>::iterator fit = srcFs.begin(); 
              fit != srcFs.end(); fit++) 
         {
@@ -208,7 +208,7 @@ void Edge::uninstall()
         }
     }
     // remove from source and target blocks
-    _source->removeTarget(this);
+    src()->removeTarget(this);
     trg()->removeSource(this);
 }
 
@@ -218,12 +218,12 @@ void Edge::destroy(Edge *e, CodeObject *o) {
 
 
 Block *Edge::trg() const {
-    Block* found = index->findBlock(_source->region(), _target_off);
+    Block* found = index->findBlock(src()->region(), _target_off);
     if(found) return found;
     Block* newBlock = NULL;
-//    newBlock = _source->obj()->fact()->_mkblock(NULL, _source->region(), _target_off);
-//    newBlock = _source->obj()->fact()->_mksink(_source->obj(), _source->region());
-//    index->record_block(_source->region(), newBlock);
+//    newBlock = src()->obj()->fact()->_mkblock(NULL, src()->region(), _target_off);
+//    newBlock = src()->obj()->fact()->_mksink(src()->obj(), src()->region());
+//    index->record_block(src()->region(), newBlock);
     return newBlock;
 }
 

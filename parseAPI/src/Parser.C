@@ -1097,7 +1097,7 @@ Parser::split_inconsistent_blocks(region_data* rd, map<Address, Block*> &allBloc
 		    	    Block::edgelist::iterator tit = trgs.begin();
 			    for (; tit != trgs.end(); ++tit) {
 		                ParseAPI::Edge *e = *tit;
-				e->_source = newB;
+				e->_source.store(newB);
 				newB->addTarget(e);
 				targets.insert(e->trg());
 		            }
@@ -1112,7 +1112,7 @@ Parser::split_inconsistent_blocks(region_data* rd, map<Address, Block*> &allBloc
 				if (targets.find(trg) != targets.end()) {
 				    trg->removeSource(e);
 				} else {
-                                    e->_source = newB;
+                                    e->_source.store(newB);
                                     newB->addTarget(e);
 				    targets.insert(trg);
 				}
@@ -2312,7 +2312,8 @@ assert(src->end() == dst->start());
     }
 
     // Add the edge into the block's target list
-    e->_source = src;
+    Block* oldSrc = e->src();
+    while(!e->_source.compare_exchange_weak(oldSrc, src));
     src->addTarget(e);
     _pcb.addEdge(src, e, ParseCallback::target);
 
@@ -2678,7 +2679,7 @@ void Parser::move_edges_consistent_blocks(Block *A, Block *B) {
 	// In case 1 & 2, we move edges
 	for (; tit != trgs.end(); ++tit) {
             ParseAPI::Edge *e = *tit;
-	    e->_source = edge_b;
+            assert(e->_source.compare_exchange_strong(A, edge_b));
 	    edge_b->addTarget(e);
 	}
     } else {
