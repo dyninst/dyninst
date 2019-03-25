@@ -28,8 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-//#warning "This file is not implemented yet!"
-
 #include "common/src/headers.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/image.h"
@@ -642,15 +640,21 @@ Register EmitterAARCH64::emitCall(opCode op,
         assert(reg!=REG_NULL);
     }
 
-    //instPoint *point = gen.point();
-    //assert(point);
     assert(gen.rs());
 
     //Address of function to call in scratch register
     Register scratch = gen.rs()->getScratchRegister(gen);
-    assert(scratch!=REG_NULL);
+    assert(scratch != REG_NULL && "cannot get a scratch register");
     gen.markRegDefined(scratch);
-    insnCodeGen::loadImmIntoReg<Address>(gen, scratch, callee->addr());
+    if (gen.addrSpace()->edit() != NULL && gen.func()->obj() != callee->obj()) {
+        // gen.as.edit() checks if we are in rewriter mode
+        Address dest = getInterModuleFuncAddr(callee, gen);
+        insnCodeGen::loadImmIntoReg<Address>(gen, scratch, dest);
+
+        insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, scratch, scratch, 0, 8, insnCodeGen::Offset);
+    } else {
+        insnCodeGen::loadImmIntoReg<Address>(gen, scratch, callee->addr());
+    }
 
     instruction branchInsn;
     branchInsn.clear();
@@ -1236,14 +1240,17 @@ bool EmitterAARCH64::emitCallRelative(Register dest, Address offset, Register ba
 }
 
 bool EmitterAARCH64::emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen) {
-    assert(0); //Not implemented
+    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
+            base, offset, size, insnCodeGen::Pre);
+
+    gen.markRegDefined(dest);
     return true;
 }
 
 
 void EmitterAARCH64::emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen) {
-    //return true;
-    assert(0); //Not implemented
+    insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, source,
+            base, offset, size, insnCodeGen::Pre);
 }
 
 bool EmitterAARCH64::emitMoveRegToReg(registerSlot *src,
@@ -1457,37 +1464,206 @@ bool EmitterAARCH64::emitCallInstruction(codeGen &gen, func_instance *callee, bo
 
 void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int size,
                                     codeGen &gen, Address offset) {
-    assert(0); //Not implemented
-    return;
+    // create or retrieve jump slot
+    Address addr;
+    int stackSize = 0;
+
+    if(!var) {
+        addr = offset;
+    }
+    else if(!is_local) {
+        addr = getInterModuleVarAddr(var, gen);
+    }
+    else {
+        addr = (Address)var->getOffset();
+    }
+
+    // load register with address from jump slot
+    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+    assert(scratchReg != REG_NULL && "cannot get a scratch register");
+
+    emitMovePCToReg(scratchReg, gen);
+    Address varOffset = addr - gen.currAddr() + 4;
+
+    if (op ==loadOp) {
+        if(!is_local && (var != NULL)){
+            emitLoadRelative(dest, varOffset, scratchReg, gen.width(), gen);
+            // Deference the pointer to get the variable
+            // emitLoadRelative(dest, 0, dest, size, gen);
+            // Offset mode to load back to itself
+            insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest, dest, 0, 8, insnCodeGen::Offset);
+        } else {
+            emitLoadRelative(dest, varOffset, scratchReg, size, gen);
+        }
+    } else { //loadConstop
+        if(!is_local && (var != NULL)){
+            emitLoadRelative(dest, varOffset, scratchReg, gen.width(), gen);
+        } else {
+            assert(0 && "reached invalid else branch");
+        }
+    }
+
+    assert(stackSize <= 0 && "stack not empty at the end");
 }
 
 void
 EmitterAARCH64::emitStoreShared(Register source, const image_variable *var, bool is_local, int size, codeGen &gen) {
-    assert(0); //Not implemented
-    return;
+    // create or retrieve jump slot
+    Address addr;
+    int stackSize = 0;
+    if(!is_local) {
+        addr = getInterModuleVarAddr(var, gen);
+    }
+    else {
+        addr = (Address)var->getOffset();
+    }
+
+    // load register with address from jump slot
+    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+    assert(scratchReg != REG_NULL && "cannot get a scratch register");
+
+    emitMovePCToReg(scratchReg, gen);
+    Address varOffset = addr - gen.currAddr() + 4;
+
+    if(!is_local) {
+        pdvector<Register> exclude;
+        exclude.push_back(scratchReg);
+        Register scratchReg1 = gen.rs()->getScratchRegister(gen, exclude, true);
+        assert(scratchReg1 != REG_NULL && "cannot get a scratch register");
+        emitLoadRelative(scratchReg1, varOffset, scratchReg, gen.width(), gen);
+        emitStoreRelative(source, 0, scratchReg1, size, gen);
+    } else {
+        emitStoreRelative(source, varOffset, scratchReg, size, gen);
+    }
+
+    assert(stackSize <= 0 && "stack not empty at the end");
 }
 
 Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen &gen) {
-    assert(0); //Not implemented
     AddressSpace *addrSpace = gen.addrSpace();
     if (!addrSpace)
         assert(0 && "No AddressSpace associated with codeGen object");
 
     BinaryEdit *binEdit = addrSpace->edit();
     Address relocation_address;
+
+    unsigned int jump_slot_size;
+    switch (addrSpace->getAddressWidth()) {
+        case 4: jump_slot_size = 4; break;
+        case 8: jump_slot_size = 8; break;
+        default: assert(0 && "Encountered unknown address width");
+    }
+
+    if (!binEdit || !var) {
+        assert(!"Invalid variable load (variable info is missing)");
+    }
+
+    // find the Symbol corresponding to the int_variable
+    std::vector<SymtabAPI::Symbol *> syms;
+    var->svar()->getSymbols(syms);
+
+    if (syms.size() == 0) {
+        char msg[256];
+        snprintf(msg, sizeof(msg), "%s[%d]:  internal error:  cannot find symbol %s"
+                , __FILE__, __LINE__, var->symTabName().c_str());
+        showErrorCallback(80, msg);
+        assert(0);
+    }
+
+    // try to find a dynamic symbol
+    // (take first static symbol if none are found)
+    SymtabAPI::Symbol *referring = syms[0];
+    for (unsigned k=0; k<syms.size(); k++) {
+        if (syms[k]->isInDynSymtab()) {
+            referring = syms[k];
+            break;
+        }
+    }
+
+    // have we added this relocation already?
+    relocation_address = binEdit->getDependentRelocationAddr(referring);
+
+    if (!relocation_address) {
+        // inferiorMalloc addr location and initialize to zero
+        relocation_address = binEdit->inferiorMalloc(jump_slot_size);
+        unsigned char dat[8] = {0};
+        binEdit->writeDataSpace((void*)relocation_address, jump_slot_size, dat);
+
+        // add write new relocation symbol/entry
+        binEdit->addDependentRelocation(relocation_address, referring);
+    }
+
     return relocation_address;
 }
 
 Address EmitterAARCH64::emitMovePCToReg(Register dest, codeGen &gen) {
-    assert(0); //Not implemented
-    insnCodeGen::generateBranch(gen, gen.currAddr(), gen.currAddr() + 4, true); // blrl
+    instruction insn;
+    insn.clear();
+
+    INSN_SET(insn, 28, 28, 1);
+    INSN_SET(insn, 0, 4, dest);
+
+    insnCodeGen::generate(gen, insn);
     Address ret = gen.currAddr();
     return ret;
 }
 
 Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
-    assert(0); //Not implemented
-    return NULL;
+    // from POWER64 getInterModuleFuncAddr
+
+    AddressSpace *addrSpace = gen.addrSpace();
+    if (!addrSpace)
+        assert(0 && "No AddressSpace associated with codeGen object");
+
+    BinaryEdit *binEdit = addrSpace->edit();
+    Address relocation_address;
+    
+    unsigned int jump_slot_size;
+    switch (addrSpace->getAddressWidth()) {
+    case 4: jump_slot_size =  4; break; // l: not needed
+    case 8: 
+      jump_slot_size = 24;
+      break;
+    default: assert(0 && "Encountered unknown address width");
+    }
+
+    if (!binEdit || !func) {
+        assert(!"Invalid function call (function info is missing)");
+    }
+
+    // find the Symbol corresponding to the func_instance
+    std::vector<SymtabAPI::Symbol *> syms;
+    func->ifunc()->func()->getSymbols(syms);
+
+    if (syms.size() == 0) {
+        char msg[256];
+        snprintf(msg, sizeof(msg), "%s[%d]:  internal error:  cannot find symbol %s"
+                , __FILE__, __LINE__, func->symTabName().c_str());
+        showErrorCallback(80, msg);
+        assert(0);
+    }
+
+    // try to find a dynamic symbol
+    // (take first static symbol if none are found)
+    SymtabAPI::Symbol *referring = syms[0];
+    for (unsigned k=0; k<syms.size(); k++) {
+        if (syms[k]->isInDynSymtab()) {
+            referring = syms[k];
+            break;
+        }
+    }
+    // have we added this relocation already?
+    relocation_address = binEdit->getDependentRelocationAddr(referring);
+
+    if (!relocation_address) {
+        // inferiorMalloc addr location and initialize to zero
+        relocation_address = binEdit->inferiorMalloc(jump_slot_size);
+        unsigned char dat[24] = {0};
+        binEdit->writeDataSpace((void*)relocation_address, jump_slot_size, dat);
+        // add write new relocation symbol/entry
+        binEdit->addDependentRelocation(relocation_address, referring);
+    }
+    return relocation_address;
 }
 
 
