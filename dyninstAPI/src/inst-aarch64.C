@@ -822,47 +822,12 @@ static inline void restoreGPRtoGPR(codeGen &gen,
 	return;
 }
 
-// VG(03/15/02): Restore mutatee value of XER to dest GPR
-static inline void restoreXERtoGPR(codeGen &gen, Register dest) {
-    assert(0); //Not implemented
-}
-
-// VG(03/15/02): Move bits 25:31 of GPR reg to GPR dest
-static inline void moveGPR2531toGPR(codeGen &gen,
-                                    Register reg, Register dest) {
-    assert(0); //Not implemented
-}
-
 // VG(11/16/01): Emit code to add the original value of a register to
 // another. The original value may need to be restored from stack...
 // VG(03/15/02): Made functionality more obvious by adding the above functions
 static inline void emitAddOriginal(Register src, Register acc,
                                    codeGen &gen, bool noCost) {
-	/*
-	bool nr = needsRestore(src);	
-    Register temp;
-    
-    if(nr) {
-        // this needs gen because it uses emitV...
-        temp = gen.rs()->allocateRegister(gen, noCost);
-        
-        // Emit code to restore the original ra register value in temp.
-        // The offset compensates for the gap 0, 3, 4, ...
-        // This writes at insn, and updates insn and base.
-		
-        restoreGPRtoGPR(gen, src, temp);
-    }
-    else
-        temp = src;
-    */
-    // add temp to dest;
-    // writes at gen+base and updates base, we must update insn...
     emitV(plusOp, src, acc, acc, gen, noCost, 0);
-    
-	/*
-    if(nr){
-        gen.rs()->freeRegister(temp);
-	}*/
 }
 
 // Yuhan(02/04/19): Load in destination the effective address given
@@ -882,10 +847,16 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
 	Register original_ra, original_rb, temp;
     if(ra > -1) {
 		if(needsRestore(ra)) {
-        	temp = gen.rs()->allocateRegister(gen, noCost);
-        	original_ra = gen.rs()->allocateRegister(gen, noCost);
-			restoreGPRtoGPR(gen, ra, original_ra);
-			restored_ra = true;
+			//restore PC register
+			if(ra == 32) {
+				
+			}
+			else {
+	        	temp = gen.rs()->allocateRegister(gen, noCost);
+    	    	original_ra = gen.rs()->allocateRegister(gen, noCost);
+				restoreGPRtoGPR(gen, ra, original_ra);
+				restored_ra = true;
+			}
 		}
 		else {
 			restored_ra = ra;
