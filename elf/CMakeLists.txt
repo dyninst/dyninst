@@ -21,6 +21,9 @@ set (SRC_LIST
 endif()
 
 dyninst_library(dynElf ${LIBELF_LIBRARIES})
+if(TARGET TBB)
+    add_dependencies(dynElf TBB)
+endif()
 
 add_definitions(-DDYNELF_LIB)
 if (USE_COTIRE)
