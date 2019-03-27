@@ -18,17 +18,6 @@
 #ifndef _mcs_lock_h_
 #define _mcs_lock_h_
 
-#include <boost/thread/mutex.hpp>
-
-typedef int mcs_node_t;
-typedef boost::mutex mcs_lock_t;
-
-#define mcs_init(_l)
-#define mcs_lock(_l, _n) ((_l).lock(),_n=0,_n++)
-#define mcs_trylock(_l, _n) ((_l).try_lock(),_n=0,_n++)
-#define mcs_unlock(_l, _n) ((_l).unlock(),_n=0,_n++)
-
-#if 0
 //******************************************************************************
 // global includes
 //******************************************************************************
@@ -70,11 +59,8 @@ typedef struct {
 // interface functions
 //******************************************************************************
 
-static inline void
-mcs_init(mcs_lock_t &l)
-{
-  l.tail.store(mcs_nil);
-}
+COMMON_EXPORT void
+mcs_init(mcs_lock_t &l);
 
 COMMON_EXPORT void
 mcs_lock(mcs_lock_t &l, mcs_node_t &me);
@@ -86,6 +72,5 @@ mcs_trylock(mcs_lock_t &l, mcs_node_t &me);
 
 COMMON_EXPORT void
 mcs_unlock(mcs_lock_t &l, mcs_node_t &me);
-#endif // 0
 
 #endif

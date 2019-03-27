@@ -15,12 +15,12 @@
 
 
 
-#if 0
 //******************************************************************************
 // local includes
 //******************************************************************************
 
 #include "mcs-lock.h"
+#include "vgannotations.h"
 
 #include <boost/memory_order.hpp>
 
@@ -33,14 +33,21 @@
 //******************************************************************************
 
 void
+mcs_init(mcs_lock_t &l)
+{
+  l.tail.store(mcs_nil);
+  VALGRIND_HG_MUTEX_INIT_POST(&l, 0);
+}
+
+void
 mcs_lock(mcs_lock_t &l, mcs_node_t &me)
 {
-  // acquire(&l);
-
   //--------------------------------------------------------------------
   // initialize my queue node
   //--------------------------------------------------------------------
   me.next.store(mcs_nil);
+
+  VALGRIND_HG_MUTEX_LOCK_PRE(&l, 0);
 
   //--------------------------------------------------------------------
   // install my node at the tail of the lock queue.
@@ -75,17 +82,20 @@ mcs_lock(mcs_lock_t &l, mcs_node_t &me)
     //------------------------------------------------------------------
     while (me.blocked.load(boost::memory_order_acquire));
   }
+
+  VALGRIND_HG_MUTEX_LOCK_POST(&l);
 }
 
 
 bool
 mcs_trylock(mcs_lock_t &l, mcs_node_t &me)
 {
-  // acquire(&l);
   //--------------------------------------------------------------------
   // initialize my queue node
   //--------------------------------------------------------------------
   me.next.store(mcs_nil, boost::memory_order_relaxed);
+
+  VALGRIND_HG_MUTEX_LOCK_PRE(&l, 1);
 
   //--------------------------------------------------------------------
   // if the tail pointer is nil, swap it with a pointer to me, which
@@ -99,9 +109,7 @@ mcs_trylock(mcs_lock_t &l, mcs_node_t &me)
   bool locked = l.tail.compare_exchange_strong(oldme, &me,
 					    boost::memory_order_acq_rel,
 					    boost::memory_order_relaxed);
-  if (!locked) {
-    // release(&l);
-  }
+  if (!locked) VALGRIND_HG_MUTEX_LOCK_POST(&l);
   return locked;
 }
 
@@ -109,6 +117,8 @@ mcs_trylock(mcs_lock_t &l, mcs_node_t &me)
 void
 mcs_unlock(mcs_lock_t &l, mcs_node_t &me)
 {
+  VALGRIND_HG_MUTEX_UNLOCK_PRE(&l);
+
   mcs_node_t *successor = me.next.load(boost::memory_order_acquire);
 
   if (successor == mcs_nil) {
@@ -131,6 +141,7 @@ mcs_unlock(mcs_lock_t &l, mcs_node_t &me)
       // I removed myself from the queue; I will never have a
       // successor, so I'm done
       //------------------------------------------------------------------
+      VALGRIND_HG_MUTEX_UNLOCK_POST(&l);
       return;
     }
 
@@ -142,7 +153,6 @@ mcs_unlock(mcs_lock_t &l, mcs_node_t &me)
   }
 
   successor->blocked.store(false, boost::memory_order_release);
-  // release(&l);
-}
 
-#endif // 0
+  VALGRIND_HG_MUTEX_UNLOCK_POST(&l);
+}

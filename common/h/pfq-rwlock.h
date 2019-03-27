@@ -22,20 +22,6 @@
 #ifndef __pfq_rwlock_h__
 #define __pfq_rwlock_h__
 
-#include <boost/atomic.hpp>
-#include <boost/thread/shared_mutex.hpp>
-#include "mcs-lock.h"
-
-typedef int pfq_rwlock_node_t;
-typedef boost::shared_mutex pfq_rwlock_t;
-
-#define pfq_rwlock_init(X)
-#define pfq_rwlock_read_lock(_l) (_l).lock_shared()
-#define pfq_rwlock_read_unlock(_l) (_l).unlock_shared()
-#define pfq_rwlock_write_lock(_l, _n) ((_l).lock(),_n=0,_n++)
-#define pfq_rwlock_write_unlock(_l, _n) ((_l).unlock(),_n=0,_n++)
-
-#if 0
 
 //******************************************************************************
 // global includes
@@ -107,7 +93,6 @@ pfq_rwlock_write_lock(pfq_rwlock_t &l, pfq_rwlock_node_t &me);
 
 COMMON_EXPORT void 
 pfq_rwlock_write_unlock(pfq_rwlock_t &l, pfq_rwlock_node_t &me);
-#endif // 0
 
 
 #endif

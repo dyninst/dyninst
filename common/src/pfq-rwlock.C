@@ -25,8 +25,8 @@
 // local includes
 //******************************************************************************
 
-#if 0
 #include "pfq-rwlock.h"
+#include "vgannotations.h"
 
 
 
@@ -75,6 +75,9 @@ pfq_rwlock_init(pfq_rwlock_t &l)
   l.writer_blocking_readers[1].bit.store(false);
   mcs_init(l.wtail);
   l.whead = mcs_nil;
+  VALGRIND_HG_DISABLE_CHECKING(&l.rin, sizeof l.rin);
+  VALGRIND_HG_DISABLE_CHECKING(&l.rout, sizeof l.rout);
+  ANNOTATE_RWLOCK_CREATE(&l);
 }
 
 void
@@ -86,12 +89,15 @@ pfq_rwlock_read_lock(pfq_rwlock_t &l)
     uint32_t phase = ticket & PHASE_BIT;
     while (l.writer_blocking_readers[phase].bit.load(boost::memory_order_acquire));
   }
+
+  ANNOTATE_RWLOCK_ACQUIRED(&l, 0);
 }
 
 
 void
 pfq_rwlock_read_unlock(pfq_rwlock_t &l)
 {
+  ANNOTATE_RWLOCK_RELEASED(&l, 0);
   uint32_t ticket = l.rout.fetch_add(READER_INCREMENT, boost::memory_order_acq_rel);
 
   if (ticket & WRITER_PRESENT) {
@@ -163,6 +169,8 @@ pfq_rwlock_write_lock(pfq_rwlock_t &l, pfq_rwlock_node_t &me)
     // readers of writer
     //--------------------------------------------------------------------------
   }
+
+  ANNOTATE_RWLOCK_ACQUIRED(&l, 1);
 }
 
 
@@ -195,10 +203,10 @@ pfq_rwlock_write_unlock(pfq_rwlock_t &l, pfq_rwlock_node_t &me)
   //--------------------------------------------------------------------
   l.writer_blocking_readers[phase].bit.store(false, boost::memory_order_release);
 
+  ANNOTATE_RWLOCK_RELEASED(&l, 1);
+
   //--------------------------------------------------------------------
   // pass writer lock to next writer
   //--------------------------------------------------------------------
   mcs_unlock(l.wtail, me);
 }
-
-#endif // 0
