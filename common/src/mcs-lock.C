@@ -47,6 +47,7 @@ mcs_lock(mcs_lock_t &l, mcs_node_t &me)
   //--------------------------------------------------------------------
   me.next.store(mcs_nil);
 
+  VALGRIND_HG_DISABLE_CHECKING(&me.next, sizeof me.next);
   VALGRIND_HG_MUTEX_LOCK_PRE(&l, 0);
 
   //--------------------------------------------------------------------
@@ -155,4 +156,5 @@ mcs_unlock(mcs_lock_t &l, mcs_node_t &me)
   successor->blocked.store(false, boost::memory_order_release);
 
   VALGRIND_HG_MUTEX_UNLOCK_POST(&l);
+  VALGRIND_HG_ENABLE_CHECKING(&me.next, sizeof me.next);
 }

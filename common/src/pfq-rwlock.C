@@ -77,6 +77,7 @@ pfq_rwlock_init(pfq_rwlock_t &l)
   l.whead = mcs_nil;
   VALGRIND_HG_DISABLE_CHECKING(&l.rin, sizeof l.rin);
   VALGRIND_HG_DISABLE_CHECKING(&l.rout, sizeof l.rout);
+  VALGRIND_HG_DISABLE_CHECKING(&l.writer_blocking_readers, sizeof l.writer_blocking_readers);
   ANNOTATE_RWLOCK_CREATE(&l);
 }
 
