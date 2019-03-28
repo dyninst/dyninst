@@ -32,8 +32,8 @@ typedef boost::shared_mutex pfq_rwlock_t;
 #define pfq_rwlock_init(X)
 #define pfq_rwlock_read_lock(_l) (_l).lock_shared()
 #define pfq_rwlock_read_unlock(_l) (_l).unlock_shared()
-#define pfq_rwlock_write_lock(_l, _) (_l).lock()
-#define pfq_rwlock_write_unlock(_l, _) (_l).unlock()
+#define pfq_rwlock_write_lock(_l, _n) ((_l).lock(),_n=0,_n++)
+#define pfq_rwlock_write_unlock(_l, _n) ((_l).unlock(),_n=0,_n++)
 
 #if 0
 

@@ -24,9 +24,9 @@ typedef int mcs_node_t;
 typedef boost::mutex mcs_lock_t;
 
 #define mcs_init(_l)
-#define mcs_lock(_l, _) (_l).lock()
-#define mcs_trylock(_l, _) (_l).try_lock()
-#define mcs_unlock(_l, _) (_l).unlock()
+#define mcs_lock(_l, _n) ((_l).lock(),_n=0,_n++)
+#define mcs_trylock(_l, _n) ((_l).try_lock(),_n=0,_n++)
+#define mcs_unlock(_l, _n) ((_l).unlock(),_n=0,_n++)
 
 #if 0
 //******************************************************************************
