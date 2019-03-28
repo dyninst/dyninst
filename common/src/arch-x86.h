@@ -578,7 +578,7 @@ COMMON_EXPORT void ia32_set_mode_64(bool mode);
 // ADDED: am_ImplImm for implicit immediates
 // ADDED: am_RM, am_UM,
 enum { am_A=1, am_B, am_C, am_D, am_E, am_F, am_G, am_H, am_I, am_J, // 1 -> 10
-	am_M, am_N, am_O, am_P, am_Q, am_R, am_S, am_T, am_XU, am_YU,  // 11 -> 20
+	am_L, am_M, am_N, am_O, am_P, am_Q, am_R, am_S, am_T, am_XU, am_YU,  // 11 -> 20
 	am_U, am_UM, am_V, am_W, am_X, am_Y, am_reg, am_stackH, am_stackP, am_allgprs,
 	am_tworeghack, am_ImplImm, am_RM, am_HK, am_VK, am_WK, am_XH, am_XV, am_XW, am_YH, 
 	am_YV, am_YW }; // pusH and poP produce different addresses
@@ -594,7 +594,7 @@ enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, op_q, // 10
 enum {
   t_ill=0, t_oneB, t_twoB, t_threeB, t_threeB2, t_prefixedSSE, t_coprocEsc, 
   t_grp, t_sse, t_sse_mult, t_sse_bis, t_sse_bis_mult, 
-  t_sse_ter, t_sse_ter_mult, t_grpsse, t_3dnow, t_vexl, t_vexw, t_sse_vex_mult, 
+  t_sse_ter, t_sse_ter_mult, t_grpsse, t_3dnow, t_vexl, t_vexw, t_sse_vex_mult, t_fma4,
   t_done=99
 };
 
@@ -847,7 +847,7 @@ struct ia32_entry {
   unsigned int otable;       // which opcode table is next; if t_done it is the current one
   unsigned char tabidx;      // at what index to look, 0 if it easy to deduce from opcode
   bool hasModRM;             // true if the instruction has a MOD/RM byte
-  ia32_operand operands[3];  // operand descriptors
+  ia32_operand operands[4];  // operand descriptors
   unsigned int legacyType;   // legacy type of the instruction (e.g. (IS_CALL | REL_W))
   // code to decode memory access - this field should be seen as two 16 bit fields
   // the lower half gives operand semantics, e.g. s1RW2R, the upper half is a fXXX hack if needed
