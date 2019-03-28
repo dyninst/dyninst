@@ -3909,7 +3909,6 @@ bool Object::emitDriver(string fName, std::set<Symbol *> &allSymbols, unsigned) 
                                                                                 associated_symtab);
         bool ok = em->createSymbolTables(allSymbols);
         if (ok) {
-            printf("createSymbolTables ok\n");
             ok = em->driver(fName);
         }
         delete em;
