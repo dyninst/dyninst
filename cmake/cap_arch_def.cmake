@@ -151,7 +151,7 @@ else (PLATFORM STREQUAL i386-unknown-linux2.4)
 endif (PLATFORM STREQUAL i386-unknown-linux2.4)
 
 if (THREAD_DB_FOUND)
-message ("-- Enabling ThreadDB support")
+message (STATUS "-- Enabling ThreadDB support")
 set (CAP_DEFINES ${CAP_DEFINES} -Dcap_thread_db)
 endif (THREAD_DB_FOUND)
 
