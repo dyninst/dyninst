@@ -595,6 +595,7 @@ enum {
   t_ill=0, t_oneB, t_twoB, t_threeB, t_threeB2, t_prefixedSSE, t_coprocEsc, 
   t_grp, t_sse, t_sse_mult, t_sse_bis, t_sse_bis_mult, 
   t_sse_ter, t_sse_ter_mult, t_grpsse, t_3dnow, t_vexl, t_vexw, t_sse_vex_mult, t_fma4,
+  t_xop_8_w, t_xop_9_w,
   t_done=99
 };
 
@@ -719,6 +720,7 @@ class ia32_prefixes
 
   /* Because VEX fields are based on the VEX type, they are decoded immediately. */
   bool vex_present; /* Does this instruction have a vex prefix?  */
+  bool XOP;  /* whether this instrucxtion is an XOP instrucxtion */
   VEX_TYPE vex_type; /* If there is a vex prefix present, what type is it? */
   unsigned char vex_prefix[5]; /* Support up to EVEX (VEX-512) */
   int vex_sse_mult; /* index for sse multiplexer table */

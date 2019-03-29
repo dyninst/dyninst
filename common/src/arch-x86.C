@@ -643,7 +643,18 @@ VEXW00 = 0, VEXW01, VEXW02, VEXW03, VEXW04, VEXW05, VEXW06, VEXW07,
 };
 /** END_DYNINST_TABLE_DEF */
 
+
 #define VEXW_MAX VEXW96
+
+/* XOP8 instructions that use xop.w as selector */
+enum{
+XOP8_A2
+};
+
+/* XOP9 instructions that use xop.w as selector */
+enum {
+XOP9_9A
+};
 
 /* SIMD op conversion table */
 static int vex3_simdop_convert[3][4] = {
@@ -1429,6 +1440,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vphsubw, "vphsubw")
   (e_vphsubd, "vphsubd")
   (e_vpmovb2m, "vpmovb2m")
+  (e_vpmacsdd, "vpmacsdd")
   (e_vpmaddubsw, "vpmaddubsw")
   (e_vpmaddwd, "vpmaddwd")
   (e_vpmovm2d, "vpmovm2d")
@@ -1714,6 +1726,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vpbroadcastd, "vpbroadcastd")
   (e_vpbroadcastq, "vpbroadcastq")
   (e_vpbroadcastw, "vpbroadcastw")
+  (e_vpcmov, "vpcmov")
   (e_vpcmpub, "vpcmpub")
   (e_vpcmpb, "vpcmpb")
   (e_vpcmpequd, "vpcmpequd")
@@ -1725,6 +1738,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vpcmpgtd, "vpcmpgtd")
   (e_vpcmpgtq, "vpcmpgtq")
   (e_vpcmpgtw, "vpcmpgtw")
+  (e_vpcomd, "vpcmod")
   (e_vpcompressd, "vpcompressd")
   (e_vpcompressq, "vpcompressq")
   (e_vpconflictd, "vpconflictd")
@@ -1836,6 +1850,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vpscatterqd, "vpscatterqd")
   (e_vpscatterqq, "vpscatterqq")
   (e_vpsadbw, "vpsadbw")
+  (e_vpshad, "vpshad")
   (e_vpshufb, "vpshufb")
   (e_vpshufd, "vpshufd")
   (e_vpshufhw, "vpshufhw")
@@ -8455,10 +8470,902 @@ static struct ia32_entry fma4Map[][2] =
        { e_vfnmaddsd, t_done, 0, true, {Vss, Hss, Wq, Lb}, 0, s1W2R3R4R, 0}, /* W = 0 */
        { e_vfnmaddsd, t_done, 0, true, {Vss, Hss, Wq, Lb}, 0, s1W2R3R4R, 0}, /* W = 1 */
    }, 
-
-
-
 };
+
+static struct ia32_entry XOP8[256] = 
+{
+		/* 00 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 08 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 10 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 18 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 20 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 28 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 30 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 38 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 40 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 48 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 50 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 58 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 60 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 68 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 70 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 78 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 80 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 88 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 90 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 98 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_vpmacsdd, t_done, 0, true, { Vss, Hss, Wps, Lb }, 0, s1W2R3R4R, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* A0 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_xop_8_w, XOP8_A2, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* A8 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* B0 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* B8 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* C0 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* C8 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_vpcomd, t_done, 0, true, { Vss, Hss, Wps, Ib }, 0, s1W2R3R4R, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* D0 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* D8 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* E0 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* E8 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* F0 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* F8 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+};
+
+
+static struct ia32_entry XOP9[256] = 
+{
+		/* 00 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 08 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 10 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 18 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 20 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 28 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 30 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 38 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 40 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 48 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 50 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 58 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 60 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 68 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 70 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 78 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 80 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 88 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 90 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 98 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_xop_9_w, XOP9_9A, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* A0 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* A8 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* B0 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* B8 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* C0 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* C8 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* D0 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* D8 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* E0 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* E8 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* F0 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* F8 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+};
+
+static struct ia32_entry XOPA[256] = 
+{
+		/* 00 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 08 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 10 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 18 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 20 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 28 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 30 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 38 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 40 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 48 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 50 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 58 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 60 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 68 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 70 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 78 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 80 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 88 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 90 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* 98 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* A0 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* A8 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* B0 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* B8 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* C0 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* C8 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* D0 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* D8 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* E0 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* E8 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* F0 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		/* F8 */
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+};
+
+static struct ia32_entry XOP8_W[][2] = 
+{
+    { /* XOP8_A2 */
+      { e_vpcmov, t_done, 0, true, { Vss, Hss, Wps, Lb }, 0, s1W2R3R4R, 0 }, /* W = 0 */
+      { e_vpcmov, t_done, 0, true, { Vss, Hss, Wps, Lb }, 0, s1W2R3R4R, 0 }  /* W = 1 */
+    }
+};
+
+
+static struct ia32_entry XOP9_W[][2] = 
+{
+    { /* XOP9_9A */
+      { e_vpshad, t_done, 0, true, { Vss, Wps, Hss }, 0, s1W2R3R, 0 }, /* W = 0 */
+      { e_vpshad, t_done, 0, true, { Vss, Hss, Wps }, 0, s1W2R3R, 0 }  /* W = 1 */
+    }
+};
+
 static TLS_VAR bool mode_64 = false;
 
 void ia32_set_mode_64(bool mode) {
@@ -8841,9 +9748,34 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
     ia32_entry* gotit = NULL;
     int condbits = 0;
     bool vextab = false; /* Did we end in a VEX table? */
+    if (pref.XOP) {
+        /* Grab the opcode for the index */
+        idx = addr[0];
 
+        /* Move past the opcode for this instruction */
+        instruct.size += 1;
+        addr += 1;
+
+        // We reuse vex3 data structures for XOP
+        switch(pref.vex_m_mmmm)
+        {
+            case 8:
+                gotit = &XOP8[idx];
+                break;
+            case 9:
+                gotit = &XOP9[idx];
+                break;
+            case 10:
+                gotit = &XOPA[idx];
+                break;
+            default:
+                instruct.legacy_type = ILLEGAL;
+                instruct.entry = NULL;
+                return -1;
+        }
+        nxtab = gotit->otable;
+    } else if(pref.vex_present)
     /* Is there a VEX prefix for this instruction? */
-    if(pref.vex_present)
     {
 #ifdef VEX_PEDANTIC
         printf("DECODING VEX\n");
@@ -9257,6 +10189,20 @@ int ia32_decode_opcode(unsigned int capa, const unsigned char *addr, ia32_instru
                 /* FMA4 instructions for AMD */
                 idx = gotit->tabidx;
                 gotit = &fma4Map[idx][pref.vex_w];
+                nxtab = gotit->otable;
+                vextab = true;
+                break;
+            case t_xop_8_w:
+                /* XOP 9 instructions with W selector for AMD */
+                idx = gotit->tabidx;
+                gotit = &XOP8_W[idx][pref.vex_w];
+                nxtab = gotit->otable;
+                vextab = true;
+                break;
+            case t_xop_9_w:
+                /* XOP 9 instructions with W selector for AMD */
+                idx = gotit->tabidx;
+                gotit = &XOP9_W[idx][pref.vex_w];
                 nxtab = gotit->otable;
                 vextab = true;
                 break;
@@ -10355,6 +11301,7 @@ bool is_sse_opcode(unsigned char byte1, unsigned char byte2, unsigned char byte3
    pref.vex_b = 0;
    pref.vex_aaa = 0;
 
+   pref.XOP = false;
    bool err = false;
 
    while(in_prefix && !err)
@@ -10412,12 +11359,6 @@ bool is_sse_opcode(unsigned char byte1, unsigned char byte2, unsigned char byte3
          case PREFIX_SZADDR:
             ++pref.count;
             pref.prfx[3] = addr[0];
-            break;
-
-         case PREFIX_XOP:
-            /* FIXME: XOP instruction are not supported! */
-            err = true;
-            fprintf(stderr, "Find prefix XOP\n");
             break;
 
          case PREFIX_EVEX:
@@ -10478,6 +11419,9 @@ bool is_sse_opcode(unsigned char byte1, unsigned char byte2, unsigned char byte3
             in_prefix = false;
             break;
 
+         case PREFIX_XOP:
+         // XOP prefix has the same structure as VEX3
+            pref.XOP = true;
          case PREFIX_VEX3:
             pref.vex_present = true;
             pref.vex_type = VEX_TYPE_VEX3;

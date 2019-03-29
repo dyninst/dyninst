@@ -1087,7 +1087,9 @@ namespace Dyninst
                 break;
             case am_L:
                 /* Use Imm byte to encode XMM. Seen in FMA4*/
-                 if(decodeAVX(bank, &bank_index, *(const uint8_t*)(b.start + locs->imm_position[imm_index++]), avx_type, pref, operand.admet))
+                 if(decodeAVX(bank, &bank_index, 
+                             (*(const uint8_t*)(b.start + locs->imm_position[imm_index++])) >> 4, 
+                             avx_type, pref, operand.admet))
                     return false;
 
                 /* Append the operand */
