@@ -2312,8 +2312,9 @@ assert(src->end() == dst->start());
     }
 
     // Add the edge into the block's target list
-    Block* oldSrc = e->src();
-    while(!e->_source.compare_exchange_weak(oldSrc, src));
+    // Writes should be sequenced, so this should work.
+    Block * old = e->src();
+    assert(e->_source.compare_exchange_strong(old, src));
     src->addTarget(e);
     _pcb.addEdge(src, e, ParseCallback::target);
 
