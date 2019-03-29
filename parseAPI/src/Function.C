@@ -523,9 +523,9 @@ void Function::set_retstatus(FuncReturnStatus rs)
     } else if (rs == UNKNOWN) {
         _obj->cs()->incrementCounter(PARSE_UNKNOWN_COUNT);
     }
-    // acquire(_rs);
-    _rs.store(rs);
-    // release(_rs);
+    // Write access is handled by the lock, so this should always work.
+    FuncReturnStatus e = _rs;
+    assert(_rs.compare_exchange_strong(e, rs));
 }
 
 void 
