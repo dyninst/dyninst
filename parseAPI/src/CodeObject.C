@@ -64,7 +64,8 @@ void CodeObject::version(int& major, int& minor, int& maintenance)
 CodeObject::CodeObject(CodeSource *cs, 
                        CFGFactory *fact, 
                        ParseCallback * cb, 
-                       bool defMode) :
+                       bool defMode,
+                       bool ignoreParse) :
     _cs(cs),
     _fact(__fact_init(fact)),
     _pcb(new ParseCallbackManager(cb)),
@@ -74,7 +75,8 @@ CodeObject::CodeObject(CodeSource *cs,
     flist(parser->sorted_funcs)
 {
     process_hints(); // if any
-    parse();
+    if (!ignoreParse)
+      parse();
 }
 
 void
