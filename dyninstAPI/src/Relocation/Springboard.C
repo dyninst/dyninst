@@ -280,10 +280,9 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    }
    
    registerBranch(r.from, r.from + size, r.destinations, r.fromRelocatedCode, r.func, r.priority);
-   if (!usedTrap) {
+   if (gen.valid()) {
        springboards.push_back(gen);
    }
-
    return Succeeded;
 }
 
