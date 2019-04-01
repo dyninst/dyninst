@@ -792,7 +792,7 @@ void emitJmpMC(int /*condition*/, int /*offset*/, codeGen &) {
 // Yuhan(02/05/19): Needs to implement, refering to what registers are saved during the trap
 
 static inline bool needsRestore(Register x) {
-   	if(x>=0 && x<=2 || x>=19 && x <= 31) 
+   	if(x>=0 && x<=2 || x>=19 && x <= 32) 
 		return true;
 	else
 		return false;
@@ -819,7 +819,6 @@ static inline void restoreGPRtoGPR(codeGen &gen,
 	    insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0, frame_size, REG_SP, dest, true);	
 	}
 	else {
-		//cout << "offset " << gpr_off << endl;
 		insnCodeGen::restoreRegister(gen, dest, gpr_off + reg*gpr_size);
 	}
 	
@@ -832,6 +831,18 @@ static inline void restoreGPRtoGPR(codeGen &gen,
 static inline void emitAddOriginal(Register src, Register acc,
                                    codeGen &gen, bool noCost) {
     emitV(plusOp, src, acc, acc, gen, noCost, 0);
+}
+
+void MovePCToReg(Register dest, codeGen &gen) {
+    instruction insn;
+    insn.clear();
+
+    INSN_SET(insn, 28, 28, 1);
+    INSN_SET(insn, 0, 4, dest);
+
+    insnCodeGen::generate(gen, insn);
+    Address ret = gen.currAddr();
+    return;
 }
 
 // Yuhan(02/04/19): Load in destination the effective address given
@@ -853,9 +864,15 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
 		if(needsRestore(ra)) {
 			//restore PC register
 			if(ra == 32) {
-				
+ 			    original_ra = gen.rs()->getScratchRegister(gen, true);
+    			assert(original_ra != REG_NULL && "cannot get a scratch register");
+			 	MovePCToReg(original_ra, gen);
+				restored_ra = true;	
+				fprintf(stderr, "PC restored\n");
 			}
 			else {
+				//needs to allocate one extra register otherwise 
+				//there might be a conflict with current using ones
 	        	temp = gen.rs()->allocateRegister(gen, noCost);
     	    	original_ra = gen.rs()->allocateRegister(gen, noCost);
 				restoreGPRtoGPR(gen, ra, original_ra);
