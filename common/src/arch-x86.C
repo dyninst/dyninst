@@ -648,7 +648,8 @@ VEXW00 = 0, VEXW01, VEXW02, VEXW03, VEXW04, VEXW05, VEXW06, VEXW07,
 
 /* XOP8 instructions that use xop.w as selector */
 enum{
-XOP8_A2
+XOP8_A2,
+XOP8_A3
 };
 
 /* XOP9 instructions that use xop.w as selector */
@@ -719,6 +720,7 @@ static int vex3_simdop_convert[3][4] = {
 #define Mf   { am_M, op_f }
 #define Mfd  { am_M, op_dbl }
 #define M14  { am_M, op_14 }
+#define Mv   { am_M, op_v }
 #define Nss  { am_N, op_ss }
 #define Ob   { am_O, op_b }
 #define Ov   { am_O, op_v }
@@ -1129,6 +1131,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_mov, "mov")
   (e_movapd, "movapd")
   (e_movaps, "movaps")
+  (e_movbe, "movbe")
   (e_movd, "movd")
   (e_movddup, "movddup")
   (e_movdq2q, "movdq2q")
@@ -1431,6 +1434,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_vaeskeygenassist, "vaeskeygenassist")
   (e_vaesimc, "vaesimc")
   (e_vpclmullqlqdq, "vpclmullqlqdq")
+  (e_vpperm, "e_vpperm")
   (e_vmpsadbw, "vmpsadbw") 
   (e_vmwrite, "vmwrite") 
   (e_vmread, "vmread") 
@@ -5797,15 +5801,15 @@ static ia32_entry sseMapBis[][5] = {
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
     }, { /* SSEBF0 */
+        { e_movbe, t_done, 0, true, {Gv, Mv}, 0, s1W2R, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+        { e_movbe, t_done, 0, true, {Gv, Mv}, 0, s1W2R, 0 },
         { e_crc32, t_done, 0, true, { Gv, Eb, Zz }, 0, s1RW2R, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
     }, { /* SSEBF1 */
+        { e_movbe, t_done, 0, true, {Mv, Gv}, 0, s1W2R, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+        { e_movbe, t_done, 0, true, {Mv, Gv}, 0, s1W2R, 0 },
         { e_crc32, t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R, 0 },
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 }
     }, { /* SSEBF2 */
@@ -7642,7 +7646,7 @@ ia32_entry sseMapTerMult[][3] =
         { e_vrndscaless, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R4R, 0 }
     }, { /* SSET0B_66 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
-        { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+        { e_vroundsd, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R4R, 0 },
         { e_vrndscalesd, t_done, 0, true, { Vps, Hps, Wps }, 0, s1W2R3R4R, 0 }
     }, { /* SSET0C_66 */
         { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -8658,7 +8662,7 @@ static struct ia32_entry XOP8[256] =
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_xop_8_w, XOP8_A2, false, { Zz, Zz, Zz }, 0, 0, 0 },
-		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
+		{ e_No_Entry, t_xop_8_w, XOP8_A3, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
 		{ e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0, 0 },
@@ -9354,6 +9358,9 @@ static struct ia32_entry XOP8_W[][2] =
     { /* XOP8_A2 */
       { e_vpcmov, t_done, 0, true, { Vss, Hss, Wps, Lb }, 0, s1W2R3R4R, 0 }, /* W = 0 */
       { e_vpcmov, t_done, 0, true, { Vss, Hss, Wps, Lb }, 0, s1W2R3R4R, 0 }  /* W = 1 */
+    }, { /* XOP8_A3 */
+      { e_vpperm, t_done, 0, true, { Vss, Hss, Wps, Lb }, 0, s1W2R3R4R, 0 }, /* W = 0 */
+      { e_vpperm, t_done, 0, true, { Vss, Hss, Wps, Lb }, 0, s1W2R3R4R, 0 }  /* W = 1 */
     }
 };
 
