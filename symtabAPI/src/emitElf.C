@@ -2049,8 +2049,8 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
     if (obj->findRegion(dyninstReg, ".dyninstInst") && library_adjust) {
         struct trap_mapping_header* header = (struct trap_mapping_header *) (dyninstReg->getPtrToRawData());
         for (i = 0; i < header->num_entries; i++) {
-            header->traps[i].source += library_adjust;
-            header->traps[i].target += library_adjust;
+            header->traps[i].source = (void*) ((char*)header->traps[i].source + library_adjust);
+            header->traps[i].target = (void*) ((char*)header->traps[i].target + library_adjust);
         }
     }
     return true;
