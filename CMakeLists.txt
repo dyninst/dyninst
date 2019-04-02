@@ -15,6 +15,8 @@ ENDIF()
 set(RT_SOURCE_DIR ${DYNINST_ROOT}/dyninstAPI_RT)
 set(RT_BINARY_DIR ${PROJECT_BINARY_DIR}/dyninstAPI_RT)
 
+find_package(Threads)
+include(${DYNINST_ROOT}/cmake/Boost.cmake)
 include (${DYNINST_ROOT}/cmake/shared.cmake)
 
 configure_file(cmake/version.h.in common/h/dyninstversion.h)
@@ -51,7 +53,7 @@ include_directories (
   ${CILKSCREEN_INCLUDES}
       ${TBB_INCLUDE_DIRS}
   )
-set(Boost_USE_STATIC_LIBS OFF)
+
 # Component time
 add_subdirectory (common)
 if(NOT ${PLATFORM} MATCHES nt)

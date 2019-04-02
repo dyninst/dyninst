@@ -2,10 +2,6 @@ set (DYNINST_MAJOR_VERSION 10)
 set (DYNINST_MINOR_VERSION 0)
 set (DYNINST_PATCH_VERSION 0)
 
-# Debugging
-set(Boost_DEBUG 1)
-
-add_definitions(-DBOOST_ALL_NO_LIB=1)
 set (SOVERSION "${DYNINST_MAJOR_VERSION}.${DYNINST_MINOR_VERSION}")
 set (LIBVERSION "${SOVERSION}.${DYNINST_PATCH_VERSION}")
 set (DYNINST_VERSION "${LIBVERSION}")
@@ -174,8 +170,3 @@ if (NOT CMAKE_BUILD_TYPE)
        "Choose the build type (None, Debug, Release, RelWithDebInfo, MinSizeRel)" FORCE)
 endif()
 
-# There are broken versions of MSVC that won't handle variadic templates correctly (despite the C++11 test case passing).
-# Just build vanilla versions, boost can handle it.
-if (MSVC)
-  add_definitions(-DBOOST_NO_CXX11_VARIADIC_TEMPLATES)
-endif()
