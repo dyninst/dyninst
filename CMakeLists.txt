@@ -233,3 +233,5 @@ endif()
 
 #add_subdirectory(testsuite)
 
+# Copy out all of the cmake files so they can be used by the Testsuite
+install(DIRECTORY ${DYNINST_ROOT}/cmake/ DESTINATION ${INSTALL_CMAKE_DIR})
