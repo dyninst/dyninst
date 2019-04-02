@@ -33,6 +33,7 @@
 #include "emitElf.h"
 #include "emitElfStatic.h"
 #include "common/src/pathName.h"
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 
 #if defined(os_freebsd)
@@ -2041,6 +2042,17 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
     if (!obj->getAllNewRegions(newSecs))
         log_elferror(err_func_, "No new sections to add");
 
+    // If we find the .dyninstInst secion, it means we are doing
+    // binary rewriting. If library_adjust is non-zero, then we
+    // also need to adjust springboard traps
+    Region *dyninstReg = NULL;
+    if (obj->findRegion(dyninstReg, ".dyninstInst") && library_adjust) {
+        struct trap_mapping_header* header = (struct trap_mapping_header *) (dyninstReg->getPtrToRawData());
+        for (i = 0; i < header->num_entries; i++) {
+            header->traps[i].source += library_adjust;
+            header->traps[i].target += library_adjust;
+        }
+    }
     return true;
 }
 
@@ -2432,6 +2444,7 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData, unsigned size, Elf_D
         {
             case DT_INIT:
             case DT_FINI:
+            case DT_DYNINST:
                 adjust = library_adjust;
                 break;
             default:
