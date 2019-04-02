@@ -33,7 +33,7 @@ if(MSVC)
 endif()
 
 # Need Boost >= 1.61 for filesytem components
-set(BOOST_MIN_VERSION 1.61.0)
+set(BOOST_MIN_VERSION 1.61.0 CACHE STRING "Minimum Boost version")
 
 set(Boost_ADDITIONAL_VERSIONS
     "1.69" "1.69.0"
