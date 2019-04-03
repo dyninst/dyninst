@@ -10,17 +10,19 @@ if(NOT DEFINED CMAKE_THREAD_LIBS_INIT)
                       "Use 'find_package(Threads)' before including Boost")
 endif()
 
-# Disable generating serialization code in boost::multi_index
-add_definitions(-DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION)
-
-# Set to ON to enable debug output from FindBoost.
-set(Boost_DEBUG OFF)
+# Enable debug output from FindBoost
+set(Boost_DEBUG OFF CACHE STRING "Enable debug output from FindBoost")
 
 # Use the multithreaded version of Boost
-set(Boost_USE_MULTITHREADED ON)
+# NB: This _must_ be a cache variable as it
+#     controls the tagged layout of Boost library names
+set(Boost_USE_MULTITHREADED ON CACHE STRING "Enable multithreaded Boost libraries")
 
 # Don't use libraries linked statically to the C++ runtime
-set(Boost_USE_STATIC_RUNTIME OFF)
+# NB: This _must_ be a cache variable as it
+#     controls the tagged layout of Boost library names
+set(Boost_USE_STATIC_RUNTIME OFF CACHE STRING
+    "Enable usage of libraries statically linked to C++ runtime")
 
 # Disable auto-linking
 add_definitions(-DBOOST_ALL_NO_LIB=1)
