@@ -39,10 +39,9 @@ endif()
 # Need Boost >= 1.61 for filesytem components
 set(BOOST_MIN_VERSION 1.61.0 CACHE STRING "Minimum Boost version")
 
-if(NOT ("${Boost_NO_BOOST_CMAKE}" STREQUAL "OFF"))
-  message(STATUS "Disabling Boost's own CMake--known buggy in many cases")
-  set(Boost_NO_BOOST_CMAKE ON)
-endif()
+# Disable Boost's own CMake as it's known to be buggy
+# NB: This should not be a cache variable
+set(Boost_NO_BOOST_CMAKE ON)
 
 # Set the default location to look for Boost
 #
