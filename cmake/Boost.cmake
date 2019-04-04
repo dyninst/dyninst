@@ -20,7 +20,7 @@ set(Boost_USE_STATIC_RUNTIME OFF CACHE STRING
     "Enable usage of libraries statically linked to C++ runtime")
 
 # If using multithreaded Boost, make sure Threads has been intialized
-if(Boost_USE_MULTITHREADING AND NOT DEFINED CMAKE_THREAD_LIBS_INIT)
+if(Boost_USE_MULTITHREADED AND NOT DEFINED CMAKE_THREAD_LIBS_INIT)
   message(FATAL_ERROR "Threads library not initialized before resolving Boost\n"
                       "Use 'find_package(Threads)' before including Boost")
 endif()
@@ -85,7 +85,7 @@ if(NOT Boost_FOUND)
                         "is older than minimum allowed version (${BOOST_MIN_VERSION})")
   endif()
   
-  if(Boost_USE_MULTITHREADING)
+  if(Boost_USE_MULTITHREADED)
     set(_boost_threading multi)
   else()
     set(_boost_threading single)
@@ -160,7 +160,7 @@ if(NOT Boost_FOUND)
 endif()
 
 # Add the system thread library
-if(Boost_USE_MULTITHREADING)
+if(Boost_USE_MULTITHREADED)
   list(APPEND Boost_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
 endif()
 
