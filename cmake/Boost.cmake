@@ -5,11 +5,6 @@
 #
 ###############################
 
-if(NOT DEFINED CMAKE_THREAD_LIBS_INIT)
-  message(FATAL_ERROR "Threads library not initialized before resolving Boost\n"
-                      "Use 'find_package(Threads)' before including Boost")
-endif()
-
 # Enable debug output from FindBoost
 set(Boost_DEBUG OFF CACHE STRING "Enable debug output from FindBoost")
 
@@ -23,6 +18,12 @@ set(Boost_USE_MULTITHREADED ON CACHE STRING "Enable multithreaded Boost librarie
 #     controls the tagged layout of Boost library names
 set(Boost_USE_STATIC_RUNTIME OFF CACHE STRING
     "Enable usage of libraries statically linked to C++ runtime")
+
+# If using multithreaded Boost, make sure Threads has been intialized
+if(Boost_USE_MULTITHREADING AND NOT DEFINED CMAKE_THREAD_LIBS_INIT)
+  message(FATAL_ERROR "Threads library not initialized before resolving Boost\n"
+                      "Use 'find_package(Threads)' before including Boost")
+endif()
 
 # Disable auto-linking
 add_definitions(-DBOOST_ALL_NO_LIB=1)
@@ -84,11 +85,17 @@ if(NOT Boost_FOUND)
                         "is older than minimum allowed version (${BOOST_MIN_VERSION})")
   endif()
   
+  if(Boost_USE_MULTITHREADING)
+    set(_boost_threading multi)
+  else()
+    set(_boost_threading single)
+  endif()
+  
   set(BOOST_ARGS
       --ignore-site-config
       --link=static
       --runtime-link=shared
-      --threading=multi)
+      --threading=${_boost_threading})
   if(WIN32)
     # NB: We need to build both debug/release on windows
     #     as we don't use CMAKE_BUILD_TYPE
@@ -148,7 +155,9 @@ if(NOT Boost_FOUND)
 endif()
 
 # Add the system thread library
-list(APPEND Boost_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
+if(Boost_USE_MULTITHREADING)
+  list(APPEND Boost_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
+endif()
 
 link_directories(${Boost_LIBRARY_DIRS})
 include_directories(${Boost_INCLUDE_DIRS})
