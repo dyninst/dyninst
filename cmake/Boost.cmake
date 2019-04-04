@@ -91,10 +91,15 @@ if(NOT Boost_FOUND)
     set(_boost_threading single)
   endif()
   
+  if(Boost_USE_STATIC_RUNTIME)
+    set(_boost_runtime_link static)
+  else()
+    set(_boost_runtime_link shared)
+  endif()
   set(BOOST_ARGS
       --ignore-site-config
       --link=static
-      --runtime-link=shared
+      --runtime-link=${_boost_runtime_link}
       --threading=${_boost_threading})
   if(WIN32)
     # NB: We need to build both debug/release on windows
