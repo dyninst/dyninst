@@ -1257,7 +1257,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
         if (!type)
                 type = BPatch::bpatch->type_Untyped;
 
-        //Address baseAddr =  scp->getFunction()->lowlevel_func()->obj()->codeBase();
+        Address baseAddr =  scp->getFunction()->lowlevel_func()->obj()->codeBase();
         vector<AstNodePtr> variableASTs;
         vector<pair<Offset, Offset> > *ranges = new vector<pair<Offset, Offset> >;
         vector<Dyninst::VariableLocation> &locs = lv->getSymtabVar()->getLocationLists();
@@ -1307,8 +1307,8 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
 					hi = (Address) -1;
 				}
 				else {
-					low = locs[i].lowPC;
-					hi = locs[i].hiPC;
+					low = locs[i].lowPC + baseAddr;
+					hi = locs[i].hiPC + baseAddr;
 				}
 
                 ranges->push_back(pair<Address, Address>(low, hi));

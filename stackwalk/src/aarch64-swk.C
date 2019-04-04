@@ -128,20 +128,33 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   addrWidth = getProcessState()->getAddressWidth();
 
   ra_fp_pair_t this_frame_pair;
-  ra_fp_pair_t last_frame_pair;
   ra_fp_pair_t *actual_frame_pair_p;
 
   Address actual_fp;
 
-  // Assume a standard frame layout if no analysis is available
-  FrameFuncHelper::alloc_frame_t alloc_frame =  make_pair(FrameFuncHelper::standard_frame,
-                                                          FrameFuncHelper::set_frame);
-
-  if (helper && in.isTopFrame())
+  // FrameFuncStepper needs an input FP
+  if (!in.getFP())
   {
-    alloc_frame = helper->allocatesFrame(in.getRA());
-    sw_printf("[%s:%u] - FrameFuncHelper for 0x%lx reports %d, %d\n", FILE__, __LINE__,
-              in.getRA(), alloc_frame.first, alloc_frame.second);
+      sw_printf("[%s:%u] - in.getFP() %lx\n", FILE__, __LINE__, in.getFP());
+      return gcf_not_me;
+  }
+  // Look for function prologue to see if it is a standard frame 
+  FrameFuncHelper::alloc_frame_t alloc_frame;
+  // Here we lookup return address minus 1 to handle the following special case:
+  //
+  // Suppose A calls B and B is a non-returnning function, and the call to B in A
+  // is the last instruction of A. Then the compiler may generate code where 
+  // another function C is immediately after A. In such case, the return address
+  // will be the entry address of C. And if we look up frame type by the return
+  // address, we will get information for C rather than A. 
+  alloc_frame = helper->allocatesFrame(in.getRA() - 1);
+  if (alloc_frame.first != FrameFuncHelper::standard_frame) {
+      sw_printf("[%s:%u] - alloc_frame.first!=standard_frame (== %lx)\n", FILE__, __LINE__, alloc_frame.first);
+      // If we are dealing with the first frame,
+      // the frame information is in the register state.
+      // We continue this function 
+      if (in.getPrevFrame() != NULL)
+          return gcf_not_me;
   }
 
   if (!in.getFP())
@@ -166,19 +179,6 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
     return gcf_error;
   }
 
-  // Read the previous frame
-  if (sizeof(uint64_t) == addrWidth) {
-    result = getProcessState()->readMem(&last_frame_pair, this_frame_pair.FP,
-                                        sizeof(last_frame_pair));
-  }
-  else {
-      assert(0);
-  }
-  if (!result) {
-    sw_printf("[%s:%u] - Couldn't read from %lx\n", FILE__, __LINE__,
-	      out.getFP());
-    return gcf_error;
-  }
 
   // Set actual stack frame based on
   // whether the function creates a frame or not
@@ -189,11 +189,6 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   }
   else
   {
-    /*
-    actual_frame_pair_p = &last_frame_pair;
-    actual_fp = this_frame_pair.FP;
-    actual_fp = in_fp;
-    */
     actual_frame_pair_p = &this_frame_pair;
   }
 
@@ -333,7 +328,7 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Fra
                                                             Address /*orig_ra*/, bool pEntryExit)
 {
   bool result;
-  Address in_fp, out_ra;
+  Address in_fp, out_fp_loc;
   ra_fp_pair_t ra_fp_pair;
   //uint64_t fp;
   location_t raLocation;
@@ -344,41 +339,30 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Fra
   if (!in.getFP())
     return gcf_stackbottom;
 
+  // Dyninst's instrumentation frame set up makes sure that
+  // current SP is the same as the FP retrived in the previous frame
+  // 
+  // Note: If the implementation of baseTramp::generateSaves changed
+  // in dyninstAPI/src/inst-aarch64.C. This function may need to
+  // be changed accordingly.
   in_fp = in.getFP();
   out.setSP(in_fp);
-
-  if (sizeof(uint64_t) == addrWidth) {
-    result = getProcessState()->readMem(&ra_fp_pair, in_fp,
-                                        sizeof(ra_fp_pair));
-  }
-  else {
-		//aarch32 is not supported now
-		assert(0);
-  }
-  if (!result) {
-    sw_printf("[%s:%u] - Couldn't read frame from %lx\n", FILE__, __LINE__, in_fp);
-    return gcf_error;
-  }
-
-  if (sizeof(uint64_t) == addrWidth) {
-    out.setFP(ra_fp_pair.FP);
-  }
-  else {
-      assert(0);
-  }
+  
+  // stack_height is the offset to the saved FP and RA
+  out_fp_loc = in_fp + stack_height; 
 
   raLocation.location = loc_address;
-  raLocation.val.addr = in_fp + stack_height; // stack_height is the offset to the saved RA
+  raLocation.val.addr = out_fp_loc + addrWidth;
   out.setRALocation(raLocation);
 
-  // TODO make 32-bit compatible
-  result = getProcessState()->readMem(&out_ra, raLocation.val.addr,
-                                      sizeof(out_ra));
+  result = getProcessState()->readMem(&ra_fp_pair, out_fp_loc,
+                                      sizeof(ra_fp_pair));
   if (!result) {
-    sw_printf("[%s:%u] - Couldn't read instrumentation RA from %lx\n", FILE__, __LINE__, raLocation.val.addr);
+    sw_printf("[%s:%u] - Couldn't read instrumentation FP and RA from %lx\n", FILE__, __LINE__, out_fp_loc);
     return gcf_error;
   }
-  out.setRA(out_ra);
+  out.setRA(ra_fp_pair.LR);
+  out.setFP(ra_fp_pair.FP);
 
   return gcf_success;
 }
@@ -423,8 +407,13 @@ void aarch64_LookupFuncStart::releaseMe()
       delete this;
 }
 
+
+// WARNING: this is not safe as the function prolog can be 
+// interleaved with arbitrary number of other instructions...
+// A better solution is use ParseAPI to examine the first block, 
+// but this will involve apply parseAPI to the mutatee...
 // in bytes
-#define FUNCTION_PROLOG_TOCHECK 12
+#define FUNCTION_PROLOG_TOCHECK 20
 static const unsigned int push_fp_ra      = 0xa9807bfd ; // stp x29, x30, [sp, #x]!
 static const unsigned int mov_sp_fp       = 0x910003fd ; // mov x29(fp), sp
 static const unsigned int push_fp_ra_mask = 0xffc07fff ; // mask for push_fp_ra

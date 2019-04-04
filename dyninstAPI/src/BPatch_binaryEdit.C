@@ -60,6 +60,7 @@
 #include "mapped_object.h"
 #include "Relocation/DynAddrSpace.h"
 
+#include "boost/filesystem.hpp"
 using Dyninst::PatchAPI::DynAddrSpacePtr;
 using Dyninst::PatchAPI::DynAddrSpace;
 
@@ -282,6 +283,12 @@ bool BPatch_binaryEdit::finalizeInsertionSet(bool /*atomic*/, bool * /*modified*
 
 BPatch_object *BPatch_binaryEdit::loadLibrary(const char *libname, bool deps)
 {
+   boost::filesystem::path p(libname);
+   string filename = p.filename().string();
+   auto loaded = loadedLibrary.find(filename); 
+   if (loaded != loadedLibrary.end()) {
+       return loaded->second; 
+   }
    std::map<std::string, BinaryEdit*> libs;
    mapped_object *obj = origBinEdit->openResolvedLibraryName(libname, libs);
    if (!obj) return NULL;
@@ -314,7 +321,9 @@ BPatch_object *BPatch_binaryEdit::loadLibrary(const char *libname, bool deps)
 
    }
    origBinEdit->addLibraryPrereq(libname);
-   return getImage()->findOrCreateObject(obj);
+   BPatch_object * bpatch_obj = getImage()->findOrCreateObject(obj);
+   loadedLibrary[filename] = bpatch_obj;
+   return bpatch_obj;
 }
 
 // Here's the story. We may need to install a trap handler for instrumentation

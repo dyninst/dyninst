@@ -96,11 +96,12 @@ int P_gettid()
 
 vsys_info *Dyninst::Stackwalker::getVsysInfo(ProcessState *ps)
 {
+/*
 #if defined(arch_x86_64) || defined(arch_aarch64)
    if (ps->getAddressWidth() == 8)
       return NULL;
 #endif
-
+*/
    static std::map<ProcessState *, vsys_info *> vsysmap;
    vsys_info *ret = NULL;
    Address start, end;
@@ -109,7 +110,6 @@ vsys_info *Dyninst::Stackwalker::getVsysInfo(ProcessState *ps)
    SymbolReaderFactory *fact = NULL;
    bool result;
    std::stringstream ss;
-
    std::map<ProcessState *, vsys_info *>::iterator i = vsysmap.find(ps);
    if (i != vsysmap.end())
       return i->second;
@@ -194,9 +194,11 @@ bool LibraryState::updateLibsArch(std::vector<std::pair<LibAddrPair, unsigned in
    return true;
 }
 
-#define NUM_VSYS_SIGRETURNS 3
+#define NUM_VSYS_SIGRETURNS 5
 static const char* vsys_sigreturns[] = {
+   "sigreturn",
    "_sigreturn",
+   "__sigreturn",
    "__kernel_sigreturn",
    "__kernel_rt_sigreturn"
 };

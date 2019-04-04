@@ -914,6 +914,7 @@ bool linux_process::plat_create_int()
       ProcPool()->condvar()->unlock();
 
       //Child
+      errno = 0;
       long int result = ptrace((pt_req) PTRACE_TRACEME, 0, 0, 0);
       if (result == -1)
       {
@@ -1442,6 +1443,7 @@ bool linux_thread::plat_cont()
 
    int tmpSignal = continueSig_;
    if( hasPendingStop()) {
+       pthrd_printf("There are pending stops, tmpSignal is %d\n", tmpSignal);
        tmpSignal = 0;
    }
 
@@ -3293,6 +3295,7 @@ void LinuxPtrace::main()
             bret = proc->plat_create_int();
             break;
          case ptrace_req:
+	    errno = 0;
             ret = ptrace(request, pid, addr, data);
             break;
          case ptrace_bulkread:
