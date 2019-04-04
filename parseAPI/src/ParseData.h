@@ -240,9 +240,9 @@ public:
         ParseFrame::Status ret;
         tbb::concurrent_hash_map<Address, ParseFrame::Status>::const_accessor a;
         if(frame_status.find(a, addr)) {
-            ANNOTATE_HAPPENS_AFTER(&frame_status + addr + 0xFF);
+            ANNOTATE_HAPPENS_AFTER(&a->second); // After last writer
             ret = a->second;
-            ANNOTATE_HAPPENS_BEFORE(&frame_status + addr + 0xFF);
+            ANNOTATE_HAPPENS_BEFORE(&a->second + 1);
         } else {
             ret = ParseFrame::BAD_LOOKUP;
         }
@@ -253,10 +253,12 @@ public:
     void setFrameStatus(Address addr, ParseFrame::Status status)
     {
         tbb::concurrent_hash_map<Address, ParseFrame::Status>::accessor a;
-        ANNOTATE_HAPPENS_AFTER(&frame_status + addr + 0xFF);
-        frame_status.insert(a, make_pair(addr, status));
-        a->second = status;
-        ANNOTATE_HAPPENS_BEFORE(&frame_status + addr + 0xFF);
+        if(!frame_status.insert(a, make_pair(addr, status))) {
+            ANNOTATE_HAPPENS_AFTER(&a->second); // After last writer
+            ANNOTATE_HAPPENS_AFTER(&a->second + 1); // After last reader
+            a->second = status;
+            ANNOTATE_HAPPENS_BEFORE(&a->second);
+        }
     }
 
     void record_func(Function* f) {
