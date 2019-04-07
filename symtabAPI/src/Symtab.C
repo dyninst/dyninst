@@ -156,37 +156,21 @@ std::string Symtab::printError(SymtabError serr)
 
 boost::shared_ptr<Type>& Symtab::type_Error()
 {
-    
-    // acquire(fake_type_error_lock);
-    static boost::shared_ptr<Type> store = boost::shared_ptr<Type>(new Type(std::string("<error"),0,dataUnknownType));
-    // forget(&store, sizeof(store));
-    // release(fake_type_error_lock);
-    
-    return store;
+    return LAZY_ONCE(boost::shared_ptr<Type>(new Type(std::string("<error"),0,dataUnknownType)));
 }
 boost::shared_ptr<Type>& Symtab::type_Untyped()
 {
-    // acquire(fake_type_untyped_lock);
-    static boost::shared_ptr<Type> store = boost::shared_ptr<Type>(new Type(std::string("<no type>"), 0, dataUnknownType));
-    // forget(&store, sizeof(store));
-    // release(fake_type_untyped_lock);
-    
-    return store;
+    return LAZY_ONCE(boost::shared_ptr<Type>(new Type(std::string("<no type>"), 0, dataUnknownType)));
 }
 
 boost::shared_ptr<builtInTypeCollection>& Symtab::builtInTypes()
 {
-    return STATICIFY(setupBuiltinTypes());
+    return LAZY_ONCE(setupBuiltinTypes());
 }
 
 boost::shared_ptr<typeCollection>& Symtab::stdTypes()
 {
-    // acquire(fake_stdTypes_lock);
-    static boost::shared_ptr<typeCollection> store = setupStdTypes();
-    // forget(&store, sizeof(store));
-    // release(fake_stdTypes_lock);
-
-    return store;
+    return LAZY_ONCE(setupStdTypes());
 }
 
 boost::shared_ptr<builtInTypeCollection> Symtab::setupBuiltinTypes()

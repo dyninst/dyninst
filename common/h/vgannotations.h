@@ -6,20 +6,25 @@
 #include <valgrind/helgrind.h>
 #include <valgrind/drd.h>
 
-// Function-static variables are a pain to mark properly. Usage:
+// Function-scope static variables are a pain to mark properly. Usage:
 //   static int x = foo();
 // becomes:
 //   int x = STATICIFY(foo());
-#define STATICIFY(EXPR) ([]() -> decltype(EXPR)& { \
-    bool mine = false; \
-    static auto value = [&mine](){ \
-        mine = true; \
-        return EXPR; \
-    }(); \
-    if(mine) ANNOTATE_HAPPENS_BEFORE(&value); \
-    else ANNOTATE_HAPPENS_AFTER(&value); \
-    return value; \
-}())
+// This macro assumes the type is MoveConstructable, probably.
+#define LAZY_ONCE(EXPR) *({ \
+    static struct _helper { \
+        _helper(decltype(EXPR)& v) : _v(v) { \
+            ANNOTATE_HAPPENS_BEFORE(&_v); \
+        } \
+        _helper(decltype(EXPR) v) : _v(v) { \
+            ANNOTATE_HAPPENS_BEFORE(&_v); \
+        } \
+        ~_helper() {} \
+        decltype(EXPR) _v; \
+    } _help(EXPR); \
+    ANNOTATE_HAPPENS_AFTER(&_help._v); \
+    &_help._v; \
+})
 
 #else
 
@@ -27,9 +32,9 @@
 #define ANNOTATE_HAPPENS_AFTER(X)
 
 // Simplifed form for when Valgrind isn't looking.
-#define STATICIFY(EXPR) ([]() -> decltype(EXPR)& { \
+#define LAZY_ONCE(EXPR) *({ \
     static auto value = EXPR; \
-    return value; \
-}())
+    &value; \
+})
 
 #endif
