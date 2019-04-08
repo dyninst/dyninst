@@ -243,15 +243,15 @@ void EmitterAARCH64::emitLoadOrigRegRelative(
 {
 
     gen.markRegDefined(dest);
+    Register scratch = gen.rs()->getScratchRegister(gen);
+    assert(scratch);
+    gen.markRegDefined(scratch);
 
     // either load the address or the contents at that address
     if(deref)
     {
-        Register scratch = gen.rs()->getScratchRegister(gen);
-        assert(scratch);
-        gen.markRegDefined(scratch);
         // load the stored register 'base' into scratch
-        insnCodeGen::generateMove(gen, scratch, base, true);
+        emitLoadOrigRegister(base, scratch, gen);
         // move offset(%scratch), %dest
         insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
             scratch, offset, /*size==8?true:false*/4, insnCodeGen::Offset);
@@ -259,18 +259,38 @@ void EmitterAARCH64::emitLoadOrigRegRelative(
     else
     {
         // load the stored register 'base' into dest
-        insnCodeGen::generateMove(gen, dest, base, true);
-        // add $offset, %dest
-        emitImm(plusOp, dest, offset, dest, gen, false);
+	emitLoadOrigRegister(base, scratch, gen);
+	insnCodeGen::loadImmIntoReg<long int>(gen, dest, offset);
+	insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, 0, 0, dest, scratch, dest, true);
     }
 }
 
 
 void EmitterAARCH64::emitLoadOrigRegister(Address register_num, Register destination, codeGen &gen)
 {
+
+   registerSlot *src = (*gen.rs())[register_num];
+   assert(src);
+   registerSlot *dest = (*gen.rs())[destination];
+   assert(dest);
+
+   if (register_num == REG_SP) {
+      insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0,
+             TRAMP_FRAME_SIZE_64, destination, REG_SP, true);
+
+      return;
+   }
+
+   if (src->spilledState == registerSlot::unspilled)
+   {
+      // not on the stack. Directly move the value
+      emitMoveRegToReg((Register) register_num, destination, gen);
+      return;
+   }
+
+
     int offset = TRAMP_GPR_OFFSET(gen.width());
     // its on the stack so load it.
-    // #sasha could it not be on the stack?
     insnCodeGen::restoreRegister(gen, destination, offset + (register_num * gen.width()),
             insnCodeGen::Offset);
 }

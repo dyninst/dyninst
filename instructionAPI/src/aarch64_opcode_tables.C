@@ -30,6 +30,7 @@
 bool aarch64_insn_entry::built_insn_table = false;
 bool aarch64_mask_entry::built_decoder_table = false;
 bool aarch64_mask_entry::isAliasWeakSolution = true;
+bool InstructionDecoder_aarch64::built_sysreg_map = false;
 
 aarch64_insn_table aarch64_insn_entry::main_insn_table;
 aarch64_decoder_table aarch64_mask_entry::main_decoder_table;
@@ -1663,6 +1664,9 @@ void aarch64_mask_entry::buildDecoderTable()
 
 void InstructionDecoder_aarch64::buildSysRegMap()
 {
+    if(InstructionDecoder_aarch64::built_sysreg_map)
+               return;
+
     sysRegMap[0x741d] = aarch64::tlbi_vale3is;
     sysRegMap[0xc021] = aarch64::id_aa64pfr1_el1;
     sysRegMap[0xf089] = aarch64::sder32_el3;
@@ -2080,4 +2084,6 @@ void InstructionDecoder_aarch64::buildSysRegMap()
     sysRegMap[0x443d] = aarch64::tlbi_vale1;
     sysRegMap[0xf665] = aarch64::icc_sre_el3;
     sysRegMap[0xc660] = aarch64::icc_iar1_el1;
+
+    built_sysreg_map = true;
 }

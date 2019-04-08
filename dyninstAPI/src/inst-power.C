@@ -2783,16 +2783,10 @@ bool EmitterPOWER::emitLoadRelative(Register dest, Address offset, Register base
     insnCodeGen::generateImm (gen, ocode, dest, base, offset);    
   }
   else {
-    // We're about to stomp dest to get a number in it... make sure that
-    // it's not also the base register
-    assert(dest != base); 
-    Register scratch = dest;
-    if (dest == base) {
-      // Can't use it because base holds a value we need
-      scratch = gen.rs()->getScratchRegister(gen, true);
-    }
-
-    insnCodeGen::loadImmIntoReg(gen, scratch, offset);
+    // Add the offset to the base register, which holds 
+    // the current PC
+    insnCodeGen::generateImm (gen, CAUop, base, base, HA (offset));
+    insnCodeGen::generateImm (gen, CALop, base, base, LOW (offset));
 
     int ocode = LXop;
     int xcode = 0;
@@ -2818,7 +2812,7 @@ bool EmitterPOWER::emitLoadRelative(Register dest, Address offset, Register base
     instruction insn; insn.clear();
     XFORM_OP_SET(insn, ocode);
     XFORM_RT_SET(insn, dest);
-    XFORM_RA_SET(insn, scratch);
+    XFORM_RA_SET(insn, 0);
     XFORM_RB_SET(insn, base);
     XFORM_XO_SET(insn, xcode);
     XFORM_RC_SET(insn, 0);
@@ -2852,10 +2846,11 @@ void EmitterPOWER::emitStoreRelative(Register source, Address offset, Register b
     insnCodeGen::generateImm (gen, ocode, source, base, offset);    
   }
   else {
-    Register scratch = gen.rs()->getScratchRegister(gen, true);
-    assert(scratch != REG_NULL);
 
-    insnCodeGen::loadImmIntoReg(gen, scratch, offset);
+    // Add the offset to the base register, which holds 
+    // the current PC
+    insnCodeGen::generateImm (gen, CAUop, base, base, HA (offset));
+    insnCodeGen::generateImm (gen, CALop, base, base, LOW (offset));
 
     int ocode = STXop;
     int xcode = 0;
@@ -2882,7 +2877,7 @@ void EmitterPOWER::emitStoreRelative(Register source, Address offset, Register b
     instruction insn; insn.clear();
     XFORM_OP_SET(insn, ocode);
     XFORM_RT_SET(insn, source);
-    XFORM_RA_SET(insn, scratch);
+    XFORM_RA_SET(insn, 0);
     XFORM_RB_SET(insn, base);
     XFORM_XO_SET(insn, xcode);
     XFORM_RC_SET(insn, 0);
@@ -3329,8 +3324,21 @@ bool EmitterPOWER64Stat::emitCallInstruction(codeGen &gen,
     if (gen.func()->obj() != callee->obj()) {
         return emitPLTCall(callee, gen);
     }
-
-    insnCodeGen::generateCall(gen, gen.currAddr(), dest);
+    // For local calls, we should not need to set R2.
+    //
+    // If the callee has a preamble to set up R2, we skip these two instructions.
+    // For PIE code, the preamble uses R12 to set up R2; calling the global entry
+    // will require setting R12 to be the global entry of the callee. So, we just
+    // skip the preabmle.
+    //
+    // TODO: if the premable changes, the amount of bytes to skip should change as well.
+    //
+    if (callee->ifunc()->containsPowerPreamble())
+        insnCodeGen::generateCall(gen, gen.currAddr(), dest + 8);
+    else
+    // For functions that do not have the R2 preabmle,
+    // it means it will not change R2, we just call it.
+        insnCodeGen::generateCall(gen, gen.currAddr(), dest);
     return true;
 }
 

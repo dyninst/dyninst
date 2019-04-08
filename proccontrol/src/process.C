@@ -128,16 +128,13 @@ bool int_process::create(int_processSet *ps) {
    pthrd_printf("Waiting for startup for %d processes\n", (int) procs.size());
    for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); ) {
       int_process *proc = *i;
+      string executable = proc->executable;
+      Dyninst::PID pid = proc->pid;
 
       bool result = proc->waitfor_startup();
-      if (proc->getState() == int_process::exited) {
-         pthrd_printf("Process %s/%d exited during create\n", proc->executable.c_str(), proc->pid);
-         i = procs.erase(i);
-         had_error = true;
-         continue;
-      }
       if (!result) {
-         pthrd_printf("Error during process create for %d\n", proc->pid);
+         // At this point, proc has been deleted
+         pthrd_printf("Process %s/%d exited during create\n", executable.c_str(), pid);
          i = procs.erase(i);
          had_error = true;
          continue;
@@ -2066,12 +2063,17 @@ bool int_process::addBreakpoint(Dyninst::Address addr, int_breakpoint *bp)
 bool int_process::removeAllBreakpoints() {
    if (!mem) return true;
    bool ret = true;
-
-   for (std::map<Dyninst::Address, sw_breakpoint *>::iterator iter = mem->breakpoints.begin();
-        iter != mem->breakpoints.end(); ++iter) {
+   std::map<Dyninst::Address, sw_breakpoint *>::iterator iter = mem->breakpoints.begin();
+   while (iter != mem->breakpoints.end()) { 
       std::set<response::ptr> resps;
-      if (!iter->second->uninstall(this, resps)) ret = false;
+      // uninstall will call erase to remove the item,
+      // so just keep calling begin() to iterate over all elements
+      if (!iter->second->uninstall(this, resps)) {
+         ret = false;
+	 break;
+      }
       assert(resps.empty());
+      iter = mem->breakpoints.begin();
    }
    return ret;
 }

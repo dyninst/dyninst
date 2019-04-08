@@ -28,8 +28,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-//#warning "This file is not implemented yet!"
-
 #include "common/src/headers.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/image.h"
@@ -183,8 +181,8 @@ unsigned EmitterAARCH64SaveRegs::saveGPRegisters(
 
     for(unsigned int idx = 0; idx < numReqGPRs; idx++) {
         registerSlot *reg = theRegSpace->GPRs()[idx];
-
-        if (reg->liveState == registerSlot::live) {
+	// We always save FP and LR for stack walking out of instrumentation
+        if (reg->liveState == registerSlot::live || reg->number == REG_FP || reg->number == REG_LR) {
             int offset_from_sp = offset + (reg->encoding() * gen.width());
             insnCodeGen::saveRegister(gen, reg->number, offset_from_sp);
             theRegSpace->markSavedRegister(reg->number, offset_from_sp);
@@ -420,6 +418,19 @@ bool baseTramp::generateSaves(codeGen &gen, registerSpace *)
     unsigned int width = gen.width();
 
     saveRegs.saveGPRegisters(gen, gen.rs(), TRAMP_GPR_OFFSET(width));
+    // After saving GPR, we move SP to FP to create the instrumentation frame.
+    // Note that Dyninst instrumentation frame has a different structure
+    // compared to stack frame created by the compiler.
+    //
+    // Dyninst instrumentation frame makes sure that FP and SP are the same.
+    // So, during stack walk, the FP retrived from the previous frame is 
+    // the SP of the current instrumentation frame.
+    //
+    // Note: If the implementation of the instrumentation frame layout
+    // needs to be changed, DyninstDynamicStepperImpl::getCallerFrameArch
+    // in stackwalk/src/aarch64-swk.C also likely needs to be changed accordingly
+    insnCodeGen::generateMoveSP(gen, REG_SP, REG_FP, true);
+    gen.markRegDefined(REG_FP);
 
     bool saveFPRs = BPatch::bpatch->isForceSaveFPROn() ||
                    (BPatch::bpatch->isSaveFPROn()      &&
@@ -642,15 +653,21 @@ Register EmitterAARCH64::emitCall(opCode op,
         assert(reg!=REG_NULL);
     }
 
-    //instPoint *point = gen.point();
-    //assert(point);
     assert(gen.rs());
 
     //Address of function to call in scratch register
     Register scratch = gen.rs()->getScratchRegister(gen);
-    assert(scratch!=REG_NULL);
+    assert(scratch != REG_NULL && "cannot get a scratch register");
     gen.markRegDefined(scratch);
-    insnCodeGen::loadImmIntoReg<Address>(gen, scratch, callee->addr());
+    if (gen.addrSpace()->edit() != NULL && gen.func()->obj() != callee->obj()) {
+        // gen.as.edit() checks if we are in rewriter mode
+        Address dest = getInterModuleFuncAddr(callee, gen);
+        insnCodeGen::loadImmIntoReg<Address>(gen, scratch, dest);
+
+        insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, scratch, scratch, 0, 8, insnCodeGen::Offset);
+    } else {
+        insnCodeGen::loadImmIntoReg<Address>(gen, scratch, callee->addr());
+    }
 
     instruction branchInsn;
     branchInsn.clear();
@@ -785,15 +802,41 @@ void emitJmpMC(int /*condition*/, int /*offset*/, codeGen &) {
 
 // VG(11/16/01): Say if we have to restore a register to get its original value
 // VG(03/15/02): Sync'd with the new AIX tramp
+// Yuhan(02/05/19): Needs to implement, refering to what registers are saved during the trap
+
 static inline bool needsRestore(Register x) {
-    assert(0); //Not implemented
-    return false;
+   	if(x>=0 && x<=2 || x>=19 && x <= 31) 
+		return true;
+	else
+		return false;
 }
 
 // VG(03/15/02): Restore mutatee value of GPR reg to dest GPR
 static inline void restoreGPRtoGPR(codeGen &gen,
                                    Register reg, Register dest) {
-    assert(0); //Not implemented
+    int frame_size, gpr_size, gpr_off;
+	if(!needsRestore(reg)){
+		assert("No need of restoring this GPR");
+		return;
+	}
+	
+	//printf("restoring: %d\n", reg);
+
+	frame_size = TRAMP_FRAME_SIZE_64;
+    gpr_size   = GPRSIZE_64;
+    gpr_off    = TRAMP_GPR_OFFSET_64;
+	
+	
+	//Stack Point Register
+	if(reg == 31) {
+	    insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0, frame_size, REG_SP, dest, true);	
+	}
+	else {
+		//cout << "offset " << gpr_off << endl;
+		insnCodeGen::restoreRegister(gen, dest, gpr_off + reg*gpr_size);
+	}
+	
+	return;
 }
 
 // VG(03/15/02): Restore mutatee value of XER to dest GPR
@@ -812,40 +855,84 @@ static inline void moveGPR2531toGPR(codeGen &gen,
 // VG(03/15/02): Made functionality more obvious by adding the above functions
 static inline void emitAddOriginal(Register src, Register acc,
                                    codeGen &gen, bool noCost) {
-  emitV(plusOp, src, acc, acc, gen, noCost, 0);
+	/*
+	bool nr = needsRestore(src);	
+    Register temp;
+    
+    if(nr) {
+        // this needs gen because it uses emitV...
+        temp = gen.rs()->allocateRegister(gen, noCost);
+        
+        // Emit code to restore the original ra register value in temp.
+        // The offset compensates for the gap 0, 3, 4, ...
+        // This writes at insn, and updates insn and base.
+		
+        restoreGPRtoGPR(gen, src, temp);
+    }
+    else
+        temp = src;
+    */
+    // add temp to dest;
+    // writes at gen+base and updates base, we must update insn...
+    emitV(plusOp, src, acc, acc, gen, noCost, 0);
+    
+	/*
+    if(nr){
+        gen.rs()->freeRegister(temp);
+	}*/
 }
 
-// VG(11/07/01): Load in destination the effective address given
+// Yuhan(02/04/19): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
 void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
                 codeGen &gen,
                 bool noCost) {
 
-  // Haven't implemented non-zero shifts yet
-  assert(stackShift == 0);
-  //instruction *insn = (instruction *) ((void*)&gen[base]);
-  int imm = as->getImm();
-  int ra  = as->getReg(0);
-  int rb  = as->getReg(1);
-  int sc  = as->getScale();
+    // Haven't implemented non-zero shifts yet
+    assert(stackShift == 0);
+    int imm = as->getImm();
+    int ra  = as->getReg(0);
+    int rb  = as->getReg(1);
+    int sc  = as->getScale();
 
-    cout << "imm: " << imm << " ra: " << ra << " rb: " << rb << " sc: " << sc << endl;
-    // TODO: optimize this to generate the minimum number of
-  // instructions; think about schedule
+	bool restored_ra = false, restored_rb = false;
+	Register original_ra, original_rb, temp;
+    if(ra > -1) {
+		if(needsRestore(ra)) {
+        	temp = gen.rs()->allocateRegister(gen, noCost);
+        	original_ra = gen.rs()->allocateRegister(gen, noCost);
+			restoreGPRtoGPR(gen, ra, original_ra);
+			restored_ra = true;
+		}
+		else {
+			restored_ra = ra;
+		}
+		emitAddOriginal(original_ra, dest, gen, noCost);
+	}	
 
 
-  if(ra > -1)
-      emitAddOriginal(ra, dest, gen, noCost);
-
-
-  // call adds, save 2^scale * rb to dest
-  if(rb > -1) {
-      insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, sc, 0, rb, 0, dest, 1);
-  }
-  // emit code to load the immediate (constant offset) into dest; this
-  // writes at gen+base and updates base, we must update insn...
-  emitVload(loadConstOp, (Address)imm, dest, dest, gen, noCost);
-
+    if(rb > -1) {
+	    if(needsRestore(rb)) {
+        	temp = gen.rs()->allocateRegister(gen, noCost);	
+        	original_rb = gen.rs()->allocateRegister(gen, noCost);
+			restoreGPRtoGPR(gen, rb, original_rb);
+			restored_rb = true;
+		}
+    	// call adds, save 2^scale * rb to dest
+		insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, 0, sc, original_rb, dest, dest, 1);
+	}
+	
+    // emit code to load the immediate (constant offset) into dest; this
+    // writes at gen+base and updates base, we must update insn...
+	insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0, imm, dest, dest, true);	
+	insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Sub, 0, 0x10, dest, dest, true);	
+	
+	if(restored_ra || restored_rb)
+		gen.rs()->freeRegister(temp);
+	if(restored_ra)
+        gen.rs()->freeRegister(original_ra);
+	if(restored_rb)
+        gen.rs()->freeRegister(original_rb);
 }
 
 void emitCSload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,
@@ -1195,14 +1282,17 @@ bool EmitterAARCH64::emitCallRelative(Register dest, Address offset, Register ba
 }
 
 bool EmitterAARCH64::emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen) {
-    assert(0); //Not implemented
+    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
+            base, offset, size, insnCodeGen::Pre);
+
+    gen.markRegDefined(dest);
     return true;
 }
 
 
 void EmitterAARCH64::emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen) {
-    //return true;
-    assert(0); //Not implemented
+    insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, source,
+            base, offset, size, insnCodeGen::Pre);
 }
 
 bool EmitterAARCH64::emitMoveRegToReg(registerSlot *src,
@@ -1416,37 +1506,206 @@ bool EmitterAARCH64::emitCallInstruction(codeGen &gen, func_instance *callee, bo
 
 void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int size,
                                     codeGen &gen, Address offset) {
-    assert(0); //Not implemented
-    return;
+    // create or retrieve jump slot
+    Address addr;
+    int stackSize = 0;
+
+    if(!var) {
+        addr = offset;
+    }
+    else if(!is_local) {
+        addr = getInterModuleVarAddr(var, gen);
+    }
+    else {
+        addr = (Address)var->getOffset();
+    }
+
+    // load register with address from jump slot
+    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+    assert(scratchReg != REG_NULL && "cannot get a scratch register");
+
+    emitMovePCToReg(scratchReg, gen);
+    Address varOffset = addr - gen.currAddr() + 4;
+
+    if (op ==loadOp) {
+        if(!is_local && (var != NULL)){
+            emitLoadRelative(dest, varOffset, scratchReg, gen.width(), gen);
+            // Deference the pointer to get the variable
+            // emitLoadRelative(dest, 0, dest, size, gen);
+            // Offset mode to load back to itself
+            insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest, dest, 0, 8, insnCodeGen::Offset);
+        } else {
+            emitLoadRelative(dest, varOffset, scratchReg, size, gen);
+        }
+    } else { //loadConstop
+        if(!is_local && (var != NULL)){
+            emitLoadRelative(dest, varOffset, scratchReg, gen.width(), gen);
+        } else {
+            assert(0 && "reached invalid else branch");
+        }
+    }
+
+    assert(stackSize <= 0 && "stack not empty at the end");
 }
 
 void
 EmitterAARCH64::emitStoreShared(Register source, const image_variable *var, bool is_local, int size, codeGen &gen) {
-    assert(0); //Not implemented
-    return;
+    // create or retrieve jump slot
+    Address addr;
+    int stackSize = 0;
+    if(!is_local) {
+        addr = getInterModuleVarAddr(var, gen);
+    }
+    else {
+        addr = (Address)var->getOffset();
+    }
+
+    // load register with address from jump slot
+    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+    assert(scratchReg != REG_NULL && "cannot get a scratch register");
+
+    emitMovePCToReg(scratchReg, gen);
+    Address varOffset = addr - gen.currAddr() + 4;
+
+    if(!is_local) {
+        pdvector<Register> exclude;
+        exclude.push_back(scratchReg);
+        Register scratchReg1 = gen.rs()->getScratchRegister(gen, exclude, true);
+        assert(scratchReg1 != REG_NULL && "cannot get a scratch register");
+        emitLoadRelative(scratchReg1, varOffset, scratchReg, gen.width(), gen);
+        emitStoreRelative(source, 0, scratchReg1, size, gen);
+    } else {
+        emitStoreRelative(source, varOffset, scratchReg, size, gen);
+    }
+
+    assert(stackSize <= 0 && "stack not empty at the end");
 }
 
 Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen &gen) {
-    assert(0); //Not implemented
     AddressSpace *addrSpace = gen.addrSpace();
     if (!addrSpace)
         assert(0 && "No AddressSpace associated with codeGen object");
 
     BinaryEdit *binEdit = addrSpace->edit();
     Address relocation_address;
+
+    unsigned int jump_slot_size;
+    switch (addrSpace->getAddressWidth()) {
+        case 4: jump_slot_size = 4; break;
+        case 8: jump_slot_size = 8; break;
+        default: assert(0 && "Encountered unknown address width");
+    }
+
+    if (!binEdit || !var) {
+        assert(!"Invalid variable load (variable info is missing)");
+    }
+
+    // find the Symbol corresponding to the int_variable
+    std::vector<SymtabAPI::Symbol *> syms;
+    var->svar()->getSymbols(syms);
+
+    if (syms.size() == 0) {
+        char msg[256];
+        snprintf(msg, sizeof(msg), "%s[%d]:  internal error:  cannot find symbol %s"
+                , __FILE__, __LINE__, var->symTabName().c_str());
+        showErrorCallback(80, msg);
+        assert(0);
+    }
+
+    // try to find a dynamic symbol
+    // (take first static symbol if none are found)
+    SymtabAPI::Symbol *referring = syms[0];
+    for (unsigned k=0; k<syms.size(); k++) {
+        if (syms[k]->isInDynSymtab()) {
+            referring = syms[k];
+            break;
+        }
+    }
+
+    // have we added this relocation already?
+    relocation_address = binEdit->getDependentRelocationAddr(referring);
+
+    if (!relocation_address) {
+        // inferiorMalloc addr location and initialize to zero
+        relocation_address = binEdit->inferiorMalloc(jump_slot_size);
+        unsigned char dat[8] = {0};
+        binEdit->writeDataSpace((void*)relocation_address, jump_slot_size, dat);
+
+        // add write new relocation symbol/entry
+        binEdit->addDependentRelocation(relocation_address, referring);
+    }
+
     return relocation_address;
 }
 
 Address EmitterAARCH64::emitMovePCToReg(Register dest, codeGen &gen) {
-    assert(0); //Not implemented
-    insnCodeGen::generateBranch(gen, gen.currAddr(), gen.currAddr() + 4, true); // blrl
+    instruction insn;
+    insn.clear();
+
+    INSN_SET(insn, 28, 28, 1);
+    INSN_SET(insn, 0, 4, dest);
+
+    insnCodeGen::generate(gen, insn);
     Address ret = gen.currAddr();
     return ret;
 }
 
 Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen &gen) {
-    assert(0); //Not implemented
-    return NULL;
+    // from POWER64 getInterModuleFuncAddr
+
+    AddressSpace *addrSpace = gen.addrSpace();
+    if (!addrSpace)
+        assert(0 && "No AddressSpace associated with codeGen object");
+
+    BinaryEdit *binEdit = addrSpace->edit();
+    Address relocation_address;
+    
+    unsigned int jump_slot_size;
+    switch (addrSpace->getAddressWidth()) {
+    case 4: jump_slot_size =  4; break; // l: not needed
+    case 8: 
+      jump_slot_size = 24;
+      break;
+    default: assert(0 && "Encountered unknown address width");
+    }
+
+    if (!binEdit || !func) {
+        assert(!"Invalid function call (function info is missing)");
+    }
+
+    // find the Symbol corresponding to the func_instance
+    std::vector<SymtabAPI::Symbol *> syms;
+    func->ifunc()->func()->getSymbols(syms);
+
+    if (syms.size() == 0) {
+        char msg[256];
+        snprintf(msg, sizeof(msg), "%s[%d]:  internal error:  cannot find symbol %s"
+                , __FILE__, __LINE__, func->symTabName().c_str());
+        showErrorCallback(80, msg);
+        assert(0);
+    }
+
+    // try to find a dynamic symbol
+    // (take first static symbol if none are found)
+    SymtabAPI::Symbol *referring = syms[0];
+    for (unsigned k=0; k<syms.size(); k++) {
+        if (syms[k]->isInDynSymtab()) {
+            referring = syms[k];
+            break;
+        }
+    }
+    // have we added this relocation already?
+    relocation_address = binEdit->getDependentRelocationAddr(referring);
+
+    if (!relocation_address) {
+        // inferiorMalloc addr location and initialize to zero
+        relocation_address = binEdit->inferiorMalloc(jump_slot_size);
+        unsigned char dat[24] = {0};
+        binEdit->writeDataSpace((void*)relocation_address, jump_slot_size, dat);
+        // add write new relocation symbol/entry
+        binEdit->addDependentRelocation(relocation_address, referring);
+    }
+    return relocation_address;
 }
 
 

@@ -835,7 +835,7 @@ bool insnCodeGen::modifyData(Address target,
 
     if (((raw >> 24) & 0x1F) == 0x10) {
         Address offset;
-        if((raw >> 31) & 0x1) {
+        if((static_cast<uint32_t>(raw) >> 31) & 0x1) {
             target &= 0xFFFFF000;
             Address cur = gen.currAddr() & 0xFFFFF000;
             offset = isneg ? (cur - target) : (target - cur);

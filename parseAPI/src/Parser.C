@@ -93,6 +93,7 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
                                " -- unparesable\n",
                        FILE__,__LINE__);
         _parse_state = UNPARSEABLE;
+        return;
     }
     
     if (_parse_state != UNPARSEABLE) {
@@ -451,6 +452,17 @@ Parser::ProcessOneFrame(ParseFrame* pf, bool recursive) {
 }
 
 LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
+
+     /* Should not resume frames in this function,
+      * because the resumed frames may be being parsed
+      * by other threads. Then if this thread pick up
+      * the resumed frame, this thread will give up 
+      * parsing because the frame is being parsed.
+      * Then the delayed work is not going to be parsed
+      * because delayed work is only moved to work queue
+      * when a thread resumes parsing a function.
+      */
+
     LockFreeQueue<ParseFrame*> work;
     switch(pf->status()) {
         case ParseFrame::CALL_BLOCKED: {
@@ -482,7 +494,6 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
                     work.insert(tf);
 
             }
-            resumeFrames(pf->func, work);
             break;
         }
         case ParseFrame::PARSED:{
@@ -496,9 +507,6 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
                 // or trigger parsing in a separate target CodeObject
                 tamper_post_processing(work,pf);
             }
-
-            /* add waiting frames back onto the worklist */
-            resumeFrames(pf->func, work);
 
             pf->cleanup();
             break;
@@ -543,9 +551,6 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
                 assert(0 && "Delayed frame with no delayed work");
             }
 
-            /* if the return status of this function has been updated, add
-             * waiting frames back onto the work list */
-            resumeFrames(pf->func, work);
             break;
         }
         case ParseFrame::PROGRESS:
@@ -1525,7 +1530,9 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
             auto work_ah = work->ah();
             parsing_printf("... continue parse indirect jump at %lx\n", work_ah->getAddr());
             ProcessCFInsn(frame,NULL,work->ah());
-            frame.value_driven_jump_tables.insert(work_ah->getAddr());
+            // We only re-parse jump tables
+            if (!work_ah->isTailCall(frame.func, INDIRECT, frame.num_insns, frame.knownTargets))
+                frame.value_driven_jump_tables.insert(work_ah->getAddr());
             continue;
         }
             // call fallthrough case where we have already checked that
@@ -2448,6 +2455,8 @@ void Parser::resumeFrames(Function * func, LockFreeQueue<ParseFrame *> & work)
              fIter != vec.end();
              ++fIter) {
             work.insert(*fIter);
+            Function *f = (*fIter)->func;
+            parsing_printf("\t undelay function %s at %lx, frame delay work size %d\n", f->name().c_str(), f->addr(), (*fIter)->delayedWork.size()); 
         }
         // remove func from delayedFrames map
         delayed_frames.frames.erase(func);

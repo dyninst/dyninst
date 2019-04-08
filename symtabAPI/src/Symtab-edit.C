@@ -322,18 +322,7 @@ Function *Symtab::createFunction(std::string name,
                                  sz,
                                  false,
                                  false);
-    Symbol *dynSym = new Symbol(name,
-                                Symbol::ST_FUNCTION,
-                                Symbol::SL_GLOBAL,
-                                Symbol::SV_DEFAULT,
-                                offset,
-                                mod,
-                                reg,
-                                sz,
-                                true,
-                                false);
-
-    if (!addSymbol(statSym) || !addSymbol(dynSym)) {
+    if (!addSymbol(statSym)) {
         return NULL;
     }
     

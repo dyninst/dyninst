@@ -62,54 +62,26 @@
 
 
 using namespace Dyninst::SymtabAPI;
-
-static const std::string LIBC_CTOR_HANDLER("__do_global_ctors_aux");
-static const std::string LIBC_DTOR_HANDLER("__do_global_dtors_aux");
+static const std::string LIBC_CTOR_HANDLER("__libc_csu_init");
+static const std::string LIBC_DTOR_HANDLER("__libc_csu_fini");
 static const std::string DYNINST_CTOR_HANDLER("DYNINSTglobal_ctors_handler");
-static const std::string DYNINST_CTOR_LIST("DYNINSTctors_addr");
+static const std::string DYNINST_CTOR_BEGIN("DYNINSTctors_begin");
+static const std::string DYNINST_CTOR_END("DYNINSTctors_end");
 static const std::string DYNINST_DTOR_HANDLER("DYNINSTglobal_dtors_handler");
-static const std::string DYNINST_DTOR_LIST("DYNINSTdtors_addr");
+static const std::string DYNINST_DTOR_BEGIN("DYNINSTdtors_begin");
+static const std::string DYNINST_DTOR_END("DYNINSTdtors_end");
 static const std::string SYMTAB_CTOR_LIST_REL("__SYMTABAPI_CTOR_LIST__");
 static const std::string SYMTAB_DTOR_LIST_REL("__SYMTABAPI_DTOR_LIST__");
 
-static bool replaceHandler(func_instance *origHandler, func_instance *newHandler, 
-        int_symbol *newList, const std::string &listRelName)
+static void add_handler(instPoint* pt, func_instance* add_me)
 {
-    // Add instrumentation to replace the function
-   // TODO: this should be a function replacement!
-   // And why the hell is it in parse-x86.C?
-   origHandler->proc()->replaceFunction(origHandler, newHandler);
-   // origHandler->proc()->relocate();
-    /* PatchAPI stuffs */
-   AddressSpace::patch(origHandler->proc());
-    /* End of PatchAPI stuffs */
-    
-    /* create the special relocation for the new list -- search the RT library for
-     * the symbol
-     */
-    Symbol *newListSym = const_cast<Symbol *>(newList->sym());
-
-    std::vector<Region *> allRegions;
-    if( !newListSym->getSymtab()->getAllRegions(allRegions) ) {
-        return false;
-    }
-
-    bool success = false;
-    std::vector<Region *>::iterator reg_it;
-    for(reg_it = allRegions.begin(); reg_it != allRegions.end(); ++reg_it) {
-        std::vector<relocationEntry> &region_rels = (*reg_it)->getRelocations();
-        vector<relocationEntry>::iterator rel_it;
-        for( rel_it = region_rels.begin(); rel_it != region_rels.end(); ++rel_it) {
-            if( rel_it->getDynSym() == newListSym ) {
-                relocationEntry *rel = &(*rel_it);
-                rel->setName(listRelName);
-                success = true;
-            }
-        }
-    }
-
-    return success;
+  vector<AstNodePtr> args;
+  // no args, just add
+  AstNodePtr snip = AstNode::funcCallNode(add_me, args);
+  auto instrumentation = pt->pushFront(snip);
+  instrumentation->disableRecursiveGuard();
 }
+
 /*
 By parsing the function that actually sets up the parameters for the OMP
 region we discover informations such as what type of parallel region we're
@@ -581,24 +553,14 @@ using namespace Dyninst::SymtabAPI;
 /*
  * Static binary rewriting support
  *
- * Some of the following functions replace the standard ctor and dtor handlers
- * in a binary. Currently, these operations only work with binaries linked with
- * the GNU toolchain. However, it should be straightforward to extend these
- * operations to other toolchains.
  */
 
 bool BinaryEdit::doStaticBinarySpecialCases() {
     Symtab *origBinary = mobj->parse_img()->getObject();
 
     /* Special Case 1: Handling global constructor and destructor Regions
-     *
-     * Replace global ctors function with special ctors function,
-     * and create a special relocation for the ctors list used by the special
-     * ctors function
-     *
-     * Replace global dtors function with special dtors function,
-     * and create a special relocation for the dtors list used by the special
-     * dtors function
+     * Invoke Dyninst constructor after all static constructors are called
+     * and invoke Dyninst destructor before staitc destructors
      */
 
     // First, find all the necessary symbol info.
@@ -631,58 +593,24 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
         return false;
     }
 
-    int_symbol ctorsListInt;
-    int_symbol dtorsListInt;
-    bool ctorFound = false, dtorFound = false;
-    std::vector<BinaryEdit *>::iterator rtlib_it;
-    for(rtlib_it = rtlib.begin(); rtlib_it != rtlib.end(); ++rtlib_it) {
-        if( (*rtlib_it)->getSymbolInfo(DYNINST_CTOR_LIST, ctorsListInt) ) {
-            ctorFound = true;
-            if( dtorFound ) break;
-        }
+    // Instrument the exits of global constructor function
+    vector<instPoint*> init_pts;
+    instPoint* fini_point;
+    globalCtorHandler->funcExitPoints(&init_pts);
 
-        if( (*rtlib_it)->getSymbolInfo(DYNINST_DTOR_LIST, dtorsListInt) ) {
-            dtorFound = true;
-            if( ctorFound ) break;
-        }
+    // Instrument the entry of global destructor function
+    fini_point = globalDtorHandler->funcEntryPoint(true);
+    // convert points to instpoints
+    for(auto exit_pt = init_pts.begin();
+	exit_pt != init_pts.end();
+	++exit_pt)
+    {
+      add_handler(*exit_pt, dyninstCtorHandler);
     }
-    if( !ctorFound ) {
-         logLine("failed to find ctors list symbol\n");
-         fprintf (stderr,"failed to find ctors list symbol\n");
-         return false;
-    }
+    add_handler(fini_point, dyninstDtorHandler);
+    AddressSpace::patch(this);
 
-    if( !dtorFound ) {
-        logLine("failed to find dtors list symbol\n");
-        fprintf (stderr,"failed to find dtors list symbol\n");
-        return false;
-    }
 
-    /*
-     * Replace the libc ctor and dtor handlers with our special handlers
-     */
-
-    if( !replaceHandler(globalCtorHandler, dyninstCtorHandler,
-                &ctorsListInt, SYMTAB_CTOR_LIST_REL) ) {
-        logLine("Failed to replace libc ctor handler with special handler");
-        fprintf (stderr,"Failed to replace libc ctor handler with special handler");
-        return false;
-    }else{
-        inst_printf("%s[%d]: replaced ctor function %s with %s\n",
-                FILE__, __LINE__, LIBC_CTOR_HANDLER.c_str(),
-                DYNINST_CTOR_HANDLER.c_str());
-    }
-
-    if( !replaceHandler(globalDtorHandler, dyninstDtorHandler,
-                &dtorsListInt, SYMTAB_DTOR_LIST_REL) ) {
-        logLine("Failed to replace libc dtor handler with special handler");
-        fprintf (stderr,"Failed to replace libc dtor handler with special handler");
-        return false;
-    }else{
-        inst_printf("%s[%d]: replaced dtor function %s with %s\n",
-                FILE__, __LINE__, LIBC_DTOR_HANDLER.c_str(),
-                DYNINST_DTOR_HANDLER.c_str());
-    }
 
     /*
      * Special Case 2: Issue a warning if attempting to link pthreads into a binary
@@ -743,8 +671,8 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
     }
 
     if( loadLibc ) {
-       std::map<std::string, BinaryEdit *> res; 
-       openResolvedLibraryName("libc.a", res);
+        std::map<std::string, BinaryEdit *> res; 
+        openResolvedLibraryName("libc.a", res);
         std::map<std::string, BinaryEdit *>::iterator bedit_it;
         for(bedit_it = res.begin(); bedit_it != res.end(); ++bedit_it) {
             if( bedit_it->second == NULL ) {
@@ -753,6 +681,13 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
                 return false;
             }
         }
+
+	// libc.a may be depending on libgcc.a 
+	res.clear();
+        if (openResolvedLibraryName("libgcc.a", res) == NULL) {
+	    logLine("Failed to find libgcc.a, which can be needed by libc.a on certain platforms\n");
+	    logLine("Set LD_LIBRARY_PATH to the directory containing libgcc.a\n");
+	}
     }
 
     return true;
