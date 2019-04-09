@@ -6,17 +6,17 @@
 ###############################
 
 # Enable debug output from FindBoost
-set(Boost_DEBUG OFF CACHE STRING "Enable debug output from FindBoost")
+set(Boost_DEBUG OFF CACHE BOOL "Enable debug output from FindBoost")
 
 # Use the multithreaded version of Boost
 # NB: This _must_ be a cache variable as it
 #     controls the tagged layout of Boost library names
-set(Boost_USE_MULTITHREADED ON CACHE STRING "Enable multithreaded Boost libraries")
+set(Boost_USE_MULTITHREADED ON CACHE BOOL "Enable multithreaded Boost libraries")
 
 # Don't use libraries linked statically to the C++ runtime
 # NB: This _must_ be a cache variable as it
 #     controls the tagged layout of Boost library names
-set(Boost_USE_STATIC_RUNTIME OFF CACHE STRING
+set(Boost_USE_STATIC_RUNTIME OFF CACHE BOOL
     "Enable usage of libraries statically linked to C++ runtime")
 
 # If using multithreaded Boost, make sure Threads has been intialized
@@ -49,7 +49,7 @@ set(Boost_NO_BOOST_CMAKE ON)
 # NOTE: If you change this, also change the value in
 #       the test for setting Boost_NO_SYSTEM_PATHS
 #
-set(PATH_BOOST "/usr" CACHE STRING "Path to Boost")
+set(PATH_BOOST "/usr" CACHE PATH "Path to Boost")
 
 # PATH_BOOST is the user-facing version of BOOST_ROOT
 if(PATH_BOOST)
@@ -140,8 +140,8 @@ if(NOT Boost_FOUND)
   )
 
   # Force the cache entries to be updated
-  set(Boost_INCLUDE_DIRS ${CMAKE_INSTALL_PREFIX}/include CACHE STRING "Boost include directory" FORCE)
-  set(Boost_LIBRARY_DIRS ${CMAKE_INSTALL_PREFIX}/lib CACHE STRING "Boost library directory" FORCE)
+  set(Boost_INCLUDE_DIRS ${CMAKE_INSTALL_PREFIX}/include CACHE PATH "Boost include directory" FORCE)
+  set(Boost_LIBRARY_DIRS ${CMAKE_INSTALL_PREFIX}/lib CACHE PATH "Boost library directory" FORCE)
 
   if(MSVC)
     # We need to specify different library names for debug vs release
