@@ -15,6 +15,8 @@ ENDIF()
 set(RT_SOURCE_DIR ${DYNINST_ROOT}/dyninstAPI_RT)
 set(RT_BINARY_DIR ${PROJECT_BINARY_DIR}/dyninstAPI_RT)
 
+set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${DYNINST_ROOT}/cmake/Modules")
+
 find_package(Threads)
 include(${DYNINST_ROOT}/cmake/Boost.cmake)
 include (${DYNINST_ROOT}/cmake/shared.cmake)

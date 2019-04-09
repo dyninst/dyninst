@@ -84,7 +84,6 @@ endfunction()
 
 #Change to switch between libiberty/libstdc++ demangler
 
-set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${DYNINST_ROOT}/cmake/Modules")
 include (${DYNINST_ROOT}/cmake/platform.cmake)
 if (NOT ${PROJECT_NAME} MATCHES DyninstRT)
 include (${DYNINST_ROOT}/cmake/packages.cmake)
