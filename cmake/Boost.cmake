@@ -142,8 +142,8 @@ if(NOT Boost_FOUND)
       
       # Also export cache variables for the file location of each library
       string(TOUPPER ${c} _basename)
-      set(Boost_${_basename}_LIBRARY_RELEASE "${Boost_LIBRARY_DIRS}/libboost_${c}.so" CACHE FILEPATH "" FORCE)
-      set(Boost_${_basename}_LIBRARY_DEBUG "${Boost_LIBRARY_DIRS}/libboost_${c}-gd.so" CACHE FILEPATH "" FORCE)
+      set(Boost_${_basename}_LIBRARY_RELEASE "${Boost_LIBRARY_DIRS}/libboost_${c}.dll" CACHE FILEPATH "" FORCE)
+      set(Boost_${_basename}_LIBRARY_DEBUG "${Boost_LIBRARY_DIRS}/libboost_${c}-gd.dll" CACHE FILEPATH "" FORCE)
     endforeach()
   else()
     # Transform the component names into the library filenames
