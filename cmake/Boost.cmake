@@ -70,7 +70,7 @@ endif()
 
 # The required Boost library components
 # NB: These are just the ones that require compilation/linking
-set(Boost_COMPONENTS atomic date_time filesystem system thread timer)
+set(Boost_COMPONENTS atomic chrono date_time filesystem system thread timer)
 
 find_package(Boost ${BOOST_MIN_VERSION} COMPONENTS ${Boost_COMPONENTS})
 
