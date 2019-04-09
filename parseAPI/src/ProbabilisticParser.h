@@ -37,6 +37,8 @@
 
 #if defined(cap_stripped_binaries)
 
+#include "Parser.h"
+
 #include <string>
 #include <vector>
 #include <set>
@@ -48,7 +50,6 @@
 #include "CodeSource.h"
 #include "entryIDs.h"
 #include "RegisterIDs.h"
-#include "Parser.h"
 #include "CFG.h"
 
 #include "Instruction.h"

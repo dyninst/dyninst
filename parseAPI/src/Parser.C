@@ -28,6 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "Parser.h"
+
 #include <omp.h>
 
 #include <vector>
@@ -41,8 +43,6 @@
 #include "CodeObject.h"
 #include "CFGFactory.h"
 #include "ParseCallback.h"
-#include "Parser.h"
-#include "Parser.h"
 #include "CFG.h"
 #include "util.h"
 #include "debug_parse.h"

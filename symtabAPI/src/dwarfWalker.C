@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "common/h/vgannotations.h"
 #include "dwarfWalker.h"
 #include "headers.h"
 #include "Module.h"
@@ -46,7 +47,6 @@
 #include "elfutils/libdw.h"
 #include <elfutils/libdw.h>
 #include <tbb/parallel_for_each.h>
-#include "common/h/vgannotations.h"
 
 using namespace Dyninst;
 using namespace SymtabAPI;

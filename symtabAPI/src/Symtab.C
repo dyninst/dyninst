@@ -27,6 +27,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "common/h/vgannotations.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -41,7 +43,6 @@
 #include "common/src/debugOstream.h"
 #include "common/src/serialize.h"
 #include "common/src/pathName.h"
-#include "common/h/vgannotations.h"
 
 #include "Serialization.h"
 #include "Symtab.h"

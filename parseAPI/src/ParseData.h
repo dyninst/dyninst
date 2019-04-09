@@ -30,6 +30,8 @@
 #ifndef _PARSE_DATA_H_
 #define _PARSE_DATA_H_
 
+#include "common/h/vgannotations.h"
+
 #include <set>
 #include <vector>
 #include <queue>
@@ -48,7 +50,6 @@
 #include <boost/atomic.hpp>
 
 #include "tbb/concurrent_hash_map.h"
-#include "common/h/vgannotations.h"
 
 using namespace std;
 

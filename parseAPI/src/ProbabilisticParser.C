@@ -30,6 +30,8 @@
 
 #if defined(cap_stripped_binaries)
 
+#include "ProbabilisticParser.h"
+
 #include <cstdio>
 #include <cmath>
 #include <algorithm>
@@ -40,8 +42,6 @@
 #include "dyn_regs.h"
 #include "InstructionDecoder.h"
 #include "Instruction.h"
-
-#include "ProbabilisticParser.h"
 
 using namespace std;
 using namespace Dyninst;

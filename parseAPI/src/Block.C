@@ -27,13 +27,14 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#include "Parser.h"
+
 #include "CodeObject.h"
 #include "CFG.h"
 #include "IA_IAPI.h"
 using namespace Dyninst::InstructionAPI;
 #include "InstructionAdapter.h"
 
-#include "Parser.h"
 #include "debug_parse.h"
 
 using namespace Dyninst;

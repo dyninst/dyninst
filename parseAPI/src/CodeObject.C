@@ -27,12 +27,13 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#include "Parser.h"
+
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Function.h"
 
 #include "CodeObject.h"
 #include "CFG.h"
-#include "Parser.h"
 #include "debug_parse.h"
 
 #include "dyninstversion.h"

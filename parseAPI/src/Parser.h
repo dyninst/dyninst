@@ -30,6 +30,8 @@
 #ifndef _PARSER_H_
 #define _PARSER_H_
 
+#include "ParseData.h"
+
 #include <set>
 #include <vector>
 #include <queue>
@@ -47,7 +49,6 @@
 #include "CFG.h"
 #include "ParseCallback.h"
 
-#include "ParseData.h"
 #include "common/src/dthread.h"
 #include <boost/thread/lockable_adapter.hpp>
 #include <boost/thread/shared_mutex.hpp>

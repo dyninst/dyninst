@@ -28,6 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "common/h/vgannotations.h"
+
 #include <string.h>
 			     
 #include <stdio.h>
@@ -39,7 +41,6 @@
 #include "Collections.h"
 #include "Function.h"
 #include "common/src/serialize.h"
-#include "common/h/vgannotations.h"
 
 #include "Type-mem.h"
 #include <iostream>

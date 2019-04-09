@@ -6,6 +6,10 @@
 #include <valgrind/helgrind.h>
 #include <valgrind/drd.h>
 
+// Annotations for libc's inlined synchronization (for locales, mostly)
+#define _GLIBCXX_SYNCHRONIZATION_HAPPENS_BEFORE(addr) ANNOTATE_HAPPENS_BEFORE(addr)
+#define _GLIBCXX_SYNCHRONIZATION_HAPPENS_AFTER(addr)  ANNOTATE_HAPPENS_AFTER(addr)
+
 // Function-scope static variables are a pain to mark properly. Usage:
 //   static int x = foo();
 // becomes:
