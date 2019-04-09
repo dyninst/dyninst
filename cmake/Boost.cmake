@@ -26,7 +26,7 @@ if(Boost_USE_MULTITHREADED AND NOT DEFINED CMAKE_THREAD_LIBS_INIT)
 endif()
 
 # Import the compiler defines for Boost libraries
-include(Boost.defines.cmake)
+include(BoostDefines)
 
 # Need Boost >= 1.61 for filesytem components
 set(BOOST_MIN_VERSION 1.61.0 CACHE STRING "Minimum Boost version")

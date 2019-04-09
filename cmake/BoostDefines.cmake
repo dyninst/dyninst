@@ -1,5 +1,5 @@
 ######################################################
-#   Boost.defines.cmake
+#   BoostDefines.cmake
 #
 #   Compiler defines for Boost
 #
