@@ -148,6 +148,11 @@ if(NOT Boost_FOUND)
     set(Boost_LIBRARIES "")
     foreach(c ${Boost_COMPONENTS})
       list(APPEND Boost_LIBRARIES "optimized libboost_${c} debug libboost_${c}-gd ")
+      
+      # Also export cache variables for the file location of each library
+      string(TOUPPER ${c} _basename)
+      set(Boost_${_basename}_LIBRARY_RELEASE "${Boost_LIBRARY_DIRS}/libboost_${c}.so" CACHE FILEPATH "" FORCE)
+      set(Boost_${_basename}_LIBRARY_DEBUG "${Boost_LIBRARY_DIRS}/libboost_${c}-gd.so" CACHE FILEPATH "" FORCE)
     endforeach()
   else()
     # Transform the component names into the library filenames
@@ -155,6 +160,11 @@ if(NOT Boost_FOUND)
     set(Boost_LIBRARIES "")
     foreach(c ${Boost_COMPONENTS})
       list(APPEND Boost_LIBRARIES "boost_${c}")
+      
+      # Also export cache variables for the file location of each library
+      string(TOUPPER ${c} _basename)
+      set(Boost_${_basename}_LIBRARY_RELEASE "${Boost_LIBRARY_DIRS}/libboost_${c}.so" CACHE FILEPATH "" FORCE)
+      set(Boost_${_basename}_LIBRARY_DEBUG "${Boost_LIBRARY_DIRS}/libboost_${c}.so" CACHE FILEPATH "" FORCE)
     endforeach()
   endif()
 endif()
