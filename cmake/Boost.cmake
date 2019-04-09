@@ -25,17 +25,8 @@ if(Boost_USE_MULTITHREADED AND NOT DEFINED CMAKE_THREAD_LIBS_INIT)
                       "Use 'find_package(Threads)' before including Boost")
 endif()
 
-# Disable auto-linking
-add_definitions(-DBOOST_ALL_NO_LIB=1)
-
-# Disable generating serialization code in boost::multi_index
-add_definitions(-DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION)
-
-# There are broken versions of MSVC that won't handle variadic templates
-# correctly (despite the C++11 test case passing).
-if(MSVC)
-  add_definitions(-DBOOST_NO_CXX11_VARIADIC_TEMPLATES)
-endif()
+# Import the compiler defines for Boost libraries
+include(Boost.defines.cmake)
 
 # Need Boost >= 1.61 for filesytem components
 set(BOOST_MIN_VERSION 1.61.0 CACHE STRING "Minimum Boost version")
