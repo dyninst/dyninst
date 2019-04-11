@@ -19,8 +19,8 @@
 // local includes
 //******************************************************************************
 
-#include "mcs-lock.h"
 #include "vgannotations.h"
+#include "mcs-lock.h"
 
 #include <boost/memory_order.hpp>
 
@@ -85,6 +85,7 @@ mcs_lock(mcs_lock_t &l, mcs_node_t &me)
   }
 
   VALGRIND_HG_MUTEX_LOCK_POST(&l);
+  ANNOTATE_HAPPENS_AFTER(&l);
 }
 
 
@@ -111,8 +112,10 @@ mcs_trylock(mcs_lock_t &l, mcs_node_t &me)
   bool locked = l.tail.compare_exchange_strong(oldme, &me,
 					    boost::memory_order_acq_rel,
 					    boost::memory_order_relaxed);
-  if (!locked) VALGRIND_HG_MUTEX_LOCK_POST(&l);
-  else VALGRIND_HG_ENABLE_CHECKING(&me, sizeof me);
+  if (!locked) {
+    VALGRIND_HG_MUTEX_LOCK_POST(&l);
+    ANNOTATE_HAPPENS_AFTER(&l);
+  } else VALGRIND_HG_ENABLE_CHECKING(&me, sizeof me);
   return locked;
 }
 
@@ -121,6 +124,7 @@ void
 mcs_unlock(mcs_lock_t &l, mcs_node_t &me)
 {
   VALGRIND_HG_MUTEX_UNLOCK_PRE(&l);
+  ANNOTATE_HAPPENS_BEFORE(&l);
 
   mcs_node_t *successor = me.next.load(boost::memory_order_acquire);
 

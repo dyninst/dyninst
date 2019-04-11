@@ -25,8 +25,8 @@
 // local includes
 //******************************************************************************
 
-#include "pfq-rwlock.h"
 #include "vgannotations.h"
+#include "pfq-rwlock.h"
 
 
 
