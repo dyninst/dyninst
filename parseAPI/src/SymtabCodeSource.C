@@ -709,6 +709,9 @@ SymtabCodeSource::lookup_region(const Address addr) const
         pfq_rwlock_node_t me;
         pfq_rwlock_write_lock(_lookup_cache_lock, me);
         _lookup_cache.reserve(omp_get_num_threads());
+        _lookup_cache.insert(_lookup_cache.end(),
+            omp_get_num_threads() - _lookup_cache.size(), NULL);
+        assert(_lookup_cache.size() == omp_get_num_threads());
         pfq_rwlock_write_unlock(_lookup_cache_lock, me);
     }
 
