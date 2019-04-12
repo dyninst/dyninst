@@ -393,7 +393,7 @@ private:
 
     edgelist _srclist;
     edgelist _trglist;
-    int _func_cnt;
+    boost::atomic<int> _func_cnt;
     bool _parsed;
 
     Function * _createdByFunc;

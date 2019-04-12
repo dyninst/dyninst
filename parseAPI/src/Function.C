@@ -209,7 +209,7 @@ Function::finalize()
 
   // for each block, decrement its refcount
   for (auto blk = blocks_begin(); blk != blocks_end(); blk++) {
-    (*blk)->_func_cnt--;
+    (*blk)->_func_cnt.fetch_add(-1);
   }
   _bmap.clear();
   _retBL.clear(); 
@@ -455,8 +455,8 @@ void
 Function::add_block(Block *b)
 {
     boost::lock_guard<Function> g(*this);
-  ++b->_func_cnt;            // block counts references
-  _bmap[b->start()] = b;
+    b->_func_cnt.fetch_add(1);            // block counts references
+    _bmap[b->start()] = b;
 }
 
 const string &
