@@ -220,10 +220,10 @@ Function::finalize()
     // a Function's parse data
     done  = _obj->parser->finalize(this);
     } while (!done);
-
+}
 
 Function::blocklist
-Function::blocks_int()
+Function::blocks_int() 
 {
     boost::lock_guard<Function> g(*this);
     if(_cache_valid || !_entry)
