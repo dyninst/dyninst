@@ -162,23 +162,19 @@ bool DwarfWalker::parse() {
 
 #pragma omp parallel
     {
-    int local_fd = open(symtab()->file().c_str(), O_RDONLY);
-    Dwarf* temp_dwarf = dwarf_begin(local_fd, DWARF_C_READ);
-    DwarfWalker w(symtab(), temp_dwarf);
+    DwarfWalker w(symtab(), dbg());
 #pragma omp for reduction(leftmost:fixUnknownMod)
     for (unsigned int i = 0; i < module_dies.size(); i++) {	
         w.push();
         w.parseModule(module_dies[i],fixUnknownMod);
         w.pop();
     }
-    close(local_fd);
-    dwarf_end(temp_dwarf);
     }
 
     if (!fixUnknownMod)
         return true;
 
-    dwarf_printf("Fiying types for final module %s\n", fixUnknownMod->fileName().c_str());
+    dwarf_printf("Fixing types for final module %s\n", fixUnknownMod->fileName().c_str());
 
    /* Fix type list. */
    typeCollection *moduleTypes = typeCollection::getModTypeCollection(fixUnknownMod);

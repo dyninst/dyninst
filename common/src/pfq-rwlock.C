@@ -90,14 +90,14 @@ pfq_rwlock_read_lock(pfq_rwlock_t &l)
   }
 
   ANNOTATE_RWLOCK_ACQUIRED(&l, 0);
-  ANNOTATE_HAPPENS_AFTER(&l + 1);
+  ANNOTATE_HAPPENS_AFTER(&l.last);
 }
 
 
 void
 pfq_rwlock_read_unlock(pfq_rwlock_t &l)
 {
-  ANNOTATE_HAPPENS_BEFORE(&l);
+  ANNOTATE_HAPPENS_BEFORE(&l.last);
   ANNOTATE_RWLOCK_RELEASED(&l, 0);
 
   uint32_t ticket = l.rout.fetch_add(READER_INCREMENT, boost::memory_order_acq_rel);
@@ -173,15 +173,15 @@ pfq_rwlock_write_lock(pfq_rwlock_t &l, pfq_rwlock_node_t &me)
   }
 
   ANNOTATE_RWLOCK_ACQUIRED(&l, 1);
-  ANNOTATE_HAPPENS_AFTER(&l);
-  ANNOTATE_HAPPENS_AFTER(&l + 1);
+  ANNOTATE_HAPPENS_AFTER(&l.last);
+  ANNOTATE_HAPPENS_AFTER(&l.rout);
 }
 
 
 void
 pfq_rwlock_write_unlock(pfq_rwlock_t &l, pfq_rwlock_node_t &me)
 {
-  ANNOTATE_HAPPENS_BEFORE(&l + 1);
+  ANNOTATE_HAPPENS_BEFORE(&l.rout);
 
   //--------------------------------------------------------------------
   // toggle phase and clear WRITER_PRESENT in rin. No synch issues
