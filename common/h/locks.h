@@ -33,43 +33,25 @@
 
 #include "util.h"
 #include <boost/atomic.hpp>
-#include <inttypes.h>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/condition_variable.hpp>
 
-class COMMON_EXPORT dyn_mutex {
-    friend class dyn_rwlock;
-    struct node {
-        boost::atomic<node*> next;
-        boost::atomic<bool> blocked;
-        node() : next(NULL), blocked(false) {};
-    };
-
-    static thread_local node me;
-
-    boost::atomic<node*> tail;
-public:
-    dyn_mutex();
-    ~dyn_mutex();
-
-    void lock();
-    void unlock();
-};
-
-#define cache_aligned __attribute__((aligned(128)))
+typedef boost::mutex dyn_mutex;
 
 class COMMON_EXPORT dyn_rwlock {
-    struct bigbool {
-        boost::atomic<bool> bit cache_aligned;
-    };
-
     // Reader management members
-    boost::atomic<uint_least32_t> rin cache_aligned;
-    boost::atomic<uint_least32_t> rout cache_aligned;
-    boost::atomic<uint_least32_t> last cache_aligned;
-    bigbool writer_blocking_readers[2];
+    boost::atomic<unsigned int> rin;
+    boost::atomic<unsigned int> rout;
+    unsigned int last;
+    dyn_mutex inlock;
+    boost::condition_variable rcond;
+    bool rwakeup[2];
 
     // Writer management members
-    dyn_mutex wtail cache_aligned;
-    dyn_mutex::node *whead cache_aligned;
+    dyn_mutex wlock;
+    dyn_mutex outlock;
+    boost::condition_variable wcond;
+    bool wwakeup;
 public:
     dyn_rwlock();
     ~dyn_rwlock();
