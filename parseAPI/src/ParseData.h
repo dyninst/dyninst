@@ -30,7 +30,7 @@
 #ifndef _PARSE_DATA_H_
 #define _PARSE_DATA_H_
 
-#include "common/h/vgannotations.h"
+#include "common/src/vgannotations.h"
 
 #include <set>
 #include <vector>

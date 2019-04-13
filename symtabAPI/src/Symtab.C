@@ -27,7 +27,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "common/h/vgannotations.h"
+#include "common/src/vgannotations.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -155,23 +155,31 @@ std::string Symtab::printError(SymtabError serr)
     }		
 }
 
+static LazySingleton<boost::shared_ptr<Type>> ls_type_Error;
 boost::shared_ptr<Type>& Symtab::type_Error()
 {
-    return LAZY_ONCE(boost::shared_ptr<Type>(new Type(std::string("<error"),0,dataUnknownType)));
+    return ls_type_Error.get([](){
+        return boost::shared_ptr<Type>(new Type(std::string("<error"),0,dataUnknownType));
+    });
 }
+static LazySingleton<boost::shared_ptr<Type>> ls_type_Untyped;
 boost::shared_ptr<Type>& Symtab::type_Untyped()
 {
-    return LAZY_ONCE(boost::shared_ptr<Type>(new Type(std::string("<no type>"), 0, dataUnknownType)));
+    return ls_type_Untyped.get([](){
+        return boost::shared_ptr<Type>(new Type(std::string("<no type>"), 0, dataUnknownType));
+    });
 }
 
+static LazySingleton<boost::shared_ptr<builtInTypeCollection>> ls_builtInTypes;
 boost::shared_ptr<builtInTypeCollection>& Symtab::builtInTypes()
 {
-    return LAZY_ONCE(setupBuiltinTypes());
+    return ls_builtInTypes.get(setupBuiltinTypes);
 }
 
+static LazySingleton<boost::shared_ptr<typeCollection>> ls_stdTypes;
 boost::shared_ptr<typeCollection>& Symtab::stdTypes()
 {
-    return LAZY_ONCE(setupStdTypes());
+    return ls_stdTypes.get(setupStdTypes);
 }
 
 boost::shared_ptr<builtInTypeCollection> Symtab::setupBuiltinTypes()
