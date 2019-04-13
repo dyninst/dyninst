@@ -1,166 +1,136 @@
-//******************************************************************************
-//
-// File:
-//   mcs_lock.c
-//
-// Purpose:
-//   Implement an API for the MCS lock: a fair queue-based lock.
-//
+/*
+ * See the dyninst/COPYRIGHT file for copyright information.
+ * 
+ * We provide the Paradyn Tools (below described as "Paradyn")
+ * on an AS IS basis, and do not warrant its validity or performance.
+ * We reserve the right to update, modify, or discontinue this
+ * software at any time.  We shall have no obligation to supply such
+ * updates or modifications or any other form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
+// This file contains a basic implementation of the MCS spin-based mutex.
 // Reference:
 //   John M. Mellor-Crummey and Michael L. Scott. 1991. Algorithms for scalable
 //   synchronization on shared-memory multiprocessors. ACM Transactions on
 //   Computing Systems 9, 1 (February 1991), 21-65.
 //   http://doi.acm.org/10.1145/103727.103729
-//******************************************************************************
-
-
-
-//******************************************************************************
-// local includes
-//******************************************************************************
 
 #include "vgannotations.h"
-#include "mcs-lock.h"
-
+#include "locks.h"
 #include <boost/memory_order.hpp>
 
-//******************************************************************************
-// private operations
-//******************************************************************************
+thread_local dyn_mutex::node dyn_mutex::me;
 
-//******************************************************************************
-// interface operations
-//******************************************************************************
-
-void
-mcs_init(mcs_lock_t &l)
-{
-  l.tail.store(mcs_nil);
-  VALGRIND_HG_MUTEX_INIT_POST(&l, 0);
+dyn_mutex::dyn_mutex()
+    : tail(NULL) {
+    VALGRIND_HG_MUTEX_INIT_POST(this, 0 /* non-recursive */);
 }
 
-void
-mcs_lock(mcs_lock_t &l, mcs_node_t &me)
-{
-  //--------------------------------------------------------------------
-  // initialize my queue node
-  //--------------------------------------------------------------------
-  me.next.store(mcs_nil);
-
-  VALGRIND_HG_DISABLE_CHECKING(&me, sizeof me);
-  VALGRIND_HG_MUTEX_LOCK_PRE(&l, 0);
-
-  //--------------------------------------------------------------------
-  // install my node at the tail of the lock queue.
-  // determine my predecessor, if any.
-  //
-  // note: the rel aspect of the ordering below ensures that
-  // initialization of me->next completes before anyone sees my node
-  //--------------------------------------------------------------------
-  mcs_node_t *predecessor = l.tail.exchange(&me, boost::memory_order_acq_rel);
-
-  //--------------------------------------------------------------------
-  // if I have a predecessor, wait until it signals me
-  //--------------------------------------------------------------------
-  if (predecessor != mcs_nil) {
-    //------------------------------------------------------------------
-    // prepare to block until signaled by my predecessor
-    //------------------------------------------------------------------
-    me.blocked.store(true);
-
-    //------------------------------------------------------------------
-    // link behind my predecessor
-    // note: use release to ensure that prior assignment to blocked
-    //       occurs first
-    //------------------------------------------------------------------
-    predecessor->next.store(&me, boost::memory_order_release);
-
-    //------------------------------------------------------------------
-    // wait for my predecessor to clear my flag
-    // note: use acquire order to ensure that reads or writes in the
-    //       critical section will not occur until after blocked is
-    //       cleared
-    //------------------------------------------------------------------
-    while (me.blocked.load(boost::memory_order_acquire));
-  }
-
-  VALGRIND_HG_MUTEX_LOCK_POST(&l);
-  ANNOTATE_HAPPENS_AFTER(&l);
+dyn_mutex::~dyn_mutex() {
+    VALGRIND_HG_MUTEX_DESTROY_PRE(this);
 }
 
+void dyn_mutex::lock() {
+    // HG should ignore the node, its races are handled via logic.
+    VALGRIND_HG_DISABLE_CHECKING(&me, sizeof me);
+    VALGRIND_HG_MUTEX_LOCK_PRE(this, 0 /* blocking */);
 
-bool
-mcs_trylock(mcs_lock_t &l, mcs_node_t &me)
-{
-  //--------------------------------------------------------------------
-  // initialize my queue node
-  //--------------------------------------------------------------------
-  me.next.store(mcs_nil, boost::memory_order_relaxed);
+    // Make sure our node points nowhere.
+    me.next.store(NULL, boost::memory_order_relaxed);
 
-  VALGRIND_HG_DISABLE_CHECKING(&me, sizeof me);
-  VALGRIND_HG_MUTEX_LOCK_PRE(&l, 1);
+    // Install at the tail of the queue, and nab the predecessor.
+    // Note: rel order fences the initialization of the node.
+    node *predecessor = tail.exchange(&me, boost::memory_order_acq_rel);
 
-  //--------------------------------------------------------------------
-  // if the tail pointer is nil, swap it with a pointer to me, which
-  // acquires the lock and installs myself at the tail of the queue.
-  // note: the acq_rel ordering ensures that
-  // (1) rel: my store of me->next above completes before the exchange
-  // (2) acq: any accesses after the exchange can't begin until after
-  //     the exchange completes.
-  //--------------------------------------------------------------------
-  mcs_node_t *oldme = mcs_nil;
-  bool locked = l.tail.compare_exchange_strong(oldme, &me,
-					    boost::memory_order_acq_rel,
-					    boost::memory_order_relaxed);
-  if (!locked) {
-    VALGRIND_HG_MUTEX_LOCK_POST(&l);
-    ANNOTATE_HAPPENS_AFTER(&l);
-  } else VALGRIND_HG_ENABLE_CHECKING(&me, sizeof me);
-  return locked;
-}
+    // Wait for my predecessor, if I have one.
+    if (predecessor) {
+        // Mark that we are in fact blocked.
+        me.blocked.store(true);
 
+        // Link with my predecessor. Rel ensures blocked is stored.
+        predecessor->next.store(&me, boost::memory_order_release);
 
-void
-mcs_unlock(mcs_lock_t &l, mcs_node_t &me)
-{
-  VALGRIND_HG_MUTEX_UNLOCK_PRE(&l);
-  ANNOTATE_HAPPENS_BEFORE(&l);
-
-  mcs_node_t *successor = me.next.load(boost::memory_order_acquire);
-
-  if (successor == mcs_nil) {
-    //--------------------------------------------------------------------
-    // I don't currently have a successor, so I may be at the tail
-    //--------------------------------------------------------------------
-
-    //--------------------------------------------------------------------
-    // if my node is at the tail of the queue, attempt to remove myself
-    // note: release order below on success guarantees that all accesses
-    //       above the exchange must complete before the exchange if the
-    //       exchange unlinks me from the tail of the queue
-    //--------------------------------------------------------------------
-    mcs_node_t *oldme = &me;
-
-    if (l.tail.compare_exchange_strong(oldme, mcs_nil,
-						boost::memory_order_release,
-						boost::memory_order_relaxed)) {
-      //------------------------------------------------------------------
-      // I removed myself from the queue; I will never have a
-      // successor, so I'm done
-      //------------------------------------------------------------------
-      VALGRIND_HG_MUTEX_UNLOCK_POST(&l);
-      return;
+        // Spin until we actually acquire the lock.
+        while (me.blocked.load(boost::memory_order_acquire));
     }
 
-    //------------------------------------------------------------------
-    // another thread is writing me->next to define itself as our successor;
-    // wait for it to finish that
-    //------------------------------------------------------------------
-    while (mcs_nil == (successor = me.next.load(boost::memory_order_acquire)));
-  }
+    // Tell Valgrind that we did things.
+    VALGRIND_HG_MUTEX_LOCK_POST(this);
+    ANNOTATE_HAPPENS_AFTER(this);
+}
 
-  successor->blocked.store(false, boost::memory_order_release);
+// The trylock is not currently used, it may never be. Disabled for now.
+#if 0
+bool dyn_mutex::trylock() {
+    // HG should ignore the node, its races are handled via logic.
+    VALGRIND_HG_DISABLE_CHECKING(&me, sizeof me);
+    VALGRIND_HG_MUTEX_LOCK_PRE(this, 1 /* trylock form */);
 
-  VALGRIND_HG_MUTEX_UNLOCK_POST(&l);
-  VALGRIND_HG_ENABLE_CHECKING(&me, sizeof me);
+    // Make sure our node points nowhere.
+    me.next.store(NULL, boost::memory_order_relaxed);
+
+    // Attempt to acquire the lock, but only if there was no one there.
+    // If we fail, we don't need to enforce any memory order.
+    node *tmp = NULL;
+    bool locked = tail.compare_exchange_strong(tmp, &me,
+                                           boost::memory_order_acq_rel,
+                                           boost::memory_order_relaxed);
+
+    // Tell Valgrind if we did it, and re-enable the node if we failed..
+    if (locked) {
+        VALGRIND_HG_MUTEX_LOCK_POST(this);
+        ANNOTATE_HAPPENS_AFTER(this);
+    } else VALGRIND_HG_ENABLE_CHECKING(&me, sizeof me);
+
+    return locked;
+}
+#endif // 0
+
+void dyn_mutex::unlock() {
+    // Let Valgrind know what we are up to.
+    VALGRIND_HG_MUTEX_UNLOCK_PRE(this);
+    ANNOTATE_HAPPENS_BEFORE(this);
+
+    node *successor = me.next.load(boost::memory_order_acquire);
+    if (!successor) {
+        // At (or was at) the tail of the queue. Try ripping myself out.
+        node *tmp = &me;
+        if (tail.compare_exchange_strong(tmp, NULL,
+                                           boost::memory_order_release,
+                                           boost::memory_order_relaxed)) {
+            // We did it, we have no more connection with the lock. Carry on.
+            VALGRIND_HG_MUTEX_UNLOCK_POST(this);
+            return;
+        }
+
+        // Someone out there is fiddling with my node. Wait around for it.
+        while (!(successor = me.next.load(boost::memory_order_acquire)));
+    }
+
+    // Pass the lock to my successor, I don't need it anymore.
+    successor->blocked.store(false, boost::memory_order_release);
+
+    // Let Valgrind know about our little expedition.
+    VALGRIND_HG_MUTEX_UNLOCK_POST(this);
+    VALGRIND_HG_ENABLE_CHECKING(&me, sizeof me);
 }

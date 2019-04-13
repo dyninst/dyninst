@@ -243,7 +243,6 @@ SymtabCodeSource::SymtabCodeSource(SymtabAPI::Symtab * st,
     stats_parse(new ::StatContainer()),
     _have_stats(false)
 {
-    pfq_rwlock_init(_lookup_cache_lock);
     init_stats();
     init(filt,allLoadedRegions);
 }
@@ -254,7 +253,6 @@ SymtabCodeSource::SymtabCodeSource(SymtabAPI::Symtab * st) :
     stats_parse(new ::StatContainer()),
     _have_stats(false)
 {
-    pfq_rwlock_init(_lookup_cache_lock);
     init_stats();
     init(NULL,false);
 }
@@ -265,7 +263,6 @@ SymtabCodeSource::SymtabCodeSource(char * file) :
     stats_parse(new ::StatContainer()),
     _have_stats(false)
 {
-    pfq_rwlock_init(_lookup_cache_lock);
     init_stats();
     
     bool valid;
@@ -415,9 +412,7 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
     vector<SymtabAPI::Region *> regs;
     vector<SymtabAPI::Region *> dregs;
     vector<SymtabAPI::Symbol*> symbols;
-    mcs_lock_t reg_lock;
-
-    mcs_init(reg_lock);
+    dyn_mutex reg_lock;
 
     if ( ! allLoadedRegions ) {
         _symtab->getCodeRegions(regs);
@@ -472,10 +467,9 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
             parsing_printf("[%s:%d] duplicate region at address %lx\n",
                 FILE__,__LINE__,r->getMemOffset());
         }
-        mcs_node_t me;
-        mcs_lock(reg_lock, me);
+        reg_lock.lock();
         addRegion(cr);
-        mcs_unlock(reg_lock, me);
+        reg_lock.unlock();
     }
 
     // Hints are initialized at the SCS level rather than the SCR level
@@ -699,20 +693,19 @@ SymtabCodeSource::lookup_region(const Address addr) const
     CodeRegion * cache = NULL;
     bool cacheood = false;
     unsigned int tid = omp_get_thread_num();
-    pfq_rwlock_read_lock(_lookup_cache_lock);
+    _lookup_cache_lock.lock_shared();
     if(_lookup_cache.size() > tid)
         cache = _lookup_cache[tid];
     else
         cacheood = true;
-    pfq_rwlock_read_unlock(_lookup_cache_lock);
+    _lookup_cache_lock.unlock_shared();
     if(cacheood) {
-        pfq_rwlock_node_t me;
-        pfq_rwlock_write_lock(_lookup_cache_lock, me);
+        _lookup_cache_lock.lock();
         _lookup_cache.reserve(omp_get_num_threads());
         _lookup_cache.insert(_lookup_cache.end(),
             omp_get_num_threads() - _lookup_cache.size(), NULL);
         assert(_lookup_cache.size() == omp_get_num_threads());
-        pfq_rwlock_write_unlock(_lookup_cache_lock, me);
+        _lookup_cache_lock.unlock();
     }
 
     if(cache && cache->contains(addr))
@@ -725,9 +718,9 @@ SymtabCodeSource::lookup_region(const Address addr) const
 
         if(rcnt) {
           ret = *stab.begin();
-          pfq_rwlock_read_lock(_lookup_cache_lock);
+          _lookup_cache_lock.lock_shared();
           _lookup_cache[tid] = ret;
-          pfq_rwlock_read_unlock(_lookup_cache_lock);
+          _lookup_cache_lock.unlock_shared();
         } 
     }
     return ret;

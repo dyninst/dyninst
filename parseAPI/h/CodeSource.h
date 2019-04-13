@@ -44,7 +44,7 @@
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/lockable_adapter.hpp>
 #include <tbb/concurrent_hash_map.h>
-#include "pfq-rwlock.h"
+#include "locks.h"
 
 class StatContainer;
 
@@ -259,7 +259,7 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource, public boost::lockable
  private:
     SymtabAPI::Symtab * _symtab;
     bool owns_symtab;
-    mutable pfq_rwlock_t _lookup_cache_lock;
+    mutable dyn_rwlock _lookup_cache_lock;
     mutable std::vector<CodeRegion *>  _lookup_cache;
 
     // Stats information

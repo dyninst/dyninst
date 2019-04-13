@@ -410,7 +410,6 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
    obj_private(NULL),
    _ref_cnt(1)
 {
-    pfq_rwlock_init(symbols_rwlock);
     init_debug_symtabAPI();
 
 #if defined(os_vxworks)
@@ -454,7 +453,6 @@ SYMTAB_EXPORT Symtab::Symtab() :
    obj_private(NULL),
    _ref_cnt(1)
 {  
-    pfq_rwlock_init(symbols_rwlock);
     init_debug_symtabAPI();
     create_printf("%s[%d]: Created symtab via default constructor\n", FILE__, __LINE__);
 }
@@ -1253,7 +1251,6 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
    obj_private(NULL),
    _ref_cnt(1)
 {
-   pfq_rwlock_init(symbols_rwlock);
    init_debug_symtabAPI();
    // Initialize error parameter
    err = false;
@@ -1330,7 +1327,6 @@ Symtab::Symtab(unsigned char *mem_image, size_t image_size,
    obj_private(NULL),
    _ref_cnt(1)
 {
-   pfq_rwlock_init(symbols_rwlock);
    // Initialize error parameter
    err = false;
   
@@ -1623,7 +1619,6 @@ Symtab::Symtab(const Symtab& obj) :
    obj_private(NULL),
    _ref_cnt(1)
 {
-   pfq_rwlock_init(symbols_rwlock);
     create_printf("%s[%d]: Creating symtab 0x%p from symtab 0x%p\n", FILE__, __LINE__, this, &obj);
 
    unsigned i;
