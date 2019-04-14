@@ -364,16 +364,6 @@ bool InstalledSpringboards::conflict(Address start, Address end, bool inRelocate
            << state->val << ", "
            << state->func->name() << ", priority " 
            << state->priority << dec << endl;
-       // BLOCK PRIORITY CHECK:
-       //    Check to see if the block we are writing to contains a required (or greater) springboard
-       //    What this check prevents is a required springboard in a block at a lower address from
-       //    overwriting a block at a higher address (that has already been written).
-       //    This check assumes that we are always generating springboards starting at the highest address
-       //    and working backwards (i.e. 0xfff... -> 0x000...) 
-       if (state->priority >= Required) {
-            springboard_cerr << "\t Trying to write a springboard that crosses into another required block, ret conflict" << std::endl;
-            return true;
-        }
 
       if (state->val == Allocated) {
 	if(LB == start && UB >= end) 
@@ -398,9 +388,17 @@ bool InstalledSpringboards::conflict(Address start, Address end, bool inRelocate
                     springboard_cerr << "\t Starting range matches already allocated springboard, equivalent priorities and different functions, ret conflict" << endl;
                     return true;
                 }
-                // Not sure why this was ever safe. If a springboard already exists, do not overwrite it.
-                springboard_cerr << "\t Starting range matches already allocated springboard, assuming overwrite, ret conflict" << endl;
-               return true;
+                 // In dynamic instrumentation, springboards are installed immediately after
+                 // users wants to insert a snippet. The user can continue to insert
+                 // more snippets to the same function, which will trigger Dyninst to perform
+                 // the relocation one more time. So, we need to overwrite existing springboard
+                 // to update new instrumentations.
+                 //
+                 // However, this will lead to dead code in .dyninstInst. The ideal solution
+                 // for dynamic instrumentation is to only perform relocation before the user
+                 // wants to continue to attached/created process. 
+                springboard_cerr << "\t Starting range matches already allocated springboard, assuming overwrite, ret OK" << endl;
+                return false;
            }
 
            springboard_cerr << "\t Starting range already allocated, ret conflict" << endl;
@@ -412,9 +410,21 @@ bool InstalledSpringboards::conflict(Address start, Address end, bool inRelocate
           springboard_cerr << "\t Crossed into a different function, ret conflict" << endl;
           return true;
       }
+       // BLOCK PRIORITY CHECK:
+       //    Check to see if the block we are writing to contains a required (or greater) springboard
+       //    What this check prevents is a required springboard in a block at a lower address from
+       //    overwriting a block at a higher address (that has already been written).
+       //    This check assumes that we are always generating springboards starting at the highest address
+       //    and working backwards (i.e. 0xfff... -> 0x000...) 
+       if (state->priority >= Required) {
+            springboard_cerr << "\t Trying to write a springboard that crosses into another required block, ret conflict" << std::endl;
+            return true;
+        }
+
       working = UB;
       lastState = state;
    }
+
    if (UB < end) {
        return true;
    }
