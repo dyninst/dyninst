@@ -157,6 +157,14 @@ if(NOT Boost_FOUND)
       set(Boost_${_basename}_LIBRARY_DEBUG "${Boost_LIBRARY_DIRS}/libboost_${c}.so" CACHE FILEPATH "" FORCE)
     endforeach()
   endif()
+  
+  # Export Boost_THREAD_LIBRARY
+  list(FIND Boost_COMPONENTS "thread" _building_threads)
+  if(Boost_USE_MULTITHREADED AND ${_building_threads})
+    # On Windows, always use the debug version
+    # On Linux, we don't use tagged builds, so the debug/release filenames are the same
+    set(Boost_THREAD_LIBRARY ${Boost_THREAD_LIBRARY_DEBUG})
+  endif()
 endif()
 
 # Add the system thread library
