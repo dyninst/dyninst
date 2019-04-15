@@ -60,9 +60,10 @@ endif()
 
 # The required Boost library components
 # NB: These are just the ones that require compilation/linking
-set(Boost_COMPONENTS atomic chrono date_time filesystem system thread timer)
+#     This should _not_ be a cache variable
+set(_boost_components atomic chrono date_time filesystem system thread timer)
 
-find_package(Boost ${BOOST_MIN_VERSION} COMPONENTS ${Boost_COMPONENTS})
+find_package(Boost ${BOOST_MIN_VERSION} COMPONENTS ${_boost_components})
 
 # If we didn't find a suitable version on the system, then download one from the web
 if(NOT Boost_FOUND)
@@ -111,7 +112,7 @@ if(NOT Boost_FOUND)
 
   # Join the component names together to pass to --with-libraries during bootstrap
   set(Boost_lib_names "")
-  foreach(c ${Boost_COMPONENTS})
+  foreach(c ${_boost_components})
 	# list(JOIN ...) is in cmake 3.12
     string(CONCAT Boost_lib_names "${Boost_lib_names}${c},")
   endforeach()
@@ -136,7 +137,7 @@ if(NOT Boost_FOUND)
   if(WIN32)
     # We need to specify different library names for debug vs release
     set(Boost_LIBRARIES "")
-    foreach(c ${Boost_COMPONENTS})
+    foreach(c ${_boost_components})
       list(APPEND Boost_LIBRARIES "optimized libboost_${c} debug libboost_${c}-gd ")
       
       # Also export cache variables for the file location of each library
@@ -148,7 +149,7 @@ if(NOT Boost_FOUND)
     # Transform the component names into the library filenames
     # e.g., system -> boost_system
     set(Boost_LIBRARIES "")
-    foreach(c ${Boost_COMPONENTS})
+    foreach(c ${_boost_components})
       list(APPEND Boost_LIBRARIES "boost_${c}")
       
       # Also export cache variables for the file location of each library
@@ -159,7 +160,7 @@ if(NOT Boost_FOUND)
   endif()
   
   # Export Boost_THREAD_LIBRARY
-  list(FIND Boost_COMPONENTS "thread" _building_threads)
+  list(FIND _boost_components "thread" _building_threads)
   if(Boost_USE_MULTITHREADED AND ${_building_threads})
     # On Windows, always use the debug version
     # On Linux, we don't use tagged builds, so the debug/release filenames are the same
