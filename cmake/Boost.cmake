@@ -134,7 +134,7 @@ if(NOT Boost_FOUND)
   set(Boost_INCLUDE_DIRS ${CMAKE_INSTALL_PREFIX}/include CACHE PATH "Boost include directory" FORCE)
   set(Boost_LIBRARY_DIRS ${CMAKE_INSTALL_PREFIX}/lib CACHE PATH "Boost library directory" FORCE)
 
-  if(MSVC)
+  if(WIN32)
     # We need to specify different library names for debug vs release
     set(Boost_LIBRARIES "")
     foreach(c ${Boost_COMPONENTS})
