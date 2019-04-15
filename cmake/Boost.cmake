@@ -21,8 +21,7 @@ set(Boost_USE_STATIC_RUNTIME OFF CACHE BOOL
 
 # If using multithreaded Boost, make sure Threads has been intialized
 if(Boost_USE_MULTITHREADED AND NOT DEFINED CMAKE_THREAD_LIBS_INIT)
-  message(FATAL_ERROR "Threads library not initialized before resolving Boost\n"
-                      "Use 'find_package(Threads)' before including Boost")
+  find_package(Threads)
 endif()
 
 # Import the compiler defines for Boost libraries
