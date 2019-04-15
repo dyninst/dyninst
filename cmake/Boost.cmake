@@ -118,7 +118,7 @@ if(NOT Boost_FOUND)
 
   include(ExternalProject)
   string(REPLACE "." "_" _Boost_download_filename ${_Boost_download_version})
-  externalproject_add(
+  ExternalProject_Add(
     boost
     PREFIX ${CMAKE_BINARY_DIR}/boost
     URL http://downloads.sourceforge.net/project/boost/boost/${_Boost_download_version}/boost_${_Boost_download_filename}.zip
