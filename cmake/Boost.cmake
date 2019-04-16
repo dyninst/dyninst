@@ -71,6 +71,11 @@ set(_boost_components atomic chrono date_time filesystem system thread timer)
 
 find_package(Boost ${BOOST_MIN_VERSION} COMPONENTS ${_boost_components})
 
+# Save the automatic results
+set(_boost_include_dirs ${Boost_INCLUDE_DIRS})
+set(_boost_library_dirs ${Boost_LIBRARY_DIRS})
+set(_boost_include_dir ${Boost_INCLUDE_DIR})
+
 # If we didn't find a suitable version on the system, then download one from the web
 if(NOT Boost_FOUND)
   set(_Boost_download_version "1.69.0")
@@ -136,9 +141,9 @@ if(NOT Boost_FOUND)
     INSTALL_COMMAND ""
   )
 
-  # Force the cache entries to be updated
-  set(Boost_INCLUDE_DIRS ${CMAKE_INSTALL_PREFIX}/include CACHE PATH "Boost include directory" FORCE)
-  set(Boost_LIBRARY_DIRS ${CMAKE_INSTALL_PREFIX}/lib CACHE PATH "Boost library directory" FORCE)
+  set(_boost_include_dirs ${CMAKE_INSTALL_PREFIX}/include)
+  set(_boost_library_dirs ${CMAKE_INSTALL_PREFIX}/lib)
+  set(_boost_include_dir ${_boost_include_dirs})
 
   if(WIN32)
     # We need to specify different library names for debug vs release
@@ -173,6 +178,14 @@ if(NOT Boost_FOUND)
     set(Boost_THREAD_LIBRARY ${Boost_THREAD_LIBRARY_DEBUG})
   endif()
 endif()
+
+# -------------- EXPORT VARIABLES ---------------------------------------------
+
+# Force the cache entries to be updated
+# Normally, these would not be exported. However, we need them in the Testsuite
+set(Boost_INCLUDE_DIRS ${_boost_include_dirs} CACHE PATH "Boost include directory" FORCE)
+set(Boost_LIBRARY_DIRS ${_boost_library_dirs} CACHE PATH "Boost library directory" FORCE)
+set(Boost_INCLUDE_DIR ${_boost_include_dirs} CACHE PATH "Boost include directory" FORCE)
 
 # Add the system thread library
 if(Boost_USE_MULTITHREADED)
