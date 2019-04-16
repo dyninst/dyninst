@@ -61,17 +61,8 @@ if(PATH_BOOST)
   set(BOOST_ROOT ${PATH_BOOST})
 endif()
 
-# If the user specifies a Boost directory, don't look in the system locations
-# This prevents finding an unintended version of Boost
-#
-#       -- WARNING --
-#
-#       If the user specifies a system directory in PATH_BOOST,
-#       cmake will not find the desired version.
-#
-if((PATH_BOOST AND NOT (PATH_BOOST STREQUAL "/usr")) OR Boost_INCLUDE_DIRS OR Boost_LIBRARY_DIRS)
-  set(Boost_NO_SYSTEM_PATHS ON)
-endif()
+# By default, search system paths
+set(Boost_NO_SYSTEM_PATHS OFF CACHE BOOL "Disable searching in locations not specified by hint variables")
 
 # The required Boost library components
 # NB: These are just the ones that require compilation/linking
