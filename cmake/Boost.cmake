@@ -194,7 +194,7 @@ endif()
 # Normally, these would not be exported. However, we need them in the Testsuite
 set(Boost_INCLUDE_DIRS ${_boost_include_dirs} CACHE PATH "Boost include directory" FORCE)
 set(Boost_LIBRARY_DIRS ${_boost_library_dirs} CACHE PATH "Boost library directory" FORCE)
-set(Boost_INCLUDE_DIR ${_boost_include_dirs} CACHE PATH "Boost include directory" FORCE)
+set(Boost_INCLUDE_DIR ${_boost_include_dir} CACHE PATH "Boost include directory" FORCE)
 
 # Add the system thread library
 if(Boost_USE_MULTITHREADED)
