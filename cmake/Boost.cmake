@@ -50,16 +50,16 @@ set(BOOST_MIN_VERSION 1.61.0 CACHE STRING "Minimum Boost version")
 set(Boost_NO_BOOST_CMAKE ON)
 
 # Set the default location to look for Boost
-#
-# NOTE: If you change this, also change the value in
-#       the test for setting Boost_NO_SYSTEM_PATHS
-#
-set(PATH_BOOST "/usr" CACHE PATH "Path to Boost")
+set(PATH_BOOST "/usr" CACHE PATH "Path to Boost set by user (DO NOT USE). See BOOST_INCLUDE_DIRS.")
 
 # PATH_BOOST is the user-facing version of BOOST_ROOT
-if(PATH_BOOST)
-  set(BOOST_ROOT ${PATH_BOOST})
-endif()
+set(BOOST_ROOT ${PATH_BOOST})
+
+# Preferred include directory hint
+set(BOOST_INCLUDEDIR "${BOOST_ROOT}/include" CACHE PATH "Boost preferred include directory hint")
+
+# Preferred library directory hint
+set(BOOST_LIBRARYDIR "${BOOST_ROOT}/lib" CACHE PATH "Boost preferred library directory hint")
 
 # By default, search system paths
 set(Boost_NO_SYSTEM_PATHS OFF CACHE BOOL "Disable searching in locations not specified by hint variables")
