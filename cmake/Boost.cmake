@@ -5,8 +5,10 @@
 #
 ###############################
 
-# Enable debug output from FindBoost
-set(Boost_DEBUG OFF CACHE BOOL "Enable debug output from FindBoost")
+# Need Boost >= 1.61 for filesytem components
+set(BOOST_MIN_VERSION 1.61.0 CACHE STRING "Minimum Boost version")
+
+# -------------- RUNTIME CONFIGURATION ----------------------------------------
 
 # Use the multithreaded version of Boost
 # NB: This _must_ be a cache variable as it
@@ -24,30 +26,13 @@ if(Boost_USE_MULTITHREADED AND NOT DEFINED CMAKE_THREAD_LIBS_INIT)
   find_package(Threads)
 endif()
 
-# Set up compiler defines
-set(_boost_defines)
+# Enable debug output from FindBoost
+set(Boost_DEBUG OFF CACHE BOOL "Enable debug output from FindBoost")
 
-  # Disable auto-linking
-  list(APPEND _boost_defines -DBOOST_ALL_NO_LIB=1)
+# -------------- PATHS --------------------------------------------------------
 
-  # Disable generating serialization code in boost::multi_index
-  list(APPEND _boost_defines -DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION)
-  
-  # There are broken versions of MSVC that won't handle variadic templates
-  # correctly (despite the C++11 test case passing).
-  if(MSVC)
-    list(APPEND _boost_defines -DBOOST_NO_CXX11_VARIADIC_TEMPLATES)
-  endif()
-
-set(Boost_DEFINES ${_boost_defines} CACHE STRING "Boost compiler defines" FORCE)
-add_definitions(${Boost_DEFINES})
-
-# Need Boost >= 1.61 for filesytem components
-set(BOOST_MIN_VERSION 1.61.0 CACHE STRING "Minimum Boost version")
-
-# Disable Boost's own CMake as it's known to be buggy
-# NB: This should not be a cache variable
-set(Boost_NO_BOOST_CMAKE ON)
+# By default, search system paths
+set(Boost_NO_SYSTEM_PATHS OFF CACHE BOOL "Disable searching in locations not specified by hint variables")
 
 # Set the default location to look for Boost
 set(PATH_BOOST "/usr" CACHE PATH "Path to Boost set by user (DO NOT USE). See BOOST_INCLUDE_DIRS.")
@@ -61,8 +46,30 @@ set(BOOST_INCLUDEDIR "${BOOST_ROOT}/include" CACHE PATH "Boost preferred include
 # Preferred library directory hint
 set(BOOST_LIBRARYDIR "${BOOST_ROOT}/lib" CACHE PATH "Boost preferred library directory hint")
 
-# By default, search system paths
-set(Boost_NO_SYSTEM_PATHS OFF CACHE BOOL "Disable searching in locations not specified by hint variables")
+# -------------- COMPILER DEFINES ---------------------------------------------
+
+set(_boost_defines)
+
+# Disable auto-linking
+list(APPEND _boost_defines -DBOOST_ALL_NO_LIB=1)
+
+# Disable generating serialization code in boost::multi_index
+list(APPEND _boost_defines -DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION)
+  
+# There are broken versions of MSVC that won't handle variadic templates
+# correctly (despite the C++11 test case passing).
+if(MSVC)
+  list(APPEND _boost_defines -DBOOST_NO_CXX11_VARIADIC_TEMPLATES)
+endif()
+
+set(Boost_DEFINES ${_boost_defines} CACHE STRING "Boost compiler defines")
+add_definitions(${Boost_DEFINES})
+
+# -------------- INTERNALS ----------------------------------------------------
+
+# Disable Boost's own CMake as it's known to be buggy
+# NB: This should not be a cache variable
+set(Boost_NO_BOOST_CMAKE ON)
 
 # The required Boost library components
 # NB: These are just the ones that require compilation/linking
@@ -75,6 +82,8 @@ find_package(Boost ${BOOST_MIN_VERSION} COMPONENTS ${_boost_components})
 set(_boost_include_dirs ${Boost_INCLUDE_DIRS})
 set(_boost_library_dirs ${Boost_LIBRARY_DIRS})
 set(_boost_include_dir ${Boost_INCLUDE_DIR})
+
+# -------------- SOURCE BUILD -------------------------------------------------
 
 # If we didn't find a suitable version on the system, then download one from the web
 if(NOT Boost_FOUND)
