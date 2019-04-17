@@ -291,18 +291,18 @@ find_package_handle_standard_args(TBB
 # Create targets
 #
 if(NOT CMAKE_VERSION VERSION_LESS 3.0 AND TBB_FOUND)
-  add_library(tbb SHARED IMPORTED)
+  add_library(TBB SHARED IMPORTED)
   message(STATUS "TBB debug libraries: ${TBB_LIBRARIES_DEBUG}")
   message(STATUS "TBB release libraries: ${TBB_LIBRARIES_RELEASE}")
   message(STATUS "TBB libraries: ${TBB_LIBRARIES}")
   message(STATUS "TBB includes: ${TBB_INCLUDE_DIRS}")
-  set_target_properties(tbb
+  set_target_properties(TBB
                         PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
                                    ${TBB_INCLUDE_DIRS}
                                    IMPORTED_LOCATION
                                    ${TBB_LIBRARIES})
   if(TBB_LIBRARIES_RELEASE AND TBB_LIBRARIES_DEBUG)
-    set_target_properties(tbb
+    set_target_properties(TBB
                           PROPERTIES INTERFACE_COMPILE_DEFINITIONS
                                      "$<$<CONFIG:Debug>:TBB_USE_DEBUG=1>"
                                      IMPORTED_LOCATION_DEBUG
@@ -314,10 +314,10 @@ if(NOT CMAKE_VERSION VERSION_LESS 3.0 AND TBB_FOUND)
                                      IMPORTED_LOCATION_MINSIZEREL
                                      ${TBB_LIBRARIES_RELEASE})
   elseif(TBB_LIBRARIES_RELEASE)
-    set_target_properties(tbb
+    set_target_properties(TBB
                           PROPERTIES IMPORTED_LOCATION ${TBB_LIBRARIES_RELEASE})
   else()
-    set_target_properties(tbb
+    set_target_properties(TBB
                           PROPERTIES IMPORTED_LOCATION ${TBB_LIBRARIES_DEBUG})
   endif()
 endif()
