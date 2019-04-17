@@ -8,8 +8,14 @@
 # TBB root directory
 set(TBB_ROOT_DIR "/usr" CACHE PATH "TBB root directory")
 
-# TBB include directory
-set(TBB_INCLUDE_DIRS "${TBB_ROOT_DIR}/include" CACHE PATH "TBB include directory")
+# TBB include directory hint
+set(TBB_INCLUDE_DIR "${TBB_ROOT_DIR}/include" CACHE PATH "TBB include directory")
+
+# TBB library directory hint
+set(TBB_LIBRARY_DIR "${TBB_ROOT_DIR}/lib" CACHE PATH "TBB library directory")
+
+# FindTBB uses 'TBB_LIBRARY' instead of 'TBB_LIBRARY_DIR'.
+set(TBB_LIBRARY ${TBB_LIBRARY_DIR})
 
 # Minimum version of TBB
 set(TBB_MIN_VERSION 2018.0 CACHE STRING "Minimum version of TBB")
