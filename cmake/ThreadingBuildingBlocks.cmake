@@ -17,6 +17,9 @@ set(TBB_LIBRARY_DIR "${TBB_ROOT_DIR}/lib" CACHE PATH "TBB library directory")
 # FindTBB uses 'TBB_LIBRARY' instead of 'TBB_LIBRARY_DIR'.
 set(TBB_LIBRARY ${TBB_LIBRARY_DIR})
 
+# Use debug versions of TBB libraries
+set(TBB_USE_DEBUG_BUILD OFF CACHE BOOL "Use debug versions of TBB libraries")
+
 # Minimum version of TBB
 set(TBB_MIN_VERSION 2018.0 CACHE STRING "Minimum version of TBB")
 
