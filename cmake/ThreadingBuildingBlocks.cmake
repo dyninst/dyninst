@@ -57,12 +57,12 @@ if(NOT TBB_FOUND)
   
   set(TBB_LIBRARIES ${_tbb_libraries} CACHE FILEPATH "" FORCE)
     
-  set(_tbb_root ${CMAKE_BINARY_DIR}/tbb)
+  set(TBB_ROOT_DIR ${CMAKE_INSTALL_PREFIX} CACHE PATH "TBB root directory" FORCE)
 
   include(ExternalProject)
   ExternalProject_Add(
     TBB
-    PREFIX ${_tbb_root}
+    PREFIX ${TBB_ROOT_DIR}
     URL https://github.com/01org/tbb/archive/2019_U5.tar.gz
     URL_MD5 38eae1abb55e1663257f29e8748d3798
     BUILD_IN_SOURCE 1
@@ -70,13 +70,13 @@ if(NOT TBB_FOUND)
     BUILD_COMMAND
       $(MAKE) -C src
       ${_tbb_components_cfg}
-      tbb_build_dir=${_tbb_root}/src
+      tbb_build_dir=${TBB_ROOT_DIR}/src
       tbb_build_prefix=tbb
     INSTALL_COMMAND
       ${CMAKE_COMMAND}
       	-DLIBDIR=${TBB_LIBRARY_DIRS}
       	-DINCDIR=${TBB_INCLUDE_DIRS}
-        -DROOTDIR=${_tbb_root}
+        -DROOTDIR=${TBB_ROOT_DIR}
       	-P ${CMAKE_CURRENT_LIST_DIR}/ThreadingBuildingBlocks.install.cmake
   )
 endif()
