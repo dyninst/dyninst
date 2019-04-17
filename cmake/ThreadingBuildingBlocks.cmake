@@ -29,15 +29,17 @@ set(_tbb_components tbb tbbmalloc tbbmalloc_proxy)
 
 find_package(TBB ${TBB_MIN_VERSION} COMPONENTS ${_tbb_components})
 
+# Save the automatic results
+set(_tbb_include_dirs ${TBB_INCLUDE_DIRS})
+set(_tbb_library_dirs ${TBB_LIBRARY_DIRS})
+set(_tbb_definitions ${TBB_DEFINITIONS})
+
 if(NOT TBB_FOUND)
   message(STATUS "Attempting to build TBB as external project")
   
   if(NOT UNIX)
     message(FATAL_ERROR "Building TBB from source is not supported on this platform")
   endif()
-  
-  set(TBB_INCLUDE_DIRS ${CMAKE_INSTALL_PREFIX}/include CACHE PATH "TBB include directory" FORCE)
-  set(TBB_LIBRARY_DIRS ${CMAKE_INSTALL_PREFIX}/lib CACHE PATH "TBB library directory" FORCE)
 
   set(_tbb_libraries)
   set(_tbb_components_cfg)
@@ -56,8 +58,12 @@ if(NOT TBB_FOUND)
   endforeach()
   
   set(TBB_LIBRARIES ${_tbb_libraries} CACHE FILEPATH "" FORCE)
-    
+  
+  # Forcibly update the cache variables
   set(TBB_ROOT_DIR ${CMAKE_INSTALL_PREFIX} CACHE PATH "TBB root directory" FORCE)
+  set(_tbb_include_dirs ${CMAKE_INSTALL_PREFIX}/include)
+  set(_tbb_library_dirs ${CMAKE_INSTALL_PREFIX}/lib)
+  unset(_tbb_definitions)
 
   include(ExternalProject)
   ExternalProject_Add(
@@ -81,10 +87,15 @@ if(NOT TBB_FOUND)
   )
 endif()
 
+# Force the cache entries to be updated
+set(TBB_INCLUDE_DIRS ${_tbb_include_dirs} CACHE PATH "TBB include directory" FORCE)
+set(TBB_LIBRARY_DIRS ${_tbb_library_dirs} CACHE PATH "TBB library directory" FORCE)
+set(TBB_DEFINITIONS ${_tbb_definitions} CACHE STRING "TBB compiler definitions" FORCE)
+  
 include_directories(${TBB_INCLUDE_DIRS})
 link_directories(${TBB_LIBRARY_DIRS})
 
 message(STATUS "TBB include directory: ${TBB_INCLUDE_DIRS}")
 message(STATUS "TBB library directory: ${TBB_LIBRARY_DIRS}")
 message(STATUS "TBB libraries: ${TBB_LIBRARIES}")
-
+message(STATUS "TBB definitions: ${TBB_DEFINITIONS}")
