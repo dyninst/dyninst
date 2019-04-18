@@ -267,13 +267,13 @@ bool RelocBlock::determineSpringboards(PriorityMap &p) {
        func_->entryBlock() == block_) {
      relocation_cerr << "determineSpringboards (entry block): " << func_->symTabName()
 		     << " / " << hex << block_->start() << " is required" << dec << endl;
-      p[std::make_pair(block_, func_)] = Required;
+      p[std::make_pair(block_, func_)] = FuncEntry;
       return true;
    }
    if (inEdges_.contains(ParseAPI::INDIRECT)) {
      relocation_cerr << "determineSpringboards (indirect target): " << func_->symTabName()
 		     << " / " << hex << block_->start() << " is required" << dec << endl;
-      p[std::make_pair(block_, func_)] = Required;
+      p[std::make_pair(block_, func_)] = IndirBlockEntry;
       return true;
    }
    // Slow crawl
@@ -293,7 +293,7 @@ bool RelocBlock::determineSpringboards(PriorityMap &p) {
 			<< " / " << hex << block_->start() << " is required (type "
 			<< (*iter)->src->type() << ")" << dec << endl;
 	relocation_cerr << "\t" << (*iter)->src->format() << endl;
-	p[std::make_pair(block_, func_)] = Required;
+	p[std::make_pair(block_, func_)] = Suggested;
          return true;
       }
    }

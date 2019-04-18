@@ -80,7 +80,7 @@ bool SpringboardBuilder::generateInt(std::list<codeGen> &springboards,
       
       switch (generateSpringboard(springboards, req, input)) {
          case Failed:
-            if (p == OffLimits) {
+            if (p == FuncEntry) {
                return false;
             }
             // Otherwise we didn't need it anyway.
@@ -108,10 +108,10 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
   // Currently we use a greedy algorithm rather than some sort of scheduling thing.
   // It's a heck of a lot easier that way. 
 
-   if (!generateInt(springboards, input, OffLimits))
+   if (!generateInt(springboards, input, FuncEntry))
       return false;
 
-   if (!generateInt(springboards, input, Required))
+   if (!generateInt(springboards, input, IndirBlockEntry))
       return false;
 
    if (!generateInt(springboards, input, Suggested))
@@ -416,7 +416,7 @@ bool InstalledSpringboards::conflict(Address start, Address end, bool inRelocate
        //    overwriting a block at a higher address (that has already been written).
        //    This check assumes that we are always generating springboards starting at the highest address
        //    and working backwards (i.e. 0xfff... -> 0x000...) 
-       if (state->priority >= Required) {
+       if (state->priority >= FuncEntry) {
             springboard_cerr << "\t Trying to write a springboard that crosses into another required block, ret conflict" << std::endl;
             return true;
         }
@@ -615,7 +615,8 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req,
             case Suggested:
                newPriority = RelocSuggested;
                break;
-            case Required:
+            case FuncEntry:
+            case IndirBlockEntry:
                newPriority = RelocRequired;
                break;
             default:

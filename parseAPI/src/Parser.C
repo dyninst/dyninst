@@ -895,7 +895,7 @@ Parser::finalize(Function *f)
                  // we do not treat it as a tail call.
                  // Just treat it as part of this function.
                  Function *trg_func = findFuncByEntry(trg_block->region(), trg_block->start());
-                 if (trg_func && trg_func->src() != HINT && only_incoming) {
+                 if (trg_func && trg_func->src() != HINT && only_incoming && trg_func->region() == b->region()) {
                      e->_type._interproc = false;
                      parsing_printf("from %lx to %lx, marked as not tail call (single entry), re-finalize\n", b->last(), e->trg()->start());
                      return false;

@@ -227,17 +227,7 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
                             iter, 
                             destination);
                     continue;
-                } else {
-                    //sensitivity_cerr << "\trecording int sensitive @ " 
-                        //<< std::hex << (addr + insn->size()) << std::dec << endl;
-
-                    // Not a thunk call, and both externally and internally sensitive. Ugh. 
-                    // Well, because of the external sensitivity we're going to emulate the
-                    // original instruction, which means the internally sensitive target will
-                    // be transferring back to the original instruction address. Go ahead and
-                    // record this...
-                    recordIntSensitive(addr+insn.size());
-                }
+                } 
             }
 
             // cerr << "\tEmulating instruction..." << endl; 
@@ -544,21 +534,6 @@ void PCSensitiveTransformer::handleThunkCall(RelocBlock *reloc,
      assert(removed);
      (*iter).swap(replacement);
   }
-}
-
-void PCSensitiveTransformer::recordIntSensitive(Address addr) {
-  // All we have from this is a raw address. Suck...
-  // Look up the block_instances that map to this address. 
-
-   block_instance *block = addrSpace->findBlockByEntry(addr);
-   if (!block) return;
-   std::vector<func_instance *> funcs;
-   block->getFuncs(std::back_inserter(funcs));
-   assert(!funcs.empty());
-
-   // We arbitrarily go to the first one...
-   priMap[std::make_pair(block, funcs[0])] = Required;
-
 }
 
 void PCSensitiveTransformer::emulateInsn(RelocBlock *reloc,

@@ -126,7 +126,6 @@ class PCSensitiveTransformer : public Transformer {
                        RelocGraph *cfg,
 		       WidgetList::iterator &iter,
 		       Absloc &destination);
-  void recordIntSensitive(Address addr);
   void emulateInsn(RelocBlock *b_iter,
 				   RelocGraph *cfg,
 				   WidgetList::iterator &iter,
