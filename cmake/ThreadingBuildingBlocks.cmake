@@ -1,9 +1,37 @@
-#################################################################
+#####################################################################################
 # ThreadingBuildingBlocks.cmake
 #
 # Configure Intel's Threading Building Blocks for Dyninst
 #
-#################################################################
+#		----------------------------------------
+#
+# Accepts the following CMake variables
+#
+#	TBB_ROOT_DIR		- Base directory the of TBB installation
+#	TBB_INCLUDE_DIR		- Hint directory that contains the TBB headers files
+#	TBB_LIBRARY_DIR		- Hint directory that contains the TBB library files
+#	TBB_LIBRARY			- Alias for TBB_LIBRARY_DIR
+#	TBB_USE_DEBUG_BUILD	- Use debug version of tbb libraries, if present
+#	TBB_MIN_VERSION		- Minimum acceptable version of TBB
+#
+# Directly exports the following CMake variables
+#
+#	TBB_ROOT_DIR		- Computed base directory of TBB installation
+#	TBB_INCLUDE_DIRS 	- TBB include directory
+#	TBB_LIBRARY_DIRS	- TBB library directory
+#	TBB_DEFINITIONS		- TBB compiler definitions
+#	TBB_LIBRARIES		- TBB library files
+#
+# NOTE:
+#	The exported TBB_ROOT_DIR can be different from the input variable
+#	in the case that it is determined to build TBB from source. In such
+#	a case, TBB_ROOT_DIR will contain the directory of the from-source
+#	installation.
+#
+#
+# See Modules/FindTBB.cmake for additional input and exported variables
+#
+#####################################################################################
 
 # TBB root directory
 set(TBB_ROOT_DIR "/usr" CACHE PATH "TBB root directory")

@@ -292,10 +292,6 @@ find_package_handle_standard_args(TBB
 #
 if(NOT CMAKE_VERSION VERSION_LESS 3.0 AND TBB_FOUND)
   add_library(TBB SHARED IMPORTED)
-  message(STATUS "TBB debug libraries: ${TBB_LIBRARIES_DEBUG}")
-  message(STATUS "TBB release libraries: ${TBB_LIBRARIES_RELEASE}")
-  message(STATUS "TBB libraries: ${TBB_LIBRARIES}")
-  message(STATUS "TBB includes: ${TBB_INCLUDE_DIRS}")
   set_target_properties(TBB
                         PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
                                    ${TBB_INCLUDE_DIRS}
