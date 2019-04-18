@@ -22,15 +22,20 @@
 #
 # Directly exports the following CMake variables
 #
-#	BOOST_ROOT
-#	TBB_INCLUDE_DIRS 	- TBB include directory
-#	TBB_LIBRARY_DIRS	- TBB library directory
-#	TBB_DEFINITIONS		- TBB compiler definitions
-#	TBB_LIBRARIES		- TBB library files
+#	BOOST_ROOT					- Computed base directory the of Boost installation
+#	Boost_INCLUDE_DIRS 			- Boost include directories
+#	Boost_INCLUDE_DIR			- Alias for Boost_INCLUDE_DIRS
+#	Boost_LIBRARY_DIRS			- Link directories for Boost libraries
+#	Boost_DEFINES				- Boost compiler definitions
+#	Boost_LIBRARIES				- Boost library files
+#	Boost_<C>_LIBRARY_RELEASE	- Release libraries to link for component <C> (<C> is upper-case)
+#	Boost_<C>_LIBRARY_DEBUG		- Debug libraries to link for component <C>
+#	Boost_THREAD_LIBRARY		- The filename of the Boost thread library
+
 #
 # NOTE:
 #	The exported BOOST_ROOT can be different from the input variable
-#	in the case that it is determined to build Boost from source. In such,
+#	in the case that it is determined to build Boost from source. In such
 #	a case, BOOST_ROOT will contain the directory of the from-source
 #	installation.
 #
