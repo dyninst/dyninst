@@ -1,9 +1,42 @@
-###############################
-#   Boost.cmake
+#####################################################################################
+# Boost.cmake
 #
 # Configure Boost for Dyninst
 #
-###############################
+#		----------------------------------------
+#
+# Accepts the following CMake variables
+#
+#	BOOST_ROOT					- Base directory the of Boost installation
+#	PATH_BOOST					- Alias for BOOST_ROOT
+#	BOOST_INCLUDEDIR			- Hint directory that contains the Boost headers files
+#	BOOST_LIBRARYDIR			- Hint directory that contains the Boost library files
+#	BOOST_MIN_VERSION			- Minimum acceptable version of Boost
+#	Boost_USE_MULTITHREADED		- Use the multithreaded version of Boost
+#	Boost_USE_STATIC_RUNTIME	- Don't use libraries linked statically to the C++ runtime
+#
+# Advanced options:
+#
+#	Boost_DEBUG					- Enable debug output from FindBoost
+#	Boost_NO_SYSTEM_PATHS		- Disable searching in locations not specified by hint variables 
+#
+# Directly exports the following CMake variables
+#
+#	BOOST_ROOT
+#	TBB_INCLUDE_DIRS 	- TBB include directory
+#	TBB_LIBRARY_DIRS	- TBB library directory
+#	TBB_DEFINITIONS		- TBB compiler definitions
+#	TBB_LIBRARIES		- TBB library files
+#
+# NOTE:
+#	The exported BOOST_ROOT can be different from the input variable
+#	in the case that it is determined to build Boost from source. In such,
+#	a case, BOOST_ROOT will contain the directory of the from-source
+#	installation.
+#
+# See Modules/FindBoost.cmake for additional input and exported variables
+#
+#####################################################################################
 
 # Need Boost >= 1.61 for filesytem components
 set(BOOST_MIN_VERSION 1.61.0 CACHE STRING "Minimum Boost version")
@@ -34,11 +67,17 @@ set(Boost_DEBUG OFF CACHE BOOL "Enable debug output from FindBoost")
 # By default, search system paths
 set(Boost_NO_SYSTEM_PATHS OFF CACHE BOOL "Disable searching in locations not specified by hint variables")
 
+# A sanity check
+# This must be done _before_ the cache variables are set
+if(PATH_BOOST AND BOOST_ROOT)
+  message(FATAL_ERROR "PATH_BOOST AND BOOST_ROOT both specified. Please provide only one")
+endif()
+
 # Set the default location to look for Boost
 set(PATH_BOOST "/usr" CACHE PATH "Path to Boost set by user (DO NOT USE). See BOOST_INCLUDE_DIRS.")
 
 # PATH_BOOST is the user-facing version of BOOST_ROOT
-set(BOOST_ROOT ${PATH_BOOST})
+set(BOOST_ROOT ${PATH_BOOST} CACHE PATH "Base directory the of Boost installation")
 
 # Preferred include directory hint
 set(BOOST_INCLUDEDIR "${BOOST_ROOT}/include" CACHE PATH "Boost preferred include directory hint")
@@ -107,6 +146,10 @@ if(NOT Boost_FOUND)
   else()
     set(_boost_runtime_link shared)
   endif()
+  
+  # Change the base directory
+  set(BOOST_ROOT ${CMAKE_INSTALL_PREFIX} CACHE PATH "Base directory the of Boost installation")
+  
   set(BOOST_ARGS
       --ignore-site-config
       --link=static
@@ -145,13 +188,13 @@ if(NOT Boost_FOUND)
     URL http://downloads.sourceforge.net/project/boost/boost/${_Boost_download_version}/boost_${_Boost_download_filename}.zip
     URL_MD5 aec39b2e85552077e7f5c4e8cf9240cd
     BUILD_IN_SOURCE 1
-    CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${CMAKE_INSTALL_PREFIX} --with-libraries=${Boost_lib_names}
+    CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${BOOST_ROOT} --with-libraries=${Boost_lib_names}
     BUILD_COMMAND ${BOOST_BUILD} ${BOOST_ARGS} install
     INSTALL_COMMAND ""
   )
 
-  set(_boost_include_dirs ${CMAKE_INSTALL_PREFIX}/include)
-  set(_boost_library_dirs ${CMAKE_INSTALL_PREFIX}/lib)
+  set(_boost_include_dirs ${BOOST_ROOT}/include)
+  set(_boost_library_dirs ${BOOST_ROOT}/lib)
   set(_boost_include_dir ${_boost_include_dirs})
 
   if(WIN32)
