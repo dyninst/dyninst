@@ -222,7 +222,7 @@ if(NOT Boost_FOUND)
     # e.g., system -> boost_system
     set(Boost_LIBRARIES "")
     foreach(c ${_boost_components})
-      list(APPEND Boost_LIBRARIES "boost_${c}")
+      list(APPEND Boost_LIBRARIES "${Boost_LIBRARY_DIRS}/libboost_${c}.so")
       
       # Also export cache variables for the file location of each library
       string(TOUPPER ${c} _basename)
