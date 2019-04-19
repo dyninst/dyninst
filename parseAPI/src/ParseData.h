@@ -258,8 +258,8 @@ public:
             ANNOTATE_HAPPENS_AFTER(&a->second); // After last writer
             ANNOTATE_HAPPENS_AFTER(&a->second + 1); // After last reader
             a->second = status;
-            ANNOTATE_HAPPENS_BEFORE(&a->second);
         }
+        ANNOTATE_HAPPENS_BEFORE(&a->second);
     }
 
     void record_func(Function* f) {
