@@ -71,6 +71,7 @@ if(TBB_FOUND)
   set(TBB_LIBRARY_DIRS ${TBB_LIBRARY_DIRS} CACHE PATH "TBB library directory" FORCE)
   set(TBB_LIBRARY_DIR ${TBB_LIBRARY_DIR} CACHE PATH "Alias for TBB_LIBRARY_DIRS" FORCE)
   set(TBB_DEFINITIONS ${TBB_DEFINITIONS} CACHE STRING "TBB compiler definitions" FORCE)
+  set(TBB_LIBRARIES ${TBB_LIBRARIES} CACHE FILEPATH "TBB library files" FORCE)
 else()
   # Build from source
   message(STATUS "Attempting to build TBB as external project")
