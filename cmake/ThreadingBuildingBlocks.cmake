@@ -57,17 +57,24 @@ set(_tbb_components tbb tbbmalloc tbbmalloc_proxy)
 
 find_package(TBB ${TBB_MIN_VERSION} COMPONENTS ${_tbb_components})
 
-# Save the automatic results
-set(_tbb_include_dirs ${TBB_INCLUDE_DIRS})
-set(_tbb_library_dirs ${TBB_LIBRARY_DIRS})
-set(_tbb_definitions ${TBB_DEFINITIONS})
-
-if(NOT TBB_FOUND)
+if(TBB_FOUND)
+  # Export the found system TBB
+  set(TBB_INCLUDE_DIRS ${TBB_INCLUDE_DIRS} CACHE PATH "TBB include directory" FORCE)
+  set(TBB_LIBRARY_DIRS ${TBB_LIBRARY_DIRS} CACHE PATH "TBB library directory" FORCE)
+  set(TBB_DEFINITIONS ${TBB_DEFINITIONS} CACHE STRING "TBB compiler definitions" FORCE)
+else()
+  # Build from source
   message(STATUS "Attempting to build TBB as external project")
   
   if(NOT UNIX)
     message(FATAL_ERROR "Building TBB from source is not supported on this platform")
   endif()
+  
+  # Forcibly update the cache variables
+  set(TBB_ROOT_DIR ${CMAKE_INSTALL_PREFIX} CACHE PATH "TBB root directory" FORCE)
+  set(TBB_INCLUDE_DIRS ${TBB_ROOT_DIR}/include CACHE PATH "TBB include directory" FORCE)
+  set(TBB_LIBRARY_DIRS ${TBB_ROOT_DIR}/lib CACHE PATH "TBB library directory" FORCE)
+  set(TBB_DEFINITIONS "" CACHE STRING "TBB compiler definitions" FORCE)
 
   set(_tbb_libraries)
   set(_tbb_components_cfg)
@@ -87,12 +94,6 @@ if(NOT TBB_FOUND)
   
   set(TBB_LIBRARIES ${_tbb_libraries} CACHE FILEPATH "" FORCE)
   
-  # Forcibly update the cache variables
-  set(TBB_ROOT_DIR ${CMAKE_INSTALL_PREFIX} CACHE PATH "TBB root directory" FORCE)
-  set(_tbb_include_dirs ${CMAKE_INSTALL_PREFIX}/include)
-  set(_tbb_library_dirs ${CMAKE_INSTALL_PREFIX}/lib)
-  unset(_tbb_definitions)
-
   include(ExternalProject)
   set(_tbb_prefix_dir ${CMAKE_BINARY_DIR}/tbb)
   ExternalProject_Add(
@@ -115,12 +116,7 @@ if(NOT TBB_FOUND)
       	-P ${CMAKE_CURRENT_LIST_DIR}/ThreadingBuildingBlocks.install.cmake
   )
 endif()
-
-# Force the cache entries to be updated
-set(TBB_INCLUDE_DIRS ${_tbb_include_dirs} CACHE PATH "TBB include directory" FORCE)
-set(TBB_LIBRARY_DIRS ${_tbb_library_dirs} CACHE PATH "TBB library directory" FORCE)
-set(TBB_DEFINITIONS ${_tbb_definitions} CACHE STRING "TBB compiler definitions" FORCE)
-  
+ 
 include_directories(${TBB_INCLUDE_DIRS})
 link_directories(${TBB_LIBRARY_DIRS})
 
