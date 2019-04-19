@@ -80,3 +80,14 @@ find_package_handle_standard_args(LibElf
                                   LIBELF_INCLUDE_DIR
                                   VERSION_VAR
                                   LibElf_VERSION)
+
+# Export cache variables
+if(LibElf_FOUND)
+  set(LIBELF_INCLUDE_DIRS ${LIBELF_INCLUDE_DIR})
+  set(LIBELF_LIBRARIES ${LIBELF_LIBRARIES})
+
+  # Because we only report the library with the largest version, we are
+  # guaranteed there is only one file in LIBELF_LIBRARIES
+  get_filename_component(_elf_dir ${LIBELF_LIBRARIES} DIRECTORY)
+  set(LIBELF_LIBRARY_DIRS ${_elf_dir})
+endif()
