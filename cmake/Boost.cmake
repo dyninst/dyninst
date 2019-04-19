@@ -126,15 +126,16 @@ set(_boost_components atomic chrono date_time filesystem system thread timer)
 
 find_package(Boost ${BOOST_MIN_VERSION} COMPONENTS ${_boost_components})
 
-# Save the automatic results
-set(_boost_include_dirs ${Boost_INCLUDE_DIRS})
-set(_boost_library_dirs ${Boost_LIBRARY_DIRS})
-set(_boost_include_dir ${Boost_INCLUDE_DIR})
-
 # -------------- SOURCE BUILD -------------------------------------------------
 
-# If we didn't find a suitable version on the system, then download one from the web
-if(NOT Boost_FOUND)
+if(Boost_FOUND)
+  # Force the cache entries to be updated
+  # Normally, these would not be exported. However, we need them in the Testsuite
+  set(Boost_INCLUDE_DIRS ${Boost_INCLUDE_DIRS} CACHE PATH "Boost include directory" FORCE)
+  set(Boost_LIBRARY_DIRS ${Boost_LIBRARY_DIRS} CACHE PATH "Boost library directory" FORCE)
+  set(Boost_INCLUDE_DIR ${Boost_INCLUDE_DIR} CACHE PATH "Boost include directory" FORCE)
+else()
+  # If we didn't find a suitable version on the system, then download one from the web
   set(_Boost_download_version "1.69.0")
   message(STATUS "${Boost_ERROR_REASON}")
   message(STATUS "Attempting to build ${_Boost_download_version} as external project")
@@ -157,7 +158,12 @@ if(NOT Boost_FOUND)
   endif()
   
   # Change the base directory
-  set(BOOST_ROOT ${CMAKE_INSTALL_PREFIX} CACHE PATH "Base directory the of Boost installation")
+  set(BOOST_ROOT ${CMAKE_INSTALL_PREFIX} CACHE PATH "Base directory the of Boost installation" FORCE)
+
+  # Update the exported variables  
+  set(Boost_INCLUDE_DIRS ${BOOST_ROOT}/include CACHE PATH "Boost include directory" FORCE)
+  set(Boost_LIBRARY_DIRS ${BOOST_ROOT}/lib CACHE PATH "Boost library directory" FORCE)
+  set(Boost_INCLUDE_DIR ${Boost_INCLUDE_DIRS} CACHE PATH "Boost include directory" FORCE)
   
   set(BOOST_ARGS
       --ignore-site-config
@@ -202,10 +208,6 @@ if(NOT Boost_FOUND)
     INSTALL_COMMAND ""
   )
 
-  set(_boost_include_dirs ${BOOST_ROOT}/include)
-  set(_boost_library_dirs ${BOOST_ROOT}/lib)
-  set(_boost_include_dir ${_boost_include_dirs})
-
   if(WIN32)
     # We need to specify different library names for debug vs release
     set(Boost_LIBRARIES "")
@@ -233,12 +235,6 @@ if(NOT Boost_FOUND)
 endif()
 
 # -------------- EXPORT VARIABLES ---------------------------------------------
-
-# Force the cache entries to be updated
-# Normally, these would not be exported. However, we need them in the Testsuite
-set(Boost_INCLUDE_DIRS ${_boost_include_dirs} CACHE PATH "Boost include directory" FORCE)
-set(Boost_LIBRARY_DIRS ${_boost_library_dirs} CACHE PATH "Boost library directory" FORCE)
-set(Boost_INCLUDE_DIR ${_boost_include_dir} CACHE PATH "Boost include directory" FORCE)
 
 # Export Boost_THREAD_LIBRARY
 list(FIND _boost_components "thread" _building_threads)
