@@ -78,7 +78,7 @@ if(NOT LibElf_FOUND OR NOT LibDwarf_FOUND)
       <SOURCE_DIR>/configure
       --enable-install-elfh
       --enable-shared
-      --prefix=${CMAKE_BINARY_DIR}/elfutils
+      --prefix=${CMAKE_INSTALL_PREFIX}
     BUILD_COMMAND make
     INSTALL_COMMAND make install
   )
