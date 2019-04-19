@@ -31,7 +31,7 @@
 #ifndef _Collections_h_
 #define _Collections_h_
 
-#include <tbb/concurrent_hash_map.h>
+#include "concurrent.h"
 #include "Type.h"
 #include "Variable.h"
 #include "Serialization.h"
@@ -55,7 +55,7 @@ class DwarfWalker;
 
 class SYMTAB_EXPORT localVarCollection : public AnnotationContainer<localVar *> {
   
-  tbb::concurrent_vector<localVar* > localVars;
+  dyn_c_vector<localVar* > localVars;
   
   bool addItem_impl(localVar *);
 public:
@@ -64,7 +64,7 @@ public:
 
   void addLocalVar(localVar * var);
   localVar * findLocalVar(std::string &name);
-  const tbb::concurrent_vector<localVar *> &getAllVars() const;
+  const dyn_c_vector<localVar *> &getAllVars() const;
 
   Serializable *ac_serialize_impl(SerializerBase *, const char * = "localVarCollection") THROW_SPEC (SerializerError);
 };
@@ -83,9 +83,9 @@ class SYMTAB_EXPORT typeCollection : public Serializable//, public AnnotatableSp
     friend class Type;
     friend class DwarfWalker;
 
-    tbb::concurrent_hash_map<std::string, Type *> typesByName;
-    tbb::concurrent_hash_map<std::string, Type *> globalVarsByName;
-    tbb::concurrent_hash_map<int, Type *> typesByID;
+    dyn_c_hash_map<std::string, Type *> typesByName;
+    dyn_c_hash_map<std::string, Type *> globalVarsByName;
+    dyn_c_hash_map<int, Type *> typesByID;
 
 
     // DWARF:
@@ -152,12 +152,8 @@ public:
 
 class SYMTAB_EXPORT builtInTypeCollection {
    
-  //dyn_hash_map<std::string, Type *> builtInTypesByName;
-  //dyn_hash_map<int, Type *> builtInTypesByID;
-  // tbb::concurrent_hash_map<int, BPatch_type *> builtInTypesByID;
-  //tbb::concurrent_hash_map<std::string, BPatch_type *> builtInTypesByName;
-    tbb::concurrent_hash_map<int, Type *> builtInTypesByID;
-    tbb::concurrent_hash_map<std::string, Type *> builtInTypesByName;
+    dyn_c_hash_map<int, Type *> builtInTypesByID;
+    dyn_c_hash_map<std::string, Type *> builtInTypesByName;
 public:
 
     builtInTypeCollection();

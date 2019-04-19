@@ -20,7 +20,7 @@
 #include <Collections.h>
 
 //Concurrent Hash Map
-#include "tbb/concurrent_hash_map.h"
+#include "concurrent.h"
 #include <bits/stdc++.h>
 
 namespace Dyninst {
@@ -416,8 +416,8 @@ private:
     //dyn_hash_map<Dwarf_Off, typeId_t> types_type_ids_; // .debug_types offset -> id
 			     
     //Concurent Hash Maps
-    tbb::concurrent_hash_map<Dwarf_Off, typeId_t> info_type_ids_;
-    tbb::concurrent_hash_map<Dwarf_Off, typeId_t> types_type_ids_;
+    dyn_c_hash_map<Dwarf_Off, typeId_t> info_type_ids_;
+    dyn_c_hash_map<Dwarf_Off, typeId_t> types_type_ids_;
 			      
 
     typeId_t get_type_id(Dwarf_Off offset, bool is_info);
@@ -427,7 +427,7 @@ private:
     //dyn_hash_map<uint64_t, typeId_t> sig8_type_ids_;
 
     //Concurrent Hash Map
-    tbb::concurrent_hash_map<uint64_t, typeId_t> sig8_type_ids_;
+    dyn_c_hash_map<uint64_t, typeId_t> sig8_type_ids_;
     
     bool parseModuleSig8(bool is_info);
     void findAllSig8Types();

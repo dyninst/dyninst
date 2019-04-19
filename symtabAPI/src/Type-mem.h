@@ -37,7 +37,7 @@
 
 namespace Dyninst {
   namespace SymtabAPI {
-    extern tbb::concurrent_hash_map<void *, size_t> type_memory;
+    extern dyn_c_hash_map<void *, size_t> type_memory;
   }
 }
 
@@ -51,7 +51,7 @@ T *upgradePlaceholder(Type *placeholder, T *new_type)
   size_t size = 0;
   // acquire(type_memory);
   {
-    tbb::concurrent_hash_map<void*, size_t>::accessor a;
+    dyn_c_hash_map<void*, size_t>::accessor a;
     assert(type_memory.find(a, placeholder));
     size = a->second;
   }
@@ -78,8 +78,8 @@ T* typeCollection::addOrUpdateType(T *type)
     boost::lock_guard<boost::mutex> g(placeholder_mutex);
 
 	Type *existingType = findTypeLocal(type->getID());
-    tbb::concurrent_hash_map<int, Type*>::accessor id_accessor;
-    tbb::concurrent_hash_map<std::string, Type*>::accessor name_accessor;
+    dyn_c_hash_map<int, Type*>::accessor id_accessor;
+    dyn_c_hash_map<std::string, Type*>::accessor name_accessor;
 	if (!existingType) 
 	{
 		if ( type->getName() != "" ) 
@@ -114,7 +114,7 @@ T* typeCollection::addOrUpdateType(T *type)
 	/* The type may have gained a name. */
 	if ( existingType->getName() != "") 
 	{
-		tbb::concurrent_hash_map<std::string, Type*>::accessor a;
+		dyn_c_hash_map<std::string, Type*>::accessor a;
 		bool found = typesByName.find(a, existingType->getName());
 		if (found)
 		{

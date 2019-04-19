@@ -1400,7 +1400,7 @@ BPatch_type * BPatch::createEnum( const char * name,
       return NULL;
     }
     string typeName = name;
-    tbb::concurrent_vector<pair<string, int> *>elements;
+    dyn_c_vector<pair<string, int> *>elements;
     for (unsigned int i=0; i < elementNames.size(); i++) 
         elements.push_back(new pair<string, int>(elementNames[i], elementIds[i]));
     
@@ -1429,7 +1429,7 @@ BPatch_type * BPatch::createEnum( const char * name,
 				        BPatch_Vector<char *> &elementNames)
 {
     string typeName = name;
-    tbb::concurrent_vector<pair<string, int> *>elements;
+    dyn_c_vector<pair<string, int> *>elements;
     for (unsigned int i=0; i < elementNames.size(); i++) 
         elements.push_back(new pair<string, int>(elementNames[i], i));
     
@@ -1465,7 +1465,7 @@ BPatch_type * BPatch::createStruct( const char * name,
    }
    
    string typeName = name;
-   tbb::concurrent_vector<pair<string, Type *> *> fields;
+   dyn_c_vector<pair<string, Type *> *> fields;
    for(i=0; i<fieldNames.size(); i++)
    {
       if(!fieldTypes[i])
@@ -1505,7 +1505,7 @@ BPatch_type * BPatch::createUnion( const char * name,
     }
 
     string typeName = name;
-    tbb::concurrent_vector<pair<string, Type *> *> fields;
+    dyn_c_vector<pair<string, Type *> *> fields;
     for(i=0; i<fieldNames.size(); i++)
     {
         if(!fieldTypes[i])

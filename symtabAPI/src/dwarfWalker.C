@@ -46,7 +46,6 @@
 #include <boost/bind.hpp>
 #include "elfutils/libdw.h"
 #include <elfutils/libdw.h>
-#include <tbb/parallel_for_each.h>
 
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -2544,7 +2543,7 @@ typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info)
   typeId_t type_id = 0;
   // acquire(type_ids);
   {
-    tbb::concurrent_hash_map<Dwarf_Off, typeId_t>::const_accessor a;
+    dyn_c_hash_map<Dwarf_Off, typeId_t>::const_accessor a;
     if(type_ids.find(a, offset)) type_id = a->second; 
   }
   // release(type_ids);
@@ -2555,7 +2554,7 @@ typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info)
   //type_ids[offset] = val;
   // acquire(type_ids);
   {
-    tbb::concurrent_hash_map<Dwarf_Off, typeId_t>::accessor a;
+    dyn_c_hash_map<Dwarf_Off, typeId_t>::accessor a;
     type_ids.insert(a, std::make_pair(offset, val));
   }
   // release(type_ids);
@@ -2631,7 +2630,7 @@ bool DwarfWalker::parseModuleSig8(bool is_info)
     
     // acquire(sig8_type_ids_);
     {
-      tbb::concurrent_hash_map<uint64_t, typeId_t>::accessor a;
+      dyn_c_hash_map<uint64_t, typeId_t>::accessor a;
       sig8_type_ids_.insert(a, std::make_pair(sig8, type_id));
     }
     // release(sig8_type_ids_);
@@ -2654,7 +2653,7 @@ bool DwarfWalker::findSig8Type(Dwarf_Sig8 * signature, Type *&returnType)
    typeId_t type_id = 0;
    // acquire(sig8_type_ids_);
    {
-     tbb::concurrent_hash_map<uint64_t, typeId_t>::const_accessor a;
+     dyn_c_hash_map<uint64_t, typeId_t>::const_accessor a;
      if(sig8_type_ids_.find(a, sig8)) type_id = a->second;
    }
    // release(sig8_type_ids_);

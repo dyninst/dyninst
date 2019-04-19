@@ -164,7 +164,7 @@ StandardParseData::remove_frame(ParseFrame * pf)
 {
     // acquire(_rdata.frame_map);
     {
-      tbb::concurrent_hash_map<Address, ParseFrame*>::accessor a;
+      dyn_c_hash_map<Address, ParseFrame*>::accessor a;
       if(_rdata.frame_map.find(a, pf->func->addr())) _rdata.frame_map.erase(a);
     }
     // release(_rdata.frame_map);
@@ -331,7 +331,7 @@ OverlappingParseData::frameStatus(CodeRegion *cr, Address addr)
     boost::lock_guard<ParseData> g(*this);
     if(!HASHDEF(rmap,cr)) return ParseFrame::BAD_LOOKUP;
     region_data * rd = rmap[cr];
-    tbb::concurrent_hash_map<Address, ParseFrame::Status>::const_accessor a;
+    dyn_c_hash_map<Address, ParseFrame::Status>::const_accessor a;
     if (rd->frame_status.find(a, addr)) {
         return a->second;
     } else {

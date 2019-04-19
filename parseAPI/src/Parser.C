@@ -431,7 +431,7 @@ Parser::ProcessOneFrame(ParseFrame* pf, bool recursive) {
     unsigned int msecs = floor(t.elapsed().wall / 1000000.0);
     // acquire(time_histogram);
     {
-      tbb::concurrent_hash_map<unsigned int, unsigned int>::accessor a;
+      dyn_c_hash_map<unsigned int, unsigned int>::accessor a;
       time_histogram.insert(a, msecs);
       ++(a->second);
     }
@@ -2386,7 +2386,7 @@ void Parser::move_func(Function *func, Address new_entry, CodeRegion *new_reg)
 
     // acquire(reg_data->funcsByAddr);
     {
-      tbb::concurrent_hash_map<Address, Function*>::accessor a;
+      dyn_c_hash_map<Address, Function*>::accessor a;
       if(reg_data->funcsByAddr.find(a, func->addr()))
 	{
 	  reg_data->funcsByAddr.erase(a);

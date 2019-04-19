@@ -43,7 +43,6 @@
 #endif
 #include <boost/shared_ptr.hpp>
 #include "RangeLookup.h"
-#include "tbb/concurrent_queue.h"
 
 #include "StringTable.h"
 
@@ -238,7 +237,7 @@ namespace Dyninst{
             bool objectLevelLineInfo;
 			Dyninst::SymtabAPI::LineInformation* lineInfo_;
 			typeCollection* typeInfo_;
-			tbb::concurrent_queue<Module::DebugInfoT> info_;
+			dyn_c_queue<Module::DebugInfoT> info_;
 
 
 			std::string fileName_;                   // short file

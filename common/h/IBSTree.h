@@ -39,7 +39,7 @@
 
 #include <assert.h>
 #include "dyntypes.h"
-#include "locks.h"
+#include "concurrent.h"
 
 #include <set>
 #include <limits>

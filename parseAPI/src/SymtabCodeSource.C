@@ -51,7 +51,7 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
-typedef tbb::concurrent_hash_map<Address, bool> SeenMap;
+typedef dyn_c_hash_map<Address, bool> SeenMap;
 
 static const vector<std::string> skipped_symbols = {
           "_non_rtti_object::`vftable'",

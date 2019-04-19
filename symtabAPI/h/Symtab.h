@@ -44,7 +44,7 @@
 
 #include "dyninstversion.h"
 
-#include "locks.h"
+#include "concurrent.h"
 
 #include "boost/shared_ptr.hpp"
 #include "boost/multi_index_container.hpp"

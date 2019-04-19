@@ -115,7 +115,7 @@ localVar *localVarCollection::findLocalVar(std::string &name){
  * localVarCollection::getAllVars()
  * this function returns all the local variables in the collection.
  */
-const tbb::concurrent_vector<localVar *> &localVarCollection::getAllVars() const
+const dyn_c_vector<localVar *> &localVarCollection::getAllVars() const
 {
     return localVars;
 }
@@ -284,79 +284,79 @@ typeCollection::~typeCollection()
  */
 Type *typeCollection::findType(std::string name)
 {
-	tbb::concurrent_hash_map<std::string, Type *>::const_accessor a;
+    dyn_c_hash_map<std::string, Type *>::const_accessor a;
 
     if (typesByName.find(a, name))
     	return a->second;
-	else if (Symtab::builtInTypes())
+    else if (Symtab::builtInTypes())
         return Symtab::builtInTypes()->findBuiltInType(name);
     else
-		return NULL;
+        return NULL;
 }
 
 Type *typeCollection::findTypeLocal(std::string name)
 {
-	tbb::concurrent_hash_map<std::string, Type *>::const_accessor a;
+    dyn_c_hash_map<std::string, Type *>::const_accessor a;
 
-	if (typesByName.find(a, name))
-		return a->second;
-   else
-      return NULL;
+    if (typesByName.find(a, name))
+        return a->second;
+    else
+        return NULL;
 }
 
 Type *typeCollection::findTypeLocal(const int ID)
 {
-	tbb::concurrent_hash_map<int, Type*>::const_accessor a;
-   if (typesByID.find(a, ID))
-      return a->second;
-   else
-      return NULL;
+    dyn_c_hash_map<int, Type*>::const_accessor a;
+    if (typesByID.find(a, ID))
+        return a->second;
+    else
+        return NULL;
 }
 
 
 Type * typeCollection::findOrCreateType( const int ID ) 
 {
     boost::lock_guard<boost::mutex> g(placeholder_mutex);
-	tbb::concurrent_hash_map<int, Type*>::const_accessor a;
-	if (typesByID.find(a, ID))
-	{
-		return a->second;
-	}
+    dyn_c_hash_map<int, Type*>::const_accessor a;
+    if (typesByID.find(a, ID))
+    {
+        return a->second;
+    }
 
-	Type * returnType = NULL;
+    Type * returnType = NULL;
 
-	if ( Symtab::builtInTypes() ) 
-	{
-		returnType = Symtab::builtInTypes()->findBuiltInType(ID);
+    if ( Symtab::builtInTypes() )
+    {
+        returnType = Symtab::builtInTypes()->findBuiltInType(ID);
 
-		if (returnType)
-			return returnType;
-	}
+        if (returnType)
+            return returnType;
+    }
 
-	/* Create a placeholder type. */
-	returnType = Type::createPlaceholder(ID);
-	assert( returnType != NULL );
+    /* Create a placeholder type. */
+    returnType = Type::createPlaceholder(ID);
+    assert( returnType != NULL );
 
-	/* Having created the type, add it. */
-	addType( returnType, g );
+    /* Having created the type, add it. */
+    addType( returnType, g );
 
     return returnType;
 } /* end findOrCreateType() */
 
 Type *typeCollection::findType(const int ID)
 {
-	tbb::concurrent_hash_map<int, Type*>::const_accessor a;
-	if (typesByID.find(a, ID))
-		return a->second;
-	else
-	{
-		Type *ret = NULL;
+    dyn_c_hash_map<int, Type*>::const_accessor a;
+    if (typesByID.find(a, ID))
+        return a->second;
+    else
+    {
+        Type *ret = NULL;
 
-		if (Symtab::builtInTypes()) 
-			ret = Symtab::builtInTypes()->findBuiltInType(ID);
+        if (Symtab::builtInTypes())
+            ret = Symtab::builtInTypes()->findBuiltInType(ID);
 
-		return ret;
-	}
+        return ret;
+    }
 }
 
 /*
@@ -370,11 +370,11 @@ Type *typeCollection::findType(const int ID)
  */
 Type *typeCollection::findVariableType(std::string &name)
 {
-	tbb::concurrent_hash_map<std::string, Type *>::const_accessor a;
-	if (globalVarsByName.find(a, name))
-		return a->second;
-	else
-		return (Type *) NULL;
+    dyn_c_hash_map<std::string, Type *>::const_accessor a;
+    if (globalVarsByName.find(a, name))
+        return a->second;
+    else
+        return (Type *) NULL;
 }
 
 /*
@@ -394,11 +394,11 @@ void typeCollection::addType(Type *type)
 void typeCollection::addType(Type *type, boost::lock_guard<boost::mutex>& g)
 {
     if(type->getName() != "") { //Type could have no name.
-        tbb::concurrent_hash_map<std::string, Type*>::accessor a;
+        dyn_c_hash_map<std::string, Type*>::accessor a;
         typesByName.insert(a, make_pair(type->getName(), type));
         type->incrRefCount();
     }
-    tbb::concurrent_hash_map<int, Type*>::accessor id_a;
+    dyn_c_hash_map<int, Type*>::accessor id_a;
     typesByID.insert(id_a, make_pair(type->getID(), type));
     type->incrRefCount();
 
@@ -406,8 +406,8 @@ void typeCollection::addType(Type *type, boost::lock_guard<boost::mutex>& g)
 
 void typeCollection::addGlobalVariable(std::string &name, Type *type) 
 {
-	tbb::concurrent_hash_map<std::string, Type*>::accessor a;
-	globalVarsByName.insert(a, make_pair(type->getName(), type));
+    dyn_c_hash_map<std::string, Type*>::accessor a;
+    globalVarsByName.insert(a, make_pair(type->getName(), type));
 }
 
 void typeCollection::clearNumberedTypes() 
@@ -561,13 +561,13 @@ builtInTypeCollection::~builtInTypeCollection()
    Destructor is being invoked outside the parallel region so annotations are not needed.
   */
 
-    tbb::concurrent_hash_map<std::string, Type *>::const_iterator iterByName = builtInTypesByName.begin();
+    dyn_c_hash_map<std::string, Type *>::const_iterator iterByName = builtInTypesByName.begin();
    
     for(;iterByName!=builtInTypesByName.end(); ++iterByName){
       iterByName->second->decrRefCount();
     }
 
-    tbb::concurrent_hash_map<int, Type *>::const_iterator iterByID = builtInTypesByID.begin();
+    dyn_c_hash_map<int, Type *>::const_iterator iterByID = builtInTypesByID.begin();
     
     for(;iterByID!=builtInTypesByID.end();++iterByID){
       iterByID->second->decrRefCount();
@@ -592,7 +592,7 @@ Type *builtInTypeCollection::findBuiltInType(std::string &name)
     Type* temp = NULL;
     // acquire(fake_builtInTypes_lock);
     {
-      tbb::concurrent_hash_map<std::string, Type *>::const_accessor a;
+      dyn_c_hash_map<std::string, Type *>::const_accessor a;
       if (builtInTypesByName.find(a, name))
     	  temp = a->second;
     }
@@ -611,7 +611,7 @@ Type *builtInTypeCollection::findBuiltInType(const int ID)
     Type* temp = NULL;
     // acquire(fake_builtInTypes_lock);
     {
-      tbb::concurrent_hash_map<int, Type *>::const_accessor a;
+       dyn_c_hash_map<int, Type *>::const_accessor a;
        if (builtInTypesByID.find(a, ID))
           temp = a->second;
     }
@@ -629,7 +629,7 @@ void builtInTypeCollection::addBuiltInType(Type *type)
   if(type->getName() != "") { //Type could have no name.
     // acquire(builtInTypesByName);
     {
-      tbb::concurrent_hash_map<std::string, Type *>::const_accessor a;
+      dyn_c_hash_map<std::string, Type *>::const_accessor a;
       builtInTypesByName.insert(a, std::make_pair(type->getName(),type));
       type->incrRefCount();
     }
@@ -638,7 +638,7 @@ void builtInTypeCollection::addBuiltInType(Type *type)
   //All built-in types have unique IDs so far jdd 4/21/99
     // acquire(builtInTypesByID);
     {  
-      tbb::concurrent_hash_map<int, Type *>::const_accessor a;
+      dyn_c_hash_map<int, Type *>::const_accessor a;
       builtInTypesByID.insert(a, std::make_pair(type->getID(),type));
       type->incrRefCount();
     }
@@ -649,7 +649,7 @@ void builtInTypeCollection::addBuiltInType(Type *type)
 std::vector<Type *> *builtInTypeCollection::getAllBuiltInTypes() {
    std::vector<Type *> *typesVec = new std::vector<Type *>;
 
-   for (tbb::concurrent_hash_map<int, Type *>::const_iterator it = builtInTypesByID.begin();
+   for (dyn_c_hash_map<int, Type *>::const_iterator it = builtInTypesByID.begin();
        it != builtInTypesByID.end();
        it ++) {
      typesVec->push_back(it->second);

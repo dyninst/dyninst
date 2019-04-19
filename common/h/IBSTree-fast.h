@@ -42,7 +42,7 @@
 #include <boost/mpl/inherit.hpp>
 #include <iostream>
 
-#include "locks.h"
+#include "concurrent.h"
 
 namespace Dyninst
 {

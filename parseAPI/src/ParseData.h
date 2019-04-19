@@ -49,7 +49,7 @@
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/atomic.hpp>
 
-#include "tbb/concurrent_hash_map.h"
+#include "concurrent.h"
 
 using namespace std;
 
@@ -190,19 +190,19 @@ class region_data {
 public:
     // Function lookups
     Dyninst::IBSTree_fast<FuncExtent> funcsByRange;
-    tbb::concurrent_hash_map<Address, Function *> funcsByAddr;
+    dyn_c_hash_map<Address, Function *> funcsByAddr;
 
     // Block lookups
     Dyninst::IBSTree_fast<Block > blocksByRange;
-    tbb::concurrent_hash_map<Address, Block *> blocksByAddr;
+    dyn_c_hash_map<Address, Block *> blocksByAddr;
 
     // Parsing internals 
-    tbb::concurrent_hash_map<Address, ParseFrame *> frame_map;
-    tbb::concurrent_hash_map<Address, ParseFrame::Status> frame_status;
+    dyn_c_hash_map<Address, ParseFrame *> frame_map;
+    dyn_c_hash_map<Address, ParseFrame::Status> frame_status;
 
     // Edge parsing records
     // We only want one thread to create edges for a location
-    typedef tbb::concurrent_hash_map<Address, edge_parsing_data> edge_data_map; 
+    typedef dyn_c_hash_map<Address, edge_parsing_data> edge_data_map;
     edge_data_map edge_parsing_status;
 
     Function * findFunc(Address entry);
@@ -231,7 +231,7 @@ public:
         ParseFrame *result = NULL;
         // acquire(frame_map);
 	{
-	  tbb::concurrent_hash_map<Address, ParseFrame*>::const_accessor a;
+	  dyn_c_hash_map<Address, ParseFrame*>::const_accessor a;
 	  if(frame_map.find(a, addr)) result = a->second;
 	}
         // release(frame_map);
@@ -239,7 +239,7 @@ public:
     }
     ParseFrame::Status getFrameStatus(Address addr) {
         ParseFrame::Status ret;
-        tbb::concurrent_hash_map<Address, ParseFrame::Status>::const_accessor a;
+        dyn_c_hash_map<Address, ParseFrame::Status>::const_accessor a;
         if(frame_status.find(a, addr)) {
             ANNOTATE_HAPPENS_AFTER(&a->second); // After last writer
             ret = a->second;
@@ -253,7 +253,7 @@ public:
 
     void setFrameStatus(Address addr, ParseFrame::Status status)
     {
-        tbb::concurrent_hash_map<Address, ParseFrame::Status>::accessor a;
+        dyn_c_hash_map<Address, ParseFrame::Status>::accessor a;
         if(!frame_status.insert(a, make_pair(addr, status))) {
             ANNOTATE_HAPPENS_AFTER(&a->second); // After last writer
             ANNOTATE_HAPPENS_AFTER(&a->second + 1); // After last reader
@@ -265,7 +265,7 @@ public:
     void record_func(Function* f) {
         // acquire(funcsByAddr);
 	{
-	  tbb::concurrent_hash_map<Address, Function*>::accessor a;
+	  dyn_c_hash_map<Address, Function*>::accessor a;
 	  funcsByAddr.insert(a, std::make_pair(f->addr(), f));
 	}
         // release(funcsByAddr);
@@ -275,7 +275,7 @@ public:
         Block* ret = NULL;
         // acquire(blocksByAddr);
 	    {
-            tbb::concurrent_hash_map<Address, Block*>::accessor a;
+            dyn_c_hash_map<Address, Block*>::accessor a;
             bool inserted = blocksByAddr.insert(a, std::make_pair(b->start(), b));
             // Inserting failed when another thread has inserted a block with the same starting address
             if(!inserted) {
@@ -293,7 +293,7 @@ public:
     void record_frame(ParseFrame* pf) {
         // acquire(frame_map);
 	{
-	  tbb::concurrent_hash_map<Address, ParseFrame*>::accessor a;
+	  dyn_c_hash_map<Address, ParseFrame*>::accessor a;
 	  frame_map.insert(a, make_pair(pf->func->addr(), pf));
 	}
         // release(frame_map);
@@ -313,7 +313,7 @@ public:
         edge_parsing_data ret;
         // acquire(edge_parsing_status);
 	{
-	  tbb::concurrent_hash_map<Address, edge_parsing_data>::accessor a;
+	  dyn_c_hash_map<Address, edge_parsing_data>::accessor a;
           // A successful insertion means the thread should 
           // continue to create edges. We return the passed in Function*
           // as indication of successful insertion.
@@ -350,7 +350,7 @@ region_data::findFunc(Address entry)
     Function *result = NULL;
     // acquire(funcsByAddr);
     {
-      tbb::concurrent_hash_map<Address, Function *>::const_accessor a;
+      dyn_c_hash_map<Address, Function *>::const_accessor a;
       if(funcsByAddr.find(a, entry)) result = a->second;
     }
     // release(funcsByAddr);
@@ -362,7 +362,7 @@ region_data::findBlock(Address entry)
     Block *result = NULL;
     // acquire(blocksByAddr);
     {
-      tbb::concurrent_hash_map<Address, Block *>::const_accessor a;
+      dyn_c_hash_map<Address, Block *>::const_accessor a;
       if(blocksByAddr.find(a, entry)) result = a->second;
     }
     // release(blocksByAddr);

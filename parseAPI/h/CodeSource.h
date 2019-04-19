@@ -43,8 +43,7 @@
 
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/lockable_adapter.hpp>
-#include <tbb/concurrent_hash_map.h>
-#include "locks.h"
+#include "concurrent.h"
 
 class StatContainer;
 
@@ -163,7 +162,7 @@ class PARSER_EXPORT CodeSource : public Dyninst::InstructionSource {
     static dyn_hash_map<int, bool> non_returning_syscalls_x86_64;
 
  public:
-    typedef tbb::concurrent_hash_map<void *, CodeRegion*> RegionMap;
+    typedef dyn_c_hash_map<void *, CodeRegion*> RegionMap;
 
     /* Returns true if the function at an address is known to be
        non returning (e.g., is named `exit' on Linux/ELF, etc.).

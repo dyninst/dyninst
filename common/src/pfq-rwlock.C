@@ -73,11 +73,13 @@
 // as the readers only serialize at the transitions between phases.
 
 #include "vgannotations.h"
-#include "locks.h"
+#include "concurrent.h"
 
 static const unsigned int PHASE = 0x1;
 static const unsigned int WRITER = 0x2;
 static const unsigned int TICKET = 0x4;
+
+using namespace Dyninst;
 
 dyn_rwlock::dyn_rwlock()
     : rin(0), rout(0), last(0), rwakeup{false,false}, wwakeup(false) {

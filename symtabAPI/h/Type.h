@@ -34,7 +34,7 @@
 #include "Serialization.h"
 #include "Annotatable.h"
 #include "symutil.h"
-#include <tbb/concurrent_vector.h>
+#include "concurrent.h"
 
 #include <boost/atomic.hpp>
 #include <mutex>
@@ -239,7 +239,7 @@ public:
 class SYMTAB_EXPORT fieldListInterface {
  public:
    virtual ~fieldListInterface() {};
-   virtual tbb::concurrent_vector<Field *> *getComponents() const = 0;
+   virtual dyn_c_vector<Field *> *getComponents() const = 0;
 };
 
 class SYMTAB_EXPORT rangedInterface {
@@ -262,17 +262,17 @@ class SYMTAB_EXPORT fieldListType : public Type, public fieldListInterface
  private:
    void fixupComponents();
  protected:
-   tbb::concurrent_vector<Field *> fieldList;
-    tbb::concurrent_vector<Field *> *derivedFieldList;
+   dyn_c_vector<Field *> fieldList;
+   dyn_c_vector<Field *> *derivedFieldList;
    fieldListType(std::string &name, typeId_t ID, dataClass typeDes);
    /* Each subclass may need to update its size after adding a field */
  public:
    fieldListType();
    ~fieldListType();
    bool operator==(const Type &) const;
-   tbb::concurrent_vector<Dyninst::SymtabAPI::Field*> *getComponents() const;
+   dyn_c_vector<Dyninst::SymtabAPI::Field*> *getComponents() const;
    
-   tbb::concurrent_vector<Dyninst::SymtabAPI::Field*> *getFields() const;
+   dyn_c_vector<Dyninst::SymtabAPI::Field*> *getFields() const;
    
    virtual void postFieldInsert(int nsize) = 0;
    
@@ -325,16 +325,16 @@ class SYMTAB_EXPORT derivedType : public Type, public derivedInterface {
 
 class SYMTAB_EXPORT typeEnum : public Type {
  private:  
-	tbb::concurrent_vector<std::pair<std::string, int> > consts;
+   dyn_c_vector<std::pair<std::string, int> > consts;
  public:
    typeEnum();
    typeEnum(typeId_t ID, std::string name = "");
    typeEnum(std::string name);
-   static typeEnum *create(std::string &name, tbb::concurrent_vector<std::pair<std::string, int> *>&elements, 
+   static typeEnum *create(std::string &name, dyn_c_vector<std::pair<std::string, int> *>&elements,
    								Symtab *obj = NULL);
-   static typeEnum *create(std::string &name, tbb::concurrent_vector<std::string> &constNames, Symtab *obj);
+   static typeEnum *create(std::string &name, dyn_c_vector<std::string> &constNames, Symtab *obj);
    bool addConstant(const std::string &fieldname,int value);
-   tbb::concurrent_vector<std::pair<std::string, int> > &getConstants();
+   dyn_c_vector<std::pair<std::string, int> > &getConstants();
    bool setName(const char *name);
    bool isCompatible(Type *otype);
    void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
@@ -345,19 +345,19 @@ class SYMTAB_EXPORT typeFunction : public Type {
    void fixupUnknowns(Module *);
  private:
    Type *retType_; /* Return type of the function */
-   tbb::concurrent_vector<Type *> params_; 
+   dyn_c_vector<Type *> params_;
  public:
    typeFunction();
    typeFunction(typeId_t ID, Type *retType, std::string name = "");
    typeFunction(Type *retType, std::string name = "");
    static typeFunction *create(std::string &name, Type *retType, 
-   				tbb::concurrent_vector<Type *> &paramTypes, Symtab *obj = NULL);
+                               dyn_c_vector<Type *> &paramTypes, Symtab *obj = NULL);
    ~typeFunction();
    bool addParam( Type *type);
    Type *getReturnType() const;
    bool setRetType(Type *rtype);
 
-   tbb::concurrent_vector<Type *> &getParams();
+   dyn_c_vector<Type *> &getParams();
    bool isCompatible(Type *otype);
    void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
@@ -377,7 +377,7 @@ class SYMTAB_EXPORT typeScalar : public Type {
 
 class SYMTAB_EXPORT typeCommon : public fieldListType {
  private:
-   tbb::concurrent_vector<CBlock *> cblocks;
+   dyn_c_vector<CBlock *> cblocks;
  protected:
    void postFieldInsert(int nsize) { size_ += nsize; }
    //void postFieldInsert(int offset, int nsize) { if ((unsigned int) (offset + nsize) > size_) size_ = offset + nsize; }
@@ -387,7 +387,7 @@ class SYMTAB_EXPORT typeCommon : public fieldListType {
    typeCommon(typeId_t ID, std::string name = "");
    typeCommon(std::string name);
    static typeCommon *create(std::string &name, Symtab *obj = NULL);
-   tbb::concurrent_vector<CBlock *> *getCblocks() const;
+   dyn_c_vector<CBlock *> *getCblocks() const;
    void beginCommonBlock();
    void endCommonBlock(Symbol *, void *baseAddr);
    void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
@@ -398,15 +398,15 @@ class SYMTAB_EXPORT CBlock : public Serializable, public AnnotatableSparse
    friend class typeCommon;
  private:
    // the list of fields
-   tbb::concurrent_vector<Field *> fieldList;
+   dyn_c_vector<Field *> fieldList;
 
    // which functions use this list
    //  Should probably be updated to use aggregates
-   tbb::concurrent_vector<Symbol *> functions;
+   dyn_c_vector<Symbol *> functions;
 
  public:
-    tbb::concurrent_vector<Field *> *getComponents();
-    tbb::concurrent_vector<Symbol *> *getFunctions();
+   dyn_c_vector<Field *> *getComponents();
+   dyn_c_vector<Symbol *> *getFunctions();
 
    void fixupUnknowns(Module *);
    
@@ -424,11 +424,10 @@ class SYMTAB_EXPORT typeStruct : public fieldListType {
    typeStruct();
    typeStruct(typeId_t ID, std::string name = "");
    typeStruct(std::string name);
-   static typeStruct *create(std::string &name, tbb::concurrent_vector< std::pair<std::string, Type *> *> &flds,
-
-   				 				Symtab *obj = NULL);
-   static typeStruct *create(std::string &name, tbb::concurrent_vector<Field *> &fields, 
-								Symtab *obj = NULL);
+   static typeStruct *create(std::string &name, dyn_c_vector< std::pair<std::string, Type *> *> &flds,
+                             Symtab *obj = NULL);
+   static typeStruct *create(std::string &name, dyn_c_vector<Field *> &fields,
+                             Symtab *obj = NULL);
 
    bool isCompatible(Type *otype);
    void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
@@ -444,9 +443,9 @@ class SYMTAB_EXPORT typeUnion : public fieldListType {
    typeUnion();
    typeUnion(typeId_t ID, std::string name = "");
    typeUnion(std::string name);
-   static typeUnion *create(std::string &name, tbb::concurrent_vector<std::pair<std::string, Type *> *> &fieldNames,
+   static typeUnion *create(std::string &name, dyn_c_vector<std::pair<std::string, Type *> *> &fieldNames,
    							Symtab *obj = NULL);
-   static typeUnion *create(std::string &name, tbb::concurrent_vector<Field *> &fields, 
+   static typeUnion *create(std::string &name, dyn_c_vector<Field *> &fields, 
 							Symtab *obj = NULL);
    bool isCompatible(Type *otype);
    void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);

@@ -28,15 +28,31 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _LOCKS_H_
-#define _LOCKS_H_
+#ifndef _CONCURRENT_H_
+#define _CONCURRENT_H_
 
 #include "util.h"
+#include <memory>
 #include <boost/atomic.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition_variable.hpp>
+#include <tbb/concurrent_hash_map.h>
+#include <tbb/concurrent_vector.h>
+#include <tbb/concurrent_queue.h>
+
+namespace Dyninst {
 
 typedef boost::mutex dyn_mutex;
+
+template<typename K, typename V>
+using dyn_c_hash_map = tbb::concurrent_hash_map<K, V, tbb::tbb_hash_compare<K>,
+    std::allocator<std::pair<K,V>>>;
+
+template<typename T>
+using dyn_c_vector = tbb::concurrent_vector<T, std::allocator<T>>;
+
+template<typename T>
+using dyn_c_queue = tbb::concurrent_queue<T, std::allocator<T>>;
 
 class COMMON_EXPORT dyn_rwlock {
     // Reader management members
@@ -61,5 +77,7 @@ public:
     void lock();
     void unlock();
 };
+
+}
 
 #endif
