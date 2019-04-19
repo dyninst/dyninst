@@ -24,6 +24,9 @@
 #	TBB_DEFINITIONS		- TBB compiler definitions
 #	TBB_LIBRARIES		- TBB library files
 #
+#	TBB_<c>_LIBRARY_RELEASE - Path to the release version of component <c>
+#	TBB_<c>_LIBRARY_DEBUG 	- Path to the debug version of component <c>
+#
 # NOTE:
 #	The exported TBB_ROOT_DIR can be different from the input variable
 #	in the case that it is determined to build TBB from source. In such
@@ -102,7 +105,11 @@ else()
   	endif()
   	
   	# Generate library filenames
-  	list(APPEND _tbb_libraries ${TBB_LIBRARY_DIRS}/lib${c}.so)
+  	list(APPEND _tbb_libraries "${TBB_LIBRARY_DIRS}/lib${c}.so")
+  	
+    foreach(t RELEASE DEBUG)
+      set(TBB_${c}_LIBRARY_${t} "${TBB_LIBRARY_DIRS}/lib${c}.so" CACHE FILEPATH "" FORCE)
+    endforeach()
   endforeach()
   
   set(TBB_LIBRARIES ${_tbb_libraries} CACHE FILEPATH "TBB library files" FORCE)
