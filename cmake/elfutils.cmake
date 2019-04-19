@@ -1,10 +1,31 @@
-############################################
+#====================================================================================================
 # elfutils.cmake
 #
-# Configure libelf and libdwarf for Dyninst
+# Configure elfutils for Dyninst
 #
-############################################
-
+#		----------------------------------------
+#
+# Accepts the following CMake variables
+#
+#	ELFUTILS_ROOT				- Base directory the of elfutils installation
+#	ELFUTILS_INCLUDEDIR			- Hint directory that contains the elfutils headers files
+#	ELFUTILS_LIBRARYDIR			- Hint directory that contains the elfutils library files
+#	ELFUTILS_MIN_VERSION		- Minimum acceptable version of elfutils
+#
+# Directly exports the following CMake variables
+#
+#	ELFUTILS_ROOT				- Computed base directory the of elfutils installation
+#	ELFUTILS_INCLUDE_DIRS 		- elfutils include directories
+#	ELFUTILS_LIBRARY_DIRS		- Link directories for elfutils libraries
+#	ELFUTILS_LIBRARIES			- elfutils library files
+#
+# NOTE:
+#	The exported ELFUTILS_ROOT can be different from the input variable
+#	in the case that it is determined to build elfutils from source. In such
+#	a case, ELFUTILS_ROOT will contain the directory of the from-source
+#	installation.
+#
+#====================================================================================================
 if(NOT UNIX)
   return()
 endif()
