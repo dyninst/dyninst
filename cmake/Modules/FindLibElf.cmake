@@ -30,39 +30,23 @@
 #
 #========================================================================================
 
-find_path (LIBELF_INCLUDE_DIR
-    NAMES
-      libelf.h
-    HINTS
-      ${LIBELF_INCLUDE_DIRS}
-    PATHS
-      /usr/include
-      /usr/include/libelf
-      /usr/include/x86_64-linux-gnu
-      /usr/local/include
-      /usr/local/include/libelfls 
-      /opt/local/include
-      /opt/local/include/libelf
-      /sw/include
-      /sw/include/libelf
-      ENV CPATH)
+include(DyninstSystemPaths)
 
-find_library (LIBELF_LIBRARIES
-    NAMES
-      libelf.so
-    HINTS
-      ${LIBELF_LIBRARIES}
-    PATHS
-      /usr/lib
-      /usr/lib64
-      /usr/local/lib
-      /usr/local/lib64
-      /usr/lib/x86_64-linux-gnu
-      /opt/local/lib
-      /opt/local/lib64
-      /sw/lib
-      ENV LIBRARY_PATH
-      ENV LD_LIBRARY_PATH)
+# Non-standard subdirectories to search
+set(_path_suffixes libelf libelfls elfutils)
+
+find_path(LIBELF_INCLUDE_DIR
+          NAMES libelf.h
+          HINTS ${LIBELF_ROOT}/include ${LIBELF_ROOT} ${LIBELF_INCLUDEDIR}
+          PATHS ${DYNINST_SYSTEM_INCLUDE_PATHS}
+          PATH_SUFFIXES ${_path_suffixes}
+          DOC "libelf include directories")
+
+find_library(LIBELF_LIBRARIES
+             NAMES libelf.so.1 libelf.so
+             HINTS ${LIBELF_ROOT}/lib ${LIBELF_ROOT} ${LIBELF_LIBRARYDIR}
+             PATHS ${DYNINST_SYSTEM_LIBRARY_PATHS}
+             PATH_SUFFIXES ${_path_suffixes})
 
 # Enforce required version, if enabled
 if(LibElf_FIND_VERSION AND LIBELF_LIBRARIES)
