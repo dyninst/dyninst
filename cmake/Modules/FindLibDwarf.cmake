@@ -1,11 +1,31 @@
-# - Try to find libdwarf
-# Once done this will define
+#===================================================================================
+# FindLibDwarf.cmake
 #
-#  LIBDWARF_FOUND - system has libdwarf
-#  LIBDWARF_INCLUDE_DIRS - the libdwarf include directory
-#  LIBDWARF_LIBRARIES - Link these to use libdwarf
-#  LIBDWARF_DEFINITIONS - Compiler switches required for using libdwarf
+# Find libdw include dirs and libraries
 #
+#		----------------------------------------
+#
+# Use this module by invoking find_package with the form::
+#
+#  find_package(LibDwarf
+#    [version] [EXACT]      # Minimum or EXACT version e.g. 0.173
+#    [REQUIRED]             # Fail with error if libdw is not found
+#  )
+#
+# This module reads hints about search locations from variables::
+#
+#	LIBDWARF_ROOT			- Base directory the of libdw installation
+#	LIBDWARF_INCLUDEDIR		- Hint directory that contains the libdw headers files
+#	LIBDWARF_LIBRARYDIR		- Hint directory that contains the libdw library files
+#
+# and saves search results persistently in CMake cache entries::
+#
+#	LibDwarf_FOUND			- True if headers and requested libraries were found
+#	LIBDWARF_INCLUDE_DIRS 	- libdw include directories
+#	LIBDWARF_LIBRARY_DIRS	- Link directories for libdw libraries
+#	LIBDWARF_LIBRARIES		- libdw library files
+#
+#===================================================================================
 
 
 if (LIBDWARF_LIBRARIES AND LIBDWARF_INCLUDE_DIRS)
