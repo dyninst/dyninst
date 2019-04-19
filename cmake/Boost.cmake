@@ -42,8 +42,13 @@
 #
 #######################################################################################################
 
-# Need Boost >= 1.61 for filesytem components
-set(BOOST_MIN_VERSION 1.61.0 CACHE STRING "Minimum Boost version")
+# Need Boost for filesytem components
+set(_boost_min_version 1.61.0)
+set(BOOST_MIN_VERSION ${_boost_min_version} CACHE STRING "Minimum Boost version")
+
+if(${BOOST_MIN_VERSION} VERSION_LESS ${_boost_min_version})
+  message(FATAL_ERROR "Requested Boost-${BOOST_MIN_VERSION} is less than minimum supported version (${_boost_min_version})")
+endif()
 
 # -------------- RUNTIME CONFIGURATION ----------------------------------------
 
