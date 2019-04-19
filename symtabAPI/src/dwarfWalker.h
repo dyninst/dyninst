@@ -1,4 +1,4 @@
-
+#include "common/src/vgannotations.h"
 #include <common/src/debug_common.h>
 
 #if !defined(_dwarf_walker_h_)

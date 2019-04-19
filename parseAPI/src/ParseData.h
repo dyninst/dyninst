@@ -241,9 +241,7 @@ public:
         ParseFrame::Status ret;
         dyn_c_hash_map<Address, ParseFrame::Status>::const_accessor a;
         if(frame_status.find(a, addr)) {
-            ANNOTATE_HAPPENS_AFTER(&a->second); // After last writer
             ret = a->second;
-            ANNOTATE_HAPPENS_BEFORE(&a->second + 1);
         } else {
             ret = ParseFrame::BAD_LOOKUP;
         }
@@ -255,11 +253,8 @@ public:
     {
         dyn_c_hash_map<Address, ParseFrame::Status>::accessor a;
         if(!frame_status.insert(a, make_pair(addr, status))) {
-            ANNOTATE_HAPPENS_AFTER(&a->second); // After last writer
-            ANNOTATE_HAPPENS_AFTER(&a->second + 1); // After last reader
             a->second = status;
         }
-        ANNOTATE_HAPPENS_BEFORE(&a->second);
     }
 
     void record_func(Function* f) {

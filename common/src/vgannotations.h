@@ -2,9 +2,14 @@
 // Macros to make annotating the parallel parts of the code simple and easy.
 // Activate with ENABLE_VG_ANNOTATIONS
 
+#ifndef _VGANNOTATIONS_H_
+#define _VGANNOTATIONS_H_
+
 #ifdef ENABLE_VG_ANNOTATIONS
 #include <valgrind/helgrind.h>
 #include <valgrind/drd.h>
+
+#define DYNINST_VG_ANNOTATIONS
 
 // Annotations for libc's inlined synchronization (for locales, mostly)
 #define _GLIBCXX_SYNCHRONIZATION_HAPPENS_BEFORE(addr) ANNOTATE_HAPPENS_BEFORE(addr)
@@ -68,5 +73,7 @@ public:
         return value;
     }
 };
+
+#endif
 
 #endif

@@ -33,6 +33,8 @@
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
+#include "common/src/vgannotations.h"
+
 #include "Type.h"
 #include "Variable.h"
 #include "Object.h"

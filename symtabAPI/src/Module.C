@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "common/src/vgannotations.h"
 #include <string.h>
 #include <common/src/debug_common.h>
 #include "debug.h"

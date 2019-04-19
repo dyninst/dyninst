@@ -42,17 +42,113 @@
 
 namespace Dyninst {
 
-typedef boost::mutex dyn_mutex;
-
 template<typename K, typename V>
-using dyn_c_hash_map = tbb::concurrent_hash_map<K, V, tbb::tbb_hash_compare<K>,
-    std::allocator<std::pair<K,V>>>;
+class dyn_c_hash_map : protected tbb::concurrent_hash_map<K, V,
+    tbb::tbb_hash_compare<K>, std::allocator<std::pair<K,V>>> {
+
+    typedef tbb::concurrent_hash_map<K, V,
+        tbb::tbb_hash_compare<K>, std::allocator<std::pair<K,V>>> base;
+
+    typedef std::pair<K,V> entry;
+
+public:
+    dyn_c_hash_map() : base() {};
+    ~dyn_c_hash_map() {};
+
+    class const_accessor : public base::const_accessor {
+#ifdef DYNINST_VG_ANNOTATIONS
+        bool owns;
+#endif
+    public:
+        const_accessor() : base::const_accessor()
+#ifdef DYNINST_VG_ANNOTATIONS
+            , owns(true)
+#endif
+            {};
+        ~const_accessor() { release(); }
+        void acquire() {
+#ifdef DYNINST_VG_ANNOTATIONS
+            owns = true;
+            ANNOTATE_HAPPENS_AFTER(base::const_accessor::operator->());
+#endif
+        }
+        bool acquire(bool r) { acquire(); return r; }
+        void release() {
+#ifdef DYNINST_VG_ANNOTATIONS
+            if(owns) {
+                owns = false;
+                ANNOTATE_HAPPENS_BEFORE(base::const_accessor::operator->() + 1);
+            }
+#endif
+        }
+    };
+    class accessor : public base::accessor {
+#ifdef DYNINST_VG_ANNOTATIONS
+        bool owns;
+#endif
+    public:
+        accessor() : base::accessor()
+#ifdef DYNINST_VG_ANNOTATIONS
+            , owns(true)
+#endif
+            {};
+        ~accessor() { release(); }
+        void acquire() {
+#ifdef DYNINST_VG_ANNOTATIONS
+            owns = true;
+            ANNOTATE_HAPPENS_AFTER(base::accessor::operator->() + 1);
+            ANNOTATE_HAPPENS_AFTER(base::accessor::operator->());
+#endif
+        }
+        bool acquire(bool r) { acquire(); return r; }
+        void release() {
+#ifdef DYNINST_VG_ANNOTATIONS
+            if(owns) {
+                ANNOTATE_HAPPENS_BEFORE(base::accessor::operator->());
+            }
+#endif
+        }
+    };
+
+    bool find(const_accessor& ca, const K& k) const {
+        bool r = base::find(ca, k);
+        if(r) ca.acquire();
+        return r;
+    }
+    bool find(accessor& a, const K& k) {
+        bool r = base::find(a, k);
+        if(r) a.acquire();
+        return r;
+    }
+
+    bool insert(const_accessor& ca, const K& k) {
+        return ca.acquire(base::insert(ca, k)); }
+    bool insert(accessor& a, const K& k) { return a.acquire(base::insert(a, k)); }
+    bool insert(const K& k) { return base::insert(k); }
+    bool insert(const_accessor& ca, const entry& e) {
+        return ca.acquire(base::insert(ca, e)); }
+    bool insert(accessor& a, const entry& e) { return a.acquire(base::insert(a, e)); }
+    bool insert(const entry& e) { return base::insert(e); }
+
+    bool erase(const_accessor& ca) { ca.release(); return base::erase(ca); }
+    bool erase(accessor& a) { a.release(); return base::erase(a); }
+    bool erase(const K& k) { return base::erase(k); }
+
+    using base::clear;
+
+    using base::iterator;
+    using base::const_iterator;
+    using base::begin;
+    using base::end;
+};
 
 template<typename T>
 using dyn_c_vector = tbb::concurrent_vector<T, std::allocator<T>>;
 
 template<typename T>
 using dyn_c_queue = tbb::concurrent_queue<T, std::allocator<T>>;
+
+typedef boost::mutex dyn_mutex;
 
 class COMMON_EXPORT dyn_rwlock {
     // Reader management members
