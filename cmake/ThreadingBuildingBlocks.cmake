@@ -33,6 +33,16 @@
 #
 #####################################################################################
 
+# -------------- RUNTIME CONFIGURATION ----------------------------------------
+
+# Use debug versions of TBB libraries
+set(TBB_USE_DEBUG_BUILD OFF CACHE BOOL "Use debug versions of TBB libraries")
+
+# Minimum version of TBB
+set(TBB_MIN_VERSION 2018.0 CACHE STRING "Minimum version of TBB")
+
+# -------------- PATHS --------------------------------------------------------
+
 # TBB root directory
 set(TBB_ROOT_DIR "/usr" CACHE PATH "TBB root directory")
 
@@ -45,18 +55,13 @@ set(TBB_LIBRARY_DIR "${TBB_ROOT_DIR}/lib" CACHE PATH "TBB library directory")
 # FindTBB uses 'TBB_LIBRARY' instead of 'TBB_LIBRARY_DIR'.
 set(TBB_LIBRARY ${TBB_LIBRARY_DIR})
 
-# Use debug versions of TBB libraries
-set(TBB_USE_DEBUG_BUILD OFF CACHE BOOL "Use debug versions of TBB libraries")
-
-# Minimum version of TBB
-set(TBB_MIN_VERSION 2018.0 CACHE STRING "Minimum version of TBB")
-
 # The specific TBB libraries we need
 # NB: This should _NOT_ be a cache variable
 set(_tbb_components tbb tbbmalloc tbbmalloc_proxy)
 
 find_package(TBB ${TBB_MIN_VERSION} COMPONENTS ${_tbb_components})
 
+# -------------- SOURCE BUILD -------------------------------------------------
 if(TBB_FOUND)
   # Export the found system TBB
   set(TBB_INCLUDE_DIRS ${TBB_INCLUDE_DIRS} CACHE PATH "TBB include directory" FORCE)
