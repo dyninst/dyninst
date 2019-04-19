@@ -64,6 +64,7 @@ if(LibElf_FOUND)
   find_package(LibDwarf ${ELFUTILS_MIN_VERSION})
 endif()
 
+# -------------- SOURCE BUILD -------------------------------------------------
 if(NOT LibElf_FOUND OR NOT LibDwarf_FOUND)
   message(STATUS "Attempting to build elfutils as external project")
   include(ExternalProject)
