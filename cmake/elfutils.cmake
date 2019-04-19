@@ -69,7 +69,7 @@ if(NOT LibElf_FOUND OR NOT LibDwarf_FOUND)
   message(STATUS "Attempting to build elfutils as external project")
   include(ExternalProject)
   externalproject_add(
-    LibElf
+    ElfUtils # was LibElf
     PREFIX ${CMAKE_BINARY_DIR}/elfutils
     URL https://sourceware.org/elfutils/ftp/elfutils-latest.tar.bz2
     CONFIGURE_COMMAND
