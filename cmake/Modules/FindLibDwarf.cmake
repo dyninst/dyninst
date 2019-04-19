@@ -45,12 +45,38 @@ find_library(LIBDWARF_LIBRARIES
              PATHS ${DYNINST_SYSTEM_LIBRARY_PATHS}
              PATH_SUFFIXES ${_path_suffixes})
 
+# Find the library with the highest version
+set(_max_ver 0.0)
+set(_max_ver_lib)
+foreach(l ${LIBDWARF_LIBRARIES})
+  get_filename_component(_dw_realpath ${LIBDWARF_LIBRARIES} REALPATH)
+  string(REGEX MATCH
+               "libdw\\-(.+)\\.so\\.*$"
+               res
+               ${_dw_realpath})
 
-# handle the QUIETLY and REQUIRED arguments and set LIBDWARF_FOUND to TRUE
-# if all listed variables are TRUE
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(LibDwarf DEFAULT_MSG
-  LIBDWARF_LIBRARIES
-  LIBDWARF_INCLUDE_DIR)
+  # The library version number is stored in CMAKE_MATCH_1
+  set(_cur_ver ${CMAKE_MATCH_1})
+
+  if(${_cur_ver} VERSION_GREATER ${_max_ver})
+    set(_max_ver ${_cur_ver})
+    set(_max_ver_lib ${l})
+  endif()
+endforeach()
+
+# Set the exported variables to the best match
+set(LIBDWARF_LIBRARIES ${_max_ver_lib})
+set(LIBDWARF_VERSION ${_max_ver})
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(LibDwarf
+                                  FOUND_VAR
+                                  LibDwarf_FOUND
+                                  REQUIRED_VARS
+                                  LIBDWARF_LIBRARIES
+                                  LIBDWARF_INCLUDE_DIR
+                                  VERSION_VAR
+                                  LIBDWARF_VERSION)
 
 #mark_as_advanced(LIBDW_INCLUDE_DIR DWARF_INCLUDE_DIR)
 #mark_as_advanced(LIBDWARF_INCLUDE_DIRS LIBDWARF_LIBRARIES)
