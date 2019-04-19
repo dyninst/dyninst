@@ -1,4 +1,4 @@
-#####################################################################################
+#######################################################################################################
 # Boost.cmake
 #
 # Configure Boost for Dyninst
@@ -31,7 +31,6 @@
 #	Boost_<C>_LIBRARY_RELEASE	- Release libraries to link for component <C> (<C> is upper-case)
 #	Boost_<C>_LIBRARY_DEBUG		- Debug libraries to link for component <C>
 #	Boost_THREAD_LIBRARY		- The filename of the Boost thread library
-
 #
 # NOTE:
 #	The exported BOOST_ROOT can be different from the input variable
@@ -41,7 +40,7 @@
 #
 # See Modules/FindBoost.cmake for additional input and exported variables
 #
-#####################################################################################
+#######################################################################################################
 
 # Need Boost >= 1.61 for filesytem components
 set(BOOST_MIN_VERSION 1.61.0 CACHE STRING "Minimum Boost version")
