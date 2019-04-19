@@ -72,6 +72,7 @@ if(NOT LibElf_FOUND OR NOT LibDwarf_FOUND)
     ElfUtils # was LibElf
     PREFIX ${CMAKE_BINARY_DIR}/elfutils
     URL https://sourceware.org/elfutils/ftp/elfutils-latest.tar.bz2
+    BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND
       CFLAGS=-g
       <SOURCE_DIR>/configure
