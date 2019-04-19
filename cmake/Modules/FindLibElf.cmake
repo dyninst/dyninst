@@ -48,34 +48,35 @@ find_library(LIBELF_LIBRARIES
              PATHS ${DYNINST_SYSTEM_LIBRARY_PATHS}
              PATH_SUFFIXES ${_path_suffixes})
 
-# Enforce required version, if enabled
-if(LibElf_FIND_VERSION AND LIBELF_LIBRARIES)
-	get_filename_component(LibElf_realpath ${LIBELF_LIBRARIES} REALPATH)
-	string(REGEX MATCH "libelf\\-(.+)\\.so$" res ${LibElf_realpath})
-	
-	# The library version number is stored in CMAKE_MATCH_1
-	set(LibELf_version ${CMAKE_MATCH_1})
-	
-	if(NOT res OR NOT ${LibELf_version})
-		message(WARNING "Found libelf library '${LibElf_realpath}', but does not match known name format")
-		set(LibElf_FOUND FALSE)
-		set(LIBELF_FOUND FALSE)
-		return()
-	endif()
-	
-	if(${LibELf_version} VERSION_LESS ${LibElf_FIND_VERSION})
-		message(WARNING "Found libelf version '${LibELf_version}', but required version '${LibElf_FIND_VERSION}'")
-		set(LibElf_FOUND FALSE)
-		set(LIBELF_FOUND FALSE)
-		return()
-	endif()
-	set(LIBELF_FOUND TRUE)
-	set(LibElf_FOUND TRUE)
-	message(STATUS "Found libelf '${LibELf_version}' in '${LibElf_realpath}'")
-	return()
-else()
-	include (FindPackageHandleStandardArgs)
-	
-	#handle the QUIETLY and REQUIRED arguments and set LIBELF_FOUND to TRUE if all listed variables are TRUE
-	find_package_handle_standard_args(LibElf LIBELF_LIBRARIES LIBELF_INCLUDE_DIR)
-endif()
+# Find the library with the highest version
+set(_max_ver 0.0)
+set(_max_ver_lib)
+foreach(l ${LIBELF_LIBRARIES})
+  get_filename_component(_elf_realpath ${LIBELF_LIBRARIES} REALPATH)
+  string(REGEX MATCH
+               "libelf\\-(.+)\\.so\\.*$"
+               res
+               ${_elf_realpath})
+
+  # The library version number is stored in CMAKE_MATCH_1
+  set(_cur_ver ${CMAKE_MATCH_1})
+
+  if(${_cur_ver} VERSION_GREATER ${_max_ver})
+    set(_max_ver ${_cur_ver})
+    set(_max_ver_lib ${l})
+  endif()
+endforeach()
+
+# Set the exported variables to the best match
+set(LIBELF_LIBRARIES ${_max_ver_lib})
+set(LibElf_VERSION ${_max_ver})
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(LibElf
+                                  FOUND_VAR
+                                  LibElf_FOUND
+                                  REQUIRED_VARS
+                                  LIBELF_LIBRARIES
+                                  LIBELF_INCLUDE_DIR
+                                  VERSION_VAR
+                                  LibElf_VERSION)
