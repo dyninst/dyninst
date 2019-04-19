@@ -37,6 +37,24 @@ if(${ELFUTILS_MIN_VERSION} VERSION_LESS ${_min_version})
   message(FATAL_ERROR "Requested version ${ELFUTILS_MIN_VERSION} is less than minimum supported version (${_min_version})")
 endif()
 
+# -------------- PATHS --------------------------------------------------------
+
+# Base directory the of elfutils installation
+set(ELFUTILS_ROOT "/usr" CACHE PATH "Base directory the of elfutils installation")
+
+# Hint directory that contains the elfutils headers files
+set(ELFUTILS_INCLUDEDIR "${ELFUTILS_ROOT}/include" CACHE PATH "Hint directory that contains the elfutils headers files")
+
+# Hint directory that contains the elfutils library files
+set(ELFUTILS_LIBRARYDIR "${ELFUTILS_ROOT}/lib" CACHE PATH "Hint directory that contains the elfutils library files")
+
+# libelf/dwarf-specific directory hints
+foreach(l LIBELF LIBDWARF)
+  foreach(d ROOT INCLUDEDIR LIBRARYDIR)
+    set(${l}_${d} ${ELFUTILS_${d}})
+  endforeach()
+endforeach()
+
 find_package(LibDwarf)
 find_package(LibElf 0.173)
 
