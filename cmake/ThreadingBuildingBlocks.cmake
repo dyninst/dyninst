@@ -65,7 +65,8 @@ find_package(TBB ${TBB_MIN_VERSION} COMPONENTS ${_tbb_components})
 
 # -------------- SOURCE BUILD -------------------------------------------------
 if(TBB_FOUND)
-  # Export the found system TBB
+  # Force the cache entries to be updated
+  # Normally, these would not be exported. However, we need them in the Testsuite
   set(TBB_INCLUDE_DIRS ${TBB_INCLUDE_DIRS} CACHE PATH "TBB include directory" FORCE)
   set(TBB_INCLUDE_DIR ${TBB_INCLUDE_DIRS} CACHE PATH "Alias for TBB_INCLUDE_DIRS" FORCE)
   set(TBB_LIBRARY_DIRS ${TBB_LIBRARY_DIRS} CACHE PATH "TBB library directory" FORCE)
@@ -104,7 +105,7 @@ else()
   	list(APPEND _tbb_libraries ${TBB_LIBRARY_DIRS}/lib${c}.so)
   endforeach()
   
-  set(TBB_LIBRARIES ${_tbb_libraries} CACHE FILEPATH "" FORCE)
+  set(TBB_LIBRARIES ${_tbb_libraries} CACHE FILEPATH "TBB library files" FORCE)
   
   include(ExternalProject)
   set(_tbb_prefix_dir ${CMAKE_BINARY_DIR}/tbb)
