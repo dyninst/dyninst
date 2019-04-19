@@ -1,16 +1,34 @@
-# - Try to find libelf
-# Once done this will define
+#========================================================================================
+# FindLibElf.cmake
 #
-#  LIBELF_FOUND - system has libelf
-#  LIBELF_INCLUDE_DIRS - the libelf include directory
-#  LIBELF_LIBRARIES - Link these to use libelf
-#  LIBELF_DEFINITIONS - Compiler switches required for using libelf
+# Find libelf include dirs and libraries
 #
-#  Copyright (c) 2008 Bernhard Walle <bernhard.walle@gmx.de>
+#		----------------------------------------
 #
-#  Redistribution and use is allowed according to the terms of the New
-#  BSD license.
-#  For details see the accompanying COPYING-CMAKE-SCRIPTS file.
+# Use this module by invoking find_package with the form::
+#
+#  find_package(LibElf
+#    [version] [EXACT]      # Minimum or EXACT version e.g. 0.173
+#    [REQUIRED]             # Fail with error if libelf is not found
+#  )
+#
+# This module reads hints about search locations from variables::
+#
+#	LIBELF_ROOT			- Base directory the of libelf installation
+#	LIBELF_INCLUDEDIR	- Hint directory that contains the libelf headers files
+#	LIBELF_LIBRARYDIR	- Hint directory that contains the libelf library files
+#
+# and saves search results persistently in CMake cache entries::
+#
+#	LibElf_FOUND			- True if headers and requested libraries were found
+#	LIBELF_INCLUDE_DIRS 	- libelf include directories
+#	LIBELF_LIBRARY_DIRS		- Link directories for libelf libraries
+#	LIBELF_LIBRARIES		- libelf library files
+#
+#
+# Based on the version by Bernhard Walle <bernhard.walle@gmx.de> Copyright (c) 2008
+#
+#========================================================================================
 
 find_path (LIBELF_INCLUDE_DIR
     NAMES
