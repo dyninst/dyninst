@@ -11,8 +11,8 @@
 #################################################################
 
 file(MAKE_DIRECTORY ${LIBDIR} ${INCDIR})
-file(COPY ${ROOTDIR}/src/tbb_release/ DESTINATION ${LIBDIR} FILES_MATCHING PATTERN "*.so.*")
-file(COPY ${ROOTDIR}/src/TBB/include/tbb DESTINATION ${INCDIR})
+file(COPY ${PREFIX}/src/tbb_release/ DESTINATION ${LIBDIR} FILES_MATCHING PATTERN "*.so.*")
+file(COPY ${PREFIX}/src/TBB/include/tbb DESTINATION ${INCDIR})
 
 file(GLOB _tbb_libs ${LIBDIR}/libtbb*.so.*)
 
