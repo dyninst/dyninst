@@ -30,6 +30,13 @@ if(NOT UNIX)
   return()
 endif()
 
+# Minimum acceptable version of elfutils
+set(_min_version 0.173)
+set(ELFUTILS_MIN_VERSION ${_min_version} CACHE STRING "Minimum acceptable elfutils version")
+if(${ELFUTILS_MIN_VERSION} VERSION_LESS ${_min_version})
+  message(FATAL_ERROR "Requested version ${ELFUTILS_MIN_VERSION} is less than minimum supported version (${_min_version})")
+endif()
+
 find_package(LibDwarf)
 find_package(LibElf 0.173)
 
