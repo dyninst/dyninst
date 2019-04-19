@@ -78,5 +78,13 @@ find_package_handle_standard_args(LibDwarf
                                   VERSION_VAR
                                   LIBDWARF_VERSION)
 
-#mark_as_advanced(LIBDW_INCLUDE_DIR DWARF_INCLUDE_DIR)
-#mark_as_advanced(LIBDWARF_INCLUDE_DIRS LIBDWARF_LIBRARIES)
+# Export cache variables
+if(LibDwarf_FOUND)
+  set(LIBDWARF_INCLUDE_DIRS ${LIBDWARF_INCLUDE_DIR})
+  set(LIBDWARF_LIBRARIES ${LIBDWARF_LIBRARIES})
+
+  # Because we only report the library with the largest version, we are
+  # guaranteed there is only one file in LIBDWARF_LIBRARIES
+  get_filename_component(_dw_dir ${LIBDWARF_LIBRARIES} DIRECTORY)
+  set(LIBDWARF_LIBRARY_DIRS ${_dw_dir})
+endif()
