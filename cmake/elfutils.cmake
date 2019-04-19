@@ -55,8 +55,14 @@ foreach(l LIBELF LIBDWARF)
   endforeach()
 endforeach()
 
-find_package(LibDwarf)
-find_package(LibElf 0.173)
+# -------------- PACKAGES------------------------------------------------------
+
+find_package(LibElf ${ELFUTILS_MIN_VERSION})
+
+# Don't search for libdw if we didn't find a suitable libelf
+if(LibElf_FOUND)
+  find_package(LibDwarf ${ELFUTILS_MIN_VERSION})
+endif()
 
 if(NOT LIBELF_FOUND OR NOT LIBDWARF_FOUND)
   message(STATUS "Attempting to build elfutils as external project")
