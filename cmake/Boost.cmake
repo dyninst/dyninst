@@ -20,7 +20,7 @@
 #	Boost_DEBUG					- Enable debug output from FindBoost
 #	Boost_NO_SYSTEM_PATHS		- Disable searching in locations not specified by hint variables 
 #
-# Directly exports the following CMake variables
+# Exports the following CMake cache variables
 #
 #	BOOST_ROOT					- Computed base directory the of Boost installation
 #	Boost_INCLUDE_DIRS 			- Boost include directories
