@@ -253,6 +253,9 @@ if(Boost_USE_MULTITHREADED)
   list(APPEND Boost_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
 endif()
 
+# Export the complete set of libraries
+set(Boost_LIBRARIES ${Boost_LIBRARIES} CACHE FILEPATH "Boost library files" FORCE)
+
 link_directories(${Boost_LIBRARY_DIRS})
 include_directories(${Boost_INCLUDE_DIRS})
 
