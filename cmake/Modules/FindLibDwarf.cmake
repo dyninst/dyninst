@@ -27,39 +27,23 @@
 #
 #===================================================================================
 
+include(DyninstSystemPaths)
 
-if (LIBDWARF_LIBRARIES AND LIBDWARF_INCLUDE_DIRS)
-  set (LibDwarf_FIND_QUIETLY TRUE)
-endif (LIBDWARF_LIBRARIES AND LIBDWARF_INCLUDE_DIRS)
+# Non-standard subdirectories to search
+set(_path_suffixes libdw libdwarf elfutils)
 
-find_path (LIBDWARF_INCLUDE_DIR
-  NAMES
-  elfutils/libdw.h
-  HINTS
-  ${LIBDWARF_INCLUDE_DIRS}
-  PATHS
-  /usr/include
-  /usr/local/include
-  /opt/local/include
-  /sw/include
-  ENV CPATH) # PATH and INCLUDE will also work
+find_path(LIBDWARF_INCLUDE_DIR
+          NAMES libdw.h
+          HINTS ${LIBDWARF_ROOT}/include ${LIBDWARF_ROOT} ${LIBDWARF_INCLUDEDIR}
+          PATHS ${DYNINST_SYSTEM_INCLUDE_PATHS}
+          PATH_SUFFIXES ${_path_suffixes}
+          DOC "libdw include directories")
 
-find_library (LIBDWARF_LIBRARIES
-  NAMES
-  dw
-  HINTS
-  ${LIBDWARF_LIBRARIES}
-  PATHS
-  /usr/lib
-  /usr/lib64
-  /usr/local/lib
-  /usr/local/lib64
-  /opt/local/lib
-  /opt/local/lib64
-  /sw/lib
-  ENV LIBRARY_PATH   # PATH and LIB will also work
-  ENV LD_LIBRARY_PATH)
-include (FindPackageHandleStandardArgs)
+find_library(LIBDWARF_LIBRARIES
+             NAMES libdw.so.1 libdw.so
+             HINTS ${LIBDWARF_ROOT}/lib ${LIBDWARF_ROOT} ${LIBDWARF_LIBRARYDIR}
+             PATHS ${DYNINST_SYSTEM_LIBRARY_PATHS}
+             PATH_SUFFIXES ${_path_suffixes})
 
 
 # handle the QUIETLY and REQUIRED arguments and set LIBDWARF_FOUND to TRUE
