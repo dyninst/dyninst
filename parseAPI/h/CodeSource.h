@@ -258,8 +258,7 @@ class PARSER_EXPORT SymtabCodeSource : public CodeSource, public boost::lockable
  private:
     SymtabAPI::Symtab * _symtab;
     bool owns_symtab;
-    mutable dyn_rwlock _lookup_cache_lock;
-    mutable std::vector<CodeRegion *>  _lookup_cache;
+    mutable dyn_threadlocal<CodeRegion *>  _lookup_cache;
 
     // Stats information
     StatContainer * stats_parse;

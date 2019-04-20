@@ -174,6 +174,58 @@ public:
     void unlock();
 };
 
-}
+class COMMON_EXPORT dyn_thread {
+    int myid;
+public:
+    dyn_thread();
+    unsigned int getId();
+    static unsigned int threads();
+
+    operator unsigned int() { return getId(); }
+
+    static thread_local dyn_thread me;
+};
+
+template<typename T>
+class dyn_threadlocal {
+    std::vector<T> cache;
+    T base;
+    dyn_rwlock lock;
+public:
+    dyn_threadlocal() : cache(), base() {};
+    dyn_threadlocal(const T& d) : cache(), base(d) {};
+    ~dyn_threadlocal() {};
+
+    T get() {
+        lock.lock_shared();
+        if(cache.size() > dyn_thread::me) {
+            lock.unlock_shared();
+            return cache[dyn_thread::me];
+        }
+        lock.unlock_shared();
+        lock.lock();
+        if(cache.size() <= dyn_thread::me)
+            cache.insert(cache.end(), dyn_thread::threads() - cache.size(), base);
+        lock.unlock();
+        return base;
+    }
+
+    void set(const T& val) {
+        lock.lock_shared();
+        if(cache.size() > dyn_thread::me) {
+            cache[dyn_thread::me] = val;
+            lock.unlock_shared();
+            return;
+        }
+        lock.unlock_shared();
+        lock.lock();
+        if(cache.size() <= dyn_thread::me)
+            cache.insert(cache.end(), dyn_thread::threads() - cache.size(), base);
+        cache[dyn_thread::me] = val;
+        lock.unlock();
+    }
+};
+
+} // namespace Dyninst
 
 #endif

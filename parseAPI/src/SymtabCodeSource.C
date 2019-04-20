@@ -31,7 +31,6 @@
 #include <map>
 
 #include <boost/assign/list_of.hpp>
-#include <omp.h>
 
 #include "common/src/stats.h"
 #include "dyntypes.h"
@@ -690,23 +689,7 @@ inline CodeRegion *
 SymtabCodeSource::lookup_region(const Address addr) const
 {
     CodeRegion * ret = NULL;
-    CodeRegion * cache = NULL;
-    bool cacheood = false;
-    unsigned int tid = omp_get_thread_num();
-    _lookup_cache_lock.lock_shared();
-    if(_lookup_cache.size() > tid)
-        cache = _lookup_cache[tid];
-    else
-        cacheood = true;
-    _lookup_cache_lock.unlock_shared();
-    if(cacheood) {
-        _lookup_cache_lock.lock();
-        _lookup_cache.reserve(omp_get_num_threads());
-        _lookup_cache.insert(_lookup_cache.end(),
-            omp_get_num_threads() - _lookup_cache.size(), NULL);
-        assert(_lookup_cache.size() == omp_get_num_threads());
-        _lookup_cache_lock.unlock();
-    }
+    CodeRegion * cache = _lookup_cache.get();
 
     if(cache && cache->contains(addr))
         ret = cache;
@@ -718,9 +701,7 @@ SymtabCodeSource::lookup_region(const Address addr) const
 
         if(rcnt) {
           ret = *stab.begin();
-          _lookup_cache_lock.lock_shared();
-          _lookup_cache[tid] = ret;
-          _lookup_cache_lock.unlock_shared();
+          _lookup_cache.set(ret);
         } 
     }
     return ret;
