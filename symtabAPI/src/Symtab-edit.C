@@ -260,13 +260,11 @@ bool Symtab::addSymbol(Symbol *newSym)
       demangleSymbol(newSym);
    }
    
-   symbols_rwlock.lock();
    // Add to appropriate indices
    addSymbolToIndices(newSym, false);
    
    // And to aggregates
    addSymbolToAggregates(newSym);
-   symbols_rwlock.unlock();
 
    return true;
 }

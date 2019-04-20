@@ -162,8 +162,9 @@ bool DwarfWalker::parse() {
 #pragma omp parallel
     {
     DwarfWalker w(symtab(), dbg());
-#pragma omp for reduction(leftmost:fixUnknownMod)
-    for (unsigned int i = 0; i < module_dies.size(); i++) {	
+#pragma omp for reduction(leftmost:fixUnknownMod) \
+        schedule(dynamic) nowait
+    for (unsigned int i = 0; i < module_dies.size(); i++) {
         w.push();
         w.parseModule(module_dies[i],fixUnknownMod);
         w.pop();
@@ -1528,6 +1529,7 @@ std::vector<VariableLocation>& DwarfParseActions::getFramePtrRefForInit()
 bool DwarfWalker::getFrameBase() {
     dwarf_printf("(0x%lx) Checking for frame pointer information\n", id());
 
+    boost::unique_lock<dyn_mutex> l(curFunc()->framePtrLock);
     std::vector<VariableLocation> &funlocs = getFramePtrRefForInit();
     if (!funlocs.empty()) {
         DWARF_CHECK_RET(false);

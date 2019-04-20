@@ -41,6 +41,7 @@
 #include "Aggregate.h"
 #include "Variable.h"
 #include "IBSTree.h"
+#include "concurrent.h"
 
 SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
 
@@ -98,6 +99,7 @@ class SYMTAB_EXPORT FunctionBase
    const FuncRangeCollection &getRanges();
    
    /***** Frame Pointer Information *****/
+   dyn_mutex framePtrLock;
    bool setFramePtr(std::vector<VariableLocation> *locs);
    std::vector<VariableLocation> &getFramePtrRefForInit();
    std::vector<VariableLocation> &getFramePtr();   

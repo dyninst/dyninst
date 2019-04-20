@@ -776,6 +776,7 @@ bool Symtab::demangleSymbols(std::vector<Symbol *> &raw_syms)
  */
 
 bool Symtab::createIndices(std::vector<Symbol *> &raw_syms, bool undefined) {
+    #pragma omp parallel for schedule(dynamic)
     for (unsigned i = 0; i < raw_syms.size(); i++) {
        addSymbolToIndices(raw_syms[i], undefined);
     }
@@ -876,6 +877,7 @@ bool Symtab::demangleSymbol(Symbol *&sym) {
 bool Symtab::addSymbolToIndices(Symbol *&sym, bool undefined) 
 {
    assert(sym);
+   boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
    if (!undefined) {
      if(everyDefinedSymbol.find(sym) == everyDefinedSymbol.end())
        everyDefinedSymbol.insert(sym);
@@ -903,6 +905,7 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
         //   Keep module information 
 
         Function *func = NULL;
+        boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
         findFuncByEntryOffset(func, sym->getOffset());
         if (!func) {
             // Create a new function
@@ -913,6 +916,7 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
             everyFunction.push_back(func);
             sorted_everyFunction = false;
             funcsByOffset[sym->getOffset()] = func;
+            l.release()->unlock();
         }
         else {
             /* XXX 
@@ -929,8 +933,9 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
                 everyFunction.push_back(func);
                 sorted_everyFunction = false;
             }
+            l.release()->unlock();
             func->addSymbol(sym);
-        } 
+        }
         sym->setFunction(func);
 
         break;
@@ -939,6 +944,7 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
     case Symbol::ST_OBJECT: {
         // The same as the above, but with variables.
         Variable *var = NULL;
+        boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
         findVariableByOffset(var, sym->getOffset());
         if (!var) {
             // Create a new function
@@ -947,6 +953,7 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
             
             everyVariable.push_back(var);
             varsByOffset[sym->getOffset()] = var;
+            l.release()->unlock();
         }
         else {
             /* XXX
@@ -964,7 +971,9 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
             {
                 var = new Variable(sym);
                 everyVariable.push_back(var);
+                l.release()->unlock();
             }else{
+                l.release()->unlock();
                 var->addSymbol(sym);
             }
         }
