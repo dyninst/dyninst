@@ -29,21 +29,25 @@
 // - Currently the function cannot take any arguments. Someone with more C++
 //   background can fix that later if they like.
 
-#include <mutex>
+#include <boost/thread/once.hpp>
 #include <functional>
 
 template<typename T> class LazySingleton {
     T value;
-    std::once_flag flag;
+    boost::once_flag flag;
 
 public:
     typedef T type;
 
-    LazySingleton() {};
+    LazySingleton()
+#ifndef BOOST_THREAD_PROVIDES_ONCE_CXX11
+        : flag(BOOST_ONCE_INIT)
+#endif
+        {};
     ~LazySingleton() {};
 
     T& get(std::function<T()> f) {
-        std::call_once(flag, [&]{
+        boost::call_once(flag, [&]{
             value = f();
             ANNOTATE_HAPPENS_BEFORE(&flag);
         });
