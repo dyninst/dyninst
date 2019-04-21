@@ -72,7 +72,13 @@ if(LibElf_FOUND)
 endif()
 
 # -------------- SOURCE BUILD -------------------------------------------------
-if(NOT LibElf_FOUND OR NOT LibDwarf_FOUND)
+if(LibElf_FOUND AND LibDwarf_FOUND)
+  set(_eu_root ${ElfUtils_ROOT})
+  set(_eu_inc_dirs ${LibElf_INCLUDE_DIRS} ${LibDwarf_INCLUDE_DIRS})
+  set(_eu_lib_dirs ${LibElf_LIBRARY_DIRS} ${LibDwarf_LIBRARY_DIRS})
+  set(_eu_libs ${LibElf_LIBRARIES} ${LibDwarf_LIBRARIES})
+  add_library(ElfUtils SHARED IMPORTED)
+else()
   message(STATUS "Attempting to build elfutils as external project")
   include(ExternalProject)
   externalproject_add(
@@ -89,11 +95,35 @@ if(NOT LibElf_FOUND OR NOT LibDwarf_FOUND)
     BUILD_COMMAND make
     INSTALL_COMMAND make install
   )
-  set(LIBELF_INCLUDE_DIR ${CMAKE_BINARY_DIR}/elfutils/include)
-  set(LIBELF_LIBRARIES ${CMAKE_BINARY_DIR}/elfutils/lib/libelf.so)
-  set(LIBDWARF_INCLUDE_DIR ${CMAKE_BINARY_DIR}/elfutils/include)
-  set(LIBDWARF_LIBRARIES ${CMAKE_BINARY_DIR}/elfutils/lib/libdw.so)
-  set(SHOULD_INSTALL_LIBELF 1)
-else()
-  set(SHOULD_INSTALL_LIBELF 0)
+  set(_eu_root ${CMAKE_INSTALL_PREFIX})
+  set(_eu_inc_dirs ${CMAKE_INSTALL_PREFIX}/include
+      ${CMAKE_INSTALL_PREFIX}/include/elfutils)
+  set(_eu_lib_dirs ${CMAKE_INSTALL_PREFIX}/lib
+      ${CMAKE_INSTALL_PREFIX}/lib/elfutils)
+  set(_eu_libs ${_eu_root}/lib/libelf.so ${_eu_root}/lib/libdw.so)
 endif()
+
+# -------------- EXPORT VARIABLES ---------------------------------------------
+
+set(ElfUtils_ROOT ${_eu_root}
+    CACHE PATH "Base directory the of elfutils installation"
+    FORCE)
+set(ElfUtils_INCLUDE_DIRS ${_eu_inc_dirs}
+    CACHE PATH "elfutils include directory"
+    FORCE)
+set(ElfUtils_LIBRARY_DIRS ${_eu_lib_dirs}
+    CACHE PATH "elfutils library directory"
+    FORCE)
+set(ElfUtils_INCLUDE_DIR ${ElfUtils_INCLUDE_DIRS}
+    CACHE PATH "elfutils include directory"
+    FORCE)
+set(ElfUtils_LIBRARIES ${_eu_libs}
+    CACHE FILEPATH "elfutils library files"
+    FORCE)
+
+link_directories(${ElfUtils_LIBRARY_DIRS})
+include_directories(${ElfUtils_INCLUDE_DIRS})
+
+message(STATUS "ElfUtils includes: ${ElfUtils_INCLUDE_DIRS}")
+message(STATUS "ElfUtils library dirs: ${ElfUtils_LIBRARY_DIRS}")
+message(STATUS "ElfUtils libraries: ${ElfUtils_LIBRARIES}")
