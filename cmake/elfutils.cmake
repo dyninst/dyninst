@@ -7,22 +7,22 @@
 #
 # Accepts the following CMake variables
 #
-#	ELFUTILS_ROOT				- Base directory the of elfutils installation
-#	ELFUTILS_INCLUDEDIR			- Hint directory that contains the elfutils headers files
-#	ELFUTILS_LIBRARYDIR			- Hint directory that contains the elfutils library files
-#	ELFUTILS_MIN_VERSION		- Minimum acceptable version of elfutils
+#	ElfUtils_ROOT				- Base directory the of elfutils installation
+#	ElfUtils_INCLUDEDIR			- Hint directory that contains the elfutils headers files
+#	ElfUtils_LIBRARYDIR			- Hint directory that contains the elfutils library files
+#	ElfUtils_MIN_VERSION		- Minimum acceptable version of elfutils
 #
 # Directly exports the following CMake variables
 #
-#	ELFUTILS_ROOT				- Computed base directory the of elfutils installation
-#	ELFUTILS_INCLUDE_DIRS 		- elfutils include directories
-#	ELFUTILS_LIBRARY_DIRS		- Link directories for elfutils libraries
-#	ELFUTILS_LIBRARIES			- elfutils library files
+#	ElfUtils_ROOT				- Computed base directory the of elfutils installation
+#	ElfUtils_INCLUDE_DIRS 		- elfutils include directories
+#	ElfUtils_LIBRARY_DIRS		- Link directories for elfutils libraries
+#	ElfUtils_LIBRARIES			- elfutils library files
 #
 # NOTE:
-#	The exported ELFUTILS_ROOT can be different from the input variable
+#	The exported ElfUtils_ROOT can be different from the input variable
 #	in the case that it is determined to build elfutils from source. In such
-#	a case, ELFUTILS_ROOT will contain the directory of the from-source
+#	a case, ElfUtils_ROOT will contain the directory of the from-source
 #	installation.
 #
 #====================================================================================================
@@ -32,36 +32,43 @@ endif()
 
 # Minimum acceptable version of elfutils
 set(_min_version 0.173)
-set(ELFUTILS_MIN_VERSION ${_min_version} CACHE STRING "Minimum acceptable elfutils version")
-if(${ELFUTILS_MIN_VERSION} VERSION_LESS ${_min_version})
-  message(FATAL_ERROR "Requested version ${ELFUTILS_MIN_VERSION} is less than minimum supported version (${_min_version})")
+set(ElfUtils_MIN_VERSION ${_min_version}
+    CACHE STRING "Minimum acceptable elfutils version")
+if(${ElfUtils_MIN_VERSION} VERSION_LESS ${_min_version})
+  message(
+    FATAL_ERROR
+      "Requested version ${ElfUtils_MIN_VERSION} is less than minimum supported version (${_min_version})"
+    )
 endif()
 
 # -------------- PATHS --------------------------------------------------------
 
 # Base directory the of elfutils installation
-set(ELFUTILS_ROOT "/usr" CACHE PATH "Base directory the of elfutils installation")
+set(ElfUtils_ROOT "/usr"
+    CACHE PATH "Base directory the of elfutils installation")
 
 # Hint directory that contains the elfutils headers files
-set(ELFUTILS_INCLUDEDIR "${ELFUTILS_ROOT}/include" CACHE PATH "Hint directory that contains the elfutils headers files")
+set(ElfUtils_INCLUDEDIR "${ElfUtils_ROOT}/include"
+    CACHE PATH "Hint directory that contains the elfutils headers files")
 
 # Hint directory that contains the elfutils library files
-set(ELFUTILS_LIBRARYDIR "${ELFUTILS_ROOT}/lib" CACHE PATH "Hint directory that contains the elfutils library files")
+set(ElfUtils_LIBRARYDIR "${ElfUtils_ROOT}/lib"
+    CACHE PATH "Hint directory that contains the elfutils library files")
 
 # libelf/dwarf-specific directory hints
 foreach(l LIBELF LIBDWARF)
   foreach(d ROOT INCLUDEDIR LIBRARYDIR)
-    set(${l}_${d} ${ELFUTILS_${d}})
+    set(${l}_${d} ${ElfUtils_${d}})
   endforeach()
 endforeach()
 
 # -------------- PACKAGES------------------------------------------------------
 
-find_package(LibElf ${ELFUTILS_MIN_VERSION})
+find_package(LibElf ${ElfUtils_MIN_VERSION})
 
 # Don't search for libdw if we didn't find a suitable libelf
 if(LibElf_FOUND)
-  find_package(LibDwarf ${ELFUTILS_MIN_VERSION})
+  find_package(LibDwarf ${ElfUtils_MIN_VERSION})
 endif()
 
 # -------------- SOURCE BUILD -------------------------------------------------
