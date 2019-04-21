@@ -99,7 +99,7 @@ else()
 
   include(ExternalProject)
   externalproject_add(
-    ElfUtils # was LibElf
+    ElfUtils
     PREFIX ${CMAKE_BINARY_DIR}/elfutils
     URL https://sourceware.org/elfutils/ftp/${_min_src_vers}/elfutils-${_min_src_vers}.tar.bz2
     URL_MD5 077e4f49320cad82bf17a997068b1db9
@@ -113,6 +113,7 @@ else()
     BUILD_COMMAND make install
     INSTALL_COMMAND ""
   )
+
   set(_eu_root ${CMAKE_INSTALL_PREFIX})
   set(_eu_inc_dirs ${CMAKE_INSTALL_PREFIX}/include
       ${CMAKE_INSTALL_PREFIX}/include/elfutils)
