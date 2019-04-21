@@ -79,12 +79,30 @@ if(LibElf_FOUND AND LibDwarf_FOUND)
   set(_eu_libs ${LibElf_LIBRARIES} ${LibDwarf_LIBRARIES})
   add_library(ElfUtils SHARED IMPORTED)
 else()
-  message(STATUS "Attempting to build elfutils as external project")
+  message(
+    STATUS
+      "Attempting to build elfutils(${ElfUtils_MIN_VERSION}) as external project"
+    )
+
+  # When building from source, we need at least elfutils-0.176 in order to use
+  # the --enable-install-elf option
+  set(_min_src_vers 0.176)
+  if("${ElfUtils_MIN_VERSION}" VERSION_LESS "${_min_src_vers}")
+    message(
+      STATUS
+        "Requested elfutils-${ElfUtils_MIN_VERSION}, but installing elfutils-${_min_src_vers}"
+      )
+    set(ElfUtils_MIN_VERSION ${_min_src_vers}
+        CACHE STRING "Minimum acceptable elfutils version"
+        FORCE)
+  endif()
+
   include(ExternalProject)
   externalproject_add(
     ElfUtils # was LibElf
     PREFIX ${CMAKE_BINARY_DIR}/elfutils
-    URL https://sourceware.org/elfutils/ftp/elfutils-latest.tar.bz2
+    URL https://sourceware.org/elfutils/ftp/${_min_src_vers}/elfutils-${_min_src_vers}.tar.bz2
+    URL_MD5 077e4f49320cad82bf17a997068b1db9
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND
       CFLAGS=-g
