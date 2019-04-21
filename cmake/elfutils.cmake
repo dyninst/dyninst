@@ -110,8 +110,8 @@ else()
       --enable-install-elfh
       --enable-shared
       --prefix=${CMAKE_INSTALL_PREFIX}
-    BUILD_COMMAND make
-    INSTALL_COMMAND make install
+    BUILD_COMMAND make install
+    INSTALL_COMMAND ""
   )
   set(_eu_root ${CMAKE_INSTALL_PREFIX})
   set(_eu_inc_dirs ${CMAKE_INSTALL_PREFIX}/include
