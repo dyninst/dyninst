@@ -104,12 +104,16 @@ if(UNIX)
     dynElf
     dynDwarf
     )
-  add_dependencies(symtabAPI ElfUtils)
 else()
   list (APPEND DEPS dbghelp)
 endif()
 
 dyninst_library(symtabAPI ${DEPS})
+
+if(TARGET ElfUtils)
+  add_dependencies(symtabAPI ElfUtils)
+endif()
+
 target_link_private_libraries(symtabAPI ${Boost_LIBRARIES})
 
 if (USE_COTIRE)

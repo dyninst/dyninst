@@ -20,6 +20,7 @@ set (SRC_LIST
   )
 endif()
 
+dyninst_library(dynElf)
 add_dependencies(dynElf ElfUtils)
 
 add_definitions(-DDYNELF_LIB)
