@@ -103,8 +103,8 @@ if(UNIX)
   list (APPEND DEPS
     dynElf
     dynDwarf
-    ElfUtils
     )
+  add_dependencies(symtabAPI ElfUtils)
 else()
   list (APPEND DEPS dbghelp)
 endif()
