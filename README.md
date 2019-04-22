@@ -54,13 +54,13 @@ options include:
 
 ```PATH_BOOST```: base directory of your boost installation
 
-```LIBELF_INCLUDE_DIR```: the location of elf.h and libelf.h
+```LibElf_INCLUDE_DIR```: the location of elf.h and libelf.h
 
-```LIBELF_LIBRARIES```: full path of libelf.so
+```LibElf_LIBRARIES```: full path of libelf.so
 
-```LIBDWARF_INCLUDE_DIR```: location of libdw.h
+```LibDwarf_INCLUDE_DIR```: location of libdw.h
 
-```LIBDWARF_LIBRARIES```: full path of libdw.so
+```LibDwarf_LIBRARIES```: full path of libdw.so
 
 ```TBB_INCLUDE_DIRS```: the direcory of the include files of TBB
 
@@ -114,7 +114,7 @@ or
 
 ```error: 'dwarf_next_lines' was not declared in this scope```
 
-A: Dyninst now depends on elfutils-0.173 or later. If you are seeing above errors, it means the elfutils installed on your system is older than 0.173. We recommend that you set ```LIBELF_INCLUDE_DIR```, ```LIBELF_LIBRARIES```, ```LIBDWARF_INCLUDE_DIR```, and ```LIBDWARF_LIBRARIES``` to empty, which will trigger the CMake to automatically download the correct version of elfutils. Or you can upgrade your elfutils with your system package manager.
+A: Dyninst now depends on elfutils-0.173 or later. If you are seeing above errors, it means the elfutils installed on your system is older than 0.173. We recommend that you set ```LibElf_INCLUDE_DIR```, ```LibElf_LIBRARIES```, ```LibDwarf_INCLUDE_DIR```, and ```LibDwarf_LIBRARIES``` to empty, which will trigger the CMake to automatically download the correct version of elfutils. Or you can upgrade your elfutils with your system package manager.
 
 2. Q: Where are the dependency libraries downloaded by Dyninst?
 
