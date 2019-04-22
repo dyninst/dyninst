@@ -101,8 +101,9 @@ set (DEPS common)
 
 if(UNIX)
   list (APPEND DEPS
-    dynElf ${LIBELF_LIBRARIES}
-    dynDwarf ${LIBDWARF_LIBRARIES}
+    dynElf
+    dynDwarf
+    ElfUtils
     )
 else()
   list (APPEND DEPS dbghelp)

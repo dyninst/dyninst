@@ -20,7 +20,7 @@ set (SRC_LIST
   )
 
 
-dyninst_library(dynDwarf dynElf common ${LIBDWARF_LIBRARIES} ${LIBELF_LIBRARIES})
+dyninst_library(dynDwarf dynElf common ElfUtils)
 if (USE_COTIRE)
     cotire(dynDwarf)
 endif()
