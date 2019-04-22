@@ -76,7 +76,10 @@ if(TBB_FOUND)
   set(TBB_LIBRARY_DIR ${TBB_LIBRARY_DIR} CACHE PATH "Alias for TBB_LIBRARY_DIRS" FORCE)
   set(TBB_DEFINITIONS ${TBB_DEFINITIONS} CACHE STRING "TBB compiler definitions" FORCE)
   set(TBB_LIBRARIES ${TBB_LIBRARIES} CACHE FILEPATH "TBB library files" FORCE)
-  add_library(TBB SHARED IMPORTED)
+  
+  if(NOT TARGET TBB)
+    add_library(TBB SHARED IMPORTED)
+  endif()
 else()
   # Build from source
   message(STATUS "Attempting to build TBB as external project")
