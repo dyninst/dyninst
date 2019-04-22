@@ -7,11 +7,11 @@
 #
 # Accepts the following CMake variables
 #
-#	BOOST_ROOT					- Base directory the of Boost installation
-#	PATH_BOOST					- Alias for BOOST_ROOT
-#	BOOST_INCLUDEDIR			- Hint directory that contains the Boost headers files
-#	BOOST_LIBRARYDIR			- Hint directory that contains the Boost library files
-#	BOOST_MIN_VERSION			- Minimum acceptable version of Boost
+#	Boost_ROOT					- Base directory the of Boost installation
+#	PATH_BOOST					- Alias for Boost_ROOT
+#	Boost_INCLUDEDIR			- Hint directory that contains the Boost headers files
+#	Boost_LIBRARYDIR			- Hint directory that contains the Boost library files
+#	Boost_MIN_VERSION			- Minimum acceptable version of Boost
 #	Boost_USE_MULTITHREADED		- Use the multithreaded version of Boost
 #	Boost_USE_STATIC_RUNTIME	- Don't use libraries linked statically to the C++ runtime
 #
@@ -22,7 +22,7 @@
 #
 # Exports the following CMake cache variables
 #
-#	BOOST_ROOT					- Computed base directory the of Boost installation
+#	Boost_ROOT					- Computed base directory the of Boost installation
 #	Boost_INCLUDE_DIRS 			- Boost include directories
 #	Boost_INCLUDE_DIR			- Alias for Boost_INCLUDE_DIRS
 #	Boost_LIBRARY_DIRS			- Link directories for Boost libraries
@@ -33,9 +33,9 @@
 #	Boost_THREAD_LIBRARY		- The filename of the Boost thread library
 #
 # NOTE:
-#	The exported BOOST_ROOT can be different from the input variable
+#	The exported Boost_ROOT can be different from the input variable
 #	in the case that it is determined to build Boost from source. In such
-#	a case, BOOST_ROOT will contain the directory of the from-source
+#	a case, Boost_ROOT will contain the directory of the from-source
 #	installation.
 #
 # See Modules/FindBoost.cmake for additional input and exported variables
@@ -44,10 +44,10 @@
 
 # Need Boost for filesytem components
 set(_boost_min_version 1.61.0)
-set(BOOST_MIN_VERSION ${_boost_min_version} CACHE STRING "Minimum Boost version")
+set(Boost_MIN_VERSION ${_boost_min_version} CACHE STRING "Minimum Boost version")
 
-if(${BOOST_MIN_VERSION} VERSION_LESS ${_boost_min_version})
-  message(FATAL_ERROR "Requested Boost-${BOOST_MIN_VERSION} is less than minimum supported version (${_boost_min_version})")
+if(${Boost_MIN_VERSION} VERSION_LESS ${_boost_min_version})
+  message(FATAL_ERROR "Requested Boost-${Boost_MIN_VERSION} is less than minimum supported version (${_boost_min_version})")
 endif()
 
 # -------------- RUNTIME CONFIGURATION ----------------------------------------
@@ -78,21 +78,24 @@ set(Boost_NO_SYSTEM_PATHS OFF CACHE BOOL "Disable searching in locations not spe
 
 # A sanity check
 # This must be done _before_ the cache variables are set
-if(PATH_BOOST AND BOOST_ROOT)
-  message(FATAL_ERROR "PATH_BOOST AND BOOST_ROOT both specified. Please provide only one")
+if(PATH_BOOST AND Boost_ROOT)
+  message(FATAL_ERROR "PATH_BOOST AND Boost_ROOT both specified. Please provide only one")
+endif()
+
+# If user set PATH_BOOST, put it in Boost_ROOT
+# NB: We are guaranteed that Boost_ROOT is not also set by the check above
+if(PATH_BOOST)
+  set(Boost_ROOT ${PATH_BOOST})
 endif()
 
 # Set the default location to look for Boost
-set(PATH_BOOST "/usr" CACHE PATH "Path to Boost set by user (DO NOT USE). See BOOST_INCLUDE_DIRS.")
-
-# PATH_BOOST is the user-facing version of BOOST_ROOT
-set(BOOST_ROOT ${PATH_BOOST} CACHE PATH "Base directory the of Boost installation")
+set(Boost_ROOT "/usr" CACHE PATH "Base directory the of Boost installation")
 
 # Preferred include directory hint
-set(BOOST_INCLUDEDIR "${BOOST_ROOT}/include" CACHE PATH "Boost preferred include directory hint")
+set(Boost_INCLUDEDIR "${Boost_ROOT}/include" CACHE PATH "Boost preferred include directory hint")
 
 # Preferred library directory hint
-set(BOOST_LIBRARYDIR "${BOOST_ROOT}/lib" CACHE PATH "Boost preferred library directory hint")
+set(Boost_LIBRARYDIR "${Boost_ROOT}/lib" CACHE PATH "Boost preferred library directory hint")
 
 # -------------- COMPILER DEFINES ---------------------------------------------
 
@@ -124,7 +127,7 @@ set(Boost_NO_BOOST_CMAKE ON)
 #     This should _not_ be a cache variable
 set(_boost_components atomic chrono date_time filesystem system thread timer)
 
-find_package(Boost ${BOOST_MIN_VERSION} COMPONENTS ${_boost_components})
+find_package(Boost ${Boost_MIN_VERSION} COMPONENTS ${_boost_components})
 
 # -------------- SOURCE BUILD -------------------------------------------------
 
@@ -141,9 +144,9 @@ else()
   message(STATUS "${Boost_ERROR_REASON}")
   message(STATUS "Attempting to build ${_Boost_download_version} as external project")
 
-  if(${_Boost_download_version} VERSION_LESS ${BOOST_MIN_VERSION})
+  if(${_Boost_download_version} VERSION_LESS ${Boost_MIN_VERSION})
     message(FATAL_ERROR "Download version of Boost (${_Boost_download_version}) "
-                        "is older than minimum allowed version (${BOOST_MIN_VERSION})")
+                        "is older than minimum allowed version (${Boost_MIN_VERSION})")
   endif()
   
   if(Boost_USE_MULTITHREADED)
@@ -159,11 +162,11 @@ else()
   endif()
   
   # Change the base directory
-  set(BOOST_ROOT ${CMAKE_INSTALL_PREFIX} CACHE PATH "Base directory the of Boost installation" FORCE)
+  set(Boost_ROOT ${CMAKE_INSTALL_PREFIX} CACHE PATH "Base directory the of Boost installation" FORCE)
 
   # Update the exported variables  
-  set(Boost_INCLUDE_DIRS ${BOOST_ROOT}/include CACHE PATH "Boost include directory" FORCE)
-  set(Boost_LIBRARY_DIRS ${BOOST_ROOT}/lib CACHE PATH "Boost library directory" FORCE)
+  set(Boost_INCLUDE_DIRS ${Boost_ROOT}/include CACHE PATH "Boost include directory" FORCE)
+  set(Boost_LIBRARY_DIRS ${Boost_ROOT}/lib CACHE PATH "Boost library directory" FORCE)
   set(Boost_INCLUDE_DIR ${Boost_INCLUDE_DIRS} CACHE PATH "Boost include directory" FORCE)
   
   set(BOOST_ARGS
@@ -204,7 +207,7 @@ else()
     URL http://downloads.sourceforge.net/project/boost/boost/${_Boost_download_version}/boost_${_Boost_download_filename}.zip
     URL_MD5 aec39b2e85552077e7f5c4e8cf9240cd
     BUILD_IN_SOURCE 1
-    CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${BOOST_ROOT} --with-libraries=${Boost_lib_names}
+    CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${Boost_ROOT} --with-libraries=${Boost_lib_names}
     BUILD_COMMAND ${BOOST_BUILD} ${BOOST_ARGS} install
     INSTALL_COMMAND ""
   )
