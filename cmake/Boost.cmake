@@ -134,6 +134,7 @@ if(Boost_FOUND)
   set(Boost_INCLUDE_DIRS ${Boost_INCLUDE_DIRS} CACHE PATH "Boost include directory" FORCE)
   set(Boost_LIBRARY_DIRS ${Boost_LIBRARY_DIRS} CACHE PATH "Boost library directory" FORCE)
   set(Boost_INCLUDE_DIR ${Boost_INCLUDE_DIR} CACHE PATH "Boost include directory" FORCE)
+  add_library(boost SHARED IMPORTED)
 else()
   # If we didn't find a suitable version on the system, then download one from the web
   set(_Boost_download_version "1.69.0")
