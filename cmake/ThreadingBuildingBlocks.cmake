@@ -145,3 +145,7 @@ message(STATUS "TBB include directory: ${TBB_INCLUDE_DIRS}")
 message(STATUS "TBB library directory: ${TBB_LIBRARY_DIRS}")
 message(STATUS "TBB libraries: ${TBB_LIBRARIES}")
 message(STATUS "TBB definitions: ${TBB_DEFINITIONS}")
+
+if(USE_COTIRE)
+  cotire(TBB)
+endif()
