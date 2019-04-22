@@ -91,12 +91,6 @@ endif()
 # Set the default location to look for Boost
 set(Boost_ROOT_DIR "/usr" CACHE PATH "Base directory the of Boost installation")
 
-# Preferred include directory hint
-set(Boost_INCLUDEDIR "${Boost_ROOT_DIR}/include" CACHE PATH "Boost preferred include directory hint")
-
-# Preferred library directory hint
-set(Boost_LIBRARYDIR "${Boost_ROOT_DIR}/lib" CACHE PATH "Boost preferred library directory hint")
-
 # In FindBoost, Boost_ROOT_DIR is spelled BOOST_ROOT
 set(BOOST_ROOT ${Boost_ROOT_DIR})
 
