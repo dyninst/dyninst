@@ -260,3 +260,7 @@ message(STATUS "Boost includes: ${Boost_INCLUDE_DIRS}")
 message(STATUS "Boost library dirs: ${Boost_LIBRARY_DIRS}")
 message(STATUS "Boost thread library: ${Boost_THREAD_LIBRARY}")
 message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
+
+if(USE_COTIRE)
+  cotire(boost)
+endif()
