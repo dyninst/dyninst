@@ -201,6 +201,13 @@ if(BUILD_DOCS)
   endif()
 endif()
 
+if(UNIX)
+  message(STATUS "Adding Unix-specific dependencies")
+  if(NOT USE_GNU_DEMANGLER)
+    add_dependencies(common libiberty_imp)
+  endif()
+endif()
+
 if(TARGET boost)
     add_dependencies(common boost)
 endif()
