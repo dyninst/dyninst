@@ -3,40 +3,40 @@
 #
 # Configure Boost for Dyninst
 #
-#		----------------------------------------
+#   ----------------------------------------
 #
 # Accepts the following CMake variables
 #
-#	Boost_ROOT					- Base directory the of Boost installation
-#	PATH_BOOST					- Alias for Boost_ROOT
-#	Boost_INCLUDEDIR			- Hint directory that contains the Boost headers files
-#	Boost_LIBRARYDIR			- Hint directory that contains the Boost library files
-#	Boost_MIN_VERSION			- Minimum acceptable version of Boost
-#	Boost_USE_MULTITHREADED		- Use the multithreaded version of Boost
-#	Boost_USE_STATIC_RUNTIME	- Don't use libraries linked statically to the C++ runtime
+# Boost_ROOT_DIR            - Base directory the of Boost installation
+# PATH_BOOST                - Alias for Boost_ROOT_DIR
+# Boost_INCLUDEDIR          - Hint directory that contains the Boost headers files
+# Boost_LIBRARYDIR          - Hint directory that contains the Boost library files
+# Boost_MIN_VERSION         - Minimum acceptable version of Boost
+# Boost_USE_MULTITHREADED   - Use the multithreaded version of Boost
+# Boost_USE_STATIC_RUNTIME  - Don't use libraries linked statically to the C++ runtime
 #
 # Advanced options:
 #
-#	Boost_DEBUG					- Enable debug output from FindBoost
-#	Boost_NO_SYSTEM_PATHS		- Disable searching in locations not specified by hint variables 
+# Boost_DEBUG               - Enable debug output from FindBoost
+# Boost_NO_SYSTEM_PATHS     - Disable searching in locations not specified by hint variables 
 #
 # Exports the following CMake cache variables
 #
-#	Boost_ROOT					- Computed base directory the of Boost installation
-#	Boost_INCLUDE_DIRS 			- Boost include directories
-#	Boost_INCLUDE_DIR			- Alias for Boost_INCLUDE_DIRS
-#	Boost_LIBRARY_DIRS			- Link directories for Boost libraries
-#	Boost_DEFINES				- Boost compiler definitions
-#	Boost_LIBRARIES				- Boost library files
-#	Boost_<C>_LIBRARY_RELEASE	- Release libraries to link for component <C> (<C> is upper-case)
-#	Boost_<C>_LIBRARY_DEBUG		- Debug libraries to link for component <C>
-#	Boost_THREAD_LIBRARY		- The filename of the Boost thread library
+# Boost_ROOT_DIR            - Computed base directory the of Boost installation
+# Boost_INCLUDE_DIRS        - Boost include directories
+# Boost_INCLUDE_DIR         - Alias for Boost_INCLUDE_DIRS
+# Boost_LIBRARY_DIRS        - Link directories for Boost libraries
+# Boost_DEFINES             - Boost compiler definitions
+# Boost_LIBRARIES           - Boost library files
+# Boost_<C>_LIBRARY_RELEASE - Release libraries to link for component <C> (<C> is upper-case)
+# Boost_<C>_LIBRARY_DEBUG   - Debug libraries to link for component <C>
+# Boost_THREAD_LIBRARY      - The filename of the Boost thread library
 #
 # NOTE:
-#	The exported Boost_ROOT can be different from the input variable
-#	in the case that it is determined to build Boost from source. In such
-#	a case, Boost_ROOT will contain the directory of the from-source
-#	installation.
+# The exported Boost_ROOT_DIR can be different from the input variable
+# in the case that it is determined to build Boost from source. In such
+# a case, Boost_ROOT_DIR will contain the directory of the from-source
+# installation.
 #
 # See Modules/FindBoost.cmake for additional input and exported variables
 #
