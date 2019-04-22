@@ -87,7 +87,8 @@ else()
   # When building from source, we need at least elfutils-0.176 in order to use
   # the --enable-install-elf option
   set(_min_src_vers 0.176)
-  if("${ElfUtils_MIN_VERSION}" VERSION_LESS "${_min_src_vers}")
+  if("${ElfUtils_MIN_VERSION}" VERSION_LESS "${_min_src_vers}" OR
+     "${ElfUtils_MIN_VERSION}" VERSION_GREATER "${_min_src_vers}")
     message(
       STATUS
         "Requested elfutils-${ElfUtils_MIN_VERSION}, but installing elfutils-${_min_src_vers}"
