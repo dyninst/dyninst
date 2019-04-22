@@ -78,24 +78,27 @@ set(Boost_NO_SYSTEM_PATHS OFF CACHE BOOL "Disable searching in locations not spe
 
 # A sanity check
 # This must be done _before_ the cache variables are set
-if(PATH_BOOST AND Boost_ROOT)
-  message(FATAL_ERROR "PATH_BOOST AND Boost_ROOT both specified. Please provide only one")
+if(PATH_BOOST AND Boost_ROOT_DIR)
+  message(FATAL_ERROR "PATH_BOOST AND Boost_ROOT_DIR both specified. Please provide only one")
 endif()
 
-# If user set PATH_BOOST, put it in Boost_ROOT
-# NB: We are guaranteed that Boost_ROOT is not also set by the check above
+# If user set PATH_BOOST, put it in Boost_ROOT_DIR
+# NB: We are guaranteed that Boost_ROOT_DIR is not also set by the check above
 if(PATH_BOOST)
-  set(Boost_ROOT ${PATH_BOOST})
+  set(Boost_ROOT_DIR ${PATH_BOOST})
 endif()
 
 # Set the default location to look for Boost
-set(Boost_ROOT "/usr" CACHE PATH "Base directory the of Boost installation")
+set(Boost_ROOT_DIR "/usr" CACHE PATH "Base directory the of Boost installation")
 
 # Preferred include directory hint
-set(Boost_INCLUDEDIR "${Boost_ROOT}/include" CACHE PATH "Boost preferred include directory hint")
+set(Boost_INCLUDEDIR "${Boost_ROOT_DIR}/include" CACHE PATH "Boost preferred include directory hint")
 
 # Preferred library directory hint
-set(Boost_LIBRARYDIR "${Boost_ROOT}/lib" CACHE PATH "Boost preferred library directory hint")
+set(Boost_LIBRARYDIR "${Boost_ROOT_DIR}/lib" CACHE PATH "Boost preferred library directory hint")
+
+# In FindBoost, Boost_ROOT_DIR is spelled BOOST_ROOT
+set(BOOST_ROOT ${Boost_ROOT_DIR})
 
 # -------------- COMPILER DEFINES ---------------------------------------------
 
@@ -162,11 +165,11 @@ else()
   endif()
   
   # Change the base directory
-  set(Boost_ROOT ${CMAKE_INSTALL_PREFIX} CACHE PATH "Base directory the of Boost installation" FORCE)
+  set(Boost_ROOT_DIR ${CMAKE_INSTALL_PREFIX} CACHE PATH "Base directory the of Boost installation" FORCE)
 
   # Update the exported variables  
-  set(Boost_INCLUDE_DIRS ${Boost_ROOT}/include CACHE PATH "Boost include directory" FORCE)
-  set(Boost_LIBRARY_DIRS ${Boost_ROOT}/lib CACHE PATH "Boost library directory" FORCE)
+  set(Boost_INCLUDE_DIRS ${Boost_ROOT_DIR}/include CACHE PATH "Boost include directory" FORCE)
+  set(Boost_LIBRARY_DIRS ${Boost_ROOT_DIR}/lib CACHE PATH "Boost library directory" FORCE)
   set(Boost_INCLUDE_DIR ${Boost_INCLUDE_DIRS} CACHE PATH "Boost include directory" FORCE)
   
   set(BOOST_ARGS
@@ -207,7 +210,7 @@ else()
     URL http://downloads.sourceforge.net/project/boost/boost/${_Boost_download_version}/boost_${_Boost_download_filename}.zip
     URL_MD5 aec39b2e85552077e7f5c4e8cf9240cd
     BUILD_IN_SOURCE 1
-    CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${Boost_ROOT} --with-libraries=${Boost_lib_names}
+    CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${Boost_ROOT_DIR} --with-libraries=${Boost_lib_names}
     BUILD_COMMAND ${BOOST_BUILD} ${BOOST_ARGS} install
     INSTALL_COMMAND ""
   )
