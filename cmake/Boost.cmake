@@ -143,12 +143,19 @@ if(Boost_FOUND)
   add_library(boost SHARED IMPORTED)
 else()
   # If we didn't find a suitable version on the system, then download one from the web
-  set(_Boost_download_version "1.69.0")
+  set(_boost_download_version "1.69.0")
+  
+  # If the user specifies a version other than _boost_download_version, use that version.
+  # NB: We know Boost_MIN_VERSION is >= _boost_min_version from earlier checks
+  if(${Boost_MIN_VERSION} VERSION_LESS ${_boost_download_version} OR
+     ${Boost_MIN_VERSION} VERSION_GREATER ${_boost_download_version})
+    set(_boost_download_version ${Boost_MIN_VERSION})
+  endif()
   message(STATUS "${Boost_ERROR_REASON}")
-  message(STATUS "Attempting to build ${_Boost_download_version} as external project")
-
-  if(${_Boost_download_version} VERSION_LESS ${Boost_MIN_VERSION})
-    message(FATAL_ERROR "Download version of Boost (${_Boost_download_version}) "
+  message(STATUS "Attempting to build ${_boost_download_version} as external project")
+  
+  if(${_boost_download_version} VERSION_LESS ${Boost_MIN_VERSION})
+    message(FATAL_ERROR "Download version of Boost (${_boost_download_version}) "
                         "is older than minimum allowed version (${Boost_MIN_VERSION})")
   endif()
   
@@ -203,12 +210,11 @@ else()
   endforeach()
 
   include(ExternalProject)
-  string(REPLACE "." "_" _Boost_download_filename ${_Boost_download_version})
+  string(REPLACE "." "_" _boost_download_filename ${_boost_download_version})
   ExternalProject_Add(
     boost
     PREFIX ${CMAKE_BINARY_DIR}/boost
-    URL http://downloads.sourceforge.net/project/boost/boost/${_Boost_download_version}/boost_${_Boost_download_filename}.zip
-    URL_MD5 aec39b2e85552077e7f5c4e8cf9240cd
+    URL http://downloads.sourceforge.net/project/boost/boost/${_boost_download_version}/boost_${_boost_download_filename}.zip
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${Boost_ROOT_DIR} --with-libraries=${Boost_lib_names}
     BUILD_COMMAND ${BOOST_BUILD} ${BOOST_ARGS} install
