@@ -34,6 +34,8 @@
 # Boost_<C>_LIBRARY_RELEASE - Release libraries to link for component <C> (<C> is upper-case)
 # Boost_<C>_LIBRARY_DEBUG   - Debug libraries to link for component <C>
 # Boost_THREAD_LIBRARY      - The filename of the Boost thread library
+# Boost_USE_MULTITHREADED   - Use the multithreaded version of Boost
+# Boost_USE_STATIC_RUNTIME  - Don't use libraries linked statically to the C++ runtime
 #
 # NOTE:
 # The exported Boost_ROOT_DIR can be different from the value provided by the user in the case that
