@@ -89,14 +89,13 @@ if(PATH_BOOST AND Boost_ROOT_DIR)
   message(FATAL_ERROR "PATH_BOOST AND Boost_ROOT_DIR both specified. Please provide only one")
 endif()
 
-# If user set PATH_BOOST, put it in Boost_ROOT_DIR
-# NB: We are guaranteed that Boost_ROOT_DIR is not also set by the check above
-if(PATH_BOOST)
-  set(Boost_ROOT_DIR ${PATH_BOOST})
+# Provide a default root directory
+if(NOT PATH_BOOST AND NOT Boost_ROOT_DIR)
+  set(PATH_BOOST "/usr")
 endif()
 
 # Set the default location to look for Boost
-set(Boost_ROOT_DIR "/usr" CACHE PATH "Base directory the of Boost installation")
+set(Boost_ROOT_DIR ${PATH_BOOST} CACHE PATH "Base directory the of Boost installation")
 
 # In FindBoost, Boost_ROOT_DIR is spelled BOOST_ROOT
 set(BOOST_ROOT ${Boost_ROOT_DIR})
