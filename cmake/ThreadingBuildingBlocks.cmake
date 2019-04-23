@@ -43,7 +43,16 @@
 set(TBB_USE_DEBUG_BUILD OFF CACHE BOOL "Use debug versions of TBB libraries")
 
 # Minimum version of TBB
-set(TBB_MIN_VERSION 2018.0 CACHE STRING "Minimum version of TBB")
+# NB: This assumes a dotted-decimal format: YYYY.XX
+set(_tbb_min_version 2018.0)
+set(TBB_MIN_VERSION ${_tbb_min_version} CACHE STRING "Minimum version of TBB")
+
+if(${TBB_MIN_VERSION} VERSION_LESS ${_tbb_min_version})
+  message(
+    FATAL_ERROR
+    "Requested TBB version ${TBB_MIN_VERSION} is less than minimum supported version ${_tbb_min_version}"
+  )
+endif()
 
 # -------------- PATHS --------------------------------------------------------
 
@@ -120,7 +129,6 @@ else()
     TBB
     PREFIX ${_tbb_prefix_dir}
     URL https://github.com/01org/tbb/archive/2019_U5.tar.gz
-    URL_MD5 38eae1abb55e1663257f29e8748d3798
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ""
     BUILD_COMMAND
