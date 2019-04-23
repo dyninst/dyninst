@@ -88,14 +88,14 @@ else()
 
   # When building from source, we need at least elfutils-0.176 in order to use
   # the --enable-install-elf option
-  set(_min_src_vers 0.176)
-  if("${ElfUtils_MIN_VERSION}" VERSION_LESS "${_min_src_vers}" OR
-     "${ElfUtils_MIN_VERSION}" VERSION_GREATER "${_min_src_vers}")
+  set(_elfutils_download_version 0.176)
+  if("${ElfUtils_MIN_VERSION}" VERSION_LESS "${_elfutils_download_version}" OR
+     "${ElfUtils_MIN_VERSION}" VERSION_GREATER "${_elfutils_download_version}")
     message(
       STATUS
-        "Requested elfutils-${ElfUtils_MIN_VERSION}, but installing elfutils-${_min_src_vers}"
+        "Requested elfutils-${ElfUtils_MIN_VERSION}, but installing elfutils-${_elfutils_download_version}"
       )
-    set(ElfUtils_MIN_VERSION ${_min_src_vers}
+    set(ElfUtils_MIN_VERSION ${_elfutils_download_version}
         CACHE STRING "Minimum acceptable elfutils version"
         FORCE)
   endif()
@@ -104,8 +104,7 @@ else()
   externalproject_add(
     ElfUtils
     PREFIX ${CMAKE_BINARY_DIR}/elfutils
-    URL https://sourceware.org/elfutils/ftp/${_min_src_vers}/elfutils-${_min_src_vers}.tar.bz2
-    URL_MD5 077e4f49320cad82bf17a997068b1db9
+    URL https://sourceware.org/elfutils/ftp/${_elfutils_download_version}/elfutils-${_elfutils_download_version}.tar.bz2
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND
       CFLAGS=-g
