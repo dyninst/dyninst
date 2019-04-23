@@ -153,7 +153,9 @@ else()
   endif()
   message(STATUS "${Boost_ERROR_REASON}")
   message(STATUS "Attempting to build ${_boost_download_version} as external project")
-  
+
+  # This is an internal consistency check. Normal users should not trip this since
+  # they cannot affect _boost_download_version.  
   if(${_boost_download_version} VERSION_LESS ${Boost_MIN_VERSION})
     message(FATAL_ERROR "Download version of Boost (${_boost_download_version}) "
                         "is older than minimum allowed version (${Boost_MIN_VERSION})")
