@@ -103,6 +103,7 @@ if(UNIX)
   list (APPEND DEPS
     dynElf
     dynDwarf
+    ${ElfUtils_LIBRARIES}
     )
 else()
   list (APPEND DEPS dbghelp)
