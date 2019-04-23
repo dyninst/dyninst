@@ -88,8 +88,18 @@ if(TBB_FOUND)
     add_library(TBB SHARED IMPORTED)
   endif()
 else()
-  # Build from source
-  message(STATUS "Attempting to build TBB as external project")
+  # If we didn't find a suitable version on the system, then download one from the web
+  set(_tbb_download_version 2019.0)
+  
+  # If the user specifies a version other than _tbb_download_version, use that version.
+  # NB: We know TBB_MIN_VERSION is >= _tbb_min_version from earlier checks
+  if(${TBB_MIN_VERSION} VERSION_LESS ${_tbb_download_version} OR
+     ${TBB_MIN_VERSION} VERSION_GREATER ${_tbb_download_version})
+    set(_tbb_download_version ${TBB_MIN_VERSION})
+  endif()
+
+  message(STATUS "${ThreadingBuildingBlocks_ERROR_REASON}")
+  message(STATUS "Attempting to build TBB(${_tbb_download_version}) as external project")
   
   if(NOT UNIX)
     message(FATAL_ERROR "Building TBB from source is not supported on this platform")
@@ -123,12 +133,18 @@ else()
   
   set(TBB_LIBRARIES ${_tbb_libraries} CACHE FILEPATH "TBB library files" FORCE)
   
+  # This is only a partial implementation for getting a source version of TBB
+  # The tarballs are named YYYY_UX, but the version string is YYYY.ZZ where there
+  # is no known relationship between X and ZZ. Hence, we just use the year from the
+  # version string (YYYY) and fetch the first update from that year (U1).
+  string(REGEX REPLACE "\\\..*$" "" _tbb_download_name ${_tbb_download_version})
+  
   include(ExternalProject)
   set(_tbb_prefix_dir ${CMAKE_BINARY_DIR}/tbb)
   ExternalProject_Add(
     TBB
     PREFIX ${_tbb_prefix_dir}
-    URL https://github.com/01org/tbb/archive/2019_U5.tar.gz
+    URL https://github.com/01org/tbb/archive/${_tbb_download_name}_U1.tar.gz
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ""
     BUILD_COMMAND
