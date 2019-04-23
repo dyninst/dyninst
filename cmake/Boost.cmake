@@ -203,10 +203,10 @@ else()
   endif()
 
   # Join the component names together to pass to --with-libraries during bootstrap
-  set(Boost_lib_names "")
+  set(_boost_lib_names "")
   foreach(c ${_boost_components})
 	# list(JOIN ...) is in cmake 3.12
-    string(CONCAT Boost_lib_names "${Boost_lib_names}${c},")
+    string(CONCAT _boost_lib_names "${_boost_lib_names}${c},")
   endforeach()
 
   include(ExternalProject)
@@ -216,7 +216,7 @@ else()
     PREFIX ${CMAKE_BINARY_DIR}/boost
     URL http://downloads.sourceforge.net/project/boost/boost/${_boost_download_version}/boost_${_boost_download_filename}.zip
     BUILD_IN_SOURCE 1
-    CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${Boost_ROOT_DIR} --with-libraries=${Boost_lib_names}
+    CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${Boost_ROOT_DIR} --with-libraries=${_boost_lib_names}
     BUILD_COMMAND ${BOOST_BUILD} ${BOOST_ARGS} install
     INSTALL_COMMAND ""
   )
