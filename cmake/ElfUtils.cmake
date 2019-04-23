@@ -7,22 +7,22 @@
 #
 # Accepts the following CMake variables
 #
-# ElfUtils_ROOT           - Base directory the of elfutils installation
+# ElfUtils_ROOT_DIR       - Base directory the of elfutils installation
 # ElfUtils_INCLUDEDIR     - Hint directory that contains the elfutils headers files
 # ElfUtils_LIBRARYDIR     - Hint directory that contains the elfutils library files
 # ElfUtils_MIN_VERSION    - Minimum acceptable version of elfutils
 #
 # Directly exports the following CMake variables
 #
-# ElfUtils_ROOT           - Computed base directory the of elfutils installation
+# ElfUtils_ROOT_DIR       - Computed base directory the of elfutils installation
 # ElfUtils_INCLUDE_DIRS   - elfutils include directories
 # ElfUtils_LIBRARY_DIRS   - Link directories for elfutils libraries
 # ElfUtils_LIBRARIES      - elfutils library files
 #
 # NOTE:
-# The exported ElfUtils_ROOT can be different from the value provided by the user
+# The exported ElfUtils_ROOT_DIR can be different from the value provided by the user
 # in the case that it is determined to build elfutils from source. In such a case,
-# ElfUtils_ROOT will contain the directory of the from-source installation.
+# ElfUtils_ROOT_DIR will contain the directory of the from-source installation.
 #
 # See Modules/FindLibElf.cmake and Modules/FindLibDwarf.cmake for details
 #
@@ -46,15 +46,15 @@ endif()
 # -------------- PATHS --------------------------------------------------------
 
 # Base directory the of elfutils installation
-set(ElfUtils_ROOT "/usr"
+set(ElfUtils_ROOT_DIR "/usr"
     CACHE PATH "Base directory the of elfutils installation")
 
 # Hint directory that contains the elfutils headers files
-set(ElfUtils_INCLUDEDIR "${ElfUtils_ROOT}/include"
+set(ElfUtils_INCLUDEDIR "${ElfUtils_ROOT_DIR}/include"
     CACHE PATH "Hint directory that contains the elfutils headers files")
 
 # Hint directory that contains the elfutils library files
-set(ElfUtils_LIBRARYDIR "${ElfUtils_ROOT}/lib"
+set(ElfUtils_LIBRARYDIR "${ElfUtils_ROOT_DIR}/lib"
     CACHE PATH "Hint directory that contains the elfutils library files")
 
 # libelf/dwarf-specific directory hints
@@ -75,7 +75,7 @@ endif()
 
 # -------------- SOURCE BUILD -------------------------------------------------
 if(LibElf_FOUND AND LibDwarf_FOUND)
-  set(_eu_root ${ElfUtils_ROOT})
+  set(_eu_root ${ElfUtils_ROOT_DIR})
   set(_eu_inc_dirs ${LibElf_INCLUDE_DIRS} ${LibDwarf_INCLUDE_DIRS})
   set(_eu_lib_dirs ${LibElf_LIBRARY_DIRS} ${LibDwarf_LIBRARY_DIRS})
   set(_eu_libs ${LibElf_LIBRARIES} ${LibDwarf_LIBRARIES})
@@ -127,7 +127,7 @@ endif()
 
 # -------------- EXPORT VARIABLES ---------------------------------------------
 
-set(ElfUtils_ROOT ${_eu_root}
+set(ElfUtils_ROOT_DIR ${_eu_root}
     CACHE PATH "Base directory the of elfutils installation"
     FORCE)
 set(ElfUtils_INCLUDE_DIRS ${_eu_inc_dirs}
