@@ -1,31 +1,33 @@
-#====================================================================================================
+#======================================================================================
 # elfutils.cmake
 #
 # Configure elfutils for Dyninst
 #
-#		----------------------------------------
+#   ----------------------------------------
 #
 # Accepts the following CMake variables
 #
-#	ElfUtils_ROOT				- Base directory the of elfutils installation
-#	ElfUtils_INCLUDEDIR			- Hint directory that contains the elfutils headers files
-#	ElfUtils_LIBRARYDIR			- Hint directory that contains the elfutils library files
-#	ElfUtils_MIN_VERSION		- Minimum acceptable version of elfutils
+# ElfUtils_ROOT           - Base directory the of elfutils installation
+# ElfUtils_INCLUDEDIR     - Hint directory that contains the elfutils headers files
+# ElfUtils_LIBRARYDIR     - Hint directory that contains the elfutils library files
+# ElfUtils_MIN_VERSION    - Minimum acceptable version of elfutils
 #
 # Directly exports the following CMake variables
 #
-#	ElfUtils_ROOT				- Computed base directory the of elfutils installation
-#	ElfUtils_INCLUDE_DIRS 		- elfutils include directories
-#	ElfUtils_LIBRARY_DIRS		- Link directories for elfutils libraries
-#	ElfUtils_LIBRARIES			- elfutils library files
+# ElfUtils_ROOT           - Computed base directory the of elfutils installation
+# ElfUtils_INCLUDE_DIRS   - elfutils include directories
+# ElfUtils_LIBRARY_DIRS   - Link directories for elfutils libraries
+# ElfUtils_LIBRARIES      - elfutils library files
 #
 # NOTE:
-#	The exported ElfUtils_ROOT can be different from the input variable
-#	in the case that it is determined to build elfutils from source. In such
-#	a case, ElfUtils_ROOT will contain the directory of the from-source
-#	installation.
+# The exported ElfUtils_ROOT can be different from the value provided by the user
+# in the case that it is determined to build elfutils from source. In such a case,
+# ElfUtils_ROOT will contain the directory of the from-source installation.
 #
-#====================================================================================================
+# See Modules/FindLibElf.cmake and Modules/FindLibDwarf.cmake for details
+#
+#======================================================================================
+
 if(NOT UNIX)
   return()
 endif()
