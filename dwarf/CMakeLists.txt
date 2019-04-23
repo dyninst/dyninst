@@ -20,7 +20,7 @@ set (SRC_LIST
   )
 
 
-dyninst_library(dynDwarf dynElf common)
+dyninst_library(dynDwarf dynElf common ${LibDwarf_LIBRARIES})
 add_dependencies(dynDwarf ElfUtils)
 
 if (USE_COTIRE)
