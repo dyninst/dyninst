@@ -814,8 +814,12 @@ Slicer::getPredecessors(
     
     Block::edgelist sources;
     cand.loc.block->copy_sources(sources);
-    for (auto eit = sources.begin(); eit != sources.end(); eit++) {
-        handlePredecessorEdge(*eit, p, cand, newCands, err, nf);
+    map< pair<Address, int> , ParseAPI::Edge* > sources_edges;
+    for (auto eit = sources.begin(); eit != sources.end(); ++eit) {
+        sources_edges.insert(make_pair( make_pair( (*eit)->src()->start(), (int)(*eit)->type() ), *eit));
+    }
+    for (auto eit = sources_edges.begin(); eit != sources_edges.end(); eit++) {
+        handlePredecessorEdge(eit->second, p, cand, newCands, err, nf);
     }
     return !err; 
 }
