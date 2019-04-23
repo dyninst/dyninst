@@ -71,9 +71,7 @@ if(TBB_FOUND)
   # Force the cache entries to be updated
   # Normally, these would not be exported. However, we need them in the Testsuite
   set(TBB_INCLUDE_DIRS ${TBB_INCLUDE_DIRS} CACHE PATH "TBB include directory" FORCE)
-  set(TBB_INCLUDE_DIR ${TBB_INCLUDE_DIRS} CACHE PATH "Alias for TBB_INCLUDE_DIRS" FORCE)
   set(TBB_LIBRARY_DIRS ${TBB_LIBRARY_DIRS} CACHE PATH "TBB library directory" FORCE)
-  set(TBB_LIBRARY_DIR ${TBB_LIBRARY_DIR} CACHE PATH "Alias for TBB_LIBRARY_DIRS" FORCE)
   set(TBB_DEFINITIONS ${TBB_DEFINITIONS} CACHE STRING "TBB compiler definitions" FORCE)
   set(TBB_LIBRARIES ${TBB_LIBRARIES} CACHE FILEPATH "TBB library files" FORCE)
   
@@ -91,9 +89,7 @@ else()
   # Forcibly update the cache variables
   set(TBB_ROOT_DIR ${CMAKE_INSTALL_PREFIX} CACHE PATH "TBB root directory" FORCE)
   set(TBB_INCLUDE_DIRS ${TBB_ROOT_DIR}/include CACHE PATH "TBB include directory" FORCE)
-  set(TBB_INCLUDE_DIR ${TBB_INCLUDE_DIRS} CACHE PATH "" FORCE) 
   set(TBB_LIBRARY_DIRS ${TBB_ROOT_DIR}/lib CACHE PATH "TBB library directory" FORCE)
-  set(TBB_LIBRARY_DIR ${TBB_LIBRARY_DIRS} CACHE PATH "Alias for TBB_LIBRARY_DIRS" FORCE)
   set(TBB_DEFINITIONS "" CACHE STRING "TBB compiler definitions" FORCE)
 
   set(_tbb_libraries)
