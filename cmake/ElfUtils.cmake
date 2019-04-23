@@ -111,7 +111,6 @@ else()
       CFLAGS=-g
       <SOURCE_DIR>/configure
       --enable-install-elfh
-      --enable-shared
       --prefix=${CMAKE_INSTALL_PREFIX}
     BUILD_COMMAND make install
     INSTALL_COMMAND ""
