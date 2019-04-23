@@ -46,10 +46,13 @@
 #
 #========================================================================================================
 
-# Need Boost for filesytem components
+# Need at least Boost-1.61 for filesytem components
 set(_boost_min_version 1.61.0)
+
+# Provide a default, if the user didn't specify
 set(Boost_MIN_VERSION ${_boost_min_version} CACHE STRING "Minimum Boost version")
 
+# Enforce minimum version
 if(${Boost_MIN_VERSION} VERSION_LESS ${_boost_min_version})
   message(FATAL_ERROR "Requested Boost-${Boost_MIN_VERSION} is less than minimum supported version (${_boost_min_version})")
 endif()
