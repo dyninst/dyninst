@@ -81,25 +81,21 @@ if(LibElf_FOUND AND LibDwarf_FOUND)
   set(_eu_libs ${LibElf_LIBRARIES} ${LibDwarf_LIBRARIES})
   add_library(ElfUtils SHARED IMPORTED)
 else()
-  message(
-    STATUS
-      "Attempting to build elfutils(${ElfUtils_MIN_VERSION}) as external project"
-    )
-
-  # When building from source, we need at least elfutils-0.176 in order to use
-  # the --enable-install-elf option
+  # If we didn't find a suitable version on the system, then download one from the web
+  # NB: When building from source, we need at least elfutils-0.176 in order to use
+  #     the --enable-install-elf option
   set(_elfutils_download_version 0.176)
-  if("${ElfUtils_MIN_VERSION}" VERSION_LESS "${_elfutils_download_version}" OR
-     "${ElfUtils_MIN_VERSION}" VERSION_GREATER "${_elfutils_download_version}")
-    message(
-      STATUS
-        "Requested elfutils-${ElfUtils_MIN_VERSION}, but installing elfutils-${_elfutils_download_version}"
-      )
-    set(ElfUtils_MIN_VERSION ${_elfutils_download_version}
-        CACHE STRING "Minimum acceptable elfutils version"
-        FORCE)
+
+  # If the user specifies a version other than _elfutils_download_version, use that version.
+  # NB: We know ElfUtils_MIN_VERSION is >= _min_version from earlier checks
+  if(${ElfUtils_MIN_VERSION} VERSION_LESS ${_elfutils_download_version} OR
+     ${ElfUtils_MIN_VERSION} VERSION_GREATER ${_elfutils_download_version})
+    set(_elfutils_download_version ${ElfUtils_MIN_VERSION})
   endif()
 
+  message(STATUS "${ElfUtils_ERROR_REASON}")
+  message( STATUS "Attempting to build elfutils(${_elfutils_download_version}) as external project")
+  
   include(ExternalProject)
   externalproject_add(
     ElfUtils
