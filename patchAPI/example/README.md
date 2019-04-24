@@ -16,3 +16,7 @@ Then to build and test:
 ```
 make test
 ```
+
+To run the rewritten mutatee program you will also need to set the 
+`DYNINSTAPI_RT_LIB` environment variable to 
+`${DYNINST}/lib/libdyninstAPI_RT.so.1`

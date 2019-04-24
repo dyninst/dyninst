@@ -30,5 +30,5 @@ int main(int argc, const char *argv[])
     foo2();
   }
   message("Done\n");
-  return status;
+  return 0;
 }

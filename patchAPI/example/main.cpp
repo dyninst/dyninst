@@ -61,15 +61,25 @@ int main(int argc, const char *argv[]) {
 
   BPatch_image* image = app->getImage();
 
+  if(image == NULL){
+    return 0;
+  }
+  
   cout << "image OK" << endl;
+
+  PatchMgrPtr patchMgr = PatchAPI::convert(image);
 
   vector<BPatch_object*> objects;
 
   image->getObjects(objects);
 
-  cout << "objects: " << objects.size() << endl;
+  int ocount = objects.size();
 
-  PatchMgrPtr patchMgr = PatchAPI::convert(image);
+  cout << "objects: " <<  ocount << endl;
+
+  if(ocount <= 0){
+    return 0;
+  }
 
   BPatch_object* batchObj = objects[0];
 
