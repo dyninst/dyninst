@@ -38,6 +38,8 @@
 #include "ProcReader.h"
 #include "elfutils/libdw.h"
 #include "util.h"
+#include <boost/thread/once.hpp>
+#include "concurrent.h"
 
 namespace Dyninst {
 
@@ -175,8 +177,10 @@ private:
     
     Architecture arch;
 
+    boost::once_flag fde_dwarf_once;
     dwarf_status_t fde_dwarf_status;
-    
+
+    dyn_mutex cfi_lock;
     std::vector<Dwarf_CFI *> cfi_data;
 
 };

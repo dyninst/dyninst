@@ -27,6 +27,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#include "common/src/vgannotations.h"
 #include "dwarfFrameParser.h"
 #include "dwarfExprParser.h"
 #include "dwarfResult.h"
@@ -69,6 +70,9 @@ DwarfFrameParser::DwarfFrameParser(Dwarf * dbg_, Elf * eh_frame, Architecture ar
     dbg(dbg_),
     dbg_eh_frame(eh_frame),
     arch(arch_),
+#ifndef BOOST_THREAD_PROVIDES_ONCE_CXX11
+    fde_dwarf_once(BOOST_ONCE_INIT),
+#endif
     fde_dwarf_status(dwarf_status_uninitialized)
 {
 }
@@ -174,6 +178,7 @@ bool DwarfFrameParser::getRegsForFunction(
         return false;
     }
     
+    boost::unique_lock<dyn_mutex> l(cfi_lock);
     for(size_t i=0; i<cfi_data.size(); i++)
     {
         auto next_pc = range.first;
@@ -397,43 +402,44 @@ bool DwarfFrameParser::getRegAtFrame_aux(Address pc,
 
 void DwarfFrameParser::setupFdeData()
 {
-    if (fde_dwarf_status == dwarf_status_ok ||
-        fde_dwarf_status == dwarf_status_error)
-        return;
-
-    if (!dbg && !dbg_eh_frame) {
-        fde_dwarf_status = dwarf_status_error;
-        return;
-    }
+    boost::call_once(fde_dwarf_once, [&]{
+        if (!dbg && !dbg_eh_frame) {
+            fde_dwarf_status = dwarf_status_error;
+            return;
+        }
 
 #if defined(dwarf_has_setframe)
-    dwarf_set_frame_cfa_value(dbg, DW_FRAME_CFA_COL3);
+        dwarf_set_frame_cfa_value(dbg, DW_FRAME_CFA_COL3);
 #endif
 
-    Dwarf_CFI * cfi = nullptr;
+        Dwarf_CFI * cfi = nullptr;
 
-    // Try to get dwarf data from .debug_frame
-    cfi = dwarf_getcfi(dbg);
-    if (dbg && cfi)
-    {
-        cfi_data.push_back(cfi);
-    }
+        // Try to get dwarf data from .debug_frame
+        cfi = dwarf_getcfi(dbg);
+        if (dbg && cfi)
+        {
+            cfi_data.push_back(cfi);
+        }
     
-    // Try to get dwarf data from .eh_frame
-    cfi = nullptr;
-    cfi = dwarf_getcfi_elf(dbg_eh_frame);
-    if (dbg_eh_frame && cfi)
-    {
-        cfi_data.push_back(cfi);
-    }
+        // Try to get dwarf data from .eh_frame
+        cfi = nullptr;
+        cfi = dwarf_getcfi_elf(dbg_eh_frame);
+        if (dbg_eh_frame && cfi)
+        {
+            cfi_data.push_back(cfi);
+        }
     
-    // Verify if it got any dwarf data
-    if (!cfi_data.size()) {
-        fde_dwarf_status = dwarf_status_error;
-    }
-    else{
-        fde_dwarf_status = dwarf_status_ok;
-    }
+        // Verify if it got any dwarf data
+        if (!cfi_data.size()) {
+            fde_dwarf_status = dwarf_status_error;
+        }
+        else{
+            fde_dwarf_status = dwarf_status_ok;
+        }
+
+        ANNOTATE_HAPPENS_BEFORE(&fde_dwarf_once);
+    });
+    ANNOTATE_HAPPENS_AFTER(&fde_dwarf_once);
 }
 
 
