@@ -1720,6 +1720,12 @@ bool int_process::infMalloc(unsigned long size, int_addressSet *aset, bool use_a
    {
       int_process *proc = i->first;
       int_iRPC::ptr rpc = i->second;
+      pthrd_printf("Malloc status = %s\n", rpc->getStrState());
+      while (rpc->getState() != int_iRPC::Finished) {
+	      bool result = int_process::waitAndHandleEvents(false);
+	      pthrd_printf("Waiting on RPC State = %s\n", rpc->getStrState());
+      }
+      pthrd_printf("Exiting RPC State = %s\n", rpc->getStrState());
       assert(rpc->getState() == int_iRPC::Finished);
       Dyninst::Address aresult = rpc->infMallocResult();
       pthrd_printf("Inferior malloc returning %lx on %d\n", aresult, proc->getPid());
@@ -1813,6 +1819,12 @@ bool int_process::infFree(int_addressSet *aset)
          had_error = true;
          continue;
       }
+      while (rpc->getState() != int_iRPC::Finished) {
+          bool result = int_process::waitAndHandleEvents(false);
+          pthrd_printf("Waiting on Free RPC State = %s\n", rpc->getStrState());
+      }
+						      
+      
       assert(rpc->getState() == int_iRPC::Finished);
       Address addr = rpc->getInfFreeTarget();
       map<Dyninst::Address, unsigned long>::iterator j = proc->mem->inf_malloced_memory.find(addr);

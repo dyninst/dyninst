@@ -270,7 +270,7 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    bool usedTrap = false;
    unsigned size = 0;
    // Check if the function appears in an application function
-   if(r.func->obj()->fullName().find("cuibm") != std::string::npos)
+//   if(r.func->obj()->fullName().find("cuibm") != std::string::npos)
 	   traprequired = true;
    if(traprequired) {
       codeGen tmpGen;

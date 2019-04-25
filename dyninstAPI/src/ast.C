@@ -2134,6 +2134,7 @@ bool AstCallNode::initRegisters(codeGen &gen) {
     func_instance *callee = func_;
     if (!callee) {
         // Painful lookup time
+	//fprintf(stderr, "Looking up name: %s\n", func_name_.c_str());
         callee = gen.addrSpace()->findOnlyOneFunction(func_name_.c_str());
     }
     assert(callee);

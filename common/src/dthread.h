@@ -100,7 +100,7 @@ public:
    
 };
 
-
+#include <chrono>
 template <typename mutex_t = Mutex<false> >
 class PC_EXPORT CondVar {
    boost::condition_variable_any cond;
@@ -122,7 +122,13 @@ class PC_EXPORT CondVar {
    void lock() { mutex->lock(); }
    void signal() { cond.notify_one(); }
    void broadcast() { cond.notify_all(); }
-   void wait() { cond.wait(*mutex); }
+   void timed_wait() {cond.timed_wait(*mutex,boost::posix_time::milliseconds(4000));}
+   void wait() { 
+//	   auto two_seconds = 
+	//   boost::chrono::duration<int, boost::chrono::seconds> const two_seconds(3);
+	//std::chrono::duration<int> two_seconds(3);
+//	   boost::system_time const timeout=boost::get_system_time()+ boost::posix_time::milliseconds(35000);
+	   cond.wait(*mutex); }
 
 };
 
