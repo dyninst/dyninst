@@ -14,7 +14,7 @@
 #
 # This module reads hints about search locations from variables::
 #
-#	LibDwarf_ROOT			- Base directory the of libdw installation
+#	LibDwarf_ROOT_DIR		- Base directory the of libdw installation
 #	LibDwarf_INCLUDEDIR		- Hint directory that contains the libdw headers files
 #	LibDwarf_LIBRARYDIR		- Hint directory that contains the libdw library files
 #
@@ -34,14 +34,14 @@ set(_path_suffixes libdw libdwarf elfutils)
 
 find_path(LibDwarf_INCLUDE_DIR
           NAMES libdw.h
-          HINTS ${LibDwarf_ROOT}/include ${LibDwarf_ROOT} ${LibDwarf_INCLUDEDIR}
+          HINTS ${LibDwarf_ROOT_DIR}/include ${LibDwarf_ROOT_DIR} ${LibDwarf_INCLUDEDIR}
           PATHS ${DYNINST_SYSTEM_INCLUDE_PATHS}
           PATH_SUFFIXES ${_path_suffixes}
           DOC "libdw include directories")
 
 find_library(LibDwarf_LIBRARIES
              NAMES libdw.so.1 libdw.so
-             HINTS ${LibDwarf_ROOT}/lib ${LibDwarf_ROOT} ${LibDwarf_LIBRARYDIR}
+             HINTS ${LibDwarf_ROOT_DIR}/lib ${LibDwarf_ROOT_DIR} ${LibDwarf_LIBRARYDIR}
              PATHS ${DYNINST_SYSTEM_LIBRARY_PATHS}
              PATH_SUFFIXES ${_path_suffixes})
 

@@ -14,7 +14,7 @@
 #
 # This module reads hints about search locations from variables::
 #
-#	LibElf_ROOT			- Base directory the of libelf installation
+#	LibElf_ROOT_DIR		- Base directory the of libelf installation
 #	LibElf_INCLUDEDIR	- Hint directory that contains the libelf headers files
 #	LibElf_LIBRARYDIR	- Hint directory that contains the libelf library files
 #
@@ -37,14 +37,14 @@ set(_path_suffixes libelf libelfls elfutils)
 
 find_path(LibElf_INCLUDE_DIR
           NAMES libelf.h
-          HINTS ${LibElf_ROOT}/include ${LibElf_ROOT} ${LibElf_INCLUDEDIR}
+          HINTS ${LibElf_ROOT_DIR}/include ${LibElf_ROOT_DIR} ${LibElf_INCLUDEDIR}
           PATHS ${DYNINST_SYSTEM_INCLUDE_PATHS}
           PATH_SUFFIXES ${_path_suffixes}
           DOC "libelf include directories")
 
 find_library(LibElf_LIBRARIES
              NAMES libelf.so.1 libelf.so
-             HINTS ${LibElf_ROOT}/lib ${LibElf_ROOT} ${LibElf_LIBRARYDIR}
+             HINTS ${LibElf_ROOT_DIR}/lib ${LibElf_ROOT_DIR} ${LibElf_LIBRARYDIR}
              PATHS ${DYNINST_SYSTEM_LIBRARY_PATHS}
              PATH_SUFFIXES ${_path_suffixes})
 

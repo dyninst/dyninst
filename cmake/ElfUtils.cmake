@@ -58,8 +58,8 @@ set(ElfUtils_LIBRARYDIR "${ElfUtils_ROOT_DIR}/lib"
     CACHE PATH "Hint directory that contains the elfutils library files")
 
 # libelf/dwarf-specific directory hints
-foreach(l LIBELF LIBDWARF)
-  foreach(d ROOT INCLUDEDIR LIBRARYDIR)
+foreach(l LibElf LibDwarf)
+  foreach(d ROOT_DIR INCLUDEDIR LIBRARYDIR)
     set(${l}_${d} ${ElfUtils_${d}})
   endforeach()
 endforeach()
