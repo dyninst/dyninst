@@ -240,8 +240,6 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
     }
 	return NULL;
 #endif
-
-
 }
 
 

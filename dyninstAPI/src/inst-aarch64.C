@@ -792,7 +792,7 @@ void emitJmpMC(int /*condition*/, int /*offset*/, codeGen &) {
 // Yuhan(02/05/19): Needs to implement, refering to what registers are saved during the trap
 
 static inline bool needsRestore(Register x) {
-   	if(x>=0 && x<=2 || x>=19 && x <= 32) 
+   	if(x>=0 && x <= 2 || x>=19 || x == 32 || x == 31) 
 		return true;
 	else
 		return false;
@@ -811,8 +811,7 @@ static inline void restoreGPRtoGPR(codeGen &gen,
 
 	frame_size = TRAMP_FRAME_SIZE_64;
     gpr_size   = GPRSIZE_64;
-    gpr_off    = TRAMP_GPR_OFFSET_64;
-	
+    gpr_off    = TRAMP_GPR_OFFSET_64;	
 	
 	//Stack Point Register
 	if(reg == 31) {
@@ -833,6 +832,8 @@ static inline void emitAddOriginal(Register src, Register acc,
     emitV(plusOp, src, acc, acc, gen, noCost, 0);
 }
 
+
+//Not correctly implemented
 void MovePCToReg(Register dest, codeGen &gen) {
     instruction insn;
     insn.clear();
@@ -868,7 +869,7 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
     			assert(original_ra != REG_NULL && "cannot get a scratch register");
 			 	MovePCToReg(original_ra, gen);
 				restored_ra = true;	
-				fprintf(stderr, "PC restored\n");
+				//fprintf(stderr, "PC restored\n");
 			}
 			else {
 				//needs to allocate one extra register otherwise 
