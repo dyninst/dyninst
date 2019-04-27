@@ -248,13 +248,15 @@ bool Type::setSize(unsigned int size)
 
 void Type::incrRefCount() 
 {
-	++refCount;
+	refCount.fetch_add(1, boost::memory_order_relaxed);
 }
 
 void Type::decrRefCount() 
 {
-    --refCount;
-    if(refCount == 0) delete this;
+    if(refCount.fetch_sub(1, boost::memory_order_relaxed) == 1) {
+        boost::atomic_thread_fence(boost::memory_order_acquire);
+        delete this;
+    }
 }
 
 std::string &Type::getName()
@@ -1921,7 +1923,7 @@ Serializable * Type::serialize_impl(SerializerBase *s, const char *tag) THROW_SP
 	if (s->isInput())
 	{
 		updatingSize = false;
-		refCount = 0;
+                refCount.store(0, boost::memory_order_relaxed);
 		
 		// Ensure that unique type id is the next (increasingly negative) type ID available for user defined types.
 		updateUniqueTypeId(ID_);
