@@ -99,10 +99,10 @@ class SYMTAB_EXPORT FunctionBase
    const FuncRangeCollection &getRanges();
    
    /***** Frame Pointer Information *****/
-   dyn_mutex framePtrLock;
    bool setFramePtr(std::vector<VariableLocation> *locs);
    std::vector<VariableLocation> &getFramePtrRefForInit();
-   std::vector<VariableLocation> &getFramePtr();   
+   std::vector<VariableLocation> &getFramePtr();
+   dyn_mutex &getFramePtrLock();
 
    /***** Primary name *****/
    virtual std::string getName() const = 0;
@@ -140,6 +140,7 @@ class SYMTAB_EXPORT FunctionBase
 
    FuncRangeCollection ranges;
    std::vector<VariableLocation> frameBase_;
+   dyn_mutex frameBaseLock_;
    bool frameBaseExpanded_;
    void *data;
    void expandLocation(const VariableLocation &loc,

@@ -1530,7 +1530,7 @@ std::vector<VariableLocation>& DwarfParseActions::getFramePtrRefForInit()
 bool DwarfWalker::getFrameBase() {
     dwarf_printf("(0x%lx) Checking for frame pointer information\n", id());
 
-    boost::unique_lock<dyn_mutex> l(curFunc()->framePtrLock);
+    boost::unique_lock<dyn_mutex> l(curFunc()->getFramePtrLock());
     std::vector<VariableLocation> &funlocs = getFramePtrRefForInit();
     if (!funlocs.empty()) {
         DWARF_CHECK_RET(false);

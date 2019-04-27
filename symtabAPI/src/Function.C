@@ -180,6 +180,14 @@ std::vector<Dyninst::VariableLocation> &FunctionBase::getFramePtrRefForInit() {
    return frameBase_;
 }
 
+dyn_mutex &FunctionBase::getFramePtrLock()
+{
+   if (inline_parent)
+      return inline_parent->getFramePtrLock();
+
+   return frameBaseLock_;
+}
+
 std::vector<Dyninst::VariableLocation> &FunctionBase::getFramePtr() 
 {
    if (inline_parent)
