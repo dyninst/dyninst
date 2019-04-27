@@ -134,6 +134,7 @@ class SYMTAB_EXPORT FunctionBase
    mutable unsigned functionSize_;
    Type          *retType_;
 
+   dyn_mutex inlines_lock;
    InlineCollection inlines;
    FunctionBase *inline_parent;
 

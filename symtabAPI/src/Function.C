@@ -435,8 +435,9 @@ InlinedFunction::InlinedFunction(FunctionBase *parent) :
     module_(parent->getModule())
 {
     inline_parent = parent;
-    parent->inlines.push_back(this);
     offset_ = parent->getOffset();
+    boost::unique_lock<dyn_mutex> l(parent->inlines_lock);
+    parent->inlines.push_back(this);
 }
 
 InlinedFunction::~InlinedFunction()
