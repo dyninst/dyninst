@@ -477,6 +477,7 @@ unsigned InlinedFunction::getSize() const
 
 void InlinedFunction::setFile(string filename) {
     StringTablePtr strs = module_->getStrings();
+    boost::unique_lock<dyn_mutex> l(strs->lock);
     // This looks gross, but here's what it does:
     // Get index 1 (unique by name). Insert the filename on that index (which defaults to push_back if empty).
     // Returns an <iterator, bool>; get the iterator (we don't care if it's new). Project to random access (index 0).

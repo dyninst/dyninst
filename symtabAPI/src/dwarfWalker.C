@@ -283,6 +283,7 @@ bool DwarfWalker::buildSrcFiles(::Dwarf * /*dbg*/, Dwarf_Die entry, StringTableP
     int ret = dwarf_getsrcfiles(&entry, &df, &cnt);
     if(ret==-1) return true;
 
+    boost::unique_lock<dyn_mutex> l(srcFiles->lock);
     if(!srcFiles->empty()) {
         return true;
     } // already parsed, the module had better be right.
@@ -1721,6 +1722,7 @@ bool DwarfWalker::getLineInformation(Dwarf_Word &variableLineNo,
 
     if (status != 0) {
         StringTablePtr files = srcFiles();
+        boost::unique_lock<dyn_mutex> l(files->lock);
         Dwarf_Word fileNameDeclVal;
         DWARF_FAIL_RET(dwarf_formudata(&fileDeclAttribute, &fileNameDeclVal));
         if (fileNameDeclVal >= files->size() || fileNameDeclVal <= 0) {
@@ -1842,9 +1844,11 @@ bool DwarfWalker::findString(Dwarf_Half attr,
         bool result = findConstant(attr, line_index, &e, dbg());
         if (!result)
             return false;
-        if (line_index >= mod()->getStrings()->size()) {
+        StringTablePtr strs = mod()->getStrings();
+        boost::unique_lock<dyn_mutex> l(strs->lock);
+        if (line_index >= strs->size()) {
             dwarf_printf("Dwarf error reading line index %d from srcFiles of size %lu\n",
-                    line_index, mod()->getStrings()->size());
+                    line_index, strs->size());
             return false;
         }
         //       cout << "findString found " << (*srcFiles())[line_index].str << " at srcFiles[" << line_index << "] for " << mod()->fileName() << endl;

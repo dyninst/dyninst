@@ -4162,6 +4162,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         return;
     }
     StringTablePtr strings(li_for_module->getStrings());
+    boost::unique_lock<dyn_mutex> l(strings->lock);
     Dwarf_Files *files;
     size_t offset = strings->size();
     size_t filecount;
@@ -4347,6 +4348,7 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
     {
 
     StringTablePtr strings(li_for_object->getStrings());
+    boost::unique_lock<dyn_mutex> l(strings->lock);
     size_t offset = strings->size();
 
     // dwarf_line_srcfileno == 0 means unknown; 1...n means files[0...n-1]

@@ -2252,6 +2252,7 @@ SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<AddressRange > &ranges,
     for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
    {
        StringTablePtr s = (*i)->getStrings();
+       boost::unique_lock<dyn_mutex> l(s->lock);
        // Only check modules that have this filename present
        if(s->get<1>().find(lineSource) == s->get<1>().end()) {
            continue;
