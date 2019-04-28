@@ -562,8 +562,71 @@ SYMTAB_EXPORT string Symtab::getDefaultNamespacePrefix() const
 {
     return defaultNamespacePrefix;
 }
-	
-	
+
+// Operations on the indexed_symbols compound table.
+bool Symtab::indexed_symbols::insert(Symbol* s) {
+    Offset o = s->getOffset();
+    master_t::accessor a;
+    if(master.insert(a, std::make_pair(s, o))) {
+        {
+            by_offset_t::accessor oa;
+            by_offset.insert(oa, o);
+            oa->second.push_back(s);
+        }
+        {
+            by_name_t::accessor ma;
+            by_mangled.insert(ma, s->getMangledName());
+            ma->second.push_back(s);
+        }
+        {
+            by_name_t::accessor pa;
+            by_pretty.insert(pa, s->getPrettyName());
+            pa->second.push_back(s);
+        }
+        {
+            by_name_t::accessor ta;
+            by_typed.insert(ta, s->getTypedName());
+            ta->second.push_back(s);
+        }
+
+        return true;
+    }
+    return false;
+}
+
+void Symtab::indexed_symbols::clear() {
+    master.clear();
+    by_offset.clear();
+    by_mangled.clear();
+    by_pretty.clear();
+    by_typed.clear();
+}
+
+void Symtab::indexed_symbols::erase(Symbol* s) {
+    if(master.erase(s)) {
+        {
+            by_offset_t::accessor oa;
+            assert(by_offset.find(oa, s->getOffset()));
+            std::remove(oa->second.begin(), oa->second.end(), s);
+        }
+        {
+            by_name_t::accessor ma;
+            assert(by_mangled.find(ma, s->getMangledName()));
+            std::remove(ma->second.begin(), ma->second.end(), s);
+        }
+        {
+            by_name_t::accessor pa;
+            assert(by_pretty.find(pa, s->getPrettyName()));
+            std::remove(pa->second.begin(), pa->second.end(), s);
+        }
+        {
+            by_name_t::accessor ta;
+            assert(by_typed.find(ta, s->getTypedName()));
+            std::remove(ta->second.begin(), ta->second.end(), s);
+        }
+    }
+}
+
 // TODO -- is this g++ specific
 bool Symtab::buildDemangledName( const std::string &mangled, 
       std::string &pretty,
@@ -877,9 +940,7 @@ bool Symtab::demangleSymbol(Symbol *&sym) {
 bool Symtab::addSymbolToIndices(Symbol *&sym, bool undefined) 
 {
    assert(sym);
-   boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
    if (!undefined) {
-     if(everyDefinedSymbol.find(sym) == everyDefinedSymbol.end())
        everyDefinedSymbol.insert(sym);
    }
    else {
@@ -2660,43 +2721,39 @@ SYMTAB_EXPORT bool Symtab::fixup_RegionAddr(const char* name, Offset memOffset, 
 
 SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
 {
-  indexed_symbols::index<mangled>::type& mangled_syms = everyDefinedSymbol.get<mangled>();
-  // Find the symbol.
-  //if (symsByMangledName.count(name) == 0) return false;
-  if(mangled_syms.count(name) == 0) return false;
-  if(mangled_syms.count(name) > 1)
-    // /* DEBUG
-    //if (symsByMangledName[name].size() != 1)
-     create_printf("*** Found %zu symbols with name %s.  Expecting 1.\n",
-                   mangled_syms.count(name), name); // */
-  indexed_symbols::index<mangled>::type::iterator sym = mangled_syms.find(name);
-  Symbol* new_sym = *sym;
-  
-  // Update symbol.
-  new_sym->setOffset(newOffset);
-  indexed_symbols::index<offset>::type& syms_by_offset = everyDefinedSymbol.get<offset>();
-  syms_by_offset.replace(everyDefinedSymbol.project<offset>(sym), new_sym);
-  
-    // Update hashes.
-  /*   if (symsByOffset.count(oldOffset)) {
-        std::vector<Symbol *>::iterator iter = symsByOffset[oldOffset].begin();
-        while (iter != symsByOffset[oldOffset].end()) {
-            if (*iter == sym) {
-                symsByOffset[oldOffset].erase(iter);
-                iter = symsByOffset[oldOffset].begin();
+  Symbol* sym;
+  {
+    // Find the symbol.
+    indexed_symbols::by_name_t::const_accessor ma;
+    if(!everyDefinedSymbol.by_mangled.find(ma, name)) return false;
+    if(ma->second.size() > 1)
+      create_printf("*** Found %zu symbols with name %s.  Expecting 1.\n",
+                    ma->second.size(), name);
+    sym = ma->second[0];
 
-            } else iter++;
-        }
-    }
-    if (!findSymbolByOffset(newOffset))
-        symsByOffset[newOffset].push_back(sym);
-  */
-    // Update aggregates.
-    if (!doNotAggregate(new_sym)) {
-      addSymbolToAggregates(new_sym);
-    }
+    // Update symbol.
+    indexed_symbols::master_t::accessor a;
+    assert(everyDefinedSymbol.master.find(a, sym));
+    Offset old = a->second;
 
-    return true;
+    sym->setOffset(newOffset);
+    a->second = newOffset;
+
+    // Update the by_offset table
+    indexed_symbols::by_offset_t::accessor oa;
+    assert(everyDefinedSymbol.by_offset.find(oa, old));
+    std::remove(oa->second.begin(), oa->second.end(), sym);
+
+    everyDefinedSymbol.by_offset.insert(oa, newOffset);
+    oa->second.push_back(sym);
+  }
+
+  // Update aggregates.
+  if (!doNotAggregate(sym)) {
+    addSymbolToAggregates(sym);
+  }
+
+  return true;
 }
 
 SYMTAB_EXPORT bool Symtab::updateRegion(const char* name, void *buffer, unsigned size)

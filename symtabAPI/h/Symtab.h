@@ -518,26 +518,49 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    //symbols
    unsigned no_of_symbols;
 
-   // Indices
-   struct offset {};
-   struct pretty {};
-   struct mangled {};
-   struct typed {};
-   struct id {};
-   
- 
-   
-   
-   typedef 
-   boost::multi_index_container<Symbol::Ptr, indexed_by <
-   ordered_unique< tag<id>, const_mem_fun < Symbol::Ptr, Symbol*, &Symbol::Ptr::get> >,
-   ordered_non_unique< tag<offset>, const_mem_fun < Symbol, Offset, &Symbol::getOffset > >,
-   hashed_non_unique< tag<mangled>, const_mem_fun < Symbol, std::string, &Symbol::getMangledName > >,
-   hashed_non_unique< tag<pretty>, const_mem_fun < Symbol, std::string, &Symbol::getPrettyName > >,
-   hashed_non_unique< tag<typed>, const_mem_fun < Symbol, std::string, &Symbol::getTypedName > >
-   >
-   > indexed_symbols;
-   
+   struct indexed_symbols {
+       typedef dyn_c_hash_map<Symbol*, Offset> master_t;
+       typedef std::vector<Symbol*> symvec_t;
+       typedef dyn_c_hash_map<Offset, symvec_t> by_offset_t;
+       typedef dyn_c_hash_map<std::string, symvec_t> by_name_t;
+
+       master_t master;
+       by_offset_t by_offset;
+       by_name_t by_mangled;
+       by_name_t by_pretty;
+       by_name_t by_typed;
+
+       // Only inserts if not present. Returns whether it inserted.
+       bool insert(Symbol* s);
+
+       // Clears the table. Do not use in parallel.
+       void clear();
+
+       // Erases symbols from the table. Do not use in parallel.
+       void erase(Symbol* s);
+
+       // Iterator for the symbols. Do not use in parallel.
+       class iterator : public std::iterator<std::forward_iterator_tag,Symbol*> {
+           master_t::iterator m;
+       public:
+           iterator(master_t::iterator i) : m(i) {};
+           ~iterator() {};
+           bool operator==(const iterator& x) { return m == x.m; };
+           bool operator!=(const iterator& x) { return !operator==(x); };
+           Symbol* const& operator*() const { return m->first; };
+           Symbol* const* operator->() const { return &operator*(); };
+           iterator& operator++() { ++m; return *this; };
+           iterator operator++(int) {
+               iterator old(m);
+               operator++();
+               return old;
+           }
+       };
+
+       iterator begin() { return iterator(master.begin()); }
+       iterator end() { return iterator(master.end()); }
+   };
+
    indexed_symbols everyDefinedSymbol;
    indexed_symbols undefDynSyms;
    
