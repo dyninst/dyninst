@@ -126,7 +126,7 @@ Serializable *localVarCollection::ac_serialize_impl(SerializerBase *, const char
 }
 
 // Could be somewhere else... for DWARF-work.
-dyn_hash_map<void *, typeCollection *> typeCollection::fileToTypesMap;
+dyn_c_hash_map<void *, typeCollection *> typeCollection::fileToTypesMap;
 dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > *> *deferred_lookups_p = NULL;
 
 void typeCollection::addDeferredLookup(int tid, dataClass tdc,Type **th)
@@ -183,7 +183,7 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
 			if (!t)
 			{
 				int nfound = 0;
-				dyn_hash_map<void *, typeCollection *>::iterator tciter; 
+				dyn_c_hash_map<void *, typeCollection *>::iterator tciter; 
 				for (tciter = fileToTypesMap.begin(); tciter != fileToTypesMap.end(); tciter++)
 				{
 					Type *localt = NULL;
@@ -220,22 +220,14 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
  * Reference count
  */
 
-boost::mutex typeCollection::create_lock;
-
 typeCollection *typeCollection::getModTypeCollection(Module *mod) 
 {
-	boost::lock_guard<boost::mutex> g(create_lock);
-	if (!mod) return NULL;
-	dyn_hash_map<void *, typeCollection *>::iterator iter = fileToTypesMap.find((void *)mod);
-
-    if ( iter != fileToTypesMap.end()) 
-	{
-		return iter->second;
+    if (!mod) return NULL;
+    dyn_c_hash_map<void *, typeCollection *>::accessor a;
+    if(fileToTypesMap.insert(a, (void *)mod)) {
+        a->second = new typeCollection();
     }
-
-    typeCollection *newTC = new typeCollection();
-    fileToTypesMap[(void *)mod] = newTC;
-    return newTC;
+    return a->second;
 }
 
 

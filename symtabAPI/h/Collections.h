@@ -91,9 +91,8 @@ class SYMTAB_EXPORT typeCollection : public Serializable//, public AnnotatableSp
     // DWARF:
     /* Cache type collections on a per-image basis.  (Since
        BPatch_functions are solitons, we don't have to cache them.) */
-    static dyn_hash_map< void *, typeCollection * > fileToTypesMap;
-	//static dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > > deferred_lookups;
-	static bool doDeferredLookups(typeCollection *);
+    static dyn_c_hash_map< void *, typeCollection * > fileToTypesMap;
+    static bool doDeferredLookups(typeCollection *);
 
     // DWARF...
     bool dwarfParsed_;
