@@ -137,7 +137,7 @@ else()
   # The tarballs are named YYYY_UX, but the version string is YYYY.ZZ where there
   # is no known relationship between X and ZZ. Hence, we just use the year from the
   # version string (YYYY) and fetch the first update from that year (U1).
-  string(REGEX REPLACE "\\\..*$" "" _tbb_download_name ${_tbb_download_version})
+  string(REGEX REPLACE "\\..*$" "" _tbb_download_name ${_tbb_download_version})
   
   include(ExternalProject)
   set(_tbb_prefix_dir ${CMAKE_BINARY_DIR}/tbb)
