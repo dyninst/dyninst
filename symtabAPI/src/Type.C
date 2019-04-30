@@ -63,26 +63,18 @@ boost::atomic<typeId_t> Type::USER_TYPE_ID(-10000);
 
 typeId_t Type::getUniqueTypeId()
 {
-
-  // acquire(Type::USER_TYPE_ID);
   typeId_t val = Type::USER_TYPE_ID.fetch_add(-1);
-  // release(Type::USER_TYPE_ID);
-
   return val;
 }
 
 
 void Type::updateUniqueTypeId(typeId_t ID_)
 {
-  // acquire(Type::USER_TYPE_ID);
-
   typeId_t val = Type::USER_TYPE_ID.load();
   while((ID_ < 0) && (val >= ID_))
   {
     Type::USER_TYPE_ID.compare_exchange_weak(val, val-1);
   }
-
-  // release(Type::USER_TYPE_ID);
 }
 
 namespace Dyninst {
@@ -140,16 +132,12 @@ Type *Type::createPlaceholder(typeId_t ID, std::string name)
   void *mem = malloc(max_size);
   assert(mem);
 
-  // acquire(type_memory);
   {
      dyn_c_hash_map<void*, size_t>::accessor a;
      type_memory.insert(a, make_pair(mem, max_size));
   }
-  // release(type_memory);
 
   Type *placeholder_type = new(mem) Type(name, ID, dataUnknownType);
-  
-  // forget(placeholder_type, max_size);
 
   return placeholder_type;
 }

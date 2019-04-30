@@ -41,9 +41,7 @@ using namespace Dyninst::ParseAPI;
 void ParseFrame::set_status(Status s)
 {
     boost::lock_guard<ParseFrame> g(*this);
-    // acquire(_status);
     _status.store(s);
-    // release(_status);
     _pd->setFrameStatus(codereg,func->addr(),s);
 }
 
@@ -162,12 +160,10 @@ StandardParseData::record_frame(ParseFrame * pf)
 void
 StandardParseData::remove_frame(ParseFrame * pf)
 {
-    // acquire(_rdata.frame_map);
     {
       dyn_c_hash_map<Address, ParseFrame*>::accessor a;
       if(_rdata.frame_map.find(a, pf->func->addr())) _rdata.frame_map.erase(a);
     }
-    // release(_rdata.frame_map);
 }
 
 ParseFrame *
@@ -490,9 +486,7 @@ OverlappingParseData::remove_frame(ParseFrame *pf)
         return;
     }
     region_data * rd = rmap[cr];
-    // acquire(rd->frame_map);
     rd->frame_map.erase(pf->func->addr());
-    // release(rd->frame_map);
 }
 CodeRegion * 
 OverlappingParseData::reglookup(CodeRegion *cr, Address /* addr */) 

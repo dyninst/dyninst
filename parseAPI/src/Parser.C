@@ -429,22 +429,13 @@ Parser::ProcessOneFrame(ParseFrame* pf, bool recursive) {
 #ifdef ADD_PARSE_FRAME_TIMERS
     t.stop();
     unsigned int msecs = floor(t.elapsed().wall / 1000000.0);
-    // acquire(time_histogram);
     {
       dyn_c_hash_map<unsigned int, unsigned int>::accessor a;
       time_histogram.insert(a, msecs);
       ++(a->second);
     }
-    // release(time_histogram);
 #endif
     frame_list = postProcessFrame(pf, recursive);
-
-    // exclusive access to each ParseFrame is mediated by marking a frame busy.
-    // we clear evidence of our access to the ParseFrame here because a concurrent
-    // thread may try to touch it because of duplicates in the work list. that
-    // won't actually be concurrent because of swap_busy. we suppress the race
-    // report by scrubbing information about our access.
-    // forget(pf, sizeof(*pf));
 
     pf->swap_busy(false);
   }
@@ -887,12 +878,6 @@ Parser::finalize(Function *f)
         if(b->start() > ext_e) {
             ext = new FuncExtent(f,ext_s,ext_e);
 
-            // remove access history for ext before publishing it
-            // to concurrent readers to avoid false race reports.
-            // ext is written before it is published and only read
-            // thereafter.
-	    // forget(ext, sizeof(*ext));
-
             parsing_printf("%lx extent [%lx,%lx)\n",f->addr(),ext_s,ext_e);
             f->_extents.push_back(ext);
             ext_s = b->start();
@@ -900,12 +885,6 @@ Parser::finalize(Function *f)
         ext_e = b->end();
     }
     ext = new FuncExtent(f,ext_s,ext_e);
-
-    // remove access history for ext before publishing it
-    // to concurrent readers to avoid false race reports.
-    // ext is written before it is published and only read
-    // thereafter.
-    // forget(ext, sizeof(*ext));
 
     parsing_printf("%lx extent [%lx,%lx)\n",f->addr(),ext_s,ext_e);
     f->_extents.push_back(ext);
@@ -2384,7 +2363,6 @@ void Parser::move_func(Function *func, Address new_entry, CodeRegion *new_reg)
 {
     region_data *reg_data = _parse_data->findRegion(func->region());
 
-    // acquire(reg_data->funcsByAddr);
     {
       dyn_c_hash_map<Address, Function*>::accessor a;
       if(reg_data->funcsByAddr.find(a, func->addr()))
@@ -2394,7 +2372,6 @@ void Parser::move_func(Function *func, Address new_entry, CodeRegion *new_reg)
       reg_data = _parse_data->findRegion(new_reg);
       reg_data->funcsByAddr.insert(a, make_pair(new_entry, func));
     }
-    // release(reg_data->funcsByAddr);
 }
 
 void Parser::invalidateContainingFuncs(Function *owner, Block *b)

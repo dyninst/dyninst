@@ -60,8 +60,6 @@ using namespace Dyninst::SymtabAPI;
  * have been inserted into the collection.
  */
 
-#define fake_builtInTypes_lock race_detector_fake_lock(Symtab::builtInTypes) 
-
 localVarCollection::~localVarCollection()
 {
    auto li = localVars.begin();
@@ -582,13 +580,11 @@ builtInTypeCollection::~builtInTypeCollection()
 Type *builtInTypeCollection::findBuiltInType(std::string &name)
 {
     Type* temp = NULL;
-    // acquire(fake_builtInTypes_lock);
     {
       dyn_c_hash_map<std::string, Type *>::const_accessor a;
       if (builtInTypesByName.find(a, name))
     	  temp = a->second;
     }
-    // release(fake_builtInTypes_lock);
 
     if(temp!=NULL)
       return temp;
@@ -601,13 +597,11 @@ Type *builtInTypeCollection::findBuiltInType(const int ID)
 {
 
     Type* temp = NULL;
-    // acquire(fake_builtInTypes_lock);
     {
        dyn_c_hash_map<int, Type *>::const_accessor a;
        if (builtInTypesByID.find(a, ID))
           temp = a->second;
     }
-    // release(fake_builtInTypes_lock);
    
     if(temp!=NULL)
       return temp;
@@ -619,22 +613,18 @@ Type *builtInTypeCollection::findBuiltInType(const int ID)
 void builtInTypeCollection::addBuiltInType(Type *type)
 {
   if(type->getName() != "") { //Type could have no name.
-    // acquire(builtInTypesByName);
     {
       dyn_c_hash_map<std::string, Type *>::const_accessor a;
       builtInTypesByName.insert(a, std::make_pair(type->getName(),type));
       type->incrRefCount();
     }
-    // release(builtInTypesByName);
 
   //All built-in types have unique IDs so far jdd 4/21/99
-    // acquire(builtInTypesByID);
     {  
       dyn_c_hash_map<int, Type *>::const_accessor a;
       builtInTypesByID.insert(a, std::make_pair(type->getID(),type));
       type->incrRefCount();
     }
-    // release(builtInTypesByID);
   }
 }
 

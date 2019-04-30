@@ -56,28 +56,20 @@ public:
 
   void setNext(item_type *__next) { 
     LFQ_DEBUG(assert(validate == this));
-    // acquire(_next);
     _next.store(__next); 
-    // release(_next);
   };
 
   void setNextPending() { 
     LFQ_DEBUG(assert(validate == this));
-    // acquire(_next);
     _next.store(pending()); 
-    // release(_next);
   };
 
   item_type *next() { 
     LFQ_DEBUG(assert(validate == this));
-    // acquire(next);
     item_type *succ = _next.load();
-    // release(_next);
     // wait for successor to be written, if necessary
     while (succ == pending()) {
-        // acquire(_next);
         succ = _next.load();
-        // release(_next);
     }
     return succ;
   };
@@ -173,17 +165,13 @@ public:
 
   // inspect the head of the queue
   item_type *peek() { 
-      // acquire(head);
       item_type* ret = head.load();
-      // release(head);
       return ret; 
   };
 
   // grab the contents of the queue for your own private use
   item_type *steal() { 
-      // acquire(head);
       item_type* ret = head.exchange(0);
-      // release(head);
       return ret; 
   };
 
@@ -192,23 +180,17 @@ public:
   // operations that have completed their exchange may be concurrent
 
   item_type *pop() { 
-    // acquire(head);
     item_type *first = head.load();
-    // release(head);
     if (first) {
       item_type *succ = first->next(); 
-      // acquire(head);
       head.store(succ);
-      // release(head);
       first->setNext(0);
     }
     return first;
   };
 
   iterator begin() { 
-      // acquire(head);
       iterator ret(head.load());
-      // release(head);     
       return ret; 
   };
 
@@ -228,9 +210,7 @@ private:
   // insert a chain at the head of the queue
   void insert_chain(item_type *first, item_type *last) { 
     last->setNextPending(); // make in-progress splice visible
-    // acquire(head);
     item_type *oldhead = head.exchange(first);
-    // release(head);     
     last->setNext(oldhead);
   };
 

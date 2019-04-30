@@ -51,18 +51,10 @@ static int df_debug_liveness = 0;
 void set_debug_flag(int &flag)
 {
   flag = 1;
-  
-  // avoid the appearance of a race between setting the flag once here 
-  // when invoked by call_once and subsequent reads by check_debug_flag.
-  // forget(&flag, sizeof(flag));
 }
 
 static int check_debug_flag(int &flag)
 {
-  // use a fake lock to suppress reports about races associated with 
-  // concurrent setting and checking of the initialized flag by 
-  // code generated for the implementation of call_once. 
-  // acquire(df_debug_slicing);
   static std::once_flag initialized;
 
 #if defined(_MSC_VER)
@@ -98,8 +90,6 @@ static int check_debug_flag(int &flag)
   }
 
   });
-
-  // release(df_debug_slicing);
 
 #if defined(_MSC_VER)
 #pragma warning(pop)    

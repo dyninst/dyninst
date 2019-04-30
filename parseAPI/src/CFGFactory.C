@@ -93,11 +93,6 @@ CFGFactory::_mkfunc(Address addr, FuncSource src, string name,
 {
    Function * ret = mkfunc(addr,src,name,obj,reg,isrc);
 
-   // forget about initialization of this function descriptor by this thread
-   // before making it available to others. the initialization will not race
-   // with a later access by another thread.
-   // forget(ret, sizeof(*ret));
-
    funcs_.add(ret);
    ret->_src =  src;
    return ret;
@@ -117,7 +112,6 @@ Block *
 CFGFactory::_mkblock(Function *  f , CodeRegion *r, Address addr)
 {
    Block * ret = mkblock(f, r, addr);
-   // forget(ret, sizeof(*ret));
    blocks_.add(ret);
    return ret;
 }
@@ -126,7 +120,6 @@ Block *
 CFGFactory::_mkblock(CodeObject* co, CodeRegion *r, Address addr)
 {
    Block* ret = new Block(co, r, addr);
-   // forget(ret, sizeof(*ret));
    blocks_.add(ret);
    return ret;
 }

@@ -455,12 +455,10 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
         CodeRegion * cr = new SymtabCodeRegion(_symtab,r, symbols);
         bool already_present = false;
 
-        // acquire(rmap);
         {
           RegionMap::accessor a;
           already_present = rmap.insert(a, std::make_pair(r, cr));
         }
-        // release(rmap);
 
         if (already_present) {
             parsing_printf("[%s:%d] duplicate region at address %lx\n",

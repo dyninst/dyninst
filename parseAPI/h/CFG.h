@@ -526,9 +526,7 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, pub
     CodeObject * obj() const { return _obj; }
     FuncSource src() const { return _src; }
     FuncReturnStatus retstatus() const { 
-      // acquire(_rs);
       FuncReturnStatus ret = _rs.load();
-      // release(_rs);
       return ret; 
     }
     Block * entry() const { return _entry; }

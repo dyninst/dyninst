@@ -2161,7 +2161,6 @@ bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
     //DWARF_ERROR_RET(subrangeOffset);
     typeId_t type_id = get_type_id(subrangeOffset, is_info);
 
-    // acquire(errno);
     errno = 0;
     unsigned long low_conv = strtoul(loBound.c_str(), NULL, 10);
     if (errno) {
@@ -2173,7 +2172,6 @@ bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
     if (errno)  {
         hi_conv = LONG_MAX;
     }
-    // release(errno);
 
     dwarf_printf("(0x%lx) Adding subrange type: id %d, low %ld, high %ld, named %s\n",
             id(), type_id,
@@ -2532,38 +2530,25 @@ void DwarfParseActions::clearFunc() {
 unsigned int DwarfWalker::getNextTypeId(){
 
   static boost::atomic<unsigned int> next_type_id(0);
-  // acquire(next_type_id);
   unsigned int val = next_type_id.fetch_add(1);
-  // release(next_type_id);
   return val;
 }
 
 typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info)
 {
   auto& type_ids = is_info ? info_type_ids_ : types_type_ids_;
-  /*
-  auto it = type_ids.find(offset);
-  if (it != type_ids.end())
-    return it->second;
-  */
   typeId_t type_id = 0;
-  // acquire(type_ids);
   {
     dyn_c_hash_map<Dwarf_Off, typeId_t>::const_accessor a;
     if(type_ids.find(a, offset)) type_id = a->second; 
   }
-  // release(type_ids);
-
   if(type_id) return type_id;
 
   unsigned int val = getNextTypeId();
-  //type_ids[offset] = val;
-  // acquire(type_ids);
   {
     dyn_c_hash_map<Dwarf_Off, typeId_t>::accessor a;
     type_ids.insert(a, std::make_pair(offset, val));
   }
-  // release(type_ids);
   
   return val;
 }
@@ -2632,14 +2617,10 @@ bool DwarfWalker::parseModuleSig8(bool is_info)
     uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
     typeId_t type_id = get_type_id(/*cu_off +*/ typeoffset, is_info);
     
-    //sig8_type_ids_[sig8] = type_id;
-    
-    // acquire(sig8_type_ids_);
     {
       dyn_c_hash_map<uint64_t, typeId_t>::accessor a;
       sig8_type_ids_.insert(a, std::make_pair(sig8, type_id));
     }
-    // release(sig8_type_ids_);
     dwarf_printf("Mapped Sig8 {%016llx} to type id 0x%x\n", (long long) sig8, type_id);
     return true;
 }
@@ -2647,22 +2628,11 @@ bool DwarfWalker::parseModuleSig8(bool is_info)
 bool DwarfWalker::findSig8Type(Dwarf_Sig8 * signature, Type *&returnType)
 {
    uint64_t sig8 = * reinterpret_cast<uint64_t*>(signature);
-   /*
-   auto it = sig8_type_ids_.find(sig8);
-   if (it != sig8_type_ids_.end()) {
-      typeId_t type_id = it->second;
-      returnType = tc()->findOrCreateType( type_id );
-      dwarf_printf("Found Sig8 {%016llx} as type id 0x%x\n", (long long) sig8, type_id);
-      return true;
-   }
-   */
    typeId_t type_id = 0;
-   // acquire(sig8_type_ids_);
    {
      dyn_c_hash_map<uint64_t, typeId_t>::const_accessor a;
      if(sig8_type_ids_.find(a, sig8)) type_id = a->second;
    }
-   // release(sig8_type_ids_);
 
    if(type_id){
      returnType = tc()->findOrCreateType(type_id);

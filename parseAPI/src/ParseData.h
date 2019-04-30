@@ -156,9 +156,7 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
     ~ParseFrame();
 
     Status status() const {
-      // acquire(_status);
       Status result = _status.load();
-      // release(_status);
       return result;
     }
     void set_status(Status);
@@ -229,12 +227,10 @@ public:
     }
     ParseFrame* findFrame(Address addr) const {
         ParseFrame *result = NULL;
-        // acquire(frame_map);
 	{
 	  dyn_c_hash_map<Address, ParseFrame*>::const_accessor a;
 	  if(frame_map.find(a, addr)) result = a->second;
 	}
-        // release(frame_map);
         return result;
     }
     ParseFrame::Status getFrameStatus(Address addr) {
@@ -258,18 +254,14 @@ public:
     }
 
     void record_func(Function* f) {
-        // acquire(funcsByAddr);
 	{
 	  dyn_c_hash_map<Address, Function*>::accessor a;
 	  funcsByAddr.insert(a, std::make_pair(f->addr(), f));
 	}
-        // release(funcsByAddr);
-
     }
     Block* record_block(Block* b) {
         Block* ret = NULL;
-        // acquire(blocksByAddr);
-	    {
+        {
             dyn_c_hash_map<Address, Block*>::accessor a;
             bool inserted = blocksByAddr.insert(a, std::make_pair(b->start(), b));
             // Inserting failed when another thread has inserted a block with the same starting address
@@ -279,19 +271,16 @@ public:
                 ret = b;
             }
         }
-        // release(blocksByAddr);
         return ret;
     }
     void insertBlockByRange(Block* b) {
         blocksByRange.insert(b);
     }
     void record_frame(ParseFrame* pf) {
-        // acquire(frame_map);
 	{
 	  dyn_c_hash_map<Address, ParseFrame*>::accessor a;
 	  frame_map.insert(a, make_pair(pf->func->addr(), pf));
 	}
-        // release(frame_map);
     }
 
 	 // Find functions within [start,end)
@@ -306,7 +295,6 @@ public:
 
     edge_parsing_data set_edge_parsed(Address addr, Function *f, Block *b) {
         edge_parsing_data ret;
-        // acquire(edge_parsing_status);
 	{
 	  dyn_c_hash_map<Address, edge_parsing_data>::accessor a;
           // A successful insertion means the thread should 
@@ -323,7 +311,6 @@ public:
 	      ret.b = b;
 	  }
 	}
-        // release(edge_parsing_status);
         return ret;
     }
 
@@ -343,24 +330,20 @@ inline Function *
 region_data::findFunc(Address entry)
 {
     Function *result = NULL;
-    // acquire(funcsByAddr);
     {
       dyn_c_hash_map<Address, Function *>::const_accessor a;
       if(funcsByAddr.find(a, entry)) result = a->second;
     }
-    // release(funcsByAddr);
     return result;
 }
 inline Block *
 region_data::findBlock(Address entry)
 {
     Block *result = NULL;
-    // acquire(blocksByAddr);
     {
       dyn_c_hash_map<Address, Block *>::const_accessor a;
       if(blocksByAddr.find(a, entry)) result = a->second;
     }
-    // release(blocksByAddr);
     return result;
 }
 inline int

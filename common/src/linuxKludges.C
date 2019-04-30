@@ -207,30 +207,22 @@ unsigned long long PDYN_mulMillion(unsigned long long in) {
 using namespace abi;
 
 inline void set_thread_local_pointer(char* &var, char* val) {
-    // acquire(var);
     var = val;
-    // release(var);
 }
 
 inline void set_thread_local_bool(bool &var, bool val) {
-    // acquire(var);
     var = val;
-    // release(var);
 }
 
 inline char* get_thread_local_pointer(char* &var) {
     char *ret;
-    // acquire(var);
     ret = var;
-    // release(var);
     return ret;
 }
 
 inline bool get_thread_local_bool(bool &var) {
     bool ret;
-    // acquire(var);
     ret = var;
-    // release(var);
     return ret;
 }
 

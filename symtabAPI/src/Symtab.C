@@ -99,25 +99,15 @@ static thread_local SymtabError serr;
 
 std::vector<Symtab *> Symtab::allSymtabs;
 
-#define fake_symtab_error_lock race_detector_fake_lock(Symtab::getLastSymtabError)
-#define fake_type_error_lock race_detector_fake_lock(Symtab::type_Error)
-#define fake_type_untyped_lock race_detector_fake_lock(Symtab::type_Untyped)
-#define fake_builtInTypes_lock race_detector_fake_lock(Symtab::builtInTypes) 
-#define fake_stdTypes_lock race_detector_fake_lock(Symtab::stdTypes)
-
 SymtabError Symtab::getLastSymtabError()
 {
-  // acquire(fake_symtab_error_lock);
   SymtabError last = serr;
-  // release(fake_symtab_error_lock);
   return last;
 }
 
 void Symtab::setSymtabError(SymtabError new_err)
 {
-   // acquire(fake_symtab_error_lock);
    serr = new_err;
-   // release(fake_symtab_error_lock);
 }
 
 std::string Symtab::printError(SymtabError serr)

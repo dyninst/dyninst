@@ -49,13 +49,11 @@ T *upgradePlaceholder(Type *placeholder, T *new_type)
 {
   void *mem = (void *) placeholder;
   size_t size = 0;
-  // acquire(type_memory);
   {
     dyn_c_hash_map<void*, size_t>::accessor a;
     assert(type_memory.find(a, placeholder));
     size = a->second;
   }
-  // release(type_memory);
 
   assert(sizeof(T) < size);
   memset(mem, 0, size);
@@ -63,7 +61,6 @@ T *upgradePlaceholder(Type *placeholder, T *new_type)
   T *ret = new(mem) T();
   assert(mem == (void *) ret);
   *ret = *new_type;
-  // forget(ret, sizeof(T));
   return ret;
 }
 
