@@ -259,9 +259,6 @@ foreach(_comp ${TBB_SEARCH_COMPOMPONENTS})
   endif()
 endforeach()
 
-# Remove duplicate directory entries
-list(REMOVE_DUPLICATES TBB_LIBRARY_DIRS)
-
 #
 # Set compile flags and libraries
 #
