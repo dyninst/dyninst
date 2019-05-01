@@ -86,10 +86,9 @@ else()
   #     the --enable-install-elf option
   set(_elfutils_download_version 0.176)
 
-  # If the user specifies a version other than _elfutils_download_version, use that version.
+  # If the user specified a version newer than _elfutils_download_version, use that version.
   # NB: We know ElfUtils_MIN_VERSION is >= _min_version from earlier checks
-  if(${ElfUtils_MIN_VERSION} VERSION_LESS ${_elfutils_download_version} OR
-     ${ElfUtils_MIN_VERSION} VERSION_GREATER ${_elfutils_download_version})
+  if(${ElfUtils_MIN_VERSION} VERSION_GREATER ${_elfutils_download_version})
     set(_elfutils_download_version ${ElfUtils_MIN_VERSION})
   endif()
 
