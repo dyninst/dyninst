@@ -19,6 +19,7 @@ set (CMAKE_MODULE_PATH "${DYNINST_ROOT}/cmake" "${DYNINST_ROOT}/cmake/Modules" $
 
 find_package(Threads)
 include(Boost)
+include(ThreadingBuildingBlocks)
 include (${DYNINST_ROOT}/cmake/shared.cmake)
 
 configure_file(cmake/version.h.in common/h/dyninstversion.h)
