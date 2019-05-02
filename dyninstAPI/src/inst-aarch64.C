@@ -787,27 +787,10 @@ void emitJmpMC(int /*condition*/, int /*offset*/, codeGen &) {
 }
 
 
-// VG(11/16/01): Say if we have to restore a register to get its original value
-// VG(03/15/02): Sync'd with the new AIX tramp
-// Yuhan(02/05/19): Needs to implement, refering to what registers are saved during the trap
-
-static inline bool needsRestore(Register x) {
-   	if(x>=0 && x <= 2 || x>=19 || x == 32 || x == 31) 
-		return true;
-	else
-		return false;
-}
-
 // VG(03/15/02): Restore mutatee value of GPR reg to dest GPR
 static inline void restoreGPRtoGPR(codeGen &gen,
                                    Register reg, Register dest) {
     int frame_size, gpr_size, gpr_off;
-	if(!needsRestore(reg)){
-		assert("No need of restoring this GPR");
-		return;
-	}
-	
-	//printf("restoring: %d\n", reg);
 
 	frame_size = TRAMP_FRAME_SIZE_64;
     gpr_size   = GPRSIZE_64;
@@ -854,61 +837,39 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, int stackShift,
 
     // Haven't implemented non-zero shifts yet
     assert(stackShift == 0);
-    int imm = as->getImm();
+    long int imm = as->getImm();
     int ra  = as->getReg(0);
     int rb  = as->getReg(1);
     int sc  = as->getScale();
-
-	bool restored_ra = false, restored_rb = false;
-	Register original_ra, original_rb, temp;
+    gen.markRegDefined(dest);
     if(ra > -1) {
-		if(needsRestore(ra)) {
-			//restore PC register
-			if(ra == 32) {
- 			    original_ra = gen.rs()->getScratchRegister(gen, true);
-    			assert(original_ra != REG_NULL && "cannot get a scratch register");
-			 	MovePCToReg(original_ra, gen);
-				restored_ra = true;	
-				//fprintf(stderr, "PC restored\n");
-			}
-			else {
-				//needs to allocate one extra register otherwise 
-				//there might be a conflict with current using ones
-	        	temp = gen.rs()->allocateRegister(gen, noCost);
-    	    	original_ra = gen.rs()->allocateRegister(gen, noCost);
-				restoreGPRtoGPR(gen, ra, original_ra);
-				restored_ra = true;
-			}
-		}
-		else {
-			restored_ra = ra;
-		}
-		emitAddOriginal(original_ra, dest, gen, noCost);
-	}	
-
-
-    if(rb > -1) {
-	    if(needsRestore(rb)) {
-        	temp = gen.rs()->allocateRegister(gen, noCost);	
-        	original_rb = gen.rs()->allocateRegister(gen, noCost);
-			restoreGPRtoGPR(gen, rb, original_rb);
-			restored_rb = true;
-		}
-    	// call adds, save 2^scale * rb to dest
-		insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, 0, sc, original_rb, dest, dest, 1);
+        if(ra == 32) {
+	    // Special case where the actual address is store in imm.
+	    // Need to change this for rewriting PIE or shared libraries
+	    insnCodeGen::loadImmIntoReg<long int>(gen, dest, imm);
+	    return;
 	}
+	else {
+	    restoreGPRtoGPR(gen, ra, dest);
+	}
+    } else {
+        insnCodeGen::loadImmIntoReg<long int>(gen, dest, 0);
+    }
+    if(rb > -1) {
+        std::vector<Register> exclude;
+	exclude.push_back(dest);
+        Register scratch = gen.rs()->getScratchRegister(gen, exclude);
+        assert(scratch != REG_NULL && "cannot get a scratch register");
+        gen.markRegDefined(scratch);
+        restoreGPRtoGPR(gen, rb, scratch);
+    	// call adds, save 2^scale * rb to dest
+	insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, 0, sc, scratch, dest, dest, true);
+    }
 	
     // emit code to load the immediate (constant offset) into dest; this
-    // writes at gen+base and updates base, we must update insn...
-	insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0, imm, dest, dest, true);	
-	insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Sub, 0, 0x10, dest, dest, true);	
-	
-	if(restored_ra || restored_rb)
-		gen.rs()->freeRegister(temp);
-	if(restored_ra)
-        gen.rs()->freeRegister(original_ra);
-	if(restored_rb)
-        gen.rs()->freeRegister(original_rb);
+    // writes at gen+base and updates base, we must update insn..
+    if (imm) 
+        insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0, imm, dest, dest, true);	
 }
 
 void emitCSload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,
