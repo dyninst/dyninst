@@ -242,8 +242,8 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
 			if (ra == 32) {
 			    imm = imm + current;
 			}
-			fprintf(stderr, "instruction: %s, operand %s\n", insn.format().c_str(),op->getValue()->format().c_str());
-			fprintf(stderr, "imm: %d, ra: %d, rb: %d, scale: %d\n", imm, ra, rb, sc);
+			//fprintf(stderr, "instruction: %s, operand %s\n", insn.format().c_str(),op->getValue()->format().c_str());
+			//fprintf(stderr, "imm: %d, ra: %d, rb: %d, scale: %d\n", imm, ra, rb, sc);
 
 			return new BPatch_memoryAccess(new internal_instruction(NULL), current, isLoad, isStore,
                                        bytes, imm, ra, rb, sc);

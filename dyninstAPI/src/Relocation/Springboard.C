@@ -514,7 +514,9 @@ void InstalledSpringboards::debugRanges() {
 
 void SpringboardBuilder::generateBranch(Address from, Address to, codeGen &gen) {
   gen.invalidate();
-  gen.allocate(16);
+  // On ppc, the spring board can be a long branch,
+  // which can takes more than 5 instructions
+  gen.allocate(64);
 
   gen.setAddrSpace(addrSpace_);
   gen.setAddr(from);

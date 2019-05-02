@@ -181,8 +181,8 @@ unsigned EmitterAARCH64SaveRegs::saveGPRegisters(
 
     for(unsigned int idx = 0; idx < numReqGPRs; idx++) {
         registerSlot *reg = theRegSpace->GPRs()[idx];
-
-        if (reg->liveState == registerSlot::live) {
+	// We always save FP and LR for stack walking out of instrumentation
+        if (reg->liveState == registerSlot::live || reg->number == REG_FP || reg->number == REG_LR) {
             int offset_from_sp = offset + (reg->encoding() * gen.width());
             insnCodeGen::saveRegister(gen, reg->number, offset_from_sp);
             theRegSpace->markSavedRegister(reg->number, offset_from_sp);
@@ -418,6 +418,19 @@ bool baseTramp::generateSaves(codeGen &gen, registerSpace *)
     unsigned int width = gen.width();
 
     saveRegs.saveGPRegisters(gen, gen.rs(), TRAMP_GPR_OFFSET(width));
+    // After saving GPR, we move SP to FP to create the instrumentation frame.
+    // Note that Dyninst instrumentation frame has a different structure
+    // compared to stack frame created by the compiler.
+    //
+    // Dyninst instrumentation frame makes sure that FP and SP are the same.
+    // So, during stack walk, the FP retrived from the previous frame is 
+    // the SP of the current instrumentation frame.
+    //
+    // Note: If the implementation of the instrumentation frame layout
+    // needs to be changed, DyninstDynamicStepperImpl::getCallerFrameArch
+    // in stackwalk/src/aarch64-swk.C also likely needs to be changed accordingly
+    insnCodeGen::generateMoveSP(gen, REG_SP, REG_FP, true);
+    gen.markRegDefined(REG_FP);
 
     bool saveFPRs = BPatch::bpatch->isForceSaveFPROn() ||
                    (BPatch::bpatch->isSaveFPROn()      &&
@@ -805,6 +818,17 @@ static inline void restoreGPRtoGPR(codeGen &gen,
 	}
 	
 	return;
+}
+
+// VG(03/15/02): Restore mutatee value of XER to dest GPR
+static inline void restoreXERtoGPR(codeGen &gen, Register dest) {
+    assert(0); //Not implemented
+}
+
+// VG(03/15/02): Move bits 25:31 of GPR reg to GPR dest
+static inline void moveGPR2531toGPR(codeGen &gen,
+                                    Register reg, Register dest) {
+    assert(0); //Not implemented
 }
 
 // VG(11/16/01): Emit code to add the original value of a register to
