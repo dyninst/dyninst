@@ -20,10 +20,13 @@ set (SRC_LIST
   )
 endif()
 
-dyninst_library(dynElf ${LIBELF_LIBRARIES})
+dyninst_library(dynElf ${LibElf_LIBRARIES})
 if(TARGET TBB)
     add_dependencies(dynElf TBB)
 endif()
+add_dependencies(dynElf ElfUtils)
+target_link_private_libraries(dynElf ${ElfUtils_LIBRARIES})
+
 
 add_definitions(-DDYNELF_LIB)
 if (USE_COTIRE)
