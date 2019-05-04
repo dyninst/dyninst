@@ -78,7 +78,7 @@ bool Modification::replaceCall(RelocBlock *trace, RelocGraph *cfg) {
 
    func_instance *repl = SCAST_FI(iter2->second);
 
-   relocation_cerr << "Replacing call in trace "
+   relocation_cerr << std::hex << trace <<  " - Replacing call in trace "
                    << trace->id() << " with call to "
                    << (repl ? repl->name() : "<NULL>")
                    << ", " << hex
@@ -96,7 +96,20 @@ bool Modification::replaceCall(RelocBlock *trace, RelocGraph *cfg) {
       if (!cfg->removeEdge(pred, trace->outs())) return false;
       return true;
    }
+   if (trace->outs()) {
+       for (auto e : trace->outs()->edges) {
+           if (e->type == ParseAPI::EdgeTypeEnum::CALL) {
+	       // Store the original target address for the call in the relocblock for later use
+	       // this is used for PPC to check if we are replacing a call to a PLT
+	       // The original target is lost after cfg->ChangeTargets is called.
 
+	       relocation_cerr << "Original address target is - " << std::hex << e->trg->origAddr() << std::endl;
+	       trace->SetReplacedCallTarget(e->trg->origAddr());               
+	       relocation_cerr << "Original call destination is a plt stub " << std::hex << e->trg->block()->GetBlockStartingAddress() 
+	                       << " with type " << e->type << std::endl;
+	   }
+       }
+   }
    RelocBlock *target = cfg->find(repl->entryBlock(), repl);
    if (target) {
       if (!cfg->changeTargets(pred, trace->outs(), target)) return false;

@@ -88,6 +88,18 @@ bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
 }
 
 bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
+  // Handle special case where we are replacing a PLT call
+  if (type == CFPatch::Call) {
+      // Find out if we are replacing a PLT call with a non-plt call
+      // Assumption: We are not relocating PLT functions
+      if (func && func->obj() && func->obj()->parse_img()) {
+	      std::unordered_map<Address, std::string> * pltMap = func->obj()->parse_img()->getPltFuncs();
+	      if (pltMap->find(origTargetAddr_) != pltMap->end()){
+		  relocation_cerr << "Saving PLT address for call at " << std::hex << origTargetAddr_ << std::endl;
+		  insnCodeGen::generatePLTTOCSave(gen);
+	      }
+      }
+  }
 
   if (needsTOCUpdate()) {
      relocation_cerr << "\t\t\t isSpecialCase..." << endl;

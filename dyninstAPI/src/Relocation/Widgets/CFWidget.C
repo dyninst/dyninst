@@ -423,7 +423,8 @@ bool CFWidget::generateCall(CodeBuffer &buffer,
       return true;
    }
 
-   CFPatch *newPatch = new CFPatch(CFPatch::Call, insn, to, trace->func(), addr_);
+   std::cerr << "CFWidgetTrace " << std::hex << trace << std::endl;
+   CFPatch *newPatch = new CFPatch(CFPatch::Call, insn, to, trace->func(), addr_, trace->GetReplacedCallTarget());
 
    buffer.addPatch(newPatch, tracker(trace));
 
@@ -488,8 +489,8 @@ CFPatch::CFPatch(Type a,
                  Instruction b,
                  TargetInt *c,
                  const func_instance *d,
-                 Address e) :
-  type(a), orig_insn(b), target(c), func(d), origAddr_(e) {
+                 Address e, Address origTarget) :
+  type(a), orig_insn(b), target(c), func(d), origAddr_(e), origTargetAddr_(origTarget) {
   if (b.isValid()) {
     insn_ptr = new unsigned char[b.size()];
     memcpy(insn_ptr, b.ptr(), b.size());

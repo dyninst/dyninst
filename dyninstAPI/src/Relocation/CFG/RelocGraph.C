@@ -190,6 +190,8 @@ bool RelocGraph::interpose(RelocEdge *e, RelocBlock *trace) {
 }
 
 bool RelocGraph::changeTarget(RelocEdge *e, TargetInt *n) {
+   //std::cerr << "[RelocGraph::changeTarget] Src " << e->src->block()->callee()->symTabName() << " at address " << e->src->block()->callee()->entryBlock()->GetBlockStartingAddress() << std::endl;
+   //std::cerr << "[RelocGraph::changeTarget] Src " << e->trg->block()->callee()->symTabName() << " at address " << e->trg->block()->callee()->entryBlock()->GetBlockStartingAddress() << std::endl;
    removeTarget(e);
    delete e->trg;
    e->trg = n;

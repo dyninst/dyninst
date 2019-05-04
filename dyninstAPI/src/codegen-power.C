@@ -200,6 +200,13 @@ void insnCodeGen::generateBranch(codeGen &gen, Address from, Address to, bool li
    
 }
 
+void insnCodeGen::generatePLTTOCSave(codeGen &gen) {
+//    if (gen.width() == 8) {
+	    insnCodeGen::generateMemAccess64(gen, STDop, STDxop,
+                                             registerSpace::r2, REG_SP, 24);
+//    }
+}
+
 void insnCodeGen::generateCall(codeGen &gen, Address from, Address to) {
     //fprintf(stderr, "info: %s:%d: \n", __FILE__, __LINE__); 
     generateBranch(gen, from, to, true);

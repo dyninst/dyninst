@@ -120,7 +120,11 @@ class RelocBlock {
 
    RelocEdges *ins() { return &inEdges_; }
    RelocEdges *outs() { return &outEdges_; }
-
+   
+   // If a call target has been replaced in this block, get its original address
+   // Useful on PPC where we need to save R2 before replacing a PLT call.
+   Address GetReplacedCallTarget() const {return replCallTarget_;}
+   void SetReplacedCallTarget(Address trg) {replCallTarget_ = trg;}
  private:
    
   RelocBlock(block_instance *block, func_instance *f)
@@ -132,7 +136,8 @@ class RelocBlock {
       origRelocBlock_(true),
       prev_(NULL),
       next_(NULL),
-      type_(Relocated) {};
+      type_(Relocated),
+      replCallTarget_(0) {};
    // Constructor for a trace inserted later
   RelocBlock(Address a, block_instance *b, func_instance *f)
       :origAddr_(a),
@@ -143,7 +148,8 @@ class RelocBlock {
       origRelocBlock_(false),
       prev_(NULL),
       next_(NULL),
-      type_(Instrumentation) { 
+      type_(Instrumentation),
+      replCallTarget_(0) { 
    };
 
   RelocBlock(Address a, block_instance *b, func_instance *f, bool relocateType)
@@ -155,7 +161,8 @@ class RelocBlock {
       origRelocBlock_(false),
       prev_(NULL),
       next_(NULL),
-      type_(Relocated) { 
+      type_(Relocated),
+      replCallTarget_(0) { 
          if(relocateType == true)
             type_ = Relocated;
          else 
@@ -205,6 +212,7 @@ class RelocBlock {
    RelocBlock *next_;
 
    Type type_;
+   Address replCallTarget_;
 };
 
 };

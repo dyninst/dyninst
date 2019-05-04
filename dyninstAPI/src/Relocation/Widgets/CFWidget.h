@@ -208,7 +208,7 @@ struct CFPatch : public Patch {
 		 InstructionAPI::Instruction b,
 		 TargetInt *c,
 		 const func_instance *d,
-		 Address e = 0);
+		 Address e = 0, Address origTarget = 0);
   
   virtual bool apply(codeGen &gen, CodeBuffer *buf);
   virtual unsigned estimate(codeGen &templ);
@@ -221,7 +221,9 @@ struct CFPatch : public Patch {
   Address origAddr_;  
   arch_insn *ugly_insn;
   unsigned char* insn_ptr;
-
+  
+  // Store the original target address for a jump 
+  Address origTargetAddr_;
 
 #if defined(arch_power)
   // 64-bit PPC/Linux has a TOC register we need
