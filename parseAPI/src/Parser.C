@@ -106,7 +106,6 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
                                " -- unparesable\n",
                        FILE__,__LINE__);
         _parse_state = UNPARSEABLE;
-        return;
     }
     
     if (_parse_state != UNPARSEABLE) {
@@ -177,6 +176,9 @@ Parser::parse()
 {
     parsing_printf("[%s:%d] parse() called on Parser %p with state %d\n",
                    FILE__,__LINE__,this, _parse_state);
+
+    if(_parse_state == UNPARSEABLE)
+        return;
 
     // For modification: once we've full-parsed once, don't do it again
     if (_parse_state >= COMPLETE) return;
