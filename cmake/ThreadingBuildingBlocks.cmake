@@ -132,18 +132,17 @@ else()
   
   set(TBB_LIBRARIES ${_tbb_libraries} CACHE FILEPATH "TBB library files" FORCE)
   
-  # This is only a partial implementation for getting a source version of TBB
-  # The tarballs are named YYYY_UX, but the version string is YYYY.ZZ where there
-  # is no known relationship between X and ZZ. Hence, we just use the year from the
-  # version string (YYYY) and fetch the first update from that year (U1).
-  string(REGEX REPLACE "\\..*$" "" _tbb_download_name ${_tbb_download_version})
+  # Split the dotted decimal version into major/minor parts
+  string(REGEX REPLACE "\\." ";" _tbb_download_name ${_tbb_download_version})
+  list(GET _tbb_download_name 0 _tbb_ver_major)
+  list(GET _tbb_download_name 1 _tbb_ver_minor)
   
   include(ExternalProject)
   set(_tbb_prefix_dir ${CMAKE_BINARY_DIR}/tbb)
   ExternalProject_Add(
     TBB
     PREFIX ${_tbb_prefix_dir}
-    URL https://github.com/01org/tbb/archive/${_tbb_download_name}_U1.tar.gz
+    URL https://github.com/01org/tbb/archive/${_tbb_ver_major}_U${_tbb_ver_minor}.tar.gz
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ""
     BUILD_COMMAND
