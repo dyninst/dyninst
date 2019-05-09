@@ -1,4 +1,4 @@
-#####################################################################################
+#=====================================================================================
 # ThreadingBuildingBlocks.cmake
 #
 # Configure Intel's Threading Building Blocks for Dyninst
@@ -10,7 +10,7 @@
 # TBB_ROOT_DIR        - Hint directory that contains the TBB installation
 # TBB_INCLUDEDIR      - Hint directory that contains the TBB headers files
 # TBB_LIBRARYDIR      - Hint directory that contains the TBB library files
-# TBB_LIBRARY         - Alias for TBB_LIBRARY_DIR
+# TBB_LIBRARY         - Alias for TBB_LIBRARYDIR
 # TBB_USE_DEBUG_BUILD - Use debug version of tbb libraries, if present
 # TBB_MIN_VERSION     - Minimum acceptable version of TBB
 #
@@ -35,7 +35,7 @@
 #
 # See Modules/FindTBB.cmake for additional input and exported variables
 #
-#####################################################################################
+#=====================================================================================
 
 # -------------- RUNTIME CONFIGURATION ----------------------------------------
 

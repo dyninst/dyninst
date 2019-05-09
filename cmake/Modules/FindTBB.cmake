@@ -1,90 +1,62 @@
-# The MIT License (MIT)
-#
-# Copyright (c) 2015 Justus Calvin
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
-#
-# FindTBB
-# -------
+#======================================================================================================
+# FindTBB.cmake
 #
 # Find TBB include directories and libraries.
 #
-# Usage:
+#		----------------------------------------
 #
-# find_package(TBB [major[.minor]] [EXACT] [QUIET] [REQUIRED] [[COMPONENTS]
-# [components...]] [OPTIONAL_COMPONENTS components...])
+# Use this module by invoking find_package with the form::
 #
-# where the allowed components are tbbmalloc and tbb_preview. Users may modify
-# the behavior of this module with the following variables:
+#  find_package(TBB
+#    [major[.minor]] [EXACT] [QUIET]     # Minimum or EXACT version e.g. 2018.6
+#    [REQUIRED]                          # Fail with error if TBB is not found
+#    [[COMPONENTS] [components...]]      # Required components
+#    [OPTIONAL_COMPONENTS components...] # Optional components
+#   )
 #
-# * TBB_ROOT_DIR          - The base directory the of TBB installation.
-# * TBB_INCLUDE_DIR       - The directory that contains the TBB headers files.
-# * TBB_LIBRARY           - The directory that contains the TBB library files.
-# * TBB_<library>_LIBRARY - The path of the TBB the corresponding TBB library.
-#   These libraries, if specified, override the corresponding library search
-#   results, where <library> may be tbb, tbb_debug, tbbmalloc, tbbmalloc_debug,
-#   tbb_preview, or tbb_preview_debug.
-# * TBB_USE_DEBUG_BUILD   - The debug version of tbb libraries, if present, will
-#   be used instead of the release version.
+# This module reads hints about search locations from variables::
 #
-# Users may modify the behavior of this module with the following environment
-# variables:
+#   TBB_ROOT_DIR          - The base directory the of TBB installation.
+#   TBB_INCLUDE_DIR       - The directory that contains the TBB headers files.
+#   TBB_LIBRARY           - The directory that contains the TBB library files.
+#   TBB_<library>_LIBRARY - The path of the TBB the corresponding TBB library.
+#                           These libraries override the corresponding library search results.
+#   TBB_USE_DEBUG_BUILD   - Use the debug version of tbb libraries
 #
-# * TBB_INSTALL_DIR
-# * TBBROOT
-# * LIBRARY_PATH
+# Environment variable aliases for TBB_ROOT_DIR:
+#
+#   TBB_INSTALL_DIR
+#   TBBROOT
+#   LIBRARY_PATH
 #
 # This module will set the following variables:
 #
-# * TBB_FOUND             - Set to false, or undefined, if we haven’t found, or
-#   don’t want to use TBB.
-# * TBB_<component>_FOUND - If False, optional <component> part of TBB sytem is
-#   not available.
-# * TBB_VERSION           - The full version string
-# * TBB_VERSION_MAJOR     - The major version
-# * TBB_VERSION_MINOR     - The minor version
-# * TBB_INTERFACE_VERSION - The interface version number defined in
-#   tbb/tbb_stddef.h.
-# * TBB_<library>_LIBRARY_RELEASE - The path of the TBB release version of
-#   <library>, where <library> may be tbb, tbb_debug, tbbmalloc,
-#   tbbmalloc_debug, tbb_preview, or tbb_preview_debug.
-# * TBB_<library>_LIBRARY_DEGUG - The path of the TBB release version of
-#   <library>, where <library> may be tbb, tbb_debug, tbbmalloc,
-#   tbbmalloc_debug, tbb_preview, or tbb_preview_debug.
+#   TBB_FOUND                     - If false, or undefined, TBB not found, or don’t want to use TBB.
+#   TBB_<component>_FOUND         - If False, optional <component> part of TBB sytem is not available.
+#   TBB_VERSION                   - The full version string
+#   TBB_VERSION_MAJOR             - The major version
+#   TBB_VERSION_MINOR             - The minor version
+#   TBB_INTERFACE_VERSION         - The interface version number defined in tbb/tbb_stddef.h.
+#   TBB_<library>_LIBRARY_RELEASE - The path of the TBB release version of <library>.
+#   TBB_<library>_LIBRARY_DEBUG   - The path of the TBB debug version of <library>.
 #
 # The following varibles should be used to build and link with TBB:
 #
-# * TBB_INCLUDE_DIRS        - The include directory for TBB.
-# * TBB_LIBRARY_DIRS        - The library directory for TBB.
-# * TBB_LIBRARIES           - The libraries to link against to use TBB.
-# * TBB_LIBRARIES_RELEASE   - The release libraries to link against to use TBB.
-# * TBB_LIBRARIES_DEBUG     - The debug libraries to link against to use TBB.
-# * TBB_DEFINITIONS         - Definitions to use when compiling code that uses
-#   TBB.
-# * TBB_DEFINITIONS_RELEASE - Definitions to use when compiling release code
-#   that uses TBB.
-# * TBB_DEFINITIONS_DEBUG   - Definitions to use when compiling debug code that
-#   uses TBB.
+#   TBB_INCLUDE_DIRS        - The include directory for TBB.
+#   TBB_LIBRARY_DIRS        - The library directory for TBB.
+#   TBB_LIBRARIES           - The libraries to link against to use TBB.
+#   TBB_LIBRARIES_RELEASE   - The release libraries to link against to use TBB.
+#   TBB_LIBRARIES_DEBUG     - The debug libraries to link against to use TBB.
+#   TBB_DEFINITIONS         - Definitions to use when compiling code that uses TBB.
+#   TBB_DEFINITIONS_RELEASE - Definitions to use when compiling release code that uses TBB.
+#   TBB_DEFINITIONS_DEBUG   - Definitions to use when compiling debug code that uses TBB.
 #
-# This module will also create the "tbb" target that may be used when building
+# This module will also create the "TBB" target that may be used when building
 # executables and libraries.
+#
+# Based on the version by Justus Calvin - Copyright (c) 2015
+#
+#======================================================================================================
 
 if(TBB_FOUND)
   return()
