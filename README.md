@@ -54,19 +54,9 @@ options include:
 
 ```PATH_BOOST```: base directory of your boost installation
 
-```LibElf_INCLUDE_DIR```: the location of elf.h and libelf.h
+```LibElf_ROOT_DIR```: base directory of your elfutils installation
 
-```LibElf_LIBRARIES```: full path of libelf.so
-
-```LibDwarf_INCLUDE_DIR```: location of libdw.h
-
-```LibDwarf_LIBRARIES```: full path of libdw.so
-
-```TBB_INCLUDE_DIRS```: the direcory of the include files of TBB
-
-```TBB_tbb_LIBRARY_DEBUG```: full path of libtbb_debug.so
-
-```TBB_tbb_LIBRARY_RELEASE```: full path of libtbb.so
+```TBB_ROOT_DIR```: base directory of your TBB installation
 
 ```CMAKE_BUILD_TYPE```: may be set to Debug, Release, or RelWithDebInfo for unoptimized, optimized, and optimized with debug information builds respectively. Note that RelWithDebInfo is the default.
 
@@ -114,21 +104,15 @@ or
 
 ```error: 'dwarf_next_lines' was not declared in this scope```
 
-A: Dyninst now depends on elfutils-0.173 or later. If you are seeing above errors, it means the elfutils installed on your system is older than 0.173. We recommend that you set ```LibElf_INCLUDE_DIR```, ```LibElf_LIBRARIES```, ```LibDwarf_INCLUDE_DIR```, and ```LibDwarf_LIBRARIES``` to empty, which will trigger the CMake to automatically download the correct version of elfutils. Or you can upgrade your elfutils with your system package manager.
+A: Dyninst now depends on elfutils-0.173 or later. If you are seeing the above errors, it means the elfutils installed on your system is older than 0.173. We recommend that you set ```ElfUtils_ROOT_DIR``` to empty, which will trigger the build system to automatically download the correct version of elfutils. Or you can upgrade your elfutils with your system package manager.
 
 2. Q: Where are the dependency libraries downloaded by Dyninst?
 
-A: After installation, Dyninst should copy all dependencies to the install location. In case where the dependencies are not copied, they can be found in the directory where you build Dyninst. For example, suppose you configure and build Dyninst at: ```/home/user/dyninst/build```
-
-Then elfutils, TBB, boost can be found at ```/home/user/dyninst/build/elfutils/```, ```/home/user/dyninst/build/tbb/```, ```/home/user/dyninst/build/boost/```, respectively.
+A: After installation, Dyninst should copy all dependencies to the install location. In case where the dependencies are not copied, they can be found in the directory where you build Dyninst. For example, suppose you install Dyninst in ```/home/user/dyninst/install```, then the library and header files for elfutils, TBB, and boost which were built from source are in ```/home/user/dyninst/lib``` and ```/home/user/dyninst/include```, respectively.
 
 3. Q: My system has pre-installed Boost, but the build failed due to that cannot find boost libraries.
 
-A: Boost's library naming convention is a little confusing. You probably have the non-multi-threading version installed. So your boost libraries will look like "libboost_system.so". Dyninst links against the multi-threading version of boost, so it will needs "libboost_system-mt.so". Note the "-mt" in the library name. There are two ways to work around:
-
-(1) Set ```PATH_BOOST``` to empy which will trigger Dyninst to automaticall build Boost
-
-(2) Create symbolic links from non-multi-threading ones to multi-threading ones (https://stackoverflow.com/questions/3031768/boost-thread-linking-boost-thread-vs-boost-thread-mt)
+A: Dyninst requires at least Boost-1.61. If your system version is newer, but still not found, then point ```Boost_ROOT_DIR``` to the base of your system's Boost install.
 
 ## Known Issues
 
