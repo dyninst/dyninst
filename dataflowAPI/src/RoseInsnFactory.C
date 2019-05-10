@@ -91,7 +91,9 @@ SgAsmInstruction *RoseInsnFactory::convert(const Instruction &insn, uint64_t add
        ++opi, ++i) {
       InstructionAPI::Operand &currOperand = *opi;
 //       std::cerr << "Converting operand " << currOperand.format(arch(), addr) << std::endl;
-      roperands->append_operand(convertOperand(currOperand.getValue(), addr, insn.size()));
+      SgAsmExpression *converted = convertOperand(currOperand.getValue(), addr, insn.size());
+      if (converted == NULL) return NULL;
+      roperands->append_operand(converted);
   }  
   rinsn->set_operandList(roperands);
   return rinsn;
