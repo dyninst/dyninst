@@ -1,4 +1,4 @@
-TEX=/s/texlive-2011/bin/pdflatex
+TEX=pdflatex
 MAIN=patchapi
 DEP=patchapi.tex \
 	section/1_intro.tex \
