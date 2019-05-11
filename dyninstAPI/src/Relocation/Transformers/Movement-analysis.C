@@ -597,6 +597,7 @@ void PCSensitiveTransformer::emulateInsn(RelocBlock *reloc,
  * @return Whether or not the given address is exception senstive.
  */
 bool PCSensitiveTransformer::exceptionSensitive(Address a, const block_instance *bbl) {
+    return false;
     sensitivity_cerr << "Checking address 0x" << std::hex << a << std::dec 
         << " for exception sensitivity" << endl;
 
