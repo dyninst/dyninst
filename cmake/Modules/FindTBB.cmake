@@ -167,6 +167,14 @@ if(TBB_INCLUDE_DIRS)
                  "\\1"
                  TBB_INTERFACE_VERSION
                  "${_tbb_version_file}")
+
+  # The TBB_VERSION_MINOR isn't necessarily changed for minor releases
+  # Hence, we need to read the engineering versioning in TBB_INTERFACE_VERSION
+  # to get the minor version correct
+  if("${TBB_VERSION_MINOR}" STREQUAL "0")
+	  math(EXPR _tbb_iface_major_ver "${TBB_INTERFACE_VERSION} / 100")
+	  math(EXPR TBB_VERSION_MINOR "${TBB_INTERFACE_VERSION} - ${_tbb_iface_major_ver} * 100")
+  endif()
   set(TBB_VERSION "${TBB_VERSION_MAJOR}.${TBB_VERSION_MINOR}")
 endif()
 
