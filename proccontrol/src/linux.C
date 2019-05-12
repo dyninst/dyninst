@@ -1138,13 +1138,34 @@ bool linux_process::plat_forked()
 bool linux_process::plat_readMem(int_thread *thr, void *local,
                                  Dyninst::Address remote, size_t size)
 {
-   return LinuxPtrace::getPtracer()->ptrace_read(remote, size, local, thr->getLWP());
+   char file[128];
+   snprintf(file, 64, "/proc/%d/mem", getPid());
+   int fd = open(file, O_RDWR);
+   ssize_t ret = pread(fd, local, size, remote);
+   close(fd);
+   if (ret != size) {
+      // Reads through procfs failed.
+      // Fall back to use ptrace
+      return LinuxPtrace::getPtracer()->ptrace_read(remote, size, local, thr->getLWP());
+   }
+   return true;
 }
 
 bool linux_process::plat_writeMem(int_thread *thr, const void *local,
                                   Dyninst::Address remote, size_t size, bp_write_t)
 {
-   return LinuxPtrace::getPtracer()->ptrace_write(remote, size, local, thr->getLWP());
+
+   char file[128];
+   snprintf(file, 64, "/proc/%d/mem", getPid());
+   int fd = open(file, O_RDWR);
+   ssize_t ret = pwrite(fd, local, size, remote);
+   close(fd);
+   if (ret != size) {
+      // Writes through procfs failed.
+      // Fall back to use ptrace
+      return LinuxPtrace::getPtracer()->ptrace_write(remote, size, local, thr->getLWP());
+   }
+   return true;
 }
 
 linux_x86_process::linux_x86_process(Dyninst::PID p, std::string e, std::vector<std::string> a,

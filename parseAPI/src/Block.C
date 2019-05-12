@@ -161,7 +161,7 @@ void Block::removeFunc(Function *)
         _obj->finalize();
     }
     assert(0 != _func_cnt);
-    _func_cnt --;
+    _func_cnt.fetch_add(-1);
 }
 
 void Block::updateEnd(Address addr)

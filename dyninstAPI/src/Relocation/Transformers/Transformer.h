@@ -63,8 +63,6 @@ class RelocGraph;
 // means that even with incorrect parsing no patch is necessary.
 // ... not sure how we can have that, but hey, we might as well
 // design it in.
-//
-// OffLimits indicates areas that we cannot overwrite with a branch
 
  
 class Transformer {
