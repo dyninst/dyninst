@@ -250,8 +250,8 @@ AstNodePtr AstNode::funcCallNode(Address addr, pdvector<AstNodePtr > &args) {
     return AstNodePtr(new AstCallNode(addr, args));
 }
 
-AstNodePtr AstNode::memoryNode(memoryType ma, int which) {
-    return AstNodePtr(new AstMemoryNode(ma, which));
+AstNodePtr AstNode::memoryNode(memoryType ma, int which, int size) {
+    return AstNodePtr(new AstMemoryNode(ma, which, size));
 }
 
 AstNodePtr AstNode::miniTrampNode(AstNodePtr tramp) {
@@ -474,7 +474,8 @@ AstVariableNode::AstVariableNode(vector<AstNodePtr>&ast_wrappers, vector<pair<Of
 }
 
 AstMemoryNode::AstMemoryNode(memoryType mem,
-                             unsigned which) :
+                             unsigned which,
+                             int size) :
     AstNode(),
     mem_(mem),
     which_(which) {
@@ -485,7 +486,19 @@ AstMemoryNode::AstMemoryNode(memoryType mem,
 
     switch(mem_) {
     case EffectiveAddr:
-        bptype = BPatch::bpatch->stdTypes->findType("void *");
+        switch (size) {
+            case 1:
+                bptype = BPatch::bpatch->stdTypes->findType("char");
+                break;
+            case 2:
+                bptype = BPatch::bpatch->stdTypes->findType("short");
+                break;
+            case 4:
+                bptype = BPatch::bpatch->stdTypes->findType("int");
+                break;
+            default:
+                bptype = BPatch::bpatch->stdTypes->findType("long");
+        }
         break;
     case BytesAccessed:
         bptype = BPatch::bpatch->stdTypes->findType("int");

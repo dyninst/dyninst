@@ -517,7 +517,7 @@ class BPATCH_DLL_EXPORT BPatch_effectiveAddressExpr : public BPatch_snippet
   //  BPatch_effectiveAddressExpr:: BPatch_effectiveAddressExpr
   //  Construct a snippet representing an effective address.
 
-  BPatch_effectiveAddressExpr(int _which = 0);
+  BPatch_effectiveAddressExpr(int _which = 0, int size = 8);
 };
 
 
