@@ -48,8 +48,8 @@ class data_response;
 class HandlerPool;
 
 class response : public boost::enable_shared_from_this<response> {
-   friend void boost::checked_delete<response>(response *);
-   friend void boost::checked_delete<const response>(const response *);
+   friend void boost::checked_delete<response>(response *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const response>(const response *) CHECKED_DELETE_NOEXCEPT;
    friend class responses_pending;
    friend unsigned newResponseID();
    friend unsigned newResponseID(unsigned);
@@ -162,8 +162,8 @@ class result_response : public response
 {
    friend class linux_process;
    friend class linux_thread;
-   friend void boost::checked_delete<result_response>(result_response *);
-   friend void boost::checked_delete<const result_response>(const result_response *);
+   friend void boost::checked_delete<result_response>(result_response *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const result_response>(const result_response *) CHECKED_DELETE_NOEXCEPT;
   private:
    bool b;
    result_response();
@@ -185,8 +185,8 @@ class result_response : public response
 class reg_response : public response
 {
    friend class linux_thread;
-   friend void boost::checked_delete<reg_response>(reg_response *);
-   friend void boost::checked_delete<const reg_response>(const reg_response *);
+   friend void boost::checked_delete<reg_response>(reg_response *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const reg_response>(const reg_response *) CHECKED_DELETE_NOEXCEPT;
   private:
    Dyninst::MachRegisterVal val;
    reg_response();
@@ -210,8 +210,8 @@ class reg_response : public response
 
 class allreg_response : public response
 {
-   friend void boost::checked_delete<allreg_response>(allreg_response *);
-   friend void boost::checked_delete<const allreg_response>(const allreg_response *);
+   friend void boost::checked_delete<allreg_response>(allreg_response *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const allreg_response>(const allreg_response *) CHECKED_DELETE_NOEXCEPT;
   private:
    int_registerPool *regpool;
    int_thread *thr;
@@ -242,8 +242,8 @@ class allreg_response : public response
 
 class mem_response : public response
 {
-   friend void boost::checked_delete<mem_response>(mem_response *);
-   friend void boost::checked_delete<const mem_response>(const mem_response *);
+   friend void boost::checked_delete<mem_response>(mem_response *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const mem_response>(const mem_response *) CHECKED_DELETE_NOEXCEPT;
   private:
    char *buffer;
    unsigned size;
@@ -275,8 +275,8 @@ class mem_response : public response
 
 class stack_response : public response
 {
-   friend void boost::checked_delete<stack_response>(stack_response *);
-   friend void boost::checked_delete<const stack_response>(const stack_response *);
+   friend void boost::checked_delete<stack_response>(stack_response *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const stack_response>(const stack_response *) CHECKED_DELETE_NOEXCEPT;
   private:
    void *data;
    int_thread *thr;
@@ -297,8 +297,8 @@ class stack_response : public response
 
 class data_response : public response
 {
-   friend void boost::checked_delete<data_response>(data_response *);
-   friend void boost::checked_delete<const data_response>(const data_response *);
+   friend void boost::checked_delete<data_response>(data_response *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const data_response>(const data_response *) CHECKED_DELETE_NOEXCEPT;
   private:
    void *data;
    data_response();

@@ -99,8 +99,8 @@ class EventPostSyscall;
 
 class PC_EXPORT Event : public boost::enable_shared_from_this<Event>
 {
-   friend void boost::checked_delete<Event>(Event *);
-   friend void boost::checked_delete<const Event>(const Event *);
+   friend void boost::checked_delete<Event>(Event *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const Event>(const Event *) CHECKED_DELETE_NOEXCEPT;
    friend class ::HandlerPool;
    friend class ::int_process;
    friend class ::HandleCallbacks;
@@ -307,8 +307,8 @@ OS& operator<<(OS& str, Event& e)
 
 class PC_EXPORT EventTerminate : public Event
 {
-   friend void boost::checked_delete<EventTerminate>(EventTerminate *);
-   friend void boost::checked_delete<const EventTerminate>(const EventTerminate *);
+   friend void boost::checked_delete<EventTerminate>(EventTerminate *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventTerminate>(const EventTerminate *) CHECKED_DELETE_NOEXCEPT;
  public:
    typedef boost::shared_ptr<EventTerminate> ptr;
    typedef boost::shared_ptr<const EventTerminate> const_ptr;
@@ -318,8 +318,8 @@ class PC_EXPORT EventTerminate : public Event
 
 class PC_EXPORT EventExit : public EventTerminate
 {
-   friend void boost::checked_delete<EventExit>(EventExit *);
-   friend void boost::checked_delete<const EventExit>(const EventExit *);
+   friend void boost::checked_delete<EventExit>(EventExit *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventExit>(const EventExit *) CHECKED_DELETE_NOEXCEPT;
  private:
    int exitcode;
  public:
@@ -332,8 +332,8 @@ class PC_EXPORT EventExit : public EventTerminate
 
 class PC_EXPORT EventCrash : public EventTerminate
 {
-   friend void boost::checked_delete<EventCrash>(EventCrash *);
-   friend void boost::checked_delete<const EventCrash>(const EventCrash *);
+   friend void boost::checked_delete<EventCrash>(EventCrash *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventCrash>(const EventCrash *) CHECKED_DELETE_NOEXCEPT;
  private:
    int termsig;
  public:
@@ -346,8 +346,8 @@ class PC_EXPORT EventCrash : public EventTerminate
 
 class PC_EXPORT EventForceTerminate : public EventTerminate
 {
-   friend void boost::checked_delete<EventForceTerminate>(EventForceTerminate *);
-   friend void boost::checked_delete<const EventForceTerminate>(const EventForceTerminate *);
+   friend void boost::checked_delete<EventForceTerminate>(EventForceTerminate *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventForceTerminate>(const EventForceTerminate *) CHECKED_DELETE_NOEXCEPT;
  private:
    int termsig;
  public:
@@ -360,8 +360,8 @@ class PC_EXPORT EventForceTerminate : public EventTerminate
 
 class PC_EXPORT EventExec : public Event
 {
-   friend void boost::checked_delete<EventExec>(EventExec *);
-   friend void boost::checked_delete<const EventExec>(const EventExec *);
+   friend void boost::checked_delete<EventExec>(EventExec *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventExec>(const EventExec *) CHECKED_DELETE_NOEXCEPT;
  private:
    std::string execpath;
  public:
@@ -376,8 +376,8 @@ class PC_EXPORT EventExec : public Event
 
 class PC_EXPORT EventStop : public Event
 {
-   friend void boost::checked_delete<EventStop>(EventStop *);
-   friend void boost::checked_delete<const EventStop>(const EventStop *);
+   friend void boost::checked_delete<EventStop>(EventStop *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventStop>(const EventStop *) CHECKED_DELETE_NOEXCEPT;
  public:
    typedef boost::shared_ptr<EventStop> ptr;
    typedef boost::shared_ptr<const EventStop> const_ptr;
@@ -387,8 +387,8 @@ class PC_EXPORT EventStop : public Event
 
 class PC_EXPORT EventNewThread : public Event
 {
-   friend void boost::checked_delete<EventNewThread>(EventNewThread *);
-   friend void boost::checked_delete<const EventNewThread>(const EventNewThread *);
+   friend void boost::checked_delete<EventNewThread>(EventNewThread *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventNewThread>(const EventNewThread *) CHECKED_DELETE_NOEXCEPT;
  public:
    typedef boost::shared_ptr<EventNewThread> ptr;
    typedef boost::shared_ptr<const EventNewThread> const_ptr;
@@ -402,8 +402,8 @@ class PC_EXPORT EventNewThread : public Event
 class int_eventNewUserThread;
 class PC_EXPORT EventNewUserThread : public EventNewThread
 {
-   friend void boost::checked_delete<EventNewUserThread>(EventNewUserThread *);
-   friend void boost::checked_delete<const EventNewUserThread>(const EventNewUserThread *);
+   friend void boost::checked_delete<EventNewUserThread>(EventNewUserThread *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventNewUserThread>(const EventNewUserThread *) CHECKED_DELETE_NOEXCEPT;
   private:
    int_eventNewUserThread *iev;
   public:
@@ -421,8 +421,8 @@ class PC_EXPORT EventNewUserThread : public EventNewThread
 class int_eventNewLWP;
 class PC_EXPORT EventNewLWP : public EventNewThread
 {
-   friend void boost::checked_delete<EventNewLWP>(EventNewLWP *);
-   friend void boost::checked_delete<const EventNewLWP>(const EventNewLWP *);
+   friend void boost::checked_delete<EventNewLWP>(EventNewLWP *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventNewLWP>(const EventNewLWP *) CHECKED_DELETE_NOEXCEPT;
   private:
    int_eventNewLWP *iev;
    Dyninst::LWP lwp;
@@ -439,8 +439,8 @@ class PC_EXPORT EventNewLWP : public EventNewThread
 
 class PC_EXPORT EventThreadDestroy : public Event
 {
-   friend void boost::checked_delete<EventThreadDestroy>(EventThreadDestroy *);
-   friend void boost::checked_delete<const EventThreadDestroy>(const EventThreadDestroy *);
+   friend void boost::checked_delete<EventThreadDestroy>(EventThreadDestroy *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventThreadDestroy>(const EventThreadDestroy *) CHECKED_DELETE_NOEXCEPT;
  public:
    typedef boost::shared_ptr<EventThreadDestroy> ptr;
    typedef boost::shared_ptr<const EventThreadDestroy> const_ptr;
@@ -450,8 +450,8 @@ class PC_EXPORT EventThreadDestroy : public Event
 
 class PC_EXPORT EventUserThreadDestroy : public EventThreadDestroy
 {
-   friend void boost::checked_delete<EventUserThreadDestroy>(EventUserThreadDestroy *);
-   friend void boost::checked_delete<const EventUserThreadDestroy>(const EventUserThreadDestroy *);
+   friend void boost::checked_delete<EventUserThreadDestroy>(EventUserThreadDestroy *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventUserThreadDestroy>(const EventUserThreadDestroy *) CHECKED_DELETE_NOEXCEPT;
  public:
    typedef boost::shared_ptr<EventUserThreadDestroy> ptr;
    typedef boost::shared_ptr<const EventUserThreadDestroy> const_ptr;
@@ -461,8 +461,8 @@ class PC_EXPORT EventUserThreadDestroy : public EventThreadDestroy
 
 class PC_EXPORT EventLWPDestroy : public EventThreadDestroy
 {
-   friend void boost::checked_delete<EventLWPDestroy>(EventLWPDestroy *);
-   friend void boost::checked_delete<const EventLWPDestroy>(const EventLWPDestroy *);
+   friend void boost::checked_delete<EventLWPDestroy>(EventLWPDestroy *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventLWPDestroy>(const EventLWPDestroy *) CHECKED_DELETE_NOEXCEPT;
  public:
    typedef boost::shared_ptr<EventLWPDestroy> ptr;
    typedef boost::shared_ptr<const EventLWPDestroy> const_ptr;
@@ -472,8 +472,8 @@ class PC_EXPORT EventLWPDestroy : public EventThreadDestroy
 
 class PC_EXPORT EventFork : public Event
 {
-   friend void boost::checked_delete<EventFork>(EventFork *);
-   friend void boost::checked_delete<const EventFork>(const EventFork *);
+   friend void boost::checked_delete<EventFork>(EventFork *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventFork>(const EventFork *) CHECKED_DELETE_NOEXCEPT;
   private:
    Dyninst::PID pid;
   public:
@@ -491,8 +491,8 @@ public:
    // causes of signal. unknown refers to all non-access violations.
    // this is needed for defensve mode.
    enum Cause { Unknown, ReadViolation, WriteViolation, ExecuteViolation };
-   friend void boost::checked_delete<EventSignal>(EventSignal *);
-   friend void boost::checked_delete<const EventSignal>(const EventSignal *);
+   friend void boost::checked_delete<EventSignal>(EventSignal *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventSignal>(const EventSignal *) CHECKED_DELETE_NOEXCEPT;
  private:
    int sig;
    // address that caused the signal (if any), the cause, and
@@ -520,8 +520,8 @@ public:
 
 class PC_EXPORT EventBootstrap : public Event
 {
-   friend void boost::checked_delete<EventBootstrap>(EventBootstrap *);
-   friend void boost::checked_delete<const EventBootstrap>(const EventBootstrap *);
+   friend void boost::checked_delete<EventBootstrap>(EventBootstrap *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventBootstrap>(const EventBootstrap *) CHECKED_DELETE_NOEXCEPT;
  public:
    typedef boost::shared_ptr<EventBootstrap> ptr;
    typedef boost::shared_ptr<const EventBootstrap> const_ptr;
@@ -531,8 +531,8 @@ class PC_EXPORT EventBootstrap : public Event
 
 class PC_EXPORT EventPreBootstrap : public Event
 {
-   friend void boost::checked_delete<EventPreBootstrap>(EventPreBootstrap *);
-   friend void boost::checked_delete<const EventPreBootstrap>(const EventPreBootstrap *);
+   friend void boost::checked_delete<EventPreBootstrap>(EventPreBootstrap *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventPreBootstrap>(const EventPreBootstrap *) CHECKED_DELETE_NOEXCEPT;
  public:
    typedef boost::shared_ptr<EventPreBootstrap> ptr;
    typedef boost::shared_ptr<const EventPreBootstrap> const_ptr;
@@ -544,8 +544,8 @@ class PC_EXPORT EventPreBootstrap : public Event
 class int_eventRPC;
 class PC_EXPORT EventRPC : public Event
 {
-   friend void boost::checked_delete<EventRPC>(EventRPC *);
-   friend void boost::checked_delete<const EventRPC>(const EventRPC *);
+   friend void boost::checked_delete<EventRPC>(EventRPC *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventRPC>(const EventRPC *) CHECKED_DELETE_NOEXCEPT;
  private:
    int_eventRPC *int_rpc;
    rpc_wrapper *wrapper;
@@ -563,8 +563,8 @@ class PC_EXPORT EventRPC : public Event
 
 class PC_EXPORT EventRPCLaunch : public Event
 {
-   friend void boost::checked_delete<EventRPCLaunch>(EventRPCLaunch *);
-   friend void boost::checked_delete<const EventRPCLaunch>(const EventRPCLaunch *);
+   friend void boost::checked_delete<EventRPCLaunch>(EventRPCLaunch *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventRPCLaunch>(const EventRPCLaunch *) CHECKED_DELETE_NOEXCEPT;
  public:
    typedef boost::shared_ptr<EventRPCLaunch> ptr;
    typedef boost::shared_ptr<const EventRPCLaunch> const_ptr;
@@ -575,8 +575,8 @@ class PC_EXPORT EventRPCLaunch : public Event
 
 class PC_EXPORT EventSingleStep : public Event
 {
-   friend void boost::checked_delete<EventSingleStep>(EventSingleStep *);
-   friend void boost::checked_delete<const EventSingleStep>(const EventSingleStep *);
+   friend void boost::checked_delete<EventSingleStep>(EventSingleStep *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventSingleStep>(const EventSingleStep *) CHECKED_DELETE_NOEXCEPT;
  public:
    typedef boost::shared_ptr<EventSingleStep> ptr;
    typedef boost::shared_ptr<const EventSingleStep> const_ptr;
@@ -586,8 +586,8 @@ class PC_EXPORT EventSingleStep : public Event
 
 class PC_EXPORT EventSyscall : public Event
 {
-   friend void boost::checked_delete<EventSyscall>(EventSyscall *);
-   friend void boost::checked_delete<const EventSyscall>(const EventSyscall *);
+   friend void boost::checked_delete<EventSyscall>(EventSyscall *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventSyscall>(const EventSyscall *) CHECKED_DELETE_NOEXCEPT;
 
    friend MachSyscall makeFromEvent(const EventSyscall *);
 
@@ -606,8 +606,8 @@ class PC_EXPORT EventSyscall : public Event
 
 class PC_EXPORT EventPreSyscall : public EventSyscall
 {
-   friend void boost::checked_delete<EventPreSyscall>(EventPreSyscall *);
-   friend void boost::checked_delete<const EventPreSyscall>(const EventPreSyscall *);
+   friend void boost::checked_delete<EventPreSyscall>(EventPreSyscall *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventPreSyscall>(const EventPreSyscall *) CHECKED_DELETE_NOEXCEPT;
 
    friend MachSyscall makeFromEvent(const EventPreSyscall *);
 
@@ -620,8 +620,8 @@ class PC_EXPORT EventPreSyscall : public EventSyscall
 
 class PC_EXPORT EventPostSyscall : public EventSyscall
 {
-   friend void boost::checked_delete<EventPostSyscall>(EventPostSyscall *);
-   friend void boost::checked_delete<const EventPostSyscall>(const EventPostSyscall *);
+   friend void boost::checked_delete<EventPostSyscall>(EventPostSyscall *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventPostSyscall>(const EventPostSyscall *) CHECKED_DELETE_NOEXCEPT;
 
    friend MachSyscall makeFromEvent(const EventPostSyscall *);
 
@@ -637,8 +637,8 @@ class PC_EXPORT EventPostSyscall : public EventSyscall
 class int_eventBreakpoint;
 class PC_EXPORT EventBreakpoint : public Event
 {
-   friend void boost::checked_delete<EventBreakpoint>(EventBreakpoint *);
-   friend void boost::checked_delete<const EventBreakpoint>(const EventBreakpoint *);
+   friend void boost::checked_delete<EventBreakpoint>(EventBreakpoint *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventBreakpoint>(const EventBreakpoint *) CHECKED_DELETE_NOEXCEPT;
  private:
    int_eventBreakpoint *int_bp;
  public:
@@ -660,8 +660,8 @@ class PC_EXPORT EventBreakpoint : public Event
 class int_eventBreakpointClear;
 class PC_EXPORT EventBreakpointClear : public Event
 {
-   friend void boost::checked_delete<EventBreakpointClear>(EventBreakpointClear *);
-   friend void boost::checked_delete<const EventBreakpointClear>(const EventBreakpointClear *);
+   friend void boost::checked_delete<EventBreakpointClear>(EventBreakpointClear *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventBreakpointClear>(const EventBreakpointClear *) CHECKED_DELETE_NOEXCEPT;
   private:
    int_eventBreakpointClear *int_bpc;
   public:
@@ -677,8 +677,8 @@ class PC_EXPORT EventBreakpointClear : public Event
 class int_eventBreakpointRestore;
 class EventBreakpointRestore : public Event
 {
-   friend void boost::checked_delete<EventBreakpointRestore>(EventBreakpointRestore *);
-   friend void boost::checked_delete<const EventBreakpointRestore>(const EventBreakpointRestore *);
+   friend void boost::checked_delete<EventBreakpointRestore>(EventBreakpointRestore *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventBreakpointRestore>(const EventBreakpointRestore *) CHECKED_DELETE_NOEXCEPT;
   private:
    int_eventBreakpointRestore *int_bpr;
   public:
@@ -693,8 +693,8 @@ class EventBreakpointRestore : public Event
 
 class PC_EXPORT EventLibrary : public Event
 {
-   friend void boost::checked_delete<EventLibrary>(EventLibrary *);
-   friend void boost::checked_delete<const EventLibrary>(const EventLibrary *);
+   friend void boost::checked_delete<EventLibrary>(EventLibrary *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventLibrary>(const EventLibrary *) CHECKED_DELETE_NOEXCEPT;
  private:
    std::set<Library::ptr> added_libs;
    std::set<Library::ptr> rmd_libs;
@@ -715,8 +715,8 @@ class PC_EXPORT EventLibrary : public Event
 class int_eventAsync;
 class PC_EXPORT EventAsync : public Event
 {
-   friend void boost::checked_delete<EventAsync>(EventAsync *);
-   friend void boost::checked_delete<const EventAsync>(const EventAsync *);
+   friend void boost::checked_delete<EventAsync>(EventAsync *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventAsync>(const EventAsync *) CHECKED_DELETE_NOEXCEPT;
    
   private:
    int_eventAsync *internal;
@@ -731,8 +731,8 @@ class PC_EXPORT EventAsync : public Event
 
 class PC_EXPORT EventChangePCStop : public Event
 {
-   friend void boost::checked_delete<EventChangePCStop>(EventChangePCStop *);
-   friend void boost::checked_delete<const EventChangePCStop>(const EventChangePCStop *);
+   friend void boost::checked_delete<EventChangePCStop>(EventChangePCStop *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventChangePCStop>(const EventChangePCStop *) CHECKED_DELETE_NOEXCEPT;
  public:
    typedef boost::shared_ptr<EventChangePCStop> ptr;
    typedef boost::shared_ptr<const EventChangePCStop> const_ptr;
@@ -743,8 +743,8 @@ class PC_EXPORT EventChangePCStop : public Event
 class int_eventDetach;
 class PC_EXPORT EventDetach : public Event
 {
-   friend void boost::checked_delete<EventDetach>(EventDetach *);
-   friend void boost::checked_delete<const EventDetach>(const EventDetach *);
+   friend void boost::checked_delete<EventDetach>(EventDetach *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventDetach>(const EventDetach *) CHECKED_DELETE_NOEXCEPT;
    int_eventDetach *int_detach;
  public:
    typedef boost::shared_ptr<EventDetach> ptr;
@@ -758,8 +758,8 @@ class PC_EXPORT EventDetach : public Event
 
 class PC_EXPORT EventIntBootstrap : public Event
 {
-   friend void boost::checked_delete<EventIntBootstrap>(EventIntBootstrap *);
-   friend void boost::checked_delete<const EventIntBootstrap>(const EventIntBootstrap *);
+   friend void boost::checked_delete<EventIntBootstrap>(EventIntBootstrap *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventIntBootstrap>(const EventIntBootstrap *) CHECKED_DELETE_NOEXCEPT;
    
    void *data;
  public:
@@ -774,8 +774,8 @@ class PC_EXPORT EventIntBootstrap : public Event
 
 class PC_EXPORT EventNop : public Event
 {
-   friend void boost::checked_delete<EventNop>(EventNop *);
-   friend void boost::checked_delete<const EventNop>(const EventNop *);
+   friend void boost::checked_delete<EventNop>(EventNop *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventNop>(const EventNop *) CHECKED_DELETE_NOEXCEPT;
  public:
    typedef boost::shared_ptr<EventNop> ptr;
    typedef boost::shared_ptr<const EventNop> const_ptr;
@@ -786,8 +786,8 @@ class PC_EXPORT EventNop : public Event
 class int_eventThreadDB;
 class PC_EXPORT EventThreadDB : public Event
 {
-   friend void boost::checked_delete<EventThreadDB>(EventThreadDB *);
-   friend void boost::checked_delete<const EventThreadDB>(const EventThreadDB *);
+   friend void boost::checked_delete<EventThreadDB>(EventThreadDB *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventThreadDB>(const EventThreadDB *) CHECKED_DELETE_NOEXCEPT;
    int_eventThreadDB *int_etdb;
   public:
    typedef boost::shared_ptr<EventThreadDB> ptr;
@@ -802,8 +802,8 @@ class PC_EXPORT EventThreadDB : public Event
 
 class PC_EXPORT EventWinStopThreadDestroy : public EventThreadDestroy
 {
-   friend void boost::checked_delete<EventWinStopThreadDestroy>(EventWinStopThreadDestroy *);
-   friend void boost::checked_delete<const EventWinStopThreadDestroy>(const EventWinStopThreadDestroy *);
+   friend void boost::checked_delete<EventWinStopThreadDestroy>(EventWinStopThreadDestroy *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventWinStopThreadDestroy>(const EventWinStopThreadDestroy *) CHECKED_DELETE_NOEXCEPT;
  public:
    typedef boost::shared_ptr<EventWinStopThreadDestroy> ptr;
    typedef boost::shared_ptr<const EventWinStopThreadDestroy> const_ptr;
@@ -814,8 +814,8 @@ class PC_EXPORT EventWinStopThreadDestroy : public EventThreadDestroy
 class int_eventControlAuthority;
 class PC_EXPORT EventControlAuthority : public Event
 {
-   friend void boost::checked_delete<EventControlAuthority>(EventControlAuthority *);
-   friend void boost::checked_delete<const EventControlAuthority>(const EventControlAuthority *);
+   friend void boost::checked_delete<EventControlAuthority>(EventControlAuthority *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventControlAuthority>(const EventControlAuthority *) CHECKED_DELETE_NOEXCEPT;
    int_eventControlAuthority *iev;
   public:
    typedef boost::shared_ptr<EventControlAuthority> ptr;
@@ -841,8 +841,8 @@ class PC_EXPORT EventControlAuthority : public Event
 
 class int_eventAsyncIO;
 class PC_EXPORT EventAsyncIO : public Event {
-   friend void boost::checked_delete<EventAsyncIO>(EventAsyncIO *);
-   friend void boost::checked_delete<const EventAsyncIO>(const EventAsyncIO *);
+   friend void boost::checked_delete<EventAsyncIO>(EventAsyncIO *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventAsyncIO>(const EventAsyncIO *) CHECKED_DELETE_NOEXCEPT;
   protected:
    int_eventAsyncIO *iev;
   public:
@@ -858,8 +858,8 @@ class PC_EXPORT EventAsyncIO : public Event {
 };
 
 class PC_EXPORT EventAsyncRead : public EventAsyncIO {
-   friend void boost::checked_delete<EventAsyncRead>(EventAsyncRead *);
-   friend void boost::checked_delete<const EventAsyncRead>(const EventAsyncRead *);
+   friend void boost::checked_delete<EventAsyncRead>(EventAsyncRead *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventAsyncRead>(const EventAsyncRead *) CHECKED_DELETE_NOEXCEPT;
   public:
    typedef boost::shared_ptr<EventAsyncRead> ptr;
    typedef boost::shared_ptr<const EventAsyncRead> const_ptr;
@@ -873,8 +873,8 @@ class PC_EXPORT EventAsyncRead : public EventAsyncIO {
 };
 
 class PC_EXPORT EventAsyncWrite : public EventAsyncIO {
-   friend void boost::checked_delete<EventAsyncWrite>(EventAsyncWrite *);
-   friend void boost::checked_delete<const EventAsyncWrite>(const EventAsyncWrite *);
+   friend void boost::checked_delete<EventAsyncWrite>(EventAsyncWrite *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventAsyncWrite>(const EventAsyncWrite *) CHECKED_DELETE_NOEXCEPT;
   public:
    typedef boost::shared_ptr<EventAsyncWrite> ptr;
    typedef boost::shared_ptr<const EventAsyncWrite> const_ptr;
@@ -887,8 +887,8 @@ class PC_EXPORT EventAsyncWrite : public EventAsyncIO {
 };
 
 class PC_EXPORT EventAsyncReadAllRegs : public EventAsyncIO {
-   friend void boost::checked_delete<EventAsyncReadAllRegs>(EventAsyncReadAllRegs *);
-   friend void boost::checked_delete<const EventAsyncReadAllRegs>(const EventAsyncReadAllRegs *);
+   friend void boost::checked_delete<EventAsyncReadAllRegs>(EventAsyncReadAllRegs *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventAsyncReadAllRegs>(const EventAsyncReadAllRegs *) CHECKED_DELETE_NOEXCEPT;
   public:
    typedef boost::shared_ptr<EventAsyncReadAllRegs> ptr;
    typedef boost::shared_ptr<const EventAsyncReadAllRegs> const_ptr;
@@ -900,8 +900,8 @@ class PC_EXPORT EventAsyncReadAllRegs : public EventAsyncIO {
 };
 
 class PC_EXPORT EventAsyncSetAllRegs : public EventAsyncIO {
-   friend void boost::checked_delete<EventAsyncSetAllRegs>(EventAsyncSetAllRegs *);
-   friend void boost::checked_delete<const EventAsyncSetAllRegs>(const EventAsyncSetAllRegs *);
+   friend void boost::checked_delete<EventAsyncSetAllRegs>(EventAsyncSetAllRegs *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventAsyncSetAllRegs>(const EventAsyncSetAllRegs *) CHECKED_DELETE_NOEXCEPT;
   public:
    typedef boost::shared_ptr<EventAsyncSetAllRegs> ptr;
    typedef boost::shared_ptr<const EventAsyncSetAllRegs> const_ptr;
@@ -912,8 +912,8 @@ class PC_EXPORT EventAsyncSetAllRegs : public EventAsyncIO {
 
 class int_eventAsyncFileRead;
 class PC_EXPORT EventAsyncFileRead : public Event {
-   friend void boost::checked_delete<EventAsyncFileRead>(EventAsyncFileRead *);
-   friend void boost::checked_delete<const EventAsyncFileRead>(const EventAsyncFileRead *);
+   friend void boost::checked_delete<EventAsyncFileRead>(EventAsyncFileRead *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventAsyncFileRead>(const EventAsyncFileRead *) CHECKED_DELETE_NOEXCEPT;
    int_eventAsyncFileRead *iev;
   public:
    typedef boost::shared_ptr<EventAsyncFileRead> ptr;
@@ -936,8 +936,8 @@ class PC_EXPORT EventAsyncFileRead : public Event {
 
 class EventPostponedSyscall : public Event
 {
-   friend void boost::checked_delete<EventPostponedSyscall>(EventPostponedSyscall *);
-   friend void boost::checked_delete<const EventPostponedSyscall>(const EventPostponedSyscall *);
+   friend void boost::checked_delete<EventPostponedSyscall>(EventPostponedSyscall *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const EventPostponedSyscall>(const EventPostponedSyscall *) CHECKED_DELETE_NOEXCEPT;
   public:
    typedef boost::shared_ptr<EventPostponedSyscall> ptr;
    typedef boost::shared_ptr<const EventPostponedSyscall> const_ptr;
