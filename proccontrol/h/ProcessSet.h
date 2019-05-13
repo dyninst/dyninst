@@ -80,7 +80,7 @@ class PC_EXPORT AddressSet
 {
   private:
    int_addressSet *iaddrs;
-   friend void boost::checked_delete<AddressSet>(AddressSet *);
+   friend void boost::checked_delete<AddressSet>(AddressSet *) CHECKED_DELETE_NOEXCEPT;
    friend class ProcessSet;
    AddressSet();
    ~AddressSet();
@@ -170,7 +170,7 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
    ProcessSet();
    ~ProcessSet();
 
-   friend void boost::checked_delete<ProcessSet>(ProcessSet *);
+   friend void boost::checked_delete<ProcessSet>(ProcessSet *) CHECKED_DELETE_NOEXCEPT;
  public:
    int_processSet *getIntProcessSet(); //Not for public use
    typedef boost::shared_ptr<ProcessSet> ptr;
@@ -416,7 +416,7 @@ class PC_EXPORT ThreadSet : public boost::enable_shared_from_this<ThreadSet> {
    
    ThreadSet();
    ~ThreadSet();
-   friend void boost::checked_delete<ThreadSet>(ThreadSet *);
+   friend void boost::checked_delete<ThreadSet>(ThreadSet *) CHECKED_DELETE_NOEXCEPT;
   public:
    typedef boost::shared_ptr<ThreadSet> ptr;
    typedef boost::shared_ptr<const ThreadSet> const_ptr;
