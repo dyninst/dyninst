@@ -81,9 +81,6 @@ function (dyninst_library target)
 endfunction()
 
 
-
-#Change to switch between libiberty/libstdc++ demangler
-
 include (${DYNINST_ROOT}/cmake/platform.cmake)
 if (NOT ${PROJECT_NAME} MATCHES DyninstRT)
 include (${DYNINST_ROOT}/cmake/packages.cmake)
