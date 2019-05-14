@@ -84,7 +84,7 @@ public:
     virtual void pushUnsignedVal(Dyninst::MachRegisterVal constant) = 0;
     virtual void pushSignedVal(Dyninst::MachRegisterVal constant) = 0;
     virtual void pushOp(Operator op) = 0;
-    virtual void pushOp(Operator op, unsigned ref) = 0;
+    virtual void pushOp(Operator op, long long ref) = 0;
 
     // The frame base is the logical top of the stack as reported
     // in the function's debug info
@@ -119,7 +119,7 @@ public:
     virtual void pushUnsignedVal(Dyninst::MachRegisterVal constant);
     virtual void pushSignedVal(Dyninst::MachRegisterVal constant);
     virtual void pushOp(Operator op);
-    virtual void pushOp(Operator op, unsigned ref);
+    virtual void pushOp(Operator op, long long ref);
 
     // DWARF logical "frame base", which may be the result of an expression
     // in itself. TODO: figure out what info we need to carry around so we
@@ -141,9 +141,10 @@ class DYNDWARF_EXPORT ConcreteDwarfResult : public DwarfResult {
 
 public:
     ConcreteDwarfResult(ProcessReader *r, Architecture a, 
-            Address p, ::Dwarf * d) :
+            Address p, Dwarf * d, Elf * e) :
         DwarfResult(a), reader(r), 
-        pc(p), dbg(d) {};
+        pc(p), dbg(d), dbg_eh_frame(e) {};
+    ConcreteDwarfResult() : DwarfResult(Arch_none) {};
     virtual ~ConcreteDwarfResult() {};
 
     virtual void pushReg(Dyninst::MachRegister reg);
@@ -151,7 +152,7 @@ public:
     virtual void pushUnsignedVal(Dyninst::MachRegisterVal constant);
     virtual void pushSignedVal(Dyninst::MachRegisterVal constant);
     virtual void pushOp(Operator op);
-    virtual void pushOp(Operator op, unsigned ref);
+    virtual void pushOp(Operator op, long long ref);
 
     // DWARF logical "frame base", which may be the result of an expression
     // in itself. TODO: figure out what info we need to carry around so we
@@ -168,7 +169,8 @@ private:
 
     // For getting access to other expressions
     Address pc;
-    ::Dwarf * dbg;
+    Dwarf * dbg;
+    Elf * dbg_eh_frame;
 
     // Dwarf lets you access within the "stack", so we model 
     // it as a vector.
