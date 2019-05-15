@@ -1,4 +1,4 @@
-#####################################################################################
+#=====================================================================================
 # ThreadingBuildingBlocks.cmake
 #
 # Configure Intel's Threading Building Blocks for Dyninst
@@ -10,7 +10,7 @@
 # TBB_ROOT_DIR        - Hint directory that contains the TBB installation
 # TBB_INCLUDEDIR      - Hint directory that contains the TBB headers files
 # TBB_LIBRARYDIR      - Hint directory that contains the TBB library files
-# TBB_LIBRARY         - Alias for TBB_LIBRARY_DIR
+# TBB_LIBRARY         - Alias for TBB_LIBRARYDIR
 # TBB_USE_DEBUG_BUILD - Use debug version of tbb libraries, if present
 # TBB_MIN_VERSION     - Minimum acceptable version of TBB
 #
@@ -35,17 +35,16 @@
 #
 # See Modules/FindTBB.cmake for additional input and exported variables
 #
-#####################################################################################
+#=====================================================================================
 
 # -------------- RUNTIME CONFIGURATION ----------------------------------------
 
 # Use debug versions of TBB libraries
 set(TBB_USE_DEBUG_BUILD OFF CACHE BOOL "Use debug versions of TBB libraries")
 
-# Minimum version of TBB
-# NB: This assumes a dotted-decimal format: YYYY.XX
-set(_tbb_min_version 2018.0)
-set(TBB_MIN_VERSION ${_tbb_min_version} CACHE STRING "Minimum version of TBB")
+# Minimum version of TBB (assumes a dotted-decimal format: YYYY.XX)
+set(_tbb_min_version 2018.6)
+set(TBB_MIN_VERSION ${_tbb_min_version} CACHE STRING "Minimum version of TBB (assumes a dotted-decimal format: YYYY.XX)")
 
 if(${TBB_MIN_VERSION} VERSION_LESS ${_tbb_min_version})
   message(
@@ -89,7 +88,7 @@ if(TBB_FOUND)
   endif()
 else()
   # If we didn't find a suitable version on the system, then download one from the web
-  set(_tbb_download_version 2019.0)
+  set(_tbb_download_version 2019.5)
   
   # If the user specifies a version other than _tbb_download_version, use that version.
   # NB: We know TBB_MIN_VERSION is >= _tbb_min_version from earlier checks
@@ -133,18 +132,17 @@ else()
   
   set(TBB_LIBRARIES ${_tbb_libraries} CACHE FILEPATH "TBB library files" FORCE)
   
-  # This is only a partial implementation for getting a source version of TBB
-  # The tarballs are named YYYY_UX, but the version string is YYYY.ZZ where there
-  # is no known relationship between X and ZZ. Hence, we just use the year from the
-  # version string (YYYY) and fetch the first update from that year (U1).
-  string(REGEX REPLACE "\\..*$" "" _tbb_download_name ${_tbb_download_version})
+  # Split the dotted decimal version into major/minor parts
+  string(REGEX REPLACE "\\." ";" _tbb_download_name ${_tbb_download_version})
+  list(GET _tbb_download_name 0 _tbb_ver_major)
+  list(GET _tbb_download_name 1 _tbb_ver_minor)
   
   include(ExternalProject)
   set(_tbb_prefix_dir ${CMAKE_BINARY_DIR}/tbb)
   ExternalProject_Add(
     TBB
     PREFIX ${_tbb_prefix_dir}
-    URL https://github.com/01org/tbb/archive/${_tbb_download_name}_U1.tar.gz
+    URL https://github.com/01org/tbb/archive/${_tbb_ver_major}_U${_tbb_ver_minor}.tar.gz
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ""
     BUILD_COMMAND
