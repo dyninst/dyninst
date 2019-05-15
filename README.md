@@ -23,7 +23,7 @@
 
 1. Configure Dyninst with CMake
 
-	```cmake /path/to/dyninst/source```
+	```cmake /path/to/dyninst/source -DCMAKE_INSTALL_PREFIX=/path/to/installation```
 
 2. Build and install Dyninst in parallel
 
