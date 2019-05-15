@@ -23,11 +23,11 @@
 
 1. Configure Dyninst with CMake
 
-```cmake /path/to/dyninst/source```
+	```cmake /path/to/dyninst/source```
 
 2. Build and install Dyninst in parallel
 
-```make install -jN```
+	```make install -jN```
 
 If this does not work for you, please refer to the [Wiki](https://github.com/dyninst/dyninst/wiki) for detailed instructions. If you encounter any errors, see the [Building Dyninst FAQ](https://github.com/dyninst/dyninst/wiki/build-FAQ) or leave a [GitHub issue](https://github.com/dyninst/dyninst/issues).
 
