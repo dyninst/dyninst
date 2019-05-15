@@ -29,7 +29,7 @@
 
 	```make install -jN```
 
-If this does not work for you, please refer to the [Wiki](https://github.com/dyninst/dyninst/wiki) for detailed instructions. If you encounter any errors, see the [Building Dyninst FAQ](https://github.com/dyninst/dyninst/wiki/build-FAQ) or leave a [GitHub issue](https://github.com/dyninst/dyninst/issues).
+If this does not work for you, please refer to the [Wiki](https://github.com/dyninst/dyninst/wiki) for detailed instructions. If you encounter any errors, see the [Building Dyninst](https://github.com/dyninst/dyninst/wiki/Building-Dyninst) or leave a [GitHub issue](https://github.com/dyninst/dyninst/issues).
 
 ## Known Issues
 
