@@ -17,10 +17,12 @@ set(RT_BINARY_DIR ${PROJECT_BINARY_DIR}/dyninstAPI_RT)
 
 set (CMAKE_MODULE_PATH "${DYNINST_ROOT}/cmake" "${DYNINST_ROOT}/cmake/Modules" ${CMAKE_MODULE_PATH})
 
+find_package(ThreadDB)
 find_package(Threads)
 include(Boost)
 include(ThreadingBuildingBlocks)
 include(ElfUtils)
+include(LibIberty)
 include (${DYNINST_ROOT}/cmake/shared.cmake)
 
 configure_file(cmake/version.h.in common/h/dyninstversion.h)

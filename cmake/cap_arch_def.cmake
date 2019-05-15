@@ -7,7 +7,7 @@ set (CAP_DEFINES
      -Dcap_threads
 )
 
-if (${USE_GNU_DEMANGLER} MATCHES 1)
+if(USE_GNU_DEMANGLER)
 set (CAP_DEFINES ${CAP_DEFINES} -Dcap_gnu_demangler)
 endif()
 
