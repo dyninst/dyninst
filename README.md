@@ -19,100 +19,17 @@
 
 ```spack install dyninst```
 
-### Build from source (the short version)
+### Build from source
 
 1. Configure Dyninst with CMake
 
-```ccmake /path/to/dyninst/source```
+	```cmake /path/to/dyninst/source -DCMAKE_INSTALL_PREFIX=/path/to/installation```
 
 2. Build and install Dyninst in parallel
 
-```make install -jN```
+	```make install -jN```
 
-If this short version does not work for you, please refer to the long version and the FAQs below.
-
-### Build from source (the long version)
-
-#### Configuration
-
-Dyninst is built via CMake. We require CMake 3.0.0 as a minimum on all systems. CMake will automatically
-search for dependencies and download them when not found. The main dependencies of Dyninst include:
-
-1. elfutils, 0.173 minimum, https://sourceware.org/elfutils/
-
-2. Boost, 1.61.0 or later recommended, https://www.boost.org/
-
-3. The Intel Thread Building Blocks (TBB), 2018 U6 or later recommended, https://www.threadingbuildingblocks.org/
-
-4. OpenMP, optional for parallel code parsing. Note that Dyninst will not automatically download or install OpenMP
-
-We recommend performing an interactive
-configuration with "ccmake /path/to/dyninst/source" first, in order to see which options are
-relevant for your system. You may also perform a batch configuration
-with "cmake /path/to/dyninst/source".  Options are passed to CMake with -DVAR=VALUE. Common
-options include:
-
-```PATH_BOOST```: base directory of your boost installation
-
-```LibElf_ROOT_DIR```: base directory of your elfutils installation
-
-```TBB_ROOT_DIR```: base directory of your TBB installation
-
-```CMAKE_BUILD_TYPE```: may be set to Debug, Release, or RelWithDebInfo for unoptimized, optimized, and optimized with debug information builds respectively. Note that RelWithDebInfo is the default.
-
-```CMAKE_INSTALL_PREFIX```: like PREFIX for autotools-based systems. Where to install things.
-
-```USE_OpenMP```: whether or not use OpenMP for parallel parsing. Default to be ```ON```
-
-```ENABLE_STATIC_LIBS```: also build dyninst in static libraries. Default to be ```NO```. Set to ```YES``` to build static libraries. 
-
-CMake's default generator on Linux is normally "Unix Makefiles", and
-on Windows, it will normally produce project files for the most recent
-version of Visual Studio on your system. Other generators should work
-but are not tested. After the CMake step concludes, you will have
-appropriate Makefiles or equivalent and can build Dyninst.
-
-If you are cross-compiling Dyninst, including builds for
-various Cray and Intel MIC systems, you will either need a toolchain
-file that specifies how to properly cross-compile, or you will need to
-manually define the appropriate compiler, library locations, include
-locations, and the CROSS_COMPILING flag so that the build system will
-properly evaluate what can be built and linked in your environment.
-
-#### Building and installing
-CMake allows Dyninst to be built out-of-source; simply invoke CMake in your desired build location. In-source builds are still fully supported as well.
-Each component of Dyninst may be built independently: cd $component; make. Standard make options will work; we fully support parallel compilation for make -jN. Setting VERBOSE=1 will replace the beautified CMake output with raw commands and their output, which can be useful for troubleshooting.
-
-On Windows, you will need the Debug Information Access (DIA) SDK, which should be available with an MSDN subscription, in order to build Dyninst; you will not need libelf, libdwarf, binutils, or the GCC demangler. Dyninst is still built via CMake, and the NMake and Visual Studio project file generators should both work. We have not tested building Dyninst on Windows with gcc, and we do not expect this to work presently.
-
-If you wish to import
-Dyninst into your own CMake projects, the export information is in
-`CMAKE_INSTALL_PREFIX/INSTALL_CMAKE_DIR`. PDF documentation is included
-and installed to `CMAKE_INSTALL_PREFIX/INSTALL_DOC_DIR`. If you update
-the LaTeX source documents for any manuals, "make doc" will rebuild
-them. Components may be built and installed individually: "make
-$COMPONENT" and "make $COMPONENT-install" respectively; this will
-appropriately respect inter-component dependencies.
-
-### FAQs of building Dyninst
-
-1. Q: What should I do if the build failed and showed
-
-```"/lib64/libdw.so.1: version `ELFUTILS_0.173' not found```
-
-or
-
-```error: 'dwarf_next_lines' was not declared in this scope```
-
-A: Dyninst now depends on elfutils-0.173 or later. If you are seeing the above errors, it means the elfutils installed on your system is older than 0.173. We recommend that you set ```ElfUtils_ROOT_DIR``` to empty, which will trigger the build system to automatically download the correct version of elfutils. Or you can upgrade your elfutils with your system package manager.
-
-2. Q: Where are the dependency libraries downloaded by Dyninst?
-
-A: After installation, Dyninst should copy all dependencies to the install location. In case where the dependencies are not copied, they can be found in the directory where you build Dyninst. For example, suppose you install Dyninst in ```/home/user/dyninst/install```, then the library and header files for elfutils, TBB, and boost which were built from source are in ```/home/user/dyninst/lib``` and ```/home/user/dyninst/include```, respectively.
-
-3. Q: My system has pre-installed Boost, but the build failed due to that cannot find boost libraries.
-
-A: Dyninst requires at least Boost-1.61. If your system version is newer, but still not found, then point ```Boost_ROOT_DIR``` to the base of your system's Boost install.
+If this does not work for you, please refer to the [Wiki](https://github.com/dyninst/dyninst/wiki) for detailed instructions. If you encounter any errors, see the [Building Dyninst](https://github.com/dyninst/dyninst/wiki/Building-Dyninst) or leave a [GitHub issue](https://github.com/dyninst/dyninst/issues).
 
 ## Known Issues
 

@@ -7,7 +7,7 @@
 #
 # Accepts the following CMake variables
 #
-# USE_GNU_DEMANGLER       - Use the GNU C++ name demanger (if yes, this disables using LibIberty)
+# USE_GNU_DEMANGLER        - Use the GNU C++ name demanger (if yes, this disables using LibIberty)
 #
 # Directly exports the following CMake variables
 #

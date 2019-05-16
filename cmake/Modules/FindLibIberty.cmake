@@ -13,12 +13,13 @@
 #
 # This module reads hints about search locations from variables::
 #
-#	LibIberty_ROOT_DIR		- Base directory the of LibIberty installation
-#	LibIberty_LIBRARYDIR	- Hint directory that contains the LibIberty library files
+#	LibIberty_ROOT_DIR      - Base directory the of LibIberty installation
+#	LibIberty_LIBRARYDIR    - Hint directory that contains the LibIberty library files
+#   IBERTY_LIBRARIES        - Alias for LibIberty_LIBRARIES (backwards compatibility only)
 #
 # and saves search results persistently in CMake cache entries::
 #
-#	LibIberty_FOUND			- True if headers and requested libraries were found
+#	LibIberty_FOUND         - True if headers and requested libraries were found
 #   IBERTY_FOUND            - Alias for LibIberty_FOUND (backwards compatibility only)
 #	LibIberty_LIBRARY_DIRS  - Link directories for LibIberty libraries
 #	LibIberty_LIBRARIES     - LibIberty library files
