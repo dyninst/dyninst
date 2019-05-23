@@ -1812,9 +1812,19 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
                          reg->keptValue,
                          (reg->liveState == registerSlot::live) ? "live" : ((reg->liveState == registerSlot::spilled) ? "spilled" : "dead"));
 
+         bool arg_reg = false;
+         if (operands.size() > 0) {
+            for(unsigned int j = 0; j < std::min(operands.size(), AMD64_ARG_REGS); j++) {
+                if (reg->number == amd64_arg_regs[j]) {
+                    arg_reg = true;
+                    break;
+                }
+            }
+         }
+
          if (reg->refCount > 0 ||  // Currently active
              reg->keptValue || // Has a kept value
-             (reg->liveState == registerSlot::live)) { // needs to be saved pre-call
+             (reg->liveState == registerSlot::live) || arg_reg) { // needs to be saved pre-call
             regalloc_printf("%s[%d]: \tsaving reg\n", FILE__, __LINE__);
             pair<unsigned, unsigned> regToSave;
             regToSave.first = reg->number;
@@ -2429,6 +2439,7 @@ void EmitterAMD64::emitStackAlign(int offset, codeGen &gen)
    if (gen.rs()->checkVolatileRegisters(gen, registerSlot::live)) {
       saveFlags = true;   // We need to save the flags register
       off += 8;           // Allocate stack space to store the flags
+      scratch = REGNUM_RAX;
    }
 
    emitLEA(REGNUM_RSP, Null_Register, 0, -off, REGNUM_RSP, gen);
