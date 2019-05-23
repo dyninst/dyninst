@@ -2439,7 +2439,6 @@ void EmitterAMD64::emitStackAlign(int offset, codeGen &gen)
    if (gen.rs()->checkVolatileRegisters(gen, registerSlot::live)) {
       saveFlags = true;   // We need to save the flags register
       off += 8;           // Allocate stack space to store the flags
-      scratch = REGNUM_RAX;
    }
 
    emitLEA(REGNUM_RSP, Null_Register, 0, -off, REGNUM_RSP, gen);
