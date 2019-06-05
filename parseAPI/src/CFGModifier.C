@@ -159,6 +159,7 @@ Block *CFGModifier::split(Block *b, Address a, bool trust, Address newlast) {
    ret->updateEnd(b->_end);
    ret->_lastInsn = b->_lastInsn;
    ret->_parsed = true;
+   b->obj()->parser->_parse_data->record_block(ret->region(), ret);
    
    b->updateEnd(a);
    b->_lastInsn = newlast;

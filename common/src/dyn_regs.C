@@ -563,6 +563,16 @@ COMMON_EXPORT bool Dyninst::isSegmentRegister(int regClass)
    return 0 != (regClass & x86::SEG);
 }
 
+
+/* This function should has a boolean return value
+ * to indicate whether there is a corresponding
+ * ROSE register.
+ *
+ * Since historically, this function does not 
+ * have a return value. We set c to -1 to represent
+ * error cases
+ */
+
 void MachRegister::getROSERegister(int &c, int &n, int &p)
 {
    // Rose: class, number, position
@@ -818,7 +828,8 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
 		 n = x86_flag_of;
 		 break;
 	       default:
-		 assert(0);
+                 c = -1;
+                 return; 
 		 break;
       }
                break;
@@ -905,8 +916,8 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                }
                break;
                default:
-                   assert(!"unknown register type!");
-                   break;
+                   c = -1;
+                   return;
            }
            return;
        }
@@ -975,8 +986,8 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                            p = armv8_pstatefield_c;
                            break;
                        default:
-                           assert(!"unknown flag type!");
-                           break;
+                           c = -1;
+                           return;
                    }
                }
                    break;
@@ -1052,7 +1063,8 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
       break;
       case Arch_aarch64:
       {
-          assert(0);
+          c = -1;
+          return;
         }
       default:
         p = x86_regpos_unknown;

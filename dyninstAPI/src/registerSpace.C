@@ -1468,8 +1468,9 @@ void registerSpace::specializeSpace(const bitArray &liveRegs) {
    }
 #endif
    for (auto i = registers_.begin(); i != registers_.end(); i++) {
-      if (checkLive(i->second->number, liveRegs))
+      if (checkLive(i->second->number, liveRegs)) {
          i->second->liveState = registerSlot::live;
+      }
       else
       {
          i->second->liveState = registerSlot::dead;

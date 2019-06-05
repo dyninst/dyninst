@@ -267,13 +267,13 @@ bool RelocBlock::determineSpringboards(PriorityMap &p) {
        func_->entryBlock() == block_) {
      relocation_cerr << "determineSpringboards (entry block): " << func_->symTabName()
 		     << " / " << hex << block_->start() << " is required" << dec << endl;
-      p[std::make_pair(block_, func_)] = Required;
+      p[std::make_pair(block_, func_)] = FuncEntry;
       return true;
    }
    if (inEdges_.contains(ParseAPI::INDIRECT)) {
      relocation_cerr << "determineSpringboards (indirect target): " << func_->symTabName()
 		     << " / " << hex << block_->start() << " is required" << dec << endl;
-      p[std::make_pair(block_, func_)] = Required;
+      p[std::make_pair(block_, func_)] = IndirBlockEntry;
       return true;
    }
    // Slow crawl
@@ -293,7 +293,7 @@ bool RelocBlock::determineSpringboards(PriorityMap &p) {
 			<< " / " << hex << block_->start() << " is required (type "
 			<< (*iter)->src->type() << ")" << dec << endl;
 	relocation_cerr << "\t" << (*iter)->src->format() << endl;
-	p[std::make_pair(block_, func_)] = Required;
+	p[std::make_pair(block_, func_)] = Suggested;
          return true;
       }
    }
@@ -544,11 +544,6 @@ bool RelocBlock::finalizeCF() {
       cerr << format() << endl;
       assert(0);
    }
-   bool debug = false;
-   if (origAddr() == 0x68e750) {
-      debug = true;
-      cerr << "Debugging finalizeCF for last snippet block" << endl;
-   }
 
    // We've had people munging our out-edges; now
    // push them to the CFWidget so that it can do its work. 
@@ -570,9 +565,6 @@ bool RelocBlock::finalizeCF() {
       else {
          assert((*iter)->type == ParseAPI::INDIRECT);
          index = (*iter)->trg->origAddr();
-      }
-      if (debug) {
-         cerr << "Adding destination /w/ index " << index << " and target " << hex << (*iter)->trg->origAddr() << dec << endl;
       }
       cfWidget_->addDestination(index, (*iter)->trg);
       (*iter)->trg->setNecessary(isNecessary((*iter)->trg, (*iter)->type));

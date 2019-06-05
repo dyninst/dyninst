@@ -64,8 +64,8 @@ public:
 
 class PC_EXPORT WinEventNewThread : public EventNewLWP
 {
-   friend void boost::checked_delete<WinEventNewThread>(WinEventNewThread *);
-   friend void boost::checked_delete<const WinEventNewThread>(const WinEventNewThread *);
+   friend void boost::checked_delete<WinEventNewThread>(WinEventNewThread *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const WinEventNewThread>(const WinEventNewThread *) CHECKED_DELETE_NOEXCEPT;
  public:
    typedef boost::shared_ptr<WinEventNewThread> ptr;
    typedef boost::shared_ptr<const WinEventNewThread> const_ptr;
@@ -86,8 +86,8 @@ private:
 
 class PC_EXPORT WinEventThreadInfo : public Event
 {
-   friend void boost::checked_delete<WinEventThreadInfo>(WinEventThreadInfo *);
-   friend void boost::checked_delete<const WinEventThreadInfo>(const WinEventThreadInfo *);
+   friend void boost::checked_delete<WinEventThreadInfo>(WinEventThreadInfo *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const WinEventThreadInfo>(const WinEventThreadInfo *) CHECKED_DELETE_NOEXCEPT;
  public:
    typedef boost::shared_ptr<WinEventThreadInfo> ptr;
    typedef boost::shared_ptr<const WinEventThreadInfo> const_ptr;

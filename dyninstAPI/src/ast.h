@@ -219,7 +219,7 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
    static AstNodePtr operandNode(operandType ot, AstNodePtr ast);
    static AstNodePtr operandNode(operandType ot, const image_variable* iv);
 
-   static AstNodePtr memoryNode(memoryType ot, int which);
+   static AstNodePtr memoryNode(memoryType ot, int which, int size = 8);
 
    static AstNodePtr sequenceNode(pdvector<AstNodePtr > &sequence);
         
@@ -825,7 +825,7 @@ class AstMiniTrampNode : public AstNode {
 
 class AstMemoryNode : public AstNode {
  public:
-    AstMemoryNode(memoryType mem, unsigned which);
+    AstMemoryNode(memoryType mem, unsigned which, int size);
 	bool canBeKept() const;
 
    virtual std::string format(std::string indent);

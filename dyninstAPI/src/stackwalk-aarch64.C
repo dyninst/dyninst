@@ -64,6 +64,14 @@ bool PCProcess::createStackwalkerSteppers()
     }
     startup_printf("Stackwalker stepper %p is a FrameFuncStepper\n", stepper);
 
+  stepper = new DebugStepper(stackwalker_);
+  if (!stackwalker_->addStepper(stepper))
+  {
+    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    return false;
+  }
+  startup_printf("Stackwalker stepper %p is a DebugStepper\n", stepper);
+
   stepper = new SigHandlerStepper(stackwalker_);
   if (!stackwalker_->addStepper(stepper))
   {
@@ -79,7 +87,6 @@ bool PCProcess::createStackwalkerSteppers()
     return false;
   }
   startup_printf("Stackwalker stepper %p is a BottomOfStackStepper\n", stepper);
-
 
     return true;
 }

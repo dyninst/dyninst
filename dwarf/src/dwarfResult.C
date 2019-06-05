@@ -62,7 +62,7 @@ void SymbolicDwarfResult::readReg(MachRegister reg) {
    var.stClass = storageRegOffset;
    var.refClass = storageNoRef;
    // frameOffset will be set with an add operation
-   var.frameOffset = 0;
+   //var.frameOffset = 0;
    var.mr_reg = reg;
 }
 
@@ -99,9 +99,9 @@ void SymbolicDwarfResult::pushOp(Operator op) {
    }         
 }
 
-void SymbolicDwarfResult::pushOp(Operator op, 
-                                 unsigned u) {
-  dwarf_printf("Push op pair %d,%u\n", op, u);
+void SymbolicDwarfResult::pushOp(Operator op, long long u)
+{
+  dwarf_printf("Push op pair %d,%lld\n", op, u);
   
    switch(op) {
       case Add:
@@ -299,7 +299,7 @@ void ConcreteDwarfResult::pushOp(Operator op) {
    dwarf_printf("\t After queue manipulation, size %d\n", operands.size());
 }
 
-void ConcreteDwarfResult::pushOp(Operator op, unsigned ref) {
+void ConcreteDwarfResult::pushOp(Operator op, long long ref) {
    switch (op) {
       case Add: 
          pushUnsignedVal(ref);
@@ -343,11 +343,13 @@ void ConcreteDwarfResult::pushOp(Operator op, unsigned ref) {
          break;
       }
       case Pick:
-         CHECK_OPER(ref);
+         assert(ref>=0);
+         CHECK_OPER((unsigned long long) ref);
          push(peek(ref));
          break;
       case Drop:
-         CHECK_OPER(ref);
+         assert(ref>=0);
+         CHECK_OPER((unsigned long long) ref);
          pop(ref);
          break;
       default:
@@ -361,7 +363,7 @@ void ConcreteDwarfResult::pushFrameBase() {
 }
 
 void ConcreteDwarfResult::pushCFA() {
-   DwarfFrameParser::Ptr cfaParser = DwarfFrameParser::create(dbg, dwarf_getelf(dbg), arch);
+   DwarfFrameParser::Ptr cfaParser = DwarfFrameParser::create(dbg, dbg_eh_frame, arch);
    if(!cfaParser) return; 
    MachRegisterVal cfa;
    FrameErrors_t err;

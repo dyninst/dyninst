@@ -33,6 +33,7 @@
 #include "emitElf.h"
 #include "emitElfStatic.h"
 #include "common/src/pathName.h"
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 
 #if defined(os_freebsd)
@@ -2430,8 +2431,11 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData, unsigned size, Elf_D
         long adjust = 0;
         switch(name)
         {
+
+
             case DT_INIT:
             case DT_FINI:
+            case DT_DYNINST:
                 adjust = library_adjust;
                 break;
             default:
@@ -2440,6 +2444,22 @@ void emitElf<ElfTypes>::createDynamicSection(void *dynData, unsigned size, Elf_D
         dynsecData[curpos].d_un.d_val = value + adjust;
         dynamicSecData[name].push_back(dynsecData + curpos);
         curpos++;
+
+        if (name == DT_DYNINST) {
+            // If we find the .dyninstInst section and DT_DYNINST dynamic entry, 
+            // it means we are doing binary rewriting with trap springboards. 
+            // If library_adjust is non-zero, then we also need to adjust springboard traps
+            Region *dyninstReg = NULL;
+            if (obj->findRegion(dyninstReg, ".dyninstInst") && library_adjust) {
+                // The trap mapping header's in-memory offset is specified by the dynamic entry
+                // We now need to get raw section data, and the raw sectiond data offset of the header
+                struct trap_mapping_header* header = (struct trap_mapping_header *) ((char*)dyninstReg->getPtrToRawData() + value - dyninstReg->getMemOffset());
+                for (i = 0; i < header->num_entries; i++) {
+                    header->traps[i].source = (void*) ((char*)header->traps[i].source + library_adjust);
+                    header->traps[i].target = (void*) ((char*)header->traps[i].target + library_adjust);
+                }
+            }
+        }
     }
 
     // There may be multiple HASH (ELF, GNU etc) sections in the original binary. We consolidate all of them into one.

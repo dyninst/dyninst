@@ -55,9 +55,26 @@ typedef enum {
    RELOC_MAX_PRIORITY,
    ORIG_MIN_PRIORITY,
    NotRequired,
+   /* Currently we put suggested springboards at non-func-entry, 
+    * non-indirect-jump-target block entry.
+    * In case the jump table analysis under-approximate the jump targets (unlikely),
+    * the control flow will goes back to instrumentation at other blocks*/
    Suggested,
-   Required,
-   OffLimits,
+   /* Indirect jump target block is very important, 
+    * but is less important than func entry.
+    *
+    * Control flow can escape instrumentation by indirect jump (jump tables).
+    * So, we install springboards at all indirect jump targets.
+    * However, jump table analysis can overapproximate jump targets and
+    * the bogus jump targets can be function entries. So, we put indirect
+    * jump target as one priority lower than function entry
+    */
+   IndirBlockEntry,    
+   /* FuncEntry represents springboards at function entries.
+    * This is the highest priority because control flow enters
+    * instrumentation at function entry
+    */ 
+   FuncEntry,    
    ORIG_MAX_PRIORITY,
    MAX_PRIORITY } Priority;
 

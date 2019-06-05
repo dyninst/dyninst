@@ -58,7 +58,7 @@ class IRPC;
 
 class iRPCAllocation
 {
-   friend void boost::checked_delete<iRPCAllocation>(iRPCAllocation *);
+   friend void boost::checked_delete<iRPCAllocation>(iRPCAllocation *) CHECKED_DELETE_NOEXCEPT;
   public:
    typedef boost::shared_ptr<iRPCAllocation> ptr;
   iRPCAllocation() :
@@ -93,7 +93,7 @@ class iRPCAllocation
 
 class int_iRPC : public boost::enable_shared_from_this<int_iRPC>
 {
-   friend void boost::checked_delete<int_iRPC>(int_iRPC *);   
+   friend void boost::checked_delete<int_iRPC>(int_iRPC *) CHECKED_DELETE_NOEXCEPT;   
    friend class iRPCMgr;
    friend class Dyninst::ProcControlAPI::IRPC;
  public:

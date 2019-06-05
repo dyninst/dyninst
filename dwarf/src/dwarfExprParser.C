@@ -60,10 +60,11 @@ bool decodeDwarfExpression(Dwarf_Op * expr,
         long int *initialStackValue,
         ProcessReader *reader,
         Address pc,
-        ::Dwarf * dbg,
+        Dwarf * dbg,
+        Elf * dbg_eh_frame,
         Dyninst::Architecture arch,
         MachRegisterVal &end_result) {
-    ConcreteDwarfResult res(reader, arch, pc, dbg);
+    ConcreteDwarfResult res(reader, arch, pc, dbg, dbg_eh_frame);
     if (!decodeDwarfExpression(expr, listlen, initialStackValue, 
                 res, arch)) return false;
     if (res.err()) return false;
@@ -91,7 +92,7 @@ bool decodeDwarfExpression(Dwarf_Op * expr,
     unsigned count = listlen;
     for ( unsigned int i = 0; i < count; i++ ) 
     {
-        dwarf_printf("\tAtom %d of %d: val 0x%x\n", i, count, locations[i].atom);
+        dwarf_printf("\tAtom %d of %d: val 0x%x\n", i+1, count, locations[i].atom);
         /* lit0 - lit31 : the constants 0..31 */
         if ( DW_OP_lit0 <= locations[i].atom && locations[i].atom <= DW_OP_lit31 ) 
         {
@@ -276,8 +277,7 @@ bool decodeDwarfExpression(Dwarf_Op * expr,
                 break;
 
             case DW_OP_plus_uconst:
-                dwarf_printf("\t\t Pushing add 0x%x\n", locations[i].number);
-
+                dwarf_printf("\t\t Pushing add 0x%llx\n", locations[i].number);
                 cons.pushOp(DwarfResult::Add, locations[i].number);
                 break;
 
@@ -360,6 +360,11 @@ bool decodeDwarfExpression(Dwarf_Op * expr,
             case DW_OP_piece:
                 // Should detect multiple of these...
                 continue;
+
+            case DW_OP_stack_value:
+                // the value is at the top of the stack
+                continue;
+
             default:
                 return false;
         } /* end operand switch */

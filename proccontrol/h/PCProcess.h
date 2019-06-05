@@ -46,6 +46,14 @@
 #include "boost/shared_ptr.hpp"
 #include "boost/weak_ptr.hpp"
 #include "boost/enable_shared_from_this.hpp"
+#include "boost/version.hpp"
+
+#if BOOST_VERSION >= 107000
+#define CHECKED_DELETE_NOEXCEPT BOOST_NOEXCEPT
+#else
+#define CHECKED_DELETE_NOEXCEPT 
+#endif 
+
 
 
 class int_process;
@@ -75,7 +83,7 @@ class SymbolReaderFactory;
 namespace ProcControlAPI {
 
    extern PC_EXPORT bool is_restricted_ptrace;
-  
+ 
 
 class Process;
 class ThreadPool;
@@ -103,8 +111,8 @@ class ExecFileInfo;
 class PC_EXPORT Breakpoint 
 {
    friend class ::int_breakpoint;
-   friend void boost::checked_delete<Breakpoint>(Breakpoint *);
-   friend void boost::checked_delete<const Breakpoint>(const Breakpoint *);
+   friend void boost::checked_delete<Breakpoint>(Breakpoint *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const Breakpoint>(const Breakpoint *) CHECKED_DELETE_NOEXCEPT;
  private:
    int_breakpoint *llbreakpoint_;
    Breakpoint();
@@ -137,8 +145,8 @@ class PC_EXPORT Breakpoint
 class PC_EXPORT Library
 {
    friend class ::int_library;
-   friend void boost::checked_delete<Library>(Library *);
-   friend void boost::checked_delete<const Library>(const Library *);
+   friend void boost::checked_delete<Library>(Library *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const Library>(const Library *) CHECKED_DELETE_NOEXCEPT;
  private:
    int_library *lib;
    Library();
@@ -229,8 +237,8 @@ class PC_EXPORT LibraryPool
 class PC_EXPORT IRPC
 {
    friend class ::int_iRPC;
-   friend void boost::checked_delete<IRPC>(IRPC *);
-   friend void boost::checked_delete<const IRPC>(const IRPC *);
+   friend void boost::checked_delete<IRPC>(IRPC *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const IRPC>(const IRPC *) CHECKED_DELETE_NOEXCEPT;
  private:
    rpc_wrapper *wrapper;
    IRPC(rpc_wrapper *wrapper_);
@@ -287,8 +295,8 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    
    Process();
    ~Process();
-   friend void boost::checked_delete<Process>(Process *);
-   friend void boost::checked_delete<const Process>(const Process *);
+   friend void boost::checked_delete<Process>(Process *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const Process>(const Process *) CHECKED_DELETE_NOEXCEPT;
  public:
    typedef boost::shared_ptr<Process> ptr;
    typedef boost::shared_ptr<const Process> const_ptr;
@@ -563,8 +571,8 @@ class PC_EXPORT Thread : public boost::enable_shared_from_this<Thread>
 
    Thread();
    ~Thread();
-   friend void boost::checked_delete<Thread>(Thread *);
-   friend void boost::checked_delete<const Thread>(const Thread *);
+   friend void boost::checked_delete<Thread>(Thread *) CHECKED_DELETE_NOEXCEPT;
+   friend void boost::checked_delete<const Thread>(const Thread *) CHECKED_DELETE_NOEXCEPT;
 
  public:
    typedef boost::shared_ptr<Thread> ptr;

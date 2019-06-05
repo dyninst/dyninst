@@ -83,6 +83,8 @@ static DwarfFrameParser::Ptr getAuxDwarfInfo(std::string s)
 
    DwarfHandle::ptr dwarf = DwarfHandle::createDwarfHandle(s, orig_elf);
    assert(dwarf);
+   sw_printf("[%s:%u] - Separate debug file used: %s\n",
+           FILE__, __LINE__, dwarf->getDebugFilename().c_str());
 
    // MJMTODO - Need to check whether this is supposed to work or not
    // FIXME for ppc, if we ever support debug walking on ppc
@@ -158,7 +160,7 @@ location_t DebugStepperImpl::getLastComputedLocation(unsigned long value)
 
 bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
 {
-   sw_printf("Attempt to get value for reg %s\n", reg.name().c_str());
+   sw_printf("[%s:%u] Attempt to get value for reg %s\n", FILE__, __LINE__, reg.name().c_str());
    if (reg.isFramePointer()) {
       val = static_cast<MachRegisterVal>(depth_frame->getFP());
       return true;
@@ -521,6 +523,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
 
    depth_frame = cur_frame;
 
+   sw_printf("\nDebugStepperImpl::getCallerFrameArch() calls getRegValueAtFrame()\n");
    result = dinfo->getRegValueAtFrame(pc, Dyninst::ReturnAddr,
    //result = dinfo->getRegValueAtFrame(pc, Dyninst::aarch64::x30,
                                       ret_value, this, frame_error);
@@ -544,6 +547,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    Dyninst::MachRegister frame_reg;
    frame_reg = Dyninst::aarch64::x29;
 
+   sw_printf("\nDebugStepperImpl::getCallerFrameArch() calls getRegValueAtFrame()\n");
    result = dinfo->getRegValueAtFrame(pc, frame_reg,
                                       frame_value, this, frame_error);
    if (!result) {
@@ -553,6 +557,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    }
    location_t fp_loc = getLastComputedLocation(frame_value);
 
+   sw_printf("\nDebugStepperImpl::getCallerFrameArch() calls getRegValueAtFrame()\n");
    result = dinfo->getRegValueAtFrame(pc, Dyninst::FrameBase,
                                       stack_value, this, frame_error);
    if (!result) {

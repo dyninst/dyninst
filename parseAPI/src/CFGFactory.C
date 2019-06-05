@@ -78,9 +78,11 @@ std::string ParseAPI::format(EdgeTypeEnum e) {
 
 Edge::Edge(Block *source, Block *target, EdgeTypeEnum type)
 : _source(source),
+  _target(target),
   index(source->obj()->parse_data()),
   _target_off(target->low()),
-  _type(type,false) { 
+  _type(type,false),
+  _from_index(true) { 
       
     }
 

@@ -109,6 +109,9 @@ endif()
 endif()
 
 add_library (dyninstAPI_RT SHARED ${SRC_LIST})
+if(TARGET TBB)
+    add_dependencies(dyninstAPI_RT TBB)
+endif()
 
 if (NOT PLATFORM MATCHES nt AND NOT PLATFORM MATCHES windows)
     target_link_libraries (dyninstAPI_RT ${CMAKE_DL_LIBS})
@@ -117,6 +120,9 @@ else() # windows
 endif()
 
 add_library (dyninstAPI_RT_static STATIC ${SRC_LIST})
+if(TARGET TBB)
+    add_dependencies(dyninstAPI_RT_static TBB)
+endif()
 
 # this should carry over from CMakeLists.txt
 set_target_properties (dyninstAPI_RT

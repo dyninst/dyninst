@@ -72,6 +72,10 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
     if(mac.is) {
 
       // here, we can set the correct address for RIP-relative addressing
+      //
+      // Xiaozhu: This works for dynamic instrumentation in all cases,
+      // and binary rewriting on non-pic code. This will break for rewriting
+      // PIE and shared libraries
       if (mac.regs[0] == mRIP) {
 	mac.imm = current + insn.size() + mac.imm;
       }
@@ -217,7 +221,7 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
         }
     }
     return NULL;
-#else 
+#elif defined(arch_aarch64) 
 	
 	(void) is64; //Silence warnings
     std::vector<Operand> operands;
@@ -232,17 +236,23 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction insn,
         {
 		
 			op->getValue()->apply(this);
+      // Xiaozhu: This works for dynamic instrumentation in all cases,
+      // and binary rewriting on non-pic code. This will break for rewriting
+      // PIE and shared libraries
+			if (ra == 32) {
+			    imm = imm + current;
+			}
 			//fprintf(stderr, "instruction: %s, operand %s\n", insn.format().c_str(),op->getValue()->format().c_str());
 			//fprintf(stderr, "imm: %d, ra: %d, rb: %d, scale: %d\n", imm, ra, rb, sc);
-	
+
 			return new BPatch_memoryAccess(new internal_instruction(NULL), current, isLoad, isStore,
                                        bytes, imm, ra, rb, sc);
         }
     }
 	return NULL;
+#else 
+    assert(!"Unimplemented architecture");
 #endif
-
-
 }
 
 

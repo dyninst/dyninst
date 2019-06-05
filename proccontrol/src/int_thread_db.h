@@ -352,6 +352,9 @@ class thread_db_process : virtual public int_process
                                   bool &);
     bool threaddb_isTrackingThreads();
     ThreadTracking *threaddb_getThreadTracking() ;
+    bool setTrackThreads(bool b, std::set<std::pair<int_breakpoint *, Address> > &bps,
+		    bool &add_bp);
+    bool isTrackingThreads();
 };
 #endif
 
