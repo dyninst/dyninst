@@ -25,6 +25,9 @@
 
 	```cmake /path/to/dyninst/source -DCMAKE_INSTALL_PREFIX=/path/to/installation```
 
+
+	**NOTE:** If Dyninst builds TBB from source, see the [wiki](https://github.com/dyninst/dyninst/wiki/third-party-deps#tbb_correct_linking) for instructions on ensuring correct usage.
+
 2. Build and install Dyninst in parallel
 
 	```make install -jN```
