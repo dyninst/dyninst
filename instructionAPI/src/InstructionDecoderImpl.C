@@ -35,6 +35,7 @@
 #include "InstructionDecoder-aarch64.h"
 #include "InstructionDecoder-amdgpu-vega.h"
 
+#include "InstructionDecoder-Capstone.h"
 #include "BinaryFunction.h"
 #include "Dereference.h"
 #include "Ternary.h"
@@ -59,11 +60,16 @@ namespace Dyninst
             decodeOpcode(b);
             unsigned int decodedSize = b.start - start;
 
-            return Instruction(m_Operation, decodedSize, start, m_Arch);
+            return Instruction(m_Operation, decodedSize, start, m_Arch, m_dbe);
         }
 
-        InstructionDecoderImpl::Ptr InstructionDecoderImpl::makeDecoderImpl(Architecture a)
+        InstructionDecoderImpl::Ptr InstructionDecoderImpl::makeDecoderImpl(Architecture a, DecodingBackend dbe )
         {
+            if (dbe == Capstone) {
+                return Ptr(new InstructionDecoder_Capstone(a));
+            }
+
+            // If the user decides to use Dyninst's own decoder
             switch(a)
             {
                 case Arch_x86:

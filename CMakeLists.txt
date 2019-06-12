@@ -40,6 +40,9 @@ if(UNIX)
   include(LibIberty REQUIRED)
 endif()
 
+include (${DYNINST_ROOT}/cmake/shared.cmake)
+link_directories(${CAPSTONE_ROOT}/lib64)
+
 include(shared)
 
 if(USE_OpenMP)
@@ -84,6 +87,7 @@ include_directories (
   ${DYNINST_ROOT}
   ${DYNINST_ROOT}/external
   ${TBB_INCLUDE_DIRS}
+  ${CAPSTONE_ROOT}/include
   )
 
 # Component time
