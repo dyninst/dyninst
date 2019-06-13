@@ -78,6 +78,7 @@ class InstructionDecoder_Capstone : public InstructionDecoderImpl
         MachRegister registerTranslation_x86(x86_reg);
 
         Result_Type operandSizeTranslation(uint8_t);
+        bool checkCapstoneGroup(cs_detail*, uint8_t);
 };
 
 };

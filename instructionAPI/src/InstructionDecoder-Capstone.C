@@ -94,23 +94,74 @@ Result_Type InstructionDecoder_Capstone::operandSizeTranslation(uint8_t cap_size
     return u64;
 }
 
-
+bool InstructionDecoder_Capstone::checkCapstoneGroup(cs_detail *d, uint8_t g) {
+    for (uint8_t i = 0; i < d->groups_count; ++i)
+        if (d->groups[i] == g)
+            return true;
+    return false;
+}
 
 
 /******************************  x86 functions  *************************************/
 
 void InstructionDecoder_Capstone::decodeOperands_x86(const Instruction* insn, cs_detail *d) {
+    if (insn->getOperation().getID() == e_ret) {
+        Expression::Ptr ret_addr = makeDereferenceExpression(makeRegisterExpression(x86_64::rsp), u64);
+        insn->addSuccessor(ret_addr, false, true, false, false);
+        return;
+    }
+    bool isCFT = false;
+    bool isCall = false;
+    bool isConditional = false;
+    InsnCategory cat = insn->getCategory();
+    
+    if(cat == c_BranchInsn || cat == c_CallInsn) {
+        isCFT = true;
+        if(cat == c_CallInsn) {
+            isCall = true;
+        }
+    }
+
+    if(cat == c_BranchInsn && insn->getOperation().getID() != e_jmp) {
+        isConditional = true;
+    }
+    bool isRela = checkCapstoneGroup(d, (uint8_t)CS_GRP_BRANCH_RELATIVE);
+
     cs_x86* detail = &(d->x86);
     for (uint8_t i = 0; i < detail->op_count; ++i) {
         cs_x86_op* operand = &(detail->operands[i]);
         if (operand->type == X86_OP_REG) {
-            insn->appendOperand(makeRegisterExpression(registerTranslation_x86(operand->reg)), 
-                    (operand->access & CS_AC_READ) != 0,
-                    (operand->access & CS_AC_WRITE) != 0, 
-                    false);
+            Expression::Ptr regAST = makeRegisterExpression(registerTranslation_x86(operand->reg));
+            if (isCFT) {
+                // if a call or a jump has a register as an operand, 
+                // it should not be a conditional jump
+                assert(!isConditional);
+                insn->addSuccessor(regAST, isCall, true, false, false);
+            } else {
+                insn->appendOperand(regAST, 
+                        (operand->access & CS_AC_READ) != 0,
+                        (operand->access & CS_AC_WRITE) != 0, 
+                        false);
+            }
             //TODO: correctly mark implicit registers
         } else if (operand->type == X86_OP_IMM) {
-            insn->appendOperand(Immediate::makeImmediate(Result(s64, operand->imm)), false, false, false);
+            Expression::Ptr immAST = Immediate::makeImmediate(Result(s64, operand->imm));
+            if (isCFT) {
+                Expression::Ptr IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
+                Expression::Ptr InsnSize = Immediate::makeImmediate(Result(u64, insn->size()));
+                Expression::Ptr postIP(makeAddExpression(IP, InsnSize, u64));
+
+                if (isRela) {
+                    Expression::Ptr target(makeAddExpression(immAST, postIP, u64));
+                    insn->addSuccessor(target, isCall, false, isConditional, false);
+                } else {
+                    insn->addSuccessor(immAST, isCall, false, isConditional, false);
+                }
+                if (isConditional)
+                    insn->addSuccessor(postIP, false, false, true, true);
+            } else {
+                insn->appendOperand(immAST, false, false, false);
+            }
         } else if (operand->type == X86_OP_MEM) {
              Expression::Ptr effectiveAddr;
              x86_op_mem * mem = &(operand->mem);
@@ -136,10 +187,16 @@ void InstructionDecoder_Capstone::decodeOperands_x86(const Instruction* insn, cs
                  else
                      effectiveAddr = immAST;
              }
-            insn->appendOperand(makeDereferenceExpression(effectiveAddr, operandSizeTranslation(operand->size)), 
-                    (operand->access & CS_AC_READ) != 0,
-                    (operand->access & CS_AC_WRITE) != 0, 
-                    false);
+             Expression::Ptr memAST = makeDereferenceExpression(effectiveAddr, operandSizeTranslation(operand->size));
+             if (isCFT) {
+                 assert(!isConditional);
+                 insn->addSuccessor(memAST, isCall, true, false, false);
+             } else {
+                 insn->appendOperand(memAST, 
+                         (operand->access & CS_AC_READ) != 0,
+                         (operand->access & CS_AC_WRITE) != 0, 
+                         false);
+             }
         } else {
             fprintf(stderr, "Unhandled capstone operand type %d\n", operand->type);
         }
