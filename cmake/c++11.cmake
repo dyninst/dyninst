@@ -1,24 +1,26 @@
-message (STATUS "Checking for C++11 flags for ${CMAKE_CXX_COMPILER_ID}")
-#if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
-#    execute_process(COMMAND ${CMAKE_CXX_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
-#    if (GCC_VERSION VERSION_LESS 4.3)
-#       message(FATAL_ERROR "${PROJECT_NAME} requires C++11 support (g++ 4.3 or later)")
-#    elseif (GCC_VERSION VERSION_LESS 4.7)
-#       set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-#    else ()
-#       set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-#    endif()
-#elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-#elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Intel")
-#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-#else ()
-#    if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
-#        message(STATUS "MSVC requires no C++11 flags")
-#    else ()
-#        message(FATAL_ERROR "Your C++ compiler (${CMAKE_CXX_COMPILER_ID}) does not support C++11.")
-#    endif()
-#endif ()
+#=========================================================================
+# c++11.cmake
+#
+# Configure C++ and C Language features for Dyninst
+#
+#   ----------------------------------------
+#
+# Accepts the following CMake variables
+#
+# USE_CXX11_ABI - Enable using the GNU C++11 ABI (aka, the post gcc-5 ABI)
+#
+#=========================================================================
+
+#
+# --------  C++ language features ----------------
+#
+
+# Disable compiler-specific C++ language extensions (e.g., gnu++11)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Require C++11 support
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set (USE_CXX11_ABI "" CACHE STRING "Override the default GNU C++11 ABI setting")
 if (NOT ("${USE_CXX11_ABI}" STREQUAL ""))
@@ -28,3 +30,15 @@ if (NOT ("${USE_CXX11_ABI}" STREQUAL ""))
     add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
   endif()
 endif()
+
+
+#
+# --------  C language features ----------------
+#
+
+# Disable compiler-specific C language extensions (e.g., gnu99)
+set(CMAKE_C_EXTENSIONS OFF)
+
+# Require C99 support
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
