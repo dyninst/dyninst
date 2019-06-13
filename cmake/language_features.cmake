@@ -1,5 +1,5 @@
 #=========================================================================
-# c++11.cmake
+# language_features.cmake
 #
 # Configure C++ and C Language features for Dyninst
 #
