@@ -258,16 +258,7 @@ bool BoundFactsCalculator::CalculateBoundedFacts() {
 }
 
 static bool IsConditionalJump(Instruction insn) {
-    entryID id = insn.getOperation().getID();
-    if (id == e_jz || id == e_jnz ||
-        id == e_jb || id == e_jnb ||
-	id == e_jbe || id == e_jnbe ||
-	id == e_jb_jnaej_j || id == e_jnb_jae_j ||
-	id == e_jle || id == e_jl ||
-	id == e_jnl || id == e_jnle) return true;
-    if (id == aarch64_op_b_cond) return true;
-    if (id == power_op_bc || id == power_op_bcctr || id == power_op_bclr) return true;
-    return false;
+    return insn.getCategory() == c_BranchInsn && insn.allowsFallThrough();
 }
 
 BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {

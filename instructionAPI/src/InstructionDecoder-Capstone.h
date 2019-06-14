@@ -64,7 +64,11 @@ class InstructionDecoder_Capstone : public InstructionDecoderImpl
 
 
     private:
-        cs_err openCapstoneHandle(csh&);
+        static dyn_tls csh handle;
+        static dyn_tls bool handle_init;
+        static dyn_tls std::map<std::string, std::string> *opcode_alias;
+        cs_err openCapstoneHandle();
+        std::string mnemonicNormalization(std::string);
 
         entryID opcodeTranslation(unsigned int);
         entryID opcodeTranslation_x86(unsigned int);

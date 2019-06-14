@@ -7,13 +7,28 @@ namespace InstructionAPI {
 
 
 /**************  Architecture independent functions  **********************/
+dyn_tls csh InstructionDecoder_Capstone::handle;
+dyn_tls bool InstructionDecoder_Capstone::handle_init = false;
+dyn_tls std::map<std::string, std::string>* InstructionDecoder_Capstone::opcode_alias = NULL;
 
 InstructionDecoder_Capstone::InstructionDecoder_Capstone(Architecture a):
     InstructionDecoderImpl(a, Capstone)
     {}
 
 
-cs_err InstructionDecoder_Capstone::openCapstoneHandle(csh& handle) {
+cs_err InstructionDecoder_Capstone::openCapstoneHandle() {
+    if (handle_init) {
+        return CS_ERR_OK;
+    }
+    handle_init = true;
+    opcode_alias = new std::map<std::string, std::string>();
+    (*opcode_alias)["ja"] = "jnbe";
+    (*opcode_alias)["jae"] = "jnb";
+    (*opcode_alias)["je"] = "jz";
+    (*opcode_alias)["jne"] = "jnz";
+    (*opcode_alias)["jg"] = "jnle";
+    (*opcode_alias)["jge"] = "jnl";
+
     switch (m_Arch) {
         case Arch_x86: 
             return cs_open(CS_ARCH_X86, CS_MODE_32, &handle);
@@ -32,8 +47,7 @@ cs_err InstructionDecoder_Capstone::openCapstoneHandle(csh& handle) {
 
 void InstructionDecoder_Capstone::doDelayedDecode(const Instruction* insn) {
 
-    csh handle;
-    if (openCapstoneHandle(handle)) {
+    if (openCapstoneHandle()) {
         return;
     }
     // Need to set detail mode (turn ON detail feature with CS_OPT_ON)
@@ -55,26 +69,31 @@ bool InstructionDecoder_Capstone::decodeOperands(const Instruction* insn) {
     return false;
 }
 
+std::string InstructionDecoder_Capstone::mnemonicNormalization(std::string m) {
+    if (opcode_alias->find(m) == opcode_alias->end())
+        return m;
+    else
+        return (*opcode_alias)[m];
+}
+
 void InstructionDecoder_Capstone::decodeOpcode(InstructionDecoder::buffer& buf) {
 
-	csh handle;
-    if (openCapstoneHandle(handle)) {
+    if (openCapstoneHandle()) {
         m_Operation = Operation(e_No_Entry, "INVALID", m_Arch);
         return;
     }
-
+    cs_option(handle, CS_OPT_DETAIL, CS_OPT_OFF); 
 	cs_insn *insn;
     // The fourth parameter represents the address of the instruction for Capstone;
     // it does not matter for Dyninst
     // The fifth parameter represents the number of instruction to decode
 	size_t count = cs_disasm(handle, buf.start, buf.end - buf.start, 0x0, 1, &insn);
 	if (count) {
-        m_Operation = Operation(opcodeTranslation(insn[0].id), std::string(insn[0].mnemonic), m_Arch);
+        m_Operation = Operation(opcodeTranslation(insn[0].id), mnemonicNormalization(std::string(insn[0].mnemonic)), m_Arch);
         buf.start += insn[0].size;
         cs_free(insn, count);
 	} else
         m_Operation = Operation(e_No_Entry, "INVALID", m_Arch);
-	cs_close(&handle);
 }
 
 entryID InstructionDecoder_Capstone::opcodeTranslation(unsigned int cap_id) {
@@ -91,7 +110,16 @@ entryID InstructionDecoder_Capstone::opcodeTranslation(unsigned int cap_id) {
 }
 
 Result_Type InstructionDecoder_Capstone::operandSizeTranslation(uint8_t cap_size) {
-    return u64;
+    switch (cap_size) {
+        case 1:  return u8;
+        case 2:  return u16;
+        case 4:  return u32;
+        case 8:  return u64;
+        case 16: return dbl128; 
+        default:
+    //        fprintf(stderr, "unsupported memory access size %u\n", cap_size);
+            return invalid_type;
+    }
 }
 
 bool InstructionDecoder_Capstone::checkCapstoneGroup(cs_detail *d, uint8_t g) {
@@ -105,16 +133,15 @@ bool InstructionDecoder_Capstone::checkCapstoneGroup(cs_detail *d, uint8_t g) {
 /******************************  x86 functions  *************************************/
 
 void InstructionDecoder_Capstone::decodeOperands_x86(const Instruction* insn, cs_detail *d) {
-    if (insn->getOperation().getID() == e_ret) {
-        Expression::Ptr ret_addr = makeDereferenceExpression(makeRegisterExpression(x86_64::rsp), u64);
-        insn->addSuccessor(ret_addr, false, true, false, false);
-        return;
-    }
     bool isCFT = false;
     bool isCall = false;
     bool isConditional = false;
     InsnCategory cat = insn->getCategory();
-    
+     if (cat == c_ReturnInsn) {
+        Expression::Ptr ret_addr = makeDereferenceExpression(makeRegisterExpression(x86_64::rsp), u64);
+        insn->addSuccessor(ret_addr, false, true, false, false);
+        return;
+    }
     if(cat == c_BranchInsn || cat == c_CallInsn) {
         isCFT = true;
         if(cat == c_CallInsn) {
@@ -126,7 +153,7 @@ void InstructionDecoder_Capstone::decodeOperands_x86(const Instruction* insn, cs
         isConditional = true;
     }
     bool isRela = checkCapstoneGroup(d, (uint8_t)CS_GRP_BRANCH_RELATIVE);
-
+    bool err = false;
     cs_x86* detail = &(d->x86);
     for (uint8_t i = 0; i < detail->op_count; ++i) {
         cs_x86_op* operand = &(detail->operands[i]);
@@ -147,18 +174,16 @@ void InstructionDecoder_Capstone::decodeOperands_x86(const Instruction* insn, cs
         } else if (operand->type == X86_OP_IMM) {
             Expression::Ptr immAST = Immediate::makeImmediate(Result(s64, operand->imm));
             if (isCFT) {
+                // It looks like that Capstone automatically adjust the offset with the instruction length
                 Expression::Ptr IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
-                Expression::Ptr InsnSize = Immediate::makeImmediate(Result(u64, insn->size()));
-                Expression::Ptr postIP(makeAddExpression(IP, InsnSize, u64));
-
                 if (isRela) {
-                    Expression::Ptr target(makeAddExpression(immAST, postIP, u64));
+                    Expression::Ptr target(makeAddExpression(IP ,immAST, u64));
                     insn->addSuccessor(target, isCall, false, isConditional, false);
                 } else {
                     insn->addSuccessor(immAST, isCall, false, isConditional, false);
                 }
                 if (isConditional)
-                    insn->addSuccessor(postIP, false, false, true, true);
+                    insn->addSuccessor(IP, false, false, true, true);
             } else {
                 insn->appendOperand(immAST, false, false, false);
             }
@@ -171,23 +196,28 @@ void InstructionDecoder_Capstone::decodeOperands_x86(const Instruction* insn, cs
              }
              if (mem->index != X86_REG_INVALID) {
                  Expression::Ptr indexAST = makeRegisterExpression(registerTranslation_x86(mem->index));
-                 if (mem->scale != 1) 
-                     indexAST = makeMultiplyExpression(indexAST,
-                             Immediate::makeImmediate(Result(u32, mem->scale)), 
+                 indexAST = makeMultiplyExpression(indexAST,
+                             Immediate::makeImmediate(Result(u8, mem->scale)), 
                              u64);
                  if (effectiveAddr)
                      effectiveAddr = makeAddExpression(effectiveAddr, indexAST, u64);
                  else
                      effectiveAddr = indexAST;
              }
-             if (mem->disp != 0) {
-                 Expression::Ptr immAST = Immediate::makeImmediate(Result(s64, mem->disp));
-                 if (effectiveAddr)
-                     effectiveAddr = makeAddExpression(effectiveAddr, immAST , u64);
-                 else
-                     effectiveAddr = immAST;
+             Expression::Ptr immAST = Immediate::makeImmediate(Result(s64, mem->disp));
+             if (effectiveAddr)
+                 effectiveAddr = makeAddExpression(effectiveAddr, immAST , u64);
+             else
+                 effectiveAddr = immAST;
+             Result_Type type = operandSizeTranslation(operand->size);
+             if (type == invalid_type) {
+                 err = true;
              }
-             Expression::Ptr memAST = makeDereferenceExpression(effectiveAddr, operandSizeTranslation(operand->size));
+             Expression::Ptr memAST;
+             if (insn->getOperation().getID() == e_lea)
+                 memAST = effectiveAddr;
+             else
+                 memAST = makeDereferenceExpression(effectiveAddr, type);
              if (isCFT) {
                  assert(!isConditional);
                  insn->addSuccessor(memAST, isCall, true, false, false);
@@ -201,6 +231,8 @@ void InstructionDecoder_Capstone::decodeOperands_x86(const Instruction* insn, cs
             fprintf(stderr, "Unhandled capstone operand type %d\n", operand->type);
         }
     }
+    //if (err) fprintf(stderr, "\tinstruction %s\n", insn->format().c_str()); 
+
 }
 
 entryID InstructionDecoder_Capstone::opcodeTranslation_x86(unsigned int cap_id) {
@@ -712,9 +744,9 @@ entryID InstructionDecoder_Capstone::opcodeTranslation_x86(unsigned int cap_id) 
         case X86_INS_FISTP:
             return e_fistp;
         case X86_INS_JAE:
-            return e_jae;
+            return e_jnb;
         case X86_INS_JA:
-            return e_ja;
+            return e_jnbe;
         case X86_INS_JBE:
             return e_jbe;
         case X86_INS_JB:
@@ -724,17 +756,17 @@ entryID InstructionDecoder_Capstone::opcodeTranslation_x86(unsigned int cap_id) 
         case X86_INS_JECXZ:
             return e_jecxz;
         case X86_INS_JE:
-            return e_je;
+            return e_jz;
         case X86_INS_JGE:
-            return e_jge;
+            return e_jnl;
         case X86_INS_JG:
-            return e_jg;
+            return e_jnle;
         case X86_INS_JLE:
             return e_jle;
         case X86_INS_JL:
             return e_jl;
         case X86_INS_JNE:
-            return e_jne;
+            return e_jnz;
         case X86_INS_JNO:
             return e_jno;
         case X86_INS_JNP:
@@ -1470,7 +1502,7 @@ entryID InstructionDecoder_Capstone::opcodeTranslation_x86(unsigned int cap_id) 
         case X86_INS_REP:
             return e_rep;
         case X86_INS_RET:
-            return e_ret;
+            return e_ret_near;
         case X86_INS_REX64:
             return e_rex64;
         case X86_INS_ROL:

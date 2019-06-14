@@ -41,6 +41,7 @@ namespace Dyninst
       {
       case e_ret_near:
       case e_ret_far:
+      case e_ret:
       case aarch64_op_ret:
 	return c_ReturnInsn;
       case amdgpu_op_s_endpgm: // special treatment for endpgm
@@ -49,6 +50,14 @@ namespace Dyninst
       case aarch64_op_bl:
       case aarch64_op_blr:
 	return c_CallInsn;
+      case e_jmpq:
+      case e_jge:
+      case e_ja:
+      case e_je:
+      case e_jne:
+      case e_jae:
+      case e_jcxz:
+      case e_jecxz:
       case e_jmp:
       case e_jb:
       case e_jb_jnaej_j:
@@ -70,6 +79,8 @@ namespace Dyninst
       case e_jp:
       case e_js:
       case e_jz:
+      case e_jg:
+      case e_jrcxz:
       case e_loop:
       case e_loope:
       case e_loopn:
