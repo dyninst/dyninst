@@ -22,15 +22,14 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set (USE_CXX11_ABI "" CACHE STRING "Override the default GNU C++11 ABI setting")
-if (NOT ("${USE_CXX11_ABI}" STREQUAL ""))
-  if (${USE_CXX11_ABI})
+set(USE_CXX11_ABI "" CACHE STRING "Override the default GNU C++11 ABI setting")
+if(NOT ("${USE_CXX11_ABI}" STREQUAL ""))
+  if(${USE_CXX11_ABI})
     add_definitions(-D_GLIBCXX_USE_CXX11_ABI=1)
   else()
     add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
   endif()
 endif()
-
 
 #
 # --------  C language features ----------------
