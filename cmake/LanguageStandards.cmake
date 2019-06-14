@@ -1,7 +1,7 @@
 #=========================================================================
-# language_features.cmake
+# LanguageStandards.cmake
 #
-# Configure C++ and C Language features for Dyninst
+# Configure C++ and C Language API and ABI standards for Dyninst
 #
 #   ----------------------------------------
 #
