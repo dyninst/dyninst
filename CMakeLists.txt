@@ -23,6 +23,7 @@ set (CMAKE_MODULE_PATH "${DYNINST_ROOT}/cmake" "${DYNINST_ROOT}/cmake/Modules" $
 # Set the C and C++ language API and ABI standards
 include(LanguageStandards)
 
+# Find the necessary third-party libraries
 find_package(ThreadDB)
 find_package(Threads)
 include(Boost)
