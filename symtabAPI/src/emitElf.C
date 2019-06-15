@@ -1348,7 +1348,7 @@ bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraA
         if (newSecs[i]->getDiskOffset())
             newshdr->sh_addr = newSecs[i]->getDiskOffset() + library_adjust;
         else if (!prevshdr) {
-            newshdr->sh_addr = zstart + 2 * library_adjust;
+            newshdr->sh_addr = zstart + library_adjust;
         }
         else {
             newshdr->sh_addr = prevshdr->sh_addr + prevshdr->sh_size;
