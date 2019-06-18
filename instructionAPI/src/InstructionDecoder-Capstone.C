@@ -7,7 +7,6 @@ namespace InstructionAPI {
 
 
 /**************  Architecture independent functions  **********************/
-dyn_tls csh InstructionDecoder_Capstone::handle;
 dyn_tls bool InstructionDecoder_Capstone::handle_init = false;
 dyn_tls std::map<std::string, std::string>* InstructionDecoder_Capstone::opcode_alias = NULL;
 
@@ -16,11 +15,8 @@ InstructionDecoder_Capstone::InstructionDecoder_Capstone(Architecture a):
     {}
 
 
-cs_err InstructionDecoder_Capstone::openCapstoneHandle() {
-    if (handle_init) {
-        return CS_ERR_OK;
-    }
-    handle_init = true;
+cs_err InstructionDecoder_Capstone::openCapstoneHandle(csh &handle) {
+    if (!handle_init) {
     opcode_alias = new std::map<std::string, std::string>();
     (*opcode_alias)["ja"] = "jnbe";
     (*opcode_alias)["jae"] = "jnb";
@@ -28,6 +24,8 @@ cs_err InstructionDecoder_Capstone::openCapstoneHandle() {
     (*opcode_alias)["jne"] = "jnz";
     (*opcode_alias)["jg"] = "jnle";
     (*opcode_alias)["jge"] = "jnl";
+    }
+    handle_init = true;
 
     switch (m_Arch) {
         case Arch_x86: 
@@ -46,8 +44,8 @@ cs_err InstructionDecoder_Capstone::openCapstoneHandle() {
 }
 
 void InstructionDecoder_Capstone::doDelayedDecode(const Instruction* insn) {
-
-    if (openCapstoneHandle()) {
+    csh handle;
+    if (openCapstoneHandle(handle)) {
         return;
     }
     // Need to set detail mode (turn ON detail feature with CS_OPT_ON)
@@ -57,12 +55,14 @@ void InstructionDecoder_Capstone::doDelayedDecode(const Instruction* insn) {
 	size_t count = cs_disasm(handle, (const uint8_t*) insn->ptr(), insn->size(), 0x0, 1, &cap_insn);
 	if (count) {
         if (m_Arch == Arch_x86 || m_Arch == Arch_x86_64)
-            return decodeOperands_x86(insn, cap_insn->detail);
+            decodeOperands_x86(insn, cap_insn->detail);
         else if (m_Arch == Arch_ppc32 || m_Arch == Arch_ppc64)
-            return decodeOperands_ppc(insn, cap_insn->detail);
+            decodeOperands_ppc(insn, cap_insn->detail);
         else if (m_Arch == Arch_aarch64) 
-            return decodeOperands_aarch64(insn, cap_insn->detail);
+            decodeOperands_aarch64(insn, cap_insn->detail);
+        cs_free(cap_insn, count);
     }
+    cs_close(&handle);
 }
 
 bool InstructionDecoder_Capstone::decodeOperands(const Instruction* insn) {
@@ -77,8 +77,8 @@ std::string InstructionDecoder_Capstone::mnemonicNormalization(std::string m) {
 }
 
 void InstructionDecoder_Capstone::decodeOpcode(InstructionDecoder::buffer& buf) {
-
-    if (openCapstoneHandle()) {
+    csh handle;
+    if (openCapstoneHandle(handle)) {
         m_Operation = Operation(e_No_Entry, "INVALID", m_Arch);
         return;
     }
@@ -94,6 +94,7 @@ void InstructionDecoder_Capstone::decodeOpcode(InstructionDecoder::buffer& buf) 
         cs_free(insn, count);
 	} else
         m_Operation = Operation(e_No_Entry, "INVALID", m_Arch);
+    cs_close(&handle);
 }
 
 entryID InstructionDecoder_Capstone::opcodeTranslation(unsigned int cap_id) {
@@ -117,7 +118,7 @@ Result_Type InstructionDecoder_Capstone::operandSizeTranslation(uint8_t cap_size
         case 8:  return u64;
         case 16: return dbl128; 
         default:
-    //        fprintf(stderr, "unsupported memory access size %u\n", cap_size);
+            fprintf(stderr, "unsupported memory access size %u\n", cap_size);
             return invalid_type;
     }
 }
