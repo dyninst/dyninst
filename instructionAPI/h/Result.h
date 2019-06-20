@@ -63,14 +63,14 @@ namespace Dyninst
             uint32_t u24val:24;
             uint32_t u32val;
             int32_t s32val;
+            uint64_t u48val : 48;
+            int64_t s48val : 48;
             uint64_t u64val;
             int64_t s64val;
             float floatval;
             double dblval;
-            uint64_t u48val : 48;
-            int64_t s48val : 48;
-            void * m14val;
             void * dbl128val;
+            void * m14val;
             void * m32val;
             void * m64val;
             void * m96val;
@@ -91,22 +91,22 @@ namespace Dyninst
         enum Result_Type
         {
             bit_flag = 0,
-            s8,
             u8,
-            s16,
+            s8,            
             u16,
+            s16,
             u24,
-            s32,
             u32,
-            s48,
+            s32,
             u48,
-            s64,
+            s48,
             u64,
+            s64,
             sp_float,
             dp_float,
+            dbl128,
             // 48-bit pointers...yay Intel
             m14,
-            dbl128,
             m32,
             m64,
             m96,
@@ -578,6 +578,8 @@ namespace Dyninst
                 {
                     switch(type)
                     {
+                        case bit_flag:
+                            return 1;
                         case u8:
                         case s8:
                             return 1;
@@ -589,18 +591,16 @@ namespace Dyninst
                         case u32:
                         case s32:
                             return 4;
-                        case u64:
-                        case s64:
-                            return 8;
                         case u48:
                         case s48:
                             return 6;
+                        case u64:
+                        case s64:
+                            return 8;
                         case sp_float:
                             return sizeof(float);
                         case dp_float:
                             return sizeof(double);
-                        case bit_flag:
-                            return 1;
                         case m512:
                             return 64;
                         case dbl128:
