@@ -116,9 +116,16 @@ Result_Type InstructionDecoder_Capstone::operandSizeTranslation(uint8_t cap_size
         case 2:  return u16;
         case 4:  return u32;
         case 8:  return u64;
+        case 10: return m80;
+        case 12: return m96;
+        case 14: return m14;
         case 16: return dbl128; 
+        case 24: return m192;
+        case 28: return m224;
+        case 32: return m256;
+        case 48: return m384;
+        case 64: return m512;
         default:
-            fprintf(stderr, "unsupported memory access size %u\n", cap_size);
             return invalid_type;
     }
 }
@@ -232,7 +239,7 @@ void InstructionDecoder_Capstone::decodeOperands_x86(const Instruction* insn, cs
             fprintf(stderr, "Unhandled capstone operand type %d\n", operand->type);
         }
     }
-    //if (err) fprintf(stderr, "\tinstruction %s\n", insn->format().c_str()); 
+    if (err) fprintf(stderr, "\tinstruction %s\n", insn->format().c_str()); 
 
 }
 

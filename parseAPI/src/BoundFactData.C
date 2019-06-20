@@ -954,8 +954,7 @@ bool BoundFact::ConditionalJumpBound(Instruction insn, EdgeTypeEnum type) {
 		break;
 	    }
 	    default:
-	        fprintf(stderr, "Unhandled conditional jump type. entry id is %u\n", id);
-		assert(0);
+	        parsing_printf("Unhandled conditional jump type. entry id is %u\n", id);
 	}
 
     } else {
