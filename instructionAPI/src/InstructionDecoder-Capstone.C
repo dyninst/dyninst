@@ -9,14 +9,22 @@ namespace InstructionAPI {
 /**************  Architecture independent functions  **********************/
 dyn_tls bool InstructionDecoder_Capstone::handle_init = false;
 dyn_tls std::map<std::string, std::string>* InstructionDecoder_Capstone::opcode_alias = NULL;
+dyn_tls cs_insn* InstructionDecoder_Capstone::capstone_ins_no_detail = NULL;
+dyn_tls cs_insn* InstructionDecoder_Capstone::capstone_ins_with_detail = NULL;
+dyn_tls csh InstructionDecoder_Capstone::handle_no_detail;
+dyn_tls csh InstructionDecoder_Capstone::handle_with_detail;
+
 
 InstructionDecoder_Capstone::InstructionDecoder_Capstone(Architecture a):
     InstructionDecoderImpl(a, Capstone)
     {}
 
 
-cs_err InstructionDecoder_Capstone::openCapstoneHandle(csh &handle) {
-    if (!handle_init) {
+bool InstructionDecoder_Capstone::openCapstoneHandle() {
+    if (handle_init) return true;
+    cs_err ret1, ret2;    
+    handle_init = true;
+
     opcode_alias = new std::map<std::string, std::string>();
     (*opcode_alias)["ja"] = "jnbe";
     (*opcode_alias)["jae"] = "jnb";
@@ -24,47 +32,59 @@ cs_err InstructionDecoder_Capstone::openCapstoneHandle(csh &handle) {
     (*opcode_alias)["jne"] = "jnz";
     (*opcode_alias)["jg"] = "jnle";
     (*opcode_alias)["jge"] = "jnl";
-    }
-    handle_init = true;
 
     switch (m_Arch) {
         case Arch_x86: 
-            return cs_open(CS_ARCH_X86, CS_MODE_32, &handle);
+            ret1 = cs_open(CS_ARCH_X86, CS_MODE_32, &handle_no_detail);
+            ret2 = cs_open(CS_ARCH_X86, CS_MODE_32, &handle_with_detail);
+            break;
         case Arch_x86_64:
-            return cs_open(CS_ARCH_X86, CS_MODE_64, &handle);
+            ret1 = cs_open(CS_ARCH_X86, CS_MODE_64, &handle_no_detail);
+            ret2 = cs_open(CS_ARCH_X86, CS_MODE_64, &handle_with_detail);
+            break;
         case Arch_ppc32:
-            return cs_open(CS_ARCH_PPC, CS_MODE_32, &handle);
+            ret1 = cs_open(CS_ARCH_PPC, CS_MODE_32, &handle_no_detail);
+            ret2 = cs_open(CS_ARCH_PPC, CS_MODE_32, &handle_with_detail);
+            break;
         case Arch_ppc64:
-            return cs_open(CS_ARCH_PPC, CS_MODE_64, &handle);
+            ret1 = cs_open(CS_ARCH_PPC, CS_MODE_64, &handle_no_detail);
+            ret2 = cs_open(CS_ARCH_PPC, CS_MODE_64, &handle_with_detail);
+            break;
         case Arch_aarch64:
-            return cs_open(CS_ARCH_ARM64, CS_MODE_ARM, &handle);
+            ret1 = cs_open(CS_ARCH_ARM64, CS_MODE_ARM, &handle_no_detail);
+            ret2 = cs_open(CS_ARCH_ARM64, CS_MODE_ARM, &handle_with_detail);
+            break;
         default:
-            return CS_ERR_ARCH;
+            ret1 = ret2 = CS_ERR_ARCH;
+            break;
     }
+
+    if (ret1 == CS_ERR_OK && ret2 == CS_ERR_OK) {
+        cs_option(handle_no_detail, CS_OPT_DETAIL, CS_OPT_OFF); 
+        capstone_ins_no_detail = cs_malloc(handle_no_detail);
+        cs_option(handle_with_detail, CS_OPT_DETAIL, CS_OPT_ON); 
+        capstone_ins_with_detail = cs_malloc(handle_with_detail);
+        return true;
+    }
+    return false;
 }
 
 void InstructionDecoder_Capstone::doDelayedDecode(const Instruction* insn) {
-    csh handle;
-    if (openCapstoneHandle(handle)) {
+    if (!openCapstoneHandle()) {
         return;
     }
-    // Need to set detail mode (turn ON detail feature with CS_OPT_ON)
-    // to extract operands
-    cs_option(handle, CS_OPT_DETAIL, CS_OPT_ON); 
-	cs_insn * cap_insn;
-	size_t count = cs_disasm(handle, (const uint8_t*) insn->ptr(), insn->size(), 0x0, 1, &cap_insn);
-	if (count) {
+    const unsigned char* code = (const unsigned char*) insn->ptr();
+    size_t codeSize = insn->size();
+    uint64_t cap_addr = 0;
+    if (cs_disasm_iter(handle_with_detail, &code, &codeSize, &cap_addr, capstone_ins_with_detail)) {
         if (m_Arch == Arch_x86 || m_Arch == Arch_x86_64)
-            decodeOperands_x86(insn, cap_insn->detail);
+            decodeOperands_x86(insn, capstone_ins_with_detail->detail);
         else if (m_Arch == Arch_ppc32 || m_Arch == Arch_ppc64)
-            decodeOperands_ppc(insn, cap_insn->detail);
+            decodeOperands_ppc(insn, capstone_ins_with_detail->detail);
         else if (m_Arch == Arch_aarch64) 
-            decodeOperands_aarch64(insn, cap_insn->detail);
-        cs_free(cap_insn, count);
+            decodeOperands_aarch64(insn, capstone_ins_with_detail->detail); 
     }
-    cs_close(&handle);
 }
-
 bool InstructionDecoder_Capstone::decodeOperands(const Instruction* insn) {
     return false;
 }
@@ -77,24 +97,20 @@ std::string InstructionDecoder_Capstone::mnemonicNormalization(std::string m) {
 }
 
 void InstructionDecoder_Capstone::decodeOpcode(InstructionDecoder::buffer& buf) {
-    csh handle;
-    if (openCapstoneHandle(handle)) {
+    if (!openCapstoneHandle()) {
         m_Operation = Operation(e_No_Entry, "INVALID", m_Arch);
         return;
     }
-    cs_option(handle, CS_OPT_DETAIL, CS_OPT_OFF); 
-	cs_insn *insn;
-    // The fourth parameter represents the address of the instruction for Capstone;
-    // it does not matter for Dyninst
-    // The fifth parameter represents the number of instruction to decode
-	size_t count = cs_disasm(handle, buf.start, buf.end - buf.start, 0x0, 1, &insn);
-	if (count) {
-        m_Operation = Operation(opcodeTranslation(insn[0].id), mnemonicNormalization(std::string(insn[0].mnemonic)), m_Arch);
-        buf.start += insn[0].size;
-        cs_free(insn, count);
+    const unsigned char* code = buf.start;
+    size_t codeSize = buf.end - buf.start;
+    uint64_t cap_addr = 0;
+    if (cs_disasm_iter(handle_no_detail, &code, &codeSize, &cap_addr, capstone_ins_no_detail)) {
+        m_Operation = Operation(opcodeTranslation(capstone_ins_no_detail->id), 
+            mnemonicNormalization(std::string(capstone_ins_no_detail->mnemonic)), 
+            m_Arch);
+        buf.start += capstone_ins_no_detail->size;
 	} else
         m_Operation = Operation(e_No_Entry, "INVALID", m_Arch);
-    cs_close(&handle);
 }
 
 entryID InstructionDecoder_Capstone::opcodeTranslation(unsigned int cap_id) {
