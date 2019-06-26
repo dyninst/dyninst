@@ -70,6 +70,8 @@ class InstructionDecoder_Capstone : public InstructionDecoderImpl
         static dyn_tls csh handle_no_detail;
         static dyn_tls csh handle_with_detail;
         static dyn_tls std::map<std::string, std::string> *opcode_alias;
+        static dyn_tls dyn_hash_map<entryID, std::string> *opcode_str;
+
         bool openCapstoneHandle();
         std::string mnemonicNormalization(std::string);
 
@@ -86,6 +88,8 @@ class InstructionDecoder_Capstone : public InstructionDecoderImpl
 
         Result_Type operandSizeTranslation(uint8_t);
         bool checkCapstoneGroup(cs_detail*, uint8_t);
+
+        void initializeOpcodeData();
 };
 
 };
