@@ -464,9 +464,10 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
             parsing_printf("[%s:%d] duplicate region at address %lx\n",
                 FILE__,__LINE__,r->getMemOffset());
         }
-        reg_lock.lock();
-        addRegion(cr);
-        reg_lock.unlock();
+        {
+            dyn_mutex::unique_lock l(reg_lock);
+            addRegion(cr);
+        }
     }
 
     // Hints are initialized at the SCS level rather than the SCR level

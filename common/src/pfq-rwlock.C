@@ -97,7 +97,7 @@ void dyn_rwlock::lock_shared() {
 
     if (ticket & WRITER) {
         // There is a writer present, try to wait.
-        boost::unique_lock<dyn_mutex> l(inlock);
+        boost::unique_lock<boost::mutex> l(inlock);
         rcond.wait(l, [this,&phase](){ return rwakeup[phase]; });
     }
 
@@ -136,7 +136,7 @@ void dyn_rwlock::lock() {
 
     if (cr != lr) {
         // There actually was a reader inside. Wait for him to leave.
-        boost::unique_lock<dyn_mutex> l(outlock);
+        boost::unique_lock<boost::mutex> l(outlock);
         wcond.wait(l, [this](){ return wwakeup; });
         wwakeup = false;
     }

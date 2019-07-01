@@ -36,6 +36,7 @@
 #include <boost/atomic.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition_variable.hpp>
+#include <boost/thread/locks.hpp>
 #include <tbb/concurrent_hash_map.h>
 #include <tbb/concurrent_vector.h>
 #include <tbb/concurrent_queue.h>
@@ -148,7 +149,10 @@ using dyn_c_vector = tbb::concurrent_vector<T, std::allocator<T>>;
 template<typename T>
 using dyn_c_queue = tbb::concurrent_queue<T, std::allocator<T>>;
 
-typedef boost::mutex dyn_mutex;
+class dyn_mutex : public boost::mutex {
+public:
+    using unique_lock = boost::unique_lock<dyn_mutex>;
+};
 
 class COMMON_EXPORT dyn_rwlock {
     // Reader management members
@@ -172,6 +176,9 @@ public:
     void unlock_shared();
     void lock();
     void unlock();
+
+    using unique_lock = boost::unique_lock<dyn_rwlock>;
+    using shared_lock = boost::shared_lock<dyn_rwlock>;
 };
 
 class COMMON_EXPORT dyn_thread {
@@ -197,32 +204,33 @@ public:
     ~dyn_threadlocal() {};
 
     T get() {
-        lock.lock_shared();
-        if(cache.size() > dyn_thread::me) {
-            lock.unlock_shared();
-            return cache[dyn_thread::me];
+        {
+            dyn_rwlock::shared_lock l(lock);
+            if(cache.size() > dyn_thread::me)
+                return cache[dyn_thread::me];
         }
-        lock.unlock_shared();
-        lock.lock();
-        if(cache.size() <= dyn_thread::me)
-            cache.insert(cache.end(), dyn_thread::threads() - cache.size(), base);
-        lock.unlock();
+        {
+            dyn_rwlock::unique_lock l(lock);
+            if(cache.size() <= dyn_thread::me)
+                cache.insert(cache.end(), dyn_thread::threads() - cache.size(), base);
+        }
         return base;
     }
 
     void set(const T& val) {
-        lock.lock_shared();
-        if(cache.size() > dyn_thread::me) {
-            cache[dyn_thread::me] = val;
-            lock.unlock_shared();
-            return;
+        {
+            dyn_rwlock::shared_lock l(lock);
+            if(cache.size() > dyn_thread::me) {
+                cache[dyn_thread::me] = val;
+                return;
+            }
         }
-        lock.unlock_shared();
-        lock.lock();
-        if(cache.size() <= dyn_thread::me)
-            cache.insert(cache.end(), dyn_thread::threads() - cache.size(), base);
-        cache[dyn_thread::me] = val;
-        lock.unlock();
+        {
+            dyn_rwlock::unique_lock l(lock);
+            if(cache.size() <= dyn_thread::me)
+                cache.insert(cache.end(), dyn_thread::threads() - cache.size(), base);
+            cache[dyn_thread::me] = val;
+        }
     }
 };
 
