@@ -60,6 +60,10 @@ public:
 
 #define ANNOTATE_HAPPENS_BEFORE(X)
 #define ANNOTATE_HAPPENS_AFTER(X)
+#define ANNOTATE_RWLOCK_CREATE(X)
+#define ANNOTATE_RWLOCK_DESTROY(X)
+#define ANNOTATE_RWLOCK_ACQUIRED(X, M)
+#define ANNOTATE_RWLOCK_RELEASED(X, M)
 
 // Simplified form for when Valgrind isn't looking.
 
