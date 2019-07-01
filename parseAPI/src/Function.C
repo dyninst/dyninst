@@ -525,6 +525,7 @@ void Function::set_retstatus(FuncReturnStatus rs)
         _obj->cs()->incrementCounter(PARSE_UNKNOWN_COUNT);
     }
     // Write access is handled by the lock, so this should always work.
+    // Helgrind gets confused, so the cmp&swap hides the actual write.
     FuncReturnStatus e = _rs;
     assert(_rs.compare_exchange_strong(e, rs));
 }

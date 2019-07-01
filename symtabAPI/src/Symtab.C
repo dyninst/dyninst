@@ -38,7 +38,6 @@
 #include <iomanip>
 #include <sstream>
 
-
 #include "common/src/Timer.h"
 #include "common/src/debugOstream.h"
 #include "common/src/serialize.h"

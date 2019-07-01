@@ -582,13 +582,9 @@ void DwarfParseActions::addPrettyFuncName(std::string name)
    curFunc()->addPrettyName(name, true, true);
 }
 
-
-
-
 bool DwarfWalker::parseSubprogram(DwarfWalker::inline_t func_type) {
    bool name_result;
    int old = common_debug_dwarf;
-   
 
    dwarf_printf("(0x%lx) parseSubprogram entry\n", id());
     parseRangeTypes(dbg(), entry());
@@ -2501,7 +2497,7 @@ void DwarfParseActions::pop() {
    if(!c.empty())
    {
       c.pop();
-   }	
+   }
 }
 
 void DwarfParseActions::setFunc(FunctionBase *f) {
@@ -2540,7 +2536,7 @@ typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info)
   typeId_t type_id = 0;
   {
     dyn_c_hash_map<Dwarf_Off, typeId_t>::const_accessor a;
-    if(type_ids.find(a, offset)) type_id = a->second; 
+    if(type_ids.find(a, offset)) type_id = a->second;
   }
   if(type_id) return type_id;
 
@@ -2549,7 +2545,7 @@ typeId_t DwarfWalker::get_type_id(Dwarf_Off offset, bool is_info)
     dyn_c_hash_map<Dwarf_Off, typeId_t>::accessor a;
     type_ids.insert(a, std::make_pair(offset, val));
   }
-  
+
   return val;
 }
 
@@ -2613,10 +2609,10 @@ bool DwarfWalker::parseModuleSig8(bool is_info)
     //DWARF_FAIL_RET(dwarf_die_CU_offset_range(typeDIE, &cu_off, &cu_length, NULL ));
     //cerr << "a) " <<  dwarf_dieoffset(&typeDIE) << endl;
     //cerr << "b) " <<  dwarf_cuoffset(&typeDIE) << endl;
-    
+
     uint64_t sig8 = * reinterpret_cast<uint64_t*>(&signature);
     typeId_t type_id = get_type_id(/*cu_off +*/ typeoffset, is_info);
-    
+
     {
       dyn_c_hash_map<uint64_t, typeId_t>::accessor a;
       sig8_type_ids_.insert(a, std::make_pair(sig8, type_id));
@@ -2637,7 +2633,7 @@ bool DwarfWalker::findSig8Type(Dwarf_Sig8 * signature, Type *&returnType)
    if(type_id){
      returnType = tc()->findOrCreateType(type_id);
      dwarf_printf("Found Sig8 {%016llx} as type id 0x%x\n", (long long) sig8, type_id);
-     return true;   
+     return true;
    }
 
    dwarf_printf("Couldn't find Sig8 {%016llx}!\n", (long long) sig8);

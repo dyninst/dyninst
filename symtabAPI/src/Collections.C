@@ -39,11 +39,8 @@
 #include "Variable.h"
 #include "Serialization.h"
 
-
 #include "common/src/headers.h"
 #include "common/src/serialize.h"
-
-
 
 using namespace std;
 using namespace Dyninst;
@@ -59,9 +56,7 @@ using namespace Dyninst::SymtabAPI;
  * Destructor for localVarCollection.  Deletes all type objects that
  * have been inserted into the collection.
  */
-
-localVarCollection::~localVarCollection()
-{
+localVarCollection::~localVarCollection(){
    auto li = localVars.begin();
    for(;li!=localVars.end();li++)
    {
@@ -181,7 +176,7 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
 			if (!t)
 			{
 				int nfound = 0;
-				dyn_c_hash_map<void *, typeCollection *>::iterator tciter; 
+				dyn_c_hash_map<void *, typeCollection *>::iterator tciter;
 				for (tciter = fileToTypesMap.begin(); tciter != fileToTypesMap.end(); tciter++)
 				{
 					Type *localt = NULL;
@@ -535,35 +530,15 @@ builtInTypeCollection::builtInTypeCollection():
  */
 builtInTypeCollection::~builtInTypeCollection()
 {
-  /*
-   dyn_hash_map<std::string, Type *>::iterator bit = builtInTypesByName.begin();
-   dyn_hash_map<int, Type *>::iterator bitid = builtInTypesByID.begin();
-     
+   dyn_c_hash_map<std::string, Type *>::const_iterator bit = builtInTypesByName.begin();
+   dyn_c_hash_map<int, Type *>::const_iterator bitid = builtInTypesByID.begin();
+
     // delete builtInTypesByName collection
     for(;bit!=builtInTypesByName.end();bit++)
 	bit->second->decrRefCount();
     // delete builtInTypesByID collection
     for(;bitid!=builtInTypesByID.end();bitid++)
 	bitid->second->decrRefCount();
-
-  */
-  /*
-   Destructor is being invoked outside the parallel region so annotations are not needed.
-  */
-
-    dyn_c_hash_map<std::string, Type *>::const_iterator iterByName = builtInTypesByName.begin();
-   
-    for(;iterByName!=builtInTypesByName.end(); ++iterByName){
-      iterByName->second->decrRefCount();
-    }
-
-    dyn_c_hash_map<int, Type *>::const_iterator iterByID = builtInTypesByID.begin();
-    
-    for(;iterByID!=builtInTypesByID.end();++iterByID){
-      iterByID->second->decrRefCount();
-    }
-
-
 }
 
 
@@ -579,35 +554,20 @@ builtInTypeCollection::~builtInTypeCollection()
  */
 Type *builtInTypeCollection::findBuiltInType(std::string &name)
 {
-    Type* temp = NULL;
-    {
-      dyn_c_hash_map<std::string, Type *>::const_accessor a;
-      if (builtInTypesByName.find(a, name))
-    	  temp = a->second;
-    }
-
-    if(temp!=NULL)
-      return temp;
-    
-    return (Type *)NULL;
-
+    dyn_c_hash_map<std::string, Type *>::const_accessor a;
+    if (builtInTypesByName.find(a, name))
+       return a->second;
+    else
+       return (Type *)NULL;
 }
 
 Type *builtInTypeCollection::findBuiltInType(const int ID)
 {
-
-    Type* temp = NULL;
-    {
-       dyn_c_hash_map<int, Type *>::const_accessor a;
-       if (builtInTypesByID.find(a, ID))
-          temp = a->second;
-    }
-   
-    if(temp!=NULL)
-      return temp;
-    
-    return (Type *)NULL;
-
+    dyn_c_hash_map<int, Type *>::const_accessor a;
+    if (builtInTypesByID.find(a, ID))
+       return a->second;
+    else
+       return (Type *)NULL;
 }
 
 void builtInTypeCollection::addBuiltInType(Type *type)
@@ -620,7 +580,7 @@ void builtInTypeCollection::addBuiltInType(Type *type)
     }
 
   //All built-in types have unique IDs so far jdd 4/21/99
-    {  
+    {
       dyn_c_hash_map<int, Type *>::const_accessor a;
       builtInTypesByID.insert(a, std::make_pair(type->getID(),type));
       type->incrRefCount();
@@ -636,7 +596,6 @@ std::vector<Type *> *builtInTypeCollection::getAllBuiltInTypes() {
        it ++) {
      typesVec->push_back(it->second);
    }
-   
    if(!typesVec->size()){
        delete typesVec;
        return NULL;

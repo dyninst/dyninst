@@ -2299,6 +2299,7 @@ assert(src->end() == dst->start());
 
     // Add the edge into the block's target list
     // Writes should be sequenced, so this should work.
+    // Helgrind gets confused, so we use a cmp&swap to hide the write.
     Block * old = e->src();
     assert(e->_source.compare_exchange_strong(old, src));
     src->addTarget(e);
@@ -2666,6 +2667,7 @@ void Parser::move_edges_consistent_blocks(Block *A, Block *B) {
 	// In case 1 & 2, we move edges
 	for (; tit != trgs.end(); ++tit) {
             ParseAPI::Edge *e = *tit;
+            // Helgrind gets confused, we use a cmp&swap to hide the write.
             assert(e->_source.compare_exchange_strong(A, edge_b));
 	    edge_b->addTarget(e);
 	}

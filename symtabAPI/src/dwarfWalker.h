@@ -39,9 +39,6 @@ class fieldListType;
 class typeCollection;
 class Type;
 
-
-
-
 class DwarfParseActions {
 
 protected:
@@ -149,8 +146,6 @@ public:
     void setOffset(Dwarf_Off o) { c.top().offset = o; }
     void setTag(unsigned int t) { c.top().tag = t; }
     void setBase(Address a) { c.top().base = a; }
-    //Helper Function for setting the next type id
-
     virtual void setRange(const AddressRange& range) {
         if (range.first >= range.second) {
 //            std:: cerr << "Discarding invalid range: "
@@ -412,23 +407,15 @@ private:
 
     // Type IDs are just int, but Dwarf_Off is 64-bit and may be relative to
     // either .debug_info or .debug_types.
-    //dyn_hash_map<Dwarf_Off, typeId_t> info_type_ids_; // .debug_info offset -> id
-    //dyn_hash_map<Dwarf_Off, typeId_t> types_type_ids_; // .debug_types offset -> id
-			     
-    //Concurent Hash Maps
-    dyn_c_hash_map<Dwarf_Off, typeId_t> info_type_ids_;
-    dyn_c_hash_map<Dwarf_Off, typeId_t> types_type_ids_;
-			      
+    dyn_c_hash_map<Dwarf_Off, typeId_t> info_type_ids_; // .debug_info offset -> id
+    dyn_c_hash_map<Dwarf_Off, typeId_t> types_type_ids_; // .debug_types offset -> id
 
     typeId_t get_type_id(Dwarf_Off offset, bool is_info);
     typeId_t type_id(); // get_type_id() for the current entry
-    
-    // Map to connect DW_FORM_ref_sig8 to type IDs.
-    //dyn_hash_map<uint64_t, typeId_t> sig8_type_ids_;
 
-    //Concurrent Hash Map
+    // Map to connect DW_FORM_ref_sig8 to type IDs.
     dyn_c_hash_map<uint64_t, typeId_t> sig8_type_ids_;
-    
+
     bool parseModuleSig8(bool is_info);
     void findAllSig8Types();
     bool findSig8Type(Dwarf_Sig8 * signature, Type *&type);

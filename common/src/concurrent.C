@@ -41,7 +41,7 @@ thread_local dyn_thread dyn_thread::me;
 dyn_thread::dyn_thread() {};
 
 unsigned int dyn_thread::getId() {
-    return omp_get_thread_num();;
+    return omp_get_thread_num();
 }
 
 unsigned int dyn_thread::threads() {

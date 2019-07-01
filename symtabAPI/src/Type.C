@@ -161,7 +161,7 @@ Type::Type(std::string name, typeId_t ID, dataClass dataTyp) :
 }
 
 Type::Type(std::string name, dataClass dataTyp) :
-   ID_(getUniqueTypeId()), 
+   ID_(getUniqueTypeId()),
    name_(name), 
    size_(sizeof(/*long*/ int)), 
    type_(dataTyp), 
@@ -530,7 +530,7 @@ typeFunction::typeFunction(typeId_t ID, Type *retType, std::string name) :
 }
 
 typeFunction::typeFunction(Type *retType, std::string name) :
-    Type(name, getUniqueTypeId(), dataFunction), 
+    Type(name, getUniqueTypeId(), dataFunction),
 	retType_(retType) 
 {
    size_ = sizeof(void *);
@@ -701,7 +701,7 @@ typeArray::typeArray(Type *base,
 		long hi,
 		std::string name,
 		unsigned int sizeHint) :
-	rangedType(name, getUniqueTypeId(), dataArray, 0, low, hi), 
+	rangedType(name, getUniqueTypeId(), dataArray, 0, low, hi),
 	arrayElem(base), 
 	sizeHint_(sizeHint) 
 {
@@ -847,7 +847,7 @@ typeStruct::typeStruct(typeId_t ID, std::string name) :
 }
 
 typeStruct::typeStruct(std::string name)  :
-    fieldListType(name, getUniqueTypeId(), dataStructure) 
+    fieldListType(name, getUniqueTypeId(), dataStructure)
 {
 }
 
@@ -986,7 +986,7 @@ typeUnion::typeUnion(typeId_t ID, std::string name) :
 }
 
 typeUnion::typeUnion(std::string name)  :
-    fieldListType(name, getUniqueTypeId(), dataUnion) 
+    fieldListType(name, getUniqueTypeId(), dataUnion)
 {
 }
 
@@ -1115,7 +1115,7 @@ void typeUnion::fixupUnknowns(Module *module) {
 
    
 typeScalar::typeScalar(typeId_t ID, unsigned int size, std::string name, bool isSigned) :
-    Type(name, ID, dataScalar), isSigned_(isSigned) 
+    Type(name, ID, dataScalar), isSigned_(isSigned)
 {
    size_ = size;
 }
@@ -1195,7 +1195,7 @@ typeCommon::typeCommon(int ID, std::string name) :
 {}
 
 typeCommon::typeCommon(std::string name) :
-    fieldListType(name, getUniqueTypeId(), dataCommon) 
+    fieldListType(name, getUniqueTypeId(), dataCommon)
 {}
 
 void typeCommon::beginCommonBlock() 
@@ -1281,7 +1281,7 @@ typeTypedef::typeTypedef(typeId_t ID, Type *base, std::string name, unsigned int
 }
 
 typeTypedef::typeTypedef(Type *base, std::string name, unsigned int sizeHint) :
-	derivedType(name, getUniqueTypeId(), 0, dataTypedef) 
+	derivedType(name, getUniqueTypeId(), 0, dataTypedef)
 {
    assert(base != NULL);
    baseType_ = base;
@@ -1362,7 +1362,7 @@ typeRef::typeRef(int ID, Type *refType, std::string name) :
 }
 
 typeRef::typeRef(Type *refType, std::string name) :
-    derivedType(name, getUniqueTypeId(), 0, dataReference) 
+    derivedType(name, getUniqueTypeId(), 0, dataReference)
 {
    baseType_ = refType;
    if(refType)
@@ -1634,7 +1634,7 @@ rangedType::rangedType(std::string &name, typeId_t ID, dataClass typeDes, int si
 }
 
 rangedType::rangedType(std::string &name, dataClass typeDes, int size, unsigned long low, unsigned long hi) :
-    Type(name, getUniqueTypeId(), typeDes), 
+    Type(name, getUniqueTypeId(), typeDes),
 	low_(low), 
 	hi_(hi)
 {
@@ -1912,7 +1912,7 @@ Serializable * Type::serialize_impl(SerializerBase *s, const char *tag) THROW_SP
 	{
 		updatingSize = false;
                 refCount.store(0, boost::memory_order_relaxed);
-		
+
 		// Ensure that unique type id is the next (increasingly negative) type ID available for user defined types.
 		updateUniqueTypeId(ID_);
 	}

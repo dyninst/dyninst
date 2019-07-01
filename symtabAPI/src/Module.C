@@ -234,7 +234,7 @@ LineInformation *Module::parseLineInformation() {
         if(popped || info_.try_pop(cu)) {
             Module::DebugInfoT cu2 = cu;
             do {
-                exec()->getObject()->parseLineInfoForCU(cu, lineInfo_);
+                exec()->getObject()->parseLineInfoForCU(cu2, lineInfo_);
             } while(info_.try_pop(cu2));
 
             // Make sure to call getCompDir so its stored and ready.
