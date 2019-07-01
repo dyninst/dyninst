@@ -435,6 +435,7 @@ bool SymEval::expandInsn(const Instruction &insn,
             SymEvalPolicy policy(res, addr, insn.getArch(), insn);
             RoseInsnX86Factory fac(Arch_x86);
             roseInsn = fac.convert(insn, addr);
+            if (roseInsn == NULL) return false;
 
             SymbolicExpansion exp;
             exp.expandX86(roseInsn, policy);
@@ -449,6 +450,7 @@ bool SymEval::expandInsn(const Instruction &insn,
             SymEvalPolicy_64 policy(res, addr, insn.getArch(), insn);
             RoseInsnX86Factory fac(Arch_x86_64);
             roseInsn = fac.convert(insn, addr);
+            if (roseInsn == NULL) return false;
 
             SymbolicExpansion exp;
             exp.expandX86_64(roseInsn, policy);
@@ -463,6 +465,7 @@ bool SymEval::expandInsn(const Instruction &insn,
 	case Arch_ppc32: {
             RoseInsnPPCFactory fac;
             roseInsn = fac.convert(insn, addr);
+            if (roseInsn == NULL) return false;
 
             SymbolicExpansion exp;
             const RegisterDictionary *reg_dict = RegisterDictionary::dictionary_powerpc();
@@ -480,6 +483,7 @@ bool SymEval::expandInsn(const Instruction &insn,
 	case Arch_ppc64: {
             RoseInsnPPCFactory fac;
             roseInsn = fac.convert(insn, addr);
+            if (roseInsn == NULL) return false;
 
             SymbolicExpansion exp;
             const RegisterDictionary *reg_dict = RegisterDictionary::dictionary_powerpc();
@@ -498,6 +502,7 @@ bool SymEval::expandInsn(const Instruction &insn,
         case Arch_aarch64: {
             RoseInsnArmv8Factory fac(Arch_aarch64);
             roseInsn = fac.convert(insn, addr);
+            if (roseInsn == NULL) return false;
 
             SymbolicExpansion exp;
             const RegisterDictionary *reg_dict = RegisterDictionary::dictionary_armv8();

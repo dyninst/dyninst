@@ -1818,8 +1818,10 @@ static inline void restoreGPRtoGPR(codeGen &gen,
         insnCodeGen::generateImm(gen, CALop, dest, REG_SP, frame_size);
 
     else if((reg == 0) || ((reg >= 3) && (reg <=12)))
-        insnCodeGen::generateImm(gen, Lop, dest, REG_SP,
-                                 gpr_off + reg*gpr_size);
+	 insnCodeGen::generateMemAccess64(gen, LDop, LDxop, dest, REG_SP, gpr_off + reg*gpr_size);
+// Past code restoring 32bit's of register instead of entire register
+//        insnCodeGen::generateImm(gen, Lop, dest, REG_SP,
+//                                 gpr_off + reg*gpr_size);
     else {
         bperr( "GPR %d should not be restored...", reg);
         assert(0);

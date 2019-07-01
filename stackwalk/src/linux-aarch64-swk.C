@@ -58,30 +58,6 @@ bool Walker::createDefaultSteppers()
     FrameStepper *stepper;
     bool result;
 
-    // ARM: this works on ARM.
-    // Need to adjust a variable that stores the length of _start
-    stepper = new BottomOfStackStepper(this);
-    result = addStepper(stepper);
-    if (!result){
-        sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
-                  stepper);
-        return false;
-    }else{
-        sw_printf("[%s:%u] - Stepper %p is BottomOfStackStepper\n",
-                  FILE__, __LINE__, stepper);
-    }
-/*
-    stepper = new DebugStepper(this);
-    result = addStepper(stepper);
-    if (!result){
-        sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
-                  stepper);
-        return false;
-    } else{
-        sw_printf("[%s:%u] - Stepper %p is DebugStepper\n",
-                  FILE__, __LINE__, stepper);
-    }
- */
     stepper = new FrameFuncStepper(this);
     result = addStepper(stepper);
     if (!result) {
@@ -92,6 +68,18 @@ bool Walker::createDefaultSteppers()
         sw_printf("[%s:%u] - Stepper %p is FrameFuncStepper\n",
                   FILE__, __LINE__, stepper);
     }
+
+    stepper = new DebugStepper(this);
+    result = addStepper(stepper);
+    if (!result){
+        sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
+                  stepper);
+        return false;
+    } else{
+        sw_printf("[%s:%u] - Stepper %p is DebugStepper\n",
+                  FILE__, __LINE__, stepper);
+    }
+
     stepper = new SigHandlerStepper(this);
     result = addStepper(stepper);
     if (!result) {
@@ -100,6 +88,17 @@ bool Walker::createDefaultSteppers()
         return false;
     }else {
         sw_printf("[%s:%u] - Stepper %p is SigHandlerStepper\n",
+                  FILE__, __LINE__, stepper);
+    }
+
+    stepper = new BottomOfStackStepper(this);
+    result = addStepper(stepper);
+    if (!result){
+        sw_printf("[%s:%u] - Error adding stepper %p\n", FILE__, __LINE__,
+                  stepper);
+        return false;
+    }else{
+        sw_printf("[%s:%u] - Stepper %p is BottomOfStackStepper\n",
                   FILE__, __LINE__, stepper);
     }
 

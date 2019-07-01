@@ -170,7 +170,7 @@ namespace Dyninst {
 
             void init_frame(ParseFrame &frame);
 
-            void finalize(Function *f);
+            bool finalize(Function *f);
 
             ParseData *parse_data() { return _parse_data; }
 

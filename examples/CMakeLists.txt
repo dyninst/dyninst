@@ -15,6 +15,9 @@ add_dependencies(codeCoverage dyninstAPI patchAPI parseAPI symtabAPI instruction
 target_link_libraries(codeCoverage dyninstAPI patchAPI parseAPI symtabAPI instructionAPI pcontrol common stackwalk dynDwarf dynElf ${Boost_LIBRARIES})
 
 add_library(Inst SHARED codeCoverage.dir/libInst.C)
+if(TARGET TBB)
+    add_dependencies(Inst TBB)
+endif()
 
 add_executable(cfg_to_dot ../parseAPI/doc/example.cc)
 add_dependencies(cfg_to_dot parseAPI symtabAPI instructionAPI common dynDwarf dynElf)

@@ -1085,6 +1085,18 @@ namespace Dyninst
                     insn_to_complete->appendOperand(op, isRead, isWritten, isImplicit);
                 }
                 break;
+            case am_L:
+                /* Use Imm byte to encode XMM. Seen in FMA4*/
+                 if(decodeAVX(bank, &bank_index, 
+                             (*(const uint8_t*)(b.start + locs->imm_position[imm_index++])) >> 4, 
+                             avx_type, pref, operand.admet))
+                    return false;
+
+                /* Append the operand */
+                insn_to_complete->appendOperand(makeRegisterExpression(
+                            IntelRegTable(m_Arch, bank, bank_index)),
+                        isRead, isWritten, isImplicit);
+                break;
 
             case am_H: /* Could be XMM, YMM or ZMM */
                 /* Make sure this register class is valid for VEX */
@@ -1846,7 +1858,20 @@ namespace Dyninst
         /* Does this instruction have a 4th operand? */
         if(semantics >= s4OP)
         {
-            if(!decodeOneOperand(b,
+            if (decodedInstruction->getEntry()->operands[3].admet != 0 ||
+                decodedInstruction->getEntry()->operands[3].optype != 0) {
+                // Special handling for FMA4 instructions
+              if(!decodeOneOperand(b,
+                          decodedInstruction->getEntry()->operands[3],
+                          imm_index,
+                          insn_to_complete,
+                          readsOperand(semantics, 3),
+                          writesOperand(semantics, 3),
+                          implicitOperand(implicit_operands, 3)))
+              {
+                  return false;
+              }
+            } else if(!decodeOneOperand(b,
                         {am_I, op_b}, /* This is always an IMM8 */
                         imm_index,
                         insn_to_complete,

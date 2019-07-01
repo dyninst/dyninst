@@ -162,7 +162,7 @@ void Block::removeFunc(Function *)
         _obj->finalize();
     }
     assert(0 != _func_cnt);
-    _func_cnt --;
+    _func_cnt.fetch_add(-1);
 }
 
 void Block::updateEnd(Address addr)
@@ -219,6 +219,9 @@ void Edge::destroy(Edge *e, CodeObject *o) {
 
 
 Block *Edge::trg() const {
+    if (!_from_index) {
+      return _target;
+    }
     Block* found = index->findBlock(src()->region(), _target_off);
     if(found) return found;
     Block* newBlock = NULL;

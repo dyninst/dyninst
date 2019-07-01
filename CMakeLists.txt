@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.0.0)
+cmake_minimum_required (VERSION 3.4.0)
 project (Dyninst)
 
 set (DYNINST_ROOT ${PROJECT_SOURCE_DIR})
@@ -15,6 +15,14 @@ ENDIF()
 set(RT_SOURCE_DIR ${DYNINST_ROOT}/dyninstAPI_RT)
 set(RT_BINARY_DIR ${PROJECT_BINARY_DIR}/dyninstAPI_RT)
 
+set (CMAKE_MODULE_PATH "${DYNINST_ROOT}/cmake" "${DYNINST_ROOT}/cmake/Modules" ${CMAKE_MODULE_PATH})
+
+find_package(ThreadDB)
+find_package(Threads)
+include(Boost)
+include(ThreadingBuildingBlocks)
+include(ElfUtils)
+include(LibIberty)
 include (${DYNINST_ROOT}/cmake/shared.cmake)
 
 configure_file(cmake/version.h.in common/h/dyninstversion.h)
@@ -53,7 +61,7 @@ include_directories (
   ${DYNINST_ROOT}/external
   ${TBB_INCLUDE_DIRS}
   )
-set(Boost_USE_STATIC_LIBS OFF)
+
 # Component time
 add_subdirectory (common)
 if(NOT ${PLATFORM} MATCHES nt)
@@ -111,6 +119,9 @@ if(BUILD_RTLIB)
       $(MAKE)
       WORKING_DIRECTORY ${RT_BINARY_DIR}
       COMMENT "Building DyninstRT")
+    if(TARGET TBB)
+      add_dependencies(DyninstRT TBB)
+    endif()
     add_dependencies(dyninstAPI DyninstRT)
     if(TARGET dyninstAPI-static)
       add_dependencies(dyninstAPI-static DyninstRT)
@@ -202,28 +213,8 @@ endif()
 
 if(UNIX)
   message(STATUS "Adding Unix-specific dependencies")
-  add_dependencies(dynDwarf libdwarf_imp)
-  add_dependencies(dynElf libelf_imp)
-  message(STATUS "Added libdwarf_imp and libelf_imp dependencies")
-  if (NOT USE_GNU_DEMANGLER)
+  if(NOT USE_GNU_DEMANGLER)
     add_dependencies(common libiberty_imp)
-  endif()
-  if(NOT LIBDWARF_FOUND)
-    message(STATUS "Building libdwarf, creating libdwarf dependency on libelf")
-    add_dependencies(libdwarf_imp libelf_imp)
-  endif()
-  if(SHOULD_INSTALL_LIBELF)
-    get_filename_component(ELFDIR "${LIBELF_LIBRARIES}" PATH)
-    file(GLOB LIBELF_INSTALL_FILES ${ELFDIR}/libelf*.so* ${ELFDIR}/libdw*.so*)
-    message(STATUS "Libelf is ${LIBELF_LIBRARIES}")
-    message(STATUS "Installing ${LIBELF_INSTALL_FILES} from ${ELFDIR}")
-    install (FILES ${LIBELF_INSTALL_FILES}
-      DESTINATION "${INSTALL_LIB_DIR}")
-  endif()
-  if(NOT LIBDWARF_FOUND)
-    message(STATUS "Installing ${LIBDWARF_LIBRARIES}")
-    install (FILES ${LIBDWARF_LIBRARIES}
-      DESTINATION "${INSTALL_LIB_DIR}")
   endif()
 endif()
 
@@ -233,3 +224,6 @@ endif()
 
 #add_subdirectory(testsuite)
 
+# Copy out all of the cmake files so they can be used by the Testsuite
+install(DIRECTORY ${DYNINST_ROOT}/cmake/ DESTINATION ${INSTALL_CMAKE_DIR})
+install(FILES ${PROJECT_BINARY_DIR}/CMakeCache.txt DESTINATION ${INSTALL_CMAKE_DIR})

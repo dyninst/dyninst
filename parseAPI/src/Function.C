@@ -203,12 +203,14 @@ void
 Function::finalize()
 {
     boost::lock_guard<Function> g(*this);
+    bool done;
+    do {
   _extents.clear();
   _exitBL.clear();
 
   // for each block, decrement its refcount
   for (auto blk = blocks_begin(); blk != blocks_end(); blk++) {
-    (*blk)->_func_cnt--;
+    (*blk)->_func_cnt.fetch_add(-1);
   }
   _bmap.clear();
   _retBL.clear(); 
@@ -217,11 +219,12 @@ Function::finalize()
 
     // The Parser knows how to finalize
     // a Function's parse data
-    _obj->parser->finalize(this);
+    done  = _obj->parser->finalize(this);
+    } while (!done);
 }
 
 Function::blocklist
-Function::blocks_int()
+Function::blocks_int() 
 {
     boost::lock_guard<Function> g(*this);
     if(_cache_valid || !_entry)
@@ -453,8 +456,8 @@ void
 Function::add_block(Block *b)
 {
     boost::lock_guard<Function> g(*this);
-  ++b->_func_cnt;            // block counts references
-  _bmap[b->start()] = b;
+    b->_func_cnt.fetch_add(1);            // block counts references
+    _bmap[b->start()] = b;
 }
 
 const string &

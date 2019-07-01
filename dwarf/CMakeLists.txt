@@ -20,7 +20,10 @@ set (SRC_LIST
   )
 
 
-dyninst_library(dynDwarf dynElf common ${Boost_LIBRARIES} ${LIBDWARF_LIBRARIES} ${LIBELF_LIBRARIES})
+dyninst_library(dynDwarf dynElf common ${LibDwarf_LIBRARIES})
+add_dependencies(dynDwarf ElfUtils)
+target_link_private_libraries(dynDwarf ${Boost_LIBRARIES} ${ElfUtils_LIBRARIES})
+
 if (USE_COTIRE)
     cotire(dynDwarf)
 endif()

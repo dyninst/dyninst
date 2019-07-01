@@ -1,40 +1,72 @@
-# - Find Iberty
-# This module finds libiberty.
+#========================================================================================
+# FindLibIberty.cmake
 #
-# It sets the following variables:
-#  IBERTY_LIBRARIES     - The libiberty library to link against.
+# Find LibIberty include dirs and libraries
+#
+#		----------------------------------------
+#
+# Use this module by invoking find_package with the form::
+#
+#  find_package(LibIberty
+#    [REQUIRED]             # Fail with error if LibIberty is not found
+#  )
+#
+# This module reads hints about search locations from variables::
+#
+#	LibIberty_ROOT_DIR      - Base directory the of LibIberty installation
+#	LibIberty_LIBRARYDIR    - Hint directory that contains the LibIberty library files
+#   IBERTY_LIBRARIES        - Alias for LibIberty_LIBRARIES (backwards compatibility only)
+#
+# and saves search results persistently in CMake cache entries::
+#
+#	LibIberty_FOUND         - True if headers and requested libraries were found
+#   IBERTY_FOUND            - Alias for LibIberty_FOUND (backwards compatibility only)
+#	LibIberty_LIBRARY_DIRS  - Link directories for LibIberty libraries
+#	LibIberty_LIBRARIES     - LibIberty library files
+#   IBERTY_LIBRARIES        - Alias for LibIberty_LIBRARIES (backwards compatibility only)
+#
+#========================================================================================
 
-# For Debian <= wheezy, use libiberty_pic.a from binutils-dev
-# For Debian >= jessie, use libiberty.a from libiberty-dev
-# For all RHEL/Fedora, use libiberty.a from binutils-devel
-FIND_LIBRARY( IBERTY_LIBRARIES 
-	      NAMES iberty_pic iberty 
-	      HINTS ${IBERTY_LIBRARIES}
-	      PATHS
-	      /usr/lib
-	      /usr/lib64
-	      /usr/local/lib
-	      /usr/local/lib64
-	      /opt/local/lib
-	      /opt/local/lib64
- 	      /sw/lib
-	      ENV LIBRARY_PATH
-	      ENV LD_LIBRARY_PATH
-	      )
+if(LibIberty_FOUND)
+  return()
+endif()
 
-IF (IBERTY_LIBRARIES)
+# Keep the semantics of IBERTY_LIBRARIES for backward compatibility
+# NB: If both are specified, LibIberty_LIBRARIES is ignored
+if(NOT "${IBERTY_LIBRARIES}" STREQUAL "")
+  set(LibIberty_LIBRARIES ${IBERTY_LIBRARIES})
+endif()
 
-   # show which libiberty was found only if not quiet
-   MESSAGE( STATUS "Found libiberty: ${IBERTY_LIBRARIES}")
+include(DyninstSystemPaths)
 
-   SET(IBERTY_FOUND TRUE)
+# Non-standard subdirectories to search
+set(_path_suffixes libiberty iberty)
 
-ELSE (IBERTY_LIBRARIES)
+# iberty_pic is for Debian <= wheezy
+find_library(LibIberty_LIBRARIES
+             NAMES iberty_pic iberty
+             HINTS ${LibIberty_ROOT_DIR}
+                   ${LibIberty_LIBRARYDIR}
+                   ${IBERTY_LIBRARIES}
+             PATHS ${DYNINST_SYSTEM_LIBRARY_PATHS}
+             PATH_SUFFIXES ${_path_suffixes})
 
-   IF ( IBERTY_FIND_REQUIRED)
-      MESSAGE(FATAL_ERROR "Could not find libiberty. Try to install binutil-devel?")
-   ELSE()
-      MESSAGE(STATUS "Could not find libiberty; downloading binutils and building PIC libiberty.")
-   ENDIF (IBERTY_FIND_REQUIRED)
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(LibIberty
+                                  FOUND_VAR
+                                  LibIberty_FOUND
+                                  REQUIRED_VARS
+                                  LibIberty_LIBRARIES)
 
-ENDIF (IBERTY_LIBRARIES)
+# For backwards compatibility only
+set(IBERTY_FOUND ${LibIberty_FOUND})
+
+if(LibIberty_FOUND)
+  foreach(l in ${LibIberty_LIBRARIES})
+    get_filename_component(_dir ${l} DIRECTORY)
+    list(APPEND LibIberty_LIBRARY_DIRS ${_dir})
+  endforeach()
+  
+  # For backwards compatibility only
+  set(IBERTY_LIBRARIES ${LibIberty_LIBRARIES})
+endif()

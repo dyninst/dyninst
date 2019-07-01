@@ -144,8 +144,12 @@ void ExpressionConversionVisitor::visit(InstructionAPI::Immediate *immed) {
 
 void ExpressionConversionVisitor::visit(RegisterAST *regast) {
     // has no children
-
-    m_stack.push_front(archSpecificRegisterProc(regast, addr, size));
+    SgAsmExpression* reg = archSpecificRegisterProc(regast, addr, size);
+    if (reg == NULL) {
+        roseExpression = NULL;
+        return;
+    }
+    m_stack.push_front(reg);
     roseExpression = m_stack.front();
     return;
 }
@@ -267,7 +271,7 @@ SgAsmExpression *ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
                 return constAddrExpr;
             }
             machReg.getROSERegister(regClass, regNum, regPos);
-
+            if (regClass < 0) return NULL;
             return new SgAsmx86RegisterReferenceExpression((X86RegisterClass) regClass,
                                                            regNum,
                                                            (X86PositionInRegister) regPos);
@@ -279,6 +283,7 @@ SgAsmExpression *ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
             int regPos;
 	    SgAsmDirectRegisterExpression *dre;
             machReg.getROSERegister(regClass, regNum, regPos);
+            if (regClass < 0) return NULL;
 	    if (regClass == powerpc_regclass_cr) {
 	        // ROSE treats CR as one register, so regNum is always 0. 
 		// CR0 to CR7 are 8 subfields within CR.
@@ -301,7 +306,7 @@ SgAsmExpression *ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
 		return NULL;
 
             machReg.getROSERegister(regClass, regNum, regPos);
-
+            if (regClass < 0) return NULL;
             SgAsmDirectRegisterExpression *dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(regClass, regNum, regPos, machReg.size() * 8));
             dre->set_type(new SgAsmIntegerType(ByteOrder::ORDER_LSB, machReg.size() * 8, false));
             return dre;

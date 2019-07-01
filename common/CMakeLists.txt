@@ -109,6 +109,9 @@ endif()
 
 
 dyninst_library(common ${DEPS})
+if(TARGET TBB)
+    add_dependencies(common TBB)
+endif()
 if(PLATFORM MATCHES nt OR PLATFORM MATCHES windows)
   target_link_private_libraries(common Psapi WS2_32 dbghelp)
 endif()

@@ -80,6 +80,8 @@ SYMTAB_EXPORT string Symbol::getMangledName() const
 SYMTAB_EXPORT string Symbol::getPrettyName() const 
 {
   std::string working_name = mangledName_;
+  // Accoring to Itanium C++ ABI, all mangled names start with _Z
+  if (mangledName_.size() < 2 || mangledName_[0] != '_' || mangledName_[1] != 'Z') return working_name;
 #if !defined(os_windows)        
   //Remove extra stabs information
   size_t colon, atat;
@@ -110,6 +112,8 @@ SYMTAB_EXPORT string Symbol::getPrettyName() const
 SYMTAB_EXPORT string Symbol::getTypedName() const 
 {
   std::string working_name = mangledName_;
+  // Accoring to Itanium C++ ABI, all mangled names start with _Z
+  if (mangledName_.size() < 2 || mangledName_[0] != '_' || mangledName_[1] != 'Z') return working_name;
   #if !defined(os_windows)        
   //Remove extra stabs information
   size_t colon;

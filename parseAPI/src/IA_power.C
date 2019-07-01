@@ -149,6 +149,12 @@ bool IA_power::isTailCall(const Function* context, EdgeTypeEnum type, unsigned i
       return true;
     }
 
+    if (valid && addr > 0 && !context->region()->contains(addr)) {
+      parsing_printf("\tjump to 0x%lx in other regions, TAIL CALL\n", addr);
+      tailCalls[type] = true;
+      return true;
+    }    
+
     if (curInsn().getCategory() == c_BranchInsn &&
             valid &&
             !callee) {

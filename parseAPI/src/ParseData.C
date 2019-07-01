@@ -91,7 +91,7 @@ ParseWorkElem * ParseFrame::mkWork(
 /**** Standard [no overlapping regions] ParseData ****/
 
 StandardParseData::StandardParseData(Parser *p) :
-    ParseData(p), _rdata(&p->obj(), p->obj().cs()->regions()[0])
+    ParseData(p), _rdata(&p->obj(), p->obj().cs()->regions().empty() ? NULL : p->obj().cs()->regions()[0])
 { }
 
 StandardParseData::~StandardParseData() 

@@ -83,10 +83,10 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
          return false;
       }
     
-      // Add the function entry as Required in the priority map
+      // Add the function entry as FuncEntry in the priority map
       block_instance *entry = func->entryBlock();
-      priorityMap_[std::make_pair(entry, func)] = OffLimits;
-      relocation_cerr << "\t Added required entry for " << func->symTabName() << " / " << hex << entry->start() << dec << endl;
+      priorityMap_[std::make_pair(entry, func)] = FuncEntry;
+      relocation_cerr << "\t Added FuncEntry for " << func->symTabName() << " / " << hex << entry->start() << dec << endl;
    }
 
    return true;

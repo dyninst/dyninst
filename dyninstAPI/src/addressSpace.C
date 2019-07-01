@@ -1409,8 +1409,6 @@ void trampTrapMappings::allocateTable()
    if( !symtab->isStaticBinary() ) {
        symtab->addSysVDynamic(DT_DYNINST, table_header);
        symtab->addLibraryPrereq(proc()->dyninstRT_name);
-      symtab->addSysVDynamic(DT_DYNINST, table_header);
-      symtab->addLibraryPrereq(proc()->dyninstRT_name);
 #if defined (os_windows)
       symtab->addTrapHeader_win((Address)table_header);
 #endif

@@ -115,6 +115,7 @@ if (PLATFORM MATCHES i386 OR PLATFORM MATCHES amd64 OR PLATFORM MATCHES x86_64)
 set (SRC_LIST ${SRC_LIST}
      src/RegisterConversion-x86.C
      src/Relocation/Widgets/CFWidget-x86.C
+     src/Relocation/Widgets/PCWidget-x86.C
      src/inst-x86.C
      src/emit-x86.C
      src/codegen-x86.C
@@ -131,6 +132,7 @@ set (SRC_LIST ${SRC_LIST}
      src/RegisterConversion-ppc.C 
      src/stackwalk-ppc.C
      src/Relocation/Widgets/CFWidget-ppc.C
+     src/Relocation/Widgets/PCWidget-ppc.C
 )
 elseif (PLATFORM MATCHES aarch64)
 set (SRC_LIST ${SRC_LIST}
@@ -141,6 +143,7 @@ set (SRC_LIST ${SRC_LIST}
      src/RegisterConversion-aarch64.C 
      src/stackwalk-aarch64.C
      src/Relocation/Widgets/CFWidget-aarch64.C
+     src/Relocation/Widgets/PCWidget-aarch64.C
 )
 endif ()
 
