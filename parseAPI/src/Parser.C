@@ -283,6 +283,7 @@ Parser::parse_vanilla()
 
     // Note: there is no fundamental obstacle to parallelizing this loop. However,
     // race conditions need to be resolved in supporting laysrs first.
+    #pragma omp parallel for schedule(auto)
     for (unsigned int i = 0; i < hint_funcs.size(); i++) {
         Function * hf = hint_funcs[i];
         ParseFrame::Status test = frame_status(hf->region(),hf->addr());
@@ -944,7 +945,7 @@ void
 Parser::finalize()
 {
     if(_parse_state < FINALIZED) {
-	split_overlapped_blocks(); 
+	//split_overlapped_blocks(); 
 
         finalize_funcs(hint_funcs);
         finalize_funcs(discover_funcs);
