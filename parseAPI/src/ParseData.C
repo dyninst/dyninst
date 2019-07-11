@@ -185,7 +185,6 @@ StandardParseData::setFrameStatus(CodeRegion * /* cr */, Address addr,
 ParseFrame*
 StandardParseData::createAndRecordFrame(Function* f)
 {
-    boost::lock_guard<ParseData> g(*this);
     ParseFrame * pf = findFrame(NULL, f->addr());
     if (pf == NULL && frameStatus(NULL, f->addr()) == ParseFrame::BAD_LOOKUP) {
         // We only create a new frame, when we currently cannot find it

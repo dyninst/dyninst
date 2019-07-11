@@ -128,6 +128,9 @@
  */
 
 
+// This include *really must* come first in the file.
+#include "common/src/vgannotations.h"
+
 // This include *must* come first in the file.
 #include "common/src/Types.h"
 
@@ -2051,8 +2054,12 @@ dyn_hash_map<entryID, flagInfo> ia32_instruction::flagTable;
 
 COMMON_EXPORT dyn_hash_map<entryID, flagInfo> const& ia32_instruction::getFlagTable()
 {
-    static std::once_flag flagTableInit;
-    std::call_once(flagTableInit, [&]() {initFlagTable(flagTable);});
+  static std::once_flag flagTableInit;
+  std::call_once(flagTableInit, [&]() {
+    initFlagTable(flagTable);
+    ANNOTATE_HAPPENS_BEFORE(&flagTableInit);
+  });
+  ANNOTATE_HAPPENS_AFTER(&flagTableInit);
   return flagTable;
 }
   
