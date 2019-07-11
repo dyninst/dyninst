@@ -502,6 +502,11 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
                 tamper_post_processing(work,pf);
             }
 
+            // Since we are done with parsing this function,
+            // we should be able to resume frames that are
+            // waiting for this function
+            resumeFrames(pf->func, work);
+
             pf->cleanup();
             break;
         }

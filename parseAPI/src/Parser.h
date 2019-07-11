@@ -87,6 +87,8 @@ namespace Dyninst {
     LockFreeQueue<ParseFrame *> frames;
 
             // Delayed frames
+            // This can be a concurrent hash map.
+            // Will do this change if a profile suggests it as a bottleneck
             struct DelayedFrames : public boost::basic_lockable_adapter<boost::recursive_mutex> {
                 std::map<Function *, std::set<ParseFrame *> > frames, prev_frames;
 
