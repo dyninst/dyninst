@@ -502,9 +502,18 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
                 tamper_post_processing(work,pf);
             }
 
-            // Since we are done with parsing this function,
-            // we should be able to resume frames that are
-            // waiting for this function
+            /* Since we are done with parsing this function,
+             * we should be able to resume frames that are
+             * waiting for this function. 
+             *
+             * This is important to reduce the idle time between imbalanced threads.
+             * Instead of waiting for the master thread to resume every frames,
+             * we immediately resume frames that are waitfing for the current function
+             *
+             * Besides resuming frames when a frame is finsihed, it is also important
+             * to resume a frame itself when a frame is put into DELAYED status.
+             * See the comments in ParseFrame::FRAME_DELAYED case for more details.
+             */
             resumeFrames(pf->func, work);
 
             pf->cleanup();
@@ -522,6 +531,25 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
                                                                                   pf->func->addr(),
                                                                                   pf->curAddr);
 
+            /* It is possible that a callee that caused this frame to be in delayed status
+             * has already been parsed. Here we check if any callee has been parsed, and if
+             * it is the case, we can immedately resume the current frame.
+             *
+             * Note that this resume paired with the resumeFrames in ParseFrame::PARSED is
+             * necessary for correctness. 
+             *
+             * Suppose thread 1 is parsing function A, and thread 2 is parsing function B.
+             * And A calls B. Thread 1 is first delayed by B and puts A into the delayed frames.
+             * Then thread 2 finishes B and resumes A, and thread 1 is still working on other
+             * parts of A. If thread 3 picks up the resumed work item to parse A, thread 3 will 
+             * find that thread 1 is still working on A, and gives this work item up.
+             * However, thread 1 still believes that itself is delayed by B, causing delayed edges
+             * never parsed.
+             *
+             * Therefore, it is crucial to resume the current frame if we find some of the 
+             * callees have been finished.
+             */
+            bool immediatelyResume = false;
             if (pf->delayedWork.size()) {
                 // Add frame to global delayed list
 
@@ -530,6 +558,11 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
                      ++iter) {
 
                     Function * ct = iter->second;
+                    if (ct->retstatus() != UNSET) {
+                        immediatelyResume = true;
+                        continue;
+                    }
+
                     parsing_printf("[%s] waiting on %s\n",
                                    __FILE__,
                                    ct->name().c_str());
@@ -548,6 +581,10 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
             } else {
                 // We shouldn't get here
                 assert(0 && "Delayed frame with no delayed work");
+            }
+
+            if (immediatelyResume) {
+                work.insert(pf);
             }
 
             break;

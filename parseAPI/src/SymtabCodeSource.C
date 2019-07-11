@@ -491,7 +491,11 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
 
     for (unsigned int i = 0; i < fsyms.size(); i++) {
         SymtabAPI::Function *f = fsyms[i];
-        string fname_s = f->getFirstSymbol()->getPrettyName();
+        vector<SymtabAPI::Symbol*> syms;
+        f->getSymbols(syms);
+        string fname_s = syms[0]->getPrettyName();
+        for (size_t j = 1; j < syms.size(); ++j)
+            if (syms[j]->getPrettyName() < fname_s) fname_s = syms[j]->getPrettyName();
         const char *fname = fname_s.c_str();
         if(filt && (*filt)(f)) {
             parsing_printf("[%s:%d}  == filtered hint %s [%lx] ==\n",
@@ -503,8 +507,7 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
         // right place to do this? Should these symbols not be filtered by the
         // loop above?
         /*Achin added code starts 12/15/2014*/
-        if (std::find(skipped_symbols.begin(), skipped_symbols.end(),
-          fsyms[i]->getFirstSymbol()->getPrettyName()) != skipped_symbols.end()) {
+        if (std::find(skipped_symbols.begin(), skipped_symbols.end(), fname_s) != skipped_symbols.end()) {
           continue;
         }
         /*Achin added code ends*/
