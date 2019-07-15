@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -61,7 +61,7 @@ class SYMTAB_EXPORT FuncRange {
      size(size_)
    {
    }
-   
+
    FunctionBase *container;
    Dyninst::Offset off;
    unsigned long size;
@@ -77,15 +77,16 @@ typedef std::vector<FuncRange> FuncRangeCollection;
 typedef std::vector<FunctionBase *> InlineCollection;
 typedef std::vector<FuncRange> FuncRangeCollection;
 
-class SYMTAB_EXPORT FunctionBase 
+class SYMTAB_EXPORT FunctionBase
 {
    friend class InlinedFunction;
    friend class Function;
    friend class DwarfWalker;
   public:
    /***** Return Type Information *****/
+   dyn_mutex ret_lock;
    Type  * getReturnType() const;
-   
+
    /***** Local Variable Information *****/
    bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
    bool getLocalVariables(std::vector<localVar *>&vars);
@@ -95,9 +96,9 @@ class SYMTAB_EXPORT FunctionBase
 
    FunctionBase *getInlinedParent();
    const InlineCollection &getInlines();
-   
+
    const FuncRangeCollection &getRanges();
-   
+
    /***** Frame Pointer Information *****/
    bool setFramePtr(std::vector<VariableLocation> *locs);
    std::vector<VariableLocation> &getFramePtrRefForInit();
@@ -151,27 +152,27 @@ class SYMTAB_EXPORT FunctionBase
 {
    friend class Symtab;
 	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
-   
+
  protected:
    Function(Symbol *sym);
-   
+
  public:
-   
+
    Function();
    virtual ~Function();
-   
+
    /* Symbol management */
-   bool removeSymbol(Symbol *sym);      
-   
+   bool removeSymbol(Symbol *sym);
+
    /***** IA64-Specific Frame Pointer Information *****/
    bool  setFramePtrRegnum(int regnum);
    int   getFramePtrRegnum() const;
-   
+
    /***** PPC64 Linux Specific Information *****/
    Offset getPtrOffset() const;
    Offset getTOCOffset() const;
-   
-   Serializable * serialize_impl(SerializerBase *sb, 
+
+   Serializable * serialize_impl(SerializerBase *sb,
                                 const char *tag = "Function") THROW_SPEC (SerializerError);
 
    virtual unsigned getSize() const;

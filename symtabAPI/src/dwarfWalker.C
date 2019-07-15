@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -300,7 +300,7 @@ bool DwarfWalker::buildSrcFiles(::Dwarf * /*dbg*/, Dwarf_Die entry, StringTableP
         if(!filename) continue;
 
         // change to absolute if it's relative
-        std::string s_name(filename); 
+        std::string s_name(filename);
         if(filename[0]!='/')
         {
             s_name = comp_dir_str + "/" + s_name;
@@ -1220,7 +1220,7 @@ bool DwarfWalker::parseStructUnionClass() {
       /* anonymous unions, structs and classes are explicitely labelled */
       Dwarf_Word lineNumber;
       bool hasLineNumber = false;
-      std::string fileName;  
+      std::string fileName;
       if (!getLineInformation(lineNumber, hasLineNumber, fileName)) return false;
       stringstream ss;
       ss << "{anonymous ";
@@ -1296,7 +1296,7 @@ bool DwarfWalker::parseMember() {
    Type *memberType = NULL;
    if (!findType(memberType, false)) return false;
    if (!memberType) return false;
-   
+
    long value;
    bool hasValue;
    if (!findValue(value, hasValue)) return false;
@@ -1314,7 +1314,7 @@ bool DwarfWalker::parseMember() {
 		/* GCC generates DW_TAG_union_type without DW_AT_data_member_location */
 		if (!constructConstantVariableLocation((Address) 0, locs)) return false;
 	} else {
-		dwarf_printf("(0x%lx) Skipping member as no location is given.\n", id()); 
+		dwarf_printf("(0x%lx) Skipping member as no location is given.\n", id());
 		return true;
 	}
    }
@@ -1570,7 +1570,7 @@ bool DwarfWalker::getReturnType(bool hasSpecification, Type *&returnType) {
 }
 
 // I'm not sure how the provided fieldListType is different from curEnclosure(),
-// but that's the way the code was structured and it was working. 
+// but that's the way the code was structured and it was working.
 bool DwarfWalker::addFuncToContainer(Type *returnType) {
    /* Using the mangled name allows us to distinguish between overridden
       functions, but confuses the tests.  Since Type uses vectors
@@ -1601,20 +1601,20 @@ bool DwarfWalker::addFuncToContainer(Type *returnType) {
 
 bool DwarfWalker::isStaticStructMember(std::vector<VariableLocation> &locs, bool &isStatic) {
    isStatic = false;
-   
+
    // if parsing a struct-member which is not a regular member (i.e. not with an offset)
    if (curEnclosure()->getDataClass() == dataStructure && locs.size() == 0) {
 	long value;
 	bool hasValue;
 	if (!findValue(value, hasValue)) return false;
-	
+
 	// and, if it is not a constant, then it must be a static field member
 	if (!hasValue) {
 		isStatic = true;
 		return true;
 	}
    }
-   
+
    return true;
 }
 
@@ -2146,7 +2146,7 @@ bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
 
     /* Construct the range type. */
     if (!findName(curName())) {
-        dwarf_printf("cannot find subrange name %s\n", curName().c_str()); 
+        dwarf_printf("cannot find subrange name %s\n", curName().c_str());
         return false;
     }
     if (!nameDefined()) {
@@ -2192,7 +2192,7 @@ typeArray *DwarfWalker::parseMultiDimensionalArray(Dwarf_Die *range,
     std::string hiBound;
     if (!parseSubrangeAUX(*range, loBound, hiBound)) {
         dwarf_printf("parseMultiDimensionalArray failed, cannot find array range\n");
-        return NULL; 
+        return NULL;
     }
 
 
@@ -2652,6 +2652,7 @@ Offset DwarfParseActions::convertDebugOffset(Offset from) {
 
 void DwarfWalker::setFuncReturnType() {
    Type *returnType = NULL;
+   boost::unique_lock<dyn_mutex> l(curFunc()->ret_lock);
    if (!curFunc()->getReturnType()) {
       getReturnType(false, returnType);
       if (returnType)
