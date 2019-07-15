@@ -150,7 +150,6 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
         seed(NULL),
         _pd(pd)
     {
-	busy.store(false);
     }
 
     ~ParseFrame();
@@ -160,13 +159,8 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
       return result;
     }
     void set_status(Status);
-    bool swap_busy(bool value) {
-      return busy.exchange(value);
-    }
-;
  private:
     boost::atomic<Status> _status;
-    boost::atomic<bool> busy;
     ParseData * _pd;
 };
 

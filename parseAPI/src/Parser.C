@@ -422,7 +422,8 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
 LockFreeQueueItem<ParseFrame*> *
 Parser::ProcessOneFrame(ParseFrame* pf, bool recursive) {
   LockFreeQueueItem<ParseFrame*> *frame_list = 0;
-  if (pf->func && !pf->swap_busy(true)) {
+  assert(pf->func);
+  {
     boost::lock_guard<ParseFrame> g(*pf);
 #ifdef ADD_PARSE_FRAME_TIMERS
     boost::timer::cpu_timer t;
@@ -439,8 +440,6 @@ Parser::ProcessOneFrame(ParseFrame* pf, bool recursive) {
     }
 #endif
     frame_list = postProcessFrame(pf, recursive);
-
-    pf->swap_busy(false);
   }
   return frame_list;
 }
