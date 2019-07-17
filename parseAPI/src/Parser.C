@@ -1047,6 +1047,11 @@ Parser::clean_bogus_funcs(vector<Function*> &funcs)
             }
 	    fit = funcs.erase(fit);
 	    _parse_data->remove_func(f);
+
+        // Also need to decrement the block reference count
+        for (auto blk = f->blocks().begin(); blk != f->blocks().end(); blk++) {
+            (*blk)->_func_cnt.fetch_add(-1);
+        }
 	} else {
 	    fit++;
 	}
@@ -1795,6 +1800,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
             } else if ( ah->isAbort() ) {
                 // 4. `abort-causing' instructions
                 end_block(cur,ahPtr);
+                set_edge_parsing_status(frame, cur->last(), cur);
                 //link(cur, sink_block, DIRECT, true);
                 break;
             } else if ( ah->isInvalidInsn() ) {
