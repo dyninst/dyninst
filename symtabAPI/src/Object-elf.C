@@ -3094,10 +3094,8 @@ void Object::get_valid_memory_areas(Elf_X &elf) {
 // get included at link time will fill in the N_OPT stabs line. Instead,
 // look for "pgCC_compiled." symbols.
 bool parseCompilerType(Object *objPtr) {
-    dyn_hash_map<string, std::vector<Symbol *> > *syms = objPtr->getAllSymbols();
-    if (syms->find("pgCC_compiled.") != syms->end())
-        return true;
-    return false;
+    dyn_c_hash_map<string, std::vector<Symbol *> > *syms = objPtr->getAllSymbols();
+    return syms->contains("pgCC_compiled.");
 }
 
 #else

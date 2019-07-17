@@ -848,12 +848,13 @@ bool Symtab::createAggregates()
 #if !defined(os_vxworks)
     // In VxWorks, symbol offsets are not complete until object is loaded.
 
-  for(auto i = everyDefinedSymbol.begin();
-      i != everyDefinedSymbol.end();
-      ++i)
+  std::vector<Symbol*> syms(everyDefinedSymbol.begin(), everyDefinedSymbol.end());
+
+  #pragma omp parallel for
+  for(size_t i = 0; i < syms.size(); ++i)
   {
-    if (!doNotAggregate(*i)) {
-      addSymbolToAggregates(*i);
+    if (!doNotAggregate(syms[i])) {
+      addSymbolToAggregates(syms[i]);
     }
   }
 #endif
@@ -955,20 +956,19 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
         //   Keep module information 
 
         Function *func = NULL;
-        boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
-        findFuncByEntryOffset(func, sym->getOffset());
-        if (!func) {
+        bool found = false;
+        {
+            dyn_c_hash_map<Offset,Function*>::accessor a;
+            found = !funcsByOffset.insert(a, sym->getOffset());
+            if(found) func = a->second;
+            else {
             // Create a new function
             // Also, update the symbol to point to this function.
-
             func = new Function(sym);
-
-            everyFunction.push_back(func);
-            sorted_everyFunction = false;
-            funcsByOffset[sym->getOffset()] = func;
-            l.release()->unlock();
+                a->second = func;
         }
-        else {
+        }  // Release the lock on the offset/function pair
+        if(found) {
             /* XXX 
              * For relocatable files, the offset of a symbol is relative to the
              * beginning of a Region. Therefore, a symbol in a relocatable file
@@ -980,11 +980,15 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
 
             if( func->getRegion() != sym->getRegion() ) {
                 func = new Function(sym);
+                boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
                 everyFunction.push_back(func);
                 sorted_everyFunction = false;
             }
-            l.release()->unlock();
             func->addSymbol(sym);
+        } else {
+            boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
+            everyFunction.push_back(func);
+            sorted_everyFunction = false;
         }
         sym->setFunction(func);
 
@@ -994,18 +998,19 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
     case Symbol::ST_OBJECT: {
         // The same as the above, but with variables.
         Variable *var = NULL;
-        boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
-        findVariableByOffset(var, sym->getOffset());
-        if (!var) {
+        bool found = false;
+        {
+            dyn_c_hash_map<Offset,Variable*>::accessor a;
+            found = !varsByOffset.insert(a, sym->getOffset());
+            if(found) var = a->second;
+            else {
             // Create a new function
             // Also, update the symbol to point to this function.
             var = new Variable(sym);
-            
-            everyVariable.push_back(var);
-            varsByOffset[sym->getOffset()] = var;
-            l.release()->unlock();
+                a->second = var;
         }
-        else {
+        }
+        if(found) {
             /* XXX
              * For relocatable files, the offset is not a unique identifier for
              * a Symbol. With functions, the Region and offset could be used to
@@ -1020,12 +1025,14 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
                   NULL == sym->getRegion() ) )
             {
                 var = new Variable(sym);
+                boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
                 everyVariable.push_back(var);
-                l.release()->unlock();
             }else{
-                l.release()->unlock();
                 var->addSymbol(sym);
             }
+        } else {
+            boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
+            everyVariable.push_back(var);
         }
         sym->setVariable(var);
         break;

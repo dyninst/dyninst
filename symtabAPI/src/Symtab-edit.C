@@ -181,17 +181,13 @@ bool Symtab::changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newO
 
     if (func) {
         funcsByOffset.erase(oldOffset);
-        if (funcsByOffset.find(newOffset) == funcsByOffset.end())
-            funcsByOffset[newOffset] = func;
-        else {
+        if (!funcsByOffset.insert({newOffset, func})) {
             // Already someone there... odd, so don't do anything.
         }
     }
     if (var) {
         varsByOffset.erase(oldOffset);
-        if (varsByOffset.find(newOffset) == varsByOffset.end())
-            varsByOffset[newOffset] = var;
-        else {
+        if (!varsByOffset.insert({newOffset, var})) {
             // Already someone there... odd, so don't do anything.
         }
     }

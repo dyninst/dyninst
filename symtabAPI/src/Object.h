@@ -120,7 +120,7 @@ public:
     SYMTAB_EXPORT const std::ostream &dump_state_info(std::ostream &s);
 
     SYMTAB_EXPORT void * getErrFunc() const;
-    SYMTAB_EXPORT dyn_hash_map< std::string, std::vector< Symbol *> > *getAllSymbols();
+    SYMTAB_EXPORT dyn_c_hash_map< std::string, std::vector< Symbol *> > *getAllSymbols();
     
     SYMTAB_EXPORT virtual bool hasFrameDebugInfo() {return false;}
     SYMTAB_EXPORT virtual bool getRegValueAtFrame(Address /*pc*/,
@@ -235,9 +235,9 @@ namespace SymtabAPI{
 
 class SymbolIter {
  private:
-   dyn_hash_map< std::string, std::vector< Symbol *> > *symbols;
+   dyn_c_hash_map< std::string, std::vector< Symbol *> > *symbols;
    unsigned int currentPositionInVector;
-   dyn_hash_map< std::string, std::vector< Symbol *> >::iterator symbolIterator;
+   dyn_c_hash_map< std::string, std::vector< Symbol *> >::iterator symbolIterator;
    
  public:
    SymbolIter( Object & obj );

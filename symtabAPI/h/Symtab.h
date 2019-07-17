@@ -569,11 +569,11 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    std::vector<Function *> everyFunction;
    // Since Functions are unique by address we require this structure to
    // efficiently track them.
-   dyn_hash_map <Offset, Function *> funcsByOffset;
+   dyn_c_hash_map <Offset, Function *> funcsByOffset;
 
    // Similar for Variables
    std::vector<Variable *> everyVariable;
-   dyn_hash_map <Offset, Variable *> varsByOffset;
+   dyn_c_hash_map <Offset, Variable *> varsByOffset;
 
 
     boost::multi_index_container<Module*,

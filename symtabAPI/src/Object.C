@@ -372,12 +372,9 @@ SYMTAB_EXPORT void * AObject::getErrFunc() const
    return (void *) err_func_; 
 }
 
-SYMTAB_EXPORT dyn_hash_map< string, std::vector< Symbol *> > *AObject::getAllSymbols()
+SYMTAB_EXPORT dyn_c_hash_map< string, std::vector< Symbol *> > *AObject::getAllSymbols()
 {
-   symbols_tmp_.clear();
-   for(auto it = symbols_.begin(); it != symbols_.end(); ++it)
-      symbols_tmp_.insert(*it);
-   return &(symbols_tmp_);
+   return &(symbols_);
 }
 
 SYMTAB_EXPORT AObject::~AObject() 

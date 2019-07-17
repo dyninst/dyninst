@@ -246,9 +246,12 @@ bool Symtab::findFuncByEntryOffset(Function *&ret, const Offset entry)
      * by its offset; it is uniquely identified by its Region and its offset.
      * This discrepancy is not taken into account here.
      */
-    if (funcsByOffset.find(entry) != funcsByOffset.end()) {
-        ret = funcsByOffset[entry];
+    {
+        dyn_c_hash_map<Offset,Function*>::const_accessor ca;
+        if (funcsByOffset.find(ca, entry)) {
+            ret = ca->second;
         return true;
+    }
     }
     setSymtabError(No_Such_Symbol);
     return false;
@@ -302,9 +305,12 @@ bool Symtab::findVariableByOffset(Variable *&ret, const Offset offset) {
      * See comment in findFuncByOffset about uniqueness of symbols in
      * relocatable files -- this discrepancy applies here as well.
      */
-    if (varsByOffset.find(offset) != varsByOffset.end()) {
-        ret = varsByOffset[offset];
+    {
+        dyn_c_hash_map<Offset, Variable*>::const_accessor ca;
+        if (varsByOffset.find(ca, offset)) {
+            ret = ca->second;
         return true;
+    }
     }
     setSymtabError(No_Such_Symbol);
     return false;
