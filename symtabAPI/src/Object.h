@@ -157,9 +157,10 @@ friend class Module;
 
     // XXX symbols_ is the owner of Symbol pointers; memory
     //     is reclaimed from this structure
-    dyn_hash_map< std::string, std::vector< Symbol *> > symbols_;
-	std::map< Symbol *, std::string > symsToModules_;
-    dyn_hash_map<Offset, std::vector<Symbol *> > symsByOffset_;
+    dyn_c_hash_map< std::string, std::vector< Symbol *> > symbols_;
+    dyn_hash_map< std::string, std::vector< Symbol *> > symbols_tmp_;
+	dyn_c_hash_map< Symbol *, std::string > symsToModules_;
+    dyn_c_hash_map<Offset, std::vector<Symbol *> > symsByOffset_;
     std::vector<std::pair<std::string, Offset> > modules_;
 
     char*   code_ptr_;

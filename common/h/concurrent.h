@@ -122,10 +122,11 @@ public:
         return r;
     }
 
+    int contains(const K& k) { return base::count(k) == 1; }
+
     bool insert(const_accessor& ca, const K& k) {
         return ca.acquire(base::insert(ca, k)); }
     bool insert(accessor& a, const K& k) { return a.acquire(base::insert(a, k)); }
-    bool insert(const K& k) { return base::insert(k); }
     bool insert(const_accessor& ca, const entry& e) {
         return ca.acquire(base::insert(ca, e)); }
     bool insert(accessor& a, const entry& e) { return a.acquire(base::insert(a, e)); }

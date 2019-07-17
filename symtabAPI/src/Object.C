@@ -263,8 +263,8 @@ ostream &operator<<(ostream &os, relocationEntry &q) {
 SYMTAB_EXPORT unsigned AObject::nsymbols () const 
 { 
     unsigned n = 0;
-    for (dyn_hash_map<std::string, std::vector<Symbol *> >::const_iterator i = symbols_.begin();
-         i != symbols_.end(); 
+    for (dyn_c_hash_map<std::string, std::vector<Symbol *> >::const_iterator i = symbols_.begin();
+         i != symbols_.end();
          i++) {
         n += i->second.size();
     }
@@ -274,11 +274,12 @@ SYMTAB_EXPORT unsigned AObject::nsymbols () const
 SYMTAB_EXPORT bool AObject::get_symbols(string & name, 
       std::vector<Symbol *> &symbols ) 
 {
-   if ( symbols_.find(name) == symbols_.end()) {
+   dyn_c_hash_map<std::string, std::vector<Symbol *>>::const_accessor ca;
+   if ( !symbols_.find(ca, name)) {
       return false;
    }
 
-   symbols = symbols_[name];
+   symbols = ca->second;
    return true;
 }
 
@@ -371,9 +372,12 @@ SYMTAB_EXPORT void * AObject::getErrFunc() const
    return (void *) err_func_; 
 }
 
-SYMTAB_EXPORT dyn_hash_map< string, std::vector< Symbol *> > *AObject::getAllSymbols() 
-{ 
-   return &(symbols_);
+SYMTAB_EXPORT dyn_hash_map< string, std::vector< Symbol *> > *AObject::getAllSymbols()
+{
+   symbols_tmp_.clear();
+   for(auto it = symbols_.begin(); it != symbols_.end(); ++it)
+      symbols_tmp_.insert(*it);
+   return &(symbols_tmp_);
 }
 
 SYMTAB_EXPORT AObject::~AObject() 
@@ -381,7 +385,7 @@ SYMTAB_EXPORT AObject::~AObject()
     using std::string;
     using std::vector;
 
-    dyn_hash_map<string,vector<Symbol *> >::iterator it = symbols_.begin();
+    dyn_c_hash_map<string,vector<Symbol *> >::iterator it = symbols_.begin();
     for( ; it != symbols_.end(); ++it) {
         vector<Symbol *> & v = (*it).second;
         for(unsigned i=0;i<v.size();++i)
@@ -534,7 +538,9 @@ Symbol *SymbolIter::currval()
 }
 
 const std::string AObject::findModuleForSym(Symbol *sym) {
-    return symsToModules_[sym];
+    dyn_c_hash_map<Symbol*, std::string>::const_accessor ca;
+    assert(symsToModules_.find(ca, sym));
+    return ca->second;
 }
 
 void AObject::clearSymsToMods() {
@@ -556,14 +562,14 @@ bool AObject::getTruncateLinePaths()
 }
 
 void AObject::setModuleForOffset(Offset sym_off, std::string module) {
-    auto found_syms = symsByOffset_.find(sym_off);
-    if(found_syms == symsByOffset_.end()) return;
+    dyn_c_hash_map<Offset, std::vector<Symbol*>>::const_accessor found_syms;
+    if(!symsByOffset_.find(found_syms, sym_off)) return;
 
     for(auto s = found_syms->second.begin();
             s != found_syms->second.end();
             ++s)
     {
-        symsToModules_[*s] = module;
+        assert(symsToModules_.insert({*s, module}));
     }
 }
 
