@@ -2501,7 +2501,7 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
 	    return false;
     }
 
-    /* Iterate over the compilation-unit headers. */
+    std::vector<Dwarf_Die> dies;
     size_t cu_header_size;
     for (Dwarf_Off cu_off = 0, next_cu_off;
          dwarf_nextcu(dbg, cu_off, &next_cu_off, &cu_header_size,
@@ -2514,6 +2514,14 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
         if (cu_die_p == NULL) continue;
         //if(dies_seen.find(cu_die_off) != dies_seen.end()) continue;
 
+        dies.push_back(cu_die);
+    }
+
+    /* Iterate over the compilation-unit headers. */
+    #pragma omp parallel for schedule(dynamic)
+    for (size_t i = 0; i < dies.size(); i++) {
+        Dwarf_Die cu_die = dies[i];
+
         std::string modname;
         if (!DwarfWalker::findDieName(dbg, cu_die, modname)) {
             modname = associated_symtab->file(); // default module
@@ -2522,10 +2530,13 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
         Address tempModLow;
         Address modLow = 0;
         if (DwarfWalker::findConstant(DW_AT_low_pc, tempModLow, &cu_die, dbg)) {
+            #pragma omp critical
             convertDebugOffset(tempModLow, modLow);
         }
         std::vector<AddressRange> mod_ranges = DwarfWalker::getDieRanges(dbg, cu_die, modLow);
-        Module *m = associated_symtab->getOrCreateModule(modname, modLow);
+        Module *m;
+        #pragma omp critical
+        m = associated_symtab->getOrCreateModule(modname, modLow);
         for (auto r = mod_ranges.begin();
              r != mod_ranges.end(); ++r) {
             m->addRange(r->first, r->second);
@@ -2561,9 +2572,10 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
                 }
             }
         }
+        #pragma omp critical
         m->addDebugInfo(cu_die);
         DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
-        dies_seen.insert(cu_die_off);
+        // dies_seen.insert(cu_die_off);
     }
 
     return true;
