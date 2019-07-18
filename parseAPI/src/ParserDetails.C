@@ -394,7 +394,7 @@ void Parser::ProcessCallInsn(
     _pcb.interproc_cf(frame.func, cur, ah->getAddr(), &det);
 }
 
-void Parser::ProcessCFInsn(
+bool Parser::ProcessCFInsn(
         ParseFrame &frame,
         Block *cur,
         InstructionAdapter_t *ah)
@@ -402,6 +402,7 @@ void Parser::ProcessCFInsn(
     FuncReturnStatus insn_ret;
     Edges_t edges_out;
     ParseWorkBundle *bundle = NULL;
+    bool set_func_to_return = false;
 
     region_data::edge_data_map::accessor a;
     region_data::edge_data_map* edm = _parse_data->get_edge_data_map(frame.func->region());
@@ -482,6 +483,7 @@ void Parser::ProcessCFInsn(
         // In such cases, we do not have concrete evidence that
         // the function cannot not return, so we mark this function as RETURN.
         frame.func->set_retstatus(RETURN);
+        set_func_to_return = true;
     }
 
     // Return instructions need extra processing
@@ -605,4 +607,5 @@ void Parser::ProcessCFInsn(
     if (!frame.func->_cleans_stack && ah->cleansStack()) {
         frame.func->_cleans_stack = true;
     }
+    return set_func_to_return;
 }

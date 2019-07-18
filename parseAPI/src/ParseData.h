@@ -67,6 +67,7 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
         UNPARSED,
         PROGRESS,
         CALL_BLOCKED,
+        RETURN_SET,
         PARSED,
         FRAME_ERROR,
         BAD_LOOKUP,  // error for lookups that return Status

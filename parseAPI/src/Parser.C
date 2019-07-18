@@ -467,6 +467,13 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
             }
             break;
         }
+        case ParseFrame::RETURN_SET: {
+            parsing_printf("[%s] frame %lx's function's return status set to RETURN. Chance to resume functions",pf->func->addr(),pf->func->retstatus());
+            work.insert(pf);
+            resumeFrames(pf->func, work);
+            break;
+        }
+
         case ParseFrame::PARSED:{
             parsing_printf("[%s] frame %lx complete, return status: %d\n",
                            FILE__,pf->func->addr(),pf->func->retstatus());
@@ -846,33 +853,67 @@ Parser::finalize(Function *f)
          block_cnt++;
          for (auto eit = b->targets().begin(); eit != b->targets().end(); ++eit) {
              ParseAPI::Edge *e = *eit;
-             if (!e->sinkEdge() && e->interproc() && (e->type() == DIRECT || e->type() == COND_TAKEN)) {
-                 if (visited.find(e->trg()) != visited.end() && e->trg() != f->entry()) {
-                     // Find a tail call targeting a block within the same function.
-                     // If the jump target is the function entry,
-                     // it is a recursive tail call.
-                     // Otherwise,  this edge is not a tail call
-                     e->_type._interproc = false;
-                     parsing_printf("from %lx to %lx, marked as not tail call (part of the function), re-finalize\n", b->last(), e->trg()->start());
-                     return false;
+             // Tail call corretions are only relevant to non-sink COND_TAKEN or non-sink DIRECT edges
+             if (e->sinkEdge()) continue;
+             if (e->type() != COND_TAKEN && e->type() != DIRECT) continue;
+
+             Block* trg_block = e->trg();
+             bool trg_has_call_edge = false;
+             for (auto eit2 = trg_block->sources().begin(); eit2 != trg_block->sources().end(); ++eit2)
+                 if ((*eit2)->type() == CALL) {
+                     trg_has_call_edge = true;
+                     break;
                  }
-                 Block * trg_block = e->trg();
-                 bool only_incoming = true;
-                 for (auto seit = trg_block->sources().begin(); seit != trg_block->sources().end(); ++seit)
-                     if (*seit != e) {
-                         only_incoming = false;
-                         break;
-                     }
-                 // If the target block has only this incoming edge,
-                 // and it is an entry of a discovered function,
-                 // we do not treat it as a tail call.
-                 // Just treat it as part of this function.
-                 Function *trg_func = findFuncByEntry(trg_block->region(), trg_block->start());
-                 if (trg_func && trg_func->src() != HINT && only_incoming && trg_func->region() == b->region()) {
-                     e->_type._interproc = false;
-                     parsing_printf("from %lx to %lx, marked as not tail call (single entry), re-finalize\n", b->last(), e->trg()->start());
-                     return false;
+
+             // Rule 1:
+             // If an edge is currently not a tail call, but the edge target has a CALL incoming edge,
+             // the current edge should be marked as a tail call
+             if (trg_has_call_edge && !e->interproc()) {
+                 e->_type._interproc = true;
+                 parsing_printf("from %lx to %lx, marked as tail call (target has a CALL incoming edge), re-finalize\n", b->last(), e->trg()->start());
+                 return false;
+             }
+
+             // Now let's deal with fliping tail-call to not-tail-call
+             // If the target has a CALL incoming edge, or the current edge
+             // is currently not marked as tail call, then we can skip this edge
+             if (trg_has_call_edge || !e->interproc()) continue;
+
+             // Look up the tail call target.
+             // If the tail call target is created from a symbol, then keep it as a tail call
+             Function *trg_func = findFuncByEntry(trg_block->region(), trg_block->start());
+             if (trg_func && trg_func->src() == HINT) continue;
+
+             // If the edge source and the edge target are in different sections,
+             // the edge is a tail call.
+             // For example, if a jump from .text to .plt (different sections), then
+             // no matter what, this edge is a tail call.
+             if (trg_func->region() != b->region()) continue;
+
+             // Rule 2:
+             // Find a tail call targeting a block within the same function.
+             // If the jump target is the function entry,
+             // it is a recursive tail call.
+             // Otherwise,  this edge is not a tail call
+             if (visited.find(e->trg()) != visited.end() && e->trg() != f->entry()) {
+                 e->_type._interproc = false;
+                 parsing_printf("from %lx to %lx, marked as not tail call (part of the function), re-finalize\n", b->last(), e->trg()->start());
+                 return false;
+             }     
+
+             // Rule 3:
+             // If an edge is currently a tail call, but the edge target has only the current edge as incoming edges,
+             // we treat this as not tail call.        
+             bool only_incoming = true;
+             for (auto seit = trg_block->sources().begin(); seit != trg_block->sources().end(); ++seit)
+                 if (*seit != e) {
+                     only_incoming = false;
+                     break;
                  }
+             if (only_incoming) {
+                 e->_type._interproc = false;
+                 parsing_printf("from %lx to %lx, marked as not tail call (single entry), re-finalize\n", b->last(), e->trg()->start());
+                 return false;
              }
          }
     }
@@ -1758,7 +1799,12 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 } else {
                     end_block(cur,ahPtr);
                     if (!set_edge_parsing_status(frame,cur->last(), cur)) break; 
-                    ProcessCFInsn(frame,cur,ahPtr);
+                    if (ProcessCFInsn(frame,cur,ahPtr)) {
+                        // This is the first time to set the current function to be RETURN.
+                        // We may be able to resume some delayed functions
+                       frame.set_status(ParseFrame::RETURN_SET); 
+                       return true;
+                    }
                 }
                 break;
             } else if (func->_saves_fp &&

@@ -114,6 +114,7 @@ namespace Dyninst {
         UNPARSED,       // raw state
         PARTIAL,        // parsing has started
         COMPLETE,       // full parsing -- range queries are invalid
+        RETURN_SET,
         FINALIZED,
         UNPARSEABLE     // error condition
     };
@@ -253,7 +254,7 @@ namespace Dyninst {
                     Block *,
                     InstructionAdapter_t *);
 
-            void ProcessCFInsn(
+            bool ProcessCFInsn(
                     ParseFrame &,
                     Block *,
                     InstructionAdapter_t *);
