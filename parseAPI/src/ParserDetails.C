@@ -271,6 +271,7 @@ Parser::tamper_post_processing(LockFreeQueue<ParseFrame *> &work_queue, ParseFra
     }
     // create frame for TAMPER_ABS target in this object or parse
     // in target object 
+    /*
     if (pf->func->tampersStack() == TAMPER_ABS) {
         Address objLoad = 0;
         CodeObject *targObj = NULL;
@@ -283,7 +284,7 @@ Parser::tamper_post_processing(LockFreeQueue<ParseFrame *> &work_queue, ParseFra
                                                   tf->func->addr())) {
                     init_frame(*tf);
                     frames.insert(tf);
-                    _parse_data->record_frame(tf);
+                    _parse_data->registerFrame(tf);
                     _pcb.updateCodeBytes(pf->func->_tamper_addr - objLoad);
                 }
                 if (tf) {
@@ -302,6 +303,7 @@ Parser::tamper_post_processing(LockFreeQueue<ParseFrame *> &work_queue, ParseFra
                        pf->func->_tamper_addr);
         }
     }
+    */
 }
 
 

@@ -159,6 +159,7 @@ class ParseFrame : public boost::lockable_adapter<boost::recursive_mutex> {
       return result;
     }
     void set_status(Status);
+    void set_internal_status(Status s) { _status.store(s); } 
  private:
     boost::atomic<Status> _status;
     ParseData * _pd;
@@ -227,6 +228,15 @@ public:
 	}
         return result;
     }
+    ParseFrame* registerFrame(Address addr, ParseFrame* pf) {
+        dyn_c_hash_map<Address, ParseFrame*>::accessor a;
+        if (frame_map.insert(a, addr)) {
+            a->second = pf;
+            return pf;
+        } else {
+            return NULL;
+        }
+    }
     ParseFrame::Status getFrameStatus(Address addr) {
         ParseFrame::Status ret;
         dyn_c_hash_map<Address, ParseFrame::Status>::const_accessor a;
@@ -270,13 +280,6 @@ public:
     void insertBlockByRange(Block* b) {
         blocksByRange.insert(b);
     }
-    void record_frame(ParseFrame* pf) {
-	{
-	  dyn_c_hash_map<Address, ParseFrame*>::accessor a;
-	  frame_map.insert(a, make_pair(pf->func->addr(), pf));
-	}
-    }
-
 	 // Find functions within [start,end)
 	 int findFuncs(Address start, Address end, set<Function *> & funcs);
     region_data(CodeObject* obj, CodeRegion* reg) {
@@ -412,7 +415,6 @@ class ParseData : public boost::lockable_adapter<boost::recursive_mutex>  {
     // accounting
     virtual void record_func(Function *) =0;
     virtual Block* record_block(CodeRegion *, Block *) =0;
-    virtual void record_frame(ParseFrame *) =0;
 
     // removal
     virtual void remove_frame(ParseFrame *) =0;
@@ -456,7 +458,6 @@ class StandardParseData : public ParseData {
 
     void record_func(Function *f);
     Block* record_block(CodeRegion *cr, Block *b);
-    void record_frame(ParseFrame *pf);
 
     void remove_frame(ParseFrame *);
     void remove_func(Function *);
@@ -524,7 +525,6 @@ class OverlappingParseData : public ParseData {
 
     void record_func(Function *f);
     Block* record_block(CodeRegion *cr, Block *b);
-    void record_frame(ParseFrame *pf);
 
     void remove_frame(ParseFrame *);
     void remove_func(Function *);

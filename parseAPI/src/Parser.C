@@ -219,8 +219,8 @@ Parser::parse_at(
     }
 
     ParseFrame::Status exist = _parse_data->frameStatus(region,target);
-    if(exist != ParseFrame::BAD_LOOKUP && exist != ParseFrame::UNPARSED) {
-        parsing_printf("   function at %lx already parsed, status %d\n",
+    if(exist != ParseFrame::BAD_LOOKUP) {
+        parsing_printf("   frame at %lx already exists, status %d\n",
                        target, exist);
         return;
     }
@@ -287,8 +287,7 @@ Parser::parse_vanilla()
     for (unsigned int i = 0; i < hint_funcs.size(); i++) {
         Function * hf = hint_funcs[i];
         ParseFrame::Status test = frame_status(hf->region(),hf->addr());
-        if(test != ParseFrame::BAD_LOOKUP &&
-           test != ParseFrame::UNPARSED)
+        if(test != ParseFrame::BAD_LOOKUP)
         {
             parsing_printf("\tskipping repeat parse of %lx [%s]\n",
                            hf->addr(),hf->name().c_str());
@@ -446,46 +445,25 @@ Parser::ProcessOneFrame(ParseFrame* pf, bool recursive) {
 
 LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool recursive) {
 
-     /* Should not resume frames in this function,
-      * because the resumed frames may be being parsed
-      * by other threads. Then if this thread pick up
-      * the resumed frame, this thread will give up 
-      * parsing because the frame is being parsed.
-      * Then the delayed work is not going to be parsed
-      * because delayed work is only moved to work queue
-      * when a thread resumes parsing a function.
-      */
-
     LockFreeQueue<ParseFrame*> work;
     switch(pf->status()) {
         case ParseFrame::CALL_BLOCKED: {
             parsing_printf("[%s] frame %lx blocked at %lx\n",
                            FILE__,pf->func->addr(),pf->curAddr);
             {
-
-                assert(pf->call_target);
-
-                parsing_printf("    call target %lx\n",pf->call_target->addr());
                 work.insert(pf);
-
+                assert(pf->call_target);
+                parsing_printf("    call target %lx\n",pf->call_target->addr());
                 CodeRegion * cr = pf->call_target->region();
                 Address targ = pf->call_target->addr();
-                ParseFrame * tf = NULL;
-
-                tf = _parse_data->createAndRecordFrame(pf->call_target);
+                ParseFrame * tf = _parse_data->createAndRecordFrame(pf->call_target);
                 if (tf) {
+                    // a new frame
                     frames.insert(tf);
-                }
-                else {
-                    tf = _parse_data->findFrame(cr, targ);
-                }
-                // tf can still be NULL if the target frame is parsed and deleted
-
-                // We put the frame at the front of the worklist, so 
-                // the parser will parse the callee next
-                if(tf && recursive && tf->func->entry())
-                    work.insert(tf);
-
+                    assert(tf);
+                    assert(tf->func->entry());
+                    if(recursive) work.insert(tf);
+                } 
             }
             break;
         }
@@ -1220,13 +1198,10 @@ Parser::record_func(Function *f)
 void
 Parser::init_frame(ParseFrame & frame)
 {
-    boost::lock_guard<ParseFrame> g(frame);
     Block * b = NULL;
     Block * split = NULL;
-
-    if ( ! frame.func->_entry )
-    {
-        // Find or create a block
+    
+    // Find or create a block
         b = block_at(frame, frame.func, frame.func->addr(),split, NULL);
         if(b) {
             frame.leadersToBlock[frame.func->addr()] = b;
@@ -1241,7 +1216,6 @@ Parser::init_frame(ParseFrame & frame)
         if (split) {
             _pcb.splitBlock(split,b);
         }
-    }
 
     // FIXME these operations should move into the actual parsing
     Address ia_start = frame.func->addr();
@@ -1262,7 +1236,6 @@ Parser::init_frame(ParseFrame & frame)
 
 void ParseFrame::cleanup()
 {
-    boost::lock_guard<ParseFrame> g(*this);
     for(unsigned i=0;i<work_bundles.size();++i)
         delete work_bundles[i];
     work_bundles.clear();
@@ -1420,14 +1393,11 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
             } else {
                 ct = _parse_data->findFunc(frame.codereg, work->target());
             }
-            bool frame_parsing_not_started = 
-                (frame_status(ct->region(),ct->addr())==ParseFrame::UNPARSED ||
-                 frame_status(ct->region(),ct->addr())==ParseFrame::BAD_LOOKUP);
-            parsing_printf("\tframe %lx, UNPARSED: %d, BAD_LOOKUP %d\n", ct->addr(), frame_status(ct->region(),ct->addr())==ParseFrame::UNPARSED,frame_status(ct->region(),ct->addr())==ParseFrame::BAD_LOOKUP);
+            bool frame_not_created = (frame_status(ct->region(),ct->addr())==ParseFrame::BAD_LOOKUP);
+            parsing_printf("\tframe %lx, not created %d\n", ct->addr(), frame_not_created);
 
-
-            if (!frame_parsing_not_started && !work->callproc()) {
-                parsing_printf("[%s] binding call (call target should have been parsed) %lx->%lx\n",
+            if (!frame_not_created && !work->callproc()) {
+                parsing_printf("[%s] binding call (call target should have been created) %lx->%lx\n",
                         FILE__,cur->lastInsnAddr(),work->target());
                 Function *tfunc = _parse_data->findFunc(frame.codereg,work->target());
                 pair<Function*,ParseAPI::Edge*> ctp =
@@ -1438,7 +1408,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 work->mark_call();
             }
 
-            if (recursive && ct && frame_parsing_not_started) {
+            if (recursive && ct && frame_not_created) {
                 // suspend this frame and parse the next
                 parsing_printf("    [suspend frame %lx]\n", func->addr());
                 frame.call_target = ct;
@@ -1939,8 +1909,6 @@ Parser::block_at(ParseFrame &frame,
         Block * & split, 
 	Block * src)
 {
-//    ScopeLock<Mutex<true> > l(work_mutex);
-
     Block * exist = NULL;
     Block * ret = NULL;
     Block * inconsistent = NULL;
@@ -1972,39 +1940,6 @@ Parser::block_at(ParseFrame &frame,
     if (iter != frame.leadersToBlock.end()) {
         return iter->second;
     }
-    // A block that may need to be split 
-    /*
-    iter = frame.leadersToBlock.upper_bound(addr);
-    if (iter != frame.leadersToBlock.begin()) {
-        --iter;
-    }
-    if (iter != frame.leadersToBlock.end()) {
-        Block* b = iter->second;
-        Address prev_insn;
-        if (b->consistent(addr, prev_insn)) {
-	    if (src == b) {
-	        ret = split_block(owner, b, addr, prev_insn);
-                split = b;
-                frame.visited[ret->start()] = true;
-                return ret;
-	    } 
-            region_data::edge_data_map::accessor a;
-            region_data::edge_data_map* edm = _parse_data->get_edge_data_map(owner->region());
-	    assert(edm->find(a, b->last()));
-	    if (a->second.b == b) {
-	        ret = split_block(owner, b, addr, prev_insn);
-                split = b;
-                frame.visited[ret->start()] = true;
-                return ret;
-	    } else if (a->second.b->consistent(addr, prev_insn)){
-	        ret = split_block(owner, a->second.b, addr, prev_insn);
-                split = a->second.b;
-                frame.visited[ret->start()] = true;
-                return ret;
-	    }
-        }
-    }
-    */
     ret = _cfgfact._mkblock(owner, cr, addr);
     ret = record_block(ret);
     return ret;

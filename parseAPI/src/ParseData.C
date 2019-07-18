@@ -40,7 +40,6 @@ using namespace Dyninst::ParseAPI;
 
 void ParseFrame::set_status(Status s)
 {
-    boost::lock_guard<ParseFrame> g(*this);
     _status.store(s);
     _pd->setFrameStatus(codereg,func->addr(),s);
 }
@@ -153,11 +152,6 @@ StandardParseData::createAndRecordFunc(CodeRegion * cr, Address entry, FuncSourc
 }
 
 void
-StandardParseData::record_frame(ParseFrame * pf)
-{
-    _rdata.record_frame(pf);
-}
-void
 StandardParseData::remove_frame(ParseFrame * pf)
 {
     {
@@ -182,22 +176,41 @@ StandardParseData::setFrameStatus(CodeRegion * /* cr */, Address addr,
 {
     _rdata.setFrameStatus(addr, status);
 }
+
+// This function return NULL
+// if a frame for input function f has exists,
+// or is being created by another thread.
+//
+// Otherwise, the calling thread will create and 
+// register a new frame.
 ParseFrame*
 StandardParseData::createAndRecordFrame(Function* f)
 {
+    // Fast path: if there exists a frame, then directly return NULL
     ParseFrame * pf = findFrame(NULL, f->addr());
-    if (pf == NULL && frameStatus(NULL, f->addr()) == ParseFrame::BAD_LOOKUP) {
-        // We only create a new frame, when we currently cannot find it
-        // and the address is not parsed before.
-        pf = new ParseFrame(f, this);
-        _parser->init_frame(*pf);
-        // We have to first initialized the frame before setting the frame status
-        // and recording the frame, because these two operations make the frame public.
-        pf->set_status(ParseFrame::UNPARSED);
-        record_frame(pf);
+    if (pf != NULL) return NULL;
+
+    // Every thread reaches here will try to create a new frame
+    pf = new ParseFrame(f, this);
+    _parser->init_frame(*pf);
+    // It should be safe to prematurely set frame status to UNPARSED
+    // because it is almost the same as BAD_LOOKUP
+    pf->set_internal_status(ParseFrame::UNPARSED);
+
+    // Only one thread will register the frame
+    ParseFrame * ret_pf = _rdata.registerFrame(f->addr(), pf);
+    if (ret_pf != pf) {
+        // The thread who loses will destory the redundant frame
+        delete pf;
+        return NULL;
+    } else {
+        // The thread who wins publish the frame status to global status look up map
+        // NOTE: it is possible that another does not see the updated global frame 
+        // status, and then continues to call createAndRecordFrame, but that thread
+        // will not be able to register a new frame.
+        setFrameStatus(f->region(), f->addr(), ParseFrame::UNPARSED);
         return pf;
     }
-    return NULL;
 }
 CodeRegion *
 StandardParseData::reglookup(CodeRegion * /* cr */, Address addr)
@@ -337,18 +350,41 @@ OverlappingParseData::frameStatus(CodeRegion *cr, Address addr)
 ParseFrame*
 OverlappingParseData::createAndRecordFrame(Function* f)
 {
-    boost::lock_guard<ParseData> g(*this);
+    // Fast path: if there exists a frame, then directly return NULL
     ParseFrame * pf = findFrame(f->region(), f->addr());
-    if (pf == NULL && frameStatus(f->region(), f->addr()) == ParseFrame::BAD_LOOKUP) {
-        // We only create a new frame, when we currently cannot find it
-        // and the address is not parsed before.
-        pf = new ParseFrame(f, this);
-        _parser->init_frame(*pf);
-        pf->set_status(ParseFrame::UNPARSED);
-        record_frame(pf);
+    if (pf != NULL) return NULL;
+
+    // Every thread reaches here will try to create a new frame
+    pf = new ParseFrame(f, this);
+    _parser->init_frame(*pf);
+    // It should be safe to prematurely set frame status to UNPARSED
+    // because it is almost the same as BAD_LOOKUP    
+    pf->set_status(ParseFrame::UNPARSED);
+
+    // Get the correct region data
+    region_data * rd;
+    {
+        CodeRegion * cr = f->region();
+        boost::lock_guard<ParseData> g(*this);
+        if(!HASHDEF(rmap,cr)) {
+            fprintf(stderr,"Error, invalid code region [%lx,%lx) in recordAndRecordFrame\n",
+                    cr->offset(),cr->offset()+cr->length());
+            return NULL;
+        }
+        rd = rmap[cr];
+    }
+
+    // Only one thread will register the frame
+    ParseFrame * ret_pf = rd->registerFrame(f->addr(), pf);
+    if (ret_pf != pf) {
+        // The thread who loses will destory the redundant frame
+        delete pf;
+        return NULL;
+    } else {
+        setFrameStatus(f->region(), f->addr(), ParseFrame::UNPARSED);
         return pf;
     }
-    return NULL;
+
 }
 
 
@@ -460,19 +496,6 @@ OverlappingParseData::remove_extents(const vector<FuncExtent*> & extents)
         assert( (*fit)->func()->region() == cr );
         rd->funcsByRange.remove( *fit );
     }
-}
-void
-OverlappingParseData::record_frame(ParseFrame *pf)
-{
-    boost::lock_guard<ParseData> g(*this);
-    CodeRegion * cr = pf->codereg;
-    if(!HASHDEF(rmap,cr)) {
-        fprintf(stderr,"Error, invalid code region [%lx,%lx) in record_frame\n",
-            cr->offset(),cr->offset()+cr->length());
-        return;
-    }
-    region_data * rd = rmap[cr];
-    rd->record_frame(pf);
 }
 void
 OverlappingParseData::remove_frame(ParseFrame *pf)
