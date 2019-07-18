@@ -117,7 +117,7 @@ class SYMTAB_EXPORT Aggregate
       // (AKA 'not DEFAULT_MODULE') module
       Module *module_;
 
-      dyn_mutex lock_;
+      mutable dyn_mutex lock_;
       std::vector<Symbol *> symbols_;
       Symbol *firstSymbol;  // cached for speed
       Offset offset_;       // cached for speed

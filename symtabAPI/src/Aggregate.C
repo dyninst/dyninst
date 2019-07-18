@@ -94,6 +94,7 @@ unsigned Aggregate::getSize() const
 
 Region * Aggregate::getRegion() const
 {
+    boost::unique_lock<dyn_mutex> l(lock_);
 	if (!firstSymbol)
 	{
            create_printf("%s[%d]:  ERROR:  Aggregate w/out symbols\n", FILE__, __LINE__);
