@@ -1779,7 +1779,6 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                 if (!func->_is_leaf_function) func->_ret_addr = ret_addr;
             }
 
-            #pragma omp critical
             _pcb.instruction_cb(func,cur,curAddr,&insn_det);
 
             if (isNopBlock && !ah->isNop()) {
