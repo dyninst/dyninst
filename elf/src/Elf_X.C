@@ -1631,7 +1631,8 @@ static bool loadDebugFileFromDisk(string name, char* &output_buffer, unsigned lo
    if (fd == -1)
       return false;
 
-   char *buffer = (char *) mmap(NULL, fileStat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+   char *buffer = (char *) mmap(NULL, fileStat.st_size,
+                                PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0);
    close(fd);
    if (!buffer)
       return false;
