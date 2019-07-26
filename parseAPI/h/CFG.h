@@ -707,7 +707,7 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, pub
 };
 inline std::pair<Address, Block*> Function::get_next_block(
         Address addr,
-        CodeRegion *codereg) const
+        CodeRegion *) const
 {
     Block * nextBlock = NULL;
     Address nextBlockAddr;

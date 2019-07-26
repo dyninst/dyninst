@@ -299,7 +299,7 @@ class Slicer {
     // need further slicing and which abslocs are no longer interesting, by modifying the current
     // SliceFrame.
     DATAFLOW_EXPORT virtual bool modifyCurrentFrame(SliceFrame &, GraphPtr, Slicer*) {return true;} 						
-    DATAFLOW_EXPORT virtual bool ignoreEdge(ParseAPI::Edge* e) { return false;}
+    DATAFLOW_EXPORT virtual bool ignoreEdge(ParseAPI::Edge*) { return false;}
     DATAFLOW_EXPORT Predicates() : clearCache(false), controlFlowDep(false) {}						
 
   };

@@ -48,6 +48,12 @@ unsigned int dyn_thread::threads() {
     return omp_get_num_threads();
 }
 
+#ifndef ENABLE_VG_ANNOTATIONS
+void dyn_c_annotations::wlock(void*) {}
+void dyn_c_annotations::wunlock(void*) {}
+void dyn_c_annotations::rlock(void*) {}
+void dyn_c_annotations::runlock(void*) {}
+#else
 void dyn_c_annotations::wlock(void* ptr) {
     ANNOTATE_HAPPENS_AFTER(ptr + 1);
     ANNOTATE_HAPPENS_AFTER(ptr);
@@ -61,3 +67,4 @@ void dyn_c_annotations::rlock(void* ptr) {
 void dyn_c_annotations::runlock(void* ptr) {
     ANNOTATE_HAPPENS_BEFORE(ptr + 1);
 }
+#endif
