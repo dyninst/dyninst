@@ -528,7 +528,6 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
             break;
         case ParseFrame::FRAME_DELAYED:
         {
-            boost::lock_guard<DelayedFrames> g(delayed_frames);
             parsing_printf("[%s] frame %lx delayed at %lx\n",
                                                                                   FILE__,
                                                                                   pf->func->addr(),
@@ -561,24 +560,21 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
                      ++iter) {
 
                     Function * ct = iter->second;
-                    if (ct->retstatus() != UNSET) {
-                        immediatelyResume = true;
-                        continue;
-                    }
-
                     parsing_printf("[%s] waiting on %s\n",
                                    __FILE__,
                                    ct->name().c_str());
                     {
-
-                        auto fIter = delayed_frames.frames.find(ct);
-                        if (fIter == delayed_frames.frames.end()) {
-                            set<ParseFrame *> waiters;
-                            waiters.insert(pf);
-                            delayed_frames.frames[ct] = waiters;
-                        } else {
-                            delayed_frames.frames[ct].insert(pf);
+                        dyn_c_hash_map<Function*, std::set<ParseFrame*> >::accessor a;
+                        set<ParseFrame *> waiters;
+                        // This acquires the lock for ct, regardless we get a new set of not
+                        bool new_set = delayed_frames.insert(a, std::make_pair(ct, waiters));
+                        if (ct->retstatus() != UNSET) {
+                            if (new_set) delayed_frames.erase(a);
+                            immediatelyResume = true;
+                            continue;
                         }
+                        a->second.insert(pf);
+                        delayed_frames_changed.store(true);
                     }
                 }
             } else {
@@ -678,15 +674,14 @@ Parser::ProcessFrames
 void
 Parser::parse_frames(LockFreeQueue<ParseFrame *> &work, bool recursive)
 {
+    delayed_frames_changed.store(false);
     ProcessFrames(&work, recursive);
     bool done = false, cycle = false;
     {
-        boost::lock_guard<DelayedFrames> g(delayed_frames);
-
         // Check if we can resume any frames yet
         vector<Function *> updated;
-        for (auto iter = delayed_frames.frames.begin();
-             iter != delayed_frames.frames.end();
+        for (auto iter = delayed_frames.begin();
+             iter != delayed_frames.end();
              ++iter) {
             if (iter->first->retstatus() != UNSET) {
                 updated.push_back(iter->first);
@@ -700,12 +695,11 @@ Parser::parse_frames(LockFreeQueue<ParseFrame *> &work, bool recursive)
             }
         }
 
-        if(delayed_frames.frames.empty() && updated.empty()) {
+        if(delayed_frames.size() == 0 && updated.empty()) {
             parsing_printf("[%s] Fixed point reached (0 funcs with unknown return status)\n)",
                            __FILE__);
-            delayed_frames.prev_frames.clear();
             done = true;
-        } else if(delayed_frames.frames.size() > 0 && delayed_frames.prev_frames == delayed_frames.frames && updated.empty()) {
+        } else if(delayed_frames.size() > 0 && !delayed_frames_changed.load()) {
             cycle = true;
         }
     }
@@ -722,17 +716,12 @@ Parser::parse_frames(LockFreeQueue<ParseFrame *> &work, bool recursive)
     cleanup_frames();
 }
 
-void Parser::processFixedPoint(LockFreeQueue<ParseFrame *> &work, bool recursive) {// We haven't yet reached a fixedpoint; let's recurse
-    {
-        boost::lock_guard<DelayedFrames> g(delayed_frames);
+void Parser::processFixedPoint(LockFreeQueue<ParseFrame *> &work, bool recursive) {
+    // We haven't yet reached a fixedpoint; let's recurse
+    parsing_printf("[%s] Fixed point not yet reached (%d funcs with unknown return status)\n",
+            __FILE__,
+            delayed_frames.size());
 
-        parsing_printf("[%s] Fixed point not yet reached (%d funcs with unknown return status)\n",
-                       __FILE__,
-                       delayed_frames.frames.size());
-
-        // Update delayed_frames for next iteration
-        delayed_frames.prev_frames = delayed_frames.frames;
-    }
     // Recurse through parse_frames
     parsing_printf("[%s] Calling parse_frames again... \n", __FILE__);
 
@@ -742,17 +731,16 @@ void Parser::processFixedPoint(LockFreeQueue<ParseFrame *> &work, bool recursive
 void Parser::processCycle(LockFreeQueue<ParseFrame *> &work, bool recursive) {// If we've reached a fixedpoint and have remaining frames, we must
     // have a cyclic dependency
     vector<Function *> updated;
-    {
-        boost::lock_guard<DelayedFrames> g(delayed_frames);
+
         parsing_printf("[%s] Fixed point reached (%d funcs with unknown return status)\n",
                        __FILE__,
-                       delayed_frames.frames.size());
+                       delayed_frames.size());
 
         // Mark UNSET functions in cycle as NORETURN
         // except if we're doing non-recursive parsing.
         // If we're just parsing one function, we want
         // to mark everything RETURN instead.
-        for (auto iter = delayed_frames.frames.begin(); iter != delayed_frames.frames.end(); ++iter) {
+        for (auto iter = delayed_frames.begin(); iter != delayed_frames.end(); ++iter) {
             Function * func = iter->first;
             if (func->retstatus() == UNSET) {
                 if(recursive)
@@ -778,7 +766,6 @@ void Parser::processCycle(LockFreeQueue<ParseFrame *> &work, bool recursive) {//
             }
         }
 
-    }
 
     // We should have updated the return status of one or more frames; recurse
     if (updated.size()) {
@@ -796,7 +783,7 @@ void Parser::processCycle(LockFreeQueue<ParseFrame *> &work, bool recursive) {//
         // We shouldn't get here
         parsing_printf("[%s] No more work can be done (%d funcs with unknown return status)\n",
                        __FILE__,
-                       delayed_frames.frames.size());
+                       delayed_frames.size());
         assert(0);
     }
 }
@@ -1030,8 +1017,8 @@ Parser::finalize()
         finalize_funcs(discover_funcs);
 	clean_bogus_funcs(discover_funcs);
 
-	finalize_ranges(hint_funcs);
-	finalize_ranges(discover_funcs);
+	//finalize_ranges(hint_funcs);
+	//finalize_ranges(discover_funcs);
 
         _parse_state = FINALIZED;
     }
@@ -2486,11 +2473,10 @@ void Parser::resumeFrames(Function * func, LockFreeQueue<ParseFrame *> & work)
                        func->name().c_str());
         return;
     }
-    boost::lock_guard<DelayedFrames> g(delayed_frames);
 
     // When a function's return status is set, all waiting frames back into the worklist
-    map<Function *, set<ParseFrame *> >::iterator iter = delayed_frames.frames.find(func);
-    if (iter == delayed_frames.frames.end()) {
+    dyn_c_hash_map<Function*, std::set<ParseFrame*> >::accessor a;
+    if (!delayed_frames.find(a, func)) {
         // There were no frames waiting, ignore
         parsing_printf("[%s] %s return status %d, no waiters\n",
                        __FILE__,
@@ -2503,7 +2489,7 @@ void Parser::resumeFrames(Function * func, LockFreeQueue<ParseFrame *> & work)
                        func->name().c_str(),
                        func->retstatus());
         // Add each waiting frame back to the worklist
-        set<ParseFrame *> vec = iter->second;
+        set<ParseFrame *> vec = a->second;
         for (set<ParseFrame *>::iterator fIter = vec.begin();
              fIter != vec.end();
              ++fIter) {
@@ -2512,7 +2498,8 @@ void Parser::resumeFrames(Function * func, LockFreeQueue<ParseFrame *> & work)
             parsing_printf("\t undelay function %s at %lx, frame delay work size %d\n", f->name().c_str(), f->addr(), (*fIter)->delayedWork.size()); 
         }
         // remove func from delayedFrames map
-        delayed_frames.frames.erase(func);
+        delayed_frames.erase(a);
+        delayed_frames_changed.store(true);
     }
 }
 

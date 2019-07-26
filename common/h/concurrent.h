@@ -136,6 +136,8 @@ public:
     bool erase(accessor& a) { a.release(); return base::erase(a); }
     bool erase(const K& k) { return base::erase(k); }
 
+    int size() const { return base::size(); }
+
     using base::clear;
 
     using base::iterator;
