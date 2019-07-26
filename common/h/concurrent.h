@@ -44,6 +44,8 @@
 namespace Dyninst {
 
 namespace dyn_c_annotations {
+    void COMMON_EXPORT rwinit(void*);
+    void COMMON_EXPORT rwdeinit(void*);
     void COMMON_EXPORT wlock(void*);
     void COMMON_EXPORT wunlock(void*);
     void COMMON_EXPORT rlock(void*);
@@ -56,19 +58,14 @@ class dyn_c_hash_map : protected tbb::concurrent_hash_map<K, V,
 
     typedef tbb::concurrent_hash_map<K, V,
         tbb::tbb_hash_compare<K>, std::allocator<std::pair<K,V>>> base;
-
-    typedef std::pair<K,V> entry;
-
 public:
-    dyn_c_hash_map() : base() {};
-    ~dyn_c_hash_map() {};
+    using value_type = typename base::value_type;
 
     class const_accessor : public base::const_accessor {
         friend class dyn_c_hash_map<K,V>;
     public:
         ~const_accessor() { release_ann(); }
         void acquire() { dyn_c_annotations::rlock(this->my_node); }
-        bool acquire(bool r) { acquire(); return r; }
         void release() { release_ann(); base::const_accessor::release(); }
     private:
         void release_ann() {
@@ -80,7 +77,6 @@ public:
     public:
         ~accessor() { release_ann(); }
         void acquire() { dyn_c_annotations::wlock(this->my_node); }
-        bool acquire(bool r) { acquire(); return r; }
         void release() { release_ann(); base::accessor::release(); }
     private:
         void release_ann() {
@@ -102,17 +98,45 @@ public:
     int contains(const K& k) { return base::count(k) == 1; }
 
     bool insert(const_accessor& ca, const K& k) {
-        return ca.acquire(base::insert(ca, k)); }
+        bool r = base::insert(ca, k);
+        if(r) dyn_c_annotations::rwinit(ca.my_node);
+        ca.acquire();
+        return r;
+    }
     bool insert(accessor& a, const K& k) {
-        return a.acquire(base::insert(a, k)); }
-    bool insert(const_accessor& ca, const entry& e) {
-        return ca.acquire(base::insert(ca, e)); }
-    bool insert(accessor& a, const entry& e) {
-        return a.acquire(base::insert(a, e)); }
-    bool insert(const entry& e) { return base::insert(e); }
+        bool r = base::insert(a, k);
+        if(r) dyn_c_annotations::rwinit(a.my_node);
+        a.acquire();
+        return r;
+    }
+    bool insert(const_accessor& ca, const value_type& e) {
+        bool r = base::insert(ca, e);
+        if(r) dyn_c_annotations::rwinit(ca.my_node);
+        ca.acquire();
+        return r;
+    }
+    bool insert(accessor& a, const value_type& e) {
+        bool r = base::insert(a, e);
+        if(r) dyn_c_annotations::rwinit(a.my_node);
+        a.acquire();
+        return r;
+    }
+    bool insert(const value_type& e) { return base::insert(e); }
 
-    bool erase(const_accessor& ca) { ca.release_ann(); return base::erase(ca); }
-    bool erase(accessor& a) { a.release_ann(); return base::erase(a); }
+    bool erase(const_accessor& ca) {
+        void* n = ca.my_node;
+        ca.release_ann();
+        bool r = base::erase(ca);
+        if(r) dyn_c_annotations::rwdeinit(n);
+        return r;
+    }
+    bool erase(accessor& a) {
+        void* n = a.my_node;
+        a.release_ann();
+        bool r = base::erase(a);
+        if(r) dyn_c_annotations::rwdeinit(n);
+        return r;
+    }
     bool erase(const K& k) { return base::erase(k); }
 
     using base::clear;

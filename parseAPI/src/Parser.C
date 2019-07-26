@@ -281,7 +281,7 @@ Parser::parse_vanilla()
         parsing_printf("\tparse state is %d, some parsing already done\n",
                        _parse_state);
 
-    tbb::concurrent_vector< std::pair<Address, ParseFrame*> > fvec;
+    dyn_c_vector< std::pair<Address, ParseFrame*> > fvec;
     /* Initialize parse frames from hints */
 
     // Note: there is no fundamental obstacle to parallelizing this loop. However,
