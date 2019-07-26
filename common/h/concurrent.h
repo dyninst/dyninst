@@ -43,6 +43,13 @@
 
 namespace Dyninst {
 
+namespace dyn_c_annotations {
+    void COMMON_EXPORT wlock(void*);
+    void COMMON_EXPORT wunlock(void*);
+    void COMMON_EXPORT rlock(void*);
+    void COMMON_EXPORT runlock(void*);
+}
+
 template<typename K, typename V>
 class dyn_c_hash_map : protected tbb::concurrent_hash_map<K, V,
     tbb::tbb_hash_compare<K>, std::allocator<std::pair<K,V>>> {
@@ -57,57 +64,27 @@ public:
     ~dyn_c_hash_map() {};
 
     class const_accessor : public base::const_accessor {
-#ifdef DYNINST_VG_ANNOTATIONS
-        bool owns;
-#endif
+        friend class dyn_c_hash_map<K,V>;
     public:
-        const_accessor() : base::const_accessor()
-#ifdef DYNINST_VG_ANNOTATIONS
-            , owns(true)
-#endif
-            {};
-        ~const_accessor() { release(); }
-        void acquire() {
-#ifdef DYNINST_VG_ANNOTATIONS
-            owns = true;
-            ANNOTATE_HAPPENS_AFTER(base::const_accessor::operator->());
-#endif
-        }
+        ~const_accessor() { release_ann(); }
+        void acquire() { dyn_c_annotations::rlock(this->my_node); }
         bool acquire(bool r) { acquire(); return r; }
-        void release() {
-#ifdef DYNINST_VG_ANNOTATIONS
-            if(owns) {
-                owns = false;
-                ANNOTATE_HAPPENS_BEFORE(base::const_accessor::operator->() + 1);
-            }
-#endif
+        void release() { release_ann(); base::const_accessor::release(); }
+    private:
+        void release_ann() {
+            if(this->my_node) dyn_c_annotations::runlock(this->my_node);
         }
     };
     class accessor : public base::accessor {
-#ifdef DYNINST_VG_ANNOTATIONS
-        bool owns;
-#endif
+        friend class dyn_c_hash_map<K,V>;
     public:
-        accessor() : base::accessor()
-#ifdef DYNINST_VG_ANNOTATIONS
-            , owns(true)
-#endif
-            {};
-        ~accessor() { release(); }
-        void acquire() {
-#ifdef DYNINST_VG_ANNOTATIONS
-            owns = true;
-            ANNOTATE_HAPPENS_AFTER(base::accessor::operator->() + 1);
-            ANNOTATE_HAPPENS_AFTER(base::accessor::operator->());
-#endif
-        }
+        ~accessor() { release_ann(); }
+        void acquire() { dyn_c_annotations::wlock(this->my_node); }
         bool acquire(bool r) { acquire(); return r; }
-        void release() {
-#ifdef DYNINST_VG_ANNOTATIONS
-            if(owns) {
-                ANNOTATE_HAPPENS_BEFORE(base::accessor::operator->());
-            }
-#endif
+        void release() { release_ann(); base::accessor::release(); }
+    private:
+        void release_ann() {
+            if(this->my_node) dyn_c_annotations::wunlock(this->my_node);
         }
     };
 
@@ -126,14 +103,16 @@ public:
 
     bool insert(const_accessor& ca, const K& k) {
         return ca.acquire(base::insert(ca, k)); }
-    bool insert(accessor& a, const K& k) { return a.acquire(base::insert(a, k)); }
+    bool insert(accessor& a, const K& k) {
+        return a.acquire(base::insert(a, k)); }
     bool insert(const_accessor& ca, const entry& e) {
         return ca.acquire(base::insert(ca, e)); }
-    bool insert(accessor& a, const entry& e) { return a.acquire(base::insert(a, e)); }
+    bool insert(accessor& a, const entry& e) {
+        return a.acquire(base::insert(a, e)); }
     bool insert(const entry& e) { return base::insert(e); }
 
-    bool erase(const_accessor& ca) { ca.release(); return base::erase(ca); }
-    bool erase(accessor& a) { a.release(); return base::erase(a); }
+    bool erase(const_accessor& ca) { ca.release_ann(); return base::erase(ca); }
+    bool erase(accessor& a) { a.release_ann(); return base::erase(a); }
     bool erase(const K& k) { return base::erase(k); }
 
     using base::clear;

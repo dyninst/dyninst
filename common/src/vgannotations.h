@@ -9,8 +9,6 @@
 #include <valgrind/helgrind.h>
 #include <valgrind/drd.h>
 
-#define DYNINST_VG_ANNOTATIONS
-
 // Annotations for libc's inlined synchronization (for locales, mostly)
 #define _GLIBCXX_SYNCHRONIZATION_HAPPENS_BEFORE(addr) ANNOTATE_HAPPENS_BEFORE(addr)
 #define _GLIBCXX_SYNCHRONIZATION_HAPPENS_AFTER(addr)  ANNOTATE_HAPPENS_AFTER(addr)
@@ -29,25 +27,18 @@
 // - Currently the function cannot take any arguments. Someone with more C++
 //   background can fix that later if they like.
 
-#include <boost/thread/once.hpp>
+#include <mutex>
 #include <functional>
 
 template<typename T> class LazySingleton {
     T value;
-    boost::once_flag flag;
+    std::once_flag flag;
 
 public:
     typedef T type;
 
-    LazySingleton()
-#ifndef BOOST_THREAD_PROVIDES_ONCE_CXX11
-        : flag(BOOST_ONCE_INIT)
-#endif
-        {};
-    ~LazySingleton() {};
-
     T& get(std::function<T()> f) {
-        boost::call_once(flag, [&]{
+        std::call_once(flag, [&]{
             value = f();
             ANNOTATE_HAPPENS_BEFORE(&flag);
         });
@@ -72,9 +63,6 @@ public:
 template<typename T> class LazySingleton {
 public:
     typedef T type;
-
-    LazySingleton() {};
-    ~LazySingleton() {};
 
     T& get(std::function<T()> f) {
         static T value = f();

@@ -878,11 +878,14 @@ Parser::finalize(Function *f)
 
              Block* trg_block = e->trg();
              bool trg_has_call_edge = false;
+             {
+             boost::unique_lock<Block> l(*trg_block);
              for (auto eit2 = trg_block->sources().begin(); eit2 != trg_block->sources().end(); ++eit2)
                  if ((*eit2)->type() == CALL) {
                      trg_has_call_edge = true;
                      break;
                  }
+             }
 
              // Rule 1:
              // If an edge is currently not a tail call, but the edge target has a CALL incoming edge,

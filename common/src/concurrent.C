@@ -47,3 +47,17 @@ unsigned int dyn_thread::getId() {
 unsigned int dyn_thread::threads() {
     return omp_get_num_threads();
 }
+
+void dyn_c_annotations::wlock(void* ptr) {
+    ANNOTATE_HAPPENS_AFTER(ptr + 1);
+    ANNOTATE_HAPPENS_AFTER(ptr);
+}
+void dyn_c_annotations::wunlock(void* ptr) {
+    ANNOTATE_HAPPENS_BEFORE(ptr);
+}
+void dyn_c_annotations::rlock(void* ptr) {
+    ANNOTATE_HAPPENS_AFTER(ptr);
+}
+void dyn_c_annotations::runlock(void* ptr) {
+    ANNOTATE_HAPPENS_BEFORE(ptr + 1);
+}
