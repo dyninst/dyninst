@@ -6,8 +6,8 @@
 #define _VGANNOTATIONS_H_
 
 #ifdef ENABLE_VG_ANNOTATIONS
-#include <valgrind/helgrind.h>
-#include <valgrind/drd.h>
+#include <helgrind.h>
+#include <drd.h>
 
 // Annotations for libc's inlined synchronization (for locales, mostly)
 #define _GLIBCXX_SYNCHRONIZATION_HAPPENS_BEFORE(addr) ANNOTATE_HAPPENS_BEFORE(addr)

@@ -56,6 +56,13 @@ find_package(OpenMP REQUIRED)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
+set(ADD_VALGRIND_ANNOTATIONS OFF CACHE BOOL "Enable annotations for Valgrind analysis")
+if(ADD_VALGRIND_ANNOTATIONS)
+  find_package(Valgrind REQUIRED)
+  include_directories(${Valgrind_INCLUDE_DIRS})
+  add_definitions(-DENABLE_VG_ANNOTATIONS)
+endif()
+
 include_directories (
   ${DYNINST_ROOT}
   ${DYNINST_ROOT}/external
