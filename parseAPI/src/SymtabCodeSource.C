@@ -453,13 +453,7 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
         parsing_printf("\n");
 
         CodeRegion * cr = new SymtabCodeRegion(_symtab,r, symbols);
-        bool already_present = false;
-
-        {
-          RegionMap::accessor a;
-          already_present = rmap.insert(a, std::make_pair(r, cr));
-        }
-
+        bool already_present = !rmap.insert(std::make_pair(r, cr));
         if (already_present) {
             parsing_printf("[%s:%d] duplicate region at address %lx\n",
                 FILE__,__LINE__,r->getMemOffset());
@@ -509,13 +503,8 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
           continue;
         }
         /*Achin added code ends*/
-
-        bool present = false;
-        {
-          SeenMap::accessor a;
-          Offset offset = f->getOffset();
-          present = !seen.insert(a, std::make_pair(offset, true));
-        }
+        Offset offset = f->getOffset();
+        bool present = !seen.insert(std::make_pair(offset, true));
 
         if (present) {
             // XXX it looks as though symtabapi now does de-duplication

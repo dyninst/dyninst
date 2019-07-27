@@ -83,11 +83,11 @@ CodeObject::CodeObject(CodeSource *cs,
 void
 CodeObject::process_hints()
 {
-    Function * f = NULL;
     const tbb::concurrent_vector<Hint> & hints = cs()->hints();
     int size = hints.size();
 #pragma omp parallel for schedule(auto)
     for(int i = 0; i < size; ++i) {
+        Function * f = NULL;
         CodeRegion * cr = hints[i]._reg;
         if(!cs()->regionsOverlap())
             f = parser->factory()._mkfunc(

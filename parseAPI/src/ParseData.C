@@ -131,10 +131,11 @@ int StandardParseData::findBlocks(CodeRegion * /* cr */, Address addr,
 Function *
 StandardParseData::createAndRecordFunc(CodeRegion * cr, Address entry, FuncSource src)
 {
+    Function * ret = findFunc(NULL, entry);
+    if (ret != NULL) return NULL;
+
     CodeRegion * reg = reglookup(cr,entry);
-    Function * ret = NULL;
     char name[32];
-    if(!(ret = findFunc(reg,entry))) {
         if(reg && reg->isCode(entry)) {
            if (src == MODIFICATION) {
               snprintf(name,32,"mod%lx",entry);
@@ -151,7 +152,6 @@ StandardParseData::createAndRecordFunc(CodeRegion * cr, Address entry, FuncSourc
                 _parser->record_func(ret);
             }
         }
-    }
     return ret;
 }
 

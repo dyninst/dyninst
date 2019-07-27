@@ -124,7 +124,6 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
             return;
         }
     }
-
     _parse_data = new StandardParseData(this);
 }
 
@@ -488,7 +487,7 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
             break;
         }
         case ParseFrame::RETURN_SET: {
-            parsing_printf("[%s] frame %lx's function's return status set to RETURN. Chance to resume functions",pf->func->addr(),pf->func->retstatus());
+            parsing_printf("[%s] frame %lx's function's return status set to RETURN. Chance to resume functions", FILE__, pf->func->addr());
             work.insert(pf);
             resumeFrames(pf->func, work);
             break;
