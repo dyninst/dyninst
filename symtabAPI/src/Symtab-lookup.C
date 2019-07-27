@@ -865,6 +865,18 @@ Module *Symtab::getDefaultModule() {
     return indexed_modules[0];
 }
 
+unsigned Function::getSymbolSize() const {
+   if (functionSize_)
+      return functionSize_;
+   for (unsigned i=0; i<symbols_.size(); i++) {
+      if (symbols_[i]->getSize()) { 
+         functionSize_ = symbols_[i]->getSize();;
+         return functionSize_;
+      }
+   }
+   return 0;
+}
+
 unsigned Function::getSize() const {
    if (functionSize_)
       return functionSize_;

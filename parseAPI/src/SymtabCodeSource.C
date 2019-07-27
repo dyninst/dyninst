@@ -479,16 +479,14 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
 void
 SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
 {
-    vector<SymtabAPI::Function *> fsyms;
+    const vector<SymtabAPI::Function *>& fsyms = _symtab->getAllFunctionsRef();
     SeenMap seen;
-    int dupes = 0;
-
-    if(!_symtab->getAllFunctions(fsyms))
-        return;
+    tbb::concurrent_vector<Hint> h;
 
     parsing_printf("[%s:%d] processing %d symtab hints\n",FILE__,__LINE__,
         fsyms.size());
 
+#pragma omp parallel for schedule(auto)
     for (unsigned int i = 0; i < fsyms.size(); i++) {
         SymtabAPI::Function *f = fsyms[i];
         vector<SymtabAPI::Symbol*> syms;
@@ -516,8 +514,7 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
         {
           SeenMap::accessor a;
           Offset offset = f->getOffset();
-          present = seen.find(a, offset);
-          if (!present) seen.insert(a, std::make_pair(offset, true));
+          present = !seen.insert(a, std::make_pair(offset, true));
         }
 
         if (present) {
@@ -527,7 +524,7 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
             //     regions
            parsing_printf("[%s:%d] duplicate function at address %lx: %s\n",
                 FILE__,__LINE__, f->getOffset(), fname);
-            ++dupes;
+           continue;
         }
 
         SymtabAPI::Region * sr = f->getRegion();
@@ -540,7 +537,7 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
         CodeRegion * cr = NULL;
 
         {
-          RegionMap::accessor a;
+          RegionMap::const_accessor a;
           present = rmap.find(a, sr);
           if (present) cr = a->second;
         }
@@ -557,7 +554,7 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
                            sr->getMemOffset(),
                            sr->getMemOffset()+sr->getDiskSize());
         } else {
-          _hints.push_back(Hint(f->getOffset(), f->getSize(), cr, fname_s));
+          _hints.push_back(Hint(f->getOffset(), f->getSymbolSize(), cr, fname_s));
           parsing_printf("\t<%lx,%s,[%lx,%lx)>\n",
                          f->getOffset(),
                          fname,
@@ -565,7 +562,6 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
                          cr->offset()+cr->length());
         }
     }
-    sort(_hints.begin(), _hints.end());
 }
 
 void

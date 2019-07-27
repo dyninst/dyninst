@@ -82,25 +82,20 @@ namespace Dyninst {
 
             // region data store
             ParseData *_parse_data;
-
-    // All allocated frames
-    LockFreeQueue<ParseFrame *> frames;
-
-            // Delayed frames
-            // This can be a concurrent hash map.
-            // Will do this change if a profile suggests it as a bottleneck
-            struct DelayedFrames : public boost::basic_lockable_adapter<boost::recursive_mutex> {
-                std::map<Function *, std::set<ParseFrame *> > frames, prev_frames;
-
-            };
-            DelayedFrames delayed_frames;
+            
+            // All allocated frames
+            LockFreeQueue<ParseFrame *> frames;
+            
+            boost::atomic<bool> delayed_frames_changed;
+            dyn_c_hash_map<Function*, std::set<ParseFrame*> > delayed_frames;
 
             // differentiate those provided via hints and
             // those found through RT or speculative parsing
-            vector<Function *> hint_funcs;
-            vector<Function *> discover_funcs;
+            tbb::concurrent_vector<Function *> hint_funcs;
+            tbb::concurrent_vector<Function *> discover_funcs;
 
             set<Function *, Function::less> sorted_funcs;
+            set<Function*> deleted_func;
 
             // PLT, IAT entries
             dyn_hash_map<Address, string> plt_entries;
@@ -261,8 +256,8 @@ namespace Dyninst {
 
             void finalize();
 
-            void finalize_funcs(vector<Function *> &funcs);
-	    void clean_bogus_funcs(vector<Function*> &funcs);
+            void finalize_funcs(tbb::concurrent_vector<Function *> &funcs);
+	    void clean_bogus_funcs(tbb::concurrent_vector<Function*> &funcs);
             void finalize_ranges(vector<Function *> &funcs);
 	    void split_overlapped_blocks();
             void split_consistent_blocks(region_data *, map<Address, Block*> &);

@@ -134,7 +134,6 @@ StandardParseData::createAndRecordFunc(CodeRegion * cr, Address entry, FuncSourc
     CodeRegion * reg = reglookup(cr,entry);
     Function * ret = NULL;
     char name[32];
-    boost::lock_guard<ParseData> g(*this);
     if(!(ret = findFunc(reg,entry))) {
         if(reg && reg->isCode(entry)) {
            if (src == MODIFICATION) {
@@ -145,7 +144,12 @@ StandardParseData::createAndRecordFunc(CodeRegion * cr, Address entry, FuncSourc
             parsing_printf("[%s] new function for target %lx\n",FILE__,entry);
             ret = _parser->factory()._mkfunc(
                entry,src,name,&_parser->obj(),reg,_parser->obj().cs());
-            _parser->record_func(ret);
+            if (record_func(ret) == NULL) {
+                delete ret;
+                return NULL;
+            } else {
+                _parser->record_func(ret);
+            }
         }
     }
     return ret;
@@ -391,7 +395,6 @@ OverlappingParseData::createAndRecordFrame(Function* f)
 Function * 
 OverlappingParseData::createAndRecordFunc(CodeRegion * cr, Address addr, FuncSource src)
 {
-    boost::lock_guard<ParseData> g(*this);
     Function * ret = NULL;
     char name[32];
 
@@ -418,7 +421,7 @@ OverlappingParseData::findRegion(CodeRegion *cr)
     if(!HASHDEF(rmap,cr)) return NULL;
     return rmap[cr];
 }
-void
+Function*
 OverlappingParseData::record_func(Function *f)
 {
     boost::lock_guard<ParseData> g(*this);
@@ -426,10 +429,10 @@ OverlappingParseData::record_func(Function *f)
     if(!HASHDEF(rmap,cr)) {
         fprintf(stderr,"Error, invalid code region [%lx,%lx) in record_func\n",
             cr->offset(),cr->offset()+cr->length());
-        return;
+        return NULL;
     }
     region_data * rd = rmap[cr];
-    rd->record_func(f);
+    return rd->record_func(f);
 }
 Block*
 OverlappingParseData::record_block(CodeRegion *cr, Block *b)
