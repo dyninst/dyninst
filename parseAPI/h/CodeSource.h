@@ -151,7 +151,8 @@ class PARSER_EXPORT CodeSource : public Dyninst::InstructionSource {
      * locations or using speculative methods) is supported
      * without hints.
      */
-    std::vector<Hint> _hints;
+    //std::vector<Hint> _hints;
+    tbb::concurrent_vector<Hint> _hints;
 
     /*
      * Lists of known non-returning functions (by name)
@@ -181,7 +182,8 @@ class PARSER_EXPORT CodeSource : public Dyninst::InstructionSource {
     virtual Address loadAddress() const { return 0; }
 
     std::map< Address, std::string > & linkage() const { return _linkage; }
-    std::vector< Hint > const& hints() const { return _hints; } 
+//    std::vector< Hint > const& hints() const { return _hints; } 
+    tbb::concurrent_vector<Hint> const& hints() const { return _hints; }
     std::vector<CodeRegion *> const& regions() const { return _regions; }
     int findRegions(Address addr, std::set<CodeRegion *> & ret) const;
     bool regionsOverlap() const { return _regions_overlap; }

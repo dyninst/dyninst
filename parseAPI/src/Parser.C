@@ -316,9 +316,10 @@ Parser::parse_vanilla()
     sort(svec.begin(), svec.end());
     vector<std::pair<long, ParseFrame*> > size_vec;
 
-    for (size_t i = 0; i < svec.size() - 1; ++i)
-        size_vec.push_back(make_pair(svec[i+1].first - svec[i].first, svec[i].second));
-    size_vec.push_back(make_pair(0, svec[svec.size()-1].second));
+    for (size_t i = 1; i < svec.size(); ++i)
+        size_vec.push_back(make_pair(svec[i].first - svec[i-1].first, svec[i-1].second));
+    if (svec.size() > 0)
+        size_vec.push_back(make_pair(0, svec[svec.size()-1].second));
     sort(size_vec.begin(), size_vec.end());
     for (size_t i = 0; i < size_vec.size(); ++i)
         work.insert(size_vec[i].second);

@@ -84,10 +84,8 @@ void
 CodeObject::process_hints()
 {
     Function * f = NULL;
-    const vector<Hint> & hints = cs()->hints();
-    vector<Hint>::const_iterator hit;
-
-    for(hit = hints.begin();hit!=hints.end();++hit) {
+    const tbb::concurrent_vector<Hint> & hints = cs()->hints();
+    for(auto hit = hints.begin();hit!=hints.end();++hit) {
         CodeRegion * cr = (*hit)._reg;
         if(!cs()->regionsOverlap())
             f = parser->factory()._mkfunc(

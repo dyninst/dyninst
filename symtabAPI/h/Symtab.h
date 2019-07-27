@@ -176,6 +176,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
                                           bool isRegex = false,
                                           bool checkCase = true);
    bool getAllFunctions(std::vector<Function *>&ret);
+   const std::vector<Function*>& getAllFunctionsRef() const { return everyFunction; }
 
    //Searches for functions without returning inlined instances
    bool getContainingFunction(Offset offset, Function* &func);

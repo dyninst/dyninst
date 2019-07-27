@@ -175,6 +175,7 @@ class SYMTAB_EXPORT FunctionBase
    Serializable * serialize_impl(SerializerBase *sb,
                                 const char *tag = "Function") THROW_SPEC (SerializerError);
 
+   virtual unsigned getSymbolSize() const;
    virtual unsigned getSize() const;
    virtual std::string getName() const;
    virtual Offset getOffset() const { return Aggregate::getOffset(); }
