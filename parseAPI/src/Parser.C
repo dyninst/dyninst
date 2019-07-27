@@ -147,8 +147,8 @@ Parser::~Parser()
 void
 Parser::add_hint(Function * f)
 {
-    if(!_parse_data->findFunc(f->region(),f->addr()))
-        record_func(f);
+    _parse_data->record_func(f);
+    record_func(f);
 }
 
 template <typename T>
@@ -521,6 +521,7 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
             resumeFrames(pf->func, work);
 
             pf->cleanup();
+            _parse_data->remove_frame(pf);
             break;
         }
         case ParseFrame::FRAME_ERROR:
@@ -796,7 +797,6 @@ void Parser::cleanup_frames()  {
   for (unsigned int i = 0; i < pfv.size(); i++) {
     ParseFrame *pf = pfv[i];
     if (pf) {
-      _parse_data->remove_frame(pf);
       delete pf;
     }
   }
@@ -1016,7 +1016,16 @@ Parser::finalize()
 
         finalize_funcs(hint_funcs);
         finalize_funcs(discover_funcs);
-	clean_bogus_funcs(discover_funcs);
+        clean_bogus_funcs(discover_funcs);
+
+        for (auto it = hint_funcs.begin(); it != hint_funcs.end(); ++it)
+            if (deleted_func.find(*it) == deleted_func.end())
+                sorted_funcs.insert(*it);
+        for (auto it = discover_funcs.begin(); it != discover_funcs.end(); ++it)
+            if (deleted_func.find(*it) == deleted_func.end())
+                sorted_funcs.insert(*it);
+
+
 
 	//finalize_ranges(hint_funcs);
 	//finalize_ranges(discover_funcs);
@@ -1026,13 +1035,12 @@ Parser::finalize()
 }
 
 void
-Parser::finalize_funcs(vector<Function *> &funcs)
+Parser::finalize_funcs(tbb::concurrent_vector<Function *> &funcs)
 {
-    vector<Function*> thread_local_funcs;
-    std::copy(funcs.begin(), funcs.end(), std::back_inserter(thread_local_funcs));
+    int size = funcs.size();
 #pragma omp parallel for schedule(auto)
-    for(int i = 0; i < thread_local_funcs.size(); ++i) {
-        Function *f = thread_local_funcs[i];
+    for(int i = 0; i < size; ++i) {
+        Function *f = funcs[i];
         f->finalize();
     }
 }
@@ -1049,7 +1057,7 @@ Parser::finalize_ranges(vector<Function *> &funcs)
 }
 
 void
-Parser::clean_bogus_funcs(vector<Function*> &funcs)
+Parser::clean_bogus_funcs(tbb::concurrent_vector<Function*> &funcs)
 {
     for (auto fit = funcs.begin(); fit != funcs.end(); ) {
         Function *f = *fit;
@@ -1068,10 +1076,6 @@ Parser::clean_bogus_funcs(vector<Function*> &funcs)
 	    // This function should be created because tail call heuristic makes a mistake
 	    // We have already fixed such bogos tail calls in the previous step of finalizing,
 	    // so now we should remove such bogus function
-            if (sorted_funcs.end() != sorted_funcs.find(f)) {
-                sorted_funcs.erase(f);
-            }
-	    fit = funcs.erase(fit);
 	    _parse_data->remove_func(f);
 
         // Also need to decrement the block reference count
@@ -1238,9 +1242,8 @@ Parser::record_func(Function *f)
     else
         discover_funcs.push_back(f);
 
-    sorted_funcs.insert(f);
+    //sorted_funcs.insert(f);
 
-    _parse_data->record_func(f);
 }
 
 void
@@ -1327,8 +1330,9 @@ namespace {
 void
 Parser::parse_frame(ParseFrame & frame, bool recursive) {
     frame.func->_cache_valid = false;
-
-    if (frame.status() == ParseFrame::UNPARSED) {
+    if (frame.status() == ParseFrame::PARSED) {
+        return;
+    } else if (frame.status() == ParseFrame::UNPARSED) {
         parsing_printf("[%s] ==== starting to parse frame %lx ====\n",
                        FILE__,frame.func->addr());
         // prevents recursion of parsing
@@ -2391,9 +2395,13 @@ Parser::frame_status(CodeRegion * cr, Address addr)
 void
 Parser::remove_func(Function *func)
 {
+    /*
     if (sorted_funcs.end() != sorted_funcs.find(func)) {
         sorted_funcs.erase(func);
     }
+    */
+    deleted_func.insert(func);
+    /*
     if (HINT == func->src()) {
         for (unsigned fidx=0; fidx < hint_funcs.size(); fidx++) {
             if (hint_funcs[fidx] == func) {
@@ -2412,7 +2420,7 @@ Parser::remove_func(Function *func)
             }
         }
     }
-
+    */
     _parse_data->remove_func(func);
 }
 

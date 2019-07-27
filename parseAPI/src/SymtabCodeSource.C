@@ -562,9 +562,6 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
                          cr->offset()+cr->length());
         }
     }
-//    std::copy(h.begin(), h.end(), std::back_inserter(_hints));
-//    sort(_hints.begin(), _hints.end());
-    fprintf(stderr, "total hints %u\n", _hints.size());
 }
 
 void

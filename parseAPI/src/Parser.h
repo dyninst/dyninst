@@ -91,10 +91,11 @@ namespace Dyninst {
 
             // differentiate those provided via hints and
             // those found through RT or speculative parsing
-            vector<Function *> hint_funcs;
-            vector<Function *> discover_funcs;
+            tbb::concurrent_vector<Function *> hint_funcs;
+            tbb::concurrent_vector<Function *> discover_funcs;
 
             set<Function *, Function::less> sorted_funcs;
+            set<Function*> deleted_func;
 
             // PLT, IAT entries
             dyn_hash_map<Address, string> plt_entries;
@@ -255,8 +256,8 @@ namespace Dyninst {
 
             void finalize();
 
-            void finalize_funcs(vector<Function *> &funcs);
-	    void clean_bogus_funcs(vector<Function*> &funcs);
+            void finalize_funcs(tbb::concurrent_vector<Function *> &funcs);
+	    void clean_bogus_funcs(tbb::concurrent_vector<Function*> &funcs);
             void finalize_ranges(vector<Function *> &funcs);
 	    void split_overlapped_blocks();
             void split_consistent_blocks(region_data *, map<Address, Block*> &);

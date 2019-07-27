@@ -85,14 +85,16 @@ CodeObject::process_hints()
 {
     Function * f = NULL;
     const tbb::concurrent_vector<Hint> & hints = cs()->hints();
-    for(auto hit = hints.begin();hit!=hints.end();++hit) {
-        CodeRegion * cr = (*hit)._reg;
+    int size = hints.size();
+#pragma omp parallel for schedule(auto)
+    for(int i = 0; i < size; ++i) {
+        CodeRegion * cr = hints[i]._reg;
         if(!cs()->regionsOverlap())
             f = parser->factory()._mkfunc(
-               (*hit)._addr,HINT,(*hit)._name,this,cr,cs());
+               hints[i]._addr,HINT,hints[i]._name,this,cr,cs());
         else
             f = parser->factory()._mkfunc(
-                (*hit)._addr,HINT,(*hit)._name,this,cr,cr);
+                hints[i]._addr,HINT,hints[i]._name,this,cr,cr);
         if(f) {
             parsing_printf("[%s] adding hint %lx\n",FILE__,f->addr());
             parser->add_hint(f);
