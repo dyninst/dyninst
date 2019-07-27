@@ -1062,32 +1062,28 @@ Parser::finalize_ranges(vector<Function *> &funcs)
 void
 Parser::clean_bogus_funcs(tbb::concurrent_vector<Function*> &funcs)
 {
-    for (auto fit = funcs.begin(); fit != funcs.end(); ) {
+    for (auto fit = funcs.begin(); fit != funcs.end(); fit++) {
         Function *f = *fit;
-	if (f->src() == HINT) {
-	    fit++;
-	    continue;
-	}
+        if (f->src() == HINT) continue;  // HINT functions are never bogus
         bool interprocEdge = false;
         // Here we do not need locking because we
         // are single-threaded during finalizing
-	for (auto eit = f->entry()->sources().begin(); !interprocEdge && eit != f->entry()->sources().end(); ++eit)
-	    if ((*eit)->interproc()) interprocEdge = true;
-	if (!interprocEdge) {
+        for (auto eit = f->entry()->sources().begin();
+             eit != f->entry()->sources().end(); ++eit)
+            if ((*eit)->interproc()) { interprocEdge = true; break; }
+        if (!interprocEdge) {
             parsing_printf("Removing function %lx with name %s\n", f->addr(), f->name().c_str());
-	    // This is a discovered function that has no inter-procedural entry edge.
-	    // This function should be created because tail call heuristic makes a mistake
-	    // We have already fixed such bogos tail calls in the previous step of finalizing,
-	    // so now we should remove such bogus function
-	    _parse_data->remove_func(f);
+            // This is a discovered function that has no inter-procedural entry edge.
+            // This function should be created because tail call heuristic makes a mistake
+            // We have already fixed such bogos tail calls in the previous step of finalizing,
+            // so now we should remove such bogus function
+            _parse_data->remove_func(f);
 
-        // Also need to decrement the block reference count
-        for (auto blk = f->blocks().begin(); blk != f->blocks().end(); blk++) {
-            (*blk)->_func_cnt.fetch_add(-1);
+            // Also need to decrement the block reference count
+            for (auto blk = f->blocks().begin(); blk != f->blocks().end(); blk++) {
+                (*blk)->_func_cnt.fetch_add(-1);
+            }
         }
-	} else {
-	    fit++;
-	}
     }
 }
 
