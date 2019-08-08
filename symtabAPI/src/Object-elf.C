@@ -2879,7 +2879,7 @@ Object::Object(MappedFile *mf_, bool, void (*err_func)(const char *),
 #endif
     is_aout_ = false;
 
-    if (mf->getFD() != -1) {
+    if (mf->base_addr() == NULL) {
         elfHdr = Elf_X::newElf_X(mf->getFD(), ELF_C_READ, NULL, mf_->pathname());
     } else {
         elfHdr = Elf_X::newElf_X((char *) mf->base_addr(), mf->size(), mf_->pathname());

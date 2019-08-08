@@ -77,7 +77,7 @@ Elf_X *Elf_X::newElf_X(int input, Elf_Cmd cmd, Elf_X *ref, string name)
 #if defined(USES_ELFUTILS)
    //If using libelf via elfutils from RedHat
    if (cmd == ELF_C_READ) {
-      cmd = ELF_C_READ_MMAP;
+      cmd = ELF_C_READ_MMAP_PRIVATE;
    }
 #endif
    if (name.empty()) {
