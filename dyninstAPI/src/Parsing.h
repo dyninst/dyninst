@@ -75,6 +75,7 @@ class DynCFGFactory : public Dyninst::ParseAPI::CFGFactory {
     void dump_stats();
 
   private:
+    boost::mutex _mtx;
     image * _img;     
     std::vector<int> _func_allocs;
     std::vector<int> _edge_allocs;
