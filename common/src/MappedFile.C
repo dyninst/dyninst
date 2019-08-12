@@ -361,19 +361,8 @@ bool MappedFile::map_file()
 
 #else
 
-   int mmap_prot  = PROT_READ;
-   int mmap_flags = MAP_SHARED;
-
-#if defined(os_vxworks)   
-   // VxWorks kernel modules have relocations which need to be
-   // overwritten in memory.
-   //
-   // XXX - We don't overwrite our memory image with relocations from the
-   // target memory space yet due to performance concerns.  If we decide
-   // to go this route, it would simplify a lot of the Dyninst internals.
-   mmap_prot  = PROT_READ | PROT_WRITE;
-   mmap_flags = MAP_PRIVATE;
-#endif
+   int mmap_prot  = PROT_READ | PROT_WRITE;
+   int mmap_flags = MAP_PRIVATE;
 
    map_addr = mmap(0, file_size, mmap_prot, mmap_flags, fd, 0);
    if (MAP_FAILED == map_addr) {

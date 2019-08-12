@@ -77,7 +77,7 @@ Elf_X *Elf_X::newElf_X(int input, Elf_Cmd cmd, Elf_X *ref, string name)
 #if defined(USES_ELFUTILS)
    //If using libelf via elfutils from RedHat
    if (cmd == ELF_C_READ) {
-      cmd = ELF_C_READ_MMAP;
+      cmd = ELF_C_READ_MMAP_PRIVATE;
    }
 #endif
    if (name.empty()) {
@@ -1631,7 +1631,8 @@ static bool loadDebugFileFromDisk(string name, char* &output_buffer, unsigned lo
    if (fd == -1)
       return false;
 
-   char *buffer = (char *) mmap(NULL, fileStat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+   char *buffer = (char *) mmap(NULL, fileStat.st_size,
+                                PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0);
    close(fd);
    if (!buffer)
       return false;
