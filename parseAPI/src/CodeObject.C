@@ -83,7 +83,7 @@ CodeObject::CodeObject(CodeSource *cs,
 void
 CodeObject::process_hints()
 {
-    const tbb::concurrent_vector<Hint> & hints = cs()->hints();
+    const dyn_c_vector<Hint> & hints = cs()->hints();
     int size = hints.size();
 #pragma omp parallel for schedule(auto)
     for(int i = 0; i < size; ++i) {

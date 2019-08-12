@@ -475,7 +475,7 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
 {
     const vector<SymtabAPI::Function *>& fsyms = _symtab->getAllFunctionsRef();
     SeenMap seen;
-    tbb::concurrent_vector<Hint> h;
+    dyn_c_vector<Hint> h;
 
     parsing_printf("[%s:%d] processing %d symtab hints\n",FILE__,__LINE__,
         fsyms.size());

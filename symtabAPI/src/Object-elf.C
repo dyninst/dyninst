@@ -2078,7 +2078,6 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
     if (syms.isValid()) {
         std::vector<string> mods(syms.count());
         std::vector<Symbol*> newsyms(syms.count());
-        #pragma omp parallel
         {
         #pragma omp for schedule(dynamic)
         for (unsigned i = 0; i < syms.count(); i++) {
@@ -2518,7 +2517,6 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
     }
 
     /* Iterate over the compilation-unit headers. */
-    #pragma omp parallel for schedule(dynamic)
     for (size_t i = 0; i < dies.size(); i++) {
         Dwarf_Die cu_die = dies[i];
 

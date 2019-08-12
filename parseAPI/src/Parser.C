@@ -1045,7 +1045,7 @@ Parser::prepare_ranges()
 }
 
 void
-Parser::finalize_funcs(tbb::concurrent_vector<Function *> &funcs)
+Parser::finalize_funcs(dyn_c_vector<Function *> &funcs)
 {
     int size = funcs.size();
 #pragma omp parallel for schedule(auto)
@@ -1069,7 +1069,7 @@ Parser::finalize_ranges(tbb::concurrent_vector<Function *> &funcs)
 }
 
 void
-Parser::clean_bogus_funcs(tbb::concurrent_vector<Function*> &funcs)
+Parser::clean_bogus_funcs(dyn_c_vector<Function*> &funcs)
 {
     for (auto fit = funcs.begin(); fit != funcs.end(); fit++) {
         Function *f = *fit;
