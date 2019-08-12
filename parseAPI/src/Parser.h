@@ -258,7 +258,7 @@ namespace Dyninst {
 
             void finalize_funcs(tbb::concurrent_vector<Function *> &funcs);
 	    void clean_bogus_funcs(tbb::concurrent_vector<Function*> &funcs);
-            void finalize_ranges(vector<Function *> &funcs);
+            void finalize_ranges(tbb::concurrent_vector<Function *> &funcs);
 	    void split_overlapped_blocks();
             void split_consistent_blocks(region_data *, map<Address, Block*> &);
             void split_inconsistent_blocks(region_data *, map<Address, Block*> &);
@@ -294,6 +294,14 @@ namespace Dyninst {
     LockFreeQueueItem<ParseFrame *> *postProcessFrame(ParseFrame *pf, bool recursive);
 
             void updateBlockEnd(Block *b, Address addr, Address previnsn, region_data *rd) const;
+
+            // Range data is initialized through writing to interval trees.
+            // This is intrinsitcally mutual exclusive. So we delay this initialization until
+            // someone actually needs this. 
+            //
+            // Note: this has to be run in a single thread.
+            bool range_data_ready;
+            void prepare_ranges();
         };
 
     }
