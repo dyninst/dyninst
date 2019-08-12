@@ -124,6 +124,8 @@
 // TODO: when should we use thread_local?
 #if defined(_MSC_VER)
   #define dyn_tls __declspec(thread)
+#elif defined(__clang__)
+  #define dyn_tls thread_local
 #else
   #define dyn_tls __thread
 #endif
