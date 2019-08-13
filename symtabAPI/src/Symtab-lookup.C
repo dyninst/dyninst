@@ -351,6 +351,7 @@ bool Symtab::getAllVariables(std::vector<Variable *> &ret)
 
 bool Symtab::getAllModules(std::vector<Module *> &ret)
 {
+    dyn_mutex::unique_lock l(im_lock);
     if (indexed_modules.size() >0 )
     {
         std::copy(indexed_modules.begin(), indexed_modules.end(), std::back_inserter(ret));
@@ -364,7 +365,7 @@ bool Symtab::getAllModules(std::vector<Module *> &ret)
 
 bool Symtab::findModuleByOffset(Module *&ret, Offset off)
 {
-
+    dyn_mutex::unique_lock l(im_lock);
     std::set<ModRange*> mods;
     mod_lookup()->find(off, mods);
     if(!mods.empty())
@@ -376,6 +377,7 @@ bool Symtab::findModuleByOffset(Module *&ret, Offset off)
 
 bool Symtab::findModuleByOffset(std::set<Module *>&ret, Offset off)
 {
+    dyn_mutex::unique_lock l(im_lock);
     std::set<ModRange*> mods;
     ret.clear();
     mod_lookup()->find(off, mods);
@@ -390,6 +392,7 @@ bool Symtab::findModuleByOffset(std::set<Module *>&ret, Offset off)
 
 bool Symtab::findModuleByName(Module *&ret, const std::string name)
 {
+   dyn_mutex::unique_lock l(im_lock);
    auto loc = indexed_modules.get<3>().find(name);
 
    if (loc != indexed_modules.get<3>().end())
@@ -861,6 +864,7 @@ bool Symtab::getContainingInlinedFunction(Offset offset, FunctionBase* &func)
 }
 
 Module *Symtab::getDefaultModule() {
+    dyn_mutex::unique_lock l(im_lock);
     if(indexed_modules.empty()) createDefaultModule();
     return indexed_modules[0];
 }

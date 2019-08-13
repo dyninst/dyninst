@@ -576,7 +576,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    std::vector<Variable *> everyVariable;
    dyn_c_hash_map <Offset, Variable *> varsByOffset;
 
-
+    dyn_mutex im_lock;
     boost::multi_index_container<Module*,
             boost::multi_index::indexed_by<
                     boost::multi_index::random_access<>,

@@ -4913,6 +4913,7 @@ bool sort_dbg_map(const Object::DbgAddrConversion_t &a,
 
 bool Object::convertDebugOffset(Offset off, Offset &new_off)
 {
+    dyn_mutex::unique_lock l(dsm_lock);
     int hi = DebugSectionMap.size();
 
     if (hi == 0) {

@@ -594,6 +594,7 @@ private:
   };
  private:
   bool DbgSectionMapSorted;
+  dyn_mutex dsm_lock;
   std::vector<DbgAddrConversion_t> DebugSectionMap;
 
  public:  
