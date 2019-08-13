@@ -258,8 +258,7 @@ namespace Dyninst {
 
             void finalize_funcs(dyn_c_vector<Function *> &funcs);
 	    void clean_bogus_funcs(dyn_c_vector<Function*> &funcs);
-            void finalize_ranges(vector<Function *> &funcs);
-            void split_inconsistent_blocks(region_data *, map<Address, Block*> &);
+            void finalize_ranges(dyn_c_vector<Function *> &funcs);
             bool set_edge_parsing_status(ParseFrame&, Address addr, Block *b);
 	    void move_edges_consistent_blocks(Block *, Block *);
             void update_function_ret_status(ParseFrame &, Function*, ParseWorkElem* );

@@ -1056,7 +1056,7 @@ Parser::finalize_funcs(dyn_c_vector<Function *> &funcs)
 }
 
 void
-Parser::finalize_ranges(tbb::concurrent_vector<Function *> &funcs)
+Parser::finalize_ranges(dyn_c_vector<Function *> &funcs)
 {
     for (int i = 0; i < funcs.size(); ++i) {
         Function *f = funcs[i];
