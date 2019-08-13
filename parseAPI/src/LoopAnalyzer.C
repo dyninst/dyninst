@@ -37,7 +37,7 @@
 #include <unordered_map>
 #include <stack>
 #include "CFG.h"
-
+#include "CodeObject.h"
 #include "LoopAnalyzer.h"
 
 using namespace Dyninst;
@@ -118,10 +118,9 @@ void LoopAnalyzer::createLoopHierarchy()
       // Can tail call happen here?
       if ((*eit)->type() == CALL) {
           Block *target = (*eit)->trg();
-	  vector<Function*> callees;
-	  target->getFuncs(callees);
-	  for (auto fit = callees.begin(); fit != callees.end(); ++fit)
-	      insertCalleeIntoLoopHierarchy(*fit, b->last());
+          Function* callee = target->obj()->findFuncByEntry(target->region(), target->start());
+          if (callee)
+              insertCalleeIntoLoopHierarchy(callee, b->last());
       }
     }
   }

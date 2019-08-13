@@ -161,7 +161,6 @@ CFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
 }
 
 void CFGFactory::destroy_func(Function *f) {
-    boost::lock_guard<CFGFactory> g(*this);
    f->remove();
    free_func(f);
 }
@@ -173,7 +172,6 @@ CFGFactory::free_func(Function *f) {
 
 void
 CFGFactory::destroy_block(Block *b) {
-    boost::lock_guard<CFGFactory> g(*this);
     b->remove();
     free_block(b);
 }
