@@ -29,112 +29,68 @@
  */
 
 #include "InstructionDecoder-aarch64.h"
-#include <boost/assign/list_of.hpp>
-#include "../../common/src/singleton_object_pool.h"
 
 namespace Dyninst {
     namespace InstructionAPI {
         typedef void (InstructionDecoder_aarch64::*operandFactory)();
 
-        typedef std::vector<operandFactory> operandSpec;
-        typedef std::vector<aarch64_insn_entry> aarch64_insn_table;
-        typedef std::map<unsigned int, aarch64_mask_entry> aarch64_decoder_table;
-        typedef std::map<unsigned int, unsigned int> branchMap;
+        typedef aarch64_insn_entry aarch64_insn_table[];
+        typedef aarch64_mask_entry aarch64_decoder_table[];
         typedef uint32_t Bits_t;
 
-        std::vector<std::string> InstructionDecoder_aarch64::condStringMap;
-        std::map<unsigned int, MachRegister> InstructionDecoder_aarch64::sysRegMap;
-        std::map<entryID, std::string> InstructionDecoder_aarch64::bitfieldInsnAliasMap = boost::assign::map_list_of(
-                aarch64_op_bfi_bfm, "bfi")(aarch64_op_bfxil_bfm, "bfxil")(aarch64_op_sbfiz_sbfm, "sbfiz")(
-                aarch64_op_sbfx_sbfm, "sbfx")(aarch64_op_ubfiz_ubfm, "ubfiz")(aarch64_op_ubfx_ubfm, "ubfx")(
-                aarch64_op_sxtb_sbfm, "sxtb")(aarch64_op_sxth_sbfm, "sxth")(aarch64_op_sxtw_sbfm, "sxtw")(
-                aarch64_op_uxtb_ubfm, "uxtb")(aarch64_op_uxth_ubfm, "uxth")(aarch64_op_lsl_ubfm, "lsl")(aarch64_op_lsr_ubfm, "lsr");
-	std::map<entryID, std::string> InstructionDecoder_aarch64::condInsnAliasMap = boost::assign::map_list_of(aarch64_op_csinc, "csinc")(aarch64_op_csinv, "csinv")(aarch64_op_csneg, "csneg")
-		(aarch64_op_cinc_csinc, "cinc")(aarch64_op_cset_csinc, "cset")
-		(aarch64_op_cinv_csinv, "cinv")(aarch64_op_csetm_csinv, "csetm")
-		(aarch64_op_cneg_csneg, "cneg");
-
+        const std::array<std::string, 16> InstructionDecoder_aarch64::condStringMap = {
+            "eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc", "hi", "ls", "ge",
+            "lt", "gt", "le", "al", "nv",
+        };
+        
+        const char* InstructionDecoder_aarch64::bitfieldInsnAliasMap(entryID e) {
+            switch(e) {
+            case aarch64_op_bfi_bfm: return "bfi";
+            case aarch64_op_bfxil_bfm: return "bfxil";
+            case aarch64_op_sbfiz_sbfm: return "sbfiz";
+            case aarch64_op_sbfx_sbfm: return "sbfx";
+            case aarch64_op_ubfiz_ubfm: return "ubfiz";
+            case aarch64_op_ubfx_ubfm: return "ubfx";
+            case aarch64_op_sxtb_sbfm: return "sxtb";
+            case aarch64_op_sxth_sbfm: return "sxth";
+            case aarch64_op_sxtw_sbfm: return "sxtw";
+            case aarch64_op_uxtb_ubfm: return "uxtb";
+            case aarch64_op_uxth_ubfm: return "uxth";
+            case aarch64_op_lsl_ubfm: return "lsl";
+            case aarch64_op_lsr_ubfm: return "lsr";
+            default: assert(!"no alias for entryID");
+            };
+        }
+        const char* InstructionDecoder_aarch64::condInsnAliasMap(entryID e) {
+            switch(e) {
+            case aarch64_op_csinc: return "csinc";
+            case aarch64_op_csinv: return "csinv";
+            case aarch64_op_csneg: return "csneg";
+            case aarch64_op_cinc_csinc: return "cinc";
+            case aarch64_op_cset_csinc: return "cset";
+            case aarch64_op_cinv_csinv: return "cinv";
+            case aarch64_op_csetm_csinv: return "csetm";
+            case aarch64_op_cneg_csneg: return "cneg";
+            default: assert(!"no alias for entryID");
+            };
+        };
+        
         struct aarch64_insn_entry {
-            aarch64_insn_entry(entryID o, const char *m, operandSpec ops) :
-                    op(o), mnemonic(m), operands(ops) {
-            }
-
-            aarch64_insn_entry(entryID o, const char *m, operandSpec ops, Bits_t enb, Bits_t mb) :
-                    op(o), mnemonic(m), operands(ops), _encodingBits(enb), _maskBits(mb) {
-            }
-
-            aarch64_insn_entry() :
-                    op(aarch64_op_INVALID), mnemonic("INVALID") {
-                operands.reserve(5);
-            }
-
-            aarch64_insn_entry(const aarch64_insn_entry &o) :
-                    op(o.op), mnemonic(o.mnemonic), operands(o.operands),
-                    _encodingBits(o._encodingBits), _maskBits(o._maskBits) {
-            }
-
-            const aarch64_insn_entry &operator=(const aarch64_insn_entry &rhs) {
-                operands.reserve(rhs.operands.size());
-                op = rhs.op;
-                mnemonic = rhs.mnemonic;
-                operands = rhs.operands;
-                _encodingBits = rhs._encodingBits;
-                _maskBits = rhs._maskBits;
-
-                return *this;
-            }
-
             entryID op;
             const char *mnemonic;
-            operandSpec operands;
-
+            operandFactory operands[14];
             Bits_t _encodingBits;
             Bits_t _maskBits;
 
-            static void buildInsnTable();
-
-            static bool built_insn_table;
-
-            static aarch64_insn_table main_insn_table;
+            static const aarch64_insn_table main_insn_table;
         };
 
         struct aarch64_mask_entry {
-            aarch64_mask_entry(unsigned int m, branchMap bm, int tabIndex) :
-                    mask(m), nodeBranches(bm), insnTableIndices(std::vector<int>()), insnTableIndex(tabIndex) {
-            }
-
-            aarch64_mask_entry(unsigned int m, branchMap bm, std::vector<int> tabIndices) :
-                    mask(m), nodeBranches(bm), insnTableIndices(tabIndices), insnTableIndex(0) {
-            }
-
-            aarch64_mask_entry() :
-                    mask(0), nodeBranches(branchMap()), insnTableIndices(std::vector<int>()), insnTableIndex(0) {
-            }
-
-            aarch64_mask_entry(const aarch64_mask_entry &e) :
-                    mask(e.mask), nodeBranches(e.nodeBranches), insnTableIndices(e.insnTableIndices),
-                    insnTableIndex(e.insnTableIndex) {
-            }
-
-            const aarch64_mask_entry &operator=(const aarch64_mask_entry &rhs) {
-                mask = rhs.mask;
-                nodeBranches = rhs.nodeBranches;
-                insnTableIndices = rhs.insnTableIndices;
-                insnTableIndex = rhs.insnTableIndex;
-
-                return *this;
-            }
-
             unsigned int mask;
-            branchMap nodeBranches;
-            std::vector<int> insnTableIndices;
+            std::pair<unsigned int,unsigned int> nodeBranches[32];
             int insnTableIndex;
 
-            static void buildDecoderTable();
-
-            static bool built_decoder_table;
-            static bool isAliasWeakSolution;
-            static aarch64_decoder_table main_decoder_table;
+            static const aarch64_decoder_table main_decoder_table;
         };
 
         InstructionDecoder_aarch64::InstructionDecoder_aarch64(Architecture a)
@@ -145,14 +101,6 @@ namespace Dyninst {
                   immr(0), immrLen(0), sField(0), nField(0), nLen(0),
                   immlo(0), immloLen(0), _szField(-1), size(-1),
                   cmode(0), op(0), simdAlphabetImm(0), _Q(1) {
-            aarch64_insn_entry::buildInsnTable();
-            aarch64_mask_entry::buildDecoderTable();
-            InstructionDecoder_aarch64::buildSysRegMap();
-
-            std::string condArray[16] = {"eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc", "hi", "ls", "ge", "lt", "gt",
-                                         "le", "al", "nv"};
-            InstructionDecoder_aarch64::condStringMap.assign(&condArray[0], &condArray[0] + 16);
-            //InstructionDecoder_aarch64::bitfieldInsnAliasMap = boost::assign::map_list_of(aarch64_op_bfi_bfm, "bfi")(aarch64_op_bfxil_bfm, "bfxil")(aarch64_op_sbfiz_sbfm, "sbfiz")(aarch64_op_sbfx_sbfm, "sbfx")(aarch64_op_ubfiz_ubfm, "ubfiz")(aarch64_op_ubfx_ubfm, "ubfx");
         }
 
         InstructionDecoder_aarch64::~InstructionDecoder_aarch64() {
@@ -171,7 +119,7 @@ namespace Dyninst {
             isPstateRead = isPstateWritten = false;
             isFPInsn = false;
             isSIMDInsn = false;
-	    skipRm = skipRn = false;
+            skipRm = skipRn = false;
             isValid = true;
             is64Bit = true;
 
@@ -204,11 +152,11 @@ namespace Dyninst {
                    b.start[1] << 8 | b.start[0];
 
 #if defined(DEBUG_RAW_INSN)
-                                                                                                                                    cout.width(0);
-        cout << "0x";
-        cout.width(8);
-        cout.fill('0');
-        cout << hex << insn << "\t";
+            cout.width(0);
+            cout << "0x";
+            cout.width(8);
+            cout.fill('0');
+            cout << hex << insn << "\t";
 #endif
 
             mainDecode();
@@ -434,14 +382,12 @@ namespace Dyninst {
 
                 unsigned int systemRegEncoding =
                         (op0Field << 14) | (op1Field << 11) | (crnField << 7) | (crmField << 3) | op2Field;
-                if (InstructionDecoder_aarch64::sysRegMap.count(systemRegEncoding) <= 0)
-                    assert(!"tried to access system register not accessible in EL0");
 
                 MachRegister reg;
                 if ((op0Field & 0x3) == 0x3 && (crnField & 0x3) == 0x3 && (crnField & 0x8) == 0x8)
                     reg = aarch64::IMPLEMENTATION_DEFINED_SYSREG;
                 else
-                    reg = InstructionDecoder_aarch64::sysRegMap[systemRegEncoding];
+                    reg = sysRegMap(systemRegEncoding);
                 insn_in_progress->appendOperand(makeRegisterExpression(reg), !isRtRead, isRtRead);
                 insn_in_progress->appendOperand(makeRtExpr(), isRtRead, !isRtRead);
                 if (!isRtRead)
@@ -457,9 +403,6 @@ namespace Dyninst {
         // ****************
         // decoding opcodes
         // ****************
-
-#define fn(x) (&InstructionDecoder_aarch64::x)
-#define    COMMA    ,
 
         MachRegister InstructionDecoder_aarch64::makeAarch64RegID(MachRegister base, unsigned int encoding) {
             return MachRegister(base.val() + encoding);
@@ -2491,7 +2434,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             }
 
             insn_in_progress->getOperation().operationID = modifiedID;
-            insn_in_progress->getOperation().mnemonic = bitfieldInsnAliasMap[modifiedID];
+            insn_in_progress->getOperation().mnemonic = bitfieldInsnAliasMap(modifiedID);
 
             return do_further_processing;
         }
@@ -2535,7 +2478,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             }
 
             insn_in_progress->getOperation().operationID = modifiedID;
-            insn_in_progress->getOperation().mnemonic = condInsnAliasMap[modifiedID];
+            insn_in_progress->getOperation().mnemonic = condInsnAliasMap(modifiedID);
 	    if(skipRm)
 		cond = ((cond % 2) == 0) ? (cond + 1) : (cond - 1);
         }
@@ -2948,22 +2891,19 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             }
         }
 
-        using namespace boost::assign;
-
 #include "aarch64_opcode_tables.C"
 
         void InstructionDecoder_aarch64::doDelayedDecode(const Instruction *insn_to_complete) {
-	    InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
-	    //insn_to_complete->m_Operands.reserve(4);
-	    decode(b);
-	    decodeOperands(insn_to_complete);
-
+            InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
+            //insn_to_complete->m_Operands.reserve(4);
+            decode(b);
+            decodeOperands(insn_to_complete);
         }
 
-        bool InstructionDecoder_aarch64::pre_process_checks(aarch64_insn_entry *entry) {
+        bool InstructionDecoder_aarch64::pre_process_checks(const aarch64_insn_entry &entry) {
             bool ret = false;
-            entryID insnID = entry->op;
-            string mnemonic(entry->mnemonic);
+            entryID insnID = entry.op;
+            string mnemonic(entry.mnemonic);
 
             vector<entryID> simdCompareRegInsns = {aarch64_op_cmeq_advsimd_reg, aarch64_op_cmge_advsimd_reg, aarch64_op_cmgt_advsimd_reg, aarch64_op_cmhi_advsimd, aarch64_op_cmhs_advsimd, aarch64_op_cmtst_advsimd},
                             simdCompareZeroInsns = {aarch64_op_cmeq_advsimd_zero, aarch64_op_cmge_advsimd_zero, aarch64_op_cmgt_advsimd_zero, aarch64_op_cmle_advsimd, aarch64_op_cmlt_advsimd};
@@ -2994,11 +2934,10 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 
         bool InstructionDecoder_aarch64::decodeOperands(const Instruction *insn_to_complete) {
             int insn_table_index = findInsnTableIndex(0);
-            aarch64_insn_entry *insn_table_entry = &aarch64_insn_entry::main_insn_table[insn_table_index];
-            if(pre_process_checks(insn_table_entry)) {
-                insn_table_entry = &aarch64_insn_entry::main_insn_table[0];
-                isValid = false;
-            }
+            isValid = !pre_process_checks(aarch64_insn_entry::main_insn_table[insn_table_index]);
+            auto& insn_table_entry = isValid
+                ? aarch64_insn_entry::main_insn_table[insn_table_index]
+                : aarch64_insn_entry::main_insn_table[0];
 
             insn = insn_to_complete->m_RawInsn.small_insn;
             insn_in_progress = const_cast<Instruction *>(insn_to_complete);
@@ -3009,9 +2948,8 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                 IS_INSN_LOGICAL_SHIFT(insn))
                 skipRm = true;
 
-            for (operandSpec::const_iterator fn = insn_table_entry->operands.begin();
-                 fn != insn_table_entry->operands.end(); fn++) {
-                std::mem_fun(*fn)(this);
+            for (std::size_t i = 0; insn_table_entry.operands[i] != NULL; i++) {
+                std::mem_fun(insn_table_entry.operands[i])(this);
             }
 
             if (insn_table_index == 0)
@@ -3051,11 +2989,11 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 
 
         int InstructionDecoder_aarch64::findInsnTableIndex(unsigned int decoder_table_index) {
-            aarch64_mask_entry *cur_entry = &aarch64_mask_entry::main_decoder_table[decoder_table_index];
-            unsigned int cur_mask = cur_entry->mask;
+            auto& cur_entry = aarch64_mask_entry::main_decoder_table[decoder_table_index];
+            unsigned int cur_mask = cur_entry.mask;
 
             if (cur_mask == 0) {
-                int insn_table_index = cur_entry->insnTableIndex;
+                int insn_table_index = cur_entry.insnTableIndex;
                 if (insn_table_index == -1)
                     assert(!"no instruction table entry found for current instruction");
                 else
@@ -3063,7 +3001,6 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             }
 
             unsigned int insn_iter_index = 0, map_key_index = 0, branch_map_key = 0;
-            branchMap cur_branches = cur_entry->nodeBranches;
 
             while (insn_iter_index < AARCH64_INSN_LENGTH) {
                 if (((cur_mask >> insn_iter_index) & 1) == 1) {
@@ -3073,11 +3010,11 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                 insn_iter_index++;
             }
 
-            if (cur_branches.count(branch_map_key) <= 0)
-                return 0;
-            //	branch_map_key = 0;
-
-            return findInsnTableIndex(cur_branches[branch_map_key]);
+            auto cur_branches = cur_entry.nodeBranches;
+            for (std::size_t i = 0; cur_branches[i].second != 0; i++)
+                if (cur_branches[i].first == branch_map_key)
+                    return findInsnTableIndex(cur_branches[i].second);
+            return 0;
         }
 
         void InstructionDecoder_aarch64::setFlags() {
@@ -3086,22 +3023,22 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
 
         void InstructionDecoder_aarch64::mainDecode() {
             int insn_table_index = findInsnTableIndex(0);
-            aarch64_insn_entry *insn_table_entry = &aarch64_insn_entry::main_insn_table[insn_table_index];
+            auto& insn_table_entry = aarch64_insn_entry::main_insn_table[insn_table_index];
 
-            insn_in_progress = makeInstruction(insn_table_entry->op, insn_table_entry->mnemonic, 4,
+            insn_in_progress = makeInstruction(insn_table_entry.op, insn_table_entry.mnemonic, 4,
                                                reinterpret_cast<unsigned char *>(&insn));
 
-	    modify_mnemonic_simd_upperhalf_insns();
+            modify_mnemonic_simd_upperhalf_insns();
 
             if (IS_INSN_BRANCHING(insn)) {
                 decodeOperands(insn_in_progress);
             }
 
             insn_in_progress->arch_decoded_from = Arch_aarch64;
-	    if (insn_table_entry->operands.begin() != insn_table_entry->operands.end()) {
+            if (insn_table_entry.operands[0] != NULL) {
                 insn_in_progress->m_InsnOp.isVectorInsn =
-                    (*(insn_table_entry->operands.begin()) == &InstructionDecoder_aarch64::setSIMDMode);
-	    }
+                    (insn_table_entry.operands[0] == &InstructionDecoder_aarch64::setSIMDMode);
+            }
             return;
         }
     };
