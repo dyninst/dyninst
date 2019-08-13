@@ -350,6 +350,7 @@ bool Module::findLocalVariable(std::vector<localVar *>&vars, std::string name)
 
 Module::Module(supportedLanguages lang, Offset adr,
       std::string fullNm, Symtab *img) :
+   objectLevelLineInfo(false),
    lineInfo_(NULL),
    typeInfo_(NULL),
    fullName_(fullNm),
