@@ -146,7 +146,9 @@ StandardParseData::createAndRecordFunc(CodeRegion * cr, Address entry, FuncSourc
             ret = _parser->factory()._mkfunc(
                entry,src,name,&_parser->obj(),reg,_parser->obj().cs());
             if (record_func(ret) == NULL) {
-                delete ret;
+                // No need to delete this function that is not registered because
+                // CFGFactory has an accounting data structure for it.
+                // Delete the new function here would cause double-free.                
                 return NULL;
             } else {
                 _parser->record_func(ret);
