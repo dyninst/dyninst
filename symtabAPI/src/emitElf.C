@@ -66,54 +66,6 @@ unsigned int elfHash(const char *name) {
 }
 unsigned long bgq_sh_flags = SHF_EXECINSTR | SHF_ALLOC | SHF_WRITE;;
 
-
-
-static bool libelfso0Flag;
-static bool libelfso1Flag;
-static int libelfso1version_major;
-static int libelfso1version_minor;
-
-
-void setVersion() {
-    libelfso0Flag = false;
-    libelfso1Flag = false;
-    libelfso1version_major = 0;
-    libelfso1version_minor = 0;
-#if defined(os_linux) || defined(os_freebsd)
-    unsigned nEntries;
-    map_entries *maps = getVMMaps(getpid(), nEntries);
-    for (unsigned i = 0; i < nEntries; i++) {
-        if (!strstr(maps[i].path, "libelf"))
-            continue;
-        std::string real_file = resolve_file_path(maps[i].path);
-        const char *libelf_start = strstr(real_file.c_str(), "libelf");
-        int num_read, major, minor;
-        num_read = sscanf(libelf_start, "libelf-%d.%d.so", &major, &minor);
-        if (num_read == 2) {
-            libelfso1Flag = true;
-            libelfso1version_major = major;
-            libelfso1version_minor = minor;
-        }
-        else {
-            libelfso0Flag = true;
-        }
-    }
-    if (libelfso0Flag && libelfso1Flag) {
-        fprintf(stderr, "WARNING: SymtabAPI is linked with libelf.so.0 and "
-                "libelf.so.1!  SymtabAPI likely going to be unable to read "
-                "and write elf files!\n");
-    }
-
-#if defined(os_freebsd)
-    if( libelfso1Flag ) {
-      fprintf(stderr, "WARNING: SymtabAPI on FreeBSD is known to function "
-              "incorrectly when linked with libelf.so.1\n");
-  }
-#endif
-#endif
-}
-
-
 template<class ElfTypes>
 emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, Object *obj_, void (*err_func)(const char *),
                                Symtab *st) :
@@ -135,7 +87,6 @@ emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, Object *obj_,
         hasRewrittenTLS(false), TLSExists(false), newTLSData(NULL) {
     oldElf = oldElfHandle->e_elfp();
     curVersionNum = 2;
-    setVersion();
 
     //Set variable based on the mechanism to add new load segment
     // 1) createNewPhdr (Total program headers + 1) - default
@@ -180,16 +131,6 @@ emitElf<ElfTypes>::emitElf(Elf_X *oldElfHandle_, bool isStripped_, Object *obj_,
         movePHdrsFirst = true;
         library_adjust = getpagesize();
     }
-}
-
-template<class ElfTypes>
-bool emitElf<ElfTypes>::hasPHdrSectionBug()
-{
-   if (movePHdrsFirst)
-      return false;
-   if (!libelfso1Flag)
-      return false;
-   return (libelfso1version_major == 0 && libelfso1version_minor <= 137);
 }
 
 template<typename ElfTypes>
@@ -878,15 +819,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         return false;
     }
     elf_end(newElf);
-    if (hasPHdrSectionBug()) {
-        unsigned long ehdr_off = (unsigned long) &(((Elf_Ehdr *) 0x0)->e_phoff);
-        lseek(newfd, ehdr_off, SEEK_SET);
-        Elf_Off offset = (Elf_Off) phdr_offset;
-        if(write(newfd, &offset, sizeof(Elf_Off)) < 0) {
-            close(newfd);
-            return false;
-        }
-    }
     close(newfd);
 
     if (rename(strtmpl.c_str(), fName.c_str())) {
@@ -944,10 +876,27 @@ void emitElf<ElfTypes>::createNewPhdrRegion(dyn_hash_map<std::string, unsigned> 
 
 }
 
+
 template<class ElfTypes>
 void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
+    // This function has to perform the addresses fix in two passes.
+    // First we must update the old headers addresses, and than
+    // we should look where to insert the new LOAD segment
+
+    /*
+     * If we've created a new loadable segment, we need to insert a new
+     * program header amidst the other loadable segments.
+     *
+     * ELF format says:
+     *
+     * `Loadable segment entries in the program header table appear in
+     * ascending order, sorted on the p_vaddr member.'
+     *
+     * Note: replacing NOTE with LOAD section for bluegene systems
+     * does not follow this rule.
+     */
+
     unsigned pgSize = getpagesize();
-    Elf_Phdr *old = oldPhdr;
 
     newEhdr->e_phnum = oldEhdr->e_phnum;
     newEhdr->e_phentsize = oldEhdr->e_phentsize;
@@ -957,153 +906,82 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
         if (hasRewrittenTLS && !TLSExists) newEhdr->e_phnum++;
     }
 
-    bool added_new_sec = false;
+    // Copy old segments to vector and update contents
     bool replaced = false;
+    Elf_Phdr *old = oldPhdr;
+    vector<Elf_Phdr> segments;
 
-    if (!hasPHdrSectionBug())
-        newPhdr = ElfTypes::elf_newphdr(newElf, newEhdr->e_phnum);
-    else {
-        newPhdr = (Elf_Phdr *) malloc(sizeof(Elf_Phdr) * newEhdr->e_phnum);
-    }
-    void *phdr_data = (void *) newPhdr;
-
-    Elf_Phdr newSeg;
-    bool last_load_segment = false;
-    for (unsigned i = 0; i < oldEhdr->e_phnum; i++) {
-        /*
-         * If we've created a new loadable segment, we need to insert a new
-         * program header amidst the other loadable segments.
-         *
-         * ELF format says:
-         *
-         * `Loadable segment entries in the program header table appear in
-         * ascending order, sorted on the p_vaddr member.'
-         *
-         * Note: replacing NOTE with LOAD section for bluegene systems
-         * does not follow this rule.
-         */
-
-        Elf_Phdr *insert_phdr = NULL;
-        if (createNewPhdr && !added_new_sec && firstNewLoadSec) {
-            if (i + 1 == oldEhdr->e_phnum) {
-                insert_phdr = newPhdr + 1;
-
-            }
-            else if (old->p_type == PT_LOAD && (old + 1)->p_type != PT_LOAD) {
-                // insert at end of loadable phdrs
-                insert_phdr = newPhdr + 1;
-                last_load_segment = true;
-            }
-            else if (old->p_type != PT_LOAD &&
-                     (old + 1)->p_type == PT_LOAD &&
-                     newSegmentStart < (old + 1)->p_vaddr) {
-                // insert at beginning of loadable list (after the
-                // current phdr)
-                insert_phdr = newPhdr + 1;
-            }
-            else if (old->p_type == PT_LOAD &&
-                     (old + 1)->p_type == PT_LOAD &&
-                     newSegmentStart >= old->p_vaddr &&
-                     newSegmentStart < (old + 1)->p_vaddr) {
-                // insert in middle of loadable list, after current
-                insert_phdr = newPhdr + 1;
-            }
-            else if (i == 0 &&
-                     old->p_type == PT_LOAD &&
-                     newSegmentStart < old->p_vaddr) {
-                // insert BEFORE current phdr
-                insert_phdr = newPhdr;
-                newPhdr++;
-            }
-        }
-
-        if (insert_phdr) {
-            newSeg.p_type = PT_LOAD;
-            newSeg.p_offset = firstNewLoadSec->sh_offset;
-            newSeg.p_vaddr = newSegmentStart;
-            newSeg.p_paddr = newSeg.p_vaddr;
-            newSeg.p_filesz = loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);
-            newSeg.p_memsz = (currEndAddress - firstNewLoadSec->sh_addr) - (newSegmentStart - firstNewLoadSec->sh_addr);
-            newSeg.p_flags = PF_R + PF_W + PF_X;
-            newSeg.p_align = pgSize;
-            memcpy(insert_phdr, &newSeg, oldEhdr->e_phentsize);
-            added_new_sec = true;
-            rewrite_printf("Added New program header : offset 0x%lx,addr 0x%lx file Size 0x%lx memsize 0x%lx \n",
-                           newSeg.p_paddr, newSeg.p_vaddr, newSeg.p_filesz, newSeg.p_memsz);
-        }
-
-        memcpy(newPhdr, old, oldEhdr->e_phentsize);
-
-        // Expand the data segment to include the new loadable sections
-        // Also add a executable permission to the segment
+    for (unsigned i = 0; i < oldEhdr->e_phnum; i++)
+    {
+        segments.push_back(*old);
 
         if (old->p_type == PT_DYNAMIC) {
-            newPhdr->p_vaddr = dynSegAddr;
-            newPhdr->p_paddr = dynSegAddr;
-            newPhdr->p_offset = dynSegOff;
-            newPhdr->p_memsz = dynSegSize;
-            newPhdr->p_filesz = newPhdr->p_memsz;
+            segments[i].p_vaddr = dynSegAddr;
+            segments[i].p_paddr = dynSegAddr;
+            segments[i].p_offset = dynSegOff;
+            segments[i].p_memsz = dynSegSize;
+            segments[i].p_filesz = segments[i].p_memsz;
         }
         else if (old->p_type == PT_PHDR) {
             if (createNewPhdr && !movePHdrsFirst)
-                newPhdr->p_vaddr = phdrSegAddr;
+                segments[i].p_vaddr = phdrSegAddr;
             else if (createNewPhdr && movePHdrsFirst)
-                newPhdr->p_vaddr = old->p_vaddr - pgSize + library_adjust;
+                segments[i].p_vaddr = old->p_vaddr - pgSize + library_adjust;
             else
-                newPhdr->p_vaddr = old->p_vaddr;
-            newPhdr->p_offset = newEhdr->e_phoff;
-            newPhdr->p_paddr = newPhdr->p_vaddr;
-            newPhdr->p_filesz = sizeof(Elf_Phdr) * newEhdr->e_phnum;
-            newPhdr->p_memsz = newPhdr->p_filesz;
+                segments[i].p_vaddr = old->p_vaddr;
+            segments[i].p_offset = newEhdr->e_phoff;
+            segments[i].p_paddr = segments[i].p_vaddr;
+            segments[i].p_filesz = sizeof(Elf_Phdr) * newEhdr->e_phnum;
+            segments[i].p_memsz = segments[i].p_filesz;
         } else if (hasRewrittenTLS && old->p_type == PT_TLS) {
-            newPhdr->p_offset = newTLSData->sh_offset;
-            newPhdr->p_vaddr = newTLSData->sh_addr;
-            newPhdr->p_paddr = newTLSData->sh_addr;
-            newPhdr->p_filesz = newTLSData->sh_size;
-            newPhdr->p_memsz = newTLSData->sh_size + old->p_memsz - old->p_filesz;
-            newPhdr->p_align = newTLSData->sh_addralign;
+            segments[i].p_offset = newTLSData->sh_offset;
+            segments[i].p_vaddr = newTLSData->sh_addr;
+            segments[i].p_paddr = newTLSData->sh_addr;
+            segments[i].p_filesz = newTLSData->sh_size;
+            segments[i].p_memsz = newTLSData->sh_size + old->p_memsz - old->p_filesz;
+            segments[i].p_align = newTLSData->sh_addralign;
         } else if (old->p_type == PT_LOAD) {
-            if (!createNewPhdr && newPhdr->p_align > pgSize) { //not on bluegene
-                newPhdr->p_align = pgSize;
+            if (!createNewPhdr && segments[i].p_align > pgSize) { //not on bluegene
+                segments[i].p_align = pgSize;
             }
             if (BSSExpandFlag) {
                 if (old->p_flags == 6 || old->p_flags == 7) {
-                    newPhdr->p_memsz += loadSecTotalSize + extraAlignSize;
-                    newPhdr->p_filesz = newPhdr->p_memsz;
-                    newPhdr->p_flags = 7;
+                    segments[i].p_memsz += loadSecTotalSize + extraAlignSize;
+                    segments[i].p_filesz = segments[i].p_memsz;
+                    segments[i].p_flags = 7;
                 }
             }
 
             if (movePHdrsFirst) {
                 if (!old->p_offset) {
-                    if (newPhdr->p_vaddr) {
-                        newPhdr->p_vaddr = old->p_vaddr - pgSize;
-                        newPhdr->p_align = pgSize;
+                    if (segments[i].p_vaddr) {
+                        segments[i].p_vaddr = old->p_vaddr - pgSize;
+                        segments[i].p_align = pgSize;
                     }
 
-                    newPhdr->p_paddr = newPhdr->p_vaddr;
-                    newPhdr->p_filesz += pgSize;
-                    newPhdr->p_memsz = newPhdr->p_filesz;
+                    segments[i].p_paddr = segments[i].p_vaddr;
+                    segments[i].p_filesz += pgSize;
+                    segments[i].p_memsz = segments[i].p_filesz;
                 } else {
-                    newPhdr->p_offset += pgSize;
-                    newPhdr->p_align = pgSize;
+                    segments[i].p_offset += pgSize;
+                    segments[i].p_align = pgSize;
                 }
-                if (newPhdr->p_vaddr) {
-                    newPhdr->p_vaddr += library_adjust;
-                    newPhdr->p_paddr += library_adjust;
+                if (segments[i].p_vaddr) {
+                    segments[i].p_vaddr += library_adjust;
+                    segments[i].p_paddr += library_adjust;
                 }
             }
         } else if (replaceNOTE && old->p_type == PT_NOTE && !replaced) {
             replaced = true;
-            newPhdr->p_type = PT_LOAD;
-            newPhdr->p_offset = firstNewLoadSec->sh_offset;
-            newPhdr->p_vaddr = newSegmentStart;
-            newPhdr->p_paddr = newPhdr->p_vaddr;
-            newPhdr->p_filesz = loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);
-            newPhdr->p_memsz =
+            segments[i].p_type = PT_LOAD;
+            segments[i].p_offset = firstNewLoadSec->sh_offset;
+            segments[i].p_vaddr = newSegmentStart;
+            segments[i].p_paddr = segments[i].p_vaddr;
+            segments[i].p_filesz = loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);
+            segments[i].p_memsz =
                     (currEndAddress - firstNewLoadSec->sh_addr) - (newSegmentStart - firstNewLoadSec->sh_addr);
-            newPhdr->p_flags = PF_R + PF_W + PF_X;
-            newPhdr->p_align = pgSize;
+            segments[i].p_flags = PF_R + PF_W + PF_X;
+            segments[i].p_align = pgSize;
         }
         else if (old->p_type == PT_INTERP && movePHdrsFirst && old->p_offset) {
             Elf_Off addr_shift = library_adjust;
@@ -1112,46 +990,92 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
                 offset_shift = createNewPhdr ? oldEhdr->e_phentsize : 0;
                 addr_shift -= pgSize - offset_shift;
             }
-            newPhdr->p_offset += offset_shift;
-            newPhdr->p_vaddr += addr_shift;
-            newPhdr->p_paddr += addr_shift;
+            segments[i].p_offset += offset_shift;
+            segments[i].p_vaddr += addr_shift;
+            segments[i].p_paddr += addr_shift;
         }
         else if (movePHdrsFirst && old->p_offset) {
-            newPhdr->p_offset += pgSize;
-            if (newPhdr->p_vaddr) {
-                newPhdr->p_vaddr += library_adjust;
-                newPhdr->p_paddr += library_adjust;
+            segments[i].p_offset += pgSize;
+            if (segments[i].p_vaddr) {
+                segments[i].p_vaddr += library_adjust;
+                segments[i].p_paddr += library_adjust;
             }
         }
 
-        /* For BlueGeneQ statically linked binary, we cannot create a new LOAD section,
-            hence we extend existing LOAD section to include instrmentation.
-               A new LOAD section must be aligned to 1MB in BlueGene.
-             But if we create a LOAD segment after 1MB, the TOC pointer will no longer be able to reach the new segment,
-             as we have only 4 byte offset from TOC */
+        ++old;
+    }
 
-        if (0 && isBlueGeneQ && isStaticBinary && last_load_segment) {
+    if (createNewPhdr && firstNewLoadSec)
+    {
+        // Create New Segment
+        Elf_Phdr newSeg;
+        newSeg.p_type = PT_LOAD;
+        newSeg.p_offset = firstNewLoadSec->sh_offset;
+        newSeg.p_vaddr = newSegmentStart;
+        newSeg.p_paddr = newSeg.p_vaddr;
+        newSeg.p_filesz = loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);
+        newSeg.p_memsz = (currEndAddress - firstNewLoadSec->sh_addr) -
+            (newSegmentStart - firstNewLoadSec->sh_addr);
+        newSeg.p_flags = PF_R + PF_W + PF_X;
+        newSeg.p_align = pgSize;
 
-            // add new load to this segment
-            newPhdr->p_filesz = (newSeg.p_offset - newPhdr->p_offset) + loadSecTotalSize -
-                                (newSegmentStart - firstNewLoadSec->sh_addr);
-            newPhdr->p_memsz = (newSegmentStart - newPhdr->p_vaddr) + (currEndAddress - firstNewLoadSec->sh_addr) -
-                               (newSegmentStart - firstNewLoadSec->sh_addr);
-            newPhdr->p_flags = PF_R + PF_W + PF_X;
-            last_load_segment = false;
-
-            // add new load to this segment
-        } else {
-            if (insert_phdr)
-                newPhdr++;
+        // Search position to insert new segment
+        unsigned int position = -1;
+        for( unsigned i = 0; i < segments.size(); i++ )
+        {
+            if (i + 1 == segments.size()) {
+                // it's the last, so add after
+                position = i + 1;
+                break;
+            }
+            else if (segments[i].p_type == PT_LOAD && segments[i+1].p_type != PT_LOAD) {
+                // insert at end of loadable phdrs
+                position = i + 1;
+                break;
+            }
+            else if (segments[i].p_type != PT_LOAD &&
+                    segments[i+1].p_type == PT_LOAD &&
+                    newSegmentStart < segments[i+1].p_vaddr) {
+                // insert at beginning of loadable list (after the
+                // current phdr)
+                position = i + 1;
+                break;
+            }
+            else if (segments[i].p_type == PT_LOAD &&
+                    segments[i+1].p_type == PT_LOAD &&
+                    newSegmentStart >= segments[i].p_vaddr &&
+                    newSegmentStart < segments[i+1].p_vaddr) {
+                // insert in middle of loadable list, after current
+                position = i + 1;
+                break;
+            }
+            else if (i == 0 &&
+                    segments[i].p_type == PT_LOAD &&
+                    newSegmentStart < segments[i].p_vaddr) {
+                // insert BEFORE current phdr
+                position = i;
+                break;
+            }
         }
+        assert(position!=-1);
 
-        rewrite_printf("Existing program header: type %u (%s), offset 0x%lx, addr 0x%lx\n",
-                       newPhdr->p_type, phdrTypeStr(newPhdr->p_type).c_str(), newPhdr->p_offset, newPhdr->p_vaddr);
+        // Insert new Segment at position
+        if( position == segments.size() )
+            segments.push_back( newSeg );
+        else
+            segments.insert( segments.begin() + position, newSeg );
+    }
 
-        newPhdr++;
+    // Create newPhdr and copy segments to it
+    newPhdr = ElfTypes::elf_newphdr(newElf, newEhdr->e_phnum);
+    void *phdr_data = (void *) newPhdr;
 
-        old++;
+    for (unsigned i = 0; i < segments.size(); i++)
+    {
+        rewrite_printf("Updated program header: type %u (%s), offset 0x%lx, addr 0x%lx\n",
+                newPhdr->p_type, phdrTypeStr(newPhdr->p_type).c_str(), newPhdr->p_offset, newPhdr->p_vaddr);
+        memcpy(newPhdr, &segments[i], oldEhdr->e_phentsize);
+        ++newPhdr;
     }
 
     if (hasRewrittenTLS && !TLSExists) {
@@ -1165,6 +1089,7 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
 
     if (!phdrs_scn)
         return;
+
     //We made a new section to contain the program headers--keeps
     // libelf from overwriting the program headers data when outputing
     // sections.  Fill in the new section's data with what we just wrote.
