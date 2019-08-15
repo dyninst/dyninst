@@ -484,11 +484,11 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     obj->getAllExceptions(exceptions);
     //  cerr << "Dumping exception info: " << endl;
 
-    for (auto eb = exceptions.begin();
+    /*for (auto eb = exceptions.begin();
          eb != exceptions.end();
          ++eb) {
         //cerr << **eb << endl;
-    }
+    }*/
 
 
     int newfd;
@@ -616,6 +616,13 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
 
         if (newshdr->sh_addr) {
             newshdr->sh_addr += library_adjust;
+
+#if defined(arch_aarch64)
+            if (strcmp(name, ".plt")==0)
+                updateDynamic(DT_TLSDESC_PLT, library_adjust);
+            if (strcmp(name, ".got")==0)
+                updateDynamic(DT_TLSDESC_GOT, library_adjust);
+#endif
         }
 
         if (foundSec->isDirty()) {
@@ -814,7 +821,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         if (0 > elf_update(newElf, ELF_C_NULL)) {
             return false;
         }
-    }
+    } // end of for each elf section
 
     // Add non-loadable sections at the end of object file
     if (!createNonLoadableSections(newshdr))
@@ -1178,13 +1185,21 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
 #if !defined(DT_GNU_CONFLICT)
 #define DT_GNU_CONFLICT 0x6ffffef8
 #endif
+#if !defined(DT_TLSDESC_PLT)
+#define DT_TLSDESC_PLT 0x6ffffef6
+#endif
+#if !defined(DT_TLSDESC_GOT)
+#define DT_TLSDESC_GOT 0x6ffffef7
+#endif
 
 //This method updates the .dynamic section to reflect the changes to the relocation section
 template<class ElfTypes>
 void emitElf<ElfTypes>::updateDynamic(unsigned tag, Elf_Addr val) {
     if (isStaticBinary) return;
     // This is for REL/RELA if it doesnt already exist in the original binary;
-    dynamicSecData[tag][0]->d_tag = tag;
+    if(dynamicSecData.find(tag) != dynamicSecData.end())
+        dynamicSecData[tag][0]->d_tag = tag;
+    else return;
     switch (dynamicSecData[tag][0]->d_tag) {
         case DT_STRSZ:
         case DT_RELSZ:
@@ -1212,6 +1227,10 @@ void emitElf<ElfTypes>::updateDynamic(unsigned tag, Elf_Addr val) {
         case DT_VERDEF:
             dynamicSecData[tag][0]->d_un.d_ptr = val;
             dynamicSecData[DT_VERDEFNUM][0]->d_un.d_val = verdefnum;
+            break;
+        case DT_TLSDESC_PLT:
+        case DT_TLSDESC_GOT:
+            dynamicSecData[tag][0]->d_un.d_val += val;
             break;
     }
 }
