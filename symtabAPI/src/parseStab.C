@@ -48,6 +48,8 @@
 
 #include "debug.h"
 
+#include <boost/smart_ptr/make_shared.hpp>
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
@@ -68,7 +70,7 @@ namespace SymtabAPI{
 
 // Forward references for parsing routines
 static int parseSymDesc(char *stabstr, int &cnt);
-static Type *parseConstantUse(Module *, char *stabstr, int &cnt);
+static boost::shared_ptr<Type> parseConstantUse(Module *, char *stabstr, int &cnt);
 static char *parseTypeDef(Module *, char *stabstr, 
                           const char *name, int ID, unsigned int sizeHint = 0);
 static int parseTypeUse(Module*, char *&stabstr, int &cnt,
@@ -203,8 +205,8 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
    int symdescID = 0;
    int funcReturnID = 0;
    Function  *fp = NULL;
-   Type * ptrType = NULL;
-   Type * newType = NULL; // For new types to add to the collection
+   boost::shared_ptr<Type> ptrType;
+   boost::shared_ptr<Type> newType = NULL; // For new types to add to the collection
    localVar *locVar = NULL;
    cnt= 0;
 
@@ -350,7 +352,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                     The shared_ptr type_Untyped is static, so this
                     otherwise unsafe operation is safe.
                   */
-                  if ( !ptrType) ptrType = Symtab::type_Untyped().get();
+                  if ( !ptrType) ptrType = Symtab::type_Untyped();
 
                   if (!(mod->exec()->findFunctionsByName(bpfv, name)))
                   {
@@ -423,7 +425,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                cnt = strlen(stabstr);
 
                ptrType = tc->findOrCreateType(funcReturnID);
-               if (!ptrType) ptrType = Symtab::type_Untyped().get();
+               if (!ptrType) ptrType = Symtab::type_Untyped();
 
                std::vector<Function *>fpv;
                if (!mod->exec()->findFunctionsByName(fpv, symt_current_mangled_func_name))
@@ -459,9 +461,10 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
          case 'G':/* Global Varaible */
             cnt++; /* skip the 'G' */
 
+            {
             /* Get variable type number */
             symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
-            Type *BPtype;
+            boost::shared_ptr<Type> BPtype;
 
             BPtype = tc->findOrCreateType(symdescID);
             if (BPtype) 
@@ -483,6 +486,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
             }
             else 
             break;
+            }
 
          case 'P':	// function parameter passed in a register (GNU/Solaris)
          case 'R':	// function parameter passed in a register (AIX style)
@@ -508,7 +512,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                //}
 
                ptrType = tc->findOrCreateType(symdescID);
-               if (!ptrType) ptrType = Symtab::type_Untyped().get();
+               if (!ptrType) ptrType = Symtab::type_Untyped();
 
                localVar *param;
 
@@ -544,7 +548,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 
                ptrType = parseConstantUse(mod, stabstr, cnt);
 
-               if (!ptrType) ptrType = Symtab::type_Untyped().get();
+               if (!ptrType) ptrType = Symtab::type_Untyped();
 
                localVar *var;
                var = new localVar(name, ptrType, fName, linenum, symt_current_func);
@@ -574,7 +578,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
 
                // lookup symbol and set type
-               Type *BPtype;
+               boost::shared_ptr<Type> BPtype;
 
                std::string nameTrailer;
                if (name.find(".") < name.length()) 
@@ -648,13 +652,13 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                ptrType = tc->findOrCreateType(symdescID);
                if (!ptrType)
                {
-                  ptrType = Symtab::type_Untyped().get();
+                  ptrType = Symtab::type_Untyped();
                }
 
                // We assume that IDs are unique per type. Instead of reusing the 
                // underlying base ID, use a SymtabAPI-generated ID.
 
-               typeTypedef *newType = new typeTypedef(ptrType, name);
+               auto newType = boost::make_shared<typeTypedef>(ptrType, name);
 
                if (newType) 
                {
@@ -719,11 +723,11 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 
             // //bperr("parsing 'v' type of %s\n", stabstr);
             /* Get variable type number */
-
+            {
             symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
 
             // lookup symbol and set type
-            BPtype = tc->findOrCreateType(symdescID);
+            auto BPtype = tc->findOrCreateType(symdescID);
 
             if (!BPtype) 
             {
@@ -797,6 +801,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                //} 
             }
             break;
+            }
          case 'l':
             // These are string literals, of the form 
             // name:l(type);value
@@ -1023,7 +1028,7 @@ static char *parseCrossRef(typeCollection *moduleTypes,const char * /*name*/,
                            int ID, char *stabstr, int &cnt)
 {
     std::string temp;
-    Type *newType = NULL;
+    boost::shared_ptr<Type> newType;
     char xreftype;
     cnt++; /* skip 'x'*/
 
@@ -1036,20 +1041,17 @@ static char *parseCrossRef(typeCollection *moduleTypes,const char * /*name*/,
         cnt++; /*skip ':' */
 
         // Find type that this one points to.
-        Type *ptrType = moduleTypes->findType(temp.c_str());
+        boost::shared_ptr<Type> ptrType = moduleTypes->findType(temp.c_str());
         if (!ptrType) {
             // This type name hasn't been seen before.  Create the
             // skeleton for it, and we'll update it later when we actually see
             // it
             if (xreftype == 'e') {
-                newType = new typeEnum(ID, temp);
-		newType = moduleTypes->addOrUpdateType((typeEnum *) newType);
+		newType = moduleTypes->addOrUpdateType(boost::make_shared<typeEnum>(ID, temp));
             } else if (xreftype == 'u') {
-                newType = new typeUnion(ID, temp);
-		newType = moduleTypes->addOrUpdateType((typeEnum *) newType);
+		newType = moduleTypes->addOrUpdateType(boost::make_shared<typeUnion>(ID, temp));
             } else {
-                newType = new typeStruct(ID, temp);
-		newType = moduleTypes->addOrUpdateType((typeEnum *) newType);
+		newType = moduleTypes->addOrUpdateType(boost::make_shared<typeStruct>(ID, temp));
             }
 	    assert(newType);
         }         
@@ -1069,15 +1071,15 @@ static char *parseCrossRef(typeCollection *moduleTypes,const char * /*name*/,
 // 		   ar<symDesc>;<symDesc>;<symDesc>;<arrayDef> |
 //                 A<arrayDef>
 //
-static Type *parseArrayDef(Module *mod, const char *name,
+static boost::shared_ptr<Type> parseArrayDef(Module *mod, const char *name,
 		     int ID, char *&stabstr, int &cnt, unsigned int sizeHint)
 {
 	typeCollection *tc = typeCollection::getModTypeCollection(mod);
     char *symdesc;
     int symdescID;
     int elementType;
-    Type *newType = NULL;
-    Type *ptrType = NULL;
+    boost::shared_ptr<Type> newType;
+    boost::shared_ptr<Type> ptrType;
     int lowbound, hibound;
 
     // format is ar<indexType>;<lowBound>;<highBound>;<elementType>
@@ -1161,9 +1163,9 @@ static Type *parseArrayDef(Module *mod, const char *name,
 		// Create new type - field in a struct or union
 		std::string tName = convertCharToString(name);
 
-		typeArray *newAType = new typeArray(ID, ptrType, lowbound, hibound, tName, sizeHint);
+		auto newAType = boost::make_shared<typeArray>(ID, ptrType, lowbound, hibound, tName, sizeHint);
 		// Add to Collection
-		newType = tc->addOrUpdateType((typeArray *) newAType);
+		newType = tc->addOrUpdateType(newAType);
 
 		return newAType;
     }
@@ -1229,7 +1231,7 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
 {
    int cnt, i, symdescID;
    //int sign = 1;
-   Type *baseType;
+   boost::shared_ptr<Type> baseType;
 
    cnt = i = 0;
 
@@ -1286,15 +1288,13 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
        //Size
        int size = atol(low);
 
-       //Create new type
-       Type *newType = new typeScalar(ID, size, name);
        //Add to Collection
-       newType = tc->addOrUpdateType((typeScalar *) newType);
+       tc->addOrUpdateType(boost::make_shared<typeScalar>(ID, size, name));
    }
    else {
        //Range
        //Create new type
-       Type *newType;
+       boost::shared_ptr<typeSubrange> newType;
        std::string tName = convertCharToString(name);
 
 	   errno = 0;
@@ -1312,13 +1312,13 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
 	   }
 
        if (baseType == NULL)
-           newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : guessSize(low,hi), 
+           newType = boost::make_shared<typeSubrange>(ID, sizeHint ? sizeHint / 8 : guessSize(low,hi), 
 				   low_conv, hi_conv, tName);
        else
-           newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), 
+           newType = boost::make_shared<typeSubrange>(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), 
 				   low_conv, hi_conv, tName);
        //Add to Collection
-       tc->addOrUpdateType((typeSubrange *) newType);
+       tc->addOrUpdateType(newType);
    }
    free(low);
    free(hi);
@@ -1628,13 +1628,12 @@ static char *parseRefType(Module *mod, const char *name,
     
     // Create a new B_type that points to a structure
 	typeCollection *tc = typeCollection::getModTypeCollection(mod);
-    Type *ptrType = tc->findOrCreateType(refID);
-    if (!ptrType) ptrType = Symtab::type_Untyped().get();
+    auto ptrType = tc->findOrCreateType(refID);
+    if (!ptrType) ptrType = Symtab::type_Untyped();
     std::string tName = convertCharToString(name); 
-    typeRef *newType = new typeRef(ID, ptrType, tName);
 
     // Add to typeCollection
-    newType = tc->addOrUpdateType(newType);
+    tc->addOrUpdateType(boost::make_shared<typeRef>(ID, ptrType, tName));
     
     return(&(stabstr[cnt]));
 }
@@ -1643,25 +1642,20 @@ static char *parseRefType(Module *mod, const char *name,
 // Given a base class and a new type, add all visible fields to the new class
 //
 void addBaseClassToClass(Module *mod, int baseID, 
-                         fieldListType *newType, int /*offset*/)
+                         boost::shared_ptr<Type> newType, int /*offset*/)
 {
 
 	typeCollection *tc = typeCollection::getModTypeCollection(mod);
 
     //Find base class
-    fieldListType *baseCl = dynamic_cast<fieldListType *>(tc->findType(baseID));
+    auto baseCl = tc->findType(baseID);
     if( ! baseCl ) {
         std::string modName = mod->fileName();
         //bpwarn( "can't find base class id %d in module %s\n", baseID, modName);
-        baseCl = new typeStruct(baseID);
-        fieldListType *baseCl2 = dynamic_cast<typeStruct *>(tc->addOrUpdateType( (typeStruct *)baseCl ));
-        std::string fName = "{superclass}";
-        newType->addField( fName, baseCl2, -1, visUnknown );
-        baseCl->decrRefCount();
-        return;
+        baseCl = tc->addOrUpdateType(boost::make_shared<typeStruct>(baseID));
     }
     std::string fName = "{superclass}";
-    newType->addField( fName, baseCl, -1, visUnknown );
+    newType->asFieldListType().addField( fName, baseCl, -1, visUnknown );
 
     //Get field descriptions of the base type
     /*
@@ -1681,7 +1675,7 @@ void addBaseClassToClass(Module *mod, int baseID,
 // parse a list of fields.
 //    Format is [A|B|C-M|N|O][c][G]<fieldName>:<type-desc>;offset;size;
 //
-static char *parseFieldList(Module *mod, fieldListType *newType, 
+static char *parseFieldList(Module *mod, boost::shared_ptr<Type> newType, 
 		char *stabstr, bool sunCPlusPlus)
 {
 	int cnt = 0;
@@ -1706,7 +1700,8 @@ static char *parseFieldList(Module *mod, fieldListType *newType,
 		int baseClNum = atoi(getIdentifier(stabstr, cnt).c_str());
 		cnt++; //Skip ','
 
-		typeStruct *newStructType = dynamic_cast<typeStruct *>(newType);
+		boost::shared_ptr<Type> newStructType;
+        if(newType->isStructType()) newStructType = newType;
 		//Skip information for each base class
 		for (int i=0; i<baseClNum; ++i) 
 		{
@@ -1850,8 +1845,8 @@ static char *parseFieldList(Module *mod, fieldListType *newType,
                 (void)size; // otherwise unused symbol
 		// Add struct field to type
 
-		Type *fieldType = tc->findOrCreateType( comptype );
-		if (fieldType == NULL) 
+		auto fieldType = tc->findOrCreateType( comptype );
+		if (!fieldType) 
 		{
 			//C++ compilers may add extra fields whose types might not available.
 			//Assign void type to these kind of fields. --Mehmet
@@ -1860,12 +1855,12 @@ static char *parseFieldList(Module *mod, fieldListType *newType,
 		std::string fName = convertCharToString(compname);
 		if (_vis == visUnknown) 
 		{
-			newType->addField(fName, fieldType, beg_offset);
+			newType->asFieldListType().addField(fName, fieldType, beg_offset);
 		} 
 		else 
 		{
 			// //bperr( "Adding field '%s' to type '%s' @ 0x%x\n", compname, newType->getName(), newType );
-			newType->addField(fName, fieldType, beg_offset, _vis);
+			newType->asFieldListType().addField(fName, fieldType, beg_offset, _vis);
 			////bperr("Adding Component with VISIBILITY STRUCT\n");
 		}
 		free(compname);
@@ -1913,7 +1908,6 @@ static char *parseCPlusPlusInfo(Module *mod,
     bool sunStyle = true;
     bool nestedType = false;
     dataClass typdescr;
-    fieldListType * newType = NULL, *newType2 = NULL;
 
     assert(stabstr[0] == 'Y');
     cnt = 1;
@@ -1978,24 +1972,20 @@ static char *parseCPlusPlusInfo(Module *mod,
     }
 
     std::string tName = convertCharToString(name);
+    boost::shared_ptr<Type> newType;
     //Create new type
     switch (typdescr) {
     case dataTypeClass:
     case dataStructure:
-       newType = new typeStruct(ID, tName);
-       newType2 = dynamic_cast<fieldListType *>(tc->addOrUpdateType((typeStruct *) newType));
+       newType = tc->addOrUpdateType(boost::make_shared<typeStruct>(ID, tName));
        break;
     case dataUnion:
-       newType = new typeUnion(ID, tName);
-       newType2 = dynamic_cast<fieldListType *>(tc->addOrUpdateType((typeUnion *) newType));
+       newType = tc->addOrUpdateType(boost::make_shared<typeUnion>(ID, tName));
        break;
     default:
        assert(0);
     }
     //add to type collection
-
-    if(newType2 != newType)
-        newType->decrRefCount();
 
     if (sunStyle) {
 	cnt++;
@@ -2008,14 +1998,14 @@ static char *parseCPlusPlusInfo(Module *mod,
 
 	    // Find base class type identifier
             int baseID = parseSymDesc(stabstr, cnt);
-	    addBaseClassToClass(mod, baseID, newType2, offset);
+	    addBaseClassToClass(mod, baseID, newType, offset);
 	}
 
 	cnt++;	// skip ;
     }
 
     // parse dataMembers
-    stabstr = parseFieldList(mod, newType2, &stabstr[cnt], sunStyle);
+    stabstr = parseFieldList(mod, newType, &stabstr[cnt], sunStyle);
     cnt = 0;
 
     if (stabstr[0]) {
@@ -2044,12 +2034,11 @@ static char *parseCPlusPlusInfo(Module *mod,
 			}
 
 	    // should include position for virtual methods
-	    Type *fieldType = tc->findType("void");
+	    auto fieldType = tc->findType("void");
 
 	    std::string fName = convertCharToString(funcName);
 
-	    typeFunction *funcType = new typeFunction( ID, fieldType, fName);
-            newType2->addField( fName, funcType);
+            newType->asFieldListType().addField( fName, boost::make_shared<typeFunction>( ID, fieldType, fName));
 					    
 	    free(name);
 	    free(className);
@@ -2090,9 +2079,9 @@ static char *parseTypeDef(Module *mod, char *stabstr,
                           const char *name, int ID, unsigned int sizeHint)
 {
 	typeCollection *tc = typeCollection::getModTypeCollection(mod);
-    Type * newType = NULL;
-    fieldListType * newFieldType = NULL, *newFieldType2 = NULL;
-    Type * ptrType = NULL;
+    boost::shared_ptr<Type> newType;
+    boost::shared_ptr<Type> newFieldType;
+    boost::shared_ptr<Type> ptrType;
   
     std::string compsymdesc;
   
@@ -2120,8 +2109,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
         // type (i.e. void)
 
         std::string tName = convertCharToString(name);
-        newType = new typeScalar(ID, 0, tName);
-		newType = tc->addOrUpdateType((typeScalar *) newType); 
+		newType = tc->addOrUpdateType(boost::make_shared<typeScalar>(ID, 0, tName)); 
     } 
 	else if (stabstr[cnt] == '=') 
 	{
@@ -2129,22 +2117,20 @@ static char *parseTypeDef(Module *mod, char *stabstr,
         // 	     skip the second id for now -- jkh 3/21/99
         stabstr = parseTypeDef(mod, &(stabstr[cnt+i+1]), name, type);
         cnt = 0;
-        Type *oldType;
+        boost::shared_ptr<Type> oldType;
 
         oldType = tc->findOrCreateType(type);
-        if (!oldType) oldType = Symtab::type_Untyped().get();
+        if (!oldType) oldType = Symtab::type_Untyped();
         std::string tName = convertCharToString(name);
-        newType = new typeTypedef(ID, oldType, tName, sizeHint);
-		tc->addOrUpdateType((typeTypedef *) newType);
+		tc->addOrUpdateType(boost::make_shared<typeTypedef>(ID, oldType, tName, sizeHint));
 
 	} 
 	else 
 	{
-		Type *oldType;
+		boost::shared_ptr<Type> oldType;
         std::string tName = convertCharToString(name);
         oldType = tc->findOrCreateType(type);
-        newType = new typeTypedef(ID, oldType, tName, sizeHint);
-        newType = tc->addOrUpdateType((typeTypedef *) newType);
+        newType = tc->addOrUpdateType(boost::make_shared<typeTypedef>(ID, oldType, tName, sizeHint));
     }
     } else {
       switch (stabstr[0]) {
@@ -2161,11 +2147,10 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 
 	    // Create a new B_type that points to a structure
 	    ptrType = tc->findOrCreateType(ptrID);
-	    if (!ptrType) ptrType = Symtab::type_Untyped().get();
+	    if (!ptrType) ptrType = Symtab::type_Untyped();
 
-            newType = new typePointer(ID, ptrType);
 	    // Add to typeCollection
-	    newType = tc->addOrUpdateType((typePointer *) newType);
+	    newType = tc->addOrUpdateType(boost::make_shared<typePointer>(ID, ptrType));
 	    return(&(stabstr[cnt]));
 	    break;
 	  }
@@ -2189,16 +2174,8 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 
                 {
 		   std::string tName = convertCharToString(name);
-                   typeFunction *newFunction = 
-                      new typeFunction(ID, ptrType, tName);
-                   typeFunction *newFunction2 = NULL;
-                   
-                   if (newFunction) { 
-                      newFunction2 = dynamic_cast<typeFunction*>(tc->addOrUpdateType(newFunction)); 
-                      if(newFunction2 != newFunction)
-            		      newFunction->decrRefCount();
-                   }
-                   if (!newFunction2) {
+                   auto newFunction = tc->addOrUpdateType(boost::make_shared<typeFunction>(ID, ptrType, tName)); 
+                   if (!newFunction) {
                       //bpfatal(" Can't Allocate new type ");
                             types_printf("%s[%d]: parseTypeDef: unable to allocate newType\n", FILE__, __LINE__);
                             //exit(-1);
@@ -2208,7 +2185,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
                       int paramType;
                       paramType = parseTypeUse(mod, stabstr, cnt, name);
                       newType = tc->findOrCreateType(paramType);
-		      newFunction2->addParam(newType);
+		      newFunction->asFunctionType().addParam(newType);
                       //newFunction2->addField(buffer, newType->getDataClass(), newType, curOffset, newType->getSize());
                    }
                 }
@@ -2228,8 +2205,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 
 		
                 std::string tName = convertCharToString(name);
-		newType = new typeFunction(ID, ptrType, tName);
-		newType = tc->addOrUpdateType((typeFunction *) newType);
+		newType = tc->addOrUpdateType(boost::make_shared<typeFunction>(ID, ptrType, tName));
 
 		// skip to end - SunPro Compilers output extra info here - jkh 6/9/3
 		// cnt = strlen(stabstr);
@@ -2263,8 +2239,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 		    ptrType = tc->findOrCreateType(baseType);
 		    std::string tName = convertCharToString(name);
 
-		    Type *newAType = new typeArray(ID, ptrType, 1, size, tName);
-		    newType = tc->addOrUpdateType((typeArray* ) newAType);
+		    newType = tc->addOrUpdateType(boost::make_shared<typeArray>(ID, ptrType, 1, size, tName));
 		}
 		break;
 
@@ -2278,8 +2253,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 
 		int bytes = parseSymDesc(stabstr, cnt);
 
-		newType = new typeScalar(ID, bytes, name);
-		newType = tc->addOrUpdateType((typeScalar *) newType);
+		newType = tc->addOrUpdateType(boost::make_shared<typeScalar>(ID, bytes, name));
 
 		if (stabstr[cnt] == ';') cnt++;	// skip the final ';'
 
@@ -2313,9 +2287,8 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 		
 		if (stabstr[cnt]) cnt++;	// skip the final ';'
 
-		newType = new typeScalar(ID, size, name);
 		//Add to Collection
-		newType = tc->addOrUpdateType((typeScalar *) newType);
+		newType = tc->addOrUpdateType(boost::make_shared<typeScalar>(ID, size, name));
 
 		return &stabstr[cnt];
 		break;
@@ -2331,9 +2304,8 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 
 	    // Create new Enum type
 	    std::string tName = convertCharToString(name);
-	    typeEnum *newEnumType = new typeEnum(ID, tName);
 	    // Add type to collection
-	    newEnumType = dynamic_cast<typeEnum *>(tc->addOrUpdateType(newEnumType));
+        auto newEnumType = tc->addOrUpdateType(boost::make_shared<typeEnum>(ID, tName));
 		
 	    while (stabstr[cnt]) {
 		/* Get enum component value */
@@ -2347,7 +2319,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 		value = parseSymDesc(stabstr, cnt);
 
 		// add enum field to type
-		newEnumType->addConstant(compsymdesc, value);
+		newEnumType->asEnumType().addConstant(compsymdesc, value);
 		  
 		cnt++; /* skip trailing comma */
 		if ((stabstr[cnt]) == ';') cnt++; /* End of enum stab record */
@@ -2392,21 +2364,15 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 	    std::string tName = convertCharToString(name);
 	    //Create new type
             if (typdescr == dataStructure) {
-               newFieldType = new typeStruct(ID, tName);
-	       newFieldType2 = dynamic_cast<fieldListType *>(tc->addOrUpdateType((typeStruct *) newFieldType));
+	       newFieldType = tc->addOrUpdateType(boost::make_shared<typeStruct>(ID, tName));
 	    }
             else {
-               newFieldType = new typeUnion(ID, tName);
-	       newFieldType2 = dynamic_cast<fieldListType *>(tc->addOrUpdateType((typeUnion *) newFieldType));
+	       newFieldType = tc->addOrUpdateType(boost::make_shared<typeUnion>(ID, tName));
 	    }
 	    //add to type collection
 
         //TODO What if two different files have the same structure?? // on AIX
-        if(!newFieldType2)
-	        newFieldType2 = dynamic_cast<fieldListType *>(newFieldType);
-        if(newFieldType2 != newFieldType)
-            newFieldType->decrRefCount();
-	    char *ret = parseFieldList(mod, newFieldType2, &stabstr[cnt], false);
+	    char *ret = parseFieldList(mod, newFieldType, &stabstr[cnt], false);
         return ret;
 
 	    break;
@@ -2465,13 +2431,13 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 //		   =r <float>
 //
 //
-static Type *parseConstantUse(Module *mod, char *stabstr, int &cnt)
+static boost::shared_ptr<Type> parseConstantUse(Module *mod, char *stabstr, int &cnt)
 {
 	typeCollection *tc = typeCollection::getModTypeCollection(mod);
     // skip =
     cnt++;
 
-    Type *ret;
+    boost::shared_ptr<Type> ret;
 
     if (stabstr[cnt] == 'i') {
 	ret = tc->findType("integer*4");

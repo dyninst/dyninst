@@ -224,7 +224,7 @@ AstNodePtr generateArrayRef(const BPatch_snippet &lOperand,
                 return AstNodePtr();
         }
 
-        Type *elementType = arrayType->getBaseType();
+        auto elementType = arrayType->getBaseType();
         assert(elementType);
         long int elementSize = elementType->getSize();
 
@@ -385,7 +385,7 @@ AstNodePtr generateFieldRef(const BPatch_snippet &lOperand,
 
         extern AnnotationClass<BPatch_type> TypeUpPtrAnno;
         BPatch_type *field_bptype = NULL;
-        SymtabAPI::Type *field_type = field->getType();
+        auto field_type = field->getType();
         assert(field_type);
 
 

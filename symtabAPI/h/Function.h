@@ -85,7 +85,7 @@ class SYMTAB_EXPORT FunctionBase
   public:
    /***** Return Type Information *****/
    dyn_mutex ret_lock;
-   Type  * getReturnType() const;
+   boost::shared_ptr<Type> getReturnType() const;
 
    /***** Local Variable Information *****/
    bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
@@ -117,7 +117,7 @@ class SYMTAB_EXPORT FunctionBase
    /* internal helper functions */
    bool addLocalVar(localVar *);
    bool addParam(localVar *);
-   bool	setReturnType(Type *);
+   bool	setReturnType(boost::shared_ptr<Type>);
 
    virtual Offset getOffset() const = 0;
    virtual unsigned getSize() const = 0;
@@ -133,7 +133,7 @@ class SYMTAB_EXPORT FunctionBase
    localVarCollection *params;
 
    mutable unsigned functionSize_;
-   Type          *retType_;
+   boost::shared_ptr<Type>          retType_;
 
    dyn_mutex inlines_lock;
    InlineCollection inlines;

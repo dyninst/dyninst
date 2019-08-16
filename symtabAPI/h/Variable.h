@@ -64,8 +64,8 @@ class SYMTAB_EXPORT Variable : public Aggregate, public Serializable, public Ann
     /* Symbol management */
     bool removeSymbol(Symbol *sym);      
 
-   void setType(Type *type);
-   Type *getType();
+   void setType(boost::shared_ptr<Type> type);
+   boost::shared_ptr<Type> getType();
 
    Serializable *serialize_impl(SerializerBase *sb, 
 		   const char *tag = "Variable") THROW_SPEC (SerializerError);
@@ -73,7 +73,7 @@ class SYMTAB_EXPORT Variable : public Aggregate, public Serializable, public Ann
 
  private:
 
-   Type *type_;
+   boost::shared_ptr<Type> type_;
 };
 
 class SYMTAB_EXPORT localVar : public Serializable, public AnnotatableSparse
@@ -82,7 +82,7 @@ class SYMTAB_EXPORT localVar : public Serializable, public AnnotatableSparse
 	friend class localVarCollection;
 
 	std::string name_;
-	Type *type_;
+	boost::shared_ptr<Type> type_;
 	std::string fileName_;
 	int lineNum_;
         FunctionBase *func_;
@@ -101,7 +101,7 @@ class SYMTAB_EXPORT localVar : public Serializable, public AnnotatableSparse
 	localVar() :
         type_(NULL), lineNum_(-1), func_(NULL), locsExpanded_(false) {}
 	//  Internal use only
-	localVar(std::string name,  Type *typ, std::string fileName, 
+	localVar(std::string name,  boost::shared_ptr<Type> typ, std::string fileName, 
             int lineNum, FunctionBase *f, 
             std::vector<VariableLocation> *locs = NULL);
             
@@ -114,8 +114,8 @@ class SYMTAB_EXPORT localVar : public Serializable, public AnnotatableSparse
 	public:
 	//  end of functions for internal use only
 	std::string &getName();
-	Type *getType();
-	bool setType(Type *newType);
+	boost::shared_ptr<Type> getType();
+	bool setType(boost::shared_ptr<Type> newType);
 	int  getLineNum();
 	std::string &getFileName();
 	std::vector<VariableLocation> &getLocationLists();

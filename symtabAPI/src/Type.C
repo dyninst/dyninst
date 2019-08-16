@@ -86,7 +86,7 @@ namespace Dyninst {
 /* These are the wrappers for constructing a type.  Since we can create
    types six ways to Sunday, let's do them all in one centralized place. */
 
-Type *Type::createFake(std::string name) 
+Type::unique_ptr_Type Type::createFake(std::string name) 
 {
    // Creating a fake type without a name is just silly
    assert(name != std::string(""));
@@ -101,7 +101,7 @@ Type *Type::createFake(std::string name)
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 #endif
 
-Type *Type::createPlaceholder(typeId_t ID, std::string name)
+Type::unique_ptr_Type Type::createPlaceholder(typeId_t ID, std::string name)
 {
   static size_t max_size = 0;
 
@@ -243,7 +243,7 @@ void Type::decrRefCount()
 {
     if(refCount.fetch_sub(1, boost::memory_order_relaxed) == 1) {
         boost::atomic_thread_fence(boost::memory_order_acquire);
-        delete this;
+        /* delete this; */
     }
 }
 
@@ -432,21 +432,21 @@ bool typeEnum::isCompatible(Type *otype)
  * POINTER
  */
 
-typePointer::typePointer(int ID, Type *ptr, std::string name) 
+typePointer::typePointer(int ID, boost::shared_ptr<Type> ptr, std::string name) 
    : derivedType(name, ID, 0, dataPointer) {
    size_ = sizeof(void *);
    if (ptr)
      setPtr(ptr);
 }
 
-typePointer::typePointer(Type *ptr, std::string name) 
+typePointer::typePointer(boost::shared_ptr<Type> ptr, std::string name) 
    : derivedType(name, getUniqueTypeId(), 0, dataPointer) {
    size_ = sizeof(void *);
    if (ptr)
      setPtr(ptr);
 }
 
-typePointer *typePointer::create(std::string &name, Type *ptr, Symtab *obj)
+typePointer *typePointer::create(std::string &name, boost::shared_ptr<Type> ptr, Symtab *obj)
 {
    if(!ptr)
    	return NULL;
@@ -460,7 +460,7 @@ typePointer *typePointer::create(std::string &name, Type *ptr, Symtab *obj)
    return typ;	
 }
 
-typePointer *typePointer::create(std::string &name, Type *ptr, int size, Symtab *obj)
+typePointer *typePointer::create(std::string &name, boost::shared_ptr<Type> ptr, int size, Symtab *obj)
 {
    if(!ptr)
    	return NULL;
@@ -475,7 +475,7 @@ typePointer *typePointer::create(std::string &name, Type *ptr, int size, Symtab 
    return typ;	
 }
 
-bool typePointer::setPtr(Type *ptr) { 
+bool typePointer::setPtr(boost::shared_ptr<Type> ptr) { 
   assert(ptr);
   baseType_ = ptr; 
   baseType_->incrRefCount(); 
@@ -507,7 +507,7 @@ void typePointer::fixupUnknowns(Module *module)
 {
    if (baseType_->getDataClass() == dataUnknownType) 
    {
-      Type *optr = baseType_;
+      boost::shared_ptr<Type> optr = baseType_;
 	  typeCollection *tc = typeCollection::getModTypeCollection(module);
 	  assert(tc);
       baseType_ = tc->findType(baseType_->getID());
@@ -520,7 +520,7 @@ void typePointer::fixupUnknowns(Module *module)
  * FUNCTION
  */
 
-typeFunction::typeFunction(typeId_t ID, Type *retType, std::string name) :
+typeFunction::typeFunction(typeId_t ID, boost::shared_ptr<Type> retType, std::string name) :
     Type(name, ID, dataFunction), 
 	retType_(retType) 
 {
@@ -529,7 +529,7 @@ typeFunction::typeFunction(typeId_t ID, Type *retType, std::string name) :
      retType->incrRefCount();
 }
 
-typeFunction::typeFunction(Type *retType, std::string name) :
+typeFunction::typeFunction(boost::shared_ptr<Type> retType, std::string name) :
     Type(name, getUniqueTypeId(), dataFunction),
 	retType_(retType) 
 {
@@ -538,7 +538,7 @@ typeFunction::typeFunction(Type *retType, std::string name) :
      retType->incrRefCount();
 }
 
-typeFunction *typeFunction::create(std::string &name, Type *retType, dyn_c_vector<Type *> &paramTypes, Symtab *obj)
+typeFunction *typeFunction::create(std::string &name, boost::shared_ptr<Type> retType, dyn_c_vector<boost::shared_ptr<Type>> &paramTypes, Symtab *obj)
 {
     typeFunction *type = new typeFunction(retType, name);
     for(unsigned i=0;i<paramTypes.size();i++)
@@ -550,11 +550,11 @@ typeFunction *typeFunction::create(std::string &name, Type *retType, dyn_c_vecto
     return type;
 }
 
-Type *typeFunction::getReturnType() const{
+boost::shared_ptr<Type> typeFunction::getReturnType() const{
     return retType_;
 }
 
-bool typeFunction::setRetType(Type *rtype) {
+bool typeFunction::setRetType(boost::shared_ptr<Type> rtype) {
 	if(retType_)
 		retType_->decrRefCount();
     retType_ = rtype;
@@ -562,13 +562,13 @@ bool typeFunction::setRetType(Type *rtype) {
     return true;
 }
 
-bool typeFunction::addParam(Type *paramType){
+bool typeFunction::addParam(boost::shared_ptr<Type> paramType){
     paramType->incrRefCount();
     params_.push_back(paramType);
     return true;
 }
 
-dyn_c_vector<Type *> &typeFunction::getParams(){
+dyn_c_vector<boost::shared_ptr<Type>> &typeFunction::getParams(){
     return params_;
 }
 
@@ -586,8 +586,8 @@ bool typeFunction::isCompatible(Type *otype) {
    if (retType_ != oFunctiontype->retType_)
       return false;
 
-   dyn_c_vector<Type *> fields1 = this->getParams();
-   dyn_c_vector<Type *> fields2 = oFunctiontype->getParams();
+   dyn_c_vector<boost::shared_ptr<Type>>& fields1 = this->getParams();
+   dyn_c_vector<boost::shared_ptr<Type>>& fields2 = oFunctiontype->getParams();
    
    if (fields1.size() != fields2.size()) {
       //reportError(BPatchWarning, 112, 
@@ -597,10 +597,7 @@ bool typeFunction::isCompatible(Type *otype) {
     
    //need to compare componment by component to verify compatibility
    for (unsigned int i=0;i<fields1.size();i++) {
-      Type * ftype1 = fields1[i];
-      Type * ftype2 = fields2[i];
-      
-      if(!(ftype1->isCompatible(ftype2))) {
+      if(!(fields1[i]->isCompatible(fields2[i]))) {
          //reportError(BPatchWarning, 112, 
          //                   "function param type mismatch ");
          return false;
@@ -616,7 +613,7 @@ void typeFunction::fixupUnknowns(Module *module)
 
 	if (retType_->getDataClass() == dataUnknownType) 
    {
-      Type *otype = retType_;
+      boost::shared_ptr<Type> otype = retType_;
       retType_ = tc->findType(retType_->getID());
       retType_->incrRefCount();
       otype->decrRefCount();
@@ -624,7 +621,7 @@ void typeFunction::fixupUnknowns(Module *module)
 
    for (unsigned int i = 0; i < params_.size(); i++)
    {
-      Type *otype = params_[i];
+      boost::shared_ptr<Type> otype = params_[i];
       params_[i] = tc->findType(params_[i]->getID());
       params_[i]->incrRefCount();
       otype->decrRefCount();
@@ -683,7 +680,7 @@ bool typeSubrange::isCompatible(Type *otype) {
  */
 
 typeArray::typeArray(typeId_t ID,
-		Type *base,
+		boost::shared_ptr<Type> base,
 		long low,
 		long hi,
 		std::string name,
@@ -696,7 +693,7 @@ typeArray::typeArray(typeId_t ID,
 	if (base) arrayElem->incrRefCount();
 }
 
-typeArray::typeArray(Type *base,
+typeArray::typeArray(boost::shared_ptr<Type> base,
 		long low,
 		long hi,
 		std::string name,
@@ -709,7 +706,7 @@ typeArray::typeArray(Type *base,
 	arrayElem->incrRefCount();
 }
 
-typeArray *typeArray::create(std::string &name, Type *type, long low, long hi, Symtab *obj)
+typeArray *typeArray::create(std::string &name, boost::shared_ptr<Type> type, long low, long hi, Symtab *obj)
 {
 	typeArray *typ = new typeArray(type, low, hi, name);
 
@@ -756,7 +753,7 @@ void typeArray::merge(Type *other)
 	arrayElem = otherarray->arrayElem;
 }
 
-Type *typeArray::getBaseType() const
+boost::shared_ptr<Type> typeArray::getBaseType() const
 {
 	return arrayElem;
 }
@@ -828,7 +825,7 @@ void typeArray::fixupUnknowns(Module *module)
 {
    if (arrayElem->getDataClass() == dataUnknownType) 
    {
-      Type *otype = arrayElem;
+      boost::shared_ptr<Type> otype = arrayElem;
 	  typeCollection *tc = typeCollection::getModTypeCollection(module);
 	  assert(tc);
 	  arrayElem = tc->findType(arrayElem->getID());
@@ -851,7 +848,7 @@ typeStruct::typeStruct(std::string name)  :
 {
 }
 
-typeStruct *typeStruct::create(std::string &name, dyn_c_vector< std::pair<std::string, Type *> *> &flds,
+typeStruct *typeStruct::create(std::string &name, dyn_c_vector< std::pair<std::string, boost::shared_ptr<Type>> *> &flds,
                                                                 Symtab *obj)
 {
    int offset = 0;
@@ -957,11 +954,8 @@ bool typeStruct::isCompatible(Type *otype)
    for (unsigned int i=0;i<fields1->size();i++) {
       Field * field1 = (*fields1)[i];
       Field * field2 = (*fields2)[i];
-      
-      Type * ftype1 = (Type *)field1->getType();
-      Type * ftype2 = (Type *)field2->getType();
-      
-      if(!(ftype1->isCompatible(ftype2))) {
+            
+      if(!(field1->getType()->isCompatible(field2->getType()))) {
          //reportError(BPatchWarning, 112, 
          //                   "struct/union field type mismatch ");
          return false;
@@ -990,7 +984,7 @@ typeUnion::typeUnion(std::string name)  :
 {
 }
 
-typeUnion *typeUnion::create(std::string &name, dyn_c_vector< std::pair<std::string, Type *> *> &flds,
+typeUnion *typeUnion::create(std::string &name, dyn_c_vector< std::pair<std::string, boost::shared_ptr<Type>> *> &flds,
                                                                 Symtab *obj)
 {
    typeUnion *typ = new typeUnion(name);
@@ -1092,10 +1086,7 @@ bool typeUnion::isCompatible(Type *otype) {
       Field * field1 = (*fields1)[i];
       Field * field2 = (*fields2)[i];
       
-      Type * ftype1 = (Type *)field1->getType();
-      Type * ftype2 = (Type *)field2->getType();
-      
-      if(!(ftype1->isCompatible(ftype2))) {
+      if(!(field1->getType()->isCompatible(field2->getType()))) {
          //reportError(BPatchWarning, 112, 
          //                   "struct/union field type mismatch ");
          return false;
@@ -1266,7 +1257,7 @@ dyn_c_vector<CBlock *> *typeCommon::getCblocks() const
  * TYPEDEF
  */
 
-typeTypedef::typeTypedef(typeId_t ID, Type *base, std::string name, unsigned int sizeHint) :
+typeTypedef::typeTypedef(typeId_t ID, boost::shared_ptr<Type> base, std::string name, unsigned int sizeHint) :
     derivedType(name, ID, 0, dataTypedef) 
 {
 	baseType_ = base;
@@ -1280,7 +1271,7 @@ typeTypedef::typeTypedef(typeId_t ID, Type *base, std::string name, unsigned int
 	if (baseType_) baseType_->incrRefCount();
 }
 
-typeTypedef::typeTypedef(Type *base, std::string name, unsigned int sizeHint) :
+typeTypedef::typeTypedef(boost::shared_ptr<Type> base, std::string name, unsigned int sizeHint) :
 	derivedType(name, getUniqueTypeId(), 0, dataTypedef)
 {
    assert(base != NULL);
@@ -1289,7 +1280,7 @@ typeTypedef::typeTypedef(Type *base, std::string name, unsigned int sizeHint) :
    baseType_->incrRefCount();
 }
 
-typeTypedef *typeTypedef::create(std::string &name, Type *baseType, Symtab *obj)
+typeTypedef *typeTypedef::create(std::string &name, boost::shared_ptr<Type> baseType, Symtab *obj)
 {
    if(!baseType)
    	return NULL;
@@ -1340,7 +1331,7 @@ void typeTypedef::fixupUnknowns(Module *module)
 {
    if (baseType_->getDataClass() == dataUnknownType) 
    {
-      Type *otype = baseType_;
+      boost::shared_ptr<Type> otype = baseType_;
 	  typeCollection *tc = typeCollection::getModTypeCollection(module);
 	  assert(tc);
       baseType_ = tc->findType(baseType_->getID());
@@ -1353,7 +1344,7 @@ void typeTypedef::fixupUnknowns(Module *module)
  * REFERENCE
  */
 
-typeRef::typeRef(int ID, Type *refType, std::string name) :
+typeRef::typeRef(int ID, boost::shared_ptr<Type> refType, std::string name) :
     derivedType(name, ID, 0, dataReference) 
 {
    baseType_ = refType;
@@ -1361,7 +1352,7 @@ typeRef::typeRef(int ID, Type *refType, std::string name) :
    	refType->incrRefCount();
 }
 
-typeRef::typeRef(Type *refType, std::string name) :
+typeRef::typeRef(boost::shared_ptr<Type> refType, std::string name) :
     derivedType(name, getUniqueTypeId(), 0, dataReference)
 {
    baseType_ = refType;
@@ -1369,7 +1360,7 @@ typeRef::typeRef(Type *refType, std::string name) :
    	refType->incrRefCount();
 }
 
-typeRef *typeRef::create(std::string &name, Type *ref, Symtab *obj)
+typeRef *typeRef::create(std::string &name, boost::shared_ptr<Type> ref, Symtab *obj)
 {
    typeRef *typ = new typeRef(ref, name);
 
@@ -1400,14 +1391,14 @@ bool typeRef::isCompatible(Type *otype) {
    if (oReftype == NULL) {
       return false;
    }
-   return baseType_->isCompatible(const_cast<Type *>(oReftype->getConstituentType()));
+   return baseType_->isCompatible(oReftype->getConstituentType());
 }   
 
 void typeRef::fixupUnknowns(Module *module) 
 {
    if (baseType_->getDataClass() == dataUnknownType) 
    {
-      Type *otype = baseType_;
+      boost::shared_ptr<Type> otype = baseType_;
 	  typeCollection *tc = typeCollection::getModTypeCollection(module);
 	  assert(tc);
       baseType_ = tc->findType(baseType_->getID());
@@ -1488,9 +1479,8 @@ void fieldListType::fixupComponents()
             the class-graph is acyclic (Stroustrup SpecialEd pg 308),
             we're OK. */
          // bperr( "Found superclass '%s'...\n", currentField->getType()->getName() );
-         fieldListInterface *superclass = dynamic_cast<fieldListInterface *>(currentField->getType());
-         assert (superclass != NULL);
-         const dyn_c_vector<Field *> * superClassFields = superclass->getComponents();
+         auto& superclass = dynamic_cast<fieldListInterface&>(*currentField->getType());
+         const dyn_c_vector<Field *> * superClassFields = superclass.getComponents();
          // bperr( "Superclass has %d components.\n", superClassFields->size() );
          /* FIXME: do we also need to consider the visibility of the superclass itself? */
          /* FIXME: visibility can also be described on a per-name basis in the
@@ -1517,7 +1507,7 @@ void fieldListType::fixupComponents()
  * type object.
  *     STRUCTS OR UNIONS
  */
-void fieldListType::addField(std::string fieldname, Type *type, int offsetVal, visibility_t vis)
+void fieldListType::addField(std::string fieldname, boost::shared_ptr<Type> type, int offsetVal, visibility_t vis)
 {
   Field * newField;
   newField = new Field(fieldname, type, offsetVal, vis);
@@ -1539,7 +1529,7 @@ void fieldListType::addField(Field *fld)
   postFieldInsert(newField->getSize());
 }
 
-void fieldListType::addField(unsigned num, std::string fieldname, Type *type, int offsetVal, visibility_t vis)
+void fieldListType::addField(unsigned num, std::string fieldname, boost::shared_ptr<Type> type, int offsetVal, visibility_t vis)
 {
   Field * newField;
   newField = new Field(fieldname, type, offsetVal, vis);
@@ -1601,7 +1591,7 @@ derivedType::derivedType(std::string &name, int size, dataClass typeDes)
    size_ = size;
 }
 
-Type *derivedType::getConstituentType() const
+boost::shared_ptr<Type> derivedType::getConstituentType() const
 {
    return baseType_;
 }
@@ -1713,7 +1703,7 @@ Field::Field() :
  * an enumerated type.
  * type = offset = size = 0;
  */
-Field::Field(std::string name, Type *typ, int offsetVal, visibility_t vis) :
+Field::Field(std::string name, boost::shared_ptr<Type> typ, int offsetVal, visibility_t vis) :
 	FIELD_ANNOTATABLE_CLASS(),
    fieldName_(name), 
    type_(typ), 
@@ -1729,7 +1719,7 @@ std::string &Field::getName()
    return fieldName_;
 }
 
-Type *Field::getType()
+boost::shared_ptr<Type> Field::getType()
 {
    return type_;
 }
@@ -1772,7 +1762,7 @@ void Field::fixupUnknown(Module *module)
 {
    if (type_->getDataClass() == dataUnknownType) 
    {
-      Type *otype = type_;
+      boost::shared_ptr<Type> otype = type_;
 	  typeCollection *tc = typeCollection::getModTypeCollection(module);
 	  assert(tc);
       type_ = tc->findType(type_->getID());

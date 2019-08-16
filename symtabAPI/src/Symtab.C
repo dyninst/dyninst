@@ -56,6 +56,8 @@
 
 #include "symtabAPI/src/Object.h"
 
+#include <boost/smart_ptr/make_shared.hpp>
+
 
 #if !defined(os_windows)
 #include <dlfcn.h>
@@ -176,97 +178,67 @@ boost::shared_ptr<builtInTypeCollection> Symtab::setupBuiltinTypes()
     boost::shared_ptr<builtInTypeCollection> builtInTypes =
        boost::shared_ptr<builtInTypeCollection>(new builtInTypeCollection);
 
-   typeScalar *newType;
-
    // NOTE: integral type  mean twos-complement
    // -1  int, 32 bit signed integral type
    // in stab document, size specified in bits, system size is in bytes
-   builtInTypes->addBuiltInType(newType = new typeScalar(-1, 4, "int", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-1, 4, "int", true));
    // -2  char, 8 bit type holding a character. GDB treats as signed
-   builtInTypes->addBuiltInType(newType = new typeScalar(-2, 1, "char", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-2, 1, "char", true));
    // -3  short, 16 bit signed integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-3, 2, "short", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-3, 2, "short", true));
    // -4  long, 32/64 bit signed integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-4, sizeof(long), "long", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-4, sizeof(long), "long", true));
    // -5  unsigned char, 8 bit unsigned integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-5, 1, "unsigned char"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-5, 1, "unsigned char"));
    // -6  signed char, 8 bit signed integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-6, 1, "signed char", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-6, 1, "signed char", true));
    // -7  unsigned short, 16 bit unsigned integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-7, 2, "unsigned short"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-7, 2, "unsigned short"));
    // -8  unsigned int, 32 bit unsigned integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-8, 4, "unsigned int"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-8, 4, "unsigned int"));
    // -9  unsigned, 32 bit unsigned integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-9, 4, "unsigned"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-9, 4, "unsigned"));
    // -10 unsigned long, 32 bit unsigned integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-10, sizeof(unsigned long), "unsigned long"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-10, sizeof(unsigned long), "unsigned long"));
    // -11 void, type indicating the lack of a value
    //  XXX-size may not be correct jdd 4/22/99
-   builtInTypes->addBuiltInType(newType = new typeScalar(-11, 0, "void", false));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-11, 0, "void", false));
    // -12 float, IEEE single precision
-   builtInTypes->addBuiltInType(newType = new typeScalar(-12, sizeof(float), "float", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-12, sizeof(float), "float", true));
    // -13 double, IEEE double precision
-   builtInTypes->addBuiltInType(newType = new typeScalar(-13, sizeof(double), "double", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-13, sizeof(double), "double", true));
    // -14 long double, IEEE double precision, size may increase in future
-   builtInTypes->addBuiltInType(newType = new typeScalar(-14, sizeof(long double), "long double", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-14, sizeof(long double), "long double", true));
    // -15 integer, 32 bit signed integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-15, 4, "integer", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-15, 4, "integer", true));
    // -16 boolean, 32 bit type. GDB/GCC 0=False, 1=True, all other values
    //  have unspecified meaning
-   builtInTypes->addBuiltInType(newType = new typeScalar(-16, sizeof(bool), "boolean"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-16, sizeof(bool), "boolean"));
    // -17 short real, IEEE single precision
    //  XXX-size may not be correct jdd 4/22/99
-   builtInTypes->addBuiltInType(newType = new typeScalar(-17, sizeof(float), "short real", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-17, sizeof(float), "short real", true));
    // -18 real, IEEE double precision XXX-size may not be correct jdd 4/22/99
-   builtInTypes->addBuiltInType(newType = new typeScalar(-18, sizeof(double), "real", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-18, sizeof(double), "real", true));
    // -19 stringptr XXX- size of void * -- jdd 4/22/99
-   builtInTypes->addBuiltInType(newType = new typeScalar(-19, sizeof(void *), "stringptr"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-19, sizeof(void *), "stringptr"));
    // -20 character, 8 bit unsigned character type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-20, 1, "character"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-20, 1, "character"));
    // -21 logical*1, 8 bit type (Fortran, used for boolean or unsigned int)
-   builtInTypes->addBuiltInType(newType = new typeScalar(-21, 1, "logical*1"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-21, 1, "logical*1"));
    // -22 logical*2, 16 bit type (Fortran, some for boolean or unsigned int)
-   builtInTypes->addBuiltInType(newType = new typeScalar(-22, 2, "logical*2"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-22, 2, "logical*2"));
    // -23 logical*4, 32 bit type (Fortran, some for boolean or unsigned int)
-   builtInTypes->addBuiltInType(newType = new typeScalar(-23, 4, "logical*4"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-23, 4, "logical*4"));
    // -24 logical, 32 bit type (Fortran, some for boolean or unsigned int)
-   builtInTypes->addBuiltInType(newType = new typeScalar(-24, 4, "logical"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-24, 4, "logical"));
    // -25 complex, consists of 2 IEEE single-precision floating point values
-   builtInTypes->addBuiltInType(newType = new typeScalar(-25, sizeof(float)*2, "complex", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-25, sizeof(float)*2, "complex", true));
    // -26 complex, consists of 2 IEEE double-precision floating point values
-   builtInTypes->addBuiltInType(newType = new typeScalar(-26, sizeof(double)*2, "complex*16", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-26, sizeof(double)*2, "complex*16", true));
    // -27 integer*1, 8 bit signed integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-27, 1, "integer*1", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-27, 1, "integer*1", true));
    // -28 integer*2, 16 bit signed integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-28, 2, "integer*2", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-28, 2, "integer*2", true));
 
    /* Quick hack to make integer*4 compatible with int for Fortran
       jnb 6/20/01 */
@@ -277,32 +249,24 @@ boost::shared_ptr<builtInTypeCollection> Symtab::setupBuiltinTypes()
      newType->decrRefCount();
    */
    // -29 integer*4, 32 bit signed integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-29, 4, "integer*4", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-29, 4, "integer*4", true));
    // -30 wchar, Wide character, 16 bits wide, unsigned (unknown format)
-   builtInTypes->addBuiltInType(newType = new typeScalar(-30, 2, "wchar"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-30, 2, "wchar"));
 #if defined(os_windows)
    // -31 long long, 64 bit signed integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-31, sizeof(LONGLONG), "long long", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-31, sizeof(LONGLONG), "long long", true));
    // -32 unsigned long long, 64 bit unsigned integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-32, sizeof(ULONGLONG), "unsigned long long"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-32, sizeof(ULONGLONG), "unsigned long long"));
 #else
    // -31 long long, 64 bit signed integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-31, sizeof(long long), "long long", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-31, sizeof(long long), "long long", true));
    // -32 unsigned long long, 64 bit unsigned integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-32, sizeof(unsigned long long), "unsigned long long"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-32, sizeof(unsigned long long), "unsigned long long"));
 #endif
    // -33 logical*8, 64 bit unsigned integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-33, 8, "logical*8"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-33, 8, "logical*8"));
    // -34 integer*8, 64 bit signed integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-34, 8, "integer*8", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(boost::make_shared<typeScalar>(-34, 8, "integer*8", true));
 
    return builtInTypes;
 }
@@ -313,38 +277,19 @@ boost::shared_ptr<typeCollection> Symtab::setupStdTypes()
     boost::shared_ptr<typeCollection> stdTypes =
        boost::shared_ptr<typeCollection>(new typeCollection);
 
-   typeScalar *newType;
-
-   stdTypes->addType(newType = new typeScalar(-1, sizeof(int), "int"));
-   newType->decrRefCount();
-
-   Type *charType = new typeScalar(-2, sizeof(char), "char");
+   stdTypes->addType(boost::make_shared<typeScalar>(-1, sizeof(int), "int"));
+   auto charType = boost::make_shared<typeScalar>(-2, sizeof(char), "char");
    stdTypes->addType(charType);
-
-	std::string tName = "char *";
-	typePointer *newPtrType;
-   stdTypes->addType(newPtrType = new typePointer(-3, charType, tName));
-   charType->decrRefCount();
-   newPtrType->decrRefCount();
-
-   Type *voidType = new typeScalar(-11, 0, "void", false);
+   stdTypes->addType(boost::make_shared<typePointer>(-3, charType, "char *"));
+   auto voidType = boost::make_shared<typeScalar>(-11, 0, "void", false);
    stdTypes->addType(voidType);
-
-	tName = "void *";
-   stdTypes->addType(newPtrType = new typePointer(-4, voidType, tName));
-   voidType->decrRefCount();
-   newPtrType->decrRefCount();
-
-   stdTypes->addType(newType = new typeScalar(-12, sizeof(float), "float"));
-   newType->decrRefCount();
-
+   stdTypes->addType(boost::make_shared<typePointer>(-4, voidType, "void *"));
+   stdTypes->addType(boost::make_shared<typeScalar>(-12, sizeof(float), "float"));
 #if defined(i386_unknown_nt4_0)
-   stdTypes->addType(newType = new typeScalar(-31, sizeof(LONGLONG), "long long"));    
+   stdTypes->addType(boost::make_shared<typeScalar>(-31, sizeof(LONGLONG), "long long"));    
 #else
-   stdTypes->addType(newType = new typeScalar(-31, sizeof(long long), "long long"));
+   stdTypes->addType(boost::make_shared<typeScalar>(-31, sizeof(long long), "long long"));
 #endif
-
-	newType->decrRefCount();
 
    return stdTypes;
 }
@@ -2448,17 +2393,17 @@ bool Symtab::addType(Type *type)
   return true;
 }
 
-SYMTAB_EXPORT vector<Type *> *Symtab::getAllstdTypes()
+SYMTAB_EXPORT void Symtab::getAllstdTypes(vector<boost::shared_ptr<Type>>& v)
 {
-   return stdTypes()->getAllTypes(); 	
+   return stdTypes()->getAllTypes(v); 	
 }
 
-SYMTAB_EXPORT vector<Type *> *Symtab::getAllbuiltInTypes()
+SYMTAB_EXPORT void Symtab::getAllbuiltInTypes(vector<boost::shared_ptr<Type>>& v)
 {
-   return builtInTypes()->getAllBuiltInTypes();
+   return builtInTypes()->getAllBuiltInTypes(v);
 }
 
-SYMTAB_EXPORT bool Symtab::findType(Type *&type, std::string name)
+SYMTAB_EXPORT bool Symtab::findType(boost::shared_ptr<Type> &type, std::string name)
 {
    parseTypesNow();
 
@@ -2479,9 +2424,9 @@ SYMTAB_EXPORT bool Symtab::findType(Type *&type, std::string name)
    return true;	
 }
 
-SYMTAB_EXPORT Type *Symtab::findType(unsigned type_id)
+SYMTAB_EXPORT boost::shared_ptr<Type> Symtab::findType(unsigned type_id)
 {
-	Type *t = NULL;
+	boost::shared_ptr<Type> t;
    parseTypesNow();
 
    if (indexed_modules.empty())
@@ -2517,7 +2462,7 @@ SYMTAB_EXPORT Type *Symtab::findType(unsigned type_id)
    return t;	
 }
 
-SYMTAB_EXPORT bool Symtab::findVariableType(Type *&type, std::string name)
+SYMTAB_EXPORT bool Symtab::findVariableType(boost::shared_ptr<Type>& type, std::string name)
 {
    parseTypesNow();
     type = NULL;

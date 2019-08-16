@@ -62,13 +62,13 @@ FunctionBase::FunctionBase() :
 {
 }
 
-Type *FunctionBase::getReturnType() const
+boost::shared_ptr<Type> FunctionBase::getReturnType() const
 {
     getModule()->exec()->parseTypesNow();
     return retType_;
 }
 
-bool FunctionBase::setReturnType(Type *newType)
+bool FunctionBase::setReturnType(boost::shared_ptr<Type> newType)
 {
    retType_ = newType;
    return true;
@@ -391,7 +391,7 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::VariableLocation &l)
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &f)
 {
-	Type *retType = (const_cast<Function &>(f)).getReturnType();
+	boost::shared_ptr<Type> retType = (const_cast<Function &>(f)).getReturnType();
 
 	std::string tname(retType ? retType->getName() : "no_type");
 	const Aggregate *ag = dynamic_cast<const Aggregate *>(&f);

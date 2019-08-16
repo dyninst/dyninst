@@ -305,8 +305,8 @@ class SYMTAB_EXPORT LookupInterface
                                             bool isRegex = false,
                                             bool checkCase = false,
                                             bool includeUndefined = false) = 0;
-      virtual bool findType(Type *&type, std::string name) = 0;
-      virtual bool findVariableType(Type *&type, std::string name)= 0;
+      virtual bool findType(boost::shared_ptr<Type>& type, std::string name) = 0;
+      virtual bool findVariableType(boost::shared_ptr<Type>& type, std::string name)= 0;
 
       virtual ~LookupInterface();
 };

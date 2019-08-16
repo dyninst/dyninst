@@ -260,19 +260,16 @@ bool Module::getStatements(std::vector<LineInformation::Statement_t> &statements
 	return (statements.size() > initial_size);
 }
 
-vector<Type *> *Module::getAllTypes()
+void Module::getAllTypes(vector<boost::shared_ptr<Type>>& v)
 {
 	exec_->parseTypesNow();
-	if(typeInfo_) return typeInfo_->getAllTypes();
-	return NULL;
-	
+	if(typeInfo_) typeInfo_->getAllTypes(v);	
 }
 
-vector<pair<string, Type *> > *Module::getAllGlobalVars()
+void Module::getAllGlobalVars(vector<pair<string, boost::shared_ptr<Type>>>& v)
 {
 	exec_->parseTypesNow();
-	if(typeInfo_) return typeInfo_->getAllGlobalVariables();
-	return NULL;	
+	if(typeInfo_) typeInfo_->getAllGlobalVariables(v);
 }
 
 typeCollection *Module::getModuleTypes()
@@ -286,27 +283,27 @@ typeCollection *Module::getModuleTypesPrivate()
   return typeInfo_;
 }
 
-bool Module::findType(Type *&type, std::string name)
+bool Module::findType(boost::shared_ptr<Type> &type, std::string name)
 {
 	typeCollection *tc = getModuleTypes();
 	if (!tc) return false;
 
    type = tc->findType(name);
 
-   if (type == NULL)
+   if (!type)
       return false;
 
    return true;
 }
 
-bool Module::findVariableType(Type *&type, std::string name)
+bool Module::findVariableType(boost::shared_ptr<Type> &type, std::string name)
 {
 	typeCollection *tc = getModuleTypes();
 	if (!tc) return false;
 
 	type = tc->findVariableType(name);
 
-   if (type == NULL)
+   if (!type)
       return false;
 
    return true;

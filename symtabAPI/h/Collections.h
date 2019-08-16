@@ -83,9 +83,9 @@ class SYMTAB_EXPORT typeCollection : public Serializable//, public AnnotatableSp
     friend class Type;
     friend class DwarfWalker;
 
-    dyn_c_hash_map<std::string, Type *> typesByName;
-    dyn_c_hash_map<std::string, Type *> globalVarsByName;
-    dyn_c_hash_map<int, Type *> typesByID;
+    dyn_c_hash_map<std::string, boost::shared_ptr<Type>> typesByName;
+    dyn_c_hash_map<std::string, boost::shared_ptr<Type>> globalVarsByName;
+    dyn_c_hash_map<int, boost::shared_ptr<Type>> typesByID;
 
 
     // DWARF:
@@ -102,7 +102,7 @@ class SYMTAB_EXPORT typeCollection : public Serializable//, public AnnotatableSp
     typeCollection();
     ~typeCollection();
 public:
-	static void addDeferredLookup(int, dataClass, Type **);
+	static void addDeferredLookup(int, dataClass, boost::shared_ptr<Type> *);
     static boost::mutex create_lock;
 
     static typeCollection *getModTypeCollection(Module *mod);
@@ -111,27 +111,27 @@ public:
     bool dwarfParsed() { return dwarfParsed_; }
     void setDwarfParsed() { dwarfParsed_ = true; }
 
-    Type	*findType(std::string name);
-    Type	*findType(const int ID);
-    Type 	*findTypeLocal(std::string name);
-    Type 	*findTypeLocal(const int ID);
-    void	addType(Type *type);
-        void	addType(Type *type, boost::lock_guard<boost::mutex>&);
-    void        addGlobalVariable(std::string &name, Type *type);
+    boost::shared_ptr<Type> findType(std::string name);
+    boost::shared_ptr<Type> findType(const int ID);
+    boost::shared_ptr<Type> findTypeLocal(std::string name);
+    boost::shared_ptr<Type> findTypeLocal(const int ID);
+    void addType(boost::shared_ptr<Type> type);
+    void addType(boost::shared_ptr<Type> type, boost::lock_guard<boost::mutex>&);
+    void addGlobalVariable(std::string &name, boost::shared_ptr<Type> type);
 
     /* Some debug formats allow forward references.  Rather than
        fill in forward in a second pass, generate placeholder
        types, and fill them in as we go.  Because we require
        One True Pointer for each type (in parseStab.C), when
        updating a type, return that One True Pointer. */
-    Type * findOrCreateType( const int ID );
+    boost::shared_ptr<Type> findOrCreateType( const int ID );
     template<class T>
-    T* addOrUpdateType(T* type);
+    boost::shared_ptr<Type> addOrUpdateType(boost::shared_ptr<T> type);
 
-    Type *findVariableType(std::string &name);
+    boost::shared_ptr<Type> findVariableType(std::string &name);
 
-    std::vector<Type *> *getAllTypes();
-    std::vector<std::pair<std::string, Type *> > *getAllGlobalVariables();
+    void getAllTypes(std::vector<boost::shared_ptr<Type>>&);
+    void getAllGlobalVariables(std::vector<std::pair<std::string, boost::shared_ptr<Type>>>&);
     void clearNumberedTypes();
     private:
         boost::mutex placeholder_mutex; // The only intermodule contention should be around
@@ -151,17 +151,17 @@ public:
 
 class SYMTAB_EXPORT builtInTypeCollection {
    
-    dyn_c_hash_map<int, Type *> builtInTypesByID;
-    dyn_c_hash_map<std::string, Type *> builtInTypesByName;
+    dyn_c_hash_map<int, boost::shared_ptr<Type>> builtInTypesByID;
+    dyn_c_hash_map<std::string, boost::shared_ptr<Type>> builtInTypesByName;
 public:
 
     builtInTypeCollection();
     ~builtInTypeCollection();
 
-    Type	*findBuiltInType(std::string &name);
-    Type	*findBuiltInType(const int ID);
-    void	addBuiltInType(Type *type);
-    std::vector<Type *> *getAllBuiltInTypes();
+    boost::shared_ptr<Type> findBuiltInType(std::string &name);
+    boost::shared_ptr<Type> findBuiltInType(const int ID);
+    void addBuiltInType(boost::shared_ptr<Type>);
+    void getAllBuiltInTypes(std::vector<boost::shared_ptr<Type>>&);
    
 };
 

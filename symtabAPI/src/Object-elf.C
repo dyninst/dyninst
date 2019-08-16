@@ -47,6 +47,8 @@
 
 #include "dwarfWalker.h"
 
+#include <boost/smart_ptr/make_shared.hpp>
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace Dyninst::DwarfDyninst;
@@ -4603,7 +4605,7 @@ void Object::parseStabTypes() {
     std::string *currentFunctionName = NULL;
     Symbol *commonBlockVar = NULL;
     string *commonBlockName = NULL;
-    typeCommon *commonBlock = NULL;
+    boost::shared_ptr<Type> commonBlock = NULL;
     int mostRecentLinenum = 0;
 
     Module *mod;
@@ -4793,14 +4795,14 @@ void Object::parseStabTypes() {
                     if (!commonBlockVar) {
                         // //bperr("unable to find variable %s\n", commonBlockName);
                     } else {
-                        commonBlock = dynamic_cast<typeCommon *>(tc->findVariableType(*commonBlockName));
-                        if (commonBlock == NULL) {
+                        commonBlock = tc->findVariableType(*commonBlockName);
+                        if (!commonBlock->isCommonType()) {
                             // its still the null type, create a new one for it
-                            commonBlock = new typeCommon(*commonBlockName);
+                            commonBlock = boost::make_shared<typeCommon>(*commonBlockName);
                             tc->addGlobalVariable(*commonBlockName, commonBlock);
                         }
                         // reset field list
-                        commonBlock->beginCommonBlock();
+                        commonBlock->asCommonType().beginCommonBlock();
                     }
                     break;
                 }
@@ -4819,7 +4821,7 @@ void Object::parseStabTypes() {
                             // //bperr("unable to locate current function %s\n", currentFunctionName->c_str());
                         } else {
                             Symbol *func = bpfv[0];
-                            commonBlock->endCommonBlock(func, (void *) commonBlockVar->getOffset());
+                            commonBlock->asCommonType().endCommonBlock(func, (void *) commonBlockVar->getOffset());
                         }
                     } else {
                         if (bpfv.size() > 1) {
@@ -4828,14 +4830,14 @@ void Object::parseStabTypes() {
                             //                     __FILE__, __LINE__, bpfv.size(), currentFunctionName->c_str());
                         }
                         Symbol *func = bpfv[0];
-                        commonBlock->endCommonBlock(func, (void *) commonBlockVar->getOffset());
+                        commonBlock->asCommonType().endCommonBlock(func, (void *) commonBlockVar->getOffset());
                     }
                     //TODO?? size for local variables??
                     //       // update size if needed
                     //       if (commonBlockVar)
                     //           commonBlockVar->setSize(commonBlock->getSize());
                     commonBlockVar = NULL;
-                    commonBlock = NULL;
+                    commonBlock.reset();
                     break;
                 }
                     // case C_BINCL: -- what is the elf version of this jkh 8/21/01
@@ -4868,9 +4870,9 @@ void Object::parseStabTypes() {
                     // may be nothing to parse - XXX  jdd 5/13/99
 
                     if (parseCompilerType(this))
-                        temp = parseStabString(mod, mostRecentLinenum, (char *) ptr, stabptr->val(i), commonBlock);
+                        temp = parseStabString(mod, mostRecentLinenum, (char *) ptr, stabptr->val(i), &commonBlock->asCommonType());
                     else
-                        temp = parseStabString(mod, stabptr->desc(i), (char *) ptr, stabptr->val(i), commonBlock);
+                        temp = parseStabString(mod, stabptr->desc(i), (char *) ptr, stabptr->val(i), &commonBlock->asCommonType());
                     if (temp.length()) {
                         //Error parsing the stabstr, return should be \0
                         // //bperr( "Stab string parsing ERROR!! More to parse: %s\n",

@@ -42,7 +42,7 @@ class BPatch_type;
 namespace Dyninst { 
    namespace SymtabAPI {
       class Type;
-      BPATCH_DLL_EXPORT Type *convert(const BPatch_type *);
+      BPATCH_DLL_EXPORT boost::shared_ptr<Type> convert(const BPatch_type *);
    }
 }
 
@@ -253,7 +253,7 @@ protected:
   BPatch_dataClass   type_;
 
   //Symtab type
-  Dyninst::SymtabAPI::Type *typ;
+  boost::shared_ptr<Dyninst::SymtabAPI::Type> typ;
 
   /* For common blocks */
 
@@ -266,7 +266,7 @@ protected:
  protected:
   // Simple Destructor
   virtual ~BPatch_type();
-  static BPatch_type *findOrCreateType(Dyninst::SymtabAPI::Type *type);
+  static BPatch_type *findOrCreateType(boost::shared_ptr<Dyninst::SymtabAPI::Type> type);
   
   // A few convenience functions
   BPatch_dataClass convertToBPatchdataClass(Dyninst::SymtabAPI::dataClass type);
@@ -279,14 +279,14 @@ protected:
 
 public:
   BPatch_type(const char *name = NULL, int _ID = 0, BPatch_dataClass = BPatch_dataNullType);
-  BPatch_type(Dyninst::SymtabAPI::Type *typ_);
+  BPatch_type(boost::shared_ptr<Dyninst::SymtabAPI::Type> typ_);
   virtual bool operator==(const BPatch_type &) const;
 
   int  getID() const { return ID;}
 
   unsigned int getSize();
 
-  Dyninst::SymtabAPI::Type *getSymtabType() const;
+  boost::shared_ptr<Dyninst::SymtabAPI::Type> getSymtabType() const;
 
 //Define all of these in .C 
   const char *getName() const;

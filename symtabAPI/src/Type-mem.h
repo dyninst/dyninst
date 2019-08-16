@@ -34,6 +34,7 @@
 #include "symtabAPI/h/Type.h"
 #include "boost/static_assert.hpp"
 #include <utility>
+#include <boost/smart_ptr/make_shared.hpp>
 
 namespace Dyninst {
   namespace SymtabAPI {
@@ -65,7 +66,7 @@ T *upgradePlaceholder(Type *placeholder, T *new_type)
 }
 
 template<class T>
-T* typeCollection::addOrUpdateType(T *type) 
+boost::shared_ptr<Type> typeCollection::addOrUpdateType(boost::shared_ptr<T> type) 
 {
 	//Instanciating this function for 'Type' would be a mistake, which
 	//the following assert tries to guard against.  If you trigger this,
@@ -74,17 +75,14 @@ T* typeCollection::addOrUpdateType(T *type)
 	BOOST_STATIC_ASSERT(sizeof(T) != sizeof(Type));
     boost::lock_guard<boost::mutex> g(placeholder_mutex);
 
-	Type *existingType = findTypeLocal(type->getID());
-    dyn_c_hash_map<int, Type*>::accessor id_accessor;
-    dyn_c_hash_map<std::string, Type*>::accessor name_accessor;
-	if (!existingType) 
+    dyn_c_hash_map<int, boost::shared_ptr<Type>>::accessor a;
+	if (!typesByID.find(a, type->getID())) 
 	{
 		if ( type->getName() != "" ) 
 		{
-			typesByName.insert(name_accessor, std::make_pair(type->getName(), type));
+			typesByName.insert({type->getName(), type});
 		}
-		typesByID.insert(id_accessor, std::make_pair(type->getID(), type));
-		type->incrRefCount();
+		typesByID.insert({type->getID(), type});
 		return type;
 	}
 
@@ -92,45 +90,41 @@ T* typeCollection::addOrUpdateType(T *type)
 	   in us parsing the same module types repeatedly. GCC does this
 	   with some of its internal routines */
 
-	T *existingT = dynamic_cast<T*>(existingType);
+	T *existingT = dynamic_cast<T*>(a->second.get());
 	if (existingT && (*existingT == *type)) 
 	{
-		return (T*) existingType;
+		return a->second;
 	}
 
-	if (existingType->getDataClass() == dataUnknownType) 
+	if (a->second->getDataClass() == dataUnknownType) 
 	{
-		upgradePlaceholder(existingType, type);
+		upgradePlaceholder(a->second.get(), type.get());
 	} 
 	else 
 	{
 		/* Merge the type information. */
-		existingType->merge(type);
+		a->second->merge(type.get());
 	}
 
 	/* The type may have gained a name. */
-	if ( existingType->getName() != "") 
+	if ( a->second->getName() != "") 
 	{
-		dyn_c_hash_map<std::string, Type*>::accessor a;
-		bool found = typesByName.find(a, existingType->getName());
-		if (found)
+        dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::accessor o;
+		if (typesByName.find(o, a->second->getName()))
 		{
-			if (a->second != existingType)
+			if (a->second != o->second)
 			{
-				a->second->decrRefCount();
-				a->second = existingType;
-				existingType->incrRefCount();
+                o->second = a->second;
 			}
 		} 
 		else 
 		{
-			typesByName.insert(a, std::make_pair(existingType->getName(), existingType));
-			existingType->incrRefCount();
+            typesByName.insert({a->second->getName(), a->second});
 		}
 	}
 
 	/* Tell the parser to update its type pointer. */
-	return (T*) existingType;
+	return a->second;
 } /* end addOrUpdateType() */
 
 

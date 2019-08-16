@@ -194,11 +194,11 @@ namespace Dyninst{
 
 
 			// Type output methods
-			virtual bool findType(Type *&type, std::string name);
-			virtual bool findVariableType(Type *&type, std::string name);
+			virtual bool findType(boost::shared_ptr<Type>& type, std::string name);
+			virtual bool findVariableType(boost::shared_ptr<Type>& type, std::string name);
 
-			std::vector<Type *> *getAllTypes();
-			std::vector<std::pair<std::string, Type *> > *getAllGlobalVars();
+			void getAllTypes(std::vector<boost::shared_ptr<Type>>&);
+			void getAllGlobalVars(std::vector<std::pair<std::string, boost::shared_ptr<Type>>>&);
 
 			typeCollection *getModuleTypes();
 

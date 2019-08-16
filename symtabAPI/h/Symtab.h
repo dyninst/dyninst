@@ -263,17 +263,17 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    void forceFullLineInfoParse();
    
    /***** Type Information *****/
-   virtual bool findType(Type *&type, std::string name);
-   virtual Type *findType(unsigned type_id);
-   virtual bool findVariableType(Type *&type, std::string name);
+   virtual bool findType(boost::shared_ptr<Type>& type, std::string name);
+   virtual boost::shared_ptr<Type> findType(unsigned type_id);
+   virtual bool findVariableType(boost::shared_ptr<Type>& type, std::string name);
 
    bool addType(Type *typ);
 
    static boost::shared_ptr<builtInTypeCollection>& builtInTypes();
    static boost::shared_ptr<typeCollection>& stdTypes();
 
-   static std::vector<Type *> *getAllstdTypes();
-   static std::vector<Type *> *getAllbuiltInTypes();
+   static void getAllstdTypes(std::vector<boost::shared_ptr<Type>>&);
+   static void getAllbuiltInTypes(std::vector<boost::shared_ptr<Type>>&);
 
    void parseTypesNow();
 
