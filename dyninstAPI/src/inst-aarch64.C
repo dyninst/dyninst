@@ -1424,13 +1424,139 @@ bool EmitterAARCH64Dyn::emitTOCCommon(block_instance *block, bool call, codeGen 
 
 // TODO 32/64-bit?
 bool EmitterAARCH64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
-    assert(0); //Not implemented
-    return emitPLTCommon(callee, true, gen);
+    /*
+    Address dest = getInterModuleFuncAddr(callee, gen);
+    //Register scr = gen.rs()->getScratchRegister(gen);
+    //Register lr = gen.rs()->getScratchRegister(gen);
+    //Address pc = emitMovePCToReg(scr, gen);
+
+    Address varOffset = dest - gen.currAddr();
+    //printf("VarOffset  = %d\n", varOffset);
+    //emitLoadRelative(lr, varOffset, scr, gen.width(), gen);
+
+    insnCodeGen::generateBranch(gen, gen.currAddr(), dest, true);
+
+    return true;
+    */ 
+
+
+    Address dest = getInterModuleFuncAddr(callee, gen);
+    Register scr = gen.rs()->getScratchRegister(gen);
+    Register lr = gen.rs()->getScratchRegister(gen);
+    //Register scr = gen.rs()->getRegByName("r2");
+    //Register lr = gen.rs()->getRegByName("r3");
+    emitMovePCToReg(scr, gen);
+
+    Address varOffset = dest - gen.currAddr() + 4;
+    //printf("VarOffset  = %d\n", varOffset);
+    emitLoadRelative(lr, varOffset, scr, gen.width(), gen);
+    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, lr, lr, 0, 8, insnCodeGen::Offset);
+
+    // indirect branch
+    instruction branchInsn;
+    branchInsn.clear();
+
+    //Set bits which are 0 for both BR and BLR
+    INSN_SET(branchInsn, 0, 4, 0);
+    INSN_SET(branchInsn, 10, 15, 0);
+
+    //Set register
+    INSN_SET(branchInsn, 5, 9, lr);
+
+    //Set other bits. Basically, these are the opcode bits.
+    //The only difference between BR and BLR is that bit 21 is 1 for BLR.
+    INSN_SET(branchInsn, 16, 31, BRegOp);
+    INSN_SET(branchInsn, 21, 21, 1);
+    insnCodeGen::generate(gen, branchInsn);
+    //insnCodeGen::generateBranch(gen, gen.currAddr(), lr, true);
+    //insnCodeGen::generateBranch(gen, gen.currAddr(), gen.currAddr() +varOffset, true);
+
+    return true;
+
+    //assert(0); //Not implemented
+    //return emitPLTCommon(callee, true, gen);
 }
 
 bool EmitterAARCH64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
-    assert(0); //Not implemented
-    return emitPLTCommon(callee, false, gen);
+    /*
+    Address dest = getInterModuleFuncAddr(callee, gen);
+    //Register scr = gen.rs()->getScratchRegister(gen);
+    //Register lr = gen.rs()->getScratchRegister(gen);
+    Register scr = gen.rs()->getRegByName("r2");
+    Register lr = gen.rs()->getRegByName("r3");
+    //Address pc = emitMovePCToReg(scr, gen);
+
+    Address varOffset = dest - gen.currAddr();
+    //printf("VarOffset  = %d\n", varOffset);
+    emitLoadRelative(lr, varOffset, scr, gen.width(), gen);
+    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, lr, lr, 0, 8, insnCodeGen::Offset);
+
+    insnCodeGen::generateBranch(gen, gen.currAddr(), lr, false);
+
+    return true;
+    */ 
+
+    /*
+    Address dest = getInterModuleFuncAddr(callee, gen);
+    Register scr = gen.rs()->getScratchRegister(gen);
+    Register lr = gen.rs()->getScratchRegister(gen);
+    Address pc = emitMovePCToReg(scr, gen);
+
+    Address varOffset = dest - pc;
+    printf("VarOffset  = %d\n", varOffset);
+    emitLoadRelative(lr, varOffset, scr, gen.width(), gen);
+
+    insnCodeGen::generateBranch(gen, gen.currAddr(), lr, false);
+    return true;
+    */
+    
+    /*
+    Address dest = getInterModuleFuncAddr(callee, gen);
+    Register scr = gen.rs()->getScratchRegister(gen);
+    Register lr = gen.rs()->getScratchRegister(gen);
+    Address varOffset = dest - gen.currAddr();
+    emitLoadRelative(lr, varOffset, scr, gen.width(), gen);
+    insnCodeGen::generateBranch(gen, gen.currAddr(), gen.currAddr() +varOffset, false);
+
+    return true;
+    */
+
+
+    Address dest = getInterModuleFuncAddr(callee, gen);
+    Register scr = gen.rs()->getScratchRegister(gen);
+    Register lr = gen.rs()->getScratchRegister(gen);
+    //Register scr = gen.rs()->getRegByName("r2");
+    //Register lr = gen.rs()->getRegByName("r3");
+    emitMovePCToReg(scr, gen);
+
+    Address varOffset = dest - gen.currAddr() + 4;
+    //printf("VarOffset  = %d\n", varOffset);
+    emitLoadRelative(lr, varOffset, scr, gen.width(), gen);
+    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, lr, lr, 0, 8, insnCodeGen::Offset);
+
+    // indirect branch
+    instruction branchInsn;
+    branchInsn.clear();
+
+    //Set bits which are 0 for both BR and BLR
+    INSN_SET(branchInsn, 0, 4, 0);
+    INSN_SET(branchInsn, 10, 15, 0);
+
+    //Set register
+    INSN_SET(branchInsn, 5, 9, lr);
+
+    //Set other bits. Basically, these are the opcode bits.
+    //The only difference between BR and BLR is that bit 21 is 1 for BLR.
+    INSN_SET(branchInsn, 16, 31, BRegOp);
+    INSN_SET(branchInsn, 21, 21, 0);
+    insnCodeGen::generate(gen, branchInsn);
+    //insnCodeGen::generateBranch(gen, gen.currAddr(), lr, true);
+    //insnCodeGen::generateBranch(gen, gen.currAddr(), gen.currAddr() +varOffset, true);
+
+    return true;
+
+    //assert(0); //Not implemented
+    //return emitPLTCommon(callee, false, gen);
 }
 
 bool EmitterAARCH64Stat::emitTOCCall(block_instance *block, codeGen &gen) {

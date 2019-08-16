@@ -44,6 +44,7 @@
    typedef unsigned __int16 uint16_t;
 #endif
 #include <assert.h>
+#include <string>
 
 
 
@@ -449,10 +450,9 @@ namespace Dyninst
 	    snprintf(hex, 20, "%x", val.s32val);
 	    break;
 	  case u64:
-	    snprintf(hex, 20, "%lx", val.u64val);
-	    break;
+	    return std::to_string(val.u64val);
 	  case s64:
-	    snprintf(hex, 20, "%lx", val.s64val);
+	    return std::to_string(val.s64val);
 	    break;
 	  case sp_float:
 	    snprintf(hex, 20, "%f", val.floatval);
@@ -464,10 +464,10 @@ namespace Dyninst
 	    snprintf(hex, 20, "%x", val.bitval);
 	    break;
 	  case u48:
-	    snprintf(hex, 20, "%lx", val.s48val);
+	    return std::to_string(val.s48val);
 	    break;
 	  case s48:
-	    snprintf(hex, 20, "%lx", val.s48val);
+	    return std::to_string(val.s48val);
 	    break;
      case m512:
 	    snprintf(hex, 20, "%p", val.m512val);
