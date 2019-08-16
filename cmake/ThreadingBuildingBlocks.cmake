@@ -146,6 +146,7 @@ else()
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ""
     BUILD_COMMAND
+      CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
       $(MAKE) -C src
       ${_tbb_components_cfg}
       tbb_build_dir=${_tbb_prefix_dir}/src

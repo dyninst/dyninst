@@ -103,6 +103,7 @@ else()
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND
       CFLAGS=-g
+      CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
       <SOURCE_DIR>/configure
       --enable-install-elfh
       --prefix=${CMAKE_INSTALL_PREFIX}
