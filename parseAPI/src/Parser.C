@@ -576,7 +576,7 @@ LockFreeQueueItem<ParseFrame *> *Parser::postProcessFrame(ParseFrame *pf, bool r
                             continue;
                         }
                         a->second.insert(pf);
-                        delayed_frames_changed.store(true);
+                        delayed_frames_changed.exchange(true, boost::memory_order_relaxed);
                     }
                 }
             } else {
@@ -2375,7 +2375,7 @@ void Parser::resumeFrames(Function * func, LockFreeQueue<ParseFrame *> & work)
         }
         // remove func from delayedFrames map
         delayed_frames.erase(a);
-        delayed_frames_changed.store(true);
+        delayed_frames_changed.exchange(true, boost::memory_order_relaxed);
     }
 }
 
