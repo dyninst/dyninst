@@ -1137,7 +1137,7 @@ Parser::init_frame(ParseFrame & frame)
     unsigned size =
             frame.codereg->offset() + frame.codereg->length() - ia_start;
     const unsigned char* bufferBegin =
-            (const unsigned char *)(frame.func->isrc()->getPtrToInstruction(ia_start));
+            (const unsigned char *)(frame.func->region()->getPtrToInstruction(ia_start));
     InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
     InstructionAdapter_t* ah = InstructionAdapter_t::makePlatformIA_IAPI(obj().cs()->getArch(),
                                                                          dec, ia_start, frame.func->obj(),
@@ -1571,7 +1571,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
         unsigned size =
                 cur->region()->offset() + cur->region()->length() - curAddr;
         const unsigned char* bufferBegin =
-                (const unsigned char *)(func->isrc()->getPtrToInstruction(curAddr));
+                (const unsigned char *)(func->region()->getPtrToInstruction(curAddr));
         InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
 
         if (!ahPtr)
@@ -1746,7 +1746,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                             func->region()->offset() + func->region()->length() - ah->getAddr();
                     func->region()->offset() + func->region()->length() - ahPtr->getAddr();
                     const unsigned char* bufferBegin = (const unsigned char *)
-                            (func->isrc()->getPtrToInstruction(ah->getAddr()));
+                            (func->region()->getPtrToInstruction(ah->getAddr()));
                     dec = InstructionDecoder
                             (bufferBegin, bufsize, frame.codereg->getArch());
                     ah->reset(dec, curAddr, func->obj(),
@@ -2262,39 +2262,13 @@ Parser::frame_status(CodeRegion * cr, Address addr)
 void
 Parser::remove_func(Function *func)
 {
-    /*
-    if (sorted_funcs.end() != sorted_funcs.find(func)) {
-        sorted_funcs.erase(func);
-    }
-    */
     deleted_func.insert(func);
-    /*
-    if (HINT == func->src()) {
-        for (unsigned fidx=0; fidx < hint_funcs.size(); fidx++) {
-            if (hint_funcs[fidx] == func) {
-                hint_funcs[fidx] = hint_funcs[hint_funcs.size()-1];
-                hint_funcs.pop_back();
-                break;
-            }
-        }
-    }
-    else {
-        for (unsigned fidx=0; fidx < discover_funcs.size(); fidx++) {
-            if (discover_funcs[fidx] == func) {
-                discover_funcs[fidx] = discover_funcs[discover_funcs.size()-1];
-                discover_funcs.pop_back();
-                break;
-            }
-        }
-    }
-    */
     _parse_data->remove_func(func);
 }
 
 void
 Parser::remove_block(Dyninst::ParseAPI::Block *block)
 {
-    boost::lock_guard<ParseData> g(*_parse_data, boost::adopt_lock);
     _parse_data->remove_block(block);
 }
 

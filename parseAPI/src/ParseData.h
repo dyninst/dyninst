@@ -384,7 +384,7 @@ region_data::findBlocks(Address addr, set<Block *> & blocks)
 
 /** end region_data **/
 
-class ParseData : public boost::lockable_adapter<boost::recursive_mutex>  {
+class ParseData {
  protected:
     ParseData(Parser *p) : _parser(p) { }
     Parser * _parser;
@@ -498,10 +498,12 @@ inline region_data::edge_data_map* StandardParseData::get_edge_data_map(CodeRegi
 }
 
 
-/* OverlappingParseData handles binary code objects like .o files
-   where CodeRegions may overlap on the same linear address space */
+/* OverlappingParseData handles binary code objects like .o files 
+   where CodeRegions may overlap on the same linear address space.
+   For example, one .a file may contain multiple .o files, where each 
+   of the .o file starts from address 0. */
 class OverlappingParseData : public ParseData {
-    typedef dyn_hash_map<void *, region_data *> reg_map_t;
+    typedef dyn_c_hash_map<CodeRegion*, region_data *> reg_map_t;
  private:
     reg_map_t rmap;
  public:

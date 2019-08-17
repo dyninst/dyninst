@@ -104,7 +104,7 @@ getBlockInsns(Block &blk, std::set<Address> &addrs) {
     unsigned bufSize = blk.size();
     using namespace InstructionAPI;
     const unsigned char *bufferBegin = (const unsigned char *)
-            (blk.obj()->cs()->getPtrToInstruction(blk.start()));
+            (blk.region()->getPtrToInstruction(blk.start()));
     InstructionDecoder dec = InstructionDecoder
             (bufferBegin, bufSize, blk.region()->getArch());
     InstructionAdapter_t *ah = InstructionAdapter_t::makePlatformIA_IAPI(blk.obj()->cs()->getArch(), dec, blk.start(),

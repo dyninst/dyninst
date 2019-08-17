@@ -611,8 +611,16 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             }
         }
  
-        if (callEdge)
-            outEdges.push_back(std::make_pair(target, CALL));
+        if (callEdge) {
+            if (success) {                
+                outEdges.push_back(std::make_pair(target, CALL));
+            } else {
+                // Cannot use address 0 to represent indirect call,
+                // because in .a files, address 0 can be legit function.
+                outEdges.push_back(std::make_pair(std::numeric_limits<Address>::max(), CALL));
+            }
+        }
+            
         if (ftEdge)
             outEdges.push_back(std::make_pair(getAddr() + getSize(), CALL_FT));
 
