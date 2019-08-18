@@ -124,8 +124,7 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
             return;
         }
     }
-    _parse_data = new StandardParseData(this);
-    range_data_ready = false;
+    _parse_data = new StandardParseData(this);    
 }
 
 ParseFrame::~ParseFrame()
@@ -214,8 +213,7 @@ Parser::parse_at(
     _parse_state = PARTIAL;
     hint_funcs.clear();
     discover_funcs.clear();
-    deleted_func.clear();
-    range_data_ready = false;
+    deleted_func.clear();    
     f = _parse_data->createAndRecordFunc(region, target, src);
     if (f == NULL)
         f = _parse_data->findFunc(region,target);
@@ -308,11 +306,7 @@ Parser::parse_vanilla()
         } else {
             frames.insert(pf);
         }
-        fvec.push_back( make_pair(hf->addr(), pf) );
-        /*
-        if (pf->func->entry())
-            work.insert(pf);
-        */
+        fvec.push_back( make_pair(hf->addr(), pf) );        
     }
 
     vector<std::pair<Address, ParseFrame*> > svec;
@@ -1018,28 +1012,19 @@ Parser::finalize()
         clean_bogus_funcs(discover_funcs);
 
         for (auto it = hint_funcs.begin(); it != hint_funcs.end(); ++it)
-            if (deleted_func.find(*it) == deleted_func.end())
+            if (deleted_func.find(*it) == deleted_func.end()) {
                 sorted_funcs.insert(*it);
+                funcs_to_ranges.push_back(*it);
+            }
+                
         for (auto it = discover_funcs.begin(); it != discover_funcs.end(); ++it)
-            if (deleted_func.find(*it) == deleted_func.end())
+            if (deleted_func.find(*it) == deleted_func.end()) {
                 sorted_funcs.insert(*it);
+                funcs_to_ranges.push_back(*it);
+            }
+                
         _parse_state = FINALIZED;
     }
-}
-
-/* This function should be run only with a single thread.
- *
- * If range data is changed to use a concurrent data structure
- * that supports concurrent writes.
- *
- * Finalizing ranges should then be moved back to normal finalization
- */
-void
-Parser::prepare_ranges()
-{
-	finalize_ranges(hint_funcs);
-	finalize_ranges(discover_funcs);
-    range_data_ready = true;
 }
 
 void
@@ -1053,17 +1038,26 @@ Parser::finalize_funcs(dyn_c_vector<Function *> &funcs)
     }
 }
 
+/* This function should be run only with a single thread.
+ *
+ * If range data is changed to use a concurrent data structure
+ * that supports concurrent writes.
+ *
+ * Finalizing ranges should then be moved back to normal finalization
+ */
+
 void
-Parser::finalize_ranges(dyn_c_vector<Function *> &funcs)
+Parser::finalize_ranges()
 {
-    for (int i = 0; i < funcs.size(); ++i) {
-        Function *f = funcs[i];
+    for (int i = 0; i < funcs_to_ranges.size(); ++i) {
+        Function *f = funcs_to_ranges[i];
         region_data * rd = _parse_data->findRegion(f->region());
         for (auto eit = f->extents().begin(); eit != f->extents().end(); ++eit)
             rd->funcsByRange.insert(*eit);
         for (auto bit = f->blocks().begin(); bit != f->blocks().end(); ++bit)
             rd->insertBlockByRange(*bit);
     }
+    funcs_to_ranges.clear();
 }
 
 void
@@ -1107,10 +1101,7 @@ Parser::record_func(Function *f)
     if(f->src() == HINT)
         hint_funcs.push_back(f);
     else
-        discover_funcs.push_back(f);
-
-    //sorted_funcs.insert(f);
-
+        discover_funcs.push_back(f);    
 }
 
 void
@@ -2071,7 +2062,7 @@ Parser::findFuncs(CodeRegion *r, Address addr, set<Function *> & funcs)
                        FILE__,__LINE__,r->low(),r->high(),addr);
         finalize();
     }
-    if (!range_data_ready) prepare_ranges();
+    if (!funcs_to_ranges.empty()) finalize_ranges();
     return _parse_data->findFuncs(r,addr,funcs);
 }
 
@@ -2090,7 +2081,7 @@ Parser::findFuncs(CodeRegion *r, Address start, Address end, set<Function *> & f
                        FILE__,__LINE__,r->low(),r->high(),start,end);
         finalize();
     }
-    if (!range_data_ready) prepare_ranges();
+    if (!funcs_to_ranges.empty()) finalize_ranges();
     return _parse_data->findFuncs(r,start,end,funcs);
 }
 
@@ -2127,7 +2118,7 @@ Parser::findBlocks(CodeRegion *r, Address addr, set<Block *> & blocks)
                        FILE__,__LINE__,r->low(),r->high(),addr);
         parse();
     }
-    if (!range_data_ready) prepare_ranges();
+    if (!funcs_to_ranges.empty()) finalize_ranges();
     return _parse_data->findBlocks(r,addr,blocks);
 }
 
