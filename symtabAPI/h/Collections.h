@@ -35,6 +35,8 @@
 #include "Type.h"
 #include "Variable.h"
 #include "Serialization.h"
+#include <boost/core/enable_if.hpp>
+#include <boost/type_traits/is_same.hpp>
 
 namespace Dyninst {
 
@@ -126,7 +128,9 @@ public:
        updating a type, return that One True Pointer. */
     boost::shared_ptr<Type> findOrCreateType( const int ID );
     template<class T>
-    boost::shared_ptr<Type> addOrUpdateType(boost::shared_ptr<T> type);
+    typename boost::enable_if<
+        boost::integral_constant<bool, !bool(boost::is_same<Type, T>::value)>,
+    boost::shared_ptr<Type>>::type addOrUpdateType(boost::shared_ptr<T> type);
 
     boost::shared_ptr<Type> findVariableType(std::string &name);
 

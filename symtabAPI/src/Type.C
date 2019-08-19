@@ -153,8 +153,7 @@ Type::Type(std::string name, typeId_t ID, dataClass dataTyp) :
    name_(name), 
    size_(sizeof(int)), 
    type_(dataTyp), 
-   updatingSize(false), 
-   refCount(1)
+   updatingSize(false)
 {
 	if (!name.length()) 
 		name = std::string("unnamed_") + std::string(dataClass2Str(type_));
@@ -165,8 +164,7 @@ Type::Type(std::string name, dataClass dataTyp) :
    name_(name), 
    size_(sizeof(/*long*/ int)), 
    type_(dataTyp), 
-   updatingSize(false), 
-   refCount(1)
+   updatingSize(false)
 {
 	if (!name.length()) 
 		name = std::string("unnamed_") + std::string(dataClass2Str(type_));
@@ -232,19 +230,6 @@ bool Type::setSize(unsigned int size)
 {
 	size_ = size;
 	return true;
-}
-
-void Type::incrRefCount() 
-{
-	refCount.fetch_add(1, boost::memory_order_relaxed);
-}
-
-void Type::decrRefCount() 
-{
-    if(refCount.fetch_sub(1, boost::memory_order_relaxed) == 1) {
-        boost::atomic_thread_fence(boost::memory_order_acquire);
-        /* delete this; */
-    }
 }
 
 std::string &Type::getName()
@@ -478,7 +463,6 @@ typePointer *typePointer::create(std::string &name, boost::shared_ptr<Type> ptr,
 bool typePointer::setPtr(boost::shared_ptr<Type> ptr) { 
   assert(ptr);
   baseType_ = ptr; 
-  baseType_->incrRefCount(); 
 
   if (name_ == "" && ptr->getName() != "") {
      name_ = std::string(ptr->getName())+" *";
@@ -507,12 +491,9 @@ void typePointer::fixupUnknowns(Module *module)
 {
    if (baseType_->getDataClass() == dataUnknownType) 
    {
-      boost::shared_ptr<Type> optr = baseType_;
 	  typeCollection *tc = typeCollection::getModTypeCollection(module);
 	  assert(tc);
       baseType_ = tc->findType(baseType_->getID());
-      baseType_->incrRefCount();
-      optr->decrRefCount();
    }
 }
 
@@ -525,8 +506,6 @@ typeFunction::typeFunction(typeId_t ID, boost::shared_ptr<Type> retType, std::st
 	retType_(retType) 
 {
    size_ = sizeof(void *);
-   if (retType)
-     retType->incrRefCount();
 }
 
 typeFunction::typeFunction(boost::shared_ptr<Type> retType, std::string name) :
@@ -534,8 +513,6 @@ typeFunction::typeFunction(boost::shared_ptr<Type> retType, std::string name) :
 	retType_(retType) 
 {
    size_ = sizeof(void *);
-   if (retType)
-     retType->incrRefCount();
 }
 
 typeFunction *typeFunction::create(std::string &name, boost::shared_ptr<Type> retType, dyn_c_vector<boost::shared_ptr<Type>> &paramTypes, Symtab *obj)
@@ -555,15 +532,11 @@ boost::shared_ptr<Type> typeFunction::getReturnType() const{
 }
 
 bool typeFunction::setRetType(boost::shared_ptr<Type> rtype) {
-	if(retType_)
-		retType_->decrRefCount();
     retType_ = rtype;
-    retType_->incrRefCount();
     return true;
 }
 
 bool typeFunction::addParam(boost::shared_ptr<Type> paramType){
-    paramType->incrRefCount();
     params_.push_back(paramType);
     return true;
 }
@@ -613,24 +586,17 @@ void typeFunction::fixupUnknowns(Module *module)
 
 	if (retType_->getDataClass() == dataUnknownType) 
    {
-      boost::shared_ptr<Type> otype = retType_;
       retType_ = tc->findType(retType_->getID());
-      retType_->incrRefCount();
-      otype->decrRefCount();
    }
 
    for (unsigned int i = 0; i < params_.size(); i++)
    {
-      boost::shared_ptr<Type> otype = params_[i];
       params_[i] = tc->findType(params_[i]->getID());
-      params_[i]->incrRefCount();
-      otype->decrRefCount();
    }	 
 }
 
 typeFunction::~typeFunction()
 { 
-	retType_->decrRefCount(); 
 }
 
 /*
@@ -690,7 +656,6 @@ typeArray::typeArray(typeId_t ID,
 	sizeHint_(sizeHint) 
 {
 	//if (!base) arrayElem = Symtab::type_Error;
-	if (base) arrayElem->incrRefCount();
 }
 
 typeArray::typeArray(boost::shared_ptr<Type> base,
@@ -702,8 +667,7 @@ typeArray::typeArray(boost::shared_ptr<Type> base,
 	arrayElem(base), 
 	sizeHint_(sizeHint) 
 {
-	assert(base != NULL);
-	arrayElem->incrRefCount();
+	assert(base);
 }
 
 typeArray *typeArray::create(std::string &name, boost::shared_ptr<Type> type, long low, long hi, Symtab *obj)
@@ -748,8 +712,6 @@ void typeArray::merge(Type *other)
 		return;
 	}
 
-	arrayElem->decrRefCount();
-	otherarray->arrayElem->incrRefCount();
 	arrayElem = otherarray->arrayElem;
 }
 
@@ -825,12 +787,9 @@ void typeArray::fixupUnknowns(Module *module)
 {
    if (arrayElem->getDataClass() == dataUnknownType) 
    {
-      boost::shared_ptr<Type> otype = arrayElem;
 	  typeCollection *tc = typeCollection::getModTypeCollection(module);
 	  assert(tc);
 	  arrayElem = tc->findType(arrayElem->getID());
-      arrayElem->incrRefCount();
-      otype->decrRefCount();
    }
 }
 
@@ -1268,7 +1227,6 @@ typeTypedef::typeTypedef(typeId_t ID, boost::shared_ptr<Type> base, std::string 
 		baseType_ = base;
 #endif
 	sizeHint_ = sizeHint / 8;
-	if (baseType_) baseType_->incrRefCount();
 }
 
 typeTypedef::typeTypedef(boost::shared_ptr<Type> base, std::string name, unsigned int sizeHint) :
@@ -1277,7 +1235,6 @@ typeTypedef::typeTypedef(boost::shared_ptr<Type> base, std::string name, unsigne
    assert(base != NULL);
    baseType_ = base;
    sizeHint_ = sizeHint / 8;
-   baseType_->incrRefCount();
 }
 
 typeTypedef *typeTypedef::create(std::string &name, boost::shared_ptr<Type> baseType, Symtab *obj)
@@ -1331,12 +1288,9 @@ void typeTypedef::fixupUnknowns(Module *module)
 {
    if (baseType_->getDataClass() == dataUnknownType) 
    {
-      boost::shared_ptr<Type> otype = baseType_;
 	  typeCollection *tc = typeCollection::getModTypeCollection(module);
 	  assert(tc);
       baseType_ = tc->findType(baseType_->getID());
-      baseType_->incrRefCount();
-      otype->decrRefCount();
    }
 }
 
@@ -1348,16 +1302,12 @@ typeRef::typeRef(int ID, boost::shared_ptr<Type> refType, std::string name) :
     derivedType(name, ID, 0, dataReference) 
 {
    baseType_ = refType;
-   if (refType)
-   	refType->incrRefCount();
 }
 
 typeRef::typeRef(boost::shared_ptr<Type> refType, std::string name) :
     derivedType(name, getUniqueTypeId(), 0, dataReference)
 {
    baseType_ = refType;
-   if(refType)
-   	refType->incrRefCount();
 }
 
 typeRef *typeRef::create(std::string &name, boost::shared_ptr<Type> ref, Symtab *obj)
@@ -1398,12 +1348,9 @@ void typeRef::fixupUnknowns(Module *module)
 {
    if (baseType_->getDataClass() == dataUnknownType) 
    {
-      boost::shared_ptr<Type> otype = baseType_;
 	  typeCollection *tc = typeCollection::getModTypeCollection(module);
 	  assert(tc);
       baseType_ = tc->findType(baseType_->getID());
-      baseType_->incrRefCount();
-      otype->decrRefCount();
    }
 }
 		      
@@ -1606,10 +1553,7 @@ bool derivedType::operator==(const Type &otype) const {
 }
 
 derivedType::~derivedType()
-{
-   if(baseType_)
-   	baseType_->decrRefCount();
-}
+{}
 
 /*
  * RANGED
@@ -1709,10 +1653,7 @@ Field::Field(std::string name, boost::shared_ptr<Type> typ, int offsetVal, visib
    type_(typ), 
    vis_(vis), 
    offset_(offsetVal)
-{
-    if (typ)
-        typ->incrRefCount();
-}
+{}
 
 std::string &Field::getName()
 {
@@ -1747,27 +1688,17 @@ Field::Field(Field &oField) :
    offset_ = oField.offset_;
    fieldName_ = std::string(oField.fieldName_);
    vis_ = oField.vis_;
-
-   if (type_ != NULL)
-      type_->incrRefCount();
 }
 
-Field::~Field() 
-{
-   if (type_ != NULL) 
-      type_->decrRefCount();
-}
+Field::~Field() {}
 
 void Field::fixupUnknown(Module *module) 
 {
    if (type_->getDataClass() == dataUnknownType) 
    {
-      boost::shared_ptr<Type> otype = type_;
 	  typeCollection *tc = typeCollection::getModTypeCollection(module);
 	  assert(tc);
       type_ = tc->findType(type_->getID());
-      type_->incrRefCount();
-      otype->decrRefCount();
    }
 }
 
@@ -1808,7 +1739,7 @@ dyn_c_vector<Symbol *> *CBlock::getFunctions()
 }
 
 Type::Type() : ID_(0), name_(std::string("unnamedType")), size_(0),
-               type_(dataUnknownType), updatingSize(false), refCount(1) {}
+               type_(dataUnknownType), updatingSize(false) {}
 fieldListType::fieldListType() : derivedFieldList(NULL) {}
 rangedType::rangedType() : low_(0), hi_(0) {}
 derivedType::derivedType() : baseType_(NULL) {}
@@ -1840,7 +1771,6 @@ Serializable * Type::serialize_impl(SerializerBase *s, const char *tag) THROW_SP
 
 	if (s->isInput())
 	{
-		newt->incrRefCount();
 		switch(type_) 
 		{
 			case dataEnum:
@@ -1901,7 +1831,6 @@ Serializable * Type::serialize_impl(SerializerBase *s, const char *tag) THROW_SP
 	if (s->isInput())
 	{
 		updatingSize = false;
-                refCount.store(0, boost::memory_order_relaxed);
 
 		// Ensure that unique type id is the next (increasingly negative) type ID available for user defined types.
 		updateUniqueTypeId(ID_);

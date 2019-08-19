@@ -112,7 +112,6 @@ BPatch_type::BPatch_type(boost::shared_ptr<Type> typ_): ID(typ_->getID()), typ(t
 
 	assert(typ_);
 	typ_->addAnnotation(this, TypeUpPtrAnno);
-    typ_->incrRefCount();
 
 	type_ = convertToBPatchdataClass(typ_->getDataClass());
 	type_map[typ.get()] = this;
@@ -147,10 +146,7 @@ BPatch_type *BPatch_type::findOrCreateType(boost::shared_ptr<Dyninst::SymtabAPI:
 /* BPatch_type destructor
  * Basic destructor for proper memory management.
  */
-BPatch_type::~BPatch_type()
-{
-    typ->decrRefCount();
-}
+BPatch_type::~BPatch_type() {}
 
 bool BPatch_type::operator==(const BPatch_type &otype) const 
 {

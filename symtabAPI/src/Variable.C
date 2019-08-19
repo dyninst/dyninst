@@ -198,8 +198,6 @@ localVar::localVar(std::string name,  boost::shared_ptr<Type> typ, std::string f
         func_(f),
         locsExpanded_(false)
 {
-	type_->incrRefCount();
-
 	if (locs)
 	{
            std::copy(locs->begin(), locs->end(), std::back_inserter(locs_));
@@ -218,11 +216,6 @@ localVar::localVar(localVar &lvar) :
 
         std::copy(lvar.locs_.begin(), lvar.locs_.end(),
                   std::back_inserter(locs_));
-
-	if (type_ != NULL)
-	{
-		type_->incrRefCount();
-	}
 }
 
 bool localVar::addLocation(const VariableLocation &location)
@@ -331,28 +324,16 @@ void localVar::expandLocation(
    return;
 }
 
-localVar::~localVar()
-{
-	//XXX jdd 5/25/99 More to do later
-	type_->decrRefCount();
-}
+localVar::~localVar() {}
 
 void localVar::fixupUnknown(Module *module) 
 {
 	if (type_->getDataClass() == dataUnknownType) 
 	{
-		boost::shared_ptr<Type> otype = type_;
 		typeCollection *tc = typeCollection::getModTypeCollection(module);
 		assert(tc);
-		type_ = tc->findType(type_->getID());
-
-		if (type_)
-		{
-			type_->incrRefCount();
-			otype->decrRefCount();
-		}
-		else
-			type_ = otype;
+        auto t = tc->findType(type_->getID());
+        if(t) type_ = t;
 	}
 }
 

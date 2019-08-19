@@ -810,7 +810,7 @@ Symbol *DwarfWalker::findSymbolForCommonBlock(const string &commonBlockName) {
 
 boost::shared_ptr<Type> DwarfWalker::getCommonBlockType(string &commonBlockName) {
    auto commonBlockType = tc()->findVariableType(commonBlockName);
-   if(!commonBlockType->isCommonType()) {
+   if(!commonBlockType || !commonBlockType->isCommonType()) {
      commonBlockType = boost::make_shared<typeCommon>( type_id(), commonBlockName );
      tc()->addGlobalVariable(commonBlockName, commonBlockType);
    }

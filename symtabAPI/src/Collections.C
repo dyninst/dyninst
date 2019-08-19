@@ -243,17 +243,7 @@ typeCollection::typeCollection() :
  * Destructor for typeCollection.  Deletes all type objects that have
  * been inserted into the collection.
  */
-typeCollection::~typeCollection()
-{
-    // delete all of the types
-    for(const auto& t: typesByName) {
-        t.second->decrRefCount();
-    }
-
-    for(const auto& t: typesByID) {
-        t.second->decrRefCount();
-    }
-}
+typeCollection::~typeCollection() {}
 
 /*
  * typeCollection::findType

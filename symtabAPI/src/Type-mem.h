@@ -66,13 +66,16 @@ T *upgradePlaceholder(Type *placeholder, T *new_type)
 }
 
 template<class T>
-boost::shared_ptr<Type> typeCollection::addOrUpdateType(boost::shared_ptr<T> type) 
+typename boost::enable_if<
+    boost::integral_constant<bool, !bool(boost::is_same<Type, T>::value)>,
+boost::shared_ptr<Type>>::type typeCollection::addOrUpdateType(boost::shared_ptr<T> type) 
 {
 	//Instanciating this function for 'Type' would be a mistake, which
 	//the following assert tries to guard against.  If you trigger this,
 	//then a caller to this function is likely using 'Type'.  Change
 	//this to a more specific call, e.g. typeFunction instead of Type
-	BOOST_STATIC_ASSERT(sizeof(T) != sizeof(Type));
+    // NOTE: Disabled, we use SFINAE instead to handle this.
+    // BOOST_STATIC_ASSERT(sizeof(T) != sizeof(Type));
     boost::lock_guard<boost::mutex> g(placeholder_mutex);
 
     dyn_c_hash_map<int, boost::shared_ptr<Type>>::accessor a;

@@ -176,19 +176,6 @@ class SYMTAB_EXPORT Type : public Serializable, public  TYPE_ANNOTATABLE_CLASS
     * part of the type processing code (or an error in the binary).
     **/
    bool updatingSize;
-   
-   // Boost's atomic doesn't support operator =, although std::atomic does.
-   // This wrapper class makes up for the deficiency
-   template<typename T>
-   struct stdatomic : public boost::atomic<T> {
-       stdatomic(const T& v) : boost::atomic<T>(v) {};
-       ~stdatomic() {};
-       stdatomic& operator=(const stdatomic<T>& other) {
-           this->store(other.load());
-           return *this;
-       }
-   };
-   stdatomic<unsigned int> refCount;
 
    static boost::atomic<typeId_t> USER_TYPE_ID;
 
@@ -232,9 +219,6 @@ public:
    bool setName(std::string);
    dataClass getDataClass() const;
 
-   // INTERNAL METHODS
-   void incrRefCount();
-   void decrRefCount(); 
    //Methods to dynamically cast generic Type Object to specific types.
    
    typeEnum *getEnumType();
