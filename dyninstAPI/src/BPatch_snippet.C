@@ -205,7 +205,7 @@ AstNodePtr generateArrayRef(const BPatch_snippet &lOperand,
 
         //  We have to be a little forgiving of the
 
-        typeArray *arrayType = lOperand.ast_wrapper->getType()->getSymtabType()->getArrayType();
+        typeArray *arrayType = lOperand.ast_wrapper->getType()->getSymtabType(Type::share)->getArrayType();
         if (!arrayType)
         {
                 if (lOperand.ast_wrapper->getType() == NULL)
@@ -224,7 +224,7 @@ AstNodePtr generateArrayRef(const BPatch_snippet &lOperand,
                 return AstNodePtr();
         }
 
-        auto elementType = arrayType->getBaseType();
+        auto elementType = arrayType->getBaseType(Type::share);
         assert(elementType);
         long int elementSize = elementType->getSize();
 
@@ -316,7 +316,7 @@ AstNodePtr generateFieldRef(const BPatch_snippet &lOperand,
                                 "array reference has no type information");
         }
 
-        typeStruct *structType = lOperand.ast_wrapper->getType()->getSymtabType()->getStructType();
+        typeStruct *structType = lOperand.ast_wrapper->getType()->getSymtabType(Type::share)->getStructType();
 
         if (!structType)
         {
@@ -385,7 +385,7 @@ AstNodePtr generateFieldRef(const BPatch_snippet &lOperand,
 
         extern AnnotationClass<BPatch_type> TypeUpPtrAnno;
         BPatch_type *field_bptype = NULL;
-        auto field_type = field->getType();
+        auto field_type = field->getType(Type::share);
         assert(field_type);
 
 

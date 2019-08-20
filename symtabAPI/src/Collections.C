@@ -153,14 +153,14 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
 			dataClass ldc = (*to_assign)[i].first;
 			boost::shared_ptr<Type>*th = (*to_assign)[i].second;
 
-			boost::shared_ptr<Type> t = primary_tc->findType(iter->first);
+			boost::shared_ptr<Type> t = primary_tc->findType(iter->first, Type::share);
 			if (t && (t->getDataClass() != ldc)) t = NULL;
 
 			if (!t)
 			{
 				if (Symtab::builtInTypes())
 				{
-					t = Symtab::builtInTypes()->findBuiltInType(iter->first);
+					t = Symtab::builtInTypes()->findBuiltInType(iter->first, Type::share);
 					if (t && (t->getDataClass() != ldc)) t = NULL;
 				}
 			}
@@ -168,7 +168,7 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
 			{
 				if (Symtab::stdTypes())
 				{
-					t = Symtab::stdTypes()->findType(iter->first);
+					t = Symtab::stdTypes()->findType(iter->first, Type::share);
 					if (t && (t->getDataClass() != ldc)) t = NULL;
 				}
 			}
@@ -179,7 +179,7 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
 				for (tciter = fileToTypesMap.begin(); tciter != fileToTypesMap.end(); tciter++)
 				{
 					if (tciter->second == primary_tc) continue;
-					boost::shared_ptr<Type> localt = tciter->second->findType(iter->first);
+					boost::shared_ptr<Type> localt = tciter->second->findType(iter->first, Type::share);
 					if (localt)
 					{
 						if (localt->getDataClass() != ldc) 
@@ -255,19 +255,19 @@ typeCollection::~typeCollection() {}
  * name		The name of the type to look up.
  * id           The unique type ID of the type tp look up.
  */
-boost::shared_ptr<Type> typeCollection::findType(std::string name)
+boost::shared_ptr<Type> typeCollection::findType(std::string name, Type::do_share_t)
 {
     dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::const_accessor a;
 
     if (typesByName.find(a, name))
     	return a->second;
     else if (Symtab::builtInTypes())
-        return Symtab::builtInTypes()->findBuiltInType(name);
+        return Symtab::builtInTypes()->findBuiltInType(name, Type::share);
     else
         return boost::shared_ptr<Type>();
 }
 
-boost::shared_ptr<Type> typeCollection::findTypeLocal(std::string name)
+boost::shared_ptr<Type> typeCollection::findTypeLocal(std::string name, Type::do_share_t)
 {
     dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::const_accessor a;
 
@@ -277,7 +277,7 @@ boost::shared_ptr<Type> typeCollection::findTypeLocal(std::string name)
         return boost::shared_ptr<Type>();
 }
 
-boost::shared_ptr<Type> typeCollection::findTypeLocal(const int ID)
+boost::shared_ptr<Type> typeCollection::findTypeLocal(const int ID, Type::do_share_t)
 {
     dyn_c_hash_map<int, boost::shared_ptr<Type>>::const_accessor a;
     if (typesByID.find(a, ID))
@@ -287,7 +287,7 @@ boost::shared_ptr<Type> typeCollection::findTypeLocal(const int ID)
 }
 
 
-boost::shared_ptr<Type> typeCollection::findOrCreateType( const int ID ) 
+boost::shared_ptr<Type> typeCollection::findOrCreateType( const int ID, Type::do_share_t) 
 {
     boost::lock_guard<boost::mutex> g(placeholder_mutex);
     dyn_c_hash_map<int, boost::shared_ptr<Type>>::const_accessor a;
@@ -300,7 +300,7 @@ boost::shared_ptr<Type> typeCollection::findOrCreateType( const int ID )
 
     if ( Symtab::builtInTypes() )
     {
-        returnType = Symtab::builtInTypes()->findBuiltInType(ID);
+        returnType = Symtab::builtInTypes()->findBuiltInType(ID, Type::share);
 
         if (returnType)
             return returnType;
@@ -316,7 +316,7 @@ boost::shared_ptr<Type> typeCollection::findOrCreateType( const int ID )
     return returnType;
 } /* end findOrCreateType() */
 
-boost::shared_ptr<Type> typeCollection::findType(const int ID)
+boost::shared_ptr<Type> typeCollection::findType(const int ID, Type::do_share_t)
 {
     dyn_c_hash_map<int, boost::shared_ptr<Type>>::const_accessor a;
     if (typesByID.find(a, ID))
@@ -326,7 +326,7 @@ boost::shared_ptr<Type> typeCollection::findType(const int ID)
         boost::shared_ptr<Type> ret = NULL;
 
         if (Symtab::builtInTypes())
-            ret = Symtab::builtInTypes()->findBuiltInType(ID);
+            ret = Symtab::builtInTypes()->findBuiltInType(ID, Type::share);
 
         return ret;
     }
@@ -341,7 +341,7 @@ boost::shared_ptr<Type> typeCollection::findType(const int ID)
  *
  * name		The name of the type to look up.
  */
-boost::shared_ptr<Type> typeCollection::findVariableType(std::string &name)
+boost::shared_ptr<Type> typeCollection::findVariableType(std::string &name, Type::do_share_t)
 {
     dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::const_accessor a;
     if (globalVarsByName.find(a, name))
@@ -499,7 +499,7 @@ builtInTypeCollection::~builtInTypeCollection()
  * name		The name of the type to look up.
  * id           The unique type ID of the type tp look up.
  */
-boost::shared_ptr<Type> builtInTypeCollection::findBuiltInType(std::string &name)
+boost::shared_ptr<Type> builtInTypeCollection::findBuiltInType(std::string &name, Type::do_share_t)
 {
     dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::const_accessor a;
     if (builtInTypesByName.find(a, name))
@@ -508,7 +508,7 @@ boost::shared_ptr<Type> builtInTypeCollection::findBuiltInType(std::string &name
        return boost::shared_ptr<Type>();
 }
 
-boost::shared_ptr<Type> builtInTypeCollection::findBuiltInType(const int ID)
+boost::shared_ptr<Type> builtInTypeCollection::findBuiltInType(const int ID, Type::do_share_t)
 {
     dyn_c_hash_map<int, boost::shared_ptr<Type>>::const_accessor a;
     if (builtInTypesByID.find(a, ID))

@@ -47,8 +47,6 @@
 
 #include "dwarfWalker.h"
 
-#include <boost/smart_ptr/make_shared.hpp>
-
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace Dyninst::DwarfDyninst;
@@ -4795,10 +4793,10 @@ void Object::parseStabTypes() {
                     if (!commonBlockVar) {
                         // //bperr("unable to find variable %s\n", commonBlockName);
                     } else {
-                        commonBlock = tc->findVariableType(*commonBlockName);
+                        commonBlock = tc->findVariableType(*commonBlockName, Type::share);
                         if (!commonBlock->isCommonType()) {
                             // its still the null type, create a new one for it
-                            commonBlock = boost::make_shared<typeCommon>(*commonBlockName);
+                            commonBlock = Type::make_shared<typeCommon>(*commonBlockName);
                             tc->addGlobalVariable(*commonBlockName, commonBlock);
                         }
                         // reset field list

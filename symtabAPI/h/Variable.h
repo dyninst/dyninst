@@ -65,7 +65,9 @@ class SYMTAB_EXPORT Variable : public Aggregate, public Serializable, public Ann
     bool removeSymbol(Symbol *sym);      
 
    void setType(boost::shared_ptr<Type> type);
-   boost::shared_ptr<Type> getType();
+   void setType(Type* t) { setType(t->reshare()); };
+   boost::shared_ptr<Type> getType(Type::do_share_t);
+   Type* getType() { return getType(Type::share).get(); }
 
    Serializable *serialize_impl(SerializerBase *sb, 
 		   const char *tag = "Variable") THROW_SPEC (SerializerError);
@@ -104,6 +106,9 @@ class SYMTAB_EXPORT localVar : public Serializable, public AnnotatableSparse
 	localVar(std::string name,  boost::shared_ptr<Type> typ, std::string fileName, 
             int lineNum, FunctionBase *f, 
             std::vector<VariableLocation> *locs = NULL);
+	localVar(std::string n, Type* t, std::string fn, int l, FunctionBase *f, 
+            std::vector<VariableLocation> *ls = NULL)
+      : localVar(n, t->reshare(), fn, l, f, ls) {};
             
 	// Copy constructor
 	localVar(localVar &lvar);
@@ -114,8 +119,10 @@ class SYMTAB_EXPORT localVar : public Serializable, public AnnotatableSparse
 	public:
 	//  end of functions for internal use only
 	std::string &getName();
-	boost::shared_ptr<Type> getType();
+	boost::shared_ptr<Type> getType(Type::do_share_t);
+    Type* getType() { return getType(Type::share).get(); }
 	bool setType(boost::shared_ptr<Type> newType);
+	bool setType(Type* t) { return setType(t->reshare()); };
 	int  getLineNum();
 	std::string &getFileName();
 	std::vector<VariableLocation> &getLocationLists();

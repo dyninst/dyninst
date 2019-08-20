@@ -41,6 +41,7 @@
 #include "Serialization.h"
 #include "ProcReader.h"
 #include "IBSTree.h"
+#include "Type.h"
 
 #include "dyninstversion.h"
 
@@ -264,8 +265,21 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    
    /***** Type Information *****/
    virtual bool findType(boost::shared_ptr<Type>& type, std::string name);
-   virtual boost::shared_ptr<Type> findType(unsigned type_id);
+   bool findType(Type*& t, std::string n) {
+     boost::shared_ptr<Type> tp;
+     auto r = findType(tp, n);
+     t = tp.get();
+     return r;
+   }
+   virtual boost::shared_ptr<Type> findType(unsigned type_id, Type::do_share_t);
+   Type* findType(unsigned i) { return findType(i, Type::share).get(); }
    virtual bool findVariableType(boost::shared_ptr<Type>& type, std::string name);
+   bool findVariableType(Type*& t, std::string n) {
+     boost::shared_ptr<Type> tp;
+     auto r = findVariableType(tp, n);
+     t = tp.get();
+     return r;
+   }
 
    bool addType(Type *typ);
 
@@ -273,7 +287,21 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    static boost::shared_ptr<typeCollection>& stdTypes();
 
    static void getAllstdTypes(std::vector<boost::shared_ptr<Type>>&);
+   static std::vector<Type*>* getAllstdTypes() {
+     std::vector<boost::shared_ptr<Type>> v;
+     getAllstdTypes(v);
+     auto r = new std::vector<Type*>(v.size());
+     for(std::size_t i = 0; i < v.size(); i++) (*r)[i] = v[i].get();
+     return r;
+   }
    static void getAllbuiltInTypes(std::vector<boost::shared_ptr<Type>>&);
+   static std::vector<Type*>* getAllbuiltInTypes() {
+     std::vector<boost::shared_ptr<Type>> v;
+     getAllbuiltInTypes(v);
+     auto r = new std::vector<Type*>(v.size());
+     for(std::size_t i = 0; i < v.size(); i++) (*r)[i] = v[i].get();
+     return r;
+   }
 
    void parseTypesNow();
 

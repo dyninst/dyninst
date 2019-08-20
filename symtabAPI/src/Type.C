@@ -377,7 +377,7 @@ bool typeEnum::isCompatible(Type *otype)
    if((otype->getDataClass() == dataUnknownType) || (otype->getDataClass() == dataNullType))
        return true;
    typeTypedef *otypedef = dynamic_cast<typeTypedef *>(otype);
-   if (otypedef != NULL) return isCompatible(otypedef->getConstituentType());
+   if (otypedef != NULL) return isCompatible(otypedef->getConstituentType(Type::share));
 
    typeEnum *oEnumtype = dynamic_cast<typeEnum *>(otype);
 
@@ -474,7 +474,7 @@ bool typePointer::isCompatible(Type *otype) {
    if((otype->getDataClass() == dataUnknownType) || (otype->getDataClass() == dataNullType))
        return true;
    typeTypedef *otypedef = dynamic_cast<typeTypedef *>(otype);
-   if (otypedef != NULL) return isCompatible(otypedef->getConstituentType());
+   if (otypedef != NULL) return isCompatible(otypedef->getConstituentType(Type::share));
 
    typePointer *oPointertype = dynamic_cast<typePointer *>(otype);
 
@@ -493,7 +493,7 @@ void typePointer::fixupUnknowns(Module *module)
    {
 	  typeCollection *tc = typeCollection::getModTypeCollection(module);
 	  assert(tc);
-      baseType_ = tc->findType(baseType_->getID());
+      baseType_ = tc->findType(baseType_->getID(), Type::share);
    }
 }
 
@@ -527,7 +527,7 @@ typeFunction *typeFunction::create(std::string &name, boost::shared_ptr<Type> re
     return type;
 }
 
-boost::shared_ptr<Type> typeFunction::getReturnType() const{
+boost::shared_ptr<Type> typeFunction::getReturnType(Type::do_share_t) const{
     return retType_;
 }
 
@@ -549,7 +549,7 @@ bool typeFunction::isCompatible(Type *otype) {
    if((otype->getDataClass() == dataUnknownType) || (otype->getDataClass() == dataNullType))
        return true;
    typeTypedef *otypedef = dynamic_cast<typeTypedef *>(otype);
-   if (otypedef != NULL) return isCompatible(otypedef->getConstituentType());
+   if (otypedef != NULL) return isCompatible(otypedef->getConstituentType(Type::share));
 
    typeFunction *oFunctiontype = dynamic_cast<typeFunction *>(otype);
 
@@ -586,12 +586,12 @@ void typeFunction::fixupUnknowns(Module *module)
 
 	if (retType_->getDataClass() == dataUnknownType) 
    {
-      retType_ = tc->findType(retType_->getID());
+      retType_ = tc->findType(retType_->getID(), Type::share);
    }
 
    for (unsigned int i = 0; i < params_.size(); i++)
    {
-      params_[i] = tc->findType(params_[i]->getID());
+      params_[i] = tc->findType(params_[i]->getID(), Type::share);
    }	 
 }
 
@@ -631,7 +631,7 @@ bool typeSubrange::isCompatible(Type *otype) {
    if((otype->getDataClass() == dataUnknownType) || (otype->getDataClass() == dataNullType))
        return true;
    typeTypedef *otypedef = dynamic_cast<typeTypedef *>(otype);
-   if (otypedef != NULL) return isCompatible(otypedef->getConstituentType());
+   if (otypedef != NULL) return isCompatible(otypedef->getConstituentType(Type::share));
 
    typeSubrange *oRangetype = dynamic_cast<typeSubrange *>(otype);
 
@@ -715,7 +715,7 @@ void typeArray::merge(Type *other)
 	arrayElem = otherarray->arrayElem;
 }
 
-boost::shared_ptr<Type> typeArray::getBaseType() const
+boost::shared_ptr<Type> typeArray::getBaseType(Type::do_share_t) const
 {
 	return arrayElem;
 }
@@ -755,7 +755,7 @@ bool typeArray::isCompatible(Type *otype)
 
 	if (otypedef != NULL) 
 	{
-		return isCompatible(otypedef->getConstituentType());
+		return isCompatible(otypedef->getConstituentType(Type::share));
 	}
 
 	typeArray *oArraytype = dynamic_cast<typeArray *>(otype);
@@ -789,7 +789,7 @@ void typeArray::fixupUnknowns(Module *module)
    {
 	  typeCollection *tc = typeCollection::getModTypeCollection(module);
 	  assert(tc);
-	  arrayElem = tc->findType(arrayElem->getID());
+	  arrayElem = tc->findType(arrayElem->getID(), Type::share);
    }
 }
 
@@ -876,7 +876,7 @@ void typeStruct::updateSize()
 	size_ += fieldList[i]->getSize();
 
 	// Is the type of this field still a placeholder?
-	if(fieldList[i]->getType()->getDataClass() == dataUnknownType) {
+	if(fieldList[i]->getType(Type::share)->getDataClass() == dataUnknownType) {
 	    size_ = 0;
          break;
 	}
@@ -893,7 +893,7 @@ bool typeStruct::isCompatible(Type *otype)
    if((otype->getDataClass() == dataUnknownType) || (otype->getDataClass() == dataNullType))
        return true;
    typeTypedef *otypedef = dynamic_cast<typeTypedef *>(otype);
-   if (otypedef != NULL) return isCompatible(otypedef->getConstituentType());
+   if (otypedef != NULL) return isCompatible(otypedef->getConstituentType(Type::share));
 
    typeStruct *oStructtype = dynamic_cast<typeStruct *>(otype);
 
@@ -914,7 +914,7 @@ bool typeStruct::isCompatible(Type *otype)
       Field * field1 = (*fields1)[i];
       Field * field2 = (*fields2)[i];
             
-      if(!(field1->getType()->isCompatible(field2->getType()))) {
+      if(!(field1->getType(Type::share)->isCompatible(field2->getType(Type::share)))) {
          //reportError(BPatchWarning, 112, 
          //                   "struct/union field type mismatch ");
          return false;
@@ -1008,7 +1008,7 @@ void typeUnion::updateSize()
 	    size_ = fieldList[i]->getSize();
 
 	// Is the type of this field still a placeholder?
-        if(fieldList[i]->getType()->getDataClass() == dataUnknownType) {
+        if(fieldList[i]->getType(Type::share)->getDataClass() == dataUnknownType) {
             size_ = 0;
          break;
         }
@@ -1024,7 +1024,7 @@ bool typeUnion::isCompatible(Type *otype) {
    if((otype->getDataClass() == dataUnknownType) || (otype->getDataClass() == dataNullType))
        return true;
    typeTypedef *otypedef = dynamic_cast<typeTypedef *>(otype);
-   if (otypedef != NULL) return isCompatible(otypedef->getConstituentType());
+   if (otypedef != NULL) return isCompatible(otypedef->getConstituentType(Type::share));
 
    typeUnion *oUniontype = dynamic_cast<typeUnion *>(otype);
 
@@ -1045,7 +1045,7 @@ bool typeUnion::isCompatible(Type *otype) {
       Field * field1 = (*fields1)[i];
       Field * field2 = (*fields2)[i];
       
-      if(!(field1->getType()->isCompatible(field2->getType()))) {
+      if(!(field1->getType(Type::share)->isCompatible(field2->getType(Type::share)))) {
          //reportError(BPatchWarning, 112, 
          //                   "struct/union field type mismatch ");
          return false;
@@ -1098,7 +1098,7 @@ bool typeScalar::isCompatible(Type *otype) {
    bool ret = false;
    const typeTypedef *otypedef = dynamic_cast<const typeTypedef *>(otype);
    if (otypedef != NULL)  {
-      ret =  isCompatible(otypedef->getConstituentType());
+      ret =  isCompatible(otypedef->getConstituentType(Type::share));
       return ret;
    }
 
@@ -1162,7 +1162,7 @@ void typeCommon::endCommonBlock(Symbol *func, void *baseAddr)
 
 	    localVar *locVar;
     	locVar = new localVar(fieldList[j]->getName(), 
-	        			     fieldList[j]->getType(), "", 0, (Function *) func);
+	        			     fieldList[j]->getType(Type::share), "", 0, (Function *) func);
 #if 0
     	VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
 #endif
@@ -1290,7 +1290,7 @@ void typeTypedef::fixupUnknowns(Module *module)
    {
 	  typeCollection *tc = typeCollection::getModTypeCollection(module);
 	  assert(tc);
-      baseType_ = tc->findType(baseType_->getID());
+      baseType_ = tc->findType(baseType_->getID(), Type::share);
    }
 }
 
@@ -1335,13 +1335,13 @@ bool typeRef::isCompatible(Type *otype) {
    if((otype->getDataClass() == dataUnknownType) || (otype->getDataClass() == dataNullType))
        return true;
    typeTypedef *otypedef = dynamic_cast<typeTypedef *>(otype);
-   if (otypedef != NULL) return isCompatible(otypedef->getConstituentType());
+   if (otypedef != NULL) return isCompatible(otypedef->getConstituentType(Type::share));
 
    typeRef *oReftype = dynamic_cast< typeRef *>(otype);
    if (oReftype == NULL) {
       return false;
    }
-   return baseType_->isCompatible(oReftype->getConstituentType());
+   return baseType_->isCompatible(oReftype->getConstituentType(Type::share));
 }   
 
 void typeRef::fixupUnknowns(Module *module) 
@@ -1350,7 +1350,7 @@ void typeRef::fixupUnknowns(Module *module)
    {
 	  typeCollection *tc = typeCollection::getModTypeCollection(module);
 	  assert(tc);
-      baseType_ = tc->findType(baseType_->getID());
+      baseType_ = tc->findType(baseType_->getID(), Type::share);
    }
 }
 		      
@@ -1426,7 +1426,7 @@ void fieldListType::fixupComponents()
             the class-graph is acyclic (Stroustrup SpecialEd pg 308),
             we're OK. */
          // bperr( "Found superclass '%s'...\n", currentField->getType()->getName() );
-         auto& superclass = dynamic_cast<fieldListInterface&>(*currentField->getType());
+         auto& superclass = dynamic_cast<fieldListInterface&>(*currentField->getType(Type::share));
          const dyn_c_vector<Field *> * superClassFields = superclass.getComponents();
          // bperr( "Superclass has %d components.\n", superClassFields->size() );
          /* FIXME: do we also need to consider the visibility of the superclass itself? */
@@ -1538,7 +1538,7 @@ derivedType::derivedType(std::string &name, int size, dataClass typeDes)
    size_ = size;
 }
 
-boost::shared_ptr<Type> derivedType::getConstituentType() const
+boost::shared_ptr<Type> derivedType::getConstituentType(Type::do_share_t) const
 {
    return baseType_;
 }
@@ -1660,7 +1660,7 @@ std::string &Field::getName()
    return fieldName_;
 }
 
-boost::shared_ptr<Type> Field::getType()
+boost::shared_ptr<Type> Field::getType(Type::do_share_t)
 {
    return type_;
 }
@@ -1698,7 +1698,7 @@ void Field::fixupUnknown(Module *module)
    {
 	  typeCollection *tc = typeCollection::getModTypeCollection(module);
 	  assert(tc);
-      type_ = tc->findType(type_->getID());
+      type_ = tc->findType(type_->getID(), Type::share);
    }
 }
 

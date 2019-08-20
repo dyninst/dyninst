@@ -44,8 +44,6 @@
 #include "RegisterConversion.h"
 //#include "Annotatable.h"
 
-#include <boost/smart_ptr/make_shared.hpp>
-
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
@@ -90,7 +88,7 @@ BPatch_type::BPatch_type(boost::shared_ptr<Type> typ_): ID(typ_->getID()), typ(t
 
 	if (typ_->isDerivedType()) 
 	{
-		auto base = typ_->asDerivedType().getConstituentType();
+		auto base = typ_->asDerivedType().getConstituentType(Dyninst::SymtabAPI::Type::share);
 
 		assert(base);
 		BPatch_type *bpt = NULL;
@@ -121,9 +119,9 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type) :
    ID(_ID), type_(_type), typ(NULL), refCount(1)
 {
 	if (_name != NULL)
-		typ = boost::make_shared<Type>(_name, ID, convertToSymtabType(_type));
+		typ = Type::make_shared<Type>(_name, ID, convertToSymtabType(_type));
 	else
-		typ = boost::make_shared<Type>("", ID, convertToSymtabType(_type));
+		typ = Type::make_shared<Type>("", ID, convertToSymtabType(_type));
 	assert(typ);
 
 	typ->addAnnotation(this, TypeUpPtrAnno);
@@ -163,13 +161,13 @@ const char *BPatch_type::getName() const
    return typ->getName().c_str(); 
 }
 
-boost::shared_ptr<Type> BPatch_type::getSymtabType() const 
+boost::shared_ptr<Type> BPatch_type::getSymtabType(Type::do_share_t) const 
 {
     return typ;
 }    
 
-boost::shared_ptr<Type> SymtabAPI::convert(const BPatch_type *t) {
-	return t->getSymtabType();
+boost::shared_ptr<Type> SymtabAPI::convert(const BPatch_type *t, Type::do_share_t) {
+	return t->getSymtabType(Type::share);
 }
 
 unsigned long BPatch_type::getLow() const 
@@ -187,8 +185,8 @@ BPatch_type *BPatch_type::getConstituentType() const
    boost::shared_ptr<Type> ctype;
 
    // Pointer, reference, typedef
-   if (typ->isDerivedType()) ctype = typ->asDerivedType().getConstituentType();
-   else if(typ->isArrayType()) ctype = typ->asArrayType().getBaseType();
+   if (typ->isDerivedType()) ctype = typ->asDerivedType().getConstituentType(Type::share);
+   else if(typ->isArrayType()) ctype = typ->asArrayType().getBaseType(Type::share);
    else return NULL;
    
    BPatch_type *bpt = NULL;
@@ -407,11 +405,11 @@ BPatch_type *BPatch_field::getType()
 {
 	BPatch_type *bpt= NULL;
 	assert(fld);
-    assert(fld->getType());
-	if (!fld->getType()->getAnnotation(bpt, TypeUpPtrAnno))
+    assert(fld->getType(Type::share));
+	if (!fld->getType(Type::share)->getAnnotation(bpt, TypeUpPtrAnno))
 	{
 		//fprintf(stderr, "%s[%d]:  failed to get up ptr here\n", FILE__, __LINE__);
-		return new BPatch_type(fld->getType());
+		return new BPatch_type(fld->getType(Type::share));
 	}
 
 	assert(bpt);
@@ -451,7 +449,7 @@ BPatch_localVar::BPatch_localVar(localVar *lVar_) : lVar(lVar_)
 {
 	assert(lVar);
 
-	auto t = lVar->getType();
+	auto t = lVar->getType(Type::share);
 	assert(t);
 	
 	if (!t->getAnnotation(type, TypeUpPtrAnno))

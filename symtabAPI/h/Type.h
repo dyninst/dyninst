@@ -38,6 +38,7 @@
 
 #include <boost/atomic.hpp>
 #include <mutex>
+#include <boost/smart_ptr/make_shared.hpp>
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -105,45 +106,6 @@ typedef enum {
  */
  
 SYMTAB_EXPORT const char *visibility2Str(visibility_t v);
-
-#define FIELD_ANNOTATABLE_CLASS AnnotatableDense
-
-class SYMTAB_EXPORT Field : public Serializable, public FIELD_ANNOTATABLE_CLASS 
-{
-   friend class typeStruct;
-   friend class typeUnion;
-   friend class typeCommon;
-   friend class CBlock;
-   
-   std::string fieldName_;
-   boost::shared_ptr<Type> type_;
-   visibility_t  vis_;
-   int offset_;
-
-   /* Method vars */
- protected:
-   void copy(Field &);
-
- public:
-   Field(); 
-   Field(std::string name, boost::shared_ptr<Type> typ, int offsetVal = -1, 
-		   visibility_t vis = visUnknown);
-   
-   // Copy constructor
-   Field(Field &f);
-   ~Field();
-
-   std::string &getName();
-   boost::shared_ptr<Type> getType();
-   visibility_t getVisibility();
-   unsigned int getSize();
-   int getOffset();
-   
-   void fixupUnknown(Module *);
-   Serializable * serialize_impl(SerializerBase *sb, 
-		   const char *tag="Field") THROW_SPEC(SerializerError);
-   virtual bool operator==(const Field &) const;
-};
 				  
 #define TYPE_ANNOTATABLE_CLASS AnnotatableDense
 
@@ -153,8 +115,30 @@ class SYMTAB_EXPORT Type : public Serializable, public  TYPE_ANNOTATABLE_CLASS
    friend std::string parseStabString(Module *, int linenum, char *, int, 
 				      typeCommon*);
    static Type* upgradePlaceholder(Type *placeholder, Type *new_type);
+   
+   boost::weak_ptr<Type> self_;  // For carrying the reference count across
+                                 // the older pointer-based API.
 
    public:
+   
+   enum do_share_t { share };
+   
+   template<class T, class... Args>
+   static boost::shared_ptr<T> make_shared(Args&&... args) {
+     auto sp = boost::make_shared<T>(std::forward<Args>(args)...);
+     sp->reshare(sp);
+     return sp;
+   }
+   
+   boost::shared_ptr<Type> reshare() {
+     boost::shared_ptr<Type> r = self_.lock();
+     if(!r) self_ = (r = boost::shared_ptr<Type>(this));
+     return r;
+   }
+   void reshare(boost::shared_ptr<Type> const & sp) {
+     assert(!self_.lock());
+     self_ = sp;
+   }
 
    virtual void serialize_specific(SerializerBase *) 
 	   THROW_SPEC(SerializerError) {}
@@ -204,8 +188,9 @@ public:
    public:
       unique_ptr_Type(Type* p) : ptr(p) {};
       operator boost::shared_ptr<Type>() {
-         return boost::shared_ptr<Type>(ptr);
+         return ptr->reshare();
       }
+      operator Type*() { return ptr; }
    };
    // A few convenience functions
    static unique_ptr_Type createFake(std::string name);
@@ -261,6 +246,48 @@ public:
    void updateUniqueTypeId(typeId_t);
 };
 
+#define FIELD_ANNOTATABLE_CLASS AnnotatableDense
+
+class SYMTAB_EXPORT Field : public Serializable, public FIELD_ANNOTATABLE_CLASS 
+{
+   friend class typeStruct;
+   friend class typeUnion;
+   friend class typeCommon;
+   friend class CBlock;
+   
+   std::string fieldName_;
+   boost::shared_ptr<Type> type_;
+   visibility_t  vis_;
+   int offset_;
+
+   /* Method vars */
+ protected:
+   void copy(Field &);
+
+ public:
+   Field(); 
+   Field(std::string name, boost::shared_ptr<Type> typ, int offsetVal = -1, 
+		   visibility_t vis = visUnknown);
+   Field(std::string n, Type* t, int ov = -1, visibility_t v = visUnknown)
+      : Field(n, t->reshare(), ov, v) {};
+   
+   // Copy constructor
+   Field(Field &f);
+   ~Field();
+
+   std::string &getName();
+   boost::shared_ptr<Type> getType(Type::do_share_t);
+   Type* getType() { return getType(Type::share).get(); }
+   visibility_t getVisibility();
+   unsigned int getSize();
+   int getOffset();
+   
+   void fixupUnknown(Module *);
+   Serializable * serialize_impl(SerializerBase *sb, 
+		   const char *tag="Field") THROW_SPEC(SerializerError);
+   virtual bool operator==(const Field &) const;
+};
+
 // Interfaces to be implemented by intermediate subtypes
 // We have to do this thanks to reference types and C++'s lovely 
 // multiple inheritance
@@ -281,7 +308,8 @@ class SYMTAB_EXPORT rangedInterface {
 class SYMTAB_EXPORT derivedInterface{
  public:
    virtual ~derivedInterface() {};
-   virtual boost::shared_ptr<Type> getConstituentType() const = 0;
+   virtual boost::shared_ptr<Type> getConstituentType(Type::do_share_t) const = 0;
+   Type* getConstituentType() const { return getConstituentType(Type::share).get(); }
 };
 
 // Intermediate types (interfaces + Type)
@@ -307,7 +335,13 @@ class SYMTAB_EXPORT fieldListType : public Type, public fieldListInterface
    
    /* Add field for C++ struct or union */
    void addField(std::string fieldname, boost::shared_ptr<Type> type, int offsetVal = -1, visibility_t vis = visUnknown);
+   void addField(std::string n, Type* t, int ov = -1, visibility_t v = visUnknown) {
+      addField(n, t->reshare(), ov, v);
+   }
    void addField(unsigned num, std::string fieldname, boost::shared_ptr<Type> type, int offsetVal = -1, visibility_t vis = visUnknown);
+   void addField(unsigned n, std::string f, Type* t, int o = -1, visibility_t v = visUnknown) {
+      addField(n, f, t->reshare(), o, v);
+   }
    void addField(Field *fld);
    void addField(unsigned num, Field *fld);
   
@@ -349,7 +383,8 @@ class SYMTAB_EXPORT derivedType : public Type, public derivedInterface {
    derivedType();
    ~derivedType();
    bool operator==(const Type &) const;
-   boost::shared_ptr<Type> getConstituentType() const;
+   boost::shared_ptr<Type> getConstituentType(Type::do_share_t) const;
+   Type* getConstituentType() const { return getConstituentType(Type::share).get(); }
    void serialize_derived(SerializerBase *, 
 		   const char * = "derivedType") THROW_SPEC(SerializerError);
 };
@@ -387,13 +422,26 @@ class SYMTAB_EXPORT typeFunction : public Type {
  public:
    typeFunction();
    typeFunction(typeId_t ID, boost::shared_ptr<Type> retType, std::string name = "");
+   typeFunction(typeId_t i, Type* r, std::string n = "")
+      : typeFunction(i, r->reshare(), n) {};
    typeFunction(boost::shared_ptr<Type> retType, std::string name = "");
+   typeFunction(Type* retType, std::string name = "")
+      : typeFunction(retType->reshare(), name) {};
    static typeFunction *create(std::string &name, boost::shared_ptr<Type> retType, 
                                dyn_c_vector<boost::shared_ptr<Type>> &paramTypes, Symtab *obj = NULL);
+   static typeFunction *create(std::string &n, Type* rt, dyn_c_vector<Type*> &p, Symtab* o = NULL) {
+     dyn_c_vector<boost::shared_ptr<Type>> pp;
+     auto r = create(n, rt->reshare(), pp, o);
+     for(auto it = pp.begin(); it != pp.end(); ++it) p.push_back(it->get());
+     return r;
+   }
    ~typeFunction();
    bool addParam(boost::shared_ptr<Type> type);
-   boost::shared_ptr<Type> getReturnType() const;
+   bool addParam(Type* t) { return addParam(t->reshare()); }
+   boost::shared_ptr<Type> getReturnType(Type::do_share_t) const;
+   Type* getReturnType() const { return getReturnType(Type::share).get(); }
    bool setRetType(boost::shared_ptr<Type> rtype);
+   bool setRetType(Type* t) { return setRetType(t->reshare()); }
 
    dyn_c_vector<boost::shared_ptr<Type>> &getParams();
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); };
@@ -469,6 +517,16 @@ class SYMTAB_EXPORT typeStruct : public fieldListType {
    typeStruct(std::string name);
    static typeStruct *create(std::string &name, dyn_c_vector< std::pair<std::string, boost::shared_ptr<Type> > *> &flds,
                              Symtab *obj = NULL);
+   static typeStruct *create(std::string &n, dyn_c_vector<std::pair<std::string, Type*>*> &f,
+        Symtab *o = NULL) {
+     dyn_c_vector<std::pair<std::string, boost::shared_ptr<Type>>*> fp(f.size());
+     for(auto it = f.begin(); it != f.end(); ++it)
+       fp[it - f.begin()] = new std::pair<std::string, boost::shared_ptr<Type>>(
+           (*it)->first, (*it)->second->reshare());
+     auto r = create(n, fp, o);
+     for(auto it = fp.begin(); it != fp.end(); ++it) delete *it;
+     return r;
+   }
    static typeStruct *create(std::string &name, dyn_c_vector<Field *> &fields,
                              Symtab *obj = NULL);
 
@@ -490,6 +548,16 @@ class SYMTAB_EXPORT typeUnion : public fieldListType {
    typeUnion(std::string name);
    static typeUnion *create(std::string &name, dyn_c_vector<std::pair<std::string, boost::shared_ptr<Type>> *> &fieldNames,
    							Symtab *obj = NULL);
+   static typeUnion *create(std::string &n, dyn_c_vector<std::pair<std::string, Type*>*> &f,
+        Symtab *o = NULL) {
+     dyn_c_vector<std::pair<std::string, boost::shared_ptr<Type>>*> fp(f.size());
+     for(auto it = f.begin(); it != f.end(); ++it)
+       fp[it - f.begin()] = new std::pair<std::string, boost::shared_ptr<Type>>(
+           (*it)->first, (*it)->second->reshare());
+     auto r = create(n, fp, o);
+     for(auto it = fp.begin(); it != fp.end(); ++it) delete *it;
+     return r;
+   }
    static typeUnion *create(std::string &name, dyn_c_vector<Field *> &fields, 
 							Symtab *obj = NULL);
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); };
@@ -503,13 +571,25 @@ class SYMTAB_EXPORT typePointer : public derivedType {
  public:
    typePointer();
    typePointer(typeId_t ID, boost::shared_ptr<Type> ptr, std::string name = "");
+   typePointer(typeId_t i, Type* p, std::string n = "")
+     : typePointer(i, p->reshare(), n) {};
    typePointer(boost::shared_ptr<Type> ptr, std::string name = "");
+   typePointer(Type* p, std::string n = "")
+     : typePointer(p->reshare(), n) {};
    static typePointer *create(std::string &name, boost::shared_ptr<Type> ptr, Symtab *obj = NULL);
+   static typePointer *create(std::string &n, Type* p, Symtab *o = NULL) {
+     return create(n, p->reshare(), o);
+   }
    static typePointer *create(std::string &name, boost::shared_ptr<Type> ptr, int size, 
    							Symtab *obj = NULL);
+   static typePointer *create(std::string &n, Type* p, int s, 
+   							Symtab *o = NULL) {
+     return create(n, p->reshare(), s, o);
+   }
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); };
    bool isCompatible(Type *otype);
    bool setPtr(boost::shared_ptr<Type> ptr);
+   bool setPtr(Type* ptr) { return setPtr(ptr->reshare()); };
    void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 
@@ -524,9 +604,16 @@ class SYMTAB_EXPORT typeTypedef: public derivedType {
  public:
    typeTypedef();
    typeTypedef(typeId_t ID, boost::shared_ptr<Type> base, std::string name, unsigned int sizeHint = 0);
+   typeTypedef(typeId_t i, Type* b, std::string n, unsigned int s = 0)
+     : typeTypedef(i, b->reshare(), n, s) {};
    typeTypedef(boost::shared_ptr<Type> base, std::string name, unsigned int sizeHint = 0);
+   typeTypedef(Type* b, std::string n, unsigned int s = 0)
+     : typeTypedef(b->reshare(), n, s) {};
    
    static typeTypedef *create(std::string &name, boost::shared_ptr<Type> ptr, Symtab *obj = NULL);
+   static typeTypedef *create(std::string &n, Type* p, Symtab *o = NULL) {
+     return create(n, p->reshare(), o);
+   }
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); };
    bool isCompatible(Type *otype);
    bool operator==(const Type &otype) const;
@@ -539,8 +626,15 @@ class SYMTAB_EXPORT typeRef : public derivedType {
  public:
    typeRef();
    typeRef(typeId_t ID, boost::shared_ptr<Type> refType, std::string name);
+   typeRef(typeId_t i, Type* r, std::string n)
+     : typeRef(i, r->reshare(), n) {};
    typeRef(boost::shared_ptr<Type> refType, std::string name);
+   typeRef(Type* r, std::string n)
+     : typeRef(r->reshare(), n) {};
    static typeRef *create(std::string &name, boost::shared_ptr<Type> ptr, Symtab * obj = NULL);
+   static typeRef *create(std::string &n, Type* p, Symtab * o = NULL) {
+     return create(n, p->reshare(), o);
+   }
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); };
    bool isCompatible(Type *otype);
    bool operator==(const Type &otype) const;
@@ -570,9 +664,17 @@ class SYMTAB_EXPORT typeArray : public rangedType {
  public:
    typeArray();
    typeArray(typeId_t ID, boost::shared_ptr<Type> base, long low, long hi, std::string name, unsigned int sizeHint = 0);
+   typeArray(typeId_t i, Type* b, long l, long h, std::string n, unsigned int s = 0)
+     : typeArray(i, b->reshare(), l, h, n, s) {};
    typeArray(boost::shared_ptr<Type> base, long low, long hi, std::string name, unsigned int sizeHint = 0);
+   typeArray(Type* b, long l, long h, std::string n, unsigned int s = 0)
+     : typeArray(b->reshare(), l, h, n, s) {};
    static typeArray *create(std::string &name, boost::shared_ptr<Type> typ,  long low, long hi, Symtab *obj = NULL);
-   boost::shared_ptr<Type> getBaseType() const;
+   static typeArray *create(std::string &n, Type* t,  long l, long h, Symtab *o = NULL) {
+     return create(n, t->reshare(), l, h, o);
+   }
+   boost::shared_ptr<Type> getBaseType(Type::do_share_t) const;
+   Type* getBaseType() const { return getBaseType(Type::share).get(); }
    bool isCompatible(boost::shared_ptr<Type> x) { return isCompatible(x.get()); };
    bool isCompatible(Type *otype);
    bool operator==(const Type &otype) const;

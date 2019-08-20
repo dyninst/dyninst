@@ -48,8 +48,6 @@
 
 #include "debug.h"
 
-#include <boost/smart_ptr/make_shared.hpp>
-
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
@@ -258,7 +256,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 
 		  stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name.c_str(), ID);
          cnt = 0;
-         ptrType = tc->findOrCreateType(ID);
+         ptrType = tc->findOrCreateType(ID, Type::share);
          if (!symt_current_func) 
          {
             // XXX-may want to use N_LBRAC and N_RBRAC to set function scope 
@@ -290,7 +288,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
       else if (symt_current_func) 
       {
          // Try to find the BPatch_Function
-         ptrType = tc->findOrCreateType( ID);
+         ptrType = tc->findOrCreateType( ID, Type::share);
 
          locVar = new localVar(name, ptrType, fName, linenum, symt_current_func);
          VariableLocation loc;
@@ -347,7 +345,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                { 
                   // Not an embeded function
 
-                  ptrType = tc->findOrCreateType(funcReturnID);
+                  ptrType = tc->findOrCreateType(funcReturnID, Type::share);
                   /*
                     The shared_ptr type_Untyped is static, so this
                     otherwise unsafe operation is safe.
@@ -424,7 +422,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                // skip to end - SunPro Compilers output extra info here - jkh 6/9/3
                cnt = strlen(stabstr);
 
-               ptrType = tc->findOrCreateType(funcReturnID);
+               ptrType = tc->findOrCreateType(funcReturnID, Type::share);
                if (!ptrType) ptrType = Symtab::type_Untyped();
 
                std::vector<Function *>fpv;
@@ -466,7 +464,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
             symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
             boost::shared_ptr<Type> BPtype;
 
-            BPtype = tc->findOrCreateType(symdescID);
+            BPtype = tc->findOrCreateType(symdescID, Type::share);
             if (BPtype) 
             {
 	      Module *toUse = mod;
@@ -511,7 +509,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                   //bperr( "\tFull String: %s\n", stabstr);
                //}
 
-               ptrType = tc->findOrCreateType(symdescID);
+               ptrType = tc->findOrCreateType(symdescID, Type::share);
                if (!ptrType) ptrType = Symtab::type_Untyped();
 
                localVar *param;
@@ -593,7 +591,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                   nameTrailer = name;
                }
 
-               BPtype = tc->findOrCreateType(symdescID);
+               BPtype = tc->findOrCreateType(symdescID, Type::share);
 
                if (BPtype) 
                {
@@ -649,7 +647,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
             {
                //Create Type defined as a pre-exisitng type.
 
-               ptrType = tc->findOrCreateType(symdescID);
+               ptrType = tc->findOrCreateType(symdescID, Type::share);
                if (!ptrType)
                {
                   ptrType = Symtab::type_Untyped();
@@ -658,7 +656,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                // We assume that IDs are unique per type. Instead of reusing the 
                // underlying base ID, use a SymtabAPI-generated ID.
 
-               auto newType = boost::make_shared<typeTypedef>(ptrType, name);
+               auto newType = Type::make_shared<typeTypedef>(ptrType, name);
 
                if (newType) 
                {
@@ -727,7 +725,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
             symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
 
             // lookup symbol and set type
-            auto BPtype = tc->findOrCreateType(symdescID);
+            auto BPtype = tc->findOrCreateType(symdescID, Type::share);
 
             if (!BPtype) 
             {
@@ -1041,17 +1039,17 @@ static char *parseCrossRef(typeCollection *moduleTypes,const char * /*name*/,
         cnt++; /*skip ':' */
 
         // Find type that this one points to.
-        boost::shared_ptr<Type> ptrType = moduleTypes->findType(temp.c_str());
+        boost::shared_ptr<Type> ptrType = moduleTypes->findType(temp.c_str(), Type::share);
         if (!ptrType) {
             // This type name hasn't been seen before.  Create the
             // skeleton for it, and we'll update it later when we actually see
             // it
             if (xreftype == 'e') {
-		newType = moduleTypes->addOrUpdateType(boost::make_shared<typeEnum>(ID, temp));
+		newType = moduleTypes->addOrUpdateType(Type::make_shared<typeEnum>(ID, temp));
             } else if (xreftype == 'u') {
-		newType = moduleTypes->addOrUpdateType(boost::make_shared<typeUnion>(ID, temp));
+		newType = moduleTypes->addOrUpdateType(Type::make_shared<typeUnion>(ID, temp));
             } else {
-		newType = moduleTypes->addOrUpdateType(boost::make_shared<typeStruct>(ID, temp));
+		newType = moduleTypes->addOrUpdateType(Type::make_shared<typeStruct>(ID, temp));
             }
 	    assert(newType);
         }         
@@ -1091,7 +1089,7 @@ static boost::shared_ptr<Type> parseArrayDef(Module *mod, const char *name,
        lowbound = 1;
        hibound = 0;
        elementType = parseSymDesc(stabstr, cnt);
-       ptrType = tc->findOrCreateType(elementType);
+       ptrType = tc->findOrCreateType(elementType, Type::share);
     } else {
        // Regular (maybe) array
 
@@ -1151,7 +1149,7 @@ static boost::shared_ptr<Type> parseArrayDef(Module *mod, const char *name,
 				   while (stabstr[cnt] != ';') cnt++;
 			   }
 		   }
-		   ptrType = tc->findOrCreateType(elementType);
+		   ptrType = tc->findOrCreateType(elementType, Type::share);
 	   }
 	}
 
@@ -1163,7 +1161,7 @@ static boost::shared_ptr<Type> parseArrayDef(Module *mod, const char *name,
 		// Create new type - field in a struct or union
 		std::string tName = convertCharToString(name);
 
-		auto newAType = boost::make_shared<typeArray>(ID, ptrType, lowbound, hibound, tName, sizeHint);
+		auto newAType = Type::make_shared<typeArray>(ID, ptrType, lowbound, hibound, tName, sizeHint);
 		// Add to Collection
 		newType = tc->addOrUpdateType(newAType);
 
@@ -1248,7 +1246,7 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
    }
    else 
    {
-      baseType = tc->findType(symdescID);
+      baseType = tc->findType(symdescID, Type::share);
    }
 
    // //bperr("\tSymbol Descriptor: %c and Value: %d\n",tmpchar, symdescID);
@@ -1289,7 +1287,7 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
        int size = atol(low);
 
        //Add to Collection
-       tc->addOrUpdateType(boost::make_shared<typeScalar>(ID, size, name));
+       tc->addOrUpdateType(Type::make_shared<typeScalar>(ID, size, name));
    }
    else {
        //Range
@@ -1312,10 +1310,10 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
 	   }
 
        if (baseType == NULL)
-           newType = boost::make_shared<typeSubrange>(ID, sizeHint ? sizeHint / 8 : guessSize(low,hi), 
+           newType = Type::make_shared<typeSubrange>(ID, sizeHint ? sizeHint / 8 : guessSize(low,hi), 
 				   low_conv, hi_conv, tName);
        else
-           newType = boost::make_shared<typeSubrange>(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), 
+           newType = Type::make_shared<typeSubrange>(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), 
 				   low_conv, hi_conv, tName);
        //Add to Collection
        tc->addOrUpdateType(newType);
@@ -1628,12 +1626,12 @@ static char *parseRefType(Module *mod, const char *name,
     
     // Create a new B_type that points to a structure
 	typeCollection *tc = typeCollection::getModTypeCollection(mod);
-    auto ptrType = tc->findOrCreateType(refID);
+    auto ptrType = tc->findOrCreateType(refID, Type::share);
     if (!ptrType) ptrType = Symtab::type_Untyped();
     std::string tName = convertCharToString(name); 
 
     // Add to typeCollection
-    tc->addOrUpdateType(boost::make_shared<typeRef>(ID, ptrType, tName));
+    tc->addOrUpdateType(Type::make_shared<typeRef>(ID, ptrType, tName));
     
     return(&(stabstr[cnt]));
 }
@@ -1648,11 +1646,11 @@ void addBaseClassToClass(Module *mod, int baseID,
 	typeCollection *tc = typeCollection::getModTypeCollection(mod);
 
     //Find base class
-    auto baseCl = tc->findType(baseID);
+    auto baseCl = tc->findType(baseID, Type::share);
     if( ! baseCl ) {
         std::string modName = mod->fileName();
         //bpwarn( "can't find base class id %d in module %s\n", baseID, modName);
-        baseCl = tc->addOrUpdateType(boost::make_shared<typeStruct>(baseID));
+        baseCl = tc->addOrUpdateType(Type::make_shared<typeStruct>(baseID));
     }
     std::string fName = "{superclass}";
     newType->asFieldListType().addField( fName, baseCl, -1, visUnknown );
@@ -1845,12 +1843,12 @@ static char *parseFieldList(Module *mod, boost::shared_ptr<Type> newType,
                 (void)size; // otherwise unused symbol
 		// Add struct field to type
 
-		auto fieldType = tc->findOrCreateType( comptype );
+		auto fieldType = tc->findOrCreateType( comptype, Type::share );
 		if (!fieldType) 
 		{
 			//C++ compilers may add extra fields whose types might not available.
 			//Assign void type to these kind of fields. --Mehmet
-			fieldType = tc->findType("void");
+			fieldType = tc->findType("void", Type::share);
 		}
 		std::string fName = convertCharToString(compname);
 		if (_vis == visUnknown) 
@@ -1977,10 +1975,10 @@ static char *parseCPlusPlusInfo(Module *mod,
     switch (typdescr) {
     case dataTypeClass:
     case dataStructure:
-       newType = tc->addOrUpdateType(boost::make_shared<typeStruct>(ID, tName));
+       newType = tc->addOrUpdateType(Type::make_shared<typeStruct>(ID, tName));
        break;
     case dataUnion:
-       newType = tc->addOrUpdateType(boost::make_shared<typeUnion>(ID, tName));
+       newType = tc->addOrUpdateType(Type::make_shared<typeUnion>(ID, tName));
        break;
     default:
        assert(0);
@@ -2034,11 +2032,11 @@ static char *parseCPlusPlusInfo(Module *mod,
 			}
 
 	    // should include position for virtual methods
-	    auto fieldType = tc->findType("void");
+	    auto fieldType = tc->findType("void", Type::share);
 
 	    std::string fName = convertCharToString(funcName);
 
-            newType->asFieldListType().addField( fName, boost::make_shared<typeFunction>( ID, fieldType, fName));
+            newType->asFieldListType().addField( fName, Type::make_shared<typeFunction>( ID, fieldType, fName));
 					    
 	    free(name);
 	    free(className);
@@ -2109,7 +2107,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
         // type (i.e. void)
 
         std::string tName = convertCharToString(name);
-		newType = tc->addOrUpdateType(boost::make_shared<typeScalar>(ID, 0, tName)); 
+		newType = tc->addOrUpdateType(Type::make_shared<typeScalar>(ID, 0, tName)); 
     } 
 	else if (stabstr[cnt] == '=') 
 	{
@@ -2119,18 +2117,18 @@ static char *parseTypeDef(Module *mod, char *stabstr,
         cnt = 0;
         boost::shared_ptr<Type> oldType;
 
-        oldType = tc->findOrCreateType(type);
+        oldType = tc->findOrCreateType(type, Type::share);
         if (!oldType) oldType = Symtab::type_Untyped();
         std::string tName = convertCharToString(name);
-		tc->addOrUpdateType(boost::make_shared<typeTypedef>(ID, oldType, tName, sizeHint));
+		tc->addOrUpdateType(Type::make_shared<typeTypedef>(ID, oldType, tName, sizeHint));
 
 	} 
 	else 
 	{
 		boost::shared_ptr<Type> oldType;
         std::string tName = convertCharToString(name);
-        oldType = tc->findOrCreateType(type);
-        newType = tc->addOrUpdateType(boost::make_shared<typeTypedef>(ID, oldType, tName, sizeHint));
+        oldType = tc->findOrCreateType(type, Type::share);
+        newType = tc->addOrUpdateType(Type::make_shared<typeTypedef>(ID, oldType, tName, sizeHint));
     }
     } else {
       switch (stabstr[0]) {
@@ -2146,11 +2144,11 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 	    ptrID = parseTypeUse(mod, stabstr, cnt, NULL);
 
 	    // Create a new B_type that points to a structure
-	    ptrType = tc->findOrCreateType(ptrID);
+	    ptrType = tc->findOrCreateType(ptrID, Type::share);
 	    if (!ptrType) ptrType = Symtab::type_Untyped();
 
 	    // Add to typeCollection
-	    newType = tc->addOrUpdateType(boost::make_shared<typePointer>(ID, ptrType));
+	    newType = tc->addOrUpdateType(Type::make_shared<typePointer>(ID, ptrType));
 	    return(&(stabstr[cnt]));
 	    break;
 	  }
@@ -2170,11 +2168,11 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 
 		cnt++; /* skip the g */
 	        type = parseTypeUse(mod, stabstr, cnt, name);
-                ptrType = tc->findOrCreateType(type);
+                ptrType = tc->findOrCreateType(type, Type::share);
 
                 {
 		   std::string tName = convertCharToString(name);
-                   auto newFunction = tc->addOrUpdateType(boost::make_shared<typeFunction>(ID, ptrType, tName)); 
+                   auto newFunction = tc->addOrUpdateType(Type::make_shared<typeFunction>(ID, ptrType, tName)); 
                    if (!newFunction) {
                       //bpfatal(" Can't Allocate new type ");
                             types_printf("%s[%d]: parseTypeDef: unable to allocate newType\n", FILE__, __LINE__);
@@ -2184,7 +2182,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
                    while ((stabstr[cnt] != '#') &&  (stabstr[cnt])) {
                       int paramType;
                       paramType = parseTypeUse(mod, stabstr, cnt, name);
-                      newType = tc->findOrCreateType(paramType);
+                      newType = tc->findOrCreateType(paramType, Type::share);
 		      newFunction->asFunctionType().addParam(newType);
                       //newFunction2->addField(buffer, newType->getDataClass(), newType, curOffset, newType->getSize());
                    }
@@ -2201,11 +2199,11 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 
 		cnt++; /* skip the f */
 	        type = parseTypeUse(mod, stabstr, cnt, name);
-                ptrType = tc->findOrCreateType(type);
+                ptrType = tc->findOrCreateType(type, Type::share);
 
 		
                 std::string tName = convertCharToString(name);
-		newType = tc->addOrUpdateType(boost::make_shared<typeFunction>(ID, ptrType, tName));
+		newType = tc->addOrUpdateType(Type::make_shared<typeFunction>(ID, ptrType, tName));
 
 		// skip to end - SunPro Compilers output extra info here - jkh 6/9/3
 		// cnt = strlen(stabstr);
@@ -2236,10 +2234,10 @@ static char *parseTypeDef(Module *mod, char *stabstr,
                     } else
 		      size = parseSymDesc(stabstr, cnt);
 
-		    ptrType = tc->findOrCreateType(baseType);
+		    ptrType = tc->findOrCreateType(baseType, Type::share);
 		    std::string tName = convertCharToString(name);
 
-		    newType = tc->addOrUpdateType(boost::make_shared<typeArray>(ID, ptrType, 1, size, tName));
+		    newType = tc->addOrUpdateType(Type::make_shared<typeArray>(ID, ptrType, 1, size, tName));
 		}
 		break;
 
@@ -2253,7 +2251,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 
 		int bytes = parseSymDesc(stabstr, cnt);
 
-		newType = tc->addOrUpdateType(boost::make_shared<typeScalar>(ID, bytes, name));
+		newType = tc->addOrUpdateType(Type::make_shared<typeScalar>(ID, bytes, name));
 
 		if (stabstr[cnt] == ';') cnt++;	// skip the final ';'
 
@@ -2288,7 +2286,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 		if (stabstr[cnt]) cnt++;	// skip the final ';'
 
 		//Add to Collection
-		newType = tc->addOrUpdateType(boost::make_shared<typeScalar>(ID, size, name));
+		newType = tc->addOrUpdateType(Type::make_shared<typeScalar>(ID, size, name));
 
 		return &stabstr[cnt];
 		break;
@@ -2305,7 +2303,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 	    // Create new Enum type
 	    std::string tName = convertCharToString(name);
 	    // Add type to collection
-        auto newEnumType = tc->addOrUpdateType(boost::make_shared<typeEnum>(ID, tName));
+        auto newEnumType = tc->addOrUpdateType(Type::make_shared<typeEnum>(ID, tName));
 		
 	    while (stabstr[cnt]) {
 		/* Get enum component value */
@@ -2364,10 +2362,10 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 	    std::string tName = convertCharToString(name);
 	    //Create new type
             if (typdescr == dataStructure) {
-	       newFieldType = tc->addOrUpdateType(boost::make_shared<typeStruct>(ID, tName));
+	       newFieldType = tc->addOrUpdateType(Type::make_shared<typeStruct>(ID, tName));
 	    }
             else {
-	       newFieldType = tc->addOrUpdateType(boost::make_shared<typeUnion>(ID, tName));
+	       newFieldType = tc->addOrUpdateType(Type::make_shared<typeUnion>(ID, tName));
 	    }
 	    //add to type collection
 
@@ -2440,11 +2438,11 @@ static boost::shared_ptr<Type> parseConstantUse(Module *mod, char *stabstr, int 
     boost::shared_ptr<Type> ret;
 
     if (stabstr[cnt] == 'i') {
-	ret = tc->findType("integer*4");
+	ret = tc->findType("integer*4", Type::share);
     } else if (stabstr[cnt] == 'r') {
-	ret = tc->findType("double");
+	ret = tc->findType("double", Type::share);
     } else if (stabstr[cnt] == 's') {
-        ret = tc->findType("char *");
+        ret = tc->findType("char *", Type::share);
     } else {
 	//bperr("unknown constant type %s\n", &stabstr[cnt]);
 	ret = NULL;

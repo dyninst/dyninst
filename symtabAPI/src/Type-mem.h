@@ -34,7 +34,6 @@
 #include "symtabAPI/h/Type.h"
 #include "boost/static_assert.hpp"
 #include <utility>
-#include <boost/smart_ptr/make_shared.hpp>
 
 namespace Dyninst {
   namespace SymtabAPI {

@@ -251,10 +251,10 @@ bool BPatch_module::parseTypesIfNecessary()
 		BPatch_type *typePtr;
 
 		typePtr = BPatch::bpatch->builtInTypes->findBuiltInType(-10);
-		typePtr->getSymtabType()->setSize(4);
+		typePtr->getSymtabType(Dyninst::SymtabAPI::Type::share)->setSize(4);
 
 		typePtr = BPatch::bpatch->builtInTypes->findBuiltInType(-19);
-		typePtr->getSymtabType()->setSize(4);
+		typePtr->getSymtabType(Dyninst::SymtabAPI::Type::share)->setSize(4);
 	}
 
 	mod->pmod()->mod()->exec()->parseTypesNow();

@@ -306,7 +306,19 @@ class SYMTAB_EXPORT LookupInterface
                                             bool checkCase = false,
                                             bool includeUndefined = false) = 0;
       virtual bool findType(boost::shared_ptr<Type>& type, std::string name) = 0;
+      bool findType(Type*& t, std::string n) {
+        boost::shared_ptr<Type> tp;
+        auto r = findType(tp, n);
+        t = tp.get();
+        return r;
+      }
       virtual bool findVariableType(boost::shared_ptr<Type>& type, std::string name)= 0;
+      bool findVariableType(Type*& t, std::string n) {
+        boost::shared_ptr<Type> tp;
+        auto r = findVariableType(tp, n);
+        t = tp.get();
+        return r;
+      }
 
       virtual ~LookupInterface();
 };

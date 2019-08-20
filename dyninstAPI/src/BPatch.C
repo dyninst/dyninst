@@ -1470,7 +1470,7 @@ BPatch_type * BPatch::createStruct( const char * name,
    {
       if(!fieldTypes[i])
          return NULL;
-      fields.push_back(new pair<string, boost::shared_ptr<Type>>(fieldNames[i], fieldTypes[i]->getSymtabType()));
+      fields.push_back(new pair<string, boost::shared_ptr<Type>>(fieldNames[i], fieldTypes[i]->getSymtabType(Type::share)));
    }	
    
    boost::shared_ptr<Type> typ(typeStruct::create(typeName, fields));
@@ -1510,7 +1510,7 @@ BPatch_type * BPatch::createUnion( const char * name,
     {
         if(!fieldTypes[i])
 	    return NULL;
-        fields.push_back(new pair<string, boost::shared_ptr<Type> > (fieldNames[i], fieldTypes[i]->getSymtabType()));
+        fields.push_back(new pair<string, boost::shared_ptr<Type> > (fieldNames[i], fieldTypes[i]->getSymtabType(Type::share)));
     }	
     
     boost::shared_ptr<Type> typ(typeUnion::create(typeName, fields));
@@ -1542,7 +1542,7 @@ BPatch_type * BPatch::createArray( const char * name, BPatch_type * ptr,
         return NULL;
         
     string typeName = name;
-    boost::shared_ptr<Type> typ(typeArray::create(typeName, ptr->getSymtabType(), low, hi));
+    boost::shared_ptr<Type> typ(typeArray::create(typeName, ptr->getSymtabType(Type::share), low, hi));
     if (!typ) return NULL;
     
     newType = new BPatch_type(typ);
@@ -1569,7 +1569,7 @@ BPatch_type * BPatch::createPointer(const char * name, BPatch_type * ptr,
         return NULL;
     
     string typeName = name;
-    boost::shared_ptr<Type> typ(typePointer::create(typeName, ptr->getSymtabType()));
+    boost::shared_ptr<Type> typ(typePointer::create(typeName, ptr->getSymtabType(Type::share)));
     if (!typ) return NULL;
     
     newType = new BPatch_type(typ);
@@ -1620,7 +1620,7 @@ BPatch_type * BPatch::createTypedef( const char * name, BPatch_type * ptr)
         return NULL;
     
     string typeName = name;
-    boost::shared_ptr<Type> typ(typeTypedef::create(typeName, ptr->getSymtabType()));
+    boost::shared_ptr<Type> typ(typeTypedef::create(typeName, ptr->getSymtabType(Type::share)));
     if (!typ) return NULL;
     
     newType = new BPatch_type(typ);

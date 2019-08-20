@@ -67,7 +67,7 @@ void Variable::setType(boost::shared_ptr<Type> type)
 	type_ = type;
 }
 
-boost::shared_ptr<Type> Variable::getType()
+boost::shared_ptr<Type> Variable::getType(Type::do_share_t)
 {
 	module_->exec()->parseTypesNow();
 	return type_;
@@ -152,7 +152,7 @@ Serializable *Variable::serialize_impl(SerializerBase *, const char *) THROW_SPE
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &v)
 {
-	boost::shared_ptr<Type> var_t = (const_cast<Variable &>(v)).getType();
+	boost::shared_ptr<Type> var_t = (const_cast<Variable &>(v)).getType(Type::share);
 	std::string tname(var_t ? var_t->getName() : "no_type");
 	const auto& ag = dynamic_cast<const Aggregate &>(v);
 
@@ -332,7 +332,7 @@ void localVar::fixupUnknown(Module *module)
 	{
 		typeCollection *tc = typeCollection::getModTypeCollection(module);
 		assert(tc);
-        auto t = tc->findType(type_->getID());
+        auto t = tc->findType(type_->getID(), Type::share);
         if(t) type_ = t;
 	}
 }
@@ -342,7 +342,7 @@ std::string &localVar::getName()
 	return name_;
 }
 
-boost::shared_ptr<Type> localVar::getType()
+boost::shared_ptr<Type> localVar::getType(Type::do_share_t)
 {
 	return type_;
 }

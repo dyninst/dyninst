@@ -288,7 +288,7 @@ bool Module::findType(boost::shared_ptr<Type> &type, std::string name)
 	typeCollection *tc = getModuleTypes();
 	if (!tc) return false;
 
-   type = tc->findType(name);
+   type = tc->findType(name, Type::share);
 
    if (!type)
       return false;
@@ -301,7 +301,7 @@ bool Module::findVariableType(boost::shared_ptr<Type> &type, std::string name)
 	typeCollection *tc = getModuleTypes();
 	if (!tc) return false;
 
-	type = tc->findVariableType(name);
+	type = tc->findVariableType(name, Type::share);
 
    if (!type)
       return false;

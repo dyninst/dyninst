@@ -195,10 +195,37 @@ namespace Dyninst{
 
 			// Type output methods
 			virtual bool findType(boost::shared_ptr<Type>& type, std::string name);
+            bool findType(Type*& t, std::string n) {
+              boost::shared_ptr<Type> tp;
+              auto r = findType(tp, n);
+              t = tp.get();
+              return r;
+            }
 			virtual bool findVariableType(boost::shared_ptr<Type>& type, std::string name);
+            bool findVariableType(Type*& t, std::string n) {
+              boost::shared_ptr<Type> tp;
+              auto r = findVariableType(tp, n);
+              t = tp.get();
+              return r;
+            }
 
 			void getAllTypes(std::vector<boost::shared_ptr<Type>>&);
+            std::vector<Type*>* getAllTypes() {
+              std::vector<boost::shared_ptr<Type>> v;
+              getAllTypes(v);
+              auto r = new std::vector<Type*>(v.size());
+              for(std::size_t i = 0; i < v.size(); i++) (*r)[i] = v[i].get();
+              return r;
+            }
 			void getAllGlobalVars(std::vector<std::pair<std::string, boost::shared_ptr<Type>>>&);
+            std::vector<std::pair<std::string, Type*>>* getAllGlobalVars() {
+              std::vector<std::pair<std::string, boost::shared_ptr<Type>>> v;
+              getAllGlobalVars(v);
+              auto r = new std::vector<std::pair<std::string, Type*>>(v.size());
+              for(std::size_t i = 0; i < v.size(); i++)
+                (*r)[i] = {v[i].first, v[i].second.get()};
+              return r;
+            }
 
 			typeCollection *getModuleTypes();
 
