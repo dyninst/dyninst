@@ -1083,7 +1083,7 @@ Parser::clean_bogus_funcs(dyn_c_vector<Function*> &funcs)
             // This function should be created because tail call heuristic makes a mistake
             // We have already fixed such bogos tail calls in the previous step of finalizing,
             // so now we should remove such bogus function
-            _parse_data->remove_func(f);
+            remove_func(f);
 
             // Also need to decrement the block reference count
             for (auto blk = f->blocks().begin(); blk != f->blocks().end(); blk++) {
