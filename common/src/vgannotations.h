@@ -57,15 +57,22 @@ public:
 #define ANNOTATE_RWLOCK_RELEASED(X, M)
 
 // Simplified form for when Valgrind isn't looking.
-
+#include <mutex>
 #include <functional>
 
 template<typename T> class LazySingleton {
+    T value;
+    std::once_flag flag;
+
 public:
     typedef T type;
 
     T& get(std::function<T()> f) {
-        static T value = f();
+        std::call_once(flag, [&]{
+            value = f();
+            ANNOTATE_HAPPENS_BEFORE(&flag);
+        });
+        ANNOTATE_HAPPENS_AFTER(&flag);
         return value;
     }
 };
