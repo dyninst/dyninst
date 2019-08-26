@@ -2512,7 +2512,7 @@ void DwarfParseActions::clearFunc() {
 
 unsigned int DwarfWalker::getNextTypeId(){
 
-  static boost::atomic<unsigned int> next_type_id(0);
+  static boost::atomic<unsigned int> next_type_id(1);
   unsigned int val = next_type_id.fetch_add(1);
   return val;
 }
