@@ -40,8 +40,8 @@ if(UNIX)
   include(LibIberty REQUIRED)
 endif()
 
+include(Capstone)
 include (${DYNINST_ROOT}/cmake/shared.cmake)
-link_directories(${CAPSTONE_ROOT}/lib64)
 
 include(shared)
 
