@@ -65,7 +65,7 @@ namespace Dyninst
 
         InstructionDecoderImpl::Ptr InstructionDecoderImpl::makeDecoderImpl(Architecture a, DecodingBackend dbe )
         {
-            if (dbe == Capstone) {
+            if (dbe == Capstone && (a == Arch_x86 || a == Arch_x86_64)) {
                 return Ptr(new InstructionDecoder_Capstone(a));
             }
 
