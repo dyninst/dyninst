@@ -86,11 +86,12 @@ namespace Dyninst {
 
         struct aarch64_mask_entry {
             unsigned int mask;
-            static constexpr auto max_branches = 31;
-            std::pair<unsigned int,unsigned int> nodeBranches[max_branches+1];
+            std::size_t branchCnt;
+            const std::pair<unsigned int,unsigned int>* nodeBranches;
             int insnTableIndex;
 
             static const aarch64_decoder_table main_decoder_table;
+            static const std::pair<unsigned int,unsigned int> branchTable[];
         };
 
         InstructionDecoder_aarch64::InstructionDecoder_aarch64(Architecture a)
@@ -3011,7 +3012,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
             }
 
             const auto& cur_branches = cur_entry.nodeBranches;
-            for (std::size_t i = 0; cur_branches[i].second != 0; i++)
+            for (std::size_t i = 0; i < cur_entry.branchCnt; i++)
                 if (cur_branches[i].first == branch_map_key)
                     return findInsnTableIndex(cur_branches[i].second);
             return 0;
