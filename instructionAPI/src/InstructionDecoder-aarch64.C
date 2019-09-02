@@ -36,7 +36,6 @@ namespace Dyninst {
 
         typedef aarch64_insn_entry aarch64_insn_table[];
         typedef aarch64_mask_entry aarch64_decoder_table[];
-        typedef uint32_t Bits_t;
 
         const std::array<std::string, 16> InstructionDecoder_aarch64::condNames = {
             "eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc", "hi", "ls", "ge",
@@ -78,12 +77,11 @@ namespace Dyninst {
         struct aarch64_insn_entry {
             entryID op;
             const char *mnemonic;
-            static constexpr auto max_operands = 13;
-            operandFactory operands[max_operands+1];
-            Bits_t _encodingBits;
-            Bits_t _maskBits;
+            std::size_t operandCnt;
+            const operandFactory* operands;
 
             static const aarch64_insn_table main_insn_table;
+            static const operandFactory operandTable[];
         };
 
         struct aarch64_mask_entry {
@@ -2950,7 +2948,7 @@ Expression::Ptr InstructionDecoder_aarch64::makeMemRefExPair2(){
                 IS_INSN_LOGICAL_SHIFT(insn))
                 skipRm = true;
 
-            for (std::size_t i = 0; insn_table_entry.operands[i] != NULL; i++) {
+            for (std::size_t i = 0; i < insn_table_entry.operandCnt; i++) {
                 std::mem_fun(insn_table_entry.operands[i])(this);
             }
 

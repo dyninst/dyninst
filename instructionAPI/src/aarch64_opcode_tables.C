@@ -31,736 +31,1468 @@
 
 #define fn(...) (&InstructionDecoder_aarch64::__VA_ARGS__)
 
+const operandFactory aarch64_insn_entry::operandTable[] = {
+    // INVALID
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // abs
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // abs
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // adc
+    fn(setFlags),fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // adcs
+    fn(OPRsf),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRimm<12,10>),fn(OPRRn),fn(OPRRd), // add
+    fn(OPRsf),fn(OPRshift),fn(OPRimm<21,10>),fn(OPRRn),fn(OPRRd), // add
+    fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // add
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // add
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // add
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // addhn
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // addp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // addp
+    fn(setFlags),fn(OPRsf),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRimm<12,10>),fn(OPRRn),fn(OPRRd), // adds
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRimm<21,10>),fn(OPRRn),fn(OPRRd), // adds
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // adds
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // addv
+    fn(OPRimm<30,29>),fn(OPRimm<23,5>),fn(OPRRd), // adr
+    fn(OPRimm<30,29>),fn(OPRimm<23,5>),fn(OPRRd), // adrp
+    fn(setSIMDMode),fn(OPRRn),fn(OPRRd), // aesd
+    fn(setSIMDMode),fn(OPRRn),fn(OPRRd), // aese
+    fn(setSIMDMode),fn(OPRRn),fn(OPRRd), // aesimc
+    fn(setSIMDMode),fn(OPRRn),fn(OPRRd), // aesmc
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd), // and
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // and
+    fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // and
+    fn(setFlags),fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // ands
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // ands
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // asr
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // asr
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // asrv
+    fn(OPRop1),fn(OPRop2),fn(OPRRt), // at
+    fn(OPRimm<23,5>),fn(OPRcond<3,0>), // b
+    fn(OPRimm<25,0>), // b
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // bfi
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // bfm
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // bfxil
+    fn(setSIMDMode),fn(OPRQ),fn(OPRa),fn(OPRb),fn(OPRc),fn(OPRcmode),fn(OPRd),fn(OPRe),fn(OPRf),fn(OPRg),fn(OPRh),fn(OPRRd), // bic
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd), // bic
+    fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // bic
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // bics
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd), // bif
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd), // bit
+    fn(OPRimm<25,0>), // bl
+    fn(OPRRn), // blr
+    fn(OPRRn), // br
+    fn(OPRimm<20,5>), // brk
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd), // bsl
+    fn(OPRsf),fn(OPRimm<23,5>),fn(OPRRt), // cbnz
+    fn(OPRsf),fn(OPRimm<23,5>),fn(OPRRt), // cbz
+    fn(OPRsf),fn(OPRimm<20,16>),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRnzcv), // ccmn
+    fn(OPRsf),fn(OPRRm),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRnzcv), // ccmn
+    fn(OPRsf),fn(OPRimm<20,16>),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRnzcv), // ccmp
+    fn(OPRsf),fn(OPRRm),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRnzcv), // ccmp
+    fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRRd), // cinc
+    fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRRd), // cinv
+    fn(OPRCRm), // clrex
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cls
+    fn(OPRsf),fn(OPRRn),fn(OPRRd), // cls
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // clz
+    fn(OPRsf),fn(OPRRn),fn(OPRRd), // clz
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmeq
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmeq
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cmeq
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cmeq
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmge
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmge
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cmge
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cmge
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmgt
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmgt
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cmgt
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cmgt
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmhi
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmhi
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmhs
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmhs
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cmle
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cmle
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cmlt
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cmlt
+    fn(setFlags),fn(OPRsf),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRimm<12,10>),fn(OPRRn), // cmn
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRimm<21,10>),fn(OPRRn), // cmn
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn), // cmn
+    fn(setFlags),fn(OPRsf),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRimm<12,10>),fn(OPRRn), // cmp
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRimm<21,10>),fn(OPRRn), // cmp
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn), // cmp
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmtst
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmtst
+    fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRRd), // cneg
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cnt
+    fn(OPRsf),fn(OPRRm),fn(OPRsz<11,10>),fn(OPRRn),fn(OPRRd), // crc32
+    fn(OPRsf),fn(OPRRm),fn(OPRsz<11,10>),fn(OPRRn),fn(OPRRd), // crc32c
+    fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // csel
+    fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRd), // cset
+    fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRd), // csetm
+    fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // csinc
+    fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // csinv
+    fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // csneg
+    fn(OPRop1),fn(OPRCRm),fn(OPRop2),fn(OPRRt), // dc
+    fn(OPRimm<20,5>), // dcps1
+    fn(OPRimm<20,5>), // dcps2
+    fn(OPRimm<20,5>), // dcps3
+    fn(OPRCRm), // dmb
+    // drps
+    fn(OPRCRm), // dsb
+    fn(setSIMDMode),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd), // dup
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd), // dup
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd), // dup
+    fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // eon
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd), // eor
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // eor
+    fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // eor
+    // eret
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRimm<14,11>),fn(OPRRn),fn(OPRRd), // ext
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // extr
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fabd
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fabd
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fabs
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fabs
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // facge
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // facge
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // facgt
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // facgt
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fadd
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fadd
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // faddp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // faddp
+    fn(setFPMode),fn(setFlags),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRnzcv), // fccmp
+    fn(setFPMode),fn(setFlags),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRnzcv), // fccmpe
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fcmeq
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fcmeq
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcmeq
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcmeq
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fcmge
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fcmge
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcmge
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcmge
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fcmgt
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fcmgt
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcmgt
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcmgt
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcmle
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcmle
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcmlt
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcmlt
+    fn(setFPMode),fn(setFlags),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRopc), // fcmp
+    fn(setFPMode),fn(setFlags),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRopc), // fcmpe
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRRd), // fcsel
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRopc),fn(OPRRn),fn(OPRRd), // fcvt
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtas
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtas
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fcvtas
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtau
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtau
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fcvtau
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtl
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtms
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtms
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fcvtms
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtmu
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtmu
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fcvtmu
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtn
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtns
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtns
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fcvtns
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtnu
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtnu
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fcvtnu
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtps
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtps
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fcvtps
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtpu
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtpu
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fcvtpu
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtxn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtxn
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // fcvtzs
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // fcvtzs
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtzs
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtzs
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRscale),fn(OPRRn),fn(OPRRd), // fcvtzs
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fcvtzs
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // fcvtzu
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // fcvtzu
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtzu
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtzu
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRscale),fn(OPRRn),fn(OPRRd), // fcvtzu
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fcvtzu
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fdiv
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fdiv
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd), // fmadd
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmax
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmax
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmaxnm
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmaxnm
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fmaxnmp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmaxnmp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fmaxnmv
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fmaxp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmaxp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fmaxv
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmin
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmin
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fminnm
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fminnm
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fminnmp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fminnmp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fminnmv
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fminp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fminp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fminv
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // fmla
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // fmla
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmla
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // fmls
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // fmls
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmls
+    fn(setSIMDMode),fn(OPRQ),fn(OPRop),fn(OPRa),fn(OPRb),fn(OPRc),fn(OPRd),fn(OPRe),fn(OPRf),fn(OPRg),fn(OPRh),fn(OPRRd), // fmov
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fmov
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRrmode),fn(OPRopcode),fn(OPRRn),fn(OPRRd), // fmov
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRimm<20,13>),fn(OPRRd), // fmov
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd), // fmsub
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // fmul
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // fmul
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmul
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmul
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // fmulx
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // fmulx
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmulx
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmulx
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fneg
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fneg
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd), // fnmadd
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd), // fnmsub
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fnmul
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frecpe
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frecpe
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // frecps
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // frecps
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frecpx
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frinta
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // frinta
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frinti
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // frinti
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frintm
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // frintm
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frintn
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // frintn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frintp
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // frintp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frintx
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // frintx
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frintz
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // frintz
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frsqrte
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frsqrte
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // frsqrts
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // frsqrts
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fsqrt
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fsqrt
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fsub
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fsub
+    fn(OPRCRm),fn(OPRop2), // hint
+    fn(OPRimm<20,5>), // hlt
+    fn(OPRimm<20,5>), // hvc
+    fn(OPRop1),fn(OPRCRm),fn(OPRop2),fn(OPRRt), // ic
+    fn(setSIMDMode),fn(OPRimm<20,16>),fn(OPRimm<14,11>),fn(OPRRn),fn(OPRRd), // ins
+    fn(setSIMDMode),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd), // ins
+    fn(OPRCRm), // isb
+    fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld1r
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld1r
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld2
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld2
+    fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld2
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld2
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld2r
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld2r
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld3
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld3
+    fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld3
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld3
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld3r
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld3r
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld4
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld4
+    fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld4
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld4
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld4r
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld4r
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRnL),fn(OPRRtL), // ldar
+    fn(setRegWidth),fn(OPRRnL),fn(OPRRtL), // ldarb
+    fn(setRegWidth),fn(OPRRnL),fn(OPRRtL), // ldarh
+    fn(setRegWidth),fn(OPRsz<30,30>),fn(OPRRt2L),fn(OPRRnL),fn(OPRRtL), // ldaxp
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRnL),fn(OPRRtL), // ldaxr
+    fn(setRegWidth),fn(OPRRnL),fn(OPRRtL), // ldaxrb
+    fn(setRegWidth),fn(OPRRnL),fn(OPRRtL), // ldaxrh
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnL),fn(OPRRtL), // ldnp
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnL),fn(OPRRtL), // ldnp
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnLU),fn(OPRRtL), // ldp
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnLU),fn(OPRRtL), // ldp
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnL),fn(OPRRtL), // ldp
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnLU),fn(OPRRtL), // ldp
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnLU),fn(OPRRtL), // ldp
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnL),fn(OPRRtL), // ldp
+    fn(setRegWidth),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnLU),fn(OPRRtL), // ldpsw
+    fn(setRegWidth),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnLU),fn(OPRRtL), // ldpsw
+    fn(setRegWidth),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnL),fn(OPRRtL), // ldpsw
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldr
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldr
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRtL), // ldr
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldr
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldr
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRtL), // ldr
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<23,5>),fn(OPRRtL), // ldr
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<23,5>),fn(OPRRtL), // ldr
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRtL), // ldr
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRtL), // ldr
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldrb
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldrb
+    fn(setRegWidth),fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRtL), // ldrb
+    fn(setRegWidth),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRtL), // ldrb
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldrh
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldrh
+    fn(setRegWidth),fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRtL), // ldrh
+    fn(setRegWidth),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRtL), // ldrh
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldrsb
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldrsb
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRtL), // ldrsb
+    fn(setRegWidth),fn(OPRopc),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRtL), // ldrsb
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldrsh
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldrsh
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRtL), // ldrsh
+    fn(setRegWidth),fn(OPRopc),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRtL), // ldrsh
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldrsw
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldrsw
+    fn(setRegWidth),fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRtL), // ldrsw
+    fn(setRegWidth),fn(OPRimm<23,5>),fn(OPRRtL), // ldrsw
+    fn(setRegWidth),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRtL), // ldrsw
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldtr
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldtrb
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldtrh
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldtrsb
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldtrsh
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldtrsw
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldur
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldur
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldurb
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldurh
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldursb
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldursh
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldursw
+    fn(setRegWidth),fn(OPRsz<30,30>),fn(OPRRt2L),fn(OPRRnL),fn(OPRRtL), // ldxp
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRnL),fn(OPRRtL), // ldxr
+    fn(setRegWidth),fn(OPRRnL),fn(OPRRtL), // ldxrb
+    fn(setRegWidth),fn(OPRRnL),fn(OPRRtL), // ldxrh
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // lsl
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // lsl
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // lslv
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // lsr
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // lsr
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // lsrv
+    fn(OPRsf),fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd), // madd
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // mla
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // mla
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // mls
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // mls
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // mneg
+    fn(OPRsf),fn(OPRRn),fn(OPRRd), // mov
+    fn(setSIMDMode),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd), // mov
+    fn(setSIMDMode),fn(OPRimm<20,16>),fn(OPRimm<14,11>),fn(OPRRn),fn(OPRRd), // mov
+    fn(setSIMDMode),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd), // mov
+    fn(OPRsf),fn(OPRhw),fn(OPRimm<20,5>),fn(OPRRd), // mov
+    fn(OPRsf),fn(OPRhw),fn(OPRimm<20,5>),fn(OPRRd), // mov
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd), // mov
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRd), // mov
+    fn(OPRsf),fn(OPRRm),fn(OPRRd), // mov
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd), // mov
+    fn(setSIMDMode),fn(OPRQ),fn(OPRop),fn(OPRa),fn(OPRb),fn(OPRc),fn(OPRcmode),fn(OPRd),fn(OPRe),fn(OPRf),fn(OPRg),fn(OPRh),fn(OPRRd), // movi
+    fn(OPRsf),fn(OPRhw),fn(OPRimm<20,5>),fn(OPRRd), // movk
+    fn(OPRsf),fn(OPRhw),fn(OPRimm<20,5>),fn(OPRRd), // movn
+    fn(OPRsf),fn(OPRhw),fn(OPRimm<20,5>),fn(OPRRd), // movz
+    fn(OPRo0),fn(OPRop1),fn(OPRCRn),fn(OPRCRm),fn(OPRop2),fn(OPRRt), // mrs
+    fn(OPRop1),fn(OPRCRm),fn(OPRop2), // msr
+    fn(OPRo0),fn(OPRop1),fn(OPRCRn),fn(OPRCRm),fn(OPRop2),fn(OPRRt), // msr
+    fn(OPRsf),fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd), // msub
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // mul
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // mul
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // mul
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRn),fn(OPRRd), // mvn
+    fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRd), // mvn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRa),fn(OPRb),fn(OPRc),fn(OPRcmode),fn(OPRd),fn(OPRe),fn(OPRf),fn(OPRg),fn(OPRh),fn(OPRRd), // mvni
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // neg
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // neg
+    fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRd), // neg
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRd), // negs
+    fn(OPRsf),fn(OPRRm),fn(OPRRd), // ngc
+    fn(setFlags),fn(OPRsf),fn(OPRRm),fn(OPRRd), // ngcs
+    // nop
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRn),fn(OPRRd), // not
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd), // orn
+    fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // orn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRa),fn(OPRb),fn(OPRc),fn(OPRcmode),fn(OPRd),fn(OPRe),fn(OPRf),fn(OPRg),fn(OPRh),fn(OPRRd), // orr
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd), // orr
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // orr
+    fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // orr
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // pmul
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // pmull
+    fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRt), // prfm
+    fn(OPRimm<23,5>),fn(OPRRt), // prfm
+    fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRt), // prfm
+    fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRt), // prfum
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // raddhn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRn),fn(OPRRd), // rbit
+    fn(OPRsf),fn(OPRRn),fn(OPRRd), // rbit
+    fn(OPRRn), // ret
+    fn(OPRsf),fn(OPRopc),fn(OPRRn),fn(OPRRd), // rev
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // rev16
+    fn(OPRsf),fn(OPRRn),fn(OPRRd), // rev16
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // rev32
+    fn(OPRRn),fn(OPRRd), // rev32
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // rev64
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // ror
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // ror
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // rorv
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // rshrn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // rsubhn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // saba
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sabal
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sabd
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sabdl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // sadalp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // saddl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // saddlp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // saddlv
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // saddw
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sbc
+    fn(setFlags),fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sbcs
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // sbfiz
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // sbfm
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // sbfx
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // scvtf
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // scvtf
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // scvtf
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // scvtf
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRscale),fn(OPRRn),fn(OPRRd), // scvtf
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // scvtf
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sdiv
+    // sev
+    // sevl
+    fn(setSIMDMode),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sha1c
+    fn(setSIMDMode),fn(OPRRn),fn(OPRRd), // sha1h
+    fn(setSIMDMode),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sha1m
+    fn(setSIMDMode),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sha1p
+    fn(setSIMDMode),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sha1su0
+    fn(setSIMDMode),fn(OPRRn),fn(OPRRd), // sha1su1
+    fn(setSIMDMode),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sha256h2
+    fn(setSIMDMode),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sha256h
+    fn(setSIMDMode),fn(OPRRn),fn(OPRRd), // sha256su0
+    fn(setSIMDMode),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sha256su1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // shadd
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // shl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // shl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // shll
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // shrn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // shsub
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sli
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sli
+    fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd), // smaddl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // smax
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // smaxp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // smaxv
+    fn(OPRimm<20,5>), // smc
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // smin
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sminp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // sminv
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // smlal
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // smlal
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // smlsl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // smlsl
+    fn(OPRRm),fn(OPRRn),fn(OPRRd), // smnegl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd), // smov
+    fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd), // smsubl
+    fn(OPRRm),fn(OPRRn),fn(OPRRd), // smulh
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // smull
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // smull
+    fn(OPRRm),fn(OPRRn),fn(OPRRd), // smull
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // sqabs
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // sqabs
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqadd
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqadd
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // sqdmlal
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // sqdmlal
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqdmlal
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqdmlal
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // sqdmlsl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // sqdmlsl
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqdmlsl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqdmlsl
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // sqdmulh
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // sqdmulh
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqdmulh
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqdmulh
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // sqdmull
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // sqdmull
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqdmull
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqdmull
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // sqneg
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // sqneg
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // sqrdmulh
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // sqrdmulh
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqrdmulh
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqrdmulh
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqrshl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqrshl
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqrshrn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqrshrn
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqrshrun
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqrshrun
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqshl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqshl
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqshl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqshl
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqshlu
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqshlu
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqshrn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqshrn
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqshrun
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqshrun
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqsub
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqsub
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // sqxtn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // sqxtn
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // sqxtun
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // sqxtun
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // srhadd
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sri
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sri
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // srshl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // srshl
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // srshr
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // srshr
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // srsra
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // srsra
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sshl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sshl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sshll
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sshr
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sshr
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // ssra
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // ssra
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // ssubl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // ssubw
+    fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st2
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st2
+    fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st2
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st2
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st3
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st3
+    fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st3
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st3
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st4
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st4
+    fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st4
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st4
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRnS),fn(OPRRtS), // stlr
+    fn(setRegWidth),fn(OPRRnS),fn(OPRRtS), // stlrb
+    fn(setRegWidth),fn(OPRRnS),fn(OPRRtS), // stlrh
+    fn(setRegWidth),fn(OPRsz<30,30>),fn(OPRRs),fn(OPRRt2S),fn(OPRRnS),fn(OPRRtS), // stlxp
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRs),fn(OPRRnS),fn(OPRRtS), // stlxr
+    fn(setRegWidth),fn(OPRRs),fn(OPRRnS),fn(OPRRtS), // stlxrb
+    fn(setRegWidth),fn(OPRRs),fn(OPRRnS),fn(OPRRtS), // stlxrh
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnS),fn(OPRRtS), // stnp
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnS),fn(OPRRtS), // stnp
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnSU),fn(OPRRtS), // stp
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnSU),fn(OPRRtS), // stp
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnS),fn(OPRRtS), // stp
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnSU),fn(OPRRtS), // stp
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnSU),fn(OPRRtS), // stp
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnS),fn(OPRRtS), // stp
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS), // str
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS), // str
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<21,10>),fn(OPRRnS),fn(OPRRtS), // str
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS), // str
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS), // str
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<21,10>),fn(OPRRnS),fn(OPRRtS), // str
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnS),fn(OPRRtS), // str
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnS),fn(OPRRtS), // str
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS), // strb
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS), // strb
+    fn(setRegWidth),fn(OPRimm<21,10>),fn(OPRRnS),fn(OPRRtS), // strb
+    fn(setRegWidth),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnS),fn(OPRRtS), // strb
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS), // strh
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS), // strh
+    fn(setRegWidth),fn(OPRimm<21,10>),fn(OPRRnS),fn(OPRRtS), // strh
+    fn(setRegWidth),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnS),fn(OPRRtS), // strh
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnS),fn(OPRRtS), // sttr
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnS),fn(OPRRtS), // sttrb
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnS),fn(OPRRtS), // sttrh
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnS),fn(OPRRtS), // stur
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnS),fn(OPRRtS), // stur
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnS),fn(OPRRtS), // sturb
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnS),fn(OPRRtS), // sturh
+    fn(setRegWidth),fn(OPRsz<30,30>),fn(OPRRs),fn(OPRRt2S),fn(OPRRnS),fn(OPRRtS), // stxp
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRs),fn(OPRRnS),fn(OPRRtS), // stxr
+    fn(setRegWidth),fn(OPRRs),fn(OPRRnS),fn(OPRRtS), // stxrb
+    fn(setRegWidth),fn(OPRRs),fn(OPRRnS),fn(OPRRtS), // stxrh
+    fn(OPRsf),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRimm<12,10>),fn(OPRRn),fn(OPRRd), // sub
+    fn(OPRsf),fn(OPRshift),fn(OPRimm<21,10>),fn(OPRRn),fn(OPRRd), // sub
+    fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // sub
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sub
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sub
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // subhn
+    fn(setFlags),fn(OPRsf),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRimm<12,10>),fn(OPRRn),fn(OPRRd), // subs
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRimm<21,10>),fn(OPRRn),fn(OPRRd), // subs
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // subs
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // suqadd
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // suqadd
+    fn(OPRimm<20,5>), // svc
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRRn),fn(OPRRd), // sxtb
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRRn),fn(OPRRd), // sxth
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRRn),fn(OPRRd), // sxtl
+    fn(OPRRn),fn(OPRRd), // sxtw
+    fn(OPRop1),fn(OPRCRn),fn(OPRCRm),fn(OPRop2),fn(OPRRt), // sys
+    fn(OPRop1),fn(OPRCRn),fn(OPRCRm),fn(OPRop2),fn(OPRRt), // sysl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRlen),fn(OPRRn),fn(OPRRd), // tbl
+    fn(OPRb5),fn(OPRb40),fn(OPRimm<18,5>),fn(OPRRt), // tbnz
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRlen),fn(OPRRn),fn(OPRRd), // tbx
+    fn(OPRb5),fn(OPRb40),fn(OPRimm<18,5>),fn(OPRRt), // tbz
+    fn(OPRop1),fn(OPRCRm),fn(OPRop2),fn(OPRRt), // tlbi
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // trn1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // trn2
+    fn(setFlags),fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn), // tst
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn), // tst
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uaba
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uabal
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uabd
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uabdl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // uadalp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uaddl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // uaddlp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // uaddlv
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uaddw
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // ubfiz
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // ubfm
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // ubfx
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // ucvtf
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // ucvtf
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // ucvtf
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // ucvtf
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRscale),fn(OPRRn),fn(OPRRd), // ucvtf
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // ucvtf
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // udiv
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uhadd
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uhsub
+    fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd), // umaddl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // umax
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // umaxp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // umaxv
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // umin
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uminp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // uminv
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // umlal
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // umlal
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // umlsl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // umlsl
+    fn(OPRRm),fn(OPRRn),fn(OPRRd), // umnegl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd), // umov
+    fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd), // umsubl
+    fn(OPRRm),fn(OPRRn),fn(OPRRd), // umulh
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // umull
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // umull
+    fn(OPRRm),fn(OPRRn),fn(OPRRd), // umull
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uqadd
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uqadd
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uqrshl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uqrshl
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // uqrshrn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // uqrshrn
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // uqshl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // uqshl
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uqshl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uqshl
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // uqshrn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // uqshrn
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uqsub
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uqsub
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // uqxtn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // uqxtn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // urecpe
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // urhadd
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // urshl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // urshl
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // urshr
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // urshr
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // ursqrte
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // ursra
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // ursra
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // ushl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // ushl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // ushll
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // ushr
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // ushr
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // usqadd
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // usqadd
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // usra
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // usra
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // usubl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // usubw
+    fn(OPRRn),fn(OPRRd), // uxtb
+    fn(OPRRn),fn(OPRRd), // uxth
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRRn),fn(OPRRd), // uxtl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uzp1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uzp2
+    // wfe
+    // wfi
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // xtn
+    // yield
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // zip1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // zip2  
+};  // end operandTable
+
 const aarch64_insn_table aarch64_insn_entry::main_insn_table = {
-    {aarch64_op_INVALID,"INVALID",{NULL},0,402653184},
-    {aarch64_op_abs_advsimd,"abs",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},1579202560,4282383360},
-    {aarch64_op_abs_advsimd,"abs",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},237025280,3208641536},
-    {aarch64_op_adc,"adc",{fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},436207616,2145451008},
-    {aarch64_op_adcs,"adcs",{fn(setFlags),fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},973078528,2145451008},
-    {aarch64_op_add_addsub_ext,"add",{fn(OPRsf),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRimm<12,10>),fn(OPRRn),fn(OPRRd),NULL},186646528,2145386496},
-    {aarch64_op_add_addsub_imm,"add",{fn(OPRsf),fn(OPRshift),fn(OPRimm<21,10>),fn(OPRRn),fn(OPRRd),NULL},285212672,2130706432},
-    {aarch64_op_add_addsub_shift,"add",{fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},184549376,2132803584},
-    {aarch64_op_add_advsimd,"add",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1579189248,4280351744},
-    {aarch64_op_add_advsimd,"add",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237011968,3206609920},
-    {aarch64_op_addhn_advsimd,"addhn",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},236994560,3206609920},
-    {aarch64_op_addp_advsimd_pair,"addp",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},1580316672,4282383360},
-    {aarch64_op_addp_advsimd_vec,"addp",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237026304,3206609920},
-    {aarch64_op_adds_addsub_ext,"adds",{fn(setFlags),fn(OPRsf),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRimm<12,10>),fn(OPRRn),fn(OPRRd),NULL},723517440,2145386496},
-    {aarch64_op_adds_addsub_imm,"adds",{fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRimm<21,10>),fn(OPRRn),fn(OPRRd),NULL},822083584,2130706432},
-    {aarch64_op_adds_addsub_shift,"adds",{fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},721420288,2132803584},
-    {aarch64_op_addv_advsimd,"addv",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},238139392,3208641536},
-    {aarch64_op_adr,"adr",{fn(OPRimm<30,29>),fn(OPRimm<23,5>),fn(OPRRd),NULL},268435456,2667577344},
-    {aarch64_op_adrp,"adrp",{fn(OPRimm<30,29>),fn(OPRimm<23,5>),fn(OPRRd),NULL},2415919104,2667577344},
-    {aarch64_op_aesd_advsimd,"aesd",{fn(setSIMDMode),fn(OPRRn),fn(OPRRd),NULL},1311266816,4294966272},
-    {aarch64_op_aese_advsimd,"aese",{fn(setSIMDMode),fn(OPRRn),fn(OPRRd),NULL},1311262720,4294966272},
-    {aarch64_op_aesimc_advsimd,"aesimc",{fn(setSIMDMode),fn(OPRRn),fn(OPRRd),NULL},1311275008,4294966272},
-    {aarch64_op_aesmc_advsimd,"aesmc",{fn(setSIMDMode),fn(OPRRn),fn(OPRRd),NULL},1311270912,4294966272},
-    {aarch64_op_and_advsimd,"and",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},236985344,3219192832},
-    {aarch64_op_and_log_imm,"and",{fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},301989888,2139095040},
-    {aarch64_op_and_log_shift,"and",{fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},167772160,2132803584},
-    {aarch64_op_ands_log_imm,"ands",{fn(setFlags),fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},1912602624,2139095040},
-    {aarch64_op_ands_log_shift,"ands",{fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},1778384896,2132803584},
-    {aarch64_op_asr_asrv,"asr",{fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},448800768,2145451008},
-    {aarch64_op_asr_sbfm,"asr",{fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},318798848,2139126784},
-    {aarch64_op_asrv,"asrv",{fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},448800768,2145451008},
-    {aarch64_op_at_sys,"at",{fn(OPRop1),fn(OPRop2),fn(OPRRt),NULL},3574102016,4294508288},
-    {aarch64_op_b_cond,"b",{fn(OPRimm<23,5>),fn(OPRcond<3,0>),NULL},1409286144,4278190096},
-    {aarch64_op_b_uncond,"b",{fn(OPRimm<25,0>),NULL},335544320,4227858432},
-    {aarch64_op_bfi_bfm,"bfi",{fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},855638016,2139095040},
-    {aarch64_op_bfm,"bfm",{fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},855638016,2139095040},
-    {aarch64_op_bfxil_bfm,"bfxil",{fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},855638016,2139095040},
-    {aarch64_op_bic_advsimd_imm,"bic",{fn(setSIMDMode),fn(OPRQ),fn(OPRa),fn(OPRb),fn(OPRc),fn(OPRcmode),fn(OPRd),fn(OPRe),fn(OPRf),fn(OPRg),fn(OPRh),fn(OPRRd),NULL},788534272,3220708352},
-    {aarch64_op_bic_advsimd_reg,"bic",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},241179648,3219192832},
-    {aarch64_op_bic_log_shift,"bic",{fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},169869312,2132803584},
-    {aarch64_op_bics,"bics",{fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},1780482048,2132803584},
-    {aarch64_op_bif_advsimd,"bif",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},786439168,3219192832},
-    {aarch64_op_bit_advsimd,"bit",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},782244864,3219192832},
-    {aarch64_op_bl,"bl",{fn(OPRimm<25,0>),NULL},2483027968,4227858432},
-    {aarch64_op_blr,"blr",{fn(OPRRn),NULL},3594452992,4294966303},
-    {aarch64_op_br,"br",{fn(OPRRn),NULL},3592355840,4294966303},
-    {aarch64_op_brk,"brk",{fn(OPRimm<20,5>),NULL},3558866944,4292870175},
-    {aarch64_op_bsl_advsimd,"bsl",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},778050560,3219192832},
-    {aarch64_op_cbnz,"cbnz",{fn(OPRsf),fn(OPRimm<23,5>),fn(OPRRt),NULL},889192448,2130706432},
-    {aarch64_op_cbz,"cbz",{fn(OPRsf),fn(OPRimm<23,5>),fn(OPRRt),NULL},872415232,2130706432},
-    {aarch64_op_ccmn_imm,"ccmn",{fn(OPRsf),fn(OPRimm<20,16>),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRnzcv),NULL},977274880,2145389584},
-    {aarch64_op_ccmn_reg,"ccmn",{fn(OPRsf),fn(OPRRm),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRnzcv),NULL},977272832,2145389584},
-    {aarch64_op_ccmp_imm,"ccmp",{fn(OPRsf),fn(OPRimm<20,16>),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRnzcv),NULL},2051016704,2145389584},
-    {aarch64_op_ccmp_reg,"ccmp",{fn(OPRsf),fn(OPRRm),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRnzcv),NULL},2051014656,2145389584},
-    {aarch64_op_cinc_csinc,"cinc",{fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRRd),NULL},444597248,2145389568},
-    {aarch64_op_cinv_csinv,"cinv",{fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRRd),NULL},1518338048,2145389568},
-    {aarch64_op_clrex,"clrex",{fn(OPRCRm),NULL},3573755999,4294963455},
-    {aarch64_op_cls_advsimd,"cls",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},236996608,3208641536},
-    {aarch64_op_cls_int,"cls",{fn(OPRsf),fn(OPRRn),fn(OPRRd),NULL},1522537472,2147482624},
-    {aarch64_op_clz_advsimd,"clz",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},773867520,3208641536},
-    {aarch64_op_clz_int,"clz",{fn(OPRsf),fn(OPRRn),fn(OPRRd),NULL},1522536448,2147482624},
-    {aarch64_op_cmeq_advsimd_reg,"cmeq",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2116062208,4280351744},
-    {aarch64_op_cmeq_advsimd_reg,"cmeq",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773884928,3206609920},
-    {aarch64_op_cmeq_advsimd_zero,"cmeq",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},1579194368,4282383360},
-    {aarch64_op_cmeq_advsimd_zero,"cmeq",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},237017088,3208641536},
-    {aarch64_op_cmge_advsimd_reg,"cmge",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1579170816,4280351744},
-    {aarch64_op_cmge_advsimd_reg,"cmge",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},236993536,3206609920},
-    {aarch64_op_cmge_advsimd_zero,"cmge",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},2116061184,4282383360},
-    {aarch64_op_cmge_advsimd_zero,"cmge",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},773883904,3208641536},
-    {aarch64_op_cmgt_advsimd_reg,"cmgt",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1579168768,4280351744},
-    {aarch64_op_cmgt_advsimd_reg,"cmgt",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},236991488,3206609920},
-    {aarch64_op_cmgt_advsimd_zero,"cmgt",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},1579190272,4282383360},
-    {aarch64_op_cmgt_advsimd_zero,"cmgt",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},237012992,3208641536},
-    {aarch64_op_cmhi_advsimd,"cmhi",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2116039680,4280351744},
-    {aarch64_op_cmhi_advsimd,"cmhi",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773862400,3206609920},
-    {aarch64_op_cmhs_advsimd,"cmhs",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2116041728,4280351744},
-    {aarch64_op_cmhs_advsimd,"cmhs",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773864448,3206609920},
-    {aarch64_op_cmle_advsimd,"cmle",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},2116065280,4282383360},
-    {aarch64_op_cmle_advsimd,"cmle",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},773888000,3208641536},
-    {aarch64_op_cmlt_advsimd,"cmlt",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},1579198464,4282383360},
-    {aarch64_op_cmlt_advsimd,"cmlt",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},237021184,3208641536},
-    {aarch64_op_cmn_adds_addsub_ext,"cmn",{fn(setFlags),fn(OPRsf),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRimm<12,10>),fn(OPRRn),NULL},723517471,2145386527},
-    {aarch64_op_cmn_adds_addsub_imm,"cmn",{fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRimm<21,10>),fn(OPRRn),NULL},822083615,2130706463},
-    {aarch64_op_cmn_adds_addsub_shift,"cmn",{fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),NULL},721420319,2132803615},
-    {aarch64_op_cmp_subs_addsub_ext,"cmp",{fn(setFlags),fn(OPRsf),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRimm<12,10>),fn(OPRRn),NULL},1797259295,2145386527},
-    {aarch64_op_cmp_subs_addsub_imm,"cmp",{fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRimm<21,10>),fn(OPRRn),NULL},1895825439,2130706463},
-    {aarch64_op_cmp_subs_addsub_shift,"cmp",{fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),NULL},1795162143,2132803615},
-    {aarch64_op_cmtst_advsimd,"cmtst",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1579191296,4280351744},
-    {aarch64_op_cmtst_advsimd,"cmtst",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237014016,3206609920},
-    {aarch64_op_cneg_csneg,"cneg",{fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRRd),NULL},1518339072,2145389568},
-    {aarch64_op_cnt_advsimd,"cnt",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},237000704,3208641536},
-    {aarch64_op_crc32,"crc32",{fn(OPRsf),fn(OPRRm),fn(OPRsz<11,10>),fn(OPRRn),fn(OPRRd),NULL},448806912,2145447936},
-    {aarch64_op_crc32c,"crc32c",{fn(OPRsf),fn(OPRRm),fn(OPRsz<11,10>),fn(OPRRn),fn(OPRRd),NULL},448811008,2145447936},
-    {aarch64_op_csel,"csel",{fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},444596224,2145389568},
-    {aarch64_op_cset_csinc,"cset",{fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRd),NULL},446629856,2147422176},
-    {aarch64_op_csetm_csinv,"csetm",{fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRd),NULL},1520370656,2147422176},
-    {aarch64_op_csinc,"csinc",{fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},444597248,2145389568},
-    {aarch64_op_csinv,"csinv",{fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1518338048,2145389568},
-    {aarch64_op_csneg,"csneg",{fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1518339072,2145389568},
-    {aarch64_op_dc_sys,"dc",{fn(OPRop1),fn(OPRCRm),fn(OPRop2),fn(OPRRt),NULL},3574099968,4294504448},
-    {aarch64_op_dcps1,"dcps1",{fn(OPRimm<20,5>),NULL},3567255553,4292870175},
-    {aarch64_op_dcps2,"dcps2",{fn(OPRimm<20,5>),NULL},3567255554,4292870175},
-    {aarch64_op_dcps3,"dcps3",{fn(OPRimm<20,5>),NULL},3567255555,4292870175},
-    {aarch64_op_dmb,"dmb",{fn(OPRCRm),NULL},3573756095,4294963455},
-    {aarch64_op_drps,"drps",{NULL},3602842592,4294967295},
-    {aarch64_op_dsb,"dsb",{fn(OPRCRm),NULL},3573756063,4294963455},
-    {aarch64_op_dup_advsimd_elt,"dup",{fn(setSIMDMode),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd),NULL},1577059328,4292934656},
-    {aarch64_op_dup_advsimd_elt,"dup",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd),NULL},234882048,3219192832},
-    {aarch64_op_dup_advsimd_gen,"dup",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd),NULL},234884096,3219192832},
-    {aarch64_op_eon,"eon",{fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},1243611136,2132803584},
-    {aarch64_op_eor_advsimd,"eor",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773856256,3219192832},
-    {aarch64_op_eor_log_imm,"eor",{fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},1375731712,2139095040},
-    {aarch64_op_eor_log_shift,"eor",{fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},1241513984,2132803584},
-    {aarch64_op_eret,"eret",{NULL},3600745440,4294967295},
-    {aarch64_op_ext_advsimd,"ext",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRimm<14,11>),fn(OPRRn),fn(OPRRd),NULL},771751936,3219162112},
-    {aarch64_op_extr,"extr",{fn(OPRsf),fn(OPRN<22,22>),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},327155712,2141192192},
-    {aarch64_op_fabd_advsimd,"fabd",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2124469248,4288740352},
-    {aarch64_op_fabd_advsimd,"fabd",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},782291968,3214998528},
-    {aarch64_op_fabs_advsimd,"fabs",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},245430272,3217030144},
-    {aarch64_op_fabs_float,"fabs",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},505462784,4290771968},
-    {aarch64_op_facge_advsimd,"facge",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2116086784,4288740352},
-    {aarch64_op_facge_advsimd,"facge",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773909504,3214998528},
-    {aarch64_op_facgt_advsimd,"facgt",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2124475392,4288740352},
-    {aarch64_op_facgt_advsimd,"facgt",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},782298112,3214998528},
-    {aarch64_op_fadd_advsimd,"fadd",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237032448,3214998528},
-    {aarch64_op_fadd_float,"fadd",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},505423872,4288740352},
-    {aarch64_op_faddp_advsimd_pair,"faddp",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},2117130240,4290771968},
-    {aarch64_op_faddp_advsimd_vec,"faddp",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773903360,3214998528},
-    {aarch64_op_fccmp_float,"fccmp",{fn(setFPMode),fn(setFlags),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRnzcv),NULL},505414656,4288678928},
-    {aarch64_op_fccmpe_float,"fccmpe",{fn(setFPMode),fn(setFlags),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRnzcv),NULL},505414672,4288678928},
-    {aarch64_op_fcmeq_advsimd_reg,"fcmeq",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1579213824,4288740352},
-    {aarch64_op_fcmeq_advsimd_reg,"fcmeq",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237036544,3214998528},
-    {aarch64_op_fcmeq_advsimd_zero,"fcmeq",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},1587599360,4290771968},
-    {aarch64_op_fcmeq_advsimd_zero,"fcmeq",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},245422080,3217030144},
-    {aarch64_op_fcmge_advsimd_reg,"fcmge",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2116084736,4288740352},
-    {aarch64_op_fcmge_advsimd_reg,"fcmge",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773907456,3214998528},
-    {aarch64_op_fcmge_advsimd_zero,"fcmge",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},2124466176,4290771968},
-    {aarch64_op_fcmge_advsimd_zero,"fcmge",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},782288896,3217030144},
-    {aarch64_op_fcmgt_advsimd_reg,"fcmgt",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2124473344,4288740352},
-    {aarch64_op_fcmgt_advsimd_reg,"fcmgt",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},782296064,3214998528},
-    {aarch64_op_fcmgt_advsimd_zero,"fcmgt",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},1587595264,4290771968},
-    {aarch64_op_fcmgt_advsimd_zero,"fcmgt",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},245417984,3217030144},
-    {aarch64_op_fcmle_advsimd,"fcmle",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},2124470272,4290771968},
-    {aarch64_op_fcmle_advsimd,"fcmle",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},782292992,3217030144},
-    {aarch64_op_fcmlt_advsimd,"fcmlt",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},1587603456,4290771968},
-    {aarch64_op_fcmlt_advsimd,"fcmlt",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},245426176,3217030144},
-    {aarch64_op_fcmp_float,"fcmp",{fn(setFPMode),fn(setFlags),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRopc),NULL},505421824,4288740375},
-    {aarch64_op_fcmpe_float,"fcmpe",{fn(setFPMode),fn(setFlags),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRopc),NULL},505421840,4288740375},
-    {aarch64_op_fcsel_float,"fcsel",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRRd),NULL},505416704,4288678912},
-    {aarch64_op_fcvt_float,"fcvt",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRopc),fn(OPRRn),fn(OPRRd),NULL},505561088,4282285056},
-    {aarch64_op_fcvtas_advsimd,"fcvtas",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},1579272192,4290771968},
-    {aarch64_op_fcvtas_advsimd,"fcvtas",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},237094912,3217030144},
-    {aarch64_op_fcvtas_float,"fcvtas",{fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},505675776,2143288320},
-    {aarch64_op_fcvtau_advsimd,"fcvtau",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},2116143104,4290771968},
-    {aarch64_op_fcvtau_advsimd,"fcvtau",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},773965824,3217030144},
-    {aarch64_op_fcvtau_float,"fcvtau",{fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},505741312,2143288320},
-    {aarch64_op_fcvtl_advsimd,"fcvtl",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},237074432,3217030144},
-    {aarch64_op_fcvtms_advsimd,"fcvtms",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},1579268096,4290771968},
-    {aarch64_op_fcvtms_advsimd,"fcvtms",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},237090816,3217030144},
-    {aarch64_op_fcvtms_float,"fcvtms",{fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},506462208,2143288320},
-    {aarch64_op_fcvtmu_advsimd,"fcvtmu",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},2116139008,4290771968},
-    {aarch64_op_fcvtmu_advsimd,"fcvtmu",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},773961728,3217030144},
-    {aarch64_op_fcvtmu_float,"fcvtmu",{fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},506527744,2143288320},
-    {aarch64_op_fcvtn_advsimd,"fcvtn",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},237070336,3217030144},
-    {aarch64_op_fcvtns_advsimd,"fcvtns",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},1579264000,4290771968},
-    {aarch64_op_fcvtns_advsimd,"fcvtns",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},237086720,3217030144},
-    {aarch64_op_fcvtns_float,"fcvtns",{fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},505413632,2143288320},
-    {aarch64_op_fcvtnu_advsimd,"fcvtnu",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},2116134912,4290771968},
-    {aarch64_op_fcvtnu_advsimd,"fcvtnu",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},773957632,3217030144},
-    {aarch64_op_fcvtnu_float,"fcvtnu",{fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},505479168,2143288320},
-    {aarch64_op_fcvtps_advsimd,"fcvtps",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},1587652608,4290771968},
-    {aarch64_op_fcvtps_advsimd,"fcvtps",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},245475328,3217030144},
-    {aarch64_op_fcvtps_float,"fcvtps",{fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},505937920,2143288320},
-    {aarch64_op_fcvtpu_advsimd,"fcvtpu",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},2124523520,4290771968},
-    {aarch64_op_fcvtpu_advsimd,"fcvtpu",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},782346240,3217030144},
-    {aarch64_op_fcvtpu_float,"fcvtpu",{fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},506003456,2143288320},
-    {aarch64_op_fcvtxn_advsimd,"fcvtxn",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},2116118528,4290771968},
-    {aarch64_op_fcvtxn_advsimd,"fcvtxn",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},773941248,3217030144},
-    {aarch64_op_fcvtzs_advsimd_fix,"fcvtzs",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},1593900032,4286643200},
-    {aarch64_op_fcvtzs_advsimd_fix,"fcvtzs",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},251722752,3212901376},
-    {aarch64_op_fcvtzs_advsimd_int,"fcvtzs",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},1587656704,4290771968},
-    {aarch64_op_fcvtzs_advsimd_int,"fcvtzs",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},245479424,3217030144},
-    {aarch64_op_fcvtzs_float_fix,"fcvtzs",{fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRscale),fn(OPRRn),fn(OPRRd),NULL},504889344,2143223808},
-    {aarch64_op_fcvtzs_float_int,"fcvtzs",{fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},506986496,2143288320},
-    {aarch64_op_fcvtzu_advsimd_fix,"fcvtzu",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},2130770944,4286643200},
-    {aarch64_op_fcvtzu_advsimd_fix,"fcvtzu",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},788593664,3212901376},
-    {aarch64_op_fcvtzu_advsimd_int,"fcvtzu",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},2124527616,4290771968},
-    {aarch64_op_fcvtzu_advsimd_int,"fcvtzu",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},782350336,3217030144},
-    {aarch64_op_fcvtzu_float_fix,"fcvtzu",{fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRscale),fn(OPRRn),fn(OPRRd),NULL},504954880,2143223808},
-    {aarch64_op_fcvtzu_float_int,"fcvtzu",{fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},507052032,2143288320},
-    {aarch64_op_fdiv_advsimd,"fdiv",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773913600,3214998528},
-    {aarch64_op_fdiv_float,"fdiv",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},505419776,4288740352},
-    {aarch64_op_fmadd_float,"fmadd",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd),NULL},520093696,4288708608},
-    {aarch64_op_fmax_advsimd,"fmax",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237040640,3214998528},
-    {aarch64_op_fmax_float,"fmax",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},505432064,4288740352},
-    {aarch64_op_fmaxnm_advsimd,"fmaxnm",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237028352,3214998528},
-    {aarch64_op_fmaxnm_float,"fmaxnm",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},505440256,4288740352},
-    {aarch64_op_fmaxnmp_advsimd_pair,"fmaxnmp",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},2117126144,4290771968},
-    {aarch64_op_fmaxnmp_advsimd_vec,"fmaxnmp",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773899264,3214998528},
-    {aarch64_op_fmaxnmv_advsimd,"fmaxnmv",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},774948864,3217030144},
-    {aarch64_op_fmaxp_advsimd_pair,"fmaxp",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},2117138432,4290771968},
-    {aarch64_op_fmaxp_advsimd_vec,"fmaxp",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773911552,3214998528},
-    {aarch64_op_fmaxv_advsimd,"fmaxv",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},774961152,3217030144},
-    {aarch64_op_fmin_advsimd,"fmin",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},245429248,3214998528},
-    {aarch64_op_fmin_float,"fmin",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},505436160,4288740352},
-    {aarch64_op_fminnm_advsimd,"fminnm",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},245416960,3214998528},
-    {aarch64_op_fminnm_float,"fminnm",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},505444352,4288740352},
-    {aarch64_op_fminnmp_advsimd_pair,"fminnmp",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},2125514752,4290771968},
-    {aarch64_op_fminnmp_advsimd_vec,"fminnmp",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},782287872,3214998528},
-    {aarch64_op_fminnmv_advsimd,"fminnmv",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},783337472,3217030144},
-    {aarch64_op_fminp_advsimd_pair,"fminp",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},2125527040,4290771968},
-    {aarch64_op_fminp_advsimd_vec,"fminp",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},782300160,3214998528},
-    {aarch64_op_fminv_advsimd,"fminv",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},783349760,3217030144},
-    {aarch64_op_fmla_advsimd_elt,"fmla",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},1602228224,4286641152},
-    {aarch64_op_fmla_advsimd_elt,"fmla",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},260050944,3212899328},
-    {aarch64_op_fmla_advsimd_vec,"fmla",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237030400,3214998528},
-    {aarch64_op_fmls_advsimd_elt,"fmls",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},1602244608,4286641152},
-    {aarch64_op_fmls_advsimd_elt,"fmls",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},260067328,3212899328},
-    {aarch64_op_fmls_advsimd_vec,"fmls",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},245419008,3214998528},
-    {aarch64_op_fmov_advsimd,"fmov",{fn(setSIMDMode),fn(OPRQ),fn(OPRop),fn(OPRa),fn(OPRb),fn(OPRc),fn(OPRd),fn(OPRe),fn(OPRf),fn(OPRg),fn(OPRh),fn(OPRRd),NULL},251720704,2683894784},
-    {aarch64_op_fmov_float,"fmov",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},505430016,4290771968},
-    {aarch64_op_fmov_float_gen,"fmov",{fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRrmode),fn(OPRopcode),fn(OPRRn),fn(OPRRd),NULL},505806848,2134309888},
-    {aarch64_op_fmov_float_imm,"fmov",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRimm<20,13>),fn(OPRRd),NULL},505417728,4288684000},
-    {aarch64_op_fmsub_float,"fmsub",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd),NULL},520126464,4288708608},
-    {aarch64_op_fmul_advsimd_elt,"fmul",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},1602260992,4286641152},
-    {aarch64_op_fmul_advsimd_elt,"fmul",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},260083712,3212899328},
-    {aarch64_op_fmul_advsimd_vec,"fmul",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773905408,3214998528},
-    {aarch64_op_fmul_float,"fmul",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},505415680,4288740352},
-    {aarch64_op_fmulx_advsimd_elt,"fmulx",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},2139131904,4286641152},
-    {aarch64_op_fmulx_advsimd_elt,"fmulx",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},796954624,3212899328},
-    {aarch64_op_fmulx_advsimd_vec,"fmulx",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1579211776,4288740352},
-    {aarch64_op_fmulx_advsimd_vec,"fmulx",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237034496,3214998528},
-    {aarch64_op_fneg_advsimd,"fneg",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},782301184,3217030144},
-    {aarch64_op_fneg_float,"fneg",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},505495552,4290771968},
-    {aarch64_op_fnmadd_float,"fnmadd",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd),NULL},522190848,4288708608},
-    {aarch64_op_fnmsub_float,"fnmsub",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd),NULL},522223616,4288708608},
-    {aarch64_op_fnmul_float,"fnmul",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},505448448,4288740352},
-    {aarch64_op_frecpe_advsimd,"frecpe",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},1587664896,4290771968},
-    {aarch64_op_frecpe_advsimd,"frecpe",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},245487616,3217030144},
-    {aarch64_op_frecps_advsimd,"frecps",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1579219968,4288740352},
-    {aarch64_op_frecps_advsimd,"frecps",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237042688,3214998528},
-    {aarch64_op_frecpx_advsimd,"frecpx",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},1587673088,4290771968},
-    {aarch64_op_frinta_advsimd,"frinta",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},773949440,3217030144},
-    {aarch64_op_frinta_float,"frinta",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},505823232,4290771968},
-    {aarch64_op_frinti_advsimd,"frinti",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},782342144,3217030144},
-    {aarch64_op_frinti_float,"frinti",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},505921536,4290771968},
-    {aarch64_op_frintm_advsimd,"frintm",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},237082624,3217030144},
-    {aarch64_op_frintm_float,"frintm",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},505757696,4290771968},
-    {aarch64_op_frintn_advsimd,"frintn",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},237078528,3217030144},
-    {aarch64_op_frintn_float,"frintn",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},505692160,4290771968},
-    {aarch64_op_frintp_advsimd,"frintp",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},245467136,3217030144},
-    {aarch64_op_frintp_float,"frintp",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},505724928,4290771968},
-    {aarch64_op_frintx_advsimd,"frintx",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},773953536,3217030144},
-    {aarch64_op_frintx_float,"frintx",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},505888768,4290771968},
-    {aarch64_op_frintz_advsimd,"frintz",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},245471232,3217030144},
-    {aarch64_op_frintz_float,"frintz",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},505790464,4290771968},
-    {aarch64_op_frsqrte_advsimd,"frsqrte",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},2124535808,4290771968},
-    {aarch64_op_frsqrte_advsimd,"frsqrte",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},782358528,3217030144},
-    {aarch64_op_frsqrts_advsimd,"frsqrts",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1587608576,4288740352},
-    {aarch64_op_frsqrts_advsimd,"frsqrts",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},245431296,3214998528},
-    {aarch64_op_fsqrt_advsimd,"fsqrt",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},782366720,3217030144},
-    {aarch64_op_fsqrt_float,"fsqrt",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},505528320,4290771968},
-    {aarch64_op_fsub_advsimd,"fsub",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},245421056,3214998528},
-    {aarch64_op_fsub_float,"fsub",{fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},505427968,4288740352},
-    {aarch64_op_hint,"hint",{fn(OPRCRm),fn(OPRop2),NULL},3573751839,4294963231},
-    {aarch64_op_hlt,"hlt",{fn(OPRimm<20,5>),NULL},3560964096,4292870175},
-    {aarch64_op_hvc,"hvc",{fn(OPRimm<20,5>),NULL},3556769794,4292870175},
-    {aarch64_op_ic_sys,"ic",{fn(OPRop1),fn(OPRCRm),fn(OPRop2),fn(OPRRt),NULL},3574099968,4294504448},
-    {aarch64_op_ins_advsimd_elt,"ins",{fn(setSIMDMode),fn(OPRimm<20,16>),fn(OPRimm<14,11>),fn(OPRRn),fn(OPRRd),NULL},1845494784,4292903936},
-    {aarch64_op_ins_advsimd_gen,"ins",{fn(setSIMDMode),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd),NULL},1308630016,4292934656},
-    {aarch64_op_isb,"isb",{fn(OPRCRm),NULL},3573756127,4294963455},
-    {aarch64_op_ld1_advsimd_mult,"ld1",{fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},205529088,3221168128},
-    {aarch64_op_ld1_advsimd_mult,"ld1",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},213917696,3219136512},
-    {aarch64_op_ld1_advsimd_sngl,"ld1",{fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},222298112,3221168128},
-    {aarch64_op_ld1_advsimd_sngl,"ld1",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},230686720,3219136512},
-    {aarch64_op_ld1r_advsimd,"ld1r",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},222347264,3221221376},
-    {aarch64_op_ld1r_advsimd,"ld1r",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},230735872,3219189760},
-    {aarch64_op_ld2_advsimd_mult,"ld2",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},205553664,3221221376},
-    {aarch64_op_ld2_advsimd_mult,"ld2",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},213942272,3219189760},
-    {aarch64_op_ld2_advsimd_sngl,"ld2",{fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},224395264,3221168128},
-    {aarch64_op_ld2_advsimd_sngl,"ld2",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},232783872,3219136512},
-    {aarch64_op_ld2r_advsimd,"ld2r",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},224444416,3221221376},
-    {aarch64_op_ld2r_advsimd,"ld2r",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},232833024,3219189760},
-    {aarch64_op_ld3_advsimd_mult,"ld3",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},205537280,3221221376},
-    {aarch64_op_ld3_advsimd_mult,"ld3",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},213925888,3219189760},
-    {aarch64_op_ld3_advsimd_sngl,"ld3",{fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},222306304,3221168128},
-    {aarch64_op_ld3_advsimd_sngl,"ld3",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},230694912,3219136512},
-    {aarch64_op_ld3r_advsimd,"ld3r",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},222355456,3221221376},
-    {aarch64_op_ld3r_advsimd,"ld3r",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},230744064,3219189760},
-    {aarch64_op_ld4_advsimd_mult,"ld4",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},205520896,3221221376},
-    {aarch64_op_ld4_advsimd_mult,"ld4",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},213909504,3219189760},
-    {aarch64_op_ld4_advsimd_sngl,"ld4",{fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},224403456,3221168128},
-    {aarch64_op_ld4_advsimd_sngl,"ld4",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},232792064,3219136512},
-    {aarch64_op_ld4r_advsimd,"ld4r",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},224452608,3221221376},
-    {aarch64_op_ld4r_advsimd,"ld4r",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL),NULL},232841216,3219189760},
-    {aarch64_op_ldar,"ldar",{fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRnL),fn(OPRRtL),NULL},2296380416,3221224448},
-    {aarch64_op_ldarb,"ldarb",{fn(setRegWidth),fn(OPRRnL),fn(OPRRtL),NULL},148896768,4294966272},
-    {aarch64_op_ldarh,"ldarh",{fn(setRegWidth),fn(OPRRnL),fn(OPRRtL),NULL},1222638592,4294966272},
-    {aarch64_op_ldaxp,"ldaxp",{fn(setRegWidth),fn(OPRsz<30,30>),fn(OPRRt2L),fn(OPRRnL),fn(OPRRtL),NULL},2290057216,3221192704},
-    {aarch64_op_ldaxr,"ldaxr",{fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRnL),fn(OPRRtL),NULL},2287991808,3221224448},
-    {aarch64_op_ldaxrb,"ldaxrb",{fn(setRegWidth),fn(OPRRnL),fn(OPRRtL),NULL},140508160,4294966272},
-    {aarch64_op_ldaxrh,"ldaxrh",{fn(setRegWidth),fn(OPRRnL),fn(OPRRtL),NULL},1214249984,4294966272},
-    {aarch64_op_ldnp_fpsimd,"ldnp",{fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnL),fn(OPRRtL),NULL},742391808,1069547520},
-    {aarch64_op_ldnp_gen,"ldnp",{fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnL),fn(OPRRtL),NULL},675282944,2143289344},
-    {aarch64_op_ldp_fpsimd,"ldp",{fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnLU),fn(OPRRtL),NULL},750780416,1069547520},
-    {aarch64_op_ldp_fpsimd,"ldp",{fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnLU),fn(OPRRtL),NULL},767557632,1069547520},
-    {aarch64_op_ldp_fpsimd,"ldp",{fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnL),fn(OPRRtL),NULL},759169024,1069547520},
-    {aarch64_op_ldp_gen,"ldp",{fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnLU),fn(OPRRtL),NULL},683671552,2143289344},
-    {aarch64_op_ldp_gen,"ldp",{fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnLU),fn(OPRRtL),NULL},700448768,2143289344},
-    {aarch64_op_ldp_gen,"ldp",{fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnL),fn(OPRRtL),NULL},692060160,2143289344},
-    {aarch64_op_ldpsw,"ldpsw",{fn(setRegWidth),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnLU),fn(OPRRtL),NULL},1757413376,4290772992},
-    {aarch64_op_ldpsw,"ldpsw",{fn(setRegWidth),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnLU),fn(OPRRtL),NULL},1774190592,4290772992},
-    {aarch64_op_ldpsw,"ldpsw",{fn(setRegWidth),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnL),fn(OPRRtL),NULL},1765801984,4290772992},
-    {aarch64_op_ldr_imm_fpsimd,"ldr",{fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL),NULL},1010828288,1063259136},
-    {aarch64_op_ldr_imm_fpsimd,"ldr",{fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL),NULL},1010830336,1063259136},
-    {aarch64_op_ldr_imm_fpsimd,"ldr",{fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRtL),NULL},1027604480,1061158912},
-    {aarch64_op_ldr_imm_gen,"ldr",{fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL),NULL},3091203072,3219131392},
-    {aarch64_op_ldr_imm_gen,"ldr",{fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL),NULL},3091205120,3219131392},
-    {aarch64_op_ldr_imm_gen,"ldr",{fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRtL),NULL},3107979264,3217031168},
-    {aarch64_op_ldr_lit_fpsimd,"ldr",{fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<23,5>),fn(OPRRtL),NULL},469762048,1056964608},
-    {aarch64_op_ldr_lit_gen,"ldr",{fn(setRegWidth),fn(OPRopc),fn(OPRimm<23,5>),fn(OPRRtL),NULL},402653184,3204448256},
-    {aarch64_op_ldr_reg_fpsimd,"ldr",{fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRtL),NULL},1012926464,1063259136},
-    {aarch64_op_ldr_reg_gen,"ldr",{fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRtL),NULL},3093301248,3219131392},
-    {aarch64_op_ldrb_imm,"ldrb",{fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL),NULL},943719424,4292873216},
-    {aarch64_op_ldrb_imm,"ldrb",{fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL),NULL},943721472,4292873216},
-    {aarch64_op_ldrb_imm,"ldrb",{fn(setRegWidth),fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRtL),NULL},960495616,4290772992},
-    {aarch64_op_ldrb_reg,"ldrb",{fn(setRegWidth),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRtL),NULL},945817600,4292873216},
-    {aarch64_op_ldrh_imm,"ldrh",{fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL),NULL},2017461248,4292873216},
-    {aarch64_op_ldrh_imm,"ldrh",{fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL),NULL},2017463296,4292873216},
-    {aarch64_op_ldrh_imm,"ldrh",{fn(setRegWidth),fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRtL),NULL},2034237440,4290772992},
-    {aarch64_op_ldrh_reg,"ldrh",{fn(setRegWidth),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRtL),NULL},2019559424,4292873216},
-    {aarch64_op_ldrsb_imm,"ldrsb",{fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL),NULL},947913728,4288678912},
-    {aarch64_op_ldrsb_imm,"ldrsb",{fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL),NULL},947915776,4288678912},
-    {aarch64_op_ldrsb_imm,"ldrsb",{fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRtL),NULL},964689920,4286578688},
-    {aarch64_op_ldrsb_reg,"ldrsb",{fn(setRegWidth),fn(OPRopc),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRtL),NULL},950011904,4288678912},
-    {aarch64_op_ldrsh_imm,"ldrsh",{fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL),NULL},2021655552,4288678912},
-    {aarch64_op_ldrsh_imm,"ldrsh",{fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL),NULL},2021657600,4288678912},
-    {aarch64_op_ldrsh_imm,"ldrsh",{fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRtL),NULL},2038431744,4286578688},
-    {aarch64_op_ldrsh_reg,"ldrsh",{fn(setRegWidth),fn(OPRopc),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRtL),NULL},2023753728,4288678912},
-    {aarch64_op_ldrsw_imm,"ldrsw",{fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL),NULL},3095397376,4292873216},
-    {aarch64_op_ldrsw_imm,"ldrsw",{fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL),NULL},3095399424,4292873216},
-    {aarch64_op_ldrsw_imm,"ldrsw",{fn(setRegWidth),fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRtL),NULL},3112173568,4290772992},
-    {aarch64_op_ldrsw_lit,"ldrsw",{fn(setRegWidth),fn(OPRimm<23,5>),fn(OPRRtL),NULL},2550136832,4278190080},
-    {aarch64_op_ldrsw_reg,"ldrsw",{fn(setRegWidth),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRtL),NULL},3097495552,4292873216},
-    {aarch64_op_ldtr,"ldtr",{fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL),NULL},3091204096,3219131392},
-    {aarch64_op_ldtrb,"ldtrb",{fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL),NULL},943720448,4292873216},
-    {aarch64_op_ldtrh,"ldtrh",{fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL),NULL},2017462272,4292873216},
-    {aarch64_op_ldtrsb,"ldtrsb",{fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL),NULL},947914752,4288678912},
-    {aarch64_op_ldtrsh,"ldtrsh",{fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL),NULL},2021656576,4288678912},
-    {aarch64_op_ldtrsw,"ldtrsw",{fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL),NULL},3095398400,4292873216},
-    {aarch64_op_ldur_fpsimd,"ldur",{fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL),NULL},1010827264,1063259136},
-    {aarch64_op_ldur_gen,"ldur",{fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL),NULL},3091202048,3219131392},
-    {aarch64_op_ldurb,"ldurb",{fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL),NULL},943718400,4292873216},
-    {aarch64_op_ldurh,"ldurh",{fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL),NULL},2017460224,4292873216},
-    {aarch64_op_ldursb,"ldursb",{fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL),NULL},947912704,4288678912},
-    {aarch64_op_ldursh,"ldursh",{fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL),NULL},2021654528,4288678912},
-    {aarch64_op_ldursw,"ldursw",{fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL),NULL},3095396352,4292873216},
-    {aarch64_op_ldxp,"ldxp",{fn(setRegWidth),fn(OPRsz<30,30>),fn(OPRRt2L),fn(OPRRnL),fn(OPRRtL),NULL},2290024448,3221192704},
-    {aarch64_op_ldxr,"ldxr",{fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRnL),fn(OPRRtL),NULL},2287959040,3221224448},
-    {aarch64_op_ldxrb,"ldxrb",{fn(setRegWidth),fn(OPRRnL),fn(OPRRtL),NULL},140475392,4294966272},
-    {aarch64_op_ldxrh,"ldxrh",{fn(setRegWidth),fn(OPRRnL),fn(OPRRtL),NULL},1214217216,4294966272},
-    {aarch64_op_lsl_lslv,"lsl",{fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},448798720,2145451008},
-    {aarch64_op_lsl_ubfm,"lsl",{fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},1392508928,2139095040},
-    {aarch64_op_lslv,"lslv",{fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},448798720,2145451008},
-    {aarch64_op_lsr_lsrv,"lsr",{fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},448799744,2145451008},
-    {aarch64_op_lsr_ubfm,"lsr",{fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},1392540672,2139126784},
-    {aarch64_op_lsrv,"lsrv",{fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},448799744,2145451008},
-    {aarch64_op_madd,"madd",{fn(OPRsf),fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd),NULL},452984832,2145419264},
-    {aarch64_op_mla_advsimd_elt,"mla",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},788529152,3204510720},
-    {aarch64_op_mla_advsimd_vec,"mla",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237016064,3206609920},
-    {aarch64_op_mls_advsimd_elt,"mls",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},788545536,3204510720},
-    {aarch64_op_mls_advsimd_vec,"mls",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773886976,3206609920},
-    {aarch64_op_mneg_msub,"mneg",{fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},453049344,2145451008},
-    {aarch64_op_mov_add_addsub_imm,"mov",{fn(OPRsf),fn(OPRRn),fn(OPRRd),NULL},285212672,2147482624},
-    {aarch64_op_mov_dup_advsimd_elt,"mov",{fn(setSIMDMode),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd),NULL},1577059328,4292934656},
-    {aarch64_op_mov_ins_advsimd_elt,"mov",{fn(setSIMDMode),fn(OPRimm<20,16>),fn(OPRimm<14,11>),fn(OPRRn),fn(OPRRd),NULL},1845494784,4292903936},
-    {aarch64_op_mov_ins_advsimd_gen,"mov",{fn(setSIMDMode),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd),NULL},1308630016,4292934656},
-    {aarch64_op_mov_movn,"mov",{fn(OPRsf),fn(OPRhw),fn(OPRimm<20,5>),fn(OPRRd),NULL},310378496,2139095040},
-    {aarch64_op_mov_movz,"mov",{fn(OPRsf),fn(OPRhw),fn(OPRimm<20,5>),fn(OPRRd),NULL},1384120320,2139095040},
-    {aarch64_op_mov_orr_advsimd_reg,"mov",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},245373952,3219192832},
-    {aarch64_op_mov_orr_log_imm,"mov",{fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRd),NULL},838861792,2139096032},
-    {aarch64_op_mov_orr_log_shift,"mov",{fn(OPRsf),fn(OPRRm),fn(OPRRd),NULL},704644064,2145452000},
-    {aarch64_op_mov_umov_advsimd,"mov",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd),NULL},234896384,3219192832},
-    {aarch64_op_movi_advsimd,"movi",{fn(setSIMDMode),fn(OPRQ),fn(OPRop),fn(OPRa),fn(OPRb),fn(OPRc),fn(OPRcmode),fn(OPRd),fn(OPRe),fn(OPRf),fn(OPRg),fn(OPRh),fn(OPRRd),NULL},251659264,2683833344},
-    {aarch64_op_movk,"movk",{fn(OPRsf),fn(OPRhw),fn(OPRimm<20,5>),fn(OPRRd),NULL},1920991232,2139095040},
-    {aarch64_op_movn,"movn",{fn(OPRsf),fn(OPRhw),fn(OPRimm<20,5>),fn(OPRRd),NULL},310378496,2139095040},
-    {aarch64_op_movz,"movz",{fn(OPRsf),fn(OPRhw),fn(OPRimm<20,5>),fn(OPRRd),NULL},1384120320,2139095040},
-    {aarch64_op_mrs,"mrs",{fn(OPRo0),fn(OPRop1),fn(OPRCRn),fn(OPRCRm),fn(OPRop2),fn(OPRRt),NULL},3576692736,4293918720},
-    {aarch64_op_msr_imm,"msr",{fn(OPRop1),fn(OPRCRm),fn(OPRop2),NULL},3573563423,4294504479},
-    {aarch64_op_msr_reg,"msr",{fn(OPRo0),fn(OPRop1),fn(OPRCRn),fn(OPRCRm),fn(OPRop2),fn(OPRRt),NULL},3574595584,4293918720},
-    {aarch64_op_msub,"msub",{fn(OPRsf),fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd),NULL},453017600,2145419264},
-    {aarch64_op_mul_advsimd_elt,"mul",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},251691008,3204510720},
-    {aarch64_op_mul_advsimd_vec,"mul",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237018112,3206609920},
-    {aarch64_op_mul_madd,"mul",{fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},453016576,2145451008},
-    {aarch64_op_mvn_not_advsimd,"mvn",{fn(setSIMDMode),fn(OPRQ),fn(OPRRn),fn(OPRRd),NULL},773871616,3221224448},
-    {aarch64_op_mvn_orn_log_shift,"mvn",{fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRd),NULL},706741216,2132804576},
-    {aarch64_op_mvni_advsimd,"mvni",{fn(setSIMDMode),fn(OPRQ),fn(OPRa),fn(OPRb),fn(OPRc),fn(OPRcmode),fn(OPRd),fn(OPRe),fn(OPRf),fn(OPRg),fn(OPRh),fn(OPRRd),NULL},788530176,3220704256},
-    {aarch64_op_neg_advsimd,"neg",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},2116073472,4282383360},
-    {aarch64_op_neg_advsimd,"neg",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},773896192,3208641536},
-    {aarch64_op_neg_sub_addsub_shift,"neg",{fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRd),NULL},1258292192,2132804576},
-    {aarch64_op_negs_subs_addsub_shift,"negs",{fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRd),NULL},1795163104,2132804576},
-    {aarch64_op_ngc_sbc,"ngc",{fn(OPRsf),fn(OPRRm),fn(OPRRd),NULL},1509950432,2145452000},
-    {aarch64_op_ngcs_sbcs,"ngcs",{fn(setFlags),fn(OPRsf),fn(OPRRm),fn(OPRRd),NULL},2046821344,2145452000},
-    {aarch64_op_nop_hint,"nop",{NULL},3573751839,4294967295},
-    {aarch64_op_not_advsimd,"not",{fn(setSIMDMode),fn(OPRQ),fn(OPRRn),fn(OPRRd),NULL},773871616,3221224448},
-    {aarch64_op_orn_advsimd,"orn",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},249568256,3219192832},
-    {aarch64_op_orn_log_shift,"orn",{fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},706740224,2132803584},
-    {aarch64_op_orr_advsimd_imm,"orr",{fn(setSIMDMode),fn(OPRQ),fn(OPRa),fn(OPRb),fn(OPRc),fn(OPRcmode),fn(OPRd),fn(OPRe),fn(OPRf),fn(OPRg),fn(OPRh),fn(OPRRd),NULL},251663360,3220708352},
-    {aarch64_op_orr_advsimd_reg,"orr",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},245373952,3219192832},
-    {aarch64_op_orr_log_imm,"orr",{fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},838860800,2139095040},
-    {aarch64_op_orr_log_shift,"orr",{fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},704643072,2132803584},
-    {aarch64_op_pmul_advsimd,"pmul",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773889024,3206609920},
-    {aarch64_op_pmull_advsimd,"pmull",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237035520,3206609920},
-    {aarch64_op_prfm_imm,"prfm",{fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRt),NULL},4185915392,4290772992},
-    {aarch64_op_prfm_lit,"prfm",{fn(OPRimm<23,5>),fn(OPRRt),NULL},3623878656,4278190080},
-    {aarch64_op_prfm_reg,"prfm",{fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRt),NULL},4171237376,4292873216},
-    {aarch64_op_prfum,"prfum",{fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRt),NULL},4169138176,4292873216},
-    {aarch64_op_raddhn_advsimd,"raddhn",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773865472,3206609920},
-    {aarch64_op_rbit_advsimd,"rbit",{fn(setSIMDMode),fn(OPRQ),fn(OPRRn),fn(OPRRd),NULL},778065920,3221224448},
-    {aarch64_op_rbit_int,"rbit",{fn(OPRsf),fn(OPRRn),fn(OPRRd),NULL},1522532352,2147482624},
-    {aarch64_op_ret,"ret",{fn(OPRRn),NULL},3596550144,4294966303},
-    {aarch64_op_rev,"rev",{fn(OPRsf),fn(OPRopc),fn(OPRRn),fn(OPRRd),NULL},1522534400,2147481600},
-    {aarch64_op_rev16_advsimd,"rev16",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},236984320,3208641536},
-    {aarch64_op_rev16_int,"rev16",{fn(OPRsf),fn(OPRRn),fn(OPRRd),NULL},1522533376,2147482624},
-    {aarch64_op_rev32_advsimd,"rev32",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},773851136,3208641536},
-    {aarch64_op_rev32_int,"rev32",{fn(OPRRn),fn(OPRRd),NULL},3670018048,4294966272},
-    {aarch64_op_rev64_advsimd,"rev64",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},236980224,3208641536},
-    {aarch64_op_ror_extr,"ror",{fn(OPRsf),fn(OPRN<22,22>),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},327155712,2141192192},
-    {aarch64_op_ror_rorv,"ror",{fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},448801792,2145451008},
-    {aarch64_op_rorv,"rorv",{fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},448801792,2145451008},
-    {aarch64_op_rshrn_advsimd,"rshrn",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},251694080,3212901376},
-    {aarch64_op_rsubhn_advsimd,"rsubhn",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773873664,3206609920},
-    {aarch64_op_saba_advsimd,"saba",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237009920,3206609920},
-    {aarch64_op_sabal_advsimd,"sabal",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},236998656,3206609920},
-    {aarch64_op_sabd_advsimd,"sabd",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237007872,3206609920},
-    {aarch64_op_sabdl_advsimd,"sabdl",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237006848,3206609920},
-    {aarch64_op_sadalp_advsimd,"sadalp",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},237004800,3208641536},
-    {aarch64_op_saddl_advsimd,"saddl",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},236978176,3206609920},
-    {aarch64_op_saddlp_advsimd,"saddlp",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},236988416,3208641536},
-    {aarch64_op_saddlv_advsimd,"saddlv",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},238041088,3208641536},
-    {aarch64_op_saddw_advsimd,"saddw",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},236982272,3206609920},
-    {aarch64_op_sbc,"sbc",{fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1509949440,2145451008},
-    {aarch64_op_sbcs,"sbcs",{fn(setFlags),fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2046820352,2145451008},
-    {aarch64_op_sbfiz_sbfm,"sbfiz",{fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},318767104,2139095040},
-    {aarch64_op_sbfm,"sbfm",{fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},318767104,2139095040},
-    {aarch64_op_sbfx_sbfm,"sbfx",{fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},318767104,2139095040},
-    {aarch64_op_scvtf_advsimd_fix,"scvtf",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},1593893888,4286643200},
-    {aarch64_op_scvtf_advsimd_fix,"scvtf",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},251716608,3212901376},
-    {aarch64_op_scvtf_advsimd_int,"scvtf",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},1579276288,4290771968},
-    {aarch64_op_scvtf_advsimd_int,"scvtf",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},237099008,3217030144},
-    {aarch64_op_scvtf_float_fix,"scvtf",{fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRscale),fn(OPRRn),fn(OPRRd),NULL},503447552,2143223808},
-    {aarch64_op_scvtf_float_int,"scvtf",{fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},505544704,2143288320},
-    {aarch64_op_sdiv,"sdiv",{fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},448793600,2145451008},
-    {aarch64_op_sev_hint,"sev",{NULL},3573751967,4294967295},
-    {aarch64_op_sevl_hint,"sevl",{NULL},3573751999,4294967295},
-    {aarch64_op_sha1c_advsimd,"sha1c",{fn(setSIMDMode),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1577058304,4292934656},
-    {aarch64_op_sha1h_advsimd,"sha1h",{fn(setSIMDMode),fn(OPRRn),fn(OPRRd),NULL},1579681792,4294966272},
-    {aarch64_op_sha1m_advsimd,"sha1m",{fn(setSIMDMode),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1577066496,4292934656},
-    {aarch64_op_sha1p_advsimd,"sha1p",{fn(setSIMDMode),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1577062400,4292934656},
-    {aarch64_op_sha1su0_advsimd,"sha1su0",{fn(setSIMDMode),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1577070592,4292934656},
-    {aarch64_op_sha1su1_advsimd,"sha1su1",{fn(setSIMDMode),fn(OPRRn),fn(OPRRd),NULL},1579685888,4294966272},
-    {aarch64_op_sha256h2_advsimd,"sha256h2",{fn(setSIMDMode),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1577078784,4292934656},
-    {aarch64_op_sha256h_advsimd,"sha256h",{fn(setSIMDMode),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1577074688,4292934656},
-    {aarch64_op_sha256su0_advsimd,"sha256su0",{fn(setSIMDMode),fn(OPRRn),fn(OPRRd),NULL},1579689984,4294966272},
-    {aarch64_op_sha256su1_advsimd,"sha256su1",{fn(setSIMDMode),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1577082880,4292934656},
-    {aarch64_op_shadd_advsimd,"shadd",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},236979200,3206609920},
-    {aarch64_op_shl_advsimd,"shl",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},1593857024,4286643200},
-    {aarch64_op_shl_advsimd,"shl",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},251679744,3212901376},
-    {aarch64_op_shll_advsimd,"shll",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},773928960,3208641536},
-    {aarch64_op_shrn_advsimd,"shrn",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},251692032,3212901376},
-    {aarch64_op_shsub_advsimd,"shsub",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},236987392,3206609920},
-    {aarch64_op_sli_advsimd,"sli",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},2130727936,4286643200},
-    {aarch64_op_sli_advsimd,"sli",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},788550656,3212901376},
-    {aarch64_op_smaddl,"smaddl",{fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd),NULL},2602565632,4292902912},
-    {aarch64_op_smax_advsimd,"smax",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237003776,3206609920},
-    {aarch64_op_smaxp_advsimd,"smaxp",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237020160,3206609920},
-    {aarch64_op_smaxv_advsimd,"smaxv",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},238069760,3208641536},
-    {aarch64_op_smc,"smc",{fn(OPRimm<20,5>),NULL},3556769795,4292870175},
-    {aarch64_op_smin_advsimd,"smin",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237005824,3206609920},
-    {aarch64_op_sminp_advsimd,"sminp",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237022208,3206609920},
-    {aarch64_op_sminv_advsimd,"sminv",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},238135296,3208641536},
-    {aarch64_op_smlal_advsimd_elt,"smlal",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},251666432,3204510720},
-    {aarch64_op_smlal_advsimd_vec,"smlal",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237010944,3206609920},
-    {aarch64_op_smlsl_advsimd_elt,"smlsl",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},251682816,3204510720},
-    {aarch64_op_smlsl_advsimd_vec,"smlsl",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237019136,3206609920},
-    {aarch64_op_smnegl_smsubl,"smnegl",{fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2602630144,4292934656},
-    {aarch64_op_smov_advsimd,"smov",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd),NULL},234892288,3219192832},
-    {aarch64_op_smsubl,"smsubl",{fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd),NULL},2602598400,4292902912},
-    {aarch64_op_smulh,"smulh",{fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2604694528,4292934656},
-    {aarch64_op_smull_advsimd_elt,"smull",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},251699200,3204510720},
-    {aarch64_op_smull_advsimd_vec,"smull",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237027328,3206609920},
-    {aarch64_op_smull_smaddl,"smull",{fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2602597376,4292934656},
-    {aarch64_op_sqabs_advsimd,"sqabs",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},1579186176,4282383360},
-    {aarch64_op_sqabs_advsimd,"sqabs",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},237008896,3208641536},
-    {aarch64_op_sqadd_advsimd,"sqadd",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1579158528,4280351744},
-    {aarch64_op_sqadd_advsimd,"sqadd",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},236981248,3206609920},
-    {aarch64_op_sqdmlal_advsimd_elt,"sqdmlal",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},1593847808,4278252544},
-    {aarch64_op_sqdmlal_advsimd_elt,"sqdmlal",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},251670528,3204510720},
-    {aarch64_op_sqdmlal_advsimd_vec,"sqdmlal",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1579192320,4280351744},
-    {aarch64_op_sqdmlal_advsimd_vec,"sqdmlal",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237015040,3206609920},
-    {aarch64_op_sqdmlsl_advsimd_elt,"sqdmlsl",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},1593864192,4278252544},
-    {aarch64_op_sqdmlsl_advsimd_elt,"sqdmlsl",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},251686912,3204510720},
-    {aarch64_op_sqdmlsl_advsimd_vec,"sqdmlsl",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1579200512,4280351744},
-    {aarch64_op_sqdmlsl_advsimd_vec,"sqdmlsl",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237023232,3206609920},
-    {aarch64_op_sqdmulh_advsimd_elt,"sqdmulh",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},1593884672,4278252544},
-    {aarch64_op_sqdmulh_advsimd_elt,"sqdmulh",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},251707392,3204510720},
-    {aarch64_op_sqdmulh_advsimd_vec,"sqdmulh",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1579201536,4280351744},
-    {aarch64_op_sqdmulh_advsimd_vec,"sqdmulh",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237024256,3206609920},
-    {aarch64_op_sqdmull_advsimd_elt,"sqdmull",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},1593880576,4278252544},
-    {aarch64_op_sqdmull_advsimd_elt,"sqdmull",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},251703296,3204510720},
-    {aarch64_op_sqdmull_advsimd_vec,"sqdmull",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1579208704,4280351744},
-    {aarch64_op_sqdmull_advsimd_vec,"sqdmull",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237031424,3206609920},
-    {aarch64_op_sqneg_advsimd,"sqneg",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},2116057088,4282383360},
-    {aarch64_op_sqneg_advsimd,"sqneg",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},773879808,3208641536},
-    {aarch64_op_sqrdmulh_advsimd_elt,"sqrdmulh",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},1593888768,4278252544},
-    {aarch64_op_sqrdmulh_advsimd_elt,"sqrdmulh",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},251711488,3204510720},
-    {aarch64_op_sqrdmulh_advsimd_vec,"sqrdmulh",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2116072448,4280351744},
-    {aarch64_op_sqrdmulh_advsimd_vec,"sqrdmulh",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773895168,3206609920},
-    {aarch64_op_sqrshl_advsimd,"sqrshl",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1579179008,4280351744},
-    {aarch64_op_sqrshl_advsimd,"sqrshl",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237001728,3206609920},
-    {aarch64_op_sqrshrn_advsimd,"sqrshrn",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},1593875456,4286643200},
-    {aarch64_op_sqrshrn_advsimd,"sqrshrn",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},251698176,3212901376},
-    {aarch64_op_sqrshrun_advsimd,"sqrshrun",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},2130742272,4286643200},
-    {aarch64_op_sqrshrun_advsimd,"sqrshrun",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},788564992,3212901376},
-    {aarch64_op_sqshl_advsimd_imm,"sqshl",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},1593865216,4286643200},
-    {aarch64_op_sqshl_advsimd_imm,"sqshl",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},251687936,3212901376},
-    {aarch64_op_sqshl_advsimd_reg,"sqshl",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1579174912,4280351744},
-    {aarch64_op_sqshl_advsimd_reg,"sqshl",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},236997632,3206609920},
-    {aarch64_op_sqshlu_advsimd,"sqshlu",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},2130732032,4286643200},
-    {aarch64_op_sqshlu_advsimd,"sqshlu",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},788554752,3212901376},
-    {aarch64_op_sqshrn_advsimd,"sqshrn",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},1593873408,4286643200},
-    {aarch64_op_sqshrn_advsimd,"sqshrn",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},251696128,3212901376},
-    {aarch64_op_sqshrun_advsimd,"sqshrun",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},2130740224,4286643200},
-    {aarch64_op_sqshrun_advsimd,"sqshrun",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},788562944,3212901376},
-    {aarch64_op_sqsub_advsimd,"sqsub",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1579166720,4280351744},
-    {aarch64_op_sqsub_advsimd,"sqsub",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},236989440,3206609920},
-    {aarch64_op_sqxtn_advsimd,"sqxtn",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},1579239424,4282383360},
-    {aarch64_op_sqxtn_advsimd,"sqxtn",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},237062144,3208641536},
-    {aarch64_op_sqxtun_advsimd,"sqxtun",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},2116102144,4282383360},
-    {aarch64_op_sqxtun_advsimd,"sqxtun",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},773924864,3208641536},
-    {aarch64_op_srhadd_advsimd,"srhadd",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},236983296,3206609920},
-    {aarch64_op_sri_advsimd,"sri",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},2130723840,4286643200},
-    {aarch64_op_sri_advsimd,"sri",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},788546560,3212901376},
-    {aarch64_op_srshl_advsimd,"srshl",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1579176960,4280351744},
-    {aarch64_op_srshl_advsimd,"srshl",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},236999680,3206609920},
-    {aarch64_op_srshr_advsimd,"srshr",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},1593844736,4286643200},
-    {aarch64_op_srshr_advsimd,"srshr",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},251667456,3212901376},
-    {aarch64_op_srsra_advsimd,"srsra",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},1593848832,4286643200},
-    {aarch64_op_srsra_advsimd,"srsra",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},251671552,3212901376},
-    {aarch64_op_sshl_advsimd,"sshl",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},1579172864,4280351744},
-    {aarch64_op_sshl_advsimd,"sshl",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},236995584,3206609920},
-    {aarch64_op_sshll_advsimd,"sshll",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},251700224,3212901376},
-    {aarch64_op_sshr_advsimd,"sshr",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},1593836544,4286643200},
-    {aarch64_op_sshr_advsimd,"sshr",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},251659264,3212901376},
-    {aarch64_op_ssra_advsimd,"ssra",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},1593840640,4286643200},
-    {aarch64_op_ssra_advsimd,"ssra",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},251663360,3212901376},
-    {aarch64_op_ssubl_advsimd,"ssubl",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},236986368,3206609920},
-    {aarch64_op_ssubw_advsimd,"ssubw",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},236990464,3206609920},
-    {aarch64_op_st1_advsimd_mult,"st1",{fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS),NULL},201334784,3221168128},
-    {aarch64_op_st1_advsimd_mult,"st1",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS),NULL},209723392,3219136512},
-    {aarch64_op_st1_advsimd_sngl,"st1",{fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS),NULL},218103808,3221168128},
-    {aarch64_op_st1_advsimd_sngl,"st1",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS),NULL},226492416,3219136512},
-    {aarch64_op_st2_advsimd_mult,"st2",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS),NULL},201359360,3221221376},
-    {aarch64_op_st2_advsimd_mult,"st2",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS),NULL},209747968,3219189760},
-    {aarch64_op_st2_advsimd_sngl,"st2",{fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS),NULL},220200960,3221168128},
-    {aarch64_op_st2_advsimd_sngl,"st2",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS),NULL},228589568,3219136512},
-    {aarch64_op_st3_advsimd_mult,"st3",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS),NULL},201342976,3221221376},
-    {aarch64_op_st3_advsimd_mult,"st3",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS),NULL},209731584,3219189760},
-    {aarch64_op_st3_advsimd_sngl,"st3",{fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS),NULL},218112000,3221168128},
-    {aarch64_op_st3_advsimd_sngl,"st3",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS),NULL},226500608,3219136512},
-    {aarch64_op_st4_advsimd_mult,"st4",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS),NULL},201326592,3221221376},
-    {aarch64_op_st4_advsimd_mult,"st4",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS),NULL},209715200,3219189760},
-    {aarch64_op_st4_advsimd_sngl,"st4",{fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS),NULL},220209152,3221168128},
-    {aarch64_op_st4_advsimd_sngl,"st4",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS),NULL},228597760,3219136512},
-    {aarch64_op_stlr,"stlr",{fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRnS),fn(OPRRtS),NULL},2292186112,3221224448},
-    {aarch64_op_stlrb,"stlrb",{fn(setRegWidth),fn(OPRRnS),fn(OPRRtS),NULL},144702464,4294966272},
-    {aarch64_op_stlrh,"stlrh",{fn(setRegWidth),fn(OPRRnS),fn(OPRRtS),NULL},1218444288,4294966272},
-    {aarch64_op_stlxp,"stlxp",{fn(setRegWidth),fn(OPRsz<30,30>),fn(OPRRs),fn(OPRRt2S),fn(OPRRnS),fn(OPRRtS),NULL},2283831296,3219161088},
-    {aarch64_op_stlxr,"stlxr",{fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRs),fn(OPRRnS),fn(OPRRtS),NULL},2281765888,3219192832},
-    {aarch64_op_stlxrb,"stlxrb",{fn(setRegWidth),fn(OPRRs),fn(OPRRnS),fn(OPRRtS),NULL},134282240,4292934656},
-    {aarch64_op_stlxrh,"stlxrh",{fn(setRegWidth),fn(OPRRs),fn(OPRRnS),fn(OPRRtS),NULL},1208024064,4292934656},
-    {aarch64_op_stnp_fpsimd,"stnp",{fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnS),fn(OPRRtS),NULL},738197504,1069547520},
-    {aarch64_op_stnp_gen,"stnp",{fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnS),fn(OPRRtS),NULL},671088640,2143289344},
-    {aarch64_op_stp_fpsimd,"stp",{fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnSU),fn(OPRRtS),NULL},746586112,1069547520},
-    {aarch64_op_stp_fpsimd,"stp",{fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnSU),fn(OPRRtS),NULL},763363328,1069547520},
-    {aarch64_op_stp_fpsimd,"stp",{fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnS),fn(OPRRtS),NULL},754974720,1069547520},
-    {aarch64_op_stp_gen,"stp",{fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnSU),fn(OPRRtS),NULL},679477248,2143289344},
-    {aarch64_op_stp_gen,"stp",{fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnSU),fn(OPRRtS),NULL},696254464,2143289344},
-    {aarch64_op_stp_gen,"stp",{fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnS),fn(OPRRtS),NULL},687865856,2143289344},
-    {aarch64_op_str_imm_fpsimd,"str",{fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS),NULL},1006633984,1063259136},
-    {aarch64_op_str_imm_fpsimd,"str",{fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS),NULL},1006636032,1063259136},
-    {aarch64_op_str_imm_fpsimd,"str",{fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<21,10>),fn(OPRRnS),fn(OPRRtS),NULL},1023410176,1061158912},
-    {aarch64_op_str_imm_gen,"str",{fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS),NULL},3087008768,3219131392},
-    {aarch64_op_str_imm_gen,"str",{fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS),NULL},3087010816,3219131392},
-    {aarch64_op_str_imm_gen,"str",{fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<21,10>),fn(OPRRnS),fn(OPRRtS),NULL},3103784960,3217031168},
-    {aarch64_op_str_reg_fpsimd,"str",{fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnS),fn(OPRRtS),NULL},1008732160,1063259136},
-    {aarch64_op_str_reg_gen,"str",{fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnS),fn(OPRRtS),NULL},3089106944,3219131392},
-    {aarch64_op_strb_imm,"strb",{fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS),NULL},939525120,4292873216},
-    {aarch64_op_strb_imm,"strb",{fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS),NULL},939527168,4292873216},
-    {aarch64_op_strb_imm,"strb",{fn(setRegWidth),fn(OPRimm<21,10>),fn(OPRRnS),fn(OPRRtS),NULL},956301312,4290772992},
-    {aarch64_op_strb_reg,"strb",{fn(setRegWidth),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnS),fn(OPRRtS),NULL},941623296,4292873216},
-    {aarch64_op_strh_imm,"strh",{fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS),NULL},2013266944,4292873216},
-    {aarch64_op_strh_imm,"strh",{fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS),NULL},2013268992,4292873216},
-    {aarch64_op_strh_imm,"strh",{fn(setRegWidth),fn(OPRimm<21,10>),fn(OPRRnS),fn(OPRRtS),NULL},2030043136,4290772992},
-    {aarch64_op_strh_reg,"strh",{fn(setRegWidth),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnS),fn(OPRRtS),NULL},2015365120,4292873216},
-    {aarch64_op_sttr,"sttr",{fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnS),fn(OPRRtS),NULL},3087009792,3219131392},
-    {aarch64_op_sttrb,"sttrb",{fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnS),fn(OPRRtS),NULL},939526144,4292873216},
-    {aarch64_op_sttrh,"sttrh",{fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnS),fn(OPRRtS),NULL},2013267968,4292873216},
-    {aarch64_op_stur_fpsimd,"stur",{fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnS),fn(OPRRtS),NULL},1006632960,1063259136},
-    {aarch64_op_stur_gen,"stur",{fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnS),fn(OPRRtS),NULL},3087007744,3219131392},
-    {aarch64_op_sturb,"sturb",{fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnS),fn(OPRRtS),NULL},939524096,4292873216},
-    {aarch64_op_sturh,"sturh",{fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnS),fn(OPRRtS),NULL},2013265920,4292873216},
-    {aarch64_op_stxp,"stxp",{fn(setRegWidth),fn(OPRsz<30,30>),fn(OPRRs),fn(OPRRt2S),fn(OPRRnS),fn(OPRRtS),NULL},2283798528,3219161088},
-    {aarch64_op_stxr,"stxr",{fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRs),fn(OPRRnS),fn(OPRRtS),NULL},2281733120,3219192832},
-    {aarch64_op_stxrb,"stxrb",{fn(setRegWidth),fn(OPRRs),fn(OPRRnS),fn(OPRRtS),NULL},134249472,4292934656},
-    {aarch64_op_stxrh,"stxrh",{fn(setRegWidth),fn(OPRRs),fn(OPRRnS),fn(OPRRtS),NULL},1207991296,4292934656},
-    {aarch64_op_sub_addsub_ext,"sub",{fn(OPRsf),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRimm<12,10>),fn(OPRRn),fn(OPRRd),NULL},1260388352,2145386496},
-    {aarch64_op_sub_addsub_imm,"sub",{fn(OPRsf),fn(OPRshift),fn(OPRimm<21,10>),fn(OPRRn),fn(OPRRd),NULL},1358954496,2130706432},
-    {aarch64_op_sub_addsub_shift,"sub",{fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},1258291200,2132803584},
-    {aarch64_op_sub_advsimd,"sub",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2116060160,4280351744},
-    {aarch64_op_sub_advsimd,"sub",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773882880,3206609920},
-    {aarch64_op_subhn_advsimd,"subhn",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},237002752,3206609920},
-    {aarch64_op_subs_addsub_ext,"subs",{fn(setFlags),fn(OPRsf),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRimm<12,10>),fn(OPRRn),fn(OPRRd),NULL},1797259264,2145386496},
-    {aarch64_op_subs_addsub_imm,"subs",{fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRimm<21,10>),fn(OPRRn),fn(OPRRd),NULL},1895825408,2130706432},
-    {aarch64_op_subs_addsub_shift,"subs",{fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},1795162112,2132803584},
-    {aarch64_op_suqadd_advsimd,"suqadd",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},1579169792,4282383360},
-    {aarch64_op_suqadd_advsimd,"suqadd",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},236992512,3208641536},
-    {aarch64_op_svc,"svc",{fn(OPRimm<20,5>),NULL},3556769793,4292870175},
-    {aarch64_op_sxtb_sbfm,"sxtb",{fn(OPRsf),fn(OPRN<22,22>),fn(OPRRn),fn(OPRRd),NULL},318774272,2143288320},
-    {aarch64_op_sxth_sbfm,"sxth",{fn(OPRsf),fn(OPRN<22,22>),fn(OPRRn),fn(OPRRd),NULL},318782464,2143288320},
-    {aarch64_op_sxtl_sshll_advsimd,"sxtl",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRRn),fn(OPRRd),NULL},251700224,3213360128},
-    {aarch64_op_sxtw_sbfm,"sxtw",{fn(OPRRn),fn(OPRRd),NULL},2470476800,4294966272},
-    {aarch64_op_sys,"sys",{fn(OPRop1),fn(OPRCRn),fn(OPRCRm),fn(OPRop2),fn(OPRRt),NULL},3574071296,4294443008},
-    {aarch64_op_sysl,"sysl",{fn(OPRop1),fn(OPRCRn),fn(OPRCRm),fn(OPRop2),fn(OPRRt),NULL},3576168448,4294443008},
-    {aarch64_op_tbl_advsimd,"tbl",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRlen),fn(OPRRn),fn(OPRRd),NULL},234881024,3219168256},
-    {aarch64_op_tbnz,"tbnz",{fn(OPRb5),fn(OPRb40),fn(OPRimm<18,5>),fn(OPRRt),NULL},922746880,2130706432},
-    {aarch64_op_tbx_advsimd,"tbx",{fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRlen),fn(OPRRn),fn(OPRRd),NULL},234885120,3219168256},
-    {aarch64_op_tbz,"tbz",{fn(OPRb5),fn(OPRb40),fn(OPRimm<18,5>),fn(OPRRt),NULL},905969664,2130706432},
-    {aarch64_op_tlbi_sys,"tlbi",{fn(OPRop1),fn(OPRCRm),fn(OPRop2),fn(OPRRt),NULL},3574104064,4294504448},
-    {aarch64_op_trn1_advsimd,"trn1",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},234891264,3206609920},
-    {aarch64_op_trn2_advsimd,"trn2",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},234907648,3206609920},
-    {aarch64_op_tst_ands_log_imm,"tst",{fn(setFlags),fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),NULL},1912602655,2139095071},
-    {aarch64_op_tst_ands_log_shift,"tst",{fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),NULL},1778384927,2132803615},
-    {aarch64_op_uaba_advsimd,"uaba",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773880832,3206609920},
-    {aarch64_op_uabal_advsimd,"uabal",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773869568,3206609920},
-    {aarch64_op_uabd_advsimd,"uabd",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773878784,3206609920},
-    {aarch64_op_uabdl_advsimd,"uabdl",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773877760,3206609920},
-    {aarch64_op_uadalp_advsimd,"uadalp",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},773875712,3208641536},
-    {aarch64_op_uaddl_advsimd,"uaddl",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773849088,3206609920},
-    {aarch64_op_uaddlp_advsimd,"uaddlp",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},773859328,3208641536},
-    {aarch64_op_uaddlv_advsimd,"uaddlv",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},774912000,3208641536},
-    {aarch64_op_uaddw_advsimd,"uaddw",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773853184,3206609920},
-    {aarch64_op_ubfiz_ubfm,"ubfiz",{fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},1392508928,2139095040},
-    {aarch64_op_ubfm,"ubfm",{fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},1392508928,2139095040},
-    {aarch64_op_ubfx_ubfm,"ubfx",{fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd),NULL},1392508928,2139095040},
-    {aarch64_op_ucvtf_advsimd_fix,"ucvtf",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},2130764800,4286643200},
-    {aarch64_op_ucvtf_advsimd_fix,"ucvtf",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},788587520,3212901376},
-    {aarch64_op_ucvtf_advsimd_int,"ucvtf",{fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},2116147200,4290771968},
-    {aarch64_op_ucvtf_advsimd_int,"ucvtf",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},773969920,3217030144},
-    {aarch64_op_ucvtf_float_fix,"ucvtf",{fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRscale),fn(OPRRn),fn(OPRRd),NULL},503513088,2143223808},
-    {aarch64_op_ucvtf_float_int,"ucvtf",{fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd),NULL},505610240,2143288320},
-    {aarch64_op_udiv,"udiv",{fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},448792576,2145451008},
-    {aarch64_op_uhadd_advsimd,"uhadd",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773850112,3206609920},
-    {aarch64_op_uhsub_advsimd,"uhsub",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773858304,3206609920},
-    {aarch64_op_umaddl,"umaddl",{fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd),NULL},2610954240,4292902912},
-    {aarch64_op_umax_advsimd,"umax",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773874688,3206609920},
-    {aarch64_op_umaxp_advsimd,"umaxp",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773891072,3206609920},
-    {aarch64_op_umaxv_advsimd,"umaxv",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},774940672,3208641536},
-    {aarch64_op_umin_advsimd,"umin",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773876736,3206609920},
-    {aarch64_op_uminp_advsimd,"uminp",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773893120,3206609920},
-    {aarch64_op_uminv_advsimd,"uminv",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},775006208,3208641536},
-    {aarch64_op_umlal_advsimd_elt,"umlal",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},788537344,3204510720},
-    {aarch64_op_umlal_advsimd_vec,"umlal",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773881856,3206609920},
-    {aarch64_op_umlsl_advsimd_elt,"umlsl",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},788553728,3204510720},
-    {aarch64_op_umlsl_advsimd_vec,"umlsl",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773890048,3206609920},
-    {aarch64_op_umnegl_umsubl,"umnegl",{fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2611018752,4292934656},
-    {aarch64_op_umov_advsimd,"umov",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd),NULL},234896384,3219192832},
-    {aarch64_op_umsubl,"umsubl",{fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd),NULL},2610987008,4292902912},
-    {aarch64_op_umulh,"umulh",{fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2613083136,4292934656},
-    {aarch64_op_umull_advsimd_elt,"umull",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd),NULL},788570112,3204510720},
-    {aarch64_op_umull_advsimd_vec,"umull",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773898240,3206609920},
-    {aarch64_op_umull_umaddl,"umull",{fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2610985984,4292934656},
-    {aarch64_op_uqadd_advsimd,"uqadd",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2116029440,4280351744},
-    {aarch64_op_uqadd_advsimd,"uqadd",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773852160,3206609920},
-    {aarch64_op_uqrshl_advsimd,"uqrshl",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2116049920,4280351744},
-    {aarch64_op_uqrshl_advsimd,"uqrshl",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773872640,3206609920},
-    {aarch64_op_uqrshrn_advsimd,"uqrshrn",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},2130746368,4286643200},
-    {aarch64_op_uqrshrn_advsimd,"uqrshrn",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},788569088,3212901376},
-    {aarch64_op_uqshl_advsimd_imm,"uqshl",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},2130736128,4286643200},
-    {aarch64_op_uqshl_advsimd_imm,"uqshl",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},788558848,3212901376},
-    {aarch64_op_uqshl_advsimd_reg,"uqshl",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2116045824,4280351744},
-    {aarch64_op_uqshl_advsimd_reg,"uqshl",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773868544,3206609920},
-    {aarch64_op_uqshrn_advsimd,"uqshrn",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},2130744320,4286643200},
-    {aarch64_op_uqshrn_advsimd,"uqshrn",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},788567040,3212901376},
-    {aarch64_op_uqsub_advsimd,"uqsub",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2116037632,4280351744},
-    {aarch64_op_uqsub_advsimd,"uqsub",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773860352,3206609920},
-    {aarch64_op_uqxtn_advsimd,"uqxtn",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},2116110336,4282383360},
-    {aarch64_op_uqxtn_advsimd,"uqxtn",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},773933056,3208641536},
-    {aarch64_op_urecpe_advsimd,"urecpe",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},245483520,3217030144},
-    {aarch64_op_urhadd_advsimd,"urhadd",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773854208,3206609920},
-    {aarch64_op_urshl_advsimd,"urshl",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2116047872,4280351744},
-    {aarch64_op_urshl_advsimd,"urshl",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773870592,3206609920},
-    {aarch64_op_urshr_advsimd,"urshr",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},2130715648,4286643200},
-    {aarch64_op_urshr_advsimd,"urshr",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},788538368,3212901376},
-    {aarch64_op_ursqrte_advsimd,"ursqrte",{fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd),NULL},782354432,3217030144},
-    {aarch64_op_ursra_advsimd,"ursra",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},2130719744,4286643200},
-    {aarch64_op_ursra_advsimd,"ursra",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},788542464,3212901376},
-    {aarch64_op_ushl_advsimd,"ushl",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},2116043776,4280351744},
-    {aarch64_op_ushl_advsimd,"ushl",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773866496,3206609920},
-    {aarch64_op_ushll_advsimd,"ushll",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},788571136,3212901376},
-    {aarch64_op_ushr_advsimd,"ushr",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},2130707456,4286643200},
-    {aarch64_op_ushr_advsimd,"ushr",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},788530176,3212901376},
-    {aarch64_op_usqadd_advsimd,"usqadd",{fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},2116040704,4282383360},
-    {aarch64_op_usqadd_advsimd,"usqadd",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},773863424,3208641536},
-    {aarch64_op_usra_advsimd,"usra",{fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},2130711552,4286643200},
-    {aarch64_op_usra_advsimd,"usra",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd),NULL},788534272,3212901376},
-    {aarch64_op_usubl_advsimd,"usubl",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773857280,3206609920},
-    {aarch64_op_usubw_advsimd,"usubw",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},773861376,3206609920},
-    {aarch64_op_uxtb_ubfm,"uxtb",{fn(OPRRn),fn(OPRRd),NULL},1392516096,4294966272},
-    {aarch64_op_uxth_ubfm,"uxth",{fn(OPRRn),fn(OPRRd),NULL},1392524288,4294966272},
-    {aarch64_op_uxtl_ushll_advsimd,"uxtl",{fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRRn),fn(OPRRd),NULL},788571136,3213360128},
-    {aarch64_op_uzp1_advsimd,"uzp1",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},234887168,3206609920},
-    {aarch64_op_uzp2_advsimd,"uzp2",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},234903552,3206609920},
-    {aarch64_op_wfe_hint,"wfe",{NULL},3573751903,4294967295},
-    {aarch64_op_wfi_hint,"wfi",{NULL},3573751935,4294967295},
-    {aarch64_op_xtn_advsimd,"xtn",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd),NULL},237053952,3208641536},
-    {aarch64_op_yield_hint,"yield",{NULL},3573751871,4294967295},
-    {aarch64_op_zip1_advsimd,"zip1",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},234895360,3206609920},
-    {aarch64_op_zip2_advsimd,"zip2",{fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd),NULL},234911744,3206609920},
+    {aarch64_op_INVALID,"INVALID",0,&operandTable[0]},
+    {aarch64_op_abs_advsimd,"abs",4,&operandTable[0]},
+    {aarch64_op_abs_advsimd,"abs",5,&operandTable[4]},
+    {aarch64_op_adc,"adc",4,&operandTable[9]},
+    {aarch64_op_adcs,"adcs",5,&operandTable[13]},
+    {aarch64_op_add_addsub_ext,"add",6,&operandTable[18]},
+    {aarch64_op_add_addsub_imm,"add",5,&operandTable[24]},
+    {aarch64_op_add_addsub_shift,"add",6,&operandTable[29]},
+    {aarch64_op_add_advsimd,"add",5,&operandTable[35]},
+    {aarch64_op_add_advsimd,"add",6,&operandTable[40]},
+    {aarch64_op_addhn_advsimd,"addhn",6,&operandTable[46]},
+    {aarch64_op_addp_advsimd_pair,"addp",4,&operandTable[52]},
+    {aarch64_op_addp_advsimd_vec,"addp",6,&operandTable[56]},
+    {aarch64_op_adds_addsub_ext,"adds",7,&operandTable[62]},
+    {aarch64_op_adds_addsub_imm,"adds",6,&operandTable[69]},
+    {aarch64_op_adds_addsub_shift,"adds",7,&operandTable[75]},
+    {aarch64_op_addv_advsimd,"addv",5,&operandTable[82]},
+    {aarch64_op_adr,"adr",3,&operandTable[87]},
+    {aarch64_op_adrp,"adrp",3,&operandTable[90]},
+    {aarch64_op_aesd_advsimd,"aesd",3,&operandTable[93]},
+    {aarch64_op_aese_advsimd,"aese",3,&operandTable[96]},
+    {aarch64_op_aesimc_advsimd,"aesimc",3,&operandTable[99]},
+    {aarch64_op_aesmc_advsimd,"aesmc",3,&operandTable[102]},
+    {aarch64_op_and_advsimd,"and",5,&operandTable[105]},
+    {aarch64_op_and_log_imm,"and",6,&operandTable[110]},
+    {aarch64_op_and_log_shift,"and",6,&operandTable[116]},
+    {aarch64_op_ands_log_imm,"ands",7,&operandTable[122]},
+    {aarch64_op_ands_log_shift,"ands",7,&operandTable[129]},
+    {aarch64_op_asr_asrv,"asr",4,&operandTable[136]},
+    {aarch64_op_asr_sbfm,"asr",6,&operandTable[140]},
+    {aarch64_op_asrv,"asrv",4,&operandTable[146]},
+    {aarch64_op_at_sys,"at",3,&operandTable[150]},
+    {aarch64_op_b_cond,"b",2,&operandTable[153]},
+    {aarch64_op_b_uncond,"b",1,&operandTable[155]},
+    {aarch64_op_bfi_bfm,"bfi",6,&operandTable[156]},
+    {aarch64_op_bfm,"bfm",6,&operandTable[162]},
+    {aarch64_op_bfxil_bfm,"bfxil",6,&operandTable[168]},
+    {aarch64_op_bic_advsimd_imm,"bic",12,&operandTable[174]},
+    {aarch64_op_bic_advsimd_reg,"bic",5,&operandTable[186]},
+    {aarch64_op_bic_log_shift,"bic",6,&operandTable[191]},
+    {aarch64_op_bics,"bics",7,&operandTable[197]},
+    {aarch64_op_bif_advsimd,"bif",5,&operandTable[204]},
+    {aarch64_op_bit_advsimd,"bit",5,&operandTable[209]},
+    {aarch64_op_bl,"bl",1,&operandTable[214]},
+    {aarch64_op_blr,"blr",1,&operandTable[215]},
+    {aarch64_op_br,"br",1,&operandTable[216]},
+    {aarch64_op_brk,"brk",1,&operandTable[217]},
+    {aarch64_op_bsl_advsimd,"bsl",5,&operandTable[218]},
+    {aarch64_op_cbnz,"cbnz",3,&operandTable[223]},
+    {aarch64_op_cbz,"cbz",3,&operandTable[226]},
+    {aarch64_op_ccmn_imm,"ccmn",5,&operandTable[229]},
+    {aarch64_op_ccmn_reg,"ccmn",5,&operandTable[234]},
+    {aarch64_op_ccmp_imm,"ccmp",5,&operandTable[239]},
+    {aarch64_op_ccmp_reg,"ccmp",5,&operandTable[244]},
+    {aarch64_op_cinc_csinc,"cinc",4,&operandTable[249]},
+    {aarch64_op_cinv_csinv,"cinv",4,&operandTable[253]},
+    {aarch64_op_clrex,"clrex",1,&operandTable[257]},
+    {aarch64_op_cls_advsimd,"cls",5,&operandTable[258]},
+    {aarch64_op_cls_int,"cls",3,&operandTable[263]},
+    {aarch64_op_clz_advsimd,"clz",5,&operandTable[266]},
+    {aarch64_op_clz_int,"clz",3,&operandTable[271]},
+    {aarch64_op_cmeq_advsimd_reg,"cmeq",5,&operandTable[274]},
+    {aarch64_op_cmeq_advsimd_reg,"cmeq",6,&operandTable[279]},
+    {aarch64_op_cmeq_advsimd_zero,"cmeq",4,&operandTable[285]},
+    {aarch64_op_cmeq_advsimd_zero,"cmeq",5,&operandTable[289]},
+    {aarch64_op_cmge_advsimd_reg,"cmge",5,&operandTable[294]},
+    {aarch64_op_cmge_advsimd_reg,"cmge",6,&operandTable[299]},
+    {aarch64_op_cmge_advsimd_zero,"cmge",4,&operandTable[305]},
+    {aarch64_op_cmge_advsimd_zero,"cmge",5,&operandTable[309]},
+    {aarch64_op_cmgt_advsimd_reg,"cmgt",5,&operandTable[314]},
+    {aarch64_op_cmgt_advsimd_reg,"cmgt",6,&operandTable[319]},
+    {aarch64_op_cmgt_advsimd_zero,"cmgt",4,&operandTable[325]},
+    {aarch64_op_cmgt_advsimd_zero,"cmgt",5,&operandTable[329]},
+    {aarch64_op_cmhi_advsimd,"cmhi",5,&operandTable[334]},
+    {aarch64_op_cmhi_advsimd,"cmhi",6,&operandTable[339]},
+    {aarch64_op_cmhs_advsimd,"cmhs",5,&operandTable[345]},
+    {aarch64_op_cmhs_advsimd,"cmhs",6,&operandTable[350]},
+    {aarch64_op_cmle_advsimd,"cmle",4,&operandTable[356]},
+    {aarch64_op_cmle_advsimd,"cmle",5,&operandTable[360]},
+    {aarch64_op_cmlt_advsimd,"cmlt",4,&operandTable[365]},
+    {aarch64_op_cmlt_advsimd,"cmlt",5,&operandTable[369]},
+    {aarch64_op_cmn_adds_addsub_ext,"cmn",6,&operandTable[374]},
+    {aarch64_op_cmn_adds_addsub_imm,"cmn",5,&operandTable[380]},
+    {aarch64_op_cmn_adds_addsub_shift,"cmn",6,&operandTable[385]},
+    {aarch64_op_cmp_subs_addsub_ext,"cmp",6,&operandTable[391]},
+    {aarch64_op_cmp_subs_addsub_imm,"cmp",5,&operandTable[397]},
+    {aarch64_op_cmp_subs_addsub_shift,"cmp",6,&operandTable[402]},
+    {aarch64_op_cmtst_advsimd,"cmtst",5,&operandTable[408]},
+    {aarch64_op_cmtst_advsimd,"cmtst",6,&operandTable[413]},
+    {aarch64_op_cneg_csneg,"cneg",4,&operandTable[419]},
+    {aarch64_op_cnt_advsimd,"cnt",5,&operandTable[423]},
+    {aarch64_op_crc32,"crc32",5,&operandTable[428]},
+    {aarch64_op_crc32c,"crc32c",5,&operandTable[433]},
+    {aarch64_op_csel,"csel",5,&operandTable[438]},
+    {aarch64_op_cset_csinc,"cset",3,&operandTable[443]},
+    {aarch64_op_csetm_csinv,"csetm",3,&operandTable[446]},
+    {aarch64_op_csinc,"csinc",5,&operandTable[449]},
+    {aarch64_op_csinv,"csinv",5,&operandTable[454]},
+    {aarch64_op_csneg,"csneg",5,&operandTable[459]},
+    {aarch64_op_dc_sys,"dc",4,&operandTable[464]},
+    {aarch64_op_dcps1,"dcps1",1,&operandTable[468]},
+    {aarch64_op_dcps2,"dcps2",1,&operandTable[469]},
+    {aarch64_op_dcps3,"dcps3",1,&operandTable[470]},
+    {aarch64_op_dmb,"dmb",1,&operandTable[471]},
+    {aarch64_op_drps,"drps",0,&operandTable[472]},
+    {aarch64_op_dsb,"dsb",1,&operandTable[472]},
+    {aarch64_op_dup_advsimd_elt,"dup",4,&operandTable[473]},
+    {aarch64_op_dup_advsimd_elt,"dup",5,&operandTable[477]},
+    {aarch64_op_dup_advsimd_gen,"dup",5,&operandTable[482]},
+    {aarch64_op_eon,"eon",6,&operandTable[487]},
+    {aarch64_op_eor_advsimd,"eor",5,&operandTable[493]},
+    {aarch64_op_eor_log_imm,"eor",6,&operandTable[498]},
+    {aarch64_op_eor_log_shift,"eor",6,&operandTable[504]},
+    {aarch64_op_eret,"eret",0,&operandTable[510]},
+    {aarch64_op_ext_advsimd,"ext",6,&operandTable[510]},
+    {aarch64_op_extr,"extr",6,&operandTable[516]},
+    {aarch64_op_fabd_advsimd,"fabd",5,&operandTable[522]},
+    {aarch64_op_fabd_advsimd,"fabd",6,&operandTable[527]},
+    {aarch64_op_fabs_advsimd,"fabs",5,&operandTable[533]},
+    {aarch64_op_fabs_float,"fabs",4,&operandTable[538]},
+    {aarch64_op_facge_advsimd,"facge",5,&operandTable[542]},
+    {aarch64_op_facge_advsimd,"facge",6,&operandTable[547]},
+    {aarch64_op_facgt_advsimd,"facgt",5,&operandTable[553]},
+    {aarch64_op_facgt_advsimd,"facgt",6,&operandTable[558]},
+    {aarch64_op_fadd_advsimd,"fadd",6,&operandTable[564]},
+    {aarch64_op_fadd_float,"fadd",5,&operandTable[570]},
+    {aarch64_op_faddp_advsimd_pair,"faddp",4,&operandTable[575]},
+    {aarch64_op_faddp_advsimd_vec,"faddp",6,&operandTable[579]},
+    {aarch64_op_fccmp_float,"fccmp",7,&operandTable[585]},
+    {aarch64_op_fccmpe_float,"fccmpe",7,&operandTable[592]},
+    {aarch64_op_fcmeq_advsimd_reg,"fcmeq",5,&operandTable[599]},
+    {aarch64_op_fcmeq_advsimd_reg,"fcmeq",6,&operandTable[604]},
+    {aarch64_op_fcmeq_advsimd_zero,"fcmeq",4,&operandTable[610]},
+    {aarch64_op_fcmeq_advsimd_zero,"fcmeq",5,&operandTable[614]},
+    {aarch64_op_fcmge_advsimd_reg,"fcmge",5,&operandTable[619]},
+    {aarch64_op_fcmge_advsimd_reg,"fcmge",6,&operandTable[624]},
+    {aarch64_op_fcmge_advsimd_zero,"fcmge",4,&operandTable[630]},
+    {aarch64_op_fcmge_advsimd_zero,"fcmge",5,&operandTable[634]},
+    {aarch64_op_fcmgt_advsimd_reg,"fcmgt",5,&operandTable[639]},
+    {aarch64_op_fcmgt_advsimd_reg,"fcmgt",6,&operandTable[644]},
+    {aarch64_op_fcmgt_advsimd_zero,"fcmgt",4,&operandTable[650]},
+    {aarch64_op_fcmgt_advsimd_zero,"fcmgt",5,&operandTable[654]},
+    {aarch64_op_fcmle_advsimd,"fcmle",4,&operandTable[659]},
+    {aarch64_op_fcmle_advsimd,"fcmle",5,&operandTable[663]},
+    {aarch64_op_fcmlt_advsimd,"fcmlt",4,&operandTable[668]},
+    {aarch64_op_fcmlt_advsimd,"fcmlt",5,&operandTable[672]},
+    {aarch64_op_fcmp_float,"fcmp",6,&operandTable[677]},
+    {aarch64_op_fcmpe_float,"fcmpe",6,&operandTable[683]},
+    {aarch64_op_fcsel_float,"fcsel",6,&operandTable[689]},
+    {aarch64_op_fcvt_float,"fcvt",5,&operandTable[695]},
+    {aarch64_op_fcvtas_advsimd,"fcvtas",4,&operandTable[700]},
+    {aarch64_op_fcvtas_advsimd,"fcvtas",5,&operandTable[704]},
+    {aarch64_op_fcvtas_float,"fcvtas",5,&operandTable[709]},
+    {aarch64_op_fcvtau_advsimd,"fcvtau",4,&operandTable[714]},
+    {aarch64_op_fcvtau_advsimd,"fcvtau",5,&operandTable[718]},
+    {aarch64_op_fcvtau_float,"fcvtau",5,&operandTable[723]},
+    {aarch64_op_fcvtl_advsimd,"fcvtl",5,&operandTable[728]},
+    {aarch64_op_fcvtms_advsimd,"fcvtms",4,&operandTable[733]},
+    {aarch64_op_fcvtms_advsimd,"fcvtms",5,&operandTable[737]},
+    {aarch64_op_fcvtms_float,"fcvtms",5,&operandTable[742]},
+    {aarch64_op_fcvtmu_advsimd,"fcvtmu",4,&operandTable[747]},
+    {aarch64_op_fcvtmu_advsimd,"fcvtmu",5,&operandTable[751]},
+    {aarch64_op_fcvtmu_float,"fcvtmu",5,&operandTable[756]},
+    {aarch64_op_fcvtn_advsimd,"fcvtn",5,&operandTable[761]},
+    {aarch64_op_fcvtns_advsimd,"fcvtns",4,&operandTable[766]},
+    {aarch64_op_fcvtns_advsimd,"fcvtns",5,&operandTable[770]},
+    {aarch64_op_fcvtns_float,"fcvtns",5,&operandTable[775]},
+    {aarch64_op_fcvtnu_advsimd,"fcvtnu",4,&operandTable[780]},
+    {aarch64_op_fcvtnu_advsimd,"fcvtnu",5,&operandTable[784]},
+    {aarch64_op_fcvtnu_float,"fcvtnu",5,&operandTable[789]},
+    {aarch64_op_fcvtps_advsimd,"fcvtps",4,&operandTable[794]},
+    {aarch64_op_fcvtps_advsimd,"fcvtps",5,&operandTable[798]},
+    {aarch64_op_fcvtps_float,"fcvtps",5,&operandTable[803]},
+    {aarch64_op_fcvtpu_advsimd,"fcvtpu",4,&operandTable[808]},
+    {aarch64_op_fcvtpu_advsimd,"fcvtpu",5,&operandTable[812]},
+    {aarch64_op_fcvtpu_float,"fcvtpu",5,&operandTable[817]},
+    {aarch64_op_fcvtxn_advsimd,"fcvtxn",4,&operandTable[822]},
+    {aarch64_op_fcvtxn_advsimd,"fcvtxn",5,&operandTable[826]},
+    {aarch64_op_fcvtzs_advsimd_fix,"fcvtzs",5,&operandTable[831]},
+    {aarch64_op_fcvtzs_advsimd_fix,"fcvtzs",6,&operandTable[836]},
+    {aarch64_op_fcvtzs_advsimd_int,"fcvtzs",4,&operandTable[842]},
+    {aarch64_op_fcvtzs_advsimd_int,"fcvtzs",5,&operandTable[846]},
+    {aarch64_op_fcvtzs_float_fix,"fcvtzs",6,&operandTable[851]},
+    {aarch64_op_fcvtzs_float_int,"fcvtzs",5,&operandTable[857]},
+    {aarch64_op_fcvtzu_advsimd_fix,"fcvtzu",5,&operandTable[862]},
+    {aarch64_op_fcvtzu_advsimd_fix,"fcvtzu",6,&operandTable[867]},
+    {aarch64_op_fcvtzu_advsimd_int,"fcvtzu",4,&operandTable[873]},
+    {aarch64_op_fcvtzu_advsimd_int,"fcvtzu",5,&operandTable[877]},
+    {aarch64_op_fcvtzu_float_fix,"fcvtzu",6,&operandTable[882]},
+    {aarch64_op_fcvtzu_float_int,"fcvtzu",5,&operandTable[888]},
+    {aarch64_op_fdiv_advsimd,"fdiv",6,&operandTable[893]},
+    {aarch64_op_fdiv_float,"fdiv",5,&operandTable[899]},
+    {aarch64_op_fmadd_float,"fmadd",6,&operandTable[904]},
+    {aarch64_op_fmax_advsimd,"fmax",6,&operandTable[910]},
+    {aarch64_op_fmax_float,"fmax",5,&operandTable[916]},
+    {aarch64_op_fmaxnm_advsimd,"fmaxnm",6,&operandTable[921]},
+    {aarch64_op_fmaxnm_float,"fmaxnm",5,&operandTable[927]},
+    {aarch64_op_fmaxnmp_advsimd_pair,"fmaxnmp",4,&operandTable[932]},
+    {aarch64_op_fmaxnmp_advsimd_vec,"fmaxnmp",6,&operandTable[936]},
+    {aarch64_op_fmaxnmv_advsimd,"fmaxnmv",5,&operandTable[942]},
+    {aarch64_op_fmaxp_advsimd_pair,"fmaxp",4,&operandTable[947]},
+    {aarch64_op_fmaxp_advsimd_vec,"fmaxp",6,&operandTable[951]},
+    {aarch64_op_fmaxv_advsimd,"fmaxv",5,&operandTable[957]},
+    {aarch64_op_fmin_advsimd,"fmin",6,&operandTable[962]},
+    {aarch64_op_fmin_float,"fmin",5,&operandTable[968]},
+    {aarch64_op_fminnm_advsimd,"fminnm",6,&operandTable[973]},
+    {aarch64_op_fminnm_float,"fminnm",5,&operandTable[979]},
+    {aarch64_op_fminnmp_advsimd_pair,"fminnmp",4,&operandTable[984]},
+    {aarch64_op_fminnmp_advsimd_vec,"fminnmp",6,&operandTable[988]},
+    {aarch64_op_fminnmv_advsimd,"fminnmv",5,&operandTable[994]},
+    {aarch64_op_fminp_advsimd_pair,"fminp",4,&operandTable[999]},
+    {aarch64_op_fminp_advsimd_vec,"fminp",6,&operandTable[1003]},
+    {aarch64_op_fminv_advsimd,"fminv",5,&operandTable[1009]},
+    {aarch64_op_fmla_advsimd_elt,"fmla",8,&operandTable[1014]},
+    {aarch64_op_fmla_advsimd_elt,"fmla",9,&operandTable[1022]},
+    {aarch64_op_fmla_advsimd_vec,"fmla",6,&operandTable[1031]},
+    {aarch64_op_fmls_advsimd_elt,"fmls",8,&operandTable[1037]},
+    {aarch64_op_fmls_advsimd_elt,"fmls",9,&operandTable[1045]},
+    {aarch64_op_fmls_advsimd_vec,"fmls",6,&operandTable[1054]},
+    {aarch64_op_fmov_advsimd,"fmov",12,&operandTable[1060]},
+    {aarch64_op_fmov_float,"fmov",4,&operandTable[1072]},
+    {aarch64_op_fmov_float_gen,"fmov",7,&operandTable[1076]},
+    {aarch64_op_fmov_float_imm,"fmov",4,&operandTable[1083]},
+    {aarch64_op_fmsub_float,"fmsub",6,&operandTable[1087]},
+    {aarch64_op_fmul_advsimd_elt,"fmul",8,&operandTable[1093]},
+    {aarch64_op_fmul_advsimd_elt,"fmul",9,&operandTable[1101]},
+    {aarch64_op_fmul_advsimd_vec,"fmul",6,&operandTable[1110]},
+    {aarch64_op_fmul_float,"fmul",5,&operandTable[1116]},
+    {aarch64_op_fmulx_advsimd_elt,"fmulx",8,&operandTable[1121]},
+    {aarch64_op_fmulx_advsimd_elt,"fmulx",9,&operandTable[1129]},
+    {aarch64_op_fmulx_advsimd_vec,"fmulx",5,&operandTable[1138]},
+    {aarch64_op_fmulx_advsimd_vec,"fmulx",6,&operandTable[1143]},
+    {aarch64_op_fneg_advsimd,"fneg",5,&operandTable[1149]},
+    {aarch64_op_fneg_float,"fneg",4,&operandTable[1154]},
+    {aarch64_op_fnmadd_float,"fnmadd",6,&operandTable[1158]},
+    {aarch64_op_fnmsub_float,"fnmsub",6,&operandTable[1164]},
+    {aarch64_op_fnmul_float,"fnmul",5,&operandTable[1170]},
+    {aarch64_op_frecpe_advsimd,"frecpe",4,&operandTable[1175]},
+    {aarch64_op_frecpe_advsimd,"frecpe",5,&operandTable[1179]},
+    {aarch64_op_frecps_advsimd,"frecps",5,&operandTable[1184]},
+    {aarch64_op_frecps_advsimd,"frecps",6,&operandTable[1189]},
+    {aarch64_op_frecpx_advsimd,"frecpx",4,&operandTable[1195]},
+    {aarch64_op_frinta_advsimd,"frinta",5,&operandTable[1199]},
+    {aarch64_op_frinta_float,"frinta",4,&operandTable[1204]},
+    {aarch64_op_frinti_advsimd,"frinti",5,&operandTable[1208]},
+    {aarch64_op_frinti_float,"frinti",4,&operandTable[1213]},
+    {aarch64_op_frintm_advsimd,"frintm",5,&operandTable[1217]},
+    {aarch64_op_frintm_float,"frintm",4,&operandTable[1222]},
+    {aarch64_op_frintn_advsimd,"frintn",5,&operandTable[1226]},
+    {aarch64_op_frintn_float,"frintn",4,&operandTable[1231]},
+    {aarch64_op_frintp_advsimd,"frintp",5,&operandTable[1235]},
+    {aarch64_op_frintp_float,"frintp",4,&operandTable[1240]},
+    {aarch64_op_frintx_advsimd,"frintx",5,&operandTable[1244]},
+    {aarch64_op_frintx_float,"frintx",4,&operandTable[1249]},
+    {aarch64_op_frintz_advsimd,"frintz",5,&operandTable[1253]},
+    {aarch64_op_frintz_float,"frintz",4,&operandTable[1258]},
+    {aarch64_op_frsqrte_advsimd,"frsqrte",4,&operandTable[1262]},
+    {aarch64_op_frsqrte_advsimd,"frsqrte",5,&operandTable[1266]},
+    {aarch64_op_frsqrts_advsimd,"frsqrts",5,&operandTable[1271]},
+    {aarch64_op_frsqrts_advsimd,"frsqrts",6,&operandTable[1276]},
+    {aarch64_op_fsqrt_advsimd,"fsqrt",5,&operandTable[1282]},
+    {aarch64_op_fsqrt_float,"fsqrt",4,&operandTable[1287]},
+    {aarch64_op_fsub_advsimd,"fsub",6,&operandTable[1291]},
+    {aarch64_op_fsub_float,"fsub",5,&operandTable[1297]},
+    {aarch64_op_hint,"hint",2,&operandTable[1302]},
+    {aarch64_op_hlt,"hlt",1,&operandTable[1304]},
+    {aarch64_op_hvc,"hvc",1,&operandTable[1305]},
+    {aarch64_op_ic_sys,"ic",4,&operandTable[1306]},
+    {aarch64_op_ins_advsimd_elt,"ins",5,&operandTable[1310]},
+    {aarch64_op_ins_advsimd_gen,"ins",4,&operandTable[1315]},
+    {aarch64_op_isb,"isb",1,&operandTable[1319]},
+    {aarch64_op_ld1_advsimd_mult,"ld1",6,&operandTable[1320]},
+    {aarch64_op_ld1_advsimd_mult,"ld1",7,&operandTable[1326]},
+    {aarch64_op_ld1_advsimd_sngl,"ld1",7,&operandTable[1333]},
+    {aarch64_op_ld1_advsimd_sngl,"ld1",8,&operandTable[1340]},
+    {aarch64_op_ld1r_advsimd,"ld1r",5,&operandTable[1348]},
+    {aarch64_op_ld1r_advsimd,"ld1r",6,&operandTable[1353]},
+    {aarch64_op_ld2_advsimd_mult,"ld2",5,&operandTable[1359]},
+    {aarch64_op_ld2_advsimd_mult,"ld2",6,&operandTable[1364]},
+    {aarch64_op_ld2_advsimd_sngl,"ld2",7,&operandTable[1370]},
+    {aarch64_op_ld2_advsimd_sngl,"ld2",8,&operandTable[1377]},
+    {aarch64_op_ld2r_advsimd,"ld2r",5,&operandTable[1385]},
+    {aarch64_op_ld2r_advsimd,"ld2r",6,&operandTable[1390]},
+    {aarch64_op_ld3_advsimd_mult,"ld3",5,&operandTable[1396]},
+    {aarch64_op_ld3_advsimd_mult,"ld3",6,&operandTable[1401]},
+    {aarch64_op_ld3_advsimd_sngl,"ld3",7,&operandTable[1407]},
+    {aarch64_op_ld3_advsimd_sngl,"ld3",8,&operandTable[1414]},
+    {aarch64_op_ld3r_advsimd,"ld3r",5,&operandTable[1422]},
+    {aarch64_op_ld3r_advsimd,"ld3r",6,&operandTable[1427]},
+    {aarch64_op_ld4_advsimd_mult,"ld4",5,&operandTable[1433]},
+    {aarch64_op_ld4_advsimd_mult,"ld4",6,&operandTable[1438]},
+    {aarch64_op_ld4_advsimd_sngl,"ld4",7,&operandTable[1444]},
+    {aarch64_op_ld4_advsimd_sngl,"ld4",8,&operandTable[1451]},
+    {aarch64_op_ld4r_advsimd,"ld4r",5,&operandTable[1459]},
+    {aarch64_op_ld4r_advsimd,"ld4r",6,&operandTable[1464]},
+    {aarch64_op_ldar,"ldar",4,&operandTable[1470]},
+    {aarch64_op_ldarb,"ldarb",3,&operandTable[1474]},
+    {aarch64_op_ldarh,"ldarh",3,&operandTable[1477]},
+    {aarch64_op_ldaxp,"ldaxp",5,&operandTable[1480]},
+    {aarch64_op_ldaxr,"ldaxr",4,&operandTable[1485]},
+    {aarch64_op_ldaxrb,"ldaxrb",3,&operandTable[1489]},
+    {aarch64_op_ldaxrh,"ldaxrh",3,&operandTable[1492]},
+    {aarch64_op_ldnp_fpsimd,"ldnp",7,&operandTable[1495]},
+    {aarch64_op_ldnp_gen,"ldnp",6,&operandTable[1502]},
+    {aarch64_op_ldp_fpsimd,"ldp",7,&operandTable[1508]},
+    {aarch64_op_ldp_fpsimd,"ldp",7,&operandTable[1515]},
+    {aarch64_op_ldp_fpsimd,"ldp",7,&operandTable[1522]},
+    {aarch64_op_ldp_gen,"ldp",6,&operandTable[1529]},
+    {aarch64_op_ldp_gen,"ldp",6,&operandTable[1535]},
+    {aarch64_op_ldp_gen,"ldp",6,&operandTable[1541]},
+    {aarch64_op_ldpsw,"ldpsw",5,&operandTable[1547]},
+    {aarch64_op_ldpsw,"ldpsw",5,&operandTable[1552]},
+    {aarch64_op_ldpsw,"ldpsw",5,&operandTable[1557]},
+    {aarch64_op_ldr_imm_fpsimd,"ldr",7,&operandTable[1562]},
+    {aarch64_op_ldr_imm_fpsimd,"ldr",7,&operandTable[1569]},
+    {aarch64_op_ldr_imm_fpsimd,"ldr",7,&operandTable[1576]},
+    {aarch64_op_ldr_imm_gen,"ldr",5,&operandTable[1583]},
+    {aarch64_op_ldr_imm_gen,"ldr",5,&operandTable[1588]},
+    {aarch64_op_ldr_imm_gen,"ldr",5,&operandTable[1593]},
+    {aarch64_op_ldr_lit_fpsimd,"ldr",5,&operandTable[1598]},
+    {aarch64_op_ldr_lit_gen,"ldr",4,&operandTable[1603]},
+    {aarch64_op_ldr_reg_fpsimd,"ldr",9,&operandTable[1607]},
+    {aarch64_op_ldr_reg_gen,"ldr",7,&operandTable[1616]},
+    {aarch64_op_ldrb_imm,"ldrb",4,&operandTable[1623]},
+    {aarch64_op_ldrb_imm,"ldrb",4,&operandTable[1627]},
+    {aarch64_op_ldrb_imm,"ldrb",4,&operandTable[1631]},
+    {aarch64_op_ldrb_reg,"ldrb",6,&operandTable[1635]},
+    {aarch64_op_ldrh_imm,"ldrh",4,&operandTable[1641]},
+    {aarch64_op_ldrh_imm,"ldrh",4,&operandTable[1645]},
+    {aarch64_op_ldrh_imm,"ldrh",4,&operandTable[1649]},
+    {aarch64_op_ldrh_reg,"ldrh",6,&operandTable[1653]},
+    {aarch64_op_ldrsb_imm,"ldrsb",5,&operandTable[1659]},
+    {aarch64_op_ldrsb_imm,"ldrsb",5,&operandTable[1664]},
+    {aarch64_op_ldrsb_imm,"ldrsb",5,&operandTable[1669]},
+    {aarch64_op_ldrsb_reg,"ldrsb",7,&operandTable[1674]},
+    {aarch64_op_ldrsh_imm,"ldrsh",5,&operandTable[1681]},
+    {aarch64_op_ldrsh_imm,"ldrsh",5,&operandTable[1686]},
+    {aarch64_op_ldrsh_imm,"ldrsh",5,&operandTable[1691]},
+    {aarch64_op_ldrsh_reg,"ldrsh",7,&operandTable[1696]},
+    {aarch64_op_ldrsw_imm,"ldrsw",4,&operandTable[1703]},
+    {aarch64_op_ldrsw_imm,"ldrsw",4,&operandTable[1707]},
+    {aarch64_op_ldrsw_imm,"ldrsw",4,&operandTable[1711]},
+    {aarch64_op_ldrsw_lit,"ldrsw",3,&operandTable[1715]},
+    {aarch64_op_ldrsw_reg,"ldrsw",6,&operandTable[1718]},
+    {aarch64_op_ldtr,"ldtr",5,&operandTable[1724]},
+    {aarch64_op_ldtrb,"ldtrb",4,&operandTable[1729]},
+    {aarch64_op_ldtrh,"ldtrh",4,&operandTable[1733]},
+    {aarch64_op_ldtrsb,"ldtrsb",5,&operandTable[1737]},
+    {aarch64_op_ldtrsh,"ldtrsh",5,&operandTable[1742]},
+    {aarch64_op_ldtrsw,"ldtrsw",4,&operandTable[1747]},
+    {aarch64_op_ldur_fpsimd,"ldur",7,&operandTable[1751]},
+    {aarch64_op_ldur_gen,"ldur",5,&operandTable[1758]},
+    {aarch64_op_ldurb,"ldurb",4,&operandTable[1763]},
+    {aarch64_op_ldurh,"ldurh",4,&operandTable[1767]},
+    {aarch64_op_ldursb,"ldursb",5,&operandTable[1771]},
+    {aarch64_op_ldursh,"ldursh",5,&operandTable[1776]},
+    {aarch64_op_ldursw,"ldursw",4,&operandTable[1781]},
+    {aarch64_op_ldxp,"ldxp",5,&operandTable[1785]},
+    {aarch64_op_ldxr,"ldxr",4,&operandTable[1790]},
+    {aarch64_op_ldxrb,"ldxrb",3,&operandTable[1794]},
+    {aarch64_op_ldxrh,"ldxrh",3,&operandTable[1797]},
+    {aarch64_op_lsl_lslv,"lsl",4,&operandTable[1800]},
+    {aarch64_op_lsl_ubfm,"lsl",6,&operandTable[1804]},
+    {aarch64_op_lslv,"lslv",4,&operandTable[1810]},
+    {aarch64_op_lsr_lsrv,"lsr",4,&operandTable[1814]},
+    {aarch64_op_lsr_ubfm,"lsr",6,&operandTable[1818]},
+    {aarch64_op_lsrv,"lsrv",4,&operandTable[1824]},
+    {aarch64_op_madd,"madd",5,&operandTable[1828]},
+    {aarch64_op_mla_advsimd_elt,"mla",9,&operandTable[1833]},
+    {aarch64_op_mla_advsimd_vec,"mla",6,&operandTable[1842]},
+    {aarch64_op_mls_advsimd_elt,"mls",9,&operandTable[1848]},
+    {aarch64_op_mls_advsimd_vec,"mls",6,&operandTable[1857]},
+    {aarch64_op_mneg_msub,"mneg",4,&operandTable[1863]},
+    {aarch64_op_mov_add_addsub_imm,"mov",3,&operandTable[1867]},
+    {aarch64_op_mov_dup_advsimd_elt,"mov",4,&operandTable[1870]},
+    {aarch64_op_mov_ins_advsimd_elt,"mov",5,&operandTable[1874]},
+    {aarch64_op_mov_ins_advsimd_gen,"mov",4,&operandTable[1879]},
+    {aarch64_op_mov_movn,"mov",4,&operandTable[1883]},
+    {aarch64_op_mov_movz,"mov",4,&operandTable[1887]},
+    {aarch64_op_mov_orr_advsimd_reg,"mov",5,&operandTable[1891]},
+    {aarch64_op_mov_orr_log_imm,"mov",5,&operandTable[1896]},
+    {aarch64_op_mov_orr_log_shift,"mov",3,&operandTable[1901]},
+    {aarch64_op_mov_umov_advsimd,"mov",5,&operandTable[1904]},
+    {aarch64_op_movi_advsimd,"movi",13,&operandTable[1909]},
+    {aarch64_op_movk,"movk",4,&operandTable[1922]},
+    {aarch64_op_movn,"movn",4,&operandTable[1926]},
+    {aarch64_op_movz,"movz",4,&operandTable[1930]},
+    {aarch64_op_mrs,"mrs",6,&operandTable[1934]},
+    {aarch64_op_msr_imm,"msr",3,&operandTable[1940]},
+    {aarch64_op_msr_reg,"msr",6,&operandTable[1943]},
+    {aarch64_op_msub,"msub",5,&operandTable[1949]},
+    {aarch64_op_mul_advsimd_elt,"mul",9,&operandTable[1954]},
+    {aarch64_op_mul_advsimd_vec,"mul",6,&operandTable[1963]},
+    {aarch64_op_mul_madd,"mul",4,&operandTable[1969]},
+    {aarch64_op_mvn_not_advsimd,"mvn",4,&operandTable[1973]},
+    {aarch64_op_mvn_orn_log_shift,"mvn",5,&operandTable[1977]},
+    {aarch64_op_mvni_advsimd,"mvni",12,&operandTable[1982]},
+    {aarch64_op_neg_advsimd,"neg",4,&operandTable[1994]},
+    {aarch64_op_neg_advsimd,"neg",5,&operandTable[1998]},
+    {aarch64_op_neg_sub_addsub_shift,"neg",5,&operandTable[2003]},
+    {aarch64_op_negs_subs_addsub_shift,"negs",6,&operandTable[2008]},
+    {aarch64_op_ngc_sbc,"ngc",3,&operandTable[2014]},
+    {aarch64_op_ngcs_sbcs,"ngcs",4,&operandTable[2017]},
+    {aarch64_op_nop_hint,"nop",0,&operandTable[2021]},
+    {aarch64_op_not_advsimd,"not",4,&operandTable[2021]},
+    {aarch64_op_orn_advsimd,"orn",5,&operandTable[2025]},
+    {aarch64_op_orn_log_shift,"orn",6,&operandTable[2030]},
+    {aarch64_op_orr_advsimd_imm,"orr",12,&operandTable[2036]},
+    {aarch64_op_orr_advsimd_reg,"orr",5,&operandTable[2048]},
+    {aarch64_op_orr_log_imm,"orr",6,&operandTable[2053]},
+    {aarch64_op_orr_log_shift,"orr",6,&operandTable[2059]},
+    {aarch64_op_pmul_advsimd,"pmul",6,&operandTable[2065]},
+    {aarch64_op_pmull_advsimd,"pmull",6,&operandTable[2071]},
+    {aarch64_op_prfm_imm,"prfm",3,&operandTable[2077]},
+    {aarch64_op_prfm_lit,"prfm",2,&operandTable[2080]},
+    {aarch64_op_prfm_reg,"prfm",5,&operandTable[2082]},
+    {aarch64_op_prfum,"prfum",3,&operandTable[2087]},
+    {aarch64_op_raddhn_advsimd,"raddhn",6,&operandTable[2090]},
+    {aarch64_op_rbit_advsimd,"rbit",4,&operandTable[2096]},
+    {aarch64_op_rbit_int,"rbit",3,&operandTable[2100]},
+    {aarch64_op_ret,"ret",1,&operandTable[2103]},
+    {aarch64_op_rev,"rev",4,&operandTable[2104]},
+    {aarch64_op_rev16_advsimd,"rev16",5,&operandTable[2108]},
+    {aarch64_op_rev16_int,"rev16",3,&operandTable[2113]},
+    {aarch64_op_rev32_advsimd,"rev32",5,&operandTable[2116]},
+    {aarch64_op_rev32_int,"rev32",2,&operandTable[2121]},
+    {aarch64_op_rev64_advsimd,"rev64",5,&operandTable[2123]},
+    {aarch64_op_ror_extr,"ror",6,&operandTable[2128]},
+    {aarch64_op_ror_rorv,"ror",4,&operandTable[2134]},
+    {aarch64_op_rorv,"rorv",4,&operandTable[2138]},
+    {aarch64_op_rshrn_advsimd,"rshrn",6,&operandTable[2142]},
+    {aarch64_op_rsubhn_advsimd,"rsubhn",6,&operandTable[2148]},
+    {aarch64_op_saba_advsimd,"saba",6,&operandTable[2154]},
+    {aarch64_op_sabal_advsimd,"sabal",6,&operandTable[2160]},
+    {aarch64_op_sabd_advsimd,"sabd",6,&operandTable[2166]},
+    {aarch64_op_sabdl_advsimd,"sabdl",6,&operandTable[2172]},
+    {aarch64_op_sadalp_advsimd,"sadalp",5,&operandTable[2178]},
+    {aarch64_op_saddl_advsimd,"saddl",6,&operandTable[2183]},
+    {aarch64_op_saddlp_advsimd,"saddlp",5,&operandTable[2189]},
+    {aarch64_op_saddlv_advsimd,"saddlv",5,&operandTable[2194]},
+    {aarch64_op_saddw_advsimd,"saddw",6,&operandTable[2199]},
+    {aarch64_op_sbc,"sbc",4,&operandTable[2205]},
+    {aarch64_op_sbcs,"sbcs",5,&operandTable[2209]},
+    {aarch64_op_sbfiz_sbfm,"sbfiz",6,&operandTable[2214]},
+    {aarch64_op_sbfm,"sbfm",6,&operandTable[2220]},
+    {aarch64_op_sbfx_sbfm,"sbfx",6,&operandTable[2226]},
+    {aarch64_op_scvtf_advsimd_fix,"scvtf",5,&operandTable[2232]},
+    {aarch64_op_scvtf_advsimd_fix,"scvtf",6,&operandTable[2237]},
+    {aarch64_op_scvtf_advsimd_int,"scvtf",4,&operandTable[2243]},
+    {aarch64_op_scvtf_advsimd_int,"scvtf",5,&operandTable[2247]},
+    {aarch64_op_scvtf_float_fix,"scvtf",6,&operandTable[2252]},
+    {aarch64_op_scvtf_float_int,"scvtf",5,&operandTable[2258]},
+    {aarch64_op_sdiv,"sdiv",4,&operandTable[2263]},
+    {aarch64_op_sev_hint,"sev",0,&operandTable[2267]},
+    {aarch64_op_sevl_hint,"sevl",0,&operandTable[2267]},
+    {aarch64_op_sha1c_advsimd,"sha1c",4,&operandTable[2267]},
+    {aarch64_op_sha1h_advsimd,"sha1h",3,&operandTable[2271]},
+    {aarch64_op_sha1m_advsimd,"sha1m",4,&operandTable[2274]},
+    {aarch64_op_sha1p_advsimd,"sha1p",4,&operandTable[2278]},
+    {aarch64_op_sha1su0_advsimd,"sha1su0",4,&operandTable[2282]},
+    {aarch64_op_sha1su1_advsimd,"sha1su1",3,&operandTable[2286]},
+    {aarch64_op_sha256h2_advsimd,"sha256h2",4,&operandTable[2289]},
+    {aarch64_op_sha256h_advsimd,"sha256h",4,&operandTable[2293]},
+    {aarch64_op_sha256su0_advsimd,"sha256su0",3,&operandTable[2297]},
+    {aarch64_op_sha256su1_advsimd,"sha256su1",4,&operandTable[2300]},
+    {aarch64_op_shadd_advsimd,"shadd",6,&operandTable[2304]},
+    {aarch64_op_shl_advsimd,"shl",5,&operandTable[2310]},
+    {aarch64_op_shl_advsimd,"shl",6,&operandTable[2315]},
+    {aarch64_op_shll_advsimd,"shll",5,&operandTable[2321]},
+    {aarch64_op_shrn_advsimd,"shrn",6,&operandTable[2326]},
+    {aarch64_op_shsub_advsimd,"shsub",6,&operandTable[2332]},
+    {aarch64_op_sli_advsimd,"sli",5,&operandTable[2338]},
+    {aarch64_op_sli_advsimd,"sli",6,&operandTable[2343]},
+    {aarch64_op_smaddl,"smaddl",4,&operandTable[2349]},
+    {aarch64_op_smax_advsimd,"smax",6,&operandTable[2353]},
+    {aarch64_op_smaxp_advsimd,"smaxp",6,&operandTable[2359]},
+    {aarch64_op_smaxv_advsimd,"smaxv",5,&operandTable[2365]},
+    {aarch64_op_smc,"smc",1,&operandTable[2370]},
+    {aarch64_op_smin_advsimd,"smin",6,&operandTable[2371]},
+    {aarch64_op_sminp_advsimd,"sminp",6,&operandTable[2377]},
+    {aarch64_op_sminv_advsimd,"sminv",5,&operandTable[2383]},
+    {aarch64_op_smlal_advsimd_elt,"smlal",9,&operandTable[2388]},
+    {aarch64_op_smlal_advsimd_vec,"smlal",6,&operandTable[2397]},
+    {aarch64_op_smlsl_advsimd_elt,"smlsl",9,&operandTable[2403]},
+    {aarch64_op_smlsl_advsimd_vec,"smlsl",6,&operandTable[2412]},
+    {aarch64_op_smnegl_smsubl,"smnegl",3,&operandTable[2418]},
+    {aarch64_op_smov_advsimd,"smov",5,&operandTable[2421]},
+    {aarch64_op_smsubl,"smsubl",4,&operandTable[2426]},
+    {aarch64_op_smulh,"smulh",3,&operandTable[2430]},
+    {aarch64_op_smull_advsimd_elt,"smull",9,&operandTable[2433]},
+    {aarch64_op_smull_advsimd_vec,"smull",6,&operandTable[2442]},
+    {aarch64_op_smull_smaddl,"smull",3,&operandTable[2448]},
+    {aarch64_op_sqabs_advsimd,"sqabs",4,&operandTable[2451]},
+    {aarch64_op_sqabs_advsimd,"sqabs",5,&operandTable[2455]},
+    {aarch64_op_sqadd_advsimd,"sqadd",5,&operandTable[2460]},
+    {aarch64_op_sqadd_advsimd,"sqadd",6,&operandTable[2465]},
+    {aarch64_op_sqdmlal_advsimd_elt,"sqdmlal",8,&operandTable[2471]},
+    {aarch64_op_sqdmlal_advsimd_elt,"sqdmlal",9,&operandTable[2479]},
+    {aarch64_op_sqdmlal_advsimd_vec,"sqdmlal",5,&operandTable[2488]},
+    {aarch64_op_sqdmlal_advsimd_vec,"sqdmlal",6,&operandTable[2493]},
+    {aarch64_op_sqdmlsl_advsimd_elt,"sqdmlsl",8,&operandTable[2499]},
+    {aarch64_op_sqdmlsl_advsimd_elt,"sqdmlsl",9,&operandTable[2507]},
+    {aarch64_op_sqdmlsl_advsimd_vec,"sqdmlsl",5,&operandTable[2516]},
+    {aarch64_op_sqdmlsl_advsimd_vec,"sqdmlsl",6,&operandTable[2521]},
+    {aarch64_op_sqdmulh_advsimd_elt,"sqdmulh",8,&operandTable[2527]},
+    {aarch64_op_sqdmulh_advsimd_elt,"sqdmulh",9,&operandTable[2535]},
+    {aarch64_op_sqdmulh_advsimd_vec,"sqdmulh",5,&operandTable[2544]},
+    {aarch64_op_sqdmulh_advsimd_vec,"sqdmulh",6,&operandTable[2549]},
+    {aarch64_op_sqdmull_advsimd_elt,"sqdmull",8,&operandTable[2555]},
+    {aarch64_op_sqdmull_advsimd_elt,"sqdmull",9,&operandTable[2563]},
+    {aarch64_op_sqdmull_advsimd_vec,"sqdmull",5,&operandTable[2572]},
+    {aarch64_op_sqdmull_advsimd_vec,"sqdmull",6,&operandTable[2577]},
+    {aarch64_op_sqneg_advsimd,"sqneg",4,&operandTable[2583]},
+    {aarch64_op_sqneg_advsimd,"sqneg",5,&operandTable[2587]},
+    {aarch64_op_sqrdmulh_advsimd_elt,"sqrdmulh",8,&operandTable[2592]},
+    {aarch64_op_sqrdmulh_advsimd_elt,"sqrdmulh",9,&operandTable[2600]},
+    {aarch64_op_sqrdmulh_advsimd_vec,"sqrdmulh",5,&operandTable[2609]},
+    {aarch64_op_sqrdmulh_advsimd_vec,"sqrdmulh",6,&operandTable[2614]},
+    {aarch64_op_sqrshl_advsimd,"sqrshl",5,&operandTable[2620]},
+    {aarch64_op_sqrshl_advsimd,"sqrshl",6,&operandTable[2625]},
+    {aarch64_op_sqrshrn_advsimd,"sqrshrn",5,&operandTable[2631]},
+    {aarch64_op_sqrshrn_advsimd,"sqrshrn",6,&operandTable[2636]},
+    {aarch64_op_sqrshrun_advsimd,"sqrshrun",5,&operandTable[2642]},
+    {aarch64_op_sqrshrun_advsimd,"sqrshrun",6,&operandTable[2647]},
+    {aarch64_op_sqshl_advsimd_imm,"sqshl",5,&operandTable[2653]},
+    {aarch64_op_sqshl_advsimd_imm,"sqshl",6,&operandTable[2658]},
+    {aarch64_op_sqshl_advsimd_reg,"sqshl",5,&operandTable[2664]},
+    {aarch64_op_sqshl_advsimd_reg,"sqshl",6,&operandTable[2669]},
+    {aarch64_op_sqshlu_advsimd,"sqshlu",5,&operandTable[2675]},
+    {aarch64_op_sqshlu_advsimd,"sqshlu",6,&operandTable[2680]},
+    {aarch64_op_sqshrn_advsimd,"sqshrn",5,&operandTable[2686]},
+    {aarch64_op_sqshrn_advsimd,"sqshrn",6,&operandTable[2691]},
+    {aarch64_op_sqshrun_advsimd,"sqshrun",5,&operandTable[2697]},
+    {aarch64_op_sqshrun_advsimd,"sqshrun",6,&operandTable[2702]},
+    {aarch64_op_sqsub_advsimd,"sqsub",5,&operandTable[2708]},
+    {aarch64_op_sqsub_advsimd,"sqsub",6,&operandTable[2713]},
+    {aarch64_op_sqxtn_advsimd,"sqxtn",4,&operandTable[2719]},
+    {aarch64_op_sqxtn_advsimd,"sqxtn",5,&operandTable[2723]},
+    {aarch64_op_sqxtun_advsimd,"sqxtun",4,&operandTable[2728]},
+    {aarch64_op_sqxtun_advsimd,"sqxtun",5,&operandTable[2732]},
+    {aarch64_op_srhadd_advsimd,"srhadd",6,&operandTable[2737]},
+    {aarch64_op_sri_advsimd,"sri",5,&operandTable[2743]},
+    {aarch64_op_sri_advsimd,"sri",6,&operandTable[2748]},
+    {aarch64_op_srshl_advsimd,"srshl",5,&operandTable[2754]},
+    {aarch64_op_srshl_advsimd,"srshl",6,&operandTable[2759]},
+    {aarch64_op_srshr_advsimd,"srshr",5,&operandTable[2765]},
+    {aarch64_op_srshr_advsimd,"srshr",6,&operandTable[2770]},
+    {aarch64_op_srsra_advsimd,"srsra",5,&operandTable[2776]},
+    {aarch64_op_srsra_advsimd,"srsra",6,&operandTable[2781]},
+    {aarch64_op_sshl_advsimd,"sshl",5,&operandTable[2787]},
+    {aarch64_op_sshl_advsimd,"sshl",6,&operandTable[2792]},
+    {aarch64_op_sshll_advsimd,"sshll",6,&operandTable[2798]},
+    {aarch64_op_sshr_advsimd,"sshr",5,&operandTable[2804]},
+    {aarch64_op_sshr_advsimd,"sshr",6,&operandTable[2809]},
+    {aarch64_op_ssra_advsimd,"ssra",5,&operandTable[2815]},
+    {aarch64_op_ssra_advsimd,"ssra",6,&operandTable[2820]},
+    {aarch64_op_ssubl_advsimd,"ssubl",6,&operandTable[2826]},
+    {aarch64_op_ssubw_advsimd,"ssubw",6,&operandTable[2832]},
+    {aarch64_op_st1_advsimd_mult,"st1",6,&operandTable[2838]},
+    {aarch64_op_st1_advsimd_mult,"st1",7,&operandTable[2844]},
+    {aarch64_op_st1_advsimd_sngl,"st1",7,&operandTable[2851]},
+    {aarch64_op_st1_advsimd_sngl,"st1",8,&operandTable[2858]},
+    {aarch64_op_st2_advsimd_mult,"st2",5,&operandTable[2866]},
+    {aarch64_op_st2_advsimd_mult,"st2",6,&operandTable[2871]},
+    {aarch64_op_st2_advsimd_sngl,"st2",7,&operandTable[2877]},
+    {aarch64_op_st2_advsimd_sngl,"st2",8,&operandTable[2884]},
+    {aarch64_op_st3_advsimd_mult,"st3",5,&operandTable[2892]},
+    {aarch64_op_st3_advsimd_mult,"st3",6,&operandTable[2897]},
+    {aarch64_op_st3_advsimd_sngl,"st3",7,&operandTable[2903]},
+    {aarch64_op_st3_advsimd_sngl,"st3",8,&operandTable[2910]},
+    {aarch64_op_st4_advsimd_mult,"st4",5,&operandTable[2918]},
+    {aarch64_op_st4_advsimd_mult,"st4",6,&operandTable[2923]},
+    {aarch64_op_st4_advsimd_sngl,"st4",7,&operandTable[2929]},
+    {aarch64_op_st4_advsimd_sngl,"st4",8,&operandTable[2936]},
+    {aarch64_op_stlr,"stlr",4,&operandTable[2944]},
+    {aarch64_op_stlrb,"stlrb",3,&operandTable[2948]},
+    {aarch64_op_stlrh,"stlrh",3,&operandTable[2951]},
+    {aarch64_op_stlxp,"stlxp",6,&operandTable[2954]},
+    {aarch64_op_stlxr,"stlxr",5,&operandTable[2960]},
+    {aarch64_op_stlxrb,"stlxrb",4,&operandTable[2965]},
+    {aarch64_op_stlxrh,"stlxrh",4,&operandTable[2969]},
+    {aarch64_op_stnp_fpsimd,"stnp",7,&operandTable[2973]},
+    {aarch64_op_stnp_gen,"stnp",6,&operandTable[2980]},
+    {aarch64_op_stp_fpsimd,"stp",7,&operandTable[2986]},
+    {aarch64_op_stp_fpsimd,"stp",7,&operandTable[2993]},
+    {aarch64_op_stp_fpsimd,"stp",7,&operandTable[3000]},
+    {aarch64_op_stp_gen,"stp",6,&operandTable[3007]},
+    {aarch64_op_stp_gen,"stp",6,&operandTable[3013]},
+    {aarch64_op_stp_gen,"stp",6,&operandTable[3019]},
+    {aarch64_op_str_imm_fpsimd,"str",7,&operandTable[3025]},
+    {aarch64_op_str_imm_fpsimd,"str",7,&operandTable[3032]},
+    {aarch64_op_str_imm_fpsimd,"str",7,&operandTable[3039]},
+    {aarch64_op_str_imm_gen,"str",5,&operandTable[3046]},
+    {aarch64_op_str_imm_gen,"str",5,&operandTable[3051]},
+    {aarch64_op_str_imm_gen,"str",5,&operandTable[3056]},
+    {aarch64_op_str_reg_fpsimd,"str",9,&operandTable[3061]},
+    {aarch64_op_str_reg_gen,"str",7,&operandTable[3070]},
+    {aarch64_op_strb_imm,"strb",4,&operandTable[3077]},
+    {aarch64_op_strb_imm,"strb",4,&operandTable[3081]},
+    {aarch64_op_strb_imm,"strb",4,&operandTable[3085]},
+    {aarch64_op_strb_reg,"strb",6,&operandTable[3089]},
+    {aarch64_op_strh_imm,"strh",4,&operandTable[3095]},
+    {aarch64_op_strh_imm,"strh",4,&operandTable[3099]},
+    {aarch64_op_strh_imm,"strh",4,&operandTable[3103]},
+    {aarch64_op_strh_reg,"strh",6,&operandTable[3107]},
+    {aarch64_op_sttr,"sttr",5,&operandTable[3113]},
+    {aarch64_op_sttrb,"sttrb",4,&operandTable[3118]},
+    {aarch64_op_sttrh,"sttrh",4,&operandTable[3122]},
+    {aarch64_op_stur_fpsimd,"stur",7,&operandTable[3126]},
+    {aarch64_op_stur_gen,"stur",5,&operandTable[3133]},
+    {aarch64_op_sturb,"sturb",4,&operandTable[3138]},
+    {aarch64_op_sturh,"sturh",4,&operandTable[3142]},
+    {aarch64_op_stxp,"stxp",6,&operandTable[3146]},
+    {aarch64_op_stxr,"stxr",5,&operandTable[3152]},
+    {aarch64_op_stxrb,"stxrb",4,&operandTable[3157]},
+    {aarch64_op_stxrh,"stxrh",4,&operandTable[3161]},
+    {aarch64_op_sub_addsub_ext,"sub",6,&operandTable[3165]},
+    {aarch64_op_sub_addsub_imm,"sub",5,&operandTable[3171]},
+    {aarch64_op_sub_addsub_shift,"sub",6,&operandTable[3176]},
+    {aarch64_op_sub_advsimd,"sub",5,&operandTable[3182]},
+    {aarch64_op_sub_advsimd,"sub",6,&operandTable[3187]},
+    {aarch64_op_subhn_advsimd,"subhn",6,&operandTable[3193]},
+    {aarch64_op_subs_addsub_ext,"subs",7,&operandTable[3199]},
+    {aarch64_op_subs_addsub_imm,"subs",6,&operandTable[3206]},
+    {aarch64_op_subs_addsub_shift,"subs",7,&operandTable[3212]},
+    {aarch64_op_suqadd_advsimd,"suqadd",4,&operandTable[3219]},
+    {aarch64_op_suqadd_advsimd,"suqadd",5,&operandTable[3223]},
+    {aarch64_op_svc,"svc",1,&operandTable[3228]},
+    {aarch64_op_sxtb_sbfm,"sxtb",4,&operandTable[3229]},
+    {aarch64_op_sxth_sbfm,"sxth",4,&operandTable[3233]},
+    {aarch64_op_sxtl_sshll_advsimd,"sxtl",5,&operandTable[3237]},
+    {aarch64_op_sxtw_sbfm,"sxtw",2,&operandTable[3242]},
+    {aarch64_op_sys,"sys",5,&operandTable[3244]},
+    {aarch64_op_sysl,"sysl",5,&operandTable[3249]},
+    {aarch64_op_tbl_advsimd,"tbl",6,&operandTable[3254]},
+    {aarch64_op_tbnz,"tbnz",4,&operandTable[3260]},
+    {aarch64_op_tbx_advsimd,"tbx",6,&operandTable[3264]},
+    {aarch64_op_tbz,"tbz",4,&operandTable[3270]},
+    {aarch64_op_tlbi_sys,"tlbi",4,&operandTable[3274]},
+    {aarch64_op_trn1_advsimd,"trn1",6,&operandTable[3278]},
+    {aarch64_op_trn2_advsimd,"trn2",6,&operandTable[3284]},
+    {aarch64_op_tst_ands_log_imm,"tst",6,&operandTable[3290]},
+    {aarch64_op_tst_ands_log_shift,"tst",6,&operandTable[3296]},
+    {aarch64_op_uaba_advsimd,"uaba",6,&operandTable[3302]},
+    {aarch64_op_uabal_advsimd,"uabal",6,&operandTable[3308]},
+    {aarch64_op_uabd_advsimd,"uabd",6,&operandTable[3314]},
+    {aarch64_op_uabdl_advsimd,"uabdl",6,&operandTable[3320]},
+    {aarch64_op_uadalp_advsimd,"uadalp",5,&operandTable[3326]},
+    {aarch64_op_uaddl_advsimd,"uaddl",6,&operandTable[3331]},
+    {aarch64_op_uaddlp_advsimd,"uaddlp",5,&operandTable[3337]},
+    {aarch64_op_uaddlv_advsimd,"uaddlv",5,&operandTable[3342]},
+    {aarch64_op_uaddw_advsimd,"uaddw",6,&operandTable[3347]},
+    {aarch64_op_ubfiz_ubfm,"ubfiz",6,&operandTable[3353]},
+    {aarch64_op_ubfm,"ubfm",6,&operandTable[3359]},
+    {aarch64_op_ubfx_ubfm,"ubfx",6,&operandTable[3365]},
+    {aarch64_op_ucvtf_advsimd_fix,"ucvtf",5,&operandTable[3371]},
+    {aarch64_op_ucvtf_advsimd_fix,"ucvtf",6,&operandTable[3376]},
+    {aarch64_op_ucvtf_advsimd_int,"ucvtf",4,&operandTable[3382]},
+    {aarch64_op_ucvtf_advsimd_int,"ucvtf",5,&operandTable[3386]},
+    {aarch64_op_ucvtf_float_fix,"ucvtf",6,&operandTable[3391]},
+    {aarch64_op_ucvtf_float_int,"ucvtf",5,&operandTable[3397]},
+    {aarch64_op_udiv,"udiv",4,&operandTable[3402]},
+    {aarch64_op_uhadd_advsimd,"uhadd",6,&operandTable[3406]},
+    {aarch64_op_uhsub_advsimd,"uhsub",6,&operandTable[3412]},
+    {aarch64_op_umaddl,"umaddl",4,&operandTable[3418]},
+    {aarch64_op_umax_advsimd,"umax",6,&operandTable[3422]},
+    {aarch64_op_umaxp_advsimd,"umaxp",6,&operandTable[3428]},
+    {aarch64_op_umaxv_advsimd,"umaxv",5,&operandTable[3434]},
+    {aarch64_op_umin_advsimd,"umin",6,&operandTable[3439]},
+    {aarch64_op_uminp_advsimd,"uminp",6,&operandTable[3445]},
+    {aarch64_op_uminv_advsimd,"uminv",5,&operandTable[3451]},
+    {aarch64_op_umlal_advsimd_elt,"umlal",9,&operandTable[3456]},
+    {aarch64_op_umlal_advsimd_vec,"umlal",6,&operandTable[3465]},
+    {aarch64_op_umlsl_advsimd_elt,"umlsl",9,&operandTable[3471]},
+    {aarch64_op_umlsl_advsimd_vec,"umlsl",6,&operandTable[3480]},
+    {aarch64_op_umnegl_umsubl,"umnegl",3,&operandTable[3486]},
+    {aarch64_op_umov_advsimd,"umov",5,&operandTable[3489]},
+    {aarch64_op_umsubl,"umsubl",4,&operandTable[3494]},
+    {aarch64_op_umulh,"umulh",3,&operandTable[3498]},
+    {aarch64_op_umull_advsimd_elt,"umull",9,&operandTable[3501]},
+    {aarch64_op_umull_advsimd_vec,"umull",6,&operandTable[3510]},
+    {aarch64_op_umull_umaddl,"umull",3,&operandTable[3516]},
+    {aarch64_op_uqadd_advsimd,"uqadd",5,&operandTable[3519]},
+    {aarch64_op_uqadd_advsimd,"uqadd",6,&operandTable[3524]},
+    {aarch64_op_uqrshl_advsimd,"uqrshl",5,&operandTable[3530]},
+    {aarch64_op_uqrshl_advsimd,"uqrshl",6,&operandTable[3535]},
+    {aarch64_op_uqrshrn_advsimd,"uqrshrn",5,&operandTable[3541]},
+    {aarch64_op_uqrshrn_advsimd,"uqrshrn",6,&operandTable[3546]},
+    {aarch64_op_uqshl_advsimd_imm,"uqshl",5,&operandTable[3552]},
+    {aarch64_op_uqshl_advsimd_imm,"uqshl",6,&operandTable[3557]},
+    {aarch64_op_uqshl_advsimd_reg,"uqshl",5,&operandTable[3563]},
+    {aarch64_op_uqshl_advsimd_reg,"uqshl",6,&operandTable[3568]},
+    {aarch64_op_uqshrn_advsimd,"uqshrn",5,&operandTable[3574]},
+    {aarch64_op_uqshrn_advsimd,"uqshrn",6,&operandTable[3579]},
+    {aarch64_op_uqsub_advsimd,"uqsub",5,&operandTable[3585]},
+    {aarch64_op_uqsub_advsimd,"uqsub",6,&operandTable[3590]},
+    {aarch64_op_uqxtn_advsimd,"uqxtn",4,&operandTable[3596]},
+    {aarch64_op_uqxtn_advsimd,"uqxtn",5,&operandTable[3600]},
+    {aarch64_op_urecpe_advsimd,"urecpe",5,&operandTable[3605]},
+    {aarch64_op_urhadd_advsimd,"urhadd",6,&operandTable[3610]},
+    {aarch64_op_urshl_advsimd,"urshl",5,&operandTable[3616]},
+    {aarch64_op_urshl_advsimd,"urshl",6,&operandTable[3621]},
+    {aarch64_op_urshr_advsimd,"urshr",5,&operandTable[3627]},
+    {aarch64_op_urshr_advsimd,"urshr",6,&operandTable[3632]},
+    {aarch64_op_ursqrte_advsimd,"ursqrte",5,&operandTable[3638]},
+    {aarch64_op_ursra_advsimd,"ursra",5,&operandTable[3643]},
+    {aarch64_op_ursra_advsimd,"ursra",6,&operandTable[3648]},
+    {aarch64_op_ushl_advsimd,"ushl",5,&operandTable[3654]},
+    {aarch64_op_ushl_advsimd,"ushl",6,&operandTable[3659]},
+    {aarch64_op_ushll_advsimd,"ushll",6,&operandTable[3665]},
+    {aarch64_op_ushr_advsimd,"ushr",5,&operandTable[3671]},
+    {aarch64_op_ushr_advsimd,"ushr",6,&operandTable[3676]},
+    {aarch64_op_usqadd_advsimd,"usqadd",4,&operandTable[3682]},
+    {aarch64_op_usqadd_advsimd,"usqadd",5,&operandTable[3686]},
+    {aarch64_op_usra_advsimd,"usra",5,&operandTable[3691]},
+    {aarch64_op_usra_advsimd,"usra",6,&operandTable[3696]},
+    {aarch64_op_usubl_advsimd,"usubl",6,&operandTable[3702]},
+    {aarch64_op_usubw_advsimd,"usubw",6,&operandTable[3708]},
+    {aarch64_op_uxtb_ubfm,"uxtb",2,&operandTable[3714]},
+    {aarch64_op_uxth_ubfm,"uxth",2,&operandTable[3716]},
+    {aarch64_op_uxtl_ushll_advsimd,"uxtl",5,&operandTable[3718]},
+    {aarch64_op_uzp1_advsimd,"uzp1",6,&operandTable[3723]},
+    {aarch64_op_uzp2_advsimd,"uzp2",6,&operandTable[3729]},
+    {aarch64_op_wfe_hint,"wfe",0,&operandTable[3735]},
+    {aarch64_op_wfi_hint,"wfi",0,&operandTable[3735]},
+    {aarch64_op_xtn_advsimd,"xtn",5,&operandTable[3735]},
+    {aarch64_op_yield_hint,"yield",0,&operandTable[3740]},
+    {aarch64_op_zip1_advsimd,"zip1",6,&operandTable[3740]},
+    {aarch64_op_zip2_advsimd,"zip2",6,&operandTable[3746]},
 };  // end main_insn_table
 
 const aarch64_decoder_table aarch64_mask_entry::main_decoder_table = {
