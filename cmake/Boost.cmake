@@ -141,6 +141,8 @@ if(Boost_FOUND)
   set(Boost_LIBRARY_DIRS ${Boost_LIBRARY_DIRS} CACHE PATH "Boost library directory" FORCE)
   set(Boost_INCLUDE_DIR ${Boost_INCLUDE_DIR} CACHE PATH "Boost include directory" FORCE)
   add_library(boost SHARED IMPORTED)
+elseif(NOT Boost_FOUND AND STERILE_BUILD)
+  message(FATAL_ERROR "Boost not found and cannot be downloaded because build is sterile.")
 else()
   # If we didn't find a suitable version on the system, then download one from the web
   set(_boost_download_version "1.69.0")

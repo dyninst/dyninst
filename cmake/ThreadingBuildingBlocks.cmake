@@ -86,6 +86,8 @@ if(TBB_FOUND)
   if(NOT TARGET TBB)
     add_library(TBB SHARED IMPORTED)
   endif()
+elseif(NOT TBB_FOUND AND STERILE_BUILD)
+  message(FATAL_ERROR "TBB not found and cannot be downloaded because build is sterile.")
 else()
   # If we didn't find a suitable version on the system, then download one from the web
   set(_tbb_download_version 2019.5)
