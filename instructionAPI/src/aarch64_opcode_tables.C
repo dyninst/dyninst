@@ -27,2063 +27,3815 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-bool aarch64_insn_entry::built_insn_table = false;
-bool aarch64_mask_entry::built_decoder_table = false;
-bool aarch64_mask_entry::isAliasWeakSolution = true;
-bool InstructionDecoder_aarch64::built_sysreg_map = false;
-
-aarch64_insn_table aarch64_insn_entry::main_insn_table;
-aarch64_decoder_table aarch64_mask_entry::main_decoder_table;
-
 #define INVALID_ENTRY aarch64_insn_entry::main_insn_table[0]
 
-void aarch64_insn_entry::buildInsnTable()
-{
-    if(aarch64_insn_entry::built_insn_table)
-		return;
+#define fn(...) (&InstructionDecoder_aarch64::__VA_ARGS__)
 
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_INVALID, 	"INVALID",	operandSpec(), 0, 402653184) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_abs_advsimd, 	"abs",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 1579202560, 4282383360) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_abs_advsimd, 	"abs",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 237025280, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_adc, 	"adc",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 436207616, 2145451008) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_adcs, 	"adcs",	list_of( fn(setFlags) )( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 973078528, 2145451008) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_add_addsub_ext, 	"add",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRoption<15 COMMA 13>) )( fn(OPRimm<12 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 186646528, 2145386496) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_add_addsub_imm, 	"add",	list_of( fn(OPRsf) )( fn(OPRshift) )( fn(OPRimm<21 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 285212672, 2130706432) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_add_addsub_shift, 	"add",	list_of( fn(OPRsf) )( fn(OPRshift) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 184549376, 2132803584) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_add_advsimd, 	"add",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1579189248, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_add_advsimd, 	"add",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237011968, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_addhn_advsimd, 	"addhn",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 236994560, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_addp_advsimd_pair, 	"addp",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 1580316672, 4282383360) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_addp_advsimd_vec, 	"addp",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237026304, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_adds_addsub_ext, 	"adds",	list_of( fn(setFlags) )( fn(OPRsf) )( fn(OPRRm) )( fn(OPRoption<15 COMMA 13>) )( fn(OPRimm<12 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 723517440, 2145386496) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_adds_addsub_imm, 	"adds",	list_of( fn(setFlags) )( fn(OPRsf) )( fn(OPRshift) )( fn(OPRimm<21 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 822083584, 2130706432) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_adds_addsub_shift, 	"adds",	list_of( fn(setFlags) )( fn(OPRsf) )( fn(OPRshift) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 721420288, 2132803584) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_addv_advsimd, 	"addv",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 238139392, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_adr, 	"adr",	list_of( (operandFactory) fn(OPRimm<30 COMMA 29>) )( fn(OPRimm<23 COMMA 5>) )( fn(OPRRd) ), 268435456, 2667577344) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_adrp, 	"adrp",	list_of( (operandFactory) fn(OPRimm<30 COMMA 29>) )( fn(OPRimm<23 COMMA 5>) )( fn(OPRRd) ), 2415919104, 2667577344) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_aesd_advsimd, 	"aesd",	list_of( fn(setSIMDMode) )( fn(OPRRn) )( fn(OPRRd) ), 1311266816, 4294966272) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_aese_advsimd, 	"aese",	list_of( fn(setSIMDMode) )( fn(OPRRn) )( fn(OPRRd) ), 1311262720, 4294966272) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_aesimc_advsimd, 	"aesimc",	list_of( fn(setSIMDMode) )( fn(OPRRn) )( fn(OPRRd) ), 1311275008, 4294966272) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_aesmc_advsimd, 	"aesmc",	list_of( fn(setSIMDMode) )( fn(OPRRn) )( fn(OPRRd) ), 1311270912, 4294966272) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_and_advsimd, 	"and",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 236985344, 3219192832) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_and_log_imm, 	"and",	list_of( fn(OPRsf) )( fn(OPRN<22 COMMA 22>) )( fn(OPRimm<21 COMMA 16>) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 301989888, 2139095040) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_and_log_shift, 	"and",	list_of( fn(OPRsf) )( fn(OPRshift) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 167772160, 2132803584) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ands_log_imm, 	"ands",	list_of( fn(setFlags) )( fn(OPRsf) )( fn(OPRN<22 COMMA 22>) )( fn(OPRimm<21 COMMA 16>) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 1912602624, 2139095040) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ands_log_shift, 	"ands",	list_of( fn(setFlags) )( fn(OPRsf) )( fn(OPRshift) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 1778384896, 2132803584) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_asr_asrv, 	"asr",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 448800768, 2145451008) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_asr_sbfm, 	"asr",	list_of( fn(OPRsf) )( fn(OPRN<22 COMMA 22>) )( fn(OPRimm<21 COMMA 16>) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 318798848, 2139126784) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_asrv, 	"asrv",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 448800768, 2145451008) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_at_sys, 	"at",	list_of( fn(OPRop1) )( fn(OPRop2) )( fn(OPRRt) ), 3574102016, 4294508288) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_b_cond, 	"b",	list_of( (operandFactory) fn(OPRimm<23 COMMA 5>) )( fn(OPRcond<3 COMMA 0>) ), 1409286144, 4278190096) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_b_uncond, 	"b",	list_of( (operandFactory) fn(OPRimm<25 COMMA 0>) ), 335544320, 4227858432) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_bfi_bfm, 	"bfi",	list_of( fn(OPRsf) )( fn(OPRN<22 COMMA 22>) )( fn(OPRimm<21 COMMA 16>) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 855638016, 2139095040) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_bfm, 	"bfm",	list_of( fn(OPRsf) )( fn(OPRN<22 COMMA 22>) )( fn(OPRimm<21 COMMA 16>) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 855638016, 2139095040) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_bfxil_bfm, 	"bfxil",	list_of( fn(OPRsf) )( fn(OPRN<22 COMMA 22>) )( fn(OPRimm<21 COMMA 16>) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 855638016, 2139095040) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_bic_advsimd_imm, 	"bic",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRa) )( fn(OPRb) )( fn(OPRc) )( fn(OPRcmode) )( fn(OPRd) )( fn(OPRe) )( fn(OPRf) )( fn(OPRg) )( fn(OPRh) )( fn(OPRRd) ), 788534272, 3220708352) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_bic_advsimd_reg, 	"bic",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 241179648, 3219192832) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_bic_log_shift, 	"bic",	list_of( fn(OPRsf) )( fn(OPRshift) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 169869312, 2132803584) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_bics, 	"bics",	list_of( fn(setFlags) )( fn(OPRsf) )( fn(OPRshift) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 1780482048, 2132803584) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_bif_advsimd, 	"bif",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 786439168, 3219192832) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_bit_advsimd, 	"bit",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 782244864, 3219192832) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_bl, 	"bl",	list_of( (operandFactory) fn(OPRimm<25 COMMA 0>) ), 2483027968, 4227858432) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_blr, 	"blr",	list_of( fn(OPRRn) ), 3594452992, 4294966303) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_br, 	"br",	list_of( fn(OPRRn) ), 3592355840, 4294966303) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_brk, 	"brk",	list_of( (operandFactory) fn(OPRimm<20 COMMA 5>) ), 3558866944, 4292870175) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_bsl_advsimd, 	"bsl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 778050560, 3219192832) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cbnz, 	"cbnz",	list_of( fn(OPRsf) )( fn(OPRimm<23 COMMA 5>) )( fn(OPRRt) ), 889192448, 2130706432) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cbz, 	"cbz",	list_of( fn(OPRsf) )( fn(OPRimm<23 COMMA 5>) )( fn(OPRRt) ), 872415232, 2130706432) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ccmn_imm, 	"ccmn",	list_of( fn(OPRsf) )( fn(OPRimm<20 COMMA 16>) )( fn(OPRcond<15 COMMA 12>) )( fn(OPRRn) )( fn(OPRnzcv) ), 977274880, 2145389584) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ccmn_reg, 	"ccmn",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRcond<15 COMMA 12>) )( fn(OPRRn) )( fn(OPRnzcv) ), 977272832, 2145389584) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ccmp_imm, 	"ccmp",	list_of( fn(OPRsf) )( fn(OPRimm<20 COMMA 16>) )( fn(OPRcond<15 COMMA 12>) )( fn(OPRRn) )( fn(OPRnzcv) ), 2051016704, 2145389584) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ccmp_reg, 	"ccmp",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRcond<15 COMMA 12>) )( fn(OPRRn) )( fn(OPRnzcv) ), 2051014656, 2145389584) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cinc_csinc, 	"cinc",	list_of( fn(OPRsf) )( fn(OPRcond<15 COMMA 12>) )( fn(OPRRn) )( fn(OPRRd) ), 444597248, 2145389568) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cinv_csinv, 	"cinv",	list_of( fn(OPRsf) )( fn(OPRcond<15 COMMA 12>) )( fn(OPRRn) )( fn(OPRRd) ), 1518338048, 2145389568) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_clrex, 	"clrex",	list_of( fn(OPRCRm) ), 3573755999, 4294963455) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cls_advsimd, 	"cls",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 236996608, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cls_int, 	"cls",	list_of( fn(OPRsf) )( fn(OPRRn) )( fn(OPRRd) ), 1522537472, 2147482624) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_clz_advsimd, 	"clz",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 773867520, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_clz_int, 	"clz",	list_of( fn(OPRsf) )( fn(OPRRn) )( fn(OPRRd) ), 1522536448, 2147482624) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmeq_advsimd_reg, 	"cmeq",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2116062208, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmeq_advsimd_reg, 	"cmeq",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773884928, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmeq_advsimd_zero, 	"cmeq",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 1579194368, 4282383360) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmeq_advsimd_zero, 	"cmeq",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 237017088, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmge_advsimd_reg, 	"cmge",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1579170816, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmge_advsimd_reg, 	"cmge",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 236993536, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmge_advsimd_zero, 	"cmge",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 2116061184, 4282383360) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmge_advsimd_zero, 	"cmge",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 773883904, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmgt_advsimd_reg, 	"cmgt",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1579168768, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmgt_advsimd_reg, 	"cmgt",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 236991488, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmgt_advsimd_zero, 	"cmgt",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 1579190272, 4282383360) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmgt_advsimd_zero, 	"cmgt",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 237012992, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmhi_advsimd, 	"cmhi",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2116039680, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmhi_advsimd, 	"cmhi",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773862400, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmhs_advsimd, 	"cmhs",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2116041728, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmhs_advsimd, 	"cmhs",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773864448, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmle_advsimd, 	"cmle",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 2116065280, 4282383360) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmle_advsimd, 	"cmle",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 773888000, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmlt_advsimd, 	"cmlt",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 1579198464, 4282383360) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmlt_advsimd, 	"cmlt",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 237021184, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmn_adds_addsub_ext, 	"cmn",	list_of( fn(setFlags) )( fn(OPRsf) )( fn(OPRRm) )( fn(OPRoption<15 COMMA 13>) )( fn(OPRimm<12 COMMA 10>) )( fn(OPRRn) ), 723517471, 2145386527) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmn_adds_addsub_imm, 	"cmn",	list_of( fn(setFlags) )( fn(OPRsf) )( fn(OPRshift) )( fn(OPRimm<21 COMMA 10>) )( fn(OPRRn) ), 822083615, 2130706463) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmn_adds_addsub_shift, 	"cmn",	list_of( fn(setFlags) )( fn(OPRsf) )( fn(OPRshift) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) ), 721420319, 2132803615) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmp_subs_addsub_ext, 	"cmp",	list_of( fn(setFlags) )( fn(OPRsf) )( fn(OPRRm) )( fn(OPRoption<15 COMMA 13>) )( fn(OPRimm<12 COMMA 10>) )( fn(OPRRn) ), 1797259295, 2145386527) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmp_subs_addsub_imm, 	"cmp",	list_of( fn(setFlags) )( fn(OPRsf) )( fn(OPRshift) )( fn(OPRimm<21 COMMA 10>) )( fn(OPRRn) ), 1895825439, 2130706463) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmp_subs_addsub_shift, 	"cmp",	list_of( fn(setFlags) )( fn(OPRsf) )( fn(OPRshift) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) ), 1795162143, 2132803615) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmtst_advsimd, 	"cmtst",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1579191296, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cmtst_advsimd, 	"cmtst",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237014016, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cneg_csneg, 	"cneg",	list_of( fn(OPRsf) )( fn(OPRcond<15 COMMA 12>) )( fn(OPRRn) )( fn(OPRRd) ), 1518339072, 2145389568) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cnt_advsimd, 	"cnt",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 237000704, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_crc32, 	"crc32",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRsz<11 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 448806912, 2145447936) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_crc32c, 	"crc32c",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRsz<11 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 448811008, 2145447936) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_csel, 	"csel",	list_of( fn(OPRsf) )( fn(OPRcond<15 COMMA 12>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 444596224, 2145389568) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_cset_csinc, 	"cset",	list_of( fn(OPRsf) )( fn(OPRcond<15 COMMA 12>) )( fn(OPRRd) ), 446629856, 2147422176) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_csetm_csinv, 	"csetm",	list_of( fn(OPRsf) )( fn(OPRcond<15 COMMA 12>) )( fn(OPRRd) ), 1520370656, 2147422176) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_csinc, 	"csinc",	list_of( fn(OPRsf) )( fn(OPRcond<15 COMMA 12>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 444597248, 2145389568) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_csinv, 	"csinv",	list_of( fn(OPRsf) )( fn(OPRcond<15 COMMA 12>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1518338048, 2145389568) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_csneg, 	"csneg",	list_of( fn(OPRsf) )( fn(OPRcond<15 COMMA 12>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1518339072, 2145389568) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_dc_sys, 	"dc",	list_of( fn(OPRop1) )( fn(OPRCRm) )( fn(OPRop2) )( fn(OPRRt) ), 3574099968, 4294504448) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_dcps1, 	"dcps1",	list_of( (operandFactory) fn(OPRimm<20 COMMA 5>) ), 3567255553, 4292870175) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_dcps2, 	"dcps2",	list_of( (operandFactory) fn(OPRimm<20 COMMA 5>) ), 3567255554, 4292870175) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_dcps3, 	"dcps3",	list_of( (operandFactory) fn(OPRimm<20 COMMA 5>) ), 3567255555, 4292870175) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_dmb, 	"dmb",	list_of( fn(OPRCRm) ), 3573756095, 4294963455) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_drps, 	"drps",	operandSpec(), 3602842592, 4294967295) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_dsb, 	"dsb",	list_of( fn(OPRCRm) ), 3573756063, 4294963455) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_dup_advsimd_elt, 	"dup",	list_of( fn(setSIMDMode) )( fn(OPRimm<20 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 1577059328, 4292934656) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_dup_advsimd_elt, 	"dup",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<20 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 234882048, 3219192832) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_dup_advsimd_gen, 	"dup",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<20 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 234884096, 3219192832) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_eon, 	"eon",	list_of( fn(OPRsf) )( fn(OPRshift) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 1243611136, 2132803584) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_eor_advsimd, 	"eor",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773856256, 3219192832) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_eor_log_imm, 	"eor",	list_of( fn(OPRsf) )( fn(OPRN<22 COMMA 22>) )( fn(OPRimm<21 COMMA 16>) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 1375731712, 2139095040) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_eor_log_shift, 	"eor",	list_of( fn(OPRsf) )( fn(OPRshift) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 1241513984, 2132803584) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_eret, 	"eret",	operandSpec(), 3600745440, 4294967295) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ext_advsimd, 	"ext",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRimm<14 COMMA 11>) )( fn(OPRRn) )( fn(OPRRd) ), 771751936, 3219162112) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_extr, 	"extr",	list_of( fn(OPRsf) )( fn(OPRN<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 327155712, 2141192192) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fabd_advsimd, 	"fabd",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2124469248, 4288740352) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fabd_advsimd, 	"fabd",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 782291968, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fabs_advsimd, 	"fabs",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 245430272, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fabs_float, 	"fabs",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 505462784, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_facge_advsimd, 	"facge",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2116086784, 4288740352) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_facge_advsimd, 	"facge",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773909504, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_facgt_advsimd, 	"facgt",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2124475392, 4288740352) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_facgt_advsimd, 	"facgt",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 782298112, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fadd_advsimd, 	"fadd",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237032448, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fadd_float, 	"fadd",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 505423872, 4288740352) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_faddp_advsimd_pair, 	"faddp",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 2117130240, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_faddp_advsimd_vec, 	"faddp",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773903360, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fccmp_float, 	"fccmp",	list_of( fn(setFPMode) )( fn(setFlags) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRcond<15 COMMA 12>) )( fn(OPRRn) )( fn(OPRnzcv) ), 505414656, 4288678928) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fccmpe_float, 	"fccmpe",	list_of( fn(setFPMode) )( fn(setFlags) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRcond<15 COMMA 12>) )( fn(OPRRn) )( fn(OPRnzcv) ), 505414672, 4288678928) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcmeq_advsimd_reg, 	"fcmeq",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1579213824, 4288740352) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcmeq_advsimd_reg, 	"fcmeq",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237036544, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcmeq_advsimd_zero, 	"fcmeq",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 1587599360, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcmeq_advsimd_zero, 	"fcmeq",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 245422080, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcmge_advsimd_reg, 	"fcmge",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2116084736, 4288740352) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcmge_advsimd_reg, 	"fcmge",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773907456, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcmge_advsimd_zero, 	"fcmge",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 2124466176, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcmge_advsimd_zero, 	"fcmge",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 782288896, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcmgt_advsimd_reg, 	"fcmgt",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2124473344, 4288740352) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcmgt_advsimd_reg, 	"fcmgt",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 782296064, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcmgt_advsimd_zero, 	"fcmgt",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 1587595264, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcmgt_advsimd_zero, 	"fcmgt",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 245417984, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcmle_advsimd, 	"fcmle",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 2124470272, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcmle_advsimd, 	"fcmle",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 782292992, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcmlt_advsimd, 	"fcmlt",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 1587603456, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcmlt_advsimd, 	"fcmlt",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 245426176, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcmp_float, 	"fcmp",	list_of( fn(setFPMode) )( fn(setFlags) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRopc) ), 505421824, 4288740375) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcmpe_float, 	"fcmpe",	list_of( fn(setFPMode) )( fn(setFlags) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRopc) ), 505421840, 4288740375) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcsel_float, 	"fcsel",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRcond<15 COMMA 12>) )( fn(OPRRn) )( fn(OPRRd) ), 505416704, 4288678912) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvt_float, 	"fcvt",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRopc) )( fn(OPRRn) )( fn(OPRRd) ), 505561088, 4282285056) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtas_advsimd, 	"fcvtas",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 1579272192, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtas_advsimd, 	"fcvtas",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 237094912, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtas_float, 	"fcvtas",	list_of( fn(setFPMode) )( fn(OPRsf) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 505675776, 2143288320) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtau_advsimd, 	"fcvtau",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 2116143104, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtau_advsimd, 	"fcvtau",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 773965824, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtau_float, 	"fcvtau",	list_of( fn(setFPMode) )( fn(OPRsf) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 505741312, 2143288320) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtl_advsimd, 	"fcvtl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 237074432, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtms_advsimd, 	"fcvtms",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 1579268096, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtms_advsimd, 	"fcvtms",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 237090816, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtms_float, 	"fcvtms",	list_of( fn(setFPMode) )( fn(OPRsf) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 506462208, 2143288320) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtmu_advsimd, 	"fcvtmu",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 2116139008, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtmu_advsimd, 	"fcvtmu",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 773961728, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtmu_float, 	"fcvtmu",	list_of( fn(setFPMode) )( fn(OPRsf) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 506527744, 2143288320) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtn_advsimd, 	"fcvtn",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 237070336, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtns_advsimd, 	"fcvtns",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 1579264000, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtns_advsimd, 	"fcvtns",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 237086720, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtns_float, 	"fcvtns",	list_of( fn(setFPMode) )( fn(OPRsf) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 505413632, 2143288320) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtnu_advsimd, 	"fcvtnu",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 2116134912, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtnu_advsimd, 	"fcvtnu",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 773957632, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtnu_float, 	"fcvtnu",	list_of( fn(setFPMode) )( fn(OPRsf) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 505479168, 2143288320) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtps_advsimd, 	"fcvtps",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 1587652608, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtps_advsimd, 	"fcvtps",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 245475328, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtps_float, 	"fcvtps",	list_of( fn(setFPMode) )( fn(OPRsf) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 505937920, 2143288320) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtpu_advsimd, 	"fcvtpu",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 2124523520, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtpu_advsimd, 	"fcvtpu",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 782346240, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtpu_float, 	"fcvtpu",	list_of( fn(setFPMode) )( fn(OPRsf) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 506003456, 2143288320) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtxn_advsimd, 	"fcvtxn",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 2116118528, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtxn_advsimd, 	"fcvtxn",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 773941248, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtzs_advsimd_fix, 	"fcvtzs",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 1593900032, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtzs_advsimd_fix, 	"fcvtzs",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 251722752, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtzs_advsimd_int, 	"fcvtzs",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 1587656704, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtzs_advsimd_int, 	"fcvtzs",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 245479424, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtzs_float_fix, 	"fcvtzs",	list_of( fn(setFPMode) )( fn(OPRsf) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRscale) )( fn(OPRRn) )( fn(OPRRd) ), 504889344, 2143223808) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtzs_float_int, 	"fcvtzs",	list_of( fn(setFPMode) )( fn(OPRsf) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 506986496, 2143288320) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtzu_advsimd_fix, 	"fcvtzu",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 2130770944, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtzu_advsimd_fix, 	"fcvtzu",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 788593664, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtzu_advsimd_int, 	"fcvtzu",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 2124527616, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtzu_advsimd_int, 	"fcvtzu",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 782350336, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtzu_float_fix, 	"fcvtzu",	list_of( fn(setFPMode) )( fn(OPRsf) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRscale) )( fn(OPRRn) )( fn(OPRRd) ), 504954880, 2143223808) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fcvtzu_float_int, 	"fcvtzu",	list_of( fn(setFPMode) )( fn(OPRsf) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 507052032, 2143288320) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fdiv_advsimd, 	"fdiv",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773913600, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fdiv_float, 	"fdiv",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 505419776, 4288740352) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmadd_float, 	"fmadd",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRa) )( fn(OPRRn) )( fn(OPRRd) ), 520093696, 4288708608) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmax_advsimd, 	"fmax",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237040640, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmax_float, 	"fmax",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 505432064, 4288740352) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmaxnm_advsimd, 	"fmaxnm",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237028352, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmaxnm_float, 	"fmaxnm",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 505440256, 4288740352) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmaxnmp_advsimd_pair, 	"fmaxnmp",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 2117126144, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmaxnmp_advsimd_vec, 	"fmaxnmp",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773899264, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmaxnmv_advsimd, 	"fmaxnmv",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 774948864, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmaxp_advsimd_pair, 	"fmaxp",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 2117138432, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmaxp_advsimd_vec, 	"fmaxp",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773911552, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmaxv_advsimd, 	"fmaxv",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 774961152, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmin_advsimd, 	"fmin",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 245429248, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmin_float, 	"fmin",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 505436160, 4288740352) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fminnm_advsimd, 	"fminnm",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 245416960, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fminnm_float, 	"fminnm",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 505444352, 4288740352) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fminnmp_advsimd_pair, 	"fminnmp",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 2125514752, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fminnmp_advsimd_vec, 	"fminnmp",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 782287872, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fminnmv_advsimd, 	"fminnmv",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 783337472, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fminp_advsimd_pair, 	"fminp",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 2125527040, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fminp_advsimd_vec, 	"fminp",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 782300160, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fminv_advsimd, 	"fminv",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 783349760, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmla_advsimd_elt, 	"fmla",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 1602228224, 4286641152) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmla_advsimd_elt, 	"fmla",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 260050944, 3212899328) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmla_advsimd_vec, 	"fmla",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237030400, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmls_advsimd_elt, 	"fmls",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 1602244608, 4286641152) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmls_advsimd_elt, 	"fmls",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 260067328, 3212899328) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmls_advsimd_vec, 	"fmls",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 245419008, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmov_advsimd, 	"fmov",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRop) )( fn(OPRa) )( fn(OPRb) )( fn(OPRc) )( fn(OPRd) )( fn(OPRe) )( fn(OPRf) )( fn(OPRg) )( fn(OPRh) )( fn(OPRRd) ), 251720704, 2683894784) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmov_float, 	"fmov",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 505430016, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmov_float_gen, 	"fmov",	list_of( fn(setFPMode) )( fn(OPRsf) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRrmode) )( fn(OPRopcode) )( fn(OPRRn) )( fn(OPRRd) ), 505806848, 2134309888) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmov_float_imm, 	"fmov",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRimm<20 COMMA 13>) )( fn(OPRRd) ), 505417728, 4288684000) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmsub_float, 	"fmsub",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRa) )( fn(OPRRn) )( fn(OPRRd) ), 520126464, 4288708608) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmul_advsimd_elt, 	"fmul",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 1602260992, 4286641152) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmul_advsimd_elt, 	"fmul",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 260083712, 3212899328) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmul_advsimd_vec, 	"fmul",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773905408, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmul_float, 	"fmul",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 505415680, 4288740352) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmulx_advsimd_elt, 	"fmulx",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 2139131904, 4286641152) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmulx_advsimd_elt, 	"fmulx",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 796954624, 3212899328) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmulx_advsimd_vec, 	"fmulx",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1579211776, 4288740352) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fmulx_advsimd_vec, 	"fmulx",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237034496, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fneg_advsimd, 	"fneg",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 782301184, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fneg_float, 	"fneg",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 505495552, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fnmadd_float, 	"fnmadd",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRa) )( fn(OPRRn) )( fn(OPRRd) ), 522190848, 4288708608) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fnmsub_float, 	"fnmsub",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRa) )( fn(OPRRn) )( fn(OPRRd) ), 522223616, 4288708608) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fnmul_float, 	"fnmul",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 505448448, 4288740352) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frecpe_advsimd, 	"frecpe",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 1587664896, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frecpe_advsimd, 	"frecpe",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 245487616, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frecps_advsimd, 	"frecps",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1579219968, 4288740352) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frecps_advsimd, 	"frecps",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237042688, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frecpx_advsimd, 	"frecpx",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 1587673088, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frinta_advsimd, 	"frinta",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 773949440, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frinta_float, 	"frinta",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 505823232, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frinti_advsimd, 	"frinti",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 782342144, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frinti_float, 	"frinti",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 505921536, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frintm_advsimd, 	"frintm",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 237082624, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frintm_float, 	"frintm",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 505757696, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frintn_advsimd, 	"frintn",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 237078528, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frintn_float, 	"frintn",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 505692160, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frintp_advsimd, 	"frintp",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 245467136, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frintp_float, 	"frintp",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 505724928, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frintx_advsimd, 	"frintx",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 773953536, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frintx_float, 	"frintx",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 505888768, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frintz_advsimd, 	"frintz",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 245471232, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frintz_float, 	"frintz",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 505790464, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frsqrte_advsimd, 	"frsqrte",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 2124535808, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frsqrte_advsimd, 	"frsqrte",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 782358528, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frsqrts_advsimd, 	"frsqrts",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1587608576, 4288740352) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_frsqrts_advsimd, 	"frsqrts",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 245431296, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fsqrt_advsimd, 	"fsqrt",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 782366720, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fsqrt_float, 	"fsqrt",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 505528320, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fsub_advsimd, 	"fsub",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 245421056, 3214998528) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_fsub_float, 	"fsub",	list_of( fn(setFPMode) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 505427968, 4288740352) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_hint, 	"hint",	list_of( fn(OPRCRm) )( fn(OPRop2) ), 3573751839, 4294963231) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_hlt, 	"hlt",	list_of( (operandFactory) fn(OPRimm<20 COMMA 5>) ), 3560964096, 4292870175) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_hvc, 	"hvc",	list_of( (operandFactory) fn(OPRimm<20 COMMA 5>) ), 3556769794, 4292870175) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ic_sys, 	"ic",	list_of( fn(OPRop1) )( fn(OPRCRm) )( fn(OPRop2) )( fn(OPRRt) ), 3574099968, 4294504448) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ins_advsimd_elt, 	"ins",	list_of( fn(setSIMDMode) )( fn(OPRimm<20 COMMA 16>) )( fn(OPRimm<14 COMMA 11>) )( fn(OPRRn) )( fn(OPRRd) ), 1845494784, 4292903936) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ins_advsimd_gen, 	"ins",	list_of( fn(setSIMDMode) )( fn(OPRimm<20 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 1308630016, 4292934656) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_isb, 	"isb",	list_of( fn(OPRCRm) ), 3573756127, 4294963455) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld1_advsimd_mult, 	"ld1",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRopcode) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 205529088, 3221168128) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld1_advsimd_mult, 	"ld1",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRopcode) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 213917696, 3219136512) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld1_advsimd_sngl, 	"ld1",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRopcode) )( fn(OPRS<12 COMMA 12>) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 222298112, 3221168128) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld1_advsimd_sngl, 	"ld1",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRopcode) )( fn(OPRS<12 COMMA 12>) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 230686720, 3219136512) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld1r_advsimd, 	"ld1r",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 222347264, 3221221376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld1r_advsimd, 	"ld1r",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 230735872, 3219189760) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld2_advsimd_mult, 	"ld2",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 205553664, 3221221376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld2_advsimd_mult, 	"ld2",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 213942272, 3219189760) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld2_advsimd_sngl, 	"ld2",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRopcode) )( fn(OPRS<12 COMMA 12>) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 224395264, 3221168128) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld2_advsimd_sngl, 	"ld2",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRopcode) )( fn(OPRS<12 COMMA 12>) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 232783872, 3219136512) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld2r_advsimd, 	"ld2r",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 224444416, 3221221376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld2r_advsimd, 	"ld2r",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 232833024, 3219189760) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld3_advsimd_mult, 	"ld3",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 205537280, 3221221376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld3_advsimd_mult, 	"ld3",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 213925888, 3219189760) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld3_advsimd_sngl, 	"ld3",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRopcode) )( fn(OPRS<12 COMMA 12>) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 222306304, 3221168128) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld3_advsimd_sngl, 	"ld3",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRopcode) )( fn(OPRS<12 COMMA 12>) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 230694912, 3219136512) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld3r_advsimd, 	"ld3r",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 222355456, 3221221376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld3r_advsimd, 	"ld3r",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 230744064, 3219189760) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld4_advsimd_mult, 	"ld4",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 205520896, 3221221376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld4_advsimd_mult, 	"ld4",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 213909504, 3219189760) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld4_advsimd_sngl, 	"ld4",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRopcode) )( fn(OPRS<12 COMMA 12>) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 224403456, 3221168128) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld4_advsimd_sngl, 	"ld4",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRopcode) )( fn(OPRS<12 COMMA 12>) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 232792064, 3219136512) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld4r_advsimd, 	"ld4r",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 224452608, 3221221376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ld4r_advsimd, 	"ld4r",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 232841216, 3219189760) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldar, 	"ldar",	list_of( fn(setRegWidth) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRRnL) )( fn(OPRRtL) ), 2296380416, 3221224448) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldarb, 	"ldarb",	list_of( fn(setRegWidth) )( fn(OPRRnL) )( fn(OPRRtL) ), 148896768, 4294966272) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldarh, 	"ldarh",	list_of( fn(setRegWidth) )( fn(OPRRnL) )( fn(OPRRtL) ), 1222638592, 4294966272) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldaxp, 	"ldaxp",	list_of( fn(setRegWidth) )( fn(OPRsz<30 COMMA 30>) )( fn(OPRRt2L) )( fn(OPRRnL) )( fn(OPRRtL) ), 2290057216, 3221192704) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldaxr, 	"ldaxr",	list_of( fn(setRegWidth) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRRnL) )( fn(OPRRtL) ), 2287991808, 3221224448) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldaxrb, 	"ldaxrb",	list_of( fn(setRegWidth) )( fn(OPRRnL) )( fn(OPRRtL) ), 140508160, 4294966272) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldaxrh, 	"ldaxrh",	list_of( fn(setRegWidth) )( fn(OPRRnL) )( fn(OPRRtL) ), 1214249984, 4294966272) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldnp_fpsimd, 	"ldnp",	list_of( fn(setRegWidth) )( fn(setSIMDMode) )( fn(OPRopc) )( fn(OPRimm<21 COMMA 15>) )( fn(OPRRt2L) )( fn(OPRRnL) )( fn(OPRRtL) ), 742391808, 1069547520) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldnp_gen, 	"ldnp",	list_of( fn(setRegWidth) )( fn(OPRopc) )( fn(OPRimm<21 COMMA 15>) )( fn(OPRRt2L) )( fn(OPRRnL) )( fn(OPRRtL) ), 675282944, 2143289344) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldp_fpsimd, 	"ldp",	list_of( fn(setRegWidth) )( fn(setSIMDMode) )( fn(OPRopc) )( fn(OPRimm<21 COMMA 15>) )( fn(OPRRt2L) )( fn(OPRRnLU) )( fn(OPRRtL) ), 750780416, 1069547520) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldp_fpsimd, 	"ldp",	list_of( fn(setRegWidth) )( fn(setSIMDMode) )( fn(OPRopc) )( fn(OPRimm<21 COMMA 15>) )( fn(OPRRt2L) )( fn(OPRRnLU) )( fn(OPRRtL) ), 767557632, 1069547520) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldp_fpsimd, 	"ldp",	list_of( fn(setRegWidth) )( fn(setSIMDMode) )( fn(OPRopc) )( fn(OPRimm<21 COMMA 15>) )( fn(OPRRt2L) )( fn(OPRRnL) )( fn(OPRRtL) ), 759169024, 1069547520) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldp_gen, 	"ldp",	list_of( fn(setRegWidth) )( fn(OPRopc) )( fn(OPRimm<21 COMMA 15>) )( fn(OPRRt2L) )( fn(OPRRnLU) )( fn(OPRRtL) ), 683671552, 2143289344) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldp_gen, 	"ldp",	list_of( fn(setRegWidth) )( fn(OPRopc) )( fn(OPRimm<21 COMMA 15>) )( fn(OPRRt2L) )( fn(OPRRnLU) )( fn(OPRRtL) ), 700448768, 2143289344) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldp_gen, 	"ldp",	list_of( fn(setRegWidth) )( fn(OPRopc) )( fn(OPRimm<21 COMMA 15>) )( fn(OPRRt2L) )( fn(OPRRnL) )( fn(OPRRtL) ), 692060160, 2143289344) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldpsw, 	"ldpsw",	list_of( fn(setRegWidth) )( fn(OPRimm<21 COMMA 15>) )( fn(OPRRt2L) )( fn(OPRRnLU) )( fn(OPRRtL) ), 1757413376, 4290772992) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldpsw, 	"ldpsw",	list_of( fn(setRegWidth) )( fn(OPRimm<21 COMMA 15>) )( fn(OPRRt2L) )( fn(OPRRnLU) )( fn(OPRRtL) ), 1774190592, 4290772992) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldpsw, 	"ldpsw",	list_of( fn(setRegWidth) )( fn(OPRimm<21 COMMA 15>) )( fn(OPRRt2L) )( fn(OPRRnL) )( fn(OPRRtL) ), 1765801984, 4290772992) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldr_imm_fpsimd, 	"ldr",	list_of( fn(setRegWidth) )( fn(setSIMDMode) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRopc) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnLU) )( fn(OPRRtL) ), 1010828288, 1063259136) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldr_imm_fpsimd, 	"ldr",	list_of( fn(setRegWidth) )( fn(setSIMDMode) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRopc) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnLU) )( fn(OPRRtL) ), 1010830336, 1063259136) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldr_imm_fpsimd, 	"ldr",	list_of( fn(setRegWidth) )( fn(setSIMDMode) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRopc) )( fn(OPRimm<21 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 1027604480, 1061158912) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldr_imm_gen, 	"ldr",	list_of( fn(setRegWidth) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnLU) )( fn(OPRRtL) ), 3091203072, 3219131392) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldr_imm_gen, 	"ldr",	list_of( fn(setRegWidth) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnLU) )( fn(OPRRtL) ), 3091205120, 3219131392) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldr_imm_gen, 	"ldr",	list_of( fn(setRegWidth) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRimm<21 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 3107979264, 3217031168) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldr_lit_fpsimd, 	"ldr",	list_of( fn(setRegWidth) )( fn(setSIMDMode) )( fn(OPRopc) )( fn(OPRimm<23 COMMA 5>) )( fn(OPRRtL) ), 469762048, 1056964608) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldr_lit_gen, 	"ldr",	list_of( fn(setRegWidth) )( fn(OPRopc) )( fn(OPRimm<23 COMMA 5>) )( fn(OPRRtL) ), 402653184, 3204448256) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldr_reg_fpsimd, 	"ldr",	list_of( fn(setRegWidth) )( fn(setSIMDMode) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRopc) )( fn(OPRRm) )( fn(OPRoption<15 COMMA 13>) )( fn(OPRS<12 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRtL) ), 1012926464, 1063259136) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldr_reg_gen, 	"ldr",	list_of( fn(setRegWidth) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRRm) )( fn(OPRoption<15 COMMA 13>) )( fn(OPRS<12 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRtL) ), 3093301248, 3219131392) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldrb_imm, 	"ldrb",	list_of( fn(setRegWidth) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnLU) )( fn(OPRRtL) ), 943719424, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldrb_imm, 	"ldrb",	list_of( fn(setRegWidth) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnLU) )( fn(OPRRtL) ), 943721472, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldrb_imm, 	"ldrb",	list_of( fn(setRegWidth) )( fn(OPRimm<21 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 960495616, 4290772992) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldrb_reg, 	"ldrb",	list_of( fn(setRegWidth) )( fn(OPRRm) )( fn(OPRoption<15 COMMA 13>) )( fn(OPRS<12 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRtL) ), 945817600, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldrh_imm, 	"ldrh",	list_of( fn(setRegWidth) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnLU) )( fn(OPRRtL) ), 2017461248, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldrh_imm, 	"ldrh",	list_of( fn(setRegWidth) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnLU) )( fn(OPRRtL) ), 2017463296, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldrh_imm, 	"ldrh",	list_of( fn(setRegWidth) )( fn(OPRimm<21 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 2034237440, 4290772992) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldrh_reg, 	"ldrh",	list_of( fn(setRegWidth) )( fn(OPRRm) )( fn(OPRoption<15 COMMA 13>) )( fn(OPRS<12 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRtL) ), 2019559424, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldrsb_imm, 	"ldrsb",	list_of( fn(setRegWidth) )( fn(OPRopc) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnLU) )( fn(OPRRtL) ), 947913728, 4288678912) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldrsb_imm, 	"ldrsb",	list_of( fn(setRegWidth) )( fn(OPRopc) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnLU) )( fn(OPRRtL) ), 947915776, 4288678912) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldrsb_imm, 	"ldrsb",	list_of( fn(setRegWidth) )( fn(OPRopc) )( fn(OPRimm<21 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 964689920, 4286578688) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldrsb_reg, 	"ldrsb",	list_of( fn(setRegWidth) )( fn(OPRopc) )( fn(OPRRm) )( fn(OPRoption<15 COMMA 13>) )( fn(OPRS<12 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRtL) ), 950011904, 4288678912) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldrsh_imm, 	"ldrsh",	list_of( fn(setRegWidth) )( fn(OPRopc) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnLU) )( fn(OPRRtL) ), 2021655552, 4288678912) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldrsh_imm, 	"ldrsh",	list_of( fn(setRegWidth) )( fn(OPRopc) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnLU) )( fn(OPRRtL) ), 2021657600, 4288678912) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldrsh_imm, 	"ldrsh",	list_of( fn(setRegWidth) )( fn(OPRopc) )( fn(OPRimm<21 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 2038431744, 4286578688) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldrsh_reg, 	"ldrsh",	list_of( fn(setRegWidth) )( fn(OPRopc) )( fn(OPRRm) )( fn(OPRoption<15 COMMA 13>) )( fn(OPRS<12 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRtL) ), 2023753728, 4288678912) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldrsw_imm, 	"ldrsw",	list_of( fn(setRegWidth) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnLU) )( fn(OPRRtL) ), 3095397376, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldrsw_imm, 	"ldrsw",	list_of( fn(setRegWidth) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnLU) )( fn(OPRRtL) ), 3095399424, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldrsw_imm, 	"ldrsw",	list_of( fn(setRegWidth) )( fn(OPRimm<21 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRtL) ), 3112173568, 4290772992) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldrsw_lit, 	"ldrsw",	list_of( fn(setRegWidth) )( fn(OPRimm<23 COMMA 5>) )( fn(OPRRtL) ), 2550136832, 4278190080) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldrsw_reg, 	"ldrsw",	list_of( fn(setRegWidth) )( fn(OPRRm) )( fn(OPRoption<15 COMMA 13>) )( fn(OPRS<12 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRtL) ), 3097495552, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldtr, 	"ldtr",	list_of( fn(setRegWidth) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRtL) ), 3091204096, 3219131392) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldtrb, 	"ldtrb",	list_of( fn(setRegWidth) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRtL) ), 943720448, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldtrh, 	"ldtrh",	list_of( fn(setRegWidth) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRtL) ), 2017462272, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldtrsb, 	"ldtrsb",	list_of( fn(setRegWidth) )( fn(OPRopc) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRtL) ), 947914752, 4288678912) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldtrsh, 	"ldtrsh",	list_of( fn(setRegWidth) )( fn(OPRopc) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRtL) ), 2021656576, 4288678912) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldtrsw, 	"ldtrsw",	list_of( fn(setRegWidth) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRtL) ), 3095398400, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldur_fpsimd, 	"ldur",	list_of( fn(setRegWidth) )( fn(setSIMDMode) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRopc) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRtL) ), 1010827264, 1063259136) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldur_gen, 	"ldur",	list_of( fn(setRegWidth) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRtL) ), 3091202048, 3219131392) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldurb, 	"ldurb",	list_of( fn(setRegWidth) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRtL) ), 943718400, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldurh, 	"ldurh",	list_of( fn(setRegWidth) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRtL) ), 2017460224, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldursb, 	"ldursb",	list_of( fn(setRegWidth) )( fn(OPRopc) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRtL) ), 947912704, 4288678912) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldursh, 	"ldursh",	list_of( fn(setRegWidth) )( fn(OPRopc) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRtL) ), 2021654528, 4288678912) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldursw, 	"ldursw",	list_of( fn(setRegWidth) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRtL) ), 3095396352, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldxp, 	"ldxp",	list_of( fn(setRegWidth) )( fn(OPRsz<30 COMMA 30>) )( fn(OPRRt2L) )( fn(OPRRnL) )( fn(OPRRtL) ), 2290024448, 3221192704) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldxr, 	"ldxr",	list_of( fn(setRegWidth) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRRnL) )( fn(OPRRtL) ), 2287959040, 3221224448) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldxrb, 	"ldxrb",	list_of( fn(setRegWidth) )( fn(OPRRnL) )( fn(OPRRtL) ), 140475392, 4294966272) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ldxrh, 	"ldxrh",	list_of( fn(setRegWidth) )( fn(OPRRnL) )( fn(OPRRtL) ), 1214217216, 4294966272) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_lsl_lslv, 	"lsl",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 448798720, 2145451008) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_lsl_ubfm, 	"lsl",	list_of( fn(OPRsf) )( fn(OPRN<22 COMMA 22>) )( fn(OPRimm<21 COMMA 16>) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 1392508928, 2139095040) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_lslv, 	"lslv",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 448798720, 2145451008) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_lsr_lsrv, 	"lsr",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 448799744, 2145451008) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_lsr_ubfm, 	"lsr",	list_of( fn(OPRsf) )( fn(OPRN<22 COMMA 22>) )( fn(OPRimm<21 COMMA 16>) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 1392540672, 2139126784) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_lsrv, 	"lsrv",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 448799744, 2145451008) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_madd, 	"madd",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRa) )( fn(OPRRn) )( fn(OPRRd) ), 452984832, 2145419264) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_mla_advsimd_elt, 	"mla",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 788529152, 3204510720) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_mla_advsimd_vec, 	"mla",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237016064, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_mls_advsimd_elt, 	"mls",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 788545536, 3204510720) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_mls_advsimd_vec, 	"mls",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773886976, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_mneg_msub, 	"mneg",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 453049344, 2145451008) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_mov_add_addsub_imm, 	"mov",	list_of( fn(OPRsf) )( fn(OPRRn) )( fn(OPRRd) ), 285212672, 2147482624) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_mov_dup_advsimd_elt, 	"mov",	list_of( fn(setSIMDMode) )( fn(OPRimm<20 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 1577059328, 4292934656) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_mov_ins_advsimd_elt, 	"mov",	list_of( fn(setSIMDMode) )( fn(OPRimm<20 COMMA 16>) )( fn(OPRimm<14 COMMA 11>) )( fn(OPRRn) )( fn(OPRRd) ), 1845494784, 4292903936) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_mov_ins_advsimd_gen, 	"mov",	list_of( fn(setSIMDMode) )( fn(OPRimm<20 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 1308630016, 4292934656) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_mov_movn, 	"mov",	list_of( fn(OPRsf) )( fn(OPRhw) )( fn(OPRimm<20 COMMA 5>) )( fn(OPRRd) ), 310378496, 2139095040) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_mov_movz, 	"mov",	list_of( fn(OPRsf) )( fn(OPRhw) )( fn(OPRimm<20 COMMA 5>) )( fn(OPRRd) ), 1384120320, 2139095040) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_mov_orr_advsimd_reg, 	"mov",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 245373952, 3219192832) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_mov_orr_log_imm, 	"mov",	list_of( fn(OPRsf) )( fn(OPRN<22 COMMA 22>) )( fn(OPRimm<21 COMMA 16>) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRd) ), 838861792, 2139096032) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_mov_orr_log_shift, 	"mov",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRd) ), 704644064, 2145452000) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_mov_umov_advsimd, 	"mov",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<20 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 234896384, 3219192832) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_movi_advsimd, 	"movi",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRop) )( fn(OPRa) )( fn(OPRb) )( fn(OPRc) )( fn(OPRcmode) )( fn(OPRd) )( fn(OPRe) )( fn(OPRf) )( fn(OPRg) )( fn(OPRh) )( fn(OPRRd) ), 251659264, 2683833344) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_movk, 	"movk",	list_of( fn(OPRsf) )( fn(OPRhw) )( fn(OPRimm<20 COMMA 5>) )( fn(OPRRd) ), 1920991232, 2139095040) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_movn, 	"movn",	list_of( fn(OPRsf) )( fn(OPRhw) )( fn(OPRimm<20 COMMA 5>) )( fn(OPRRd) ), 310378496, 2139095040) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_movz, 	"movz",	list_of( fn(OPRsf) )( fn(OPRhw) )( fn(OPRimm<20 COMMA 5>) )( fn(OPRRd) ), 1384120320, 2139095040) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_mrs, 	"mrs",	list_of( fn(OPRo0) )( fn(OPRop1) )( fn(OPRCRn) )( fn(OPRCRm) )( fn(OPRop2) )( fn(OPRRt) ), 3576692736, 4293918720) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_msr_imm, 	"msr",	list_of( fn(OPRop1) )( fn(OPRCRm) )( fn(OPRop2) ), 3573563423, 4294504479) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_msr_reg, 	"msr",	list_of( fn(OPRo0) )( fn(OPRop1) )( fn(OPRCRn) )( fn(OPRCRm) )( fn(OPRop2) )( fn(OPRRt) ), 3574595584, 4293918720) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_msub, 	"msub",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRa) )( fn(OPRRn) )( fn(OPRRd) ), 453017600, 2145419264) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_mul_advsimd_elt, 	"mul",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 251691008, 3204510720) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_mul_advsimd_vec, 	"mul",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237018112, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_mul_madd, 	"mul",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 453016576, 2145451008) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_mvn_not_advsimd, 	"mvn",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRn) )( fn(OPRRd) ), 773871616, 3221224448) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_mvn_orn_log_shift, 	"mvn",	list_of( fn(OPRsf) )( fn(OPRshift) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRd) ), 706741216, 2132804576) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_mvni_advsimd, 	"mvni",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRa) )( fn(OPRb) )( fn(OPRc) )( fn(OPRcmode) )( fn(OPRd) )( fn(OPRe) )( fn(OPRf) )( fn(OPRg) )( fn(OPRh) )( fn(OPRRd) ), 788530176, 3220704256) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_neg_advsimd, 	"neg",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 2116073472, 4282383360) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_neg_advsimd, 	"neg",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 773896192, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_neg_sub_addsub_shift, 	"neg",	list_of( fn(OPRsf) )( fn(OPRshift) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRd) ), 1258292192, 2132804576) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_negs_subs_addsub_shift, 	"negs",	list_of( fn(setFlags) )( fn(OPRsf) )( fn(OPRshift) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRd) ), 1795163104, 2132804576) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ngc_sbc, 	"ngc",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRd) ), 1509950432, 2145452000) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ngcs_sbcs, 	"ngcs",	list_of( fn(setFlags) )( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRd) ), 2046821344, 2145452000) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_nop_hint, 	"nop",	operandSpec(), 3573751839, 4294967295) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_not_advsimd, 	"not",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRn) )( fn(OPRRd) ), 773871616, 3221224448) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_orn_advsimd, 	"orn",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 249568256, 3219192832) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_orn_log_shift, 	"orn",	list_of( fn(OPRsf) )( fn(OPRshift) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 706740224, 2132803584) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_orr_advsimd_imm, 	"orr",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRa) )( fn(OPRb) )( fn(OPRc) )( fn(OPRcmode) )( fn(OPRd) )( fn(OPRe) )( fn(OPRf) )( fn(OPRg) )( fn(OPRh) )( fn(OPRRd) ), 251663360, 3220708352) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_orr_advsimd_reg, 	"orr",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 245373952, 3219192832) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_orr_log_imm, 	"orr",	list_of( fn(OPRsf) )( fn(OPRN<22 COMMA 22>) )( fn(OPRimm<21 COMMA 16>) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 838860800, 2139095040) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_orr_log_shift, 	"orr",	list_of( fn(OPRsf) )( fn(OPRshift) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 704643072, 2132803584) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_pmul_advsimd, 	"pmul",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773889024, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_pmull_advsimd, 	"pmull",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237035520, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_prfm_imm, 	"prfm",	list_of( (operandFactory) fn(OPRimm<21 COMMA 10>) )( fn(OPRRnL) )( fn(OPRRt) ), 4185915392, 4290772992) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_prfm_lit, 	"prfm",	list_of( (operandFactory) fn(OPRimm<23 COMMA 5>) )( fn(OPRRt) ), 3623878656, 4278190080) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_prfm_reg, 	"prfm",	list_of( fn(OPRRm) )( fn(OPRoption<15 COMMA 13>) )( fn(OPRS<12 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRt) ), 4171237376, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_prfum, 	"prfum",	list_of( (operandFactory) fn(OPRimm<20 COMMA 12>) )( fn(OPRRnL) )( fn(OPRRt) ), 4169138176, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_raddhn_advsimd, 	"raddhn",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773865472, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_rbit_advsimd, 	"rbit",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRn) )( fn(OPRRd) ), 778065920, 3221224448) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_rbit_int, 	"rbit",	list_of( fn(OPRsf) )( fn(OPRRn) )( fn(OPRRd) ), 1522532352, 2147482624) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ret, 	"ret",	list_of( fn(OPRRn) ), 3596550144, 4294966303) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_rev, 	"rev",	list_of( fn(OPRsf) )( fn(OPRopc) )( fn(OPRRn) )( fn(OPRRd) ), 1522534400, 2147481600) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_rev16_advsimd, 	"rev16",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 236984320, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_rev16_int, 	"rev16",	list_of( fn(OPRsf) )( fn(OPRRn) )( fn(OPRRd) ), 1522533376, 2147482624) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_rev32_advsimd, 	"rev32",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 773851136, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_rev32_int, 	"rev32",	list_of( fn(OPRRn) )( fn(OPRRd) ), 3670018048, 4294966272) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_rev64_advsimd, 	"rev64",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 236980224, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ror_extr, 	"ror",	list_of( fn(OPRsf) )( fn(OPRN<22 COMMA 22>) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 327155712, 2141192192) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ror_rorv, 	"ror",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 448801792, 2145451008) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_rorv, 	"rorv",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 448801792, 2145451008) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_rshrn_advsimd, 	"rshrn",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 251694080, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_rsubhn_advsimd, 	"rsubhn",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773873664, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_saba_advsimd, 	"saba",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237009920, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sabal_advsimd, 	"sabal",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 236998656, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sabd_advsimd, 	"sabd",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237007872, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sabdl_advsimd, 	"sabdl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237006848, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sadalp_advsimd, 	"sadalp",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 237004800, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_saddl_advsimd, 	"saddl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 236978176, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_saddlp_advsimd, 	"saddlp",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 236988416, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_saddlv_advsimd, 	"saddlv",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 238041088, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_saddw_advsimd, 	"saddw",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 236982272, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sbc, 	"sbc",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1509949440, 2145451008) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sbcs, 	"sbcs",	list_of( fn(setFlags) )( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2046820352, 2145451008) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sbfiz_sbfm, 	"sbfiz",	list_of( fn(OPRsf) )( fn(OPRN<22 COMMA 22>) )( fn(OPRimm<21 COMMA 16>) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 318767104, 2139095040) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sbfm, 	"sbfm",	list_of( fn(OPRsf) )( fn(OPRN<22 COMMA 22>) )( fn(OPRimm<21 COMMA 16>) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 318767104, 2139095040) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sbfx_sbfm, 	"sbfx",	list_of( fn(OPRsf) )( fn(OPRN<22 COMMA 22>) )( fn(OPRimm<21 COMMA 16>) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 318767104, 2139095040) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_scvtf_advsimd_fix, 	"scvtf",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 1593893888, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_scvtf_advsimd_fix, 	"scvtf",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 251716608, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_scvtf_advsimd_int, 	"scvtf",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 1579276288, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_scvtf_advsimd_int, 	"scvtf",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 237099008, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_scvtf_float_fix, 	"scvtf",	list_of( fn(setFPMode) )( fn(OPRsf) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRscale) )( fn(OPRRn) )( fn(OPRRd) ), 503447552, 2143223808) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_scvtf_float_int, 	"scvtf",	list_of( fn(setFPMode) )( fn(OPRsf) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 505544704, 2143288320) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sdiv, 	"sdiv",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 448793600, 2145451008) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sev_hint, 	"sev",	operandSpec(), 3573751967, 4294967295) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sevl_hint, 	"sevl",	operandSpec(), 3573751999, 4294967295) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sha1c_advsimd, 	"sha1c",	list_of( fn(setSIMDMode) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1577058304, 4292934656) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sha1h_advsimd, 	"sha1h",	list_of( fn(setSIMDMode) )( fn(OPRRn) )( fn(OPRRd) ), 1579681792, 4294966272) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sha1m_advsimd, 	"sha1m",	list_of( fn(setSIMDMode) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1577066496, 4292934656) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sha1p_advsimd, 	"sha1p",	list_of( fn(setSIMDMode) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1577062400, 4292934656) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sha1su0_advsimd, 	"sha1su0",	list_of( fn(setSIMDMode) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1577070592, 4292934656) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sha1su1_advsimd, 	"sha1su1",	list_of( fn(setSIMDMode) )( fn(OPRRn) )( fn(OPRRd) ), 1579685888, 4294966272) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sha256h2_advsimd, 	"sha256h2",	list_of( fn(setSIMDMode) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1577078784, 4292934656) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sha256h_advsimd, 	"sha256h",	list_of( fn(setSIMDMode) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1577074688, 4292934656) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sha256su0_advsimd, 	"sha256su0",	list_of( fn(setSIMDMode) )( fn(OPRRn) )( fn(OPRRd) ), 1579689984, 4294966272) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sha256su1_advsimd, 	"sha256su1",	list_of( fn(setSIMDMode) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1577082880, 4292934656) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_shadd_advsimd, 	"shadd",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 236979200, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_shl_advsimd, 	"shl",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 1593857024, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_shl_advsimd, 	"shl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 251679744, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_shll_advsimd, 	"shll",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 773928960, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_shrn_advsimd, 	"shrn",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 251692032, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_shsub_advsimd, 	"shsub",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 236987392, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sli_advsimd, 	"sli",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 2130727936, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sli_advsimd, 	"sli",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 788550656, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_smaddl, 	"smaddl",	list_of( fn(OPRRm) )( fn(OPRRa) )( fn(OPRRn) )( fn(OPRRd) ), 2602565632, 4292902912) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_smax_advsimd, 	"smax",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237003776, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_smaxp_advsimd, 	"smaxp",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237020160, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_smaxv_advsimd, 	"smaxv",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 238069760, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_smc, 	"smc",	list_of( (operandFactory) fn(OPRimm<20 COMMA 5>) ), 3556769795, 4292870175) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_smin_advsimd, 	"smin",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237005824, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sminp_advsimd, 	"sminp",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237022208, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sminv_advsimd, 	"sminv",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 238135296, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_smlal_advsimd_elt, 	"smlal",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 251666432, 3204510720) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_smlal_advsimd_vec, 	"smlal",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237010944, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_smlsl_advsimd_elt, 	"smlsl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 251682816, 3204510720) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_smlsl_advsimd_vec, 	"smlsl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237019136, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_smnegl_smsubl, 	"smnegl",	list_of( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2602630144, 4292934656) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_smov_advsimd, 	"smov",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<20 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 234892288, 3219192832) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_smsubl, 	"smsubl",	list_of( fn(OPRRm) )( fn(OPRRa) )( fn(OPRRn) )( fn(OPRRd) ), 2602598400, 4292902912) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_smulh, 	"smulh",	list_of( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2604694528, 4292934656) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_smull_advsimd_elt, 	"smull",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 251699200, 3204510720) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_smull_advsimd_vec, 	"smull",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237027328, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_smull_smaddl, 	"smull",	list_of( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2602597376, 4292934656) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqabs_advsimd, 	"sqabs",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 1579186176, 4282383360) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqabs_advsimd, 	"sqabs",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 237008896, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqadd_advsimd, 	"sqadd",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1579158528, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqadd_advsimd, 	"sqadd",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 236981248, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqdmlal_advsimd_elt, 	"sqdmlal",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 1593847808, 4278252544) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqdmlal_advsimd_elt, 	"sqdmlal",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 251670528, 3204510720) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqdmlal_advsimd_vec, 	"sqdmlal",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1579192320, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqdmlal_advsimd_vec, 	"sqdmlal",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237015040, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqdmlsl_advsimd_elt, 	"sqdmlsl",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 1593864192, 4278252544) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqdmlsl_advsimd_elt, 	"sqdmlsl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 251686912, 3204510720) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqdmlsl_advsimd_vec, 	"sqdmlsl",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1579200512, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqdmlsl_advsimd_vec, 	"sqdmlsl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237023232, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqdmulh_advsimd_elt, 	"sqdmulh",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 1593884672, 4278252544) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqdmulh_advsimd_elt, 	"sqdmulh",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 251707392, 3204510720) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqdmulh_advsimd_vec, 	"sqdmulh",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1579201536, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqdmulh_advsimd_vec, 	"sqdmulh",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237024256, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqdmull_advsimd_elt, 	"sqdmull",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 1593880576, 4278252544) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqdmull_advsimd_elt, 	"sqdmull",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 251703296, 3204510720) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqdmull_advsimd_vec, 	"sqdmull",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1579208704, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqdmull_advsimd_vec, 	"sqdmull",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237031424, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqneg_advsimd, 	"sqneg",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 2116057088, 4282383360) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqneg_advsimd, 	"sqneg",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 773879808, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqrdmulh_advsimd_elt, 	"sqrdmulh",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 1593888768, 4278252544) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqrdmulh_advsimd_elt, 	"sqrdmulh",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 251711488, 3204510720) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqrdmulh_advsimd_vec, 	"sqrdmulh",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2116072448, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqrdmulh_advsimd_vec, 	"sqrdmulh",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773895168, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqrshl_advsimd, 	"sqrshl",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1579179008, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqrshl_advsimd, 	"sqrshl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237001728, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqrshrn_advsimd, 	"sqrshrn",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 1593875456, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqrshrn_advsimd, 	"sqrshrn",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 251698176, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqrshrun_advsimd, 	"sqrshrun",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 2130742272, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqrshrun_advsimd, 	"sqrshrun",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 788564992, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqshl_advsimd_imm, 	"sqshl",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 1593865216, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqshl_advsimd_imm, 	"sqshl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 251687936, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqshl_advsimd_reg, 	"sqshl",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1579174912, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqshl_advsimd_reg, 	"sqshl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 236997632, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqshlu_advsimd, 	"sqshlu",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 2130732032, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqshlu_advsimd, 	"sqshlu",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 788554752, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqshrn_advsimd, 	"sqshrn",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 1593873408, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqshrn_advsimd, 	"sqshrn",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 251696128, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqshrun_advsimd, 	"sqshrun",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 2130740224, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqshrun_advsimd, 	"sqshrun",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 788562944, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqsub_advsimd, 	"sqsub",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1579166720, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqsub_advsimd, 	"sqsub",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 236989440, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqxtn_advsimd, 	"sqxtn",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 1579239424, 4282383360) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqxtn_advsimd, 	"sqxtn",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 237062144, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqxtun_advsimd, 	"sqxtun",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 2116102144, 4282383360) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sqxtun_advsimd, 	"sqxtun",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 773924864, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_srhadd_advsimd, 	"srhadd",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 236983296, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sri_advsimd, 	"sri",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 2130723840, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sri_advsimd, 	"sri",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 788546560, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_srshl_advsimd, 	"srshl",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1579176960, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_srshl_advsimd, 	"srshl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 236999680, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_srshr_advsimd, 	"srshr",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 1593844736, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_srshr_advsimd, 	"srshr",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 251667456, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_srsra_advsimd, 	"srsra",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 1593848832, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_srsra_advsimd, 	"srsra",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 251671552, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sshl_advsimd, 	"sshl",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 1579172864, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sshl_advsimd, 	"sshl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 236995584, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sshll_advsimd, 	"sshll",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 251700224, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sshr_advsimd, 	"sshr",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 1593836544, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sshr_advsimd, 	"sshr",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 251659264, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ssra_advsimd, 	"ssra",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 1593840640, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ssra_advsimd, 	"ssra",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 251663360, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ssubl_advsimd, 	"ssubl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 236986368, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ssubw_advsimd, 	"ssubw",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 236990464, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_st1_advsimd_mult, 	"st1",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRopcode) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnS) )( fn(OPRRtS) ), 201334784, 3221168128) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_st1_advsimd_mult, 	"st1",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRopcode) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnS) )( fn(OPRRtS) ), 209723392, 3219136512) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_st1_advsimd_sngl, 	"st1",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRopcode) )( fn(OPRS<12 COMMA 12>) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnS) )( fn(OPRRtS) ), 218103808, 3221168128) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_st1_advsimd_sngl, 	"st1",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRopcode) )( fn(OPRS<12 COMMA 12>) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnS) )( fn(OPRRtS) ), 226492416, 3219136512) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_st2_advsimd_mult, 	"st2",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnS) )( fn(OPRRtS) ), 201359360, 3221221376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_st2_advsimd_mult, 	"st2",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnS) )( fn(OPRRtS) ), 209747968, 3219189760) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_st2_advsimd_sngl, 	"st2",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRopcode) )( fn(OPRS<12 COMMA 12>) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnS) )( fn(OPRRtS) ), 220200960, 3221168128) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_st2_advsimd_sngl, 	"st2",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRopcode) )( fn(OPRS<12 COMMA 12>) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnS) )( fn(OPRRtS) ), 228589568, 3219136512) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_st3_advsimd_mult, 	"st3",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnS) )( fn(OPRRtS) ), 201342976, 3221221376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_st3_advsimd_mult, 	"st3",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnS) )( fn(OPRRtS) ), 209731584, 3219189760) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_st3_advsimd_sngl, 	"st3",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRopcode) )( fn(OPRS<12 COMMA 12>) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnS) )( fn(OPRRtS) ), 218112000, 3221168128) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_st3_advsimd_sngl, 	"st3",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRopcode) )( fn(OPRS<12 COMMA 12>) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnS) )( fn(OPRRtS) ), 226500608, 3219136512) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_st4_advsimd_mult, 	"st4",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnS) )( fn(OPRRtS) ), 201326592, 3221221376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_st4_advsimd_mult, 	"st4",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnS) )( fn(OPRRtS) ), 209715200, 3219189760) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_st4_advsimd_sngl, 	"st4",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRopcode) )( fn(OPRS<12 COMMA 12>) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnS) )( fn(OPRRtS) ), 220209152, 3221168128) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_st4_advsimd_sngl, 	"st4",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRopcode) )( fn(OPRS<12 COMMA 12>) )( fn(OPRsize<11 COMMA 10>) )( fn(OPRRnS) )( fn(OPRRtS) ), 228597760, 3219136512) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_stlr, 	"stlr",	list_of( fn(setRegWidth) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRRnS) )( fn(OPRRtS) ), 2292186112, 3221224448) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_stlrb, 	"stlrb",	list_of( fn(setRegWidth) )( fn(OPRRnS) )( fn(OPRRtS) ), 144702464, 4294966272) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_stlrh, 	"stlrh",	list_of( fn(setRegWidth) )( fn(OPRRnS) )( fn(OPRRtS) ), 1218444288, 4294966272) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_stlxp, 	"stlxp",	list_of( fn(setRegWidth) )( fn(OPRsz<30 COMMA 30>) )( fn(OPRRs) )( fn(OPRRt2S) )( fn(OPRRnS) )( fn(OPRRtS) ), 2283831296, 3219161088) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_stlxr, 	"stlxr",	list_of( fn(setRegWidth) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRRs) )( fn(OPRRnS) )( fn(OPRRtS) ), 2281765888, 3219192832) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_stlxrb, 	"stlxrb",	list_of( fn(setRegWidth) )( fn(OPRRs) )( fn(OPRRnS) )( fn(OPRRtS) ), 134282240, 4292934656) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_stlxrh, 	"stlxrh",	list_of( fn(setRegWidth) )( fn(OPRRs) )( fn(OPRRnS) )( fn(OPRRtS) ), 1208024064, 4292934656) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_stnp_fpsimd, 	"stnp",	list_of( fn(setRegWidth) )( fn(setSIMDMode) )( fn(OPRopc) )( fn(OPRimm<21 COMMA 15>) )( fn(OPRRt2S) )( fn(OPRRnS) )( fn(OPRRtS) ), 738197504, 1069547520) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_stnp_gen, 	"stnp",	list_of( fn(setRegWidth) )( fn(OPRopc) )( fn(OPRimm<21 COMMA 15>) )( fn(OPRRt2S) )( fn(OPRRnS) )( fn(OPRRtS) ), 671088640, 2143289344) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_stp_fpsimd, 	"stp",	list_of( fn(setRegWidth) )( fn(setSIMDMode) )( fn(OPRopc) )( fn(OPRimm<21 COMMA 15>) )( fn(OPRRt2S) )( fn(OPRRnSU) )( fn(OPRRtS) ), 746586112, 1069547520) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_stp_fpsimd, 	"stp",	list_of( fn(setRegWidth) )( fn(setSIMDMode) )( fn(OPRopc) )( fn(OPRimm<21 COMMA 15>) )( fn(OPRRt2S) )( fn(OPRRnSU) )( fn(OPRRtS) ), 763363328, 1069547520) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_stp_fpsimd, 	"stp",	list_of( fn(setRegWidth) )( fn(setSIMDMode) )( fn(OPRopc) )( fn(OPRimm<21 COMMA 15>) )( fn(OPRRt2S) )( fn(OPRRnS) )( fn(OPRRtS) ), 754974720, 1069547520) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_stp_gen, 	"stp",	list_of( fn(setRegWidth) )( fn(OPRopc) )( fn(OPRimm<21 COMMA 15>) )( fn(OPRRt2S) )( fn(OPRRnSU) )( fn(OPRRtS) ), 679477248, 2143289344) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_stp_gen, 	"stp",	list_of( fn(setRegWidth) )( fn(OPRopc) )( fn(OPRimm<21 COMMA 15>) )( fn(OPRRt2S) )( fn(OPRRnSU) )( fn(OPRRtS) ), 696254464, 2143289344) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_stp_gen, 	"stp",	list_of( fn(setRegWidth) )( fn(OPRopc) )( fn(OPRimm<21 COMMA 15>) )( fn(OPRRt2S) )( fn(OPRRnS) )( fn(OPRRtS) ), 687865856, 2143289344) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_str_imm_fpsimd, 	"str",	list_of( fn(setRegWidth) )( fn(setSIMDMode) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRopc) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnSU) )( fn(OPRRtS) ), 1006633984, 1063259136) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_str_imm_fpsimd, 	"str",	list_of( fn(setRegWidth) )( fn(setSIMDMode) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRopc) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnSU) )( fn(OPRRtS) ), 1006636032, 1063259136) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_str_imm_fpsimd, 	"str",	list_of( fn(setRegWidth) )( fn(setSIMDMode) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRopc) )( fn(OPRimm<21 COMMA 10>) )( fn(OPRRnS) )( fn(OPRRtS) ), 1023410176, 1061158912) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_str_imm_gen, 	"str",	list_of( fn(setRegWidth) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnSU) )( fn(OPRRtS) ), 3087008768, 3219131392) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_str_imm_gen, 	"str",	list_of( fn(setRegWidth) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnSU) )( fn(OPRRtS) ), 3087010816, 3219131392) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_str_imm_gen, 	"str",	list_of( fn(setRegWidth) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRimm<21 COMMA 10>) )( fn(OPRRnS) )( fn(OPRRtS) ), 3103784960, 3217031168) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_str_reg_fpsimd, 	"str",	list_of( fn(setRegWidth) )( fn(setSIMDMode) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRopc) )( fn(OPRRm) )( fn(OPRoption<15 COMMA 13>) )( fn(OPRS<12 COMMA 12>) )( fn(OPRRnS) )( fn(OPRRtS) ), 1008732160, 1063259136) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_str_reg_gen, 	"str",	list_of( fn(setRegWidth) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRRm) )( fn(OPRoption<15 COMMA 13>) )( fn(OPRS<12 COMMA 12>) )( fn(OPRRnS) )( fn(OPRRtS) ), 3089106944, 3219131392) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_strb_imm, 	"strb",	list_of( fn(setRegWidth) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnSU) )( fn(OPRRtS) ), 939525120, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_strb_imm, 	"strb",	list_of( fn(setRegWidth) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnSU) )( fn(OPRRtS) ), 939527168, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_strb_imm, 	"strb",	list_of( fn(setRegWidth) )( fn(OPRimm<21 COMMA 10>) )( fn(OPRRnS) )( fn(OPRRtS) ), 956301312, 4290772992) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_strb_reg, 	"strb",	list_of( fn(setRegWidth) )( fn(OPRRm) )( fn(OPRoption<15 COMMA 13>) )( fn(OPRS<12 COMMA 12>) )( fn(OPRRnS) )( fn(OPRRtS) ), 941623296, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_strh_imm, 	"strh",	list_of( fn(setRegWidth) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnSU) )( fn(OPRRtS) ), 2013266944, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_strh_imm, 	"strh",	list_of( fn(setRegWidth) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnSU) )( fn(OPRRtS) ), 2013268992, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_strh_imm, 	"strh",	list_of( fn(setRegWidth) )( fn(OPRimm<21 COMMA 10>) )( fn(OPRRnS) )( fn(OPRRtS) ), 2030043136, 4290772992) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_strh_reg, 	"strh",	list_of( fn(setRegWidth) )( fn(OPRRm) )( fn(OPRoption<15 COMMA 13>) )( fn(OPRS<12 COMMA 12>) )( fn(OPRRnS) )( fn(OPRRtS) ), 2015365120, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sttr, 	"sttr",	list_of( fn(setRegWidth) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnS) )( fn(OPRRtS) ), 3087009792, 3219131392) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sttrb, 	"sttrb",	list_of( fn(setRegWidth) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnS) )( fn(OPRRtS) ), 939526144, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sttrh, 	"sttrh",	list_of( fn(setRegWidth) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnS) )( fn(OPRRtS) ), 2013267968, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_stur_fpsimd, 	"stur",	list_of( fn(setRegWidth) )( fn(setSIMDMode) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRopc) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnS) )( fn(OPRRtS) ), 1006632960, 1063259136) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_stur_gen, 	"stur",	list_of( fn(setRegWidth) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnS) )( fn(OPRRtS) ), 3087007744, 3219131392) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sturb, 	"sturb",	list_of( fn(setRegWidth) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnS) )( fn(OPRRtS) ), 939524096, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sturh, 	"sturh",	list_of( fn(setRegWidth) )( fn(OPRimm<20 COMMA 12>) )( fn(OPRRnS) )( fn(OPRRtS) ), 2013265920, 4292873216) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_stxp, 	"stxp",	list_of( fn(setRegWidth) )( fn(OPRsz<30 COMMA 30>) )( fn(OPRRs) )( fn(OPRRt2S) )( fn(OPRRnS) )( fn(OPRRtS) ), 2283798528, 3219161088) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_stxr, 	"stxr",	list_of( fn(setRegWidth) )( fn(OPRsize<31 COMMA 30>) )( fn(OPRRs) )( fn(OPRRnS) )( fn(OPRRtS) ), 2281733120, 3219192832) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_stxrb, 	"stxrb",	list_of( fn(setRegWidth) )( fn(OPRRs) )( fn(OPRRnS) )( fn(OPRRtS) ), 134249472, 4292934656) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_stxrh, 	"stxrh",	list_of( fn(setRegWidth) )( fn(OPRRs) )( fn(OPRRnS) )( fn(OPRRtS) ), 1207991296, 4292934656) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sub_addsub_ext, 	"sub",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRoption<15 COMMA 13>) )( fn(OPRimm<12 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 1260388352, 2145386496) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sub_addsub_imm, 	"sub",	list_of( fn(OPRsf) )( fn(OPRshift) )( fn(OPRimm<21 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 1358954496, 2130706432) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sub_addsub_shift, 	"sub",	list_of( fn(OPRsf) )( fn(OPRshift) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 1258291200, 2132803584) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sub_advsimd, 	"sub",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2116060160, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sub_advsimd, 	"sub",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773882880, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_subhn_advsimd, 	"subhn",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 237002752, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_subs_addsub_ext, 	"subs",	list_of( fn(setFlags) )( fn(OPRsf) )( fn(OPRRm) )( fn(OPRoption<15 COMMA 13>) )( fn(OPRimm<12 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 1797259264, 2145386496) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_subs_addsub_imm, 	"subs",	list_of( fn(setFlags) )( fn(OPRsf) )( fn(OPRshift) )( fn(OPRimm<21 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 1895825408, 2130706432) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_subs_addsub_shift, 	"subs",	list_of( fn(setFlags) )( fn(OPRsf) )( fn(OPRshift) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 1795162112, 2132803584) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_suqadd_advsimd, 	"suqadd",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 1579169792, 4282383360) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_suqadd_advsimd, 	"suqadd",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 236992512, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_svc, 	"svc",	list_of( (operandFactory) fn(OPRimm<20 COMMA 5>) ), 3556769793, 4292870175) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sxtb_sbfm, 	"sxtb",	list_of( fn(OPRsf) )( fn(OPRN<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 318774272, 2143288320) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sxth_sbfm, 	"sxth",	list_of( fn(OPRsf) )( fn(OPRN<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 318782464, 2143288320) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sxtl_sshll_advsimd, 	"sxtl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRRn) )( fn(OPRRd) ), 251700224, 3213360128) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sxtw_sbfm, 	"sxtw",	list_of( fn(OPRRn) )( fn(OPRRd) ), 2470476800, 4294966272) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sys, 	"sys",	list_of( fn(OPRop1) )( fn(OPRCRn) )( fn(OPRCRm) )( fn(OPRop2) )( fn(OPRRt) ), 3574071296, 4294443008) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_sysl, 	"sysl",	list_of( fn(OPRop1) )( fn(OPRCRn) )( fn(OPRCRm) )( fn(OPRop2) )( fn(OPRRt) ), 3576168448, 4294443008) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_tbl_advsimd, 	"tbl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRlen) )( fn(OPRRn) )( fn(OPRRd) ), 234881024, 3219168256) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_tbnz, 	"tbnz",	list_of( fn(OPRb5) )( fn(OPRb40) )( fn(OPRimm<18 COMMA 5>) )( fn(OPRRt) ), 922746880, 2130706432) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_tbx_advsimd, 	"tbx",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRRm) )( fn(OPRlen) )( fn(OPRRn) )( fn(OPRRd) ), 234885120, 3219168256) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_tbz, 	"tbz",	list_of( fn(OPRb5) )( fn(OPRb40) )( fn(OPRimm<18 COMMA 5>) )( fn(OPRRt) ), 905969664, 2130706432) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_tlbi_sys, 	"tlbi",	list_of( fn(OPRop1) )( fn(OPRCRm) )( fn(OPRop2) )( fn(OPRRt) ), 3574104064, 4294504448) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_trn1_advsimd, 	"trn1",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 234891264, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_trn2_advsimd, 	"trn2",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 234907648, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_tst_ands_log_imm, 	"tst",	list_of( fn(setFlags) )( fn(OPRsf) )( fn(OPRN<22 COMMA 22>) )( fn(OPRimm<21 COMMA 16>) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) ), 1912602655, 2139095071) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_tst_ands_log_shift, 	"tst",	list_of( fn(setFlags) )( fn(OPRsf) )( fn(OPRshift) )( fn(OPRRm) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) ), 1778384927, 2132803615) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uaba_advsimd, 	"uaba",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773880832, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uabal_advsimd, 	"uabal",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773869568, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uabd_advsimd, 	"uabd",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773878784, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uabdl_advsimd, 	"uabdl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773877760, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uadalp_advsimd, 	"uadalp",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 773875712, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uaddl_advsimd, 	"uaddl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773849088, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uaddlp_advsimd, 	"uaddlp",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 773859328, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uaddlv_advsimd, 	"uaddlv",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 774912000, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uaddw_advsimd, 	"uaddw",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773853184, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ubfiz_ubfm, 	"ubfiz",	list_of( fn(OPRsf) )( fn(OPRN<22 COMMA 22>) )( fn(OPRimm<21 COMMA 16>) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 1392508928, 2139095040) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ubfm, 	"ubfm",	list_of( fn(OPRsf) )( fn(OPRN<22 COMMA 22>) )( fn(OPRimm<21 COMMA 16>) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 1392508928, 2139095040) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ubfx_ubfm, 	"ubfx",	list_of( fn(OPRsf) )( fn(OPRN<22 COMMA 22>) )( fn(OPRimm<21 COMMA 16>) )( fn(OPRimm<15 COMMA 10>) )( fn(OPRRn) )( fn(OPRRd) ), 1392508928, 2139095040) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ucvtf_advsimd_fix, 	"ucvtf",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 2130764800, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ucvtf_advsimd_fix, 	"ucvtf",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 788587520, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ucvtf_advsimd_int, 	"ucvtf",	list_of( fn(setSIMDMode) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 2116147200, 4290771968) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ucvtf_advsimd_int, 	"ucvtf",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 773969920, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ucvtf_float_fix, 	"ucvtf",	list_of( fn(setFPMode) )( fn(OPRsf) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRscale) )( fn(OPRRn) )( fn(OPRRd) ), 503513088, 2143223808) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ucvtf_float_int, 	"ucvtf",	list_of( fn(setFPMode) )( fn(OPRsf) )( fn(OPRtype<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 505610240, 2143288320) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_udiv, 	"udiv",	list_of( fn(OPRsf) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 448792576, 2145451008) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uhadd_advsimd, 	"uhadd",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773850112, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uhsub_advsimd, 	"uhsub",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773858304, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_umaddl, 	"umaddl",	list_of( fn(OPRRm) )( fn(OPRRa) )( fn(OPRRn) )( fn(OPRRd) ), 2610954240, 4292902912) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_umax_advsimd, 	"umax",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773874688, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_umaxp_advsimd, 	"umaxp",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773891072, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_umaxv_advsimd, 	"umaxv",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 774940672, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_umin_advsimd, 	"umin",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773876736, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uminp_advsimd, 	"uminp",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773893120, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uminv_advsimd, 	"uminv",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 775006208, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_umlal_advsimd_elt, 	"umlal",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 788537344, 3204510720) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_umlal_advsimd_vec, 	"umlal",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773881856, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_umlsl_advsimd_elt, 	"umlsl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 788553728, 3204510720) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_umlsl_advsimd_vec, 	"umlsl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773890048, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_umnegl_umsubl, 	"umnegl",	list_of( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2611018752, 4292934656) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_umov_advsimd, 	"umov",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<20 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 234896384, 3219192832) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_umsubl, 	"umsubl",	list_of( fn(OPRRm) )( fn(OPRRa) )( fn(OPRRn) )( fn(OPRRd) ), 2610987008, 4292902912) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_umulh, 	"umulh",	list_of( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2613083136, 4292934656) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_umull_advsimd_elt, 	"umull",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRL) )( fn(OPRM) )( fn(OPRRm) )( fn(OPRH) )( fn(OPRRn) )( fn(OPRRd) ), 788570112, 3204510720) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_umull_advsimd_vec, 	"umull",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773898240, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_umull_umaddl, 	"umull",	list_of( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2610985984, 4292934656) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uqadd_advsimd, 	"uqadd",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2116029440, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uqadd_advsimd, 	"uqadd",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773852160, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uqrshl_advsimd, 	"uqrshl",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2116049920, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uqrshl_advsimd, 	"uqrshl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773872640, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uqrshrn_advsimd, 	"uqrshrn",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 2130746368, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uqrshrn_advsimd, 	"uqrshrn",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 788569088, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uqshl_advsimd_imm, 	"uqshl",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 2130736128, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uqshl_advsimd_imm, 	"uqshl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 788558848, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uqshl_advsimd_reg, 	"uqshl",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2116045824, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uqshl_advsimd_reg, 	"uqshl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773868544, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uqshrn_advsimd, 	"uqshrn",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 2130744320, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uqshrn_advsimd, 	"uqshrn",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 788567040, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uqsub_advsimd, 	"uqsub",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2116037632, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uqsub_advsimd, 	"uqsub",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773860352, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uqxtn_advsimd, 	"uqxtn",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 2116110336, 4282383360) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uqxtn_advsimd, 	"uqxtn",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 773933056, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_urecpe_advsimd, 	"urecpe",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 245483520, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_urhadd_advsimd, 	"urhadd",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773854208, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_urshl_advsimd, 	"urshl",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2116047872, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_urshl_advsimd, 	"urshl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773870592, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_urshr_advsimd, 	"urshr",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 2130715648, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_urshr_advsimd, 	"urshr",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 788538368, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ursqrte_advsimd, 	"ursqrte",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsz<22 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 782354432, 3217030144) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ursra_advsimd, 	"ursra",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 2130719744, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ursra_advsimd, 	"ursra",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 788542464, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ushl_advsimd, 	"ushl",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 2116043776, 4280351744) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ushl_advsimd, 	"ushl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773866496, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ushll_advsimd, 	"ushll",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 788571136, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ushr_advsimd, 	"ushr",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 2130707456, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_ushr_advsimd, 	"ushr",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 788530176, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_usqadd_advsimd, 	"usqadd",	list_of( fn(setSIMDMode) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 2116040704, 4282383360) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_usqadd_advsimd, 	"usqadd",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 773863424, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_usra_advsimd, 	"usra",	list_of( fn(setSIMDMode) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 2130711552, 4286643200) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_usra_advsimd, 	"usra",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRimm<18 COMMA 16>) )( fn(OPRRn) )( fn(OPRRd) ), 788534272, 3212901376) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_usubl_advsimd, 	"usubl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773857280, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_usubw_advsimd, 	"usubw",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 773861376, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uxtb_ubfm, 	"uxtb",	list_of( fn(OPRRn) )( fn(OPRRd) ), 1392516096, 4294966272) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uxth_ubfm, 	"uxth",	list_of( fn(OPRRn) )( fn(OPRRd) ), 1392524288, 4294966272) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uxtl_ushll_advsimd, 	"uxtl",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRimm<22 COMMA 19>) )( fn(OPRRn) )( fn(OPRRd) ), 788571136, 3213360128) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uzp1_advsimd, 	"uzp1",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 234887168, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_uzp2_advsimd, 	"uzp2",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 234903552, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_wfe_hint, 	"wfe",	operandSpec(), 3573751903, 4294967295) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_wfi_hint, 	"wfi",	operandSpec(), 3573751935, 4294967295) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_xtn_advsimd, 	"xtn",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRn) )( fn(OPRRd) ), 237053952, 3208641536) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_yield_hint, 	"yield",	operandSpec(), 3573751871, 4294967295) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_zip1_advsimd, 	"zip1",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 234895360, 3206609920) );
-	main_insn_table.push_back(aarch64_insn_entry(aarch64_op_zip2_advsimd, 	"zip2",	list_of( fn(setSIMDMode) )( fn(OPRQ) )( fn(OPRsize<23 COMMA 22>) )( fn(OPRRm) )( fn(OPRRn) )( fn(OPRRd) ), 234911744, 3206609920) );
+const operandFactory aarch64_insn_entry::operandTable[] = {
+    // INVALID
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // abs
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // abs
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // adc
+    fn(setFlags),fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // adcs
+    fn(OPRsf),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRimm<12,10>),fn(OPRRn),fn(OPRRd), // add
+    fn(OPRsf),fn(OPRshift),fn(OPRimm<21,10>),fn(OPRRn),fn(OPRRd), // add
+    fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // add
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // add
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // add
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // addhn
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // addp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // addp
+    fn(setFlags),fn(OPRsf),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRimm<12,10>),fn(OPRRn),fn(OPRRd), // adds
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRimm<21,10>),fn(OPRRn),fn(OPRRd), // adds
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // adds
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // addv
+    fn(OPRimm<30,29>),fn(OPRimm<23,5>),fn(OPRRd), // adr
+    fn(OPRimm<30,29>),fn(OPRimm<23,5>),fn(OPRRd), // adrp
+    fn(setSIMDMode),fn(OPRRn),fn(OPRRd), // aesd
+    fn(setSIMDMode),fn(OPRRn),fn(OPRRd), // aese
+    fn(setSIMDMode),fn(OPRRn),fn(OPRRd), // aesimc
+    fn(setSIMDMode),fn(OPRRn),fn(OPRRd), // aesmc
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd), // and
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // and
+    fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // and
+    fn(setFlags),fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // ands
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // ands
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // asr
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // asr
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // asrv
+    fn(OPRop1),fn(OPRop2),fn(OPRRt), // at
+    fn(OPRimm<23,5>),fn(OPRcond<3,0>), // b
+    fn(OPRimm<25,0>), // b
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // bfi
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // bfm
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // bfxil
+    fn(setSIMDMode),fn(OPRQ),fn(OPRa),fn(OPRb),fn(OPRc),fn(OPRcmode),fn(OPRd),fn(OPRe),fn(OPRf),fn(OPRg),fn(OPRh),fn(OPRRd), // bic
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd), // bic
+    fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // bic
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // bics
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd), // bif
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd), // bit
+    fn(OPRimm<25,0>), // bl
+    fn(OPRRn), // blr
+    fn(OPRRn), // br
+    fn(OPRimm<20,5>), // brk
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd), // bsl
+    fn(OPRsf),fn(OPRimm<23,5>),fn(OPRRt), // cbnz
+    fn(OPRsf),fn(OPRimm<23,5>),fn(OPRRt), // cbz
+    fn(OPRsf),fn(OPRimm<20,16>),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRnzcv), // ccmn
+    fn(OPRsf),fn(OPRRm),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRnzcv), // ccmn
+    fn(OPRsf),fn(OPRimm<20,16>),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRnzcv), // ccmp
+    fn(OPRsf),fn(OPRRm),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRnzcv), // ccmp
+    fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRRd), // cinc
+    fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRRd), // cinv
+    fn(OPRCRm), // clrex
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cls
+    fn(OPRsf),fn(OPRRn),fn(OPRRd), // cls
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // clz
+    fn(OPRsf),fn(OPRRn),fn(OPRRd), // clz
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmeq
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmeq
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cmeq
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cmeq
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmge
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmge
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cmge
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cmge
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmgt
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmgt
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cmgt
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cmgt
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmhi
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmhi
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmhs
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmhs
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cmle
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cmle
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cmlt
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cmlt
+    fn(setFlags),fn(OPRsf),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRimm<12,10>),fn(OPRRn), // cmn
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRimm<21,10>),fn(OPRRn), // cmn
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn), // cmn
+    fn(setFlags),fn(OPRsf),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRimm<12,10>),fn(OPRRn), // cmp
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRimm<21,10>),fn(OPRRn), // cmp
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn), // cmp
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmtst
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // cmtst
+    fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRRd), // cneg
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // cnt
+    fn(OPRsf),fn(OPRRm),fn(OPRsz<11,10>),fn(OPRRn),fn(OPRRd), // crc32
+    fn(OPRsf),fn(OPRRm),fn(OPRsz<11,10>),fn(OPRRn),fn(OPRRd), // crc32c
+    fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // csel
+    fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRd), // cset
+    fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRd), // csetm
+    fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // csinc
+    fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // csinv
+    fn(OPRsf),fn(OPRcond<15,12>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // csneg
+    fn(OPRop1),fn(OPRCRm),fn(OPRop2),fn(OPRRt), // dc
+    fn(OPRimm<20,5>), // dcps1
+    fn(OPRimm<20,5>), // dcps2
+    fn(OPRimm<20,5>), // dcps3
+    fn(OPRCRm), // dmb
+    // drps
+    fn(OPRCRm), // dsb
+    fn(setSIMDMode),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd), // dup
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd), // dup
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd), // dup
+    fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // eon
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd), // eor
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // eor
+    fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // eor
+    // eret
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRimm<14,11>),fn(OPRRn),fn(OPRRd), // ext
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // extr
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fabd
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fabd
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fabs
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fabs
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // facge
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // facge
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // facgt
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // facgt
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fadd
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fadd
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // faddp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // faddp
+    fn(setFPMode),fn(setFlags),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRnzcv), // fccmp
+    fn(setFPMode),fn(setFlags),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRnzcv), // fccmpe
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fcmeq
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fcmeq
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcmeq
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcmeq
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fcmge
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fcmge
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcmge
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcmge
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fcmgt
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fcmgt
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcmgt
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcmgt
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcmle
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcmle
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcmlt
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcmlt
+    fn(setFPMode),fn(setFlags),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRopc), // fcmp
+    fn(setFPMode),fn(setFlags),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRopc), // fcmpe
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRcond<15,12>),fn(OPRRn),fn(OPRRd), // fcsel
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRopc),fn(OPRRn),fn(OPRRd), // fcvt
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtas
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtas
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fcvtas
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtau
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtau
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fcvtau
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtl
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtms
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtms
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fcvtms
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtmu
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtmu
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fcvtmu
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtn
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtns
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtns
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fcvtns
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtnu
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtnu
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fcvtnu
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtps
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtps
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fcvtps
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtpu
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtpu
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fcvtpu
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtxn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtxn
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // fcvtzs
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // fcvtzs
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtzs
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtzs
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRscale),fn(OPRRn),fn(OPRRd), // fcvtzs
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fcvtzs
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // fcvtzu
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // fcvtzu
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtzu
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fcvtzu
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRscale),fn(OPRRn),fn(OPRRd), // fcvtzu
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fcvtzu
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fdiv
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fdiv
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd), // fmadd
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmax
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmax
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmaxnm
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmaxnm
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fmaxnmp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmaxnmp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fmaxnmv
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fmaxp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmaxp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fmaxv
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmin
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmin
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fminnm
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fminnm
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fminnmp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fminnmp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fminnmv
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fminp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fminp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fminv
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // fmla
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // fmla
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmla
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // fmls
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // fmls
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmls
+    fn(setSIMDMode),fn(OPRQ),fn(OPRop),fn(OPRa),fn(OPRb),fn(OPRc),fn(OPRd),fn(OPRe),fn(OPRf),fn(OPRg),fn(OPRh),fn(OPRRd), // fmov
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fmov
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRrmode),fn(OPRopcode),fn(OPRRn),fn(OPRRd), // fmov
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRimm<20,13>),fn(OPRRd), // fmov
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd), // fmsub
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // fmul
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // fmul
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmul
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmul
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // fmulx
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // fmulx
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmulx
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fmulx
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fneg
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fneg
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd), // fnmadd
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd), // fnmsub
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fnmul
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frecpe
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frecpe
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // frecps
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // frecps
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frecpx
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frinta
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // frinta
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frinti
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // frinti
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frintm
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // frintm
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frintn
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // frintn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frintp
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // frintp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frintx
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // frintx
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frintz
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // frintz
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frsqrte
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // frsqrte
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // frsqrts
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // frsqrts
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // fsqrt
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // fsqrt
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fsub
+    fn(setFPMode),fn(OPRtype<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // fsub
+    fn(OPRCRm),fn(OPRop2), // hint
+    fn(OPRimm<20,5>), // hlt
+    fn(OPRimm<20,5>), // hvc
+    fn(OPRop1),fn(OPRCRm),fn(OPRop2),fn(OPRRt), // ic
+    fn(setSIMDMode),fn(OPRimm<20,16>),fn(OPRimm<14,11>),fn(OPRRn),fn(OPRRd), // ins
+    fn(setSIMDMode),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd), // ins
+    fn(OPRCRm), // isb
+    fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld1r
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld1r
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld2
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld2
+    fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld2
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld2
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld2r
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld2r
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld3
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld3
+    fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld3
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld3
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld3r
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld3r
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld4
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld4
+    fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld4
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld4
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld4r
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnL),fn(OPRRtL), // ld4r
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRnL),fn(OPRRtL), // ldar
+    fn(setRegWidth),fn(OPRRnL),fn(OPRRtL), // ldarb
+    fn(setRegWidth),fn(OPRRnL),fn(OPRRtL), // ldarh
+    fn(setRegWidth),fn(OPRsz<30,30>),fn(OPRRt2L),fn(OPRRnL),fn(OPRRtL), // ldaxp
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRnL),fn(OPRRtL), // ldaxr
+    fn(setRegWidth),fn(OPRRnL),fn(OPRRtL), // ldaxrb
+    fn(setRegWidth),fn(OPRRnL),fn(OPRRtL), // ldaxrh
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnL),fn(OPRRtL), // ldnp
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnL),fn(OPRRtL), // ldnp
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnLU),fn(OPRRtL), // ldp
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnLU),fn(OPRRtL), // ldp
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnL),fn(OPRRtL), // ldp
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnLU),fn(OPRRtL), // ldp
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnLU),fn(OPRRtL), // ldp
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnL),fn(OPRRtL), // ldp
+    fn(setRegWidth),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnLU),fn(OPRRtL), // ldpsw
+    fn(setRegWidth),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnLU),fn(OPRRtL), // ldpsw
+    fn(setRegWidth),fn(OPRimm<21,15>),fn(OPRRt2L),fn(OPRRnL),fn(OPRRtL), // ldpsw
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldr
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldr
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRtL), // ldr
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldr
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldr
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRtL), // ldr
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<23,5>),fn(OPRRtL), // ldr
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<23,5>),fn(OPRRtL), // ldr
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRtL), // ldr
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRtL), // ldr
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldrb
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldrb
+    fn(setRegWidth),fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRtL), // ldrb
+    fn(setRegWidth),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRtL), // ldrb
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldrh
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldrh
+    fn(setRegWidth),fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRtL), // ldrh
+    fn(setRegWidth),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRtL), // ldrh
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldrsb
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldrsb
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRtL), // ldrsb
+    fn(setRegWidth),fn(OPRopc),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRtL), // ldrsb
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldrsh
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldrsh
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRtL), // ldrsh
+    fn(setRegWidth),fn(OPRopc),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRtL), // ldrsh
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldrsw
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnLU),fn(OPRRtL), // ldrsw
+    fn(setRegWidth),fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRtL), // ldrsw
+    fn(setRegWidth),fn(OPRimm<23,5>),fn(OPRRtL), // ldrsw
+    fn(setRegWidth),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRtL), // ldrsw
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldtr
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldtrb
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldtrh
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldtrsb
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldtrsh
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldtrsw
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldur
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldur
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldurb
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldurh
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldursb
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldursh
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRtL), // ldursw
+    fn(setRegWidth),fn(OPRsz<30,30>),fn(OPRRt2L),fn(OPRRnL),fn(OPRRtL), // ldxp
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRnL),fn(OPRRtL), // ldxr
+    fn(setRegWidth),fn(OPRRnL),fn(OPRRtL), // ldxrb
+    fn(setRegWidth),fn(OPRRnL),fn(OPRRtL), // ldxrh
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // lsl
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // lsl
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // lslv
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // lsr
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // lsr
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // lsrv
+    fn(OPRsf),fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd), // madd
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // mla
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // mla
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // mls
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // mls
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // mneg
+    fn(OPRsf),fn(OPRRn),fn(OPRRd), // mov
+    fn(setSIMDMode),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd), // mov
+    fn(setSIMDMode),fn(OPRimm<20,16>),fn(OPRimm<14,11>),fn(OPRRn),fn(OPRRd), // mov
+    fn(setSIMDMode),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd), // mov
+    fn(OPRsf),fn(OPRhw),fn(OPRimm<20,5>),fn(OPRRd), // mov
+    fn(OPRsf),fn(OPRhw),fn(OPRimm<20,5>),fn(OPRRd), // mov
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd), // mov
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRd), // mov
+    fn(OPRsf),fn(OPRRm),fn(OPRRd), // mov
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd), // mov
+    fn(setSIMDMode),fn(OPRQ),fn(OPRop),fn(OPRa),fn(OPRb),fn(OPRc),fn(OPRcmode),fn(OPRd),fn(OPRe),fn(OPRf),fn(OPRg),fn(OPRh),fn(OPRRd), // movi
+    fn(OPRsf),fn(OPRhw),fn(OPRimm<20,5>),fn(OPRRd), // movk
+    fn(OPRsf),fn(OPRhw),fn(OPRimm<20,5>),fn(OPRRd), // movn
+    fn(OPRsf),fn(OPRhw),fn(OPRimm<20,5>),fn(OPRRd), // movz
+    fn(OPRo0),fn(OPRop1),fn(OPRCRn),fn(OPRCRm),fn(OPRop2),fn(OPRRt), // mrs
+    fn(OPRop1),fn(OPRCRm),fn(OPRop2), // msr
+    fn(OPRo0),fn(OPRop1),fn(OPRCRn),fn(OPRCRm),fn(OPRop2),fn(OPRRt), // msr
+    fn(OPRsf),fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd), // msub
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // mul
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // mul
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // mul
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRn),fn(OPRRd), // mvn
+    fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRd), // mvn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRa),fn(OPRb),fn(OPRc),fn(OPRcmode),fn(OPRd),fn(OPRe),fn(OPRf),fn(OPRg),fn(OPRh),fn(OPRRd), // mvni
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // neg
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // neg
+    fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRd), // neg
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRd), // negs
+    fn(OPRsf),fn(OPRRm),fn(OPRRd), // ngc
+    fn(setFlags),fn(OPRsf),fn(OPRRm),fn(OPRRd), // ngcs
+    // nop
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRn),fn(OPRRd), // not
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd), // orn
+    fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // orn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRa),fn(OPRb),fn(OPRc),fn(OPRcmode),fn(OPRd),fn(OPRe),fn(OPRf),fn(OPRg),fn(OPRh),fn(OPRRd), // orr
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRRn),fn(OPRRd), // orr
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // orr
+    fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // orr
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // pmul
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // pmull
+    fn(OPRimm<21,10>),fn(OPRRnL),fn(OPRRt), // prfm
+    fn(OPRimm<23,5>),fn(OPRRt), // prfm
+    fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnL),fn(OPRRt), // prfm
+    fn(OPRimm<20,12>),fn(OPRRnL),fn(OPRRt), // prfum
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // raddhn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRn),fn(OPRRd), // rbit
+    fn(OPRsf),fn(OPRRn),fn(OPRRd), // rbit
+    fn(OPRRn), // ret
+    fn(OPRsf),fn(OPRopc),fn(OPRRn),fn(OPRRd), // rev
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // rev16
+    fn(OPRsf),fn(OPRRn),fn(OPRRd), // rev16
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // rev32
+    fn(OPRRn),fn(OPRRd), // rev32
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // rev64
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // ror
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // ror
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // rorv
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // rshrn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // rsubhn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // saba
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sabal
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sabd
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sabdl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // sadalp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // saddl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // saddlp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // saddlv
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // saddw
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sbc
+    fn(setFlags),fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sbcs
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // sbfiz
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // sbfm
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // sbfx
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // scvtf
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // scvtf
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // scvtf
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // scvtf
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRscale),fn(OPRRn),fn(OPRRd), // scvtf
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // scvtf
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sdiv
+    // sev
+    // sevl
+    fn(setSIMDMode),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sha1c
+    fn(setSIMDMode),fn(OPRRn),fn(OPRRd), // sha1h
+    fn(setSIMDMode),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sha1m
+    fn(setSIMDMode),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sha1p
+    fn(setSIMDMode),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sha1su0
+    fn(setSIMDMode),fn(OPRRn),fn(OPRRd), // sha1su1
+    fn(setSIMDMode),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sha256h2
+    fn(setSIMDMode),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sha256h
+    fn(setSIMDMode),fn(OPRRn),fn(OPRRd), // sha256su0
+    fn(setSIMDMode),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sha256su1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // shadd
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // shl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // shl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // shll
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // shrn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // shsub
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sli
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sli
+    fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd), // smaddl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // smax
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // smaxp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // smaxv
+    fn(OPRimm<20,5>), // smc
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // smin
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sminp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // sminv
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // smlal
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // smlal
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // smlsl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // smlsl
+    fn(OPRRm),fn(OPRRn),fn(OPRRd), // smnegl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd), // smov
+    fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd), // smsubl
+    fn(OPRRm),fn(OPRRn),fn(OPRRd), // smulh
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // smull
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // smull
+    fn(OPRRm),fn(OPRRn),fn(OPRRd), // smull
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // sqabs
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // sqabs
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqadd
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqadd
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // sqdmlal
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // sqdmlal
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqdmlal
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqdmlal
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // sqdmlsl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // sqdmlsl
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqdmlsl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqdmlsl
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // sqdmulh
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // sqdmulh
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqdmulh
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqdmulh
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // sqdmull
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // sqdmull
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqdmull
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqdmull
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // sqneg
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // sqneg
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // sqrdmulh
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // sqrdmulh
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqrdmulh
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqrdmulh
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqrshl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqrshl
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqrshrn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqrshrn
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqrshrun
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqrshrun
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqshl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqshl
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqshl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqshl
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqshlu
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqshlu
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqshrn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqshrn
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqshrun
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sqshrun
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqsub
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sqsub
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // sqxtn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // sqxtn
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // sqxtun
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // sqxtun
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // srhadd
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sri
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sri
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // srshl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // srshl
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // srshr
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // srshr
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // srsra
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // srsra
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sshl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sshl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sshll
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sshr
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // sshr
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // ssra
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // ssra
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // ssubl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // ssubw
+    fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st2
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st2
+    fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st2
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st2
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st3
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st3
+    fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st3
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st3
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st4
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st4
+    fn(setSIMDMode),fn(OPRQ),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st4
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRopcode),fn(OPRS<12,12>),fn(OPRsize<11,10>),fn(OPRRnS),fn(OPRRtS), // st4
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRnS),fn(OPRRtS), // stlr
+    fn(setRegWidth),fn(OPRRnS),fn(OPRRtS), // stlrb
+    fn(setRegWidth),fn(OPRRnS),fn(OPRRtS), // stlrh
+    fn(setRegWidth),fn(OPRsz<30,30>),fn(OPRRs),fn(OPRRt2S),fn(OPRRnS),fn(OPRRtS), // stlxp
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRs),fn(OPRRnS),fn(OPRRtS), // stlxr
+    fn(setRegWidth),fn(OPRRs),fn(OPRRnS),fn(OPRRtS), // stlxrb
+    fn(setRegWidth),fn(OPRRs),fn(OPRRnS),fn(OPRRtS), // stlxrh
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnS),fn(OPRRtS), // stnp
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnS),fn(OPRRtS), // stnp
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnSU),fn(OPRRtS), // stp
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnSU),fn(OPRRtS), // stp
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnS),fn(OPRRtS), // stp
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnSU),fn(OPRRtS), // stp
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnSU),fn(OPRRtS), // stp
+    fn(setRegWidth),fn(OPRopc),fn(OPRimm<21,15>),fn(OPRRt2S),fn(OPRRnS),fn(OPRRtS), // stp
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS), // str
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS), // str
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<21,10>),fn(OPRRnS),fn(OPRRtS), // str
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS), // str
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS), // str
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<21,10>),fn(OPRRnS),fn(OPRRtS), // str
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnS),fn(OPRRtS), // str
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnS),fn(OPRRtS), // str
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS), // strb
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS), // strb
+    fn(setRegWidth),fn(OPRimm<21,10>),fn(OPRRnS),fn(OPRRtS), // strb
+    fn(setRegWidth),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnS),fn(OPRRtS), // strb
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS), // strh
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnSU),fn(OPRRtS), // strh
+    fn(setRegWidth),fn(OPRimm<21,10>),fn(OPRRnS),fn(OPRRtS), // strh
+    fn(setRegWidth),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRS<12,12>),fn(OPRRnS),fn(OPRRtS), // strh
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnS),fn(OPRRtS), // sttr
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnS),fn(OPRRtS), // sttrb
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnS),fn(OPRRtS), // sttrh
+    fn(setRegWidth),fn(setSIMDMode),fn(OPRsize<31,30>),fn(OPRopc),fn(OPRimm<20,12>),fn(OPRRnS),fn(OPRRtS), // stur
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRimm<20,12>),fn(OPRRnS),fn(OPRRtS), // stur
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnS),fn(OPRRtS), // sturb
+    fn(setRegWidth),fn(OPRimm<20,12>),fn(OPRRnS),fn(OPRRtS), // sturh
+    fn(setRegWidth),fn(OPRsz<30,30>),fn(OPRRs),fn(OPRRt2S),fn(OPRRnS),fn(OPRRtS), // stxp
+    fn(setRegWidth),fn(OPRsize<31,30>),fn(OPRRs),fn(OPRRnS),fn(OPRRtS), // stxr
+    fn(setRegWidth),fn(OPRRs),fn(OPRRnS),fn(OPRRtS), // stxrb
+    fn(setRegWidth),fn(OPRRs),fn(OPRRnS),fn(OPRRtS), // stxrh
+    fn(OPRsf),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRimm<12,10>),fn(OPRRn),fn(OPRRd), // sub
+    fn(OPRsf),fn(OPRshift),fn(OPRimm<21,10>),fn(OPRRn),fn(OPRRd), // sub
+    fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // sub
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sub
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // sub
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // subhn
+    fn(setFlags),fn(OPRsf),fn(OPRRm),fn(OPRoption<15,13>),fn(OPRimm<12,10>),fn(OPRRn),fn(OPRRd), // subs
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRimm<21,10>),fn(OPRRn),fn(OPRRd), // subs
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // subs
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // suqadd
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // suqadd
+    fn(OPRimm<20,5>), // svc
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRRn),fn(OPRRd), // sxtb
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRRn),fn(OPRRd), // sxth
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRRn),fn(OPRRd), // sxtl
+    fn(OPRRn),fn(OPRRd), // sxtw
+    fn(OPRop1),fn(OPRCRn),fn(OPRCRm),fn(OPRop2),fn(OPRRt), // sys
+    fn(OPRop1),fn(OPRCRn),fn(OPRCRm),fn(OPRop2),fn(OPRRt), // sysl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRlen),fn(OPRRn),fn(OPRRd), // tbl
+    fn(OPRb5),fn(OPRb40),fn(OPRimm<18,5>),fn(OPRRt), // tbnz
+    fn(setSIMDMode),fn(OPRQ),fn(OPRRm),fn(OPRlen),fn(OPRRn),fn(OPRRd), // tbx
+    fn(OPRb5),fn(OPRb40),fn(OPRimm<18,5>),fn(OPRRt), // tbz
+    fn(OPRop1),fn(OPRCRm),fn(OPRop2),fn(OPRRt), // tlbi
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // trn1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // trn2
+    fn(setFlags),fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn), // tst
+    fn(setFlags),fn(OPRsf),fn(OPRshift),fn(OPRRm),fn(OPRimm<15,10>),fn(OPRRn), // tst
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uaba
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uabal
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uabd
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uabdl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // uadalp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uaddl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // uaddlp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // uaddlv
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uaddw
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // ubfiz
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // ubfm
+    fn(OPRsf),fn(OPRN<22,22>),fn(OPRimm<21,16>),fn(OPRimm<15,10>),fn(OPRRn),fn(OPRRd), // ubfx
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // ucvtf
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // ucvtf
+    fn(setSIMDMode),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // ucvtf
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // ucvtf
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRscale),fn(OPRRn),fn(OPRRd), // ucvtf
+    fn(setFPMode),fn(OPRsf),fn(OPRtype<23,22>),fn(OPRRn),fn(OPRRd), // ucvtf
+    fn(OPRsf),fn(OPRRm),fn(OPRRn),fn(OPRRd), // udiv
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uhadd
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uhsub
+    fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd), // umaddl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // umax
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // umaxp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // umaxv
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // umin
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uminp
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // uminv
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // umlal
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // umlal
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // umlsl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // umlsl
+    fn(OPRRm),fn(OPRRn),fn(OPRRd), // umnegl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<20,16>),fn(OPRRn),fn(OPRRd), // umov
+    fn(OPRRm),fn(OPRRa),fn(OPRRn),fn(OPRRd), // umsubl
+    fn(OPRRm),fn(OPRRn),fn(OPRRd), // umulh
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRL),fn(OPRM),fn(OPRRm),fn(OPRH),fn(OPRRn),fn(OPRRd), // umull
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // umull
+    fn(OPRRm),fn(OPRRn),fn(OPRRd), // umull
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uqadd
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uqadd
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uqrshl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uqrshl
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // uqrshrn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // uqrshrn
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // uqshl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // uqshl
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uqshl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uqshl
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // uqshrn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // uqshrn
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uqsub
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uqsub
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // uqxtn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // uqxtn
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // urecpe
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // urhadd
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // urshl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // urshl
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // urshr
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // urshr
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsz<22,22>),fn(OPRRn),fn(OPRRd), // ursqrte
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // ursra
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // ursra
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // ushl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // ushl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // ushll
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // ushr
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // ushr
+    fn(setSIMDMode),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // usqadd
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // usqadd
+    fn(setSIMDMode),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // usra
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRimm<18,16>),fn(OPRRn),fn(OPRRd), // usra
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // usubl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // usubw
+    fn(OPRRn),fn(OPRRd), // uxtb
+    fn(OPRRn),fn(OPRRd), // uxth
+    fn(setSIMDMode),fn(OPRQ),fn(OPRimm<22,19>),fn(OPRRn),fn(OPRRd), // uxtl
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uzp1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // uzp2
+    // wfe
+    // wfi
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRn),fn(OPRRd), // xtn
+    // yield
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // zip1
+    fn(setSIMDMode),fn(OPRQ),fn(OPRsize<23,22>),fn(OPRRm),fn(OPRRn),fn(OPRRd), // zip2  
+};  // end operandTable
 
-    built_insn_table = true;
-}
+const aarch64_insn_table aarch64_insn_entry::main_insn_table = {
+    {aarch64_op_INVALID,"INVALID",0,&operandTable[0]},
+    {aarch64_op_abs_advsimd,"abs",4,&operandTable[0]},
+    {aarch64_op_abs_advsimd,"abs",5,&operandTable[4]},
+    {aarch64_op_adc,"adc",4,&operandTable[9]},
+    {aarch64_op_adcs,"adcs",5,&operandTable[13]},
+    {aarch64_op_add_addsub_ext,"add",6,&operandTable[18]},
+    {aarch64_op_add_addsub_imm,"add",5,&operandTable[24]},
+    {aarch64_op_add_addsub_shift,"add",6,&operandTable[29]},
+    {aarch64_op_add_advsimd,"add",5,&operandTable[35]},
+    {aarch64_op_add_advsimd,"add",6,&operandTable[40]},
+    {aarch64_op_addhn_advsimd,"addhn",6,&operandTable[46]},
+    {aarch64_op_addp_advsimd_pair,"addp",4,&operandTable[52]},
+    {aarch64_op_addp_advsimd_vec,"addp",6,&operandTable[56]},
+    {aarch64_op_adds_addsub_ext,"adds",7,&operandTable[62]},
+    {aarch64_op_adds_addsub_imm,"adds",6,&operandTable[69]},
+    {aarch64_op_adds_addsub_shift,"adds",7,&operandTable[75]},
+    {aarch64_op_addv_advsimd,"addv",5,&operandTable[82]},
+    {aarch64_op_adr,"adr",3,&operandTable[87]},
+    {aarch64_op_adrp,"adrp",3,&operandTable[90]},
+    {aarch64_op_aesd_advsimd,"aesd",3,&operandTable[93]},
+    {aarch64_op_aese_advsimd,"aese",3,&operandTable[96]},
+    {aarch64_op_aesimc_advsimd,"aesimc",3,&operandTable[99]},
+    {aarch64_op_aesmc_advsimd,"aesmc",3,&operandTable[102]},
+    {aarch64_op_and_advsimd,"and",5,&operandTable[105]},
+    {aarch64_op_and_log_imm,"and",6,&operandTable[110]},
+    {aarch64_op_and_log_shift,"and",6,&operandTable[116]},
+    {aarch64_op_ands_log_imm,"ands",7,&operandTable[122]},
+    {aarch64_op_ands_log_shift,"ands",7,&operandTable[129]},
+    {aarch64_op_asr_asrv,"asr",4,&operandTable[136]},
+    {aarch64_op_asr_sbfm,"asr",6,&operandTable[140]},
+    {aarch64_op_asrv,"asrv",4,&operandTable[146]},
+    {aarch64_op_at_sys,"at",3,&operandTable[150]},
+    {aarch64_op_b_cond,"b",2,&operandTable[153]},
+    {aarch64_op_b_uncond,"b",1,&operandTable[155]},
+    {aarch64_op_bfi_bfm,"bfi",6,&operandTable[156]},
+    {aarch64_op_bfm,"bfm",6,&operandTable[162]},
+    {aarch64_op_bfxil_bfm,"bfxil",6,&operandTable[168]},
+    {aarch64_op_bic_advsimd_imm,"bic",12,&operandTable[174]},
+    {aarch64_op_bic_advsimd_reg,"bic",5,&operandTable[186]},
+    {aarch64_op_bic_log_shift,"bic",6,&operandTable[191]},
+    {aarch64_op_bics,"bics",7,&operandTable[197]},
+    {aarch64_op_bif_advsimd,"bif",5,&operandTable[204]},
+    {aarch64_op_bit_advsimd,"bit",5,&operandTable[209]},
+    {aarch64_op_bl,"bl",1,&operandTable[214]},
+    {aarch64_op_blr,"blr",1,&operandTable[215]},
+    {aarch64_op_br,"br",1,&operandTable[216]},
+    {aarch64_op_brk,"brk",1,&operandTable[217]},
+    {aarch64_op_bsl_advsimd,"bsl",5,&operandTable[218]},
+    {aarch64_op_cbnz,"cbnz",3,&operandTable[223]},
+    {aarch64_op_cbz,"cbz",3,&operandTable[226]},
+    {aarch64_op_ccmn_imm,"ccmn",5,&operandTable[229]},
+    {aarch64_op_ccmn_reg,"ccmn",5,&operandTable[234]},
+    {aarch64_op_ccmp_imm,"ccmp",5,&operandTable[239]},
+    {aarch64_op_ccmp_reg,"ccmp",5,&operandTable[244]},
+    {aarch64_op_cinc_csinc,"cinc",4,&operandTable[249]},
+    {aarch64_op_cinv_csinv,"cinv",4,&operandTable[253]},
+    {aarch64_op_clrex,"clrex",1,&operandTable[257]},
+    {aarch64_op_cls_advsimd,"cls",5,&operandTable[258]},
+    {aarch64_op_cls_int,"cls",3,&operandTable[263]},
+    {aarch64_op_clz_advsimd,"clz",5,&operandTable[266]},
+    {aarch64_op_clz_int,"clz",3,&operandTable[271]},
+    {aarch64_op_cmeq_advsimd_reg,"cmeq",5,&operandTable[274]},
+    {aarch64_op_cmeq_advsimd_reg,"cmeq",6,&operandTable[279]},
+    {aarch64_op_cmeq_advsimd_zero,"cmeq",4,&operandTable[285]},
+    {aarch64_op_cmeq_advsimd_zero,"cmeq",5,&operandTable[289]},
+    {aarch64_op_cmge_advsimd_reg,"cmge",5,&operandTable[294]},
+    {aarch64_op_cmge_advsimd_reg,"cmge",6,&operandTable[299]},
+    {aarch64_op_cmge_advsimd_zero,"cmge",4,&operandTable[305]},
+    {aarch64_op_cmge_advsimd_zero,"cmge",5,&operandTable[309]},
+    {aarch64_op_cmgt_advsimd_reg,"cmgt",5,&operandTable[314]},
+    {aarch64_op_cmgt_advsimd_reg,"cmgt",6,&operandTable[319]},
+    {aarch64_op_cmgt_advsimd_zero,"cmgt",4,&operandTable[325]},
+    {aarch64_op_cmgt_advsimd_zero,"cmgt",5,&operandTable[329]},
+    {aarch64_op_cmhi_advsimd,"cmhi",5,&operandTable[334]},
+    {aarch64_op_cmhi_advsimd,"cmhi",6,&operandTable[339]},
+    {aarch64_op_cmhs_advsimd,"cmhs",5,&operandTable[345]},
+    {aarch64_op_cmhs_advsimd,"cmhs",6,&operandTable[350]},
+    {aarch64_op_cmle_advsimd,"cmle",4,&operandTable[356]},
+    {aarch64_op_cmle_advsimd,"cmle",5,&operandTable[360]},
+    {aarch64_op_cmlt_advsimd,"cmlt",4,&operandTable[365]},
+    {aarch64_op_cmlt_advsimd,"cmlt",5,&operandTable[369]},
+    {aarch64_op_cmn_adds_addsub_ext,"cmn",6,&operandTable[374]},
+    {aarch64_op_cmn_adds_addsub_imm,"cmn",5,&operandTable[380]},
+    {aarch64_op_cmn_adds_addsub_shift,"cmn",6,&operandTable[385]},
+    {aarch64_op_cmp_subs_addsub_ext,"cmp",6,&operandTable[391]},
+    {aarch64_op_cmp_subs_addsub_imm,"cmp",5,&operandTable[397]},
+    {aarch64_op_cmp_subs_addsub_shift,"cmp",6,&operandTable[402]},
+    {aarch64_op_cmtst_advsimd,"cmtst",5,&operandTable[408]},
+    {aarch64_op_cmtst_advsimd,"cmtst",6,&operandTable[413]},
+    {aarch64_op_cneg_csneg,"cneg",4,&operandTable[419]},
+    {aarch64_op_cnt_advsimd,"cnt",5,&operandTable[423]},
+    {aarch64_op_crc32,"crc32",5,&operandTable[428]},
+    {aarch64_op_crc32c,"crc32c",5,&operandTable[433]},
+    {aarch64_op_csel,"csel",5,&operandTable[438]},
+    {aarch64_op_cset_csinc,"cset",3,&operandTable[443]},
+    {aarch64_op_csetm_csinv,"csetm",3,&operandTable[446]},
+    {aarch64_op_csinc,"csinc",5,&operandTable[449]},
+    {aarch64_op_csinv,"csinv",5,&operandTable[454]},
+    {aarch64_op_csneg,"csneg",5,&operandTable[459]},
+    {aarch64_op_dc_sys,"dc",4,&operandTable[464]},
+    {aarch64_op_dcps1,"dcps1",1,&operandTable[468]},
+    {aarch64_op_dcps2,"dcps2",1,&operandTable[469]},
+    {aarch64_op_dcps3,"dcps3",1,&operandTable[470]},
+    {aarch64_op_dmb,"dmb",1,&operandTable[471]},
+    {aarch64_op_drps,"drps",0,&operandTable[472]},
+    {aarch64_op_dsb,"dsb",1,&operandTable[472]},
+    {aarch64_op_dup_advsimd_elt,"dup",4,&operandTable[473]},
+    {aarch64_op_dup_advsimd_elt,"dup",5,&operandTable[477]},
+    {aarch64_op_dup_advsimd_gen,"dup",5,&operandTable[482]},
+    {aarch64_op_eon,"eon",6,&operandTable[487]},
+    {aarch64_op_eor_advsimd,"eor",5,&operandTable[493]},
+    {aarch64_op_eor_log_imm,"eor",6,&operandTable[498]},
+    {aarch64_op_eor_log_shift,"eor",6,&operandTable[504]},
+    {aarch64_op_eret,"eret",0,&operandTable[510]},
+    {aarch64_op_ext_advsimd,"ext",6,&operandTable[510]},
+    {aarch64_op_extr,"extr",6,&operandTable[516]},
+    {aarch64_op_fabd_advsimd,"fabd",5,&operandTable[522]},
+    {aarch64_op_fabd_advsimd,"fabd",6,&operandTable[527]},
+    {aarch64_op_fabs_advsimd,"fabs",5,&operandTable[533]},
+    {aarch64_op_fabs_float,"fabs",4,&operandTable[538]},
+    {aarch64_op_facge_advsimd,"facge",5,&operandTable[542]},
+    {aarch64_op_facge_advsimd,"facge",6,&operandTable[547]},
+    {aarch64_op_facgt_advsimd,"facgt",5,&operandTable[553]},
+    {aarch64_op_facgt_advsimd,"facgt",6,&operandTable[558]},
+    {aarch64_op_fadd_advsimd,"fadd",6,&operandTable[564]},
+    {aarch64_op_fadd_float,"fadd",5,&operandTable[570]},
+    {aarch64_op_faddp_advsimd_pair,"faddp",4,&operandTable[575]},
+    {aarch64_op_faddp_advsimd_vec,"faddp",6,&operandTable[579]},
+    {aarch64_op_fccmp_float,"fccmp",7,&operandTable[585]},
+    {aarch64_op_fccmpe_float,"fccmpe",7,&operandTable[592]},
+    {aarch64_op_fcmeq_advsimd_reg,"fcmeq",5,&operandTable[599]},
+    {aarch64_op_fcmeq_advsimd_reg,"fcmeq",6,&operandTable[604]},
+    {aarch64_op_fcmeq_advsimd_zero,"fcmeq",4,&operandTable[610]},
+    {aarch64_op_fcmeq_advsimd_zero,"fcmeq",5,&operandTable[614]},
+    {aarch64_op_fcmge_advsimd_reg,"fcmge",5,&operandTable[619]},
+    {aarch64_op_fcmge_advsimd_reg,"fcmge",6,&operandTable[624]},
+    {aarch64_op_fcmge_advsimd_zero,"fcmge",4,&operandTable[630]},
+    {aarch64_op_fcmge_advsimd_zero,"fcmge",5,&operandTable[634]},
+    {aarch64_op_fcmgt_advsimd_reg,"fcmgt",5,&operandTable[639]},
+    {aarch64_op_fcmgt_advsimd_reg,"fcmgt",6,&operandTable[644]},
+    {aarch64_op_fcmgt_advsimd_zero,"fcmgt",4,&operandTable[650]},
+    {aarch64_op_fcmgt_advsimd_zero,"fcmgt",5,&operandTable[654]},
+    {aarch64_op_fcmle_advsimd,"fcmle",4,&operandTable[659]},
+    {aarch64_op_fcmle_advsimd,"fcmle",5,&operandTable[663]},
+    {aarch64_op_fcmlt_advsimd,"fcmlt",4,&operandTable[668]},
+    {aarch64_op_fcmlt_advsimd,"fcmlt",5,&operandTable[672]},
+    {aarch64_op_fcmp_float,"fcmp",6,&operandTable[677]},
+    {aarch64_op_fcmpe_float,"fcmpe",6,&operandTable[683]},
+    {aarch64_op_fcsel_float,"fcsel",6,&operandTable[689]},
+    {aarch64_op_fcvt_float,"fcvt",5,&operandTable[695]},
+    {aarch64_op_fcvtas_advsimd,"fcvtas",4,&operandTable[700]},
+    {aarch64_op_fcvtas_advsimd,"fcvtas",5,&operandTable[704]},
+    {aarch64_op_fcvtas_float,"fcvtas",5,&operandTable[709]},
+    {aarch64_op_fcvtau_advsimd,"fcvtau",4,&operandTable[714]},
+    {aarch64_op_fcvtau_advsimd,"fcvtau",5,&operandTable[718]},
+    {aarch64_op_fcvtau_float,"fcvtau",5,&operandTable[723]},
+    {aarch64_op_fcvtl_advsimd,"fcvtl",5,&operandTable[728]},
+    {aarch64_op_fcvtms_advsimd,"fcvtms",4,&operandTable[733]},
+    {aarch64_op_fcvtms_advsimd,"fcvtms",5,&operandTable[737]},
+    {aarch64_op_fcvtms_float,"fcvtms",5,&operandTable[742]},
+    {aarch64_op_fcvtmu_advsimd,"fcvtmu",4,&operandTable[747]},
+    {aarch64_op_fcvtmu_advsimd,"fcvtmu",5,&operandTable[751]},
+    {aarch64_op_fcvtmu_float,"fcvtmu",5,&operandTable[756]},
+    {aarch64_op_fcvtn_advsimd,"fcvtn",5,&operandTable[761]},
+    {aarch64_op_fcvtns_advsimd,"fcvtns",4,&operandTable[766]},
+    {aarch64_op_fcvtns_advsimd,"fcvtns",5,&operandTable[770]},
+    {aarch64_op_fcvtns_float,"fcvtns",5,&operandTable[775]},
+    {aarch64_op_fcvtnu_advsimd,"fcvtnu",4,&operandTable[780]},
+    {aarch64_op_fcvtnu_advsimd,"fcvtnu",5,&operandTable[784]},
+    {aarch64_op_fcvtnu_float,"fcvtnu",5,&operandTable[789]},
+    {aarch64_op_fcvtps_advsimd,"fcvtps",4,&operandTable[794]},
+    {aarch64_op_fcvtps_advsimd,"fcvtps",5,&operandTable[798]},
+    {aarch64_op_fcvtps_float,"fcvtps",5,&operandTable[803]},
+    {aarch64_op_fcvtpu_advsimd,"fcvtpu",4,&operandTable[808]},
+    {aarch64_op_fcvtpu_advsimd,"fcvtpu",5,&operandTable[812]},
+    {aarch64_op_fcvtpu_float,"fcvtpu",5,&operandTable[817]},
+    {aarch64_op_fcvtxn_advsimd,"fcvtxn",4,&operandTable[822]},
+    {aarch64_op_fcvtxn_advsimd,"fcvtxn",5,&operandTable[826]},
+    {aarch64_op_fcvtzs_advsimd_fix,"fcvtzs",5,&operandTable[831]},
+    {aarch64_op_fcvtzs_advsimd_fix,"fcvtzs",6,&operandTable[836]},
+    {aarch64_op_fcvtzs_advsimd_int,"fcvtzs",4,&operandTable[842]},
+    {aarch64_op_fcvtzs_advsimd_int,"fcvtzs",5,&operandTable[846]},
+    {aarch64_op_fcvtzs_float_fix,"fcvtzs",6,&operandTable[851]},
+    {aarch64_op_fcvtzs_float_int,"fcvtzs",5,&operandTable[857]},
+    {aarch64_op_fcvtzu_advsimd_fix,"fcvtzu",5,&operandTable[862]},
+    {aarch64_op_fcvtzu_advsimd_fix,"fcvtzu",6,&operandTable[867]},
+    {aarch64_op_fcvtzu_advsimd_int,"fcvtzu",4,&operandTable[873]},
+    {aarch64_op_fcvtzu_advsimd_int,"fcvtzu",5,&operandTable[877]},
+    {aarch64_op_fcvtzu_float_fix,"fcvtzu",6,&operandTable[882]},
+    {aarch64_op_fcvtzu_float_int,"fcvtzu",5,&operandTable[888]},
+    {aarch64_op_fdiv_advsimd,"fdiv",6,&operandTable[893]},
+    {aarch64_op_fdiv_float,"fdiv",5,&operandTable[899]},
+    {aarch64_op_fmadd_float,"fmadd",6,&operandTable[904]},
+    {aarch64_op_fmax_advsimd,"fmax",6,&operandTable[910]},
+    {aarch64_op_fmax_float,"fmax",5,&operandTable[916]},
+    {aarch64_op_fmaxnm_advsimd,"fmaxnm",6,&operandTable[921]},
+    {aarch64_op_fmaxnm_float,"fmaxnm",5,&operandTable[927]},
+    {aarch64_op_fmaxnmp_advsimd_pair,"fmaxnmp",4,&operandTable[932]},
+    {aarch64_op_fmaxnmp_advsimd_vec,"fmaxnmp",6,&operandTable[936]},
+    {aarch64_op_fmaxnmv_advsimd,"fmaxnmv",5,&operandTable[942]},
+    {aarch64_op_fmaxp_advsimd_pair,"fmaxp",4,&operandTable[947]},
+    {aarch64_op_fmaxp_advsimd_vec,"fmaxp",6,&operandTable[951]},
+    {aarch64_op_fmaxv_advsimd,"fmaxv",5,&operandTable[957]},
+    {aarch64_op_fmin_advsimd,"fmin",6,&operandTable[962]},
+    {aarch64_op_fmin_float,"fmin",5,&operandTable[968]},
+    {aarch64_op_fminnm_advsimd,"fminnm",6,&operandTable[973]},
+    {aarch64_op_fminnm_float,"fminnm",5,&operandTable[979]},
+    {aarch64_op_fminnmp_advsimd_pair,"fminnmp",4,&operandTable[984]},
+    {aarch64_op_fminnmp_advsimd_vec,"fminnmp",6,&operandTable[988]},
+    {aarch64_op_fminnmv_advsimd,"fminnmv",5,&operandTable[994]},
+    {aarch64_op_fminp_advsimd_pair,"fminp",4,&operandTable[999]},
+    {aarch64_op_fminp_advsimd_vec,"fminp",6,&operandTable[1003]},
+    {aarch64_op_fminv_advsimd,"fminv",5,&operandTable[1009]},
+    {aarch64_op_fmla_advsimd_elt,"fmla",8,&operandTable[1014]},
+    {aarch64_op_fmla_advsimd_elt,"fmla",9,&operandTable[1022]},
+    {aarch64_op_fmla_advsimd_vec,"fmla",6,&operandTable[1031]},
+    {aarch64_op_fmls_advsimd_elt,"fmls",8,&operandTable[1037]},
+    {aarch64_op_fmls_advsimd_elt,"fmls",9,&operandTable[1045]},
+    {aarch64_op_fmls_advsimd_vec,"fmls",6,&operandTable[1054]},
+    {aarch64_op_fmov_advsimd,"fmov",12,&operandTable[1060]},
+    {aarch64_op_fmov_float,"fmov",4,&operandTable[1072]},
+    {aarch64_op_fmov_float_gen,"fmov",7,&operandTable[1076]},
+    {aarch64_op_fmov_float_imm,"fmov",4,&operandTable[1083]},
+    {aarch64_op_fmsub_float,"fmsub",6,&operandTable[1087]},
+    {aarch64_op_fmul_advsimd_elt,"fmul",8,&operandTable[1093]},
+    {aarch64_op_fmul_advsimd_elt,"fmul",9,&operandTable[1101]},
+    {aarch64_op_fmul_advsimd_vec,"fmul",6,&operandTable[1110]},
+    {aarch64_op_fmul_float,"fmul",5,&operandTable[1116]},
+    {aarch64_op_fmulx_advsimd_elt,"fmulx",8,&operandTable[1121]},
+    {aarch64_op_fmulx_advsimd_elt,"fmulx",9,&operandTable[1129]},
+    {aarch64_op_fmulx_advsimd_vec,"fmulx",5,&operandTable[1138]},
+    {aarch64_op_fmulx_advsimd_vec,"fmulx",6,&operandTable[1143]},
+    {aarch64_op_fneg_advsimd,"fneg",5,&operandTable[1149]},
+    {aarch64_op_fneg_float,"fneg",4,&operandTable[1154]},
+    {aarch64_op_fnmadd_float,"fnmadd",6,&operandTable[1158]},
+    {aarch64_op_fnmsub_float,"fnmsub",6,&operandTable[1164]},
+    {aarch64_op_fnmul_float,"fnmul",5,&operandTable[1170]},
+    {aarch64_op_frecpe_advsimd,"frecpe",4,&operandTable[1175]},
+    {aarch64_op_frecpe_advsimd,"frecpe",5,&operandTable[1179]},
+    {aarch64_op_frecps_advsimd,"frecps",5,&operandTable[1184]},
+    {aarch64_op_frecps_advsimd,"frecps",6,&operandTable[1189]},
+    {aarch64_op_frecpx_advsimd,"frecpx",4,&operandTable[1195]},
+    {aarch64_op_frinta_advsimd,"frinta",5,&operandTable[1199]},
+    {aarch64_op_frinta_float,"frinta",4,&operandTable[1204]},
+    {aarch64_op_frinti_advsimd,"frinti",5,&operandTable[1208]},
+    {aarch64_op_frinti_float,"frinti",4,&operandTable[1213]},
+    {aarch64_op_frintm_advsimd,"frintm",5,&operandTable[1217]},
+    {aarch64_op_frintm_float,"frintm",4,&operandTable[1222]},
+    {aarch64_op_frintn_advsimd,"frintn",5,&operandTable[1226]},
+    {aarch64_op_frintn_float,"frintn",4,&operandTable[1231]},
+    {aarch64_op_frintp_advsimd,"frintp",5,&operandTable[1235]},
+    {aarch64_op_frintp_float,"frintp",4,&operandTable[1240]},
+    {aarch64_op_frintx_advsimd,"frintx",5,&operandTable[1244]},
+    {aarch64_op_frintx_float,"frintx",4,&operandTable[1249]},
+    {aarch64_op_frintz_advsimd,"frintz",5,&operandTable[1253]},
+    {aarch64_op_frintz_float,"frintz",4,&operandTable[1258]},
+    {aarch64_op_frsqrte_advsimd,"frsqrte",4,&operandTable[1262]},
+    {aarch64_op_frsqrte_advsimd,"frsqrte",5,&operandTable[1266]},
+    {aarch64_op_frsqrts_advsimd,"frsqrts",5,&operandTable[1271]},
+    {aarch64_op_frsqrts_advsimd,"frsqrts",6,&operandTable[1276]},
+    {aarch64_op_fsqrt_advsimd,"fsqrt",5,&operandTable[1282]},
+    {aarch64_op_fsqrt_float,"fsqrt",4,&operandTable[1287]},
+    {aarch64_op_fsub_advsimd,"fsub",6,&operandTable[1291]},
+    {aarch64_op_fsub_float,"fsub",5,&operandTable[1297]},
+    {aarch64_op_hint,"hint",2,&operandTable[1302]},
+    {aarch64_op_hlt,"hlt",1,&operandTable[1304]},
+    {aarch64_op_hvc,"hvc",1,&operandTable[1305]},
+    {aarch64_op_ic_sys,"ic",4,&operandTable[1306]},
+    {aarch64_op_ins_advsimd_elt,"ins",5,&operandTable[1310]},
+    {aarch64_op_ins_advsimd_gen,"ins",4,&operandTable[1315]},
+    {aarch64_op_isb,"isb",1,&operandTable[1319]},
+    {aarch64_op_ld1_advsimd_mult,"ld1",6,&operandTable[1320]},
+    {aarch64_op_ld1_advsimd_mult,"ld1",7,&operandTable[1326]},
+    {aarch64_op_ld1_advsimd_sngl,"ld1",7,&operandTable[1333]},
+    {aarch64_op_ld1_advsimd_sngl,"ld1",8,&operandTable[1340]},
+    {aarch64_op_ld1r_advsimd,"ld1r",5,&operandTable[1348]},
+    {aarch64_op_ld1r_advsimd,"ld1r",6,&operandTable[1353]},
+    {aarch64_op_ld2_advsimd_mult,"ld2",5,&operandTable[1359]},
+    {aarch64_op_ld2_advsimd_mult,"ld2",6,&operandTable[1364]},
+    {aarch64_op_ld2_advsimd_sngl,"ld2",7,&operandTable[1370]},
+    {aarch64_op_ld2_advsimd_sngl,"ld2",8,&operandTable[1377]},
+    {aarch64_op_ld2r_advsimd,"ld2r",5,&operandTable[1385]},
+    {aarch64_op_ld2r_advsimd,"ld2r",6,&operandTable[1390]},
+    {aarch64_op_ld3_advsimd_mult,"ld3",5,&operandTable[1396]},
+    {aarch64_op_ld3_advsimd_mult,"ld3",6,&operandTable[1401]},
+    {aarch64_op_ld3_advsimd_sngl,"ld3",7,&operandTable[1407]},
+    {aarch64_op_ld3_advsimd_sngl,"ld3",8,&operandTable[1414]},
+    {aarch64_op_ld3r_advsimd,"ld3r",5,&operandTable[1422]},
+    {aarch64_op_ld3r_advsimd,"ld3r",6,&operandTable[1427]},
+    {aarch64_op_ld4_advsimd_mult,"ld4",5,&operandTable[1433]},
+    {aarch64_op_ld4_advsimd_mult,"ld4",6,&operandTable[1438]},
+    {aarch64_op_ld4_advsimd_sngl,"ld4",7,&operandTable[1444]},
+    {aarch64_op_ld4_advsimd_sngl,"ld4",8,&operandTable[1451]},
+    {aarch64_op_ld4r_advsimd,"ld4r",5,&operandTable[1459]},
+    {aarch64_op_ld4r_advsimd,"ld4r",6,&operandTable[1464]},
+    {aarch64_op_ldar,"ldar",4,&operandTable[1470]},
+    {aarch64_op_ldarb,"ldarb",3,&operandTable[1474]},
+    {aarch64_op_ldarh,"ldarh",3,&operandTable[1477]},
+    {aarch64_op_ldaxp,"ldaxp",5,&operandTable[1480]},
+    {aarch64_op_ldaxr,"ldaxr",4,&operandTable[1485]},
+    {aarch64_op_ldaxrb,"ldaxrb",3,&operandTable[1489]},
+    {aarch64_op_ldaxrh,"ldaxrh",3,&operandTable[1492]},
+    {aarch64_op_ldnp_fpsimd,"ldnp",7,&operandTable[1495]},
+    {aarch64_op_ldnp_gen,"ldnp",6,&operandTable[1502]},
+    {aarch64_op_ldp_fpsimd,"ldp",7,&operandTable[1508]},
+    {aarch64_op_ldp_fpsimd,"ldp",7,&operandTable[1515]},
+    {aarch64_op_ldp_fpsimd,"ldp",7,&operandTable[1522]},
+    {aarch64_op_ldp_gen,"ldp",6,&operandTable[1529]},
+    {aarch64_op_ldp_gen,"ldp",6,&operandTable[1535]},
+    {aarch64_op_ldp_gen,"ldp",6,&operandTable[1541]},
+    {aarch64_op_ldpsw,"ldpsw",5,&operandTable[1547]},
+    {aarch64_op_ldpsw,"ldpsw",5,&operandTable[1552]},
+    {aarch64_op_ldpsw,"ldpsw",5,&operandTable[1557]},
+    {aarch64_op_ldr_imm_fpsimd,"ldr",7,&operandTable[1562]},
+    {aarch64_op_ldr_imm_fpsimd,"ldr",7,&operandTable[1569]},
+    {aarch64_op_ldr_imm_fpsimd,"ldr",7,&operandTable[1576]},
+    {aarch64_op_ldr_imm_gen,"ldr",5,&operandTable[1583]},
+    {aarch64_op_ldr_imm_gen,"ldr",5,&operandTable[1588]},
+    {aarch64_op_ldr_imm_gen,"ldr",5,&operandTable[1593]},
+    {aarch64_op_ldr_lit_fpsimd,"ldr",5,&operandTable[1598]},
+    {aarch64_op_ldr_lit_gen,"ldr",4,&operandTable[1603]},
+    {aarch64_op_ldr_reg_fpsimd,"ldr",9,&operandTable[1607]},
+    {aarch64_op_ldr_reg_gen,"ldr",7,&operandTable[1616]},
+    {aarch64_op_ldrb_imm,"ldrb",4,&operandTable[1623]},
+    {aarch64_op_ldrb_imm,"ldrb",4,&operandTable[1627]},
+    {aarch64_op_ldrb_imm,"ldrb",4,&operandTable[1631]},
+    {aarch64_op_ldrb_reg,"ldrb",6,&operandTable[1635]},
+    {aarch64_op_ldrh_imm,"ldrh",4,&operandTable[1641]},
+    {aarch64_op_ldrh_imm,"ldrh",4,&operandTable[1645]},
+    {aarch64_op_ldrh_imm,"ldrh",4,&operandTable[1649]},
+    {aarch64_op_ldrh_reg,"ldrh",6,&operandTable[1653]},
+    {aarch64_op_ldrsb_imm,"ldrsb",5,&operandTable[1659]},
+    {aarch64_op_ldrsb_imm,"ldrsb",5,&operandTable[1664]},
+    {aarch64_op_ldrsb_imm,"ldrsb",5,&operandTable[1669]},
+    {aarch64_op_ldrsb_reg,"ldrsb",7,&operandTable[1674]},
+    {aarch64_op_ldrsh_imm,"ldrsh",5,&operandTable[1681]},
+    {aarch64_op_ldrsh_imm,"ldrsh",5,&operandTable[1686]},
+    {aarch64_op_ldrsh_imm,"ldrsh",5,&operandTable[1691]},
+    {aarch64_op_ldrsh_reg,"ldrsh",7,&operandTable[1696]},
+    {aarch64_op_ldrsw_imm,"ldrsw",4,&operandTable[1703]},
+    {aarch64_op_ldrsw_imm,"ldrsw",4,&operandTable[1707]},
+    {aarch64_op_ldrsw_imm,"ldrsw",4,&operandTable[1711]},
+    {aarch64_op_ldrsw_lit,"ldrsw",3,&operandTable[1715]},
+    {aarch64_op_ldrsw_reg,"ldrsw",6,&operandTable[1718]},
+    {aarch64_op_ldtr,"ldtr",5,&operandTable[1724]},
+    {aarch64_op_ldtrb,"ldtrb",4,&operandTable[1729]},
+    {aarch64_op_ldtrh,"ldtrh",4,&operandTable[1733]},
+    {aarch64_op_ldtrsb,"ldtrsb",5,&operandTable[1737]},
+    {aarch64_op_ldtrsh,"ldtrsh",5,&operandTable[1742]},
+    {aarch64_op_ldtrsw,"ldtrsw",4,&operandTable[1747]},
+    {aarch64_op_ldur_fpsimd,"ldur",7,&operandTable[1751]},
+    {aarch64_op_ldur_gen,"ldur",5,&operandTable[1758]},
+    {aarch64_op_ldurb,"ldurb",4,&operandTable[1763]},
+    {aarch64_op_ldurh,"ldurh",4,&operandTable[1767]},
+    {aarch64_op_ldursb,"ldursb",5,&operandTable[1771]},
+    {aarch64_op_ldursh,"ldursh",5,&operandTable[1776]},
+    {aarch64_op_ldursw,"ldursw",4,&operandTable[1781]},
+    {aarch64_op_ldxp,"ldxp",5,&operandTable[1785]},
+    {aarch64_op_ldxr,"ldxr",4,&operandTable[1790]},
+    {aarch64_op_ldxrb,"ldxrb",3,&operandTable[1794]},
+    {aarch64_op_ldxrh,"ldxrh",3,&operandTable[1797]},
+    {aarch64_op_lsl_lslv,"lsl",4,&operandTable[1800]},
+    {aarch64_op_lsl_ubfm,"lsl",6,&operandTable[1804]},
+    {aarch64_op_lslv,"lslv",4,&operandTable[1810]},
+    {aarch64_op_lsr_lsrv,"lsr",4,&operandTable[1814]},
+    {aarch64_op_lsr_ubfm,"lsr",6,&operandTable[1818]},
+    {aarch64_op_lsrv,"lsrv",4,&operandTable[1824]},
+    {aarch64_op_madd,"madd",5,&operandTable[1828]},
+    {aarch64_op_mla_advsimd_elt,"mla",9,&operandTable[1833]},
+    {aarch64_op_mla_advsimd_vec,"mla",6,&operandTable[1842]},
+    {aarch64_op_mls_advsimd_elt,"mls",9,&operandTable[1848]},
+    {aarch64_op_mls_advsimd_vec,"mls",6,&operandTable[1857]},
+    {aarch64_op_mneg_msub,"mneg",4,&operandTable[1863]},
+    {aarch64_op_mov_add_addsub_imm,"mov",3,&operandTable[1867]},
+    {aarch64_op_mov_dup_advsimd_elt,"mov",4,&operandTable[1870]},
+    {aarch64_op_mov_ins_advsimd_elt,"mov",5,&operandTable[1874]},
+    {aarch64_op_mov_ins_advsimd_gen,"mov",4,&operandTable[1879]},
+    {aarch64_op_mov_movn,"mov",4,&operandTable[1883]},
+    {aarch64_op_mov_movz,"mov",4,&operandTable[1887]},
+    {aarch64_op_mov_orr_advsimd_reg,"mov",5,&operandTable[1891]},
+    {aarch64_op_mov_orr_log_imm,"mov",5,&operandTable[1896]},
+    {aarch64_op_mov_orr_log_shift,"mov",3,&operandTable[1901]},
+    {aarch64_op_mov_umov_advsimd,"mov",5,&operandTable[1904]},
+    {aarch64_op_movi_advsimd,"movi",13,&operandTable[1909]},
+    {aarch64_op_movk,"movk",4,&operandTable[1922]},
+    {aarch64_op_movn,"movn",4,&operandTable[1926]},
+    {aarch64_op_movz,"movz",4,&operandTable[1930]},
+    {aarch64_op_mrs,"mrs",6,&operandTable[1934]},
+    {aarch64_op_msr_imm,"msr",3,&operandTable[1940]},
+    {aarch64_op_msr_reg,"msr",6,&operandTable[1943]},
+    {aarch64_op_msub,"msub",5,&operandTable[1949]},
+    {aarch64_op_mul_advsimd_elt,"mul",9,&operandTable[1954]},
+    {aarch64_op_mul_advsimd_vec,"mul",6,&operandTable[1963]},
+    {aarch64_op_mul_madd,"mul",4,&operandTable[1969]},
+    {aarch64_op_mvn_not_advsimd,"mvn",4,&operandTable[1973]},
+    {aarch64_op_mvn_orn_log_shift,"mvn",5,&operandTable[1977]},
+    {aarch64_op_mvni_advsimd,"mvni",12,&operandTable[1982]},
+    {aarch64_op_neg_advsimd,"neg",4,&operandTable[1994]},
+    {aarch64_op_neg_advsimd,"neg",5,&operandTable[1998]},
+    {aarch64_op_neg_sub_addsub_shift,"neg",5,&operandTable[2003]},
+    {aarch64_op_negs_subs_addsub_shift,"negs",6,&operandTable[2008]},
+    {aarch64_op_ngc_sbc,"ngc",3,&operandTable[2014]},
+    {aarch64_op_ngcs_sbcs,"ngcs",4,&operandTable[2017]},
+    {aarch64_op_nop_hint,"nop",0,&operandTable[2021]},
+    {aarch64_op_not_advsimd,"not",4,&operandTable[2021]},
+    {aarch64_op_orn_advsimd,"orn",5,&operandTable[2025]},
+    {aarch64_op_orn_log_shift,"orn",6,&operandTable[2030]},
+    {aarch64_op_orr_advsimd_imm,"orr",12,&operandTable[2036]},
+    {aarch64_op_orr_advsimd_reg,"orr",5,&operandTable[2048]},
+    {aarch64_op_orr_log_imm,"orr",6,&operandTable[2053]},
+    {aarch64_op_orr_log_shift,"orr",6,&operandTable[2059]},
+    {aarch64_op_pmul_advsimd,"pmul",6,&operandTable[2065]},
+    {aarch64_op_pmull_advsimd,"pmull",6,&operandTable[2071]},
+    {aarch64_op_prfm_imm,"prfm",3,&operandTable[2077]},
+    {aarch64_op_prfm_lit,"prfm",2,&operandTable[2080]},
+    {aarch64_op_prfm_reg,"prfm",5,&operandTable[2082]},
+    {aarch64_op_prfum,"prfum",3,&operandTable[2087]},
+    {aarch64_op_raddhn_advsimd,"raddhn",6,&operandTable[2090]},
+    {aarch64_op_rbit_advsimd,"rbit",4,&operandTable[2096]},
+    {aarch64_op_rbit_int,"rbit",3,&operandTable[2100]},
+    {aarch64_op_ret,"ret",1,&operandTable[2103]},
+    {aarch64_op_rev,"rev",4,&operandTable[2104]},
+    {aarch64_op_rev16_advsimd,"rev16",5,&operandTable[2108]},
+    {aarch64_op_rev16_int,"rev16",3,&operandTable[2113]},
+    {aarch64_op_rev32_advsimd,"rev32",5,&operandTable[2116]},
+    {aarch64_op_rev32_int,"rev32",2,&operandTable[2121]},
+    {aarch64_op_rev64_advsimd,"rev64",5,&operandTable[2123]},
+    {aarch64_op_ror_extr,"ror",6,&operandTable[2128]},
+    {aarch64_op_ror_rorv,"ror",4,&operandTable[2134]},
+    {aarch64_op_rorv,"rorv",4,&operandTable[2138]},
+    {aarch64_op_rshrn_advsimd,"rshrn",6,&operandTable[2142]},
+    {aarch64_op_rsubhn_advsimd,"rsubhn",6,&operandTable[2148]},
+    {aarch64_op_saba_advsimd,"saba",6,&operandTable[2154]},
+    {aarch64_op_sabal_advsimd,"sabal",6,&operandTable[2160]},
+    {aarch64_op_sabd_advsimd,"sabd",6,&operandTable[2166]},
+    {aarch64_op_sabdl_advsimd,"sabdl",6,&operandTable[2172]},
+    {aarch64_op_sadalp_advsimd,"sadalp",5,&operandTable[2178]},
+    {aarch64_op_saddl_advsimd,"saddl",6,&operandTable[2183]},
+    {aarch64_op_saddlp_advsimd,"saddlp",5,&operandTable[2189]},
+    {aarch64_op_saddlv_advsimd,"saddlv",5,&operandTable[2194]},
+    {aarch64_op_saddw_advsimd,"saddw",6,&operandTable[2199]},
+    {aarch64_op_sbc,"sbc",4,&operandTable[2205]},
+    {aarch64_op_sbcs,"sbcs",5,&operandTable[2209]},
+    {aarch64_op_sbfiz_sbfm,"sbfiz",6,&operandTable[2214]},
+    {aarch64_op_sbfm,"sbfm",6,&operandTable[2220]},
+    {aarch64_op_sbfx_sbfm,"sbfx",6,&operandTable[2226]},
+    {aarch64_op_scvtf_advsimd_fix,"scvtf",5,&operandTable[2232]},
+    {aarch64_op_scvtf_advsimd_fix,"scvtf",6,&operandTable[2237]},
+    {aarch64_op_scvtf_advsimd_int,"scvtf",4,&operandTable[2243]},
+    {aarch64_op_scvtf_advsimd_int,"scvtf",5,&operandTable[2247]},
+    {aarch64_op_scvtf_float_fix,"scvtf",6,&operandTable[2252]},
+    {aarch64_op_scvtf_float_int,"scvtf",5,&operandTable[2258]},
+    {aarch64_op_sdiv,"sdiv",4,&operandTable[2263]},
+    {aarch64_op_sev_hint,"sev",0,&operandTable[2267]},
+    {aarch64_op_sevl_hint,"sevl",0,&operandTable[2267]},
+    {aarch64_op_sha1c_advsimd,"sha1c",4,&operandTable[2267]},
+    {aarch64_op_sha1h_advsimd,"sha1h",3,&operandTable[2271]},
+    {aarch64_op_sha1m_advsimd,"sha1m",4,&operandTable[2274]},
+    {aarch64_op_sha1p_advsimd,"sha1p",4,&operandTable[2278]},
+    {aarch64_op_sha1su0_advsimd,"sha1su0",4,&operandTable[2282]},
+    {aarch64_op_sha1su1_advsimd,"sha1su1",3,&operandTable[2286]},
+    {aarch64_op_sha256h2_advsimd,"sha256h2",4,&operandTable[2289]},
+    {aarch64_op_sha256h_advsimd,"sha256h",4,&operandTable[2293]},
+    {aarch64_op_sha256su0_advsimd,"sha256su0",3,&operandTable[2297]},
+    {aarch64_op_sha256su1_advsimd,"sha256su1",4,&operandTable[2300]},
+    {aarch64_op_shadd_advsimd,"shadd",6,&operandTable[2304]},
+    {aarch64_op_shl_advsimd,"shl",5,&operandTable[2310]},
+    {aarch64_op_shl_advsimd,"shl",6,&operandTable[2315]},
+    {aarch64_op_shll_advsimd,"shll",5,&operandTable[2321]},
+    {aarch64_op_shrn_advsimd,"shrn",6,&operandTable[2326]},
+    {aarch64_op_shsub_advsimd,"shsub",6,&operandTable[2332]},
+    {aarch64_op_sli_advsimd,"sli",5,&operandTable[2338]},
+    {aarch64_op_sli_advsimd,"sli",6,&operandTable[2343]},
+    {aarch64_op_smaddl,"smaddl",4,&operandTable[2349]},
+    {aarch64_op_smax_advsimd,"smax",6,&operandTable[2353]},
+    {aarch64_op_smaxp_advsimd,"smaxp",6,&operandTable[2359]},
+    {aarch64_op_smaxv_advsimd,"smaxv",5,&operandTable[2365]},
+    {aarch64_op_smc,"smc",1,&operandTable[2370]},
+    {aarch64_op_smin_advsimd,"smin",6,&operandTable[2371]},
+    {aarch64_op_sminp_advsimd,"sminp",6,&operandTable[2377]},
+    {aarch64_op_sminv_advsimd,"sminv",5,&operandTable[2383]},
+    {aarch64_op_smlal_advsimd_elt,"smlal",9,&operandTable[2388]},
+    {aarch64_op_smlal_advsimd_vec,"smlal",6,&operandTable[2397]},
+    {aarch64_op_smlsl_advsimd_elt,"smlsl",9,&operandTable[2403]},
+    {aarch64_op_smlsl_advsimd_vec,"smlsl",6,&operandTable[2412]},
+    {aarch64_op_smnegl_smsubl,"smnegl",3,&operandTable[2418]},
+    {aarch64_op_smov_advsimd,"smov",5,&operandTable[2421]},
+    {aarch64_op_smsubl,"smsubl",4,&operandTable[2426]},
+    {aarch64_op_smulh,"smulh",3,&operandTable[2430]},
+    {aarch64_op_smull_advsimd_elt,"smull",9,&operandTable[2433]},
+    {aarch64_op_smull_advsimd_vec,"smull",6,&operandTable[2442]},
+    {aarch64_op_smull_smaddl,"smull",3,&operandTable[2448]},
+    {aarch64_op_sqabs_advsimd,"sqabs",4,&operandTable[2451]},
+    {aarch64_op_sqabs_advsimd,"sqabs",5,&operandTable[2455]},
+    {aarch64_op_sqadd_advsimd,"sqadd",5,&operandTable[2460]},
+    {aarch64_op_sqadd_advsimd,"sqadd",6,&operandTable[2465]},
+    {aarch64_op_sqdmlal_advsimd_elt,"sqdmlal",8,&operandTable[2471]},
+    {aarch64_op_sqdmlal_advsimd_elt,"sqdmlal",9,&operandTable[2479]},
+    {aarch64_op_sqdmlal_advsimd_vec,"sqdmlal",5,&operandTable[2488]},
+    {aarch64_op_sqdmlal_advsimd_vec,"sqdmlal",6,&operandTable[2493]},
+    {aarch64_op_sqdmlsl_advsimd_elt,"sqdmlsl",8,&operandTable[2499]},
+    {aarch64_op_sqdmlsl_advsimd_elt,"sqdmlsl",9,&operandTable[2507]},
+    {aarch64_op_sqdmlsl_advsimd_vec,"sqdmlsl",5,&operandTable[2516]},
+    {aarch64_op_sqdmlsl_advsimd_vec,"sqdmlsl",6,&operandTable[2521]},
+    {aarch64_op_sqdmulh_advsimd_elt,"sqdmulh",8,&operandTable[2527]},
+    {aarch64_op_sqdmulh_advsimd_elt,"sqdmulh",9,&operandTable[2535]},
+    {aarch64_op_sqdmulh_advsimd_vec,"sqdmulh",5,&operandTable[2544]},
+    {aarch64_op_sqdmulh_advsimd_vec,"sqdmulh",6,&operandTable[2549]},
+    {aarch64_op_sqdmull_advsimd_elt,"sqdmull",8,&operandTable[2555]},
+    {aarch64_op_sqdmull_advsimd_elt,"sqdmull",9,&operandTable[2563]},
+    {aarch64_op_sqdmull_advsimd_vec,"sqdmull",5,&operandTable[2572]},
+    {aarch64_op_sqdmull_advsimd_vec,"sqdmull",6,&operandTable[2577]},
+    {aarch64_op_sqneg_advsimd,"sqneg",4,&operandTable[2583]},
+    {aarch64_op_sqneg_advsimd,"sqneg",5,&operandTable[2587]},
+    {aarch64_op_sqrdmulh_advsimd_elt,"sqrdmulh",8,&operandTable[2592]},
+    {aarch64_op_sqrdmulh_advsimd_elt,"sqrdmulh",9,&operandTable[2600]},
+    {aarch64_op_sqrdmulh_advsimd_vec,"sqrdmulh",5,&operandTable[2609]},
+    {aarch64_op_sqrdmulh_advsimd_vec,"sqrdmulh",6,&operandTable[2614]},
+    {aarch64_op_sqrshl_advsimd,"sqrshl",5,&operandTable[2620]},
+    {aarch64_op_sqrshl_advsimd,"sqrshl",6,&operandTable[2625]},
+    {aarch64_op_sqrshrn_advsimd,"sqrshrn",5,&operandTable[2631]},
+    {aarch64_op_sqrshrn_advsimd,"sqrshrn",6,&operandTable[2636]},
+    {aarch64_op_sqrshrun_advsimd,"sqrshrun",5,&operandTable[2642]},
+    {aarch64_op_sqrshrun_advsimd,"sqrshrun",6,&operandTable[2647]},
+    {aarch64_op_sqshl_advsimd_imm,"sqshl",5,&operandTable[2653]},
+    {aarch64_op_sqshl_advsimd_imm,"sqshl",6,&operandTable[2658]},
+    {aarch64_op_sqshl_advsimd_reg,"sqshl",5,&operandTable[2664]},
+    {aarch64_op_sqshl_advsimd_reg,"sqshl",6,&operandTable[2669]},
+    {aarch64_op_sqshlu_advsimd,"sqshlu",5,&operandTable[2675]},
+    {aarch64_op_sqshlu_advsimd,"sqshlu",6,&operandTable[2680]},
+    {aarch64_op_sqshrn_advsimd,"sqshrn",5,&operandTable[2686]},
+    {aarch64_op_sqshrn_advsimd,"sqshrn",6,&operandTable[2691]},
+    {aarch64_op_sqshrun_advsimd,"sqshrun",5,&operandTable[2697]},
+    {aarch64_op_sqshrun_advsimd,"sqshrun",6,&operandTable[2702]},
+    {aarch64_op_sqsub_advsimd,"sqsub",5,&operandTable[2708]},
+    {aarch64_op_sqsub_advsimd,"sqsub",6,&operandTable[2713]},
+    {aarch64_op_sqxtn_advsimd,"sqxtn",4,&operandTable[2719]},
+    {aarch64_op_sqxtn_advsimd,"sqxtn",5,&operandTable[2723]},
+    {aarch64_op_sqxtun_advsimd,"sqxtun",4,&operandTable[2728]},
+    {aarch64_op_sqxtun_advsimd,"sqxtun",5,&operandTable[2732]},
+    {aarch64_op_srhadd_advsimd,"srhadd",6,&operandTable[2737]},
+    {aarch64_op_sri_advsimd,"sri",5,&operandTable[2743]},
+    {aarch64_op_sri_advsimd,"sri",6,&operandTable[2748]},
+    {aarch64_op_srshl_advsimd,"srshl",5,&operandTable[2754]},
+    {aarch64_op_srshl_advsimd,"srshl",6,&operandTable[2759]},
+    {aarch64_op_srshr_advsimd,"srshr",5,&operandTable[2765]},
+    {aarch64_op_srshr_advsimd,"srshr",6,&operandTable[2770]},
+    {aarch64_op_srsra_advsimd,"srsra",5,&operandTable[2776]},
+    {aarch64_op_srsra_advsimd,"srsra",6,&operandTable[2781]},
+    {aarch64_op_sshl_advsimd,"sshl",5,&operandTable[2787]},
+    {aarch64_op_sshl_advsimd,"sshl",6,&operandTable[2792]},
+    {aarch64_op_sshll_advsimd,"sshll",6,&operandTable[2798]},
+    {aarch64_op_sshr_advsimd,"sshr",5,&operandTable[2804]},
+    {aarch64_op_sshr_advsimd,"sshr",6,&operandTable[2809]},
+    {aarch64_op_ssra_advsimd,"ssra",5,&operandTable[2815]},
+    {aarch64_op_ssra_advsimd,"ssra",6,&operandTable[2820]},
+    {aarch64_op_ssubl_advsimd,"ssubl",6,&operandTable[2826]},
+    {aarch64_op_ssubw_advsimd,"ssubw",6,&operandTable[2832]},
+    {aarch64_op_st1_advsimd_mult,"st1",6,&operandTable[2838]},
+    {aarch64_op_st1_advsimd_mult,"st1",7,&operandTable[2844]},
+    {aarch64_op_st1_advsimd_sngl,"st1",7,&operandTable[2851]},
+    {aarch64_op_st1_advsimd_sngl,"st1",8,&operandTable[2858]},
+    {aarch64_op_st2_advsimd_mult,"st2",5,&operandTable[2866]},
+    {aarch64_op_st2_advsimd_mult,"st2",6,&operandTable[2871]},
+    {aarch64_op_st2_advsimd_sngl,"st2",7,&operandTable[2877]},
+    {aarch64_op_st2_advsimd_sngl,"st2",8,&operandTable[2884]},
+    {aarch64_op_st3_advsimd_mult,"st3",5,&operandTable[2892]},
+    {aarch64_op_st3_advsimd_mult,"st3",6,&operandTable[2897]},
+    {aarch64_op_st3_advsimd_sngl,"st3",7,&operandTable[2903]},
+    {aarch64_op_st3_advsimd_sngl,"st3",8,&operandTable[2910]},
+    {aarch64_op_st4_advsimd_mult,"st4",5,&operandTable[2918]},
+    {aarch64_op_st4_advsimd_mult,"st4",6,&operandTable[2923]},
+    {aarch64_op_st4_advsimd_sngl,"st4",7,&operandTable[2929]},
+    {aarch64_op_st4_advsimd_sngl,"st4",8,&operandTable[2936]},
+    {aarch64_op_stlr,"stlr",4,&operandTable[2944]},
+    {aarch64_op_stlrb,"stlrb",3,&operandTable[2948]},
+    {aarch64_op_stlrh,"stlrh",3,&operandTable[2951]},
+    {aarch64_op_stlxp,"stlxp",6,&operandTable[2954]},
+    {aarch64_op_stlxr,"stlxr",5,&operandTable[2960]},
+    {aarch64_op_stlxrb,"stlxrb",4,&operandTable[2965]},
+    {aarch64_op_stlxrh,"stlxrh",4,&operandTable[2969]},
+    {aarch64_op_stnp_fpsimd,"stnp",7,&operandTable[2973]},
+    {aarch64_op_stnp_gen,"stnp",6,&operandTable[2980]},
+    {aarch64_op_stp_fpsimd,"stp",7,&operandTable[2986]},
+    {aarch64_op_stp_fpsimd,"stp",7,&operandTable[2993]},
+    {aarch64_op_stp_fpsimd,"stp",7,&operandTable[3000]},
+    {aarch64_op_stp_gen,"stp",6,&operandTable[3007]},
+    {aarch64_op_stp_gen,"stp",6,&operandTable[3013]},
+    {aarch64_op_stp_gen,"stp",6,&operandTable[3019]},
+    {aarch64_op_str_imm_fpsimd,"str",7,&operandTable[3025]},
+    {aarch64_op_str_imm_fpsimd,"str",7,&operandTable[3032]},
+    {aarch64_op_str_imm_fpsimd,"str",7,&operandTable[3039]},
+    {aarch64_op_str_imm_gen,"str",5,&operandTable[3046]},
+    {aarch64_op_str_imm_gen,"str",5,&operandTable[3051]},
+    {aarch64_op_str_imm_gen,"str",5,&operandTable[3056]},
+    {aarch64_op_str_reg_fpsimd,"str",9,&operandTable[3061]},
+    {aarch64_op_str_reg_gen,"str",7,&operandTable[3070]},
+    {aarch64_op_strb_imm,"strb",4,&operandTable[3077]},
+    {aarch64_op_strb_imm,"strb",4,&operandTable[3081]},
+    {aarch64_op_strb_imm,"strb",4,&operandTable[3085]},
+    {aarch64_op_strb_reg,"strb",6,&operandTable[3089]},
+    {aarch64_op_strh_imm,"strh",4,&operandTable[3095]},
+    {aarch64_op_strh_imm,"strh",4,&operandTable[3099]},
+    {aarch64_op_strh_imm,"strh",4,&operandTable[3103]},
+    {aarch64_op_strh_reg,"strh",6,&operandTable[3107]},
+    {aarch64_op_sttr,"sttr",5,&operandTable[3113]},
+    {aarch64_op_sttrb,"sttrb",4,&operandTable[3118]},
+    {aarch64_op_sttrh,"sttrh",4,&operandTable[3122]},
+    {aarch64_op_stur_fpsimd,"stur",7,&operandTable[3126]},
+    {aarch64_op_stur_gen,"stur",5,&operandTable[3133]},
+    {aarch64_op_sturb,"sturb",4,&operandTable[3138]},
+    {aarch64_op_sturh,"sturh",4,&operandTable[3142]},
+    {aarch64_op_stxp,"stxp",6,&operandTable[3146]},
+    {aarch64_op_stxr,"stxr",5,&operandTable[3152]},
+    {aarch64_op_stxrb,"stxrb",4,&operandTable[3157]},
+    {aarch64_op_stxrh,"stxrh",4,&operandTable[3161]},
+    {aarch64_op_sub_addsub_ext,"sub",6,&operandTable[3165]},
+    {aarch64_op_sub_addsub_imm,"sub",5,&operandTable[3171]},
+    {aarch64_op_sub_addsub_shift,"sub",6,&operandTable[3176]},
+    {aarch64_op_sub_advsimd,"sub",5,&operandTable[3182]},
+    {aarch64_op_sub_advsimd,"sub",6,&operandTable[3187]},
+    {aarch64_op_subhn_advsimd,"subhn",6,&operandTable[3193]},
+    {aarch64_op_subs_addsub_ext,"subs",7,&operandTable[3199]},
+    {aarch64_op_subs_addsub_imm,"subs",6,&operandTable[3206]},
+    {aarch64_op_subs_addsub_shift,"subs",7,&operandTable[3212]},
+    {aarch64_op_suqadd_advsimd,"suqadd",4,&operandTable[3219]},
+    {aarch64_op_suqadd_advsimd,"suqadd",5,&operandTable[3223]},
+    {aarch64_op_svc,"svc",1,&operandTable[3228]},
+    {aarch64_op_sxtb_sbfm,"sxtb",4,&operandTable[3229]},
+    {aarch64_op_sxth_sbfm,"sxth",4,&operandTable[3233]},
+    {aarch64_op_sxtl_sshll_advsimd,"sxtl",5,&operandTable[3237]},
+    {aarch64_op_sxtw_sbfm,"sxtw",2,&operandTable[3242]},
+    {aarch64_op_sys,"sys",5,&operandTable[3244]},
+    {aarch64_op_sysl,"sysl",5,&operandTable[3249]},
+    {aarch64_op_tbl_advsimd,"tbl",6,&operandTable[3254]},
+    {aarch64_op_tbnz,"tbnz",4,&operandTable[3260]},
+    {aarch64_op_tbx_advsimd,"tbx",6,&operandTable[3264]},
+    {aarch64_op_tbz,"tbz",4,&operandTable[3270]},
+    {aarch64_op_tlbi_sys,"tlbi",4,&operandTable[3274]},
+    {aarch64_op_trn1_advsimd,"trn1",6,&operandTable[3278]},
+    {aarch64_op_trn2_advsimd,"trn2",6,&operandTable[3284]},
+    {aarch64_op_tst_ands_log_imm,"tst",6,&operandTable[3290]},
+    {aarch64_op_tst_ands_log_shift,"tst",6,&operandTable[3296]},
+    {aarch64_op_uaba_advsimd,"uaba",6,&operandTable[3302]},
+    {aarch64_op_uabal_advsimd,"uabal",6,&operandTable[3308]},
+    {aarch64_op_uabd_advsimd,"uabd",6,&operandTable[3314]},
+    {aarch64_op_uabdl_advsimd,"uabdl",6,&operandTable[3320]},
+    {aarch64_op_uadalp_advsimd,"uadalp",5,&operandTable[3326]},
+    {aarch64_op_uaddl_advsimd,"uaddl",6,&operandTable[3331]},
+    {aarch64_op_uaddlp_advsimd,"uaddlp",5,&operandTable[3337]},
+    {aarch64_op_uaddlv_advsimd,"uaddlv",5,&operandTable[3342]},
+    {aarch64_op_uaddw_advsimd,"uaddw",6,&operandTable[3347]},
+    {aarch64_op_ubfiz_ubfm,"ubfiz",6,&operandTable[3353]},
+    {aarch64_op_ubfm,"ubfm",6,&operandTable[3359]},
+    {aarch64_op_ubfx_ubfm,"ubfx",6,&operandTable[3365]},
+    {aarch64_op_ucvtf_advsimd_fix,"ucvtf",5,&operandTable[3371]},
+    {aarch64_op_ucvtf_advsimd_fix,"ucvtf",6,&operandTable[3376]},
+    {aarch64_op_ucvtf_advsimd_int,"ucvtf",4,&operandTable[3382]},
+    {aarch64_op_ucvtf_advsimd_int,"ucvtf",5,&operandTable[3386]},
+    {aarch64_op_ucvtf_float_fix,"ucvtf",6,&operandTable[3391]},
+    {aarch64_op_ucvtf_float_int,"ucvtf",5,&operandTable[3397]},
+    {aarch64_op_udiv,"udiv",4,&operandTable[3402]},
+    {aarch64_op_uhadd_advsimd,"uhadd",6,&operandTable[3406]},
+    {aarch64_op_uhsub_advsimd,"uhsub",6,&operandTable[3412]},
+    {aarch64_op_umaddl,"umaddl",4,&operandTable[3418]},
+    {aarch64_op_umax_advsimd,"umax",6,&operandTable[3422]},
+    {aarch64_op_umaxp_advsimd,"umaxp",6,&operandTable[3428]},
+    {aarch64_op_umaxv_advsimd,"umaxv",5,&operandTable[3434]},
+    {aarch64_op_umin_advsimd,"umin",6,&operandTable[3439]},
+    {aarch64_op_uminp_advsimd,"uminp",6,&operandTable[3445]},
+    {aarch64_op_uminv_advsimd,"uminv",5,&operandTable[3451]},
+    {aarch64_op_umlal_advsimd_elt,"umlal",9,&operandTable[3456]},
+    {aarch64_op_umlal_advsimd_vec,"umlal",6,&operandTable[3465]},
+    {aarch64_op_umlsl_advsimd_elt,"umlsl",9,&operandTable[3471]},
+    {aarch64_op_umlsl_advsimd_vec,"umlsl",6,&operandTable[3480]},
+    {aarch64_op_umnegl_umsubl,"umnegl",3,&operandTable[3486]},
+    {aarch64_op_umov_advsimd,"umov",5,&operandTable[3489]},
+    {aarch64_op_umsubl,"umsubl",4,&operandTable[3494]},
+    {aarch64_op_umulh,"umulh",3,&operandTable[3498]},
+    {aarch64_op_umull_advsimd_elt,"umull",9,&operandTable[3501]},
+    {aarch64_op_umull_advsimd_vec,"umull",6,&operandTable[3510]},
+    {aarch64_op_umull_umaddl,"umull",3,&operandTable[3516]},
+    {aarch64_op_uqadd_advsimd,"uqadd",5,&operandTable[3519]},
+    {aarch64_op_uqadd_advsimd,"uqadd",6,&operandTable[3524]},
+    {aarch64_op_uqrshl_advsimd,"uqrshl",5,&operandTable[3530]},
+    {aarch64_op_uqrshl_advsimd,"uqrshl",6,&operandTable[3535]},
+    {aarch64_op_uqrshrn_advsimd,"uqrshrn",5,&operandTable[3541]},
+    {aarch64_op_uqrshrn_advsimd,"uqrshrn",6,&operandTable[3546]},
+    {aarch64_op_uqshl_advsimd_imm,"uqshl",5,&operandTable[3552]},
+    {aarch64_op_uqshl_advsimd_imm,"uqshl",6,&operandTable[3557]},
+    {aarch64_op_uqshl_advsimd_reg,"uqshl",5,&operandTable[3563]},
+    {aarch64_op_uqshl_advsimd_reg,"uqshl",6,&operandTable[3568]},
+    {aarch64_op_uqshrn_advsimd,"uqshrn",5,&operandTable[3574]},
+    {aarch64_op_uqshrn_advsimd,"uqshrn",6,&operandTable[3579]},
+    {aarch64_op_uqsub_advsimd,"uqsub",5,&operandTable[3585]},
+    {aarch64_op_uqsub_advsimd,"uqsub",6,&operandTable[3590]},
+    {aarch64_op_uqxtn_advsimd,"uqxtn",4,&operandTable[3596]},
+    {aarch64_op_uqxtn_advsimd,"uqxtn",5,&operandTable[3600]},
+    {aarch64_op_urecpe_advsimd,"urecpe",5,&operandTable[3605]},
+    {aarch64_op_urhadd_advsimd,"urhadd",6,&operandTable[3610]},
+    {aarch64_op_urshl_advsimd,"urshl",5,&operandTable[3616]},
+    {aarch64_op_urshl_advsimd,"urshl",6,&operandTable[3621]},
+    {aarch64_op_urshr_advsimd,"urshr",5,&operandTable[3627]},
+    {aarch64_op_urshr_advsimd,"urshr",6,&operandTable[3632]},
+    {aarch64_op_ursqrte_advsimd,"ursqrte",5,&operandTable[3638]},
+    {aarch64_op_ursra_advsimd,"ursra",5,&operandTable[3643]},
+    {aarch64_op_ursra_advsimd,"ursra",6,&operandTable[3648]},
+    {aarch64_op_ushl_advsimd,"ushl",5,&operandTable[3654]},
+    {aarch64_op_ushl_advsimd,"ushl",6,&operandTable[3659]},
+    {aarch64_op_ushll_advsimd,"ushll",6,&operandTable[3665]},
+    {aarch64_op_ushr_advsimd,"ushr",5,&operandTable[3671]},
+    {aarch64_op_ushr_advsimd,"ushr",6,&operandTable[3676]},
+    {aarch64_op_usqadd_advsimd,"usqadd",4,&operandTable[3682]},
+    {aarch64_op_usqadd_advsimd,"usqadd",5,&operandTable[3686]},
+    {aarch64_op_usra_advsimd,"usra",5,&operandTable[3691]},
+    {aarch64_op_usra_advsimd,"usra",6,&operandTable[3696]},
+    {aarch64_op_usubl_advsimd,"usubl",6,&operandTable[3702]},
+    {aarch64_op_usubw_advsimd,"usubw",6,&operandTable[3708]},
+    {aarch64_op_uxtb_ubfm,"uxtb",2,&operandTable[3714]},
+    {aarch64_op_uxth_ubfm,"uxth",2,&operandTable[3716]},
+    {aarch64_op_uxtl_ushll_advsimd,"uxtl",5,&operandTable[3718]},
+    {aarch64_op_uzp1_advsimd,"uzp1",6,&operandTable[3723]},
+    {aarch64_op_uzp2_advsimd,"uzp2",6,&operandTable[3729]},
+    {aarch64_op_wfe_hint,"wfe",0,&operandTable[3735]},
+    {aarch64_op_wfi_hint,"wfi",0,&operandTable[3735]},
+    {aarch64_op_xtn_advsimd,"xtn",5,&operandTable[3735]},
+    {aarch64_op_yield_hint,"yield",0,&operandTable[3740]},
+    {aarch64_op_zip1_advsimd,"zip1",6,&operandTable[3740]},
+    {aarch64_op_zip2_advsimd,"zip2",6,&operandTable[3746]},
+};  // end main_insn_table
 
-void aarch64_mask_entry::buildDecoderTable()
-{
-	if(aarch64_mask_entry::built_decoder_table)
-		return;
+const std::pair<unsigned int,unsigned int> aarch64_mask_entry::branchTable[] = {
+    {0,1},{1,2},{2,3},{3,4},
+    {0,5},{1,6},{2,7},{3,8},{4,9},{5,10},{6,11},{7,12},
+    {0,430},{1,431},
+    {0,494},{2,495},{3,496},{4,497},{6,498},{7,499},{8,500},{9,501},{10,502},{12,503},{13,504},{14,505},{15,506},
+    {0,13},{1,14},{2,15},{3,16},{4,17},{5,18},{6,19},{7,20},
+    {4,51},{5,52},{6,53},{7,54},{13,55},{15,56},
+    {0,57},{1,58},{2,59},{3,60},{4,61},{5,62},{6,63},{7,64},
+    {0,65},{1,66},{2,67},{3,68},{4,69},{5,70},{6,71},{7,72},
+    {0,75},{1,76},{2,77},{3,78},{4,79},{5,80},{6,81},{7,82},
+    {0,103},{1,104},{2,105},{3,106},{4,107},{5,108},{6,109},{7,110},
+    {0,127},{1,128},{4,129},{5,130},{6,131},{7,132},{8,133},{9,134},{12,135},{13,136},{14,137},{15,138},
+    {0,379},{1,380},
+    {0,21},{1,22},{4,23},{5,24},{6,25},{7,26},
+    {62,31},{63,32},{190,33},{191,34},{254,35},{255,36},
+    {2047,41},{6143,42},
+    {2047,45},{6143,46},
+    {0,49},{1,50},
+    {31,27},{63,28},
+    {31,29},{63,30},
+    {31,37},{63,38},
+    {31,39},{63,40},
+    {0,43},{1,44},
+    {0,47},{1,48},
+    {0,73},
+    {0,74},
+    {0,83},{1,84},
+    {0,88},{1,89},
+    {0,93},{1,94},
+    {0,98},{1,99},
+    {0,85},{2,86},{4,87},
+    {0,90},{2,91},{4,92},
+    {0,95},{2,96},{4,97},
+    {0,100},{2,101},{4,102},
+    {0,111},{1,112},{64,113},{65,114},
+    {0,115},{1,116},{64,117},{65,118},
+    {0,119},{1,120},{2,121},{3,122},
+    {0,123},{1,124},{2,125},{3,126},
+    {0,860},{1,860},{2,860},{3,861},
+    {0,868},{1,868},{2,868},{3,869},
+    {0,864},{1,864},{2,864},{3,865},
+    {0,872},{1,872},{2,872},{3,873},
+    {0,862},{1,862},{2,862},{3,863},
+    {0,870},{1,870},{2,870},{3,871},
+    {0,866},{1,866},{2,866},{3,867},
+    {0,874},{1,874},{2,874},{3,875},
+    {0,139},{1,140},{2,141},{3,142},
+    {0,149},{1,150},{3,151},{5,152},{7,153},
+    {0,155},{1,156},{2,157},{3,158},{4,159},{5,160},{6,161},{7,162},{8,163},{9,164},{10,165},{11,166},{12,167},{13,168},{14,169},{15,170},
+    {0,186},{1,187},{2,188},{3,189},{4,190},{5,191},{6,192},{7,193},{8,194},{9,195},{10,196},{11,197},{12,198},{13,199},{14,200},{15,201},
+    {0,206},{1,207},{2,208},{3,209},{4,210},{5,211},{6,212},{7,213},{8,214},{9,215},{10,216},{11,217},{12,218},{13,219},{15,220},
+    {0,246},{1,247},{2,248},{3,249},{4,250},{5,251},{6,252},{7,253},{8,254},{9,255},{10,256},{11,257},{12,258},{14,259},{15,260},
+    {4,271},
+    {0,272},{1,273},{2,274},{4,275},{5,276},{6,277},{7,278},{8,279},{9,280},{10,281},{11,282},{12,283},{13,284},{14,285},{15,286},
+    {0,298},{1,299},{2,300},{3,301},{4,302},{5,303},{6,304},{7,305},{8,306},{9,307},{10,308},{11,309},{12,310},{13,311},{14,312},{15,313},
+    {0,318},{1,319},{3,320},{4,321},{5,322},{7,323},{8,324},{9,325},{11,326},{15,327},
+    {0,355},{1,356},{2,357},{3,358},{4,359},{5,360},{6,361},{8,362},{10,363},{11,364},{12,365},{13,366},{14,367},{15,368},
+    {1,143},{3,144},
+    {0,145},{1,146},{2,147},{3,148},
+    {1,154},
+    {0,171},{1,172},
+    {0,173},{16,174},
+    {0,175},{1,176},{8,177},
+    {0,178},{8,179},
+    {0,180},{1,181},{8,182},
+    {0,183},{1,184},{8,185},
+    {0,202},{1,203},{2,204},{3,205},
+    {0,221},{1,222},
+    {0,225},{1,226},
+    {0,229},{1,230},{16,231},{17,232},
+    {0,235},{1,236},{17,237},
+    {1,240},{32,241},{33,242},
+    {1,243},{32,244},{33,245},
+    {0,223},{1,224},
+    {0,227},{1,228},
+    {0,233},{1,234},
+    {0,238},{1,239},
+    {0,261},{1,262},
+    {0,263},{1,264},
+    {0,265},{1,266},
+    {0,267},{1,268},
+    {0,269},{1,270},
+    {0,287},{1,288},
+    {0,289},{1,290},{16,291},
+    {0,292},{1,293},
+    {0,294},{32,295},
+    {0,296},{1,297},
+    {0,314},{1,315},{2,316},{3,317},
+    {0,328},{1,329},
+    {0,330},{1,331},
+    {1,334},{16,335},{17,336},
+    {0,339},{1,340},
+    {1,343},{16,344},{32,345},{33,346},{48,347},
+    {1,348},{32,349},{33,350},
+    {16,351},{32,352},{33,353},{48,354},
+    {0,332},{1,333},
+    {0,337},{1,338},
+    {0,341},{1,342},
+    {0,369},{1,370},
+    {0,371},{1,372},
+    {0,373},{1,374},
+    {0,375},{1,376},
+    {0,377},{1,378},
+    {1,381},{2,382},{3,383},{5,384},{6,385},{7,386},{8,387},{9,388},{10,389},{11,390},{12,391},{13,392},{16,393},{18,394},{20,395},{22,396},{25,397},{26,398},
+    {0,399},{2,400},{4,400},{6,400},{8,400},{10,400},{12,400},{14,400},{16,400},{18,400},{20,400},{22,400},{24,400},{26,400},{28,400},{30,400},{3,401},{5,401},{7,401},{9,401},{11,401},{13,401},{15,401},{17,401},{19,401},{21,401},{23,401},{25,401},{27,401},{29,401},{31,401},
+    {0,853},{2,853},{4,853},{6,853},{8,853},{10,853},{12,853},{13,853},{14,855},{1,854},{3,854},{5,854},{7,854},{9,854},{11,854},{15,856},
+    {0,402},{1,403},{2,404},{3,405},{5,406},{7,407},{8,408},{9,409},{10,410},{14,411},{16,412},{17,413},{18,414},{19,415},{20,416},{21,417},{22,418},{23,419},{24,420},{25,421},{26,422},{30,423},
+    {8,424},{9,425},{15,426},{24,427},{25,428},{31,429},
+    {0,432},{1,433},{2,434},{3,435},
+    {0,454},{1,455},{2,456},
+    {0,436},{1,437},
+    {0,438},{1,439},{2,440},{3,441},
+    {0,442},{1,443},{2,444},{4,445},{5,446},{6,447},{7,448},
+    {0,449},{1,450},{2,451},{4,452},
+    {0,453},
+    {0,457},{1,458},
+    {0,459},{1,460},{2,461},{3,462},
+    {0,463},{4,464},{5,465},{6,466},
+    {1,467},{2,468},{3,469},{32,470},{64,471},{161,472},{162,473},{163,474},
+    {0,475},{1,476},{2,477},{3,478},
+    {63488,489},{129024,490},{194560,491},{325632,492},{391168,493},
+    {0,479},{1,480},
+    {95,481},{127,482},{159,483},
+    {3,484},
+    {26,485},{28,486},{29,487},{30,488},
+    {0,507},{1,508},
+    {0,511},{4,512},{6,513},{8,514},{12,515},{14,516},
+    {0,539},{1,540},{2,541},{3,542},{4,543},{10,544},{11,545},{12,546},
+    {0,551},{1,552},{2,553},{3,554},
+    {0,668},{1,669},{2,670},{3,671},
+    {0,695},{1,696},{2,697},{3,698},{6,699},{8,700},{9,701},{10,702},{11,703},{14,704},{16,705},{17,706},{18,707},{19,708},{22,709},{24,710},{25,711},{26,712},{27,713},{30,714},
+    {0,759},{1,760},{2,761},{3,762},
+    {0,773},{8,774},{10,775},{32,776},{40,777},{42,778},
+    {0,780},{1,781},{3,782},{6,783},{8,784},{9,785},{11,786},{14,787},
+    {0,788},{1,789},
+    {195,790},{202,791},{203,792},{205,793},{206,794},{207,795},{209,796},{210,797},{211,798},{213,799},{215,800},{218,801},{222,802},{225,803},{226,804},{227,805},{230,806},{234,807},{237,808},{238,809},{242,810},{245,811},{246,812},{249,813},{251,814},{254,815},
+    {65,836},{67,837},{69,838},{71,839},{73,840},{75,841},{77,842},{79,843},{81,844},{83,845},{93,846},{95,847},{114,848},
+    {0,509},{1,510},
+    {0,517},{1,518},
+    {0,519},{2,520},{4,521},{5,522},
+    {0,529},
+    {0,530},{1,531},
+    {0,532},{1,533},{2,534},
+    {2,523},{3,524},
+    {0,525},{1,526},{2,527},{3,528},
+    {0,535},{1,536},
+    {0,537},{1,538},
+    {1,547},
+    {1,548},
+    {1,549},
+    {1,550},
+    {2,555},{3,556},{24,557},{25,558},
+    {0,559},{1,560},{2,561},{3,562},
+    {0,613},{1,614},{4,615},{8,616},{12,617},{16,618},{20,619},{24,620},
+    {2,621},{3,622},{6,623},{10,624},{11,625},{13,626},{14,627},{15,628},{17,629},{18,630},{19,631},{21,632},{23,633},{30,634},{33,635},{34,636},{35,637},{36,638},{38,639},{42,640},{44,641},{45,642},{46,643},{50,644},{52,645},{54,646},{55,647},{57,648},{58,649},{62,650},{63,651},
+    {0,563},{1,564},
+    {0,602},{1,603},
+    {0,604},{1,605},{2,606},{3,607},{4,608},{5,609},{6,610},{7,611},{8,612},
+    {0,565},{1,566},{2,567},
+    {0,568},{2,569},{4,570},{6,571},{8,572},
+    {0,585},{8,586},
+    {0,587},{1,588},{2,589},{3,590},
+    {0,573},{1,574},{2,575},{3,576},
+    {0,577},{1,578},
+    {0,579},{1,580},
+    {0,581},{1,582},{2,583},{3,584},
+    {0,591},{1,592},{2,593},{3,594},
+    {0,595},{1,596},{2,597},{3,598},
+    {0,599},{2,600},{3,601},
+    {0,652},{1,653},
+    {0,656},{1,657},{17,658},
+    {1,661},{32,662},
+    {1,663},{32,664},{33,665},
+    {0,666},{1,667},
+    {0,654},{1,655},
+    {0,659},{1,660},
+    {0,672},{1,673},
+    {0,674},{1,675},
+    {1,676},{2,677},{3,678},{5,679},{6,680},{7,681},{10,682},{11,683},{14,684},{15,685},
+    {2,686},{3,687},{6,688},{8,689},{10,690},{13,691},{15,692},
+    {0,693},{1,694},
+    {0,715},{1,716},{2,717},{3,718},
+    {0,719},{1,720},{2,721},{3,722},
+    {0,723},{1,724},{2,725},{3,726},
+    {0,727},{1,728},{2,729},{3,730},
+    {0,731},{1,732},{2,733},{3,734},
+    {0,735},{1,736},
+    {0,737},{1,738},
+    {0,739},{1,740},
+    {0,741},{1,742},
+    {0,743},{1,744},
+    {0,745},{1,746},
+    {0,747},{1,748},
+    {0,749},{1,750},
+    {0,751},{1,752},
+    {0,753},{1,754},
+    {0,755},{2,756},
+    {0,757},{2,758},
+    {0,763},{1,764},{2,765},{3,766},
+    {0,767},{1,768},
+    {0,769},{1,770},
+    {0,771},{2,772},
+    {0,779},
+    {1,816},{33,817},
+    {0,818},{1,819},
+    {1,822},{16,823},{32,824},{48,825},
+    {1,826},{16,827},{32,828},{33,829},
+    {0,830},{1,831},
+    {0,832},{1,833},
+    {16,834},{48,835},
+    {0,820},{1,821},
+    {0,849},{1,850},
+    {0,851},{1,852},
+    {0,855},{1,859},
+    {0,857},{1,858},
+};  // end branchTable
 
-	main_decoder_table[0]=aarch64_mask_entry(0x18000000, map_list_of(0,1)(1,2)(2,3)(3,4),-1);
-	main_decoder_table[1]=aarch64_mask_entry(0x0, branchMap(),0);
-	main_decoder_table[2]=aarch64_mask_entry(0x7000000, map_list_of(0,5)(1,6)(2,7)(3,8)(4,9)(5,10)(6,11)(7,12),-1);
-	main_decoder_table[5]=aarch64_mask_entry(0x20c00000, map_list_of(0,13)(1,14)(2,15)(3,16)(4,17)(5,18)(6,19)(7,20),-1);
-	main_decoder_table[13]=aarch64_mask_entry(0x80208000, map_list_of(0,21)(1,22)(4,23)(5,24)(6,25)(7,26),-1);
-	main_decoder_table[21]=aarch64_mask_entry(0x40007c00, map_list_of(31,27)(63,28),-1);
-	main_decoder_table[27]=aarch64_mask_entry(0x0, branchMap(),614);
-	main_decoder_table[28]=aarch64_mask_entry(0x0, branchMap(),615);
-	main_decoder_table[22]=aarch64_mask_entry(0x40007c00, map_list_of(31,29)(63,30),-1);
-	main_decoder_table[29]=aarch64_mask_entry(0x0, branchMap(),579);
-	main_decoder_table[30]=aarch64_mask_entry(0x0, branchMap(),580);
-	main_decoder_table[23]=aarch64_mask_entry(0x0, branchMap(),613);
-	main_decoder_table[24]=aarch64_mask_entry(0x0, branchMap(),578);
-	main_decoder_table[25]=aarch64_mask_entry(0x0, branchMap(),612);
-	main_decoder_table[26]=aarch64_mask_entry(0x0, branchMap(),577);
-	main_decoder_table[14]=aarch64_mask_entry(0x803f8000, map_list_of(62,31)(63,32)(190,33)(191,34)(254,35)(255,36),-1);
-	main_decoder_table[31]=aarch64_mask_entry(0x40007c00, map_list_of(31,37)(63,38),-1);
-	main_decoder_table[37]=aarch64_mask_entry(0x0, branchMap(),359);
-	main_decoder_table[38]=aarch64_mask_entry(0x0, branchMap(),360);
-	main_decoder_table[32]=aarch64_mask_entry(0x40007c00, map_list_of(31,39)(63,40),-1);
-	main_decoder_table[39]=aarch64_mask_entry(0x0, branchMap(),300);
-	main_decoder_table[40]=aarch64_mask_entry(0x0, branchMap(),301);
-	main_decoder_table[33]=aarch64_mask_entry(0x0, branchMap(),358);
-	main_decoder_table[34]=aarch64_mask_entry(0x0, branchMap(),299);
-	main_decoder_table[35]=aarch64_mask_entry(0x0, branchMap(),357);
-	main_decoder_table[36]=aarch64_mask_entry(0x0, branchMap(),298);
-	main_decoder_table[15]=aarch64_mask_entry(0x803ffc00, map_list_of(2047,41)(6143,42),-1);
-	main_decoder_table[41]=aarch64_mask_entry(0x40000000, map_list_of(0,43)(1,44),-1);
-	main_decoder_table[43]=aarch64_mask_entry(0x0, branchMap(),575);
-	main_decoder_table[44]=aarch64_mask_entry(0x0, branchMap(),576);
-	main_decoder_table[42]=aarch64_mask_entry(0x0, branchMap(),574);
-	main_decoder_table[16]=aarch64_mask_entry(0x803ffc00, map_list_of(2047,45)(6143,46),-1);
-	main_decoder_table[45]=aarch64_mask_entry(0x40000000, map_list_of(0,47)(1,48),-1);
-	main_decoder_table[47]=aarch64_mask_entry(0x0, branchMap(),296);
-	main_decoder_table[48]=aarch64_mask_entry(0x0, branchMap(),297);
-	main_decoder_table[46]=aarch64_mask_entry(0x0, branchMap(),295);
-	main_decoder_table[17]=aarch64_mask_entry(0x0, branchMap(),582);
-	main_decoder_table[18]=aarch64_mask_entry(0x0, branchMap(),303);
-	main_decoder_table[19]=aarch64_mask_entry(0x0, branchMap(),586);
-	main_decoder_table[20]=aarch64_mask_entry(0x40000000, map_list_of(0,49)(1,50),-1);
-	main_decoder_table[49]=aarch64_mask_entry(0x0, branchMap(),307);
-	main_decoder_table[50]=aarch64_mask_entry(0x0, branchMap(),310);
-	main_decoder_table[6]=aarch64_mask_entry(0x60c00000, map_list_of(4,51)(5,52)(6,53)(7,54)(13,55)(15,56),-1);
-	main_decoder_table[51]=aarch64_mask_entry(0x0, branchMap(),588);
-	main_decoder_table[52]=aarch64_mask_entry(0x0, branchMap(),309);
-	main_decoder_table[53]=aarch64_mask_entry(0x0, branchMap(),587);
-	main_decoder_table[54]=aarch64_mask_entry(0x0, branchMap(),308);
-	main_decoder_table[55]=aarch64_mask_entry(0x0, branchMap(),312);
-	main_decoder_table[56]=aarch64_mask_entry(0x0, branchMap(),311);
-	main_decoder_table[7]=aarch64_mask_entry(0x60200000, map_list_of(0,57)(1,58)(2,59)(3,60)(4,61)(5,62)(6,63)(7,64),-1);
-	main_decoder_table[57]=aarch64_mask_entry(0x0, branchMap(),25);
-	main_decoder_table[58]=aarch64_mask_entry(0x0, branchMap(),39);
-	main_decoder_table[59]=aarch64_mask_entry(0x0, branchMap(),410);
-	main_decoder_table[60]=aarch64_mask_entry(0x0, branchMap(),406);
-	main_decoder_table[61]=aarch64_mask_entry(0x0, branchMap(),112);
-	main_decoder_table[62]=aarch64_mask_entry(0x0, branchMap(),109);
-	main_decoder_table[63]=aarch64_mask_entry(0x0, branchMap(),27);
-	main_decoder_table[64]=aarch64_mask_entry(0x0, branchMap(),40);
-	main_decoder_table[8]=aarch64_mask_entry(0x60200000, map_list_of(0,65)(1,66)(2,67)(3,68)(4,69)(5,70)(6,71)(7,72),-1);
-	main_decoder_table[65]=aarch64_mask_entry(0x0, branchMap(),7);
-	main_decoder_table[66]=aarch64_mask_entry(0x0, branchMap(),5);
-	main_decoder_table[67]=aarch64_mask_entry(0x0, branchMap(),15);
-	main_decoder_table[68]=aarch64_mask_entry(0xc00000, map_list_of(0,73),-1);
-	main_decoder_table[73]=aarch64_mask_entry(0x0, branchMap(),13);
-	main_decoder_table[69]=aarch64_mask_entry(0x0, branchMap(),618);
-	main_decoder_table[70]=aarch64_mask_entry(0x0, branchMap(),616);
-	main_decoder_table[71]=aarch64_mask_entry(0x0, branchMap(),624);
-	main_decoder_table[72]=aarch64_mask_entry(0xc00000, map_list_of(0,74),-1);
-	main_decoder_table[74]=aarch64_mask_entry(0x0, branchMap(),622);
-	main_decoder_table[9]=aarch64_mask_entry(0x20c00000, map_list_of(0,75)(1,76)(2,77)(3,78)(4,79)(5,80)(6,81)(7,82),-1);
-	main_decoder_table[75]=aarch64_mask_entry(0x803f2000, map_list_of(0,83)(1,84),-1);
-	main_decoder_table[83]=aarch64_mask_entry(0xd000, map_list_of(0,85)(2,86)(4,87),-1);
-	main_decoder_table[85]=aarch64_mask_entry(0x0, branchMap(),570);
-	main_decoder_table[86]=aarch64_mask_entry(0x0, branchMap(),566);
-	main_decoder_table[87]=aarch64_mask_entry(0x0, branchMap(),562);
-	main_decoder_table[84]=aarch64_mask_entry(0x0, branchMap(),558);
-	main_decoder_table[76]=aarch64_mask_entry(0x803f2000, map_list_of(0,88)(1,89),-1);
-	main_decoder_table[88]=aarch64_mask_entry(0xd000, map_list_of(0,90)(2,91)(4,92),-1);
-	main_decoder_table[90]=aarch64_mask_entry(0x0, branchMap(),289);
-	main_decoder_table[91]=aarch64_mask_entry(0x0, branchMap(),283);
-	main_decoder_table[92]=aarch64_mask_entry(0x0, branchMap(),277);
-	main_decoder_table[89]=aarch64_mask_entry(0x0, branchMap(),271);
-	main_decoder_table[77]=aarch64_mask_entry(0x80202000, map_list_of(0,93)(1,94),-1);
-	main_decoder_table[93]=aarch64_mask_entry(0xd000, map_list_of(0,95)(2,96)(4,97),-1);
-	main_decoder_table[95]=aarch64_mask_entry(0x0, branchMap(),571);
-	main_decoder_table[96]=aarch64_mask_entry(0x0, branchMap(),567);
-	main_decoder_table[97]=aarch64_mask_entry(0x0, branchMap(),563);
-	main_decoder_table[94]=aarch64_mask_entry(0x0, branchMap(),559);
-	main_decoder_table[78]=aarch64_mask_entry(0x80202000, map_list_of(0,98)(1,99),-1);
-	main_decoder_table[98]=aarch64_mask_entry(0xd000, map_list_of(0,100)(2,101)(4,102),-1);
-	main_decoder_table[100]=aarch64_mask_entry(0x0, branchMap(),290);
-	main_decoder_table[101]=aarch64_mask_entry(0x0, branchMap(),284);
-	main_decoder_table[102]=aarch64_mask_entry(0x0, branchMap(),278);
-	main_decoder_table[99]=aarch64_mask_entry(0x0, branchMap(),272);
-	main_decoder_table[79]=aarch64_mask_entry(0x0, branchMap(),581);
-	main_decoder_table[80]=aarch64_mask_entry(0x0, branchMap(),302);
-	main_decoder_table[81]=aarch64_mask_entry(0x0, branchMap(),583);
-	main_decoder_table[82]=aarch64_mask_entry(0x0, branchMap(),304);
-	main_decoder_table[10]=aarch64_mask_entry(0x20c00000, map_list_of(0,103)(1,104)(2,105)(3,106)(4,107)(5,108)(6,109)(7,110),-1);
-	main_decoder_table[103]=aarch64_mask_entry(0x803f2000, map_list_of(0,111)(1,112)(64,113)(65,114),-1);
-	main_decoder_table[111]=aarch64_mask_entry(0x0, branchMap(),560);
-	main_decoder_table[112]=aarch64_mask_entry(0x0, branchMap(),568);
-	main_decoder_table[113]=aarch64_mask_entry(0x0, branchMap(),564);
-	main_decoder_table[114]=aarch64_mask_entry(0x0, branchMap(),572);
-	main_decoder_table[104]=aarch64_mask_entry(0x803f2000, map_list_of(0,115)(1,116)(64,117)(65,118),-1);
-	main_decoder_table[115]=aarch64_mask_entry(0xC000, map_list_of(0,860)(1,860)(2,860)(3,861),-1);
-	main_decoder_table[860]=aarch64_mask_entry(0x0, branchMap(),273);
-	main_decoder_table[861]=aarch64_mask_entry(0x0, branchMap(),275);
-	main_decoder_table[116]=aarch64_mask_entry(0xC000, map_list_of(0,868)(1,868)(2,868)(3,869),-1);
-	main_decoder_table[868]=aarch64_mask_entry(0x0, branchMap(),285);
-	main_decoder_table[869]=aarch64_mask_entry(0x0, branchMap(),287);
-	main_decoder_table[117]=aarch64_mask_entry(0xC000, map_list_of(0,864)(1,864)(2,864)(3,865),-1);
-	main_decoder_table[864]=aarch64_mask_entry(0x0, branchMap(),279);
-	main_decoder_table[865]=aarch64_mask_entry(0x0, branchMap(),281);
-	main_decoder_table[118]=aarch64_mask_entry(0xC000, map_list_of(0,872)(1,872)(2,872)(3,873),-1);
-	main_decoder_table[872]=aarch64_mask_entry(0x0, branchMap(),291);
-	main_decoder_table[873]=aarch64_mask_entry(0x0, branchMap(),293);
-	main_decoder_table[105]=aarch64_mask_entry(0x80202000, map_list_of(0,119)(1,120)(2,121)(3,122),-1);
-	main_decoder_table[119]=aarch64_mask_entry(0x0, branchMap(),561);
-	main_decoder_table[120]=aarch64_mask_entry(0x0, branchMap(),569);
-	main_decoder_table[121]=aarch64_mask_entry(0x0, branchMap(),565);
-	main_decoder_table[122]=aarch64_mask_entry(0x0, branchMap(),573);
-	main_decoder_table[106]=aarch64_mask_entry(0x80202000, map_list_of(0,123)(1,124)(2,125)(3,126),-1);
-	main_decoder_table[123]=aarch64_mask_entry(0xC000, map_list_of(0,862)(1,862)(2,862)(3,863),-1);
-	main_decoder_table[862]=aarch64_mask_entry(0x0, branchMap(),274);
-	main_decoder_table[863]=aarch64_mask_entry(0x0, branchMap(),276);
-	main_decoder_table[124]=aarch64_mask_entry(0xC000, map_list_of(0,870)(1,870)(2,870)(3,871),-1);
-	main_decoder_table[870]=aarch64_mask_entry(0x0, branchMap(),286);
-	main_decoder_table[871]=aarch64_mask_entry(0x0, branchMap(),288);
-	main_decoder_table[125]=aarch64_mask_entry(0xC000, map_list_of(0,866)(1,866)(2,866)(3,867),-1);
-	main_decoder_table[866]=aarch64_mask_entry(0x0, branchMap(),280);
-	main_decoder_table[867]=aarch64_mask_entry(0x0, branchMap(),282);
-	main_decoder_table[126]=aarch64_mask_entry(0xC000, map_list_of(0,874)(1,874)(2,874)(3,875),-1);
-	main_decoder_table[874]=aarch64_mask_entry(0x0, branchMap(),292);
-	main_decoder_table[875]=aarch64_mask_entry(0x0, branchMap(),294);
-	main_decoder_table[107]=aarch64_mask_entry(0x0, branchMap(),585);
-	main_decoder_table[108]=aarch64_mask_entry(0x0, branchMap(),306);
-	main_decoder_table[109]=aarch64_mask_entry(0x0, branchMap(),584);
-	main_decoder_table[110]=aarch64_mask_entry(0x0, branchMap(),305);
-	main_decoder_table[11]=aarch64_mask_entry(0xa0208400, map_list_of(0,127)(1,128)(4,129)(5,130)(6,131)(7,132)(8,133)(9,134)(12,135)(13,136)(14,137)(15,138),-1);
-	main_decoder_table[127]=aarch64_mask_entry(0x1800, map_list_of(0,139)(1,140)(2,141)(3,142),-1);
-	main_decoder_table[139]=aarch64_mask_entry(0x0, branchMap(),634);
-	main_decoder_table[140]=aarch64_mask_entry(0x6000, map_list_of(1,143)(3,144),-1);
-	main_decoder_table[143]=aarch64_mask_entry(0x0, branchMap(),639);
-	main_decoder_table[144]=aarch64_mask_entry(0x0, branchMap(),640);
-	main_decoder_table[141]=aarch64_mask_entry(0x0, branchMap(),636);
-	main_decoder_table[142]=aarch64_mask_entry(0x6000, map_list_of(0,145)(1,146)(2,147)(3,148),-1);
-	main_decoder_table[145]=aarch64_mask_entry(0x0, branchMap(),721);
-	main_decoder_table[146]=aarch64_mask_entry(0x0, branchMap(),727);
-	main_decoder_table[147]=aarch64_mask_entry(0x0, branchMap(),722);
-	main_decoder_table[148]=aarch64_mask_entry(0x0, branchMap(),728);
-	main_decoder_table[128]=aarch64_mask_entry(0xc07800, map_list_of(0,149)(1,150)(3,151)(5,152)(7,153),-1);
-	main_decoder_table[149]=aarch64_mask_entry(0x0, branchMap(),107);
-	main_decoder_table[150]=aarch64_mask_entry(0x0, branchMap(),108);
-	main_decoder_table[151]=aarch64_mask_entry(0x40000000, map_list_of(1,154),-1);
-	main_decoder_table[154]=aarch64_mask_entry(0x0, branchMap(),269);
-	main_decoder_table[152]=aarch64_mask_entry(0x0, branchMap(),486);
-	main_decoder_table[153]=aarch64_mask_entry(0x0, branchMap(),382);
-	main_decoder_table[129]=aarch64_mask_entry(0x7800, map_list_of(0,155)(1,156)(2,157)(3,158)(4,159)(5,160)(6,161)(7,162)(8,163)(9,164)(10,165)(11,166)(12,167)(13,168)(14,169)(15,170),-1);
-	main_decoder_table[155]=aarch64_mask_entry(0x0, branchMap(),437);
-	main_decoder_table[156]=aarch64_mask_entry(0x0, branchMap(),426);
-	main_decoder_table[157]=aarch64_mask_entry(0x0, branchMap(),440);
-	main_decoder_table[158]=aarch64_mask_entry(0x0, branchMap(),422);
-	main_decoder_table[159]=aarch64_mask_entry(0x0, branchMap(),556);
-	main_decoder_table[160]=aarch64_mask_entry(0x1f0000, map_list_of(0,171)(1,172),-1);
-	main_decoder_table[171]=aarch64_mask_entry(0x0, branchMap(),438);
-	main_decoder_table[172]=aarch64_mask_entry(0x0, branchMap(),725);
-	main_decoder_table[161]=aarch64_mask_entry(0x0, branchMap(),557);
-	main_decoder_table[162]=aarch64_mask_entry(0x1f0000, map_list_of(0,173)(16,174),-1);
-	main_decoder_table[173]=aarch64_mask_entry(0x0, branchMap(),626);
-	main_decoder_table[174]=aarch64_mask_entry(0x0, branchMap(),439);
-	main_decoder_table[163]=aarch64_mask_entry(0x0, branchMap(),10);
-	main_decoder_table[164]=aarch64_mask_entry(0x1f0000, map_list_of(0,175)(1,176)(8,177),-1);
-	main_decoder_table[175]=aarch64_mask_entry(0x0, branchMap(),57);
-	main_decoder_table[176]=aarch64_mask_entry(0x0, branchMap(),537);
-	main_decoder_table[177]=aarch64_mask_entry(0x0, branchMap(),20);
-	main_decoder_table[165]=aarch64_mask_entry(0x0, branchMap(),433);
-	main_decoder_table[166]=aarch64_mask_entry(0x1f0000, map_list_of(0,178)(8,179),-1);
-	main_decoder_table[178]=aarch64_mask_entry(0x0, branchMap(),90);
-	main_decoder_table[179]=aarch64_mask_entry(0x0, branchMap(),19);
-	main_decoder_table[167]=aarch64_mask_entry(0x0, branchMap(),621);
-	main_decoder_table[168]=aarch64_mask_entry(0x1f0000, map_list_of(0,180)(1,181)(8,182),-1);
-	main_decoder_table[180]=aarch64_mask_entry(0x0, branchMap(),436);
-	main_decoder_table[181]=aarch64_mask_entry(0x0, branchMap(),163);
-	main_decoder_table[182]=aarch64_mask_entry(0x0, branchMap(),22);
-	main_decoder_table[169]=aarch64_mask_entry(0x0, branchMap(),435);
-	main_decoder_table[170]=aarch64_mask_entry(0x1f0000, map_list_of(0,183)(1,184)(8,185),-1);
-	main_decoder_table[183]=aarch64_mask_entry(0x0, branchMap(),493);
-	main_decoder_table[184]=aarch64_mask_entry(0x0, branchMap(),156);
-	main_decoder_table[185]=aarch64_mask_entry(0x0, branchMap(),21);
-	main_decoder_table[130]=aarch64_mask_entry(0x7800, map_list_of(0,186)(1,187)(2,188)(3,189)(4,190)(5,191)(6,192)(7,193)(8,194)(9,195)(10,196)(11,197)(12,198)(13,199)(14,200)(15,201),-1);
-	main_decoder_table[186]=aarch64_mask_entry(0x0, branchMap(),465);
-	main_decoder_table[187]=aarch64_mask_entry(0x0, branchMap(),495);
-	main_decoder_table[188]=aarch64_mask_entry(0x0, branchMap(),540);
-	main_decoder_table[189]=aarch64_mask_entry(0xc00000, map_list_of(0,202)(1,203)(2,204)(3,205),-1);
-	main_decoder_table[202]=aarch64_mask_entry(0x0, branchMap(),23);
-	main_decoder_table[203]=aarch64_mask_entry(0x0, branchMap(),38);
-	main_decoder_table[204]=aarch64_mask_entry(0x0, branchMap(),379);
-	main_decoder_table[205]=aarch64_mask_entry(0x0, branchMap(),405);
-	main_decoder_table[190]=aarch64_mask_entry(0x0, branchMap(),470);
-	main_decoder_table[191]=aarch64_mask_entry(0x0, branchMap(),535);
-	main_decoder_table[192]=aarch64_mask_entry(0x0, branchMap(),70);
-	main_decoder_table[193]=aarch64_mask_entry(0x0, branchMap(),66);
-	main_decoder_table[194]=aarch64_mask_entry(0x0, branchMap(),550);
-	main_decoder_table[195]=aarch64_mask_entry(0x0, branchMap(),527);
-	main_decoder_table[196]=aarch64_mask_entry(0x0, branchMap(),544);
-	main_decoder_table[197]=aarch64_mask_entry(0x0, branchMap(),519);
-	main_decoder_table[198]=aarch64_mask_entry(0x0, branchMap(),474);
-	main_decoder_table[199]=aarch64_mask_entry(0x0, branchMap(),478);
-	main_decoder_table[200]=aarch64_mask_entry(0x0, branchMap(),434);
-	main_decoder_table[201]=aarch64_mask_entry(0x0, branchMap(),432);
-	main_decoder_table[131]=aarch64_mask_entry(0x7800, map_list_of(0,206)(1,207)(2,208)(3,209)(4,210)(5,211)(6,212)(7,213)(8,214)(9,215)(10,216)(11,217)(12,218)(13,219)(15,220),-1);
-	main_decoder_table[206]=aarch64_mask_entry(0x0, branchMap(),482);
-	main_decoder_table[207]=aarch64_mask_entry(0x1f0000, map_list_of(0,221)(1,222),-1);
-	main_decoder_table[221]=aarch64_mask_entry(0x0, branchMap(),72);
-	main_decoder_table[222]=aarch64_mask_entry(0x800000, map_list_of(0,223)(1,224),-1);
-	main_decoder_table[223]=aarch64_mask_entry(0x0, branchMap(),248);
-	main_decoder_table[224]=aarch64_mask_entry(0x0, branchMap(),250);
-	main_decoder_table[208]=aarch64_mask_entry(0x0, branchMap(),499);
-	main_decoder_table[209]=aarch64_mask_entry(0x1f0000, map_list_of(0,225)(1,226),-1);
-	main_decoder_table[225]=aarch64_mask_entry(0x0, branchMap(),64);
-	main_decoder_table[226]=aarch64_mask_entry(0x800000, map_list_of(0,227)(1,228),-1);
-	main_decoder_table[227]=aarch64_mask_entry(0x0, branchMap(),246);
-	main_decoder_table[228]=aarch64_mask_entry(0x0, branchMap(),254);
-	main_decoder_table[210]=aarch64_mask_entry(0x0, branchMap(),484);
-	main_decoder_table[211]=aarch64_mask_entry(0x1f0000, map_list_of(0,229)(1,230)(16,231)(17,232),-1);
-	main_decoder_table[229]=aarch64_mask_entry(0x0, branchMap(),80);
-	main_decoder_table[230]=aarch64_mask_entry(0x800000, map_list_of(0,233)(1,234),-1);
-	main_decoder_table[233]=aarch64_mask_entry(0x0, branchMap(),165);
-	main_decoder_table[234]=aarch64_mask_entry(0x0, branchMap(),171);
-	main_decoder_table[231]=aarch64_mask_entry(0x0, branchMap(),476);
-	main_decoder_table[232]=aarch64_mask_entry(0x0, branchMap(),480);
-	main_decoder_table[212]=aarch64_mask_entry(0x0, branchMap(),503);
-	main_decoder_table[213]=aarch64_mask_entry(0x1f0000, map_list_of(0,235)(1,236)(17,237),-1);
-	main_decoder_table[235]=aarch64_mask_entry(0x0, branchMap(),2);
-	main_decoder_table[236]=aarch64_mask_entry(0x800000, map_list_of(0,238)(1,239),-1);
-	main_decoder_table[238]=aarch64_mask_entry(0x0, branchMap(),158);
-	main_decoder_table[239]=aarch64_mask_entry(0x0, branchMap(),181);
-	main_decoder_table[237]=aarch64_mask_entry(0x0, branchMap(),16);
-	main_decoder_table[214]=aarch64_mask_entry(0x0, branchMap(),490);
-	main_decoder_table[215]=aarch64_mask_entry(0x9f0000, map_list_of(1,240)(32,241)(33,242),-1);
-	main_decoder_table[240]=aarch64_mask_entry(0x0, branchMap(),151);
-	main_decoder_table[241]=aarch64_mask_entry(0x0, branchMap(),141);
-	main_decoder_table[242]=aarch64_mask_entry(0x0, branchMap(),698);
-	main_decoder_table[216]=aarch64_mask_entry(0x0, branchMap(),511);
-	main_decoder_table[217]=aarch64_mask_entry(0x9f0000, map_list_of(1,243)(32,244)(33,245),-1);
-	main_decoder_table[243]=aarch64_mask_entry(0x0, branchMap(),449);
-	main_decoder_table[244]=aarch64_mask_entry(0x0, branchMap(),133);
-	main_decoder_table[245]=aarch64_mask_entry(0x0, branchMap(),238);
-	main_decoder_table[218]=aarch64_mask_entry(0x0, branchMap(),412);
-	main_decoder_table[219]=aarch64_mask_entry(0x0, branchMap(),145);
-	main_decoder_table[220]=aarch64_mask_entry(0x0, branchMap(),118);
-	main_decoder_table[132]=aarch64_mask_entry(0x7800, map_list_of(0,246)(1,247)(2,248)(3,249)(4,250)(5,251)(6,252)(7,253)(8,254)(9,255)(10,256)(11,257)(12,258)(14,259)(15,260),-1);
-	main_decoder_table[246]=aarch64_mask_entry(0x0, branchMap(),9);
-	main_decoder_table[247]=aarch64_mask_entry(0x0, branchMap(),88);
-	main_decoder_table[248]=aarch64_mask_entry(0x0, branchMap(),369);
-	main_decoder_table[249]=aarch64_mask_entry(0x0, branchMap(),392);
-	main_decoder_table[250]=aarch64_mask_entry(0x0, branchMap(),475);
-	main_decoder_table[251]=aarch64_mask_entry(0x0, branchMap(),479);
-	main_decoder_table[252]=aarch64_mask_entry(0x0, branchMap(),507);
-	main_decoder_table[253]=aarch64_mask_entry(0x0, branchMap(),12);
-	main_decoder_table[254]=aarch64_mask_entry(0x800000, map_list_of(0,261)(1,262),-1);
-	main_decoder_table[261]=aarch64_mask_entry(0x0, branchMap(),195);
-	main_decoder_table[262]=aarch64_mask_entry(0x0, branchMap(),205);
-	main_decoder_table[255]=aarch64_mask_entry(0x800000, map_list_of(0,263)(1,264),-1);
-	main_decoder_table[263]=aarch64_mask_entry(0x0, branchMap(),215);
-	main_decoder_table[264]=aarch64_mask_entry(0x0, branchMap(),218);
-	main_decoder_table[256]=aarch64_mask_entry(0x800000, map_list_of(0,265)(1,266),-1);
-	main_decoder_table[265]=aarch64_mask_entry(0x0, branchMap(),124);
-	main_decoder_table[266]=aarch64_mask_entry(0x0, branchMap(),262);
-	main_decoder_table[257]=aarch64_mask_entry(0x0, branchMap(),231);
-	main_decoder_table[258]=aarch64_mask_entry(0x0, branchMap(),131);
-	main_decoder_table[259]=aarch64_mask_entry(0x800000, map_list_of(0,267)(1,268),-1);
-	main_decoder_table[267]=aarch64_mask_entry(0x0, branchMap(),193);
-	main_decoder_table[268]=aarch64_mask_entry(0x0, branchMap(),203);
-	main_decoder_table[260]=aarch64_mask_entry(0x800000, map_list_of(0,269)(1,270),-1);
-	main_decoder_table[269]=aarch64_mask_entry(0x0, branchMap(),240);
-	main_decoder_table[270]=aarch64_mask_entry(0x0, branchMap(),259);
-	main_decoder_table[133]=aarch64_mask_entry(0x0, branchMap(),114);
-	main_decoder_table[134]=aarch64_mask_entry(0x40c00000, map_list_of(4,271),-1);
-	main_decoder_table[271]=aarch64_mask_entry(0x0, branchMap(),268);
-	main_decoder_table[135]=aarch64_mask_entry(0x7800, map_list_of(0,272)(1,273)(2,274)(4,275)(5,276)(6,277)(7,278)(8,279)(9,280)(10,281)(11,282)(12,283)(13,284)(14,285)(15,286),-1);
-	main_decoder_table[272]=aarch64_mask_entry(0x0, branchMap(),648);
-	main_decoder_table[273]=aarch64_mask_entry(0x0, branchMap(),424);
-	main_decoder_table[274]=aarch64_mask_entry(0x0, branchMap(),651);
-	main_decoder_table[275]=aarch64_mask_entry(0x0, branchMap(),716);
-	main_decoder_table[276]=aarch64_mask_entry(0x1f0000, map_list_of(0,287)(1,288),-1);
-	main_decoder_table[287]=aarch64_mask_entry(0x0, branchMap(),649);
-	main_decoder_table[288]=aarch64_mask_entry(0x0, branchMap(),539);
-	main_decoder_table[277]=aarch64_mask_entry(0x0, branchMap(),717);
-	main_decoder_table[278]=aarch64_mask_entry(0x1f0000, map_list_of(0,289)(1,290)(16,291),-1);
-	main_decoder_table[289]=aarch64_mask_entry(0x0, branchMap(),713);
-	main_decoder_table[290]=aarch64_mask_entry(0x0, branchMap(),468);
-	main_decoder_table[291]=aarch64_mask_entry(0x0, branchMap(),650);
-	main_decoder_table[279]=aarch64_mask_entry(0x0, branchMap(),417);
-	main_decoder_table[280]=aarch64_mask_entry(0x1f0000, map_list_of(0,292)(1,293),-1);
-	main_decoder_table[292]=aarch64_mask_entry(0x0, branchMap(),59);
-	main_decoder_table[293]=aarch64_mask_entry(0x0, branchMap(),697);
-	main_decoder_table[281]=aarch64_mask_entry(0x0, branchMap(),644);
-	main_decoder_table[282]=aarch64_mask_entry(0xdf0000, map_list_of(0,294)(32,295),-1);
-	main_decoder_table[294]=aarch64_mask_entry(0x0, branchMap(),394);
-	main_decoder_table[295]=aarch64_mask_entry(0x0, branchMap(),418);
-	main_decoder_table[283]=aarch64_mask_entry(0x0, branchMap(),431);
-	main_decoder_table[284]=aarch64_mask_entry(0x1f0000, map_list_of(0,296)(1,297),-1);
-	main_decoder_table[296]=aarch64_mask_entry(0x0, branchMap(),647);
-	main_decoder_table[297]=aarch64_mask_entry(0x0, branchMap(),177);
-	main_decoder_table[285]=aarch64_mask_entry(0x0, branchMap(),646);
-	main_decoder_table[286]=aarch64_mask_entry(0x0, branchMap(),513);
-	main_decoder_table[136]=aarch64_mask_entry(0x7800, map_list_of(0,298)(1,299)(2,300)(3,301)(4,302)(5,303)(6,304)(7,305)(8,306)(9,307)(10,308)(11,309)(12,310)(13,311)(14,312)(15,313),-1);
-	main_decoder_table[298]=aarch64_mask_entry(0x0, branchMap(),662);
-	main_decoder_table[299]=aarch64_mask_entry(0x0, branchMap(),683);
-	main_decoder_table[300]=aarch64_mask_entry(0x0, branchMap(),699);
-	main_decoder_table[301]=aarch64_mask_entry(0xc00000, map_list_of(0,314)(1,315)(2,316)(3,317),-1);
-	main_decoder_table[314]=aarch64_mask_entry(0x0, branchMap(),110);
-	main_decoder_table[315]=aarch64_mask_entry(0x0, branchMap(),47);
-	main_decoder_table[316]=aarch64_mask_entry(0x0, branchMap(),42);
-	main_decoder_table[317]=aarch64_mask_entry(0x0, branchMap(),41);
-	main_decoder_table[302]=aarch64_mask_entry(0x0, branchMap(),663);
-	main_decoder_table[303]=aarch64_mask_entry(0x0, branchMap(),695);
-	main_decoder_table[304]=aarch64_mask_entry(0x0, branchMap(),74);
-	main_decoder_table[305]=aarch64_mask_entry(0x0, branchMap(),76);
-	main_decoder_table[306]=aarch64_mask_entry(0x0, branchMap(),708);
-	main_decoder_table[307]=aarch64_mask_entry(0x0, branchMap(),691);
-	main_decoder_table[308]=aarch64_mask_entry(0x0, branchMap(),701);
-	main_decoder_table[309]=aarch64_mask_entry(0x0, branchMap(),685);
-	main_decoder_table[310]=aarch64_mask_entry(0x0, branchMap(),665);
-	main_decoder_table[311]=aarch64_mask_entry(0x0, branchMap(),668);
-	main_decoder_table[312]=aarch64_mask_entry(0x0, branchMap(),645);
-	main_decoder_table[313]=aarch64_mask_entry(0x0, branchMap(),643);
-	main_decoder_table[137]=aarch64_mask_entry(0x7800, map_list_of(0,318)(1,319)(3,320)(4,321)(5,322)(7,323)(8,324)(9,325)(11,326)(15,327),-1);
-	main_decoder_table[318]=aarch64_mask_entry(0x0, branchMap(),672);
-	main_decoder_table[319]=aarch64_mask_entry(0x1f0000, map_list_of(0,328)(1,329),-1);
-	main_decoder_table[328]=aarch64_mask_entry(0x0, branchMap(),68);
-	main_decoder_table[329]=aarch64_mask_entry(0x0, branchMap(),242);
-	main_decoder_table[320]=aarch64_mask_entry(0x1f0000, map_list_of(0,330)(1,331),-1);
-	main_decoder_table[330]=aarch64_mask_entry(0x0, branchMap(),78);
-	main_decoder_table[331]=aarch64_mask_entry(0x800000, map_list_of(0,332)(1,333),-1);
-	main_decoder_table[332]=aarch64_mask_entry(0x0, branchMap(),252);
-	main_decoder_table[333]=aarch64_mask_entry(0x0, branchMap(),244);
-	main_decoder_table[321]=aarch64_mask_entry(0x0, branchMap(),674);
-	main_decoder_table[322]=aarch64_mask_entry(0x1f0000, map_list_of(1,334)(16,335)(17,336),-1);
-	main_decoder_table[334]=aarch64_mask_entry(0x800000, map_list_of(0,337)(1,338),-1);
-	main_decoder_table[337]=aarch64_mask_entry(0x0, branchMap(),168);
-	main_decoder_table[338]=aarch64_mask_entry(0x0, branchMap(),174);
-	main_decoder_table[335]=aarch64_mask_entry(0x0, branchMap(),667);
-	main_decoder_table[336]=aarch64_mask_entry(0x0, branchMap(),670);
-	main_decoder_table[323]=aarch64_mask_entry(0x1f0000, map_list_of(0,339)(1,340),-1);
-	main_decoder_table[339]=aarch64_mask_entry(0x0, branchMap(),398);
-	main_decoder_table[340]=aarch64_mask_entry(0x800000, map_list_of(0,341)(1,342),-1);
-	main_decoder_table[341]=aarch64_mask_entry(0x0, branchMap(),161);
-	main_decoder_table[342]=aarch64_mask_entry(0x0, branchMap(),187);
-	main_decoder_table[324]=aarch64_mask_entry(0x0, branchMap(),680);
-	main_decoder_table[325]=aarch64_mask_entry(0x9f0000, map_list_of(1,343)(16,344)(32,345)(33,346)(48,347),-1);
-	main_decoder_table[343]=aarch64_mask_entry(0x0, branchMap(),154);
-	main_decoder_table[344]=aarch64_mask_entry(0x0, branchMap(),199);
-	main_decoder_table[345]=aarch64_mask_entry(0x0, branchMap(),137);
-	main_decoder_table[346]=aarch64_mask_entry(0x0, branchMap(),704);
-	main_decoder_table[347]=aarch64_mask_entry(0x0, branchMap(),209);
-	main_decoder_table[326]=aarch64_mask_entry(0x9f0000, map_list_of(1,348)(32,349)(33,350),-1);
-	main_decoder_table[348]=aarch64_mask_entry(0x0, branchMap(),658);
-	main_decoder_table[349]=aarch64_mask_entry(0x0, branchMap(),143);
-	main_decoder_table[350]=aarch64_mask_entry(0x0, branchMap(),257);
-	main_decoder_table[327]=aarch64_mask_entry(0x9f0000, map_list_of(16,351)(32,352)(33,353)(48,354),-1);
-	main_decoder_table[351]=aarch64_mask_entry(0x0, branchMap(),202);
-	main_decoder_table[352]=aarch64_mask_entry(0x0, branchMap(),232);
-	main_decoder_table[353]=aarch64_mask_entry(0x0, branchMap(),260);
-	main_decoder_table[354]=aarch64_mask_entry(0x0, branchMap(),212);
-	main_decoder_table[138]=aarch64_mask_entry(0x7800, map_list_of(0,355)(1,356)(2,357)(3,358)(4,359)(5,360)(6,361)(8,362)(10,363)(11,364)(12,365)(13,366)(14,367)(15,368),-1);
-	main_decoder_table[355]=aarch64_mask_entry(0x0, branchMap(),620);
-	main_decoder_table[356]=aarch64_mask_entry(0x0, branchMap(),62);
-	main_decoder_table[357]=aarch64_mask_entry(0x0, branchMap(),371);
-	main_decoder_table[358]=aarch64_mask_entry(0x0, branchMap(),411);
-	main_decoder_table[359]=aarch64_mask_entry(0x0, branchMap(),666);
-	main_decoder_table[360]=aarch64_mask_entry(0x0, branchMap(),669);
-	main_decoder_table[361]=aarch64_mask_entry(0x0, branchMap(),517);
-	main_decoder_table[362]=aarch64_mask_entry(0x800000, map_list_of(0,369)(1,370),-1);
-	main_decoder_table[369]=aarch64_mask_entry(0x0, branchMap(),198);
-	main_decoder_table[370]=aarch64_mask_entry(0x0, branchMap(),208);
-	main_decoder_table[363]=aarch64_mask_entry(0x800000, map_list_of(0,371)(1,372),-1);
-	main_decoder_table[371]=aarch64_mask_entry(0x0, branchMap(),127);
-	main_decoder_table[372]=aarch64_mask_entry(0x0, branchMap(),117);
-	main_decoder_table[364]=aarch64_mask_entry(0x0, branchMap(),226);
-	main_decoder_table[365]=aarch64_mask_entry(0x800000, map_list_of(0,373)(1,374),-1);
-	main_decoder_table[373]=aarch64_mask_entry(0x0, branchMap(),135);
-	main_decoder_table[374]=aarch64_mask_entry(0x0, branchMap(),139);
-	main_decoder_table[366]=aarch64_mask_entry(0x800000, map_list_of(0,375)(1,376),-1);
-	main_decoder_table[375]=aarch64_mask_entry(0x0, branchMap(),121);
-	main_decoder_table[376]=aarch64_mask_entry(0x0, branchMap(),123);
-	main_decoder_table[367]=aarch64_mask_entry(0x800000, map_list_of(0,377)(1,378),-1);
-	main_decoder_table[377]=aarch64_mask_entry(0x0, branchMap(),201);
-	main_decoder_table[378]=aarch64_mask_entry(0x0, branchMap(),211);
-	main_decoder_table[368]=aarch64_mask_entry(0x0, branchMap(),190);
-	main_decoder_table[12]=aarch64_mask_entry(0x80000400, map_list_of(0,379)(1,380),-1);
-	main_decoder_table[379]=aarch64_mask_entry(0x2000f000, map_list_of(1,381)(2,382)(3,383)(5,384)(6,385)(7,386)(8,387)(9,388)(10,389)(11,390)(12,391)(13,392)(16,393)(18,394)(20,395)(22,396)(25,397)(26,398),-1);
-	main_decoder_table[381]=aarch64_mask_entry(0x0, branchMap(),214);
-	main_decoder_table[382]=aarch64_mask_entry(0x0, branchMap(),481);
-	main_decoder_table[383]=aarch64_mask_entry(0x0, branchMap(),497);
-	main_decoder_table[384]=aarch64_mask_entry(0x0, branchMap(),217);
-	main_decoder_table[385]=aarch64_mask_entry(0x0, branchMap(),483);
-	main_decoder_table[386]=aarch64_mask_entry(0x0, branchMap(),501);
-	main_decoder_table[387]=aarch64_mask_entry(0x0, branchMap(),391);
-	main_decoder_table[388]=aarch64_mask_entry(0x0, branchMap(),225);
-	main_decoder_table[389]=aarch64_mask_entry(0x0, branchMap(),489);
-	main_decoder_table[390]=aarch64_mask_entry(0x0, branchMap(),509);
-	main_decoder_table[391]=aarch64_mask_entry(0x0, branchMap(),505);
-	main_decoder_table[392]=aarch64_mask_entry(0x0, branchMap(),515);
-	main_decoder_table[393]=aarch64_mask_entry(0x0, branchMap(),368);
-	main_decoder_table[394]=aarch64_mask_entry(0x0, branchMap(),671);
-	main_decoder_table[395]=aarch64_mask_entry(0x0, branchMap(),370);
-	main_decoder_table[396]=aarch64_mask_entry(0x0, branchMap(),673);
-	main_decoder_table[397]=aarch64_mask_entry(0x0, branchMap(),229);
-	main_decoder_table[398]=aarch64_mask_entry(0x0, branchMap(),679);
-	main_decoder_table[380]=aarch64_mask_entry(0xf80800, map_list_of(0,399)(2,400)(4,400)(6,400)(8,400)(10,400)(12,400)(14,400)(16,400)(18,400)(20,400)(22,400)(24,400)(26,400)(28,400)(30,400)
-			(3,401)(5,401)(7,401)(9,401)(11,401)(13,401)(15,401)(17,401)(19,401)(21,401)(23,401)(25,401)(27,401)(29,401)(31,401),-1);
-	main_decoder_table[399]=aarch64_mask_entry(0x0000f000, map_list_of(0,853)(2,853)(4,853)(6,853)(8,853)(10,853)(12,853)(13,853)(14,855)(1,854)(3,854)(5,854)(7,854)(9,854)(11,854)(15,856),-1);
-	main_decoder_table[853]=aarch64_mask_entry(0x20000000, map_list_of(0,855)(1,859),-1);
-	main_decoder_table[854]=aarch64_mask_entry(0x20000000, map_list_of(0,857)(1,858),-1);
-	main_decoder_table[855]=aarch64_mask_entry(0x0,branchMap(),383);
-	main_decoder_table[856]=aarch64_mask_entry(0x0,branchMap(),219);
-	main_decoder_table[857]=aarch64_mask_entry(0x0,branchMap(),407);
-	main_decoder_table[858]=aarch64_mask_entry(0x0,branchMap(),37);
-	main_decoder_table[859]=aarch64_mask_entry(0x0,branchMap(),396);
-	main_decoder_table[400]=aarch64_mask_entry(0x2000f000, map_list_of(0,402)(1,403)(2,404)(3,405)(5,406)(7,407)(8,408)(9,409)(10,410)(14,411)(16,412)(17,413)(18,414)(19,415)(20,416)(21,417)(22,418)(23,419)(24,420)(25,421)(26,422)(30,423),-1);
-	main_decoder_table[402]=aarch64_mask_entry(0x0, branchMap(),553);
-	main_decoder_table[403]=aarch64_mask_entry(0x0, branchMap(),555);
-	main_decoder_table[404]=aarch64_mask_entry(0x0, branchMap(),546);
-	main_decoder_table[405]=aarch64_mask_entry(0x0, branchMap(),548);
-	main_decoder_table[406]=aarch64_mask_entry(0x0, branchMap(),467);
-	main_decoder_table[407]=aarch64_mask_entry(0x0, branchMap(),525);
-	main_decoder_table[408]=aarch64_mask_entry(0x0, branchMap(),469);
-	main_decoder_table[409]=aarch64_mask_entry(0x0, branchMap(),531);
-	main_decoder_table[410]=aarch64_mask_entry(0x0, branchMap(),551);
-	main_decoder_table[411]=aarch64_mask_entry(0x0, branchMap(),447);
-	main_decoder_table[412]=aarch64_mask_entry(0x0, branchMap(),711);
-	main_decoder_table[413]=aarch64_mask_entry(0x0, branchMap(),715);
-	main_decoder_table[414]=aarch64_mask_entry(0x0, branchMap(),703);
-	main_decoder_table[415]=aarch64_mask_entry(0x0, branchMap(),706);
-	main_decoder_table[416]=aarch64_mask_entry(0x0, branchMap(),542);
-	main_decoder_table[417]=aarch64_mask_entry(0x0, branchMap(),472);
-	main_decoder_table[418]=aarch64_mask_entry(0x0, branchMap(),529);
-	main_decoder_table[419]=aarch64_mask_entry(0x0, branchMap(),689);
-	main_decoder_table[420]=aarch64_mask_entry(0x0, branchMap(),533);
-	main_decoder_table[421]=aarch64_mask_entry(0x0, branchMap(),693);
-	main_decoder_table[422]=aarch64_mask_entry(0x0, branchMap(),709);
-	main_decoder_table[423]=aarch64_mask_entry(0x0, branchMap(),656);
-	main_decoder_table[401]=aarch64_mask_entry(0x2000f000, map_list_of(8,424)(9,425)(15,426)(24,427)(25,428)(31,429),-1);
-	main_decoder_table[424]=aarch64_mask_entry(0x0, branchMap(),430);
-	main_decoder_table[425]=aarch64_mask_entry(0x0, branchMap(),521);
-	main_decoder_table[426]=aarch64_mask_entry(0x0, branchMap(),179);
-	main_decoder_table[427]=aarch64_mask_entry(0x0, branchMap(),523);
-	main_decoder_table[428]=aarch64_mask_entry(0x0, branchMap(),687);
-	main_decoder_table[429]=aarch64_mask_entry(0x0, branchMap(),185);
-	main_decoder_table[3]=aarch64_mask_entry(0x4000000, map_list_of(0,430)(1,431),-1);
-	main_decoder_table[430]=aarch64_mask_entry(0x3000000, map_list_of(0,432)(1,433)(2,434)(3,435),-1);
-	main_decoder_table[432]=aarch64_mask_entry(0x80000000, map_list_of(0,436)(1,437),-1);
-	main_decoder_table[436]=aarch64_mask_entry(0x0, branchMap(),17);
-	main_decoder_table[437]=aarch64_mask_entry(0x0, branchMap(),18);
-	main_decoder_table[433]=aarch64_mask_entry(0x60000000, map_list_of(0,438)(1,439)(2,440)(3,441),-1);
-	main_decoder_table[438]=aarch64_mask_entry(0x0, branchMap(),6);
-	main_decoder_table[439]=aarch64_mask_entry(0x0, branchMap(),14);
-	main_decoder_table[440]=aarch64_mask_entry(0x0, branchMap(),617);
-	main_decoder_table[441]=aarch64_mask_entry(0x0, branchMap(),623);
-	main_decoder_table[434]=aarch64_mask_entry(0x60800000, map_list_of(0,442)(1,443)(2,444)(4,445)(5,446)(6,447)(7,448),-1);
-	main_decoder_table[442]=aarch64_mask_entry(0x0, branchMap(),24);
-	main_decoder_table[443]=aarch64_mask_entry(0x0, branchMap(),377);
-	main_decoder_table[444]=aarch64_mask_entry(0x0, branchMap(),409);
-	main_decoder_table[445]=aarch64_mask_entry(0x0, branchMap(),111);
-	main_decoder_table[446]=aarch64_mask_entry(0x0, branchMap(),378);
-	main_decoder_table[447]=aarch64_mask_entry(0x0, branchMap(),26);
-	main_decoder_table[448]=aarch64_mask_entry(0x0, branchMap(),384);
-	main_decoder_table[435]=aarch64_mask_entry(0x60800000, map_list_of(0,449)(1,450)(2,451)(4,452),-1);
-	main_decoder_table[449]=aarch64_mask_entry(0x0, branchMap(),443);
-	main_decoder_table[450]=aarch64_mask_entry(0x200000, map_list_of(0,453),-1);
-	main_decoder_table[453]=aarch64_mask_entry(0x0, branchMap(),115);
-	main_decoder_table[451]=aarch64_mask_entry(0x0, branchMap(),34);
-	main_decoder_table[452]=aarch64_mask_entry(0x0, branchMap(),362);
-	main_decoder_table[431]=aarch64_mask_entry(0x60000000, map_list_of(0,454)(1,455)(2,456),-1);
-	main_decoder_table[454]=aarch64_mask_entry(0x80000000, map_list_of(0,457)(1,458),-1);
-	main_decoder_table[457]=aarch64_mask_entry(0x0, branchMap(),33);
-	main_decoder_table[458]=aarch64_mask_entry(0x0, branchMap(),43);
-	main_decoder_table[455]=aarch64_mask_entry(0x3000000, map_list_of(0,459)(1,460)(2,461)(3,462),-1);
-	main_decoder_table[459]=aarch64_mask_entry(0x0, branchMap(),49);
-	main_decoder_table[460]=aarch64_mask_entry(0x0, branchMap(),48);
-	main_decoder_table[461]=aarch64_mask_entry(0x0, branchMap(),637);
-	main_decoder_table[462]=aarch64_mask_entry(0x0, branchMap(),635);
-	main_decoder_table[456]=aarch64_mask_entry(0x83000000, map_list_of(0,463)(4,464)(5,465)(6,466),-1);
-	main_decoder_table[463]=aarch64_mask_entry(0x0, branchMap(),32);
-	main_decoder_table[464]=aarch64_mask_entry(0xe0001f, map_list_of(1,467)(2,468)(3,469)(32,470)(64,471)(161,472)(162,473)(163,474),-1);
-	main_decoder_table[467]=aarch64_mask_entry(0x0, branchMap(),627);
-	main_decoder_table[468]=aarch64_mask_entry(0x0, branchMap(),266);
-	main_decoder_table[469]=aarch64_mask_entry(0x0, branchMap(),477);
-	main_decoder_table[470]=aarch64_mask_entry(0x0, branchMap(),46);
-	main_decoder_table[471]=aarch64_mask_entry(0x0, branchMap(),265);
-	main_decoder_table[472]=aarch64_mask_entry(0x0, branchMap(),100);
-	main_decoder_table[473]=aarch64_mask_entry(0x0, branchMap(),101);
-	main_decoder_table[474]=aarch64_mask_entry(0x0, branchMap(),102);
-	main_decoder_table[465]=aarch64_mask_entry(0xf00000, map_list_of(0,475)(1,476)(2,477)(3,478),-1);
-	main_decoder_table[475]=aarch64_mask_entry(0x80000, map_list_of(0,479)(1,480),-1);
-	main_decoder_table[479]=aarch64_mask_entry(0xf01f, map_list_of(95,481)(127,482)(159,483),-1);
-	main_decoder_table[481]=aarch64_mask_entry(0x70000, map_list_of(3,484),-1);
-	main_decoder_table[484]=aarch64_mask_entry(0x0, branchMap(),264);
-	main_decoder_table[482]=aarch64_mask_entry(0x700e0, map_list_of(26,485)(28,486)(29,487)(30,488),-1);
-	main_decoder_table[485]=aarch64_mask_entry(0x0, branchMap(),56);
-	main_decoder_table[486]=aarch64_mask_entry(0x0, branchMap(),105);
-	main_decoder_table[487]=aarch64_mask_entry(0x0, branchMap(),103);
-	main_decoder_table[488]=aarch64_mask_entry(0x0, branchMap(),270);
-	main_decoder_table[483]=aarch64_mask_entry(0x0, branchMap(),388);
-	main_decoder_table[480]=aarch64_mask_entry(0x0, branchMap(),632);
-	main_decoder_table[476]=aarch64_mask_entry(0x0, branchMap(),389);
-	main_decoder_table[477]=aarch64_mask_entry(0x0, branchMap(),633);
-	main_decoder_table[478]=aarch64_mask_entry(0x0, branchMap(),387);
-	main_decoder_table[466]=aarch64_mask_entry(0xfffc1f, map_list_of(63488,489)(129024,490)(194560,491)(325632,492)(391168,493),-1);
-	main_decoder_table[489]=aarch64_mask_entry(0x0, branchMap(),45);
-	main_decoder_table[490]=aarch64_mask_entry(0x0, branchMap(),44);
-	main_decoder_table[491]=aarch64_mask_entry(0x0, branchMap(),420);
-	main_decoder_table[492]=aarch64_mask_entry(0x0, branchMap(),113);
-	main_decoder_table[493]=aarch64_mask_entry(0x0, branchMap(),104);
-	main_decoder_table[4]=aarch64_mask_entry(0x27000000, map_list_of(0,494)(2,495)(3,496)(4,497)(6,498)(7,499)(8,500)(9,501)(10,502)(12,503)(13,504)(14,505)(15,506),-1);
-	main_decoder_table[494]=aarch64_mask_entry(0x80000000, map_list_of(0,507)(1,508),-1);
-	main_decoder_table[507]=aarch64_mask_entry(0x0, branchMap(),320);
-	main_decoder_table[508]=aarch64_mask_entry(0x40000000, map_list_of(0,509)(1,510),-1);
-	main_decoder_table[509]=aarch64_mask_entry(0x0, branchMap(),342);
-	main_decoder_table[510]=aarch64_mask_entry(0x0, branchMap(),414);
-	main_decoder_table[495]=aarch64_mask_entry(0x40e00000, map_list_of(0,511)(4,512)(6,513)(8,514)(12,515)(14,516),-1);
-	main_decoder_table[511]=aarch64_mask_entry(0x0, branchMap(),3);
-	main_decoder_table[512]=aarch64_mask_entry(0xc00, map_list_of(0,517)(1,518),-1);
-	main_decoder_table[517]=aarch64_mask_entry(0x0, branchMap(),93);
-	main_decoder_table[518]=aarch64_mask_entry(0x0, branchMap(),96);
-	main_decoder_table[513]=aarch64_mask_entry(0xf000, map_list_of(0,519)(2,520)(4,521)(5,522),-1);
-	main_decoder_table[519]=aarch64_mask_entry(0xc00, map_list_of(2,523)(3,524),-1);
-	main_decoder_table[523]=aarch64_mask_entry(0x0, branchMap(),661);
-	main_decoder_table[524]=aarch64_mask_entry(0x0, branchMap(),452);
-	main_decoder_table[520]=aarch64_mask_entry(0xc00, map_list_of(0,525)(1,526)(2,527)(3,528),-1);
-	main_decoder_table[525]=aarch64_mask_entry(0x0, branchMap(),361);
-	main_decoder_table[526]=aarch64_mask_entry(0x0, branchMap(),364);
-	main_decoder_table[527]=aarch64_mask_entry(0x0, branchMap(),28);
-	main_decoder_table[528]=aarch64_mask_entry(0x0, branchMap(),428);
-	main_decoder_table[521]=aarch64_mask_entry(0x0, branchMap(),91);
-	main_decoder_table[522]=aarch64_mask_entry(0x0, branchMap(),92);
-	main_decoder_table[514]=aarch64_mask_entry(0xfc00, map_list_of(0,529),-1);
-	main_decoder_table[529]=aarch64_mask_entry(0x0, branchMap(),441);
-	main_decoder_table[515]=aarch64_mask_entry(0xc00, map_list_of(0,530)(1,531),-1);
-	main_decoder_table[530]=aarch64_mask_entry(0x0, branchMap(),97);
-	main_decoder_table[531]=aarch64_mask_entry(0x0, branchMap(),98);
-	main_decoder_table[516]=aarch64_mask_entry(0x1ff800, map_list_of(0,532)(1,533)(2,534),-1);
-	main_decoder_table[532]=aarch64_mask_entry(0x400, map_list_of(0,535)(1,536),-1);
-	main_decoder_table[535]=aarch64_mask_entry(0x0, branchMap(),419);
-	main_decoder_table[536]=aarch64_mask_entry(0x0, branchMap(),423);
-	main_decoder_table[533]=aarch64_mask_entry(0x0, branchMap(),421);
-	main_decoder_table[534]=aarch64_mask_entry(0x400, map_list_of(0,537)(1,538),-1);
-	main_decoder_table[537]=aarch64_mask_entry(0x0, branchMap(),60);
-	main_decoder_table[538]=aarch64_mask_entry(0x0, branchMap(),58);
-	main_decoder_table[496]=aarch64_mask_entry(0x40e08000, map_list_of(0,539)(1,540)(2,541)(3,542)(4,543)(10,544)(11,545)(12,546),-1);
-	main_decoder_table[539]=aarch64_mask_entry(0x0, branchMap(),367);
-	main_decoder_table[540]=aarch64_mask_entry(0x0, branchMap(),390);
-	main_decoder_table[541]=aarch64_mask_entry(0x80000000, map_list_of(1,547),-1);
-	main_decoder_table[547]=aarch64_mask_entry(0x0, branchMap(),473);
-	main_decoder_table[542]=aarch64_mask_entry(0x80000000, map_list_of(1,548),-1);
-	main_decoder_table[548]=aarch64_mask_entry(0x0, branchMap(),487);
-	main_decoder_table[543]=aarch64_mask_entry(0x0, branchMap(),488);
-	main_decoder_table[544]=aarch64_mask_entry(0x80000000, map_list_of(1,549),-1);
-	main_decoder_table[549]=aarch64_mask_entry(0x0, branchMap(),664);
-	main_decoder_table[545]=aarch64_mask_entry(0x80000000, map_list_of(1,550),-1);
-	main_decoder_table[550]=aarch64_mask_entry(0x0, branchMap(),677);
-	main_decoder_table[546]=aarch64_mask_entry(0x0, branchMap(),678);
-	main_decoder_table[497]=aarch64_mask_entry(0x0, branchMap(),319);
-	main_decoder_table[498]=aarch64_mask_entry(0x40200000, map_list_of(0,551)(1,552)(2,553)(3,554),-1);
-	main_decoder_table[551]=aarch64_mask_entry(0x9f0000, map_list_of(2,555)(3,556)(24,557)(25,558),-1);
-	main_decoder_table[555]=aarch64_mask_entry(0x0, branchMap(),450);
-	main_decoder_table[556]=aarch64_mask_entry(0x0, branchMap(),659);
-	main_decoder_table[557]=aarch64_mask_entry(0x0, branchMap(),182);
-	main_decoder_table[558]=aarch64_mask_entry(0x0, branchMap(),188);
-	main_decoder_table[552]=aarch64_mask_entry(0xc00, map_list_of(0,559)(1,560)(2,561)(3,562),-1);
-	main_decoder_table[559]=aarch64_mask_entry(0x1000, map_list_of(0,563)(1,564),-1);
-	main_decoder_table[563]=aarch64_mask_entry(0x6000, map_list_of(0,565)(1,566)(2,567),-1);
-	main_decoder_table[565]=aarch64_mask_entry(0x168000, map_list_of(0,568)(2,569)(4,570)(6,571)(8,572),-1);
-	main_decoder_table[568]=aarch64_mask_entry(0x890000, map_list_of(0,573)(1,574)(2,575)(3,576),-1);
-	main_decoder_table[573]=aarch64_mask_entry(0x0, branchMap(),166);
-	main_decoder_table[574]=aarch64_mask_entry(0x0, branchMap(),169);
-	main_decoder_table[575]=aarch64_mask_entry(0x0, branchMap(),172);
-	main_decoder_table[576]=aarch64_mask_entry(0x0, branchMap(),175);
-	main_decoder_table[569]=aarch64_mask_entry(0x890000, map_list_of(0,577)(1,578),-1);
-	main_decoder_table[577]=aarch64_mask_entry(0x0, branchMap(),451);
-	main_decoder_table[578]=aarch64_mask_entry(0x0, branchMap(),660);
-	main_decoder_table[570]=aarch64_mask_entry(0x890000, map_list_of(0,579)(1,580),-1);
-	main_decoder_table[579]=aarch64_mask_entry(0x0, branchMap(),152);
-	main_decoder_table[580]=aarch64_mask_entry(0x0, branchMap(),155);
-	main_decoder_table[571]=aarch64_mask_entry(0x0, branchMap(),221);
-	main_decoder_table[572]=aarch64_mask_entry(0x890000, map_list_of(0,581)(1,582)(2,583)(3,584),-1);
-	main_decoder_table[581]=aarch64_mask_entry(0x0, branchMap(),159);
-	main_decoder_table[582]=aarch64_mask_entry(0x0, branchMap(),162);
-	main_decoder_table[583]=aarch64_mask_entry(0x0, branchMap(),183);
-	main_decoder_table[584]=aarch64_mask_entry(0x0, branchMap(),189);
-	main_decoder_table[566]=aarch64_mask_entry(0x80808017, map_list_of(0,585)(8,586),-1);
-	main_decoder_table[585]=aarch64_mask_entry(0x0, branchMap(),146);
-	main_decoder_table[586]=aarch64_mask_entry(0x0, branchMap(),147);
-	main_decoder_table[567]=aarch64_mask_entry(0x801e0000, map_list_of(0,587)(1,588)(2,589)(3,590),-1);
-	main_decoder_table[587]=aarch64_mask_entry(0x818000, map_list_of(0,591)(1,592)(2,593)(3,594),-1);
-	main_decoder_table[591]=aarch64_mask_entry(0x0, branchMap(),220);
-	main_decoder_table[592]=aarch64_mask_entry(0x0, branchMap(),119);
-	main_decoder_table[593]=aarch64_mask_entry(0x0, branchMap(),233);
-	main_decoder_table[594]=aarch64_mask_entry(0x0, branchMap(),261);
-	main_decoder_table[588]=aarch64_mask_entry(0x0, branchMap(),149);
-	main_decoder_table[589]=aarch64_mask_entry(0x818000, map_list_of(0,595)(1,596)(2,597)(3,598),-1);
-	main_decoder_table[595]=aarch64_mask_entry(0x0, branchMap(),249);
-	main_decoder_table[596]=aarch64_mask_entry(0x0, branchMap(),251);
-	main_decoder_table[597]=aarch64_mask_entry(0x0, branchMap(),247);
-	main_decoder_table[598]=aarch64_mask_entry(0x0, branchMap(),255);
-	main_decoder_table[590]=aarch64_mask_entry(0x818000, map_list_of(0,599)(2,600)(3,601),-1);
-	main_decoder_table[599]=aarch64_mask_entry(0x0, branchMap(),243);
-	main_decoder_table[600]=aarch64_mask_entry(0x0, branchMap(),253);
-	main_decoder_table[601]=aarch64_mask_entry(0x0, branchMap(),245);
-	main_decoder_table[564]=aarch64_mask_entry(0x0, branchMap(),222);
-	main_decoder_table[560]=aarch64_mask_entry(0x80800010, map_list_of(0,602)(1,603),-1);
-	main_decoder_table[602]=aarch64_mask_entry(0x0, branchMap(),128);
-	main_decoder_table[603]=aarch64_mask_entry(0x0, branchMap(),129);
-	main_decoder_table[561]=aarch64_mask_entry(0x8080f000, map_list_of(0,604)(1,605)(2,606)(3,607)(4,608)(5,609)(6,610)(7,611)(8,612),-1);
-	main_decoder_table[604]=aarch64_mask_entry(0x0, branchMap(),227);
-	main_decoder_table[605]=aarch64_mask_entry(0x0, branchMap(),191);
-	main_decoder_table[606]=aarch64_mask_entry(0x0, branchMap(),125);
-	main_decoder_table[607]=aarch64_mask_entry(0x0, branchMap(),263);
-	main_decoder_table[608]=aarch64_mask_entry(0x0, branchMap(),194);
-	main_decoder_table[609]=aarch64_mask_entry(0x0, branchMap(),204);
-	main_decoder_table[610]=aarch64_mask_entry(0x0, branchMap(),196);
-	main_decoder_table[611]=aarch64_mask_entry(0x0, branchMap(),206);
-	main_decoder_table[612]=aarch64_mask_entry(0x0, branchMap(),236);
-	main_decoder_table[562]=aarch64_mask_entry(0x0, branchMap(),148);
-	main_decoder_table[553]=aarch64_mask_entry(0x80c0fc00, map_list_of(0,613)(1,614)(4,615)(8,616)(12,617)(16,618)(20,619)(24,620),-1);
-	main_decoder_table[613]=aarch64_mask_entry(0x0, branchMap(),455);
-	main_decoder_table[614]=aarch64_mask_entry(0x0, branchMap(),106);
-	main_decoder_table[615]=aarch64_mask_entry(0x0, branchMap(),458);
-	main_decoder_table[616]=aarch64_mask_entry(0x0, branchMap(),457);
-	main_decoder_table[617]=aarch64_mask_entry(0x0, branchMap(),459);
-	main_decoder_table[618]=aarch64_mask_entry(0x0, branchMap(),462);
-	main_decoder_table[619]=aarch64_mask_entry(0x0, branchMap(),461);
-	main_decoder_table[620]=aarch64_mask_entry(0x0, branchMap(),464);
-	main_decoder_table[554]=aarch64_mask_entry(0x8000fc00, map_list_of(2,621)(3,622)(6,623)(10,624)(11,625)(13,626)(14,627)(15,628)(17,629)(18,630)(19,631)(21,632)(23,633)(30,634)(33,635)(34,636)(35,637)(36,638)(38,639)(42,640)(44,641)(45,642)(46,643)(50,644)(52,645)(54,646)(55,647)(57,648)(58,649)(62,650)(63,651),-1);
-	main_decoder_table[621]=aarch64_mask_entry(0x0, branchMap(),456);
-	main_decoder_table[622]=aarch64_mask_entry(0x0, branchMap(),494);
-	main_decoder_table[623]=aarch64_mask_entry(0x0, branchMap(),460);
-	main_decoder_table[624]=aarch64_mask_entry(0x0, branchMap(),463);
-	main_decoder_table[625]=aarch64_mask_entry(0x0, branchMap(),534);
-	main_decoder_table[626]=aarch64_mask_entry(0x0, branchMap(),69);
-	main_decoder_table[627]=aarch64_mask_entry(0x0, branchMap(),625);
-	main_decoder_table[628]=aarch64_mask_entry(0x0, branchMap(),65);
-	main_decoder_table[629]=aarch64_mask_entry(0x0, branchMap(),549);
-	main_decoder_table[630]=aarch64_mask_entry(0x0, branchMap(),536);
-	main_decoder_table[631]=aarch64_mask_entry(0x0, branchMap(),526);
-	main_decoder_table[632]=aarch64_mask_entry(0x0, branchMap(),543);
-	main_decoder_table[633]=aarch64_mask_entry(0x0, branchMap(),518);
-	main_decoder_table[634]=aarch64_mask_entry(0x0, branchMap(),492);
-	main_decoder_table[635]=aarch64_mask_entry(0x0, branchMap(),8);
-	main_decoder_table[636]=aarch64_mask_entry(0x0, branchMap(),71);
-	main_decoder_table[637]=aarch64_mask_entry(0x0, branchMap(),87);
-	main_decoder_table[638]=aarch64_mask_entry(0x0, branchMap(),498);
-	main_decoder_table[639]=aarch64_mask_entry(0x0, branchMap(),63);
-	main_decoder_table[640]=aarch64_mask_entry(0x1f0000, map_list_of(0,652)(1,653),-1);
-	main_decoder_table[652]=aarch64_mask_entry(0x0, branchMap(),79);
-	main_decoder_table[653]=aarch64_mask_entry(0x800000, map_list_of(0,654)(1,655),-1);
-	main_decoder_table[654]=aarch64_mask_entry(0x0, branchMap(),164);
-	main_decoder_table[655]=aarch64_mask_entry(0x0, branchMap(),170);
-	main_decoder_table[641]=aarch64_mask_entry(0x0, branchMap(),502);
-	main_decoder_table[642]=aarch64_mask_entry(0x0, branchMap(),506);
-	main_decoder_table[643]=aarch64_mask_entry(0x1f0000, map_list_of(0,656)(1,657)(17,658),-1);
-	main_decoder_table[656]=aarch64_mask_entry(0x0, branchMap(),1);
-	main_decoder_table[657]=aarch64_mask_entry(0x800000, map_list_of(0,659)(1,660),-1);
-	main_decoder_table[659]=aarch64_mask_entry(0x0, branchMap(),157);
-	main_decoder_table[660]=aarch64_mask_entry(0x0, branchMap(),180);
-	main_decoder_table[658]=aarch64_mask_entry(0x0, branchMap(),11);
-	main_decoder_table[644]=aarch64_mask_entry(0x9f0000, map_list_of(1,661)(32,662),-1);
-	main_decoder_table[661]=aarch64_mask_entry(0x0, branchMap(),150);
-	main_decoder_table[662]=aarch64_mask_entry(0x0, branchMap(),140);
-	main_decoder_table[645]=aarch64_mask_entry(0x0, branchMap(),510);
-	main_decoder_table[646]=aarch64_mask_entry(0x9f0000, map_list_of(1,663)(32,664)(33,665),-1);
-	main_decoder_table[663]=aarch64_mask_entry(0x0, branchMap(),448);
-	main_decoder_table[664]=aarch64_mask_entry(0x0, branchMap(),132);
-	main_decoder_table[665]=aarch64_mask_entry(0x0, branchMap(),237);
-	main_decoder_table[647]=aarch64_mask_entry(0x0, branchMap(),230);
-	main_decoder_table[648]=aarch64_mask_entry(0x0, branchMap(),130);
-	main_decoder_table[649]=aarch64_mask_entry(0x0, branchMap(),144);
-	main_decoder_table[650]=aarch64_mask_entry(0x0, branchMap(),241);
-	main_decoder_table[651]=aarch64_mask_entry(0x800000, map_list_of(0,666)(1,667),-1);
-	main_decoder_table[666]=aarch64_mask_entry(0x0, branchMap(),239);
-	main_decoder_table[667]=aarch64_mask_entry(0x0, branchMap(),258);
-	main_decoder_table[499]=aarch64_mask_entry(0xc0008000, map_list_of(0,668)(1,669)(2,670)(3,671),-1);
-	main_decoder_table[668]=aarch64_mask_entry(0xa00000, map_list_of(0,672)(1,673),-1);
-	main_decoder_table[672]=aarch64_mask_entry(0x0, branchMap(),192);
-	main_decoder_table[673]=aarch64_mask_entry(0x0, branchMap(),234);
-	main_decoder_table[669]=aarch64_mask_entry(0xa00000, map_list_of(0,674)(1,675),-1);
-	main_decoder_table[674]=aarch64_mask_entry(0x0, branchMap(),223);
-	main_decoder_table[675]=aarch64_mask_entry(0x0, branchMap(),235);
-	main_decoder_table[670]=aarch64_mask_entry(0x7400, map_list_of(1,676)(2,677)(3,678)(5,679)(6,680)(7,681)(10,682)(11,683)(14,684)(15,685),-1);
-	main_decoder_table[676]=aarch64_mask_entry(0x0, branchMap(),552);
-	main_decoder_table[677]=aarch64_mask_entry(0x0, branchMap(),213);
-	main_decoder_table[678]=aarch64_mask_entry(0x0, branchMap(),554);
-	main_decoder_table[679]=aarch64_mask_entry(0x0, branchMap(),545);
-	main_decoder_table[680]=aarch64_mask_entry(0x0, branchMap(),496);
-	main_decoder_table[681]=aarch64_mask_entry(0x0, branchMap(),547);
-	main_decoder_table[682]=aarch64_mask_entry(0x0, branchMap(),216);
-	main_decoder_table[683]=aarch64_mask_entry(0x0, branchMap(),466);
-	main_decoder_table[684]=aarch64_mask_entry(0x0, branchMap(),500);
-	main_decoder_table[685]=aarch64_mask_entry(0x0, branchMap(),524);
-	main_decoder_table[671]=aarch64_mask_entry(0x7400, map_list_of(2,686)(3,687)(6,688)(8,689)(10,690)(13,691)(15,692),-1);
-	main_decoder_table[686]=aarch64_mask_entry(0x0, branchMap(),224);
-	main_decoder_table[687]=aarch64_mask_entry(0x800800, map_list_of(0,693)(1,694),-1);
-	main_decoder_table[693]=aarch64_mask_entry(0x0, branchMap(),530);
-	main_decoder_table[694]=aarch64_mask_entry(0x0, branchMap(),520);
-	main_decoder_table[688]=aarch64_mask_entry(0x0, branchMap(),508);
-	main_decoder_table[689]=aarch64_mask_entry(0x0, branchMap(),504);
-	main_decoder_table[690]=aarch64_mask_entry(0x0, branchMap(),514);
-	main_decoder_table[691]=aarch64_mask_entry(0x0, branchMap(),446);
-	main_decoder_table[692]=aarch64_mask_entry(0x0, branchMap(),178);
-	main_decoder_table[500]=aarch64_mask_entry(0x80a00c00, map_list_of(0,695)(1,696)(2,697)(3,698)(6,699)(8,700)(9,701)(10,702)(11,703)(14,704)(16,705)(17,706)(18,707)(19,708)(22,709)(24,710)(25,711)(26,712)(27,713)(30,714),-1);
-	main_decoder_table[695]=aarch64_mask_entry(0x40400000, map_list_of(0,715)(1,716)(2,717)(3,718),-1);
-	main_decoder_table[715]=aarch64_mask_entry(0x0, branchMap(),610);
-	main_decoder_table[716]=aarch64_mask_entry(0x0, branchMap(),352);
-	main_decoder_table[717]=aarch64_mask_entry(0x0, branchMap(),611);
-	main_decoder_table[718]=aarch64_mask_entry(0x0, branchMap(),353);
-	main_decoder_table[696]=aarch64_mask_entry(0x40400000, map_list_of(0,719)(1,720)(2,721)(3,722),-1);
-	main_decoder_table[719]=aarch64_mask_entry(0x0, branchMap(),597);
-	main_decoder_table[720]=aarch64_mask_entry(0x0, branchMap(),323);
-	main_decoder_table[721]=aarch64_mask_entry(0x0, branchMap(),601);
-	main_decoder_table[722]=aarch64_mask_entry(0x0, branchMap(),327);
-	main_decoder_table[697]=aarch64_mask_entry(0x40400000, map_list_of(0,723)(1,724)(2,725)(3,726),-1);
-	main_decoder_table[723]=aarch64_mask_entry(0x0, branchMap(),606);
-	main_decoder_table[724]=aarch64_mask_entry(0x0, branchMap(),345);
-	main_decoder_table[725]=aarch64_mask_entry(0x0, branchMap(),607);
-	main_decoder_table[726]=aarch64_mask_entry(0x0, branchMap(),346);
-	main_decoder_table[698]=aarch64_mask_entry(0x40400000, map_list_of(0,727)(1,728)(2,729)(3,730),-1);
-	main_decoder_table[727]=aarch64_mask_entry(0x0, branchMap(),598);
-	main_decoder_table[728]=aarch64_mask_entry(0x0, branchMap(),324);
-	main_decoder_table[729]=aarch64_mask_entry(0x0, branchMap(),602);
-	main_decoder_table[730]=aarch64_mask_entry(0x0, branchMap(),328);
-	main_decoder_table[699]=aarch64_mask_entry(0x40400000, map_list_of(0,731)(1,732)(2,733)(3,734),-1);
-	main_decoder_table[731]=aarch64_mask_entry(0x0, branchMap(),600);
-	main_decoder_table[732]=aarch64_mask_entry(0x0, branchMap(),326);
-	main_decoder_table[733]=aarch64_mask_entry(0x0, branchMap(),604);
-	main_decoder_table[734]=aarch64_mask_entry(0x0, branchMap(),330);
-	main_decoder_table[700]=aarch64_mask_entry(0x40000000, map_list_of(0,735)(1,736),-1);
-	main_decoder_table[735]=aarch64_mask_entry(0x0, branchMap(),354);
-	main_decoder_table[736]=aarch64_mask_entry(0x0, branchMap(),355);
-	main_decoder_table[701]=aarch64_mask_entry(0x40000000, map_list_of(0,737)(1,738),-1);
-	main_decoder_table[737]=aarch64_mask_entry(0x0, branchMap(),331);
-	main_decoder_table[738]=aarch64_mask_entry(0x0, branchMap(),335);
-	main_decoder_table[702]=aarch64_mask_entry(0x40000000, map_list_of(0,739)(1,740),-1);
-	main_decoder_table[739]=aarch64_mask_entry(0x0, branchMap(),347);
-	main_decoder_table[740]=aarch64_mask_entry(0x0, branchMap(),348);
-	main_decoder_table[703]=aarch64_mask_entry(0x40000000, map_list_of(0,741)(1,742),-1);
-	main_decoder_table[741]=aarch64_mask_entry(0x0, branchMap(),332);
-	main_decoder_table[742]=aarch64_mask_entry(0x0, branchMap(),336);
-	main_decoder_table[704]=aarch64_mask_entry(0x40000000, map_list_of(0,743)(1,744),-1);
-	main_decoder_table[743]=aarch64_mask_entry(0x0, branchMap(),334);
-	main_decoder_table[744]=aarch64_mask_entry(0x0, branchMap(),338);
-	main_decoder_table[705]=aarch64_mask_entry(0x400000, map_list_of(0,745)(1,746),-1);
-	main_decoder_table[745]=aarch64_mask_entry(0x0, branchMap(),609);
-	main_decoder_table[746]=aarch64_mask_entry(0x0, branchMap(),351);
-	main_decoder_table[706]=aarch64_mask_entry(0x400000, map_list_of(0,747)(1,748),-1);
-	main_decoder_table[747]=aarch64_mask_entry(0x0, branchMap(),592);
-	main_decoder_table[748]=aarch64_mask_entry(0x0, branchMap(),316);
-	main_decoder_table[707]=aarch64_mask_entry(0x400000, map_list_of(0,749)(1,750),-1);
-	main_decoder_table[749]=aarch64_mask_entry(0x0, branchMap(),605);
-	main_decoder_table[750]=aarch64_mask_entry(0x0, branchMap(),344);
-	main_decoder_table[708]=aarch64_mask_entry(0x400000, map_list_of(0,751)(1,752),-1);
-	main_decoder_table[751]=aarch64_mask_entry(0x0, branchMap(),593);
-	main_decoder_table[752]=aarch64_mask_entry(0x0, branchMap(),317);
-	main_decoder_table[709]=aarch64_mask_entry(0x400000, map_list_of(0,753)(1,754),-1);
-	main_decoder_table[753]=aarch64_mask_entry(0x0, branchMap(),596);
-	main_decoder_table[754]=aarch64_mask_entry(0x0, branchMap(),322);
-	main_decoder_table[710]=aarch64_mask_entry(0x40400000, map_list_of(0,755)(2,756),-1);
-	main_decoder_table[755]=aarch64_mask_entry(0x0, branchMap(),356);
-	main_decoder_table[756]=aarch64_mask_entry(0x0, branchMap(),416);
-	main_decoder_table[711]=aarch64_mask_entry(0x0, branchMap(),339);
-	main_decoder_table[712]=aarch64_mask_entry(0x0, branchMap(),349);
-	main_decoder_table[713]=aarch64_mask_entry(0x0, branchMap(),340);
-	main_decoder_table[714]=aarch64_mask_entry(0x40400000, map_list_of(0,757)(2,758),-1);
-	main_decoder_table[757]=aarch64_mask_entry(0x0, branchMap(),343);
-	main_decoder_table[758]=aarch64_mask_entry(0x0, branchMap(),415);
-	main_decoder_table[501]=aarch64_mask_entry(0x80800000, map_list_of(0,759)(1,760)(2,761)(3,762),-1);
-	main_decoder_table[759]=aarch64_mask_entry(0x40400000, map_list_of(0,763)(1,764)(2,765)(3,766),-1);
-	main_decoder_table[763]=aarch64_mask_entry(0x0, branchMap(),599);
-	main_decoder_table[764]=aarch64_mask_entry(0x0, branchMap(),325);
-	main_decoder_table[765]=aarch64_mask_entry(0x0, branchMap(),603);
-	main_decoder_table[766]=aarch64_mask_entry(0x0, branchMap(),329);
-	main_decoder_table[760]=aarch64_mask_entry(0x40000000, map_list_of(0,767)(1,768),-1);
-	main_decoder_table[767]=aarch64_mask_entry(0x0, branchMap(),333);
-	main_decoder_table[768]=aarch64_mask_entry(0x0, branchMap(),337);
-	main_decoder_table[761]=aarch64_mask_entry(0x400000, map_list_of(0,769)(1,770),-1);
-	main_decoder_table[769]=aarch64_mask_entry(0x0, branchMap(),594);
-	main_decoder_table[770]=aarch64_mask_entry(0x0, branchMap(),318);
-	main_decoder_table[762]=aarch64_mask_entry(0x40400000, map_list_of(0,771)(2,772),-1);
-	main_decoder_table[771]=aarch64_mask_entry(0x0, branchMap(),341);
-	main_decoder_table[772]=aarch64_mask_entry(0x0, branchMap(),413);
-	main_decoder_table[502]=aarch64_mask_entry(0x40e00c00, map_list_of(0,773)(8,774)(10,775)(32,776)(40,777)(42,778),-1);
-	main_decoder_table[773]=aarch64_mask_entry(0x0, branchMap(),4);
-	main_decoder_table[774]=aarch64_mask_entry(0x0, branchMap(),51);
-	main_decoder_table[775]=aarch64_mask_entry(0x0, branchMap(),50);
-	main_decoder_table[776]=aarch64_mask_entry(0xf000, map_list_of(0,779),-1);
-	main_decoder_table[779]=aarch64_mask_entry(0x0, branchMap(),442);
-	main_decoder_table[777]=aarch64_mask_entry(0x0, branchMap(),53);
-	main_decoder_table[778]=aarch64_mask_entry(0x0, branchMap(),52);
-	main_decoder_table[503]=aarch64_mask_entry(0x600c00, map_list_of(0,780)(1,781)(3,782)(6,783)(8,784)(9,785)(11,786)(14,787),-1);
-	main_decoder_table[780]=aarch64_mask_entry(0x0, branchMap(),608);
-	main_decoder_table[781]=aarch64_mask_entry(0x0, branchMap(),589);
-	main_decoder_table[782]=aarch64_mask_entry(0x0, branchMap(),590);
-	main_decoder_table[783]=aarch64_mask_entry(0x0, branchMap(),595);
-	main_decoder_table[784]=aarch64_mask_entry(0x0, branchMap(),350);
-	main_decoder_table[785]=aarch64_mask_entry(0x0, branchMap(),313);
-	main_decoder_table[786]=aarch64_mask_entry(0x0, branchMap(),314);
-	main_decoder_table[787]=aarch64_mask_entry(0x0, branchMap(),321);
-	main_decoder_table[504]=aarch64_mask_entry(0x400000, map_list_of(0,788)(1,789),-1);
-	main_decoder_table[788]=aarch64_mask_entry(0x0, branchMap(),591);
-	main_decoder_table[789]=aarch64_mask_entry(0x0, branchMap(),315);
-	main_decoder_table[505]=aarch64_mask_entry(0xc020fc00, map_list_of(195,790)(202,791)(203,792)(205,793)(206,794)(207,795)(209,796)(210,797)(211,798)(213,799)(215,800)(218,801)(222,802)(225,803)(226,804)(227,805)(230,806)(234,807)(237,808)(238,809)(242,810)(245,811)(246,812)(249,813)(251,814)(254,815),-1);
-	main_decoder_table[790]=aarch64_mask_entry(0x0, branchMap(),682);
-	main_decoder_table[791]=aarch64_mask_entry(0x0, branchMap(),538);
-	main_decoder_table[792]=aarch64_mask_entry(0x0, branchMap(),694);
-	main_decoder_table[793]=aarch64_mask_entry(0x0, branchMap(),73);
-	main_decoder_table[794]=aarch64_mask_entry(0x0, branchMap(),712);
-	main_decoder_table[795]=aarch64_mask_entry(0x0, branchMap(),75);
-	main_decoder_table[796]=aarch64_mask_entry(0x0, branchMap(),707);
-	main_decoder_table[797]=aarch64_mask_entry(0x0, branchMap(),696);
-	main_decoder_table[798]=aarch64_mask_entry(0x0, branchMap(),690);
-	main_decoder_table[799]=aarch64_mask_entry(0x0, branchMap(),700);
-	main_decoder_table[800]=aarch64_mask_entry(0x0, branchMap(),684);
-	main_decoder_table[801]=aarch64_mask_entry(0x0, branchMap(),176);
-	main_decoder_table[802]=aarch64_mask_entry(0x0, branchMap(),512);
-	main_decoder_table[803]=aarch64_mask_entry(0x0, branchMap(),619);
-	main_decoder_table[804]=aarch64_mask_entry(0x0, branchMap(),67);
-	main_decoder_table[805]=aarch64_mask_entry(0x0, branchMap(),61);
-	main_decoder_table[806]=aarch64_mask_entry(0x0, branchMap(),77);
-	main_decoder_table[807]=aarch64_mask_entry(0x9f0000, map_list_of(1,816)(33,817),-1);
-	main_decoder_table[816]=aarch64_mask_entry(0x0, branchMap(),167);
-	main_decoder_table[817]=aarch64_mask_entry(0x0, branchMap(),173);
-	main_decoder_table[808]=aarch64_mask_entry(0x0, branchMap(),516);
-	main_decoder_table[809]=aarch64_mask_entry(0x1f0000, map_list_of(0,818)(1,819),-1);
-	main_decoder_table[818]=aarch64_mask_entry(0x0, branchMap(),397);
-	main_decoder_table[819]=aarch64_mask_entry(0x800000, map_list_of(0,820)(1,821),-1);
-	main_decoder_table[820]=aarch64_mask_entry(0x0, branchMap(),160);
-	main_decoder_table[821]=aarch64_mask_entry(0x0, branchMap(),186);
-	main_decoder_table[810]=aarch64_mask_entry(0x9f0000, map_list_of(1,822)(16,823)(32,824)(48,825),-1);
-	main_decoder_table[822]=aarch64_mask_entry(0x0, branchMap(),153);
-	main_decoder_table[823]=aarch64_mask_entry(0x0, branchMap(),197);
-	main_decoder_table[824]=aarch64_mask_entry(0x0, branchMap(),136);
-	main_decoder_table[825]=aarch64_mask_entry(0x0, branchMap(),207);
-	main_decoder_table[811]=aarch64_mask_entry(0x0, branchMap(),116);
-	main_decoder_table[812]=aarch64_mask_entry(0x9f0000, map_list_of(1,826)(16,827)(32,828)(33,829),-1);
-	main_decoder_table[826]=aarch64_mask_entry(0x0, branchMap(),657);
-	main_decoder_table[827]=aarch64_mask_entry(0x0, branchMap(),126);
-	main_decoder_table[828]=aarch64_mask_entry(0x0, branchMap(),142);
-	main_decoder_table[829]=aarch64_mask_entry(0x0, branchMap(),256);
-	main_decoder_table[813]=aarch64_mask_entry(0x800000, map_list_of(0,830)(1,831),-1);
-	main_decoder_table[830]=aarch64_mask_entry(0x0, branchMap(),134);
-	main_decoder_table[831]=aarch64_mask_entry(0x0, branchMap(),138);
-	main_decoder_table[814]=aarch64_mask_entry(0x800000, map_list_of(0,832)(1,833),-1);
-	main_decoder_table[832]=aarch64_mask_entry(0x0, branchMap(),120);
-	main_decoder_table[833]=aarch64_mask_entry(0x0, branchMap(),122);
-	main_decoder_table[815]=aarch64_mask_entry(0x9f0000, map_list_of(16,834)(48,835),-1);
-	main_decoder_table[834]=aarch64_mask_entry(0x0, branchMap(),200);
-	main_decoder_table[835]=aarch64_mask_entry(0x0, branchMap(),210);
-	main_decoder_table[506]=aarch64_mask_entry(0xc080f400, map_list_of(65,836)(67,837)(69,838)(71,839)(73,840)(75,841)(77,842)(79,843)(81,844)(83,845)(93,846)(95,847)(114,848),-1);
-	main_decoder_table[836]=aarch64_mask_entry(0x0, branchMap(),710);
-	main_decoder_table[837]=aarch64_mask_entry(0x0, branchMap(),714);
-	main_decoder_table[838]=aarch64_mask_entry(0x0, branchMap(),702);
-	main_decoder_table[839]=aarch64_mask_entry(0x0, branchMap(),705);
-	main_decoder_table[840]=aarch64_mask_entry(0x0, branchMap(),541);
-	main_decoder_table[841]=aarch64_mask_entry(0x0, branchMap(),471);
-	main_decoder_table[842]=aarch64_mask_entry(0x0, branchMap(),528);
-	main_decoder_table[843]=aarch64_mask_entry(0x0, branchMap(),688);
-	main_decoder_table[844]=aarch64_mask_entry(0x800, map_list_of(0,849)(1,850),-1);
-	main_decoder_table[849]=aarch64_mask_entry(0x0, branchMap(),532);
-	main_decoder_table[850]=aarch64_mask_entry(0x0, branchMap(),522);
-	main_decoder_table[845]=aarch64_mask_entry(0x800, map_list_of(0,851)(1,852),-1);
-	main_decoder_table[851]=aarch64_mask_entry(0x0, branchMap(),692);
-	main_decoder_table[852]=aarch64_mask_entry(0x0, branchMap(),686);
-	main_decoder_table[846]=aarch64_mask_entry(0x0, branchMap(),655);
-	main_decoder_table[847]=aarch64_mask_entry(0x0, branchMap(),184);
-	main_decoder_table[848]=aarch64_mask_entry(0x0, branchMap(),228);
+const aarch64_decoder_table aarch64_mask_entry::main_decoder_table = {
+	{0x18000000, 4,&branchTable[0], -1},
+	{0x0, 0,&branchTable[4], 0},
+	{0x7000000, 8,&branchTable[4], -1},
+	{0x4000000, 2,&branchTable[12], -1},
+	{0x27000000, 13,&branchTable[14], -1},
+	{0x20c00000, 8,&branchTable[27], -1},
+	{0x60c00000, 6,&branchTable[35], -1},
+	{0x60200000, 8,&branchTable[41], -1},
+	{0x60200000, 8,&branchTable[49], -1},
+	{0x20c00000, 8,&branchTable[57], -1},
+	{0x20c00000, 8,&branchTable[65], -1},
+	{0xa0208400, 12,&branchTable[73], -1},
+	{0x80000400, 2,&branchTable[85], -1},
+	{0x80208000, 6,&branchTable[87], -1},
+	{0x803f8000, 6,&branchTable[93], -1},
+	{0x803ffc00, 2,&branchTable[99], -1},
+	{0x803ffc00, 2,&branchTable[101], -1},
+	{0x0, 0,&branchTable[103], 582},
+	{0x0, 0,&branchTable[103], 303},
+	{0x0, 0,&branchTable[103], 586},
+	{0x40000000, 2,&branchTable[103], -1},
+	{0x40007c00, 2,&branchTable[105], -1},
+	{0x40007c00, 2,&branchTable[107], -1},
+	{0x0, 0,&branchTable[109], 613},
+	{0x0, 0,&branchTable[109], 578},
+	{0x0, 0,&branchTable[109], 612},
+	{0x0, 0,&branchTable[109], 577},
+	{0x0, 0,&branchTable[109], 614},
+	{0x0, 0,&branchTable[109], 615},
+	{0x0, 0,&branchTable[109], 579},
+	{0x0, 0,&branchTable[109], 580},
+	{0x40007c00, 2,&branchTable[109], -1},
+	{0x40007c00, 2,&branchTable[111], -1},
+	{0x0, 0,&branchTable[113], 358},
+	{0x0, 0,&branchTable[113], 299},
+	{0x0, 0,&branchTable[113], 357},
+	{0x0, 0,&branchTable[113], 298},
+	{0x0, 0,&branchTable[113], 359},
+	{0x0, 0,&branchTable[113], 360},
+	{0x0, 0,&branchTable[113], 300},
+	{0x0, 0,&branchTable[113], 301},
+	{0x40000000, 2,&branchTable[113], -1},
+	{0x0, 0,&branchTable[115], 574},
+	{0x0, 0,&branchTable[115], 575},
+	{0x0, 0,&branchTable[115], 576},
+	{0x40000000, 2,&branchTable[115], -1},
+	{0x0, 0,&branchTable[117], 295},
+	{0x0, 0,&branchTable[117], 296},
+	{0x0, 0,&branchTable[117], 297},
+	{0x0, 0,&branchTable[117], 307},
+	{0x0, 0,&branchTable[117], 310},
+	{0x0, 0,&branchTable[117], 588},
+	{0x0, 0,&branchTable[117], 309},
+	{0x0, 0,&branchTable[117], 587},
+	{0x0, 0,&branchTable[117], 308},
+	{0x0, 0,&branchTable[117], 312},
+	{0x0, 0,&branchTable[117], 311},
+	{0x0, 0,&branchTable[117], 25},
+	{0x0, 0,&branchTable[117], 39},
+	{0x0, 0,&branchTable[117], 410},
+	{0x0, 0,&branchTable[117], 406},
+	{0x0, 0,&branchTable[117], 112},
+	{0x0, 0,&branchTable[117], 109},
+	{0x0, 0,&branchTable[117], 27},
+	{0x0, 0,&branchTable[117], 40},
+	{0x0, 0,&branchTable[117], 7},
+	{0x0, 0,&branchTable[117], 5},
+	{0x0, 0,&branchTable[117], 15},
+	{0xc00000, 1,&branchTable[117], -1},
+	{0x0, 0,&branchTable[118], 618},
+	{0x0, 0,&branchTable[118], 616},
+	{0x0, 0,&branchTable[118], 624},
+	{0xc00000, 1,&branchTable[118], -1},
+	{0x0, 0,&branchTable[119], 13},
+	{0x0, 0,&branchTable[119], 622},
+	{0x803f2000, 2,&branchTable[119], -1},
+	{0x803f2000, 2,&branchTable[121], -1},
+	{0x80202000, 2,&branchTable[123], -1},
+	{0x80202000, 2,&branchTable[125], -1},
+	{0x0, 0,&branchTable[127], 581},
+	{0x0, 0,&branchTable[127], 302},
+	{0x0, 0,&branchTable[127], 583},
+	{0x0, 0,&branchTable[127], 304},
+	{0xd000, 3,&branchTable[127], -1},
+	{0x0, 0,&branchTable[130], 558},
+	{0x0, 0,&branchTable[130], 570},
+	{0x0, 0,&branchTable[130], 566},
+	{0x0, 0,&branchTable[130], 562},
+	{0xd000, 3,&branchTable[130], -1},
+	{0x0, 0,&branchTable[133], 271},
+	{0x0, 0,&branchTable[133], 289},
+	{0x0, 0,&branchTable[133], 283},
+	{0x0, 0,&branchTable[133], 277},
+	{0xd000, 3,&branchTable[133], -1},
+	{0x0, 0,&branchTable[136], 559},
+	{0x0, 0,&branchTable[136], 571},
+	{0x0, 0,&branchTable[136], 567},
+	{0x0, 0,&branchTable[136], 563},
+	{0xd000, 3,&branchTable[136], -1},
+	{0x0, 0,&branchTable[139], 272},
+	{0x0, 0,&branchTable[139], 290},
+	{0x0, 0,&branchTable[139], 284},
+	{0x0, 0,&branchTable[139], 278},
+	{0x803f2000, 4,&branchTable[139], -1},
+	{0x803f2000, 4,&branchTable[143], -1},
+	{0x80202000, 4,&branchTable[147], -1},
+	{0x80202000, 4,&branchTable[151], -1},
+	{0x0, 0,&branchTable[155], 585},
+	{0x0, 0,&branchTable[155], 306},
+	{0x0, 0,&branchTable[155], 584},
+	{0x0, 0,&branchTable[155], 305},
+	{0x0, 0,&branchTable[155], 560},
+	{0x0, 0,&branchTable[155], 568},
+	{0x0, 0,&branchTable[155], 564},
+	{0x0, 0,&branchTable[155], 572},
+	{0xC000, 4,&branchTable[155], -1},
+	{0xC000, 4,&branchTable[159], -1},
+	{0xC000, 4,&branchTable[163], -1},
+	{0xC000, 4,&branchTable[167], -1},
+	{0x0, 0,&branchTable[171], 561},
+	{0x0, 0,&branchTable[171], 569},
+	{0x0, 0,&branchTable[171], 565},
+	{0x0, 0,&branchTable[171], 573},
+	{0xC000, 4,&branchTable[171], -1},
+	{0xC000, 4,&branchTable[175], -1},
+	{0xC000, 4,&branchTable[179], -1},
+	{0xC000, 4,&branchTable[183], -1},
+	{0x1800, 4,&branchTable[187], -1},
+	{0xc07800, 5,&branchTable[191], -1},
+	{0x7800, 16,&branchTable[196], -1},
+	{0x7800, 16,&branchTable[212], -1},
+	{0x7800, 15,&branchTable[228], -1},
+	{0x7800, 15,&branchTable[243], -1},
+	{0x0, 0,&branchTable[258], 114},
+	{0x40c00000, 1,&branchTable[258], -1},
+	{0x7800, 15,&branchTable[259], -1},
+	{0x7800, 16,&branchTable[274], -1},
+	{0x7800, 10,&branchTable[290], -1},
+	{0x7800, 14,&branchTable[300], -1},
+	{0x0, 0,&branchTable[314], 634},
+	{0x6000, 2,&branchTable[314], -1},
+	{0x0, 0,&branchTable[316], 636},
+	{0x6000, 4,&branchTable[316], -1},
+	{0x0, 0,&branchTable[320], 639},
+	{0x0, 0,&branchTable[320], 640},
+	{0x0, 0,&branchTable[320], 721},
+	{0x0, 0,&branchTable[320], 727},
+	{0x0, 0,&branchTable[320], 722},
+	{0x0, 0,&branchTable[320], 728},
+	{0x0, 0,&branchTable[320], 107},
+	{0x0, 0,&branchTable[320], 108},
+	{0x40000000, 1,&branchTable[320], -1},
+	{0x0, 0,&branchTable[321], 486},
+	{0x0, 0,&branchTable[321], 382},
+	{0x0, 0,&branchTable[321], 269},
+	{0x0, 0,&branchTable[321], 437},
+	{0x0, 0,&branchTable[321], 426},
+	{0x0, 0,&branchTable[321], 440},
+	{0x0, 0,&branchTable[321], 422},
+	{0x0, 0,&branchTable[321], 556},
+	{0x1f0000, 2,&branchTable[321], -1},
+	{0x0, 0,&branchTable[323], 557},
+	{0x1f0000, 2,&branchTable[323], -1},
+	{0x0, 0,&branchTable[325], 10},
+	{0x1f0000, 3,&branchTable[325], -1},
+	{0x0, 0,&branchTable[328], 433},
+	{0x1f0000, 2,&branchTable[328], -1},
+	{0x0, 0,&branchTable[330], 621},
+	{0x1f0000, 3,&branchTable[330], -1},
+	{0x0, 0,&branchTable[333], 435},
+	{0x1f0000, 3,&branchTable[333], -1},
+	{0x0, 0,&branchTable[336], 438},
+	{0x0, 0,&branchTable[336], 725},
+	{0x0, 0,&branchTable[336], 626},
+	{0x0, 0,&branchTable[336], 439},
+	{0x0, 0,&branchTable[336], 57},
+	{0x0, 0,&branchTable[336], 537},
+	{0x0, 0,&branchTable[336], 20},
+	{0x0, 0,&branchTable[336], 90},
+	{0x0, 0,&branchTable[336], 19},
+	{0x0, 0,&branchTable[336], 436},
+	{0x0, 0,&branchTable[336], 163},
+	{0x0, 0,&branchTable[336], 22},
+	{0x0, 0,&branchTable[336], 493},
+	{0x0, 0,&branchTable[336], 156},
+	{0x0, 0,&branchTable[336], 21},
+	{0x0, 0,&branchTable[336], 465},
+	{0x0, 0,&branchTable[336], 495},
+	{0x0, 0,&branchTable[336], 540},
+	{0xc00000, 4,&branchTable[336], -1},
+	{0x0, 0,&branchTable[340], 470},
+	{0x0, 0,&branchTable[340], 535},
+	{0x0, 0,&branchTable[340], 70},
+	{0x0, 0,&branchTable[340], 66},
+	{0x0, 0,&branchTable[340], 550},
+	{0x0, 0,&branchTable[340], 527},
+	{0x0, 0,&branchTable[340], 544},
+	{0x0, 0,&branchTable[340], 519},
+	{0x0, 0,&branchTable[340], 474},
+	{0x0, 0,&branchTable[340], 478},
+	{0x0, 0,&branchTable[340], 434},
+	{0x0, 0,&branchTable[340], 432},
+	{0x0, 0,&branchTable[340], 23},
+	{0x0, 0,&branchTable[340], 38},
+	{0x0, 0,&branchTable[340], 379},
+	{0x0, 0,&branchTable[340], 405},
+	{0x0, 0,&branchTable[340], 482},
+	{0x1f0000, 2,&branchTable[340], -1},
+	{0x0, 0,&branchTable[342], 499},
+	{0x1f0000, 2,&branchTable[342], -1},
+	{0x0, 0,&branchTable[344], 484},
+	{0x1f0000, 4,&branchTable[344], -1},
+	{0x0, 0,&branchTable[348], 503},
+	{0x1f0000, 3,&branchTable[348], -1},
+	{0x0, 0,&branchTable[351], 490},
+	{0x9f0000, 3,&branchTable[351], -1},
+	{0x0, 0,&branchTable[354], 511},
+	{0x9f0000, 3,&branchTable[354], -1},
+	{0x0, 0,&branchTable[357], 412},
+	{0x0, 0,&branchTable[357], 145},
+	{0x0, 0,&branchTable[357], 118},
+	{0x0, 0,&branchTable[357], 72},
+	{0x800000, 2,&branchTable[357], -1},
+	{0x0, 0,&branchTable[359], 248},
+	{0x0, 0,&branchTable[359], 250},
+	{0x0, 0,&branchTable[359], 64},
+	{0x800000, 2,&branchTable[359], -1},
+	{0x0, 0,&branchTable[361], 246},
+	{0x0, 0,&branchTable[361], 254},
+	{0x0, 0,&branchTable[361], 80},
+	{0x800000, 2,&branchTable[361], -1},
+	{0x0, 0,&branchTable[363], 476},
+	{0x0, 0,&branchTable[363], 480},
+	{0x0, 0,&branchTable[363], 165},
+	{0x0, 0,&branchTable[363], 171},
+	{0x0, 0,&branchTable[363], 2},
+	{0x800000, 2,&branchTable[363], -1},
+	{0x0, 0,&branchTable[365], 16},
+	{0x0, 0,&branchTable[365], 158},
+	{0x0, 0,&branchTable[365], 181},
+	{0x0, 0,&branchTable[365], 151},
+	{0x0, 0,&branchTable[365], 141},
+	{0x0, 0,&branchTable[365], 698},
+	{0x0, 0,&branchTable[365], 449},
+	{0x0, 0,&branchTable[365], 133},
+	{0x0, 0,&branchTable[365], 238},
+	{0x0, 0,&branchTable[365], 9},
+	{0x0, 0,&branchTable[365], 88},
+	{0x0, 0,&branchTable[365], 369},
+	{0x0, 0,&branchTable[365], 392},
+	{0x0, 0,&branchTable[365], 475},
+	{0x0, 0,&branchTable[365], 479},
+	{0x0, 0,&branchTable[365], 507},
+	{0x0, 0,&branchTable[365], 12},
+	{0x800000, 2,&branchTable[365], -1},
+	{0x800000, 2,&branchTable[367], -1},
+	{0x800000, 2,&branchTable[369], -1},
+	{0x0, 0,&branchTable[371], 231},
+	{0x0, 0,&branchTable[371], 131},
+	{0x800000, 2,&branchTable[371], -1},
+	{0x800000, 2,&branchTable[373], -1},
+	{0x0, 0,&branchTable[375], 195},
+	{0x0, 0,&branchTable[375], 205},
+	{0x0, 0,&branchTable[375], 215},
+	{0x0, 0,&branchTable[375], 218},
+	{0x0, 0,&branchTable[375], 124},
+	{0x0, 0,&branchTable[375], 262},
+	{0x0, 0,&branchTable[375], 193},
+	{0x0, 0,&branchTable[375], 203},
+	{0x0, 0,&branchTable[375], 240},
+	{0x0, 0,&branchTable[375], 259},
+	{0x0, 0,&branchTable[375], 268},
+	{0x0, 0,&branchTable[375], 648},
+	{0x0, 0,&branchTable[375], 424},
+	{0x0, 0,&branchTable[375], 651},
+	{0x0, 0,&branchTable[375], 716},
+	{0x1f0000, 2,&branchTable[375], -1},
+	{0x0, 0,&branchTable[377], 717},
+	{0x1f0000, 3,&branchTable[377], -1},
+	{0x0, 0,&branchTable[380], 417},
+	{0x1f0000, 2,&branchTable[380], -1},
+	{0x0, 0,&branchTable[382], 644},
+	{0xdf0000, 2,&branchTable[382], -1},
+	{0x0, 0,&branchTable[384], 431},
+	{0x1f0000, 2,&branchTable[384], -1},
+	{0x0, 0,&branchTable[386], 646},
+	{0x0, 0,&branchTable[386], 513},
+	{0x0, 0,&branchTable[386], 649},
+	{0x0, 0,&branchTable[386], 539},
+	{0x0, 0,&branchTable[386], 713},
+	{0x0, 0,&branchTable[386], 468},
+	{0x0, 0,&branchTable[386], 650},
+	{0x0, 0,&branchTable[386], 59},
+	{0x0, 0,&branchTable[386], 697},
+	{0x0, 0,&branchTable[386], 394},
+	{0x0, 0,&branchTable[386], 418},
+	{0x0, 0,&branchTable[386], 647},
+	{0x0, 0,&branchTable[386], 177},
+	{0x0, 0,&branchTable[386], 662},
+	{0x0, 0,&branchTable[386], 683},
+	{0x0, 0,&branchTable[386], 699},
+	{0xc00000, 4,&branchTable[386], -1},
+	{0x0, 0,&branchTable[390], 663},
+	{0x0, 0,&branchTable[390], 695},
+	{0x0, 0,&branchTable[390], 74},
+	{0x0, 0,&branchTable[390], 76},
+	{0x0, 0,&branchTable[390], 708},
+	{0x0, 0,&branchTable[390], 691},
+	{0x0, 0,&branchTable[390], 701},
+	{0x0, 0,&branchTable[390], 685},
+	{0x0, 0,&branchTable[390], 665},
+	{0x0, 0,&branchTable[390], 668},
+	{0x0, 0,&branchTable[390], 645},
+	{0x0, 0,&branchTable[390], 643},
+	{0x0, 0,&branchTable[390], 110},
+	{0x0, 0,&branchTable[390], 47},
+	{0x0, 0,&branchTable[390], 42},
+	{0x0, 0,&branchTable[390], 41},
+	{0x0, 0,&branchTable[390], 672},
+	{0x1f0000, 2,&branchTable[390], -1},
+	{0x1f0000, 2,&branchTable[392], -1},
+	{0x0, 0,&branchTable[394], 674},
+	{0x1f0000, 3,&branchTable[394], -1},
+	{0x1f0000, 2,&branchTable[397], -1},
+	{0x0, 0,&branchTable[399], 680},
+	{0x9f0000, 5,&branchTable[399], -1},
+	{0x9f0000, 3,&branchTable[404], -1},
+	{0x9f0000, 4,&branchTable[407], -1},
+	{0x0, 0,&branchTable[411], 68},
+	{0x0, 0,&branchTable[411], 242},
+	{0x0, 0,&branchTable[411], 78},
+	{0x800000, 2,&branchTable[411], -1},
+	{0x0, 0,&branchTable[413], 252},
+	{0x0, 0,&branchTable[413], 244},
+	{0x800000, 2,&branchTable[413], -1},
+	{0x0, 0,&branchTable[415], 667},
+	{0x0, 0,&branchTable[415], 670},
+	{0x0, 0,&branchTable[415], 168},
+	{0x0, 0,&branchTable[415], 174},
+	{0x0, 0,&branchTable[415], 398},
+	{0x800000, 2,&branchTable[415], -1},
+	{0x0, 0,&branchTable[417], 161},
+	{0x0, 0,&branchTable[417], 187},
+	{0x0, 0,&branchTable[417], 154},
+	{0x0, 0,&branchTable[417], 199},
+	{0x0, 0,&branchTable[417], 137},
+	{0x0, 0,&branchTable[417], 704},
+	{0x0, 0,&branchTable[417], 209},
+	{0x0, 0,&branchTable[417], 658},
+	{0x0, 0,&branchTable[417], 143},
+	{0x0, 0,&branchTable[417], 257},
+	{0x0, 0,&branchTable[417], 202},
+	{0x0, 0,&branchTable[417], 232},
+	{0x0, 0,&branchTable[417], 260},
+	{0x0, 0,&branchTable[417], 212},
+	{0x0, 0,&branchTable[417], 620},
+	{0x0, 0,&branchTable[417], 62},
+	{0x0, 0,&branchTable[417], 371},
+	{0x0, 0,&branchTable[417], 411},
+	{0x0, 0,&branchTable[417], 666},
+	{0x0, 0,&branchTable[417], 669},
+	{0x0, 0,&branchTable[417], 517},
+	{0x800000, 2,&branchTable[417], -1},
+	{0x800000, 2,&branchTable[419], -1},
+	{0x0, 0,&branchTable[421], 226},
+	{0x800000, 2,&branchTable[421], -1},
+	{0x800000, 2,&branchTable[423], -1},
+	{0x800000, 2,&branchTable[425], -1},
+	{0x0, 0,&branchTable[427], 190},
+	{0x0, 0,&branchTable[427], 198},
+	{0x0, 0,&branchTable[427], 208},
+	{0x0, 0,&branchTable[427], 127},
+	{0x0, 0,&branchTable[427], 117},
+	{0x0, 0,&branchTable[427], 135},
+	{0x0, 0,&branchTable[427], 139},
+	{0x0, 0,&branchTable[427], 121},
+	{0x0, 0,&branchTable[427], 123},
+	{0x0, 0,&branchTable[427], 201},
+	{0x0, 0,&branchTable[427], 211},
+	{0x2000f000, 18,&branchTable[427], -1},
+	{0xf80800, 31,&branchTable[445], -1},
+	{0x0, 0,&branchTable[476], 214},
+	{0x0, 0,&branchTable[476], 481},
+	{0x0, 0,&branchTable[476], 497},
+	{0x0, 0,&branchTable[476], 217},
+	{0x0, 0,&branchTable[476], 483},
+	{0x0, 0,&branchTable[476], 501},
+	{0x0, 0,&branchTable[476], 391},
+	{0x0, 0,&branchTable[476], 225},
+	{0x0, 0,&branchTable[476], 489},
+	{0x0, 0,&branchTable[476], 509},
+	{0x0, 0,&branchTable[476], 505},
+	{0x0, 0,&branchTable[476], 515},
+	{0x0, 0,&branchTable[476], 368},
+	{0x0, 0,&branchTable[476], 671},
+	{0x0, 0,&branchTable[476], 370},
+	{0x0, 0,&branchTable[476], 673},
+	{0x0, 0,&branchTable[476], 229},
+	{0x0, 0,&branchTable[476], 679},
+	{0x0000f000, 16,&branchTable[476], -1},
+	{0x2000f000, 22,&branchTable[492], -1},
+	{0x2000f000, 6,&branchTable[514], -1},
+	{0x0, 0,&branchTable[520], 553},
+	{0x0, 0,&branchTable[520], 555},
+	{0x0, 0,&branchTable[520], 546},
+	{0x0, 0,&branchTable[520], 548},
+	{0x0, 0,&branchTable[520], 467},
+	{0x0, 0,&branchTable[520], 525},
+	{0x0, 0,&branchTable[520], 469},
+	{0x0, 0,&branchTable[520], 531},
+	{0x0, 0,&branchTable[520], 551},
+	{0x0, 0,&branchTable[520], 447},
+	{0x0, 0,&branchTable[520], 711},
+	{0x0, 0,&branchTable[520], 715},
+	{0x0, 0,&branchTable[520], 703},
+	{0x0, 0,&branchTable[520], 706},
+	{0x0, 0,&branchTable[520], 542},
+	{0x0, 0,&branchTable[520], 472},
+	{0x0, 0,&branchTable[520], 529},
+	{0x0, 0,&branchTable[520], 689},
+	{0x0, 0,&branchTable[520], 533},
+	{0x0, 0,&branchTable[520], 693},
+	{0x0, 0,&branchTable[520], 709},
+	{0x0, 0,&branchTable[520], 656},
+	{0x0, 0,&branchTable[520], 430},
+	{0x0, 0,&branchTable[520], 521},
+	{0x0, 0,&branchTable[520], 179},
+	{0x0, 0,&branchTable[520], 523},
+	{0x0, 0,&branchTable[520], 687},
+	{0x0, 0,&branchTable[520], 185},
+	{0x3000000, 4,&branchTable[520], -1},
+	{0x60000000, 3,&branchTable[524], -1},
+	{0x80000000, 2,&branchTable[527], -1},
+	{0x60000000, 4,&branchTable[529], -1},
+	{0x60800000, 7,&branchTable[533], -1},
+	{0x60800000, 4,&branchTable[540], -1},
+	{0x0, 0,&branchTable[544], 17},
+	{0x0, 0,&branchTable[544], 18},
+	{0x0, 0,&branchTable[544], 6},
+	{0x0, 0,&branchTable[544], 14},
+	{0x0, 0,&branchTable[544], 617},
+	{0x0, 0,&branchTable[544], 623},
+	{0x0, 0,&branchTable[544], 24},
+	{0x0, 0,&branchTable[544], 377},
+	{0x0, 0,&branchTable[544], 409},
+	{0x0, 0,&branchTable[544], 111},
+	{0x0, 0,&branchTable[544], 378},
+	{0x0, 0,&branchTable[544], 26},
+	{0x0, 0,&branchTable[544], 384},
+	{0x0, 0,&branchTable[544], 443},
+	{0x200000, 1,&branchTable[544], -1},
+	{0x0, 0,&branchTable[545], 34},
+	{0x0, 0,&branchTable[545], 362},
+	{0x0, 0,&branchTable[545], 115},
+	{0x80000000, 2,&branchTable[545], -1},
+	{0x3000000, 4,&branchTable[547], -1},
+	{0x83000000, 4,&branchTable[551], -1},
+	{0x0, 0,&branchTable[555], 33},
+	{0x0, 0,&branchTable[555], 43},
+	{0x0, 0,&branchTable[555], 49},
+	{0x0, 0,&branchTable[555], 48},
+	{0x0, 0,&branchTable[555], 637},
+	{0x0, 0,&branchTable[555], 635},
+	{0x0, 0,&branchTable[555], 32},
+	{0xe0001f, 8,&branchTable[555], -1},
+	{0xf00000, 4,&branchTable[563], -1},
+	{0xfffc1f, 5,&branchTable[567], -1},
+	{0x0, 0,&branchTable[572], 627},
+	{0x0, 0,&branchTable[572], 266},
+	{0x0, 0,&branchTable[572], 477},
+	{0x0, 0,&branchTable[572], 46},
+	{0x0, 0,&branchTable[572], 265},
+	{0x0, 0,&branchTable[572], 100},
+	{0x0, 0,&branchTable[572], 101},
+	{0x0, 0,&branchTable[572], 102},
+	{0x80000, 2,&branchTable[572], -1},
+	{0x0, 0,&branchTable[574], 389},
+	{0x0, 0,&branchTable[574], 633},
+	{0x0, 0,&branchTable[574], 387},
+	{0xf01f, 3,&branchTable[574], -1},
+	{0x0, 0,&branchTable[577], 632},
+	{0x70000, 1,&branchTable[577], -1},
+	{0x700e0, 4,&branchTable[578], -1},
+	{0x0, 0,&branchTable[582], 388},
+	{0x0, 0,&branchTable[582], 264},
+	{0x0, 0,&branchTable[582], 56},
+	{0x0, 0,&branchTable[582], 105},
+	{0x0, 0,&branchTable[582], 103},
+	{0x0, 0,&branchTable[582], 270},
+	{0x0, 0,&branchTable[582], 45},
+	{0x0, 0,&branchTable[582], 44},
+	{0x0, 0,&branchTable[582], 420},
+	{0x0, 0,&branchTable[582], 113},
+	{0x0, 0,&branchTable[582], 104},
+	{0x80000000, 2,&branchTable[582], -1},
+	{0x40e00000, 6,&branchTable[584], -1},
+	{0x40e08000, 8,&branchTable[590], -1},
+	{0x0, 0,&branchTable[598], 319},
+	{0x40200000, 4,&branchTable[598], -1},
+	{0xc0008000, 4,&branchTable[602], -1},
+	{0x80a00c00, 20,&branchTable[606], -1},
+	{0x80800000, 4,&branchTable[626], -1},
+	{0x40e00c00, 6,&branchTable[630], -1},
+	{0x600c00, 8,&branchTable[636], -1},
+	{0x400000, 2,&branchTable[644], -1},
+	{0xc020fc00, 26,&branchTable[646], -1},
+	{0xc080f400, 13,&branchTable[672], -1},
+	{0x0, 0,&branchTable[685], 320},
+	{0x40000000, 2,&branchTable[685], -1},
+	{0x0, 0,&branchTable[687], 342},
+	{0x0, 0,&branchTable[687], 414},
+	{0x0, 0,&branchTable[687], 3},
+	{0xc00, 2,&branchTable[687], -1},
+	{0xf000, 4,&branchTable[689], -1},
+	{0xfc00, 1,&branchTable[693], -1},
+	{0xc00, 2,&branchTable[694], -1},
+	{0x1ff800, 3,&branchTable[696], -1},
+	{0x0, 0,&branchTable[699], 93},
+	{0x0, 0,&branchTable[699], 96},
+	{0xc00, 2,&branchTable[699], -1},
+	{0xc00, 4,&branchTable[701], -1},
+	{0x0, 0,&branchTable[705], 91},
+	{0x0, 0,&branchTable[705], 92},
+	{0x0, 0,&branchTable[705], 661},
+	{0x0, 0,&branchTable[705], 452},
+	{0x0, 0,&branchTable[705], 361},
+	{0x0, 0,&branchTable[705], 364},
+	{0x0, 0,&branchTable[705], 28},
+	{0x0, 0,&branchTable[705], 428},
+	{0x0, 0,&branchTable[705], 441},
+	{0x0, 0,&branchTable[705], 97},
+	{0x0, 0,&branchTable[705], 98},
+	{0x400, 2,&branchTable[705], -1},
+	{0x0, 0,&branchTable[707], 421},
+	{0x400, 2,&branchTable[707], -1},
+	{0x0, 0,&branchTable[709], 419},
+	{0x0, 0,&branchTable[709], 423},
+	{0x0, 0,&branchTable[709], 60},
+	{0x0, 0,&branchTable[709], 58},
+	{0x0, 0,&branchTable[709], 367},
+	{0x0, 0,&branchTable[709], 390},
+	{0x80000000, 1,&branchTable[709], -1},
+	{0x80000000, 1,&branchTable[710], -1},
+	{0x0, 0,&branchTable[711], 488},
+	{0x80000000, 1,&branchTable[711], -1},
+	{0x80000000, 1,&branchTable[712], -1},
+	{0x0, 0,&branchTable[713], 678},
+	{0x0, 0,&branchTable[713], 473},
+	{0x0, 0,&branchTable[713], 487},
+	{0x0, 0,&branchTable[713], 664},
+	{0x0, 0,&branchTable[713], 677},
+	{0x9f0000, 4,&branchTable[713], -1},
+	{0xc00, 4,&branchTable[717], -1},
+	{0x80c0fc00, 8,&branchTable[721], -1},
+	{0x8000fc00, 31,&branchTable[729], -1},
+	{0x0, 0,&branchTable[760], 450},
+	{0x0, 0,&branchTable[760], 659},
+	{0x0, 0,&branchTable[760], 182},
+	{0x0, 0,&branchTable[760], 188},
+	{0x1000, 2,&branchTable[760], -1},
+	{0x80800010, 2,&branchTable[762], -1},
+	{0x8080f000, 9,&branchTable[764], -1},
+	{0x0, 0,&branchTable[773], 148},
+	{0x6000, 3,&branchTable[773], -1},
+	{0x0, 0,&branchTable[776], 222},
+	{0x168000, 5,&branchTable[776], -1},
+	{0x80808017, 2,&branchTable[781], -1},
+	{0x801e0000, 4,&branchTable[783], -1},
+	{0x890000, 4,&branchTable[787], -1},
+	{0x890000, 2,&branchTable[791], -1},
+	{0x890000, 2,&branchTable[793], -1},
+	{0x0, 0,&branchTable[795], 221},
+	{0x890000, 4,&branchTable[795], -1},
+	{0x0, 0,&branchTable[799], 166},
+	{0x0, 0,&branchTable[799], 169},
+	{0x0, 0,&branchTable[799], 172},
+	{0x0, 0,&branchTable[799], 175},
+	{0x0, 0,&branchTable[799], 451},
+	{0x0, 0,&branchTable[799], 660},
+	{0x0, 0,&branchTable[799], 152},
+	{0x0, 0,&branchTable[799], 155},
+	{0x0, 0,&branchTable[799], 159},
+	{0x0, 0,&branchTable[799], 162},
+	{0x0, 0,&branchTable[799], 183},
+	{0x0, 0,&branchTable[799], 189},
+	{0x0, 0,&branchTable[799], 146},
+	{0x0, 0,&branchTable[799], 147},
+	{0x818000, 4,&branchTable[799], -1},
+	{0x0, 0,&branchTable[803], 149},
+	{0x818000, 4,&branchTable[803], -1},
+	{0x818000, 3,&branchTable[807], -1},
+	{0x0, 0,&branchTable[810], 220},
+	{0x0, 0,&branchTable[810], 119},
+	{0x0, 0,&branchTable[810], 233},
+	{0x0, 0,&branchTable[810], 261},
+	{0x0, 0,&branchTable[810], 249},
+	{0x0, 0,&branchTable[810], 251},
+	{0x0, 0,&branchTable[810], 247},
+	{0x0, 0,&branchTable[810], 255},
+	{0x0, 0,&branchTable[810], 243},
+	{0x0, 0,&branchTable[810], 253},
+	{0x0, 0,&branchTable[810], 245},
+	{0x0, 0,&branchTable[810], 128},
+	{0x0, 0,&branchTable[810], 129},
+	{0x0, 0,&branchTable[810], 227},
+	{0x0, 0,&branchTable[810], 191},
+	{0x0, 0,&branchTable[810], 125},
+	{0x0, 0,&branchTable[810], 263},
+	{0x0, 0,&branchTable[810], 194},
+	{0x0, 0,&branchTable[810], 204},
+	{0x0, 0,&branchTable[810], 196},
+	{0x0, 0,&branchTable[810], 206},
+	{0x0, 0,&branchTable[810], 236},
+	{0x0, 0,&branchTable[810], 455},
+	{0x0, 0,&branchTable[810], 106},
+	{0x0, 0,&branchTable[810], 458},
+	{0x0, 0,&branchTable[810], 457},
+	{0x0, 0,&branchTable[810], 459},
+	{0x0, 0,&branchTable[810], 462},
+	{0x0, 0,&branchTable[810], 461},
+	{0x0, 0,&branchTable[810], 464},
+	{0x0, 0,&branchTable[810], 456},
+	{0x0, 0,&branchTable[810], 494},
+	{0x0, 0,&branchTable[810], 460},
+	{0x0, 0,&branchTable[810], 463},
+	{0x0, 0,&branchTable[810], 534},
+	{0x0, 0,&branchTable[810], 69},
+	{0x0, 0,&branchTable[810], 625},
+	{0x0, 0,&branchTable[810], 65},
+	{0x0, 0,&branchTable[810], 549},
+	{0x0, 0,&branchTable[810], 536},
+	{0x0, 0,&branchTable[810], 526},
+	{0x0, 0,&branchTable[810], 543},
+	{0x0, 0,&branchTable[810], 518},
+	{0x0, 0,&branchTable[810], 492},
+	{0x0, 0,&branchTable[810], 8},
+	{0x0, 0,&branchTable[810], 71},
+	{0x0, 0,&branchTable[810], 87},
+	{0x0, 0,&branchTable[810], 498},
+	{0x0, 0,&branchTable[810], 63},
+	{0x1f0000, 2,&branchTable[810], -1},
+	{0x0, 0,&branchTable[812], 502},
+	{0x0, 0,&branchTable[812], 506},
+	{0x1f0000, 3,&branchTable[812], -1},
+	{0x9f0000, 2,&branchTable[815], -1},
+	{0x0, 0,&branchTable[817], 510},
+	{0x9f0000, 3,&branchTable[817], -1},
+	{0x0, 0,&branchTable[820], 230},
+	{0x0, 0,&branchTable[820], 130},
+	{0x0, 0,&branchTable[820], 144},
+	{0x0, 0,&branchTable[820], 241},
+	{0x800000, 2,&branchTable[820], -1},
+	{0x0, 0,&branchTable[822], 79},
+	{0x800000, 2,&branchTable[822], -1},
+	{0x0, 0,&branchTable[824], 164},
+	{0x0, 0,&branchTable[824], 170},
+	{0x0, 0,&branchTable[824], 1},
+	{0x800000, 2,&branchTable[824], -1},
+	{0x0, 0,&branchTable[826], 11},
+	{0x0, 0,&branchTable[826], 157},
+	{0x0, 0,&branchTable[826], 180},
+	{0x0, 0,&branchTable[826], 150},
+	{0x0, 0,&branchTable[826], 140},
+	{0x0, 0,&branchTable[826], 448},
+	{0x0, 0,&branchTable[826], 132},
+	{0x0, 0,&branchTable[826], 237},
+	{0x0, 0,&branchTable[826], 239},
+	{0x0, 0,&branchTable[826], 258},
+	{0xa00000, 2,&branchTable[826], -1},
+	{0xa00000, 2,&branchTable[828], -1},
+	{0x7400, 10,&branchTable[830], -1},
+	{0x7400, 7,&branchTable[840], -1},
+	{0x0, 0,&branchTable[847], 192},
+	{0x0, 0,&branchTable[847], 234},
+	{0x0, 0,&branchTable[847], 223},
+	{0x0, 0,&branchTable[847], 235},
+	{0x0, 0,&branchTable[847], 552},
+	{0x0, 0,&branchTable[847], 213},
+	{0x0, 0,&branchTable[847], 554},
+	{0x0, 0,&branchTable[847], 545},
+	{0x0, 0,&branchTable[847], 496},
+	{0x0, 0,&branchTable[847], 547},
+	{0x0, 0,&branchTable[847], 216},
+	{0x0, 0,&branchTable[847], 466},
+	{0x0, 0,&branchTable[847], 500},
+	{0x0, 0,&branchTable[847], 524},
+	{0x0, 0,&branchTable[847], 224},
+	{0x800800, 2,&branchTable[847], -1},
+	{0x0, 0,&branchTable[849], 508},
+	{0x0, 0,&branchTable[849], 504},
+	{0x0, 0,&branchTable[849], 514},
+	{0x0, 0,&branchTable[849], 446},
+	{0x0, 0,&branchTable[849], 178},
+	{0x0, 0,&branchTable[849], 530},
+	{0x0, 0,&branchTable[849], 520},
+	{0x40400000, 4,&branchTable[849], -1},
+	{0x40400000, 4,&branchTable[853], -1},
+	{0x40400000, 4,&branchTable[857], -1},
+	{0x40400000, 4,&branchTable[861], -1},
+	{0x40400000, 4,&branchTable[865], -1},
+	{0x40000000, 2,&branchTable[869], -1},
+	{0x40000000, 2,&branchTable[871], -1},
+	{0x40000000, 2,&branchTable[873], -1},
+	{0x40000000, 2,&branchTable[875], -1},
+	{0x40000000, 2,&branchTable[877], -1},
+	{0x400000, 2,&branchTable[879], -1},
+	{0x400000, 2,&branchTable[881], -1},
+	{0x400000, 2,&branchTable[883], -1},
+	{0x400000, 2,&branchTable[885], -1},
+	{0x400000, 2,&branchTable[887], -1},
+	{0x40400000, 2,&branchTable[889], -1},
+	{0x0, 0,&branchTable[891], 339},
+	{0x0, 0,&branchTable[891], 349},
+	{0x0, 0,&branchTable[891], 340},
+	{0x40400000, 2,&branchTable[891], -1},
+	{0x0, 0,&branchTable[893], 610},
+	{0x0, 0,&branchTable[893], 352},
+	{0x0, 0,&branchTable[893], 611},
+	{0x0, 0,&branchTable[893], 353},
+	{0x0, 0,&branchTable[893], 597},
+	{0x0, 0,&branchTable[893], 323},
+	{0x0, 0,&branchTable[893], 601},
+	{0x0, 0,&branchTable[893], 327},
+	{0x0, 0,&branchTable[893], 606},
+	{0x0, 0,&branchTable[893], 345},
+	{0x0, 0,&branchTable[893], 607},
+	{0x0, 0,&branchTable[893], 346},
+	{0x0, 0,&branchTable[893], 598},
+	{0x0, 0,&branchTable[893], 324},
+	{0x0, 0,&branchTable[893], 602},
+	{0x0, 0,&branchTable[893], 328},
+	{0x0, 0,&branchTable[893], 600},
+	{0x0, 0,&branchTable[893], 326},
+	{0x0, 0,&branchTable[893], 604},
+	{0x0, 0,&branchTable[893], 330},
+	{0x0, 0,&branchTable[893], 354},
+	{0x0, 0,&branchTable[893], 355},
+	{0x0, 0,&branchTable[893], 331},
+	{0x0, 0,&branchTable[893], 335},
+	{0x0, 0,&branchTable[893], 347},
+	{0x0, 0,&branchTable[893], 348},
+	{0x0, 0,&branchTable[893], 332},
+	{0x0, 0,&branchTable[893], 336},
+	{0x0, 0,&branchTable[893], 334},
+	{0x0, 0,&branchTable[893], 338},
+	{0x0, 0,&branchTable[893], 609},
+	{0x0, 0,&branchTable[893], 351},
+	{0x0, 0,&branchTable[893], 592},
+	{0x0, 0,&branchTable[893], 316},
+	{0x0, 0,&branchTable[893], 605},
+	{0x0, 0,&branchTable[893], 344},
+	{0x0, 0,&branchTable[893], 593},
+	{0x0, 0,&branchTable[893], 317},
+	{0x0, 0,&branchTable[893], 596},
+	{0x0, 0,&branchTable[893], 322},
+	{0x0, 0,&branchTable[893], 356},
+	{0x0, 0,&branchTable[893], 416},
+	{0x0, 0,&branchTable[893], 343},
+	{0x0, 0,&branchTable[893], 415},
+	{0x40400000, 4,&branchTable[893], -1},
+	{0x40000000, 2,&branchTable[897], -1},
+	{0x400000, 2,&branchTable[899], -1},
+	{0x40400000, 2,&branchTable[901], -1},
+	{0x0, 0,&branchTable[903], 599},
+	{0x0, 0,&branchTable[903], 325},
+	{0x0, 0,&branchTable[903], 603},
+	{0x0, 0,&branchTable[903], 329},
+	{0x0, 0,&branchTable[903], 333},
+	{0x0, 0,&branchTable[903], 337},
+	{0x0, 0,&branchTable[903], 594},
+	{0x0, 0,&branchTable[903], 318},
+	{0x0, 0,&branchTable[903], 341},
+	{0x0, 0,&branchTable[903], 413},
+	{0x0, 0,&branchTable[903], 4},
+	{0x0, 0,&branchTable[903], 51},
+	{0x0, 0,&branchTable[903], 50},
+	{0xf000, 1,&branchTable[903], -1},
+	{0x0, 0,&branchTable[904], 53},
+	{0x0, 0,&branchTable[904], 52},
+	{0x0, 0,&branchTable[904], 442},
+	{0x0, 0,&branchTable[904], 608},
+	{0x0, 0,&branchTable[904], 589},
+	{0x0, 0,&branchTable[904], 590},
+	{0x0, 0,&branchTable[904], 595},
+	{0x0, 0,&branchTable[904], 350},
+	{0x0, 0,&branchTable[904], 313},
+	{0x0, 0,&branchTable[904], 314},
+	{0x0, 0,&branchTable[904], 321},
+	{0x0, 0,&branchTable[904], 591},
+	{0x0, 0,&branchTable[904], 315},
+	{0x0, 0,&branchTable[904], 682},
+	{0x0, 0,&branchTable[904], 538},
+	{0x0, 0,&branchTable[904], 694},
+	{0x0, 0,&branchTable[904], 73},
+	{0x0, 0,&branchTable[904], 712},
+	{0x0, 0,&branchTable[904], 75},
+	{0x0, 0,&branchTable[904], 707},
+	{0x0, 0,&branchTable[904], 696},
+	{0x0, 0,&branchTable[904], 690},
+	{0x0, 0,&branchTable[904], 700},
+	{0x0, 0,&branchTable[904], 684},
+	{0x0, 0,&branchTable[904], 176},
+	{0x0, 0,&branchTable[904], 512},
+	{0x0, 0,&branchTable[904], 619},
+	{0x0, 0,&branchTable[904], 67},
+	{0x0, 0,&branchTable[904], 61},
+	{0x0, 0,&branchTable[904], 77},
+	{0x9f0000, 2,&branchTable[904], -1},
+	{0x0, 0,&branchTable[906], 516},
+	{0x1f0000, 2,&branchTable[906], -1},
+	{0x9f0000, 4,&branchTable[908], -1},
+	{0x0, 0,&branchTable[912], 116},
+	{0x9f0000, 4,&branchTable[912], -1},
+	{0x800000, 2,&branchTable[916], -1},
+	{0x800000, 2,&branchTable[918], -1},
+	{0x9f0000, 2,&branchTable[920], -1},
+	{0x0, 0,&branchTable[922], 167},
+	{0x0, 0,&branchTable[922], 173},
+	{0x0, 0,&branchTable[922], 397},
+	{0x800000, 2,&branchTable[922], -1},
+	{0x0, 0,&branchTable[924], 160},
+	{0x0, 0,&branchTable[924], 186},
+	{0x0, 0,&branchTable[924], 153},
+	{0x0, 0,&branchTable[924], 197},
+	{0x0, 0,&branchTable[924], 136},
+	{0x0, 0,&branchTable[924], 207},
+	{0x0, 0,&branchTable[924], 657},
+	{0x0, 0,&branchTable[924], 126},
+	{0x0, 0,&branchTable[924], 142},
+	{0x0, 0,&branchTable[924], 256},
+	{0x0, 0,&branchTable[924], 134},
+	{0x0, 0,&branchTable[924], 138},
+	{0x0, 0,&branchTable[924], 120},
+	{0x0, 0,&branchTable[924], 122},
+	{0x0, 0,&branchTable[924], 200},
+	{0x0, 0,&branchTable[924], 210},
+	{0x0, 0,&branchTable[924], 710},
+	{0x0, 0,&branchTable[924], 714},
+	{0x0, 0,&branchTable[924], 702},
+	{0x0, 0,&branchTable[924], 705},
+	{0x0, 0,&branchTable[924], 541},
+	{0x0, 0,&branchTable[924], 471},
+	{0x0, 0,&branchTable[924], 528},
+	{0x0, 0,&branchTable[924], 688},
+	{0x800, 2,&branchTable[924], -1},
+	{0x800, 2,&branchTable[926], -1},
+	{0x0, 0,&branchTable[928], 655},
+	{0x0, 0,&branchTable[928], 184},
+	{0x0, 0,&branchTable[928], 228},
+	{0x0, 0,&branchTable[928], 532},
+	{0x0, 0,&branchTable[928], 522},
+	{0x0, 0,&branchTable[928], 692},
+	{0x0, 0,&branchTable[928], 686},
+	{0x20000000, 2,&branchTable[928], -1},
+	{0x20000000, 2,&branchTable[930], -1},
+	{0x0, 0,&branchTable[932], 383},
+	{0x0, 0,&branchTable[932], 219},
+	{0x0, 0,&branchTable[932], 407},
+	{0x0, 0,&branchTable[932], 37},
+	{0x0, 0,&branchTable[932], 396},
+	{0x0, 0,&branchTable[932], 273},
+	{0x0, 0,&branchTable[932], 275},
+	{0x0, 0,&branchTable[932], 274},
+	{0x0, 0,&branchTable[932], 276},
+	{0x0, 0,&branchTable[932], 279},
+	{0x0, 0,&branchTable[932], 281},
+	{0x0, 0,&branchTable[932], 280},
+	{0x0, 0,&branchTable[932], 282},
+	{0x0, 0,&branchTable[932], 285},
+	{0x0, 0,&branchTable[932], 287},
+	{0x0, 0,&branchTable[932], 286},
+	{0x0, 0,&branchTable[932], 288},
+	{0x0, 0,&branchTable[932], 291},
+	{0x0, 0,&branchTable[932], 293},
+	{0x0, 0,&branchTable[932], 292},
+	{0x0, 0,&branchTable[932], 294},
+	{0x18000000, 4,&branchTable[0], -1},
+	{0x0, 0,&branchTable[4], 0},
+	{0x7000000, 8,&branchTable[4], -1},
+	{0x4000000, 2,&branchTable[12], -1},
+	{0x27000000, 13,&branchTable[14], -1},
+	{0x20c00000, 8,&branchTable[27], -1},
+	{0x60c00000, 6,&branchTable[35], -1},
+	{0x60200000, 8,&branchTable[41], -1},
+	{0x60200000, 8,&branchTable[49], -1},
+	{0x20c00000, 8,&branchTable[57], -1},
+	{0x20c00000, 8,&branchTable[65], -1},
+	{0xa0208400, 12,&branchTable[73], -1},
+	{0x80000400, 2,&branchTable[85], -1},
+	{0x80208000, 6,&branchTable[87], -1},
+	{0x803f8000, 6,&branchTable[93], -1},
+	{0x803ffc00, 2,&branchTable[99], -1},
+	{0x803ffc00, 2,&branchTable[101], -1},
+	{0x0, 0,&branchTable[103], 582},
+	{0x0, 0,&branchTable[103], 303},
+	{0x0, 0,&branchTable[103], 586},
+	{0x40000000, 2,&branchTable[103], -1},
+	{0x40007c00, 2,&branchTable[105], -1},
+	{0x40007c00, 2,&branchTable[107], -1},
+	{0x0, 0,&branchTable[109], 613},
+	{0x0, 0,&branchTable[109], 578},
+	{0x0, 0,&branchTable[109], 612},
+	{0x0, 0,&branchTable[109], 577},
+	{0x0, 0,&branchTable[109], 614},
+	{0x0, 0,&branchTable[109], 615},
+	{0x0, 0,&branchTable[109], 579},
+	{0x0, 0,&branchTable[109], 580},
+	{0x40007c00, 2,&branchTable[109], -1},
+	{0x40007c00, 2,&branchTable[111], -1},
+	{0x0, 0,&branchTable[113], 358},
+	{0x0, 0,&branchTable[113], 299},
+	{0x0, 0,&branchTable[113], 357},
+	{0x0, 0,&branchTable[113], 298},
+	{0x0, 0,&branchTable[113], 359},
+	{0x0, 0,&branchTable[113], 360},
+	{0x0, 0,&branchTable[113], 300},
+	{0x0, 0,&branchTable[113], 301},
+	{0x40000000, 2,&branchTable[113], -1},
+	{0x0, 0,&branchTable[115], 574},
+	{0x0, 0,&branchTable[115], 575},
+	{0x0, 0,&branchTable[115], 576},
+	{0x40000000, 2,&branchTable[115], -1},
+	{0x0, 0,&branchTable[117], 295},
+	{0x0, 0,&branchTable[117], 296},
+	{0x0, 0,&branchTable[117], 297},
+	{0x0, 0,&branchTable[117], 307},
+	{0x0, 0,&branchTable[117], 310},
+	{0x0, 0,&branchTable[117], 588},
+	{0x0, 0,&branchTable[117], 309},
+	{0x0, 0,&branchTable[117], 587},
+	{0x0, 0,&branchTable[117], 308},
+	{0x0, 0,&branchTable[117], 312},
+	{0x0, 0,&branchTable[117], 311},
+	{0x0, 0,&branchTable[117], 25},
+	{0x0, 0,&branchTable[117], 39},
+	{0x0, 0,&branchTable[117], 410},
+	{0x0, 0,&branchTable[117], 406},
+	{0x0, 0,&branchTable[117], 112},
+	{0x0, 0,&branchTable[117], 109},
+	{0x0, 0,&branchTable[117], 27},
+	{0x0, 0,&branchTable[117], 40},
+	{0x0, 0,&branchTable[117], 7},
+	{0x0, 0,&branchTable[117], 5},
+	{0x0, 0,&branchTable[117], 15},
+	{0xc00000, 1,&branchTable[117], -1},
+	{0x0, 0,&branchTable[118], 618},
+	{0x0, 0,&branchTable[118], 616},
+	{0x0, 0,&branchTable[118], 624},
+	{0xc00000, 1,&branchTable[118], -1},
+	{0x0, 0,&branchTable[119], 13},
+	{0x0, 0,&branchTable[119], 622},
+	{0x803f2000, 2,&branchTable[119], -1},
+	{0x803f2000, 2,&branchTable[121], -1},
+	{0x80202000, 2,&branchTable[123], -1},
+	{0x80202000, 2,&branchTable[125], -1},
+	{0x0, 0,&branchTable[127], 581},
+	{0x0, 0,&branchTable[127], 302},
+	{0x0, 0,&branchTable[127], 583},
+	{0x0, 0,&branchTable[127], 304},
+	{0xd000, 3,&branchTable[127], -1},
+	{0x0, 0,&branchTable[130], 558},
+	{0x0, 0,&branchTable[130], 570},
+	{0x0, 0,&branchTable[130], 566},
+	{0x0, 0,&branchTable[130], 562},
+	{0xd000, 3,&branchTable[130], -1},
+	{0x0, 0,&branchTable[133], 271},
+	{0x0, 0,&branchTable[133], 289},
+	{0x0, 0,&branchTable[133], 283},
+	{0x0, 0,&branchTable[133], 277},
+	{0xd000, 3,&branchTable[133], -1},
+	{0x0, 0,&branchTable[136], 559},
+	{0x0, 0,&branchTable[136], 571},
+	{0x0, 0,&branchTable[136], 567},
+	{0x0, 0,&branchTable[136], 563},
+	{0xd000, 3,&branchTable[136], -1},
+	{0x0, 0,&branchTable[139], 272},
+	{0x0, 0,&branchTable[139], 290},
+	{0x0, 0,&branchTable[139], 284},
+	{0x0, 0,&branchTable[139], 278},
+	{0x803f2000, 4,&branchTable[139], -1},
+	{0x803f2000, 4,&branchTable[143], -1},
+	{0x80202000, 4,&branchTable[147], -1},
+	{0x80202000, 4,&branchTable[151], -1},
+	{0x0, 0,&branchTable[155], 585},
+	{0x0, 0,&branchTable[155], 306},
+	{0x0, 0,&branchTable[155], 584},
+	{0x0, 0,&branchTable[155], 305},
+	{0x0, 0,&branchTable[155], 560},
+	{0x0, 0,&branchTable[155], 568},
+	{0x0, 0,&branchTable[155], 564},
+	{0x0, 0,&branchTable[155], 572},
+	{0xC000, 4,&branchTable[155], -1},
+	{0xC000, 4,&branchTable[159], -1},
+	{0xC000, 4,&branchTable[163], -1},
+	{0xC000, 4,&branchTable[167], -1},
+	{0x0, 0,&branchTable[171], 561},
+	{0x0, 0,&branchTable[171], 569},
+	{0x0, 0,&branchTable[171], 565},
+	{0x0, 0,&branchTable[171], 573},
+	{0xC000, 4,&branchTable[171], -1},
+	{0xC000, 4,&branchTable[175], -1},
+	{0xC000, 4,&branchTable[179], -1},
+	{0xC000, 4,&branchTable[183], -1},
+	{0x1800, 4,&branchTable[187], -1},
+	{0xc07800, 5,&branchTable[191], -1},
+	{0x7800, 16,&branchTable[196], -1},
+	{0x7800, 16,&branchTable[212], -1},
+	{0x7800, 15,&branchTable[228], -1},
+	{0x7800, 15,&branchTable[243], -1},
+	{0x0, 0,&branchTable[258], 114},
+	{0x40c00000, 1,&branchTable[258], -1},
+	{0x7800, 15,&branchTable[259], -1},
+	{0x7800, 16,&branchTable[274], -1},
+	{0x7800, 10,&branchTable[290], -1},
+	{0x7800, 14,&branchTable[300], -1},
+	{0x0, 0,&branchTable[314], 634},
+	{0x6000, 2,&branchTable[314], -1},
+	{0x0, 0,&branchTable[316], 636},
+	{0x6000, 4,&branchTable[316], -1},
+	{0x0, 0,&branchTable[320], 639},
+	{0x0, 0,&branchTable[320], 640},
+	{0x0, 0,&branchTable[320], 721},
+	{0x0, 0,&branchTable[320], 727},
+	{0x0, 0,&branchTable[320], 722},
+	{0x0, 0,&branchTable[320], 728},
+	{0x0, 0,&branchTable[320], 107},
+	{0x0, 0,&branchTable[320], 108},
+	{0x40000000, 1,&branchTable[320], -1},
+	{0x0, 0,&branchTable[321], 486},
+	{0x0, 0,&branchTable[321], 382},
+	{0x0, 0,&branchTable[321], 269},
+	{0x0, 0,&branchTable[321], 437},
+	{0x0, 0,&branchTable[321], 426},
+	{0x0, 0,&branchTable[321], 440},
+	{0x0, 0,&branchTable[321], 422},
+	{0x0, 0,&branchTable[321], 556},
+	{0x1f0000, 2,&branchTable[321], -1},
+	{0x0, 0,&branchTable[323], 557},
+	{0x1f0000, 2,&branchTable[323], -1},
+	{0x0, 0,&branchTable[325], 10},
+	{0x1f0000, 3,&branchTable[325], -1},
+	{0x0, 0,&branchTable[328], 433},
+	{0x1f0000, 2,&branchTable[328], -1},
+	{0x0, 0,&branchTable[330], 621},
+	{0x1f0000, 3,&branchTable[330], -1},
+	{0x0, 0,&branchTable[333], 435},
+	{0x1f0000, 3,&branchTable[333], -1},
+	{0x0, 0,&branchTable[336], 438},
+	{0x0, 0,&branchTable[336], 725},
+	{0x0, 0,&branchTable[336], 626},
+	{0x0, 0,&branchTable[336], 439},
+	{0x0, 0,&branchTable[336], 57},
+	{0x0, 0,&branchTable[336], 537},
+	{0x0, 0,&branchTable[336], 20},
+	{0x0, 0,&branchTable[336], 90},
+	{0x0, 0,&branchTable[336], 19},
+	{0x0, 0,&branchTable[336], 436},
+	{0x0, 0,&branchTable[336], 163},
+	{0x0, 0,&branchTable[336], 22},
+	{0x0, 0,&branchTable[336], 493},
+	{0x0, 0,&branchTable[336], 156},
+	{0x0, 0,&branchTable[336], 21},
+	{0x0, 0,&branchTable[336], 465},
+	{0x0, 0,&branchTable[336], 495},
+	{0x0, 0,&branchTable[336], 540},
+	{0xc00000, 4,&branchTable[336], -1},
+	{0x0, 0,&branchTable[340], 470},
+	{0x0, 0,&branchTable[340], 535},
+	{0x0, 0,&branchTable[340], 70},
+	{0x0, 0,&branchTable[340], 66},
+	{0x0, 0,&branchTable[340], 550},
+	{0x0, 0,&branchTable[340], 527},
+	{0x0, 0,&branchTable[340], 544},
+	{0x0, 0,&branchTable[340], 519},
+	{0x0, 0,&branchTable[340], 474},
+	{0x0, 0,&branchTable[340], 478},
+	{0x0, 0,&branchTable[340], 434},
+	{0x0, 0,&branchTable[340], 432},
+	{0x0, 0,&branchTable[340], 23},
+	{0x0, 0,&branchTable[340], 38},
+	{0x0, 0,&branchTable[340], 379},
+	{0x0, 0,&branchTable[340], 405},
+	{0x0, 0,&branchTable[340], 482},
+	{0x1f0000, 2,&branchTable[340], -1},
+	{0x0, 0,&branchTable[342], 499},
+	{0x1f0000, 2,&branchTable[342], -1},
+	{0x0, 0,&branchTable[344], 484},
+	{0x1f0000, 4,&branchTable[344], -1},
+	{0x0, 0,&branchTable[348], 503},
+	{0x1f0000, 3,&branchTable[348], -1},
+	{0x0, 0,&branchTable[351], 490},
+	{0x9f0000, 3,&branchTable[351], -1},
+	{0x0, 0,&branchTable[354], 511},
+	{0x9f0000, 3,&branchTable[354], -1},
+	{0x0, 0,&branchTable[357], 412},
+	{0x0, 0,&branchTable[357], 145},
+	{0x0, 0,&branchTable[357], 118},
+	{0x0, 0,&branchTable[357], 72},
+	{0x800000, 2,&branchTable[357], -1},
+	{0x0, 0,&branchTable[359], 248},
+	{0x0, 0,&branchTable[359], 250},
+	{0x0, 0,&branchTable[359], 64},
+	{0x800000, 2,&branchTable[359], -1},
+	{0x0, 0,&branchTable[361], 246},
+	{0x0, 0,&branchTable[361], 254},
+	{0x0, 0,&branchTable[361], 80},
+	{0x800000, 2,&branchTable[361], -1},
+	{0x0, 0,&branchTable[363], 476},
+	{0x0, 0,&branchTable[363], 480},
+	{0x0, 0,&branchTable[363], 165},
+	{0x0, 0,&branchTable[363], 171},
+	{0x0, 0,&branchTable[363], 2},
+	{0x800000, 2,&branchTable[363], -1},
+	{0x0, 0,&branchTable[365], 16},
+	{0x0, 0,&branchTable[365], 158},
+	{0x0, 0,&branchTable[365], 181},
+	{0x0, 0,&branchTable[365], 151},
+	{0x0, 0,&branchTable[365], 141},
+	{0x0, 0,&branchTable[365], 698},
+	{0x0, 0,&branchTable[365], 449},
+	{0x0, 0,&branchTable[365], 133},
+	{0x0, 0,&branchTable[365], 238},
+	{0x0, 0,&branchTable[365], 9},
+	{0x0, 0,&branchTable[365], 88},
+	{0x0, 0,&branchTable[365], 369},
+	{0x0, 0,&branchTable[365], 392},
+	{0x0, 0,&branchTable[365], 475},
+	{0x0, 0,&branchTable[365], 479},
+	{0x0, 0,&branchTable[365], 507},
+	{0x0, 0,&branchTable[365], 12},
+	{0x800000, 2,&branchTable[365], -1},
+	{0x800000, 2,&branchTable[367], -1},
+	{0x800000, 2,&branchTable[369], -1},
+	{0x0, 0,&branchTable[371], 231},
+	{0x0, 0,&branchTable[371], 131},
+	{0x800000, 2,&branchTable[371], -1},
+	{0x800000, 2,&branchTable[373], -1},
+	{0x0, 0,&branchTable[375], 195},
+	{0x0, 0,&branchTable[375], 205},
+	{0x0, 0,&branchTable[375], 215},
+	{0x0, 0,&branchTable[375], 218},
+	{0x0, 0,&branchTable[375], 124},
+	{0x0, 0,&branchTable[375], 262},
+	{0x0, 0,&branchTable[375], 193},
+	{0x0, 0,&branchTable[375], 203},
+	{0x0, 0,&branchTable[375], 240},
+	{0x0, 0,&branchTable[375], 259},
+	{0x0, 0,&branchTable[375], 268},
+	{0x0, 0,&branchTable[375], 648},
+	{0x0, 0,&branchTable[375], 424},
+	{0x0, 0,&branchTable[375], 651},
+	{0x0, 0,&branchTable[375], 716},
+	{0x1f0000, 2,&branchTable[375], -1},
+	{0x0, 0,&branchTable[377], 717},
+	{0x1f0000, 3,&branchTable[377], -1},
+	{0x0, 0,&branchTable[380], 417},
+	{0x1f0000, 2,&branchTable[380], -1},
+	{0x0, 0,&branchTable[382], 644},
+	{0xdf0000, 2,&branchTable[382], -1},
+	{0x0, 0,&branchTable[384], 431},
+	{0x1f0000, 2,&branchTable[384], -1},
+	{0x0, 0,&branchTable[386], 646},
+	{0x0, 0,&branchTable[386], 513},
+	{0x0, 0,&branchTable[386], 649},
+	{0x0, 0,&branchTable[386], 539},
+	{0x0, 0,&branchTable[386], 713},
+	{0x0, 0,&branchTable[386], 468},
+	{0x0, 0,&branchTable[386], 650},
+	{0x0, 0,&branchTable[386], 59},
+	{0x0, 0,&branchTable[386], 697},
+	{0x0, 0,&branchTable[386], 394},
+	{0x0, 0,&branchTable[386], 418},
+	{0x0, 0,&branchTable[386], 647},
+	{0x0, 0,&branchTable[386], 177},
+	{0x0, 0,&branchTable[386], 662},
+	{0x0, 0,&branchTable[386], 683},
+	{0x0, 0,&branchTable[386], 699},
+	{0xc00000, 4,&branchTable[386], -1},
+	{0x0, 0,&branchTable[390], 663},
+	{0x0, 0,&branchTable[390], 695},
+	{0x0, 0,&branchTable[390], 74},
+	{0x0, 0,&branchTable[390], 76},
+	{0x0, 0,&branchTable[390], 708},
+	{0x0, 0,&branchTable[390], 691},
+	{0x0, 0,&branchTable[390], 701},
+	{0x0, 0,&branchTable[390], 685},
+	{0x0, 0,&branchTable[390], 665},
+	{0x0, 0,&branchTable[390], 668},
+	{0x0, 0,&branchTable[390], 645},
+	{0x0, 0,&branchTable[390], 643},
+	{0x0, 0,&branchTable[390], 110},
+	{0x0, 0,&branchTable[390], 47},
+	{0x0, 0,&branchTable[390], 42},
+	{0x0, 0,&branchTable[390], 41},
+	{0x0, 0,&branchTable[390], 672},
+	{0x1f0000, 2,&branchTable[390], -1},
+	{0x1f0000, 2,&branchTable[392], -1},
+	{0x0, 0,&branchTable[394], 674},
+	{0x1f0000, 3,&branchTable[394], -1},
+	{0x1f0000, 2,&branchTable[397], -1},
+	{0x0, 0,&branchTable[399], 680},
+	{0x9f0000, 5,&branchTable[399], -1},
+	{0x9f0000, 3,&branchTable[404], -1},
+	{0x9f0000, 4,&branchTable[407], -1},
+	{0x0, 0,&branchTable[411], 68},
+	{0x0, 0,&branchTable[411], 242},
+	{0x0, 0,&branchTable[411], 78},
+	{0x800000, 2,&branchTable[411], -1},
+	{0x0, 0,&branchTable[413], 252},
+	{0x0, 0,&branchTable[413], 244},
+	{0x800000, 2,&branchTable[413], -1},
+	{0x0, 0,&branchTable[415], 667},
+	{0x0, 0,&branchTable[415], 670},
+	{0x0, 0,&branchTable[415], 168},
+	{0x0, 0,&branchTable[415], 174},
+	{0x0, 0,&branchTable[415], 398},
+	{0x800000, 2,&branchTable[415], -1},
+	{0x0, 0,&branchTable[417], 161},
+	{0x0, 0,&branchTable[417], 187},
+	{0x0, 0,&branchTable[417], 154},
+	{0x0, 0,&branchTable[417], 199},
+	{0x0, 0,&branchTable[417], 137},
+	{0x0, 0,&branchTable[417], 704},
+	{0x0, 0,&branchTable[417], 209},
+	{0x0, 0,&branchTable[417], 658},
+	{0x0, 0,&branchTable[417], 143},
+	{0x0, 0,&branchTable[417], 257},
+	{0x0, 0,&branchTable[417], 202},
+	{0x0, 0,&branchTable[417], 232},
+	{0x0, 0,&branchTable[417], 260},
+	{0x0, 0,&branchTable[417], 212},
+	{0x0, 0,&branchTable[417], 620},
+	{0x0, 0,&branchTable[417], 62},
+	{0x0, 0,&branchTable[417], 371},
+	{0x0, 0,&branchTable[417], 411},
+	{0x0, 0,&branchTable[417], 666},
+	{0x0, 0,&branchTable[417], 669},
+	{0x0, 0,&branchTable[417], 517},
+	{0x800000, 2,&branchTable[417], -1},
+	{0x800000, 2,&branchTable[419], -1},
+	{0x0, 0,&branchTable[421], 226},
+	{0x800000, 2,&branchTable[421], -1},
+	{0x800000, 2,&branchTable[423], -1},
+	{0x800000, 2,&branchTable[425], -1},
+	{0x0, 0,&branchTable[427], 190},
+	{0x0, 0,&branchTable[427], 198},
+	{0x0, 0,&branchTable[427], 208},
+	{0x0, 0,&branchTable[427], 127},
+	{0x0, 0,&branchTable[427], 117},
+	{0x0, 0,&branchTable[427], 135},
+	{0x0, 0,&branchTable[427], 139},
+	{0x0, 0,&branchTable[427], 121},
+	{0x0, 0,&branchTable[427], 123},
+	{0x0, 0,&branchTable[427], 201},
+	{0x0, 0,&branchTable[427], 211},
+	{0x2000f000, 18,&branchTable[427], -1},
+	{0xf80800, 31,&branchTable[445], -1},
+	{0x0, 0,&branchTable[476], 214},
+	{0x0, 0,&branchTable[476], 481},
+	{0x0, 0,&branchTable[476], 497},
+	{0x0, 0,&branchTable[476], 217},
+	{0x0, 0,&branchTable[476], 483},
+	{0x0, 0,&branchTable[476], 501},
+	{0x0, 0,&branchTable[476], 391},
+	{0x0, 0,&branchTable[476], 225},
+	{0x0, 0,&branchTable[476], 489},
+	{0x0, 0,&branchTable[476], 509},
+	{0x0, 0,&branchTable[476], 505},
+	{0x0, 0,&branchTable[476], 515},
+	{0x0, 0,&branchTable[476], 368},
+	{0x0, 0,&branchTable[476], 671},
+	{0x0, 0,&branchTable[476], 370},
+	{0x0, 0,&branchTable[476], 673},
+	{0x0, 0,&branchTable[476], 229},
+	{0x0, 0,&branchTable[476], 679},
+	{0x0000f000, 16,&branchTable[476], -1},
+	{0x2000f000, 22,&branchTable[492], -1},
+	{0x2000f000, 6,&branchTable[514], -1},
+	{0x0, 0,&branchTable[520], 553},
+	{0x0, 0,&branchTable[520], 555},
+	{0x0, 0,&branchTable[520], 546},
+	{0x0, 0,&branchTable[520], 548},
+	{0x0, 0,&branchTable[520], 467},
+	{0x0, 0,&branchTable[520], 525},
+	{0x0, 0,&branchTable[520], 469},
+	{0x0, 0,&branchTable[520], 531},
+	{0x0, 0,&branchTable[520], 551},
+	{0x0, 0,&branchTable[520], 447},
+	{0x0, 0,&branchTable[520], 711},
+	{0x0, 0,&branchTable[520], 715},
+	{0x0, 0,&branchTable[520], 703},
+	{0x0, 0,&branchTable[520], 706},
+	{0x0, 0,&branchTable[520], 542},
+	{0x0, 0,&branchTable[520], 472},
+	{0x0, 0,&branchTable[520], 529},
+	{0x0, 0,&branchTable[520], 689},
+	{0x0, 0,&branchTable[520], 533},
+	{0x0, 0,&branchTable[520], 693},
+	{0x0, 0,&branchTable[520], 709},
+	{0x0, 0,&branchTable[520], 656},
+	{0x0, 0,&branchTable[520], 430},
+	{0x0, 0,&branchTable[520], 521},
+	{0x0, 0,&branchTable[520], 179},
+	{0x0, 0,&branchTable[520], 523},
+	{0x0, 0,&branchTable[520], 687},
+	{0x0, 0,&branchTable[520], 185},
+	{0x3000000, 4,&branchTable[520], -1},
+	{0x60000000, 3,&branchTable[524], -1},
+	{0x80000000, 2,&branchTable[527], -1},
+	{0x60000000, 4,&branchTable[529], -1},
+	{0x60800000, 7,&branchTable[533], -1},
+	{0x60800000, 4,&branchTable[540], -1},
+	{0x0, 0,&branchTable[544], 17},
+	{0x0, 0,&branchTable[544], 18},
+	{0x0, 0,&branchTable[544], 6},
+	{0x0, 0,&branchTable[544], 14},
+	{0x0, 0,&branchTable[544], 617},
+	{0x0, 0,&branchTable[544], 623},
+	{0x0, 0,&branchTable[544], 24},
+	{0x0, 0,&branchTable[544], 377},
+	{0x0, 0,&branchTable[544], 409},
+	{0x0, 0,&branchTable[544], 111},
+	{0x0, 0,&branchTable[544], 378},
+	{0x0, 0,&branchTable[544], 26},
+	{0x0, 0,&branchTable[544], 384},
+	{0x0, 0,&branchTable[544], 443},
+	{0x200000, 1,&branchTable[544], -1},
+	{0x0, 0,&branchTable[545], 34},
+	{0x0, 0,&branchTable[545], 362},
+	{0x0, 0,&branchTable[545], 115},
+	{0x80000000, 2,&branchTable[545], -1},
+	{0x3000000, 4,&branchTable[547], -1},
+	{0x83000000, 4,&branchTable[551], -1},
+	{0x0, 0,&branchTable[555], 33},
+	{0x0, 0,&branchTable[555], 43},
+	{0x0, 0,&branchTable[555], 49},
+	{0x0, 0,&branchTable[555], 48},
+	{0x0, 0,&branchTable[555], 637},
+	{0x0, 0,&branchTable[555], 635},
+	{0x0, 0,&branchTable[555], 32},
+	{0xe0001f, 8,&branchTable[555], -1},
+	{0xf00000, 4,&branchTable[563], -1},
+	{0xfffc1f, 5,&branchTable[567], -1},
+	{0x0, 0,&branchTable[572], 627},
+	{0x0, 0,&branchTable[572], 266},
+	{0x0, 0,&branchTable[572], 477},
+	{0x0, 0,&branchTable[572], 46},
+	{0x0, 0,&branchTable[572], 265},
+	{0x0, 0,&branchTable[572], 100},
+	{0x0, 0,&branchTable[572], 101},
+	{0x0, 0,&branchTable[572], 102},
+	{0x80000, 2,&branchTable[572], -1},
+	{0x0, 0,&branchTable[574], 389},
+	{0x0, 0,&branchTable[574], 633},
+	{0x0, 0,&branchTable[574], 387},
+	{0xf01f, 3,&branchTable[574], -1},
+	{0x0, 0,&branchTable[577], 632},
+	{0x70000, 1,&branchTable[577], -1},
+	{0x700e0, 4,&branchTable[578], -1},
+	{0x0, 0,&branchTable[582], 388},
+	{0x0, 0,&branchTable[582], 264},
+	{0x0, 0,&branchTable[582], 56},
+	{0x0, 0,&branchTable[582], 105},
+	{0x0, 0,&branchTable[582], 103},
+	{0x0, 0,&branchTable[582], 270},
+	{0x0, 0,&branchTable[582], 45},
+	{0x0, 0,&branchTable[582], 44},
+	{0x0, 0,&branchTable[582], 420},
+	{0x0, 0,&branchTable[582], 113},
+	{0x0, 0,&branchTable[582], 104},
+	{0x80000000, 2,&branchTable[582], -1},
+	{0x40e00000, 6,&branchTable[584], -1},
+	{0x40e08000, 8,&branchTable[590], -1},
+	{0x0, 0,&branchTable[598], 319},
+	{0x40200000, 4,&branchTable[598], -1},
+	{0xc0008000, 4,&branchTable[602], -1},
+	{0x80a00c00, 20,&branchTable[606], -1},
+	{0x80800000, 4,&branchTable[626], -1},
+	{0x40e00c00, 6,&branchTable[630], -1},
+	{0x600c00, 8,&branchTable[636], -1},
+	{0x400000, 2,&branchTable[644], -1},
+	{0xc020fc00, 26,&branchTable[646], -1},
+	{0xc080f400, 13,&branchTable[672], -1},
+	{0x0, 0,&branchTable[685], 320},
+	{0x40000000, 2,&branchTable[685], -1},
+	{0x0, 0,&branchTable[687], 342},
+	{0x0, 0,&branchTable[687], 414},
+	{0x0, 0,&branchTable[687], 3},
+	{0xc00, 2,&branchTable[687], -1},
+	{0xf000, 4,&branchTable[689], -1},
+	{0xfc00, 1,&branchTable[693], -1},
+	{0xc00, 2,&branchTable[694], -1},
+	{0x1ff800, 3,&branchTable[696], -1},
+	{0x0, 0,&branchTable[699], 93},
+	{0x0, 0,&branchTable[699], 96},
+	{0xc00, 2,&branchTable[699], -1},
+	{0xc00, 4,&branchTable[701], -1},
+	{0x0, 0,&branchTable[705], 91},
+	{0x0, 0,&branchTable[705], 92},
+	{0x0, 0,&branchTable[705], 661},
+	{0x0, 0,&branchTable[705], 452},
+	{0x0, 0,&branchTable[705], 361},
+	{0x0, 0,&branchTable[705], 364},
+	{0x0, 0,&branchTable[705], 28},
+	{0x0, 0,&branchTable[705], 428},
+	{0x0, 0,&branchTable[705], 441},
+	{0x0, 0,&branchTable[705], 97},
+	{0x0, 0,&branchTable[705], 98},
+	{0x400, 2,&branchTable[705], -1},
+	{0x0, 0,&branchTable[707], 421},
+	{0x400, 2,&branchTable[707], -1},
+	{0x0, 0,&branchTable[709], 419},
+	{0x0, 0,&branchTable[709], 423},
+	{0x0, 0,&branchTable[709], 60},
+	{0x0, 0,&branchTable[709], 58},
+	{0x0, 0,&branchTable[709], 367},
+	{0x0, 0,&branchTable[709], 390},
+	{0x80000000, 1,&branchTable[709], -1},
+	{0x80000000, 1,&branchTable[710], -1},
+	{0x0, 0,&branchTable[711], 488},
+	{0x80000000, 1,&branchTable[711], -1},
+	{0x80000000, 1,&branchTable[712], -1},
+	{0x0, 0,&branchTable[713], 678},
+	{0x0, 0,&branchTable[713], 473},
+	{0x0, 0,&branchTable[713], 487},
+	{0x0, 0,&branchTable[713], 664},
+	{0x0, 0,&branchTable[713], 677},
+	{0x9f0000, 4,&branchTable[713], -1},
+	{0xc00, 4,&branchTable[717], -1},
+	{0x80c0fc00, 8,&branchTable[721], -1},
+	{0x8000fc00, 31,&branchTable[729], -1},
+	{0x0, 0,&branchTable[760], 450},
+	{0x0, 0,&branchTable[760], 659},
+	{0x0, 0,&branchTable[760], 182},
+	{0x0, 0,&branchTable[760], 188},
+	{0x1000, 2,&branchTable[760], -1},
+	{0x80800010, 2,&branchTable[762], -1},
+	{0x8080f000, 9,&branchTable[764], -1},
+	{0x0, 0,&branchTable[773], 148},
+	{0x6000, 3,&branchTable[773], -1},
+	{0x0, 0,&branchTable[776], 222},
+	{0x168000, 5,&branchTable[776], -1},
+	{0x80808017, 2,&branchTable[781], -1},
+	{0x801e0000, 4,&branchTable[783], -1},
+	{0x890000, 4,&branchTable[787], -1},
+	{0x890000, 2,&branchTable[791], -1},
+	{0x890000, 2,&branchTable[793], -1},
+	{0x0, 0,&branchTable[795], 221},
+	{0x890000, 4,&branchTable[795], -1},
+	{0x0, 0,&branchTable[799], 166},
+	{0x0, 0,&branchTable[799], 169},
+	{0x0, 0,&branchTable[799], 172},
+	{0x0, 0,&branchTable[799], 175},
+	{0x0, 0,&branchTable[799], 451},
+	{0x0, 0,&branchTable[799], 660},
+	{0x0, 0,&branchTable[799], 152},
+	{0x0, 0,&branchTable[799], 155},
+	{0x0, 0,&branchTable[799], 159},
+	{0x0, 0,&branchTable[799], 162},
+	{0x0, 0,&branchTable[799], 183},
+	{0x0, 0,&branchTable[799], 189},
+	{0x0, 0,&branchTable[799], 146},
+	{0x0, 0,&branchTable[799], 147},
+	{0x818000, 4,&branchTable[799], -1},
+	{0x0, 0,&branchTable[803], 149},
+	{0x818000, 4,&branchTable[803], -1},
+	{0x818000, 3,&branchTable[807], -1},
+	{0x0, 0,&branchTable[810], 220},
+	{0x0, 0,&branchTable[810], 119},
+	{0x0, 0,&branchTable[810], 233},
+	{0x0, 0,&branchTable[810], 261},
+	{0x0, 0,&branchTable[810], 249},
+	{0x0, 0,&branchTable[810], 251},
+	{0x0, 0,&branchTable[810], 247},
+	{0x0, 0,&branchTable[810], 255},
+	{0x0, 0,&branchTable[810], 243},
+	{0x0, 0,&branchTable[810], 253},
+	{0x0, 0,&branchTable[810], 245},
+	{0x0, 0,&branchTable[810], 128},
+	{0x0, 0,&branchTable[810], 129},
+	{0x0, 0,&branchTable[810], 227},
+	{0x0, 0,&branchTable[810], 191},
+	{0x0, 0,&branchTable[810], 125},
+	{0x0, 0,&branchTable[810], 263},
+	{0x0, 0,&branchTable[810], 194},
+	{0x0, 0,&branchTable[810], 204},
+	{0x0, 0,&branchTable[810], 196},
+	{0x0, 0,&branchTable[810], 206},
+	{0x0, 0,&branchTable[810], 236},
+	{0x0, 0,&branchTable[810], 455},
+	{0x0, 0,&branchTable[810], 106},
+	{0x0, 0,&branchTable[810], 458},
+	{0x0, 0,&branchTable[810], 457},
+	{0x0, 0,&branchTable[810], 459},
+	{0x0, 0,&branchTable[810], 462},
+	{0x0, 0,&branchTable[810], 461},
+	{0x0, 0,&branchTable[810], 464},
+	{0x0, 0,&branchTable[810], 456},
+	{0x0, 0,&branchTable[810], 494},
+	{0x0, 0,&branchTable[810], 460},
+	{0x0, 0,&branchTable[810], 463},
+	{0x0, 0,&branchTable[810], 534},
+	{0x0, 0,&branchTable[810], 69},
+	{0x0, 0,&branchTable[810], 625},
+	{0x0, 0,&branchTable[810], 65},
+	{0x0, 0,&branchTable[810], 549},
+	{0x0, 0,&branchTable[810], 536},
+	{0x0, 0,&branchTable[810], 526},
+	{0x0, 0,&branchTable[810], 543},
+	{0x0, 0,&branchTable[810], 518},
+	{0x0, 0,&branchTable[810], 492},
+	{0x0, 0,&branchTable[810], 8},
+	{0x0, 0,&branchTable[810], 71},
+	{0x0, 0,&branchTable[810], 87},
+	{0x0, 0,&branchTable[810], 498},
+	{0x0, 0,&branchTable[810], 63},
+	{0x1f0000, 2,&branchTable[810], -1},
+	{0x0, 0,&branchTable[812], 502},
+	{0x0, 0,&branchTable[812], 506},
+	{0x1f0000, 3,&branchTable[812], -1},
+	{0x9f0000, 2,&branchTable[815], -1},
+	{0x0, 0,&branchTable[817], 510},
+	{0x9f0000, 3,&branchTable[817], -1},
+	{0x0, 0,&branchTable[820], 230},
+	{0x0, 0,&branchTable[820], 130},
+	{0x0, 0,&branchTable[820], 144},
+	{0x0, 0,&branchTable[820], 241},
+	{0x800000, 2,&branchTable[820], -1},
+	{0x0, 0,&branchTable[822], 79},
+	{0x800000, 2,&branchTable[822], -1},
+	{0x0, 0,&branchTable[824], 164},
+	{0x0, 0,&branchTable[824], 170},
+	{0x0, 0,&branchTable[824], 1},
+	{0x800000, 2,&branchTable[824], -1},
+	{0x0, 0,&branchTable[826], 11},
+	{0x0, 0,&branchTable[826], 157},
+	{0x0, 0,&branchTable[826], 180},
+	{0x0, 0,&branchTable[826], 150},
+	{0x0, 0,&branchTable[826], 140},
+	{0x0, 0,&branchTable[826], 448},
+	{0x0, 0,&branchTable[826], 132},
+	{0x0, 0,&branchTable[826], 237},
+	{0x0, 0,&branchTable[826], 239},
+	{0x0, 0,&branchTable[826], 258},
+	{0xa00000, 2,&branchTable[826], -1},
+	{0xa00000, 2,&branchTable[828], -1},
+	{0x7400, 10,&branchTable[830], -1},
+	{0x7400, 7,&branchTable[840], -1},
+	{0x0, 0,&branchTable[847], 192},
+	{0x0, 0,&branchTable[847], 234},
+	{0x0, 0,&branchTable[847], 223},
+	{0x0, 0,&branchTable[847], 235},
+	{0x0, 0,&branchTable[847], 552},
+	{0x0, 0,&branchTable[847], 213},
+	{0x0, 0,&branchTable[847], 554},
+	{0x0, 0,&branchTable[847], 545},
+	{0x0, 0,&branchTable[847], 496},
+	{0x0, 0,&branchTable[847], 547},
+	{0x0, 0,&branchTable[847], 216},
+	{0x0, 0,&branchTable[847], 466},
+	{0x0, 0,&branchTable[847], 500},
+	{0x0, 0,&branchTable[847], 524},
+	{0x0, 0,&branchTable[847], 224},
+	{0x800800, 2,&branchTable[847], -1},
+	{0x0, 0,&branchTable[849], 508},
+	{0x0, 0,&branchTable[849], 504},
+	{0x0, 0,&branchTable[849], 514},
+	{0x0, 0,&branchTable[849], 446},
+	{0x0, 0,&branchTable[849], 178},
+	{0x0, 0,&branchTable[849], 530},
+	{0x0, 0,&branchTable[849], 520},
+	{0x40400000, 4,&branchTable[849], -1},
+	{0x40400000, 4,&branchTable[853], -1},
+	{0x40400000, 4,&branchTable[857], -1},
+	{0x40400000, 4,&branchTable[861], -1},
+	{0x40400000, 4,&branchTable[865], -1},
+	{0x40000000, 2,&branchTable[869], -1},
+	{0x40000000, 2,&branchTable[871], -1},
+	{0x40000000, 2,&branchTable[873], -1},
+	{0x40000000, 2,&branchTable[875], -1},
+	{0x40000000, 2,&branchTable[877], -1},
+	{0x400000, 2,&branchTable[879], -1},
+	{0x400000, 2,&branchTable[881], -1},
+	{0x400000, 2,&branchTable[883], -1},
+	{0x400000, 2,&branchTable[885], -1},
+	{0x400000, 2,&branchTable[887], -1},
+	{0x40400000, 2,&branchTable[889], -1},
+	{0x0, 0,&branchTable[891], 339},
+	{0x0, 0,&branchTable[891], 349},
+	{0x0, 0,&branchTable[891], 340},
+	{0x40400000, 2,&branchTable[891], -1},
+	{0x0, 0,&branchTable[893], 610},
+	{0x0, 0,&branchTable[893], 352},
+	{0x0, 0,&branchTable[893], 611},
+	{0x0, 0,&branchTable[893], 353},
+	{0x0, 0,&branchTable[893], 597},
+	{0x0, 0,&branchTable[893], 323},
+	{0x0, 0,&branchTable[893], 601},
+	{0x0, 0,&branchTable[893], 327},
+	{0x0, 0,&branchTable[893], 606},
+	{0x0, 0,&branchTable[893], 345},
+	{0x0, 0,&branchTable[893], 607},
+	{0x0, 0,&branchTable[893], 346},
+	{0x0, 0,&branchTable[893], 598},
+	{0x0, 0,&branchTable[893], 324},
+	{0x0, 0,&branchTable[893], 602},
+	{0x0, 0,&branchTable[893], 328},
+	{0x0, 0,&branchTable[893], 600},
+	{0x0, 0,&branchTable[893], 326},
+	{0x0, 0,&branchTable[893], 604},
+	{0x0, 0,&branchTable[893], 330},
+	{0x0, 0,&branchTable[893], 354},
+	{0x0, 0,&branchTable[893], 355},
+	{0x0, 0,&branchTable[893], 331},
+	{0x0, 0,&branchTable[893], 335},
+	{0x0, 0,&branchTable[893], 347},
+	{0x0, 0,&branchTable[893], 348},
+	{0x0, 0,&branchTable[893], 332},
+	{0x0, 0,&branchTable[893], 336},
+	{0x0, 0,&branchTable[893], 334},
+	{0x0, 0,&branchTable[893], 338},
+	{0x0, 0,&branchTable[893], 609},
+	{0x0, 0,&branchTable[893], 351},
+	{0x0, 0,&branchTable[893], 592},
+	{0x0, 0,&branchTable[893], 316},
+	{0x0, 0,&branchTable[893], 605},
+	{0x0, 0,&branchTable[893], 344},
+	{0x0, 0,&branchTable[893], 593},
+	{0x0, 0,&branchTable[893], 317},
+	{0x0, 0,&branchTable[893], 596},
+	{0x0, 0,&branchTable[893], 322},
+	{0x0, 0,&branchTable[893], 356},
+	{0x0, 0,&branchTable[893], 416},
+	{0x0, 0,&branchTable[893], 343},
+	{0x0, 0,&branchTable[893], 415},
+	{0x40400000, 4,&branchTable[893], -1},
+	{0x40000000, 2,&branchTable[897], -1},
+	{0x400000, 2,&branchTable[899], -1},
+	{0x40400000, 2,&branchTable[901], -1},
+	{0x0, 0,&branchTable[903], 599},
+	{0x0, 0,&branchTable[903], 325},
+	{0x0, 0,&branchTable[903], 603},
+	{0x0, 0,&branchTable[903], 329},
+	{0x0, 0,&branchTable[903], 333},
+	{0x0, 0,&branchTable[903], 337},
+	{0x0, 0,&branchTable[903], 594},
+	{0x0, 0,&branchTable[903], 318},
+	{0x0, 0,&branchTable[903], 341},
+	{0x0, 0,&branchTable[903], 413},
+	{0x0, 0,&branchTable[903], 4},
+	{0x0, 0,&branchTable[903], 51},
+	{0x0, 0,&branchTable[903], 50},
+	{0xf000, 1,&branchTable[903], -1},
+	{0x0, 0,&branchTable[904], 53},
+	{0x0, 0,&branchTable[904], 52},
+	{0x0, 0,&branchTable[904], 442},
+	{0x0, 0,&branchTable[904], 608},
+	{0x0, 0,&branchTable[904], 589},
+	{0x0, 0,&branchTable[904], 590},
+	{0x0, 0,&branchTable[904], 595},
+	{0x0, 0,&branchTable[904], 350},
+	{0x0, 0,&branchTable[904], 313},
+	{0x0, 0,&branchTable[904], 314},
+	{0x0, 0,&branchTable[904], 321},
+	{0x0, 0,&branchTable[904], 591},
+	{0x0, 0,&branchTable[904], 315},
+	{0x0, 0,&branchTable[904], 682},
+	{0x0, 0,&branchTable[904], 538},
+	{0x0, 0,&branchTable[904], 694},
+	{0x0, 0,&branchTable[904], 73},
+	{0x0, 0,&branchTable[904], 712},
+	{0x0, 0,&branchTable[904], 75},
+	{0x0, 0,&branchTable[904], 707},
+	{0x0, 0,&branchTable[904], 696},
+	{0x0, 0,&branchTable[904], 690},
+	{0x0, 0,&branchTable[904], 700},
+	{0x0, 0,&branchTable[904], 684},
+	{0x0, 0,&branchTable[904], 176},
+	{0x0, 0,&branchTable[904], 512},
+	{0x0, 0,&branchTable[904], 619},
+	{0x0, 0,&branchTable[904], 67},
+	{0x0, 0,&branchTable[904], 61},
+	{0x0, 0,&branchTable[904], 77},
+	{0x9f0000, 2,&branchTable[904], -1},
+	{0x0, 0,&branchTable[906], 516},
+	{0x1f0000, 2,&branchTable[906], -1},
+	{0x9f0000, 4,&branchTable[908], -1},
+	{0x0, 0,&branchTable[912], 116},
+	{0x9f0000, 4,&branchTable[912], -1},
+	{0x800000, 2,&branchTable[916], -1},
+	{0x800000, 2,&branchTable[918], -1},
+	{0x9f0000, 2,&branchTable[920], -1},
+	{0x0, 0,&branchTable[922], 167},
+	{0x0, 0,&branchTable[922], 173},
+	{0x0, 0,&branchTable[922], 397},
+	{0x800000, 2,&branchTable[922], -1},
+	{0x0, 0,&branchTable[924], 160},
+	{0x0, 0,&branchTable[924], 186},
+	{0x0, 0,&branchTable[924], 153},
+	{0x0, 0,&branchTable[924], 197},
+	{0x0, 0,&branchTable[924], 136},
+	{0x0, 0,&branchTable[924], 207},
+	{0x0, 0,&branchTable[924], 657},
+	{0x0, 0,&branchTable[924], 126},
+	{0x0, 0,&branchTable[924], 142},
+	{0x0, 0,&branchTable[924], 256},
+	{0x0, 0,&branchTable[924], 134},
+	{0x0, 0,&branchTable[924], 138},
+	{0x0, 0,&branchTable[924], 120},
+	{0x0, 0,&branchTable[924], 122},
+	{0x0, 0,&branchTable[924], 200},
+	{0x0, 0,&branchTable[924], 210},
+	{0x0, 0,&branchTable[924], 710},
+	{0x0, 0,&branchTable[924], 714},
+	{0x0, 0,&branchTable[924], 702},
+	{0x0, 0,&branchTable[924], 705},
+	{0x0, 0,&branchTable[924], 541},
+	{0x0, 0,&branchTable[924], 471},
+	{0x0, 0,&branchTable[924], 528},
+	{0x0, 0,&branchTable[924], 688},
+	{0x800, 2,&branchTable[924], -1},
+	{0x800, 2,&branchTable[926], -1},
+	{0x0, 0,&branchTable[928], 655},
+	{0x0, 0,&branchTable[928], 184},
+	{0x0, 0,&branchTable[928], 228},
+	{0x0, 0,&branchTable[928], 532},
+	{0x0, 0,&branchTable[928], 522},
+	{0x0, 0,&branchTable[928], 692},
+	{0x0, 0,&branchTable[928], 686},
+	{0x20000000, 2,&branchTable[928], -1},
+	{0x20000000, 2,&branchTable[930], -1},
+	{0x0, 0,&branchTable[932], 383},
+	{0x0, 0,&branchTable[932], 219},
+	{0x0, 0,&branchTable[932], 407},
+	{0x0, 0,&branchTable[932], 37},
+	{0x0, 0,&branchTable[932], 396},
+	{0x0, 0,&branchTable[932], 273},
+	{0x0, 0,&branchTable[932], 275},
+	{0x0, 0,&branchTable[932], 274},
+	{0x0, 0,&branchTable[932], 276},
+	{0x0, 0,&branchTable[932], 279},
+	{0x0, 0,&branchTable[932], 281},
+	{0x0, 0,&branchTable[932], 280},
+	{0x0, 0,&branchTable[932], 282},
+	{0x0, 0,&branchTable[932], 285},
+	{0x0, 0,&branchTable[932], 287},
+	{0x0, 0,&branchTable[932], 286},
+	{0x0, 0,&branchTable[932], 288},
+	{0x0, 0,&branchTable[932], 291},
+	{0x0, 0,&branchTable[932], 293},
+	{0x0, 0,&branchTable[932], 292},
+	{0x0, 0,&branchTable[932], 294},
+};  // end main_decoder_table
 
-    built_decoder_table = true;
-    isAliasWeakSolution = true;
-}
-
-void InstructionDecoder_aarch64::buildSysRegMap()
-{
-    if(InstructionDecoder_aarch64::built_sysreg_map)
-               return;
-
-    sysRegMap[0x741d] = aarch64::tlbi_vale3is;
-    sysRegMap[0xc021] = aarch64::id_aa64pfr1_el1;
-    sysRegMap[0xf089] = aarch64::sder32_el3;
-    sysRegMap[0xf664] = aarch64::icc_ctlr_el3;
-    sysRegMap[0xe180] = aarch64::dacr32_el2;
-    sysRegMap[0xe659] = aarch64::ich_vtr_el2;
-    sysRegMap[0xc659] = aarch64::icc_dir_el1;
-    sysRegMap[0x6425] = aarch64::tlbi_ipas2le1;
-    sysRegMap[0xda20] = aarch64::fpcr;
-    sysRegMap[0xf288] = aarch64::afsr0_el3;
-    sysRegMap[0xd807] = aarch64::dczid_el0;
-    sysRegMap[0xc081] = aarch64::actlr_el1;
-    sysRegMap[0xf080] = aarch64::sctlr_el3;
-    sysRegMap[0xe080] = aarch64::sctlr_el2;
-    sysRegMap[0x63c0] = aarch64::at_s1e2r;
-    sysRegMap[0x43a8] = aarch64::ic_iallu;
-    sysRegMap[0xf667] = aarch64::icc_igrpen1_el3;
-    sysRegMap[0xdce6] = aarch64::pmceid0_el0;
-    sysRegMap[0xde82] = aarch64::tpidr_el0;
-    sysRegMap[0x6405] = aarch64::tlbi_ipas2le1is;
-    sysRegMap[0xc681] = aarch64::contextidr_el1;
-    sysRegMap[0xc00e] = aarch64::id_mmfr2_el1;
-    sysRegMap[0xdf60] = aarch64::pmevtyper0_el0;
-    sysRegMap[0xdf61] = aarch64::pmevtyper1_el0;
-    sysRegMap[0xdf62] = aarch64::pmevtyper2_el0;
-    sysRegMap[0xdf63] = aarch64::pmevtyper3_el0;
-    sysRegMap[0xdf64] = aarch64::pmevtyper4_el0;
-    sysRegMap[0xdf65] = aarch64::pmevtyper5_el0;
-    sysRegMap[0xdf66] = aarch64::pmevtyper6_el0;
-    sysRegMap[0xdf67] = aarch64::pmevtyper7_el0;
-    sysRegMap[0xdf68] = aarch64::pmevtyper8_el0;
-    sysRegMap[0xdf69] = aarch64::pmevtyper9_el0;
-    sysRegMap[0xdf6a] = aarch64::pmevtyper10_el0;
-    sysRegMap[0xdf6b] = aarch64::pmevtyper11_el0;
-    sysRegMap[0xdf6c] = aarch64::pmevtyper12_el0;
-    sysRegMap[0xdf6d] = aarch64::pmevtyper13_el0;
-    sysRegMap[0xdf6e] = aarch64::pmevtyper14_el0;
-    sysRegMap[0xdf6f] = aarch64::pmevtyper15_el0;
-    sysRegMap[0xdf70] = aarch64::pmevtyper16_el0;
-    sysRegMap[0xdf71] = aarch64::pmevtyper17_el0;
-    sysRegMap[0xdf72] = aarch64::pmevtyper18_el0;
-    sysRegMap[0xdf73] = aarch64::pmevtyper19_el0;
-    sysRegMap[0xdf74] = aarch64::pmevtyper20_el0;
-    sysRegMap[0xdf75] = aarch64::pmevtyper21_el0;
-    sysRegMap[0xdf76] = aarch64::pmevtyper22_el0;
-    sysRegMap[0xdf77] = aarch64::pmevtyper23_el0;
-    sysRegMap[0xdf78] = aarch64::pmevtyper24_el0;
-    sysRegMap[0xdf79] = aarch64::pmevtyper25_el0;
-    sysRegMap[0xdf7a] = aarch64::pmevtyper26_el0;
-    sysRegMap[0xdf7b] = aarch64::pmevtyper27_el0;
-    sysRegMap[0xdf7c] = aarch64::pmevtyper28_el0;
-    sysRegMap[0xdf7d] = aarch64::pmevtyper29_el0;
-    sysRegMap[0xdf7e] = aarch64::pmevtyper30_el0;
-    sysRegMap[0xc510] = aarch64::mair_el1;
-    sysRegMap[0x641d] = aarch64::tlbi_vale2is;
-    sysRegMap[0xc800] = aarch64::ccsidr_el1;
-    sysRegMap[0xe218] = aarch64::spsr_irq;
-    sysRegMap[0xf201] = aarch64::elr_el3;
-    sysRegMap[0x7418] = aarch64::tlbi_alle3is;
-    sysRegMap[0xc208] = aarch64::sp_el0;
-    sysRegMap[0xc00d] = aarch64::id_mmfr1_el1;
-    sysRegMap[0x5ba9] = aarch64::ic_ivau;
-    sysRegMap[0xc641] = aarch64::icc_eoir0_el1;
-    sysRegMap[0xc65f] = aarch64::icc_sgi0r_el1;
-    sysRegMap[0xc65d] = aarch64::icc_sgi1r_el1;
-    sysRegMap[0x6439] = aarch64::tlbi_vae2;
-    sysRegMap[0xdf11] = aarch64::cntp_ctl_el0;
-    sysRegMap[0xc684] = aarch64::tpidr_el1;
-    sysRegMap[0x5bf1] = aarch64::dc_civac;
-    sysRegMap[0x6401] = aarch64::tlbi_ipas2e1is;
-    sysRegMap[0xdf1a] = aarch64::cntv_cval_el0;
-    sysRegMap[0xc643] = aarch64::icc_bpr0_el1;
-    sysRegMap[0x9808] = aarch64::mdccsr_el0;
-    sysRegMap[0x83c6] = aarch64::dbgclaimset_el1;
-    sysRegMap[0xe640] = aarch64::ich_ap0r0_el2;
-    sysRegMap[0xe641] = aarch64::ich_ap0r1_el2;
-    sysRegMap[0xe642] = aarch64::ich_ap0r2_el2;
-    sysRegMap[0xe643] = aarch64::ich_ap0r3_el2;
-    sysRegMap[0x43b1] = aarch64::dc_ivac;
-    sysRegMap[0xe65d] = aarch64::ich_elrsr_el2;
-    sysRegMap[0xe658] = aarch64::ich_hcr_el2;
-    sysRegMap[0xe600] = aarch64::vbar_el2;
-    sysRegMap[0xc65e] = aarch64::icc_asgi1r_el1;
-    sysRegMap[0xc02d] = aarch64::id_aa64afr1_el1;
-    sysRegMap[0xda10] = aarch64::nzcv;
-    sysRegMap[0xc100] = aarch64::ttbr0_el1;
-    sysRegMap[0xf081] = aarch64::actlr_el3;
-    sysRegMap[0x8080] = aarch64::mdrar_el1;
-    sysRegMap[0xf602] = aarch64::rmr_el3;
-    sysRegMap[0xc708] = aarch64::cntkctl_el1;
-    sysRegMap[0xf601] = aarch64::rvbar_el3;
-    sysRegMap[0xc00a] = aarch64::id_dfr0_el1;
-    sysRegMap[0x43c0] = aarch64::at_s1e1r;
-    sysRegMap[0xc648] = aarch64::icc_ap1r0_el1;
-    sysRegMap[0xc649] = aarch64::icc_ap1r1_el1;
-    sysRegMap[0xc64a] = aarch64::icc_ap1r2_el1;
-    sysRegMap[0xc64b] = aarch64::icc_ap1r3_el1;
-    sysRegMap[0xc230] = aarch64::icc_pmr_el1;
-    sysRegMap[0xdce7] = aarch64::pmceid1_el0;
-    sysRegMap[0x43d2] = aarch64::dc_csw;
-    sysRegMap[0xc009] = aarch64::id_pfr1_el1;
-    sysRegMap[0xc00b] = aarch64::id_afr0_el1;
-    sysRegMap[0xe518] = aarch64::amair_el2;
-    sysRegMap[0xdcf3] = aarch64::pmovsset_el0;
-    sysRegMap[0x4438] = aarch64::tlbi_vmalle1;
-    sysRegMap[0x643d] = aarch64::tlbi_vale2;
-    sysRegMap[0x63c7] = aarch64::at_s12e0w;
-    sysRegMap[0xc015] = aarch64::id_isar5_el1;
-    sysRegMap[0xc102] = aarch64::tcr_el1;
-    sysRegMap[0xdf40] = aarch64::pmevcntr0_el0;
-    sysRegMap[0xdf41] = aarch64::pmevcntr1_el0;
-    sysRegMap[0xdf42] = aarch64::pmevcntr2_el0;
-    sysRegMap[0xdf43] = aarch64::pmevcntr3_el0;
-    sysRegMap[0xdf44] = aarch64::pmevcntr4_el0;
-    sysRegMap[0xdf45] = aarch64::pmevcntr5_el0;
-    sysRegMap[0xdf46] = aarch64::pmevcntr6_el0;
-    sysRegMap[0xdf47] = aarch64::pmevcntr7_el0;
-    sysRegMap[0xdf48] = aarch64::pmevcntr8_el0;
-    sysRegMap[0xdf49] = aarch64::pmevcntr9_el0;
-    sysRegMap[0xdf4a] = aarch64::pmevcntr10_el0;
-    sysRegMap[0xdf4b] = aarch64::pmevcntr11_el0;
-    sysRegMap[0xdf4c] = aarch64::pmevcntr12_el0;
-    sysRegMap[0xdf4d] = aarch64::pmevcntr13_el0;
-    sysRegMap[0xdf4e] = aarch64::pmevcntr14_el0;
-    sysRegMap[0xdf4f] = aarch64::pmevcntr15_el0;
-    sysRegMap[0xdf50] = aarch64::pmevcntr16_el0;
-    sysRegMap[0xdf51] = aarch64::pmevcntr17_el0;
-    sysRegMap[0xdf52] = aarch64::pmevcntr18_el0;
-    sysRegMap[0xdf53] = aarch64::pmevcntr19_el0;
-    sysRegMap[0xdf54] = aarch64::pmevcntr20_el0;
-    sysRegMap[0xdf55] = aarch64::pmevcntr21_el0;
-    sysRegMap[0xdf56] = aarch64::pmevcntr22_el0;
-    sysRegMap[0xdf57] = aarch64::pmevcntr23_el0;
-    sysRegMap[0xdf58] = aarch64::pmevcntr24_el0;
-    sysRegMap[0xdf59] = aarch64::pmevcntr25_el0;
-    sysRegMap[0xdf5a] = aarch64::pmevcntr26_el0;
-    sysRegMap[0xdf5b] = aarch64::pmevcntr27_el0;
-    sysRegMap[0xdf5c] = aarch64::pmevcntr28_el0;
-    sysRegMap[0xdf5d] = aarch64::pmevcntr29_el0;
-    sysRegMap[0xdf5e] = aarch64::pmevcntr30_el0;
-    sysRegMap[0x9820] = aarch64::dbgdtr_el0;
-    sysRegMap[0xf518] = aarch64::amair_el3;
-    sysRegMap[0xc601] = aarch64::rvbar_el1;
-    sysRegMap[0x5bd9] = aarch64::dc_cvau;
-    sysRegMap[0xe288] = aarch64::afsr0_el2;
-    sysRegMap[0xc640] = aarch64::icc_iar0_el1;
-    sysRegMap[0xc663] = aarch64::icc_bpr1_el1;
-    sysRegMap[0x43f2] = aarch64::dc_cisw;
-    sysRegMap[0xe304] = aarch64::hpfar_el2;
-    sysRegMap[0xe219] = aarch64::spsr_abt;
-    sysRegMap[0xd000] = aarch64::csselr_el1;
-    sysRegMap[0xc4f2] = aarch64::pmintenclr_el1;
-    sysRegMap[0x443b] = aarch64::tlbi_vaae1;
-    sysRegMap[0xe300] = aarch64::far_el2;
-    sysRegMap[0xc212] = aarch64::currentel;
-    sysRegMap[0x80a4] = aarch64::dbgprcr_el1;
-    sysRegMap[0x6421] = aarch64::tlbi_ipas2e1;
-    sysRegMap[0xf510] = aarch64::mair_el3;
-    sysRegMap[0xc101] = aarch64::ttbr1_el1;
-    sysRegMap[0xdf02] = aarch64::cntvct_el0;
-    sysRegMap[0x441a] = aarch64::tlbi_aside1is;
-    sysRegMap[0xf088] = aarch64::scr_el3;
-    sysRegMap[0xc018] = aarch64::mvfr0_el1;
-    sysRegMap[0x643c] = aarch64::tlbi_alle1;
-    sysRegMap[0xdce3] = aarch64::pmovsclr_el0;
-    sysRegMap[0xc019] = aarch64::mvfr1_el1;
-    sysRegMap[0x443f] = aarch64::tlbi_vaale1;
-    sysRegMap[0xc201] = aarch64::elr_el1;
-    sysRegMap[0xe601] = aarch64::rvbar_el2;
-    sysRegMap[0xc290] = aarch64::esr_el1;
-    sysRegMap[0x443a] = aarch64::tlbi_aside1;
-    sysRegMap[0x8002] = aarch64::osdtrrx_el1;
-    sysRegMap[0xdce1] = aarch64::pmcntenset_el0;
-    sysRegMap[0xda28] = aarch64::dspsr_el0;
-    sysRegMap[0x5ba1] = aarch64::dc_zva;
-    sysRegMap[0xe65a] = aarch64::ich_misr_el2;
-    sysRegMap[0xc600] = aarch64::vbar_el1;
-    sysRegMap[0xc011] = aarch64::id_isar1_el1;
-    sysRegMap[0xc082] = aarch64::cpacr_el1;
-    sysRegMap[0xc3a0] = aarch64::par_el1;
-    sysRegMap[0xe711] = aarch64::cnthp_ctl_el2;
-    sysRegMap[0xe081] = aarch64::actlr_el2;
-    sysRegMap[0xe21b] = aarch64::spsr_fiq;
-    sysRegMap[0xc020] = aarch64::id_aa64pfr0_el1;
-    sysRegMap[0xf682] = aarch64::tpidr_el3;
-    sysRegMap[0x63c1] = aarch64::at_s1e2w;
-    sysRegMap[0x6438] = aarch64::tlbi_alle2;
-    sysRegMap[0xc014] = aarch64::id_isar4_el1;
-    sysRegMap[0xa038] = aarch64::dbgvcr32_el2;
-    sysRegMap[0xe088] = aarch64::hcr_el2;
-    sysRegMap[0xe65b] = aarch64::ich_eisr_el2;
-    sysRegMap[0x8010] = aarch64::mdccint_el1;
-    sysRegMap[0xda29] = aarch64::dlr_el0;
-    sysRegMap[0xe682] = aarch64::tpidr_el2;
-    sysRegMap[0xdcf0] = aarch64::pmuserenr_el0;
-    sysRegMap[0x8032] = aarch64::oseccr_el1;
-    sysRegMap[0x641e] = aarch64::tlbi_vmalls12e1is;
-    sysRegMap[0x8012] = aarch64::mdscr_el1;
-    sysRegMap[0xe65f] = aarch64::ich_vmcr_el2;
-    sysRegMap[0xf300] = aarch64::far_el3;
-    sysRegMap[0xe200] = aarch64::spsr_el2;
-    sysRegMap[0x808c] = aarch64::oslsr_el1;
-    sysRegMap[0x4439] = aarch64::tlbi_vae1;
-    sysRegMap[0xda11] = aarch64::daif;
-    sysRegMap[0xc300] = aarch64::far_el1;
-    sysRegMap[0xe08b] = aarch64::hstr_el2;
-    sysRegMap[0xc801] = aarch64::clidr_el1;
-    sysRegMap[0xe108] = aarch64::vttbr_el2;
-    sysRegMap[0xc02c] = aarch64::id_aa64afr0_el1;
-    sysRegMap[0xc65b] = aarch64::icc_rpr_el1;
-    sysRegMap[0xff11] = aarch64::cntps_ctl_el1;
-    sysRegMap[0xc289] = aarch64::afsr1_el1;
-    sysRegMap[0xc210] = aarch64::spsel;
-    sysRegMap[0xda21] = aarch64::fpsr;
-    sysRegMap[0xdce0] = aarch64::pmcr_el0;
-    sysRegMap[0x441b] = aarch64::tlbi_vaae1is;
-    sysRegMap[0xc665] = aarch64::icc_sre_el1;
-    sysRegMap[0xdf01] = aarch64::cntpct_el0;
-    sysRegMap[0x6418] = aarch64::tlbi_alle2is;
-    sysRegMap[0xc667] = aarch64::icc_igrpen1_el1;
-    sysRegMap[0xe281] = aarch64::ifsr32_el2;
-    sysRegMap[0xc666] = aarch64::icc_igrpen0_el1;
-    sysRegMap[0xde83] = aarch64::tpidrro_el0;
-    sysRegMap[0xe08f] = aarch64::hacr_el2;
-    sysRegMap[0x43c3] = aarch64::at_s1e0w;
-    sysRegMap[0xdf7f] = aarch64::pmccfiltr_el0;
-    sysRegMap[0xe710] = aarch64::cnthp_tval_el2;
-    sysRegMap[0x63c6] = aarch64::at_s12e0r;
-    sysRegMap[0xe703] = aarch64::cntvoff_el2;
-    sysRegMap[0xe64d] = aarch64::icc_sre_el2;
-    sysRegMap[0xc200] = aarch64::spsr_el1;
-    sysRegMap[0xc608] = aarch64::isr_el1;
-    sysRegMap[0xe708] = aarch64::cnthctl_el2;
-    sysRegMap[0xe10a] = aarch64::vtcr_el2;
-    sysRegMap[0xe005] = aarch64::vmpidr_el2;
-    sysRegMap[0xdce4] = aarch64::pmswinc_el0;
-    sysRegMap[0xc00c] = aarch64::id_mmfr0_el1;
-    sysRegMap[0xdf12] = aarch64::cntp_cval_el0;
-    sysRegMap[0xc642] = aarch64::icc_hppir0_el1;
-    sysRegMap[0xf099] = aarch64::mdcr_el3;
-    sysRegMap[0x8000] = aarch64::dbgwvr0_el1;
-    sysRegMap[0x8001] = aarch64::dbgwvr1_el1;
-    sysRegMap[0x8002] = aarch64::dbgwvr2_el1;
-    sysRegMap[0x8003] = aarch64::dbgwvr3_el1;
-    sysRegMap[0x8004] = aarch64::dbgwvr4_el1;
-    sysRegMap[0x8005] = aarch64::dbgwvr5_el1;
-    sysRegMap[0x8006] = aarch64::dbgwvr6_el1;
-    sysRegMap[0x8007] = aarch64::dbgwvr7_el1;
-    sysRegMap[0x8008] = aarch64::dbgwvr8_el1;
-    sysRegMap[0x8009] = aarch64::dbgwvr9_el1;
-    sysRegMap[0x800a] = aarch64::dbgwvr10_el1;
-    sysRegMap[0x800b] = aarch64::dbgwvr11_el1;
-    sysRegMap[0x800c] = aarch64::dbgwvr12_el1;
-    sysRegMap[0x800d] = aarch64::dbgwvr13_el1;
-    sysRegMap[0x800e] = aarch64::dbgwvr14_el1;
-    sysRegMap[0x800f] = aarch64::dbgwvr15_el1;
-    sysRegMap[0x83f6] = aarch64::dbgauthstatus_el1;
-    sysRegMap[0x9828] = aarch64::dbgdtrtx_el0;
-    sysRegMap[0xc661] = aarch64::icc_eoir1_el1;
-    sysRegMap[0xe201] = aarch64::elr_el2;
-    sysRegMap[0x8000] = aarch64::dbgbvr0_el1;
-    sysRegMap[0x8001] = aarch64::dbgbvr1_el1;
-    sysRegMap[0x8002] = aarch64::dbgbvr2_el1;
-    sysRegMap[0x8003] = aarch64::dbgbvr3_el1;
-    sysRegMap[0x8004] = aarch64::dbgbvr4_el1;
-    sysRegMap[0x8005] = aarch64::dbgbvr5_el1;
-    sysRegMap[0x8006] = aarch64::dbgbvr6_el1;
-    sysRegMap[0x8007] = aarch64::dbgbvr7_el1;
-    sysRegMap[0x8008] = aarch64::dbgbvr8_el1;
-    sysRegMap[0x8009] = aarch64::dbgbvr9_el1;
-    sysRegMap[0x800a] = aarch64::dbgbvr10_el1;
-    sysRegMap[0x800b] = aarch64::dbgbvr11_el1;
-    sysRegMap[0x800c] = aarch64::dbgbvr12_el1;
-    sysRegMap[0x800d] = aarch64::dbgbvr13_el1;
-    sysRegMap[0x800e] = aarch64::dbgbvr14_el1;
-    sysRegMap[0x800f] = aarch64::dbgbvr15_el1;
-    sysRegMap[0x4388] = aarch64::ic_ialluis;
-    sysRegMap[0xf102] = aarch64::tcr_el3;
-    sysRegMap[0xc807] = aarch64::aidr_el1;
-    sysRegMap[0xdf00] = aarch64::cntfrq_el0;
-    sysRegMap[0x7439] = aarch64::tlbi_vae3;
-    sysRegMap[0x643e] = aarch64::tlbi_vmalls12e1;
-    sysRegMap[0xe290] = aarch64::esr_el2;
-    sysRegMap[0xf600] = aarch64::vbar_el3;
-    sysRegMap[0x8000] = aarch64::dbgwcr0_el1;
-    sysRegMap[0x8001] = aarch64::dbgwcr1_el1;
-    sysRegMap[0x8002] = aarch64::dbgwcr2_el1;
-    sysRegMap[0x8003] = aarch64::dbgwcr3_el1;
-    sysRegMap[0x8004] = aarch64::dbgwcr4_el1;
-    sysRegMap[0x8005] = aarch64::dbgwcr5_el1;
-    sysRegMap[0x8006] = aarch64::dbgwcr6_el1;
-    sysRegMap[0x8007] = aarch64::dbgwcr7_el1;
-    sysRegMap[0x8008] = aarch64::dbgwcr8_el1;
-    sysRegMap[0x8009] = aarch64::dbgwcr9_el1;
-    sysRegMap[0x800a] = aarch64::dbgwcr10_el1;
-    sysRegMap[0x800b] = aarch64::dbgwcr11_el1;
-    sysRegMap[0x800c] = aarch64::dbgwcr12_el1;
-    sysRegMap[0x800d] = aarch64::dbgwcr13_el1;
-    sysRegMap[0x800e] = aarch64::dbgwcr14_el1;
-    sysRegMap[0x800f] = aarch64::dbgwcr15_el1;
-    sysRegMap[0xc602] = aarch64::rmr_el1;
-    sysRegMap[0xc000] = aarch64::midr_el1;
-    sysRegMap[0x43b2] = aarch64::dc_isw;
-    sysRegMap[0xc010] = aarch64::id_isar0_el1;
-    sysRegMap[0xd801] = aarch64::ctr_el0;
-    sysRegMap[0xe208] = aarch64::sp_el1;
-    sysRegMap[0xdf18] = aarch64::cntv_tval_el0;
-    sysRegMap[0x7419] = aarch64::tlbi_vae3is;
-    sysRegMap[0xf289] = aarch64::afsr1_el3;
-    sysRegMap[0xc016] = aarch64::id_mmfr4_el1;
-    sysRegMap[0xf100] = aarch64::ttbr0_el3;
-    sysRegMap[0xe21a] = aarch64::spsr_und;
-    sysRegMap[0x6419] = aarch64::tlbi_vae2is;
-    sysRegMap[0x73c1] = aarch64::at_s1e3w;
-    sysRegMap[0x809c] = aarch64::osdlr_el1;
-    sysRegMap[0xe660] = aarch64::ich_lr0_el2;
-    sysRegMap[0xe661] = aarch64::ich_lr1_el2;
-    sysRegMap[0xe662] = aarch64::ich_lr2_el2;
-    sysRegMap[0xe663] = aarch64::ich_lr3_el2;
-    sysRegMap[0xe664] = aarch64::ich_lr4_el2;
-    sysRegMap[0xe665] = aarch64::ich_lr5_el2;
-    sysRegMap[0xe666] = aarch64::ich_lr6_el2;
-    sysRegMap[0xe667] = aarch64::ich_lr7_el2;
-    sysRegMap[0xe668] = aarch64::ich_lr8_el2;
-    sysRegMap[0xe669] = aarch64::ich_lr9_el2;
-    sysRegMap[0xe66a] = aarch64::ich_lr10_el2;
-    sysRegMap[0xe66b] = aarch64::ich_lr11_el2;
-    sysRegMap[0xe66c] = aarch64::ich_lr12_el2;
-    sysRegMap[0xe66d] = aarch64::ich_lr13_el2;
-    sysRegMap[0xe66e] = aarch64::ich_lr14_el2;
-    sysRegMap[0xe66f] = aarch64::ich_lr15_el2;
-    sysRegMap[0x83ce] = aarch64::dbgclaimclr_el1;
-    sysRegMap[0x4418] = aarch64::tlbi_vmalle1is;
-    sysRegMap[0xc039] = aarch64::id_aa64mmfr1_el1;
-    sysRegMap[0xdce8] = aarch64::pmccntr_el0;
-    sysRegMap[0xf290] = aarch64::esr_el3;
-    sysRegMap[0xf08a] = aarch64::cptr_el3;
-    sysRegMap[0xdf10] = aarch64::cntp_tval_el0;
-    sysRegMap[0xe102] = aarch64::tcr_el2;
-    sysRegMap[0x5bd1] = aarch64::dc_cvac;
-    sysRegMap[0x441f] = aarch64::tlbi_vaale1is;
-    sysRegMap[0xc4f1] = aarch64::pmintenset_el1;
-    sysRegMap[0x8000] = aarch64::dbgbcr0_el1;
-    sysRegMap[0x8001] = aarch64::dbgbcr1_el1;
-    sysRegMap[0x8002] = aarch64::dbgbcr2_el1;
-    sysRegMap[0x8003] = aarch64::dbgbcr3_el1;
-    sysRegMap[0x8004] = aarch64::dbgbcr4_el1;
-    sysRegMap[0x8005] = aarch64::dbgbcr5_el1;
-    sysRegMap[0x8006] = aarch64::dbgbcr6_el1;
-    sysRegMap[0x8007] = aarch64::dbgbcr7_el1;
-    sysRegMap[0x8008] = aarch64::dbgbcr8_el1;
-    sysRegMap[0x8009] = aarch64::dbgbcr9_el1;
-    sysRegMap[0x800a] = aarch64::dbgbcr10_el1;
-    sysRegMap[0x800b] = aarch64::dbgbcr11_el1;
-    sysRegMap[0x800c] = aarch64::dbgbcr12_el1;
-    sysRegMap[0x800d] = aarch64::dbgbcr13_el1;
-    sysRegMap[0x800e] = aarch64::dbgbcr14_el1;
-    sysRegMap[0x800f] = aarch64::dbgbcr15_el1;
-    sysRegMap[0xdce5] = aarch64::pmselr_el0;
-    sysRegMap[0x641c] = aarch64::tlbi_alle1is;
-    sysRegMap[0xc662] = aarch64::icc_hppir1_el1;
-    sysRegMap[0x4419] = aarch64::tlbi_vae1is;
-    sysRegMap[0xe089] = aarch64::mdcr_el2;
-    sysRegMap[0x63c5] = aarch64::at_s12e1w;
-    sysRegMap[0xe000] = aarch64::vpidr_el2;
-    sysRegMap[0xc028] = aarch64::id_aa64dfr0_el1;
-    sysRegMap[0xc012] = aarch64::id_isar2_el1;
-    sysRegMap[0xe100] = aarch64::ttbr0_el2;
-    sysRegMap[0xc644] = aarch64::icc_ap0r0_el1;
-    sysRegMap[0xc645] = aarch64::icc_ap0r1_el1;
-    sysRegMap[0xc646] = aarch64::icc_ap0r2_el1;
-    sysRegMap[0xc647] = aarch64::icc_ap0r3_el1;
-    sysRegMap[0x9828] = aarch64::dbgdtrrx_el0;
-    sysRegMap[0xe298] = aarch64::fpexc32_el2;
-    sysRegMap[0xdce9] = aarch64::pmxevtyper_el0;
-    sysRegMap[0x8084] = aarch64::oslar_el1;
-    sysRegMap[0xc008] = aarch64::id_pfr0_el1;
-    sysRegMap[0xc00f] = aarch64::id_mmfr3_el1;
-    sysRegMap[0x801a] = aarch64::osdtrtx_el1;
-    sysRegMap[0xc030] = aarch64::id_aa64isar0_el1;
-    sysRegMap[0xc01a] = aarch64::mvfr2_el1;
-    sysRegMap[0xdce2] = aarch64::pmcntenclr_el0;
-    sysRegMap[0xe648] = aarch64::ich_ap1r0_el2;
-    sysRegMap[0xe649] = aarch64::ich_ap1r1_el2;
-    sysRegMap[0xe64a] = aarch64::ich_ap1r2_el2;
-    sysRegMap[0xe64b] = aarch64::ich_ap1r3_el2;
-    sysRegMap[0xc038] = aarch64::id_aa64mmfr0_el1;
-    sysRegMap[0x743d] = aarch64::tlbi_vale3;
-    sysRegMap[0xc006] = aarch64::revidr_el1;
-    sysRegMap[0xe510] = aarch64::mair_el2;
-    sysRegMap[0xc080] = aarch64::sctlr_el1;
-    sysRegMap[0x43c2] = aarch64::at_s1e0r;
-    sysRegMap[0xe08a] = aarch64::cptr_el2;
-    sysRegMap[0x63c4] = aarch64::at_s12e1r;
-    sysRegMap[0xdcea] = aarch64::pmxevcntr_el0;
-    sysRegMap[0xc288] = aarch64::afsr0_el1;
-    sysRegMap[0x43c1] = aarch64::at_s1e1w;
-    sysRegMap[0xc013] = aarch64::id_isar3_el1;
-    sysRegMap[0xe289] = aarch64::afsr1_el2;
-    sysRegMap[0x441d] = aarch64::tlbi_vale1is;
-    sysRegMap[0xf208] = aarch64::sp_el2;
-    sysRegMap[0xff12] = aarch64::cntps_cval_el1;
-    sysRegMap[0xff10] = aarch64::cntps_tval_el1;
-    sysRegMap[0xc664] = aarch64::icc_ctlr_el1;
-    sysRegMap[0xdf19] = aarch64::cntv_ctl_el0;
-    sysRegMap[0xe602] = aarch64::rmr_el2;
-    sysRegMap[0xc029] = aarch64::id_aa64dfr1_el1;
-    sysRegMap[0xe712] = aarch64::cnthp_cval_el2;
-    sysRegMap[0x73c0] = aarch64::at_s1e3r;
-    sysRegMap[0xc031] = aarch64::id_aa64isar1_el1;
-    sysRegMap[0xc005] = aarch64::mpidr_el1;
-    sysRegMap[0xc518] = aarch64::amair_el1;
-    sysRegMap[0x7438] = aarch64::tlbi_alle3;
-    sysRegMap[0xf200] = aarch64::spsr_el3;
-    sysRegMap[0x443d] = aarch64::tlbi_vale1;
-    sysRegMap[0xf665] = aarch64::icc_sre_el3;
-    sysRegMap[0xc660] = aarch64::icc_iar1_el1;
-
-    built_sysreg_map = true;
-}
+MachRegister InstructionDecoder_aarch64::sysRegMap(unsigned int m) {
+    switch(m) {
+    case 0x741d: return aarch64::tlbi_vale3is;
+    case 0xc021: return aarch64::id_aa64pfr1_el1;
+    case 0xf089: return aarch64::sder32_el3;
+    case 0xf664: return aarch64::icc_ctlr_el3;
+    case 0xe180: return aarch64::dacr32_el2;
+    case 0xe659: return aarch64::ich_vtr_el2;
+    case 0xc659: return aarch64::icc_dir_el1;
+    case 0x6425: return aarch64::tlbi_ipas2le1;
+    case 0xda20: return aarch64::fpcr;
+    case 0xf288: return aarch64::afsr0_el3;
+    case 0xd807: return aarch64::dczid_el0;
+    case 0xc081: return aarch64::actlr_el1;
+    case 0xf080: return aarch64::sctlr_el3;
+    case 0xe080: return aarch64::sctlr_el2;
+    case 0x63c0: return aarch64::at_s1e2r;
+    case 0x43a8: return aarch64::ic_iallu;
+    case 0xf667: return aarch64::icc_igrpen1_el3;
+    case 0xdce6: return aarch64::pmceid0_el0;
+    case 0xde82: return aarch64::tpidr_el0;
+    case 0x6405: return aarch64::tlbi_ipas2le1is;
+    case 0xc681: return aarch64::contextidr_el1;
+    case 0xc00e: return aarch64::id_mmfr2_el1;
+    case 0xdf60: return aarch64::pmevtyper0_el0;
+    case 0xdf61: return aarch64::pmevtyper1_el0;
+    case 0xdf62: return aarch64::pmevtyper2_el0;
+    case 0xdf63: return aarch64::pmevtyper3_el0;
+    case 0xdf64: return aarch64::pmevtyper4_el0;
+    case 0xdf65: return aarch64::pmevtyper5_el0;
+    case 0xdf66: return aarch64::pmevtyper6_el0;
+    case 0xdf67: return aarch64::pmevtyper7_el0;
+    case 0xdf68: return aarch64::pmevtyper8_el0;
+    case 0xdf69: return aarch64::pmevtyper9_el0;
+    case 0xdf6a: return aarch64::pmevtyper10_el0;
+    case 0xdf6b: return aarch64::pmevtyper11_el0;
+    case 0xdf6c: return aarch64::pmevtyper12_el0;
+    case 0xdf6d: return aarch64::pmevtyper13_el0;
+    case 0xdf6e: return aarch64::pmevtyper14_el0;
+    case 0xdf6f: return aarch64::pmevtyper15_el0;
+    case 0xdf70: return aarch64::pmevtyper16_el0;
+    case 0xdf71: return aarch64::pmevtyper17_el0;
+    case 0xdf72: return aarch64::pmevtyper18_el0;
+    case 0xdf73: return aarch64::pmevtyper19_el0;
+    case 0xdf74: return aarch64::pmevtyper20_el0;
+    case 0xdf75: return aarch64::pmevtyper21_el0;
+    case 0xdf76: return aarch64::pmevtyper22_el0;
+    case 0xdf77: return aarch64::pmevtyper23_el0;
+    case 0xdf78: return aarch64::pmevtyper24_el0;
+    case 0xdf79: return aarch64::pmevtyper25_el0;
+    case 0xdf7a: return aarch64::pmevtyper26_el0;
+    case 0xdf7b: return aarch64::pmevtyper27_el0;
+    case 0xdf7c: return aarch64::pmevtyper28_el0;
+    case 0xdf7d: return aarch64::pmevtyper29_el0;
+    case 0xdf7e: return aarch64::pmevtyper30_el0;
+    case 0xc510: return aarch64::mair_el1;
+    case 0x641d: return aarch64::tlbi_vale2is;
+    case 0xc800: return aarch64::ccsidr_el1;
+    case 0xe218: return aarch64::spsr_irq;
+    case 0xf201: return aarch64::elr_el3;
+    case 0x7418: return aarch64::tlbi_alle3is;
+    case 0xc208: return aarch64::sp_el0;
+    case 0xc00d: return aarch64::id_mmfr1_el1;
+    case 0x5ba9: return aarch64::ic_ivau;
+    case 0xc641: return aarch64::icc_eoir0_el1;
+    case 0xc65f: return aarch64::icc_sgi0r_el1;
+    case 0xc65d: return aarch64::icc_sgi1r_el1;
+    case 0x6439: return aarch64::tlbi_vae2;
+    case 0xdf11: return aarch64::cntp_ctl_el0;
+    case 0xc684: return aarch64::tpidr_el1;
+    case 0x5bf1: return aarch64::dc_civac;
+    case 0x6401: return aarch64::tlbi_ipas2e1is;
+    case 0xdf1a: return aarch64::cntv_cval_el0;
+    case 0xc643: return aarch64::icc_bpr0_el1;
+    case 0x9808: return aarch64::mdccsr_el0;
+    case 0x83c6: return aarch64::dbgclaimset_el1;
+    case 0xe640: return aarch64::ich_ap0r0_el2;
+    case 0xe641: return aarch64::ich_ap0r1_el2;
+    case 0xe642: return aarch64::ich_ap0r2_el2;
+    case 0xe643: return aarch64::ich_ap0r3_el2;
+    case 0x43b1: return aarch64::dc_ivac;
+    case 0xe65d: return aarch64::ich_elrsr_el2;
+    case 0xe658: return aarch64::ich_hcr_el2;
+    case 0xe600: return aarch64::vbar_el2;
+    case 0xc65e: return aarch64::icc_asgi1r_el1;
+    case 0xc02d: return aarch64::id_aa64afr1_el1;
+    case 0xda10: return aarch64::nzcv;
+    case 0xc100: return aarch64::ttbr0_el1;
+    case 0xf081: return aarch64::actlr_el3;
+    case 0x8080: return aarch64::mdrar_el1;
+    case 0xf602: return aarch64::rmr_el3;
+    case 0xc708: return aarch64::cntkctl_el1;
+    case 0xf601: return aarch64::rvbar_el3;
+    case 0xc00a: return aarch64::id_dfr0_el1;
+    case 0x43c0: return aarch64::at_s1e1r;
+    case 0xc648: return aarch64::icc_ap1r0_el1;
+    case 0xc649: return aarch64::icc_ap1r1_el1;
+    case 0xc64a: return aarch64::icc_ap1r2_el1;
+    case 0xc64b: return aarch64::icc_ap1r3_el1;
+    case 0xc230: return aarch64::icc_pmr_el1;
+    case 0xdce7: return aarch64::pmceid1_el0;
+    case 0x43d2: return aarch64::dc_csw;
+    case 0xc009: return aarch64::id_pfr1_el1;
+    case 0xc00b: return aarch64::id_afr0_el1;
+    case 0xe518: return aarch64::amair_el2;
+    case 0xdcf3: return aarch64::pmovsset_el0;
+    case 0x4438: return aarch64::tlbi_vmalle1;
+    case 0x643d: return aarch64::tlbi_vale2;
+    case 0x63c7: return aarch64::at_s12e0w;
+    case 0xc015: return aarch64::id_isar5_el1;
+    case 0xc102: return aarch64::tcr_el1;
+    case 0xdf40: return aarch64::pmevcntr0_el0;
+    case 0xdf41: return aarch64::pmevcntr1_el0;
+    case 0xdf42: return aarch64::pmevcntr2_el0;
+    case 0xdf43: return aarch64::pmevcntr3_el0;
+    case 0xdf44: return aarch64::pmevcntr4_el0;
+    case 0xdf45: return aarch64::pmevcntr5_el0;
+    case 0xdf46: return aarch64::pmevcntr6_el0;
+    case 0xdf47: return aarch64::pmevcntr7_el0;
+    case 0xdf48: return aarch64::pmevcntr8_el0;
+    case 0xdf49: return aarch64::pmevcntr9_el0;
+    case 0xdf4a: return aarch64::pmevcntr10_el0;
+    case 0xdf4b: return aarch64::pmevcntr11_el0;
+    case 0xdf4c: return aarch64::pmevcntr12_el0;
+    case 0xdf4d: return aarch64::pmevcntr13_el0;
+    case 0xdf4e: return aarch64::pmevcntr14_el0;
+    case 0xdf4f: return aarch64::pmevcntr15_el0;
+    case 0xdf50: return aarch64::pmevcntr16_el0;
+    case 0xdf51: return aarch64::pmevcntr17_el0;
+    case 0xdf52: return aarch64::pmevcntr18_el0;
+    case 0xdf53: return aarch64::pmevcntr19_el0;
+    case 0xdf54: return aarch64::pmevcntr20_el0;
+    case 0xdf55: return aarch64::pmevcntr21_el0;
+    case 0xdf56: return aarch64::pmevcntr22_el0;
+    case 0xdf57: return aarch64::pmevcntr23_el0;
+    case 0xdf58: return aarch64::pmevcntr24_el0;
+    case 0xdf59: return aarch64::pmevcntr25_el0;
+    case 0xdf5a: return aarch64::pmevcntr26_el0;
+    case 0xdf5b: return aarch64::pmevcntr27_el0;
+    case 0xdf5c: return aarch64::pmevcntr28_el0;
+    case 0xdf5d: return aarch64::pmevcntr29_el0;
+    case 0xdf5e: return aarch64::pmevcntr30_el0;
+    case 0x9820: return aarch64::dbgdtr_el0;
+    case 0xf518: return aarch64::amair_el3;
+    case 0xc601: return aarch64::rvbar_el1;
+    case 0x5bd9: return aarch64::dc_cvau;
+    case 0xe288: return aarch64::afsr0_el2;
+    case 0xc640: return aarch64::icc_iar0_el1;
+    case 0xc663: return aarch64::icc_bpr1_el1;
+    case 0x43f2: return aarch64::dc_cisw;
+    case 0xe304: return aarch64::hpfar_el2;
+    case 0xe219: return aarch64::spsr_abt;
+    case 0xd000: return aarch64::csselr_el1;
+    case 0xc4f2: return aarch64::pmintenclr_el1;
+    case 0x443b: return aarch64::tlbi_vaae1;
+    case 0xe300: return aarch64::far_el2;
+    case 0xc212: return aarch64::currentel;
+    case 0x80a4: return aarch64::dbgprcr_el1;
+    case 0x6421: return aarch64::tlbi_ipas2e1;
+    case 0xf510: return aarch64::mair_el3;
+    case 0xc101: return aarch64::ttbr1_el1;
+    case 0xdf02: return aarch64::cntvct_el0;
+    case 0x441a: return aarch64::tlbi_aside1is;
+    case 0xf088: return aarch64::scr_el3;
+    case 0xc018: return aarch64::mvfr0_el1;
+    case 0x643c: return aarch64::tlbi_alle1;
+    case 0xdce3: return aarch64::pmovsclr_el0;
+    case 0xc019: return aarch64::mvfr1_el1;
+    case 0x443f: return aarch64::tlbi_vaale1;
+    case 0xc201: return aarch64::elr_el1;
+    case 0xe601: return aarch64::rvbar_el2;
+    case 0xc290: return aarch64::esr_el1;
+    case 0x443a: return aarch64::tlbi_aside1;
+    case 0xdce1: return aarch64::pmcntenset_el0;
+    case 0xda28: return aarch64::dspsr_el0;
+    case 0x5ba1: return aarch64::dc_zva;
+    case 0xe65a: return aarch64::ich_misr_el2;
+    case 0xc600: return aarch64::vbar_el1;
+    case 0xc011: return aarch64::id_isar1_el1;
+    case 0xc082: return aarch64::cpacr_el1;
+    case 0xc3a0: return aarch64::par_el1;
+    case 0xe711: return aarch64::cnthp_ctl_el2;
+    case 0xe081: return aarch64::actlr_el2;
+    case 0xe21b: return aarch64::spsr_fiq;
+    case 0xc020: return aarch64::id_aa64pfr0_el1;
+    case 0xf682: return aarch64::tpidr_el3;
+    case 0x63c1: return aarch64::at_s1e2w;
+    case 0x6438: return aarch64::tlbi_alle2;
+    case 0xc014: return aarch64::id_isar4_el1;
+    case 0xa038: return aarch64::dbgvcr32_el2;
+    case 0xe088: return aarch64::hcr_el2;
+    case 0xe65b: return aarch64::ich_eisr_el2;
+    case 0x8010: return aarch64::mdccint_el1;
+    case 0xda29: return aarch64::dlr_el0;
+    case 0xe682: return aarch64::tpidr_el2;
+    case 0xdcf0: return aarch64::pmuserenr_el0;
+    case 0x8032: return aarch64::oseccr_el1;
+    case 0x641e: return aarch64::tlbi_vmalls12e1is;
+    case 0x8012: return aarch64::mdscr_el1;
+    case 0xe65f: return aarch64::ich_vmcr_el2;
+    case 0xf300: return aarch64::far_el3;
+    case 0xe200: return aarch64::spsr_el2;
+    case 0x808c: return aarch64::oslsr_el1;
+    case 0x4439: return aarch64::tlbi_vae1;
+    case 0xda11: return aarch64::daif;
+    case 0xc300: return aarch64::far_el1;
+    case 0xe08b: return aarch64::hstr_el2;
+    case 0xc801: return aarch64::clidr_el1;
+    case 0xe108: return aarch64::vttbr_el2;
+    case 0xc02c: return aarch64::id_aa64afr0_el1;
+    case 0xc65b: return aarch64::icc_rpr_el1;
+    case 0xff11: return aarch64::cntps_ctl_el1;
+    case 0xc289: return aarch64::afsr1_el1;
+    case 0xc210: return aarch64::spsel;
+    case 0xda21: return aarch64::fpsr;
+    case 0xdce0: return aarch64::pmcr_el0;
+    case 0x441b: return aarch64::tlbi_vaae1is;
+    case 0xc665: return aarch64::icc_sre_el1;
+    case 0xdf01: return aarch64::cntpct_el0;
+    case 0x6418: return aarch64::tlbi_alle2is;
+    case 0xc667: return aarch64::icc_igrpen1_el1;
+    case 0xe281: return aarch64::ifsr32_el2;
+    case 0xc666: return aarch64::icc_igrpen0_el1;
+    case 0xde83: return aarch64::tpidrro_el0;
+    case 0xe08f: return aarch64::hacr_el2;
+    case 0x43c3: return aarch64::at_s1e0w;
+    case 0xdf7f: return aarch64::pmccfiltr_el0;
+    case 0xe710: return aarch64::cnthp_tval_el2;
+    case 0x63c6: return aarch64::at_s12e0r;
+    case 0xe703: return aarch64::cntvoff_el2;
+    case 0xe64d: return aarch64::icc_sre_el2;
+    case 0xc200: return aarch64::spsr_el1;
+    case 0xc608: return aarch64::isr_el1;
+    case 0xe708: return aarch64::cnthctl_el2;
+    case 0xe10a: return aarch64::vtcr_el2;
+    case 0xe005: return aarch64::vmpidr_el2;
+    case 0xdce4: return aarch64::pmswinc_el0;
+    case 0xc00c: return aarch64::id_mmfr0_el1;
+    case 0xdf12: return aarch64::cntp_cval_el0;
+    case 0xc642: return aarch64::icc_hppir0_el1;
+    case 0xf099: return aarch64::mdcr_el3;
+    case 0x83f6: return aarch64::dbgauthstatus_el1;
+    case 0xc661: return aarch64::icc_eoir1_el1;
+    case 0xe201: return aarch64::elr_el2;
+    case 0x4388: return aarch64::ic_ialluis;
+    case 0xf102: return aarch64::tcr_el3;
+    case 0xc807: return aarch64::aidr_el1;
+    case 0xdf00: return aarch64::cntfrq_el0;
+    case 0x7439: return aarch64::tlbi_vae3;
+    case 0x643e: return aarch64::tlbi_vmalls12e1;
+    case 0xe290: return aarch64::esr_el2;
+    case 0xf600: return aarch64::vbar_el3;
+    case 0xc602: return aarch64::rmr_el1;
+    case 0xc000: return aarch64::midr_el1;
+    case 0x43b2: return aarch64::dc_isw;
+    case 0xc010: return aarch64::id_isar0_el1;
+    case 0xd801: return aarch64::ctr_el0;
+    case 0xe208: return aarch64::sp_el1;
+    case 0xdf18: return aarch64::cntv_tval_el0;
+    case 0x7419: return aarch64::tlbi_vae3is;
+    case 0xf289: return aarch64::afsr1_el3;
+    case 0xc016: return aarch64::id_mmfr4_el1;
+    case 0xf100: return aarch64::ttbr0_el3;
+    case 0xe21a: return aarch64::spsr_und;
+    case 0x6419: return aarch64::tlbi_vae2is;
+    case 0x73c1: return aarch64::at_s1e3w;
+    case 0x809c: return aarch64::osdlr_el1;
+    case 0xe660: return aarch64::ich_lr0_el2;
+    case 0xe661: return aarch64::ich_lr1_el2;
+    case 0xe662: return aarch64::ich_lr2_el2;
+    case 0xe663: return aarch64::ich_lr3_el2;
+    case 0xe664: return aarch64::ich_lr4_el2;
+    case 0xe665: return aarch64::ich_lr5_el2;
+    case 0xe666: return aarch64::ich_lr6_el2;
+    case 0xe667: return aarch64::ich_lr7_el2;
+    case 0xe668: return aarch64::ich_lr8_el2;
+    case 0xe669: return aarch64::ich_lr9_el2;
+    case 0xe66a: return aarch64::ich_lr10_el2;
+    case 0xe66b: return aarch64::ich_lr11_el2;
+    case 0xe66c: return aarch64::ich_lr12_el2;
+    case 0xe66d: return aarch64::ich_lr13_el2;
+    case 0xe66e: return aarch64::ich_lr14_el2;
+    case 0xe66f: return aarch64::ich_lr15_el2;
+    case 0x83ce: return aarch64::dbgclaimclr_el1;
+    case 0x4418: return aarch64::tlbi_vmalle1is;
+    case 0xc039: return aarch64::id_aa64mmfr1_el1;
+    case 0xdce8: return aarch64::pmccntr_el0;
+    case 0xf290: return aarch64::esr_el3;
+    case 0xf08a: return aarch64::cptr_el3;
+    case 0xdf10: return aarch64::cntp_tval_el0;
+    case 0xe102: return aarch64::tcr_el2;
+    case 0x5bd1: return aarch64::dc_cvac;
+    case 0x441f: return aarch64::tlbi_vaale1is;
+    case 0xc4f1: return aarch64::pmintenset_el1;
+    case 0x8000: return aarch64::dbgbcr0_el1;
+    case 0x8001: return aarch64::dbgbcr1_el1;
+    case 0x8002: return aarch64::dbgbcr2_el1;
+    case 0x8003: return aarch64::dbgbcr3_el1;
+    case 0x8004: return aarch64::dbgbcr4_el1;
+    case 0x8005: return aarch64::dbgbcr5_el1;
+    case 0x8006: return aarch64::dbgbcr6_el1;
+    case 0x8007: return aarch64::dbgbcr7_el1;
+    case 0x8008: return aarch64::dbgbcr8_el1;
+    case 0x8009: return aarch64::dbgbcr9_el1;
+    case 0x800a: return aarch64::dbgbcr10_el1;
+    case 0x800b: return aarch64::dbgbcr11_el1;
+    case 0x800c: return aarch64::dbgbcr12_el1;
+    case 0x800d: return aarch64::dbgbcr13_el1;
+    case 0x800e: return aarch64::dbgbcr14_el1;
+    case 0x800f: return aarch64::dbgbcr15_el1;
+    case 0xdce5: return aarch64::pmselr_el0;
+    case 0x641c: return aarch64::tlbi_alle1is;
+    case 0xc662: return aarch64::icc_hppir1_el1;
+    case 0x4419: return aarch64::tlbi_vae1is;
+    case 0xe089: return aarch64::mdcr_el2;
+    case 0x63c5: return aarch64::at_s12e1w;
+    case 0xe000: return aarch64::vpidr_el2;
+    case 0xc028: return aarch64::id_aa64dfr0_el1;
+    case 0xc012: return aarch64::id_isar2_el1;
+    case 0xe100: return aarch64::ttbr0_el2;
+    case 0xc644: return aarch64::icc_ap0r0_el1;
+    case 0xc645: return aarch64::icc_ap0r1_el1;
+    case 0xc646: return aarch64::icc_ap0r2_el1;
+    case 0xc647: return aarch64::icc_ap0r3_el1;
+    case 0x9828: return aarch64::dbgdtrrx_el0;
+    case 0xe298: return aarch64::fpexc32_el2;
+    case 0xdce9: return aarch64::pmxevtyper_el0;
+    case 0x8084: return aarch64::oslar_el1;
+    case 0xc008: return aarch64::id_pfr0_el1;
+    case 0xc00f: return aarch64::id_mmfr3_el1;
+    case 0x801a: return aarch64::osdtrtx_el1;
+    case 0xc030: return aarch64::id_aa64isar0_el1;
+    case 0xc01a: return aarch64::mvfr2_el1;
+    case 0xdce2: return aarch64::pmcntenclr_el0;
+    case 0xe648: return aarch64::ich_ap1r0_el2;
+    case 0xe649: return aarch64::ich_ap1r1_el2;
+    case 0xe64a: return aarch64::ich_ap1r2_el2;
+    case 0xe64b: return aarch64::ich_ap1r3_el2;
+    case 0xc038: return aarch64::id_aa64mmfr0_el1;
+    case 0x743d: return aarch64::tlbi_vale3;
+    case 0xc006: return aarch64::revidr_el1;
+    case 0xe510: return aarch64::mair_el2;
+    case 0xc080: return aarch64::sctlr_el1;
+    case 0x43c2: return aarch64::at_s1e0r;
+    case 0xe08a: return aarch64::cptr_el2;
+    case 0x63c4: return aarch64::at_s12e1r;
+    case 0xdcea: return aarch64::pmxevcntr_el0;
+    case 0xc288: return aarch64::afsr0_el1;
+    case 0x43c1: return aarch64::at_s1e1w;
+    case 0xc013: return aarch64::id_isar3_el1;
+    case 0xe289: return aarch64::afsr1_el2;
+    case 0x441d: return aarch64::tlbi_vale1is;
+    case 0xf208: return aarch64::sp_el2;
+    case 0xff12: return aarch64::cntps_cval_el1;
+    case 0xff10: return aarch64::cntps_tval_el1;
+    case 0xc664: return aarch64::icc_ctlr_el1;
+    case 0xdf19: return aarch64::cntv_ctl_el0;
+    case 0xe602: return aarch64::rmr_el2;
+    case 0xc029: return aarch64::id_aa64dfr1_el1;
+    case 0xe712: return aarch64::cnthp_cval_el2;
+    case 0x73c0: return aarch64::at_s1e3r;
+    case 0xc031: return aarch64::id_aa64isar1_el1;
+    case 0xc005: return aarch64::mpidr_el1;
+    case 0xc518: return aarch64::amair_el1;
+    case 0x7438: return aarch64::tlbi_alle3;
+    case 0xf200: return aarch64::spsr_el3;
+    case 0x443d: return aarch64::tlbi_vale1;
+    case 0xf665: return aarch64::icc_sre_el3;
+    case 0xc660: return aarch64::icc_iar1_el1;
+    default: assert(!"tried to access system register not accessible in EL0");
+    };
+}  // end sysRegMap

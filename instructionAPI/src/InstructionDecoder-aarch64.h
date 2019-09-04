@@ -67,10 +67,10 @@ namespace Dyninst {
 
             virtual void doDelayedDecode(const Instruction *insn_to_complete);
 
-            static std::vector<std::string> condStringMap;
-            static std::map<unsigned int, MachRegister> sysRegMap;
-            static std::map<entryID, std::string> bitfieldInsnAliasMap;
-	    static std::map<entryID, std::string> condInsnAliasMap;
+            static const std::array<std::string, 16> condNames;
+            static MachRegister sysRegMap(unsigned int);
+            static const char* bitfieldInsnAliasMap(entryID);
+            static const char* condInsnAliasMap(entryID);
 
 #define    IS_INSN_LOGICAL_SHIFT(I)        (field<24, 28>(I) == 0x0A)
 #define    IS_INSN_ADDSUB_EXT(I)            (field<24, 28>(I) == 0x0B && field<21, 21>(I) == 1)
@@ -166,9 +166,6 @@ namespace Dyninst {
             bool hasb5;
 
             void reorderOperands();
-
-            static bool built_sysreg_map;
-            static void buildSysRegMap();
 
             unsigned int insn;
             Instruction *insn_in_progress;
@@ -276,7 +273,7 @@ namespace Dyninst {
             bool fix_bitfieldinsn_alias(int, int);
 	    void fix_condinsn_alias_and_cond(int &);
 	    void modify_mnemonic_simd_upperhalf_insns();
-            bool pre_process_checks(aarch64_insn_entry *);
+            bool pre_process_checks(const aarch64_insn_entry &);
 
             MachRegister makeAarch64RegID(MachRegister, unsigned int);
 
