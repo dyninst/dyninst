@@ -30,7 +30,6 @@
 
 #include "InstructionDecoderImpl.h"
 #include "common/src/singleton_object_pool.h"
-#include "InstructionDecoder-x86.h"
 #include "InstructionDecoder-power.h"
 #include "InstructionDecoder-aarch64.h"
 #include "InstructionDecoder-amdgpu-vega.h"
@@ -65,16 +64,12 @@ namespace Dyninst
 
         InstructionDecoderImpl::Ptr InstructionDecoderImpl::makeDecoderImpl(Architecture a)
         {
-            if (a == Arch_x86 || a == Arch_x86_64) {
-                return Ptr(new InstructionDecoder_Capstone(a));
-            }
-
             // If the user decides to use Dyninst's own decoder
             switch(a)
             {
                 case Arch_x86:
                 case Arch_x86_64:
-                    return Ptr(new InstructionDecoder_x86(a));
+                    return Ptr(new InstructionDecoder_Capstone(a));
                 case Arch_ppc32:
                 case Arch_ppc64:
                     return Ptr(new InstructionDecoder_power(a));
