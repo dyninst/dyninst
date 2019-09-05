@@ -47,12 +47,12 @@ class InstructionDecoderImpl
     public:
         typedef boost::shared_ptr<InstructionDecoderImpl> Ptr;
       
-        InstructionDecoderImpl(Architecture a, DecodingBackend dbe) : m_Arch(a), m_dbe(dbe) {}
+        InstructionDecoderImpl(Architecture a) : m_Arch(a) {}
         virtual ~InstructionDecoderImpl() {}
         virtual Instruction decode(InstructionDecoder::buffer& b);
         virtual void doDelayedDecode(const Instruction* insn_to_complete) = 0;
         virtual void setMode(bool is64) = 0;
-        static Ptr makeDecoderImpl(Architecture a, DecodingBackend dbe = Capstone);
+        static Ptr makeDecoderImpl(Architecture a);
 
     protected:
       
@@ -82,7 +82,6 @@ class InstructionDecoderImpl
     protected:
         Operation m_Operation;
         Architecture m_Arch;
-        DecodingBackend m_dbe;
 };
 
 }

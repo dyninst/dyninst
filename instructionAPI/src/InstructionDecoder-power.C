@@ -97,7 +97,7 @@ namespace Dyninst
 
 
     InstructionDecoder_power::InstructionDecoder_power(Architecture a)
-      : InstructionDecoderImpl(a, DyninstInternal),
+      : InstructionDecoderImpl(a),
         insn(0), insn_in_progress(NULL),
 	isRAWritten(false), invertBranchCondition(false),
         isFPInsn(false), bcIsConditional(false)

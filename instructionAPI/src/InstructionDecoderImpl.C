@@ -60,12 +60,12 @@ namespace Dyninst
             decodeOpcode(b);
             unsigned int decodedSize = b.start - start;
 
-            return Instruction(m_Operation, decodedSize, start, m_Arch, m_dbe);
+            return Instruction(m_Operation, decodedSize, start, m_Arch);
         }
 
-        InstructionDecoderImpl::Ptr InstructionDecoderImpl::makeDecoderImpl(Architecture a, DecodingBackend dbe )
+        InstructionDecoderImpl::Ptr InstructionDecoderImpl::makeDecoderImpl(Architecture a)
         {
-            if (dbe == Capstone && (a == Arch_x86 || a == Arch_x86_64)) {
+            if (a == Arch_x86 || a == Arch_x86_64) {
                 return Ptr(new InstructionDecoder_Capstone(a));
             }
 

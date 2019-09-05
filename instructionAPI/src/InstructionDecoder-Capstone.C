@@ -21,7 +21,7 @@ dyn_tls csh InstructionDecoder_Capstone::handle_with_detail;
 
 
 InstructionDecoder_Capstone::InstructionDecoder_Capstone(Architecture a):
-    InstructionDecoderImpl(a, Capstone)
+    InstructionDecoderImpl(a)
     {}
 
 

@@ -47,11 +47,6 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
-      typedef enum {
-          DyninstInternal,
-          Capstone
-      } DecodingBackend;
-
       class InstructionDecoder;
     /// The %Instruction class is a generic instruction representation that contains operands,
     /// read/write semantic information about those operands, and information about
@@ -127,7 +122,7 @@ namespace Dyninst
       /// in the %Operation object \c what to the value computations in \c operandSource.
 
       INSTRUCTION_EXPORT Instruction(Operation what, size_t size, const unsigned char* raw,
-                                     Dyninst::Architecture arch, DecodingBackend dbe = Capstone);
+                                     Dyninst::Architecture arch);
       INSTRUCTION_EXPORT Instruction();
 
       INSTRUCTION_EXPORT virtual ~Instruction();
@@ -322,7 +317,6 @@ namespace Dyninst
       mutable std::list<CFT> m_Successors;
       static int numInsnsAllocated;
       ArchSpecificFormatter& formatter;
-      DecodingBackend dbe;
     };
   }
 }

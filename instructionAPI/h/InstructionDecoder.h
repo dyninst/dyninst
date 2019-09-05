@@ -58,8 +58,8 @@ namespace Dyninst
         static const unsigned int maxInstructionLength = 16;
       /// Construct an %InstructionDecoder object that decodes \c arch from \c buffer, up to \c size bytes.
       /// Valid values for \c arch are \c Arch_x86, \c Arch_x86_64, \c Arch_ppc32, and \c Arch_ppc64.
-      InstructionDecoder(const unsigned char* buffer, size_t size, Architecture arch, DecodingBackend be = Capstone);
-      InstructionDecoder(const void* buffer, size_t size, Architecture arch, DecodingBackend be = Capstone);
+      InstructionDecoder(const unsigned char* buffer, size_t size, Architecture arch);
+      InstructionDecoder(const void* buffer, size_t size, Architecture arch);
 
       INSTRUCTION_EXPORT ~InstructionDecoder() = default;
       INSTRUCTION_EXPORT InstructionDecoder(const InstructionDecoder& o) = default;
@@ -90,7 +90,6 @@ namespace Dyninst
         private:
             buffer m_buf;
       boost::shared_ptr<InstructionDecoderImpl> m_Impl;
-      DecodingBackend m_dbe;
     };
 
   }
