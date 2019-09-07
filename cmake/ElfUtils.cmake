@@ -28,6 +28,10 @@
 #
 #======================================================================================
 
+if(LibElf_FOUND AND LibDwarf_FOUND)
+  return()
+endif()
+
 if(NOT UNIX)
   return()
 endif()

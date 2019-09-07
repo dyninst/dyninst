@@ -46,6 +46,10 @@
 #
 #========================================================================================================
 
+if(Boost_FOUND)
+  return()
+endif()
+
 # Need at least Boost-1.61 for filesytem components
 set(_boost_min_version 1.61.0)
 
