@@ -52,7 +52,7 @@ set(Capstone_INCLUDEDIR "${Capstone_ROOT_DIR}/include"
     CACHE PATH "Hint directory that contains the capstone headers files")
 
 # Hint directory that contains the capstone library files
-set(Capstone_LIBRARYDIR "${Capstone_ROOT_DIR}/lib"
+set(Capstone_LIBRARYDIR "${Capstone_ROOT_DIR}/lib64"
     CACHE PATH "Hint directory that contains the capstone library files")
 
 # -----------------------------------------------------------------------------
