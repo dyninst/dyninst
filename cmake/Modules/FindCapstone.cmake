@@ -45,8 +45,8 @@ find_path(Capstone_INCLUDE_DIR
 
 find_library(Capstone_LIBRARIES
              NAMES ${_cs_lib_name}
-             HINTS ${Capstone_ROOT_DIR}/lib ${Capstone_ROOT_DIR}
-                   ${Capstone_LIBRARYDIR}
+             HINTS ${Capstone_ROOT_DIR} ${Capstone_LIBRARYDIR}
+                   ${Capstone_ROOT_DIR}/lib ${Capstone_ROOT_DIR}/lib64
              PATHS ${DYNINST_SYSTEM_LIBRARY_PATHS}
              PATH_SUFFIXES capstone)
 
