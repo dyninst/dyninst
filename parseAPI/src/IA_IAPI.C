@@ -283,8 +283,6 @@ bool IA_IAPI::retreat()
 
 size_t IA_IAPI::getSize() const
 {
-    if (!curInsn().isValid()) return 0;
-    if (curInsn().getOperation().getID() == e_No_Entry) return 0;
     return curInsn().size();
 }
 
