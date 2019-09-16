@@ -1744,7 +1744,7 @@ void InstructionDecoder_Capstone::decodeOperands_x86(const Instruction* insn, cs
             }
             //TODO: correctly mark implicit registers
         } else if (operand->type == X86_OP_IMM) {
-            Expression::Ptr immAST = Immediate::makeImmediate(Result(s64, operand->imm));
+            Expression::Ptr immAST = Immediate::makeImmediate(Result(s32, operand->imm));
             if (isCFT) {
                 // It looks like that Capstone automatically adjust the offset with the instruction length
                 Expression::Ptr IP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
@@ -1776,7 +1776,8 @@ void InstructionDecoder_Capstone::decodeOperands_x86(const Instruction* insn, cs
                  else
                      effectiveAddr = indexAST;
              }
-             Expression::Ptr immAST = Immediate::makeImmediate(Result(s64, mem->disp));
+             // Displacement for addressing memory. So it is unsigned
+             Expression::Ptr immAST = Immediate::makeImmediate(Result(u32, mem->disp));
              if (effectiveAddr)
                  effectiveAddr = makeAddExpression(effectiveAddr, immAST , u64);
              else
