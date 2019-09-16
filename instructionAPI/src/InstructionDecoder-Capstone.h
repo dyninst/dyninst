@@ -84,7 +84,8 @@ class InstructionDecoder_Capstone : public InstructionDecoderImpl
         void decodeOperands_ppc(const Instruction* insn, cs_detail*);
         void decodeOperands_aarch64(const Instruction* insn, cs_detail*);
 
-        MachRegister registerTranslation_x86(x86_reg);
+        MachRegister registerTranslation_x86_32(x86_reg);
+        MachRegister registerTranslation_x86_64(x86_reg);
 
         Result_Type operandSizeTranslation(uint8_t);
         bool checkCapstoneGroup(cs_detail*, uint8_t);
