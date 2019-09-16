@@ -121,6 +121,7 @@ namespace Dyninst
 
     void Instruction::decodeOperands() const
     {
+        if (!m_Valid) return;
         //m_Operands.reserve(5);
         InstructionDecoder dec(ptr(), size(), arch_decoded_from);
         dec.doDelayedDecode(this);
