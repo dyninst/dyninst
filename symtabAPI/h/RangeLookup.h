@@ -114,7 +114,7 @@ namespace Dyninst {
                     <
                             typename Value::Ptr,
                             boost::multi_index::indexed_by<
-                                    boost::multi_index::ordered_unique< boost::multi_index::tag<typename Value::addr_range>, addr_range_key>,
+                                    boost::multi_index::ordered_non_unique< boost::multi_index::tag<typename Value::addr_range>, addr_range_key>,
                                     boost::multi_index::ordered_non_unique< boost::multi_index::tag<typename Value::upper_bound>, upper_bound_key>,
                                     boost::multi_index::ordered_non_unique< boost::multi_index::tag<typename Value::line_info>, line_info_key >
                             >
@@ -131,3 +131,4 @@ namespace Dyninst {
     }
 }
 #endif
+
