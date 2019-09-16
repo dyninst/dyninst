@@ -65,6 +65,7 @@ class InstructionDecoder_Capstone : public InstructionDecoderImpl
 
     private:
         static dyn_tls bool handle_init;
+        static dyn_tls Architecture current_arch;
         static dyn_tls cs_insn* capstone_ins_no_detail;
         static dyn_tls cs_insn* capstone_ins_with_detail;
         static dyn_tls csh handle_no_detail;

@@ -12,6 +12,7 @@ namespace InstructionAPI {
 
 /**************  Architecture independent functions  **********************/
 dyn_tls bool InstructionDecoder_Capstone::handle_init = false;
+dyn_tls Architecture InstructionDecoder_Capstone::current_arch = Arch_none;
 dyn_tls std::map<std::string, std::string>* InstructionDecoder_Capstone::opcode_alias = nullptr;
 dyn_tls dyn_hash_map<entryID, std::string>* InstructionDecoder_Capstone::opcode_str = nullptr;
 dyn_tls cs_insn* InstructionDecoder_Capstone::capstone_ins_no_detail = nullptr;
@@ -26,13 +27,24 @@ InstructionDecoder_Capstone::InstructionDecoder_Capstone(Architecture a):
 
 
 bool InstructionDecoder_Capstone::openCapstoneHandle() {
-    if (handle_init) return true;
+    if (handle_init && m_Arch == current_arch) return true;
+
+    if (!handle_init) {
+        // The first time of performing decoding
+        initializeOpcodeData();
+    }
+    if (handle_init && m_Arch != current_arch) {
+        // We now switch to decode instructions for a different architecture,
+        // release previous decodign resources
+        cs_free(capstone_ins_no_detail, 1);
+        cs_free(capstone_ins_with_detail, 1);
+        cs_close(&handle_no_detail);
+        cs_close(&handle_with_detail);
+    }    
+
     cs_err ret1, ret2;    
     handle_init = true;
-
-    initializeOpcodeData();
-
-
+    current_arch = m_Arch;
 
     switch (m_Arch) {
         case Arch_x86: 
