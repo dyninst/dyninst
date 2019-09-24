@@ -104,6 +104,12 @@ else()
     message(FATAL_ERROR "Building TBB from source is not supported on this platform")
   endif()
   
+  if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+  	if(${_tbb_download_version} VERSION_LESS "2019.7")
+  		message(FATAL_ERROR "Building TBB from source with clang requires TBB 2019.7 or newer")
+  	endif()
+  endif()
+  
   # Forcibly update the cache variables
   set(TBB_ROOT_DIR ${CMAKE_INSTALL_PREFIX} CACHE PATH "TBB root directory" FORCE)
   set(TBB_INCLUDE_DIRS ${TBB_ROOT_DIR}/include CACHE PATH "TBB include directory" FORCE)
