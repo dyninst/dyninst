@@ -72,6 +72,7 @@ else()
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND
       CFLAGS=-fPIC
+      CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
       <SOURCE_DIR>/configure --prefix=${CMAKE_BINARY_DIR}/binutils
     BUILD_COMMAND make
     INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/lib/libiberty

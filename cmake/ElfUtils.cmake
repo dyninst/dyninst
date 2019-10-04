@@ -99,6 +99,10 @@ else()
   message(STATUS "${ElfUtils_ERROR_REASON}")
   message( STATUS "Attempting to build elfutils(${_elfutils_download_version}) as external project")
   
+  if(NOT (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU") OR NOT (${CMAKE_C_COMPILER_ID} STREQUAL "GNU"))
+    message(FATAL_ERROR "ElfUtils will only build with the GNU compiler")
+  endif()
+  
   include(ExternalProject)
   externalproject_add(
     ElfUtils
@@ -107,6 +111,7 @@ else()
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND
       CFLAGS=-g
+      CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
       <SOURCE_DIR>/configure
       --enable-install-elfh
       --prefix=${CMAKE_INSTALL_PREFIX}

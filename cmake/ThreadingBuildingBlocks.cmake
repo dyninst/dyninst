@@ -108,6 +108,12 @@ else()
     message(FATAL_ERROR "Building TBB from source is not supported on this platform")
   endif()
   
+  if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+  	if(${_tbb_download_version} VERSION_LESS "2019.7")
+  		message(FATAL_ERROR "Building TBB from source with clang requires TBB 2019.7 or newer")
+  	endif()
+  endif()
+  
   # Forcibly update the cache variables
   set(TBB_ROOT_DIR ${CMAKE_INSTALL_PREFIX} CACHE PATH "TBB root directory" FORCE)
   set(TBB_INCLUDE_DIRS ${TBB_ROOT_DIR}/include CACHE PATH "TBB include directory" FORCE)
@@ -143,6 +149,15 @@ else()
   
   include(ExternalProject)
   set(_tbb_prefix_dir ${CMAKE_BINARY_DIR}/tbb)
+
+  # Set the compiler for TBB
+  # It assumes gcc and tests for Intel, so clang is the only
+  # one that needs special treatment.
+  set(_tbb_compiler "")
+  if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+  	set(_tbb_compiler "clang")
+  endif()
+  
   ExternalProject_Add(
     TBB
     PREFIX ${_tbb_prefix_dir}
@@ -150,10 +165,12 @@ else()
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ""
     BUILD_COMMAND
+      CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
       $(MAKE) -C src
       ${_tbb_components_cfg}
       tbb_build_dir=${_tbb_prefix_dir}/src
       tbb_build_prefix=tbb
+      compiler=${_tbb_compiler}
     INSTALL_COMMAND
       ${CMAKE_COMMAND}
       	-DLIBDIR=${TBB_LIBRARY_DIRS}
