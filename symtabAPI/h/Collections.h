@@ -145,7 +145,7 @@ public:
     boost::shared_ptr<Type>>::type addOrUpdateType(boost::shared_ptr<T> type);
     template<class T>
     T* addOrUpdateType(T* t) {
-      return &dynamic_cast<T&>(*addOrUpdateType(t->reshare()));
+      return &dynamic_cast<T&>(*addOrUpdateType(boost::dynamic_pointer_cast<T>(t->reshare())));
     }
 
     boost::shared_ptr<Type> findVariableType(std::string &name, Type::do_share_t);

@@ -1339,8 +1339,7 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
                             char *stabstr, unsigned int sizeHint = 0)
 {
     int cnt, i, symdescID;
-    Type *baseType;
-    Type *newType;
+    boost::shared_ptr<Type> baseType;
 
     cnt = i = 0;
 
@@ -1351,7 +1350,7 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
     symdescID = parseSymDesc(stabstr, cnt);
 
 	typeCollection *tc = typeCollection::getModTypeCollection(mod);
-    baseType = tc->findType(symdescID);
+    baseType = tc->findType(symdescID, Type::share);
 
     // //bperr("\tSymbol Descriptor: %c and Value: %d\n",tmpchar, symdescID);
 
@@ -1391,6 +1390,7 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
 	if ( j <= 0 )
 	{
 		/* range */
+                boost::shared_ptr<typeSubrange> newType;
 
 		// //bperr("\tLower limit: %s and Upper limit: %s\n", low, hi);
 		//Create new type
@@ -1420,15 +1420,15 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
 
 		if (baseType == NULL) 
 		{
-			newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : guessSize(low,hi), 
+			newType = Type::make_shared<typeSubrange>(ID, sizeHint ? sizeHint / 8 : guessSize(low,hi), 
 					low_conv, hi_conv, tname);
 		}
 		else 
 		{
-			newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), 
+			newType = Type::make_shared<typeSubrange>(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), 
 					low_conv, hi_conv, tname);
 		}
-		newType = tc->addOrUpdateType((typeSubrange *) newType);
+		tc->addOrUpdateType(newType);
 	} 
 	else if( j > 0)
 	{
@@ -1441,13 +1441,13 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
 			// //bperr("\tSize of Type : %d bytes\n",size);
 			//Create new type
 
-			newType = new typeScalar(ID, size, convertCharToString(name));
 			//Add to Collection
-			newType = tc->addOrUpdateType((typeScalar *) newType);
+			tc->addOrUpdateType(Type::make_shared<typeScalar>(ID, size, convertCharToString(name)));
 		} 
 		else 
 		{
 			/* range */
+                        boost::shared_ptr<typeSubrange> newType;
 			// //bperr("Type RANGE: ERROR!!\n");
 			errno = 0;
 			long low_conv = strtol(low, NULL, 10);
@@ -1464,12 +1464,12 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
 			}
 
 			if (baseType == NULL)
-				newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : sizeof(long), 
+				newType = Type::make_shared<typeSubrange>(ID, sizeHint ? sizeHint / 8 : sizeof(long), 
 						low_conv, hi_conv, tname);
 			else
-				newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), 
+				newType = Type::make_shared<typeSubrange>(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), 
 						low_conv, hi_conv, tname);
-			newType = tc->addOrUpdateType((typeSubrange *) newType);
+			tc->addOrUpdateType(newType);
         }	
     }
     free(low);
