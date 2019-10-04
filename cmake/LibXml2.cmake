@@ -1,1 +1,0 @@
-../../testsuite/cmake/LibXml2.cmake
