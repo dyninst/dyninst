@@ -195,7 +195,6 @@ std::string to_str(EdgeState e)
 
 void
 CFGFactory::destroy_edge(Edge *e, Dyninst::ParseAPI::EdgeState reason) {
-    boost::lock_guard<CFGFactory> g(*this);
     e->remove();
     if(reason == destroyed_all) {
         free_edge(e);
@@ -209,7 +208,6 @@ CFGFactory::free_edge(Edge *e) {
 
 void
 CFGFactory::destroy_all() {
-    boost::lock_guard<CFGFactory> g(*this);
     // XXX carefully calling free_* routines; could be faster and just
     // call delete
 
