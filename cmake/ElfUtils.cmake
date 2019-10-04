@@ -95,7 +95,7 @@ else()
   message(STATUS "${ElfUtils_ERROR_REASON}")
   message( STATUS "Attempting to build elfutils(${_elfutils_download_version}) as external project")
   
-  if(NOT (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU"))
+  if(NOT (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU") OR NOT (${CMAKE_C_COMPILER_ID} STREQUAL "GNU"))
     message(FATAL_ERROR "ElfUtils will only build with the GNU compiler")
   endif()
   
