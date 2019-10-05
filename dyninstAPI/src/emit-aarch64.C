@@ -274,9 +274,9 @@ void EmitterAARCH64::emitLoadOrigRegister(Address register_num, Register destina
    registerSlot *dest = (*gen.rs())[destination];
    assert(dest);
 
-   if (register_num == REG_SP) {
+   if (src->name == "sp") {
       insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0,
-             TRAMP_FRAME_SIZE_64, destination, REG_SP, true);
+             TRAMP_FRAME_SIZE_64, REG_SP, destination, true);
 
       return;
    }
@@ -284,7 +284,7 @@ void EmitterAARCH64::emitLoadOrigRegister(Address register_num, Register destina
    if (src->spilledState == registerSlot::unspilled)
    {
       // not on the stack. Directly move the value
-      emitMoveRegToReg((Register) register_num, destination, gen);
+      insnCodeGen::generateMove(gen, destination, (Register) register_num, true);
       return;
    }
 
