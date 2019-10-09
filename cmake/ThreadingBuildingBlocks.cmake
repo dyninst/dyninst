@@ -143,9 +143,8 @@ else()
   # Set the compiler for TBB
   # It assumes gcc and tests for Intel, so clang is the only
   # one that needs special treatment.
-  set(_tbb_compiler "")
   if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-  	set(_tbb_compiler "clang")
+  	set(_tbb_compiler "compiler=clang")
   endif()
   
   ExternalProject_Add(
@@ -160,7 +159,7 @@ else()
       ${_tbb_components_cfg}
       tbb_build_dir=${_tbb_prefix_dir}/src
       tbb_build_prefix=tbb
-      compiler=${_tbb_compiler}
+      ${_tbb_compiler}
     INSTALL_COMMAND
       ${CMAKE_COMMAND}
       	-DLIBDIR=${TBB_LIBRARY_DIRS}
