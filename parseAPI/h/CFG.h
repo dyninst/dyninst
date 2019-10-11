@@ -405,7 +405,6 @@ private:
 
  friend class Edge;
  friend class Function;
- friend class Parser;
  friend class CFGFactory;
 };
 
