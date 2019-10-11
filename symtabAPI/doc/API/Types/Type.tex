@@ -208,7 +208,7 @@ This class represents a function type, containing a list of parameters and a ret
 static typeFunction *create(string &name,
                             Type *retType, 
                             vector<Type *> &paramTypes,
-                            Symtab *obj = \code{NULL})
+                            Symtab *obj = NULL)
 \end{apient}
 \apidesc{
 This factory method creates a new function type with name \code{name}. \code{retType} represents the return type of the function and \code{paramTypes} is a vector of the types of the parameters in order. 
