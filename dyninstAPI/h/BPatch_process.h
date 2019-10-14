@@ -476,6 +476,8 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
 
   virtual BPatch_object * loadLibrary(const char *libname, bool reload = false);
 
+  bool supportsUserThreadEvents();
+
 };
 
 #endif /* BPatch_process_h_ */

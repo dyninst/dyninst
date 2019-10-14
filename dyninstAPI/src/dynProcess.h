@@ -309,6 +309,7 @@ public:
                       Address,
                       func_instance *, 
                       Address);
+    bool supportsUserThreadEvents(); 
 
 protected:
     typedef enum {

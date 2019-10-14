@@ -3269,6 +3269,10 @@ void PCProcess::invalidateMTCache() {
     mt_cache_result_ = not_cached;
 }
 
+bool PCProcess::supportsUserThreadEvents() {
+    if (!pcProc_) return false;
+    return pcProc_->supportsUserThreadEvents();
+}
 
 StackwalkSymLookup::StackwalkSymLookup(PCProcess *p)
   : proc_(p)
