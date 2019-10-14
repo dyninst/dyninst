@@ -25,7 +25,7 @@ if(PLATFORM MATCHES "bgq")
   message(WARNING "Support for Bluegene/Q has been deprecated and will be removed in a future release")
 endif()
 
-find_package(ThreadDB)
+find_package(ThreadDB REQUIRED)
 find_package(Threads)
 include(Boost)
 include(ThreadingBuildingBlocks)
