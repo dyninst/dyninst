@@ -17,20 +17,19 @@ set(RT_BINARY_DIR ${PROJECT_BINARY_DIR}/dyninstAPI_RT)
 
 set (CMAKE_MODULE_PATH "${DYNINST_ROOT}/cmake" "${DYNINST_ROOT}/cmake/Modules" ${CMAKE_MODULE_PATH})
 
-# This needs to be done first to set the global compiler flags
-include(shared)
-
-# PLATFORM is set by including 'shared'
-if(PLATFORM MATCHES "bgq")
-  message(WARNING "Support for Bluegene/Q has been deprecated and will be removed in a future release")
-endif()
-
 find_package(ThreadDB)
 find_package(Threads)
 include(Boost)
 include(ThreadingBuildingBlocks)
 include(ElfUtils)
 include(LibIberty)
+
+include(shared)
+
+# PLATFORM is set by including 'shared'
+if(PLATFORM MATCHES "bgq")
+  message(WARNING "Support for Bluegene/Q has been deprecated and will be removed in a future release")
+endif()
 
 configure_file(cmake/version.h.in common/h/dyninstversion.h)
 include_directories(${PROJECT_BINARY_DIR})
