@@ -600,8 +600,6 @@ Register EmitterAARCH64::emitCall(opCode op,
                                   bool noCost,
                                   func_instance *callee) 
 {
-    //#sasha This function implementation is experimental.
-
     if (op != callOp) {
         cerr << "ERROR: emitCall with op == " << op << endl;
     }
@@ -622,7 +620,6 @@ Register EmitterAARCH64::emitCall(opCode op,
 
     vector<int> savedRegs;
 
-    // save r0-r7
     for(size_t id = 0; id < gen.rs()->numGPRs(); id++)
     {
         registerSlot *reg = gen.rs()->GPRs()[id];
@@ -645,6 +642,8 @@ Register EmitterAARCH64::emitCall(opCode op,
     {
         Register reg = REG_NULL;
         if (gen.rs()->allocateSpecificRegister(gen, registerSpace::r0 + id, true))
+            reg = registerSpace::r0 + id;
+        if(reg==REG_NULL)
             reg = registerSpace::r0 + id;
 
         Address unnecessary = ADDR_NULL;
@@ -689,7 +688,6 @@ Register EmitterAARCH64::emitCall(opCode op,
      * Restoring registers
      */
 
-    // r7-r0
     for (signed int ui = savedRegs.size()-1; ui >= 0; ui--) {
         insnCodeGen::restoreRegister(gen, registerSpace::r0 + savedRegs[ui],
                 2*GPRSIZE_64, insnCodeGen::Post);
