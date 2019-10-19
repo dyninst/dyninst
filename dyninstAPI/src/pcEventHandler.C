@@ -583,6 +583,11 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
     // the RT library, assume it did not.
     
     if( evProc->runtime_lib.size() == 0 ) return NotRTSignal;
+    if (ev->getSignal() != DYNINST_BREAKPOINT_SIGNUM) {
+            proccontrol_printf("%s[%d]: signal %d is not RT library signal\n",
+                    FILE__, __LINE__, ev->getSignal());
+            return NotRTSignal;
+    }
 
     Address sync_event_breakpoint_addr = evProc->getRTEventBreakpointAddr();
     Address sync_event_id_addr = evProc->getRTEventIdAddr();
