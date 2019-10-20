@@ -201,8 +201,13 @@ unsigned int MachRegister::size() const {
           return 16;
         return 8;
       case Arch_aarch32:
+        {
+          assert(0);
+        }
       case Arch_cuda:
-        assert(0);
+        {
+          return 8;
+        }
       case Arch_aarch64:
 		if((reg & 0x00ff0000) == aarch64::FPR)
 		{
