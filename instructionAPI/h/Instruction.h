@@ -293,8 +293,8 @@ namespace Dyninst
       typedef boost::shared_ptr<Instruction> Ptr;
 	public:
 	  //Should be private, but we're working around some compilers mis-using the 'friend' declaration.
-      void appendOperand(Expression::Ptr e, bool isRead, bool isWritten) const;
-      void appendOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit) const;
+      INSTRUCTION_EXPORT void appendOperand(Expression::Ptr e, bool isRead, bool isWritten) const;
+      INSTRUCTION_EXPORT void appendOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isImplicit) const;
     private:
       void decodeOperands() const;
       void addSuccessor(Expression::Ptr e, bool isCall, bool isIndirect, bool isConditional, bool isFallthrough) const;
