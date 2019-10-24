@@ -1042,15 +1042,6 @@ void BPatch_addressSpace::init_registers()
         }
     }
 #endif
-    // add sp to be available too
-#if defined(arch_aarch64)
-    for (unsigned i = 0; i < rs->SPRs().size(); ++i) {
-        if (rs->SPRs()[i]->name == "sp") {
-            registers_.push_back(BPatch_register(rs->SPRs()[i]->name,
-                        rs->SPRs()[i]->number));
-        }
-    }
-#endif
 }
 
 bool BPatch_addressSpace::getRegisters(std::vector<BPatch_register> &regs) {

@@ -105,10 +105,7 @@ public:
 
     virtual void emitStoreOrigRegister(Address, Register, codeGen &) { assert(0); }
 
-    virtual bool emitMoveRegToReg(Register, Register, codeGen &) {
-        assert(0);
-        return 0;
-    }
+    virtual bool emitMoveRegToReg(Register, Register, codeGen &);
 
     virtual bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen);
 

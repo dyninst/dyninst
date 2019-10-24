@@ -106,10 +106,12 @@ void registerSpace::initialize64() {
     //Mark r29 (frame pointer) and r30 (link register) as off-limits
     registers.push_back(new registerSlot(r29, "r29", true, registerSlot::liveAlways, registerSlot::GPR));
     registers.push_back(new registerSlot(r30, "r30", true, registerSlot::liveAlways, registerSlot::GPR));
+    // SP is r31, but also could be considered special. But now it's being added as GPR
+    registers.push_back(new registerSlot(sp, "r31", true, registerSlot::liveAlways, registerSlot::GPR));
 
     //SPRs
     registers.push_back(new registerSlot(lr, "lr", true, registerSlot::liveAlways, registerSlot::SPR));
-    registers.push_back(new registerSlot(sp, "sp", true, registerSlot::liveAlways, registerSlot::SPR));
+    //registers.push_back(new registerSlot(sp, "sp", true, registerSlot::liveAlways, registerSlot::SPR));
     registers.push_back(new registerSlot(pstate, "nzcv", true, registerSlot::liveAlways, registerSlot::SPR));
     registers.push_back(new registerSlot(fpcr, "fpcr", true, registerSlot::liveAlways, registerSlot::SPR));
     registers.push_back(new registerSlot(fpsr, "fpsr", true, registerSlot::liveAlways, registerSlot::SPR));
@@ -181,13 +183,20 @@ unsigned EmitterAARCH64SaveRegs::saveGPRegisters(
 
     for(unsigned int idx = 0; idx < numReqGPRs; idx++) {
         registerSlot *reg = theRegSpace->GPRs()[idx];
-	// We always save FP and LR for stack walking out of instrumentation
-        if (reg->liveState == registerSlot::live || reg->number == REG_FP || reg->number == REG_LR) {
+        // We always save FP and LR for stack walking out of instrumentation
+        //if (reg->liveState == registerSlot::live || reg->number == REG_FP || reg->number == REG_LR) {
             int offset_from_sp = offset + (reg->encoding() * gen.width());
-            insnCodeGen::saveRegister(gen, reg->number, offset_from_sp);
+            if(reg->number != registerSpace::sp)
+                insnCodeGen::saveRegister(gen, reg->number, offset_from_sp);
+            else{
+                // mov SP to x0
+                insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0,
+                        TRAMP_FRAME_SIZE_64, REG_SP, 0, true);
+                insnCodeGen::saveRegister(gen, 0, offset_from_sp);
+            }
             theRegSpace->markSavedRegister(reg->number, offset_from_sp);
             ret++;
-        }
+        //}
     }
 
     return ret;
@@ -281,6 +290,8 @@ unsigned EmitterAARCH64RestoreRegs::restoreGPRegisters(
         registerSlot *reg = theRegSpace->GPRs()[idx];
 
         if(reg->liveState == registerSlot::spilled) {
+            if(reg->number == registerSpace::sp)
+                continue;
             //#sasha this should be GPRSIZE_64 and not gen.width
             int offset_from_sp = offset + (reg->encoding() * gen.width());
             insnCodeGen::restoreRegister(gen, reg->number, offset_from_sp);
@@ -619,7 +630,6 @@ Register EmitterAARCH64::emitCall(opCode op,
     }
 
     vector<int> savedRegs;
-
     for(size_t id = 0; id < gen.rs()->numGPRs(); id++)
     {
         registerSlot *reg = gen.rs()->GPRs()[id];
@@ -643,13 +653,15 @@ Register EmitterAARCH64::emitCall(opCode op,
         Register reg = REG_NULL;
         if (gen.rs()->allocateSpecificRegister(gen, registerSpace::r0 + id, true))
             reg = registerSpace::r0 + id;
-        if(reg==REG_NULL)
-            reg = registerSpace::r0 + id;
 
         Address unnecessary = ADDR_NULL;
         if (!operands[id]->generateCode_phase2(gen, false, unnecessary, reg))
             assert(0);
         assert(reg!=REG_NULL);
+
+        // mark reg offLimits so getScratchRegister won't use it
+        registerSlot *regS = gen.rs()->GPRs()[id];
+        regS->offLimits = true;
     }
 
     assert(gen.rs());
@@ -691,6 +703,13 @@ Register EmitterAARCH64::emitCall(opCode op,
     for (signed int ui = savedRegs.size()-1; ui >= 0; ui--) {
         insnCodeGen::restoreRegister(gen, registerSpace::r0 + savedRegs[ui],
                 2*GPRSIZE_64, insnCodeGen::Post);
+    }
+
+    // Making operand's reg not offLimits again
+    for(size_t id = 0; id < operands.size(); id++)
+    {
+        registerSlot *reg = gen.rs()->GPRs()[id];
+        reg->offLimits = false;
     }
 
     return 0;

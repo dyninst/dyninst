@@ -274,13 +274,6 @@ void EmitterAARCH64::emitLoadOrigRegister(Address register_num, Register destina
    registerSlot *dest = (*gen.rs())[destination];
    assert(dest);
 
-   if (register_num == REG_SP) {
-      insnCodeGen::generateAddSubImmediate(gen, insnCodeGen::Add, 0,
-             TRAMP_FRAME_SIZE_64, destination, REG_SP, true);
-
-      return;
-   }
-
    if (src->spilledState == registerSlot::unspilled)
    {
       // not on the stack. Directly move the value
@@ -291,8 +284,14 @@ void EmitterAARCH64::emitLoadOrigRegister(Address register_num, Register destina
 
     int offset = TRAMP_GPR_OFFSET(gen.width());
     // its on the stack so load it.
-    insnCodeGen::restoreRegister(gen, destination, offset + (register_num * gen.width()),
+    insnCodeGen::restoreRegister(gen, destination, offset + (src->encoding() * gen.width()),
             insnCodeGen::Offset);
 }
 
+
+bool EmitterAARCH64::emitMoveRegToReg(Register src, Register dest, codeGen &gen)
+{
+    insnCodeGen::generateMove(gen, dest, src);
+    return true;
+}
 
