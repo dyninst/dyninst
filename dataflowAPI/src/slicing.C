@@ -1349,13 +1349,10 @@ bool containsRet(ParseAPI::Block *block) {
 
 static void getInsnInstances(ParseAPI::Block *block,
 		      Slicer::InsnVec &insns) {
-  Offset off = block->start();
-  const unsigned char *ptr = (const unsigned char *)block->region()->getPtrToInstruction(off);
-  if (ptr == NULL) return;
-  InstructionDecoder d(ptr, block->size(), block->obj()->cs()->getArch());
-  while (off < block->end()) {
-    insns.push_back(std::make_pair(d.decode(), off));
-    off += insns.back().first.size();
+  ParseAPI::Block::Insns bi;
+  block->getInsns(bi);
+  for (auto iit = bi.begin(); iit != bi.end(); ++iit) {
+    insns.push_back(std::make_pair(iit->second, iit->first));
   }
 }
 
