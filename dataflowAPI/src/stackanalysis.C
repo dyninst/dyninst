@@ -1287,7 +1287,6 @@ void StackAnalysis::handleDiv(Instruction insn,
                               TransferFuncs &xferFuncs) {
    std::vector<Operand> operands;
    insn.getOperands(operands);
-   STACKANALYSIS_ASSERT(operands.size() == 3);
 
    Expression::Ptr quotient = operands[1].getValue();
    Expression::Ptr remainder = operands[2].getValue();
@@ -1322,18 +1321,30 @@ void StackAnalysis::handleMul(Instruction insn,
    insn.getOperands(operands);
    STACKANALYSIS_ASSERT(operands.size() == 2 || operands.size() == 3);
 
-   Expression::Ptr target = operands[0].getValue();
-   STACKANALYSIS_ASSERT(dynamic_cast<RegisterAST*>(target.get()));
-   MachRegister targetReg = (boost::dynamic_pointer_cast<InstructionAPI::
-      RegisterAST>(target))->getID();
-
    if (operands.size() == 2) {
       // Form 1
+      Expression::Ptr target = operands[0].getValue();
+      STACKANALYSIS_ASSERT(dynamic_cast<RegisterAST*>(target.get()));
+      MachRegister targetReg = (boost::dynamic_pointer_cast<InstructionAPI::
+              RegisterAST>(target))->getID();
       xferFuncs.push_back(TransferFunc::retopFunc(Absloc(targetReg)));
       retopBaseSubReg(targetReg, xferFuncs);
    } else {
-      Expression::Ptr multiplicand = operands[1].getValue();
-      Expression::Ptr multiplier = operands[2].getValue();
+      Expression::Ptr multiplicand;
+      Expression::Ptr multiplier;
+      Expression::Ptr target;
+      if (operands[0].isWritten()) {
+          target = operands[0].getValue();
+          multiplicand = operands[1].getValue();
+          multiplier = operands[2].getValue();
+      } else {
+          multiplier = operands[0].getValue();
+          multiplicand = operands[1].getValue();
+          target = operands[2].getValue();
+      }
+      STACKANALYSIS_ASSERT(dynamic_cast<RegisterAST*>(target.get()));
+      MachRegister targetReg = (boost::dynamic_pointer_cast<InstructionAPI::
+              RegisterAST>(target))->getID();
 
       if (dynamic_cast<Immediate*>(multiplier.get())) {
          // Form 2
