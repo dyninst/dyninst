@@ -46,10 +46,14 @@ void InstructionDecoder_Capstone::decodeOperands_x86(const Instruction* insn, cs
                 assert(!isConditional);
                 insn->addSuccessor(regAST, isCall, true, false, false);
             } else {
-                insn->appendOperand(regAST, 
-                        (operand->access & CS_AC_READ) != 0,
-                        (operand->access & CS_AC_WRITE) != 0, 
-                        false);
+                // Capstone may report register operands as neither read nor written.
+                // In this case, we mark it as both read and written to be conservative.
+                bool isRead = ((operand->access & CS_AC_READ) != 0);
+                bool isWritten = ((operand->access & CS_AC_WRITE) != 0);
+                if (!isRead && !isWritten) {
+                    isRead = isWritten = true;
+                }
+                insn->appendOperand(regAST, isRead, isWritten, false); 
             }
             //TODO: correctly mark implicit registers
         } else if (operand->type == X86_OP_IMM) {
@@ -104,10 +108,14 @@ void InstructionDecoder_Capstone::decodeOperands_x86(const Instruction* insn, cs
                  assert(!isConditional);
                  insn->addSuccessor(memAST, isCall, true, false, false);
              } else {
-                 insn->appendOperand(memAST, 
-                         (operand->access & CS_AC_READ) != 0,
-                         (operand->access & CS_AC_WRITE) != 0, 
-                         false);
+                // Capstone may report register operands as neither read nor written.
+                // In this case, we mark it as both read and written to be conservative.
+                bool isRead = ((operand->access & CS_AC_READ) != 0);
+                bool isWritten = ((operand->access & CS_AC_WRITE) != 0);
+                if (!isRead && !isWritten) {
+                    isRead = isWritten = true;
+                }
+                insn->appendOperand(memAST, isRead, isWritten, false); 
              }
         } else {
             fprintf(stderr, "Unhandled capstone operand type %d\n", operand->type);
