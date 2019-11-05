@@ -88,19 +88,13 @@ protected:
     bool handleBreakpoint(ProcControlAPI::EventBreakpoint::const_ptr ev, PCProcess *evProc) const;
     bool handleRPC(ProcControlAPI::EventRPC::const_ptr ev, PCProcess *evProc) const;
 
-    enum RTSignalResult {
-        ErrorInDecoding,
-        NotRTSignal,
-        IsRTSignal
-    };
-
     enum RTBreakpointVal {
         NoRTBreakpoint,
         NormalRTBreakpoint,
         SoftRTBreakpoint
     };
 
-    RTSignalResult handleRTSignal(ProcControlAPI::EventSignal::const_ptr ev, PCProcess *evProc) const;
+    bool handleRTBreakpoint(ProcControlAPI::EventBreakpoint::const_ptr ev, PCProcess *evProc) const;
     bool handleStopThread(PCProcess *evProc, Address rt_arg) const;
     bool handleUserMessage(PCProcess *evProc, BPatch_process *bpProc, Address rt_arg) const;
     bool handleDynFuncCall(PCProcess *evProc, BPatch_process *bpProc, Address rt_arg) const;
