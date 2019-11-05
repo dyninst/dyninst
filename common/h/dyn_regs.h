@@ -1820,6 +1820,10 @@ namespace Dyninst
     DEF_REGISTER(r253,    253 | GPR| Arch_cuda, "cuda");
     DEF_REGISTER(r254,    254 | GPR| Arch_cuda, "cuda");
     DEF_REGISTER(r255,    255 | GPR| Arch_cuda, "cuda");
+
+    // Placeholder for a pc register, so that we don't assert
+    DEF_REGISTER(pc,    256 | GPR| Arch_cuda, "cuda");
+
   } //end of cuda namespace
 }
 
