@@ -5,5 +5,5 @@ if (USE_OpenMP MATCHES "ON")
 set_target_properties (parseThat PROPERTIES LINK_FLAGS "-fopenmp")
 endif()
 
-target_link_private_libraries(parseThat dyninstAPI patchAPI parseAPI instructionAPI stackwalk symtabAPI common pcontrol dynDwarf dynElf ${Boost_LIBRARIES})
+target_link_private_libraries(parseThat dyninstAPI patchAPI parseAPI instructionAPI stackwalk symtabAPI common pcontrol dynDwarf dynElf ${Boost_LIBRARIES} ${ElfUtils_LIBRARIES})
 install(TARGETS parseThat RUNTIME DESTINATION bin)
