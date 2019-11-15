@@ -8,11 +8,11 @@ add_executable(unstrip unstrip.dir/unstrip.C
                        unstrip.dir/fingerprint.C
                        unstrip.dir/callback.C)
 add_dependencies(unstrip parseAPI symtabAPI instructionAPI common)
-target_link_libraries(unstrip parseAPI symtabAPI instructionAPI common dynDwarf dynElf ${Boost_LIBRARIES})
+target_link_libraries(unstrip parseAPI symtabAPI instructionAPI common dynDwarf dynElf ${Boost_LIBRARIES} ${ElfUtils_LIBRARIES})
 
 add_executable(codeCoverage codeCoverage.dir/codeCoverage.C)
 add_dependencies(codeCoverage dyninstAPI patchAPI parseAPI symtabAPI instructionAPI pcontrol common stackwalk dynDwarf dynElf)
-target_link_libraries(codeCoverage dyninstAPI patchAPI parseAPI symtabAPI instructionAPI pcontrol common stackwalk dynDwarf dynElf ${Boost_LIBRARIES})
+target_link_libraries(codeCoverage dyninstAPI patchAPI parseAPI symtabAPI instructionAPI pcontrol common stackwalk dynDwarf dynElf ${Boost_LIBRARIES} ${ElfUtils_LIBRARIES})
 
 add_library(Inst SHARED codeCoverage.dir/libInst.C)
 if(TARGET TBB)
@@ -21,7 +21,7 @@ endif()
 
 add_executable(cfg_to_dot ../parseAPI/doc/example.cc)
 add_dependencies(cfg_to_dot parseAPI symtabAPI instructionAPI common dynDwarf dynElf)
-target_link_libraries(cfg_to_dot parseAPI symtabAPI instructionAPI common dynDwarf dynElf ${Boost_LIBRARIES})
+target_link_libraries(cfg_to_dot parseAPI symtabAPI instructionAPI common dynDwarf dynElf ${Boost_LIBRARIES} ${ElfUtils_LIBRARIES})
 #add_executable(retee)
 
 if (USE_OpenMP MATCHES "ON")
