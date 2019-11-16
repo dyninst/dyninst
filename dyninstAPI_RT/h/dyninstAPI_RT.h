@@ -51,7 +51,7 @@
 #define SYN_INST_BUF_SIZE (1024*1024*1)
 #endif
 
-#define DYNINST_BREAKPOINT_SIGNUM SIGBUS
+#define DYNINST_BREAKPOINT_SIGNUM (SIGRTMIN+4)
 
 #include <stdio.h>
 #include "dyninstRTExport.h"

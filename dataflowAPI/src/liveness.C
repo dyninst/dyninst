@@ -567,6 +567,9 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction curInsn, Block *blk, Addr
       if (curInsn.getOperation().getID() == power_op_svcs) {
 	isSyscall = true;
       }
+      if (curInsn.getOperation().getID() == aarch64_op_svc) {
+          isSyscall = true;
+      }
       if (isInterrupt || isSyscall) {
 	ret.read |= (abi->getSyscallReadRegisters());
 	ret.written |= (abi->getSyscallWrittenRegisters());

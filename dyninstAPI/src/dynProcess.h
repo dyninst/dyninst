@@ -354,6 +354,7 @@ protected:
           sync_event_arg2_addr_(0),
           sync_event_arg3_addr_(0),
           sync_event_breakpoint_addr_(0),
+          rt_trap_func_addr_(0),
        thread_hash_tids(0),
        thread_hash_indices(0),
        thread_hash_size(0),
@@ -394,6 +395,7 @@ protected:
           sync_event_arg2_addr_(0),
           sync_event_arg3_addr_(0),
           sync_event_breakpoint_addr_(0),
+          rt_trap_func_addr_(0),
        thread_hash_tids(0),
        thread_hash_indices(0),
        thread_hash_size(0),
@@ -437,6 +439,7 @@ protected:
           sync_event_arg2_addr_(parent->sync_event_arg2_addr_),
           sync_event_arg3_addr_(parent->sync_event_arg3_addr_),
           sync_event_breakpoint_addr_(parent->sync_event_breakpoint_addr_),
+          rt_trap_func_addr_(parent->rt_trap_func_addr_),
        thread_hash_tids(parent->thread_hash_tids),
        thread_hash_indices(parent->thread_hash_indices),
        thread_hash_size(parent->thread_hash_size),
@@ -488,6 +491,7 @@ protected:
     Address getRTEventArg1Addr();
     Address getRTEventArg2Addr();
     Address getRTEventArg3Addr();
+    Address getRTTrapFuncAddr();
 
     // Shared library managment
     void addASharedObject(mapped_object *newObj);
@@ -593,6 +597,7 @@ protected:
     Address sync_event_arg2_addr_;
     Address sync_event_arg3_addr_;
     Address sync_event_breakpoint_addr_;
+    Address rt_trap_func_addr_;
     Address thread_hash_tids;
     Address thread_hash_indices;
     int thread_hash_size;
