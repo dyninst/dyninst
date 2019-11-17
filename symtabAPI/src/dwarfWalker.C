@@ -892,6 +892,15 @@ bool DwarfWalker::parseVariable() {
       }
    }
 
+   /* If the DIE has an _abstract_origin, we'll use that for the
+            remainder of our inquiries. */
+   bool hasAbstractOrigin;
+   if (!handleAbstractOrigin(hasAbstractOrigin)) return false;
+   if (hasAbstractOrigin) {
+          // Clone to spec entry too
+          setSpecEntry(abstractEntry());
+   }
+
    Type *type = NULL;
    if (!findType(type, false))
        return false;
