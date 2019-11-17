@@ -36,6 +36,7 @@
 
 int common_debug_dwarf = 0;
 int common_debug_addrtranslate = 0;
+int common_debug_lineinfo = 0;
 
 #if defined(_MSC_VER)
 #pragma warning(push)
@@ -55,6 +56,9 @@ bool init_debug_common() {
     if (getenv("DYNINST_DEBUG_ADDRTRANSLATE") ||
         getenv("DYNINST_DEBUG_TRANSLATE")) {
        common_debug_addrtranslate = 1;
+    }
+    if (getenv("DYNINST_DEBUG_LINEINFO")) {
+           common_debug_lineinfo = 1;
     }
 
     return true;
@@ -89,6 +93,19 @@ int translate_printf_int(const char *format, ...)
   return ret;
 }
 
+int lineinfo_printf_int(const char *format, ...)
+{
+   init_debug_common();
+  if (!common_debug_lineinfo) return 0;
+  if (NULL == format) return -1;
+
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  return ret;
+}
 
 #if defined(_MSC_VER)
 #pragma warning(pop)
