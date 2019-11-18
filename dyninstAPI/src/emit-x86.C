@@ -2420,11 +2420,7 @@ void EmitterAMD64::emitStackAlign(int offset, codeGen &gen)
    int saveSlot2 =    8 + AMD64_STACK_ALIGNMENT;
 
    bool saveFlags = false;
-   Register scratch =  gen.rs()->getScratchRegister(gen);
-   // If we cannot allocate a scratch register, use RAX.
-   // It will be restored at the end anyway
-   if (scratch == REG_NULL)
-      scratch = REGNUM_RAX;
+   Register scratch = REGNUM_RAX;
 
    if (gen.rs()->checkVolatileRegisters(gen, registerSlot::live)) {
       saveFlags = true;   // We need to save the flags register
