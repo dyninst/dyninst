@@ -4184,8 +4184,8 @@ class open_statement {
         };
         friend std::ostream& operator<<(std::ostream& os, const open_statement& st)
         {
-            os << st.start_addr << " " << st.end_addr << " "
-                << st.line_number << " " << st.string_table_index << std::endl;
+            os << hex << st.start_addr << " " << st.end_addr << " line:"
+                << dec << st.line_number << " file:" << st.string_table_index << " col:" << st.column_number << std::endl;
             return os;
         }
     public:
@@ -4201,13 +4201,17 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 {
     /* Acquire this CU's source lines. */
     Dwarf_Lines *lineBuffer;
+    Dwarf_Attribute attr2;
     size_t lineCount;
+    auto comp_name = dwarf_formstring( dwarf_attr(&cuDIE, DW_AT_name, &attr2) );
     int status = dwarf_getsrclines(&cuDIE, &lineBuffer, &lineCount);
+    lineinfo_printf("Compilation Unit name: %s\n", std::string( comp_name ? comp_name : "" ).c_str());
 
     /* It's OK for a CU not to have line information. */
     if (status != 0) {
         return;
     }
+
     StringTablePtr strings(li_for_module->getStrings());
     boost::unique_lock<dyn_mutex> l(strings->lock);
     Dwarf_Files *files;
@@ -4265,11 +4269,10 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         }
     }
     li_for_module->setStrings(strings);
-    //std::cerr << *strings.get();
+
     /* The 'lines' returned are actually interval markers; the code
      generated from lineNo runs from lineAddr up to but not including
      the lineAddr of the next line. */
-
     Offset baseAddr = getBaseAddress();
 
     Dwarf_Addr cu_high_pc = 0;
@@ -4278,13 +4281,14 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
     /* Iterate over this CU's source lines. */
     open_statement current_line;
     open_statement current_statement;
+    int count=0;
     for (size_t i = 0; i < lineCount; i++) {
         auto line = dwarf_onesrcline(lineBuffer, i);
 
         /* Acquire the line number, address, source, and end of sequence flag. */
         status = dwarf_lineno(line, &current_statement.line_number);
         if (status != 0) {
-            cout << "dwarf_lineno failed" << endl;
+        	lineinfo_printf("dwarf_lineno failed\n");
             continue;
         }
 
@@ -4293,7 +4297,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 
         status = dwarf_lineaddr(line, &current_statement.start_addr);
         if (status != 0) {
-            cout << "dwarf_lineaddr failed" << endl;
+        	lineinfo_printf("dwarf_lineaddr failed\n");
             continue;
         }
 
@@ -4309,7 +4313,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         //status = dwarf_line_srcfileno(line, &current_statement.string_table_index);
         const char *file_name = dwarf_linesrc(line, NULL, NULL);
         if (!file_name) {
-            cout << "dwarf_linesrc - empty name" << endl;
+        	lineinfo_printf("dwarf_linesrc - empty name\n");
             continue;
         }
 
@@ -4323,7 +4327,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
             }
         }
         if (index == -1) {
-            cout << "dwarf_linesrc didn't find index" << endl;
+        	lineinfo_printf("dwarf_linesrc didn't find index\n");
             continue;
         }
         current_statement.string_table_index = index;
@@ -4331,7 +4335,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         bool isEndOfSequence;
         status = dwarf_lineendsequence(line, &isEndOfSequence);
         if (status != 0) {
-            cout << "dwarf_lineendsequence failed" << endl;
+        	lineinfo_printf("dwarf_lineendsequence failed\n");
             continue;
         }
         if (i == lineCount - 1) {
@@ -4340,29 +4344,35 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         bool isStatement;
         status = dwarf_linebeginstatement(line, &isStatement);
         if (status != 0) {
-            cout << "dwarf_linebeginstatement failed" << endl;
+        	lineinfo_printf("dwarf_linebeginstatement failed\n");
             continue;
         }
-	if (current_line.uninitialized()) {
-	  current_line = current_statement;
-	} else {
-	      current_line.end_addr = current_statement.start_addr;
-	      if (!current_line.sameFileLineColumn(current_statement) ||
-		  isEndOfSequence) {
-                li_for_module->addLine((unsigned int)(current_line.string_table_index),
-                                       (unsigned int)(current_line.line_number),
-                                       (unsigned int)(current_line.column_number),
-                                       current_line.start_addr, current_line.end_addr);
-		current_line = current_statement;
-	      }
-	}
-	if (isEndOfSequence) {
-	  current_line.reset();
-	}
-    } /* end iteration over source line entries. */
+        if (current_line.uninitialized()) {
+            current_line = current_statement;
+            lineinfo_printf("current_line uninitialized\n");
+        } else {
+            current_line.end_addr = current_statement.start_addr;
+            if(current_line.sameFileLineColumn(current_statement))
+            	lineinfo_printf("sameFileLineColumn\n");
+            if (!current_line.sameFileLineColumn(current_statement) ||
+                    isEndOfSequence) {
+            	auto success = li_for_module->addLine((unsigned int)(current_line.string_table_index),
+                        (unsigned int)(current_line.line_number),
+                        (unsigned int)(current_line.column_number),
+                        current_line.start_addr, current_line.end_addr);
+            	lineinfo_printf("[%d, %d) %s:%d %s\n", current_line.start_addr, current_line.end_addr,
+            			((*strings)[current_line.string_table_index]).str.c_str(), current_line.line_number, (success?" inserted":" not"));
+                current_line = current_statement;
 
-/* Free this CU's source lines. */
-    //dwarf_srclines_dealloc(dbg, lineBuffer, lineCount);
+                if (success) count++;
+            }
+        }
+        if (isEndOfSequence) {
+            current_line.reset();
+            lineinfo_printf("reset current_line\n");
+        }
+    } // end for
+    lineinfo_printf("amount of line info added: %d\n", count);
 }
 
 

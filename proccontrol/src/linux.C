@@ -672,7 +672,9 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                //while (1) sleep(1);
             }
 #endif
-            event = Event::ptr(new EventSignal(stopsig));
+            Dyninst::MachRegisterVal addr;
+            result = thread->plat_getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
+            event = Event::ptr(new EventSignal(stopsig, addr, EventSignal::Unknown, false));
       }
       if (event && event->getSyncType() == Event::unset)
          event->setSyncType(Event::sync_thread);

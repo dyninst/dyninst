@@ -89,5 +89,5 @@ if(LibElf_FOUND)
   # Because we only report the library with the largest version, we are
   # guaranteed there is only one file in LibElf_LIBRARIES
   get_filename_component(_elf_dir ${LibElf_LIBRARIES} DIRECTORY)
-  set(LibElf_LIBRARY_DIRS ${_elf_dir})
+  set(LibElf_LIBRARY_DIRS ${_elf_dir} "${_elf_dir}/elfutils")
 endif()

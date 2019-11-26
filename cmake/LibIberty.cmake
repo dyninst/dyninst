@@ -24,6 +24,10 @@
 #
 #======================================================================================
 
+if(LibIberty_FOUND)
+  return()
+endif()
+
 if(NOT UNIX)
   return()
 endif()
@@ -56,6 +60,8 @@ if(LibIberty_FOUND)
   set(_li_lib_dirs ${LibIberty_LIBRARY_DIRS})
   set(_li_libs ${LibIberty_LIBRARIES})
   add_library(LibIberty STATIC IMPORTED)
+elseif(NOT LibIberty_FOUND AND STERILE_BUILD)
+  message(FATAL_ERROR "LibIberty not found and cannot be downloaded because build is sterile.")
 else()
   message(STATUS "${LibIberty_ERROR_REASON}")
   message(STATUS "Attempting to build LibIberty as external project")
@@ -68,6 +74,7 @@ else()
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND
       CFLAGS=-fPIC
+      CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
       <SOURCE_DIR>/configure --prefix=${CMAKE_BINARY_DIR}/binutils
     BUILD_COMMAND make
     INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/lib/libiberty

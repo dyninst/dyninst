@@ -281,9 +281,13 @@ void BottomOfStackStepperImpl::newLibraryNotification(LibAddrPair *, lib_change_
 }
 
 #if defined(arch_aarch64)
-static const Dyninst::Address START_HEURISTIC_LENGTH = 0x38;
+static const int heuristic_length = 2;
+static const Dyninst::Address heuristic_length_array[] = {0x38, 0x4C};
+static const uint8_t expectedValue = 0x97;
 #else
-static const Dyninst::Address START_HEURISTIC_LENGTH = 43;
+static const int heuristic_length = 1;
+static const Dyninst::Address heuristic_length_array[] = {43};
+static const uint8_t expectedValue = 0;
 #endif
 
 void BottomOfStackStepperImpl::initialize()
@@ -321,9 +325,19 @@ void BottomOfStackStepperImpl::initialize()
             Dyninst::Address start = aout->getSymbolOffset(start_sym)+aout_addr.second;
             Dyninst::Address end = aout->getSymbolSize(start_sym) + start;
             if (start == end) {
-               sw_printf("[%s:%u] - %s symbol has 0 length, using length of %lu\n",
-                       FILE__, __LINE__, START_FUNC_NAME, START_HEURISTIC_LENGTH);
-               end = start + START_HEURISTIC_LENGTH;
+               sw_printf("[%s:%u] - %s symbol has 0 length, using length heuristics\n",
+                       FILE__, __LINE__, START_FUNC_NAME);
+               if (heuristic_length == 1) {
+                   end = start + heuristic_length_array[0];
+               } else {
+                   for (int i = 0; i < heuristic_length; ++i) {
+                       end = start + heuristic_length_array[i];
+                       uint8_t byteValue;
+                       bool result = proc->readMem(&byteValue, end - 1, 1);
+                       if (result && byteValue != expectedValue) continue; 
+                       break;
+                   }
+               }
             }
             sw_printf("[%s:%u] - Bottom stepper taking %lx to %lx for start\n",
                       FILE__, __LINE__, start, end);

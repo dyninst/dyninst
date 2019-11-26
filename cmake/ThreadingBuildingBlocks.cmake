@@ -37,13 +37,22 @@
 #
 #=====================================================================================
 
+if(TBB_FOUND)
+  return()
+endif()
+
 # -------------- RUNTIME CONFIGURATION ----------------------------------------
 
 # Use debug versions of TBB libraries
 set(TBB_USE_DEBUG_BUILD OFF CACHE BOOL "Use debug versions of TBB libraries")
 
 # Minimum version of TBB (assumes a dotted-decimal format: YYYY.XX)
-set(_tbb_min_version 2018.6)
+if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+  set(_tbb_min_version 2019.7)
+else()
+  set(_tbb_min_version 2018.6)
+endif()
+
 set(TBB_MIN_VERSION ${_tbb_min_version} CACHE STRING "Minimum version of TBB (assumes a dotted-decimal format: YYYY.XX)")
 
 if(${TBB_MIN_VERSION} VERSION_LESS ${_tbb_min_version})
@@ -86,24 +95,17 @@ if(TBB_FOUND)
   if(NOT TARGET TBB)
     add_library(TBB SHARED IMPORTED)
   endif()
+elseif(NOT TBB_FOUND AND STERILE_BUILD)
+  message(FATAL_ERROR "TBB not found and cannot be downloaded because build is sterile.")
 else()
   # If we didn't find a suitable version on the system, then download one from the web
-  set(_tbb_download_version 2019.5)
-  
-  # If the user specifies a version other than _tbb_download_version, use that version.
-  # NB: We know TBB_MIN_VERSION is >= _tbb_min_version from earlier checks
-  if(${TBB_MIN_VERSION} VERSION_LESS ${_tbb_download_version} OR
-     ${TBB_MIN_VERSION} VERSION_GREATER ${_tbb_download_version})
-    set(_tbb_download_version ${TBB_MIN_VERSION})
-  endif()
-
   message(STATUS "${ThreadingBuildingBlocks_ERROR_REASON}")
-  message(STATUS "Attempting to build TBB(${_tbb_download_version}) as external project")
+  message(STATUS "Attempting to build TBB(${TBB_MIN_VERSION}) as external project")
   
   if(NOT UNIX)
     message(FATAL_ERROR "Building TBB from source is not supported on this platform")
   endif()
-  
+
   # Forcibly update the cache variables
   set(TBB_ROOT_DIR ${CMAKE_INSTALL_PREFIX} CACHE PATH "TBB root directory" FORCE)
   set(TBB_INCLUDE_DIRS ${TBB_ROOT_DIR}/include CACHE PATH "TBB include directory" FORCE)
@@ -133,12 +135,20 @@ else()
   set(TBB_LIBRARIES ${_tbb_libraries} CACHE FILEPATH "TBB library files" FORCE)
   
   # Split the dotted decimal version into major/minor parts
-  string(REGEX REPLACE "\\." ";" _tbb_download_name ${_tbb_download_version})
+  string(REGEX REPLACE "\\." ";" _tbb_download_name ${TBB_MIN_VERSION})
   list(GET _tbb_download_name 0 _tbb_ver_major)
   list(GET _tbb_download_name 1 _tbb_ver_minor)
   
   include(ExternalProject)
   set(_tbb_prefix_dir ${CMAKE_BINARY_DIR}/tbb)
+
+  # Set the compiler for TBB
+  # It assumes gcc and tests for Intel, so clang is the only
+  # one that needs special treatment.
+  if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+  	set(_tbb_compiler "compiler=clang")
+  endif()
+  
   ExternalProject_Add(
     TBB
     PREFIX ${_tbb_prefix_dir}
@@ -146,10 +156,12 @@ else()
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ""
     BUILD_COMMAND
+      CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
       $(MAKE) -C src
       ${_tbb_components_cfg}
       tbb_build_dir=${_tbb_prefix_dir}/src
       tbb_build_prefix=tbb
+      ${_tbb_compiler}
     INSTALL_COMMAND
       ${CMAKE_COMMAND}
       	-DLIBDIR=${TBB_LIBRARY_DIRS}

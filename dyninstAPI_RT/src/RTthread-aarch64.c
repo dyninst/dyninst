@@ -29,7 +29,12 @@
  */
 
 #include "dyninstAPI_RT/src/RTthread.h"
-
-int tc_lock_lock(tc_lock_t *t) {
+#include <stdbool.h>
+int tc_lock_lock(tc_lock_t *t)
+{
+  dyntid_t me = dyn_pthread_self();
+  bool* l = (bool*)(&(t->mutex));
+  while (__atomic_test_and_set(l, __ATOMIC_ACQUIRE))
+      if (t->tid == me) return DYNINST_DEAD_LOCK;
   return 0;
 }

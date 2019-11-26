@@ -46,6 +46,10 @@
 #
 #========================================================================================================
 
+if(Boost_FOUND)
+  return()
+endif()
+
 # Need at least Boost-1.61 for filesytem components
 set(_boost_min_version 1.61.0)
 
@@ -141,6 +145,8 @@ if(Boost_FOUND)
   set(Boost_LIBRARY_DIRS ${Boost_LIBRARY_DIRS} CACHE PATH "Boost library directory" FORCE)
   set(Boost_INCLUDE_DIR ${Boost_INCLUDE_DIR} CACHE PATH "Boost include directory" FORCE)
   add_library(boost SHARED IMPORTED)
+elseif(NOT Boost_FOUND AND STERILE_BUILD)
+  message(FATAL_ERROR "Boost not found and cannot be downloaded because build is sterile.")
 else()
   # If we didn't find a suitable version on the system, then download one from the web
   set(_boost_download_version "1.69.0")
@@ -218,7 +224,7 @@ else()
     PREFIX ${CMAKE_BINARY_DIR}/boost
     URL http://downloads.sourceforge.net/project/boost/boost/${_boost_download_version}/boost_${_boost_download_filename}.zip
     BUILD_IN_SOURCE 1
-    CONFIGURE_COMMAND ${BOOST_BOOTSTRAP} --prefix=${Boost_ROOT_DIR} --with-libraries=${_boost_lib_names}
+    CONFIGURE_COMMAND CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} ${BOOST_BOOTSTRAP} --prefix=${Boost_ROOT_DIR} --with-libraries=${_boost_lib_names}
     BUILD_COMMAND ${BOOST_BUILD} ${BOOST_ARGS} install
     INSTALL_COMMAND ""
   )
