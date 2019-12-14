@@ -1596,7 +1596,7 @@ namespace Dyninst
     DEF_REGISTER(r29,     29 | GPR | Arch_cuda, "cuda");
     DEF_REGISTER(r30,     30 | GPR | Arch_cuda, "cuda");
     DEF_REGISTER(r31,     31 | GPR | Arch_cuda, "cuda");
-    DEF_REGISTER(r32,     28 | GPR | Arch_cuda, "cuda");
+    DEF_REGISTER(r32,     32 | GPR | Arch_cuda, "cuda");
     DEF_REGISTER(r33,     33 | GPR | Arch_cuda, "cuda");
     DEF_REGISTER(r34,     34 | GPR | Arch_cuda, "cuda");
     DEF_REGISTER(r35,     35 | GPR | Arch_cuda, "cuda");
