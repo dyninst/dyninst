@@ -295,7 +295,7 @@ void Slicer::sliceInternalAux(
         // otherwise search down this new path
 	// Xiaozhu: change from 50 to 100 changes my problem,
 	// but it is still adhoc.
-        if(!f.valid || visited.size() > 100*g->size()) {
+        if(!f.valid || visited.size() > 500*g->size()) {
             widenAll(g,dir,cand);
 	    }
         else {
