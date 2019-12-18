@@ -62,6 +62,11 @@ foreach (dir ${HEADER_DIRS})
 endforeach()
 
 find_package(OpenMP REQUIRED)
+
+# Dyninst RT should not link against openmp as it does not use multi-threading.
+# Linking RT with openmp with cause cyclic dependency at program startup time and crash
+set(DYNINST_RT_CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+set(DYNINST_RT_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
