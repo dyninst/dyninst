@@ -29,6 +29,10 @@ include(LibIberty)
 
 include(shared)
 
+if(USE_OpenMP)
+  find_package(OpenMP REQUIRED)
+endif()
+
 # PLATFORM is set by including 'shared'
 if(PLATFORM MATCHES "bgq")
   message(WARNING "Support for Bluegene/Q has been deprecated and will be removed in a future release")
@@ -61,14 +65,8 @@ foreach (dir ${HEADER_DIRS})
   include_directories ( ${DYNINST_ROOT}/${dir}/h )
 endforeach()
 
-find_package(OpenMP REQUIRED)
-
-# Dyninst RT should not link against openmp as it does not use multi-threading.
-# Linking RT with openmp with cause cyclic dependency at program startup time and crash
 set(DYNINST_RT_CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 set(DYNINST_RT_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
 set(ADD_VALGRIND_ANNOTATIONS OFF CACHE BOOL "Enable annotations for Valgrind analysis")
 if(ADD_VALGRIND_ANNOTATIONS)

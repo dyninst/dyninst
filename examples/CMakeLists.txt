@@ -24,10 +24,10 @@ add_dependencies(cfg_to_dot parseAPI symtabAPI instructionAPI common dynDwarf dy
 target_link_libraries(cfg_to_dot parseAPI symtabAPI instructionAPI common dynDwarf dynElf ${Boost_LIBRARIES} ${ElfUtils_LIBRARIES})
 #add_executable(retee)
 
-if (USE_OpenMP MATCHES "ON")
-set_target_properties (unstrip PROPERTIES LINK_FLAGS "-fopenmp")
-set_target_properties (codeCoverage PROPERTIES LINK_FLAGS "-fopenmp")
-set_target_properties (cfg_to_dot PROPERTIES LINK_FLAGS "-fopenmp")
+if (USE_OpenMP)
+set_target_properties (unstrip PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS} LINK_FLAGS ${OpenMP_CXX_FLAGS})
+set_target_properties (codeCoverage PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS} LINK_FLAGS ${OpenMP_CXX_FLAGS})
+set_target_properties (cfg_to_dot PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS} LINK_FLAGS ${OpenMP_CXX_FLAGS})
 endif()
 
 
