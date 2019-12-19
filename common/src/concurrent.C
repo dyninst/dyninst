@@ -31,7 +31,10 @@
 #include "vgannotations.h"
 #include "concurrent.h"
 
+#if defined(_OPENMP)
 #include <omp.h>
+#endif
+
 #include <iostream>
 
 using namespace Dyninst;
@@ -41,11 +44,19 @@ thread_local dyn_thread dyn_thread::me;
 dyn_thread::dyn_thread() {};
 
 unsigned int dyn_thread::getId() {
+#if defined(_OPENMP) 
     return omp_get_thread_num();
+#else
+    return 0;
+#endif
 }
 
 unsigned int dyn_thread::threads() {
+#if defined(_OPENMP)
     return omp_get_num_threads();
+#else
+    return 1;
+#endif
 }
 
 #ifndef ENABLE_VG_ANNOTATIONS

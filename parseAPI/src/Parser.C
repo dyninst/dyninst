@@ -30,7 +30,9 @@
 
 #include "Parser.h"
 
+#if defined(_OPENMP)
 #include <omp.h>
+#endif
 
 #include <vector>
 #include <limits>

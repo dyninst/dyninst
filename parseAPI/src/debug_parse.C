@@ -45,7 +45,10 @@ int Dyninst::ParseAPI::dyn_debug_initialized = 0;
 #pragma warning(disable:4996) 
 #endif
 
+#if defined(_OPENMP)
 #include <omp.h>
+#endif
+
 dyn_tls FILE* log_file = NULL;
 
 int Dyninst::ParseAPI::parsing_printf_int(const char *format, ...)
