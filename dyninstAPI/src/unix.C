@@ -504,7 +504,7 @@ bool PCProcess::hasPassedMain()
         return false;
      }
    } else {
-     startup_printf("{%s:%u] - there is no .opd section. The entry offset is the entry\n");
+     startup_printf("{%s:%u] - there is no .opd section. The entry offset is the entry\n", FILE__, __LINE__);
    }
 
    if( entry_addr < ldso_start_addr ) {
