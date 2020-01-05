@@ -111,7 +111,6 @@ bool DwarfFrameParser::getRegValueAtFrame(
     dwarf_printf("Getting concrete value for %s at 0x%lx\n",
             reg.name().c_str(), pc);
     if (!getRegAtFrame(pc, reg, cons, err_result)) {
-        assert(err_result != FE_No_Error);
         dwarf_printf("\t Returning error from getRegValueAtFrame: %d\n", err_result);
         return false;
     }
@@ -308,8 +307,12 @@ bool DwarfFrameParser::getRegAtFrame(
                 dwarf_printf("\t aarch64 converted register reg=%s\n", reg.name().c_str());
 #endif
                 // Dyninst treats as same_value ???
-                cons.readReg(reg);
-                return true; // true because undefined is a valid output
+                if (reg != Dyninst::ReturnAddr) {
+                    cons.readReg(reg);
+                    return true; // true because undefined is a valid output
+                } else {
+                    return false;
+                }
             }
 
             // case of same_value
@@ -320,8 +323,12 @@ bool DwarfFrameParser::getRegAtFrame(
                 reg = MachRegister::getArchRegFromAbstractReg(reg, arch);
                 dwarf_printf("\t aarch64 converted register reg=%s\n", reg.name().c_str());
 #endif
-                cons.readReg(reg);
-                return true;
+                if (reg != Dyninst::ReturnAddr) {
+                    cons.readReg(reg);
+                    return true;
+                } else {
+                    return false;
+                }
             }
 
             // translate dwarf reg to machine reg
