@@ -291,7 +291,7 @@ Parser::parse_vanilla()
 
     // Note: there is no fundamental obstacle to parallelizing this loop. However,
     // race conditions need to be resolved in supporting laysrs first.
-    #pragma omp parallel for schedule(auto)
+    #pragma omp parallel for schedule(dynamic)
     for (unsigned int i = 0; i < hint_funcs.size(); i++) {
         Function * hf = hint_funcs[i];
         ParseFrame::Status test = frame_status(hf->region(),hf->addr());
@@ -794,7 +794,7 @@ void Parser::processCycle(LockFreeQueue<ParseFrame *> &work, bool recursive) {//
 void Parser::cleanup_frames()  {
   vector <ParseFrame *> pfv;
   std::copy(frames.begin(), frames.end(), std::back_inserter(pfv));
-#pragma omp parallel for schedule(auto)
+#pragma omp parallel for schedule(dynamic)
   for (unsigned int i = 0; i < pfv.size(); i++) {
     ParseFrame *pf = pfv[i];
     if (pf) {
@@ -1009,6 +1009,7 @@ void
 Parser::finalize()
 {
     if(_parse_state < FINALIZED) {
+        finalize_jump_tables();
         finalize_funcs(hint_funcs);
         finalize_funcs(discover_funcs);
         clean_bogus_funcs(discover_funcs);
@@ -1029,11 +1030,110 @@ Parser::finalize()
     }
 }
 
+/* The goal of finalizing jump tables is to remove bogus control flow
+ * edges caused by over-approximating jump table size. During jump table
+ * analysis, we do not use any information about other jump tables.
+ *
+ * Here, we know all the jump table starts and we assume that "no jump 
+ * tables share any entries". Therefore, if a jump table overruns into
+ * another jump table, we trim the overrun entries.
+ */
+
+void
+Parser::finalize_jump_tables()
+{
+    set<Address> jumpTableStart;
+    vector<Function::JumpTableInstance*> jumpTables;
+
+    // Step 1: get all jump tables
+    for (auto fit = hint_funcs.begin(); fit != hint_funcs.end(); ++fit) {
+        Function* f = *fit;
+        for (auto jit = f->getJumpTables().begin(); jit != f->getJumpTables().end(); ++jit) {
+            jumpTableStart.insert(jit->second.tableStart);
+            jumpTables.push_back(&(jit->second));
+        }
+    }
+
+    for (auto fit = discover_funcs.begin(); fit != discover_funcs.end(); ++fit) {
+        Function* f = *fit;
+        for (auto jit = f->getJumpTables().begin(); jit != f->getJumpTables().end(); ++jit) {
+            jumpTableStart.insert(jit->second.tableStart);
+            jumpTables.push_back(&(jit->second));
+        }
+    }
+
+    for (auto ait = jumpTableStart.begin(); ait != jumpTableStart.end(); ++ait)
+        parsing_printf("Jump table at %lx\n", *ait);
+
+    // Step 2: concurrently searching for overrun jump table entries
+#pragma omp parallel for schedule(dynamic)
+    for (size_t i = 0; i < jumpTables.size(); ++i) {
+        Function::JumpTableInstance* jti = jumpTables[i];
+        auto start_it = jumpTableStart.find(jti->tableStart);
+        ++start_it;
+
+        Block::edgelist targets;
+        jti->block->copy_targets(targets);
+        for (auto eit = targets.begin(); eit != targets.end(); ++eit) {
+            if ((*eit)->sinkEdge()) {
+                parsing_printf("Remove sink edge for jump table at %lx\n", jti->block->last());
+                jti->block->removeTarget(*eit);
+                (*eit)->trg()->removeSource(*eit);
+                break;
+            }
+        }
+
+        if (start_it == jumpTableStart.end()) continue;
+        if (*start_it < jti->tableEnd) {
+            std::map<Address, Edge*> edgeMap;
+            jti->block->copy_targets(targets);
+            for (auto eit = targets.begin(); eit != targets.end(); ++eit) {
+                if ((*eit)->type() != INDIRECT || (*eit)->sinkEdge()) continue;
+                edgeMap.insert(make_pair((*eit)->trg_addr(), *eit));
+            }
+            for (Address addr = *start_it; addr < jti->tableEnd; addr += jti->indexStride) {
+                if (edgeMap.find(jti->tableEntryMap[addr]) == edgeMap.end()) continue;
+                Edge * e = edgeMap[jti->tableEntryMap[addr]];
+                delete_bogus_blocks(e);
+            }
+        }
+    }
+}
+
+/* Removed indirect jump edges may lead to other 
+ * blocks and edges that should be removed
+ */
+void
+Parser::delete_bogus_blocks(Edge* e)
+{
+    Block* cur = e->trg();
+
+    parsing_printf("Remove an edge from %p[%lx, %lx) to %p[%lx, %lx), type %d\n",
+            e->src(), e->src()->start(), e->src()->end(),
+            e->trg(), e->trg()->start(), e->trg()->end(),
+            e->type());
+    e->src()->removeTarget(e);
+    cur->removeSource(e);
+    
+    Block::edgelist sources;
+    cur->copy_sources(sources);
+    for (auto eit = sources.begin(); eit != sources.end(); ++eit)
+        if ((*eit)->type() != INDIRECT && (*eit)->src() != e->src()) 
+            return;
+
+    Block::edgelist targets;
+    cur->copy_targets(targets);
+    for (auto eit = targets.begin(); eit != targets.end(); ++eit) {
+        delete_bogus_blocks(*eit);
+    }
+
+}
+
 void
 Parser::finalize_funcs(dyn_c_vector<Function *> &funcs)
 {
     int size = funcs.size();
-#pragma omp parallel for schedule(auto)
+#pragma omp parallel for schedule(dynamic)
     for(int i = 0; i < size; ++i) {
         Function *f = funcs[i];
         f->finalize();
@@ -1664,7 +1764,7 @@ Parser::parse_frame_one_iteration(ParseFrame &frame, bool recursive) {
                     // Create a work element to represent that
                     // we will resolve the jump table later
                     end_block(cur,ahPtr);
-                    if (!set_edge_parsing_status(frame,cur->last(), cur)) break;
+                    set_edge_parsing_status(frame,cur->last(), cur);
                     frame.pushWork( frame.mkWork( work->bundle(), cur, ahPtr));
                 } else {
                     end_block(cur,ahPtr);
@@ -2587,6 +2687,7 @@ void Parser::move_edges_consistent_blocks(Block *A, Block *B) {
 	}
     }
     trgs.clear();
+    A->targetMap.clear();
 }
 
 bool Parser::inspect_value_driven_jump_tables(ParseFrame &frame) {

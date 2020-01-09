@@ -259,6 +259,8 @@ namespace Dyninst {
             void finalize_funcs(dyn_c_vector<Function *> &funcs);
 	    void clean_bogus_funcs(dyn_c_vector<Function*> &funcs);
             void finalize_ranges();
+            void finalize_jump_tables();
+            void delete_bogus_blocks(Edge*);
             bool set_edge_parsing_status(ParseFrame&, Address addr, Block *b);
 	    void move_edges_consistent_blocks(Block *, Block *);
             void update_function_ret_status(ParseFrame &, Function*, ParseWorkElem* );

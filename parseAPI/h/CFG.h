@@ -44,6 +44,8 @@
 #include "InstructionSource.h"
 #include "ParseContainers.h"
 #include "Annotatable.h"
+#include "DynAST.h"
+
 #include <iostream>
 #include <boost/thread/lockable_adapter.hpp>
 #include <boost/thread/recursive_mutex.hpp>
@@ -377,6 +379,8 @@ public:
     Function * createdByFunc() { return _createdByFunc; }
 
 private:
+    std::map<int, std::set<Address> > targetMap;
+    std::map<int, std::set<Address> > sourceMap;
     void addSource(Edge * e);
     void addTarget(Edge * e);
     void removeTarget(Edge * e);
@@ -406,42 +410,6 @@ private:
  friend class Function;
  friend class CFGFactory;
 };
-
-inline void Block::addSource(Edge * e) 
-{
-    boost::lock_guard<Block> g(*this);
-    _srclist.push_back(e);
-}
-
-inline void Block::addTarget(Edge * e)
-{
-    boost::lock_guard<Block> g(*this);
-    if(e->type() == FALLTHROUGH ||
-            e->type() == COND_NOT_TAKEN)
-    {
-        assert(e->_target_off == end());
-    }
-    /* This loop checks whether duplicated edges are added.
-     * It should only be used in debugging as it can significantly
-     * slow down the performance
-    for (auto eit = _trglist.begin(); eit != _trglist.end(); ++eit) {
-	assert( (*eit)->trg_addr() != e->trg_addr() || (*eit)->type() != e->type());
-    }
-    */
-    _trglist.push_back(e);
-}
-
-inline void Block::removeTarget(Edge * e)
-{
-    boost::lock_guard<Block> g(*this);
-    _trglist.remove(e);
-}
-
-inline void Block::removeSource(Edge * e) {
-
-    boost::lock_guard<Block> g(*this);
-    _srclist.remove(e);
-}
 
 enum FuncReturnStatus {
     UNSET,
@@ -493,6 +461,19 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, pub
  protected:
     Function(); 
  public:
+    
+    struct JumpTableInstance {
+        AST::Ptr jumpTargetExpr;
+        Address tableStart;
+        Address tableEnd;
+        int indexStride;
+        int memoryReadSize;
+        bool isZeroExtend;
+        std::map<Address, Address> tableEntryMap;
+        Block* block;
+    };
+    std::map<Address, JumpTableInstance> & getJumpTables() { return jumptables; }
+
     bool _is_leaf_function;
     Address _ret_addr; // return address of a function stored in stack at function entry
     typedef std::map<Address, Block*> blockmap;
@@ -683,7 +664,7 @@ class PARSER_EXPORT Function : public allocatable, public AnnotatableSparse, pub
     mutable std::set<Loop*> _loops;
     mutable LoopTreeNode *_loop_root; // NULL if the tree structure has not be calculated
     void getLoopsByNestingLevel(std::vector<Loop*>& lbb, bool outerMostOnly) const;
-
+    std::map<Address, JumpTableInstance> jumptables;
 
     /* Dominator and post-dominator info details */
     mutable bool isDominatorInfoReady;
