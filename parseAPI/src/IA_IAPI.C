@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "common/src/vgannotations.h"
 #include "dyntypes.h"
 #include "dyn_regs.h"
 #include "IA_IAPI.h"
@@ -128,32 +129,38 @@ IA_IAPI* IA_IAPI::makePlatformIA_IAPI(Architecture arch,
     return NULL;
 }				      
 
+std::once_flag IA_IAPI::ptrInit;
+
 void IA_IAPI::initASTs()
 {
-    if(framePtr.empty())
-    {
-        framePtr[Arch_x86] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_x86)));
-        framePtr[Arch_x86_64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_x86_64)));
-        framePtr[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ppc32)));
-        framePtr[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ppc64)));
-        framePtr[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_aarch64)));
-    }
-    if(stackPtr.empty())
-    {
-        stackPtr[Arch_x86] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_x86)));
-        stackPtr[Arch_x86_64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_x86_64)));
-        stackPtr[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ppc32)));
-        stackPtr[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ppc64)));
-        stackPtr[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_aarch64)));
-    }
-    if(thePC.empty())
-    {
-        thePC[Arch_x86] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_x86)));
-        thePC[Arch_x86_64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
-        thePC[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
-        thePC[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ppc64)));
-        thePC[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_aarch64)));
-    }
+    std::call_once(IA_IAPI::ptrInit, [&]{
+        if(framePtr.empty())
+        {
+            framePtr[Arch_x86] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_x86)));
+            framePtr[Arch_x86_64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_x86_64)));
+            framePtr[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ppc32)));
+            framePtr[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ppc64)));
+            framePtr[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_aarch64)));
+        }
+        if(stackPtr.empty())
+        {
+            stackPtr[Arch_x86] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_x86)));
+            stackPtr[Arch_x86_64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_x86_64)));
+            stackPtr[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ppc32)));
+            stackPtr[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ppc64)));
+            stackPtr[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_aarch64)));
+        }
+        if(thePC.empty())
+        {
+            thePC[Arch_x86] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_x86)));
+            thePC[Arch_x86_64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
+            thePC[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
+            thePC[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ppc64)));
+            thePC[Arch_aarch64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_aarch64)));
+        }
+        ANNOTATE_HAPPENS_BEFORE(&IA_IAPI::ptrInit);
+    });
+    ANNOTATE_HAPPENS_AFTER(&IA_IAPI::ptrInit);
 }
 
 IA_IAPI::IA_IAPI(InstructionDecoder dec_, 
@@ -273,7 +280,8 @@ bool IA_IAPI::retreat()
 
 size_t IA_IAPI::getSize() const
 {
-    assert(curInsn().isValid());
+    if (!curInsn().isValid()) return 0;
+    if (curInsn().getOperation().getID() == e_No_Entry) return 0;
     return curInsn().size();
 }
 
@@ -321,7 +329,8 @@ bool IA_IAPI::isAbort() const
 {
     entryID e = curInsn().getOperation().getID();
     return e == e_int3 ||
-       e == e_hlt;
+       e == e_hlt ||
+       e == e_ud2;
 }
 
 bool IA_IAPI::isInvalidInsn() const
@@ -603,8 +612,16 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             }
         }
  
-        if (callEdge)
-            outEdges.push_back(std::make_pair(target, CALL));
+        if (callEdge) {
+            if (success) {                
+                outEdges.push_back(std::make_pair(target, CALL));
+            } else {
+                // Cannot use address 0 to represent indirect call,
+                // because in .a files, address 0 can be legit function.
+                outEdges.push_back(std::make_pair(std::numeric_limits<Address>::max(), CALL));
+            }
+        }
+            
         if (ftEdge)
             outEdges.push_back(std::make_pair(getAddr() + getSize(), CALL_FT));
 

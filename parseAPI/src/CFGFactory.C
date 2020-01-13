@@ -27,17 +27,14 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#include "ParseData.h"
+
 #include "LoopAnalyzer.h"
 #include <limits>
 
 #include "CFGFactory.h"
 #include "CFG.h"
 #include <iostream>
-
-#include "ParseData.h"
-
-
-#include <race-detector-annotations.h>
 
 using namespace std;
 using namespace Dyninst;
@@ -98,11 +95,6 @@ CFGFactory::_mkfunc(Address addr, FuncSource src, string name,
 {
    Function * ret = mkfunc(addr,src,name,obj,reg,isrc);
 
-   // forget about initialization of this function descriptor by this thread
-   // before making it available to others. the initialization will not race
-   // with a later access by another thread.
-   race_detector_forget_access_history(ret, sizeof(*ret));
-
    funcs_.add(ret);
    ret->_src =  src;
    return ret;
@@ -122,7 +114,6 @@ Block *
 CFGFactory::_mkblock(Function *  f , CodeRegion *r, Address addr)
 {
    Block * ret = mkblock(f, r, addr);
-   race_detector_forget_access_history(ret, sizeof(*ret));
    blocks_.add(ret);
    return ret;
 }
@@ -131,7 +122,6 @@ Block *
 CFGFactory::_mkblock(CodeObject* co, CodeRegion *r, Address addr)
 {
    Block* ret = new Block(co, r, addr);
-   race_detector_forget_access_history(ret, sizeof(*ret));
    blocks_.add(ret);
    return ret;
 }
@@ -171,7 +161,6 @@ CFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
 }
 
 void CFGFactory::destroy_func(Function *f) {
-    boost::lock_guard<CFGFactory> g(*this);
    f->remove();
    free_func(f);
 }
@@ -183,7 +172,6 @@ CFGFactory::free_func(Function *f) {
 
 void
 CFGFactory::destroy_block(Block *b) {
-    boost::lock_guard<CFGFactory> g(*this);
     b->remove();
     free_block(b);
 }
@@ -207,7 +195,6 @@ std::string to_str(EdgeState e)
 
 void
 CFGFactory::destroy_edge(Edge *e, Dyninst::ParseAPI::EdgeState reason) {
-    boost::lock_guard<CFGFactory> g(*this);
     e->remove();
     if(reason == destroyed_all) {
         free_edge(e);
@@ -221,7 +208,6 @@ CFGFactory::free_edge(Edge *e) {
 
 void
 CFGFactory::destroy_all() {
-    boost::lock_guard<CFGFactory> g(*this);
     // XXX carefully calling free_* routines; could be faster and just
     // call delete
 

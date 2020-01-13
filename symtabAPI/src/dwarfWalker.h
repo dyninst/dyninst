@@ -1,4 +1,4 @@
-
+#include "common/src/vgannotations.h"
 #include <common/src/debug_common.h>
 
 #if !defined(_dwarf_walker_h_)
@@ -18,6 +18,10 @@
 #include "Object.h"
 #include <boost/shared_ptr.hpp>
 #include <Collections.h>
+
+//Concurrent Hash Map
+#include "concurrent.h"
+#include <bits/stdc++.h>
 
 namespace Dyninst {
 namespace SymtabAPI {
@@ -41,7 +45,6 @@ protected:
     Dwarf* dbg() { return dbg_; }
 
     Module *& mod() { return mod_; } 
-
     typeCollection *tc() { return typeCollection::getModTypeCollection(mod()); }
 
 private:
@@ -64,9 +67,9 @@ public:
 private:
     struct Context {
         FunctionBase *func;
-        typeCommon *commonBlock;
-        typeEnum *enumType;
-        fieldListType *enclosure;
+        boost::shared_ptr<Type> commonBlock;
+        boost::shared_ptr<Type> enumType;
+        boost::shared_ptr<Type> enclosure;
         bool parseSibling;
         bool parseChild;
         Dwarf_Off specEntry;
@@ -106,9 +109,9 @@ public:
     virtual std::vector<VariableLocation>& getFramePtrRefForInit();
     virtual void addMangledFuncName(std::string);
     virtual void addPrettyFuncName(std::string);
-    typeCommon * curCommon() { return c.top().commonBlock; }
-    typeEnum *curEnum() { return c.top().enumType; }
-    fieldListType *curEnclosure() { return c.top().enclosure; }
+    boost::shared_ptr<Type> curCommon() { return c.top().commonBlock; }
+    boost::shared_ptr<Type> curEnum() { return c.top().enumType; }
+    boost::shared_ptr<Type> curEnclosure() { return c.top().enclosure; }
     bool parseSibling() { return c.top().parseSibling; }
     bool parseChild() { return c.top().parseChild; }
     Dwarf_Die entry() {
@@ -132,9 +135,9 @@ public:
     range_set_ptr ranges() { return c.top().ranges; }
 
     void setFunc(FunctionBase *f);
-    void setCommon(typeCommon *tc) { c.top().commonBlock = tc; }
-    void setEnum(typeEnum *e) { c.top().enumType = e; }
-    void setEnclosure(fieldListType *f) { c.top().enclosure = f; }
+    void setCommon(boost::shared_ptr<Type> tc) { c.top().commonBlock = tc; }
+    void setEnum(boost::shared_ptr<Type> e) { c.top().enumType = e; }
+    void setEnclosure(boost::shared_ptr<Type> f) { c.top().enclosure = f; }
     void setParseSibling(bool p) { c.top().parseSibling = p; }
     void setParseChild(bool p) { c.top().parseChild = p; }
     virtual void setEntry(Dwarf_Die e) { c.top().offset = dwarf_dieoffset(&e); }
@@ -307,12 +310,12 @@ private:
     bool setFunctionFromRange(inline_t func_type);
     virtual void setEntry(Dwarf_Die e);
     bool getFrameBase();
-    bool getReturnType(bool hasSpecification, Type *&returnType);
-    bool addFuncToContainer(Type *returnType);
+    bool getReturnType(bool hasSpecification, boost::shared_ptr<Type>&returnType);
+    bool addFuncToContainer(boost::shared_ptr<Type> returnType);
     bool isStaticStructMember(std::vector<VariableLocation> &locs, bool &isStatic);
-    virtual bool findType(Type *&, bool defaultToVoid);
+    virtual bool findType(boost::shared_ptr<Type>&, bool defaultToVoid);
     bool findAnyType(Dwarf_Attribute typeAttribute,
-            bool is_info, Type *&type);
+            bool is_info, boost::shared_ptr<Type>&type);
     bool findDieOffset(Dwarf_Attribute attr, Dwarf_Off &offset);
     bool getLineInformation(Dwarf_Word &variableLineNo,
             bool &hasLineNumber,
@@ -325,7 +328,7 @@ private:
     bool findSize(unsigned &size);
     bool findVisibility(visibility_t &visibility);
     bool findValue(long &value, bool &valid);
-    bool fixName(std::string &name, Type *type);
+    bool fixName(std::string &name, boost::shared_ptr<Type> type);
     bool fixBitFields(std::vector<VariableLocation> &locs, long &size);
 
     bool parseSubrangeAUX(Dwarf_Die entry,
@@ -350,8 +353,8 @@ private:
             std::vector<VariableLocation> &locs);
     bool constructConstantVariableLocation(Address value,
             std::vector<VariableLocation> &locs);
-    typeArray *parseMultiDimensionalArray(Dwarf_Die *firstRange,
-                                          Type *elementType);
+    boost::shared_ptr<Type> parseMultiDimensionalArray(Dwarf_Die *firstRange,
+                                          boost::shared_ptr<Type> elementType);
     bool decipherBound(Dwarf_Attribute boundAttribute, bool is_info,
             std::string &name);
 
@@ -404,21 +407,23 @@ private:
 
     // Type IDs are just int, but Dwarf_Off is 64-bit and may be relative to
     // either .debug_info or .debug_types.
-    dyn_hash_map<Dwarf_Off, typeId_t> info_type_ids_; // .debug_info offset -> id
-    dyn_hash_map<Dwarf_Off, typeId_t> types_type_ids_; // .debug_types offset -> id
+    dyn_c_hash_map<Dwarf_Off, typeId_t> info_type_ids_; // .debug_info offset -> id
+    dyn_c_hash_map<Dwarf_Off, typeId_t> types_type_ids_; // .debug_types offset -> id
+
     typeId_t get_type_id(Dwarf_Off offset, bool is_info);
     typeId_t type_id(); // get_type_id() for the current entry
 
     // Map to connect DW_FORM_ref_sig8 to type IDs.
-    dyn_hash_map<uint64_t, typeId_t> sig8_type_ids_;
+    dyn_c_hash_map<uint64_t, typeId_t> sig8_type_ids_;
+
     bool parseModuleSig8(bool is_info);
     void findAllSig8Types();
-    bool findSig8Type(Dwarf_Sig8 * signature, Type *&type);
-
+    bool findSig8Type(Dwarf_Sig8 * signature, boost::shared_ptr<Type>&type);
+    unsigned int getNextTypeId();
 protected:
     virtual void setFuncReturnType();
 
-    virtual void createLocalVariable(const std::vector<VariableLocation> &locs, Type *type,
+    virtual void createLocalVariable(const std::vector<VariableLocation> &locs, boost::shared_ptr<Type> type,
             Dwarf_Word variableLineNo,
             const std::string &fileName);
 
@@ -427,15 +432,15 @@ protected:
     virtual void setFuncFromLowest(Address lowest);
 
     virtual void createParameter(const std::vector<VariableLocation> &locs, 
-            Type *paramType, Dwarf_Word lineNo, const std::string &fileName);
+            boost::shared_ptr<Type> paramType, Dwarf_Word lineNo, const std::string &fileName);
 
     virtual void setRanges(FunctionBase *func);
 
-    virtual void createGlobalVariable(const std::vector<VariableLocation> &locs, Type *type);
+    virtual void createGlobalVariable(const std::vector<VariableLocation> &locs, boost::shared_ptr<Type> type);
 
-    virtual bool addStaticClassVariable(const std::vector<VariableLocation> &locs, Type *type);
+    virtual bool addStaticClassVariable(const std::vector<VariableLocation> &locs, boost::shared_ptr<Type> type);
 
-    virtual typeCommon *getCommonBlockType(std::string &commonBlockName);
+    virtual boost::shared_ptr<Type> getCommonBlockType(std::string &commonBlockName);
 
     virtual Symbol *findSymbolForCommonBlock(const std::string &commonBlockName);
 

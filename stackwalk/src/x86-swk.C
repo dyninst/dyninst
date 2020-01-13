@@ -175,7 +175,7 @@ static gcframe_ret_t HandleStandardFrame(const Frame &in, Frame &out, ProcessSta
 
 bool Walker::checkValidFrame(const Frame &in, const Frame &out)
 {
-   if (out.getSP() <= in.getSP() && out.getSPLocation().location != loc_unknown) {
+   if (out.getSP() <= in.getSP()) {
       sw_printf("[%s:%u] - Stackwalk went backwards, %lx to %lx\n",
                 FILE__, __LINE__, in.getSP(), out.getSP());
       return false;

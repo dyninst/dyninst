@@ -27,12 +27,13 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#include "Parser.h"
+
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Function.h"
 
 #include "CodeObject.h"
 #include "CFG.h"
-#include "Parser.h"
 #include "debug_parse.h"
 
 #include "dyninstversion.h"
@@ -82,18 +83,18 @@ CodeObject::CodeObject(CodeSource *cs,
 void
 CodeObject::process_hints()
 {
-    Function * f = NULL;
-    const vector<Hint> & hints = cs()->hints();
-    vector<Hint>::const_iterator hit;
-
-    for(hit = hints.begin();hit!=hints.end();++hit) {
-        CodeRegion * cr = (*hit)._reg;
+    const dyn_c_vector<Hint> & hints = cs()->hints();
+    int size = hints.size();
+#pragma omp parallel for schedule(auto)
+    for(int i = 0; i < size; ++i) {
+        Function * f = NULL;
+        CodeRegion * cr = hints[i]._reg;
         if(!cs()->regionsOverlap())
             f = parser->factory()._mkfunc(
-               (*hit)._addr,HINT,(*hit)._name,this,cr,cs());
+               hints[i]._addr,HINT,hints[i]._name,this,cr,cs());
         else
             f = parser->factory()._mkfunc(
-                (*hit)._addr,HINT,(*hit)._name,this,cr,cr);
+                hints[i]._addr,HINT,hints[i]._name,this,cr,cr);
         if(f) {
             parsing_printf("[%s] adding hint %lx\n",FILE__,f->addr());
             parser->add_hint(f);

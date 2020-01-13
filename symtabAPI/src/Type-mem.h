@@ -31,15 +31,13 @@
 #if !defined(TYPE_MEM_H_)
 #define TYPE_MEM_H_
 
-#include <race-detector-annotations.h>
-
 #include "symtabAPI/h/Type.h"
 #include "boost/static_assert.hpp"
 #include <utility>
 
 namespace Dyninst {
   namespace SymtabAPI {
-    extern tbb::concurrent_hash_map<void *, size_t> type_memory;
+    extern dyn_c_hash_map<void *, size_t> type_memory;
   }
 }
 
@@ -50,40 +48,43 @@ template<class T>
 T *upgradePlaceholder(Type *placeholder, T *new_type)
 {
   void *mem = (void *) placeholder;
-	tbb::concurrent_hash_map<void*, size_t>::accessor a;
-  assert(type_memory.find(a, placeholder));
-	size_t size = a->second;
+  size_t size = 0;
+  {
+    dyn_c_hash_map<void*, size_t>::accessor a;
+    assert(type_memory.find(a, placeholder));
+    size = a->second;
+  }
+
   assert(sizeof(T) < size);
   memset(mem, 0, size);
 
   T *ret = new(mem) T();
   assert(mem == (void *) ret);
   *ret = *new_type;
-  race_detector_forget_access_history(ret, sizeof(T));
   return ret;
 }
 
 template<class T>
-T* typeCollection::addOrUpdateType(T *type) 
+typename boost::enable_if<
+    boost::integral_constant<bool, !bool(boost::is_same<Type, T>::value)>,
+boost::shared_ptr<Type>>::type typeCollection::addOrUpdateType(boost::shared_ptr<T> type) 
 {
 	//Instanciating this function for 'Type' would be a mistake, which
 	//the following assert tries to guard against.  If you trigger this,
 	//then a caller to this function is likely using 'Type'.  Change
 	//this to a more specific call, e.g. typeFunction instead of Type
-	BOOST_STATIC_ASSERT(sizeof(T) != sizeof(Type));
+    // NOTE: Disabled, we use SFINAE instead to handle this.
+    // BOOST_STATIC_ASSERT(sizeof(T) != sizeof(Type));
     boost::lock_guard<boost::mutex> g(placeholder_mutex);
 
-	Type *existingType = findTypeLocal(type->getID());
-    tbb::concurrent_hash_map<int, Type*>::accessor id_accessor;
-    tbb::concurrent_hash_map<std::string, Type*>::accessor name_accessor;
-	if (!existingType) 
+    dyn_c_hash_map<int, boost::shared_ptr<Type>>::accessor a;
+	if (!typesByID.find(a, type->getID())) 
 	{
 		if ( type->getName() != "" ) 
 		{
-			typesByName.insert(name_accessor, std::make_pair(type->getName(), type));
+			typesByName.insert({type->getName(), type});
 		}
-		typesByID.insert(id_accessor, std::make_pair(type->getID(), type));
-		type->incrRefCount();
+		typesByID.insert({type->getID(), type});
 		return type;
 	}
 
@@ -91,45 +92,41 @@ T* typeCollection::addOrUpdateType(T *type)
 	   in us parsing the same module types repeatedly. GCC does this
 	   with some of its internal routines */
 
-	T *existingT = dynamic_cast<T*>(existingType);
+	T *existingT = dynamic_cast<T*>(a->second.get());
 	if (existingT && (*existingT == *type)) 
 	{
-		return (T*) existingType;
+		return a->second;
 	}
 
-	if (existingType->getDataClass() == dataUnknownType) 
+	if (a->second->getDataClass() == dataUnknownType) 
 	{
-		upgradePlaceholder(existingType, type);
+		upgradePlaceholder(a->second.get(), type.get());
 	} 
 	else 
 	{
 		/* Merge the type information. */
-		existingType->merge(type);
+		a->second->merge(type.get());
 	}
 
 	/* The type may have gained a name. */
-	if ( existingType->getName() != "") 
+	if ( a->second->getName() != "") 
 	{
-		tbb::concurrent_hash_map<std::string, Type*>::accessor a;
-		bool found = typesByName.find(a, existingType->getName());
-		if (found)
+        dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::accessor o;
+		if (typesByName.find(o, a->second->getName()))
 		{
-			if (a->second != existingType)
+			if (a->second != o->second)
 			{
-				a->second->decrRefCount();
-				a->second = existingType;
-				existingType->incrRefCount();
+                o->second = a->second;
 			}
 		} 
 		else 
 		{
-			typesByName.insert(a, std::make_pair(existingType->getName(), existingType));
-			existingType->incrRefCount();
+            typesByName.insert({a->second->getName(), a->second});
 		}
 	}
 
 	/* Tell the parser to update its type pointer. */
-	return (T*) existingType;
+	return a->second;
 } /* end addOrUpdateType() */
 
 

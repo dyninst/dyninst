@@ -29,6 +29,10 @@ include(LibIberty)
 
 include(shared)
 
+if(USE_OpenMP)
+  find_package(OpenMP REQUIRED)
+endif()
+
 # PLATFORM is set by including 'shared'
 if(PLATFORM MATCHES "bgq")
   message(WARNING "Support for Bluegene/Q has been deprecated and will be removed in a future release")
@@ -61,12 +65,20 @@ foreach (dir ${HEADER_DIRS})
   include_directories ( ${DYNINST_ROOT}/${dir}/h )
 endforeach()
 
+set(DYNINST_RT_CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+set(DYNINST_RT_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
+set(ADD_VALGRIND_ANNOTATIONS OFF CACHE BOOL "Enable annotations for Valgrind analysis")
+if(ADD_VALGRIND_ANNOTATIONS)
+  find_package(Valgrind REQUIRED)
+  include_directories(${Valgrind_INCLUDE_DIRS})
+  add_definitions(-DENABLE_VG_ANNOTATIONS)
+endif()
 
 include_directories (
   ${DYNINST_ROOT}
   ${DYNINST_ROOT}/external
-  ${CILKSCREEN_INCLUDES}
-      ${TBB_INCLUDE_DIRS}
+  ${TBB_INCLUDE_DIRS}
   )
 
 # Component time

@@ -161,6 +161,7 @@ namespace Dyninst{
 			~Module();
 
             std::string getCompDir();
+            std::string getCompDir(Module::DebugInfoT&); // For internal use
 
 			// Symbol output methods
 			virtual bool findSymbol(std::vector<Symbol *> &ret,
@@ -193,11 +194,38 @@ namespace Dyninst{
 
 
 			// Type output methods
-			virtual bool findType(Type *&type, std::string name);
-			virtual bool findVariableType(Type *&type, std::string name);
+			virtual bool findType(boost::shared_ptr<Type>& type, std::string name);
+            bool findType(Type*& t, std::string n) {
+              boost::shared_ptr<Type> tp;
+              auto r = findType(tp, n);
+              t = tp.get();
+              return r;
+            }
+			virtual bool findVariableType(boost::shared_ptr<Type>& type, std::string name);
+            bool findVariableType(Type*& t, std::string n) {
+              boost::shared_ptr<Type> tp;
+              auto r = findVariableType(tp, n);
+              t = tp.get();
+              return r;
+            }
 
-			std::vector<Type *> *getAllTypes();
-			std::vector<std::pair<std::string, Type *> > *getAllGlobalVars();
+			void getAllTypes(std::vector<boost::shared_ptr<Type>>&);
+            std::vector<Type*>* getAllTypes() {
+              std::vector<boost::shared_ptr<Type>> v;
+              getAllTypes(v);
+              auto r = new std::vector<Type*>(v.size());
+              for(std::size_t i = 0; i < v.size(); i++) (*r)[i] = v[i].get();
+              return r;
+            }
+			void getAllGlobalVars(std::vector<std::pair<std::string, boost::shared_ptr<Type>>>&);
+            std::vector<std::pair<std::string, Type*>>* getAllGlobalVars() {
+              std::vector<std::pair<std::string, boost::shared_ptr<Type>>> v;
+              getAllGlobalVars(v);
+              auto r = new std::vector<std::pair<std::string, Type*>>(v.size());
+              for(std::size_t i = 0; i < v.size(); i++)
+                (*r)[i] = {v[i].first, v[i].second.get()};
+              return r;
+            }
 
 			typeCollection *getModuleTypes();
 
@@ -236,7 +264,7 @@ namespace Dyninst{
             bool objectLevelLineInfo;
 			Dyninst::SymtabAPI::LineInformation* lineInfo_;
 			typeCollection* typeInfo_;
-			std::vector<Module::DebugInfoT> info_;
+			dyn_c_queue<Module::DebugInfoT> info_;
 
 
 			std::string fileName_;                   // short file

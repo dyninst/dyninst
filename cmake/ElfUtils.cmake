@@ -37,7 +37,7 @@ if(NOT UNIX)
 endif()
 
 # Minimum acceptable version of elfutils
-set(_min_version 0.173)
+set(_min_version 0.178)
 set(ElfUtils_MIN_VERSION ${_min_version}
     CACHE STRING "Minimum acceptable elfutils version")
 if(${ElfUtils_MIN_VERSION} VERSION_LESS ${_min_version})
@@ -117,6 +117,7 @@ else()
       <SOURCE_DIR>/configure
       --enable-install-elfh
       --prefix=${CMAKE_INSTALL_PREFIX}
+      --disable-debuginfod
     BUILD_COMMAND make install
     INSTALL_COMMAND ""
   )

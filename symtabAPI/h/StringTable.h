@@ -5,6 +5,7 @@
 #ifndef DYNINST_STRINGTABLE_H
 #define DYNINST_STRINGTABLE_H
 
+#include "concurrent.h"
 #include <boost/shared_ptr.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/random_access_index.hpp>
@@ -45,7 +46,13 @@ namespace Dyninst {
                 >
             >
         >
-        StringTable;
+        StringTableBase;
+
+        struct StringTable : public StringTableBase {
+            StringTable() : StringTableBase() {};
+            ~StringTable() {};
+            dyn_mutex lock;
+        };
 
         typedef boost::shared_ptr<StringTable> StringTablePtr;
 

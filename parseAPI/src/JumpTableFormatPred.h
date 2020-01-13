@@ -19,7 +19,6 @@ public:
     SymbolicExpression &se;
 
     bool jumpTableFormat;
-    bool unknownInstruction;
     bool findIndex;
     bool findTableBase;
 

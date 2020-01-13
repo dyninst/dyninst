@@ -114,7 +114,7 @@ ADD_DEFINITIONS(-DROSE_UTIL_EXPORTS)
 ADD_DEFINITIONS(-DNOMINMAX)
 endif()
 dyninst_library(parseAPI common instructionAPI ${SYMREADER})
-set(OPENMP_LIBRARIES gomp)
+
 target_link_private_libraries(parseAPI ${Boost_LIBRARIES} ${TBB_LIBRARIES} tbbmalloc)
 
 if (WIN32)
@@ -125,8 +125,8 @@ FILE (GLOB headers "h/*.h")
 FILE (GLOB dataflowheaders "../dataflowAPI/h/*.h")
 set_target_properties (parseAPI PROPERTIES PUBLIC_HEADER "${headers};${dataflowheaders}")
 
-if (USE_OpenMP MATCHES "ON")
-set_target_properties (parseAPI PROPERTIES COMPILE_FLAGS "-fopenmp" LINK_FLAGS "-fopenmp")
+if (USE_OpenMP)
+set_target_properties (parseAPI PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS} LINK_FLAGS ${OpenMP_CXX_FLAGS})
 endif()
 
 if (USE_COTIRE)

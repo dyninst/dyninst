@@ -813,13 +813,13 @@ void BPatch_function::constructVarsAndParams()
     	}    
     }
 
-    if (!lowlevel_func()->ifunc()->getSymtabFunction()->getReturnType()) 
+    if (!lowlevel_func()->ifunc()->getSymtabFunction()->getReturnType(Dyninst::SymtabAPI::Type::share)) 
 	{
         varsAndParamsValid = true;
         return;
     }
         
-	SymtabAPI::Type *ret_type = lowlevel_func()->ifunc()->getSymtabFunction()->getReturnType();
+	auto ret_type = lowlevel_func()->ifunc()->getSymtabFunction()->getReturnType(Dyninst::SymtabAPI::Type::share);
 	assert(ret_type);
 
 	extern AnnotationClass<BPatch_type> TypeUpPtrAnno;

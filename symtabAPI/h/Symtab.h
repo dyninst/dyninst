@@ -41,10 +41,11 @@
 #include "Serialization.h"
 #include "ProcReader.h"
 #include "IBSTree.h"
+#include "Type.h"
 
 #include "dyninstversion.h"
 
-#include "pfq-rwlock.h"
+#include "concurrent.h"
 
 #include "boost/shared_ptr.hpp"
 #include "boost/multi_index_container.hpp"
@@ -176,6 +177,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
                                           bool isRegex = false,
                                           bool checkCase = true);
    bool getAllFunctions(std::vector<Function *>&ret);
+   const std::vector<Function*>& getAllFunctionsRef() const { return everyFunction; }
 
    //Searches for functions without returning inlined instances
    bool getContainingFunction(Offset offset, Function* &func);
@@ -262,17 +264,44 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    void forceFullLineInfoParse();
    
    /***** Type Information *****/
-   virtual bool findType(Type *&type, std::string name);
-   virtual Type *findType(unsigned type_id);
-   virtual bool findVariableType(Type *&type, std::string name);
+   virtual bool findType(boost::shared_ptr<Type>& type, std::string name);
+   bool findType(Type*& t, std::string n) {
+     boost::shared_ptr<Type> tp;
+     auto r = findType(tp, n);
+     t = tp.get();
+     return r;
+   }
+   virtual boost::shared_ptr<Type> findType(unsigned type_id, Type::do_share_t);
+   Type* findType(unsigned i) { return findType(i, Type::share).get(); }
+   virtual bool findVariableType(boost::shared_ptr<Type>& type, std::string name);
+   bool findVariableType(Type*& t, std::string n) {
+     boost::shared_ptr<Type> tp;
+     auto r = findVariableType(tp, n);
+     t = tp.get();
+     return r;
+   }
 
    bool addType(Type *typ);
 
-   static boost::shared_ptr<builtInTypeCollection> builtInTypes();
-   static boost::shared_ptr<typeCollection> stdTypes();
+   static boost::shared_ptr<builtInTypeCollection>& builtInTypes();
+   static boost::shared_ptr<typeCollection>& stdTypes();
 
-   static std::vector<Type *> *getAllstdTypes();
-   static std::vector<Type *> *getAllbuiltInTypes();
+   static void getAllstdTypes(std::vector<boost::shared_ptr<Type>>&);
+   static std::vector<Type*>* getAllstdTypes() {
+     std::vector<boost::shared_ptr<Type>> v;
+     getAllstdTypes(v);
+     auto r = new std::vector<Type*>(v.size());
+     for(std::size_t i = 0; i < v.size(); i++) (*r)[i] = v[i].get();
+     return r;
+   }
+   static void getAllbuiltInTypes(std::vector<boost::shared_ptr<Type>>&);
+   static std::vector<Type*>* getAllbuiltInTypes() {
+     std::vector<boost::shared_ptr<Type>> v;
+     getAllbuiltInTypes(v);
+     auto r = new std::vector<Type*>(v.size());
+     for(std::size_t i = 0; i < v.size(); i++) (*r)[i] = v[i].get();
+     return r;
+   }
 
    void parseTypesNow();
 
@@ -468,7 +497,7 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
 
    static boost::shared_ptr<typeCollection> setupStdTypes();
    static boost::shared_ptr<builtInTypeCollection> setupBuiltinTypes();
-   pfq_rwlock_t symbols_rwlock;
+   dyn_rwlock symbols_rwlock;
    // boost::mutex symbols_mutex;
 
    std::string member_name_;
@@ -518,26 +547,49 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    //symbols
    unsigned no_of_symbols;
 
-   // Indices
-   struct offset {};
-   struct pretty {};
-   struct mangled {};
-   struct typed {};
-   struct id {};
-   
- 
-   
-   
-   typedef 
-   boost::multi_index_container<Symbol::Ptr, indexed_by <
-   ordered_unique< tag<id>, const_mem_fun < Symbol::Ptr, Symbol*, &Symbol::Ptr::get> >,
-   ordered_non_unique< tag<offset>, const_mem_fun < Symbol, Offset, &Symbol::getOffset > >,
-   hashed_non_unique< tag<mangled>, const_mem_fun < Symbol, std::string, &Symbol::getMangledName > >,
-   hashed_non_unique< tag<pretty>, const_mem_fun < Symbol, std::string, &Symbol::getPrettyName > >,
-   hashed_non_unique< tag<typed>, const_mem_fun < Symbol, std::string, &Symbol::getTypedName > >
-   >
-   > indexed_symbols;
-   
+   struct indexed_symbols {
+       typedef dyn_c_hash_map<Symbol*, Offset> master_t;
+       typedef std::vector<Symbol*> symvec_t;
+       typedef dyn_c_hash_map<Offset, symvec_t> by_offset_t;
+       typedef dyn_c_hash_map<std::string, symvec_t> by_name_t;
+
+       master_t master;
+       by_offset_t by_offset;
+       by_name_t by_mangled;
+       by_name_t by_pretty;
+       by_name_t by_typed;
+
+       // Only inserts if not present. Returns whether it inserted.
+       bool insert(Symbol* s);
+
+       // Clears the table. Do not use in parallel.
+       void clear();
+
+       // Erases symbols from the table. Do not use in parallel.
+       void erase(Symbol* s);
+
+       // Iterator for the symbols. Do not use in parallel.
+       class iterator : public std::iterator<std::forward_iterator_tag,Symbol*> {
+           master_t::iterator m;
+       public:
+           iterator(master_t::iterator i) : m(i) {};
+           ~iterator() {};
+           bool operator==(const iterator& x) { return m == x.m; };
+           bool operator!=(const iterator& x) { return !operator==(x); };
+           Symbol* const& operator*() const { return m->first; };
+           Symbol* const* operator->() const { return &operator*(); };
+           iterator& operator++() { ++m; return *this; };
+           iterator operator++(int) {
+               iterator old(m);
+               operator++();
+               return old;
+           }
+       };
+
+       iterator begin() { return iterator(master.begin()); }
+       iterator end() { return iterator(master.end()); }
+   };
+
    indexed_symbols everyDefinedSymbol;
    indexed_symbols undefDynSyms;
    
@@ -546,13 +598,13 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    std::vector<Function *> everyFunction;
    // Since Functions are unique by address we require this structure to
    // efficiently track them.
-   dyn_hash_map <Offset, Function *> funcsByOffset;
+   dyn_c_hash_map <Offset, Function *> funcsByOffset;
 
    // Similar for Variables
    std::vector<Variable *> everyVariable;
-   dyn_hash_map <Offset, Variable *> varsByOffset;
+   dyn_c_hash_map <Offset, Variable *> varsByOffset;
 
-
+    dyn_mutex im_lock;
     boost::multi_index_container<Module*,
             boost::multi_index::indexed_by<
                     boost::multi_index::random_access<>,
@@ -618,8 +670,8 @@ class SYMTAB_EXPORT Symtab : public LookupInterface,
    std::map <std::string, std::string> dynLibSubs;
 
    public:
-   static boost::shared_ptr<Type> type_Error();
-   static boost::shared_ptr<Type> type_Untyped();
+   static boost::shared_ptr<Type>& type_Error();
+   static boost::shared_ptr<Type>& type_Untyped();
 
  private:
     unsigned _ref_cnt;

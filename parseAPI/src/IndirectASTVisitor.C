@@ -458,6 +458,7 @@ AST::Ptr JumpTableReadVisitor::visit(DataflowAPI::VariableAST * var) {
 
 
 bool JumpTableReadVisitor::PerformMemoryRead(Address addr, int64_t &v) {
+    readAddress = addr;
     int addressWidth = cs->getAddressWidth();
     if (addressWidth == 4) {
         addr &= 0xffffffff;

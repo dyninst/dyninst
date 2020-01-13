@@ -1,28 +1,28 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -62,13 +62,13 @@ FunctionBase::FunctionBase() :
 {
 }
 
-Type *FunctionBase::getReturnType() const
+boost::shared_ptr<Type> FunctionBase::getReturnType(Type::do_share_t) const
 {
-    getModule()->exec()->parseTypesNow();	
+    getModule()->exec()->parseTypesNow();
     return retType_;
 }
 
-bool FunctionBase::setReturnType(Type *newType)
+bool FunctionBase::setReturnType(boost::shared_ptr<Type> newType)
 {
    retType_ = newType;
    return true;
@@ -76,19 +76,19 @@ bool FunctionBase::setReturnType(Type *newType)
 
 bool FunctionBase::findLocalVariable(std::vector<localVar *> &vars, std::string name)
 {
-    getModule()->exec()->parseTypesNow();	
+    getModule()->exec()->parseTypesNow();
 
-   unsigned origSize = vars.size();	
+   unsigned origSize = vars.size();
 
    if (locals) {
       localVar *var = locals->findLocalVar(name);
-      if (var) 
+      if (var)
          vars.push_back(var);
    }
 
    if (params) {
       localVar *var = params->findLocalVar(name);
-      if (var) 
+      if (var)
          vars.push_back(var);
    }
 
@@ -105,13 +105,13 @@ const FuncRangeCollection &FunctionBase::getRanges()
 
 bool FunctionBase::getLocalVariables(std::vector<localVar *> &vars)
 {
-    getModule()->exec()->parseTypesNow();	
+    getModule()->exec()->parseTypesNow();
    if (!locals)
       return false;
 
    auto p = locals->getAllVars();
    std::copy(p.begin(), p.end(), back_inserter(vars));
-   
+
    if (p.empty())
       return false;
    return true;
@@ -151,13 +151,13 @@ bool FunctionBase::addParam(localVar *param)
 
 FunctionBase *FunctionBase::getInlinedParent()
 {
-    getModule()->exec()->parseTypesNow();	
+    getModule()->exec()->parseTypesNow();
    return inline_parent;
 }
 
 const InlineCollection &FunctionBase::getInlines()
 {
-    getModule()->exec()->parseTypesNow();	
+    getModule()->exec()->parseTypesNow();
    return inlines;
 }
 
@@ -180,7 +180,15 @@ std::vector<Dyninst::VariableLocation> &FunctionBase::getFramePtrRefForInit() {
    return frameBase_;
 }
 
-std::vector<Dyninst::VariableLocation> &FunctionBase::getFramePtr() 
+dyn_mutex &FunctionBase::getFramePtrLock()
+{
+   if (inline_parent)
+      return inline_parent->getFramePtrLock();
+
+   return frameBaseLock_;
+}
+
+std::vector<Dyninst::VariableLocation> &FunctionBase::getFramePtr()
 {
    if (inline_parent)
       return inline_parent->getFramePtr();
@@ -200,7 +208,7 @@ std::vector<Dyninst::VariableLocation> &FunctionBase::getFramePtr()
    return frameBase_;
 }
 
-bool FunctionBase::setFramePtr(vector<VariableLocation> *locs) 
+bool FunctionBase::setFramePtr(vector<VariableLocation> *locs)
 {
    frameBase_.clear();
    std::copy(locs->begin(), locs->end(), std::back_inserter(frameBase_));
@@ -218,11 +226,11 @@ std::pair<std::string, Dyninst::Offset> InlinedFunction::getCallsite()
 
 void FunctionBase::expandLocation(const VariableLocation &loc,
                               std::vector<VariableLocation> &ret) {
-   // We are the frame base, so... WTF? 
+   // We are the frame base, so... WTF?
 
    assert(loc.mr_reg != Dyninst::FrameBase);
 
-#if defined(os_windows) 
+#if defined(os_windows)
    ret.push_back(loc);
    return;
 #else
@@ -235,7 +243,7 @@ void FunctionBase::expandLocation(const VariableLocation &loc,
    auto obj = getModule()->exec()->getObject();
    DwarfFrameParser::Ptr frameParser =
 		   DwarfFrameParser::create(*obj->dwarf->frame_dbg(), obj->dwarf->origFile()->e_elfp(), obj->getArch());
-   
+
    std::vector<VariableLocation> FDEs;
    Dyninst::DwarfDyninst::FrameErrors_t err;
    if(!frameParser) return;
@@ -247,10 +255,10 @@ void FunctionBase::expandLocation(const VariableLocation &loc,
    }
 
    // This looks surprisingly similar to localVar's version...
-   // Perhaps we should unify. 
+   // Perhaps we should unify.
 
    std::vector<VariableLocation>::iterator i;
-   for (i = FDEs.begin(); i != FDEs.end(); i++) 
+   for (i = FDEs.begin(); i != FDEs.end(); i++)
    {
       Offset fdelowPC = i->lowPC;
       Offset fdehiPC = i->hiPC;
@@ -284,11 +292,11 @@ void FunctionBase::expandLocation(const VariableLocation &loc,
            << hex << newloc.lowPC << ".." << newloc.hiPC
            << "], reg " << newloc.mr_reg.name()
            << " /w/ offset " << newloc.frameOffset
-           << " = (" << loc.frameOffset 
-           << "+" << i->frameOffset << ")" 
-           << ", " 
+           << " = (" << loc.frameOffset
+           << "+" << i->frameOffset << ")"
+           << ", "
            << storageClass2Str(newloc.stClass)
-           << ", " 
+           << ", "
            << storageRefClass2Str(newloc.refClass) << endl;
 */
 
@@ -357,7 +365,7 @@ Function::~Function()
 {
 }
 
-bool Function::removeSymbol(Symbol *sym) 
+bool Function::removeSymbol(Symbol *sym)
 {
 	removeSymbolInt(sym);
 	if (symbols_.empty()) {
@@ -373,7 +381,7 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::VariableLocation &l)
 	os << "{"
            << "storageClass=" << stc
            << " storageRefClass=" << strc
-           << " reg=" << l.mr_reg.name() 
+           << " reg=" << l.mr_reg.name()
            << " frameOffset=" << l.frameOffset
            << " lowPC=" << l.lowPC
            << " hiPC=" << l.hiPC
@@ -383,7 +391,7 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::VariableLocation &l)
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &f)
 {
-	Type *retType = (const_cast<Function &>(f)).getReturnType();
+	boost::shared_ptr<Type> retType = (const_cast<Function &>(f)).getReturnType(Type::share);
 
 	std::string tname(retType ? retType->getName() : "no_type");
 	const Aggregate *ag = dynamic_cast<const Aggregate *>(&f);
@@ -396,7 +404,7 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &f
 #if 0
 	for (unsigned int i = 0; i < f.frameBase_.size(); ++i)
 	{
-		os << f.frameBase_[i]; 
+		os << f.frameBase_[i];
 		if ( (i + 1) < f.frameBase_.size())
 			os << ", ";
 	}
@@ -435,8 +443,9 @@ InlinedFunction::InlinedFunction(FunctionBase *parent) :
     module_(parent->getModule())
 {
     inline_parent = parent;
-    parent->inlines.push_back(this);
     offset_ = parent->getOffset();
+    boost::unique_lock<dyn_mutex> l(parent->inlines_lock);
+    parent->inlines.push_back(this);
 }
 
 InlinedFunction::~InlinedFunction()
@@ -477,6 +486,7 @@ unsigned InlinedFunction::getSize() const
 
 void InlinedFunction::setFile(string filename) {
     StringTablePtr strs = module_->getStrings();
+    boost::unique_lock<dyn_mutex> l(strs->lock);
     // This looks gross, but here's what it does:
     // Get index 1 (unique by name). Insert the filename on that index (which defaults to push_back if empty).
     // Returns an <iterator, bool>; get the iterator (we don't care if it's new). Project to random access (index 0).

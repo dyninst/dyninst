@@ -137,6 +137,7 @@ class parse_block : public codeRange, public ParseAPI::Block  {
     void getInsns(Insns &instances, Address offset = 0);
 
  private:
+    using Block::getInsns;
     bool needsRelocation_;
     int blockNumber_;
 

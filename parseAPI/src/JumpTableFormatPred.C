@@ -17,7 +17,6 @@ JumpTableFormatPred::JumpTableFormatPred(ParseAPI::Function *f,
 					 SymbolicExpression &sym):
       func(f), block(b), rf(r), thunks(t), se(sym){
     jumpTableFormat = true;
-    unknownInstruction = false;
     findIndex = false;
     findTableBase = false;
     firstMemoryRead = true;
@@ -83,7 +82,6 @@ static int CountInDegree(SliceNode::Ptr n) {
 
 bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::Ptr g, Slicer* s) {
     if (!jumpTableFormat) return false;
-    if (unknownInstruction) return false;
 
     /* We start to inspect the current slice graph.
      * 1. If we have determined the jump table format, we can stop this slice.
@@ -96,6 +94,8 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
     queue<SliceNode::Ptr> working_list;
     unordered_set<Assignment::Ptr, Assignment::AssignmentPtrHasher> inQueue;
     NodeIterator nbegin, nend; 
+    
+    bool setFirstMemoryRead = false;
 
     g->adjustEntryAndExitNodes();
     // We do not try to slice on the heap absregion,
@@ -111,6 +111,7 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	        memLoc = rit->second[0].ptr;
 		firstMemoryRead = false;
 		frame.active.erase(rit);
+        setFirstMemoryRead = true;
 	    } else {
 	        // For a later memory read, if we have not disqualified this indirect jump,
 		// it is likely to be a jump table. There are two cases to be handled:
@@ -184,10 +185,10 @@ bool JumpTableFormatPred::modifyCurrentFrame(Slicer::SliceFrame &frame, Graph::P
 	 */
 	pair<AST::Ptr, bool> expandRet = se.ExpandAssignment(n->assign(), true);
 	if (!expandRet.second || expandRet.first == NULL) {
-	    parsing_printf("\tWARNING: Jump table format slice contains unknown instructions: %s\n",
+	    parsing_printf("\tWARNING: Jump table format slice contains unknown instructions: %s. Stop slicing along the path\n",
 					   n->assign()->insn().format().c_str());
-	    unknownInstruction = true;
-	    jumpTableFormat = false;
+        if (setFirstMemoryRead) firstMemoryRead = true;
+        g->deleteNode(n);
 	    return false;
 	}
 	if (n->assign()->out().generator() != NULL) {

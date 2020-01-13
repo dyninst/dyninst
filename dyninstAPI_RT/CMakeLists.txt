@@ -3,6 +3,8 @@ cmake_minimum_required (VERSION 2.6.4)
 project (DyninstRT C)
 
 set (DYNINST_ROOT ${PROJECT_SOURCE_DIR}/..)
+set(CMAKE_C_FLAGS "${DYNINST_RT_CMAKE_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "${DYNINST_RT_CMAKE_CXX_FLAGS}")
 
 include (${DYNINST_ROOT}/cmake/shared.cmake)
 

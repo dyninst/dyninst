@@ -1,204 +1,173 @@
-//******************************************************************************
-//
-// File:
-//   pfq_rwlock.c
-//
-// Purpose:
-//   Implement the API for a fair, phased reader-writer lock with local spinning
-//
-// Reference:
+/*
+ * See the dyninst/COPYRIGHT file for copyright information.
+ *
+ * We provide the Paradyn Tools (below described as "Paradyn")
+ * on an AS IS basis, and do not warrant its validity or performance.
+ * We reserve the right to update, modify, or discontinue this
+ * software at any time.  We shall have no obligation to supply such
+ * updates or modifications or any other form of support to you.
+ *
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
+// This file contains a simple implementation of a condition variable-based
+// shared lock. The algorithm is described below.
+
+// Linearization is handled via two bitfields, rin and rout, which govern the
+// behavior and motion of readers through the lock. These are arranged as:
+// - Bit 0: PHASE. Determines which wakeup signal waiting readers use.
+// - Bit 1: WRITER. If 1, a writer has the lock or is waiting for it.
+// - Remaining bits: TICKET. Unique identifier for a reader.
+// It is assumed the number of readers will never go above 2^14 (16384)
+
+// Incoming readers obtain a ticket by a fetch_add on rin, and if
+// WRITER is set will immediately wait on a condition variable rcond.
+// The associated mutex inlock maintains consistent access with the two wakeup
+// booleans, rwakeup[2], and the choice of variable is determined by the
+// PHASE bit of the obtained ticket.
+
+// Outgoing readers indicate their disinterest by applying a fetch_add
+// on rout, which gives them a a secondary "outgoing" ticket. If WRITER
+// is set the non-atomic field last contains the ticket of the final reader.
+// The final reader signals a condition variable wcond to wake up one of
+// the writers that may be waiting. The normal mutex outlock and boolean wwakeup
+// ensure no wakeups are lost on the writer side.
+
+// Writers are serialized amonst each other via a single normal mutex wlock.
+// All arriving writers choose a final reader via fetch_xor on rin, and
+// check for present readers via fetch_xor on rout. If readers are present,
+// it then waits for a wakeup via the condition variable wcond, resetting
+// wwakeup after this has occured successfully. All of this is done while wlock
+// is held, and wlock continues to be held through the critical section.
+
+// Leaving writers first ensure outgoing readers will not attempt to
+// (erroneously) wake up a writer via a fetch_xor (equiv. fetch_and)
+// on rout, permit incoming readers via the same on rin, and then wake up
+// any waiting readers via a notification on rcond.
+
+// Inspired by the previous implementation, which was based on the following:
 //   Björn B. Brandenburg and James H. Anderson. 2010. Spin-based reader-writer
 //   synchronization for multiprocessor real-time systems. Real-Time Systems
 //   46(1):25-87 (September 2010).  http://dx.doi.org/10.1007/s11241-010-9097-2
-//
-// Notes:
-//   the reference uses a queue for arriving readers. on a cache coherent
-//   machine, the local spinning property for waiting readers can be achieved
-//   by simply using a cacheable flag. the implementation here uses that
-//   simplification.
-//
-//******************************************************************************
+// In addition to the above, the previous authors used a simplification where
+// the readers span on a single shared atomic boolean. The version below
+// replaces this with a condition variable, which is sufficient for the
+// as the readers only serialize at the transitions between phases.
 
+#include "vgannotations.h"
+#include "concurrent.h"
 
+static const unsigned int PHASE = 0x1;
+static const unsigned int WRITER = 0x2;
+static const unsigned int TICKET = 0x4;
 
-//******************************************************************************
-// local includes
-//******************************************************************************
+using namespace Dyninst;
 
-#include "pfq-rwlock.h"
-#include "race-detector-annotations.h"
-
-
-
-//******************************************************************************
-// macros
-//******************************************************************************
-
-#define READER_INCREMENT 0x100U
-
-#define PHASE_BIT        0x001U
-#define WRITER_PRESENT   0x002U
-
-#define WRITER_MASK      (PHASE_BIT | WRITER_PRESENT)
-#define TICKET_MASK      ~(WRITER_MASK)
-
-//------------------------------------------------------------------
-// define a macro to point to the low-order byte of an integer type
-// in a way that will work on both big-endian and little-endian 
-// processors
-//------------------------------------------------------------------
-#ifdef DYNINST_BIG_ENDIAN
-#define LSB_PTR(p) (((unsigned char *) p) + (sizeof(*p) - 1))
-#endif
-
-
-#ifdef DYNINST_LITTLE_ENDIAN
-#define LSB_PTR(p) ((unsigned char *) p)
-#endif
-
-#ifndef LSB_PTR
-#error "endianness must be configured. " \
-       "use --enable-endian to force configuration"
-#endif
-
-//******************************************************************************
-// interface operations
-//******************************************************************************
-
-void
-pfq_rwlock_init(pfq_rwlock_t &l)
-{
-  l.rin.store(0U);
-  l.rout.store(0U);
-  l.last.store(0U);
-  l.writer_blocking_readers[0].bit.store(false);
-  l.writer_blocking_readers[1].bit.store(false);
-  mcs_init(l.wtail);
-  l.whead = mcs_nil;
+dyn_rwlock::dyn_rwlock()
+    : rin(0), rout(0), last(0), rwakeup{false,false}, wwakeup(false) {
+    ANNOTATE_RWLOCK_CREATE(this);
 }
 
-void
-pfq_rwlock_read_lock(pfq_rwlock_t &l)
-{
-  race_detector_fake_lock_acquire(&l.wtail);
-  uint32_t ticket = l.rin.fetch_add(READER_INCREMENT, boost::memory_order_acq_rel);
-
-  if (ticket & WRITER_PRESENT) {
-    uint32_t phase = ticket & PHASE_BIT;
-    while (l.writer_blocking_readers[phase].bit.load(boost::memory_order_acquire));
-  }
+dyn_rwlock::~dyn_rwlock() {
+    ANNOTATE_RWLOCK_DESTROY(this);
 }
 
+void dyn_rwlock::lock_shared() {
+    // Register a ticket, and check for writers.
+    unsigned int ticket = rin.fetch_add(TICKET, boost::memory_order_acquire);
+    unsigned int phase = ticket & PHASE;
 
-void
-pfq_rwlock_read_unlock(pfq_rwlock_t &l)
-{
-  uint32_t ticket = l.rout.fetch_add(READER_INCREMENT, boost::memory_order_acq_rel);
+    if (ticket & WRITER) {
+        // There is a writer present, try to wait.
+        boost::unique_lock<boost::mutex> l(inlock);
+        rcond.wait(l, [this,&phase](){ return rwakeup[phase]; });
+    }
 
-  if (ticket & WRITER_PRESENT) {
-    //----------------------------------------------------------------------------
-    // finish reading counter before reading last
-    //----------------------------------------------------------------------------
-    if (ticket == l.last.load(boost::memory_order_acquire))
-      l.whead->blocked.store(false, boost::memory_order_release);
-  }
-  race_detector_fake_lock_release(&l.wtail);
+    // Tell Valgrind all about it
+    ANNOTATE_RWLOCK_ACQUIRED(this, 0 /* reader mode */);
+    ANNOTATE_HAPPENS_AFTER(&wwakeup);
 }
 
+void dyn_rwlock::unlock_shared() {
+    // Tell Valgrind what we're up to
+    ANNOTATE_HAPPENS_BEFORE(&rwakeup);
+    ANNOTATE_RWLOCK_RELEASED(this, 0 /* reader mode */);
 
-void
-pfq_rwlock_write_lock(pfq_rwlock_t &l, pfq_rwlock_node_t &me)
-{
-  //--------------------------------------------------------------------
-  // use MCS lock to enforce mutual exclusion with other writers
-  //--------------------------------------------------------------------
-  mcs_lock(l.wtail, me);
+    // Pull off an outgoing ticket and see if we're the last reader.
+    unsigned int ticket = rout.fetch_add(TICKET, boost::memory_order_acq_rel);
 
-  //--------------------------------------------------------------------
-  // this may be false when at the head of the mcs queue
-  //--------------------------------------------------------------------
-  me.blocked.store(true, boost::memory_order_relaxed);
-
-  //--------------------------------------------------------------------
-  // announce myself as next writer
-  //--------------------------------------------------------------------
-  l.whead = &me;
-
-  //--------------------------------------------------------------------
-  // set writer_blocking_readers to block any readers in the next batch
-  //--------------------------------------------------------------------
-  uint32_t phase = l.rin.load(boost::memory_order_relaxed) & PHASE_BIT;
-  l.writer_blocking_readers[phase].bit.store(true, boost::memory_order_release); 
-
-  //----------------------------------------------------------------------------
-  // store to writer_blocking_headers bit must complete before incrementing rin
-  //----------------------------------------------------------------------------
-
-  //--------------------------------------------------------------------
-  // acquire an "in" sequence number to see how many readers arrived
-  // set the WRITER_PRESENT bit so subsequent readers will wait
-  //--------------------------------------------------------------------
-  uint32_t in = l.rin.fetch_or(WRITER_PRESENT, boost::memory_order_acq_rel);
-
-  //--------------------------------------------------------------------
-  // save the ticket that the last reader will see
-  //--------------------------------------------------------------------
-  l.last.store(in - READER_INCREMENT + WRITER_PRESENT, boost::memory_order_release);
-
-  //-------------------------------------------------------------
-  // update to 'last' must complete before others see changed value of rout.
-  // acquire an "out" sequence number to see how many readers left
-  // set the WRITER_PRESENT bit so the last reader will know to signal
-  // it is responsible for signaling the waiting writer
-  //-------------------------------------------------------------
-  uint32_t out = l.rout.fetch_or(WRITER_PRESENT, boost::memory_order_acq_rel);
-
-  //--------------------------------------------------------------------
-  // if any reads are active, wait for last reader to signal me
-  //--------------------------------------------------------------------
-  if (in != out) {
-    while (me.blocked.load(boost::memory_order_acquire));
-    // wait for active reads to drain
-
-    //--------------------------------------------------------------------------
-    // store to writer_blocking headers bit must complete before notifying
-    // readers of writer
-    //--------------------------------------------------------------------------
-  }
+    if (ticket & WRITER && ticket == last) {
+        // Wake up the writer, its our job.
+        boost::unique_lock<dyn_mutex> l(outlock);
+        wwakeup = true;
+        wcond.notify_one();
+    }
 }
 
+void dyn_rwlock::lock() {
+    // Synchronize with other writers via the normal mutex.
+    wlock.lock();
 
-void
-pfq_rwlock_write_unlock(pfq_rwlock_t &l, pfq_rwlock_node_t &me)
-{
-  //--------------------------------------------------------------------
-  // toggle phase and clear WRITER_PRESENT in rin. No synch issues
-  // since there are no concurrent updates of the low-order byte
-  //--------------------------------------------------------------------
-  unsigned char *lsb = LSB_PTR(&l.rin);
-  uint32_t phase = *lsb & PHASE_BIT;
-  *lsb ^= WRITER_MASK;
+    // Choose the final reader, and make sure no others come in.
+    unsigned int lr = rin.fetch_xor(PHASE|WRITER, boost::memory_order_acquire);
+    last = (lr - TICKET) ^ (PHASE | WRITER);
 
-  //--------------------------------------------------------------------
-  // toggle phase and clear WRITER_PRESENT in rout. No synch issues
-  // since the low-order byte modified here isn't modified again until
-  // another writer has the mcs_lock.
-  //--------------------------------------------------------------------
-  lsb = LSB_PTR(&l.rout);
-  *lsb ^= WRITER_MASK;
+    // Let the last reader know that they should wake me up.
+    // Rel to "release" the previous write to last.
+    unsigned int cr = rout.fetch_xor(PHASE|WRITER, boost::memory_order_acq_rel);
 
-  //----------------------------------------------------------------------------
-  // clearing writer present in rin can be reordered with writer_blocking_readers set below
-  // because any arriving reader will see the cleared writer_blocking_readers and proceed.
-  //----------------------------------------------------------------------------
+    if (cr != lr) {
+        // There actually was a reader inside. Wait for him to leave.
+        boost::unique_lock<boost::mutex> l(outlock);
+        wcond.wait(l, [this](){ return wwakeup; });
+        wwakeup = false;
+    }
 
-  //--------------------------------------------------------------------
-  // clear writer_blocking_readers to release waiting readers in the current read phase
-  //--------------------------------------------------------------------
-  l.writer_blocking_readers[phase].bit.store(false, boost::memory_order_release);
+    // Now there are no readers waiting on the previous phase, clear the flag.
+    rwakeup[lr & PHASE] = false;
 
-  //--------------------------------------------------------------------
-  // pass writer lock to next writer
-  //--------------------------------------------------------------------
-  mcs_unlock(l.wtail, me);
+    // Tell Valgrind all about it.
+    ANNOTATE_RWLOCK_ACQUIRED(this, 1 /* writer mode */);
+    ANNOTATE_HAPPENS_AFTER(&rwakeup);
+}
+
+void dyn_rwlock::unlock() {
+    // Let Valgrind know what we are up to.
+    ANNOTATE_HAPPENS_BEFORE(&wwakeup);
+    ANNOTATE_RWLOCK_RELEASED(this, 1 /* writer mode */);
+
+    // Make sure any speedy readers don't try to wake me up again.
+    rout.fetch_xor(WRITER, boost::memory_order_relaxed);
+
+    // Let in any new readers, since we're done with it at the moment.
+    unsigned int phase = rin.fetch_xor(WRITER, boost::memory_order_acq_rel);
+    phase &= PHASE;
+
+    // Wake up any readers that were waiting for us.
+    {
+        boost::unique_lock<dyn_mutex> l(inlock);
+        rwakeup[phase] = true;
+        rcond.notify_all();
+    }
+
+    // We're done, pass ownership off to the next writer.
+    wlock.unlock();
 }

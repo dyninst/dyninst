@@ -1,34 +1,36 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #ifndef _PARSER_H_
 #define _PARSER_H_
+
+#include "ParseData.h"
 
 #include <set>
 #include <vector>
@@ -47,7 +49,6 @@
 #include "CFG.h"
 #include "ParseCallback.h"
 
-#include "ParseData.h"
 #include "common/src/dthread.h"
 #include <boost/thread/lockable_adapter.hpp>
 #include <boost/thread/shared_mutex.hpp>
@@ -82,22 +83,19 @@ namespace Dyninst {
             // region data store
             ParseData *_parse_data;
 
-    // All allocated frames
-    LockFreeQueue<ParseFrame *> frames;
+            // All allocated frames
+            LockFreeQueue<ParseFrame *> frames;
 
-            // Delayed frames
-            struct DelayedFrames : public boost::basic_lockable_adapter<boost::recursive_mutex> {
-                std::map<Function *, std::set<ParseFrame *> > frames, prev_frames;
-
-            };
-            DelayedFrames delayed_frames;
+            boost::atomic<bool> delayed_frames_changed;
+            dyn_c_hash_map<Function*, std::set<ParseFrame*> > delayed_frames;
 
             // differentiate those provided via hints and
             // those found through RT or speculative parsing
-            vector<Function *> hint_funcs;
-            vector<Function *> discover_funcs;
+            dyn_c_vector<Function *> hint_funcs;
+            dyn_c_vector<Function *> discover_funcs;
 
             set<Function *, Function::less> sorted_funcs;
+            set<Function*> deleted_func;
 
             // PLT, IAT entries
             dyn_hash_map<Address, string> plt_entries;
@@ -105,12 +103,13 @@ namespace Dyninst {
     // a sink block for unbound edges
     boost::atomic<Block *> _sink;
 #ifdef ADD_PARSE_FRAME_TIMERS
-    tbb::concurrent_hash_map<unsigned int, unsigned int > time_histogram;
+    dyn_c_hash_map<unsigned int, unsigned int > time_histogram;
 #endif
     enum ParseState {
         UNPARSED,       // raw state
         PARTIAL,        // parsing has started
         COMPLETE,       // full parsing -- range queries are invalid
+        RETURN_SET,
         FINALIZED,
         UNPARSEABLE     // error condition
     };
@@ -250,19 +249,18 @@ namespace Dyninst {
                     Block *,
                     InstructionAdapter_t *);
 
-            void ProcessCFInsn(
+            bool ProcessCFInsn(
                     ParseFrame &,
                     Block *,
                     InstructionAdapter_t *);
 
             void finalize();
 
-            void finalize_funcs(vector<Function *> &funcs);
-	    void clean_bogus_funcs(vector<Function*> &funcs);
-            void finalize_ranges(vector<Function *> &funcs);
-	    void split_overlapped_blocks();
-            void split_consistent_blocks(region_data *, map<Address, Block*> &);
-            void split_inconsistent_blocks(region_data *, map<Address, Block*> &);
+            void finalize_funcs(dyn_c_vector<Function *> &funcs);
+	    void clean_bogus_funcs(dyn_c_vector<Function*> &funcs);
+            void finalize_ranges();
+            void finalize_jump_tables();
+            void delete_bogus_blocks(Edge*);
             bool set_edge_parsing_status(ParseFrame&, Address addr, Block *b);
 	    void move_edges_consistent_blocks(Block *, Block *);
             void update_function_ret_status(ParseFrame &, Function*, ParseWorkElem* );
@@ -295,6 +293,13 @@ namespace Dyninst {
     LockFreeQueueItem<ParseFrame *> *postProcessFrame(ParseFrame *pf, bool recursive);
 
             void updateBlockEnd(Block *b, Address addr, Address previnsn, region_data *rd) const;
+
+            // Range data is initialized through writing to interval trees.
+            // This is intrinsitcally mutual exclusive. So we delay this initialization until
+            // someone actually needs this.
+            //
+            // Note: this has to be run in a single thread.
+            vector<Function*> funcs_to_ranges;            
         };
 
     }
