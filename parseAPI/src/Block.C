@@ -100,7 +100,7 @@ Block::getFuncs(vector<Function *> & funcs)
 {
     if(!_obj) return; // universal sink
     set<Function *> stab;
-    _obj->findFuncs(region(),start(),stab);
+    _obj->findFuncsByBlock(region(),this,stab);
     set<Function *>::iterator sit = stab.begin();
     for( ; sit != stab.end() ;++sit) {
         if(((const Function*)(*sit))->contains(this))

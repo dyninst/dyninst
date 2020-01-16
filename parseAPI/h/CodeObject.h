@@ -102,6 +102,7 @@ class CodeObject {
 
     // functions
     PARSER_EXPORT Function * findFuncByEntry(CodeRegion * cr, Address entry);
+    PARSER_EXPORT int findFuncsByBlock(CodeRegion *cr, Block* b, std::set<Function*> &funcs);
     PARSER_EXPORT int findFuncs(CodeRegion * cr, 
             Address addr, 
             std::set<Function*> & funcs);
@@ -188,7 +189,7 @@ class CodeObject {
 template <class OutputIterator>
 void Block::getFuncs(OutputIterator result) {
   std::set<Function *> stab;
-  _obj->findFuncs(region(), start(), stab);
+  _obj->findFuncsByBlock(region(), this, stab);
   std::copy(stab.begin(), stab.end(), result);
 }
 

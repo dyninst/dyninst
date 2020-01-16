@@ -983,6 +983,17 @@ Parser::finalize(Function *f)
 
     f->_cache_valid = cache_value; // see comment at function entry
 
+    // Update funcsByBlockMap
+    for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
+        Block *b = *bit;
+        dyn_c_hash_map<Block*, std::set<Function*> >::accessor a;
+        std::set<Function*> new_value;
+        new_value.insert(f);
+        if (!funcsByBlockMap.insert(a, make_pair(b, new_value))) {
+            a->second.insert(f);
+        }
+    }
+
     if (unlikely( f->obj()->defensiveMode())) {
         // add fallthrough edges for calls assumed not to be returning
         // whose fallthrough blocks we parsed anyway (this happens if 
@@ -2147,6 +2158,29 @@ Parser::findFuncByEntry(CodeRegion *r, Address entry)
         parse();
     }
     return _parse_data->findFunc(r,entry);
+}
+
+int
+Parser::findFuncsByBlock(CodeRegion *r, Block *b, set<Function*> &funcs)
+{
+    if(_parse_state < COMPLETE) {
+        parsing_printf("[%s:%d] Parser::findFuncsByBlock([%lx,%lx),%lx,...) "
+                               "forced parsing\n",
+                       FILE__,__LINE__,r->low(),r->high(),b->start());
+        parse();
+    }
+    if(_parse_state < FINALIZED) {
+        parsing_printf("[%s:%d] Parser::findFuncsByBlock([%lx,%lx),%lx,...) "
+                               "forced finalization\n",
+                       FILE__,__LINE__,r->low(),r->high(),b->start());
+        finalize();
+    }
+    dyn_c_hash_map<Block*, std::set<Function*> >::const_accessor a;
+    if (funcsByBlockMap.find(a, b)) {
+        funcs = a->second;
+        return funcs.size();
+    }
+    return 0;
 }
 
 int
