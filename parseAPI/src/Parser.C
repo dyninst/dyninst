@@ -1009,7 +1009,7 @@ void
 Parser::finalize()
 {
     if(_parse_state < FINALIZED) {
-        finalize_jump_tables();
+        // finalize_jump_tables();
         finalize_funcs(hint_funcs);
         finalize_funcs(discover_funcs);
         clean_bogus_funcs(discover_funcs);
