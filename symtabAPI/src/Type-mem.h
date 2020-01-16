@@ -75,16 +75,12 @@ boost::shared_ptr<Type>>::type typeCollection::addOrUpdateType(boost::shared_ptr
 	//this to a more specific call, e.g. typeFunction instead of Type
     // NOTE: Disabled, we use SFINAE instead to handle this.
     // BOOST_STATIC_ASSERT(sizeof(T) != sizeof(Type));
-    dyn_mutex::unique_lock g(placeholder_mutex);
 
     dyn_c_hash_map<int, boost::shared_ptr<Type>>::accessor a;
-	if (!typesByID.find(a, type->getID()))
+	if (typesByID.insert(a, {type->getID(), type}))
 	{
 		if ( type->getName() != "" )
-		{
 			typesByName.insert({type->getName(), type});
-		}
-		typesByID.insert({type->getID(), type});
 		return type;
 	}
 

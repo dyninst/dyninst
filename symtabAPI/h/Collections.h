@@ -169,10 +169,6 @@ public:
       return r;
     }
     void clearNumberedTypes();
-    private:
-        dyn_mutex placeholder_mutex; // The only intermodule contention should be around
-        // typedefs/other placeholders, but we'll go ahead and lock around type add operations
-        // to be safe
 };
 
 /*

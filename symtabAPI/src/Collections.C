@@ -289,31 +289,33 @@ boost::shared_ptr<Type> typeCollection::findTypeLocal(const int ID, Type::do_sha
 
 boost::shared_ptr<Type> typeCollection::findOrCreateType( const int ID, Type::do_share_t)
 {
-    dyn_mutex::unique_lock g(placeholder_mutex);
-    dyn_c_hash_map<int, boost::shared_ptr<Type>>::const_accessor a;
-    if (typesByID.find(a, ID))
+    dyn_c_hash_map<int, boost::shared_ptr<Type>>::const_accessor ca;
+    if (typesByID.find(ca, ID))
     {
-        return a->second;
+        return ca->second;
     }
-
-    boost::shared_ptr<Type> returnType;
 
     if ( Symtab::builtInTypes() )
     {
-        returnType = Symtab::builtInTypes()->findBuiltInType(ID, Type::share);
+        boost::shared_ptr<Type> returnType = Symtab::builtInTypes()->findBuiltInType(ID, Type::share);
 
         if (returnType)
             return returnType;
     }
 
+    // If someone else added a placeholder in the meanwhile, return that.
+    // Note: name == "", so typesByName doesn't need updated.
+    dyn_c_hash_map<int, boost::shared_ptr<Type>>::accessor a;
+    if (!typesByID.insert(a, {ID, boost::shared_ptr<Type>()}))
+    {
+      return a->second;
+    }
+
     /* Create a placeholder type. */
-    returnType = Type::createPlaceholder(ID);
-    assert( returnType );
+    a->second = Type::createPlaceholder(ID);
+    assert( a->second );
 
-    /* Having created the type, add it. */
-    addType( returnType, g );
-
-    return returnType;
+    return a->second;
 } /* end findOrCreateType() */
 
 boost::shared_ptr<Type> typeCollection::findType(const int ID, Type::do_share_t)
@@ -360,16 +362,12 @@ boost::shared_ptr<Type> typeCollection::findVariableType(std::string &name, Type
  */
 void typeCollection::addType(boost::shared_ptr<Type> type)
 {
-    dyn_mutex::unique_lock g(placeholder_mutex);
-    addType(type, g);
-
-}
-void typeCollection::addType(boost::shared_ptr<Type> type, dyn_mutex::unique_lock&)
-{
+    dyn_c_hash_map<int, boost::shared_ptr<Type>>::accessor a;
+    if(!typesByID.insert({type->getID(), type}))
+      return;  // Type is already present
     if(type->getName() != "") { //Type could have no name.
         typesByName.insert({type->getName(), type});
     }
-    typesByID.insert({type->getID(), type});
 }
 
 void typeCollection::addGlobalVariable(std::string &name, boost::shared_ptr<Type> type)
