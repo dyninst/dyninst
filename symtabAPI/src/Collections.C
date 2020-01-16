@@ -214,6 +214,11 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
 typeCollection *typeCollection::getModTypeCollection(Module *mod)
 {
     if (!mod) return NULL;
+    {  // Fast-path
+        dyn_c_hash_map<void *, typeCollection *>::const_accessor ca;
+        if(fileToTypesMap.find(ca, (void *)mod))
+          return ca->second;
+    }
     dyn_c_hash_map<void *, typeCollection *>::accessor a;
     if(fileToTypesMap.insert(a, (void *)mod)) {
         a->second = new typeCollection();
