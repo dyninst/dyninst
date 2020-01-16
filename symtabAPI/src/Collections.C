@@ -1,33 +1,33 @@
 /*
  * See the dyninst/COPYRIGHT file for copyright information.
- * 
+ *
  * We provide the Paradyn Tools (below described as "Paradyn")
  * on an AS IS basis, and do not warrant its validity or performance.
  * We reserve the right to update, modify, or discontinue this
  * software at any time.  We shall have no obligation to supply such
  * updates or modifications or any other form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
- 
+
 #include <stdio.h>
 #include <string>
 
@@ -62,7 +62,7 @@ localVarCollection::~localVarCollection(){
    {
 	   delete *li;
    }
-   
+
    localVars.clear();
 }
 
@@ -182,7 +182,7 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
 					boost::shared_ptr<Type> localt = tciter->second->findType(iter->first, Type::share);
 					if (localt)
 					{
-						if (localt->getDataClass() != ldc) 
+						if (localt->getDataClass() != ldc)
 							continue;
 						nfound++;
 						t = localt;
@@ -196,7 +196,7 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
 			}
 			if (!t)
 			{
-                           create_printf("%s[%d]:  FIXME:  cannot find type id %d\n", 
+                           create_printf("%s[%d]:  FIXME:  cannot find type id %d\n",
                                          FILE__, __LINE__, iter->first);
                            err = true;
                            continue;
@@ -211,7 +211,7 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
  * Reference count
  */
 
-typeCollection *typeCollection::getModTypeCollection(Module *mod) 
+typeCollection *typeCollection::getModTypeCollection(Module *mod)
 {
     if (!mod) return NULL;
     dyn_c_hash_map<void *, typeCollection *>::accessor a;
@@ -287,9 +287,9 @@ boost::shared_ptr<Type> typeCollection::findTypeLocal(const int ID, Type::do_sha
 }
 
 
-boost::shared_ptr<Type> typeCollection::findOrCreateType( const int ID, Type::do_share_t) 
+boost::shared_ptr<Type> typeCollection::findOrCreateType( const int ID, Type::do_share_t)
 {
-    boost::lock_guard<boost::mutex> g(placeholder_mutex);
+    dyn_mutex::unique_lock g(placeholder_mutex);
     dyn_c_hash_map<int, boost::shared_ptr<Type>>::const_accessor a;
     if (typesByID.find(a, ID))
     {
@@ -360,11 +360,11 @@ boost::shared_ptr<Type> typeCollection::findVariableType(std::string &name, Type
  */
 void typeCollection::addType(boost::shared_ptr<Type> type)
 {
-    boost::lock_guard<boost::mutex> g(placeholder_mutex);
+    dyn_mutex::unique_lock g(placeholder_mutex);
     addType(type, g);
 
 }
-void typeCollection::addType(boost::shared_ptr<Type> type, boost::lock_guard<boost::mutex>&)
+void typeCollection::addType(boost::shared_ptr<Type> type, dyn_mutex::unique_lock&)
 {
     if(type->getName() != "") { //Type could have no name.
         typesByName.insert({type->getName(), type});
@@ -372,12 +372,12 @@ void typeCollection::addType(boost::shared_ptr<Type> type, boost::lock_guard<boo
     typesByID.insert({type->getID(), type});
 }
 
-void typeCollection::addGlobalVariable(std::string &name, boost::shared_ptr<Type> type) 
+void typeCollection::addGlobalVariable(std::string &name, boost::shared_ptr<Type> type)
 {
     globalVarsByName.insert({type->getName(), type});
 }
 
-void typeCollection::clearNumberedTypes() 
+void typeCollection::clearNumberedTypes()
 {
    typesByID.clear();
 }
@@ -398,7 +398,7 @@ void typeCollection::getAllGlobalVariables(vector<pair<string, boost::shared_ptr
     for(auto it = globalVarsByName.begin();
         it != globalVarsByName.end(); it++) {
 	vec.push_back(make_pair(it->first, it->second));
-   }	
+   }
 }
 
 #if !defined(SERIALIZATION_DISABLED)
@@ -440,7 +440,7 @@ Serializable *typeCollection::serialize_impl(SerializerBase *sb, const char *tag
             dyn_c_hash_map<int, boost::shared_ptr<Type>>::const_accessor a;
             if (!typesByID.find(a, it->second))
 			{
-				serialize_printf("%s[%d]:  cannot find type w/ID %d\n", 
+				serialize_printf("%s[%d]:  cannot find type w/ID %d\n",
 						FILE__, __LINE__, gvars[i].second);
 				continue;
 			}
