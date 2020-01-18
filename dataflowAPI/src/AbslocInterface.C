@@ -315,7 +315,13 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
     // Currently, we only bind sp, fp, and pc.
     // If we decide to also bind aliases of these registers,
     // we need to change bindKnownRegs accordingly.
-    bindKnownRegs calc(spHeight, fpHeight, addr, stackDefined, frameDefined);
+    Address pcVal = addr;
+    if (block->obj()->cs()->getArch() == Arch_x86 || block->obj()->cs()->getArch() == Arch_x86_64) {
+        // PC value on x86/64 is post-instruction
+        pcVal += block->getInsn(addr).size();
+    }
+
+    bindKnownRegs calc(spHeight, fpHeight, pcVal, stackDefined, frameDefined);
     exp->apply(&calc);
     bool isFrame = calc.is_frame;
     bool isStack = calc.is_stack;
