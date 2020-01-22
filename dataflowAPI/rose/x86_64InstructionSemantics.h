@@ -10,12 +10,18 @@
 
 #include "integerOps.h"
 
+#include "semantics/BaseSemantics2.h"
 
 #include "SgAsmx86Instruction.h"
 #include "SgAsmExpression.h"
 #include "conversions.h"
 
 #ifndef ROSE_X86INSTRUCTIONSEMANTICS_H
+
+#define ROSE_ASSERT(x) \
+    if (!(x)) {\
+        throw rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception("", NULL); \
+    }\
 
 /* Returns the segment register corresponding to the specified register reference address expression. */
 static inline X86SegmentRegister getSegregFromMemoryReference(SgAsmMemoryReferenceExpression* mr) {
@@ -188,7 +194,7 @@ struct X86_64InstructionSemantics {
                     }
                     default: {
                         fprintf(stderr, "Bad register class %s\n", regclassToString(rre->get_register_class()));
-                        abort();
+                        throw rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception("", NULL);;
                     }
                 }
                 break;
@@ -215,7 +221,7 @@ struct X86_64InstructionSemantics {
             }
             default: {
                 fprintf(stderr, "Bad variant %s in read8\n", e->class_name().c_str());
-                abort();
+                throw rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception("", NULL);;
             }
         }
         return number<8>(0); // error case
@@ -242,7 +248,7 @@ struct X86_64InstructionSemantics {
                     }
                     default: {
                         fprintf(stderr, "Bad register class %s\n", regclassToString(rre->get_register_class()));
-                        abort();
+                        throw rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception("", NULL);;
                     }
                 }
                 break;
@@ -269,7 +275,7 @@ struct X86_64InstructionSemantics {
             }
             default: {
                 fprintf(stderr, "Bad variant %s in read16\n", e->class_name().c_str());
-                abort();
+                throw rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception("", NULL); 
             }
         }
         return number<16>(0); //error case
@@ -303,8 +309,8 @@ struct X86_64InstructionSemantics {
                         return extract<0,32>(value);
                     }
                     default: {
-                        fprintf(stderr, "Bad register class %s\n", regclassToString(rre->get_register_class()));
-                        abort();
+                        std::string mesg = "Bad register class\n";
+                        throw rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception(mesg, NULL); 
                     }
                 }
                 break;
@@ -331,7 +337,7 @@ struct X86_64InstructionSemantics {
             }
             default: {
                 fprintf(stderr, "Bad variant %s in read32\n", e->class_name().c_str());
-                abort();
+                throw rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception("", NULL);;
             }
         }
         return number<32>(0); //error case
@@ -368,7 +374,7 @@ struct X86_64InstructionSemantics {
                     }
                     default: {
                         fprintf(stderr, "Bad register class %s\n", regclassToString(rre->get_register_class()));
-                        abort();
+                        throw rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception("", NULL);;
                     }
                 }
                 break;
@@ -396,7 +402,7 @@ struct X86_64InstructionSemantics {
             }
             default: {
                 fprintf(stderr, "Bad variant %s in read32\n", e->class_name().c_str());
-                abort();
+                throw rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception("", NULL);;
             }
         }
         return number<64>(0); //error case
@@ -444,7 +450,7 @@ struct X86_64InstructionSemantics {
                     }
                     default: {
                         fprintf(stderr, "Bad register class %s\n", regclassToString(rre->get_register_class()));
-                        abort();
+                        throw rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception("", NULL);;
                     }
                 }
                 break;
@@ -456,7 +462,7 @@ struct X86_64InstructionSemantics {
             }
             default: {
                 fprintf(stderr, "Bad variant %s in write8\n", e->class_name().c_str());
-                abort();
+                throw rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception("", NULL);;
             }
         }
     }
@@ -483,7 +489,7 @@ struct X86_64InstructionSemantics {
                     }
                     default: {
                         fprintf(stderr, "Bad register class %s\n", regclassToString(rre->get_register_class()));
-                        abort();
+                        throw rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception("", NULL);;
                     }
                 }
                 break;
@@ -495,7 +501,7 @@ struct X86_64InstructionSemantics {
             }
             default: {
                 fprintf(stderr, "Bad variant %s in write16\n", e->class_name().c_str());
-                abort();
+                throw rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception("", NULL);;
             }
         }
     }
@@ -522,7 +528,7 @@ struct X86_64InstructionSemantics {
                     }
                     default: {
                         fprintf(stderr, "Bad register class %s\n", regclassToString(rre->get_register_class()));
-                        abort();
+                        throw rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception("", NULL);;
                     }
                 }
                 break;
@@ -534,7 +540,7 @@ struct X86_64InstructionSemantics {
             }
             default: {
                 fprintf(stderr, "Bad variant %s in write32\n", e->class_name().c_str());
-                abort();
+                throw rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception("", NULL);;
             }
         }
     }
@@ -563,7 +569,7 @@ struct X86_64InstructionSemantics {
                     }
                     default: {
                         fprintf(stderr, "Bad register class %s\n", regclassToString(rre->get_register_class()));
-                        abort();
+                        throw rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception("", NULL);;
                     }
                 }
                 break;
@@ -575,7 +581,7 @@ struct X86_64InstructionSemantics {
             }
             default: {
                 fprintf(stderr, "Bad variant %s in write32\n", e->class_name().c_str());
-                abort();
+                throw rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception("", NULL);;
             }
         }
     }

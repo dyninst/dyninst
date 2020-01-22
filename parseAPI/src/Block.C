@@ -219,16 +219,7 @@ void Edge::destroy(Edge *e, CodeObject *o) {
 
 
 Block *Edge::trg() const {
-    if (!_from_index) {
-      return _target;
-    }
-    Block* found = index->findBlock(src()->region(), _target_off);
-    if(found) return found;
-    Block* newBlock = NULL;
-//    newBlock = src()->obj()->fact()->_mkblock(NULL, src()->region(), _target_off);
-//    newBlock = src()->obj()->fact()->_mksink(src()->obj(), src()->region());
-//    index->record_block(src()->region(), newBlock);
-    return newBlock;
+   return _target;
 }
 
 std::string format(EdgeTypeEnum e) {

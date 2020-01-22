@@ -123,10 +123,14 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
 
         if(overlap) {
             _parse_data = new OverlappingParseData(this,copy);
+            assert(_sink == record_block(_sink));
             return;
         }
     }
     _parse_data = new StandardParseData(this);    
+    if (_parse_state != UNPARSEABLE) {
+        assert(_sink == record_block(_sink));
+    }
 }
 
 ParseFrame::~ParseFrame()
@@ -1020,7 +1024,7 @@ void
 Parser::finalize()
 {
     if(_parse_state < FINALIZED) {
-        // finalize_jump_tables();
+        //finalize_jump_tables();
         finalize_funcs(hint_funcs);
         finalize_funcs(discover_funcs);
         clean_bogus_funcs(discover_funcs);
@@ -2328,7 +2332,7 @@ Parser::link_tempsink(Block *src, EdgeTypeEnum et)
 {
     // Do not put the edge into block target list at this moment,
     // because the source block is likely to be split.
-    Block* tmpsink = parse_data()->findBlock(src->region(), std::numeric_limits<Address>::max());
+    Block* tmpsink = _sink;
     ParseAPI::Edge * e = factory()._mkedge(src, tmpsink,et);
     e->_type._sink = true;
     return e;
@@ -2357,6 +2361,7 @@ assert(src->end() == dst->start());
             addSrcAndDest = false;
         }
         e->_target_off = dst->start();
+        e->_target = dst;
         dst->addSource(e);
         _pcb.addEdge(dst, e, ParseCallback::source);
     }
@@ -2374,9 +2379,6 @@ assert(src->end() == dst->start());
         // we don't inform PatchAPI of temporary sinkEdges, we have
         // to add both the source AND target edges
         _pcb.addEdge(src, e, ParseCallback::target);
-    }
-    if(parse_data()->findBlock(dst->region(), dst->start()) != dst) {
-	assert(!"another block already exist!");
     }
     e->_type._sink = (dst->start() == std::numeric_limits<Address>::max());
 }

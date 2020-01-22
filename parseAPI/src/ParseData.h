@@ -284,9 +284,6 @@ public:
 	 // Find functions within [start,end)
 	 int findFuncs(Address start, Address end, set<Function *> & funcs);
     region_data(CodeObject* obj, CodeRegion* reg) {
-        Block* sink = new Block(obj, reg, numeric_limits<Address>::max());
-        blocksByAddr.insert(make_pair(sink->start(),sink));
-        blocksByRange.insert(sink);
     }
 
     edge_data_map* get_edge_data_map() { return &edge_parsing_status; }
