@@ -309,14 +309,8 @@ public:
         return ret;
     }
 
-    void getAllBlocks(std::map<Address, Block*> &allBlocks) {
-        // This function should be only called in single-threaded mode,
-        // such as when we are finalizing parsing
+    int getTotalNumOfBlocks() { return blocksByAddr.size(); }
 
-        // We convert hash map to an ordered tree
-        for (auto it = blocksByAddr.begin(); it != blocksByAddr.end(); ++it)
-            allBlocks[it->first] = it->second;
-    }
 };
 
 /** region_data inlines **/
