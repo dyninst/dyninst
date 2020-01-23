@@ -1025,6 +1025,12 @@ Parser::finalize()
 {
     if(_parse_state < FINALIZED) {
         //finalize_jump_tables();
+        std::vector<region_data*> rd;
+        _parse_data->getAllRegionData(rd);
+        int totalBlock = 0;
+        for (auto rit = rd.begin(); rit != rd.end(); ++rit)
+            totalBlock += (*rit)->getTotalNumOfBlocks();
+        funcsByBlockMap.rehash(2 * totalBlock);
         finalize_funcs(hint_funcs);
         finalize_funcs(discover_funcs);
         clean_bogus_funcs(discover_funcs);

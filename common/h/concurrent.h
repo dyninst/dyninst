@@ -141,6 +141,8 @@ public:
 
     int size() const { return base::size(); }
 
+    void rehash( int n = 0 ) { base::rehash(n); }
+
     using base::clear;
 
     using base::iterator;
