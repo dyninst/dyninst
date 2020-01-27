@@ -1471,7 +1471,7 @@ bool EmitterAARCH64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
             (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
             0, 0, addReg, baseReg, baseReg, true);
     insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, baseReg,
-            baseReg, 0, 8, insnCodeGen::Pre);
+            baseReg, 0, 8, insnCodeGen::Offset);
 
     // call instruction
     instruction branchInsn;
@@ -1506,9 +1506,8 @@ bool EmitterAARCH64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
     insnCodeGen::generateAddSubShifted(gen,
             (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
             0, 0, addReg, baseReg, baseReg, true);
-    // dereference?
     insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, baseReg,
-            baseReg, 0, 8, insnCodeGen::Pre);
+            baseReg, 0, 8, insnCodeGen::Offset);
 
     // jump instruction
     instruction branchInsn;
