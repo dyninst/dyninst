@@ -142,6 +142,13 @@ class Slicer {
 	 ParseAPI::Function *func,
 	 bool cache = true,
 	 bool stackAnalysis = true);
+
+  DATAFLOW_EXPORT Slicer(AssignmentPtr a,
+          ParseAPI::Block *block,
+          ParseAPI::Function *func,
+          AssignmentConverter *ac);
+
+  DATAFLOW_EXPORT ~Slicer();
     
   DATAFLOW_EXPORT static bool isWidenNode(Node::Ptr n);
 
@@ -720,7 +727,8 @@ private:
   std::deque<Address> addrStack;
   std::set<Address> addrSet;
 
-  AssignmentConverter converter;
+  AssignmentConverter* converter;
+  bool own_converter;
 
   SliceNode::Ptr widen_;
  public: 

@@ -1372,8 +1372,29 @@ Slicer::Slicer(Assignment::Ptr a,
   a_(a),
   b_(block),
   f_(func),
-  converter(cache, stackAnalysis) {
-};
+  converter(new AssignmentConverter(cache, stackAnalysis)),
+  own_converter(true)
+{
+}
+
+Slicer::Slicer(Assignment::Ptr a,
+               ParseAPI::Block *block,
+               ParseAPI::Function *func,
+               AssignmentConverter* ac):
+  a_(a),
+  b_(block),
+  f_(func),
+  converter(ac),
+  own_converter(false)
+{
+}
+
+Slicer::~Slicer()
+{
+  if (own_converter)
+    delete converter;
+}
+
 
 Graph::Ptr Slicer::forwardSlice(Predicates &predicates) {
 
@@ -1528,7 +1549,7 @@ void Slicer::convertInstruction(Instruction insn,
                                 ParseAPI::Function *func,
                                 ParseAPI::Block *block,
                                 std::vector<Assignment::Ptr> &ret) {
-  converter.convert(insn,
+  converter->convert(insn,
 		    addr,
 		    func,
                     block,
