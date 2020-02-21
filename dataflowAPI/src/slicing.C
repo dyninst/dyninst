@@ -1372,6 +1372,8 @@ Slicer::Slicer(Assignment::Ptr a,
   a_(a),
   b_(block),
   f_(func),
+  insnCache_(new InsnCache()),
+  own_insnCache(true),
   converter(new AssignmentConverter(cache, stackAnalysis)),
   own_converter(true)
 {
@@ -1384,15 +1386,35 @@ Slicer::Slicer(Assignment::Ptr a,
   a_(a),
   b_(block),
   f_(func),
+  insnCache_(new InsnCache()),
+  own_insnCache(true),
   converter(ac),
   own_converter(false)
 {
 }
 
+Slicer::Slicer(Assignment::Ptr a,
+               ParseAPI::Block *block,
+               ParseAPI::Function *func,
+               AssignmentConverter* ac,
+               InsnCache* c):
+  a_(a),
+  b_(block),
+  f_(func),
+  insnCache_(c),
+  own_insnCache(false),
+  converter(ac),
+  own_converter(false)
+{
+}
+
+
 Slicer::~Slicer()
 {
   if (own_converter)
     delete converter;
+  if (own_insnCache)
+    delete insnCache_;
 }
 
 
@@ -1560,24 +1582,24 @@ void Slicer::convertInstruction(Instruction insn,
 void Slicer::getInsns(Location &loc) {
 
 
-  InsnCache::iterator iter = insnCache_.find(loc.block);
-  if (iter == insnCache_.end()) {
-    getInsnInstances(loc.block, insnCache_[loc.block]);
+  InsnCache::iterator iter = insnCache_->find(loc.block);
+  if (iter == insnCache_->end()) {
+    getInsnInstances(loc.block, (*insnCache_)[loc.block]);
   }
   
-  loc.current = insnCache_[loc.block].begin();
-  loc.end = insnCache_[loc.block].end();
+  loc.current = (*insnCache_)[loc.block].begin();
+  loc.end = (*insnCache_)[loc.block].end();
 }
 
 void Slicer::getInsnsBackward(Location &loc) {
     assert(loc.block->start() != (Address) -1); 
-    InsnCache::iterator iter = insnCache_.find(loc.block);
-    if (iter == insnCache_.end()) {
-      getInsnInstances(loc.block, insnCache_[loc.block]);
+    InsnCache::iterator iter = insnCache_->find(loc.block);
+    if (iter == insnCache_->end()) {
+      getInsnInstances(loc.block, (*insnCache_)[loc.block]);
     }
 
-    loc.rcurrent = insnCache_[loc.block].rbegin();
-    loc.rend = insnCache_[loc.block].rend();
+    loc.rcurrent = (*insnCache_)[loc.block].rbegin();
+    loc.rend = (*insnCache_)[loc.block].rend();
 }
 
 // inserts an edge from source to target (forward) or target to source

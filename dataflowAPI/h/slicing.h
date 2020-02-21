@@ -136,6 +136,7 @@ class Slicer {
  public:
   typedef std::pair<InstructionAPI::Instruction, Address> InsnInstance;
   typedef std::vector<InsnInstance> InsnVec;
+  typedef std::map<ParseAPI::Block *, InsnVec> InsnCache;
 
   DATAFLOW_EXPORT Slicer(AssignmentPtr a,
 	 ParseAPI::Block *block,
@@ -147,6 +148,13 @@ class Slicer {
           ParseAPI::Block *block,
           ParseAPI::Function *func,
           AssignmentConverter *ac);
+
+  DATAFLOW_EXPORT Slicer(AssignmentPtr a,
+          ParseAPI::Block *block,
+          ParseAPI::Function *func,
+          AssignmentConverter *ac,
+          InsnCache *c);
+
 
   DATAFLOW_EXPORT ~Slicer();
     
@@ -321,7 +329,6 @@ class Slicer {
     forward,
     backward } Direction;
 
-  typedef std::map<ParseAPI::Block *, InsnVec> InsnCache;
 
   // Our slicing is context-sensitive; that is, if we enter
   // a function foo from a caller bar, all return edges
@@ -695,7 +702,8 @@ private:
 
   void mergeRecursiveCaches(std::map<Address, DefCache>& sc, std::map<Address, DefCache>& c, Address a);
 
-  InsnCache insnCache_;
+  InsnCache* insnCache_;
+  bool own_insnCache;
 
   AssignmentPtr a_;
   ParseAPI::Block *b_;
