@@ -1085,17 +1085,32 @@ Parser::finalize_jump_tables()
 
         if (start_it == jumpTableStart.end()) continue;
         if (*start_it < jti->tableEnd) {
+            std::set<Address> validTargets;
+            // Non-overlapping entries are valid targets.
+            // We record these valid targets and do not remove target edges
+            // even if overlapping entries lead to valid targets.
+            for (Address addr = jti->tableStart; addr < *start_it; addr += jti->indexStride) {
+                validTargets.insert(jti->tableEntryMap[addr]);
+            }
+
+            // Build a target address to ParseAPI::Edge* map
             std::map<Address, Edge*> edgeMap;
             jti->block->copy_targets(targets);
             for (auto eit = targets.begin(); eit != targets.end(); ++eit) {
                 if ((*eit)->type() != INDIRECT || (*eit)->sinkEdge()) continue;
                 edgeMap.insert(make_pair((*eit)->trg_addr(), *eit));
             }
+
+            // Enumerate every overlapping entries and attempt to delete bogus edges
             for (Address addr = *start_it; addr < jti->tableEnd; addr += jti->indexStride) {
+                if (validTargets.find(jti->tableEntryMap[addr]) != validTargets.end()) continue;
                 if (edgeMap.find(jti->tableEntryMap[addr]) == edgeMap.end()) continue;
                 Edge * e = edgeMap[jti->tableEntryMap[addr]];
                 delete_bogus_blocks(e);
             }
+
+            // Adjust jump table end
+            jti->tableEnd = *start_it;
         }
     }
 }
@@ -1114,13 +1129,27 @@ Parser::delete_bogus_blocks(Edge* e)
             e->type());
     e->src()->removeTarget(e);
     cur->removeSource(e);
-    
+
+    // If the target block has other incoming edges,
+    // then we do not remove the block at this point.
+    // It is possible that all incoming edges are bogus
+    // indirect edges, then the last removed edge will
+    // trigger the deletion of the block.
     Block::edgelist sources;
     cur->copy_sources(sources);
     for (auto eit = sources.begin(); eit != sources.end(); ++eit)
         if ((*eit)->type() != INDIRECT && (*eit)->src() != e->src()) 
             return;
 
+    // If an indirect edge points a function entry,
+    // and the entry block does not have other incoming edges,
+    // then this function must be from the symbol talbe.
+    // No need to perform cascading deletion.
+    Function* func = findFuncByEntry(cur->region(), cur->start());
+    if (func != NULL) return;
+
+    // The target block is created by the bogus indirect edge,
+    // we need to continue deleting edges
     Block::edgelist targets;
     cur->copy_targets(targets);
     for (auto eit = targets.begin(); eit != targets.end(); ++eit) {
