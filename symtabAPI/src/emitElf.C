@@ -483,6 +483,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         return false;
     }
 
+    dynsym_info = 0;
     // Write the Elf header first!
     newEhdr = ElfTypes::elf_newehdr(
             newElf);
@@ -513,11 +514,15 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
     Elf_Scn *scn = NULL, *newscn = NULL;
     Elf_Data *newdata = NULL, *olddata = NULL;
     Elf_Shdr *newshdr = NULL, *shdr = NULL;
-    dyn_hash_map<unsigned, unsigned> secLinkMapping;
-    dyn_hash_map<unsigned, unsigned> secInfoMapping;
-    dyn_hash_map<unsigned, unsigned> changeMapping;
-    dyn_hash_map<string, unsigned> newNameIndexMapping;
-    dyn_hash_map<unsigned, string> oldIndexNameMapping;
+    std::unordered_map<unsigned, unsigned> secLinkMapping;
+    std::unordered_map<unsigned, unsigned> secInfoMapping;
+    std::unordered_map<unsigned, unsigned> changeMapping;
+    std::unordered_map<string, unsigned> newNameIndexMapping;
+    std::unordered_map<unsigned, string> oldIndexNameMapping;
+
+    std::unordered_set<string> updateLinkInfoSecs = {
+        ".dynsym", /*".dynstr",*/ ".rela.dyn", ".rela.plt", ".dynamic", ".symtab"};
+    std::unordered_map<string, pair<unsigned, unsigned>> dataLinkInfo;
 
     bool createdLoadableSections = false;
     unsigned scncount;
@@ -549,7 +554,6 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         olddata = elf_getdata(scn, NULL);
         memcpy(newshdr, shdr, sizeof(Elf_Shdr));
         memcpy(newdata, olddata, sizeof(Elf_Data));
-
 
         secNames.push_back(name);
         newshdr->sh_name = secNameIndex;
@@ -734,8 +738,14 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         secLinkMapping[sectionNumber] = shdr->sh_link;
         secInfoMapping[sectionNumber] = shdr->sh_info;
 
+        if(updateLinkInfoSecs.find(string(name)) != updateLinkInfoSecs.end())
+            dataLinkInfo[string(name)] = std::make_pair(shdr->sh_link, shdr->sh_info);
+
         rewrite_printf("section %s addr = %lx off = %lx size = %lx\n",
                        name, newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size);
+        rewrite_printf(" %02d Link(%d) Info(%d) change(%d)\n",
+                sectionNumber, secLinkMapping[sectionNumber], secInfoMapping[sectionNumber],
+                changeMapping[sectionNumber]);
 
         //Insert new loadable sections at the end of data segment
         if (shdr->sh_addr + shdr->sh_size == dataSegEnd && !createdLoadableSections) {
@@ -747,7 +757,8 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
                 insertPointOffset = shdr->sh_offset + shdr->sh_size;
             }
 
-            if (!createLoadableSections(newshdr, extraAlignSize, newNameIndexMapping, sectionNumber))
+            if (!createLoadableSections(newshdr, extraAlignSize, newNameIndexMapping,
+                       sectionNumber))
                 return false;
             if (createNewPhdr && !movePHdrsFirst) {
                 sectionNumber++;
@@ -762,6 +773,18 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
         if (0 > elf_update(newElf, ELF_C_NULL)) {
             return false;
         }
+
+        // code to change interpreter for test
+        /*if (strcmp(name, INTERP_NAME)==0)
+        {
+            cerr << "interpreter: ";
+            cerr << (char *) newdata->d_buf << endl;
+            const char* libc_path = "/tmp/libc/ld-2.29.so\0";
+            strcpy((char*)newdata->d_buf, libc_path);
+            cerr << "new interpreter: ";
+            cerr << (char *) newdata->d_buf << endl;
+        }*/
+
     } // end of for each elf section
 
     // Add non-loadable sections at the end of object file
@@ -777,30 +800,18 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
 
     // Second iteration to fix the link fields to point to the correct section
     scn = NULL;
-
-    for (scncount = 0; (scn = elf_nextscn(newElf, scn)); scncount++) {
+    for (scncount = 1; (scn = elf_nextscn(newElf, scn)); scncount++) {
         shdr = ElfTypes::elf_getshdr(scn);
-        if (changeMapping[scncount + 1] == 0 && secLinkMapping[scncount + 1] != 0) {
-            unsigned linkIndex = secLinkMapping[scncount + 1];
-            string secName = oldIndexNameMapping[linkIndex];
-            unsigned newLinkIndex = newNameIndexMapping[secName];
-            shdr->sh_link = newLinkIndex;
-        }
-
-        if (changeMapping[scncount + 1] == 0 && secInfoMapping[scncount + 1] != 0) {
-            // For REL and RELA section, info field is a section index - hence of the index changes, the info field must change.
-            // For SYMTAB and DYNSYM, info field is OS specific - so just copy it.
-            // For others, info field is 0, so just copy it
-            if (shdr->sh_type == SHT_REL || shdr->sh_type == SHT_RELA) {
-                unsigned infoIndex = secInfoMapping[scncount + 1];
-                string secName = oldIndexNameMapping[infoIndex];
-                unsigned newInfoIndex = newNameIndexMapping[secName];
-                shdr->sh_info = newInfoIndex;
-            }
+        if(dataLinkInfo.count(secNames[scncount]))
+        {
+            rewrite_printf("update link info of %s\n", secNames[scncount].c_str());
+            auto & data = dataLinkInfo[secNames[scncount]];
+            //shdr->sh_link = data.first;
+            shdr->sh_info = data.second;
         }
     }
 
-    newEhdr->e_shstrndx = scncount;
+    newEhdr->e_shstrndx = scncount - 1;
 
     // Move the section header to the end
     newEhdr->e_shoff = shdr->sh_offset + shdr->sh_size;
@@ -830,7 +841,7 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
 
 
 template<class ElfTypes>
-void emitElf<ElfTypes>::createNewPhdrRegion(dyn_hash_map<std::string, unsigned> &newNameIndexMapping) {
+void emitElf<ElfTypes>::createNewPhdrRegion(std::unordered_map<std::string, unsigned> &newNameIndexMapping) {
     assert(!movePHdrsFirst);
 
     unsigned phdr_size = oldEhdr->e_phnum * oldEhdr->e_phentsize;
@@ -895,7 +906,7 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
      * Note: replacing NOTE with LOAD section for bluegene systems
      * does not follow this rule.
      */
-
+    rewrite_printf("::fixPhdrs():\n");
     unsigned pgSize = getpagesize();
 
     newEhdr->e_phnum = oldEhdr->e_phnum;
@@ -1072,9 +1083,9 @@ void emitElf<ElfTypes>::fixPhdrs(unsigned &extraAlignSize) {
 
     for (unsigned i = 0; i < segments.size(); i++)
     {
+        memcpy(newPhdr, &segments[i], oldEhdr->e_phentsize);
         rewrite_printf("Updated program header: type %u (%s), offset 0x%lx, addr 0x%lx\n",
                 newPhdr->p_type, phdrTypeStr(newPhdr->p_type).c_str(), newPhdr->p_offset, newPhdr->p_vaddr);
-        memcpy(newPhdr, &segments[i], oldEhdr->e_phentsize);
         ++newPhdr;
     }
 
@@ -1191,8 +1202,10 @@ void emitElf<ElfTypes>::updateSymbols(Elf_Data *symtabData, Elf_Data *strData, u
 
 template<class ElfTypes>
 bool emitElf<ElfTypes>::createLoadableSections(Elf_Shdr *&shdr, unsigned &extraAlignSize,
-                                                 dyn_hash_map<std::string, unsigned> &newNameIndexMapping,
+                                                 std::unordered_map<std::string, unsigned> &newNameIndexMapping,
                                                  unsigned &sectionNumber) {
+    rewrite_printf("createLoadableSections():\n");
+
     Elf_Scn *newscn;
     Elf_Data *newdata = NULL;
 
@@ -1644,7 +1657,7 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
     vector<Elf_Sym *> dynsymbols;
 
     unsigned symbolNamesLength = 1, dynsymbolNamesLength = 1;
-    dyn_hash_map<string, unsigned long> dynSymNameMapping;
+    std::unordered_map<string, unsigned long> dynSymNameMapping;
     vector<string> symbolStrs, dynsymbolStrs;
     vector<Symbol *> dynsymVector;
     vector<Symbol *> allDynSymbols;
@@ -1991,7 +2004,7 @@ bool emitElf<ElfTypes>::createSymbolTables(set<Symbol *> &allSymbols) {
 
 template<class ElfTypes>
 void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &relocation_table, bool isDynRelocs,
-                                                   dyn_hash_map<std::string, unsigned long> &dynSymNameMapping) {
+                                                   std::unordered_map<std::string, unsigned long> &dynSymNameMapping) {
     vector<relocationEntry> newRels;
     if (isDynRelocs && newSecs.size()) {
         std::vector<Region *>::iterator i;
@@ -2027,7 +2040,7 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
             unsigned long sym_offset = 0;
             std::string sym_name = relocation_table[i].name();
             if (!sym_name.empty()) {
-                dyn_hash_map<string, unsigned long>::iterator j = dynSymNameMapping.find(sym_name);
+                std::unordered_map<string, unsigned long>::iterator j = dynSymNameMapping.find(sym_name);
                 if (j != dynSymNameMapping.end())
                     sym_offset = j->second;
                 else {
@@ -2051,7 +2064,7 @@ void emitElf<ElfTypes>::createRelocationSections(std::vector<relocationEntry> &r
             unsigned long sym_offset = 0;
             std::string sym_name = relocation_table[i].name();
             if (!sym_name.empty()) {
-                dyn_hash_map<string, unsigned long>::iterator j = dynSymNameMapping.find(sym_name);
+                std::unordered_map<string, unsigned long>::iterator j = dynSymNameMapping.find(sym_name);
                 if (j != dynSymNameMapping.end()) {
                     sym_offset = j->second;
                 }

@@ -31,12 +31,14 @@
 #if !defined(_emit_Elf_64_h_)
 #define _emit_Elf_64_h_
 
-
 #include "Object.h"
 #include "debug.h"
 #include <iostream>
 
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
+
 using std::cerr;
 using std::cout;
 using std::endl;
@@ -201,7 +203,7 @@ namespace Dyninst {
             std::map<unsigned, std::vector<std::string> > verdauxEntries;
             std::map<std::string, unsigned> versionNames;
             std::vector<Elf_Half> versionSymTable;
-            int curVersionNum, verneednum, verdefnum;
+            int curVersionNum, verneednum, verdefnum, dynsym_info;
 
             // Needed when adding a new segment
             Elf_Off newSegmentStart;
@@ -241,17 +243,18 @@ namespace Dyninst {
             void findSegmentEnds();
             void renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll=true);
             void fixPhdrs(unsigned &);
-            void createNewPhdrRegion(dyn_hash_map<std::string, unsigned> &newNameIndexMapping);
+            void createNewPhdrRegion(std::unordered_map<std::string, unsigned> &newNameIndexMapping);
 
             bool addSectionHeaderTable(Elf_Shdr *shdr);
 
             bool createNonLoadableSections(Elf_Shdr *&shdr);
 
             bool createLoadableSections(Elf_Shdr *&shdr, unsigned &extraAlignSize,
-                                        dyn_hash_map<std::string, unsigned> &newIndexMapping, unsigned &sectionNumber);
+                                        std::unordered_map<std::string, unsigned> &newIndexMapping,
+                                        unsigned &sectionNumber);
 
             void createRelocationSections(std::vector<relocationEntry> &relocation_table, bool isDynRelocs,
-                                          dyn_hash_map<std::string, unsigned long> &dynSymNameMapping);
+                                          std::unordered_map<std::string, unsigned long> &dynSymNameMapping);
 
             void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
 

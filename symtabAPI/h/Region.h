@@ -78,6 +78,7 @@ class SYMTAB_EXPORT Region : public AnnotatableSparse {
       RT_DYNAMIC,
       RT_HASH,
       RT_GNU_HASH,
+      RT_DYNSYM,
       RT_OTHER,
       RT_INVALID = -1
    };
