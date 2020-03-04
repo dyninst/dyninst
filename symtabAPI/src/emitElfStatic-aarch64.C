@@ -231,6 +231,7 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
     if( addressWidth == 8 ) {
         switch(rel.getRelType()) {
             case R_AARCH64_RELATIVE:
+            case R_AARCH64_IRELATIVE:
                 rel.setAddend(rel.addend() + library_adjust);
                 break;
             case R_AARCH64_JUMP_SLOT:

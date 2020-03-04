@@ -228,8 +228,9 @@ Region::perm_t getRegionPerms(unsigned long flags) {
 
 Region::RegionType getRegionType(unsigned long type, unsigned long flags, const char *reg_name) {
     switch (type) {
-        case SHT_SYMTAB:
         case SHT_DYNSYM:
+            return Region::RT_DYNSYM;
+        case SHT_SYMTAB:
             return Region::RT_SYMTAB;
         case SHT_STRTAB:
             return Region::RT_STRTAB;
