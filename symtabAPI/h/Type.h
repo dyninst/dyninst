@@ -161,8 +161,6 @@ class SYMTAB_EXPORT Type : public Serializable, public  TYPE_ANNOTATABLE_CLASS
     **/
    bool updatingSize;
 
-   static boost::atomic<typeId_t> USER_TYPE_ID;
-
    // INTERNAL DATA MEMBERS
 
 protected:
