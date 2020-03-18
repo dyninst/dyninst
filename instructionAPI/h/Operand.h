@@ -60,16 +60,20 @@ namespace Dyninst
     {
     public:
         typedef boost::shared_ptr<Operand> Ptr;
-    Operand() : m_isRead(false), m_isWritten(false), m_isImplicit(false) {}
+    Operand() : m_isRead(false), m_isWritten(false), m_isImplicit(false), m_isTruePredicate(false), m_isFalsePredicate(false) {}
       /// \brief Create an operand from a %Expression and flags describing whether the %ValueComputation
       /// is read, written or both.
       /// \param val Reference-counted pointer to the %Expression that will be contained in the %Operand being constructed
       /// \param read True if this operand is read
       /// \param written True if this operand is written
       Operand(Expression::Ptr val, bool read, bool written) : 
-          op_value(val), m_isRead(read), m_isWritten(written), m_isImplicit(false) {}
+          op_value(val), m_isRead(read), m_isWritten(written), m_isImplicit(false), m_isTruePredicate(false), m_isFalsePredicate(false) {}
       Operand(Expression::Ptr val, bool read, bool written, bool implicit) : 
-          op_value(val), m_isRead(read), m_isWritten(written), m_isImplicit(implicit) {}
+          op_value(val), m_isRead(read), m_isWritten(written), m_isImplicit(implicit), m_isTruePredicate(false), m_isFalsePredicate(false) {}
+      Operand(Expression::Ptr val, bool read, bool written, bool implicit,
+              bool trueP, bool falseP):
+          op_value(val), m_isRead(read), m_isWritten(written), m_isImplicit(implicit), m_isTruePredicate(trueP), m_isFalsePredicate(falseP) {}
+
       virtual ~Operand()
       {
 	    op_value.reset();
@@ -108,6 +112,9 @@ namespace Dyninst
 
       INSTRUCTION_EXPORT bool isImplicit() const { return m_isImplicit; }
       INSTRUCTION_EXPORT void setImplicit(bool i) { m_isImplicit = i; }
+
+      INSTRUCTION_EXPORT bool isTruePredicate() const { return m_isTruePredicate; }
+      INSTRUCTION_EXPORT bool isFalsePredicate() const { return m_isFalsePredicate; }
       
       /// Returns true if this operand reads memory
       INSTRUCTION_EXPORT bool readsMemory() const;
@@ -133,6 +140,10 @@ namespace Dyninst
       bool m_isRead;
       bool m_isWritten;
       bool m_isImplicit;
+
+      // Used for GPU instructions with predicates
+      bool m_isTruePredicate;
+      bool m_isFalsePredicate;
     };
   };
 };

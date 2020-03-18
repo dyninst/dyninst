@@ -636,6 +636,12 @@ memAccessors.begin()));
         m_Operands.push_back(Operand(e, isRead, isWritten, isImplicit));
     }
   
+    void Instruction::appendOperand(Expression::Ptr e, 
+		bool isRead, bool isWritten, bool isImplicit, bool trueP, bool falseP) const
+    {
+        m_Operands.push_back(Operand(e, isRead, isWritten, isImplicit, trueP, falseP));
+    }
+
 
   };
 };
