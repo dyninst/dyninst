@@ -59,21 +59,24 @@ static int findIntrensicType(std::string &name);
 
 // This is the ID that is decremented for each type a user defines. It is
 // Global so that every type that the user defines has a unique ID.
-boost::atomic<typeId_t> Type::USER_TYPE_ID(-10000);
+static boost::atomic<typeId_t> user_type_id(-10000);
+
+static typeId_t getUniqueTypeId()
+{
+  return user_type_id.fetch_add(-1);
+}
 
 typeId_t Type::getUniqueTypeId()
 {
-  typeId_t val = Type::USER_TYPE_ID.fetch_add(-1);
-  return val;
+  return ::getUniqueTypeId();
 }
-
 
 void Type::updateUniqueTypeId(typeId_t ID_)
 {
-  typeId_t val = Type::USER_TYPE_ID.load();
+  typeId_t val = user_type_id.load();
   while((ID_ < 0) && (val >= ID_))
   {
-    Type::USER_TYPE_ID.compare_exchange_weak(val, val-1);
+    user_type_id.compare_exchange_weak(val, val-1);
   }
 }
 
@@ -331,7 +334,7 @@ typeEnum::typeEnum(int ID, std::string name)
 }
 
 typeEnum::typeEnum(std::string name)
-   : Type(name, getUniqueTypeId(), dataEnum)
+   : Type(name, ::getUniqueTypeId(), dataEnum)
 {
    size_ = sizeof(int);
 }
@@ -509,7 +512,7 @@ typeFunction::typeFunction(typeId_t ID, boost::shared_ptr<Type> retType, std::st
 }
 
 typeFunction::typeFunction(boost::shared_ptr<Type> retType, std::string name) :
-    Type(name, getUniqueTypeId(), dataFunction),
+    Type(name, ::getUniqueTypeId(), dataFunction),
 	retType_(retType) 
 {
    size_ = sizeof(void *);
@@ -1071,7 +1074,7 @@ typeScalar::typeScalar(typeId_t ID, unsigned int size, std::string name, bool is
 }
 
 typeScalar::typeScalar(unsigned int size, std::string name, bool isSigned) :
-    Type(name, getUniqueTypeId(), dataScalar), isSigned_(isSigned) 
+    Type(name, ::getUniqueTypeId(), dataScalar), isSigned_(isSigned)
 {
    size_ = size;
 }
@@ -1532,7 +1535,7 @@ derivedType::derivedType(std::string &name, typeId_t id, int size, dataClass typ
 }
 
 derivedType::derivedType(std::string &name, int size, dataClass typeDes)
-   :Type(name, getUniqueTypeId(), typeDes)
+   :Type(name, ::getUniqueTypeId(), typeDes)
 {
 	baseType_ = NULL; //Symtab::type_Error;
    size_ = size;
@@ -1568,7 +1571,7 @@ rangedType::rangedType(std::string &name, typeId_t ID, dataClass typeDes, int si
 }
 
 rangedType::rangedType(std::string &name, dataClass typeDes, int size, unsigned long low, unsigned long hi) :
-    Type(name, getUniqueTypeId(), typeDes),
+    Type(name, ::getUniqueTypeId(), typeDes),
 	low_(low), 
 	hi_(hi)
 {

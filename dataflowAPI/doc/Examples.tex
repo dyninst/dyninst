@@ -17,7 +17,7 @@ call back functions to control the behavior of slicing.
 \lstset{showstringspaces=false}
 \begin{lstlisting}
 #include "Instruction.h"
-#include "InstructionDecoder.h"
+#include "CFG.h"
 #include "slicing.h"
 
 using namespace Dyninst;
@@ -30,7 +30,7 @@ class ConstantPred : public Slicer::Predicates {
   public:
     // We do not want to track through memory writes
     virtual bool endAtPoint(Assignment::Ptr ap) {
-        return ap->insn()->writesMemory();
+        return ap->insn().writesMemory();
     }
 
     // We can treat PC as a constant as its value is the address of the instruction
@@ -45,16 +45,13 @@ class ConstantPred : public Slicer::Predicates {
 
 // Assume that block b in function f ends with an indirect jump.
 void AnalyzeJumpTarget(Function *f, Block *b) {
-    // Decode the last instruction in this block, which should be a jump
-    const unsigned char * buf = 
-         (const unsigned char*) b->obj()->cs()->getPtrToInstruction(b->last());
-    InstructionDecoder dec(buf, 
-                           InstructionDecoder::maxInstructionLength, 
-			   b->obj()->cs()->getArch());
-    Instruction::Ptr insn = dec.decode();
+    // Get the last instruction in this block, which should be a jump
+    Instruction insn = b->getInsn(b->last());
    
     // Convert the instruction to assignments
-    AssignmentConverter ac(true);
+    // The first parameter means to cache the conversion results.
+    // The second parameter means whether to use stack analysis to anlyze stack accesses.
+    AssignmentConverter ac(true, false);
     vector<Assignment::Ptr> assignments;
     ac.convert(insn, b->last(), f, b, assignments);
 
@@ -91,7 +88,9 @@ is a constant.
 \lstset{showstringspaces=false}
 \begin{lstlisting}
 #include "SymEval.h"
-#include "DynAST.h"
+#include "slicing.h"
+using namespace Dyninst;
+using namespace DataflowAPI;
 
 // We extend the default ASTVisitor to check whether the AST is a constant
 class ConstVisitor: public ASTVisitor {
@@ -138,7 +137,6 @@ Address ExpandSlice(GraphPtr slice, Assignment::Ptr pcAssign) {
     if (cv.resolved) return cv.target;
     return 0;
 }
-
 \end{lstlisting}
 
 \subsection{Liveness Analysis}
@@ -188,10 +186,13 @@ The following example shows how to use stack analysis to print out all defined s
 \lstset{numbers=left, numberstyle=\tiny, stepnumber=5, numbersep=5pt}
 \lstset{showstringspaces=false}
 \begin{lstlisting}
-
+#include "CFG.h"
+#include "Absloc.h"
 #include "stackanalysis.h"
+using namespace Dyninst;
+using namespace ParseAPI;
 
-void StackHeight(Function *f, Block *b) {
+void StackHeight(Function *func, Block *block) {
     // Get the address of the first instruction of the block
     Address addr = block->start();
 
@@ -207,6 +208,5 @@ void StackHeight(Function *f, Block *b) {
         printf("%s := %s\n", loc.format().c_str(), height.format().c_str());
     }
 }
-
 \end{lstlisting}
 

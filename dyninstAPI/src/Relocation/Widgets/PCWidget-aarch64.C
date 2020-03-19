@@ -107,9 +107,10 @@ bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
   // Load the offset into a scratch register
   pdvector<Register> exclude;
   exclude.push_back(30 /* LR */);
-  Register scratchReg = insnCodeGen::moveValueToReg(gen, RAOffset, &exclude);
+  Register scratchReg = insnCodeGen::moveValueToReg(gen, labs(RAOffset), &exclude);
   // Put the original RA into LR
-  insnCodeGen::generateAddSubShifted(gen, insnCodeGen::Add, 0, 0, scratchReg, 30, 30, true);
+  insnCodeGen::generateAddSubShifted(gen, RAOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
+          0, 0, scratchReg, 30, 30, true);
   // Do a jump to the actual target (so do not overwrite LR)
   insnCodeGen::generateBranch(gen, gen.currAddr(), addr, false);
   return true;

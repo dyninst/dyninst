@@ -101,6 +101,8 @@ public:
     // Generate conditional branch
     static void generateConditionalBranch(codeGen& gen, Address to, unsigned opcode, bool s);
 
+    // LDR/STR (immediate)
+    // immd in the range -256 to 255
     static void generateMemAccess(codeGen &gen, LoadStore accType, Register r1,
             Register r2, int immd, unsigned size, IndexMode im=Post);
 

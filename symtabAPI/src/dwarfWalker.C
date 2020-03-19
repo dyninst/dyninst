@@ -340,7 +340,7 @@ bool DwarfWalker::parse_int(Dwarf_Die e, bool p) {
                 curFunc(),
                 //                   (curFunc() && !curFunc()->getAllMangledNames().empty()) ?
                 //curFunc()->getAllMangledNames()[0].c_str() : "<null>",
-                curEnclosure());
+                curEnclosure().get());
 
         bool ret = false;
 
@@ -1032,7 +1032,7 @@ void DwarfWalker::createParameter(const vector<VariableLocation> &locs,
    dwarf_printf("(0x%lx) Creating new formal parameter %s/%p (%s) (%p)\n",
                 id(),
                 curName().c_str(),
-                paramType, paramType->getName().c_str(),
+                paramType.get(), paramType->getName().c_str(),
 		//                ((curFunc() && !curFunc()->getAllMangledNames().empty()) ?
 		//curFunc()->getAllMangledNames()[0].c_str() : ""),
                 curFunc());
@@ -1069,7 +1069,7 @@ bool DwarfWalker::parseBaseType() {
    typeScalar *debug = baseType.get();
    auto baseTy = tc()->addOrUpdateType( baseType );
    dwarf_printf("(0x%lx) Created type %p / %s (pre add %p / %s) for id %d, size %d, in TC %p\n", id(),
-                baseTy, baseTy->getName().c_str(),
+                baseTy.get(), baseTy->getName().c_str(),
                 debug, debug->getName().c_str(),
                 (int) offset(), size,
                 tc());
@@ -1191,7 +1191,7 @@ bool DwarfWalker::parseInheritance() {
    if (!findType(superClass, false)) return false;
    if (!superClass) return false;
 
-   dwarf_printf("(0x%lx) Found %p as superclass\n", id(), superClass);
+   dwarf_printf("(0x%lx) Found %p as superclass\n", id(), superClass.get());
 
    visibility_t visibility = visUnknown;
    if (!findVisibility(visibility)) return false;
@@ -1200,7 +1200,7 @@ bool DwarfWalker::parseInheritance() {
       Type::getComponents() will Do the Right Thing. */
    std::string fName = "{superclass}";
    curEnclosure()->asFieldListType().addField( fName, superClass, -1, visibility );
-   dwarf_printf("(0x%lx) Added type %p as %s to %p\n", id(), superClass, fName.c_str(), curEnclosure());
+   dwarf_printf("(0x%lx) Added type %p as %s to %p\n", id(), superClass.get(), fName.c_str(), curEnclosure().get());
    return true;
 }
 
@@ -1270,7 +1270,7 @@ bool DwarfWalker::parseStructUnionClass() {
    }
    setEnclosure(containingType);
    dwarf_printf("(0x%lx) Started class, union, or struct: %p\n",
-                id(), containingType);
+                id(), containingType.get());
    return true;
 }
 
@@ -1703,7 +1703,7 @@ bool DwarfWalker::findAnyType(Dwarf_Attribute typeAttribute,
        so the Type look-ups by it rather than name. */
     type = tc()->findOrCreateType( type_id, Type::share );
     dwarf_printf("(0x%lx) Returning type %p / %s for id 0x%x\n",
-            id(), type, type->getName().c_str(), type_id);
+            id(), type.get(), type->getName().c_str(), type_id);
     return true;
 }
 
@@ -2173,7 +2173,7 @@ bool DwarfWalker::parseSubrangeAUX(Dwarf_Die entry,
             low_conv, hi_conv, curName().c_str());
     boost::shared_ptr<Type> rangeType = tc()->addOrUpdateType(
       Type::make_shared<typeSubrange>( type_id, 0, low_conv, hi_conv, curName()));
-    dwarf_printf("(0x%lx) Subrange has pointer %p (tc %p)\n", id(), rangeType, tc());
+    dwarf_printf("(0x%lx) Subrange has pointer %p (tc %p)\n", id(), rangeType.get(), tc());
     return true;
 }
 
