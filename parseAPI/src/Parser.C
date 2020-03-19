@@ -1070,6 +1070,7 @@ Parser::finalize_jump_tables()
     for (auto fit = hint_funcs.begin(); fit != hint_funcs.end(); ++fit) {
         Function* f = *fit;
         for (auto jit = f->getJumpTables().begin(); jit != f->getJumpTables().end(); ++jit) {
+            if (jumpTableStart.find(jit->second.tableStart) != jumpTableStart.end()) continue;
             jumpTableStart.insert(jit->second.tableStart);
             jumpTables.push_back(&(jit->second));
         }
@@ -1078,6 +1079,7 @@ Parser::finalize_jump_tables()
     for (auto fit = discover_funcs.begin(); fit != discover_funcs.end(); ++fit) {
         Function* f = *fit;
         for (auto jit = f->getJumpTables().begin(); jit != f->getJumpTables().end(); ++jit) {
+            if (jumpTableStart.find(jit->second.tableStart) != jumpTableStart.end()) continue;
             jumpTableStart.insert(jit->second.tableStart);
             jumpTables.push_back(&(jit->second));
         }
@@ -1149,6 +1151,10 @@ Parser::delete_bogus_blocks(Edge* e)
             e->trg(), e->trg()->start(), e->trg()->end(),
             e->type());
     e->src()->removeTarget(e);
+    // Bogus control flow may lead to invalid instructions,
+    // which will cause a sink edge. So, the sink block may
+    // have a large number of incoming edges. 
+    if (e->sinkEdge()) return;
     cur->removeSource(e);
 
     // If the target block has other incoming edges,
@@ -1176,7 +1182,6 @@ Parser::delete_bogus_blocks(Edge* e)
     for (auto eit = targets.begin(); eit != targets.end(); ++eit) {
         delete_bogus_blocks(*eit);
     }
-
 }
 
 void
