@@ -1024,7 +1024,7 @@ void
 Parser::finalize()
 {
     if(_parse_state < FINALIZED) {
-        //finalize_jump_tables();
+        finalize_jump_tables();
         std::vector<region_data*> rd;
         _parse_data->getAllRegionData(rd);
         int totalBlock = 0;
