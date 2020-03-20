@@ -421,7 +421,23 @@ memAccessors.begin()));
       std::copy(m_InsnOp.getImplicitMemWrites().begin(), m_InsnOp.getImplicitMemWrites().end(), std::inserter(memAccessors,
 memAccessors.begin()));
     }
-    
+
+    INSTRUCTION_EXPORT Operand Instruction::getPredicateOperand() const
+    {
+      if (arch_decoded_from != Arch_cuda && m_Operands.empty()) {
+        decodeOperands();
+      }
+
+      for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
+        curOperand != m_Operands.end(); ++curOperand) {
+        if (curOperand->isTruePredicate() || curOperand->isFalsePredicate()) {
+          return *curOperand;
+        }
+      }
+
+      return Operand(Expression::Ptr(), false, false);
+    }
+
     INSTRUCTION_EXPORT Expression::Ptr Instruction::getControlFlowTarget() const
     {
         // We assume control flow transfer instructions have the PC as

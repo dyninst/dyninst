@@ -1563,7 +1563,9 @@ namespace Dyninst
 
   namespace cuda {
     const signed int GPR   = 0x00000000;
+    const signed int PR    = 0x00010000;
 
+    // General purpose registers
     DEF_REGISTER(r0,       0 | GPR | Arch_cuda, "cuda");
     DEF_REGISTER(r1,       1 | GPR | Arch_cuda, "cuda");
     DEF_REGISTER(r2,       2 | GPR | Arch_cuda, "cuda");
@@ -1823,6 +1825,17 @@ namespace Dyninst
 
     // Placeholder for a pc register, so that we don't assert
     DEF_REGISTER(pc,    256 | GPR| Arch_cuda, "cuda");
+
+    // Predicate registers used as source or dest operands
+    // Different from a predicate register used as instruction predicate,
+    // which is handle by operand::isTruePredicate and operand::isFalsePredicate
+    DEF_REGISTER(p0,    0 | PR | Arch_cuda, "cuda");
+    DEF_REGISTER(p1,    1 | PR | Arch_cuda, "cuda");
+    DEF_REGISTER(p2,    2 | PR | Arch_cuda, "cuda");
+    DEF_REGISTER(p3,    3 | PR | Arch_cuda, "cuda");
+    DEF_REGISTER(p4,    4 | PR | Arch_cuda, "cuda");
+    DEF_REGISTER(p5,    5 | PR | Arch_cuda, "cuda");
+    DEF_REGISTER(p6,    6 | PR | Arch_cuda, "cuda");
 
   } //end of cuda namespace
 }

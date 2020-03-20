@@ -144,6 +144,8 @@ namespace Dyninst
       /// instruction.
       INSTRUCTION_EXPORT Operand getOperand(int index) const;
 
+      INSTRUCTION_EXPORT Operand getPredicateOperand() const;
+
       /// Returns a pointer to the buffer from which this instruction
       /// was decoded.
       INSTRUCTION_EXPORT unsigned char rawByte(unsigned int index) const;

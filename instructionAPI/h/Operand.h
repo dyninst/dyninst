@@ -102,6 +102,8 @@ namespace Dyninst
       /// \param regsWritten Has the registers written  inserted into it
       INSTRUCTION_EXPORT void getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const;
 
+      INSTRUCTION_EXPORT RegisterAST::Ptr getPredicate() const;
+
       /// Returns true if this operand is read
       INSTRUCTION_EXPORT bool isRead(Expression::Ptr candidate) const;
       /// Returns true if this operand is written
