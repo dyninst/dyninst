@@ -330,7 +330,6 @@ void Parser::parse_gap_heuristic(CodeRegion * cr)
 
 bool Parser::getGapRange(CodeRegion* cr, Address curAddr, Address& gapStart, Address& gapEnd) {
     std::set< std::pair<Address, Address> > func_range;
-    func_range.insert(make_pair(cr->offset(), cr->offset()));
     for (auto fit = sorted_funcs.begin(); fit != sorted_funcs.end(); ++fit) {
         Function * f = *fit;
 	for (auto eit = f->extents().begin(); eit != f->extents().end(); ++eit) {
@@ -338,17 +337,21 @@ bool Parser::getGapRange(CodeRegion* cr, Address curAddr, Address& gapStart, Add
 	    func_range.insert(make_pair(fe->start(), fe->end()));
 	}
     }
-    auto iter = func_range.upper_bound(make_pair(curAddr, curAddr));
+    auto iter = func_range.upper_bound(make_pair(curAddr, std::numeric_limits<Address>::max() ));
     if (iter == func_range.end()) {
         gapEnd = cr->offset() + cr->length();
     } else {
         gapEnd = iter->first;
     }
-    --iter;
-    if (iter->second > curAddr) {
-        gapStart = iter->second;
+    if (iter == func_range.begin()) {
+        gapStart = curAddr;
     } else {
-	gapStart = curAddr;
+	--iter;
+        if (iter->second > curAddr) {
+	    gapStart = iter->second;
+        } else {
+	    gapStart = curAddr;
+        }
     }
     return gapStart < gapEnd;
 }
@@ -371,7 +374,7 @@ void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
     hd::ProbabilityCalculator pc(cr, obj().cs(), this, model_spec);
     Address gapStart;
     Address gapEnd;
-    Address curAddr = 0;
+    Address curAddr = cr->offset();
     while (getGapRange(cr, curAddr, gapStart, gapEnd)) {
         parsing_printf("[%s] scanning for FEP in [%lx,%lx)\n",
             FILE__,gapStart,gapEnd);
