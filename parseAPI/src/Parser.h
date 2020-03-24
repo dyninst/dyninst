@@ -179,6 +179,7 @@ namespace Dyninst {
             void cleanup_frames();
             void parse_gap_heuristic(CodeRegion *cr);
 
+            bool getGapRange(CodeRegion*, Address, Address&, Address&);
             void probabilistic_gap_parsing(CodeRegion *cr);
             //void parse_sbp();
 
