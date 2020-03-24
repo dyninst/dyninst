@@ -410,6 +410,13 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
 	    return false;
           }
        }
+
+	// libc.a may be depending on libgcc.a
+	res.clear();
+        if (openResolvedLibraryName("libgcc.a", res) == NULL) {
+	    logLine("Failed to find libgcc.a, which can be needed by libc.a on certain platforms\n");
+	    logLine("Set LD_LIBRARY_PATH to the directory containing libgcc.a\n");
+	}
     }
     
     return true;
