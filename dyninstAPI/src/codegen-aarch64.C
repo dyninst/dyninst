@@ -161,15 +161,12 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
 
     if(isCall)
     {
-        scratch = 9;
-        //push r9
-        saveRegister(gen, scratch, -GPRSIZE_64*2, Pre);
-        //load disp to r9
+        // use Link Register as scratch since it will be overwritten at return
+        scratch = 30;
+        //load disp to r30
         loadImmIntoReg<Address>(gen, scratch, to);
         //generate call
         generateBReg(scratch);
-        //pop r9
-        restoreRegister(gen, scratch, GPRSIZE_64*2, Post);
         return;
     }
 
