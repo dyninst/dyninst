@@ -148,8 +148,10 @@ void RoseInsnX86Factory::massageOperands(const Instruction &insn,
     operands.resize(2);
     break;  
   }
+  case e_call:
   case e_push:
   case e_pop:
+    // ROSE does not need implicit registers
     operands.resize(1);
     break;
   case e_cmpxch:

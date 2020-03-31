@@ -76,9 +76,13 @@ namespace Dyninst
     INSTRUCTION_EXPORT Instruction::Instruction(Operation what,
 			     size_t size, const unsigned char* raw,
                              Dyninst::Architecture arch)
-      : m_InsnOp(what), m_Valid(true), arch_decoded_from(arch),
+      : m_InsnOp(what), arch_decoded_from(arch),
         formatter(ArchSpecificFormatter::getFormatter(arch))
     {
+        if (what.getID() == e_No_Entry)
+            m_Valid = false;
+        else
+            m_Valid = true;
         copyRaw(size, raw);
 
 #if defined(DEBUG_INSN_ALLOCATIONS)
@@ -116,6 +120,7 @@ namespace Dyninst
 
     void Instruction::decodeOperands() const
     {
+        if (!m_Valid) return;
         //m_Operands.reserve(5);
         InstructionDecoder dec(ptr(), size(), arch_decoded_from);
         dec.doDelayedDecode(this);
@@ -156,7 +161,6 @@ namespace Dyninst
       m_InsnOp(o.m_InsnOp),
       m_Valid(o.m_Valid),
       formatter(o.formatter)
-
     {
       m_size = o.m_size;
       if(o.m_size > sizeof(m_RawInsn.small_insn))
@@ -561,7 +565,7 @@ memAccessors.begin()));
               return true;
       default:
       {
-	decodeOperands();
+          if(m_Operands.empty()) decodeOperands();
           for(cftConstIter targ = m_Successors.begin();
               targ != m_Successors.end();
               ++targ)

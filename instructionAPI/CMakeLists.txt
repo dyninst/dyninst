@@ -17,10 +17,12 @@ set (SRC_LIST
      src/ArchSpecificFormatters.C
      src/Immediate.C 
      src/InstructionDecoder.C 
-     src/InstructionDecoder-x86.C
      src/InstructionDecoder-power.C 
      src/InstructionDecoder-aarch64.C 
      src/InstructionDecoderImpl.C
+     src/InstructionDecoder-Capstone.C
+     src/InstructionDecoder-Capstone-x86.C
+
   )
 SET_SOURCE_FILES_PROPERTIES(${SRC_LIST} PROPERTIES LANGUAGE CXX)
 
@@ -36,7 +38,7 @@ ADD_DEFINITIONS(-DINSTRUCTION_LIB)
 
 dyninst_library(instructionAPI common)
 
-target_link_private_libraries(instructionAPI ${Boost_LIBRARIES} ${TBB_LIBRARIES} tbbmalloc)
+target_link_private_libraries(instructionAPI ${Boost_LIBRARIES} ${TBB_LIBRARIES} tbbmalloc ${Capstone_LIBRARIES})
 
 if (USE_COTIRE)
     cotire(instructionAPI)

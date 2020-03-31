@@ -77,7 +77,6 @@ class InstructionDecoderImpl
     protected:
         Operation m_Operation;
         Architecture m_Arch;
-
 };
 
 }

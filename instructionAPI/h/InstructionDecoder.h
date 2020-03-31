@@ -54,6 +54,7 @@ namespace Dyninst
     {
       friend class Instruction;
         public:
+
         static const unsigned int maxInstructionLength = 16;
       /// Construct an %InstructionDecoder object that decodes \c arch from \c buffer, up to \c size bytes.
       /// Valid values for \c arch are \c Arch_x86, \c Arch_x86_64, \c Arch_ppc32, and \c Arch_ppc64.

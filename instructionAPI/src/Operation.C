@@ -350,9 +350,11 @@ namespace Dyninst
           nonOperandRegisterWrites.insert(make_pair(e_cmpsb, si_and_di));
           nonOperandRegisterWrites.insert(make_pair(e_cmpsd, si_and_di));
           nonOperandRegisterWrites.insert(make_pair(e_cmpsw, si_and_di));
+          /*
           nonOperandRegisterWrites.insert(make_pair(e_movsb, si_and_di));
           nonOperandRegisterWrites.insert(make_pair(e_movsd, si_and_di));
           nonOperandRegisterWrites.insert(make_pair(e_movsw, si_and_di));
+          */
           nonOperandRegisterWrites.insert(make_pair(e_insb, di));
           nonOperandRegisterWrites.insert(make_pair(e_insd, di));
           nonOperandRegisterWrites.insert(make_pair(e_insw, di));

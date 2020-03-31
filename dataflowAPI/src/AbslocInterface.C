@@ -508,9 +508,6 @@ void AssignmentConverter::convert(const Instruction I,
     std::vector<Operand> operands;
     I.getOperands(operands);
 
-    // According to the InstructionAPI, the first operand will be the argument, the second will be ESP.
-    assert(operands.size() == 2);
-
     // The argument can be any of the following:
     // 1) a register (push eax);
     // 2) an immediate value (push $deadbeef)
@@ -581,9 +578,6 @@ void AssignmentConverter::convert(const Instruction I,
 
     std::vector<Operand> operands;
     I.getOperands(operands);
-
-    // According to the InstructionAPI, the first operand will be the explicit register, the second will be ESP.
-    assert(operands.size() == 2);
 
     std::vector<AbsRegion> oper0;
     aConverter.convertAll(operands[0].getValue(),
@@ -675,9 +669,6 @@ void AssignmentConverter::convert(const Instruction I,
 
     std::vector<Operand> operands;
     I.getOperands(operands);
-
-    // According to the InstructionAPI, the first operand will be the argument, the second will be ESP.
-    assert(operands.size() == 2);
 
     // We use the first to define the second, and vice versa
     std::vector<AbsRegion> oper0;

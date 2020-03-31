@@ -69,9 +69,11 @@ namespace Dyninst
       uint64_t u48val : 48;
       int64_t s48val : 48;
       void * m14val;
+      void * m80val;
       void * m96val;
       void * dbl128val;
       void * m192val;
+      void * m224val;
       void * m256val;
       void * m384val;
       void * m512val;
@@ -93,10 +95,12 @@ namespace Dyninst
       sp_float,
       dp_float,
       // 48-bit pointers...yay Intel
-      m14,
+      m14, // For historical reason m14 means 14 bytes. All other mX means X bits
+      m80,
       m96,
       dbl128,
       m192,
+      m224,
       m256,
       m384,
       m512,
@@ -286,11 +290,17 @@ namespace Dyninst
 	case m14:
 	  val.m14val = (void*)(intptr_t) v;
 	  break;
+    case m80:
+      val.m80val = (void*) (intptr_t) v;
+      break;
 	case m96:
           val.m96val = (void *)(intptr_t) v;
 	  break;
 	case m192:
           val.m192val = (void *)(intptr_t) v;
+	  break;
+	case m224:
+          val.m224val = (void *)(intptr_t) v;
 	  break;
 	case m256:
           val.m256val = (void *)(intptr_t) v;
@@ -374,7 +384,7 @@ namespace Dyninst
 	  return val.s48val < o.val.s48val;
 	  break;
 	case m512:
-	  return memcmp(val.m512val, o.val.m512val, 512) < 0;
+	  return memcmp(val.m512val, o.val.m512val, 64) < 0;
 	  break;
 	case dbl128:
 	  return memcmp(val.dbl128val, o.val.dbl128val, 128 / 8) < 0;
@@ -382,17 +392,23 @@ namespace Dyninst
 	case m14:
 	  return memcmp(val.m14val, o.val.m14val, 14) < 0;
 	  break;
+    case m80:
+	  return memcmp(val.m80val, o.val.m80val, 10) < 0;
+	  break;
 	case m96:
-	  return memcmp(val.m96val, o.val.m96val, 96) < 0;
+	  return memcmp(val.m96val, o.val.m96val, 12) < 0;
 	  break;
 	case m192:
-	  return memcmp(val.m192val, o.val.m192val, 192) < 0;
+	  return memcmp(val.m192val, o.val.m192val, 24) < 0;
+	  break;
+	case m224:
+	  return memcmp(val.m224val, o.val.m224val, 28) < 0;
 	  break;
 	case m256:
-	  return memcmp(val.m256val, o.val.m256val, 256) < 0;
+	  return memcmp(val.m256val, o.val.m256val, 32) < 0;
 	  break;
 	case m384:
-	  return memcmp(val.m384val, o.val.m384val, 384) < 0;
+	  return memcmp(val.m384val, o.val.m384val, 48) < 0;
 	  break;
 	default:
 	  assert(!"Invalid type!");
@@ -475,6 +491,9 @@ namespace Dyninst
      case m14:
 	    snprintf(hex, 20, "%p", val.m14val);
         break;
+     case m80:
+	    snprintf(hex, 20, "%p", val.m80val);
+        break;
      case m96:
 	    snprintf(hex, 20, "%p", val.m96val);
         break;
@@ -483,6 +502,9 @@ namespace Dyninst
          break;
      case m192:
 	    snprintf(hex, 20, "%p", val.m192val);
+        break;
+     case m224:
+	    snprintf(hex, 20, "%p", val.m224val);
         break;
      case m256:
 	    snprintf(hex, 20, "%p", val.m256val);
@@ -535,10 +557,13 @@ namespace Dyninst
 	  return to_type(val.bitval);
 	case m512:
 	case dbl128:
+    case m14:
+    case m224:
     case m192:
     case m256:
     case m384:
     case m96:
+    case m80:
 	  assert(!"M512 and DBL128 types cannot be converted yet");
 	  return to_type(0);
 	default:
@@ -584,6 +609,14 @@ namespace Dyninst
       return 24;
    case m256:
       return 32;
+   case m96:
+      return 12;
+   case m80:
+      return 10;
+   case m14:
+      return 14;
+   case m224:
+      return 28;
 	default:
 	  // In probabilistic gap parsing,
 	  // we could start to decode at any byte and reach here.

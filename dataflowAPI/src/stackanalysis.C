@@ -659,6 +659,7 @@ void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
          break;
       case e_ret_near:
       case e_ret_far:
+      case e_ret:
          handleReturn(insn, xferFuncs);
          break;
       case e_lea:
@@ -1282,11 +1283,11 @@ void StackAnalysis::handleDiv(Instruction insn,
                               TransferFuncs &xferFuncs) {
    std::vector<Operand> operands;
    insn.getOperands(operands);
-   STACKANALYSIS_ASSERT(operands.size() == 3);
 
    Expression::Ptr quotient = operands[1].getValue();
-   Expression::Ptr remainder = operands[0].getValue();
-   Expression::Ptr divisor = operands[2].getValue();
+   Expression::Ptr remainder = operands[2].getValue();
+   Expression::Ptr divisor = operands[0].getValue();
+
    STACKANALYSIS_ASSERT(dynamic_cast<RegisterAST*>(quotient.get()));
    STACKANALYSIS_ASSERT(dynamic_cast<RegisterAST*>(remainder.get()));
    STACKANALYSIS_ASSERT(!dynamic_cast<Immediate*>(divisor.get()));
@@ -1316,18 +1317,30 @@ void StackAnalysis::handleMul(Instruction insn,
    insn.getOperands(operands);
    STACKANALYSIS_ASSERT(operands.size() == 2 || operands.size() == 3);
 
-   Expression::Ptr target = operands[0].getValue();
-   STACKANALYSIS_ASSERT(dynamic_cast<RegisterAST*>(target.get()));
-   MachRegister targetReg = (boost::dynamic_pointer_cast<InstructionAPI::
-      RegisterAST>(target))->getID();
-
    if (operands.size() == 2) {
       // Form 1
+      Expression::Ptr target = operands[0].getValue();
+      STACKANALYSIS_ASSERT(dynamic_cast<RegisterAST*>(target.get()));
+      MachRegister targetReg = (boost::dynamic_pointer_cast<InstructionAPI::
+              RegisterAST>(target))->getID();
       xferFuncs.push_back(TransferFunc::retopFunc(Absloc(targetReg)));
       retopBaseSubReg(targetReg, xferFuncs);
    } else {
-      Expression::Ptr multiplicand = operands[1].getValue();
-      Expression::Ptr multiplier = operands[2].getValue();
+      Expression::Ptr multiplicand;
+      Expression::Ptr multiplier;
+      Expression::Ptr target;
+      if (operands[0].isWritten()) {
+          target = operands[0].getValue();
+          multiplicand = operands[1].getValue();
+          multiplier = operands[2].getValue();
+      } else {
+          multiplier = operands[0].getValue();
+          multiplicand = operands[1].getValue();
+          target = operands[2].getValue();
+      }
+      STACKANALYSIS_ASSERT(dynamic_cast<RegisterAST*>(target.get()));
+      MachRegister targetReg = (boost::dynamic_pointer_cast<InstructionAPI::
+              RegisterAST>(target))->getID();
 
       if (dynamic_cast<Immediate*>(multiplier.get())) {
          // Form 2
@@ -1721,7 +1734,6 @@ void StackAnalysis::handleLEA(Instruction insn,
    InstructionAPI::Expression::Ptr srcExpr = srcOperand.getValue();
    std::vector<InstructionAPI::Expression::Ptr> children;
    srcExpr->getChildren(children);
-
    if (readSet.size() == 0) {
       // op1: imm
       STACKANALYSIS_ASSERT(typeid(*srcExpr) == typeid(Immediate));
@@ -1734,10 +1746,10 @@ void StackAnalysis::handleLEA(Instruction insn,
       bool foundDelta = false;
 
       if (children.size() == 2) {
-         if (dynamic_cast<Immediate*>(children[0].get())) {
-            // op1: imm + reg * imm
-            deltaExpr = children[0];
-            Expression::Ptr scaleIndexExpr = children[1];
+         if (dynamic_cast<BinaryFunction*>(children[0].get())) {
+            // op1: reg * imm + imm
+            deltaExpr = children[1];
+            Expression::Ptr scaleIndexExpr = children[0];
             STACKANALYSIS_ASSERT(dynamic_cast<BinaryFunction*>(scaleIndexExpr.get()));
             children.clear();
             scaleIndexExpr->getChildren(children);

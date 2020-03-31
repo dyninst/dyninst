@@ -26,6 +26,8 @@ include(Boost)
 include(ThreadingBuildingBlocks)
 include(ElfUtils)
 include(LibIberty)
+include(Capstone)
+include (${DYNINST_ROOT}/cmake/shared.cmake)
 
 include(shared)
 
