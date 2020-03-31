@@ -28,12 +28,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "ParseData.h"
+
 #include "CFGModifier.h"
 #include "CFG.h"
 #include "InstructionSource.h"
 #include "CodeObject.h"
 #include "ParseCallback.h"
-#include "ParseData.h"
 #include "Parser.h"
 
 using namespace Dyninst;

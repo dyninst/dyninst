@@ -69,88 +69,57 @@ bool pattern_match( const char *p, const char *s, bool checkCase );
 
 std::vector<Symbol *> Symtab::findSymbolByOffset(Offset o)
 {
-   std::vector<Symbol*> ret;
-
-   pfq_rwlock_read_lock(symbols_rwlock);
-
-   indexed_symbols::index<offset>::type& syms_by_offset = everyDefinedSymbol.get<offset>();
-   std::copy(syms_by_offset.lower_bound(o), syms_by_offset.upper_bound(o), 
-	     std::back_inserter(ret));
-
-   pfq_rwlock_read_unlock(symbols_rwlock);
-
-   return ret;
-   
-   /*	//Symbol *s = NULL;
-	dyn_hash_map<Offset, std::vector<Symbol *> >::iterator iter;
-	iter = symsByOffset.find(o);
-	if (iter == symsByOffset.end()) return NULL;
-	return &(iter->second);*/
+   indexed_symbols::by_offset_t::const_accessor oa;
+   if(everyDefinedSymbol.by_offset.find(oa, o))
+       return oa->second;
+   return std::vector<Symbol*>();
 }
 
 bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
                         Symbol::SymbolType sType, NameType nameType,
                         bool isRegex, bool checkCase, bool includeUndefined)
 {
-    pfq_rwlock_read_lock(symbols_rwlock);
-
     unsigned old_size = ret.size();
 
     std::vector<Symbol *> candidates;
-    typedef indexed_symbols::index<mangled>::type by_mangled;
-    typedef indexed_symbols::index<pretty>::type by_pretty;
-    typedef indexed_symbols::index<typed>::type by_typed;
-    by_mangled& mangledSyms = everyDefinedSymbol.get<mangled>();
-    by_pretty& prettySyms = everyDefinedSymbol.get<pretty>();
-    by_typed& typedSyms = everyDefinedSymbol.get<typed>();
-    by_mangled& undefMangledSyms = undefDynSyms.get<mangled>();
-    by_pretty& undefPrettySyms = undefDynSyms.get<pretty>();
-    by_typed& undefTypedSyms = undefDynSyms.get<typed>();
     
     if (!isRegex) {
         // Easy case
         if (nameType & mangledName) {
-	  auto mangled_range = mangledSyms.equal_range(name);
-	  std::copy(mangled_range.first, mangled_range.second,
-		    std::back_inserter(candidates));
-	  if(includeUndefined) 
-	  {
-	    std::copy(undefMangledSyms.equal_range(name).first, undefMangledSyms.equal_range(name).second,
-		      std::back_inserter(candidates));
-	  }
-	  
-	  //           candidates.insert(candidates.end(), symsByMangledName[name].begin(), symsByMangledName[name].end());
-	  //if (includeUndefined) candidates.insert(candidates.end(), 
-	  //                                       undefDynSymsByMangledName[name].begin(), 
-	  //                                       undefDynSymsByMangledName[name].end());
+          {
+            indexed_symbols::by_name_t::const_accessor ma;
+            if(everyDefinedSymbol.by_mangled.find(ma, name))
+              candidates.insert(candidates.end(), ma->second.begin(), ma->second.end());
+          }
+          if(includeUndefined) {
+            indexed_symbols::by_name_t::const_accessor ma;
+            if(undefDynSyms.by_mangled.find(ma, name))
+              candidates.insert(candidates.end(), ma->second.begin(), ma->second.end());
+          }
         }
         if (nameType & prettyName) {
-	  auto pretty_range = prettySyms.equal_range(name);
-	  std::copy(pretty_range.first, pretty_range.second,
-		    std::back_inserter(candidates));
-	  if(includeUndefined) 
-	  {
-	    std::copy(undefPrettySyms.equal_range(name).first, undefPrettySyms.equal_range(name).second,
-		      std::back_inserter(candidates));
-	  }
-
-	  //candidates.insert(candidates.end(), symsByPrettyName[name].begin(), symsByPrettyName[name].end());
-	  //if (includeUndefined) candidates.insert(candidates.end(), 
-	  //                                       undefDynSymsByPrettyName[name].begin(), 
-	  //                                       undefDynSymsByPrettyName[name].end());
+          {
+            indexed_symbols::by_name_t::const_accessor pa;
+            if(everyDefinedSymbol.by_pretty.find(pa, name))
+              candidates.insert(candidates.end(), pa->second.begin(), pa->second.end());
+          }
+          if(includeUndefined) {
+            indexed_symbols::by_name_t::const_accessor pa;
+            if(undefDynSyms.by_pretty.find(pa, name))
+              candidates.insert(candidates.end(), pa->second.begin(), pa->second.end());
+          }
         }
         if (nameType & typedName) {
-	  std::copy(typedSyms.equal_range(name).first, typedSyms.equal_range(name).second,
-		    std::back_inserter(candidates));
-	  if(includeUndefined) 
-	  {
-	    std::copy(undefTypedSyms.equal_range(name).first, undefTypedSyms.equal_range(name).second,
-		      std::back_inserter(candidates));
-	  }
-	  //candidates.insert(candidates.end(), symsByTypedName[name].begin(), symsByTypedName[name].end());
-	  //if (includeUndefined) candidates.insert(candidates.end(), 
-	  //                                       undefDynSymsByTypedName[name].begin(), 
-	  //                                       undefDynSymsByTypedName[name].end());
+          {
+            indexed_symbols::by_name_t::const_accessor ta;
+            if(everyDefinedSymbol.by_typed.find(ta, name))
+              candidates.insert(candidates.end(), ta->second.begin(), ta->second.end());
+          }
+          if(includeUndefined) {
+            indexed_symbols::by_name_t::const_accessor ta;
+            if(undefDynSyms.by_typed.find(ta, name))
+              candidates.insert(candidates.end(), ta->second.begin(), ta->second.end());
+          }
         }
     }
     else {
@@ -190,8 +159,6 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
        }
     }
 
-    pfq_rwlock_read_unlock(symbols_rwlock);
-
     ret.insert(ret.end(), matches.begin(), matches.end());
 
     if (ret.size() == old_size) {
@@ -205,23 +172,9 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
 
 bool Symtab::getAllSymbols(std::vector<Symbol *> &ret)
 {
-  pfq_rwlock_read_lock(symbols_rwlock);
-
   std::copy(everyDefinedSymbol.begin(), everyDefinedSymbol.end(), back_inserter(ret));
   std::copy(undefDynSyms.begin(), undefDynSyms.end(), back_inserter(ret));
-
-  pfq_rwlock_read_unlock(symbols_rwlock);
-
   
-  //    ret = everyDefinedSymbol;
-
-    // add undefined symbols
-    //std::vector<Symbol *> temp;
-    //std::vector<Symbol *>::iterator it;
-    //getAllUndefinedSymbols(temp);
-    //for (it = temp.begin(); it != temp.end(); it++)
-    //    ret.push_back(*it);
-
   if(ret.size() > 0) {
     return true;
   } else {
@@ -236,8 +189,6 @@ bool Symtab::getAllSymbolsByType(std::vector<Symbol *> &ret, Symbol::SymbolType 
         return getAllSymbols(ret);
 
     unsigned old_size = ret.size();
-
-    pfq_rwlock_read_lock(symbols_rwlock);
 
     // Filter by the given type
     for (auto i = everyDefinedSymbol.begin(); i != everyDefinedSymbol.end(); i++) {
@@ -255,8 +206,6 @@ bool Symtab::getAllSymbolsByType(std::vector<Symbol *> &ret, Symbol::SymbolType 
       
     }
 
-    pfq_rwlock_read_unlock(symbols_rwlock);
-
     if (ret.size() > old_size) {
         return true;
     }
@@ -270,13 +219,7 @@ bool Symtab::getAllDefinedSymbols(std::vector<Symbol *> &ret)
 {
   ret.clear();
 
-  pfq_rwlock_read_lock(symbols_rwlock);
-
   std::copy(everyDefinedSymbol.begin(), everyDefinedSymbol.end(), back_inserter(ret));
-
-  pfq_rwlock_read_unlock(symbols_rwlock);
-
-  //    ret = everyDefinedSymbol;
 
     if(ret.size() > 0)
         return true;
@@ -287,11 +230,7 @@ bool Symtab::getAllDefinedSymbols(std::vector<Symbol *> &ret)
 bool Symtab::getAllUndefinedSymbols(std::vector<Symbol *> &ret){
     unsigned size = ret.size();
 
-    pfq_rwlock_read_lock(symbols_rwlock);
-
     ret.insert(ret.end(), undefDynSyms.begin(), undefDynSyms.end());
-
-    pfq_rwlock_read_unlock(symbols_rwlock);
 
     if(ret.size()>size)
         return true;
@@ -307,9 +246,12 @@ bool Symtab::findFuncByEntryOffset(Function *&ret, const Offset entry)
      * by its offset; it is uniquely identified by its Region and its offset.
      * This discrepancy is not taken into account here.
      */
-    if (funcsByOffset.find(entry) != funcsByOffset.end()) {
-        ret = funcsByOffset[entry];
+    {
+        dyn_c_hash_map<Offset,Function*>::const_accessor ca;
+        if (funcsByOffset.find(ca, entry)) {
+            ret = ca->second;
         return true;
+    }
     }
     setSymtabError(No_Such_Symbol);
     return false;
@@ -363,9 +305,12 @@ bool Symtab::findVariableByOffset(Variable *&ret, const Offset offset) {
      * See comment in findFuncByOffset about uniqueness of symbols in
      * relocatable files -- this discrepancy applies here as well.
      */
-    if (varsByOffset.find(offset) != varsByOffset.end()) {
-        ret = varsByOffset[offset];
+    {
+        dyn_c_hash_map<Offset, Variable*>::const_accessor ca;
+        if (varsByOffset.find(ca, offset)) {
+            ret = ca->second;
         return true;
+    }
     }
     setSymtabError(No_Such_Symbol);
     return false;
@@ -406,6 +351,7 @@ bool Symtab::getAllVariables(std::vector<Variable *> &ret)
 
 bool Symtab::getAllModules(std::vector<Module *> &ret)
 {
+    dyn_mutex::unique_lock l(im_lock);
     if (indexed_modules.size() >0 )
     {
         std::copy(indexed_modules.begin(), indexed_modules.end(), std::back_inserter(ret));
@@ -419,7 +365,7 @@ bool Symtab::getAllModules(std::vector<Module *> &ret)
 
 bool Symtab::findModuleByOffset(Module *&ret, Offset off)
 {
-
+    dyn_mutex::unique_lock l(im_lock);
     std::set<ModRange*> mods;
     mod_lookup()->find(off, mods);
     if(!mods.empty())
@@ -431,6 +377,7 @@ bool Symtab::findModuleByOffset(Module *&ret, Offset off)
 
 bool Symtab::findModuleByOffset(std::set<Module *>&ret, Offset off)
 {
+    dyn_mutex::unique_lock l(im_lock);
     std::set<ModRange*> mods;
     ret.clear();
     mod_lookup()->find(off, mods);
@@ -445,6 +392,7 @@ bool Symtab::findModuleByOffset(std::set<Module *>&ret, Offset off)
 
 bool Symtab::findModuleByName(Module *&ret, const std::string name)
 {
+   dyn_mutex::unique_lock l(im_lock);
    auto loc = indexed_modules.get<3>().find(name);
 
    if (loc != indexed_modules.get<3>().end())
@@ -916,8 +864,21 @@ bool Symtab::getContainingInlinedFunction(Offset offset, FunctionBase* &func)
 }
 
 Module *Symtab::getDefaultModule() {
+    dyn_mutex::unique_lock l(im_lock);
     if(indexed_modules.empty()) createDefaultModule();
     return indexed_modules[0];
+}
+
+unsigned Function::getSymbolSize() const {
+   if (functionSize_)
+      return functionSize_;
+   for (unsigned i=0; i<symbols_.size(); i++) {
+      if (symbols_[i]->getSize()) { 
+         functionSize_ = symbols_[i]->getSize();;
+         return functionSize_;
+      }
+   }
+   return 0;
 }
 
 unsigned Function::getSize() const {

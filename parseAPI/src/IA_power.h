@@ -70,6 +70,7 @@ class PPC_BLR_Visitor: public ASTVisitor
   ReturnState returnState() const { return return_; };
 
   private:
+     using ASTVisitor::visit;
   Address ret_;
   ReturnState return_;
 
@@ -85,7 +86,7 @@ class IA_power : public IA_IAPI {
 	       Dyninst::ParseAPI::Block * curBlk_);
 	IA_power(const IA_power &);
 	virtual IA_power* clone() const;
-        virtual bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction) const;
+    virtual bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction) const;
 	virtual bool isNop() const;
 	virtual bool isThunk() const;
 	virtual bool isTailCall(const ParseAPI::Function* context, ParseAPI::EdgeTypeEnum type, unsigned int, const set<Address>& knownTargets) const;
@@ -99,6 +100,8 @@ class IA_power : public IA_IAPI {
 	virtual bool isIATcall(std::string &) const;
 	virtual bool isLinkerStub() const;
 	virtual bool isNopJump() const;
+    private:
+    using IA_IAPI::isFrameSetupInsn;
 };
 
 }

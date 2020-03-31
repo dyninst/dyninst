@@ -63,8 +63,8 @@
 //#warning "This file is not implemented yet!"
 using namespace Dyninst::SymtabAPI;
 
-static const std::string LIBC_CTOR_HANDLER("__do_global_ctors_aux");
-static const std::string LIBC_DTOR_HANDLER("__do_global_dtors_aux");
+static const std::string LIBC_CTOR_HANDLER("__libc_csu_init");
+static const std::string LIBC_DTOR_HANDLER("__libc_csu_fini");
 static const std::string DYNINST_CTOR_HANDLER("DYNINSTglobal_ctors_handler");
 static const std::string DYNINST_CTOR_LIST("DYNINSTctors_addr");
 static const std::string DYNINST_DTOR_HANDLER("DYNINSTglobal_dtors_handler");
@@ -300,6 +300,15 @@ void parse_func::calcUsedRegs()
     return;
 }
 
+static void add_handler(instPoint* pt, func_instance* add_me)
+{
+  vector<AstNodePtr> args;
+  // no args, just add
+  AstNodePtr snip = AstNode::funcCallNode(add_me, args);
+  auto instrumentation = pt->pushFront(snip);
+  instrumentation->disableRecursiveGuard();
+}
+
 #include "binaryEdit.h"
 #include "addressSpace.h"
 #include "function.h"
@@ -317,17 +326,165 @@ using namespace Dyninst::SymtabAPI;
  */
 
 bool BinaryEdit::doStaticBinarySpecialCases() {
-	assert(0);
+    Symtab *origBinary = mobj->parse_img()->getObject();
+
+    /* Special Case 1: Handling global constructor and destructor Regions
+     * Invoke Dyninst constructor after all static constructors are called
+     * and invoke Dyninst destructor before staitc destructors
+     */
+
+    // First, find all the necessary symbol info.
+
+    func_instance *globalCtorHandler = mobj->findGlobalConstructorFunc(LIBC_CTOR_HANDLER);
+    if( !globalCtorHandler ) {
+        logLine("failed to find libc constructor handler\n");
+        fprintf (stderr, "failed to find libc constructor handler\n");
+        return false;
+    }
+
+    func_instance *dyninstCtorHandler = findOnlyOneFunction(DYNINST_CTOR_HANDLER);
+    if( !dyninstCtorHandler ) {
+        logLine("failed to find Dyninst constructor handler\n");
+        fprintf (stderr,"failed to find Dyninst constructor handler\n");
+        return false;
+    }
+
+    func_instance *globalDtorHandler = mobj->findGlobalDestructorFunc(LIBC_DTOR_HANDLER);
+    if( !globalDtorHandler ) {
+        logLine ("failed to find libc destructor handler\n");
+        fprintf (stderr,"failed to find libc destructor handler\n");
+        return false;
+    }
+
+    func_instance *dyninstDtorHandler = findOnlyOneFunction(DYNINST_DTOR_HANDLER);
+    if( !dyninstDtorHandler ) {
+        logLine("failed to find Dyninst destructor handler\n");
+        fprintf (stderr,"failed to find Dyninst destructor handler\n");
+        return false;
+    }
+
+    // Instrument the exits of global constructor function
+    vector<instPoint*> init_pts;
+    instPoint* fini_point;
+    globalCtorHandler->funcExitPoints(&init_pts);
+
+    // Instrument the entry of global destructor function
+    fini_point = globalDtorHandler->funcEntryPoint(true);
+    // convert points to instpoints
+    for(auto exit_pt = init_pts.begin();
+	exit_pt != init_pts.end();
+	++exit_pt)
+    {
+      add_handler(*exit_pt, dyninstCtorHandler);
+    }
+    add_handler(fini_point, dyninstDtorHandler);
+    AddressSpace::patch(this);
+
+
+
+    /*
+     * Special Case 2: Issue a warning if attempting to link pthreads into a binary
+     * that originally did not support it or into a binary that is stripped. This
+     * scenario is not supported with the initial release of the binary rewriter for
+     * static binaries.
+     *
+     * The other side of the coin, if working with a binary that does have pthreads
+     * support, pthreads needs to be loaded.
+     */
+
+    bool isMTCapable = isMultiThreadCapable();
+    bool foundPthreads = false;
+
+    vector<Archive *> libs;
+    vector<Archive *>::iterator libIter;
+    if( origBinary->getLinkingResources(libs) ) {
+        for(libIter = libs.begin(); libIter != libs.end(); ++libIter) {
+            if( (*libIter)->name().find("libpthread") != std::string::npos ||
+                (*libIter)->name().find("libthr") != std::string::npos )
+            {
+                foundPthreads = true;
+                break;
+            }
+        }
+    }
+
+    if( foundPthreads && (!isMTCapable || origBinary->isStripped()) ) {
+        fprintf(stderr,
+            "\nWARNING: the pthreads library has been loaded and\n"
+            "the original binary is not multithread-capable or\n"
+            "it is stripped. Currently, the combination of these two\n"
+            "scenarios is unsupported and unexpected behavior may occur.\n");
+    }else if( !foundPthreads && isMTCapable ) {
+        fprintf(stderr,
+            "\nWARNING: the pthreads library has not been loaded and\n"
+            "the original binary is multithread-capable. Unexpected\n"
+            "behavior may occur because some pthreads routines are\n"
+            "unavailable in the original binary\n");
+    }
+
+    /*
+     * Special Case 3:
+     * The RT library has some dependencies -- Symtab always needs to know
+     * about these dependencies. So if the dependencies haven't already been
+     * loaded, load them.
+     */
+
+    vector<Archive *> libs1;
+    vector<Archive *>::iterator libIter1;
+    bool loadLibc = true;
+    if( origBinary->getLinkingResources(libs1) ) {
+        for(libIter1 = libs1.begin(); libIter1 != libs1.end(); ++libIter1) {
+            if( (*libIter1)->name().find("libc.a") != std::string::npos ) {
+                loadLibc = false;
+            }
+        }
+    }
+
+    if( loadLibc ) {
+        std::map<std::string, BinaryEdit *> res;
+        openResolvedLibraryName("libc.a", res);
+        if (res.empty()) {
+            cerr << "Fatal error: failed to load DyninstAPI_RT library dependency (libc.a)" << endl;
+            return false;
+        }
+
+        std::map<std::string, BinaryEdit *>::iterator bedit_it;
+        for(bedit_it = res.begin(); bedit_it != res.end(); ++bedit_it) {
+            if( bedit_it->second == NULL ) {
+                logLine("Failed to load DyninstAPI_RT library dependency (libc.a)");
+                fprintf (stderr,"Failed to load DyninstAPI_RT library dependency (libc.a)");
+                return false;
+            }
+        }
+
+        // libc.a may be depending on libgcc.a
+        res.clear();
+        if (!openResolvedLibraryName("libgcc.a", res)) {
+            cerr << "Failed to find libgcc.a, which can be needed by libc.a on certain platforms" << endl;
+            cerr << "Set LD_LIBRARY_PATH to the directory containing libgcc.a" << endl;
+        }
+    }
+
     return true;
 }
 
 func_instance *mapped_object::findGlobalConstructorFunc(const std::string &ctorHandler) {
-	assert(0);
+    using namespace Dyninst::InstructionAPI;
+
+    const pdvector<func_instance *> *funcs = findFuncVectorByMangled(ctorHandler);
+    if( funcs != NULL ) {
+        return funcs->at(0);
+    }
     return NULL;
 }
 
 func_instance *mapped_object::findGlobalDestructorFunc(const std::string &dtorHandler) {
-	assert(0);
-	return NULL;
+    using namespace Dyninst::InstructionAPI;
+
+    const pdvector<func_instance *> *funcs = findFuncVectorByMangled(dtorHandler);
+    if( funcs != NULL ) {
+        return funcs->at(0);
+    }
+    return NULL;
 }
 

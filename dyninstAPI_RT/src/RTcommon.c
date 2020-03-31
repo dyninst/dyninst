@@ -145,10 +145,6 @@ DLLEXPORT void DYNINST_unlock_tramp_guard()
   DYNINST_tls_tramp_guard = 1;
 }
 
-#if defined(os_linux)
-void DYNINSTlinuxBreakPoint();
-#endif
-
 DECLARE_DYNINST_LOCK(DYNINST_trace_lock);
 
 /**
@@ -299,11 +295,7 @@ DLLEXPORT void DYNINST_instExecEntry(void *arg1) {
    DYNINST_synch_event_id = DSE_execEntry;
    DYNINST_synch_event_arg1 = arg1;
    /* Stop ourselves */
-#if defined(os_linux)
-   DYNINSTlinuxBreakPoint();
-#else
    DYNINSTbreakPoint();
-#endif
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;
@@ -745,4 +737,11 @@ void* dyninstTrapTranslate(void *source,
 
    return target;
 }
+
+DLLEXPORT void DYNINSTtrapFunction(){
+   __asm__ __volatile__(
+           "nop\n"
+           :::);
+}
+
 

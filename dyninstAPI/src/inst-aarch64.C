@@ -670,10 +670,22 @@ Register EmitterAARCH64::emitCall(opCode op,
     Register scratch = gen.rs()->getScratchRegister(gen);
     assert(scratch != REG_NULL && "cannot get a scratch register");
     gen.markRegDefined(scratch);
-    if (gen.addrSpace()->edit() != NULL && gen.func()->obj() != callee->obj()) {
+
+    if (gen.addrSpace()->edit() != NULL) {
         // gen.as.edit() checks if we are in rewriter mode
         Address dest = getInterModuleFuncAddr(callee, gen);
-        insnCodeGen::loadImmIntoReg<Address>(gen, scratch, dest);
+
+        // emit ADR instruction
+
+        long disp = dest - gen.currAddr();
+        instruction insn;
+        insn.clear();
+        INSN_SET(insn, 31, 31, 0);
+        //INSN_SET(insn, 29, 30, disp & 0x3);
+        INSN_SET(insn, 28, 28, 1);
+        INSN_SET(insn, 5, 23, disp >> 2);
+        INSN_SET(insn, 0, 4, scratch);
+        insnCodeGen::generate(gen, insn);
 
         insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, scratch, scratch, 0, 8, insnCodeGen::Offset);
     } else {
@@ -1259,9 +1271,23 @@ bool EmitterAARCH64::emitCallRelative(Register dest, Address offset, Register ba
     return true;
 }
 
-bool EmitterAARCH64::emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen) {
-    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
-            base, offset, size, insnCodeGen::Pre);
+bool EmitterAARCH64::emitLoadRelative(Register dest, Address offset, Register baseReg, int size, codeGen &gen) {
+    signed long long sOffset = (signed long long) offset;
+    if(sOffset >=-256 && sOffset <=255)
+        insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
+                baseReg, sOffset, size, insnCodeGen::Pre);
+    else{
+        pdvector<Register> exclude;
+        exclude.push_back(baseReg);
+        // mov sOffset to a reg
+        auto addReg = insnCodeGen::moveValueToReg(gen, labs(offset), &exclude);
+        // add/sub sOffset to baseReg
+        insnCodeGen::generateAddSubShifted(gen,
+                sOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
+                0, 0, addReg, baseReg, baseReg, true);
+        insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest,
+                baseReg, 0, size, insnCodeGen::Pre);
+    }
 
     gen.markRegDefined(dest);
     return true;
@@ -1269,8 +1295,14 @@ bool EmitterAARCH64::emitLoadRelative(Register dest, Address offset, Register ba
 
 
 void EmitterAARCH64::emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen) {
-    insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, source,
-            base, offset, size, insnCodeGen::Pre);
+    if((signed long long)offset <=255 && (signed long long)offset >=-256)
+        insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, source,
+                base, offset, size, insnCodeGen::Pre);
+    else{
+        assert(0 && "offset in emitStoreRelative not in (-256,255)");
+        //insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, source,
+        //        base, offset, size, insnCodeGen::Pre);
+    }
 }
 
 bool EmitterAARCH64::emitMoveRegToReg(registerSlot *src,
@@ -1439,141 +1471,75 @@ bool EmitterAARCH64Dyn::emitTOCCommon(block_instance *block, bool call, codeGen 
     return true;
 }
 
-// TODO 32/64-bit?
 bool EmitterAARCH64Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
-    /*
     Address dest = getInterModuleFuncAddr(callee, gen);
-    //Register scr = gen.rs()->getScratchRegister(gen);
-    //Register lr = gen.rs()->getScratchRegister(gen);
-    //Address pc = emitMovePCToReg(scr, gen);
+    long varOffset = dest - gen.currAddr();
 
-    Address varOffset = dest - gen.currAddr();
-    //printf("VarOffset  = %d\n", varOffset);
-    //emitLoadRelative(lr, varOffset, scr, gen.width(), gen);
+    Register baseReg = gen.rs()->getScratchRegister(gen, true);
+    assert(baseReg != REG_NULL && "cannot get a scratch register");
+    emitMovePCToReg(baseReg, gen);
 
-    insnCodeGen::generateBranch(gen, gen.currAddr(), dest, true);
+    pdvector<Register> exclude;
+    exclude.push_back(baseReg);
+    // mov offset to a reg
+    auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
+    // add/sub offset to baseReg
+    insnCodeGen::generateAddSubShifted(gen,
+            (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
+            0, 0, addReg, baseReg, baseReg, true);
+    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, baseReg,
+            baseReg, 0, 8, insnCodeGen::Offset);
 
-    return true;
-    */ 
-
-
-    Address dest = getInterModuleFuncAddr(callee, gen);
-    Register scr = gen.rs()->getScratchRegister(gen);
-    Register lr = gen.rs()->getScratchRegister(gen);
-    //Register scr = gen.rs()->getRegByName("r2");
-    //Register lr = gen.rs()->getRegByName("r3");
-    emitMovePCToReg(scr, gen);
-
-    Address varOffset = dest - gen.currAddr() + 4;
-    //printf("VarOffset  = %d\n", varOffset);
-    emitLoadRelative(lr, varOffset, scr, gen.width(), gen);
-    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, lr, lr, 0, 8, insnCodeGen::Offset);
-
-    // indirect branch
+    // call instruction
     instruction branchInsn;
     branchInsn.clear();
-
     //Set bits which are 0 for both BR and BLR
     INSN_SET(branchInsn, 0, 4, 0);
     INSN_SET(branchInsn, 10, 15, 0);
-
     //Set register
-    INSN_SET(branchInsn, 5, 9, lr);
-
+    INSN_SET(branchInsn, 5, 9, baseReg);
     //Set other bits. Basically, these are the opcode bits.
     //The only difference between BR and BLR is that bit 21 is 1 for BLR.
     INSN_SET(branchInsn, 16, 31, BRegOp);
     INSN_SET(branchInsn, 21, 21, 1);
     insnCodeGen::generate(gen, branchInsn);
-    //insnCodeGen::generateBranch(gen, gen.currAddr(), lr, true);
-    //insnCodeGen::generateBranch(gen, gen.currAddr(), gen.currAddr() +varOffset, true);
 
     return true;
-
-    //assert(0); //Not implemented
-    //return emitPLTCommon(callee, true, gen);
 }
 
 bool EmitterAARCH64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
-    /*
     Address dest = getInterModuleFuncAddr(callee, gen);
-    //Register scr = gen.rs()->getScratchRegister(gen);
-    //Register lr = gen.rs()->getScratchRegister(gen);
-    Register scr = gen.rs()->getRegByName("r2");
-    Register lr = gen.rs()->getRegByName("r3");
-    //Address pc = emitMovePCToReg(scr, gen);
+    long varOffset = dest - gen.currAddr();
 
-    Address varOffset = dest - gen.currAddr();
-    //printf("VarOffset  = %d\n", varOffset);
-    emitLoadRelative(lr, varOffset, scr, gen.width(), gen);
-    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, lr, lr, 0, 8, insnCodeGen::Offset);
+    Register baseReg = gen.rs()->getScratchRegister(gen, true);
+    assert(baseReg != REG_NULL && "cannot get a scratch register");
+    emitMovePCToReg(baseReg, gen);
 
-    insnCodeGen::generateBranch(gen, gen.currAddr(), lr, false);
+    pdvector<Register> exclude;
+    exclude.push_back(baseReg);
+    // mov offset to a reg
+    auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
+    // add/sub offset to baseReg
+    insnCodeGen::generateAddSubShifted(gen,
+            (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
+            0, 0, addReg, baseReg, baseReg, true);
+    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, baseReg,
+            baseReg, 0, 8, insnCodeGen::Offset);
 
-    return true;
-    */ 
-
-    /*
-    Address dest = getInterModuleFuncAddr(callee, gen);
-    Register scr = gen.rs()->getScratchRegister(gen);
-    Register lr = gen.rs()->getScratchRegister(gen);
-    Address pc = emitMovePCToReg(scr, gen);
-
-    Address varOffset = dest - pc;
-    printf("VarOffset  = %d\n", varOffset);
-    emitLoadRelative(lr, varOffset, scr, gen.width(), gen);
-
-    insnCodeGen::generateBranch(gen, gen.currAddr(), lr, false);
-    return true;
-    */
-    
-    /*
-    Address dest = getInterModuleFuncAddr(callee, gen);
-    Register scr = gen.rs()->getScratchRegister(gen);
-    Register lr = gen.rs()->getScratchRegister(gen);
-    Address varOffset = dest - gen.currAddr();
-    emitLoadRelative(lr, varOffset, scr, gen.width(), gen);
-    insnCodeGen::generateBranch(gen, gen.currAddr(), gen.currAddr() +varOffset, false);
-
-    return true;
-    */
-
-
-    Address dest = getInterModuleFuncAddr(callee, gen);
-    Register scr = gen.rs()->getScratchRegister(gen);
-    Register lr = gen.rs()->getScratchRegister(gen);
-    //Register scr = gen.rs()->getRegByName("r2");
-    //Register lr = gen.rs()->getRegByName("r3");
-    emitMovePCToReg(scr, gen);
-
-    Address varOffset = dest - gen.currAddr() + 4;
-    //printf("VarOffset  = %d\n", varOffset);
-    emitLoadRelative(lr, varOffset, scr, gen.width(), gen);
-    insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, lr, lr, 0, 8, insnCodeGen::Offset);
-
-    // indirect branch
+    // jump instruction
     instruction branchInsn;
     branchInsn.clear();
-
     //Set bits which are 0 for both BR and BLR
     INSN_SET(branchInsn, 0, 4, 0);
     INSN_SET(branchInsn, 10, 15, 0);
-
     //Set register
-    INSN_SET(branchInsn, 5, 9, lr);
-
+    INSN_SET(branchInsn, 5, 9, baseReg);
     //Set other bits. Basically, these are the opcode bits.
     //The only difference between BR and BLR is that bit 21 is 1 for BLR.
     INSN_SET(branchInsn, 16, 31, BRegOp);
-    INSN_SET(branchInsn, 21, 21, 0);
     insnCodeGen::generate(gen, branchInsn);
-    //insnCodeGen::generateBranch(gen, gen.currAddr(), lr, true);
-    //insnCodeGen::generateBranch(gen, gen.currAddr(), gen.currAddr() +varOffset, true);
 
     return true;
-
-    //assert(0); //Not implemented
-    //return emitPLTCommon(callee, false, gen);
 }
 
 bool EmitterAARCH64Stat::emitTOCCall(block_instance *block, codeGen &gen) {
@@ -1608,8 +1574,9 @@ bool EmitterAARCH64::emitCallInstruction(codeGen &gen, func_instance *callee, bo
     return true;
 }
 
-void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int size,
-                                    codeGen &gen, Address offset) {
+void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variable *var,
+        bool is_local, int size, codeGen &gen, Address offset)
+{
     // create or retrieve jump slot
     Address addr;
     int stackSize = 0;
@@ -1625,35 +1592,43 @@ void EmitterAARCH64::emitLoadShared(opCode op, Register dest, const image_variab
     }
 
     // load register with address from jump slot
-    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
-    assert(scratchReg != REG_NULL && "cannot get a scratch register");
+    Register baseReg = gen.rs()->getScratchRegister(gen, true);
+    assert(baseReg != REG_NULL && "cannot get a scratch register");
 
-    emitMovePCToReg(scratchReg, gen);
+    emitMovePCToReg(baseReg, gen);
     Address varOffset = addr - gen.currAddr() + 4;
 
-    if (op ==loadOp) {
+    if (op ==loadOp ) {
         if(!is_local && (var != NULL)){
-            emitLoadRelative(dest, varOffset, scratchReg, gen.width(), gen);
+            emitLoadRelative(dest, varOffset, baseReg, gen.width(), gen);
             // Deference the pointer to get the variable
             // emitLoadRelative(dest, 0, dest, size, gen);
             // Offset mode to load back to itself
-            insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest, dest, 0, 8, insnCodeGen::Offset);
+            insnCodeGen::generateMemAccess(gen, insnCodeGen::Load, dest, dest, 0, 8,
+                    insnCodeGen::Offset);
         } else {
-            emitLoadRelative(dest, varOffset, scratchReg, size, gen);
+            emitLoadRelative(dest, varOffset, baseReg, size, gen);
         }
     } else { //loadConstop
         if(!is_local && (var != NULL)){
-            emitLoadRelative(dest, varOffset, scratchReg, gen.width(), gen);
+            emitLoadRelative(dest, varOffset, baseReg, gen.width(), gen);
         } else {
-            assert(0 && "reached invalid else branch");
+            pdvector<Register> exclude;
+            exclude.push_back(baseReg);
+            auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
+            insnCodeGen::generateAddSubShifted(gen,
+                    (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
+                    0, 0, addReg, baseReg, baseReg, true);
+            insnCodeGen::generateMove(gen, dest, baseReg, true);
         }
     }
 
     assert(stackSize <= 0 && "stack not empty at the end");
 }
 
-void
-EmitterAARCH64::emitStoreShared(Register source, const image_variable *var, bool is_local, int size, codeGen &gen) {
+void EmitterAARCH64::emitStoreShared(Register source, const image_variable *var,
+        bool is_local, int size, codeGen &gen)
+{
     // create or retrieve jump slot
     Address addr;
     int stackSize = 0;
@@ -1665,21 +1640,30 @@ EmitterAARCH64::emitStoreShared(Register source, const image_variable *var, bool
     }
 
     // load register with address from jump slot
-    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
-    assert(scratchReg != REG_NULL && "cannot get a scratch register");
+    Register baseReg = gen.rs()->getScratchRegister(gen, true);
+    assert(baseReg != REG_NULL && "cannot get a scratch register");
 
-    emitMovePCToReg(scratchReg, gen);
+    emitMovePCToReg(baseReg, gen);
     Address varOffset = addr - gen.currAddr() + 4;
 
     if(!is_local) {
         pdvector<Register> exclude;
-        exclude.push_back(scratchReg);
+        exclude.push_back(baseReg);
         Register scratchReg1 = gen.rs()->getScratchRegister(gen, exclude, true);
         assert(scratchReg1 != REG_NULL && "cannot get a scratch register");
-        emitLoadRelative(scratchReg1, varOffset, scratchReg, gen.width(), gen);
+        emitLoadRelative(scratchReg1, varOffset, baseReg, gen.width(), gen);
         emitStoreRelative(source, 0, scratchReg1, size, gen);
     } else {
-        emitStoreRelative(source, varOffset, scratchReg, size, gen);
+        pdvector<Register> exclude;
+        exclude.push_back(baseReg);
+        // mov offset to a reg
+        auto addReg = insnCodeGen::moveValueToReg(gen, labs(varOffset), &exclude);
+        // add/sub offset to baseReg
+        insnCodeGen::generateAddSubShifted(gen,
+                (signed long long) varOffset>0?insnCodeGen::Add:insnCodeGen::Sub,
+                0, 0, addReg, baseReg, baseReg, true);
+        insnCodeGen::generateMemAccess(gen, insnCodeGen::Store, source,
+                baseReg, 0, size, insnCodeGen::Pre);
     }
 
     assert(stackSize <= 0 && "stack not empty at the end");

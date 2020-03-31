@@ -20,7 +20,7 @@ bool SymbolicExpression::ReadMemory(Address addr, uint64_t &v, int ) {
 #if defined(os_windows)
     addr -= cs->loadAddress();
 #endif
-    if (!cs->isCode(addr) && !cs->isData(addr)) return false;
+    if (!cs->isReadOnly(addr)) return false;
     v = *(const uint64_t *) cs->getPtrToInstruction(addr);
 /*
     switch (memoryReadSize) {

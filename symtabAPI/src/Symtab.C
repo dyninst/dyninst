@@ -27,6 +27,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "common/src/vgannotations.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -35,8 +37,6 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
-
-#include "common/h/race-detector-annotations.h"
 
 #include "common/src/Timer.h"
 #include "common/src/debugOstream.h"
@@ -98,21 +98,15 @@ static thread_local SymtabError serr;
 
 std::vector<Symtab *> Symtab::allSymtabs;
 
-#define fake_symtab_error_lock race_detector_fake_lock(Symtab::getLastSymtabError)
- 
 SymtabError Symtab::getLastSymtabError()
 {
-  race_detector_fake_lock_acquire(fake_symtab_error_lock);
   SymtabError last = serr;
-  race_detector_fake_lock_release(fake_symtab_error_lock);
   return last;
 }
 
 void Symtab::setSymtabError(SymtabError new_err)
 {
-   race_detector_fake_lock_acquire(fake_symtab_error_lock);
    serr = new_err;
-   race_detector_fake_lock_release(fake_symtab_error_lock);
 }
 
 std::string Symtab::printError(SymtabError serr)
@@ -150,30 +144,31 @@ std::string Symtab::printError(SymtabError serr)
     }		
 }
 
-boost::shared_ptr<Type> Symtab::type_Error()
+static LazySingleton<boost::shared_ptr<Type>> ls_type_Error;
+boost::shared_ptr<Type>& Symtab::type_Error()
 {
-    static boost::shared_ptr<Type> store = 
-       boost::shared_ptr<Type>(new Type(std::string("<error>"), 0, dataUnknownType));
-    return store;
+    return ls_type_Error.get([](){
+        return Type::make_shared<Type>(std::string("<error"),0,dataUnknownType);
+    });
 }
-boost::shared_ptr<Type> Symtab::type_Untyped()
+static LazySingleton<boost::shared_ptr<Type>> ls_type_Untyped;
+boost::shared_ptr<Type>& Symtab::type_Untyped()
 {
-    static boost::shared_ptr<Type> store =
-       boost::shared_ptr<Type>(new Type(std::string("<no type>"), 0, dataUnknownType));
-    return store;
+    return ls_type_Untyped.get([](){
+        return Type::make_shared<Type>(std::string("<no type>"), 0, dataUnknownType);
+    });
 }
 
-boost::shared_ptr<builtInTypeCollection> Symtab::builtInTypes()
+static LazySingleton<boost::shared_ptr<builtInTypeCollection>> ls_builtInTypes;
+boost::shared_ptr<builtInTypeCollection>& Symtab::builtInTypes()
 {
-    static boost::shared_ptr<builtInTypeCollection> store =
-        setupBuiltinTypes();
-    return store;
+    return ls_builtInTypes.get(setupBuiltinTypes);
 }
-boost::shared_ptr<typeCollection> Symtab::stdTypes()
+
+static LazySingleton<boost::shared_ptr<typeCollection>> ls_stdTypes;
+boost::shared_ptr<typeCollection>& Symtab::stdTypes()
 {
-    static boost::shared_ptr<typeCollection> store =
-        setupStdTypes();
-    return store;
+    return ls_stdTypes.get(setupStdTypes);
 }
 
 boost::shared_ptr<builtInTypeCollection> Symtab::setupBuiltinTypes()
@@ -181,97 +176,67 @@ boost::shared_ptr<builtInTypeCollection> Symtab::setupBuiltinTypes()
     boost::shared_ptr<builtInTypeCollection> builtInTypes =
        boost::shared_ptr<builtInTypeCollection>(new builtInTypeCollection);
 
-   typeScalar *newType;
-
    // NOTE: integral type  mean twos-complement
    // -1  int, 32 bit signed integral type
    // in stab document, size specified in bits, system size is in bytes
-   builtInTypes->addBuiltInType(newType = new typeScalar(-1, 4, "int", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-1, 4, "int", true));
    // -2  char, 8 bit type holding a character. GDB treats as signed
-   builtInTypes->addBuiltInType(newType = new typeScalar(-2, 1, "char", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-2, 1, "char", true));
    // -3  short, 16 bit signed integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-3, 2, "short", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-3, 2, "short", true));
    // -4  long, 32/64 bit signed integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-4, sizeof(long), "long", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-4, sizeof(long), "long", true));
    // -5  unsigned char, 8 bit unsigned integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-5, 1, "unsigned char"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-5, 1, "unsigned char"));
    // -6  signed char, 8 bit signed integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-6, 1, "signed char", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-6, 1, "signed char", true));
    // -7  unsigned short, 16 bit unsigned integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-7, 2, "unsigned short"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-7, 2, "unsigned short"));
    // -8  unsigned int, 32 bit unsigned integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-8, 4, "unsigned int"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-8, 4, "unsigned int"));
    // -9  unsigned, 32 bit unsigned integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-9, 4, "unsigned"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-9, 4, "unsigned"));
    // -10 unsigned long, 32 bit unsigned integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-10, sizeof(unsigned long), "unsigned long"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-10, sizeof(unsigned long), "unsigned long"));
    // -11 void, type indicating the lack of a value
    //  XXX-size may not be correct jdd 4/22/99
-   builtInTypes->addBuiltInType(newType = new typeScalar(-11, 0, "void", false));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-11, 0, "void", false));
    // -12 float, IEEE single precision
-   builtInTypes->addBuiltInType(newType = new typeScalar(-12, sizeof(float), "float", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-12, sizeof(float), "float", true));
    // -13 double, IEEE double precision
-   builtInTypes->addBuiltInType(newType = new typeScalar(-13, sizeof(double), "double", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-13, sizeof(double), "double", true));
    // -14 long double, IEEE double precision, size may increase in future
-   builtInTypes->addBuiltInType(newType = new typeScalar(-14, sizeof(long double), "long double", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-14, sizeof(long double), "long double", true));
    // -15 integer, 32 bit signed integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-15, 4, "integer", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-15, 4, "integer", true));
    // -16 boolean, 32 bit type. GDB/GCC 0=False, 1=True, all other values
    //  have unspecified meaning
-   builtInTypes->addBuiltInType(newType = new typeScalar(-16, sizeof(bool), "boolean"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-16, sizeof(bool), "boolean"));
    // -17 short real, IEEE single precision
    //  XXX-size may not be correct jdd 4/22/99
-   builtInTypes->addBuiltInType(newType = new typeScalar(-17, sizeof(float), "short real", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-17, sizeof(float), "short real", true));
    // -18 real, IEEE double precision XXX-size may not be correct jdd 4/22/99
-   builtInTypes->addBuiltInType(newType = new typeScalar(-18, sizeof(double), "real", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-18, sizeof(double), "real", true));
    // -19 stringptr XXX- size of void * -- jdd 4/22/99
-   builtInTypes->addBuiltInType(newType = new typeScalar(-19, sizeof(void *), "stringptr"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-19, sizeof(void *), "stringptr"));
    // -20 character, 8 bit unsigned character type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-20, 1, "character"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-20, 1, "character"));
    // -21 logical*1, 8 bit type (Fortran, used for boolean or unsigned int)
-   builtInTypes->addBuiltInType(newType = new typeScalar(-21, 1, "logical*1"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-21, 1, "logical*1"));
    // -22 logical*2, 16 bit type (Fortran, some for boolean or unsigned int)
-   builtInTypes->addBuiltInType(newType = new typeScalar(-22, 2, "logical*2"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-22, 2, "logical*2"));
    // -23 logical*4, 32 bit type (Fortran, some for boolean or unsigned int)
-   builtInTypes->addBuiltInType(newType = new typeScalar(-23, 4, "logical*4"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-23, 4, "logical*4"));
    // -24 logical, 32 bit type (Fortran, some for boolean or unsigned int)
-   builtInTypes->addBuiltInType(newType = new typeScalar(-24, 4, "logical"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-24, 4, "logical"));
    // -25 complex, consists of 2 IEEE single-precision floating point values
-   builtInTypes->addBuiltInType(newType = new typeScalar(-25, sizeof(float)*2, "complex", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-25, sizeof(float)*2, "complex", true));
    // -26 complex, consists of 2 IEEE double-precision floating point values
-   builtInTypes->addBuiltInType(newType = new typeScalar(-26, sizeof(double)*2, "complex*16", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-26, sizeof(double)*2, "complex*16", true));
    // -27 integer*1, 8 bit signed integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-27, 1, "integer*1", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-27, 1, "integer*1", true));
    // -28 integer*2, 16 bit signed integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-28, 2, "integer*2", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-28, 2, "integer*2", true));
 
    /* Quick hack to make integer*4 compatible with int for Fortran
       jnb 6/20/01 */
@@ -282,32 +247,24 @@ boost::shared_ptr<builtInTypeCollection> Symtab::setupBuiltinTypes()
      newType->decrRefCount();
    */
    // -29 integer*4, 32 bit signed integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-29, 4, "integer*4", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-29, 4, "integer*4", true));
    // -30 wchar, Wide character, 16 bits wide, unsigned (unknown format)
-   builtInTypes->addBuiltInType(newType = new typeScalar(-30, 2, "wchar"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-30, 2, "wchar"));
 #if defined(os_windows)
    // -31 long long, 64 bit signed integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-31, sizeof(LONGLONG), "long long", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-31, sizeof(LONGLONG), "long long", true));
    // -32 unsigned long long, 64 bit unsigned integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-32, sizeof(ULONGLONG), "unsigned long long"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-32, sizeof(ULONGLONG), "unsigned long long"));
 #else
    // -31 long long, 64 bit signed integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-31, sizeof(long long), "long long", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-31, sizeof(long long), "long long", true));
    // -32 unsigned long long, 64 bit unsigned integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-32, sizeof(unsigned long long), "unsigned long long"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-32, sizeof(unsigned long long), "unsigned long long"));
 #endif
    // -33 logical*8, 64 bit unsigned integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-33, 8, "logical*8"));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-33, 8, "logical*8"));
    // -34 integer*8, 64 bit signed integral type
-   builtInTypes->addBuiltInType(newType = new typeScalar(-34, 8, "integer*8", true));
-   newType->decrRefCount();
+   builtInTypes->addBuiltInType(Type::make_shared<typeScalar>(-34, 8, "integer*8", true));
 
    return builtInTypes;
 }
@@ -318,38 +275,19 @@ boost::shared_ptr<typeCollection> Symtab::setupStdTypes()
     boost::shared_ptr<typeCollection> stdTypes =
        boost::shared_ptr<typeCollection>(new typeCollection);
 
-   typeScalar *newType;
-
-   stdTypes->addType(newType = new typeScalar(-1, sizeof(int), "int"));
-   newType->decrRefCount();
-
-   Type *charType = new typeScalar(-2, sizeof(char), "char");
+   stdTypes->addType(Type::make_shared<typeScalar>(-1, sizeof(int), "int"));
+   auto charType = Type::make_shared<typeScalar>(-2, sizeof(char), "char");
    stdTypes->addType(charType);
-
-	std::string tName = "char *";
-	typePointer *newPtrType;
-   stdTypes->addType(newPtrType = new typePointer(-3, charType, tName));
-   charType->decrRefCount();
-   newPtrType->decrRefCount();
-
-   Type *voidType = new typeScalar(-11, 0, "void", false);
+   stdTypes->addType(Type::make_shared<typePointer>(-3, charType, "char *"));
+   auto voidType = Type::make_shared<typeScalar>(-11, 0, "void", false);
    stdTypes->addType(voidType);
-
-	tName = "void *";
-   stdTypes->addType(newPtrType = new typePointer(-4, voidType, tName));
-   voidType->decrRefCount();
-   newPtrType->decrRefCount();
-
-   stdTypes->addType(newType = new typeScalar(-12, sizeof(float), "float"));
-   newType->decrRefCount();
-
+   stdTypes->addType(Type::make_shared<typePointer>(-4, voidType, "void *"));
+   stdTypes->addType(Type::make_shared<typeScalar>(-12, sizeof(float), "float"));
 #if defined(i386_unknown_nt4_0)
-   stdTypes->addType(newType = new typeScalar(-31, sizeof(LONGLONG), "long long"));    
+   stdTypes->addType(Type::make_shared<typeScalar>(-31, sizeof(LONGLONG), "long long"));    
 #else
-   stdTypes->addType(newType = new typeScalar(-31, sizeof(long long), "long long"));
+   stdTypes->addType(Type::make_shared<typeScalar>(-31, sizeof(long long), "long long"));
 #endif
-
-	newType->decrRefCount();
 
    return stdTypes;
 }
@@ -404,7 +342,6 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
    obj_private(NULL),
    _ref_cnt(1)
 {
-    pfq_rwlock_init(symbols_rwlock);
     init_debug_symtabAPI();
 
 #if defined(os_vxworks)
@@ -448,7 +385,6 @@ SYMTAB_EXPORT Symtab::Symtab() :
    obj_private(NULL),
    _ref_cnt(1)
 {  
-    pfq_rwlock_init(symbols_rwlock);
     init_debug_symtabAPI();
     create_printf("%s[%d]: Created symtab via default constructor\n", FILE__, __LINE__);
 }
@@ -558,8 +494,71 @@ SYMTAB_EXPORT string Symtab::getDefaultNamespacePrefix() const
 {
     return defaultNamespacePrefix;
 }
-	
-	
+
+// Operations on the indexed_symbols compound table.
+bool Symtab::indexed_symbols::insert(Symbol* s) {
+    Offset o = s->getOffset();
+    master_t::accessor a;
+    if(master.insert(a, std::make_pair(s, o))) {
+        {
+            by_offset_t::accessor oa;
+            by_offset.insert(oa, o);
+            oa->second.push_back(s);
+        }
+        {
+            by_name_t::accessor ma;
+            by_mangled.insert(ma, s->getMangledName());
+            ma->second.push_back(s);
+        }
+        {
+            by_name_t::accessor pa;
+            by_pretty.insert(pa, s->getPrettyName());
+            pa->second.push_back(s);
+        }
+        {
+            by_name_t::accessor ta;
+            by_typed.insert(ta, s->getTypedName());
+            ta->second.push_back(s);
+        }
+
+        return true;
+    }
+    return false;
+}
+
+void Symtab::indexed_symbols::clear() {
+    master.clear();
+    by_offset.clear();
+    by_mangled.clear();
+    by_pretty.clear();
+    by_typed.clear();
+}
+
+void Symtab::indexed_symbols::erase(Symbol* s) {
+    if(master.erase(s)) {
+        {
+            by_offset_t::accessor oa;
+            assert(by_offset.find(oa, s->getOffset()));
+            std::remove(oa->second.begin(), oa->second.end(), s);
+        }
+        {
+            by_name_t::accessor ma;
+            assert(by_mangled.find(ma, s->getMangledName()));
+            std::remove(ma->second.begin(), ma->second.end(), s);
+        }
+        {
+            by_name_t::accessor pa;
+            assert(by_pretty.find(pa, s->getPrettyName()));
+            std::remove(pa->second.begin(), pa->second.end(), s);
+        }
+        {
+            by_name_t::accessor ta;
+            assert(by_typed.find(ta, s->getTypedName()));
+            std::remove(ta->second.begin(), ta->second.end(), s);
+        }
+    }
+}
+
 // TODO -- is this g++ specific
 bool Symtab::buildDemangledName( const std::string &mangled, 
       std::string &pretty,
@@ -772,6 +771,7 @@ bool Symtab::demangleSymbols(std::vector<Symbol *> &raw_syms)
  */
 
 bool Symtab::createIndices(std::vector<Symbol *> &raw_syms, bool undefined) {
+    #pragma omp parallel for schedule(dynamic)
     for (unsigned i = 0; i < raw_syms.size(); i++) {
        addSymbolToIndices(raw_syms[i], undefined);
     }
@@ -791,12 +791,13 @@ bool Symtab::createAggregates()
 #if !defined(os_vxworks)
     // In VxWorks, symbol offsets are not complete until object is loaded.
 
-  for(auto i = everyDefinedSymbol.begin();
-      i != everyDefinedSymbol.end();
-      ++i)
+  std::vector<Symbol*> syms(everyDefinedSymbol.begin(), everyDefinedSymbol.end());
+
+  #pragma omp parallel for
+  for(size_t i = 0; i < syms.size(); ++i)
   {
-    if (!doNotAggregate(*i)) {
-      addSymbolToAggregates(*i);
+    if (!doNotAggregate(syms[i])) {
+      addSymbolToAggregates(syms[i]);
     }
   }
 #endif
@@ -873,7 +874,6 @@ bool Symtab::addSymbolToIndices(Symbol *&sym, bool undefined)
 {
    assert(sym);
    if (!undefined) {
-     if(everyDefinedSymbol.find(sym) == everyDefinedSymbol.end())
        everyDefinedSymbol.insert(sym);
    }
    else {
@@ -899,18 +899,19 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
         //   Keep module information 
 
         Function *func = NULL;
-        findFuncByEntryOffset(func, sym->getOffset());
-        if (!func) {
+        bool found = false;
+        {
+            dyn_c_hash_map<Offset,Function*>::accessor a;
+            found = !funcsByOffset.insert(a, sym->getOffset());
+            if(found) func = a->second;
+            else {
             // Create a new function
             // Also, update the symbol to point to this function.
-
             func = new Function(sym);
-
-            everyFunction.push_back(func);
-            sorted_everyFunction = false;
-            funcsByOffset[sym->getOffset()] = func;
+                a->second = func;
         }
-        else {
+        }  // Release the lock on the offset/function pair
+        if(found) {
             /* XXX 
              * For relocatable files, the offset of a symbol is relative to the
              * beginning of a Region. Therefore, a symbol in a relocatable file
@@ -922,11 +923,16 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
 
             if( func->getRegion() != sym->getRegion() ) {
                 func = new Function(sym);
+                boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
                 everyFunction.push_back(func);
                 sorted_everyFunction = false;
             }
             func->addSymbol(sym);
-        } 
+        } else {
+            boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
+            everyFunction.push_back(func);
+            sorted_everyFunction = false;
+        }
         sym->setFunction(func);
 
         break;
@@ -935,16 +941,19 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
     case Symbol::ST_OBJECT: {
         // The same as the above, but with variables.
         Variable *var = NULL;
-        findVariableByOffset(var, sym->getOffset());
-        if (!var) {
+        bool found = false;
+        {
+            dyn_c_hash_map<Offset,Variable*>::accessor a;
+            found = !varsByOffset.insert(a, sym->getOffset());
+            if(found) var = a->second;
+            else {
             // Create a new function
             // Also, update the symbol to point to this function.
             var = new Variable(sym);
-            
-            everyVariable.push_back(var);
-            varsByOffset[sym->getOffset()] = var;
+                a->second = var;
         }
-        else {
+        }
+        if(found) {
             /* XXX
              * For relocatable files, the offset is not a unique identifier for
              * a Symbol. With functions, the Region and offset could be used to
@@ -959,10 +968,14 @@ bool Symtab::addSymbolToAggregates(const Symbol *sym_tmp)
                   NULL == sym->getRegion() ) )
             {
                 var = new Variable(sym);
+                boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
                 everyVariable.push_back(var);
             }else{
                 var->addSymbol(sym);
             }
+        } else {
+            boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
+            everyVariable.push_back(var);
         }
         sym->setVariable(var);
         break;
@@ -1247,7 +1260,6 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
    obj_private(NULL),
    _ref_cnt(1)
 {
-   pfq_rwlock_init(symbols_rwlock);
    init_debug_symtabAPI();
    // Initialize error parameter
    err = false;
@@ -1324,7 +1336,6 @@ Symtab::Symtab(unsigned char *mem_image, size_t image_size,
    obj_private(NULL),
    _ref_cnt(1)
 {
-   pfq_rwlock_init(symbols_rwlock);
    // Initialize error parameter
    err = false;
   
@@ -1617,7 +1628,6 @@ Symtab::Symtab(const Symtab& obj) :
    obj_private(NULL),
    _ref_cnt(1)
 {
-   pfq_rwlock_init(symbols_rwlock);
     create_printf("%s[%d]: Creating symtab 0x%p from symtab 0x%p\n", FILE__, __LINE__, this, &obj);
 
    unsigned i;
@@ -2242,6 +2252,7 @@ SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<AddressRange > &ranges,
     for (auto i = indexed_modules.begin(); i != indexed_modules.end(); ++i)
    {
        StringTablePtr s = (*i)->getStrings();
+       boost::unique_lock<dyn_mutex> l(s->lock);
        // Only check modules that have this filename present
        if(s->get<1>().find(lineSource) == s->get<1>().end()) {
            continue;
@@ -2380,17 +2391,17 @@ bool Symtab::addType(Type *type)
   return true;
 }
 
-SYMTAB_EXPORT vector<Type *> *Symtab::getAllstdTypes()
+SYMTAB_EXPORT void Symtab::getAllstdTypes(vector<boost::shared_ptr<Type>>& v)
 {
-   return stdTypes()->getAllTypes(); 	
+   return stdTypes()->getAllTypes(v); 	
 }
 
-SYMTAB_EXPORT vector<Type *> *Symtab::getAllbuiltInTypes()
+SYMTAB_EXPORT void Symtab::getAllbuiltInTypes(vector<boost::shared_ptr<Type>>& v)
 {
-   return builtInTypes()->getAllBuiltInTypes();
+   return builtInTypes()->getAllBuiltInTypes(v);
 }
 
-SYMTAB_EXPORT bool Symtab::findType(Type *&type, std::string name)
+SYMTAB_EXPORT bool Symtab::findType(boost::shared_ptr<Type> &type, std::string name)
 {
    parseTypesNow();
 
@@ -2401,7 +2412,7 @@ SYMTAB_EXPORT bool Symtab::findType(Type *&type, std::string name)
    {
 	   typeCollection *tc = (*i)->getModuleTypes();
 	   if (!tc) continue;
-	   type = tc->findType(name);
+	   type = tc->findType(name, Type::share);
 	   if (type) return true;
    }
 
@@ -2411,9 +2422,9 @@ SYMTAB_EXPORT bool Symtab::findType(Type *&type, std::string name)
    return true;	
 }
 
-SYMTAB_EXPORT Type *Symtab::findType(unsigned type_id)
+SYMTAB_EXPORT boost::shared_ptr<Type> Symtab::findType(unsigned type_id, Type::do_share_t)
 {
-	Type *t = NULL;
+	boost::shared_ptr<Type> t;
    parseTypesNow();
 
    if (indexed_modules.empty())
@@ -2425,7 +2436,7 @@ SYMTAB_EXPORT Type *Symtab::findType(unsigned type_id)
    {
 	   typeCollection *tc = (*i)->getModuleTypes();
 	   if (!tc) continue;
-	   t = tc->findType(type_id);
+	   t = tc->findType(type_id, Type::share);
 	   if (t)  break;
    }
 
@@ -2433,13 +2444,13 @@ SYMTAB_EXPORT Type *Symtab::findType(unsigned type_id)
    {
 	   if (builtInTypes())
 	   {
-		   t = builtInTypes()->findBuiltInType(type_id);
+		   t = builtInTypes()->findBuiltInType(type_id, Type::share);
 		   if (t) return t;
 	   }
 
 	   if (stdTypes())
 	   {
-		   t = stdTypes()->findType(type_id);
+		   t = stdTypes()->findType(type_id, Type::share);
 		   if (t) return t;
 	   }
 
@@ -2449,7 +2460,7 @@ SYMTAB_EXPORT Type *Symtab::findType(unsigned type_id)
    return t;	
 }
 
-SYMTAB_EXPORT bool Symtab::findVariableType(Type *&type, std::string name)
+SYMTAB_EXPORT bool Symtab::findVariableType(boost::shared_ptr<Type>& type, std::string name)
 {
    parseTypesNow();
     type = NULL;
@@ -2457,7 +2468,7 @@ SYMTAB_EXPORT bool Symtab::findVariableType(Type *&type, std::string name)
    {
 	   typeCollection *tc = (*i)->getModuleTypes();
 	   if (!tc) continue;
-	   type = tc->findVariableType(name);
+	   type = tc->findVariableType(name, Type::share);
 	   if (type) break;
    }
 
@@ -2649,43 +2660,39 @@ SYMTAB_EXPORT bool Symtab::fixup_RegionAddr(const char* name, Offset memOffset, 
 
 SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
 {
-  indexed_symbols::index<mangled>::type& mangled_syms = everyDefinedSymbol.get<mangled>();
-  // Find the symbol.
-  //if (symsByMangledName.count(name) == 0) return false;
-  if(mangled_syms.count(name) == 0) return false;
-  if(mangled_syms.count(name) > 1)
-    // /* DEBUG
-    //if (symsByMangledName[name].size() != 1)
-     create_printf("*** Found %zu symbols with name %s.  Expecting 1.\n",
-                   mangled_syms.count(name), name); // */
-  indexed_symbols::index<mangled>::type::iterator sym = mangled_syms.find(name);
-  Symbol* new_sym = *sym;
-  
-  // Update symbol.
-  new_sym->setOffset(newOffset);
-  indexed_symbols::index<offset>::type& syms_by_offset = everyDefinedSymbol.get<offset>();
-  syms_by_offset.replace(everyDefinedSymbol.project<offset>(sym), new_sym);
-  
-    // Update hashes.
-  /*   if (symsByOffset.count(oldOffset)) {
-        std::vector<Symbol *>::iterator iter = symsByOffset[oldOffset].begin();
-        while (iter != symsByOffset[oldOffset].end()) {
-            if (*iter == sym) {
-                symsByOffset[oldOffset].erase(iter);
-                iter = symsByOffset[oldOffset].begin();
+  Symbol* sym;
+  {
+    // Find the symbol.
+    indexed_symbols::by_name_t::const_accessor ma;
+    if(!everyDefinedSymbol.by_mangled.find(ma, name)) return false;
+    if(ma->second.size() > 1)
+      create_printf("*** Found %zu symbols with name %s.  Expecting 1.\n",
+                    ma->second.size(), name);
+    sym = ma->second[0];
 
-            } else iter++;
-        }
-    }
-    if (!findSymbolByOffset(newOffset))
-        symsByOffset[newOffset].push_back(sym);
-  */
-    // Update aggregates.
-    if (!doNotAggregate(new_sym)) {
-      addSymbolToAggregates(new_sym);
-    }
+    // Update symbol.
+    indexed_symbols::master_t::accessor a;
+    assert(everyDefinedSymbol.master.find(a, sym));
+    Offset old = a->second;
 
-    return true;
+    sym->setOffset(newOffset);
+    a->second = newOffset;
+
+    // Update the by_offset table
+    indexed_symbols::by_offset_t::accessor oa;
+    assert(everyDefinedSymbol.by_offset.find(oa, old));
+    std::remove(oa->second.begin(), oa->second.end(), sym);
+
+    everyDefinedSymbol.by_offset.insert(oa, newOffset);
+    oa->second.push_back(sym);
+  }
+
+  // Update aggregates.
+  if (!doNotAggregate(sym)) {
+    addSymbolToAggregates(sym);
+  }
+
+  return true;
 }
 
 SYMTAB_EXPORT bool Symtab::updateRegion(const char* name, void *buffer, unsigned size)

@@ -836,6 +836,18 @@ bool PCProcess::loadRTLib() {
    {
 	   startup_printf("%s[%d]: DYNINSTinit not called automatically\n", FILE__, __LINE__);
    }
+
+   // Install a breakpoint in DYNINSTtrapFunction.
+   // This is used as RT signal.
+   Address addr = getRTTrapFuncAddr();
+   if (addr == 0) {
+       startup_printf("%s[%d]: Cannot find DYNINSTtrapFunction. Needed as RT signal\n", FILE__, __LINE__);
+       return false;
+   }
+   if (!setBreakpoint(addr)) {
+       startup_printf("%s[%d]: Cannot set breakpoint in DYNINSTtrapFunction.\n", FILE__, __LINE__);
+       return false;
+   }
    startup_printf("%s[%d]: DYNINSTinit succeeded\n", FILE__, __LINE__);
    return setRTLibInitParams();
 }
@@ -3200,6 +3212,14 @@ Address PCProcess::getRTEventArg3Addr() {
     return sync_event_arg3_addr_;
 }
 
+Address PCProcess::getRTTrapFuncAddr() {
+    if (rt_trap_func_addr_ == 0) {
+        func_instance* func = findOnlyOneFunction("DYNINSTtrapFunction");
+        rt_trap_func_addr_ = func->addr();
+    }
+    return rt_trap_func_addr_;
+}
+
 bool PCProcess::hasPendingEvents() {
    // Go to the muxer as a final arbiter
    return PCEventMuxer::muxer().hasPendingEvents(this);
@@ -3269,6 +3289,10 @@ void PCProcess::invalidateMTCache() {
     mt_cache_result_ = not_cached;
 }
 
+bool PCProcess::supportsUserThreadEvents() {
+    if (!pcProc_) return false;
+    return pcProc_->supportsUserThreadEvents();
+}
 
 StackwalkSymLookup::StackwalkSymLookup(PCProcess *p)
   : proc_(p)

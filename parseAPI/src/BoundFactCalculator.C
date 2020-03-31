@@ -376,7 +376,6 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
   	    parsing_printf("\t\tThe predecessor node is a conditional jump!\n");
 	    if (!prevFact->ConditionalJumpBound(srcNode->assign()->insn(), edge->type())) {
 	        fprintf(stderr, "From %lx to %lx\n", srcNode->addr(), node->addr());
-		assert(0);
 	    }
 	}
 	//ThunkBound(prevFact, srcNode, node, newCopy);

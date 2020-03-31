@@ -27,6 +27,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#include "common/src/vgannotations.h"
 #include <typeinfo>
 #include <string.h>
 #include "dwarfFrameParser.h"
@@ -69,6 +70,9 @@ DwarfFrameParser::DwarfFrameParser(Dwarf * dbg_, Elf * eh_frame, Architecture ar
     dbg(dbg_),
     dbg_eh_frame(eh_frame),
     arch(arch_),
+#ifndef BOOST_THREAD_PROVIDES_ONCE_CXX11
+    fde_dwarf_once(BOOST_ONCE_INIT),
+#endif
     fde_dwarf_status(dwarf_status_uninitialized)
 {
 }
@@ -107,7 +111,6 @@ bool DwarfFrameParser::getRegValueAtFrame(
     dwarf_printf("Getting concrete value for %s at 0x%lx\n",
             reg.name().c_str(), pc);
     if (!getRegAtFrame(pc, reg, cons, err_result)) {
-        assert(err_result != FE_No_Error);
         dwarf_printf("\t Returning error from getRegValueAtFrame: %d\n", err_result);
         return false;
     }
@@ -174,6 +177,7 @@ bool DwarfFrameParser::getRegsForFunction(
         return false;
     }
 
+    boost::unique_lock<dyn_mutex> l(cfi_lock);
     for(size_t i=0; i<cfi_data.size(); i++)
     {
         auto next_pc = range.first;
@@ -303,8 +307,12 @@ bool DwarfFrameParser::getRegAtFrame(
                 dwarf_printf("\t aarch64 converted register reg=%s\n", reg.name().c_str());
 #endif
                 // Dyninst treats as same_value ???
-                cons.readReg(reg);
-                return true; // true because undefined is a valid output
+                if (reg != Dyninst::ReturnAddr) {
+                    cons.readReg(reg);
+                    return true; // true because undefined is a valid output
+                } else {
+                    return false;
+                }
             }
 
             // case of same_value
@@ -315,8 +323,12 @@ bool DwarfFrameParser::getRegAtFrame(
                 reg = MachRegister::getArchRegFromAbstractReg(reg, arch);
                 dwarf_printf("\t aarch64 converted register reg=%s\n", reg.name().c_str());
 #endif
-                cons.readReg(reg);
-                return true;
+                if (reg != Dyninst::ReturnAddr) {
+                    cons.readReg(reg);
+                    return true;
+                } else {
+                    return false;
+                }
             }
 
             // translate dwarf reg to machine reg
@@ -391,42 +403,43 @@ bool DwarfFrameParser::getRegAtFrame(
 
 void DwarfFrameParser::setupCFIData()
 {
-    if (fde_dwarf_status == dwarf_status_ok ||
-        fde_dwarf_status == dwarf_status_error)
-        return;
-
-    if (!dbg && !dbg_eh_frame) {
-        fde_dwarf_status = dwarf_status_error;
-        return;
-    }
+    boost::call_once(fde_dwarf_once, [&]{
+        if (!dbg && !dbg_eh_frame) {
+            fde_dwarf_status = dwarf_status_error;
+            return;
+        }
 
 #if defined(dwarf_has_setframe)
-    dwarf_set_frame_cfa_value(dbg, DW_FRAME_CFA_COL3);
+        dwarf_set_frame_cfa_value(dbg, DW_FRAME_CFA_COL3);
 #endif
 
-    Dwarf_CFI * cfi = nullptr;
+        Dwarf_CFI * cfi = nullptr;
 
-    // Try to get dwarf data from .debug_frame
-    cfi = dwarf_getcfi(dbg);
-    if (dbg && cfi)
-    {
-        cfi_data.push_back(cfi);
-    }
+        // Try to get dwarf data from .debug_frame
+        cfi = dwarf_getcfi(dbg);
+        if (dbg && cfi)
+        {
+            cfi_data.push_back(cfi);
+        }
 
-    // Try to get dwarf data from .eh_frame
-    cfi = nullptr;
-    cfi = dwarf_getcfi_elf(dbg_eh_frame);
-    if (dbg_eh_frame && cfi)
-    {
-        cfi_data.push_back(cfi);
-    }
+        // Try to get dwarf data from .eh_frame
+        cfi = nullptr;
+        cfi = dwarf_getcfi_elf(dbg_eh_frame);
+        if (dbg_eh_frame && cfi)
+        {
+            cfi_data.push_back(cfi);
+        }
 
-    // Verify if it got any dwarf data
-    if (!cfi_data.size()) {
-        fde_dwarf_status = dwarf_status_error;
-    }
-    else{
-        fde_dwarf_status = dwarf_status_ok;
-    }
+        // Verify if it got any dwarf data
+        if (!cfi_data.size()) {
+            fde_dwarf_status = dwarf_status_error;
+        }
+        else{
+            fde_dwarf_status = dwarf_status_ok;
+        }
+
+        ANNOTATE_HAPPENS_BEFORE(&fde_dwarf_once);
+    });
+    ANNOTATE_HAPPENS_AFTER(&fde_dwarf_once);
 }
 

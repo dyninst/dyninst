@@ -449,22 +449,6 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
             FILE__, __LINE__, ev->getProcess()->getPid(), ev->getThread()->getLWP(),
             ev->getSignal());
 
-    // Check whether it is a signal from the RT library (note: this will internally
-    // handle any entry/exit to syscalls and make the necessary up calls as appropriate)
-    RTSignalResult result = handleRTSignal(ev, evProc);
-    if( result == ErrorInDecoding ) {
-        proccontrol_printf("%s[%d]: failed to determine whether signal came from RT library\n",
-                FILE__, __LINE__);
-        return false;
-    }
-
-    if( result == IsRTSignal ) {
-        // handleRTSignal internally does all handling for the events in order to keep
-        // related logic in one place
-        proccontrol_printf("%s[%d]: signal came from RT library\n", FILE__, __LINE__);
-        return true;
-    }
-
     // check if windows access violation, defensive mode, and write permissions.
     // unprotect pages if necessary.
     if (evProc->getHybridMode() == BPatch_defensiveMode 
@@ -576,64 +560,46 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
     return true;
 }
 
-PCEventHandler::RTSignalResult
-PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) const {
+bool PCEventHandler::handleRTBreakpoint(EventBreakpoint::const_ptr ev, PCProcess *evProc) const {
     // Check whether the signal was sent from the RT library by checking variables
     // in the library -- if we cannot be determine whether this signal came from
     // the RT library, assume it did not.
     
-    if( evProc->runtime_lib.size() == 0 ) return NotRTSignal;
+    if( evProc->runtime_lib.size() == 0 ) return false;
 
-    Address sync_event_breakpoint_addr = evProc->getRTEventBreakpointAddr();
+    Address rtTrapFuncAddr = evProc->getRTTrapFuncAddr();
     Address sync_event_id_addr = evProc->getRTEventIdAddr();
     Address sync_event_arg1_addr = evProc->getRTEventArg1Addr();
 
-    int breakpoint = 0;
     int status = 0;
     Address arg1 = 0;
     int zero = 0;
 
     // Check that all addresses could be determined
-    if(    sync_event_breakpoint_addr == 0 
+    if (rtTrapFuncAddr == 0
         || sync_event_id_addr == 0 
         || sync_event_arg1_addr == 0 ) 
     {
-        return NotRTSignal;
+        proccontrol_printf("%s[%d]: signal is not RT library breakpoint. Some address is 0: rtTrapFuncAddr %lx, sync_even_id_addr %lx, sync_event_arg1_addr %lx\n", 
+                FILE__, __LINE__, rtTrapFuncAddr, sync_event_id_addr, sync_event_arg1_addr);
+
+        return false;
     }
 
-    // First, check breakpoint...
-    if( !evProc->readDataWord((const void *)sync_event_breakpoint_addr,
-                sizeof(int), &breakpoint, false) ) return NotRTSignal;
-
-    switch(breakpoint) {
-        case NoRTBreakpoint:
-            proccontrol_printf("%s[%d]: signal is not RT library signal\n",
-                    FILE__, __LINE__);
-            return NotRTSignal;
-        case NormalRTBreakpoint:
-        case SoftRTBreakpoint:
-            // More work to do
-            break;
-        default:
-            proccontrol_printf("%s[%d]: invalid value for RT library breakpoint variable\n",
-                    FILE__, __LINE__);
-            return NotRTSignal;
-    }
-
-    // Make sure we don't get this event twice....
-    if( !evProc->writeDataWord((void *)sync_event_breakpoint_addr, sizeof(int), &zero) ) {
-        proccontrol_printf("%s[%d]: failed to reset RT library breakpoint variable\n",
-                FILE__, __LINE__);
-        return NotRTSignal;
+    // On x86, the PC is shifted by one byte when hitting the trap instruction
+    if (ev->getAddress() != rtTrapFuncAddr && ev->getAddress() != rtTrapFuncAddr + 1) {
+        proccontrol_printf("%s[%d]: signal is not RT library breakpoint. Breakpoint from address %lx, expected %lx\n",
+                FILE__, __LINE__, ev->getAddress(), rtTrapFuncAddr);
+        return false;
     }
 
     // Get the type of the event
     if( !evProc->readDataWord((const void *)sync_event_id_addr, sizeof(int),
-                &status, false) ) return NotRTSignal;
+                &status, false) ) return false;
 
     if( status == DSE_undefined ) {
-        proccontrol_printf("%s[%d]: signal is not RT library signal\n", FILE__, __LINE__);
-        return NotRTSignal;
+        proccontrol_printf("%s[%d]: signal is not RT library breakpointl\n", FILE__, __LINE__);
+        return false;
     }
 
     // get runtime library arg1 address
@@ -641,16 +607,14 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
                 evProc->getAddressWidth(), &arg1, false) ) {
         proccontrol_printf("%s[%d]: failed to read RT library arg1 variable\n",
                 FILE__, __LINE__);
-        return NotRTSignal;
+        return false;
     }
-
-    if( !isValidRTSignal(ev->getSignal(), (RTBreakpointVal) breakpoint, arg1, status) ) return NotRTSignal;
 
     BPatch_process *bproc = BPatch::bpatch->getProcessByPid(evProc->getPid());
     if( bproc == NULL ) {
         proccontrol_printf("%s[%d]: no corresponding BPatch_process for process %d\n",
                 FILE__, __LINE__, evProc->getPid());
-        return ErrorInDecoding;
+        return false;
     }
 
     // See pcEventHandler.h (SYSCALL HANDLING) for a description of what
@@ -691,7 +655,7 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
         // This is not currently used by Dyninst internals for anything
         // We rely on ProcControlAPI for this and it should be impossible
         // to get this via a breakpoint
-        return ErrorInDecoding;
+        return false;
     case DSE_exitEntry:
         proccontrol_printf("%s[%d]: decoded exitEntry, arg = %lx\n",
                       FILE__, __LINE__, arg1);
@@ -715,26 +679,26 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
         proccontrol_printf("%s[%d]: decoded loadLibrary (error), arg = %lx\n",
                       FILE__, __LINE__, arg1);
         // This is no longer used
-        return ErrorInDecoding;
+        return false;
     case DSE_lwpExit:
         proccontrol_printf("%s[%d]: decoded lwpExit (error), arg = %lx\n",
                       FILE__, __LINE__, arg1);
         // This is not currently used on any platform
-        return ErrorInDecoding;
+        return false;
     case DSE_snippetBreakpoint:
         proccontrol_printf("%s[%d]: decoded snippetBreak, arg = %lx\n",
                       FILE__, __LINE__, arg1);
-        bproc->setLastSignal(ev->getSignal());
+        bproc->setLastSignal(SIGTRAP);
         evProc->setDesiredProcessState(PCProcess::ps_stopped);
         break;
     case DSE_stopThread:
         proccontrol_printf("%s[%d]: decoded stopThread, arg = %lx\n",
                       FILE__, __LINE__, arg1);
-        bproc->setLastSignal(ev->getSignal());
+        bproc->setLastSignal(SIGTRAP);
         if( !handleStopThread(evProc, arg1) ) {
             proccontrol_printf("%s[%d]: failed to handle stopped thread event\n",
                     FILE__, __LINE__);
-            return ErrorInDecoding;
+            return false;
         }
         break;
     case DSE_dynFuncCall:
@@ -743,7 +707,7 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
         if( !handleDynFuncCall(evProc, bproc, arg1) ) {
             proccontrol_printf("%s[%d]: failed to handle dynamic callsite event\n",
                     FILE__, __LINE__);
-            return ErrorInDecoding;
+            return false;
         }
         break;
     case DSE_userMessage:
@@ -752,11 +716,11 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
         if( !handleUserMessage(evProc, bproc, arg1) ) {
             proccontrol_printf("%s[%d]: failed to handle user message event\n",
                     FILE__, __LINE__);
-            return ErrorInDecoding;
+            return false;
         }
         break;
     default:
-        return NotRTSignal;
+        return false;
     }
 
     // Behavior common to all syscalls
@@ -774,7 +738,7 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
         ProcControlAPI::mbox()->enqueue(newEvt);
     }
 
-    return IsRTSignal;
+    return true;
 }
 
 bool PCEventHandler::handleUserMessage(PCProcess *evProc, BPatch_process *bpProc, 
@@ -967,6 +931,18 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
 }
 
 bool PCEventHandler::handleBreakpoint(EventBreakpoint::const_ptr ev, PCProcess *evProc) const {
+    proccontrol_printf("Enter PCEventHandler::handleBreakpoint\n");
+
+    // Check whether it is a breakpoint in the RT library (note: this will internally
+    // handle any entry/exit to syscalls and make the necessary up calls as appropriate)
+    bool result = handleRTBreakpoint(ev, evProc);
+    if (result) {
+        // handleRTBreakpoint internally does all handling for the events in order to keep
+        // related logic in one place
+        proccontrol_printf("%s[%d]: breakpoint came from RT library\n", FILE__, __LINE__);
+        return true;
+    }
+
     if( dyn_debug_proccontrol && evProc->isBootstrapped() ) {
         RegisterPool regs;
         if( !ev->getThread()->getAllRegisters(regs) ) {
@@ -978,7 +954,6 @@ bool PCEventHandler::handleBreakpoint(EventBreakpoint::const_ptr ev, PCProcess *
             }
         }
     }
-
     return true;
 }
 

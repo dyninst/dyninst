@@ -111,7 +111,7 @@ enum EdgeState {
     destroyed_all
 };
 
-class PARSER_EXPORT CFGFactory : public boost::basic_lockable_adapter<boost::recursive_mutex> {
+class PARSER_EXPORT CFGFactory  {
  public:
     CFGFactory() {};
     virtual ~CFGFactory();

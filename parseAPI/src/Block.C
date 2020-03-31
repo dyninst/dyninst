@@ -27,13 +27,14 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#include "Parser.h"
+
 #include "CodeObject.h"
 #include "CFG.h"
 #include "IA_IAPI.h"
 using namespace Dyninst::InstructionAPI;
 #include "InstructionAdapter.h"
 
-#include "Parser.h"
 #include "debug_parse.h"
 
 using namespace Dyninst;
@@ -186,11 +187,11 @@ void Edge::install()
 void Edge::uninstall()
 {
     mal_printf("Uninstalling edge [%lx]->[%lx]\n", 
-               _source->lastInsnAddr(), _target_off);
+               src()->lastInsnAddr(), _target_off);
     // if it's a call edge, it's cached in the function object, remove it
     if (CALL == type()) {
         vector<Function*> srcFs;
-        _source->getFuncs(srcFs);
+        src()->getFuncs(srcFs);
         for (vector<Function*>::iterator fit = srcFs.begin(); 
              fit != srcFs.end(); fit++) 
         {
@@ -208,7 +209,7 @@ void Edge::uninstall()
         }
     }
     // remove from source and target blocks
-    _source->removeTarget(this);
+    src()->removeTarget(this);
     trg()->removeSource(this);
 }
 
@@ -221,12 +222,12 @@ Block *Edge::trg() const {
     if (!_from_index) {
       return _target;
     }
-    Block* found = index->findBlock(_source->region(), _target_off);
+    Block* found = index->findBlock(src()->region(), _target_off);
     if(found) return found;
     Block* newBlock = NULL;
-//    newBlock = _source->obj()->fact()->_mkblock(NULL, _source->region(), _target_off);
-//    newBlock = _source->obj()->fact()->_mksink(_source->obj(), _source->region());
-//    index->record_block(_source->region(), newBlock);
+//    newBlock = src()->obj()->fact()->_mkblock(NULL, src()->region(), _target_off);
+//    newBlock = src()->obj()->fact()->_mksink(src()->obj(), src()->region());
+//    index->record_block(src()->region(), newBlock);
     return newBlock;
 }
 
@@ -293,3 +294,53 @@ bool Block::operator==(const Block &rhs) const {
 bool Block::operator!=(const Block &rhs) const {
     return !(rhs == *this);
 }
+
+void Block::addSource(Edge * e) 
+{
+    boost::lock_guard<Block> g(*this);
+    if (sourceMap[e->type()].find(e->src()->last()) != sourceMap[e->type()].end()) return;
+    sourceMap[e->type()].insert(e->src()->last());
+    parsing_printf("addSource: %p %p\n", e, this);
+    _srclist.push_back(e);
+}
+
+void Block::addTarget(Edge * e)
+{
+    boost::lock_guard<Block> g(*this);
+    if(e->type() == FALLTHROUGH ||
+            e->type() == COND_NOT_TAKEN)
+    {
+        assert(e->_target_off == end());
+    }
+    if (targetMap[e->type()].find(e->trg_addr()) != targetMap[e->type()].end()) return;
+    targetMap[e->type()].insert(e->trg_addr());
+    parsing_printf("addTarget: %p %p\n", e, this);
+    _trglist.push_back(e);
+
+}
+
+void Block::removeTarget(Edge * e)
+{
+    if (e == NULL) return;
+    boost::lock_guard<Block> g(*this);
+    for (auto it = _trglist.begin(); it != _trglist.end(); ++it)
+        if ((*it)->trg_addr() == e->trg_addr()) {
+            parsing_printf("removeTarget %p from %p\n", *it, this);
+            _trglist.erase(it);
+            break;
+        }
+    targetMap[e->type()].erase(e->trg_addr());
+}
+
+void Block::removeSource(Edge * e) {
+    if (e == NULL) return;
+    boost::lock_guard<Block> g(*this);
+    for (auto it = _srclist.begin(); it != _srclist.end(); ++it)
+        if ((*it)->src()->last() == e->src()->last()) {
+            parsing_printf("removeSource %p from %p\n", *it, this);
+            _srclist.erase(it);
+            break;
+        }
+    sourceMap[e->type()].erase(e->src()->last());
+}
+

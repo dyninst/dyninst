@@ -33,6 +33,8 @@
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
+#include "common/src/vgannotations.h"
+
 #include "Type.h"
 #include "Variable.h"
 #include "Object.h"
@@ -226,8 +228,9 @@ Region::perm_t getRegionPerms(unsigned long flags) {
 
 Region::RegionType getRegionType(unsigned long type, unsigned long flags, const char *reg_name) {
     switch (type) {
-        case SHT_SYMTAB:
         case SHT_DYNSYM:
+            return Region::RT_DYNSYM;
+        case SHT_SYMTAB:
             return Region::RT_SYMTAB;
         case SHT_STRTAB:
             return Region::RT_STRTAB;
@@ -1039,8 +1042,9 @@ bool Object::get_relocationDyn_entries(unsigned rel_scnp_index,
                 relocationEntry re(offset, string(&strs[sym.st_name(index)]), NULL, type);
                 re.setAddend(addend);
                 re.setRegionType(rtype);
-                if (symbols_.find(&strs[sym.st_name(index)]) != symbols_.end()) {
-                    vector<Symbol *> &syms = symbols_[&strs[sym.st_name(index)]];
+                dyn_c_hash_map<std::string, std::vector<Symbol*>>::accessor a;
+                if (symbols_.find(a, &strs[sym.st_name(index)])) {
+                    vector<Symbol *> &syms = a->second;
                     for (vector<Symbol *>::iterator i = syms.begin(); i != syms.end(); i++) {
                         if (!(*i)->isInDynSymtab())
                             continue;
@@ -1199,9 +1203,12 @@ bool Object::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                         relocationEntry re;
 
                         while (stub_addr < glink_addr) {
-                            if (symsByOffset_.find(stub_addr) != symsByOffset_.end()) {
-                                name = (symsByOffset_[stub_addr])[0]->getMangledName();
+                            {
+                            dyn_c_hash_map<Offset,std::vector<Symbol*>>::const_accessor ca;
+                            if (symsByOffset_.find(ca, stub_addr)) {
+                                name = ca->second[0]->getMangledName();
                                 name = name.substr(name.rfind("plt_pic32.") + 10);
+                            }
                             }
 
                             if (!name.empty()) {
@@ -1294,7 +1301,7 @@ bool Object::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                 }
                 // End code duplication.
 
-                dyn_hash_map<std::string, std::vector<Symbol *> >::iterator iter;
+                dyn_c_hash_map<std::string, std::vector<Symbol *> >::iterator iter;
                 for (iter = symbols_.begin(); iter != symbols_.end(); ++iter) {
                     std::string name = iter->first;
                     if (name.length() > 8) {
@@ -1321,10 +1328,13 @@ bool Object::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
 
                         // Find the dynamic symbol this linker stub branches to.
                         Symbol *targ_sym = NULL;
-                        if (symbols_.find(name) != symbols_.end())
-                            for (unsigned i = 0; i < symbols_[name].size(); ++i)
-                                if ((symbols_[name])[i]->isInDynSymtab())
-                                    targ_sym = (symbols_[name])[i];
+                        {
+                        dyn_c_hash_map<std::string,std::vector<Symbol*>>::const_accessor ca;
+                        if (symbols_.find(ca, name))
+                            for (unsigned i = 0; i < ca->second.size(); ++i)
+                                if (ca->second[i]->isInDynSymtab())
+                                    targ_sym = ca->second[i];
+                        }
 
                         // If a corresponding target symbol cannot be found for a
                         // named linker stub, then ignore it.  We'll find it during
@@ -1400,15 +1410,18 @@ bool Object::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
 
                     std::string targ_name = &strs[sym.st_name(index)];
                     vector<Symbol *> dynsym_list;
-                    if (symbols_.find(targ_name) != symbols_.end()) {
-                        vector<Symbol *> &syms = symbols_[&strs[sym.st_name(index)]];
-                        for (vector<Symbol *>::iterator i = syms.begin(); i != syms.end(); i++) {
+                    {
+                    dyn_c_hash_map<std::string,std::vector<Symbol*>>::const_accessor ca;
+                    if (symbols_.find(ca, targ_name)) {
+                        const vector<Symbol *> &syms = ca->second;
+                        for (auto i = syms.begin(); i != syms.end(); i++) {
                             if (!(*i)->isInDynSymtab())
                                 continue;
                             dynsym_list.push_back(*i);
                         }
                     } else {
                         dynsym_list.clear();
+                    }
                     }
 
 #if defined(os_vxworks)
@@ -1423,7 +1436,7 @@ bool Object::get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
                                            NULL, type);
                         if (type == R_X86_64_IRELATIVE) {
                             vector<Symbol *> funcs;
-                            dyn_hash_map<std::string, std::vector<Symbol *> >::iterator iter;
+                            dyn_c_hash_map<std::string, std::vector<Symbol *> >::iterator iter;
                             // find the resolver function and use that as the
                             // caller function symbol.  The resolver has not run
                             // so we don't know the ultimate destination.
@@ -1967,7 +1980,7 @@ void Object::parse_opd(Elf_X_Shdr *opd_hdr) {
 
         if (func == 0 && i != 0) break;
 
-        if (symsByOffset_.find(func) == symsByOffset_.end()) {
+        if (!symsByOffset_.contains(func)) {
             i++;
             continue;
         }
@@ -2064,6 +2077,10 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
     Elf_X_Sym syms = symdata.get_sym();
     const char *strs = strdata.get_string();
     if (syms.isValid()) {
+        std::vector<string> mods(syms.count());
+        std::vector<Symbol*> newsyms(syms.count());
+        {
+        #pragma omp for schedule(dynamic)
         for (unsigned i = 0; i < syms.count(); i++) {
             //If it is not a dynamic executable then we need undefined symbols
             //in symtab section so that we can resolve symbol references. So
@@ -2089,7 +2106,9 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                 Offset soffset_dbg = syms.st_value(i);
                 soffset = soffset_dbg;
                 if (soffset_dbg) {
-                    bool result = convertDebugOffset(soffset_dbg, soffset);
+                    bool result;
+                    #pragma omp critical
+                    result = convertDebugOffset(soffset_dbg, soffset);
                     if (!result) {
                         //Symbol does not match any section, can't convert
                         continue;
@@ -2135,7 +2154,7 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
             }
 
             if (stype == Symbol::ST_MODULE) {
-                smodule = sname;
+                mods[i] = sname;
             }
             Symbol *newsym = new Symbol(sname,
                                         stype,
@@ -2150,23 +2169,36 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                                         ind,
                                         strindex,
                                         (secNumber == SHN_COMMON));
+            newsyms[i] = newsym;
 
             if (stype == Symbol::ST_UNKNOWN)
                 newsym->setInternalType(etype);
 
             if (sec && sec->getRegionName() == OPD_NAME && stype == Symbol::ST_FUNCTION) {
                 newsym = handle_opd_symbol(sec, newsym);
-
+                #pragma omp critical
                 opdsymbols_.push_back(newsym);
-                symbols_[sname].push_back(newsym);
-                symsByOffset_[newsym->getOffset()].push_back(newsym);
-                symsToModules_[newsym] = smodule;
-            } else {
-                symbols_[sname].push_back(newsym);
-                symsByOffset_[newsym->getOffset()].push_back(newsym);
-                symsToModules_[newsym] = smodule;
             }
-
+            {
+            dyn_c_hash_map<std::string,std::vector<Symbol*>>::accessor a;
+            if(!symbols_.insert(a, {sname, {newsym}}))
+                a->second.push_back(newsym);
+            }
+            {
+            dyn_c_hash_map<Offset,std::vector<Symbol*>>::accessor a2;
+            if(!symsByOffset_.insert(a2, {newsym->getOffset(), {newsym}}))
+                a2->second.push_back(newsym);
+            }
+        }  // Implicit barrier keeps Master from changing things too early
+        #pragma omp master
+        for(unsigned i = 0; i < syms.count(); i++) {
+            if(mods[i].empty()) mods[i] = smodule;
+            else smodule = mods[i];
+        }
+        #pragma omp barrier  // Ensure no threads start running til ready
+        #pragma omp for nowait  // nowait to save a barrier
+        for(unsigned i = 0; i < syms.count(); i++)
+            symsToModules_.insert({newsyms[i], mods[i]});
         }
     } // syms.isValid()
 #if defined(TIMED_PARSE)
@@ -2339,15 +2371,18 @@ dyn_scnp, Elf_X_Data &symdata,
             if (sec && sec->getRegionName() == OPD_NAME && stype == Symbol::ST_FUNCTION) {
                 newsym = handle_opd_symbol(sec, newsym);
                 opdsymbols_.push_back(newsym);
-
-                symbols_[sname].push_back(newsym);
-                symsByOffset_[newsym->getOffset()].push_back(newsym);
-                symsToModules_[newsym] = smodule;
-            } else {
-                symbols_[sname].push_back(newsym);
-                symsByOffset_[newsym->getOffset()].push_back(newsym);
-                symsToModules_[newsym] = smodule;
             }
+            {
+            dyn_c_hash_map<std::string,std::vector<Symbol*>>::accessor a;
+            if(!symbols_.insert(a, {sname, {newsym}}))
+                a->second.push_back(newsym);
+            }
+            {
+            dyn_c_hash_map<Offset,std::vector<Symbol*>>::accessor a2;
+            if(!symsByOffset_.insert(a2, {newsym->getOffset(), {newsym}}))
+                a2->second.push_back(newsym);
+            }
+            symsToModules_.insert({newsym, smodule});
         }
     }
 
@@ -2369,15 +2404,15 @@ string Object::find_symbol(string name) {
 
     // pass #1: unmodified
     name2 = name;
-    if (symbols_.find(name2) != symbols_.end()) return name2;
+    if (symbols_.contains(name2)) return name2;
 
     // pass #2: leading underscore (C)
     name2 = "_" + name;
-    if (symbols_.find(name2) != symbols_.end()) return name2;
+    if (symbols_.contains(name2)) return name2;
 
     // pass #3: trailing underscore (Fortran)
     name2 = name + "_";
-    if (symbols_.find(name2) != symbols_.end())
+    if (symbols_.contains(name2))
         return name2;
 
     return "";
@@ -2466,7 +2501,7 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
 	    return false;
     }
 
-    /* Iterate over the compilation-unit headers. */
+    std::vector<Dwarf_Die> dies;
     size_t cu_header_size;
     for (Dwarf_Off cu_off = 0, next_cu_off;
          dwarf_nextcu(dbg, cu_off, &next_cu_off, &cu_header_size,
@@ -2479,6 +2514,13 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
         if (cu_die_p == NULL) continue;
         //if(dies_seen.find(cu_die_off) != dies_seen.end()) continue;
 
+        dies.push_back(cu_die);
+    }
+
+    /* Iterate over the compilation-unit headers. */
+    for (size_t i = 0; i < dies.size(); i++) {
+        Dwarf_Die cu_die = dies[i];
+
         std::string modname;
         if (!DwarfWalker::findDieName(dbg, cu_die, modname)) {
             modname = associated_symtab->file(); // default module
@@ -2487,10 +2529,13 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
         Address tempModLow;
         Address modLow = 0;
         if (DwarfWalker::findConstant(DW_AT_low_pc, tempModLow, &cu_die, dbg)) {
+            #pragma omp critical
             convertDebugOffset(tempModLow, modLow);
         }
         std::vector<AddressRange> mod_ranges = DwarfWalker::getDieRanges(dbg, cu_die, modLow);
-        Module *m = associated_symtab->getOrCreateModule(modname, modLow);
+        Module *m;
+        #pragma omp critical
+        m = associated_symtab->getOrCreateModule(modname, modLow);
         for (auto r = mod_ranges.begin();
              r != mod_ranges.end(); ++r) {
             m->addRange(r->first, r->second);
@@ -2526,9 +2571,10 @@ bool Object::fix_global_symbol_modules_static_dwarf() {
                 }
             }
         }
+        #pragma omp critical
         m->addDebugInfo(cu_die);
         DwarfWalker::buildSrcFiles(dbg, cu_die, m->getStrings());
-        dies_seen.insert(cu_die_off);
+        // dies_seen.insert(cu_die_off);
     }
 
     return true;
@@ -2646,18 +2692,20 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr *stabscnp, Elf_X_S
                 // q[1] is the symbol descriptor. We must check the symbol descriptor
                 // here to skip things we are not interested in, such as prototypes.
 
-                bool res = (symbols_.find(SymName) != symbols_.end());
+                bool res = symbols_.contains(SymName);
 
                 if (!res && is_fortran) {
                     // Fortran symbols usually appear with an '_' appended in .symtab,
                     // but not on .stab
                     SymName += "_";
-                    res = (symbols_.find(SymName) != symbols_.end());
+                    res = symbols_.contains(SymName);
                 }
 
                 if (res && (q == 0 || q[1] != SD_PROTOTYPE)) {
                     unsigned int count = 0;
-                    std::vector<Symbol *> &syms = symbols_[SymName];
+                    dyn_c_hash_map<std::string,std::vector<Symbol*>>::const_accessor ca;
+                    assert(symbols_.find(ca, SymName));
+                    const std::vector<Symbol *> &syms = ca->second;
 
                     /* If there's only one, apply regardless. */
                     if (syms.size() == 1) {
@@ -2720,17 +2768,21 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr *stabscnp, Elf_X_S
                     string nameFromStab = string(sname);
                     delete[] sname;
 
-                    for (unsigned i = 0; i < symbols_[nameFromStab].size(); i++) {
-                        symsToModules_[symbols_[nameFromStab][i]] = module;
+                    dyn_c_hash_map<std::string,std::vector<Symbol*>>::const_accessor ca;
+                    assert(symbols_.find(ca, nameFromStab));
+                    for (unsigned i = 0; i < ca->second.size(); i++) {
+                        symsToModules_.insert({ca->second[i], module});
                     }
                 } else {
-                    if (symsByOffset_.find(entryAddr) == symsByOffset_.end()) {
+                    if (!symsByOffset_.contains(entryAddr)) {
                         //bperr( "fix_global_symbol_modules_static_stab "
                         //	   "can't find address 0x%lx of STABS entry %s\n", entryAddr, p);
                         break;
                     }
-                    for (unsigned i = 0; i < symsByOffset_[entryAddr].size(); i++) {
-                        symsToModules_[symsByOffset_[entryAddr][i]] = module;
+                    dyn_c_hash_map<Offset,std::vector<Symbol*>>::const_accessor ca;
+                    assert(symsByOffset_.find(ca, entryAddr));
+                    for (unsigned i = 0; i < ca->second.size(); i++) {
+                        symsToModules_.insert({ca->second[i], module});
                     }
                 }
                 break;
@@ -3066,10 +3118,8 @@ void Object::get_valid_memory_areas(Elf_X &elf) {
 // get included at link time will fill in the N_OPT stabs line. Instead,
 // look for "pgCC_compiled." symbols.
 bool parseCompilerType(Object *objPtr) {
-    dyn_hash_map<string, std::vector<Symbol *> > *syms = objPtr->getAllSymbols();
-    if (syms->find("pgCC_compiled.") != syms->end())
-        return true;
-    return false;
+    dyn_c_hash_map<string, std::vector<Symbol *> > *syms = objPtr->getAllSymbols();
+    return syms->contains("pgCC_compiled.");
 }
 
 #else
@@ -4135,8 +4185,8 @@ class open_statement {
         };
         friend std::ostream& operator<<(std::ostream& os, const open_statement& st)
         {
-            os << st.start_addr << " " << st.end_addr << " "
-                << st.line_number << " " << st.string_table_index << std::endl;
+            os << hex << st.start_addr << " " << st.end_addr << " line:"
+                << dec << st.line_number << " file:" << st.string_table_index << " col:" << st.column_number << std::endl;
             return os;
         }
     public:
@@ -4152,14 +4202,19 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 {
     /* Acquire this CU's source lines. */
     Dwarf_Lines *lineBuffer;
+    Dwarf_Attribute attr2;
     size_t lineCount;
+    auto comp_name = dwarf_formstring( dwarf_attr(&cuDIE, DW_AT_name, &attr2) );
     int status = dwarf_getsrclines(&cuDIE, &lineBuffer, &lineCount);
+    lineinfo_printf("Compilation Unit name: %s\n", std::string( comp_name ? comp_name : "" ).c_str());
 
     /* It's OK for a CU not to have line information. */
     if (status != 0) {
         return;
     }
+
     StringTablePtr strings(li_for_module->getStrings());
+    boost::unique_lock<dyn_mutex> l(strings->lock);
     Dwarf_Files *files;
     size_t offset = strings->size();
     size_t filecount;
@@ -4215,11 +4270,10 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         }
     }
     li_for_module->setStrings(strings);
-    //std::cerr << *strings.get();
+
     /* The 'lines' returned are actually interval markers; the code
      generated from lineNo runs from lineAddr up to but not including
      the lineAddr of the next line. */
-
     Offset baseAddr = getBaseAddress();
 
     Dwarf_Addr cu_high_pc = 0;
@@ -4228,13 +4282,14 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
     /* Iterate over this CU's source lines. */
     open_statement current_line;
     open_statement current_statement;
+    int count=0;
     for (size_t i = 0; i < lineCount; i++) {
         auto line = dwarf_onesrcline(lineBuffer, i);
 
         /* Acquire the line number, address, source, and end of sequence flag. */
         status = dwarf_lineno(line, &current_statement.line_number);
         if (status != 0) {
-            cout << "dwarf_lineno failed" << endl;
+        	lineinfo_printf("dwarf_lineno failed\n");
             continue;
         }
 
@@ -4243,7 +4298,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
 
         status = dwarf_lineaddr(line, &current_statement.start_addr);
         if (status != 0) {
-            cout << "dwarf_lineaddr failed" << endl;
+        	lineinfo_printf("dwarf_lineaddr failed\n");
             continue;
         }
 
@@ -4259,7 +4314,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         //status = dwarf_line_srcfileno(line, &current_statement.string_table_index);
         const char *file_name = dwarf_linesrc(line, NULL, NULL);
         if (!file_name) {
-            cout << "dwarf_linesrc - empty name" << endl;
+        	lineinfo_printf("dwarf_linesrc - empty name\n");
             continue;
         }
 
@@ -4273,7 +4328,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
             }
         }
         if (index == -1) {
-            cout << "dwarf_linesrc didn't find index" << endl;
+        	lineinfo_printf("dwarf_linesrc didn't find index\n");
             continue;
         }
         current_statement.string_table_index = index;
@@ -4281,7 +4336,7 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         bool isEndOfSequence;
         status = dwarf_lineendsequence(line, &isEndOfSequence);
         if (status != 0) {
-            cout << "dwarf_lineendsequence failed" << endl;
+        	lineinfo_printf("dwarf_lineendsequence failed\n");
             continue;
         }
         if (i == lineCount - 1) {
@@ -4290,29 +4345,35 @@ void Object::parseLineInfoForCU(Dwarf_Die cuDIE, LineInformation* li_for_module)
         bool isStatement;
         status = dwarf_linebeginstatement(line, &isStatement);
         if (status != 0) {
-            cout << "dwarf_linebeginstatement failed" << endl;
+        	lineinfo_printf("dwarf_linebeginstatement failed\n");
             continue;
         }
-	if (current_line.uninitialized()) {
-	  current_line = current_statement;
-	} else {
-	      current_line.end_addr = current_statement.start_addr;
-	      if (!current_line.sameFileLineColumn(current_statement) ||
-		  isEndOfSequence) {
-                li_for_module->addLine((unsigned int)(current_line.string_table_index),
-                                       (unsigned int)(current_line.line_number),
-                                       (unsigned int)(current_line.column_number),
-                                       current_line.start_addr, current_line.end_addr);
-		current_line = current_statement;
-	      }
-	}
-	if (isEndOfSequence) {
-	  current_line.reset();
-	}
-    } /* end iteration over source line entries. */
+        if (current_line.uninitialized()) {
+            current_line = current_statement;
+            lineinfo_printf("current_line uninitialized\n");
+        } else {
+            current_line.end_addr = current_statement.start_addr;
+            if(current_line.sameFileLineColumn(current_statement))
+            	lineinfo_printf("sameFileLineColumn\n");
+            if (!current_line.sameFileLineColumn(current_statement) ||
+                    isEndOfSequence) {
+            	auto success = li_for_module->addLine((unsigned int)(current_line.string_table_index),
+                        (unsigned int)(current_line.line_number),
+                        (unsigned int)(current_line.column_number),
+                        current_line.start_addr, current_line.end_addr);
+            	lineinfo_printf("[%d, %d) %s:%d %s\n", current_line.start_addr, current_line.end_addr,
+            			((*strings)[current_line.string_table_index]).str.c_str(), current_line.line_number, (success?" inserted":" not"));
+                current_line = current_statement;
 
-/* Free this CU's source lines. */
-    //dwarf_srclines_dealloc(dbg, lineBuffer, lineCount);
+                if (success) count++;
+            }
+        }
+        if (isEndOfSequence) {
+            current_line.reset();
+            lineinfo_printf("reset current_line\n");
+        }
+    } // end for
+    lineinfo_printf("amount of line info added: %d\n", count);
 }
 
 
@@ -4345,6 +4406,7 @@ LineInformation* Object::parseLineInfoForObject(StringTablePtr strings)
     {
 
     StringTablePtr strings(li_for_object->getStrings());
+    boost::unique_lock<dyn_mutex> l(strings->lock);
     size_t offset = strings->size();
 
     // dwarf_line_srcfileno == 0 means unknown; 1...n means files[0...n-1]
@@ -4552,7 +4614,7 @@ void Object::parseStabTypes() {
     std::string *currentFunctionName = NULL;
     Symbol *commonBlockVar = NULL;
     string *commonBlockName = NULL;
-    typeCommon *commonBlock = NULL;
+    boost::shared_ptr<Type> commonBlock = NULL;
     int mostRecentLinenum = 0;
 
     Module *mod;
@@ -4742,14 +4804,14 @@ void Object::parseStabTypes() {
                     if (!commonBlockVar) {
                         // //bperr("unable to find variable %s\n", commonBlockName);
                     } else {
-                        commonBlock = dynamic_cast<typeCommon *>(tc->findVariableType(*commonBlockName));
-                        if (commonBlock == NULL) {
+                        commonBlock = tc->findVariableType(*commonBlockName, Type::share);
+                        if (!commonBlock->isCommonType()) {
                             // its still the null type, create a new one for it
-                            commonBlock = new typeCommon(*commonBlockName);
+                            commonBlock = Type::make_shared<typeCommon>(*commonBlockName);
                             tc->addGlobalVariable(*commonBlockName, commonBlock);
                         }
                         // reset field list
-                        commonBlock->beginCommonBlock();
+                        commonBlock->asCommonType().beginCommonBlock();
                     }
                     break;
                 }
@@ -4768,7 +4830,7 @@ void Object::parseStabTypes() {
                             // //bperr("unable to locate current function %s\n", currentFunctionName->c_str());
                         } else {
                             Symbol *func = bpfv[0];
-                            commonBlock->endCommonBlock(func, (void *) commonBlockVar->getOffset());
+                            commonBlock->asCommonType().endCommonBlock(func, (void *) commonBlockVar->getOffset());
                         }
                     } else {
                         if (bpfv.size() > 1) {
@@ -4777,14 +4839,14 @@ void Object::parseStabTypes() {
                             //                     __FILE__, __LINE__, bpfv.size(), currentFunctionName->c_str());
                         }
                         Symbol *func = bpfv[0];
-                        commonBlock->endCommonBlock(func, (void *) commonBlockVar->getOffset());
+                        commonBlock->asCommonType().endCommonBlock(func, (void *) commonBlockVar->getOffset());
                     }
                     //TODO?? size for local variables??
                     //       // update size if needed
                     //       if (commonBlockVar)
                     //           commonBlockVar->setSize(commonBlock->getSize());
                     commonBlockVar = NULL;
-                    commonBlock = NULL;
+                    commonBlock.reset();
                     break;
                 }
                     // case C_BINCL: -- what is the elf version of this jkh 8/21/01
@@ -4817,9 +4879,9 @@ void Object::parseStabTypes() {
                     // may be nothing to parse - XXX  jdd 5/13/99
 
                     if (parseCompilerType(this))
-                        temp = parseStabString(mod, mostRecentLinenum, (char *) ptr, stabptr->val(i), commonBlock);
+                        temp = parseStabString(mod, mostRecentLinenum, (char *) ptr, stabptr->val(i), &commonBlock->asCommonType());
                     else
-                        temp = parseStabString(mod, stabptr->desc(i), (char *) ptr, stabptr->val(i), commonBlock);
+                        temp = parseStabString(mod, stabptr->desc(i), (char *) ptr, stabptr->val(i), &commonBlock->asCommonType());
                     if (temp.length()) {
                         //Error parsing the stabstr, return should be \0
                         // //bperr( "Stab string parsing ERROR!! More to parse: %s\n",
@@ -4862,6 +4924,7 @@ bool sort_dbg_map(const Object::DbgAddrConversion_t &a,
 
 bool Object::convertDebugOffset(Offset off, Offset &new_off)
 {
+    dyn_mutex::unique_lock l(dsm_lock);
     int hi = DebugSectionMap.size();
 
     if (hi == 0) {
@@ -4966,7 +5029,7 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
     dyn_hash_map<int, Symbol *> symtabByIndex;
     dyn_hash_map<int, Symbol *> dynsymByIndex;
 
-    dyn_hash_map<std::string, std::vector<Symbol *> >::iterator symVec_it;
+    dyn_c_hash_map<std::string, std::vector<Symbol *> >::iterator symVec_it;
     for (symVec_it = symbols_.begin(); symVec_it != symbols_.end(); ++symVec_it) {
         std::vector<Symbol *>::iterator sym_it;
         for (sym_it = symVec_it->second.begin(); sym_it != symVec_it->second.end(); ++sym_it) {

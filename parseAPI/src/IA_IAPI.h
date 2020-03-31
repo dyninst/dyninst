@@ -163,6 +163,7 @@ protected:
 
         mutable std::map<ParseAPI::EdgeTypeEnum, bool> tailCalls;
 
+        static std::once_flag ptrInit;
         static std::map<Architecture, Dyninst::InstructionAPI::RegisterAST::Ptr> framePtr;
         static std::map<Architecture, Dyninst::InstructionAPI::RegisterAST::Ptr> stackPtr;
         static std::map<Architecture, Dyninst::InstructionAPI::RegisterAST::Ptr> thePC;

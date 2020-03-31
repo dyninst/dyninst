@@ -294,11 +294,11 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
       springboard_cerr << "\t Using a branch for springboard at addr: 0x" << std::hex << r.from 
                        << " with byte size = " << std::dec << gen.used() << std::endl;
    }
-
+/*
    if (r.includeRelocatedCopies) {
       createRelocSpringboards(r, usedTrap, input);
    }
-   
+*/   
    registerBranch(r.from, r.from + size, r.destinations, r.fromRelocatedCode, r.func, r.priority);
    if (gen.valid()) {
        springboards.push_back(gen);

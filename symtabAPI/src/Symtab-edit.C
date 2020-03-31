@@ -142,13 +142,11 @@ bool Symtab::deleteSymbolFromIndices(Symbol *sym) {
 
 bool Symtab::deleteSymbol(Symbol *sym)
 {
-    pfq_rwlock_node_t me;
-    pfq_rwlock_write_lock(symbols_rwlock, me);
+    boost::unique_lock<dyn_rwlock> l(symbols_rwlock);
     if (sym->aggregate_) {
         sym->aggregate_->removeSymbol(sym);
     }
     bool result = deleteSymbolFromIndices(sym);
-    pfq_rwlock_write_unlock(symbols_rwlock, me);
     return result;
 }
 
@@ -159,39 +157,22 @@ bool Symtab::changeSymbolOffset(Symbol *sym, Offset newOffset) {
     // do that and update funcsByOffset or varsByOffset.
     // If we are and not the only symbol, do 1), remove from 
     // the aggregate, and make a new aggregate.
-  typedef indexed_symbols::index<offset>::type syms_by_off;
-  syms_by_off& defindex = everyDefinedSymbol.get<offset>();
-  syms_by_off::iterator found = defindex.find(sym->offset_);
-  while(found != defindex.end() && 
-	(*found)->getOffset() == sym->offset_)
   {
-    if(*found == sym) 
-    {
-      sym->offset_ = newOffset;
-      defindex.replace(found, sym);
-      break;
-    }
-  }
-  
-  
-  /*    Offset oldOffset = sym->offset_;
-    std::vector<Symbol *>::iterator iter;
-    for (iter = symsByOffset[oldOffset].begin();
-         iter != symsByOffset[oldOffset].end();
-         iter++) {
-        if ((*iter) == sym) {
-            symsByOffset[oldOffset].erase(iter);
-            break;
-        }
-    }
+    indexed_symbols::master_t::accessor a;
+    assert(everyDefinedSymbol.master.find(a, sym));
+
+    indexed_symbols::by_offset_t::accessor oa;
+    assert(everyDefinedSymbol.by_offset.find(oa, sym->offset_));
+    std::remove(oa->second.begin(), oa->second.end(), sym);
+    everyDefinedSymbol.by_offset.insert(oa, newOffset);
+    oa->second.push_back(sym);
+
+    a->second = newOffset;
     sym->offset_ = newOffset;
-    symsByOffset[newOffset].push_back(sym);
-  */
+  }
 
-    if (sym->aggregate_ == NULL) return true;
-    else 
-        return sym->aggregate_->changeSymbolOffset(sym);
-
+  if (sym->aggregate_ == NULL) return true;
+  else return sym->aggregate_->changeSymbolOffset(sym);
 }
 
 bool Symtab::changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newOffset) {
@@ -200,17 +181,13 @@ bool Symtab::changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newO
 
     if (func) {
         funcsByOffset.erase(oldOffset);
-        if (funcsByOffset.find(newOffset) == funcsByOffset.end())
-            funcsByOffset[newOffset] = func;
-        else {
+        if (!funcsByOffset.insert({newOffset, func})) {
             // Already someone there... odd, so don't do anything.
         }
     }
     if (var) {
         varsByOffset.erase(oldOffset);
-        if (varsByOffset.find(newOffset) == varsByOffset.end())
-            varsByOffset[newOffset] = var;
-        else {
+        if (!varsByOffset.insert({newOffset, var})) {
             // Already someone there... odd, so don't do anything.
         }
     }
@@ -261,14 +238,11 @@ bool Symtab::addSymbol(Symbol *newSym)
       demangleSymbol(newSym);
    }
    
-   pfq_rwlock_node_t me;
-   pfq_rwlock_write_lock(symbols_rwlock, me);
    // Add to appropriate indices
    addSymbolToIndices(newSym, false);
    
    // And to aggregates
    addSymbolToAggregates(newSym);
-   pfq_rwlock_write_unlock(symbols_rwlock, me);
 
    return true;
 }

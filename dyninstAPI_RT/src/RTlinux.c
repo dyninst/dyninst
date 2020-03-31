@@ -105,17 +105,11 @@ int t_kill(int pid, int sig) {
 
 void DYNINSTbreakPoint()
 {
-   /* We set a global flag here so that we can tell
-      if we're ever in a call to this when we get a
-      SIGBUS */
    if (DYNINSTstaticMode)
       return;
-
-   DYNINST_break_point_event = 1;
-   while (DYNINST_break_point_event)  {
-      t_kill(dyn_lwp_self(), DYNINST_BREAKPOINT_SIGNUM);
-   }
-   /* Mutator resets to 0... */
+   // Call into a funtion that contains a 
+   // trap instruction. 
+   DYNINSTtrapFunction();
 }
 
 static int failed_breakpoint = 0;
@@ -123,45 +117,6 @@ void uncaught_breakpoint(int sig)
 {
    (void)sig; /* unused parameter */
    failed_breakpoint = 1;
-}
-
-void DYNINSTlinuxBreakPoint()
-{
-   struct sigaction act, oldact;
-   int result;
-
-   if (DYNINSTstaticMode)
-      return;
-
-   memset(&oldact, 0, sizeof(struct sigaction));
-   memset(&act, 0, sizeof(struct sigaction));
-
-   result = sigaction(DYNINST_BREAKPOINT_SIGNUM, NULL, &act);
-   if (result == -1) {
-      perror("DyninstRT library failed sigaction1");
-      return;
-   }
-   act.sa_handler = uncaught_breakpoint;
-
-   result = sigaction(DYNINST_BREAKPOINT_SIGNUM, &act, &oldact);
-   if (result == -1) {
-      perror("DyninstRT library failed sigaction2");
-      return;
-   }
-
-   DYNINST_break_point_event = 1;
-   failed_breakpoint = 0;
-   kill(dyn_lwp_self(), DYNINST_BREAKPOINT_SIGNUM);
-   if (failed_breakpoint) {
-      DYNINST_break_point_event = 0;
-      failed_breakpoint = 0;
-   }
-
-   result = sigaction(DYNINST_BREAKPOINT_SIGNUM, &oldact, NULL);
-   if (result == -1) {
-      perror("DyninstRT library failed sigaction3");
-      return;
-   }
 }
 
 void DYNINSTsafeBreakPoint()

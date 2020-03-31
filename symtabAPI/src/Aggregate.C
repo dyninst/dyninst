@@ -94,6 +94,7 @@ unsigned Aggregate::getSize() const
 
 Region * Aggregate::getRegion() const
 {
+    boost::unique_lock<dyn_mutex> l(lock_);
 	if (!firstSymbol)
 	{
            create_printf("%s[%d]:  ERROR:  Aggregate w/out symbols\n", FILE__, __LINE__);
@@ -112,6 +113,8 @@ bool Aggregate::addSymbol(Symbol *sym) {
         module_ = sym->getModule();
     }
     // else keep current module.
+
+    boost::unique_lock<dyn_mutex> l(lock_);
 
     // No need to re-add symbols.
     for (unsigned i = 0; i < symbols_.size(); ++i)
@@ -156,14 +159,15 @@ Symbol * Aggregate::getFirstSymbol() const
 bool Aggregate::addMangledNameInternal(std::string name, bool /*isPrimary*/, bool /*demangle*/)
 {
     // Check to see if we're duplicating
-  for (auto i = mangled_names_begin(); 
-       i != mangled_names_end();
-       ++i) 
-  {
-      if (i->find(name) != string::npos)
-	  return false;
-  }
-  return true;
+    boost::unique_lock<dyn_mutex> l(lock_);
+    for (auto i = mangled_names_begin();
+         i != mangled_names_end();
+         ++i)
+    {
+        if (i->find(name) != string::npos)
+            return false;
+    }
+    return true;
 }
 
 SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary, bool isDebug)
@@ -173,12 +177,15 @@ SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary, bool i
 
     Symbol *staticSym = NULL;
     Symbol *dynamicSym = NULL;
-    for (unsigned i = 0; i < symbols_.size(); ++i) {
-      if (symbols_[i]->isInDynSymtab()) {
-         dynamicSym = symbols_[i];
-      }
-      if (symbols_[i]->isInSymtab()) {
-         staticSym = symbols_[i];
+    {
+      boost::unique_lock<dyn_mutex> l(lock_);
+      for (unsigned i = 0; i < symbols_.size(); ++i) {
+        if (symbols_[i]->isInDynSymtab()) {
+           dynamicSym = symbols_[i];
+        }
+        if (symbols_[i]->isInSymtab()) {
+           staticSym = symbols_[i];
+        }
       }
     }
 
@@ -207,11 +214,14 @@ SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary, bool i
 SYMTAB_EXPORT bool Aggregate::addPrettyName(string name, bool isPrimary, bool isDebug)
 {
     // Check to see if we're duplicating
-   for (auto i = pretty_names_begin(); 
-	i != pretty_names_end();
-	i++) {
-       if (i->find(name) != string::npos)
-	   return false;
+   {
+       boost::unique_lock<dyn_mutex> l(lock_);
+       for (auto i = pretty_names_begin();
+            i != pretty_names_end();
+            i++) {
+           if (i->find(name) != string::npos)
+	       return false;
+       }
    }
    return addMangledName(name, isPrimary, isDebug);
 }
@@ -219,11 +229,14 @@ SYMTAB_EXPORT bool Aggregate::addPrettyName(string name, bool isPrimary, bool is
 SYMTAB_EXPORT bool Aggregate::addTypedName(string name, bool isPrimary, bool isDebug)
 {
     // Check to see if we're duplicating
-   for (auto i = typed_names_begin(); 
-	i != typed_names_end();
-	i++) {
-       if (i->find(name) != string::npos)
-	   return false;
+   {
+       boost::unique_lock<dyn_mutex> l(lock_);
+       for (auto i = typed_names_begin();
+            i != typed_names_end();
+	    i++) {
+           if (i->find(name) != string::npos)
+               return false;
+       }
    }
    return addMangledName(name, isPrimary, isDebug);
 }

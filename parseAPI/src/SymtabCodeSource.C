@@ -42,20 +42,15 @@
 #include "CodeSource.h"
 #include "debug_parse.h"
 #include "util.h"
-#include "race-detector-annotations.h"
 
 #include "InstructionDecoder.h"
 #include "Instruction.h"
-#ifdef ENABLE_RACE_DETECTION
-#include <cilk/cilk.h>
-#include <cilk/cilk_api.h>
-#endif
 
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
-typedef tbb::concurrent_hash_map<Address, bool> SeenMap;
+typedef dyn_c_hash_map<Address, bool> SeenMap;
 
 static const vector<std::string> skipped_symbols = {
           "_non_rtti_object::`vftable'",
@@ -244,7 +239,6 @@ SymtabCodeSource::SymtabCodeSource(SymtabAPI::Symtab * st,
                                    bool allLoadedRegions) : 
     _symtab(st),
     owns_symtab(false),
-    _lookup_cache(NULL),
     stats_parse(new ::StatContainer()),
     _have_stats(false)
 {
@@ -255,7 +249,6 @@ SymtabCodeSource::SymtabCodeSource(SymtabAPI::Symtab * st,
 SymtabCodeSource::SymtabCodeSource(SymtabAPI::Symtab * st) : 
     _symtab(st),
     owns_symtab(false),
-    _lookup_cache(NULL),
     stats_parse(new ::StatContainer()),
     _have_stats(false)
 {
@@ -266,7 +259,6 @@ SymtabCodeSource::SymtabCodeSource(SymtabAPI::Symtab * st) :
 SymtabCodeSource::SymtabCodeSource(char * file) :
     _symtab(NULL),
     owns_symtab(true),
-    _lookup_cache(NULL),
     stats_parse(new ::StatContainer()),
     _have_stats(false)
 {
@@ -419,9 +411,7 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
     vector<SymtabAPI::Region *> regs;
     vector<SymtabAPI::Region *> dregs;
     vector<SymtabAPI::Symbol*> symbols;
-    mcs_lock_t reg_lock;
-
-    mcs_init(reg_lock);
+    dyn_mutex reg_lock;
 
     if ( ! allLoadedRegions ) {
         _symtab->getCodeRegions(regs);
@@ -437,13 +427,8 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
 
     _symtab->getAllSymbols(symbols);
 
-#ifdef ENABLE_RACE_DETECTION
-    cilk_for
-#else
 #pragma omp parallel for shared(regs,dregs,symbols,reg_lock) schedule(auto)
-    for
-#endif
-        (unsigned int i = 0; i < regs.size(); i++) {
+    for (unsigned int i = 0; i < regs.size(); i++) {
         SymtabAPI::Region *r = regs[i];
         parsing_printf("   %lx %s",r->getMemOffset(),
             r->getRegionName().c_str());
@@ -468,23 +453,15 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
         parsing_printf("\n");
 
         CodeRegion * cr = new SymtabCodeRegion(_symtab,r, symbols);
-        bool already_present = false;
-
-        race_detector_fake_lock_acquire(race_detector_fake_lock(rmap));
-        {
-          RegionMap::accessor a;
-          already_present = rmap.insert(a, std::make_pair(r, cr));
-        }
-        race_detector_fake_lock_release(race_detector_fake_lock(rmap));
-
+        bool already_present = !rmap.insert(std::make_pair(r, cr));
         if (already_present) {
             parsing_printf("[%s:%d] duplicate region at address %lx\n",
                 FILE__,__LINE__,r->getMemOffset());
         }
-        mcs_node_t me;
-        mcs_lock(reg_lock, me);
-        addRegion(cr);
-        mcs_unlock(reg_lock, me);
+        {
+            dyn_mutex::unique_lock l(reg_lock);
+            addRegion(cr);
+        }
     }
 
     // Hints are initialized at the SCS level rather than the SCR level
@@ -496,19 +473,21 @@ SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
 void
 SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
 {
-    vector<SymtabAPI::Function *> fsyms;
+    const vector<SymtabAPI::Function *>& fsyms = _symtab->getAllFunctionsRef();
     SeenMap seen;
-    int dupes = 0;
-
-    if(!_symtab->getAllFunctions(fsyms))
-        return;
+    dyn_c_vector<Hint> h;
 
     parsing_printf("[%s:%d] processing %d symtab hints\n",FILE__,__LINE__,
         fsyms.size());
 
+#pragma omp parallel for schedule(auto)
     for (unsigned int i = 0; i < fsyms.size(); i++) {
         SymtabAPI::Function *f = fsyms[i];
-        string fname_s = f->getFirstSymbol()->getPrettyName();
+        vector<SymtabAPI::Symbol*> syms;
+        f->getSymbols(syms);
+        string fname_s = syms[0]->getPrettyName();
+        for (size_t j = 1; j < syms.size(); ++j)
+            if (syms[j]->getPrettyName() < fname_s) fname_s = syms[j]->getPrettyName();
         const char *fname = fname_s.c_str();
         if(filt && (*filt)(f)) {
             parsing_printf("[%s:%d}  == filtered hint %s [%lx] ==\n",
@@ -520,19 +499,12 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
         // right place to do this? Should these symbols not be filtered by the
         // loop above?
         /*Achin added code starts 12/15/2014*/
-        if (std::find(skipped_symbols.begin(), skipped_symbols.end(),
-          fsyms[i]->getFirstSymbol()->getPrettyName()) != skipped_symbols.end()) {
+        if (std::find(skipped_symbols.begin(), skipped_symbols.end(), fname_s) != skipped_symbols.end()) {
           continue;
         }
         /*Achin added code ends*/
-
-        bool present = false;
-        {
-          SeenMap::accessor a;
-          Offset offset = f->getOffset();
-          present = seen.find(a, offset);
-          if (!present) seen.insert(a, std::make_pair(offset, true));
-        }
+        Offset offset = f->getOffset();
+        bool present = !seen.insert(std::make_pair(offset, true));
 
         if (present) {
             // XXX it looks as though symtabapi now does de-duplication
@@ -541,7 +513,7 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
             //     regions
            parsing_printf("[%s:%d] duplicate function at address %lx: %s\n",
                 FILE__,__LINE__, f->getOffset(), fname);
-            ++dupes;
+           continue;
         }
 
         SymtabAPI::Region * sr = f->getRegion();
@@ -554,7 +526,7 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
         CodeRegion * cr = NULL;
 
         {
-          RegionMap::accessor a;
+          RegionMap::const_accessor a;
           present = rmap.find(a, sr);
           if (present) cr = a->second;
         }
@@ -571,7 +543,7 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
                            sr->getMemOffset(),
                            sr->getMemOffset()+sr->getDiskSize());
         } else {
-          _hints.push_back(Hint(f->getOffset(), f->getSize(), cr, fname_s));
+          _hints.push_back(Hint(f->getOffset(), f->getSymbolSize(), cr, fname_s));
           parsing_printf("\t<%lx,%s,[%lx,%lx)>\n",
                          f->getOffset(),
                          fname,
@@ -579,7 +551,6 @@ SymtabCodeSource::init_hints(RegionMap &rmap, hint_filt * filt)
                          cr->offset()+cr->length());
         }
     }
-    sort(_hints.begin(), _hints.end());
 }
 
 void
@@ -705,9 +676,8 @@ inline CodeRegion *
 SymtabCodeSource::lookup_region(const Address addr) const
 {
     CodeRegion * ret = NULL;
-    race_detector_fake_lock_acquire(race_detector_fake_lock(_lookup_cache));
-    CodeRegion * cache = _lookup_cache.load();
-    race_detector_fake_lock_release(race_detector_fake_lock(_lookup_cache));
+    CodeRegion * cache = _lookup_cache.get();
+
     if(cache && cache->contains(addr))
         ret = cache;
     else {
@@ -718,9 +688,7 @@ SymtabCodeSource::lookup_region(const Address addr) const
 
         if(rcnt) {
           ret = *stab.begin();
-          race_detector_fake_lock_acquire(race_detector_fake_lock(_lookup_cache));
-          _lookup_cache.store(ret);
-          race_detector_fake_lock_release(race_detector_fake_lock(_lookup_cache));
+          _lookup_cache.set(ret);
         } 
     }
     return ret;

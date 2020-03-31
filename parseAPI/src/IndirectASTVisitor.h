@@ -101,6 +101,7 @@ public:
     CodeSource* cs;
     CodeRegion* cr;
     Address targetAddress;
+    Address readAddress;
     int memoryReadSize;
     bool valid;
     bool isZeroExtend;

@@ -37,7 +37,7 @@
 #include <unordered_map>
 #include <stack>
 #include "CFG.h"
-
+#include "CodeObject.h"
 #include "LoopAnalyzer.h"
 
 using namespace Dyninst;
@@ -118,10 +118,26 @@ void LoopAnalyzer::createLoopHierarchy()
       // Can tail call happen here?
       if ((*eit)->type() == CALL) {
           Block *target = (*eit)->trg();
-	  vector<Function*> callees;
-	  target->getFuncs(callees);
-	  for (auto fit = callees.begin(); fit != callees.end(); ++fit)
-	      insertCalleeIntoLoopHierarchy(*fit, b->last());
+          Function* callee = target->obj()->findFuncByEntry(target->region(), target->start());
+          if (callee)
+              insertCalleeIntoLoopHierarchy(callee, b->last());
+          if (b->obj()->cs()->getArch() == Arch_ppc64) {
+              // Since Power 8, the new ABI will typically create two entries for a function
+              callee = target->obj()->findFuncByEntry(target->region(), target->start() - 8);
+              if (callee == NULL) continue;
+              // Make sure that the function entry block indeed aligns with the call target
+              if (callee->entry()->end() != target->start()) continue;
+              // Make sure that the function entry block will fall through to the call target
+              bool findFT = false;
+              for (auto eit = callee->entry()->targets().begin(); eit != callee->entry()->targets().end(); ++eit) {
+                  if ((*eit)->type() == FALLTHROUGH) {
+                      findFT = true;
+                      break;
+                  }
+              }
+              if (findFT)
+                  insertCalleeIntoLoopHierarchy(callee, b->last());
+          }
       }
     }
   }

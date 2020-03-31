@@ -43,6 +43,7 @@
 #include "Annotatable.h"
 #include <boost/iterator/transform_iterator.hpp>
 #include <functional>
+#include "concurrent.h"
 SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &);
 
 namespace Dyninst{
@@ -116,6 +117,7 @@ class SYMTAB_EXPORT Aggregate
       // (AKA 'not DEFAULT_MODULE') module
       Module *module_;
 
+      mutable dyn_mutex lock_;
       std::vector<Symbol *> symbols_;
       Symbol *firstSymbol;  // cached for speed
       Offset offset_;       // cached for speed

@@ -277,7 +277,7 @@ void EmitterAARCH64::emitLoadOrigRegister(Address register_num, Register destina
    if (src->spilledState == registerSlot::unspilled)
    {
       // not on the stack. Directly move the value
-      emitMoveRegToReg((Register) register_num, destination, gen);
+      insnCodeGen::generateMove(gen, destination, (Register) register_num, true);
       return;
    }
 

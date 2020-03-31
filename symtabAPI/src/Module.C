@@ -28,6 +28,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "common/src/vgannotations.h"
 #include <string.h>
 #include <common/src/debug_common.h>
 #include "debug.h"
@@ -79,18 +80,11 @@ const std::string& Statement::getFile() const {
     return emptyStr;
 }
 
-
-string Module::getCompDir()
+string Module::getCompDir(Module::DebugInfoT& cu)
 {
     if(!compDir_.empty()) return compDir_;
 
 #if defined(cap_dwarf)
-    if(info_.empty())
-    {
-        return "";
-    }
-
-    auto& cu = info_[0];
     if(!dwarf_hasattr(&cu, DW_AT_comp_dir))
     {
         return "";
@@ -105,6 +99,13 @@ string Module::getCompDir()
     // TODO Implement this for non-dwarf format
     return compDir_;
 #endif
+}
+
+string Module::getCompDir()
+{
+    if(!compDir_.empty()) return compDir_;
+
+    return "";
 }
 
 
@@ -218,8 +219,10 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
 }
 
 LineInformation *Module::parseLineInformation() {
+    bool popped = false;
+    Module::DebugInfoT cu;
     if (exec()->getArchitecture() != Arch_cuda &&
-	(exec()->getObject()->hasDebugInfo() || !info_.empty())) {
+	(exec()->getObject()->hasDebugInfo() || (popped = info_.try_pop(cu)) )) {
         // Allocate if none
         if (!lineInfo_) {
             lineInfo_ = new LineInformation;
@@ -228,21 +231,17 @@ LineInformation *Module::parseLineInformation() {
         }
 
         // Parse any CUs that have been added to our list
-        if(!info_.empty()) {
-            for(auto cu = info_.begin();
-                    cu != info_.end();
-                    ++cu)
-            {
-                exec()->getObject()->parseLineInfoForCU(*cu, lineInfo_);
-            }
+        if(popped || info_.try_pop(cu)) {
+            Module::DebugInfoT cu2 = cu;
+            do {
+                exec()->getObject()->parseLineInfoForCU(cu2, lineInfo_);
+            } while(info_.try_pop(cu2));
+
+            // Make sure to call getCompDir so its stored and ready.
+            getCompDir(cu);
         }
 
-        // Before clearing the CU list (why is it even done anyway?), make sure to
-        // call getCompDir so the comp_dir is stored in a static variable.
-        getCompDir();
-
-        // Clear list of work to do
-        info_.clear();
+        // Work queue has now been emptied.
     } else if (!lineInfo_) {
         objectLevelLineInfo = true;
         lineInfo_ = exec()->getObject()->parseLineInfoForObject(strings_);
@@ -261,19 +260,16 @@ bool Module::getStatements(std::vector<LineInformation::Statement_t> &statements
 	return (statements.size() > initial_size);
 }
 
-vector<Type *> *Module::getAllTypes()
+void Module::getAllTypes(vector<boost::shared_ptr<Type>>& v)
 {
 	exec_->parseTypesNow();
-	if(typeInfo_) return typeInfo_->getAllTypes();
-	return NULL;
-	
+	if(typeInfo_) typeInfo_->getAllTypes(v);	
 }
 
-vector<pair<string, Type *> > *Module::getAllGlobalVars()
+void Module::getAllGlobalVars(vector<pair<string, boost::shared_ptr<Type>>>& v)
 {
 	exec_->parseTypesNow();
-	if(typeInfo_) return typeInfo_->getAllGlobalVariables();
-	return NULL;	
+	if(typeInfo_) typeInfo_->getAllGlobalVariables(v);
 }
 
 typeCollection *Module::getModuleTypes()
@@ -287,27 +283,27 @@ typeCollection *Module::getModuleTypesPrivate()
   return typeInfo_;
 }
 
-bool Module::findType(Type *&type, std::string name)
+bool Module::findType(boost::shared_ptr<Type> &type, std::string name)
 {
 	typeCollection *tc = getModuleTypes();
 	if (!tc) return false;
 
-   type = tc->findType(name);
+   type = tc->findType(name, Type::share);
 
-   if (type == NULL)
+   if (!type)
       return false;
 
    return true;
 }
 
-bool Module::findVariableType(Type *&type, std::string name)
+bool Module::findVariableType(boost::shared_ptr<Type> &type, std::string name)
 {
 	typeCollection *tc = getModuleTypes();
 	if (!tc) return false;
 
-	type = tc->findVariableType(name);
+	type = tc->findVariableType(name, Type::share);
 
-   if (type == NULL)
+   if (!type)
       return false;
 
    return true;
@@ -351,6 +347,7 @@ bool Module::findLocalVariable(std::vector<localVar *>&vars, std::string name)
 
 Module::Module(supportedLanguages lang, Offset adr,
       std::string fullNm, Symtab *img) :
+   objectLevelLineInfo(false),
    lineInfo_(NULL),
    typeInfo_(NULL),
    fullName_(fullNm),
@@ -551,7 +548,7 @@ void Module::finalizeOneRange(Address ext_s, Address ext_e) const {
 
 void Module::addDebugInfo(Module::DebugInfoT info) {
 //    cout << "Adding CU DIE to " << fileName() << endl;
-    info_.push_back(info);
+    info_.push(info);
 
 }
 

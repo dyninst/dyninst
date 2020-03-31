@@ -120,7 +120,7 @@ public:
     SYMTAB_EXPORT const std::ostream &dump_state_info(std::ostream &s);
 
     SYMTAB_EXPORT void * getErrFunc() const;
-    SYMTAB_EXPORT dyn_hash_map< std::string, std::vector< Symbol *> > *getAllSymbols();
+    SYMTAB_EXPORT dyn_c_hash_map< std::string, std::vector< Symbol *> > *getAllSymbols();
     
     SYMTAB_EXPORT virtual bool hasFrameDebugInfo() {return false;}
     SYMTAB_EXPORT virtual bool getRegValueAtFrame(Address /*pc*/,
@@ -157,9 +157,10 @@ friend class Module;
 
     // XXX symbols_ is the owner of Symbol pointers; memory
     //     is reclaimed from this structure
-    dyn_hash_map< std::string, std::vector< Symbol *> > symbols_;
-	std::map< Symbol *, std::string > symsToModules_;
-    dyn_hash_map<Offset, std::vector<Symbol *> > symsByOffset_;
+    dyn_c_hash_map< std::string, std::vector< Symbol *> > symbols_;
+    dyn_hash_map< std::string, std::vector< Symbol *> > symbols_tmp_;
+	dyn_c_hash_map< Symbol *, std::string > symsToModules_;
+    dyn_c_hash_map<Offset, std::vector<Symbol *> > symsByOffset_;
     std::vector<std::pair<std::string, Offset> > modules_;
 
     char*   code_ptr_;
@@ -234,9 +235,9 @@ namespace SymtabAPI{
 
 class SymbolIter {
  private:
-   dyn_hash_map< std::string, std::vector< Symbol *> > *symbols;
+   dyn_c_hash_map< std::string, std::vector< Symbol *> > *symbols;
    unsigned int currentPositionInVector;
-   dyn_hash_map< std::string, std::vector< Symbol *> >::iterator symbolIterator;
+   dyn_c_hash_map< std::string, std::vector< Symbol *> >::iterator symbolIterator;
    
  public:
    SymbolIter( Object & obj );

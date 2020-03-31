@@ -14,18 +14,18 @@ using namespace Dyninst::ParseAPI;
 void ReachFact::ReverseDFS(ParseAPI::Block *cur, set<ParseAPI::Block*> &visited) {
     if (visited.find(cur) != visited.end()) return;
     visited.insert(cur);
-    boost::lock_guard<Block> g(*cur);
-
-    for (auto eit = cur->sources().begin(); eit != cur->sources().end(); ++eit) 
+    Block::edgelist src;
+    cur->copy_sources(src);    
+    for (auto eit = src.begin(); eit != src.end(); ++eit) 
         if ((*eit)->type() != CALL && (*eit)->type() != RET) ReverseDFS((*eit)->src(), visited);
 }
 
 void ReachFact::NaturalDFS(ParseAPI::Block *cur, set<ParseAPI::Block*> &visited) {
     if (visited.find(cur) != visited.end()) return;
     visited.insert(cur);
-    boost::lock_guard<Block> g(*cur);
-
-    for (auto eit = cur->targets().begin(); eit != cur->targets().end(); ++eit) 
+    Block::edgelist trg;
+    cur->copy_targets(trg);
+    for (auto eit = trg.begin(); eit != trg.end(); ++eit) 
         if ((*eit)->type() != CALL && (*eit)->type() != RET) NaturalDFS((*eit)->trg(), visited);
 }
 

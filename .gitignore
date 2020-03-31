@@ -49,6 +49,7 @@ instructionAPI/doc/latex/hierarchy.tex
 instructionAPI/doc/latex/index.tex
 instructionAPI/doc/latex/modules.tex
 instructionAPI/doc/html
+instructionAPI/doc/.gitignore
 patchAPI/doc/patchapi.aux
 patchAPI/doc/patchapi.log
 patchAPI/doc/patchapi.out
@@ -125,3 +126,4 @@ cmake-build-*/
 .project
 .cproject
 .settings
+.pydevproject

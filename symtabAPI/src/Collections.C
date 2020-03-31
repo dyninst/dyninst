@@ -56,8 +56,7 @@ using namespace Dyninst::SymtabAPI;
  * Destructor for localVarCollection.  Deletes all type objects that
  * have been inserted into the collection.
  */
-localVarCollection::~localVarCollection()
-{
+localVarCollection::~localVarCollection(){
    auto li = localVars.begin();
    for(;li!=localVars.end();li++)
    {
@@ -109,7 +108,7 @@ localVar *localVarCollection::findLocalVar(std::string &name){
  * localVarCollection::getAllVars()
  * this function returns all the local variables in the collection.
  */
-const tbb::concurrent_vector<localVar *> &localVarCollection::getAllVars() const
+const dyn_c_vector<localVar *> &localVarCollection::getAllVars() const
 {
     return localVars;
 }
@@ -120,31 +119,30 @@ Serializable *localVarCollection::ac_serialize_impl(SerializerBase *, const char
 }
 
 // Could be somewhere else... for DWARF-work.
-dyn_hash_map<void *, typeCollection *> typeCollection::fileToTypesMap;
-dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > *> *deferred_lookups_p = NULL;
+dyn_c_hash_map<void *, typeCollection *> typeCollection::fileToTypesMap;
+dyn_hash_map<int, std::vector<std::pair<dataClass, boost::shared_ptr<Type>*> > *> *deferred_lookups_p = NULL;
 
-void typeCollection::addDeferredLookup(int tid, dataClass tdc,Type **th)
+void typeCollection::addDeferredLookup(int tid, dataClass tdc, boost::shared_ptr<Type>*th)
 {
 	if (!deferred_lookups_p)
-		deferred_lookups_p = new dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > *>();
-	dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > *> &deferred_lookups = *deferred_lookups_p;
-	dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > *>::iterator iter;
+		deferred_lookups_p = new dyn_hash_map<int, std::vector<std::pair<dataClass, boost::shared_ptr<Type>*> > *>();
+	auto& deferred_lookups = *deferred_lookups_p;
 
-	iter = deferred_lookups.find(tid);
+	auto iter = deferred_lookups.find(tid);
 	if (iter == deferred_lookups.end())
-		deferred_lookups[tid] = new std::vector<std::pair<dataClass, Type **> >();
+		deferred_lookups[tid] = new std::vector<std::pair<dataClass, boost::shared_ptr<Type> *> >();
 	deferred_lookups[tid]->push_back(std::make_pair(tdc, th));
 }
 
 bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
 {
 	if (!deferred_lookups_p) return true; // nothing to do
-	dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > *> &deferred_lookups = *deferred_lookups_p;
+	dyn_hash_map<int, std::vector<std::pair<dataClass, boost::shared_ptr<Type>*> > *> &deferred_lookups = *deferred_lookups_p;
 	bool err = false;
-	dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > *>::iterator iter;
+	dyn_hash_map<int, std::vector<std::pair<dataClass, boost::shared_ptr<Type>*> > *>::iterator iter;
 	for (iter = deferred_lookups.begin(); iter != deferred_lookups.end(); iter++)
 	{
-		std::vector<std::pair<dataClass, Type **> > *to_assign = iter->second;
+		std::vector<std::pair<dataClass, boost::shared_ptr<Type>*> > *to_assign = iter->second;
 		if (!to_assign->size())
 		{
 			continue;
@@ -153,16 +151,16 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
 		for (unsigned int i = 0; i < to_assign->size(); ++i)
 		{
 			dataClass ldc = (*to_assign)[i].first;
-			Type **th = (*to_assign)[i].second;
+			boost::shared_ptr<Type>*th = (*to_assign)[i].second;
 
-			Type *t = primary_tc->findType(iter->first);
+			boost::shared_ptr<Type> t = primary_tc->findType(iter->first, Type::share);
 			if (t && (t->getDataClass() != ldc)) t = NULL;
 
 			if (!t)
 			{
 				if (Symtab::builtInTypes())
 				{
-					t = Symtab::builtInTypes()->findBuiltInType(iter->first);
+					t = Symtab::builtInTypes()->findBuiltInType(iter->first, Type::share);
 					if (t && (t->getDataClass() != ldc)) t = NULL;
 				}
 			}
@@ -170,19 +168,18 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
 			{
 				if (Symtab::stdTypes())
 				{
-					t = Symtab::stdTypes()->findType(iter->first);
+					t = Symtab::stdTypes()->findType(iter->first, Type::share);
 					if (t && (t->getDataClass() != ldc)) t = NULL;
 				}
 			}
 			if (!t)
 			{
 				int nfound = 0;
-				dyn_hash_map<void *, typeCollection *>::iterator tciter; 
+				dyn_c_hash_map<void *, typeCollection *>::iterator tciter;
 				for (tciter = fileToTypesMap.begin(); tciter != fileToTypesMap.end(); tciter++)
 				{
-					Type *localt = NULL;
 					if (tciter->second == primary_tc) continue;
-					localt = tciter->second->findType(iter->first);
+					boost::shared_ptr<Type> localt = tciter->second->findType(iter->first, Type::share);
 					if (localt)
 					{
 						if (localt->getDataClass() != ldc) 
@@ -214,22 +211,14 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
  * Reference count
  */
 
-boost::mutex typeCollection::create_lock;
-
 typeCollection *typeCollection::getModTypeCollection(Module *mod) 
 {
-	boost::lock_guard<boost::mutex> g(create_lock);
-	if (!mod) return NULL;
-	dyn_hash_map<void *, typeCollection *>::iterator iter = fileToTypesMap.find((void *)mod);
-
-    if ( iter != fileToTypesMap.end()) 
-	{
-		return iter->second;
+    if (!mod) return NULL;
+    dyn_c_hash_map<void *, typeCollection *>::accessor a;
+    if(fileToTypesMap.insert(a, (void *)mod)) {
+        a->second = new typeCollection();
     }
-
-    typeCollection *newTC = new typeCollection();
-    fileToTypesMap[(void *)mod] = newTC;
-    return newTC;
+    return a->second;
 }
 
 
@@ -254,17 +243,7 @@ typeCollection::typeCollection() :
  * Destructor for typeCollection.  Deletes all type objects that have
  * been inserted into the collection.
  */
-typeCollection::~typeCollection()
-{
-    // delete all of the types
-    for(const auto& t: typesByName) {
-        t.second->decrRefCount();
-    }
-
-    for(const auto& t: typesByID) {
-        t.second->decrRefCount();
-    }
-}
+typeCollection::~typeCollection() {}
 
 /*
  * typeCollection::findType
@@ -276,81 +255,81 @@ typeCollection::~typeCollection()
  * name		The name of the type to look up.
  * id           The unique type ID of the type tp look up.
  */
-Type *typeCollection::findType(std::string name)
+boost::shared_ptr<Type> typeCollection::findType(std::string name, Type::do_share_t)
 {
-	tbb::concurrent_hash_map<std::string, Type *>::const_accessor a;
+    dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::const_accessor a;
 
     if (typesByName.find(a, name))
     	return a->second;
-	else if (Symtab::builtInTypes())
-        return Symtab::builtInTypes()->findBuiltInType(name);
+    else if (Symtab::builtInTypes())
+        return Symtab::builtInTypes()->findBuiltInType(name, Type::share);
     else
-		return NULL;
+        return boost::shared_ptr<Type>();
 }
 
-Type *typeCollection::findTypeLocal(std::string name)
+boost::shared_ptr<Type> typeCollection::findTypeLocal(std::string name, Type::do_share_t)
 {
-	tbb::concurrent_hash_map<std::string, Type *>::const_accessor a;
+    dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::const_accessor a;
 
-	if (typesByName.find(a, name))
-		return a->second;
-   else
-      return NULL;
+    if (typesByName.find(a, name))
+        return a->second;
+    else
+        return boost::shared_ptr<Type>();
 }
 
-Type *typeCollection::findTypeLocal(const int ID)
+boost::shared_ptr<Type> typeCollection::findTypeLocal(const int ID, Type::do_share_t)
 {
-	tbb::concurrent_hash_map<int, Type*>::const_accessor a;
-   if (typesByID.find(a, ID))
-      return a->second;
-   else
-      return NULL;
+    dyn_c_hash_map<int, boost::shared_ptr<Type>>::const_accessor a;
+    if (typesByID.find(a, ID))
+        return a->second;
+    else
+        return boost::shared_ptr<Type>();
 }
 
 
-Type * typeCollection::findOrCreateType( const int ID ) 
+boost::shared_ptr<Type> typeCollection::findOrCreateType( const int ID, Type::do_share_t) 
 {
     boost::lock_guard<boost::mutex> g(placeholder_mutex);
-	tbb::concurrent_hash_map<int, Type*>::const_accessor a;
-	if (typesByID.find(a, ID))
-	{
-		return a->second;
-	}
+    dyn_c_hash_map<int, boost::shared_ptr<Type>>::const_accessor a;
+    if (typesByID.find(a, ID))
+    {
+        return a->second;
+    }
 
-	Type * returnType = NULL;
+    boost::shared_ptr<Type> returnType;
 
-	if ( Symtab::builtInTypes() ) 
-	{
-		returnType = Symtab::builtInTypes()->findBuiltInType(ID);
+    if ( Symtab::builtInTypes() )
+    {
+        returnType = Symtab::builtInTypes()->findBuiltInType(ID, Type::share);
 
-		if (returnType)
-			return returnType;
-	}
+        if (returnType)
+            return returnType;
+    }
 
-	/* Create a placeholder type. */
-	returnType = Type::createPlaceholder(ID);
-	assert( returnType != NULL );
+    /* Create a placeholder type. */
+    returnType = Type::createPlaceholder(ID);
+    assert( returnType );
 
-	/* Having created the type, add it. */
-	addType( returnType, g );
+    /* Having created the type, add it. */
+    addType( returnType, g );
 
     return returnType;
 } /* end findOrCreateType() */
 
-Type *typeCollection::findType(const int ID)
+boost::shared_ptr<Type> typeCollection::findType(const int ID, Type::do_share_t)
 {
-	tbb::concurrent_hash_map<int, Type*>::const_accessor a;
-	if (typesByID.find(a, ID))
-		return a->second;
-	else
-	{
-		Type *ret = NULL;
+    dyn_c_hash_map<int, boost::shared_ptr<Type>>::const_accessor a;
+    if (typesByID.find(a, ID))
+        return a->second;
+    else
+    {
+        boost::shared_ptr<Type> ret = NULL;
 
-		if (Symtab::builtInTypes()) 
-			ret = Symtab::builtInTypes()->findBuiltInType(ID);
+        if (Symtab::builtInTypes())
+            ret = Symtab::builtInTypes()->findBuiltInType(ID, Type::share);
 
-		return ret;
-	}
+        return ret;
+    }
 }
 
 /*
@@ -362,13 +341,13 @@ Type *typeCollection::findType(const int ID)
  *
  * name		The name of the type to look up.
  */
-Type *typeCollection::findVariableType(std::string &name)
+boost::shared_ptr<Type> typeCollection::findVariableType(std::string &name, Type::do_share_t)
 {
-	tbb::concurrent_hash_map<std::string, Type *>::const_accessor a;
-	if (globalVarsByName.find(a, name))
-		return a->second;
-	else
-		return (Type *) NULL;
+    dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::const_accessor a;
+    if (globalVarsByName.find(a, name))
+        return a->second;
+    else
+        return boost::shared_ptr<Type>();
 }
 
 /*
@@ -379,41 +358,27 @@ Type *typeCollection::findVariableType(std::string &name)
  * when it is no longer needed.  For one thing, this means that a type
  * allocated on the stack should *NEVER* be put into a typeCollection.
  */
-void typeCollection::addType(Type *type)
+void typeCollection::addType(boost::shared_ptr<Type> type)
 {
     boost::lock_guard<boost::mutex> g(placeholder_mutex);
     addType(type, g);
 
 }
-void typeCollection::addType(Type *type, boost::lock_guard<boost::mutex>& g)
+void typeCollection::addType(boost::shared_ptr<Type> type, boost::lock_guard<boost::mutex>&)
 {
     if(type->getName() != "") { //Type could have no name.
-        tbb::concurrent_hash_map<std::string, Type*>::accessor a;
-        typesByName.insert(a, make_pair(type->getName(), type));
-        type->incrRefCount();
+        typesByName.insert({type->getName(), type});
     }
-    tbb::concurrent_hash_map<int, Type*>::accessor id_a;
-    typesByID.insert(id_a, make_pair(type->getID(), type));
-    type->incrRefCount();
-
+    typesByID.insert({type->getID(), type});
 }
 
-void typeCollection::addGlobalVariable(std::string &name, Type *type) 
+void typeCollection::addGlobalVariable(std::string &name, boost::shared_ptr<Type> type) 
 {
-	tbb::concurrent_hash_map<std::string, Type*>::accessor a;
-	globalVarsByName.insert(a, make_pair(type->getName(), type));
+    globalVarsByName.insert({type->getName(), type});
 }
 
 void typeCollection::clearNumberedTypes() 
 {
-   for (auto it = typesByID.begin();
-        it != typesByID.end();
-        it ++) 
-   {
-      if (it->second)
-         it->second->decrRefCount();
-   }
-
    typesByID.clear();
 }
 
@@ -421,34 +386,19 @@ void typeCollection::clearNumberedTypes()
  * localVarCollection::getAllVars()
  * this function returns all the local variables in the collection.
  */
-std::vector<Type *> *typeCollection::getAllTypes() {
-   std::vector<Type *> *typesVec = new std::vector<Type *>;
-   //for (dyn_hash_map<int, Type *>::iterator it = typesByID.begin();
-   //     it != typesByID.end();
-   //     it ++) {
+void typeCollection::getAllTypes(std::vector<boost::shared_ptr<Type>>& vec) {
    for (auto it = typesByName.begin();
         it != typesByName.end();
         it ++) {
-	typesVec->push_back(it->second);
+	vec.push_back(it->second);
    }
-   if(!typesVec->size()){
-       delete typesVec;
-       return NULL;
-   }
-   return typesVec;
 }
 
-vector<pair<string, Type *> > *typeCollection::getAllGlobalVariables() {
-    vector<pair<string, Type *> > *varsVec = new vector<pair<string, Type *> >;
+void typeCollection::getAllGlobalVariables(vector<pair<string, boost::shared_ptr<Type>>>& vec) {
     for(auto it = globalVarsByName.begin();
         it != globalVarsByName.end(); it++) {
-	varsVec->push_back(pair<string, Type *>(it->first, it->second));
+	vec.push_back(make_pair(it->first, it->second));
    }	
-   if(!varsVec->size()){
-       delete varsVec;
-       return NULL;
-   }
-   return varsVec;
 }
 
 #if !defined(SERIALIZATION_DISABLED)
@@ -457,19 +407,17 @@ Serializable *typeCollection::serialize_impl(SerializerBase *sb, const char *tag
 	serialize_printf("%s[%d]:  enter typeCollection::serialize_impl\n", FILE__, __LINE__);
 
 	std::vector<std::pair<std::string, int> >  gvars;
-	dyn_hash_map<std::string, Type *>::iterator iter;
-	for (iter = globalVarsByName.begin(); iter != globalVarsByName.end(); iter++)
+	for (auto iter = globalVarsByName.begin(); iter != globalVarsByName.end(); iter++)
 		gvars.push_back(std::make_pair(iter->first, iter->second->getID()));
 
-	std::vector<Type *> ltypes;
-	dyn_hash_map<int, Type *>::iterator iter2;
-	for (iter2 = typesByID.begin(); iter2 != typesByID.end(); iter2++)
+	std::vector<Type*> ltypes;
+	for (auto iter2 = typesByID.begin(); iter2 != typesByID.end(); iter2++)
 	{
 		if (!iter2->second) assert(0);
 		//  try skipping field list types
 		//if (dynamic_cast<fieldListType *>(iter2->second)) continue;
 		assert (iter2->first == iter2->second->getID());
-		ltypes.push_back(iter2->second);
+		ltypes.push_back(iter2->second.get());
 	}
 
 	ifxml_start_element(sb, tag);
@@ -481,28 +429,27 @@ Serializable *typeCollection::serialize_impl(SerializerBase *sb, const char *tag
 
 	if (is_input(sb))
 	{
-		for (unsigned int i = 0; i < ltypes.size(); ++i)
+		for (auto it = ltypes.begin(); it != ltypes.end(); ++it)
 		{
-			typesByID[ltypes[i]->getID()] = ltypes[i];
+            assert(typesByID.insert({it->getID(), *it}));
 		}
 		doDeferredLookups(this);
 
-		for (unsigned int i = 0; i < gvars.size(); ++i)
+		for (auto it = gvars.begin(); it != gvars.end(); ++it)
 		{
-			dyn_hash_map<int, Type *>::iterator iter = typesByID.find(gvars[i].second);
-			if (iter == typesByID.end())
+            dyn_c_hash_map<int, boost::shared_ptr<Type>>::const_accessor a;
+            if (!typesByID.find(a, it->second))
 			{
 				serialize_printf("%s[%d]:  cannot find type w/ID %d\n", 
 						FILE__, __LINE__, gvars[i].second);
 				continue;
 			}
-			Type *t = iter->second;
-			globalVarsByName[gvars[i].first] = t;
+            assert(globalVarsByName.insert({it->first, a->second}))
 		}
 
-		dyn_hash_map<int, Type *>::iterator iter;
-		for (iter = typesByID.begin(); iter != typesByID.end(); iter++)
-			typesByName[iter->second->getName()] = iter->second;
+		for (auto it = typesByID.begin(); it != typesByID.end(); ++it)
+            if(it->second->getName() != "")
+              assert(typesByName.insert({it->second->getName(), it->second}));
 	}
 
 	serialize_printf("%s[%d]:  leave typeCollection::serialize_impl\n", FILE__, __LINE__);
@@ -524,7 +471,9 @@ Serializable *typeCollection::serialize_impl(SerializerBase *, const char *) THR
  *  XXX- Don't know if a collection is needed for types by name, but
  * it is created just in case. jdd 4/21/99
  */
-builtInTypeCollection::builtInTypeCollection()
+builtInTypeCollection::builtInTypeCollection():
+  builtInTypesByID(),
+  builtInTypesByName()
 {
   /* Initialize hash tables: builtInTypesByName, builtInTypesByID */
 }
@@ -537,15 +486,6 @@ builtInTypeCollection::builtInTypeCollection()
  */
 builtInTypeCollection::~builtInTypeCollection()
 {
-   dyn_hash_map<std::string, Type *>::iterator bit = builtInTypesByName.begin();
-   dyn_hash_map<int, Type *>::iterator bitid = builtInTypesByID.begin();
-     
-    // delete builtInTypesByName collection
-    for(;bit!=builtInTypesByName.end();bit++)
-	bit->second->decrRefCount();
-    // delete builtInTypesByID collection
-    for(;bitid!=builtInTypesByID.end();bitid++)
-	bitid->second->decrRefCount();
 }
 
 
@@ -559,43 +499,42 @@ builtInTypeCollection::~builtInTypeCollection()
  * name		The name of the type to look up.
  * id           The unique type ID of the type tp look up.
  */
-Type *builtInTypeCollection::findBuiltInType(std::string &name)
+boost::shared_ptr<Type> builtInTypeCollection::findBuiltInType(std::string &name, Type::do_share_t)
 {
-    if (builtInTypesByName.find(name) != builtInTypesByName.end())
-    	return builtInTypesByName[name];
+    dyn_c_hash_map<std::string, boost::shared_ptr<Type>>::const_accessor a;
+    if (builtInTypesByName.find(a, name))
+       return a->second;
     else
-	return (Type *)NULL;
+       return boost::shared_ptr<Type>();
 }
 
-Type *builtInTypeCollection::findBuiltInType(const int ID)
+boost::shared_ptr<Type> builtInTypeCollection::findBuiltInType(const int ID, Type::do_share_t)
 {
-    if (builtInTypesByID.find(ID) != builtInTypesByID.end())
-    	return builtInTypesByID[ID];
+    dyn_c_hash_map<int, boost::shared_ptr<Type>>::const_accessor a;
+    if (builtInTypesByID.find(a, ID))
+       return a->second;
     else
-	return (Type *)NULL;
+       return boost::shared_ptr<Type>();
 }
 
-void builtInTypeCollection::addBuiltInType(Type *type)
+void builtInTypeCollection::addBuiltInType(boost::shared_ptr<Type> type)
 {
   if(type->getName() != "") { //Type could have no name.
-    builtInTypesByName[type->getName()] = type;
-    type->incrRefCount();
-  }
+    {
+      builtInTypesByName.insert({type->getName(), type});
+    }
+
   //All built-in types have unique IDs so far jdd 4/21/99
-  builtInTypesByID[type->getID()] = type;
-  type->incrRefCount();
+    {
+      builtInTypesByID.insert({type->getID(), type});
+    }
+  }
 }
 
-std::vector<Type *> *builtInTypeCollection::getAllBuiltInTypes() {
-   std::vector<Type *> *typesVec = new std::vector<Type *>;
-   for (dyn_hash_map<int, Type *>::iterator it = builtInTypesByID.begin();
-        it != builtInTypesByID.end();
-        it ++) {
-	typesVec->push_back(it->second);
+void builtInTypeCollection::getAllBuiltInTypes(std::vector<boost::shared_ptr<Type>>& vec) {
+   for (auto it = builtInTypesByID.begin();
+       it != builtInTypesByID.end();
+       it ++) {
+     vec.push_back(it->second);
    }
-   if(!typesVec->size()){
-       delete typesVec;
-       return NULL;
-   }
-   return typesVec;
 }

@@ -203,35 +203,26 @@ unsigned long long PDYN_mulMillion(unsigned long long in) {
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/lock_guard.hpp>
 
-#include <race-detector-annotations.h>
 
 using namespace abi;
 
 inline void set_thread_local_pointer(char* &var, char* val) {
-    race_detector_fake_lock_acquire(race_detector_fake_lock(var));
     var = val;
-    race_detector_fake_lock_release(race_detector_fake_lock(var));
 }
 
 inline void set_thread_local_bool(bool &var, bool val) {
-    race_detector_fake_lock_acquire(race_detector_fake_lock(var));
     var = val;
-    race_detector_fake_lock_release(race_detector_fake_lock(var));
 }
 
 inline char* get_thread_local_pointer(char* &var) {
     char *ret;
-    race_detector_fake_lock_acquire(race_detector_fake_lock(var));
     ret = var;
-    race_detector_fake_lock_release(race_detector_fake_lock(var));
     return ret;
 }
 
 inline bool get_thread_local_bool(bool &var) {
     bool ret;
-    race_detector_fake_lock_acquire(race_detector_fake_lock(var));
     ret = var;
-    race_detector_fake_lock_release(race_detector_fake_lock(var));
     return ret;
 }
 

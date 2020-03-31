@@ -1754,3 +1754,9 @@ bool BPatch_process::protectAnalyzedCode()
     }
     return ret;
 }
+
+
+bool BPatch_process::supportsUserThreadEvents() {
+    if (llproc == NULL) return false;
+    return llproc->supportsUserThreadEvents(); 
+}

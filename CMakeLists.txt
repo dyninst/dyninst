@@ -6,6 +6,9 @@ set (CMAKE_SKIP_BUILD_RPATH FALSE)
 set (CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set (CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+set(STERILE_BUILD OFF CACHE BOOL "Do not download/build any third-party dependencies from source")
+
 LIST(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES 
 	  "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
 IF("${isSystemDir}" STREQUAL "-1")
@@ -25,6 +28,10 @@ include(ElfUtils)
 include(LibIberty)
 
 include(shared)
+
+if(USE_OpenMP)
+  find_package(OpenMP REQUIRED)
+endif()
 
 # PLATFORM is set by including 'shared'
 if(PLATFORM MATCHES "bgq")
@@ -58,12 +65,20 @@ foreach (dir ${HEADER_DIRS})
   include_directories ( ${DYNINST_ROOT}/${dir}/h )
 endforeach()
 
+set(DYNINST_RT_CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+set(DYNINST_RT_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
+set(ADD_VALGRIND_ANNOTATIONS OFF CACHE BOOL "Enable annotations for Valgrind analysis")
+if(ADD_VALGRIND_ANNOTATIONS)
+  find_package(Valgrind REQUIRED)
+  include_directories(${Valgrind_INCLUDE_DIRS})
+  add_definitions(-DENABLE_VG_ANNOTATIONS)
+endif()
 
 include_directories (
   ${DYNINST_ROOT}
   ${DYNINST_ROOT}/external
-  ${CILKSCREEN_INCLUDES}
-      ${TBB_INCLUDE_DIRS}
+  ${TBB_INCLUDE_DIRS}
   )
 
 # Component time
