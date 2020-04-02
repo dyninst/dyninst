@@ -315,7 +315,6 @@ void BoundFactsCalculator::ThunkBound( BoundFact*& curFact, Node::Ptr src, Node:
 
 static bool IsConditionalJump(Instruction insn) {
     entryID id = insn.getOperation().getID();
-
     if (id == e_jz || id == e_jnz ||
         id == e_jb || id == e_jnb ||
 	id == e_jbe || id == e_jnbe ||
