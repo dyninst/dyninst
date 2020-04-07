@@ -28,7 +28,7 @@
 #
 #======================================================================================
 
-if(LibElf_FOUND AND LibDwarf_FOUND)
+if(LibElf_FOUND AND LibDwarf_FOUND AND (LibDebuginfod_FOUND OR NOT ENABLE_DEBUGINFOD))
   return()
 endif()
 
@@ -37,7 +37,12 @@ if(NOT UNIX)
 endif()
 
 # Minimum acceptable version of elfutils
-set(_min_version 0.178)
+if(ENABLE_DEBUGINFOD)
+  set(_min_version 0.179)
+else()
+  set(_min_version 0.178)
+endif()
+
 set(ElfUtils_MIN_VERSION ${_min_version}
     CACHE STRING "Minimum acceptable elfutils version")
 if(${ElfUtils_MIN_VERSION} VERSION_LESS ${_min_version})
@@ -62,7 +67,7 @@ set(ElfUtils_LIBRARYDIR "${ElfUtils_ROOT_DIR}/lib"
     CACHE PATH "Hint directory that contains the elfutils library files")
 
 # libelf/dwarf-specific directory hints
-foreach(l LibElf LibDwarf)
+foreach(l LibElf LibDwarf LibDebuginfod)
   foreach(d ROOT_DIR INCLUDEDIR LIBRARYDIR)
     set(${l}_${d} ${ElfUtils_${d}})
   endforeach()
@@ -72,18 +77,30 @@ endforeach()
 
 find_package(LibElf ${ElfUtils_MIN_VERSION})
 
-# Don't search for libdw if we didn't find a suitable libelf
+# Don't search for libdw or libdebuginfod if we didn't find a suitable libelf
 if(LibElf_FOUND)
   find_package(LibDwarf ${ElfUtils_MIN_VERSION})
+  if (ENABLE_DEBUGINFOD)
+    find_package(LibDebuginfod ${ElfUtils_MIN_VERSION})
+  endif()
 endif()
 
 # -------------- SOURCE BUILD -------------------------------------------------
-if(LibElf_FOUND AND LibDwarf_FOUND)
-  set(_eu_root ${ElfUtils_ROOT_DIR})
-  set(_eu_inc_dirs ${LibElf_INCLUDE_DIRS} ${LibDwarf_INCLUDE_DIRS})
-  set(_eu_lib_dirs ${LibElf_LIBRARY_DIRS} ${LibDwarf_LIBRARY_DIRS})
-  set(_eu_libs ${LibElf_LIBRARIES} ${LibDwarf_LIBRARIES})
+if(LibElf_FOUND AND LibDwarf_FOUND AND (NOT ENABLE_DEBUGINFOD OR LibDebuginfod_FOUND))
+  if(ENABLE_DEBUGINFOD AND LibDebuginfod_FOUND)
+    set(_eu_root ${ElfUtils_ROOT_DIR})
+    set(_eu_inc_dirs ${LibElf_INCLUDE_DIRS} ${LibDwarf_INCLUDE_DIRS} ${LibDebuginfod_INCLUDE_DIRS})
+    set(_eu_lib_dirs ${LibElf_LIBRARY_DIRS} ${LibDwarf_LIBRARY_DIRS} ${LibDebuginfod_LIBRARY_DIRS})
+    set(_eu_libs ${LibElf_LIBRARIES} ${LibDwarf_LIBRARIES} ${LibDebuginfod_LIBRARIES})
+  else()
+    set(_eu_root ${ElfUtils_ROOT_DIR})
+    set(_eu_inc_dirs ${LibElf_INCLUDE_DIRS} ${LibDwarf_INCLUDE_DIRS})
+    set(_eu_lib_dirs ${LibElf_LIBRARY_DIRS} ${LibDwarf_LIBRARY_DIRS})
+    set(_eu_libs ${LibElf_LIBRARIES} ${LibDwarf_LIBRARIES})
+  endif()
   add_library(ElfUtils SHARED IMPORTED)
+elseif(ENABLE_DEBUGINFOD AND NOT LibDebuginfod_FOUND)
+  message(FATAL_ERROR "Debuginfod enabled but not found")
 elseif(NOT (LibElf_FOUND AND LibDwarf_FOUND) AND STERILE_BUILD)
   message(FATAL_ERROR "Elfutils not found and cannot be downloaded because build is sterile.")
 else()
@@ -104,7 +121,7 @@ else()
   if(NOT (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU") OR NOT (${CMAKE_C_COMPILER_ID} STREQUAL "GNU"))
     message(FATAL_ERROR "ElfUtils will only build with the GNU compiler")
   endif()
-  
+
   include(ExternalProject)
   externalproject_add(
     ElfUtils

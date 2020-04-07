@@ -47,6 +47,9 @@
 #include <sstream>
 #include <libelf.h>
 
+#if DEBUGINFOD_LIB
+#include <elfutils/debuginfod.h>
+#endif
 
 using namespace std;
 using boost::crc_32_type;
@@ -1722,37 +1725,79 @@ bool Elf_X::findDebugFile(std::string origfilename, string &output_name, char* &
      }
   }
 
-  if (debugFileFromDebugLink.empty())
-     return false;
+  if (!debugFileFromDebugLink.empty()) {
+     char *mfPathNameCopy = strdup(origfilename.c_str());
+     string objectFileDirName = dirname(mfPathNameCopy);
 
-  char *mfPathNameCopy = strdup(origfilename.c_str());
-  string objectFileDirName = dirname(mfPathNameCopy);
+     vector<string> fnames = list_of
+       (objectFileDirName + "/" + debugFileFromDebugLink)
+       (objectFileDirName + "/.debug/" + debugFileFromDebugLink)
+       ("/usr/lib/debug/" + objectFileDirName + "/" + debugFileFromDebugLink);
 
-  vector<string> fnames = list_of
-    (objectFileDirName + "/" + debugFileFromDebugLink)
-    (objectFileDirName + "/.debug/" + debugFileFromDebugLink)
-    ("/usr/lib/debug/" + objectFileDirName + "/" + debugFileFromDebugLink);
+     free(mfPathNameCopy);
 
-  free(mfPathNameCopy);
+     for(unsigned i = 0; i < fnames.size(); i++) {
+        bool result = loadDebugFileFromDisk(fnames[i], output_buffer, output_buffer_size);
+        if (!result)
+           continue;
 
-  for(unsigned i = 0; i < fnames.size(); i++) {
-     bool result = loadDebugFileFromDisk(fnames[i], output_buffer, output_buffer_size);
-     if (!result)
-        continue;
-    
-    boost::crc_32_type crcComputer;
-    crcComputer.process_bytes(output_buffer, output_buffer_size);
-    if(crcComputer.checksum() != debugFileCrc) {
-       munmap(output_buffer, output_buffer_size);
-       continue;
-    }
+        boost::crc_32_type crcComputer;
+        crcComputer.process_bytes(output_buffer, output_buffer_size);
+        if(crcComputer.checksum() != debugFileCrc) {
+           munmap(output_buffer, output_buffer_size);
+           continue;
+        }
 
-    output_name = fnames[i];
-    cached_debug_buffer = output_buffer;
-    cached_debug_size = output_buffer_size;
-    cached_debug_name = output_name;
-    return true;
+        output_name = fnames[i];
+        cached_debug_buffer = output_buffer;
+        cached_debug_size = output_buffer_size;
+        cached_debug_name = output_name;
+        return true;
+     }
   }
+
+#ifdef DEBUGINFOD_LIB
+  if (!debugFileFromBuildID.empty()) {
+     // Given /usr/lib/debug/.buildid/XX/YYYYYY.debug, isolate XXYYYYYY.
+     size_t idx1 = debugFileFromBuildID.find_last_of("/");
+     size_t idx2 = debugFileFromBuildID.find_last_of(".");
+
+     if (idx1 == string::npos || idx2 == string::npos
+         || idx1 < 2 || idx1 > idx2)
+        return false;
+
+     idx1 -= 2;
+     string buildid(debugFileFromBuildID.substr(idx1, idx2 - idx1));
+     buildid.erase(2, 1);
+
+     debuginfod_client *client = debuginfod_begin();
+     if (client == NULL)
+        return false;
+
+     char *filename;
+     int fd = debuginfod_find_debuginfo(client,
+                                        (const unsigned char *)buildid.c_str(),
+                                        0, &filename);
+     debuginfod_end(client);
+
+     if (fd >= 0) {
+        string fname = string(filename);
+        free(filename);
+        close(fd);
+
+        bool result = loadDebugFileFromDisk(fname,
+                                            output_buffer,
+                                            output_buffer_size);
+        if (result) {
+           output_name = fname;
+           cached_debug_buffer = output_buffer;
+           cached_debug_size = output_buffer_size;
+           cached_debug_name = output_name;
+           return true;
+        }
+     }
+  }
+#endif
 
   return false;
 }
