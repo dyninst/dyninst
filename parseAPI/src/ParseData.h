@@ -284,9 +284,6 @@ public:
 	 // Find functions within [start,end)
 	 int findFuncs(Address start, Address end, set<Function *> & funcs);
     region_data(CodeObject* obj, CodeRegion* reg) {
-        Block* sink = new Block(obj, reg, numeric_limits<Address>::max());
-        blocksByAddr.insert(make_pair(sink->start(),sink));
-        blocksByRange.insert(sink);
     }
 
     edge_data_map* get_edge_data_map() { return &edge_parsing_status; }
@@ -312,14 +309,8 @@ public:
         return ret;
     }
 
-    void getAllBlocks(std::map<Address, Block*> &allBlocks) {
-        // This function should be only called in single-threaded mode,
-        // such as when we are finalizing parsing
+    int getTotalNumOfBlocks() { return blocksByAddr.size(); }
 
-        // We convert hash map to an ordered tree
-        for (auto it = blocksByAddr.begin(); it != blocksByAddr.end(); ++it)
-            allBlocks[it->first] = it->second;
-    }
 };
 
 /** region_data inlines **/

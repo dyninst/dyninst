@@ -328,6 +328,34 @@ void Parser::parse_gap_heuristic(CodeRegion * cr)
     finalize();
 }
 
+bool Parser::getGapRange(CodeRegion* cr, Address curAddr, Address& gapStart, Address& gapEnd) {
+    std::set< std::pair<Address, Address> > func_range;
+    for (auto fit = sorted_funcs.begin(); fit != sorted_funcs.end(); ++fit) {
+        Function * f = *fit;
+	for (auto eit = f->extents().begin(); eit != f->extents().end(); ++eit) {
+	    FuncExtent *fe = *eit;
+	    func_range.insert(make_pair(fe->start(), fe->end()));
+	}
+    }
+    auto iter = func_range.upper_bound(make_pair(curAddr, std::numeric_limits<Address>::max() ));
+    if (iter == func_range.end()) {
+        gapEnd = cr->offset() + cr->length();
+    } else {
+        gapEnd = iter->first;
+    }
+    if (iter == func_range.begin()) {
+        gapStart = curAddr;
+    } else {
+	--iter;
+        if (iter->second > curAddr) {
+	    gapStart = iter->second;
+        } else {
+	    gapStart = curAddr;
+        }
+    }
+    return gapStart < gapEnd;
+}
+
 void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
     // 0. ensure that we've parsed and finalized all vanilla parsing.
     // We also locate all the gaps
@@ -344,16 +372,10 @@ void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
 
     // Load the pre-trained idiom model:
     hd::ProbabilityCalculator pc(cr, obj().cs(), this, model_spec);
-
-    // Calculate and update gaps when we find new FEP
-    Address gapStart = 0;
-    Address gapEnd = 0;
-    Address curAddr = 0;
-
-    bool reset_iterator = sorted_funcs.empty();
-    set<Function *,Function::less>::const_iterator beforeGap = sorted_funcs.begin();
-
-    while(hd::compute_gap_new(cr,curAddr,sorted_funcs,beforeGap,gapStart,gapEnd, reset_iterator)) {
+    Address gapStart;
+    Address gapEnd;
+    Address curAddr = cr->offset();
+    while (getGapRange(cr, curAddr, gapStart, gapEnd)) {
         parsing_printf("[%s] scanning for FEP in [%lx,%lx)\n",
             FILE__,gapStart,gapEnd);
         for(curAddr=gapStart; curAddr < gapEnd; ++curAddr) {
@@ -364,18 +386,11 @@ void Parser::probabilistic_gap_parsing(CodeRegion *cr) {
 		Block* parsed = _obj.findBlockByEntry(cr, curAddr);
 		if (parsed) continue;
                 parse_at(cr,curAddr,true,GAP);
-
-                if(reset_iterator && !sorted_funcs.empty()) {
-                    beforeGap = sorted_funcs.begin();
-                }
-
                 break;
             }
         }
+        finalize();
     }
-
-    // 5. Finalize function boundaries
-    finalize();
 }
 
 #else // cap_stripped binaries

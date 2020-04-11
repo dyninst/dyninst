@@ -560,7 +560,7 @@ SymtabCodeSource::init_linkage()
     vector<SymtabAPI::relocationEntry>::iterator fbtit;
 
     if(!_symtab->getFuncBindingTable(fbt)){
-        fprintf( stderr, "Cannot get function binding table. %s\n", _symtab->file().c_str());
+        parsing_printf("Cannot get function binding table. %s\n", _symtab->file().c_str());
         return;
     }
 
@@ -569,6 +569,47 @@ SymtabCodeSource::init_linkage()
         _linkage[(*fbtit).target_addr()] = (*fbtit).name(); 
     }
     if (getArch() != Arch_x86_64) return;
+    SymtabAPI::Region * plt_sec = NULL;
+    if (_symtab->findRegion(plt_sec, ".plt.sec")) {
+        // Handle 2-PLT style PLT used for Indirect Branch Tracking (IBT) in Intel CET
+        SymtabAPI::Region * rela_plt = NULL;
+        if (!_symtab->findRegion(rela_plt, ".rela.plt")) return;
+        // Get PLT related relocation entries
+        map<Address, string> rel_addr_to_name;
+        std::vector<SymtabAPI::relocationEntry> &relocs = rela_plt->getRelocations();
+        for (auto re_it = relocs.begin(); re_it != relocs.end(); ++re_it) {
+            SymtabAPI::relocationEntry &r = *re_it;
+            rel_addr_to_name[r.rel_addr()] = r.name();
+        }
+
+        // Each PLT stub is 16 byte long
+        const int plt_entry_size = 16;
+        // Each PLT stub starts with a ENDBR64 instruction, which is 4 byte long,
+        // followed by a indirect jump instruction.
+        // The indirect jump instruction has a BND prefix and two byte opcode.
+        // Therefore, the offset to the PC-relative displacement is 7 bytes.
+        const int pc_rela_disp = 7;
+        const unsigned char* buffer = (const unsigned char*)plt_sec->getPtrToRawData();
+
+        // Scan each PLT stub
+        for (size_t off = 0; off < plt_sec->getMemSize(); off += plt_entry_size) {
+            int disp = *((const int*)(buffer + off + pc_rela_disp));
+            Address rel_addr = plt_sec->getMemOffset() + off + pc_rela_disp + 4 /* four byte pc-relative displacment */ + disp;
+            if (rel_addr_to_name.find(rel_addr) != rel_addr_to_name.end()) {
+                Address tar = plt_sec->getMemOffset() + off;
+                if (rel_addr_to_name[rel_addr] == "") {
+                    // Sometimes PLT is used to call function in the same library.
+                    // One such case is to perform a call to a ifunc to use CPU dispatch feature
+                    char ifunc_name[128];
+                    snprintf(ifunc_name, 128, "ifunc%lx", tar);
+                    _linkage[tar] = std::string(ifunc_name);
+                } else {
+                    _linkage[tar] = rel_addr_to_name[rel_addr];
+                }
+            }
+        }
+        return;
+    }
     SymtabAPI::Region * plt_got = NULL;
     SymtabAPI::Region * rela_dyn = NULL;
     if (!_symtab->findRegion(plt_got, ".plt.got")) return;

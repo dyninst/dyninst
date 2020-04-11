@@ -125,6 +125,8 @@ namespace Dyninst {
             // functions
             Function *findFuncByEntry(CodeRegion *cr, Address entry);
 
+            int findFuncsByBlock(CodeRegion *cr, Block *b, set<Function*> &funcs);
+
             int findFuncs(CodeRegion *cr, Address addr, set<Function *> &funcs);
 
             int findFuncs(CodeRegion *cr, Address start, Address end, set<Function *> &funcs);
@@ -177,6 +179,7 @@ namespace Dyninst {
             void cleanup_frames();
             void parse_gap_heuristic(CodeRegion *cr);
 
+            bool getGapRange(CodeRegion*, Address, Address&, Address&);
             void probabilistic_gap_parsing(CodeRegion *cr);
             //void parse_sbp();
 
@@ -300,6 +303,8 @@ namespace Dyninst {
             //
             // Note: this has to be run in a single thread.
             vector<Function*> funcs_to_ranges;            
+
+            dyn_c_hash_map<Block*, std::set<Function* > > funcsByBlockMap;
         };
 
     }

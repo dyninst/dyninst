@@ -302,9 +302,6 @@ SgAsmExpression *ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
             int regNum;
             int regPos;
 
-	    if((machReg & 0xFF) == (aarch64::pstate & 0xFF) && (machReg & 0xFF0000) == (aarch64::SPR))
-		return NULL;
-
             machReg.getROSERegister(regClass, regNum, regPos);
             if (regClass < 0) return NULL;
             SgAsmDirectRegisterExpression *dre = new SgAsmDirectRegisterExpression(RegisterDescriptor(regClass, regNum, regPos, machReg.size() * 8));

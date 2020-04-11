@@ -55,10 +55,14 @@ bool SymbolicExpansion::expandX86(SgAsmInstruction *rose_insn,
 
 bool SymbolicExpansion::expandX86_64(SgAsmInstruction *rose_insn,
                                      SymEvalPolicy_64 &policy) {
-    SgAsmx86Instruction *insn = static_cast<SgAsmx86Instruction *>(rose_insn);
+    try {
+        SgAsmx86Instruction *insn = static_cast<SgAsmx86Instruction *>(rose_insn);
+        X86_64InstructionSemantics<SymEvalPolicy_64, Handle> t(policy);
+        t.processInstruction(insn);
+    } catch (rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception &e) {
+        // fprintf(stderr, "Instruction processing threw exception for instruction: %s\n", insn_dump.c_str());
+    }
 
-    X86_64InstructionSemantics<SymEvalPolicy_64, Handle> t(policy);
-    t.processInstruction(insn);
     return true;
 }
 

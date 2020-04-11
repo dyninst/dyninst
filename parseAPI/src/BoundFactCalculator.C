@@ -315,7 +315,6 @@ void BoundFactsCalculator::ThunkBound( BoundFact*& curFact, Node::Ptr src, Node:
 
 static bool IsConditionalJump(Instruction insn) {
     entryID id = insn.getOperation().getID();
-
     if (id == e_jz || id == e_jnz ||
         id == e_jb || id == e_jnb ||
 	id == e_jbe || id == e_jnbe ||
@@ -375,7 +374,7 @@ BoundFact* BoundFactsCalculator::Meet(Node::Ptr curNode) {
 	    // we can determine bound fact based on the predicate and the edge type
   	    parsing_printf("\t\tThe predecessor node is a conditional jump!\n");
 	    if (!prevFact->ConditionalJumpBound(srcNode->assign()->insn(), edge->type())) {
-	        fprintf(stderr, "From %lx to %lx\n", srcNode->addr(), node->addr());
+	        parsing_printf("From %lx to %lx\n", srcNode->addr(), node->addr());
 	    }
 	}
 	//ThunkBound(prevFact, srcNode, node, newCopy);

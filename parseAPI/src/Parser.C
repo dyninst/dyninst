@@ -123,10 +123,14 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
 
         if(overlap) {
             _parse_data = new OverlappingParseData(this,copy);
+            assert(_sink == record_block(_sink));
             return;
         }
     }
     _parse_data = new StandardParseData(this);    
+    if (_parse_state != UNPARSEABLE) {
+        assert(_sink == record_block(_sink));
+    }
 }
 
 ParseFrame::~ParseFrame()
@@ -983,6 +987,17 @@ Parser::finalize(Function *f)
 
     f->_cache_valid = cache_value; // see comment at function entry
 
+    // Update funcsByBlockMap
+    for (auto bit = blocks.begin(); bit != blocks.end(); ++bit) {
+        Block *b = *bit;
+        dyn_c_hash_map<Block*, std::set<Function*> >::accessor a;
+        std::set<Function*> new_value;
+        new_value.insert(f);
+        if (!funcsByBlockMap.insert(a, make_pair(b, new_value))) {
+            a->second.insert(f);
+        }
+    }
+
     if (unlikely( f->obj()->defensiveMode())) {
         // add fallthrough edges for calls assumed not to be returning
         // whose fallthrough blocks we parsed anyway (this happens if 
@@ -1010,6 +1025,12 @@ Parser::finalize()
 {
     if(_parse_state < FINALIZED) {
         finalize_jump_tables();
+        std::vector<region_data*> rd;
+        _parse_data->getAllRegionData(rd);
+        int totalBlock = 0;
+        for (auto rit = rd.begin(); rit != rd.end(); ++rit)
+            totalBlock += (*rit)->getTotalNumOfBlocks();
+        funcsByBlockMap.rehash(2 * totalBlock);
         finalize_funcs(hint_funcs);
         finalize_funcs(discover_funcs);
         clean_bogus_funcs(discover_funcs);
@@ -1049,6 +1070,7 @@ Parser::finalize_jump_tables()
     for (auto fit = hint_funcs.begin(); fit != hint_funcs.end(); ++fit) {
         Function* f = *fit;
         for (auto jit = f->getJumpTables().begin(); jit != f->getJumpTables().end(); ++jit) {
+            if (jumpTableStart.find(jit->second.tableStart) != jumpTableStart.end()) continue;
             jumpTableStart.insert(jit->second.tableStart);
             jumpTables.push_back(&(jit->second));
         }
@@ -1057,6 +1079,7 @@ Parser::finalize_jump_tables()
     for (auto fit = discover_funcs.begin(); fit != discover_funcs.end(); ++fit) {
         Function* f = *fit;
         for (auto jit = f->getJumpTables().begin(); jit != f->getJumpTables().end(); ++jit) {
+            if (jumpTableStart.find(jit->second.tableStart) != jumpTableStart.end()) continue;
             jumpTableStart.insert(jit->second.tableStart);
             jumpTables.push_back(&(jit->second));
         }
@@ -1085,17 +1108,32 @@ Parser::finalize_jump_tables()
 
         if (start_it == jumpTableStart.end()) continue;
         if (*start_it < jti->tableEnd) {
+            std::set<Address> validTargets;
+            // Non-overlapping entries are valid targets.
+            // We record these valid targets and do not remove target edges
+            // even if overlapping entries lead to valid targets.
+            for (Address addr = jti->tableStart; addr < *start_it; addr += jti->indexStride) {
+                validTargets.insert(jti->tableEntryMap[addr]);
+            }
+
+            // Build a target address to ParseAPI::Edge* map
             std::map<Address, Edge*> edgeMap;
             jti->block->copy_targets(targets);
             for (auto eit = targets.begin(); eit != targets.end(); ++eit) {
                 if ((*eit)->type() != INDIRECT || (*eit)->sinkEdge()) continue;
                 edgeMap.insert(make_pair((*eit)->trg_addr(), *eit));
             }
+
+            // Enumerate every overlapping entries and attempt to delete bogus edges
             for (Address addr = *start_it; addr < jti->tableEnd; addr += jti->indexStride) {
+                if (validTargets.find(jti->tableEntryMap[addr]) != validTargets.end()) continue;
                 if (edgeMap.find(jti->tableEntryMap[addr]) == edgeMap.end()) continue;
                 Edge * e = edgeMap[jti->tableEntryMap[addr]];
                 delete_bogus_blocks(e);
             }
+
+            // Adjust jump table end
+            jti->tableEnd = *start_it;
         }
     }
 }
@@ -1113,20 +1151,37 @@ Parser::delete_bogus_blocks(Edge* e)
             e->trg(), e->trg()->start(), e->trg()->end(),
             e->type());
     e->src()->removeTarget(e);
+    // Bogus control flow may lead to invalid instructions,
+    // which will cause a sink edge. So, the sink block may
+    // have a large number of incoming edges. 
+    if (e->sinkEdge()) return;
     cur->removeSource(e);
-    
+
+    // If the target block has other incoming edges,
+    // then we do not remove the block at this point.
+    // It is possible that all incoming edges are bogus
+    // indirect edges, then the last removed edge will
+    // trigger the deletion of the block.
     Block::edgelist sources;
     cur->copy_sources(sources);
     for (auto eit = sources.begin(); eit != sources.end(); ++eit)
         if ((*eit)->type() != INDIRECT && (*eit)->src() != e->src()) 
             return;
 
+    // If an indirect edge points a function entry,
+    // and the entry block does not have other incoming edges,
+    // then this function must be from the symbol talbe.
+    // No need to perform cascading deletion.
+    Function* func = findFuncByEntry(cur->region(), cur->start());
+    if (func != NULL) return;
+
+    // The target block is created by the bogus indirect edge,
+    // we need to continue deleting edges
     Block::edgelist targets;
     cur->copy_targets(targets);
     for (auto eit = targets.begin(); eit != targets.end(); ++eit) {
         delete_bogus_blocks(*eit);
     }
-
 }
 
 void
@@ -2150,6 +2205,29 @@ Parser::findFuncByEntry(CodeRegion *r, Address entry)
 }
 
 int
+Parser::findFuncsByBlock(CodeRegion *r, Block *b, set<Function*> &funcs)
+{
+    if(_parse_state < COMPLETE) {
+        parsing_printf("[%s:%d] Parser::findFuncsByBlock([%lx,%lx),%lx,...) "
+                               "forced parsing\n",
+                       FILE__,__LINE__,r->low(),r->high(),b->start());
+        parse();
+    }
+    if(_parse_state < FINALIZED) {
+        parsing_printf("[%s:%d] Parser::findFuncsByBlock([%lx,%lx),%lx,...) "
+                               "forced finalization\n",
+                       FILE__,__LINE__,r->low(),r->high(),b->start());
+        finalize();
+    }
+    dyn_c_hash_map<Block*, std::set<Function*> >::const_accessor a;
+    if (funcsByBlockMap.find(a, b)) {
+        funcs = a->second;
+        return funcs.size();
+    }
+    return 0;
+}
+
+int
 Parser::findFuncs(CodeRegion *r, Address addr, set<Function *> & funcs)
 {
     if(_parse_state < COMPLETE) {
@@ -2294,7 +2372,7 @@ Parser::link_tempsink(Block *src, EdgeTypeEnum et)
 {
     // Do not put the edge into block target list at this moment,
     // because the source block is likely to be split.
-    Block* tmpsink = parse_data()->findBlock(src->region(), std::numeric_limits<Address>::max());
+    Block* tmpsink = _sink;
     ParseAPI::Edge * e = factory()._mkedge(src, tmpsink,et);
     e->_type._sink = true;
     return e;
@@ -2323,6 +2401,7 @@ assert(src->end() == dst->start());
             addSrcAndDest = false;
         }
         e->_target_off = dst->start();
+        e->_target = dst;
         dst->addSource(e);
         _pcb.addEdge(dst, e, ParseCallback::source);
     }
@@ -2340,9 +2419,6 @@ assert(src->end() == dst->start());
         // we don't inform PatchAPI of temporary sinkEdges, we have
         // to add both the source AND target edges
         _pcb.addEdge(src, e, ParseCallback::target);
-    }
-    if(parse_data()->findBlock(dst->region(), dst->start()) != dst) {
-	assert(!"another block already exist!");
     }
     e->_type._sink = (dst->start() == std::numeric_limits<Address>::max());
 }
