@@ -2830,6 +2830,22 @@ bool linux_thread::plat_setRegisterAsync(Dyninst::MachRegister reg,
    return true;
 }
 
+void linux_thread::plat_handle_ghost_thread() {
+	std::string loc = "/proc/" + std::to_string(proc()->getPid()) + "/task/" + std::to_string(getLWP());
+	struct stat dummy;
+	int res = stat(loc.c_str(), &dummy);
+
+	pthrd_printf("GHOST_THREAD: exists=%d, loc=%s\n", res, loc.c_str());
+
+	if(res == -1) {
+		EventLWPDestroy::ptr lwp_ev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Post));
+		lwp_ev->setSyncType(Event::async);
+		lwp_ev->setThread(thread());
+		dynamic_cast<linux_process*>(proc()->llproc())->decodeTdbLWPExit(lwp_ev);
+		mbox()->enqueue(lwp_ev, true);
+	}
+  }
+
 bool linux_thread::attach()
 {
    if (llproc()->threadPool()->initialThread() == this) {
