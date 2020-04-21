@@ -205,6 +205,21 @@ if (UNIX)
 else()
   target_link_private_libraries(dyninstAPI dbghelp WS2_32 imagehlp)
 endif()
+
+if(UNIX)
+	# gcc/clang search directories
+	if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+		execute_process(
+			COMMAND ${CMAKE_CXX_COMPILER} -print-search-dirs
+			OUTPUT_VARIABLE SEARCH_DIRS
+		)
+		if(SEARCH_DIRS MATCHES "libraries:[ ]?[=]?(.+)\n")
+			set(DYNINST_COMPILER_SEARCH_DIRS ${CMAKE_MATCH_1})
+		endif()
+	endif()
+	target_compile_definitions(dyninstAPI PRIVATE DYNINST_COMPILER_SEARCH_DIRS=${DYNINST_COMPILER_SEARCH_DIRS})
+endif()
+
 if (USE_COTIRE)
     cotire(dyninstAPI)
 endif()
