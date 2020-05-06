@@ -1084,6 +1084,10 @@ Handler::handler_ret_t HandleThreadCleanup::handleEvent(Event::ptr ev)
 
 
    int_thread *thrd = ev->getThread()->llthrd();
+   if(!thrd) {
+	   pthrd_printf("Thread for thread cleanup event is NULL. We have no work we can do.\n");
+	   return ret_success;
+   }
    pthrd_printf("Cleaning thread %d/%d from HandleThreadCleanup handler.\n", 
                 proc->getPid(), thrd->getLWP());
    int_thread::cleanFromHandler(thrd, should_delete);
