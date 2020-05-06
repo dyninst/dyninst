@@ -2841,6 +2841,7 @@ void linux_thread::plat_handle_ghost_thread() {
 		EventLWPDestroy::ptr lwp_ev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Post));
 		lwp_ev->setSyncType(Event::async);
 		lwp_ev->setThread(thread());
+		lwp_ev->setProcess(proc());
 		dynamic_cast<linux_process*>(proc()->llproc())->decodeTdbLWPExit(lwp_ev);
 		mbox()->enqueue(lwp_ev, true);
 	}
