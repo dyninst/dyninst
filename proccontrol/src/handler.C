@@ -983,11 +983,21 @@ int HandleThreadDestroy::getPriority() const
 Handler::handler_ret_t HandleThreadDestroy::handleEvent(Event::ptr ev)
 {
    int_thread *thrd = ev->getThread()->llthrd();
-   int_process *proc = ev->getProcess()->llproc();
 
-	if (!thrd->isUser()) {
-		ev->setSuppressCB(true);
-	}
+   /* The internal thread can be NULL if we receive multiple ThreadDestroy events
+    * for the same thread. This can happen when handling "ghost" threads.
+    */
+   if(!thrd) {
+	   ev->setSuppressCB(true);
+	   pthrd_printf("Encountered an already-destroyed thread\n");
+	   return ret_success;
+   }
+
+   if (!thrd->isUser()) {
+      ev->setSuppressCB(true);
+   }
+
+   int_process *proc = ev->getProcess()->llproc();
 
    if (ev->getEventType().time() == EventType::Pre && proc->plat_supportLWPPostDestroy()) {
       pthrd_printf("Handling pre-thread destroy for %d\n", thrd->getLWP());
