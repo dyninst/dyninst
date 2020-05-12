@@ -3445,6 +3445,7 @@ void linux_process::plat_adjustSyncType(Event::ptr ev, bool gen)
       return;
 
    int_thread *thrd = ev->getThread()->llthrd();
+   if(!thrd) return;
    if (thrd->getGeneratorState().getState() != int_thread::running)
       return;
 
