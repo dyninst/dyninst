@@ -2837,7 +2837,13 @@ void linux_thread::plat_handle_ghost_thread() {
 
 	pthrd_printf("GHOST_THREAD: exists=%d, loc=%s\n", res, loc.c_str());
 
-	if(res == -1) {
+	// If the thread is still active, do nothing
+	if(res != -1) return;
+
+	auto *initial_thread = llproc()->threadPool()->initialThread();
+
+	// Do not create a destroy event for the thread executed from 'main'
+	if(initial_thread != thread()->llthrd()) {
 		EventLWPDestroy::ptr lwp_ev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Post));
 		lwp_ev->setSyncType(Event::async);
 		lwp_ev->setThread(thread());
