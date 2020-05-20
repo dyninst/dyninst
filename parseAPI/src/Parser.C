@@ -2581,17 +2581,16 @@ bool Parser::set_edge_parsing_status(ParseFrame& frame, Address addr, Block* b) 
                     --iit;
 
                     Block * ret = factory()._mkblock(fA, b->region(),addr);
-                    ret->updateEnd(B->end());
-                    ret->_lastInsn = B->_lastInsn;
-                    ret->_parsed = true;
-                   
                     Block * exist = record_block(ret);
                     bool block_exist = false;
                     if (exist != ret) {
                         block_exist = true;
                         ret = exist;
                     }
-                    
+                    ret->updateEnd(B->end());
+                    ret->_lastInsn = B->_lastInsn;
+                    ret->_parsed = true;
+
                     A->moveTargetEdges(ret);
                     B->moveTargetEdges(ret);
                     A->updateEnd(addr);
