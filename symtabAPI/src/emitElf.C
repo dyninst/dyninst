@@ -211,7 +211,6 @@ std::string phdrTypeStr(Elf64_Word phdr_type) {
         case PT_PAX_FLAGS:
             return "PAX";
         default:
-            assert(0);
             return "<UNKNOWN>";
             break;
 
