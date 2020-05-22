@@ -82,8 +82,9 @@ SymtabCodeRegion::SymtabCodeRegion(
     st->getAllSymbols(symbols);
     for (auto sit = symbols.begin(); sit != symbols.end(); ++sit)
         if ( (*sit)->getRegion() == reg && (*sit)->getType() != SymtabAPI::Symbol::ST_FUNCTION && (*sit)->getType() != SymtabAPI::Symbol::ST_INDIRECT) {
-	    knownData[(*sit)->getOffset()] = (*sit)->getOffset() + (*sit)->getSize();
-	}
+            knownData[(*sit)->getOffset()] = (*sit)->getOffset() + (*sit)->getSize();
+            parsing_printf("Add known data range [%lx, %lx) from symbol %s\n", (*sit)->getOffset(), (*sit)->getOffset() + (*sit)->getSize(), (*sit)->getMangledName().c_str());
+        }
 }
 
 
@@ -96,8 +97,9 @@ SymtabCodeRegion::SymtabCodeRegion(
 {
     for (auto sit = symbols.begin(); sit != symbols.end(); ++sit)
         if ( (*sit)->getRegion() == reg && (*sit)->getType() != SymtabAPI::Symbol::ST_FUNCTION && (*sit)->getType() != SymtabAPI::Symbol::ST_INDIRECT) {
-	    knownData[(*sit)->getOffset()] = (*sit)->getOffset() + (*sit)->getSize();
-	}
+            knownData[(*sit)->getOffset()] = (*sit)->getOffset() + (*sit)->getSize();
+            parsing_printf("Add known data range [%lx, %lx) from symbol %s\n", (*sit)->getOffset(), (*sit)->getOffset() + (*sit)->getSize(), (*sit)->getMangledName().c_str());
+        }
 }
 
 void
