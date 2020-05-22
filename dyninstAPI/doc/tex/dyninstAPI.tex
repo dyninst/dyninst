@@ -1,0 +1,117 @@
+\documentclass[twopages,a4paper]{article}
+\usepackage[left=90pt,right=90pt]{geometry}
+\usepackage{graphicx}
+\usepackage{imakeidx}
+\usepackage[nottoc,numbib]{tocbibind}
+\usepackage{xspace}
+\usepackage{courier}
+\usepackage{listings}
+\makeindex[name=terms,title=Index of terms,columns=1]
+
+\title{Dyninst Programmer's Guide}
+\begin{document}
+
+
+\maketitle
+
+\newlength\tindent
+\setlength{\tindent}{\parindent}
+\setlength{\parindent}{0pt}
+\renewcommand{\indent}{\hspace*{\tindent}}
+
+
+\includegraphics{logo}
+
+\pagebreak
+\tableofcontents
+
+\pagebreak
+
+\include{introduction}
+\include{abstraction}
+\include{examples}
+
+
+\section{Interface}
+\subsection{CLASS BPATCH}
+\subsection{CALLBACKS}
+\subsubsection{Asynchronous Callbacks}
+\subsubsection{Code Discovery Callbacks}
+\subsubsection{Code Overwrite Callbacks}
+\subsubsection{Dynamic Calls}
+\subsubsection{Dynamic Libraries}
+\subsubsection{Errors}
+\subsubsection{Exec}
+\subsubsection{Exit}
+\subsubsection{Fork}
+\subsubsection{One Time Code}
+\subsubsection{Signal Handler}
+\subsubsection{Stopped Threads}
+\subsubsection{User-triggered callbacks}
+\subsection{CLASS BPATCH\_ADDRESSSPACE}
+\subsection{CLASS BPATCH\_PROCESS}
+\subsection{CLASS BPATCH\_THREAD}
+\subsection{CLASS BPATCH\_BINARYEDIT}
+\subsection{CLASS BPATCH\_SOURCEOBJ}
+\subsection{CLASS BPATCH\_FUNCTION}
+\subsection{CLASS BPATCH\_POINT}
+\subsection{CLASS BPATCH\_IMAGE}
+\subsection{CLASS BPATCH\_OBJECT}
+\subsection{CLASS BPATCH\_MODULE}
+\subsection{CLASS BPATCH\_SNIPPET}
+\subsection{CLASS BPATCH\_TYPE}
+\subsection{CLASS BPATCH\_VARIABLEEXPR}
+\subsection{CLASS BPATCH\_FLOWGRAPH}
+\subsection{CLASS BPATCH\_BASICBLOCK}
+\subsection{CLASS BPATCH\_EDGE}
+\subsection{CLASS BPATCH\_BASICBLOCKLOOP}
+\subsection{CLASS BPATCH\_LOOPTREENODE}
+\subsection{CLASS BPATCH\_REGISTER}
+\subsection{CLASS BPATCH\_SOURCEBLOCK}
+\subsection{CLASS BPATCH\_CBLOCK}
+\subsection{CLASS BPATCH\_FRAME}
+\subsection{CLASS STACKMOD}
+\subsection{CONTAINER CLASSES}
+\subsubsection{Class std::vecotr}
+\subsubsection{Class BPatch\_Set}
+\subsection{MEMORY ACCESS CLASSES}
+\subsubsection{Class BPatch\_memoryAccess}
+\subsubsection{Class BPatch\_addrSpec\_NP}
+\subsubsection{Class BPatch\_countSpec\_NP}
+\subsection{TYPE SYSTEM}\label{sec:type_system}
+
+\pagebreak
+\section{Using Dyninst API with the component libraries}
+\section{Using the API}
+\subsection{OVERVIEW OF MAJOR STEPS}
+\subsection{CREATING A MUTATOR PROGRAM}
+\subsection{SETTING UP THE APPLICATION PROGRAM(MUTATEE)}
+\subsection{RUNNING THE MUTATOR}
+\subsection{OPTIMIZING DYNINST PERFORMANCE}
+\subsubsection{Optimizing Mutator Performance}
+\subsubsection{Optimizing Mutatees Performance}
+
+\appendix
+\section{Complete Examples}\label{appdx:complete_examples}
+In this section we show two complete examples: the programs from Section 3 and a complete Dyninst program, retee.\\
+
+\subsection{INSTURMENTING A FUNCTION}
+
+\lstinputlisting[language=c++]{test.cpp}
+
+\subsection{BINARY ANALYSIS}
+\subsection{INSTRUMENTING MEMORY ACCESS}
+\subsection{RETEE}
+\section{Running the Test Cases}
+\section{Common pitfalss}
+
+\printindex[terms]
+
+\pagebreak
+
+\bibliography{reference}
+\bibliographystyle{ieeetr}
+
+
+\end{document}
+

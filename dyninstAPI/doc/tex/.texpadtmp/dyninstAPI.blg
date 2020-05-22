@@ -1,0 +1,49 @@
+This is BibTeX, Version 0.99d (TeX Live 2019)
+Capacity: max_strings=100000, hash_size=100000, hash_prime=85009
+The top-level auxiliary file: /Users/bbiiggppiigg/dyninst/dyninstAPI/doc/tex/.texpadtmp/dyninstAPI.aux
+A level-1 auxiliary file: introduction.aux
+A level-1 auxiliary file: abstraction.aux
+A level-1 auxiliary file: examples.aux
+The style file: ieeetr.bst
+Database file #1: ../reference.bib
+You've used 1 entry,
+            1876 wiz_defined-function locations,
+            489 strings with 3807 characters,
+and the built_in function-call counts, 367 in all, are:
+= -- 41
+> -- 8
+< -- 0
++ -- 3
+- -- 2
+* -- 17
+:= -- 49
+add.period$ -- 1
+call.type$ -- 1
+change.case$ -- 1
+chr.to.int$ -- 0
+cite$ -- 1
+duplicate$ -- 26
+empty$ -- 26
+format.name$ -- 2
+if$ -- 94
+int.to.chr$ -- 0
+int.to.str$ -- 1
+missing$ -- 1
+newline$ -- 6
+num.names$ -- 1
+pop$ -- 2
+preamble$ -- 1
+purify$ -- 0
+quote$ -- 0
+skip$ -- 30
+stack$ -- 0
+substring$ -- 18
+swap$ -- 19
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 0
+warning$ -- 0
+while$ -- 2
+width$ -- 2
+write$ -- 12

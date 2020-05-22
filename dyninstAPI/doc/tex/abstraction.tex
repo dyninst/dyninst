@@ -1,0 +1,55 @@
+\newcommand{\mutator}[0]{\textit{mutator}\xspace}
+\newcommand{\mutatorprocess}[0]{\textit{mutator process}\xspace}
+\newcommand{\mutatee}[0]{\textit{mutatees}\xspace}
+\newcommand{\mutatees}[0]{\textit{mutatees}\xspace}
+\newcommand{\Mutatees}[0]{\textit{Mutatees}\xspace}
+\newcommand{\point}[0]{\textit{point}\xspace}
+\newcommand{\points}[0]{\textit{points}\xspace}
+
+\newcommand{\snippet}[0]{\textit{snippet}\xspace}
+
+\newcommand{\snippets}[0]{\textit{snippets}\xspace}
+\newcommand{\Snippets}[0]{\textit{snippets}\xspace}
+
+\newcommand{\addressspace}[0]{\textit{address space}\xspace}
+
+\newcommand{\process}[0]{\textit{process}\xspace}
+
+\newcommand{\binary}[0]{\textit{binary}\xspace}
+
+\newcommand{\function}[0]{\textit{function}\xspace}
+
+\newcommand{\Functions}[0]{\textit{Functions}\xspace}
+\newcommand{\functions}[0]{\textit{functions}\xspace}
+
+\newcommand{\variable}[0]{\textit{variable}\xspace}
+\newcommand{\variables}[0]{\textit{variable}\xspace}
+
+\newcommand{\controlflowgraph}[0]{\textit{control flow graph}\xspace}
+\newcommand{\basicblocks}[0]{\textit{baisc blocks}\xspace}
+\newcommand{\edges}[0]{\textit{edges}\xspace}
+\newcommand{\loops}[0]{\textit{loops}\xspace}
+\newcommand{\instructions}[0]{\textit{instructions}\xspace}
+\newcommand{\types}[0]{\textit{types}\xspace}
+\newcommand{\localvariables}[0]{\textit{local variables}\xspace}
+
+\newcommand{\functionparameters}[0]{\textit{function parameters}\xspace}
+\newcommand{\sourcecodelineinformation}[0]{\textit{source code line inforamtion}\xspace}
+\newcommand{\image}[0]{\textit{image}\xspace}
+
+\newcommand{\entrypoints}{\textit{entry points}\xspace}
+
+
+
+\section{Abstractions}
+The DyninstAPI library provides an interface for instrumenting and working with binaries and processes.  The user writes a \mutator, which uses the DyninstAPI library to operate on the application.  The process that contains the \mutator and DyninstAPI library is known as the \mutatorprocess.  The \mutatorprocess  operates on other processes or on-disk binaries, which are known as \mutatees.\\\\   
+The API is based on abstractions of a program.  For dynamic instrumentation, it can be based on the state while in execution.  The two primary abstractions in the API are \points and \snippets.  A \point is a location in a program where instrumentation can be inserted.  A \snippet is a representation of some executable code to be inserted into a program at a point.  For example, if we wished to record the number of times a procedure was invoked, the \point would be entry point of the procedure, and the \snippets would be a statement to increment a counter.  \Snippets can include conditionals and function calls.\\\\
+
+\Mutatees are represented using an \addressspace abstraction.  For dynamic instrumentation, the \addressspace represents a process and includes any dynamic libraries loaded with the process. For static instrumentation, the \addressspace includes a disk executable and includes any dynamic library files on which the executable depends.  The \addressspace abstraction is extended by \process and \binary abstractions for dynamic and static instrumentation.  The \process abstraction represents information about a running process such as threads or stack state.  The \binary abstraction represents information about a binary found on disk.\\
+
+The code and data represented by an \addressspace is broken up into \function and \variable abstractions.  \Functions contain \points, which specify locations to insert instrumentation.  \Functions also contain a \controlflowgraph abstraction, which contains information about basic blocks, edges, loops, and instructions.  If the \mutatee contains debug information, DyninstAPI will also provide abstractions about \variable and \function \types, \localvariables, \functionparameters, and \sourcecodelineinformation.  The collection of \functions and \variables in a \mutatee is represented as an \image.\\\\
+
+The API includes a simple type system based on structural equivalence.  If mutatee programs have been compiled with debugging symbols and the symbols are in a format that Dyninst understands, type checking is performed on code to be inserted into the mutatee.  See Section~\ref{sec:type_system} for a complete description of the type system.\\
+
+Due to language constructs or compiler optimizations, it may be possible for multiple functions to \textit{overlap} (that is, share part of the same function body) or for a single function to have multiple \entrypoints .  In practice, it is impossible to determine the difference between multiple overlapping functions and a single function with multiple entry points.  The DyninstAPI uses a model where each function (BPatch\_function object) has a single entry point, and multiple functions may overlap (share code).  We guarantee that instrumentation inserted in a particular function is only executed in the context of that function, even if instrumentation is inserted into a location that exists in multiple functions. \index[terms]{abc}
+\pagebreak
