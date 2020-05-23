@@ -1,18 +1,80 @@
 \documentclass[twopages,a4paper]{article}
-\usepackage[left=90pt,right=90pt]{geometry}
+\usepackage[left=90pt,right=90pt,bottom=90pt]{geometry}
 \usepackage{graphicx}
 \usepackage{imakeidx}
 \usepackage[nottoc,numbib]{tocbibind}
+\usepackage[htt]{hyphenat}
 \usepackage{xspace}
 \usepackage{courier}
 \usepackage{listings}
 \makeindex[name=terms,title=Index of terms,columns=1]
+\usepackage{url}
+\usepackage{changepage}
+
+\DeclareUrlCommand\UScore{\urlstyle{rm}}
 
 \title{Dyninst Programmer's Guide}
+
+\newcommand{\BPatch}[0]{\texttt{BPatch}\xspace\index[terms]{BPatch}}
+\newcommand{\bpatch}[0]{\texttt{bpatch}\xspace}
+\newcommand{\BPatchaddressSpace}[0]{\texttt{BPatch\_addressSpace}\xspace}
+\newcommand{\BPatchprocess}[0]{\texttt{BPatch\_process}\xspace}
+\newcommand{\BPatchbinaryEdit}[0]{\texttt{BPatch\_binaryEdit}\xspace}
+\newcommand{\BPatchfunction}[0]{\texttt{BPatch\_function}\xspace}
+\newcommand{\BPatchimage}[0]{\texttt{BPatch\_image}\xspace}
+\newcommand{\BPatchmodule}[0]{\texttt{BPatch\_module}\xspace}
+\newcommand{\BPatchpoint}[0]{\texttt{BPatch\_point}\xspace}
+\newcommand{\BPatchedge}[0]{\texttt{BPatch\_edge}\xspace}
+\newcommand{\BPatchflowGraph}[0]{\texttt{BPatch\_flowGraph}\xspace}
+\newcommand{\BPatchbasicBlock}[0]{\texttt{BPatch\_basicBlock}\xspace}
+\newcommand{\BPatchsnippet}[0]{\texttt{BPatch\_snippet}\xspace}
+\newcommand{\insertSnippet}[0]{\texttt{insertSnippet}\xspace}
+\newcommand{\InstructionAPIReferenceManual}[0]{\underline{InstructionAPI Reference Manual}\xspace}
+\newcommand{\code}[1]{\\\\\texttt{#1}\\}
+\newcommand{\BPatchbytesAccessedExpr}[0]{\texttt{BPatch\_bytesAccessedExpr}\xspace}
+\newcommand{\BPatcheffectiveAddressExpr }[0]{\texttt{BPatch\_effectiveAddressExpr }\xspace}
+\newcommand{\BPatchthread}[0]{\texttt{BPatch\_thread}\xspace}
+
+
+
 \begin{document}
 
+\lstset{showstringspaces=false}
+\begin{titlepage}
+{\centering\fontsize{20}{60}\usefont{T1}{qzc}{m}{it}{Paradyn Parallel Performance Tools \par}}
+\vspace*{9em}{\centering\fontsize{50}{60}\usefont{T1}{qzc}{m}{it}
+	Dyninst Programmer's Guide\par}
 
-\maketitle
+\vspace*{9em}{
+\Huge \mbox{}\\Release 10.1\\
+\mbox{}\\
+May 2019
+}
+
+\vspace*{5em}
+\begin{minipage}{0.5\textwidth}
+\mbox{}\\ 
+\textbf{\large Department of Computer Sciences \\ 
+University of Wisconsin-Madison \\
+Madison, WI 53706}
+\end{minipage}
+
+\begin{minipage}{0.5\textwidth}
+\textbf{\large Computer Science Department\\
+University of Maryland\\
+College Park, MD 20742\\
+\small Email: dyninst-api@cs.wisc.edu\\\\
+Web: www.dyninst.org\\
+\indent \indent github.com/dyninst/dyninst}
+\end{minipage}
+\begin{minipage}{0.3\textwidth}
+	\includegraphics{logo}
+\end{minipage}
+
+
+
+
+\end{titlepage}
 
 \newlength\tindent
 \setlength{\tindent}{\parindent}
@@ -20,7 +82,7 @@
 \renewcommand{\indent}{\hspace*{\tindent}}
 
 
-\includegraphics{logo}
+
 
 \pagebreak
 \tableofcontents
@@ -28,59 +90,14 @@
 \pagebreak
 
 \include{introduction}
+
 \include{abstraction}
-\include{examples}
+
+\include{example}
+
+\include{interface}
 
 
-\section{Interface}
-\subsection{CLASS BPATCH}
-\subsection{CALLBACKS}
-\subsubsection{Asynchronous Callbacks}
-\subsubsection{Code Discovery Callbacks}
-\subsubsection{Code Overwrite Callbacks}
-\subsubsection{Dynamic Calls}
-\subsubsection{Dynamic Libraries}
-\subsubsection{Errors}
-\subsubsection{Exec}
-\subsubsection{Exit}
-\subsubsection{Fork}
-\subsubsection{One Time Code}
-\subsubsection{Signal Handler}
-\subsubsection{Stopped Threads}
-\subsubsection{User-triggered callbacks}
-\subsection{CLASS BPATCH\_ADDRESSSPACE}
-\subsection{CLASS BPATCH\_PROCESS}
-\subsection{CLASS BPATCH\_THREAD}
-\subsection{CLASS BPATCH\_BINARYEDIT}
-\subsection{CLASS BPATCH\_SOURCEOBJ}
-\subsection{CLASS BPATCH\_FUNCTION}
-\subsection{CLASS BPATCH\_POINT}
-\subsection{CLASS BPATCH\_IMAGE}
-\subsection{CLASS BPATCH\_OBJECT}
-\subsection{CLASS BPATCH\_MODULE}
-\subsection{CLASS BPATCH\_SNIPPET}
-\subsection{CLASS BPATCH\_TYPE}
-\subsection{CLASS BPATCH\_VARIABLEEXPR}
-\subsection{CLASS BPATCH\_FLOWGRAPH}
-\subsection{CLASS BPATCH\_BASICBLOCK}
-\subsection{CLASS BPATCH\_EDGE}
-\subsection{CLASS BPATCH\_BASICBLOCKLOOP}
-\subsection{CLASS BPATCH\_LOOPTREENODE}
-\subsection{CLASS BPATCH\_REGISTER}
-\subsection{CLASS BPATCH\_SOURCEBLOCK}
-\subsection{CLASS BPATCH\_CBLOCK}
-\subsection{CLASS BPATCH\_FRAME}
-\subsection{CLASS STACKMOD}
-\subsection{CONTAINER CLASSES}
-\subsubsection{Class std::vecotr}
-\subsubsection{Class BPatch\_Set}
-\subsection{MEMORY ACCESS CLASSES}
-\subsubsection{Class BPatch\_memoryAccess}
-\subsubsection{Class BPatch\_addrSpec\_NP}
-\subsubsection{Class BPatch\_countSpec\_NP}
-\subsection{TYPE SYSTEM}\label{sec:type_system}
-
-\pagebreak
 \section{Using Dyninst API with the component libraries}
 \section{Using the API}
 \subsection{OVERVIEW OF MAJOR STEPS}
@@ -97,13 +114,50 @@ In this section we show two complete examples: the programs from Section 3 and a
 
 \subsection{INSTURMENTING A FUNCTION}
 
-\lstinputlisting[language=c++]{test.cpp}
+\lstinputlisting[language=c++]{instrumenting_a_function.cpp}
 
 \subsection{BINARY ANALYSIS}
+
+\lstinputlisting[language=c++]{binary_analysis.cpp}
+
 \subsection{INSTRUMENTING MEMORY ACCESS}
+
+\lstinputlisting[language=c++]{instrumenting_memory_access.cpp}
+
 \subsection{RETEE}
+
+The final example is a program called “re-tee.”  It takes three arguments: the pathname of an exe-cutable program, the process id of a running instance of the same program, and a file name.  It adds code to the running program that copies to the named file all output that the program writes to its standard output file descriptor.  In this way it works like “tee,” which passes output along to its own standard out while also saving it in a file.  The motivation for the example program is that you run a program, and it starts to print copious lines of output to your screen, and you wish to save that output in a file without having to re-run the program. 
+
+
+\lstinputlisting[language=c++]{retee.cpp}
+
+\pagebreak
 \section{Running the Test Cases}
-\section{Common pitfalss}
+
+\pagebreak
+\section{Common pitfalls}
+
+This appendix is designed to point out some common pitfalls that users have reported when using the Dyninst system.  Many of these are either due to limitations in the current implementations, or reflect design decisions that may not produce the expected behavior from the system.\\
+
+\emph{\textbf {Attach followed by detach}}
+
+If a mutator attaches to a mutatee, and immediately exits, the current behavior is that the mu-tatee is left suspended.  To make sure the application continues, call detach with the appro-priate flags.\\
+
+\emph{\textbf{Attaching to a program that has already been modified by Dyninst}}
+
+If a mutator attaches to a program that has already been modified by a previous mutator, a warning message will be issued. We are working to fix this problem, but the correct seman-tics are still being specified. Currently, a message is printed to indicate that this has been at-tempted, and the attach will fail.\\
+
+\emph{\textbf{Dyninst is event-driven}}
+
+Dyninst must sometimes handle events that take place in the mutatee, for instance when a new shared library is loaded, or when the mutatee executes a fork or exec. Dyninst handles events when it checks the status of the mutatee, so to allow this the mutator should periodi-cally call one of the functions \texttt{BPatch::pollForStatusChange}, \texttt{BPatch::waitForStatusChange}, \texttt{BPatch\_thread::isStopped}, or \texttt{BPatch\_thread::isTerminated}.\\
+
+\emph{\textbf{Missing or out-of-date DbgHelp DLL (Windows)}}
+	Dyninst requires an up-to-date DbgHelp library on Windows.  See the section on Win-dows-specific architectural issues for details.\\
+	
+\emph{\textbf{Portland Compiler Group – missing debug symbols}}
+\\
+	The Portland Group compiler (pgcc) on Linux produces debug symbols that are not read correctly by Dyninst.  The binaries produced by the compiler do not contain the source file information necessary for Dyninst to assign the debug symbols to the correct module.
+
 
 \printindex[terms]
 
