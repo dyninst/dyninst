@@ -1,0 +1,157 @@
+\section{Examples}
+
+To illustrate the ideas of the API, we present several short examples that demonstrate how the API can be used.  The full details of the interface are presented in the next section.  To prevent confusion, we refer to the application process or binary that is being modified as the mutatee, and the program that uses the API to modify the application as the mutator.  The mutator is a separate process from the application process.\\
+
+The examples in this section are simple code snippets, not complete programs.  Appendix~\ref{appdx:complete_examples} - Complete Examples provides several examples of complete Dyninst programs.
+
+\subsection{Instrumenting A Function}
+
+A mutator program must create a single instance of the class \BPatch.  This object is used to access functions and information that are global to the library.  It must not be destroyed until the mutator has completely finished using the library.  For this example, we assume that the mutator program has declared a global variable called \bpatch of class \BPatch.\\
+All instrumentation is done with a \BPatchaddressSpace object, which allows us to write codes that work for both dynamic and static instrumentation.  During initialization we use either \BPatchprocess to attach to or create a process, or \BPatchbinaryEdit to open a file on disk.  When instrumentation is completed, we will either run the \BPatchprocess, or write the \BPatchbinaryEdit back onto the disk.\\
+
+The mutator first needs to identify the application to be modified.  If the process is already in execution, this can be done by specifying the executable file name and process id of the application as arguments in order to create an instance of a process object: \\
+
+\texttt{BPatch\_process *appProc = bpatch.processAttach(name, processId);}\\
+
+If the mutator is opening a file for static binary rewriting, it executes:\\
+
+\texttt{BPatch\_binaryEdit *appBin = bpatch.openBinary(pathname);}\\
+
+The above statements create either a \BPatchprocess object or \BPatchbinaryEdit object, depending on whether Dyninst is doing dynamic or static instrumentation.  The instrumentation and analysis code can be made agnostic towards static or dynamic modes by using a \BPatchaddressSpace object.  Both \BPatchprocess and \BPatchbinaryEdit inherit from \BPatchaddressSpace, so we can use cast operations to move between the two:
+
+\texttt{BPatch\_process *appProc = static\_cast<BPatch\_process *>(appAddrSpace)}\\
+$-$or$-$\\
+\texttt{BPatch\_binaryEdit *appBin = static\_cast<BPatch\_binaryEdit *>(appAddrSpace)}\\
+
+Similarly, all instrumentation commands can be performed on a \BPatchaddressSpace object, allowing similar codes to be used between dynamic instrumentation and binary rewriting:\\
+
+\texttt{BPatch\_addressSpace *app = appProc;}\\
+$-$or$-$\\
+\texttt{BPatch\_addressSpace *app = appBin;}\\
+
+Once the address space has been created, the mutator defines the snippet of code to be inserted and identifies where the points should be inserted.\\
+
+If the mutator wants to instrument the entry point of \texttt{InterestingProcedure}, it should get a \BPatchfunction from the application’s \BPatchimage, and get the entry \BPatchpoint from that function:
+\code{
+std::vector<BPatch\_function *> functions;\\
+std::vector<BPatch\_point *> *points;\\
+BPatch\_image *appImage = app->getImage();\\
+appImage->findFunction("InterestingProcedure", functions);\\
+points = functions[0]->findPoint(BPatch\_locEntry);}
+
+
+The mutator also needs to construct the instrumentation that it will insert at the \BPatchpoint.  It can do this by allocating an integer in the application to store instrumentation results, and then creating a \BPatchsnippet to increment that integer
+:
+\code{
+BPatch\_variableExpr *intCounter = \\
+\indent app->malloc(*(appImage->findType("int")));\\
+\\
+BPatch\_arithExpr addOne(BPatch\_assign, *intCounter, \\
+\indent BPatch\_arithExpr(BPatch\_plus, *intCounter, BPatch\_constExpr(1)));
+}
+
+The mutator can set the \BPatchsnippet to be run at the \BPatchpoint by executing an \insertSnippet call:
+\code{app->insertSnippet(addOne, *points);}
+
+Finally, the mutator should either continue the mutate process and wait for it to finish, or write the resulting binary onto the disk, depending on whether it is doing dynamic or static instrumentation:
+\code{
+appProc->continueExecution();\\
+while (!appProc->isTerminated()) \{\\
+\indent	bpatch.waitForStatusChange();\\
+\}
+-or-\\
+appBin->writeFile(newPath);
+}
+
+A complete example can be found in Appendix~\ref{appdx:complete_examples} - Complete Examples.
+ 
+\subsection{Binary Analysis}
+
+This example will illustrate how to use Dyninst to iterate over a function’s control flow graph and inspect instructions.  These are steps that would usually be part of a larger data flow or control flow analysis.  Specifically, this example will collect every basic block in a function, iterate over them, and count the number of instructions that access memory.\\
+
+Unlike the previous instrumentation example, this example will analyze a binary file on disk. Bear in mind, these techniques can also be applied when working with processes.  This example makes use of InstructionAPI, details of which can be found in the \underline{InstructionAPI Reference Manual}.
+
+Similar to the above example, the mutator will start by creating a BPatch object and opening a file to operate on:
+\code{
+BPatch bpatch;\\
+BPatch\_binaryEdit *binedit = bpatch.openFile(pathname);
+}
+
+The mutator needs to get a handle to a function to do analysis on.  This example will look up a function by name; alternatively, it could have iterated over every function in \BPatchimage or \BPatchmodule:
+\code{
+BPatch\_image *appImage = binedit->getImage();\\
+\\
+std::vector<BPatch\_function *> funcs;\\
+image->findFunction(“InterestingProcedure”, funcs);
+}
+
+A function’s control flow graph is represented by the \BPatchflowGraph class.  The \BPatchflowGraph contains, among other things, a set of \BPatchbasicBlock objects connected by \BPatchedge objects.  This example will simply collect a list of the basic blocks in \BPatchflowGraph and iterate over each one:
+\code{
+BPatch\_flowGraph *fg = funcs[0]->getCFG();\\
+\\
+std::set<BPatch\_basicBlock *> blocks;\\
+fg->getAllBasicBlocks(blocks);\\
+}
+\newcommand{\Instruction}[0]{\texttt{Instruction}\xspace}
+Given an \Instruction object, which is described in the \InstructionAPIReferenceManual, we can query for properties of this instruction.  InstructionAPI has numerous methods for inspecting the memory accesses, registers, and other properties of an instruction.  This example simply checks whether this instruction accesses memory:
+\code{
+std::set<BPatch\_basicBlock *>::iterator block\_iter;\\
+for (block\_iter = blocks.begin(); block\_iter != blocks.end(); ++block\_iter) \{\\
+\indent BPatch\_basicBlock *block = *block\_iter;\\
+\indent	std::vector<Dyninst::InstructionAPI::Instruction::Ptr> insns;\\
+\indent	block->getInstructions(insns);\\
+\}\\
+}
+
+Given an \Instruction object, which is described in the InstructionAPI Reference Manual, we can query for properties of this instruction.  InstructionAPI has numerous methods for inspecting the memory accesses, registers, and other properties of an instruction.  This example simply checks whether this instruction accesses memory:
+\code{
+std::vector<Dyninst::InstructionAPI::Instruction::Ptr>::iterator            
+insn\_iter;\\
+for (insn\_iter = insns.begin(); insn\_iter != insns.end(); ++insn\_iter)\\
+\{\\
+\indent Dyninst::InstructionAPI::Instruction::Ptr insn = *insn\_iter;\\
+\indent if (insn->readsMemory() || insn->writesMemory()) \{\\
+\indent \indent insns\_access\_memory++;\\
+\indent\}\\
+\}
+}
+
+\subsection{Instrumenting Memory Access}
+
+
+There are two snippets useful for memory access instrumentation: \BPatcheffectiveAddressExpr and \BPatchbytesAccessedExpr.  Both have nullary con-structors; the result of the snippet depends on the instrumentation point where the snippet is insert-ed.  \BPatcheffectiveAddressExpr has type void*, while \BPatchbytesAccessedExpr has type int.\\
+
+These snippets may be used to instrument a given instrumentation point if and only if the point has memory access information attached to it.  In this release the only way to create instrumentation points that have memory access information attached is via \texttt{BPatch\_function.findPoint(const std::set<BPatch\_opCode>\&)}.  For example, to instrument all the loads and stores in a function named InterestingProcedure with a call to printf, one may write:\\\\
+\texttt{
+BPatch\_addressSpace *app = ...;\\
+BPatch\_image *appImage = proc->getImage();\\
+\\
+// We’re interested in loads and stores\\
+std::set<BPatch\_opCode> axs;\\
+axs.insert(BPatch\_opLoad);\\
+axs.insert(BPatch\_opStore);\\
+\\
+// Scan the function InterestingProcedure and create instrumentation points\\
+std::vector<BPatch\_function*> funcs;\\
+appImage->findFunction(“InterestingProcedure”, funcs);\\
+std::vector<BPatch\_point*>* points = funcs[0]->findPoint(axs);\\
+\\
+// Create the printf function call snippet\\
+std::vector<BPatch\_snippet*> printfArgs;\\
+BPatch\_snippet *fmt = new BPatch\_constExpr("Access at: %p.\n");\\
+printfArgs.push\_back(fmt);\\
+BPatch\_snippet *eae = new BPatch\_effectiveAddressExpr();\\
+printfArgs.push\_back(eae);\\
+\\
+// Find the printf function\\
+std::vector<BPatch\_function *> printfFuncs;\\
+appImage->findFunction("printf", printfFuncs);\\
+\\
+// Construct the function call snippet\\
+BPatch\_funcCallExpr printfCall(*(printfFuncs[0]), printfArgs);\\
+\\
+// Insert the snippet at the instrumentation points\\
+app->insertSnippet(printfCall, *points);
+}
+
+

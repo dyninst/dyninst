@@ -1,0 +1,218 @@
+\section{Interface}
+This section describes functions in the API.  The API is organized as a collection of C++ classes. The primary classes are \BPatch, \BPatchprocess, \BPatchbinaryEdit, \BPatchthread, \BPatchimage, \BPatchpoint, and \BPatchsnippet. The API also uses a template class called std::vector.  This class is based on the Standard Template Library (STL) vector class. 
+
+\newenvironment{myenv}{\begin{adjustwidth}{1cm}{}}{\end{adjustwidth}}
+\newcommand{\manual}[2]{\mbox{}\code{#1}
+\begin{myenv}
+#2	
+\end{myenv}
+}
+\newcommand{\BPatchexploratoryMode}[0]{\texttt{BPatch\_exploratoryMode}\xspace}
+\newcommand{\BPatchnormalMode}[0]{\texttt{BPatch\_normalMode}\xspace}
+\newcommand{\BPatchdefensiveMode}[0]{\texttt{BPatch\_defensiveMode}\xspace}
+\subsection{CLASS BPatch}
+
+The BPatch class represents the entire Dyninst library.  There can only be one instance of this class at a time.  This class is used to perform functions and obtain information that is not specific to a particular thread or image.
+
+\manual{std::vector<BPatch\_process*> *getProcesses()}{
+Returns the list of processes that are currently defined.  This list includes processes that were directly created by calling processCreate/processAttach, and indirectly by the UNIX fork or the Windows CreateProcess system call.   It is up to the user to delete this vector when they are done with it.	}
+
+\manual{BPatch\_process *processAttach(const char *path, int pid, BPatch\_hybridMode mode=BPatch\_normalMode)\\
+BPatch\_process *processCreate(const char *path, const char *argv[], const char **envp = NULL, int stdin\_fd=0, int stdout\_fd=1, int stderr\_fd=2, BPatch\_hybridMode mode=BPatch\_normalMode)  }{Each of these functions returns a pointer to a new instance of the BPatch\_process class.  The path parameter needed by these functions should be the pathname of the executable file containing the process image. The processAttach function returns a BPatch\_process associated with an existing process.  On Linux platforms the path parameter can be NULL since the executable image can be derived from the process pid.  Attaching to a process puts it into the stopped state.  The processCreate function creates a new process and returns a new BPatch\_process associated with it.  The new process is put into a stopped state be-fore executing any code.\\
+
+The stdin\_fd, stdout\_fd, and stderr\_fd parameters are used to set the standard input, output, and error of the child process.  The default values of these parameters leave the input, output, and error to be the same as the mutator process.  To change these values, an open UNIX file descriptor (see open(1)) can be passed.\\
+
+The \texttt{mode} parameter is used to select the desired level of code analysis.  Activating hybrid code analysis causes Dyninst to augment its static analysis of the code with run-time code discovery techniques. There are three modes:  \BPatchnormalMode, \BPatchexploratoryMode, and \BPatchdefensiveMode. Normal mode enables the regular static analysis features of Dyninst. Exploratory mode and defensive mode enable addtional dynamic features to correctly analyze programs that contain uncommon code patterns, such as malware. Exploratory mode is primarily oriented towards analyzing dynamic control transfers, while defensive mode additionally aims to tackle code obfuscation and self-modifying code. Both of these modes are still experimental and should be used with caution. Defensive mode is only supported on Windows.\\
+
+Defensive mode has been tested on normal binaries (binaries that run correctly under normal mode), as well as some simple, packed executables (self-decrypting or decompressing). More advanced forms of code obfuscation, such as self-modifying code, have not been tested recently. The traditional Dyninst interface may be used for instrumentation of binaries in defensive mode, but in the case of highly obfuscated code, this interface may prove to be ineffective due to the lack of a complete view of control flow at any given point. Therefore, defensive mode also includes a set of callbacks that enables instrumentation to be performed as new code is discovered. Due to the fact that recent efforts have focused on simpler forms of obfuscation, these callbacks have not been tested in detail. The next release of Dyninst will target more advanced uses of defensive mode.
+}
+
+\manual{BPatch\_binaryEdit *openBinary(const char *path, 
+bool openDependencies = false)}{
+This function opens the executable file or library file pointed to by path for binary rewrit-ing.  If \texttt{openDependencies} is true then Dyninst will also open all shared libraries that path depends on.  Upon success, this function returns a new instance of a \BPatchbinaryEdit class that represents the opened file and any dependent shared libraries.  This function re-turns NULL in the event of an error.
+}
+\newcommand{\false}[0]{\texttt{false}\xspace}
+\newcommand{\true}[0]{\texttt{true}\xspace}
+\manual{
+bool pollForStatusChange()}{
+This is useful for a mutator that needs to periodically check on the status of its managed threads and does not want to check each process individually.  It returns true if there has been a change in the status of one or more threads that has not yet been reported by either \texttt{isStopped} or \texttt{isTerminated}.
+}
+
+\manual{
+void setDebugParsing (bool state)}{
+Turn on or off the parsing of debugger information.  By default, the debugger information (produced by the –g compiler option) is parsed on those platforms that support it.  However, for some applications this information can be quite large.  To disable parsing this information, call this method with a value of \false prior to creating a process. 
+}
+
+\manual{
+bool parseDebugInfo()}{
+Return true if debugger information parsing is enabled, or \false otherwise.
+}
+
+\manual{
+void setTrampRecursive (bool state)}{
+Turn on or off trampoline recursion.  By default, any snippets invoked while another snip-pet is active will not be executed.  This is the safest behavior, since recursively-calling snippets can cause a program to take up all available system resources and die.  For example, adding instrumentation code to the start of printf, and then calling printf from that snippet will result in infinite recursion.\\
+
+This protection operates at the granularity of an instrumentation point.  When snippets are first inserted at a point, this flag determines whether code will be created with recursion protection.  Changing the flag is \emph{\textbf{not}} retroactive, and inserting more snippets will not change the recursion protection of the point.  Recursion protection increases the overhead of instrumentation points, so if there is no way for the snippets to call themselves, calling this method with the parameter \true will result in a performance gain.  The default value of this flag is \false.
+}
+
+\manual{bool isTrampRecursive ()}{
+Return whether trampoline recursion is enabled or not.  \texttt{True} means that it is enabled.
+}
+
+\manual{void setTypeChecking(bool state)}{
+Turn on or off type-checking of snippets.  By default type-checking is turned on, and an attempt to create a snippet that contains type conflicts will fail.  Any snippet expressions created with type-checking off have the type of their left operand.  Turning type-checking off, creating a snippet, and then turning type-checking back on is similar to the type cast operation in the C programming language. 
+}
+
+\manual{
+bool isTypeChecked()}{
+Return \true if type-checking of snippets is enabled, or \false otherwise.
+}
+
+\manual{
+bool waitForStatusChange()}{
+This function waits until there is a status change to some thread that has not yet been re-ported by either isStopped or isTerminated, and then returns true.  It is more efficient to call this function than to call pollForStatusChange in a loop, because waitFor-StatusChange blocks the mutator process while waiting.
+}
+
+\manual{
+void setDelayedParsing (bool)}{
+Turn on or off delayed parsing. When it is activated Dyninst will initially parse only the symbol table information in any new modules loaded by the program, and will postpone more thorough analysis (instrumentation point analysis, variable analysis, and discovery of new functions in stripped binaries).  This analysis will automatically occur when the infor-mation is necessary.\\
+
+Users which require small run-time perturbation of a program should not delay parsing; the overhead for analysis may occur at unexpected times if it is triggered by internal Dyninst behavior.  Users who desire instrumentation of a small number of functions will benefit from delayed parsing.
+}
+
+\manual{
+bool delayedParsingOn()}
+{
+Return \true if delayed parsing is enabled, or \false otherwise.
+}
+
+
+\manual{void setInstrStackFrames(bool)}{
+Turn on and off stack frames in instrumentation.  When on, Dyninst will create stack frames around instrumentation.  A stack frame allows Dyninst or other tools to walk a call stack through instrumentation, but introduces overhead to instrumentation.  The default is to not create stack frames.}
+
+\manual{bool getInstrStackFrames()}{
+Return \true if instrumentation will create stack frames, or \false otherwise.  }
+
+\manual{void setMergeTramp (bool)}{
+Turn on or off inlined tramps.  Setting this value to \true will make each base trampoline have all of its mini-trampolines inlined within it.  Using inlined mini-tramps may allow instrumentation to execute faster, but inserting and removing instrumentation may take more time.  The default setting for this is \true.}
+
+\manual{bool isMergeTramp ()}{
+This returns the current status of inlined trampolines.  A value of \true indicates that trampolines are inlined.}
+
+\manual{void setSaveFPR (bool)}{
+Turn on or off floating point saves.  Setting this value to false means that floating point registers will never be saved, which can lead to large performance improvements.  The default value is \true.  Setting this flag may cause incorrect program behavior if the instrumentation does clobber floating point registers, so it should only be used when the user is positive this will never happen.}
+
+\manual{bool isSaveFPROn ()}{
+This returns the current status of the floating point saves. \texttt{True} means we are saving float-ing points based on the analysis for the given platform.}
+
+\manual{void setBaseTrampDeletion(bool)}{
+If \true, we delete the base tramp when the last corresponding minitramp is deleted.  If \false, we leave the base tramp in.  The default value is \false.}
+
+\manual{bool baseTrampDeletion()}{
+Return \true if base trampolines are set to be deleted, or \false otherwise.}
+
+\manual{void setLivenessAnalysis(bool)}{
+If \true, we perform register liveness analysis around an instPoint before inserting instrumentation, and we only save registers that are live at that point.  This can lead to faster run-time speeds, but at the expense of slower instrumentation time.  The default value is \true.}
+
+\manual{bool livenessAnalysisOn()}{
+Return \true if liveness analysis is currently enabled.}
+
+\manual{void getBPatchVersion(int \&major, int \&minor, int \&subminor)}{
+Return Dyninst’s version number.  The major version number will be stored in major, the minor version number in minor, and the subminor version in subminor.  For example, under Dyninst 5.1.0, this function will return 5 in major, 1 in minor, and 0 in subminor.}
+
+\manual{int getNotificationFD()}{
+Returns a file descriptor that is suitable for inclusion in a call to select(). Dyninst will write data to this file descriptor when it to signal a state change in the process.  \texttt{BPatch::pollForStatusChange} should then be called so that Dyninst can handle the state change.  This is useful for applications where the user does not want to block in \texttt{BPatch::waitForStatusChange}.  The file descriptor will reset when the user calls \texttt{BPatch::pollForStatusChange}.}
+
+\manual{BPatch\_type *createArray(const char *name, BPatch\_type *ptr, unsigned int low, unsigned int hi) }{
+Create a new array type.  The name of the type is name, and the type of each element is ptr.  The index of the first element of the array is low, and the last is high.  The standard rules of type compatibility, described in Section~\ref{sec:type_system}, are used with arrays created using this function.}
+
+\manual{BPatch\_type *createEnum(const char *name, std::vector<char *> \&elementNames, std::vector<int> \&elementIds) \\
+BPatch\_type *createEnum(const char *name, std::vector<char *> \&elementNames)}{
+Create a new enumerated type. There are two variations of this function.  The first one is used to create an enumerated type where the user specifies the identifier (int) for each element.  In the second form, the system specifies the identifiers for each element.  In both cases, a vector of character arrays is passed to supply the names of the elements of the enumerated type.  In the first form of the function, the number of element in the element-Names and elementIds vectors must be the same, or the type will not be created and this function will return NULL. The standard rules of type compatibility, described in Section~\ref{sec:type_system}, are used with enums created using this function.}
+
+\manual{BPatch\_type *createScalar(const char *name, int size) }{
+Create a new scalar type.  The name field is used to specify the name of the type, and the size parameter is used to specify the size in bytes of each instance of the type.  No additional information about this type is supplied.  The type is compatible with other scalars with the same name and size.}
+
+\manual{BPatch\_type *createStruct(const char *name, std::vector<char *> \&fieldNames, std::vector<BPatch\_type *> \&fieldTypes) }{
+Create a new structure type.  The name of the structure is specified in the name parameter.  The fieldNames and fieldTypes vectors specify fields of the type.  These two vectors must have the same number of elements or the function will fail (and return NULL). The standard rules of type compatibility, described in Section~\ref{sec:type_system}, are used with structures created using this function. The size of the structure is the sum of the size of the elements in the fieldTypes vector.}
+
+\manual{BPatch\_type *createTypedef(const char *name, BPatch\_type *ptr) }{
+Create a new type called name and having the type ptr. }
+
+\manual{BPatch\_type *createPointer(const char *name, BPatch\_type *ptr)\\
+BPatch\_type *createPointer(const char *name, BPatch\_type *ptr, int size)}{ 
+Create a new type, named name, which points to objects of type ptr. The first form creates a pointer whose size is equal to sizeof(void*)on the target platform where the mutatee is running.  In the second form, the size of the pointer is the value passed in the size parameter.}
+
+\manual{BPatch\_type *createUnion(const char *name, std::vector<char *> \&fieldNames, std::vector<BPatch\_type *> \&fieldTypes) }{
+Create a new union type.  The name of the union is specified in the name parameter.  The fieldNames and fieldTypes vectors specify fields of the type.  These two vectors must have the same number of elements or the function will fail (and return NULL). The size of the union is the size of the largest element in the fieldTypes vector.
+}
+
+
+\subsection{Callbacks}
+
+The following functions are intended as a way for API users to be informed when an error or significant event occurs.  Each function allows a user to register a handler for an event.  The return code for all callback registration functions is the address of the handler that was previously registered (which may be NULL if no handler was previously registered).  For backwards compatibility reasons, some callbacks may pass a \BPatchthread object when a \BPatchprocess may be more appropriate.  A \BPatchthread may be converted into a \BPatchprocess using \texttt{BPatch\_thread::getProcess()}.
+
+\subsubsection{Asynchronous Callbacks}
+
+
+\manual{typedef void (*BPatchAsyncThreadEventCallback)(
+BPatch\_process *proc, BPatch\_thread *thread)\\
+bool registerThreadEventCallback(BPatch\_asyncEventType type,
+BPatchAsyncThreadEventCallback cb)\\
+bool removeThreadEventCallback(BPatch\_asyncEventType type,
+	BPatch\_AsyncThreadEventCallback cb)
+}{
+The type parameter can be either one of BPatch\_threadCreateEvent or BPatch\_threadDestroyEvent.  Different callbacks can be registered for different values of type.
+}
+
+
+\subsubsection{Code Discovery Callbacks}
+
+\subsubsection{Code Overwrite Callbacks}
+
+\subsubsection{Dynamic Calls}
+
+\subsubsection{Dynamic Libraries}
+
+\subsubsection{Errors}
+
+\subsubsection{Exec}
+\subsubsection{Exit}
+\subsubsection{Fork}
+\subsubsection{One Time Code}
+\subsubsection{Signal Handler}
+\subsubsection{Stopped Threads}
+\subsubsection{User-triggered callbacks}
+\subsection{CLASS BPATCH\_ADDRESSSPACE}
+\subsection{CLASS BPATCH\_PROCESS}
+\subsection{CLASS BPATCH\_THREAD}
+\subsection{CLASS BPATCH\_BINARYEDIT}
+\subsection{CLASS BPATCH\_SOURCEOBJ}
+\subsection{CLASS BPATCH\_FUNCTION}
+\subsection{CLASS BPATCH\_POINT}
+\subsection{CLASS BPATCH\_IMAGE}
+\subsection{CLASS BPATCH\_OBJECT}
+\subsection{CLASS BPATCH\_MODULE}
+\subsection{CLASS BPATCH\_SNIPPET}
+\subsection{CLASS BPATCH\_TYPE}
+\subsection{CLASS BPATCH\_VARIABLEEXPR}
+\subsection{CLASS BPATCH\_FLOWGRAPH}
+\subsection{CLASS BPATCH\_BASICBLOCK}
+\subsection{CLASS BPATCH\_EDGE}
+\subsection{CLASS BPATCH\_BASICBLOCKLOOP}
+\subsection{CLASS BPATCH\_LOOPTREENODE}
+\subsection{CLASS BPATCH\_REGISTER}
+\subsection{CLASS BPATCH\_SOURCEBLOCK}
+\subsection{CLASS BPATCH\_CBLOCK}
+\subsection{CLASS BPATCH\_FRAME}
+\subsection{CLASS STACKMOD}
+\subsection{CONTAINER CLASSES}
+\subsubsection{Class std::vecotr}
+\subsubsection{Class BPatch\_Set}
+\subsection{MEMORY ACCESS CLASSES}
+\subsubsection{Class BPatch\_memoryAccess}
+\subsubsection{Class BPatch\_addrSpec\_NP}
+\subsubsection{Class BPatch\_countSpec\_NP}
+\subsection{TYPE SYSTEM}\label{sec:type_system}
+
+\pagebreak
