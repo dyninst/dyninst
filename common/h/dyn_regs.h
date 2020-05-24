@@ -1564,6 +1564,7 @@ namespace Dyninst
   namespace cuda {
     const signed int GPR   = 0x00000000;
     const signed int PR    = 0x00010000;
+    const signed int BR    = 0x00020000;
 
     // General purpose registers
     DEF_REGISTER(r0,       0 | GPR | Arch_cuda, "cuda");
@@ -1837,6 +1838,12 @@ namespace Dyninst
     DEF_REGISTER(p5,    5 | PR | Arch_cuda, "cuda");
     DEF_REGISTER(p6,    6 | PR | Arch_cuda, "cuda");
 
+    DEF_REGISTER(b1,    1 | BR | Arch_cuda, "cuda");
+    DEF_REGISTER(b2,    2 | BR | Arch_cuda, "cuda");
+    DEF_REGISTER(b3,    3 | BR | Arch_cuda, "cuda");
+    DEF_REGISTER(b4,    4 | BR | Arch_cuda, "cuda");
+    DEF_REGISTER(b5,    5 | BR | Arch_cuda, "cuda");
+    DEF_REGISTER(b6,    6 | BR | Arch_cuda, "cuda");
   } //end of cuda namespace
 }
 
