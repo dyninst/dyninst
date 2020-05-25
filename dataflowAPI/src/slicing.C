@@ -553,7 +553,7 @@ Slicer::findMatch(
     } else {
         slicing_printf("\t\t\t\t\tComparing current %s to candidate %s\n",
             reg.format().c_str(),assn->out().format().c_str());
-        if(reg.contains(assn->out())) {
+        if(reg.contains(assn->out()) || assn->out().contains(reg)) {
 	    hadmatch = true;
             slicing_printf("\t\t\t\t\t\tMatch!\n");
 
@@ -586,6 +586,14 @@ Slicer::findMatch(
             for(unsigned i=0; i< inputs.size(); ++i) {
                 ne.reg = inputs[i];
                 matches.push_back(ne);
+            }
+            if (cand.loc.block->obj()->cs()->getArch() == Arch_cuda) {
+                if (reg.contains(assn->out()) && !assn->out().contains(reg)) {
+                    ne.reg = assn->out();
+                    ne.reg.flipPredicateCondition();
+                    slicing_printf("\t\t\t Handle predicate: search for %s, find %s, generate %s\n", reg.format().c_str(), assn->out().format().c_str(), ne.reg.format().c_str());
+                    matches.push_back(ne);
+                }
             }
         }
     }
@@ -1532,7 +1540,7 @@ bool Slicer::kills(AbsRegion const&reg, Assignment::Ptr &assign) {
       if (index >= 0)
           if (abi->getCallWrittenRegisters()[abi->getIndex(r)] && r != x86_64::r11) return true;
   }
-  return reg.contains(assign->out());
+  return reg.contains(assign->out()) || assign->out().contains(reg);
 }
 
 // creates a new node from an element if that node does not yet exist.

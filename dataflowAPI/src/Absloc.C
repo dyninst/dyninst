@@ -99,6 +99,11 @@ std::string Absloc::format() const {
   case Heap:
     ret << "_" << std::hex << addr_ << std::dec;
     break;
+  case PredicatedRegister:
+    ret << "PRED_REG[";
+    if (!trueCond_) ret << "!";
+    ret << preg_.name() << "," << reg_.name() << "]";
+    break;
   default:
     ret << "(UNKNOWN)";
     break;
@@ -106,6 +111,53 @@ std::string Absloc::format() const {
 
   return ret.str();
 }
+
+bool Absloc::operator<(const Absloc & rhs) const {
+    if (type_ != rhs.type_) 
+      return type_ < rhs.type_;
+    switch(type_) {
+    case Register:
+      return reg_ < rhs.reg_;
+    case Stack:
+      if (off_ != rhs.off_)
+	return off_ < rhs.off_;
+      // Now we get arbitrary
+      if (region_ != rhs.region_)
+	return region_ < rhs.region_;
+      return func_ < rhs.func_;
+    case Heap:
+      return addr_ < rhs.addr_;
+    case PredicatedRegister:
+      if (reg_ != rhs.reg_)
+          return reg_ < rhs.reg_;
+      if (preg_ != rhs.preg_)
+          return preg_ < rhs.preg_;
+      return trueCond_ < rhs.trueCond_;
+    case Unknown:
+       return false; // everything is less than an unknown
+    }
+    assert(0);
+    return true;
+}
+
+bool Absloc::operator==(const Absloc & rhs) const {
+    if (type_ != rhs.type_) return false;
+    switch(type_) {
+    case Register:
+      return reg_ == rhs.reg_;
+    case Stack:
+      return ((off_ == rhs.off_) &&
+	      (region_ == rhs.region_) &&
+	      (func_ == rhs.func_));
+    case Heap:
+      return addr_ == rhs.addr_;
+    case PredicatedRegister:
+      return (reg_ == rhs.reg_) && (preg_ == rhs.preg_) && (trueCond_ == rhs.trueCond_);
+    default:
+      return true;
+    }
+  }
+
 
 bool AbsRegion::contains(const Absloc::Type t) const {
   // Abslocs, if they exist, must be specific.
@@ -151,6 +203,10 @@ bool AbsRegion::contains(const AbsRegion &rhs) const {
   }
 
   if (absloc_ == rhs.absloc_) return true;
+
+  // If rhs is a predicated register and the lhs is a non-predicated register,
+  // then the lhs contains the rhs when the base registers are the same.
+  if (rhs.absloc_.type() == Absloc::PredicatedRegister && rhs.absloc_.reg() == absloc_.reg()) return true;
 
   // Stack slots operate kinda... odd...
   if ((absloc_.type() == Absloc::Stack) &&

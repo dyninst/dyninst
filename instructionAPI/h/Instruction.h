@@ -145,6 +145,7 @@ namespace Dyninst
       INSTRUCTION_EXPORT Operand getOperand(int index) const;
 
       INSTRUCTION_EXPORT Operand getPredicateOperand() const;
+      INSTRUCTION_EXPORT bool hasPredicateOperand() const;
 
       /// Returns a pointer to the buffer from which this instruction
       /// was decoded.
