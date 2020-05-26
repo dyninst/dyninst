@@ -29,6 +29,7 @@
  */
 
 
+#include <cstring>
 #include <algorithm>
 #include "emitElf.h"
 #include "emitElfStatic.h"
@@ -688,11 +689,14 @@ bool emitElf<ElfTypes>::driver(std::string fName) {
                 (strcmp(name, ".init_array") == 0 || strcmp(name, ".fini_array") == 0 ||
                  strcmp(name, "__libc_subfreeres") == 0 || strcmp(name, "__libc_atexit") == 0 ||
                  strcmp(name, "__libc_thread_subfreeres") == 0 || strcmp(name, "__libc_IO_vtables") == 0)) {
-            for (int off = 0; off < newdata->d_size; off += sizeof(void*)) {
-                char* loc = ((char*)newdata->d_buf) + off;
-                uint64_t* loc_ptr = (uint64_t*) loc;
-                if (*loc_ptr == 0) continue;
-                *loc_ptr = *loc_ptr + library_adjust;
+            for(std::size_t off = 0; off < newdata->d_size; off += sizeof(void*)) {
+                char *loc = static_cast<char*>(newdata->d_buf) + off;
+                size_t val{};
+                // The calls to memcpy are required to not break the aliasing rules.
+                memcpy(&val, loc, sizeof(val));
+                if(val == 0) continue;
+                val += library_adjust;
+                memcpy(loc, &val, sizeof(val));
             }
         }
         // Change offsets of sections based on the newly added sections
