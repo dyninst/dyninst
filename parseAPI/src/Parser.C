@@ -1064,34 +1064,37 @@ void
 Parser::finalize_jump_tables()
 {
     set<Address> jumpTableStart;
-    vector<Function::JumpTableInstance*> jumpTables;
+    map<Block*, Function::JumpTableInstance*> jumpTables;
 
     // Step 1: get all jump tables
     for (auto fit = hint_funcs.begin(); fit != hint_funcs.end(); ++fit) {
         Function* f = *fit;
         for (auto jit = f->getJumpTables().begin(); jit != f->getJumpTables().end(); ++jit) {
-            if (jumpTableStart.find(jit->second.tableStart) != jumpTableStart.end()) continue;
             jumpTableStart.insert(jit->second.tableStart);
-            jumpTables.push_back(&(jit->second));
+            jumpTables.emplace(jit->second.block, &(jit->second));
         }
     }
 
     for (auto fit = discover_funcs.begin(); fit != discover_funcs.end(); ++fit) {
         Function* f = *fit;
         for (auto jit = f->getJumpTables().begin(); jit != f->getJumpTables().end(); ++jit) {
-            if (jumpTableStart.find(jit->second.tableStart) != jumpTableStart.end()) continue;
             jumpTableStart.insert(jit->second.tableStart);
-            jumpTables.push_back(&(jit->second));
+            jumpTables.emplace(jit->second.block, &(jit->second));
         }
     }
 
     for (auto ait = jumpTableStart.begin(); ait != jumpTableStart.end(); ++ait)
         parsing_printf("Jump table at %lx\n", *ait);
 
+    vector<Function::JumpTableInstance*> jumpTableVector;
+    for (auto jti = jumpTables.begin(); jti != jumpTables.end(); ++jti)
+        jumpTableVector.push_back(jti->second);
+
     // Step 2: concurrently searching for overrun jump table entries
 #pragma omp parallel for schedule(dynamic)
-    for (size_t i = 0; i < jumpTables.size(); ++i) {
-        Function::JumpTableInstance* jti = jumpTables[i];
+    for (size_t i = 0; i < jumpTableVector.size(); ++i) {
+        Function::JumpTableInstance* jti = jumpTableVector[i];
+        parsing_printf("Inspect jump table at %lx\n", jti->block->last()); 
         auto start_it = jumpTableStart.find(jti->tableStart);
         ++start_it;
 
