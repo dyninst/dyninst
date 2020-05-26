@@ -1,3 +1,11 @@
+\AtBeginDocument{
+  \catcode`_=12
+  \begingroup\lccode`~=`_
+  \lowercase{\endgroup\let~}\sb
+  \mathcode`_="8000
+  \catcode`&=12
+}
+
 \documentclass[twopages,a4paper]{article}
 \usepackage[left=90pt,right=90pt,bottom=90pt]{geometry}
 \usepackage{graphicx}
@@ -10,7 +18,21 @@
 \makeindex[name=terms,title=Index of terms,columns=1]
 \usepackage{url}
 \usepackage{changepage}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks,
+    citecolor=black,
+    filecolor=black,
+    linkcolor=black,
+    urlcolor=black
+}
 
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\rightmark}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
 \DeclareUrlCommand\UScore{\urlstyle{rm}}
 
 \title{Dyninst Programmer's Guide}
@@ -38,6 +60,8 @@
 
 
 \begin{document}
+
+
 
 \lstset{showstringspaces=false}
 \begin{titlepage}
@@ -99,6 +123,36 @@ Web: www.dyninst.org\\
 
 
 \section{Using Dyninst API with the component libraries}\label{sec:using_api}
+
+In this section, we describe how to access the underlying component library abstractions from corresponding Dyninst abstractions. The component libraries (SymtabAPI, InstructionAPI, ParseAPI, and PatchAPI) often provide greater functionality and cleaner interfaces than Dyninst, and thus users may wish to use a mix of abstractions. In general, users may access component library abstractions via a convert function, which is overloaded and namespaced to give consistent behavior. The definitions of all component library abstractions are located in the appropriate documentation. 
+
+
+\begin{lstlisting}[language=c++]
+PatchAPI::PatchMgrPtr PatchAPI::convert(BPatch_addressSpace *);
+
+PatchAPI::PatchObject *PatchAPI::convert(BPatch_object *);
+ParseAPI::CodeObject *ParseAPI::convert(BPatch_object *);
+SymtabAPI::Symtab *SymtabAPI::convert(BPatch_object *);
+
+SymtabAPI::Module *SymtabAPI::convert(BPatch_module *);
+
+PatchAPI::PatchFunction *PatchAPI::convert(BPatch_function *);
+ParseAPI::Function *ParseAPI::convert(BPatch_function *);
+
+PatchAPI::PatchBlock *PatchAPI::convert(BPatch_basicBlock *);
+ParseAPI::Block *ParseAPI::convert(BPatch_basicBlock *);
+
+PatchAPI::PatchEdge *PatchAPI::convert(BPatch_edge *);
+ParseAPI::Edge *ParseAPI::convert(BPatch_edge *);
+
+PatchAPI::Point *PatchAPI::convert(BPatch_point *, BPatch_callWhen);
+PatchAPI::SnippetPtr PatchAPI::convert(BPatch_snippet *);
+
+SymtabAPI::Type *SymtabAPI::convert(BPatch_type *);
+\end{lstlisting}
+
+\pagebreak
+
 \section{Using the API}
 \subsection{OVERVIEW OF MAJOR STEPS}
 \subsection{CREATING A MUTATOR PROGRAM}

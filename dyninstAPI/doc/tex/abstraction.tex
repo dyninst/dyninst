@@ -41,7 +41,7 @@
 
 
 
-\section{Abstractions}
+\section{Abstractions}\label{sec:abstraction}
 The DyninstAPI library provides an interface for instrumenting and working with binaries and processes.  The user writes a \mutator, which uses the DyninstAPI library to operate on the application.  The process that contains the \mutator and DyninstAPI library is known as the \mutatorprocess.  The \mutatorprocess  operates on other processes or on-disk binaries, which are known as \mutatees.\\\\   
 The API is based on abstractions of a program.  For dynamic instrumentation, it can be based on the state while in execution.  The two primary abstractions in the API are \points and \snippets.  A \point is a location in a program where instrumentation can be inserted.  A \snippet is a representation of some executable code to be inserted into a program at a point.  For example, if we wished to record the number of times a procedure was invoked, the \point would be entry point of the procedure, and the \snippets would be a statement to increment a counter.  \Snippets can include conditionals and function calls.\\\\
 

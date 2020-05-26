@@ -447,7 +447,7 @@ This function returns \true if the original file opened with this \BPatchaddress
 {This function returns a processType that reflects whether this address space is a \BPatchprocess or a \BPatchbinaryEdit.}
 
 
-\subsection{CLASS BPATCH\_PROCESS}
+\subsection{CLASS BPATCH\_PROCESS}\label{sec:bpatch_process}
 
 The \textbf{\BPatchprocess} class represents a running process, which includes one or more threads of execution and an address space.
 
@@ -574,7 +574,7 @@ This function returns \true if it successfully wrote a file, or \false otherwise
 }
 
 
-\subsection{CLASS BPATCH\_SOURCEOBJ}
+\subsection{CLASS BPATCH\_SOURCEOBJ}\label{sec:bpatch_sourceobj}
 \newcommand{\BPatchsourceObj}[0]{\texttt{BPatch\_sourceObj}\xspace}
 
 The \textbf{\emph{BPatch\_sourceObj}} class is the C++ superclass for the \BPatchfunction, \BPatchmodule, and \BPatchimage classes.  It provides a set of common methods for all three classes.  In addition, it can be used to build a “generic” source navigator using the getObjParent and \texttt{getSourceObj} methods to get parents and children of a given level (i.e. the parent of a module is an image, and the children will be the functions).
@@ -626,15 +626,485 @@ typedef enum BPatch\_language \{\\
 }{
 Return the source language of the current \texttt{BPatch\_sourceObject}.  For programs that are written in more than one language, \texttt{BPatch\_mixed} will be returned.  If there is insufficient information to determine the language, \texttt{BPatch\_unknownLanguage} will be returned.
 }
+
+
 \subsection{CLASS BPATCH\_FUNCTION}
+
+An object of this class represents a function in the application.  A \BPatchimage object (see description below) can be used to retrieve a \BPatchfunction object representing a given function.
+
+\manual{std::string getName();
+std::string getDemangledName();\\
+std::string getMangledName();\\
+std::string getTypedName();\\
+void getNames(std::vector<std::string> \&names);\\
+void getDemangledNames(std::vector<std::string> \&names);\\
+void getMangledNames(std::vector<std::string> \&names);\\
+void getTypedNames(std::vector<std::string> \&names);\\
+}{
+Return name(s) of the function. The \texttt{getName} functions return the primary name; this is typically the first symbol we encounter while parsing the program; \texttt{getName} is an alias for \texttt{getDemangledName}. The \texttt{getNames} functions return all known names for the function, including any names specified by weak symbols. 
+}
+
+\manual{bool getAddressRange(Dyninst::Address \&start,
+				Dyninst::Address \&end)}{
+Returns the bounds of the function; for non-contiguous functions, this is the lowest and highest address of code that the function includes.
+}
+\newcommand{\BPatchlocalVar}[0]{\texttt{BPatch\_localVar}\xspace}
+\manual{
+std::vector<BPatch\_localVar *> *getParams()}{
+Return a vector of \BPatchlocalVar snippets that refer to the parameters of this function.  The position in the vector corresponds to the position in the parameter list (starting from zero).  The returned local variables can be used to check the types of functions, and can be used in snippet expressions.
+}
+
+\manual{
+BPatch\_type *getReturnType()}{
+Return the type of the return value for this function.
+}
+
+\manual{
+BPatch\_variableExpr *getFunctionRef()
+}{
+For platforms with complex function pointers (e.g., 64-bit PPC) this constructs and returns the appropriate descriptor.
+}
+
+\manual{
+std::vector<BPatch\_localVar *> *getVars()}{
+Returns a vector of \BPatchlocalVar objects that contain the local variables in this function.  These \BPatchlocalVar s can be used as parts of snippets in instrumentation.  This function requires debug information to be present in the mutatee.  If Dyninst was unable to find any local variables, this function will return an empty vector.  It is up to the user to free the vector returned by this function.
+}
+
+\manual{
+bool isInstrumentable()
+}{
+Return \true if the function can be instrumented, and \false if it cannot.  Various conditions can cause a function to be uninstrumentable.  For example, there exists a platform-specific minimum function size beyond which a function cannot be instrumented.
+}
+
+\manual{
+bool isSharedLib()
+}{
+This function returns \true if the function is defined in a shared library.
+}
+
+\manual{
+BPatch\_module *getModule()}{
+Return the module that contains this function.  Depending on whether the program was compiled for debugging or the symbol table stripped, this information may not be available.  This function returns \NULL if module information was not found.
+}
+
+\manual{
+char *getModuleName(char *name, int maxLen)
+}{
+Copies the name of the module that contains this function into the buffer pointed to by \texttt{name}.  Copies at most \texttt{maxLen} characters and returns a pointer to name.}
+
+\newcommand{\BPatchsubroutine}[0]{\texttt{BPatch\_subroutine}\xspace}
+\newcommand{\BPatchexit}[0]{\texttt{BPatch\_exit}\xspace}
+\newcommand{\BPatchentry}[0]{\texttt{BPatch\_entry}\xspace}
+
+\manual{
+enum BPatch\_procedureLocation \{ \\
+\indent BPatch\_entry,\\ 
+\indent BPatch\_exit, 	\\
+\indent BPatch\_subroutine,\\ 
+\indent BPatch\_locInstruction,\\
+\indent BPatch\_locBasicBlockEntry,\\
+\indent BPatch\_locLoopEntry,\\
+\indent BPatch\_locLoopExit,\\
+\indent BPatch\_locLoopStartIter,\\
+\indent BPatch\_locLoopStartExit,\\
+\indent BPatch\_allLocations \}\\\\
+const std::vector<BPatch\_point *> *findPoint(\\
+\indent const BPatch\_procedureLocation loc)
+}{
+Return the \BPatchpoint or list of \BPatchpoint s associated with the procedure. It is used to select which type of points associated with the procedure will be returned. \BPatchentry and \BPatchexit request respectively the entry and exit points of the sub-routine. \BPatchsubroutine returns the list of points where the procedure calls other procedures. If the lookup fails to locate any points of the requested type, \NULL is returned.
+}
+
+
+\newcommand{\BPatchopLoad}[0]{\texttt{BPatch\_opLoad}\xspace}
+\newcommand{\BPatchopPrefetch}[0]{\texttt{BPatch\_opPrefetch}\xspace}
+\newcommand{\BPatchopStore}[0]{\texttt{BPatch\_opStore}\xspace}
+\newcommand{\BPatchopCode}[0]{\texttt{BPatch\_opCode}\xspace}
+
+\manual{
+enum BPatch\_opCode \{ BPatch\_opLoad, BPatch\_opStore, BPatch\_opPrefetch \}\\
+std::vector<BPatch\_point *> *findPoint(const std::set<BPatch\_opCode>\& ops)\\
+std::vector<BPatch\_point *> *findPoint(const BPatch\_Set<BPatch\_opCode>\& ops)
+}{
+Return the vector of \BPatchpoint s corresponding to the set of machine instruction types described by the argument. This version is used primarily for memory access instrumentation. The \BPatchopCode is an enumeration of instruction types that may be requested: \BPatchopLoad, \BPatchopStore, and \BPatchopPrefetch. Any combination of these may be requested by passing an appropriate argument set containing the desired types. The instrumentation points created by this function have additional memory access information attached to them. This allows such points to be used for memory access specific snippets (e.g. effective address). The memory access information attached is described under Memory Access classes in section~\ref{sec:bpatch_memoryaccess}.
+}
+
+
+\manual{
+BPatch\_localVar *findLocalVar(const char *name)
+}{
+Search the function’s local variable collection for \texttt{name}.  This returns a pointer to the local variable if a match is found.  This function returns \NULL if it fails to find any variables.
+}
+
+\manual{
+std::vector<BPatch\_variableExpr *> *findVariable(const char * name)\\
+bool findVariable(const char *name, std::vector<BPatch\_variableExpr> \&vars)\\
+}{
+Return a set of variables matching name at the scope of this function.  If no variables match in the local scope, then the global scope will be searched for matches.  This function returns \NULL if it fails to find any variables.
+}
+
+
+\manual{
+BPatch\_localVar *findLocalParam(const char *name)}{
+Search the function’s parameters for a given name.  A \BPatchlocalVar * pointer is returned if a match is found, and \NULL is returned otherwise.
+}
+
+\manual{void *getBaseAddr()}{
+Return the starting address of the function in the mutatee’s address space.}
+
+\manual{
+BPatch\_flowGraph *getCFG() }{
+Return the control flow graph for the function, or \NULL if this information is not available.  The \BPatchflowGraph is described in section~\ref{sec:bpatch_flowgraph}
+}
+
+
+\manual{bool findOverlapping(std::vector<BPatch\_function *> \&funcs) }{
+Determine which functions overlap with the current function (see Section~\ref{sec:abstraction}). Return \true if other functions overlap the current function; the overlapping functions are added to the \texttt{funcs} vector. Return \false if no other functions overlap the current function.}
+
+
+\manual{bool addMods(std::set<StackMod *> mods) \\
+\indent implemented on x86 and x86-64}{
+Apply stack modifications in \texttt{mods} to the current function; the \texttt{StackMod} class is described in section~\ref{sec:bpatch_stackmod}. Perform error checking, handle stack alignment requirements, and generate any modifications required for cleanup at function exit. \texttt{addMods} atomically adds all modifications in \texttt{mod}s; if any \texttt{mod} is found to be unsafe, none of the modifications in mods will be applied.\\
+
+\texttt{addMods} can only be used in binary rewriting mode.\\
+
+Returns \false if the stack modifications are unsafe or if Dyninst is unable to perform the analysis required to guarantee safety.
+}
+
+
+
 \subsection{CLASS BPATCH\_POINT}
+
+An object of this class represents a location in an application’s code at which the library can insert instrumentation.  A \BPatchimage object (see section 4.10) is used to retrieve a \BPatchpoint representing a desired point in the application.
+
+
+
+
+\newcommand{\ttt}[1]{\texttt{#1}}
+\manual{
+enum BPatch_procedureLocation \{ \\ \indent  BPatch_entry, BPatch_exit, 	BPatch_subroutine,BPatch_address\}\\
+BPatch_procedureLocation getPointType() }
+{Return the type of the point.}
+
+\manual{BPatch_function *getCalledFunction()}{
+Return a \BPatchfunction representing the function that is called at the point.  If the point is not a function call site or the target of the call cannot be determined, then this function returns \NULL.
+}
+
+\manual{std::string getCalledFunctionName()}{
+Returns the name of the function called at this point.  This method is similar to \\\ttt{getCalledFunction()->getName()}, except in cases where DyninstAPI is running in binary rewriting mode and the called function resides in a library or object file that DyninstAPI has not opened.  In these cases, Dyninst is able to determine the name of the called function, but is unable to construct a \BPatchfunction object.
+}
+
+\manual{BPatch\_function *getFunction()}{
+Returns a \BPatchfunction representing the function in which this point is contained.
+}
+
+\newcommand{\BPatchbasicBlockLoop}[0]{\ttt{BPatchbasicBlockLoop}\xspace}
+
+\manual{BPatch_basicBlockLoop *getLoop()}{
+Returns the containing \BPatchbasicBlockLoop if this point is part of loop instrumentation.  Returns \NULL otherwise.}
+
+
+\manual{void *getAddress()}{
+Return the address of the first instruction at this point.
+}
+
+\manual{bool usesTrap_NP()}{
+Return \true if inserting instrumentation at this point requires using a trap.  On the x86 architecture, because instructions are of variable size, the instruction at a point may be too small for Dyninst to replace it with the normal code sequence used to call instrumentation.  Also, when instrumentation is placed at points other than subroutine entry, exit, or call points, traps may be used to ensure the instrumentation fits. In this case, Dyninst replaces the instruction with a single-byte instruction that generates a trap.  A trap handler then calls the appropriate instrumentation code.  Since this technique is used only on some platforms, on other platforms this function always returns \false.}
+
+\manual{const BPatch_memoryAccess* getMemoryAccess()}{
+Returns the memory access object associated with this point.  Memory access points are described in section~\ref{sec:bpatch_memoryaccess}}
+
+\newcommand{\BPatchcallBefore}[0]{\texttt{BPatch_callBefore}\xspace}
+\newcommand{\BPatchcallAfter}[0]{\texttt{BPatch_callAfter}\xspace}
+
+\manual{const std::vector<BPatchSnippetHandle *> getCurrentSnippets()\\
+const std::vector<BPatchSnippetHandle *>\\ 
+\indent     getCurrentSnippets(BPatch_callWhen when)}{
+Return the \BPatchSnippetHandle s for the \BPatchsnippet s that are associated with the point.  If argument when is \BPatchcallBefore, then \BPatchSnippetHandle s for snippets installed immediately before this point will be returned.  Alternatively, if when is \BPatchcallAfter, then \BPatchSnippetHandle s for snippets installed immediately after this point will be returned.}
+
+\manual{bool getLiveRegisters(std::vector<BPatch_register> &regs) }{
+Fill \ttt{regs} with the registers that are live before this point (e.g., \BPatchcallBefore). Currently returns only general purpose registers (GPRs).}
+
+\manual{bool isDynamic()}{
+This call returns true if this is a dynamic call site (e.g. a call site where the function call is made via a function pointer).}
+
+
+\manual{void* monitorCalls(BPatch_function* func)}{
+For a dynamic call site, this call instruments the call site represented by this instrumentation point with a function call. If input parameter func is not \NULL, \texttt{func} is called at the call site as the instrumentation. If \texttt{func} is NULL, the callback function registered with \ttt{BPatch::registerDynamicCallCallback} is used for instrumentation. Under both cases, this call returns a pointer to the called function. If the instrumentation point does not represent a dynamic call site, this call returns \NULL.}
+
+\manual{bool stopMonitoring()}{
+This call returns \true if this instrumentation point is a dynamic call site and its instrumentation is successfully removed. Otherwise, it returns \false.
+}
+\manual{Dyninst::InstructionAPI::Instruction::Ptr getInstructionAtPoint()}{
+On implemented platforms, this function returns a shared pointer to an InstructionAPI Instruction object representing the first machine instruction at this point’s address.  On unimplemented platforms, returns a \NULL shared pointer.}
+
+
 \subsection{CLASS BPATCH\_IMAGE}
+
+This class defines a program image (the executable associated with a process).  The only way to get a handle to a \BPatchimage is via the \BPatchprocess member function \ttt{getImage}.
+
+\manual{const BPatch_point *createInstPointAtAddr (caddr_t address)}
+{This function has been removed because it is not safe to use. Instead, use findPoints:}
+
+\manual{bool findPoints(Dyninst::Address addr, 
+std::vector<BPatch_point *> &points);}{
+Returns a vector of \BPatchpoint s that correspond with the provided address, one per function that includes an instruction at that address. There will be one element if there is not overlapping code.}
+
+\manual{std::vector<BPatch_variableExpr *> *getGlobalVariables()}{
+Return a vector of global variables that are defined in this image.}
+
+\manual{BPatch_process *getProcess()}{
+Returns the \BPatchprocess associated with this image.}
+
+\manual{char *getProgramFileName(char *name, unsigned int len)}{
+Fills provided buffer \ttt{name} with the program’s file name up to \ttt{len} characters.  The filename may include path information.}
+
+
+\manual{bool getSourceObj(std::vector<BPatch_sourceObj *> &sources)}{
+Fill \ttt{sources} with the source objects (see section~\ref{sec:bpatch_sourceobj}) that belong to this image.  If there are no source objects, the function returns \false.  Otherwise, it returns \true.}
+
+\manual{std::vector<BPatch_function *> *getProcedures(
+bool incUninstrumentable = false)}{
+Return a vector of the functions in the image. If the \ttt{incUninstrumentable} flag is set, the returned table of procedures will include uninstrumentable functions. The default behavior is to omit these functions.
+}
+
+\manual{void getObjects(std::vector<BPatch_object *> &objs)}{
+Fill in a vector of objects in the image. }
+
+
+\manual{std::vector<BPatch_module *> *getModules()}{
+Return a vector of the modules in the image.}
+
+\manual{bool getVariables(std::vector<BPatch_variableExpr *> &vars)}{
+Fills \ttt{vars} with the global variables defined in this image.  If there are no variable, the function returns \false.  Otherwise, it returns \true.}
+
+\manual{std::vector<BPatch_function*> *findFunction(\\
+const char *name,\\
+std::vector<BPatch_function*> &funcs,\\
+bool showError = true,\\
+bool regex_case_sensitive = true,\\
+bool incUninstrumentable = false)}{
+Return a vector of \BPatchfunction s corresponding to name, or \NULL if the function does not exist.  If \texttt{name} contains a POSIX-extended regular expression, and \ttt{dont_use_regex} is false, a regular expression search will be performed on function names and matching \BPatchfunction s returned.  If \ttt{showError} is true, then Dyninst will report an error via the \ttt{BPatch::registerErrorCallback} if no function is found.\\
+
+If the \ttt{incUninstrumentable} flag is set, the returned table of procedures will include uninstrumentable functions. The default behavior is to omit these functions.\\
+
+[NOTE: If \ttt{name} is not found to match any demangled function names in the module, the search is repeated as if \ttt{name} is a mangled function name.  If this second search succeeds, functions with mangled names matching name are returned instead.]
+}
+
+\manual{std::vector<BPatch_function*> *findFunction(\\
+std::vector<BPatch_function*> &funcs,\\
+BPatchFunctionNameSieve bpsieve,\\
+void *sieve_data = NULL,\\
+int showError = 0,\\
+bool incUninstrumentable = false)}{
+Return a vector of \BPatchfunction s according to the generalized user-specified filter function \ttt{bpsieve}.  This permits users to easily build sets of functions according to their own specific criteria.  Internally, for each \BPatchfunction f in the image, this method makes a call to \ttt{bpsieve(f.getName(), sieve_data)}.  The user-specified function \ttt{bpsieve} is responsible for taking the \ttt{name} argument and determining if it belongs in the output vector, possibly by using extra user-provided information stored in \ttt{sieve_data}.  If the name argument matches the desired criteria, \ttt{bpsieve} should return \true.  If it does not, \ttt{bpsieve} should return {false}.\\
+
+The function bpsieve should be defined in accordance with the typedef:\\
+
+\ttt{bool (*BPatchFunctionNameSieve) (const char *name, void* sieve_data);}\\
+
+If the \ttt{incUninstrumentable} flag is set, the returned table of procedures will include uninstrumentable functions. The default behavior is to omit these functions.
+}
+
+
+\manual{bool findFunction(Dyninst::Address addr, std::vector<BPatch_function *> &funcs)}{
+Find all functions that have code at the given address, \addr.  Dyninst supports functions that share code, so this method may return more than one \BPatchfunction.  These functions are returned via the \ttt{funcs} output parameter.  This function returns \true if it finds any functions, \false otherwise.
+}
+
+\newcommand{\BPatchvariableExpr}[0]{\ttt{BPatch_variableExpr}\xspace}
+
+\manual{BPatch_variableExpr *findVariable(const char *name, \\
+\indent     bool showError = true)\\
+BPatch_variableExpr *findVariable(BPatch_point &scope, \\
+\indent  const char *name) second form of this method is not implemented on Windows.}{
+Performs a lookup and returns a handle to the named variable.  The first form of the function looks up only variables of global scope, and the second form uses the passed \BPatchpoint as the scope of the variable. The returned \BPatchvariableExpr can be used to create references (uses) of the variable in subsequent snippets. The scoping rules used will be those of the source language. If the image was not compiled with debugging symbols, this function will fail even if the variable is defined in the passed scope. }
+
+\manual{BPatch_type *findType(const char *name) }{
+Performs a lookup and returns a handle to the named type. The handle can be used as an argument to \ttt{BPatch_addressSpace::malloc} to create new variables of the corresponding type.  }
+
+\manual{BPatch_module *findModule(const char *name,\\
+\indent bool substring_match = false)}{
+Returns a module named \ttt{name} if present in the image.  If the match fails, \NULL is returned.  If \ttt{substring_match} is true, the first module that has name as a substring of its name is returned (e.g. to find \ttt{libpthread.so.1}, search for \ttt{libpthread} with \ttt{substring_match} set to true).}
+
+\manual{bool getSourceLines(unsigned long addr, \\
+\indent     std::vector<BPatch_statement> & lines) }{
+Given an address \ttt{addr}, this function returns a vector of pairs of filenames and line numbers at that address.  This function is an alias for \ttt{BPatch_process::getSourceLines} (see section~\ref{sec:bpatch_process}).  }
+
+\manual{bool getAddressRanges( const char * fileName, unsigned int lineNo, std::vector<\\ \indent std::pair< unsigned long, unsigned long > > & ranges ) }{
+Given a file name and line number, \ttt{fileName} and \ttt{lineNo}, this function returns a list of address ranges that this source line was compiled into.  This function is an alias for \ttt{BPatch_process::getAddressRanges} (see section~\ref{sec:bpatch_proces}).}
+
+\manual{bool parseNewFunctions(std::vector<BPatch_module*> &newModules, const\\ 
+\indent std::vector<Dyninst::Address> &funcEntryAddrs) }{
+This function takes as input a list of function entry points indicated by the \ttt{funcEntryAddrs} vector, which are used to seed parsing in whatever modules they are found.  All affected modules are placed in the \ttt{newModules} vector, which includes any existing modules in which new functions are found, as well as modules corresponding to new regions of the binary, for which new \BPatchmodule s are created.  The return value is \true in the event that at least one previously unknown function was identified, or \false otherwise.  
+}
+
+
+
 \subsection{CLASS BPATCH\_OBJECT}
+
+An object of this class represents the original executable or a library. It serves as a container of \ttt{BPatch_module} objects.
+
+\manual{std::string name()\\
+std::string pathName()}{
+Return the name of this file; either just the file name or the fully path-qualified name. }
+
+\manual{Dyninst::Address fileOffsetToAddr(Dyninst::Offset offset)}{
+Convert the provided offset into the file into a full address in memory. }
+
+\manual{
+struct Region {\\
+\indent	typedef enum \{ UNKNOWN, CODE, DATA \} type_t;\\
+\indent	Dyninst::Address base;\\
+\indent	unsigned long size;\\
+\indent	type_t type;
+};\\
+void regions(std::vector<Region> &regions)}{
+Returns information about the address ranges occupied by this object in memory. 
+}
+
+\manual{void modules(std::vector<BPatch_module *> &modules)}{
+Returns the modules contained in this object.}
+
+\manual{std::vector<BPatch_function*> *findFunction(\\
+\indent const char *name,\\
+\indent std::vector<BPatch_function*> &funcs,\\
+\indent bool showError = true,\\
+\indent bool regex_case_sensitive = true,\\
+\indent bool incUninstrumentable = false)}{
+Return a vector of \BPatchfunction s corresponding to \ttt{name}, or \NULL if the function does not exist.  If name contains a POSIX-extended regular expression, and \ttt{dont_use_regex} is \false, a regular expression search will be performed on function names and matching \BPatchfunction s returned.  If \ttt{showError} is true, then Dyninst will report an error via the \ttt{BPatch::registerErrorCallback} if no function is found.\\
+
+If the \ttt{incUninstrumentable} flag is set, the returned table of procedures will include un-instrumentable functions. The default behavior is to omit these functions.\\
+
+[NOTE: If \ttt{name} is not found to match any demangled function names in the module, the search is repeated as if \ttt{name} is a mangled function name.  If this second search succeeds, functions with mangled names matching name are returned instead.]}
+
+
+\manual{bool findPoints(Dyninst::Address addr, \\
+\indent std::vector<BPatch_point *> &points);\\}{
+Return a vector of \BPatchpoint s that correspond with the provided address, one per function that includes an instruction at that address. There will be one element if there is not overlapping code.}
+
+\newcommand{\BPatchobject}[0]{\ttt{BPatch_object}\xspace}
+
+\manual{std::vector<BPatch_function*> *findFunction(\\
+\indent const char *name,\\
+\indent std::vector<BPatch_function*> &funcs,\\
+\indent bool notify_on_failure = true,\\
+\indent bool regex_case_sensitive = true,\\
+\indent bool incUninstrumentable = false)}{
+Return a vector of \BPatchfunction s matching \ttt{name}, or \NULL if the function does not exist.  If name contains a POSIX-extended regular expression, a regex search will be per-formed on function names, and matching \BPatchfunction s returned. [NOTE: The std::vector argument funcs must be declared fully by the user before calling this function.  Passing in an uninitialized reference will result in undefined behavior.]\\
+
+If the \ttt{incUninstrumentable} flag is set, the returned table of procedures will include un-instrumentable functions. The default behavior is to omit these functions.\\
+
+[NOTE: If \ttt{name} is not found to match any demangled function names in the \BPatchobject, the search is repeated as if \ttt{name} is a mangled function name.  If this second search succeeds, functions with mangled names matching name are returned instead.]
+}
+
 \subsection{CLASS BPATCH\_MODULE}
+
+
+An object of this class represents a program module, which is part of a program’s executable image. A \BPatchmodule represents a source file in either an executable or a shared library.  Dyninst automatically creates a module called DEFAULT_MODULE in each executable to hold any objects that it cannot match to a source file. \BPatchmodule objects are obtained by calling the \BPatchimage member function \ttt{getModules}.
+
+\manual{std::vector<BPatch_function*> *findFunction(\\
+\indent const char *name,\\
+\indent std::vector<BPatch_function*> &funcs,\\
+\indent bool notify_on_failure = true,\\
+\indent bool regex_case_sensitive = true,\\
+\indent bool incUninstrumentable = false)}{
+Return a vector of \BPatchfunction s matching \ttt{name}, or \NULL if the function does not exist.  If name contains a POSIX-extended regular expression, a regex search will be performed on function names, and matching \BPatchfunction s returned. [NOTE: The std::vector argument \ttt{funcs} must be declared fully by the user before calling this function.  Passing in an uninitialized reference will result in undefined behavior.]\\
+
+If the \ttt{incUninstrumentable} flag is set, the returned table of procedures will include un-instrumentable functions. The default behavior is to omit these functions.\\
+
+[NOTE: If \ttt{name} is not found to match any demangled function names in the module, the search is repeated as if \ttt{name} is a mangled function name.  If this second search succeeds, functions with mangled names matching name are returned instead.]}
+
+\manual{BPatch_Vector<BPatch_function *> *findFunctionByAddress(\\
+\indent void *addr,\\
+\indent BPatch_Vector<BPatch_function *> &funcs,\\
+\indent bool notify_on_failure = true,\\
+\indent bool incUninstrumentable = false)}{
+Return a vector of \BPatchfunction s that contains \ttt{addr}, or \NULL if the function does not exist.  [NOTE: The std::vector argument \ttt{funcs} must be declared fully by the user before calling this function.  Passing in an uninitialized reference will result in undefined be-havior.]\\
+
+If the \ttt{incUninstrumentable} flag is set, the returned table of procedures will include un-instrumentable functions. The default behavior is to omit these functions.
+}
+
+\manual{BPatch_function *findFunctionByEntry(Dyninst::Address addr)\\
+\indent Returns the function that begins at the specified address addr.\\
+\indent BPatch_function *findFunctionByMangled(\\
+\indent const char *mangled_name,\\
+\indent bool incUninstrumentable = false)}{
+Return a \BPatchfunction for the mangled function name defined in the module corresponding to the invoking \BPatchmodule, or \NULL if it does not define the function.  \\
+
+If the \ttt{incUninstrumentable} flag is set, the functions searched will include un-instrumentable functions. The default behavior is to omit these functions.}
+
+
+\manual{bool getAddressRanges( char * fileName, unsigned int lineNo, \\
+\indent std::vector< std::pair< unsigned long, unsigned long > > & ranges )}{
+Given a filename and line number, \ttt{fileName} and \ttt{lineNo}, this function returns the ranges of mutatee addresses that implement the code range in the output parameter ranges.  In many cases a source code line will only have one address range implementing it.  However, compiler optimizations may turn this into multiple, disjoint address ranges.  This information is only available if the mutatee was compiled with debug information.\\
+
+This function may be more efficient than the \BPatchprocess version of this function.  Calling \ttt{BPatch_process::getAddressRange} will cause Dyninst to parse line information for all modules in a process.  If \ttt{BPatch_module::getAddressRange} is called then only the debug information in this module will be parsed.\\
+
+This function returns \true if it was able to find any line information, \false otherwise.}
+
+\manual{size_t getAddressWidth()}{
+Return the size (in bytes) of a pointer in this module.  On 32-bit systems this function will return 4, and on 64-bit systems this function will return 8.}
+
+\manual{void *getBaseAddr()}{
+Return the base address of the module.  This address is defined as the start of the first function in the module.}
+
+\manual{std::vector<BPatch_function *> \\
+\indent *getProcedures( bool incUninstrumentable = false )}{
+Return a vector containing the functions in the module. }
+
+\manual{char *getFullName(char *buffer, int length)}{
+Fills \ttt{buffer} with the full path name of a module, up to length characters when this information is available.}
+
+\manual{BPatch_hybridMode getHybridMode()}{
+Return the mutator’s analysis mode for the mutatee; the default mode is the normal mode.}
+
+\manual{char *getName(char *buffer, int len)}{
+This function copies the filename of the module into \ttt{buffer}, up to \ttt{len} characters.  It returns the value of the \ttt{buffer} parameter.}
+
+\manual{unsigned long getSize()}{
+Return the size of the module.  The size is defined as the end of the last function minus the start of the first function.}
+
+\manual{bool getSourceLines( unsigned long addr, std::vector<BPatch_statement> & lines )}{
+This function returns the line information associated with the mutatee address \addr.  The vector \ttt{lines} contain pairs of filenames and line numbers that are associated with \addr.  In many cases only one filename and line number is associated with an address, but certain compiler optimizations may lead to multiple filenames and lines at an address.    This information is only available if the mutatee was compiled with debug information.\\
+
+This function may be more efficient than the \BPatchprocess version of this function.  Calling \BPatchprocess::getSourceLines will cause Dyninst to parse line information for all modules in a process.  If \ttt{BPatch_module::getSourceLines} is called then only the debug information in this module will be parsed.\\
+
+This function returns \true if it was able to find any line information at \addr, or \false otherwise.}
+
+
+\manual{char *getUniqueString(char *buffer, int length)}{
+Performs a lookup and returns a unique string for this image. Returns a string the can be compared (via \ttt{strcmp}) to indicate if two images refer to the same underlying object file (i.e., executable or library).  The contents of the string are implementation specific and defined to have no semantic meaning.}
+
+\manual{bool getVariables(std::vector<BPatch_variableExpr *> &vars)}{
+Fill the vector \ttt{vars} with the global variables that are specified in this module.  Returns \false if no results are found and \true otherwise.}
+
+\manual{BpatchSnippetHandle* insertInitCallback(Bpatch_snippet& callback) }{
+This function inserts the snippet \ttt{callback} at the entry point of this module’s \ttt{init} function (creating a new init function/section if necessary).}
+
+\manual{BpatchSnippetHandle* insertFiniCallback(Bpatch_snippet& callback) }{
+This function inserts the snippet \ttt{callback} at the exit point of this module’s fini function (creating a new fini function/section if necessary).}
+
+\manual{bool isExploratoryModeOn() }{
+This function returns \true if the mutator’s analysis mode sets to the defensive mode or the exploratory mode.}
+
+\manual{bool isMutatee() }{
+This function returns \true if the module is the mutatee.}
+
+\manual{bool isSharedLib() }{
+This function returns \true if the module is part of a shared library.}
+
+
+
+
+
+
+
+
+
+
 \subsection{CLASS BPATCH\_SNIPPET}
 \subsection{CLASS BPATCH\_TYPE}
 \subsection{CLASS BPATCH\_VARIABLEEXPR}
-\subsection{CLASS BPATCH\_FLOWGRAPH}
+\subsection{CLASS BPATCH\_FLOWGRAPH}\label{sec:bpatch_flowgraph}
 \subsection{CLASS BPATCH\_BASICBLOCK}
 \subsection{CLASS BPATCH\_EDGE}
 \subsection{CLASS BPATCH\_BASICBLOCKLOOP}
@@ -643,12 +1113,14 @@ Return the source language of the current \texttt{BPatch\_sourceObject}.  For pr
 \subsection{CLASS BPATCH\_SOURCEBLOCK}
 \subsection{CLASS BPATCH\_CBLOCK}\label{sec:bpatch_cblock}
 \subsection{CLASS BPATCH\_FRAME}\label{sec:bpatch_frame}
-\subsection{CLASS STACKMOD}
+\subsection{CLASS STACKMOD}\label{sec:bpatch_stackmod}
+
 \subsection{CONTAINER CLASSES}
 \subsubsection{Class std::vecotr}
 \subsubsection{Class BPatch\_Set}
+
 \subsection{MEMORY ACCESS CLASSES}
-\subsubsection{Class BPatch\_memoryAccess}
+\subsubsection{Class BPatch\_memoryAccess}\label{sec:bpatch_memoryaccess}
 \subsubsection{Class BPatch\_addrSpec\_NP}
 \subsubsection{Class BPatch\_countSpec\_NP}
 \subsection{TYPE SYSTEM}\label{sec:type_system}

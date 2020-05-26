@@ -1,4 +1,4 @@
-\section{Introduction}
+\section{Introduction}\label{sec:introduction}
 \index[terms]{abc}\index[terms]{abc}\index[terms]{abc}
 
 The normal cycle of developing a program is to edit the source code, compile it, and then execute the resulting binary.  However, sometimes this cycle can be too restrictive.  We may wish to change the program while it is executing or after it has been linked, thus avoiding the process of  re-compiling, re-linking, or even re-executing the program to change the binary.  At first, this may seem like a bizarre goal, however, there are several practical reasons why we may wish to have such a system.  For example, if we are measuring the performance of a program and discover a performance problem, it might be necessary to insert additional instrumentation into the program to understand the problem.  Another application is performance steering; for large simulations, computational scientists often find it advantageous to be able to make modifications to the code and data while the simulation is executing.\\
