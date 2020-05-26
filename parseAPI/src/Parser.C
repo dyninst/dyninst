@@ -1071,7 +1071,7 @@ Parser::finalize_jump_tables()
         Function* f = *fit;
         for (auto jit = f->getJumpTables().begin(); jit != f->getJumpTables().end(); ++jit) {
             jumpTableStart.insert(jit->second.tableStart);
-            jumpTables.emplace(std::make_pair(jit->second.block, &(jit->second)));
+            jumpTables.emplace(jit->second.block, &(jit->second));
         }
     }
 
@@ -1079,7 +1079,7 @@ Parser::finalize_jump_tables()
         Function* f = *fit;
         for (auto jit = f->getJumpTables().begin(); jit != f->getJumpTables().end(); ++jit) {
             jumpTableStart.insert(jit->second.tableStart);
-            jumpTables.emplace(std::make_pair(jit->second.block, &(jit->second)));
+            jumpTables.emplace(jit->second.block, &(jit->second));
         }
     }
 
