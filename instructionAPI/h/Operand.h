@@ -81,7 +81,8 @@ namespace Dyninst
 
       Operand(const Operand& o) :
         op_value(o.op_value), m_isRead(o.m_isRead), 
-        m_isWritten(o.m_isWritten), m_isImplicit(o.m_isImplicit)
+        m_isWritten(o.m_isWritten), m_isImplicit(o.m_isImplicit),
+        m_isTruePredicate(o.m_isTruePredicate), m_isFalsePredicate(o.m_isFalsePredicate)
       {
       }
 
@@ -91,6 +92,8 @@ namespace Dyninst
           m_isRead = rhs.m_isRead;
           m_isWritten = rhs.m_isWritten;
           m_isImplicit = rhs.m_isImplicit;
+          m_isTruePredicate = rhs.m_isTruePredicate;
+          m_isFalsePredicate = rhs.m_isFalsePredicate;
           return *this;
       }
       
