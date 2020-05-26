@@ -69,14 +69,13 @@ int binaryAnalysis(BPatch_addressSpace* app) {
             block_iter != blocks.end(); 
             ++block_iter) {
         BPatch_basicBlock* block = *block_iter;
-        std::vector<InstructionAPI::Instruction::Ptr> insns;
+        std::vector<InstructionAPI::Instruction> insns;
         block->getInstructions(insns);
 
         for (auto insn_iter = insns.begin(); 
                 insn_iter != insns.end(); 
                 ++insn_iter) {
-            InstructionAPI::Instruction::Ptr insn = *insn_iter;
-            if (insn->readsMemory() || insn->writesMemory()) {
+            if (insn_iter->readsMemory() || insn_iter->writesMemory()) {
                 insns_access_memory++;
             }
         }
