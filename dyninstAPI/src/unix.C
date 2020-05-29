@@ -149,6 +149,15 @@ static void findThreadFuncs(PCProcess *p, std::string func,
 	result = *found;
         return;
     }
+
+    lc = p->findObject("libc-2.*.so*", true);
+    if (lc)
+        found = lc->findFuncVectorByMangled(func);
+    if (found) {
+        result = *found;
+        return;
+    }
+
     p->findFuncsByPretty(func, result);
 }
 
