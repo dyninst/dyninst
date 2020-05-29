@@ -40,40 +40,6 @@ namespace Dyninst {
 namespace ParseAPI {
 
 template <class T>
-class flist_iter {
-    typedef T elem;
- private:
-    mutable allocatable * cur_;
- public:
-    flist_iter(elem * cur) :
-        cur_(cur) { }
-
-    flist_iter(allocatable * cur) :
-        cur_(cur) { }
-
-    inline elem &operator*() { return *(elem*)cur_; }
-    inline const elem &operator*() const { return *(elem*)cur_; }
-
-    inline flist_iter operator++(int) const {
-        flist_iter result = *this;
-        cur_ = cur_->alloc_next();
-        return result;
-    }
-    inline flist_iter operator++() const {
-        cur_ = cur_->alloc_next();
-        return *this;
-    }
-
-    inline bool operator==(const flist_iter &iter) const {
-        return (cur_ == iter.cur_);
-    }
-    inline bool operator!=(const flist_iter &iter) const {
-        return (cur_ != iter.cur_);
-    }
-};
-
-
-template <class T>
 class fact_list {
 public:
   typedef typename LockFreeQueue<T>::iterator iterator;
@@ -103,7 +69,6 @@ private:
     Overriding the default methods of this interface allows the parsing
     routines to generate and work with extensions of the base types **/
 
-/** Objects created by a CFGFactory must descend from `allocatable' **/
 enum EdgeState {
     created,
     destroyed_cb,
