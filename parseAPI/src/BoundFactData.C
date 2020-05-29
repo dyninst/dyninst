@@ -360,21 +360,6 @@ void StridedInterval::Print() {
     parsing_printf("%s\n", format().c_str());
 }
 
-static bool IsInReadOnlyRegion(Address low, Address high) {	
-	// Now let's assume it is always in a read only region
-	// unless it is reading a single memory location
-	return low != high;
-
-}
-
-static bool IsTableIndex(set<uint64_t> &values) {
-	// Check if this is a set of [0, high]
-	if (values.empty()) return false;
-	if (*(values.begin()) != 0) return false;
-	if (*(values.rbegin()) + 1 != values.size()) return false;
-	return true;
-}
-
 void BoundFact::Meet(BoundFact &bf, Block* b) {
         for (auto fit = fact.begin(); fit != fact.end();) {
 	    StridedInterval *val2 = bf.GetBound(fit->first);
