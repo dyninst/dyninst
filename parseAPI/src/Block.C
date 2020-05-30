@@ -335,3 +335,23 @@ void Block::removeSource(Edge * e) {
     sourceMap[e->type()].erase(e->src()->last());
 }
 
+void Block::moveTargetEdges(Block* B) {
+    if (this == B) return;
+    boost::lock_guard<Block> g(*this);
+    Block* A = this;
+    /* We move outgoing edges from this block to block B, which is 
+     * necessary when spliting blocks.
+     * The start of block B should be consistent with block A.
+     *
+     */
+    Block::edgelist &trgs = _trglist;
+    Block::edgelist::iterator tit = trgs.begin();
+	for (; tit != trgs.end(); ++tit) {
+        ParseAPI::Edge *e = *tit;
+        // Helgrind gets confused, we use a cmp&swap to hide the write.
+        assert(e->_source.compare_exchange_strong(A, B));
+        B->addTarget(e);
+	}
+    trgs.clear();
+    targetMap.clear();
+}

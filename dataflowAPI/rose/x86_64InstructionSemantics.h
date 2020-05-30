@@ -16,12 +16,13 @@
 #include "SgAsmExpression.h"
 #include "conversions.h"
 
-#ifndef ROSE_X86INSTRUCTIONSEMANTICS_H
-
+#undef ROSE_ASSERT
 #define ROSE_ASSERT(x) \
     if (!(x)) {\
         throw rose::BinaryAnalysis::InstructionSemantics2::BaseSemantics::Exception("", NULL); \
     }\
+
+#ifndef ROSE_X86INSTRUCTIONSEMANTICS_H
 
 /* Returns the segment register corresponding to the specified register reference address expression. */
 static inline X86SegmentRegister getSegregFromMemoryReference(SgAsmMemoryReferenceExpression* mr) {

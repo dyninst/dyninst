@@ -385,6 +385,7 @@ private:
     void addTarget(Edge * e);
     void removeTarget(Edge * e);
     void removeSource(Edge * e);
+    void moveTargetEdges(Block *);
     void removeFunc(Function *);
     friend class region_data;
     void updateEnd(Address addr);

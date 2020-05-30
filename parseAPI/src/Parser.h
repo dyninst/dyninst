@@ -204,10 +204,6 @@ namespace Dyninst {
                     Edge *exist);
 
             Block *follow_fallthrough(Block *b, Address addr);
-            Block *split_block(Function *owner,
-                               Block *b,
-                               Address addr,
-                               Address previnsn);
 
             Edge *link_addr(Address src, Block *dst, EdgeTypeEnum et, bool sink, Function* func);
             Edge *link_block(Block* src, Block *dst, EdgeTypeEnum et, bool sink);
@@ -265,7 +261,6 @@ namespace Dyninst {
             void finalize_jump_tables();
             void delete_bogus_blocks(Edge*);
             bool set_edge_parsing_status(ParseFrame&, Address addr, Block *b);
-	    void move_edges_consistent_blocks(Block *, Block *);
             void update_function_ret_status(ParseFrame &, Function*, ParseWorkElem* );
 
 
