@@ -1,0 +1,1 @@
+../dyninstAPI/doc/examples/binary_analysis.cpp

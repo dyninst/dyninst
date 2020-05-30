@@ -1,3 +1,20 @@
+add_executable(instrumenting_a_function ../dyninstAPI/doc/examples/instrumenting_a_function.cpp)
+add_dependencies(instrumenting_a_function dyninstAPI parseAPI symtabAPI instructionAPI common)
+target_link_libraries(instrumenting_a_function dyninstAPI symtabAPI instructionAPI common dynDwarf dynElf ${Boost_LIBRARIES} ${ElfUtils_LIBRARIES} boost_filesystem boost_system tbbmalloc )
+
+add_executable(binary_analysis ../dyninstAPI/doc/examples/binary_analysis.cpp)
+add_dependencies(binary_analysis dyninstAPI parseAPI symtabAPI instructionAPI common)
+target_link_libraries(binary_analysis dyninstAPI symtabAPI instructionAPI common dynDwarf dynElf ${Boost_LIBRARIES} ${ElfUtils_LIBRARIES} boost_filesystem boost_system tbbmalloc )
+
+add_executable(instrumenting_memory_access ../dyninstAPI/doc/examples/instrumenting_memory_access.cpp)
+add_dependencies(instrumenting_memory_access dyninstAPI parseAPI symtabAPI instructionAPI common)
+target_link_libraries(instrumenting_memory_access dyninstAPI symtabAPI instructionAPI common dynDwarf dynElf ${Boost_LIBRARIES} ${ElfUtils_LIBRARIES} boost_filesystem boost_system tbbmalloc )
+
+add_executable(retee ../dyninstAPI/doc/examples/retee.cpp)
+add_dependencies(retee dyninstAPI parseAPI symtabAPI instructionAPI common)
+target_link_libraries(retee dyninstAPI symtabAPI instructionAPI common dynDwarf dynElf ${Boost_LIBRARIES} ${ElfUtils_LIBRARIES} boost_filesystem boost_system tbbmalloc )
+
+add_executable(InterestingProgram ../dyninstAPI/doc/examples/InterestingProgram.cpp)
 
 
 add_executable(unstrip unstrip.dir/unstrip.C
@@ -31,7 +48,7 @@ set_target_properties (cfg_to_dot PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS} L
 endif()
 
 
-install (TARGETS cfg_to_dot unstrip codeCoverage Inst
+install (TARGETS cfg_to_dot unstrip codeCoverage Inst instrumenting_a_function binary_analysis instrumenting_memory_access retee InterestingProgram
         RUNTIME DESTINATION ${INSTALL_BIN_DIR}
         LIBRARY DESTINATION ${INSTALL_LIB_DIR}
         ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
