@@ -146,6 +146,9 @@ class SYMTAB_EXPORT Type : public Serializable, public  TYPE_ANNOTATABLE_CLASS
    Serializable * serialize_impl(SerializerBase *, 
 		   const char * = "Type") THROW_SPEC (SerializerError);
 
+   // Maximum memory needed to store any of the possible Types.
+   static const std::size_t max_size;
+
  protected:
    typeId_t ID_;           /* unique ID of type */
    std::string name_;
