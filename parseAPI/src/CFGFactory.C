@@ -161,7 +161,6 @@ CFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
 }
 
 void CFGFactory::destroy_func(Function *f) {
-   f->remove();
    free_func(f);
 }
 
@@ -172,7 +171,6 @@ CFGFactory::free_func(Function *f) {
 
 void
 CFGFactory::destroy_block(Block *b) {
-    b->remove();
     free_block(b);
 }
 
@@ -195,7 +193,6 @@ std::string to_str(EdgeState e)
 
 void
 CFGFactory::destroy_edge(Edge *e, Dyninst::ParseAPI::EdgeState reason) {
-    e->remove();
     if(reason == destroyed_all) {
         free_edge(e);
     }

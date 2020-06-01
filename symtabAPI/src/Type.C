@@ -80,12 +80,6 @@ void Type::updateUniqueTypeId(typeId_t ID_)
   }
 }
 
-namespace Dyninst {
-  namespace SymtabAPI {
-    dyn_c_hash_map<void *, size_t> type_memory;
-  }
-}
-
 /* These are the wrappers for constructing a type.  Since we can create
    types six ways to Sunday, let's do them all in one centralized place. */
 
@@ -100,48 +94,30 @@ Type::unique_ptr_Type Type::createFake(std::string name)
    return t;
 }
 
-#if !defined MAX
-#define MAX(x, y) ((x) > (y) ? (x) : (y))
-#endif
+// Memory size of the maximum-sized subclass of Type we can possibly have.
+const std::size_t Type::max_size = std::max({
+  sizeof(Type),
+  sizeof(typeEnum),
+  sizeof(typePointer),
+  sizeof(typeFunction),
+  sizeof(typeSubrange),
+  sizeof(typeArray),
+  sizeof(typeStruct),
+  sizeof(typeUnion),
+  sizeof(typeCommon),
+  sizeof(typeScalar),
+  sizeof(typeTypedef),
+  sizeof(typeRef),
+  sizeof(fieldListType),
+  sizeof(rangedType),
+  sizeof(derivedType),
+});
 
 Type::unique_ptr_Type Type::createPlaceholder(typeId_t ID, std::string name)
 {
-  static size_t max_size = 0;
-
-  static std::once_flag initialized;
-
-  std::call_once(initialized, []() {
-    max_size = sizeof(Type);
-    max_size = MAX(sizeof(fieldListType), max_size);
-    max_size = MAX(sizeof(rangedType), max_size);
-    max_size = MAX(sizeof(derivedType), max_size);
-    max_size = MAX(sizeof(typeEnum), max_size);
-    max_size = MAX(sizeof(typeFunction), max_size);
-    max_size = MAX(sizeof(typeScalar), max_size);
-    max_size = MAX(sizeof(typeCommon), max_size);
-    max_size = MAX(sizeof(typeStruct), max_size);
-    max_size = MAX(sizeof(typeUnion), max_size);
-    max_size = MAX(sizeof(typePointer), max_size);
-    max_size = MAX(sizeof(typeTypedef), max_size);
-    max_size = MAX(sizeof(typeRef), max_size);
-    max_size = MAX(sizeof(typeSubrange), max_size);
-    max_size = MAX(sizeof(typeArray), max_size);
-    max_size += 32; //Some safey padding
-    ANNOTATE_HAPPENS_BEFORE(&max_size);
-    }
-  );
-  ANNOTATE_HAPPENS_AFTER(&max_size);
-
   void *mem = malloc(max_size);
   assert(mem);
-
-  {
-     dyn_c_hash_map<void*, size_t>::accessor a;
-     type_memory.insert(a, make_pair(mem, max_size));
-  }
-
   Type *placeholder_type = new(mem) Type(name, ID, dataUnknownType);
-
   return placeholder_type;
 }
 

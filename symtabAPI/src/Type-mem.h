@@ -35,28 +35,17 @@
 #include "boost/static_assert.hpp"
 #include <utility>
 
-namespace Dyninst {
-  namespace SymtabAPI {
-    extern dyn_c_hash_map<void *, size_t> type_memory;
-  }
-}
-
 using namespace Dyninst;
 using namespace SymtabAPI;
 
 template<class T>
 T *upgradePlaceholder(Type *placeholder, T *new_type)
 {
-  void *mem = (void *) placeholder;
-  size_t size = 0;
-  {
-    dyn_c_hash_map<void*, size_t>::accessor a;
-    assert(type_memory.find(a, placeholder));
-    size = a->second;
-  }
+  assert(sizeof(T) <= Type::max_size);
 
-  assert(sizeof(T) < size);
-  memset(mem, 0, size);
+  void* mem = realloc((void *) placeholder, sizeof(T));
+  assert(mem == (void *) placeholder);
+  memset(mem, 0, sizeof(T));
 
   T *ret = new(mem) T();
   assert(mem == (void *) ret);
