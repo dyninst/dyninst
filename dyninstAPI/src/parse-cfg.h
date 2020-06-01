@@ -143,22 +143,6 @@ class parse_block : public codeRange, public ParseAPI::Block  {
 
     bool unresolvedCF_;
     bool abruptEnd_;
-
-    /* Liveness analysis variables */
-    /** gen registers */
-    
-    bitArray use; // Registers used by instructions within the block
-    bitArray def; // Registers defined by instructions within the block
-    bitArray in;  // Summarized input liveness; we calculate output on the fly
- public:
-    static InstructionCache cachedLivenessInfo;
-    
- private:
-    void summarizeBlockLivenessInfo(parse_func * context);
-    // Returns true if any information changed; false otherwise
-    bool updateBlockLivenessInfo(parse_func * context);
-
-
 };
 
 inline Address 
