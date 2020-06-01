@@ -34,25 +34,135 @@
 #  Rice University
 #  May 2020
 #
+#  Co-author: Tim Haines
+#  University of Wisconsin-Madison
+#
+#----------------------------------------------------------------------
+
+use strict;
+use warnings;
+use Pod::Usage;
+use Getopt::Long qw(GetOptions);
+
+my $dyninst = undef;
+my $verbose = undef;
+my $help    = undef;
+
+GetOptions(
+	'd|dyninst' => \$dyninst,
+	'v|verbose' => \$verbose,
+	'h|help'    => \$help
+) or pod2usage( -exitval => 2 );
+
+pod2usage( -exitval => 0, -verbose => 99 ) if $help;
+
+# Make sure the user specified at least one file to parse
+if(!@ARGV) {
+	print "No files provided!\n";
+	pod2usage(-exitval => 1);
+}
+
+# DWARF debug_info entry names
+my %DW = (
+	'ABBREV'    => "Abbrev Number",
+	'LINK_NAME' => "DW_AT_linkage_name",
+	'NAME'      => "DW_AT_name",
+	'NORET'     => "DW_AT_noreturn",
+	'SUBPROG'   => "DW_TAG_subprogram"
+);
+
+# The name attributes to parse for each non-returning function
+my @name_attrs = @DW{'NAME','LINK_NAME'};
+
+for my $file (@ARGV) {
+	if(!-f $file) {
+		print "'$file' is not a regular file; skipping";
+		next;
+	}
+	
+	print "\nProcessing '$file'...\n";
+
+	# Map function names to their address in the file (and vice versa)
+	my ($Addr2Name, $Name2Addr) = &get_names($file);
+
+	# Find all the DWARF subprogram entries for the file
+	my @dwarf_entries = &parse_dwarf($file);
+	
+	# Find the non-returning functions
+	my @no_return_funcs = grep { /$DW{'NORET'}/ } @dwarf_entries;
+	
+	# Parse the DWARF name attributes
+	my @funcs = map { &parse_item($_, \@name_attrs) } @no_return_funcs;
+	
+	# Match the DWARF names with their addresses
+	map { &match($_, \@name_attrs, $Addr2Name, $Name2Addr) } @funcs;
+	
+	# Display the _unique_ function names
+	my %uniq = ();
+	for my $f (@funcs) {
+		if($verbose) {
+			print "\n", '-'x60, "\n";
+			print "${$f->{'item'}}\n";
+			
+			# Inlined functions have no address
+			if($f->{'addr'}) {
+				print "Found function(s) at address $f->{'addr'}:\n";
+			}
+		}
+
+		for my $n (@{$f->{'names'}}) {
+			next if exists $uniq{$n};
+			$uniq{$n}++;
+			if ($dyninst) {
+				print "        (\"$n\", true)\n";
+			} elsif ($verbose) {
+				print "\t$n\n";
+			} else {
+				print "$n\n";
+			}
+		}
+	}
+	if($verbose) {
+		print '='x60, "\n";
+	}
+}
+
+#-----------------------------------------------------------------------
+#
+#  Use nm to create two mappings: address to name(s) and name to address
+#
+#----------------------------------------------------------------------
+# A typical output of nm looks something like this:
+#
+#	0000000000201020 B __bss_start
+#	0000000000201020 b completed.7932
+#	                 w __cxa_finalize
+#----------------------------------------------------------------------
+sub get_names {
+	my $file = $_[0];
+	
+	my %Addr2Name = ();
+	my %Name2Addr = ();
+
+	open(my $fdNM, "nm $file |") or die "unable to run 'nm $file'";
+
+	while(my $line = <$fdNM>) {
+		my ($addr, $name) = (split /[\s]+/, $line)[0,-1];
+
+		if($addr =~ /^0/) {
+			push @{$Addr2Name{$addr}}, $name;
+			$Name2Addr{$name} = $addr;
+		}
+	}
+	
+	return (\%Addr2Name, \%Name2Addr);
+}
+
 #----------------------------------------------------------------------
 #
-#  This script scans a binary file (libc.so, libstdc++.so, etc) and
-#  reports function names that have attribute DW_AT_noreturn.
-#
-#  To use: build glibc (direct, via autotools) and gcc (via spack)
-#  with debug/dwarf info (-g) and run this script on various
-#  libraries.
-#
-#    libc.so
-#    libpthread.so
-#    libstdc++.so
-#    libgfortran.so
-#    libgomp.so
-#
-#  Usage:  ./noreturn.pl  [-d | -v]  file.so
-#
-#    -d  format output for dyninst CodeSource.C
-#    -v  verbose output
+#  Parse the dwarf info to find subprogram items.
+#  An item begins with the DW_TAG_subprogram and ends with the next
+#  Abbrev Number line.
 #
 #----------------------------------------------------------------------
 #
@@ -81,208 +191,109 @@
 #    00000000000c91b0 T _exit
 #
 #----------------------------------------------------------------------
-
-$DW_ABBREV =     "Abbrev Number";
-$DW_LINK_NAME =  "DW_AT_linkage_name";
-$DW_NAME =       "DW_AT_name";
-$DW_NORET =      "DW_AT_noreturn";
-$DW_SUBPROG =    "DW_TAG_subprogram";
-
-%Addr2Name = ();
-%Name2Addr = ();
-
-%NORET = ();
-
-$dyninst = 0;
-$verbose = 0;
-
-#----------------------------------------------------------------------
-#
-#  Print one name in short, verbose or dyninst format.  Include alias
-#  names with the same address and skip duplicates.
-#
-sub do_name {
-    local $name = $_[0];
-    local $addr = $Name2Addr{$name};
-
-    if ( ! $addr ) {
-	return;
-    }
-
-    # multiple names separated by spaces
-    @list = split /[\s]+/, $Addr2Name{$addr};
-
-    foreach $nm ( @list ) {
-	#
-	# strip @GLIBC_x.y.z, if exists
-	#
-	$nm =~ s/[@]glibc.*$//i;
-
-	if ( ! $NORET{$nm} ) {
-	    if ( $dyninst ) {
-		print "        (\"$nm\", true)\n";
-	    }
-	    elsif ( $verbose ) {
-		print "noret:  $nm\n";
-	    }
-	    else {
-		print "$nm\n";
-	    }
-	    $NORET{$nm} = 1;
-	}
-    }
-}
-
-#----------------------------------------------------------------------
-#
-#  Parse one noreturn subprogram item and pick out the name and
-#  linkage name attributes.
-#
-sub do_item {
-    local $item = $_[0];
-    local $name;
-
-    if ( $item !~ /$DW_NORET/ ) {
-	return;
-    }
-
-    if ( $verbose ) {
-	print "\n------------------------------------------------------------\n";
-	print "$item\n";
-    }
-
-    #
-    # check DW_AT_name, if exists
-    #
-    if ( $item =~ /$DW_NAME.*$/m ) {
-	@list = split /[\s]+/, $&;
-	$name = $list[$#list];
-	do_name $name;
-    }
-
-    #
-    # check DW_AT_linkage_name
-    #
-    if ( $item =~ /$DW_LINK_NAME.*$/m ) {
-	@list = split /[\s]+/, $&;
-	$name = $list[$#list];
-	do_name $name;
-    }
-}
-
-#----------------------------------------------------------------------
-#
-#  Parse the dwarf info and call do_item() on each subprogram item.
-#  An item begins with the DW_TAG_subprogram and ends with the next
-#  Abbrev Number line.  (see above)
-#
 sub parse_dwarf {
-    local $file = $_[0];
-    local $endfile = 0;
-    local ($item, $next_item);
+	my $file = $_[0];
+	
+	open(my $fdDWARF, "objdump -Wi $file |") or die "unable to run 'objdump $file'";
+	
+	my @items = ();
 
-    if ( ! open(DWARF, "objdump -Wi $file |") ) {
-	die "unable to run objdump: $file";
-    }
+  	OUTER_LOOP:
+  	while(my $line = <$fdDWARF>) {
 
-    $item = "";
-    OUTER_LOOP: while ( 1 ) {
-	#
-	# skip ahead until DW_TAG_subprogram
-	#
-	while ( $item !~ /$DW_SUBPROG/ ) {
-	    $item = <DWARF>;
-	    if ( ! $item ) {
-		last OUTER_LOOP;
-	    }
-	}
-
-	#
-	# combine lines until the next Abbrev Number.  save the Abbrev
-	# line as the first line of the next item.
-	#
-	$next_item = "";
-	while ( 1 ) {
-	    if ( $_ = <DWARF> ) {
-		if ( $_ =~ /$DW_ABBREV/ ) {
-		    $next_item = $_;
-		    last;
+		# skip ahead until DW_TAG_subprogram
+		while($line !~ /$DW{'SUBPROG'}/) {
+			$line = <$fdDWARF>;
+			if(!$line) {
+				last OUTER_LOOP;
+			}
 		}
-		else {
-		    $item = $item . $_;
+		
+		# Save the Abbrev line as the first line of the next item
+		my $item = $line;		
+
+		# Combine lines until the next 'Abbrev Number'
+		while($line = <$fdDWARF>) {
+			if($line =~ /$DW{'ABBREV'}/) {
+				# Save the current item
+				push @items, $item;
+				redo OUTER_LOOP;
+			}
+			$item .= $line;
 		}
-	    }
-	    else {
-		$endfile = 1;
-		last;
-	    }
 	}
-	do_item $item;
-
-	if ( $endfile ) {
-	    last;
-	}
-	$item = $next_item;
-    }
-
-    close DWARF;
+	
+	return @items;
 }
 
 #----------------------------------------------------------------------
 #
-#  Use nm to create two mappings, address to name(s) and name to
-#  address.  The addr2name list is a multi-valued string, separated by
-#  spaces.
+#  Parse one noreturn subprogram item and pick out the given attributes.
 #
-sub get_names {
-    local $file = $_[0];
-    local ($line, $addr, $name);
-
-    if ( ! open(NM, "nm $file |") ) {
-        die "unable to run nm: $file";
-    }
-
-    while ( $line = <NM> ) {
-        @list = split /[\s]+/, $line;
-	$addr = $list[0];
-        $name = $list[$#list];
-
-	if ( $addr =~ /^0/ ) {
-	    $Addr2Name{$addr} =
-		( $Addr2Name{$addr} ) ? "$Addr2Name{$addr} $name" : $name;
-	    $Name2Addr{$name} = $addr;
+#----------------------------------------------------------------------
+sub parse_item {
+	my ($item, $name_attrs) = @_;
+	
+	my %res = ();
+	for my $attr (@{$name_attrs}) {
+		if($item =~ /$attr.*$/m ) {
+			$res{$attr} = (split /[\s]+/, $&)[-1];
+		}
 	}
-    }
-
-    close NM;
+	$res{'item'} = \$item;
+	
+	return \%res;
 }
 
 #----------------------------------------------------------------------
 #
-#  Command-line args:  [-d | -v]  file.so
+#  Match the DWARF names with the addresses parsed from the binary,
+#  including any aliases
 #
-while ( $ARGV[0] =~ /^-/ ) {
-    if ( $ARGV[0] eq '-d' ) {
-	$dyninst = 1;
-	shift;
-    }
-    elsif ( $ARGV[0] eq '-v' ) {
-	$verbose = 1;
-	shift;
-    }
-    else {
-	die "unknown option:  $ARGV[0]";
-    }
+#----------------------------------------------------------------------
+sub match {
+	my ($item, $name_attrs, $Addr2Name, $Name2Addr) = @_;
+	
+	for my $attr (@{$name_attrs}) {
+		# Not every function has both attribute names
+		next unless defined $item->{$attr};
+		my $name = $item->{$attr};
+		
+		# Skip functions without an address
+		next unless exists $Name2Addr->{$name};
+		my $addr = $Name2Addr->{$name};
+
+		foreach my $nm (@{$Addr2Name->{$addr}}) {
+			# strip @GLIBC_x.y.z, if exists
+			$nm =~ s/[@]glibc.*$//i;
+			push @{$item->{'names'}}, $nm;
+		}
+		$item->{'addr'} = $addr;
+	}
 }
 
-$file = $ARGV[0];
+__END__
 
-if ( $file eq '' ) {
-    die "missing file";
-}
-if ( ! -f $file ) {
-    die "not a regular file: $file";
-}
+=head1 DESCRIPTION
 
-get_names $file;
-parse_dwarf $file;
+Scan a binary file (libc.so, libstdc++.so, etc) and report function names
+that have the DWARF attribute DW_AT_noreturn.
+
+To use, first build glibc (direct, via autotools) and gcc (via spack) with
+debug/dwarf info (-g) and run this script on various libraries. e.g.,
+
+    libc.so
+    libpthread.so
+    libstdc++.so
+    libgfortran.so
+    libgomp.so
+
+=head1 SYNOPSIS
+
+noreturn.pl [options] file.so [file2.so...]
+
+  Options:
+    -d  format output for dyninst CodeSource.C
+    -v  verbose output
+    -h  show detailed help message
+=cut
