@@ -78,6 +78,12 @@ CodeObject::CodeObject(CodeSource *cs,
     process_hints(); // if any
     if (!ignoreParse)
       parse();
+    else {
+      // For cases where the user does not want to parse the CodeObject,
+      // the user may still provides hints from external source,
+      // we should report hints functions back.
+      parser->record_hint_functions();
+    }
 }
 
 void

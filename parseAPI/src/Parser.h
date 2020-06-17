@@ -262,6 +262,7 @@ namespace Dyninst {
             void delete_bogus_blocks(Edge*);
             bool set_edge_parsing_status(ParseFrame&, Address addr, Block *b);
             void update_function_ret_status(ParseFrame &, Function*, ParseWorkElem* );
+            void record_hint_functions();
 
 
 
