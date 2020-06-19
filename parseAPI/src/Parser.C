@@ -171,8 +171,10 @@ Parser::parse()
     parsing_printf("[%s:%d] parse() called on Parser %p with state %d\n",
                    FILE__,__LINE__,this, _parse_state);
 
-    if(_parse_state == UNPARSEABLE)
+    if(_parse_state == UNPARSEABLE) {
+        record_hint_functions();
         return;
+    }
 
     // For modification: once we've full-parsed once, don't do it again
     if (_parse_state >= COMPLETE) return;
@@ -2704,4 +2706,11 @@ Parser::update_function_ret_status(ParseFrame &frame, Function * other_func, Par
         parsing_printf("\t other_func is NORETURN, this path does not impact the return status of this function\n");
     }
 
+}
+
+void
+Parser::record_hint_functions() {
+    for (auto f : hint_funcs) {
+        sorted_funcs.insert(f);
+    }
 }
