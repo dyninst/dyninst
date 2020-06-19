@@ -431,7 +431,7 @@ memAccessors.begin()));
       for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
         curOperand != m_Operands.end(); ++curOperand) {
         if (curOperand->isTruePredicate() || curOperand->isFalsePredicate()) {
-          fprintf(stderr, "getPredicateOperand returns %s\n", curOperand->format(Arch_cuda).c_str());
+          //fprintf(stderr, "getPredicateOperand returns %s\n", curOperand->format(Arch_cuda).c_str());
           return *curOperand;
         }
       }
