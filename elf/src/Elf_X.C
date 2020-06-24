@@ -314,11 +314,19 @@ unsigned short Elf_X::e_phentsize() const {
             static_cast<unsigned short>(ehdr64->e_phentsize));
 }
 
-unsigned short Elf_X::e_phnum() const
+unsigned long Elf_X::e_phnum()
 {
-    return (!is64 ?
+    unsigned long num = (!is64 ?
             static_cast<unsigned short>(ehdr32->e_phnum) :
             static_cast<unsigned short>(ehdr64->e_phnum));
+    if (num == 0xffff) {
+        // This means e_phnum will overflow a 16-bit integer.
+        // ELF format uses extended numbering. The real value
+        // is in the zeroth section header table entry
+        Elf_X_Shdr& header = get_shdr(0);
+        return header.sh_link();
+    }
+    return num;
 }
 
 unsigned short Elf_X::e_shentsize() const
@@ -328,18 +336,34 @@ unsigned short Elf_X::e_shentsize() const
             static_cast<unsigned short>(ehdr64->e_shentsize));
 }
 
-unsigned short Elf_X::e_shnum() const
+unsigned long Elf_X::e_shnum()
 {
-    return (!is64 ?
+    unsigned long num = (!is64 ?
             static_cast<unsigned short>(ehdr32->e_shnum) :
             static_cast<unsigned short>(ehdr64->e_shnum));
+    if (num == 0) {
+        // This means e_shnum will overflow a 16-bit integer.
+        // ELF format uses extended numbering. The real value
+        // is in the zeroth section header table entry
+        Elf_X_Shdr& header = get_shdr(0);
+        return header.sh_size();
+    }
+    return num;
 }
 
-unsigned short Elf_X::e_shstrndx() const
+unsigned long Elf_X::e_shstrndx()
 {
-    return (!is64 ?
+    unsigned long num =(!is64 ?
             static_cast<unsigned short>(ehdr32->e_shstrndx) :
             static_cast<unsigned short>(ehdr64->e_shstrndx));
+    if (num == 0xffff) {
+        // This means e_shstrndx will overflow a 16-bit integer.
+        // ELF format uses extended numbering. The real value
+        // is in the zeroth section header table entry
+        Elf_X_Shdr& header = get_shdr(0);
+        return header.sh_link();
+    }
+    return num;
 }
 
 const char *Elf_X::e_rawfile(size_t &nbytes) const
@@ -472,6 +496,12 @@ Elf_X_Phdr &Elf_X::get_phdr(unsigned int i)
 
 Elf_X_Shdr &Elf_X::get_shdr(unsigned int i)
 {
+   // if we reach here when the shdrs vector is still empty,
+   // this means that we encounter a binary that uses 
+   // extended numbering, whose real values are in the first entry
+   if (shdrs.empty()) {
+      shdrs.resize(1);
+   }
    if (!shdrs[i]._elf) {
       Elf_Scn *scn = elf_getscn(elf, i);
       shdrs[i] = Elf_X_Shdr(is64, scn);
