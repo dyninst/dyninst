@@ -299,6 +299,7 @@ const char *TEXT_NAME = ".text";
 const char *BSS_NAME = ".bss";
 const char *SYMTAB_NAME = ".symtab";
 const char *STRTAB_NAME = ".strtab";
+const char *SYMTAB_SHNDX_NAME = ".symtab_shndx";
 const char *STAB_NAME = ".stab";
 const char *STABSTR_NAME = ".stabstr";
 const char *STAB_INDX_NAME = ".stab.index";
@@ -345,6 +346,7 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
                         Elf_X_Shdr *&dynstr_scnp, Elf_X_Shdr *&dynamic_scnp,
                         Elf_X_Shdr *&eh_frame, Elf_X_Shdr *&gcc_except,
                         Elf_X_Shdr *&interp_scnp, Elf_X_Shdr *&opd_scnp,
+                        Elf_X_Shdr *&symtab_shndx_scnp,
                         bool) {
     std::map<std::string, int> secnNameMap;
     dwarf_err_func = err_func_;
@@ -727,6 +729,10 @@ bool Object::loaded_elf(Offset &txtaddr, Offset &dataddr,
             if (!symscnp) {
                 symscnp = scnp;
                 symtab_addr_ = scn.sh_addr();
+            }
+        }  else if (strcmp(name, SYMTAB_SHNDX_NAME) == 0) {
+            if (!symtab_shndx_scnp) {
+                symtab_shndx_scnp = scnp;
             }
         } else if (strcmp(name, STRTAB_NAME) == 0) {
             if (!strscnp) {
@@ -1505,6 +1511,7 @@ void Object::load_object(bool alloc_syms) {
     Elf_X_Shdr *gcc_except = 0;
     Elf_X_Shdr *interp_scnp = 0;
     Elf_X_Shdr *opd_scnp = NULL;
+    Elf_X_Shdr *symtab_shndx_scnp = NULL;
 
     { // binding contour (for "goto cleanup")
 
@@ -1529,7 +1536,7 @@ void Object::load_object(bool alloc_syms) {
                         stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
                         rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp, dynstr_scnp,
                         dynamic_scnp, eh_frame_scnp, gcc_except, interp_scnp,
-                        opd_scnp, true)) {
+                        opd_scnp, symtab_shndx_scnp, true)) {
             goto cleanup;
         }
 
@@ -1587,7 +1594,7 @@ void Object::load_object(bool alloc_syms) {
             if (symscnp && strscnp) {
                 symdata = symscnp->get_data();
                 strdata = strscnp->get_data();
-                parse_symbols(symdata, strdata, bssscnp, symscnp, false, module);
+                parse_symbols(symdata, strdata, bssscnp, symscnp, symtab_shndx_scnp, false, module);
             }
 
             no_of_symbols_ = nsymbols();
@@ -1707,6 +1714,7 @@ void Object::load_shared_object(bool alloc_syms) {
     Elf_X_Shdr *gcc_except = 0;
     Elf_X_Shdr *interp_scnp = 0;
     Elf_X_Shdr *opd_scnp = NULL;
+    Elf_X_Shdr *symtab_shndx_scnp = NULL;
 
     { // binding contour (for "goto cleanup2")
 
@@ -1719,7 +1727,7 @@ void Object::load_shared_object(bool alloc_syms) {
         if (!loaded_elf(txtaddr, dataddr, bssscnp, symscnp, strscnp,
                         stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
                         rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp, dynstr_scnp,
-                        dynamic_scnp, eh_frame_scnp, gcc_except, interp_scnp, opd_scnp))
+                        dynamic_scnp, eh_frame_scnp, gcc_except, interp_scnp, opd_scnp, symtab_shndx_scnp))
             goto cleanup2;
 
         if (interp_scnp)
@@ -1759,7 +1767,7 @@ void Object::load_shared_object(bool alloc_syms) {
                     log_elferror(err_func_, "locating symbol/string data");
                     goto cleanup2;
                 }
-                bool result = parse_symbols(symdata, strdata, bssscnp, symscnp, false, module);
+                bool result = parse_symbols(symdata, strdata, bssscnp, symscnp, symtab_shndx_scnp, false, module);
                 if (!result) {
                     log_elferror(err_func_, "locating symbol/string data");
                     goto cleanup2;
@@ -2064,6 +2072,7 @@ Symbol *Object::handle_opd_symbol(Region *opd, Symbol *sym) {
 bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                            Elf_X_Shdr *bssscnp,
                            Elf_X_Shdr *symscnp,
+                           Elf_X_Shdr *symtab_shndx_scnp,
                            bool /*shared*/, string smodule) {
 #if defined(TIMED_PARSE)
     struct timeval starttime;
@@ -2100,6 +2109,14 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
             Symbol::SymbolVisibility svisibility = pdelf_visibility(evisibility);
             unsigned ssize = syms.st_size(i);
             unsigned secNumber = syms.st_shndx(i);
+
+            // Handle extended numbering
+            if (secNumber == SHN_XINDEX && symtab_shndx_scnp != nullptr) {
+                GElf_Sym symmem;
+                Elf32_Word xndx;
+                gelf_getsymshndx (symdata.elf_data(), symtab_shndx_scnp->get_data().elf_data(), i, &symmem, &xndx);
+                secNumber = xndx;
+            }
 
             Offset soffset;
             if (symscnp->isFromDebugFile()) {
