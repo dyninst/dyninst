@@ -513,7 +513,7 @@ public:
 		    Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp,
 		    Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr*& dynamic_scnp, Elf_X_Shdr*& eh_frame,
 		    Elf_X_Shdr*& gcc_except, Elf_X_Shdr *& interp_scnp,
-		   Elf_X_Shdr *&opd_scnp,
+		   Elf_X_Shdr *&opd_scnp, Elf_X_Shdr*& symtab_shndx_scnp,
           bool a_out=false);
   
   Symbol *handle_opd_symbol(Region *opd, Symbol *sym);
@@ -559,6 +559,7 @@ private:
   bool parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                      Elf_X_Shdr* bssscnp,
                      Elf_X_Shdr* symscnp,
+                     Elf_X_Shdr* symtab_shndx_scnp,
                      bool shared_library,
                      std::string module);
   
