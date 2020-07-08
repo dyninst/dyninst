@@ -99,7 +99,7 @@ add_subdirectory (parseAPI)
 add_subdirectory (proccontrol)
 add_subdirectory (stackwalk)
 add_subdirectory (patchAPI)
-add_subdirectory(examples)
+
 if(${SYMREADER} MATCHES symtabAPI)
   add_subdirectory (dyninstAPI)
   add_subdirectory (dynC_API)
