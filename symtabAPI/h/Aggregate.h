@@ -101,7 +101,6 @@ class SYMTAB_EXPORT Aggregate
       virtual bool addPrettyName(std::string name, bool isPrimary, bool isDebug=false);
       virtual bool addTypedName(std::string name, bool isPrimary, bool isDebug=false);
 
-      bool setModule(Module *mod);
       bool setSize(unsigned size);
       bool setOffset(unsigned offset);
       
