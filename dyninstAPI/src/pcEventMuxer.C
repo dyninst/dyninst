@@ -477,7 +477,7 @@ void PCEventMailbox::enqueue(Event::const_ptr ev) {
     queueCond.lock();
     eventQueue.push(ev);
     PCProcess *evProc = static_cast<PCProcess *>(ev->getProcess()->getData());
-    procCount[evProc]++;
+    if(evProc) procCount[evProc]++;
     queueCond.broadcast();
 
     proccontrol_printf("%s[%d]: Added event %s to mailbox, size now %d\n", FILE__, __LINE__,
