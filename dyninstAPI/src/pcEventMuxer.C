@@ -480,8 +480,8 @@ void PCEventMailbox::enqueue(Event::const_ptr ev) {
     if(evProc) procCount[evProc]++;
     queueCond.broadcast();
 
-    proccontrol_printf("%s[%d]: Added event %s to mailbox, size now %d\n", FILE__, __LINE__,
-                       ev->name().c_str(), eventQueue.size());
+    proccontrol_printf("%s[%d]: Added event %s from process %p to mailbox, size now %d\n",
+    				   FILE__, __LINE__, ev->name().c_str(), evProc, eventQueue.size());
     
     queueCond.unlock();
 }
@@ -506,7 +506,8 @@ Event::const_ptr PCEventMailbox::dequeue(bool block) {
     assert(procCount[evProc] >= 0);
     queueCond.unlock();
 
-    proccontrol_printf("%s[%d]: Returning event %s from mailbox\n", FILE__, __LINE__, ret->name().c_str());
+    proccontrol_printf("%s[%d]: Returning event %s for process %p from mailbox\n",
+    				   FILE__, __LINE__, ret->name().c_str(), evProc);
     return ret;
 }
 
