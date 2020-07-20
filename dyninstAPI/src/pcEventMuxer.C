@@ -81,8 +81,12 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
    proccontrol_printf("[%s/%d]: PCEventMuxer waiting for events, %s\n",
                       FILE__, __LINE__, (block ? "blocking" : "non-blocking"));
    if (!block) {
-      Process::handleEvents(false);
-      proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
+	  const bool err = !Process::handleEvents(false);
+	  const bool no_events = ProcControlAPI::getLastError() == err_noevents;
+      if(err && !no_events) {
+    	  proccontrol_printf("[%s:%d] PC event handling failed\n", FILE__, __LINE__);
+    	  return Error;
+      }
       if (mailbox_.size() == 0) return NoEvents;
       if (!handle(NULL)) {
          proccontrol_printf("[%s:%d] Failed to handle event, returning error\n", FILE__, __LINE__);
