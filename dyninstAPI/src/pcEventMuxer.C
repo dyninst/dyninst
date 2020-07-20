@@ -41,7 +41,6 @@
 #include "Mailbox.h"
 #include "PCErrors.h"
 
-#include <set>
 #include <queue>
 #include <vector>
 

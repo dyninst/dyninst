@@ -39,7 +39,6 @@
 #include "dyninstAPI/src/syscallNotification.h"
 
 #include <queue>
-#include <set>
 /*
  * Overall design comment
  * 
