@@ -119,7 +119,7 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
      return EventsReceived;
 }
 
-bool PCEventMuxer::handle_internal(PCProcess *proc) {
+bool PCEventMuxer::handle_internal(PCProcess *) {
    bool ret = true;
    while (mailbox_.size()) {
       EventPtr ev = dequeue(false);
