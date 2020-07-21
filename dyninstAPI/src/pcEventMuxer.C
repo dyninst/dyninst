@@ -561,6 +561,7 @@ unsigned int PCEventMailbox::size() {
 
 bool PCEventMailbox::find(PCProcess *proc) {
    proccontrol_printf("Calling find for process %p\n", proc);
+   assert(proc != nullptr);
    auto it = procCount.find(proc);
    if(it != procCount.end()) {
 	   return it->second > 0;
