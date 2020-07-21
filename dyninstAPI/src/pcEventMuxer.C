@@ -531,9 +531,11 @@ Event::const_ptr PCEventMailbox::dequeue(bool block) {
 							FILE__, __LINE__, event_ptr->name().c_str());
 		assert(false);
 	}
+	procCount[evProc]--;
+	assert(procCount[evProc] >= 0);
+    proccontrol_printf("%s[%d]: Returning event %s from mailbox for process %p\n",
+    				   FILE__, __LINE__, event_ptr->name().c_str(), evProc);
 
-    proccontrol_printf("%s[%d]: Returning event %s for process %p from mailbox\n",
-    				   FILE__, __LINE__, ret->name().c_str(), evProc);
     return ret;
 }
 
