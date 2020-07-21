@@ -92,9 +92,11 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
     	  return NoEvents;
       }
       if (!handle(NULL)) {
-         proccontrol_printf("[%s:%d] Failed to handle event, returning error\n", FILE__, __LINE__);
+         proccontrol_printf("[%s:%d] Failed to handle event\n", FILE__, __LINE__);
          return Error;
       }
+      proccontrol_printf("[%s:%d] PC event handling completed; mailbox size is %d\n",
+    		  	  FILE__, __LINE__, mailbox_.size());
       return EventsReceived;
    }
    else {
