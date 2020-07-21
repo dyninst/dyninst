@@ -116,6 +116,7 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
     	 proccontrol_printf("[%s:%d] PC event handling failed\n", FILE__, __LINE__);
     	 return Error;
      }
+     proccontrol_printf("[%s:%d] PC event handling completed\n", FILE__, __LINE__);
      return EventsReceived;
    }
    proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning\n", FILE__, __LINE__);
