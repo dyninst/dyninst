@@ -511,7 +511,8 @@ Event::const_ptr PCEventMailbox::dequeue(bool block) {
 	std::lock_guard<CondVar<>> l{queueCond};
 
     if(!block && eventQueue.empty()) {
-        return Event::const_ptr{};
+		proccontrol_printf("%s[%d]: Event queue is empty, but not blocking\n", FILE__, __LINE__);
+		return Event::const_ptr{};
     }
 
     while( eventQueue.empty() ) {
