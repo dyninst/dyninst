@@ -43,6 +43,7 @@
 
 #include <queue>
 #include <vector>
+#include <mutex>
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
@@ -482,7 +483,7 @@ PCEventMailbox::~PCEventMailbox()
 }
 
 void PCEventMailbox::enqueue(Event::const_ptr ev) {
-    queueCond.lock();
+	std::lock_guard<CondVar<>> l{queueCond};
     eventQueue.push(ev);
     PCProcess *evProc = static_cast<PCProcess *>(ev->getProcess()->getData());
     if(evProc) procCount[evProc]++;
@@ -491,7 +492,6 @@ void PCEventMailbox::enqueue(Event::const_ptr ev) {
     proccontrol_printf("%s[%d]: Added event %s from process %p to mailbox, size now %d\n",
     				   FILE__, __LINE__, ev->name().c_str(), evProc, eventQueue.size());
     
-    queueCond.unlock();
 }
 
 Event::const_ptr PCEventMailbox::dequeue(bool block) {
