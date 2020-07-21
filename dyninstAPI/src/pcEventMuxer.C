@@ -498,6 +498,12 @@ void PCEventMailbox::enqueue(Event::const_ptr ev) {
 		assert(false);
 	}
 
+	proccontrol_printf("--------- Enqueue for Process ID [%d] -------------\n", evProc->getPid());
+	for(auto const& p : procCount) {
+		proccontrol_printf("\t%p -> %d\n", p.first, p.second);
+	}
+	proccontrol_printf("---------------------------------------------------\n");
+
     queueCond.broadcast();
 }
 
@@ -536,7 +542,13 @@ Event::const_ptr PCEventMailbox::dequeue(bool block) {
     proccontrol_printf("%s[%d]: Returning event %s from mailbox for process %p\n",
     				   FILE__, __LINE__, event_ptr->name().c_str(), evProc);
 
-    return ret;
+	proccontrol_printf("--------- Dequeue for Process ID [%d] -------------\n", evProc->getPid());
+	for(auto const& p : procCount) {
+		proccontrol_printf("\t%p -> %d\n", p.first, p.second);
+	}
+	proccontrol_printf("---------------------------------------------------\n");
+
+	return event_ptr;
 }
 
 unsigned int PCEventMailbox::size() {
