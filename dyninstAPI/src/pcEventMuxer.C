@@ -560,5 +560,9 @@ unsigned int PCEventMailbox::size() {
 }
 
 bool PCEventMailbox::find(PCProcess *proc) {
-   return (procCount[proc] > 0);
+   auto it = procCount.find(proc);
+   if(it != procCount.end()) {
+	   return it->second > 0;
+   }
+   return false;
 }
