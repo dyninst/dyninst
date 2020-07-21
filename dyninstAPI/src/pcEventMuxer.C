@@ -535,7 +535,16 @@ Event::const_ptr PCEventMailbox::dequeue(bool block) {
 	if(!evProc) {
 		proccontrol_printf("%s[%d]: Found event %s, but process is invalid\n",
 							FILE__, __LINE__, event_ptr->name().c_str());
-		assert(false);
+		namespace pc = Dyninst::ProcControlAPI;
+		auto const& et = event_ptr->getEventType();
+		bool const is_exit = et.code() == pc::EventType::Exit;
+		bool const is_post = et.time() == pc::EventType::Time::Post;
+		if(is_exit && is_post) {
+			// post-exit events handled after process destruction are irrelevant
+			return Event::const_ptr{};
+		} else {
+			assert(false);
+		}
 	}
 	procCount[evProc]--;
 	assert(procCount[evProc] >= 0);
