@@ -112,7 +112,10 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
        }
      }
      proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
-     if (!handle(NULL)) return Error;
+     if (!handle(NULL)) {
+    	 proccontrol_printf("[%s:%d] PC event handling failed\n", FILE__, __LINE__);
+    	 return Error;
+     }
      return EventsReceived;
    }
    proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning\n", FILE__, __LINE__);
