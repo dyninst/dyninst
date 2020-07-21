@@ -511,7 +511,7 @@ Event::const_ptr PCEventMailbox::dequeue(bool block) {
 	std::lock_guard<CondVar<>> l{queueCond};
 
     if(!block && eventQueue.empty()) {
-        return Event::const_ptr();
+        return Event::const_ptr{};
     }
 
     while( eventQueue.empty() ) {
