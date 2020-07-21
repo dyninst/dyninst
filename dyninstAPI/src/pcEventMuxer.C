@@ -502,10 +502,15 @@ void PCEventMailbox::enqueue(Event::const_ptr ev) {
 }
 
 Event::const_ptr PCEventMailbox::dequeue(bool block) {
-    queueCond.lock();
+    /* NB: This procedure assumes the queue is not modified while we are dequeueing an event */
+
+	/* Holding the lock the entire time isn't efficient, but it's needed to
+	 * guarantee that the process-count table is updated synchronously with
+	 * the queue.
+	 */
+	std::lock_guard<CondVar<>> l{queueCond};
 
     if( eventQueue.empty() && !block ) {
-        queueCond.unlock();
         return Event::const_ptr();
     }
 
@@ -519,7 +524,6 @@ Event::const_ptr PCEventMailbox::dequeue(bool block) {
     PCProcess *evProc = static_cast<PCProcess *>(ret->getProcess()->getData());
     if(evProc) procCount[evProc]--;
     assert(procCount[evProc] >= 0);
-    queueCond.unlock();
 
     proccontrol_printf("%s[%d]: Returning event %s for process %p from mailbox\n",
     				   FILE__, __LINE__, ret->name().c_str(), evProc);
