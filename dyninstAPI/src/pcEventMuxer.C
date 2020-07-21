@@ -523,10 +523,14 @@ Event::const_ptr PCEventMailbox::dequeue(bool block) {
     // Dequeue an event
     Event::const_ptr event_ptr = eventQueue.front();
 	eventQueue.pop();
-	
-    PCProcess *evProc = static_cast<PCProcess *>(ret->getProcess()->getData());
-    if(evProc) procCount[evProc]--;
-    assert(procCount[evProc] >= 0);
+
+	// Update the process-count table
+	auto* evProc = static_cast<PCProcess *>(event_ptr->getProcess()->getData());
+	if(!evProc) {
+		proccontrol_printf("%s[%d]: Found event %s, but process is invalid\n",
+							FILE__, __LINE__, event_ptr->name().c_str());
+		assert(false);
+	}
 
     proccontrol_printf("%s[%d]: Returning event %s for process %p from mailbox\n",
     				   FILE__, __LINE__, ret->name().c_str(), evProc);
