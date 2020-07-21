@@ -484,12 +484,19 @@ PCEventMailbox::~PCEventMailbox()
 
 void PCEventMailbox::enqueue(Event::const_ptr ev) {
 	std::lock_guard<CondVar<>> l{queueCond};
-    eventQueue.push(ev);
-    PCProcess *evProc = static_cast<PCProcess *>(ev->getProcess()->getData());
-    if(evProc) procCount[evProc]++;
 
-    proccontrol_printf("%s[%d]: Added event %s from process %p to mailbox, size now %d\n",
-    				   FILE__, __LINE__, ev->name().c_str(), evProc, eventQueue.size());
+    PCProcess *evProc = static_cast<PCProcess *>(ev->getProcess()->getData());
+	if(evProc) {
+	    // Only add the event to the queue if the underlying process is still valid
+	    eventQueue.push(ev);
+	    procCount[evProc]++;
+		proccontrol_printf("%s[%d]: Added event %s from process %p to mailbox, size now %d\n",
+						   FILE__, __LINE__, ev->name().c_str(), evProc, eventQueue.size());
+	} else {
+		proccontrol_printf("%s[%d]: Got bad process: event %s not added\n",
+						   FILE__, __LINE__, ev->name().c_str());
+		assert(false);
+	}
 
     queueCond.broadcast();
 }
