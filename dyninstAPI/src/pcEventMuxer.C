@@ -520,8 +520,10 @@ Event::const_ptr PCEventMailbox::dequeue(bool block) {
         queueCond.wait();
     }
 
-    Event::const_ptr ret = eventQueue.front();
-    eventQueue.pop();
+    // Dequeue an event
+    Event::const_ptr event_ptr = eventQueue.front();
+	eventQueue.pop();
+	
     PCProcess *evProc = static_cast<PCProcess *>(ret->getProcess()->getData());
     if(evProc) procCount[evProc]--;
     assert(procCount[evProc] >= 0);
