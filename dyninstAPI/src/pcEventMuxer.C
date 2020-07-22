@@ -489,9 +489,9 @@ void PCEventMailbox::enqueue(Event::const_ptr ev) {
 	if(evProc) {
 	    // Only add the event to the queue if the underlying process is still valid
 	    eventQueue.push(ev);
-	    procCount[evProc]++;
-		proccontrol_printf("%s[%d]: Added event %s from process %p to mailbox, size now %d\n",
-						   FILE__, __LINE__, ev->name().c_str(), evProc, eventQueue.size());
+	    procCount[evProc->getPid()]++;
+		proccontrol_printf("%s[%d]: Added event %s from process %d to mailbox, size now %d\n",
+						   FILE__, __LINE__, ev->name().c_str(), evProc->getPid(), eventQueue.size());
 	} else {
 		proccontrol_printf("%s[%d]: Got bad process: event %s not added\n",
 						   FILE__, __LINE__, ev->name().c_str());
@@ -546,10 +546,10 @@ Event::const_ptr PCEventMailbox::dequeue(bool block) {
 			assert(false);
 		}
 	}
-	procCount[evProc]--;
-	assert(procCount[evProc] >= 0);
-    proccontrol_printf("%s[%d]: Returning event %s from mailbox for process %p\n",
-    				   FILE__, __LINE__, event_ptr->name().c_str(), evProc);
+	procCount[evProc->getPid()]--;
+	assert(procCount[evProc->getPid()] >= 0);
+    proccontrol_printf("%s[%d]: Returning event %s from mailbox for process %d\n",
+    				   FILE__, __LINE__, event_ptr->name().c_str(), evProc->getPid());
 
 	proccontrol_printf("--------- Dequeue for Process ID [%d] -------------\n", evProc->getPid());
 	for(auto const& p : procCount) {
@@ -569,9 +569,9 @@ unsigned int PCEventMailbox::size() {
 }
 
 bool PCEventMailbox::find(PCProcess *proc) {
-   proccontrol_printf("Calling find for process %p\n", proc);
+   proccontrol_printf("Calling find for process %p (%d)\n", proc, proc->getPid());
    assert(proc != nullptr);
-   auto it = procCount.find(proc);
+   auto it = procCount.find(proc->getPid());
    if(it != procCount.end()) {
 	   return it->second > 0;
    }
