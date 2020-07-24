@@ -2830,6 +2830,29 @@ bool linux_thread::plat_setRegisterAsync(Dyninst::MachRegister reg,
    return true;
 }
 
+void linux_thread::plat_handle_ghost_thread() {
+	std::string loc = "/proc/" + std::to_string(proc()->getPid()) + "/task/" + std::to_string(getLWP());
+	struct stat dummy;
+	int res = stat(loc.c_str(), &dummy);
+
+	pthrd_printf("GHOST_THREAD: exists=%d, loc=%s\n", res, loc.c_str());
+
+	// If the thread is still active, do nothing
+	if(res != -1) return;
+
+	auto *initial_thread = llproc()->threadPool()->initialThread();
+
+	// Do not create a destroy event for the thread executed from 'main'
+	if(initial_thread != thread()->llthrd()) {
+		EventLWPDestroy::ptr lwp_ev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Post));
+		lwp_ev->setSyncType(Event::async);
+		lwp_ev->setThread(thread());
+		lwp_ev->setProcess(proc());
+		dynamic_cast<linux_process*>(proc()->llproc())->decodeTdbLWPExit(lwp_ev);
+		mbox()->enqueue(lwp_ev, true);
+	}
+  }
+
 bool linux_thread::attach()
 {
    if (llproc()->threadPool()->initialThread() == this) {
@@ -3428,6 +3451,7 @@ void linux_process::plat_adjustSyncType(Event::ptr ev, bool gen)
       return;
 
    int_thread *thrd = ev->getThread()->llthrd();
+   if(!thrd) return;
    if (thrd->getGeneratorState().getState() != int_thread::running)
       return;
 

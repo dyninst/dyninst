@@ -1455,8 +1455,11 @@ Handler::handler_ret_t ThreadDBDestroyHandler::handleEvent(Event::ptr ev) {
    }
    thread_db_process *proc = dynamic_cast<thread_db_process *>(ev->getProcess()->llproc());
    thread_db_thread *thrd = dynamic_cast<thread_db_thread *>(ev->getThread()->llthrd());
-   pthrd_printf("Running ThreadDBDestroyHandler on %d/%d\n", proc->getPid(), thrd->getLWP());
-   thrd->markDestroyed();
+
+   if(thrd) {
+      pthrd_printf("Running ThreadDBDestroyHandler on %d/%d\n", proc->getPid(), thrd->getLWP());
+      thrd->markDestroyed();
+   }
 
    return Handler::ret_success;
 }
