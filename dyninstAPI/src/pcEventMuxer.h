@@ -39,7 +39,6 @@
 #include "dyninstAPI/src/syscallNotification.h"
 
 #include <queue>
-#include <set>
 /*
  * Overall design comment
  * 
@@ -83,7 +82,7 @@ public:
     bool find(PCProcess *proc);
 
 protected:
-    std::map<PCProcess *, int> procCount;
+    std::map<int, int> procCount;
     std::queue<ProcControlAPI::Event::const_ptr> eventQueue;
     CondVar<> queueCond;
 };

@@ -41,9 +41,9 @@
 #include "Mailbox.h"
 #include "PCErrors.h"
 
-#include <set>
 #include <queue>
 #include <vector>
+#include <mutex>
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
@@ -82,16 +82,24 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
    proccontrol_printf("[%s/%d]: PCEventMuxer waiting for events, %s\n",
                       FILE__, __LINE__, (block ? "blocking" : "non-blocking"));
    if (!block) {
-      Process::handleEvents(false);
-      proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
-      if (mailbox_.size() == 0) return NoEvents;
+	  const bool err = !Process::handleEvents(false);
+	  const bool no_events = ProcControlAPI::getLastError() == err_noevents;
+      if(err && !no_events) {
+    	  proccontrol_printf("[%s:%d] PC event handling failed\n", FILE__, __LINE__);
+    	  return Error;
+      }
+      if (mailbox_.size() == 0) {
+    	  proccontrol_printf("[%s:%d] The mailbox is empty\n", FILE__, __LINE__);
+    	  return NoEvents;
+      }
       if (!handle(NULL)) {
-         proccontrol_printf("[%s:%d] Failed to handle event, returning error\n", FILE__, __LINE__);
+         proccontrol_printf("[%s:%d] Failed to handle event\n", FILE__, __LINE__);
          return Error;
       }
+      proccontrol_printf("[%s:%d] PC event handling completed; mailbox size is %d\n",
+    		  	  FILE__, __LINE__, mailbox_.size());
       return EventsReceived;
    }
-   else {
       // It's really annoying from a user design POV that ProcControl methods can
       // trigger callbacks; it means that we can't just block here, because we may
       // have _already_ gotten a callback and just not finished processing...
@@ -104,14 +112,15 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
        }
      }
      proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
-     if (!handle(NULL)) return Error;
+     if (!handle(NULL)) {
+    	 proccontrol_printf("[%s:%d] PC event handling failed\n", FILE__, __LINE__);
+    	 return Error;
+     }
+     proccontrol_printf("[%s:%d] PC event handling completed\n", FILE__, __LINE__);
      return EventsReceived;
-   }
-   proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning\n", FILE__, __LINE__);
-   return NoEvents;
 }
 
-bool PCEventMuxer::handle_internal(PCProcess *proc) {
+bool PCEventMuxer::handle_internal(PCProcess *) {
    bool ret = true;
    while (mailbox_.size()) {
       EventPtr ev = dequeue(false);
@@ -474,24 +483,42 @@ PCEventMailbox::~PCEventMailbox()
 }
 
 void PCEventMailbox::enqueue(Event::const_ptr ev) {
-    queueCond.lock();
-    eventQueue.push(ev);
-    PCProcess *evProc = static_cast<PCProcess *>(ev->getProcess()->getData());
-    procCount[evProc]++;
-    queueCond.broadcast();
+	std::lock_guard<CondVar<>> l{queueCond};
 
-    proccontrol_printf("%s[%d]: Added event %s to mailbox, size now %d\n", FILE__, __LINE__,
-                       ev->name().c_str(), eventQueue.size());
-    
-    queueCond.unlock();
+    PCProcess *evProc = static_cast<PCProcess *>(ev->getProcess()->getData());
+	if(evProc) {
+	    // Only add the event to the queue if the underlying process is still valid
+	    eventQueue.push(ev);
+	    procCount[evProc->getPid()]++;
+		proccontrol_printf("%s[%d]: Added event %s from process %d to mailbox, size now %d\n",
+						   FILE__, __LINE__, ev->name().c_str(), evProc->getPid(), eventQueue.size());
+	} else {
+		proccontrol_printf("%s[%d]: Got bad process: event %s not added\n",
+						   FILE__, __LINE__, ev->name().c_str());
+		assert(false);
+	}
+
+	proccontrol_printf("--------- Enqueue for Process ID [%d] -------------\n", evProc->getPid());
+	for(auto const& p : procCount) {
+		proccontrol_printf("\t%p -> %d\n", p.first, p.second);
+	}
+	proccontrol_printf("---------------------------------------------------\n");
+
+    queueCond.broadcast();
 }
 
 Event::const_ptr PCEventMailbox::dequeue(bool block) {
-    queueCond.lock();
+    /* NB: This procedure assumes the queue is not modified while we are dequeueing an event */
 
-    if( eventQueue.empty() && !block ) {
-        queueCond.unlock();
-        return Event::const_ptr();
+	/* Holding the lock the entire time isn't efficient, but it's needed to
+	 * guarantee that the process-count table is updated synchronously with
+	 * the queue.
+	 */
+	std::lock_guard<CondVar<>> l{queueCond};
+
+    if(!block && eventQueue.empty()) {
+		proccontrol_printf("%s[%d]: Event queue is empty, but not blocking\n", FILE__, __LINE__);
+		return Event::const_ptr{};
     }
 
     while( eventQueue.empty() ) {
@@ -499,15 +526,38 @@ Event::const_ptr PCEventMailbox::dequeue(bool block) {
         queueCond.wait();
     }
 
-    Event::const_ptr ret = eventQueue.front();
-    eventQueue.pop();
-    PCProcess *evProc = static_cast<PCProcess *>(ret->getProcess()->getData());
-    if(evProc) procCount[evProc]--;
-    assert(procCount[evProc] >= 0);
-    queueCond.unlock();
+    // Dequeue an event
+    Event::const_ptr event_ptr = eventQueue.front();
+	eventQueue.pop();
 
-    proccontrol_printf("%s[%d]: Returning event %s from mailbox\n", FILE__, __LINE__, ret->name().c_str());
-    return ret;
+	// Update the process-count table
+	auto* evProc = static_cast<PCProcess *>(event_ptr->getProcess()->getData());
+	if(!evProc) {
+		proccontrol_printf("%s[%d]: Found event %s, but process is invalid\n",
+							FILE__, __LINE__, event_ptr->name().c_str());
+		namespace pc = Dyninst::ProcControlAPI;
+		auto const& et = event_ptr->getEventType();
+		bool const is_exit = et.code() == pc::EventType::Exit;
+		bool const is_post = et.time() == pc::EventType::Time::Post;
+		if(is_exit && is_post) {
+			// post-exit events handled after process destruction are irrelevant
+			return Event::const_ptr{};
+		} else {
+			assert(false);
+		}
+	}
+	procCount[evProc->getPid()]--;
+	assert(procCount[evProc->getPid()] >= 0);
+    proccontrol_printf("%s[%d]: Returning event %s from mailbox for process %d\n",
+    				   FILE__, __LINE__, event_ptr->name().c_str(), evProc->getPid());
+
+	proccontrol_printf("--------- Dequeue for Process ID [%d] -------------\n", evProc->getPid());
+	for(auto const& p : procCount) {
+		proccontrol_printf("\t%p -> %d\n", p.first, p.second);
+	}
+	proccontrol_printf("---------------------------------------------------\n");
+
+	return event_ptr;
 }
 
 unsigned int PCEventMailbox::size() {
@@ -519,5 +569,11 @@ unsigned int PCEventMailbox::size() {
 }
 
 bool PCEventMailbox::find(PCProcess *proc) {
-   return (procCount[proc] > 0);
+   proccontrol_printf("Calling find for process %p (%d)\n", proc, proc->getPid());
+   assert(proc != nullptr);
+   auto it = procCount.find(proc->getPid());
+   if(it != procCount.end()) {
+	   return it->second > 0;
+   }
+   return false;
 }
