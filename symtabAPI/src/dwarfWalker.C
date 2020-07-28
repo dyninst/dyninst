@@ -1785,10 +1785,16 @@ bool DwarfWalker::decodeLocationList(Dwarf_Half attr,
         std::vector<LocDesc> locDescs;
         ptrdiff_t offset = 0;
         Dwarf_Addr basep, start, end;
+
         do {
             offset = dwarf_getlocations(&locationAttribute, offset, &basep,
                     &start, &end, &exprs, &exprlen);
-            if(offset==-1) return false;
+            if(offset==-1){
+                cerr << "err message: " << dwarf_errmsg(dwarf_errno()) << endl;
+                return false;
+            }
+            if(offset==0) break;
+
             LocDesc ld;
             ld.ld_lopc = start;
             ld.ld_hipc = end;
