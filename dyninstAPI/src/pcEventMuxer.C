@@ -561,11 +561,8 @@ Event::const_ptr PCEventMailbox::dequeue(bool block) {
 }
 
 unsigned int PCEventMailbox::size() {
-    unsigned result = 0;
-    queueCond.lock();
-    result = (unsigned int) eventQueue.size();
-    queueCond.unlock();
-    return result;
+    std::lock_guard<CondVar<>> l{queueCond};
+    return eventQueue.size();
 }
 
 bool PCEventMailbox::find(PCProcess *proc) {
