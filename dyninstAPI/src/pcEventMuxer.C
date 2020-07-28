@@ -566,6 +566,7 @@ unsigned int PCEventMailbox::size() {
 }
 
 bool PCEventMailbox::find(PCProcess *proc) {
+   std::lock_guard<CondVar<>> l{queueCond};
    proccontrol_printf("Calling find for process %p (%d)\n", proc, proc->getPid());
    assert(proc != nullptr);
    auto it = procCount.find(proc->getPid());
