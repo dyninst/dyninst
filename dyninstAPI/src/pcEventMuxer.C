@@ -500,7 +500,7 @@ void PCEventMailbox::enqueue(Event::const_ptr ev) {
 
 	proccontrol_printf("--------- Enqueue for Process ID [%d] -------------\n", evProc->getPid());
 	for(auto const& p : procCount) {
-		proccontrol_printf("\t%p -> %d\n", p.first, p.second);
+		proccontrol_printf("\t%d -> %d\n", p.first, p.second);
 	}
 	proccontrol_printf("---------------------------------------------------\n");
 
@@ -553,7 +553,7 @@ Event::const_ptr PCEventMailbox::dequeue(bool block) {
 
 	proccontrol_printf("--------- Dequeue for Process ID [%d] -------------\n", evProc->getPid());
 	for(auto const& p : procCount) {
-		proccontrol_printf("\t%p -> %d\n", p.first, p.second);
+		proccontrol_printf("\t%d -> %d\n", p.first, p.second);
 	}
 	proccontrol_printf("---------------------------------------------------\n");
 
