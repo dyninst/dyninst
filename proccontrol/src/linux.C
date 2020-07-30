@@ -2830,15 +2830,20 @@ bool linux_thread::plat_setRegisterAsync(Dyninst::MachRegister reg,
    return true;
 }
 
-void linux_thread::plat_handle_ghost_thread() {
+bool linux_thread::plat_handle_ghost_thread() {
 	std::string loc = "/proc/" + std::to_string(proc()->getPid()) + "/task/" + std::to_string(getLWP());
 	struct stat dummy;
 	int res = stat(loc.c_str(), &dummy);
+	pthrd_printf("GHOST_THREAD: stat=%d, loc=%s\n", res, loc.c_str());
 
-	pthrd_printf("GHOST_THREAD: exists=%d, loc=%s\n", res, loc.c_str());
-
-	// If the thread is still active, do nothing
-	if(res != -1) return;
+	// If the thread is still alive, do nothing
+	if(res != -1) {
+		// NB: We got here because ptrace returned ESRCH (no such process) in LinuxPtrace::ptrace_int,
+		//     yet the process is alive. This is a valid state for ptrace, but ptrace_int doesn't check
+		//     for this. The ptrace man-page indicates that this can happen when a process received a STOP
+		//     signal, but it hasn't transitioned to the new state yet.
+		return false;
+	}
 
 	auto *initial_thread = llproc()->threadPool()->initialThread();
 
@@ -2851,6 +2856,7 @@ void linux_thread::plat_handle_ghost_thread() {
 		dynamic_cast<linux_process*>(proc()->llproc())->decodeTdbLWPExit(lwp_ev);
 		mbox()->enqueue(lwp_ev, true);
 	}
+	return true;
   }
 
 bool linux_thread::attach()

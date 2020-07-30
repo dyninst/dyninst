@@ -997,7 +997,7 @@ public:
    virtual bool plat_setRegisterAsync(Dyninst::MachRegister reg,
                                       Dyninst::MachRegisterVal val,
                                       result_response::ptr result);
-   virtual void plat_handle_ghost_thread();
+   virtual bool plat_handle_ghost_thread();
    virtual void plat_terminate();
 
    void updateRegCache(int_registerPool &pool);
