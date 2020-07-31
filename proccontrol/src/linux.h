@@ -222,7 +222,7 @@ class linux_thread : virtual public thread_db_thread
    virtual bool thrdb_getThreadArea(int val, Dyninst::Address &addr);
    virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs, bool gprs_only = false);
 
-   virtual void plat_handle_ghost_thread();
+   virtual bool plat_handle_ghost_thread();
    void setOptions();
    bool unsetOptions();
    bool getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val);

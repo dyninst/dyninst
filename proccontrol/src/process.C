@@ -2525,8 +2525,9 @@ bool indep_lwp_control_process::plat_syncRunState()
       }
       if (!result && getLastError() == err_exited) {
     	  pthrd_printf("Suppressing error of continue/stop on exited process\n");
-    	  thr->plat_handle_ghost_thread();
-    	  thr->getHandlerState().setState(int_thread::running);
+    	  if(thr->plat_handle_ghost_thread()) {
+    		  thr->getHandlerState().setState(int_thread::running);
+    	  }
       }
       else if (!result) {
          pthrd_printf("Error changing process state from plat_syncRunState\n");
@@ -3989,7 +3990,7 @@ bool int_thread::plat_setRegisterAsync(Dyninst::MachRegister,
    return false;
 }
 
-void int_thread::plat_handle_ghost_thread() {}
+bool int_thread::plat_handle_ghost_thread() { return true; }
 
 void int_thread::addPostedRPC(int_iRPC::ptr rpc_)
 {
