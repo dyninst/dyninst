@@ -1428,8 +1428,6 @@ ArchEventLinux *linux_thread::getPostponedSyscallEvent()
 
 bool linux_thread::plat_cont()
 {
-   pthrd_printf("Continuing thread %d\n", lwp);
-
    switch (getHandlerState().getState()) {
       case neonatal:
       case running:
@@ -1448,6 +1446,9 @@ bool linux_thread::plat_cont()
       case ditto:
          assert(0);
    }
+
+   pthrd_printf("Continuing thread %d/%d from current handler state %s\n",
+		   proc_->getPid(), lwp, int_thread::stateStr(handler_state.getState()));
 
    // The following case poses a problem:
    // 1) This thread has received a signal, but the event hasn't been handled yet
@@ -2854,6 +2855,8 @@ bool linux_thread::plat_handle_ghost_thread() {
 		lwp_ev->setThread(thread());
 		lwp_ev->setProcess(proc());
 		dynamic_cast<linux_process*>(proc()->llproc())->decodeTdbLWPExit(lwp_ev);
+		pthrd_printf("GHOST THREAD: Enqueueing event for %d/%d\n",
+				proc()->getPid(), getLWP());
 		mbox()->enqueue(lwp_ev, true);
 	}
 	return true;

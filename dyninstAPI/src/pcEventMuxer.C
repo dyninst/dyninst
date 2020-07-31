@@ -500,7 +500,7 @@ void PCEventMailbox::enqueue(Event::const_ptr ev) {
 
 	proccontrol_printf("--------- Enqueue for Process ID [%d] -------------\n", evProc->getPid());
 	for(auto const& p : procCount) {
-		proccontrol_printf("\t%p -> %d\n", p.first, p.second);
+		proccontrol_printf("\t%d -> %d\n", p.first, p.second);
 	}
 	proccontrol_printf("---------------------------------------------------\n");
 
@@ -553,7 +553,7 @@ Event::const_ptr PCEventMailbox::dequeue(bool block) {
 
 	proccontrol_printf("--------- Dequeue for Process ID [%d] -------------\n", evProc->getPid());
 	for(auto const& p : procCount) {
-		proccontrol_printf("\t%p -> %d\n", p.first, p.second);
+		proccontrol_printf("\t%d -> %d\n", p.first, p.second);
 	}
 	proccontrol_printf("---------------------------------------------------\n");
 
@@ -561,19 +561,17 @@ Event::const_ptr PCEventMailbox::dequeue(bool block) {
 }
 
 unsigned int PCEventMailbox::size() {
-    unsigned result = 0;
-    queueCond.lock();
-    result = (unsigned int) eventQueue.size();
-    queueCond.unlock();
-    return result;
+    std::lock_guard<CondVar<>> l{queueCond};
+    return eventQueue.size();
 }
 
 bool PCEventMailbox::find(PCProcess *proc) {
-   proccontrol_printf("Calling find for process %p (%d)\n", proc, proc->getPid());
-   assert(proc != nullptr);
-   auto it = procCount.find(proc->getPid());
-   if(it != procCount.end()) {
-	   return it->second > 0;
-   }
-   return false;
+    std::lock_guard<CondVar<>> l{queueCond};
+    proccontrol_printf("Calling find for process %p (%d)\n", proc, proc->getPid());
+    assert(proc != nullptr);
+    auto it = procCount.find(proc->getPid());
+    if (it != procCount.end()) {
+        return it->second > 0;
+    }
+    return false;
 }
