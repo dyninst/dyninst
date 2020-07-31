@@ -109,15 +109,20 @@ bool DwarfHandle::init_dbg()
         return false;
     }
 
-    /* Create a one elf module file Dwfl. */
-    const char *base = basename (filename.c_str());
-    Dwfl *dwfl = dwfl_begin (&dwfl_callbacks);
-    dwfl_report_begin (dwfl);
-    Dwfl_Module *mod = dwfl_report_elf (dwfl, base, filename.c_str(), -1, 0, true);
-    dwfl_report_end (dwfl, NULL, NULL);
+    if(file->e_machine() == EM_CUDA)
+    {
+        file_data = dwarf_begin_elf(file->e_elfp(), DWARF_C_READ, NULL);
+    }else{
+        /* Create a one elf module file Dwfl. */
+        const char *base = basename (filename.c_str());
+        Dwfl *dwfl = dwfl_begin (&dwfl_callbacks);
+        dwfl_report_begin (dwfl);
+        Dwfl_Module *mod = dwfl_report_elf (dwfl, base, filename.c_str(), -1, 0, true);
+        dwfl_report_end (dwfl, NULL, NULL);
 
-    Dwarf_Addr bias;
-    file_data = dwfl_module_getdwarf(mod, &bias);
+        Dwarf_Addr bias;
+        file_data = dwfl_module_getdwarf(mod, &bias);
+    }
 
     //if (!file_data /*&& errno==0*/ )  {
     //    init_dwarf_status = dwarf_status_error;
@@ -128,15 +133,21 @@ bool DwarfHandle::init_dbg()
         //status = dwarf_elf_init(dbg_file->e_elfp(), DW_DLC_READ,
         //        err_func, &dbg_file_data, &dbg_file_data, &err);
 
-        /* Create a one elf module file Dwfl. */
-        const char *base = basename (debug_filename.c_str());
-        Dwfl *dwfl = dwfl_begin (&dwfl_callbacks);
-        dwfl_report_begin (dwfl);
-        Dwfl_Module *mod = dwfl_report_elf (dwfl, base, debug_filename.c_str(), -1, 0, true);
-        dwfl_report_end (dwfl, NULL, NULL);
+        if(dbg_file->e_machine() == EM_CUDA)
+        {
+            dbg_file_data = dwarf_begin_elf(dbg_file->e_elfp(), DWARF_C_READ, NULL);
+        }else{
+            /* Create a one elf module file Dwfl. */
+            const char *base = basename (debug_filename.c_str());
+            Dwfl *dwfl = dwfl_begin (&dwfl_callbacks);
+            dwfl_report_begin (dwfl);
+            Dwfl_Module *mod = dwfl_report_elf (dwfl, base, debug_filename.c_str(), -1, 0, true);
+            dwfl_report_end (dwfl, NULL, NULL);
 
-        Dwarf_Addr bias;
-        dbg_file_data = dwfl_module_getdwarf(mod, &bias);
+            Dwarf_Addr bias;
+            dbg_file_data = dwfl_module_getdwarf(mod, &bias);
+        }
+
 
         if (!dbg_file_data) {
             init_dwarf_status = dwarf_status_error;
