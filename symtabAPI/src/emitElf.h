@@ -157,7 +157,7 @@ namespace Dyninst {
             typedef typename ElfTypes::Elf_Verdaux Elf_Verdaux;
 
             ~emitElf() {
-                if( linkedStaticData ) delete linkedStaticData;
+                if( linkedStaticData ) delete[] linkedStaticData;
             }
 
             bool createSymbolTables(std::set<Symbol *> &allSymbols);
