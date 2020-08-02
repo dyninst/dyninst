@@ -33,6 +33,7 @@
 
 #include "Object.h"
 #include "debug.h"
+#include "Elf_X.h"
 #include <iostream>
 
 #include <unordered_map>
