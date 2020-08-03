@@ -50,14 +50,15 @@ namespace Dyninst
     //0xff000000 is used to encode architecture
     typedef enum
     {
-        Arch_none   = 0x00000000,
-        Arch_x86    = 0x14000000,
-        Arch_x86_64 = 0x18000000,
-        Arch_ppc32  = 0x24000000,
-        Arch_ppc64  = 0x28000000,
+        Arch_none   =  0x00000000,
+        Arch_x86    =  0x14000000,
+        Arch_x86_64 =  0x18000000,
+        Arch_ppc32  =  0x24000000,
+        Arch_ppc64  =  0x28000000,
         Arch_aarch32 = 0x44000000, //for later use
         Arch_aarch64 = 0x48000000,
-        Arch_cuda  = 0x88000000
+        Arch_amdgpu =  0x84000000,
+        Arch_cuda  =   0x88000000
     } Architecture;
 
 

@@ -157,7 +157,11 @@ bool DwarfHandle::init_dbg()
             arch = Arch_aarch64;
             break;
         case EM_CUDA:
-            arch = Arch_cuda;
+            arch = Dyninst::Arch_cuda;
+            break;
+        case EM_AMDGPU:
+            arch = Dyninst::Arch_amdgpu;
+            //assert (0 && "under development" ) ;
             break;
         default:
             assert(0 && "Unsupported archiecture in ELF file.");

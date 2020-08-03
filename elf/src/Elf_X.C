@@ -1787,6 +1787,8 @@ Dyninst::Architecture Elf_X::getArch() const
             return Dyninst::Arch_aarch32;
         case EM_AARCH64:
             return Dyninst::Arch_aarch64;
+        case EM_AMDGPU:
+            return Dyninst::Arch_amdgpu;
         default:
             return Dyninst::Arch_none;
     }
