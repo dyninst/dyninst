@@ -88,8 +88,7 @@ AddressSpace::AddressSpace () :
     memEmulator_(NULL),
     emulateMem_(false),
     emulatePC_(false),
-    delayRelocation_(false),
-    patcher_(NULL)
+    delayRelocation_(false)
 {
 #if 0
    // Disabled for now; used by defensive mode

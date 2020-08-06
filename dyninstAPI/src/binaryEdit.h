@@ -144,7 +144,7 @@ class BinaryEdit : public AddressSpace {
     // And the "open" factory method.
     static BinaryEdit *openFile(const std::string &file,
                                 Dyninst::PatchAPI::PatchMgrPtr mgr = Dyninst::PatchAPI::PatchMgrPtr(),
-                                Dyninst::PatchAPI::Patcher *patch = NULL,
+                                Dyninst::PatchAPI::Patcher::Ptr patch = Dyninst::PatchAPI::Patcher::Ptr(),
                                 const std::string &member = "");
 
     bool writeFile(const std::string &newFileName);
