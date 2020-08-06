@@ -100,8 +100,6 @@ class BinaryEdit : public AddressSpace {
     virtual void inferiorFree(Address item);
     virtual bool inferiorRealloc(Address item, unsigned newSize);
 
-    /* AddressSpace pure virtual implementation */
-    unsigned getAddressWidth() const;
     Address offset() const;
     Address length() const;
     Architecture getArch() const;

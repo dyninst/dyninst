@@ -255,10 +255,6 @@ Architecture BinaryEdit::getArch() const {
   return mapped_objects[0]->parse_img()->codeObject()->cs()->getArch();
 }
 
-unsigned BinaryEdit::getAddressWidth() const {
-  assert(!mapped_objects.empty());
-  return mapped_objects[0]->parse_img()->codeObject()->cs()->getAddressWidth();
-}
 Address BinaryEdit::offset() const {
     fprintf(stderr,"error BinaryEdit::offset() unimpl\n");
     return 0;

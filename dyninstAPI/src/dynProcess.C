@@ -1522,15 +1522,6 @@ int PCProcess::incrementThreadIndex() {
     return ret;
 }
 
-unsigned PCProcess::getAddressWidth() const {
-    if( mapped_objects.size() > 0 ) {
-        return mapped_objects[0]->parse_img()->codeObject()->cs()->getAddressWidth();
-    }
-
-    // We can call this before we've attached...best effort guess
-    return sizeof(Address);
-}
-
 PCEventHandler * PCProcess::getPCEventHandler() const {
     return eventHandler_;
 }
