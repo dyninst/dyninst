@@ -41,14 +41,11 @@
 #include <set>
 
 #include "addressSpace.h"
-#include "dynThread.h"
-#include "pcEventHandler.h"
 #include "inst.h"
 #include "codeRange.h"
 #include "infHeap.h"
 #include "ast.h"
 #include "syscallNotification.h"
-#include "os.h"
 #include "baseTramp.h"
 
 #include "Symtab.h"
@@ -59,6 +56,8 @@
 #include "stackwalk/h/walker.h"
 #include "stackwalk/h/framestepper.h"
 #include "stackwalk/h/symlookup.h"
+#include "pcEventHandler.h"
+#include "frame.h"
 
 #define RPC_LEAVE_AS_IS 0
 #define RPC_RUN_WHEN_DONE 1

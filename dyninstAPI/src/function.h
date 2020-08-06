@@ -58,6 +58,7 @@
 #include "StackMod/StackLocation.h"
 #include "StackMod/TMap.h"
 #endif
+#include "Relocation/DynCommon.h"
 
 class PCProcess;
 class mapped_module;
