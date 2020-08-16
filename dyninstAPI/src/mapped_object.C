@@ -48,7 +48,7 @@
 #include "instPoint.h"
 #include "MemoryEmulator/memEmulator.h"
 #include <boost/tuple/tuple.hpp>
-
+#include "BPatch_image.h"
 #include "PatchCFG.h"
 #include "PCProcess.h"
 

@@ -63,6 +63,9 @@
 
 #include <boost/bind.hpp>
 
+#include "dynThread.h"
+#include "pcEventHandler.h"
+
 // Implementations of non-virtual functions in the address space
 // class.
 

@@ -39,7 +39,7 @@
 #include "dynProcess.h"
 #include "MemoryEmulator/memEmulator.h"
 #include "PatchModifier.h"
-
+#include "BPatch_image.h"
 #include "mapped_object.h"
 
 extern pdvector<image*> allImages;

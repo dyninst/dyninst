@@ -37,6 +37,7 @@
 #include "RegisterConversion.h"
 #include "function.h"
 #include "MemoryEmulator/memEmulator.h"
+#include "dynThread.h"
 
 #include "Mailbox.h"
 #include "PCErrors.h"
